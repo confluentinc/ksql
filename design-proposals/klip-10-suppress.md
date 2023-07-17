@@ -1,6 +1,6 @@
 # KLIP 10 - Add Suppress To KSQL
 
-**Author**: agavra | 
+**Author**: agavra, nae701 | 
 **Release Target**: 5.5 | 
 **Status**: _In Discussion_ | 
 **Discussion**: _link to the design discussion PR_
@@ -50,9 +50,10 @@ value), and would send three emails when none should be sent.
 - Outline the features of suppress that need to be represented in KSQL
 - Syntax for suppress functionality
 - Grace periods for windows
+- Outline of potential implementation
 
 **Out of Scope**:
-- Outline of potential implementation
+-Future extensions such as designing syntax to implement buffered and rate control refinement
 
 ## Value/Return
 
@@ -80,7 +81,6 @@ CHANGES | FINAL
 And behaves in the following ways:
 - If `CHANGES` is specified, then all intermediate changes will be materialized
 - If `FINAL` is specified, then output will be emitted only when the aggregation window has closed
-    - the `AFTER` clause allows the user to specify the grace period as part of the syntax
     
 Since the default grace period in Kafka Streams is 24 hours, the default `EMIT FINAL` behavior will
 only omit data 24 hours after the query starts. Since this is unlikely to be good user experience,
@@ -123,7 +123,59 @@ this in one of three ways:
 This KLIP proposes to punt this discussion and choose the first option as it is backwards compatible
 with what exists today.
 
-   
+## Design
+#### Adding syntax
+The first thing to do is add support for the keyword `EMIT FINAL` as described in the above discussion.
+As stated above, this KLIP goes on to use the first definition in determining whether a query is persistent
+push, or pull. We updated the grammar and the `AstBuilder` to incorporate this new syntax.
+
+#### Adding a suppress node
+Other Kafka streams operations such as filter or aggregate for example each have their own node in the logical plan,
+so the most natural thing to do was to also add a `SuppressNode` to the logical plan.
+We only build the `SuppressNode` if the result materialization was specified in the KSQL query as `EMIT FINAL`. 
+A key use case of suppress is to only send the final 
+aggregation result of each window, so the suppress node needs to be added at the end of the logical 
+plan right before we build the output node, so that previous steps such as `aggregate` and `groupby` 
+are executed first when we generate the physical plan.
+
+#### Adding the streams suppress operator
+After adding the suppress node to the logical plan, we can then build and execute the physical plan.
+This means we add the corresponding `suppress` method to `SchemaKTable`. This method requires 
+creating a new `ExecutionStep` called `TableSuppress` and the corresponding builder `TableSuppressBuilder`.
+Inside `TableSuppressBuilder` is where we will actually call the Streams API's actual suppress operator.
+All of this is initiated by calling `visitTableSuppress` in `KSPlanBuilder`.
+
+#### Alternatives
+An alternate approach was to add suppression wherever we might need it, for example in the `AggregateNode`.
+However, this approach does not allow for much flexibility in terms of future enhancements or different
+types of suppression. Instead, by introducing a suppress node, we give ourselves the flexibility to 
+perform suppression on not only aggregations on windowed tables, but for instance time-based suppression
+that could work on any table. 
+
+A brief overview of what it would look like to add time-based suppression is as follows. 
+
+1. Add a keyword such as `WAIT` to the syntax to indicate how long to suppress results for
+2. We can add a parameter to the `SuppressNode` to indicate what type of suppression we are performing 
+whether it is windowed or timed or any future type of suppression we add.
+3. Since we can just use the existing wiring in place, all we would need to do is add a new section
+in `TableSuppressBuilder` that executes the time-based suppression.
+
+If we did not use a suppress node, we would have to add a lot more code to add different types of suppression
+since each would need to be wired individually.
+
+#### Trouble spots
+A problem that often came up during the prototype implementation of suppress, was that by the time we
+had reached the suppress node, the correct serdes were not being passed along properly. This was because
+any time we had called the method `transformValues` on a `KTable`, unless we had explicitly specified
+a `materialized` with the correctly made serdes. This led us on a bit of goose chase where we tried to
+find the last `transformValues` call before suppression, until Almog suggested that we just have a dummy
+`transformValues` call in `TableSuppressBuilder` itself so that we can guarantee that we pass on the correct
+serdes. This solution is efficient in this case since it was easy to implement, but as a result does not help fix
+the larger issue of serdes being passed on correctly, which may happen again as more functionality is 
+added to ksqlDB.  
+
+
+  
 ## Test plan
 
 - Add corresponding QTTs will cover this functionality 

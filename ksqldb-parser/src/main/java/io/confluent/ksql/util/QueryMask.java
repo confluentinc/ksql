@@ -71,7 +71,7 @@ public final class QueryMask {
        Regex matches sequences of characters that are not in '(' ',' ';' ')' and are not be followed
        by a '(' anywhere further down the string (since VALUES is always last in a statement).
      */
-    if (StringUtils.indexOfIgnoreCase(query.replaceAll("\\s+", ""), ")VALUES(") < 0) {
+    if (StringUtils.indexOfIgnoreCase(query.replaceAll("\\s+", ""), "VALUES(") < 0) {
       return query;
     }
     final int valueIdx = StringUtils.indexOfIgnoreCase(query, "VALUES");
@@ -187,7 +187,15 @@ public final class QueryMask {
         stringBuilder.append(" SINK");
       }
 
-      stringBuilder.append(" CONNECTOR ").append(context.identifier().getText());
+      stringBuilder.append(" CONNECTOR");
+
+      // optional if not exists
+      if (context.EXISTS() != null) {
+        stringBuilder.append(" IF NOT EXISTS");
+      }
+
+      stringBuilder.append(" ").append(context.identifier().getText());
+
 
       // mask properties
       if (context.tableProperties() != null) {

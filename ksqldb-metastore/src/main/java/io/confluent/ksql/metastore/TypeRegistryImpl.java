@@ -16,7 +16,6 @@
 package io.confluent.ksql.metastore;
 
 import io.confluent.ksql.schema.ksql.types.SqlType;
-import io.confluent.ksql.util.KsqlException;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Optional;
@@ -27,14 +26,8 @@ public class TypeRegistryImpl implements TypeRegistry {
   private final Map<String, SqlType> typeRegistry = new ConcurrentHashMap<>();
 
   @Override
-  public void registerType(final String name, final SqlType type) {
-    final SqlType oldValue = typeRegistry.putIfAbsent(name.toUpperCase(), type);
-    if (oldValue != null) {
-      throw new KsqlException(
-          "Cannot register custom type '" + name + "' "
-              + "since it is already registered with type: " + type
-      );
-    }
+  public boolean registerType(final String name, final SqlType type) {
+    return typeRegistry.putIfAbsent(name.toUpperCase(), type) == null;
   }
 
   @Override

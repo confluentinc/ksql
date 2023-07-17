@@ -22,7 +22,7 @@
     <parent>
         <groupId>io.confluent.ksql</groupId>
         <artifactId>ksqldb-parent</artifactId>
-        <version>6.0.14-SNAPSHOT</version>
+        <version>6.1.12-0</version>
     </parent>
 
     <artifactId>ksqldb-api-client</artifactId>
@@ -44,6 +44,7 @@
         <dependency>
             <groupId>io.confluent.ksql</groupId>
             <artifactId>ksqldb-rest-model</artifactId>
+            <version>${io.confluent.ksql.version}</version>
             <exclusions>
                 <exclusion>
                     <groupId>*</groupId>
@@ -55,6 +56,7 @@
         <dependency>
             <groupId>io.confluent.ksql</groupId>
             <artifactId>ksqldb-common</artifactId>
+            <version>${io.confluent.ksql.version}</version>
             <exclusions>
                 <exclusion>
                     <groupId>*</groupId>
@@ -98,20 +100,21 @@
         <dependency>
             <groupId>io.confluent</groupId>
             <artifactId>common-utils</artifactId>
+            <version>${io.confluent.common.version}</version>
             <scope>test</scope>
         </dependency>
 
         <dependency>
             <groupId>io.confluent.ksql</groupId>
             <artifactId>ksqldb-rest-app</artifactId>
-            <version>${project.version}</version>
+            <version>${io.confluent.ksql.version}</version>
             <scope>test</scope>
         </dependency>
 
         <dependency>
             <groupId>io.confluent.ksql</groupId>
             <artifactId>ksqldb-rest-app</artifactId>
-            <version>${project.parent.version}</version>
+            <version>${io.confluent.ksql.version}</version>
             <type>test-jar</type>
             <scope>test</scope>
         </dependency>
@@ -119,14 +122,14 @@
         <dependency>
             <groupId>io.confluent.ksql</groupId>
             <artifactId>ksqldb-test-util</artifactId>
-            <version>${project.version}</version>
+            <version>${io.confluent.ksql.version}</version>
             <scope>test</scope>
         </dependency>
 
         <dependency>
             <groupId>io.confluent.ksql</groupId>
             <artifactId>ksqldb-engine</artifactId>
-            <version>${project.parent.version}</version>
+            <version>${io.confluent.ksql.version}</version>
             <type>test-jar</type>
             <scope>test</scope>
         </dependency>
@@ -134,6 +137,7 @@
         <dependency>
             <groupId>org.apache.kafka</groupId>
             <artifactId>kafka-streams</artifactId>
+            <version>${kafka.version}</version>
             <scope>test</scope>
         </dependency>
 
@@ -165,6 +169,7 @@
                 <artifactId>maven-javadoc-plugin</artifactId>
                 <version>3.2.0</version>
                 <configuration>
+                    <source>8</source>
                     <reportOutputDirectory>../docs/developer-guide/ksqldb-clients/java-client</reportOutputDirectory>
                     <stylesheetfile>javadoc.css</stylesheetfile>
                     <destDir>api</destDir>
@@ -181,7 +186,7 @@
 -j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
 -'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
 -})(window,document,'script','dataLayer','GTM-WRL2Z8Z');</script>]]></header>
-                    <footer>&nbsp;</footer> <!-- prevent duplication of the header content -->
+                    <footer>&#xA0;</footer> <!-- prevent duplication of the header content -->
                     <doclint>none</doclint>
                     <keywords>true</keywords>
                     <nodeprecated>true</nodeprecated>

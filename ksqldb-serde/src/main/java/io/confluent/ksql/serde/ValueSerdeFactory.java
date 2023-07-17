@@ -19,7 +19,9 @@ import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
+import io.confluent.ksql.serde.tracked.TrackedCallback;
 import io.confluent.ksql.util.KsqlConfig;
+import java.util.Optional;
 import java.util.function.Supplier;
 import org.apache.kafka.common.serialization.Serde;
 
@@ -37,6 +39,7 @@ public interface ValueSerdeFactory {
    * @param schemaRegistryClientFactory supplier of SR client.
    * @param loggerNamePrefix processing logger name prefix
    * @param processingLogContext processing logger context.
+   * @param tracker optional callback used to track serde operations.
    * @return the value serde.
    */
   Serde<GenericRow> create(
@@ -45,6 +48,7 @@ public interface ValueSerdeFactory {
       KsqlConfig ksqlConfig,
       Supplier<SchemaRegistryClient> schemaRegistryClientFactory,
       String loggerNamePrefix,
-      ProcessingLogContext processingLogContext
+      ProcessingLogContext processingLogContext,
+      Optional<TrackedCallback> tracker
   );
 }

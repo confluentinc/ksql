@@ -179,17 +179,20 @@ public final class KsqlRestClient implements Closeable {
 
   public RestResponse<List<StreamedRow>> makeQueryRequest(final String ksql,
       final Long commandSeqNum) {
-    return makeQueryRequest(ksql, commandSeqNum, null);
+    return makeQueryRequest(ksql, commandSeqNum, null, Collections.emptyMap());
   }
 
-  public RestResponse<List<StreamedRow>> makeQueryRequest(final String ksql,
-      final Long commandSeqNum, final Map<String, ?> properties) {
+  public RestResponse<List<StreamedRow>> makeQueryRequest(
+      final String ksql,
+      final Long commandSeqNum,
+      final Map<String, ?> properties,
+      final Map<String, ?> requestProperties) {
     KsqlTarget target = target();
     if (properties != null) {
       target = target.properties(properties);
     }
     return target.postQueryRequest(
-        ksql, Collections.emptyMap(), Optional.ofNullable(commandSeqNum));
+        ksql, requestProperties, Optional.ofNullable(commandSeqNum));
   }
 
   public RestResponse<StreamPublisher<String>> makePrintTopicRequest(
@@ -212,6 +215,10 @@ public final class KsqlRestClient implements Closeable {
     return localProperties.unset(property);
   }
 
+  public Object getProperty(final String property) {
+    return localProperties.get(property);
+  }
+
   private KsqlTarget target() {
     return client.target(getServerAddress());
   }
@@ -227,7 +234,11 @@ public final class KsqlRestClient implements Closeable {
 
   private static URI parseUri(final String serverAddress) {
     try {
-      return new URL(serverAddress).toURI();
+      final URL url = new URL(serverAddress);
+      if (url.getPort() == -1) {
+        return new URL(serverAddress.concat(":") + url.getDefaultPort()).toURI();
+      }
+      return url.toURI();
     } catch (final Exception e) {
       throw new KsqlRestClientException(
           "The supplied serverAddress is invalid: " + serverAddress, e);

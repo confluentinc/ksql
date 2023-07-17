@@ -29,6 +29,7 @@ import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonFactoryBuilder;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonToken;
+import io.confluent.ksql.function.FunctionCategory;
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.function.udf.UdfParameter;
@@ -40,6 +41,7 @@ import java.util.function.Predicate;
 
 @UdfDescription(
     name = "JSON_ARRAY_CONTAINS",
+    category = FunctionCategory.JSON,
     description = JsonArrayContains.DESCRIPTION,
     author = KsqlConstants.CONFLUENT_AUTHOR
 )

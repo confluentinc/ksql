@@ -21,12 +21,13 @@ import static java.util.Objects.requireNonNull;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
-import io.confluent.common.utils.TestUtils;
 import io.confluent.ksql.integration.IntegrationTestHarness;
 import io.confluent.ksql.integration.Retry;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
 import io.confluent.ksql.test.loader.JsonTestLoader;
 import io.confluent.ksql.test.loader.TestFile;
+import io.confluent.ksql.test.model.TestFileContext;
+import io.confluent.ksql.test.utils.TestUtils;
 import io.confluent.ksql.util.KsqlConfig;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -76,9 +77,14 @@ public class RestQueryTranslationTest {
       .builder(TEST_HARNESS::kafkaBootstrapServers)
       .withProperty(
           KsqlConfig.KSQL_STREAMS_PREFIX + StreamsConfig.STATE_DIR_CONFIG,
-          TestUtils.tempDirectory().getPath()
+          TestUtils.tempDirectory().toAbsolutePath().toString()
+      )
+      .withProperty(
+          KsqlConfig.KSQL_STREAMS_PREFIX + StreamsConfig.PROCESSING_GUARANTEE_CONFIG,
+          StreamsConfig.EXACTLY_ONCE // To stabilize tests
       )
       .withProperty(KsqlConfig.KSQL_STREAMS_PREFIX + StreamsConfig.NUM_STREAM_THREADS_CONFIG, 1)
+      .withProperty(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY, "set")
       .withStaticServiceContext(TEST_HARNESS::getServiceContext)
       .build();
 
@@ -126,7 +132,7 @@ public class RestQueryTranslationTest {
           + System.lineSeparator()
           + "failed test: " + testCase.getName()
           + System.lineSeparator()
-          + "in file: " + testCase.getTestFile(),
+          + "in file: " + testCase.getTestLocation(),
           e
       );
     }
@@ -145,7 +151,6 @@ public class RestQueryTranslationTest {
   static class RqttTestFile implements TestFile<RestTestCase> {
 
     private final List<RestTestCaseNode> tests;
-    private final RestTestCaseBuilder builder = new RestTestCaseBuilder();
 
     RqttTestFile(@JsonProperty("tests") final List<RestTestCaseNode> tests) {
       this.tests = ImmutableList.copyOf(requireNonNull(tests, "tests collection missing"));
@@ -156,10 +161,10 @@ public class RestQueryTranslationTest {
     }
 
     @Override
-    public Stream<RestTestCase> buildTests(final Path testPath) {
+    public Stream<RestTestCase> buildTests(final TestFileContext ctx) {
       return tests
           .stream()
-          .flatMap(node -> RestTestCaseBuilder.buildTests(node, testPath).stream());
+          .flatMap(node -> RestTestCaseBuilder.buildTests(node, ctx));
     }
   }
 }

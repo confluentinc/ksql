@@ -73,7 +73,7 @@ Your output should resemble:
 ```
 Type                 : TABLE
 Timestamp field      : Not set - using <ROWTIME>
-Key format           : STRING
+Key format           : KAFKA
 Value format         : JSON
 Kafka output topic   : IP_SUM (partitions: 4, replication: 1)
 

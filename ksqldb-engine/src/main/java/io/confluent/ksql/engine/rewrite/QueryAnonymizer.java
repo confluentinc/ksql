@@ -21,6 +21,8 @@ import io.confluent.ksql.parser.DefaultKsqlParser;
 import io.confluent.ksql.parser.SqlBaseBaseVisitor;
 import io.confluent.ksql.parser.SqlBaseParser;
 import io.confluent.ksql.parser.SqlBaseParser.AliasedRelationContext;
+import io.confluent.ksql.parser.SqlBaseParser.AlterOptionContext;
+import io.confluent.ksql.parser.SqlBaseParser.AlterSourceContext;
 import io.confluent.ksql.parser.SqlBaseParser.BooleanDefaultContext;
 import io.confluent.ksql.parser.SqlBaseParser.BooleanLiteralContext;
 import io.confluent.ksql.parser.SqlBaseParser.CreateConnectorContext;
@@ -28,6 +30,7 @@ import io.confluent.ksql.parser.SqlBaseParser.CreateStreamAsContext;
 import io.confluent.ksql.parser.SqlBaseParser.CreateStreamContext;
 import io.confluent.ksql.parser.SqlBaseParser.CreateTableAsContext;
 import io.confluent.ksql.parser.SqlBaseParser.CreateTableContext;
+import io.confluent.ksql.parser.SqlBaseParser.DefineVariableContext;
 import io.confluent.ksql.parser.SqlBaseParser.DescribeConnectorContext;
 import io.confluent.ksql.parser.SqlBaseParser.DescribeFunctionContext;
 import io.confluent.ksql.parser.SqlBaseParser.DropConnectorContext;
@@ -52,6 +55,7 @@ import io.confluent.ksql.parser.SqlBaseParser.ListQueriesContext;
 import io.confluent.ksql.parser.SqlBaseParser.ListStreamsContext;
 import io.confluent.ksql.parser.SqlBaseParser.ListTopicsContext;
 import io.confluent.ksql.parser.SqlBaseParser.ListTypesContext;
+import io.confluent.ksql.parser.SqlBaseParser.ListVariablesContext;
 import io.confluent.ksql.parser.SqlBaseParser.LogicalBinaryContext;
 import io.confluent.ksql.parser.SqlBaseParser.NumericLiteralContext;
 import io.confluent.ksql.parser.SqlBaseParser.OuterJoinContext;
@@ -75,6 +79,7 @@ import io.confluent.ksql.parser.SqlBaseParser.TablePropertiesContext;
 import io.confluent.ksql.parser.SqlBaseParser.TablePropertyContext;
 import io.confluent.ksql.parser.SqlBaseParser.TerminateQueryContext;
 import io.confluent.ksql.parser.SqlBaseParser.TypeContext;
+import io.confluent.ksql.parser.SqlBaseParser.UndefineVariableContext;
 import io.confluent.ksql.parser.SqlBaseParser.UnquotedIdentifierContext;
 import io.confluent.ksql.parser.SqlBaseParser.UnsetPropertyContext;
 import io.confluent.ksql.parser.SqlBaseParser.ValueExpressionContext;
@@ -151,8 +156,43 @@ public class QueryAnonymizer {
     }
 
     @Override
+    public String visitAlterSource(final AlterSourceContext context) {
+      final StringBuilder stringBuilder = new StringBuilder("ALTER");
+
+      // anonymize stream or table name
+      final String streamTable = ParserUtil.getIdentifierText(context.sourceName().identifier());
+      if (context.STREAM() != null) {
+        stringBuilder.append(String.format(" STREAM %s", getAnonStreamName(streamTable)));
+      } else {
+        stringBuilder.append(String.format(" TABLE %s", getAnonTableName(streamTable)));
+      }
+
+      // alter option
+      final List<String> alterOptions = new ArrayList<>();
+      for (AlterOptionContext alterOption : context.alterOption()) {
+        alterOptions.add(visit(alterOption));
+      }
+      stringBuilder.append(String.format(" (%s)", StringUtils.join(alterOptions, ", ")));
+
+      return stringBuilder.toString();
+    }
+
+    @Override
+    public String visitAlterOption(final AlterOptionContext context) {
+      final String columnName = context.identifier().getText();
+      final String anonColumnName = getAnonColumnName(columnName);
+
+      return String.format("ADD COLUMN %1$s %2$s", anonColumnName, visit(context.type()));
+    }
+
+    @Override
     public String visitRegisterType(final RegisterTypeContext context) {
       final StringBuilder stringBuilder = new StringBuilder("CREATE TYPE");
+
+      // optional if not exists
+      if (context.EXISTS() != null) {
+        stringBuilder.append(" IF NOT EXISTS");
+      }
 
       // anonymize type
       stringBuilder.append(String.format(" type AS %s", visit(context.type())));
@@ -171,6 +211,11 @@ public class QueryAnonymizer {
       }
 
       stringBuilder.append(" CONNECTOR");
+
+      // optional if not exists
+      if (context.EXISTS() != null) {
+        stringBuilder.append(" IF NOT EXISTS");
+      }
 
       stringBuilder.append(" connector ");
 
@@ -275,6 +320,12 @@ public class QueryAnonymizer {
     }
 
     @Override
+    public String visitListVariables(final ListVariablesContext context) {
+      final TerminalNode listOrVisit = context.LIST() != null ? context.LIST() : context.SHOW();
+      return String.format("%s VARIABLES", listOrVisit.toString());
+    }
+
+    @Override
     public String visitListQueries(final ListQueriesContext context) {
       final TerminalNode listOrVisit = context.LIST() != null ? context.LIST() : context.SHOW();
       final StringBuilder stringBuilder = new StringBuilder(listOrVisit.toString() + " QUERIES");
@@ -341,7 +392,6 @@ public class QueryAnonymizer {
       return "TERMINATE query";
     }
 
-
     @Override
     public String visitShowColumns(final ShowColumnsContext context) {
       final StringBuilder stringBuilder = new StringBuilder("DESCRIBE ");
@@ -371,6 +421,16 @@ public class QueryAnonymizer {
     public String visitUnsetProperty(final UnsetPropertyContext context) {
       final String propertyName = context.STRING().getText();
       return String.format("UNSET %s", propertyName);
+    }
+
+    @Override
+    public String visitDefineVariable(final DefineVariableContext context) {
+      return "DEFINE variable='[string]'";
+    }
+
+    @Override
+    public String visitUndefineVariable(final UndefineVariableContext context) {
+      return "UNDEFINE variable";
     }
 
     @Override
@@ -454,6 +514,11 @@ public class QueryAnonymizer {
     public String visitCreateStreamAs(final CreateStreamAsContext context) {
       final StringBuilder stringBuilder = new StringBuilder("CREATE ");
 
+      // optional replace
+      if (context.OR() != null && context.REPLACE() != null) {
+        stringBuilder.append("OR REPLACE ");
+      }
+
       stringBuilder.append("STREAM ");
 
       // optional if not exists
@@ -481,6 +546,11 @@ public class QueryAnonymizer {
     @Override
     public String visitCreateStream(final CreateStreamContext context) {
       final StringBuilder stringBuilder = new StringBuilder("CREATE ");
+
+      // optional replace
+      if (context.OR() != null && context.REPLACE() != null) {
+        stringBuilder.append("OR REPLACE ");
+      }
 
       stringBuilder.append("STREAM ");
 
@@ -510,6 +580,11 @@ public class QueryAnonymizer {
     public String visitCreateTableAs(final CreateTableAsContext context) {
       final StringBuilder stringBuilder = new StringBuilder("CREATE ");
 
+      // optional replace
+      if (context.OR() != null && context.REPLACE() != null) {
+        stringBuilder.append("OR REPLACE ");
+      }
+
       stringBuilder.append("TABLE ");
 
       // optional if not exists
@@ -537,6 +612,11 @@ public class QueryAnonymizer {
     @Override
     public String visitCreateTable(final CreateTableContext context) {
       final StringBuilder stringBuilder = new StringBuilder("CREATE ");
+
+      // optional replace
+      if (context.OR() != null && context.REPLACE() != null) {
+        stringBuilder.append("OR REPLACE ");
+      }
 
       stringBuilder.append("TABLE ");
 
@@ -641,6 +721,10 @@ public class QueryAnonymizer {
     public String visitDropConnector(final DropConnectorContext context) {
       final StringBuilder stringBuilder = new StringBuilder("DROP CONNECTOR ");
 
+      if (context.EXISTS() != null) {
+        stringBuilder.append("IF EXISTS ");
+      }
+
       stringBuilder.append("connector");
 
       return stringBuilder.toString();
@@ -649,6 +733,10 @@ public class QueryAnonymizer {
     @Override
     public String visitDropType(final DropTypeContext context) {
       final StringBuilder stringBuilder = new StringBuilder("DROP TYPE ");
+
+      if (context.EXISTS() != null) {
+        stringBuilder.append("IF EXISTS ");
+      }
 
       stringBuilder.append("type");
 

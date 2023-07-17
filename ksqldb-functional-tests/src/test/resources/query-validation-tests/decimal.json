@@ -59,11 +59,11 @@
         {"topic": "test", "value": {"DEC": 0.0001}}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "value": {"DEC": 10}},
-        {"topic": "OUTPUT", "value": {"DEC": 1}},
-        {"topic": "OUTPUT", "value": {"DEC": 0.1}},
-        {"topic": "OUTPUT", "value": {"DEC": 0.01}},
-        {"topic": "OUTPUT", "value": {"DEC": 0.001}},
+        {"topic": "OUTPUT", "value": {"DEC": 10.0000}},
+        {"topic": "OUTPUT", "value": {"DEC": 1.0000}},
+        {"topic": "OUTPUT", "value": {"DEC": 0.1000}},
+        {"topic": "OUTPUT", "value": {"DEC": 0.0100}},
+        {"topic": "OUTPUT", "value": {"DEC": 0.0010}},
         {"topic": "OUTPUT", "value": {"DEC": 0.0001}}
       ],
       "post": {
@@ -127,7 +127,7 @@
         {"topic": "test", "value": {"DEC": 1.0000}}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "value": {"DEC": 10.0}},
+        {"topic": "OUTPUT", "value": {"DEC": 10.0000}},
         {"topic": "OUTPUT", "value": {"DEC": 1.0000}}
       ],
       "post": {
@@ -148,7 +148,7 @@
         {"topic": "test", "value": {"DEC": 1.0000}}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "value": {"DEC": 10.0}},
+        {"topic": "OUTPUT", "value": {"DEC": 10.0000}},
         {"topic": "OUTPUT", "value": {"DEC": 1.0000}}
       ],
       "post": {

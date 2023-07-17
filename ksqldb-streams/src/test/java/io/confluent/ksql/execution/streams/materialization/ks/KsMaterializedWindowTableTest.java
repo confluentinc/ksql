@@ -23,6 +23,8 @@ import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -60,6 +62,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class KsMaterializedWindowTableTest {
 
   private static final Duration WINDOW_SIZE = Duration.ofMinutes(1);
+  private static final int PARTITION = 0;
 
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
       .keyColumn(ColumnName.of("K0"), SqlTypes.STRING)
@@ -69,9 +72,16 @@ public class KsMaterializedWindowTableTest {
   private static final Struct A_KEY = StructKeyUtil
       .keyBuilder(ColumnName.of("K0"), SqlTypes.STRING).build("x");
 
+  protected static final Instant NOW = Instant.now();
+
   private static final Range<Instant> WINDOW_START_BOUNDS = Range.closed(
-      Instant.now(),
-      Instant.now().plusSeconds(10)
+      NOW,
+      NOW.plusSeconds(10)
+  );
+
+  private static final Range<Instant> WINDOW_END_BOUNDS = Range.closed(
+      NOW.plusSeconds(5).plus(WINDOW_SIZE),
+      NOW.plusSeconds(15).plus(WINDOW_SIZE)
   );
 
   private static final ValueAndTimestamp<GenericRow> VALUE_1 = ValueAndTimestamp
@@ -96,7 +106,7 @@ public class KsMaterializedWindowTableTest {
   public void setUp() {
     table = new KsMaterializedWindowTable(stateStore, WINDOW_SIZE);
 
-    when(stateStore.store(any())).thenReturn(tableStore);
+    when(stateStore.store(any(), anyInt())).thenReturn(tableStore);
     when(stateStore.schema()).thenReturn(SCHEMA);
     when(tableStore.fetch(any(), any(), any())).thenReturn(fetchIterator);
   }
@@ -112,12 +122,12 @@ public class KsMaterializedWindowTableTest {
   @Test
   public void shouldThrowIfGettingStateStoreFails() {
     // Given:
-    when(stateStore.store(any())).thenThrow(new MaterializationTimeOutException("Boom"));
+    when(stateStore.store(any(), anyInt())).thenThrow(new MaterializationTimeOutException("Boom"));
 
     // When:
     final Exception e = assertThrows(
         MaterializationException.class,
-        () -> table.get(A_KEY, WINDOW_START_BOUNDS)
+        () -> table.get(A_KEY, PARTITION, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS)
     );
 
     // Then:
@@ -135,7 +145,7 @@ public class KsMaterializedWindowTableTest {
     // When:
     final Exception e = assertThrows(
         MaterializationException.class,
-        () -> table.get(A_KEY, WINDOW_START_BOUNDS)
+        () -> table.get(A_KEY, PARTITION, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS)
     );
 
     // Then:
@@ -147,30 +157,147 @@ public class KsMaterializedWindowTableTest {
   @Test
   public void shouldGetStoreWithCorrectParams() {
     // When:
-    table.get(A_KEY, WINDOW_START_BOUNDS);
+    table.get(A_KEY, PARTITION, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS);
 
     // Then:
-    verify(stateStore).store(storeTypeCaptor.capture());
-    assertThat(storeTypeCaptor.getValue().getClass().getSimpleName(), is("TimestampedWindowStoreType"));
+    verify(stateStore).store(storeTypeCaptor.capture(), anyInt());
+    assertThat(storeTypeCaptor.getValue().getClass().getSimpleName(),
+        is("TimestampedWindowStoreType"));
   }
 
   @Test
-  public void shouldFetchWithCorrectParams() {
+  public void shouldFetchWithCorrectKey() {
+    // Given:
     // When:
-    table.get(A_KEY, WINDOW_START_BOUNDS);
+    table.get(A_KEY, PARTITION, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS);
+
+    // Then:
+    verify(tableStore).fetch(eq(A_KEY), any(), any());
+  }
+
+  @Test
+  public void shouldFetchWithNoBounds() {
+    // When:
+    table.get(A_KEY, PARTITION, Range.all(), Range.all());
 
     // Then:
     verify(tableStore).fetch(
-        A_KEY,
-        WINDOW_START_BOUNDS.lowerEndpoint(),
-        WINDOW_START_BOUNDS.upperEndpoint()
+        any(),
+        eq(Instant.ofEpochMilli(0)),
+        eq(Instant.ofEpochMilli(Long.MAX_VALUE))
     );
+  }
+
+  @Test
+  public void shouldFetchWithOnlyStartBounds() {
+    // When:
+    table.get(A_KEY, PARTITION, WINDOW_START_BOUNDS, Range.all());
+
+    // Then:
+    verify(tableStore).fetch(
+        any(),
+        eq(WINDOW_START_BOUNDS.lowerEndpoint()),
+        eq(WINDOW_START_BOUNDS.upperEndpoint())
+    );
+  }
+
+  @Test
+  public void shouldFetchWithOnlyEndBounds() {
+    // When:
+    table.get(A_KEY, PARTITION, Range.all(), WINDOW_END_BOUNDS);
+
+    // Then:
+    verify(tableStore).fetch(
+        any(),
+        eq(WINDOW_END_BOUNDS.lowerEndpoint().minus(WINDOW_SIZE)),
+        eq(WINDOW_END_BOUNDS.upperEndpoint().minus(WINDOW_SIZE))
+    );
+  }
+
+  @Test
+  public void shouldFetchWithStartLowerBoundIfHighest() {
+    // Given:
+    final Range<Instant> startBounds = Range.closed(
+        NOW.plusSeconds(5),
+        NOW.plusSeconds(10)
+    );
+
+    final Range<Instant> endBounds = Range.closed(
+        NOW,
+        NOW.plusSeconds(15).plus(WINDOW_SIZE)
+    );
+
+    // When:
+    table.get(A_KEY, PARTITION, startBounds, endBounds);
+
+    // Then:
+    verify(tableStore).fetch(any(), eq(startBounds.lowerEndpoint()), any());
+  }
+
+  @Test
+  public void shouldFetchWithEndLowerBoundIfHighest() {
+    // Given:
+    final Range<Instant> startBounds = Range.closed(
+        NOW,
+        NOW.plusSeconds(10)
+    );
+
+    final Range<Instant> endBounds = Range.closed(
+        NOW.plusSeconds(5).plus(WINDOW_SIZE),
+        NOW.plusSeconds(15).plus(WINDOW_SIZE)
+    );
+
+    // When:
+    table.get(A_KEY, PARTITION, startBounds, endBounds);
+
+    // Then:
+    verify(tableStore).fetch(any(), eq(endBounds.lowerEndpoint().minus(WINDOW_SIZE)), any());
+  }
+
+  @Test
+  public void shouldFetchWithStartUpperBoundIfLowest() {
+    // Given:
+    final Range<Instant> startBounds = Range.closed(
+        NOW,
+        NOW.plusSeconds(10)
+    );
+
+    final Range<Instant> endBounds = Range.closed(
+        NOW.plusSeconds(5).plus(WINDOW_SIZE),
+        NOW.plusSeconds(15).plus(WINDOW_SIZE)
+    );
+
+    // When:
+    table.get(A_KEY, PARTITION, startBounds, endBounds);
+
+    // Then:
+    verify(tableStore).fetch(any(), any(), eq(startBounds.upperEndpoint()));
+  }
+
+  @Test
+  public void shouldFetchWithEndUpperBoundIfLowest() {
+    // Given:
+    final Range<Instant> startBounds = Range.closed(
+        NOW,
+        NOW.plusSeconds(20)
+    );
+
+    final Range<Instant> endBounds = Range.closed(
+        NOW.plusSeconds(5),
+        NOW.plusSeconds(10)
+    );
+
+    // When:
+    table.get(A_KEY, PARTITION, startBounds, endBounds);
+
+    // Then:
+    verify(tableStore).fetch(any(), any(), eq(endBounds.upperEndpoint().minus(WINDOW_SIZE)));
   }
 
   @Test
   public void shouldCloseIterator() {
     // When:
-    table.get(A_KEY, WINDOW_START_BOUNDS);
+    table.get(A_KEY, PARTITION, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS);
 
     // Then:
     verify(fetchIterator).close();
@@ -179,18 +306,18 @@ public class KsMaterializedWindowTableTest {
   @Test
   public void shouldReturnEmptyIfKeyNotPresent() {
     // When:
-    final List<?> result = table.get(A_KEY, WINDOW_START_BOUNDS);
+    final List<?> result = table.get(A_KEY, PARTITION, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS);
 
     // Then:
     assertThat(result, is(empty()));
   }
 
   @Test
-  public void shouldReturnValuesForClosedBounds() {
+  public void shouldReturnValuesForClosedStartBounds() {
     // Given:
-    final Range<Instant> bounds = Range.closed(
-        Instant.now(),
-        Instant.now().plusSeconds(10)
+    final Range<Instant> start = Range.closed(
+        NOW,
+        NOW.plusSeconds(10)
     );
 
     when(fetchIterator.hasNext())
@@ -199,26 +326,26 @@ public class KsMaterializedWindowTableTest {
         .thenReturn(false);
 
     when(fetchIterator.next())
-        .thenReturn(new KeyValue<>(bounds.lowerEndpoint().toEpochMilli(), VALUE_1))
-        .thenReturn(new KeyValue<>(bounds.upperEndpoint().toEpochMilli(), VALUE_2))
+        .thenReturn(new KeyValue<>(start.lowerEndpoint().toEpochMilli(), VALUE_1))
+        .thenReturn(new KeyValue<>(start.upperEndpoint().toEpochMilli(), VALUE_2))
         .thenThrow(new AssertionError());
 
     when(tableStore.fetch(any(), any(), any())).thenReturn(fetchIterator);
 
     // When:
-    final List<WindowedRow> result = table.get(A_KEY, bounds);
+    final List<WindowedRow> result = table.get(A_KEY, PARTITION, start, Range.all());
 
     // Then:
     assertThat(result, contains(
         WindowedRow.of(
             SCHEMA,
-            windowedKey(bounds.lowerEndpoint()),
+            windowedKey(start.lowerEndpoint()),
             VALUE_1.value(),
             VALUE_1.timestamp()
         ),
         WindowedRow.of(
             SCHEMA,
-            windowedKey(bounds.upperEndpoint()),
+            windowedKey(start.upperEndpoint()),
             VALUE_2.value(),
             VALUE_2.timestamp()
         )
@@ -226,11 +353,56 @@ public class KsMaterializedWindowTableTest {
   }
 
   @Test
-  public void shouldReturnValuesForOpenBounds() {
+  public void shouldReturnValuesForClosedEndBounds() {
     // Given:
-    final Range<Instant> bounds = Range.open(
-        Instant.now(),
-        Instant.now().plusSeconds(10)
+    final Range<Instant> end = Range.closed(
+        NOW,
+        NOW.plusSeconds(10)
+    );
+
+    final Range<Instant> startEqiv = Range.closed(
+        end.lowerEndpoint().minus(WINDOW_SIZE),
+        end.lowerEndpoint().minus(WINDOW_SIZE)
+    );
+
+    when(fetchIterator.hasNext())
+        .thenReturn(true)
+        .thenReturn(true)
+        .thenReturn(false);
+
+    when(fetchIterator.next())
+        .thenReturn(new KeyValue<>(startEqiv.lowerEndpoint().toEpochMilli(), VALUE_1))
+        .thenReturn(new KeyValue<>(startEqiv.upperEndpoint().toEpochMilli(), VALUE_2))
+        .thenThrow(new AssertionError());
+
+    when(tableStore.fetch(any(), any(), any())).thenReturn(fetchIterator);
+
+    // When:
+    final List<WindowedRow> result = table.get(A_KEY, PARTITION, Range.all(), end);
+
+    // Then:
+    assertThat(result, contains(
+        WindowedRow.of(
+            SCHEMA,
+            windowedKey(startEqiv.lowerEndpoint()),
+            VALUE_1.value(),
+            VALUE_1.timestamp()
+        ),
+        WindowedRow.of(
+            SCHEMA,
+            windowedKey(startEqiv.upperEndpoint()),
+            VALUE_2.value(),
+            VALUE_2.timestamp()
+        )
+    ));
+  }
+
+  @Test
+  public void shouldReturnValuesForOpenStartBounds() {
+    // Given:
+    final Range<Instant> start = Range.open(
+        NOW,
+        NOW.plusSeconds(10)
     );
 
     when(fetchIterator.hasNext())
@@ -240,21 +412,63 @@ public class KsMaterializedWindowTableTest {
         .thenReturn(false);
 
     when(fetchIterator.next())
-        .thenReturn(new KeyValue<>(bounds.lowerEndpoint().toEpochMilli(), VALUE_1))
-        .thenReturn(new KeyValue<>(bounds.lowerEndpoint().plusMillis(1).toEpochMilli(), VALUE_2))
-        .thenReturn(new KeyValue<>(bounds.upperEndpoint().toEpochMilli(), VALUE_3))
+        .thenReturn(new KeyValue<>(start.lowerEndpoint().toEpochMilli(), VALUE_1))
+        .thenReturn(new KeyValue<>(start.lowerEndpoint().plusMillis(1).toEpochMilli(), VALUE_2))
+        .thenReturn(new KeyValue<>(start.upperEndpoint().toEpochMilli(), VALUE_3))
         .thenThrow(new AssertionError());
 
     when(tableStore.fetch(any(), any(), any())).thenReturn(fetchIterator);
 
     // When:
-    final List<WindowedRow> result = table.get(A_KEY, bounds);
+    final List<WindowedRow> result = table.get(A_KEY, PARTITION, start, Range.all());
 
     // Then:
     assertThat(result, contains(
         WindowedRow.of(
             SCHEMA,
-            windowedKey(bounds.lowerEndpoint().plusMillis(1)),
+            windowedKey(start.lowerEndpoint().plusMillis(1)),
+            VALUE_2.value(),
+            VALUE_2.timestamp()
+        )
+    ));
+  }
+
+  @Test
+  public void shouldReturnValuesForOpenEndBounds() {
+    // Given:
+    final Range<Instant> end = Range.open(
+        NOW,
+        NOW.plusSeconds(10)
+    );
+
+    final Range<Instant> startEquiv = Range.open(
+        end.lowerEndpoint().minus(WINDOW_SIZE),
+        end.upperEndpoint().minus(WINDOW_SIZE)
+    );
+
+    when(fetchIterator.hasNext())
+        .thenReturn(true)
+        .thenReturn(true)
+        .thenReturn(true)
+        .thenReturn(false);
+
+    when(fetchIterator.next())
+        .thenReturn(new KeyValue<>(startEquiv.lowerEndpoint().toEpochMilli(), VALUE_1))
+        .thenReturn(
+            new KeyValue<>(startEquiv.lowerEndpoint().plusMillis(1).toEpochMilli(), VALUE_2))
+        .thenReturn(new KeyValue<>(startEquiv.upperEndpoint().toEpochMilli(), VALUE_3))
+        .thenThrow(new AssertionError());
+
+    when(tableStore.fetch(any(), any(), any())).thenReturn(fetchIterator);
+
+    // When:
+    final List<WindowedRow> result = table.get(A_KEY, PARTITION, Range.all(), end);
+
+    // Then:
+    assertThat(result, contains(
+        WindowedRow.of(
+            SCHEMA,
+            windowedKey(startEquiv.lowerEndpoint().plusMillis(1)),
             VALUE_2.value(),
             VALUE_2.timestamp()
         )
@@ -281,7 +495,7 @@ public class KsMaterializedWindowTableTest {
     when(tableStore.fetch(any(), any(), any())).thenReturn(fetchIterator);
 
     // When:
-    final List<WindowedRow> result = table.get(A_KEY, WINDOW_START_BOUNDS);
+    final List<WindowedRow> result = table.get(A_KEY, PARTITION, Range.all(), Range.all());
 
     // Then:
     assertThat(result, contains(
@@ -309,7 +523,7 @@ public class KsMaterializedWindowTableTest {
   @Test
   public void shouldSupportRangeAll() {
     // When:
-    table.get(A_KEY, Range.all());
+    table.get(A_KEY, PARTITION, Range.all(), Range.all());
 
     // Then:
     verify(tableStore).fetch(

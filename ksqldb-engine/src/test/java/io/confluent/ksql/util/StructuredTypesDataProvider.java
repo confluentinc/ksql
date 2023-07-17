@@ -21,29 +21,35 @@ import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Multimap;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.execution.util.StructKeyUtil;
+import io.confluent.ksql.execution.util.StructKeyUtil.KeyBuilder;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import io.confluent.ksql.serde.SerdeOption;
+import io.confluent.ksql.serde.SerdeFeature;
+import io.confluent.ksql.serde.SerdeFeatures;
+import io.confluent.ksql.serde.connect.ConnectSchemas;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Struct;
 
-public class StructuredTypesDataProvider extends TestDataProvider<String> {
+public class StructuredTypesDataProvider extends TestDataProvider {
 
   private static final LogicalSchema LOGICAL_SCHEMA = LogicalSchema.builder()
       .keyColumn(ColumnName.of("STR"), SqlTypes.STRING)
       .valueColumn(ColumnName.of("LONG"), SqlTypes.BIGINT)
       .valueColumn(ColumnName.of("DEC"), SqlTypes.decimal(4, 2))
       .valueColumn(ColumnName.of("ARRAY"), SqlTypes.array(SqlTypes.STRING))
-      .valueColumn(ColumnName.of("MAP"), SqlTypes.map(SqlTypes.STRING))
+      .valueColumn(ColumnName.of("MAP"), SqlTypes.map(SqlTypes.STRING, SqlTypes.STRING))
       .valueColumn(ColumnName.of("STRUCT"), SqlTypes.struct().field("F1", SqlTypes.INTEGER).build())
       .valueColumn(ColumnName.of("COMPLEX"), SqlTypes.struct()
           .field("DECIMAL", SqlTypes.decimal(2, 1))
@@ -53,33 +59,44 @@ public class StructuredTypesDataProvider extends TestDataProvider<String> {
               .build())
           .field("ARRAY_ARRAY", SqlTypes.array(SqlTypes.array(SqlTypes.STRING)))
           .field("ARRAY_STRUCT", SqlTypes.array(SqlTypes.struct().field("F1", SqlTypes.STRING).build()))
-          .field("ARRAY_MAP", SqlTypes.array(SqlTypes.map(SqlTypes.INTEGER)))
-          .field("MAP_ARRAY", SqlTypes.map(SqlTypes.array(SqlTypes.STRING)))
-          .field("MAP_MAP", SqlTypes.map(SqlTypes.map(SqlTypes.INTEGER)))
-          .field("MAP_STRUCT", SqlTypes.map(SqlTypes.struct().field("F1", SqlTypes.STRING).build()))
+          .field("ARRAY_MAP", SqlTypes.array(SqlTypes.map(SqlTypes.STRING, SqlTypes.INTEGER)))
+          .field("MAP_ARRAY", SqlTypes.map(SqlTypes.STRING, SqlTypes.array(SqlTypes.STRING)))
+          .field("MAP_MAP", SqlTypes.map(SqlTypes.STRING,
+              SqlTypes.map(SqlTypes.STRING, SqlTypes.INTEGER)
+          ))
+          .field("MAP_STRUCT", SqlTypes.map(SqlTypes.STRING,
+              SqlTypes.struct().field("F1", SqlTypes.STRING).build()
+          ))
           .build()
       )
       .build();
 
   private static final PhysicalSchema PHYSICAL_SCHEMA = PhysicalSchema
-      .from(LOGICAL_SCHEMA, SerdeOption.none());
+      .from(LOGICAL_SCHEMA, SerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES), SerdeFeatures.of());
 
-  private static final Schema STRUCT_FIELD_SCHEMA = LOGICAL_SCHEMA.valueConnectSchema().field("STRUCT").schema();
-  private static final Schema COMPLEX_FIELD_SCHEMA = LOGICAL_SCHEMA.valueConnectSchema().field("COMPLEX").schema();
+  private static final KeyBuilder KEY_BUILDER = StructKeyUtil.keyBuilder(LOGICAL_SCHEMA);
 
-  private static final Multimap<String, GenericRow> ROWS = ImmutableListMultimap
-      .<String, GenericRow>builder()
-      .put("FOO", genericRow(1L, new BigDecimal("1.11"), Collections.singletonList("a"), Collections.singletonMap("k1", "v1"), generateStruct(2), generateComplexStruct(0)))
-      .put("BAR", genericRow(2L, new BigDecimal("2.22"), Collections.emptyList(), Collections.emptyMap(), generateStruct(3), generateComplexStruct(1)))
-      .put("BAZ", genericRow(3L, new BigDecimal("30.33"), Collections.singletonList("b"), Collections.emptyMap(), generateStruct(null), generateComplexStruct(2)))
-      .put("BUZZ", genericRow(4L, new BigDecimal("40.44"), ImmutableList.of("c", "d"), Collections.emptyMap(), generateStruct(88), generateComplexStruct(3)))
+  private static final ConnectSchema VALUE_CONNECT_SCHEMA = ConnectSchemas.columnsToConnectSchema(LOGICAL_SCHEMA.value());
+  private static final Schema STRUCT_FIELD_SCHEMA = VALUE_CONNECT_SCHEMA.field("STRUCT").schema();
+  private static final Schema COMPLEX_FIELD_SCHEMA = VALUE_CONNECT_SCHEMA.field("COMPLEX").schema();
+
+  private static final Multimap<Struct, GenericRow> ROWS = ImmutableListMultimap
+      .<Struct, GenericRow>builder()
+      .put(buildKey("FOO"), genericRow(1L, new BigDecimal("1.11"), Collections.singletonList("a"), Collections.singletonMap("k1", "v1"), generateStruct(2), generateComplexStruct(0)))
+      .put(buildKey("BAR"), genericRow(2L, new BigDecimal("2.22"), Collections.emptyList(), Collections.emptyMap(), generateStruct(3), generateComplexStruct(1)))
+      .put(buildKey("BAZ"), genericRow(3L, new BigDecimal("30.33"), Collections.singletonList("b"), Collections.emptyMap(), generateStruct(null), generateComplexStruct(2)))
+      .put(buildKey("BUZZ"), genericRow(4L, new BigDecimal("40.44"), ImmutableList.of("c", "d"), Collections.emptyMap(), generateStruct(88), generateComplexStruct(3)))
       // Additional entries for repeated keys
-      .put("BAZ", genericRow(5L, new BigDecimal("12"), ImmutableList.of("e"), ImmutableMap.of("k1", "v1", "k2", "v2"), generateStruct(0), generateComplexStruct(4)))
-      .put("BUZZ", genericRow(6L, new BigDecimal("10.1"), ImmutableList.of("f", "g"), Collections.emptyMap(), generateStruct(null), generateComplexStruct(5)))
+      .put(buildKey("BAZ"), genericRow(5L, new BigDecimal("12.0"), ImmutableList.of("e"), ImmutableMap.of("k1", "v1", "k2", "v2"), generateStruct(0), generateComplexStruct(4)))
+      .put(buildKey("BUZZ"), genericRow(6L, new BigDecimal("10.1"), ImmutableList.of("f", "g"), Collections.emptyMap(), generateStruct(null), generateComplexStruct(5)))
       .build();
 
   public StructuredTypesDataProvider() {
     super("STRUCTURED_TYPES", PHYSICAL_SCHEMA, ROWS);
+  }
+
+  private static Struct buildKey(final String key) {
+    return KEY_BUILDER.build(key);
   }
 
   @SuppressWarnings("unchecked")
@@ -129,7 +146,7 @@ public class StructuredTypesDataProvider extends TestDataProvider<String> {
   private static Struct generateComplexStruct(final int i) {
     final Struct complexStruct = new Struct(COMPLEX_FIELD_SCHEMA);
 
-    complexStruct.put("DECIMAL", new BigDecimal(i));
+    complexStruct.put("DECIMAL", new BigDecimal(i).setScale(1, RoundingMode.UNNECESSARY));
 
     final Struct struct = new Struct(COMPLEX_FIELD_SCHEMA.field("STRUCT").schema());
     struct.put("F1", "v" + i);

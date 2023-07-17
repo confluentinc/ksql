@@ -63,7 +63,8 @@ public class SchemaParserTest {
     // Then:
     assertThat(elements, contains(
         new TableElement(Namespace.VALUE, FOO, new Type(SqlTypes.INTEGER)),
-        new TableElement(Namespace.VALUE, BAR, new Type(SqlTypes.map(SqlTypes.STRING)))
+        new TableElement(Namespace.VALUE, BAR, new Type(SqlTypes.map(SqlTypes.STRING, SqlTypes.STRING
+        )))
     ));
   }
 

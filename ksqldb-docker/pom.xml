@@ -22,7 +22,7 @@
   <parent>
     <artifactId>ksqldb-parent</artifactId>
     <groupId>io.confluent.ksql</groupId>
-    <version>6.0.14-SNAPSHOT</version>
+    <version>6.1.12-0</version>
   </parent>
 
   <artifactId>ksqldb-docker</artifactId>
@@ -37,16 +37,19 @@
     <dependency>
       <groupId>io.confluent.ksql</groupId>
       <artifactId>ksqldb-rest-app</artifactId>
+      <version>${io.confluent.ksql.version}</version>
     </dependency>
 
     <dependency>
       <groupId>io.confluent.ksql</groupId>
       <artifactId>ksqldb-cli</artifactId>
+      <version>${io.confluent.ksql.version}</version>
     </dependency>
 
     <dependency>
       <groupId>io.confluent.ksql</groupId>
       <artifactId>ksqldb-functional-tests</artifactId>
+      <version>${io.confluent.ksql.version}</version>
     </dependency>
 
     <!-- Need to explicitly add dependencies with classifier as they are not automatically pulled

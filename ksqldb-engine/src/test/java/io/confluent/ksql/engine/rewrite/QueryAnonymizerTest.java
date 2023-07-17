@@ -61,6 +61,7 @@ public class QueryAnonymizerTest {
     Assert.assertEquals("LIST SOURCE CONNECTORS;",
         anon.anonymize("LIST SOURCE CONNECTORS;"));
     Assert.assertEquals("LIST TYPES;", anon.anonymize("LIST TYPES;"));
+    Assert.assertEquals("LIST VARIABLES;", anon.anonymize("LIST VARIABLES;"));
     Assert.assertEquals("LIST QUERIES;", anon.anonymize("LIST QUERIES;"));
   }
 
@@ -73,6 +74,7 @@ public class QueryAnonymizerTest {
     Assert.assertEquals("DESCRIBE CONNECTOR connector;",
         anon.anonymize("DESCRIBE CONNECTOR my_connector;"));
   }
+
 
   @Test
   public void printStatementsShouldGetAnonymized() {
@@ -98,6 +100,14 @@ public class QueryAnonymizerTest {
         anon.anonymize("SET 'auto.offset.reset'='earliest';"));
     Assert.assertEquals("UNSET 'auto.offset.reset';",
         anon.anonymize("UNSET 'auto.offset.reset';"));
+  }
+
+  @Test
+  public void shouldAnonymizeDefineUndefineProperty() {
+    Assert.assertEquals("DEFINE variable='[string]';",
+        anon.anonymize("DEFINE format = 'JSON';"));
+    Assert.assertEquals("UNDEFINE variable;",
+        anon.anonymize("UNDEFINE format;"));
   }
 
   @Test
@@ -217,6 +227,17 @@ public class QueryAnonymizerTest {
   }
 
   @Test
+  public void shouldAnonymizeAlterOptionCorrectly() {
+    final String output = anon.anonymize(
+        "ALTER STREAM my_stream ADD COLUMN c3 INT, ADD COLUMN c4 INT;");
+
+    Assert.assertEquals(
+        "ALTER STREAM stream1 (ADD COLUMN column1 INT, ADD COLUMN column2 INT);",
+        output
+    );
+  }
+
+  @Test
   public void shouldAnonymizeInsertIntoCorrectly() {
     final String output = anon.anonymize(
         "INSERT INTO my_stream SELECT user_id, browser_cookie, ip_address\n"
@@ -250,10 +271,10 @@ public class QueryAnonymizerTest {
         anon.anonymize("DROP STREAM IF EXISTS my_stream DELETE TOPIC;"));
     Assert.assertEquals("DROP TABLE IF EXISTS table1 DELETE TOPIC;",
         anon.anonymize("DROP TABLE IF EXISTS my_table DELETE TOPIC;"));
-    Assert.assertEquals("DROP CONNECTOR connector;",
-        anon.anonymize("DROP CONNECTOR my_connector;"));
-    Assert.assertEquals("DROP TYPE type;",
-        anon.anonymize("DROP TYPE my_type;"));
+    Assert.assertEquals("DROP CONNECTOR IF EXISTS connector;",
+        anon.anonymize("DROP CONNECTOR IF EXISTS my_connector;"));
+    Assert.assertEquals("DROP TYPE IF EXISTS type;",
+        anon.anonymize("DROP TYPE IF EXISTS my_type;"));
   }
 
   @Test

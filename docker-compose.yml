@@ -74,7 +74,6 @@ services:
   additional-ksqldb-server:
     image: ${KSQL_IMAGE_BASE}confluentinc/ksqldb-server:${KSQL_VERSION}
     hostname: additional-ksqldb-server
-    container_name: additional-ksqldb-server
     depends_on:
       - primary-ksqldb-server
     ports:

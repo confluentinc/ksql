@@ -15,29 +15,33 @@
 
 package io.confluent.ksql.serde.delimited;
 
-import io.confluent.ksql.util.DecimalUtil;
-import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.schema.ksql.PersistenceSchema;
+import io.confluent.ksql.schema.ksql.SimpleColumn;
+import io.confluent.ksql.schema.ksql.types.SqlBaseType;
 import java.io.StringWriter;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVPrinter;
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Serializer;
-import org.apache.kafka.connect.data.Field;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.Struct;
 
 
-public class KsqlDelimitedSerializer implements Serializer<Object> {
+class KsqlDelimitedSerializer implements Serializer<List<?>> {
 
+  private final PersistenceSchema schema;
   private final CSVFormat csvFormat;
 
-  public KsqlDelimitedSerializer(final CSVFormat csvFormat) {
-    this.csvFormat = csvFormat;
+  KsqlDelimitedSerializer(
+      final PersistenceSchema schema,
+      final CSVFormat csvFormat
+  ) {
+    this.schema = Objects.requireNonNull(schema, "schema");
+    this.csvFormat = Objects.requireNonNull(csvFormat, "csvFormat");
   }
 
   @Override
@@ -45,19 +49,15 @@ public class KsqlDelimitedSerializer implements Serializer<Object> {
   }
 
   @Override
-  public byte[] serialize(final String topic, final Object data) {
+  public byte[] serialize(final String topic, final List<?> data) {
     if (data == null) {
       return null;
     }
 
     try {
-      if (!(data instanceof Struct)) {
-        throw new SerializationException("DELIMITED does not support anonymous fields");
-      }
-
       final StringWriter stringWriter = new StringWriter();
       final CSVPrinter csvPrinter = new CSVPrinter(stringWriter, csvFormat);
-      csvPrinter.printRecord(() -> new FieldIterator((Struct)data));
+      csvPrinter.printRecord(() -> new FieldIterator(data, schema));
       final String result = stringWriter.toString();
       return result.substring(0, result.length() - 2).getBytes(StandardCharsets.UTF_8);
     } catch (final Exception e) {
@@ -71,46 +71,32 @@ public class KsqlDelimitedSerializer implements Serializer<Object> {
 
   private static class FieldIterator implements Iterator<Object> {
 
-    private final Struct data;
-    private final Iterator<Field> fieldIt;
+    private final Iterator<?> dataIt;
+    private final Iterator<SimpleColumn> columnIt;
 
-    FieldIterator(final Struct data) {
-      this.data = Objects.requireNonNull(data, "data");
-      this.fieldIt = data.schema().fields().iterator();
+    FieldIterator(final List<?> data, final PersistenceSchema schema) {
+      this.dataIt = data.iterator();
+      this.columnIt = schema.columns().iterator();
     }
 
     @Override
     public boolean hasNext() {
-      return fieldIt.hasNext();
+      return columnIt.hasNext();
     }
 
     @Override
     public Object next() {
-      final Field field = fieldIt.next();
-      throwOnUnsupportedType(field.schema());
-      if (DecimalUtil.isDecimal(field.schema())) {
-        return getDecimal(field);
-      }
-      return data.get(field);
+      final Object value = dataIt.next();
+      final SimpleColumn column = columnIt.next();
+
+      return column.type().baseType().equals(SqlBaseType.DECIMAL)
+          ? handleDecimal((BigDecimal) value)
+          : value;
     }
 
-    private String getDecimal(final Field field) {
-      final BigDecimal value = (BigDecimal) data.get(field);
-      final int precision = DecimalUtil.precision(field.schema());
-      final int scale = DecimalUtil.scale(field.schema());
-
-      return DecimalUtil.format(precision, scale, value);
-    }
-
-    private static void throwOnUnsupportedType(final Schema schema) {
-      switch (schema.type()) {
-        case ARRAY:
-        case MAP:
-        case STRUCT:
-          throw new KsqlException("DELIMITED does not support type: " + schema.type());
-
-        default:
-      }
+    private static String handleDecimal(final BigDecimal value) {
+      // Avoid scientific notation for now:
+      return value.toPlainString();
     }
   }
 }

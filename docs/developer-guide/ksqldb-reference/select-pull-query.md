@@ -36,7 +36,7 @@ Execute a pull query by sending an HTTP request to the ksqlDB REST API, and
 the API responds with a single response.  
 
 The WHERE clause must contain a single primary-key to retrieve and may
-optionally include bounds on WINDOWSTART if the materialized table is windowed.
+optionally include bounds on `WINDOWSTART` and `WINDOWEND` if the materialized table is windowed.
 For more information, see 
 [Time and Windows in ksqlDB](../../concepts/time-and-windows-in-ksqldb-queries.md).
 
@@ -46,17 +46,17 @@ Example
 ```sql
 SELECT * FROM pageviews_by_region
   WHERE regionId = 'Region_1'
-    AND 1570051876000 <= WINDOWSTART AND WINDOWSTART <= 1570138276000;
+    AND 1570051876000 <= WINDOWSTART AND WINDOWEND <= 1570138276000;
 ```
 
-When writing logical expressions using `WINDOWSTART`, you can use ISO-8601
+When writing logical expressions using `WINDOWSTART` or `WINDOWEND`, you can use ISO-8601
 formatted datestrings to represent date times. For example, the previous
 query is equivalent to the following:
 
 ```sql
 SELECT * FROM pageviews_by_region
   WHERE regionId = 'Region_1'
-    AND '2019-10-02T21:31:16' <= WINDOWSTART AND WINDOWSTART <= '2019-10-03T21:31:16';
+    AND '2019-10-02T21:31:16' <= WINDOWSTART AND WINDOWEND <= '2019-10-03T21:31:16';
 ```
 
 You can specify time zones within the datestring. For example,
@@ -64,5 +64,5 @@ You can specify time zones within the datestring. For example,
 specified within the datestring, then timestamps are interpreted in the UTC
 time zone.
 
-If no bounds are placed on `WINDOWSTART`, rows are returned for all windows
+If no bounds are placed on `WINDOWSTART` or `WINDOWEND`, rows are returned for all windows
 in the windowed table.

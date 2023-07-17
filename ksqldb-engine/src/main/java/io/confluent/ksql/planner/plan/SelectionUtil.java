@@ -26,10 +26,12 @@ import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.parser.tree.AllColumns;
 import io.confluent.ksql.parser.tree.SelectItem;
 import io.confluent.ksql.parser.tree.SingleColumn;
+import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.LogicalSchema.Builder;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -75,24 +77,28 @@ public final class SelectionUtil {
 
   public static List<SelectExpression> buildSelectExpressions(
       final PlanNode parentNode,
-      final List<? extends SelectItem> selectItems
+      final List<? extends SelectItem> selectItems,
+      final Optional<LogicalSchema> targetSchema
   ) {
     return IntStream.range(0, selectItems.size())
         .boxed()
-        .flatMap(idx -> resolveSelectItem(idx, selectItems, parentNode))
+        .flatMap(idx -> resolveSelectItem(idx, selectItems, parentNode, targetSchema))
         .collect(Collectors.toList());
   }
 
   private static Stream<SelectExpression> resolveSelectItem(
       final int idx,
       final List<? extends SelectItem> selectItems,
-      final PlanNode parentNode
+      final PlanNode parentNode,
+      final Optional<LogicalSchema> targetSchema
   ) {
     final SelectItem selectItem = selectItems.get(idx);
 
     if (selectItem instanceof SingleColumn) {
       final SingleColumn column = (SingleColumn) selectItem;
-      return resolveSingleColumn(idx, parentNode, column);
+      final Optional<Column> targetColumn = targetSchema.map(schema -> schema.columns().get(idx));
+
+      return resolveSingleColumn(idx, parentNode, column, targetColumn);
     }
 
     if (selectItem instanceof AllColumns) {
@@ -106,13 +112,19 @@ public final class SelectionUtil {
   private static Stream<SelectExpression> resolveSingleColumn(
       final int idx,
       final PlanNode parentNode,
-      final SingleColumn column
+      final SingleColumn column,
+      final Optional<Column> targetColumn
   ) {
     final Expression expression = parentNode.resolveSelect(idx, column.getExpression());
     final ColumnName alias = column.getAlias()
         .orElseThrow(() -> new IllegalStateException("Alias should be present by this point"));
 
-    return Stream.of(SelectExpression.of(alias, expression));
+    return Stream.of(SelectExpression.of(
+        alias,
+        targetColumn
+            .map(col -> ImplicitlyCastResolver.resolve(expression, col.type()))
+            .orElse(expression))
+    );
   }
 
   private static Stream<SelectExpression> resolveAllColumns(

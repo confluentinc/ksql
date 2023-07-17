@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.rest.server.resources;
 
+import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
@@ -26,7 +27,7 @@ import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.entity.HealthCheckResponse;
 import io.confluent.ksql.rest.healthcheck.HealthCheckAgent;
 import java.time.Duration;
-import org.apache.kafka.test.TestUtils;
+import java.util.concurrent.TimeUnit;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -83,10 +84,12 @@ public class HealthCheckResourceTest {
     healthCheckResource.checkHealth();
 
     // When / Then:
-    TestUtils.waitForCondition(
-        () -> healthCheckResource.checkHealth().getEntity() == response2,
+    assertThatEventually(
+        "Should receive response2 once response1 expires.",
+        () -> healthCheckResource.checkHealth().getEntity(),
+        is(response2),
         1000,
-        "Should receive response2 once response1 expires."
+        TimeUnit.MILLISECONDS
     );
   }
 }

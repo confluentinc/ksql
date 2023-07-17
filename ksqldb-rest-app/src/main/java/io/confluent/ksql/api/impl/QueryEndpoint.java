@@ -15,8 +15,10 @@
 
 package io.confluent.ksql.api.impl;
 
+import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.api.server.PushQueryHandle;
 import io.confluent.ksql.api.spi.QueryPublisher;
+import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
@@ -24,8 +26,10 @@ import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.query.BlockingRowQueue;
-import io.confluent.ksql.rest.entity.TableRowsEntity;
+import io.confluent.ksql.rest.entity.TableRows;
 import io.confluent.ksql.rest.server.execution.PullQueryExecutor;
+import io.confluent.ksql.rest.server.execution.PullQueryExecutorMetrics;
+import io.confluent.ksql.rest.server.execution.PullQueryResult;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.utils.FormatOptions;
 import io.confluent.ksql.services.ServiceContext;
@@ -42,18 +46,25 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import org.apache.kafka.common.utils.Time;
 
 public class QueryEndpoint {
 
   private final KsqlEngine ksqlEngine;
   private final KsqlConfig ksqlConfig;
   private final PullQueryExecutor pullQueryExecutor;
+  private final Optional<PullQueryExecutorMetrics> pullQueryMetrics;
 
-  public QueryEndpoint(final KsqlEngine ksqlEngine, final KsqlConfig ksqlConfig,
-      final PullQueryExecutor pullQueryExecutor) {
+  public QueryEndpoint(
+      final KsqlEngine ksqlEngine,
+      final KsqlConfig ksqlConfig,
+      final PullQueryExecutor pullQueryExecutor,
+      final Optional<PullQueryExecutorMetrics> pullQueryMetrics
+  ) {
     this.ksqlEngine = ksqlEngine;
     this.ksqlConfig = ksqlConfig;
     this.pullQueryExecutor = pullQueryExecutor;
+    this.pullQueryMetrics = pullQueryMetrics;
   }
 
   public QueryPublisher createQueryPublisher(
@@ -61,14 +72,15 @@ public class QueryEndpoint {
       final Context context,
       final WorkerExecutor workerExecutor,
       final ServiceContext serviceContext) {
-
+    final long startTimeNanos = Time.SYSTEM.nanoseconds();
     // Must be run on worker as all this stuff is slow
     VertxUtils.checkIsWorker();
 
     final ConfiguredStatement<Query> statement = createStatement(sql, properties.getMap());
 
     if (statement.getStatement().isPullQuery()) {
-      return createPullQueryPublisher(context, serviceContext, statement);
+      return createPullQueryPublisher(
+          context, serviceContext, statement, pullQueryMetrics, startTimeNanos);
     } else {
       return createPushQueryPublisher(context, serviceContext, statement, workerExecutor);
     }
@@ -92,10 +104,14 @@ public class QueryEndpoint {
   private QueryPublisher createPullQueryPublisher(
       final Context context,
       final ServiceContext serviceContext,
-      final ConfiguredStatement<Query> statement
+      final ConfiguredStatement<Query> statement,
+      final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
+      final long startTimeNanos
   ) {
-    final TableRowsEntity tableRows = pullQueryExecutor.execute(
-        statement, serviceContext, Optional.empty(), Optional.of(false));
+    final PullQueryResult result = pullQueryExecutor.execute(
+        statement, ImmutableMap.of(), serviceContext, Optional.of(false), pullQueryMetrics);
+    pullQueryMetrics.ifPresent(p -> p.recordLatency(startTimeNanos));
+    final TableRows tableRows = result.getTableRows();
 
     return new PullQueryPublisher(
         context,
@@ -121,7 +137,7 @@ public class QueryEndpoint {
     }
     @SuppressWarnings("unchecked") final PreparedStatement<Query> psq =
         (PreparedStatement<Query>) ps;
-    return ConfiguredStatement.of(psq, properties, ksqlConfig);
+    return ConfiguredStatement.of(psq, SessionConfig.of(ksqlConfig, properties));
   }
 
   private static List<String> colTypesFromSchema(final List<Column> columns) {

@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.function.udf.string;
 
+import io.confluent.ksql.function.FunctionCategory;
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.function.udf.UdfParameter;
@@ -25,6 +26,7 @@ import java.util.regex.Pattern;
 @SuppressWarnings("unused") // Invoked via reflection.
 @UdfDescription(
     name = "initcap",
+    category = FunctionCategory.STRING,
     author = KsqlConstants.CONFLUENT_AUTHOR,
     description = "Capitalizes the first letter of each word in a string and the rest lowercased."
         + " Words are delimited by whitespace."

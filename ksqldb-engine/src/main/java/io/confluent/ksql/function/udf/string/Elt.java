@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.function.udf.string;
 
+import io.confluent.ksql.function.FunctionCategory;
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.function.udf.UdfParameter;
@@ -22,6 +23,7 @@ import io.confluent.ksql.util.KsqlConstants;
 
 @UdfDescription(
     name = "elt",
+    category = FunctionCategory.STRING,
     description = Elt.DESCRIPTION,
     author = KsqlConstants.CONFLUENT_AUTHOR
 )

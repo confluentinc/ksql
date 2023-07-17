@@ -50,7 +50,6 @@ import io.confluent.ksql.parser.tree.JoinedSource.Type;
 import io.confluent.ksql.parser.tree.PartitionBy;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Relation;
-import io.confluent.ksql.parser.tree.ResultMaterialization;
 import io.confluent.ksql.parser.tree.Select;
 import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.parser.tree.Statement;
@@ -60,6 +59,7 @@ import io.confluent.ksql.parser.tree.TableElement.Namespace;
 import io.confluent.ksql.parser.tree.TableElements;
 import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.parser.tree.WithinExpression;
+import io.confluent.ksql.serde.RefinementInfo;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.function.BiFunction;
@@ -117,7 +117,7 @@ public class StatementRewriterTest {
   @Mock
   private CreateSourceAsProperties csasProperties;
   @Mock
-  private ResultMaterialization resultMaterialization;
+  private RefinementInfo refinementInfo;
   @Captor
   private ArgumentCaptor<Context<Object>> contextCaptor;
 
@@ -183,7 +183,7 @@ public class StatementRewriterTest {
         groupBy,
         partitionBy,
         having,
-        resultMaterialization,
+        Optional.of(refinementInfo),
         false,
         optionalInt
     );
@@ -208,7 +208,7 @@ public class StatementRewriterTest {
         Optional.empty(),
         Optional.empty(),
         Optional.empty(),
-        resultMaterialization,
+        Optional.of(refinementInfo),
         false,
         optionalInt))
     );
@@ -245,7 +245,7 @@ public class StatementRewriterTest {
         Optional.empty(),
         Optional.empty(),
         Optional.empty(),
-        resultMaterialization,
+        Optional.of(refinementInfo),
         false,
         optionalInt))
     );
@@ -273,7 +273,7 @@ public class StatementRewriterTest {
         Optional.of(rewrittenGroupBy),
         Optional.empty(),
         Optional.empty(),
-        resultMaterialization,
+        Optional.of(refinementInfo),
         false,
         optionalInt))
     );
@@ -304,7 +304,7 @@ public class StatementRewriterTest {
         Optional.empty(),
         Optional.of(rewrittenPartitionBy),
         Optional.empty(),
-        resultMaterialization,
+        Optional.of(refinementInfo),
         false,
         optionalInt))
     );
@@ -333,7 +333,7 @@ public class StatementRewriterTest {
         Optional.empty(),
         Optional.empty(),
         Optional.empty(),
-        resultMaterialization,
+        Optional.of(refinementInfo),
         false,
         optionalInt))
     );
@@ -359,7 +359,7 @@ public class StatementRewriterTest {
         Optional.empty(),
         Optional.empty(),
         Optional.of(rewrittenExpression),
-        resultMaterialization,
+        Optional.of(refinementInfo),
         false,
         optionalInt))
     );
@@ -537,6 +537,7 @@ public class StatementRewriterTest {
         sourceName,
         TableElements.of(tableElement1, tableElement2),
         false,
+        false,
         sourceProperties
     );
     when(mockRewriter.apply(tableElement1, context)).thenReturn(rewrittenTableElement1);
@@ -553,6 +554,7 @@ public class StatementRewriterTest {
                 location,
                 sourceName,
                 TableElements.of(rewrittenTableElement1, rewrittenTableElement2),
+                false,
                 false,
                 sourceProperties
             )
@@ -578,6 +580,7 @@ public class StatementRewriterTest {
         sourceName,
         query,
         false,
+        false,
         csasProperties
     );
     when(mockRewriter.apply(query, context)).thenReturn(rewrittenQuery);
@@ -592,6 +595,7 @@ public class StatementRewriterTest {
                 sourceName,
                 rewrittenQuery,
                 false,
+                false,
                 csasProperties
             )
         )
@@ -604,6 +608,7 @@ public class StatementRewriterTest {
         location,
         sourceName,
         query,
+        false,
         false,
         csasProperties
     );
@@ -619,6 +624,7 @@ public class StatementRewriterTest {
                 location,
                 sourceName,
                 rewrittenQuery,
+                false,
                 false,
                 csasProperties
             )
@@ -649,6 +655,7 @@ public class StatementRewriterTest {
         sourceName,
         TableElements.of(tableElement1, tableElement2),
         false,
+        false,
         sourceProperties
     );
     when(mockRewriter.apply(tableElement1, context)).thenReturn(rewrittenTableElement1);
@@ -665,6 +672,7 @@ public class StatementRewriterTest {
                 location,
                 sourceName,
                 TableElements.of(rewrittenTableElement1, rewrittenTableElement2),
+                false,
                 false,
                 sourceProperties
             )
@@ -691,6 +699,7 @@ public class StatementRewriterTest {
         sourceName,
         query,
         false,
+        false,
         csasProperties
     );
     when(mockRewriter.apply(query, context)).thenReturn(rewrittenQuery);
@@ -706,6 +715,7 @@ public class StatementRewriterTest {
                 location,
                 sourceName,
                 rewrittenQuery,
+                false,
                 false,
                 csasProperties
             )

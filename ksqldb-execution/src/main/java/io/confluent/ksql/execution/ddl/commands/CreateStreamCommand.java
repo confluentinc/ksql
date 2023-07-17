@@ -36,7 +36,8 @@ public class CreateStreamCommand extends CreateSourceCommand {
       Optional<TimestampColumn> timestampColumn,
       @JsonProperty(value = "topicName", required = true) final String topicName,
       @JsonProperty(value = "formats", required = true) final Formats formats,
-      @JsonProperty(value = "windowInfo") final Optional<WindowInfo> windowInfo
+      @JsonProperty(value = "windowInfo") final Optional<WindowInfo> windowInfo,
+      @JsonProperty(value = "orReplace", defaultValue = "false") final Optional<Boolean> orReplace
   ) {
     super(
         sourceName,
@@ -44,7 +45,8 @@ public class CreateStreamCommand extends CreateSourceCommand {
         timestampColumn,
         topicName,
         formats,
-        windowInfo
+        windowInfo,
+        orReplace.orElse(false)
     );
   }
 

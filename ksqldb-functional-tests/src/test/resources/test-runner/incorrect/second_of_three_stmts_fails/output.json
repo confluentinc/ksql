@@ -1,0 +1,6 @@
+{
+  "outputs": [
+    {"topic": "S1", "key": "101", "value": "abc,13.54"},
+    {"topic": "S1", "key": "123", "value": "bar,"}
+  ]
+}

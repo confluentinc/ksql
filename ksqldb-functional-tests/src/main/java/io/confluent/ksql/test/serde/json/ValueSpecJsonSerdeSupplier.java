@@ -49,12 +49,18 @@ public class ValueSpecJsonSerdeSupplier implements SerdeSupplier<Object> {
   }
 
   @Override
-  public Serializer<Object> getSerializer(final SchemaRegistryClient schemaRegistryClient) {
+  public Serializer<Object> getSerializer(
+      final SchemaRegistryClient schemaRegistryClient,
+      final boolean isKey
+  ) {
     return new ValueSpecJsonSerializer();
   }
 
   @Override
-  public Deserializer<Object> getDeserializer(final SchemaRegistryClient schemaRegistryClient) {
+  public Deserializer<Object> getDeserializer(
+      final SchemaRegistryClient schemaRegistryClient,
+      final boolean isKey
+  ) {
     return new ValueSpecJsonDeserializer();
   }
 

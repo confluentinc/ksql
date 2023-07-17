@@ -34,17 +34,20 @@ public abstract class CreateSource extends Statement {
   private final TableElements elements;
   private final boolean notExists;
   private final CreateSourceProperties properties;
+  private final boolean orReplace;
 
   CreateSource(
       final Optional<NodeLocation> location,
       final SourceName name,
       final TableElements elements,
+      final boolean orReplace,
       final boolean notExists,
       final CreateSourceProperties properties
   ) {
     super(location);
     this.name = requireNonNull(name, "name");
     this.elements = requireNonNull(elements, "elements");
+    this.orReplace = orReplace;
     this.notExists = notExists;
     this.properties = requireNonNull(properties, "properties");
 
@@ -63,6 +66,10 @@ public abstract class CreateSource extends Statement {
     return elements;
   }
 
+  public boolean isOrReplace() {
+    return orReplace;
+  }
+
   public boolean isNotExists() {
     return notExists;
   }
@@ -71,7 +78,7 @@ public abstract class CreateSource extends Statement {
 
   @Override
   public int hashCode() {
-    return Objects.hash(name, elements, notExists, properties);
+    return Objects.hash(name, elements, orReplace, notExists, properties);
   }
 
   @Override
@@ -84,6 +91,7 @@ public abstract class CreateSource extends Statement {
     }
     final CreateSource that = (CreateSource) o;
     return notExists == that.notExists
+        && orReplace == that.orReplace
         && Objects.equals(name, that.name)
         && Objects.equals(elements, that.elements)
         && Objects.equals(properties, that.properties);
@@ -102,6 +110,8 @@ public abstract class CreateSource extends Statement {
           .collect(Collectors.joining(", "));
 
       throw new ParseFailedException("Only single KEY column supported. "
+          + "Multiple KEY columns found",
+          "Only single KEY column supported. "
           + "Multiple KEY columns found: " + namesAndLocs);
     }
   }

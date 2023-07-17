@@ -129,11 +129,13 @@ public class QueryStreamRunner extends BasePerfRunner {
     }
 
     @Override
-    public CompletableFuture<EndpointResponse> executeQueryRequest(KsqlRequest request,
+    public CompletableFuture<EndpointResponse> executeQueryRequest(
+        KsqlRequest request,
         WorkerExecutor workerExecutor,
         CompletableFuture<Void> connectionClosedFuture,
         ApiSecurityContext apiSecurityContext,
-        Optional<Boolean> isInternalRequest) {
+        Optional<Boolean> isInternalRequest
+    ) {
       return null;
     }
 

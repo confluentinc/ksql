@@ -28,32 +28,37 @@ import io.confluent.ksql.parser.properties.with.CreateSourceAsProperties;
 public final class Sink {
 
   private final SourceName name;
-  private final boolean createSink;
   private final CreateSourceAsProperties properties;
+  private final boolean replaces;
+  private final boolean createSink;
 
   /**
    * Info about the sink of a query.
    *
    * @param name the name of the sink.
    * @param createSink indicates if name should be created, (CSAS/CTAS), or not (INSERT INTO).
+   * @param replaces indicates whether or not there is an existing query that populates this sync,
+   *                 which will be replaced as part of a query upgrade
    * @param properties properties of the sink.
    * @return the pojo.
    */
   public static Sink of(
       final SourceName name,
       final boolean createSink,
+      final boolean replaces,
       final CreateSourceAsProperties properties
   ) {
-    return new Sink(name, createSink, properties);
+    return new Sink(name, createSink, replaces, properties);
   }
 
   private Sink(
       final SourceName name,
       final boolean createSink,
-      final CreateSourceAsProperties properties
-  ) {
+      final boolean replaces,
+      final CreateSourceAsProperties properties) {
     this.name = requireNonNull(name, "name");
     this.properties = requireNonNull(properties, "properties");
+    this.replaces = replaces;
     this.createSink = createSink;
   }
 
@@ -63,6 +68,10 @@ public final class Sink {
 
   public boolean shouldCreateSink() {
     return createSink;
+  }
+
+  public boolean shouldReplace() {
+    return replaces;
   }
 
   public CreateSourceAsProperties getProperties() {

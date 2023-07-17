@@ -19,8 +19,21 @@ tokens {
     DELIMITER
 }
 
+// channel names aren't supported in combined lexer/parser grammars
+// so we just generate this constants into the SqlBaseLexer and use
+// the corresponding numberliteral in this file
+@lexer::members {
+    public static final int COMMENTS = 2;
+    public static final int WHITESPACE = 3;
+    public static final int DIRECTIVES = 4;
+}
+
 statements
     : (singleStatement)* EOF
+    ;
+
+testStatement
+    : (singleStatement | assertStatement ';' | runScript ';') EOF?
     ;
 
 singleStatement
@@ -40,6 +53,7 @@ statement
     | (LIST | SHOW) FUNCTIONS                                               #listFunctions
     | (LIST | SHOW) (SOURCE | SINK)? CONNECTORS                             #listConnectors
     | (LIST | SHOW) TYPES                                                   #listTypes
+    | (LIST | SHOW) VARIABLES                                               #listVariables
     | DESCRIBE EXTENDED? sourceName                                         #showColumns
     | DESCRIBE FUNCTION identifier                                          #describeFunction
     | DESCRIBE CONNECTOR identifier                                         #describeConnector
@@ -49,25 +63,40 @@ statement
     | TERMINATE ALL                                                         #terminateQuery
     | SET STRING EQ STRING                                                  #setProperty
     | UNSET STRING                                                          #unsetProperty
-    | CREATE STREAM (IF NOT EXISTS)? sourceName
+    | DEFINE variableName EQ variableValue                                  #defineVariable
+    | UNDEFINE variableName                                                 #undefineVariable
+    | CREATE (OR REPLACE)? STREAM (IF NOT EXISTS)? sourceName
                 (tableElements)?
                 (WITH tableProperties)?                                     #createStream
-    | CREATE STREAM (IF NOT EXISTS)? sourceName
+    | CREATE (OR REPLACE)? STREAM (IF NOT EXISTS)? sourceName
             (WITH tableProperties)? AS query                                #createStreamAs
-    | CREATE TABLE (IF NOT EXISTS)? sourceName
+    | CREATE (OR REPLACE)? TABLE (IF NOT EXISTS)? sourceName
                     (tableElements)?
                     (WITH tableProperties)?                                 #createTable
-    | CREATE TABLE (IF NOT EXISTS)? sourceName
+    | CREATE (OR REPLACE)? TABLE (IF NOT EXISTS)? sourceName
             (WITH tableProperties)? AS query                                #createTableAs
-    | CREATE (SINK | SOURCE) CONNECTOR identifier WITH tableProperties      #createConnector
+    | CREATE (SINK | SOURCE) CONNECTOR (IF NOT EXISTS)? identifier
+             WITH tableProperties                                           #createConnector
     | INSERT INTO sourceName query                                          #insertInto
     | INSERT INTO sourceName (columns)? VALUES values                       #insertValues
     | DROP STREAM (IF EXISTS)? sourceName (DELETE TOPIC)?                   #dropStream
     | DROP TABLE (IF EXISTS)? sourceName (DELETE TOPIC)?                    #dropTable
-    | DROP CONNECTOR identifier                                             #dropConnector
+    | DROP CONNECTOR (IF EXISTS)? identifier                                #dropConnector
     | EXPLAIN  (statement | identifier)                                     #explain
-    | CREATE TYPE identifier AS type                                        #registerType
-    | DROP TYPE identifier                                                  #dropType
+    | CREATE TYPE (IF NOT EXISTS)? identifier AS type                       #registerType
+    | DROP TYPE (IF EXISTS)? identifier                                     #dropType
+    | ALTER (STREAM | TABLE) sourceName alterOption (',' alterOption)*      #alterSource
+    ;
+
+assertStatement
+    : ASSERT VALUES sourceName (columns)? VALUES values                     #assertValues
+    | ASSERT NULL VALUES sourceName (columns)? KEY values                   #assertTombstone
+    | ASSERT STREAM sourceName (tableElements)? (WITH tableProperties)?     #assertStream
+    | ASSERT TABLE sourceName (tableElements)? (WITH tableProperties)?      #assertTable
+    ;
+
+runScript
+    : RUN SCRIPT STRING
     ;
 
 query
@@ -84,6 +113,11 @@ query
 
 resultMaterialization
     : CHANGES
+    | FINAL
+    ;
+
+alterOption
+    : ADD (COLUMN)? identifier type
     ;
 
 tableElements
@@ -299,11 +333,21 @@ whenClause
     ;
 
 identifier
-    : IDENTIFIER             #unquotedIdentifier
+    : VARIABLE               #variableIdentifier
+    | IDENTIFIER             #unquotedIdentifier
     | QUOTED_IDENTIFIER      #quotedIdentifierAlternative
     | nonReserved            #unquotedIdentifier
     | BACKQUOTED_IDENTIFIER  #backQuotedIdentifier
     | DIGIT_IDENTIFIER       #digitIdentifier
+    ;
+
+variableName
+    : IDENTIFIER
+    | nonReserved
+    ;
+
+variableValue
+    : STRING
     ;
 
 sourceName
@@ -321,6 +365,7 @@ literal
     | number                                                                         #numericLiteral
     | booleanValue                                                                   #booleanLiteral
     | STRING                                                                         #stringLiteral
+    | VARIABLE                                                                       #variableLiteral
     ;
 
 nonReserved
@@ -335,12 +380,19 @@ nonReserved
     | PRIMARY | KEY
     | EMIT
     | CHANGES
+    | FINAL
     | ESCAPE
+    | REPLACE
+    | ASSERT
+    | ALTER
+    | ADD
     | GRACE | PERIOD
+    | DEFINE | UNDEFINE | VARIABLES
     ;
 
 EMIT: 'EMIT';
 CHANGES: 'CHANGES';
+FINAL: 'FINAL';
 SELECT: 'SELECT';
 FROM: 'FROM';
 AS: 'AS';
@@ -444,6 +496,8 @@ RENAME: 'RENAME';
 ARRAY: 'ARRAY';
 MAP: 'MAP';
 SET: 'SET';
+DEFINE: 'DEFINE';
+UNDEFINE: 'UNDEFINE';
 RESET: 'RESET';
 SESSION: 'SESSION';
 SAMPLE: 'SAMPLE';
@@ -464,6 +518,11 @@ NAMESPACE: 'NAMESPACE';
 MATERIALIZED: 'MATERIALIZED';
 VIEW: 'VIEW';
 PRIMARY: 'PRIMARY';
+REPLACE: 'REPLACE';
+ASSERT: 'ASSERT';
+ADD: 'ADD';
+ALTER: 'ALTER';
+VARIABLES: 'VARIABLES';
 
 IF: 'IF';
 
@@ -526,6 +585,10 @@ TIMESTAMP_WITH_TIME_ZONE
     : 'TIMESTAMP' WS 'WITH' WS 'TIME' WS 'ZONE'
     ;
 
+VARIABLE
+    : '${' IDENTIFIER '}'
+    ;
+
 fragment EXPONENT
     : 'E' [+-]? DIGIT+
     ;
@@ -539,15 +602,19 @@ fragment LETTER
     ;
 
 SIMPLE_COMMENT
-    : '--' ~[\r\n]* '\r'? '\n'? -> channel(HIDDEN)
+    : '--' ~'@' ~[\r\n]* '\r'? '\n'? -> channel(2) // channel(COMMENTS)
+    ;
+
+DIRECTIVE_COMMENT
+    : '--@' ~[\r\n]* '\r'? '\n'? -> channel(4) // channel(DIRECTIVES)
     ;
 
 BRACKETED_COMMENT
-    : '/*' .*? '*/' -> channel(HIDDEN)
+    : '/*' .*? '*/' -> channel(2) // channel(COMMENTS)
     ;
 
 WS
-    : [ \r\n\t]+ -> channel(HIDDEN)
+    : [ \r\n\t]+ -> channel(3) // channel(WHITESPACE)
     ;
 
 // Catch-all for anything we can't recognize.

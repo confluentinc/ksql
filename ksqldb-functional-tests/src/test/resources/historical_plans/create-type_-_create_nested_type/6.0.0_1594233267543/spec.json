@@ -3,8 +3,24 @@
   "timestamp" : 1594233267543,
   "path" : "query-validation-tests/create-type.json",
   "schemas" : {
-    "CTAS_COPY_0.KsqlTopic.Source" : "STRUCT<PERSON STRUCT<NAME VARCHAR, ADDRESS STRUCT<NUMBER INT, STREET VARCHAR, CITY VARCHAR>>> NOT NULL",
-    "CTAS_COPY_0.COPY" : "STRUCT<PERSON STRUCT<NAME VARCHAR, ADDRESS STRUCT<NUMBER INT, STREET VARCHAR, CITY VARCHAR>>> NOT NULL"
+    "CTAS_COPY_0.COPY" : {
+      "schema" : "`K` STRING KEY, `PERSON` STRUCT<`NAME` STRING, `ADDRESS` STRUCT<`NUMBER` INTEGER, `STREET` STRING, `CITY` STRING>>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CTAS_COPY_0.KsqlTopic.Source" : {
+      "schema" : "`K` STRING KEY, `PERSON` STRUCT<`NAME` STRING, `ADDRESS` STRUCT<`NUMBER` INTEGER, `STREET` STRING, `CITY` STRING>>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    }
   },
   "testCase" : {
     "name" : "create nested type",
@@ -47,13 +63,41 @@
     } ],
     "statements" : [ "CREATE TYPE ADDRESS AS STRUCT<number INTEGER, street VARCHAR, city VARCHAR>;", "CREATE TYPE PERSON AS STRUCT<name VARCHAR, address ADDRESS>;", "CREATE TABLE people (K STRING PRIMARY KEY, person PERSON) WITH (kafka_topic='test', value_format='JSON');", "CREATE TABLE copy AS SELECT * FROM people;" ],
     "post" : {
+      "sources" : [ {
+        "name" : "COPY",
+        "type" : "TABLE",
+        "schema" : "`K` STRING KEY, `PERSON` STRUCT<`NAME` STRING, `ADDRESS` STRUCT<`NUMBER` INTEGER, `STREET` STRING, `CITY` STRING>>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
+      }, {
+        "name" : "PEOPLE",
+        "type" : "TABLE",
+        "schema" : "`K` STRING KEY, `PERSON` STRUCT<`NAME` STRING, `ADDRESS` STRUCT<`NUMBER` INTEGER, `STREET` STRING, `CITY` STRING>>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
+      } ],
       "topics" : {
         "topics" : [ {
           "name" : "COPY",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "test",
+          "keyFormat" : {
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"
@@ -62,24 +106,11 @@
         }, {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_COPY_0-KsqlTopic-Reduce-changelog",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"
           }
-        }, {
-          "name" : "test",
-          "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
-          },
-          "valueFormat" : {
-            "format" : "JSON"
-          },
-          "partitions" : 4
         } ]
       }
     }

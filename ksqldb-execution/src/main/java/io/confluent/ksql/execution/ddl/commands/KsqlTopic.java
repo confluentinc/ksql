@@ -68,4 +68,12 @@ public class KsqlTopic {
   public int hashCode() {
     return Objects.hash(kafkaTopicName, keyFormat, valueFormat);
   }
+
+  @Override
+  public String toString() {
+    return "KsqlTopic{" + "kafkaTopicName='" + kafkaTopicName + '\''
+        + ", keyFormat=" + keyFormat
+        + ", valueFormat=" + valueFormat
+        + '}';
+  }
 }

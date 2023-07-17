@@ -18,12 +18,8 @@ package io.confluent.ksql.api.client;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
 import java.util.Map;
 import org.apache.kafka.common.config.SslConfigs;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class ClientTlsMutualAuthTest extends ClientTlsTest {
-
-  protected static final Logger log = LoggerFactory.getLogger(ClientTlsMutualAuthTest.class);
 
   @Override
   protected KsqlRestConfig createServerConfig() {

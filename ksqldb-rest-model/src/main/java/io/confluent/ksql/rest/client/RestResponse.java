@@ -100,7 +100,7 @@ public abstract class RestResponse<R> {
 
     @Override
     public R getResponse() {
-      throw new UnsupportedOperationException();
+      throw new UnsupportedOperationException("error msg: " + errorMessage);
     }
 
     @Override

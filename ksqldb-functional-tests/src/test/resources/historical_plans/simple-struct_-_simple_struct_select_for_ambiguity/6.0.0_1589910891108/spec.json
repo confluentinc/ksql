@@ -3,8 +3,24 @@
   "timestamp" : 1589910891108,
   "path" : "query-validation-tests/simple-struct.json",
   "schemas" : {
-    "CSAS_S7_0.KsqlTopic.Source" : "STRUCT<S STRUCT<S VARCHAR>> NOT NULL",
-    "CSAS_S7_0.S7" : "STRUCT<S1 STRUCT<S VARCHAR>, S2 STRUCT<S VARCHAR>, S3 VARCHAR, S4 VARCHAR> NOT NULL"
+    "CSAS_S7_0.S7" : {
+      "schema" : "`K` STRING KEY, `S1` STRUCT<`S` STRING>, `S2` STRUCT<`S` STRING>, `S3` STRING, `S4` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_S7_0.KsqlTopic.Source" : {
+      "schema" : "`K` STRING KEY, `S` STRUCT<`S` STRING>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    }
   },
   "testCase" : {
     "name" : "simple struct select for ambiguity",
@@ -44,13 +60,32 @@
     } ],
     "statements" : [ "CREATE STREAM s (K STRING KEY, s STRUCT<s VARCHAR>) WITH (kafka_topic='test_topic', value_format='json');", "CREATE STREAM S7 as SELECT k, s as s1, s.s as s2, s->s as s3, s.s->s as s4 FROM s;" ],
     "post" : {
+      "sources" : [ {
+        "name" : "S",
+        "type" : "STREAM",
+        "schema" : "`K` STRING KEY, `S` STRUCT<`S` STRING>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
+      }, {
+        "name" : "S7",
+        "type" : "STREAM",
+        "schema" : "`K` STRING KEY, `S1` STRUCT<`S` STRING>, `S2` STRUCT<`S` STRING>, `S3` STRING, `S4` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
+      } ],
       "topics" : {
         "topics" : [ {
           "name" : "S7",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"
@@ -59,9 +94,7 @@
         }, {
           "name" : "test_topic",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"

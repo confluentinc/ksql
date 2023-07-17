@@ -36,6 +36,7 @@ public class RecordTest {
     final Record record = new Record(
         TOPIC_NAME,
         10,
+        null,
         "bar",
         null,
         Optional.of(1000L),
@@ -55,6 +56,7 @@ public class RecordTest {
     final Record record = new Record(
         TOPIC_NAME,
         "foo",
+        null,
         "bar",
         null,
         Optional.of(1000L),
@@ -78,6 +80,7 @@ public class RecordTest {
     final Record record = new Record(
         TOPIC_NAME,
         "foo",
+        null,
         "bar",
         null,
         Optional.of(1000L),

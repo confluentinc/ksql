@@ -20,13 +20,16 @@ import static io.confluent.ksql.GenericRow.genericRow;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.Multimap;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.execution.util.StructKeyUtil;
+import io.confluent.ksql.execution.util.StructKeyUtil.KeyBuilder;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import io.confluent.ksql.serde.SerdeOption;
+import io.confluent.ksql.serde.SerdeFeatures;
+import org.apache.kafka.connect.data.Struct;
 
-public class ItemDataProvider extends TestDataProvider<String> {
+public class ItemDataProvider extends TestDataProvider {
 
   private static final LogicalSchema LOGICAL_SCHEMA = LogicalSchema.builder()
       .keyColumn(ColumnName.of("ID"), SqlTypes.STRING)
@@ -34,21 +37,27 @@ public class ItemDataProvider extends TestDataProvider<String> {
       .build();
 
   private static final PhysicalSchema PHYSICAL_SCHEMA = PhysicalSchema
-      .from(LOGICAL_SCHEMA, SerdeOption.none());
+      .from(LOGICAL_SCHEMA, SerdeFeatures.of(), SerdeFeatures.of());
 
-  private static final Multimap<String, GenericRow> ROWS = ImmutableListMultimap
-      .<String, GenericRow>builder()
-      .put("ITEM_1", genericRow("home cinema"))
-      .put("ITEM_2", genericRow("clock radio"))
-      .put("ITEM_3", genericRow("road bike"))
-      .put("ITEM_4", genericRow("mountain bike"))
-      .put("ITEM_5", genericRow("snowboard"))
-      .put("ITEM_6", genericRow("iphone 10"))
-      .put("ITEM_7", genericRow("gopro"))
-      .put("ITEM_8", genericRow("cat"))
+  private static final KeyBuilder KEY_BUILDER = StructKeyUtil.keyBuilder(LOGICAL_SCHEMA);
+
+  private static final Multimap<Struct, GenericRow> ROWS = ImmutableListMultimap
+      .<Struct, GenericRow>builder()
+      .put(buildKey("ITEM_1"), genericRow("home cinema"))
+      .put(buildKey("ITEM_2"), genericRow("clock radio"))
+      .put(buildKey("ITEM_3"), genericRow("road bike"))
+      .put(buildKey("ITEM_4"), genericRow("mountain bike"))
+      .put(buildKey("ITEM_5"), genericRow("snowboard"))
+      .put(buildKey("ITEM_6"), genericRow("iphone 10"))
+      .put(buildKey("ITEM_7"), genericRow("gopro"))
+      .put(buildKey("ITEM_8"), genericRow("cat"))
       .build();
 
   public ItemDataProvider() {
     super("ITEM", PHYSICAL_SCHEMA, ROWS);
+  }
+
+  public static Struct buildKey(final String key) {
+    return KEY_BUILDER.build(key);
   }
 }

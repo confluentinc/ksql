@@ -28,11 +28,13 @@ import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.test.model.PostConditionsNode;
 import io.confluent.ksql.test.model.PostConditionsNode.PostTopicNode;
 import io.confluent.ksql.test.model.PostConditionsNode.PostTopicsNode;
+import io.confluent.ksql.test.model.SourceNode;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import java.util.TreeMap;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import org.hamcrest.Matcher;
@@ -74,30 +76,21 @@ public class PostConditions {
     verifyTopics(knownTopics);
   }
 
-  public Optional<PostConditionsNode> asNode(
-      final List<PostTopicNode> additional
+  public PostConditionsNode asNode(
+      final List<PostTopicNode> topics,
+      final List<SourceNode> sources
   ) {
-    if (this == NONE && additional.isEmpty()) {
-      return Optional.empty();
-    }
+    // Sort so that we get consistent ordering in historic specs:
+    final List<SourceNode> sortedSources = new ArrayList<>(sources);
+    sortedSources.sort(Comparator.comparing(SourceNode::getName));
 
-    final TreeMap<String, PostTopicNode> topics = new TreeMap<>();
-
-    sourceNode.getTopics()
-        .map(PostTopicsNode::getTopics)
-        .orElseGet(ImmutableList::of)
-        .forEach(node -> topics.put(node.getName(), node));
-
-    additional
-        .forEach(node -> topics.put(node.getName(), node));
-
-    return Optional.of(new PostConditionsNode(
-        sourceNode.getSources(),
+    return new PostConditionsNode(
+        sortedSources,
         Optional.of(new PostTopicsNode(
             sourceNode.getTopics().flatMap(PostTopicsNode::getBlackList),
-            Optional.of(ImmutableList.copyOf(topics.values()))
+            Optional.of(topics)
         ))
-    ));
+    );
   }
 
   private void verifyMetaStore(final MetaStore metaStore) {
@@ -107,8 +100,8 @@ public class PostConditions {
 
     final String text = values.stream()
         .map(s -> s.getDataSourceType() + ":" + s.getName().text()
-            + ", value:" + s.getSchema()
-            + ", keyFormat:" + s.getKsqlTopic().getKeyFormat()
+            + ", schema:" + s.getSchema()
+            + ", topic:" + s.getKsqlTopic()
         )
         .collect(Collectors.joining(System.lineSeparator()));
 

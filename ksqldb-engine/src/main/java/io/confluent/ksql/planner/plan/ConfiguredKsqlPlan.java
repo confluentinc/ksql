@@ -15,32 +15,27 @@
 
 package io.confluent.ksql.planner.plan;
 
-import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.engine.KsqlPlan;
-import io.confluent.ksql.util.KsqlConfig;
-import java.util.Map;
 import java.util.Objects;
 
 public final class ConfiguredKsqlPlan {
+
   private final KsqlPlan plan;
-  private final Map<String, Object> overrides;
-  private final KsqlConfig config;
+  private final SessionConfig config;
 
   public static ConfiguredKsqlPlan of(
       final KsqlPlan plan,
-      final Map<String, Object> overrides,
-      final KsqlConfig config
+      final SessionConfig config
   ) {
-    return new ConfiguredKsqlPlan(plan, overrides, config);
+    return new ConfiguredKsqlPlan(plan, config);
   }
 
   private ConfiguredKsqlPlan(
       final KsqlPlan plan,
-      final Map<String, Object> overrides,
-      final KsqlConfig config
+      final SessionConfig config
   ) {
     this.plan = Objects.requireNonNull(plan, "plan");
-    this.overrides = ImmutableMap.copyOf(Objects.requireNonNull(overrides, "overrides"));
     this.config = Objects.requireNonNull(config, "config");
   }
 
@@ -48,11 +43,7 @@ public final class ConfiguredKsqlPlan {
     return plan;
   }
 
-  public Map<String, Object> getOverrides() {
-    return overrides;
-  }
-
-  public KsqlConfig getConfig() {
+  public SessionConfig getConfig() {
     return config;
   }
 
@@ -66,12 +57,11 @@ public final class ConfiguredKsqlPlan {
     }
     final ConfiguredKsqlPlan that = (ConfiguredKsqlPlan) o;
     return Objects.equals(plan, that.plan)
-        && Objects.equals(overrides, that.overrides)
         && Objects.equals(config, that.config);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(plan, overrides, config);
+    return Objects.hash(plan, config);
   }
 }

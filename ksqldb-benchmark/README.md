@@ -5,10 +5,10 @@ This module is for JMH micro-benchmarking of pieces of the KSQL code.
 ## `SerdeBenchmark.java`
 
 For example, `SerdeBenchmark.java`
-benchmarks the performance of the Avro and JSON serdes used by KSQL, since the serdes have been
+benchmarks the performance of the serdes used by KSQL, since the serdes have been
 shown to be a performance bottleneck in the past. The benchmarks use the schema files found in
-`src/main/resources/schemas`. A serialization and deserialization benchmark is run for each schema
-(e.g., `impressions` or `metrics`) and each serialization format (Avro or JSON).  
+`src/main/resources/schemas`. A serialization and deserialization benchmark is run for each 
+configured combination of schema and format.  
 
 ### How to run
 
@@ -24,17 +24,12 @@ java -jar ./target/benchmarks.jar
 To run only a subset of the benchmarks, you can specify parameters to run with. For example,
 to run only Avro benchmarks:
 ```
-java -jar ./target/benchmarks.jar -p serializationFormat=Avro
+java -jar ./target/benchmarks.jar -p params=impressions/Avro,metrics/Avro,single-key/Avro
 ```
 
 Or to run only JSON (serialization and deserialization) benchmarks using the `metrics` schema:
 ```
-java -jar ./target/benchmarks.jar -p serializationFormat=JSON -p schemaName=metrics
-```
-
-Or to run only the deserialization benchmarks on both the `impressions` and `metrics` schemas:
-```
-java -jar ./target/benchmarks.jar SerdeBenchmark.deserialize -p schemaName=impressions,metrics
+java -jar ./target/benchmarks.jar -p params=metrics/JSON
 ```
 
 ### Running with non-default parameters
@@ -78,3 +73,37 @@ Time per operation is quite consistent from run to run, and from iteration to it
 instance for many of the benchmarks.)
 Don't be surprised if running on your laptop produces better results than those reported here for
 an r5.xlarge EC2 instance, since that is consistently the case.
+
+Results from 2019 Macbook Pro (2.3 Ghz cores), run with:
+
+```java
+@Warmup(iterations = 1, time = 30)
+@Measurement(iterations = 2, time = 30)
+@Threads(4)
+@Fork(1)
+```
+
+| Benchmark   | schemaName & serialisationFormat | time (us/op) |
+|:-----------:|:--------------------------------:|:------------:| 
+| deserialize | single-key/Delimited  | 2.784 |
+| deserialize |      single-key/Kafka  | 0.045 |
+| deserialize |       single-key/JSON  | 0.200 |
+| deserialize |       single-key/Avro  | 0.550 |
+| deserialize | impressions/Delimited  | 2.840 |
+| deserialize |  impressions/Protobuf  | 1.928 |
+| deserialize |      impressions/JSON  | 1.218 |
+| deserialize |      impressions/Avro  | 1.474 |
+| deserialize |      metrics/Protobuf  | 5.259 |
+| deserialize |          metrics/JSON  | 5.687 |
+| deserialize |          metrics/Avro  | 4.674 |
+| serialize   |  single-key/Delimited  | 0.200 |
+| serialize   |      single-key/Kafka  | 0.010 |
+| serialize   |       single-key/JSON  | 0.170 |
+| serialize   |       single-key/Avro  | 0.245 |
+| serialize   | impressions/Delimited  | 0.521 |
+| serialize   |  impressions/Protobuf  | 1.471 |
+| serialize   |      impressions/JSON  | 0.683 |
+| serialize   |      impressions/Avro  | 1.374 |
+| serialize   |      metrics/Protobuf  | 6.321 |
+| serialize   |         metrics/JSON  | 3.336 |
+| serialize   |          metrics/Avro  | 5.179 |

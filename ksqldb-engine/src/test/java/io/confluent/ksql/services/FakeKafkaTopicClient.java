@@ -31,8 +31,10 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.apache.kafka.clients.admin.CreateTopicsOptions;
+import org.apache.kafka.clients.admin.OffsetSpec;
 import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.common.Node;
+import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.TopicPartitionInfo;
 import org.apache.kafka.common.acl.AclOperation;
 import org.apache.kafka.common.errors.UnknownTopicOrPartitionException;
@@ -46,23 +48,23 @@ public class FakeKafkaTopicClient implements KafkaTopicClient {
 
     private final String topicName;
     private final int numPartitions;
-    private final int replicatonFactor;
+    private final int replicationFactor;
     private final TopicCleanupPolicy cleanupPolicy;
 
     public FakeTopic(final String topicName,
         final int numPartitions,
-        final int replicatonFactor,
+        final int replicationFactor,
         final TopicCleanupPolicy cleanupPolicy) {
       this.topicName = topicName;
       this.numPartitions = numPartitions;
-      this.replicatonFactor = replicatonFactor;
+      this.replicationFactor = replicationFactor;
       this.cleanupPolicy = cleanupPolicy;
     }
 
     private TopicDescription getDescription() {
       final Node node = new Node(0, "localhost", 9091);
 
-      final List<Node> replicas = IntStream.range(0, replicatonFactor)
+      final List<Node> replicas = IntStream.range(0, replicationFactor)
           .mapToObj(idx -> (Node) null)
           .collect(Collectors.toList());
 
@@ -89,14 +91,14 @@ public class FakeKafkaTopicClient implements KafkaTopicClient {
       }
       final FakeTopic fakeTopic = (FakeTopic) o;
       return numPartitions == fakeTopic.numPartitions
-          && replicatonFactor == fakeTopic.replicatonFactor
+          && replicationFactor == fakeTopic.replicationFactor
           && Objects.equals(topicName, fakeTopic.topicName)
           && cleanupPolicy == fakeTopic.cleanupPolicy;
     }
 
     @Override
     public int hashCode() {
-      return Objects.hash(topicName, numPartitions, replicatonFactor, cleanupPolicy);
+      return Objects.hash(topicName, numPartitions, replicationFactor, cleanupPolicy);
     }
   }
 
@@ -196,6 +198,12 @@ public class FakeKafkaTopicClient implements KafkaTopicClient {
   public void deleteInternalTopics(final String applicationId) {
   }
 
+  @Override
+  public Map<TopicPartition, Long> listTopicsOffsets(Collection<String> topicNames,
+      OffsetSpec offsetSpec) {
+    return Collections.emptyMap();
+  }
+
   private static FakeTopic createFakeTopic(
       final String topic,
       final int numPartitions,
@@ -220,6 +228,6 @@ public class FakeKafkaTopicClient implements KafkaTopicClient {
         requiredNumPartition,
         requiredNumReplicas,
         existing.numPartitions,
-        existing.replicatonFactor);
+        existing.replicationFactor);
   }
 }

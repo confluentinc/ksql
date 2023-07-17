@@ -209,7 +209,19 @@ public class UdfUtilTest {
     final ParamType returnType = UdfUtil.getSchemaFromType(genericType);
 
     // Then:
-    assertThat(returnType, is(MapType.of(GenericType.of("T"))));
+    assertThat(returnType, is(MapType.of(GenericType.of("K"), GenericType.of("V"))));
+  }
+
+  @Test
+  public void shouldGetGenericSchemaFromPartialParameterizedType() throws NoSuchMethodException {
+    // Given:
+    final Type genericType = getClass().getMethod("partialGenericMapType").getGenericReturnType();
+
+    // When:
+    final ParamType returnType = UdfUtil.getSchemaFromType(genericType);
+
+    // Then:
+    assertThat(returnType, is(MapType.of(ParamTypes.LONG, GenericType.of("V"))));
   }
 
   // following methods not invoked but used to test conversion from type -> schema
@@ -224,12 +236,17 @@ public class UdfUtilTest {
   }
 
   @SuppressWarnings({"unused", "WeakerAccess", "MethodMayBeStatic"})
-  public <T> Map<String, T> genericMapType() {
+  public <K, V> Map<K, V> genericMapType() {
+    return null;
+  }
+
+  @SuppressWarnings({"unused", "WeakerAccess", "MethodMayBeStatic"})
+  public <V> Map<Long, V> partialGenericMapType() {
     return null;
   }
 
   @SuppressWarnings("unused")
-  private void mapType(final Map<String, Integer> map) {
+  private void mapType(final Map<Long, Integer> map) {
   }
 
   @SuppressWarnings("unused")

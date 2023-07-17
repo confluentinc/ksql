@@ -83,7 +83,7 @@ public class WindowInfoTest {
   }
 
   @Test
-  public void shouldGetFormatInfo() {
+  public void shouldGetSize() {
     // Given:
     final WindowInfo windowInfo = WindowInfo.of(HOPPING, Optional.of(Duration.ofSeconds(10)));
 

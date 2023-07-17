@@ -3,8 +3,24 @@
   "timestamp" : 1589910858772,
   "path" : "query-validation-tests/elements.json",
   "schemas" : {
-    "CSAS_S_0.KsqlTopic.Source" : "STRUCT<C1 INT, UNKNOWN INT> NOT NULL",
-    "CSAS_S_0.S" : "STRUCT<C1 INT, UNKNOWN INT> NOT NULL"
+    "CSAS_S_0.KsqlTopic.Source" : {
+      "schema" : "`K` STRING KEY, `C1` INTEGER, `UNKNOWN` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "AVRO"
+      }
+    },
+    "CSAS_S_0.S" : {
+      "schema" : "`K` STRING KEY, `C1` INTEGER, `UNKNOWN` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "AVRO"
+      }
+    }
   },
   "testCase" : {
     "name" : "validate AVRO uses null for unknown element",
@@ -25,7 +41,7 @@
     } ],
     "topics" : [ {
       "name" : "input",
-      "schema" : {
+      "valueSchema" : {
         "type" : "record",
         "name" : "blah",
         "fields" : [ {
@@ -33,7 +49,7 @@
           "type" : "int"
         } ]
       },
-      "format" : "AVRO",
+      "valueFormat" : "AVRO",
       "replicas" : 1,
       "numPartitions" : 1
     }, {
@@ -43,13 +59,32 @@
     } ],
     "statements" : [ "CREATE STREAM INPUT (K STRING KEY, c1 INT, unknown INT) WITH (kafka_topic='input', value_format='AVRO');", "CREATE STREAM S WITH(PARTITIONS = 4) as SELECT * FROM input;" ],
     "post" : {
+      "sources" : [ {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`K` STRING KEY, `C1` INTEGER, `UNKNOWN` INTEGER",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "AVRO",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
+      }, {
+        "name" : "S",
+        "type" : "STREAM",
+        "schema" : "`K` STRING KEY, `C1` INTEGER, `UNKNOWN` INTEGER",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "AVRO",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
+      } ],
       "topics" : {
         "topics" : [ {
           "name" : "S",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "AVRO"
@@ -58,9 +93,7 @@
         }, {
           "name" : "input",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "AVRO"

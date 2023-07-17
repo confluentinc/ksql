@@ -24,6 +24,7 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import org.apache.kafka.common.metrics.Metrics;
 import org.slf4j.Logger;
@@ -45,9 +46,9 @@ class UdafLoader {
       final Optional<Metrics> metrics,
       final SqlTypeParser typeParser
   ) {
-    this.functionRegistry = functionRegistry;
-    this.metrics = metrics;
-    this.typeParser = typeParser;
+    this.functionRegistry = Objects.requireNonNull(functionRegistry, "functionRegistry");
+    this.metrics = Objects.requireNonNull(metrics, "metrics");
+    this.typeParser = Objects.requireNonNull(typeParser, "typeParser");
   }
 
   void loadUdafFromClass(final Class<?> theClass, final String path) {
@@ -55,44 +56,47 @@ class UdafLoader {
     
     final List<UdafFactoryInvoker> invokers = new ArrayList<>();
     for (final Method method : theClass.getMethods()) {
-      if (method.getAnnotation(UdafFactory.class) != null) {
-        if (!Modifier.isStatic(method.getModifiers())) {
-          LOGGER.warn(
-              "Trying to create a UDAF from a non-static factory method. Udaf factory"
-                  + " methods must be static. class={}, method={}, name={}",
-              method.getDeclaringClass(),
-              method.getName(),
-              udafAnnotation.name()
-          );
-          continue;
-        }
-        final UdafFactory annotation = method.getAnnotation(UdafFactory.class);
-        try {
-          LOGGER.info(
-              "Adding UDAF name={} from path={} class={}",
-              udafAnnotation.name(),
-              path,
-              method.getDeclaringClass()
-          );
-          final UdafFactoryInvoker invoker = createUdafFactoryInvoker(
-              method,
-              FunctionName.of(udafAnnotation.name()),
-              annotation.description(),
-              annotation.paramSchema(),
-              annotation.aggregateSchema(),
-              annotation.returnSchema()
-          );
-          invokers.add(invoker);
-        } catch (final Exception e) {
-          LOGGER.warn(
-              "Failed to create UDAF name={}, method={}, class={}, path={}",
-              udafAnnotation.name(),
-              method.getName(),
-              method.getDeclaringClass(),
-              path,
-              e
-          );
-        }
+      if (method.getAnnotation(UdafFactory.class) == null) {
+        continue;
+      }
+
+      if (!Modifier.isStatic(method.getModifiers())) {
+        LOGGER.warn(
+            "Trying to create a UDAF from a non-static factory method. Udaf factory"
+                + " methods must be static. class={}, method={}, name={}",
+            method.getDeclaringClass(),
+            method.getName(),
+            udafAnnotation.name()
+        );
+        continue;
+      }
+
+      final UdafFactory annotation = method.getAnnotation(UdafFactory.class);
+      try {
+        LOGGER.info(
+            "Adding UDAF name={} from path={} class={}",
+            udafAnnotation.name(),
+            path,
+            method.getDeclaringClass()
+        );
+        final UdafFactoryInvoker invoker = createUdafFactoryInvoker(
+            method,
+            FunctionName.of(udafAnnotation.name()),
+            annotation.description(),
+            annotation.paramSchema(),
+            annotation.aggregateSchema(),
+            annotation.returnSchema()
+        );
+        invokers.add(invoker);
+      } catch (final Exception e) {
+        LOGGER.warn(
+            "Failed to create UDAF name={}, method={}, class={}, path={}",
+            udafAnnotation.name(),
+            method.getName(),
+            method.getDeclaringClass(),
+            path,
+            e
+        );
       }
     }
 
@@ -102,6 +106,7 @@ class UdafLoader {
             udafAnnotation.description(),
             udafAnnotation.author(),
             udafAnnotation.version(),
+            udafAnnotation.category(),
             path
         ),
         invokers

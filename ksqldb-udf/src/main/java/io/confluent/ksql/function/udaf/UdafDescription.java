@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.function.udaf;
 
+import io.confluent.ksql.function.FunctionCategory;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -31,6 +32,8 @@ public @interface UdafDescription {
   String name();
 
   String description();
+
+  String category() default FunctionCategory.AGGREGATE;
 
   String author() default "";
 

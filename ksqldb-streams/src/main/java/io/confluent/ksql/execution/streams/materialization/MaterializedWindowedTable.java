@@ -30,8 +30,11 @@ public interface MaterializedWindowedTable {
    * the supplied {@code lower} and {@code upper} bounds.
    *
    * @param key the key to look up.
+   * @param partition partition to limit the get to
    * @param windowStart the bounds on the window's start time.
+   * @param windowEnd the bounds on the window's end time.
    * @return the rows for the key that exist within the range.
    */
-  List<WindowedRow> get(Struct key, Range<Instant> windowStart);
+  List<WindowedRow> get(Struct key, int partition, Range<Instant> windowStart,
+      Range<Instant> windowEnd);
 }

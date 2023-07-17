@@ -3,8 +3,24 @@
   "timestamp" : 1588893908517,
   "path" : "query-validation-tests/create-struct.json",
   "schemas" : {
-    "CSAS_BIG_STRUCT_0.KsqlTopic.Source" : "STRUCT<COL1 VARCHAR> NOT NULL",
-    "CSAS_BIG_STRUCT_0.BIG_STRUCT" : "STRUCT<S STRUCT< >> NOT NULL"
+    "CSAS_BIG_STRUCT_0.KsqlTopic.Source" : {
+      "schema" : "`ID` STRING KEY, `COL1` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_BIG_STRUCT_0.BIG_STRUCT" : {
+      "schema" : "`ID` STRING KEY, `S` STRUCT< >",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    }
   },
   "testCase" : {
     "name" : "empty struct creation",
@@ -35,27 +51,39 @@
     "post" : {
       "sources" : [ {
         "name" : "BIG_STRUCT",
-        "type" : "stream",
-        "schema" : "ID STRING KEY, S STRUCT< >"
+        "type" : "STREAM",
+        "schema" : "`ID` STRING KEY, `S` STRUCT< >",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
+      }, {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`ID` STRING KEY, `COL1` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       } ],
       "topics" : {
         "topics" : [ {
-          "name" : "BIG_STRUCT",
+          "name" : "test",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"
           },
           "partitions" : 4
         }, {
-          "name" : "test",
+          "name" : "BIG_STRUCT",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"

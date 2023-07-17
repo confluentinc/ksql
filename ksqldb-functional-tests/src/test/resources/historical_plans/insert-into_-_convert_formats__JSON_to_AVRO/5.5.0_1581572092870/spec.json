@@ -3,8 +3,24 @@
   "timestamp" : 1581572092870,
   "path" : "query-validation-tests/insert-into.json",
   "schemas" : {
-    "InsertQuery_0.KsqlTopic.Source" : "STRUCT<A BIGINT, B VARCHAR> NOT NULL",
-    "InsertQuery_0.SINK" : "STRUCT<A BIGINT, B VARCHAR> NOT NULL"
+    "InsertQuery_0.SINK" : {
+      "schema" : "`ROWKEY` STRING KEY, `A` BIGINT, `B` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "AVRO"
+      }
+    },
+    "InsertQuery_0.KsqlTopic.Source" : {
+      "schema" : "`ROWKEY` STRING KEY, `A` BIGINT, `B` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    }
   },
   "testCase" : {
     "name" : "convert formats: JSON to AVRO",
@@ -60,7 +76,7 @@
     } ],
     "topics" : [ {
       "name" : "sink",
-      "schema" : {
+      "valueSchema" : {
         "type" : "record",
         "name" : "KsqlDataSourceSchema",
         "namespace" : "io.confluent.ksql.avro_schemas",
@@ -75,7 +91,7 @@
         } ],
         "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
       },
-      "format" : "AVRO",
+      "valueFormat" : "AVRO",
       "replicas" : 1,
       "numPartitions" : 4
     }, {
@@ -85,27 +101,44 @@
     } ],
     "statements" : [ "CREATE STREAM SOURCE (A BIGINT, B STRING) WITH (KAFKA_TOPIC='source', VALUE_FORMAT='JSON');", "CREATE STREAM SINK (A BIGINT, B STRING) WITH (KAFKA_TOPIC='sink', VALUE_FORMAT='AVRO');", "INSERT INTO SINK SELECT *\nFROM SOURCE SOURCE\nEMIT CHANGES;" ],
     "post" : {
+      "sources" : [ {
+        "name" : "SINK",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` STRING KEY, `A` BIGINT, `B` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "AVRO",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
+      }, {
+        "name" : "SOURCE",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` STRING KEY, `A` BIGINT, `B` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
+      } ],
       "topics" : {
         "topics" : [ {
-          "name" : "sink",
-          "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
-          },
-          "valueFormat" : {
-            "format" : "AVRO"
-          },
-          "partitions" : 4
-        }, {
           "name" : "source",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "sink",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "AVRO"
           },
           "partitions" : 4
         } ]

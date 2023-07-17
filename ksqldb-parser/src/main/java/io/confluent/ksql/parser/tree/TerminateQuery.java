@@ -24,6 +24,7 @@ import java.util.Optional;
 @Immutable
 public final class TerminateQuery extends Statement {
 
+  public static final String ALL_QUERIES = "ALL";
   private final Optional<QueryId> queryId;
 
   public static TerminateQuery all(final Optional<NodeLocation> location) {

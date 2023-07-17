@@ -15,10 +15,10 @@
 
 package io.confluent.support.metrics.submitters;
 
-import org.apache.http.HttpResponse;
+import org.apache.hc.core5.http.ClassicHttpResponse;
 
 public interface ResponseHandler {
 
-  void handle(HttpResponse response);
+  void handle(ClassicHttpResponse response);
 
 }

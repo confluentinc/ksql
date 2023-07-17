@@ -15,8 +15,6 @@
 
 package io.confluent.ksql.parser.tree;
 
-import static io.confluent.ksql.parser.tree.ResultMaterialization.CHANGES;
-import static io.confluent.ksql.parser.tree.ResultMaterialization.FINAL;
 import static org.mockito.Mockito.mock;
 
 import com.google.common.collect.ImmutableList;
@@ -26,6 +24,7 @@ import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.NodeLocation;
+import io.confluent.ksql.serde.RefinementInfo;
 import java.util.Optional;
 import java.util.OptionalInt;
 import org.junit.Test;
@@ -57,6 +56,12 @@ public class QueryTest {
   private static final Optional<Expression> SOME_HAVING = Optional.of(
       mock(Expression.class)
   );
+  private static final Optional<RefinementInfo> SOME_REFINEMENT_FINAL = Optional.of(
+      mock(RefinementInfo.class)
+  );
+  private static final Optional<RefinementInfo> SOME_REFINEMENT_CHANGES = Optional.of(
+      mock(RefinementInfo.class)
+  );
   private static final OptionalInt SOME_LIMIT = OptionalInt.of(1);
 
   @SuppressWarnings("UnstableApiUsage")
@@ -65,52 +70,52 @@ public class QueryTest {
     new EqualsTester()
         .addEqualityGroup(
             new Query(Optional.empty(), SOME_SELECT, SOME_FROM, SOME_WINDOW,
-                SOME_WHERE, SOME_GROUP_BY, Optional.empty(), SOME_HAVING, FINAL, true, SOME_LIMIT),
+                SOME_WHERE, SOME_GROUP_BY, Optional.empty(), SOME_HAVING, SOME_REFINEMENT_FINAL, true, SOME_LIMIT),
             new Query(Optional.empty(), SOME_SELECT, SOME_FROM, SOME_WINDOW,
-                SOME_WHERE, SOME_GROUP_BY, Optional.empty(), SOME_HAVING, FINAL, true, SOME_LIMIT),
+                SOME_WHERE, SOME_GROUP_BY, Optional.empty(), SOME_HAVING, SOME_REFINEMENT_FINAL, true, SOME_LIMIT),
             new Query(Optional.of(OTHER_LOCATION), SOME_SELECT, SOME_FROM, SOME_WINDOW,
-                SOME_WHERE, SOME_GROUP_BY, Optional.empty(), SOME_HAVING, FINAL, true, SOME_LIMIT)
+                SOME_WHERE, SOME_GROUP_BY, Optional.empty(), SOME_HAVING, SOME_REFINEMENT_FINAL, true, SOME_LIMIT)
         )
         .addEqualityGroup(
             new Query(Optional.empty(), OTHER_SELECT, SOME_FROM, SOME_WINDOW,
-                SOME_WHERE, Optional.empty(), SOME_PARTITION_BY, SOME_HAVING, FINAL, true, SOME_LIMIT)
+                SOME_WHERE, Optional.empty(), SOME_PARTITION_BY, SOME_HAVING, SOME_REFINEMENT_FINAL, true, SOME_LIMIT)
         )
         .addEqualityGroup(
             new Query(Optional.empty(), OTHER_SELECT, SOME_FROM, SOME_WINDOW,
-                SOME_WHERE, SOME_GROUP_BY, Optional.empty(), SOME_HAVING, FINAL, true, SOME_LIMIT)
+                SOME_WHERE, SOME_GROUP_BY, Optional.empty(), SOME_HAVING, SOME_REFINEMENT_FINAL, true, SOME_LIMIT)
         )
         .addEqualityGroup(
             new Query(Optional.empty(), SOME_SELECT, OTHER_RELATION, SOME_WINDOW,
-                SOME_WHERE, SOME_GROUP_BY, Optional.empty(), SOME_HAVING, FINAL, true, SOME_LIMIT)
+                SOME_WHERE, SOME_GROUP_BY, Optional.empty(), SOME_HAVING, SOME_REFINEMENT_FINAL, true, SOME_LIMIT)
         )
         .addEqualityGroup(
             new Query(Optional.empty(), SOME_SELECT, SOME_FROM, Optional.empty(), SOME_WHERE,
-                SOME_GROUP_BY, Optional.empty(), SOME_HAVING, FINAL, true, SOME_LIMIT)
+                SOME_GROUP_BY, Optional.empty(), SOME_HAVING, SOME_REFINEMENT_FINAL, true, SOME_LIMIT)
         )
         .addEqualityGroup(
             new Query(Optional.empty(), SOME_SELECT, SOME_FROM, SOME_WINDOW,
                 Optional.empty(),
-                SOME_GROUP_BY, Optional.empty(), SOME_HAVING, FINAL, true, SOME_LIMIT)
+                SOME_GROUP_BY, Optional.empty(), SOME_HAVING, SOME_REFINEMENT_FINAL, true, SOME_LIMIT)
         )
         .addEqualityGroup(
             new Query(Optional.empty(), SOME_SELECT, SOME_FROM, SOME_WINDOW,
-                SOME_WHERE, Optional.empty(), Optional.empty(), SOME_HAVING, FINAL, true, SOME_LIMIT)
+                SOME_WHERE, Optional.empty(), Optional.empty(), SOME_HAVING, SOME_REFINEMENT_FINAL, true, SOME_LIMIT)
         )
         .addEqualityGroup(
             new Query(Optional.empty(), SOME_SELECT, SOME_FROM, SOME_WINDOW,
-                SOME_WHERE, SOME_GROUP_BY, Optional.empty(), Optional.empty(), FINAL, true, SOME_LIMIT)
+                SOME_WHERE, SOME_GROUP_BY, Optional.empty(), Optional.empty(), SOME_REFINEMENT_FINAL, true, SOME_LIMIT)
         )
         .addEqualityGroup(
             new Query(Optional.empty(), SOME_SELECT, SOME_FROM, SOME_WINDOW, SOME_WHERE,
-                SOME_GROUP_BY, Optional.empty(), SOME_HAVING, CHANGES, true, SOME_LIMIT)
+                SOME_GROUP_BY, Optional.empty(), SOME_HAVING, SOME_REFINEMENT_CHANGES, true, SOME_LIMIT)
         )
         .addEqualityGroup(
             new Query(Optional.empty(), SOME_SELECT, SOME_FROM, SOME_WINDOW,
-                SOME_WHERE, SOME_GROUP_BY, Optional.empty(), SOME_HAVING, FINAL, false, SOME_LIMIT)
+                SOME_WHERE, SOME_GROUP_BY, Optional.empty(), SOME_HAVING, SOME_REFINEMENT_FINAL, false, SOME_LIMIT)
         )
         .addEqualityGroup(
             new Query(Optional.empty(), SOME_SELECT, SOME_FROM, SOME_WINDOW,
-                SOME_WHERE, SOME_GROUP_BY, Optional.empty(), SOME_HAVING, FINAL, true, OptionalInt.empty())
+                SOME_WHERE, SOME_GROUP_BY, Optional.empty(), SOME_HAVING, SOME_REFINEMENT_FINAL, true, OptionalInt.empty())
         )
         .testEquals();
   }

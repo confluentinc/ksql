@@ -3,8 +3,24 @@
   "timestamp" : 1591141844865,
   "path" : "query-validation-tests/sink-partitions-replicas.json",
   "schemas" : {
-    "CSAS_S_0.KsqlTopic.Source" : "STRUCT<C1 INT> NOT NULL",
-    "CSAS_S_0.S" : "STRUCT<C1 INT> NOT NULL"
+    "CSAS_S_0.KsqlTopic.Source" : {
+      "schema" : "`C1` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "AVRO"
+      }
+    },
+    "CSAS_S_0.S" : {
+      "schema" : "`C1` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "AVRO"
+      }
+    }
   },
   "testCase" : {
     "name" : "Use the legacy default sink properties for the sink topic if default partitions and replicas were set",
@@ -24,7 +40,7 @@
     } ],
     "topics" : [ {
       "name" : "input",
-      "schema" : {
+      "valueSchema" : {
         "type" : "record",
         "name" : "blah",
         "fields" : [ {
@@ -32,7 +48,7 @@
           "type" : "int"
         } ]
       },
-      "format" : "AVRO",
+      "valueFormat" : "AVRO",
       "replicas" : 3,
       "numPartitions" : 5
     }, {
@@ -46,13 +62,32 @@
       "ksql.sink.replicas" : "1"
     },
     "post" : {
+      "sources" : [ {
+        "name" : "S",
+        "type" : "STREAM",
+        "schema" : "`C1` INTEGER",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "AVRO",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
+      }, {
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`C1` INTEGER",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "AVRO",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
+      } ],
       "topics" : {
         "topics" : [ {
           "name" : "S",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "AVRO"
@@ -61,9 +96,7 @@
         }, {
           "name" : "input",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "AVRO"

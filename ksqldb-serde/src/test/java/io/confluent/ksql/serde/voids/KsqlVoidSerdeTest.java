@@ -32,14 +32,24 @@ public class KsqlVoidSerdeTest {
 
   @Before
   public void setUp()  {
-    serializer = new KsqlVoidSerde().serializer();
-    deserializer = new KsqlVoidSerde().deserializer();
+    serializer = new KsqlVoidSerde<Void>().serializer();
+    deserializer = new KsqlVoidSerde<Void>().deserializer();
   }
 
   @Test
-  public void shouldSerializeDataToNull() {
+  public void shouldSerializeNullDataToNull() {
     // When:
     final byte[] result = serializer.serialize("t", null);
+
+    // Then: did not throw and
+    assertThat(result, is(nullValue()));
+  }
+
+  @SuppressWarnings({"unchecked", "rawtypes"})
+  @Test
+  public void shouldSerializeAnyDataToNull() {
+    // When:
+    final byte[] result = ((Serializer)serializer).serialize("t", "not null");
 
     // Then: did not throw and
     assertThat(result, is(nullValue()));

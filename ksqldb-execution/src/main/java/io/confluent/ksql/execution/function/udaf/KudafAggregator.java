@@ -52,9 +52,11 @@ public class KudafAggregator<K> implements UdafAggregator<K> {
 
   @Override
   public GenericRow apply(final K k, final GenericRow rowValue, final GenericRow aggRowValue) {
+    final GenericRow result = GenericRow.fromList(aggRowValue.values());
+
     // copy over group-by and aggregate parameter columns into the output row
     for (int idx = 0; idx < nonAggColumnCount; idx++) {
-      aggRowValue.set(idx, rowValue.get(idx));
+      result.set(idx, rowValue.get(idx));
     }
 
     // compute the aggregation and write it into the output row. Its assumed that
@@ -63,12 +65,12 @@ public class KudafAggregator<K> implements UdafAggregator<K> {
     for (int idx = nonAggColumnCount; idx < columnCount; idx++) {
       final KsqlAggregateFunction<Object, Object, Object> func = aggregateFunctionForColumn(idx);
       final Object currentValue = rowValue.get(func.getArgIndexInValue());
-      final Object currentAggregate = aggRowValue.get(idx);
+      final Object currentAggregate = result.get(idx);
       final Object newAggregate = func.aggregate(currentValue, currentAggregate);
-      aggRowValue.set(idx, newAggregate);
+      result.set(idx, newAggregate);
     }
 
-    return aggRowValue;
+    return result;
   }
 
   public KsqlTransformer<K, GenericRow> getResultMapper() {

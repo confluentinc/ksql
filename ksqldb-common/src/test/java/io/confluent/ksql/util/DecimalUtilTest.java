@@ -319,33 +319,6 @@ public class DecimalUtilTest {
   }
 
   @Test
-  public void shouldConvertString() {
-    // When:
-    final String decimal = DecimalUtil.format(3, 1, new BigDecimal("12.1"));
-
-    // Then:
-    assertThat(decimal, is("12.1"));
-  }
-
-  @Test
-  public void shouldConvertToStringAndAddTrailingZeros() {
-    // When:
-    final String decimal = DecimalUtil.format(4, 2, new BigDecimal("12.1"));
-
-    // Then:
-    assertThat(decimal, is("12.10"));
-  }
-
-  @Test
-  public void shouldConvertToStringButNotAddLeadingZeros() {
-    // When:
-    final String decimal = DecimalUtil.format(100, 1, new BigDecimal("12.1"));
-
-    // Then:
-    assertThat(decimal, is("12.1"));
-  }
-
-  @Test
   public void shouldFailIfBuilderWithZeroPrecision() {
     // When:
     final Exception e = assertThrows(
@@ -509,5 +482,57 @@ public class DecimalUtilTest {
         NumberFormatException.class,
         () -> cast("abc", 2, 1)
     );
+  }
+
+  @Test
+  public void shouldAllowImplicitlyCastOnEqualSchema() {
+    // Given:
+    final SqlDecimal s1 = SqlTypes.decimal(5, 2);
+    final SqlDecimal s2 = SqlTypes.decimal(5, 2);
+
+    // When:
+    final boolean compatible = DecimalUtil.canImplicitlyCast(s1, s2);
+
+    // Then:
+    assertThat(compatible, is(true));
+  }
+
+  @Test
+  public void shouldAllowImplicitlyCastOnHigherPrecisionAndScale() {
+    // Given:
+    final SqlDecimal s1 = SqlTypes.decimal(5, 2);
+    final SqlDecimal s2 = SqlTypes.decimal(6, 3);
+
+    // When:
+    final boolean compatible = DecimalUtil.canImplicitlyCast(s1, s2);
+
+    // Then:
+    assertThat(compatible, is(true));
+  }
+
+  @Test
+  public void shouldAllowImplicitlyCastOnHigherScale() {
+    // Given:
+    final SqlDecimal s1 = SqlTypes.decimal(2, 1);
+    final SqlDecimal s2 = SqlTypes.decimal(2, 2);
+
+    // When:
+    final boolean compatible = DecimalUtil.canImplicitlyCast(s1, s2);
+
+    // Then:
+    assertThat(compatible, is(false));
+  }
+
+  @Test
+  public void shouldAllowImplicitlyCastOnLowerPrecision() {
+    // Given:
+    final SqlDecimal s1 = SqlTypes.decimal(2, 1);
+    final SqlDecimal s2 = SqlTypes.decimal(1, 1);
+
+    // When:
+    final boolean compatible = DecimalUtil.canImplicitlyCast(s1, s2);
+
+    // Then:
+    assertThat(compatible, is(false));
   }
 }

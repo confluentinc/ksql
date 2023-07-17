@@ -20,11 +20,14 @@ import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.when;
 
-import io.confluent.ksql.schema.ksql.PersistenceSchema;
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.util.DecimalUtil;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
+import java.util.function.Supplier;
 import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.SchemaBuilder;
+import org.apache.kafka.connect.data.Struct;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -35,29 +38,26 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class ProtobufSerdeFactoryTest {
 
   @Mock
-  private PersistenceSchema schema;
-
-  private ProtobufSerdeFactory factory;
+  private KsqlConfig config;
+  @Mock
+  private Supplier<SchemaRegistryClient> srClientFactory;
 
   @Before
-  public void setUp() {
-    factory = new ProtobufSerdeFactory();
+  public void setUp() throws Exception {
+    when(config.getString(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY)).thenReturn("http://localhost:8088");
   }
 
   @Test
   public void shouldThrowOnDecimal() {
     // Given:
-    final ConnectSchema schemaWithNestedDecimal = (ConnectSchema) SchemaBuilder.struct()
+    final ConnectSchema schema = (ConnectSchema) SchemaBuilder.struct()
         .field("f0", SchemaBuilder.array(DecimalUtil.builder(10, 2)))
         .build();
-
-    when(schema.serializedSchema())
-        .thenReturn(schemaWithNestedDecimal);
 
     // When:
     final Exception e = assertThrows(
         KsqlException.class,
-        () -> factory.validate(schema)
+        () -> ProtobufSerdeFactory.createSerde(schema, config, srClientFactory, Struct.class)
     );
 
     // Then:
@@ -68,15 +68,12 @@ public class ProtobufSerdeFactoryTest {
   @Test
   public void shouldNotThrowOnNonDecimal() {
     // Given:
-    final ConnectSchema schemaWithOutDecimal = (ConnectSchema) SchemaBuilder.struct()
+    final ConnectSchema schema = (ConnectSchema) SchemaBuilder.struct()
         .field("f0", SchemaBuilder.array(SchemaBuilder.OPTIONAL_STRING_SCHEMA))
         .build();
 
-    when(schema.serializedSchema())
-        .thenReturn(schemaWithOutDecimal);
-
     // When:
-    factory.validate(schema);
+    ProtobufSerdeFactory.createSerde(schema, config, srClientFactory, Struct.class);
 
     // Then (did not throw)
   }

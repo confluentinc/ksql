@@ -36,7 +36,7 @@ public class SqlArrayTest {
     new EqualsTester()
         .addEqualityGroup(SqlArray.of(SOME_TYPE), SqlArray.of(SOME_TYPE))
         .addEqualityGroup(SqlArray.of(SqlPrimitiveType.of(SqlBaseType.BOOLEAN)))
-        .addEqualityGroup(SqlMap.of(SqlPrimitiveType.of(SqlBaseType.BOOLEAN)))
+        .addEqualityGroup(SqlMap.of(SqlTypes.STRING, SqlTypes.BOOLEAN))
         .testEquals();
   }
 

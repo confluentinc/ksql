@@ -2,6 +2,25 @@
     background-color: #252839;
 }
 
+.md-header-nav .ksqldb-home {
+    font-size: .65rem;
+    border: 1px solid #787a82;
+    align-self: center;
+    padding: 7px 10px;
+    border-radius: 5px;
+    font-weight: 600;
+    background: #1b1e2b;
+}
+
+.md-header-nav .ksqldb-home i {
+    color: #787a82;
+    padding-left: 3px;
+}
+
+.md-header-nav__title {
+    padding-left: .1rem;
+}
+
 select.version {
     font-size: .65rem;
     font-family: "Roboto",-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif;
@@ -43,4 +62,79 @@ select.version::-ms-expand {
 .centered-img {
     display: block;
     margin: 30px auto;
+}
+
+.cards {
+    display: flex;
+    flex-flow: row wrap;
+    justify-content: space-evenly;
+    align-items: stretch;
+    margin-bottom: 40px;
+}
+
+@media (max-width: 800px) {
+  .cards {
+    flex-direction: column;
+  }
+}
+
+.card {
+    display: flex;
+    flex-flow: column wrap;
+    flex: 1;
+    align-items: stretch;
+    background-color: #f6f8f8;
+    border: 2px solid #eee;
+    border-radius: 3px;
+    padding: 12px;
+    margin: 5px;
+}
+
+ul.card-items {
+    margin-left: 0;
+    list-style-type: none;
+    flex: 1;
+}
+
+ul.card-items li {
+    margin-left: 0;
+}
+
+.card-body {
+    flex: 1;
+}
+
+.card-more {
+    align-self: flex-start;
+}
+
+.tutorial-begin {
+    display: flex;
+    flex-flow: row nowrap;
+}
+
+.tutorial-begin a {
+    align-self: center;
+    margin: auto;
+    transform: translateX(-20px);
+}
+
+.card.tutorial {
+    background-color: #faf7ff;
+}
+
+.card.how-to-guide {
+    background-color: #f7f8ff;
+}
+
+.card.how-to-guide.contribute {
+    background: repeating-linear-gradient(
+      45deg,
+      #f7f8ff,
+      #f7f8ff 10px,
+      #ffffff 10px,
+      #ffffff 20px
+    );
+
+    border: 2px dashed #eee;
 }

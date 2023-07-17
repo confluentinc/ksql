@@ -21,6 +21,7 @@ import static java.util.Objects.requireNonNull;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.parser.NodeLocation;
+import io.confluent.ksql.serde.RefinementInfo;
 import io.confluent.ksql.util.KsqlPreconditions;
 import java.util.Objects;
 import java.util.Optional;
@@ -36,7 +37,7 @@ public class Query extends Statement {
   private final Optional<GroupBy> groupBy;
   private final Optional<PartitionBy> partitionBy;
   private final Optional<Expression> having;
-  private final ResultMaterialization resultMaterialization;
+  private final Optional<RefinementInfo> refinement;
   private final boolean pullQuery;
   private final OptionalInt limit;
 
@@ -51,7 +52,7 @@ public class Query extends Statement {
       final Optional<GroupBy> groupBy,
       final Optional<PartitionBy> partitionBy,
       final Optional<Expression> having,
-      final ResultMaterialization resultMaterialization,
+      final Optional<RefinementInfo> refinement,
       final boolean pullQuery,
       final OptionalInt limit
   ) {
@@ -63,7 +64,7 @@ public class Query extends Statement {
     this.groupBy = requireNonNull(groupBy, "groupBy");
     this.partitionBy = requireNonNull(partitionBy, "partitionBy");
     this.having = requireNonNull(having, "having");
-    this.resultMaterialization = requireNonNull(resultMaterialization, "resultMaterialization");
+    this.refinement = requireNonNull(refinement, "refinement");
     this.pullQuery = pullQuery;
     this.limit = requireNonNull(limit, "limit");
 
@@ -100,8 +101,8 @@ public class Query extends Statement {
     return having;
   }
 
-  public ResultMaterialization getResultMaterialization() {
-    return resultMaterialization;
+  public Optional<RefinementInfo> getRefinement() {
+    return refinement;
   }
 
   public boolean isPullQuery() {
@@ -127,7 +128,7 @@ public class Query extends Statement {
         .add("groupBy", groupBy.orElse(null))
         .add("partitionBy", partitionBy.orElse(null))
         .add("having", having.orElse(null))
-        .add("resultMaterialization", resultMaterialization)
+        .add("refinement", refinement)
         .add("pullQuery", pullQuery)
         .add("limit", limit)
         .omitNullValues()
@@ -154,7 +155,7 @@ public class Query extends Statement {
         && Objects.equals(groupBy, o.groupBy)
         && Objects.equals(partitionBy, o.partitionBy)
         && Objects.equals(having, o.having)
-        && Objects.equals(resultMaterialization, o.resultMaterialization)
+        && Objects.equals(refinement, o.refinement)
         && Objects.equals(limit, o.limit);
   }
 
@@ -167,7 +168,7 @@ public class Query extends Statement {
         window,
         groupBy,
         having,
-        resultMaterialization,
+        refinement,
         pullQuery,
         limit
     );

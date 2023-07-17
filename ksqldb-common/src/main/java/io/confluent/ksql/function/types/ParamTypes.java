@@ -55,11 +55,10 @@ public final class ParamTypes {
     }
 
     if (actual.baseType() == SqlBaseType.MAP && declared instanceof MapType) {
-      return areCompatible(
-          ((SqlMap) actual).getValueType(),
-          ((MapType) declared).value(),
-          allowCast
-      );
+      final SqlMap sqlType = (SqlMap) actual;
+      final MapType mapType = (MapType) declared;
+      return areCompatible(sqlType.getKeyType(), mapType.key(), allowCast)
+          && areCompatible(sqlType.getValueType(), mapType.value(), allowCast);
     }
 
     if (actual.baseType() == SqlBaseType.STRUCT && declared instanceof StructType) {

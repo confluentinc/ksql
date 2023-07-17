@@ -15,15 +15,16 @@
 
 package io.confluent.ksql.internal;
 
+import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.metrics.MetricCollectors;
+import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.ReservedInternalTopics;
 import java.io.Closeable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -59,8 +60,10 @@ public class KsqlEngineMetrics implements Closeable {
   private final Sensor messageConsumptionByQuery;
   private final Sensor errorRate;
 
-  private final String ksqlServiceId;
+  private final String ksqlServiceIdLegacyPrefix;
+  private final String ksqlServicePrefix;
   private final Map<String, String> customMetricsTags;
+  private final Map<String, String> newCustomMetricsTags;
   private final Optional<KsqlMetricsExtension> metricsExtension;
 
   private final KsqlEngine ksqlEngine;
@@ -88,13 +91,19 @@ public class KsqlEngineMetrics implements Closeable {
       final Optional<KsqlMetricsExtension> metricsExtension
   ) {
     this.ksqlEngine = ksqlEngine;
-    this.ksqlServiceId = ReservedInternalTopics.KSQL_INTERNAL_TOPIC_PREFIX
+    this.ksqlServiceIdLegacyPrefix = ReservedInternalTopics.KSQL_INTERNAL_TOPIC_PREFIX
         + ksqlEngine.getServiceId();
+    this.ksqlServicePrefix = ReservedInternalTopics.CONFLUENT_PREFIX;
     this.sensors = new ArrayList<>();
     this.countMetrics = new ArrayList<>();
     this.metricGroupPrefix = Objects.requireNonNull(metricGroupPrefix, "metricGroupPrefix");
     this.metricGroupName = metricGroupPrefix + METRIC_GROUP_POST_FIX;
     this.customMetricsTags = customMetricsTags;
+
+    this.newCustomMetricsTags = ImmutableMap.<String, String>builder()
+        .putAll(customMetricsTags)
+        .put(KsqlConstants.KSQL_SERVICE_ID_METRICS_TAG, ksqlEngine.getServiceId())
+        .build();
     this.metricsExtension = metricsExtension;
 
     this.metrics = metrics;
@@ -150,7 +159,7 @@ public class KsqlEngineMetrics implements Closeable {
         query.getQueryApplicationId()
     );
 
-    query.registerQueryStateListener(listener);
+    query.setQueryStateListener(listener);
   }
 
   private void recordMessageConsumptionByQueryStats(
@@ -298,15 +307,19 @@ public class KsqlEngineMetrics implements Closeable {
       final KsqlMetric metric) {
     // legacy
     sensor.add(
-        metrics.metricName(ksqlServiceId + metric.name(), metricGroupName, metric.description()),
+        metrics.metricName(
+            metric.name(),
+            ksqlServiceIdLegacyPrefix + metricGroupName,
+            metric.description(),
+            customMetricsTags),
         metric.statSupplier().get());
-    // new
+    // new metrics with service id in tag
     sensor.add(
         metrics.metricName(
             metric.name(),
-            ksqlServiceId + metricGroupName,
+            ksqlServicePrefix + metricGroupName,
             metric.description(),
-            customMetricsTags),
+            newCustomMetricsTags),
         metric.statSupplier().get());
   }
 
@@ -346,16 +359,16 @@ public class KsqlEngineMetrics implements Closeable {
     final String name = state + "-queries";
     // legacy
     configureGaugeForState(
-        ksqlServiceId + metricGroupName + "-" + name,
-        metricGroupName,
-        Collections.emptyMap(),
+        name,
+        ksqlServiceIdLegacyPrefix + metricGroupName,
+        customMetricsTags,
         state
     );
-    // new
+    // new metrics with service id in tag
     configureGaugeForState(
         name,
-        ksqlServiceId + metricGroupName,
-        customMetricsTags,
+        ksqlServicePrefix + metricGroupName,
+        newCustomMetricsTags,
         state
     );
   }

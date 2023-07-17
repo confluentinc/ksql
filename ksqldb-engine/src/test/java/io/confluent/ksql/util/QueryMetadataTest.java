@@ -16,7 +16,10 @@
 package io.confluent.ksql.util;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -27,6 +30,8 @@ import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.internal.QueryStateListener;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
+import io.confluent.ksql.query.KafkaStreamsBuilder;
+import io.confluent.ksql.query.QueryError.Type;
 import io.confluent.ksql.query.QueryErrorClassifier;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -40,6 +45,7 @@ import java.util.function.Consumer;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KafkaStreams.State;
 import org.apache.kafka.streams.Topology;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -61,6 +67,8 @@ public class QueryMetadataTest {
   private static final Long closeTimeout = KsqlConfig.KSQL_SHUTDOWN_TIMEOUT_MS_DEFAULT;
 
   @Mock
+  private KafkaStreamsBuilder kafkaStreamsBuilder;
+  @Mock
   private Topology topoplogy;
   @Mock
   private KafkaStreams kafkaStreams;
@@ -68,30 +76,35 @@ public class QueryMetadataTest {
   private QueryStateListener listener;
   @Mock
   private Consumer<QueryMetadata> closeCallback;
+  @Mock
+  private QueryErrorClassifier classifier;
+  @Mock
+  private QueryStateListener queryStateListener;
+
   private QueryMetadata query;
-  private boolean cleanUp;
 
   @Before
   public void setup() {
-    cleanUp = false;
+    when(kafkaStreamsBuilder.build(topoplogy, Collections.emptyMap())).thenReturn(kafkaStreams);
+    when(classifier.classify(any())).thenReturn(Type.UNKNOWN);
+
     query = new QueryMetadata(
         "foo",
-        kafkaStreams,
         SOME_SCHEMA,
         SOME_SOURCES,
         "bar",
         QUERY_APPLICATION_ID,
         topoplogy,
+        kafkaStreamsBuilder,
         Collections.emptyMap(),
         Collections.emptyMap(),
         closeCallback,
         closeTimeout,
-        QUERY_ID, QueryErrorClassifier.DEFAULT_CLASSIFIER) {
-      @Override
-      public void stop() {
-        doClose(cleanUp);
-      }
+        QUERY_ID,
+        classifier,
+        10){
     };
+    query.initialize();
   }
 
   @Test
@@ -100,16 +113,35 @@ public class QueryMetadataTest {
     when(kafkaStreams.state()).thenReturn(State.CREATED);
 
     // When:
-    query.registerQueryStateListener(listener);
+    query.setQueryStateListener(listener);
 
     // Then:
     verify(listener).onChange(State.CREATED, State.CREATED);
   }
 
   @Test
+  public void shouldGetUptimeFromStateListener() {
+    // Given:
+    when(kafkaStreams.state()).thenReturn(State.RUNNING);
+    when(listener.uptime()).thenReturn(5L);
+
+    // When:
+    query.setQueryStateListener(listener);
+
+    // Then:
+    assertThat(query.uptime(), is(5L));
+  }
+
+  @Test
+  public void shouldReturnZeroUptimeIfNoStateListenerSet() {
+    // When/Then:
+    assertThat(query.uptime(), is(0L));
+  }
+
+  @Test
   public void shouldConnectAnyListenerToStreamAppOnStart() {
     // Given:
-    query.registerQueryStateListener(listener);
+    query.setQueryStateListener(listener);
 
     // When:
     query.start();
@@ -121,7 +153,7 @@ public class QueryMetadataTest {
   @Test
   public void shouldCloseAnyListenerOnClose() {
     // Given:
-    query.registerQueryStateListener(listener);
+    query.setQueryStateListener(listener);
 
     // When:
     query.close();
@@ -192,18 +224,6 @@ public class QueryMetadataTest {
   }
 
   @Test
-  public void shouldCallCleanupOnStopIfCleanup() {
-    // Given:
-    cleanUp = true;
-
-    // When:
-    query.stop();
-
-    // Then:
-    verify(kafkaStreams).cleanUp();
-  }
-
-  @Test
   public void shouldReturnSources() {
     assertThat(query.getSourceNames(), is(SOME_SOURCES));
   }
@@ -211,6 +231,38 @@ public class QueryMetadataTest {
   @Test
   public void shouldReturnSchema() {
     assertThat(query.getLogicalSchema(), is(SOME_SCHEMA));
+  }
+
+  @Test
+  public void shouldNotifyQueryStateListenerOnError() {
+    // Given:
+    query.setQueryStateListener(queryStateListener);
+    when(classifier.classify(any())).thenReturn(Type.USER);
+
+    // When:
+    query.uncaughtHandler(Thread.currentThread(), new RuntimeException("oops"));
+
+    // Then:
+    verify(queryStateListener).onError(argThat(q -> q.getType().equals(Type.USER)));
+  }
+
+  @Test
+  public void shouldNotifyQueryStateListenerOnErrorEvenIfClassifierFails() {
+    // Given:
+    query.setQueryStateListener(queryStateListener);
+    final RuntimeException thrown = new RuntimeException("bar");
+    when(classifier.classify(any())).thenThrow(thrown);
+
+    // When:
+    try {
+      query.uncaughtHandler(Thread.currentThread(), new RuntimeException("foo"));
+      Assert.fail("uncaught handler should have thrown");
+    } catch (final RuntimeException e) {
+      assertThat(e, equalTo(thrown));
+    }
+
+    // Then:
+    verify(queryStateListener).onError(argThat(q -> q.getType().equals(Type.UNKNOWN)));
   }
 
   @Test

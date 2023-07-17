@@ -25,12 +25,8 @@ import static org.junit.Assert.fail;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.BooleanNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
-import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import java.io.IOException;
 import org.apache.commons.lang3.exception.ExceptionUtils;
-import org.apache.kafka.connect.data.ConnectSchema;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
@@ -209,44 +205,6 @@ public class JsonSerdeUtilsTest {
   }
 
   @Test
-  public void shouldThrowOnMapWithNoneStringKeys() {
-    // When:
-    final Exception e = assertThrows(
-        IllegalArgumentException.class,
-        () -> JsonSerdeUtils.validateSchema(persistenceSchema(
-            SchemaBuilder
-                .map(Schema.OPTIONAL_BOOLEAN_SCHEMA, Schema.OPTIONAL_STRING_SCHEMA)
-                .build()
-        ))
-    );
-
-    // Then:
-    assertThat(e.getMessage(), containsString(
-        "Only MAPs with STRING keys are supported"));
-  }
-
-  @Test
-  public void shouldThrowOnNestedMapWithNoneStringKeys() {
-    // When:
-    final Exception e = assertThrows(
-        IllegalArgumentException.class,
-        () -> JsonSerdeUtils.validateSchema(persistenceSchema(
-            SchemaBuilder
-                .struct()
-                .field("f0", SchemaBuilder
-                    .map(Schema.OPTIONAL_BOOLEAN_SCHEMA, Schema.OPTIONAL_STRING_SCHEMA)
-                    .optional()
-                    .build())
-                .build()
-        ))
-    );
-
-    // Then:
-    assertThat(e.getMessage(), containsString(
-        "Only MAPs with STRING keys are supported"));
-  }
-
-  @Test
   public void shouldSetCorrectOffsetWithMagicByte() throws IOException {
     // Given:
     byte[] json = new byte[]{/* magic */ 0x00, /* id */ 0x00, 0x00, 0x00, 0x01, /* data */ 0x01};
@@ -259,7 +217,7 @@ public class JsonSerdeUtilsTest {
   }
 
   @Test()
-  public void shouldThrowOnStandardJsonConversion() throws IOException {
+  public void shouldThrowOnStandardJsonConversion() {
     // Given:
     byte[] json = new byte[]{/* data */ 0x01};
 
@@ -272,14 +230,5 @@ public class JsonSerdeUtilsTest {
     // Then:
     assertThat(e.getMessage(), containsString(
         "Got unexpected JSON serialization format that did not start with the magic byte"));
-  }
-
-  private static PersistenceSchema persistenceSchema(final Schema schema) {
-    return PersistenceSchema.from(
-        (ConnectSchema) SchemaBuilder.struct()
-            .field("field", schema)
-            .build(),
-        true
-    );
   }
 }

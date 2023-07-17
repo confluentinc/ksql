@@ -87,4 +87,31 @@ public final class KeyFormatNode {
 
     return allOf(matchers);
   }
+
+  @Override
+  public boolean equals(final Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    final KeyFormatNode that = (KeyFormatNode) o;
+    return format.equals(that.format)
+        && windowType.equals(that.windowType)
+        && windowSize.equals(that.windowSize);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(format, windowType, windowSize);
+  }
+
+  public static KeyFormatNode fromKeyFormat(final KeyFormat keyFormat) {
+    return new KeyFormatNode(
+        Optional.of(keyFormat.getFormatInfo().getFormat()),
+        keyFormat.getWindowType(),
+        keyFormat.getWindowSize().map(Duration::toMillis)
+    );
+  }
 }

@@ -38,6 +38,7 @@ import java.time.Duration;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.BiFunction;
+import java.util.function.Supplier;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.common.errors.AuthorizationException;
 import org.apache.kafka.common.errors.OutOfOrderSequenceException;
@@ -59,6 +60,7 @@ public class DistributingExecutor {
   private final CommandIdAssigner commandIdAssigner;
   private final ReservedInternalTopics internalTopics;
   private final Errors errorHandler;
+  private final Supplier<String> commandRunnerWarning;
 
   public DistributingExecutor(
       final KsqlConfig ksqlConfig,
@@ -67,9 +69,10 @@ public class DistributingExecutor {
       final BiFunction<KsqlExecutionContext, ServiceContext, Injector> injectorFactory,
       final Optional<KsqlAuthorizationValidator> authorizationValidator,
       final ValidatedCommandFactory validatedCommandFactory,
-      final Errors errorHandler
+      final Errors errorHandler,
+      final Supplier<String> commandRunnerWarning
   ) {
-    this.commandQueue = Objects.requireNonNull(commandQueue, "commandQueue");
+    this.commandQueue = commandQueue;
     this.distributedCmdResponseTimeout =
         Objects.requireNonNull(distributedCmdResponseTimeout, "distributedCmdResponseTimeout");
     this.injectorFactory = Objects.requireNonNull(injectorFactory, "injectorFactory");
@@ -83,6 +86,8 @@ public class DistributingExecutor {
     this.internalTopics =
         new ReservedInternalTopics(Objects.requireNonNull(ksqlConfig, "ksqlConfig"));
     this.errorHandler = Objects.requireNonNull(errorHandler, "errorHandler");
+    this.commandRunnerWarning =
+        Objects.requireNonNull(commandRunnerWarning, "commandRunnerWarning");
   }
 
   /**
@@ -100,6 +105,12 @@ public class DistributingExecutor {
       final KsqlExecutionContext executionContext,
       final KsqlSecurityContext securityContext
   ) {
+    final String commandRunnerWarningString = commandRunnerWarning.get();
+    if (!commandRunnerWarningString.equals("")) {
+      throw new KsqlServerException("Failed to handle Ksql Statement."
+          + System.lineSeparator()
+          + commandRunnerWarningString);
+    }
     final ConfiguredStatement<?> injected = injectorFactory
         .apply(executionContext, securityContext.getServiceContext())
         .inject(statement);
@@ -131,12 +142,13 @@ public class DistributingExecutor {
           KsqlStatementException.Problem.OTHER,
           e);
     }
-    
+
+    CommandId commandId = null;
     try {
       transactionalProducer.beginTransaction();
       commandQueue.waitForCommandConsumer();
 
-      final CommandId commandId = commandIdAssigner.getCommandId(statement.getStatement());
+      commandId = commandIdAssigner.getCommandId(statement.getStatement());
       final Command command = validatedCommandFactory.create(
           injected,
           executionContext.createSandbox(executionContext.getServiceContext())
@@ -160,6 +172,9 @@ public class DistributingExecutor {
     ) {
       // We can't recover from these exceptions, so our only option is close producer and exit.
       // This catch doesn't abortTransaction() since doing that would throw another exception.
+      if (commandId != null) {
+        commandQueue.abortCommand(commandId);
+      }
       throw new KsqlStatementException(
           "Could not write the statement into the command topic.",
           String.format(
@@ -172,6 +187,9 @@ public class DistributingExecutor {
       );
     } catch (final Exception e) {
       transactionalProducer.abortTransaction();
+      if (commandId != null) {
+        commandQueue.abortCommand(commandId);
+      }
       throw new KsqlStatementException(
           "Could not write the statement into the command topic.",
           String.format(

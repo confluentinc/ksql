@@ -89,7 +89,7 @@ public final class SqlTypeWalker {
       return visitType(type);
     }
 
-    default S visitMap(final SqlMap type, final S value) {
+    default S visitMap(final SqlMap type, final S key, final S value) {
       return visitType(type);
     }
 
@@ -132,8 +132,9 @@ public final class SqlTypeWalker {
       final SqlType type
   ) {
     final SqlMap map = (SqlMap) type;
+    final S key = visit(map.getKeyType(), visitor);
     final S value = visit(map.getValueType(), visitor);
-    return visitor.visitMap(map, value);
+    return visitor.visitMap(map, key, value);
   }
 
   private static <S, F> S visitStruct(

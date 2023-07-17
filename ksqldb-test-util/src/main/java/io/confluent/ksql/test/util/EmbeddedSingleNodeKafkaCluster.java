@@ -96,6 +96,7 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
 
   private static final Logger log = LoggerFactory.getLogger(EmbeddedSingleNodeKafkaCluster.class);
   private static final Duration PRODUCE_TIMEOUT = Duration.ofSeconds(30);
+  private static final ServerKeyStore SERVER_KEY_STORE = new ServerKeyStore();
 
   public static final String JAAS_KAFKA_PROPS_NAME = "KafkaServer";
 
@@ -249,7 +250,7 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
   public Map<String, Object> producerConfig() {
     final Map<String, Object> config = new HashMap<>(getClientProperties());
     config.put(ProducerConfig.ACKS_CONFIG, "all");
-    config.put(ProducerConfig.RETRIES_CONFIG, 10);
+    config.put(ProducerConfig.DELIVERY_TIMEOUT_MS_CONFIG, 60_000);
     return config;
   }
 
@@ -625,7 +626,7 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
 
   private AdminClient adminClient() {
     final Map<String, Object> props = new HashMap<>(getClientProperties());
-    props.put(AdminClientConfig.RETRIES_CONFIG, 5);
+    props.put(AdminClientConfig.REQUEST_TIMEOUT_MS_CONFIG, 60_000);
     props.putAll(SecureKafkaHelper.getSecureCredentialsConfig(INTER_BROKER_USER));
 
     return AdminClient.create(props);
@@ -674,7 +675,7 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
       brokerConfig.put(KafkaConfig.InterBrokerSecurityProtocolProp(),
           SecurityProtocol.SASL_SSL.name());
       brokerConfig.put(KafkaConfig.SaslMechanismInterBrokerProtocolProp(), "PLAIN");
-      brokerConfig.putAll(ServerKeyStore.keyStoreProps());
+      brokerConfig.putAll(SERVER_KEY_STORE.keyStoreProps());
       brokerConfig.put(SslConfigs.SSL_ENDPOINT_IDENTIFICATION_ALGORITHM_CONFIG, "");
 
       clientConfig.putAll(SecureKafkaHelper.getSecureCredentialsConfig(VALID_USER1));

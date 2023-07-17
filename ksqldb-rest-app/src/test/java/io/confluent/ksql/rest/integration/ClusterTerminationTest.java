@@ -16,6 +16,7 @@
 package io.confluent.ksql.rest.integration;
 
 import static io.confluent.ksql.serde.FormatFactory.JSON;
+import static io.confluent.ksql.serde.FormatFactory.KAFKA;
 import static io.netty.handler.codec.http.HttpResponseStatus.OK;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
@@ -49,7 +50,7 @@ public class ClusterTerminationTest {
 
   private static final PageViewDataProvider PAGE_VIEWS_PROVIDER = new PageViewDataProvider();
   private static final String PAGE_VIEW_TOPIC = PAGE_VIEWS_PROVIDER.topicName();
-  private static final String PAGE_VIEW_STREAM = PAGE_VIEWS_PROVIDER.kstreamName();
+  private static final String PAGE_VIEW_STREAM = PAGE_VIEWS_PROVIDER.sourceName();
 
   private static final String SINK_TOPIC = "sink_topic";
   private static final String SINK_STREAM = "sink_stream";
@@ -60,6 +61,7 @@ public class ClusterTerminationTest {
       .builder(TEST_HARNESS::kafkaBootstrapServers)
       .withStaticServiceContext(TEST_HARNESS::getServiceContext)
       .withProperty(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY, "http://foo:8080")
+      .withProperty(KsqlConfig.KSQL_KEY_FORMAT_ENABLED, true)
       .build();
 
   @ClassRule
@@ -81,16 +83,17 @@ public class ClusterTerminationTest {
     RestIntegrationTestUtil.makeKsqlRequest(
         REST_APP,
         "CREATE STREAM " + SINK_STREAM
-            + " WITH (kafka_topic='" + SINK_TOPIC + "',value_format='avro')"
+            + " WITH (kafka_topic='" + SINK_TOPIC + "',format='avro')"
             + " AS SELECT * FROM " + PAGE_VIEW_STREAM + ";"
     );
 
     TEST_HARNESS.getKafkaCluster().waitForTopicsToBePresent(SINK_TOPIC);
 
     // Produce to stream so that schema is registered by AvroConverter
-    TEST_HARNESS.produceRows(PAGE_VIEW_TOPIC, PAGE_VIEWS_PROVIDER, JSON, System::currentTimeMillis);
+    TEST_HARNESS.produceRows(PAGE_VIEW_TOPIC, PAGE_VIEWS_PROVIDER, KAFKA, JSON, System::currentTimeMillis);
 
-    TEST_HARNESS.waitForSubjectToBePresent(SINK_TOPIC + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX);
+    TEST_HARNESS.waitForSubjectToBePresent(KsqlConstants.getSRSubject(SINK_TOPIC, true));
+    TEST_HARNESS.waitForSubjectToBePresent(KsqlConstants.getSRSubject(SINK_TOPIC, false));
 
     // When:
     terminateCluster(ImmutableList.of(SINK_TOPIC));
@@ -98,7 +101,8 @@ public class ClusterTerminationTest {
     // Then:
     TEST_HARNESS.getKafkaCluster().waitForTopicsToBeAbsent(SINK_TOPIC);
 
-    TEST_HARNESS.waitForSubjectToBeAbsent(SINK_TOPIC + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX);
+    TEST_HARNESS.waitForSubjectToBeAbsent(KsqlConstants.getSRSubject(SINK_TOPIC, true));
+    TEST_HARNESS.waitForSubjectToBeAbsent(KsqlConstants.getSRSubject(SINK_TOPIC, false));
 
     assertThat(
         "Should not delete non-sink topics",

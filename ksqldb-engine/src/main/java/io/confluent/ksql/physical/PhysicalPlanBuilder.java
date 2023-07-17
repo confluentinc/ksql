@@ -21,7 +21,6 @@ import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.planner.LogicalPlanNode;
 import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.query.QueryId;
-import io.confluent.ksql.query.id.QueryIdGenerator;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.structured.SchemaKStream;
@@ -36,15 +35,13 @@ public class PhysicalPlanBuilder {
   private final ServiceContext serviceContext;
   private final ProcessingLogContext processingLogContext;
   private final FunctionRegistry functionRegistry;
-  private final QueryIdGenerator queryIdGenerator;
 
   public PhysicalPlanBuilder(
       final StreamsBuilder builder,
       final KsqlConfig ksqlConfig,
       final ServiceContext serviceContext,
       final ProcessingLogContext processingLogContext,
-      final FunctionRegistry functionRegistry,
-      final QueryIdGenerator queryIdGenerator
+      final FunctionRegistry functionRegistry
   ) {
     this.builder = Objects.requireNonNull(builder, "builder");
     this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
@@ -53,14 +50,14 @@ public class PhysicalPlanBuilder {
         processingLogContext,
         "processingLogContext");
     this.functionRegistry = Objects.requireNonNull(functionRegistry, "functionRegistry");
-    this.queryIdGenerator = Objects.requireNonNull(queryIdGenerator, "queryIdGenerator");
   }
 
-  public PhysicalPlan buildPhysicalPlan(final LogicalPlanNode logicalPlanNode) {
+  public PhysicalPlan buildPhysicalPlan(
+      final LogicalPlanNode logicalPlanNode,
+      final QueryId queryId
+  ) {
     final OutputNode outputNode = logicalPlanNode.getNode()
         .orElseThrow(() -> new IllegalArgumentException("Need an output node to build a plan"));
-
-    final QueryId queryId = outputNode.getQueryId(queryIdGenerator);
 
     final KsqlQueryBuilder ksqlQueryBuilder = KsqlQueryBuilder.of(
         builder,

@@ -70,16 +70,16 @@ public final class QueryCapacityUtil {
   }
 
   public static boolean exceedsPushQueryCapacity(
-      final KsqlExecutionContext executionContext,
-      final KsqlRestConfig ksqlRestConfig
+          final KsqlExecutionContext executionContext,
+          final KsqlRestConfig ksqlRestConfig
   ) {
     return getNumLivePushQueries(executionContext) >= getPushQueryLimit(ksqlRestConfig);
   }
 
   public static void throwTooManyActivePushQueriesException(
-      final KsqlExecutionContext executionContext,
-      final KsqlRestConfig ksqlRestConfig,
-      final String statementStr
+          final KsqlExecutionContext executionContext,
+          final KsqlRestConfig ksqlRestConfig,
+          final String statementStr
   ) {
     final String sanitizedMessage = String.format(
         "Not executing statement(s) as it would cause the number "

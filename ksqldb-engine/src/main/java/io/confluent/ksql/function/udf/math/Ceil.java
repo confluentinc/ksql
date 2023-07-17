@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.function.udf.math;
 
+import io.confluent.ksql.function.FunctionCategory;
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.function.udf.UdfParameter;
@@ -29,6 +30,7 @@ import java.util.List;
 
 @UdfDescription(
     name = "Ceil",
+    category = FunctionCategory.MATHEMATICAL,
     description = Ceil.DESCRIPTION,
     author = KsqlConstants.CONFLUENT_AUTHOR
 )

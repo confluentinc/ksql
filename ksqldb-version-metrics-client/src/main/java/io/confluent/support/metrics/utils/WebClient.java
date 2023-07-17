@@ -17,17 +17,19 @@ package io.confluent.support.metrics.utils;
 
 import io.confluent.support.metrics.submitters.ResponseHandler;
 import java.io.IOException;
-import org.apache.http.HttpHost;
-import org.apache.http.HttpStatus;
-import org.apache.http.client.config.RequestConfig;
-import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.entity.ContentType;
-import org.apache.http.entity.mime.HttpMultipartMode;
-import org.apache.http.entity.mime.MultipartEntityBuilder;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClientBuilder;
-import org.apache.http.impl.conn.DefaultProxyRoutePlanner;
+import org.apache.hc.client5.http.classic.methods.HttpPost;
+import org.apache.hc.client5.http.config.RequestConfig;
+import org.apache.hc.client5.http.entity.mime.HttpMultipartMode;
+import org.apache.hc.client5.http.entity.mime.MultipartEntityBuilder;
+import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
+import org.apache.hc.client5.http.impl.classic.CloseableHttpResponse;
+import org.apache.hc.client5.http.impl.classic.HttpClientBuilder;
+import org.apache.hc.client5.http.impl.routing.DefaultProxyRoutePlanner;
+import org.apache.hc.core5.http.ContentType;
+import org.apache.hc.core5.http.HttpHost;
+import org.apache.hc.core5.http.HttpStatus;
+import org.apache.hc.core5.http.message.StatusLine;
+import org.apache.hc.core5.util.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -64,7 +66,7 @@ public final class WebClient {
 
       // add the body to the request
       final MultipartEntityBuilder builder = MultipartEntityBuilder.create();
-      builder.setMode(HttpMultipartMode.BROWSER_COMPATIBLE);
+      builder.setMode(HttpMultipartMode.LEGACY);
       builder.addTextBody("cid", customerId);
       builder.addBinaryBody("file", bytes, ContentType.DEFAULT_BINARY, "filename");
       httpPost.setEntity(builder.build());
@@ -72,9 +74,9 @@ public final class WebClient {
 
       // set the HTTP config
       RequestConfig config = RequestConfig.custom()
-          .setConnectTimeout(REQUEST_TIMEOUT_MS)
-          .setConnectionRequestTimeout(REQUEST_TIMEOUT_MS)
-          .setSocketTimeout(REQUEST_TIMEOUT_MS)
+          .setConnectTimeout(Timeout.ofMilliseconds(REQUEST_TIMEOUT_MS))
+          .setConnectionRequestTimeout(Timeout.ofMilliseconds(REQUEST_TIMEOUT_MS))
+          .setResponseTimeout(Timeout.ofMilliseconds(REQUEST_TIMEOUT_MS))
           .build();
 
       CloseableHttpResponse response = null;
@@ -104,8 +106,8 @@ public final class WebClient {
         }
 
         // send request
-        log.debug("POST request returned {}", response.getStatusLine().toString());
-        statusCode = response.getStatusLine().getStatusCode();
+        log.debug("POST request returned {}", new StatusLine(response).toString());
+        statusCode = response.getCode();
       } catch (IOException e) {
         log.error("Could not submit metrics to Confluent: {}", e.getMessage());
       } finally {

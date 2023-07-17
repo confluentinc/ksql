@@ -15,17 +15,33 @@
 
 package io.confluent.ksql.ddl.commands;
 
+import static java.util.Objects.requireNonNull;
+
 import io.confluent.ksql.execution.ddl.commands.RegisterTypeCommand;
+import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.tree.RegisterType;
+import io.confluent.ksql.schema.ksql.types.SqlType;
+import io.confluent.ksql.util.KsqlException;
 
 public final class RegisterTypeFactory {
-  RegisterTypeFactory() {
+  private final MetaStore metaStore;
+
+  RegisterTypeFactory(final MetaStore metaStore) {
+    this.metaStore = requireNonNull(metaStore, "metaStore");
   }
 
   public RegisterTypeCommand create(final RegisterType statement) {
-    return new RegisterTypeCommand(
-        statement.getType().getSqlType(),
-        statement.getName()
-    );
+    final String name = statement.getName();
+    final boolean ifNotExists = statement.getIfNotExists();
+    final SqlType type = statement.getType().getSqlType();
+
+    if (!ifNotExists && metaStore.resolveType(name).isPresent()) {
+      throw new KsqlException(
+          "Cannot register custom type '" + name + "' "
+              + "since it is already registered with type: " + metaStore.resolveType(name).get()
+      );
+    }
+
+    return new RegisterTypeCommand(type, name);
   }
 }

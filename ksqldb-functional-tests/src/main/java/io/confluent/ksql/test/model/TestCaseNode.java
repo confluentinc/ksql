@@ -23,6 +23,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.test.TestFrameworkException;
 import io.confluent.ksql.test.tools.exceptions.InvalidFieldException;
 import io.confluent.ksql.test.tools.exceptions.MissingFieldException;
 import java.util.List;
@@ -133,12 +134,22 @@ public class TestCaseNode {
   }
 
   private void validate() {
-    if (this.name.isEmpty()) {
+    if (name.isEmpty()) {
       throw new MissingFieldException("name");
     }
 
-    if (this.statements.isEmpty()) {
-      throw new InvalidFieldException("statements", "was empty");
+    try {
+      if (statements.isEmpty()) {
+        throw new InvalidFieldException("statements", "was empty");
+      }
+
+      if (!expectedException.isPresent() && inputs.isEmpty() && outputs.isEmpty()) {
+        throw new InvalidFieldException(
+            "outputs", "no inputs, outputs or expectedException provided");
+      }
+    } catch (final Exception e) {
+      throw new TestFrameworkException(
+          "Invalid test case: '" + name + "'. cause: " + e.getMessage(), e);
     }
   }
 

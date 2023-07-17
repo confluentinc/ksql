@@ -102,6 +102,8 @@ public interface ServiceContext extends AutoCloseable {
    */
   SimpleKsqlClient getKsqlClient();
 
+  KafkaConsumerGroupClient getConsumerGroupClient();
+
   @Override
   void close();
 }

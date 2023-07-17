@@ -8,8 +8,9 @@ keywords: ksqlDB, java, client
 
 ksqlDB ships with a lightweight Java client that enables sending requests easily to a ksqlDB server
 from within your Java application, as an alternative to using the [REST API](../api.md).
-The client currently supports pull and push queries as well as inserting new rows of data into existing ksqlDB streams.
-Soon the client will also support persistent queries and admin operations such as listing streams, tables, and topics. 
+The client supports pull and push queries; inserting new rows of data into existing ksqlDB streams;
+creation and management of new streams, tables, and persistent queries; and also admin operations
+such as listing streams, tables, and topics.
 
 !!! tip
     [View the Java client API documentation](api/index.html)
@@ -17,6 +18,7 @@ Soon the client will also support persistent queries and admin operations such a
 The client sends requests to the recently added HTTP2 server endpoints: pull and push queries are served by
 the [`/query-stream` endpoint](../../developer-guide/ksqldb-rest-api/streaming-endpoint.md#executing-pull-or-push-queries),
 and inserts are served by the [`/inserts-stream` endpoint](../../developer-guide/ksqldb-rest-api/streaming-endpoint.md#inserting-rows-into-an-existing-stream).
+All other requests are served by the [`/ksql` endpoint](../../developer-guide/ksqldb-rest-api/ksql-endpoint.md).
 The client is compatible only with ksqlDB deployments that are on version 0.10.0 or later.
 
 Use the Java client to:
@@ -25,6 +27,12 @@ Use the Java client to:
 - [Receive query results in a single batch (executeQuery())](#execute-query)
 - [Terminate a push query (terminatePushQuery())](#terminate-push-query)
 - [Insert a new row into a stream (insertInto())](#insert-into)
+- [Insert new rows in a streaming fashion (streamInserts())](#stream-inserts)
+- [Create and manage new streams, tables, and persistent queries (executeStatement())](#execute-statement)
+- [List streams, tables, topics, and queries](#admin-operations)
+- [Describe specific streams and tables](#describe-source)
+
+Get started below or skip to the end for full-fledged [examples](#tutorial-examples).
 
 Getting Started
 ---------------
@@ -61,7 +69,7 @@ Start by creating a `pom.xml` for your Java application:
         <repository>
             <id>confluent</id>
             <name>Confluent</name>
-            <url>https://jenkins-confluent-packages-beta-maven.s3.amazonaws.com/6.0.0-beta200608020919/1/maven/</url>
+            <url>https://jenkins-confluent-packages-beta-maven.s3.amazonaws.com/{{ site.kstreamsbetatag }}/1/maven/</url>
         </repository>
     </repositories>
 
@@ -72,7 +80,7 @@ Start by creating a `pom.xml` for your Java application:
         </pluginRepository>
         <pluginRepository>
             <id>confluent</id>
-            <url>https://jenkins-confluent-packages-beta-maven.s3.amazonaws.com/6.0.0-beta200608020919/1/maven/</url>
+            <url>https://jenkins-confluent-packages-beta-maven.s3.amazonaws.com/{{ site.kstreamsbetatag }}/1/maven/</url>
         </pluginRepository>
     </pluginRepositories>
 
@@ -357,7 +365,8 @@ client.terminatePushQuery(queryId).get();
 Insert a new row into a stream (insertInto())<a name="insert-into"></a>
 -----------------------------------------------------------------------
 
-Client apps can insert new rows of data into existing ksqlDB streams by using the `insertInto()` method.
+Client apps can insert a new row of data into an existing ksqlDB stream by using the `insertInto()` method.
+To insert multiple rows in a streaming fashion, see [`streamInserts()`](#stream-inserts) instead.
 
 ```java
 public interface Client {
@@ -385,7 +394,7 @@ Rows for insertion are represented as `KsqlObject` instances. A `KsqlObject` rep
 ### Example Usage ###
 
 Here's an example of using the client to insert a new row into an existing stream `ORDERS`
-with schema (ORDER_ID BIGINT, PRODUCT_ID VARCHAR, USER_ID VARCHAR).
+with schema `(ORDER_ID BIGINT, PRODUCT_ID VARCHAR, USER_ID VARCHAR)`.
 
 ```java
 KsqlObject row = new KsqlObject()
@@ -396,12 +405,317 @@ KsqlObject row = new KsqlObject()
 client.insertInto("ORDERS", row).get();
 ```
 
-Tutorial Examples
------------------
+Insert new rows in a streaming fashion (streamInserts())<a name="stream-inserts"></a>
+-------------------------------------------------------------------------------------
+
+Starting with ksqlDB 0.11.0, the `streamInserts()` method enables client apps to insert new rows of
+data into an existing ksqlDB stream in a streaming fashion. This is in contrast to the
+[`insertInto()`](#insert-into) method which inserts a single row per request.
+
+```java
+public interface Client {
+  
+  /**
+   * Inserts rows into a ksqlDB stream. Rows to insert are supplied by a
+   * {@code org.reactivestreams.Publisher} and server acknowledgments are exposed similarly.
+   *
+   * <p>The {@code CompletableFuture} will be failed if a non-200 response is received from the
+   * server.
+   *
+   * <p>See {@link InsertsPublisher} for an example publisher that may be passed an argument to
+   * this method.
+   *
+   * @param streamName name of the target stream
+   * @param insertsPublisher the publisher to provide rows to insert
+   * @return a future that completes once the initial server response is received, and contains a
+   *         publisher that publishes server acknowledgments for inserted rows.
+   */
+  CompletableFuture<AcksPublisher>
+      streamInserts(String streamName, Publisher<KsqlObject> insertsPublisher);
+  
+  ...
+  
+}
+```
+
+Rows for insertion are represented as `KsqlObject` instances. A `KsqlObject` represents a map of strings
+(in this case, column names) to values (column values).
+
+The rows to be inserted are supplied via a [Reactive Streams](http://www.reactive-streams.org/) publisher.
+For convenience, the Java client for ksqlDB ships with a simple publisher implementation suitable
+for use with the `streamInserts()` method out of the box. This implementation is the [`InsertsPublisher`](api/io/confluent/ksql/api/client/InsertsPublisher.html)
+in the example usage below.
+
+As the specified rows are inserted by the ksqlDB server, the server responds with acknowledgments that
+may be consumed from the [`AcksPublisher`](api/io/confluent/ksql/api/client/AcksPublisher.html) returned by the `streamInserts()` method.
+The `AcksPublisher` is a Reactive Streams publisher.
+
+### Example Usage ###
+
+Here's an example of using the client to insert new rows into an existing stream `ORDERS`,
+in a streaming fashion.
+The `ORDERS` stream has schema `(ORDER_ID BIGINT, PRODUCT_ID VARCHAR, USER_ID VARCHAR)`.
+
+```java
+InsertsPublisher insertsPublisher = new InsertsPublisher();
+AcksPublisher acksPublisher = client.streamInserts("ORDERS", insertsPublisher).get();
+
+for (long i = 0; i < 10; i++) {
+  KsqlObject row = new KsqlObject()
+      .put("ORDER_ID", i)
+      .put("PRODUCT_ID", "super_awesome_product")
+      .put("USER_ID", "super_cool_user");
+  insertsPublisher.accept(row);
+}
+insertsPublisher.complete();
+```
+
+To consume server acknowledgments for the stream of inserts, implement a Reactive Streams subscriber
+to receive the acknowledgments:
+
+```java
+import io.confluent.ksql.api.client.InsertAck;
+import org.reactivestreams.Subscriber;
+import org.reactivestreams.Subscription;
+
+public class AcksSubscriber implements Subscriber<InsertAck> {
+
+  private Subscription subscription;
+
+  public AcksSubscriber() {
+  }
+
+  @Override
+  public synchronized void onSubscribe(Subscription subscription) {
+    System.out.println("Subscriber is subscribed.");
+    this.subscription = subscription;
+
+    // Request the first ack
+    subscription.request(1);
+  }
+
+  @Override
+  public synchronized void onNext(InsertAck ack) {
+    System.out.println("Received an ack for insert number: " + ack.seqNum());
+
+    // Request the next ack
+    subscription.request(1);
+  }
+
+  @Override
+  public synchronized void onError(Throwable t) {
+    System.out.println("Received an error: " + t);
+  }
+
+  @Override
+  public synchronized void onComplete() {
+    System.out.println("Inserts stream has been closed.");
+  }
+}
+```
+and subscribe to the AcksPublisher from above:
+```java
+acksPublisher.subscribe(new AcksSubscriber());
+```
+
+Create and manage new streams, tables, and persistent queries (executeStatement())<a name="execute-statement"></a>
+------------------------------------------------------------------------------------------------------------------
+
+Starting with ksqlDB 0.11.0, the `executeStatement()` method enables client apps to:
+- Create new ksqlDB streams and tables
+- Drop existing ksqlDB streams and tables
+- Create new persistent queries, i.e., `CREATE ... AS SELECT` and `INSERT INTO ... AS SELECT` statements
+- Terminate persistent queries
+
+```java
+public interface Client {
+  
+  /**
+   * Sends a SQL request to the ksqlDB server. This method supports 'CREATE', 'CREATE ... AS
+   * SELECT', 'DROP', 'TERMINATE', and 'INSERT INTO ... AS SELECT' statements.
+   *
+   * <p>Each request should contain exactly one statement. Requests that contain multiple statements
+   * will be rejected by the client, in the form of failing the {@code CompletableFuture}, and the
+   * request will not be sent to the server.
+   *
+   * <p>The {@code CompletableFuture} is completed once a response is received from the server.
+   * Note that the actual execution of the submitted statement is asynchronous, so the statement
+   * may not have been executed by the time the {@code CompletableFuture} is completed.
+   *
+   * <p>If a non-200 response is received from the server, the {@code CompletableFuture} will be
+   * failed.
+   *
+   * @param sql the request to be executed
+   * @return a future that completes once the server response is received, and contains the query ID
+   *         for statements that start new persistent queries
+   */
+  CompletableFuture<ExecuteStatementResult> executeStatement(String sql);
+  
+  ...
+  
+}
+```
+
+To use this method, pass in the SQL for the command to be executed.
+Query properties can be passed as an optional second argument. For more information,
+see the [client API reference](api/io/confluent/ksql/api/client/Client.html#executeStatement(java.lang.String,java.util.Map)).
+
+As explained in the Javadocs for the method above, the `CompletableFuture` returned by the `executeStatement()`
+method is completed as soon as the ksqlDB server has accepted the statement and a response is received
+by the client. In most situations, the ksqlDB server will have already executed the statement by this time,
+but this is not guaranteed.
+
+For statements that create new persistent queries, the query ID may be retrieved from the returned
+`ExecuteStatementResult`, as long as the ksqlDB server version is at least 0.11.0, and the statement
+has executed by the time the server response was completed.
+
+### Example Usage ###
+
+Create a new ksqlDB stream, assuming the topic `orders` exists:
+```java
+String sql = "CREATE STREAM ORDERS (ORDER_ID BIGINT, PRODUCT_ID VARCHAR, USER_ID VARCHAR)"
+               + "WITH (KAFKA_TOPIC='orders', VALUE_FORMAT='json');";
+client.executeStatement(sql).get();
+```
+
+Drop an existing ksqlDB table, assuming the table `USERS` exists:
+```java
+client.executeStatement("DROP TABLE USERS;").get();
+``` 
+
+Start a persistent query that reads from the earliest offset, assuming the stream `ORDERS` exists:
+```java
+String sql = "CREATE TABLE ORDERS_BY_USER AS "
+               + "SELECT USER_ID, COUNT(*) as COUNT "
+               + "FROM ORDERS GROUP BY USER_ID EMIT CHANGES;";
+Map<String, Object> properties = Collections.singletonMap("auto.offset.reset", "earliest");
+ExecuteStatementResult result = client.executeStatement(sql, properties).get();
+System.out.println("Query ID: " + result.queryId().orElse("<null>"));
+```
+
+Terminate a persistent query, assuming a query with ID `CTAS_ORDERS_BY_USER_0` exists:
+```java
+client.executeStatement("TERMINATE CTAS_ORDERS_BY_USER_0;").get();
+```
+
+List streams, tables, topics, and queries<a name="admin-operations"></a>
+------------------------------------------------------------------------
+
+Starting with ksqlDB 0.11.0, the Java client for ksqlDB supports the following admin operations:
+- Listing ksqlDB streams, by using the `listStreams()` method
+- Listing ksqlDB tables, by using the `listTables()` method
+- Listing Kafka topics available for use with ksqlDB, by using the `listTopics()` method
+- Listing running ksqlDB queries, with the `listQueries()` method
+
+### Example Usage ###
+
+List ksqlDB streams:
+```java
+List<StreamInfo> streams = client.listStreams().get();
+for (StreamInfo stream : streams) {
+  System.out.println(
+     stream.getName() 
+     + " " + stream.getTopic() 
+     + " " + stream.getKeyFormat()
+     + " " + stream.getValueFormat()
+     + " " + stream.isWindowed()
+  );
+}
+``` 
+
+List ksqlDB tables:
+```java
+List<TableInfo> tables = client.listTables().get();
+for (TableInfo table : tables) {
+  System.out.println(
+       table.getName() 
+       + " " + table.getTopic() 
+       + " " + table.getKeyFormat()
+       + " " + table.getValueFormat()
+       + " " + table.isWindowed()
+    );
+}
+```
+
+List Kafka topics:
+```java
+List<TopicInfo> topics = client.listTopics().get();
+for (TopicInfo topic : topics) {
+  System.out.println(
+       topic.getName() 
+       + " " + topic.getPartitions() 
+       + " " + topic.getReplicasPerPartition()
+  );
+}
+```
+
+List running ksqlDB queries:
+```java
+List<QueryInfo> queries = client.listQueries().get();
+for (QueryInfo query : queries) {
+  System.out.println(query.getQueryType() + " " + query.getId());
+  if (query.getQueryType() == QueryType.PERSISTENT) {
+    System.out.println(query.getSink().get() + " " + query.getSinkTopic().get());
+  }
+}
+```
+
+See the [API reference](https://docs.ksqldb.io/en/latest/developer-guide/ksqldb-clients/java-client/api/io/confluent/ksql/api/client/Client.html)
+for more information.  
+
+Describe specific streams and tables<a name="describe-source"></a>
+------------------------------------------------------------------
+
+Starting with ksqlDB 0.12.0, the `describeSource()` method enables client apps
+to fetch metadata for existing ksqlDB streams and tables.
+The metadata returned from this method includes the stream or table's underlying
+topic name, column names and associated types, serialization formats, queries that
+read and write from the stream or table, and more. For more details, see the
+[API reference](api/io/confluent/ksql/api/client/Client.html#describeSource(java.lang.String)).
+
+### Example Usage ###
+
+Fetch metadata for the stream or table with name `my_source`:
+```java
+SourceDescription description = client.describeSource("my_source").get();
+System.out.println("This source is a " + description.type());
+System.out.println("This stream/table has " + description.fields().size() + " columns.");
+System.out.println(description.writeQueries().size() + " queries write to this stream/table.");
+System.out.println(description.readQueries().size() + " queries read from this stream/table.");
+``` 
+
+Tutorial Examples<a name="tutorial-examples"></a>
+-------------------------------------------------
+
+### Event-driven microservice ###
 
 In the [ksqlDB tutorial on creating an event-driven microservice](../../tutorials/event-driven-microservice.md),
-the ksqlDB CLI is used to [seed some transaction events](../../tutorials/event-driven-microservice.md#seed-some-transaction-events)
-into a stream of transactions. Here's the equivalent functionality using the Java client for ksqlDB:
+the ksqlDB CLI is used to [create a stream for transactions](../../tutorials/event-driven-microservice.md#create-the-transactions-stream),
+[seed some transaction events](../../tutorials/event-driven-microservice.md#seed-some-transaction-events),
+and [process transaction events into a table and verify output](../../tutorials/event-driven-microservice.md#create-the-anomalies-table).
+Here's the equivalent functionality using the Java client for ksqlDB.
+
+Create the transactions stream:
+
+```java
+String sql = "CREATE STREAM transactions ("
+             + "     tx_id VARCHAR KEY,"
+             + "    email_address VARCHAR,"
+             + "     card_number VARCHAR,"
+             + "     timestamp VARCHAR,"
+             + "     amount DECIMAL(12, 2)"
+             + ") WITH ("
+             + "     kafka_topic = 'transactions',"
+             + "     partitions = 8,"
+             + "     value_format = 'avro',"
+             + "     timestamp = 'timestamp',"
+             + "     timestamp_format = 'yyyy-MM-dd''T''HH:mm:ss'"
+             + ");";
+Map<String, Object> properties = Collections.singletonMap("auto.offset.reset", "earliest");
+client.executeStatement(sql, properties).get();
+```
+
+Seed some transaction events:
 
 ```java
 // Create the rows to insert
@@ -472,6 +786,53 @@ CompletableFuture<Void> allInsertsFuture =
     CompletableFuture.allOf(insertFutures.toArray(new CompletableFuture<?>[0]));
 allInsertsFuture.thenRun(() -> System.out.println("Seeded transaction events."));
 ```
+
+Create the anomalies tables:
+
+```java
+String sql = "CREATE TABLE possible_anomalies WITH ("
+             + "    kafka_topic = 'possible_anomalies',"
+             + "    VALUE_AVRO_SCHEMA_FULL_NAME = 'io.ksqldb.tutorial.PossibleAnomaly'"
+             + ")   AS"
+             + "    SELECT card_number AS `card_number_key`,"
+             + "           as_value(card_number) AS `card_number`,"
+             + "           latest_by_offset(email_address) AS `email_address`,"
+             + "           count(*) AS `n_attempts`,"
+             + "           sum(amount) AS `total_amount`,"
+             + "           collect_list(tx_id) AS `tx_ids`,"
+             + "           WINDOWSTART as `start_boundary`,"
+             + "           WINDOWEND as `end_boundary`"
+             + "    FROM transactions"
+             + "    WINDOW TUMBLING (SIZE 30 SECONDS, RETENTION 1000 DAYS)"
+             + "    GROUP BY card_number"
+             + "    HAVING count(*) >= 3"
+             + "    EMIT CHANGES;";
+Map<String, Object> properties = Collections.singletonMap("auto.offset.reset", "earliest");
+client.executeStatement(sql, properties).get();
+```
+
+Check contents of the anomalies table with a push query:
+
+```java
+String query = "SELECT * FROM possible_anomalies EMIT CHANGES;";
+Map<String, Object> properties = Collections.singletonMap("auto.offset.reset", "earliest");
+client.streamQuery(query, properties)
+    .thenAccept(streamedQueryResult -> {
+      System.out.println("Result column names: " + streamedQueryResult.columnNames());
+      
+      RowSubscriber subscriber = new RowSubscriber();
+      streamedQueryResult.subscribe(subscriber);
+    }).exceptionally(e -> {
+      System.out.println("Push query request failed: " + e);
+      return null;
+    });
+```
+
+In the example above, `RowSubscriber` is the example subscriber implementation introduced in the
+[section on the `streamQuery()` method](#stream-query) above. The `RowSubscriber` implementation
+can be adapted to adjust how the received rows are printed, or to pass them to a downstream application. 
+
+### Pull queries against a materialized view ###
 
 As a second example, in the ksqlDB tutorial on [building a materialized view/cache](../../tutorials/materialized.md),
 the ksqlDB CLI is used to issue [pull queries against materialized views](../../tutorials/materialized.md#query-the-materialized-views)

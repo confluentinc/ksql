@@ -126,6 +126,11 @@ public class LocalPropertiesTest {
   }
 
   @Test
+  public void shouldGetCurrentValue() {
+    assertThat(propsWithMockParser.get("prop-1"), is("parsed-initial-val-1"));
+  }
+
+  @Test
   public void shouldSetNewValue() {
     // When:
     final Object oldValue = propsWithMockParser.set("new-prop", "new-val");

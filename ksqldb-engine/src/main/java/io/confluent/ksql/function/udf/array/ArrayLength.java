@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.function.udf.array;
 
+import io.confluent.ksql.function.FunctionCategory;
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.function.udf.UdfParameter;
@@ -27,6 +28,7 @@ import java.util.List;
 @SuppressWarnings("MethodMayBeStatic") // UDF methods can not be static.
 @UdfDescription(
     name = "ARRAY_LENGTH",
+    category = FunctionCategory.ARRAY,
     description = "Returns the length on an array",
     author = KsqlConstants.CONFLUENT_AUTHOR
 )

@@ -226,6 +226,14 @@ public final class Errors {
     return errorMessages.transactionInitTimeoutErrorMessage(e);
   }
 
+  public String commandRunnerDegradedIncompatibleCommandsErrorMessage() {
+    return errorMessages.commandRunnerDegradedIncompatibleCommandsErrorMessage();
+  }
+
+  public String commandRunnerDegradedCorruptedErrorMessage() {
+    return errorMessages.commandRunnerDegradedCorruptedErrorMessage();
+  }
+
   public EndpointResponse generateResponse(
       final Exception e,
       final EndpointResponse defaultResponse

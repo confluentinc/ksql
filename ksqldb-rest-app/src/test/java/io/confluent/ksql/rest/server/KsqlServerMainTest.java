@@ -27,8 +27,13 @@ import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.KsqlConfigTestUtil;
+import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlServerException;
 import java.io.File;
+import java.util.Map;
 import java.util.concurrent.Executor;
 import org.easymock.Capture;
 import org.easymock.EasyMockRunner;
@@ -130,7 +135,7 @@ public class KsqlServerMainTest {
     assertThat(e.getMessage(), containsString(
         "Could not create the kafka streams state directory: /var/lib/kafka-streams\n"
         + " Make sure the directory exists and is writable for KSQL server \n"
-        + " or its parend directory is writbale by KSQL server\n"
+        + " or its parent directory is writable by KSQL server\n"
         + " or change it to a writable directory by setting 'ksql.streams.state.dir' config in"
         + " the properties file."));
   }
@@ -150,7 +155,7 @@ public class KsqlServerMainTest {
     assertThat(e.getMessage(), containsString(
         "/var/lib/kafka-streams is not a directory.\n"
             + " Make sure the directory exists and is writable for KSQL server \n"
-            + " or its parend directory is writbale by KSQL server\n"
+            + " or its parent directory is writable by KSQL server\n"
             + " or change it to a writable directory by setting 'ksql.streams.state.dir' config in"
             + " the properties file."));
   }
@@ -191,5 +196,90 @@ public class KsqlServerMainTest {
             + " Make sure the directory exists and is writable for KSQL server \n"
             + " or change it to a writable directory by setting 'ksql.streams.state.dir' "
             + "config in the properties file."));
+  }
+
+  @Test
+  public void shouldValidateDefaultFormatsWithCaseInsensitivity() {
+    // Given:
+    final KsqlConfig config = configWith(ImmutableMap.of(
+        KsqlConfig.KSQL_DEFAULT_VALUE_FORMAT_CONFIG, "avro"
+    ));
+
+    // When:
+    KsqlServerMain.validateDefaultTopicFormats(config);
+
+    // Then: No exception
+  }
+
+  @Test
+  public void shouldValidateEmptyDefaultFormat() {
+    // Given:
+    // Default value format is empty
+    final KsqlConfig config = configWith(ImmutableMap.of());
+
+    // When:
+    KsqlServerMain.validateDefaultTopicFormats(config);
+
+    // Then: No exception
+  }
+
+  @Test
+  public void shouldFailOnInvalidDefaultKeyFormat() {
+    // Given:
+    final KsqlConfig config = configWith(ImmutableMap.of(
+        KsqlConfig.KSQL_DEFAULT_KEY_FORMAT_CONFIG, "bad"
+    ));
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> KsqlServerMain.validateDefaultTopicFormats(config)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Invalid value for config '" + KsqlConfig.KSQL_DEFAULT_KEY_FORMAT_CONFIG + "': bad"));
+  }
+
+  @Test
+  public void shouldFailOnInvalidDefaultValueFormat() {
+    // Given:
+    final KsqlConfig config = configWith(ImmutableMap.of(
+        KsqlConfig.KSQL_DEFAULT_VALUE_FORMAT_CONFIG, "bad"
+    ));
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> KsqlServerMain.validateDefaultTopicFormats(config)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Invalid value for config '" + KsqlConfig.KSQL_DEFAULT_VALUE_FORMAT_CONFIG + "': bad"));
+  }
+
+  @Test
+  public void shouldFailOnUnsupportedDefaultKeyFormat() {
+    // Given:
+    final KsqlConfig config = configWith(ImmutableMap.of(
+        KsqlConfig.KSQL_DEFAULT_KEY_FORMAT_CONFIG, "avro"
+    ));
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> KsqlServerMain.validateDefaultTopicFormats(config)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Invalid value for config '" + KsqlConfig.KSQL_DEFAULT_KEY_FORMAT_CONFIG + "': "
+            + "The supplied format is not currently supported as a key format. "
+            + "Format: 'avro'."));
+  }
+
+  private static KsqlConfig configWith(final Map<String, Object> additionalConfigs) {
+    return KsqlConfigTestUtil.create("unused", additionalConfigs);
   }
 }

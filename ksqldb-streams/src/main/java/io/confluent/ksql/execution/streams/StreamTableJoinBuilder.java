@@ -48,8 +48,10 @@ public final class StreamTableJoinBuilder {
     final LogicalSchema leftSchema = left.getSchema();
     final PhysicalSchema leftPhysicalSchema = PhysicalSchema.from(
         leftSchema,
-        leftFormats.getOptions()
+        leftFormats.getKeyFeatures(),
+        leftFormats.getValueFeatures()
     );
+
     final Serde<GenericRow> leftSerde = queryBuilder.buildValueSerde(
         leftFormats.getValueFormat(),
         leftPhysicalSchema,

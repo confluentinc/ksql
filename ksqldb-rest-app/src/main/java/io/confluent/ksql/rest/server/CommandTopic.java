@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Confluent Inc.
+ * Copyright 2020 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -16,11 +16,9 @@
 package io.confluent.ksql.rest.server;
 
 import com.google.common.collect.Lists;
-import io.confluent.ksql.rest.entity.CommandId;
-import io.confluent.ksql.rest.server.computation.Command;
-import io.confluent.ksql.rest.server.computation.InternalTopicSerdes;
 import io.confluent.ksql.rest.server.computation.QueuedCommand;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -31,6 +29,7 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.TopicPartition;
+import org.apache.kafka.common.serialization.ByteArrayDeserializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,30 +38,35 @@ public class CommandTopic {
   private static final Logger log = LoggerFactory.getLogger(CommandTopic.class);
   private final TopicPartition commandTopicPartition;
 
-  private Consumer<CommandId, Command> commandConsumer = null;
+  private Consumer<byte[], byte[]> commandConsumer;
   private final String commandTopicName;
+  private CommandTopicBackup commandTopicBackup;
 
   public CommandTopic(
       final String commandTopicName,
-      final Map<String, Object> kafkaConsumerProperties
+      final Map<String, Object> kafkaConsumerProperties,
+      final CommandTopicBackup commandTopicBackup
   ) {
     this(
         commandTopicName,
         new KafkaConsumer<>(
             Objects.requireNonNull(kafkaConsumerProperties, "kafkaClientProperties"),
-            InternalTopicSerdes.deserializer(CommandId.class),
-            InternalTopicSerdes.deserializer(Command.class)
-        )
+            new ByteArrayDeserializer(),
+            new ByteArrayDeserializer()
+        ),
+        commandTopicBackup
     );
   }
 
   CommandTopic(
       final String commandTopicName,
-      final Consumer<CommandId, Command> commandConsumer
+      final Consumer<byte[], byte[]> commandConsumer,
+      final CommandTopicBackup commandTopicBackup
   ) {
     this.commandTopicPartition = new TopicPartition(commandTopicName, 0);
     this.commandConsumer = Objects.requireNonNull(commandConsumer, "commandConsumer");
     this.commandTopicName = Objects.requireNonNull(commandTopicName, "commandTopicName");
+    this.commandTopicBackup = Objects.requireNonNull(commandTopicBackup, "commandTopicBackup");
   }
 
   public String getCommandTopicName() {
@@ -70,11 +74,29 @@ public class CommandTopic {
   }
 
   public void start() {
+    commandTopicBackup.initialize();
     commandConsumer.assign(Collections.singleton(commandTopicPartition));
   }
 
-  public Iterable<ConsumerRecord<CommandId, Command>> getNewCommands(final Duration timeout) {
-    return commandConsumer.poll(timeout);
+  public Iterable<ConsumerRecord<byte[], byte[]>> getNewCommands(final Duration timeout) {
+    final Iterable<ConsumerRecord<byte[], byte[]>> iterable = commandConsumer.poll(timeout);
+    final List<ConsumerRecord<byte[], byte[]>> records = new ArrayList<>();
+
+    if (iterable != null) {
+      for (ConsumerRecord<byte[], byte[]> record : iterable) {
+        try {
+          backupRecord(record);
+        } catch (final Exception e) {
+          log.warn("Backup is out of sync with the current command topic. "
+              + "Backups will not work until the previous command topic is "
+              + "restored or all backup files are deleted.", e);
+          return records;
+        }
+        records.add(record);
+      }
+    }
+
+    return records;
   }
 
   public List<QueuedCommand> getRestoreCommands(final Duration duration) {
@@ -84,11 +106,20 @@ public class CommandTopic {
         Collections.singletonList(commandTopicPartition));
 
     log.debug("Reading prior command records");
-    ConsumerRecords<CommandId, Command> records =
+    ConsumerRecords<byte[], byte[]> records =
         commandConsumer.poll(duration);
     while (!records.isEmpty()) {
       log.debug("Received {} records from poll", records.count());
-      for (final ConsumerRecord<CommandId, Command> record : records) {
+      for (final ConsumerRecord<byte[], byte[]> record : records) {
+        try {
+          backupRecord(record);
+        } catch (final Exception e) {
+          log.warn("Backup is out of sync with the current command topic. "
+              + "Backups will not work until the previous command topic is "
+              + "restored or all backup files are deleted.", e);
+          return restoreCommands;
+        }
+
         if (record.value() == null) {
           continue;
         }
@@ -119,5 +150,10 @@ public class CommandTopic {
 
   public void close() {
     commandConsumer.close();
+    commandTopicBackup.close();
+  }
+
+  private void backupRecord(final ConsumerRecord<byte[], byte[]> record) {
+    commandTopicBackup.writeRecord(record);
   }
 }

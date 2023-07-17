@@ -22,6 +22,7 @@ import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.testing.EqualsTester;
 import io.confluent.ksql.api.client.ColumnType;
 import io.confluent.ksql.api.client.KsqlArray;
 import io.confluent.ksql.api.client.KsqlObject;
@@ -159,4 +160,44 @@ public class RowImplTest {
     assertThat(obj.getKsqlObject("f_map"), is(new KsqlObject(ImmutableMap.of("k1", "v1", "k2", "v2"))));
     assertThat(obj.getKsqlObject("f_struct"), is(new KsqlObject(ImmutableMap.of("f1", "baz", "f2", 12))));
   }
+
+  @Test
+  public void shouldImplementHashCodeAndEquals() {
+    new EqualsTester()
+        .addEqualityGroup(
+            new RowImpl(
+                ImmutableList.of("col1, col2"),
+                ImmutableList.of(new ColumnTypeImpl("STRING"), new ColumnTypeImpl("BIGINT")),
+                new JsonArray().add("foo").add(3L),
+                ImmutableMap.of("col1", 0, "col2", 1)),
+            new RowImpl(
+                ImmutableList.of("col1, col2"),
+                ImmutableList.of(new ColumnTypeImpl("STRING"), new ColumnTypeImpl("BIGINT")),
+                new JsonArray().add("foo").add(3L),
+                ImmutableMap.of("col1", 0, "col2", 1))
+        )
+        .addEqualityGroup(
+            new RowImpl(
+                ImmutableList.of("col1, col3"),
+                ImmutableList.of(new ColumnTypeImpl("STRING"), new ColumnTypeImpl("BIGINT")),
+                new JsonArray().add("foo").add(3L),
+                ImmutableMap.of("col1", 0, "col3", 1))
+        )
+        .addEqualityGroup(
+            new RowImpl(
+                ImmutableList.of("col1, col2"),
+                ImmutableList.of(new ColumnTypeImpl("BIGINT"), new ColumnTypeImpl("STRING")),
+                new JsonArray().add("foo").add(3L),
+                ImmutableMap.of("col1", 0, "col2", 1))
+        )
+        .addEqualityGroup(
+            new RowImpl(
+                ImmutableList.of("col1, col2"),
+                ImmutableList.of(new ColumnTypeImpl("STRING"), new ColumnTypeImpl("BIGINT")),
+                new JsonArray().add("bar").add(3L),
+                ImmutableMap.of("col1", 0, "col2", 1))
+        )
+        .testEquals();
+  }
+
 }

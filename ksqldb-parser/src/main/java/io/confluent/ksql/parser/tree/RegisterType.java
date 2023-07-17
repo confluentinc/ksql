@@ -24,11 +24,17 @@ public class RegisterType extends Statement implements ExecutableDdlStatement {
 
   private final Type type;
   private final String name;
+  private final boolean ifNotExists;
 
-  public RegisterType(final Optional<NodeLocation> location, final String name, final Type type) {
+  public RegisterType(
+      final Optional<NodeLocation> location,
+      final String name, final Type type,
+      final boolean ifNotExists
+  ) {
     super(location);
     this.name = Objects.requireNonNull(name, "name");
     this.type = Objects.requireNonNull(type, "type");
+    this.ifNotExists = Objects.requireNonNull(ifNotExists, "ifNotExists");
   }
 
   public Type getType() {
@@ -37,6 +43,10 @@ public class RegisterType extends Statement implements ExecutableDdlStatement {
 
   public String getName() {
     return name;
+  }
+
+  public boolean getIfNotExists() {
+    return ifNotExists;
   }
 
   @Override
@@ -54,12 +64,13 @@ public class RegisterType extends Statement implements ExecutableDdlStatement {
     }
     final RegisterType that = (RegisterType) o;
     return Objects.equals(type, that.type)
-        && Objects.equals(name, that.name);
+        && Objects.equals(name, that.name)
+        && ifNotExists == that.ifNotExists;
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(type, name);
+    return Objects.hash(type, name, ifNotExists);
   }
 
   @Override
@@ -67,6 +78,7 @@ public class RegisterType extends Statement implements ExecutableDdlStatement {
     return "RegisterType{"
         + "type=" + type
         + ", name='" + name + '\''
+        + ", ifNotExists=" + ifNotExists
         + '}';
   }
 }

@@ -177,7 +177,7 @@ INSERT INTO transactions (
     'derek@example.com',
     '352642227248344',
     '0cf100ca-993c-427f-9ea5-e892ef350363',
-    '2020-04-25T12:50:30',
+    '2020-04-22T12:50:30',
     18.97
 );
 
@@ -187,7 +187,7 @@ INSERT INTO transactions (
     'colin@example.com',
     '373913272311617',
     'de9831c0-7cf1-4ebf-881d-0415edec0d6b',
-    '2020-04-19T09:45:15',
+    '2020-04-22T09:45:15',
     12.50
 );
 
@@ -207,7 +207,7 @@ INSERT INTO transactions (
     'derek@example.com',
     '352642227248344',
     '5d916e65-1af3-4142-9fd3-302dd55c512f',
-    '2020-04-25T12:50:25',
+    '2020-04-22T12:50:25',
     3200.80
 );
 
@@ -217,7 +217,7 @@ INSERT INTO transactions (
     'derek@example.com',
     '352642227248344',
     'd7d47fdb-75e9-46c0-93f6-d42ff1432eea',
-    '2020-04-25T12:51:55',
+    '2020-04-22T12:51:55',
     154.32
 );
 
@@ -237,7 +237,7 @@ INSERT INTO transactions (
     'colin@example.com',
     '373913272311617',
     '2360d53e-3fad-4e9a-b306-b166b7ca4f64',
-    '2020-04-19T09:45:35',
+    '2020-04-22T09:45:35',
     234.65
 );
 
@@ -247,7 +247,7 @@ INSERT INTO transactions (
     'colin@example.com',
     '373913272311617',
     'de9831c0-7cf1-4ebf-881d-0415edec0d6b',
-    '2020-04-19T09:44:03',
+    '2020-04-22T09:44:03',
     150.00
 );
 ```
@@ -270,7 +270,7 @@ CREATE TABLE possible_anomalies WITH (
            WINDOWSTART as `start_boundary`,
            WINDOWEND as `end_boundary`
     FROM transactions
-    WINDOW TUMBLING (SIZE 30 SECONDS)
+    WINDOW TUMBLING (SIZE 30 SECONDS, RETENTION 1000 DAYS)
     GROUP BY card_number
     HAVING count(*) >= 3
     EMIT CHANGES;
@@ -279,6 +279,7 @@ CREATE TABLE possible_anomalies WITH (
 Here's what this statement does:
 
 - For each credit card number, 30 second [tumbling windows](../../concepts/time-and-windows-in-ksqldb-queries/#tumbling-window) are created to group activity. A new row is inserted into the table when at least 3 transactions take place inside a given window.
+- The window retains data for the last `1000` days based on each row's timestamp. In general, you should choose your retention carefully. It is a trade-off between storing data longer and having larger state sizes. The very long retention period used in this tutorial is useful because the timestamps are fixed at the time of writing this and won't need to be adjusted often to account for retention.
 - The credit card number is selected twice. In the first instance, it becomes part of the underlying {{ site.ak }} record key, because it's present in the `group by` clause, which is used for sharding. In the second instance, the `as_value` function is used to make it available in the value, too. This is generally for convenience.
 - The individual transaction IDs and amounts that make up the window are collected as lists.
 - The last transaction's email address is "carried forward" with `latest_by_offset`.

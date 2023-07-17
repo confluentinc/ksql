@@ -16,6 +16,7 @@
 package io.confluent.ksql.test.utils;
 
 import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import io.confluent.ksql.test.tools.exceptions.MissingFieldException;
 import java.io.IOException;
@@ -44,6 +45,19 @@ public final class JsonParsingUtil {
       final JsonNode node,
       final JsonParser jp,
       final Class<T> type
+  ) throws IOException {
+    if (!node.has(name)) {
+      return Optional.empty();
+    }
+
+    return Optional.ofNullable(getNode(name, node, jp, type));
+  }
+
+  public static <T> Optional<T> getOptional(
+      final String name,
+      final JsonNode node,
+      final JsonParser jp,
+      final TypeReference<T> type
   ) throws IOException {
     if (!node.has(name)) {
       return Optional.empty();
@@ -82,6 +96,18 @@ public final class JsonParsingUtil {
         .orElse(defaultValue);
 
     return Optional.of(t);
+  }
+
+  private static <T> T getNode(
+      final String name,
+      final JsonNode node,
+      final JsonParser jp,
+      final TypeReference<T> type
+  ) throws IOException {
+    return node
+        .get(name)
+        .traverse(jp.getCodec())
+        .readValueAs(type);
   }
 
   private static <T> T getNode(

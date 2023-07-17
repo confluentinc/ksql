@@ -51,7 +51,6 @@ import io.confluent.ksql.structured.SchemaKTable;
 import io.confluent.ksql.util.KsqlException;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -143,14 +142,6 @@ public class AggregateNode extends SingleSourcePlanNode implements VerifiableNod
     return windowExpression;
   }
 
-  public List<FunctionCall> getFunctionCalls() {
-    return functionList;
-  }
-
-  public List<ColumnReferenceExp> getRequiredColumns() {
-    return requiredColumns;
-  }
-
   @Override
   public SchemaKStream<?> buildStream(final KsqlQueryBuilder builder) {
     final QueryContext.Stacker contextStacker = builder.buildNodeContext(getId().toString());
@@ -220,7 +211,7 @@ public class AggregateNode extends SingleSourcePlanNode implements VerifiableNod
         requiredColumnNames,
         functions,
         windowExpression,
-        valueFormat,
+        valueFormat.getFormatInfo(),
         aggregationContext
     );
   }
@@ -256,7 +247,7 @@ public class AggregateNode extends SingleSourcePlanNode implements VerifiableNod
       final SchemaKStream<?> preSelected
   ) {
     return preSelected.groupBy(
-        valueFormat,
+        valueFormat.getFormatInfo(),
         groupBy.getGroupingExpressions(),
         contextStacker.push(GROUP_BY_OP_NAME)
     );
@@ -294,31 +285,31 @@ public class AggregateNode extends SingleSourcePlanNode implements VerifiableNod
     }
 
     /**
-     * Return the aggregate function arguments based on the internal expressions. Currently we
-     * support aggregate functions with at most two arguments where the second argument should be a
-     * literal.
+     * Return the aggregate function arguments based on the internal expressions.
      *
-     * @param argExpressionList The list of parameters for the aggregate fuunction.
+     * <p>Aggregate functions can take any number of arguments. All but the first argument must be
+     * literals, i.e. a constant.
+     *
+     * @param params The list of parameters for the aggregate function.
      * @return The list of arguments based on the internal expressions for the aggregate function.
      */
-    List<Expression> updateArgsExpressionList(final List<Expression> argExpressionList) {
-      // Currently we only support aggregations on one column only
-      if (argExpressionList.size() > 2) {
-        throw new KsqlException("Currently, KSQL UDAFs can only have two arguments.");
+    List<Expression> updateArgsExpressionList(final List<Expression> params) {
+      if (params.isEmpty()) {
+        return ImmutableList.of();
       }
-      if (argExpressionList.isEmpty()) {
-        return Collections.emptyList();
-      }
-      final List<Expression> internalExpressionList = new ArrayList<>();
-      internalExpressionList.add(resolveToInternal(argExpressionList.get(0)));
-      if (argExpressionList.size() == 2) {
-        if (!(argExpressionList.get(1) instanceof Literal)) {
-          throw new KsqlException("Currently, second argument in UDAF should be literal.");
-        }
-        internalExpressionList.add(argExpressionList.get(1));
-      }
-      return internalExpressionList;
 
+      for (int idx = 1; idx != params.size(); idx++) {
+        final Expression param = params.get(idx);
+        if (!(param instanceof Literal)) {
+          throw new IllegalArgumentException("Parameter " + (idx + 1)
+              + " must be a constant, but was expression: " + param);
+        }
+      }
+
+      final List<Expression> internalParams = new ArrayList<>(params.size());
+      internalParams.add(resolveToInternal(params.get(0)));
+      internalParams.addAll(params.subList(1, params.size()));
+      return internalParams;
     }
 
     List<FunctionCall> updateFunctionList(final ImmutableList<FunctionCall> functions) {

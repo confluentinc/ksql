@@ -204,7 +204,7 @@ public final class StatementRewriter<C> {
           groupBy,
           partitionBy,
           having,
-          node.getResultMaterialization(),
+          node.getRefinement(),
           node.isPullQuery(),
           node.getLimit()
       );
@@ -386,6 +386,7 @@ public final class StatementRewriter<C> {
           node.getName(),
           (Query) rewriter.apply(node.getQuery(), context),
           node.isNotExists(),
+          node.isOrReplace(),
           node.getProperties()
       );
     }
@@ -418,6 +419,7 @@ public final class StatementRewriter<C> {
           node.getName(),
           (Query) rewriter.apply(node.getQuery(), context),
           node.isNotExists(),
+          node.isOrReplace(),
           node.getProperties()
       );
     }
@@ -475,7 +477,8 @@ public final class StatementRewriter<C> {
       return new RegisterType(
           node.getLocation(),
           node.getName(),
-          (Type) processExpression(node.getType(), context)
+          (Type) processExpression(node.getType(), context),
+          node.getIfNotExists()
       );
     }
   }

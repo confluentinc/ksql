@@ -41,22 +41,24 @@ public class CreateStreamAsSelectTest {
     new EqualsTester()
         .addEqualityGroup(
             // Note: At the moment location does not take part in equality testing
-            new CreateStreamAsSelect(SOME_NAME, SOME_QUERY, true, SOME_PROPS),
-            new CreateStreamAsSelect(Optional.of(SOME_LOCATION), SOME_NAME, SOME_QUERY, true,
-                SOME_PROPS)
+            new CreateStreamAsSelect(SOME_NAME, SOME_QUERY, true, true, SOME_PROPS),
+            new CreateStreamAsSelect(Optional.of(SOME_LOCATION), SOME_NAME, SOME_QUERY, true, true, SOME_PROPS)
         )
         .addEqualityGroup(
-            new CreateStreamAsSelect(SourceName.of("diff"), SOME_QUERY, true, SOME_PROPS
+            new CreateStreamAsSelect(Optional.of(SOME_LOCATION), SOME_NAME, SOME_QUERY, true, false, SOME_PROPS)
+        )
+        .addEqualityGroup(
+            new CreateStreamAsSelect(SourceName.of("diff"), SOME_QUERY, true, true, SOME_PROPS
             )
         )
         .addEqualityGroup(
-            new CreateStreamAsSelect(SOME_NAME, mock(Query.class), true, SOME_PROPS)
+            new CreateStreamAsSelect(SOME_NAME, mock(Query.class), true, true, SOME_PROPS)
         )
         .addEqualityGroup(
-            new CreateStreamAsSelect(SOME_NAME, SOME_QUERY, false, SOME_PROPS)
+            new CreateStreamAsSelect(SOME_NAME, SOME_QUERY, false, true, SOME_PROPS)
         )
         .addEqualityGroup(
-            new CreateStreamAsSelect(SOME_NAME, SOME_QUERY, true, CreateSourceAsProperties.none()
+            new CreateStreamAsSelect(SOME_NAME, SOME_QUERY, true, true, CreateSourceAsProperties.none()
             )
         )
         .testEquals();

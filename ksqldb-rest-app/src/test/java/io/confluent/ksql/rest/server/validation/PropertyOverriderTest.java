@@ -24,6 +24,7 @@ import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.mock;
 
 import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.UnsetProperty;
@@ -56,13 +57,10 @@ public class PropertyOverriderTest {
     final Exception e = assertThrows(
         KsqlStatementException.class,
         () -> CustomValidators.SET_PROPERTY.validate(
-            ConfiguredStatement.of(
-                PreparedStatement.of(
-                    "SET 'consumer.invalid'='value';",
-                    new SetProperty(Optional.empty(), "consumer.invalid", "value")),
-                new HashMap<>(),
-                engine.getKsqlConfig()
-            ),
+        ConfiguredStatement.of(PreparedStatement.of(
+            "SET 'consumer.invalid'='value';",
+            new SetProperty(Optional.empty(), "consumer.invalid", "value")),
+            SessionConfig.of(engine.getKsqlConfig(), ImmutableMap.of())),
             mock(SessionProperties.class),
             engine.getEngine(),
             engine.getServiceContext()
@@ -83,13 +81,10 @@ public class PropertyOverriderTest {
 
     // When:
     CustomValidators.SET_PROPERTY.validate(
-        ConfiguredStatement.of(
-            PreparedStatement.of(
-                "SET '" + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG + "' = 'earliest';",
-                new SetProperty(Optional.empty(), ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")),
-            ImmutableMap.of(),
-            engine.getKsqlConfig()
-        ),
+        ConfiguredStatement.of(PreparedStatement.of(
+            "SET '" + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG + "' = 'earliest';",
+            new SetProperty(Optional.empty(), ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")),
+            SessionConfig.of(engine.getKsqlConfig(), ImmutableMap.of())),
         sessionProperties,
         engine.getEngine(),
         engine.getServiceContext()
@@ -110,12 +105,10 @@ public class PropertyOverriderTest {
     final Exception e = assertThrows(
         KsqlStatementException.class,
         () -> CustomValidators.SET_PROPERTY.validate(
-            ConfiguredStatement.of(
-                PreparedStatement.of(
-                    "SET '" + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG + "' = 'invalid';",
-                    new SetProperty(Optional.empty(), ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "invalid")),
-                ImmutableMap.of(),
-                engine.getKsqlConfig()
+            ConfiguredStatement.of(PreparedStatement.of(
+                "SET '" + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG + "' = 'invalid';",
+                new SetProperty(Optional.empty(), ConsumerConfig.AUTO_OFFSET_RESET_CONFIG,
+                    "invalid")), SessionConfig.of(engine.getKsqlConfig(), ImmutableMap.of())
             ),
             sessionProperties,
             engine.getEngine(),
@@ -139,13 +132,10 @@ public class PropertyOverriderTest {
     final Exception e = assertThrows(
         KsqlStatementException.class,
         () -> CustomValidators.UNSET_PROPERTY.validate(
-            ConfiguredStatement.of(
-                PreparedStatement.of(
-                    "UNSET 'consumer.invalid';",
-                    new UnsetProperty(Optional.empty(), "consumer.invalid")),
-                new HashMap<>(),
-                engine.getKsqlConfig()
-            ),
+            ConfiguredStatement.of(PreparedStatement.of(
+                "UNSET 'consumer.invalid';",
+                new UnsetProperty(Optional.empty(), "consumer.invalid")),
+                SessionConfig.of(engine.getKsqlConfig(), new HashMap<>())),
             sessionProperties,
             engine.getEngine(),
             engine.getServiceContext()
@@ -171,13 +161,10 @@ public class PropertyOverriderTest {
 
     // When:
     CustomValidators.UNSET_PROPERTY.validate(
-        ConfiguredStatement.of(
-            PreparedStatement.of(
-                "UNSET '" + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG + "';",
-                new UnsetProperty(Optional.empty(), ConsumerConfig.AUTO_OFFSET_RESET_CONFIG)),
-            ImmutableMap.of(),
-            engine.getKsqlConfig()
-        ),
+        ConfiguredStatement.of(PreparedStatement.of(
+            "UNSET '" + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG + "';",
+            new UnsetProperty(Optional.empty(), ConsumerConfig.AUTO_OFFSET_RESET_CONFIG)),
+            SessionConfig.of(engine.getKsqlConfig(), ImmutableMap.of())),
         sessionProperties,
         engine.getEngine(),
         engine.getServiceContext()

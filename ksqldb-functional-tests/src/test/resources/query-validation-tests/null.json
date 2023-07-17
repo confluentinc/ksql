@@ -19,6 +19,85 @@
       ]
     },
     {
+      "name": "stream filter with null value",
+      "statements": [
+        "CREATE STREAM INPUT (ID INT KEY, NAME STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT WHERE NAME IS NULL;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 1, "value": null},
+        {"topic": "test_topic", "key": 2, "value": {"NAME": null}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 2, "value": {"NAME": null}}
+      ]
+    },
+    {
+      "name": "stream PARTITION BY with null value",
+      "statements": [
+        "CREATE STREAM INPUT (ID INT KEY, NAME STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT PARTITION BY NAME;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 1, "value": null},
+        {"topic": "test_topic", "key": 2, "value": {"NAME": null}},
+        {"topic": "test_topic", "key": 3, "value": {"NAME": "n"}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": null, "value": null},
+        {"topic": "OUTPUT", "key": null, "value": {"ID": 2}},
+        {"topic": "OUTPUT", "key": "n", "value": {"ID": 3}}
+      ]
+    },
+    {
+      "name": "stream PARTITION BY IS NULL with null value",
+      "statements": [
+        "CREATE STREAM INPUT (ID INT KEY, NAME STRING, VAL STRING) WITH (kafka_topic='test_topic', format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT PARTITION BY (NAME IS NULL);"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 1, "key": 1, "value": null},
+        {"topic": "test_topic", "timestamp": 2, "key": 2, "value": {"NAME": null, "VAL": "a"}},
+        {"topic": "test_topic", "timestamp": 3, "key": 3, "value": {"NAME": "n", "VAL": "b"}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "timestamp": 1, "key": null, "value": null},
+        {"topic": "OUTPUT", "timestamp": 2, "key": true, "value": {"NAME": null, "ID": 2, "VAL": "a"}},
+        {"topic": "OUTPUT", "timestamp": 3, "key": false, "value": {"NAME": "n", "ID": 3, "VAL": "b"}}
+      ]
+    },
+    {
+      "name": "stream GROUP BY with null value",
+      "statements": [
+        "CREATE STREAM INPUT (NAME STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT NAME, COUNT() AS COUNT FROM INPUT GROUP BY NAME;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 1, "value": null},
+        {"topic": "test_topic", "timestamp": 2, "value": {"NAME": null}},
+        {"topic": "test_topic", "timestamp": 3, "value": {"NAME": "n"}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "timestamp": 3, "key": "n", "value": {"COUNT": 1}}
+      ]
+    },
+    {
+      "name": "stream GROUP BY IS NULL with null value",
+      "statements": [
+        "CREATE STREAM INPUT (NAME STRING) WITH (kafka_topic='test_topic', format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT NAME IS NULL, COUNT() AS COUNT FROM INPUT GROUP BY (NAME IS NULL);"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 1, "value": null},
+        {"topic": "test_topic", "timestamp": 2, "value": {"NAME": null}},
+        {"topic": "test_topic", "timestamp": 3, "value": {"NAME": "n"}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "timestamp": 2, "key": true, "value": {"COUNT": 1}},
+        {"topic": "OUTPUT", "timestamp": 3, "key": false, "value": {"COUNT": 1}}
+      ]
+    },
+    {
       "name": "is null",
       "statements": [
         "CREATE STREAM INPUT (ID INT KEY, NAME STRING) WITH (kafka_topic='test_topic', value_format='JSON');",

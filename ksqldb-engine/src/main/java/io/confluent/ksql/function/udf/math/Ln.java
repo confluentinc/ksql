@@ -14,6 +14,7 @@
 
 package io.confluent.ksql.function.udf.math;
 
+import io.confluent.ksql.function.FunctionCategory;
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.function.udf.UdfParameter;
@@ -21,6 +22,7 @@ import io.confluent.ksql.util.KsqlConstants;
 
 @UdfDescription(
     name = "ln",
+    category = FunctionCategory.MATHEMATICAL,
     author = KsqlConstants.CONFLUENT_AUTHOR,
     description = "The natural logarithm of a value."
 )

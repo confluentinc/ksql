@@ -115,6 +115,32 @@ public class KsqlRestClientTest {
     assertThat(ksqlRestClient.getServerAddress(), is(serverURI));
   }
 
+  @Test
+  public void shouldParseHttpAddressWithoutPort() throws Exception {
+    // Given:
+    final String serverAddress = "http://singleServer";
+    final URI serverURI = new URI(serverAddress.concat(":80"));
+
+    // When:
+    KsqlRestClient ksqlRestClient = clientWithServerAddresses(serverAddress);
+
+    // Then:
+    assertThat(ksqlRestClient.getServerAddress(), is(serverURI));
+  }
+
+  @Test
+  public void shouldParseHttpsAddressWithoutPort() throws Exception {
+    // Given:
+    final String serverAddress = "https://singleServer";
+    final URI serverURI = new URI(serverAddress.concat(":443"));
+
+    // When:
+    KsqlRestClient ksqlRestClient = clientWithServerAddresses(serverAddress);
+
+    // Then:
+    assertThat(ksqlRestClient.getServerAddress(), is(serverURI));
+  }
+
   private KsqlRestClient clientWithServerAddresses(final String serverAddresses) {
     return KsqlRestClient.create(
         serverAddresses,

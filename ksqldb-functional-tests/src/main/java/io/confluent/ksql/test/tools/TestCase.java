@@ -18,8 +18,11 @@ package io.confluent.ksql.test.tools;
 import static java.util.Objects.requireNonNull;
 
 import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.schema.query.QuerySchemas;
 import io.confluent.ksql.test.model.KsqlVersion;
+import io.confluent.ksql.test.model.TestLocation;
 import io.confluent.ksql.test.tools.conditions.PostConditions;
+import io.confluent.ksql.util.KsqlConfig;
 import java.nio.file.Path;
 import java.util.Collection;
 import java.util.HashMap;
@@ -32,7 +35,8 @@ import org.hamcrest.Matcher;
 @SuppressWarnings("WeakerAccess")
 public class TestCase implements VersionedTest {
 
-  private final Path testPath;
+  private final TestLocation location;
+  private final Path originalFileName;
   private final String name;
   private final VersionBounds versionBounds;
   private final Map<String, Object> properties;
@@ -42,12 +46,14 @@ public class TestCase implements VersionedTest {
   private final List<String> statements;
   private final Optional<Matcher<Throwable>> expectedException;
   private List<String> generatedTopologies;
-  private Map<String, String> generatedSchemas;
+  private Map<String, QuerySchemas.SchemaInfo> generatedSchemas;
   private final Optional<TopologyAndConfigs> expectedTopology;
   private final PostConditions postConditions;
 
+  // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
   public TestCase(
-      final Path testPath,
+      final TestLocation location,
+      final Path originalFileName,
       final String name,
       final VersionBounds versionBounds,
       final Map<String, Object> properties,
@@ -58,8 +64,10 @@ public class TestCase implements VersionedTest {
       final Optional<Matcher<Throwable>> expectedException,
       final PostConditions postConditions
   ) {
+    // CHECKSTYLE_RULES.ON: ParameterNumberCheck
     this(
-        testPath,
+        location,
+        originalFileName,
         name,
         versionBounds,
         properties,
@@ -75,7 +83,8 @@ public class TestCase implements VersionedTest {
 
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
   private TestCase(
-      final Path testPath,
+      final TestLocation location,
+      final Path originalFileName,
       final String name,
       final VersionBounds versionBounds,
       final Map<String, Object> properties,
@@ -89,9 +98,10 @@ public class TestCase implements VersionedTest {
   ) {
     // CHECKSTYLE_RULES.ON: ParameterNumberCheck
     this.topics = topics;
+    this.originalFileName = requireNonNull(originalFileName, "originalFileName");
     this.inputRecords = inputRecords;
     this.outputRecords = outputRecords;
-    this.testPath = testPath;
+    this.location = requireNonNull(location, "location");
     this.name = name;
     this.versionBounds = Objects.requireNonNull(versionBounds, "versionBounds");
     this.properties = ImmutableMap.copyOf(properties);
@@ -117,7 +127,8 @@ public class TestCase implements VersionedTest {
     final String newName = name + "-" + version.getName()
         + (version.getTimestamp().isPresent() ? "-" + version.getTimestamp().getAsLong() : "");
     final TestCase copy = new TestCase(
-        testPath,
+        location,
+        originalFileName,
         newName,
         versionBounds,
         properties,
@@ -141,8 +152,12 @@ public class TestCase implements VersionedTest {
   }
 
   @Override
-  public String getTestFile() {
-    return testPath.toString();
+  public TestLocation getTestLocation() {
+    return location;
+  }
+
+  public Path getOriginalFileName() {
+    return originalFileName;
   }
 
   public Collection<Topic> getTopics() {
@@ -161,19 +176,31 @@ public class TestCase implements VersionedTest {
     return expectedTopology;
   }
 
-  public void setGeneratedSchemas(final Map<String, String> generatedSchemas) {
+  public void setGeneratedSchemas(final Map<String, QuerySchemas.SchemaInfo> generatedSchemas) {
     this.generatedSchemas = ImmutableMap.copyOf(
         Objects.requireNonNull(generatedSchemas, "generatedSchemas"));
   }
 
-  public Map<String, String> getGeneratedSchemas() {
+  public Map<String, QuerySchemas.SchemaInfo> getGeneratedSchemas() {
     return generatedSchemas;
   }
 
-  public Map<String, String> persistedProperties() {
-    return expectedTopology
+  public KsqlConfig applyPersistedProperties(final KsqlConfig systemConfig) {
+    final Map<String, String> persistedConfigs = expectedTopology
         .map(TopologyAndConfigs::getConfigs)
         .orElseGet(HashMap::new);
+
+    return persistedConfigs.isEmpty()
+        ? systemConfig
+        : systemConfig.overrideBreakingConfigsWithOriginalValues(persistedConfigs);
+  }
+
+  private KsqlConfig applyPropertyOverrides(final KsqlConfig sourceConfig) {
+    return sourceConfig.cloneWithPropertyOverwrite(properties);
+  }
+
+  public KsqlConfig applyProperties(final KsqlConfig systemConfig) {
+    return applyPropertyOverrides(applyPersistedProperties(systemConfig));
   }
 
   public Map<String, Object> properties() {

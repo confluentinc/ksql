@@ -16,12 +16,17 @@
 package io.confluent.ksql.rest.server.execution;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.hasSize;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 
 import io.confluent.ksql.rest.SessionProperties;
+import io.confluent.ksql.rest.entity.ArgumentInfo;
 import io.confluent.ksql.rest.entity.FunctionDescriptionList;
+import io.confluent.ksql.rest.entity.FunctionInfo;
 import io.confluent.ksql.rest.entity.FunctionType;
 import io.confluent.ksql.rest.server.TemporaryEngine;
+import java.util.Arrays;
 import org.hamcrest.Description;
 import org.hamcrest.TypeSafeMatcher;
 import org.junit.Rule;
@@ -40,7 +45,7 @@ public class DescribeFunctionExecutorTest {
     final FunctionDescriptionList functionList = (FunctionDescriptionList)
         CustomExecutors.DESCRIBE_FUNCTION.execute(
         engine.configure(
-            "DESCRIBE FUNCTION TRIM;"),
+                "DESCRIBE FUNCTION TEST_UDF_1;"),
             mock(SessionProperties.class),
             engine.getEngine(),
             engine.getServiceContext()
@@ -50,7 +55,7 @@ public class DescribeFunctionExecutorTest {
     assertThat(functionList, new TypeSafeMatcher<FunctionDescriptionList>() {
       @Override
       protected boolean matchesSafely(final FunctionDescriptionList item) {
-        return functionList.getName().equals("TRIM")
+        return functionList.getName().equals("TEST_UDF_1")
             && functionList.getType().equals(FunctionType.SCALAR);
       }
 
@@ -102,8 +107,8 @@ public class DescribeFunctionExecutorTest {
     assertThat(functionList, new TypeSafeMatcher<FunctionDescriptionList>() {
       @Override
       protected boolean matchesSafely(final FunctionDescriptionList item) {
-        return functionList.getName().equals("TEST_UDTF1")
-            && functionList.getType().equals(FunctionType.TABLE);
+        return item.getName().equals("TEST_UDTF1")
+            && item.getType().equals(FunctionType.TABLE);
       }
 
       @Override
@@ -111,6 +116,21 @@ public class DescribeFunctionExecutorTest {
         description.appendText(functionList.getName());
       }
     });
+
+    assertThat(functionList.getFunctions(), hasSize(2));
+
+    FunctionInfo expected1 = new FunctionInfo(
+        Arrays.asList(new ArgumentInfo("foo", "INT", "", false)),
+        "INT", "test_udtf1 int");
+
+    assertTrue(functionList.getFunctions().contains(expected1));
+
+    FunctionInfo expected2 = new FunctionInfo(
+        Arrays.asList(new ArgumentInfo("foo", "DOUBLE", "", false)),
+        "DOUBLE", "test_udtf1 double");
+
+    assertTrue(functionList.getFunctions().contains(expected2));
+
   }
 
 }

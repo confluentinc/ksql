@@ -23,7 +23,6 @@ import static org.hamcrest.Matchers.not;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.context.QueryContext.Stacker;
@@ -42,12 +41,12 @@ import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
-import io.confluent.ksql.serde.SerdeOption;
+import io.confluent.ksql.serde.SerdeFeature;
+import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Optional;
-import java.util.Set;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -62,9 +61,6 @@ public class SchemaKSourceFactoryTest {
       .valueColumn(ColumnName.of("FOO"), SqlTypes.INTEGER)
       .valueColumn(ColumnName.of("BAR"), SqlTypes.STRING)
       .build();
-
-  private static final Set<SerdeOption> SERDE_OPTIONS = ImmutableSet
-      .of(SerdeOption.UNWRAP_SINGLE_VALUES);
 
   private static final String TOPIC_NAME = "fred";
   private static final KsqlConfig CONFIG = new KsqlConfig(ImmutableMap.of());
@@ -94,7 +90,6 @@ public class SchemaKSourceFactoryTest {
 
   @Before
   public void setUp() {
-    when(dataSource.getSerdeOptions()).thenReturn(SERDE_OPTIONS);
     when(dataSource.getKsqlTopic()).thenReturn(topic);
     when(dataSource.getKafkaTopicName()).thenReturn(TOPIC_NAME);
     when(dataSource.getSchema()).thenReturn(SCHEMA);
@@ -108,7 +103,9 @@ public class SchemaKSourceFactoryTest {
     when(builder.getFunctionRegistry()).thenReturn(functionRegistry);
 
     when(keyFormat.getFormatInfo()).thenReturn(keyFormatInfo);
+    when(keyFormat.getFeatures()).thenReturn(SerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES));
     when(valueFormat.getFormatInfo()).thenReturn(valueFormatInfo);
+    when(valueFormat.getFeatures()).thenReturn(SerdeFeatures.of(SerdeFeature.WRAP_SINGLES));
   }
 
   @Test

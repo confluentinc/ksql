@@ -94,7 +94,7 @@ public class KsStateStoreTest {
         QueryableStoreTypes.sessionStore();
 
     // When:
-    store.store(storeType);
+    store.store(storeType, 0);
 
     // Then:
     verify(kafkaStreams, never()).state();
@@ -111,7 +111,7 @@ public class KsStateStoreTest {
     // When:
     final Exception e = assertThrows(
         MaterializationException.class,
-        () -> store.store(sessionStore())
+        () -> store.store(sessionStore(), 0)
     );
 
     // Then:
@@ -121,7 +121,7 @@ public class KsStateStoreTest {
   @Test
   public void shouldGetStoreOnceRunning() {
     // When:
-    store.store(QueryableStoreTypes.<String, Long>sessionStore());
+    store.store(QueryableStoreTypes.<String, Long>sessionStore(), 0);
 
     // Then:
     final InOrder inOrder = Mockito.inOrder(kafkaStreams);
@@ -135,10 +135,11 @@ public class KsStateStoreTest {
         QueryableStoreTypes.windowStore();
 
     // When:
-    store.store(storeType);
+    store.store(storeType, 0);
 
     // Then:
-    verify(kafkaStreams).store(StoreQueryParameters.fromNameAndType(STORE_NAME, storeType));
+    verify(kafkaStreams).store(
+        StoreQueryParameters.fromNameAndType(STORE_NAME, storeType).withPartition(0));
   }
 
   @Test
@@ -149,7 +150,7 @@ public class KsStateStoreTest {
     // When:
     final Exception e = assertThrows(
         MaterializationException.class,
-        () -> store.store(windowStore())
+        () -> store.store(windowStore(), 0)
     );
 
     // Then:
@@ -166,7 +167,7 @@ public class KsStateStoreTest {
 
     // When:
     final ReadOnlySessionStore<Double, String> result = store
-        .store(QueryableStoreTypes.sessionStore());
+        .store(QueryableStoreTypes.sessionStore(), 0);
 
     // Then:
     assertThat(result, is(sessionStore));
@@ -180,7 +181,7 @@ public class KsStateStoreTest {
 
     // When:
     final ReadOnlyWindowStore<Boolean, String> result = store
-        .store(QueryableStoreTypes.windowStore());
+        .store(QueryableStoreTypes.windowStore(), 0);
 
     // Then:
     assertThat(result, is(windowStore));

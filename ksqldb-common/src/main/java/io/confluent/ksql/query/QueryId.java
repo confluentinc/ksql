@@ -26,7 +26,7 @@ import java.util.Objects;
  * A query id.
  *
  * <p>For backwards compatibility reasons query ids must preserve their case, as their text
- * representation is used, amoung other things, for internal topic naming.
+ * representation is used, among other things, for internal topic naming.
  *
  * <p>However, two ids with the same text, with different case, should compare equal. This is needed
  * so that look ups against query ids are not case-sensitive.

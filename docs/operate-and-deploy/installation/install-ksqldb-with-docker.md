@@ -52,41 +52,7 @@ ksqlDB Server configurations
 The following commands show how to run ksqlDB Server in different
 configurations.
 
-### ksqlDB Headless Server Settings (Production)
-
-You can deploy ksqlDB Server into production in a non-interactive, or
-*headless*, mode. In headless mode, interactive use of the ksqlDB cluster
-is disabled, and you configure ksqlDB Server with a predefined `.sql` file
-and the `KSQL_KSQL_QUERIES_FILE` setting. For more information, see
-[Non-interactive (Headless) ksqlDB Usage](server-config/index.md#non-interactive-headless-ksqldb-usage).
-
-Use the following command to run a headless, standalone ksqlDB Server
-instance in a container:
-
-```bash
-docker run -d \
-  -v /path/on/host:/path/in/container/ \
-  -e KSQL_BOOTSTRAP_SERVERS=localhost:9092 \
-  -e KSQL_KSQL_SERVICE_ID=ksql_standalone_1_ \
-  -e KSQL_KSQL_QUERIES_FILE=/path/in/container/queries.sql \
-  confluentinc/ksqldb-server:{{ site.release }}
-```
-
-`KSQL_BOOTSTRAP_SERVERS`
-
-:   A list of hosts for establishing the initial connection to the Kafka
-    cluster.
-
-`KSQL_KSQL_SERVICE_ID`
-
-:   The service ID of the ksqlDB server, which is used as the prefix for
-    the internal topics created by ksqlDB.
-
-`KSQL_KSQL_QUERIES_FILE`
-
-:   A file that specifies predefined SQL queries.
-
-### ksqlDB Interactive Server Settings (Development)
+### ksqlDB Interactive Server Settings
 
 Develop your ksqlDB applications by using the ksqlDB command-line interface
 (CLI), or the graphical interface in {{ site.c3 }}, or both together.
@@ -120,6 +86,40 @@ docker run -d \
 In interactive mode, a ksqlDB CLI instance running outside of Docker can
 connect to the ksqlDB server running in Docker.
 
+### ksqlDB Headless Server Settings
+
+You can deploy ksqlDB Server in a non-interactive, or
+*headless*, mode. In headless mode, interactive use of the ksqlDB cluster
+is disabled, and you configure ksqlDB Server with a predefined `.sql` file
+and the `KSQL_KSQL_QUERIES_FILE` setting. For more information, see
+[Non-interactive (Headless) ksqlDB Usage](server-config/index.md#non-interactive-headless-ksqldb-usage).
+
+Use the following command to run a headless, standalone ksqlDB Server
+instance in a container:
+
+```bash
+docker run -d \
+  -v /path/on/host:/path/in/container/ \
+  -e KSQL_BOOTSTRAP_SERVERS=localhost:9092 \
+  -e KSQL_KSQL_SERVICE_ID=ksql_standalone_1_ \
+  -e KSQL_KSQL_QUERIES_FILE=/path/in/container/queries.sql \
+  confluentinc/ksqldb-server:{{ site.release }}
+```
+
+`KSQL_BOOTSTRAP_SERVERS`
+
+:   A list of hosts for establishing the initial connection to the Kafka
+    cluster.
+
+`KSQL_KSQL_SERVICE_ID`
+
+:   The service ID of the ksqlDB server, which is used as the prefix for
+    the internal topics created by ksqlDB.
+
+`KSQL_KSQL_QUERIES_FILE`
+
+:   A file that specifies predefined SQL queries.
+
 ### Connect ksqlDB Server to a secure Kafka Cluster, like Confluent Cloud
 
 ksqlDB Server runs outside of your {{ site.ak }} clusters, so you need to
@@ -131,7 +131,7 @@ Run a ksqlDB Server that uses a secure connection to a {{ site.ak }} cluster:
 ```bash
 docker run -d \
   -p 127.0.0.1:8088:8088 \
-  -e KSQL_BOOTSTRAP_SERVERS=REMOVED_SERVER1:9092,REMOVED_SERVER2:9093,REMOVED_SERVER3:9094 \
+  -e KSQL_BOOTSTRAP_SERVERS=REMOTE_SERVER1:9092,REMOTE_SERVER2:9093,REMOTE_SERVER3:9094 \
   -e KSQL_LISTENERS=http://0.0.0.0:8088/ \
   -e KSQL_KSQL_SERVICE_ID=default_ \
   -e KSQL_KSQL_SINK_REPLICAS=3 \
@@ -244,7 +244,7 @@ Your output should resemble:
 
 ksqlDB emits a log of record processing events, called the processing log,
 to help you debug SQL queries. For more information, see
-[ksqlDB Processing Log](../../developer-guide/test-and-debug/processing-log.md).
+[ksqlDB Processing Log](../../reference/processing-log.md).
 
 Assign the following configuration settings to enable the processing
 log.

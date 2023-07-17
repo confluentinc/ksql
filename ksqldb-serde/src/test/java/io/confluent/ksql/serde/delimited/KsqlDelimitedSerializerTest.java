@@ -18,60 +18,51 @@ package io.confluent.ksql.serde.delimited;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThrows;
-import static org.junit.internal.matchers.ThrowableMessageMatcher.hasMessage;
 
-import io.confluent.ksql.util.DecimalUtil;
+import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.PersistenceSchema;
+import io.confluent.ksql.schema.ksql.types.SqlType;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
+import io.confluent.ksql.serde.SerdeFeatures;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import org.apache.commons.csv.CSVFormat;
-import org.apache.kafka.common.errors.SerializationException;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaBuilder;
-import org.apache.kafka.connect.data.Struct;
 import org.junit.Before;
 import org.junit.Test;
 
 public class KsqlDelimitedSerializerTest {
 
-  private static final Schema SCHEMA = SchemaBuilder.struct()
-      .field("ORDERTIME", Schema.OPTIONAL_INT64_SCHEMA)
-      .field("ORDERID", Schema.OPTIONAL_INT64_SCHEMA)
-      .field("ITEMID", Schema.OPTIONAL_STRING_SCHEMA)
-      .field("ORDERUNITS", Schema.OPTIONAL_FLOAT64_SCHEMA)
-      .optional()
-      .build();
+  private static final PersistenceSchema SCHEMA = PersistenceSchema.from(
+      LogicalSchema.builder()
+          .valueColumn(ColumnName.of("ORDERTIME"), SqlTypes.BIGINT)
+          .valueColumn(ColumnName.of("ORDERID"), SqlTypes.BIGINT)
+          .valueColumn(ColumnName.of("ITEMID"), SqlTypes.STRING)
+          .valueColumn(ColumnName.of("ORDERUNITS"), SqlTypes.DOUBLE)
+          .build().value(),
+      SerdeFeatures.of()
+  );
+
+  private static final CSVFormat CSV_FORMAT = CSVFormat.DEFAULT.withDelimiter(',');
 
   private KsqlDelimitedSerializer serializer;
 
   @Before
   public void setUp() {
-    serializer = new KsqlDelimitedSerializer(CSVFormat.DEFAULT.withDelimiter(','));
-  }
-
-  @Test
-  public void shouldThrowIfNotStruct() {
-    // When:
-    final Exception e = assertThrows(
-        SerializationException.class,
-        () -> serializer.serialize("t1", "not a struct")
-    );
-
-    // Then:
-    assertThat(e.getCause(), (hasMessage(is("DELIMITED does not support anonymous fields"))));
+    serializer = new KsqlDelimitedSerializer(SCHEMA, CSV_FORMAT);
   }
 
   @Test
   public void shouldSerializeRowCorrectly() {
     // Given:
-    final Struct data = new Struct(SCHEMA)
-        .put("ORDERTIME", 1511897796092L)
-        .put("ORDERID", 1L)
-        .put("ITEMID", "item_1")
-        .put("ORDERUNITS", 10.0);
+    final List<?> values = Arrays.asList(1511897796092L, 1L, "item_1", 10.0);
 
     // When:
-    final byte[] bytes = serializer.serialize("t1", data);
+    final byte[] bytes = serializer.serialize("t1", values);
 
     // Then:
     final String delimitedString = new String(bytes, StandardCharsets.UTF_8);
@@ -81,14 +72,10 @@ public class KsqlDelimitedSerializerTest {
   @Test
   public void shouldSerializeRowWithNull() {
     // Given:
-    final Struct data = new Struct(SCHEMA)
-        .put("ORDERTIME", 1511897796092L)
-        .put("ORDERID", 1L)
-        .put("ITEMID", "item_1")
-        .put("ORDERUNITS", null);
+    final List<?> values = Arrays.asList(1511897796092L, 1L, "item_1", null);
 
     // When:
-    final byte[] bytes = serializer.serialize("t1", data);
+    final byte[] bytes = serializer.serialize("t1", values);
 
     // Then:
     final String delimitedString = new String(bytes, StandardCharsets.UTF_8);
@@ -96,34 +83,14 @@ public class KsqlDelimitedSerializerTest {
   }
 
   @Test
-  public void shouldSerializedTopLevelPrimitiveIfValueHasOneField() {
-    // Given:
-    final Schema schema = SchemaBuilder.struct()
-        .field("id", Schema.OPTIONAL_INT64_SCHEMA)
-        .build();
-
-    final Struct value = new Struct(schema)
-        .put("id", 10L);
-
-    // When:
-    final byte[] bytes = serializer.serialize("", value);
-
-    // Then:
-    assertThat(new String(bytes, StandardCharsets.UTF_8), is("10"));
-  }
-
-  @Test
   public void shouldSerializeDecimal() {
     // Given:
-    final Schema schema = SchemaBuilder.struct()
-        .field("id", DecimalUtil.builder(4, 2).build())
-        .build();
+    givenSingleColumnSerializer(SqlTypes.decimal(4, 2));
 
-    final Struct value = new Struct(schema)
-        .put("id", new BigDecimal("11.12"));
+    final List<?> values = Collections.singletonList(new BigDecimal("11.12"));
 
     // When:
-    final byte[] bytes = serializer.serialize("", value);
+    final byte[] bytes = serializer.serialize("", values);
 
     // Then:
     assertThat(new String(bytes, StandardCharsets.UTF_8), is("11.12"));
@@ -132,15 +99,12 @@ public class KsqlDelimitedSerializerTest {
   @Test
   public void shouldSerializeDecimalWithPaddedZeros() {
     // Given:
-    final Schema schema = SchemaBuilder.struct()
-        .field("id", DecimalUtil.builder(4, 2).build())
-        .build();
+    givenSingleColumnSerializer(SqlTypes.decimal(4, 2));
 
-    final Struct value = new Struct(schema)
-        .put("id", new BigDecimal("1.12"));
+    final List<?> values = Collections.singletonList(new BigDecimal("1.12"));
 
     // When:
-    final byte[] bytes = serializer.serialize("", value);
+    final byte[] bytes = serializer.serialize("", values);
 
     // Then:
     assertThat(new String(bytes, StandardCharsets.UTF_8), is("1.12"));
@@ -149,15 +113,13 @@ public class KsqlDelimitedSerializerTest {
   @Test
   public void shouldSerializeZeroDecimalWithPaddedZeros() {
     // Given:
-    final Schema schema = SchemaBuilder.struct()
-        .field("id", DecimalUtil.builder(4, 2).build())
-        .build();
+    givenSingleColumnSerializer(SqlTypes.decimal(4, 2));
 
-    final Struct value = new Struct(schema)
-        .put("id", BigDecimal.ZERO);
+    final List<?> values = Collections
+        .singletonList(BigDecimal.ZERO.setScale(2, RoundingMode.UNNECESSARY));
 
     // When:
-    final byte[] bytes = serializer.serialize("", value);
+    final byte[] bytes = serializer.serialize("", values);
 
     // Then:
     assertThat(new String(bytes, StandardCharsets.UTF_8), is("0.00"));
@@ -166,15 +128,12 @@ public class KsqlDelimitedSerializerTest {
   @Test
   public void shouldSerializeOneHalfDecimalWithPaddedZeros() {
     // Given:
-    final Schema schema = SchemaBuilder.struct()
-        .field("id", DecimalUtil.builder(4, 2).build())
-        .build();
+    givenSingleColumnSerializer(SqlTypes.decimal(4, 2));
 
-    final Struct value = new Struct(schema)
-        .put("id", new BigDecimal(0.5));
+    final List<?> values = Collections.singletonList(new BigDecimal("0.50"));
 
     // When:
-    final byte[] bytes = serializer.serialize("", value);
+    final byte[] bytes = serializer.serialize("", values);
 
     // Then:
     assertThat(new String(bytes, StandardCharsets.UTF_8), is("0.50"));
@@ -183,138 +142,101 @@ public class KsqlDelimitedSerializerTest {
   @Test
   public void shouldSerializeNegativeOneHalfDecimalWithPaddedZeros() {
     // Given:
-    final Schema schema = SchemaBuilder.struct()
-        .field("id", DecimalUtil.builder(4, 2).build())
-        .build();
+    givenSingleColumnSerializer(SqlTypes.decimal(4, 2));
 
-    final Struct value = new Struct(schema)
-        .put("id", new BigDecimal(-0.5));
+    final List<?> values = Collections.singletonList(new BigDecimal("-0.50"));
 
     // When:
-    final byte[] bytes = serializer.serialize("", value);
+    final byte[] bytes = serializer.serialize("", values);
 
     // Then:
     assertThat(new String(bytes, StandardCharsets.UTF_8), is("\"-0.50\""));
   }
 
   @Test
-  public void shouldSerializeNegativeDecimalWithPaddedZeros() {
+  public void shouldSerializeNegativeDecimalWithAsStringWithPaddedZeros() {
     // Given:
-    final Schema schema = SchemaBuilder.struct()
-        .field("id", DecimalUtil.builder(4, 2).build())
-        .build();
+    givenSingleColumnSerializer(SqlTypes.decimal(4, 3));
 
-    final Struct value = new Struct(schema)
-        .put("id", new BigDecimal("-1.12"));
+    final List<?> values = Collections.singletonList(new BigDecimal("-1.120"));
 
     // When:
-    final byte[] bytes = serializer.serialize("", value);
+    final byte[] bytes = serializer.serialize("", values);
 
     // Then:
-    assertThat(new String(bytes, StandardCharsets.UTF_8), is("\"-1.12\""));
+    assertThat(new String(bytes, StandardCharsets.UTF_8), is("\"-1.120\""));
   }
 
   @Test
-  public void shouldSerializeRowCorrectlyWithTabDelimiter() {
-    shouldSerializeRowCorrectlyWithNonDefaultDelimiter('\t');
+  public void shouldSerializeLargeDecimalWithoutThousandSeparator() {
+    // Given:
+    givenSingleColumnSerializer(SqlTypes.decimal(4, 2));
+
+    final List<?> values = Collections.singletonList(new BigDecimal("1234567890.00"));
+
+    // When:
+    final byte[] bytes = serializer.serialize("", values);
+
+    // Then:
+    assertThat(new String(bytes, StandardCharsets.UTF_8), is("1234567890.00"));
   }
 
   @Test
-  public void shouldSerializeRowCorrectlyWithBarDelimiter() {
-    shouldSerializeRowCorrectlyWithNonDefaultDelimiter('|');
-  }
-
-  private void shouldSerializeRowCorrectlyWithNonDefaultDelimiter(final char delimiter) {
+  public void shouldSerializeReallyLargeDecimalWithoutScientificNotation() {
     // Given:
-    final Struct data = new Struct(SCHEMA)
-        .put("ORDERTIME", 1511897796092L)
-        .put("ORDERID", 1L)
-        .put("ITEMID", "item_1")
-        .put("ORDERUNITS", 10.0);
+    givenSingleColumnSerializer(SqlTypes.decimal(10, 3));
 
-    final KsqlDelimitedSerializer serializer =
-        new KsqlDelimitedSerializer(CSVFormat.DEFAULT.withDelimiter(delimiter));
+    final List<?> values = Collections.singletonList(new BigDecimal("10000000000.000"));
 
     // When:
-    final byte[] bytes = serializer.serialize("t1", data);
+    final byte[] bytes = serializer.serialize("", values);
 
     // Then:
-    final String delimitedString = new String(bytes, StandardCharsets.UTF_8);
-    assertThat(delimitedString, equalTo(
-        "1511897796092" + delimiter + "1" + delimiter + "item_1" + delimiter + "10.0"));
+    assertThat(new String(bytes, StandardCharsets.UTF_8), is("10000000000.000"));
+  }
+
+  @Test
+  public void shouldSerializeRowCorrectlyWithDifferentDelimiter() {
+    // Given:
+    final List<?> values = Arrays.asList(1511897796092L, 1L, "item_1", 10.0);
+
+    final KsqlDelimitedSerializer serializer1 =
+        new KsqlDelimitedSerializer(SCHEMA, CSVFormat.DEFAULT.withDelimiter('\t'));
+
+    // When:
+    final byte[] bytes = serializer1.serialize("t1", values);
+
+    // Then:
+    assertThat(new String(bytes, StandardCharsets.UTF_8), is("1511897796092\t1\titem_1\t10.0"));
   }
 
   @Test
   public void shouldThrowOnArrayField() {
     // Given:
-    final Schema schemaWithArray = SchemaBuilder.struct()
-        .field("f0", SchemaBuilder
-            .array(Schema.OPTIONAL_STRING_SCHEMA)
-            .optional()
-            .build())
-        .optional()
-        .build();
+    final List<?> values = Arrays.asList(1511897796092L, 1L, "item_1", 10.0);
 
-    final Struct data = new Struct(schemaWithArray)
-        .put("f0", null);
+    final KsqlDelimitedSerializer serializer1 =
+        new KsqlDelimitedSerializer(SCHEMA, CSVFormat.DEFAULT.withDelimiter('\t'));
 
     // When:
-    final Exception e = assertThrows(
-        SerializationException.class,
-        () -> serializer.serialize("t1", data)
-    );
+    final byte[] bytes = serializer1.serialize("t1", values);
 
     // Then:
-    assertThat(e.getCause(), (hasMessage(is("DELIMITED does not support type: ARRAY"))));
+    assertThat(new String(bytes, StandardCharsets.UTF_8), is("1511897796092\t1\titem_1\t10.0"));
   }
 
-  @Test
-  public void shouldThrowOnMapField() {
-    // Given:
-    final Schema schemaWithMap = SchemaBuilder.struct()
-        .field("f0", SchemaBuilder
-            .map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_STRING_SCHEMA)
-            .optional()
-            .build())
-        .optional()
-        .build();
+  private void givenSingleColumnSerializer(final SqlType columnType) {
+    final PersistenceSchema schema = givenSingleColumnPersistenceSchema(columnType);
 
-    final Struct data = new Struct(schemaWithMap)
-        .put("f0", null);
+    serializer = new KsqlDelimitedSerializer(schema, CSV_FORMAT);
+  }
 
-    // When:
-    final Exception e = assertThrows(
-        SerializationException.class,
-        () -> serializer.serialize("t1", data)
+  private static PersistenceSchema givenSingleColumnPersistenceSchema(final SqlType columnType) {
+    return PersistenceSchema.from(
+        LogicalSchema.builder()
+            .valueColumn(ColumnName.of("id"), columnType)
+            .build().value(),
+        SerdeFeatures.of()
     );
-
-    // Then:
-    assertThat(e.getCause(), (hasMessage(is("DELIMITED does not support type: MAP"))));
   }
-
-  @Test
-  public void shouldThrowOnStructField() {
-    // Given:
-    final Schema schemaWithStruct = SchemaBuilder.struct()
-        .field("f0", SchemaBuilder
-            .struct()
-            .field("f0", Schema.OPTIONAL_STRING_SCHEMA)
-            .optional()
-            .build())
-        .optional()
-        .build();
-
-    final Struct data = new Struct(schemaWithStruct)
-        .put("f0", null);
-
-    // When:
-    final Exception e = assertThrows(
-        SerializationException.class,
-        () -> serializer.serialize("t1", data)
-    );
-
-    // Then:
-    assertThat(e.getCause(), (hasMessage(is("DELIMITED does not support type: STRUCT"))));
-  }
-
 }

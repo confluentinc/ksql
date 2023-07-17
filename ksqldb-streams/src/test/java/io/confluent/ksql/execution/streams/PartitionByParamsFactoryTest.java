@@ -29,6 +29,7 @@ import io.confluent.ksql.execution.expression.tree.ArithmeticUnaryExpression.Sig
 import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
+import io.confluent.ksql.execution.expression.tree.NullLiteral;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.util.StructKeyUtil;
 import io.confluent.ksql.execution.util.StructKeyUtil.KeyBuilder;
@@ -44,6 +45,7 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlStruct;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
+import io.confluent.ksql.serde.connect.ConnectSchemas;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Optional;
 import java.util.function.BiFunction;
@@ -110,7 +112,7 @@ public class PartitionByParamsFactoryTest {
   @Mock
   private UdfFactory constantUdfFactory;
 
-  private final Struct key = new Struct(SCHEMA.keyConnectSchema());
+  private final Struct key = new Struct(ConnectSchemas.columnsToConnectSchema(SCHEMA.key()));
   private final GenericRow value = new GenericRow();
 
   @Before
@@ -209,6 +211,28 @@ public class PartitionByParamsFactoryTest {
   }
 
   @Test
+  public void shouldBuildResultSchemaWhenPartitioningByNull() {
+    // Given:
+    final Expression partitionBy = new NullLiteral();
+
+    // When:
+    final LogicalSchema resultSchema = PartitionByParamsFactory.buildSchema(
+        SCHEMA,
+        partitionBy,
+        functionRegistry
+    );
+
+    // Then:
+    assertThat(resultSchema, is(LogicalSchema.builder()
+        .valueColumn(COL1, SqlTypes.INTEGER)
+        .valueColumn(COL2, SqlTypes.INTEGER)
+        .valueColumn(COL3, COL3_TYPE)
+        .valueColumn(SystemColumns.ROWTIME_NAME, SqlTypes.BIGINT)
+        .valueColumn(COL0, SqlTypes.STRING)
+        .build()));
+  }
+
+  @Test
   public void shouldLogOnErrorExtractingNewKey() {
     // Given:
     final BiFunction<Object, GenericRow, KeyValue<Struct, GenericRow>> mapper =
@@ -282,6 +306,21 @@ public class PartitionByParamsFactoryTest {
 
     // Then:
     assertThat(result.value, is(GenericRow.fromList(originals).append(ConstantUdf.VALUE)));
+  }
+
+  @Test
+  public void shouldNotChangeValueIfPartitioningByNull() {
+    // Given:
+    final BiFunction<Object, GenericRow, KeyValue<Struct, GenericRow>> mapper =
+        partitionBy(new NullLiteral()).getMapper();
+
+    final ImmutableList<Object> originals = ImmutableList.copyOf(value.values());
+
+    // When:
+    final KeyValue<Struct, GenericRow> result = mapper.apply(key, value);
+
+    // Then:
+    assertThat(result.value, is(GenericRow.fromList(originals)));
   }
 
   private PartitionByParams partitionBy(final Expression expression) {

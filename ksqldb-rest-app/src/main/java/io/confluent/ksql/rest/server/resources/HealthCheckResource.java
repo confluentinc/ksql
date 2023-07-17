@@ -23,6 +23,7 @@ import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.entity.HealthCheckResponse;
 import io.confluent.ksql.rest.healthcheck.HealthCheckAgent;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
+import io.confluent.ksql.rest.server.computation.CommandRunner;
 import io.confluent.ksql.rest.server.services.ServerInternalKsqlClient;
 import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.services.ServiceContext;
@@ -62,13 +63,17 @@ public class HealthCheckResource {
       final KsqlResource ksqlResource,
       final ServiceContext serviceContext,
       final KsqlRestConfig restConfig,
-      final KsqlConfig ksqlConfig
+      final KsqlConfig ksqlConfig,
+      final CommandRunner commandRunner
   ) {
     return new HealthCheckResource(
         new HealthCheckAgent(
             new ServerInternalKsqlClient(ksqlResource,
                 new KsqlSecurityContext(Optional.empty(), serviceContext)),
-            restConfig, serviceContext, ksqlConfig),
+            restConfig,
+            serviceContext,
+            ksqlConfig,
+            commandRunner),
         Duration.ofMillis(restConfig.getLong(KsqlRestConfig.KSQL_HEALTHCHECK_INTERVAL_MS_CONFIG))
     );
   }

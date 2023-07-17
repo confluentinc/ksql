@@ -77,11 +77,11 @@ public class CreateSourceTest {
     // When:
     final ParseFailedException e = assertThrows(
         ParseFailedException.class,
-        () -> new TestCreateSource(Optional.empty(), SOME_NAME, multipleKeys, false, SOME_PROPS)
+        () -> new TestCreateSource(Optional.empty(), SOME_NAME, multipleKeys, false, false, SOME_PROPS)
     );
 
     // Then:
-    assertThat(e.getMessage(), containsString("Only single KEY column supported. "
+    assertThat(e.getUnloggedMessage(), containsString("Only single KEY column supported. "
         + "Multiple KEY columns found: `K1` (Line: 2, Col: 4), `K2` (Line: 4, Col: 6)"));
   }
 
@@ -91,10 +91,11 @@ public class CreateSourceTest {
         final Optional<NodeLocation> location,
         final SourceName name,
         final TableElements elements,
+        final boolean orReplace,
         final boolean notExists,
         final CreateSourceProperties properties
     ) {
-      super(location, name, elements, notExists, properties);
+      super(location, name, elements, orReplace, notExists, properties);
     }
 
     @Override

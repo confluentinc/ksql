@@ -71,6 +71,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 import org.apache.kafka.common.Configurable;
 import org.apache.kafka.common.metrics.KafkaMetric;
 import org.apache.kafka.common.metrics.Metrics;
@@ -221,7 +222,7 @@ public class UdfLoaderTest {
     // Then:
     assertThat(
         function.getReturnType(args),
-        equalTo(SqlTypes.map(SqlTypes.STRING))
+        equalTo(SqlTypes.map(SqlTypes.STRING, SqlTypes.STRING))
     );
   }
 
@@ -446,7 +447,10 @@ public class UdfLoaderTest {
   @Test
   public void shouldCreateUdfFactoryWithJarPathWhenExternal() {
     final UdfFactory tostring = FUNC_REG.getUdfFactory(FunctionName.of("tostring"));
-    assertThat(tostring.getMetadata().getPath(), equalTo("src/test/resources/udf-example.jar"));
+    String expectedPath = Arrays.asList("src", "test", "resources", "udf-example.jar")
+        .stream()
+        .collect(Collectors.joining(File.separator));
+    assertThat(tostring.getMetadata().getPath(), equalTo(expectedPath));
   }
 
   @Test

@@ -15,23 +15,28 @@
 
 package io.confluent.ksql.serde;
 
-import static io.confluent.ksql.logging.processing.ProcessingLoggerUtil.join;
 import static java.util.Objects.requireNonNull;
 
 import com.google.common.annotations.VisibleForTesting;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
-import io.confluent.ksql.SchemaNotSupportedException;
-import io.confluent.ksql.logging.processing.LoggingDeserializer;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
-import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
-import io.confluent.ksql.schema.ksql.SchemaConverters;
+import io.confluent.ksql.schema.ksql.SimpleColumn;
+import io.confluent.ksql.schema.ksql.types.SqlDecimal;
+import io.confluent.ksql.schema.ksql.types.SqlPrimitiveType;
+import io.confluent.ksql.schema.ksql.types.SqlType;
+import io.confluent.ksql.serde.connect.ConnectSchemas;
+import io.confluent.ksql.serde.tracked.TrackedCallback;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlException;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.function.Supplier;
-import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
@@ -45,17 +50,15 @@ import org.apache.kafka.streams.kstream.WindowedSerdes.TimeWindowedSerde;
 
 public final class GenericKeySerDe implements KeySerdeFactory {
 
-  static final String DESERIALIZER_LOGGER_NAME = "deserializer";
-
-  private final SerdeFactories serdeFactories;
+  private final GenericSerdeFactory innerFactory;
 
   public GenericKeySerDe() {
-    this(new KsqlSerdeFactories());
+    this(new GenericSerdeFactory());
   }
 
   @VisibleForTesting
-  GenericKeySerDe(final SerdeFactories serdeFactories) {
-    this.serdeFactories = Objects.requireNonNull(serdeFactories, "serdeFactories");
+  GenericKeySerDe(final GenericSerdeFactory innerFactory) {
+    this.innerFactory = Objects.requireNonNull(innerFactory, "innerFactory");
   }
 
   @Override
@@ -65,7 +68,8 @@ public final class GenericKeySerDe implements KeySerdeFactory {
       final KsqlConfig ksqlConfig,
       final Supplier<SchemaRegistryClient> schemaRegistryClientFactory,
       final String loggerNamePrefix,
-      final ProcessingLogContext processingLogContext
+      final ProcessingLogContext processingLogContext,
+      final Optional<TrackedCallback> tracker
   ) {
     return createInner(
         format,
@@ -74,7 +78,7 @@ public final class GenericKeySerDe implements KeySerdeFactory {
         schemaRegistryClientFactory,
         loggerNamePrefix,
         processingLogContext,
-        getTargetType(schema)
+        tracker
     );
   }
 
@@ -87,7 +91,8 @@ public final class GenericKeySerDe implements KeySerdeFactory {
       final KsqlConfig ksqlConfig,
       final Supplier<SchemaRegistryClient> schemaRegistryClientFactory,
       final String loggerNamePrefix,
-      final ProcessingLogContext processingLogContext
+      final ProcessingLogContext processingLogContext,
+      final Optional<TrackedCallback> tracker
   ) {
     final Serde<Struct> inner = createInner(
         format,
@@ -96,7 +101,7 @@ public final class GenericKeySerDe implements KeySerdeFactory {
         schemaRegistryClientFactory,
         loggerNamePrefix,
         processingLogContext,
-        getTargetType(schema)
+        tracker
     );
 
     return window.getType().requiresWindowSize()
@@ -104,93 +109,76 @@ public final class GenericKeySerDe implements KeySerdeFactory {
         : new SessionWindowedSerde<>(inner);
   }
 
-  private <T> Serde<Struct> createInner(
+  private Serde<Struct> createInner(
       final FormatInfo format,
       final PersistenceSchema schema,
       final KsqlConfig ksqlConfig,
       final Supplier<SchemaRegistryClient> schemaRegistryClientFactory,
       final String loggerNamePrefix,
       final ProcessingLogContext processingLogContext,
-      final Class<T> targetType
+      final Optional<TrackedCallback> tracker
   ) {
-    try {
-      serdeFactories.validate(format, schema);
-    } catch (final Exception e) {
-      throw new SchemaNotSupportedException("Key format does not support key schema."
-          + System.lineSeparator()
-          + "format: " + format.getFormat()
-          + System.lineSeparator()
-          + "schema: " + schema
-          + System.lineSeparator()
-          + "reason: " + e.getMessage(),
-          e
-      );
+    if (unsupportedSchema(schema.columns(), ksqlConfig)) {
+      throw new KsqlException("Unsupported key schema: " + schema.columns());
     }
 
-    final Serde<T> serde = serdeFactories
-        .create(format, schema, ksqlConfig, schemaRegistryClientFactory, targetType);
+    final Serde<List<?>> formatSerde = innerFactory
+        .createFormatSerde("Key", format, schema, ksqlConfig, schemaRegistryClientFactory, true);
 
-    final ProcessingLogger processingLogger = processingLogContext.getLoggerFactory()
-        .getLogger(join(loggerNamePrefix, DESERIALIZER_LOGGER_NAME));
+    final Serde<Struct> structSerde = toStructSerde(formatSerde, schema);
 
-    final Serde<Struct> inner = schema.isUnwrapped()
-        ? unwrapped(serde, schema)
-        : wrapped(serde, targetType);
+    final Serde<Struct> loggingSerde = innerFactory
+        .wrapInLoggingSerde(structSerde, loggerNamePrefix, processingLogContext);
 
-    final Serde<Struct> result = Serdes.serdeFrom(
-        inner.serializer(),
-        new LoggingDeserializer<>(inner.deserializer(), processingLogger)
-    );
+    final Serde<Struct> serde = tracker
+        .map(callback -> innerFactory.wrapInTrackingSerde(loggingSerde, callback))
+        .orElse(loggingSerde);
 
-    result.configure(Collections.emptyMap(), true);
+    serde.configure(Collections.emptyMap(), true);
 
-    return result;
+    return serde;
   }
 
-  private static Class<?> getTargetType(final PersistenceSchema schema) {
-    return SchemaConverters.sqlToJavaConverter().toJavaType(
-        SchemaConverters.connectToSqlConverter().toSqlType(schema.serializedSchema())
-    );
+  private static boolean unsupportedSchema(
+      final List<SimpleColumn> columns,
+      final KsqlConfig config
+  ) {
+    if (config.getBoolean(KsqlConfig.KSQL_KEY_FORMAT_ENABLED)) {
+      return columns.size() > 1;
+    } else {
+      if (columns.isEmpty()) {
+        return false;
+      }
+
+      if (columns.size() > 1) {
+        return true;
+      }
+
+      final SqlType sqlType = columns.get(0).type();
+      return !(sqlType instanceof SqlPrimitiveType || sqlType instanceof SqlDecimal);
+    }
   }
 
-  private static <K> Serde<Struct> unwrapped(
-      final Serde<K> innerSerde,
+  private static Serde<Struct> toStructSerde(
+      final Serde<List<?>> inner,
       final PersistenceSchema schema
   ) {
-    final Serializer<Struct> serializer =
-        new UnwrappedKeySerializer<>(innerSerde.serializer(), schema);
-
-    final Deserializer<Struct> deserializer =
-        new UnwrappedKeyDeserializer<>(innerSerde.deserializer(), schema);
-
-    return Serdes.serdeFrom(serializer, deserializer);
+    final ConnectSchema connectSchema = ConnectSchemas.columnsToConnectSchema(schema.columns());
+    return Serdes.serdeFrom(
+        new GenericKeySerializer(inner.serializer(), connectSchema.fields().size()),
+        new GenericKeyDeserializer(inner.deserializer(), connectSchema)
+    );
   }
 
-  @SuppressWarnings({"unchecked", "rawtypes"})
-  private static <T> Serde<Struct> wrapped(
-      final Serde<T> innerSerde,
-      final Class<T> type
-  ) {
-    if (type != Struct.class) {
-      throw new IllegalArgumentException("Unwrapped must be of type Struct");
-    }
+  @VisibleForTesting
+  static class GenericKeySerializer implements Serializer<Struct> {
 
-    return (Serde) innerSerde;
-  }
+    private final Serializer<List<?>> inner;
+    private final int numColumns;
 
-  static class UnwrappedKeySerializer<K> implements Serializer<Struct> {
-
-    private final Serializer<K> inner;
-    private final Field singleField;
-    private final ConnectSchema schema;
-
-    UnwrappedKeySerializer(final Serializer<K> inner, final PersistenceSchema schema) {
+    GenericKeySerializer(final Serializer<List<?>> inner, final int numColumns) {
       this.inner = requireNonNull(inner, "inner");
-      this.schema = requireNonNull(schema, "schema").ksqlSchema();
-      this.singleField = this.schema.fields().get(0);
-      if (this.schema.fields().size() != 1) {
-        throw new IllegalArgumentException("Serializer only supports single field");
-      }
+      this.numColumns = numColumns;
     }
 
     @Override
@@ -198,22 +186,22 @@ public final class GenericKeySerDe implements KeySerdeFactory {
       inner.configure(configs, isKey);
     }
 
-    @SuppressWarnings("unchecked")
     @Override
     public byte[] serialize(final String topic, final Struct data) {
       if (data == null) {
         return inner.serialize(topic, null);
       }
 
-      if (data.schema() != schema) {
-        throw new SerializationException("Schema mismatch."
-            + " expect: " + schema
-            + " got: " + data.schema()
-        );
+      final List<Field> fields = data.schema().fields();
+
+      SerdeUtils.throwOnColumnCountMismatch(numColumns, fields.size(), true, topic);
+
+      final ArrayList<Object> values = new ArrayList<>(numColumns);
+      for (final Field field : fields) {
+        values.add(data.get(field));
       }
 
-      final Object value = data.get(singleField);
-      return inner.serialize(topic, (K) value);
+      return inner.serialize(topic, values);
     }
 
     @Override
@@ -222,19 +210,15 @@ public final class GenericKeySerDe implements KeySerdeFactory {
     }
   }
 
-  private static class UnwrappedKeyDeserializer<K> implements Deserializer<Struct> {
+  @VisibleForTesting
+  static class GenericKeyDeserializer implements Deserializer<Struct> {
 
-    private final Deserializer<K> inner;
-    private final Field singleField;
-    private final ConnectSchema schema;
+    private final Deserializer<List<?>> inner;
+    private final ConnectSchema connectSchema;
 
-    UnwrappedKeyDeserializer(final Deserializer<K> inner, final PersistenceSchema schema) {
+    GenericKeyDeserializer(final Deserializer<List<?>> inner, final ConnectSchema connectSchema) {
       this.inner = requireNonNull(inner, "inner");
-      this.schema = requireNonNull(schema, "schema").ksqlSchema();
-      this.singleField = this.schema.fields().get(0);
-      if (this.schema.fields().size() != 1) {
-        throw new IllegalArgumentException("Serializer only supports single field");
-      }
+      this.connectSchema = requireNonNull(connectSchema, "connectSchema");
     }
 
     @Override
@@ -243,20 +227,30 @@ public final class GenericKeySerDe implements KeySerdeFactory {
     }
 
     @Override
-    public Struct deserialize(final String topic, final byte[] data) {
-      final K value = inner.deserialize(topic, data);
-      if (value == null) {
-        return null;
-      }
-
-      final Struct struct = new Struct(schema);
-      struct.put(singleField, value);
-      return struct;
+    public void close() {
+      inner.close();
     }
 
     @Override
-    public void close() {
-      inner.close();
+    public Struct deserialize(final String topic, final byte[] data) {
+      final List<?> values = inner.deserialize(topic, data);
+      if (values == null) {
+        return null;
+      }
+
+      final List<Field> fields = connectSchema.fields();
+
+      SerdeUtils.throwOnColumnCountMismatch(fields.size(), values.size(), false, topic);
+
+      final Struct row = new Struct(connectSchema);
+
+      final Iterator<Field> fIt = fields.iterator();
+      final Iterator<?> vIt = values.iterator();
+      while (fIt.hasNext()) {
+        row.put(fIt.next(), vIt.next());
+      }
+
+      return row;
     }
   }
 }

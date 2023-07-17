@@ -15,21 +15,27 @@
 
 package io.confluent.ksql.test.tools;
 
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.startsWith;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertThrows;
+import static org.mockito.Mockito.mock;
 
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.planner.plan.ConfiguredKsqlPlan;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.test.model.QttTestFile;
 import io.confluent.ksql.test.model.TestCaseNode;
+import io.confluent.ksql.test.model.TestLocation;
+import io.confluent.ksql.test.tools.TestExecutorUtil.PlannedStatement;
 import io.confluent.ksql.test.tools.stubs.StubKafkaService;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlStatementException;
 import java.io.File;
-import java.io.IOException;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
@@ -43,28 +49,28 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class TestExecutorUtilTest {
 
-  private ServiceContext serviceContext;
-  private KsqlEngine ksqlEngine;
-  private KsqlConfig ksqlConfig;
-  private TestCase testCase;
-  private StubKafkaService stubKafkaService;
+  private static final File TEST_FILE = new File("src/test/resources/testing_tool_tests.json");
+  private static final String PROJECT_AND_FILTER = "project and filter";
+  private static final String FIRST_STATEMENT_FAILS = "invalid: first statement fails";
 
+  @Mock
+  private TestLocation location;
   @Mock
   private TestExecutionListener listener;
 
-  @Before
-  public void setUp() throws IOException {
-    final QttTestFile qttTestFile = TestJsonMapper.INSTANCE.get()
-        .readValue(new File("src/test/resources/testing_tool_tests.json"), QttTestFile.class);
-    final TestCaseNode testCaseNode = qttTestFile.tests.get(0);
-    testCase = TestCaseBuilder.buildTests(testCaseNode,
-        new File("src/test/resources/testing_tool_tests.json").toPath()
-    ).get(0);
+  private ServiceContext serviceContext;
+  private KsqlEngine ksqlEngine;
+  private KsqlConfig ksqlConfig;
+  private StubKafkaService stubKafkaService;
 
+  @Before
+  public void setUp() {
     serviceContext = TestExecutor.getServiceContext();
     ksqlEngine = TestExecutor.getKsqlEngine(serviceContext, Optional.empty());
     ksqlConfig = new KsqlConfig(TestExecutor.baseConfig());
     stubKafkaService = StubKafkaService.create();
+
+    stubKafkaService.ensureTopic(new Topic("test_topic", Optional.empty(), Optional.empty()));
   }
 
   @After
@@ -76,12 +82,10 @@ public class TestExecutorUtilTest {
   @Test
   public void shouldPlanTestCase() {
     // Given:
-    final Topic sourceTopic = new Topic("test_topic", Optional.empty());
-
-    stubKafkaService.ensureTopic(sourceTopic);
+    final TestCase testCase = loadTestCase(PROJECT_AND_FILTER);
 
     // When:
-    final Iterable<ConfiguredKsqlPlan> plans = TestExecutorUtil.planTestCase(
+    final Iterator<PlannedStatement> plans = TestExecutorUtil.planTestCase(
         ksqlEngine,
         testCase,
         ksqlConfig,
@@ -91,7 +95,10 @@ public class TestExecutorUtilTest {
 
     // Then:
     final List<ConfiguredKsqlPlan> asList = new LinkedList<>();
-    for (final ConfiguredKsqlPlan plan : plans) {
+    while (plans.hasNext()) {
+      final PlannedStatement planned = plans.next();
+      final ConfiguredKsqlPlan plan = planned.plan
+          .orElseThrow(() -> new AssertionError("Should be plan"));
       ksqlEngine.execute(ksqlEngine.getServiceContext(), plan);
       asList.add(plan);
     }
@@ -109,9 +116,7 @@ public class TestExecutorUtilTest {
   @Test
   public void shouldBuildStreamsTopologyTestDrivers() {
     // Given:
-    final Topic sourceTopic = new Topic("test_topic", Optional.empty());
-
-    stubKafkaService.ensureTopic(sourceTopic);
+    final TestCase testCase = loadTestCase(PROJECT_AND_FILTER);
 
     // When:
     final List<TopologyTestDriverContainer> topologyTestDriverContainerList =
@@ -126,10 +131,76 @@ public class TestExecutorUtilTest {
 
     // Then:
     assertThat(topologyTestDriverContainerList.size(), equalTo(1));
-    final TopologyTestDriverContainer topologyTestDriverContainer = topologyTestDriverContainerList.get(0);
+    final TopologyTestDriverContainer topologyTestDriverContainer = topologyTestDriverContainerList
+        .get(0);
     assertThat(topologyTestDriverContainer.getSourceTopics().size(), equalTo(1));
-    assertThat(topologyTestDriverContainer.getSourceTopics().iterator().next().getName(), equalTo("test_topic"));
+    assertThat(topologyTestDriverContainer.getSourceTopics().iterator().next().getName(),
+        equalTo("test_topic"));
     assertThat(topologyTestDriverContainer.getSinkTopic().getName(), equalTo("S1"));
     assertThat(topologyTestDriverContainer.getTopologyTestDriver(), notNullValue());
+  }
+
+  @Test
+  public void shouldNotThrowFromHasNextWhenNextStatementWillFail() {
+    // Given:
+    final TestCase testCase = loadTestCase(FIRST_STATEMENT_FAILS);
+
+    final Iterator<PlannedStatement> plans = TestExecutorUtil.planTestCase(
+        ksqlEngine,
+        testCase,
+        ksqlConfig,
+        Optional.of(serviceContext.getSchemaRegistryClient()),
+        stubKafkaService
+    );
+
+    // When:
+    final boolean result = plans.hasNext();
+
+    // Then (did not throw):
+    assertThat("should have next", result);
+  }
+
+  @Test
+  public void shouldThrowOnNextIfStatementFails() {
+    // Given:
+    final TestCase testCase = loadTestCase(FIRST_STATEMENT_FAILS);
+
+    final Iterator<PlannedStatement> plans = TestExecutorUtil.planTestCase(
+        ksqlEngine,
+        testCase,
+        ksqlConfig,
+        Optional.of(serviceContext.getSchemaRegistryClient()),
+        stubKafkaService
+    );
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlStatementException.class,
+        plans::next
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("UNKNOWN_SOURCE does not exist"));
+  }
+
+  private static TestCase loadTestCase(final String testName) {
+    try {
+      final QttTestFile qttTestFile = TestJsonMapper.INSTANCE.get()
+          .readValue(TEST_FILE, QttTestFile.class);
+
+      final TestCaseNode testCaseNode = qttTestFile.tests.stream()
+          .filter(tcn -> tcn.name().equals(testName))
+          .findFirst()
+          .orElseThrow(() ->
+              new AssertionError("Invalid test: no test case named " + testName));
+
+      return TestCaseBuilder.buildTests(
+          testCaseNode,
+          TEST_FILE.toPath(),
+          name -> mock(TestLocation.class)
+      ).get(0);
+    } catch (final Exception e) {
+      throw new AssertionError("Invalid test: failed to load test " + testName, e);
+    }
   }
 }

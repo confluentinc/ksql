@@ -26,12 +26,14 @@ import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.KsqlExecutionContext;
+import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.exception.KsqlTopicAuthorizationException;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.metastore.MetaStore;
@@ -46,6 +48,7 @@ import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.TableElements;
 import io.confluent.ksql.properties.with.CommonCreateConfigs;
+import io.confluent.ksql.rest.DefaultErrorMessages;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.entity.CommandId;
 import io.confluent.ksql.rest.entity.CommandId.Action;
@@ -69,7 +72,10 @@ import java.time.Duration;
 import java.util.HashMap;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Supplier;
 import org.apache.kafka.clients.producer.Producer;
+import org.apache.kafka.common.errors.AuthorizationException;
+import org.apache.kafka.common.errors.ProducerFencedException;
 import org.apache.kafka.common.errors.TimeoutException;
 import org.junit.Before;
 import org.junit.Test;
@@ -91,17 +97,15 @@ public class DistributingExecutorTest {
       SourceName.of("TEST"),
       TableElements.of(),
       false,
+      false,
       CreateSourceProperties.from(ImmutableMap.of(
           CommonCreateConfigs.KAFKA_TOPIC_NAME_PROPERTY, new StringLiteral("topic"),
           CommonCreateConfigs.VALUE_FORMAT_PROPERTY, new StringLiteral("json")
       ))
   );
   private static final ConfiguredStatement<Statement> CONFIGURED_STATEMENT =
-      ConfiguredStatement.of(
-          PreparedStatement.of("statement", STATEMENT),
-          ImmutableMap.of(),
-          KSQL_CONFIG
-      );
+      ConfiguredStatement.of(PreparedStatement.of("statement", STATEMENT),
+          SessionConfig.of(KSQL_CONFIG, ImmutableMap.of()));
   private static final CommandIdAssigner IDGEN = new CommandIdAssigner();
 
   @Mock
@@ -130,6 +134,8 @@ public class DistributingExecutorTest {
   private Command command;
   @Mock
   private Errors errorHandler;
+  @Mock
+  private Supplier<String> commandRunnerWarning;
 
   private DistributingExecutor distributor;
   private AtomicLong scnCounter;
@@ -146,6 +152,7 @@ public class DistributingExecutorTest {
     when(status.getCommandSequenceNumber()).thenAnswer(inv -> scnCounter.incrementAndGet());
     when(executionContext.getMetaStore()).thenReturn(metaStore);
     when(executionContext.createSandbox(any())).thenReturn(sandboxContext);
+    when(commandRunnerWarning.get()).thenReturn("");
     serviceContext = SandboxedServiceContext.create(TestServiceContext.create());
     when(executionContext.getServiceContext()).thenReturn(serviceContext);
     when(validatedCommandFactory.create(any(), any())).thenReturn(command);
@@ -160,7 +167,8 @@ public class DistributingExecutorTest {
         (ec, sc) -> InjectorChain.of(schemaInjector, topicInjector),
         Optional.of(authorizationValidator),
         validatedCommandFactory,
-        errorHandler
+        errorHandler,
+        commandRunnerWarning
     );
   }
 
@@ -226,6 +234,19 @@ public class DistributingExecutorTest {
   }
 
   @Test
+  public void shouldNotInitTransactionWhenCommandRunnerWarningPresent() {
+    // When:
+    when(commandRunnerWarning.get()).thenReturn(DefaultErrorMessages.COMMAND_RUNNER_DEGRADED_INCOMPATIBLE_COMMANDS_ERROR_MESSAGE);
+
+    // Then:
+    assertThrows(
+        KsqlServerException.class,
+        () -> distributor.execute(CONFIGURED_STATEMENT, executionContext, securityContext)
+    );
+    verify(transactionalProducer, never()).initTransactions();
+  }
+
+  @Test
   public void shouldThrowExceptionOnFailureToEnqueue() {
     // Given:
     final KsqlException cause = new KsqlException("fail");
@@ -253,7 +274,8 @@ public class DistributingExecutorTest {
     final PreparedStatement<Statement> preparedStatement =
         PreparedStatement.of("", new ListProperties(Optional.empty()));
     final ConfiguredStatement<Statement> configured =
-        ConfiguredStatement.of(preparedStatement, ImmutableMap.of(), KSQL_CONFIG);
+        ConfiguredStatement.of(preparedStatement, SessionConfig.of(KSQL_CONFIG, ImmutableMap.of())
+        );
     when(schemaInjector.inject(any())).thenThrow(new KsqlException("Could not infer!"));
 
     // When:
@@ -276,7 +298,8 @@ public class DistributingExecutorTest {
     final PreparedStatement<Statement> preparedStatement =
         PreparedStatement.of("", new ListProperties(Optional.empty()));
     final ConfiguredStatement<Statement> configured =
-        ConfiguredStatement.of(preparedStatement, ImmutableMap.of(), KSQL_CONFIG);
+        ConfiguredStatement.of(preparedStatement, SessionConfig.of(KSQL_CONFIG, ImmutableMap.of())
+        );
     doThrow(KsqlTopicAuthorizationException.class).when(authorizationValidator)
         .checkAuthorization(eq(userSecurityContext), any(), eq(configured.getStatement()));
 
@@ -295,7 +318,8 @@ public class DistributingExecutorTest {
     final PreparedStatement<Statement> preparedStatement =
         PreparedStatement.of("", new ListProperties(Optional.empty()));
     final ConfiguredStatement<Statement> configured =
-        ConfiguredStatement.of(preparedStatement, ImmutableMap.of(), KSQL_CONFIG);
+        ConfiguredStatement.of(preparedStatement, SessionConfig.of(KSQL_CONFIG, ImmutableMap.of())
+        );
     doNothing().when(authorizationValidator)
         .checkAuthorization(eq(userSecurityContext), any(), any());
     doThrow(KsqlTopicAuthorizationException.class).when(authorizationValidator)
@@ -320,7 +344,8 @@ public class DistributingExecutorTest {
     final PreparedStatement<Statement> preparedStatement =
         PreparedStatement.of("", new InsertInto(SourceName.of("s1"), mock(Query.class)));
     final ConfiguredStatement<Statement> configured =
-        ConfiguredStatement.of(preparedStatement, ImmutableMap.of(), KSQL_CONFIG);
+        ConfiguredStatement.of(preparedStatement, SessionConfig.of(KSQL_CONFIG, ImmutableMap.of())
+        );
     doReturn(null).when(metaStore).getSource(SourceName.of("s1"));
 
     // When:
@@ -340,7 +365,8 @@ public class DistributingExecutorTest {
     final PreparedStatement<Statement> preparedStatement =
         PreparedStatement.of("", new InsertInto(SourceName.of("s1"), mock(Query.class)));
     final ConfiguredStatement<Statement> configured =
-        ConfiguredStatement.of(preparedStatement, ImmutableMap.of(), KSQL_CONFIG);
+        ConfiguredStatement.of(preparedStatement, SessionConfig.of(KSQL_CONFIG, ImmutableMap.of())
+        );
     final DataSource dataSource = mock(DataSource.class);
     doReturn(dataSource).when(metaStore).getSource(SourceName.of("s1"));
     when(dataSource.getKafkaTopicName()).thenReturn("_confluent-ksql-default__command-topic");
@@ -363,7 +389,8 @@ public class DistributingExecutorTest {
     final PreparedStatement<Statement> preparedStatement =
         PreparedStatement.of("", new InsertInto(SourceName.of("s1"), mock(Query.class)));
     final ConfiguredStatement<Statement> configured =
-        ConfiguredStatement.of(preparedStatement, ImmutableMap.of(), KSQL_CONFIG);
+        ConfiguredStatement.of(preparedStatement, SessionConfig.of(KSQL_CONFIG, ImmutableMap.of())
+        );
     final DataSource dataSource = mock(DataSource.class);
     doReturn(dataSource).when(metaStore).getSource(SourceName.of("s1"));
     when(dataSource.getKafkaTopicName()).thenReturn("default_ksql_processing_log");
@@ -378,5 +405,41 @@ public class DistributingExecutorTest {
     assertThat(e.getMessage(), containsString(
         "Cannot insert into read-only topic: "
             + "default_ksql_processing_log"));
+  }
+
+  @Test
+  public void shouldAbortOnError_ProducerFencedException() {
+    // When:
+    doThrow(new ProducerFencedException("Error!")).when(transactionalProducer).commitTransaction();
+    final KsqlStatementException e = assertThrows(
+        KsqlStatementException.class,
+        () -> distributor.execute(CONFIGURED_STATEMENT, executionContext, securityContext)
+    );
+
+    assertThat(e.getMessage(), containsString("Could not write the statement into the command topic."));
+    assertThat(e.getUnloggedMessage(), containsString("Could not write the statement "
+        + "'statement' into the command topic."));
+    assertThat(e.getSqlStatement(), containsString("statement"));
+
+    // Then:
+    verify(queue).abortCommand(IDGEN.getCommandId(CONFIGURED_STATEMENT.getStatement()));
+  }
+
+  @Test
+  public void shouldAbortOnError_Exception() {
+    // When:
+    doThrow(new RuntimeException("Error!")).when(transactionalProducer).commitTransaction();
+    final KsqlStatementException e = assertThrows(
+        KsqlStatementException.class,
+        () -> distributor.execute(CONFIGURED_STATEMENT, executionContext, securityContext)
+    );
+
+    assertThat(e.getMessage(), containsString("Could not write the statement into the command topic."));
+    assertThat(e.getUnloggedMessage(), containsString("Could not write the statement "
+        + "'statement' into the command topic."));
+    assertThat(e.getSqlStatement(), containsString("statement"));
+
+    // Then:
+    verify(queue).abortCommand(IDGEN.getCommandId(CONFIGURED_STATEMENT.getStatement()));
   }
 }

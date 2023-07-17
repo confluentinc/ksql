@@ -1,0 +1,130 @@
+{
+  "tests": [
+    {
+      "name": "precedence: asterisk before plus",
+      "statements": [
+        "CREATE STREAM INPUT (IGNORED INT) WITH (kafka_topic='input', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT 2 * 3 + 4 AS VAL FROM INPUT;"
+      ],
+      "inputs": [{"topic": "input", "value": {}}],
+      "outputs": [{"topic": "OUTPUT", "value": {"VAL": 10}}]
+    },
+    {
+      "name": "precedence: asterisk before minus",
+      "statements": [
+        "CREATE STREAM INPUT (IGNORED INT) WITH (kafka_topic='input', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT 2 * 3 - 4 AS VAL FROM INPUT;"
+      ],
+      "inputs": [{"topic": "input", "value": {}}],
+      "outputs": [{"topic": "OUTPUT", "value": {"VAL": 2}}]
+    },
+    {
+      "name": "precedence: slash before plus",
+      "statements": [
+        "CREATE STREAM INPUT (IGNORED INT) WITH (kafka_topic='input', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT 6 / 3 + 4 AS VAL FROM INPUT;"
+      ],
+      "inputs": [{"topic": "input", "value": {}}],
+      "outputs": [{"topic": "OUTPUT", "value": {"VAL": 6}}]
+    },
+    {
+      "name": "precedence: slash before minus",
+      "statements": [
+        "CREATE STREAM INPUT (IGNORED INT) WITH (kafka_topic='input', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT 6 / 3 - 4 AS VAL FROM INPUT;"
+      ],
+      "inputs": [{"topic": "input", "value": {}}],
+      "outputs": [{"topic": "OUTPUT", "value": {"VAL": -2}}]
+    },
+    {
+      "name": "precedence: percent before plus",
+      "statements": [
+        "CREATE STREAM INPUT (IGNORED INT) WITH (kafka_topic='input', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT 6 % 4 + 4 AS VAL FROM INPUT;"
+      ],
+      "inputs": [{"topic": "input", "value": {}}],
+      "outputs": [{"topic": "OUTPUT", "value": {"VAL": 6}}]
+    },
+    {
+      "name": "precedence: percent before minus",
+      "statements": [
+        "CREATE STREAM INPUT (IGNORED INT) WITH (kafka_topic='input', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT 16 % 6 - 4 AS VAL FROM INPUT;"
+      ],
+      "inputs": [{"topic": "input", "value": {}}],
+      "outputs": [{"topic": "OUTPUT", "value": {"VAL": 0}}]
+    },
+    {
+      "name": "precedence: plus and minus by order",
+      "statements": [
+        "CREATE STREAM INPUT (IGNORED INT) WITH (kafka_topic='input', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT 10 - 2 + 5 AS VAL, 5 + 10 - 2 AS VAL2 FROM INPUT;"
+      ],
+      "inputs": [{"topic": "input", "value": {}}],
+      "outputs": [{"topic": "OUTPUT", "value": {"VAL": 13, "VAL2": 13}}]
+    },
+    {
+      "name": "precedence: percent, slash and asterisk by order",
+      "statements": [
+        "CREATE STREAM INPUT (IGNORED INT) WITH (kafka_topic='input', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT 6 % 4 / 2 * 6 AS VAL, 6 / 2 % 2 * 2 AS VAL2, 2 * 3 % 4 AS VAL3 FROM INPUT;"
+      ],
+      "inputs": [{"topic": "input", "value": {}}],
+      "outputs": [{"topic": "OUTPUT", "value": {"VAL": 6, "VAL2": 2, "VAL3": 2}}]
+    },
+    {
+      "name": "precedence: plus and minus before comparison",
+      "statements": [
+        "CREATE STREAM INPUT (IGNORED INT) WITH (kafka_topic='input', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT 10 + 4 > 11 - 2 AS VAL FROM INPUT;"
+      ],
+      "inputs": [{"topic": "input", "value": {}}],
+      "outputs": [{"topic": "OUTPUT", "value": {"VAL": true}}]
+    },
+    {
+      "name": "precedence: comparison before NOT",
+      "statements": [
+        "CREATE STREAM INPUT (IGNORED INT) WITH (kafka_topic='input', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT NOT 4 > 11 AS VAL FROM INPUT;"
+      ],
+      "inputs": [{"topic": "input", "value": {}}],
+      "outputs": [{"topic": "OUTPUT", "value": {"VAL": true}}]
+    },
+    {
+      "name": "precedence: NOT before AND",
+      "statements": [
+        "CREATE STREAM INPUT (IGNORED INT) WITH (kafka_topic='input', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT NOT false AND NOT false AS VAL FROM INPUT;"
+      ],
+      "inputs": [{"topic": "input", "value": {}}],
+      "outputs": [{"topic": "OUTPUT", "value": {"VAL": true}}]
+    },
+    {
+      "name": "precedence: AND before BETWEEN",
+      "statements": [
+        "CREATE STREAM INPUT (IGNORED INT) WITH (kafka_topic='input', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT 1 BETWEEN 0 AND 2 AND 'b' BETWEEN 'a' AND 'c' AS VAL FROM INPUT;"
+      ],
+      "inputs": [{"topic": "input", "value": {}}],
+      "outputs": [{"topic": "OUTPUT", "value": {"VAL": true}}]
+    },
+    {
+      "name": "precedence: AND before LIKE",
+      "statements": [
+        "CREATE STREAM INPUT (IGNORED INT) WITH (kafka_topic='input', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT 'this' LIKE '%hi%' AND true AS VAL FROM INPUT;"
+      ],
+      "inputs": [{"topic": "input", "value": {}}],
+      "outputs": [{"topic": "OUTPUT", "value": {"VAL": true}}]
+    },
+    {
+      "name": "precedence: AND before OR",
+      "statements": [
+        "CREATE STREAM INPUT (IGNORED INT) WITH (kafka_topic='input', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT true OR false AND true AS VAL FROM INPUT;"
+      ],
+      "inputs": [{"topic": "input", "value": {}}],
+      "outputs": [{"topic": "OUTPUT", "value": {"VAL": true}}]
+    }
+  ]
+}

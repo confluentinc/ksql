@@ -22,14 +22,15 @@
     <parent>
         <groupId>io.confluent</groupId>
         <artifactId>common</artifactId>
-        <version>6.0.14-SNAPSHOT</version>
+        <version>[6.1.12-0, 6.1.13-0)</version>
     </parent>
 
     <groupId>io.confluent.ksql</groupId>
     <artifactId>ksqldb-parent</artifactId>
     <packaging>pom</packaging>
     <name>ksqldb-parent</name>
-    <version>6.0.14-SNAPSHOT</version>
+    <version>6.1.12-0</version>
+
     <licenses>
         <license>
             <name>Confluent Community License</name>
@@ -65,6 +66,7 @@
         <module>ksqldb-docker</module>
         <module>ksqldb-api-reactive-streams-tck</module>
         <module>ksqldb-api-client</module>
+        <module>ksqldb-engine-common</module>
     </modules>
 
     <repositories>
@@ -95,16 +97,16 @@
     <properties>
         <apache.directory.server.version>2.0.0-M22</apache.directory.server.version>
         <apache.directory.api.version>1.0.0-M33</apache.directory.api.version>
-        <apache.httpcomponents.version>4.5.13</apache.httpcomponents.version>
+        <apache.httpcomponents.version>5.0.3</apache.httpcomponents.version>
         <confluent.maven.repo>https://packages.confluent.io/maven/</confluent.maven.repo>
         <exec-maven-plugin.version>1.2.1</exec-maven-plugin.version>
         <podam.version>6.0.2.RELEASE</podam.version>
         <airlift.version>0.29</airlift.version>
         <airline.version>2.6.0</airline.version>
         <antlr.version>4.7.1</antlr.version>
+        <commons-text.version>1.10.0</commons-text.version>
         <csv.version>1.4</csv.version>
         <commons.compress.version>1.21</commons.compress.version>
-        <commons.codec.version>1.13</commons.codec.version>
         <lang3.version>3.3.1</lang3.version>
         <retrying.version>2.0.0</retrying.version>
         <inject.version>1</inject.version>
@@ -125,10 +127,14 @@
         <reactive-streams.version>1.0.3</reactive-streams.version>
         <skip.docker.build>true</skip.docker.build>
         <skip.docker.test>true</skip.docker.test>
-        <compile.warnings-flag>-Werror</compile.warnings-flag>
+        <!-- Temporarily disabling this because it is causing failures in packaging but not CI builds. -->
+        <!-- <compile.warnings-flag>-Werror</compile.warnings-flag> -->
         <!-- Only used to provide login module implementation for tests -->
         <jetty.version>9.4.51.v20230217</jetty.version>
         <git-commit-id-plugin.version>2.2.6</git-commit-id-plugin.version>
+        <apache.io.version>2.7</apache.io.version>
+        <io.confluent.ksql.version>6.1.12-0</io.confluent.ksql.version>
+        <io.confluent.schema-registry.version>${confluent.version.range}</io.confluent.schema-registry.version>
 
         <netty-tcnative-version>2.0.46.Final</netty-tcnative-version>
         <!-- We normally get this from common, but Vertx is built against this -->
@@ -144,12 +150,6 @@
 
     <dependencyManagement>
         <dependencies>
-            <dependency>
-                <groupId>commons-codec</groupId>
-                <artifactId>commons-codec</artifactId>
-                <version>${commons.codec.version}</version>
-            </dependency>
-
             <!-- Cross-submodule dependencies -->
 
             <dependency>
@@ -167,103 +167,109 @@
             <dependency>
                 <groupId>io.confluent.ksql</groupId>
                 <artifactId>ksqldb-common</artifactId>
-                <version>${project.version}</version>
+                <version>${io.confluent.ksql.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.confluent.ksql</groupId>
+                <artifactId>ksqldb-engine-common</artifactId>
+                <version>${io.confluent.ksql.version}</version>
             </dependency>
 
             <dependency>
                 <groupId>io.confluent.ksql</groupId>
                 <artifactId>ksqldb-udf</artifactId>
-                <version>${project.version}</version>
+                <version>${io.confluent.ksql.version}</version>
             </dependency>
 
             <dependency>
                 <groupId>io.confluent.ksql</groupId>
                 <artifactId>ksqldb-serde</artifactId>
-                <version>${project.version}</version>
+                <version>${io.confluent.ksql.version}</version>
             </dependency>
 
             <dependency>
                 <groupId>io.confluent.ksql</groupId>
                 <artifactId>ksqldb-metastore</artifactId>
-                <version>${project.version}</version>
+                <version>${io.confluent.ksql.version}</version>
             </dependency>
 
             <dependency>
                 <groupId>io.confluent.ksql</groupId>
                 <artifactId>ksqldb-cli</artifactId>
-                <version>${project.version}</version>
+                <version>${io.confluent.ksql.version}</version>
             </dependency>
 
             <dependency>
                 <groupId>io.confluent.ksql</groupId>
                 <artifactId>ksqldb-engine</artifactId>
-                <version>${project.version}</version>
+                <version>${io.confluent.ksql.version}</version>
             </dependency>
 
             <dependency>
                 <groupId>io.confluent.ksql</groupId>
                 <artifactId>ksqldb-execution</artifactId>
-                <version>${project.version}</version>
+                <version>${io.confluent.ksql.version}</version>
             </dependency>
 
             <dependency>
                 <groupId>io.confluent.ksql</groupId>
                 <artifactId>ksqldb-parser</artifactId>
-                <version>${project.version}</version>
+                <version>${io.confluent.ksql.version}</version>
             </dependency>
 
             <dependency>
                 <groupId>io.confluent.ksql</groupId>
                 <artifactId>ksqldb-streams</artifactId>
-                <version>${project.version}</version>
+                <version>${io.confluent.ksql.version}</version>
             </dependency>
 
             <dependency>
                 <groupId>io.confluent.ksql</groupId>
                 <artifactId>ksqldb-examples</artifactId>
-                <version>${project.version}</version>
+                <version>${io.confluent.ksql.version}</version>
             </dependency>
 
             <dependency>
                 <groupId>io.confluent.ksql</groupId>
                 <artifactId>ksqldb-rest-model</artifactId>
-                <version>${project.version}</version>
+                <version>${io.confluent.ksql.version}</version>
             </dependency>
 
             <dependency>
                 <groupId>io.confluent.ksql</groupId>
                 <artifactId>ksqldb-rest-client</artifactId>
-                <version>${project.version}</version>
+                <version>${io.confluent.ksql.version}</version>
             </dependency>
 
             <dependency>
                 <groupId>io.confluent.ksql</groupId>
                 <artifactId>ksqldb-rest-app</artifactId>
-                <version>${project.version}</version>
+                <version>${io.confluent.ksql.version}</version>
             </dependency>
 
             <dependency>
                 <groupId>io.confluent.ksql</groupId>
                 <artifactId>ksqldb-functional-tests</artifactId>
-                <version>${project.version}</version>
+                <version>${io.confluent.ksql.version}</version>
             </dependency>
 
             <dependency>
                 <groupId>io.confluent.ksql</groupId>
                 <artifactId>ksqldb-version-metrics-client</artifactId>
-                <version>${project.version}</version>
+                <version>${io.confluent.ksql.version}</version>
             </dependency>
 
             <dependency>
                 <groupId>io.confluent.ksql</groupId>
                 <artifactId>package-ksql</artifactId>
-                <version>${project.version}</version>
+                <version>${io.confluent.ksql.version}</version>
             </dependency>
 
             <dependency>
                 <groupId>io.confluent.ksql</groupId>
                 <artifactId>ksqldb-api-reactive-streams-tck</artifactId>
-                <version>${project.version}</version>
+                <version>${io.confluent.ksql.version}</version>
             </dependency>
             <!-- End cross-submodule dependencies -->
 
@@ -271,25 +277,25 @@
             <dependency>
                 <groupId>io.confluent</groupId>
                 <artifactId>kafka-connect-avro-converter</artifactId>
-                <version>${confluent.version}</version>
+                <version>${io.confluent.schema-registry.version}</version>
             </dependency>
 
             <dependency>
                 <groupId>io.confluent</groupId>
                 <artifactId>kafka-json-serializer</artifactId>
-                <version>${confluent.version}</version>
+                <version>${io.confluent.schema-registry.version}</version>
             </dependency>
 
             <dependency>
                 <groupId>io.confluent</groupId>
                 <artifactId>kafka-avro-serializer</artifactId>
-                <version>${confluent.version}</version>
+                <version>${io.confluent.schema-registry.version}</version>
             </dependency>
 
             <dependency>
                 <groupId>io.confluent</groupId>
                 <artifactId>kafka-schema-registry-client</artifactId>
-                <version>${confluent.version}</version>
+                <version>${io.confluent.schema-registry.version}</version>
             </dependency>
 
             <dependency>
@@ -307,31 +313,31 @@
             <dependency>
                 <groupId>io.confluent</groupId>
                 <artifactId>common-utils</artifactId>
-                <version>${confluent.version}</version>
+                <version>${io.confluent.common.version}</version>
             </dependency>
 
             <dependency>
                 <groupId>io.confluent</groupId>
                 <artifactId>kafka-json-schema-provider</artifactId>
-                <version>${confluent.version}</version>
+                <version>${io.confluent.schema-registry.version}</version>
             </dependency>
 
             <dependency>
                 <groupId>io.confluent</groupId>
                 <artifactId>kafka-protobuf-provider</artifactId>
-                <version>${confluent.version}</version>
+                <version>${io.confluent.schema-registry.version}</version>
             </dependency>
 
             <dependency>
                 <groupId>io.confluent</groupId>
                 <artifactId>kafka-connect-json-schema-converter</artifactId>
-                <version>${confluent.version}</version>
+                <version>${io.confluent.schema-registry.version}</version>
             </dependency>
 
             <dependency>
                 <groupId>io.confluent</groupId>
                 <artifactId>kafka-connect-protobuf-converter</artifactId>
-                <version>${confluent.version}</version>
+                <version>${io.confluent.schema-registry.version}</version>
             </dependency>
 
             <!-- End Confluent dependencies -->
@@ -421,21 +427,27 @@
             </dependency>
 
             <dependency>
-                <groupId>org.apache.httpcomponents</groupId>
-                <artifactId>fluent-hc</artifactId>
-                <version>${apache.httpcomponents.version}</version>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-lang3</artifactId>
+                <version>${lang3.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>commons-io</groupId>
+                <artifactId>commons-io</artifactId>
+                <version>${apache.io.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-text</artifactId>
+                <version>${commons-text.version}</version>
             </dependency>
 
             <dependency>
                 <groupId>org.apache.commons</groupId>
                 <artifactId>commons-compress</artifactId>
                 <version>${commons.compress.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>org.apache.commons</groupId>
-                <artifactId>commons-lang3</artifactId>
-                <version>${lang3.version}</version>
             </dependency>
 
             <dependency>

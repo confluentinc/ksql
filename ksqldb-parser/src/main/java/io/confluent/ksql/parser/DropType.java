@@ -26,14 +26,24 @@ import java.util.Optional;
 public class DropType extends Statement implements ExecutableDdlStatement {
 
   private final String typeName;
+  private final boolean ifExists;
 
-  public DropType(final Optional<NodeLocation> location, final String typeName) {
+  public DropType(
+      final Optional<NodeLocation> location,
+      final String typeName,
+      final boolean ifExists
+  ) {
     super(location);
     this.typeName = Objects.requireNonNull(typeName, "typeName");
+    this.ifExists = ifExists;
   }
 
   public String getTypeName() {
     return typeName;
+  }
+
+  public boolean getIfExists() {
+    return ifExists;
   }
 
   @Override
@@ -50,18 +60,20 @@ public class DropType extends Statement implements ExecutableDdlStatement {
       return false;
     }
     final DropType that = (DropType) o;
-    return Objects.equals(typeName, that.typeName);
+    return Objects.equals(typeName, that.typeName)
+        && ifExists == that.ifExists;
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(typeName);
+    return Objects.hash(typeName, ifExists);
   }
 
   @Override
   public String toString() {
     return "DropType{"
-        + "typeName='" + typeName + '\''
+        + "typeName='" + typeName + "',"
+        + "ifExists=" + ifExists
         + '}';
   }
 }

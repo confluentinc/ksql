@@ -24,6 +24,7 @@ import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.client.BasicCredentials;
 import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.rest.client.RestResponse;
+import io.confluent.ksql.rest.entity.CommandStatusEntity;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.Queries;
@@ -57,6 +58,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.BiFunction;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
@@ -90,7 +92,9 @@ public class TestKsqlRestApp extends ExternalResource {
   protected final Optional<BasicCredentials> credentials;
   protected Optional<URL> internalListener;
   protected KsqlExecutionContext ksqlEngine;
+  protected KsqlRestConfig ksqlRestConfig;
   protected KsqlRestApplication ksqlRestApplication;
+  protected long lastCommandSequenceNumber = -1L;
 
   static {
     // Increase the default - it's low (100)
@@ -242,6 +246,10 @@ public class TestKsqlRestApp extends ExternalResource {
     return serviceContext.get();
   }
 
+  public KsqlRestConfig getKsqlRestConfig() {
+    return ksqlRestConfig;
+  }
+
   @Override
   protected void before() {
     initialize();
@@ -271,6 +279,7 @@ public class TestKsqlRestApp extends ExternalResource {
       throw new RuntimeException(e);
     }
     ksqlRestApplication = null;
+    lastCommandSequenceNumber = -1;
   }
 
   protected void initialize() {
@@ -278,21 +287,20 @@ public class TestKsqlRestApp extends ExternalResource {
       after();
     }
 
-    final KsqlRestConfig config = buildConfig(bootstrapServers, baseConfig);
+    ksqlRestConfig = buildConfig(bootstrapServers, baseConfig);
 
     try {
-
       Vertx vertx = Vertx.vertx();
       ksqlRestApplication = KsqlRestApplication.buildApplication(
           metricsPrefix,
-          config,
+          ksqlRestConfig,
           (booleanSupplier) -> niceMock(VersionCheckerAgent.class),
           3,
           serviceContext.get(),
           () -> serviceContext.get().getSchemaRegistryClient(),
           vertx,
           InternalKsqlClientFactory.createInternalClient(
-              KsqlRestApplication.toClientProps(config.originals()),
+              KsqlRestApplication.toClientProps(ksqlRestConfig.originals()),
               SocketAddress::inetSocketAddress,
               vertx));
 
@@ -330,16 +338,16 @@ public class TestKsqlRestApp extends ExternalResource {
     }
   }
 
-  private static Set<String> getPersistentQueries(final KsqlRestClient client) {
+  private Set<String> getPersistentQueries(final KsqlRestClient client) {
     return getQueries(client, KsqlQueryType.PERSISTENT);
   }
 
-  private static Set<String> getTransientQueries(final KsqlRestClient client) {
+  private Set<String> getTransientQueries(final KsqlRestClient client) {
     return getQueries(client, KsqlQueryType.PUSH);
   }
 
-  private static Set<String> getQueries(final KsqlRestClient client, final KsqlQueryType queryType) {
-    final RestResponse<KsqlEntityList> response = client.makeKsqlRequest("SHOW QUERIES;");
+  private Set<String> getQueries(final KsqlRestClient client, final KsqlQueryType queryType) {
+    final RestResponse<KsqlEntityList> response = makeKsqlRequest(client, "SHOW QUERIES;");
     if (response.isErroneous()) {
       throw new AssertionError("Failed to get persistent queries."
           + " msg:" + response.getErrorMessage());
@@ -353,15 +361,15 @@ public class TestKsqlRestApp extends ExternalResource {
         .collect(Collectors.toSet());
   }
 
-  private static void terminateQueries(final Set<String> queryIds, final KsqlRestClient client) {
+  private void terminateQueries(final Set<String> queryIds, final KsqlRestClient client) {
     final HashSet<String> remaining = new HashSet<>(queryIds);
     while (!remaining.isEmpty()) {
       KsqlErrorMessage lastError = null;
       final Set<String> toRemove = new HashSet<>();
 
       for (final String queryId : remaining) {
-        final RestResponse<KsqlEntityList> response = client
-            .makeKsqlRequest("TERMINATE " + queryId + ";");
+        final RestResponse<KsqlEntityList> response =
+            makeKsqlRequest(client, "TERMINATE " + queryId + ";");
 
         if (response.isSuccessful()) {
           toRemove.add(queryId);
@@ -378,8 +386,8 @@ public class TestKsqlRestApp extends ExternalResource {
     }
   }
 
-  private static Set<String> getStreams(final KsqlRestClient client) {
-    final RestResponse<KsqlEntityList> res = client.makeKsqlRequest("SHOW STREAMS;");
+  private Set<String> getStreams(final KsqlRestClient client) {
+    final RestResponse<KsqlEntityList> res = makeKsqlRequest(client, "SHOW STREAMS;");
     if (res.isErroneous()) {
       throw new AssertionError("Failed to get streams."
           + " msg:" + res.getErrorMessage());
@@ -390,8 +398,8 @@ public class TestKsqlRestApp extends ExternalResource {
         .collect(Collectors.toSet());
   }
 
-  private static Set<String> getTables(final KsqlRestClient client) {
-    final RestResponse<KsqlEntityList> res = client.makeKsqlRequest("SHOW TABLES;");
+  private Set<String> getTables(final KsqlRestClient client) {
+    final RestResponse<KsqlEntityList> res = makeKsqlRequest(client, "SHOW TABLES;");
     if (res.isErroneous()) {
       throw new AssertionError("Failed to get tables."
           + " msg:" + res.getErrorMessage());
@@ -402,10 +410,10 @@ public class TestKsqlRestApp extends ExternalResource {
         .collect(Collectors.toSet());
   }
 
-  private static void dropStreams(final Set<String> streams, final KsqlRestClient client) {
+  private void dropStreams(final Set<String> streams, final KsqlRestClient client) {
     for (final String stream : streams) {
-      final RestResponse<KsqlEntityList> res = client
-          .makeKsqlRequest("DROP STREAM `" + stream + "`;");
+      final RestResponse<KsqlEntityList> res =
+          makeKsqlRequest(client, "DROP STREAM `" + stream + "`;");
 
       if (res.isErroneous()) {
         throw new AssertionError("Failed to drop stream " + stream + "."
@@ -414,16 +422,33 @@ public class TestKsqlRestApp extends ExternalResource {
     }
   }
 
-  private static void dropTables(final Set<String> tables, final KsqlRestClient client) {
+  private void dropTables(final Set<String> tables, final KsqlRestClient client) {
     for (final String table : tables) {
-      final RestResponse<KsqlEntityList> res = client
-          .makeKsqlRequest("DROP TABLE `" + table + "`;");
+      final RestResponse<KsqlEntityList> res =
+          makeKsqlRequest(client, "DROP TABLE `" + table + "`;");
 
       if (res.isErroneous()) {
         throw new AssertionError("Failed to drop table " + table + "."
             + " msg:" + res.getErrorMessage());
       }
     }
+  }
+
+  private RestResponse<KsqlEntityList> makeKsqlRequest(
+      final KsqlRestClient client,
+      final String request
+  ) {
+    final RestResponse<KsqlEntityList> response =
+        client.makeKsqlRequest(request, lastCommandSequenceNumber);
+
+    lastCommandSequenceNumber = response.getResponse().stream()
+        .filter(entity -> entity instanceof CommandStatusEntity)
+        .map(entity -> (CommandStatusEntity)entity)
+        .mapToLong(CommandStatusEntity::getCommandSequenceNumber)
+        .max()
+        .orElse(lastCommandSequenceNumber);
+
+    return response;
   }
 
   private static KsqlRestConfig buildConfig(
@@ -493,10 +518,24 @@ public class TestKsqlRestApp extends ExternalResource {
 
     // Rather than having ksql client calls disabled, creates a real instance suitable for
     // functional tests.
-    public Builder withEnabledKsqlClient() {
+    public Builder withEnabledKsqlClient(
+        final BiFunction<Integer, String, SocketAddress> socketAddressFactory) {
       this.serviceContext =
           () -> defaultServiceContext(bootstrapServers, buildBaseConfig(additionalProps),
-              () -> TestDefaultKsqlClientFactory.instance(additionalProps));
+              () -> TestDefaultKsqlClientFactory.instance(additionalProps, socketAddressFactory));
+      return this;
+    }
+
+    public Builder withEnabledKsqlClient() {
+      withEnabledKsqlClient(SocketAddress::inetSocketAddress);
+      return this;
+    }
+
+    public Builder withFaultyKsqlClient(Supplier<Boolean> cutoff) {
+      this.serviceContext =
+          () -> defaultServiceContext(bootstrapServers, buildBaseConfig(additionalProps),
+              () -> new FaultyKsqlClient(TestDefaultKsqlClientFactory.instance(additionalProps),
+                  cutoff));
       return this;
     }
 

@@ -15,6 +15,7 @@
 package io.confluent.ksql.function.udf.array;
 
 import com.google.common.collect.Sets;
+import io.confluent.ksql.function.FunctionCategory;
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.function.udf.UdfParameter;
@@ -24,6 +25,7 @@ import java.util.Set;
 
 @UdfDescription(
     name = "array_union",
+    category = FunctionCategory.ARRAY,
     description = "Returns an array of all the distinct elements from both input arrays, "
         + "or NULL if either array is NULL.")
 public class ArrayUnion {

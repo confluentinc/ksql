@@ -19,39 +19,39 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.sameInstance;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doThrow;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
-import io.confluent.ksql.SchemaNotSupportedException;
-import io.confluent.ksql.logging.processing.LoggingDeserializer;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
-import io.confluent.ksql.logging.processing.ProcessingLogger;
-import io.confluent.ksql.logging.processing.ProcessingLoggerFactory;
 import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
-import io.confluent.ksql.serde.GenericKeySerDe.UnwrappedKeySerializer;
+import io.confluent.ksql.schema.ksql.SimpleColumn;
+import io.confluent.ksql.schema.ksql.types.SqlType;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
+import io.confluent.ksql.serde.tracked.TrackedCallback;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlException;
 import java.time.Duration;
-import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 import java.util.function.Supplier;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serializer;
-import org.apache.kafka.connect.data.ConnectSchema;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
-import org.apache.kafka.streams.kstream.SessionWindowedDeserializer;
-import org.apache.kafka.streams.kstream.SessionWindowedSerializer;
-import org.apache.kafka.streams.kstream.TimeWindowedDeserializer;
-import org.apache.kafka.streams.kstream.TimeWindowedSerializer;
 import org.apache.kafka.streams.kstream.Windowed;
+import org.apache.kafka.streams.kstream.WindowedSerdes.SessionWindowedSerde;
+import org.apache.kafka.streams.kstream.WindowedSerdes.TimeWindowedSerde;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -61,282 +61,274 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class GenericKeySerDeTest {
 
-  private static final FormatInfo FORMAT = FormatInfo.of(FormatFactory.JSON.name());
-  private static final KsqlConfig CONFIG = new KsqlConfig(ImmutableMap.of());
-  private static final String LOGGER_NAME_PREFIX = "bob";
-
-  private static final PersistenceSchema WRAPPED_SCHEMA = PersistenceSchema.from(
-      (ConnectSchema) SchemaBuilder
-          .struct()
-          .field("f0", Schema.OPTIONAL_STRING_SCHEMA)
-          .build(),
-      false
-  );
-
-  private static final PersistenceSchema UNWRAPPED_SCHEMA = PersistenceSchema.from(
-      (ConnectSchema) SchemaBuilder
-          .struct()
-          .field("f0", Schema.OPTIONAL_INT64_SCHEMA)
-          .build(),
-      true
-  );
+  private static final String LOGGER_PREFIX = "bob";
+  private static final WindowInfo TIMED_WND = WindowInfo
+      .of(WindowType.HOPPING, Optional.of(Duration.ofSeconds(10)));
+  private static final WindowInfo SESSION_WND = WindowInfo
+      .of(WindowType.SESSION, Optional.empty());
 
   @Mock
-  private SerdeFactories serdeFactories;
+  private GenericSerdeFactory innerFactory;
+  @Mock
+  private FormatInfo format;
+  @Mock
+  private PersistenceSchema schema;
+  @Mock
+  private KsqlConfig config;
   @Mock
   private Supplier<SchemaRegistryClient> srClientFactory;
   @Mock
   private ProcessingLogContext processingLogCxt;
   @Mock
-  private ProcessingLoggerFactory loggerFactory;
+  private Serde<List<?>> innerSerde;
   @Mock
-  private ProcessingLogger logger;
+  private Serializer<List<?>> innerSerializer;
   @Mock
-  private Serde<Object> innerSerde;
+  private Deserializer<List<?>> innerDeserializer;
   @Mock
-  private Serializer<Object> innerSerializer;
+  private Serde<Object> loggingSerde;
   @Mock
-  private Deserializer<Object> innerDeserializer;
+  private Serde<Object> trackingSerde;
+  @Mock
+  private TrackedCallback callback;
+
   private GenericKeySerDe factory;
 
   @Before
   public void setUp() {
-    factory = new GenericKeySerDe(serdeFactories);
+    factory = new GenericKeySerDe(innerFactory);
 
-    when(processingLogCxt.getLoggerFactory()).thenReturn(loggerFactory);
-    when(loggerFactory.getLogger(any())).thenReturn(logger);
-
-    when(serdeFactories.create(any(), any(), any(), any(), any())).thenReturn(innerSerde);
+    when(innerFactory.createFormatSerde(any(), any(), any(), any(), any(), anyBoolean())).thenReturn(innerSerde);
+    when(innerFactory.wrapInLoggingSerde(any(), any(), any())).thenReturn(loggingSerde);
+    when(innerFactory.wrapInTrackingSerde(any(), any())).thenReturn(trackingSerde);
 
     when(innerSerde.serializer()).thenReturn(innerSerializer);
     when(innerSerde.deserializer()).thenReturn(innerDeserializer);
   }
 
   @Test
-  public void shouldValidateFormatCanHandleSchema() {
+  public void shouldCreateInnerSerdeNonWindowed() {
+    // When:
+    factory.create(format, schema, config, srClientFactory, LOGGER_PREFIX, processingLogCxt,
+        Optional.empty());
+
+    // Then:
+    verify(innerFactory).createFormatSerde("Key", format, schema, config, srClientFactory, true);
+  }
+
+  @Test
+  public void shouldCreateInnerSerdeWindowed() {
+    // When:
+    factory
+        .create(format, TIMED_WND, schema, config, srClientFactory, LOGGER_PREFIX, processingLogCxt,
+            Optional.empty());
+
+    // Then:
+    verify(innerFactory).createFormatSerde("Key", format, schema, config, srClientFactory, true);
+  }
+
+  @Test
+  public void shouldWrapInLoggingSerdeNonWindowed() {
+    // When:
+    factory.create(format, schema, config, srClientFactory, LOGGER_PREFIX, processingLogCxt,
+        Optional.empty());
+
+    // Then:
+    verify(innerFactory).wrapInLoggingSerde(any(), eq(LOGGER_PREFIX), eq(processingLogCxt));
+  }
+
+  @Test
+  public void shouldWrapInLoggingSerdeWindowed() {
+    // When:
+    factory
+        .create(format, TIMED_WND, schema, config, srClientFactory, LOGGER_PREFIX, processingLogCxt,
+            Optional.empty());
+
+    // Then:
+    verify(innerFactory).wrapInLoggingSerde(any(), eq(LOGGER_PREFIX), eq(processingLogCxt));
+  }
+
+  @Test
+  public void shouldConfigureLoggingSerdeNonWindowed() {
+    // When:
+    factory.create(format, schema, config, srClientFactory, LOGGER_PREFIX, processingLogCxt,
+        Optional.empty());
+
+    // Then:
+    verify(loggingSerde).configure(ImmutableMap.of(), true);
+  }
+
+  @Test
+  public void shouldConfigureLoggingSerdeWindowed() {
+    // When:
+    factory
+        .create(format, TIMED_WND, schema, config, srClientFactory, LOGGER_PREFIX, processingLogCxt,
+            Optional.empty());
+
+    // Then:
+    verify(loggingSerde).configure(ImmutableMap.of(), true);
+  }
+
+  @Test
+  public void shouldReturnLoggingSerdeNonWindowed() {
+    // When:
+    final Serde<Struct> result = factory
+        .create(format, schema, config, srClientFactory, LOGGER_PREFIX, processingLogCxt,
+            Optional.empty());
+
+    // Then:
+    assertThat(result, is(sameInstance(loggingSerde)));
+  }
+
+  @Test
+  public void shouldReturnTrackingSerdeNonWindowed() {
+    // When:
+    factory.create(format, schema, config, srClientFactory, LOGGER_PREFIX, processingLogCxt,
+        Optional.of(callback));
+
+    // Then:
+    verify(innerFactory).wrapInTrackingSerde(loggingSerde, callback);
+  }
+
+  @Test
+  public void shouldReturnTrackingSerdeWindowed() {
+    // When:
+    factory.create(format, SESSION_WND, schema, config, srClientFactory, LOGGER_PREFIX,
+        processingLogCxt, Optional.of(callback));
+
+    // Then:
+    verify(innerFactory).wrapInTrackingSerde(loggingSerde, callback);
+  }
+
+  @Test
+  public void shouldNotWrapInTrackingSerdeIfNoCallbackProvided() {
+    // When:
+    factory.create(format, schema, config, srClientFactory, LOGGER_PREFIX, processingLogCxt,
+        Optional.empty());
+
+    // Then:
+    verify(innerFactory, never()).wrapInTrackingSerde(any(), any());
+  }
+
+  @Test
+  public void shouldReturnedTimeWindowedSerdeForNonSessionWindowed() {
+    // When:
+    final Serde<Windowed<Struct>> result = factory
+        .create(format, TIMED_WND, schema, config, srClientFactory, LOGGER_PREFIX, processingLogCxt,
+            Optional.empty());
+
+    // Then:
+    assertThat(result, is(instanceOf(TimeWindowedSerde.class)));
+  }
+
+  @Test
+  public void shouldReturnedSessionWindowedSerdeForSessionWindowed() {
+    // When:
+    final Serde<Windowed<Struct>> result = factory
+        .create(format, SESSION_WND, schema, config, srClientFactory, LOGGER_PREFIX,
+            processingLogCxt,
+            Optional.empty());
+
+    // Then:
+    assertThat(result, is(instanceOf(SessionWindowedSerde.class)));
+  }
+
+  @Test
+  public void shouldNotThrowOnNoKeyColumns() {
     // Given:
-    doThrow(new RuntimeException("Boom!"))
-        .when(serdeFactories).validate(FORMAT, WRAPPED_SCHEMA);
+    schema = PersistenceSchema.from(ImmutableList.of(), SerdeFeatures.of());
+
+    // When:
+    factory
+        .create(format, schema, config, srClientFactory, LOGGER_PREFIX, processingLogCxt,
+            Optional.empty());
+
+    // Then (did not throw):
+  }
+
+  @Test
+  public void shouldThrowOnMultipleKeyColumns() {
+    // Given:
+    schema = PersistenceSchema.from(
+        ImmutableList.of(column(SqlTypes.STRING), column(SqlTypes.INTEGER)),
+        SerdeFeatures.of()
+    );
 
     // When:
     final Exception e = assertThrows(
-        SchemaNotSupportedException.class,
-        () -> factory.create(
-            FORMAT,
-            WRAPPED_SCHEMA,
-            CONFIG,
-            srClientFactory,
-            LOGGER_NAME_PREFIX,
-            processingLogCxt
-        )
+        KsqlException.class,
+        () -> factory
+            .create(format, schema, config, srClientFactory, LOGGER_PREFIX, processingLogCxt,
+                Optional.empty())
     );
 
     // Then:
-    assertThat(e.getMessage(), containsString("Key format does not support key schema."
-        + System.lineSeparator()
-        + "format: JSON"
-        + System.lineSeparator()
-        + "schema: Persistence{schema=STRUCT<f0 VARCHAR> NOT NULL, unwrapped=false}"
-        + System.lineSeparator()
-        + "reason: Boom!"));
+    assertThat(e.getMessage(), containsString("Unsupported key schema: [STRING, INTEGER]"));
   }
 
   @Test
-  public void shouldCreateCorrectInnerSerdeForWrapped() {
-    // When:
-    factory.create(
-        FORMAT,
-        WRAPPED_SCHEMA,
-        CONFIG,
-        srClientFactory,
-        LOGGER_NAME_PREFIX,
-        processingLogCxt
-    );
-
-    // Then:
-    verify(serdeFactories).create(
-        FORMAT,
-        WRAPPED_SCHEMA,
-        CONFIG,
-        srClientFactory,
-        Struct.class
-    );
-  }
-
-  @Test
-  public void shouldCreateCorrectInnerSerdeForUnwrapped() {
-    // When:
-    factory.create(
-        FORMAT,
-        UNWRAPPED_SCHEMA,
-        CONFIG,
-        srClientFactory,
-        LOGGER_NAME_PREFIX,
-        processingLogCxt
-    );
-
-    // Then:
-    verify(serdeFactories).create(
-        FORMAT,
-        UNWRAPPED_SCHEMA,
-        CONFIG,
-        srClientFactory,
-        Long.class
-    );
-  }
-
-  @Test
-  public void shouldCreateProcessLoggerWithCorrectName() {
-    // When:
-    factory.create(
-        FORMAT,
-        WRAPPED_SCHEMA,
-        CONFIG,
-        srClientFactory,
-        LOGGER_NAME_PREFIX,
-        processingLogCxt
-    );
-
-    // Then:
-    verify(loggerFactory).getLogger("bob.deserializer");
-  }
-
-  @Test
-  public void shouldUseInnerSerializerForWrappedSchema() {
-    // When:
-    final Serde<Struct> result = factory.create(
-        FORMAT,
-        WRAPPED_SCHEMA,
-        CONFIG,
-        srClientFactory,
-        LOGGER_NAME_PREFIX,
-        processingLogCxt
-    );
-
-    // Then:
-    assertThat(result.serializer(), is(innerSerializer));
-  }
-
-  @Test
-  public void shouldUseUnwrappingSerializerForUnwrappedSchema() {
-    // When:
-    final Serde<Struct> result = factory.create(
-        FORMAT,
-        UNWRAPPED_SCHEMA,
-        CONFIG,
-        srClientFactory,
-        LOGGER_NAME_PREFIX,
-        processingLogCxt
-    );
-
-    // Then:
-    assertThat(result.serializer(), is(instanceOf(UnwrappedKeySerializer.class)));
-  }
-
-  @Test
-  public void shouldUseLoggingDeserializer() {
-    // When:
-    final Serde<Struct> result = factory.create(
-        FORMAT,
-        WRAPPED_SCHEMA,
-        CONFIG,
-        srClientFactory,
-        LOGGER_NAME_PREFIX,
-        processingLogCxt
-    );
-
-    // Then:
-    assertThat(result.deserializer(), is(instanceOf(LoggingDeserializer.class)));
-  }
-
-  @Test
-  public void shouldUseSessionWindowedSerde() {
-    // When:
-    final Serde<Windowed<Struct>> result = factory.create(
-        FORMAT,
-        WindowInfo.of(WindowType.SESSION, Optional.empty()),
-        WRAPPED_SCHEMA,
-        CONFIG,
-        srClientFactory,
-        LOGGER_NAME_PREFIX,
-        processingLogCxt
-    );
-
-    // Then:
-    assertThat(result.serializer(), is(instanceOf(SessionWindowedSerializer.class)));
-    assertThat(result.deserializer(), is(instanceOf(SessionWindowedDeserializer.class)));
-  }
-
-  @Test
-  public void shouldUseTimeWindowedSerdeForHopping() {
-    // When:
-    final Serde<Windowed<Struct>> result = factory.create(
-        FORMAT,
-        WindowInfo.of(WindowType.HOPPING, Optional.of(Duration.ofSeconds(10))),
-        WRAPPED_SCHEMA,
-        CONFIG,
-        srClientFactory,
-        LOGGER_NAME_PREFIX,
-        processingLogCxt
-    );
-
-    // Then:
-    assertThat(result.serializer(), is(instanceOf(TimeWindowedSerializer.class)));
-    assertThat(result.deserializer(), is(instanceOf(TimeWindowedDeserializer.class)));
-  }
-
-  @Test
-  public void shouldUseTimeWindowedSerdeForTumbling() {
-    // When:
-    final Serde<Windowed<Struct>> result = factory.create(
-        FORMAT,
-        WindowInfo.of(WindowType.TUMBLING, Optional.of(Duration.ofMinutes(10))),
-        WRAPPED_SCHEMA,
-        CONFIG,
-        srClientFactory,
-        LOGGER_NAME_PREFIX,
-        processingLogCxt
-    );
-
-    // Then:
-    assertThat(result.serializer(), is(instanceOf(TimeWindowedSerializer.class)));
-    assertThat(result.deserializer(), is(instanceOf(TimeWindowedDeserializer.class)));
-  }
-
-  @Test
-  public void shouldConfigureInnerSerde() {
-    // When:
-    factory.create(
-        FORMAT,
-        WRAPPED_SCHEMA,
-        CONFIG,
-        srClientFactory,
-        LOGGER_NAME_PREFIX,
-        processingLogCxt
-    );
-
-    // Then:
-    verify(innerSerializer).configure(Collections.emptyMap(), true);
-    verify(innerDeserializer).configure(Collections.emptyMap(), true);
-  }
-
-  @Test
-  public void shouldCloseInnerSerde() {
+  public void shouldThrowOnArrayKeyColumn() {
     // Given:
-    final Serde<Struct> keySerde = factory.create(
-        FORMAT,
-        WRAPPED_SCHEMA,
-        CONFIG,
-        srClientFactory,
-        LOGGER_NAME_PREFIX,
-        processingLogCxt
+    schema = PersistenceSchema.from(
+        ImmutableList.of(column(SqlTypes.array(SqlTypes.STRING))),
+        SerdeFeatures.of()
     );
 
     // When:
-    keySerde.close();
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> factory
+            .create(format, schema, config, srClientFactory, LOGGER_PREFIX, processingLogCxt,
+                Optional.empty())
+    );
 
     // Then:
-    verify(innerSerializer).close();
-    verify(innerDeserializer).close();
+    assertThat(e.getMessage(), containsString("Unsupported key schema: [ARRAY<STRING>]"));
+  }
+
+  @Test
+  public void shouldThrowOnMapKeyColumn() {
+    // Given:
+    schema = PersistenceSchema.from(
+        ImmutableList.of(column(SqlTypes.map(SqlTypes.STRING, SqlTypes.STRING))),
+        SerdeFeatures.of()
+    );
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> factory
+            .create(format, schema, config, srClientFactory, LOGGER_PREFIX, processingLogCxt,
+                Optional.empty())
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Unsupported key schema: [MAP<STRING, STRING>]"));
+  }
+
+  @Test
+  public void shouldThrowOnStructKeyColumn() {
+    // Given:
+    schema = PersistenceSchema.from(
+        ImmutableList.of(column(SqlTypes.struct().field("F", SqlTypes.STRING).build())),
+        SerdeFeatures.of()
+    );
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> factory
+            .create(format, schema, config, srClientFactory, LOGGER_PREFIX, processingLogCxt,
+                Optional.empty())
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Unsupported key schema: [STRUCT<`F` STRING>]"));
+  }
+
+  private static SimpleColumn column(final SqlType type) {
+    final SimpleColumn column = mock(SimpleColumn.class, type.toString());
+    when(column.type()).thenReturn(type);
+    return column;
   }
 }

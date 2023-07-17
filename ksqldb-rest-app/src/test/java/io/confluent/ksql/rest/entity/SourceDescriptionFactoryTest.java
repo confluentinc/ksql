@@ -34,7 +34,7 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
-import io.confluent.ksql.serde.SerdeOption;
+import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.ValueFormat;
 import java.util.Arrays;
 import java.util.Collections;
@@ -77,15 +77,14 @@ public class SourceDescriptionFactoryTest {
 
     final KsqlTopic topic = new KsqlTopic(
         kafkaTopicName,
-        KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name())),
-        ValueFormat.of(FormatInfo.of(FormatFactory.JSON.name()))
+        KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name()), SerdeFeatures.of()),
+        ValueFormat.of(FormatInfo.of(FormatFactory.JSON.name()), SerdeFeatures.of())
     );
 
     return new KsqlStream<>(
         "query",
         SourceName.of("stream"),
         schema,
-        SerdeOption.none(),
         timestampColumn,
         false,
         topic
@@ -119,7 +118,8 @@ public class SourceDescriptionFactoryTest {
         true,
         Collections.emptyList(),
         Collections.emptyList(),
-        Optional.empty());
+        Optional.empty(),
+        Collections.emptyList());
 
     // Then:
     assertThat(
@@ -142,7 +142,8 @@ public class SourceDescriptionFactoryTest {
         true,
         Collections.emptyList(),
         Collections.emptyList(),
-        Optional.empty());
+        Optional.empty(),
+        Collections.emptyList());
 
     // Then:
     assertThat(sourceDescription.getTimestamp(), is(""));
@@ -164,7 +165,8 @@ public class SourceDescriptionFactoryTest {
         true,
         Collections.emptyList(),
         Collections.emptyList(),
-        Optional.empty());
+        Optional.empty(),
+        Collections.emptyList());
 
     // Then:
     assertThat(sourceDescription.getTimestamp(), is("foo"));

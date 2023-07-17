@@ -22,10 +22,11 @@
     <parent>
         <groupId>io.confluent.ksql</groupId>
         <artifactId>ksqldb-parent</artifactId>
-        <version>6.0.14-SNAPSHOT</version>
+        <version>6.1.12-0</version>
     </parent>
 
     <artifactId>ksqldb-udf</artifactId>
+    <version>6.1.12-0</version>
 
     <dependencies>
         <!-- Required for running tests -->
@@ -33,7 +34,7 @@
         <dependency>
             <groupId>io.confluent.ksql</groupId>
             <artifactId>ksqldb-test-util</artifactId>
-            <version>${project.version}</version>
+            <version>${io.confluent.ksql.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>

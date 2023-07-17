@@ -73,28 +73,39 @@ public final class KsqlTarget {
   private final SocketAddress socketAddress;
   private final LocalProperties localProperties;
   private final Optional<String> authHeader;
+  private final String host;
 
+  /**
+   * Create a KsqlTarget containing all of the connection information required to make a request
+   * @param httpClient The HttpClient to use to make the request
+   * @param socketAddress The SocketAddress to use for connecting to the remote host
+   * @param localProperties Properties sent with ksql requests
+   * @param authHeader Optional auth headers
+   * @param host The hostname to use for the request, used to set the host header of the request
+   */
   KsqlTarget(
       final HttpClient httpClient,
       final SocketAddress socketAddress,
       final LocalProperties localProperties,
-      final Optional<String> authHeader
+      final Optional<String> authHeader,
+      final String host
   ) {
     this.httpClient = requireNonNull(httpClient, "httpClient");
     this.socketAddress = requireNonNull(socketAddress, "socketAddress");
     this.localProperties = requireNonNull(localProperties, "localProperties");
     this.authHeader = requireNonNull(authHeader, "authHeader");
+    this.host = host;
   }
 
   public KsqlTarget authorizationHeader(final String authHeader) {
     return new KsqlTarget(httpClient, socketAddress, localProperties,
-        Optional.of(authHeader));
+        Optional.of(authHeader), host);
   }
 
   public KsqlTarget properties(final Map<String, ?> properties) {
     return new KsqlTarget(httpClient, socketAddress,
         new LocalProperties(properties),
-        authHeader);
+        authHeader, host);
   }
 
   public RestResponse<ServerInfo> getServerInfo() {
@@ -295,7 +306,7 @@ public final class KsqlTarget {
     final VertxCompletableFuture<ResponseWithBody> vcf = new VertxCompletableFuture<>();
 
     final HttpClientRequest httpClientRequest = httpClient.request(httpMethod,
-        socketAddress, socketAddress.port(), socketAddress.host(),
+        socketAddress, socketAddress.port(), host,
         path,
         resp -> responseHandler.accept(resp, vcf))
         .exceptionHandler(vcf::completeExceptionally);
@@ -331,7 +342,6 @@ public final class KsqlTarget {
         begin = i + 1;
       }
     }
-
     return rows;
   }
 

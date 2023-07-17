@@ -52,7 +52,32 @@ public class TestUdtf {
 
   @Udtf
   public List<String> parameterizedMapParams(
-      final Map<String, Integer> i, final Map<String, Long> l, final Map<String, Double> d, final Map<String, Boolean> b,
+      final Map<String, Integer> i,
+      final Map<String, Long> l,
+      final Map<String, Double> d,
+      final Map<String, Boolean> b,
+      final Map<String, String> s,
+      final Map<String, BigDecimal> bd,
+      @UdfParameter(schema = "MAP<STRING, STRUCT<A VARCHAR>>") final Map<String, Struct> struct
+  ) {
+    return ImmutableList
+        .of(
+            String.valueOf(i.values().iterator().next()),
+            String.valueOf(l.values().iterator().next()),
+            String.valueOf(d.values().iterator().next()),
+            String.valueOf(b.values().iterator().next()),
+            s.values().iterator().next(),
+            bd.values().iterator().next().toString(),
+            struct.values().iterator().next().toString()
+        );
+  }
+
+  @Udtf
+  public List<String> parameterizedMapParams2(
+      final Map<Long, Integer> i,
+      final Map<String, Long> l,
+      final Map<String, Double> d,
+      final Map<String, Boolean> b,
       final Map<String, String> s,
       final Map<String, BigDecimal> bd,
       @UdfParameter(schema = "MAP<STRING, STRUCT<A VARCHAR>>") final Map<String, Struct> struct

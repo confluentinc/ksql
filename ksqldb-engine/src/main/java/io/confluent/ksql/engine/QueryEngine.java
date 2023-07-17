@@ -17,6 +17,7 @@ package io.confluent.ksql.engine;
 
 import io.confluent.ksql.analyzer.Analysis;
 import io.confluent.ksql.analyzer.QueryAnalyzer;
+import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MutableMetaStore;
@@ -27,15 +28,11 @@ import io.confluent.ksql.physical.PhysicalPlanBuilder;
 import io.confluent.ksql.planner.LogicalPlanNode;
 import io.confluent.ksql.planner.LogicalPlanner;
 import io.confluent.ksql.planner.plan.OutputNode;
-import io.confluent.ksql.query.id.QueryIdGenerator;
-import io.confluent.ksql.serde.SerdeOption;
-import io.confluent.ksql.serde.SerdeOptions;
+import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.Set;
 import org.apache.kafka.streams.StreamsBuilder;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
@@ -44,19 +41,16 @@ class QueryEngine {
 
   private final ServiceContext serviceContext;
   private final ProcessingLogContext processingLogContext;
-  private final QueryIdGenerator queryIdGenerator;
 
   QueryEngine(
       final ServiceContext serviceContext,
-      final ProcessingLogContext processingLogContext,
-      final QueryIdGenerator queryIdGenerator
+      final ProcessingLogContext processingLogContext
   ) {
     this.serviceContext = Objects.requireNonNull(serviceContext, "serviceContext");
     this.processingLogContext = Objects.requireNonNull(
         processingLogContext,
         "processingLogContext"
     );
-    this.queryIdGenerator = Objects.requireNonNull(queryIdGenerator, "queryIdGenerator");
   }
 
   static OutputNode buildQueryLogicalPlan(
@@ -67,10 +61,8 @@ class QueryEngine {
   ) {
     final String outputPrefix = config.getString(KsqlConfig.KSQL_OUTPUT_TOPIC_NAME_PREFIX_CONFIG);
 
-    final Set<SerdeOption> defaultSerdeOptions = SerdeOptions.buildDefaults(config);
-
     final QueryAnalyzer queryAnalyzer =
-        new QueryAnalyzer(metaStore, outputPrefix, defaultSerdeOptions);
+        new QueryAnalyzer(metaStore, outputPrefix);
 
     final Analysis analysis = queryAnalyzer.analyze(query, sink);
 
@@ -79,9 +71,9 @@ class QueryEngine {
 
   PhysicalPlan buildPhysicalPlan(
       final LogicalPlanNode logicalPlanNode,
-      final KsqlConfig ksqlConfig,
-      final Map<String, Object> overriddenProperties,
-      final MutableMetaStore metaStore
+      final SessionConfig config,
+      final MutableMetaStore metaStore,
+      final QueryId queryId
   ) {
 
     final StreamsBuilder builder = new StreamsBuilder();
@@ -89,13 +81,12 @@ class QueryEngine {
     // Build a physical plan, in this case a Kafka Streams DSL
     final PhysicalPlanBuilder physicalPlanBuilder = new PhysicalPlanBuilder(
         builder,
-        ksqlConfig.cloneWithPropertyOverwrite(overriddenProperties),
+        config.getConfig(true),
         serviceContext,
         processingLogContext,
-        metaStore,
-        queryIdGenerator
+        metaStore
     );
 
-    return physicalPlanBuilder.buildPhysicalPlan(logicalPlanNode);
+    return physicalPlanBuilder.buildPhysicalPlan(logicalPlanNode, queryId);
   }
 }

@@ -3,8 +3,24 @@
   "timestamp" : 1581572101672,
   "path" : "query-validation-tests/project-filter.json",
   "schemas" : {
-    "CSAS_S3_0.KsqlTopic.Source" : "STRUCT<ID BIGINT, ARRAY_COL ARRAY<ARRAY<VARCHAR>>> NOT NULL",
-    "CSAS_S3_0.S3" : "STRUCT<ID BIGINT, ARRAY_ITEM VARCHAR> NOT NULL"
+    "CSAS_S3_0.KsqlTopic.Source" : {
+      "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `ARRAY_COL` ARRAY<ARRAY<STRING>>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_S3_0.S3" : {
+      "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `ARRAY_ITEM` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    }
   },
   "testCase" : {
     "name" : "Json Multi Dimensional Array 2",
@@ -91,24 +107,41 @@
     } ],
     "statements" : [ "CREATE STREAM ARRAY_ARRAY (ID BIGINT, ARRAY_COL ARRAY<ARRAY<STRING>>) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='JSON');", "CREATE STREAM S3 AS SELECT\n  ARRAY_ARRAY.ID ID,\n  ARRAY_ARRAY.ARRAY_COL[1][2] ARRAY_ITEM\nFROM ARRAY_ARRAY ARRAY_ARRAY\nEMIT CHANGES;" ],
     "post" : {
+      "sources" : [ {
+        "name" : "ARRAY_ARRAY",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `ARRAY_COL` ARRAY<ARRAY<STRING>>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
+      }, {
+        "name" : "S3",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `ARRAY_ITEM` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
+      } ],
       "topics" : {
         "topics" : [ {
-          "name" : "S3",
+          "name" : "test_topic",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"
           },
           "partitions" : 4
         }, {
-          "name" : "test_topic",
+          "name" : "S3",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"

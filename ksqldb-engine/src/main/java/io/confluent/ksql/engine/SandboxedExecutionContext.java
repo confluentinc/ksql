@@ -32,6 +32,7 @@ import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.Sandbox;
 import io.confluent.ksql.util.TransientQueryMetadata;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -91,8 +92,11 @@ final class SandboxedExecutionContext implements KsqlExecutionContext {
   }
 
   @Override
-  public PreparedStatement<?> prepare(final ParsedStatement stmt) {
-    return engineContext.prepare(stmt);
+  public PreparedStatement<?> prepare(
+      final ParsedStatement stmt,
+      final Map<String, String> variablesMap
+  ) {
+    return engineContext.prepare(stmt, variablesMap);
   }
 
   @Override
@@ -103,8 +107,7 @@ final class SandboxedExecutionContext implements KsqlExecutionContext {
     return EngineExecutor.create(
         engineContext,
         serviceContext,
-        statement.getConfig(),
-        statement.getConfigOverrides()
+        statement.getSessionConfig()
     ).plan(statement);
   }
 
@@ -116,8 +119,7 @@ final class SandboxedExecutionContext implements KsqlExecutionContext {
     final ExecuteResult result = EngineExecutor.create(
         engineContext,
         serviceContext,
-        ksqlPlan.getConfig(),
-        ksqlPlan.getOverrides()
+        ksqlPlan.getConfig()
     ).execute(ksqlPlan.getPlan());
     result.getQuery().ifPresent(query -> query.getKafkaStreams().close());
     return result;
@@ -130,11 +132,7 @@ final class SandboxedExecutionContext implements KsqlExecutionContext {
   ) {
     return execute(
         serviceContext,
-        ConfiguredKsqlPlan.of(
-            plan(serviceContext, statement),
-            statement.getConfigOverrides(),
-            statement.getConfig()
-        )
+        ConfiguredKsqlPlan.of(plan(serviceContext, statement), statement.getSessionConfig())
     );
   }
 
@@ -146,8 +144,7 @@ final class SandboxedExecutionContext implements KsqlExecutionContext {
     return EngineExecutor.create(
         engineContext,
         serviceContext,
-        statement.getConfig(),
-        statement.getConfigOverrides()
+        statement.getSessionConfig()
     ).executeQuery(statement);
   }
 }

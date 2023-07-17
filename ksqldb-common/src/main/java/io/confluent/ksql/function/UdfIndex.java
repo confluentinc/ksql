@@ -103,10 +103,10 @@ public class UdfIndex<T extends FunctionSignature> {
   void addFunction(final T function) {
     final List<ParamType> parameters = function.parameters();
     if (allFunctions.put(parameters, function) != null) {
-      throw new KsqlException(
-          "Can't add function "
-              + function
-              + " as a function with the same name and argument type already exists "
+      throw new KsqlFunctionException(
+          "Can't add function " + function.name()
+              + " with parameters " + function.parameters()
+              + " as a function with the same name and parameter types already exists "
               + allFunctions.get(parameters)
       );
     }

@@ -258,6 +258,7 @@ commands.
 |-------------|----------------------------------------------------------------------|----------|
 | name        | The case-insensitive name of the UDF(s) represented by this class.   | Yes      |
 | description | A string describing generally what the function(s) in this class do. | Yes      |
+| category    | For grouping similar functions in the output of SHOW FUNCTIONS.      | No       |
 | author      | The author of the UDF.                                               | No       |
 | version     | The version of the UDF.                                              | No       |
 
@@ -357,6 +358,8 @@ enables you to define UDAFs like `average`, as shown in the following example.
 
 When you create a UDAF, use the `map` method to provide the logic that
 transforms an intermediate aggregate value to the returned value.
+
+The `merge` method is only called when merging sessions when session windowing is used.
 
 ##### Example UDAF class
 
@@ -944,7 +947,8 @@ Metric collection can be enabled by setting the config
 `ksql.udf.collect.metrics` to `true`. This defaults to `false` and is
 generally not recommended for production usage, as metrics are
 collected on each invocation and introduce some overhead to
-processing time.
+processing time. See more details in the
+[UDF metrics reference section](../../reference/metrics/#user-defined-functions).
 
 ### Suggested Reading
 

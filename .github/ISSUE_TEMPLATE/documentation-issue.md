@@ -2,7 +2,7 @@
 name: Documentation issue
 about: Highlight an issue or potential improvement to the documentation
 title: ''
-labels: documentation
+labels: documentation, needs-triage
 assignees: JimGalasyn
 
 ---

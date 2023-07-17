@@ -15,11 +15,25 @@
 
 package io.confluent.ksql.serde.kafka;
 
+import com.google.common.collect.ImmutableSet;
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.serde.Format;
-import io.confluent.ksql.serde.FormatInfo;
-import io.confluent.ksql.serde.KsqlSerdeFactory;
+import io.confluent.ksql.serde.FormatProperties;
+import io.confluent.ksql.serde.SerdeFeature;
+import io.confluent.ksql.serde.SerdeUtils;
+import io.confluent.ksql.util.KsqlConfig;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Supplier;
+import org.apache.kafka.common.serialization.Serde;
 
 public class KafkaFormat implements Format {
+
+  private static final ImmutableSet<SerdeFeature> SUPPORTED_FEATURES = ImmutableSet.of(
+      SerdeFeature.UNWRAP_SINGLES
+  );
 
   public static final String NAME = "KAFKA";
 
@@ -29,12 +43,20 @@ public class KafkaFormat implements Format {
   }
 
   @Override
-  public boolean supportsWrapping() {
-    return false;
+  public Set<SerdeFeature> supportedFeatures() {
+    return SUPPORTED_FEATURES;
   }
 
   @Override
-  public KsqlSerdeFactory getSerdeFactory(final FormatInfo info) {
-    return new KafkaSerdeFactory();
+  public Serde<List<?>> getSerde(
+      final PersistenceSchema schema,
+      final Map<String, String> formatProperties,
+      final KsqlConfig ksqlConfig,
+      final Supplier<SchemaRegistryClient> srClientFactory,
+      final boolean isKey) {
+    FormatProperties.validateProperties(name(), formatProperties, getSupportedProperties());
+    SerdeUtils.throwOnUnsupportedFeatures(schema.features(), supportedFeatures());
+
+    return KafkaSerdeFactory.createSerde(schema);
   }
 }

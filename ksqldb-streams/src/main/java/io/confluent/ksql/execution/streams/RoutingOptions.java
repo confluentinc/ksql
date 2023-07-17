@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.execution.streams;
 
+import java.util.Set;
+
 /**
  * These are options used for locating the host to retrieve data from.
  */
@@ -23,4 +25,8 @@ public interface RoutingOptions {
   long getOffsetLagAllowed();
 
   boolean skipForwardRequest();
+
+  boolean isDebugRequest();
+
+  Set<Integer> getPartitions();
 }

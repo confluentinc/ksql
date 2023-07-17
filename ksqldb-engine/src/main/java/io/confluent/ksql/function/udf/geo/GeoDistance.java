@@ -16,10 +16,12 @@
 package io.confluent.ksql.function.udf.geo;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Streams;
 import io.confluent.ksql.function.KsqlFunctionException;
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.function.udf.UdfParameter;
+import io.confluent.ksql.util.GrammaticalJoiner;
 import io.confluent.ksql.util.KsqlConstants;
 import java.util.List;
 
@@ -52,6 +54,14 @@ public class GeoDistance {
   private static final List<String> VALID_RADIUS_NAMES_KMS =
       Lists.newArrayList("km", "kilometer", "kilometers", "kilometre", "kilometres");
 
+  @SuppressWarnings("UnstableApiUsage")
+  private static final String VALID_VALUES = "one of "
+      + GrammaticalJoiner.or().join(Streams.concat(
+      VALID_RADIUS_NAMES_MILES.stream(),
+      VALID_RADIUS_NAMES_KMS.stream()
+  ));
+
+  @SuppressWarnings("MethodMayBeStatic")
   @Udf(description = "The 2 input points should be specified as (lat, lon) pairs, measured"
       + " in decimal degrees. An optional fifth parameter allows to specify either \"MI\" (miles)"
       + " or \"KM\" (kilometers) as the desired unit for the output measurement. Default is KM.")
@@ -64,9 +74,9 @@ public class GeoDistance {
         final double lat2,
       @UdfParameter(description = "The longitude of the second point in decimal degrees.")
         final double lon2,
-      @UdfParameter(description = "The units for the return value.")
-        final String units) {
-
+      @UdfParameter(description = "The units for the return value. Either MILES or KM.")
+        final String units
+  ) {
     validateLatLonValues(lat1, lon1, lat2, lon2);
     final double chosenRadius = selectEarthRadiusToUse(units);
 
@@ -97,7 +107,7 @@ public class GeoDistance {
     return geoDistance(lat1, lon1, lat2, lon2, VALID_RADIUS_NAMES_KMS.get(0));
   }
 
-  private void validateLatLonValues(
+  private static void validateLatLonValues(
       final double lat1, final double lon1, final double lat2, final double lon2) {
     if (lat1 < -90 || lat2 < -90 || lat1 > 90 || lat2 > 90) {
       throw new KsqlFunctionException(
@@ -111,18 +121,19 @@ public class GeoDistance {
     }
   }
 
-  private double selectEarthRadiusToUse(final String units) {
+  private static double selectEarthRadiusToUse(final String units) {
     double chosenRadius = EARTH_RADIUS_KM;
     if (units != null && units.trim().length() > 0) {
-      final String outputUnit = units.toLowerCase();
+      final String outputUnit = units.trim().toLowerCase();
       if (VALID_RADIUS_NAMES_MILES.contains(outputUnit)) {
         chosenRadius = EARTH_RADIUS_MILES;
       } else if (VALID_RADIUS_NAMES_KMS.contains(outputUnit)) {
         chosenRadius = EARTH_RADIUS_KM;
       } else {
         throw new KsqlFunctionException(
-            "GeoDistance function units parameter must be one of " + VALID_RADIUS_NAMES_MILES
-            + " or " + VALID_RADIUS_NAMES_KMS + ". Values are case-insensitive.");
+            "GeoDistance function units parameter must be "
+                + VALID_VALUES
+                + ". Values are case-insensitive.");
       }
     }
     return chosenRadius;

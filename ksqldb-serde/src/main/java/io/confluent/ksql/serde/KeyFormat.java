@@ -17,10 +17,15 @@ package io.confluent.ksql.serde;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.common.collect.ImmutableMap;
 import com.google.errorprone.annotations.Immutable;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.model.WindowType;
 import java.time.Duration;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -29,38 +34,69 @@ import java.util.Optional;
  */
 @Immutable
 public final class KeyFormat {
+
   private final FormatInfo format;
+  private final SerdeFeatures features;
   private final Optional<WindowInfo> window;
 
-  public static KeyFormat nonWindowed(final FormatInfo format) {
-    return new KeyFormat(format, Optional.empty());
+  public static KeyFormat nonWindowed(
+      final FormatInfo format,
+      final SerdeFeatures features
+  ) {
+    return new KeyFormat(format, features, Optional.empty());
   }
 
   public static KeyFormat windowed(
       final FormatInfo format,
+      final SerdeFeatures features,
       final WindowInfo windowInfo
   ) {
-    return new KeyFormat(format, Optional.of(windowInfo));
+    return new KeyFormat(format, features, Optional.of(windowInfo));
   }
 
-  public static KeyFormat of(final FormatInfo format, final Optional<WindowInfo> windowInfo) {
-    return new KeyFormat(format, windowInfo);
+  public static KeyFormat of(
+      final FormatInfo format,
+      final SerdeFeatures features,
+      final Optional<WindowInfo> windowInfo
+  ) {
+    return new KeyFormat(format, features, windowInfo);
   }
 
+  @SuppressFBWarnings("UPM_UNCALLED_PRIVATE_METHOD")
+  @SuppressWarnings("unused") // Invoked via reflection by Jackson
   @JsonCreator
+  private static KeyFormat of(
+      @JsonProperty(value = "format", required = true) final String format,
+      @JsonProperty(value = "properties") final Optional<Map<String, String>> properties,
+      @JsonProperty(value = "features") final Optional<SerdeFeatures> features,
+      @JsonProperty(value = "windowInfo") final Optional<WindowInfo> windowInfo
+  ) {
+    return new KeyFormat(
+        FormatInfo.of(format, properties.orElseGet(ImmutableMap::of)),
+        features.orElseGet(SerdeFeatures::of),
+        windowInfo
+    );
+  }
+
   private KeyFormat(
-      @JsonProperty(value = "formatInfo", required = true) final FormatInfo format,
-      @JsonProperty(value = "windowInfo") final Optional<WindowInfo> window
+      final FormatInfo format,
+      final SerdeFeatures features,
+      final Optional<WindowInfo> window
   ) {
     this.format = Objects.requireNonNull(format, "format");
+    this.features = Objects.requireNonNull(features, "features");
     this.window = Objects.requireNonNull(window, "window");
   }
 
-  @JsonIgnore
-  public Format getFormat() {
-    return FormatFactory.of(format);
+  public String getFormat() {
+    return format.getFormat();
   }
 
+  public Map<String, String> getProperties() {
+    return format.getProperties();
+  }
+
+  @JsonIgnore
   public FormatInfo getFormatInfo() {
     return format;
   }
@@ -84,6 +120,11 @@ public final class KeyFormat {
     return window.flatMap(WindowInfo::getSize);
   }
 
+  @JsonInclude(value = Include.CUSTOM, valueFilter = SerdeFeatures.NOT_EMPTY.class)
+  public SerdeFeatures getFeatures() {
+    return features;
+  }
+
   @Override
   public boolean equals(final Object o) {
     if (this == o) {
@@ -94,20 +135,21 @@ public final class KeyFormat {
     }
     final KeyFormat keyFormat = (KeyFormat) o;
     return Objects.equals(format, keyFormat.format)
+        && Objects.equals(features, keyFormat.features)
         && Objects.equals(window, keyFormat.window);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(format, window);
+    return Objects.hash(format, features, window);
   }
 
   @Override
   public String toString() {
     return "KeyFormat{"
         + "format=" + format
+        + ", features=" + features
         + ", window=" + window
         + '}';
   }
-
 }

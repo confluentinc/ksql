@@ -34,8 +34,8 @@ public class PlannedTestRewriterTest {
    * The only time this is really valid is if you have fixed a bug in the testing framework
    * and now need to correct bad historic test data.
    */
+  @Ignore("Comment me out to rewrite the historic plans")
   @Test
-  @Ignore
   public void rewritePlans() {
     new PlannedTestRewriter(PlannedTestRewriter.FULL)
         .rewriteTestCasePlans(new TestCasePlanLoader().all());

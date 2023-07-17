@@ -69,7 +69,7 @@ public class KsqlConfig extends AbstractConfig {
 
   public static final String METRIC_REPORTER_CLASSES_DOC =
       CommonClientConfigs.METRIC_REPORTER_CLASSES_DOC;
-  
+
   private static final String TELEMETRY_PREFIX = "confluent.telemetry";
   private static final Set<String> REPORTER_CONFIGS_PREFIXES =
       ImmutableSet.of(
@@ -79,7 +79,7 @@ public class KsqlConfig extends AbstractConfig {
 
   public static final String KSQL_INTERNAL_TOPIC_REPLICAS_PROPERTY = "ksql.internal.topic.replicas";
 
-  public static final String KSQL_INTERNAL_TOPIC_MIN_INSYNC_REPLICAS_PROPERTY = 
+  public static final String KSQL_INTERNAL_TOPIC_MIN_INSYNC_REPLICAS_PROPERTY =
       "ksql.internal.topic.min.insync.replicas";
 
   public static final String KSQL_SCHEMA_REGISTRY_PREFIX = "ksql.schema.registry.";
@@ -134,6 +134,23 @@ public class KsqlConfig extends AbstractConfig {
       "An upper limit on the number of active, persistent queries that may be running at a time, "
       + "in interactive mode. Once this limit is reached, any further persistent queries will not "
       + "be accepted.";
+
+  public static final String KSQL_KEY_FORMAT_ENABLED = "ksql.key.format.enabled";
+  public static final Boolean KSQL_KEY_FORMAT_ENABLED_DEFAULT = false;
+  public static final String KSQL_KEY_FORMAT_ENABLED_DOC =
+      "Feature flag for non-Kafka key formats";
+
+  public static final String KSQL_DEFAULT_KEY_FORMAT_CONFIG = "ksql.persistence.default.format.key";
+  private static final String KSQL_DEFAULT_KEY_FORMAT_DEFAULT = "KAFKA";
+  private static final String KSQL_DEFAULT_KEY_FORMAT_DOC =
+      "Key format that will be used by default if none is specified in the WITH properties of "
+          + "CREATE STREAM/TABLE statements.";
+
+  public static final String KSQL_DEFAULT_VALUE_FORMAT_CONFIG =
+      "ksql.persistence.default.format.value";
+  private static final String KSQL_DEFAULT_VALUE_FORMAT_DOC =
+      "Value format that will be used by default if none is specified in the WITH properties of "
+          + "CREATE STREAM/TABLE statements.";
 
   public static final String KSQL_WRAP_SINGLE_VALUES =
       "ksql.persistence.wrap.single.values";
@@ -227,8 +244,16 @@ public class KsqlConfig extends AbstractConfig {
   public static final String KSQL_QUERY_PULL_MAX_QPS_DOC = "The maximum qps allowed for pull "
       + "queries. Once the limit is hit, queries will fail immediately";
 
-  public static final Collection<CompatibilityBreakingConfigDef> COMPATIBLY_BREAKING_CONFIG_DEFS
-      = ImmutableList.of();
+  public static final String KSQL_QUERY_PULL_THREAD_POOL_SIZE_CONFIG
+      = "ksql.query.pull.thread.pool.size";
+  public static final Integer KSQL_QUERY_PULL_THREAD_POOL_SIZE_DEFAULT = 100;
+  public static final String KSQL_QUERY_PULL_THREAD_POOL_SIZE_DOC =
+      "Size of thread pool used for sending/executing pull queries";
+
+  public static final String KSQL_STRING_CASE_CONFIG_TOGGLE = "ksql.cast.strings.preserve.nulls";
+  public static final String KSQL_STRING_CASE_CONFIG_TOGGLE_DOC =
+      "When casting a SQLType to string, if false, use String.valueof(), else if true use"
+          + "Objects.toString()";
 
   public static final String KSQL_SHUTDOWN_TIMEOUT_MS_CONFIG =
       "ksql.streams.shutdown.timeout.ms";
@@ -296,6 +321,61 @@ public class KsqlConfig extends AbstractConfig {
       + " and the regex pattern will be matched against the error class name and message of any "
       + "uncaught error and subsequent error causes in the Kafka Streams applications.";
 
+  public static final String KSQL_CREATE_OR_REPLACE_ENABLED = "ksql.create.or.replace.enabled";
+  public static final Boolean KSQL_CREATE_OR_REPLACE_ENABLED_DEFAULT = true;
+  public static final String KSQL_CREATE_OR_REPLACE_ENABLED_DOC =
+      "Feature flag for CREATE OR REPLACE";
+
+  public static final String KSQL_METASTORE_BACKUP_LOCATION = "ksql.metastore.backup.location";
+  public static final String KSQL_METASTORE_BACKUP_LOCATION_DEFAULT = "";
+  public static final String KSQL_METASTORE_BACKUP_LOCATION_DOC = "Specify the directory where "
+      + "KSQL metastore backup files are located.";
+
+  public static final String KSQL_SUPPRESS_ENABLED = "ksql.suppress.enabled";
+  public static final Boolean KSQL_SUPPRESS_ENABLED_DEFAULT = false;
+  public static final String KSQL_SUPPRESS_ENABLED_DOC =
+      "Feature flag for suppression, specifically EMIT FINAL";
+
+  public static final String KSQL_SUPPRESS_BUFFER_SIZE_BYTES = "ksql.suppress.buffer.size.bytes";
+  public static final Long KSQL_SUPPRESS_BUFFER_SIZE_BYTES_DEFAULT = -1L;
+  public static final String KSQL_SUPPRESS_BUFFER_SIZE_BYTES_DOC =
+      "Bound the number of bytes that the buffer can use for suppression. Negative size means the"
+      + " buffer will be unbounded. If the maximum capacity is exceeded, the query will be"
+      + " terminated";
+
+  public static final String KSQL_QUERY_RETRY_BACKOFF_INITIAL_MS
+      = "ksql.query.retry.backoff.initial.ms";
+  public static final Long KSQL_QUERY_RETRY_BACKOFF_INITIAL_MS_DEFAULT = 15000L;
+  public static final String KSQL_QUERY_RETRY_BACKOFF_INITIAL_MS_DOC = "The initial amount of time "
+      + "to wait before attempting to retry a persistent query in ERROR state.";
+
+  public static final String KSQL_QUERY_RETRY_BACKOFF_MAX_MS = "ksql.query.retry.backoff.max.ms";
+  public static final Long KSQL_QUERY_RETRY_BACKOFF_MAX_MS_DEFAULT = 900000L;
+  public static final String KSQL_QUERY_RETRY_BACKOFF_MAX_MS_DOC = "The maximum amount of time "
+      + "to wait before attempting to retry a persistent query in ERROR state.";
+
+  public static final String KSQL_QUERY_ERROR_MAX_QUEUE_SIZE = "ksql.query.error.max.queue.size";
+  public static final Integer KSQL_QUERY_ERROR_MAX_QUEUE_SIZE_DEFAULT = 10;
+  public static final String KSQL_QUERY_ERROR_MAX_QUEUE_SIZE_DOC = "The maximum number of "
+      + "error messages (per query) to hold in the internal query errors queue and display"
+      + "in the query description when executing the `EXPLAIN <query>` command.";
+
+  public static final String KSQL_QUERY_STATUS_RUNNING_THRESHOLD_SECS =
+      "ksql.query.status.running.threshold.seconds";
+  private static final Integer KSQL_QUERY_STATUS_RUNNING_THRESHOLD_SECS_DEFAULT = 300;
+  private static final String KSQL_QUERY_STATUS_RUNNING_THRESHOLD_SECS_DOC = "Amount of time in "
+      + "seconds to wait before setting a restarted query status as healthy (or running).";
+
+  public static final String KSQL_PROPERTIES_OVERRIDES_DENYLIST =
+      "ksql.properties.overrides.denylist";
+  private static final String KSQL_PROPERTIES_OVERRIDES_DENYLIST_DOC = "Comma-separated list of "
+      + "properties that KSQL users cannot override.";
+
+  public static final String KSQL_VARIABLE_SUBSTITUTION_ENABLE
+      = "ksql.variable.substitution.enable";
+  public static final boolean KSQL_VARIABLE_SUBSTITUTION_ENABLE_DEFAULT = true;
+  public static final String KSQL_VARIABLE_SUBSTITUTION_ENABLE_DOC
+      = "Enable variable substitution on SQL statements.";
   public static final String KSQL_WEBSOCKET_CONNECTION_MAX_TIMEOUT_MS
       = "ksql.websocket.connection.max.timeout.ms";
   public static final long KSQL_WEBSOCKET_CONNECTION_MAX_TIMEOUT_MS_DEFAULT = 3600000;
@@ -309,6 +389,17 @@ public class KsqlConfig extends AbstractConfig {
     LEGACY,
     CURRENT
   }
+
+  public static final Collection<CompatibilityBreakingConfigDef> COMPATIBLY_BREAKING_CONFIG_DEFS
+      = ImmutableList.of(new CompatibilityBreakingConfigDef(
+          KSQL_STRING_CASE_CONFIG_TOGGLE,
+          Type.BOOLEAN,
+          false,
+          true,
+          Importance.LOW,
+          Optional.empty(),
+          KSQL_STRING_CASE_CONFIG_TOGGLE_DOC
+      ));
 
   public static class CompatibilityBreakingConfigDef {
 
@@ -390,7 +481,7 @@ public class KsqlConfig extends AbstractConfig {
       COMPATIBILITY_BREAKING_STREAMS_CONFIGS = ImmutableList.of(
           // Turn on optimizations by default, unless the user explicitly disables in config:
           new CompatibilityBreakingStreamsConfig(
-            StreamsConfig.TOPOLOGY_OPTIMIZATION,
+            StreamsConfig.TOPOLOGY_OPTIMIZATION_CONFIG,
             StreamsConfig.OPTIMIZE,
             StreamsConfig.OPTIMIZE)
   );
@@ -466,6 +557,7 @@ public class KsqlConfig extends AbstractConfig {
             SCHEMA_REGISTRY_URL_PROPERTY,
             ConfigDef.Type.STRING,
             "",
+            new ConfigDef.NonNullValidator(),
             ConfigDef.Importance.MEDIUM,
             "The URL for the schema registry"
         ).define(
@@ -535,9 +627,27 @@ public class KsqlConfig extends AbstractConfig {
             ConfigDef.Importance.LOW,
             KSQL_SECURITY_EXTENSION_DOC
         ).define(
+            KSQL_KEY_FORMAT_ENABLED,
+            Type.BOOLEAN,
+            KSQL_KEY_FORMAT_ENABLED_DEFAULT,
+            ConfigDef.Importance.LOW,
+            KSQL_KEY_FORMAT_ENABLED_DOC
+        ).define(
+            KSQL_DEFAULT_KEY_FORMAT_CONFIG,
+            Type.STRING,
+            KSQL_DEFAULT_KEY_FORMAT_DEFAULT,
+            ConfigDef.Importance.LOW,
+            KSQL_DEFAULT_KEY_FORMAT_DOC
+        ).define(
+            KSQL_DEFAULT_VALUE_FORMAT_CONFIG,
+            Type.STRING,
+            null,
+            ConfigDef.Importance.LOW,
+            KSQL_DEFAULT_VALUE_FORMAT_DOC
+        ).define(
             KSQL_WRAP_SINGLE_VALUES,
             ConfigDef.Type.BOOLEAN,
-            true,
+            null,
             ConfigDef.Importance.LOW,
             "Controls how KSQL will serialize a value whose schema contains only a "
                 + "single column. The setting only sets the default for `CREATE STREAM`, "
@@ -668,11 +778,88 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_QUERY_PULL_MAX_QPS_DOC
         )
         .define(
+            KSQL_QUERY_PULL_THREAD_POOL_SIZE_CONFIG,
+            Type.INT,
+            KSQL_QUERY_PULL_THREAD_POOL_SIZE_DEFAULT,
+            Importance.LOW,
+            KSQL_QUERY_PULL_THREAD_POOL_SIZE_DOC
+        )
+        .define(
             KSQL_ERROR_CLASSIFIER_REGEX_PREFIX,
             Type.STRING,
             "",
             Importance.LOW,
             KSQL_ERROR_CLASSIFIER_REGEX_PREFIX_DOC
+        )
+        .define(
+            KSQL_CREATE_OR_REPLACE_ENABLED,
+            Type.BOOLEAN,
+            KSQL_CREATE_OR_REPLACE_ENABLED_DEFAULT,
+            Importance.LOW,
+            KSQL_CREATE_OR_REPLACE_ENABLED_DOC
+        )
+        .define(
+            KSQL_METASTORE_BACKUP_LOCATION,
+            Type.STRING,
+            KSQL_METASTORE_BACKUP_LOCATION_DEFAULT,
+            Importance.LOW,
+            KSQL_METASTORE_BACKUP_LOCATION_DOC
+        )
+        .define(
+            KSQL_SUPPRESS_ENABLED,
+            Type.BOOLEAN,
+            KSQL_SUPPRESS_ENABLED_DEFAULT,
+            Importance.LOW,
+            KSQL_SUPPRESS_ENABLED_DOC
+        )
+        .define(
+            KSQL_QUERY_RETRY_BACKOFF_INITIAL_MS,
+            Type.LONG,
+            KSQL_QUERY_RETRY_BACKOFF_INITIAL_MS_DEFAULT,
+            Importance.LOW,
+            KSQL_QUERY_RETRY_BACKOFF_INITIAL_MS_DOC
+        )
+        .define(
+            KSQL_QUERY_RETRY_BACKOFF_MAX_MS,
+            Type.LONG,
+            KSQL_QUERY_RETRY_BACKOFF_MAX_MS_DEFAULT,
+            Importance.LOW,
+            KSQL_QUERY_RETRY_BACKOFF_MAX_MS_DOC
+        )
+        .define(
+            KSQL_QUERY_ERROR_MAX_QUEUE_SIZE,
+            Type.INT,
+            KSQL_QUERY_ERROR_MAX_QUEUE_SIZE_DEFAULT,
+            Importance.LOW,
+            KSQL_QUERY_ERROR_MAX_QUEUE_SIZE_DOC
+        )
+        .define(
+            KSQL_SUPPRESS_BUFFER_SIZE_BYTES,
+            Type.LONG,
+            KSQL_SUPPRESS_BUFFER_SIZE_BYTES_DEFAULT,
+            Importance.LOW,
+            KSQL_SUPPRESS_BUFFER_SIZE_BYTES_DOC
+        )
+        .define(
+            KSQL_PROPERTIES_OVERRIDES_DENYLIST,
+            Type.LIST,
+            "",
+            Importance.LOW,
+            KSQL_PROPERTIES_OVERRIDES_DENYLIST_DOC
+        )
+        .define(
+            KSQL_QUERY_STATUS_RUNNING_THRESHOLD_SECS,
+            Type.INT,
+            KSQL_QUERY_STATUS_RUNNING_THRESHOLD_SECS_DEFAULT,
+            Importance.LOW,
+            KSQL_QUERY_STATUS_RUNNING_THRESHOLD_SECS_DOC
+        )
+        .define(
+            KSQL_VARIABLE_SUBSTITUTION_ENABLE,
+            Type.BOOLEAN,
+            KSQL_VARIABLE_SUBSTITUTION_ENABLE_DEFAULT,
+            Importance.LOW,
+            KSQL_VARIABLE_SUBSTITUTION_ENABLE_DOC
         )
         .define(
             KSQL_WEBSOCKET_CONNECTION_MAX_TIMEOUT_MS,

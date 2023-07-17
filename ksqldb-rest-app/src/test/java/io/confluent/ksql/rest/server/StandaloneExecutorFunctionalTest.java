@@ -17,6 +17,7 @@ package io.confluent.ksql.rest.server;
 
 import static io.confluent.ksql.serde.FormatFactory.AVRO;
 import static io.confluent.ksql.serde.FormatFactory.JSON;
+import static io.confluent.ksql.serde.FormatFactory.KAFKA;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertThrows;
@@ -31,13 +32,12 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import io.confluent.ksql.serde.SerdeOption;
+import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
 import io.confluent.ksql.test.util.KsqlIdentifierTestUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.OrderDataProvider;
 import io.confluent.ksql.version.metrics.VersionCheckerAgent;
 import java.io.IOException;
@@ -89,8 +89,8 @@ public class StandaloneExecutorFunctionalTest {
   @BeforeClass
   public static void classSetUp() {
     final OrderDataProvider provider = new OrderDataProvider();
-    TEST_HARNESS.produceRows(AVRO_TOPIC, provider, AVRO);
-    TEST_HARNESS.produceRows(JSON_TOPIC, provider, JSON);
+    TEST_HARNESS.produceRows(AVRO_TOPIC, provider, KAFKA, AVRO);
+    TEST_HARNESS.produceRows(JSON_TOPIC, provider, KAFKA, JSON);
     DATA_SIZE = provider.data().size();
     UNIQUE_DATA_SIZE = provider.finalData().size();
     DATA_SCHEMA = provider.schema();
@@ -160,7 +160,8 @@ public class StandaloneExecutorFunctionalTest {
             .keyColumn(SystemColumns.ROWKEY_NAME, SqlTypes.STRING)
             .valueColumn(ColumnName.of("ORDERTIME"), SqlTypes.BIGINT)
             .build(),
-        SerdeOption.none()
+        SerdeFeatures.of(),
+        SerdeFeatures.of()
     );
 
     // When:
@@ -168,11 +169,11 @@ public class StandaloneExecutorFunctionalTest {
 
     // Then:
     // CSAS and INSERT INTO both input into S1:
-    TEST_HARNESS.verifyAvailableRows(s1, DATA_SIZE * 2, JSON, dataSchema);
+    TEST_HARNESS.verifyAvailableRows(s1, DATA_SIZE * 2, KAFKA, JSON, dataSchema);
     // CTAS only into T1:
-    TEST_HARNESS.verifyAvailableUniqueRows(t1, UNIQUE_DATA_SIZE, JSON, dataSchema);
+    TEST_HARNESS.verifyAvailableUniqueRows(t1, UNIQUE_DATA_SIZE, KAFKA, JSON, dataSchema);
     // S2 should be empty as 'auto.offset.reset' unset:
-    TEST_HARNESS.verifyAvailableUniqueRows(s2, 0, JSON, dataSchema);
+    TEST_HARNESS.verifyAvailableUniqueRows(s2, 0, KAFKA, JSON, dataSchema);
   }
 
   @Test
@@ -202,7 +203,8 @@ public class StandaloneExecutorFunctionalTest {
             .keyColumn(SystemColumns.ROWKEY_NAME, SqlTypes.STRING)
             .valueColumn(ColumnName.of("ORDERTIME"), SqlTypes.BIGINT)
             .build(),
-        SerdeOption.none()
+        SerdeFeatures.of(),
+        SerdeFeatures.of()
     );
 
     // When:
@@ -210,11 +212,11 @@ public class StandaloneExecutorFunctionalTest {
 
     // Then:
     // CSAS and INSERT INTO both input into S1:
-    TEST_HARNESS.verifyAvailableRows(s1, DATA_SIZE * 2, AVRO, dataSchema);
+    TEST_HARNESS.verifyAvailableRows(s1, DATA_SIZE * 2, KAFKA, AVRO, dataSchema);
     // CTAS only into T1:
-    TEST_HARNESS.verifyAvailableUniqueRows(t1, UNIQUE_DATA_SIZE, AVRO, dataSchema);
+    TEST_HARNESS.verifyAvailableUniqueRows(t1, UNIQUE_DATA_SIZE, KAFKA, AVRO, dataSchema);
     // S2 should be empty as 'auto.offset.reset' unset:
-    TEST_HARNESS.verifyAvailableUniqueRows(s2, 0, AVRO, dataSchema);
+    TEST_HARNESS.verifyAvailableUniqueRows(s2, 0, KAFKA, AVRO, dataSchema);
   }
 
   @Test
@@ -231,7 +233,7 @@ public class StandaloneExecutorFunctionalTest {
     standalone.startAsync();
 
     // Then:
-    TEST_HARNESS.verifyAvailableRows(s1, DATA_SIZE, AVRO, DATA_SCHEMA);
+    TEST_HARNESS.verifyAvailableRows(s1, DATA_SIZE, KAFKA, AVRO, DATA_SCHEMA);
   }
 
   @Test
@@ -252,29 +254,7 @@ public class StandaloneExecutorFunctionalTest {
 
     // Then:
     assertThat(e.getMessage(), containsString(
-        "Schema registry fetch for topic topic-without-schema request failed"));
-  }
-
-  @Test
-  public void shouldFailOnAvroWithoutSchemasIfSchemaNotEvolvable() {
-    // Given:
-    givenIncompatibleSchemaExists(s1);
-
-    givenScript(""
-        + "SET 'auto.offset.reset' = 'earliest';"
-        + ""
-        + "CREATE STREAM S WITH (kafka_topic='" + AVRO_TOPIC + "', value_format='avro');\n"
-        + ""
-        + "CREATE STREAM " + s1 + " AS SELECT * FROM S;");
-
-    // When:
-    final Exception e = assertThrows(
-        KsqlStatementException.class,
-        () -> standalone.startAsync()
-    );
-
-    // Then:
-    assertThat(e.getMessage(), containsString("schema is incompatible with the current schema version registered for the topic"));
+        "Schema for message values on topic topic-without-schema does not exist in the Schema Registry"));
   }
 
   @Test
@@ -298,24 +278,7 @@ public class StandaloneExecutorFunctionalTest {
     standalone.startAsync();
 
     // Then:
-    TEST_HARNESS.verifyAvailableRows(s1, DATA_SIZE, JSON, DATA_SCHEMA);
-  }
-
-  private static void givenIncompatibleSchemaExists(final String topicName) {
-    final LogicalSchema logical = LogicalSchema.builder()
-        .keyColumn(SystemColumns.ROWKEY_NAME, SqlTypes.STRING)
-        .valueColumn(ColumnName.of("ITEMID"), SqlTypes.struct()
-            .field("fred", SqlTypes.INTEGER)
-            .build())
-        .valueColumn(ColumnName.of("Other"), SqlTypes.BIGINT)
-        .build();
-
-    final PhysicalSchema incompatiblePhysical = PhysicalSchema.from(
-        logical,
-        SerdeOption.none()
-    );
-
-    TEST_HARNESS.ensureSchema(topicName, incompatiblePhysical);
+    TEST_HARNESS.verifyAvailableRows(s1, DATA_SIZE, KAFKA, JSON, DATA_SCHEMA);
   }
 
   private void givenScript(final String contents) {

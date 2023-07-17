@@ -19,18 +19,23 @@ import java.util.Objects;
 
 public final class MapType extends ObjectType {
 
+  private final ParamType key;
   private final ParamType value;
 
-  private MapType(final ParamType value) {
-    this.value = value;
+  private MapType(final ParamType key, final ParamType value) {
+    this.key = Objects.requireNonNull(key, "key");
+    this.value = Objects.requireNonNull(value, "value");
   }
 
-  public static MapType of(final ParamType value) {
-    return new MapType(value);
+  public static MapType of(
+      final ParamType key,
+      final ParamType value
+  ) {
+    return new MapType(key, value);
   }
 
   public ParamType key() {
-    return ParamTypes.STRING;
+    return key;
   }
 
   public ParamType value() {
@@ -46,16 +51,17 @@ public final class MapType extends ObjectType {
       return false;
     }
     final MapType mapType = (MapType) o;
-    return Objects.equals(value, mapType.value);
+    return Objects.equals(key, mapType.key)
+        && Objects.equals(value, mapType.value);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(value);
+    return Objects.hash(key, value);
   }
 
   @Override
   public String toString() {
-    return "MAP<STRING, " + value + ">";
+    return "MAP<" + key + ", " + value + ">";
   }
 }

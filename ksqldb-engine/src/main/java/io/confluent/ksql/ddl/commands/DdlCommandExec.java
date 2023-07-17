@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.ddl.commands;
 
+import io.confluent.ksql.execution.ddl.commands.AlterSourceCommand;
 import io.confluent.ksql.execution.ddl.commands.CreateSourceCommand;
 import io.confluent.ksql.execution.ddl.commands.CreateStreamCommand;
 import io.confluent.ksql.execution.ddl.commands.CreateTableCommand;
@@ -24,14 +25,19 @@ import io.confluent.ksql.execution.ddl.commands.DropSourceCommand;
 import io.confluent.ksql.execution.ddl.commands.DropTypeCommand;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.ddl.commands.RegisterTypeCommand;
+import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
+import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTable;
 import io.confluent.ksql.name.SourceName;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.ValueFormat;
+import io.confluent.ksql.util.DuplicateColumnException;
+import io.confluent.ksql.util.KsqlException;
 import java.util.Objects;
 
 /**
@@ -70,12 +76,11 @@ public class DdlCommandExec {
           sql,
           createStream.getSourceName(),
           createStream.getSchema(),
-          createStream.getFormats().getOptions(),
           createStream.getTimestampColumn(),
           withQuery,
           getKsqlTopic(createStream)
       );
-      metaStore.putSource(ksqlStream);
+      metaStore.putSource(ksqlStream, createStream.isOrReplace());
       return new DdlCommandResult(true, "Stream created");
     }
 
@@ -85,12 +90,11 @@ public class DdlCommandExec {
           sql,
           createTable.getSourceName(),
           createTable.getSchema(),
-          createTable.getFormats().getOptions(),
           createTable.getTimestampColumn(),
           withQuery,
           getKsqlTopic(createTable)
       );
-      metaStore.putSource(ksqlTable);
+      metaStore.putSource(ksqlTable, createTable.isOrReplace());
       return new DdlCommandResult(true, "Table created");
     }
 
@@ -110,11 +114,14 @@ public class DdlCommandExec {
     public DdlCommandResult executeRegisterType(final RegisterTypeCommand registerType) {
       final String name = registerType.getTypeName();
       final SqlType type = registerType.getType();
-      metaStore.registerType(name, type);
-      return new DdlCommandResult(
-          true,
-          "Registered custom type with name '" + name + "' and SQL type " + type
-      );
+      final boolean wasRegistered = metaStore.registerType(name, type);
+      return wasRegistered
+          ? new DdlCommandResult(
+              true,
+              "Registered custom type with name '" + name + "' and SQL type " + type)
+          : new DdlCommandResult(
+              true,
+              name + " is already registered with type " + metaStore.resolveType(name).get());
     }
 
     @Override
@@ -125,13 +132,64 @@ public class DdlCommandExec {
           ? new DdlCommandResult(true, "Dropped type '" + typeName + "'")
           : new DdlCommandResult(true, "Type '" + typeName + "' does not exist");
     }
+
+    @Override
+    public DdlCommandResult executeAlterSource(final AlterSourceCommand alterSource) {
+      final DataSource dataSource = metaStore.getSource(alterSource.getSourceName());
+
+      if (dataSource == null) {
+        throw new KsqlException(
+            "Source " + alterSource.getSourceName().text()
+                + " does not exist."
+        );
+      }
+
+      if (!dataSource.getDataSourceType().getKsqlType().equals(alterSource.getKsqlType())) {
+        throw new KsqlException(String.format(
+            "Incompatible data source type is %s, but statement was ALTER %s",
+            dataSource.getDataSourceType().getKsqlType(),
+            alterSource.getKsqlType()
+        ));
+      }
+
+      if (dataSource.isCasTarget()) {
+        throw new KsqlException(String.format(
+            "ALTER command is not supported for CREATE ... AS statements."
+        ));
+      }
+
+      final LogicalSchema newSchema;
+
+      try {
+        newSchema = dataSource.getSchema()
+            .asBuilder()
+            .valueColumns(alterSource.getNewColumns())
+            .build();
+      } catch (DuplicateColumnException e) {
+        throw new KsqlException("Cannot add column " + e.getColumn().name()
+            + " to schema. A column with the same name already exists.");
+      }
+
+      metaStore.putSource(dataSource.with(sql, newSchema), true);
+
+      return new DdlCommandResult(
+          true,
+          String.format(
+              "%s %s altered.",
+              dataSource.getDataSourceType() == DataSourceType.KSTREAM ? "Stream" : "Table",
+              dataSource.getName().text()
+          )
+      );
+    }
   }
 
-  private static KsqlTopic getKsqlTopic(final CreateSourceCommand createSource) {
+  private static KsqlTopic getKsqlTopic(final CreateSourceCommand cs) {
+    final Formats formats = cs.getFormats();
+
     return new KsqlTopic(
-        createSource.getTopicName(),
-        KeyFormat.of(createSource.getFormats().getKeyFormat(), createSource.getWindowInfo()),
-        ValueFormat.of(createSource.getFormats().getValueFormat())
+        cs.getTopicName(),
+        KeyFormat.of(formats.getKeyFormat(), formats.getKeyFeatures(), cs.getWindowInfo()),
+        ValueFormat.of(formats.getValueFormat(), formats.getValueFeatures())
     );
   }
 }

@@ -47,7 +47,7 @@ keywords: ksqldb, api, reference, function, operator, metadata, connector, query
 ## Custom Types
 
 - [CREATE TYPE](create-type.md)
-- [DROP TYPE](drop-table.md)
+- [DROP TYPE](drop-type.md)
 - [SHOW TYPES](show-types.md)
 
 ## Metadata

@@ -25,13 +25,13 @@ import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.plan.ExecutionStep;
+import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.streams.ExecutionStepFactory;
 import io.confluent.ksql.execution.windows.KsqlWindowExpression;
 import io.confluent.ksql.execution.windows.SessionWindowExpression;
 import io.confluent.ksql.execution.windows.WindowTimeClause;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.InternalFunctionRegistry;
-import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.parser.tree.WindowExpression;
@@ -41,9 +41,9 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
-import io.confluent.ksql.serde.SerdeOption;
+import io.confluent.ksql.serde.SerdeFeature;
+import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.ValueFormat;
-import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.List;
 import java.util.Optional;
@@ -106,8 +106,10 @@ public class SchemaKGroupedStreamTest {
 
   @Before
   public void setUp() {
+    when(keyFormatInfo.getFormat()).thenReturn(FormatFactory.KAFKA.name());
     when(keyFormat.getFormatInfo()).thenReturn(keyFormatInfo);
     when(valueFormat.getFormatInfo()).thenReturn(valueformatInfo);
+
     schemaGroupedStream = new SchemaKGroupedStream(
         sourceStep,
         IN_SCHEMA,
@@ -125,7 +127,7 @@ public class SchemaKGroupedStreamTest {
         NON_AGGREGATE_COLUMNS,
         ImmutableList.of(AGG),
         Optional.empty(),
-        valueFormat,
+        valueFormat.getFormatInfo(),
         queryContext
     );
 
@@ -140,7 +142,7 @@ public class SchemaKGroupedStreamTest {
         NON_AGGREGATE_COLUMNS,
         ImmutableList.of(AGG),
         Optional.empty(),
-        valueFormat,
+        valueFormat.getFormatInfo(),
         queryContext
     );
 
@@ -151,7 +153,36 @@ public class SchemaKGroupedStreamTest {
             ExecutionStepFactory.streamAggregate(
                 queryContext,
                 schemaGroupedStream.getSourceStep(),
-                io.confluent.ksql.execution.plan.Formats.of(keyFormat, valueFormat, SerdeOption.none()),
+                Formats.of(keyFormatInfo, valueformatInfo, SerdeFeatures.of(), SerdeFeatures.of()),
+                NON_AGGREGATE_COLUMNS,
+                ImmutableList.of(AGG)
+            )
+        )
+    );
+  }
+
+  @Test
+  public void shouldBuildStepForAggregateWhereKeyFormatSupportsBothWrappingAndUnwrapping() {
+    // Given:
+    when(keyFormatInfo.getFormat()).thenReturn(FormatFactory.JSON.name());
+
+    // When:
+    final SchemaKTable result = schemaGroupedStream.aggregate(
+        NON_AGGREGATE_COLUMNS,
+        ImmutableList.of(AGG),
+        Optional.empty(),
+        valueFormat.getFormatInfo(),
+        queryContext
+    );
+
+    // Then:
+    assertThat(
+        result.getSourceTableStep(),
+        equalTo(
+            ExecutionStepFactory.streamAggregate(
+                queryContext,
+                schemaGroupedStream.getSourceStep(),
+                Formats.of(keyFormatInfo, valueformatInfo, SerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES), SerdeFeatures.of()),
                 NON_AGGREGATE_COLUMNS,
                 ImmutableList.of(AGG)
             )
@@ -166,22 +197,18 @@ public class SchemaKGroupedStreamTest {
         NON_AGGREGATE_COLUMNS,
         ImmutableList.of(AGG),
         Optional.of(windowExp),
-        valueFormat,
+        valueFormat.getFormatInfo(),
         queryContext
     );
 
     // Then:
-    final KeyFormat expected = KeyFormat.windowed(
-        FormatInfo.of(FormatFactory.KAFKA.name()),
-        WindowInfo.of(WindowType.SESSION, Optional.empty())
-    );
     assertThat(
         result.getSourceTableStep(),
         equalTo(
             ExecutionStepFactory.streamWindowedAggregate(
                 queryContext,
                 schemaGroupedStream.getSourceStep(),
-                io.confluent.ksql.execution.plan.Formats.of(expected, valueFormat, SerdeOption.none()),
+                Formats.of(keyFormatInfo, valueformatInfo, SerdeFeatures.of(), SerdeFeatures.of()),
                 NON_AGGREGATE_COLUMNS,
                 ImmutableList.of(AGG),
                 KSQL_WINDOW_EXP

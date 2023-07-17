@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.test.tools;
 
+import static io.confluent.ksql.util.KsqlConstants.getSRSubject;
 import static java.util.Objects.requireNonNull;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.empty;
@@ -30,11 +31,14 @@ import io.confluent.kafka.schemaregistry.client.SchemaMetadata;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
+import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.KsqlPlan;
 import io.confluent.ksql.engine.SqlFormatInjector;
 import io.confluent.ksql.engine.StubInsertValuesExecutor;
+import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.json.PlanJsonMapper;
+import io.confluent.ksql.format.DefaultFormatInjector;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
@@ -43,9 +47,13 @@ import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.InsertValues;
 import io.confluent.ksql.planner.plan.ConfiguredKsqlPlan;
+import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.schema.ksql.inference.DefaultSchemaInjector;
 import io.confluent.ksql.schema.ksql.inference.SchemaRegistryTopicSchemaSupplier;
+import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatFactory;
+import io.confluent.ksql.serde.SerdeFeature;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
@@ -62,9 +70,9 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.stream.Collectors;
@@ -90,9 +98,7 @@ public final class TestExecutorUtil {
       final StubKafkaService stubKafkaService,
       final TestExecutionListener listener
   ) {
-    final Map<String, String> persistedConfigs = testCase.persistedProperties();
-    final KsqlConfig maybeUpdatedConfigs = persistedConfigs.isEmpty() ? ksqlConfig :
-        ksqlConfig.overrideBreakingConfigsWithOriginalValues(persistedConfigs);
+    final KsqlConfig maybeUpdatedConfigs = testCase.applyPersistedProperties(ksqlConfig);
 
     final List<PersistentQueryAndSources> queryMetadataList = doBuildQueries(
         testCase,
@@ -128,7 +134,7 @@ public final class TestExecutorUtil {
           serviceContext.getSchemaRegistryClient());
       testCase.setGeneratedTopologies(
           ImmutableList.of(persistentQueryMetadata.getTopologyDescription()));
-      testCase.setGeneratedSchemas(persistentQueryMetadata.getSchemasDescription());
+      testCase.setGeneratedSchemas(persistentQueryMetadata.getQuerySchemas().getLoggerSchemaInfo());
       topologyTestDrivers.add(TopologyTestDriverContainer.of(
           topologyTestDriver,
           sourceTopics,
@@ -139,22 +145,31 @@ public final class TestExecutorUtil {
   }
 
   @VisibleForTesting
-  static Iterable<ConfiguredKsqlPlan> planTestCase(
+  static Iterator<PlannedStatement> planTestCase(
       final KsqlEngine engine,
       final TestCase testCase,
       final KsqlConfig ksqlConfig,
       final Optional<SchemaRegistryClient> srClient,
       final StubKafkaService stubKafkaService
   ) {
-    initializeTopics(testCase, engine.getServiceContext(), stubKafkaService, engine.getMetaStore());
+    initializeTopics(
+        testCase,
+        engine.getServiceContext(),
+        stubKafkaService,
+        engine.getMetaStore(),
+        ksqlConfig
+    );
+
     if (testCase.getExpectedTopology().isPresent()
-        && testCase.getExpectedTopology().get().getPlan().isPresent()) {
+        && testCase.getExpectedTopology().get().getPlan().isPresent()
+    ) {
       return testCase.getExpectedTopology().get().getPlan().get()
           .stream()
-          .map(p -> ConfiguredKsqlPlan.of(p, testCase.properties(), ksqlConfig))
-          .collect(Collectors.toList());
+          .map(p -> ConfiguredKsqlPlan.of(p, SessionConfig.of(ksqlConfig, testCase.properties())))
+          .map(PlannedStatement::new)
+          .iterator();
     }
-    return PlannedStatementIterator.of(engine, testCase, ksqlConfig, srClient, stubKafkaService);
+    return PlannedStatementIterator.of(engine, testCase, ksqlConfig, srClient);
   }
 
   private static Topic buildSinkTopic(
@@ -164,29 +179,43 @@ public final class TestExecutorUtil {
   ) {
     final String kafkaTopicName = sinkDataSource.getKafkaTopicName();
 
-    final Optional<ParsedSchema> schema = getSchema(sinkDataSource, schemaRegistryClient);
+    final KsqlTopic ksqlTopic = sinkDataSource.getKsqlTopic();
+    final Optional<ParsedSchema> keySchema = getSchema(
+        ksqlTopic.getKeyFormat().getFormat(),
+        getSRSubject(ksqlTopic.getKafkaTopicName(), true),
+        schemaRegistryClient
+    );
+    final Optional<ParsedSchema> valueSchema = getSchema(
+        ksqlTopic.getValueFormat().getFormat(),
+        getSRSubject(ksqlTopic.getKafkaTopicName(), false),
+        schemaRegistryClient
+    );
 
-    final Topic sinkTopic = new Topic(kafkaTopicName, schema);
+    final Topic sinkTopic = new Topic(kafkaTopicName, keySchema, valueSchema);
 
     stubKafkaService.ensureTopic(sinkTopic);
     return sinkTopic;
   }
 
   private static Optional<ParsedSchema> getSchema(
-      final DataSource dataSource,
-      final SchemaRegistryClient schemaRegistryClient) {
-    if (dataSource.getKsqlTopic().getValueFormat().getFormat().supportsSchemaInference()) {
-      try {
-        final String subject =
-            dataSource.getKafkaTopicName() + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX;
+      final String format,
+      final String subject,
+      final SchemaRegistryClient schemaRegistryClient
+  ) {
+    final Format valueFormat = FormatFactory
+        .fromName(format);
 
-        final SchemaMetadata metadata = schemaRegistryClient.getLatestSchemaMetadata(subject);
-        return Optional.of(
-            schemaRegistryClient.getSchemaBySubjectAndId(subject, metadata.getId())
-        );
-      } catch (final Exception e) {
-        // do nothing
-      }
+    if (!valueFormat.supportsFeature(SerdeFeature.SCHEMA_INFERENCE)) {
+      return Optional.empty();
+    }
+
+    try {
+      final SchemaMetadata metadata = schemaRegistryClient.getLatestSchemaMetadata(subject);
+      return Optional.of(
+          schemaRegistryClient.getSchemaBySubjectAndId(subject, metadata.getId())
+      );
+    } catch (final Exception e) {
+      // do nothing
     }
     return Optional.empty();
   }
@@ -222,7 +251,8 @@ public final class TestExecutorUtil {
       final TestCase testCase,
       final ServiceContext serviceContext,
       final StubKafkaService stubKafkaService,
-      final FunctionRegistry functionRegistry
+      final FunctionRegistry functionRegistry,
+      final KsqlConfig ksqlConfig
   ) {
     final KafkaTopicClient topicClient = serviceContext.getTopicClient();
     final SchemaRegistryClient srClient = serviceContext.getSchemaRegistryClient();
@@ -236,7 +266,8 @@ public final class TestExecutorUtil {
         testCase.getTopics(),
         testCase.getOutputRecords(),
         testCase.getInputRecords(),
-        functionRegistry
+        functionRegistry,
+        testCase.applyProperties(ksqlConfig)
     );
 
     for (final Topic topic : topics) {
@@ -246,9 +277,16 @@ public final class TestExecutorUtil {
           topic.getNumPartitions(),
           topic.getReplicas());
 
-      topic.getSchema().ifPresent(schema -> {
+      topic.getKeySchema().ifPresent(schema -> {
         try {
-          srClient.register(topic.getName() + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX, schema);
+          srClient.register(KsqlConstants.getSRSubject(topic.getName(), true), schema);
+        } catch (final Exception e) {
+          throw new RuntimeException(e);
+        }
+      });
+      topic.getValueSchema().ifPresent(schema -> {
+        try {
+          srClient.register(KsqlConstants.getSRSubject(topic.getName(), false), schema);
         } catch (final Exception e) {
           throw new RuntimeException(e);
         }
@@ -258,6 +296,9 @@ public final class TestExecutorUtil {
 
   /**
    * @param srClient if supplied, then schemas can be inferred from the schema registry.
+   * @return a list of persistent queries that should be run by the test executor, if a
+   *         query was replaced via a CREATE OR REPLACE statement it will only appear once
+   *         in the output list
    */
   @SuppressWarnings("OptionalGetWithoutIsPresent")
   private static List<PersistentQueryAndSources> execute(
@@ -268,25 +309,60 @@ public final class TestExecutorUtil {
       final StubKafkaService stubKafkaService,
       final TestExecutionListener listener
   ) {
-    final ImmutableList.Builder<PersistentQueryAndSources> queriesBuilder = new Builder<>();
-    for (final ConfiguredKsqlPlan plan
-        : planTestCase(engine, testCase, ksqlConfig, srClient, stubKafkaService)) {
+    final Map<QueryId, PersistentQueryAndSources> queries = new LinkedHashMap<>();
 
-      listener.acceptPlan(plan);
+    int idx = 0;
+    final Iterator<PlannedStatement> plans =
+        planTestCase(engine, testCase, ksqlConfig, srClient, stubKafkaService);
 
-      final ExecuteResultAndSources result = executePlan(engine, plan);
-      if (!result.getSources().isPresent()) {
-        continue;
+    try {
+      while (plans.hasNext()) {
+        ++idx;
+        final PlannedStatement planned = plans.next();
+        if (planned.insertValues.isPresent()) {
+          final ConfiguredStatement<InsertValues> insertValues = planned.insertValues.get();
+
+          final SessionProperties sessionProperties = new SessionProperties(
+              insertValues.getSessionConfig().getOverrides(),
+              new KsqlHostInfo("host", 50),
+              buildUrl(),
+              false);
+
+          StubInsertValuesExecutor.of(stubKafkaService).execute(
+              insertValues,
+              sessionProperties,
+              engine,
+              engine.getServiceContext()
+          );
+          continue;
+        }
+
+        final ConfiguredKsqlPlan plan = planned.plan.orElseThrow(IllegalStateException::new);
+
+        listener.acceptPlan(plan);
+
+        final ExecuteResultAndSources result = executePlan(engine, plan);
+        if (!result.getSources().isPresent()) {
+          continue;
+        }
+
+        final PersistentQueryMetadata query = (PersistentQueryMetadata) result
+            .getExecuteResult().getQuery().get();
+
+        listener.acceptQuery(query);
+
+        queries.put(
+            query.getQueryId(),
+            new PersistentQueryAndSources(query, result.getSources().get()));
       }
-
-      final PersistentQueryMetadata query = (PersistentQueryMetadata) result
-          .getExecuteResult().getQuery().get();
-
-      listener.acceptQuery(query);
-
-      queriesBuilder.add(new PersistentQueryAndSources(query, result.getSources().get()));
+      return ImmutableList.copyOf(queries.values());
+    } catch (final KsqlStatementException e) {
+      if (testCase.expectedException().isPresent() && plans.hasNext()) {
+        throw new AssertionError("Only the last statement in a negative test should fail. "
+            + "Yet in this case statement " + idx + " failed.", e);
+      }
+      throw e;
     }
-    return queriesBuilder.build();
   }
 
   private static ExecuteResultAndSources executePlan(
@@ -317,34 +393,41 @@ public final class TestExecutorUtil {
     return sourceBuilder.build();
   }
 
-  private static final class PlannedStatementIterator implements
-      Iterable<ConfiguredKsqlPlan>, Iterator<ConfiguredKsqlPlan> {
+  static final class PlannedStatement {
+
+    final Optional<ConfiguredKsqlPlan> plan;
+    final Optional<ConfiguredStatement<InsertValues>> insertValues;
+
+    PlannedStatement(final ConfiguredKsqlPlan plan) {
+      this.plan = Optional.of(plan);
+      this.insertValues = Optional.empty();
+    }
+
+    PlannedStatement(final ConfiguredStatement<InsertValues> insertValues) {
+      this.plan = Optional.empty();
+      this.insertValues = Optional.of(insertValues);
+    }
+  }
+
+  private static final class PlannedStatementIterator implements Iterator<PlannedStatement> {
+
     private final Iterator<ParsedStatement> statements;
     private final KsqlExecutionContext executionContext;
-    private final SessionProperties sessionProperties;
+    private final Map<String, Object> overrides;
     private final KsqlConfig ksqlConfig;
-    private final StubKafkaService stubKafkaService;
     private final Optional<DefaultSchemaInjector> schemaInjector;
-    private Optional<ConfiguredKsqlPlan> next = Optional.empty();
 
     private PlannedStatementIterator(
         final Iterator<ParsedStatement> statements,
         final KsqlExecutionContext executionContext,
         final Map<String, Object> overrides,
         final KsqlConfig ksqlConfig,
-        final StubKafkaService stubKafkaService,
         final Optional<DefaultSchemaInjector> schemaInjector
     ) {
       this.statements = requireNonNull(statements, "statements");
       this.executionContext = requireNonNull(executionContext, "executionContext");
-      this.sessionProperties =
-          new SessionProperties(
-              requireNonNull(overrides, "overrides"),
-              new KsqlHostInfo("host", 50),
-              buildUrl(),
-              false);
+      this.overrides = requireNonNull(overrides, "overrides");
       this.ksqlConfig = requireNonNull(ksqlConfig, "ksqlConfig");
-      this.stubKafkaService = requireNonNull(stubKafkaService, "stubKafkaService");
       this.schemaInjector = requireNonNull(schemaInjector, "schemaInjector");
     }
 
@@ -352,8 +435,7 @@ public final class TestExecutorUtil {
         final KsqlExecutionContext executionContext,
         final TestCase testCase,
         final KsqlConfig ksqlConfig,
-        final Optional<SchemaRegistryClient> srClient,
-        final StubKafkaService stubKafkaService
+        final Optional<SchemaRegistryClient> srClient
     ) {
       final Optional<DefaultSchemaInjector> schemaInjector = srClient
           .map(SchemaRegistryTopicSchemaSupplier::new)
@@ -366,71 +448,47 @@ public final class TestExecutorUtil {
           executionContext,
           testCase.properties(),
           ksqlConfig,
-          stubKafkaService,
           schemaInjector
       );
     }
 
     @Override
     public boolean hasNext() {
-      while (!next.isPresent() && statements.hasNext()) {
-        next = planStatement(statements.next());
-      }
-      return next.isPresent();
+      return statements.hasNext();
     }
 
-    @SuppressWarnings("ResultOfMethodCallIgnored")
     @Override
-    public ConfiguredKsqlPlan next() {
-      hasNext();
-      final ConfiguredKsqlPlan current = next.orElseThrow(NoSuchElementException::new);
-      next = Optional.empty();
-      return current;
-    }
-
-    @SuppressWarnings("NullableProblems")
-    @Override
-    public Iterator<ConfiguredKsqlPlan> iterator() {
-      return this;
+    public PlannedStatement next() {
+      return planStatement(statements.next());
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})
-    private Optional<ConfiguredKsqlPlan> planStatement(final ParsedStatement stmt) {
+    private PlannedStatement planStatement(final ParsedStatement stmt) {
       final PreparedStatement<?> prepared = executionContext.prepare(stmt);
       final ConfiguredStatement<?> configured = ConfiguredStatement.of(
-          prepared, sessionProperties.getMutableScopedProperties(), ksqlConfig);
+          prepared,
+          SessionConfig.of(ksqlConfig, overrides)
+      );
 
       if (prepared.getStatement() instanceof InsertValues) {
-        StubInsertValuesExecutor.of(stubKafkaService, executionContext).execute(
-            (ConfiguredStatement<InsertValues>) configured,
-            sessionProperties,
-            executionContext,
-            executionContext.getServiceContext()
-        );
-        return Optional.empty();
+        return new PlannedStatement((ConfiguredStatement<InsertValues>) configured);
       }
 
+      final ConfiguredStatement<?> withFormats =
+          new DefaultFormatInjector().inject(configured);
       final ConfiguredStatement<?> withSchema =
           schemaInjector
-              .map(injector -> injector.inject(configured))
-              .orElse((ConfiguredStatement) configured);
+              .map(injector -> injector.inject(withFormats))
+              .orElse((ConfiguredStatement) withFormats);
       final ConfiguredStatement<?> reformatted =
           new SqlFormatInjector(executionContext).inject(withSchema);
 
-      try {
-        final KsqlPlan plan = executionContext
-            .plan(executionContext.getServiceContext(), reformatted);
-        return Optional.of(
-            ConfiguredKsqlPlan.of(
-                rewritePlan(plan),
-                reformatted.getConfigOverrides(),
-                reformatted.getConfig()
-            )
-        );
-      } catch (final KsqlStatementException e) {
-        throw new KsqlStatementException(
-            e.getUnloggedMessage(), withSchema.getMaskedStatementText(), e.getCause());
-      }
+      final KsqlPlan plan = executionContext
+          .plan(executionContext.getServiceContext(), reformatted);
+
+      return new PlannedStatement(
+          ConfiguredKsqlPlan.of(rewritePlan(plan), reformatted.getSessionConfig())
+      );
     }
 
     private static KsqlPlan rewritePlan(final KsqlPlan plan) {

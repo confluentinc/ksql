@@ -20,6 +20,7 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 
 import io.confluent.ksql.function.KsqlFunctionException;
+import org.junit.Assert;
 import org.junit.Test;
 
 public class EncodeTest {
@@ -41,6 +42,20 @@ public class EncodeTest {
     assertThat(udf.encode("31202b2031203d2031", "hex", "ascii"), is("1 + 1 = 1"));
     assertThat(udf.encode("ce95cebbcebbceacceb4ceb1", "hex", "ascii"), is("������������"));
     assertThat(udf.encode("c39c6265726d656e736368", "hex", "ascii"), is("��bermensch"));
+
+    assertThat(udf.encode("0x48656c6c6f20576f726c6421", "hex", "ascii"), is("Hello World!"));
+    assertThat(udf.encode("0x9", "hex", "ascii"), is("\t"));
+    assertThat(udf.encode("0x", "hex", "ascii"), is(""));
+    assertThat(udf.encode("X'436c6f7564792a7e2a3f'", "hex", "ascii"), is("Cloudy*~*?"));
+    assertThat(udf.encode("x'4578616d706C6521'", "hex", "ascii"), is("Example!"));
+
+    assertThat(udf.encode("X''", "hex", "ascii"), is(""));
+    assertThat(udf.encode("x''", "hex", "ascii"), is(""));
+    assertThat(udf.encode("0x578616d706C6521", "hex", "ascii"), is("\u0005xample!"));
+    Assert.assertThrows(KsqlFunctionException.class, () -> udf.encode("578616d706C6521", "hex", "ascii"));
+    Assert.assertThrows(KsqlFunctionException.class, () -> udf.encode("X'578616d706C6521'", "hex", "ascii"));
+    Assert.assertThrows(KsqlFunctionException.class, () -> udf.encode("x'578616d706C6521'", "hex", "ascii"));
+
   }
 
   @Test
@@ -51,6 +66,13 @@ public class EncodeTest {
     assertThat(udf.encode("ce95cebbcebbceacceb4ceb1", "hex", "utf8"), is("Ελλάδα"));
     assertThat(udf.encode("c39c6265726d656e736368", "hex", "utf8"), is("Übermensch"));
 
+    assertThat(udf.encode("0x4578616d706c6521", "hex", "utf8"), is("Example!"));
+    assertThat(udf.encode("0x", "hex", "utf8"), is(""));
+    assertThat(udf.encode("X'506C6174666F726D2D7C5F5F5F5F5F7C2D'", "hex", "utf8"), is("Platform-|_____|-"));
+    assertThat(udf.encode("x'31202b2031203d2031'", "hex", "utf8"), is("1 + 1 = 1"));
+
+    assertThat(udf.encode("X''", "hex", "utf8"), is(""));
+    assertThat(udf.encode("x''", "hex", "utf8"), is(""));
   }
 
   @Test
@@ -61,6 +83,12 @@ public class EncodeTest {
     assertThat(udf.encode("ce95cebbcebbceacceb4ceb1", "hex", "base64"), is("zpXOu867zqzOtM6x"));
     assertThat(udf.encode("c39c6265726d656e736368", "hex", "base64"), is("w5xiZXJtZW5zY2g="));
 
+    assertThat(udf.encode("0x4578616d706c6521", "hex", "base64"), is("RXhhbXBsZSE="));
+    assertThat(udf.encode("X'7e8a016abfff'", "hex", "base64"), is("fooBar//"));
+    assertThat(udf.encode("x'328ba7b5a8a75627b0'", "hex", "base64"), is("MountainView"));
+    assertThat(udf.encode("0x", "hex", "base64"), is(""));
+    assertThat(udf.encode("X''", "hex", "base64"), is(""));
+    assertThat(udf.encode("x''", "hex", "base64"), is(""));
   }
 
   @Test

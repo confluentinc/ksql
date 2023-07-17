@@ -22,7 +22,7 @@
     <parent>
         <groupId>io.confluent.ksql</groupId>
         <artifactId>ksqldb-parent</artifactId>
-        <version>6.0.14-SNAPSHOT</version>
+        <version>6.1.12-0</version>
     </parent>
 
     <artifactId>ksqldb-version-metrics-client</artifactId>
@@ -32,6 +32,7 @@
         <dependency>
             <groupId>io.confluent.ksql</groupId>
             <artifactId>ksqldb-common</artifactId>
+            <version>${io.confluent.ksql.version}</version>
         </dependency>
 
         <dependency>
@@ -42,6 +43,7 @@
         <dependency>
             <groupId>io.confluent.ksql</groupId>
             <artifactId>ksqldb-engine</artifactId>
+            <version>${io.confluent.ksql.version}</version>
         </dependency>
 
         <!-- Required for running tests -->
@@ -49,7 +51,7 @@
         <dependency>
             <groupId>io.confluent.ksql</groupId>
             <artifactId>ksqldb-test-util</artifactId>
-            <version>${project.version}</version>
+            <version>${io.confluent.ksql.version}</version>
             <scope>test</scope>
         </dependency>
 
@@ -60,14 +62,8 @@
         </dependency>
 
         <dependency>
-            <groupId>org.apache.httpcomponents</groupId>
-            <artifactId>httpclient</artifactId>
-            <version>${apache.httpcomponents.version}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>org.apache.httpcomponents</groupId>
-            <artifactId>httpmime</artifactId>
+            <groupId>org.apache.httpcomponents.client5</groupId>
+            <artifactId>httpclient5</artifactId>
             <version>${apache.httpcomponents.version}</version>
         </dependency>
     </dependencies>

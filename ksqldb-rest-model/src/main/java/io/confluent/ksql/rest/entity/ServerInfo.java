@@ -31,15 +31,18 @@ public class ServerInfo {
   private final String version;
   private final String kafkaClusterId;
   private final String ksqlServiceId;
+  private final String serverStatus;
 
   @JsonCreator
   public ServerInfo(
       @JsonProperty("version") final String version,
       @JsonProperty("kafkaClusterId") final String kafkaClusterId,
-      @JsonProperty("ksqlServiceId") final String ksqlServiceId) {
+      @JsonProperty("ksqlServiceId") final String ksqlServiceId,
+      @JsonProperty("serverStatus") final String serverStatus) {
     this.version = version;
     this.kafkaClusterId = kafkaClusterId;
     this.ksqlServiceId = ksqlServiceId;
+    this.serverStatus = serverStatus;
   }
 
   public String getVersion() {
@@ -54,6 +57,10 @@ public class ServerInfo {
     return ksqlServiceId;
   }
 
+  public String getServerStatus() {
+    return serverStatus;
+  }
+
   @Override
   public boolean equals(final Object o) {
     if (this == o) {
@@ -63,13 +70,14 @@ public class ServerInfo {
       return false;
     }
     final ServerInfo that = (ServerInfo) o;
-    return Objects.equals(version, that.version)
-           && Objects.equals(kafkaClusterId, that.kafkaClusterId)
-           && Objects.equals(ksqlServiceId, that.ksqlServiceId);
+    return Objects.equals(version, that.version) 
+        && Objects.equals(kafkaClusterId, that.kafkaClusterId)
+        && Objects.equals(ksqlServiceId, that.ksqlServiceId) 
+        && Objects.equals(serverStatus, that.serverStatus);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(version, kafkaClusterId, ksqlServiceId);
+    return Objects.hash(version, kafkaClusterId, ksqlServiceId, serverStatus);
   }
 }

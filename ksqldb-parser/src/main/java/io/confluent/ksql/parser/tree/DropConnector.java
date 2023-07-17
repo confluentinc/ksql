@@ -15,17 +15,29 @@
 
 package io.confluent.ksql.parser.tree;
 
+import static com.google.common.base.MoreObjects.toStringHelper;
+
 import io.confluent.ksql.parser.NodeLocation;
 import java.util.Objects;
 import java.util.Optional;
 
 public class DropConnector extends Statement {
 
+  private final boolean ifExists;
   private final String connectorName;
 
-  public DropConnector(final Optional<NodeLocation> location, final String connectorName) {
+  public DropConnector(
+      final Optional<NodeLocation> location,
+      final boolean ifExists,
+      final String connectorName
+  ) {
     super(location);
+    this.ifExists = ifExists;
     this.connectorName = connectorName;
+  }
+
+  public boolean getIfExists() {
+    return ifExists;
   }
 
   public String getConnectorName() {
@@ -41,18 +53,19 @@ public class DropConnector extends Statement {
       return false;
     }
     final DropConnector that = (DropConnector) o;
-    return Objects.equals(connectorName, that.connectorName);
+    return Objects.equals(connectorName, that.connectorName) && ifExists == that.ifExists;
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(connectorName);
+    return Objects.hash(ifExists, connectorName);
   }
 
   @Override
   public String toString() {
-    return "DropConnector{"
-        + "connectorName='" + connectorName + '\''
-        + '}';
+    return toStringHelper(this)
+            .add("ifExists", ifExists)
+            .add("connectorName", connectorName)
+            .toString();
   }
 }

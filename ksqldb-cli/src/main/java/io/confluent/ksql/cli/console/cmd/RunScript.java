@@ -26,7 +26,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-final class RunScript implements CliSpecificCommand {
+public final class RunScript implements CliSpecificCommand {
 
   private static final String HELP = "run script <path_to_sql_file>:" + System.lineSeparator()
       + "\tLoad and run the statements in the supplied file." + System.lineSeparator()
@@ -38,7 +38,7 @@ final class RunScript implements CliSpecificCommand {
     this.requestExecutor = Objects.requireNonNull(requestExecutor, "requestExecutor");
   }
 
-  static RunScript create(final KsqlRequestExecutor requestExecutor) {
+  public static RunScript create(final KsqlRequestExecutor requestExecutor) {
     return new RunScript(requestExecutor);
   }
 

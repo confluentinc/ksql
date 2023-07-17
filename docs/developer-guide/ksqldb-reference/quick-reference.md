@@ -21,6 +21,27 @@ SELECT [...], aggregate_function
   WINDOW HOPPING (SIZE <time_span> <time_units>, ADVANCE BY <time_span> <time_units>) [...]
 ```
 
+## ALTER STREAM
+Add new columns to a stream. This is not supported for streams defined using queries
+(`CREATE STREAM ... AS`).
+
+```sql
+ALTER STREAM stream_name
+  ADD [COLUMN] column_name data_type
+  ADD [COLUMN] ... ...
+  ...
+```
+
+## ALTER TABLE
+Add new columns to a table. This is not supported for table defined using queries
+(`CREATE TABLE ... AS`)
+```sql
+ALTER TABLE stream_name
+  ADD [COLUMN] column_name data_type
+  ADD [COLUMN] ... ...
+  ...
+```
+
 ## AND / OR
 Logical AND/OR operators in a WHERE clause. For more information, see
 [SELECT](../../ksqldb-reference/select-push-query/#example).
@@ -190,6 +211,14 @@ Alias a complex type declaration. For more information, see
 CREATE TYPE <type_name> AS <type>;
 ```
 
+## DEFINE
+
+Defines a variable.
+
+```sql
+DEFINE <name> = '<value>';
+```
+
 ## DESCRIBE
 List columns in a stream or table along with their data types and other
 attributes. For more information, see [DESCRIBE](../../ksqldb-reference/describe).
@@ -243,12 +272,12 @@ Remove a type alias from ksqlDB. For more information, see
 [DROP TYPE](../../ksqldb-reference/drop-type).
 
 ```sql
-DROP TYPE <type_name> AS <type>;
+DROP TYPE [IF EXISTS] <type_name> AS <type>;
 ```
 
 ## EMIT CHANGES
-Specify a push query in a SELECT statement. For more information, see
-[Push Queries](../../concepts/queries/push).
+Specify a push query with a continuous output refinement in a SELECT statement. 
+For more information, see [Push Queries](../../concepts/queries/push).
 
 ```sql
 CREATE STREAM stream_name
@@ -318,16 +347,6 @@ Test whether a stream or table is present in ksqlDB.
 ```sql
 DROP STREAM [IF EXISTS] stream_name [DELETE TOPIC];
 DROP TABLE  [IF EXISTS] table_name  [DELETE TOPIC];
-```
-
-## IN
-Specify multiple values in a WHERE clause.
-
-```sql hl_lines="4"
-SELECT column_name(s)
-  FROM stream_name | table_name
-  WHERE column_name
-  IN (value1,value2,..)
 ```
 
 ## INNER JOIN
@@ -400,6 +419,23 @@ SELECT user_id
   FROM users
   WHERE user_id LIKE 'santa%'
   EMIT CHANGES;
+```
+
+## IN
+Specifies multiple `OR` conditions. This is currently only supported for Pull Queries.
+
+```sql hl_lines"3"
+  SELECT select_expr [., ...]
+    FROM from_stream | from_table
+    WHERE exp IN (exp0, exp1, exp2);
+```
+
+The above is equivalent to:
+
+```sql hl_lines"3"
+  SELECT select_expr [., ...]
+    FROM from_stream | from_table
+    WHERE exp = exp0 OR exp = exp1 OR exp = exp2;
 ```
 
 ## PARTITION BY
@@ -535,6 +571,13 @@ see [SHOW TYPES](../../ksqldb-reference/show-types).
 SHOW | LIST TYPES;
 ```
 
+## SHOW VARIABLES
+List all defined variables.
+
+```sql
+SHOW VARIABLES;
+```
+
 ## SIZE
 Specify the duration of a HOPPING or TUMBLING window. For more information,
 see [Time and Windows in ksqlDB](../../concepts/time-and-windows-in-ksqldb-queries).
@@ -571,6 +614,14 @@ SELECT WINDOWSTART, WINDOWEND, aggregate_function
   FROM from_stream
   WINDOW TUMBLING window_expression
   EMIT CHANGES;
+```
+
+## UNDEFINE
+
+Undefines a variable.
+
+```sql
+UNDEFINE name;
 ```
 
 ## WHERE

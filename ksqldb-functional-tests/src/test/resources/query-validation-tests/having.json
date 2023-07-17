@@ -1,11 +1,6 @@
 {
   "comments": [
-    "You can specify multiple statements per test case, i.e., to set up the various streams needed",
-    "for joins etc, but currently only the final topology will be verified. This should be enough",
-    "for most tests as we can simulate the outputs from previous stages into the final stage. If we",
-    "take a modular approach to testing we can still verify that it all works correctly, i.e, if we",
-    "verify the output of a select or aggregate is correct, we can use simulated output to feed into",
-    "a join or another aggregate."
+    "Tests around HAVING clauses"
   ],
   "tests": [
     {
@@ -16,13 +11,12 @@
       ],
       "inputs": [
         {"topic": "test_topic", "key": 0,"value": "zero,0"},
-        {"topic": "test_topic", "key": 1,"value": "one,100"},
-        {"topic": "test_topic", "key": 1,"value": "one,5"}
+        {"topic": "test_topic", "key": 1,"value": "one,101"},
+        {"topic": "test_topic", "key": 1,"value": "one,-5"}
       ],
       "outputs": [
-        {"topic": "T1", "key": 0,"value": null, "window": {"start": 0, "end": 30000, "type": "time"}},
-        {"topic": "T1", "key": 1,"value": null, "window": {"start": 0, "end": 30000, "type": "time"}},
-        {"topic": "T1", "key": 1,"value": "105", "window": {"start": 0, "end": 30000, "type": "time"}}
+        {"topic": "T1", "key": 1,"value": "101", "window": {"start": 0, "end": 30000, "type": "time"}},
+        {"topic": "T1", "key": 1,"value": null, "window": {"start": 0, "end": 30000, "type": "time"}}
       ]
     },
     {
@@ -46,6 +40,5 @@
         {"topic": "AVG", "key": 1,"value": "55"}
       ]
     }
-
   ]
 }

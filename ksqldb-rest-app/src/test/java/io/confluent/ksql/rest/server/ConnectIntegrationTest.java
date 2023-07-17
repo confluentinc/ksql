@@ -17,6 +17,8 @@ package io.confluent.ksql.rest.server;
 
 import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.equalToIgnoringCase;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
@@ -32,7 +34,9 @@ import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.entity.ConnectorDescription;
 import io.confluent.ksql.rest.entity.ConnectorList;
 import io.confluent.ksql.rest.entity.DropConnectorEntity;
+import io.confluent.ksql.rest.entity.ErrorEntity;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
+import io.confluent.ksql.rest.entity.WarningEntity;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Optional;
@@ -114,7 +118,8 @@ public class ConnectIntegrationTest {
             name -> ksqlRestClient.makeKsqlRequest("DROP CONNECTOR `" + name + "`;"));
 
     assertThatEventually(
-        () -> ((ConnectorList) ksqlRestClient.makeKsqlRequest("SHOW CONNECTORS;").getResponse().get(0)).getConnectors(),
+        () -> ((ConnectorList) ksqlRestClient.makeKsqlRequest("SHOW CONNECTORS;").getResponse()
+            .get(0)).getConnectors(),
         Matchers.empty()
     );
   }
@@ -155,7 +160,8 @@ public class ConnectIntegrationTest {
     final AtomicReference<RestResponse<KsqlEntityList>> responseHolder = new AtomicReference<>();
     assertThatEventually(
         () -> {
-          responseHolder.set(ksqlRestClient.makeKsqlRequest("DESCRIBE CONNECTOR `mock-connector`;"));
+          responseHolder
+              .set(ksqlRestClient.makeKsqlRequest("DESCRIBE CONNECTOR `mock-connector`;"));
           return responseHolder.get().getResponse().get(0);
         },
         // there is a race condition were create from line 150 may not have gone through
@@ -193,6 +199,44 @@ public class ConnectIntegrationTest {
     assertThat(
         ((DropConnectorEntity) response.getResponse().get(0)).getConnectorName(),
         is("mock-connector"));
+  }
+
+  @Test
+  public void shouldReturnWarning() {
+    // Given:
+    create("mock-connector", ImmutableMap.of(
+        "connector.class", "org.apache.kafka.connect.tools.MockSourceConnector"
+    ));
+
+    // When:
+    final RestResponse<KsqlEntityList> response = ksqlRestClient
+        .makeKsqlRequest("CREATE SOURCE CONNECTOR IF NOT EXISTS `mock-connector` "
+            + "WITH(\"connector.class\"='org.apache.kafka.connect.tools.MockSourceConnector');");
+
+    //Then
+    assertThat("expected successful response", response.isSuccessful());
+    assertThat(response.getResponse().get(0), instanceOf(WarningEntity.class));
+    assertThat(((WarningEntity) response.getResponse().get(0)).getMessage(),
+        equalToIgnoringCase("Connector mock-connector already exists"));
+  }
+
+  @Test
+  public void shouldReturnError() {
+    // Given:
+    create("mock-connector", ImmutableMap.of(
+        "connector.class", "org.apache.kafka.connect.tools.MockSourceConnector"
+    ));
+
+    // When:
+    final RestResponse<KsqlEntityList> response = ksqlRestClient
+        .makeKsqlRequest("CREATE SOURCE CONNECTOR `mock-connector` "
+            + "WITH(\"connector.class\"='org.apache.kafka.connect.tools.MockSourceConnector');");
+
+    //Then
+    assertThat("expected successful response", response.isSuccessful());
+    assertThat(response.getResponse().get(0), instanceOf(ErrorEntity.class));
+    assertThat(((ErrorEntity) response.getResponse().get(0)).getErrorMessage(),
+        containsString("Connector mock-connector already exists"));
   }
 
   private void create(final String name, final Map<String, String> properties) {

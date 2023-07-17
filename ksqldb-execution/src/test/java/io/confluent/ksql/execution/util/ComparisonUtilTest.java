@@ -22,7 +22,6 @@ import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
-import io.confluent.ksql.schema.ksql.types.SqlBaseType;
 import io.confluent.ksql.schema.ksql.types.SqlDecimal;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
@@ -40,14 +39,9 @@ public class ComparisonUtilTest {
       SqlDecimal.of(4, 2),
       SqlTypes.STRING,
       SqlTypes.array(SqlTypes.STRING),
-      SqlTypes.map(SqlTypes.STRING),
+      SqlTypes.map(SqlTypes.BIGINT, SqlTypes.STRING),
       SqlTypes.struct().field("foo", SqlTypes.BIGINT).build()
   );
-
-  private static final SqlBaseType[] SCHEMA_TO_SQL_NAME = new SqlBaseType[] {
-      SqlBaseType.BOOLEAN, SqlBaseType.INTEGER, SqlBaseType.BIGINT, SqlBaseType.DOUBLE,
-      SqlBaseType.DECIMAL, SqlBaseType.STRING, SqlBaseType.ARRAY, SqlBaseType.MAP, SqlBaseType.STRUCT
-  };
 
   private static final List<List<Boolean>> expectedResults = ImmutableList.of(
       ImmutableList.of(true, false, false, false, false, false, false, false, false), // Boolean
@@ -56,9 +50,9 @@ public class ComparisonUtilTest {
       ImmutableList.of(false, true, true, true, true, false, false, false, false), // Double
       ImmutableList.of(false, true, true, true, true, false, false, false, false),  // Decimal
       ImmutableList.of(false, false, false, false, false, true, false, false, false),  // String
-      ImmutableList.of(false, false, false, false, false, false, false, false, false), // Array
-      ImmutableList.of(false, false, false, false, false, false, false, false, false), // Map
-      ImmutableList.of(false, false, false, false, false, false, false, false, false) // Struct
+      ImmutableList.of(false, false, false, false, false, false, true, false, false), // Array
+      ImmutableList.of(false, false, false, false, false, false, false, true, false), // Map
+      ImmutableList.of(false, false, false, false, false, false, false, false, true) // Struct
   );
 
   @Test

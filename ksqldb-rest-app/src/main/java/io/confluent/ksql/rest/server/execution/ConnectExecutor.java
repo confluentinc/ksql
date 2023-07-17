@@ -23,16 +23,20 @@ import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.rest.entity.CreateConnectorEntity;
 import io.confluent.ksql.rest.entity.ErrorEntity;
 import io.confluent.ksql.rest.entity.KsqlEntity;
+import io.confluent.ksql.rest.entity.WarningEntity;
 import io.confluent.ksql.services.ConnectClient;
 import io.confluent.ksql.services.ConnectClient.ConnectResponse;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
+import java.util.List;
 import java.util.Optional;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorInfo;
 
 public final class ConnectExecutor {
 
-  private ConnectExecutor() { }
+  private ConnectExecutor() {
+  }
 
   public static Optional<KsqlEntity> execute(
       final ConfiguredStatement<CreateConnector> statement,
@@ -42,7 +46,13 @@ public final class ConnectExecutor {
   ) {
     final CreateConnector createConnector = statement.getStatement();
     final ConnectClient client = serviceContext.getConnectClient();
-    final String maskedStatement = statement.getMaskedStatementText();
+    final String maskedStatementText = statement.getMaskedStatementText();
+
+    final Optional<KsqlEntity> connectorsResponse = handleIfNotExists(
+        maskedStatementText, createConnector, client);
+    if (connectorsResponse.isPresent()) {
+      return connectorsResponse;
+    }
 
     final ConnectResponse<ConnectorInfo> response = client.create(
         createConnector.getName(),
@@ -54,13 +64,53 @@ public final class ConnectExecutor {
     if (response.datum().isPresent()) {
       return Optional.of(
           new CreateConnectorEntity(
-              maskedStatement,
+              maskedStatementText,
               response.datum().get()
           )
       );
     }
 
+    if (createConnector.ifNotExists()) {
+      final Optional<KsqlEntity> connectors = handleIfNotExists(maskedStatementText,
+          createConnector, client);
+
+      if (connectors.isPresent()) {
+        return connectors;
+      }
+    }
+
     return response.error()
-        .map(err -> new ErrorEntity(maskedStatement, err));
+        .map(err -> new ErrorEntity(maskedStatementText, err));
+  }
+
+  private static Optional<KsqlEntity> handleIfNotExists(
+      final String maskedStatementText,
+      final CreateConnector createConnector,
+      final ConnectClient client) {
+    if (createConnector.ifNotExists()) {
+      final ConnectResponse<List<String>> connectorsResponse = client.connectors();
+      if (connectorsResponse.error().isPresent()) {
+        return connectorsResponse.error()
+            .map(err -> new ErrorEntity(maskedStatementText, err));
+      }
+
+      if (checkIfConnectorExists(createConnector, connectorsResponse)) {
+        return Optional.of(new WarningEntity(maskedStatementText,
+            String.format("Connector %s already exists", createConnector.getName())));
+      }
+    }
+    return Optional.empty();
+  }
+
+  private static boolean checkIfConnectorExists(
+      final CreateConnector createConnector,
+      final ConnectResponse<List<String>> connectorsResponse
+  ) {
+    return connectorsResponse.datum()
+        .get()
+        .stream()
+        .filter(connector -> StringUtils.equalsIgnoreCase(createConnector.getName(), connector))
+        .findAny()
+        .isPresent();
   }
 }

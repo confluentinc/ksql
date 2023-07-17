@@ -16,6 +16,7 @@
 package io.confluent.ksql.function.udf.string;
 
 import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.function.FunctionCategory;
 import io.confluent.ksql.function.KsqlFunctionException;
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
@@ -30,6 +31,7 @@ import org.apache.commons.codec.binary.Hex;
 @SuppressWarnings("checkstyle:ClassDataAbstractionCoupling")
 @UdfDescription(name = "encode",
     author = KsqlConstants.CONFLUENT_AUTHOR,
+    category = FunctionCategory.STRING,
     description = "Takes an input string s, which is encoded as input_encoding, "
         + "and encodes it as output_encoding. The accepted input and output encodings are: "
         + "hex, utf8, ascii and base64. Throws exception if provided encodings are not supported.")
@@ -76,7 +78,6 @@ public class Encode {
         .apply(str);
   }
 
-
   interface Encoder {
     String apply(String input) throws KsqlFunctionException;
   }
@@ -86,7 +87,11 @@ public class Encode {
     @Override
     public String apply(final String input) {
       try {
-        final byte[] decoded = Hex.decodeHex(input);
+        //strip away "Ox" from front or "X\'" + "\'" from front or back of hex if present
+        final String processedInput;
+        processedInput = hexStrip(input);
+
+        final byte[] decoded = Hex.decodeHex(processedInput);
         return new String(decoded, StandardCharsets.US_ASCII);
       } catch (DecoderException e) {
         throw new KsqlFunctionException(e.getMessage());
@@ -99,8 +104,11 @@ public class Encode {
     @Override
     public String apply(final String input) throws KsqlFunctionException {
       final byte[] decodedHex;
+      //strip away "Ox" from front or "X\'" + "\'" from front and back of hex if present
+      final String processedInput;
+      processedInput = hexStrip(input);
       try {
-        decodedHex = Hex.decodeHex(input);
+        decodedHex = Hex.decodeHex(processedInput);
       } catch (DecoderException e) {
         throw new KsqlFunctionException(e.getMessage());
       }
@@ -115,8 +123,11 @@ public class Encode {
     @Override
     public String apply(final String input) throws KsqlFunctionException {
       final byte[] decodedHex;
+      //strip away "Ox" from front or "X\'" + "\'" from front and back of hex if present
+      final String processedInput;
+      processedInput = hexStrip(input);
       try {
-        decodedHex = Hex.decodeHex(input);
+        decodedHex = Hex.decodeHex(processedInput);
       } catch (DecoderException e) {
         throw new KsqlFunctionException(e.getMessage());
       }
@@ -202,6 +213,30 @@ public class Encode {
     public String apply(final String input) throws KsqlFunctionException {
       final byte[] decodedB64 = Base64.decodeBase64(input);
       return new String(decodedB64, StandardCharsets.US_ASCII);
+    }
+  }
+
+  /**
+   Strips away the "0x" from hex of type "0xAB79" and
+   strips away the "X\'" from front and "\'" from end of hex of type "X'AB79'".
+   Leaves every other type of hex (like AB79) untouched
+
+   @param hexString unstripped hex String
+   @return the string after removing
+   */
+  public static String hexStrip(final String hexString) {
+    final int hexLen = hexString.length();
+
+    if (hexString.matches("0x.*")) {
+      //matches with things like "0x" and "0x...."
+
+      //add an extra "0" to the front if there are odd number of digits
+      return hexLen % 2 != 0 ? "0" + hexString.substring(2) : hexString.substring(2);
+    } else if (hexString.matches("(x|X)\'.*\'")) {
+      //matches with things like "x''", "X''", "x'....'" and "X'....'"
+      return hexString.substring(2, hexLen - 1);
+    } else {
+      return hexString;
     }
   }
 }

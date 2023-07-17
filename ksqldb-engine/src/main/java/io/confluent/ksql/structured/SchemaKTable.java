@@ -20,6 +20,7 @@ import com.google.common.collect.Iterables;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.context.QueryContext.Stacker;
+import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.Formats;
@@ -30,19 +31,21 @@ import io.confluent.ksql.execution.plan.TableFilter;
 import io.confluent.ksql.execution.plan.TableGroupBy;
 import io.confluent.ksql.execution.plan.TableSelect;
 import io.confluent.ksql.execution.plan.TableSink;
+import io.confluent.ksql.execution.plan.TableSuppress;
 import io.confluent.ksql.execution.plan.TableTableJoin;
 import io.confluent.ksql.execution.streams.ExecutionStepFactory;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.serde.FormatInfo;
+import io.confluent.ksql.serde.InternalFormats;
 import io.confluent.ksql.serde.KeyFormat;
-import io.confluent.ksql.serde.SerdeOption;
-import io.confluent.ksql.serde.ValueFormat;
+import io.confluent.ksql.serde.RefinementInfo;
+import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 import org.apache.kafka.connect.data.Struct;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
@@ -69,19 +72,22 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
 
   @Override
   public SchemaKTable<K> into(
-      final String kafkaTopicName,
-      final ValueFormat valueFormat,
-      final Set<SerdeOption> options,
+      final KsqlTopic topic,
       final QueryContext.Stacker contextStacker,
       final Optional<TimestampColumn> timestampColumn
   ) {
+    if (!keyFormat.getWindowInfo().equals(topic.getKeyFormat().getWindowInfo())) {
+      throw new IllegalArgumentException("Can't change windowing");
+    }
+
     final TableSink<K> step = ExecutionStepFactory.tableSink(
         contextStacker,
         sourceTableStep,
-        Formats.of(keyFormat, valueFormat, options),
-        kafkaTopicName,
+        Formats.from(topic),
+        topic.getKafkaTopicName(),
         timestampColumn
     );
+
     return new SchemaKTable<>(
         step,
         resolveSchema(step),
@@ -138,6 +144,7 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
   @Override
   public SchemaKStream<Struct> selectKey(
       final Expression keyExpression,
+      final Optional<FormatInfo> forceInternalKeyFormat,
       final Stacker contextStacker
   ) {
     if (repartitionNotNeeded(ImmutableList.of(keyExpression))) {
@@ -161,16 +168,17 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
 
   @Override
   public SchemaKGroupedTable groupBy(
-      final ValueFormat valueFormat,
+      final FormatInfo valueFormat,
       final List<Expression> groupByExpressions,
       final Stacker contextStacker
   ) {
-    final KeyFormat groupedKeyFormat = KeyFormat.nonWindowed(keyFormat.getFormatInfo());
+    final KeyFormat groupedKeyFormat = KeyFormat
+        .nonWindowed(keyFormat.getFormatInfo(), SerdeFeatures.of());
 
     final TableGroupBy<K> step = ExecutionStepFactory.tableGroupBy(
         contextStacker,
         sourceTableStep,
-        Formats.of(groupedKeyFormat, valueFormat, SerdeOption.none()),
+        InternalFormats.of(groupedKeyFormat.getFormatInfo(), valueFormat),
         groupByExpressions
     );
 
@@ -187,6 +195,8 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
       final ColumnName keyColName,
       final Stacker contextStacker
   ) {
+    throwOnJoinKeyFormatsMismatch(schemaKTable);
+
     final TableTableJoin<K> step = ExecutionStepFactory.tableTableJoin(
         contextStacker,
         JoinType.INNER,
@@ -194,6 +204,7 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
         sourceTableStep,
         schemaKTable.getSourceTableStep()
     );
+
     return new SchemaKTable<>(
         step,
         resolveSchema(step, schemaKTable),
@@ -208,6 +219,8 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
       final ColumnName keyColName,
       final Stacker contextStacker
   ) {
+    throwOnJoinKeyFormatsMismatch(schemaKTable);
+
     final TableTableJoin<K> step = ExecutionStepFactory.tableTableJoin(
         contextStacker,
         JoinType.LEFT,
@@ -215,6 +228,7 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
         sourceTableStep,
         schemaKTable.getSourceTableStep()
     );
+
     return new SchemaKTable<>(
         step,
         resolveSchema(step, schemaKTable),
@@ -229,6 +243,8 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
       final ColumnName keyColName,
       final QueryContext.Stacker contextStacker
   ) {
+    throwOnJoinKeyFormatsMismatch(schemaKTable);
+
     final TableTableJoin<K> step = ExecutionStepFactory.tableTableJoin(
         contextStacker,
         JoinType.OUTER,
@@ -236,9 +252,31 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
         sourceTableStep,
         schemaKTable.getSourceTableStep()
     );
+
     return new SchemaKTable<>(
         step,
         resolveSchema(step, schemaKTable),
+        keyFormat,
+        ksqlConfig,
+        functionRegistry
+    );
+  }
+
+  public SchemaKTable<K> suppress(
+      final RefinementInfo refinementInfo,
+      final FormatInfo valueFormat,
+      final Stacker contextStacker
+  ) {
+    final TableSuppress<K> step = ExecutionStepFactory.tableSuppress(
+        contextStacker,
+        sourceTableStep,
+        refinementInfo,
+        InternalFormats.of(keyFormat.getFormatInfo(), valueFormat)
+    );
+
+    return new SchemaKTable<>(
+        step,
+        resolveSchema(step),
         keyFormat,
         ksqlConfig,
         functionRegistry

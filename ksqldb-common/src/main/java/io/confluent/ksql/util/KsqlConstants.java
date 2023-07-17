@@ -27,7 +27,8 @@ public final class KsqlConstants {
   public static final String STREAMS_CHANGELOG_TOPIC_SUFFIX = "-changelog";
   public static final String STREAMS_REPARTITION_TOPIC_SUFFIX = "-repartition";
 
-  public static final String SCHEMA_REGISTRY_VALUE_SUFFIX = "-value";
+  private static final String SCHEMA_REGISTRY_KEY_SUFFIX = "-key";
+  private static final String SCHEMA_REGISTRY_VALUE_SUFFIX = "-value";
 
   public static final long defaultSinkWindowChangeLogAdditionalRetention = 1000000;
 
@@ -40,10 +41,7 @@ public final class KsqlConstants {
   public static final String DOT = ".";
   public static final String STRUCT_FIELD_REF = "->";
 
-  public static final String AVRO_SCHEMA_NAMESPACE = "io.confluent.ksql.avro_schemas";
-  public static final String AVRO_SCHEMA_NAME = "KsqlDataSourceSchema";
-  public static final String DEFAULT_AVRO_SCHEMA_FULL_NAME =
-      AVRO_SCHEMA_NAMESPACE + "." + AVRO_SCHEMA_NAME;
+  public static final String KSQL_SERVICE_ID_METRICS_TAG = "ksql_service_id";
 
   public enum KsqlQueryType {
     PERSISTENT,
@@ -58,6 +56,13 @@ public final class KsqlConstants {
 
   public static KsqlQueryStatus fromStreamsState(final KafkaStreams.State state) {
     return state == KafkaStreams.State.ERROR ? KsqlQueryStatus.ERROR : KsqlQueryStatus.RUNNING;
+  }
+
+  public static String getSRSubject(final String topicName, final boolean isKey) {
+    final String suffix = isKey
+        ? KsqlConstants.SCHEMA_REGISTRY_KEY_SUFFIX
+        : KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX;
+    return topicName + suffix;
   }
 
   /**

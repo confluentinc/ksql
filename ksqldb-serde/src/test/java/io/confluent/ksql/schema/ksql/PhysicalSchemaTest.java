@@ -15,37 +15,32 @@
 
 package io.confluent.ksql.schema.ksql;
 
+import static io.confluent.ksql.serde.SerdeFeature.UNWRAP_SINGLES;
+import static io.confluent.ksql.serde.SerdeFeature.WRAP_SINGLES;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThrows;
 
 import com.google.common.testing.EqualsTester;
 import com.google.common.testing.NullPointerTester;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import io.confluent.ksql.serde.SerdeOption;
+import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.test.util.ImmutableTester;
-import io.confluent.ksql.util.KsqlException;
 import org.junit.Test;
 
 public class PhysicalSchemaTest {
 
-  private static final LogicalSchema SCHEMA_WITH_MULTIPLE_FIELDS = LogicalSchema.builder()
-      .keyColumn(SystemColumns.ROWKEY_NAME, SqlTypes.STRING)
-      .valueColumn(ColumnName.of("f0"), SqlTypes.BOOLEAN)
+  private static final LogicalSchema SCHEMA = LogicalSchema.builder()
+      .keyColumn(ColumnName.of("BOB"), SqlTypes.STRING)
       .valueColumn(ColumnName.of("f1"), SqlTypes.BOOLEAN)
       .build();
 
-  private static final LogicalSchema SCHEMA_WITH_SINGLE_FIELD = LogicalSchema.builder()
-      .keyColumn(SystemColumns.ROWKEY_NAME, SqlTypes.STRING)
-      .valueColumn(ColumnName.of("f0"), SqlTypes.BOOLEAN)
-      .build();
-
+  @SuppressWarnings("UnstableApiUsage")
   @Test
   public void shouldNPE() {
     new NullPointerTester()
-        .setDefault(LogicalSchema.class, SCHEMA_WITH_MULTIPLE_FIELDS)
+        .setDefault(SerdeFeatures.class, SerdeFeatures.of())
+        .setDefault(LogicalSchema.class, SCHEMA)
         .testAllPublicStaticMethods(PhysicalSchema.class);
   }
 
@@ -55,67 +50,50 @@ public class PhysicalSchemaTest {
         .test(PhysicalSchema.class);
   }
 
+  @SuppressWarnings("UnstableApiUsage")
   @Test
   public void shouldImplementEquals() {
+    final LogicalSchema diffSchema = LogicalSchema.builder().build();
     new EqualsTester()
         .addEqualityGroup(
-            PhysicalSchema.from(SCHEMA_WITH_SINGLE_FIELD, SerdeOption.none()),
-            PhysicalSchema.from(SCHEMA_WITH_SINGLE_FIELD, SerdeOption.none())
+            PhysicalSchema.from(SCHEMA, SerdeFeatures.of(), SerdeFeatures.of()),
+            PhysicalSchema.from(SCHEMA, SerdeFeatures.of(), SerdeFeatures.of())
         )
         .addEqualityGroup(
-            PhysicalSchema.from(SCHEMA_WITH_MULTIPLE_FIELDS, SerdeOption.none())
+            PhysicalSchema.from(diffSchema, SerdeFeatures.of(), SerdeFeatures.of())
         )
         .addEqualityGroup(
-            PhysicalSchema.from(SCHEMA_WITH_SINGLE_FIELD,
-                SerdeOption.of(SerdeOption.UNWRAP_SINGLE_VALUES))
+            PhysicalSchema.from(SCHEMA, SerdeFeatures.of(UNWRAP_SINGLES), SerdeFeatures.of())
+        )
+        .addEqualityGroup(
+            PhysicalSchema.from(SCHEMA, SerdeFeatures.of(), SerdeFeatures.of(WRAP_SINGLES))
         )
         .testEquals();
   }
 
   @Test
-  public void shouldNotFlattenValueSchemaWithMultipleFields() {
+  public void shouldReturnKeySchema() {
     // When:
     final PhysicalSchema result = PhysicalSchema
-        .from(SCHEMA_WITH_MULTIPLE_FIELDS, SerdeOption.none());
+        .from(SCHEMA, SerdeFeatures.of(UNWRAP_SINGLES), SerdeFeatures.of());
 
     // Then:
-    assertThat(result.valueSchema().serializedSchema(),
-        is(SCHEMA_WITH_MULTIPLE_FIELDS.valueConnectSchema()));
+    assertThat(result.keySchema(), is(PersistenceSchema.from(
+        SCHEMA.key(),
+        SerdeFeatures.of(UNWRAP_SINGLES)
+    )));
   }
 
   @Test
-  public void shouldThrowIfValueWrappingSuppliedForMultiField() {
-    // When:
-    final Exception e = assertThrows(
-        KsqlException.class,
-        () -> PhysicalSchema
-            .from(SCHEMA_WITH_MULTIPLE_FIELDS, SerdeOption.of(SerdeOption.UNWRAP_SINGLE_VALUES))
-    );
-
-    // Then:
-    assertThat(e.getMessage(), containsString(
-        "'WRAP_SINGLE_VALUE' is only valid for single-field value schemas"));
-  }
-
-  @Test
-  public void shouldNotFlattenValueSchemaIfNotConfiguredTo() {
+  public void shouldReturnValueSchema() {
     // When:
     final PhysicalSchema result = PhysicalSchema
-        .from(SCHEMA_WITH_SINGLE_FIELD, SerdeOption.none());
+        .from(SCHEMA, SerdeFeatures.of(), SerdeFeatures.of(WRAP_SINGLES));
 
     // Then:
-    assertThat(result.valueSchema().serializedSchema(),
-        is(SCHEMA_WITH_SINGLE_FIELD.valueConnectSchema()));
-  }
-
-  @Test
-  public void shouldFlattenValueSchemasWithOneFieldAndConfiguredTo() {
-    // When:
-    final PhysicalSchema result = PhysicalSchema
-        .from(SCHEMA_WITH_SINGLE_FIELD, SerdeOption.of(SerdeOption.UNWRAP_SINGLE_VALUES));
-
-    // Then:
-    assertThat(result.valueSchema().serializedSchema(),
-        is(SCHEMA_WITH_SINGLE_FIELD.valueConnectSchema().fields().get(0).schema()));
+    assertThat(result.valueSchema(), is(PersistenceSchema.from(
+        SCHEMA.value(),
+        SerdeFeatures.of(WRAP_SINGLES)
+    )));
   }
 }

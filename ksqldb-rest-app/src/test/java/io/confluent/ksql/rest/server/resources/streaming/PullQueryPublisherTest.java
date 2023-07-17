@@ -22,20 +22,26 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.engine.KsqlEngine;
+import io.confluent.ksql.execution.streams.materialization.Locator.KsqlNode;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.rest.entity.StreamedRow;
-import io.confluent.ksql.rest.entity.TableRowsEntity;
+import io.confluent.ksql.rest.entity.TableRows;
 import io.confluent.ksql.rest.server.execution.PullQueryExecutor;
+import io.confluent.ksql.rest.server.execution.PullQueryResult;
 import io.confluent.ksql.rest.server.resources.streaming.Flow.Subscriber;
 import io.confluent.ksql.rest.server.resources.streaming.Flow.Subscription;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 import org.junit.Before;
 import org.junit.Test;
@@ -49,6 +55,7 @@ import org.mockito.stubbing.Answer;
 
 @RunWith(MockitoJUnitRunner.class)
 public class PullQueryPublisherTest {
+  private static final long TIME_NANOS = 12345;
 
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
       .keyColumn(ColumnName.of("id"), SqlTypes.INTEGER)
@@ -66,7 +73,9 @@ public class PullQueryPublisherTest {
   @Mock
   private PullQueryExecutor pullQueryExecutor;
   @Mock
-  private TableRowsEntity entity;
+  private TableRows entity;
+  @Mock
+  private PullQueryResult pullQueryResult;
   @Captor
   private ArgumentCaptor<Subscription> subscriptionCaptor;
 
@@ -78,9 +87,13 @@ public class PullQueryPublisherTest {
     publisher = new PullQueryPublisher(
         serviceContext,
         statement,
-        pullQueryExecutor);
+        pullQueryExecutor,
+        Optional.empty(),
+        TIME_NANOS);
 
-    when(pullQueryExecutor.execute(any(), any(), any(), any())).thenReturn(entity);
+    when(pullQueryResult.getTableRows()).thenReturn(entity);
+    when(pullQueryResult.getSourceNodes()).thenReturn(Optional.empty());
+    when(pullQueryExecutor.execute(any(), any(), any(), any(), any())).thenReturn(pullQueryResult);
     when(entity.getSchema()).thenReturn(SCHEMA);
 
     doAnswer(callRequestAgain()).when(subscriber).onNext(any());
@@ -104,8 +117,7 @@ public class PullQueryPublisherTest {
     subscription.request(1);
 
     // Then:
-    verify(pullQueryExecutor).execute(statement, serviceContext, Optional.empty(),
-        Optional.of(false));
+    verify(pullQueryExecutor).execute(statement, ImmutableMap.of(), serviceContext, Optional.of(false), Optional.empty());
   }
 
   @Test
@@ -118,8 +130,7 @@ public class PullQueryPublisherTest {
 
     // Then:
     verify(subscriber).onNext(any());
-    verify(pullQueryExecutor).execute(statement, serviceContext, Optional.empty(),
-        Optional.of(false));
+    verify(pullQueryExecutor).execute(statement, ImmutableMap.of(), serviceContext, Optional.of(false), Optional.empty());
   }
 
   @Test
@@ -154,7 +165,7 @@ public class PullQueryPublisherTest {
     // Given:
     givenSubscribed();
     final Throwable e = new RuntimeException("Boom!");
-    when(pullQueryExecutor.execute(any(), any(), any(), any())).thenThrow(e);
+    when(pullQueryExecutor.execute(any(), any(), any(), any(), any())).thenThrow(e);
 
     // When:
     subscription.request(1);
@@ -172,6 +183,8 @@ public class PullQueryPublisherTest {
         ImmutableList.of("a", 1, 2L, 3.0f),
         ImmutableList.of("b", 1, 2L, 3.0f)
     ));
+    when(pullQueryResult.getSourceNodes())
+        .thenReturn(Optional.empty());
 
     // When:
     subscription.request(1);

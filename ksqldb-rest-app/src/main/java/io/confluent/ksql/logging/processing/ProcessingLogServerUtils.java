@@ -92,6 +92,8 @@ public final class ProcessingLogServerUtils {
 
     return "CREATE STREAM " + name
         + " (" + elements + ")"
-        + " WITH(KAFKA_TOPIC='" + topicName + "', VALUE_FORMAT='JSON');";
+        + " WITH(KAFKA_TOPIC='" + topicName + "', "
+        + "VALUE_FORMAT='JSON', KEY_FORMAT='KAFKA'"
+        + ");";
   }
 }

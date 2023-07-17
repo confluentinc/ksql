@@ -1,6 +1,76 @@
 {
   "tests": [
     {
+      "name": "serialize nested primitive - value",
+      "statements": [
+        "CREATE STREAM INPUT (K STRING KEY, foo BOOLEAN) WITH (kafka_topic='input_topic', value_format='PROTOBUF');",
+        "CREATE STREAM OUTPUT WITH (WRAP_SINGLE_VALUE=true) AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": {"FOO": true}},
+        {"topic": "input_topic", "value": {"FOO": null}},
+        {"topic": "input_topic", "value": null}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"FOO": true}},
+        {"topic": "OUTPUT", "value": {"FOO": false}},
+        {"topic": "OUTPUT", "value": null}
+      ]
+    },
+    {
+      "name": "serialize nested array - value",
+      "statements": [
+        "CREATE STREAM INPUT (foo ARRAY<BIGINT>) WITH (kafka_topic='input_topic', value_format='PROTOBUF');",
+        "CREATE STREAM OUTPUT WITH (WRAP_SINGLE_VALUE=true) AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": {"FOO": [12, 34, 999]}},
+        {"topic": "input_topic", "value": {"FOO": null}},
+        {"topic": "input_topic", "value": null}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"FOO": [12, 34, 999]}},
+        {"topic": "OUTPUT", "value": {"FOO": []}},
+        {"topic": "OUTPUT", "value": null}
+      ]
+    },
+    {
+      "name": "serialize nested map - value",
+      "statements": [
+        "CREATE STREAM INPUT (foo MAP<STRING, DOUBLE>) WITH (kafka_topic='input_topic', value_format='PROTOBUF');",
+        "CREATE STREAM OUTPUT WITH (WRAP_SINGLE_VALUE=true) AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": {"FOO": {"a": 1.1, "b": 2.2, "c": 3.456}}},
+        {"topic": "input_topic", "value": {"FOO": null}},
+        {"topic": "input_topic", "value": null}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"FOO": {"a": 1.1, "b": 2.2, "c": 3.456}}},
+        {"topic": "OUTPUT", "value": {"FOO": {}}},
+        {"topic": "OUTPUT", "value": null}
+      ]
+    },
+    {
+      "name": "serialize nested struct - value",
+      "statements": [
+        "CREATE STREAM INPUT (foo STRUCT<F0 INT>) WITH (kafka_topic='input_topic', value_format='PROTOBUF');",
+        "CREATE STREAM OUTPUT WITH (WRAP_SINGLE_VALUE=true) AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": {"FOO": {"F0": 1}}},
+        {"topic": "input_topic", "value": {"FOO": {"F0": null}}},
+        {"topic": "input_topic", "value": {"FOO": null}},
+        {"topic": "input_topic", "value": null}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"FOO": {"F0": 1}}},
+        {"topic": "OUTPUT", "value": {"FOO": {"F0": 0}}},
+        {"topic": "OUTPUT", "value": {"FOO": null}},
+        {"topic": "OUTPUT", "value": null}
+      ]
+    },
+    {
       "name": "protobuf primitives",
       "statements": [
         "CREATE STREAM INPUT (K STRING KEY, i INTEGER, l BIGINT, d DOUBLE, b BOOLEAN, s STRING) WITH (kafka_topic='input', value_format='PROTOBUF');",
@@ -74,8 +144,8 @@
       "topics": [
         {
           "name": "input",
-          "format": "PROTOBUF",
-          "schema": "syntax = \"proto3\"; message ConfluentDefault1 {bool c1 = 1; int32 c2 = 2; int64 c3 = 3; double c4 = 4; string c5 = 5;}"
+          "valueFormat": "PROTOBUF",
+          "valueSchema": "syntax = \"proto3\"; message ConfluentDefault1 {bool c1 = 1; int32 c2 = 2; int64 c3 = 3; double c4 = 4; string c5 = 5;}"
         }
       ],
       "inputs": [
@@ -99,8 +169,8 @@
       "topics": [
         {
           "name": "input",
-          "format": "PROTOBUF",
-          "schema": "syntax = \"proto3\"; message ConfluentDefault1 {bool c1 = 1; int32 c2 = 2; int64 c3 = 3; double c4 = 4; string c5 = 5;}"
+          "valueFormat": "PROTOBUF",
+          "valueSchema": "syntax = \"proto3\"; message ConfluentDefault1 {bool c1 = 1; int32 c2 = 2; int64 c3 = 3; double c4 = 4; string c5 = 5;}"
         }
       ],
       "inputs": [
@@ -116,6 +186,16 @@
       }
     },
     {
+      "name": "WRAP_SINGLE_VALUE=false",
+      "statements": [
+        "CREATE STREAM INPUT (K STRING KEY, foo INT) WITH (WRAP_SINGLE_VALUE=false, kafka_topic='input_topic', value_format='PROTOBUF');"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Format 'PROTOBUF' does not support 'WRAP_SINGLE_VALUE' set to 'false'."
+      }
+    },
+    {
       "name": "should convert enum to STRING",
       "statements": [
         "CREATE STREAM INPUT WITH (kafka_topic='input', value_format='PROTOBUF');",
@@ -124,8 +204,8 @@
       "topics": [
         {
           "name": "input",
-          "format": "PROTOBUF",
-          "schema": "syntax = \"proto3\"; message ConfluentDefault1 {enum Suit {SPADES = 0; HEARTS = 1; DIAMONDS = 2; CLUBS = 4;} Suit c1 = 1;}"
+          "valueFormat": "PROTOBUF",
+          "valueSchema": "syntax = \"proto3\"; message ConfluentDefault1 {enum Suit {SPADES = 0; HEARTS = 1; DIAMONDS = 2; CLUBS = 4;} Suit c1 = 1;}"
         }
       ],
       "inputs": [
@@ -151,8 +231,8 @@
       "topics": [
         {
           "name": "input",
-          "format": "PROTOBUF",
-          "schema": "syntax = \"proto3\"; message ConfluentDefault1 {repeated string c1 = 1;}"
+          "valueFormat": "PROTOBUF",
+          "valueSchema": "syntax = \"proto3\"; message ConfluentDefault1 {repeated string c1 = 1;}"
         }
       ],
       "inputs": [{"topic": "input", "value": {"c1": ["a", "", "Bc"]}}],
@@ -172,8 +252,8 @@
       "topics": [
         {
           "name": "input",
-          "format": "PROTOBUF",
-          "schema": "syntax = \"proto3\"; message ConfluentDefault1 {message Something {int32 f1 = 1;} Something c1 = 1;}"
+          "valueFormat": "PROTOBUF",
+          "valueSchema": "syntax = \"proto3\"; message ConfluentDefault1 {message Something {int32 f1 = 1;} Something c1 = 1;}"
         }
       ],
       "inputs": [{"topic": "input", "value": {"c1": {"f1": 1}}}],
@@ -197,8 +277,8 @@
       "topics": [
         {
           "name": "input",
-          "format": "PROTOBUF",
-          "schema": "syntax = \"proto3\"; message ConfluentDefault1 {float c1 = 1; uint32 c2 = 2; uint64 c3 = 3; sint32 c4 = 4; sint64 c5 = 5;}"
+          "valueFormat": "PROTOBUF",
+          "valueSchema": "syntax = \"proto3\"; message ConfluentDefault1 {float c1 = 1; uint32 c2 = 2; uint64 c3 = 3; sint32 c4 = 4; sint64 c5 = 5;}"
         }
       ],
       "inputs": [
@@ -222,8 +302,8 @@
       "topics": [
         {
           "name": "input",
-          "format": "PROTOBUF",
-          "schema": "syntax = \"proto3\"; message ConfluentDefault1 {int32 expected = 1; bytes c2 = 2;}"
+          "valueFormat": "PROTOBUF",
+          "valueSchema": "syntax = \"proto3\"; message ConfluentDefault1 {int32 expected = 1; bytes c2 = 2;}"
         }
       ],
       "inputs": [{"topic": "input", "value": {"expected": 1, "c4": null}}],
@@ -232,6 +312,29 @@
         "sources": [
           {"name": "OUTPUT", "type": "stream", "schema": "EXPECTED INT"}
         ]
+      }
+    },
+    {
+      "name": "map with non-string keys - C*",
+      "comment": ["This is current limitation. PB supports INT/BIGINT keys. See https://github.com/confluentinc/ksql/issues/6177"],
+      "statements": [
+        "CREATE STREAM INPUT (foo MAP<INT, DOUBLE>) WITH (kafka_topic='input_topic', value_format='PROTOBUF');"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "PROTOBUF format only supports MAP types with STRING keys"
+      }
+    },
+    {
+      "name": "map with non-string keys - C*AS",
+      "comment": ["This is current limitation. PB supports INT/BIGINT keys. See https://github.com/confluentinc/ksql/issues/6177"],
+      "statements": [
+        "CREATE STREAM INPUT (k INT, v DOUBLE) WITH (kafka_topic='input_topic', value_format='PROTOBUF');",
+        "CREATE STREAM OUTPUT AS SELECT MAP(k:=v) FROM INPUT;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "PROTOBUF format only supports MAP types with STRING keys"
       }
     }
   ]

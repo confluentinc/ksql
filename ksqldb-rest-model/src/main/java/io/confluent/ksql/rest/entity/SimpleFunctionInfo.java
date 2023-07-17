@@ -25,14 +25,17 @@ public class SimpleFunctionInfo implements Comparable<SimpleFunctionInfo> {
 
   private final String name;
   private final FunctionType type;
+  private final String category;
 
   @JsonCreator
   public SimpleFunctionInfo(
       @JsonProperty("name") final String name,
-      @JsonProperty("type") final FunctionType type
+      @JsonProperty("type") final FunctionType type,
+      @JsonProperty("category") final String category
   ) {
     this.name = Objects.requireNonNull(name, "name can't be null");
     this.type = Objects.requireNonNull(type, "type can't be null");
+    this.category = Objects.isNull(category) ? "" : category;
   }
 
   public String getName() {
@@ -41,6 +44,10 @@ public class SimpleFunctionInfo implements Comparable<SimpleFunctionInfo> {
 
   public FunctionType getType() {
     return type;
+  }
+
+  public String getCategory() {
+    return category;
   }
 
   @Override
@@ -53,19 +60,21 @@ public class SimpleFunctionInfo implements Comparable<SimpleFunctionInfo> {
     }
     final SimpleFunctionInfo that = (SimpleFunctionInfo) o;
     return Objects.equals(name, that.name)
-        && type == that.type;
+        && type == that.type
+        && Objects.equals(category, that.category);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(name, type);
+    return Objects.hash(name, type, category);
   }
 
   @Override
   public String toString() {
     return "SimpleFunctionInfo{"
         + "name='" + name + '\''
-        + ", type=" + type
+        + ", type='" + type + '\''
+        + ", category=" + category
         + '}';
   }
 

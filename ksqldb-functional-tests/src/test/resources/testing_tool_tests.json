@@ -19,112 +19,16 @@
       ]
     },
     {
+      "name": "invalid: first statement fails",
       "statements": [
-        "CREATE STREAM orders (ROWKEY INT KEY, ORDERUNITS double) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM S1 AS SELECT ROWKEY, ORDERUNITS, CASE WHEN orderunits < 2.0 THEN 'small' WHEN orderunits < 4.0 THEN 'medium' ELSE 'large' END AS case_resault FROM orders;"
-      ],
-      "name": "searched case expression",
-      "inputs": [
-        {"topic": "test_topic", "timestamp": 0, "value": {"ORDERUNITS": 2.0}, "key": 0},
-        {"topic": "test_topic", "timestamp": 0, "value": {"ORDERUNITS": 4.0}, "key": 100},
-        {"topic": "test_topic", "timestamp": 0, "value": {"ORDERUNITS": 6.0 }, "key": 101},
-        {"topic": "test_topic", "timestamp": 0, "value": {"ORDERUNITS": 3.0}, "key": 101},
-        {"topic": "test_topic", "timestamp": 0, "value": {"ORDERUNITS": 1.0}, "key": 101}
-      ],
-      "outputs": [
-        {"topic": "S1", "timestamp": 0, "value": {"ORDERUNITS": 2.0, "CASE_RESAULT": "medium"}, "key": 0},
-        {"topic": "S1", "timestamp": 0, "value": {"ORDERUNITS": 4.0, "CASE_RESAULT": "large"}, "key": 100},
-        {"topic": "S1", "timestamp": 0, "value": {"ORDERUNITS": 6.0, "CASE_RESAULT": "large"}, "key": 101},
-        {"topic": "S1", "timestamp": 0, "value": {"ORDERUNITS": 3.0, "CASE_RESAULT": "medium"}, "key": 101},
-        {"topic": "S1", "timestamp": 0, "value": {"ORDERUNITS": 1.0, "CASE_RESAULT": "small"},"key": 101}
-      ]
-    },
-    {
-      "name": "Json Map filter",
-      "statements": [
-        "CREATE STREAM TEST (K STRING KEY, ID bigint, THING MAP<VARCHAR, VARCHAR>) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM S1 as SELECT K, ID, THING FROM TEST WHERE THING['status']='false';"
+        "CREATE STREAM S1 AS SELECT * FROM UNKNOWN_SOURCE;",
+        "CREATE STREAM S2 as SELECT * FROM S1;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": 0, "value": {"id": 1, "thing": {"other": 11, "status": false}}},
-        {"topic": "test_topic", "key": 0, "value": {"id": 2, "thing": {"other": 12, "status": true}}},
-        {"topic": "test_topic", "key": 0, "value": {"id": 3, "thing": {"other": 13, "status": true}}},
-        {"topic": "test_topic", "key": 0, "value": {"id": 4, "thing": {"other": 13, "status": false}}}
+        {"topic": "test_topic", "key": 0, "value": "0,zero,0.0"}
       ],
       "outputs": [
-        {"topic": "S1", "key": 0, "value": {"ID":1, "THING": {"other": "11", "status": "false"}}},
-        {"topic": "S1", "key": 0, "value": {"ID":4, "THING": {"other": "13", "status": "false"}}}
-      ]
-    },
-    {
-      "name": "stream stream left join",
-      "statements": [
-        "CREATE STREAM TEST (ROWKEY BIGINT KEY, ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='left_topic', value_format='JSON');",
-        "CREATE STREAM TEST_STREAM (ROWKEY BIGINT KEY, ID bigint, F1 varchar, F2 bigint) WITH (kafka_topic='right_topic', value_format='JSON');",
-        "CREATE STREAM LEFT_OUTER_JOIN as SELECT ROWKEY, t.id, name, value, f1, f2 FROM test t left join TEST_STREAM tt WITHIN 11 seconds ON t.id = tt.id;",
-        "CREATE STREAM foo AS SELECT t_id, name FROM LEFT_OUTER_JOIN WHERE t_id = 90;",
-        "CREATE STREAM bar AS SELECT * FROM foo;"
-      ],
-      "inputs": [
-        {"topic": "left_topic", "key": 0, "value": {"ID": 0, "NAME": "zero", "VALUE": 0}, "timestamp": 0},
-        {"topic": "right_topic", "key": 0, "value": {"ID": 0, "F1": "blah", "F2": 50}, "timestamp": 10000},
-        {"topic": "left_topic", "key": 10, "value": {"ID": 10, "NAME": "100", "VALUE": 5}, "timestamp": 11000},
-        {"topic": "left_topic", "key": 0, "value": {"ID": 0, "NAME": "foo", "VALUE": 100}, "timestamp": 13000},
-        {"topic": "right_topic", "key": 0, "value": {"ID": 0, "F1": "a", "F2": 10}, "timestamp": 15000},
-        {"topic": "right_topic", "key": 100, "value": {"ID": 100, "F1": "newblah", "F2": 150}, "timestamp": 16000},
-        {"topic": "left_topic", "key": 90, "value": {"ID": 90, "NAME": "ninety", "VALUE": 90}, "timestamp": 17000},
-        {"topic": "left_topic", "key": 0, "value": {"ID": 0, "NAME": "bar", "VALUE": 99}, "timestamp": 30000}
-      ],
-      "outputs": [
-        {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "zero", "VALUE": 0, "F1": null, "F2": null}, "timestamp": 0},
-        {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "zero", "VALUE": 0, "F1": "blah", "F2": 50}, "timestamp": 10000},
-        {"topic": "LEFT_OUTER_JOIN", "key": 10, "value": {"T_ID": 10, "NAME": "100", "VALUE": 5, "F1": null, "F2": null}, "timestamp": 11000},
-        {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "foo", "VALUE": 100, "F1": "blah", "F2": 50}, "timestamp": 13000},
-        {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "foo", "VALUE": 100, "F1": "a", "F2": 10}, "timestamp": 15000},
-        {"topic": "LEFT_OUTER_JOIN", "key": 90, "value": {"T_ID": 90, "NAME": "ninety", "VALUE": 90, "F1": null, "F2": null}, "timestamp": 17000},
-        {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"T_ID": 0, "NAME": "bar", "VALUE": 99, "F1": null, "F2": null}, "timestamp": 30000},
-        {"topic": "FOO", "key": 90, "value": {"T_ID": 90, "NAME": "ninety"}, "timestamp": 17000},
-        {"topic": "BAR", "key": 90, "value": {"T_ID": 90, "NAME": "ninety"}, "timestamp": 17000}
-
-      ],
-      "post": {
-        "sources": [
-          {"name": "LEFT_OUTER_JOIN", "type": "stream", "keyField": "T_ID"}
-        ]
-      }
-    },
-    {
-      "name": "max tumbling",
-      "statements": [
-        "CREATE STREAM TEST (ROWKEY BIGINT KEY, ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
-        "CREATE TABLE S2 as SELECT ROWKEY, id, max(value) FROM test WINDOW TUMBLING (SIZE 30 SECONDS) group by id;",
-        "CREATE TABLE foo AS SELECT id from s2 where id = 100;"
-      ],
-      "inputs": [
-        {"topic": "test_topic", "key": 0, "value": "0,zero,0", "timestamp": 0},
-        {"topic": "test_topic", "key": 0, "value": "0,100,5", "timestamp": 10000},
-        {"topic": "test_topic", "key": 100, "value": "100,100,100", "timestamp": 30000},
-        {"topic": "test_topic", "key": 100, "value": "100,100,6", "timestamp": 45000},
-        {"topic": "test_topic", "key": 100, "value": "100,100,300", "timestamp": 50000},
-        {"topic": "test_topic", "key": 0, "value": "0,zero,100", "timestamp": 35000},
-        {"topic": "test_topic", "key": 0, "value": "0,100,2000", "timestamp": 40000}
-      ],
-      "outputs": [
-        {"topic": "S2", "key": 0, "value": "0,0", "timestamp": 0, "window": {"start": 0, "end": 30000, "type": "time"}},
-        {"topic": "S2", "key": 0, "value": "0,5", "timestamp": 10000, "window": {"start": 0, "end": 30000, "type": "time"}},
-        {"topic": "S2", "key": 100, "value": "100,100", "timestamp": 30000, "window": {"start": 30000, "end": 60000, "type": "time"}},
-        {"topic": "S2", "key": 100, "value": "100,100", "timestamp": 45000, "window": {"start": 30000, "end": 60000, "type": "time"}},
-        {"topic": "S2", "key": 100, "value": "100,300", "timestamp": 50000, "window": {"start": 30000, "end": 60000, "type": "time"}},
-        {"topic": "S2", "key": 0, "value": "0,100", "timestamp": 35000, "window": {"start": 30000, "end": 60000, "type": "time"}},
-        {"topic": "S2", "key": 0, "value": "0,2000", "timestamp": 40000, "window": {"start": 30000, "end": 60000, "type": "time"}},
-
-        {"topic": "FOO", "key": 0, "value": null, "timestamp": 0, "window": {"start": 0, "end": 30000, "type": "time"}},
-        {"topic": "FOO", "key": 0, "value": null, "timestamp": 10000, "window": {"start": 0, "end": 30000, "type": "time"}},
-        {"topic": "FOO", "key": 100, "value": "100", "timestamp": 30000, "window": {"start": 30000, "end": 60000, "type": "time"}},
-        {"topic": "FOO", "key": 100, "value": "100", "timestamp": 45000, "window": {"start": 30000, "end": 60000, "type": "time"}},
-        {"topic": "FOO", "key": 100, "value": "100", "timestamp": 50000, "window": {"start": 30000, "end": 60000, "type": "time"}},
-        {"topic": "FOO", "key": 0, "value": null, "timestamp": 35000, "window": {"start": 30000, "end": 60000, "type": "time"}},
-        {"topic": "FOO", "key": 0, "value": null, "timestamp": 40000, "window": {"start": 30000, "end": 60000, "type": "time"}}
+        {"topic": "S1", "key": 101, "value": "101"}
       ]
     }
   ]

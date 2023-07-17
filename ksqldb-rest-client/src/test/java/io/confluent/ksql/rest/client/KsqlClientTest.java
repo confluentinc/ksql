@@ -71,6 +71,8 @@ import org.reactivestreams.Subscription;
 
 public class KsqlClientTest {
 
+  private static final ServerKeyStore SERVER_KEY_STORE = new ServerKeyStore();
+
   private Vertx vertx;
   private FakeApiServer server;
   private KsqlClient ksqlClient;
@@ -190,7 +192,7 @@ public class KsqlClientTest {
 
     // Given:
     ServerInfo expectedResponse = new ServerInfo("someversion",
-        "kafkaclusterid", "ksqlserviceid");
+        "kafkaclusterid", "ksqlserviceid", "status");
     server.setResponseObject(expectedResponse);
 
     // When:
@@ -308,7 +310,7 @@ public class KsqlClientTest {
     assertThat(server.getPath(), is("/query"));
     assertThat(server.getHeaders().get("Accept"), is("application/json"));
     assertThat(getKsqlRequest(), is(new KsqlRequest(sql, properties, Collections.emptyMap(), 321L)));
-    assertThat(response.get(), is(expectedResponse));
+    assertThat(response.getResponse(), is(expectedResponse));
   }
 
   @Test
@@ -326,7 +328,7 @@ public class KsqlClientTest {
         "some sql", Collections.emptyMap(), Optional.of(321L));
 
     // Then:
-    assertThat(response.get(), is(ImmutableList.of(
+    assertThat(response.getResponse(), is(ImmutableList.of(
         StreamedRow.row(GenericRow.genericRow(new BigDecimal("1.000"), new BigDecimal("12.100")))
     )));
   }
@@ -730,9 +732,9 @@ public class KsqlClientTest {
         .setHost("localhost")
         .setSsl(true)
         .setKeyStoreOptions(new JksOptions()
-            .setPath(ServerKeyStore.keyStoreProps().get(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG))
+            .setPath(SERVER_KEY_STORE.keyStoreProps().get(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG))
             .setPassword(
-                ServerKeyStore.keyStoreProps().get(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG)));
+                SERVER_KEY_STORE.keyStoreProps().get(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG)));
 
     startServer(serverOptions);
     serverUri = URI.create("https://localhost:" + server.getPort());

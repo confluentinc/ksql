@@ -3,8 +3,24 @@
   "timestamp" : 1581572103042,
   "path" : "query-validation-tests/simple-struct.json",
   "schemas" : {
-    "CSAS_S3_0.KsqlTopic.Source" : "STRUCT<ORDERTIME BIGINT, ORDERID BIGINT, ITEMID STRUCT<ITEMID BIGINT, NAME VARCHAR, CATEGORY STRUCT<ID BIGINT, NAME VARCHAR>>, ORDERUNITS DOUBLE, ARRAYCOL ARRAY<DOUBLE>, MAPCOL MAP<VARCHAR, DOUBLE>, ADDRESS STRUCT<NUMBER BIGINT, STREET VARCHAR, CITY VARCHAR, STATE VARCHAR, ZIPCODE BIGINT>> NOT NULL",
-    "CSAS_S3_0.S3" : "STRUCT<ITEMID__CATEGORY__ID BIGINT, ADDRESS__STREET VARCHAR, ZIPCODE BIGINT, STATE VARCHAR> NOT NULL"
+    "CSAS_S3_0.KsqlTopic.Source" : {
+      "schema" : "`ROWKEY` STRING KEY, `ORDERTIME` BIGINT, `ORDERID` BIGINT, `ITEMID` STRUCT<`ITEMID` BIGINT, `NAME` STRING, `CATEGORY` STRUCT<`ID` BIGINT, `NAME` STRING>>, `ORDERUNITS` DOUBLE, `ARRAYCOL` ARRAY<DOUBLE>, `MAPCOL` MAP<STRING, DOUBLE>, `ADDRESS` STRUCT<`NUMBER` BIGINT, `STREET` STRING, `CITY` STRING, `STATE` STRING, `ZIPCODE` BIGINT>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "AVRO"
+      }
+    },
+    "CSAS_S3_0.S3" : {
+      "schema" : "`ROWKEY` STRING KEY, `ITEMID__CATEGORY__ID` BIGINT, `ADDRESS__STREET` STRING, `ZIPCODE` BIGINT, `STATE` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "AVRO"
+      }
+    }
   },
   "testCase" : {
     "name" : "simple struct select filter 2 - AVRO",
@@ -176,7 +192,7 @@
       "numPartitions" : 4
     }, {
       "name" : "test_topic",
-      "schema" : {
+      "valueSchema" : {
         "type" : "record",
         "name" : "KsqlDataSourceSchema",
         "namespace" : "io.confluent.ksql.avro_schemas",
@@ -286,30 +302,47 @@
         } ],
         "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
       },
-      "format" : "AVRO",
+      "valueFormat" : "AVRO",
       "replicas" : 1,
       "numPartitions" : 4
     } ],
     "statements" : [ "CREATE STREAM ORDERS (ORDERTIME BIGINT, ORDERID BIGINT, ITEMID STRUCT<ITEMID BIGINT, NAME STRING, CATEGORY STRUCT<ID BIGINT, NAME STRING>>, ORDERUNITS DOUBLE, ARRAYCOL ARRAY<DOUBLE>, MAPCOL MAP<STRING, DOUBLE>, ADDRESS STRUCT<NUMBER BIGINT, STREET STRING, CITY STRING, STATE STRING, ZIPCODE BIGINT>) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='AVRO');", "CREATE STREAM S3 AS SELECT\n  ORDERS.ITEMID->CATEGORY->ID ITEMID__CATEGORY__ID,\n  ORDERS.ADDRESS->STREET ADDRESS__STREET,\n  ORDERS.ADDRESS->ZIPCODE ZIPCODE,\n  ORDERS.ADDRESS->STATE STATE\nFROM ORDERS ORDERS\nWHERE (ORDERS.ADDRESS->STATE LIKE '%_9')\nEMIT CHANGES;" ],
     "post" : {
+      "sources" : [ {
+        "name" : "ORDERS",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` STRING KEY, `ORDERTIME` BIGINT, `ORDERID` BIGINT, `ITEMID` STRUCT<`ITEMID` BIGINT, `NAME` STRING, `CATEGORY` STRUCT<`ID` BIGINT, `NAME` STRING>>, `ORDERUNITS` DOUBLE, `ARRAYCOL` ARRAY<DOUBLE>, `MAPCOL` MAP<STRING, DOUBLE>, `ADDRESS` STRUCT<`NUMBER` BIGINT, `STREET` STRING, `CITY` STRING, `STATE` STRING, `ZIPCODE` BIGINT>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "AVRO",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
+      }, {
+        "name" : "S3",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` STRING KEY, `ITEMID__CATEGORY__ID` BIGINT, `ADDRESS__STREET` STRING, `ZIPCODE` BIGINT, `STATE` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "AVRO",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
+      } ],
       "topics" : {
         "topics" : [ {
-          "name" : "S3",
+          "name" : "test_topic",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "AVRO"
           },
           "partitions" : 4
         }, {
-          "name" : "test_topic",
+          "name" : "S3",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "AVRO"

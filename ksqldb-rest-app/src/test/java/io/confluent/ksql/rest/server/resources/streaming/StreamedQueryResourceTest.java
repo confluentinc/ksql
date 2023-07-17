@@ -17,6 +17,7 @@ package io.confluent.ksql.rest.server.resources.streaming;
 
 import static io.confluent.ksql.GenericRow.genericRow;
 import static io.confluent.ksql.rest.Errors.ERROR_CODE_FORBIDDEN_KAFKA_ACCESS;
+import static io.confluent.ksql.rest.Errors.badRequest;
 import static io.confluent.ksql.rest.entity.KsqlErrorMessageMatchers.errorCode;
 import static io.confluent.ksql.rest.entity.KsqlErrorMessageMatchers.errorMessage;
 import static io.confluent.ksql.rest.server.resources.KsqlRestExceptionMatchers.exceptionErrorMessage;
@@ -45,6 +46,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.api.server.StreamingOutput;
+import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.exception.KsqlTopicAuthorizationException;
 import io.confluent.ksql.execution.streams.RoutingFilter.RoutingFilterFactory;
@@ -54,11 +56,14 @@ import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.PrintTopic;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Statement;
+import io.confluent.ksql.properties.DenyListPropertyValidator;
 import io.confluent.ksql.query.BlockingRowQueue;
+import io.confluent.ksql.query.KafkaStreamsBuilder;
 import io.confluent.ksql.query.LimitHandler;
 import io.confluent.ksql.rest.ApiJsonMapper;
 import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.Errors;
+import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.StreamedRow;
@@ -74,6 +79,7 @@ import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.TransientQueryMetadata;
 import io.confluent.ksql.version.metrics.ActivenessRegistrar;
@@ -84,6 +90,7 @@ import java.io.PipedOutputStream;
 import java.time.Duration;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map;
 import java.util.Objects;
@@ -96,10 +103,12 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import org.apache.kafka.common.acl.AclOperation;
+import org.apache.kafka.common.utils.Time;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.Topology;
 import org.codehaus.plexus.util.StringUtils;
+import org.hamcrest.CoreMatchers;
 import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
@@ -155,6 +164,10 @@ public class StreamedQueryResourceTest {
   private KsqlAuthorizationValidator authorizationValidator;
   @Mock
   private Errors errorsHandler;
+  @Mock
+  private DenyListPropertyValidator denyListPropertyValidator;
+  @Mock
+  private Time time;
 
   private StreamedQueryResource testResource;
   private PreparedStatement<Statement> invalid;
@@ -189,7 +202,9 @@ public class StreamedQueryResourceTest {
         activenessRegistrar,
         Optional.of(authorizationValidator),
         errorsHandler,
-        pullQueryExecutor
+        pullQueryExecutor,
+        denyListPropertyValidator,
+        Optional.empty()
     );
 
     testResource.configure(VALID_CONFIG);
@@ -216,7 +231,9 @@ public class StreamedQueryResourceTest {
         activenessRegistrar,
         Optional.of(authorizationValidator),
         errorsHandler,
-        pullQueryExecutor
+        pullQueryExecutor,
+        denyListPropertyValidator,
+        Optional.empty()
     );
 
     // When:
@@ -357,6 +374,58 @@ public class StreamedQueryResourceTest {
   }
 
   @Test
+  public void shouldThrowOnDenyListedStreamProperty() {
+    // Given:
+    when(mockStatementParser.<Query>parseSingleStatement(PULL_QUERY_STRING)).thenReturn(query);
+    testResource = new StreamedQueryResource(
+        mockKsqlEngine,
+        mockStatementParser,
+        commandQueue,
+        DISCONNECT_CHECK_INTERVAL,
+        COMMAND_QUEUE_CATCHUP_TIMOEUT,
+        activenessRegistrar,
+        Optional.of(authorizationValidator),
+        errorsHandler,
+        pullQueryExecutor,
+        denyListPropertyValidator,
+        Optional.empty()
+    );
+    final Map<String, Object> props = new HashMap<>(ImmutableMap.of(
+        StreamsConfig.APPLICATION_SERVER_CONFIG, "something:1"
+    ));
+    props.put(KsqlConfig.KSQL_PROPERTIES_OVERRIDES_DENYLIST,
+        StreamsConfig.NUM_STREAM_THREADS_CONFIG);
+    testResource.configure(new KsqlConfig(props));
+    final Map<String, Object> overrides =
+        ImmutableMap.of(StreamsConfig.NUM_STREAM_THREADS_CONFIG, 1);
+    doThrow(new KsqlException("deny override")).when(denyListPropertyValidator)
+        .validateAll(overrides);
+    when(errorsHandler.generateResponse(any(), any()))
+        .thenReturn(badRequest("A property override was set locally for a property that the "
+            + "server prohibits overrides for: 'num.stream.threads'"));
+
+    // When:
+    final EndpointResponse response = testResource.streamQuery(
+        securityContext,
+        new KsqlRequest(
+            PULL_QUERY_STRING,
+            overrides, // stream properties
+            Collections.emptyMap(),
+            null
+        ),
+        new CompletableFuture<>(),
+        Optional.empty()
+    );
+
+    // Then:
+    verify(denyListPropertyValidator).validateAll(overrides);
+    assertThat(response.getStatus(), CoreMatchers.is(BAD_REQUEST.code()));
+    assertThat(((KsqlErrorMessage) response.getEntity()).getMessage(),
+        is("A property override was set locally for a property that the server prohibits "
+            + "overrides for: '" + StreamsConfig.NUM_STREAM_THREADS_CONFIG + "'"));
+  }
+
+  @Test
   public void shouldStreamRowsCorrectly() throws Throwable {
     final int NUM_ROWS = 5;
     final AtomicReference<Throwable> threadException = new AtomicReference<>(null);
@@ -391,24 +460,28 @@ public class StreamedQueryResourceTest {
         .thenReturn(query);
 
     final Map<String, Object> requestStreamsProperties = Collections.emptyMap();
+    final KafkaStreamsBuilder kafkaStreamsBuilder = mock(KafkaStreamsBuilder.class);
+    when(kafkaStreamsBuilder.build(any(), any())).thenReturn(mockKafkaStreams);
 
     final TransientQueryMetadata transientQueryMetadata =
         new TransientQueryMetadata(
             queryString,
-            mockKafkaStreams,
             SOME_SCHEMA,
             Collections.emptySet(),
             "",
             new TestRowQueue(rowQueue),
             "",
             mock(Topology.class),
+            kafkaStreamsBuilder,
             Collections.emptyMap(),
             Collections.emptyMap(),
             queryCloseCallback,
-            closeTimeout);
+            closeTimeout,
+            10);
 
     when(mockKsqlEngine.executeQuery(serviceContext,
-        ConfiguredStatement.of(query, requestStreamsProperties, VALID_CONFIG)))
+        ConfiguredStatement
+            .of(query, SessionConfig.of(VALID_CONFIG, requestStreamsProperties))))
         .thenReturn(transientQueryMetadata);
 
     final EndpointResponse response =

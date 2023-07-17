@@ -68,7 +68,8 @@ final class AggregateBuilderUtils {
   ) {
     final PhysicalSchema physicalAggregationSchema = PhysicalSchema.from(
         aggregateSchema,
-        formats.getOptions()
+        formats.getKeyFeatures(),
+        formats.getValueFeatures()
     );
 
     final QueryContext queryContext = materializeContext(step);

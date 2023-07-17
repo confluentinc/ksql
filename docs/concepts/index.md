@@ -25,3 +25,4 @@ More in the **Concepts** section:
 - [Kafka Streams and kslDB](ksqldb-and-kafka-streams.md)
 - [Time and Windows](time-and-windows-in-ksqldb-queries.md)
 - [Processing Guarantees](processing-guarantees.md)
+- [Evolving Production Queries](upgrades.md)

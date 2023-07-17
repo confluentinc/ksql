@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.api.auth;
 
+import static io.confluent.ksql.api.auth.SystemAuthenticationHandler.isAuthenticatedAsSystemUser;
 import static io.confluent.ksql.api.server.ServerUtils.convertCommaSeparatedWilcardsToRegex;
 import static io.confluent.ksql.rest.Errors.ERROR_CODE_UNAUTHORIZED;
 import static io.netty.handler.codec.http.HttpResponseStatus.UNAUTHORIZED;
@@ -61,6 +62,9 @@ public class AuthenticationPluginHandler implements Handler<RoutingContext> {
   @Override
   public void handle(final RoutingContext routingContext) {
     if (unauthedPathsPattern.matcher(routingContext.normalisedPath()).matches()) {
+      routingContext.next();
+      return;
+    } else if (isAuthenticatedAsSystemUser(routingContext)) {
       routingContext.next();
       return;
     }

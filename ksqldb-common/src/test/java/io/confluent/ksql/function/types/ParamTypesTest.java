@@ -39,8 +39,13 @@ public class ParamTypesTest {
         is(false));
 
     assertThat(ParamTypes.areCompatible(
-        SqlTypes.map(SqlTypes.decimal(1, 1)),
-        MapType.of(ParamTypes.INTEGER)),
+        SqlTypes.map(SqlTypes.STRING, SqlTypes.decimal(1, 1)),
+        MapType.of(ParamTypes.STRING, ParamTypes.INTEGER)),
+        is(false));
+
+    assertThat(ParamTypes.areCompatible(
+        SqlTypes.map(SqlTypes.decimal(1, 1), SqlTypes.INTEGER),
+        MapType.of(ParamTypes.INTEGER, ParamTypes.INTEGER)),
         is(false));
   }
 
@@ -59,8 +64,8 @@ public class ParamTypesTest {
         is(true));
 
     assertThat(ParamTypes.areCompatible(
-        SqlTypes.map(SqlTypes.decimal(1, 1)),
-        MapType.of(ParamTypes.DECIMAL)),
+        SqlTypes.map(SqlTypes.INTEGER, SqlTypes.decimal(1, 1)),
+        MapType.of(ParamTypes.INTEGER, ParamTypes.DECIMAL)),
         is(true));
   }
 

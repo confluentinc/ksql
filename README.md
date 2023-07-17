@@ -124,11 +124,7 @@ The following statement will create a Kafka Connect sink connector that continuo
 # Join the Community
 
 For user help, questions or queries about ksqlDB please use our [user Google Group](https://groups.google.com/forum/#!forum/ksql-users)
-or our public Slack channel #ksqldb in [Confluent Community Slack](https://slackpass.io/confluentcommunity)
-
-For discussions about development of ksqlDB please use our [developer Google Group](https://groups.google.com/forum/#!forum/ksql-dev).
-You can also hang out in our developer Slack channel #ksqldb-dev in - [Confluent Community Slack](https://slackpass.io/confluentcommunity) - this is where day to day chat about the development of ksqlDB happens.
-Everyone is welcome!
+or our public Slack channel #ksqldb in [Confluent Community Slack](https://slackpass.io/confluentcommunity). Everyone is welcome!
 
 You can get help, learn how to contribute to ksqlDB, and find the latest news by [connecting with the Confluent community](https://www.confluent.io/contact-us-thank-you/).
 

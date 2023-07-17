@@ -16,15 +16,17 @@
 package io.confluent.ksql.serde;
 
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Sets;
-import com.google.common.collect.Sets.SetView;
 import io.confluent.kafka.schemaregistry.ParsedSchema;
-import io.confluent.ksql.schema.ksql.SimpleColumn;
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.ksql.schema.ksql.PersistenceSchema;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Supplier;
 import javax.annotation.concurrent.ThreadSafe;
+import org.apache.kafka.common.serialization.Serde;
 
 /**
  * A {@code Format} is a serialization specification of a Kafka topic
@@ -37,91 +39,57 @@ import javax.annotation.concurrent.ThreadSafe;
 public interface Format {
 
   /**
-   * The name of the {@code Format} specification. If this format supports
-   * Confluent Schema Registry integration (either builtin or custom via the
-   * {@code ParsedSchema} plugin support), this should match the value returned
-   * by {@link ParsedSchema#name()}. Note that this value is <i>case-sensitive</i>.
+   * The name of the {@code Format} specification.
+   *
+   * <p>As used for {@code FORMAT}, {@code VALUE_FORMAT} and {@code KEY_FORMAT} properties in SQL
+   * statements.
    *
    * @return the name of this Format
-   * @see #supportsSchemaInference()
    */
   String name();
 
   /**
-   * If this format supports wrapping, primitive values can optionally
-   * be serialized anonymously (i.e. without a wrapping STRUCT and
-   * corresponding field name) - otherwise primitive values are only
-   * represented anonymously.
-   *
-   * @return whether or not this format supports wrapping
+   * @return The set of features the format supports.
    */
-  default boolean supportsWrapping() {
-    return true;
+  default Set<SerdeFeature> supportedFeatures() {
+    return ImmutableSet.of();
   }
 
   /**
-   * Indicates whether or not this format can support CREATE statements that
-   * omit the table elements and instead determine the schema from a Confluent
-   * Schema Registry query. If this method returns {@code true}, it is expected
-   * that the {@link #name()} corresponds with the schema format name returned
-   * by {@link ParsedSchema#name()} for this format.
-   *
-   * @return {@code true} if this {@code Format} supports schema inference
-   *         through Confluent Schema Registry
+   * @param feature the feature to test
+   * @return {@code true} if the feature is supported
    */
-  default boolean supportsSchemaInference() {
-    return false;
+  default boolean supportsFeature(final SerdeFeature feature) {
+    return supportedFeatures().contains(feature);
   }
 
   /**
-   * Converts the {@link ParsedSchema} returned by Confluent Schema Registry into a list of columns,
-   * which ksqlDB can use to infer the stream or table schema.
+   * Get a type for converting between {@link ParsedSchema} returned by Confluent Schema Registry
+   * and ksqlDB's own schema types.
    *
-   * <p>If this Format {@link #supportsSchemaInference()}, it is expected that
-   * this method will be implemented.</p>
+   * <p>If this Format supports the {@link SerdeFeature#SCHEMA_INFERENCE} feature, it is expected
+   * that this method will be implemented.
    *
-   * @param schema the {@code ParsedSchema} returned from Schema Registry
-   * @return the list of columns the schema defines
+   * @param formatProperties any format specific properties
+   * @return the converter
+   * @see SerdeFeature#SCHEMA_INFERENCE
    */
-  default List<SimpleColumn> toColumns(ParsedSchema schema) {
-    throw new KsqlException("Format does not implement Schema Registry support: " + name());
+  default SchemaTranslator getSchemaTranslator(Map<String, String> formatProperties) {
+    throw new UnsupportedOperationException(name() + " does not implement Schema Registry support");
   }
 
   /**
-   * Converts a list of columns into a {@link ParsedSchema}.
-   *
-   * <p>Currently only used to support the testing tool, which calls this method to obtain the
-   * {@link ParsedSchema} with which to populate the Schema Registry.
-   *
-   * @param columns the list of columns
-   * @param formatInfo the format info potentially containing additional info required to convert
-   * @return the {@code ParsedSchema} which will be added to the Schema Registry
-   */
-  default ParsedSchema toParsedSchema(List<? extends SimpleColumn> columns, FormatInfo formatInfo) {
-    throw new KsqlException("Format does not implement Schema Registry support: " + name());
-  }
-
-  /**
-   * If the format accepts custom properties in the WITH clause of the statement,
-   * then this will take the properties and validate the key-value pairs.
+   * If the format accepts custom properties in the WITH clause of the statement, then this will
+   * take the properties and validate the key-value pairs.
    *
    * @param properties the properties to validate
    * @throws KsqlException if the properties are invalid for the given format
    */
-  default void validateProperties(Map<String, String> properties) {
+  default void validateProperties(final Map<String, String> properties) {
     // by default, this method ensures that there are no property names
     // (case-insensitive) that are not in the getSupportedProperties()
     // and that none of the values are empty
-    final SetView<String> diff = Sets.difference(properties.keySet(), getSupportedProperties());
-    if (!diff.isEmpty()) {
-      throw new KsqlException(name() + " does not support the following configs: " + diff);
-    }
-
-    properties.forEach((k, v) -> {
-      if (v.trim().isEmpty()) {
-        throw new KsqlException(k + " cannot be empty. Format configuration: " + properties);
-      }
-    });
+    FormatProperties.validateProperties(name(), properties, getSupportedProperties());
   }
 
   /**
@@ -156,8 +124,21 @@ public interface Format {
   }
 
   /**
-   * @param info the info containing information required for generating the factory
-   * @return a {@code KsqlSerdeFactory} that generates serdes for the given format
+   * Get the serde for the supplied {@code schema}.
+   *
+   * @param schema the schema of the data
+   * @param formatProperties any format specific properties
+   * @param ksqlConfig the session config
+   * @param srClientFactory supplier of the SR client
+   * @param isKey whether or not we're retreiving a key serde
+   * @return a serde pair capable of (de)serializing the data in this format.
    */
-  KsqlSerdeFactory getSerdeFactory(FormatInfo info);
+  Serde<List<?>> getSerde(
+      PersistenceSchema schema,
+      Map<String, String> formatProperties,
+      KsqlConfig ksqlConfig,
+      Supplier<SchemaRegistryClient> srClientFactory,
+      boolean isKey
+  );
+
 }

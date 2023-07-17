@@ -18,6 +18,7 @@ package io.confluent.ksql.function.udf.string;
 import static org.apache.commons.lang3.StringUtils.ordinalIndexOf;
 import static org.apache.commons.lang3.StringUtils.substring;
 
+import io.confluent.ksql.function.FunctionCategory;
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.util.KsqlConstants;
@@ -25,6 +26,7 @@ import org.apache.commons.lang3.StringUtils;
 
 @UdfDescription(
     name = "instr",
+    category = FunctionCategory.STRING,
     author = KsqlConstants.CONFLUENT_AUTHOR,
     description = "Returns the position of substring in the provided string"
 )

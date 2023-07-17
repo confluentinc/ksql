@@ -62,7 +62,8 @@ public class GenericsUtilTest {
     final GenericType a = GenericType.of("A");
     final GenericType b = GenericType.of("B");
     final GenericType c = GenericType.of("C");
-    final ParamType map = MapType.of(GenericType.of("C"));
+    final GenericType d = GenericType.of("D");
+    final ParamType map = MapType.of(GenericType.of("C"), GenericType.of("D"));
 
     final StructType complexSchema = StructType.builder()
         .field("a", a)
@@ -74,7 +75,7 @@ public class GenericsUtilTest {
     final Set<ParamType> generics = GenericsUtil.constituentGenerics(complexSchema);
 
     // Then:
-    assertThat(generics, containsInAnyOrder(a, b, c));
+    assertThat(generics, containsInAnyOrder(a, b, c, d));
   }
 
   @Test
@@ -123,14 +124,18 @@ public class GenericsUtilTest {
   public void shouldResolveMapSchemaWithMapping() {
     // Given:
     final GenericType a = GenericType.of("A");
-    final ParamType map = MapType.of(a);
-    final ImmutableMap<GenericType, SqlType> mapping = ImmutableMap.of(a, SqlTypes.STRING);
+    final GenericType b = GenericType.of("B");
+    final ParamType map = MapType.of(a, b);
+    final ImmutableMap<GenericType, SqlType> mapping = ImmutableMap.of(
+        a, SqlTypes.INTEGER,
+        b, SqlTypes.DOUBLE
+    );
 
     // When:
     final SqlType resolved = GenericsUtil.applyResolved(map, mapping);
 
     // Then:
-    assertThat(resolved, is(SqlTypes.map(SqlTypes.STRING)));
+    assertThat(resolved, is(SqlTypes.map(SqlTypes.INTEGER, SqlTypes.DOUBLE)));
   }
 
   @Test
@@ -162,20 +167,21 @@ public class GenericsUtilTest {
   @Test
   public void shouldIdentifyMapGeneric() {
     // Given:
-    final MapType a = MapType.of(GenericType.of("A"));
-    final SqlType instance = SqlTypes.map(SqlTypes.STRING);
+    final MapType a = MapType.of(GenericType.of("A"), GenericType.of("B"));
+    final SqlType instance = SqlTypes.map(SqlTypes.DOUBLE, SqlTypes.BIGINT);
 
     // When:
     final Map<GenericType, SqlType> mapping = GenericsUtil.resolveGenerics(a, instance);
 
     // Then:
-    assertThat(mapping, hasEntry(a.value(), SqlTypes.STRING));
+    assertThat(mapping, hasEntry(a.key(), SqlTypes.DOUBLE));
+    assertThat(mapping, hasEntry(a.value(), SqlTypes.BIGINT));
   }
 
   @Test
   public void shouldNotIdentifyInstanceOfTypeMismatch() {
     // Given:
-    final MapType map = MapType.of(GenericType.of("A"));
+    final MapType map = MapType.of(GenericType.of("A"), GenericType.of("B"));
     final SqlType instance = SqlTypes.array(SqlTypes.STRING);
 
     // When:
@@ -198,7 +204,7 @@ public class GenericsUtilTest {
   @Test(expected = KsqlException.class)
   public void shouldFailIdentifyMismatchStructureGeneric() {
     // Given:
-    final MapType a = MapType.of(GenericType.of("A"));
+    final MapType a = MapType.of(GenericType.of("A"), GenericType.of("B"));
     final SqlArray instance = SqlTypes.array(SqlTypes.STRING);
 
     // When:

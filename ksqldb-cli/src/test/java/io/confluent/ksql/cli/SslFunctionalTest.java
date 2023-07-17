@@ -16,6 +16,7 @@
 package io.confluent.ksql.cli;
 
 import static io.confluent.ksql.serde.FormatFactory.JSON;
+import static io.confluent.ksql.serde.FormatFactory.KAFKA;
 import static io.netty.handler.codec.http.HttpResponseStatus.OK;
 import static java.util.Collections.emptyMap;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -54,6 +55,7 @@ import org.junit.rules.RuleChain;
 public class SslFunctionalTest {
 
   private static final String TOPIC_NAME = new OrderDataProvider().topicName();
+  private static final ServerKeyStore SERVER_KEY_STORE = new ServerKeyStore();
 
   private static final String JSON_KSQL_REQUEST = UrlEscapers.urlFormParameterEscaper()
       .escape("{"
@@ -64,7 +66,7 @@ public class SslFunctionalTest {
 
   private static final TestKsqlRestApp REST_APP = TestKsqlRestApp
       .builder(TEST_HARNESS::kafkaBootstrapServers)
-      .withProperties(ServerKeyStore.keyStoreProps())
+      .withProperties(SERVER_KEY_STORE.keyStoreProps())
       .withProperty(KsqlRestConfig.LISTENERS_CONFIG, "https://localhost:0")
       .build();
 
@@ -80,7 +82,7 @@ public class SslFunctionalTest {
   public static void classSetUp() {
     final OrderDataProvider dataProvider = new OrderDataProvider();
     TEST_HARNESS.getKafkaCluster().createTopics(TOPIC_NAME);
-    TEST_HARNESS.produceRows(dataProvider.topicName(), dataProvider, JSON);
+    TEST_HARNESS.produceRows(dataProvider.topicName(), dataProvider, KAFKA, JSON);
   }
 
   @Before

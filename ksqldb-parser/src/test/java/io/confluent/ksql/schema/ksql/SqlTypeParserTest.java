@@ -11,6 +11,7 @@ import io.confluent.ksql.metastore.TypeRegistry;
 import io.confluent.ksql.schema.ksql.types.SqlStruct;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.KsqlStatementException;
 import java.util.Optional;
 import org.junit.Before;
 import org.junit.Test;
@@ -80,13 +81,13 @@ public class SqlTypeParserTest {
   @Test
   public void shouldGetTypeFromMap() {
     // Given:
-    final String schemaString = "MAP<VARCHAR, INT>";
+    final String schemaString = "MAP<BIGINT, INT>";
 
     // When:
     final Type type = parser.parse(schemaString);
 
     // Then:
-    assertThat(type, is(new Type(SqlTypes.map(SqlTypes.INTEGER))));
+    assertThat(type, is(new Type(SqlTypes.map(SqlTypes.BIGINT, SqlTypes.INTEGER))));
   }
 
   @Test
@@ -172,6 +173,30 @@ public class SqlTypeParserTest {
     // Then:
     assertThat(e.getMessage(), containsString(
         "Value must be integer for command: DECIMAL(SCALE)"
+    ));
+  }
+
+  @Test
+  public void shouldThrowMeaningfulErrorOnBadStructDeclaration() {
+    // Given:
+    final String schemaString = "STRUCT<foo VARCHAR,>";
+
+    // When:
+    final KsqlStatementException e = assertThrows(
+        KsqlStatementException.class,
+        () -> parser.parse(schemaString)
+    );
+
+    // Then:
+    System.out.println(e.getMessage());
+    assertThat(e.getUnloggedMessage(), is(
+        "Failed to parse: STRUCT<foo VARCHAR,>\nStatement: STRUCT<foo VARCHAR,>"
+    ));
+    assertThat(e.getMessage(), is(
+        "Failed to parse schema"
+    ));
+    assertThat(e.getCause().getMessage(), is(
+        "line 1:20: Syntax error at line 1:20"
     ));
   }
 }

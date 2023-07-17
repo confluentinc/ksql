@@ -80,7 +80,7 @@ final class PropertiesConfig extends AbstractConfig {
     try {
       DateTimeFormatter.ofPattern(pattern);
     } catch (final Exception e) {
-      throw new KsqlException("Invalid datatime format for"
+      throw new KsqlException("Invalid datetime format for"
           + " config:" + configName
           + ", reason:" + e.getMessage(), e);
     }

@@ -19,6 +19,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.confluent.ksql.test.TestFrameworkException;
+import io.confluent.ksql.test.model.TestFileContext;
 import io.confluent.ksql.test.tools.Test;
 import io.confluent.ksql.test.tools.TestJsonMapper;
 import java.io.BufferedReader;
@@ -111,13 +112,30 @@ public final class JsonTestLoader<T extends Test> implements TestLoader<T> {
   ) {
     try (InputStream stream = JsonTestLoader.class
         .getClassLoader()
-        .getResourceAsStream(testPath.toString())
+        .getResourceAsStream(testPath.toString());
+
+        BufferedReader reader = new BufferedReader(
+            new InputStreamReader(throwNotFoundIfNull(stream, testPath), UTF_8));
     ) {
-      final TFT testFile = OBJECT_MAPPER.readValue(stream, testFileType);
-      return testFile.buildTests(testPath);
+      final List<String> lines = reader.lines()
+          .collect(Collectors.toList());
+
+      final String content = lines.stream()
+          .collect(Collectors.joining(System.lineSeparator()));
+
+      final TFT testFile = OBJECT_MAPPER.readValue(content, testFileType);
+
+      return testFile.buildTests(new TestFileContext(testPath, lines));
     } catch (final Exception e) {
       throw new RuntimeException("Unable to load test at path " + testPath, e);
     }
+  }
+
+  private static InputStream throwNotFoundIfNull(final InputStream stream, final Path testPath) {
+    if (stream == null) {
+      throw new TestFrameworkException("File not found: " + testPath);
+    }
+    return stream;
   }
 
   private static void throwOnDuplicateNames(final List<? extends Test> testCases) {
@@ -127,8 +145,8 @@ public final class JsonTestLoader<T extends Test> implements TestLoader<T> {
         .stream()
         .filter(e -> e.getValue().size() > 1)
         .map(e -> "test name: '" + e.getKey()
-            + "' found in files: " + e.getValue().stream().map(Test::getTestFile)
-            .collect(Collectors.joining(",")))
+            + "' found in file: " + e.getValue().get(0).getTestLocation().toString()
+        )
         .collect(Collectors.joining(System.lineSeparator()));
 
     if (!duplicates.isEmpty()) {

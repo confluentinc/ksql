@@ -15,45 +15,47 @@
 
 package io.confluent.ksql.rest.integration;
 
-import static io.confluent.ksql.rest.integration.HighAvailabilityTestUtil.sendHeartbeartsForWindowLength;
-import static io.confluent.ksql.rest.integration.HighAvailabilityTestUtil.sendLagReportingRequest;
+import static io.confluent.ksql.rest.integration.HighAvailabilityTestUtil.extractQueryId;
+import static io.confluent.ksql.rest.integration.HighAvailabilityTestUtil.makeAdminRequest;
+import static io.confluent.ksql.rest.integration.HighAvailabilityTestUtil.makeAdminRequestWithResponse;
+import static io.confluent.ksql.rest.integration.HighAvailabilityTestUtil.makePullQueryRequest;
 import static io.confluent.ksql.rest.integration.HighAvailabilityTestUtil.waitForClusterToBeDiscovered;
 import static io.confluent.ksql.rest.integration.HighAvailabilityTestUtil.waitForRemoteServerToChangeStatus;
 import static io.confluent.ksql.rest.integration.HighAvailabilityTestUtil.waitForStreamsMetadataToInitialize;
 import static io.confluent.ksql.util.KsqlConfig.KSQL_STREAMS_PREFIX;
+import static org.apache.kafka.streams.StreamsConfig.CONSUMER_PREFIX;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Iterables;
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.integration.IntegrationTestHarness;
 import io.confluent.ksql.integration.Retry;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.rest.entity.ActiveStandbyEntity;
 import io.confluent.ksql.rest.entity.ClusterStatusResponse;
-import io.confluent.ksql.rest.entity.HostStoreLags;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.KsqlHostInfoEntity;
-import io.confluent.ksql.rest.entity.LagInfoEntity;
-import io.confluent.ksql.rest.entity.LagReportingMessage;
-import io.confluent.ksql.rest.entity.QueryStateStoreId;
-import io.confluent.ksql.rest.entity.StateStoreLags;
 import io.confluent.ksql.rest.entity.StreamedRow;
+import io.confluent.ksql.rest.integration.FaultyKafkaConsumer.FaultyKafkaConsumer0;
+import io.confluent.ksql.rest.integration.FaultyKafkaConsumer.FaultyKafkaConsumer1;
+import io.confluent.ksql.rest.integration.FaultyKafkaConsumer.FaultyKafkaConsumer2;
+import io.confluent.ksql.rest.integration.HighAvailabilityTestUtil.Shutoffs;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
+import io.confluent.ksql.rest.server.utils.TestUtils;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatFactory;
-import io.confluent.ksql.serde.SerdeOption;
+import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.test.util.KsqlIdentifierTestUtil;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.UserDataProvider;
 import java.io.IOException;
 import java.util.List;
@@ -61,11 +63,11 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import kafka.zookeeper.ZooKeeperClientException;
+import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.streams.StreamsConfig;
 import org.junit.After;
-import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -76,6 +78,8 @@ import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TemporaryFolder;
 import org.junit.rules.Timeout;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Test to ensure pull queries route across multiple KSQL nodes correctly.
@@ -86,99 +90,109 @@ import org.junit.rules.Timeout;
 @SuppressWarnings("OptionalGetWithoutIsPresent")
 @Category({IntegrationTest.class})
 public class PullQueryRoutingFunctionalTest {
+  private static final Logger LOG = LoggerFactory.getLogger(PullQueryRoutingFunctionalTest.class);
 
-  private static final TemporaryFolder TMP = new TemporaryFolder();
-
-  static {
-    try {
-      TMP.create();
-    } catch (final IOException e) {
-      throw new AssertionError("Failed to init TMP", e);
-    }
-  }
-
-  private static final Pattern QUERY_ID_PATTERN = Pattern.compile("query with ID (\\S+)");
-  private static final KsqlHostInfoEntity host0 = new KsqlHostInfoEntity("localhost", 8188);
-  private static final KsqlHostInfoEntity host1 = new KsqlHostInfoEntity("localhost", 8189);
-  private static final KsqlHostInfoEntity host2 = new KsqlHostInfoEntity("localhost", 8187);
-  private static final String USER_TOPIC = "user_topic";
+  private static final String USER_TOPIC = "user_topic_";
   private static final String USERS_STREAM = "users";
   private static final UserDataProvider USER_PROVIDER = new UserDataProvider();
   private static final int HEADER = 1;
   private static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.build();
+  private static final TemporaryFolder TMP = new TemporaryFolder();
   private static final int BASE_TIME = 1_000_000;
-  private final static String KEY = Iterables.get(USER_PROVIDER.data().keySet(), 0);
+  private final static String KEY = USER_PROVIDER.getStringKey(0);
+  private final static String KEY1 = USER_PROVIDER.getStringKey(1);
+  private final AtomicLong timestampSupplier = new AtomicLong(BASE_TIME);
   private String output;
-  private String QUERY_ID;
+  private String queryId;
   private String sql;
+  private String sqlMultipleKeys;
+  private String topic;
 
-  private static final String STATE_STORE = "Aggregate-Aggregate-Materialize";
-  private static final long HOST_CURRENT_OFFSET = 25;
-  private static final long HOST_END_OFFSET = 75;
-  private static final long HOST_LAG = 50;
-  private static final Map<String, ?> LAG_FILTER_100 =
-      ImmutableMap.of(KsqlConfig.KSQL_QUERY_PULL_MAX_ALLOWED_OFFSET_LAG_CONFIG, "100");
-  private static final Map<String, ?> LAG_FILTER_25 =
-      ImmutableMap.of(KsqlConfig.KSQL_QUERY_PULL_MAX_ALLOWED_OFFSET_LAG_CONFIG, "25");
+  private static final Map<String, ?> LAG_FILTER_6 =
+      ImmutableMap.of(KsqlConfig.KSQL_QUERY_PULL_MAX_ALLOWED_OFFSET_LAG_CONFIG, "6");
+  private static final Map<String, ?> LAG_FILTER_3 =
+      ImmutableMap.of(KsqlConfig.KSQL_QUERY_PULL_MAX_ALLOWED_OFFSET_LAG_CONFIG, "3");
 
   private static final PhysicalSchema AGGREGATE_SCHEMA = PhysicalSchema.from(
       LogicalSchema.builder()
           .keyColumn(ColumnName.of("USERID"), SqlTypes.STRING)
           .valueColumn(ColumnName.of("COUNT"), SqlTypes.BIGINT)
           .build(),
-      SerdeOption.none()
+      SerdeFeatures.of(),
+      SerdeFeatures.of()
   );
 
   private static final Map<String, Object> COMMON_CONFIG = ImmutableMap.<String, Object>builder()
       .put(KSQL_STREAMS_PREFIX + StreamsConfig.NUM_STREAM_THREADS_CONFIG, 1)
       .put(KsqlRestConfig.KSQL_HEARTBEAT_ENABLE_CONFIG, true)
-      .put(KsqlRestConfig.KSQL_HEARTBEAT_SEND_INTERVAL_MS_CONFIG, 600000)
-      .put(KsqlRestConfig.KSQL_HEARTBEAT_CHECK_INTERVAL_MS_CONFIG, 200)
+      .put(KsqlRestConfig.KSQL_HEARTBEAT_SEND_INTERVAL_MS_CONFIG, 500)
+      .put(KsqlRestConfig.KSQL_HEARTBEAT_CHECK_INTERVAL_MS_CONFIG, 1000)
       .put(KsqlRestConfig.KSQL_HEARTBEAT_DISCOVER_CLUSTER_MS_CONFIG, 2000)
       .put(KsqlRestConfig.KSQL_LAG_REPORTING_ENABLE_CONFIG, true)
-      .put(KsqlRestConfig.KSQL_LAG_REPORTING_SEND_INTERVAL_MS_CONFIG, 600000)
+      .put(KsqlRestConfig.KSQL_LAG_REPORTING_SEND_INTERVAL_MS_CONFIG, 3000)
       .put(KsqlConfig.KSQL_QUERY_PULL_ENABLE_STANDBY_READS, true)
       .put(KsqlConfig.KSQL_STREAMS_PREFIX + "num.standby.replicas", 1)
       .put(KsqlConfig.KSQL_SHUTDOWN_TIMEOUT_MS_CONFIG, 1000)
       .build();
 
+  private static final Shutoffs APP_SHUTOFFS_0 = new Shutoffs();
+  private static final Shutoffs APP_SHUTOFFS_1 = new Shutoffs();
+  private static final Shutoffs APP_SHUTOFFS_2 = new Shutoffs();
+
+  private static final int INT_PORT_0 = TestUtils.findFreeLocalPort();
+  private static final int INT_PORT_1 = TestUtils.findFreeLocalPort();
+  private static final int INT_PORT_2 = TestUtils.findFreeLocalPort();
+  private static final KsqlHostInfoEntity HOST0 = new KsqlHostInfoEntity("localhost", INT_PORT_0);
+  private static final KsqlHostInfoEntity HOST1 = new KsqlHostInfoEntity("localhost", INT_PORT_1);
+  private static final KsqlHostInfoEntity HOST2 = new KsqlHostInfoEntity("localhost", INT_PORT_2);
+
   @Rule
   public final TestKsqlRestApp REST_APP_0 = TestKsqlRestApp
       .builder(TEST_HARNESS::kafkaBootstrapServers)
-      .withProperty(KSQL_STREAMS_PREFIX + StreamsConfig.NUM_STREAM_THREADS_CONFIG, 1)
       .withProperty(KSQL_STREAMS_PREFIX + StreamsConfig.STATE_DIR_CONFIG, getNewStateDir())
-      .withProperty(KsqlRestConfig.LISTENERS_CONFIG, "http://localhost:8088")
-      .withProperty(KsqlRestConfig.INTERNAL_LISTENER_CONFIG, "http://localhost:8188")
-      .withProperty(KsqlRestConfig.ADVERTISED_LISTENER_CONFIG, "http://localhost:8188")
+      .withProperty(KsqlRestConfig.LISTENERS_CONFIG, "http://localhost:0")
+      .withProperty(KsqlRestConfig.INTERNAL_LISTENER_CONFIG, "http://localhost:" + INT_PORT_0)
+      .withProperty(KsqlRestConfig.ADVERTISED_LISTENER_CONFIG, "http://localhost:" + INT_PORT_0)
+      .withFaultyKsqlClient(APP_SHUTOFFS_0::getKsqlOutgoing)
+      .withProperty(KSQL_STREAMS_PREFIX + CONSUMER_PREFIX
+          + ConsumerConfig.INTERCEPTOR_CLASSES_CONFIG, FaultyKafkaConsumer0.class.getName())
       .withProperties(COMMON_CONFIG)
       .build();
 
   @Rule
   public final TestKsqlRestApp REST_APP_1 = TestKsqlRestApp
       .builder(TEST_HARNESS::kafkaBootstrapServers)
-      .withProperty(KSQL_STREAMS_PREFIX + StreamsConfig.NUM_STREAM_THREADS_CONFIG, 1)
       .withProperty(KSQL_STREAMS_PREFIX + StreamsConfig.STATE_DIR_CONFIG, getNewStateDir())
-      .withProperty(KsqlRestConfig.LISTENERS_CONFIG, "http://localhost:8089")
-      .withProperty(KsqlRestConfig.INTERNAL_LISTENER_CONFIG, "http://localhost:8189")
-      .withProperty(KsqlRestConfig.ADVERTISED_LISTENER_CONFIG, "http://localhost:8189")
+      .withProperty(KsqlRestConfig.LISTENERS_CONFIG, "http://localhost:0")
+      .withProperty(KsqlRestConfig.INTERNAL_LISTENER_CONFIG, "http://localhost:" + INT_PORT_1)
+      .withProperty(KsqlRestConfig.ADVERTISED_LISTENER_CONFIG, "http://localhost:" + INT_PORT_1)
+      .withFaultyKsqlClient(APP_SHUTOFFS_1::getKsqlOutgoing)
+      .withProperty(KSQL_STREAMS_PREFIX + CONSUMER_PREFIX
+          + ConsumerConfig.INTERCEPTOR_CLASSES_CONFIG, FaultyKafkaConsumer1.class.getName())
       .withProperties(COMMON_CONFIG)
       .build();
 
   @Rule
   public final TestKsqlRestApp REST_APP_2 = TestKsqlRestApp
       .builder(TEST_HARNESS::kafkaBootstrapServers)
-      .withProperty(KSQL_STREAMS_PREFIX + StreamsConfig.NUM_STREAM_THREADS_CONFIG, 1)
       .withProperty(KSQL_STREAMS_PREFIX + StreamsConfig.STATE_DIR_CONFIG, getNewStateDir())
-      .withProperty(KsqlRestConfig.LISTENERS_CONFIG, "http://localhost:8087")
-      .withProperty(KsqlRestConfig.INTERNAL_LISTENER_CONFIG, "http://localhost:8187")
-      .withProperty(KsqlRestConfig.ADVERTISED_LISTENER_CONFIG, "http://localhost:8187")
+      .withProperty(KsqlRestConfig.LISTENERS_CONFIG, "http://localhost:0")
+      .withProperty(KsqlRestConfig.INTERNAL_LISTENER_CONFIG, "http://localhost:" + INT_PORT_2)
+      .withProperty(KsqlRestConfig.ADVERTISED_LISTENER_CONFIG, "http://localhost:" + INT_PORT_2)
+      .withFaultyKsqlClient(APP_SHUTOFFS_2::getKsqlOutgoing)
+      .withProperty(KSQL_STREAMS_PREFIX + CONSUMER_PREFIX
+          + ConsumerConfig.INTERCEPTOR_CLASSES_CONFIG, FaultyKafkaConsumer2.class.getName())
       .withProperties(COMMON_CONFIG)
       .build();
+
+  public final TestApp TEST_APP_0 = new TestApp(HOST0, REST_APP_0, APP_SHUTOFFS_0);
+  public final TestApp TEST_APP_1 = new TestApp(HOST1, REST_APP_1, APP_SHUTOFFS_1);
+  public final TestApp TEST_APP_2 = new TestApp(HOST2, REST_APP_2, APP_SHUTOFFS_2);
 
   @ClassRule
   public static final RuleChain CHAIN = RuleChain
       .outerRule(Retry.of(3, ZooKeeperClientException.class, 3, TimeUnit.SECONDS))
-      .around(TEST_HARNESS);
+      .around(TEST_HARNESS).around(TMP);
 
   @Rule
   public final Timeout timeout = Timeout.builder()
@@ -188,100 +202,117 @@ public class PullQueryRoutingFunctionalTest {
 
   @BeforeClass
   public static void setUpClass() {
-    //Create topic with 1 partition to control who is active and standby
-    TEST_HARNESS.ensureTopics(1, USER_TOPIC);
-
-    final AtomicLong timestampSupplier = new AtomicLong(BASE_TIME);
-
-    TEST_HARNESS.produceRows(
-        USER_TOPIC,
-        USER_PROVIDER,
-        FormatFactory.JSON,
-        timestampSupplier::getAndIncrement
-    );
+    FaultyKafkaConsumer0.setPauseOffset(APP_SHUTOFFS_0::getKafkaPauseOffset);
+    FaultyKafkaConsumer1.setPauseOffset(APP_SHUTOFFS_1::getKafkaPauseOffset);
+    FaultyKafkaConsumer2.setPauseOffset(APP_SHUTOFFS_2::getKafkaPauseOffset);
   }
 
   @Before
   public void setUp() {
+    //Create topic with 1 partition to control who is active and standby
+    topic = USER_TOPIC + KsqlIdentifierTestUtil.uniqueIdentifierName();
+    TEST_HARNESS.ensureTopics(1, topic);
+
+    TEST_HARNESS.produceRows(
+        topic,
+        USER_PROVIDER,
+        FormatFactory.KAFKA,
+        FormatFactory.JSON,
+        timestampSupplier::getAndIncrement
+    );
+
     //Create stream
     makeAdminRequest(
         REST_APP_0,
         "CREATE STREAM " + USERS_STREAM
             + " (" + USER_PROVIDER.ksqlSchemaString(false) + ")"
             + " WITH ("
-            + "   kafka_topic='" + USER_TOPIC + "', "
+            + "   kafka_topic='" + topic + "', "
             + "   value_format='JSON');"
     );
     //Create table
     output = KsqlIdentifierTestUtil.uniqueIdentifierName();
     sql = "SELECT * FROM " + output + " WHERE USERID = '" + KEY + "';";
+    sqlMultipleKeys = "SELECT * FROM " + output + " WHERE USERID IN ('"
+        + KEY + "', '" + KEY1 + "');";
     List<KsqlEntity> res = makeAdminRequestWithResponse(
         REST_APP_0,
         "CREATE TABLE " + output + " AS"
-            + " SELECT " + USER_PROVIDER.key() +  ", COUNT(1) AS COUNT FROM " + USERS_STREAM
+            + " SELECT " + USER_PROVIDER.key() + ", COUNT(1) AS COUNT FROM " + USERS_STREAM
             + " GROUP BY " + USER_PROVIDER.key() + ";"
     );
-    QUERY_ID = extractQueryId(res.get(0).toString());
-    QUERY_ID = QUERY_ID.substring(0, QUERY_ID.length() - 1);
+    queryId = extractQueryId(res.get(0).toString());
+    queryId = queryId.substring(0, queryId.length() - 1);
     waitForTableRows();
+
     waitForStreamsMetadataToInitialize(
-        REST_APP_0, ImmutableList.of(host0, host1, host2), QUERY_ID);
+        REST_APP_0, ImmutableList.of(HOST0, HOST1, HOST2), queryId);
   }
 
   @After
   public void cleanUp() {
     REST_APP_0.closePersistentQueries();
     REST_APP_0.dropSourcesExcept();
-  }
-
-  @AfterClass
-  public static void classTearDown() {
-    TMP.delete();
+    APP_SHUTOFFS_0.reset();
+    APP_SHUTOFFS_1.reset();
+    APP_SHUTOFFS_2.reset();
   }
 
   @Test
   public void shouldQueryActiveWhenActiveAliveQueryIssuedToStandby() throws Exception {
     // Given:
-    ClusterFormation clusterFormation = findClusterFormation(REST_APP_0, REST_APP_1, REST_APP_2);
-    waitForClusterToBeDiscovered(clusterFormation.standBy.right, 3);
-    sendLagReportingMessages(clusterFormation.standBy, clusterFormation.active);
-    sendHeartbeartsForWindowLength(
-        clusterFormation.standBy.right, clusterFormation.active.left, 2000);
+    ClusterFormation clusterFormation = findClusterFormation(TEST_APP_0, TEST_APP_1, TEST_APP_2);
+    waitForClusterToBeDiscovered(clusterFormation.standBy.getApp(), 3);
+    waitForRemoteServerToChangeStatus(clusterFormation.router.getApp(),
+        clusterFormation.router.getHost(), HighAvailabilityTestUtil.lagsReported(3));
+
     waitForRemoteServerToChangeStatus(
-        clusterFormation.standBy.right, clusterFormation.active.left, HighAvailabilityTestUtil::remoteServerIsUp);
+        clusterFormation.standBy.getApp(),
+        clusterFormation.active.getHost(),
+        HighAvailabilityTestUtil::remoteServerIsUp);
 
     // When:
-    final List<StreamedRow> rows_0 = makePullQueryRequest(clusterFormation.standBy.right, sql);
+    List<StreamedRow> rows_0 =
+        makePullQueryRequest(clusterFormation.standBy.getApp(), sql);
 
     // Then:
     assertThat(rows_0, hasSize(HEADER + 1));
+    KsqlHostInfoEntity host = rows_0.get(1).getSourceHost().get();
+    assertThat(host.getHost(), is(clusterFormation.active.getHost().getHost()));
+    assertThat(host.getPort(), is(clusterFormation.active.getHost().getPort()));
     assertThat(rows_0.get(1).getRow(), is(not(Optional.empty())));
     assertThat(rows_0.get(1).getRow().get().values(), is(ImmutableList.of(KEY, 1)));
   }
 
 
   @Test
-  public void shouldQueryActiveWhenActiveAliveStandbyDeadQueryIssuedToRouter() throws Exception {
+  public void shouldQueryActiveWhenActiveAliveStandbyDeadQueryIssuedToRouter() {
     // Given:
-    ClusterFormation clusterFormation = findClusterFormation(REST_APP_0, REST_APP_1, REST_APP_2);
-    waitForClusterToBeDiscovered(clusterFormation.router.right, 3);
-    sendLagReportingMessages(clusterFormation.router, clusterFormation.active);
-    sendHeartbeartsForWindowLength(
-        clusterFormation.router.right, clusterFormation.active.left, 2000);
+    ClusterFormation clusterFormation = findClusterFormation(TEST_APP_0, TEST_APP_1, TEST_APP_2);
+    waitForClusterToBeDiscovered(clusterFormation.router.getApp(), 3);
+    waitForRemoteServerToChangeStatus(clusterFormation.router.getApp(),
+        clusterFormation.router.getHost(), HighAvailabilityTestUtil.lagsReported(3));
+
+    // Partition off the standby
+    clusterFormation.standBy.getShutoffs().shutOffAll();
+
     waitForRemoteServerToChangeStatus(
-        clusterFormation.router.right,
-        clusterFormation.active.left,
+        clusterFormation.router.getApp(),
+        clusterFormation.active.getHost(),
         HighAvailabilityTestUtil::remoteServerIsUp);
     waitForRemoteServerToChangeStatus(
-        clusterFormation.router.right,
-        clusterFormation.standBy.left,
+        clusterFormation.router.getApp(),
+        clusterFormation.standBy.getHost(),
         HighAvailabilityTestUtil::remoteServerIsDown);
 
     // When:
-    final List<StreamedRow> rows_0 = makePullQueryRequest(clusterFormation.router.right, sql);
+    final List<StreamedRow> rows_0 = makePullQueryRequest(clusterFormation.router.getApp(), sql);
 
     // Then:
     assertThat(rows_0, hasSize(HEADER + 1));
+    KsqlHostInfoEntity host = rows_0.get(1).getSourceHost().get();
+    assertThat(host.getHost(), is(clusterFormation.active.getHost().getHost()));
+    assertThat(host.getPort(), is(clusterFormation.active.getHost().getPort()));
     assertThat(rows_0.get(1).getRow(), is(not(Optional.empty())));
     assertThat(rows_0.get(1).getRow().get().values(), is(ImmutableList.of(KEY, 1)));
   }
@@ -289,85 +320,150 @@ public class PullQueryRoutingFunctionalTest {
   @Test
   public void shouldQueryStandbyWhenActiveDeadStandbyAliveQueryIssuedToRouter() throws Exception {
     // Given:
-    ClusterFormation clusterFormation = findClusterFormation(REST_APP_0, REST_APP_1, REST_APP_2);
-    waitForClusterToBeDiscovered(clusterFormation.router.right, 3);
-    sendLagReportingMessages(clusterFormation.router, clusterFormation.standBy);
-    sendHeartbeartsForWindowLength(
-        clusterFormation.router.right, clusterFormation.standBy.left, 2000);
+    ClusterFormation clusterFormation = findClusterFormation(TEST_APP_0, TEST_APP_1, TEST_APP_2);
+    waitForClusterToBeDiscovered(clusterFormation.router.getApp(), 3);
+    waitForRemoteServerToChangeStatus(clusterFormation.router.getApp(),
+        clusterFormation.router.getHost(), HighAvailabilityTestUtil.lagsReported(3));
+
+    // Partition off the active
+    clusterFormation.active.getShutoffs().shutOffAll();
+
     waitForRemoteServerToChangeStatus(
-        clusterFormation.router.right,
-        clusterFormation.standBy.left,
+        clusterFormation.router.getApp(),
+        clusterFormation.standBy.getHost(),
         HighAvailabilityTestUtil::remoteServerIsUp);
+    waitForRemoteServerToChangeStatus(
+        clusterFormation.router.getApp(),
+        clusterFormation.active.getHost(),
+        HighAvailabilityTestUtil::remoteServerIsDown);
 
     // When:
-    final List<StreamedRow> rows_0 = makePullQueryRequest(clusterFormation.router.right, sql);
+    final List<StreamedRow> rows_0 = makePullQueryRequest(clusterFormation.router.getApp(), sql);
 
     // Then:
     assertThat(rows_0, hasSize(HEADER + 1));
+    KsqlHostInfoEntity host = rows_0.get(1).getSourceHost().get();
+    assertThat(host.getHost(), is(clusterFormation.standBy.getHost().getHost()));
+    assertThat(host.getPort(), is(clusterFormation.standBy.getHost().getPort()));
     assertThat(rows_0.get(1).getRow(), is(not(Optional.empty())));
     assertThat(rows_0.get(1).getRow().get().values(), is(ImmutableList.of(KEY, 1)));
+  }
+
+  @SuppressWarnings("unchecked")
+  @Test
+  public void shouldQueryStandbyWhenActiveDeadStandbyAliveQueryIssuedToRouter_multipleKeys()
+      throws Exception {
+    // Given:
+    ClusterFormation clusterFormation = findClusterFormation(TEST_APP_0, TEST_APP_1, TEST_APP_2);
+    waitForClusterToBeDiscovered(clusterFormation.router.getApp(), 3);
+    waitForRemoteServerToChangeStatus(clusterFormation.router.getApp(),
+        clusterFormation.router.getHost(), HighAvailabilityTestUtil.lagsReported(3));
+
+    // Partition off the active
+    clusterFormation.active.getShutoffs().shutOffAll();
+
+    waitForRemoteServerToChangeStatus(
+        clusterFormation.router.getApp(),
+        clusterFormation.standBy.getHost(),
+        HighAvailabilityTestUtil::remoteServerIsUp);
+    waitForRemoteServerToChangeStatus(
+        clusterFormation.router.getApp(),
+        clusterFormation.active.getHost(),
+        HighAvailabilityTestUtil::remoteServerIsDown);
+
+    // When:
+    final List<StreamedRow> rows_0 = makePullQueryRequest(clusterFormation.router.getApp(),
+        sqlMultipleKeys);
+
+    // Then:
+    assertThat(rows_0, hasSize(HEADER + 2));
+    KsqlHostInfoEntity host = rows_0.get(1).getSourceHost().get();
+    assertThat(host.getHost(), is(clusterFormation.standBy.getHost().getHost()));
+    assertThat(host.getPort(), is(clusterFormation.standBy.getHost().getPort()));
+    host = rows_0.get(2).getSourceHost().get();
+    assertThat(host.getHost(), is(clusterFormation.standBy.getHost().getHost()));
+    assertThat(host.getPort(), is(clusterFormation.standBy.getHost().getPort()));
+
+    List<List<Object>> values = rows_0.stream()
+        .skip(HEADER)
+        .map(sr -> {
+          assertThat(sr.getRow(), is(not(Optional.empty())));
+          return sr.getRow().get().values();
+        })
+        .collect(Collectors.toList());
+    assertThat(values, containsInAnyOrder(ImmutableList.of(KEY, 1), ImmutableList.of(KEY1, 1)));
   }
 
   @Test
   public void shouldFilterLaggyServers() throws Exception {
     // Given:
-    ClusterFormation clusterFormation = findClusterFormation(REST_APP_0, REST_APP_1, REST_APP_2);
-    waitForClusterToBeDiscovered(clusterFormation.router.right, 3);
-    sendLagReportingMessages(clusterFormation.router, clusterFormation.standBy);
-    sendHeartbeartsForWindowLength(
-        clusterFormation.router.right, clusterFormation.standBy.left, 2000);
+    ClusterFormation clusterFormation = findClusterFormation(TEST_APP_0, TEST_APP_1, TEST_APP_2);
+    waitForClusterToBeDiscovered(clusterFormation.router.getApp(), 3);
+    waitForRemoteServerToChangeStatus(clusterFormation.router.getApp(),
+        clusterFormation.router.getHost(), HighAvailabilityTestUtil.lagsReported(3));
     waitForRemoteServerToChangeStatus(
-        clusterFormation.router.right, clusterFormation.standBy.left,
+        clusterFormation.router.getApp(),
+        clusterFormation.active.getHost(),
+        HighAvailabilityTestUtil::remoteServerIsUp);
+    waitForRemoteServerToChangeStatus(
+        clusterFormation.router.getApp(),
+        clusterFormation.standBy.getHost(),
         HighAvailabilityTestUtil::remoteServerIsUp);
 
+    waitForRemoteServerToChangeStatus(clusterFormation.router.getApp(),
+        clusterFormation.router.getHost(),
+        HighAvailabilityTestUtil.lagsReported(clusterFormation.standBy.getHost(),
+            Optional.empty(), 5));
+
+    // Cut off standby from Kafka to simulate lag
+    clusterFormation.standBy.getShutoffs().setKafkaPauseOffset(0);
+    Thread.sleep(2000);
+
+    // Produce more data that will now only be available on active since standby is cut off
+    TEST_HARNESS.produceRows(
+        topic,
+        USER_PROVIDER,
+        FormatFactory.KAFKA,
+        FormatFactory.JSON,
+        timestampSupplier::getAndIncrement
+    );
+
+    // Make sure that the lags get reported before we kill active
+    waitForRemoteServerToChangeStatus(clusterFormation.router.getApp(),
+        clusterFormation.router.getHost(),
+        HighAvailabilityTestUtil.lagsReported(clusterFormation.active.getHost(), Optional.empty(),
+            10));
+
+    // Partition active off
+    clusterFormation.active.getShutoffs().shutOffAll();
+
+    waitForRemoteServerToChangeStatus(
+        clusterFormation.router.getApp(),
+        clusterFormation.standBy.getHost(),
+        HighAvailabilityTestUtil::remoteServerIsUp);
+    waitForRemoteServerToChangeStatus(
+        clusterFormation.router.getApp(),
+        clusterFormation.active.getHost(),
+        HighAvailabilityTestUtil::remoteServerIsDown);
+
     // When:
-    final List<StreamedRow> rows_0 = makePullQueryRequest(clusterFormation.router.right, sql,
-        LAG_FILTER_100);
+    final List<StreamedRow> rows_0 = makePullQueryRequest(
+        clusterFormation.router.getApp(), sql, LAG_FILTER_6);
 
     // Then:
     assertThat(rows_0, hasSize(HEADER + 1));
+    KsqlHostInfoEntity host = rows_0.get(1).getSourceHost().get();
+    assertThat(host.getHost(), is(clusterFormation.standBy.getHost().getHost()));
+    assertThat(host.getPort(), is(clusterFormation.standBy.getHost().getPort()));
     assertThat(rows_0.get(1).getRow(), is(not(Optional.empty())));
+    // This line ensures that we've not processed the new data
     assertThat(rows_0.get(1).getRow().get().values(), is(ImmutableList.of(KEY, 1)));
 
-    KsqlErrorMessage errorMessage = makePullQueryRequestWithError(clusterFormation.router.right,
-        sql, LAG_FILTER_25);
+    KsqlErrorMessage errorMessage = makePullQueryRequestWithError(
+        clusterFormation.router.getApp(), sql, LAG_FILTER_3);
     Assert.assertEquals(40001, errorMessage.getErrorCode());
-    Assert.assertTrue(errorMessage.getMessage().contains("All nodes are dead or exceed max allowed lag."));
-  }
-
-  private void sendLagReportingMessages(
-      final Pair<KsqlHostInfoEntity, TestKsqlRestApp> to,
-      final Pair<KsqlHostInfoEntity, TestKsqlRestApp> from) throws Exception {
-    LagReportingMessage lagReportingMessage =
-        new LagReportingMessage(from.left,
-            new HostStoreLags(createLagMap(HOST_CURRENT_OFFSET, HOST_END_OFFSET, HOST_LAG), 100));
-    sendLagReportingRequest(to.right, lagReportingMessage);
-    // Send them to itself as well
-    sendLagReportingRequest(from.right, lagReportingMessage);
-  }
-
-  private List<StreamedRow> makePullQueryRequest(
-      final TestKsqlRestApp target,
-      final String sql
-  ) {
-    return RestIntegrationTestUtil.makeQueryRequest(target, sql, Optional.empty());
-  }
-
-  private static void makeAdminRequest(TestKsqlRestApp restApp, final String sql) {
-    RestIntegrationTestUtil.makeKsqlRequest(restApp, sql, Optional.empty());
-  }
-
-  private List<KsqlEntity> makeAdminRequestWithResponse(
-      TestKsqlRestApp restApp, final String sql) {
-    return RestIntegrationTestUtil.makeKsqlRequest(restApp, sql, Optional.empty());
-  }
-
-  private static List<StreamedRow> makePullQueryRequest(
-      final TestKsqlRestApp target,
-      final String sql,
-      final Map<String, ?> properties
-  ) {
-    return RestIntegrationTestUtil.makeQueryRequest(target, sql, Optional.empty(), properties);
+    Assert.assertTrue(
+        errorMessage.getMessage().contains("All nodes are dead or exceed max allowed lag."));
   }
 
   private static KsqlErrorMessage makePullQueryRequestWithError(
@@ -379,84 +475,73 @@ public class PullQueryRoutingFunctionalTest {
         properties);
   }
 
-  private Map<QueryStateStoreId, StateStoreLags> createLagMap(long current, long end, long lag) {
-    final String queryId = "_confluent-ksql-default_query_" + QUERY_ID;
-    final QueryStateStoreId queryStateStoreId =
-        QueryStateStoreId.of(queryId, STATE_STORE);
-    return ImmutableMap.<QueryStateStoreId, StateStoreLags>builder()
-        .put(queryStateStoreId, new StateStoreLags(ImmutableMap.<Integer, LagInfoEntity>builder()
-            .put(0, new LagInfoEntity(current, end, lag))
-            .build()))
-        .build();
-  }
-
   private ClusterFormation findClusterFormation(
-      TestKsqlRestApp restApp0, TestKsqlRestApp restApp1, TestKsqlRestApp restApp2) {
+      TestApp testApp0, TestApp testApp1, TestApp testApp2) {
     ClusterFormation clusterFormation = new ClusterFormation();
-    ClusterStatusResponse clusterStatusResponse = HighAvailabilityTestUtil.sendClusterStatusRequest(restApp0);
-    ActiveStandbyEntity entity0 = clusterStatusResponse.getClusterStatus().get(host0)
-        .getActiveStandbyPerQuery().get(QUERY_ID);
-    ActiveStandbyEntity entity1 = clusterStatusResponse.getClusterStatus().get(host1)
-        .getActiveStandbyPerQuery().get(QUERY_ID);
+    ClusterStatusResponse clusterStatusResponse = HighAvailabilityTestUtil.sendClusterStatusRequest(testApp0.getApp());
+    ActiveStandbyEntity entity0 = clusterStatusResponse.getClusterStatus().get(testApp0.getHost())
+        .getActiveStandbyPerQuery().get(queryId);
+    ActiveStandbyEntity entity1 = clusterStatusResponse.getClusterStatus().get(testApp1.getHost())
+        .getActiveStandbyPerQuery().get(queryId);
 
     if (entity0 == null || entity1 == null) {
       throw new AssertionError("Could not find standby entity!");
     }
     // find active
     if (!entity0.getActiveStores().isEmpty() && !entity0.getActivePartitions().isEmpty()) {
-      clusterFormation.setActive(Pair.of(host0, restApp0));
+      clusterFormation.setActive(testApp0);
     } else if (!entity1.getActiveStores().isEmpty() && !entity1.getActivePartitions().isEmpty()) {
-      clusterFormation.setActive(Pair.of(host1, restApp1));
+      clusterFormation.setActive(testApp1);
     } else {
-      clusterFormation.setActive(Pair.of(host2, restApp2));
+      clusterFormation.setActive(testApp2);
     }
 
     //find standby
     if (!entity0.getStandByStores().isEmpty() && !entity0.getStandByPartitions().isEmpty()) {
-      clusterFormation.setStandBy(Pair.of(host0, restApp0));
+      clusterFormation.setStandBy(testApp0);
     } else if (!entity1.getStandByStores().isEmpty() && !entity1.getStandByPartitions().isEmpty()) {
-      clusterFormation.setStandBy(Pair.of(host1, restApp1));
+      clusterFormation.setStandBy(testApp1);
     } else {
-      clusterFormation.setStandBy(Pair.of(host2, restApp2));
+      clusterFormation.setStandBy(testApp2);
     }
 
     //find router
     if (entity0.getStandByStores().isEmpty() && entity0.getActiveStores().isEmpty()) {
-      clusterFormation.setRouter(Pair.of(host0, restApp0));
+      clusterFormation.setRouter(testApp0);
     } else if (entity1.getStandByStores().isEmpty() && entity1.getActiveStores().isEmpty()) {
-      clusterFormation.setRouter(Pair.of(host1, restApp1));
+      clusterFormation.setRouter(testApp1);
     } else {
-      clusterFormation.setRouter(Pair.of(host2, restApp2));
+      clusterFormation.setRouter(testApp2);
     }
 
     return clusterFormation;
   }
 
   static class ClusterFormation {
-    Pair<KsqlHostInfoEntity, TestKsqlRestApp> active;
-    Pair<KsqlHostInfoEntity, TestKsqlRestApp> standBy;
-    Pair<KsqlHostInfoEntity, TestKsqlRestApp> router;
+    TestApp active;
+    TestApp standBy;
+    TestApp router;
 
     ClusterFormation() {
     }
 
-    public void setActive(final Pair<KsqlHostInfoEntity, TestKsqlRestApp> active) {
+    public void setActive(final TestApp active) {
       this.active = active;
     }
 
-    public void setStandBy(final Pair<KsqlHostInfoEntity, TestKsqlRestApp> standBy) {
+    public void setStandBy(final TestApp standBy) {
       this.standBy = standBy;
     }
 
-    public void setRouter(final Pair<KsqlHostInfoEntity, TestKsqlRestApp> router) {
+    public void setRouter(final TestApp router) {
       this.router = router;
     }
 
     public String toString() {
       return new StringBuilder()
-          .append("Active = ").append(active.left)
-          .append(", Standby = ").append(standBy.left)
-          .append(", Router = ").append(router.left)
+          .append("Active = ").append(active.getHost())
+          .append(", Standby = ").append(standBy.getHost())
+          .append(", Router = ").append(router.getHost())
           .toString();
     }
   }
@@ -465,12 +550,13 @@ public class PullQueryRoutingFunctionalTest {
     TEST_HARNESS.verifyAvailableUniqueRows(
         output.toUpperCase(),
         USER_PROVIDER.data().size(),
+        FormatFactory.KAFKA,
         FormatFactory.JSON,
         AGGREGATE_SCHEMA
     );
   }
 
-  private String getNewStateDir() {
+  private static String getNewStateDir() {
     try {
       return TMP.newFolder().getAbsolutePath();
     } catch (final IOException e) {
@@ -478,10 +564,29 @@ public class PullQueryRoutingFunctionalTest {
     }
   }
 
-  private String extractQueryId(final String outputString) {
-    final java.util.regex.Matcher matcher = QUERY_ID_PATTERN.matcher(outputString);
-    assertThat("Could not find query id in: " + outputString, matcher.find());
-    return matcher.group(1);
+  private static class TestApp {
+
+    private final KsqlHostInfoEntity host;
+    private final TestKsqlRestApp app;
+    private final Shutoffs shutoffs;
+
+    public TestApp(KsqlHostInfoEntity host, TestKsqlRestApp app, Shutoffs shutoffs) {
+      this.host = host;
+      this.app = app;
+      this.shutoffs = shutoffs;
+    }
+
+    public KsqlHostInfoEntity getHost() {
+      return host;
+    }
+
+    public TestKsqlRestApp getApp() {
+      return app;
+    }
+
+    public Shutoffs getShutoffs() {
+      return shutoffs;
+    }
   }
 }
 

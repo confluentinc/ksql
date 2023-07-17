@@ -1,0 +1,938 @@
+{
+  "tests": [
+    {
+      "name": "deserialize anonymous primitive - value",
+      "statements": [
+        "CREATE STREAM INPUT (K STRING KEY, foo INT) WITH (WRAP_SINGLE_VALUE=false, kafka_topic='input_topic', value_format='JSON_SR');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": 10},
+        {"topic": "input_topic", "value": null}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"FOO": 10}},
+        {"topic": "OUTPUT", "value": null}
+      ]
+    },
+    {
+      "name": "deserialize anonymous primitive - value - with coercion",
+      "statements": [
+        "CREATE STREAM INPUT (K STRING KEY, foo STRING) WITH (WRAP_SINGLE_VALUE=false, kafka_topic='input_topic', value_format='JSON_SR');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": 10}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"FOO": "10"}}
+      ]
+    },
+    {
+      "name": "deserialize nested primitive - value",
+      "statements": [
+        "CREATE STREAM INPUT (K STRING KEY, foo INT) WITH (WRAP_SINGLE_VALUE=true, kafka_topic='input_topic', value_format='JSON_SR');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+     "inputs": [
+        {"topic": "input_topic", "value": {"FOO": 10}},
+        {"topic": "input_topic", "value": null}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"FOO": 10}},
+        {"topic": "OUTPUT", "value": null}
+      ]
+    },
+    {
+      "name": "deserialize anonymous array - value",
+      "comments": [
+        "see github issue https://github.com/confluentinc/ksql/issues/1351"
+      ],
+      "statements": [
+        "CREATE STREAM INPUT (foo ARRAY<STRING>) WITH (WRAP_SINGLE_VALUE=false, kafka_topic='input_topic', value_format='JSON_SR');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": ["a", "b", "c"]},
+        {"topic": "input_topic", "value": ["a", "b", null]},
+        {"topic": "input_topic", "value": null}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"FOO": ["a", "b", "c"]}},
+        {"topic": "OUTPUT", "value": {"FOO": ["a", "b", null]}},
+        {"topic": "OUTPUT", "value": null}
+      ]
+    },
+    {
+      "name": "deserialize anonymous array - value - with coercion",
+      "statements": [
+        "CREATE STREAM INPUT (foo ARRAY<STRING>) WITH (WRAP_SINGLE_VALUE=false, kafka_topic='input_topic', value_format='JSON_SR');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": [1, 2, 3]}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"FOO": ["1", "2", "3"]}}
+      ]
+    },
+    {
+      "name": "deserialize nested array - value",
+      "statements": [
+        "CREATE STREAM INPUT (foo ARRAY<STRING>) WITH (WRAP_SINGLE_VALUE=true, kafka_topic='input_topic', value_format='JSON_SR');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": {"FOO": ["a", "b", "c"]}},
+        {"topic": "input_topic", "value": {"FOO": ["a", "b", null]}},
+        {"topic": "input_topic", "value": {"FOO": null}},
+        {"topic": "input_topic", "value": null}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"FOO": ["a", "b", "c"]}},
+        {"topic": "OUTPUT", "value": {"FOO": ["a", "b", null]}},
+        {"topic": "OUTPUT", "value": {"FOO": null}},
+        {"topic": "OUTPUT", "value": null}
+      ]
+    },
+    {
+      "enabled": false,
+      "comment": "disabled until fix in for https://github.com/confluentinc/ksql/issues/6049",
+      "name": "deserialize anonymous map - value",
+      "statements": [
+        "CREATE STREAM INPUT (foo MAP<STRING, INT>) WITH (WRAP_SINGLE_VALUE=false, kafka_topic='input_topic', value_format='JSON_SR');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": {"a": 1, "b": 2, "c": 3}},
+        {"topic": "input_topic", "value": {"a": 1, "b": 2, "c": null}},
+        {"topic": "input_topic", "value": null}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"FOO": {"a": 1, "b": 2, "c": 3}}},
+        {"topic": "OUTPUT", "value": {"FOO": {"a": 1, "b": 2, "c": null}}},
+        {"topic": "OUTPUT", "value": null}
+      ],
+      "post": {
+        "sources": [
+          {"name": "INPUT", "type": "stream", "schema": "FOO MAP<STRING, INT>"}
+        ]
+      }
+    },
+    {
+      "enabled": false,
+      "comment": "disabled until fix in for https://github.com/confluentinc/ksql/issues/6049",
+      "name": "deserialize nested map - value",
+      "statements": [
+        "CREATE STREAM INPUT (foo MAP<STRING, INT>) WITH (WRAP_SINGLE_VALUE=true, kafka_topic='input_topic', value_format='JSON_SR');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": {"FOO": {"a": 1, "b": 2, "c": 3}}},
+        {"topic": "input_topic", "value": {"FOO": {"a": 1, "b": 2, "c": null}}},
+        {"topic": "input_topic", "value": {"FOO": null}},
+        {"topic": "input_topic", "value": null}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"FOO": {"a": 1, "b": 2, "c": 3}}},
+        {"topic": "OUTPUT", "value": {"FOO": {"a": 1, "b": 2, "c": null}}},
+        {"topic": "OUTPUT", "value": {"FOO": null}},
+        {"topic": "OUTPUT", "value": null}
+      ],
+      "post": {
+        "sources": [
+          {"name": "INPUT", "type": "stream", "schema": "FOO MAP<STRING, INT>"}
+        ]
+      }
+    },
+    {
+      "name": "serialize anonymous primitive - value",
+      "statements": [
+        "CREATE STREAM INPUT (K STRING KEY, foo BOOLEAN) WITH (kafka_topic='input_topic', value_format='JSON_SR');",
+        "CREATE STREAM OUTPUT WITH (WRAP_SINGLE_VALUE=false) AS SELECT * FROM INPUT;"
+      ],
+        "inputs": [
+        {"topic": "input_topic", "value": {"FOO": true}},
+        {"topic": "input_topic", "value": {"FOO": null}},
+        {"topic": "input_topic", "value": null}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": true},
+        {"topic": "OUTPUT", "value": null},
+        {"topic": "OUTPUT", "value": null}
+      ]
+    },
+    {
+      "name": "serialize nested primitive - value",
+      "statements": [
+        "CREATE STREAM INPUT (K STRING KEY, foo BOOLEAN) WITH (kafka_topic='input_topic', value_format='JSON_SR');",
+        "CREATE STREAM OUTPUT WITH (WRAP_SINGLE_VALUE=true) AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": {"FOO": true}},
+        {"topic": "input_topic", "value": {"FOO": null}},
+        {"topic": "input_topic", "value": null}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"FOO": true}},
+        {"topic": "OUTPUT", "value": {"FOO": null}},
+        {"topic": "OUTPUT", "value": null}
+      ]
+    },
+    {
+      "name": "serialize anonymous array - value",
+      "statements": [
+        "CREATE STREAM INPUT (foo ARRAY<BIGINT>) WITH (kafka_topic='input_topic', value_format='JSON_SR');",
+        "CREATE STREAM OUTPUT WITH (WRAP_SINGLE_VALUE=false) AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": {"FOO": [12, 34, 999]}},
+        {"topic": "input_topic", "value": {"FOO": [12, 34, null]}},
+        {"topic": "input_topic", "value": {"FOO": null}},
+        {"topic": "input_topic", "value": null}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": [12, 34, 999]},
+        {"topic": "OUTPUT", "value": [12, 34, null]},
+        {"topic": "OUTPUT", "value": null},
+        {"topic": "OUTPUT", "value": null}
+      ]
+    },
+    {
+      "name": "serialize nested array - value",
+      "statements": [
+        "CREATE STREAM INPUT (foo ARRAY<BIGINT>) WITH (kafka_topic='input_topic', value_format='JSON_SR');",
+        "CREATE STREAM OUTPUT WITH (WRAP_SINGLE_VALUE=true) AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": {"FOO": [12, 34, 999]}},
+        {"topic": "input_topic", "value": {"FOO": [12, 34, null]}},
+        {"topic": "input_topic", "value": {"FOO": null}},
+        {"topic": "input_topic", "value": null}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"FOO": [12, 34, 999]}},
+        {"topic": "OUTPUT", "value": {"FOO": [12, 34, null]}},
+        {"topic": "OUTPUT", "value": {"FOO": null}},
+        {"topic": "OUTPUT", "value": null}
+      ]
+    },
+    {
+      "enabled": false,
+      "comment": "disabled until fix in for https://github.com/confluentinc/ksql/issues/6049",
+      "name": "serialize anonymous map - value",
+      "statements": [
+        "CREATE STREAM INPUT (foo MAP<STRING, DOUBLE>) WITH (kafka_topic='input_topic', value_format='JSON_SR');",
+        "CREATE STREAM OUTPUT WITH (WRAP_SINGLE_VALUE=false) AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": {"FOO": {"a": 1.1, "b": 2.2, "c": 3.456}}},
+        {"topic": "input_topic", "value": {"FOO": {"a": 1.1, "b": 2.2, "c": null}}},
+        {"topic": "input_topic", "value": {"FOO": null}},
+        {"topic": "input_topic", "value": null}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"a": 1.1, "b": 2.2, "c": 3.456}},
+        {"topic": "OUTPUT", "value": {"a": 1.1, "b": 2.2, "c": null}},
+        {"topic": "OUTPUT", "value": null},
+        {"topic": "OUTPUT", "value": null}
+      ]
+    },
+    {
+      "enabled": false,
+      "comment": "disabled until fix in for https://github.com/confluentinc/ksql/issues/6049",
+      "name": "serialize nested map - value",
+      "statements": [
+        "CREATE STREAM INPUT (foo MAP<STRING, DOUBLE>) WITH (kafka_topic='input_topic', value_format='JSON_SR');",
+        "CREATE STREAM OUTPUT WITH (WRAP_SINGLE_VALUE=true) AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": {"FOO": {"a": 1.1, "b": 2.2, "c": 3.456}}},
+        {"topic": "input_topic", "value": {"FOO": {"a": 1.1, "b": 2.2, "c": null}}},
+        {"topic": "input_topic", "value": {"FOO": null}},
+        {"topic": "input_topic", "value": null}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"FOO": {"a": 1.1, "b": 2.2, "c": 3.456}}},
+        {"topic": "OUTPUT", "value": {"FOO": {"a": 1.1, "b": 2.2, "c": null}}},
+        {"topic": "OUTPUT", "value": {"FOO": null}},
+        {"topic": "OUTPUT", "value": null}
+      ]
+    },
+    {
+      "name": "serialize anonymous struct - value",
+      "statements": [
+        "CREATE STREAM INPUT (foo STRUCT<F0 INT>) WITH (kafka_topic='input_topic', value_format='JSON_SR');",
+        "CREATE STREAM OUTPUT WITH (WRAP_SINGLE_VALUE=false) AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": {"FOO": {"F0": 1}}},
+        {"topic": "input_topic", "value": {"FOO": {"F0": null}}},
+        {"topic": "input_topic", "value": {"FOO": null}},
+        {"topic": "input_topic", "value": null}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"F0": 1}},
+        {"topic": "OUTPUT", "value": {"F0": null}},
+        {"topic": "OUTPUT", "value": null},
+        {"topic": "OUTPUT", "value": null}
+      ]
+    },
+    {
+      "name": "serialize nested struct - value",
+      "statements": [
+        "CREATE STREAM INPUT (foo STRUCT<F0 INT>) WITH (kafka_topic='input_topic', value_format='JSON_SR');",
+        "CREATE STREAM OUTPUT WITH (WRAP_SINGLE_VALUE=true) AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": {"FOO": {"F0": 1}}},
+        {"topic": "input_topic", "value": {"FOO": {"F0": null}}},
+        {"topic": "input_topic", "value": {"FOO": null}},
+        {"topic": "input_topic", "value": null}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"FOO": {"F0": 1}}},
+        {"topic": "OUTPUT", "value": {"FOO": {"F0": null}}},
+        {"topic": "OUTPUT", "value": {"FOO": null}},
+        {"topic": "OUTPUT", "value": null}
+      ]
+    },
+    {
+      "name": "BOOLEAN - key - no inference",
+      "properties": {
+        "ksql.key.format.enabled": true
+      },
+      "statements": [
+        "CREATE STREAM INPUT (K BOOLEAN KEY, foo INT) WITH (kafka_topic='input_topic', format='JSON_SR');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": true, "value": {"FOO": 10}},
+        {"topic": "input_topic", "value": null}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": true, "value": {"FOO": 10}},
+        {"topic": "OUTPUT", "value": null}
+      ]
+    },
+    {
+      "name": "BOOLEAN - key - inference",
+      "properties": {
+        "ksql.key.format.enabled": true
+      },
+      "statements": [
+        "CREATE STREAM INPUT (foo INT) WITH (kafka_topic='input_topic', format='JSON_SR');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "topics": [
+        {
+          "name": "input_topic",
+          "keySchema": {"oneOf":[{"type":"null"},{"type":"boolean","connect.type":"boolean"}]},
+          "keyFormat": "JSON_SR",
+          "valueSchema": {"type":"object","properties":{"COL1":{"connect.index":0,"oneOf":[{"type":"null"},{"type":"integer","connect.type":"int32"}]}}},
+          "valueFormat": "JSON_SR"
+        }
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": true, "value": {"FOO": 10}},
+        {"topic": "input_topic", "value": null}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": true, "value": {"FOO": 10}},
+        {"topic": "OUTPUT", "value": null}
+      ],
+      "post": {
+        "sources" : [ {
+          "name" : "OUTPUT",
+          "type" : "STREAM",
+          "schema" : "`ROWKEY` BOOLEAN KEY, `FOO` INTEGER",
+          "keyFormat" : { "format" : "JSON_SR" },
+          "valueFormat" : "JSON_SR",
+          "keyFeatures" : [ "UNWRAP_SINGLES" ],
+          "valueFeatures" : [ ]
+        } ]
+      }
+    },
+    {
+      "name": "INT - key - no inference",
+      "properties": {
+        "ksql.key.format.enabled": true
+      },
+      "statements": [
+        "CREATE STREAM INPUT (K INT KEY, foo INT) WITH (kafka_topic='input_topic', format='JSON_SR');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": 10, "value": {"FOO": 10}},
+        {"topic": "input_topic", "key": 12, "value": {"FOO": 10}},
+        {"topic": "input_topic", "key": null, "value": {"FOO": 10}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 10, "value": {"FOO": 10}},
+        {"topic": "OUTPUT", "key": 12, "value": {"FOO": 10}},
+        {"topic": "OUTPUT", "key": null, "value": {"FOO": 10}}
+      ]
+    },
+    {
+      "name": "INT - key - inference",
+      "properties": {
+        "ksql.key.format.enabled": true
+      },
+      "statements": [
+        "CREATE STREAM INPUT (foo INT) WITH (kafka_topic='input_topic', format='JSON_SR');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "topics": [
+        {
+          "name": "input_topic",
+          "keySchema": {"oneOf":[{"type":"null"},{"type":"integer","connect.type":"int32"}]},
+          "keyFormat": "JSON_SR",
+          "valueSchema": {"type":"object","properties":{"COL1":{"connect.index":0,"oneOf":[{"type":"null"},{"type":"integer","connect.type":"int32"}]}}},
+          "valueFormat": "JSON_SR"
+        }
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": 10, "value": {"FOO": 10}},
+        {"topic": "input_topic", "key": 12, "value": {"FOO": 10}},
+        {"topic": "input_topic", "key": null, "value": {"FOO": 10}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 10, "value": {"FOO": 10}},
+        {"topic": "OUTPUT", "key": 12, "value": {"FOO": 10}},
+        {"topic": "OUTPUT", "key": null, "value": {"FOO": 10}}
+      ],
+      "post": {
+        "sources" : [ {
+          "name" : "OUTPUT",
+          "type" : "STREAM",
+          "schema" : "`ROWKEY` INTEGER KEY, `FOO` INTEGER",
+          "keyFormat" : { "format" : "JSON_SR" },
+          "valueFormat" : "JSON_SR",
+          "keyFeatures" : [ "UNWRAP_SINGLES" ],
+          "valueFeatures" : [ ]
+        } ]
+      }
+    },
+    {
+      "name": "BIGINT - key - no inference",
+      "properties": {
+        "ksql.key.format.enabled": true
+      },
+      "statements": [
+        "CREATE STREAM INPUT (K BIGINT KEY, foo INT) WITH (kafka_topic='input_topic', format='JSON_SR');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": 998877665544332211, "value": {"FOO": 10}},
+        {"topic": "input_topic", "key": null, "value": {"FOO": 10}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 998877665544332211, "value": {"FOO": 10}},
+        {"topic": "OUTPUT", "key": null, "value": {"FOO": 10}}
+      ]
+    },
+    {
+      "name": "BIGINT - key - inference",
+      "properties": {
+        "ksql.key.format.enabled": true
+      },
+      "statements": [
+        "CREATE STREAM INPUT (foo INT) WITH (kafka_topic='input_topic', format='JSON_SR');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "topics": [
+        {
+          "name": "input_topic",
+          "keySchema": {"oneOf":[{"type":"null"},{"type":"integer","connect.type":"int64"}]},
+          "keyFormat": "JSON_SR",
+          "valueSchema": {"type":"object","properties":{"COL1":{"connect.index":0,"oneOf":[{"type":"null"},{"type":"integer","connect.type":"int32"}]}}},
+          "valueFormat": "JSON_SR"
+        }
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": 998877665544332211, "value": {"FOO": 10}},
+        {"topic": "input_topic", "key": null, "value": {"FOO": 10}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 998877665544332211, "value": {"FOO": 10}},
+        {"topic": "OUTPUT", "key": null, "value": {"FOO": 10}}
+      ],
+      "post": {
+        "sources" : [ {
+          "name" : "OUTPUT",
+          "type" : "STREAM",
+          "schema" : "`ROWKEY` BIGINT KEY, `FOO` INTEGER",
+          "keyFormat" : { "format" : "JSON_SR" },
+          "valueFormat" : "JSON_SR",
+          "keyFeatures" : [ "UNWRAP_SINGLES" ],
+          "valueFeatures" : [ ]
+        } ]
+      }
+    },
+    {
+      "name": "DOUBLE - key - no inference",
+      "properties": {
+        "ksql.key.format.enabled": true
+      },
+      "statements": [
+        "CREATE STREAM INPUT (K DOUBLE KEY, foo INT) WITH (kafka_topic='input_topic', format='JSON_SR');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": 654.321, "value": {"FOO": 10}},
+        {"topic": "input_topic", "key": null, "value": {"FOO": 10}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 654.321, "value": {"FOO": 10}},
+        {"topic": "OUTPUT", "key": null, "value": {"FOO": 10}}
+      ]
+    },
+    {
+      "name": "DOUBLE - key - inference",
+      "properties": {
+        "ksql.key.format.enabled": true
+      },
+      "statements": [
+        "CREATE STREAM INPUT (foo INT) WITH (kafka_topic='input_topic', format='JSON_SR');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "topics": [
+        {
+          "name": "input_topic",
+          "keySchema": {"oneOf":[{"type":"null"},{"type":"number","connect.type":"float64"}]},
+          "keyFormat": "JSON_SR",
+          "valueSchema": {"type":"object","properties":{"COL1":{"connect.index":0,"oneOf":[{"type":"null"},{"type":"integer","connect.type":"int32"}]}}},
+          "valueFormat": "JSON_SR"
+        }
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": 654.321, "value": {"FOO": 10}},
+        {"topic": "input_topic", "key": null, "value": {"FOO": 10}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 654.321, "value": {"FOO": 10}},
+        {"topic": "OUTPUT", "key": null, "value": {"FOO": 10}}
+      ],
+      "post": {
+        "sources" : [ {
+          "name" : "OUTPUT",
+          "type" : "STREAM",
+          "schema" : "`ROWKEY` DOUBLE KEY, `FOO` INTEGER",
+          "keyFormat" : { "format" : "JSON_SR" },
+          "valueFormat" : "JSON_SR",
+          "keyFeatures" : [ "UNWRAP_SINGLES" ],
+          "valueFeatures" : [ ]
+        } ]
+      }
+    },
+    {
+      "name": "STRING - key - no inference",
+      "properties": {
+        "ksql.key.format.enabled": true
+      },
+      "statements": [
+        "CREATE STREAM INPUT (K VARCHAR KEY, foo INT) WITH (kafka_topic='input_topic', format='JSON_SR');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": "foo", "value": {"FOO": 10}},
+        {"topic": "input_topic", "key": null, "value": {"FOO": 10}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "foo", "value": {"FOO": 10}},
+        {"topic": "OUTPUT", "key": null, "value": {"FOO": 10}}
+      ]
+    },
+    {
+      "name": "STRING - key - inference",
+      "properties": {
+        "ksql.key.format.enabled": true
+      },
+      "statements": [
+        "CREATE STREAM INPUT (foo INT) WITH (kafka_topic='input_topic', format='JSON_SR');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "topics": [
+        {
+          "name": "input_topic",
+          "keySchema": {"oneOf":[{"type":"null"},{"type":"string","connect.type":"string"}]},
+          "keyFormat": "JSON_SR",
+          "valueSchema": {"type":"object","properties":{"COL1":{"connect.index":0,"oneOf":[{"type":"null"},{"type":"integer","connect.type":"int32"}]}}},
+          "valueFormat": "JSON_SR"
+        }
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": "foo", "value": {"FOO": 10}},
+        {"topic": "input_topic", "key": null, "value": {"FOO": 10}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "foo", "value": {"FOO": 10}},
+        {"topic": "OUTPUT", "key": null, "value": {"FOO": 10}}
+      ],
+      "post": {
+        "sources" : [ {
+          "name" : "OUTPUT",
+          "type" : "STREAM",
+          "schema" : "`ROWKEY` STRING KEY, `FOO` INTEGER",
+          "keyFormat" : { "format" : "JSON_SR" },
+          "valueFormat" : "JSON_SR",
+          "keyFeatures" : [ "UNWRAP_SINGLES" ],
+          "valueFeatures" : [ ]
+        } ]
+      }
+    },
+    {
+      "name": "DECIMAL - key - no inference",
+      "properties": {
+        "ksql.key.format.enabled": true
+      },
+      "statements": [
+        "CREATE STREAM INPUT (K DECIMAL(4,2) KEY, foo INT) WITH (kafka_topic='input_topic', format='JSON_SR');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": 65.21, "value": {"FOO": 10}},
+        {"topic": "input_topic", "key": null, "value": {"FOO": 10}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 65.21, "value": {"FOO": 10}},
+        {"topic": "OUTPUT", "key": null, "value": {"FOO": 10}}
+      ]
+    },
+    {
+      "name": "DECIMAL - key - inference",
+      "properties": {
+        "ksql.key.format.enabled": true
+      },
+      "statements": [
+        "CREATE STREAM INPUT (foo INT) WITH (kafka_topic='input_topic', format='JSON_SR');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "topics": [
+        {
+          "name": "input_topic",
+          "keySchema": {
+            "oneOf": [
+              { "type": "null" },
+              {
+                "type": "number",
+                "title": "org.apache.kafka.connect.data.Decimal",
+                "connect.version": 1,
+                "connect.type": "bytes",
+                "connect.parameters": {
+                  "scale": "2",
+                  "connect.decimal.precision": "4"
+                }
+              }
+            ]
+          },
+          "keyFormat": "JSON_SR",
+          "valueSchema": {"type":"object","properties":{"COL1":{"connect.index":0,"oneOf":[{"type":"null"},{"type":"integer","connect.type":"int32"}]}}},
+          "valueFormat": "JSON_SR"
+        }
+      ],
+      "post": {
+        "sources" : [ {
+          "name" : "OUTPUT",
+          "type" : "STREAM",
+          "schema" : "`ROWKEY` DECIMAL(4,2) KEY, `FOO` INTEGER",
+          "keyFormat" : { "format" : "JSON_SR" },
+          "valueFormat" : "JSON_SR",
+          "keyFeatures" : [ "UNWRAP_SINGLES" ],
+          "valueFeatures" : [ ]
+        } ]
+      },
+      "inputs": [
+        {"topic": "input_topic", "key": 65.21, "value": {"FOO": 10}},
+        {"topic": "input_topic", "key": null, "value": {"FOO": 10}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 65.21, "value": {"FOO": 10}},
+        {"topic": "OUTPUT", "key": null, "value": {"FOO": 10}}
+      ]
+    },
+    {
+      "name": "ARRAY - key - no inference",
+      "properties": {
+        "ksql.key.format.enabled": true
+      },
+      "statements": [
+        "CREATE STREAM INPUT (K ARRAY<VARCHAR> KEY, foo INT) WITH (kafka_topic='input_topic', format='JSON_SR');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": ["foo"], "value": {"FOO": 10}},
+        {"topic": "input_topic", "key": [null], "value": {"FOO": 10}},
+        {"topic": "input_topic", "key": null, "value": {"FOO": 10}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": ["foo"], "value": {"FOO": 10}},
+        {"topic": "OUTPUT", "key": [null], "value": {"FOO": 10}},
+        {"topic": "OUTPUT", "key": null, "value": {"FOO": 10}}
+      ]
+    },
+    {
+      "name": "ARRAY - key - inference",
+      "properties": {
+        "ksql.key.format.enabled": true
+      },
+      "statements": [
+        "CREATE STREAM INPUT (foo INT) WITH (kafka_topic='input_topic', format='JSON_SR');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "topics": [
+        {
+          "name": "input_topic",
+          "keySchema": {"oneOf":[{"type":"null"},{"type":"array","items":{"oneOf":[{"type":"null"},{"type":"string"}]}}]},
+          "keyFormat": "JSON_SR",
+          "valueSchema": {"type":"object","properties":{"COL1":{"connect.index":0,"oneOf":[{"type":"null"},{"type":"integer","connect.type":"int32"}]}}},
+          "valueFormat": "JSON_SR"
+        }
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": ["foo"], "value": {"FOO": 10}},
+        {"topic": "input_topic", "key": [null], "value": {"FOO": 10}},
+        {"topic": "input_topic", "key": null, "value": {"FOO": 10}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": ["foo"], "value": {"FOO": 10}},
+        {"topic": "OUTPUT", "key": [null], "value": {"FOO": 10}},
+        {"topic": "OUTPUT", "key": null, "value": {"FOO": 10}}
+      ],
+      "post": {
+        "sources" : [ {
+          "name" : "OUTPUT",
+          "type" : "STREAM",
+          "schema" : "`ROWKEY` ARRAY<STRING> KEY, `FOO` INTEGER",
+          "keyFormat" : { "format" : "JSON_SR" },
+          "valueFormat" : "JSON_SR",
+          "keyFeatures" : [ "UNWRAP_SINGLES" ],
+          "valueFeatures" : [ ]
+        } ]
+      }
+    },
+    {
+      "name": "MAP - key - no inference",
+      "comment": "disabled until fix in for https://github.com/confluentinc/ksql/issues/6049",
+      "enabled": false,
+      "properties": {
+        "ksql.key.format.enabled": true
+      },
+      "statements": [
+        "CREATE STREAM INPUT (K MAP<STRING, INT> KEY, foo INT) WITH (kafka_topic='input_topic', format='JSON_SR');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": {"a": 1, "b": 2, "c": 3}, "value": {"FOO": 10}},
+        {"topic": "input_topic", "key": {"a": 1, "b": 2, "c": null}, "value": {"FOO": 10}},
+        {"topic": "input_topic", "key": null, "value": {"FOO": 10}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": {"a": 1, "b": 2, "c": 3}, "value": {"FOO": 10}},
+        {"topic": "OUTPUT", "key": {"a": 1, "b": 2, "c": null}, "value": {"FOO": 10}},
+        {"topic": "OUTPUT", "key": null, "value": {"FOO": 10}}
+      ]
+    },
+    {
+      "name": "MAP - key - no inference - with coercion",
+      "enabled": false,
+      "comment": "disabled until fix in for https://github.com/confluentinc/ksql/issues/6049",
+      "properties": {
+        "ksql.key.format.enabled": true
+      },
+      "statements": [
+        "CREATE STREAM INPUT (K MAP<STRING, STRING> KEY, foo INT) WITH (kafka_topic='input_topic', format='JSON_SR');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": {"a": 1, "b": 2, "c": 3}, "value": {"FOO": 10}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": {"a": "1", "b": "2", "c": "3"}, "value": {"FOO": 10}}
+      ]
+    },
+    {
+      "name": "MAP - key - inference",
+      "comment": "disabled until fix in for https://github.com/confluentinc/ksql/issues/6049",
+      "enabled": false,
+      "properties": {
+        "ksql.key.format.enabled": true
+      },
+      "statements": [
+        "CREATE STREAM INPUT (foo INT) WITH (kafka_topic='input_topic', format='JSON_SR');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "topics": [
+        {
+          "name": "input_topic",
+          "keySchema": {"oneOf":[{"type":"null"},{"type":"array","connect.type":"map","items":{"type":"object","properties":{"value":{"connect.index":1,"oneOf":[{"type":"null"},{"type":"integer"}]},"key":{"connect.index":0,"oneOf":[{"type":"null"},{"type":"string"}]}}}}]},
+          "keyFormat": "JSON_SR",
+          "valueSchema": {"type":"object","properties":{"COL1":{"connect.index":0,"oneOf":[{"type":"null"},{"type":"integer","connect.type":"int32"}]}}},
+          "valueFormat": "JSON_SR"
+        }
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": {"a": 1, "b": 2, "c": 3}, "value": {"FOO": 10}},
+        {"topic": "input_topic", "key": {"a": 1, "b": 2, "c": null}, "value": {"FOO": 10}},
+        {"topic": "input_topic", "key": null, "value": {"FOO": 10}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": {"a": 1, "b": 2, "c": 3}, "value": {"FOO": 10}},
+        {"topic": "OUTPUT", "key": {"a": 1, "b": 2, "c": null}, "value": {"FOO": 10}},
+        {"topic": "OUTPUT", "key": null, "value": {"FOO": 10}}
+      ],
+      "post": {
+        "sources" : [ {
+          "name" : "OUTPUT",
+          "type" : "STREAM",
+          "schema" : "`ROWKEY` MAP<STRING, INTEGER> KEY, `FOO` INTEGER",
+          "keyFormat" : { "format" : "JSON_SR" },
+          "valueFormat" : "JSON_SR",
+          "keyFeatures" : [ "UNWRAP_SINGLES" ],
+          "valueFeatures" : [ ]
+        } ]
+      }
+    },
+    {
+      "name": "STRUCT - key - no inference",
+      "properties": {
+        "ksql.key.format.enabled": true
+      },
+      "statements": [
+        "CREATE STREAM INPUT (K STRUCT<F1 VARCHAR> KEY, foo INT) WITH (kafka_topic='input_topic', format='JSON_SR');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": {"F1": "foo"}, "value": {"FOO": 10}},
+        {"topic": "input_topic", "key": {"F1": null}, "value": {"FOO": 10}},
+        {"topic": "input_topic", "key": null, "value": {"FOO": 10}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": {"F1": "foo"}, "value": {"FOO": 10}},
+        {"topic": "OUTPUT", "key": {"F1": null}, "value": {"FOO": 10}},
+        {"topic": "OUTPUT", "key": null, "value": {"FOO": 10}}
+      ]
+    },
+    {
+      "name": "STRUCT - key - inference",
+      "properties": {
+        "ksql.key.format.enabled": true
+      },
+      "topics": [
+        {
+          "name": "input_topic",
+          "keySchema": {"type":"object","properties":{"F1":{"connect.index":0,"oneOf":[{"type":"null"},{"type":"string","connect.type":"string"}]}}},
+          "keyFormat": "JSON_SR",
+          "valueSchema": {"type":"object","properties":{"COL1":{"connect.index":0,"oneOf":[{"type":"null"},{"type":"integer","connect.type":"int32"}]}}},
+          "valueFormat": "JSON_SR"
+        }
+      ],
+      "statements": [
+        "CREATE STREAM INPUT (foo INT) WITH (kafka_topic='input_topic', format='JSON_SR');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": {"F1": "foo"}, "value": {"FOO": 10}},
+        {"topic": "input_topic", "key": {"F1": null}, "value": {"FOO": 10}},
+        {"topic": "input_topic", "key": null, "value": {"FOO": 10}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": {"F1": "foo"}, "value": {"FOO": 10}},
+        {"topic": "OUTPUT", "key": {"F1": null}, "value": {"FOO": 10}},
+        {"topic": "OUTPUT", "key": null, "value": {"FOO": 10}}
+      ],
+      "post": {
+        "topics": {
+          "topics": [
+            {
+              "name": "OUTPUT",
+              "keyFormat" : { "format" : "JSON_SR", "features": ["UNWRAP_SINGLES"] },
+              "keySchema": {"oneOf":[{"type":"null"},{"type":"object","properties":{"F1":{"connect.index":0,"oneOf":[{"type":"null"},{"type":"string"}]}}}]},
+              "valueFormat" : { "format" : "JSON_SR" },
+              "valueSchema": {"type":"object","properties":{"FOO":{"connect.index":0,"oneOf":[{"type":"null"},{"type":"integer","connect.type":"int32"}]}}}
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "INT - key - key and value inference",
+      "properties": {
+        "ksql.key.format.enabled": true
+      },
+      "statements": [
+        "CREATE STREAM INPUT WITH (kafka_topic='input_topic', format='JSON_SR');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "topics": [
+        {
+          "name": "input_topic",
+          "keySchema": {"oneOf":[{"type":"null"},{"type":"integer","connect.type":"int32"}]},
+          "keyFormat": "JSON_SR",
+          "valueSchema": {"type":"object","properties":{"FOO":{"connect.index":0,"oneOf":[{"type":"null"},{"type":"integer","connect.type":"int32"}]}}},
+          "valueFormat": "JSON_SR"
+        }
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": 10, "value": {"FOO": 10}},
+        {"topic": "input_topic", "key": 12, "value": {"FOO": 10}},
+        {"topic": "input_topic", "key": null, "value": {"FOO": 10}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 10, "value": {"FOO": 10}},
+        {"topic": "OUTPUT", "key": 12, "value": {"FOO": 10}},
+        {"topic": "OUTPUT", "key": null, "value": {"FOO": 10}}
+      ]
+    },
+    {
+      "name": "INT - key - key and anonymous value inference",
+      "properties": {
+        "ksql.key.format.enabled": true
+      },
+      "statements": [
+        "CREATE STREAM INPUT WITH (kafka_topic='input_topic', format='JSON_SR', wrap_single_value=false);",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "topics": [
+        {
+          "name": "input_topic",
+          "keySchema": {"oneOf":[{"type":"null"},{"type":"integer","connect.type":"int32"}]},
+          "keyFormat": "JSON_SR",
+          "valueSchema": {"oneOf":[{"type":"null"},{"type":"integer","connect.type":"int32"}]},
+          "valueFormat": "JSON_SR"
+        }
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": 10, "value": 10},
+        {"topic": "input_topic", "key": 12, "value": null},
+        {"topic": "input_topic", "key": null, "value": 10}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 10, "value": {"ROWVAL": 10}},
+        {"topic": "OUTPUT", "key": 12, "value": null},
+        {"topic": "OUTPUT", "key": null, "value": {"ROWVAL": 10}}
+      ]
+    },
+    {
+      "name": "map with non-string keys fails",
+      "statements": [
+        "CREATE STREAM INPUT (foo MAP<INT, DOUBLE>) WITH (kafka_topic='input_topic', value_format='JSON_SR');"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "JSON only supports MAP types with STRING keys"
+      }
+    },
+    {
+      "name": "map with non-string keys - C*AS",
+      "statements": [
+        "CREATE STREAM INPUT (k INT, v DOUBLE) WITH (kafka_topic='input_topic', value_format='JSON_SR');",
+        "CREATE STREAM OUTPUT AS SELECT MAP(k:=v) FROM INPUT;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "JSON only supports MAP types with STRING keys"
+      }
+    }
+  ]
+}

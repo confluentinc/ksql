@@ -19,11 +19,17 @@ import static java.util.Objects.requireNonNull;
 import static org.hamcrest.Matchers.hasItems;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.NullNode;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.ValueFormat;
+import io.confluent.ksql.test.tools.TestJsonMapper;
 import io.confluent.ksql.test.tools.conditions.PostConditions;
 import io.confluent.ksql.test.tools.exceptions.InvalidFieldException;
 import java.util.List;
@@ -31,8 +37,9 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.regex.Pattern;
+import org.hamcrest.BaseMatcher;
+import org.hamcrest.Description;
 import org.hamcrest.Matcher;
-import org.hamcrest.Matchers;
 
 // CHECKSTYLE_RULES.OFF: ArrayTypeStyle
 // suppress due to https://github.com/checkstyle/checkstyle/issues/10215
@@ -77,6 +84,24 @@ public final class PostConditionsNode {
     return new PostConditions(sourcesMatcher, topicsMatcher, blackListPattern, this);
   }
 
+  @Override
+  public boolean equals(final Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    final PostConditionsNode that = (PostConditionsNode) o;
+    return sources.equals(that.sources)
+        && topics.equals(that.topics);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(sources, topics);
+  }
+
   @JsonIgnoreProperties(ignoreUnknown = true)
   public static final class PostTopicsNode {
 
@@ -117,10 +142,28 @@ public final class PostConditionsNode {
     @SuppressWarnings("unchecked")
     Matcher<Iterable<PostTopicNode>> buildTopics() {
       final Matcher<PostTopicNode>[] matchers = topics.stream()
-          .map(Matchers::is)
+          .map(PostTopicNode::build)
           .toArray(Matcher[]::new);
 
       return hasItems(matchers);
+    }
+
+    @Override
+    public boolean equals(final Object o) {
+      if (this == o) {
+        return true;
+      }
+      if (o == null || getClass() != o.getClass()) {
+        return false;
+      }
+      final PostTopicsNode that = (PostTopicsNode) o;
+      return blackList.equals(that.blackList)
+          && topics.equals(that.topics);
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(blackList, topics);
     }
   }
 
@@ -131,17 +174,23 @@ public final class PostConditionsNode {
     private final KeyFormat keyFormat;
     private final ValueFormat valueFormat;
     private final OptionalInt partitions;
+    private final JsonNode keySchema;
+    private final JsonNode valueSchema;
 
     public PostTopicNode(
         @JsonProperty(value = "name", required = true) final String name,
         @JsonProperty(value = "keyFormat", required = true) final KeyFormat keyFormat,
         @JsonProperty(value = "valueFormat", required = true) final ValueFormat valueFormat,
-        @JsonProperty(value = "partitions") final OptionalInt partitions
+        @JsonProperty(value = "partitions") final OptionalInt partitions,
+        @JsonProperty(value = "keySchema") final JsonNode keySchema,
+        @JsonProperty(value = "valueSchema") final JsonNode valueSchema
     ) {
       this.name = requireNonNull(name, "name");
       this.keyFormat = requireNonNull(keyFormat, "KeyFormat");
       this.valueFormat = requireNonNull(valueFormat, "valueFormat");
       this.partitions = requireNonNull(partitions, "partitions");
+      this.keySchema = keySchema;
+      this.valueSchema = valueSchema;
 
       if (this.name.isEmpty()) {
         throw new InvalidFieldException("name", "empty or missing");
@@ -151,6 +200,41 @@ public final class PostConditionsNode {
         throw new IllegalArgumentException("Partition count must be positive, but was: "
             + partitions);
       }
+    }
+
+    public Matcher<PostTopicNode> build() {
+      return new BaseMatcher<PostTopicNode>() {
+        @Override
+        public void describeTo(final Description description) {
+          try {
+            description.appendText(
+                TestJsonMapper.INSTANCE.get().writeValueAsString(PostTopicNode.this));
+          } catch (JsonProcessingException e) {
+            throw new IllegalArgumentException(e);
+          }
+        }
+
+        // CHECKSTYLE_RULES.OFF: BooleanExpressionComplexity
+        // CHECKSTYLE_RULES.OFF: CyclomaticComplexity
+        @Override
+        public boolean matches(final Object item) {
+          if (!(item instanceof PostTopicNode)) {
+            return false;
+          }
+
+          final PostTopicNode that = (PostTopicNode) item;
+          return Objects.equals(name, that.name)
+              && Objects.equals(keyFormat, that.keyFormat)
+              && Objects.equals(valueFormat, that.valueFormat)
+              && (!partitions.isPresent() || partitions.equals(that.partitions))
+              && (keySchema == null || keySchema instanceof NullNode
+              || keySchema.equals(that.keySchema))
+              && (valueSchema == null || valueSchema instanceof NullNode
+              || valueSchema.equals(that.valueSchema));
+        }
+        // CHECKSTYLE_RULES.ON: BooleanExpressionComplexity
+        // CHECKSTYLE_RULES.ON: CyclomaticComplexity
+      };
     }
 
     public String getName() {
@@ -169,6 +253,16 @@ public final class PostConditionsNode {
       return partitions;
     }
 
+    @JsonInclude(Include.NON_NULL)
+    public JsonNode getKeySchema() {
+      return keySchema instanceof NullNode ? null : keySchema;
+    }
+
+    @JsonInclude(Include.NON_NULL)
+    public JsonNode getValueSchema() {
+      return valueSchema instanceof NullNode ? null : valueSchema;
+    }
+
     @Override
     public boolean equals(final Object o) {
       if (this == o) {
@@ -181,12 +275,14 @@ public final class PostConditionsNode {
       return Objects.equals(name, that.name)
           && Objects.equals(keyFormat, that.keyFormat)
           && Objects.equals(valueFormat, that.valueFormat)
-          && Objects.equals(partitions, that.partitions);
+          && Objects.equals(partitions, that.partitions)
+          && Objects.equals(keySchema, that.keySchema)
+          && Objects.equals(valueSchema, that.valueSchema);
     }
 
     @Override
     public int hashCode() {
-      return Objects.hash(name, keyFormat, valueFormat, partitions);
+      return Objects.hash(name, keyFormat, valueFormat, partitions, keySchema, valueSchema);
     }
 
     @Override
@@ -196,6 +292,8 @@ public final class PostConditionsNode {
           + ", keyFormat=" + keyFormat
           + ", valueFormat=" + valueFormat
           + ", partitions=" + partitions
+          + ", keySchema=" + keySchema
+          + ", valueSchema=" + valueSchema
           + '}';
     }
   }

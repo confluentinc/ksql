@@ -49,7 +49,7 @@ public class ValueSpecJsonSerdeSupplierTest {
   @Test
   public void shouldSerializeDecimalsWithOutStrippingTrailingZeros_Plain() {
     // Given:
-    final Serializer<Object> serializer = plainSerde.getSerializer(srClient);
+    final Serializer<Object> serializer = plainSerde.getSerializer(srClient, false);
 
     // When:
     final byte[] bytes = serializer.serialize("t", new BigDecimal("10.0"));
@@ -61,7 +61,7 @@ public class ValueSpecJsonSerdeSupplierTest {
   @Test
   public void shouldDeserializeDecimalsWithoutStrippingTrailingZeros_Plain() {
     // Given:
-    final Deserializer<Object> deserializer = plainSerde.getDeserializer(srClient);
+    final Deserializer<Object> deserializer = plainSerde.getDeserializer(srClient, false);
 
     final byte[] bytes = "10.0".getBytes(UTF_8);
 
@@ -75,7 +75,7 @@ public class ValueSpecJsonSerdeSupplierTest {
   @Test
   public void shouldSerializeDecimalsWithOutStrippingTrailingZeros_Sr() throws Exception {
     // Given:
-    final Serializer<Object> serializer = srSerde.getSerializer(srClient);
+    final Serializer<Object> serializer = srSerde.getSerializer(srClient, false);
 
     // When:
     final byte[] bytes = serializer.serialize("t", new BigDecimal("10.0"));
@@ -87,7 +87,7 @@ public class ValueSpecJsonSerdeSupplierTest {
   @Test
   public void shouldDeserializeDecimalsWithoutStrippingTrailingZeros_Sr() {
     // Given:
-    final Deserializer<Object> deserializer = srSerde.getDeserializer(srClient);
+    final Deserializer<Object> deserializer = srSerde.getDeserializer(srClient, false);
 
     final byte[] jsonBytes = "10.0".getBytes(UTF_8);
     final byte[] bytes = new byte[jsonBytes.length + JsonSerdeUtils.SIZE_OF_SR_PREFIX];

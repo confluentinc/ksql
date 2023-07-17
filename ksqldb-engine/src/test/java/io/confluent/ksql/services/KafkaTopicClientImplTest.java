@@ -24,6 +24,7 @@ import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
@@ -48,6 +49,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Function;
@@ -63,11 +65,14 @@ import org.apache.kafka.clients.admin.CreateTopicsResult;
 import org.apache.kafka.clients.admin.DeleteTopicsResult;
 import org.apache.kafka.clients.admin.DescribeConfigsResult;
 import org.apache.kafka.clients.admin.DescribeTopicsResult;
+import org.apache.kafka.clients.admin.ListOffsetsResult;
+import org.apache.kafka.clients.admin.ListOffsetsResult.ListOffsetsResultInfo;
 import org.apache.kafka.clients.admin.ListTopicsResult;
 import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.common.KafkaFuture;
 import org.apache.kafka.common.Node;
+import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.TopicPartitionInfo;
 import org.apache.kafka.common.config.ConfigResource;
 import org.apache.kafka.common.config.TopicConfig;
@@ -189,14 +194,15 @@ public class KafkaTopicClientImplTest {
     givenTopicExists("topicName", 1, 2);
 
     when(adminClient.describeTopics(any(), any()))
-        .thenAnswer(describeTopicsResult(new UnknownTopicOrPartitionException("meh")))
-        .thenAnswer(describeTopicsResult()); // The second time, return the right response.
+        .thenAnswer(describeTopicsResult()) // checks that topic exists
+        .thenAnswer(describeTopicsResult(new UnknownTopicOrPartitionException("meh"))) // fails during validateProperties
+        .thenAnswer(describeTopicsResult()); // succeeds the third time
 
     // When:
     kafkaTopicClient.createTopic("topicName", 1, (short) 2);
 
     // Then:
-    verify(adminClient, times(2)).describeTopics(any(), any());
+    verify(adminClient, times(3)).describeTopics(any(), any());
   }
 
   @Test
@@ -274,14 +280,15 @@ public class KafkaTopicClientImplTest {
     givenTopicExists("topicName", 1, 2);
 
     when(adminClient.describeTopics(any(), any()))
-        .thenAnswer(describeTopicsResult(new UnknownTopicOrPartitionException("meh")))
-        .thenAnswer(describeTopicsResult()); // The second time, return the right response.
+        .thenAnswer(describeTopicsResult()) // checks that topic exists
+        .thenAnswer(describeTopicsResult(new UnknownTopicOrPartitionException("meh"))) // fails during validateProperties
+        .thenAnswer(describeTopicsResult()); // succeeds the third time
 
     // When:
     kafkaTopicClient.validateCreateTopic("topicName", 1, (short) 2);
 
     // Then:
-    verify(adminClient, times(2)).describeTopics(any(), any());
+    verify(adminClient, times(3)).describeTopics(any(), any());
   }
 
   @Test
@@ -349,6 +356,71 @@ public class KafkaTopicClientImplTest {
 
     // Then:
     verify(adminClient, times(2)).listTopics();
+  }
+
+  @Test
+  public void shouldListTopicsStartOffsets() {
+    // When:
+    givenTopicExists("topicA", 1, 1);
+
+    when(adminClient.listOffsets(anyMap())).thenAnswer(listTopicOffsets());
+
+    // When:
+    final Map<TopicPartition, Long> offsets =
+        kafkaTopicClient.listTopicsStartOffsets(ImmutableList.of("topicA"));
+
+    // Then:
+    assertThat(offsets,
+        is(ImmutableMap.of(new TopicPartition("topicA", 0), 100L)));
+  }
+
+  @Test
+  public void shouldRetryListTopicsStartOffsets() {
+    // When:
+    givenTopicExists("topicA", 1, 1);
+
+    when(adminClient.listOffsets(anyMap()))
+        .thenAnswer(listTopicOffsets(new NotControllerException("Not Controller")))
+        .thenAnswer(listTopicOffsets());
+
+    // When:
+    kafkaTopicClient.listTopicsStartOffsets(ImmutableList.of("topicA"));
+
+    // Then:
+    verify(adminClient, times(2)).listOffsets(anyMap());
+  }
+
+
+  @Test
+  public void shouldListTopicsEndOffsets() {
+    // When:
+    givenTopicExists("topicA", 1, 1);
+
+    when(adminClient.listOffsets(anyMap())).thenAnswer(listTopicOffsets());
+
+    // When:
+    final Map<TopicPartition, Long> offsets =
+        kafkaTopicClient.listTopicsEndOffsets(ImmutableList.of("topicA"));
+
+    // Then:
+    assertThat(offsets,
+        is(ImmutableMap.of(new TopicPartition("topicA", 0), 100L)));
+  }
+
+  @Test
+  public void shouldRetryListTopicsEndOffsets() {
+    // When:
+    givenTopicExists("topicA", 1, 1);
+
+    when(adminClient.listOffsets(anyMap()))
+        .thenAnswer(listTopicOffsets(new NotControllerException("Not Controller")))
+        .thenAnswer(listTopicOffsets());
+
+    // When:
+    kafkaTopicClient.listTopicsEndOffsets(ImmutableList.of("topicA"));
+
+    // Then:
+    verify(adminClient, times(2)).listOffsets(anyMap());
   }
 
   @Test
@@ -460,6 +532,23 @@ public class KafkaTopicClientImplTest {
     // Then:
     assertThat(config.get(TopicConfig.RETENTION_MS_CONFIG), is("12345"));
     assertThat(config.get(TopicConfig.MIN_IN_SYNC_REPLICAS_CONFIG), is("1"));
+  }
+
+  @Test
+  public void shouldNotFailWhenTopicConfigValueIsNull() {
+    // Given:
+    givenTopicConfigs(
+        "fred",
+        overriddenConfigEntry(TopicConfig.RETENTION_MS_CONFIG, "12345"),
+        overriddenConfigEntry(TopicConfig.MIN_IN_SYNC_REPLICAS_CONFIG, null)
+    );
+
+    // When:
+    final Map<String, String> config = kafkaTopicClient.getTopicConfig("fred");
+
+    // Then:
+    assertThat(config.get(TopicConfig.RETENTION_MS_CONFIG), is("12345"));
+    assertThat(config.containsKey(TopicConfig.MIN_IN_SYNC_REPLICAS_CONFIG), is(false));
   }
 
   @Test
@@ -698,6 +787,44 @@ public class KafkaTopicClientImplTest {
     verify(adminClient, times(2)).incrementalAlterConfigs(any());
   }
 
+  @Test
+  public void shouldNotListAllTopicsWhenCallingIsTopicExists() {
+    // Given
+    givenTopicExists("foobar", 1, 1);
+
+    // When
+    kafkaTopicClient.isTopicExists("foobar");
+
+    // Then
+    verify(adminClient, never()).listTopics();
+  }
+
+  @Test
+  public void shouldNotRetryIsTopicExistsOnUnknownTopicException() {
+    // When
+    kafkaTopicClient.isTopicExists("foobar");
+
+    // Then
+    verify(adminClient, times(1)).describeTopics(any(), any());
+  }
+
+  @Test
+  public void shouldThrowIsTopicExistsOnAuthorizationException() {
+    // Given
+    when(adminClient.describeTopics(eq(ImmutableList.of("foobar")), any()))
+        .thenAnswer(describeTopicsResult(new TopicAuthorizationException("foobar")));
+
+    // When
+    final Exception e = assertThrows(
+        KsqlTopicAuthorizationException.class,
+        () -> kafkaTopicClient.isTopicExists("foobar")
+    );
+
+    // Then
+    assertThat(e.getMessage(),
+        containsString("Authorization denied to Describe on topic(s): [foobar]"));
+  }
+
   private static ConfigEntry defaultConfigEntry(final String key, final String value) {
     final ConfigEntry config = mock(ConfigEntry.class);
     when(config.name()).thenReturn(key);
@@ -747,6 +874,25 @@ public class KafkaTopicClientImplTest {
     };
   }
 
+  private Answer<ListOffsetsResult> listTopicOffsets() {
+    return inv -> {
+      final ListOffsetsResult result = mock(ListOffsetsResult.class);
+      when(result.all()).thenReturn(KafkaFuture.completedFuture(ImmutableMap.of(
+          new TopicPartition("topicA", 0),
+          new ListOffsetsResultInfo(100L, 0L, Optional.empty()))));
+      return result;
+    };
+  }
+
+  private Answer<ListOffsetsResult> listTopicOffsets(final Exception e) {
+    return inv -> {
+      final ListOffsetsResult result = mock(ListOffsetsResult.class);
+      final KafkaFuture<Map<TopicPartition, ListOffsetsResultInfo>> f = failedFuture(e);
+      when(result.all()).thenReturn(f);
+      return result;
+    };
+  }
+
   private static Answer<ListTopicsResult> listTopicResult(final Exception e) {
     return inv -> {
       final ListTopicsResult listTopicsResult = mock(ListTopicsResult.class);
@@ -769,7 +915,15 @@ public class KafkaTopicClientImplTest {
           .map(name -> new TopicDescription(name, false, topicPartitionInfo.get(name)))
           .collect(Collectors.toMap(TopicDescription::name, Function.identity()));
 
+      Map<String, KafkaFuture<TopicDescription>> describe = new HashMap<>();
+      for (String name : topicNames) {
+        describe.put(name, result.containsKey(name)
+            ? KafkaFuture.completedFuture(result.get(name))
+            : failedFuture(new UnknownTopicOrPartitionException()));
+      }
+
       final DescribeTopicsResult describeTopicsResult = mock(DescribeTopicsResult.class);
+      when(describeTopicsResult.values()).thenReturn(describe );
       when(describeTopicsResult.all()).thenReturn(KafkaFuture.completedFuture(result));
       return describeTopicsResult;
     };
@@ -777,7 +931,17 @@ public class KafkaTopicClientImplTest {
 
   private static Answer<DescribeTopicsResult> describeTopicsResult(final Exception e) {
     return inv -> {
+      final Collection<String> topicNames = inv.getArgument(0);
       final DescribeTopicsResult describeTopicsResult = mock(DescribeTopicsResult.class);
+
+      Map<String, KafkaFuture<TopicDescription>> map = new HashMap<>();
+      for (String name : topicNames) {
+        if (map.put(name, failedFuture(e)) != null) {
+          throw new IllegalStateException("Duplicate key");
+        }
+      }
+      when(describeTopicsResult.values()).thenReturn(map);
+
       final KafkaFuture<Map<String, TopicDescription>> f = failedFuture(e);
       when(describeTopicsResult.all()).thenReturn(f);
       return describeTopicsResult;
@@ -912,7 +1076,7 @@ public class KafkaTopicClientImplTest {
       doThrow(new ExecutionException(cause)).when(future).get(anyLong(), any());
       return future;
     } catch (final Exception e) {
-      throw new AssertionError("invalid test");
+      throw new AssertionError("invalid test", e);
     }
   }
 

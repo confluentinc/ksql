@@ -42,7 +42,6 @@ public class KsqlStatementExceptionMessageMatcher<T extends KsqlStatementExcepti
     this.matcher.describeMismatch(item.getRawUnloggedDetails(), description);
   }
 
-  @SuppressWarnings({"unchecked", "rawtypes"})
   @Factory
   public static <T extends Throwable> Matcher<T> hasMessage(final Matcher<String> matcher) {
     return new KsqlStatementExceptionMessageMatcher(matcher);

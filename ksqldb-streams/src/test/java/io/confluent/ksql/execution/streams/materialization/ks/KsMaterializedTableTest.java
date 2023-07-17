@@ -21,6 +21,7 @@ import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -57,6 +58,7 @@ public class KsMaterializedTableTest {
 
   private static final Struct A_KEY = StructKeyUtil
       .keyBuilder(ColumnName.of("K0"), SqlTypes.STRING).build("x");
+  private static final int PARTITION = 0;
 
   @Mock
   private KsStateStore stateStore;
@@ -71,7 +73,7 @@ public class KsMaterializedTableTest {
   public void setUp() {
     table = new KsMaterializedTable(stateStore);
 
-    when(stateStore.store(any())).thenReturn(tableStore);
+    when(stateStore.store(any(), anyInt())).thenReturn(tableStore);
     when(stateStore.schema()).thenReturn(SCHEMA);
   }
 
@@ -86,12 +88,12 @@ public class KsMaterializedTableTest {
   @Test
   public void shouldThrowIfGettingStateStoreFails() {
     // Given:
-    when(stateStore.store(any())).thenThrow(new MaterializationTimeOutException("Boom"));
+    when(stateStore.store(any(), anyInt())).thenThrow(new MaterializationTimeOutException("Boom"));
 
     // When:
     final Exception e = assertThrows(
         MaterializationException.class,
-        () -> table.get(A_KEY)
+        () -> table.get(A_KEY, PARTITION)
     );
 
     // Then:
@@ -108,7 +110,7 @@ public class KsMaterializedTableTest {
     // When:
     final Exception e = assertThrows(
         MaterializationException.class,
-        () -> table.get(A_KEY)
+        () -> table.get(A_KEY, PARTITION)
     );
 
     // Then:
@@ -120,17 +122,17 @@ public class KsMaterializedTableTest {
   @Test
   public void shouldGetStoreWithCorrectParams() {
     // When:
-    table.get(A_KEY);
+    table.get(A_KEY, PARTITION);
 
     // Then:
-    verify(stateStore).store(storeTypeCaptor.capture());
+    verify(stateStore).store(storeTypeCaptor.capture(), anyInt());
     assertThat(storeTypeCaptor.getValue().getClass().getSimpleName(), is("TimestampedKeyValueStoreType"));
   }
 
   @Test
   public void shouldGetWithCorrectParams() {
     // When:
-    table.get(A_KEY);
+    table.get(A_KEY, PARTITION);
 
     // Then:
     verify(tableStore).get(A_KEY);
@@ -139,7 +141,7 @@ public class KsMaterializedTableTest {
   @Test
   public void shouldReturnEmptyIfKeyNotPresent() {
     // When:
-    final Optional<?> result = table.get(A_KEY);
+    final Optional<?> result = table.get(A_KEY, PARTITION);
 
     // Then:
     assertThat(result, is(Optional.empty()));
@@ -153,7 +155,7 @@ public class KsMaterializedTableTest {
     when(tableStore.get(any())).thenReturn(ValueAndTimestamp.make(value, rowTime));
 
     // When:
-    final Optional<Row> result = table.get(A_KEY);
+    final Optional<Row> result = table.get(A_KEY, PARTITION);
 
     // Then:
     assertThat(result, is(Optional.of(Row.of(SCHEMA, A_KEY, value, rowTime))));

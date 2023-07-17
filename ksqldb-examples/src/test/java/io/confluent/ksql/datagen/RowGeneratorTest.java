@@ -27,6 +27,7 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.util.Pair;
 import java.io.File;
 import java.io.IOException;
+import java.util.Optional;
 import java.util.Random;
 import org.apache.kafka.connect.data.Schema.Type;
 import org.apache.kafka.connect.data.Struct;
@@ -38,7 +39,7 @@ public class RowGeneratorTest {
   public void shouldGenerateCorrectRow() throws IOException {
     final Generator generator = new Generator(new File("./src/main/resources/orders_schema.avro"), new Random());
 
-    final RowGenerator rowGenerator = new RowGenerator(generator, "orderid");
+    final RowGenerator rowGenerator = new RowGenerator(generator, "orderid", Optional.empty());
 
     final Pair<Struct, GenericRow> rowPair = rowGenerator.generateRow();
 
@@ -60,7 +61,7 @@ public class RowGeneratorTest {
   public void shouldGenerateCorrectKey() throws IOException {
     final Generator generator = new Generator(new File("./src/main/resources/pageviews_schema.avro"), new Random());
 
-    final RowGenerator rowGenerator = new RowGenerator(generator, "viewtime");
+    final RowGenerator rowGenerator = new RowGenerator(generator, "viewtime", Optional.empty());
 
     final Pair<Struct, GenericRow> rowPair = rowGenerator.generateRow();
 
@@ -71,4 +72,15 @@ public class RowGeneratorTest {
 
     assertThat("must match copy of key in value", key.get("Key"), is(value.get(0)));
   }
+
+  @Test
+  public void shouldGenerateCorrectTimestamp() throws IOException {
+    final Generator generator = new Generator(new File("./src/main/resources/pageviews_schema.avro"), new Random());
+    final RowGenerator rowGenerator = new RowGenerator(generator, "viewtime", Optional.of("viewtime"));
+
+    assertThat("incorrect timestamp column index.", rowGenerator.getTimestampFieldIndex().get(), is(0));
+
+  }
+
+
 }

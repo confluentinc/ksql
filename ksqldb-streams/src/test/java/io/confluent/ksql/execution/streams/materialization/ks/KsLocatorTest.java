@@ -16,12 +16,14 @@
 package io.confluent.ksql.execution.streams.materialization.ks;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
@@ -33,6 +35,7 @@ import io.confluent.ksql.execution.streams.RoutingFilter.RoutingFilterFactory;
 import io.confluent.ksql.execution.streams.RoutingFilters;
 import io.confluent.ksql.execution.streams.RoutingOptions;
 import io.confluent.ksql.execution.streams.materialization.Locator.KsqlNode;
+import io.confluent.ksql.execution.streams.materialization.Locator.KsqlPartitionLocation;
 import io.confluent.ksql.execution.streams.materialization.MaterializationException;
 import io.confluent.ksql.util.HostStatus;
 import io.confluent.ksql.util.KsqlHostInfo;
@@ -43,6 +46,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import org.apache.kafka.common.serialization.Serializer;
+import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.KafkaStreams;
@@ -60,7 +64,11 @@ public class KsLocatorTest {
   private static final String APPLICATION_ID = "app_id";
   private static final String STORE_NAME = "someStoreName";
   private static final URL LOCAL_HOST_URL = localHost();
-  private static final Struct SOME_KEY = new Struct(SchemaBuilder.struct().build());
+  private static final Schema SCHEMA = SchemaBuilder.struct().field("a", SchemaBuilder.int32());
+  private static final Struct SOME_KEY = new Struct(SCHEMA).put("a", 1);
+  private static final Struct SOME_KEY1 = new Struct(SCHEMA).put("a", 2);
+  private static final Struct SOME_KEY2 = new Struct(SCHEMA).put("a", 3);
+  private static final Struct SOME_KEY3 = new Struct(SCHEMA).put("a", 4);
 
   @Mock
   private KafkaStreams kafkaStreams;
@@ -151,12 +159,12 @@ public class KsLocatorTest {
     // When:
     final Exception e = assertThrows(
         MaterializationException.class,
-        () -> locator.locate(SOME_KEY, routingOptions, routingFilterFactoryActive)
+        () -> locator.locate(ImmutableList.of(SOME_KEY), routingOptions, routingFilterFactoryActive)
     );
 
     // Then:
     assertThat(e.getMessage(), containsString(
-        "KeyQueryMetadata not available for state store someStoreName and key Struct{}"));
+        "KeyQueryMetadata not available for state store someStoreName and key Struct{a=1}"));
   }
 
   @Test
@@ -165,11 +173,12 @@ public class KsLocatorTest {
     getActiveAndStandbyMetadata();
 
     // When:
-    final List<KsqlNode> result = locator.locate(SOME_KEY, routingOptions,
+    final List<KsqlPartitionLocation> result = locator.locate(ImmutableList.of(SOME_KEY), routingOptions,
         routingFilterFactoryActive);
 
     // Then:
-    final Optional<URI> url = result.stream().findFirst().map(KsqlNode::location);
+    List<KsqlNode> nodeList = result.get(0).getNodes();
+    final Optional<URI> url = nodeList.stream().findFirst().map(KsqlNode::location);
     assertThat(url.map(URI::getScheme), is(Optional.of(LOCAL_HOST_URL.getProtocol())));
     assertThat(url.map(URI::getHost), is(Optional.of(activeHost.host())));
     assertThat(url.map(URI::getPort), is(Optional.of(activeHost.port())));
@@ -188,11 +197,12 @@ public class KsLocatorTest {
         .thenReturn(true);
 
     // When:
-    final List<KsqlNode> result = locator.locate(SOME_KEY, routingOptions,
-        routingFilterFactoryActive);
+    final List<KsqlPartitionLocation> result = locator.locate(ImmutableList.of(SOME_KEY),
+        routingOptions, routingFilterFactoryActive);
 
     // Then:
-    assertThat(result.stream().findFirst().map(KsqlNode::isLocal), is(Optional.of(true)));
+    List<KsqlNode> nodeList = result.get(0).getNodes();
+    assertThat(nodeList.stream().findFirst().map(KsqlNode::isLocal), is(Optional.of(true)));
   }
 
   @Test
@@ -207,11 +217,12 @@ public class KsLocatorTest {
         .thenReturn(true);
 
     // When:
-    final List<KsqlNode> result = locator.locate(SOME_KEY, routingOptions,
+    final List<KsqlPartitionLocation> result = locator.locate(ImmutableList.of(SOME_KEY), routingOptions,
         routingFilterFactoryActive);
 
     // Then:
-    assertThat(result.stream().findFirst().map(KsqlNode::isLocal), is(Optional.of(true)));
+    List<KsqlNode> nodeList = result.get(0).getNodes();
+    assertThat(nodeList.stream().findFirst().map(KsqlNode::isLocal), is(Optional.of(true)));
   }
 
   @Test
@@ -226,11 +237,12 @@ public class KsLocatorTest {
         .thenReturn(true);
 
     // When:
-    final List<KsqlNode> result = locator.locate(SOME_KEY, routingOptions,
+    final List<KsqlPartitionLocation> result = locator.locate(ImmutableList.of(SOME_KEY), routingOptions,
         routingFilterFactoryActive);
 
     // Then:
-    assertThat(result.stream().findFirst().map(KsqlNode::isLocal), is(Optional.of(false)));
+    List<KsqlNode> nodeList = result.get(0).getNodes();
+    assertThat(nodeList.stream().findFirst().map(KsqlNode::isLocal), is(Optional.of(false)));
   }
 
   @Test
@@ -245,11 +257,13 @@ public class KsLocatorTest {
         .thenReturn(true);
 
     // When:
-    final List<KsqlNode> result = locator.locate(SOME_KEY, routingOptions,
+    final List<KsqlPartitionLocation> result = locator.locate(ImmutableList.of(SOME_KEY), routingOptions,
         routingFilterFactoryActive);
 
     // Then:
-    assertThat(result.stream().findFirst().map(KsqlNode::isLocal), is(Optional.of(false)));
+    List<KsqlNode> nodeList = result.get(0).getNodes();
+    assertThat(nodeList.stream().findFirst().map(KsqlNode::isLocal),
+        is(Optional.of(false)));
   }
 
   @Test
@@ -264,11 +278,13 @@ public class KsLocatorTest {
         .thenReturn(true);
 
     // When:
-    final List<KsqlNode> result = locator.locate(SOME_KEY, routingOptions,
+    final List<KsqlPartitionLocation> result = locator.locate(ImmutableList.of(SOME_KEY), routingOptions,
         routingFilterFactoryActive);
 
     // Then:
-    assertThat(result.stream().findFirst().map(KsqlNode::isLocal), is(Optional.of(false)));
+    List<KsqlNode> nodeList = result.get(0).getNodes();
+    assertThat(nodeList.stream().findFirst().map(KsqlNode::isLocal),
+        is(Optional.of(false)));
   }
 
   @Test
@@ -277,12 +293,13 @@ public class KsLocatorTest {
     getActiveAndStandbyMetadata();
 
     // When:
-    final List<KsqlNode> result = locator.locate(SOME_KEY, routingOptions,
+    final List<KsqlPartitionLocation> result = locator.locate(ImmutableList.of(SOME_KEY), routingOptions,
         routingFilterFactoryActive);
 
     // Then:
-    assertThat(result.size(), is(1));
-    assertThat(result.stream().findFirst().get(), is(activeNode));
+    List<KsqlNode> nodeList = result.get(0).getNodes();
+    assertThat(nodeList.size(), is(1));
+    assertThat(nodeList.stream().findFirst().get(), is(activeNode));
   }
 
   @Test
@@ -291,13 +308,14 @@ public class KsLocatorTest {
     getActiveAndStandbyMetadata();
 
     // When:
-    final List<KsqlNode> result = locator.locate(SOME_KEY, routingOptions,
+    final List<KsqlPartitionLocation> result = locator.locate(ImmutableList.of(SOME_KEY), routingOptions,
         routingFilterFactoryStandby);
 
     // Then:
-    assertThat(result.size(), is(3));
-    assertThat(result.stream().findFirst().get(), is(activeNode));
-    assertThat(result, containsInAnyOrder(activeNode, standByNode1, standByNode2));
+    List<KsqlNode> nodeList = result.get(0).getNodes();
+    assertThat(nodeList.size(), is(3));
+    assertThat(nodeList.stream().findFirst().get(), is(activeNode));
+    assertThat(nodeList, containsInAnyOrder(activeNode, standByNode1, standByNode2));
   }
 
   @Test
@@ -308,12 +326,13 @@ public class KsLocatorTest {
         .thenReturn(false);
 
     // When:
-    final List<KsqlNode> result = locator.locate(SOME_KEY, routingOptions,
+    final List<KsqlPartitionLocation> result = locator.locate(ImmutableList.of(SOME_KEY), routingOptions,
         routingFilterFactoryStandby);
 
     // Then:
-    assertThat(result.size(), is(2));
-    assertThat(result, containsInAnyOrder(standByNode1, standByNode2));
+    List<KsqlNode> nodeList = result.get(0).getNodes();
+    assertThat(nodeList.size(), is(2));
+    assertThat(nodeList, containsInAnyOrder(standByNode1, standByNode2));
   }
 
   @Test
@@ -326,12 +345,45 @@ public class KsLocatorTest {
         .thenReturn(false);
 
     // When:
-    final List<KsqlNode> result = locator.locate(SOME_KEY, routingOptions,
+    final List<KsqlPartitionLocation> result = locator.locate(ImmutableList.of(SOME_KEY), routingOptions,
         routingFilterFactoryStandby);
 
     // Then:
-    assertThat(result.size(), is(1));
-    assertThat(result.stream().findFirst().get(), is(standByNode2));
+    List<KsqlNode> nodeList = result.get(0).getNodes();
+    assertThat(nodeList.size(), is(1));
+    assertThat(nodeList.stream().findFirst().get(), is(standByNode2));
+  }
+
+  @Test
+  public void shouldGroupKeysByLocation() {
+    // Given:
+    getActiveStandbyMetadata(SOME_KEY, 0, activeHostInfo, standByHostInfo1);
+    getActiveStandbyMetadata(SOME_KEY1, 1, standByHostInfo1, activeHostInfo);
+    getActiveStandbyMetadata(SOME_KEY2, 0, activeHostInfo, standByHostInfo1);
+    getActiveStandbyMetadata(SOME_KEY3, 2, activeHostInfo, standByHostInfo1);
+
+    // When:
+    final List<KsqlPartitionLocation> result = locator.locate(
+        ImmutableList.of(SOME_KEY, SOME_KEY1, SOME_KEY2, SOME_KEY3), routingOptions,
+        routingFilterFactoryStandby);
+
+    // Then:
+    assertThat(result.size(), is(3));
+    assertThat(result.get(0).getKeys().get(), contains(SOME_KEY, SOME_KEY2));
+    List<KsqlNode> nodeList = result.get(0).getNodes();
+    assertThat(nodeList.size(), is(2));
+    assertThat(nodeList.get(0), is(activeNode));
+    assertThat(nodeList.get(1), is(standByNode1));
+    assertThat(result.get(1).getKeys().get(), contains(SOME_KEY1));
+    nodeList = result.get(1).getNodes();
+    assertThat(nodeList.size(), is(2));
+    assertThat(nodeList.get(0), is(standByNode1));
+    assertThat(nodeList.get(1), is(activeNode));
+    assertThat(result.get(2).getKeys().get(), contains(SOME_KEY3));
+    nodeList = result.get(2).getNodes();
+    assertThat(nodeList.size(), is(2));
+    assertThat(nodeList.get(0), is(activeNode));
+    assertThat(nodeList.get(1), is(standByNode1));
   }
 
   @SuppressWarnings("unchecked")
@@ -342,8 +394,8 @@ public class KsLocatorTest {
 
   @SuppressWarnings("unchecked")
   private void getActiveAndStandbyMetadata() {
-    when(keyQueryMetadata.getActiveHost()).thenReturn(activeHostInfo);
-    when(keyQueryMetadata.getStandbyHosts()).thenReturn(ImmutableSet.of(
+    when(keyQueryMetadata.activeHost()).thenReturn(activeHostInfo);
+    when(keyQueryMetadata.standbyHosts()).thenReturn(ImmutableSet.of(
         standByHostInfo1, standByHostInfo2));
     when(kafkaStreams.queryMetadataForKey(any(), any(), any(Serializer.class)))
         .thenReturn(keyQueryMetadata);
@@ -351,9 +403,20 @@ public class KsLocatorTest {
 
   @SuppressWarnings("unchecked")
   private void getActiveAndStandbyMetadata(final HostInfo activeHostInfo) {
-    when(keyQueryMetadata.getActiveHost()).thenReturn(activeHostInfo);
-    when(keyQueryMetadata.getStandbyHosts()).thenReturn(Collections.emptySet());
+    when(keyQueryMetadata.activeHost()).thenReturn(activeHostInfo);
+    when(keyQueryMetadata.standbyHosts()).thenReturn(Collections.emptySet());
     when(kafkaStreams.queryMetadataForKey(any(), any(), any(Serializer.class)))
+        .thenReturn(keyQueryMetadata);
+  }
+
+  @SuppressWarnings("unchecked")
+  private void getActiveStandbyMetadata(final Struct key, int partition,
+      final HostInfo activeHostInfo, final HostInfo standByHostInfo) {
+    KeyQueryMetadata keyQueryMetadata = mock(KeyQueryMetadata.class);
+    when(keyQueryMetadata.activeHost()).thenReturn(activeHostInfo);
+    when(keyQueryMetadata.standbyHosts()).thenReturn(ImmutableSet.of(standByHostInfo));
+    when(keyQueryMetadata.partition()).thenReturn(partition);
+    when(kafkaStreams.queryMetadataForKey(any(), eq(key), any(Serializer.class)))
         .thenReturn(keyQueryMetadata);
   }
 

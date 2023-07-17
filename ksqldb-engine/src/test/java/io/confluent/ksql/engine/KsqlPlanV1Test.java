@@ -40,8 +40,9 @@ public class KsqlPlanV1Test {
     new EqualsTester()
         .addEqualityGroup(
             new KsqlPlanV1("foo", Optional.of(ddlCommand1), Optional.of(queryPlan1)),
-            new KsqlPlanV1("foo", Optional.of(ddlCommand1), Optional.of(queryPlan1)))
-        .addEqualityGroup(new KsqlPlanV1("bar", Optional.of(ddlCommand1), Optional.of(queryPlan1)))
+            new KsqlPlanV1("foo", Optional.of(ddlCommand1), Optional.of(queryPlan1)),
+            // statementText is not checked as part of equals
+            new KsqlPlanV1("bar", Optional.of(ddlCommand1), Optional.of(queryPlan1)))
         .addEqualityGroup(new KsqlPlanV1("foo", Optional.of(ddlCommand2), Optional.of(queryPlan1)))
         .addEqualityGroup(new KsqlPlanV1("foo", Optional.of(ddlCommand1), Optional.of(queryPlan2)))
         .testEquals();

@@ -21,6 +21,16 @@ import java.util.Objects;
 import java.util.Optional;
 
 final class KsqlPlanV1 implements KsqlPlan {
+  /**
+   * This text should NEVER be parsed nor used when executing statements. Rather, it is only here to
+   * display back to the user in the case of error messages; {@code EXPLAIN <query>},
+   * {@code DESCRIBE <source>}, and other similar commands; and in case-insensitive string
+   * comparison for {@code TERMINATE CLUSTER;} commands.
+   *
+   * <p>In light of the above, this field is NOT included in the {@code equals()} or
+   * {@code hashCode()} methods of this class, and is also not validated to be unchanging by
+   * query translation test historic plans.
+   */
   private final String statementText;
   private final Optional<DdlCommand> ddlCommand;
   private final Optional<QueryPlan> queryPlan;
@@ -35,7 +45,7 @@ final class KsqlPlanV1 implements KsqlPlan {
     this.queryPlan = Objects.requireNonNull(queryPlan, "queryPlan");
 
     if (!ddlCommand.isPresent() && !queryPlan.isPresent()) {
-      throw new IllegalArgumentException("Plan requires at least a DDL command or queyr plan.");
+      throw new IllegalArgumentException("Plan requires at least a DDL command or query plan.");
     }
   }
 
@@ -65,13 +75,12 @@ final class KsqlPlanV1 implements KsqlPlan {
       return false;
     }
     final KsqlPlanV1 that = (KsqlPlanV1) o;
-    return Objects.equals(statementText, that.statementText)
-        && Objects.equals(ddlCommand, that.ddlCommand)
+    return Objects.equals(ddlCommand, that.ddlCommand)
         && Objects.equals(queryPlan, that.queryPlan);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(statementText, ddlCommand, queryPlan);
+    return Objects.hash(ddlCommand, queryPlan);
   }
 }

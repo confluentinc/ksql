@@ -50,6 +50,13 @@ public final class KsqlClient implements AutoCloseable {
   private final BiFunction<Integer, String, SocketAddress> socketAddressFactory;
   private final boolean ownedVertx;
 
+  /**
+   * Creates a new KsqlClient.
+   * @param clientProps Client properties from which to read TLS setup configs
+   * @param credentials Optional credentials to pass along with requests if auth is enabled
+   * @param localProperties The set of local properties to pass along to /ksql requests
+   * @param httpClientOptions Default HttpClientOptions to be used when creating the client
+   */
   public KsqlClient(
       final Map<String, String> clientProps,
       final Optional<BasicCredentials> credentials,
@@ -98,8 +105,8 @@ public final class KsqlClient implements AutoCloseable {
     final boolean isUriTls = server.getScheme().equalsIgnoreCase("https");
     final HttpClient client = isUriTls ? httpTlsClient : httpNonTlsClient;
     return new KsqlTarget(client,
-        SocketAddress.inetSocketAddress(server.getPort(), server.getHost()), localProperties,
-        basicAuthHeader);
+        socketAddressFactory.apply(server.getPort(), server.getHost()), localProperties,
+        basicAuthHeader, server.getHost());
   }
 
   public void close() {

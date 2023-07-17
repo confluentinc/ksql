@@ -159,7 +159,7 @@ public class StaticTopicSerdeTest {
         () -> staticSerde.deserializer().deserialize(SOURCE_TOPIC, SOME_BYTES));
 
     // Then:
-    verify(logger).error(new DeserializationError(err, Optional.of(SOME_BYTES), STATIC_TOPIC));
+    verify(logger).error(new DeserializationError(err, Optional.of(SOME_BYTES), STATIC_TOPIC, false));
     verifyZeroInteractions(callback);
   }
 

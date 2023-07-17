@@ -57,13 +57,19 @@ public abstract class ConnectSerdeSupplier<T extends ParsedSchema>
   }
 
   @Override
-  public Serializer<Object> getSerializer(final SchemaRegistryClient schemaRegistryClient) {
-    return new SpecSerializer(schemaRegistryClient);
+  public Serializer<Object> getSerializer(
+      final SchemaRegistryClient schemaRegistryClient,
+      final boolean isKey
+  ) {
+    return new SpecSerializer(schemaRegistryClient, isKey);
   }
 
   @Override
-  public Deserializer<Object> getDeserializer(final SchemaRegistryClient schemaRegistryClient) {
-    return new SpecDeserializer(schemaRegistryClient);
+  public Deserializer<Object> getDeserializer(
+      final SchemaRegistryClient schemaRegistryClient,
+      final boolean isKey
+  ) {
+    return new SpecDeserializer(schemaRegistryClient, isKey);
   }
 
   protected abstract Schema fromParsedSchema(T schema);
@@ -72,14 +78,16 @@ public abstract class ConnectSerdeSupplier<T extends ParsedSchema>
 
     private final SchemaRegistryClient srClient;
     private final Converter converter;
+    private final boolean isKey;
 
-    SpecSerializer(final SchemaRegistryClient srClient) {
+    SpecSerializer(final SchemaRegistryClient srClient, final boolean isKey) {
       this.srClient = Objects.requireNonNull(srClient, "srClient");
       this.converter = converterFactory.apply(srClient);
       converter.configure(
           ImmutableMap.of(AbstractKafkaSchemaSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG, "foo"),
-          false
+          isKey
       );
+      this.isKey = isKey;
     }
 
     @SuppressWarnings("unchecked")
@@ -91,7 +99,7 @@ public abstract class ConnectSerdeSupplier<T extends ParsedSchema>
 
       final T schema;
       try {
-        final String subject = topic + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX;
+        final String subject = KsqlConstants.getSRSubject(topic, isKey);
         final int id = srClient.getLatestSchemaMetadata(subject).getId();
         schema = (T) srClient.getSchemaBySubjectAndId(subject, id);
       } catch (Exception e) {
@@ -192,11 +200,11 @@ public abstract class ConnectSerdeSupplier<T extends ParsedSchema>
 
     private final Converter converter;
 
-    SpecDeserializer(final SchemaRegistryClient srClient) {
+    SpecDeserializer(final SchemaRegistryClient srClient, final boolean isKey) {
       this.converter = converterFactory.apply(srClient);
       converter.configure(
           ImmutableMap.of(AbstractKafkaSchemaSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG, "foo"),
-          false
+          isKey
       );
     }
 

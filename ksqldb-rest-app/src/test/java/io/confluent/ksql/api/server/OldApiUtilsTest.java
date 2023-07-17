@@ -81,7 +81,7 @@ public class OldApiUtilsTest {
         + "\"table.whitelist\"='[string]', "
         + "\"key\"='[string]');";
 
-    OldApiUtils.handleOldApiRequest(server, routingContext, KsqlRequest.class,
+    OldApiUtils.handleOldApiRequest(server, routingContext, KsqlRequest.class, Optional.empty(),
         (ksqlRequest, securityContext) -> {
       assertThat(ksqlRequest.getMaskedKsql(), is(expected));
       final VertxCompletableFuture<EndpointResponse> vcf = new VertxCompletableFuture<>();

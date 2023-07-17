@@ -75,8 +75,8 @@ public class SchemaConvertersTest {
           .build()
       )
       .put(SqlDecimal.of(2, 1), DecimalUtil.builder(2, 1).build())
-      .put(SqlMap.of(SqlTypes.INTEGER), SchemaBuilder
-          .map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_INT32_SCHEMA)
+      .put(SqlMap.of(SqlTypes.BIGINT, SqlTypes.INTEGER), SchemaBuilder
+          .map(Schema.OPTIONAL_INT64_SCHEMA, Schema.OPTIONAL_INT32_SCHEMA)
           .optional()
           .build()
       )
@@ -111,7 +111,10 @@ public class SchemaConvertersTest {
       .put(SqlTypes.STRING, ParamTypes.STRING)
       .put(SqlArray.of(SqlTypes.INTEGER), ArrayType.of(ParamTypes.INTEGER))
       .put(SqlDecimal.of(2, 1), ParamTypes.DECIMAL)
-      .put(SqlMap.of(SqlTypes.INTEGER), MapType.of(ParamTypes.INTEGER))
+      .put(
+          SqlMap.of(SqlTypes.BIGINT, SqlTypes.INTEGER),
+          MapType.of(ParamTypes.LONG, ParamTypes.INTEGER)
+      )
       .put(SqlStruct.builder()
               .field("f0", SqlTypes.INTEGER)
               .build(),
@@ -132,7 +135,7 @@ public class SchemaConvertersTest {
   private static final Schema NESTED_LOGICAL_TYPE = SchemaBuilder.struct()
       .field("ARRAY", SchemaBuilder.array(STRUCT_LOGICAL_TYPE).optional().build())
       .field("MAP",
-          SchemaBuilder.map(CONNECT_STRING_SCHEMA, STRUCT_LOGICAL_TYPE).optional().build())
+          SchemaBuilder.map(CONNECT_DOUBLE_SCHEMA, STRUCT_LOGICAL_TYPE).optional().build())
       .field("STRUCT", STRUCT_LOGICAL_TYPE)
       .optional()
       .build();
@@ -143,7 +146,7 @@ public class SchemaConvertersTest {
 
   private static final SqlType NESTED_SQL_TYPE = SqlStruct.builder()
       .field("ARRAY", SqlArray.of(STRUCT_SQL_TYPE))
-      .field("MAP", SqlMap.of(STRUCT_SQL_TYPE))
+      .field("MAP", SqlMap.of(SqlTypes.DOUBLE, STRUCT_SQL_TYPE))
       .field("STRUCT", STRUCT_SQL_TYPE)
       .build();
 
@@ -231,23 +234,6 @@ public class SchemaConvertersTest {
   @Test
   public void shouldConvertNestedComplexFromSql() {
     assertThat(SchemaConverters.sqlToConnectConverter().toConnectSchema(NESTED_SQL_TYPE), is(NESTED_LOGICAL_TYPE));
-  }
-
-  @Test
-  public void shouldThrowOnNonStringKeyedMap() {
-    // Given:
-    final Schema mapSchema = SchemaBuilder
-        .map(CONNECT_BIGINT_SCHEMA, CONNECT_DOUBLE_SCHEMA).optional()
-        .build();
-
-    // When:
-    final Exception e = assertThrows(
-        KsqlException.class,
-        () -> SchemaConverters.connectToSqlConverter().toSqlType(mapSchema)
-    );
-
-    // Then:
-    assertThat(e.getMessage(), containsString("Unsupported map key type: Schema{INT64}"));
   }
 
   @Test

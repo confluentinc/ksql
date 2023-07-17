@@ -1,0 +1,107 @@
+{
+  "comments": [
+    "Tests covering the use of the ARRAY_REMOVE function."
+  ],
+  "tests": [
+    {
+      "name": "array_remove with literal array",
+      "statements": [
+        "CREATE STREAM INPUT (id STRING KEY, dummy INTEGER) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT id, array_remove(array['foo', 'bar', 'foo'], 'foo') as a1 FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": "r1", "value": {"dummy": 0 }},
+        {"topic": "test_topic", "key": "r2", "value": {"dummy": 0 }}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "r1", "value": {"A1": ["bar"]}},
+        {"topic": "OUTPUT", "key": "r2", "value": {"A1": ["bar"]}}
+      ]
+    },
+    {
+      "name": "array_remove with all primitive types",
+      "statements": [
+        "CREATE STREAM INPUT (id STRING KEY, bools ARRAY<BOOLEAN>, bad_bool BOOLEAN, ints ARRAY<INT>, bad_int INT, bigints ARRAY<BIGINT>, bad_bigint BIGINT, doubles ARRAY<DOUBLE>, bad_double DOUBLE, strings ARRAY<STRING>, bad_string STRING, decimals ARRAY<DECIMAL(2,1)>, bad_decimal DECIMAL(2,1)) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT id, array_remove(bools, bad_bool) as bools, array_remove(ints, bad_int) as ints, array_remove(bigints, bad_bigint) as bigints, array_remove(doubles, bad_double) as doubles, array_remove(strings, bad_string) as strings, array_remove(decimals, bad_decimal) as decimals FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": "r1", "value": {
+          "bools": [false, true, false], "bad_bool": true,
+          "ints": [0,0,1,0,-1], "bad_int": -1,
+          "bigints": [345,-123,345], "bad_bigint": 345,
+          "doubles": [0.0, 0.2, -12345.678, 0.2], "bad_double": 0.2,
+          "strings": ["foo", "bar", "foo"], "bad_string": "foo",
+          "decimals": [1.0, -0.2, 1.0, -9.9], "bad_decimal": -0.2}},
+        {"topic": "test_topic", "key": "r2", "value": {
+          "bools": [null, false, true], "bad_bool": true,
+          "ints": [0,null,1,0,-1], "bad_int": -1,
+          "bigints": [null,-123, 345], "bad_bigint": 345,
+          "doubles": [0.3, -12345.678, null, 0.3], "bad_double": 0.3,
+          "strings": ["foo", "Food", null, "food"], "bad_string": "foo",
+          "decimals": [1.0, 1.1, 1.1, -0.2, null, 1.0], "bad_decimal": -0.2}},
+        {"topic": "test_topic", "key": "r3", "value": {
+          "bools": [null, false, true], "bad_bool": null,
+          "ints": [0,null,1,0,-1], "bad_int": null,
+          "bigints": [null,-123, 345], "bad_bigint": null,
+          "doubles": [0.3, -12345.678, null, 0.3], "bad_double": null,
+          "strings": ["foo", "Food", null, "food"], "bad_string": null,
+          "decimals": [1.0, 1.1, 1.1, -0.2, null, 1.0], "bad_decimal": null}},
+        {"topic": "test_topic", "key": "r4", "value": {
+          "bools": [], "bad_bool": true,
+          "ints": [], "bad_int": -1,
+          "bigints": [], "bad_bigint": 345,
+          "doubles": [], "bad_double": 0.2,
+          "strings": [], "bad_string": "foo",
+          "decimals": [], "bad_decimal": -0.2}},
+        {"topic": "test_topic", "key": "r5", "value": {
+          "bools": null, "bad_bool": true,
+          "ints": null, "bad_int": -1,
+          "bigints": null, "bad_bigint": 345,
+          "doubles": null, "bad_double": 0.2,
+          "strings": null, "bad_string": "foo",
+           "decimals": null, "bad_decimal": -0.2}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "r1", "value": {"BOOLS": [false,false], "INTS": [0,0,1,0], "BIGINTS": [-123], "DOUBLES": [0.0,-12345.678], "STRINGS": ["bar"], "DECIMALS": [1.0,1.0,-9.9]}},
+        {"topic": "OUTPUT", "key": "r2", "value": {"BOOLS": [null,false], "INTS": [0,null,1,0], "BIGINTS": [null,-123], "DOUBLES": [-12345.678,null], "STRINGS": ["Food", null, "food"], "DECIMALS": [1.0,1.1,1.1,null,1.0]}},
+        {"topic": "OUTPUT", "key": "r3", "value": {"BOOLS": [false,true], "INTS": [0,1,0,-1], "BIGINTS": [-123,345], "DOUBLES": [0.3,-12345.678,0.3], "STRINGS": ["foo", "Food", "food"], "DECIMALS": [1.0,1.1,1.1,-0.2,1.0]}},
+        {"topic": "OUTPUT", "key": "r4", "value": {"BOOLS": [], "INTS": [], "BIGINTS": [], "DOUBLES": [], "STRINGS": [], "DECIMALS": []}},
+        {"topic": "OUTPUT", "key": "r5", "value": {"BOOLS": null, "INTS": null, "BIGINTS": null, "DOUBLES": null, "STRINGS": null, "DECIMALS": null}}
+      ]
+    },
+    {
+      "name": "array_remove with complex types",
+      "statements": [
+        "CREATE STREAM INPUT (id STRING KEY, lists ARRAY<ARRAY<STRING>>, bad_list ARRAY<STRING>, maps ARRAY<MAP<STRING,INT>>, bad_map MAP<STRING, INT>) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT id, array_remove(lists, bad_list) as lists, array_remove(maps, bad_map) as maps FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": "r1", "value": {
+          "lists": [ ["foo", "bar", "foo"], ["foo", "bar", "foo"], ["foo"] ], 
+          "bad_list": ["foo", "bar", "foo"], 
+          "maps": [ {"apple": 1, "banana": 2}, {"apple": 3, "banana": 4}, {"apple": 1, "banana": 2} ],
+          "bad_map": {"apple": 1, "banana": 2} }},
+        {"topic": "test_topic", "key": "r2", "value": {
+          "lists": [ null, ["foo"], ["foo", "bar"] ], 
+          "bad_list": ["foo"], 
+          "maps": [ {"apple": 1, "banana": 2}, {"apple": 3, "banana": 4}, null],
+          "bad_map": {"apple": 1, "banana": 2} }},
+        {"topic": "test_topic", "key": "r3", "value": {
+          "lists": [ ], 
+          "bad_list": ["foo"], 
+          "maps": [ ] }},
+        {"topic": "test_topic", "key": "r4", "value": {
+          "lists": null, 
+          "bad_list": ["foo"], 
+          "maps": null,
+          "bad_map": {"apple": 1, "banana": 2} }}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "r1", "value": {"LISTS": [ ["foo"] ], "MAPS": [{"apple": 3, "banana": 4} ] }},
+        {"topic": "OUTPUT", "key": "r2", "value": {"LISTS": [ null, ["foo", "bar"] ], "MAPS": [ {"apple": 3, "banana": 4}, null ] }},
+        {"topic": "OUTPUT", "key": "r3", "value": {"LISTS": [ ], "MAPS": [ ] }},
+        {"topic": "OUTPUT", "key": "r4", "value": {"LISTS": null, "MAPS": null }}
+      ]
+    }
+  ]
+}

@@ -16,11 +16,12 @@
 package io.confluent.ksql.planner.plan;
 
 import com.google.common.collect.ImmutableList;
+import io.confluent.ksql.analyzer.Analysis;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.plan.SelectExpression;
-import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.udf.AsValue;
+import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.NodeLocation;
@@ -35,6 +36,7 @@ import io.confluent.ksql.util.GrammaticalJoiner;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -47,7 +49,7 @@ import java.util.stream.Collectors;
 public class FinalProjectNode extends ProjectNode implements VerifiableNode {
 
   private final Projection projection;
-  private final boolean persistent;
+  private final Optional<Analysis.Into> into;
   private final LogicalSchema schema;
   private final ImmutableList<SelectExpression> selectExpressions;
 
@@ -55,14 +57,14 @@ public class FinalProjectNode extends ProjectNode implements VerifiableNode {
       final PlanNodeId id,
       final PlanNode source,
       final List<SelectItem> selectItems,
-      final boolean persistent,
-      final FunctionRegistry functionRegistry
+      final Optional<Analysis.Into> into,
+      final MetaStore metaStore
   ) {
     super(id, source);
     this.projection = Projection.of(selectItems);
-    this.persistent = persistent;
+    this.into = into;
 
-    final Pair<LogicalSchema, List<SelectExpression>> result = build(functionRegistry);
+    final Pair<LogicalSchema, List<SelectExpression>> result = build(metaStore);
     this.schema = result.left;
     this.selectExpressions = ImmutableList.copyOf(result.right);
 
@@ -84,18 +86,23 @@ public class FinalProjectNode extends ProjectNode implements VerifiableNode {
     getSource().validateKeyPresent(sinkName, projection);
   }
 
-  private Pair<LogicalSchema, List<SelectExpression>> build(
-      final FunctionRegistry functionRegistry
-  ) {
+  private Optional<LogicalSchema> getTargetSchema(final MetaStore metaStore) {
+    return into.filter(i -> !i.isCreate())
+        .map(i -> metaStore.getSource(i.getName()))
+        .map(target -> target.getSchema());
+  }
+
+  private Pair<LogicalSchema, List<SelectExpression>> build(final MetaStore metaStore) {
     final LogicalSchema parentSchema = getSource().getSchema();
+    final Optional<LogicalSchema> targetSchema = getTargetSchema(metaStore);
 
     final List<SelectExpression> selectExpressions = SelectionUtil
-        .buildSelectExpressions(getSource(), projection.selectItems());
+        .buildSelectExpressions(getSource(), projection.selectItems(), targetSchema);
 
     final LogicalSchema schema =
-        SelectionUtil.buildProjectionSchema(parentSchema, selectExpressions, functionRegistry);
+        SelectionUtil.buildProjectionSchema(parentSchema, selectExpressions, metaStore);
 
-    if (persistent) {
+    if (into.isPresent()) {
       // Persistent queries have key columns as key columns - so final projection can exclude them:
       selectExpressions.removeIf(se -> {
         if (se.getExpression() instanceof UnqualifiedColumnReferenceExp) {
@@ -114,7 +121,7 @@ public class FinalProjectNode extends ProjectNode implements VerifiableNode {
     }
 
     final LogicalSchema nodeSchema;
-    if (persistent) {
+    if (into.isPresent()) {
       nodeSchema = schema.withoutPseudoAndKeyColsInValue();
     } else {
       // Transient queries return key columns in the value, so the projection includes them, and

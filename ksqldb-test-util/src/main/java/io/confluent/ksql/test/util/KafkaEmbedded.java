@@ -271,7 +271,7 @@ class KafkaEmbedded {
   private AdminClient adminClient() {
     final ImmutableMap<String, Object> props = ImmutableMap.of(
         AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, brokerList(),
-        AdminClientConfig.RETRIES_CONFIG, 5);
+        AdminClientConfig.REQUEST_TIMEOUT_MS_CONFIG, 60_000);
 
     return AdminClient.create(props);
   }

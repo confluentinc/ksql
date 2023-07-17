@@ -33,7 +33,6 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class RegisterSchemaCallbackTest {
 
-  private static final String SUFFIX = KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX;
   private static final String SOURCE = "s1";
   private static final String CHANGELOG = "s2";
   private static final int ID = 1;
@@ -51,21 +50,21 @@ public class RegisterSchemaCallbackTest {
   @Test
   public void shouldRegisterIdFromData() throws IOException, RestClientException {
     // Given:
-    when(srClient.getSchemaBySubjectAndId(SOURCE + SUFFIX, ID)).thenReturn(schema);
+    when(srClient.getSchemaBySubjectAndId(KsqlConstants.getSRSubject(SOURCE, false), ID)).thenReturn(schema);
     final RegisterSchemaCallback call = new RegisterSchemaCallback(srClient);
 
     // When:
     call.onDeserializationFailure(SOURCE, CHANGELOG, SOME_DATA);
 
     // Then:
-    verify(srClient).register(CHANGELOG + SUFFIX, schema);
+    verify(srClient).register(KsqlConstants.getSRSubject(CHANGELOG, false), schema);
   }
 
   @Test
   public void shouldNotRegisterFailedIdTwice() throws IOException, RestClientException {
     // Given:
-    when(srClient.getSchemaBySubjectAndId(SOURCE + SUFFIX, ID)).thenReturn(schema);
-    when(srClient.register(CHANGELOG + SUFFIX, schema)).thenThrow(new KsqlException(""));
+    when(srClient.getSchemaBySubjectAndId(KsqlConstants.getSRSubject(SOURCE, false), ID)).thenReturn(schema);
+    when(srClient.register(KsqlConstants.getSRSubject(CHANGELOG, false), schema)).thenThrow(new KsqlException(""));
     final RegisterSchemaCallback call = new RegisterSchemaCallback(srClient);
 
     // When:
@@ -73,16 +72,16 @@ public class RegisterSchemaCallbackTest {
     call.onDeserializationFailure(SOURCE, CHANGELOG, SOME_DATA);
 
     // Then:
-    verify(srClient, times(1)).getSchemaBySubjectAndId(SOURCE + SUFFIX, ID);
-    verify(srClient).register(CHANGELOG + SUFFIX, schema);
+    verify(srClient, times(1)).getSchemaBySubjectAndId(KsqlConstants.getSRSubject(SOURCE, false), ID);
+    verify(srClient).register(KsqlConstants.getSRSubject(CHANGELOG, false), schema);
   }
 
   @Test
   public void shouldRegisterOtherSchemaIdIfFirstFails() throws IOException, RestClientException {
     // Given:
-    when(srClient.getSchemaBySubjectAndId(SOURCE + SUFFIX, ID2)).thenReturn(schema2);
-    when(srClient.getSchemaBySubjectAndId(SOURCE + SUFFIX, ID)).thenReturn(schema);
-    when(srClient.register(CHANGELOG + SUFFIX, schema)).thenThrow(new KsqlException(""));
+    when(srClient.getSchemaBySubjectAndId(KsqlConstants.getSRSubject(SOURCE, false), ID2)).thenReturn(schema2);
+    when(srClient.getSchemaBySubjectAndId(KsqlConstants.getSRSubject(SOURCE, false), ID)).thenReturn(schema);
+    when(srClient.register(KsqlConstants.getSRSubject(CHANGELOG, false), schema)).thenThrow(new KsqlException(""));
     final RegisterSchemaCallback call = new RegisterSchemaCallback(srClient);
 
     // When:
@@ -90,8 +89,8 @@ public class RegisterSchemaCallbackTest {
     call.onDeserializationFailure(SOURCE, CHANGELOG, OTHER_DATA);
 
     // Then:
-    verify(srClient, times(1)).getSchemaBySubjectAndId(SOURCE + SUFFIX, ID2);
-    verify(srClient).register(CHANGELOG + SUFFIX, schema2);
+    verify(srClient, times(1)).getSchemaBySubjectAndId(KsqlConstants.getSRSubject(SOURCE, false), ID2);
+    verify(srClient).register(KsqlConstants.getSRSubject(CHANGELOG, false), schema2);
   }
 
 }

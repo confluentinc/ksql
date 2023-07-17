@@ -17,6 +17,7 @@ package io.confluent.ksql.util;
 
 import java.net.ConnectException;
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.text.WordUtils;
@@ -41,8 +42,7 @@ public final class ErrorMessageUtil {
       return "";
     }
 
-    final List<String> messages = getErrorMessages(throwable);
-    dedup(messages);
+    final List<String> messages = dedup(getErrorMessages(throwable));
 
     final String msg = messages.remove(0);
 
@@ -68,7 +68,8 @@ public final class ErrorMessageUtil {
 
   private static String getErrorMessage(final Throwable e) {
     if (e instanceof ConnectException) {
-      return "Could not connect to the server.";
+      return "Could not connect to the server. "
+          + "Please check the server details are correct and that the server is running.";
     } else {
       final String message;
       if (e instanceof KsqlStatementException) {
@@ -90,13 +91,7 @@ public final class ErrorMessageUtil {
     return list;
   }
 
-  private static void dedup(final List<String> messages) {
-    while (messages.size() > 1) {
-      if (!messages.get(0).equals(messages.get(1))) {
-        return;
-      }
-
-      messages.remove(0);
-    }
+  private static List<String> dedup(final List<String> messages) {
+    return new ArrayList<>(new LinkedHashSet<>(messages));
   }
 }

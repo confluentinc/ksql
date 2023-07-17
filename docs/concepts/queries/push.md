@@ -38,7 +38,8 @@ CREATE TABLE AS SELECT or CREATE STREAM AS SELECT statement.
 Example push query
 ==================
 
-Specify a push query by using the EMIT CHANGES clause in a SELECT statement.
+Specify a push query by using an EMIT refinement clause in a SELECT statement.
+
 The following statement shows how to select five events from a `pageviews`
 stream.  
 

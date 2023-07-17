@@ -22,6 +22,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.sameInstance;
@@ -330,24 +331,12 @@ public class InternalFunctionRegistryTest {
   }
 
   @Test
-  public void shouldHaveBuiltInUDFRegistered() {
-
-    // Verify that all built-in UDF are correctly registered in the InternalFunctionRegistry
-    final List<String> buildtInUDF = Arrays.asList(
-        // String UDF
-        "LCASE", "UCASE", "TRIM",
-        "LEN",
-        // Math UDF
-        "RANDOM",
-        // JSON UDF
-        "EXTRACTJSONFIELD"
-    );
-
+  public void shouldHaveNoBuiltInUDFsRegistered() {
     final Collection<String> names = Collections2.transform(functionRegistry.listFunctions(),
         UdfFactory::getName);
 
-    assertThat("More or less UDF are registered in the InternalFunctionRegistry",
-        names, containsInAnyOrder(buildtInUDF.toArray()));
+    assertThat("One or more built-in Kudfs are registered in the InternalFunctionRegistry",
+        names, hasSize(0));
   }
 
   @Test
@@ -399,7 +388,7 @@ public class InternalFunctionRegistryTest {
 
   private TableFunctionFactory createTableFunctionFactory() {
     return new TableFunctionFactory(new UdfMetadata("my_tablefunction",
-        "", "", "", "")) {
+        "", "", "", FunctionCategory.OTHER, "")) {
       @Override
       public KsqlTableFunction createTableFunction(final List<SqlType> argTypeList) {
         return tableFunction;

@@ -51,19 +51,17 @@ class KsMaterializedWindowTable implements MaterializedWindowedTable {
   @Override
   public List<WindowedRow> get(
       final Struct key,
-      final Range<Instant> windowStartBounds
+      final int partition,
+      final Range<Instant> windowStartBounds,
+      final Range<Instant> windowEndBounds
   ) {
     try {
       final ReadOnlyWindowStore<Struct, ValueAndTimestamp<GenericRow>> store = stateStore
-          .store(QueryableStoreTypes.timestampedWindowStore());
+          .store(QueryableStoreTypes.timestampedWindowStore(), partition);
 
-      final Instant lower = windowStartBounds.hasLowerBound()
-          ? windowStartBounds.lowerEndpoint()
-          : Instant.ofEpochMilli(0);
+      final Instant lower = calculateLowerBound(windowStartBounds, windowEndBounds);
 
-      final Instant upper = windowStartBounds.hasUpperBound()
-          ? windowStartBounds.upperEndpoint()
-          : Instant.ofEpochMilli(Long.MAX_VALUE);
+      final Instant upper = calculateUpperBound(windowStartBounds, windowEndBounds);
 
       try (WindowStoreIterator<ValueAndTimestamp<GenericRow>> it = store.fetch(key, lower, upper)) {
 
@@ -71,24 +69,28 @@ class KsMaterializedWindowTable implements MaterializedWindowedTable {
 
         while (it.hasNext()) {
           final KeyValue<Long, ValueAndTimestamp<GenericRow>> next = it.next();
+
           final Instant windowStart = Instant.ofEpochMilli(next.key);
-
-          if (windowStartBounds.contains(windowStart)) {
-
-            final Instant windowEnd = windowStart.plus(windowSize);
-
-            final TimeWindow window =
-                new TimeWindow(windowStart.toEpochMilli(), windowEnd.toEpochMilli());
-
-            final WindowedRow row = WindowedRow.of(
-                stateStore.schema(),
-                new Windowed<>(key, window),
-                next.value.value(),
-                next.value.timestamp()
-            );
-
-            builder.add(row);
+          if (!windowStartBounds.contains(windowStart)) {
+            continue;
           }
+
+          final Instant windowEnd = windowStart.plus(windowSize);
+          if (!windowEndBounds.contains(windowEnd)) {
+            continue;
+          }
+
+          final TimeWindow window =
+              new TimeWindow(windowStart.toEpochMilli(), windowEnd.toEpochMilli());
+
+          final WindowedRow row = WindowedRow.of(
+              stateStore.schema(),
+              new Windowed<>(key, window),
+              next.value.value(),
+              next.value.timestamp()
+          );
+
+          builder.add(row);
         }
 
         return builder.build();
@@ -96,5 +98,35 @@ class KsMaterializedWindowTable implements MaterializedWindowedTable {
     } catch (final Exception e) {
       throw new MaterializationException("Failed to get value from materialized table", e);
     }
+  }
+
+  private Instant calculateUpperBound(
+      final Range<Instant> windowStartBounds,
+      final Range<Instant> windowEndBounds
+  ) {
+    final Instant start = windowStartBounds.hasUpperBound()
+        ? windowStartBounds.upperEndpoint()
+        : Instant.ofEpochMilli(Long.MAX_VALUE);
+
+    final Instant end = windowEndBounds.hasUpperBound()
+        ? windowEndBounds.upperEndpoint().minus(windowSize)
+        : Instant.ofEpochMilli(Long.MAX_VALUE);
+
+    return start.compareTo(end) < 0 ? start : end;
+  }
+
+  private Instant calculateLowerBound(
+      final Range<Instant> windowStartBounds,
+      final Range<Instant> windowEndBounds
+  ) {
+    final Instant start = windowStartBounds.hasLowerBound()
+        ? windowStartBounds.lowerEndpoint()
+        : Instant.ofEpochMilli(0);
+
+    final Instant end = windowEndBounds.hasLowerBound()
+        ? windowEndBounds.lowerEndpoint().minus(windowSize)
+        : Instant.ofEpochMilli(0);
+
+    return start.compareTo(end) < 0 ? end : start;
   }
 }

@@ -70,5 +70,7 @@ public interface PlanBuilder {
 
   <K> KTableHolder<K> visitTableSink(TableSink<K> tableSink);
 
+  <K> KTableHolder<K> visitTableSuppress(TableSuppress<K> tableSuppress);
+
   <K> KTableHolder<K> visitTableTableJoin(TableTableJoin<K> tableTableJoin);
 }

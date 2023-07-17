@@ -20,16 +20,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.BooleanNode;
 import com.fasterxml.jackson.databind.node.NumericNode;
 import com.fasterxml.jackson.databind.node.TextNode;
-import io.confluent.ksql.schema.connect.SchemaWalker;
-import io.confluent.ksql.schema.connect.SchemaWalker.Visitor;
-import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.schema.ksql.types.SqlBaseType;
 import io.confluent.ksql.util.KsqlException;
 import java.io.IOException;
 import java.io.InputStream;
 import javax.annotation.Nonnull;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.Schema.Type;
 
 public final class JsonSerdeUtils {
 
@@ -81,27 +76,6 @@ public final class JsonSerdeUtils {
     // start with 0x00 - the only "insignificant" characters allowed are
     // 0x20, 0x09, 0x0A and 0x0D
     return json.length > 0 && json[0] == MAGIC_BYTE;
-  }
-
-  static PersistenceSchema validateSchema(final PersistenceSchema schema) {
-
-    class SchemaValidator implements Visitor<Void, Void> {
-
-      @Override
-      public Void visitMap(final Schema schema, final Void key, final Void value) {
-        if (schema.keySchema().type() != Type.STRING) {
-          throw new IllegalArgumentException("Only MAPs with STRING keys are supported");
-        }
-        return null;
-      }
-
-      public Void visitSchema(final Schema schema) {
-        return null;
-      }
-    }
-
-    SchemaWalker.visit(schema.serializedSchema(), new SchemaValidator());
-    return schema;
   }
 
   static boolean toBoolean(final JsonNode object) {

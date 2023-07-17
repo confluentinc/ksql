@@ -90,7 +90,7 @@ public final class SchemaKSourceFactory {
         contextStacker,
         dataSource.getSchema(),
         dataSource.getKafkaTopicName(),
-        buildFormats(dataSource),
+        Formats.from(dataSource.getKsqlTopic()),
         windowInfo,
         dataSource.getTimestampColumn()
     );
@@ -116,7 +116,7 @@ public final class SchemaKSourceFactory {
         contextStacker,
         dataSource.getSchema(),
         dataSource.getKafkaTopicName(),
-        buildFormats(dataSource),
+        Formats.from(dataSource.getKsqlTopic()),
         dataSource.getTimestampColumn()
     );
 
@@ -140,7 +140,7 @@ public final class SchemaKSourceFactory {
         contextStacker,
         dataSource.getSchema(),
         dataSource.getKafkaTopicName(),
-        buildFormats(dataSource),
+        Formats.from(dataSource.getKsqlTopic()),
         windowInfo,
         dataSource.getTimestampColumn()
     );
@@ -166,7 +166,7 @@ public final class SchemaKSourceFactory {
         contextStacker,
         dataSource.getSchema(),
         dataSource.getKafkaTopicName(),
-        buildFormats(dataSource),
+        Formats.from(dataSource.getKsqlTopic()),
         dataSource.getTimestampColumn()
     );
 
@@ -205,14 +205,6 @@ public final class SchemaKSourceFactory {
         keyFormat,
         builder.getKsqlConfig(),
         builder.getFunctionRegistry()
-    );
-  }
-
-  private static Formats buildFormats(final DataSource dataSource) {
-    return Formats.of(
-        dataSource.getKsqlTopic().getKeyFormat(),
-        dataSource.getKsqlTopic().getValueFormat(),
-        dataSource.getSerdeOptions()
     );
   }
 

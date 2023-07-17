@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.function.udf.string;
 
+import io.confluent.ksql.function.FunctionCategory;
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.function.udf.UdfParameter;
@@ -23,6 +24,7 @@ import io.confluent.ksql.util.KsqlConstants;
 @SuppressWarnings("unused") // Invoked via reflection.
 @UdfDescription(
     name = "substring",
+    category = FunctionCategory.STRING,
     author = KsqlConstants.CONFLUENT_AUTHOR,
     description = "Returns a substring of the passed in value."
 )

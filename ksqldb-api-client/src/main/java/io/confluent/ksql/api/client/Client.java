@@ -17,8 +17,10 @@ package io.confluent.ksql.api.client;
 
 import io.confluent.ksql.api.client.impl.ClientImpl;
 import io.vertx.core.Vertx;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import org.reactivestreams.Publisher;
 
 /**
  * A client that connects to a specific ksqlDB server.
@@ -82,6 +84,24 @@ public interface Client {
   CompletableFuture<Void> insertInto(String streamName, KsqlObject row);
 
   /**
+   * Inserts rows into a ksqlDB stream. Rows to insert are supplied by a
+   * {@code org.reactivestreams.Publisher} and server acknowledgments are exposed similarly.
+   *
+   * <p>The {@code CompletableFuture} will be failed if a non-200 response is received from the
+   * server.
+   *
+   * <p>See {@link InsertsPublisher} for an example publisher that may be passed an argument to
+   * this method.
+   *
+   * @param streamName name of the target stream
+   * @param insertsPublisher the publisher to provide rows to insert
+   * @return a future that completes once the initial server response is received, and contains a
+   *         publisher that publishes server acknowledgments for inserted rows.
+   */
+  CompletableFuture<AcksPublisher>
+      streamInserts(String streamName, Publisher<KsqlObject> insertsPublisher);
+
+  /**
    * Terminates a push query with the specified query ID.
    *
    * <p>If a non-200 response is received from the server, the {@code CompletableFuture} will be
@@ -91,6 +111,102 @@ public interface Client {
    * @return a future that completes once the server response is received
    */
   CompletableFuture<Void> terminatePushQuery(String queryId);
+
+  /**
+   * Sends a SQL request to the ksqlDB server. This method supports 'CREATE', 'CREATE ... AS
+   * SELECT', 'DROP', 'TERMINATE', and 'INSERT INTO ... AS SELECT' statements.
+   *
+   * <p>Each request should contain exactly one statement. Requests that contain multiple statements
+   * will be rejected by the client, in the form of failing the {@code CompletableFuture}, and the
+   * request will not be sent to the server.
+   *
+   * <p>The {@code CompletableFuture} is completed once a response is received from the server.
+   * Note that the actual execution of the submitted statement is asynchronous, so the statement
+   * may not have been executed by the time the {@code CompletableFuture} is completed.
+   *
+   * <p>If a non-200 response is received from the server, the {@code CompletableFuture} will be
+   * failed.
+   *
+   * @param sql the request to be executed
+   * @return a future that completes once the server response is received, and contains the query ID
+   *         for statements that start new persistent queries
+   */
+  CompletableFuture<ExecuteStatementResult> executeStatement(String sql);
+
+  /**
+   * Sends a SQL request with the specified properties to the ksqlDB server. This method supports
+   * 'CREATE', 'CREATE ... AS SELECT', 'DROP', 'TERMINATE', and 'INSERT INTO ... AS SELECT'
+   * statements.
+   *
+   * <p>Each request should contain exactly one statement. Requests that contain multiple statements
+   * will be rejected by the client, in the form of failing the {@code CompletableFuture}, and the
+   * request will not be sent to the server.
+   *
+   * <p>The {@code CompletableFuture} is completed once a response is received from the server.
+   * Note that the actual execution of the submitted statement is asynchronous, so the statement
+   * may not have been executed by the time the {@code CompletableFuture} is completed.
+   *
+   * <p>If a non-200 response is received from the server, the {@code CompletableFuture} will be
+   * failed.
+   *
+   * @param sql the request to be executed
+   * @param properties properties associated with the request
+   * @return a future that completes once the server response is received, and contains the query ID
+   *         for statements that start new persistent queries
+   */
+  CompletableFuture<ExecuteStatementResult>
+      executeStatement(String sql, Map<String, Object> properties);
+
+  /**
+   * Returns the list of ksqlDB streams from the ksqlDB server's metastore.
+   *
+   * <p>If a non-200 response is received from the server, the {@code CompletableFuture} will be
+   * failed.
+   *
+   * @return list of streams
+   */
+  CompletableFuture<List<StreamInfo>> listStreams();
+
+  /**
+   * Returns the list of ksqlDB tables from the ksqlDB server's metastore
+   *
+   * <p>If a non-200 response is received from the server, the {@code CompletableFuture} will be
+   * failed.
+   *
+   * @return list of tables
+   */
+  CompletableFuture<List<TableInfo>> listTables();
+
+  /**
+   * Returns the list of Kafka topics available for use with ksqlDB.
+   *
+   * <p>If a non-200 response is received from the server, the {@code CompletableFuture} will be
+   * failed.
+   *
+   * @return list of topics
+   */
+  CompletableFuture<List<TopicInfo>> listTopics();
+
+  /**
+   * Returns the list of queries currently running on the ksqlDB server.
+   *
+   * <p>If a non-200 response is received from the server, the {@code CompletableFuture} will be
+   * failed.
+   *
+   * @return list of queries
+   */
+  CompletableFuture<List<QueryInfo>> listQueries();
+
+  /**
+   * Returns metadata about the ksqlDB stream or table of the provided name.
+   *
+   * <p>If a non-200 response is received from the server, the {@code CompletableFuture} will be
+   * failed.
+   *
+   * @param sourceName stream or table name
+   * @return metadata for stream or table
+   */
+  CompletableFuture<SourceDescription> describeSource(String sourceName);
 
   /**
    * Closes the underlying HTTP client.

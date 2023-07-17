@@ -47,6 +47,32 @@ public class QueryMaskTest {
   }
 
   @Test
+  public void shouldMaskIfNotExistSourceConnector() {
+    // Given:
+    final String query = "CREATE SOURCE CONNECTOR IF NOT EXISTS testconnector WITH ("
+        + "    \"connector.class\" = 'PostgresSource', \n"
+        + "    'connection.url' = 'jdbc:postgresql://localhost:5432/my.db',\n"
+        + "    `mode`='bulk',\n"
+        + "    \"topic.prefix\"='jdbc-',\n"
+        + "    \"table.whitelist\"='users',\n"
+        + "    \"key\"='username');";
+
+    // When
+    final String maskedQuery = QueryMask.getMaskedStatement(query);
+
+    // Then
+    final String expected = "CREATE SOURCE CONNECTOR IF NOT EXISTS testconnector WITH "
+        + "(\"connector.class\"='PostgresSource', "
+        + "'connection.url'='[string]', "
+        + "`mode`='[string]', "
+        + "\"topic.prefix\"='[string]', "
+        + "\"table.whitelist\"='[string]', "
+        + "\"key\"='[string]');";
+
+    assertThat(maskedQuery, is(expected));
+  }
+
+  @Test
   public void shouldMaskSourceConnector() {
     // Given:
     final String query = "CREATE SOURCE CONNECTOR `test-connector` WITH ("
@@ -276,10 +302,11 @@ public class QueryMaskTest {
     // When
     final String maskedQuery = QueryMask.getMaskedStatement(query);
 
-    // Then
+    /// Then
     final String expected = "--this is a comment. \n"
         + "INSERT INTO foo (KEY_COL, COL_A) VALUES"
         + "('[value]','[value]','[value]','[value]','[value]','[value]');";
+
 
     assertThat(maskedQuery, is(expected));
   }

@@ -19,14 +19,21 @@ import io.confluent.ksql.execution.expression.tree.Type;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.SqlFormatter;
 import io.confluent.ksql.parser.properties.with.CreateSourceProperties;
+import io.confluent.ksql.parser.properties.with.SourcePropertiesUtil;
 import io.confluent.ksql.parser.tree.CreateSource;
+import io.confluent.ksql.parser.tree.CreateStream;
+import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.parser.tree.TableElement.Namespace;
 import io.confluent.ksql.parser.tree.TableElements;
-import io.confluent.ksql.schema.ksql.SimpleColumn;
 import io.confluent.ksql.schema.ksql.inference.TopicSchemaSupplier.SchemaAndId;
 import io.confluent.ksql.schema.ksql.inference.TopicSchemaSupplier.SchemaResult;
+import io.confluent.ksql.serde.FormatFactory;
+import io.confluent.ksql.serde.FormatInfo;
+import io.confluent.ksql.serde.SerdeFeature;
+import io.confluent.ksql.serde.SerdeFeatures;
+import io.confluent.ksql.serde.SerdeFeaturesFactory;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.statement.Injector;
 import io.confluent.ksql.util.ErrorMessageUtil;
@@ -39,18 +46,20 @@ import java.util.Optional;
 import java.util.stream.Stream;
 
 /**
- * An injector which injects the value columns into the supplied {@code statement}.
+ * An injector which injects key and/or value columns into the supplied {@code statement}.
  *
- * <p>The value columns are only injected if:
+ * <p>Key columns are only injected if:
  * <ul>
  * <li>The statement is a CT/CS.</li>
- * <li>The statement does not defined any value columns.</li>
- * <li>The format of the statement supports schema inference.</li>
+ * <li>The statement does not defined any key columns.</li>
+ * <li>The key format of the statement supports schema inference.</li>
  * </ul>
+ * And similarly for value columns.
  *
- * <p>Any key columns present are passed through unchanged.
+ * <p>If key and/or value columns are present, then they are passed through unchanged.
  *
- * <p>If any of the above are not true then the {@code statement} is returned unchanged.
+ * <p>If the above conditions are met for neither key nor value columns, then the
+ * {@code statement} is returned unchanged.
  */
 public class DefaultSchemaInjector implements Injector {
 
@@ -87,76 +96,154 @@ public class DefaultSchemaInjector implements Injector {
   private Optional<ConfiguredStatement<CreateSource>> forCreateStatement(
       final ConfiguredStatement<CreateSource> statement
   ) {
-    if (hasValueElements(statement)
-        || !statement.getStatement().getProperties().getValueFormat().supportsSchemaInference()) {
+    final Optional<SchemaAndId> keySchema = getKeySchema(statement);
+    final Optional<SchemaAndId> valueSchema = getValueSchema(statement);
+    if (!keySchema.isPresent() && !valueSchema.isPresent()) {
       return Optional.empty();
     }
 
-    final SchemaAndId valueSchema = getValueSchema(statement);
-    final CreateSource withSchema = addSchemaFields(statement, valueSchema);
+    final CreateSource withSchema = addSchemaFields(statement, keySchema, valueSchema);
     final PreparedStatement<CreateSource> prepared = buildPreparedStatement(withSchema);
     final ConfiguredStatement<CreateSource> configured = ConfiguredStatement
-        .of(prepared, statement.getConfigOverrides(), statement.getConfig());
+        .of(prepared, statement.getSessionConfig());
 
     return Optional.of(configured);
   }
 
-  private SchemaAndId getValueSchema(
+  private Optional<SchemaAndId> getKeySchema(
       final ConfiguredStatement<CreateSource> statement
   ) {
-    final String topicName = statement.getStatement().getProperties().getKafkaTopic();
+    final CreateSourceProperties props = statement.getStatement().getProperties();
+    final FormatInfo keyFormat = SourcePropertiesUtil.getKeyFormat(props);
 
-    final SchemaResult result = statement.getStatement().getProperties().getSchemaId()
-        .map(id -> schemaSupplier.getValueSchema(topicName, Optional.of(id)))
-        .orElseGet(() -> schemaSupplier.getValueSchema(topicName, Optional.empty()));
+    if (hasKeyElements(statement) || !formatSupportsSchemaInference(keyFormat)) {
+      return Optional.empty();
+    }
+
+    return Optional.of(getSchema(
+        props.getKafkaTopic(),
+        props.getKeySchemaId(),
+        keyFormat,
+        SerdeFeaturesFactory.buildInternal(FormatFactory.of(keyFormat)),
+        statement.getMaskedStatementText(),
+        true
+    ));
+  }
+
+  private Optional<SchemaAndId> getValueSchema(
+      final ConfiguredStatement<CreateSource> statement
+  ) {
+    final CreateSourceProperties props = statement.getStatement().getProperties();
+    final FormatInfo valueFormat = SourcePropertiesUtil.getValueFormat(props);
+
+    if (hasValueElements(statement) || !formatSupportsSchemaInference(valueFormat)) {
+      return Optional.empty();
+    }
+
+    return Optional.of(getSchema(
+        props.getKafkaTopic(),
+        props.getValueSchemaId(),
+        valueFormat,
+        props.getValueSerdeFeatures(),
+        statement.getMaskedStatementText(),
+        false
+    ));
+  }
+
+  private SchemaAndId getSchema(
+      final String topicName,
+      final Optional<Integer> schemaId,
+      final FormatInfo expectedFormat,
+      final SerdeFeatures serdeFeatures,
+      final String statementText,
+      final boolean isKey
+  ) {
+    final SchemaResult result = isKey
+        ? schemaSupplier.getKeySchema(topicName, schemaId, expectedFormat, serdeFeatures)
+        : schemaSupplier.getValueSchema(topicName, schemaId, expectedFormat, serdeFeatures);
 
     if (result.failureReason.isPresent()) {
       final Exception cause = result.failureReason.get();
       throw new KsqlStatementException(
           cause.getMessage(),
-          statement.getMaskedStatementText(),
+          statementText,
           cause);
     }
 
     return result.schemaAndId.get();
   }
 
+  private static boolean hasKeyElements(
+      final ConfiguredStatement<CreateSource> statement
+  ) {
+    return statement.getStatement().getElements().stream()
+        .anyMatch(e -> e.getNamespace().isKey());
+  }
+
   private static boolean hasValueElements(
       final ConfiguredStatement<CreateSource> statement
   ) {
     return statement.getStatement().getElements().stream()
-        .anyMatch(e -> e.getNamespace().equals(Namespace.VALUE));
+        .anyMatch(e -> !e.getNamespace().isKey());
+  }
+
+  private static boolean formatSupportsSchemaInference(final FormatInfo format) {
+    return FormatFactory.of(format).supportsFeature(SerdeFeature.SCHEMA_INFERENCE);
   }
 
   private static CreateSource addSchemaFields(
       final ConfiguredStatement<CreateSource> preparedStatement,
-      final SchemaAndId schema
+      final Optional<SchemaAndId> keySchema,
+      final Optional<SchemaAndId> valueSchema
   ) {
-    final TableElements elements = buildElements(schema.columns, preparedStatement);
+    final TableElements elements = buildElements(preparedStatement, keySchema, valueSchema);
 
     final CreateSource statement = preparedStatement.getStatement();
     final CreateSourceProperties properties = statement.getProperties();
 
-    if (properties.getSchemaId().isPresent()) {
-      return statement.copyWith(elements, properties);
-    }
-    return statement.copyWith(elements, properties.withSchemaId(schema.id));
+    final CreateSourceProperties withSchemaIds = properties.withSchemaIds(
+        keySchema.map(s -> s.id),
+        valueSchema.map(s -> s.id));
+    return statement.copyWith(elements, withSchemaIds);
   }
 
   private static TableElements buildElements(
-      final List<? extends SimpleColumn> valueColumns,
-      final ConfiguredStatement<CreateSource> preparedStatement
+      final ConfiguredStatement<CreateSource> preparedStatement,
+      final Optional<SchemaAndId> keySchema,
+      final Optional<SchemaAndId> valueSchema
   ) {
     final List<TableElement> elements = new ArrayList<>();
 
-    getKeyColumns(preparedStatement)
-        .forEach(elements::add);
+    if (keySchema.isPresent()) {
+      final Namespace namespace = getKeyNamespace(preparedStatement.getStatement());
+      keySchema.get().columns.stream()
+          .map(col -> new TableElement(namespace, col.name(), new Type(col.type())))
+          .forEach(elements::add);
+    } else {
+      getKeyColumns(preparedStatement)
+          .forEach(elements::add);
+    }
 
-    valueColumns.stream()
-        .map(col -> new TableElement(Namespace.VALUE, col.name(), new Type(col.type())))
-        .forEach(elements::add);
+    if (valueSchema.isPresent()) {
+      valueSchema.get().columns.stream()
+          .map(col -> new TableElement(Namespace.VALUE, col.name(), new Type(col.type())))
+          .forEach(elements::add);
+    } else {
+      getValueColumns(preparedStatement)
+          .forEach(elements::add);
+    }
 
     return TableElements.of(elements);
+  }
+
+  private static Namespace getKeyNamespace(final CreateSource statement) {
+    if (statement instanceof CreateStream) {
+      return Namespace.KEY;
+    } else if (statement instanceof CreateTable) {
+      return Namespace.PRIMARY_KEY;
+    } else {
+      throw new IllegalArgumentException("Unrecognized statement type: " + statement);
+    }
   }
 
   private static Stream<TableElement> getKeyColumns(
@@ -164,6 +251,13 @@ public class DefaultSchemaInjector implements Injector {
   ) {
     return preparedStatement.getStatement().getElements().stream()
         .filter(e -> e.getNamespace().isKey());
+  }
+
+  private static Stream<TableElement> getValueColumns(
+      final ConfiguredStatement<CreateSource> preparedStatement
+  ) {
+    return preparedStatement.getStatement().getElements().stream()
+        .filter(e -> !e.getNamespace().isKey());
   }
 
   private static PreparedStatement<CreateSource> buildPreparedStatement(

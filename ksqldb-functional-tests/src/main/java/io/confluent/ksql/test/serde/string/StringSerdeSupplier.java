@@ -25,12 +25,18 @@ import org.apache.kafka.common.serialization.Serializer;
 public class StringSerdeSupplier implements SerdeSupplier<String> {
 
   @Override
-  public Serializer<String> getSerializer(final SchemaRegistryClient schemaRegistryClient) {
+  public Serializer<String> getSerializer(
+      final SchemaRegistryClient schemaRegistryClient,
+      final boolean isKey
+  ) {
     return Serdes.String().serializer();
   }
 
   @Override
-  public Deserializer<String> getDeserializer(final SchemaRegistryClient schemaRegistryClient) {
+  public Deserializer<String> getDeserializer(
+      final SchemaRegistryClient schemaRegistryClient,
+      final boolean isKey
+  ) {
     return Serdes.String().deserializer();
   }
 } 

@@ -139,11 +139,8 @@ public class TopicCreateInjector implements Injector {
       final ConfiguredStatement<T> statement,
       final TopicProperties.Builder topicPropertiesBuilder
   ) {
-    final String prefix =
-        statement.getConfigOverrides().getOrDefault(
-            KsqlConfig.KSQL_OUTPUT_TOPIC_NAME_PREFIX_CONFIG,
-            statement.getConfig().getString(KsqlConfig.KSQL_OUTPUT_TOPIC_NAME_PREFIX_CONFIG))
-            .toString();
+    final String prefix = statement.getSessionConfig().getConfig(true)
+        .getString(KsqlConfig.KSQL_OUTPUT_TOPIC_NAME_PREFIX_CONFIG);
 
     final T createAsSelect = statement.getStatement();
     final CreateSourceAsProperties properties = createAsSelect.getProperties();

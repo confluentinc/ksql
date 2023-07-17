@@ -27,6 +27,7 @@ import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.plan.ExecutionStep;
+import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.streams.ExecutionStepFactory;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.name.ColumnName;
@@ -38,7 +39,8 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
-import io.confluent.ksql.serde.SerdeOption;
+import io.confluent.ksql.serde.SerdeFeature;
+import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
@@ -79,8 +81,10 @@ public class SchemaKGroupedTableTest {
   private final InternalFunctionRegistry functionRegistry = new InternalFunctionRegistry();
   private final QueryContext.Stacker queryContext
       = new QueryContext.Stacker().push("node");
-  private final ValueFormat valueFormat = ValueFormat.of(FormatInfo.of(FormatFactory.JSON.name()));
-  private final KeyFormat keyFormat = KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.JSON.name()));
+  private final ValueFormat valueFormat = ValueFormat
+      .of(FormatInfo.of(FormatFactory.JSON.name()), SerdeFeatures.of());
+  private KeyFormat keyFormat = KeyFormat
+      .nonWindowed(FormatInfo.of(FormatFactory.JSON.name()), SerdeFeatures.of());
 
   @Test
   public void shouldFailWindowedTableAggregation() {
@@ -96,7 +100,7 @@ public class SchemaKGroupedTableTest {
             NON_AGG_COLUMNS,
             ImmutableList.of(SUM, COUNT),
             Optional.of(windowExp),
-            valueFormat,
+            valueFormat.getFormatInfo(),
             queryContext
         )
     );
@@ -117,7 +121,7 @@ public class SchemaKGroupedTableTest {
             NON_AGG_COLUMNS,
             ImmutableList.of(MIN, MAX),
             Optional.empty(),
-            valueFormat,
+            valueFormat.getFormatInfo(),
             queryContext
         )
     );
@@ -139,13 +143,16 @@ public class SchemaKGroupedTableTest {
   @Test
   public void shouldBuildStepForAggregate() {
     // Given:
+    keyFormat = KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name()), SerdeFeatures.of());
+
     final SchemaKGroupedTable kGroupedTable = buildSchemaKGroupedTable();
 
+    // When:
     final SchemaKTable result = kGroupedTable.aggregate(
         NON_AGG_COLUMNS,
         ImmutableList.of(SUM, COUNT),
         Optional.empty(),
-        valueFormat,
+        valueFormat.getFormatInfo(),
         queryContext
     );
 
@@ -156,7 +163,38 @@ public class SchemaKGroupedTableTest {
             ExecutionStepFactory.tableAggregate(
                 queryContext,
                 kGroupedTable.getSourceTableStep(),
-                io.confluent.ksql.execution.plan.Formats.of(keyFormat, valueFormat, SerdeOption.none()),
+                Formats.of(keyFormat.getFormatInfo(), valueFormat.getFormatInfo(), SerdeFeatures.of(), SerdeFeatures.of()),
+                NON_AGG_COLUMNS,
+                ImmutableList.of(SUM, COUNT)
+            )
+        )
+    );
+  }
+
+  @Test
+  public void shouldBuildStepForAggregateWhereKeyFormatSupportsBothWrappingAndUnwrapping() {
+    // Given:
+    keyFormat = KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.JSON.name()), SerdeFeatures.of());
+
+    final SchemaKGroupedTable kGroupedTable = buildSchemaKGroupedTable();
+
+    // When:
+    final SchemaKTable result = kGroupedTable.aggregate(
+        NON_AGG_COLUMNS,
+        ImmutableList.of(SUM, COUNT),
+        Optional.empty(),
+        valueFormat.getFormatInfo(),
+        queryContext
+    );
+
+    // Then:
+    assertThat(
+        result.getSourceTableStep(),
+        equalTo(
+            ExecutionStepFactory.tableAggregate(
+                queryContext,
+                kGroupedTable.getSourceTableStep(),
+                Formats.of(keyFormat.getFormatInfo(), valueFormat.getFormatInfo(), SerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES), SerdeFeatures.of()),
                 NON_AGG_COLUMNS,
                 ImmutableList.of(SUM, COUNT)
             )
@@ -174,7 +212,7 @@ public class SchemaKGroupedTableTest {
         NON_AGG_COLUMNS,
         ImmutableList.of(SUM, COUNT),
         Optional.empty(),
-        valueFormat,
+        valueFormat.getFormatInfo(),
         queryContext
     );
 

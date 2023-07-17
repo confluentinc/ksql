@@ -19,9 +19,9 @@ import io.confluent.support.metrics.BaseSupportConfig;
 import io.confluent.support.metrics.utils.StringUtils;
 import io.confluent.support.metrics.utils.WebClient;
 import java.net.URI;
-import org.apache.http.HttpHost;
-import org.apache.http.HttpStatus;
-import org.apache.http.client.methods.HttpPost;
+import org.apache.hc.client5.http.classic.methods.HttpPost;
+import org.apache.hc.core5.http.HttpHost;
+import org.apache.hc.core5.http.HttpStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -41,7 +41,7 @@ public class ConfluentSubmitter implements Submitter {
   }
 
   public void setProxy(final String name, final int port, final String scheme) {
-    this.proxy = new HttpHost(name, port, scheme);
+    this.proxy = new HttpHost(scheme, name, port);
   }
 
   /**
@@ -77,7 +77,9 @@ public class ConfluentSubmitter implements Submitter {
    * the phone-home ping.
    */
   public ConfluentSubmitter(
-      final String customerId, final String componentId, final ResponseHandler responseHandler
+      final String customerId,
+      final String componentId,
+      final ResponseHandler responseHandler
   ) {
     this(customerId,
          BaseSupportConfig.getEndpoint(false, customerId, componentId),

@@ -974,7 +974,7 @@ public class SqlToJavaVisitor {
           ).orElseThrow(
               () -> new KsqlFunctionException("Cast of " + expr.getRight()
                   + " to " + sqlType + " is not supported"))
-          .cast(expr, sqlType);
+          .cast(expr, sqlType, ksqlConfig);
     }
 
     private static Pair<String, SqlType> castString(

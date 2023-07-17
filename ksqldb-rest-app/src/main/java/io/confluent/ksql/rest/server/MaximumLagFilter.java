@@ -57,20 +57,23 @@ public final class MaximumLagFilter implements RoutingFilter {
   @Override
   public boolean filter(final KsqlHostInfo hostInfo) {
     final long allowedOffsetLag = routingOptions.getOffsetLagAllowed();
-    return lagByHost.getOrDefault(hostInfo, Optional.empty())
-        .map(hostLag -> {
-          Preconditions.checkState(maxEndOffset.isPresent(), "Should have a maxEndOffset");
-          // Compute the lag from the maximum end offset reported by all hosts.  This is so that
-          // hosts that have fallen behind are held to the same end offset when computing lag.
-          final long endOffset = maxEndOffset.getAsLong();
-          final long offsetLag = Math.max(endOffset - hostLag.getCurrentOffsetPosition(), 0);
-          return offsetLag <= allowedOffsetLag;
-        })
-        // If we don't have lag info, we'll be conservative and not include the host.  We have a
-        // dual purpose, in both having HA and also having lag guarantees.  This ensures that we are
-        // honoring the lag guarantees, and we'll try to minimize the window where lag isn't
-        // available to promote HA.
-        .orElse(false);
+    Optional<LagInfoEntity> lag = lagByHost.get(hostInfo);
+    if (lag == null) {
+      lag = Optional.empty();
+    }
+    return lag.map(hostLag -> {
+      Preconditions.checkState(maxEndOffset.isPresent(), "Should have a maxEndOffset");
+      final long endOffset = maxEndOffset.getAsLong();
+      // Compute the lag from the maximum end offset reported by all hosts.  This is so that
+      // hosts that have fallen behind are held to the same end offset when computing lag
+      final long offsetLag = Math.max(endOffset - hostLag.getCurrentOffsetPosition(), 0);
+      return offsetLag <= allowedOffsetLag;
+    })
+    // If we don't have lag info, we'll be conservative and not include the host.  We have a
+    // dual purpose, in both having HA and also having lag guarantees.  This ensures that we are
+    // honoring the lag guarantees, and we'll try to minimize the window where lag isn't
+    // available to promote HA.
+    .orElse(false);
   }
 
   /**

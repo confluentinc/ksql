@@ -1,8 +1,8 @@
 # KLIP 23 - Use PRIMARY KEYs for tables
 
 **Author**: @big-andy-coates |
-**Release Target**: 0.9 |
-**Status**: Merged |
+**Release Target**: 0.9; 0.6.0 |
+**Status**: _Merged_ |
 **Discussion**: [Github PR](https://github.com/confluentinc/ksql/pull/5008)
 
 **tl;dr:** In ksqlDB, Tables and Streams currently use the `KEY` keyword to identify columns that

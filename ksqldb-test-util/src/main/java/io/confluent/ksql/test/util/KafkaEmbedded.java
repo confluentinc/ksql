@@ -141,7 +141,7 @@ class KafkaEmbedded {
     try {
       Files.delete(Paths.get(logDir()));
     } catch (final IOException e) {
-      log.error("Failed to delete log dir {}", logDir());
+      log.error("Failed to delete log dir {}", logDir(), e);
     }
     log.debug("Shutdown of embedded Kafka broker at {} completed (with ZK ensemble at {}) ...",
         brokerList(), zookeeperConnect());
@@ -325,7 +325,8 @@ class KafkaEmbedded {
   public Map<String, Integer> getPartitionCount(final Collection<String> topics) {
     try (AdminClient adminClient = adminClient()) {
       final DescribeTopicsResult describeTopicsResult = adminClient.describeTopics(topics);
-      final Map<String, TopicDescription> topicDescriptionMap = describeTopicsResult.all().get();
+      final Map<String, TopicDescription> topicDescriptionMap =
+          describeTopicsResult.allTopicNames().get();
       return topicDescriptionMap
           .entrySet()
           .stream()

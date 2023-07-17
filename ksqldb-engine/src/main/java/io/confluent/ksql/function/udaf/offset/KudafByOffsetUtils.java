@@ -15,6 +15,10 @@
 
 package io.confluent.ksql.function.udaf.offset;
 
+import static io.confluent.ksql.serde.connect.ConnectKsqlSchemaTranslator.OPTIONAL_DATE_SCHEMA;
+import static io.confluent.ksql.serde.connect.ConnectKsqlSchemaTranslator.OPTIONAL_TIMESTAMP_SCHEMA;
+import static io.confluent.ksql.serde.connect.ConnectKsqlSchemaTranslator.OPTIONAL_TIME_SCHEMA;
+
 import java.util.Comparator;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
@@ -49,6 +53,26 @@ final class KudafByOffsetUtils {
       .field(SEQ_FIELD, Schema.OPTIONAL_INT64_SCHEMA)
       .field(VAL_FIELD, Schema.OPTIONAL_STRING_SCHEMA)
       .build();
+
+  static final Schema STRUCT_TIMESTAMP = SchemaBuilder.struct().optional()
+      .field(SEQ_FIELD, Schema.OPTIONAL_INT64_SCHEMA)
+      .field(VAL_FIELD, OPTIONAL_TIMESTAMP_SCHEMA)
+      .build();
+
+  static final Schema STRUCT_TIME = SchemaBuilder.struct().optional()
+      .field(SEQ_FIELD, Schema.OPTIONAL_INT64_SCHEMA)
+      .field(VAL_FIELD, OPTIONAL_TIME_SCHEMA)
+      .build();
+
+  static final Schema STRUCT_DATE = SchemaBuilder.struct().optional()
+      .field(SEQ_FIELD, Schema.OPTIONAL_INT64_SCHEMA)
+      .field(VAL_FIELD, OPTIONAL_DATE_SCHEMA)
+      .build();
+
+  static final Schema STRUCT_BYTES = SchemaBuilder.struct().optional()
+      .field(SEQ_FIELD, Schema.OPTIONAL_INT64_SCHEMA)
+      .field(VAL_FIELD, Schema.OPTIONAL_BYTES_SCHEMA)
+      .build();
   
   static final Comparator<Struct> INTERMEDIATE_STRUCT_COMPARATOR = (struct1, struct2) -> {
     // Deal with overflow - we assume if one is positive and the other negative then the sequence
@@ -78,6 +102,13 @@ final class KudafByOffsetUtils {
 
         return INTERMEDIATE_STRUCT_COMPARATOR.compare(struct1, struct2);
       };
+
+  static Schema buildSchema(final Schema schema) {
+    return SchemaBuilder.struct().optional()
+        .field(SEQ_FIELD, Schema.OPTIONAL_INT64_SCHEMA)
+        .field(VAL_FIELD, schema)
+        .build();
+  }
 
   static <T> Struct createStruct(final Schema schema, final long sequence, final T val) {
     final Struct struct = new Struct(schema);

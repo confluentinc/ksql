@@ -43,7 +43,10 @@ public final class AnalysisTestUtil {
       final String queryStr,
       final MetaStore metaStore
   ) {
-    final Analyzer analyzer = new Analyzer(queryStr, metaStore);
+    final boolean pullLimitClauseEnabled =
+            ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PULL_LIMIT_CLAUSE_ENABLED);
+
+    final Analyzer analyzer = new Analyzer(queryStr, metaStore, pullLimitClauseEnabled);
 
     final LogicalPlanner logicalPlanner =
         new LogicalPlanner(ksqlConfig, analyzer.analysis, metaStore);
@@ -55,10 +58,15 @@ public final class AnalysisTestUtil {
 
     private final Analysis analysis;
 
-    private Analyzer(final String queryStr, final MetaStore metaStore) {
+    private Analyzer(
+        final String queryStr,
+        final MetaStore metaStore,
+        final boolean pullLimitClauseEnabled
+    ) {
       final QueryAnalyzer queryAnalyzer = new QueryAnalyzer(
-          metaStore, "");
-      final Statement statement = parseStatement(queryStr, metaStore);
+          metaStore, "", pullLimitClauseEnabled);
+      final Statement statement =
+          parseStatement(queryStr, metaStore);
       final Query query = statement instanceof QueryContainer
           ? ((QueryContainer) statement).getQuery()
           : (Query) statement;

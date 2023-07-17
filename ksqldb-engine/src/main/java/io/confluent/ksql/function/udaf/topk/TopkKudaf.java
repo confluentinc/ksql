@@ -15,108 +15,203 @@
 
 package io.confluent.ksql.function.udaf.topk;
 
-import io.confluent.ksql.GenericKey;
-import io.confluent.ksql.function.BaseAggregateFunction;
-import io.confluent.ksql.function.ParameterInfo;
-import io.confluent.ksql.function.types.ParamType;
+import io.confluent.ksql.function.udaf.Udaf;
+import io.confluent.ksql.function.udaf.UdafDescription;
+import io.confluent.ksql.function.udaf.UdafFactory;
+import io.confluent.ksql.function.udaf.VariadicArgs;
+import io.confluent.ksql.schema.ksql.SchemaConverters;
+import io.confluent.ksql.schema.ksql.SqlArgument;
+import io.confluent.ksql.schema.ksql.types.SqlArray;
 import io.confluent.ksql.schema.ksql.types.SqlType;
+import io.confluent.ksql.util.KsqlConstants;
+import io.confluent.ksql.util.Pair;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Objects;
+import java.util.Optional;
 import java.util.function.Function;
-import java.util.stream.Collectors;
-import org.apache.kafka.streams.kstream.Merger;
+import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.SchemaBuilder;
+import org.apache.kafka.connect.data.Struct;
 
-public class TopkKudaf<T extends Comparable<? super T>>
-    extends BaseAggregateFunction<T, List<T>, List<T>> {
+@UdafDescription(
+        name = "TOPK",
+        description = "Returns the top k values for a column and other values in those records.",
+        author = KsqlConstants.CONFLUENT_AUTHOR
+)
+public class TopkKudaf<T extends Comparable<? super T>, S>
+        implements Udaf<Pair<T, VariadicArgs<Object>>, List<S>, List<S>> {
 
+  @UdafFactory(description = "Returns the top k values for an integer column and other values in "
+          + "those records.")
+  public static <S> Udaf<Pair<Integer, VariadicArgs<Object>>, List<S>, List<S>>
+      createTopKInt(final int k) {
+    return new TopkKudaf<>(k);
+  }
+
+  @UdafFactory(description = "Returns the top k values for a bigint column and other values in "
+          + "those records.")
+  public static <S> Udaf<Pair<Long, VariadicArgs<Object>>, List<S>, List<S>>
+      createTopKLong(final int k) {
+    return new TopkKudaf<>(k);
+  }
+
+  @UdafFactory(description = "Returns the top k values for a double column and other values in "
+          + "those records.")
+  public static <S> Udaf<Pair<Double, VariadicArgs<Object>>, List<S>, List<S>>
+      createTopKDouble(final int k) {
+    return new TopkKudaf<>(k);
+  }
+
+  @UdafFactory(description = "Returns the top k values for a string column and other values in "
+          + "those records.")
+  public static <S> Udaf<Pair<String, VariadicArgs<Object>>, List<S>, List<S>>
+      createTopKString(final int k) {
+    return new TopkKudaf<>(k);
+  }
+
+  private static final String SORT_FIELD = "sort_col";
+  private static final Function<Integer, String> OTHER_COL_TO_FIELD =
+          (fieldNum) -> "col" + fieldNum;
   private final int topKSize;
-  private final Class<T> clazz;
-  private final SqlType outputSchema;
-  private final List<ParamType> argumentTypes;
+  private Function<S, T> structToVal;
+  private Function<Pair<T, VariadicArgs<Object>>, S> valToStruct;
+  private SqlType aggregateSchema;
 
-  TopkKudaf(
-      final String functionName,
-      final int argIndexInValue,
-      final int topKSize,
-      final SqlType outputSchema,
-      final List<ParamType> argumentTypes,
-      final Class<T> clazz
-  ) {
-    super(
-        functionName,
-        argIndexInValue,
-        ArrayList::new,
-        outputSchema,
-        outputSchema,
-        argumentTypes
-            .stream()
-            .map(arg -> new ParameterInfo("val", arg, "", false))
-            .collect(Collectors.toList()),
-        "Calculates the TopK value for a column, per key."
-    );
+  TopkKudaf(final int topKSize) {
     this.topKSize = topKSize;
-    this.outputSchema = Objects.requireNonNull(outputSchema);
-    this.argumentTypes = argumentTypes;
-    this.clazz = clazz;
+  }
+
+  @SuppressWarnings("unchecked")
+  @Override
+  public void initializeTypeArguments(final List<SqlArgument> argTypeList) {
+
+    // We have to do some hacky casts here since we determine T and S from argTypeList
+    if (argTypeList.size() > 2) {
+      final Schema structSchema = makeStructSchema(argTypeList);
+      aggregateSchema = SchemaConverters.connectToSqlConverter().toSqlType(structSchema);
+      structToVal = (struct) -> (T) ((Struct) struct).get(SORT_FIELD);
+      valToStruct = (pair) -> (S) makeStruct(structSchema, pair.getLeft(), pair.getRight());
+    } else {
+      aggregateSchema = argTypeList.get(0).getSqlTypeOrThrow();
+      structToVal = (self) -> (T) self;
+      valToStruct = (selfAndVarArgs) -> (S) selfAndVarArgs.getLeft();
+    }
+
   }
 
   @Override
-  public List<T> aggregate(final T currentValue, final List<T> aggregateValue) {
-    if (currentValue == null) {
+  public Optional<SqlType> getAggregateSqlType() {
+    return Optional.of(SqlArray.of(aggregateSchema));
+  }
+
+  @Override
+  public Optional<SqlType> getReturnSqlType() {
+    return Optional.of(SqlArray.of(aggregateSchema));
+  }
+
+  @Override
+  public List<S> initialize() {
+    return new ArrayList<>();
+  }
+
+  @Override
+  public List<S> aggregate(final Pair<T, VariadicArgs<Object>> currentValue,
+                           final List<S> aggregateValue) {
+    if (currentValue.getLeft() == null) {
       return aggregateValue;
     }
 
     final int currentSize = aggregateValue.size();
     if (!aggregateValue.isEmpty()) {
-      final T last = aggregateValue.get(currentSize - 1);
-      if (currentValue.compareTo(last) <= 0
+      final T last = structToVal.apply(aggregateValue.get(currentSize - 1));
+      if (currentValue.getLeft().compareTo(last) <= 0
           && currentSize == topKSize) {
         return aggregateValue;
       }
     }
 
     if (currentSize == topKSize) {
-      aggregateValue.set(currentSize - 1, currentValue);
+      aggregateValue.set(currentSize - 1, valToStruct.apply(currentValue));
     } else {
-      aggregateValue.add(currentValue);
+      aggregateValue.add(valToStruct.apply(currentValue));
     }
 
-    aggregateValue.sort(Comparator.reverseOrder());
+    aggregateValue.sort(Comparator.comparing(structToVal).reversed());
     return aggregateValue;
   }
 
   @Override
-  public Merger<GenericKey, List<T>> getMerger() {
-    return (aggKey, aggOne, aggTwo) -> {
-      final List<T> merged = new ArrayList<>(
-          Math.min(topKSize, aggOne.size() + aggTwo.size()));
+  public List<S> merge(final List<S> aggOne, final List<S> aggTwo) {
+    final List<S> merged = new ArrayList<>(
+            Math.min(topKSize, aggOne.size() + aggTwo.size()));
 
-      int idx1 = 0;
-      int idx2 = 0;
-      for (int i = 0; i != topKSize; ++i) {
-        final T v1 = idx1 < aggOne.size() ? aggOne.get(idx1) : null;
-        final T v2 = idx2 < aggTwo.size() ? aggTwo.get(idx2) : null;
-
-        if (v1 != null && (v2 == null || v1.compareTo(v2) >= 0)) {
-          merged.add(v1);
-          idx1++;
-        } else if (v2 != null && (v1 == null || v1.compareTo(v2) < 0)) {
-          merged.add(v2);
-          idx2++;
-        } else {
-          break;
-        }
+    int idx1 = 0;
+    int idx2 = 0;
+    for (int i = 0; i != topKSize; ++i) {
+      final S s1;
+      final T v1;
+      if (idx1 < aggOne.size()) {
+        s1 = aggOne.get(idx1);
+        v1 = structToVal.apply(s1);
+      } else {
+        s1 = null;
+        v1 = null;
       }
 
-      return merged;
-    };
+      final S s2;
+      final T v2;
+      if (idx2 < aggTwo.size()) {
+        s2 = aggTwo.get(idx2);
+        v2 = structToVal.apply(s2);
+      } else {
+        s2 = null;
+        v2 = null;
+      }
+
+      if (v1 != null && (v2 == null || v1.compareTo(v2) >= 0)) {
+        merged.add(s1);
+        idx1++;
+      } else if (v2 != null && (v1 == null || v1.compareTo(v2) < 0)) {
+        merged.add(s2);
+        idx2++;
+      } else {
+        break;
+      }
+    }
+
+    return merged;
   }
 
   @Override
-  public Function<List<T>, List<T>> getResultMapper() {
-    return Function.identity();
+  public List<S> map(final List<S> agg) {
+    return agg;
+  }
+
+  private Struct makeStruct(final Schema structSchema, final T sortCol,
+                            final VariadicArgs<Object> otherCols) {
+    final Struct struct = new Struct(structSchema);
+    struct.put(SORT_FIELD, sortCol);
+
+    for (int argIndex = 0; argIndex < otherCols.size(); argIndex++) {
+      struct.put(OTHER_COL_TO_FIELD.apply(argIndex), otherCols.get(argIndex));
+    }
+
+    return struct;
+  }
+
+  private Schema makeStructSchema(final List<SqlArgument> argTypeList) {
+    final SchemaBuilder builder = SchemaBuilder.struct().optional();
+
+    for (int argIndex = 0; argIndex < argTypeList.size() - 1; argIndex++) {
+      final SqlType argSchema = argTypeList.get(argIndex).getSqlTypeOrThrow();
+      builder.field(
+              argIndex == 0 ? SORT_FIELD : OTHER_COL_TO_FIELD.apply(argIndex - 1),
+              SchemaConverters.sqlToConnectConverter().toConnectSchema(argSchema)
+      );
+    }
+
+    return builder.build();
   }
 
 }

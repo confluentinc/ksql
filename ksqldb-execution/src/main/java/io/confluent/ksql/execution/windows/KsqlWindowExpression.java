@@ -18,6 +18,7 @@ package io.confluent.ksql.execution.windows;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.parser.Node;
 import io.confluent.ksql.parser.NodeLocation;
+import io.confluent.ksql.parser.OutputRefinement;
 import io.confluent.ksql.serde.WindowInfo;
 import java.util.Optional;
 
@@ -26,13 +27,16 @@ public abstract class KsqlWindowExpression extends Node {
 
   protected final Optional<WindowTimeClause> retention;
   protected final Optional<WindowTimeClause> gracePeriod;
+  protected final Optional<OutputRefinement> emitStrategy;
 
   KsqlWindowExpression(final Optional<NodeLocation> nodeLocation,
                        final Optional<WindowTimeClause> retention,
-                       final Optional<WindowTimeClause> gracePeriod) {
+                       final Optional<WindowTimeClause> gracePeriod,
+                       final Optional<OutputRefinement> emitStrategy) {
     super(nodeLocation);
     this.retention = retention;
     this.gracePeriod = gracePeriod;
+    this.emitStrategy = emitStrategy;
   }
 
   public Optional<WindowTimeClause> getRetention() {
@@ -41,6 +45,10 @@ public abstract class KsqlWindowExpression extends Node {
 
   public Optional<WindowTimeClause> getGracePeriod() {
     return gracePeriod;
+  }
+
+  public Optional<OutputRefinement> getEmitStrategy() {
+    return emitStrategy;
   }
 
   public abstract WindowInfo getWindowInfo();

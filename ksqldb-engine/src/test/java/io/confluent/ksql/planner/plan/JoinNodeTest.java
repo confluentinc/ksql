@@ -19,6 +19,7 @@ import static io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import static io.confluent.ksql.planner.plan.JoinNode.JoinType.INNER;
 import static io.confluent.ksql.planner.plan.JoinNode.JoinType.LEFT;
 import static io.confluent.ksql.planner.plan.JoinNode.JoinType.OUTER;
+import static io.confluent.ksql.planner.plan.JoinNode.JoinType.RIGHT;
 import static io.confluent.ksql.planner.plan.PlanTestUtil.SOURCE_NODE_FORCE_CHANGELOG;
 import static io.confluent.ksql.planner.plan.PlanTestUtil.getNodeByName;
 import static java.util.Optional.empty;
@@ -36,10 +37,10 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import io.confluent.ksql.execution.runtime.RuntimeBuildContext;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.expression.tree.Expression;
+import io.confluent.ksql.execution.runtime.RuntimeBuildContext;
 import io.confluent.ksql.execution.streams.KSPlanBuilder;
 import io.confluent.ksql.execution.windows.WindowTimeClause;
 import io.confluent.ksql.function.FunctionRegistry;
@@ -69,9 +70,9 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.MetaStoreFixture;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
+import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -89,7 +90,8 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 
-@SuppressWarnings({"SameParameterValue", "OptionalGetWithoutIsPresent", "unchecked", "rawtypes"})
+@SuppressWarnings({"SameParameterValue", "OptionalGetWithoutIsPresent", "unchecked", "rawtypes",
+    "checkstyle:ClassDataAbstractionCoupling"})
 @RunWith(MockitoJUnitRunner.class)
 public class JoinNodeTest {
 
@@ -117,6 +119,12 @@ public class JoinNodeTest {
   private static final SourceName RIGHT_ALIAS = SourceName.of("right");
   private static final SourceName RIGHT2_ALIAS = SourceName.of("right2");
   private static final SourceName SINK = SourceName.of("sink");
+  private static final KsqlConfig ksqlConfig;
+
+  static {
+    final Properties props = new Properties();
+    ksqlConfig = new KsqlConfig(props);
+  }
 
   private static final LogicalSchema LEFT_NODE_SCHEMA = prependAlias(
       LEFT_ALIAS, LEFT_SOURCE_SCHEMA.withPseudoAndKeyColsInValue(false)
@@ -134,7 +142,7 @@ public class JoinNodeTest {
       .of(FormatInfo.of(FormatFactory.JSON.name()), SerdeFeatures.of());
   private static final ValueFormat OTHER_FORMAT = ValueFormat
       .of(FormatInfo.of(FormatFactory.DELIMITED.name()), SerdeFeatures.of());
-  private final KsqlConfig ksqlConfig = new KsqlConfig(new HashMap<>());
+
   private StreamsBuilder builder;
   private JoinNode joinNode;
 
@@ -311,6 +319,53 @@ public class JoinNodeTest {
 
     // Then:
     verify(leftSchemaKStream).leftJoin(
+        rightSchemaKStream,
+        SYNTH_KEY,
+        WITHIN_EXPRESSION_WITH_GRACE.get(),
+        VALUE_FORMAT.getFormatInfo(),
+        OTHER_FORMAT.getFormatInfo(),
+        CONTEXT_STACKER
+    );
+  }
+
+  @Test
+  public void shouldPerformStreamToStreamRightJoin() {
+    // Given:
+    setupStream(left, leftSchemaKStream);
+    setupStream(right, rightSchemaKStream);
+
+    final JoinNode joinNode =
+        new JoinNode(nodeId, RIGHT, joinKey, true, left, right, WITHIN_EXPRESSION, "KAFKA");
+
+    // When:
+    joinNode.buildStream(planBuildContext);
+
+    // Then:
+    verify(leftSchemaKStream).rightJoin(
+        rightSchemaKStream,
+        SYNTH_KEY,
+        WITHIN_EXPRESSION.get(),
+        VALUE_FORMAT.getFormatInfo(),
+        OTHER_FORMAT.getFormatInfo(),
+        CONTEXT_STACKER
+    );
+  }
+
+  @Test
+  public void shouldPerformStreamToStreamRightJoinWithGracePeriod() {
+    // Given:
+    setupStream(left, leftSchemaKStream);
+    setupStream(right, rightSchemaKStream);
+
+    final JoinNode joinNode =
+        new JoinNode(nodeId, RIGHT, joinKey, true, left, right,
+            WITHIN_EXPRESSION_WITH_GRACE, "KAFKA");
+
+    // When:
+    joinNode.buildStream(planBuildContext);
+
+    // Then:
+    verify(leftSchemaKStream).rightJoin(
         rightSchemaKStream,
         SYNTH_KEY,
         WITHIN_EXPRESSION_WITH_GRACE.get(),
@@ -638,10 +693,14 @@ public class JoinNodeTest {
         .valueColumn(ColumnName.of(LEFT_ALIAS.text() + "_C0"), SqlTypes.BIGINT)
         .valueColumn(ColumnName.of(LEFT_ALIAS.text() + "_L1"), SqlTypes.STRING)
         .valueColumn(ColumnName.of(LEFT_ALIAS.text() + "_ROWTIME"), SqlTypes.BIGINT)
+        .valueColumn(ColumnName.of(LEFT_ALIAS.text() + "_ROWPARTITION"), SqlTypes.INTEGER)
+        .valueColumn(ColumnName.of(LEFT_ALIAS.text() + "_ROWOFFSET"), SqlTypes.BIGINT)
         .valueColumn(ColumnName.of(LEFT_ALIAS.text() + "_leftKey"), SqlTypes.BIGINT)
         .valueColumn(ColumnName.of(RIGHT_ALIAS.text() + "_C0"), SqlTypes.STRING)
         .valueColumn(ColumnName.of(RIGHT_ALIAS.text() + "_R1"), SqlTypes.BIGINT)
         .valueColumn(ColumnName.of(RIGHT_ALIAS.text() + "_ROWTIME"), SqlTypes.BIGINT)
+        .valueColumn(ColumnName.of(RIGHT_ALIAS.text() + "_ROWPARTITION"), SqlTypes.INTEGER)
+        .valueColumn(ColumnName.of(RIGHT_ALIAS.text() + "_ROWOFFSET"), SqlTypes.BIGINT)
         .valueColumn(ColumnName.of(RIGHT_ALIAS.text() + "_rightKey"), SqlTypes.BIGINT)
         .build()
     ));
@@ -662,10 +721,14 @@ public class JoinNodeTest {
         .valueColumn(ColumnName.of(LEFT_ALIAS.text() + "_C0"), SqlTypes.BIGINT)
         .valueColumn(ColumnName.of(LEFT_ALIAS.text() + "_L1"), SqlTypes.STRING)
         .valueColumn(ColumnName.of(LEFT_ALIAS.text() + "_ROWTIME"), SqlTypes.BIGINT)
+        .valueColumn(ColumnName.of(LEFT_ALIAS.text() + "_ROWPARTITION"), SqlTypes.INTEGER)
+        .valueColumn(ColumnName.of(LEFT_ALIAS.text() + "_ROWOFFSET"), SqlTypes.BIGINT)
         .valueColumn(ColumnName.of(LEFT_ALIAS.text() + "_leftKey"), SqlTypes.BIGINT)
         .valueColumn(ColumnName.of(RIGHT_ALIAS.text() + "_C0"), SqlTypes.STRING)
         .valueColumn(ColumnName.of(RIGHT_ALIAS.text() + "_R1"), SqlTypes.BIGINT)
         .valueColumn(ColumnName.of(RIGHT_ALIAS.text() + "_ROWTIME"), SqlTypes.BIGINT)
+        .valueColumn(ColumnName.of(RIGHT_ALIAS.text() + "_ROWPARTITION"), SqlTypes.INTEGER)
+        .valueColumn(ColumnName.of(RIGHT_ALIAS.text() + "_ROWOFFSET"), SqlTypes.BIGINT)
         .valueColumn(ColumnName.of(RIGHT_ALIAS.text() + "_rightKey"), SqlTypes.BIGINT)
         .valueColumn(SYNTH_KEY, SqlTypes.BIGINT)
         .build()
@@ -848,7 +911,7 @@ public class JoinNodeTest {
   @Test
   public void shouldThrowIfProjectionDoesNotIncludeAnyJoinColumns() {
     // Given:
-    final JoinNode joinNode = new JoinNode(nodeId, LEFT, joinKey,      true, left, right,
+    final JoinNode joinNode = new JoinNode(nodeId, LEFT, joinKey, true, left, right,
         empty(),"KAFKA");
 
     when(joinKey.getAllViableKeys(any()))
@@ -866,7 +929,7 @@ public class JoinNodeTest {
     // Then:
     assertThat(e.getMessage(), containsString("The query used to build `sink` "
         + "must include the join expressions expression1, expression1 or expression2 "
-        + "in its projection."));
+        + "in its projection (eg, SELECT expression1..."));
   }
 
   @SuppressWarnings({"unchecked", "rawtypes"})

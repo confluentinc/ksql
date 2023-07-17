@@ -1,0 +1,132 @@
+{
+  "version" : "7.1.0",
+  "timestamp" : 1633125925751,
+  "path" : "query-validation-tests/elements.json",
+  "schemas" : {
+    "CSAS_S_0.KsqlTopic.Source" : {
+      "schema" : "`K` STRING KEY, `C1` INTEGER, `UNKNOWN` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "AVRO"
+      }
+    },
+    "CSAS_S_0.S" : {
+      "schema" : "`K` STRING KEY, `C1` INTEGER, `UNKNOWN` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "AVRO"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "validate AVRO uses null for unknown element",
+    "inputs" : [ {
+      "topic" : "input",
+      "key" : null,
+      "value" : {
+        "c1" : 4
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "S",
+      "key" : null,
+      "value" : {
+        "UNKNOWN" : null,
+        "C1" : 4
+      }
+    } ],
+    "topics" : [ {
+      "name" : "input",
+      "valueSchema" : {
+        "type" : "record",
+        "name" : "blah",
+        "fields" : [ {
+          "name" : "c1",
+          "type" : "int"
+        } ]
+      },
+      "valueFormat" : "AVRO",
+      "replicas" : 1,
+      "numPartitions" : 1
+    }, {
+      "name" : "S",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM INPUT (K STRING KEY, c1 INT, unknown INT) WITH (kafka_topic='input', value_format='AVRO');", "CREATE STREAM S WITH(PARTITIONS = 4) as SELECT * FROM input;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`K` STRING KEY, `C1` INTEGER, `UNKNOWN` INTEGER",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "AVRO",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "S",
+        "type" : "STREAM",
+        "schema" : "`K` STRING KEY, `C1` INTEGER, `UNKNOWN` INTEGER",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "AVRO",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "S",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "AVRO"
+          },
+          "partitions" : 4,
+          "valueSchema" : {
+            "type" : "record",
+            "name" : "KsqlDataSourceSchema",
+            "namespace" : "io.confluent.ksql.avro_schemas",
+            "fields" : [ {
+              "name" : "C1",
+              "type" : [ "null", "int" ],
+              "default" : null
+            }, {
+              "name" : "UNKNOWN",
+              "type" : [ "null", "int" ],
+              "default" : null
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
+          }
+        }, {
+          "name" : "input",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "AVRO"
+          },
+          "partitions" : 1,
+          "valueSchema" : {
+            "type" : "record",
+            "name" : "blah",
+            "fields" : [ {
+              "name" : "c1",
+              "type" : "int"
+            } ],
+            "connect.name" : "blah"
+          }
+        } ]
+      }
+    }
+  }
+}

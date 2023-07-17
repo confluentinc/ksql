@@ -58,6 +58,19 @@
       ]
     },
     {
+      "name": "PROTOBUF_NOSR in/out",
+      "statements": [
+        "CREATE STREAM TEST (ID STRING KEY, dec DECIMAL(21,19)) WITH (kafka_topic='test', value_format='PROTOBUF_NOSR');",
+        "CREATE STREAM TEST2 AS SELECT * FROM TEST;"
+      ],
+      "inputs": [
+        {"topic": "test", "value": {"DEC": 10.1234512345123451234}}
+      ],
+      "outputs": [
+        {"topic": "TEST2", "value": {"DEC": 10.1234512345123451234}}
+      ]
+    },
+    {
       "name": "JSON scale in data less than scale in type",
       "statements": [
         "CREATE STREAM INPUT (ID STRING KEY, dec DECIMAL(6,4)) WITH (kafka_topic='test', value_format='JSON');",
@@ -175,6 +188,27 @@
       "name": "PROTOBUF should not trim trailing zeros",
       "statements": [
         "CREATE STREAM INPUT (ID STRING KEY, dec DECIMAL(6,4)) WITH (kafka_topic='test', value_format='PROTOBUF');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "test", "value": {"DEC": 10.0}},
+        {"topic": "test", "value": {"DEC": 1.0000}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"DEC": 10.0000}},
+        {"topic": "OUTPUT", "value": {"DEC": 1.0000}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "INPUT", "type": "stream", "schema": "ID STRING KEY, DEC DECIMAL(6,4)"},
+          {"name": "OUTPUT", "type": "stream", "schema": "ID STRING KEY, DEC DECIMAL(6,4)"}
+        ]
+      }
+    },
+    {
+      "name": "PROTOBUF_NOSR should not trim trailing zeros",
+      "statements": [
+        "CREATE STREAM INPUT (ID STRING KEY, dec DECIMAL(6,4)) WITH (kafka_topic='test', value_format='PROTOBUF_NOSR');",
         "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
       ],
       "inputs": [
@@ -518,6 +552,21 @@
         {"topic": "TEST2", "value": {"RESULT": true}},
         {"topic": "TEST2", "value": {"RESULT": false}},
         {"topic": "TEST2", "value": {"RESULT": false}}
+      ]
+    },
+    {
+      "name": "decimal between -1 and 1",
+      "statements": [
+        "CREATE STREAM TEST (ID STRING KEY, dec DECIMAL(4,2)) WITH (kafka_topic='test', value_format='DELIMITED');",
+        "CREATE STREAM TEST2 AS SELECT * FROM TEST WHERE dec < 0.08 AND dec > -0.08;"
+      ],
+      "inputs": [
+        {"topic": "test", "value": "0.05"},
+        {"topic": "test", "value": "0.55"},
+        {"topic": "test", "value": "-0.5"}
+      ],
+      "outputs": [
+        {"topic": "TEST2", "value": "0.05"}
       ]
     }
   ]

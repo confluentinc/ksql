@@ -54,30 +54,35 @@ public class PartialStringToTimestampParserTest {
     // When:
     assertThat(parser.parse("2020-01-02"), is(fullParse("2020-01-02T00:00:00.000+0000")));
     assertThat(parser.parse("2020-01-02T"), is(fullParse("2020-01-02T00:00:00.000+0000")));
+    assertThat(parser.parse("2020-01-02TZ"), is(fullParse("2020-01-02T00:00:00.000+0000")));
   }
 
   @Test
   public void shouldParseDateWithHour() {
     // When:
     assertThat(parser.parse("2020-12-02T13"), is(fullParse("2020-12-02T13:00:00.000+0000")));
+    assertThat(parser.parse("2020-12-02T13Z"), is(fullParse("2020-12-02T13:00:00.000+0000")));
   }
 
   @Test
   public void shouldParseDateWithHourMinute() {
     // When:
     assertThat(parser.parse("2020-12-02T13:59"), is(fullParse("2020-12-02T13:59:00.000+0000")));
+    assertThat(parser.parse("2020-12-02T13:59Z"), is(fullParse("2020-12-02T13:59:00.000+0000")));
   }
 
   @Test
   public void shouldParseDateWithHourMinuteSecond() {
     // When:
     assertThat(parser.parse("2020-12-02T13:59:58"), is(fullParse("2020-12-02T13:59:58.000+0000")));
+    assertThat(parser.parse("2020-12-02T13:59:58Z"), is(fullParse("2020-12-02T13:59:58.000+0000")));
   }
 
   @Test
   public void shouldParseFullDateTime() {
     // When:
     assertThat(parser.parse("2020-12-02T13:59:58.123"), is(fullParse("2020-12-02T13:59:58.123+0000")));
+    assertThat(parser.parse("2020-12-02T13:59:58.123Z"), is(fullParse("2020-12-02T13:59:58.123+0000")));
   }
 
   @Test

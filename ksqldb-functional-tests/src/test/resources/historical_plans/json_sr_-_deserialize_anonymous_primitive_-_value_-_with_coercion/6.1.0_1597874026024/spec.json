@@ -44,17 +44,11 @@
     }, {
       "name" : "input_topic",
       "valueSchema" : {
-        "type" : "object",
-        "properties" : {
-          "FOO" : {
-            "connect.index" : 0,
-            "oneOf" : [ {
-              "type" : "null"
-            }, {
-              "type" : "string"
-            } ]
-          }
-        }
+        "oneOf" : [ {
+          "type" : "null"
+        }, {
+          "type" : "string"
+        } ]
       },
       "valueFormat" : "JSON",
       "replicas" : 1,
@@ -95,17 +89,11 @@
           },
           "partitions" : 4,
           "valueSchema" : {
-            "type" : "object",
-            "properties" : {
-              "FOO" : {
-                "connect.index" : 0,
-                "oneOf" : [ {
-                  "type" : "null"
-                }, {
-                  "type" : "string"
-                } ]
-              }
-            }
+            "oneOf" : [ {
+              "type" : "null"
+            }, {
+              "type" : "string"
+            } ]
           }
         }, {
           "name" : "OUTPUT",

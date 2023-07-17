@@ -324,23 +324,3 @@ CREATE OR REPLACE TABLE b AS SELECT id, COUNT(*)
   FROM a WINDOW TUMBLING (SIZE 30 SECONDS)
   WHERE col1 > 0
   GROUP BY id;
-
-----------------------------------------------------------------------------------------------------
---@test: add filter to Suppress
---@expected.error: io.confluent.ksql.util.KsqlException
---@expected.message: Upgrades not yet supported for TableSuppress
-----------------------------------------------------------------------------------------------------
-SET 'ksql.create.or.replace.enabled' = 'true';
-SET 'ksql.suppress.enabled' = 'true';
-
-CREATE STREAM a (id INT KEY, col1 INT) WITH (kafka_topic='a', value_format='JSON');
-CREATE TABLE b AS SELECT id, COUNT(*)
-  FROM a WINDOW TUMBLING (SIZE 30 SECONDS)
-  GROUP BY id
-  EMIT FINAL;
-
-CREATE OR REPLACE TABLE b AS SELECT id, COUNT(*)
-  FROM a WINDOW TUMBLING (SIZE 30 SECONDS)
-  WHERE col1 > 0
-  GROUP BY id
-  EMIT FINAL;

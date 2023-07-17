@@ -15,69 +15,44 @@
 
 package io.confluent.ksql.rest.server.resources.streaming;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.util.concurrent.RateLimiter;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.analyzer.PullQueryValidator;
+import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.api.server.MetricsCallbackHolder;
-import io.confluent.ksql.api.server.SlidingWindowRateLimiter;
-import io.confluent.ksql.config.SessionConfig;
-import io.confluent.ksql.engine.KsqlEngine;
-import io.confluent.ksql.engine.PullQueryExecutionUtil;
-import io.confluent.ksql.execution.streams.RoutingFilter.RoutingFilterFactory;
-import io.confluent.ksql.execution.streams.RoutingOptions;
-import io.confluent.ksql.internal.PullQueryExecutorMetrics;
-import io.confluent.ksql.logging.query.QueryLogger;
+import io.confluent.ksql.api.server.NextHandlerOutput;
+import io.confluent.ksql.execution.pull.PullQueryResult;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.PrintTopic;
 import io.confluent.ksql.parser.tree.Query;
-import io.confluent.ksql.physical.pull.HARouting;
-import io.confluent.ksql.physical.pull.PullPhysicalPlan.PullPhysicalPlanType;
-import io.confluent.ksql.physical.pull.PullPhysicalPlan.PullSourceType;
-import io.confluent.ksql.physical.pull.PullPhysicalPlan.RoutingNodeType;
-import io.confluent.ksql.physical.pull.PullQueryResult;
-import io.confluent.ksql.physical.scalablepush.PushRouting;
 import io.confluent.ksql.properties.DenyListPropertyValidator;
 import io.confluent.ksql.rest.ApiJsonMapper;
 import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.Errors;
-import io.confluent.ksql.rest.entity.KsqlMediaType;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
-import io.confluent.ksql.rest.server.LocalCommands;
 import io.confluent.ksql.rest.server.StatementParser;
 import io.confluent.ksql.rest.server.computation.CommandQueue;
-import io.confluent.ksql.rest.server.resources.KsqlConfigurable;
+import io.confluent.ksql.rest.server.query.QueryExecutor;
+import io.confluent.ksql.rest.server.query.QueryMetadataHolder;
 import io.confluent.ksql.rest.server.resources.KsqlRestException;
 import io.confluent.ksql.rest.util.CommandStoreUtil;
-import io.confluent.ksql.rest.util.ConcurrencyLimiter;
-import io.confluent.ksql.rest.util.ConcurrencyLimiter.Decrementer;
-import io.confluent.ksql.rest.util.QueryCapacityUtil;
-import io.confluent.ksql.rest.util.ScalablePushUtil;
 import io.confluent.ksql.security.KsqlAuthorizationValidator;
 import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.services.ServiceContext;
-import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlStatementException;
-import io.confluent.ksql.util.ScalablePushQueryMetadata;
-import io.confluent.ksql.util.TransientQueryMetadata;
+import io.confluent.ksql.util.PushQueryMetadata;
 import io.confluent.ksql.version.metrics.ActivenessRegistrar;
 import io.vertx.core.Context;
 import java.time.Clock;
 import java.time.Duration;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import org.apache.kafka.common.errors.TopicAuthorizationException;
 import org.apache.kafka.streams.StreamsConfig;
@@ -85,13 +60,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @SuppressWarnings({"ClassDataAbstractionCoupling"})
-public class StreamedQueryResource implements KsqlConfigurable {
+public class StreamedQueryResource {
 
   private static final Logger log = LoggerFactory.getLogger(StreamedQueryResource.class);
 
   private static final ObjectMapper OBJECT_MAPPER = ApiJsonMapper.INSTANCE.get();
 
-  private final KsqlEngine ksqlEngine;
+  private final KsqlExecutionContext ksqlEngine;
   private final StatementParser statementParser;
   private final CommandQueue commandQueue;
   private final Duration disconnectCheckInterval;
@@ -100,21 +75,13 @@ public class StreamedQueryResource implements KsqlConfigurable {
   private final Optional<KsqlAuthorizationValidator> authorizationValidator;
   private final Errors errorHandler;
   private final DenyListPropertyValidator denyListPropertyValidator;
-  private final Optional<PullQueryExecutorMetrics> pullQueryMetrics;
-  private final RoutingFilterFactory routingFilterFactory;
-  private final RateLimiter rateLimiter;
-  private final ConcurrencyLimiter concurrencyLimiter;
-  private final SlidingWindowRateLimiter pullBandRateLimiter;
-  private final HARouting routing;
-  private final PushRouting pushRouting;
-  private final Optional<LocalCommands> localCommands;
+  private final QueryExecutor queryExecutor;
 
-  private KsqlConfig ksqlConfig;
   private KsqlRestConfig ksqlRestConfig;
 
   @SuppressWarnings("checkstyle:ParameterNumber")
   public StreamedQueryResource(
-      final KsqlEngine ksqlEngine,
+      final KsqlExecutionContext ksqlEngine,
       final KsqlRestConfig ksqlRestConfig,
       final CommandQueue commandQueue,
       final Duration disconnectCheckInterval,
@@ -123,14 +90,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
       final Optional<KsqlAuthorizationValidator> authorizationValidator,
       final Errors errorHandler,
       final DenyListPropertyValidator denyListPropertyValidator,
-      final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
-      final RoutingFilterFactory routingFilterFactory,
-      final RateLimiter rateLimiter,
-      final ConcurrencyLimiter concurrencyLimiter,
-      final SlidingWindowRateLimiter pullBandRateLimiter,
-      final HARouting routing,
-      final PushRouting pushRouting,
-      final Optional<LocalCommands> localCommands
+      final QueryExecutor queryExecutor
   ) {
     this(
         ksqlEngine,
@@ -143,14 +103,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
         authorizationValidator,
         errorHandler,
         denyListPropertyValidator,
-        pullQueryMetrics,
-        routingFilterFactory,
-        rateLimiter,
-        concurrencyLimiter,
-        pullBandRateLimiter,
-        routing,
-        pushRouting,
-        localCommands
+        queryExecutor
     );
   }
 
@@ -158,7 +111,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
   StreamedQueryResource(
       // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
-      final KsqlEngine ksqlEngine,
+      final KsqlExecutionContext ksqlEngine,
       final KsqlRestConfig ksqlRestConfig,
       final StatementParser statementParser,
       final CommandQueue commandQueue,
@@ -168,14 +121,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
       final Optional<KsqlAuthorizationValidator> authorizationValidator,
       final Errors errorHandler,
       final DenyListPropertyValidator denyListPropertyValidator,
-      final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
-      final RoutingFilterFactory routingFilterFactory,
-      final RateLimiter rateLimiter,
-      final ConcurrencyLimiter concurrencyLimiter,
-      final SlidingWindowRateLimiter pullBandRateLimiter,
-      final HARouting routing,
-      final PushRouting pushRouting,
-      final Optional<LocalCommands> localCommands
+      final QueryExecutor queryExecutor
   ) {
     this.ksqlEngine = Objects.requireNonNull(ksqlEngine, "ksqlEngine");
     this.ksqlRestConfig = Objects.requireNonNull(ksqlRestConfig, "ksqlRestConfig");
@@ -191,25 +137,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
     this.errorHandler = Objects.requireNonNull(errorHandler, "errorHandler");
     this.denyListPropertyValidator =
         Objects.requireNonNull(denyListPropertyValidator, "denyListPropertyValidator");
-    this.pullQueryMetrics = Objects.requireNonNull(pullQueryMetrics, "pullQueryMetrics");
-    this.routingFilterFactory =
-        Objects.requireNonNull(routingFilterFactory, "routingFilterFactory");
-    this.rateLimiter = Objects.requireNonNull(rateLimiter, "rateLimiter");
-    this.concurrencyLimiter = Objects.requireNonNull(concurrencyLimiter, "concurrencyLimiter");
-    this.pullBandRateLimiter = Objects.requireNonNull(pullBandRateLimiter, "pullBandRateLimiter");
-    this.routing = Objects.requireNonNull(routing, "routing");
-    this.pushRouting = pushRouting;
-    this.localCommands = Objects.requireNonNull(localCommands, "localCommands");
-  }
-
-  @Override
-  @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
-  public void configure(final KsqlConfig config) {
-    if (!config.getKsqlStreamConfigProps().containsKey(StreamsConfig.APPLICATION_SERVER_CONFIG)) {
-      throw new IllegalArgumentException("Need KS application server set");
-    }
-
-    ksqlConfig = config;
+    this.queryExecutor = queryExecutor;
   }
 
   public EndpointResponse streamQuery(
@@ -217,7 +145,6 @@ public class StreamedQueryResource implements KsqlConfigurable {
       final KsqlRequest request,
       final CompletableFuture<Void> connectionClosedFuture,
       final Optional<Boolean> isInternalRequest,
-      final KsqlMediaType mediaType,
       final MetricsCallbackHolder metricsCallbackHolder,
       final Context context
   ) {
@@ -230,13 +157,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
         commandQueue, request, commandQueueCatchupTimeout);
 
     return handleStatement(securityContext, request, statement, connectionClosedFuture,
-        isInternalRequest, mediaType, metricsCallbackHolder, context, pullBandRateLimiter);
-  }
-
-  private void throwIfNotConfigured() {
-    if (ksqlConfig == null) {
-      throw new KsqlRestException(Errors.notReady());
-    }
+        isInternalRequest, metricsCallbackHolder, context);
   }
 
   private PreparedStatement<?> parseStatement(final KsqlRequest request) {
@@ -247,8 +168,15 @@ public class StreamedQueryResource implements KsqlConfigurable {
 
     try {
       return statementParser.parseSingleStatement(ksql);
-    } catch (IllegalArgumentException | KsqlException e) {
+    } catch (final IllegalArgumentException | KsqlException e) {
       throw new KsqlRestException(Errors.badStatement(e, ksql));
+    }
+  }
+
+  private void throwIfNotConfigured() {
+    if (!ksqlEngine.getKsqlConfig().getKsqlStreamConfigProps()
+        .containsKey(StreamsConfig.APPLICATION_SERVER_CONFIG)) {
+      throw new KsqlRestException(Errors.notReady());
     }
   }
 
@@ -259,10 +187,8 @@ public class StreamedQueryResource implements KsqlConfigurable {
       final PreparedStatement<?> statement,
       final CompletableFuture<Void> connectionClosedFuture,
       final Optional<Boolean> isInternalRequest,
-      final KsqlMediaType mediaType,
       final MetricsCallbackHolder metricsCallbackHolder,
-      final Context context,
-      final SlidingWindowRateLimiter pullBandRateLimiter
+      final Context context
   ) {
     try {
       authorizationValidator.ifPresent(validator ->
@@ -276,244 +202,76 @@ public class StreamedQueryResource implements KsqlConfigurable {
       denyListPropertyValidator.validateAll(configProperties);
 
       if (statement.getStatement() instanceof Query) {
-        final PreparedStatement<Query> queryStmt = (PreparedStatement<Query>) statement;
-        if (queryStmt.getStatement().isPullQuery()) {
-          return handlePullQuery(
-              securityContext.getServiceContext(),
-              queryStmt,
-              configProperties,
-              request.getRequestProperties(),
-              isInternalRequest,
-              connectionClosedFuture,
-              metricsCallbackHolder,
-              pullBandRateLimiter
-          );
+        if (shouldMigrateToQueryStream(request.getConfigOverrides())) {
+          return EndpointResponse.ok(new NextHandlerOutput());
         }
-
-        // log validated statements for query anonymization
-        QueryLogger.info("Transient query created", statement.getMaskedStatementText());
-
-        if (ScalablePushUtil.isScalablePushQuery(statement.getStatement(), ksqlEngine, ksqlConfig,
-            configProperties)) {
-          return handleScalablePushQuery(
-              securityContext.getServiceContext(),
-              queryStmt,
-              configProperties,
-              request.getRequestProperties(),
-              connectionClosedFuture,
-              context
-          );
-        }
-
-        return handlePushQuery(
+        final QueryMetadataHolder queryMetadataHolder = queryExecutor.handleStatement(
             securityContext.getServiceContext(),
-            queryStmt,
-            configProperties,
+            request.getConfigOverrides(),
+            request.getRequestProperties(),
+            statement,
+            isInternalRequest,
+            metricsCallbackHolder,
+            context,
+            false);
+        return handleQuery(
+            (PreparedStatement<Query>) statement,
             connectionClosedFuture,
-            mediaType
+            queryMetadataHolder
         );
-      }
-
-      if (statement.getStatement() instanceof PrintTopic) {
+      } else if (statement.getStatement() instanceof PrintTopic) {
         return handlePrintTopic(
             securityContext.getServiceContext(),
             configProperties,
             (PreparedStatement<PrintTopic>) statement,
             connectionClosedFuture);
+      } else {
+        return Errors.badRequest(String.format(
+            "Statement type `%s' not supported for this resource",
+            statement.getClass().getName()));
       }
-
-      return Errors.badRequest(String.format(
-          "Statement type `%s' not supported for this resource",
-          statement.getClass().getName()));
     } catch (final TopicAuthorizationException e) {
       return errorHandler.accessDeniedFromKafkaResponse(e);
     } catch (final KsqlStatementException e) {
-      return Errors.badStatement(e.getRawUnloggedDetails(), e.getSqlStatement());
+      return Errors.badStatement(e.getRawMessage(), e.getSqlStatement());
     } catch (final KsqlException e) {
       return errorHandler.generateResponse(e, Errors.badRequest(e));
     }
   }
 
-  private EndpointResponse handlePullQuery(
-      final ServiceContext serviceContext,
+  private EndpointResponse handleQuery(
       final PreparedStatement<Query> statement,
-      final Map<String, Object> configOverrides,
-      final Map<String, Object> requestProperties,
-      final Optional<Boolean> isInternalRequest,
       final CompletableFuture<Void> connectionClosedFuture,
-      final MetricsCallbackHolder metricsCallbackHolder,
-      final SlidingWindowRateLimiter pullBandRateLimiter
-  ) {
-    // First thing, set the metrics callback so that it gets called, even if we hit an error
-    final AtomicReference<PullQueryResult> resultForMetrics = new AtomicReference<>(null);
-    metricsCallbackHolder.setCallback((statusCode, requestBytes, responseBytes, startTimeNanos) -> {
-      pullQueryMetrics.ifPresent(metrics -> {
-        metrics.recordStatusCode(statusCode);
-        metrics.recordRequestSize(requestBytes);
-        final PullQueryResult r = resultForMetrics.get();
-        final PullSourceType sourceType = Optional.ofNullable(r).map(
-            PullQueryResult::getSourceType).orElse(PullSourceType.UNKNOWN);
-        final PullPhysicalPlanType planType = Optional.ofNullable(r).map(
-            PullQueryResult::getPlanType).orElse(PullPhysicalPlanType.UNKNOWN);
-        final RoutingNodeType routingNodeType = Optional.ofNullable(r).map(
-            PullQueryResult::getRoutingNodeType).orElse(RoutingNodeType.UNKNOWN);
-        metrics.recordResponseSize(responseBytes, sourceType, planType, routingNodeType);
-        metrics.recordLatency(startTimeNanos, sourceType, planType, routingNodeType);
-        metrics.recordRowsReturned(
-            Optional.ofNullable(r).map(PullQueryResult::getTotalRowsReturned).orElse(0L),
-            sourceType, planType, routingNodeType);
-        metrics.recordRowsProcessed(
-            Optional.ofNullable(r).map(PullQueryResult::getTotalRowsProcessed).orElse(0L),
-            sourceType, planType, routingNodeType);
-        pullBandRateLimiter.add(responseBytes);
-      });
-    });
-
-    final ConfiguredStatement<Query> configured = ConfiguredStatement
-        .of(statement, SessionConfig.of(ksqlConfig, configOverrides));
-
-    final SessionConfig sessionConfig = configured.getSessionConfig();
-    if (!sessionConfig.getConfig(false)
-        .getBoolean(KsqlConfig.KSQL_PULL_QUERIES_ENABLE_CONFIG)) {
-      throw new KsqlStatementException(
-          "Pull queries are disabled."
-              + PullQueryValidator.PULL_QUERY_SYNTAX_HELP
-              + System.lineSeparator()
-              + "Please set " + KsqlConfig.KSQL_PULL_QUERIES_ENABLE_CONFIG + "=true to enable "
-              + "this feature."
-              + System.lineSeparator(),
-          statement.getMaskedStatementText());
-    }
-
-    final RoutingOptions routingOptions = new PullQueryConfigRoutingOptions(
-        sessionConfig.getConfig(false),
-        configured.getSessionConfig().getOverrides(),
-        requestProperties
-    );
-
-    final PullQueryConfigPlannerOptions plannerOptions = new PullQueryConfigPlannerOptions(
-        sessionConfig.getConfig(false),
-        configured.getSessionConfig().getOverrides()
-    );
-
-    // A request is considered forwarded if the request has the forwarded flag or if the request
-    // is from an internal listener.
-    final boolean isAlreadyForwarded = routingOptions.getIsSkipForwardRequest()
-        // Trust the forward request option if isInternalRequest isn't available.
-        && isInternalRequest.orElse(true);
-
-    // Only check the rate limit at the forwarding host
-    Decrementer decrementer = null;
-    if (!isAlreadyForwarded) {
-      PullQueryExecutionUtil.checkRateLimit(rateLimiter);
-      decrementer = concurrencyLimiter.increment();
-    }
-    pullBandRateLimiter.allow();
-
-    final Optional<Decrementer> optionalDecrementer = Optional.ofNullable(decrementer);
-
-    try {
-      final PullQueryResult result = ksqlEngine.executePullQuery(
-          serviceContext,
-          configured,
-          routing,
-          routingOptions,
-          plannerOptions,
-          pullQueryMetrics,
-          true
-      );
-      resultForMetrics.set(result);
-      result.onCompletionOrException(
-          (v, t) -> optionalDecrementer.ifPresent(Decrementer::decrementAtMostOnce)
-      );
-
+      final QueryMetadataHolder queryMetadataHolder) {
+    if (queryMetadataHolder.getPullQueryResult().isPresent()) {
+      final PullQueryResult result = queryMetadataHolder.getPullQueryResult().get();
       final PullQueryStreamWriter pullQueryStreamWriter = new PullQueryStreamWriter(
           result,
           disconnectCheckInterval.toMillis(),
           OBJECT_MAPPER,
           result.getPullQueryQueue(),
           Clock.systemUTC(),
-          connectionClosedFuture);
+          connectionClosedFuture,
+          statement);
 
       return EndpointResponse.ok(pullQueryStreamWriter);
-    } catch (Throwable t) {
-      optionalDecrementer.ifPresent(Decrementer::decrementAtMostOnce);
-      throw t;
-    }
-  }
-
-  private EndpointResponse handleScalablePushQuery(
-      final ServiceContext serviceContext,
-      final PreparedStatement<Query> statement,
-      final Map<String, Object> configOverrides,
-      final Map<String, Object> requestProperties,
-      final CompletableFuture<Void> connectionClosedFuture,
-      final Context context
-  ) {
-    final ConfiguredStatement<Query> configured = ConfiguredStatement
-        .of(statement, SessionConfig.of(ksqlConfig, configOverrides));
-
-    final PushQueryConfigRoutingOptions routingOptions =
-        new PushQueryConfigRoutingOptions(requestProperties);
-
-    final PushQueryConfigPlannerOptions plannerOptions =
-        new PushQueryConfigPlannerOptions(ksqlConfig, configOverrides);
-
-    final ScalablePushQueryMetadata query = ksqlEngine
-        .executeScalablePushQuery(serviceContext, configured, pushRouting, routingOptions,
-            plannerOptions, context);
-
-
-    final QueryStreamWriter queryStreamWriter = new QueryStreamWriter(
-        query,
-        disconnectCheckInterval.toMillis(),
-        OBJECT_MAPPER,
-        connectionClosedFuture
-    );
-
-    log.info("Streaming query '{}'", statement.getMaskedStatementText());
-    return EndpointResponse.ok(queryStreamWriter);
-  }
-
-  private EndpointResponse handlePushQuery(
-      final ServiceContext serviceContext,
-      final PreparedStatement<Query> statement,
-      final Map<String, Object> streamsProperties,
-      final CompletableFuture<Void> connectionClosedFuture,
-      final KsqlMediaType mediaType
-  ) {
-    final ConfiguredStatement<Query> configured = ConfiguredStatement
-        .of(statement, SessionConfig.of(ksqlConfig, streamsProperties));
-
-    if (QueryCapacityUtil.exceedsPushQueryCapacity(ksqlEngine, ksqlRestConfig)) {
-      QueryCapacityUtil.throwTooManyActivePushQueriesException(
-              ksqlEngine,
-              ksqlRestConfig,
-              statement.getMaskedStatementText()
+    } else if (queryMetadataHolder.getPushQueryMetadata().isPresent()) {
+      final PushQueryMetadata query = queryMetadataHolder.getPushQueryMetadata().get();
+      final boolean emptyStream = queryMetadataHolder.getStreamPullQueryMetadata()
+          .map(streamPullQueryMetadata -> streamPullQueryMetadata.getEndOffsets().isEmpty())
+          .orElse(false);
+      final QueryStreamWriter queryStreamWriter = new QueryStreamWriter(
+          query,
+          disconnectCheckInterval.toMillis(),
+          OBJECT_MAPPER,
+          connectionClosedFuture,
+          emptyStream
       );
-    }
-
-    final TransientQueryMetadata query = ksqlEngine
-        .executeQuery(serviceContext, configured, false);
-
-    localCommands.ifPresent(lc -> lc.write(query));
-
-    final QueryStreamWriter queryStreamWriter = new QueryStreamWriter(
-        query,
-        disconnectCheckInterval.toMillis(),
-        OBJECT_MAPPER,
-        connectionClosedFuture
-    );
-
-    log.info("Streaming query '{}'", statement.getMaskedStatementText());
-    return EndpointResponse.ok(queryStreamWriter);
-  }
-
-  private static String writeValueAsString(final Object object) {
-    try {
-      return OBJECT_MAPPER.writeValueAsString(object);
-    } catch (final JsonProcessingException e) {
-      throw new RuntimeException(e);
+      return EndpointResponse.ok(queryStreamWriter);
+    } else {
+      return Errors.badRequest(String.format(
+          "Statement type `%s' not supported for this resource",
+          statement.getClass().getName()));
     }
   }
 
@@ -535,10 +293,10 @@ public class StreamedQueryResource implements KsqlConfigurable {
           : possibleAlternatives.stream()
               .map(name -> "\tprint " + name + ";")
               .collect(Collectors.joining(
-              System.lineSeparator(),
-              System.lineSeparator() + "Did you mean:" + System.lineSeparator(),
-              ""
-          ));
+                  System.lineSeparator(),
+                  System.lineSeparator() + "Did you mean:" + System.lineSeparator(),
+                  ""
+              ));
 
       throw new KsqlRestException(
           Errors.badRequest(
@@ -550,7 +308,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
     }
 
     final Map<String, Object> propertiesWithOverrides =
-        new HashMap<>(ksqlConfig.getKsqlStreamConfigProps());
+        new HashMap<>(ksqlEngine.getKsqlConfig().getKsqlStreamConfigProps());
     propertiesWithOverrides.putAll(streamProperties);
 
     final TopicStreamWriter topicStreamWriter = TopicStreamWriter.create(
@@ -574,7 +332,10 @@ public class StreamedQueryResource implements KsqlConfigurable {
         .collect(Collectors.toSet());
   }
 
-  private static GenericRow toGenericRow(final List<?> values) {
-    return new GenericRow().appendAll(values);
+  private boolean shouldMigrateToQueryStream(final Map<String, Object> overrides) {
+    if (overrides.containsKey(KsqlConfig.KSQL_ENDPOINT_MIGRATE_QUERY_CONFIG)) {
+      return (Boolean) overrides.get(KsqlConfig.KSQL_ENDPOINT_MIGRATE_QUERY_CONFIG);
+    }
+    return ksqlEngine.getKsqlConfig().getBoolean(KsqlConfig.KSQL_ENDPOINT_MIGRATE_QUERY_CONFIG);
   }
 }

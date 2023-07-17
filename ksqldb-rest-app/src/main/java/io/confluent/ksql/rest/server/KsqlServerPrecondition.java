@@ -16,20 +16,23 @@
 package io.confluent.ksql.rest.server;
 
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
+import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
+import java.util.Map;
 import java.util.Optional;
 
 public interface KsqlServerPrecondition {
   /**
    * Check a precondition for initializing the KSQL server.
    *
-   * @param config The KSQL server config
+   * @param properties The current ksql server properties (raw)
    * @param serviceContext The KSQL server context for accessing external serivces
    * @return Optional.empty() if precondition check passes, non-empty KsqlErrorMessage object if the
    *         check does not pass.
    */
   Optional<KsqlErrorMessage> checkPrecondition(
-      KsqlRestConfig config,
-      ServiceContext serviceContext
+      Map<String, String> properties,
+      ServiceContext serviceContext,
+      KafkaTopicClient internalTopicClient
   );
 }

@@ -19,6 +19,7 @@ import static io.confluent.ksql.api.perf.RunnerUtils.DEFAULT_COLUMN_NAMES;
 import static io.confluent.ksql.api.perf.RunnerUtils.DEFAULT_COLUMN_TYPES;
 import static io.confluent.ksql.api.perf.RunnerUtils.DEFAULT_KEY;
 import static io.confluent.ksql.api.perf.RunnerUtils.DEFAULT_ROW;
+import static io.confluent.ksql.api.perf.RunnerUtils.SCHEMA;
 import static io.confluent.ksql.util.KeyValue.keyValue;
 
 import io.confluent.ksql.GenericRow;
@@ -36,7 +37,9 @@ import io.confluent.ksql.rest.entity.HeartbeatMessage;
 import io.confluent.ksql.rest.entity.KsqlMediaType;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.LagReportingMessage;
-import io.confluent.ksql.util.KeyValue;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.util.KeyValueMetadata;
+import io.confluent.ksql.util.PushQueryMetadata.ResultType;
 import io.confluent.ksql.util.VertxCompletableFuture;
 import io.vertx.core.Context;
 import io.vertx.core.MultiMap;
@@ -53,6 +56,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Semaphore;
+import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscriber;
 
 public class PullQueryRunner extends BasePerfRunner {
@@ -65,7 +69,7 @@ public class PullQueryRunner extends BasePerfRunner {
   private static final JsonObject DEFAULT_PULL_QUERY_REQUEST_BODY = new JsonObject()
       .put("sql", DEFAULT_PULL_QUERY)
       .put("properties", new JsonObject().put("auto.offset.reset", "earliest"));
-  private static final List<KeyValue<List<?>, GenericRow>> DEFAULT_ROWS = generateResults();
+  private static final List<KeyValueMetadata<List<?>, GenericRow>> DEFAULT_ROWS = generateResults();
   private static final int MAX_CONCURRENT_REQUESTS = 100;
 
   private PullQueryEndpoints pullQueryEndpoints;
@@ -106,10 +110,10 @@ public class PullQueryRunner extends BasePerfRunner {
     Thread.sleep(500);
   }
 
-  private static List<KeyValue<List<?>, GenericRow>> generateResults() {
-    final List<KeyValue<List<?>, GenericRow>> results = new ArrayList<>();
+  private static List<KeyValueMetadata<List<?>, GenericRow>> generateResults() {
+    final List<KeyValueMetadata<List<?>, GenericRow>> results = new ArrayList<>();
     for (int i = 0; i < 10; i++) {
-      results.add(keyValue(DEFAULT_KEY, DEFAULT_ROW));
+      results.add(new KeyValueMetadata<>(keyValue(DEFAULT_KEY, DEFAULT_ROW)));
     }
     return results;
   }
@@ -119,14 +123,15 @@ public class PullQueryRunner extends BasePerfRunner {
     private final Set<PullQueryPublisher> publishers = new HashSet<>();
 
     @Override
-    public synchronized CompletableFuture<QueryPublisher> createQueryPublisher(final String sql,
+    public synchronized CompletableFuture<Publisher<?>> createQueryPublisher(final String sql,
         final Map<String, Object> properties,
         final Map<String, Object> sessionVariables,
         final Map<String, Object> requestProperties,
         final Context context,
         final WorkerExecutor workerExecutor,
         final ApiSecurityContext apiSecurityContext,
-        final MetricsCallbackHolder metricsCallbackHolder) {
+        final MetricsCallbackHolder metricsCallbackHolder,
+        final Optional<Boolean> isInternalRequest) {
       PullQueryPublisher publisher = new PullQueryPublisher(context, DEFAULT_ROWS);
       publishers.add(publisher);
       return CompletableFuture.completedFuture(publisher);
@@ -228,6 +233,12 @@ public class PullQueryRunner extends BasePerfRunner {
 
     }
 
+    @Override
+    public CompletableFuture<EndpointResponse> executeTest(String test,
+        ApiSecurityContext apiSecurityContext) {
+      return null;
+    }
+
     synchronized void closePublishers() {
       for (PullQueryPublisher publisher : publishers) {
         publisher.close();
@@ -236,10 +247,10 @@ public class PullQueryRunner extends BasePerfRunner {
   }
 
   private static class PullQueryPublisher
-      extends BufferedPublisher<KeyValue<List<?>, GenericRow>>
+      extends BufferedPublisher<KeyValueMetadata<List<?>, GenericRow>>
       implements QueryPublisher {
 
-    public PullQueryPublisher(final Context ctx, List<KeyValue<List<?>, GenericRow>> rows) {
+    public PullQueryPublisher(final Context ctx, List<KeyValueMetadata<List<?>, GenericRow>> rows) {
       super(ctx, rows);
     }
 
@@ -251,6 +262,11 @@ public class PullQueryRunner extends BasePerfRunner {
     @Override
     public List<String> getColumnTypes() {
       return DEFAULT_COLUMN_TYPES;
+    }
+
+    @Override
+    public LogicalSchema geLogicalSchema() {
+      return SCHEMA;
     }
 
     @Override
@@ -266,6 +282,16 @@ public class PullQueryRunner extends BasePerfRunner {
     @Override
     public QueryId queryId() {
       return new QueryId("queryId");
+    }
+
+    @Override
+    public boolean hitLimit() {
+      return false;
+    }
+
+    @Override
+    public Optional<ResultType> getResultType() {
+      return Optional.empty();
     }
   }
 }

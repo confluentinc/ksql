@@ -158,7 +158,8 @@ public class BasicAuthFunctionalTest {
         REST_APP.getHttpListener().toString(),
         ImmutableMap.of(),
         ImmutableMap.of(),
-        Optional.of(credentials)
+        Optional.of(credentials),
+        Optional.empty()
     )) {
       final RestResponse<ServerInfo> response = restClient.getServerInfo();
       if (response.isSuccessful()) {

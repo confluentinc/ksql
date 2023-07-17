@@ -34,7 +34,7 @@ public final class SandboxedServiceContext implements ServiceContext {
   private final KafkaTopicClient topicClient;
   private final SchemaRegistryClient srClient;
   private final KafkaClientSupplier kafkaClientSupplier;
-  private final ConnectClient connectClient;
+  private final Supplier<ConnectClient> connectClientSupplier;
   private final KafkaConsumerGroupClient consumerGroupClient;
 
   public static SandboxedServiceContext create(final ServiceContext serviceContext) {
@@ -44,10 +44,11 @@ public final class SandboxedServiceContext implements ServiceContext {
 
     final KafkaClientSupplier kafkaClientSupplier = new SandboxedKafkaClientSupplier();
     final KafkaTopicClient kafkaTopicClient = SandboxedKafkaTopicClient
-        .createProxy(serviceContext.getTopicClient());
+        .createProxy(serviceContext.getTopicClient(), serviceContext::getAdminClient);
     final SchemaRegistryClient schemaRegistryClient =
         SandboxedSchemaRegistryClient.createProxy(serviceContext.getSchemaRegistryClient());
-    final ConnectClient connectClient = SandboxConnectClient.createProxy();
+    final Supplier<ConnectClient> connectClientSupplier =
+        () -> SandboxConnectClient.createProxy(serviceContext.getConnectClient());
     final KafkaConsumerGroupClient kafkaConsumerGroupClient = SandboxedKafkaConsumerGroupClient
         .createProxy(serviceContext.getConsumerGroupClient());
 
@@ -55,7 +56,7 @@ public final class SandboxedServiceContext implements ServiceContext {
         kafkaClientSupplier,
         kafkaTopicClient,
         schemaRegistryClient,
-        connectClient,
+        connectClientSupplier,
         kafkaConsumerGroupClient);
   }
 
@@ -63,13 +64,14 @@ public final class SandboxedServiceContext implements ServiceContext {
       final KafkaClientSupplier kafkaClientSupplier,
       final KafkaTopicClient topicClient,
       final SchemaRegistryClient srClient,
-      final ConnectClient connectClient,
+      final Supplier<ConnectClient> connectClientSupplier,
       final KafkaConsumerGroupClient consumerGroupClient
   ) {
     this.kafkaClientSupplier = Objects.requireNonNull(kafkaClientSupplier, "kafkaClientSupplier");
     this.topicClient = Objects.requireNonNull(topicClient, "topicClient");
     this.srClient = Objects.requireNonNull(srClient, "srClient");
-    this.connectClient = Objects.requireNonNull(connectClient, "connectClient");
+    this.connectClientSupplier =
+        Objects.requireNonNull(connectClientSupplier, "connectClientSupplier");
     this.consumerGroupClient = Objects.requireNonNull(consumerGroupClient, "consumerGroupClient");
   }
 
@@ -101,9 +103,8 @@ public final class SandboxedServiceContext implements ServiceContext {
   }
 
   @Override
-  @SuppressFBWarnings(value = "EI_EXPOSE_REP")
   public ConnectClient getConnectClient() {
-    return connectClient;
+    return connectClientSupplier.get();
   }
 
   @Override

@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 Confluent Inc.
+ * Copyright 2022 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -26,8 +26,9 @@ import io.confluent.ksql.execution.plan.KGroupedStreamHolder;
 import io.confluent.ksql.execution.plan.KTableHolder;
 import io.confluent.ksql.execution.plan.StreamAggregate;
 import io.confluent.ksql.execution.plan.StreamWindowedAggregate;
+import io.confluent.ksql.execution.runtime.MaterializedFactory;
 import io.confluent.ksql.execution.runtime.RuntimeBuildContext;
-import io.confluent.ksql.execution.streams.transform.KsTransformer;
+import io.confluent.ksql.execution.streams.transform.KsValueTransformer;
 import io.confluent.ksql.execution.transform.KsqlProcessingContext;
 import io.confluent.ksql.execution.transform.KsqlTransformer;
 import io.confluent.ksql.execution.windows.HoppingWindowExpression;
@@ -37,17 +38,21 @@ import io.confluent.ksql.execution.windows.TumblingWindowExpression;
 import io.confluent.ksql.execution.windows.WindowTimeClause;
 import io.confluent.ksql.execution.windows.WindowVisitor;
 import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.parser.OutputRefinement;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import java.util.List;
 import java.util.Objects;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.utils.Bytes;
+import org.apache.kafka.streams.kstream.EmitStrategy;
 import org.apache.kafka.streams.kstream.KGroupedStream;
 import org.apache.kafka.streams.kstream.KTable;
 import org.apache.kafka.streams.kstream.Materialized;
 import org.apache.kafka.streams.kstream.Named;
+import org.apache.kafka.streams.kstream.SessionWindowedKStream;
 import org.apache.kafka.streams.kstream.SessionWindows;
+import org.apache.kafka.streams.kstream.TimeWindowedKStream;
 import org.apache.kafka.streams.kstream.TimeWindows;
 import org.apache.kafka.streams.kstream.Window;
 import org.apache.kafka.streams.kstream.Windowed;
@@ -119,7 +124,7 @@ public final class StreamAggregateBuilder {
 
     final KTable<GenericKey, GenericRow> result = aggregated
         .transformValues(
-            () -> new KsTransformer<>(aggregator.getResultMapper()),
+            () -> new KsValueTransformer<>(aggregator.getResultMapper()),
             Named.as(StreamsUtil.buildOpName(
                 AggregateBuilderUtils.outputContext(aggregate)))
         );
@@ -183,7 +188,7 @@ public final class StreamAggregateBuilder {
     final KudafAggregator<Windowed<GenericKey>> aggregator = aggregateParams.getAggregator();
 
     KTable<Windowed<GenericKey>, GenericRow> reduced = aggregated.transformValues(
-        () -> new KsTransformer<>(aggregator.getResultMapper()),
+        () -> new KsValueTransformer<>(aggregator.getResultMapper()),
         Named.as(StreamsUtil.buildOpName(AggregateBuilderUtils.outputContext(aggregate)))
     );
 
@@ -196,7 +201,7 @@ public final class StreamAggregateBuilder {
         );
 
     reduced = reduced.transformValues(
-        () -> new KsTransformer<>(new WindowBoundsPopulator()),
+        () -> new KsValueTransformer<>(new WindowBoundsPopulator()),
         Named.as(StreamsUtil.buildOpName(
             AggregateBuilderUtils.windowSelectContext(aggregate)
         ))
@@ -261,7 +266,7 @@ public final class StreamAggregateBuilder {
 
     @Override
     @SuppressWarnings("deprecation")  // can be fixed after GRACE clause is made mandatory
-    public KTable<Windowed<GenericKey>, GenericRow>  visitHoppingWindowExpression(
+    public KTable<Windowed<GenericKey>, GenericRow> visitHoppingWindowExpression(
         final HoppingWindowExpression window,
         final Void ctx) {
       TimeWindows windows = TimeWindows
@@ -271,9 +276,15 @@ public final class StreamAggregateBuilder {
           .map(windows::grace)
           .orElse(windows);
 
-      return groupedStream
-          .windowedBy(windows)
-          .aggregate(
+      TimeWindowedKStream<GenericKey, GenericRow> timeWindowedKStream =
+          groupedStream.windowedBy(windows);
+
+      if (window.getEmitStrategy().isPresent()
+          && window.getEmitStrategy().get() == OutputRefinement.FINAL) {
+        timeWindowedKStream = timeWindowedKStream.emitStrategy(EmitStrategy.onWindowClose());
+      }
+
+      return timeWindowedKStream.aggregate(
               aggregateParams.getInitializer(),
               aggregateParams.getAggregator(),
               materializedFactory.create(keySerde,
@@ -285,7 +296,7 @@ public final class StreamAggregateBuilder {
 
     @Override
     @SuppressWarnings("deprecation")  // can be fixed after GRACE clause is made mandatory
-    public KTable<Windowed<GenericKey>, GenericRow>  visitSessionWindowExpression(
+    public KTable<Windowed<GenericKey>, GenericRow> visitSessionWindowExpression(
         final SessionWindowExpression window,
         final Void ctx) {
       SessionWindows windows = SessionWindows.with(window.getGap().toDuration());
@@ -293,9 +304,15 @@ public final class StreamAggregateBuilder {
           .map(windows::grace)
           .orElse(windows);
 
-      return groupedStream
-          .windowedBy(windows)
-          .aggregate(
+      SessionWindowedKStream<GenericKey, GenericRow> sessionWindowedKStream =
+          groupedStream.windowedBy(windows);
+
+      if (window.getEmitStrategy().isPresent()
+          && window.getEmitStrategy().get() == OutputRefinement.FINAL) {
+        sessionWindowedKStream = sessionWindowedKStream.emitStrategy(EmitStrategy.onWindowClose());
+      }
+
+      return sessionWindowedKStream.aggregate(
               aggregateParams.getInitializer(),
               aggregateParams.getAggregator(),
               aggregateParams.getAggregator().getMerger(),
@@ -316,9 +333,15 @@ public final class StreamAggregateBuilder {
           .map(windows::grace)
           .orElse(windows);
 
-      return groupedStream
-          .windowedBy(windows)
-          .aggregate(
+      TimeWindowedKStream<GenericKey, GenericRow> timeWindowedKStream =
+          groupedStream.windowedBy(windows);
+
+      if (window.getEmitStrategy().isPresent()
+          && window.getEmitStrategy().get() == OutputRefinement.FINAL) {
+        timeWindowedKStream = timeWindowedKStream.emitStrategy(EmitStrategy.onWindowClose());
+      }
+
+      return timeWindowedKStream.aggregate(
               aggregateParams.getInitializer(),
               aggregateParams.getAggregator(),
               materializedFactory.create(keySerde,

@@ -29,7 +29,7 @@ final class AvroSchemas {
   private AvroSchemas() {
   }
 
-  static Schema getAvroCompatibleConnectSchema(
+  public static Schema getAvroCompatibleConnectSchema(
       final Schema schema,
       final String schemaFullName
   ) {
@@ -149,6 +149,8 @@ final class AvroSchemas {
 
     if (schema.name() == null) {
       schemaBuilder.name(context.name());
+    } else {
+      schemaBuilder.name(schema.name());
     }
 
     for (final Field f : schema.fields()) {

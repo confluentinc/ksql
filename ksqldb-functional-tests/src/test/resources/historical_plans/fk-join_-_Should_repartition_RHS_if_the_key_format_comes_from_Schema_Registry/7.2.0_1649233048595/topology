@@ -1,0 +1,85 @@
+Topologies:
+   Sub-topology: 0
+    Source: KSTREAM-SOURCE-0000000001 (topics: [left_topic])
+      --> KTABLE-SOURCE-0000000002
+    Processor: KTABLE-SOURCE-0000000002 (stores: [])
+      --> KTABLE-TRANSFORMVALUES-0000000003
+      <-- KSTREAM-SOURCE-0000000001
+    Source: KTABLE-SOURCE-0000000028 (topics: [KTABLE-FK-JOIN-SUBSCRIPTION-RESPONSE-0000000026-topic])
+      --> KTABLE-FK-JOIN-SUBSCRIPTION-RESPONSE-RESOLVER-PROCESSOR-0000000029
+    Processor: KTABLE-FK-JOIN-SUBSCRIPTION-RESPONSE-RESOLVER-PROCESSOR-0000000029 (stores: [KafkaTopic_Left-Reduce])
+      --> KTABLE-FK-JOIN-OUTPUT-0000000030
+      <-- KTABLE-SOURCE-0000000028
+    Processor: KTABLE-TRANSFORMVALUES-0000000003 (stores: [KafkaTopic_Left-Reduce])
+      --> KTABLE-TRANSFORMVALUES-0000000004
+      <-- KTABLE-SOURCE-0000000002
+    Processor: KTABLE-FK-JOIN-OUTPUT-0000000030 (stores: [])
+      --> KTABLE-TRANSFORMVALUES-0000000032
+      <-- KTABLE-FK-JOIN-SUBSCRIPTION-RESPONSE-RESOLVER-PROCESSOR-0000000029
+    Processor: KTABLE-TRANSFORMVALUES-0000000004 (stores: [])
+      --> PrependAliasLeft
+      <-- KTABLE-TRANSFORMVALUES-0000000003
+    Processor: KTABLE-TRANSFORMVALUES-0000000032 (stores: [Project-Last])
+      --> KTABLE-TOSTREAM-0000000033
+      <-- KTABLE-FK-JOIN-OUTPUT-0000000030
+    Processor: PrependAliasLeft (stores: [])
+      --> KTABLE-FK-JOIN-SUBSCRIPTION-REGISTRATION-0000000019
+      <-- KTABLE-TRANSFORMVALUES-0000000004
+    Processor: KTABLE-FK-JOIN-SUBSCRIPTION-REGISTRATION-0000000019 (stores: [])
+      --> KTABLE-SINK-0000000020
+      <-- PrependAliasLeft
+    Processor: KTABLE-TOSTREAM-0000000033 (stores: [])
+      --> KSTREAM-SINK-0000000034
+      <-- KTABLE-TRANSFORMVALUES-0000000032
+    Sink: KSTREAM-SINK-0000000034 (topic: OUTPUT)
+      <-- KTABLE-TOSTREAM-0000000033
+    Sink: KTABLE-SINK-0000000020 (topic: KTABLE-FK-JOIN-SUBSCRIPTION-REGISTRATION-0000000018-topic)
+      <-- KTABLE-FK-JOIN-SUBSCRIPTION-REGISTRATION-0000000019
+
+  Sub-topology: 1
+    Source: KSTREAM-SOURCE-0000000007 (topics: [right_topic])
+      --> KTABLE-SOURCE-0000000008
+    Processor: KTABLE-SOURCE-0000000008 (stores: [])
+      --> KTABLE-TRANSFORMVALUES-0000000009
+      <-- KSTREAM-SOURCE-0000000007
+    Processor: KTABLE-TRANSFORMVALUES-0000000009 (stores: [])
+      --> KTABLE-TRANSFORMVALUES-0000000010
+      <-- KTABLE-SOURCE-0000000008
+    Processor: KTABLE-TRANSFORMVALUES-0000000010 (stores: [])
+      --> KTABLE-TOSTREAM-0000000011
+      <-- KTABLE-TRANSFORMVALUES-0000000009
+    Processor: KTABLE-TOSTREAM-0000000011 (stores: [])
+      --> RightSourceKeyed-SelectKey-Mapper
+      <-- KTABLE-TRANSFORMVALUES-0000000010
+    Processor: RightSourceKeyed-SelectKey-Mapper (stores: [])
+      --> RightSourceKeyed-SelectKey-repartition-filter
+      <-- KTABLE-TOSTREAM-0000000011
+    Processor: RightSourceKeyed-SelectKey-repartition-filter (stores: [])
+      --> RightSourceKeyed-SelectKey-repartition-sink
+      <-- RightSourceKeyed-SelectKey-Mapper
+    Sink: RightSourceKeyed-SelectKey-repartition-sink (topic: RightSourceKeyed-SelectKey-repartition)
+      <-- RightSourceKeyed-SelectKey-repartition-filter
+
+  Sub-topology: 2
+    Source: RightSourceKeyed-SelectKey-repartition-source (topics: [RightSourceKeyed-SelectKey-repartition])
+      --> RightSourceKeyed-SelectKey
+    Source: KTABLE-SOURCE-0000000021 (topics: [KTABLE-FK-JOIN-SUBSCRIPTION-REGISTRATION-0000000018-topic])
+      --> KTABLE-FK-JOIN-SUBSCRIPTION-PROCESSOR-0000000023
+    Processor: RightSourceKeyed-SelectKey (stores: [RightSourceKeyed-Materialize])
+      --> PrependAliasRight
+      <-- RightSourceKeyed-SelectKey-repartition-source
+    Processor: KTABLE-FK-JOIN-SUBSCRIPTION-PROCESSOR-0000000023 (stores: [KTABLE-FK-JOIN-SUBSCRIPTION-STATE-STORE-0000000022])
+      --> KTABLE-FK-JOIN-SUBSCRIPTION-PROCESSOR-0000000024
+      <-- KTABLE-SOURCE-0000000021
+    Processor: PrependAliasRight (stores: [])
+      --> KTABLE-FK-JOIN-SUBSCRIPTION-PROCESSOR-0000000025
+      <-- RightSourceKeyed-SelectKey
+    Processor: KTABLE-FK-JOIN-SUBSCRIPTION-PROCESSOR-0000000024 (stores: [RightSourceKeyed-Materialize])
+      --> KTABLE-SINK-0000000027
+      <-- KTABLE-FK-JOIN-SUBSCRIPTION-PROCESSOR-0000000023
+    Processor: KTABLE-FK-JOIN-SUBSCRIPTION-PROCESSOR-0000000025 (stores: [KTABLE-FK-JOIN-SUBSCRIPTION-STATE-STORE-0000000022])
+      --> KTABLE-SINK-0000000027
+      <-- PrependAliasRight
+    Sink: KTABLE-SINK-0000000027 (topic: KTABLE-FK-JOIN-SUBSCRIPTION-RESPONSE-0000000026-topic)
+      <-- KTABLE-FK-JOIN-SUBSCRIPTION-PROCESSOR-0000000024, KTABLE-FK-JOIN-SUBSCRIPTION-PROCESSOR-0000000025
+

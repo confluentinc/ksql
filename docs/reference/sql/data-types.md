@@ -14,9 +14,9 @@ keywords: ksqldb, sql, syntax, data type
 
 ## Character types
 
-| name                | description                | backing Java type
-|---------------------|----------------------------|------------------
-| `varchar`, `string` | variable-length string     | [`java.lang.String`](https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/String.html)
+| name                | description            | backing Java type
+|---------------------|------------------------|------------------
+| `varchar`, `string` | variable-length string | [`java.lang.String`](https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/String.html)
 | `bytes`             | variable-length byte array | [byte []](https://docs.oracle.com/javase/8/docs/api/java/lang/Byte.html)
 
 The `varchar` type represents a string in UTF-16 format.
@@ -100,8 +100,8 @@ and a scale of _0_.
 | name     | description                              | backing Java type
 |----------|------------------------------------------|------------------
 | `array`  | sequence of values of a single type      | [Java native array](https://docs.oracle.com/javase/specs/jls/se11/html/jls-10.html)
-| `struct` | map of string keys to values of any type | [`org.apache.kafka.connect.data.Struct`](https://kafka.apache.org/27/javadoc/index.html?org/apache/kafka/connect/data/Struct.html)
-| `map`    | map of varying typed keys and values     | [`java.util.map`](https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/util/Map.html)
+| `struct` | a strongly typed structured data type    | [`org.apache.kafka.connect.data.Struct`](https://kafka.apache.org/27/javadoc/index.html?org/apache/kafka/connect/data/Struct.html)
+| `map`    | a mapping of keys to values              | [`java.util.map`](https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/util/Map.html)
 
 
 ### Array
@@ -151,10 +151,11 @@ typed structured data. A struct is an ordered collection of named fields
 that have a specific type. The field types can be any valid SQL type.
 
 Access the fields of a struct by using the `->` operator. For example,
-`SOME_STRUCT->ID` retrieves the value of the struct's `ID` field. For
+`SOME_STRUCT->ID` retrieves the value of the struct's `ID` field; 
+and `SOME_STRUCT->*` retrieves the values of all fields of `SOME_STRUCT`. For
 more information, see [Operators](/developer-guide/ksqldb-reference/operators).
 
-You can define a structs within a `CREATE TABLE` or `CREATE STREAM`
+You can define structs within a `CREATE TABLE` or `CREATE STREAM`
 statement by using the syntax `STRUCT<FieldName FieldType, ...>`. For
 example, `STRUCT<ID BIGINT, NAME STRING, AGE INT>` defines a struct with
 three fields, with the supplied name and type.
@@ -171,7 +172,7 @@ SELECT STRUCT(f1 := v1, f2 := v2) FROM s1 EMIT CHANGES;
 `MAP<KeyType, ValueType>`
 
 ksqlDB supports fields that are maps. A map has a key and value type. All
-of the keys must be of the same type, and all of the values must be also
+of the keys must be of the same type, and all of the values must also
 be of the same type. Currently only `STRING` keys are supported. The
 value type can be any valid SQL type.
 

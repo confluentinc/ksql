@@ -174,8 +174,8 @@ How do I use Avro data and integrate with Confluent Schema Registry?
 --------------------------------------------------------------------
 
 Configure the `ksql.schema.registry.url` property in the ksqlDB server
-configuration to point to {{ site.sr }} (see
-[Configure ksqlDB for Avro, Protobuf, and JSON schemas](operate-and-deploy/installation/server-config/avro-schema.md#configure-avro-and-schema-registry-for-ksql)).
+configuration to point to {{ site.sr }}. For more information, see
+[Configure ksqlDB for Avro, Protobuf, and JSON schemas](operate-and-deploy/installation/server-config/avro-schema.md).
 
 !!! important
 	-   To use Avro data with ksqlDB you must have {{ site.sr }}
@@ -188,7 +188,7 @@ How can I scale out ksqlDB?
 
 The maximum parallelism depends on the number of partitions.
 
--   To scale out: start additional ksqlDB servers with same config. This
+-   To scale out: start additional ksqlDB servers with the same config. This
     can be done during live operations. For more information, see
     [How do I add ksqlDB servers to an existing ksqlDB cluster?](#how-do-i-add-ksqldb-servers-to-an-existing-ksqldb-cluster).
 -   To scale in: stop the desired running ksqlDB servers, but keep at
@@ -197,7 +197,7 @@ The maximum parallelism depends on the number of partitions.
     work from stopped servers.
 
 !!! tip
-	Idle servers will consume a small amount of resource. For example, if
+	Idle servers will consume a small amount of resources. For example, if
     you have 10 ksqlDB servers and run a query against a two-partition input
     topic, only two servers perform the actual work, but the other eight
     will run an "idle" query.
@@ -234,14 +234,14 @@ Yes. For more information, see
 [Configure Authorization of ksqlDB with Kafka ACLs](operate-and-deploy/installation/server-config/security.md#configure-authorization-of-ksqldb-with-kafka-acls).
 
 Will ksqlDB work with an HTTPS Schema Registry?
----------------------------------------------
+-----------------------------------------------
 
 Yes. ksqlDB can be configured to communicate with {{ site.srlong }} over HTTPS.
 For more information, see
-[Configure ksqlDB for Secured {{ site.srlong }}](operate-and-deploy/installation/server-config/security.md#configure-ksqldb-for-https).
+[Configure ksqlDB for Secured {{ site.srlong }}](operate-and-deploy/installation/server-config/security.md#configure-ksqldb-for-secured-confluent-schema-registry).
 
 Where are ksqlDB-related data and metadata stored?
-------------------------------------------------
+--------------------------------------------------
 
 In interactive mode, ksqlDB stores metadata in and builds metadata from
 the ksqlDB command topic. To secure the metadata, you must secure the
@@ -249,8 +249,8 @@ command topic.
 
 The ksqlDB command topic stores all data definition language (DDL)
 statements: CREATE STREAM, CREATE TABLE, DROP STREAM, and DROP TABLE.
-Also, the ksqlDB command topic stores TERMINATE statements, which stop
-persistent queries based on CREATE STREAM AS SELECT (CSAS) and CREATE
+Also, the ksqlDB command topic stores PAUSE, RESUME, TERMINATE statements, 
+which operate on persistent queries based on CREATE STREAM AS SELECT (CSAS) and CREATE
 TABLE AS SELECT (CTAS).
 
 Currently, data manipulation language (DML) statements, like UPDATE and

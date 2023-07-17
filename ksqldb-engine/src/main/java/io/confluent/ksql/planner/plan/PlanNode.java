@@ -180,12 +180,15 @@ public abstract class PlanNode {
         + "This expression must be included in the projection and may be aliased. "
         : "";
 
-    throw new KsqlException("Key" + keyPostfix + " missing from projection. "
+    throw new KsqlException("Key" + keyPostfix + " missing from projection (ie, SELECT). "
         + additional1
         + System.lineSeparator()
-        + "The query used to build " + sinkName
-        + " must include the " + types + " " + joined + " in its projection."
-        + additional2
+        + "The query used to build " + sinkName + " must include the " + types + " " + joined
+        + " in its projection (eg, SELECT "
+        + (requireAll
+              ? GrammaticalJoiner.comma().join(requiredKeys)
+              : requiredKeys.stream().findFirst().get())
+        + "...)." + additional2
     );
   }
 

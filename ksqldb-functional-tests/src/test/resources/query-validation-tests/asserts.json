@@ -7,7 +7,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.parser.exception.ParseFailedException",
-        "message": "mismatched input 'ASSERT'"
+        "message": "Syntax error at or near 'VALUES' at line 1:8"
       }
     },
     {
@@ -17,7 +17,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.parser.exception.ParseFailedException",
-        "message": "mismatched input 'RUN'"
+        "message": "line 1:1: Syntax Error\nUnknown statement 'RUN'"
       }
     }
   ]

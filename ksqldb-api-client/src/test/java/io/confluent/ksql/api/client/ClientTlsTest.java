@@ -59,9 +59,7 @@ public class ClientTlsTest extends ClientTest {
 
   @Override
   protected ClientOptions createJavaClientOptions() {
-    return ClientOptions.create()
-        .setHost("localhost")
-        .setPort(server.getListeners().get(0).getPort())
+    return super.createJavaClientOptions()
         .setUseTls(true)
         .setTrustStore(TRUST_STORE_PATH)
         .setTrustStorePassword(TRUST_STORE_PASSWORD)

@@ -17,27 +17,34 @@ package io.confluent.ksql.api;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 
+import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
-import io.confluent.ksql.rest.server.state.ServerState;
 import io.confluent.ksql.util.VertxCompletableFuture;
 import io.vertx.core.MultiMap;
-import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.client.HttpResponse;
+import io.vertx.ext.web.client.WebClient;
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.util.Arrays;
-import java.util.HashMap;
+import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
-import org.junit.Before;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import org.eclipse.jetty.http.HttpStatus;
+import org.junit.Assert;
 import org.junit.Test;
 
-public class CorsTest extends BaseApiTest {
-
+public final class CorsTest {
   private static final String ACCESS_CONTROL_ALLOW_ORIGIN_HEADER = "Access-Control-Allow-Origin";
   private static final String ACCESS_CONTROL_ALLOW_METHODS_HEADER = "Access-Control-Allow-Methods";
   private static final String ACCESS_CONTROL_ALLOW_HEADERS_HEADER = "Access-Control-Allow-Headers";
@@ -48,162 +55,164 @@ public class CorsTest extends BaseApiTest {
   private static final String DEFAULT_ACCESS_CONTROL_ALLOW_HEADERS = "X-Requested-With,Content-Type,Accept,Origin";
   private static final String DEFAULT_ACCESS_CONTROL_ALLOW_METHODS = "GET,POST,HEAD";
 
+  protected static final String DEFAULT_PULL_QUERY = "select * from foo where rowkey='1234';";
+
   private static final String URI = "/query-stream";
-  private static final String ORIGIN = "wibble.com";
+  private static final String ORIGIN = "http://wibble.com";
 
-  private final Map<String, Object> config = new HashMap<>();
+  private final Function<Map<String, String>, WebClient> clientSupplier;
+  private final int successStatus;
 
-  @Before
-  public void setUp() {
-
-    vertx = Vertx.vertx();
-    vertx.exceptionHandler(t -> log.error("Unhandled exception in Vert.x", t));
-
-    testEndpoints = new TestEndpoints();
-    serverState = new ServerState();
-    serverState.setReady();
-    setDefaultRowGenerator();
+  public CorsTest(final Function<Map<String, String>, WebClient> clientSupplier) {
+    this(clientSupplier, HttpStatus.OK_200);
   }
 
-  @Test
+  public CorsTest(
+      final Function<Map<String, String>, WebClient> clientSupplier,
+      final int successStatus
+  ) {
+    this.clientSupplier = Objects.requireNonNull(clientSupplier, "clientSupplier");
+    this.successStatus = successStatus;
+  }
+
   public void shouldNotBeCorsResponseIfNoCorsConfigured() throws Exception {
 
     // Given:
-    init();
+    final WebClient client = clientSupplier.apply(Collections.emptyMap());
 
     // When
-    HttpResponse<Buffer> response = sendCorsRequest(HttpMethod.POST, ORIGIN);
+    HttpResponse<Buffer> response = sendCorsRequest(client, HttpMethod.POST, ORIGIN);
 
     // Then:
-    assertThat(response.statusCode(), is(200));
+    assertThat(response.statusCode(), is(successStatus));
     assertThat(response.getHeader(ACCESS_CONTROL_ALLOW_ORIGIN_HEADER), is(nullValue()));
     assertThat(response.getHeader(ACCESS_CONTROL_ALLOW_METHODS_HEADER), is(nullValue()));
     assertThat(response.getHeader(ACCESS_CONTROL_ALLOW_HEADERS_HEADER), is(nullValue()));
   }
 
-  @Test
-  public void shouldExcludePath() throws Exception {
+  public void shouldExcludePath(final int expectedCode) throws Exception {
 
     // Given:
-    init();
-    config.put(KsqlRestConfig.ACCESS_CONTROL_ALLOW_ORIGIN_CONFIG, ORIGIN);
+    final WebClient client = clientSupplier.apply(
+        ImmutableMap.of(KsqlRestConfig.ACCESS_CONTROL_ALLOW_ORIGIN_CONFIG, ORIGIN));
 
     // When
-    HttpResponse<Buffer> response = sendCorsRequest(HttpMethod.POST, "/ws/foo", ORIGIN);
+    HttpResponse<Buffer> response = sendCorsRequest(client, HttpMethod.POST, "/ws/foo", ORIGIN);
 
     // Then:
     // We should get a 404 as the security checks will be bypassed but the resource doesn't exist
-    assertThat(response.statusCode(), is(404));
+    assertThat(response.statusCode(), is(expectedCode));
     assertThat(response.getHeader(ACCESS_CONTROL_ALLOW_ORIGIN_HEADER), is(nullValue()));
     assertThat(response.getHeader(ACCESS_CONTROL_ALLOW_METHODS_HEADER), is(nullValue()));
     assertThat(response.getHeader(ACCESS_CONTROL_ALLOW_HEADERS_HEADER), is(nullValue()));
   }
 
-  @Test
   public void shouldNotBeCorsResponseIfNotCorsRequest() throws Exception {
 
     // Given:
-    init();
-    config.put(KsqlRestConfig.ACCESS_CONTROL_ALLOW_ORIGIN_CONFIG, ORIGIN);
+    final WebClient client = clientSupplier.apply(
+        ImmutableMap.of(KsqlRestConfig.ACCESS_CONTROL_ALLOW_ORIGIN_CONFIG, ORIGIN));
 
     // When
     VertxCompletableFuture<HttpResponse<Buffer>> requestFuture = new VertxCompletableFuture<>();
-    client
-        .request(HttpMethod.POST, URI)
+    client.request(HttpMethod.POST, URI)
         .sendJsonObject(new JsonObject().put("sql", DEFAULT_PULL_QUERY), requestFuture);
     HttpResponse<Buffer> response = requestFuture.get();
 
     // Then:
-    assertThat(response.statusCode(), is(200));
+    assertThat(response.statusCode(), is(successStatus));
     assertThat(response.getHeader(ACCESS_CONTROL_ALLOW_ORIGIN_HEADER), is(nullValue()));
     assertThat(response.getHeader(ACCESS_CONTROL_ALLOW_METHODS_HEADER), is(nullValue()));
     assertThat(response.getHeader(ACCESS_CONTROL_ALLOW_HEADERS_HEADER), is(nullValue()));
   }
 
-  @Test
   public void shouldAcceptCorsRequestOriginExactMatch() throws Exception {
     shouldAcceptCorsRequest(ORIGIN, ORIGIN);
   }
 
-  @Test
   public void shouldRejectCorsRequestOriginExactMatch() throws Exception {
     shouldRejectCorsRequest("foo.com", ORIGIN);
   }
 
-  @Test
   public void shouldAcceptCorsRequestOriginExactMatchOneOfList() throws Exception {
-    shouldAcceptCorsRequest(ORIGIN, "foo.com,wibble.com");
+    shouldAcceptCorsRequest(ORIGIN, "foo.com," + ORIGIN);
   }
 
-  @Test
   public void shouldRejectCorsRequestOriginExactMatchOenOfList() throws Exception {
     shouldRejectCorsRequest("foo.com", "wibble.com,blah.com");
   }
 
-  @Test
   public void shouldAcceptCorsRequestAcceptAll() throws Exception {
     shouldAcceptCorsRequest(ORIGIN, "*");
   }
 
-  @Test
   public void shouldAcceptCorsRequestWildcardMatch() throws Exception {
     shouldAcceptCorsRequest("foo.wibble.com", "*.wibble.com");
   }
 
-  @Test
   public void shouldRejectCorsRequestWildcardMatch() throws Exception {
     shouldRejectCorsRequest("foo.wibble.com", "*.blibble.com");
   }
 
-  @Test
   public void shouldAcceptCorsRequestWilcardMatchList() throws Exception {
     shouldAcceptCorsRequest("foo.wibble.com", "blah.com,*.wibble.com,foo.com");
   }
 
-  @Test
   public void shouldRejectCorsRequestWilcardMatchList() throws Exception {
     shouldRejectCorsRequest("foo.wibble.com", "blah.com,*.blibble.com,foo.com");
   }
 
-  @Test
   public void shouldAcceptPreflightRequestOriginExactMatchDefaultHeaders() throws Exception {
     shouldAcceptPreflightRequest(ORIGIN, ORIGIN, DEFAULT_ACCESS_CONTROL_ALLOW_HEADERS,
         DEFAULT_ACCESS_CONTROL_ALLOW_METHODS);
   }
 
-  @Test
   public void shouldRejectPreflightRequestOriginExactMatchDefaultHeaders() throws Exception {
     shouldRejectPreflightRequest(ORIGIN, "flibble.com");
   }
 
-  @Test
   public void shouldAcceptPreflightRequestOriginExactMatchSpecifiedHeaders() throws Exception {
-    config.put(KsqlRestConfig.ACCESS_CONTROL_ALLOW_HEADERS, "foo-header,bar-header");
     shouldAcceptPreflightRequest(ORIGIN, ORIGIN,
         "foo-header,bar-header",
         DEFAULT_ACCESS_CONTROL_ALLOW_METHODS);
   }
 
-  @Test
   public void shouldAcceptPreflightRequestOriginExactMatchSpecifiedMethods() throws Exception {
-    config.put(KsqlRestConfig.ACCESS_CONTROL_ALLOW_METHODS, "DELETE,PATCH");
     shouldAcceptPreflightRequest(ORIGIN, ORIGIN,
         DEFAULT_ACCESS_CONTROL_ALLOW_HEADERS,
         "DELETE,PATCH");
+  }
+
+  public void shouldCallAllCorsTests(Class<?> testClass) {
+    final List<Method> testMethods = Arrays.stream(CorsTest.class.getDeclaredMethods())
+        .filter(m -> Modifier.isPublic(m.getModifiers()))
+        .filter(m -> m.getName().startsWith("should"))
+        .collect(Collectors.toList());
+    for (final Method testMethod : testMethods) {
+      try {
+        final Method method = testClass.getDeclaredMethod(testMethod.getName());
+        assertThat("Test method " + method.getName() + " does not have test annotation",
+            method.getAnnotation(Test.class),
+            not(nullValue())
+        );
+      } catch (final NoSuchMethodException e) {
+        Assert.fail("Could not find a cors test method with name " + testMethod.getName());
+      }
+    }
   }
 
   private void shouldAcceptCorsRequest(final String origin, final String allowedOrigins)
       throws Exception {
 
     // Given:
-    config.put(KsqlRestConfig.ACCESS_CONTROL_ALLOW_ORIGIN_CONFIG, allowedOrigins);
-    init();
+    final WebClient client = clientSupplier.apply(
+        ImmutableMap.of(KsqlRestConfig.ACCESS_CONTROL_ALLOW_ORIGIN_CONFIG, allowedOrigins));
 
     // When
-    HttpResponse<Buffer> response = sendCorsRequest(HttpMethod.POST, origin);
+    HttpResponse<Buffer> response = sendCorsRequest(client, HttpMethod.POST, origin);
 
     // Then:
-    assertThat(response.statusCode(), is(200));
+    assertThat(response.statusCode(), is(successStatus));
     assertThat(response.getHeader(ACCESS_CONTROL_ALLOW_ORIGIN_HEADER),
         is(origin));
     assertThat(response.getHeader(ACCESS_CONTROL_ALLOW_CREDENTIALS_HEADER), is("true"));
@@ -213,11 +222,11 @@ public class CorsTest extends BaseApiTest {
       throws Exception {
 
     // Given:
-    config.put(KsqlRestConfig.ACCESS_CONTROL_ALLOW_ORIGIN_CONFIG, allowedOrigins);
-    init();
+    final WebClient client = clientSupplier.apply(
+        ImmutableMap.of(KsqlRestConfig.ACCESS_CONTROL_ALLOW_ORIGIN_CONFIG, allowedOrigins));
 
     // When
-    HttpResponse<Buffer> response = sendCorsRequest(HttpMethod.POST, origin);
+    HttpResponse<Buffer> response = sendCorsRequest(client, HttpMethod.POST, origin);
 
     // Then:
     assertThat(response.statusCode(), is(403));
@@ -227,11 +236,11 @@ public class CorsTest extends BaseApiTest {
       throws Exception {
 
     // Given:
-    config.put(KsqlRestConfig.ACCESS_CONTROL_ALLOW_ORIGIN_CONFIG, allowedOrigins);
-    init();
+    final WebClient client = clientSupplier.apply(
+        ImmutableMap.of(KsqlRestConfig.ACCESS_CONTROL_ALLOW_ORIGIN_CONFIG, allowedOrigins));
 
     // When:
-    HttpResponse<Buffer> response = sendCorsRequest(HttpMethod.OPTIONS,
+    HttpResponse<Buffer> response = sendCorsRequest(client, HttpMethod.OPTIONS,
         MultiMap.caseInsensitiveMultiMap().add("origin", origin)
             .add(ACCESS_CONTROL_REQUEST_METHOD_HEADER, "POST"));
 
@@ -243,15 +252,20 @@ public class CorsTest extends BaseApiTest {
       final String accessControlAllowHeaders, final String accessControlAllowMethods)
       throws Exception {
 
-    config.put(KsqlRestConfig.ACCESS_CONTROL_ALLOW_ORIGIN_CONFIG, allowedOrigins);
-    init();
+    final WebClient client = clientSupplier.apply(
+        ImmutableMap.of(
+            KsqlRestConfig.ACCESS_CONTROL_ALLOW_ORIGIN_CONFIG, allowedOrigins,
+            KsqlRestConfig.ACCESS_CONTROL_ALLOW_HEADERS, accessControlAllowHeaders,
+            KsqlRestConfig.ACCESS_CONTROL_ALLOW_METHODS, accessControlAllowMethods
+        )
+    );
 
     // Given
-    HttpResponse<Buffer> response = sendCorsRequest(HttpMethod.OPTIONS,
+    HttpResponse<Buffer> response = sendCorsRequest(client, HttpMethod.OPTIONS,
         MultiMap.caseInsensitiveMultiMap().add("origin", origin)
             .add(ACCESS_CONTROL_REQUEST_METHOD_HEADER, "POST"));
 
-    assertThat(response.statusCode(), is(200));
+    assertThat(response.statusCode(), is(204));
     assertThat(response.getHeader(ACCESS_CONTROL_ALLOW_ORIGIN_HEADER),
         is(origin));
     assertThat(response.getHeader(ACCESS_CONTROL_ALLOW_CREDENTIALS_HEADER), is("true"));
@@ -267,40 +281,43 @@ public class CorsTest extends BaseApiTest {
     assertThat(set1, is(set2));
   }
 
-  private void init() {
-    config.put(KsqlRestConfig.LISTENERS_CONFIG, "http://localhost:0");
-    KsqlRestConfig serverConfig = new KsqlRestConfig(config);
-    createServer(serverConfig);
-    this.client = createClient();
+  private HttpResponse<Buffer> sendCorsRequest(
+      final WebClient client,
+      final HttpMethod httpMethod,
+      final MultiMap headers
+  ) throws Exception {
+    return sendCorsRequest(client, httpMethod, URI, headers);
   }
 
-  private HttpResponse<Buffer> sendCorsRequest(final HttpMethod httpMethod, final MultiMap headers)
-      throws Exception {
-    return sendCorsRequest(httpMethod, URI, headers);
-  }
-
-  private HttpResponse<Buffer> sendCorsRequest(final HttpMethod httpMethod, final String uri,
+  private HttpResponse<Buffer> sendCorsRequest(
+      final WebClient client,
+      final HttpMethod httpMethod,
+      final String uri,
       final MultiMap headers)
       throws Exception {
     VertxCompletableFuture<HttpResponse<Buffer>> requestFuture = new VertxCompletableFuture<>();
     client
         .request(httpMethod, uri)
         .putHeaders(headers)
-        .sendJsonObject(new JsonObject().put("sql", DEFAULT_PULL_QUERY), requestFuture);
+       .sendJsonObject(new JsonObject().put("sql", DEFAULT_PULL_QUERY), requestFuture);
     return requestFuture.get();
   }
 
-  private HttpResponse<Buffer> sendCorsRequest(final HttpMethod httpMethod,
+  private HttpResponse<Buffer> sendCorsRequest(
+      final WebClient client,
+      final HttpMethod httpMethod,
       final String origin)
       throws Exception {
-    return sendCorsRequest(httpMethod, URI, origin);
+    return sendCorsRequest(client, httpMethod, URI, origin);
   }
 
-  private HttpResponse<Buffer> sendCorsRequest(final HttpMethod httpMethod,
+  private HttpResponse<Buffer> sendCorsRequest(
+      final WebClient client,
+      final HttpMethod httpMethod,
       final String uri,
       final String origin)
       throws Exception {
-    return sendCorsRequest(httpMethod, uri,
+    return sendCorsRequest(client, httpMethod, uri,
         MultiMap.caseInsensitiveMultiMap().add("origin", origin));
   }
   

@@ -17,6 +17,7 @@ package io.confluent.ksql.util;
 
 import io.vertx.core.Context;
 import io.vertx.core.Vertx;
+import io.vertx.core.impl.ContextInternal;
 
 /**
  * General purpose utils (not limited to the server, could be used by client too) for the API
@@ -40,7 +41,20 @@ public final class VertxUtils {
   }
 
   public static boolean isEventLoopAndSameContext(final Context context) {
-    return Context.isOnEventLoopThread() && context == Vertx.currentContext();
+    return Context.isOnEventLoopThread()
+        && (context == Vertx.currentContext()
+        || checkDuplicateContext(Vertx.currentContext(), context)
+        || checkDuplicateContext(context, Vertx.currentContext()));
+  }
+
+  private static boolean checkDuplicateContext(final Context context, final Context other) {
+    // see https://github.com/eclipse-vertx/vert.x/issues/3300 - the recommendation from
+    // the VertX community is to always call runOnContext() despite the performance overhead
+    // instead of checking the context. this hack allows us to keep the same pattern we had
+    // from before the VertX 4 migration
+    return context instanceof ContextInternal
+        && ((ContextInternal) context).isDuplicate()
+        && (((ContextInternal) context).unwrap() == other);
   }
 
 }

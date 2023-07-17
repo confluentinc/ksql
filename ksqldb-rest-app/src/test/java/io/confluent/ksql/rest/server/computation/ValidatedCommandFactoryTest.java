@@ -19,10 +19,13 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.engine.KsqlPlan;
@@ -32,7 +35,10 @@ import io.confluent.ksql.execution.ddl.commands.DropSourceCommand;
 import io.confluent.ksql.execution.ddl.commands.Executor;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
+import io.confluent.ksql.parser.tree.AlterSystemProperty;
 import io.confluent.ksql.parser.tree.CreateStream;
+import io.confluent.ksql.parser.tree.PauseQuery;
+import io.confluent.ksql.parser.tree.ResumeQuery;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.TerminateQuery;
 import io.confluent.ksql.planner.plan.ConfiguredKsqlPlan;
@@ -40,12 +46,19 @@ import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.util.TerminateCluster;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
+import io.confluent.ksql.util.BinPackedPersistentQueryMetadataImpl;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlServerException;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+
+import io.confluent.ksql.util.PersistentQueryMetadataImpl;
+import org.apache.kafka.common.config.ConfigException;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -66,7 +79,13 @@ public class ValidatedCommandFactoryTest {
   @Mock
   private ServiceContext serviceContext;
   @Mock
+  private PauseQuery pauseQuery;
+  @Mock
+  private ResumeQuery resumeQuery;
+  @Mock
   private TerminateQuery terminateQuery;
+  @Mock
+  private AlterSystemProperty alterSystemProperty;
   @Mock
   private CreateStream plannedQuery;
   @Mock
@@ -77,6 +96,8 @@ public class ValidatedCommandFactoryTest {
   private PersistentQueryMetadata query1;
   @Mock
   private PersistentQueryMetadata query2;
+  @Mock
+  private KsqlExecutionContext.ExecuteResult result;
 
   private ConfiguredStatement<? extends Statement> configuredStatement;
   private ValidatedCommandFactory commandFactory;
@@ -84,6 +105,9 @@ public class ValidatedCommandFactoryTest {
   @Before
   public void setup() {
     commandFactory = new ValidatedCommandFactory();
+    when(executionContext.getKsqlConfig()).thenReturn(config);
+    when(executionContext.execute(any(), any(ConfiguredKsqlPlan.class))).thenReturn(result);
+    when(result.getQuery()).thenReturn(Optional.empty());
   }
 
   @Test
@@ -102,6 +126,85 @@ public class ValidatedCommandFactoryTest {
   }
 
   @Test
+  public void shouldRaiseExceptionIfKeyDoesNotExistEditablePropertiesList() {
+    configuredStatement = configuredStatement("ALTER SYSTEM 'ksql.streams.upgrade.from'='TEST';" , alterSystemProperty);
+    when(alterSystemProperty.getPropertyName()).thenReturn("ksql.streams.upgrade.from");
+    when(alterSystemProperty.getPropertyValue()).thenReturn("TEST");
+    when(config.getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)).thenReturn(true);
+
+    assertThrows(ConfigException.class,
+        () -> commandFactory.create(configuredStatement, executionContext));
+  }
+
+  @Test
+  public void shouldNotRaiseExceptionIfKeyInEditablePropertiesList() {
+    configuredStatement = configuredStatement("ALTER SYSTEM 'ksql.streams.upgrade.from'='TEST';" , alterSystemProperty);
+    when(alterSystemProperty.getPropertyName()).thenReturn("ksql.streams.commit.interval.ms");
+    when(alterSystemProperty.getPropertyValue()).thenReturn("100");
+    when(config.getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)).thenReturn(true);
+
+    commandFactory.create(configuredStatement, executionContext);
+  }
+
+  @Test
+  public void shouldRaiseExceptionWhenFeatureFlagIsTurnedOff() {
+    configuredStatement = configuredStatement("ALTER SYSTEM 'ksql.streams.upgrade.from'='TEST';" , alterSystemProperty);
+    when(alterSystemProperty.getPropertyName()).thenReturn("ksql.streams.upgrade.from");
+    when(alterSystemProperty.getPropertyValue()).thenReturn("TEST");
+    when(config.getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)).thenReturn(false);
+
+    assertThrows(KsqlServerException.class,
+        () -> commandFactory.create(configuredStatement, executionContext));
+  }
+
+  @Test
+  public void shouldNotRaiseExceptionWhenPrefixIsAdded() {
+    configuredStatement = configuredStatement("ALTER SYSTEM 'TEST'='TEST';" , alterSystemProperty);
+    when(alterSystemProperty.getPropertyName()).thenReturn("TEST");
+    when(alterSystemProperty.getPropertyValue()).thenReturn("TEST");
+    when(config.getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)).thenReturn(true);
+
+    assertThrows(ConfigException.class,
+        () -> commandFactory.create(configuredStatement, executionContext));
+  }
+
+  @Test
+  public void shouldRaiseExceptionWhenQueryIsRunningAndProcessingGuranteeIsAttemptedToChange() {
+    configuredStatement = configuredStatement("ALTER SYSTEM 'processing.guarantee'='exactly_once';" , alterSystemProperty);
+    when(alterSystemProperty.getPropertyName()).thenReturn("processing.guarantee");
+    when(alterSystemProperty.getPropertyValue()).thenReturn("exactly_once");
+    when(config.getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)).thenReturn(true);
+
+    final List<PersistentQueryMetadata> persistentList = new ArrayList<>();
+    persistentList.add(query1);
+    when(executionContext.getPersistentQueries()).thenReturn(persistentList);
+
+    assertThrows(ConfigException.class,
+        () -> commandFactory.create(configuredStatement, executionContext));
+  }
+
+  @Test
+  public void shouldFailTerminateSourceTableQuery() {
+    // Given:
+    configuredStatement = configuredStatement("TERMINATE X", terminateQuery);
+    when(terminateQuery.getQueryId()).thenReturn(Optional.of(QUERY_ID));
+    when(executionContext.getPersistentQuery(QUERY_ID)).thenReturn(Optional.of(query1));
+    when(query1.getPersistentQueryType())
+        .thenReturn(KsqlConstants.PersistentQueryType.CREATE_SOURCE);
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlStatementException.class,
+        () -> commandFactory.create(configuredStatement, executionContext)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Cannot terminate query 'FOO' because it is linked to a source table"));
+    verify(query1, times(0)).close();
+  }
+
+  @Test
   public void shouldFailValidationForTerminateUnknownQuery() {
     // Given:
     configuredStatement = configuredStatement("TERMINATE X", terminateQuery);
@@ -117,6 +220,56 @@ public class ValidatedCommandFactoryTest {
     // Then:
     assertThat(e.getMessage(), containsString("Unknown queryId"));
 
+  }
+
+  @Test
+  public void shouldCreateCommandForPauseQuery() {
+    // Given:
+    givenPause();
+
+    // When:
+    final Command command = commandFactory.create(configuredStatement, executionContext);
+
+    // Then:
+    assertThat(command, is(Command.of(configuredStatement)));
+  }
+
+  @Test
+  public void shouldValidatePauseQuery() {
+    // Given:
+    givenPause();
+
+    // When:
+    commandFactory.create(configuredStatement, executionContext);
+
+    // Then:
+    verify(executionContext).getPersistentQuery(QUERY_ID);
+    verify(query1).pause();
+  }
+
+  @Test
+  public void shouldCreateCommandForResumeQuery() {
+    // Given:
+    givenResume();
+
+    // When:
+    final Command command = commandFactory.create(configuredStatement, executionContext);
+
+    // Then:
+    assertThat(command, is(Command.of(configuredStatement)));
+  }
+
+  @Test
+  public void shouldValidateResumeQuery() {
+    // Given:
+    givenResume();
+
+    // When:
+    commandFactory.create(configuredStatement, executionContext);
+
+    // Then:
+    verify(executionContext).getPersistentQuery(QUERY_ID);
+    verify(query1).resume();
   }
 
   @Test
@@ -198,6 +351,43 @@ public class ValidatedCommandFactoryTest {
   }
 
   @Test
+  public void shouldCreateCommandForPlannedQueryInSharedRuntime() {
+    // Given:
+    givenPlannedQuery();
+    BinPackedPersistentQueryMetadataImpl queryMetadata = mock(BinPackedPersistentQueryMetadataImpl.class);
+    when(executionContext.execute(any(), any(ConfiguredKsqlPlan.class))).thenReturn(result);
+    when(result.getQuery()).thenReturn(Optional.ofNullable(queryMetadata));
+
+    // When:
+    final Command command = commandFactory.create(configuredStatement, executionContext);
+
+    // Then:
+    assertThat(command, is(Command.of(ConfiguredKsqlPlan.of(A_PLAN, SessionConfig.of(config, overrides)))));
+
+  }
+
+  @Test
+  public void shouldCreateCommandForPlannedQueryInDedicatedRuntime() {
+    // Given:
+    givenPlannedQuery();
+    PersistentQueryMetadataImpl queryMetadata = mock(PersistentQueryMetadataImpl.class);
+    when(executionContext.execute(any(), any(ConfiguredKsqlPlan.class))).thenReturn(result);
+    when(result.getQuery()).thenReturn(Optional.ofNullable(queryMetadata));
+    when(config.getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)).thenReturn(true);
+
+    // When:
+    final Command command = commandFactory.create(configuredStatement, executionContext);
+
+    // Then:
+    assertThat(command,
+        is(Command.of(
+            ConfiguredKsqlPlan.of(
+                A_PLAN,
+                SessionConfig.of(config,
+                    ImmutableMap.of(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED, false))))));
+  }
+
+  @Test
   public void shouldThrowIfCommandCanNotBeDeserialized() {
     // Given:
     givenNonDeserializableCommand();
@@ -211,6 +401,18 @@ public class ValidatedCommandFactoryTest {
     // Then:
     assertThat(e.getMessage(), containsString("Did not write the command to the command topic "
         + "as it could not be deserialized."));
+  }
+
+  private void givenPause() {
+    configuredStatement = configuredStatement("PAUSE FOO", pauseQuery);
+    when(pauseQuery.getQueryId()).thenReturn(Optional.of(QUERY_ID));
+    when(executionContext.getPersistentQuery(any())).thenReturn(Optional.of(query1));
+  }
+
+  private void givenResume() {
+    configuredStatement = configuredStatement("RESUME FOO", resumeQuery);
+    when(resumeQuery.getQueryId()).thenReturn(Optional.of(QUERY_ID));
+    when(executionContext.getPersistentQuery(any())).thenReturn(Optional.of(query1));
   }
 
   private void givenTerminate() {

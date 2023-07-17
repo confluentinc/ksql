@@ -26,6 +26,7 @@ import io.confluent.ksql.rest.ApiJsonMapper;
 import io.confluent.ksql.rest.client.KsqlClient;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
+import io.confluent.ksql.util.ConsistencyOffsetVector;
 import java.math.BigDecimal;
 import java.util.Optional;
 import org.junit.Test;
@@ -47,6 +48,8 @@ public class StreamedRowTest {
       .valueColumn(ColumnName.of("VAL"), SqlTypes.STRING)
       .build();
 
+  private static final ConsistencyOffsetVector CONSISTENCY_TOKEN = ConsistencyOffsetVector.emptyVector();
+
   @Test
   public void shouldRoundTripPullHeader() throws Exception {
     final StreamedRow row = StreamedRow.header(QUERY_ID, PULL_SCHEMA);
@@ -55,6 +58,31 @@ public class StreamedRowTest {
         + "\"queryId\":\"theQueryId\","
         + "\"schema\":\"`ID` BIGINT KEY, `VAL` STRING\""
         + "}}";
+
+    testRoundTrip(row, expectedJson);
+  }
+
+  @Test
+  public void shouldRoundTripPullProtoHeader() throws Exception {
+    final String protoSchema =
+            "syntax = \"proto3\";\n" +
+            "\n" +
+            "message ConnectDefault1 {\n" +
+            "  int64 ID = 1;\n" +
+            "  string VAL = 2;\n" +
+            "}\n";
+    final StreamedRow row = StreamedRow.headerProtobuf(QUERY_ID, PULL_SCHEMA, protoSchema);
+
+    final String expectedJson = "{\"header\":" +
+            "{\"queryId\":\"theQueryId\"," +
+            "\"schema\":\"`ID` BIGINT KEY, `VAL` STRING\"," +
+            "\"protoSchema\":\"syntax = \\\"proto3\\\";\\n" +
+            "\\n" +
+            "message ConnectDefault1 {\\n" +
+            "  int64 ID = 1;\\n" +
+            "  string VAL = 2;\\n" +
+            "}\\n" +
+            "\"}}";
 
     testRoundTrip(row, expectedJson);
   }
@@ -172,6 +200,18 @@ public class StreamedRowTest {
     testRoundTrip(row, expectedJson);
   }
 
+  @Test
+  public void shouldRoundTripConsistencyVectorRow() throws Exception {
+    CONSISTENCY_TOKEN.withComponent("table1", 1, 1L).withComponent("table1", 2, 2L);
+    final StreamedRow row =
+        StreamedRow.consistencyToken(new ConsistencyToken(CONSISTENCY_TOKEN.serialize()));
+
+    final String expectedJson =
+        "{\"consistencyToken\":{\"consistencyToken\":\"eyJ2ZXJzaW9uIjowLCJvZmZzZXRWZWN0b3IiOnsidGFi"
+            + "bGUxIjp7IjEiOjEsIjIiOjJ9fX0=\"}}";
+
+    testRoundTrip(row, expectedJson);
+  }
 
   private static void testRoundTrip(
       final StreamedRow row,

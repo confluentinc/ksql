@@ -20,8 +20,9 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.confluent.ksql.test.TestFrameworkException;
 import io.confluent.ksql.test.model.TestFileContext;
-import io.confluent.ksql.test.tools.Test;
 import io.confluent.ksql.test.tools.TestJsonMapper;
+import io.confluent.ksql.tools.test.TestLoader;
+import io.confluent.ksql.tools.test.model.Test;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -67,9 +68,12 @@ public final class JsonTestLoader<T extends Test> implements TestLoader<T> {
         ? loadTestPathsFromDirectory()
         : getTestPathsFromWhiteList(whiteList);
 
+    final String testRegex = System.getProperty("ksql.functional.test.regex");
+
     final List<T> testCases = testPaths
         .stream()
         .flatMap(testPath -> buildTests(testPath, testFileType))
+        .filter(testCase -> testRegex == null || testCase.getName().matches(testRegex))
         .collect(Collectors.toList());
 
     throwOnDuplicateNames(testCases);

@@ -19,20 +19,17 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
 
-import io.confluent.ksql.GenericKey;
-import io.confluent.ksql.function.AggregateFunctionInitArguments;
-import io.confluent.ksql.function.KsqlAggregateFunction;
+import io.confluent.ksql.function.udaf.Udaf;
 import io.confluent.ksql.schema.ksql.SqlArgument;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.util.Collections;
-import org.apache.kafka.streams.kstream.Merger;
 import org.junit.Test;
 
 public class IntegerMinKudafTest {
 
   @Test
   public void shouldFindCorrectMin() {
-    final IntegerMinKudaf integerMinKudaf = getIntegerMinKudaf();
+    final MinKudaf<Integer> integerMinKudaf = getIntegerMinKudaf();
     final int[] values = new int[]{3, 5, 8, 2, 3, 4, 5};
     int currentMin = Integer.MAX_VALUE;
     for (final int i: values) {
@@ -43,7 +40,7 @@ public class IntegerMinKudafTest {
 
   @Test
   public void shouldHandleNull() {
-    final IntegerMinKudaf integerMinKudaf = getIntegerMinKudaf();
+    final MinKudaf<Integer> integerMinKudaf = getIntegerMinKudaf();
     final int[] values = new int[]{3, 5, 8, 2, 3, 4, 5};
     Integer currentMin = null;
 
@@ -64,23 +61,21 @@ public class IntegerMinKudafTest {
 
   @Test
   public void shouldFindCorrectMinForMerge() {
-    final IntegerMinKudaf integerMinKudaf = getIntegerMinKudaf();
-    final Merger<GenericKey, Integer> merger = integerMinKudaf.getMerger();
-    final Integer mergeResult1 = merger.apply(null, 10, 12);
+    final MinKudaf<Integer> integerMinKudaf = getIntegerMinKudaf();
+    final Integer mergeResult1 = integerMinKudaf.merge(10, 12);
     assertThat(mergeResult1, equalTo(10));
-    final Integer mergeResult2 = merger.apply(null, 10, -12);
+    final Integer mergeResult2 = integerMinKudaf.merge(10, -12);
     assertThat(mergeResult2, equalTo(-12));
-    final Integer mergeResult3 = merger.apply(null, -10, 0);
+    final Integer mergeResult3 = integerMinKudaf.merge(-10, 0);
     assertThat(mergeResult3, equalTo(-10));
-
   }
 
-
-  private IntegerMinKudaf getIntegerMinKudaf() {
-    final KsqlAggregateFunction aggregateFunction = new MinAggFunctionFactory()
-        .createAggregateFunction(Collections.singletonList(SqlArgument.of(SqlTypes.INTEGER)),
-            AggregateFunctionInitArguments.EMPTY_ARGS);
-    assertThat(aggregateFunction, instanceOf(IntegerMinKudaf.class));
-    return  (IntegerMinKudaf) aggregateFunction;
+  private MinKudaf<Integer> getIntegerMinKudaf() {
+    final Udaf<Integer, Integer, Integer> aggregateFunction = MinKudaf.createMinInt();
+    aggregateFunction.initializeTypeArguments(
+            Collections.singletonList(SqlArgument.of(SqlTypes.INTEGER))
+    );
+    assertThat(aggregateFunction, instanceOf(MinKudaf.class));
+    return  (MinKudaf<Integer>) aggregateFunction;
   }
 }

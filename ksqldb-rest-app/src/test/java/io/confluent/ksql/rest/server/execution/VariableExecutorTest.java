@@ -59,7 +59,7 @@ public class VariableExecutorTest {
         sessionProperties,
         engine.getEngine(),
         engine.getServiceContext()
-    );
+    ).getEntity();
     assertThat(response, is(Optional.empty()));
   }
 
@@ -69,7 +69,7 @@ public class VariableExecutorTest {
         sessionProperties,
         engine.getEngine(),
         engine.getServiceContext()
-    );
+    ).getEntity();
   }
 
   @Test
@@ -174,9 +174,11 @@ public class VariableExecutorTest {
       );
 
       // Then:
-      assertThat(e.getUnloggedMessage(), containsString(
-          String.format("mismatched input '%s'", invalidValue)));
       assertThat(e.getMessage(), containsString("line 1:13: Syntax error at line 1:13"));
+      assertThat(e.getUnloggedMessage(), containsString(
+          "Syntax Error\n"
+              + "Expecting STRING"));
+      assertThat(e.getSqlStatement(), containsString("DEFINE var1=" + invalidValue + ";"));
     }
   }
 }

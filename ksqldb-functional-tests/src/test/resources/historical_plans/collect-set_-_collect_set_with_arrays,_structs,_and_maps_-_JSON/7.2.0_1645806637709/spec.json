@@ -1,0 +1,229 @@
+{
+  "version" : "7.2.0",
+  "timestamp" : 1645806637709,
+  "path" : "query-validation-tests/collect-set.json",
+  "schemas" : {
+    "CTAS_OUTPUT_0.Aggregate.Project" : {
+      "schema" : "`ID` BIGINT KEY, `COLLECTED` ARRAY<ARRAY<STRUCT<`A` STRING, `M` MAP<STRING, DOUBLE>>>>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CTAS_OUTPUT_0.Aggregate.GroupBy" : {
+      "schema" : "`ID` BIGINT KEY, `ID` BIGINT, `F0` ARRAY<STRUCT<`A` STRING, `M` MAP<STRING, DOUBLE>>>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CTAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`ID` BIGINT KEY, `F0` ARRAY<STRUCT<`A` STRING, `M` MAP<STRING, DOUBLE>>>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CTAS_OUTPUT_0.Aggregate.Aggregate.Materialize" : {
+      "schema" : "`ID` BIGINT KEY, `ID` BIGINT, `F0` ARRAY<STRUCT<`A` STRING, `M` MAP<STRING, DOUBLE>>>, `KSQL_AGG_VARIABLE_0` ARRAY<ARRAY<STRUCT<`A` STRING, `M` MAP<STRING, DOUBLE>>>>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CTAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ID` BIGINT KEY, `COLLECTED` ARRAY<ARRAY<STRUCT<`A` STRING, `M` MAP<STRING, DOUBLE>>>>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "collect_set with arrays, structs, and maps - JSON",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : 0,
+      "value" : {
+        "F0" : [ {
+          "A" : "Early0",
+          "M" : {
+            "Early0" : 1.234
+          }
+        }, {
+          "A" : "Early2",
+          "M" : {
+            "Early2" : 1.23456
+          }
+        } ]
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : 0,
+      "value" : {
+        "F0" : [ {
+          "A" : "Early1",
+          "M" : {
+            "Early0" : 2.345
+          }
+        } ]
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : 1,
+      "value" : {
+        "F0" : [ {
+          "A" : "Later0",
+          "M" : {
+            "Early0" : 3.45
+          }
+        } ]
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : 1,
+      "value" : {
+        "F0" : [ {
+          "A" : "Later0",
+          "M" : {
+            "Early0" : 3.45
+          }
+        } ]
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : 0,
+      "value" : {
+        "COLLECTED" : [ [ {
+          "A" : "Early0",
+          "M" : {
+            "Early0" : 1.234
+          }
+        }, {
+          "A" : "Early2",
+          "M" : {
+            "Early2" : 1.23456
+          }
+        } ] ]
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : 0,
+      "value" : {
+        "COLLECTED" : [ [ {
+          "A" : "Early0",
+          "M" : {
+            "Early0" : 1.234
+          }
+        }, {
+          "A" : "Early2",
+          "M" : {
+            "Early2" : 1.23456
+          }
+        } ], [ {
+          "A" : "Early1",
+          "M" : {
+            "Early0" : 2.345
+          }
+        } ] ]
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : 1,
+      "value" : {
+        "COLLECTED" : [ [ {
+          "A" : "Later0",
+          "M" : {
+            "Early0" : 3.45
+          }
+        } ] ]
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : 1,
+      "value" : {
+        "COLLECTED" : [ [ {
+          "A" : "Later0",
+          "M" : {
+            "Early0" : 3.45
+          }
+        } ] ]
+      }
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM INPUT (ID BIGINT KEY, F0 ARRAY<STRUCT<A VARCHAR, M MAP<STRING, DOUBLE>>>) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE TABLE OUTPUT AS SELECT ID, collect_set(F0) AS COLLECTED FROM INPUT GROUP BY ID;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`ID` BIGINT KEY, `F0` ARRAY<STRUCT<`A` STRING, `M` MAP<STRING, DOUBLE>>>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "OUTPUT",
+        "type" : "TABLE",
+        "schema" : "`ID` BIGINT KEY, `COLLECTED` ARRAY<ARRAY<STRUCT<`A` STRING, `M` MAP<STRING, DOUBLE>>>>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          }
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

@@ -18,6 +18,7 @@ package io.confluent.ksql.logging.processing;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.Collection;
+import java.util.Map;
 
 /**
  * An implementation of {@code ProcessingLogContext} that does nothing.
@@ -26,19 +27,45 @@ public final class NoopProcessingLogContext implements ProcessingLogContext {
 
   private static final ProcessingLogConfig NOOP_CONFIG = new ProcessingLogConfig(ImmutableMap.of());
 
-  public static final ProcessingLogger NOOP_LOGGER = msgFactory -> { };
-
-  private static final ProcessingLoggerFactory NOOP_FACTORY = new ProcessingLoggerFactory() {
+  public static final ProcessingLogger NOOP_LOGGER = new ProcessingLogger() {
     @Override
-    public ProcessingLogger getLogger(final String name) {
-      return NOOP_LOGGER;
+    public void error(final ErrorMessage errorMessage) {
+      // no-op
     }
 
     @Override
-    public Collection<String> getLoggers() {
-      return ImmutableList.of();
+    public void close() {
+      // no-op
     }
   };
+
+  private static final ProcessingLoggerFactory NOOP_FACTORY =
+      new ProcessingLoggerFactory() {
+        @Override
+        public ProcessingLogger getLogger(
+            final String name,
+            final Map<String, String> additionalTags
+        ) {
+          return NOOP_LOGGER;
+        }
+
+        @Override
+        public ProcessingLogger getLogger(
+            final String name
+        ) {
+          return NOOP_LOGGER;
+        }
+
+        @Override
+        public Collection<ProcessingLogger> getLoggers() {
+          return ImmutableList.of();
+        }
+
+        @Override
+        public Collection<ProcessingLogger> getLoggersWithPrefix(final String substr) {
+          return ImmutableList.of();
+        }
+      };
 
   public static final ProcessingLogContext INSTANCE = new NoopProcessingLogContext();
 

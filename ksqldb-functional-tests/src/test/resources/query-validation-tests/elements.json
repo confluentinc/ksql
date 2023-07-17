@@ -15,7 +15,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlException",
-        "message": "The statement does not define any columns."
+        "message": "No columns supplied."
       }
     },
     {
@@ -38,6 +38,103 @@
       ],
       "inputs": [{"topic": "input", "value": {"c1": 4}}],
       "outputs": [{"topic": "OUTPUT", "value": {"C1": 4}}]
+    },
+    {
+      "name": "validate schema id without elements OK - AVRO",
+      "statements": [
+        "CREATE STREAM INPUT WITH (kafka_topic='input', value_format='AvRo', value_schema_id=1);",
+        "CREATE STREAM OUTPUT WITH(PARTITIONS = 4) as SELECT * FROM input;"
+      ],
+      "topics": [
+        {
+          "name": "input",
+          "valueSchema": {"name": "blah", "type": "record", "fields": [{"name": "c1", "type": "int"}]},
+          "valueFormat": "AVRO"
+        },
+        {
+          "name": "OUTPUT",
+          "valueFormat": "AVRO",
+          "partitions": 4
+        }
+      ],
+      "inputs": [{"topic": "input", "value": {"c1": 4}}],
+      "outputs": [{"topic": "OUTPUT", "value": {"c1": 4}}]
+    },
+    {
+      "name": "validate key schema id wrong format without elements FAILS",
+      "statements": [
+        "CREATE STREAM INPUT WITH (kafka_topic='input', key_format='kafka', value_format='protobuf', key_schema_id=1);"
+      ],
+      "topics": [
+        {
+          "name": "input",
+          "valueSchema": "syntax = \"proto3\"; message ConnectDefault1 { int32 c1 = 1; }",
+          "valueFormat": "PROTOBUF",
+          "keySchema": "syntax = \"proto3\"; message ConnectDefault1 { int32 c0 = 1; }",
+          "keyFormat": "PROTOBUF"
+        }
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlException",
+        "message": "KEY_FORMAT should support schema inference when KEY_SCHEMA_ID is provided. Current format is KAFKA."
+      }
+    },
+    {
+      "name": "validate value schema id wrong format without elements FAILS",
+      "statements": [
+        "CREATE STREAM INPUT WITH (kafka_topic='input', key_format='protobuf', value_format='kafka', value_schema_id=1);"
+      ],
+      "topics": [
+        {
+          "name": "input",
+          "valueSchema": "syntax = \"proto3\"; message ConnectDefault1 { int32 c1 = 1; }",
+          "valueFormat": "PROTOBUF",
+          "keySchema": "syntax = \"proto3\"; message ConnectDefault1 { int32 c0 = 1; }",
+          "keyFormat": "PROTOBUF"
+        }
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlException",
+        "message": "VALUE_FORMAT should support schema inference when VALUE_SCHEMA_ID is provided. Current format is KAFKA."
+      }
+    },
+    {
+      "name": "validate key schema id with table elements FAILS",
+      "statements": [
+        "CREATE STREAM INPUT (`c3` INT KEY) WITH (kafka_topic='input', key_format='protobuf', value_format='protobuf', key_schema_id=1);"
+      ],
+      "topics": [
+        {
+          "name": "input",
+          "valueSchema": "syntax = \"proto3\"; message ConnectDefault1 { int32 c1 = 1; int32 c2 = 2;}",
+          "valueFormat": "PROTOBUF",
+          "keySchema": "syntax = \"proto3\"; message ConnectDefault1 { int32 c0 = 1; }",
+          "keyFormat": "PROTOBUF"
+        }
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlException",
+        "message": "Table elements and KEY_SCHEMA_ID cannot both exist for create statement."
+      }
+    },
+    {
+      "name": "validate value schema id with table elements FAILS",
+      "statements": [
+        "CREATE STREAM INPUT (`c1` INT, `c2` INT) WITH (kafka_topic='input', key_format='protobuf', value_format='protobuf', value_schema_id=2);"
+      ],
+      "topics": [
+        {
+          "name": "input",
+          "valueSchema": "syntax = \"proto3\"; message ConnectDefault1 { int32 c1 = 1;}",
+          "valueFormat": "PROTOBUF",
+          "keySchema": "syntax = \"proto3\"; message ConnectDefault1 { int32 c0 = 1; }",
+          "keyFormat": "PROTOBUF"
+        }
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlException",
+        "message": "Table elements and VALUE_SCHEMA_ID cannot both exist for create statement."
+      }
     },
     {
       "name": "validate unwrapped value without elements OK - AVRO",
@@ -74,6 +171,69 @@
       "outputs": [{"topic": "OUTPUT", "value": {"C1": 4}}]
     },
     {
+      "name": "validate without elements with non-default schema name OK - PROTOBUF",
+      "statements": [
+        "CREATE STREAM INPUT WITH (kafka_topic='input', value_format='PROTOBUF');",
+        "CREATE STREAM OUTPUT WITH(PARTITIONS = 4) as SELECT * FROM input;"
+      ],
+      "topics": [
+        {
+          "name": "input",
+          "valueSchema": "syntax = \"proto3\"; message ValueName { int32 c1 = 1; }",
+          "valueFormat": "PROTOBUF"
+        },
+        {
+          "name": "OUTPUT",
+          "valueFormat": "PROTOBUF",
+          "partitions": 4
+        }
+      ],
+      "inputs": [{"topic": "input", "value": {"c1": 4}}],
+      "outputs": [{"topic": "OUTPUT", "value": {"C1": 4}}]
+    },
+    {
+      "name": "validate schema id without elements OK - PROTOBUF",
+      "statements": [
+        "CREATE STREAM INPUT WITH (kafka_topic='input', value_format='PROTOBUF', value_schema_id=1);",
+        "CREATE STREAM OUTPUT WITH(PARTITIONS = 4) as SELECT * FROM input;"
+      ],
+      "topics": [
+        {
+          "name": "input",
+          "valueSchema": "syntax = \"proto3\"; message ConnectDefault1 { int32 c1 = 1; }",
+          "valueFormat": "PROTOBUF"
+        },
+        {
+          "name": "OUTPUT",
+          "valueFormat": "PROTOBUF",
+          "partitions": 4
+        }
+      ],
+      "inputs": [{"topic": "input", "value": {"c1": 4}}],
+      "outputs": [{"topic": "OUTPUT", "value": {"c1": 4}}]
+    },
+    {
+      "name": "validate schema id without elements with non-default schema name OK - PROTOBUF",
+      "statements": [
+        "CREATE STREAM INPUT WITH (kafka_topic='input', value_format='PROTOBUF', value_schema_id=1);",
+        "CREATE STREAM OUTPUT WITH(PARTITIONS = 4) as SELECT * FROM input;"
+      ],
+      "topics": [
+        {
+          "name": "input",
+          "valueSchema": "syntax = \"proto3\"; message ValueName { int32 c1 = 1; }",
+          "valueFormat": "PROTOBUF"
+        },
+        {
+          "name": "OUTPUT",
+          "valueFormat": "PROTOBUF",
+          "partitions": 4
+        }
+      ],
+      "inputs": [{"topic": "input", "value": {"c1": 4}}],
+      "outputs": [{"topic": "OUTPUT", "value": {"c1": 4}}]
+    },
+    {
       "name": "validate without elements OK - JSON_SR SCHEMA",
       "statements": [
         "CREATE STREAM INPUT WITH (kafka_topic='input', value_format='JSON_SR');",
@@ -93,6 +253,27 @@
       ],
       "inputs": [{"topic": "input", "value": {"c1": 4}}],
       "outputs": [{"topic": "OUTPUT", "value": {"C1": 4}}]
+    },
+    {
+      "name": "validate schema id without elements OK - JSON_SR SCHEMA",
+      "statements": [
+        "CREATE STREAM INPUT WITH (kafka_topic='input', value_format='JSON_SR', value_schema_id=1);",
+        "CREATE STREAM OUTPUT WITH(PARTITIONS = 4) as SELECT * FROM input;"
+      ],
+      "topics": [
+        {
+          "name": "input",
+          "valueSchema": {"type": "object","properties": {"c1": {"type": "integer"}}},
+          "valueFormat": "JSON"
+        },
+        {
+          "name": "OUTPUT",
+          "valueFormat": "JSON",
+          "partitions": 4
+        }
+      ],
+      "inputs": [{"topic": "input", "value": {"c1": 4}}],
+      "outputs": [{"topic": "OUTPUT", "value": {"c1": 4}}]
     },
     {
       "name": "with invalid or reserved words in schema - JSON",
@@ -144,6 +325,58 @@
       }
     },
     {
+      "name": "validate schema id without value elements OK - AVRO",
+      "statements": [
+        "CREATE STREAM INPUT (rowkey int key) WITH (kafka_topic='input', value_format='AvRo', value_schema_id=1);",
+        "CREATE STREAM OUTPUT AS SELECT * FROM input;"
+      ],
+      "topics": [
+        {
+          "name": "input",
+          "valueSchema": {"name": "blah", "type": "record", "fields": [{"name": "c1", "type": "int"}]},
+          "valueFormat": "AVRO"
+        },
+        {
+          "name": "OUTPUT",
+          "valueFormat": "AVRO"
+        }
+      ],
+      "inputs": [{"topic": "input", "key": 42, "value": {"c1": 4}}],
+      "outputs": [{"topic": "OUTPUT", "key": 42, "value": {"c1": 4}}],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "ROWKEY INT KEY, `c1` INT"}
+        ]
+      }
+    },
+    {
+      "name": "validate schema id without key value elements OK - AVRO",
+      "statements": [
+        "CREATE STREAM INPUT WITH (kafka_topic='input', key_format='avro', value_format='AvRo', key_schema_id=1, value_schema_id=2);",
+        "CREATE STREAM OUTPUT AS SELECT * FROM input;"
+      ],
+      "topics": [
+        {
+          "name": "input",
+          "keySchema": {"type": "int"},
+          "keyFormat": "AVRO",
+          "valueSchema": {"name": "blah", "type": "record", "fields": [{"name": "c1", "type": "int"}]},
+          "valueFormat": "AVRO"
+        },
+        {
+          "name": "OUTPUT",
+          "valueFormat": "AVRO"
+        }
+      ],
+      "inputs": [{"topic": "input", "key": 42, "value": {"c1": 4}}],
+      "outputs": [{"topic": "OUTPUT", "key": 42, "value": {"c1": 4}}],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "ROWKEY INT KEY, `c1` INT"}
+        ]
+      }
+    },
+    {
       "name": "validate without value elements OK - PROTOBUF",
       "statements": [
         "CREATE STREAM INPUT (rowkey int key) WITH (kafka_topic='input', value_format='PROTOBUF');",
@@ -165,6 +398,87 @@
       "post": {
         "sources": [
           {"name": "OUTPUT", "type": "stream", "schema": "ROWKEY INT KEY, `C1` INT"}
+        ]
+      }
+    },
+    {
+      "name": "validate schema id without value elements OK - PROTOBUF",
+      "statements": [
+        "CREATE STREAM INPUT (rowkey int key) WITH (kafka_topic='input', value_format='PROTOBUF', value_schema_id=1);",
+        "CREATE STREAM OUTPUT AS SELECT * FROM input;"
+      ],
+      "topics": [
+        {
+          "name": "input",
+          "valueSchema": "syntax = \"proto3\"; message ConnectDefault1 { int32 c1 = 1; }",
+          "valueFormat": "PROTOBUF"
+        },
+        {
+          "name": "OUTPUT",
+          "valueFormat": "PROTOBUF"
+        }
+      ],
+      "inputs": [{"topic": "input", "key": 42, "value": {"c1": 4}}],
+      "outputs": [{"topic": "OUTPUT", "key": 42, "value": {"c1": 4}}],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "ROWKEY INT KEY, `c1` INT"}
+        ]
+      }
+    },
+    {
+      "name": "validate schema id without key value elements OK - PROTOBUF",
+      "statements": [
+        "CREATE STREAM INPUT WITH (kafka_topic='input', format='PROTOBUF', key_schema_id=1, value_schema_id=2);",
+        "CREATE STREAM OUTPUT AS SELECT * FROM input;"
+      ],
+      "topics": [
+        {
+          "name": "input",
+          "valueSchema": "syntax = \"proto3\"; message ConnectDefault1 { int32 c1 = 1; }",
+          "valueFormat": "PROTOBUF",
+          "keySchema": "syntax = \"proto3\"; message ConnectDefault1 { int32 c0 = 1; }",
+          "keyFormat": "PROTOBUF"
+        },
+        {
+          "name": "OUTPUT",
+          "valueFormat": "PROTOBUF",
+          "keyFormat": "PROTOBUF"
+        }
+      ],
+      "inputs": [{"topic": "input", "key": {"c0": 42}, "value": {"c1": 4}}],
+      "outputs": [{"topic": "OUTPUT", "key": {"c0": 42}, "value": {"c1": 4}}],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "`c0` INT KEY, `c1` INT"}
+        ]
+      }
+    },
+    {
+      "name": "validate schema id and schema full name from multiple schema definitions OK - PROTOBUF",
+      "statements": [
+        "CREATE STREAM INPUT WITH (kafka_topic='input', format='PROTOBUF', key_schema_id=1, key_schema_full_name='KeySchema2', value_schema_id=2, value_schema_full_name='ValueSchema2');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM input;"
+      ],
+      "topics": [
+        {
+          "name": "input",
+          "valueSchema": "syntax = \"proto3\"; message ValueSchema1 { int32 C0 = 1; } message ValueSchema2 { int32 C1 = 1; }",
+          "valueFormat": "PROTOBUF",
+          "keySchema": "syntax = \"proto3\"; message KeySchema1 { int32 K0 = 1; } message KeySchema2 { int32 K1 = 1; }",
+          "keyFormat": "PROTOBUF"
+        },
+        {
+          "name": "OUTPUT",
+          "valueFormat": "PROTOBUF",
+          "keyFormat": "PROTOBUF"
+        }
+      ],
+      "inputs": [{"topic": "input", "key": {"k1": 42}, "value": {"c1": 4}}],
+      "outputs": [{"topic": "OUTPUT", "key": {"k1": 42}, "value": {"c1": 4}}],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "`K1` INT KEY, `C1` INT"}
         ]
       }
     },
@@ -194,6 +508,59 @@
       }
     },
     {
+      "name": "validate schema id without value elements OK - JSON_SR SCHEMA",
+      "statements": [
+        "CREATE STREAM INPUT (rowkey int key) WITH (kafka_topic='input', value_format='JSON_SR', value_schema_id=1);",
+        "CREATE STREAM OUTPUT AS SELECT * FROM input;"
+      ],
+      "topics": [
+        {
+          "name": "input",
+          "valueSchema": {"type": "object","properties": {"c1": {"type": "integer"}}},
+          "valueFormat": "JSON_SR"
+        },
+        {
+          "name": "OUTPUT",
+          "valueFormat": "JSON"
+        }
+      ],
+      "inputs": [{"topic": "input", "key": 42, "value": {"c1": 4}}],
+      "outputs": [{"topic": "OUTPUT", "key": 42, "value": {"c1": 4}}],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "ROWKEY INT KEY, `c1` BIGINT"}
+        ]
+      }
+    },
+    {
+      "name": "validate schema id without key value elements OK - JSON_SR SCHEMA",
+      "statements": [
+        "CREATE STREAM INPUT WITH (kafka_topic='input', format='JSON_SR', key_schema_id=1, value_schema_id=2);",
+        "CREATE STREAM OUTPUT AS SELECT * FROM input;"
+      ],
+      "topics": [
+        {
+          "name": "input",
+          "valueSchema": {"type": "object","properties": {"c1": {"type": "integer"}}},
+          "valueFormat": "JSON_SR",
+          "keySchema": {"oneOf":[{"type":"null"},{"type":"integer","connect.type":"int32"}]},
+          "keyFormat": "JSON_SR"
+        },
+        {
+          "name": "OUTPUT",
+          "valueFormat": "JSON",
+          "keyFormat": "JSON"
+        }
+      ],
+      "inputs": [{"topic": "input", "key": 42, "value": {"c1": 4}}],
+      "outputs": [{"topic": "OUTPUT", "key": 42, "value": {"c1": 4}}],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "ROWKEY INT KEY, `c1` BIGINT"}
+        ]
+      }
+    },
+    {
       "name": "validate without value elements OK - custom key name",
       "statements": [
         "CREATE STREAM INPUT (id int key) WITH (kafka_topic='input', value_format='JSON_SR');",
@@ -215,6 +582,31 @@
       "post": {
         "sources": [
           {"name": "OUTPUT", "type": "stream", "schema": "ID INT KEY, C1 BIGINT"}
+        ]
+      }
+    },
+    {
+      "name": "validate schema id without value elements OK - custom key name",
+      "statements": [
+        "CREATE STREAM INPUT (id int key) WITH (kafka_topic='input', value_format='JSON_SR', value_schema_id=1);",
+        "CREATE STREAM OUTPUT AS SELECT * FROM input;"
+      ],
+      "topics": [
+        {
+          "name": "input",
+          "valueSchema": {"type": "object", "properties": {"c1": {"type": "integer"}}},
+          "valueFormat": "JSON"
+        },
+        {
+          "name": "OUTPUT",
+          "valueFormat": "JSON"
+        }
+      ],
+      "inputs": [{"topic": "input", "key": 42, "value": {"c1": 4}}],
+      "outputs": [{"topic": "OUTPUT", "key": 42, "value": {"c1": 4}}],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "ID INT KEY, `c1` BIGINT"}
         ]
       }
     },
@@ -720,7 +1112,7 @@
         "CREATE STREAM OUTPUT as SELECT K, unknown FROM INPUT;"
       ],
       "expectedException": {
-        "type": "io.confluent.ksql.util.KsqlException",
+        "type": "io.confluent.ksql.util.KsqlStatementException",
         "message": "SELECT column 'UNKNOWN' cannot be resolved."
       }
     },
@@ -732,7 +1124,7 @@
         "CREATE STREAM OUTPUT as SELECT I1.K, unknown FROM INPUT_1 i1 JOIN INPUT_2 i2 WITHIN 10 SECONDS ON i1.K = i2.K;"
       ],
       "expectedException": {
-        "type": "io.confluent.ksql.util.KsqlException",
+        "type": "io.confluent.ksql.util.KsqlStatementException",
         "message": "SELECT column 'UNKNOWN' cannot be resolved"
       }
     },
@@ -862,7 +1254,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlException",
-        "message": "Tables require a PRIMARY KEY. Please define the PRIMARY KEY.\nUse a partial schema to define the primary key and still load the value columns from the Schema Registry, for example:\n\tCREATE TABLE INPUT (ID INT PRIMARY KEY) WITH (...);"
+        "message": "Tables require a PRIMARY KEY. Please define the PRIMARY KEY."
       }
     },
     {
@@ -894,6 +1286,179 @@
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
         "message": "Windowed sources require a key column."
+      }
+    },
+    {
+      "name": "validate same schema schema id in csas OK - AVRO",
+      "statements": [
+        "CREATE STREAM INPUT (`id` INT KEY, `c1` INT) WITH (kafka_topic='input', value_format='avro', partitions=1);",
+        "CREATE STREAM OUTPUT WITH(value_schema_id=2, PARTITIONS = 4) as SELECT * FROM input;"
+      ],
+      "topics": [
+        {
+          "name": "OUTPUT",
+          "valueSchema": {"name": "blah", "type": "record", "fields": [{"name": "c1", "type": "int"}]},
+          "valueFormat": "AVRO",
+          "partitions": 4
+        }
+      ],
+      "inputs": [{"topic": "input", "key": 42, "value": {"c1": 4}}],
+      "outputs": [{"topic": "OUTPUT", "key": 42, "value": {"c1": 4}}],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "`id` INT KEY, `c1` INT"}
+        ]
+      }
+    },
+    {
+      "name": "validate extra required field schema schema id in csas FAILS - AVRO",
+      "statements": [
+        "CREATE STREAM INPUT (`id` INT KEY, `c1` INT) WITH (kafka_topic='input', value_format='avro', partitions=1);",
+        "CREATE STREAM OUTPUT WITH(value_schema_id=2, PARTITIONS = 4) as SELECT * FROM input;"
+      ],
+      "topics": [
+        {
+          "name": "OUTPUT",
+          "valueSchema": {"name": "blah", "type": "record", "fields": [{"name": "c1", "type": "int"}, {"name":  "c2", "type":  "double"}]},
+          "valueFormat": "AVRO",
+          "partitions": 4
+        }
+      ],
+      "inputs": [{"topic": "input", "key": 42, "value": {"c1": 4}}],
+      "outputs": [{"topic": "OUTPUT", "key": 42, "value": {"c1": 4}}],
+      "expectedException": {
+        "type": "org.apache.kafka.streams.errors.StreamsException",
+        "message": "Unable to serialize record. ProducerRecord(topic=[OUTPUT], partition=[null], timestamp=[0]"
+      }
+    },
+    {
+      "name": "validate incompatible type schema id in csas FAILS - AVRO",
+      "statements": [
+        "CREATE STREAM INPUT (`id` INT KEY, `c1` INT) WITH (kafka_topic='input', value_format='avro', partitions=1);",
+        "CREATE STREAM OUTPUT WITH(value_schema_id=2, PARTITIONS = 4) as SELECT * FROM input;"
+      ],
+      "topics": [
+        {
+          "name": "OUTPUT",
+          "valueSchema": {"name": "blah", "type": "record", "fields": [{"name": "c1", "type": "string"}, {"name":  "c2", "type":  "double"}]},
+          "valueFormat": "AVRO",
+          "partitions": 4
+        }
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "The following value columns are changed, missing or reordered: [`c1` INTEGER]. Schema from schema registry is [`c1` STRING, `c2` DOUBLE]"
+      }
+    },
+    {
+      "name": "validate reordered field schema id in csas FAILS - AVRO",
+      "statements": [
+        "CREATE STREAM INPUT (`id` INT KEY, `c1` INT) WITH (kafka_topic='input', value_format='avro', partitions=1);",
+        "CREATE STREAM OUTPUT WITH(value_schema_id=2, PARTITIONS = 4) as SELECT * FROM input;"
+      ],
+      "topics": [
+        {
+          "name": "OUTPUT",
+          "valueSchema": {"name": "blah", "type": "record", "fields": [{"name": "c2", "type": "double"}, {"name":  "c1", "type":  "int"}]},
+          "valueFormat": "AVRO",
+          "partitions": 4
+        }
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "The following value columns are changed, missing or reordered: [`c1` INTEGER]. Schema from schema registry is [`c2` DOUBLE, `c1` INTEGER]"
+      }
+    },
+    {
+      "name": "validate extra optional field schema schema id in csas OK - AVRO",
+      "statements": [
+        "CREATE STREAM INPUT (`id` INT KEY, `c1` INT) WITH (kafka_topic='input', value_format='avro', partitions=1);",
+        "CREATE STREAM OUTPUT WITH(value_schema_id=2, PARTITIONS = 4) as SELECT * FROM input;"
+      ],
+      "topics": [
+        {
+          "name": "OUTPUT",
+          "valueSchema": {"name": "blah", "type": "record", "fields": [{"name": "c1", "type": "int"}, {"name":  "c2", "type":  ["null","int"], "default": null}]},
+          "valueFormat": "AVRO",
+          "partitions": 4
+        }
+      ],
+      "inputs": [{"topic": "input", "key": 42, "value": {"c1": 4}}],
+      "outputs": [{"topic": "OUTPUT", "key": 42, "value": {"c1": 4, "c2": null}}],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "`id` INT KEY, `c1` INT"}
+        ]
+      }
+    },
+    {
+      "name": "validate extra field with default value schema schema id in csas OK - AVRO",
+      "statements": [
+        "CREATE STREAM INPUT (`id` INT KEY, `c1` INT) WITH (kafka_topic='input', value_format='avro', partitions=1);",
+        "CREATE STREAM OUTPUT WITH(value_schema_id=2, PARTITIONS = 4) as SELECT * FROM input;"
+      ],
+      "topics": [
+        {
+          "name": "OUTPUT",
+          "valueFormat": "AVRO",
+          "valueSchema": {"name": "blah", "type": "record", "fields": [{"name": "c1", "type": "int"}, {"name":  "c2", "type": "int", "default": 100}]},
+          "partitions": 4
+        }
+      ],
+      "inputs": [{"topic": "input", "key": 42, "value": {"c1": 4}}],
+      "outputs": [{"topic": "OUTPUT", "key": 42, "value": {"c1": 4, "c2": 100}}],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "`id` INT KEY, `c1` INT"}
+        ]
+      }
+    },
+    {
+      "name": "validate extra optional field with schema schema id in csas OK - PROTOBUF",
+      "statements": [
+        "CREATE STREAM INPUT (`id` INT KEY, `c1` INT) WITH (kafka_topic='input', value_format='avro', partitions=1);",
+        "CREATE STREAM OUTPUT WITH(key_schema_id=2, key_format='protobuf', value_format='protobuf', value_schema_id=3, PARTITIONS = 4) as SELECT * FROM input;"
+      ],
+      "topics": [
+        {
+          "name": "OUTPUT",
+          "valueSchema": "syntax = \"proto3\"; message ConnectDefault1 { int32 c1 = 1; string c2 = 2; }",
+          "valueFormat": "PROTOBUF",
+          "keySchema": "syntax = \"proto3\"; message ConnectDefault1 { int32 id = 1; }",
+          "keyFormat": "PROTOBUF",
+          "partitions": 4
+        }
+      ],
+      "inputs": [{"topic": "input", "key": 42, "value": {"c1": 4}}],
+      "outputs": [{"topic": "OUTPUT", "key": {"id": 42}, "value": {"c1": 4, "c2": ""}}],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "`id` INT KEY, `c1` INT"}
+        ]
+      }
+    },
+        {
+      "name": "validate extra optional field with schema schema id in csas OK - JSON_SR",
+      "statements": [
+        "CREATE STREAM INPUT (`ROWKEY` struct<`id` BIGINT> KEY, `c1` BIGINT) WITH (key_format='avro', kafka_topic='input', value_format='avro', partitions=1);",
+        "CREATE STREAM OUTPUT WITH(key_schema_id=3, key_format='json_sr', value_format='json_sr', value_schema_id=4, PARTITIONS = 4) as SELECT * FROM input;"
+      ],
+      "topics": [
+        {
+          "name": "OUTPUT",
+          "valueSchema": {"type": "object","properties": {"c1": {"type": "integer"}, "c2":  {"type": "string"}}},
+          "valueFormat": "JSON",
+          "keySchema": {"type": "object","properties": {"id": {"type": "integer"}}},
+          "keyFormat": "JSON",
+          "partitions": 4
+        }
+      ],
+      "inputs": [{"topic": "input", "key": {"id": 42}, "value": {"c1": 4}}],
+      "outputs": [{"topic": "OUTPUT", "key": {"id": 42}, "value": {"c1": 4, "c2":  null}}],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "`ROWKEY` struct<`id` BIGINT> KEY, `c1` BIGINT"}
+        ]
       }
     }
   ]

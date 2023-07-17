@@ -15,10 +15,11 @@
 
 package io.confluent.ksql.rest.server.execution;
 
+import static io.confluent.ksql.util.KsqlConfig.KSQL_FETCH_REMOTE_HOSTS_TIMEOUT_SECONDS;
+
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.KsqlExecutionContext;
-import io.confluent.ksql.parser.tree.StatementWithExtendedClause;
 import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.entity.KsqlEntity;
@@ -46,7 +47,6 @@ import org.apache.kafka.streams.state.HostInfo;
 
 
 public final class RemoteHostExecutor {
-  private static final int TIMEOUT_SECONDS = 10;
   private static final Logger LOG = LoggerFactory.getLogger(RemoteHostExecutor.class);
 
   private final ConfiguredStatement<?> statement;
@@ -67,7 +67,7 @@ public final class RemoteHostExecutor {
   }
 
   public static RemoteHostExecutor create(
-      final ConfiguredStatement<? extends StatementWithExtendedClause> statement,
+      final ConfiguredStatement<?> statement,
       final SessionProperties sessionProperties,
       final KsqlExecutionContext executionContext,
       final SimpleKsqlClient ksqlClient
@@ -124,7 +124,9 @@ public final class RemoteHostExecutor {
           : futureResponses.entrySet()) {
         try {
           final RestResponse<KsqlEntityList> response =
-              e.getValue().get(TIMEOUT_SECONDS, TimeUnit.SECONDS);
+              e.getValue().get(
+                  executionContext.getKsqlConfig().getLong(KSQL_FETCH_REMOTE_HOSTS_TIMEOUT_SECONDS),
+                  TimeUnit.SECONDS);
           if (response.isErroneous()) {
             LOG.warn("Error response from host. host: {}, cause: {}",
                 e.getKey(), response.getErrorMessage().getMessage());
@@ -134,7 +136,7 @@ public final class RemoteHostExecutor {
           }
         } catch (final Exception cause) {
           LOG.warn("Failed to retrieve info from host: {}, statement: {}, cause: {}",
-              e.getKey(), statement.getMaskedStatementText(), cause.getMessage());
+              e.getKey(), statement.getMaskedStatementText(), cause);
           unresponsiveHosts.add(e.getKey());
         }
       }

@@ -20,6 +20,8 @@ import static java.util.regex.Pattern.compile;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.api.util.ApiServerUtils;
+import io.confluent.ksql.config.ConfigItem;
+import io.confluent.ksql.config.KsqlConfigResolver;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.logging.query.QueryLogger;
 import io.confluent.ksql.parser.DefaultKsqlParser;
@@ -39,7 +41,9 @@ import io.confluent.ksql.rest.entity.ClusterTerminateRequest;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlRequest;
+import io.confluent.ksql.rest.entity.KsqlTestResult;
 import io.confluent.ksql.rest.entity.KsqlWarning;
+import io.confluent.ksql.rest.entity.PropertiesList;
 import io.confluent.ksql.rest.server.ServerUtil;
 import io.confluent.ksql.rest.server.computation.CommandRunner;
 import io.confluent.ksql.rest.server.computation.DistributingExecutor;
@@ -57,14 +61,22 @@ import io.confluent.ksql.services.SandboxedServiceContext;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.Injector;
 import io.confluent.ksql.statement.Injectors;
+import io.confluent.ksql.tools.test.SqlTestExecutor;
+import io.confluent.ksql.tools.test.parser.SqlTestLoader;
+import io.confluent.ksql.tools.test.parser.SqlTestLoader.SqlTest;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlConfigurable;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlHostInfo;
 import io.confluent.ksql.util.KsqlRequestConfig;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.version.metrics.ActivenessRegistrar;
+import java.io.IOException;
 import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -75,6 +87,7 @@ import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
 import java.util.regex.PatternSyntaxException;
+import org.apache.commons.io.FileUtils;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.state.HostInfo;
 import org.slf4j.Logger;
@@ -99,7 +112,7 @@ public class KsqlResource implements KsqlConfigurable {
           .add(UnsetProperty.class)
           .build();
 
-  private final KsqlEngine ksqlEngine;
+  private final KsqlExecutionContext ksqlEngine;
   private final CommandRunner commandRunner;
   private final Duration distributedCmdResponseTimeout;
   private final ActivenessRegistrar activenessRegistrar;
@@ -184,7 +197,6 @@ public class KsqlResource implements KsqlConfigurable {
         CustomValidators.VALIDATOR_MAP,
         injectorFactory,
         ksqlEngine::createSandbox,
-        config,
         new ValidatedCommandFactory()
     );
 
@@ -201,7 +213,6 @@ public class KsqlResource implements KsqlConfigurable {
             commandRunnerWarning
         ),
         ksqlEngine,
-        config,
         new DefaultCommandQueueSync(
             commandRunner.getCommandQueue(),
             KsqlResource::shouldSynchronize,
@@ -245,7 +256,18 @@ public class KsqlResource implements KsqlConfigurable {
       final Map<String, Object> properties = new HashMap<>();
       properties.put(property, "");
       denyListPropertyValidator.validateAll(properties);
-
+      final KsqlConfigResolver resolver = new KsqlConfigResolver();
+      final Optional<ConfigItem> resolvedItem = resolver.resolve(property, false);
+      if (ksqlEngine.getKsqlConfig().getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)
+          && resolvedItem.isPresent()) {
+        if (!PropertiesList.QueryLevelProperties.contains(resolvedItem.get().getPropertyName())) {
+          throw new KsqlException(String.format("When shared runtimes are enabled, the"
+              + " config %s can only be set for the entire cluster and all queries currently"
+              + " running in it, and not configurable for individual queries."
+              + " Please use ALTER SYSTEM to change this config for all queries.",
+              properties));
+        }
+      }
       return EndpointResponse.ok(true);
     } catch (final KsqlException e) {
       LOG.info("Processed unsuccessfully, reason: ", e);
@@ -256,10 +278,14 @@ public class KsqlResource implements KsqlConfigurable {
     }
   }
 
+  // CHECKSTYLE_RULES.OFF: CyclomaticComplexity
+  // CHECKSTYLE_RULES.OFF: JavaNCSS
   public EndpointResponse handleKsqlStatements(
       final KsqlSecurityContext securityContext,
       final KsqlRequest request
   ) {
+    // CHECKSTYLE_RULES.ON: JavaNCSS
+    // CHECKSTYLE_RULES.ON: CyclomaticComplexity
     // Set masked sql statement if request is not from OldApiUtils.handleOldApiRequest
     ApiServerUtils.setMaskedSqlIfNeeded(request);
 
@@ -363,6 +389,43 @@ public class KsqlResource implements KsqlConfigurable {
           e,
           Errors.serverErrorForStatement(e, request.getMaskedKsql())
       );
+    }
+  }
+
+  public EndpointResponse runTest(final String test) {
+    try {
+      final List<SqlTest> tests = SqlTestLoader.loadTest(test);
+      return EndpointResponse.ok(runTests(tests));
+    } catch (final Exception e) {
+      return errorHandler.generateResponse(e, Errors.badRequest(e));
+    }
+  }
+
+  private List<KsqlTestResult> runTests(final List<SqlTest> tests) throws IOException {
+    final List<KsqlTestResult> results = new ArrayList<>();
+    for (final SqlTest test : tests) {
+      final Path tempFolder = Files.createTempDirectory("test-temp");
+      final SqlTestExecutor executor = SqlTestExecutor.create(tempFolder);
+
+      try {
+        executor.executeTest(test);
+        results.add(new KsqlTestResult(true, test.getName(), ""));
+      } catch (final Throwable e) {
+        results.add(new KsqlTestResult(false, test.getName(), e.getMessage()));
+      } finally {
+        cleanUp(executor, tempFolder);
+        executor.close();
+      }
+    }
+    return results;
+  }
+
+  private static void cleanUp(final SqlTestExecutor executor, final Path tempFolder) {
+    executor.close();
+    try {
+      FileUtils.deleteDirectory(tempFolder.toFile());
+    } catch (final Exception e) {
+      LOG.warn("Failed to clean up temporary test folder: " + e.getMessage());
     }
   }
 

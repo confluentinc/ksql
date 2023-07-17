@@ -49,7 +49,8 @@ public class SourceNodeTest {
       Optional.of(KeyFormatNodeTest.INSTANCE),
       Optional.of("JSON"),
       Optional.of(ImmutableSet.of(SerdeFeature.UNWRAP_SINGLES)),
-      Optional.of(ImmutableSet.of(SerdeFeature.WRAP_SINGLES))
+      Optional.of(ImmutableSet.of(SerdeFeature.WRAP_SINGLES)),
+      Optional.empty()
   );
 
   private static final SourceNode INSTANCE_WITHOUT_SERDE_FEATURES = new SourceNode(
@@ -58,6 +59,7 @@ public class SourceNodeTest {
       Optional.of("ROWKEY INT KEY, NAME STRING"),
       Optional.of(KeyFormatNodeTest.INSTANCE),
       Optional.of("JSON"),
+      Optional.empty(),
       Optional.empty(),
       Optional.empty()
   );
@@ -69,7 +71,19 @@ public class SourceNodeTest {
       Optional.of(KeyFormatNodeTest.INSTANCE),
       Optional.of("JSON"),
       Optional.of(ImmutableSet.of()),
-      Optional.of(ImmutableSet.of())
+      Optional.of(ImmutableSet.of()),
+      Optional.empty()
+  );
+
+  private static final SourceNode SOURCE_STREAM_INSTANCE = new SourceNode(
+      "bob",
+      "stream",
+      Optional.of("ROWKEY INT KEY, NAME STRING"),
+      Optional.of(KeyFormatNodeTest.INSTANCE),
+      Optional.of("JSON"),
+      Optional.of(ImmutableSet.of()),
+      Optional.of(ImmutableSet.of()),
+      Optional.of(true)
   );
 
   @Test
@@ -88,6 +102,11 @@ public class SourceNodeTest {
   }
 
   @Test
+  public void shouldRoundTripSourceStreamInstance() {
+    ModelTester.assertRoundTrip(SOURCE_STREAM_INSTANCE);
+  }
+
+  @Test
   public void shouldBuildFromDataSource() {
     // Given:
     final LogicalSchema schema = LogicalSchema.builder()
@@ -98,7 +117,7 @@ public class SourceNodeTest {
     when(topic.getKeyFormat()).thenReturn(KeyFormat.windowed(
         FormatInfo.of("AVRO", ImmutableMap.of("some", "prop")),
         SerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES),
-        WindowInfo.of(WindowType.HOPPING, Optional.of(Duration.ofMillis(10)))
+        WindowInfo.of(WindowType.HOPPING, Optional.of(Duration.ofMillis(10)), Optional.empty())
     ));
     when(topic.getValueFormat()).thenReturn(ValueFormat.of(
         FormatInfo.of("DELIMITED", ImmutableMap.of("some1", "prop1")),
@@ -126,7 +145,8 @@ public class SourceNodeTest {
         )),
         Optional.of("DELIMITED"),
         Optional.of(ImmutableSet.of(SerdeFeature.UNWRAP_SINGLES)),
-        Optional.of(ImmutableSet.of(SerdeFeature.WRAP_SINGLES))
+        Optional.of(ImmutableSet.of(SerdeFeature.WRAP_SINGLES)),
+        Optional.of(false)
     )));
   }
 }

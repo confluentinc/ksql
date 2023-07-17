@@ -1,8 +1,8 @@
 # KLIP 28 - Introduce CREATE OR REPLACE
 
 **Author**: agavra | 
-**Release Target**: 0.11 | 
-**Status**: _Approved_ | 
+**Release Target**: 0.12.0; 6.1.0 | 
+**Status**: _Merged_ | 
 **Discussion**: _https://github.com/confluentinc/ksql/pull/5611_
 
 **tl;dr:** _CREATE OR REPLACE is a mechanism geared toward enabling in-place ksqlDB query evolution._

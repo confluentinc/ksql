@@ -17,7 +17,6 @@ package io.confluent.ksql.rest.server;
 
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
 
-import com.google.common.util.concurrent.RateLimiter;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.api.auth.ApiSecurityContext;
 import io.confluent.ksql.api.impl.InsertsStreamEndpoint;
@@ -26,20 +25,16 @@ import io.confluent.ksql.api.impl.QueryEndpoint;
 import io.confluent.ksql.api.server.InsertResult;
 import io.confluent.ksql.api.server.InsertsStreamSubscriber;
 import io.confluent.ksql.api.server.MetricsCallbackHolder;
-import io.confluent.ksql.api.server.SlidingWindowRateLimiter;
 import io.confluent.ksql.api.spi.Endpoints;
-import io.confluent.ksql.api.spi.QueryPublisher;
 import io.confluent.ksql.engine.KsqlEngine;
-import io.confluent.ksql.execution.streams.RoutingFilter.RoutingFilterFactory;
 import io.confluent.ksql.internal.PullQueryExecutorMetrics;
-import io.confluent.ksql.physical.pull.HARouting;
-import io.confluent.ksql.physical.scalablepush.PushRouting;
 import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.entity.ClusterTerminateRequest;
 import io.confluent.ksql.rest.entity.HeartbeatMessage;
 import io.confluent.ksql.rest.entity.KsqlMediaType;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.LagReportingMessage;
+import io.confluent.ksql.rest.server.query.QueryExecutor;
 import io.confluent.ksql.rest.server.resources.ClusterStatusResource;
 import io.confluent.ksql.rest.server.resources.HealthCheckResource;
 import io.confluent.ksql.rest.server.resources.HeartbeatResource;
@@ -51,7 +46,6 @@ import io.confluent.ksql.rest.server.resources.StatusResource;
 import io.confluent.ksql.rest.server.resources.streaming.StreamedQueryResource;
 import io.confluent.ksql.rest.server.resources.streaming.WSQueryEndpoint;
 import io.confluent.ksql.rest.util.AuthenticationUtil;
-import io.confluent.ksql.rest.util.ConcurrencyLimiter;
 import io.confluent.ksql.security.KsqlAuthTokenProvider;
 import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.util.KsqlConfig;
@@ -69,6 +63,7 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscriber;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
@@ -77,8 +72,6 @@ public class KsqlServerEndpoints implements Endpoints {
 
   private final KsqlEngine ksqlEngine;
   private final KsqlConfig ksqlConfig;
-  private final KsqlRestConfig ksqlRestConfig;
-  private final RoutingFilterFactory routingFilterFactory;
   private final ReservedInternalTopics reservedInternalTopics;
   private final KsqlSecurityContextProvider ksqlSecurityContextProvider;
   private final KsqlResource ksqlResource;
@@ -92,12 +85,7 @@ public class KsqlServerEndpoints implements Endpoints {
   private final ServerMetadataResource serverMetadataResource;
   private final WSQueryEndpoint wsQueryEndpoint;
   private final Optional<PullQueryExecutorMetrics> pullQueryMetrics;
-  private final RateLimiter rateLimiter;
-  private final ConcurrencyLimiter pullConcurrencyLimiter;
-  private final SlidingWindowRateLimiter pullBandRateLimiter;
-  private final HARouting routing;
-  private final PushRouting pushRouting;
-  private final Optional<LocalCommands> localCommands;
+  private final QueryExecutor queryExecutor;
   private final Optional<KsqlAuthTokenProvider> authTokenProvider;
 
   // CHECKSTYLE_RULES.OFF: ParameterNumber
@@ -105,8 +93,6 @@ public class KsqlServerEndpoints implements Endpoints {
   public KsqlServerEndpoints(
       final KsqlEngine ksqlEngine,
       final KsqlConfig ksqlConfig,
-      final KsqlRestConfig ksqlRestConfig,
-      final RoutingFilterFactory routingFilterFactory,
       final KsqlSecurityContextProvider ksqlSecurityContextProvider,
       final KsqlResource ksqlResource,
       final StreamedQueryResource streamedQueryResource,
@@ -119,20 +105,13 @@ public class KsqlServerEndpoints implements Endpoints {
       final ServerMetadataResource serverMetadataResource,
       final WSQueryEndpoint wsQueryEndpoint,
       final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
-      final RateLimiter rateLimiter,
-      final ConcurrencyLimiter pullConcurrencyLimiter,
-      final SlidingWindowRateLimiter pullBandRateLimiter,
-      final HARouting routing,
-      final PushRouting pushRouting,
-      final Optional<LocalCommands> localCommands,
+      final QueryExecutor queryExecutor,
       final Optional<KsqlAuthTokenProvider> authTokenProvider
   ) {
 
     // CHECKSTYLE_RULES.ON: ParameterNumber
     this.ksqlEngine = Objects.requireNonNull(ksqlEngine);
     this.ksqlConfig = Objects.requireNonNull(ksqlConfig);
-    this.ksqlRestConfig = Objects.requireNonNull(ksqlRestConfig);
-    this.routingFilterFactory = Objects.requireNonNull(routingFilterFactory);
     this.reservedInternalTopics = new ReservedInternalTopics(ksqlConfig);
     this.ksqlSecurityContextProvider = Objects.requireNonNull(ksqlSecurityContextProvider);
     this.ksqlResource = Objects.requireNonNull(ksqlResource);
@@ -146,32 +125,25 @@ public class KsqlServerEndpoints implements Endpoints {
     this.serverMetadataResource = Objects.requireNonNull(serverMetadataResource);
     this.wsQueryEndpoint = Objects.requireNonNull(wsQueryEndpoint);
     this.pullQueryMetrics = Objects.requireNonNull(pullQueryMetrics);
-    this.rateLimiter = Objects.requireNonNull(rateLimiter);
-    this.pullConcurrencyLimiter = pullConcurrencyLimiter;
-    this.pullBandRateLimiter = Objects.requireNonNull(pullBandRateLimiter);
-    this.routing = Objects.requireNonNull(routing);
-    this.pushRouting = pushRouting;
-    this.localCommands = Objects.requireNonNull(localCommands);
+    this.queryExecutor = queryExecutor;
     this.authTokenProvider = authTokenProvider;
   }
 
   @Override
-  public CompletableFuture<QueryPublisher> createQueryPublisher(final String sql,
+  public CompletableFuture<Publisher<?>> createQueryPublisher(final String sql,
       final Map<String, Object> properties,
       final Map<String, Object> sessionVariables,
       final Map<String, Object> requestProperties,
       final Context context,
       final WorkerExecutor workerExecutor,
       final ApiSecurityContext apiSecurityContext,
-      final MetricsCallbackHolder metricsCallbackHolder) {
+      final MetricsCallbackHolder metricsCallbackHolder,
+      final Optional<Boolean> isInternalRequest) {
     final KsqlSecurityContext ksqlSecurityContext = ksqlSecurityContextProvider
         .provide(apiSecurityContext);
     return executeOnWorker(() -> {
       try {
-        return new QueryEndpoint(
-            ksqlEngine, ksqlConfig, ksqlRestConfig, routingFilterFactory, pullQueryMetrics,
-            rateLimiter, pullConcurrencyLimiter, pullBandRateLimiter, routing, pushRouting,
-            localCommands)
+        return new QueryEndpoint(ksqlEngine, ksqlConfig, pullQueryMetrics, queryExecutor)
             .createQueryPublisher(
                 sql,
                 properties,
@@ -180,7 +152,8 @@ public class KsqlServerEndpoints implements Endpoints {
                 context,
                 workerExecutor,
                 ksqlSecurityContext.getServiceContext(),
-                metricsCallbackHolder);
+                metricsCallbackHolder,
+                isInternalRequest);
       } finally {
         ksqlSecurityContext.getServiceContext().close();
       }
@@ -229,7 +202,6 @@ public class KsqlServerEndpoints implements Endpoints {
             request,
             connectionClosedFuture,
             isInternalRequest,
-            mediaType,
             metricsCallbackHolder,
             context
         ), workerExecutor);
@@ -330,27 +302,30 @@ public class KsqlServerEndpoints implements Endpoints {
       final WorkerExecutor workerExecutor,
       final ApiSecurityContext apiSecurityContext,
       final Context context) {
-
     executeOnWorker(() -> {
       final KsqlSecurityContext ksqlSecurityContext = ksqlSecurityContextProvider
           .provide(apiSecurityContext);
       try {
-        final String authToken = apiSecurityContext.getAuthToken().isPresent()
-            ? apiSecurityContext.getAuthToken().get()
-            : requestParams.get("access_token");
         wsQueryEndpoint.executeStreamQuery(
             webSocket,
             requestParams,
             ksqlSecurityContext,
             context,
             new AuthenticationUtil(Clock.systemUTC())
-                .getTokenTimeout(authToken, ksqlConfig, authTokenProvider)
+                .getTokenTimeout(apiSecurityContext.getAuthHeader(), ksqlConfig, authTokenProvider)
         );
       } finally {
         ksqlSecurityContext.getServiceContext().close();
       }
       return null;
     }, workerExecutor);
+  }
+
+  @Override
+  public CompletableFuture<EndpointResponse> executeTest(
+      final String test, final ApiSecurityContext apiSecurityContext) {
+    return executeOldApiEndpoint(
+        apiSecurityContext, ksqlSecurityContext -> ksqlResource.runTest(test));
   }
 
   private <R> CompletableFuture<R> executeOnWorker(final Supplier<R> supplier,

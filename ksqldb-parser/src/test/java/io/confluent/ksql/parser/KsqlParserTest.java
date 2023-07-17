@@ -31,8 +31,8 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
 
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.expression.tree.ArithmeticUnaryExpression;
 import io.confluent.ksql.execution.expression.tree.ArithmeticUnaryExpression.Sign;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
@@ -48,8 +48,6 @@ import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.execution.windows.WindowTimeClause;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.MutableMetaStore;
-import io.confluent.ksql.metastore.model.KsqlStream;
-import io.confluent.ksql.metastore.model.KsqlTable;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
@@ -58,6 +56,8 @@ import io.confluent.ksql.parser.SqlBaseParser.SingleStatementContext;
 import io.confluent.ksql.parser.exception.ParseFailedException;
 import io.confluent.ksql.parser.tree.AliasedRelation;
 import io.confluent.ksql.parser.tree.AllColumns;
+import io.confluent.ksql.parser.tree.StructAll;
+import io.confluent.ksql.parser.tree.AlterSystemProperty;
 import io.confluent.ksql.parser.tree.CreateConnector;
 import io.confluent.ksql.parser.tree.CreateSource;
 import io.confluent.ksql.parser.tree.CreateStream;
@@ -80,7 +80,6 @@ import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.RegisterType;
 import io.confluent.ksql.parser.tree.SelectItem;
 import io.confluent.ksql.parser.tree.SetProperty;
-import io.confluent.ksql.parser.tree.ShowColumns;
 import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.TableElement;
@@ -88,17 +87,12 @@ import io.confluent.ksql.parser.tree.TableElements;
 import io.confluent.ksql.parser.tree.TerminateQuery;
 import io.confluent.ksql.parser.tree.WithinExpression;
 import io.confluent.ksql.query.QueryId;
-import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlArray;
 import io.confluent.ksql.schema.ksql.types.SqlBaseType;
 import io.confluent.ksql.schema.ksql.types.SqlStruct;
-import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
-import io.confluent.ksql.serde.KeyFormat;
-import io.confluent.ksql.serde.SerdeFeatures;
-import io.confluent.ksql.serde.ValueFormat;
+import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.MetaStoreFixture;
 import java.math.BigDecimal;
 import java.util.List;
@@ -118,74 +112,9 @@ public class KsqlParserTest {
 
   private MutableMetaStore metaStore;
 
-  private static final SqlType addressSchema = SqlTypes.struct()
-      .field("NUMBER", SqlTypes.BIGINT)
-      .field("STREET", SqlTypes.STRING)
-      .field("CITY", SqlTypes.STRING)
-      .field("STATE", SqlTypes.STRING)
-      .field("ZIPCODE", SqlTypes.BIGINT)
-      .build();
-
-  private static final SqlType categorySchema = SqlTypes.struct()
-      .field("ID", SqlTypes.BIGINT)
-      .field("NAME", SqlTypes.STRING)
-      .build();
-
-  private static final SqlType itemInfoSchema = SqlStruct.builder()
-      .field("ITEMID", SqlTypes.BIGINT)
-      .field("NAME", SqlTypes.STRING)
-      .field("CATEGORY", categorySchema)
-      .build();
-
-  private static final LogicalSchema ORDERS_SCHEMA = LogicalSchema.builder()
-      .keyColumn(ColumnName.of("k0"), SqlTypes.STRING)
-      .valueColumn(ColumnName.of("ORDERTIME"), SqlTypes.BIGINT)
-      .valueColumn(ColumnName.of("ORDERID"), SqlTypes.BIGINT)
-      .valueColumn(ColumnName.of("ITEMID"), SqlTypes.STRING)
-      .valueColumn(ColumnName.of("ITEMINFO"), itemInfoSchema)
-      .valueColumn(ColumnName.of("ORDERUNITS"), SqlTypes.INTEGER)
-      .valueColumn(ColumnName.of("ARRAYCOL"), SqlTypes.array(SqlTypes.DOUBLE))
-      .valueColumn(ColumnName.of("MAPCOL"), SqlTypes.map(SqlTypes.STRING, SqlTypes.DOUBLE))
-      .valueColumn(ColumnName.of("ADDRESS"), addressSchema)
-      .build();
-
   @Before
   public void init() {
     metaStore = MetaStoreFixture.getNewMetaStore(mock(FunctionRegistry.class));
-
-    final KsqlTopic ksqlTopicOrders = new KsqlTopic(
-        "orders_topic",
-        KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name()), SerdeFeatures.of()),
-        ValueFormat.of(FormatInfo.of(FormatFactory.JSON.name()), SerdeFeatures.of())
-    );
-
-    final KsqlStream<?> ksqlStreamOrders = new KsqlStream<>(
-        "sqlexpression",
-        SourceName.of("ADDRESS"),
-        ORDERS_SCHEMA,
-        Optional.empty(),
-        false,
-        ksqlTopicOrders
-    );
-
-    metaStore.putSource(ksqlStreamOrders, false);
-
-    final KsqlTopic ksqlTopicItems = new KsqlTopic(
-        "item_topic",
-        KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name()), SerdeFeatures.of()),
-        ValueFormat.of(FormatInfo.of(FormatFactory.JSON.name()), SerdeFeatures.of())
-    );
-
-    final KsqlTable<String> ksqlTableOrders = new KsqlTable<>(
-        "sqlexpression",
-        SourceName.of("ITEMID"),
-        ORDERS_SCHEMA,
-        Optional.empty(),
-        false,
-        ksqlTopicItems
-    );
-
-    metaStore.putSource(ksqlTableOrders, false);
   }
 
   @Test
@@ -398,6 +327,19 @@ public class KsqlParserTest {
   }
 
   @Test
+  public void shouldParseStartOnStructCorrectly() {
+    final String simpleQuery = "SELECT iteminfo->* FROM orders WHERE address->state = 'CA';";
+    final Statement statement = KsqlParserTestUtil.buildSingleAst(simpleQuery, metaStore).getStatement();
+
+    assertThat(statement, is(instanceOf(Query.class)));
+    final Query query = (Query) statement;
+    assertThat(query.getSelect().getSelectItems(), hasSize(1));
+    final StructAll allFields = (StructAll) query.getSelect().getSelectItems().get(0);
+    assertThat(allFields.getBaseStruct(), instanceOf(Expression.class));
+    assertThat(allFields.getBaseStruct().toString(), is("ITEMINFO"));
+  }
+
+  @Test
   public void testSimpleLeftJoin() {
     final String
         queryStr =
@@ -431,6 +373,39 @@ public class KsqlParserTest {
   }
 
   @Test
+  public void testSimpleRightJoin() {
+    final String
+        queryStr =
+        "SELECT t1.col1, t2.col1, t2.col4, col5, t2.col2 FROM test1 t1 RIGHT JOIN test2 t2 ON "
+            + "t1.col1 = t2.col1;";
+    final Statement statement = KsqlParserTestUtil.buildSingleAst(queryStr, metaStore).getStatement();
+    assertThat(statement, is(instanceOf(Query.class)));
+    final Query query = (Query) statement;
+    assertThat(query.getFrom(), is(instanceOf(Join.class)));
+    final Join join = (Join) query.getFrom();
+    assertThat(Iterables.getOnlyElement(join.getRights()).getType().toString(), is("RIGHT"));
+    assertThat(((AliasedRelation) join.getLeft()).getAlias(), is(SourceName.of("T1")));
+    assertThat(((AliasedRelation) Iterables.getOnlyElement(join.getRights()).getRelation()).getAlias(), is(SourceName.of("T2")));
+  }
+
+  @Test
+  public void testRightJoinWithFilter() {
+    final String
+        queryStr =
+        "SELECT t1.col1, t2.col1, t2.col4, t2.col2 FROM test1 t1 RIGHT JOIN test2 t2 ON t1.col1 = "
+            + "t2.col1 WHERE t2.col2 = 'test';";
+    final Statement statement = KsqlParserTestUtil.buildSingleAst(queryStr, metaStore).getStatement();
+    assertThat(statement, is(instanceOf(Query.class)));
+    final Query query = (Query) statement;
+    assertThat(query.getFrom(), is(instanceOf(Join.class)));
+    final Join join = (Join) query.getFrom();
+    assertThat(Iterables.getOnlyElement(join.getRights()).getType().toString(), is("RIGHT"));
+    assertThat(((AliasedRelation) join.getLeft()).getAlias(), is(SourceName.of("T1")));
+    assertThat(((AliasedRelation) Iterables.getOnlyElement(join.getRights()).getRelation()).getAlias(), is(SourceName.of("T2")));
+    assertThat(query.getWhere().get().toString(), is("(T2.COL2 = 'test')"));
+  }
+
+  @Test
   public void testSelectAll() {
     // When:
     final Query query = KsqlParserTestUtil.<Query>buildSingleAst(
@@ -447,6 +422,28 @@ public class KsqlParserTest {
   }
 
   @Test
+  public void testCreateSourceTable() {
+    // When:
+    final CreateTable stmt = (CreateTable) KsqlParserTestUtil.buildSingleAst(
+        "CREATE SOURCE TABLE foozball (id VARCHAR PRIMARY KEY) WITH (kafka_topic='foozball', " +
+            "value_format='json', partitions=1, replicas=-1);", metaStore).getStatement();
+
+    // Then:
+    assertThat(stmt.isSource(), is(true));
+  }
+
+  @Test
+  public void testCreateSourceStream() {
+    // When:
+    final CreateStream stmt = (CreateStream) KsqlParserTestUtil.buildSingleAst(
+        "CREATE SOURCE STREAM foozball (id VARCHAR KEY) WITH (kafka_topic='foozball', " +
+            "value_format='json', partitions=1, replicas=-1);", metaStore).getStatement();
+
+    // Then:
+    assertThat(stmt.isSource(), is(true));
+  }
+
+  @Test
   public void testNegativeInWith() {
     // When:
     final CreateSource stmt = (CreateSource) KsqlParserTestUtil.buildSingleAst(
@@ -455,18 +452,6 @@ public class KsqlParserTest {
 
     // Then:
     assertThat(stmt.getProperties().getReplicas(), is(Optional.of((short) -1)));
-  }
-
-  @Test
-  public void testReservedRowTimeAlias() {
-    // When:
-    final ParseFailedException e = assertThrows(
-        ParseFailedException.class,
-        () -> KsqlParserTestUtil.buildSingleAst("SELECT C1 as ROWTIME FROM test1 t1;", metaStore)
-    );
-
-    // Then:
-    assertThat(e.getUnloggedMessage(), containsString("'ROWTIME' is a reserved column name. You cannot use it as an alias for a column."));
   }
 
   @Test
@@ -545,7 +530,7 @@ public class KsqlParserTest {
         + "arraycol array<double>, "
         + "mapcol map<varchar, double>, "
         + "order_address STRUCT<number VARCHAR, street VARCHAR, zip INTEGER>"
-        + ") WITH (value_format = 'avro',kafka_topic='orders_topic');", metaStore).getStatement();
+        + ") WITH (value_format = 'avro', kafka_topic='orders_topic', sourced_by_connector='jdbc');", metaStore).getStatement();
 
     // Then:
     assertThat(result.getName(), equalTo(SourceName.of("ORDERS")));
@@ -554,6 +539,7 @@ public class KsqlParserTest {
     assertThat(Iterables.get(result.getElements(), 6).getType().getSqlType().baseType(), equalTo(SqlBaseType.STRUCT));
     assertThat(result.getProperties().getKafkaTopic(), equalTo("orders_topic"));
     assertThat(result.getProperties().getValueFormat().map(FormatInfo::getFormat), equalTo(Optional.of("AVRO")));
+    assertThat(result.getProperties().getSourceConnector(), equalTo(Optional.of("jdbc")));
   }
 
   @Test
@@ -561,7 +547,7 @@ public class KsqlParserTest {
     // When:
     final CreateTable result = (CreateTable) KsqlParserTestUtil.buildSingleAst(
         "CREATE TABLE users (usertime bigint, userid varchar PRIMARY KEY, regionid varchar, gender varchar) "
-            + "WITH (kafka_topic='foo', value_format='json');", metaStore).getStatement();
+            + "WITH (kafka_topic='foo', value_format='json', sourced_by_connector='jdbc');", metaStore).getStatement();
 
     // Then:
     assertThat(result.getName(), equalTo(SourceName.of("USERS")));
@@ -569,6 +555,7 @@ public class KsqlParserTest {
     assertThat(Iterables.get(result.getElements(), 0).getName(), equalTo(ColumnName.of("USERTIME")));
     assertThat(result.getProperties().getKafkaTopic(), equalTo("foo"));
     assertThat(result.getProperties().getValueFormat().map(FormatInfo::getFormat), equalTo(Optional.of("JSON")));
+    assertThat(result.getProperties().getSourceConnector(), equalTo(Optional.of("jdbc")));
   }
 
   @Test
@@ -619,17 +606,48 @@ public class KsqlParserTest {
   }
 
   @Test
+  public void shouldFailIfSourcedByConnectorProvidedCXAS() {
+    for (final String source: ImmutableSet.of("STREAM", "TABLE")) {
+      // Given:
+      final String cxasQuery =
+          "CREATE " + source
+          + " bigorders_json WITH (value_format = 'json', "
+          + "kafka_topic='bigorders_topic', sourced_by_connector='jdbc') AS SELECT * FROM orders;";
+
+      // When:
+      final Exception e = assertThrows(
+          KsqlException.class,
+          () -> KsqlParserTestUtil.<CreateStreamAsSelect>buildSingleAst(
+              cxasQuery,
+              metaStore)
+      );
+
+      // Then:
+      assertThat(e.getMessage(), containsString("Failed to prepare statement: " +
+          "Invalid config variable(s) in the WITH clause: SOURCED_BY_CONNECTOR"));
+    }
+  }
+
+  @Test
   public void testShouldFailIfWrongKeyword() {
     try {
       final String simpleQuery = "SELLECT col0, col2, col3 FROM test1 WHERE col0 > 100;";
       KsqlParserTestUtil.buildSingleAst(simpleQuery, metaStore);
       fail(format("Expected query: %s to fail", simpleQuery));
     } catch (final ParseFailedException e) {
-      final String errorMessage = e.getUnloggedMessage();
-      Assert.assertTrue(errorMessage.toLowerCase().contains(("line 1:1: mismatched input 'SELLECT'" + " expecting").toLowerCase()));
+      assertThat(
+          e.getUnloggedMessage(),
+          containsString("line 1:1: Syntax Error\n" +
+              "Unknown statement 'SELLECT'\n" +
+              "Did you mean 'SELECT'?")
+      );
       assertThat(
           e.getMessage(),
           containsString("line 1:1: Syntax error at line 1:1")
+      );
+      assertThat(
+          e.getSqlStatement(),
+          containsString("SELLECT col0, col2, col3 FROM test1 WHERE col0 > 100")
       );
     }
   }
@@ -755,6 +773,17 @@ public class KsqlParserTest {
     assertThat(setProperty.toString(), is("SetProperty{propertyName='auto.offset.reset', propertyValue='earliest'}"));
     assertThat(setProperty.getPropertyName(), is("auto.offset.reset"));
     assertThat(setProperty.getPropertyValue(), is("earliest"));
+  }
+
+  @Test
+  public void testAlterSystemProperties() {
+    final String simpleQuery = "ALTER SYSTEM 'ksql.persistent.prefix'='test';";
+    final Statement statement = KsqlParserTestUtil.buildSingleAst(simpleQuery, metaStore).getStatement();
+    Assert.assertTrue(statement instanceof AlterSystemProperty);
+    final AlterSystemProperty alterSystemProperty = (AlterSystemProperty) statement;
+    assertThat(alterSystemProperty.toString(), is("AlterSystemProperty{propertyName='ksql.persistent.prefix', propertyValue='test'}"));
+    assertThat(alterSystemProperty.getPropertyName(), is("ksql.persistent.prefix"));
+    assertThat(alterSystemProperty.getPropertyValue(), is("test"));
   }
 
   @Test
@@ -951,6 +980,36 @@ public class KsqlParserTest {
     assertThat(join.getType(), is(JoinedSource.Type.INNER));
   }
 
+  @Test
+  public void shouldSetWithinExpressionWithSingleWithinAndGracePeriod() {
+    final String statementString = "CREATE STREAM foobar as SELECT * from TEST1 JOIN ORDERS WITHIN "
+        + "10 SECONDS GRACE PERIOD 5 SECONDS ON TEST1.col1 = ORDERS.ORDERID ;";
+
+    final Statement statement = KsqlParserTestUtil.buildSingleAst(statementString, metaStore)
+        .getStatement();
+
+    assertThat(statement, instanceOf(CreateStreamAsSelect.class));
+
+    final CreateStreamAsSelect createStreamAsSelect = (CreateStreamAsSelect) statement;
+
+    final Query query = createStreamAsSelect.getQuery();
+
+    assertThat(query.getFrom(), instanceOf(Join.class));
+
+    final JoinedSource join = Iterables.getOnlyElement(((Join) query.getFrom()).getRights());
+
+    assertTrue(join.getWithinExpression().isPresent());
+
+    final WithinExpression withinExpression = join.getWithinExpression().get();
+
+    assertThat(withinExpression.getBefore(), is(10L));
+    assertThat(withinExpression.getAfter(), is(10L));
+    assertThat(withinExpression.getBeforeTimeUnit(), is(TimeUnit.SECONDS));
+    assertThat(withinExpression.getGrace(),
+        is(Optional.of(new WindowTimeClause(5, TimeUnit.SECONDS))));
+    assertThat(join.getType(), is(JoinedSource.Type.INNER));
+  }
+
 
   @Test
   public void shouldSetWithinExpressionWithBeforeAndAfter() {
@@ -980,6 +1039,38 @@ public class KsqlParserTest {
     assertThat(withinExpression.getBeforeTimeUnit(), is(TimeUnit.SECONDS));
     assertThat(withinExpression.getAfterTimeUnit(), is(TimeUnit.MINUTES));
     assertThat(withinExpression.getGrace(), is(Optional.empty()));
+    assertThat(join.getType(), is(JoinedSource.Type.INNER));
+  }
+
+  @Test
+  public void shouldSetWithinExpressionWithBeforeAndAfterAndGracePeriod() {
+    final String statementString = "CREATE STREAM foobar as SELECT * from TEST1 JOIN ORDERS "
+        + "WITHIN (10 seconds, 20 minutes) GRACE PERIOD 10 minutes "
+        + "ON TEST1.col1 = ORDERS.ORDERID ;";
+
+    final Statement statement = KsqlParserTestUtil.buildSingleAst(statementString, metaStore)
+        .getStatement();
+
+    assertThat(statement, instanceOf(CreateStreamAsSelect.class));
+
+    final CreateStreamAsSelect createStreamAsSelect = (CreateStreamAsSelect) statement;
+
+    final Query query = createStreamAsSelect.getQuery();
+
+    assertThat(query.getFrom(), instanceOf(Join.class));
+
+    final JoinedSource join = Iterables.getOnlyElement(((Join) query.getFrom()).getRights());
+
+    assertTrue(join.getWithinExpression().isPresent());
+
+    final WithinExpression withinExpression = join.getWithinExpression().get();
+
+    assertThat(withinExpression.getBefore(), is(10L));
+    assertThat(withinExpression.getAfter(), is(20L));
+    assertThat(withinExpression.getBeforeTimeUnit(), is(TimeUnit.SECONDS));
+    assertThat(withinExpression.getAfterTimeUnit(), is(TimeUnit.MINUTES));
+    assertThat(withinExpression.getGrace(),
+        is(Optional.of(new WindowTimeClause(10, TimeUnit.MINUTES))));
     assertThat(join.getType(), is(JoinedSource.Type.INNER));
   }
 
@@ -1162,8 +1253,10 @@ public class KsqlParserTest {
     );
 
     // Then:
-    assertThat(e.getUnloggedMessage(), containsString("line 1:21: extraneous input ';' expecting {',', 'FROM'}"));
+    assertThat(e.getUnloggedMessage(), containsString("line 1:21: Syntax Error\n" +
+        "Expecting {',', 'FROM'}"));
     assertThat(e.getMessage(), containsString("line 1:21: Syntax error at line 1:21"));
+    assertThat(e.getSqlStatement(), containsString("SELECT ONLY, COLUMNS"));
   }
 
   @Test
@@ -1178,8 +1271,9 @@ public class KsqlParserTest {
     );
 
     // Then:
-    assertThat(e.getUnloggedMessage(), containsString("line 1:12: extraneous input 'C' expecting"));
+    assertThat(e.getUnloggedMessage(), containsString("line 1:12: Syntax Error"));
     assertThat(e.getMessage(), containsString("line 1:12: Syntax error at line 1:12"));
+    assertThat(e.getSqlStatement(), containsString("SELECT A B C FROM address"));
   }
 
   @Test
@@ -1195,8 +1289,15 @@ public class KsqlParserTest {
     );
 
     // Then:
-    assertThat(e.getUnloggedMessage(), containsString("\"size\" is a reserved keyword and it can't be used as an identifier"));
+    assertThat(e.getUnloggedMessage(), containsString(
+        "line 1:35: Syntax Error\n"
+            + "\"size\" is a reserved keyword and it can't be used as an identifier."
+            + " You can use it as an identifier by escaping it as 'size' "
+    ));
     assertThat(e.getMessage(), containsString("line 1:35: Syntax error at line 1:35"));
+    assertThat(e.getSqlStatement(), containsString(
+        "CREATE STREAM ORDERS (c1 VARCHAR, size INTEGER)"
+    ));
   }
 
   @Test
@@ -1212,10 +1313,9 @@ public class KsqlParserTest {
     );
 
     // Then:
-    assertThat(e.getUnloggedMessage(), containsString("line 1:23: " +
+    assertThat(e.getUnloggedMessage(), containsString("line 1:23: Syntax Error\n" +
         "\"Load\" is a reserved keyword and it can't be used as an identifier. " +
-        "You can use it as an identifier by escaping it as 'Load' \n" +
-        "Statement: CREATE STREAM ORDERS (Load VARCHAR, size INTEGER)"));
+        "You can use it as an identifier by escaping it as 'Load'"));
     assertThat(e.getMessage(), containsString("line 1:23: Syntax error at line 1:23"));
     assertThat(e.getSqlStatement(), containsString("CREATE STREAM ORDERS (Load VARCHAR, size INTEGER)"));
   }
@@ -1244,8 +1344,9 @@ public class KsqlParserTest {
     );
 
     // Then:
-    assertThat(e.getUnloggedMessage(), containsString("line 1:22: mismatched input ',' expecting"));
+    assertThat(e.getUnloggedMessage(), containsString("line 1:22: Syntax Error"));
     assertThat(e.getMessage(), containsString("line 1:22: Syntax error at line 1:22"));
+    assertThat(e.getSqlStatement(), containsString("SELECT * FROM address, itemid;"));
   }
 
   @Test
@@ -1465,6 +1566,132 @@ public class KsqlParserTest {
     assertThat(preparedStatement.getMaskedStatementText(), is(masked));
     assertThat(preparedStatement.getUnMaskedStatementText(), is(query));
     assertThat(preparedStatement.toString(), is(masked));
+  }
+
+  @Test
+  public void shouldThrowSyntaxErrorOnInvalidCreateStatement() {
+    // Given
+    final String invalidCreateStatement =
+        "CRETE STREAM s1(id INT) WITH (kafka_topic='s1', value_format='JSON')";
+
+    // When
+    final ParseFailedException e = assertThrows(
+        ParseFailedException.class,
+        () -> KsqlParserTestUtil.parse(invalidCreateStatement)
+    );
+
+    // Then
+    assertThat(e.getUnloggedMessage(), containsString(
+        "line 1:1: Syntax Error\n" +
+            "Unknown statement 'CRETE'\n" +
+            "Did you mean 'CREATE'?"
+    ));
+    assertThat(e.getMessage(), containsString("line 1:1: Syntax error at line 1:1"));
+    assertThat(e.getSqlStatement(), containsString("CRETE STREAM s1(id INT) WITH (kafka_topic='s1', value_format='JSON')"));
+  }
+
+  @Test
+  public void shouldThrowSyntaxErrorOnMisMatchStatement() {
+    // Given
+    final String invalidStatement =
+        "SELECT FROM FROM TEST_TOPIC";
+
+    // When
+    final ParseFailedException e = assertThrows(
+        ParseFailedException.class,
+        () -> KsqlParserTestUtil.parse(invalidStatement)
+    );
+
+    // Then
+    assertThat(e.getUnloggedMessage(), containsString("line 1:8: Syntax Error"));
+    assertThat(e.getMessage(), containsString("line 1:8: Syntax error at line 1:8"));
+    assertThat(e.getSqlStatement(), containsString("SELECT FROM FROM TEST_TOPIC"));
+  }
+
+  @Test
+  public void shouldThrowSyntaxErrorAndShowExpecting() {
+    // Given
+    final String invalidStatement =
+        "SELECT * FORM TEST_TOPIC";
+
+    // When
+    final ParseFailedException e = assertThrows(
+        ParseFailedException.class,
+        () -> KsqlParserTestUtil.parse(invalidStatement)
+    );
+
+    // Then
+    assertThat(e.getUnloggedMessage(), containsString("line 1:10: Syntax Error"));
+    assertThat(e.getMessage(), containsString("line 1:10: Syntax error at line 1:10"));
+    assertThat(e.getSqlStatement(), containsString("SELECT * FORM TEST_TOPIC"));
+  }
+
+  @Test
+  public void shouldThrowSyntaxErrorOnWrongEOF() {
+    // Given
+    final String invalidStatement =
+    "SELECT * FROM artist WHERE first_name = 'Vincent' and (last_name = 'Monet' or last_name = 'Da Vinci'";
+
+    // When
+    final ParseFailedException e = assertThrows(
+        ParseFailedException.class,
+        () -> KsqlParserTestUtil.parse(invalidStatement)
+    );
+
+    // Then
+    assertThat(e.getUnloggedMessage(), containsString(
+        "line 1:101: Syntax Error\n"
+            + "Syntax error at or near \";\"\n"
+            + "'}', ']', or ')' is missing"
+    ));
+    assertThat(e.getMessage(), containsString("line 1:101: Syntax error at line 1:101"));
+    assertThat(e.getSqlStatement(), containsString(
+        "SELECT * FROM artist WHERE first_name = 'Vincent'"
+            + " and (last_name = 'Monet' or last_name = 'Da Vinci'"
+    ));
+  }
+
+  @Test
+  public void shouldThrowSyntaxErrorOnNoViableAltException() {
+    // Given
+    final String invalidCreateStatement =
+        "CREATE TABLE AS SELECT x, count(*) FROM TEST_TOPIC GROUP BY x";
+
+    // When
+    final ParseFailedException e = assertThrows(
+        ParseFailedException.class,
+        () -> KsqlParserTestUtil.parse(invalidCreateStatement)
+    );
+
+    // Then
+    assertThat(e.getUnloggedMessage(), containsString("line 1:14: Syntax Error\n" +
+        "Syntax error at or near 'AS' at line 1:14"));
+    assertThat(e.getMessage(), containsString("line 1:14: Syntax error at line 1:14"));
+    assertThat(e.getSqlStatement(), containsString(
+        "CREATE TABLE AS SELECT x, count(*) FROM TEST_TOPIC GROUP BY x"
+    ));
+  }
+
+  @Test
+  public void shouldGuessWhatUserMeanCorrectly() {
+    // Given
+    final String invalidCreateStatement =
+        "sho streams;";
+
+    // When
+    final ParseFailedException e = assertThrows(
+        ParseFailedException.class,
+        () -> KsqlParserTestUtil.parse(invalidCreateStatement)
+    );
+
+    // Then
+    assertThat(e.getUnloggedMessage(), containsString(
+        "line 1:1: Syntax Error\n" +
+            "Unknown statement 'sho'\n" +
+            "Did you mean 'SHOW'?"
+    ));
+    assertThat(e.getMessage(), containsString("line 1:1: Syntax error at line 1:1"));
+    assertThat(e.getSqlStatement(), containsString("sho streams;"));
   }
 
   private Literal parseDouble(final String literalText) {

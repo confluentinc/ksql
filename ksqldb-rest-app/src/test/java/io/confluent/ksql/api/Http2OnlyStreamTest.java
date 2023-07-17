@@ -36,18 +36,6 @@ public class Http2OnlyStreamTest extends BaseApiTest {
   }
 
   @Test
-  public void shouldRejectQueryUsingHttp11() throws Exception {
-
-    // Given:
-    JsonObject requestBody = new JsonObject().put("sql", DEFAULT_PULL_QUERY);
-    JsonObject properties = new JsonObject().put("prop1", "val1").put("prop2", 23);
-    requestBody.put("properties", properties);
-
-    // Then
-    shouldRejectRequestUsingHttp11("/query-stream", requestBody);
-  }
-
-  @Test
   public void shouldRejectInsertsUsingHttp11() throws Exception {
 
     // Given:

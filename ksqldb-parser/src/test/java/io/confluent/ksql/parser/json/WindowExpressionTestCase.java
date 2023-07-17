@@ -26,5 +26,9 @@ public class WindowExpressionTestCase {
           new WindowTimeClause(123, TimeUnit.DAYS)
       );
   static final String WINDOW_EXPRESSION_TXT =
-      "\" TUMBLING ( SIZE 123 DAYS ) \"";
+      "{\"size\":{\"value\":123,\"timeUnit\":\"DAYS\"},"
+          + "\"retention\":null,"
+          + "\"gracePeriod\":null,"
+          + "\"emitStrategy\":null,"
+          + "\"windowType\":\"TUMBLING\"}";
 }

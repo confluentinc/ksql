@@ -1,7 +1,7 @@
 {
   "plan" : [ {
     "@type" : "ksqlPlanV1",
-    "statementText" : "CREATE STREAM INPUT (C1 STRUCT<F1 INTEGER>) WITH (KAFKA_TOPIC='input', SCHEMA_ID=1, VALUE_FORMAT='AvRo');",
+    "statementText" : "CREATE STREAM INPUT (C1 STRUCT<F1 INTEGER>) WITH (KAFKA_TOPIC='input', VALUE_FORMAT='AvRo');",
     "ddlCommand" : {
       "@type" : "createStreamV1",
       "sourceName" : "INPUT",

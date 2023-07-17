@@ -1,0 +1,355 @@
+{
+  "version" : "7.3.0",
+  "timestamp" : 1651071365034,
+  "path" : "query-validation-tests/joins.json",
+  "schemas" : {
+    "CTAS_OUTPUT_0.PrependAliasLeft" : {
+      "schema" : "`T_ID` BIGINT KEY, `T_NAME` STRING, `T_VALUE` BIGINT, `T_ROWTIME` BIGINT, `T_ROWPARTITION` INTEGER, `T_ROWOFFSET` BIGINT, `T_ID` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "PROTOBUF",
+        "properties" : {
+          "unwrapPrimitives" : "true"
+        }
+      }
+    },
+    "CTAS_OUTPUT_0.KafkaTopic_Left.Source.Materialized" : {
+      "schema" : "`ID` BIGINT KEY, `NAME` STRING, `VALUE` BIGINT, `ROWPARTITION` INTEGER, `ROWOFFSET` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "PROTOBUF",
+        "properties" : {
+          "unwrapPrimitives" : "true"
+        }
+      }
+    },
+    "CTAS_OUTPUT_0.KafkaTopic_Left.Source" : {
+      "schema" : "`ID` BIGINT KEY, `NAME` STRING, `VALUE` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "PROTOBUF",
+        "properties" : {
+          "unwrapPrimitives" : "true"
+        }
+      }
+    },
+    "CTAS_OUTPUT_0.Project" : {
+      "schema" : "`T_ID` BIGINT KEY, `NAME` STRING, `VALUE` BIGINT, `F1` STRING, `F2` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "PROTOBUF",
+        "properties" : {
+          "unwrapPrimitives" : "true"
+        }
+      }
+    },
+    "CTAS_OUTPUT_0.KafkaTopic_Right.Source" : {
+      "schema" : "`ID` BIGINT KEY, `F1` STRING, `F2` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "PROTOBUF",
+        "properties" : {
+          "unwrapPrimitives" : "true"
+        }
+      }
+    },
+    "CTAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`T_ID` BIGINT KEY, `NAME` STRING, `VALUE` BIGINT, `F1` STRING, `F2` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "PROTOBUF",
+        "properties" : {
+          "unwrapPrimitives" : "true"
+        }
+      }
+    },
+    "CTAS_OUTPUT_0.PrependAliasRight" : {
+      "schema" : "`TT_ID` BIGINT KEY, `TT_F1` STRING, `TT_F2` BIGINT, `TT_ROWTIME` BIGINT, `TT_ROWPARTITION` INTEGER, `TT_ROWOFFSET` BIGINT, `TT_ID` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "PROTOBUF",
+        "properties" : {
+          "unwrapPrimitives" : "true"
+        }
+      }
+    },
+    "CTAS_OUTPUT_0.KafkaTopic_Right.Source.Materialized" : {
+      "schema" : "`ID` BIGINT KEY, `F1` STRING, `F2` BIGINT, `ROWPARTITION` INTEGER, `ROWOFFSET` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "PROTOBUF",
+        "properties" : {
+          "unwrapPrimitives" : "true"
+        }
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "table table right join - PROTOBUF - PROTOBUF",
+    "inputs" : [ {
+      "topic" : "left_topic",
+      "key" : 0,
+      "value" : {
+        "NAME" : "zero",
+        "VALUE" : 0
+      },
+      "timestamp" : 0
+    }, {
+      "topic" : "right_topic",
+      "key" : 0,
+      "value" : {
+        "F1" : "blah",
+        "F2" : 50
+      },
+      "timestamp" : 10000
+    }, {
+      "topic" : "left_topic",
+      "key" : 10,
+      "value" : {
+        "NAME" : "100",
+        "VALUE" : 5
+      },
+      "timestamp" : 11000
+    }, {
+      "topic" : "left_topic",
+      "key" : 0,
+      "value" : {
+        "NAME" : "foo",
+        "VALUE" : 100
+      },
+      "timestamp" : 13000
+    }, {
+      "topic" : "right_topic",
+      "key" : 0,
+      "value" : {
+        "F1" : "a",
+        "F2" : 10
+      },
+      "timestamp" : 15000
+    }, {
+      "topic" : "left_topic",
+      "key" : 0,
+      "value" : {
+        "NAME" : "bar",
+        "VALUE" : 99
+      },
+      "timestamp" : 16000
+    }, {
+      "topic" : "left_topic",
+      "key" : 90,
+      "value" : {
+        "NAME" : "ninety",
+        "VALUE" : 90
+      },
+      "timestamp" : 17000
+    }, {
+      "topic" : "right_topic",
+      "key" : 7,
+      "value" : {
+        "F1" : "b",
+        "F2" : 20
+      },
+      "timestamp" : 18000
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : 0,
+      "value" : {
+        "NAME" : "zero",
+        "VALUE" : 0,
+        "F1" : "blah",
+        "F2" : 50
+      },
+      "timestamp" : 10000
+    }, {
+      "topic" : "OUTPUT",
+      "key" : 0,
+      "value" : {
+        "NAME" : "foo",
+        "VALUE" : 100,
+        "F1" : "blah",
+        "F2" : 50
+      },
+      "timestamp" : 13000
+    }, {
+      "topic" : "OUTPUT",
+      "key" : 0,
+      "value" : {
+        "NAME" : "foo",
+        "VALUE" : 100,
+        "F1" : "a",
+        "F2" : 10
+      },
+      "timestamp" : 15000
+    }, {
+      "topic" : "OUTPUT",
+      "key" : 0,
+      "value" : {
+        "NAME" : "bar",
+        "VALUE" : 99,
+        "F1" : "a",
+        "F2" : 10
+      },
+      "timestamp" : 16000
+    }, {
+      "topic" : "OUTPUT",
+      "key" : 7,
+      "value" : {
+        "NAME" : "",
+        "VALUE" : 0,
+        "F1" : "b",
+        "F2" : 20
+      },
+      "timestamp" : 18000
+    } ],
+    "topics" : [ {
+      "name" : "right_topic",
+      "valueSchema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  string F1 = 1;\n  int64 F2 = 2;\n}\n",
+      "valueFormat" : "PROTOBUF",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "left_topic",
+      "valueSchema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  string NAME = 1;\n  int64 VALUE = 2;\n}\n",
+      "valueFormat" : "PROTOBUF",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE TABLE TEST (id BIGINT PRIMARY KEY, name VARCHAR, value BIGINT) WITH (kafka_topic='left_topic', value_format='PROTOBUF');", "CREATE TABLE TEST_TABLE (id BIGINT PRIMARY KEY, f1 VARCHAR, f2 BIGINT) WITH (kafka_topic='right_topic', value_format='PROTOBUF');", "CREATE TABLE OUTPUT AS SELECT t.id, name, value, f1, f2 FROM test t RIGHT JOIN test_table tt ON t.id = tt.id;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "OUTPUT",
+        "type" : "TABLE",
+        "schema" : "`T_ID` BIGINT KEY, `NAME` STRING, `VALUE` BIGINT, `F1` STRING, `F2` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "PROTOBUF",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "TEST",
+        "type" : "TABLE",
+        "schema" : "`ID` BIGINT KEY, `NAME` STRING, `VALUE` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "PROTOBUF",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "TEST_TABLE",
+        "type" : "TABLE",
+        "schema" : "`ID` BIGINT KEY, `F1` STRING, `F2` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "PROTOBUF",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Project-Last-changelog",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "PROTOBUF",
+            "properties" : {
+              "unwrapPrimitives" : "true"
+            }
+          },
+          "valueSchema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  string NAME = 1;\n  int64 VALUE = 2;\n  string F1 = 3;\n  int64 F2 = 4;\n}\n"
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-KafkaTopic_Right-Reduce-changelog",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "PROTOBUF",
+            "properties" : {
+              "unwrapPrimitives" : "true"
+            }
+          },
+          "valueSchema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  string F1 = 1;\n  int64 F2 = 2;\n  int32 ROWPARTITION = 3;\n  int64 ROWOFFSET = 4;\n}\n"
+        }, {
+          "name" : "left_topic",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "PROTOBUF",
+            "properties" : {
+              "unwrapPrimitives" : "true"
+            }
+          },
+          "partitions" : 4,
+          "valueSchema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  string NAME = 1;\n  int64 VALUE = 2;\n}\n"
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-KafkaTopic_Left-Reduce-changelog",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "PROTOBUF",
+            "properties" : {
+              "unwrapPrimitives" : "true"
+            }
+          },
+          "valueSchema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  string NAME = 1;\n  int64 VALUE = 2;\n  int32 ROWPARTITION = 3;\n  int64 ROWOFFSET = 4;\n}\n"
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "PROTOBUF",
+            "properties" : {
+              "unwrapPrimitives" : "true"
+            }
+          },
+          "partitions" : 4,
+          "valueSchema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  string NAME = 1;\n  int64 VALUE = 2;\n  string F1 = 3;\n  int64 F2 = 4;\n}\n"
+        }, {
+          "name" : "right_topic",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "PROTOBUF",
+            "properties" : {
+              "unwrapPrimitives" : "true"
+            }
+          },
+          "partitions" : 4,
+          "valueSchema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  string F1 = 1;\n  int64 F2 = 2;\n}\n"
+        } ],
+        "blackList" : ".*-repartition"
+      }
+    }
+  }
+}

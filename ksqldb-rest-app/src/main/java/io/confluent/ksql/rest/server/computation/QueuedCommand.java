@@ -55,21 +55,19 @@ public class QueuedCommand {
     this.offset = Objects.requireNonNull(offset, "offset");
   }
 
-  @VisibleForTesting
-  byte[] getCommandId() {
+  public byte[] getCommandId() {
     return Arrays.copyOf(commandId, commandId.length);
   }
 
-  @VisibleForTesting
-  byte[] getCommand() {
+  public byte[] getCommand() {
     return  Arrays.copyOf(command, command.length);
   }
 
-  CommandId getAndDeserializeCommandId() {
+  public CommandId getAndDeserializeCommandId() {
     return InternalTopicSerdes.deserializer(CommandId.class).deserialize("", commandId);
   }
 
-  Command getAndDeserializeCommand(final Deserializer<Command> deserializer) {
+  public Command getAndDeserializeCommand(final Deserializer<Command> deserializer) {
     return deserializer.deserialize("", command);
   }
 

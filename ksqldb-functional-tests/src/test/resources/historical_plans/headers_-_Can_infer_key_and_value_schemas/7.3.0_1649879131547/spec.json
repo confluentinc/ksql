@@ -1,0 +1,195 @@
+{
+  "version" : "7.3.0",
+  "timestamp" : 1649879131547,
+  "path" : "query-validation-tests/headers.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`H` ARRAY<STRUCT<`KEY` STRING, `VALUE` BYTES>> HEADERS, `ROWKEY` STRING KEY, `V` INTEGER",
+      "keyFormat" : {
+        "format" : "AVRO",
+        "properties" : {
+          "fullSchemaName" : "io.confluent.ksql.avro_schemas.Source1Key"
+        },
+        "features" : [ "UNWRAP_SINGLES" ]
+      },
+      "valueFormat" : {
+        "format" : "AVRO"
+      }
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ROWKEY` STRING KEY, `V` INTEGER, `H` ARRAY<STRUCT<`KEY` STRING, `VALUE` BYTES>>",
+      "keyFormat" : {
+        "format" : "AVRO",
+        "properties" : {
+          "fullSchemaName" : "io.confluent.ksql.avro_schemas.OutputKey"
+        },
+        "features" : [ "UNWRAP_SINGLES" ]
+      },
+      "valueFormat" : {
+        "format" : "AVRO"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "Can infer key and value schemas",
+    "inputs" : [ {
+      "topic" : "stream-source",
+      "key" : "k1",
+      "value" : {
+        "v" : 40000
+      },
+      "headers" : [ ]
+    }, {
+      "topic" : "stream-source",
+      "key" : "k2",
+      "value" : {
+        "v" : 40000
+      },
+      "headers" : [ {
+        "KEY" : "abc",
+        "VALUE" : "IQ=="
+      } ]
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : "k1",
+      "value" : {
+        "V" : 40000,
+        "H" : [ ]
+      },
+      "headers" : [ ]
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "k2",
+      "value" : {
+        "V" : 40000,
+        "H" : [ {
+          "KEY" : "abc",
+          "VALUE" : "IQ=="
+        } ]
+      },
+      "headers" : [ {
+        "KEY" : "abc",
+        "VALUE" : "IQ=="
+      } ]
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "stream-source",
+      "keySchema" : "string",
+      "valueSchema" : {
+        "type" : "record",
+        "name" : "most_recent_value_schema_at_SR",
+        "fields" : [ {
+          "name" : "v",
+          "type" : [ "null", "int" ]
+        } ]
+      },
+      "keyFormat" : "AVRO",
+      "valueFormat" : "AVRO",
+      "replicas" : 1,
+      "numPartitions" : 1
+    } ],
+    "statements" : [ "CREATE STREAM SOURCE1 (H ARRAY<STRUCT<key STRING, value BYTES>> HEADERS) WITH (kafka_topic='stream-source', value_format='avro', key_format='avro');", "CREATE STREAM OUTPUT AS SELECT * FROM SOURCE1;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` STRING KEY, `V` INTEGER, `H` ARRAY<STRUCT<`KEY` STRING, `VALUE` BYTES>>",
+        "keyFormat" : {
+          "format" : "AVRO"
+        },
+        "valueFormat" : "AVRO",
+        "keyFeatures" : [ "UNWRAP_SINGLES" ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "SOURCE1",
+        "type" : "STREAM",
+        "schema" : "`H` ARRAY<STRUCT<`KEY` STRING, `VALUE` BYTES>> HEADERS, `ROWKEY` STRING KEY, `V` INTEGER",
+        "keyFormat" : {
+          "format" : "AVRO"
+        },
+        "valueFormat" : "AVRO",
+        "keyFeatures" : [ "UNWRAP_SINGLES" ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "stream-source",
+          "keyFormat" : {
+            "format" : "AVRO",
+            "properties" : {
+              "fullSchemaName" : "io.confluent.ksql.avro_schemas.Source1Key"
+            },
+            "features" : [ "UNWRAP_SINGLES" ]
+          },
+          "valueFormat" : {
+            "format" : "AVRO"
+          },
+          "partitions" : 1,
+          "keySchema" : "string",
+          "valueSchema" : {
+            "type" : "record",
+            "name" : "most_recent_value_schema_at_SR",
+            "fields" : [ {
+              "name" : "v",
+              "type" : [ "null", "int" ],
+              "default" : null
+            } ],
+            "connect.name" : "most_recent_value_schema_at_SR"
+          }
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "format" : "AVRO",
+            "properties" : {
+              "fullSchemaName" : "io.confluent.ksql.avro_schemas.OutputKey"
+            },
+            "features" : [ "UNWRAP_SINGLES" ]
+          },
+          "valueFormat" : {
+            "format" : "AVRO"
+          },
+          "partitions" : 4,
+          "keySchema" : "string",
+          "valueSchema" : {
+            "type" : "record",
+            "name" : "KsqlDataSourceSchema",
+            "namespace" : "io.confluent.ksql.avro_schemas",
+            "fields" : [ {
+              "name" : "V",
+              "type" : [ "null", "int" ],
+              "default" : null
+            }, {
+              "name" : "H",
+              "type" : [ "null", {
+                "type" : "array",
+                "items" : [ "null", {
+                  "type" : "record",
+                  "name" : "KsqlDataSourceSchema_H",
+                  "fields" : [ {
+                    "name" : "KEY",
+                    "type" : [ "null", "string" ],
+                    "default" : null
+                  }, {
+                    "name" : "VALUE",
+                    "type" : [ "null", "bytes" ],
+                    "default" : null
+                  } ],
+                  "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema_H"
+                } ]
+              } ],
+              "default" : null
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
+          }
+        } ]
+      }
+    }
+  }
+}

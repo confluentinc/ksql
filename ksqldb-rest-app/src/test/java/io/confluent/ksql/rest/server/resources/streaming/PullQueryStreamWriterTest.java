@@ -14,10 +14,12 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
+import io.confluent.ksql.execution.pull.PullQueryResult;
+import io.confluent.ksql.execution.pull.PullQueryRow;
 import io.confluent.ksql.name.ColumnName;
-import io.confluent.ksql.physical.pull.PullQueryResult;
-import io.confluent.ksql.physical.pull.PullQueryRow;
-import io.confluent.ksql.query.PullQueryQueue;
+import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
+import io.confluent.ksql.parser.tree.Query;
+import io.confluent.ksql.query.PullQueryWriteStream;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.ApiJsonMapper;
 import io.confluent.ksql.rest.entity.StreamedRow;
@@ -67,9 +69,11 @@ public class PullQueryStreamWriterTest {
   @Mock
   private PullQueryResult pullQueryResult;
   @Mock
-  private PullQueryQueue pullQueryQueue;
+  private PullQueryWriteStream pullQueryQueue;
   @Mock
   private Clock clock;
+  @Mock
+  private PreparedStatement<Query> statement;
 
   @Captor
   private ArgumentCaptor<Consumer<Throwable>> throwableConsumerCapture;
@@ -86,7 +90,7 @@ public class PullQueryStreamWriterTest {
     when(pullQueryResult.getSchema()).thenReturn(SCHEMA);
     doNothing().when(pullQueryResult).onCompletion(completeCapture.capture());
     writer = new PullQueryStreamWriter(pullQueryResult, 1000, ApiJsonMapper.INSTANCE.get(),
-        pullQueryQueue, clock, new CompletableFuture<>());
+        pullQueryQueue, clock, new CompletableFuture<>(), statement);
 
     executorService = Executors.newSingleThreadScheduledExecutor();
 
@@ -110,6 +114,7 @@ public class PullQueryStreamWriterTest {
     writer.write(out);
 
     // Then:
+    assertThat(writer.isClosed(), is (true));
     final List<String> lines = getOutput(out);
     assertThat(lines, contains(
         containsString("header"),
@@ -131,7 +136,8 @@ public class PullQueryStreamWriterTest {
     writer.write(out);
 
     // Then:
-    verify(pullQueryQueue).putSentinelRow(END_ROW);
+    assertThat(writer.isClosed(), is (true));
+    verify(pullQueryQueue).end();
     final List<String> lines = getOutput(out);
     assertThat(lines, contains(
         containsString("header")
@@ -149,7 +155,8 @@ public class PullQueryStreamWriterTest {
     writer.write(out);
 
     // Then:
-    verify(pullQueryQueue).putSentinelRow(END_ROW);
+    assertThat(writer.isClosed(), is (true));
+    verify(pullQueryQueue).end();
     final List<String> lines = getOutput(out);
     assertThat(lines, contains(
         containsString("header"),
@@ -170,7 +177,8 @@ public class PullQueryStreamWriterTest {
     writer.write(out);
 
     // Then:
-    verify(pullQueryQueue).putSentinelRow(END_ROW);
+    assertThat(writer.isClosed(), is (true));
+    verify(pullQueryQueue).end();
     final List<String> lines = getOutput(out);
     assertThat(lines, hasItems(
         containsString("header"),
@@ -184,7 +192,7 @@ public class PullQueryStreamWriterTest {
   public void shouldWriteOneAndClose() throws InterruptedException, IOException {
     // Given:
     when(pullQueryQueue.pollRow(anyLong(), any()))
-        .thenReturn(new PullQueryRow(ImmutableList.of("Row1"), SCHEMA, Optional.empty()))
+        .thenReturn(new PullQueryRow(ImmutableList.of("Row1"), SCHEMA, Optional.empty(), Optional.empty()))
         .thenAnswer(inv -> {
           completeCapture.getValue().accept(null);
           return END_ROW;
@@ -194,7 +202,8 @@ public class PullQueryStreamWriterTest {
     writer.write(out);
 
     // Then:
-    verify(pullQueryQueue).putSentinelRow(END_ROW);
+    assertThat(writer.isClosed(), is (true));
+    verify(pullQueryQueue).end();
     final List<String> lines = getOutput(out);
     assertThat(lines, contains(
         containsString("header"),
@@ -217,7 +226,8 @@ public class PullQueryStreamWriterTest {
     writer.write(out);
 
     // Then:
-    verify(pullQueryQueue).putSentinelRow(END_ROW);
+    assertThat(writer.isClosed(), is (true));
+    verify(pullQueryQueue).end();
     final List<String> lines = getOutput(out);
     assertThat(lines, contains(
         containsString("header"),
@@ -243,7 +253,8 @@ public class PullQueryStreamWriterTest {
     writer.write(out);
 
     // Then:
-    verify(pullQueryQueue).putSentinelRow(END_ROW);
+    assertThat(writer.isClosed(), is (true));
+    verify(pullQueryQueue).end();
     final List<String> lines = getOutput(out);
     assertThat(lines, contains(
         containsString("header"),
@@ -267,6 +278,7 @@ public class PullQueryStreamWriterTest {
     writer.write(out);
 
     // Then:
+    assertThat(writer.isClosed(), is (true));
     final List<String> lines = getOutput(out);
     assertThat(lines.size(), is(2));
     assertThat(lines, contains(
@@ -289,7 +301,7 @@ public class PullQueryStreamWriterTest {
       final Collection<PullQueryRow> output = inv.getArgument(0);
 
       Arrays.stream(rows)
-          .map(row -> new PullQueryRow(ImmutableList.of(row), SCHEMA, Optional.empty()))
+          .map(row -> new PullQueryRow(ImmutableList.of(row), SCHEMA, Optional.empty(), Optional.empty()))
           .forEach(output::add);
 
       return null;
@@ -297,7 +309,7 @@ public class PullQueryStreamWriterTest {
   }
 
   private static PullQueryRow streamRow(final Object row) {
-    return new PullQueryRow(ImmutableList.of(row), SCHEMA, Optional.empty());
+    return new PullQueryRow(ImmutableList.of(row), SCHEMA, Optional.empty(), Optional.empty());
   }
 
   private static List<String> getOutput(final ByteArrayOutputStream out) throws IOException {

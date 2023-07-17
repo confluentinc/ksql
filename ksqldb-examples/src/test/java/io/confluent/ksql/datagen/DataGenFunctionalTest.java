@@ -24,6 +24,7 @@ import com.google.common.collect.ImmutableMap;
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
 import io.confluent.ksql.test.util.TopicTestUtil;
+import io.confluent.ksql.util.MockSystemExit;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
@@ -192,6 +193,6 @@ public class DataGenFunctionalTest {
         .map(e -> e.getKey() + "=" + e.getValue())
         .toArray(String[]::new);
 
-    DataGen.run(argArray);
+    DataGen.run(new MockSystemExit(), argArray);
   }
 }

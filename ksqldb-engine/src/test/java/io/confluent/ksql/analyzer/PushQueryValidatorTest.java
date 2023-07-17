@@ -27,6 +27,10 @@ import io.confluent.ksql.analyzer.Analysis.Into;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
+import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.schema.ksql.Column;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Optional;
@@ -46,6 +50,10 @@ public class PushQueryValidatorTest {
   @Mock
   private DataSource source;
   @Mock
+  private LogicalSchema logicalSchema;
+  @Mock
+  private Column column;
+  @Mock
   private KsqlTopic topic;
   @Mock
   private KeyFormat keyFormat;
@@ -54,6 +62,10 @@ public class PushQueryValidatorTest {
 
   @Before
   public void setUp() {
+    when(source.getSchema()).thenReturn(logicalSchema);
+    when(logicalSchema.value()).thenReturn(ImmutableList.of(column));
+    when(column.name()).thenReturn(ColumnName.of("some_user_column"));
+
     validator = new PushQueryValidator();
   }
 
@@ -107,6 +119,46 @@ public class PushQueryValidatorTest {
     validator.validate(analysis);
   }
 
+  @Test
+  public void shouldThrowOnUserColumnsWithSameNameAsPseudoColumnForPersistentQuery() {
+    // Given:
+    givenPersistentQuery();
+    givenSourceStream();
+    givenUnwindowedSource();
+    givenSourceUserColumnWithSameNameAsPseudoColumn();
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> QueryValidatorUtil.validateNoUserColumnsWithSameNameAsPseudoColumns(analysis)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Your stream/table has columns with the "
+        + "same name as newly introduced pseudocolumns in "
+        + "ksqlDB, and cannot be queried as a result. The conflicting names are: `ROWPARTITION`."));
+  }
+
+  @Test
+  public void shouldThrowOnUserColumnsWithSameNameAsPseudoColumnForPushQuery() {
+    // Given:
+    givenTransientQuery();
+    givenSourceTable();
+    givenUnwindowedSource();
+    givenSourceUserColumnWithSameNameAsPseudoColumn();
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> QueryValidatorUtil.validateNoUserColumnsWithSameNameAsPseudoColumns(analysis)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Your stream/table has columns with the "
+        + "same name as newly introduced pseudocolumns in "
+        + "ksqlDB, and cannot be queried as a result. The conflicting names are: `ROWPARTITION`."));
+  }
+
   private void givenPersistentQuery() {
     when(analysis.getInto()).thenReturn(Optional.of(mock(Into.class)));
   }
@@ -139,5 +191,9 @@ public class PushQueryValidatorTest {
     when(source.getKsqlTopic()).thenReturn(topic);
     when(topic.getKeyFormat()).thenReturn(keyFormat);
     when(keyFormat.isWindowed()).thenReturn(false);
+  }
+
+  private void givenSourceUserColumnWithSameNameAsPseudoColumn() {
+    when(column.name()).thenReturn(SystemColumns.ROWPARTITION_NAME);
   }
 }

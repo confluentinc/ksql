@@ -58,7 +58,8 @@ import java.util.stream.Collectors;
 public class Analysis implements ImmutableAnalysis {
 
   private final Optional<RefinementInfo> refinementInfo;
-  private final Function<Map<SourceName, LogicalSchema>, SourceSchemas> sourceSchemasFactory;
+  private final Function<Map<SourceName, LogicalSchema>, SourceSchemas>
+      sourceSchemasFactory;
   private Optional<Into> into = Optional.empty();
   private final List<AliasedDataSource> allDataSources = new ArrayList<>();
   private final List<JoinInfo> joinInfo = new ArrayList<>();
@@ -72,19 +73,27 @@ public class Analysis implements ImmutableAnalysis {
   private OptionalInt limitClause = OptionalInt.empty();
   private CreateSourceAsProperties withProperties = CreateSourceAsProperties.none();
   private final List<FunctionCall> tableFunctions = new ArrayList<>();
+  private final List<FunctionCall> aggregateFunctions = new ArrayList<>();
   private boolean orReplace = false;
+  private boolean pullLimitClauseEnabled = true;
 
-  public Analysis(final Optional<RefinementInfo> refinementInfo) {
-    this(refinementInfo, SourceSchemas::new);
+  public Analysis(
+      final Optional<RefinementInfo> refinementInfo,
+      final boolean pullLimitClauseEnabled
+  ) {
+    this(refinementInfo, SourceSchemas::new, pullLimitClauseEnabled);
   }
 
   @VisibleForTesting
   Analysis(
       final Optional<RefinementInfo> refinementInfo,
-      final Function<Map<SourceName, LogicalSchema>, SourceSchemas> sourceSchemasFactory
+      final Function<Map<SourceName, LogicalSchema>, SourceSchemas>
+          sourceSchemasFactory,
+      final boolean pullLimitClauseEnabled
   ) {
     this.refinementInfo = requireNonNull(refinementInfo, "refinementInfo");
     this.sourceSchemasFactory = requireNonNull(sourceSchemasFactory, "sourceSchemasFactory");
+    this.pullLimitClauseEnabled  = pullLimitClauseEnabled;
   }
 
   void addSelectItem(final SelectItem selectItem) {
@@ -259,6 +268,19 @@ public class Analysis implements ImmutableAnalysis {
   @Override
   public List<FunctionCall> getTableFunctions() {
     return Collections.unmodifiableList(tableFunctions);
+  }
+
+  void addAggregateFunction(final FunctionCall functionCall) {
+    this.aggregateFunctions.add(Objects.requireNonNull(functionCall));
+  }
+
+  @Override
+  public List<FunctionCall> getAggregateFunctions() {
+    return Collections.unmodifiableList(aggregateFunctions);
+  }
+
+  public boolean getPullLimitClauseEnabled() {
+    return pullLimitClauseEnabled;
   }
 
   private LogicalSchema buildStreamsSchema(

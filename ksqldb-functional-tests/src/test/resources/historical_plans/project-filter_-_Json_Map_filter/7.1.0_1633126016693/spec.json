@@ -1,0 +1,138 @@
+{
+  "version" : "7.1.0",
+  "timestamp" : 1633126016693,
+  "path" : "query-validation-tests/project-filter.json",
+  "schemas" : {
+    "CSAS_S1_0.KsqlTopic.Source" : {
+      "schema" : "`K` STRING KEY, `ID` BIGINT, `THING` MAP<STRING, STRING>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_S1_0.S1" : {
+      "schema" : "`K` STRING KEY, `ID` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "Json Map filter",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : "0",
+      "value" : {
+        "id" : 1,
+        "thing" : {
+          "other" : 11,
+          "status" : false
+        }
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : "0",
+      "value" : {
+        "id" : 2,
+        "thing" : {
+          "other" : 12,
+          "status" : true
+        }
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : "0",
+      "value" : {
+        "id" : 3,
+        "thing" : {
+          "other" : 13,
+          "status" : true
+        }
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : "0",
+      "value" : {
+        "id" : 4,
+        "thing" : {
+          "other" : 13,
+          "status" : false
+        }
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "S1",
+      "key" : "0",
+      "value" : {
+        "ID" : 1
+      }
+    }, {
+      "topic" : "S1",
+      "key" : "0",
+      "value" : {
+        "ID" : 4
+      }
+    } ],
+    "topics" : [ {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "S1",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM TEST (K STRING KEY, ID bigint, THING MAP<VARCHAR, VARCHAR>) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE STREAM S1 as SELECT K, ID FROM TEST WHERE THING['status']='false';" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "S1",
+        "type" : "STREAM",
+        "schema" : "`K` STRING KEY, `ID` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`K` STRING KEY, `ID` BIGINT, `THING` MAP<STRING, STRING>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "S1",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

@@ -69,8 +69,8 @@ public class DataSourceNode extends PlanNode {
       final boolean isWindowed
   ) {
     super(id, dataSource.getDataSourceType(), Optional.of(alias));
-    this.schema = buildSchema(dataSource);
     this.dataSource = requireNonNull(dataSource, "dataSource");
+    this.schema = buildSchema(dataSource);
     this.schemaKStreamFactory = requireNonNull(schemaKStreamFactory, "schemaKStreamFactory");
     this.isWindowed = isWindowed;
   }
@@ -188,12 +188,15 @@ public class DataSourceNode extends PlanNode {
         .isPresent();
   }
 
-  private static LogicalSchema buildSchema(final DataSource dataSource) {
+  private static LogicalSchema buildSchema(
+      final DataSource dataSource
+  ) {
     // DataSourceNode copies implicit and key fields into the value schema
     // It users a KS valueMapper to add the key fields
     // and a KS transformValues to add the implicit fields
     return dataSource.getSchema()
-        .withPseudoAndKeyColsInValue(dataSource.getKsqlTopic().getKeyFormat().isWindowed());
+        .withPseudoAndKeyColsInValue(
+            dataSource.getKsqlTopic().getKeyFormat().isWindowed());
   }
 
   @Immutable

@@ -7,8 +7,8 @@ keywords: ksqldb
 ---
 
 The `/ksql` resource runs a sequence of SQL statements. All statements,
-except those starting with SELECT, can be run on this endpoint. To run
-SELECT statements use the `/query` endpoint.
+except those starting with SELECT and PRINT, can be run on this endpoint. To run
+SELECT and PRINT statements use the `/query` endpoint.
 
 !!! note
       If you use the SET or UNSET statements to assign query properties by
@@ -159,12 +159,12 @@ Response JSON Object:
 - **queryDescription.fields[i].schema** (object): A schema object that describes the schema of the field.
 - **queryDescription.fields[i].schema.type** (string): The type the schema represents. One of INTEGER, BIGINT, BOOLEAN, BYTES, DOUBLE, STRING, TIMESTAMP, TIME, DATE, MAP, ARRAY, or STRUCT.
 - **queryDescription.fields[i].schema.memberSchema** (object): A schema object. For MAP and ARRAY types, contains the schema of the map values and array elements, respectively. For other types this field is not used and its value is undefined.
-- **queryDescription.fields[i].schema.fields** (array): For STRUCT types, contains a list of field objects that descrbies each field within the struct. For other types this field is not used and its value is undefined.
+- **queryDescription.fields[i].schema.fields** (array): For STRUCT types, contains a list of field objects that describes each field within the struct. For other types this field is not used and its value is undefined.
 - **queryDescription.sources** (array): The streams and tables being read by the query.
 - **queryDescription.sources[i]** (string): The name of a stream or table being read from by the query.
 - **queryDescription.sinks** (array): The streams and tables being written to by the query.
 - **queryDescription.sinks[i]** (string): The name of a stream or table being written to by the query.
-- **queryDescription.executionPlan** (string): They query execution plan.
+- **queryDescription.executionPlan** (string): The query execution plan.
 - **queryDescription.topology** (string): The Kafka Streams topology that the query is running.
 - **overriddenProperties** (map): The property overrides that the query is running with.
 
@@ -192,7 +192,7 @@ The ``/ksql`` endpoint may return the following error codes in the ``error_code`
 ### Example curl command
 
 ```bash
-curl --http1.1
+curl --http1.1 \
      -X "POST" "http://<ksqldb-host-name>:8088/ksql" \
      -H "Accept: application/vnd.ksql.v1+json" \
      -H "Content-Type: application/json" \

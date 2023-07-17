@@ -21,17 +21,20 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.parser.json.KsqlTypesDeserializationModule;
 import io.confluent.ksql.properties.LocalProperties;
 import io.confluent.ksql.rest.ApiJsonMapper;
+import io.confluent.ksql.rest.client.exception.KsqlRestClientException;
 import io.confluent.ksql.util.VertxSslOptionsFactory;
 import io.vertx.core.Vertx;
 import io.vertx.core.VertxException;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientOptions;
 import io.vertx.core.http.HttpVersion;
+import io.vertx.core.http.RequestOptions;
 import io.vertx.core.net.JksOptions;
 import io.vertx.core.net.SocketAddress;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
+import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -63,6 +66,7 @@ public final class KsqlClient implements AutoCloseable {
    * @param credentials Optional credentials to pass along with requests if auth is enabled
    * @param localProperties The set of local properties to pass along to /ksql requests
    * @param httpClientOptions Default HttpClientOptions to be used when creating the client
+   * @param httpClientOptionsHttp2 HttpClientOptions to be used for HTTP/2 connections
    */
   public KsqlClient(
       final Map<String, String> clientProps,
@@ -92,6 +96,7 @@ public final class KsqlClient implements AutoCloseable {
    * @param httpClientOptionsFactory A factory for creating HttpClientOptions which take a parameter
    *                                 isTls, indicating whether the factory should prepare the
    *                                 options for a TLS connection
+   * @param httpClientOptionsFactory2 same as above, but for HTTP/2 connections
    * @param socketAddressFactory A factoring for creating a SocketAddress, given the port and host
    *                             it's meant to represent
    */
@@ -120,11 +125,15 @@ public final class KsqlClient implements AutoCloseable {
   }
 
   public KsqlTarget target(final URI server) {
+    return target(server, Collections.emptyMap());
+  }
+
+  public KsqlTarget target(final URI server, final Map<String, String> additionalHeaders) {
     final boolean isUriTls = server.getScheme().equalsIgnoreCase("https");
     final HttpClient client = isUriTls ? httpTlsClient : httpNonTlsClient;
     return new KsqlTarget(client,
         socketAddressFactory.apply(server.getPort(), server.getHost()), localProperties,
-        basicAuthHeader, server.getHost());
+        basicAuthHeader, server.getHost(), additionalHeaders, RequestOptions.DEFAULT_TIMEOUT);
   }
 
   public KsqlTarget targetHttp2(final URI server) {
@@ -133,7 +142,7 @@ public final class KsqlClient implements AutoCloseable {
         () -> new IllegalStateException("Must provide http2 options to use targetHttp2"));
     return new KsqlTarget(client,
         socketAddressFactory.apply(server.getPort(), server.getHost()), localProperties,
-        basicAuthHeader, server.getHost());
+        basicAuthHeader, server.getHost(), Collections.emptyMap(), RequestOptions.DEFAULT_TIMEOUT);
   }
 
   @VisibleForTesting

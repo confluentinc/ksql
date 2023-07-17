@@ -16,50 +16,44 @@
 package io.confluent.ksql.rest.server;
 
 import static org.hamcrest.CoreMatchers.hasItem;
+import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.hamcrest.Matchers.lessThan;
+import static org.hamcrest.Matchers.lessThanOrEqualTo;
+import static org.hamcrest.Matchers.not;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.anyShort;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.util.concurrent.RateLimiter;
-import io.confluent.ksql.api.server.SlidingWindowRateLimiter;
 import io.confluent.ksql.engine.KsqlEngine;
-import io.confluent.ksql.execution.streams.RoutingFilter.RoutingFilterFactory;
 import io.confluent.ksql.logging.processing.ProcessingLogConfig;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.logging.processing.ProcessingLogServerUtils;
 import io.confluent.ksql.metrics.MetricCollectors;
-import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
-import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
-import io.confluent.ksql.physical.pull.HARouting;
-import io.confluent.ksql.physical.scalablepush.PushRouting;
 import io.confluent.ksql.properties.DenyListPropertyValidator;
 import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
-import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.SourceInfo;
 import io.confluent.ksql.rest.entity.StreamsList;
 import io.confluent.ksql.rest.server.computation.CommandRunner;
 import io.confluent.ksql.rest.server.computation.CommandStore;
+import io.confluent.ksql.rest.server.query.QueryExecutor;
 import io.confluent.ksql.rest.server.resources.KsqlResource;
 import io.confluent.ksql.rest.server.resources.StatusResource;
 import io.confluent.ksql.rest.server.resources.streaming.StreamedQueryResource;
 import io.confluent.ksql.rest.server.state.ServerState;
-import io.confluent.ksql.rest.util.ConcurrencyLimiter;
 import io.confluent.ksql.rest.util.PersistentQueryCleanupImpl;
 import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.security.KsqlSecurityExtension;
@@ -67,18 +61,20 @@ import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.version.metrics.VersionCheckerAgent;
+import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
-
+import java.time.Duration;
+import java.time.Instant;
 import java.util.Collections;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Queue;
 import java.util.function.Consumer;
+
+import org.apache.kafka.clients.admin.Admin;
+import org.apache.kafka.common.Metric;
 import org.apache.kafka.common.metrics.MetricsReporter;
 import org.apache.kafka.streams.StreamsConfig;
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -124,14 +120,6 @@ public class KsqlRestApplicationTest {
   @Mock
   private KafkaTopicClient topicClient;
   @Mock
-  private KsqlServerPrecondition precondition1;
-  @Mock
-  private KsqlServerPrecondition precondition2;
-  @Mock
-  private ParsedStatement parsedStatement;
-  @Mock
-  private PreparedStatement<?> preparedStatement;
-  @Mock
   private Consumer<KsqlConfig> rocksDBConfigSetterHandler;
   @Mock
   private HeartbeatAgent heartbeatAgent;
@@ -142,17 +130,13 @@ public class KsqlRestApplicationTest {
   @Mock
   private DenyListPropertyValidator denyListPropertyValidator;
   @Mock
-  private RoutingFilterFactory routingFilterFactory;
+  private QueryExecutor queryExecutor;
   @Mock
-  private RateLimiter rateLimiter;
+  private KafkaTopicClient internalTopicClient;
   @Mock
-  private ConcurrencyLimiter concurrencyLimiter;
-  @Mock
-  private SlidingWindowRateLimiter pullBandRateLimiter;
-  @Mock
-  private HARouting haRouting;
-  @Mock
-  private PushRouting pushRouting;
+  private Admin internalAdminClient;
+  private final Instant start = Instant.now();
+  private final MetricCollectors metricCollectors = new MetricCollectors();
 
   @Mock
   private Vertx vertx;
@@ -170,6 +154,10 @@ public class KsqlRestApplicationTest {
   @SuppressWarnings({"unchecked", "rawtypes"})
   @Before
   public void setUp() {
+    doAnswer(a -> {
+      ((Handler<Void>) a.getArgument(0)).handle(null);
+      return null;
+    }).when(vertx).close(any());
     when(processingLogConfig.getBoolean(ProcessingLogConfig.STREAM_AUTO_CREATE))
         .thenReturn(true);
     when(processingLogConfig.getString(ProcessingLogConfig.STREAM_NAME))
@@ -180,18 +168,11 @@ public class KsqlRestApplicationTest {
     when(processingLogConfig.getBoolean(ProcessingLogConfig.TOPIC_AUTO_CREATE)).thenReturn(true);
     when(processingLogContext.getConfig()).thenReturn(processingLogConfig);
 
-    when(ksqlEngine.parse(any())).thenReturn(ImmutableList.of(parsedStatement));
-    when(ksqlEngine.prepare(any())).thenReturn((PreparedStatement) preparedStatement);
-
     when(commandQueue.getCommandTopicName()).thenReturn(CMD_TOPIC_NAME);
     when(serviceContext.getTopicClient()).thenReturn(topicClient);
-    when(topicClient.isTopicExists(CMD_TOPIC_NAME)).thenReturn(false);
-    
+
     when(ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG)).thenReturn("ksql-id");
     when(ksqlConfig.getKsqlStreamConfigProps()).thenReturn(ImmutableMap.of("state.dir", "/tmp/cat"));
-
-    when(precondition1.checkPrecondition(any(), any())).thenReturn(Optional.empty());
-    when(precondition2.checkPrecondition(any(), any())).thenReturn(Optional.empty());
 
     when(response.getStatus()).thenReturn(200);
     when(response.getEntity()).thenReturn(new KsqlEntityList(
@@ -210,14 +191,23 @@ public class KsqlRestApplicationTest {
         processingLogConfig,
         ksqlConfig
     );
-    MetricCollectors.initialize();
 
-    givenAppWithRestConfig(ImmutableMap.of(KsqlRestConfig.LISTENERS_CONFIG, "http://localhost:0"));
+    givenAppWithRestConfig(ImmutableMap.of(KsqlRestConfig.LISTENERS_CONFIG, "http://localhost:0"), metricCollectors);
   }
 
-  @After
-  public void tearDown() {
-    MetricCollectors.cleanUp();
+  @Test
+  public void shouldRecordStartLatency() {
+    // When:
+    app.startKsql(ksqlConfig);
+
+    // Then:
+    long duration = Duration.between(start, Instant.now()).toMillis();
+    final Metric metric = metricCollectors.getMetrics().metric(
+        metricCollectors.getMetrics().metricName("startup-time-ms", "ksql-rest-application")
+    );
+    assertThat(metric, not(nullValue()));
+    // compare start time recorded to time around startKsql. add a second for clock jitter
+    assertThat((Double) metric.metricValue(), lessThanOrEqualTo((double) (duration + 1000)));
   }
 
   @Test
@@ -244,10 +234,11 @@ public class KsqlRestApplicationTest {
     final MetricsReporter mockReporter = mock(MetricsReporter.class);
     when(ksqlConfig.getConfiguredInstances(anyString(), any(), any()))
         .thenReturn(Collections.singletonList(mockReporter));
-    givenAppWithRestConfig(Collections.emptyMap());
+    final MetricCollectors metricCollectors = new MetricCollectors();
+    givenAppWithRestConfig(Collections.emptyMap(), metricCollectors);
 
     // Then:
-    final List<MetricsReporter> reporters = MetricCollectors.getMetrics().reporters();
+    final List<MetricsReporter> reporters = metricCollectors.getMetrics().reporters();
     assertThat(reporters, hasItem(mockReporter));
   }
 
@@ -346,8 +337,8 @@ public class KsqlRestApplicationTest {
     app.startKsql(ksqlConfig);
 
     // Then:
-    final InOrder inOrder = Mockito.inOrder(topicClient, commandQueue, commandRunner);
-    inOrder.verify(topicClient).createTopic(eq(CMD_TOPIC_NAME), anyInt(), anyShort(), anyMap());
+    final InOrder inOrder = Mockito.inOrder(internalTopicClient, commandQueue, commandRunner);
+    inOrder.verify(internalTopicClient).createTopic(eq(CMD_TOPIC_NAME), anyInt(), anyShort(), anyMap());
     inOrder.verify(commandQueue).start();
     inOrder.verify(commandRunner).processPriorCommands(queryCleanupArgumentCaptor.capture());
   }
@@ -380,51 +371,6 @@ public class KsqlRestApplicationTest {
   }
 
   @Test
-  public void shouldCheckPreconditionsBeforeUsingServiceContext() {
-    // Given:
-    when(precondition2.checkPrecondition(any(), any())).then(a -> {
-      verifyNoMoreInteractions(serviceContext);
-      return Optional.empty();
-    });
-
-    // When:
-    app.startKsql(ksqlConfig);
-
-    // Then:
-    final InOrder inOrder = Mockito.inOrder(precondition1, precondition2, serviceContext);
-    inOrder.verify(precondition1).checkPrecondition(restConfig, serviceContext);
-    inOrder.verify(precondition2).checkPrecondition(restConfig, serviceContext);
-  }
-
-  @Test
-  public void shouldNotInitializeUntilPreconditionsChecked() {
-    // Given:
-    final KsqlErrorMessage error1 = new KsqlErrorMessage(50000, "error1");
-    final KsqlErrorMessage error2 = new KsqlErrorMessage(50000, "error2");
-    final Queue<KsqlErrorMessage> errors = new LinkedList<>();
-    errors.add(error1);
-    errors.add(error2);
-    when(precondition2.checkPrecondition(any(), any())).then(a -> {
-      verifyNoMoreInteractions(serviceContext);
-      return Optional.ofNullable(errors.isEmpty() ? null : errors.remove());
-    });
-
-    // When:
-    app.startKsql(ksqlConfig);
-
-    // Then:
-    final InOrder inOrder = Mockito.inOrder(precondition1, precondition2, serverState);
-    inOrder.verify(precondition1).checkPrecondition(restConfig, serviceContext);
-    inOrder.verify(precondition2).checkPrecondition(restConfig, serviceContext);
-    inOrder.verify(serverState).setInitializingReason(error1);
-    inOrder.verify(precondition1).checkPrecondition(restConfig, serviceContext);
-    inOrder.verify(precondition2).checkPrecondition(restConfig, serviceContext);
-    inOrder.verify(serverState).setInitializingReason(error2);
-    inOrder.verify(precondition1).checkPrecondition(restConfig, serviceContext);
-    inOrder.verify(precondition2).checkPrecondition(restConfig, serviceContext);
-  }
-
-  @Test
   public void shouldConfigureRocksDBConfigSetter() {
     // When:
     app.startKsql(ksqlConfig);
@@ -436,10 +382,13 @@ public class KsqlRestApplicationTest {
   @Test
   public void shouldConfigureIQWithInterNodeListenerIfSet() {
     // Given:
-    givenAppWithRestConfig(ImmutableMap.of(
-        KsqlRestConfig.LISTENERS_CONFIG, "http://localhost:0",
-        KsqlRestConfig.ADVERTISED_LISTENER_CONFIG, "https://some.host:12345"
-    ));
+    givenAppWithRestConfig(
+        ImmutableMap.of(
+            KsqlRestConfig.LISTENERS_CONFIG, "http://localhost:0",
+            KsqlRestConfig.ADVERTISED_LISTENER_CONFIG, "https://some.host:12345"
+        ),
+        new MetricCollectors()
+    );
 
     // When:
     final KsqlConfig ksqlConfig = app.buildConfigWithPort();
@@ -454,9 +403,12 @@ public class KsqlRestApplicationTest {
   @Test
   public void shouldConfigureIQWithFirstListenerIfInterNodeNotSet() {
     // Given:
-    givenAppWithRestConfig(ImmutableMap.of(
-        KsqlRestConfig.LISTENERS_CONFIG, "http://some.host:1244,https://some.other.host:1258"
-    ));
+    givenAppWithRestConfig(
+        ImmutableMap.of(
+            KsqlRestConfig.LISTENERS_CONFIG, "http://some.host:1244,https://some.other.host:1258"
+        ),
+        new MetricCollectors()
+    );
 
     // When:
     final KsqlConfig ksqlConfig = app.buildConfigWithPort();
@@ -468,7 +420,9 @@ public class KsqlRestApplicationTest {
     );
   }
 
-  private void givenAppWithRestConfig(final Map<String, Object> restConfigMap) {
+  private void givenAppWithRestConfig(
+      final Map<String, Object> restConfigMap,
+      final MetricCollectors metricCollectors) {
 
     restConfig = new KsqlRestConfig(restConfigMap);
 
@@ -488,21 +442,20 @@ public class KsqlRestApplicationTest {
         Optional.empty(),
         serverState,
         processingLogContext,
-        ImmutableList.of(precondition1, precondition2),
-        ImmutableList.of(ksqlResource, streamedQueryResource),
+        ImmutableList.of(ksqlEngine, ksqlResource),
         rocksDBConfigSetterHandler,
         Optional.of(heartbeatAgent),
         Optional.of(lagReportingAgent),
         vertx,
         denyListPropertyValidator,
         Optional.empty(),
-        routingFilterFactory,
-        rateLimiter,
-        concurrencyLimiter,
-        pullBandRateLimiter,
-        haRouting,
-        pushRouting,
-        Optional.empty()
+        Optional.empty(),
+        Optional.empty(),
+        queryExecutor,
+        metricCollectors,
+        internalTopicClient,
+        internalAdminClient,
+        Instant.now()
     );
   }
 

@@ -29,6 +29,7 @@ import io.confluent.ksql.util.QueryMetadata;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import org.junit.rules.ExternalResource;
 
 /**
@@ -62,6 +63,10 @@ public final class TestKsqlContext extends ExternalResource implements AutoClose
 
   List<PersistentQueryMetadata> getPersistentQueries() {
     return delegate.getPersistentQueries();
+  }
+
+  public Optional<PersistentQueryMetadata> getPersistentQuery(final QueryId queryId) {
+    return delegate.getPersistentQuery(queryId);
   }
 
   void terminateQuery(final QueryId queryId) {
@@ -102,5 +107,13 @@ public final class TestKsqlContext extends ExternalResource implements AutoClose
       delegate.close();
       delegate = null;
     }
+  }
+
+  public void pauseQuery(QueryId queryId) {
+    delegate.pauseQuery(queryId);
+  }
+
+  public void resumeQuery(QueryId queryId) {
+    delegate.resumeQuery(queryId);
   }
 }

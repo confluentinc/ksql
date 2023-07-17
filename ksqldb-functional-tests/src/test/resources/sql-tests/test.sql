@@ -245,3 +245,70 @@ CREATE STREAM foo (id INT KEY, col1 INT) WITH (kafka_topic='foo', value_format='
 CREATE STREAM bar AS SELECT * FROM foo;
 
 ASSERT STREAM bar (id INT KEY, col1 INT) WITH (kafka_topic='BAR', value_format='JSON', wrap_single_value=false);
+
+----------------------------------------------------------------------------------------------------
+--@test: assert contents of a DDL source
+----------------------------------------------------------------------------------------------------
+CREATE STREAM foo (id INT KEY, col1 INT) WITH (kafka_topic='foo', value_format='JSON');
+
+INSERT INTO foo (rowtime, id, col1) VALUES (1, 2, 1);
+INSERT INTO foo (rowtime, id, col1) VALUES (1, 1, 1);
+INSERT INTO foo (rowtime, id, col1) VALUES (1, 3, 1);
+ASSERT VALUES foo (rowtime, id, col1) VALUES (1, 2, 1);
+ASSERT VALUES foo (rowtime, id, col1) VALUES (1, 1, 1);
+ASSERT VALUES foo (rowtime, id, col1) VALUES (1, 3, 1);
+
+----------------------------------------------------------------------------------------------------
+--@test: assert a subset of columns
+----------------------------------------------------------------------------------------------------
+CREATE STREAM foo (id INT KEY, col1 INT, col2 STRING) WITH (kafka_topic='foo', value_format='JSON');
+CREATE STREAM bar AS SELECT * FROM foo;
+
+INSERT INTO foo (rowtime, id, col1, col2) VALUES (1, 2, 3, 'ABC');
+ASSERT VALUES bar (col1) VALUES (3);
+INSERT INTO foo (rowtime, id, col1, col2) VALUES (1, 2, 3, 'ABC');
+ASSERT VALUES bar (col2, col1) VALUES ('ABC', 3);
+INSERT INTO foo (rowtime, id, col1, col2) VALUES (1, 2, 3, 'ABC');
+ASSERT VALUES bar (col2, rowtime, id) VALUES ('ABC', 1, 2);
+INSERT INTO foo (rowtime, id, col1, col2) VALUES (1, 2, 3, 'ABC');
+ASSERT VALUES bar (col1, id) VALUES (3, 2);
+
+----------------------------------------------------------------------------------------------------
+--@test: assert tombstones
+--@expected.error: java.lang.AssertionError
+--@expected.message: Expected record does not match actual
+----------------------------------------------------------------------------------------------------
+CREATE TABLE a (id INT PRIMARY KEY, col1 INT) WITH (kafka_topic='a', value_format='JSON');
+CREATE TABLE b AS SELECT * FROM a WHERE col1 > 0;
+
+INSERT INTO a (id, col1) VALUES (1, 0);
+INSERT INTO a (id, col1) VALUES (2, 2);
+
+ASSERT NULL VALUES b (id) KEY (1);
+ASSERT NULL VALUES b (id) KEY (2);
+
+----------------------------------------------------------------------------------------------------
+--@test: drop statement throws error
+--@expected.error: io.confluent.ksql.util.KsqlStatementException
+--@expected.message: The following streams and/or tables read from this source
+----------------------------------------------------------------------------------------------------
+CREATE STREAM foo (id INT KEY, col1 INT) WITH (kafka_topic='foo', value_format='JSON');
+CREATE STREAM foo2 AS SELECT * FROM foo;
+DROP STREAM foo;
+
+----------------------------------------------------------------------------------------------------
+--@test: drop statement does not throw error
+----------------------------------------------------------------------------------------------------
+CREATE STREAM foo (id INT KEY, col1 INT) WITH (kafka_topic='foo', value_format='JSON');
+CREATE STREAM foo2 AS SELECT * FROM foo;
+DROP STREAM foo2;
+DROP STREAM foo;
+
+----------------------------------------------------------------------------------------------------
+--@test: insert bytes
+----------------------------------------------------------------------------------------------------
+CREATE STREAM foo (id INT KEY, col1 BYTES) WITH (kafka_topic='foo', value_format='JSON');
+CREATE STREAM bar AS SELECT * FROM foo;
+
+INSERT INTO foo (rowtime, id, col1) VALUES (1, 1, 'IQ==');
+ASSERT VALUES bar (rowtime, id, col1) VALUES (1, 1, 'IQ==');

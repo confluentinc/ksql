@@ -36,6 +36,7 @@ import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTable;
+import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.ShowColumns;
@@ -56,6 +57,7 @@ import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
+import io.confluent.ksql.util.IdentifierUtil;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlHostInfo;
 import io.confluent.ksql.util.KsqlStatementException;
@@ -113,7 +115,7 @@ public class ListSourceExecutorTest {
             SESSION_PROPERTIES,
             engine.getEngine(),
             engine.getServiceContext()
-        ).orElseThrow(IllegalStateException::new);
+        ).getEntity().orElseThrow(IllegalStateException::new);
 
     // Then:
     assertThat(descriptionList.getStreams(), containsInAnyOrder(
@@ -138,7 +140,7 @@ public class ListSourceExecutorTest {
   public void shouldShowStreamsExtended() {
     // Given:
     final KsqlStream<?> stream1 = engine.givenSource(DataSourceType.KSTREAM, "stream1");
-    final KsqlStream<?> stream2 = engine.givenSource(DataSourceType.KSTREAM, "stream2",
+    final KsqlStream<?> stream2 = engine.givenSource(DataSourceType.KSTREAM, "STREAM2",
         ImmutableSet.of(SourceName.of("stream1")));
     engine.givenSource(DataSourceType.KTABLE, "table");
 
@@ -149,7 +151,7 @@ public class ListSourceExecutorTest {
             SESSION_PROPERTIES,
             engine.getEngine(),
             engine.getServiceContext()
-        ).orElseThrow(IllegalStateException::new);
+        ).getEntity().orElseThrow(IllegalStateException::new);
 
     // Then:
     assertThat(descriptionList.getSourceDescriptions(), containsInAnyOrder(
@@ -160,7 +162,9 @@ public class ListSourceExecutorTest {
             ImmutableList.of(),
             Optional.of(topicWith1PartitionAndRfOf1),
             ImmutableList.of(),
-            ImmutableList.of("stream2")),
+            ImmutableList.of("STREAM2"),
+            new MetricCollectors()
+        ),
         SourceDescriptionFactory.create(
             stream2,
             true,
@@ -168,7 +172,9 @@ public class ListSourceExecutorTest {
             ImmutableList.of(),
             Optional.of(topicWith1PartitionAndRfOf1),
             ImmutableList.of(),
-            ImmutableList.of())
+            ImmutableList.of(),
+            new MetricCollectors()
+        )
     ));
   }
 
@@ -187,7 +193,7 @@ public class ListSourceExecutorTest {
             SESSION_PROPERTIES,
             engine.getEngine(),
             engine.getServiceContext()
-        ).orElseThrow(IllegalStateException::new);
+        ).getEntity().orElseThrow(IllegalStateException::new);
 
     // Then:
     assertThat(descriptionList.getSourceDescriptions(), containsInAnyOrder(
@@ -198,7 +204,9 @@ public class ListSourceExecutorTest {
             ImmutableList.of(),
             Optional.of(topicWith1PartitionAndRfOf1),
             ImmutableList.of(),
-            ImmutableList.of("stream2")),
+            ImmutableList.of("stream2"),
+            new MetricCollectors()
+        ),
         SourceDescriptionFactory.create(
             stream2,
             false,
@@ -206,7 +214,9 @@ public class ListSourceExecutorTest {
             ImmutableList.of(),
             Optional.of(topicWith1PartitionAndRfOf1),
             ImmutableList.of(),
-            ImmutableList.of())
+            ImmutableList.of(),
+            new MetricCollectors()
+        )
     ));
   }
 
@@ -224,7 +234,7 @@ public class ListSourceExecutorTest {
             SESSION_PROPERTIES,
             engine.getEngine(),
             engine.getServiceContext()
-        ).orElseThrow(IllegalStateException::new);
+        ).getEntity().orElseThrow(IllegalStateException::new);
 
     // Then:
     assertThat(descriptionList.getTables(), containsInAnyOrder(
@@ -249,7 +259,7 @@ public class ListSourceExecutorTest {
   public void shouldShowTablesExtended() {
     // Given:
     final KsqlTable<?> table1 = engine.givenSource(DataSourceType.KTABLE, "table1");
-    final KsqlTable<?> table2 = engine.givenSource(DataSourceType.KTABLE, "table2",
+    final KsqlTable<?> table2 = engine.givenSource(DataSourceType.KTABLE, "TABLE2",
         ImmutableSet.of(SourceName.of("table1")));
     engine.givenSource(DataSourceType.KSTREAM, "stream");
 
@@ -260,7 +270,7 @@ public class ListSourceExecutorTest {
             SESSION_PROPERTIES,
             engine.getEngine(),
             engine.getServiceContext()
-        ).orElseThrow(IllegalStateException::new);
+        ).getEntity().orElseThrow(IllegalStateException::new);
 
     // Then:
     final KafkaTopicClient client = engine.getServiceContext().getTopicClient();
@@ -272,7 +282,8 @@ public class ListSourceExecutorTest {
             ImmutableList.of(),
             Optional.of(client.describeTopic(table1.getKafkaTopicName())),
             ImmutableList.of(),
-            ImmutableList.of("table2")
+            ImmutableList.of("TABLE2"),
+            new MetricCollectors()
         ),
         SourceDescriptionFactory.create(
             table2,
@@ -281,7 +292,8 @@ public class ListSourceExecutorTest {
             ImmutableList.of(),
             Optional.of(client.describeTopic(table1.getKafkaTopicName())),
             ImmutableList.of(),
-            ImmutableList.of()
+            ImmutableList.of(),
+            new MetricCollectors()
         )
     ));
   }
@@ -301,7 +313,7 @@ public class ListSourceExecutorTest {
             SESSION_PROPERTIES,
             engine.getEngine(),
             engine.getServiceContext()
-        ).orElseThrow(IllegalStateException::new);
+        ).getEntity().orElseThrow(IllegalStateException::new);
 
     // Then:
     assertThat(descriptionList.getSourceDescriptions(), containsInAnyOrder(
@@ -312,7 +324,8 @@ public class ListSourceExecutorTest {
             ImmutableList.of(),
             Optional.of(topicWith1PartitionAndRfOf1),
             ImmutableList.of(),
-            ImmutableList.of("table2")
+            ImmutableList.of("table2"),
+            new MetricCollectors()
         ),
         SourceDescriptionFactory.create(
             table2,
@@ -321,7 +334,8 @@ public class ListSourceExecutorTest {
             ImmutableList.of(),
             Optional.of(topicWith1PartitionAndRfOf1),
             ImmutableList.of(),
-            ImmutableList.of()
+            ImmutableList.of(),
+            new MetricCollectors()
         )
     ));
   }
@@ -348,27 +362,34 @@ public class ListSourceExecutorTest {
             SESSION_PROPERTIES,
             engine.getEngine(),
             engine.getServiceContext()
-        ).orElseThrow(IllegalStateException::new);
+        ).getEntity().orElseThrow(IllegalStateException::new);
 
     // Then:
-    final QueryStatusCount queryStatusCount = QueryStatusCount.fromStreamsStateCounts(
-        Collections.singletonMap(metadata.getState(), 1));
+    final QueryStatusCount queryStatusCount =
+            new QueryStatusCount(Collections.singletonMap(KsqlConstants.fromStreamsState(metadata.getState()), 1));
 
-    assertThat(sourceDescription.getSourceDescription(),
-        equalTo(SourceDescriptionFactory.create(
-            stream,
-            false,
-            ImmutableList.of(),
-            ImmutableList.of(new RunningQuery(
-                metadata.getStatementString(),
-                ImmutableSet.of(metadata.getSinkName().toString(FormatOptions.noEscape())),
-                ImmutableSet.of(metadata.getResultTopic().getKafkaTopicName()),
-                metadata.getQueryId(),
-                queryStatusCount,
-                KsqlConstants.KsqlQueryType.PERSISTENT)),
-            Optional.empty(),
-            ImmutableList.of(),
-            ImmutableList.of())));
+    assertThat(
+        sourceDescription.getSourceDescription(),
+        equalTo(
+            SourceDescriptionFactory.create(
+                stream,
+                false,
+                ImmutableList.of(),
+                ImmutableList.of(new RunningQuery(
+                    metadata.getStatementString(),
+                    ImmutableSet.of(
+                        metadata.getSinkName().get().toString(FormatOptions.noEscape())),
+                    ImmutableSet.of(metadata.getResultTopic().get().getKafkaTopicName()),
+                    metadata.getQueryId(),
+                    queryStatusCount,
+                    KsqlConstants.KsqlQueryType.PERSISTENT)),
+                Optional.empty(),
+                ImmutableList.of(),
+                ImmutableList.of(),
+                new MetricCollectors()
+            )
+        )
+    );
   }
 
   @Test
@@ -390,6 +411,48 @@ public class ListSourceExecutorTest {
   }
 
   @Test
+  public void shouldThrowOnDescribeSourceNameWithoutQuotes() {
+    // Given:
+    engine.givenSource(DataSourceType.KTABLE, "table1");
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlStatementException.class,
+        () -> CustomExecutors.SHOW_COLUMNS.execute(
+            engine.configure("DESCRIBE table1;"),
+            SESSION_PROPERTIES,
+            engine.getEngine(),
+            engine.getServiceContext()
+        )
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Could not find STREAM/TABLE 'TABLE1' in the Metastore\nDid you mean \"table1\"? Hint: wrap the source name in double quotes to make it case-sensitive."));
+  }
+
+  @Test
+  public void shouldThrowOnDescribeSourceNameWithQuotes() {
+    // Given:
+    engine.givenSource(DataSourceType.KSTREAM, "STREAM1");
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlStatementException.class,
+        () -> CustomExecutors.SHOW_COLUMNS.execute(
+            engine.configure("DESCRIBE \"stream1\";"),
+            SESSION_PROPERTIES,
+            engine.getEngine(),
+            engine.getServiceContext()
+        )
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Could not find STREAM/TABLE 'stream1' in the Metastore\nDid you mean STREAM1? Hint: try removing double quotes from the source name."));
+  }
+
+  @Test
   public void shouldNotCallTopicClientForExtendedDescription() {
     // Given:
     engine.givenSource(DataSourceType.KSTREAM, "stream1");
@@ -408,7 +471,7 @@ public class ListSourceExecutorTest {
         SESSION_PROPERTIES,
         engine.getEngine(),
         serviceContext
-    ).orElseThrow(IllegalStateException::new);
+    ).getEntity().orElseThrow(IllegalStateException::new);
 
     // Then:
     verify(spyTopicClient, never()).describeTopic(anyString());
@@ -432,7 +495,8 @@ public class ListSourceExecutorTest {
                             ImmutableList.of(),
                             Optional.empty(),
                             ImmutableList.of(),
-                            ImmutableList.of()
+                            ImmutableList.of(),
+                            new MetricCollectors()
                         )
                     )
                 )
@@ -466,7 +530,7 @@ public class ListSourceExecutorTest {
         SESSION_PROPERTIES,
         engine.getEngine(),
         serviceContext
-    ).orElseThrow(IllegalStateException::new);
+    ).getEntity().orElseThrow(IllegalStateException::new);
 
     // Then:
     assertSourceListWithWarning(entity, stream1, stream2);
@@ -486,7 +550,7 @@ public class ListSourceExecutorTest {
         SESSION_PROPERTIES,
         engine.getEngine(),
         serviceContext
-    ).orElseThrow(IllegalStateException::new);
+    ).getEntity().orElseThrow(IllegalStateException::new);
 
     // Then:
     assertSourceListWithWarning(entity, table1, table2);
@@ -505,7 +569,7 @@ public class ListSourceExecutorTest {
         SESSION_PROPERTIES,
         engine.getEngine(),
         serviceContext
-    ).orElseThrow(IllegalStateException::new);
+    ).getEntity().orElseThrow(IllegalStateException::new);
 
     // Then:
     assertThat(entity, instanceOf(SourceDescriptionEntity.class));
@@ -520,7 +584,8 @@ public class ListSourceExecutorTest {
                 ImmutableList.of(),
                 Optional.empty(),
                 ImmutableList.of(),
-                ImmutableList.of()
+                ImmutableList.of(),
+                new MetricCollectors()
             )
         )
     );

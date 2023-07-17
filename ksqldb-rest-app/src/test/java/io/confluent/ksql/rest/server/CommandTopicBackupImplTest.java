@@ -22,7 +22,9 @@ import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import io.confluent.ksql.rest.server.computation.InternalTopicSerdes;
 import io.confluent.ksql.rest.server.resources.CommandTopicCorruptionException;
+import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.test.util.KsqlTestFolder;
 import io.confluent.ksql.util.KsqlServerException;
 import io.confluent.ksql.util.Pair;
@@ -55,6 +57,9 @@ public class CommandTopicBackupImplTest {
   @Mock
   private Supplier<Long> ticker;
 
+  @Mock
+  private KafkaTopicClient topicClient;
+
   @Rule
   public TemporaryFolder backupLocation = KsqlTestFolder.temporaryFolder();
 
@@ -62,8 +67,9 @@ public class CommandTopicBackupImplTest {
 
   @Before
   public void setup() {
+    when(topicClient.isTopicExists(COMMAND_TOPIC_NAME)).thenReturn(true);
     commandTopicBackup = new CommandTopicBackupImpl(
-        backupLocation.getRoot().getAbsolutePath(), COMMAND_TOPIC_NAME, ticker);
+        backupLocation.getRoot().getAbsolutePath(), COMMAND_TOPIC_NAME, ticker, topicClient);
   }
 
   private ConsumerRecord<byte[], byte[]> newStreamRecord(final String streamName) {
@@ -100,7 +106,7 @@ public class CommandTopicBackupImplTest {
     // When
     final Exception e = assertThrows(
         KsqlServerException.class,
-        () -> new CommandTopicBackupImpl(file.getAbsolutePath(), COMMAND_TOPIC_NAME)
+        () -> new CommandTopicBackupImpl(file.getAbsolutePath(), COMMAND_TOPIC_NAME, topicClient)
     );
 
     // Then
@@ -119,7 +125,7 @@ public class CommandTopicBackupImplTest {
     // When
     final Exception e = assertThrows(
         KsqlServerException.class,
-        () -> new CommandTopicBackupImpl(file.getAbsolutePath(), COMMAND_TOPIC_NAME)
+        () -> new CommandTopicBackupImpl(file.getAbsolutePath(), COMMAND_TOPIC_NAME, topicClient)
     );
 
     // Then
@@ -138,7 +144,7 @@ public class CommandTopicBackupImplTest {
     // When
     final Exception e = assertThrows(
         KsqlServerException.class,
-        () -> new CommandTopicBackupImpl(dir.getAbsolutePath(), COMMAND_TOPIC_NAME)
+        () -> new CommandTopicBackupImpl(dir.getAbsolutePath(), COMMAND_TOPIC_NAME, topicClient)
     );
 
     // Then
@@ -156,7 +162,7 @@ public class CommandTopicBackupImplTest {
     assertThat(Files.exists(dir), is(false));
 
     // When
-    new CommandTopicBackupImpl(dir.toString(), COMMAND_TOPIC_NAME);
+    new CommandTopicBackupImpl(dir.toString(), COMMAND_TOPIC_NAME, topicClient);
 
     // Then
     assertThat(Files.exists(dir), is(true));
@@ -186,6 +192,22 @@ public class CommandTopicBackupImplTest {
     final ConsumerRecord<byte[], byte[]> record = mock(ConsumerRecord.class);
     when(record.key()).thenReturn(new byte[]{});
     when(record.value()).thenReturn(null);
+
+    // When
+    commandTopicBackup.writeRecord(record);
+
+    // Then
+    final List<Pair<byte[], byte[]>> commands = commandTopicBackup.getReplayFile().readRecords();
+    assertThat(commands.size(), is(0));
+  }
+
+  @Test
+  public void shouldNotWriteMigrationCommandToBackup() throws IOException {
+    // Given
+    commandTopicBackup.initialize();
+    final ConsumerRecord<byte[], byte[]> record = mock(ConsumerRecord.class);
+    when(record.key()).thenReturn(InternalTopicSerdes.serializer().serialize("", CommandTopicMigrationUtil.MIGRATION_COMMAND_ID));
+    when(record.value()).thenReturn(new byte[]{});
 
     // When
     commandTopicBackup.writeRecord(record);
@@ -235,7 +257,7 @@ public class CommandTopicBackupImplTest {
   public void shouldNotCreateNewReplayFileIfNewRecordsDoNotMatchPreviousBackups() {
     // Given
     commandTopicBackup = new CommandTopicBackupImpl(
-        backupLocation.getRoot().getAbsolutePath(), COMMAND_TOPIC_NAME, ticker);
+        backupLocation.getRoot().getAbsolutePath(), COMMAND_TOPIC_NAME, ticker, topicClient);
     commandTopicBackup.initialize();
     commandTopicBackup.writeRecord(command1);
     final BackupReplayFile previousReplayFile = commandTopicBackup.getReplayFile();
@@ -375,5 +397,22 @@ public class CommandTopicBackupImplTest {
     assertThat(replayFile.getPath(), is(String.format(
         "%s/backup_command_topic_111", backupLocation.getRoot().getAbsolutePath()
     )));
+  }
+
+  @Test
+  public void deletedCommandTopicMarksCommandBackupAsCorrupted() {
+    // Given
+    commandTopicBackup.initialize();
+    commandTopicBackup.writeRecord(command1);
+    commandTopicBackup.writeRecord(command2);
+
+    // When
+    // Set command topic as deleted and a second initialize call will
+    // detect it is out of sync and will mark command back as corrupted.
+    when(topicClient.isTopicExists(COMMAND_TOPIC_NAME)).thenReturn(false);
+    commandTopicBackup.initialize();
+
+    // Then:
+    assertThat(commandTopicBackup.commandTopicCorruption(), is(true));
   }
 }

@@ -7,6 +7,7 @@ import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.when;
 
+import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.execution.ddl.commands.AlterSourceCommand;
 import io.confluent.ksql.execution.ddl.commands.CreateStreamCommand;
 import io.confluent.ksql.execution.ddl.commands.CreateTableCommand;
@@ -21,6 +22,7 @@ import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.metastore.model.KsqlStream;
+import io.confluent.ksql.metastore.model.KsqlTable;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.Column;
@@ -136,6 +138,42 @@ public class DdlCommandExecTest {
   }
 
   @Test
+  public void shouldAddNormalStreamWhenNoTypeIsSpecified() {
+    // Given:
+    final CreateStreamCommand cmd = buildCreateStream(
+        SourceName.of("t1"),
+        SCHEMA,
+        false,
+        null
+    );
+
+    // When:
+    cmdExec.execute(SQL_TEXT, cmd, true, NO_QUERY_SOURCES);
+
+    // Then:
+    final KsqlStream ksqlTable = (KsqlStream) metaStore.getSource(SourceName.of("t1"));
+    assertThat(ksqlTable.isSource(), is(false));
+  }
+
+  @Test
+  public void shouldAddSourceStream() {
+    // Given:
+    final CreateStreamCommand cmd = buildCreateStream(
+        SourceName.of("t1"),
+        SCHEMA,
+        false,
+        true
+    );
+
+    // When:
+    cmdExec.execute(SQL_TEXT, cmd, true, NO_QUERY_SOURCES);
+
+    // Then:
+    final KsqlStream ksqlTable = (KsqlStream) metaStore.getSource(SourceName.of("t1"));
+    assertThat(ksqlTable.isSource(), is(true));
+  }
+
+  @Test
   public void shouldAddSinkStream() {
     // Given:
     givenCreateStream();
@@ -150,9 +188,9 @@ public class DdlCommandExecTest {
   @Test
   public void shouldThrowOnDropStreamWhenConstraintExist() {
     // Given:
-    final CreateStreamCommand stream1 = buildCreateStream(SourceName.of("s1"), SCHEMA, false);
-    final CreateStreamCommand stream2 = buildCreateStream(SourceName.of("s2"), SCHEMA, false);
-    final CreateStreamCommand stream3 = buildCreateStream(SourceName.of("s3"), SCHEMA, false);
+    final CreateStreamCommand stream1 = buildCreateStream(SourceName.of("s1"), SCHEMA, false, false);
+    final CreateStreamCommand stream2 = buildCreateStream(SourceName.of("s2"), SCHEMA, false, false);
+    final CreateStreamCommand stream3 = buildCreateStream(SourceName.of("s3"), SCHEMA, false, false);
     cmdExec.execute(SQL_TEXT, stream1, true, Collections.emptySet());
     cmdExec.execute(SQL_TEXT, stream2, true, Collections.singleton(SourceName.of("s1")));
     cmdExec.execute(SQL_TEXT, stream3, true, Collections.singleton(SourceName.of("s1")));
@@ -171,6 +209,29 @@ public class DdlCommandExecTest {
         containsString("The following streams and/or tables read from this source: [s2, s3]."));
     assertThat(e.getMessage(),
         containsString("You need to drop them before dropping s1."));
+  }
+
+  @Test
+  public void shouldDropStreamIfConstraintExistsAndRestoreIsInProgress() {
+    // Given:
+    final CreateStreamCommand stream1 = buildCreateStream(SourceName.of("s1"), SCHEMA, false, false);
+    final CreateStreamCommand stream2 = buildCreateStream(SourceName.of("s2"), SCHEMA, false, false);
+    final CreateStreamCommand stream3 = buildCreateStream(SourceName.of("s3"), SCHEMA, false, false);
+    cmdExec.execute(SQL_TEXT, stream1, true, Collections.emptySet());
+    cmdExec.execute(SQL_TEXT, stream2, true, Collections.singleton(SourceName.of("s1")));
+    cmdExec.execute(SQL_TEXT, stream3, true, Collections.singleton(SourceName.of("s1")));
+
+    // When:
+    final DropSourceCommand dropStream = buildDropSourceCommand(SourceName.of("s1"));
+    final DdlCommandResult result = cmdExec.execute(SQL_TEXT, dropStream, false,
+        Collections.emptySet(), true);
+
+    // Then
+    assertThat(result.isSuccess(), is(true));
+    assertThat(
+        result.getMessage(),
+        equalTo(String.format("Source %s (topic: %s) was dropped.", STREAM_NAME, TOPIC_NAME))
+    );
   }
 
   @Test
@@ -258,11 +319,47 @@ public class DdlCommandExecTest {
   }
 
   @Test
+  public void shouldAddNormalTableWhenNoTypeIsSpecified() {
+    // Given:
+    final CreateTableCommand cmd = buildCreateTable(
+        SourceName.of("t1"),
+        false,
+        null
+    );
+
+    // When:
+    cmdExec.execute(SQL_TEXT, cmd, true, NO_QUERY_SOURCES);
+
+    // Then:
+    final KsqlTable ksqlTable = (KsqlTable) metaStore.getSource(SourceName.of("t1"));
+    assertThat(ksqlTable.isSource(), is(false));
+  }
+
+  @Test
+  public void shouldAddSourceTable() {
+    // Given:
+    final CreateTableCommand cmd = buildCreateTable(TABLE_NAME, false, true);
+
+    // When:
+    cmdExec.execute(SQL_TEXT, cmd, true, ImmutableSet.of(TABLE_NAME));
+
+    // Then:
+    final KsqlTable ksqlTable = (KsqlTable) metaStore.getSource(TABLE_NAME);
+    assertThat(ksqlTable.isSource(), is(true));
+
+    // Check query source was not added as constraints for source tables
+    assertThat(metaStore.getSourceConstraints(TABLE_NAME), is(NO_QUERY_SOURCES));
+  }
+
+  @Test
   public void shouldThrowOnDropTableWhenConstraintExist() {
     // Given:
-    final CreateTableCommand table1 = buildCreateTable(SourceName.of("t1"), false);
-    final CreateTableCommand table2 = buildCreateTable(SourceName.of("t2"), false);
-    final CreateTableCommand table3 = buildCreateTable(SourceName.of("t3"), false);
+    final CreateTableCommand table1 = buildCreateTable(SourceName.of("t1"),
+        false, false);
+    final CreateTableCommand table2 = buildCreateTable(SourceName.of("t2"),
+        false, false);
+    final CreateTableCommand table3 = buildCreateTable(SourceName.of("t3"),
+        false, false);
     cmdExec.execute(SQL_TEXT, table1, true, Collections.emptySet());
     cmdExec.execute(SQL_TEXT, table2, true, Collections.singleton(SourceName.of("t1")));
     cmdExec.execute(SQL_TEXT, table3, true, Collections.singleton(SourceName.of("t1")));
@@ -293,7 +390,7 @@ public class DdlCommandExecTest {
 
     // Then:
     assertThat(result.isSuccess(), is(true));
-    assertThat(metaStore.getSource(EXISTING_STREAM).getSchema().columns().size(), is(9));
+    assertThat(metaStore.getSource(EXISTING_STREAM).getSchema().columns().size(), is(10));
     assertThat(metaStore.getSource(EXISTING_STREAM).getSqlExpression(), is("sqlexpression\nsome ksql"));
   }
 
@@ -470,7 +567,7 @@ public class DdlCommandExecTest {
     cmdExec.execute(SQL_TEXT, createTable, false, NO_QUERY_SOURCES);
 
     // When:
-    givenCreateTable(false);
+    givenCreateTable();
     final DdlCommandResult result =cmdExec.execute(SQL_TEXT, createTable,
         false, NO_QUERY_SOURCES);
 
@@ -492,13 +589,14 @@ public class DdlCommandExecTest {
   }
 
   private void givenCreateStream(final LogicalSchema schema, final boolean allowReplace) {
-    createStream = buildCreateStream(STREAM_NAME, schema, allowReplace);
+    createStream = buildCreateStream(STREAM_NAME, schema, allowReplace, false);
   }
 
   private CreateStreamCommand buildCreateStream(
       final SourceName streamName,
       final LogicalSchema schema,
-      final boolean allowReplace
+      final boolean allowReplace,
+      final Boolean isSource
   ) {
     return new CreateStreamCommand(
         streamName,
@@ -512,7 +610,8 @@ public class DdlCommandExecTest {
             SerdeFeatures.of()
         ),
         Optional.empty(),
-        Optional.of(allowReplace)
+        Optional.of(allowReplace),
+        Optional.ofNullable(isSource)
     );
   }
 
@@ -529,6 +628,7 @@ public class DdlCommandExecTest {
             SerdeFeatures.of()
         ),
         Optional.of(windowInfo),
+        Optional.of(false),
         Optional.of(false)
     );
   }
@@ -546,21 +646,19 @@ public class DdlCommandExecTest {
             SerdeFeatures.of()
         ),
         Optional.of(windowInfo),
+        Optional.of(false),
         Optional.of(false)
     );
   }
 
   private void givenCreateTable() {
-    createTable = buildCreateTable(TABLE_NAME, false);
-  }
-
-  private void givenCreateTable(final boolean allowReplace) {
-    createTable = buildCreateTable(TABLE_NAME, allowReplace);
+    createTable = buildCreateTable(TABLE_NAME, false, false);
   }
 
   private CreateTableCommand buildCreateTable(
       final SourceName sourceName,
-      final boolean allowReplace
+      final boolean allowReplace,
+      final Boolean isSource
   ) {
     return new CreateTableCommand(
         sourceName,
@@ -574,7 +672,8 @@ public class DdlCommandExecTest {
             SerdeFeatures.of()
         ),
         Optional.empty(),
-        Optional.of(allowReplace)
+        Optional.of(allowReplace),
+        Optional.ofNullable(isSource)
     );
   }
 }

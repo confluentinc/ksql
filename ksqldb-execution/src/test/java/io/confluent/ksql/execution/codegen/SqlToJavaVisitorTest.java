@@ -40,6 +40,7 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.execution.codegen.CodeGenTestUtil.Evaluator;
 import io.confluent.ksql.execution.codegen.helpers.CastEvaluator;
 import io.confluent.ksql.execution.expression.tree.ArithmeticBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.ArithmeticUnaryExpression;
@@ -53,6 +54,7 @@ import io.confluent.ksql.execution.expression.tree.CreateStructExpression;
 import io.confluent.ksql.execution.expression.tree.CreateStructExpression.Field;
 import io.confluent.ksql.execution.expression.tree.DateLiteral;
 import io.confluent.ksql.execution.expression.tree.DecimalLiteral;
+import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
 import io.confluent.ksql.execution.expression.tree.DoubleLiteral;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
@@ -82,7 +84,7 @@ import io.confluent.ksql.function.udf.UdfMetadata;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.schema.Operator;
-import io.confluent.ksql.schema.ksql.types.SqlPrimitiveType;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlConfig;
@@ -90,10 +92,15 @@ import io.confluent.ksql.util.KsqlException;
 import java.math.BigDecimal;
 import java.sql.Date;
 import java.sql.Time;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -136,7 +143,7 @@ public class SqlToJavaVisitorTest {
     final String javaExpression = sqlToJavaVisitor.process(expression);
 
     // Then:
-    assertThat(javaExpression, equalTo("(COL0 + COL3)"));
+    assertThat(javaExpression, equalTo("(((java.lang.Long) arguments.get(\"COL0\")) + ((java.lang.Double) arguments.get(\"COL3\")))"));
   }
 
   @Test
@@ -150,7 +157,7 @@ public class SqlToJavaVisitorTest {
     // Then:
     assertThat(
         javaExpression,
-        equalTo("((Double) (ArrayAccess.arrayAccess((java.util.List) COL4, ((int) 0))))")
+        equalTo("((Double) (((java.util.List) arguments.get(\"COL4\")) == null ? null : (ArrayAccess.arrayAccess((java.util.List) ((java.util.List) arguments.get(\"COL4\")), ((int) 0)))))")
     );
   }
 
@@ -163,7 +170,7 @@ public class SqlToJavaVisitorTest {
     final String javaExpression = sqlToJavaVisitor.process(expression);
 
     // Then:
-    assertThat(javaExpression, equalTo("((Double) ((java.util.Map)COL5).get(\"key1\"))"));
+    assertThat(javaExpression, equalTo("((Double) (((java.util.Map) arguments.get(\"COL5\")) == null ? null : ((java.util.Map)((java.util.Map) arguments.get(\"COL5\"))).get(\"key1\")))"));
   }
 
   @Test
@@ -182,10 +189,10 @@ public class SqlToJavaVisitorTest {
     // Then:
     assertThat(
         java,
-        equalTo("((List)new ArrayBuilder(2)"
-            + ".add( (new Supplier<Object>() {@Override public Object get() { try {  return ((Double) ((java.util.Map)COL5).get(\"key1\")); } catch (Exception e) {  " + onException("array item") + " }}}).get())"
-            + ".add( (new Supplier<Object>() {@Override public Object get() { try {  return 1E0; } catch (Exception e) {  " + onException("array item") + " }}}).get()).build())"));
-  }
+        equalTo("((List)new ArrayBuilder(2)" +
+                ".add( (new Supplier<Object>() {@Override public Object get() { try {  return ((Double) (((java.util.Map) arguments.get(\"COL5\")) == null ? null : ((java.util.Map)((java.util.Map) arguments.get(\"COL5\"))).get(\"key1\"))); } catch (Exception e) {  logger.error(RecordProcessingError.recordProcessingError(    \"Error processing array item\",    e instanceof InvocationTargetException? e.getCause() : e,    row));  return defaultValue; }}}).get())" +
+                ".add( (new Supplier<Object>() {@Override public Object get() { try {  return 1E0; } catch (Exception e) {  logger.error(RecordProcessingError.recordProcessingError(    \"Error processing array item\",    e instanceof InvocationTargetException? e.getCause() : e,    row));  return defaultValue; }}}).get()).build())"));
+    }
 
   @Test
   public void shouldProcessCreateMapExpressionCorrectly() {
@@ -203,9 +210,7 @@ public class SqlToJavaVisitorTest {
     String java = sqlToJavaVisitor.process(expression);
 
     // Then:
-    assertThat(java, equalTo("((Map)new MapBuilder(2)"
-        + ".put( (new Supplier<Object>() {@Override public Object get() { try {  return \"foo\"; } catch (Exception e) {  " + onException("map key") + " }}}).get(),  (new Supplier<Object>() {@Override public Object get() { try {  return ((Double) ((java.util.Map)COL5).get(\"key1\")); } catch (Exception e) {  " + onException("map value") + " }}}).get())"
-        + ".put( (new Supplier<Object>() {@Override public Object get() { try {  return \"bar\"; } catch (Exception e) {  " + onException("map key") + " }}}).get(),  (new Supplier<Object>() {@Override public Object get() { try {  return 1E0; } catch (Exception e) {  " + onException("map value") + " }}}).get()).build())"));
+    assertThat(java, equalTo("((Map)new MapBuilder(2).put( (new Supplier<Object>() {@Override public Object get() { try {  return \"foo\"; } catch (Exception e) {  logger.error(RecordProcessingError.recordProcessingError(    \"Error processing map key\",    e instanceof InvocationTargetException? e.getCause() : e,    row));  return defaultValue; }}}).get(),  (new Supplier<Object>() {@Override public Object get() { try {  return ((Double) (((java.util.Map) arguments.get(\"COL5\")) == null ? null : ((java.util.Map)((java.util.Map) arguments.get(\"COL5\"))).get(\"key1\"))); } catch (Exception e) {  logger.error(RecordProcessingError.recordProcessingError(    \"Error processing map value\",    e instanceof InvocationTargetException? e.getCause() : e,    row));  return defaultValue; }}}).get()).put( (new Supplier<Object>() {@Override public Object get() { try {  return \"bar\"; } catch (Exception e) {  logger.error(RecordProcessingError.recordProcessingError(    \"Error processing map key\",    e instanceof InvocationTargetException? e.getCause() : e,    row));  return defaultValue; }}}).get(),  (new Supplier<Object>() {@Override public Object get() { try {  return 1E0; } catch (Exception e) {  logger.error(RecordProcessingError.recordProcessingError(    \"Error processing map value\",    e instanceof InvocationTargetException? e.getCause() : e,    row));  return defaultValue; }}}).get()).build())"));
   }
 
   @Test
@@ -224,27 +229,31 @@ public class SqlToJavaVisitorTest {
     // Then:
     assertThat(
         javaExpression,
-        equalTo("((Struct)new Struct(schema0)"
-            + ".put(\"col1\", (new Supplier<Object>() {@Override public Object get() { try {  return \"foo\"; } catch (Exception e) {  " + onException("struct field") + " }}}).get())"
-            + ".put(\"col2\", (new Supplier<Object>() {@Override public Object get() { try {  return ((Double) ((java.util.Map)COL5).get(\"key1\")); } catch (Exception e) {  " + onException("struct field") + " }}}).get()))"));
-  }
+        equalTo("((Struct)new Struct(((org.apache.kafka.connect.data.Schema) arguments.get(\"schema0\"))).put(\"col1\", (new Supplier<Object>() {@Override public Object get() { try {  return \"foo\"; } catch (Exception e) {  logger.error(RecordProcessingError.recordProcessingError(    \"Error processing struct field\",    e instanceof InvocationTargetException? e.getCause() : e,    row));  return defaultValue; }}}).get()).put(\"col2\", (new Supplier<Object>() {@Override public Object get() { try {  return ((Double) (((java.util.Map) arguments.get(\"COL5\")) == null ? null : ((java.util.Map)((java.util.Map) arguments.get(\"COL5\"))).get(\"key1\"))); } catch (Exception e) {  logger.error(RecordProcessingError.recordProcessingError(    \"Error processing struct field\",    e instanceof InvocationTargetException? e.getCause() : e,    row));  return defaultValue; }}}).get()))"));
+ }
 
   @Test
-  public void shouldCreateCorrectCastJavaExpression() {
+  public void shouldProcessStructExpressionWithDereferencesCorrectly() {
     // Given:
-    final Expression castBigintInteger = new Cast(
-        COL0,
-        new io.confluent.ksql.execution.expression.tree.Type(SqlPrimitiveType.of("INTEGER"))
+
+    final Expression structExpression = new CreateStructExpression(
+        ImmutableList.of(
+            new Field("col1", new StringLiteral("foo")),
+            new Field("col2", new SubscriptExpression(MAPCOL, new StringLiteral("key1")))
+        )
     );
+    final Expression expression = new DereferenceExpression(Optional.empty(),
+        structExpression,
+        "col2"
+        );
 
     // When:
-    final String actual = sqlToJavaVisitor.process(castBigintInteger);
+    final String javaExpression = sqlToJavaVisitor.process(expression);
 
     // Then:
-    final String expected = CastEvaluator
-        .generateCode("COL0", SqlTypes.BIGINT, SqlTypes.INTEGER, ksqlConfig);
-
-    assertThat(actual, is(expected));
+    assertThat(
+        javaExpression,
+        equalTo("((Double)(((Struct)new Struct(((org.apache.kafka.connect.data.Schema) arguments.get(\"schema0\"))).put(\"col1\", (new Supplier<Object>() {@Override public Object get() { try {  return \"foo\"; } catch (Exception e) {  logger.error(RecordProcessingError.recordProcessingError(    \"Error processing struct field\",    e instanceof InvocationTargetException? e.getCause() : e,    row));  return defaultValue; }}}).get()).put(\"col2\", (new Supplier<Object>() {@Override public Object get() { try {  return ((Double) (((java.util.Map) arguments.get(\"COL5\")) == null ? null : ((java.util.Map)((java.util.Map) arguments.get(\"COL5\"))).get(\"key1\"))); } catch (Exception e) {  logger.error(RecordProcessingError.recordProcessingError(    \"Error processing struct field\",    e instanceof InvocationTargetException? e.getCause() : e,    row));  return defaultValue; }}}).get())) == null ? null : ((Struct)new Struct(((org.apache.kafka.connect.data.Schema) arguments.get(\"schema0\"))).put(\"col1\", (new Supplier<Object>() {@Override public Object get() { try {  return \"foo\"; } catch (Exception e) {  logger.error(RecordProcessingError.recordProcessingError(    \"Error processing struct field\",    e instanceof InvocationTargetException? e.getCause() : e,    row));  return defaultValue; }}}).get()).put(\"col2\", (new Supplier<Object>() {@Override public Object get() { try {  return ((Double) (((java.util.Map) arguments.get(\"COL5\")) == null ? null : ((java.util.Map)((java.util.Map) arguments.get(\"COL5\"))).get(\"key1\"))); } catch (Exception e) {  logger.error(RecordProcessingError.recordProcessingError(    \"Error processing struct field\",    e instanceof InvocationTargetException? e.getCause() : e,    row));  return defaultValue; }}}).get())).get(\"col2\")))"));
   }
 
   @Test
@@ -283,11 +292,9 @@ public class SqlToJavaVisitorTest {
     final String javaExpression = sqlToJavaVisitor.process(expression);
 
     // Then:
-    assertThat(javaExpression, is(
-        "((String) CONCAT_0.evaluate("
-            + "((String) SUBSTRING_1.evaluate(COL1, 1, 3)), "
-            + "((String) CONCAT_2.evaluate(\"-\","
-            + " ((String) SUBSTRING_3.evaluate(COL1, 4, 5))))))"));
+    final String expected = "((String) ((io.confluent.ksql.function.udf.Kudf) arguments.get(\"CONCAT_0\")).evaluate( (new Supplier<Object>() {@Override public Object get() { try {  return ((String) ((io.confluent.ksql.function.udf.Kudf) arguments.get(\"SUBSTRING_1\")).evaluate(((java.lang.String) arguments.get(\"COL1\")), 1, 3)); } catch (Exception e) {  logger.error(RecordProcessingError.recordProcessingError(    \"Error processing SUBSTRING\",    e instanceof InvocationTargetException? e.getCause() : e,    row));  return defaultValue; }}}).get(),  (new Supplier<Object>() {@Override public Object get() { try {  return ((String) ((io.confluent.ksql.function.udf.Kudf) arguments.get(\"CONCAT_2\")).evaluate(\"-\",  (new Supplier<Object>() {@Override public Object get() { try {  return ((String) ((io.confluent.ksql.function.udf.Kudf) arguments.get(\"SUBSTRING_3\")).evaluate(((java.lang.String) arguments.get(\"COL1\")), 4, 5)); } catch (Exception e) {  logger.error(RecordProcessingError.recordProcessingError(    \"Error processing SUBSTRING\",    e instanceof InvocationTargetException? e.getCause() : e,    row));  return defaultValue; }}}).get())); } catch (Exception e) {  logger.error(RecordProcessingError.recordProcessingError(    \"Error processing CONCAT\",    e instanceof InvocationTargetException? e.getCause() : e,    row));  return defaultValue; }}}).get()))";
+
+    assertThat(javaExpression, is(expected));
   }
 
   @Test
@@ -307,14 +314,16 @@ public class SqlToJavaVisitorTest {
     );
 
     // Then:
-    final String doubleCast = CastEvaluator.generateCode(
-        "new BigDecimal(\"1.2\")", SqlTypes.decimal(2, 1), SqlTypes.DOUBLE, ksqlConfig);
+      final String doubleCast = sqlToJavaVisitor.process(new Cast(
+              new DecimalLiteral(new BigDecimal("1.2")),
+              new io.confluent.ksql.execution.expression.tree.Type(SqlTypes.DOUBLE)));
 
-    final String longCast = CastEvaluator.generateCode(
-        "1", SqlTypes.INTEGER, SqlTypes.BIGINT, ksqlConfig);
+      final String longCast = sqlToJavaVisitor.process(new Cast(
+              new IntegerLiteral(1),
+              new io.confluent.ksql.execution.expression.tree.Type(SqlTypes.BIGINT)));
 
     assertThat(javaExpression, is(
-        "((String) FOO_0.evaluate(" +doubleCast + ", " + longCast + "))"
+        "((String) ((io.confluent.ksql.function.udf.Kudf) arguments.get(\"FOO_0\")).evaluate(" +doubleCast + ", " + longCast + "))"
     ));
   }
 
@@ -339,14 +348,16 @@ public class SqlToJavaVisitorTest {
     );
 
     // Then:
-    final String doubleCast = CastEvaluator.generateCode(
-        "new BigDecimal(\"1.2\")", SqlTypes.decimal(2, 1), SqlTypes.DOUBLE, ksqlConfig);
+    final String doubleCast = sqlToJavaVisitor.process(new Cast(
+            new DecimalLiteral(new BigDecimal("1.2")),
+            new io.confluent.ksql.execution.expression.tree.Type(SqlTypes.DOUBLE)));
 
-    final String longCast = CastEvaluator.generateCode(
-        "1", SqlTypes.INTEGER, SqlTypes.BIGINT, ksqlConfig);
+    final String longCast = sqlToJavaVisitor.process(new Cast(
+            new IntegerLiteral(1),
+            new io.confluent.ksql.execution.expression.tree.Type(SqlTypes.BIGINT)));
 
     assertThat(javaExpression, is(
-        "((String) FOO_0.evaluate(" +doubleCast + ", " + longCast + ", " + longCast + "))"
+        "((String) ((io.confluent.ksql.function.udf.Kudf) arguments.get(\"FOO_0\")).evaluate(" +doubleCast + ", " + longCast + ", " + longCast + "))"
     ));
   }
 
@@ -369,7 +380,7 @@ public class SqlToJavaVisitorTest {
     );
 
     // Then:
-    assertThat(javaExpression, is("((String) FOO_0.evaluate(1, 1))"));
+    assertThat(javaExpression, is("((String) ((io.confluent.ksql.function.udf.Kudf) arguments.get(\"FOO_0\")).evaluate(1, 1))"));
   }
 
   @Test
@@ -411,7 +422,7 @@ public class SqlToJavaVisitorTest {
     // Then:
     assertThat(
         javaExpression, equalTo(
-            "((((Object)(COL3)) == null || ((Object)(-1E1)) == null) ? false : (COL3 > -1E1))"));
+            "((((Object)(((java.lang.Double) arguments.get(\"COL3\")))) == null || ((Object)(-1E1)) == null) ? false : (((java.lang.Double) arguments.get(\"COL3\")) > -1E1))"));
   }
 
   @Test
@@ -423,7 +434,7 @@ public class SqlToJavaVisitorTest {
     final String javaExpression = sqlToJavaVisitor.process(expression);
 
     // Then:
-    assertThat(javaExpression, equalTo("LikeEvaluator.matches(COL1, \"%foo\")"));
+    assertThat(javaExpression, equalTo("LikeEvaluator.matches(((java.lang.String) arguments.get(\"COL1\")), \"%foo\")"));
   }
 
   @Test
@@ -435,7 +446,7 @@ public class SqlToJavaVisitorTest {
     final String javaExpression = sqlToJavaVisitor.process(expression);
 
     // Then:
-    assertThat(javaExpression, equalTo("LikeEvaluator.matches(COL1, \"%foo\", '!')"));
+    assertThat(javaExpression, equalTo("LikeEvaluator.matches(((java.lang.String) arguments.get(\"COL1\")), \"%foo\", '!')"));
   }
 
   @Test
@@ -447,7 +458,7 @@ public class SqlToJavaVisitorTest {
     final String javaExpression = sqlToJavaVisitor.process(expression);
 
     // Then:
-    assertThat(javaExpression, equalTo("LikeEvaluator.matches(COL1, COL1)"));
+    assertThat(javaExpression, equalTo("LikeEvaluator.matches(((java.lang.String) arguments.get(\"COL1\")), ((java.lang.String) arguments.get(\"COL1\")))"));
   }
 
   @Test
@@ -475,7 +486,7 @@ public class SqlToJavaVisitorTest {
     // ThenL
     assertThat(
         javaExpression, equalTo(
-            "((java.lang.String)SearchedCaseFunction.searchedCaseFunction(ImmutableList.copyOf(Arrays.asList( SearchedCaseFunction.whenClause( new Supplier<Boolean>() { @Override public Boolean get() { return ((((Object)(COL7)) == null || ((Object)(10)) == null) ? false : (COL7 < 10)); }},  new Supplier<java.lang.String>() { @Override public java.lang.String get() { return \"small\"; }}), SearchedCaseFunction.whenClause( new Supplier<Boolean>() { @Override public Boolean get() { return ((((Object)(COL7)) == null || ((Object)(100)) == null) ? false : (COL7 < 100)); }},  new Supplier<java.lang.String>() { @Override public java.lang.String get() { return \"medium\"; }}))), new Supplier<java.lang.String>() { @Override public java.lang.String get() { return \"large\"; }}))"));
+            "((java.lang.String)SearchedCaseFunction.searchedCaseFunction(ImmutableList.copyOf(Arrays.asList( SearchedCaseFunction.whenClause( new Supplier<Boolean>() { @Override public Boolean get() { return ((((Object)(((java.lang.Integer) arguments.get(\"COL7\")))) == null || ((Object)(10)) == null) ? false : (((java.lang.Integer) arguments.get(\"COL7\")) < 10)); }},  new Supplier<java.lang.String>() { @Override public java.lang.String get() { return \"small\"; }}), SearchedCaseFunction.whenClause( new Supplier<Boolean>() { @Override public Boolean get() { return ((((Object)(((java.lang.Integer) arguments.get(\"COL7\")))) == null || ((Object)(100)) == null) ? false : (((java.lang.Integer) arguments.get(\"COL7\")) < 100)); }},  new Supplier<java.lang.String>() { @Override public java.lang.String get() { return \"medium\"; }}))), new Supplier<java.lang.String>() { @Override public java.lang.String get() { return \"large\"; }}))"));
   }
 
   @Test
@@ -505,7 +516,7 @@ public class SqlToJavaVisitorTest {
     // ThenL
     assertThat(
             javaExpression, equalTo(
-                    "((java.lang.String)SearchedCaseFunction.searchedCaseFunction(ImmutableList.copyOf(Arrays.asList( SearchedCaseFunction.whenClause( new Supplier<Boolean>() { @Override public Boolean get() { return ((((Object)(COL7)) == null || ((Object)(0)) == null) ? false : ((COL7 <= 0) && (COL7 >= 0))); }},  new Supplier<java.lang.String>() { @Override public java.lang.String get() { return \"zero\"; }}), SearchedCaseFunction.whenClause( new Supplier<Boolean>() { @Override public Boolean get() { return ((((Object)(COL7)) == null || ((Object)(1)) == null) ? false : ((COL7 <= 1) && (COL7 >= 1))); }},  new Supplier<java.lang.String>() { @Override public java.lang.String get() { return \"one\"; }}), SearchedCaseFunction.whenClause( new Supplier<Boolean>() { @Override public Boolean get() { return ((((Object)(COL7)) == null || ((Object)(2)) == null) ? false : ((COL7 <= 2) && (COL7 >= 2))); }},  new Supplier<java.lang.String>() { @Override public java.lang.String get() { return \"two\"; }}), SearchedCaseFunction.whenClause( new Supplier<Boolean>() { @Override public Boolean get() { return ((((Object)(COL7)) == null || ((Object)(3)) == null) ? false : ((COL7 <= 3) && (COL7 >= 3))); }},  new Supplier<java.lang.String>() { @Override public java.lang.String get() { return \"three\"; }}), SearchedCaseFunction.whenClause( new Supplier<Boolean>() { @Override public Boolean get() { return ((((Object)(COL7)) == null || ((Object)(4)) == null) ? false : ((COL7 <= 4) && (COL7 >= 4))); }},  new Supplier<java.lang.String>() { @Override public java.lang.String get() { return \"four\"; }}), SearchedCaseFunction.whenClause( new Supplier<Boolean>() { @Override public Boolean get() { return ((((Object)(COL7)) == null || ((Object)(5)) == null) ? false : ((COL7 <= 5) && (COL7 >= 5))); }},  new Supplier<java.lang.String>() { @Override public java.lang.String get() { return \"five\"; }}), SearchedCaseFunction.whenClause( new Supplier<Boolean>() { @Override public Boolean get() { return ((((Object)(COL7)) == null || ((Object)(6)) == null) ? false : ((COL7 <= 6) && (COL7 >= 6))); }},  new Supplier<java.lang.String>() { @Override public java.lang.String get() { return \"six\"; }}), SearchedCaseFunction.whenClause( new Supplier<Boolean>() { @Override public Boolean get() { return ((((Object)(COL7)) == null || ((Object)(7)) == null) ? false : ((COL7 <= 7) && (COL7 >= 7))); }},  new Supplier<java.lang.String>() { @Override public java.lang.String get() { return \"seven\"; }}), SearchedCaseFunction.whenClause( new Supplier<Boolean>() { @Override public Boolean get() { return ((((Object)(COL7)) == null || ((Object)(8)) == null) ? false : ((COL7 <= 8) && (COL7 >= 8))); }},  new Supplier<java.lang.String>() { @Override public java.lang.String get() { return \"eight\"; }}), SearchedCaseFunction.whenClause( new Supplier<Boolean>() { @Override public Boolean get() { return ((((Object)(COL7)) == null || ((Object)(9)) == null) ? false : ((COL7 <= 9) && (COL7 >= 9))); }},  new Supplier<java.lang.String>() { @Override public java.lang.String get() { return \"nine\"; }}), SearchedCaseFunction.whenClause( new Supplier<Boolean>() { @Override public Boolean get() { return ((((Object)(COL7)) == null || ((Object)(10)) == null) ? false : ((COL7 <= 10) && (COL7 >= 10))); }},  new Supplier<java.lang.String>() { @Override public java.lang.String get() { return \"ten\"; }}), SearchedCaseFunction.whenClause( new Supplier<Boolean>() { @Override public Boolean get() { return ((((Object)(COL7)) == null || ((Object)(11)) == null) ? false : ((COL7 <= 11) && (COL7 >= 11))); }},  new Supplier<java.lang.String>() { @Override public java.lang.String get() { return \"eleven\"; }}), SearchedCaseFunction.whenClause( new Supplier<Boolean>() { @Override public Boolean get() { return ((((Object)(COL7)) == null || ((Object)(12)) == null) ? false : ((COL7 <= 12) && (COL7 >= 12))); }},  new Supplier<java.lang.String>() { @Override public java.lang.String get() { return \"twelve\"; }}))), new Supplier<java.lang.String>() { @Override public java.lang.String get() { return null; }}))"));
+                    "((java.lang.String)SearchedCaseFunction.searchedCaseFunction(ImmutableList.copyOf(Arrays.asList( SearchedCaseFunction.whenClause( new Supplier<Boolean>() { @Override public Boolean get() { return ((((Object)(((java.lang.Integer) arguments.get(\"COL7\")))) == null || ((Object)(0)) == null) ? false : ((((java.lang.Integer) arguments.get(\"COL7\")) <= 0) && (((java.lang.Integer) arguments.get(\"COL7\")) >= 0))); }},  new Supplier<java.lang.String>() { @Override public java.lang.String get() { return \"zero\"; }}), SearchedCaseFunction.whenClause( new Supplier<Boolean>() { @Override public Boolean get() { return ((((Object)(((java.lang.Integer) arguments.get(\"COL7\")))) == null || ((Object)(1)) == null) ? false : ((((java.lang.Integer) arguments.get(\"COL7\")) <= 1) && (((java.lang.Integer) arguments.get(\"COL7\")) >= 1))); }},  new Supplier<java.lang.String>() { @Override public java.lang.String get() { return \"one\"; }}), SearchedCaseFunction.whenClause( new Supplier<Boolean>() { @Override public Boolean get() { return ((((Object)(((java.lang.Integer) arguments.get(\"COL7\")))) == null || ((Object)(2)) == null) ? false : ((((java.lang.Integer) arguments.get(\"COL7\")) <= 2) && (((java.lang.Integer) arguments.get(\"COL7\")) >= 2))); }},  new Supplier<java.lang.String>() { @Override public java.lang.String get() { return \"two\"; }}), SearchedCaseFunction.whenClause( new Supplier<Boolean>() { @Override public Boolean get() { return ((((Object)(((java.lang.Integer) arguments.get(\"COL7\")))) == null || ((Object)(3)) == null) ? false : ((((java.lang.Integer) arguments.get(\"COL7\")) <= 3) && (((java.lang.Integer) arguments.get(\"COL7\")) >= 3))); }},  new Supplier<java.lang.String>() { @Override public java.lang.String get() { return \"three\"; }}), SearchedCaseFunction.whenClause( new Supplier<Boolean>() { @Override public Boolean get() { return ((((Object)(((java.lang.Integer) arguments.get(\"COL7\")))) == null || ((Object)(4)) == null) ? false : ((((java.lang.Integer) arguments.get(\"COL7\")) <= 4) && (((java.lang.Integer) arguments.get(\"COL7\")) >= 4))); }},  new Supplier<java.lang.String>() { @Override public java.lang.String get() { return \"four\"; }}), SearchedCaseFunction.whenClause( new Supplier<Boolean>() { @Override public Boolean get() { return ((((Object)(((java.lang.Integer) arguments.get(\"COL7\")))) == null || ((Object)(5)) == null) ? false : ((((java.lang.Integer) arguments.get(\"COL7\")) <= 5) && (((java.lang.Integer) arguments.get(\"COL7\")) >= 5))); }},  new Supplier<java.lang.String>() { @Override public java.lang.String get() { return \"five\"; }}), SearchedCaseFunction.whenClause( new Supplier<Boolean>() { @Override public Boolean get() { return ((((Object)(((java.lang.Integer) arguments.get(\"COL7\")))) == null || ((Object)(6)) == null) ? false : ((((java.lang.Integer) arguments.get(\"COL7\")) <= 6) && (((java.lang.Integer) arguments.get(\"COL7\")) >= 6))); }},  new Supplier<java.lang.String>() { @Override public java.lang.String get() { return \"six\"; }}), SearchedCaseFunction.whenClause( new Supplier<Boolean>() { @Override public Boolean get() { return ((((Object)(((java.lang.Integer) arguments.get(\"COL7\")))) == null || ((Object)(7)) == null) ? false : ((((java.lang.Integer) arguments.get(\"COL7\")) <= 7) && (((java.lang.Integer) arguments.get(\"COL7\")) >= 7))); }},  new Supplier<java.lang.String>() { @Override public java.lang.String get() { return \"seven\"; }}), SearchedCaseFunction.whenClause( new Supplier<Boolean>() { @Override public Boolean get() { return ((((Object)(((java.lang.Integer) arguments.get(\"COL7\")))) == null || ((Object)(8)) == null) ? false : ((((java.lang.Integer) arguments.get(\"COL7\")) <= 8) && (((java.lang.Integer) arguments.get(\"COL7\")) >= 8))); }},  new Supplier<java.lang.String>() { @Override public java.lang.String get() { return \"eight\"; }}), SearchedCaseFunction.whenClause( new Supplier<Boolean>() { @Override public Boolean get() { return ((((Object)(((java.lang.Integer) arguments.get(\"COL7\")))) == null || ((Object)(9)) == null) ? false : ((((java.lang.Integer) arguments.get(\"COL7\")) <= 9) && (((java.lang.Integer) arguments.get(\"COL7\")) >= 9))); }},  new Supplier<java.lang.String>() { @Override public java.lang.String get() { return \"nine\"; }}), SearchedCaseFunction.whenClause( new Supplier<Boolean>() { @Override public Boolean get() { return ((((Object)(((java.lang.Integer) arguments.get(\"COL7\")))) == null || ((Object)(10)) == null) ? false : ((((java.lang.Integer) arguments.get(\"COL7\")) <= 10) && (((java.lang.Integer) arguments.get(\"COL7\")) >= 10))); }},  new Supplier<java.lang.String>() { @Override public java.lang.String get() { return \"ten\"; }}), SearchedCaseFunction.whenClause( new Supplier<Boolean>() { @Override public Boolean get() { return ((((Object)(((java.lang.Integer) arguments.get(\"COL7\")))) == null || ((Object)(11)) == null) ? false : ((((java.lang.Integer) arguments.get(\"COL7\")) <= 11) && (((java.lang.Integer) arguments.get(\"COL7\")) >= 11))); }},  new Supplier<java.lang.String>() { @Override public java.lang.String get() { return \"eleven\"; }}), SearchedCaseFunction.whenClause( new Supplier<Boolean>() { @Override public Boolean get() { return ((((Object)(((java.lang.Integer) arguments.get(\"COL7\")))) == null || ((Object)(12)) == null) ? false : ((((java.lang.Integer) arguments.get(\"COL7\")) <= 12) && (((java.lang.Integer) arguments.get(\"COL7\")) >= 12))); }},  new Supplier<java.lang.String>() { @Override public java.lang.String get() { return \"twelve\"; }}))), new Supplier<java.lang.String>() { @Override public java.lang.String get() { return null; }}))"));
   }
 
   @Test
@@ -533,7 +544,7 @@ public class SqlToJavaVisitorTest {
     // ThenL
     assertThat(
         javaExpression, equalTo(
-            "((java.lang.String)SearchedCaseFunction.searchedCaseFunction(ImmutableList.copyOf(Arrays.asList( SearchedCaseFunction.whenClause( new Supplier<Boolean>() { @Override public Boolean get() { return ((((Object)(COL7)) == null || ((Object)(10)) == null) ? false : (COL7 < 10)); }},  new Supplier<java.lang.String>() { @Override public java.lang.String get() { return \"small\"; }}), SearchedCaseFunction.whenClause( new Supplier<Boolean>() { @Override public Boolean get() { return ((((Object)(COL7)) == null || ((Object)(100)) == null) ? false : (COL7 < 100)); }},  new Supplier<java.lang.String>() { @Override public java.lang.String get() { return \"medium\"; }}))), new Supplier<java.lang.String>() { @Override public java.lang.String get() { return null; }}))"));
+            "((java.lang.String)SearchedCaseFunction.searchedCaseFunction(ImmutableList.copyOf(Arrays.asList( SearchedCaseFunction.whenClause( new Supplier<Boolean>() { @Override public Boolean get() { return ((((Object)(((java.lang.Integer) arguments.get(\"COL7\")))) == null || ((Object)(10)) == null) ? false : (((java.lang.Integer) arguments.get(\"COL7\")) < 10)); }},  new Supplier<java.lang.String>() { @Override public java.lang.String get() { return \"small\"; }}), SearchedCaseFunction.whenClause( new Supplier<Boolean>() { @Override public Boolean get() { return ((((Object)(((java.lang.Integer) arguments.get(\"COL7\")))) == null || ((Object)(100)) == null) ? false : (((java.lang.Integer) arguments.get(\"COL7\")) < 100)); }},  new Supplier<java.lang.String>() { @Override public java.lang.String get() { return \"medium\"; }}))), new Supplier<java.lang.String>() { @Override public java.lang.String get() { return null; }}))"));
   }
 
   @Test
@@ -551,7 +562,7 @@ public class SqlToJavaVisitorTest {
     // Then:
     assertThat(
         java,
-        is("(COL8.add(COL8, new MathContext(3, RoundingMode.UNNECESSARY)).setScale(1))")
+        is("(((java.math.BigDecimal) arguments.get(\"COL8\")).add(((java.math.BigDecimal) arguments.get(\"COL8\")), new MathContext(3, RoundingMode.UNNECESSARY)).setScale(1))")
     );
   }
 
@@ -568,7 +579,7 @@ public class SqlToJavaVisitorTest {
     final String java = sqlToJavaVisitor.process(binExp);
 
     // Then:
-    assertThat(java, containsString("DecimalUtil.cast(COL0, 19, 0)"));
+    assertThat(java, containsString("DecimalUtil.cast(((java.lang.Long) arguments.get(\"COL0\")), 19, 0)"));
   }
 
   @Test
@@ -585,9 +596,23 @@ public class SqlToJavaVisitorTest {
 
     // Then:
     final String doubleCast = CastEvaluator.generateCode(
-        "COL8", SqlTypes.decimal(2, 1), SqlTypes.DOUBLE, ksqlConfig);
+        "((java.math.BigDecimal) arguments.get(\"COL8\"))", SqlTypes.decimal(2, 1), SqlTypes.DOUBLE, ksqlConfig);
     assertThat(java, containsString(doubleCast));
   }
+
+    @Test
+    public void shouldGenerateCastExpressionsWhichAreComparable() {
+        // Given:
+        final Expression cast = new Cast(new StringLiteral("2020-01-01"), new io.confluent.ksql.execution.expression.tree.Type(SqlTypes.DATE));
+        final ComparisonExpression exp = new ComparisonExpression(Type.GREATER_THAN_OR_EQUAL, cast, cast);
+
+        // When:
+        final String java = sqlToJavaVisitor.process(exp);
+
+        // Then:
+        final Evaluator evaluator = CodeGenTestUtil.cookCode(java, Boolean.class);
+        evaluator.evaluate();
+    }
 
   @Test
   public void shouldGenerateCorrectCodeForDecimalSubtract() {
@@ -604,7 +629,7 @@ public class SqlToJavaVisitorTest {
     // Then:
     assertThat(
         java,
-        is("(COL8.subtract(COL8, new MathContext(3, RoundingMode.UNNECESSARY)).setScale(1))")
+        is("(((java.math.BigDecimal) arguments.get(\"COL8\")).subtract(((java.math.BigDecimal) arguments.get(\"COL8\")), new MathContext(3, RoundingMode.UNNECESSARY)).setScale(1))")
     );
   }
 
@@ -623,7 +648,7 @@ public class SqlToJavaVisitorTest {
     // Then:
     assertThat(
         java,
-        is("(COL8.multiply(COL8, new MathContext(5, RoundingMode.UNNECESSARY)).setScale(2))")
+        is("(((java.math.BigDecimal) arguments.get(\"COL8\")).multiply(((java.math.BigDecimal) arguments.get(\"COL8\")), new MathContext(5, RoundingMode.UNNECESSARY)).setScale(2))")
     );
   }
 
@@ -642,7 +667,7 @@ public class SqlToJavaVisitorTest {
     // Then:
     assertThat(
         java,
-        is("(COL8.divide(COL8, new MathContext(8, RoundingMode.UNNECESSARY)).setScale(6))")
+        is("(((java.math.BigDecimal) arguments.get(\"COL8\")).divide(((java.math.BigDecimal) arguments.get(\"COL8\")), new MathContext(8, RoundingMode.UNNECESSARY)).setScale(6))")
     );
   }
 
@@ -661,7 +686,7 @@ public class SqlToJavaVisitorTest {
     // Then:
     assertThat(
         java,
-        is("(COL8.remainder(COL8, new MathContext(2, RoundingMode.UNNECESSARY)).setScale(1))")
+        is("(((java.math.BigDecimal) arguments.get(\"COL8\")).remainder(((java.math.BigDecimal) arguments.get(\"COL8\")), new MathContext(2, RoundingMode.UNNECESSARY)).setScale(1))")
     );
   }
 
@@ -678,7 +703,7 @@ public class SqlToJavaVisitorTest {
     final String java = sqlToJavaVisitor.process(compExp);
 
     // Then:
-    assertThat(java, containsString("(COL8.compareTo(COL9) == 0))"));
+    assertThat(java, containsString("(((java.math.BigDecimal) arguments.get(\"COL8\")).compareTo(((java.math.BigDecimal) arguments.get(\"COL9\"))) == 0)"));
   }
 
   @Test
@@ -694,7 +719,7 @@ public class SqlToJavaVisitorTest {
     final String java = sqlToJavaVisitor.process(compExp);
 
     // Then:
-    assertThat(java, containsString("(COL8.compareTo(COL9) > 0))"));
+    assertThat(java, containsString("(((java.math.BigDecimal) arguments.get(\"COL8\")).compareTo(((java.math.BigDecimal) arguments.get(\"COL9\"))) > 0)"));
   }
 
   @Test
@@ -710,7 +735,7 @@ public class SqlToJavaVisitorTest {
     final String java = sqlToJavaVisitor.process(compExp);
 
     // Then:
-    assertThat(java, containsString("(COL8.compareTo(COL9) >= 0))"));
+    assertThat(java, containsString("(((java.math.BigDecimal) arguments.get(\"COL8\")).compareTo(((java.math.BigDecimal) arguments.get(\"COL9\"))) >= 0)"));
   }
 
   @Test
@@ -726,7 +751,7 @@ public class SqlToJavaVisitorTest {
     final String java = sqlToJavaVisitor.process(compExp);
 
     // Then:
-    assertThat(java, containsString("(COL8.compareTo(COL9) < 0))"));
+    assertThat(java, containsString("(((java.math.BigDecimal) arguments.get(\"COL8\")).compareTo(((java.math.BigDecimal) arguments.get(\"COL9\"))) < 0)"));
   }
 
   @Test
@@ -742,7 +767,7 @@ public class SqlToJavaVisitorTest {
     final String java = sqlToJavaVisitor.process(compExp);
 
     // Then:
-    assertThat(java, containsString("(COL8.compareTo(COL9) <= 0))"));
+    assertThat(java, containsString("(((java.math.BigDecimal) arguments.get(\"COL8\")).compareTo(((java.math.BigDecimal) arguments.get(\"COL9\"))) <= 0)"));
   }
 
   @Test
@@ -758,7 +783,7 @@ public class SqlToJavaVisitorTest {
     final String java = sqlToJavaVisitor.process(compExp);
 
     // Then:
-    assertThat(java, containsString("(COL8.compareTo(COL9) != 0))"));
+    assertThat(java, containsString("(((java.math.BigDecimal) arguments.get(\"COL8\")).compareTo(((java.math.BigDecimal) arguments.get(\"COL9\"))) != 0))"));
   }
 
   @Test
@@ -774,7 +799,7 @@ public class SqlToJavaVisitorTest {
     final String java = sqlToJavaVisitor.process(compExp);
 
     // Then:
-    assertThat(java, containsString("(COL8.compareTo(BigDecimal.valueOf(COL3)) == 0))"));
+    assertThat(java, containsString("(((java.math.BigDecimal) arguments.get(\"COL8\")).compareTo(BigDecimal.valueOf(((java.lang.Double) arguments.get(\"COL3\")))) == 0)"));
   }
 
   @Test
@@ -790,7 +815,7 @@ public class SqlToJavaVisitorTest {
     final String java = sqlToJavaVisitor.process(compExp);
 
     // Then:
-    assertThat(java, containsString("(BigDecimal.valueOf(COL3).compareTo(COL8) == 0))"));
+    assertThat(java, containsString("(BigDecimal.valueOf(((java.lang.Double) arguments.get(\"COL3\"))).compareTo(((java.math.BigDecimal) arguments.get(\"COL8\"))) == 0)"));
   }
 
   @Test
@@ -806,7 +831,7 @@ public class SqlToJavaVisitorTest {
     final String java = sqlToJavaVisitor.process(binExp);
 
     // Then:
-    assertThat(java, is("(COL8.negate(new MathContext(2, RoundingMode.UNNECESSARY)))"));
+    assertThat(java, is("(((java.math.BigDecimal) arguments.get(\"COL8\")).negate(new MathContext(2, RoundingMode.UNNECESSARY)))"));
   }
 
   @Test
@@ -822,7 +847,7 @@ public class SqlToJavaVisitorTest {
     final String java = sqlToJavaVisitor.process(binExp);
 
     // Then:
-    assertThat(java, is("(COL8.plus(new MathContext(2, RoundingMode.UNNECESSARY)))"));
+    assertThat(java, is("(((java.math.BigDecimal) arguments.get(\"COL8\")).plus(new MathContext(2, RoundingMode.UNNECESSARY)))"));
   }
 
   @Test
@@ -838,7 +863,7 @@ public class SqlToJavaVisitorTest {
     final String java = sqlToJavaVisitor.process(compExp);
 
     // Then:
-    assertThat(java, containsString("(COL12.compareTo(COL12) < 0)"));
+    assertThat(java, containsString("(((java.sql.Time) arguments.get(\"COL12\")).compareTo(((java.sql.Time) arguments.get(\"COL12\"))) < 0)"));
   }
 
   @Test
@@ -854,7 +879,7 @@ public class SqlToJavaVisitorTest {
     final String java = sqlToJavaVisitor.process(compExp);
 
     // Then:
-    assertThat(java, containsString("(COL12.compareTo(SqlTimeTypes.parseTime(\"01:23:45\")) == 0)"));
+    assertThat(java, containsString("(((java.sql.Time) arguments.get(\"COL12\")).compareTo(SqlTimeTypes.parseTime(\"01:23:45\")) == 0)"));
   }
 
   @Test
@@ -898,7 +923,7 @@ public class SqlToJavaVisitorTest {
     final String java = sqlToJavaVisitor.process(compExp);
 
     // Then:
-    assertThat(java, containsString("(COL13.compareTo(COL13) < 0)"));
+    assertThat(java, containsString("(((java.sql.Date) arguments.get(\"COL13\")).compareTo(((java.sql.Date) arguments.get(\"COL13\"))) < 0)"));
   }
 
   @Test
@@ -914,7 +939,7 @@ public class SqlToJavaVisitorTest {
     final String java = sqlToJavaVisitor.process(compExp);
 
     // Then:
-    assertThat(java, containsString("(COL13.compareTo(SqlTimeTypes.parseDate(\"2021-06-23\")) == 0)"));
+    assertThat(java, containsString("(((java.sql.Date) arguments.get(\"COL13\")).compareTo(SqlTimeTypes.parseDate(\"2021-06-23\")) == 0)"));
   }
 
   @Test
@@ -930,7 +955,7 @@ public class SqlToJavaVisitorTest {
     final String java = sqlToJavaVisitor.process(compExp);
 
     // Then:
-    assertThat(java, containsString("(COL10.compareTo(COL10) < 0)"));
+    assertThat(java, containsString("(((java.sql.Timestamp) arguments.get(\"COL10\")).compareTo(((java.sql.Timestamp) arguments.get(\"COL10\"))) < 0)"));
   }
 
   @Test
@@ -946,7 +971,7 @@ public class SqlToJavaVisitorTest {
     final String java = sqlToJavaVisitor.process(compExp);
 
     // Then:
-    assertThat(java, containsString("(COL10.compareTo(SqlTimeTypes.parseTimestamp(\"2020-01-01T00:00:00\")) == 0)"));
+    assertThat(java, containsString("(((java.sql.Timestamp) arguments.get(\"COL10\")).compareTo(SqlTimeTypes.parseTimestamp(\"2020-01-01T00:00:00\")) == 0)"));
   }
 
   @Test
@@ -962,7 +987,7 @@ public class SqlToJavaVisitorTest {
     final String java = sqlToJavaVisitor.process(compExp);
 
     // Then:
-    assertThat(java, containsString("(SqlTimeTypes.parseTimestamp(\"2020-01-01T00:00:00\").compareTo(COL10) >= 0)"));
+    assertThat(java, containsString("(SqlTimeTypes.parseTimestamp(\"2020-01-01T00:00:00\").compareTo(((java.sql.Timestamp) arguments.get(\"COL10\"))) >= 0)"));
   }
 
   @Test
@@ -978,7 +1003,7 @@ public class SqlToJavaVisitorTest {
     final String java = sqlToJavaVisitor.process(compExp);
 
     // Then:
-    assertThat(java, containsString("(COL10.compareTo(COL13) > 0)"));
+    assertThat(java, containsString("(((java.sql.Timestamp) arguments.get(\"COL10\")).compareTo(((java.sql.Date) arguments.get(\"COL13\"))) > 0)"));
   }
 
   @Test
@@ -994,7 +1019,7 @@ public class SqlToJavaVisitorTest {
     final String java = sqlToJavaVisitor.process(compExp);
 
     // Then:
-    assertThat(java, containsString("(COL14.compareTo(COL14) > 0)"));
+    assertThat(java, containsString("(((java.nio.ByteBuffer) arguments.get(\"COL14\")).compareTo(((java.nio.ByteBuffer) arguments.get(\"COL14\"))) > 0)"));
   }
 
   @Test
@@ -1060,7 +1085,7 @@ public class SqlToJavaVisitorTest {
     final String java = sqlToJavaVisitor.process(expression);
 
     // Then:
-    assertThat(java, is("InListEvaluator.matches(COL0,1L,2L)"));
+    assertThat(java, is("InListEvaluator.matches(((java.lang.Long) arguments.get(\"COL0\")),1L,2L)"));
   }
 
   @Test
@@ -1092,7 +1117,13 @@ public class SqlToJavaVisitorTest {
     // Then
     assertThat(
         javaExpression, equalTo(
-            "((String) TRANSFORM_0.evaluate(COL4, new Function() {\n @Override\n public Object apply(Object arg1) {\n   final Double x = (Double) arg1;\n   return ((String) ABS_1.evaluate(X));\n }\n}))"));
+            "((String) ((io.confluent.ksql.function.udf.Kudf) arguments.get(\"TRANSFORM_0\")).evaluate(((java.util.List) arguments.get(\"COL4\")), new Function() {\n" +
+            " @Override\n" +
+            " public Object apply(Object arg1) {\n" +
+            "   final Double x = (Double) arg1;\n" +
+            "   return ((String) ((io.confluent.ksql.function.udf.Kudf) arguments.get(\"ABS_1\")).evaluate(X));\n" +
+            " }\n" +
+            "}))"));
   }
 
   @Test
@@ -1129,7 +1160,7 @@ public class SqlToJavaVisitorTest {
     // Then
     assertThat(
         javaExpression, equalTo(
-            "((String) REDUCE_0.evaluate(COL4, COL3, new BiFunction() {\n" +
+            "((String) ((io.confluent.ksql.function.udf.Kudf) arguments.get(\"REDUCE_0\")).evaluate(((java.util.List) arguments.get(\"COL4\")), ((java.lang.Double) arguments.get(\"COL3\")), new BiFunction() {\n" +
                 " @Override\n" +
                 " public Object apply(Object arg1, Object arg2) {\n" +
                 "   final Double X = (Double) arg1;\n" +
@@ -1193,7 +1224,7 @@ public class SqlToJavaVisitorTest {
 
     // Then
     assertThat(
-        javaExpression, equalTo("((String) function_0.evaluate(COL4, COL1, new BiFunction() {\n"
+        javaExpression, equalTo("((String) ((io.confluent.ksql.function.udf.Kudf) arguments.get(\"function_0\")).evaluate(((java.util.List) arguments.get(\"COL4\")), ((java.lang.String) arguments.get(\"COL1\")), new BiFunction() {\n"
             + " @Override\n"
             + " public Object apply(Object arg1, Object arg2) {\n"
             + "   final Double X = (Double) arg1;\n"
@@ -1259,33 +1290,33 @@ public class SqlToJavaVisitorTest {
     // Then
     assertThat(
         javaExpression, equalTo(
-            "(((Double) nested_0.evaluate(COL4, (Double)NullSafe.apply(0,new Function() {\n"
-                + " @Override\n"
-                + " public Object apply(Object arg1) {\n"
-                + "   final Integer val = (Integer) arg1;\n"
-                + "   return val.doubleValue();\n"
-                + " }\n"
-                + "}), new BiFunction() {\n"
-                + " @Override\n"
-                + " public Object apply(Object arg1, Object arg2) {\n"
-                + "   final Double A = (Double) arg1;\n"
-                + "   final Integer B = (Integer) arg2;\n"
-                + "   return (((Double) nested_1.evaluate(COL4, (Double)NullSafe.apply(0,new Function() {\n"
-                + " @Override\n"
-                + " public Object apply(Object arg1) {\n"
-                + "   final Integer val = (Integer) arg1;\n"
-                + "   return val.doubleValue();\n"
-                + " }\n"
-                + "}), new BiFunction() {\n"
-                + " @Override\n"
-                + " public Object apply(Object arg1, Object arg2) {\n"
-                + "   final Double Q = (Double) arg1;\n"
-                + "   final Integer V = (Integer) arg2;\n"
-                + "   return (Q + V);\n"
-                + " }\n"
-                + "})) + B);\n"
-                + " }\n"
-                + "})) + 5)"));
+            "(((Double) ((io.confluent.ksql.function.udf.Kudf) arguments.get(\"nested_0\")).evaluate(((java.util.List) arguments.get(\"COL4\")),  (new Supplier<java.lang.Double>() {@Override public java.lang.Double get() { try {  return ((Double)NullSafe.apply(0,new Function() {\n" +
+            " @Override\n" +
+            " public Object apply(Object arg1) {\n" +
+            "   final Integer val = (Integer) arg1;\n" +
+            "   return val.doubleValue();\n" +
+            " }\n" +
+            "})); } catch (Exception e) {  logger.error(RecordProcessingError.recordProcessingError(    \"Error processing DOUBLE\",    e instanceof InvocationTargetException? e.getCause() : e,    row));  return (java.lang.Double) defaultValue; }}}).get(), new BiFunction() {\n" +
+            " @Override\n" +
+            " public Object apply(Object arg1, Object arg2) {\n" +
+            "   final Double A = (Double) arg1;\n" +
+            "   final Integer B = (Integer) arg2;\n" +
+            "   return (((Double) ((io.confluent.ksql.function.udf.Kudf) arguments.get(\"nested_1\")).evaluate(((java.util.List) arguments.get(\"COL4\")),  (new Supplier<java.lang.Double>() {@Override public java.lang.Double get() { try {  return ((Double)NullSafe.apply(0,new Function() {\n" +
+            " @Override\n" +
+            " public Object apply(Object arg1) {\n" +
+            "   final Integer val = (Integer) arg1;\n" +
+            "   return val.doubleValue();\n" +
+            " }\n" +
+            "})); } catch (Exception e) {  logger.error(RecordProcessingError.recordProcessingError(    \"Error processing DOUBLE\",    e instanceof InvocationTargetException? e.getCause() : e,    row));  return (java.lang.Double) defaultValue; }}}).get(), new BiFunction() {\n" +
+            " @Override\n" +
+            " public Object apply(Object arg1, Object arg2) {\n" +
+            "   final Double Q = (Double) arg1;\n" +
+            "   final Integer V = (Integer) arg2;\n" +
+            "   return (Q + V);\n" +
+            " }\n" +
+            "})) + B);\n" +
+            " }\n" +
+            "})) + 5)"));
   }
 
   @Test
@@ -1309,6 +1340,41 @@ public class SqlToJavaVisitorTest {
     assertThat(sqlToJavaVisitor.process(new TimeLiteral(new Time(1000))), is("00:00:01"));
   }
 
+  @Test
+  public void shouldHandleManyArguments() {
+    // Given:
+    final LogicalSchema.Builder schemaBuilder = LogicalSchema.builder();
+    for (int i = 0; i < 500; i++) {
+      schemaBuilder.valueColumn(ColumnName.of("COL" + i), SqlTypes.STRING);
+    }
+    final LogicalSchema schema = schemaBuilder.build();
+
+    final AtomicInteger funCounter = new AtomicInteger();
+    final AtomicInteger structCounter = new AtomicInteger();
+    final SqlToJavaVisitor sqlToJavaVisitor = new SqlToJavaVisitor(
+            schema,
+            functionRegistry,
+            ref -> ref.text().replace(".", "_"),
+            name -> name.text() + "_" + funCounter.getAndIncrement(),
+            struct -> "schema" + structCounter.getAndIncrement(),
+            ksqlConfig
+    );
+
+    final List<Expression> expressions = new ArrayList<>();
+    for (int i = 0; i < 500 ; i++) {
+      expressions.add(new UnqualifiedColumnReferenceExp(ColumnName.of("COL" + i)));
+    }
+    final Expression expression = new CreateArrayExpression(expressions);
+
+    // When:
+    final String java = sqlToJavaVisitor.process(expression);
+
+    // Then:
+    final Map<String, Object> arguments = IntStream.range(0, 500).boxed().collect(Collectors.toMap(i -> "COL" + i, String::valueOf));
+    final Evaluator evaluator = CodeGenTestUtil.cookCode(java, List.class);
+    evaluator.evaluate(arguments);
+  }
+
   private void givenUdf(
       final String name,
       final UdfFactory factory,
@@ -1321,10 +1387,5 @@ public class SqlToJavaVisitorTest {
     when(function.getReturnType(anyList())).thenReturn(returnType);
     final UdfMetadata metadata = mock(UdfMetadata.class);
     when(factory.getMetadata()).thenReturn(metadata);
-  }
-
-  private String onException(final String type) {
-    return String.format("logger.error(RecordProcessingError.recordProcessingError(    \"Error processing %s\",    "
-        + "e instanceof InvocationTargetException? e.getCause() : e,    row));  return defaultValue;", type);
   }
 }

@@ -22,20 +22,23 @@ import io.confluent.ksql.serde.json.JsonSchemaFormat;
 import io.confluent.ksql.serde.kafka.KafkaFormat;
 import io.confluent.ksql.serde.none.NoneFormat;
 import io.confluent.ksql.serde.protobuf.ProtobufFormat;
+import io.confluent.ksql.serde.protobuf.ProtobufNoSRFormat;
 import io.confluent.ksql.util.KsqlException;
 
 /**
  * A class containing the builtin supported formats in ksqlDB.
  */
+@SuppressWarnings("checkstyle:ClassDataAbstractionCoupling")
 public final class FormatFactory {
 
-  public static final Format AVRO       = new AvroFormat();
-  public static final Format JSON       = new JsonFormat();
-  public static final Format JSON_SR    = new JsonSchemaFormat();
-  public static final Format PROTOBUF   = new ProtobufFormat();
-  public static final Format KAFKA      = new KafkaFormat();
-  public static final Format DELIMITED  = new DelimitedFormat();
-  public static final Format NONE       = new NoneFormat();
+  public static final Format AVRO          = new AvroFormat();
+  public static final Format JSON          = new JsonFormat();
+  public static final Format JSON_SR       = new JsonSchemaFormat();
+  public static final Format PROTOBUF      = new ProtobufFormat();
+  public static final Format PROTOBUF_NOSR = new ProtobufNoSRFormat();
+  public static final Format KAFKA         = new KafkaFormat();
+  public static final Format DELIMITED     = new DelimitedFormat();
+  public static final Format NONE          = new NoneFormat();
 
   private FormatFactory() {
   }
@@ -53,13 +56,14 @@ public final class FormatFactory {
 
   public static Format fromName(final String name) {
     switch (name.toUpperCase()) {
-      case AvroFormat.NAME:       return AVRO;
-      case JsonFormat.NAME:       return JSON;
-      case JsonSchemaFormat.NAME: return JSON_SR;
-      case ProtobufFormat.NAME:   return PROTOBUF;
-      case KafkaFormat.NAME:      return KAFKA;
-      case DelimitedFormat.NAME:  return DELIMITED;
-      case NoneFormat.NAME:       return NONE;
+      case AvroFormat.NAME:         return AVRO;
+      case JsonFormat.NAME:         return JSON;
+      case JsonSchemaFormat.NAME:   return JSON_SR;
+      case ProtobufFormat.NAME:     return PROTOBUF;
+      case ProtobufNoSRFormat.NAME: return PROTOBUF_NOSR;
+      case KafkaFormat.NAME:        return KAFKA;
+      case DelimitedFormat.NAME:    return DELIMITED;
+      case NoneFormat.NAME:         return NONE;
       default:
         throw new KsqlException("Unknown format: " + name);
     }

@@ -13,6 +13,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.testing.EqualsTester;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.util.KsqlConfig;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import org.junit.Before;
@@ -109,5 +110,37 @@ public class SessionConfigTest {
 
     // Then:
     assertThat(config.getOverrides(), is(instanceOf(ImmutableMap.class)));
+  }
+
+  @Test
+  public void shouldCopyWithExistingConfig() {
+    // Given:
+    final SessionConfig config = SessionConfig.of(systemConfig,
+        ImmutableMap.of("key1", 1, "key2", "value2"));
+
+    // When:
+    final SessionConfig newConfig = config.copyWith(
+        ImmutableMap.of("key3", Arrays.asList(1, 2, 3)));
+
+    // Then:
+    assertThat(newConfig.getOverrides(),
+        is(ImmutableMap.of("key1", 1, "key2", "value2", "key3", Arrays.asList(1, 2, 3))));
+    assertThat(newConfig.getConfig(false), is(config.getConfig(false)));
+  }
+
+  @Test
+  public void shouldCreateWithNewConfig() {
+    // Given:
+    final SessionConfig config = SessionConfig.of(systemConfig,
+        ImmutableMap.of("key1", 1, "key2", "value2"));
+
+    // When:
+    final SessionConfig newConfig = config.withNewOverrides(
+        ImmutableMap.of("key3", Arrays.asList(1, 2, 3)));
+
+    // Then:
+    assertThat(newConfig.getOverrides(),
+        is(ImmutableMap.of("key3", Arrays.asList(1, 2, 3))));
+    assertThat(newConfig.getConfig(false), is(config.getConfig(false)));
   }
 }

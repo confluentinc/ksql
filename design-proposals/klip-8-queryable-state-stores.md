@@ -2,7 +2,7 @@
 
 **Author**: derekjn | 
 **Release Target**: 5.4+ | 
-**Status**: Approved | 
+**Status**: _Merged_ | 
 **Discussion**: [#3117](https://github.com/confluentinc/ksql/pull/3117), [#530](https://github.com/confluentinc/ksql/issues/530)
 
 ## Motivation and background

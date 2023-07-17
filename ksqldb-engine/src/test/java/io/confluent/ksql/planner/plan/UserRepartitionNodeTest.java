@@ -144,7 +144,7 @@ public class UserRepartitionNodeTest {
 
     // Then:
     assertThat(e.getMessage(), containsString("The query used to build `S1` "
-        + "must include the partitioning expression T.ID in its projection."));
+        + "must include the partitioning expression T.ID in its projection (eg, SELECT T.ID..."));
   }
 
   @Test

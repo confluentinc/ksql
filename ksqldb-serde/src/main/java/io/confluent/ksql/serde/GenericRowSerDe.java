@@ -39,7 +39,7 @@ public final class GenericRowSerDe implements ValueSerdeFactory {
    * Additional capacity added to each created `GenericRow` in an attempt to avoid later resizes,
    * and associated array copies, when the row has additional elements appended to the end during
    * processing, e.g. to match columns added by
-   * {@link io.confluent.ksql.schema.ksql.LogicalSchema#withPseudoAndKeyColsInValue(boolean)}
+   * {@link io.confluent.ksql.schema.ksql.LogicalSchema#withPseudoAndKeyColsInValue(boolean, int)}
    *
    * <p>The number is optimised for a single key column, as this is the most common case.
    *
@@ -55,14 +55,26 @@ public final class GenericRowSerDe implements ValueSerdeFactory {
   private static final int ADDITIONAL_CAPACITY = 4;
 
   private final GenericSerdeFactory innerFactory;
+  private final Optional<String> queryId;
 
   public GenericRowSerDe() {
-    this(new GenericSerdeFactory());
+    this(new GenericSerdeFactory(), Optional.empty());
+  }
+
+  public GenericRowSerDe(final String queryId) {
+    this(
+        new GenericSerdeFactory(),
+        Optional.of(queryId)
+    );
   }
 
   @VisibleForTesting
-  GenericRowSerDe(final GenericSerdeFactory innerFactory) {
+  GenericRowSerDe(
+      final GenericSerdeFactory innerFactory,
+      final Optional<String> queryId
+  ) {
     this.innerFactory = Objects.requireNonNull(innerFactory, "innerFactory");
+    this.queryId = queryId;
   }
 
   public static Serde<GenericRow> from(
@@ -98,8 +110,11 @@ public final class GenericRowSerDe implements ValueSerdeFactory {
 
     final Serde<GenericRow> genericRowSerde = toGenericRowSerde(formatSerde, schema);
 
-    final Serde<GenericRow> loggingSerde = innerFactory
-        .wrapInLoggingSerde(genericRowSerde, loggerNamePrefix, processingLogContext);
+    final Serde<GenericRow> loggingSerde = innerFactory.wrapInLoggingSerde(
+        genericRowSerde,
+        loggerNamePrefix,
+        processingLogContext,
+        queryId);
 
     final Serde<GenericRow> serde = tracker
         .map(callback -> innerFactory.wrapInTrackingSerde(loggingSerde, callback))

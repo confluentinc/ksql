@@ -15,19 +15,25 @@
 
 package io.confluent.ksql.rest.server.execution;
 
+import static io.confluent.ksql.rest.entity.ConfigInfos.CONNECTOR_CLASS_CONFIG;
+
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.connect.Connector;
 import io.confluent.ksql.connect.supported.Connectors;
 import io.confluent.ksql.parser.tree.DescribeConnector;
+import io.confluent.ksql.rest.EndpointResponse;
+import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.rest.entity.ConnectorDescription;
-import io.confluent.ksql.rest.entity.ErrorEntity;
-import io.confluent.ksql.rest.entity.KsqlEntity;
+import io.confluent.ksql.rest.entity.ConnectorInfo;
+import io.confluent.ksql.rest.entity.ConnectorStateInfo;
+import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.KsqlWarning;
 import io.confluent.ksql.rest.entity.SourceDescription;
 import io.confluent.ksql.rest.entity.SourceDescriptionFactory;
+import io.confluent.ksql.rest.server.resources.KsqlRestException;
 import io.confluent.ksql.services.ConnectClient.ConnectResponse;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
@@ -36,11 +42,13 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import org.apache.kafka.connect.runtime.ConnectorConfig;
-import org.apache.kafka.connect.runtime.rest.entities.ConnectorInfo;
-import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo;
+import org.apache.hc.core5.http.HttpStatus;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class DescribeConnectorExecutor {
+
+  private static final Logger LOG = LoggerFactory.getLogger(DescribeConnectorExecutor.class);
 
   @VisibleForTesting
   static final String TOPICS_KEY = "topics";
@@ -57,7 +65,7 @@ public final class DescribeConnectorExecutor {
   }
 
   @SuppressWarnings("OptionalGetWithoutIsPresent")
-  public Optional<KsqlEntity> execute(
+  public StatementExecutorResponse execute(
       final ConfiguredStatement<DescribeConnector> configuredStatement,
       final SessionProperties sessionProperties,
       final KsqlExecutionContext ksqlExecutionContext,
@@ -71,10 +79,11 @@ public final class DescribeConnectorExecutor {
         .getConnectClient()
         .status(connectorName);
     if (statusResponse.error().isPresent()) {
-      return Optional.of(
-          new ErrorEntity(
-              configuredStatement.getMaskedStatementText(),
-              statusResponse.error().get())
+      final String errorMsg = "Failed to query connector status: " + statusResponse.error().get();
+      throw new KsqlRestException(EndpointResponse.create()
+          .status(statusResponse.httpCode())
+          .entity(new KsqlErrorMessage(Errors.toErrorCode(statusResponse.httpCode()), errorMsg))
+          .build()
       );
     }
 
@@ -82,10 +91,11 @@ public final class DescribeConnectorExecutor {
         .getConnectClient()
         .describe(connectorName);
     if (infoResponse.error().isPresent()) {
-      return Optional.of(
-          new ErrorEntity(
-              configuredStatement.getMaskedStatementText(),
-              infoResponse.error().get())
+      final String errorMsg = "Failed to describe connector: " + infoResponse.error().get();
+      throw new KsqlRestException(EndpointResponse.create()
+          .status(infoResponse.httpCode())
+          .entity(new KsqlErrorMessage(Errors.toErrorCode(infoResponse.httpCode()), errorMsg))
+          .build()
       );
     }
 
@@ -100,7 +110,15 @@ public final class DescribeConnectorExecutor {
       final ConnectResponse<Map<String, Map<String, List<String>>>> topicsResponse = serviceContext
           .getConnectClient()
           .topics(connectorName);
-      if (topicsResponse.error().isPresent()) {
+      // topics endpoint is relatively new (KAFKA-9422), so 404 here is expected behavior for older
+      // Connect versions. Rather than showing a scary warning to the user, we just log it to the
+      // server logs.
+      if (topicsResponse.error().isPresent()
+          && topicsResponse.httpCode() == HttpStatus.SC_NOT_FOUND) {
+        topics = ImmutableList.of();
+        warnings = ImmutableList.of();
+        LOG.warn("Could not list related topics due to error: " + topicsResponse.error().get());
+      } else if (topicsResponse.error().isPresent()) {
         topics = ImmutableList.of();
         warnings = ImmutableList.of(
             new KsqlWarning("Could not list related topics due to error: "
@@ -126,13 +144,16 @@ public final class DescribeConnectorExecutor {
           .stream()
           .filter(source -> topics.contains(source.getKafkaTopicName()))
           .map(source -> SourceDescriptionFactory.create(
-              source,
-              false,
-              ImmutableList.of(),
-              ImmutableList.of(),
-              Optional.empty(),
-              ImmutableList.of(),
-              ImmutableList.of()))
+                  source,
+                  false,
+                  ImmutableList.of(),
+                  ImmutableList.of(),
+                  Optional.empty(),
+                  ImmutableList.of(),
+                  ImmutableList.of(),
+                  ksqlExecutionContext.metricCollectors()
+              )
+          )
           .collect(Collectors.toList());
     } else {
       sources = ImmutableList.of();
@@ -140,13 +161,13 @@ public final class DescribeConnectorExecutor {
 
     final ConnectorDescription description = new ConnectorDescription(
         configuredStatement.getMaskedStatementText(),
-        info.config().get(ConnectorConfig.CONNECTOR_CLASS_CONFIG),
+        info.config().get(CONNECTOR_CLASS_CONFIG),
         status,
         sources,
         topics,
         warnings
     );
 
-    return Optional.of(description);
+    return StatementExecutorResponse.handled(Optional.of(description));
   }
 }

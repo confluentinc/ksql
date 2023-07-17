@@ -2,6 +2,10 @@
   "tests": [
     {
       "name": "invalid value format - create source",
+      "config": ["true", "false"],
+      "properties": {
+        "ksql.new.query.planner.enabled": "{CONFIG}"
+      },
       "statements": [
         "CREATE STREAM TEST WITH (kafka_topic='test_topic', value_format='FOO');"
       ],
@@ -12,13 +16,15 @@
     },
     {
       "name": "explicit key and optional value format",
+      "config": ["true", "false"],
+      "properties": {
+        "ksql.new.query.planner.enabled": "{CONFIG}",
+        "ksql.persistence.default.format.value": "JSON"
+      },
       "statements": [
         "CREATE STREAM INPUT (K STRING KEY, foo INT) WITH (kafka_topic='input_topic', key_format='KAFKA');",
         "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
       ],
-      "properties": {
-        "ksql.persistence.default.format.value": "JSON"
-      },
       "inputs": [
         {"topic": "input_topic", "value": {"FOO": 10}}
       ],
@@ -44,13 +50,15 @@
     },
     {
       "name": "optional key and value format",
+      "config": ["true", "false"],
+      "properties": {
+        "ksql.new.query.planner.enabled": "{CONFIG}",
+        "ksql.persistence.default.format.value": "JSON"
+      },
       "statements": [
         "CREATE STREAM INPUT (K STRING KEY, foo INT) WITH (kafka_topic='input_topic');",
         "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
       ],
-      "properties": {
-        "ksql.persistence.default.format.value": "JSON"
-      },
       "inputs": [
         {"topic": "input_topic", "value": {"FOO": 10}}
       ],
@@ -76,6 +84,10 @@
     },
     {
       "name": "missing value format",
+      "config": ["true", "false"],
+      "properties": {
+        "ksql.new.query.planner.enabled": "{CONFIG}"
+      },
       "statements": [
         "CREATE STREAM TEST (foo VARCHAR) WITH (kafka_topic='test_topic');"
       ],
@@ -86,6 +98,10 @@
     },
     {
       "name": "invalid key format - create source",
+      "config": ["true", "false"],
+      "properties": {
+        "ksql.new.query.planner.enabled": "{CONFIG}"
+      },
       "statements": [
         "CREATE STREAM TEST (foo VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON', key_format='FOO');"
       ],
@@ -96,13 +112,15 @@
     },
     {
       "name": "explicit key and value format",
+      "config": ["true", "false"],
+      "properties": {
+        "ksql.new.query.planner.enabled": "{CONFIG}",
+        "ksql.persistence.default.format.value": "AVRO"
+      },
       "statements": [
         "CREATE STREAM INPUT (K STRING KEY, foo INT) WITH (kafka_topic='input_topic', value_format='JSON', key_format='KAFKA');",
         "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
       ],
-      "properties": {
-        "ksql.persistence.default.format.value": "AVRO"
-      },
       "inputs": [
         {"topic": "input_topic", "value": {"FOO": 10}}
       ],
@@ -128,13 +146,15 @@
     },
     {
       "name": "optional key and explicit value format",
+      "config": ["true", "false"],
+      "properties": {
+        "ksql.new.query.planner.enabled": "{CONFIG}",
+        "ksql.persistence.default.format.value": "KAFKA"
+      },
       "statements": [
         "CREATE STREAM INPUT (K STRING KEY, foo INT) WITH (kafka_topic='input_topic', value_format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
       ],
-      "properties": {
-        "ksql.persistence.default.format.value": "KAFKA"
-      },
       "inputs": [
         {"topic": "input_topic", "value": {"FOO": 10}}
       ],
@@ -160,13 +180,15 @@
     },
     {
       "name": "explicit format",
+      "config": ["true", "false"],
+      "properties": {
+        "ksql.new.query.planner.enabled": "{CONFIG}",
+        "ksql.persistence.default.format.value": "JSON"
+      },
       "statements": [
         "CREATE STREAM INPUT (K STRING KEY, foo STRING) WITH (kafka_topic='input', format='KAFKA');",
         "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
       ],
-      "properties": {
-        "ksql.persistence.default.format.value": "JSON"
-      },
       "inputs": [{"topic": "input", "key": "foo", "value": "bar"}],
       "outputs": [{"topic": "OUTPUT", "key": "foo", "value": "bar"}],
       "post": {
@@ -188,6 +210,10 @@
     },
     {
       "name": "invalid format - create source",
+      "config": ["true", "false"],
+      "properties": {
+        "ksql.new.query.planner.enabled": "{CONFIG}"
+      },
       "statements": [
         "CREATE STREAM TEST WITH (kafka_topic='test_topic', format='FOO');"
       ],
@@ -198,12 +224,14 @@
     },
     {
       "name": "explicit key format and format",
+      "config": ["true", "false"],
+      "properties": {
+        "ksql.new.query.planner.enabled": "{CONFIG}",
+        "ksql.persistence.default.format.value": "JSON"
+      },
       "statements": [
         "CREATE STREAM TEST WITH (kafka_topic='test_topic', key_format='KAFKA', format='KAFKA');"
       ],
-      "properties": {
-        "ksql.persistence.default.format.value": "JSON"
-      },
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
         "message": "Cannot supply both 'KEY_FORMAT' and 'FORMAT' properties, as 'FORMAT' sets both key and value formats. Either use just 'FORMAT', or use 'KEY_FORMAT' and 'VALUE_FORMAT'."
@@ -211,6 +239,10 @@
     },
     {
       "name": "explicit value format and format",
+      "config": ["true", "false"],
+      "properties": {
+        "ksql.new.query.planner.enabled": "{CONFIG}"
+      },
       "statements": [
         "CREATE STREAM TEST WITH (kafka_topic='test_topic', value_format='JSON', format='KAFKA');"
       ],
@@ -221,6 +253,10 @@
     },
     {
       "name": "invalid value format - create as select",
+      "config": ["true", "false"],
+      "properties": {
+        "ksql.new.query.planner.enabled": "{CONFIG}"
+      },
       "statements": [
         "CREATE STREAM TEST (foo VARCHAR) WITH (kafka_topic='test_topic', value_format='KAFKA');",
         "CREATE STREAM COPY WITH (value_format='FOO') AS SELECT * FROM TEST EMIT CHANGES;"
@@ -232,6 +268,10 @@
     },
     {
       "name": "invalid key format - create as select",
+      "config": ["true", "false"],
+      "properties": {
+        "ksql.new.query.planner.enabled": "{CONFIG}"
+      },
       "statements": [
         "CREATE STREAM TEST (foo VARCHAR) WITH (kafka_topic='test_topic', value_format='KAFKA');",
         "CREATE STREAM COPY WITH (key_format='FOO') AS SELECT * FROM TEST EMIT CHANGES;"
@@ -243,6 +283,10 @@
     },
     {
       "name": "invalid format - create as select",
+      "config": ["true", "false"],
+      "properties": {
+        "ksql.new.query.planner.enabled": "{CONFIG}"
+      },
       "statements": [
         "CREATE STREAM TEST (foo VARCHAR) WITH (kafka_topic='test_topic', value_format='KAFKA');",
         "CREATE STREAM COPY WITH (format='FOO') AS SELECT * FROM TEST EMIT CHANGES;"
@@ -330,6 +374,10 @@
     },
     {
       "name": "override key format - with unsupported type",
+      "config": ["true", "false"],
+      "properties": {
+        "ksql.new.query.planner.enabled": "{CONFIG}"
+      },
       "statements": [
         "CREATE STREAM INPUT (K BOOLEAN KEY, foo INT) WITH (kafka_topic='input_topic', format='JSON');",
         "CREATE STREAM OUTPUT WITH (key_format='KAFKA') AS SELECT * FROM INPUT;"

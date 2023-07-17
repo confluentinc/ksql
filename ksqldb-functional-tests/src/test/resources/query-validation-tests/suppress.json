@@ -3,7 +3,7 @@
     {
       "name": "should emit final result immediately at window end if grace is specified as zero",
       "properties": {
-        "ksql.suppress.enabled": true
+        "ksql.streams.__emit.interval.ms.kstreams.windowed.aggregation__": 0
       },
       "statements": [
         "CREATE STREAM INPUT (ID STRING KEY, COL1 STRING) WITH (kafka_topic='input_topic',value_format='JSON');",
@@ -21,7 +21,7 @@
     {
       "name": "should not emit final result before window end if grace is specified as zero",
       "properties": {
-        "ksql.suppress.enabled": true
+        "ksql.streams.__emit.interval.ms.kstreams.windowed.aggregation__": 0
       },
       "statements": [
         "CREATE STREAM INPUT (ID STRING KEY, COL1 STRING) WITH (kafka_topic='input_topic',value_format='JSON');",
@@ -37,7 +37,7 @@
     {
       "name": "should not emit before window end if no grace period given",
       "properties": {
-        "ksql.suppress.enabled": true
+        "ksql.streams.__emit.interval.ms.kstreams.windowed.aggregation__": 0
       },
       "statements": [
         "CREATE STREAM INPUT (ID STRING KEY, COL1 STRING) WITH (kafka_topic='input_topic',value_format='JSON');",
@@ -53,7 +53,7 @@
     {
       "name": "should emit at window end if no grace period given",
       "properties": {
-        "ksql.suppress.enabled": true
+        "ksql.streams.__emit.interval.ms.kstreams.windowed.aggregation__": 0
       },
       "statements": [
         "CREATE STREAM INPUT (ID STRING KEY, COL1 STRING) WITH (kafka_topic='input_topic',value_format='JSON');",
@@ -71,7 +71,7 @@
     {
       "name": "should include out of order events before window end plus grace period passes",
       "properties": {
-        "ksql.suppress.enabled": true
+        "ksql.streams.__emit.interval.ms.kstreams.windowed.aggregation__": 0
       },
       "statements": [
         "CREATE STREAM INPUT (ID STRING KEY, COL1 STRING) WITH (kafka_topic='input_topic',value_format='JSON');",
@@ -86,14 +86,13 @@
         {"topic": "input_topic", "key": "k1", "value": {"COL1": "v1"},"timestamp": 5}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": "k1", "value": {"COUNT": 4},"window": {"start": 0, "end": 2, "type": "time"},"timestamp": 1},
         {"topic": "OUTPUT", "key": "k1", "value": {"COUNT": 1},"window": {"start": 2, "end": 4, "type": "time"},"timestamp": 2}
       ]
     },
     {
       "name": "should drop out of order event after window end plus grace period passes",
       "properties": {
-        "ksql.suppress.enabled": true
+        "ksql.streams.__emit.interval.ms.kstreams.windowed.aggregation__": 0
       },
       "statements": [
         "CREATE STREAM INPUT (ID STRING KEY, COL1 STRING) WITH (kafka_topic='input_topic',value_format='JSON');",
@@ -109,14 +108,13 @@
         {"topic": "input_topic", "key": "k1", "value": {"COL1": "v1"},"timestamp": 0}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": "k1", "value": {"COUNT": 4},"window": {"start": 0, "end": 2, "type": "time"},"timestamp": 1},
         {"topic": "OUTPUT", "key": "k1", "value": {"COUNT": 1},"window": {"start": 2, "end": 4, "type": "time"},"timestamp": 2}
       ]
     },
     {
       "name": "should handle null values",
       "properties": {
-        "ksql.suppress.enabled": true
+        "ksql.streams.__emit.interval.ms.kstreams.windowed.aggregation__": 0
       },
       "statements": [
         "CREATE STREAM INPUT (ID STRING KEY, COL1 STRING) WITH (kafka_topic='input_topic',value_format='JSON');",
@@ -130,14 +128,13 @@
         {"topic": "input_topic", "key": "k1", "value": {"COL1": "v1"},"timestamp": 5}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": "k1", "value": {"COUNT": 1},"window": {"start": 0, "end": 2, "type": "time"},"timestamp": 1},
         {"topic": "OUTPUT", "key": "k1", "value": {"COUNT": 1},"window": {"start": 2, "end": 4, "type": "time"},"timestamp": 2}
       ]
     },
     {
       "name": "should drop events with no key",
       "properties": {
-        "ksql.suppress.enabled": true
+        "ksql.streams.__emit.interval.ms.kstreams.windowed.aggregation__": 0
       },
       "statements": [
         "CREATE STREAM INPUT (ID STRING KEY, COL1 STRING) WITH (kafka_topic='input_topic',value_format='JSON');",
@@ -152,13 +149,12 @@
         {"topic": "input_topic", "key": "k1","value": {"COL1": "v1"},"timestamp": 5}
       ],
       "outputs": [
-        {"topic": "OUTPUT","key": "k1", "value": {"COUNT": 1},"window": {"start": 0, "end": 2, "type": "time"},"timestamp": 0}
       ]
     },
     {
       "name": "should support final results for tumbling windows",
       "properties": {
-        "ksql.suppress.enabled": true
+        "ksql.streams.__emit.interval.ms.kstreams.windowed.aggregation__": 0
       },
       "statements": [
         "CREATE STREAM INPUT (ID STRING KEY, COL1 STRING) WITH (kafka_topic='input_topic',value_format='JSON');",
@@ -173,14 +169,13 @@
         {"topic": "input_topic", "key": "k1", "value": {"COL1": "v1"},"timestamp": 5}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": "k1", "value": {"COUNT": 4},"window": {"start": 0, "end": 2, "type": "time"},"timestamp": 1},
         {"topic": "OUTPUT", "key": "k1", "value": {"COUNT": 1},"window": {"start": 2, "end": 4, "type": "time"},"timestamp": 2}
       ]
     },
     {
       "name": "should support final results for tumbling windows with large jump",
       "properties": {
-        "ksql.suppress.enabled": true
+        "ksql.streams.__emit.interval.ms.kstreams.windowed.aggregation__": 0
       },
       "statements": [
         "CREATE STREAM INPUT (ID STRING KEY, COL1 STRING) WITH (kafka_topic='input_topic',value_format='JSON');",
@@ -198,16 +193,12 @@
         {"topic": "input_topic", "key": "k1", "value": {"COL1": "v1"},"timestamp": 30}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": "k1", "value": {"COUNT": 4},"window": {"start": 0, "end": 2, "type": "time"},"timestamp": 1},
-        {"topic": "OUTPUT", "key": "k1", "value": {"COUNT": 2},"window": {"start": 2, "end": 4, "type": "time"},"timestamp": 3},
-        {"topic": "OUTPUT", "key": "k1", "value": {"COUNT": 1},"window": {"start": 10, "end": 12, "type": "time"},"timestamp": 10}
-
       ]
     },
     {
       "name": "should support final results for session windows",
       "properties": {
-        "ksql.suppress.enabled": true
+        "ksql.streams.__emit.interval.ms.kstreams.windowed.aggregation__": 0
       },
       "statements": [
         "CREATE STREAM INPUT (ID STRING KEY, COL1 STRING) WITH (kafka_topic='input_topic',value_format='JSON');",
@@ -232,7 +223,7 @@
     {
       "name": "should support final results for hopping windows",
       "properties": {
-        "ksql.suppress.enabled": true
+        "ksql.streams.__emit.interval.ms.kstreams.windowed.aggregation__": 0
       },
       "statements": [
         "CREATE STREAM INPUT (ID STRING KEY, COL1 STRING) WITH (kafka_topic='input_topic',value_format='JSON');",
@@ -249,14 +240,13 @@
       ],
       "outputs": [
         {"topic": "OUTPUT", "key": "k1", "value": {"COUNT": 4},"window": {"start": 0, "end": 5, "type": "time"}, "timestamp": 2},
-        {"topic": "OUTPUT", "key": "k1", "value": {"COUNT": 3},"window": {"start": 2, "end": 7, "type": "time"},"timestamp": 6},
         {"topic": "OUTPUT", "key": "k1", "value": {"COUNT": 2},"window": {"start": 4, "end": 9, "type": "time"},"timestamp": 6}
       ]
     },
     {
       "name": "should suppress multiple keys",
       "properties": {
-        "ksql.suppress.enabled": true
+        "ksql.streams.__emit.interval.ms.kstreams.windowed.aggregation__": 0
       },
       "statements": [
         "CREATE STREAM INPUT (ID STRING KEY, COL1 STRING) WITH (kafka_topic='input_topic',value_format='JSON');",
@@ -274,15 +264,13 @@
 
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": "k1", "value": {"COUNT": 2},"window": {"start": 0, "end": 2, "type": "time"},"timestamp": 1},
-        {"topic": "OUTPUT", "key": "k2", "value": {"COUNT": 2},"window": {"start": 0, "end": 2, "type": "time"},"timestamp": 1},
         {"topic": "OUTPUT", "key": "k1", "value": {"COUNT": 1},"window": {"start": 2, "end": 4, "type": "time"},"timestamp": 2}
       ]
     },
     {
       "name": "should suppress after join",
       "properties": {
-        "ksql.suppress.enabled": true
+        "ksql.streams.__emit.interval.ms.kstreams.windowed.aggregation__": 0
       },
       "statements": [
         "CREATE STREAM L (A INT KEY, B INT, C INT) WITH (kafka_topic='LEFT', value_format='JSON');",
@@ -317,7 +305,7 @@
     {
       "name": "should suppress after a filter WHERE clause",
       "properties": {
-        "ksql.suppress.enabled": true
+        "ksql.streams.__emit.interval.ms.kstreams.windowed.aggregation__": 0
       },
       "statements": [
         "CREATE STREAM INPUT (ID STRING KEY, COL1 INT) WITH (kafka_topic='input_topic',value_format='JSON');",
@@ -332,38 +320,11 @@
         {"topic": "input_topic", "key": "k1", "value": {"COL1": 1},"timestamp": 5}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": "k1", "value": {"COUNT": 1},"window": {"start": 0, "end": 2, "type": "time"},"timestamp": 0},
         {"topic": "OUTPUT", "key": "k1", "value": {"COUNT": 1},"window": {"start": 2, "end": 4, "type": "time"},"timestamp": 2}
       ]
     },
     {
-      "name": "should throw when max buffer size is exceeded",
-      "properties": {
-        "ksql.suppress.enabled": true,
-        "ksql.suppress.buffer.size.bytes": 10
-      },
-      "statements": [
-        "CREATE STREAM INPUT (ID STRING KEY, COL1 STRING) WITH (kafka_topic='input_topic',value_format='JSON');",
-        "CREATE TABLE OUTPUT AS SELECT ID, COUNT(*) as COUNT FROM INPUT WINDOW TUMBLING (SIZE 2 MILLISECONDS, GRACE PERIOD 1 MILLISECONDS) GROUP BY ID EMIT FINAL;"
-      ],
-      "inputs": [
-        {"topic": "input_topic", "key": "k1", "value": {"COL1": 1},"timestamp": 0},
-        {"topic": "input_topic", "key": "k1", "value": {"COL1": 4},"timestamp": 1},
-        {"topic": "input_topic", "key": "k1", "value": {"COL1": 1},"timestamp": 2},
-        {"topic": "input_topic", "key": "k1", "value": {"COL1": 3},"timestamp": 1},
-        {"topic": "input_topic", "key": "k1", "value": {"COL1": 2},"timestamp": 0},
-        {"topic": "input_topic", "key": "k1", "value": {"COL1": 1},"timestamp": 5}
-      ],
-      "expectedException": {
-        "type": "org.apache.kafka.streams.errors.StreamsException",
-        "message": "Suppress buffer exceeded its max capacity."
-      }
-    },
-    {
       "name": "should throw on non windowed tables",
-      "properties": {
-        "ksql.suppress.enabled": true
-      },
       "statements": [
         "CREATE STREAM INPUT (ID STRING KEY, COL1 STRING) WITH (kafka_topic='input_topic',value_format='JSON');",
         "CREATE TABLE OUTPUT AS SELECT ID, COUNT(*) as COUNT FROM INPUT GROUP BY ID EMIT FINAL;"
@@ -375,23 +336,17 @@
     },
     {
       "name": "should throw if no group by for aggregation",
-      "properties": {
-        "ksql.suppress.enabled": true
-      },
       "statements": [
         "CREATE STREAM INPUT (ID STRING KEY, COL1 STRING) WITH (kafka_topic='input_topic',value_format='JSON');",
         "CREATE TABLE OUTPUT AS SELECT ID, COUNT(*) as COUNT FROM INPUT WINDOW TUMBLING (SIZE 2 MILLISECONDS, GRACE PERIOD 1 MILLISECONDS) EMIT FINAL;"
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlException",
-        "message": "Use of aggregate function COUNT requires a GROUP BY clause."
+        "message": "Non-aggregate SELECT expression(s) not part of GROUP BY"
       }
     },
     {
       "name": "should throw if no aggregation is present for group by",
-      "properties": {
-        "ksql.suppress.enabled": true
-      },
       "statements": [
         "CREATE STREAM INPUT (ID STRING KEY, COL1 STRING) WITH (kafka_topic='input_topic',value_format='JSON');",
         "CREATE TABLE OUTPUT AS SELECT ID, COL1 FROM INPUT WINDOW TUMBLING (SIZE 2 MILLISECONDS, GRACE PERIOD 1 MILLISECONDS) GROUP BY ID EMIT FINAL;"

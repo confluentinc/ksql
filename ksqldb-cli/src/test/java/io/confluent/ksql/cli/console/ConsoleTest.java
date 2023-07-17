@@ -26,8 +26,6 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -44,6 +42,8 @@ import io.confluent.ksql.query.QueryError.Type;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.entity.ArgumentInfo;
+import io.confluent.ksql.rest.entity.AssertSchemaEntity;
+import io.confluent.ksql.rest.entity.AssertTopicEntity;
 import io.confluent.ksql.rest.entity.CommandId;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
@@ -52,7 +52,6 @@ import io.confluent.ksql.rest.entity.ConnectorList;
 import io.confluent.ksql.rest.entity.ConnectorPluginsList;
 import io.confluent.ksql.rest.entity.ConsumerPartitionOffsets;
 import io.confluent.ksql.rest.entity.DropConnectorEntity;
-import io.confluent.ksql.rest.entity.ErrorEntity;
 import io.confluent.ksql.rest.entity.ExecutionPlan;
 import io.confluent.ksql.rest.entity.FieldInfo;
 import io.confluent.ksql.rest.entity.FunctionDescriptionList;
@@ -75,6 +74,7 @@ import io.confluent.ksql.rest.entity.RunningQuery;
 import io.confluent.ksql.rest.entity.SchemaInfo;
 import io.confluent.ksql.rest.entity.SimpleConnectorInfo;
 import io.confluent.ksql.rest.entity.SimpleConnectorPluginInfo;
+import io.confluent.ksql.rest.entity.SimpleConnectorPluginInfo.PluginType;
 import io.confluent.ksql.rest.entity.SourceDescription;
 import io.confluent.ksql.rest.entity.SourceDescriptionEntity;
 import io.confluent.ksql.rest.entity.SourceInfo;
@@ -82,6 +82,7 @@ import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.entity.StreamsList;
 import io.confluent.ksql.rest.entity.StreamsTaskMetadata;
 import io.confluent.ksql.rest.entity.TablesList;
+import io.confluent.ksql.rest.entity.TerminateQueryEntity;
 import io.confluent.ksql.rest.entity.TopicDescription;
 import io.confluent.ksql.rest.entity.TypeList;
 import io.confluent.ksql.rest.util.EntityUtil;
@@ -95,7 +96,6 @@ import io.confluent.ksql.test.util.TimezoneRule;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlConstants.KsqlQueryStatus;
 import io.confluent.ksql.util.KsqlConstants.KsqlQueryType;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -106,11 +106,10 @@ import java.util.TimeZone;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo;
-import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo.ConnectorState;
-import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo.TaskState;
-import org.apache.kafka.connect.runtime.rest.entities.ConnectorType;
+import io.confluent.ksql.rest.entity.ConnectorStateInfo;
+import io.confluent.ksql.rest.entity.ConnectorStateInfo.ConnectorState;
+import io.confluent.ksql.rest.entity.ConnectorStateInfo.TaskState;
+import io.confluent.ksql.rest.entity.ConnectorType;
 import org.approvaltests.Approvals;
 import org.approvaltests.core.Options;
 import org.junit.After;
@@ -186,7 +185,21 @@ public class ConsoleTest {
     return ImmutableList.of(OutputFormat.JSON, OutputFormat.TABULAR);
   }
 
+  private static List<FieldInfo> buildTestSchema(final Optional<String> headerKey, final SqlType... fieldTypes) {
+    final LogicalSchema schema = builderWithoutHeaders(fieldTypes)
+        .headerColumn(ColumnName.of("HEAD"), headerKey)
+        .build();
+
+    return EntityUtil.buildSourceSchemaEntity(schema);
+  }
+
   private static List<FieldInfo> buildTestSchema(final SqlType... fieldTypes) {
+    final LogicalSchema schema = builderWithoutHeaders(fieldTypes).build();
+
+    return EntityUtil.buildSourceSchemaEntity(schema);
+  }
+
+  private static Builder builderWithoutHeaders(final SqlType... fieldTypes) {
     final Builder schemaBuilder = LogicalSchema.builder()
         .keyColumn(SystemColumns.ROWKEY_NAME, SqlTypes.STRING);
 
@@ -194,9 +207,7 @@ public class ConsoleTest {
       schemaBuilder.valueColumn(ColumnName.of("f_" + idx), fieldTypes[idx]);
     }
 
-    final LogicalSchema schema = schemaBuilder.build();
-
-    return EntityUtil.buildSourceSchemaEntity(schema);
+    return schemaBuilder;
   }
 
   @Before
@@ -371,7 +382,8 @@ public class ConsoleTest {
                     Collections.emptySet(),
                     Optional.empty()
                 )
-            )
+            ),
+            "consumerGroupId"
         )
     );
 
@@ -431,6 +443,86 @@ public class ConsoleTest {
   public void testPrintSourceDescription() {
     // Given:
     final List<FieldInfo> fields = buildTestSchema(
+        SqlTypes.BOOLEAN,
+        SqlTypes.INTEGER,
+        SqlTypes.BIGINT,
+        SqlTypes.DOUBLE,
+        SqlTypes.STRING,
+        SqlTypes.array(SqlTypes.STRING),
+        SqlTypes.map(SqlTypes.STRING, SqlTypes.BIGINT),
+        SqlTypes.struct()
+            .field("a", SqlTypes.DOUBLE)
+            .build()
+    );
+
+    final List<RunningQuery> readQueries = ImmutableList.of(
+        new RunningQuery("read query", ImmutableSet.of("sink1"), ImmutableSet.of("sink1 topic"), new QueryId("readId"), queryStatusCount, KsqlConstants.KsqlQueryType.PERSISTENT)
+    );
+    final List<RunningQuery> writeQueries = ImmutableList.of(
+        new RunningQuery("write query", ImmutableSet.of("sink2"), ImmutableSet.of("sink2 topic"), new QueryId("writeId"), queryStatusCount, KsqlConstants.KsqlQueryType.PERSISTENT)
+    );
+
+    final KsqlEntityList entityList = new KsqlEntityList(ImmutableList.of(
+        new SourceDescriptionEntity(
+            "some sql",
+            buildSourceDescription(readQueries, writeQueries, fields, false),
+            Collections.emptyList()
+        )
+    ));
+
+    // When:
+    console.printKsqlEntityList(entityList);
+
+    // Then:
+    final String output = terminal.getOutputString();
+    Approvals.verify(output, approvalOptions);
+  }
+
+  @Test
+  public void testPrintSourceDescriptionWithHeaders() {
+    // Given:
+    final List<FieldInfo> fields = buildTestSchema(
+        Optional.empty(),
+        SqlTypes.BOOLEAN,
+        SqlTypes.INTEGER,
+        SqlTypes.BIGINT,
+        SqlTypes.DOUBLE,
+        SqlTypes.STRING,
+        SqlTypes.array(SqlTypes.STRING),
+        SqlTypes.map(SqlTypes.STRING, SqlTypes.BIGINT),
+        SqlTypes.struct()
+            .field("a", SqlTypes.DOUBLE)
+            .build()
+    );
+
+    final List<RunningQuery> readQueries = ImmutableList.of(
+        new RunningQuery("read query", ImmutableSet.of("sink1"), ImmutableSet.of("sink1 topic"), new QueryId("readId"), queryStatusCount, KsqlConstants.KsqlQueryType.PERSISTENT)
+    );
+    final List<RunningQuery> writeQueries = ImmutableList.of(
+        new RunningQuery("write query", ImmutableSet.of("sink2"), ImmutableSet.of("sink2 topic"), new QueryId("writeId"), queryStatusCount, KsqlConstants.KsqlQueryType.PERSISTENT)
+    );
+
+    final KsqlEntityList entityList = new KsqlEntityList(ImmutableList.of(
+        new SourceDescriptionEntity(
+            "some sql",
+            buildSourceDescription(readQueries, writeQueries, fields, false),
+            Collections.emptyList()
+        )
+    ));
+
+    // When:
+    console.printKsqlEntityList(entityList);
+
+    // Then:
+    final String output = terminal.getOutputString();
+    Approvals.verify(output, approvalOptions);
+  }
+
+  @Test
+  public void testPrintSourceDescriptionWithExtractedHeader() {
+    // Given:
+    final List<FieldInfo> fields = buildTestSchema(
+        Optional.of("abc"),
         SqlTypes.BOOLEAN,
         SqlTypes.INTEGER,
         SqlTypes.BIGINT,
@@ -592,8 +684,8 @@ public class ConsoleTest {
             "statement",
             ImmutableList.of(),
             ImmutableList.of(
-                new SimpleConnectorPluginInfo("clazz1", ConnectorType.SOURCE, "v1"),
-                new SimpleConnectorPluginInfo("clazz2", ConnectorType.SINK, "v2")
+                new SimpleConnectorPluginInfo("clazz1", PluginType.SOURCE, "v1"),
+                new SimpleConnectorPluginInfo("clazz2", PluginType.SINK, "v2")
             ))
     ));
 
@@ -789,29 +881,9 @@ public class ConsoleTest {
   }
 
   @Test
-  public void shouldPrintErrorEntityLongNonJson() {
+  public void shouldPrintTerminateQuery() {
     // Given:
-    final KsqlEntity entity = new ErrorEntity(
-        "statementText",
-        Strings.repeat("Not a JSON value! ", 10));
-
-    // When:
-    console.printKsqlEntityList(ImmutableList.of(entity));
-
-    // Then:
-    final String output = terminal.getOutputString();
-    Approvals.verify(output, approvalOptions);
-  }
-
-  @Test
-  public void shouldPrintErrorEntityLongJson() throws IOException {
-    // Given:
-    final KsqlEntity entity = new ErrorEntity(
-        "statementText",
-        new ObjectMapper().writeValueAsString(ImmutableMap.of(
-            "foo", "bar",
-            "message", "a " + StringUtils.repeat("really ", 20) + " long message"
-        )));
+    final KsqlEntity entity = new TerminateQueryEntity("statementText", "queryId", true);
 
     // When:
     console.printKsqlEntityList(ImmutableList.of(entity));
@@ -1020,5 +1092,65 @@ public class ConsoleTest {
     // Then:
     assertThat(terminal.getOutputString(),
         containsString("Invalid value BURRITO for configuration WRAP: String must be one of: ON, OFF, null"));
+  }
+
+  @Test
+  public void shouldPrintAssertTopicResult() {
+    // Given:
+    final KsqlEntityList entities = new KsqlEntityList(ImmutableList.of(
+        new AssertTopicEntity("statement", "name", true)
+    ));
+
+    // When:
+    console.printKsqlEntityList(entities);
+
+    // Then:
+    final String output = terminal.getOutputString();
+    Approvals.verify(output, approvalOptions);
+  }
+
+  @Test
+  public void shouldPrintAssertNotExistsTopicResult() {
+    // Given:
+    final KsqlEntityList entities = new KsqlEntityList(ImmutableList.of(
+        new AssertTopicEntity("statement", "name", false)
+    ));
+
+    // When:
+    console.printKsqlEntityList(entities);
+
+    // Then:
+    final String output = terminal.getOutputString();
+    Approvals.verify(output, approvalOptions);
+  }
+
+  @Test
+  public void shouldPrintAssertSchemaResult() {
+    // Given:
+    final KsqlEntityList entities = new KsqlEntityList(ImmutableList.of(
+        new AssertSchemaEntity("statement", Optional.of("abc"), Optional.of(55), true)
+    ));
+
+    // When:
+    console.printKsqlEntityList(entities);
+
+    // Then:
+    final String output = terminal.getOutputString();
+    Approvals.verify(output, approvalOptions);
+  }
+
+  @Test
+  public void shouldPrintAssertNotExistsSchemaResult() {
+    // Given:
+    final KsqlEntityList entities = new KsqlEntityList(ImmutableList.of(
+        new AssertSchemaEntity("statement", Optional.of("abc"), Optional.of(55), false)
+    ));
+
+    // When:
+    console.printKsqlEntityList(entities);
+
+    // Then:
+    final String output = terminal.getOutputString();
+    Approvals.verify(output, approvalOptions);
   }
 }

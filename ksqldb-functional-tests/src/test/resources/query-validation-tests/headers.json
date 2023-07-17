@@ -1,0 +1,231 @@
+{
+  "comments": [
+    "Tests covering use of header columns"
+  ],
+  "tests": [
+    {
+      "name": "Can create and query stream with HEADERS column",
+      "statements": [
+        "CREATE STREAM SOURCE1 (K STRING KEY, H ARRAY<STRUCT<key STRING, value BYTES>> HEADERS, V BIGINT) WITH (kafka_topic='stream-source', value_format='json');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM SOURCE1;"
+      ],
+      "inputs": [
+        {"topic": "stream-source", "key": "k1", "value": {"v": 40000}, "headers": []},
+        {"topic": "stream-source", "key": "k2", "value": {"v": 40000}, "headers": [{"KEY": "abc", "VALUE": "IQ=="}]},
+        {"topic": "stream-source", "key": "k2", "value": {"v": 40000}, "headers": [{"KEY": "abc", "VALUE": null}]}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "k1", "value": {"V": 40000, "H": []}, "headers": []},
+        {"topic": "OUTPUT", "key": "k2", "value": {"V": 40000, "H": [{"KEY": "abc", "VALUE": "IQ=="}]}, "headers": [{"KEY": "abc", "VALUE": "IQ=="}]},
+        {"topic": "OUTPUT", "key": "k2", "value": {"V": 40000, "H": [{"KEY": "abc", "VALUE": null}]}, "headers": [{"KEY": "abc", "VALUE": null}]}
+      ]
+    },
+    {
+      "name": "Can create and query table with HEADERS column",
+      "statements": [
+        "CREATE TABLE SOURCE1 (K STRING PRIMARY KEY, H ARRAY<STRUCT<key STRING, value BYTES>> HEADERS, V BIGINT) WITH (kafka_topic='stream-source', value_format='json');",
+        "CREATE TABLE OUTPUT AS SELECT * FROM SOURCE1;"
+      ],
+      "inputs": [
+        {"topic": "stream-source", "key": "k1", "value": {"v": 40000}, "headers": []},
+        {"topic": "stream-source", "key": "k2", "value": {"v": 40000}, "headers": [{"KEY": "abc", "VALUE": "IQ=="}]}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "k1", "value": {"V": 40000, "H": []}, "headers": []},
+        {"topic": "OUTPUT", "key": "k2", "value": {"V": 40000, "H": [{"KEY": "abc", "VALUE": "IQ=="}]}, "headers": [{"KEY": "abc", "VALUE": "IQ=="}]}
+      ]
+    },
+    {
+      "name": "Can create and query stream with HEADER('key') columns",
+      "statements": [
+        "CREATE STREAM SOURCE1 (K STRING KEY, V BIGINT, H1 BYTES HEADER('abc'), H2 BYTES HEADER('def')) WITH (kafka_topic='stream-source', value_format='json');",
+        "CREATE STREAM OUTPUT AS SELECT K, H1, H2 FROM SOURCE1;"
+      ],
+      "inputs": [
+        {"topic": "stream-source", "key": "k1", "value": {"v": 40000}, "headers": []},
+        {"topic": "stream-source", "key": "k2", "value": {"v": 40000}, "headers": [{"KEY": "abc", "VALUE": "IQ=="}]},
+        {"topic": "stream-source", "key": "k3", "value": {"v": 40000}, "headers": [{"KEY": "abc", "VALUE": "Gg=="}, {"KEY": "abc", "VALUE": "IQ=="}, {"KEY": "def", "VALUE": "Iw=="}]},
+        {"topic": "stream-source", "key": "k2", "value": {"v": 40000}, "headers": [{"KEY": "abc", "VALUE": null}]}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "k1", "value": {"H1": null, "H2": null}, "headers": []},
+        {"topic": "OUTPUT", "key": "k2", "value": {"H1": "IQ==", "H2": null}, "headers": [{"KEY": "abc", "VALUE": "IQ=="}]},
+        {"topic": "OUTPUT", "key": "k3", "value": {"H1": "IQ==", "H2": "Iw=="}, "headers": [{"KEY": "abc", "VALUE": "Gg=="}, {"KEY": "abc", "VALUE": "IQ=="}, {"KEY": "def", "VALUE": "Iw=="}]},
+        {"topic": "OUTPUT", "key": "k2", "value": {"H1": null, "H2": null}, "headers": [{"KEY": "abc", "VALUE": null}]}
+      ]
+    },
+    {
+      "name": "Can use header columns in functions",
+      "statements": [
+        "CREATE STREAM SOURCE1 (K STRING KEY, HEADER BYTES HEADER('abc'), V BIGINT) WITH (kafka_topic='stream-source', value_format='json');",
+        "CREATE STREAM OUTPUT AS SELECT K, LEN(HEADER) AS LENGTH FROM SOURCE1;"
+      ],
+      "inputs": [
+        {"topic": "stream-source", "key": "k2", "value": {"v": 40000}, "headers": [{"KEY": "abc", "VALUE": "IQ=="}]}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "k2", "value": {"LENGTH": 1}, "headers": [{"KEY": "abc", "VALUE": "IQ=="}]}
+      ]
+    },
+    {
+      "name": "Can use header columns in filters",
+      "statements": [
+        "CREATE STREAM SOURCE1 (K STRING KEY, HEADERS ARRAY<STRUCT<key STRING, value BYTES>> HEADERS, V BIGINT) WITH (kafka_topic='stream-source', value_format='json');",
+        "CREATE STREAM OUTPUT AS SELECT K, V FROM SOURCE1 WHERE HEADERS[1]->KEY='abc';"
+      ],
+      "inputs": [
+        {"topic": "stream-source", "key": "k1", "value": {"v": 40000}, "headers": [{"KEY": "abc", "VALUE": "IQ=="}]},
+        {"topic": "stream-source", "key": "k2", "value": {"v": 40000}, "headers": [{"KEY": "def", "VALUE": "IQ=="}]},
+        {"topic": "stream-source", "key": "k3", "value": {"v": 400}, "headers": [{"KEY": "abc", "VALUE": "Iw=="}]}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "k1", "value": {"V": 40000}, "headers": [{"KEY": "abc", "VALUE": "IQ=="}]},
+        {"topic": "OUTPUT", "key": "k3", "value": {"V": 400}, "headers": [{"KEY": "abc", "VALUE": "Iw=="}]}
+      ]
+    },
+    {
+      "name": "Can use header columns in group by clauses",
+      "statements": [
+        "CREATE TABLE TEST (ID INT PRIMARY KEY, data STRING, head BYTES HEADER('abc')) WITH (kafka_topic='test_topic', format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT head AS NEW_KEY, COUNT(*) AS COUNT FROM TEST GROUP BY head;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": {"data": "d1"}, "headers": [{"KEY": "abc", "VALUE": "IQ=="}]},
+        {"topic": "test_topic", "key": 1, "value": {"data": "d2"}, "headers": [{"KEY": "abc", "VALUE": "Iw=="}]},
+        {"topic": "test_topic", "key": 2, "value": {"data": "d1"}, "headers": [{"KEY": "abc", "VALUE": "IQ=="}]},
+        {"topic": "test_topic", "key": 3, "value": {"data": "d2"}, "headers": [{"KEY": "abc", "VALUE": "Iw=="}]},
+        {"topic": "test_topic", "key": 4, "value": {"data": "d1"}, "headers": [{"KEY": "abc", "VALUE": "Iw=="}]}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "IQ==", "value": {"COUNT": 1}, "headers": [{"KEY": "abc", "VALUE": "IQ=="}]},
+        {"topic": "OUTPUT", "key": "Iw==", "value": {"COUNT": 1}, "headers": [{"KEY": "abc", "VALUE": "Iw=="}]},
+        {"topic": "OUTPUT", "key": "IQ==", "value": {"COUNT": 2}, "headers": [{"KEY": "abc", "VALUE": "IQ=="}]},
+        {"topic": "OUTPUT", "key": "Iw==", "value": {"COUNT": 2}, "headers": [{"KEY": "abc", "VALUE": "Iw=="}]},
+        {"topic": "OUTPUT", "key": "Iw==", "value": {"COUNT": 3}, "headers": [{"KEY": "abc", "VALUE": "Iw=="}]}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "table", "schema": "NEW_KEY BYTES KEY, COUNT BIGINT"}
+        ]
+      }
+    },
+    {
+      "name": "Can use header columns in partition by clauses",
+      "statements": [
+        "CREATE STREAM INPUT (ID INT KEY, H ARRAY<STRUCT<key STRING, value BYTES>> HEADERS, AGE INT) with (kafka_topic='input', format='JSON');",
+        "CREATE STREAM OUTPUT AS select ID, AGE, H[1]->VALUE from INPUT partition by H[1]->VALUE;"
+      ],
+      "inputs": [
+        {"topic": "input", "key": 10, "value": {"AGE": 22}, "headers": [{"KEY": "a", "VALUE": "IQ=="}]},
+        {"topic": "input", "key": 11, "value": {"AGE": 23}, "headers": [{"KEY": "a", "VALUE": "Iw=="}]}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "IQ==", "value": {"ID": 10, "AGE": 22}, "headers": [{"KEY": "a", "VALUE": "IQ=="}]},
+        {"topic": "OUTPUT", "key": "Iw==", "value": {"ID": 11, "AGE": 23}, "headers": [{"KEY": "a", "VALUE": "Iw=="}]}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "VALUE BYTES KEY, ID INT, AGE INT"}
+        ]
+      }
+    },
+    {
+      "name": "Sources with header columns can be joined",
+      "statements": [
+        "CREATE STREAM L (A INT KEY, B INT, C BYTES HEADER('abc')) WITH (kafka_topic='LEFT', value_format='JSON');",
+        "CREATE STREAM R (A INT KEY, B INT, C BYTES HEADER('def')) WITH (kafka_topic='RIGHT', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM L INNER JOIN R WITHIN 10 SECONDS ON L.A = R.A;"
+      ],
+      "inputs": [
+        {"topic": "LEFT", "key": 0, "value": {"B": 1}, "timestamp": 10, "headers": [{"KEY": "abc", "VALUE": "IQ=="}]},
+        {"topic": "RIGHT", "key": 0, "value": {"B": -1}, "timestamp": 11, "headers": [{"KEY": "def", "VALUE": "Iw=="}]}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 0, "value": {"L_B": 1, "L_C": "IQ==", "R_A": 0, "R_B": -1, "R_C": "Iw=="}, "timestamp":  11, "headers": [{"KEY": "def", "VALUE": "Iw=="}]}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "L_A INT KEY, L_B INT, L_C BYTES, R_A INT, R_B INT, R_C BYTES"}
+        ]
+      }
+    },
+    {
+      "name": "should reject INSERT VALUES statements if inserting into a HEADERS column (all columns)",
+      "statements": [
+        "CREATE STREAM SOURCE1 (K STRING KEY, H1 BYTES HEADER('abc'), V BIGINT) WITH (kafka_topic='stream-source', value_format='json');",
+        "INSERT INTO source1 VALUES ('abc', null, 44);"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlException",
+        "message": "Cannot insert into HEADER columns: H1"
+      }
+    },
+    {
+      "name": "should reject INSERT VALUES statements if inserting into a HEADERS column (one column)",
+      "statements": [
+        "CREATE STREAM SOURCE1 (K STRING KEY, H1 BYTES HEADER('abc'), V BIGINT) WITH (kafka_topic='stream-source', value_format='json');",
+        "INSERT INTO source1 (H1) VALUES (null);"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlException",
+        "message": "Cannot insert into HEADER columns: H1"
+      }
+    },
+    {
+      "name": "should reject INSERT INTO statements if the target has a HEADER column",
+      "statements": [
+        "CREATE STREAM SOURCE1 (K STRING KEY, H1 BYTES HEADER('abc'), V BIGINT) WITH (kafka_topic='stream-source', value_format='json');",
+        "CREATE STREAM SOURCE2 (K STRING KEY, H1 BYTES, V BIGINT) WITH (kafka_topic='stream-source-2', value_format='json');",
+        "INSERT INTO SOURCE1 SELECT * FROM SOURCE2;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlException",
+        "message": "Cannot insert into SOURCE1 because it has header columns"
+      }
+    },
+    {
+      "name": "should reject HEADERS column with incorrect type",
+      "statements": [
+        "CREATE STREAM SOURCE1 (K STRING KEY, H1 BYTES HEADERS, V BIGINT) WITH (kafka_topic='stream-source', value_format='json');"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlException",
+        "message": "Invalid type for HEADERS column: expected ARRAY<STRUCT<`KEY` STRING, `VALUE` BYTES>>, got BYTES"
+      }
+    },
+    {
+      "name": "should reject HEADER('key') column with incorrect type",
+      "statements": [
+        "CREATE STREAM SOURCE1 (K STRING KEY, H1 INT HEADER('key'), V BIGINT) WITH (kafka_topic='stream-source', value_format='json');"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlException",
+        "message": "Invalid type for HEADER('key') column: expected BYTES, got INTEGER"
+      }
+    },
+    {
+      "name": "Can infer key and value schemas",
+      "statements": [
+        "CREATE STREAM SOURCE1 (H ARRAY<STRUCT<key STRING, value BYTES>> HEADERS) WITH (kafka_topic='stream-source', value_format='avro', key_format='avro');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM SOURCE1;"
+      ],
+      "topics": [
+        {
+          "name": "stream-source",
+          "keySchema": {"type": "string"},
+          "keyFormat": "AVRO",
+          "valueSchema": {"type": "record", "name": "most_recent_value_schema_at_SR", "fields": [{"name": "v", "type": ["null", "int"]}]},
+          "valueFormat": "AVRO"
+        }
+      ],
+      "inputs": [
+        {"topic": "stream-source", "key": "k1", "value": {"v": 40000}, "headers": []},
+        {"topic": "stream-source", "key": "k2", "value": {"v": 40000}, "headers": [{"KEY": "abc", "VALUE": "IQ=="}]}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "k1", "value": {"V": 40000, "H": []}, "headers": []},
+        {"topic": "OUTPUT", "key": "k2", "value": {"V": 40000, "H": [{"KEY": "abc", "VALUE": "IQ=="}]}, "headers": [{"KEY": "abc", "VALUE": "IQ=="}]}
+      ]
+    }
+  ]
+}

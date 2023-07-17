@@ -37,6 +37,10 @@ final class DdlDmlResponseHandlers {
       final JsonObject ksqlEntity,
       final CompletableFuture<ExecuteStatementResult> cf
   ) {
+    if (isIfNotExistsWarning(ksqlEntity)) {
+      cf.complete(new ExecuteStatementResultImpl(Optional.empty()));
+      return;
+    }
     if (!isCommandStatusEntity(ksqlEntity)) {
       handleUnexpectedEntity(ksqlEntity, cf);
       return;
@@ -66,6 +70,13 @@ final class DdlDmlResponseHandlers {
   private static boolean isCommandStatusEntity(final JsonObject ksqlEntity) {
     return ksqlEntity.getString("commandId") != null
         && ksqlEntity.getJsonObject("commandStatus") != null;
+  }
+
+  private static boolean isIfNotExistsWarning(final JsonObject ksqlEntity) {
+    return ksqlEntity.getString("message") != null
+        && ksqlEntity.getString("message").startsWith("Cannot add")
+        && ksqlEntity.getString("@type") != null
+        && ksqlEntity.getString("@type").equals("warning_entity");
   }
 
   // CHECKSTYLE_RULES.OFF: CyclomaticComplexity

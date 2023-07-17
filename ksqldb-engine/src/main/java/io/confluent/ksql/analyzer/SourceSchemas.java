@@ -36,9 +36,11 @@ public final class SourceSchemas {
 
   private final ImmutableMap<SourceName, LogicalSchema> sourceSchemas;
 
-  SourceSchemas(final Map<SourceName, LogicalSchema> sourceSchemas) {
+  SourceSchemas(
+      final Map<SourceName, LogicalSchema> sourceSchemas) {
     this.sourceSchemas = ImmutableMap.copyOf(requireNonNull(sourceSchemas, "sourceSchemas"));
 
+    // This will fail
     if (sourceSchemas.isEmpty()) {
       throw new IllegalArgumentException("Must supply at least one schema");
     }
@@ -94,7 +96,8 @@ public final class SourceSchemas {
   boolean matchesNonValueField(final Optional<SourceName> source, final ColumnName column) {
     if (!source.isPresent()) {
       return sourceSchemas.values().stream()
-          .anyMatch(schema -> SystemColumns.isPseudoColumn(column) || schema.isKeyColumn(column));
+          .anyMatch(schema ->
+              SystemColumns.isPseudoColumn(column) || schema.isKeyColumn(column));
     }
 
     final SourceName sourceName = source.get();

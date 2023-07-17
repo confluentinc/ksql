@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Confluent Inc.
+ * Copyright 2022 Confluent Inc.
  *
  * Licensed under the Confluent Community License; you may not use this file
  * except in compliance with the License.  You may obtain a copy of the License at
@@ -34,17 +34,20 @@ public class StreamSelect<K> implements ExecutionStep<KStreamHolder<K>> {
   private final ExecutionStepPropertiesV1 properties;
   private final ExecutionStep<KStreamHolder<K>> source;
   private final ImmutableList<ColumnName> keyColumnNames;
+  private final Optional<ImmutableList<ColumnName>> selectedKeys;
   private final ImmutableList<SelectExpression> selectExpressions;
 
   public StreamSelect(
       final ExecutionStepPropertiesV1 props,
       final ExecutionStep<KStreamHolder<K>> source,
       final List<ColumnName> keyColumnNames,
+      final Optional<List<ColumnName>> selectedKeys,
       final List<SelectExpression> selectExpressions
   ) {
     this.properties = requireNonNull(props, "props");
     this.source = requireNonNull(source, "source");
     this.keyColumnNames = ImmutableList.copyOf(keyColumnNames);
+    this.selectedKeys = selectedKeys.map(ImmutableList::copyOf);
     this.selectExpressions = ImmutableList.copyOf(selectExpressions);
 
     if (selectExpressions.isEmpty()) {
@@ -68,10 +71,17 @@ public class StreamSelect<K> implements ExecutionStep<KStreamHolder<K>> {
       @JsonProperty(value = "properties", required = true) final ExecutionStepPropertiesV1 props,
       @JsonProperty(value = "source", required = true) final ExecutionStep<KStreamHolder<K>> source,
       @JsonProperty(value = "keyColumnNames") final Optional<List<ColumnName>> keyColumnNames,
+      @JsonProperty(value = "selectedKeys") final Optional<List<ColumnName>> selectedKeys,
       @JsonProperty(value = "selectExpressions", required = true) final
       List<SelectExpression> selectExpressions
   ) {
-    this(props, source, keyColumnNames.orElseGet(ImmutableList::of), selectExpressions);
+    this(
+        props,
+        source,
+        keyColumnNames.orElseGet(ImmutableList::of),
+        selectedKeys,
+        selectExpressions
+    );
   }
 
   @Override
@@ -88,6 +98,10 @@ public class StreamSelect<K> implements ExecutionStep<KStreamHolder<K>> {
   @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "keyColumnNames is ImmutableList")
   public List<ColumnName> getKeyColumnNames() {
     return keyColumnNames;
+  }
+
+  public Optional<ImmutableList<ColumnName>> getSelectedKeys() {
+    return selectedKeys;
   }
 
   @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "selectExpressions is ImmutableList")
@@ -128,11 +142,12 @@ public class StreamSelect<K> implements ExecutionStep<KStreamHolder<K>> {
     return Objects.equals(properties, that.properties)
         && Objects.equals(source, that.source)
         && Objects.equals(keyColumnNames, that.keyColumnNames)
+        && Objects.equals(selectedKeys, that.selectedKeys)
         && Objects.equals(selectExpressions, that.selectExpressions);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(properties, source, keyColumnNames, selectExpressions);
+    return Objects.hash(properties, source, keyColumnNames, selectedKeys, selectExpressions);
   }
 }

@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.structured;
 
-import io.confluent.ksql.execution.materialization.MaterializationInfo;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
@@ -33,30 +32,30 @@ import com.google.common.collect.ImmutableList;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.execution.runtime.RuntimeBuildContext;
-import io.confluent.ksql.planner.plan.PlanBuildContext;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.LongLiteral;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
+import io.confluent.ksql.execution.materialization.MaterializationInfo;
 import io.confluent.ksql.execution.plan.ExecutionKeyFactory;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.JoinType;
 import io.confluent.ksql.execution.plan.KTableHolder;
 import io.confluent.ksql.execution.plan.PlanBuilder;
+import io.confluent.ksql.execution.plan.PlanInfo;
 import io.confluent.ksql.execution.plan.TableFilter;
+import io.confluent.ksql.execution.runtime.RuntimeBuildContext;
 import io.confluent.ksql.execution.streams.AggregateParamsFactory;
 import io.confluent.ksql.execution.streams.ConsumedFactory;
 import io.confluent.ksql.execution.streams.ExecutionStepFactory;
 import io.confluent.ksql.execution.streams.GroupedFactory;
 import io.confluent.ksql.execution.streams.JoinedFactory;
 import io.confluent.ksql.execution.streams.KSPlanBuilder;
-import io.confluent.ksql.execution.plan.PlanInfo;
 import io.confluent.ksql.execution.streams.KsqlValueJoiner;
-import io.confluent.ksql.execution.streams.MaterializedFactory;
+import io.confluent.ksql.execution.runtime.MaterializedFactory;
 import io.confluent.ksql.execution.streams.SqlPredicateFactory;
 import io.confluent.ksql.execution.streams.StepSchemaResolver;
 import io.confluent.ksql.execution.streams.StreamJoinedFactory;
@@ -72,6 +71,7 @@ import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.planner.plan.FilterNode;
+import io.confluent.ksql.planner.plan.PlanBuildContext;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.planner.plan.ProjectNode;
 import io.confluent.ksql.schema.ksql.Column;
@@ -97,6 +97,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Struct;
@@ -111,6 +112,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @SuppressWarnings("unchecked")
@@ -168,7 +170,12 @@ public class SchemaKTableTest {
 
   @Before
   public void init() {
-    UserFunctionLoader.newInstance(ksqlConfig, functionRegistry, ".").load();
+    UserFunctionLoader.newInstance(
+        ksqlConfig,
+        functionRegistry,
+        ".",
+        new Metrics()
+    ).load();
     schemaResolver = new StepSchemaResolver(ksqlConfig, functionRegistry);
     ksqlTable = (KsqlTable) metaStore.getSource(SourceName.of("TEST2"));
     final StreamsBuilder builder = new StreamsBuilder();
@@ -207,6 +214,8 @@ public class SchemaKTableTest {
             mock(ConsumedFactory.class)
         )
     );
+
+    when(internalFormats.copyWithoutProperty(Mockito.anyString())).thenReturn(internalFormats);
   }
 
   private ExecutionStep buildSourceStep(final LogicalSchema schema, final KTable kTable) {
@@ -468,6 +477,8 @@ public class SchemaKTableTest {
         .valueColumn(ColumnName.of("COL3"), SqlTypes.DOUBLE)
         .valueColumn(ColumnName.of("COL4"), SqlTypes.BOOLEAN)
         .valueColumn(ColumnName.of("ROWTIME"), SqlTypes.BIGINT)
+        .valueColumn(ColumnName.of("ROWPARTITION"), SqlTypes.INTEGER)
+        .valueColumn(ColumnName.of("ROWOFFSET"), SqlTypes.BIGINT)
         .valueColumn(ColumnName.of("COL0"), SqlTypes.BIGINT)
         .build()
     ));
@@ -789,7 +800,7 @@ public class SchemaKTableTest {
     when(topic.getKeyFormat()).thenReturn(KeyFormat.windowed(
         keyFormat.getFormatInfo(),
         SerdeFeatures.of(),
-        WindowInfo.of(WindowType.SESSION, Optional.empty())
+        WindowInfo.of(WindowType.SESSION, Optional.empty(), Optional.empty())
     ));
 
     // When:

@@ -15,13 +15,17 @@
 
 package io.confluent.ksql.function.udaf.array;
 
-import com.google.common.collect.Lists;
 import io.confluent.ksql.function.udaf.TableUdaf;
 import io.confluent.ksql.function.udaf.UdafDescription;
 import io.confluent.ksql.function.udaf.UdafFactory;
+import io.confluent.ksql.schema.ksql.SqlArgument;
+import io.confluent.ksql.schema.ksql.types.SqlArray;
+import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.util.KsqlConstants;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import org.apache.kafka.common.Configurable;
 
 @UdafDescription(
@@ -42,34 +46,15 @@ public final class CollectListUdaf {
     // just to make the checkstyle happy
   }
 
-  @UdafFactory(description = "collect values of a Bigint field into a single Array")
-  public static TableUdaf<Long, List<Long>, List<Long>> createCollectListLong() {
-    return new Collect<>();
-  }
-
-  @UdafFactory(description = "collect values of an Integer field into a single Array")
-  public static TableUdaf<Integer, List<Integer>, List<Integer>> createCollectListInt() {
-    return new Collect<>();
-  }
-
-  @UdafFactory(description = "collect values of a Double field into a single Array")
-  public static TableUdaf<Double, List<Double>, List<Double>> createCollectListDouble() {
-    return new Collect<>();
-  }
-
-  @UdafFactory(description = "collect values of a String/Varchar field into a single Array")
-  public static TableUdaf<String, List<String>, List<String>> createCollectListString() {
-    return new Collect<>();
-  }
-
-  @UdafFactory(description = "collect values of a Boolean field into a single Array")
-  public static TableUdaf<Boolean, List<Boolean>, List<Boolean>> createCollectListBool() {
+  @UdafFactory(description = "collect values of a field into a single Array")
+  public static <T> TableUdaf<T, List<T>, List<T>> createCollectListT() {
     return new Collect<>();
   }
 
   private static final class Collect<T> implements TableUdaf<T, List<T>, List<T>>, Configurable {
 
     private int limit = Integer.MAX_VALUE;
+    SqlType inputType;
 
     @Override
     public void configure(final Map<String, ?> map) {
@@ -88,8 +73,23 @@ public final class CollectListUdaf {
     }
 
     @Override
+    public void initializeTypeArguments(final List<SqlArgument> argTypeList) {
+      inputType = argTypeList.get(0).getSqlTypeOrThrow();
+    }
+
+    @Override
+    public Optional<SqlType> getAggregateSqlType() {
+      return Optional.of(SqlArray.of(inputType));
+    }
+
+    @Override
+    public Optional<SqlType> getReturnSqlType() {
+      return Optional.of(SqlArray.of(inputType));
+    }
+
+    @Override
     public List<T> initialize() {
-      return Lists.newArrayList();
+      return new ArrayList<>();
     }
 
     @Override
@@ -115,7 +115,7 @@ public final class CollectListUdaf {
     @Override
     public List<T> undo(final T valueToUndo, final List<T> aggregateValue) {
       // A more ideal solution would remove the value which corresponded to the original insertion
-      // but keeping track of that is more complex so we just remove the last value for now.
+      // but keeping track of that is more complex, so we just remove the last value for now.
       final int lastIndex = aggregateValue.lastIndexOf(valueToUndo);
       // If we cannot find the value, that means that we hit the limit and never inserted it, so
       // just return.

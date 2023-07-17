@@ -78,7 +78,7 @@ services:
       - "8081:8081"
     environment:
       SCHEMA_REGISTRY_HOST_NAME: schema-registry
-      SCHEMA_REGISTRY_KAFKASTORE_CONNECTION_URL: 'zookeeper:2181'
+      SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: "PLAINTEXT://broker:9092"
 
   ksqldb-server:
     image: confluentinc/ksqldb-server:{{ site.ksqldbversion }}
@@ -615,7 +615,7 @@ mvn exec:java -Dexec.mainClass="io.ksqldb.tutorial.EmailSender"
 
 If everything is configured correctly, emails will be sent whenever an anomaly is detected. There are a few things to note with this simple implementation.
 
-First, if you start more instances of this microservice, the partitions of the `possible_anomalies` topic will be load balanced across them. This takes advantage of the standard [Kafka consumer groups](https://kafka.apache.org/documentation/#intro_consumers) behavior.
+First, if you start more instances of this microservice, the partitions of the `possible_anomalies` topic will be load balanced across them. This takes advantage of the standard [Kafka consumer groups](https://docs.confluent.io/platform/current/clients/consumer.html#consumer-groups) behavior.
 
 Second, this microservice is configured to checkpoint its progress every `100` milliseconds through the `ENABLE_AUTO_COMMIT_CONFIG` configuration. That means any successfully processed messages will not be reprocessed if the microservice is taken down and turned on again.
 

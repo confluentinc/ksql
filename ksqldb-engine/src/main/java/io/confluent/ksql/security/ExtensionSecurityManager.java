@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.security;
 
-import io.confluent.ksql.function.udf.PluggableUdf;
 import java.security.AllPermission;
 import java.security.CodeSource;
 import java.security.Permission;
@@ -60,20 +59,16 @@ public final class ExtensionSecurityManager extends SecurityManager {
   }
 
   public synchronized void pushInUdf() {
-    if (validateCaller()) {
-      if (UDF_IS_EXECUTING.get() == null) {
-        UDF_IS_EXECUTING.set(new Stack<>());
-      }
-      UDF_IS_EXECUTING.get().push(true);
+    if (UDF_IS_EXECUTING.get() == null) {
+      UDF_IS_EXECUTING.set(new Stack<>());
     }
+    UDF_IS_EXECUTING.get().push(true);
   }
 
   public void popOutUdf() {
-    if (validateCaller()) {
-      final Stack<Boolean> stack = UDF_IS_EXECUTING.get();
-      if (stack != null && !stack.isEmpty()) {
-        stack.pop();
-      }
+    final Stack<Boolean> stack = UDF_IS_EXECUTING.get();
+    if (stack != null && !stack.isEmpty()) {
+      stack.pop();
     }
   }
 
@@ -93,18 +88,8 @@ public final class ExtensionSecurityManager extends SecurityManager {
     super.checkExec(cmd);
   }
 
-
   private boolean inUdfExecution() {
     final Stack<Boolean> executing = UDF_IS_EXECUTING.get();
     return executing != null && !executing.isEmpty();
-  }
-
-  /**
-   * Check if the caller is a PluggableUdf. It will be the third
-   * item in the class array.
-   * @return true if caller is allowed
-   */
-  private boolean validateCaller() {
-    return getClassContext()[2].equals(PluggableUdf.class);
   }
 }

@@ -36,6 +36,7 @@ import io.confluent.ksql.rest.entity.CommandStatus.Status;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.SourceDescriptionEntity;
+import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
@@ -46,6 +47,7 @@ import io.confluent.ksql.serde.SchemaTranslator;
 import io.confluent.ksql.serde.SerdeFeature;
 import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.avro.AvroFormat;
+import io.confluent.ksql.serde.connect.ConnectProperties;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.PageViewDataProvider;
@@ -80,6 +82,7 @@ public class KsqlResourceFunctionalTest {
       .builder(TEST_HARNESS::kafkaBootstrapServers)
       .withStaticServiceContext(TEST_HARNESS::getServiceContext)
       .withProperty(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY, "http://foo:8080")
+      .withProperty(KsqlRestConfig.DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_CONFIG, 30000)
       .build();
 
   @ClassRule
@@ -172,7 +175,7 @@ public class KsqlResourceFunctionalTest {
     );
 
     final SchemaTranslator translator = new AvroFormat()
-        .getSchemaTranslator(ImmutableMap.of(AvroFormat.FULL_SCHEMA_NAME, "books_value"));
+        .getSchemaTranslator(ImmutableMap.of(ConnectProperties.FULL_SCHEMA_NAME, "books_value"));
 
     final ParsedSchema keySchema = translator.toParsedSchema(
         PersistenceSchema.from(

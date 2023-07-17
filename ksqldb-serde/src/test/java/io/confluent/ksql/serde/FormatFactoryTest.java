@@ -22,7 +22,7 @@ import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.ImmutableMap;
-import io.confluent.ksql.serde.avro.AvroFormat;
+import io.confluent.ksql.serde.connect.ConnectProperties;
 import io.confluent.ksql.util.KsqlException;
 import org.junit.Test;
 
@@ -33,6 +33,8 @@ public class FormatFactoryTest {
     assertThat(FormatFactory.of(FormatInfo.of("JsoN")), is(FormatFactory.JSON));
     assertThat(FormatFactory.of(FormatInfo.of("AvRo")), is(FormatFactory.AVRO));
     assertThat(FormatFactory.of(FormatInfo.of("Delimited")), is(FormatFactory.DELIMITED));
+    assertThat(FormatFactory.of(FormatInfo.of("PrOtObUf")), is(FormatFactory.PROTOBUF));
+    assertThat(FormatFactory.of(FormatInfo.of("PrOtObUf_nOsR")), is(FormatFactory.PROTOBUF_NOSR));
   }
 
   @Test
@@ -50,7 +52,7 @@ public class FormatFactoryTest {
   @Test
   public void shouldThrowOnNonAvroWithAvroSchemaName() {
     // Given:
-    final FormatInfo format = FormatInfo.of("JSON", ImmutableMap.of(AvroFormat.FULL_SCHEMA_NAME, "foo"));
+    final FormatInfo format = FormatInfo.of("JSON", ImmutableMap.of(ConnectProperties.FULL_SCHEMA_NAME, "foo"));
 
     // When:
     final Exception e = assertThrows(
@@ -65,7 +67,7 @@ public class FormatFactoryTest {
   @Test
   public void shouldThrowOnEmptyAvroSchemaName() {
     // Given:
-    final FormatInfo format = FormatInfo.of("AVRO", ImmutableMap.of(AvroFormat.FULL_SCHEMA_NAME, " "));
+    final FormatInfo format = FormatInfo.of("AVRO", ImmutableMap.of(ConnectProperties.FULL_SCHEMA_NAME, " "));
 
     // When:
     final Exception e = assertThrows(
@@ -102,4 +104,49 @@ public class FormatFactoryTest {
     assertThat(format, is(FormatFactory.AVRO));
   }
 
+  @Test
+  public void shouldThrowWhenCreatingFromUnsupportedProperty() {
+    // Given:
+    final FormatInfo format = FormatInfo.of("JSON", ImmutableMap.of("KEY_SCHEMA_ID", "1"));
+    final FormatInfo kafkaFormat = FormatInfo.of("KAFKA", ImmutableMap.of("VALUE_SCHEMA_ID", "1"));
+    final FormatInfo delimitedFormat = FormatInfo.of("delimited",
+        ImmutableMap.of("KEY_SCHEMA_ID", "123"));
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> FormatFactory.of(format)
+    );
+    final Exception kafkaException = assertThrows(
+        KsqlException.class,
+        () -> FormatFactory.of(kafkaFormat)
+    );
+    final Exception delimitedException = assertThrows(
+        KsqlException.class,
+        () -> FormatFactory.of(delimitedFormat)
+    );
+    // Then:
+    assertThat(e.getMessage(),
+        containsString("JSON does not support the following configs: [KEY_SCHEMA_ID]"));
+    assertThat(kafkaException.getMessage(),
+        containsString("KAFKA does not support the following configs: [VALUE_SCHEMA_ID]"));
+    assertThat(delimitedException.getMessage(),
+        containsString("DELIMITED does not support the following configs: [KEY_SCHEMA_ID]"));
+  }
+
+  @Test
+  public void shouldNotThrowWhenCreatingFromSupportedProperty() {
+    // Given:
+    final FormatInfo avroFormatInfo = FormatInfo.of("AVRO",
+        ImmutableMap.of("schemaId", "1", "fullSchemaName", "avroName"));
+    final FormatInfo protobufFormatInfo = FormatInfo.of("PROTOBUF",
+        ImmutableMap.of("schemaId", "1", "fullSchemaName", "protoName"));
+    final FormatInfo jsonSRFormatInfo = FormatInfo.of("JSON_SR",
+        ImmutableMap.of("schemaId", "123", "fullSchemaName", "jsonName"));
+
+    // When: Then:
+    assertThat(FormatFactory.of(avroFormatInfo), is(FormatFactory.AVRO));
+    assertThat(FormatFactory.of(protobufFormatInfo), is(FormatFactory.PROTOBUF));
+    assertThat(FormatFactory.of(jsonSRFormatInfo), is(FormatFactory.JSON_SR));
+  }
 }

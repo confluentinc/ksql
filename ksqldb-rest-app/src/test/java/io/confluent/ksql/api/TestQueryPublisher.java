@@ -20,27 +20,34 @@ import io.confluent.ksql.api.spi.QueryPublisher;
 import io.confluent.ksql.api.utils.RowGenerator;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.reactive.BasePublisher;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.util.KeyValue;
+import io.confluent.ksql.util.KeyValueMetadata;
+import io.confluent.ksql.util.PushQueryMetadata.ResultType;
 import io.vertx.core.Context;
 import java.util.List;
+import java.util.Optional;
 
 public class TestQueryPublisher
-    extends BasePublisher<KeyValue<List<?>, GenericRow>>
+    extends BasePublisher<KeyValueMetadata<List<?>, GenericRow>>
     implements QueryPublisher {
 
   private final RowGenerator rowGenerator;
   private final int rowsBeforePublisherError;
   private final boolean push;
   private final int limit;
+  private final QueryId queryId;
   private int rowsSent;
 
   public TestQueryPublisher(final Context ctx, final RowGenerator rowGenerator,
-      final int rowsBeforePublisherError, final boolean push, final int limit) {
+      final int rowsBeforePublisherError, final boolean push, final int limit,
+      final QueryId queryId) {
     super(ctx);
     this.rowGenerator = rowGenerator;
     this.rowsBeforePublisherError = rowsBeforePublisherError;
     this.push = push;
     this.limit = limit;
+    this.queryId = queryId;
   }
 
   synchronized boolean hasSubscriber() {
@@ -69,7 +76,7 @@ public class TestQueryPublisher
           getSubscriber().onError(new RuntimeException("Failure in processing"));
         } else {
           rowsSent++;
-          getSubscriber().onNext(KeyValue.keyValue(null, row));
+          getSubscriber().onNext(new KeyValueMetadata<>(KeyValue.keyValue(null, row)));
           if (rowsSent == limit) {
             sendComplete();
           }
@@ -96,6 +103,11 @@ public class TestQueryPublisher
   }
 
   @Override
+  public LogicalSchema geLogicalSchema() {
+    return rowGenerator.getLogicalSchema();
+  }
+
+  @Override
   public boolean isPullQuery() {
     return !push;
   }
@@ -107,6 +119,16 @@ public class TestQueryPublisher
 
   @Override
   public QueryId queryId() {
-    return new QueryId("queryId");
+    return queryId;
+  }
+
+  @Override
+  public boolean hitLimit() {
+    return false;
+  }
+
+  @Override
+  public Optional<ResultType> getResultType() {
+    return Optional.empty();
   }
 }

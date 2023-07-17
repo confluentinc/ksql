@@ -25,6 +25,8 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.KsqlStatementException;
+import java.util.Objects;
 
 public final class InterpretedExpressionFactory {
 
@@ -64,9 +66,22 @@ public final class InterpretedExpressionFactory {
           functionRegistry, schema, ksqlConfig, expressionTypeManager)
           .process(expression, context);
       return new InterpretedExpression(expression, returnType, term);
+    } catch (KsqlStatementException e) {
+      throw new KsqlStatementException(
+          "Invalid expression: " + e.getMessage(),
+          "Invalid expression: " + e.getUnloggedMessage() + ". expression: "
+              + expression + ", schema:" + schema,
+          Objects.toString(expression),
+          e
+      );
     } catch (KsqlException e) {
-      throw new KsqlException("Invalid expression: " + e.getMessage()
-          + ". expression:" + expression + ", schema:" + schema, e);
+      throw new KsqlStatementException(
+          "Invalid expression: " + e.getMessage(),
+          "Invalid expression: " + e.getMessage() + ". expression: "
+              + expression + ", schema:" + schema,
+          Objects.toString(expression),
+          e
+      );
     } catch (final Exception e) {
       throw new RuntimeException("Unexpected error generating code for expression: " + expression,
           e);

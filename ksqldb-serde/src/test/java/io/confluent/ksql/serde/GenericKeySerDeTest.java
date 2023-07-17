@@ -63,10 +63,11 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class GenericKeySerDeTest {
 
   private static final String LOGGER_PREFIX = "bob";
+  private static final String queryId = "query";
   private static final WindowInfo TIMED_WND = WindowInfo
-      .of(WindowType.HOPPING, Optional.of(Duration.ofSeconds(10)));
+      .of(WindowType.HOPPING, Optional.of(Duration.ofSeconds(10)), Optional.empty());
   private static final WindowInfo SESSION_WND = WindowInfo
-      .of(WindowType.SESSION, Optional.empty());
+      .of(WindowType.SESSION, Optional.empty(), Optional.empty());
   private static final ColumnName COLUMN_NAME = ColumnName.of("foo");
 
   @Mock
@@ -98,10 +99,10 @@ public class GenericKeySerDeTest {
 
   @Before
   public void setUp() {
-    factory = new GenericKeySerDe(innerFactory);
+    factory = new GenericKeySerDe(innerFactory, Optional.of(queryId));
 
     when(innerFactory.createFormatSerde(any(), any(), any(), any(), any(), anyBoolean())).thenReturn(innerSerde);
-    when(innerFactory.wrapInLoggingSerde(any(), any(), any())).thenReturn(loggingSerde);
+    when(innerFactory.wrapInLoggingSerde(any(), any(), any(), any())).thenReturn(loggingSerde);
     when(innerFactory.wrapInTrackingSerde(any(), any())).thenReturn(trackingSerde);
 
     when(innerSerde.serializer()).thenReturn(innerSerializer);
@@ -136,7 +137,7 @@ public class GenericKeySerDeTest {
         Optional.empty());
 
     // Then:
-    verify(innerFactory).wrapInLoggingSerde(any(), eq(LOGGER_PREFIX), eq(processingLogCxt));
+    verify(innerFactory).wrapInLoggingSerde(any(), eq(LOGGER_PREFIX), eq(processingLogCxt), eq(Optional.of(queryId)));
   }
 
   @Test
@@ -147,7 +148,7 @@ public class GenericKeySerDeTest {
             Optional.empty());
 
     // Then:
-    verify(innerFactory).wrapInLoggingSerde(any(), eq(LOGGER_PREFIX), eq(processingLogCxt));
+    verify(innerFactory).wrapInLoggingSerde(any(), eq(LOGGER_PREFIX), eq(processingLogCxt), eq(Optional.of(queryId)));
   }
 
   @Test

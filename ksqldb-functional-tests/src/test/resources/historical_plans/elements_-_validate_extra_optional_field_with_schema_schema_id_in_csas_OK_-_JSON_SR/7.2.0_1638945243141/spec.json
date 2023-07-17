@@ -1,0 +1,212 @@
+{
+  "version" : "7.2.0",
+  "timestamp" : 1638945243141,
+  "path" : "query-validation-tests/elements.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`ROWKEY` STRUCT<`id` BIGINT> KEY, `c1` BIGINT",
+      "keyFormat" : {
+        "format" : "AVRO",
+        "properties" : {
+          "fullSchemaName" : "io.confluent.ksql.avro_schemas.InputKey"
+        },
+        "features" : [ "UNWRAP_SINGLES" ]
+      },
+      "valueFormat" : {
+        "format" : "AVRO"
+      }
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ROWKEY` STRUCT<`id` BIGINT> KEY, `c1` BIGINT",
+      "keyFormat" : {
+        "format" : "JSON_SR",
+        "properties" : {
+          "schemaId" : "3"
+        },
+        "features" : [ "UNWRAP_SINGLES" ]
+      },
+      "valueFormat" : {
+        "format" : "JSON_SR",
+        "properties" : {
+          "schemaId" : "4"
+        }
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "validate extra optional field with schema schema id in csas OK - JSON_SR",
+    "inputs" : [ {
+      "topic" : "input",
+      "key" : {
+        "id" : 42
+      },
+      "value" : {
+        "c1" : 4
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : {
+        "id" : 42
+      },
+      "value" : {
+        "c1" : 4,
+        "c2" : null
+      }
+    } ],
+    "topics" : [ {
+      "name" : "input",
+      "keySchema" : {
+        "type" : "record",
+        "name" : "InputKey",
+        "namespace" : "io.confluent.ksql.avro_schemas",
+        "fields" : [ {
+          "name" : "id",
+          "type" : [ "null", "long" ],
+          "default" : null
+        } ],
+        "connect.name" : "io.confluent.ksql.avro_schemas.InputKey"
+      },
+      "valueSchema" : {
+        "type" : "record",
+        "name" : "KsqlDataSourceSchema",
+        "namespace" : "io.confluent.ksql.avro_schemas",
+        "fields" : [ {
+          "name" : "c1",
+          "type" : [ "null", "long" ],
+          "default" : null
+        } ],
+        "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
+      },
+      "keyFormat" : "AVRO",
+      "valueFormat" : "AVRO",
+      "replicas" : 1,
+      "keySerdeFeatures" : [ "UNWRAP_SINGLES" ],
+      "numPartitions" : 1
+    }, {
+      "name" : "OUTPUT",
+      "keySchema" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer"
+          }
+        }
+      },
+      "valueSchema" : {
+        "type" : "object",
+        "properties" : {
+          "c1" : {
+            "type" : "integer"
+          },
+          "c2" : {
+            "type" : "string"
+          }
+        }
+      },
+      "keyFormat" : "JSON",
+      "valueFormat" : "JSON",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM INPUT (`ROWKEY` struct<`id` BIGINT> KEY, `c1` BIGINT) WITH (key_format='avro', kafka_topic='input', value_format='avro', partitions=1);", "CREATE STREAM OUTPUT WITH(key_schema_id=3, key_format='json_sr', value_format='json_sr', value_schema_id=4, PARTITIONS = 4) as SELECT * FROM input;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` STRUCT<`id` BIGINT> KEY, `c1` BIGINT",
+        "keyFormat" : {
+          "format" : "AVRO"
+        },
+        "valueFormat" : "AVRO",
+        "keyFeatures" : [ "UNWRAP_SINGLES" ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` STRUCT<`id` BIGINT> KEY, `c1` BIGINT",
+        "keyFormat" : {
+          "format" : "JSON_SR"
+        },
+        "valueFormat" : "JSON_SR",
+        "keyFeatures" : [ "UNWRAP_SINGLES" ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "input",
+          "keyFormat" : {
+            "format" : "AVRO",
+            "properties" : {
+              "fullSchemaName" : "io.confluent.ksql.avro_schemas.InputKey"
+            },
+            "features" : [ "UNWRAP_SINGLES" ]
+          },
+          "valueFormat" : {
+            "format" : "AVRO"
+          },
+          "partitions" : 1,
+          "keySchema" : {
+            "type" : "record",
+            "name" : "InputKey",
+            "namespace" : "io.confluent.ksql.avro_schemas",
+            "fields" : [ {
+              "name" : "id",
+              "type" : [ "null", "long" ],
+              "default" : null
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.InputKey"
+          },
+          "valueSchema" : {
+            "type" : "record",
+            "name" : "KsqlDataSourceSchema",
+            "namespace" : "io.confluent.ksql.avro_schemas",
+            "fields" : [ {
+              "name" : "c1",
+              "type" : [ "null", "long" ],
+              "default" : null
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
+          }
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "format" : "JSON_SR",
+            "properties" : {
+              "schemaId" : "3"
+            },
+            "features" : [ "UNWRAP_SINGLES" ]
+          },
+          "valueFormat" : {
+            "format" : "JSON_SR",
+            "properties" : {
+              "schemaId" : "4"
+            }
+          },
+          "partitions" : 4,
+          "keySchema" : {
+            "type" : "object",
+            "properties" : {
+              "id" : {
+                "type" : "integer"
+              }
+            }
+          },
+          "valueSchema" : {
+            "type" : "object",
+            "properties" : {
+              "c1" : {
+                "type" : "integer"
+              },
+              "c2" : {
+                "type" : "string"
+              }
+            }
+          }
+        } ]
+      }
+    }
+  }
+}

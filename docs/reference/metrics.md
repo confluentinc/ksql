@@ -27,54 +27,6 @@ io.confluent.ksql.metrics:type=_confluent-ksql-engine-query-stats,ksql_service_i
 
 The current number of persistent queries running in this engine.
 
-**Number of active queries**
-
-`num-active-queries`
-
-The current number of active queries running in this engine.
-
-**Number of running queries**
-
-`RUNNING-queries`
-
-Count of queries in `RUNNING` state.
-
-**Number of idle queries**
-
-`num-idle-queries`
-
-Number of inactive queries.
-
-**Number of not running queries**
-
-`NOT_RUNNING-queries`
-
-Count of queries in `NOT_RUNNING` state.
-
-**Number of rebalancing queries**
-
-`REBALANCING-queries`
-
-Count of queries in `REBALANCING` state.
-
-**Number of created queries**
-
-`CREATED-queries`
-
-Count of queries in `CREATED` state.
-
-**Number of pending shutdown queries**
-
-`PENDING_SHUTDOWN-queries`
-
-Count of queries in `PENDING_SHUTDOWN` state.
-
-**Number of error queries**
-
-`ERROR-queries`
-
-Count of queries in `ERROR` state.
-
 **Total bytes consumed**
 
 `bytes-consumed-total`
@@ -121,7 +73,7 @@ The number of messages produced per second across all queries.
 
 `error-rate`
 
-The number of messages that were consumed but not processed. Messages may not be processed if, for instance, the message contents could not be deserialized due to an incompatible schema. Alternately, a consumed message may not have been produced, hence being effectively dropped. Such messages would also be counted toward the error rate.
+The number of messages that were consumed but not processed. Messages may not be processed if, for instance, the message contents could not be deserialized due to an incompatible schema. Alternatively, a consumed message may not have been produced, hence being effectively dropped. Such messages would also be counted toward the error rate.
 
 **Liveness indicator**
 
@@ -139,11 +91,20 @@ io.confluent.ksql.metrics:type=ksql-queries
 
 ### Attributes
 
+**ksqlDB query status**
+
+`ksql-query-status`
+
+The current ksqlDB status of the given query.   
+The metric `query-status` shows the {{ site.kstreams }} application state.  
+The `PAUSE` / `RESUME` commands do not impact the {{ site.kstreams }} state, so this new metric shows when a query is paused.
+
 **Query status**
 
 `query-status`
 
-The current status of the given query.
+The current {{ site.kstreams }} status of the given query.  
+The `ksql-query-status` metric has been added to show the ksqlDB query status.
 
 **Error status**
 
@@ -211,7 +172,7 @@ this reference to avoid redundancy.
 
 ## HTTP server
 
-ksqlDB's REST API is built ontop of Vert, and consequentially exposes
+ksqlDB's REST API is built using Vert.x, and consequentially exposes
 many [Vert.x
 metrics](https://vertx.io/docs/vertx-dropwizard-metrics/java/)
 directly. These metrics are omitted from this reference to avoid redundancy.
@@ -383,3 +344,36 @@ io.confluent.ksql.metrics:type=_confluent-ksql-rest-app-command-runner
 `status`
 
 The status of the commandRunner thread as it processes the command topic.
+
+## RocksDB
+
+Metrics that report the resource utilization for RocksDB. If RocksDB runs out
+of resources, it spools to disk, affecting performance. 
+
+Run the `free -m` command to check for high cache usage. You may see that the
+process is running at its configured memory threshold.
+
+Also, you can check the following JMX metrics for high usage.
+
+```
+io.confluent.ksql.metrics:type=_ksql-rocksdb-aggregates
+```
+
+### Attributes
+
+**Block cache usage**
+
+`block-cache-usage`
+
+Bytes allocated for the block cache. 
+
+!!! note
+
+    The `block-cache-usage` metric is distinct from the OS page cache reported
+    by the `free -m` command.
+
+**Current size of all memory tables**
+
+`cur-size-all-mem-tables`
+
+Amount of memory allocated for the write buffer.

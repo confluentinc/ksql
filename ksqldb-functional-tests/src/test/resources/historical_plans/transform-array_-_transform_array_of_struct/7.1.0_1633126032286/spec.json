@@ -1,0 +1,228 @@
+{
+  "version" : "7.1.0",
+  "timestamp" : 1633126032286,
+  "path" : "query-validation-tests/transform-array.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`ID` BIGINT KEY, `VALUE` ARRAY<STRUCT<`C` STRING, `D` INTEGER>>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "AVRO"
+      }
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ID` BIGINT KEY, `TRANSFORMED_STRUCT` ARRAY<STRUCT<`Q` INTEGER, `P` STRING>>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "AVRO"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "transform array of struct",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : 0,
+      "value" : {
+        "value" : [ {
+          "c" : "ste",
+          "d" : 2
+        }, {
+          "c" : "q",
+          "d" : 0
+        } ]
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : 1,
+      "value" : {
+        "value" : [ {
+          "c" : "lea",
+          "d" : 1
+        }, {
+          "c" : "pro",
+          "d" : -1
+        } ]
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : 2,
+      "value" : {
+        "value" : null
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : 0,
+      "value" : {
+        "TRANSFORMED_STRUCT" : [ {
+          "P" : "steh",
+          "Q" : 7
+        }, {
+          "P" : "qh",
+          "Q" : 5
+        } ]
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : 1,
+      "value" : {
+        "TRANSFORMED_STRUCT" : [ {
+          "P" : "leah",
+          "Q" : 6
+        }, {
+          "P" : "proh",
+          "Q" : 4
+        } ]
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : 2,
+      "value" : {
+        "TRANSFORMED_STRUCT" : null
+      }
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "test_topic",
+      "valueSchema" : {
+        "type" : "record",
+        "name" : "KsqlDataSourceSchema",
+        "namespace" : "io.confluent.ksql.avro_schemas",
+        "fields" : [ {
+          "name" : "VALUE",
+          "type" : [ "null", {
+            "type" : "array",
+            "items" : [ "null", {
+              "type" : "record",
+              "name" : "KsqlDataSourceSchema_VALUE",
+              "fields" : [ {
+                "name" : "C",
+                "type" : [ "null", "string" ],
+                "default" : null
+              }, {
+                "name" : "D",
+                "type" : [ "null", "int" ],
+                "default" : null
+              } ],
+              "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema_VALUE"
+            } ]
+          } ],
+          "default" : null
+        } ],
+        "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
+      },
+      "valueFormat" : "AVRO",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM TEST (ID BIGINT KEY, VALUE ARRAY<STRUCT<c VARCHAR, d INT>>) WITH (kafka_topic='test_topic', value_format='AVRO');", "CREATE STREAM OUTPUT as SELECT ID, TRANSFORM(VALUE, x => STRUCT(Q := x->d + 5, P := x->c + 'h')) as transformed_struct from TEST emit changes;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`ID` BIGINT KEY, `TRANSFORMED_STRUCT` ARRAY<STRUCT<`Q` INTEGER, `P` STRING>>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "AVRO",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`ID` BIGINT KEY, `VALUE` ARRAY<STRUCT<`C` STRING, `D` INTEGER>>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "AVRO",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "AVRO"
+          },
+          "partitions" : 4,
+          "valueSchema" : {
+            "type" : "record",
+            "name" : "KsqlDataSourceSchema",
+            "namespace" : "io.confluent.ksql.avro_schemas",
+            "fields" : [ {
+              "name" : "VALUE",
+              "type" : [ "null", {
+                "type" : "array",
+                "items" : [ "null", {
+                  "type" : "record",
+                  "name" : "KsqlDataSourceSchema_VALUE",
+                  "fields" : [ {
+                    "name" : "C",
+                    "type" : [ "null", "string" ],
+                    "default" : null
+                  }, {
+                    "name" : "D",
+                    "type" : [ "null", "int" ],
+                    "default" : null
+                  } ],
+                  "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema_VALUE"
+                } ]
+              } ],
+              "default" : null
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
+          }
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "AVRO"
+          },
+          "partitions" : 4,
+          "valueSchema" : {
+            "type" : "record",
+            "name" : "KsqlDataSourceSchema",
+            "namespace" : "io.confluent.ksql.avro_schemas",
+            "fields" : [ {
+              "name" : "TRANSFORMED_STRUCT",
+              "type" : [ "null", {
+                "type" : "array",
+                "items" : [ "null", {
+                  "type" : "record",
+                  "name" : "KsqlDataSourceSchema_TRANSFORMED_STRUCT",
+                  "fields" : [ {
+                    "name" : "Q",
+                    "type" : [ "null", "int" ],
+                    "default" : null
+                  }, {
+                    "name" : "P",
+                    "type" : [ "null", "string" ],
+                    "default" : null
+                  } ],
+                  "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema_TRANSFORMED_STRUCT"
+                } ]
+              } ],
+              "default" : null
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
+          }
+        } ]
+      }
+    }
+  }
+}

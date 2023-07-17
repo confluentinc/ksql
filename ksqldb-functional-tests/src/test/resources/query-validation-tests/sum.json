@@ -41,13 +41,9 @@
       "outputs": [
         {"topic": "OUTPUT", "key": 0,"value": {"SUM": 0}},
         {"topic": "OUTPUT", "key": 1,"value": {"SUM": 0}},
-        {"topic": "OUTPUT", "key": 0,"value": {"SUM": 0}},
         {"topic": "OUTPUT", "key": 0,"value": {"SUM": 5}},
-        {"topic": "OUTPUT", "key": 1,"value": {"SUM": 0}},
         {"topic": "OUTPUT", "key": 1,"value": {"SUM": 10}},
-        {"topic": "OUTPUT", "key": 0,"value": {"SUM": 0}},
         {"topic": "OUTPUT", "key": 0,"value": {"SUM": 20}},
-        {"topic": "OUTPUT", "key": 0,"value": {"SUM": 0}},
         {"topic": "OUTPUT", "key": 0,"value": {"SUM": 0}}
       ]
     },
@@ -107,6 +103,73 @@
         {"topic": "S2", "key": 100,"value": {"SUM": "500.9"}},
         {"topic": "S2", "key": 100,"value": {"SUM": "801.7"}}
       ]
+    },
+    {
+      "name": "sum decimal with overflow",
+      "statements": [
+        "CREATE STREAM TEST (ID BIGINT KEY, VALUE decimal(4,1)) WITH (kafka_topic='test_topic', value_format='AVRO');",
+        "CREATE TABLE S2 as SELECT ID, sum(value) AS SUM FROM test group by id;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0,"value": {"value": "5.4"}},
+        {"topic": "test_topic", "key": 0,"value": {"value": "100.1"}},
+        {"topic": "test_topic", "key": 100,"value": {"value": "500.9"}},
+        {"topic": "test_topic", "key": 100,"value": {"value": "300.8"}},
+        {"topic": "test_topic", "key": 100,"value": {"value": "400.8"}}
+      ],
+      "outputs": [
+        {"topic": "S2", "key": 0,"value": {"SUM": "005.4"}},
+        {"topic": "S2", "key": 0,"value": {"SUM": "105.5"}},
+        {"topic": "S2", "key": 100,"value": {"SUM": "500.9"}},
+        {"topic": "S2", "key": 100,"value": {"SUM": "801.7"}}
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.function.KsqlFunctionException",
+        "message": "Numeric field overflow"
+      }
+    },
+    {
+      "name": "sum decimal should not overflow with cast to higher precision",
+      "statements": [
+        "CREATE STREAM TEST (ID BIGINT KEY, VALUE decimal(4,1)) WITH (kafka_topic='test_topic', value_format='AVRO');",
+        "CREATE TABLE S2 as SELECT ID, sum(CAST(value AS DECIMAL(6,2))) AS SUM FROM test group by id;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0,"value": {"value": "5.4"}},
+        {"topic": "test_topic", "key": 0,"value": {"value": "100.1"}},
+        {"topic": "test_topic", "key": 100,"value": {"value": "500.9"}},
+        {"topic": "test_topic", "key": 100,"value": {"value": "300.8"}},
+        {"topic": "test_topic", "key": 100,"value": {"value": "400.8"}}
+      ],
+      "outputs": [
+        {"topic": "S2", "key": 0,"value": {"SUM": "5.40"}},
+        {"topic": "S2", "key": 0,"value": {"SUM": "105.50"}},
+        {"topic": "S2", "key": 100,"value": {"SUM": "500.90"}},
+        {"topic": "S2", "key": 100,"value": {"SUM": "801.70"}},
+        {"topic": "S2", "key": 100,"value": {"SUM": "1202.50"}}
+      ]
+    },
+    {
+      "name": "sum decimal should overflow with cast to lower precision",
+      "statements": [
+        "CREATE STREAM TEST (ID BIGINT KEY, VALUE decimal(4,1)) WITH (kafka_topic='test_topic', value_format='AVRO');",
+        "CREATE TABLE S2 as SELECT ID, sum(CAST(value as DECIMAL(3,1))) AS SUM FROM test group by id;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0,"value": {"value": "5.4"}},
+        {"topic": "test_topic", "key": 0,"value": {"value": "10.1"}},
+        {"topic": "test_topic", "key": 100,"value": {"value": "50.9"}},
+        {"topic": "test_topic", "key": 100,"value": {"value": "50.8"}}
+      ],
+      "outputs": [
+        {"topic": "S2", "key": 0,"value": {"SUM": "5.4"}},
+        {"topic": "S2", "key": 0,"value": {"SUM": "15.5"}},
+        {"topic": "S2", "key": 100,"value": {"SUM": "50.9"}}
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.function.KsqlFunctionException",
+        "message": "Numeric field overflow"
+      }
     },
     {
       "name": "sum double map",

@@ -159,7 +159,7 @@ services:
       - "8081:8081"
     environment:
       SCHEMA_REGISTRY_HOST_NAME: schema-registry
-      SCHEMA_REGISTRY_KAFKASTORE_CONNECTION_URL: 'zookeeper:2181'
+      SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: "PLAINTEXT://broker:9092"
 
   ksqldb-server:
     image: confluentinc/ksqldb-server:{{ site.ksqldbversion }}
@@ -243,7 +243,7 @@ INSERT INTO customers (id, name, age) VALUES ('2', 'bill', 51);
 
 ### Configure MongoDB for Debezium
 
-Now that Postgres is setup, you can configure MongoDB. Start by logging into the container:
+Now that Postgres is set up, you can configure MongoDB. Start by logging into the container:
 
 ```
 docker exec -it mongo /bin/bash

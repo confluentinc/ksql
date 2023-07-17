@@ -16,6 +16,7 @@
 package io.confluent.ksql.rest.util;
 
 import com.google.common.collect.ImmutableList;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.metastore.MetaStore;
@@ -49,6 +50,7 @@ public class ClusterTerminator {
   private final ServiceContext serviceContext;
   private final List<String> managedTopics;
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
   public ClusterTerminator(
       final KsqlEngine ksqlEngine,
       final ServiceContext serviceContext,

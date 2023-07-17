@@ -1,0 +1,493 @@
+{
+  "version" : "7.1.0",
+  "timestamp" : 1633125960418,
+  "path" : "query-validation-tests/group-by.json",
+  "schemas" : {
+    "CTAS_OUTPUT_0.Aggregate.Project" : {
+      "schema" : "`T1_ID` BIGINT KEY, `SUM` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "AVRO"
+      }
+    },
+    "CTAS_OUTPUT_0.Aggregate.GroupBy" : {
+      "schema" : "`T1_ID` BIGINT KEY, `T1_ID` BIGINT, `T1_TOTAL` INTEGER, `T2_TOTAL` INTEGER, `KSQL_INTERNAL_COL_3` INTEGER, `KSQL_INTERNAL_COL_4` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "AVRO"
+      }
+    },
+    "CTAS_OUTPUT_0.PrependAliasLeft" : {
+      "schema" : "`T1_ID` BIGINT KEY, `T1_TOTAL` INTEGER, `T1_ROWTIME` BIGINT, `T1_ROWPARTITION` INTEGER, `T1_ROWOFFSET` BIGINT, `T1_ID` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "AVRO"
+      }
+    },
+    "CTAS_OUTPUT_0.KafkaTopic_Left.Source.Materialized" : {
+      "schema" : "`ID` BIGINT KEY, `TOTAL` INTEGER, `ROWPARTITION` INTEGER, `ROWOFFSET` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "AVRO"
+      }
+    },
+    "CTAS_OUTPUT_0.KafkaTopic_Left.Source" : {
+      "schema" : "`ID` BIGINT KEY, `TOTAL` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "AVRO"
+      }
+    },
+    "CTAS_OUTPUT_0.KafkaTopic_Right.Source" : {
+      "schema" : "`ID` BIGINT KEY, `TOTAL` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "AVRO"
+      }
+    },
+    "CTAS_OUTPUT_0.Aggregate.Aggregate.Materialize" : {
+      "schema" : "`T1_ID` BIGINT KEY, `T1_ID` BIGINT, `T1_TOTAL` INTEGER, `T2_TOTAL` INTEGER, `KSQL_AGG_VARIABLE_0` INTEGER, `KSQL_AGG_VARIABLE_1` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "AVRO"
+      }
+    },
+    "CTAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`T1_ID` BIGINT KEY, `SUM` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "AVRO"
+      }
+    },
+    "CTAS_OUTPUT_0.Aggregate.Prepare" : {
+      "schema" : "`T1_ID` BIGINT KEY, `T1_ID` BIGINT, `T1_TOTAL` INTEGER, `T2_TOTAL` INTEGER, `KSQL_INTERNAL_COL_3` INTEGER, `KSQL_INTERNAL_COL_4` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "AVRO"
+      }
+    },
+    "CTAS_OUTPUT_0.PrependAliasRight" : {
+      "schema" : "`T2_ID` BIGINT KEY, `T2_TOTAL` INTEGER, `T2_ROWTIME` BIGINT, `T2_ROWPARTITION` INTEGER, `T2_ROWOFFSET` BIGINT, `T2_ID` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "AVRO"
+      }
+    },
+    "CTAS_OUTPUT_0.KafkaTopic_Right.Source.Materialized" : {
+      "schema" : "`ID` BIGINT KEY, `TOTAL` INTEGER, `ROWPARTITION` INTEGER, `ROWOFFSET` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "AVRO"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "on join",
+    "inputs" : [ {
+      "topic" : "T1",
+      "key" : 0,
+      "value" : {
+        "total" : 100
+      }
+    }, {
+      "topic" : "T1",
+      "key" : 1,
+      "value" : {
+        "total" : 101
+      }
+    }, {
+      "topic" : "T2",
+      "key" : 0,
+      "value" : {
+        "total" : 5
+      }
+    }, {
+      "topic" : "T2",
+      "key" : 1,
+      "value" : {
+        "total" : 10
+      }
+    }, {
+      "topic" : "T2",
+      "key" : 0,
+      "value" : {
+        "total" : 20
+      }
+    }, {
+      "topic" : "T2",
+      "key" : 0,
+      "value" : null
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : 0,
+      "value" : {
+        "SUM" : 100
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : 1,
+      "value" : {
+        "SUM" : 101
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : 0,
+      "value" : null
+    }, {
+      "topic" : "OUTPUT",
+      "key" : 0,
+      "value" : {
+        "SUM" : 105
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : 1,
+      "value" : null
+    }, {
+      "topic" : "OUTPUT",
+      "key" : 1,
+      "value" : {
+        "SUM" : 111
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : 0,
+      "value" : null
+    }, {
+      "topic" : "OUTPUT",
+      "key" : 0,
+      "value" : {
+        "SUM" : 120
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : 0,
+      "value" : null
+    }, {
+      "topic" : "OUTPUT",
+      "key" : 0,
+      "value" : {
+        "SUM" : 100
+      }
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "T1",
+      "valueSchema" : {
+        "type" : "record",
+        "name" : "KsqlDataSourceSchema",
+        "namespace" : "io.confluent.ksql.avro_schemas",
+        "fields" : [ {
+          "name" : "TOTAL",
+          "type" : [ "null", "int" ],
+          "default" : null
+        } ],
+        "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
+      },
+      "valueFormat" : "AVRO",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "T2",
+      "valueSchema" : {
+        "type" : "record",
+        "name" : "KsqlDataSourceSchema",
+        "namespace" : "io.confluent.ksql.avro_schemas",
+        "fields" : [ {
+          "name" : "TOTAL",
+          "type" : [ "null", "int" ],
+          "default" : null
+        } ],
+        "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
+      },
+      "valueFormat" : "AVRO",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE TABLE t1 (ID BIGINT PRIMARY KEY, TOTAL integer) WITH (kafka_topic='T1', value_format='AVRO');", "CREATE TABLE t2 (ID BIGINT PRIMARY KEY, TOTAL integer) WITH (kafka_topic='T2', value_format='AVRO');", "CREATE TABLE OUTPUT AS SELECT t1.ID, SUM(t1.total + CASE WHEN t2.total IS NULL THEN 0 ELSE t2.total END) as SUM FROM T1 LEFT JOIN T2 ON (t1.ID = t2.ID) GROUP BY t1.ID HAVING COUNT(1) > 0;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "OUTPUT",
+        "type" : "TABLE",
+        "schema" : "`T1_ID` BIGINT KEY, `SUM` INTEGER",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "AVRO",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "T1",
+        "type" : "TABLE",
+        "schema" : "`ID` BIGINT KEY, `TOTAL` INTEGER",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "AVRO",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "T2",
+        "type" : "TABLE",
+        "schema" : "`ID` BIGINT KEY, `TOTAL` INTEGER",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "AVRO",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "T1",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "AVRO"
+          },
+          "partitions" : 4,
+          "valueSchema" : {
+            "type" : "record",
+            "name" : "KsqlDataSourceSchema",
+            "namespace" : "io.confluent.ksql.avro_schemas",
+            "fields" : [ {
+              "name" : "TOTAL",
+              "type" : [ "null", "int" ],
+              "default" : null
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
+          }
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-KafkaTopic_Right-Reduce-changelog",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "AVRO"
+          },
+          "valueSchema" : {
+            "type" : "record",
+            "name" : "KsqlDataSourceSchema",
+            "namespace" : "io.confluent.ksql.avro_schemas",
+            "fields" : [ {
+              "name" : "TOTAL",
+              "type" : [ "null", "int" ],
+              "default" : null
+            }, {
+              "name" : "ROWPARTITION",
+              "type" : [ "null", "int" ],
+              "default" : null
+            }, {
+              "name" : "ROWOFFSET",
+              "type" : [ "null", "long" ],
+              "default" : null
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
+          }
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-GroupBy-repartition",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "AVRO"
+          },
+          "valueSchema" : {
+            "type" : "record",
+            "name" : "KsqlDataSourceSchema",
+            "namespace" : "io.confluent.ksql.avro_schemas",
+            "fields" : [ {
+              "name" : "T1_ID",
+              "type" : [ "null", "long" ],
+              "default" : null
+            }, {
+              "name" : "T1_TOTAL",
+              "type" : [ "null", "int" ],
+              "default" : null
+            }, {
+              "name" : "T2_TOTAL",
+              "type" : [ "null", "int" ],
+              "default" : null
+            }, {
+              "name" : "KSQL_INTERNAL_COL_3",
+              "type" : [ "null", "int" ],
+              "default" : null
+            }, {
+              "name" : "KSQL_INTERNAL_COL_4",
+              "type" : [ "null", "int" ],
+              "default" : null
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
+          }
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Prepare-Last-changelog",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "AVRO"
+          },
+          "valueSchema" : {
+            "type" : "record",
+            "name" : "KsqlDataSourceSchema",
+            "namespace" : "io.confluent.ksql.avro_schemas",
+            "fields" : [ {
+              "name" : "T1_ID",
+              "type" : [ "null", "long" ],
+              "default" : null
+            }, {
+              "name" : "T1_TOTAL",
+              "type" : [ "null", "int" ],
+              "default" : null
+            }, {
+              "name" : "T2_TOTAL",
+              "type" : [ "null", "int" ],
+              "default" : null
+            }, {
+              "name" : "KSQL_INTERNAL_COL_3",
+              "type" : [ "null", "int" ],
+              "default" : null
+            }, {
+              "name" : "KSQL_INTERNAL_COL_4",
+              "type" : [ "null", "int" ],
+              "default" : null
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
+          }
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "AVRO"
+          },
+          "valueSchema" : {
+            "type" : "record",
+            "name" : "KsqlDataSourceSchema",
+            "namespace" : "io.confluent.ksql.avro_schemas",
+            "fields" : [ {
+              "name" : "T1_ID",
+              "type" : [ "null", "long" ],
+              "default" : null
+            }, {
+              "name" : "T1_TOTAL",
+              "type" : [ "null", "int" ],
+              "default" : null
+            }, {
+              "name" : "T2_TOTAL",
+              "type" : [ "null", "int" ],
+              "default" : null
+            }, {
+              "name" : "KSQL_AGG_VARIABLE_0",
+              "type" : [ "null", "int" ],
+              "default" : null
+            }, {
+              "name" : "KSQL_AGG_VARIABLE_1",
+              "type" : [ "null", "long" ],
+              "default" : null
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
+          }
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "AVRO"
+          },
+          "partitions" : 4,
+          "valueSchema" : {
+            "type" : "record",
+            "name" : "KsqlDataSourceSchema",
+            "namespace" : "io.confluent.ksql.avro_schemas",
+            "fields" : [ {
+              "name" : "SUM",
+              "type" : [ "null", "int" ],
+              "default" : null
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
+          }
+        }, {
+          "name" : "T2",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "AVRO"
+          },
+          "partitions" : 4,
+          "valueSchema" : {
+            "type" : "record",
+            "name" : "KsqlDataSourceSchema",
+            "namespace" : "io.confluent.ksql.avro_schemas",
+            "fields" : [ {
+              "name" : "TOTAL",
+              "type" : [ "null", "int" ],
+              "default" : null
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
+          }
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-KafkaTopic_Left-Reduce-changelog",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "AVRO"
+          },
+          "valueSchema" : {
+            "type" : "record",
+            "name" : "KsqlDataSourceSchema",
+            "namespace" : "io.confluent.ksql.avro_schemas",
+            "fields" : [ {
+              "name" : "TOTAL",
+              "type" : [ "null", "int" ],
+              "default" : null
+            }, {
+              "name" : "ROWPARTITION",
+              "type" : [ "null", "int" ],
+              "default" : null
+            }, {
+              "name" : "ROWOFFSET",
+              "type" : [ "null", "long" ],
+              "default" : null
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
+          }
+        } ]
+      }
+    }
+  }
+}

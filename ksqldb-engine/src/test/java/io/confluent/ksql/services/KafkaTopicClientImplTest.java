@@ -23,6 +23,7 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.argThat;
@@ -100,6 +101,8 @@ public class KafkaTopicClientImplTest {
   private final Map<String, List<TopicPartitionInfo>> topicPartitionInfo = new HashMap<>();
   private final Map<ConfigResource, Config> topicConfigs = new HashMap<>();
 
+  private final Map<String, ?> configs = ImmutableMap.of(TopicConfig.RETENTION_MS_CONFIG, 8640000000L);
+
   private KafkaTopicClient kafkaTopicClient;
 
   @SuppressWarnings({"deprecation", "unchecked"})
@@ -109,7 +112,7 @@ public class KafkaTopicClientImplTest {
     topicConfigs.clear();
 
     when(adminClient.listTopics()).thenAnswer(listTopicResult());
-    when(adminClient.describeTopics(any(), any())).thenAnswer(describeTopicsResult());
+    when(adminClient.describeTopics(anyCollection(), any())).thenAnswer(describeTopicsResult());
     when(adminClient.createTopics(any(), any())).thenAnswer(createTopicsResult());
     when(adminClient.deleteTopics(any(Collection.class))).thenAnswer(deleteTopicsResult());
     when(adminClient.describeConfigs(any())).thenAnswer(describeConfigsResult());
@@ -122,11 +125,24 @@ public class KafkaTopicClientImplTest {
   @Test
   public void shouldCreateTopic() {
     // When:
+    kafkaTopicClient.createTopic("someTopic", 1, (short) 2, configs);
+
+    // Then:
+    verify(adminClient).createTopics(
+        eq(ImmutableSet.of(newTopic("someTopic", 1, 2, configs))),
+        argThat(createOptions -> !createOptions.shouldValidateOnly())
+    );
+  }
+
+  @Test
+  public void shouldCreateTopicWithEmptyConfigs() {
+    Map<String, ?> configs = ImmutableMap.of();
+    // When:
     kafkaTopicClient.createTopic("someTopic", 1, (short) 2);
 
     // Then:
     verify(adminClient).createTopics(
-        eq(ImmutableSet.of(newTopic("someTopic", 1, 2))),
+        eq(ImmutableSet.of(newTopic("someTopic", 1, 2, configs))),
         argThat(createOptions -> !createOptions.shouldValidateOnly())
     );
   }
@@ -135,9 +151,13 @@ public class KafkaTopicClientImplTest {
   public void shouldNotCreateTopicIfItAlreadyExistsWithMatchingDetails() {
     // Given:
     givenTopicExists("someTopic", 3, 2);
+    givenTopicConfigs(
+        "someTopic",
+        overriddenConfigEntry(TopicConfig.RETENTION_MS_CONFIG, "8640000000")
+    );
 
     // When:
-    kafkaTopicClient.createTopic("someTopic", 3, (short) 2);
+    kafkaTopicClient.createTopic("someTopic", 3, (short) 2, configs);
 
     // Then:
     verify(adminClient, never()).createTopics(any(), any());
@@ -147,9 +167,13 @@ public class KafkaTopicClientImplTest {
   public void shouldNotCreateTopicIfItAlreadyExistsWithDefaultRf() {
     // Given:
     givenTopicExists("someTopic", 1, 2);
+    givenTopicConfigs(
+        "someTopic",
+        overriddenConfigEntry(TopicConfig.RETENTION_MS_CONFIG, "8640000000")
+    );
 
     // When:
-    kafkaTopicClient.createTopic("someTopic", 1, (short) -1);
+    kafkaTopicClient.createTopic("someTopic", 1, (short) -1, configs);
 
     // Then:
     verify(adminClient, never()).createTopics(any(), any());
@@ -159,16 +183,41 @@ public class KafkaTopicClientImplTest {
   public void shouldThrowFromCreateTopicIfExistingHasDifferentReplicationFactor() {
     // Given:
     givenTopicExists("someTopic", 1, 1);
+    givenTopicConfigs(
+        "someTopic",
+        overriddenConfigEntry(TopicConfig.RETENTION_MS_CONFIG, "8640000000")
+    );
 
     // When:
     final Exception e = assertThrows(
         KafkaTopicExistsException.class,
-        () -> kafkaTopicClient.createTopic("someTopic", 1, (short) 2)
+        () -> kafkaTopicClient.createTopic("someTopic", 1, (short) 2, configs)
     );
 
     // Then:
     assertThat(e.getMessage(), containsString(
-        "and 2 replication factor (topic has 1)"));
+        ", 2 replication factor (topic has 1)"));
+  }
+
+  @Test
+  public void shouldThrowFromCreateTopicIfExistingHasDifferentRetentionMs() {
+    // Given:
+    givenTopicExists("someTopic", 1, 1);
+    givenTopicConfigs(
+        "someTopic",
+        overriddenConfigEntry(TopicConfig.RETENTION_MS_CONFIG, "8640000000")
+    );
+
+    // When:
+    Map<String, ?> newConfigs = ImmutableMap.of(TopicConfig.RETENTION_MS_CONFIG, 1000);
+    final Exception e = assertThrows(
+        KafkaTopicExistsException.class,
+        () -> kafkaTopicClient.createTopic("someTopic", 1, (short) 1, newConfigs)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "and 1000 retention (topic has 8640000000)."));
   }
 
   @Test
@@ -180,7 +229,7 @@ public class KafkaTopicClientImplTest {
     // When:
     final Exception e = assertThrows(
         KsqlTopicAuthorizationException.class,
-        () -> kafkaTopicClient.createTopic("someTopic", 1, (short) 2)
+        () -> kafkaTopicClient.createTopic("someTopic", 1, (short) 2, configs)
     );
 
     // Then:
@@ -192,27 +241,37 @@ public class KafkaTopicClientImplTest {
   public void shouldRetryDescribeTopicDuringCreateTopicOnRetryableException() {
     // Given:
     givenTopicExists("topicName", 1, 2);
+    givenTopicConfigs(
+        "topicName",
+        overriddenConfigEntry(TopicConfig.RETENTION_MS_CONFIG, "8640000000")
+    );
 
-    when(adminClient.describeTopics(any(), any()))
+    when(adminClient.describeTopics(anyCollection(), any()))
         .thenAnswer(describeTopicsResult()) // checks that topic exists
         .thenAnswer(describeTopicsResult(new UnknownTopicOrPartitionException("meh"))) // fails during validateProperties
         .thenAnswer(describeTopicsResult()); // succeeds the third time
 
     // When:
-    kafkaTopicClient.createTopic("topicName", 1, (short) 2);
+    kafkaTopicClient.createTopic("topicName", 1, (short) 2, configs);
 
     // Then:
-    verify(adminClient, times(3)).describeTopics(any(), any());
+    verify(adminClient, times(3)).describeTopics(anyCollection(), any());
   }
 
   @Test
   public void shouldValidateCreateTopic() {
+    // Given
+    givenTopicConfigs(
+        "topicA",
+        overriddenConfigEntry(TopicConfig.RETENTION_MS_CONFIG, "8640000000")
+    );
+
     // When:
-    kafkaTopicClient.validateCreateTopic("topicA", 2, (short) 1);
+    kafkaTopicClient.validateCreateTopic("topicA", 2, (short) 1, configs);
 
     // Then:
     verify(adminClient).createTopics(
-        eq(ImmutableSet.of(newTopic("topicA", 2, 1))),
+        eq(ImmutableSet.of(newTopic("topicA", 2, 1, configs))),
         argThat(CreateTopicsOptions::shouldValidateOnly)
     );
   }
@@ -221,9 +280,13 @@ public class KafkaTopicClientImplTest {
   public void shouldNotValidateCreateTopicIfItAlreadyExistsWithMatchingDetails() {
     // Given:
     givenTopicExists("someTopic", 1, 2);
+    givenTopicConfigs(
+        "someTopic",
+        overriddenConfigEntry(TopicConfig.RETENTION_MS_CONFIG, "8640000000")
+    );
 
     // When:
-    kafkaTopicClient.validateCreateTopic("someTopic", 1, (short) 2);
+    kafkaTopicClient.validateCreateTopic("someTopic", 1, (short) 2, configs);
 
     // Then:
     verify(adminClient, never()).createTopics(any(), any());
@@ -233,16 +296,20 @@ public class KafkaTopicClientImplTest {
   public void shouldThrowFromValidateCreateTopicIfExistingHasDifferentReplicationFactor() {
     // Given:
     givenTopicExists("someTopic", 1, 1);
+    givenTopicConfigs(
+        "someTopic",
+        overriddenConfigEntry(TopicConfig.RETENTION_MS_CONFIG, "8640000000")
+    );
 
     // When:
     final Exception e = assertThrows(
         KafkaTopicExistsException.class,
-        () -> kafkaTopicClient.validateCreateTopic("someTopic", 1, (short) 2)
+        () -> kafkaTopicClient.validateCreateTopic("someTopic", 1, (short) 2, configs)
     );
 
     // Then:
     assertThat(e.getMessage(), containsString(
-        "and 2 replication factor (topic has 1)"));
+        ", 2 replication factor (topic has 1)"));
   }
 
   @Test
@@ -254,7 +321,7 @@ public class KafkaTopicClientImplTest {
     // When:
     final Exception e = assertThrows(
         KsqlTopicAuthorizationException.class,
-        () -> kafkaTopicClient.validateCreateTopic("someTopic", 1, (short) 2)
+        () -> kafkaTopicClient.validateCreateTopic("someTopic", 1, (short) 2, configs)
     );
 
     // Then:
@@ -266,9 +333,13 @@ public class KafkaTopicClientImplTest {
   public void shouldNotValidateCreateTopicIfItAlreadyExistsWithDefaultRf() {
     // Given:
     givenTopicExists("someTopic", 1, 2);
+    givenTopicConfigs(
+        "someTopic",
+        overriddenConfigEntry(TopicConfig.RETENTION_MS_CONFIG, "8640000000")
+    );
 
     // When:
-    kafkaTopicClient.validateCreateTopic("someTopic", 1, (short) -1);
+    kafkaTopicClient.validateCreateTopic("someTopic", 1, (short) -1, configs);
 
     // Then:
     verify(adminClient, never()).createTopics(any(), any());
@@ -278,23 +349,27 @@ public class KafkaTopicClientImplTest {
   public void shouldRetryDescribeTopicDuringValidateCreateTopicOnRetryableException() {
     // Given:
     givenTopicExists("topicName", 1, 2);
+    givenTopicConfigs(
+        "topicName",
+        overriddenConfigEntry(TopicConfig.RETENTION_MS_CONFIG, "8640000000")
+    );
 
-    when(adminClient.describeTopics(any(), any()))
+    when(adminClient.describeTopics(anyCollection(), any()))
         .thenAnswer(describeTopicsResult()) // checks that topic exists
         .thenAnswer(describeTopicsResult(new UnknownTopicOrPartitionException("meh"))) // fails during validateProperties
         .thenAnswer(describeTopicsResult()); // succeeds the third time
 
     // When:
-    kafkaTopicClient.validateCreateTopic("topicName", 1, (short) 2);
+    kafkaTopicClient.validateCreateTopic("topicName", 1, (short) 2, configs);
 
     // Then:
-    verify(adminClient, times(3)).describeTopics(any(), any());
+    verify(adminClient, times(3)).describeTopics(anyCollection(), any());
   }
 
   @Test
   public void shouldThrowOnDescribeTopicsWhenRetriesExpire() {
     // Given:
-    when(adminClient.describeTopics(any(), any()))
+    when(adminClient.describeTopics(anyCollection(), any()))
         .thenAnswer(describeTopicsResult(new UnknownTopicOrPartitionException("meh")))
         .thenAnswer(describeTopicsResult(new UnknownTopicOrPartitionException("meh")))
         .thenAnswer(describeTopicsResult(new UnknownTopicOrPartitionException("meh")))
@@ -311,7 +386,7 @@ public class KafkaTopicClientImplTest {
   @Test
   public void shouldThrowOnDescribeOnTopicAuthorizationException() {
     // Given:
-    when(adminClient.describeTopics(any(), any()))
+    when(adminClient.describeTopics(anyCollection(), any()))
         .thenAnswer(describeTopicsResult(new TopicAuthorizationException("meh")));
 
     // When:
@@ -446,12 +521,27 @@ public class KafkaTopicClientImplTest {
   public void shouldDeleteInternalTopics() {
     // Given:
     final String applicationId = "whatEva";
-    final String internalTopic1 = applicationId + "-something-repartition";
-    final String internalTopic2 = applicationId + "-someting-changelog";
+    final String internalTopic1 = applicationId
+        + "-KTABLE-FK-JOIN-SUBSCRIPTION-REGISTRATION-0000000012-topic";
+    final String internalTopic2 = applicationId
+        + "-KTABLE-FK-JOIN-SUBSCRIPTION-RESPONSE-0000000012-topic";
+    final String internalTopic3 = applicationId + "-something-changelog";
+    final String internalTopic4 = applicationId + "-something-repartition";
+    // the next four topics are not prefixed with the application id, so they are not internal
+    final String customTopic1 = "what-KTABLE-FK-JOIN-SUBSCRIPTION-REGISTRATION-0000000012-topic";
+    final String customTopic2 = "eva-KTABLE-FK-JOIN-SUBSCRIPTION-RESPONSE-0000000012-topic";
+    final String customTopic3 = "-something-changelog";
+    final String customTopic4 = "-something-repartition";
 
     givenTopicExists("topic1", 1, 1);
     givenTopicExists(internalTopic1, 1, 1);
     givenTopicExists(internalTopic2, 1, 1);
+    givenTopicExists(internalTopic3, 1, 1);
+    givenTopicExists(internalTopic4, 1, 1);
+    givenTopicExists(customTopic1, 1, 1);
+    givenTopicExists(customTopic2, 1, 1);
+    givenTopicExists(customTopic3, 1, 1);
+    givenTopicExists(customTopic4, 1, 1);
     givenTopicExists("topic2", 1, 1);
 
     // When:
@@ -459,7 +549,7 @@ public class KafkaTopicClientImplTest {
 
     // Then:
     verify(adminClient).deleteTopics(ImmutableList.of(
-        internalTopic1, internalTopic2
+        internalTopic1, internalTopic2, internalTopic3, internalTopic4
     ));
   }
 
@@ -630,9 +720,29 @@ public class KafkaTopicClientImplTest {
   }
 
   @Test
+  public void shouldThrowKsqlTopicAuthorizationExceptionFromGetTopicConfig() {
+    // Given:
+    final String topicName = "foobar";
+    when(adminClient.describeConfigs(ImmutableList.of(topicResource(topicName))))
+        .thenAnswer(describeConfigsResult(new TopicAuthorizationException(ImmutableSet.of(topicName))));
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlTopicAuthorizationException.class,
+        () -> kafkaTopicClient.getTopicConfig(topicName)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Authorization denied to Describe_configs on topic(s): [" + topicName + "]"));
+  }
+
+  @Test
   public void shouldSetTopicCleanupPolicyToCompact() {
     // Given:
-    final Map<String, String> configs = ImmutableMap.of("cleanup.policy", "compact");
+    final Map<String, String> configs = ImmutableMap.of(
+        "cleanup.policy", "compact",
+        TopicConfig.RETENTION_MS_CONFIG, "5000");
 
     // When:
     kafkaTopicClient.createTopic("topic-name", 1, (short) 2, configs);
@@ -810,7 +920,7 @@ public class KafkaTopicClientImplTest {
     kafkaTopicClient.isTopicExists("foobar");
 
     // Then
-    verify(adminClient, times(1)).describeTopics(any(), any());
+    verify(adminClient, times(1)).describeTopics(anyCollection(), any());
   }
 
   @Test
@@ -928,8 +1038,8 @@ public class KafkaTopicClientImplTest {
       }
 
       final DescribeTopicsResult describeTopicsResult = mock(DescribeTopicsResult.class);
-      when(describeTopicsResult.values()).thenReturn(describe );
-      when(describeTopicsResult.all()).thenReturn(KafkaFuture.completedFuture(result));
+      when(describeTopicsResult.topicNameValues()).thenReturn(describe );
+      when(describeTopicsResult.allTopicNames()).thenReturn(KafkaFuture.completedFuture(result));
       return describeTopicsResult;
     };
   }
@@ -945,10 +1055,10 @@ public class KafkaTopicClientImplTest {
           throw new IllegalStateException("Duplicate key");
         }
       }
-      when(describeTopicsResult.values()).thenReturn(map);
+      when(describeTopicsResult.topicNameValues()).thenReturn(map);
 
       final KafkaFuture<Map<String, TopicDescription>> f = failedFuture(e);
-      when(describeTopicsResult.all()).thenReturn(f);
+      when(describeTopicsResult.allTopicNames()).thenReturn(f);
       return describeTopicsResult;
     };
   }
@@ -1083,10 +1193,6 @@ public class KafkaTopicClientImplTest {
     } catch (final Exception e) {
       throw new AssertionError("invalid test", e);
     }
-  }
-
-  private static NewTopic newTopic(final String name, final int partitions, final int rf) {
-    return newTopic(name, partitions, rf, ImmutableMap.of());
   }
 
   private static NewTopic newTopic(

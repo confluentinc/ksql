@@ -1,0 +1,123 @@
+{
+  "version" : "7.1.0",
+  "timestamp" : 1633125901079,
+  "path" : "query-validation-tests/array.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`ID` STRING KEY, `BOOLEAN_ARRAY` ARRAY<BOOLEAN>, `INT_ARRAY` ARRAY<INTEGER>, `BIGINT_ARRAY` ARRAY<BIGINT>, `DOUBLE_ARRAY` ARRAY<DOUBLE>, `STRING_ARRAY` ARRAY<STRING>, `DECIMAL_ARRAY` ARRAY<DECIMAL(2, 1)>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ID` STRING KEY, `BOOLEAN_LEN` INTEGER, `INT_LEN` INTEGER, `BIGINT_LEN` INTEGER, `DOUBLE_LEN` INTEGER, `STRING_LEN` INTEGER, `DECIMAL_LEN` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "array_length - primitives",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : null,
+      "value" : {
+        "boolean_array" : [ true ],
+        "int_array" : [ -1, 0 ],
+        "bigint_array" : [ -1, 0, 1 ],
+        "double_array" : [ 0.0, 0.1, 0.2, 0.3 ],
+        "string_array" : [ "a", "b", "c", "d", "e" ],
+        "decimal_array" : [ 1.0, 1.1, 1.2, 1.3, 1.4, 1.5 ]
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : null,
+      "value" : { }
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : null,
+      "value" : {
+        "BOOLEAN_LEN" : 1,
+        "INT_LEN" : 2,
+        "BIGINT_LEN" : 3,
+        "DOUBLE_LEN" : 4,
+        "STRING_LEN" : 5,
+        "DECIMAL_LEN" : 6
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : null,
+      "value" : {
+        "BOOLEAN_LEN" : null,
+        "INT_LEN" : null,
+        "BIGINT_LEN" : null,
+        "DOUBLE_LEN" : null,
+        "STRING_LEN" : null,
+        "DECIMAL_LEN" : null
+      }
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM INPUT (ID STRING KEY, boolean_array ARRAY<BOOLEAN>, int_array ARRAY<INT>, bigint_array ARRAY<BIGINT>, double_array ARRAY<DOUBLE>, string_array ARRAY<STRING>, decimal_array ARRAY<DECIMAL(2,1)>) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE STREAM OUTPUT AS SELECT ID, ARRAY_LENGTH(boolean_array) AS boolean_len, ARRAY_LENGTH(int_array) AS int_len, ARRAY_LENGTH(bigint_array) AS bigint_len, ARRAY_LENGTH(double_array) AS double_len, ARRAY_LENGTH(string_array) AS string_len , ARRAY_LENGTH(decimal_array) AS decimal_len FROM INPUT;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`ID` STRING KEY, `BOOLEAN_ARRAY` ARRAY<BOOLEAN>, `INT_ARRAY` ARRAY<INTEGER>, `BIGINT_ARRAY` ARRAY<BIGINT>, `DOUBLE_ARRAY` ARRAY<DOUBLE>, `STRING_ARRAY` ARRAY<STRING>, `DECIMAL_ARRAY` ARRAY<DECIMAL(2, 1)>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`ID` STRING KEY, `BOOLEAN_LEN` INTEGER, `INT_LEN` INTEGER, `BIGINT_LEN` INTEGER, `DOUBLE_LEN` INTEGER, `STRING_LEN` INTEGER, `DECIMAL_LEN` INTEGER",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

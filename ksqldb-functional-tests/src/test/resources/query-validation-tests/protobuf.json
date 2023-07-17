@@ -80,6 +80,210 @@
       "outputs": [{"topic": "OUTPUT", "value": {"I": 1, "L": 1, "D": 1.2, "B": true, "S": "foo"}}]
     },
     {
+      "name": "protobuf primitives with null",
+      "statements": [
+        "CREATE STREAM INPUT (K STRING KEY, i INTEGER, l BIGINT, d DOUBLE, b BOOLEAN, s STRING) WITH (kafka_topic='input', value_format='PROTOBUF');",
+        "CREATE STREAM OUTPUT as SELECT * FROM input;"
+      ],
+      "inputs": [
+        {"topic": "input", "value": {"i": null, "l": 0, "d": null, "b": false, "s": null}},
+        {"topic": "input", "value": {"i": 0, "l": null, "d": 0.0, "b": null, "s": ""}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"i": 0, "l": 0, "d": 0.0, "b": false, "s": ""}},
+        {"topic": "OUTPUT", "value": {"i": 0, "l": 0, "d": 0.0, "b": false, "s": ""}}
+      ],
+      "post": {
+        "topics": {
+          "topics": [
+            {
+              "name": "input",
+              "keyFormat": {"format": "KAFKA"},
+              "partitions": 4,
+              "valueFormat": {"format": "PROTOBUF", "properties": {"unwrapPrimitives": "true"}},
+              "valueSchema": "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  int32 I = 1;\n  int64 L = 2;\n  double D = 3;\n  bool B = 4;\n  string S = 5;\n}\n"
+            },
+            {
+              "name": "OUTPUT",
+              "keyFormat": {"format": "KAFKA"},
+              "partitions": 4,
+              "valueFormat": {"format": "PROTOBUF", "properties": {"unwrapPrimitives": "true"}},
+              "valueSchema": "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  int32 I = 1;\n  int64 L = 2;\n  double D = 3;\n  bool B = 4;\n  string S = 5;\n}\n"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "protobuf primitives with null and nullable as optional",
+      "statements": [
+        "CREATE STREAM INPUT (K STRING KEY, i INTEGER, l BIGINT, d DOUBLE, b BOOLEAN, s STRING) WITH (kafka_topic='input', value_format='PROTOBUF', value_protobuf_nullable_representation='OPTIONAL');",
+        "CREATE STREAM OUTPUT WITH (value_format='PROTOBUF', value_protobuf_nullable_representation='OPTIONAL') as SELECT * FROM input;"
+      ],
+      "inputs": [
+        {"topic": "input", "value": {"i": null, "l": 0, "d": null, "b": false, "s": null}},
+        {"topic": "input", "value": {"i": 0, "l": null, "d": 0.0, "b": null, "s": ""}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"i": null, "l": 0, "d": null, "b": false, "s": null}},
+        {"topic": "OUTPUT", "value": {"i": 0, "l": null, "d": 0.0, "b": null, "s": ""}}
+      ],
+      "post": {
+        "topics": {
+          "topics": [
+            {
+              "name": "input",
+              "keyFormat": {"format": "KAFKA"},
+              "partitions": 4,
+              "valueFormat": {"format": "PROTOBUF", "properties": {"unwrapPrimitives": "true", "nullableRepresentation": "optional"}},
+              "valueSchema": "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  optional int32 I = 1 [deprecated = false];\n  optional int64 L = 2 [deprecated = false];\n  optional double D = 3 [deprecated = false];\n  optional bool B = 4 [deprecated = false];\n  optional string S = 5 [deprecated = false];\n}\n"
+            },
+            {
+              "name": "OUTPUT",
+              "keyFormat": {"format": "KAFKA"},
+              "partitions": 4,
+              "valueFormat": {"format": "PROTOBUF", "properties": {"unwrapPrimitives": "true", "nullableRepresentation": "optional"}},
+              "valueSchema": "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  optional int32 I = 1 [deprecated = false];\n  optional int64 L = 2 [deprecated = false];\n  optional double D = 3 [deprecated = false];\n  optional bool B = 4 [deprecated = false];\n  optional string S = 5 [deprecated = false];\n}\n"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "protobuf primitives with null and nullable as wrapper",
+      "statements": [
+        "CREATE STREAM INPUT (K STRING KEY, i INTEGER, l BIGINT, d DOUBLE, b BOOLEAN, s STRING) WITH (kafka_topic='input', value_format='PROTOBUF', value_protobuf_nullable_representation='WRAPPER');",
+        "CREATE STREAM OUTPUT WITH (value_format='PROTOBUF', value_protobuf_nullable_representation='WRAPPER') as SELECT * FROM input;"
+      ],
+      "inputs": [
+        {"topic": "input", "value": {"i": null, "l": 0, "d": null, "b": false, "s": null}},
+        {"topic": "input", "value": {"i": 0, "l": null, "d": 0.0, "b": null, "s": ""}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"i": null, "l": 0, "d": null, "b": false, "s": null}},
+        {"topic": "OUTPUT", "value": {"i": 0, "l": null, "d": 0.0, "b": null, "s": ""}}
+      ],
+      "post": {
+        "topics": {
+          "topics": [
+            {
+              "name": "input",
+              "keyFormat": {"format": "KAFKA"},
+              "partitions": 4,
+              "valueFormat": {"format": "PROTOBUF", "properties": {"unwrapPrimitives": "true", "nullableRepresentation": "wrapper"}},
+              "valueSchema": "syntax = \"proto3\";\n\nimport \"google/protobuf/wrappers.proto\";\n\nmessage ConnectDefault1 {\n  google.protobuf.Int32Value I = 1;\n  google.protobuf.Int64Value L = 2;\n  google.protobuf.DoubleValue D = 3;\n  google.protobuf.BoolValue B = 4;\n  google.protobuf.StringValue S = 5;\n}\n"
+            },
+            {
+              "name": "OUTPUT",
+              "keyFormat": {"format": "KAFKA"},
+              "partitions": 4,
+              "valueFormat": {"format": "PROTOBUF", "properties": {"unwrapPrimitives": "true", "nullableRepresentation": "wrapper"}},
+              "valueSchema": "syntax = \"proto3\";\n\nimport \"google/protobuf/wrappers.proto\";\n\nmessage ConnectDefault1 {\n  google.protobuf.Int32Value I = 1;\n  google.protobuf.Int64Value L = 2;\n  google.protobuf.DoubleValue D = 3;\n  google.protobuf.BoolValue B = 4;\n  google.protobuf.StringValue S = 5;\n}\n"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "protobuf_nosr primitives with null",
+      "statements": [
+        "CREATE STREAM INPUT (K STRING KEY, i INTEGER, l BIGINT, d DOUBLE, b BOOLEAN, s STRING) WITH (kafka_topic='input', value_format='PROTOBUF_NOSR');",
+        "CREATE STREAM OUTPUT as SELECT * FROM input;"
+      ],
+      "inputs": [
+        {"topic": "input", "value": {"i": null, "l": 0, "d": null, "b": false, "s": null}},
+        {"topic": "input", "value": {"i": 0, "l": null, "d": 0.0, "b": null, "s": ""}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"i": 0, "l": 0, "d": 0.0, "b": false, "s": ""}},
+        {"topic": "OUTPUT", "value": {"i": 0, "l": 0, "d": 0.0, "b": false, "s": ""}}
+      ],
+      "post": {
+        "topics": {
+          "topics": [
+            {
+              "name": "input",
+              "keyFormat": {"format": "KAFKA"},
+              "partitions": 4,
+              "valueFormat": {"format": "PROTOBUF_NOSR"}
+            },
+            {
+              "name": "OUTPUT",
+              "keyFormat": {"format": "KAFKA"},
+              "partitions": 4,
+              "valueFormat": {"format": "PROTOBUF_NOSR"}
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "protobuf_nosr primitives with null and nullable as optional",
+      "statements": [
+        "CREATE STREAM INPUT (K STRING KEY, i INTEGER, l BIGINT, d DOUBLE, b BOOLEAN, s STRING) WITH (kafka_topic='input', value_format='PROTOBUF_NOSR', value_protobuf_nullable_representation='OPTIONAL');",
+        "CREATE STREAM OUTPUT WITH (value_format='PROTOBUF_NOSR', value_protobuf_nullable_representation='OPTIONAL') as SELECT * FROM input;"
+      ],
+      "inputs": [
+        {"topic": "input", "value": {"i": null, "l": 0, "d": null, "b": false, "s": null}},
+        {"topic": "input", "value": {"i": 0, "l": null, "d": 0.0, "b": null, "s": ""}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"i": null, "l": 0, "d": null, "b": false, "s": null}},
+        {"topic": "OUTPUT", "value": {"i": 0, "l": null, "d": 0.0, "b": null, "s": ""}}
+      ],
+      "post": {
+        "topics": {
+          "topics": [
+            {
+              "name": "input",
+              "keyFormat": {"format": "KAFKA"},
+              "partitions": 4,
+              "valueFormat": {"format": "PROTOBUF_NOSR", "properties": {"nullableRepresentation": "optional"}}
+            },
+            {
+              "name": "OUTPUT",
+              "keyFormat": {"format": "KAFKA"},
+              "partitions": 4,
+              "valueFormat": {"format": "PROTOBUF_NOSR", "properties": {"nullableRepresentation": "optional"}}
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "protobuf_nosr primitives with null and nullable as wrapper",
+      "statements": [
+        "CREATE STREAM INPUT (K STRING KEY, i INTEGER, l BIGINT, d DOUBLE, b BOOLEAN, s STRING) WITH (kafka_topic='input', value_format='PROTOBUF_NOSR', value_protobuf_nullable_representation='WRAPPER');",
+        "CREATE STREAM OUTPUT WITH (value_format='PROTOBUF_NOSR', value_protobuf_nullable_representation='WRAPPER') as SELECT * FROM input;"
+      ],
+      "inputs": [
+        {"topic": "input", "value": {"i": null, "l": 0, "d": null, "b": false, "s": null}},
+        {"topic": "input", "value": {"i": 0, "l": null, "d": 0.0, "b": null, "s": ""}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"i": null, "l": 0, "d": null, "b": false, "s": null}},
+        {"topic": "OUTPUT", "value": {"i": 0, "l": null, "d": 0.0, "b": null, "s": ""}}
+      ],
+      "post": {
+        "topics": {
+          "topics": [
+            {
+              "name": "input",
+              "keyFormat": {"format": "KAFKA"},
+              "partitions": 4,
+              "valueFormat": {"format": "PROTOBUF_NOSR", "properties": {"nullableRepresentation": "wrapper"}}
+            },
+            {
+              "name": "OUTPUT",
+              "keyFormat": {"format": "KAFKA"},
+              "partitions": 4,
+              "valueFormat": {"format": "PROTOBUF_NOSR", "properties": {"nullableRepresentation": "wrapper"}}
+            }
+          ]
+        }
+      }
+    },
+    {
       "name": "protobuf containers",
       "statements": [
         "CREATE STREAM INPUT (astr ARRAY<STRING>, mstr MAP<STRING, STRING>) WITH (kafka_topic='input', value_format='PROTOBUF');",
@@ -603,6 +807,197 @@
         "sources": [
           {"name": "OUTPUT", "type": "stream", "schema": "EXPECTED INT, C2 BYTES"}
         ]
+      }
+    },
+    {
+      "name": "specify a protobuf schema name with SCHEMA_FULL_NAME",
+      "statements": [
+        "CREATE STREAM INPUT WITH (kafka_topic='input', format='PROTOBUF', KEY_SCHEMA_FULL_NAME='ProtobufKey1', VALUE_SCHEMA_FULL_NAME='ProtobufValue1');",
+        "CREATE STREAM OUTPUT WITH (format='PROTOBUF', KEY_SCHEMA_FULL_NAME='ProtobufKey2', VALUE_SCHEMA_FULL_NAME='ProtobufValue2') AS SELECT * FROM input;"
+      ],
+      "topics": [
+        {
+          "name": "input",
+          "keyFormat": "PROTOBUF",
+          "keySchema": "syntax = \"proto3\"; message ProtobufKey1 {uint32 k1 = 1;}",
+          "valueFormat": "PROTOBUF",
+          "valueSchema": "syntax = \"proto3\"; message ProtobufValue1 {float c1 = 1; uint32 c2 = 2;}"
+        },
+        {
+          "name": "OUTPUT",
+          "keyFormat": "PROTOBUF",
+          "keySchema": "syntax = \"proto3\"; message ProtobufKey2 {uint32 k1 = 1;}",
+          "valueFormat": "PROTOBUF",
+          "valueSchema": "syntax = \"proto3\"; message ProtobufValue2 {float c1 = 1; uint32 c2 = 2;}"
+        }
+      ],
+      "inputs": [
+        {"topic": "input", "key": {"k1":  10}, "value": {"c1": 1.1234, "c2": 100}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": {"K1":  10}, "value": {"C1": 1.1233999729156494, "C2": 100}}
+      ]
+    },
+    {
+      "name": "specify a protobuf schema from multiple protobuf schema definitions",
+      "statements": [
+        "CREATE STREAM INPUT WITH (kafka_topic='input', format='PROTOBUF', KEY_SCHEMA_FULL_NAME='ProtobufKey2', VALUE_SCHEMA_FULL_NAME='ProtobufValue2');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM input;"
+      ],
+      "topics": [
+        {
+          "name": "input",
+          "keyFormat": "PROTOBUF",
+          "keySchema": "syntax = \"proto3\"; message ProtobufKey1 {uint32 k1 = 1;} message ProtobufKey2 {string k1 = 1;}",
+          "valueFormat": "PROTOBUF",
+          "valueSchema": "syntax = \"proto3\"; message ProtobufValue1 {float c1 = 1; uint32 c2 = 2;} message ProtobufValue2 {uint32 c1 = 1;}"
+        },
+        {
+          "name": "OUTPUT",
+          "keyFormat": "PROTOBUF",
+          "keySchema": "syntax = \"proto3\"; message ProtobufKey2 {string k1 = 1;}",
+          "valueFormat": "PROTOBUF",
+          "valueSchema": "syntax = \"proto3\"; message ProtobufValue2 {uint32 c1 = 1;}"
+        }
+      ],
+      "inputs": [
+        {"topic": "input", "key": {"k1":  "A"}, "value": {"c1": 100}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": {"K1":  "A"}, "value": {"C1": 100}}
+      ]
+    },
+    {
+      "name": "specify a protobuf schema with external references",
+      "statements": [
+        "CREATE STREAM INPUT WITH (kafka_topic='input', value_format='PROTOBUF', value_schema_id=1);",
+        "CREATE STREAM OUTPUT as SELECT * from INPUT;"
+      ],
+      "topics": [
+        {
+          "name": "input",
+          "valueFormat": "PROTOBUF",
+          "valueSchema": "syntax = \"proto3\";\n\nimport \"event.proto\"; \n\nmessage Logistics {\n Event event = 1;\n}",
+          "valueSchemaReferences": [
+            {
+              "name": "event.proto",
+              "format": "PROTOBUF",
+              "schema": "syntax = \"proto3\";\n\nmessage Event {\n int64 timestamp = 1;\n}"
+            }
+          ]
+        }
+      ],
+      "inputs": [
+        { "topic": "input", "value": { "event": { "timestamp": 1 } } }
+      ],
+      "outputs": [
+        { "topic": "OUTPUT", "value": { "event": { "timestamp": 1 } } }
+      ],
+      "post": {
+        "sources": [
+          {"name": "INPUT", "type": "stream", "schema": "`event` STRUCT<`timestamp` BIGINT>"},
+          {"name": "OUTPUT", "type": "stream", "schema": "`event` STRUCT<`timestamp` BIGINT>"}
+        ]
+      }
+    },
+    {
+      "name": "deserialize and serialize schema using internal references",
+      "statements": [
+        "CREATE STREAM INPUT WITH (kafka_topic='input', value_format='PROTOBUF');",
+        "CREATE STREAM INTERMEDIATE as SELECT * from INPUT;",
+        "CREATE STREAM OUTPUT as SELECT * from INTERMEDIATE;"
+      ],
+      "topics": [
+        {
+          "name": "input",
+          "valueFormat": "PROTOBUF",
+          "valueSchema": "syntax = \"proto3\";\n\nimport \"event.proto\"; \n\nmessage Logistics {\n Event event = 1;\n}",
+          "valueSchemaReferences": [
+            {
+              "name": "event.proto",
+              "format": "PROTOBUF",
+              "schema": "syntax = \"proto3\";\n\nmessage Event {\n int64 timestamp = 1;\n}"
+            }
+          ]
+        }
+      ],
+      "inputs": [
+        { "topic": "input", "value": { "event": { "timestamp": 1 } } }
+      ],
+      "outputs": [
+        { "topic": "INTERMEDIATE", "value": { "event": { "timestamp": 1 } } },
+        { "topic": "OUTPUT", "value": { "event": { "timestamp": 1 } } }
+      ],
+      "post": {
+        "sources": [
+          {"name": "INPUT", "type": "stream", "schema": "`EVENT` STRUCT<`TIMESTAMP` BIGINT>"},
+          {"name": "INTERMEDIATE", "type": "stream", "schema": "`EVENT` STRUCT<`TIMESTAMP` BIGINT>"},
+          {"name": "OUTPUT", "type": "stream", "schema": "`EVENT` STRUCT<`TIMESTAMP` BIGINT>"}
+        ]
+      }
+    },
+    {
+      "name": "deserialize and serialize schema using internal references using schema id",
+      "statements": [
+        "CREATE STREAM INPUT WITH (kafka_topic='input', value_format='PROTOBUF', value_schema_id=10);",
+        "CREATE STREAM OUTPUT WITH (value_schema_id=11) as SELECT * from INPUT;"
+      ],
+      "topics": [
+        {
+          "name": "input",
+          "valueFormat": "PROTOBUF",
+          "valueSchemaId": 10,
+          "valueSchema": "syntax = \"proto3\";\n\nimport \"event.proto\"; \n\nmessage Logistics {\n Event event = 1;\n}",
+          "valueSchemaReferences": [
+            {
+              "name": "event.proto",
+              "format": "PROTOBUF",
+              "schema": "syntax = \"proto3\";\n\nmessage Event {\n int64 timestamp = 1;\n}"
+            }
+          ]
+        },
+        {
+          "name": "OUTPUT",
+          "valueFormat": "PROTOBUF",
+          "valueSchemaId": 11,
+          "valueSchema": "syntax = \"proto3\";\n\nimport \"event.proto\"; \n\nmessage Logistics {\n Event event = 1;\n}",
+          "valueSchemaReferences": [
+            {
+              "name": "event.proto",
+              "format": "PROTOBUF",
+              "schema": "syntax = \"proto3\";\n\nmessage Event {\n int64 timestamp = 1;\n}"
+            }
+          ]
+        }
+      ],
+      "inputs": [
+        { "topic": "input", "value": { "event": { "timestamp": 1 } } }
+      ],
+      "outputs": [
+        { "topic": "OUTPUT", "value": { "event": { "timestamp": 1 } } }
+      ],
+      "post": {
+        "sources": [
+          {"name": "INPUT", "type": "stream", "schema": "`event` STRUCT<`timestamp` BIGINT>"},
+          {"name": "OUTPUT", "type": "stream", "schema": "`event` STRUCT<`timestamp` BIGINT>"}
+        ]
+      }
+    },
+    {
+      "name": "fail if protobuf schema name is not found",
+      "statements": [
+        "CREATE STREAM INPUT WITH (kafka_topic='input_topic', value_format='PROTOBUF', VALUE_SCHEMA_FULL_NAME='ProtobufValue1000');"
+      ],
+      "topics": [
+        {
+          "name": "input",
+          "valueFormat": "PROTOBUF",
+          "valueSchema": "syntax = \"proto3\"; message ProtobufValue1 {float c1 = 1; uint32 c2 = 2;} message ProtobufValue2 {uint32 c1 = 1;}"
+        }
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Schema for message values on topic 'input_topic' does not exist in the Schema Registry."
       }
     },
     {

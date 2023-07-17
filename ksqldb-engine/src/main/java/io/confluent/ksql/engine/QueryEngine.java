@@ -18,19 +18,21 @@ package io.confluent.ksql.engine;
 import io.confluent.ksql.analyzer.Analysis;
 import io.confluent.ksql.analyzer.QueryAnalyzer;
 import io.confluent.ksql.config.SessionConfig;
+import io.confluent.ksql.execution.ExecutionPlan;
+import io.confluent.ksql.execution.ExecutionPlanBuilder;
+import io.confluent.ksql.execution.plan.PlanInfo;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Sink;
-import io.confluent.ksql.physical.PhysicalPlan;
-import io.confluent.ksql.physical.PhysicalPlanBuilder;
 import io.confluent.ksql.planner.LogicalPlanNode;
 import io.confluent.ksql.planner.LogicalPlanner;
 import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.KsqlStatementException;
 import java.util.Objects;
 import java.util.Optional;
 import org.apache.kafka.streams.StreamsBuilder;
@@ -57,29 +59,41 @@ class QueryEngine {
       final Query query,
       final Optional<Sink> sink,
       final MetaStore metaStore,
-      final KsqlConfig config
+      final KsqlConfig config,
+      final String statementTextMasked
   ) {
     final String outputPrefix = config.getString(KsqlConfig.KSQL_OUTPUT_TOPIC_NAME_PREFIX_CONFIG);
+    final Boolean pullLimitClauseEnabled = config.getBoolean(
+            KsqlConfig.KSQL_QUERY_PULL_LIMIT_CLAUSE_ENABLED);
 
     final QueryAnalyzer queryAnalyzer =
-        new QueryAnalyzer(metaStore, outputPrefix);
+        new QueryAnalyzer(metaStore,
+            outputPrefix,
+            pullLimitClauseEnabled
+        );
 
-    final Analysis analysis = queryAnalyzer.analyze(query, sink);
+    final Analysis analysis;
+    try {
+      analysis = queryAnalyzer.analyze(query, sink);
+    } catch (final KsqlException e) {
+      throw new KsqlStatementException(e.getMessage(), statementTextMasked, e);
+    }
 
     return new LogicalPlanner(config, analysis, metaStore).buildPersistentLogicalPlan();
   }
 
-  PhysicalPlan buildPhysicalPlan(
+  ExecutionPlan buildPhysicalPlan(
       final LogicalPlanNode logicalPlanNode,
       final SessionConfig config,
-      final MutableMetaStore metaStore,
-      final QueryId queryId
+      final MetaStore metaStore,
+      final QueryId queryId,
+      final Optional<PlanInfo> oldPlanInfo
   ) {
 
     final StreamsBuilder builder = new StreamsBuilder();
 
     // Build a physical plan, in this case a Kafka Streams DSL
-    final PhysicalPlanBuilder physicalPlanBuilder = new PhysicalPlanBuilder(
+    final ExecutionPlanBuilder executionPlanBuilder = new ExecutionPlanBuilder(
         builder,
         config.getConfig(true),
         serviceContext,
@@ -87,6 +101,6 @@ class QueryEngine {
         metaStore
     );
 
-    return physicalPlanBuilder.buildPhysicalPlan(logicalPlanNode, queryId);
+    return executionPlanBuilder.buildPhysicalPlan(logicalPlanNode, queryId, oldPlanInfo);
   }
 }

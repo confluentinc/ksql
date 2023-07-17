@@ -19,6 +19,7 @@ import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import com.fasterxml.jackson.datatype.guava.GuavaModule;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import io.confluent.ksql.json.KsqlTypesSerializationModule;
 import io.confluent.ksql.json.StructSerializationModule;
@@ -30,15 +31,20 @@ public enum ConnectJsonMapper {
 
   INSTANCE;
 
-  private final ObjectMapper mapper = new ObjectMapper()
-      .disable(JsonGenerator.Feature.AUTO_CLOSE_TARGET)
-      .registerModule(new Jdk8Module())
-      .registerModule(new StructSerializationModule())
-      .registerModule(new KsqlTypesSerializationModule())
-      .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
-      .enable(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS)
-      .enable(JsonGenerator.Feature.WRITE_BIGDECIMAL_AS_PLAIN)
-      .setNodeFactory(JsonNodeFactory.withExactBigDecimals(true));
+  private final ObjectMapper mapper = buildMapper();
+
+  final ObjectMapper buildMapper() {
+    return new ObjectMapper()
+        .disable(JsonGenerator.Feature.AUTO_CLOSE_TARGET)
+        .registerModule(new Jdk8Module())
+        .registerModule(new StructSerializationModule())
+        .registerModule(new KsqlTypesSerializationModule())
+        .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
+        .enable(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS)
+        .enable(JsonGenerator.Feature.WRITE_BIGDECIMAL_AS_PLAIN)
+        .setNodeFactory(JsonNodeFactory.withExactBigDecimals(true))
+        .registerModule(new GuavaModule());
+  }
 
   public ObjectMapper get() {
     return mapper.copy();

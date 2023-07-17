@@ -1,8 +1,8 @@
 # KLIP 31 - Metastore Backups
 
 **Author**: Sergio Peña (@spena) |
-**Release Target**: 0.11 |
-**Status**: Merged |
+**Release Target**: 0.11.0; 6.0.0 |
+**Status**: _Merged_ |
 **Discussion**: https://github.com/confluentinc/ksql/pull/5741
 
 **tl;dr:** _KSQL should keep a local backup of the metastore (or command_topic) to allow users recover from an accidental

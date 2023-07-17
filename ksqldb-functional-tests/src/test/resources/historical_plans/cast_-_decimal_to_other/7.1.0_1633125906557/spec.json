@@ -1,0 +1,214 @@
+{
+  "version" : "7.1.0",
+  "timestamp" : 1633125906557,
+  "path" : "query-validation-tests/cast.json",
+  "schemas" : {
+    "CSAS_OUT_0.KsqlTopic.Source" : {
+      "schema" : "`ID` STRING KEY, `VAL` DECIMAL(4, 2)",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "AVRO"
+      }
+    },
+    "CSAS_OUT_0.OUT" : {
+      "schema" : "`ID` STRING KEY, `I` INTEGER, `L` BIGINT, `D` DOUBLE, `S` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "AVRO"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "decimal to other",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : null,
+      "value" : {
+        "val" : "00.00"
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : null,
+      "value" : {
+        "val" : "00.01"
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : null,
+      "value" : {
+        "val" : "10.00"
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : null,
+      "value" : {
+        "val" : "10.01"
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "OUT",
+      "key" : null,
+      "value" : {
+        "I" : 0,
+        "L" : 0,
+        "D" : 0.0,
+        "S" : "0.00"
+      }
+    }, {
+      "topic" : "OUT",
+      "key" : null,
+      "value" : {
+        "I" : 0,
+        "L" : 0,
+        "D" : 0.01,
+        "S" : "0.01"
+      }
+    }, {
+      "topic" : "OUT",
+      "key" : null,
+      "value" : {
+        "I" : 10,
+        "L" : 10,
+        "D" : 10.0,
+        "S" : "10.00"
+      }
+    }, {
+      "topic" : "OUT",
+      "key" : null,
+      "value" : {
+        "I" : 10,
+        "L" : 10,
+        "D" : 10.01,
+        "S" : "10.01"
+      }
+    } ],
+    "topics" : [ {
+      "name" : "test_topic",
+      "valueSchema" : {
+        "type" : "record",
+        "name" : "KsqlDataSourceSchema",
+        "namespace" : "io.confluent.ksql.avro_schemas",
+        "fields" : [ {
+          "name" : "VAL",
+          "type" : [ "null", {
+            "type" : "bytes",
+            "scale" : 2,
+            "precision" : 4,
+            "connect.version" : 1,
+            "connect.parameters" : {
+              "scale" : "2",
+              "connect.decimal.precision" : "4"
+            },
+            "connect.name" : "org.apache.kafka.connect.data.Decimal",
+            "logicalType" : "decimal"
+          } ],
+          "default" : null
+        } ],
+        "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
+      },
+      "valueFormat" : "AVRO",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "OUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM TEST (ID STRING KEY, val DECIMAL(4,2)) WITH (kafka_topic='test_topic', value_format='AVRO');", "CREATE STREAM OUT AS SELECT ID, cast(val AS INT) as i, cast(val AS BIGINT) as l, cast(val as DOUBLE) as d, cast(val AS STRING) as s FROM TEST;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "OUT",
+        "type" : "STREAM",
+        "schema" : "`ID` STRING KEY, `I` INTEGER, `L` BIGINT, `D` DOUBLE, `S` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "AVRO",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`ID` STRING KEY, `VAL` DECIMAL(4, 2)",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "AVRO",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "AVRO"
+          },
+          "partitions" : 4,
+          "valueSchema" : {
+            "type" : "record",
+            "name" : "KsqlDataSourceSchema",
+            "namespace" : "io.confluent.ksql.avro_schemas",
+            "fields" : [ {
+              "name" : "VAL",
+              "type" : [ "null", {
+                "type" : "bytes",
+                "scale" : 2,
+                "precision" : 4,
+                "connect.version" : 1,
+                "connect.parameters" : {
+                  "scale" : "2",
+                  "connect.decimal.precision" : "4"
+                },
+                "connect.name" : "org.apache.kafka.connect.data.Decimal",
+                "logicalType" : "decimal"
+              } ],
+              "default" : null
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
+          }
+        }, {
+          "name" : "OUT",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "AVRO"
+          },
+          "partitions" : 4,
+          "valueSchema" : {
+            "type" : "record",
+            "name" : "KsqlDataSourceSchema",
+            "namespace" : "io.confluent.ksql.avro_schemas",
+            "fields" : [ {
+              "name" : "I",
+              "type" : [ "null", "int" ],
+              "default" : null
+            }, {
+              "name" : "L",
+              "type" : [ "null", "long" ],
+              "default" : null
+            }, {
+              "name" : "D",
+              "type" : [ "null", "double" ],
+              "default" : null
+            }, {
+              "name" : "S",
+              "type" : [ "null", "string" ],
+              "default" : null
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
+          }
+        } ]
+      }
+    }
+  }
+}

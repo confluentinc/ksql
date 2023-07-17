@@ -1,0 +1,98 @@
+{
+  "version" : "7.2.0",
+  "timestamp" : 1648774566204,
+  "path" : "query-validation-tests/formats.json",
+  "schemas" : {
+    "query-id.OUTPUT" : {
+      "schema" : "`K` STRING KEY, `FOO` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "KAFKA"
+      }
+    },
+    "query-id.SOURCE" : {
+      "schema" : "`K` STRING KEY, `FOO` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "KAFKA"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "explicit format - ksql.new.query.planner.enabled=true",
+    "inputs" : [ {
+      "topic" : "input",
+      "key" : "foo",
+      "value" : "bar"
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : "foo",
+      "value" : "bar"
+    } ],
+    "topics" : [ {
+      "name" : "input",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM INPUT (K STRING KEY, foo STRING) WITH (kafka_topic='input', format='KAFKA');", "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;" ],
+    "properties" : {
+      "ksql.persistence.default.format.value" : "JSON",
+      "ksql.new.query.planner.enabled" : "true"
+    },
+    "post" : {
+      "sources" : [ {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`K` STRING KEY, `FOO` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "KAFKA",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`K` STRING KEY, `FOO` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "KAFKA",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "input",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "KAFKA"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "KAFKA"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

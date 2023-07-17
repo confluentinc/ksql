@@ -34,6 +34,8 @@ Use the Java client to:
 - [Get metadata about the ksqlDB cluster](#server-info)
 - [Manage, list and describe connectors](#connector-operations)
 - [Define variables for substitution](#variable-substitution)
+- [Execute Direct HTTP Requests](#direct-http-requests)
+- [Assert the existence of a topic or schema](#assert-topics-schemas)
 
 Get started below or skip to the end for full-fledged [examples](#tutorial-examples).
 
@@ -69,21 +71,12 @@ Start by creating a `pom.xml` for your Java application:
             <name>ksqlDB</name>
             <url>https://ksqldb-maven.s3.amazonaws.com/maven/</url>
         </repository>
-        <repository>
-            <id>confluent-packages</id>
-            <name>Confluent</name>
-            <url>https://jenkins-confluent-packages-beta-maven.s3.amazonaws.com/{{ site.kstreamsbetatag }}/{{ site.kstreamsbetabuild }}/maven/</url>
-        </repository>
     </repositories>
 
     <pluginRepositories>
         <pluginRepository>
             <id>ksqlDB</id>
             <url>https://ksqldb-maven.s3.amazonaws.com/maven/</url>
-        </pluginRepository>
-        <pluginRepository>
-            <id>confluent-packages</id>
-            <url>https://jenkins-confluent-packages-beta-maven.s3.amazonaws.com/{{ site.kstreamsbetatag }}/{{ site.kstreamsbetabuild }}/maven/</url>
         </pluginRepository>
     </pluginRepositories>
 
@@ -92,6 +85,7 @@ Start by creating a `pom.xml` for your Java application:
             <groupId>io.confluent.ksql</groupId>
             <artifactId>ksqldb-api-client</artifactId>
             <version>${ksqldb.version}</version>
+            <classifier>with-dependencies</classifier>
         </dependency>
     </dependencies>
 
@@ -116,9 +110,24 @@ Start by creating a `pom.xml` for your Java application:
 
 !!! note
       If you’re using ksqlDB for Confluent Platform (CP), use the CP-specific modules
-      from [http://packages.confluent.io/maven/](http://packages.confluent.io/maven/)
+      from [https://packages.confluent.io/maven/](https://packages.confluent.io/maven/)
       by replacing the repositories in the example POM above with a repository with this
       URL instead. Also update `ksqldb.version` to be a CP version, such as `{{ site.cprelease }}`, instead.
+
+!!! note
+      The `with-dependencies` artifact was introduced in ksqlDB version 0.29 and CP version 7.4.0.  This jar includes  
+      all the necessary dependencies and relocates most of them in an attempt to avoid classpath issues.  Using this jar
+      provides the easiest way to get started.
+      If you want more control over the dependencies on the classpath, you can depend directly on the client 
+      using this dependency block instead:
+      ```
+          <dependency>
+              <groupId>io.confluent.ksql</groupId>
+              <artifactId>ksqldb-api-client</artifactId>
+              <version>${ksqldb.version}</version>
+          </dependency>
+      ```
+      If you do this, you will need to add all the transitive dependencies for `ksqldb-api-client`.
 
 Create your example app at `src/main/java/my/ksqldb/app/ExampleApp.java`:
 
@@ -540,7 +549,7 @@ Starting with ksqlDB 0.11.0, the `executeStatement()` method enables client apps
 - Create new ksqlDB streams and tables
 - Drop existing ksqlDB streams and tables
 - Create new persistent queries, i.e., `CREATE ... AS SELECT` and `INSERT INTO ... AS SELECT` statements
-- Terminate persistent queries
+- Pause, Resume, and Terminate persistent queries
 
 ```java
 public interface Client {
@@ -739,12 +748,12 @@ Map<String, String> connectorProperties = ImmutableMap.of(
   "table.whitelist", "users",
   "key", "username"
 );
-client.createConnector("jdbc-connector", true, connectorProperties).get();
+client.createConnector("jdbc-connector", true, connectorProperties, false).get();
 ```
 
 Drop a connector:
 ```java
-client.dropConnector("jdbc-connector").get();
+client.dropConnector("jdbc-connector", true).get();
 ```
 
 List connectors:
@@ -806,6 +815,81 @@ client.undefine("topic");
 Get all variables:
 ```java
 Map<String, Object> variables = client.getVariables();
+```
+
+Execute Direct HTTP Requests<a name="direct-http-requests"></a>
+---------------------------------------------------------------
+
+Sometimes, you need to execute requests directly against the ksqlDB server for reasons including, 
+but not limited to, accessing features in ksqlDB REST API that are not available in the API client,
+or deserializing responses into different classes that are more native to your application.
+
+For this purpose, the Client now adds an `HttpRequest` and `HttpResponse` interface that you can 
+use for sending direct requests. 
+
+### Example Usage ###
+Call the `/info` endpoint in ksqlDB with: 
+```java
+HttpResponse response = client.buildRequest("GET", "/info")
+    .send()
+    .get();
+
+// check status with
+assert response.status() == 200;
+
+// parse body (a byte[]) with:
+parseIntoJson(response.body())
+
+// or use the helper method to read body into a map:
+Map<String, Map<String, Object>> info = response.bodyAsMap();
+```
+
+Add query properties variables: 
+```java
+HttpResponse response = client.buildRequest("POST", "/ksql")
+    .payload("ksql", "CREATE STREAM FOO AS CONCAT(A, `wow;`) FROM `BAR`;")
+    .propertiesKey("streamsProperties")
+    .property("auto.offset.reset", "earliest")
+    .send()
+    .get();
+assert response.status() == 200;
+```
+
+Or build the entire payload manually: 
+```java
+HttpResponse response = client.buildRequest("POST", "/ksql")
+    .payload("ksql", "CREATE STREAM FOO AS CONCAT(A, `wow;`) FROM `BAR`;")
+    .payload("streamsProperties", Collections.singletonMap("auto.offset.reset", "earliest"))
+    .send()
+    .get();
+assert response.status() == 200;
+```
+
+The `send()` method adds authentication headers as specified in 
+[ClientOptions](api/io/confluent/ksql/api/client/ClientOptions.html).
+
+Assert the existence of a topic or schema<a name="assert-topics-schemas"></a>
+----------------------------------------------------------------------------
+
+Starting with ksqlDB 0.27, users can use the `assertSchema` and `assertTopic` methods to assert the
+existence of resources. If the assertion fails, then the method will return a failed `CompletableFuture`.
+
+### Example Usage ###
+Assert that a topic and schema exist before creating a stream:
+
+```java
+client.assertTopic("foo", ImmutableMap.of("partitions", 1, "replicas", 3), true)
+        .thenCompose((a) -> client.assertSchema("foo-key", 3, true))
+        .thenAccept((a) -> client.executeStatement("CREATE STREAM..."))
+        .exceptionally(...);
+```
+
+Assert that a topic doesn't exist:
+
+```java
+client.assertTopic("foo", false)
+        .thenAccept(() -> client.executeStatement("CREATE STREAM..."))
+        .exceptionally(...);
 ```
 
 Tutorial Examples<a name="tutorial-examples"></a>
@@ -999,7 +1083,7 @@ ClientOptions options = ClientOptions.create()
 
 Get the API key and endpoint URL from your {{ site.ccloud }} cluster.
 
-- For the the API key, see 
+- For the API key, see 
   [Create an API key for Confluent Cloud ksqlDB](https://docs.confluent.io/cloud/current/cp-component/ksqldb-ccloud-cli.html#create-an-api-key-for-ccloud-ksql-cloud-through-the-ccloud-cli).
 - For the endpoint, run the `ccloud ksql app list` command. For more information,
   see [Access a ksqlDB application in Confluent Cloud with an API key](https://docs.confluent.io/cloud/current/cp-component/ksqldb-ccloud-cli.html#access-a-ksql-cloud-application-in-ccloud-with-an-api-key).

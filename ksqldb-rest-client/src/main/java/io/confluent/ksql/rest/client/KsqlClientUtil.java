@@ -23,6 +23,7 @@ import static io.netty.handler.codec.http.HttpResponseStatus.UNAUTHORIZED;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.confluent.ksql.rest.ApiJsonMapper;
 import io.confluent.ksql.rest.Errors;
+import io.confluent.ksql.rest.client.exception.KsqlRestClientException;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.vertx.core.buffer.Buffer;
 import java.util.Optional;

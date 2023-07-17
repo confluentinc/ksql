@@ -1,8 +1,8 @@
 ---
 layout: page
 title: CREATE TABLE AS SELECT
-tagline:  ksqlDB CREATE TABLE AS SELECT statement
-description: Syntax for the CREATE TABLE AS SELECT statement in ksqlDB
+tagline:  ksqlDB CREATE TABLE AS SELECT syntax
+description: Register a table on a SQL query result to enable operations like joins and aggregations
 keywords: ksqlDB, create, table, push query
 ---
 
@@ -18,34 +18,53 @@ CREATE [OR REPLACE] TABLE table_name
   [ WHERE condition ]
   [ GROUP BY grouping_expression ]
   [ HAVING having_expression ]
-  [ EMIT CHANGES ];
+  [ EMIT output_refinement ];
 ```
 
 ## Description
 
-Create a new ksqlDB materialized table view, along with the corresponding Kafka topic, and
-stream the result of the query as a changelog into the topic.
+Create a new materialized table view with a corresponding new {{ site.ak }}
+sink topic, and stream the result of the query as a changelog into the topic.
 
-The WINDOW clause can only be used if the `from_item` is a stream and the query contains
-a `GROUP BY` clause.
+ksqlDB enables a _materialized view_, which is a table that maintains running,
+aggregate calculations that are updated incrementally as new data rows arrive.
+Queries against materialized views are fast, and ksqlDB ensures that a key's
+rows appear in a single partition. For more information, see
+[Materialized Views](/concepts/materialized-views/#materialized-views).
 
+Materialized views keep only the aggregation, so the full history of view
+changes is stored in a _changelog_ topic, which you can replay later to restore
+state, if a materialized view is lost.
+
+Both of ksqlDB's two kinds of queries, [pull](select-pull-query.md) and
+[push](select-push-query.md), can fetch materialized view data from a table.
+Pull queries terminate in a traditional relational manner. Push queries stay
+alive to capture streaming changes. For more information, see
+[Queries](/concepts/queries/).
+
+!!! Tip "See CREATE TABLE AS SELECT in action"
+    - [Detect Unusual Credit Card Activity](https://developer.confluent.io/tutorials/credit-card-activity/confluent.html#execute-ksqldb-code)
+    - [Notify Passengers of Flight Updates](https://developer.confluent.io/tutorials/aviation/confluent.html#execute-ksqldb-code)
+    - [Understand user behavior with clickstream data](https://developer.confluent.io/tutorials/clickstream/confluent.html#execute-ksqldb-code)
 ### Joins
 
-Joins to streams can use any stream column. If the join criteria is not the key column of the stream
-ksqlDB will internally repartition the data. 
+In ksqlDB, you can join streams to streams, streams to tables, and tables to
+tables, which means that you can join _data at rest_ with _data in motion_.
 
-!!! important
-    {{ site.ak }} guarantees the relative order of any two messages from
-    one source partition only if they are also both in the same partition
-    *after* the repartition. Otherwise, {{ site.ak }} is likely to interleave
-    messages. The use case will determine if these ordering guarantees are
-    acceptable.
+Joins to streams can use any stream column. If the join criteria is not the key
+column of the stream, ksqlDB internally repartitions the data. 
 
-Joins to tables must use the table's PRIMARY KEY as the join criteria: non-key joins are 
-not supported. For more information, see [Join Event Streams with ksqlDB](../joins/join-streams-and-tables.md).
+Joins to tables must use the table's PRIMARY KEY as the join criteria. Non-key
+joins are not supported. For more information, see
+[Joining Collections](../joins/join-streams-and-tables.md).
 
-See [Partition Data to Enable Joins](../joins/partition-data.md) for more information about how to
-correctly partition your data for joins.
+{{ site.ak }} guarantees the relative order of any two messages from one source
+partition only if they are also both in the same partition *after* the
+repartition. Otherwise, {{ site.ak }} is likely to interleave messages. The use
+case will determine if these ordering guarantees are acceptable.
+
+For more information on how to partition your data correctly for joins,
+see [Partition Data to Enable Joins](../joins/partition-data.md).
 
 !!! note
 
@@ -55,11 +74,12 @@ correctly partition your data for joins.
     - Once a table is created, you can't change the number of partitions.
       To change the partition count, you must drop the table and create it again.
 
-The primary key of the resulting table is determined by the following rules, in order of priority:
+The primary key of the resulting table is determined by the following rules,
+in order of priority:
 
-1. If the query has a  `GROUP BY`, then the resulting number of primary key
-   columns will match the number of grouping expressions. For each grouping
-   expression: 
+1. If the query has a `GROUP BY` clause, the resulting number of primary key
+   columns matches the number of grouping expressions. For each grouping
+   expression:
 
     1. If the grouping expression is a single source-column reference, the
        corresponding primary key column matches the name, type, and contents
@@ -71,52 +91,279 @@ The primary key of the resulting table is determined by the following rules, in 
 
     3. If the `GROUP BY` is any other expression, the primary key has a
        system-generated name, unless you provide an alias in the projection,
-       and matches the type and contents of the result of the expression.
+       and the key matches the type and contents of the result of the expression.
 
 1. If the query has a join. For more information, see
    [Join Synthetic Key Columns](/developer-guide/joins/synthetic-keys).
 1. Otherwise, the primary key matches the name, unless you provide an alias
    in the projection, and type of the source table's primary key.
  
-The projection must include all columns required in the result, including any primary key columns.
+The projection must include all columns required in the result, including any
+primary key columns.
 
 ### Serialization
 
 For supported [serialization formats](/reference/serialization),
 ksqlDB can integrate with the [Confluent Schema Registry](https://docs.confluent.io/current/schema-registry/index.html).
+
 ksqlDB registers the value schema of the new table with {{ site.sr }} automatically. 
 The schema is registered under the subject `<topic-name>-value`.
 
+ksqlDB can also use [Schema Inference With ID](/operate-and-deploy/schema-inference-with-id)
+to enable using a physical schema for data serialization.
+
 ### Windowed aggregation
 
-Specify the WINDOW clause to create a windowed aggregation. For more information,
+Specify the `WINDOW` clause to create a windowed aggregation. For more information,
 see [Time and Windows in ksqlDB](../../concepts/time-and-windows-in-ksqldb-queries.md).
+
+The `WINDOW` clause can only be used if the `from_item` is a stream and the query
+contains a `GROUP BY` clause.
 
 ## Table properties
 
-Specify details about your table by using the WITH clause, which supports the
-following properties:
+Use the `WITH` clause to specify details about your table.
 
-|     Property      |                                             Description                                              |
-| ----------------- | ---------------------------------------------------------------------------------------------------- |
-| KAFKA_TOPIC       | The name of the Kafka topic that backs this table. If this property is not set, then the name of the table will be used as default. |
-| KEY_FORMAT        | Specifies the serialization format of the message key in the topic. For supported formats, see [Serialization Formats](/reference/serialization). If this property is not set, the format from the left-most input stream/table is used. |
-| VALUE_FORMAT      | Specifies the serialization format of the message value in the topic. For supported formats, see [Serialization Formats](/reference/serialization). If this property is not set, the format from the left-most input stream/table is used. |
-| FORMAT            | Specifies the serialization format of both the message key and value in the topic. It is not valid to supply this property alongside either `KEY_FORMAT` or `VALUE_FORMAT`. For supported formats, see [Serialization Formats](/reference/serialization). |
-| VALUE_DELIMITER   | Used when VALUE_FORMAT='DELIMITED'. Supports single character to be a delimiter, defaults to ','. For space and tab delimited values you must use the special values 'SPACE' or 'TAB', not an actual space or tab character. |
-| PARTITIONS        | The number of partitions in the backing topic. If this property is not set, then the number of partitions of the input stream/table will be used. In join queries, the property values are taken from the left-most stream or table. You can't change the number of partitions on a table. To change the partition count, you must drop the table and create it again. |
-| REPLICAS          | The replication factor for the topic. If this property is not set, then the number of replicas of the input stream or table will be used. In join queries, the property values are taken from the left-most stream or table. |
-| TIMESTAMP         | Sets a column within this stream's schema to be used as the default source of `ROWTIME` for any downstream queries. Downstream queries that use time-based operations, such as windowing, will process records in this stream based on the timestamp in this column. The column will be used to set the timestamp on any records emitted to Kafka. Timestamps have a millisecond accuracy. If not supplied, the `ROWTIME` of the source stream is used. <br>**Note**: This doesn't affect the processing of the query that populates this stream. For example, given the following statement:<br><pre>CREATE STREAM foo WITH (TIMESTAMP='t2') AS<br>&#0009;SELECT * FROM bar<br>&#0009;WINDOW TUMBLING (size 10 seconds);<br>&#0009;EMIT CHANGES;</pre>The window into which each row of `bar` is placed is determined by bar's `ROWTIME`, not `t2`. |
-| TIMESTAMP_FORMAT  | Used in conjunction with TIMESTAMP. If not set the timestamp column must be of type `bigint`. If it is set, then the TIMESTAMP column must be of type varchar and have a format that can be parsed with the Java `DateTimeFormatter`. If your timestamp format has characters requiring single quotes, you can escape them with two successive single quotes, `''`, for example: `'yyyy-MM-dd''T''HH:mm:ssX'`. For more information on timestamp formats, see [DateTimeFormatter](https://cnfl.io/java-dtf). |
-| WRAP_SINGLE_VALUE | Controls how values are serialized where the values schema contains only a single column. The setting controls how the query will serialize values with a single-column schema.<br>If set to `true`, ksqlDB will serialize the column as a named column within a record.<br>If set to `false`, ksqlDB will serialize the column as an anonymous value.<br>If not supplied, the system default, defined by [ksql.persistence.wrap.single.values](/reference/server-configuration#ksqlpersistencewrapsinglevalues), then the format's default is used.<br>**Note:** `null` values have special meaning in ksqlDB. Care should be taken when dealing with single-column schemas where the value can be `null`. For more information, see [Single column (un)wrapping](/reference/serialization#single-field-unwrapping).<br>**Note:** Supplying this property for formats that do not support wrapping, for example `DELIMITED`, or when the value schema has multiple columns, will result in an error. |
+!!! important
+    In join queries, property values are taken from the left-most stream or
+    table of the join.
 
+The `WITH` clause supports the following properties.
+
+### FORMAT
+
+The serialization format of both the message key and value in the topic.
+For supported formats, see [Serialization Formats](/reference/serialization).
 
 !!! note
-	  - To use Avro or Protobuf, you must have {{ site.sr }} enabled and
-    `ksql.schema.registry.url` must be set in the ksqlDB server configuration
-    file. See [Configure ksqlDB for Avro, Protobuf, and JSON schemas](../../operate-and-deploy/installation/server-config/avro-schema.md#configure-avro-and-schema-registry-for-ksql).
-    - Avro and Protobuf field names are not case sensitive in ksqlDB. This matches the ksqlDB
-    column name behavior.
+    - To use the Avro, Protobuf, or JSON_SR formats, you must enable {{ site.sr }}
+      and set [ksql.schema.registry.url](/reference/server-configuration/#ksqlschemaregistryurl)
+      in the ksqlDB Server configuration file. For more information, see
+      [Configure ksqlDB for Avro, Protobuf, and JSON schemas](/operate-and-deploy/installation/server-config/avro-schema).
+    - The JSON format doesn't require {{ site.sr }} to be enabled. 
+    - Avro and Protobuf field names are not case sensitive in ksqlDB.
+      This matches the ksqlDB column name behavior.
+
+You can't use the `FORMAT` property with the `KEY_FORMAT` or
+`VALUE_FORMAT` properties in the same `CREATE TABLE AS SELECT` statement.
+
+### KAFKA_TOPIC
+
+The name of the {{ site.ak }} topic that backs the table.
+
+If `KAFKA_TOPIC` isn't set, the topic name is set to the `ksql.service.id`
+server setting concatenated with the table name, with all characters
+capitalized. In {{ site.ccloud }}, the service ID is the ksqlDB cluster ID.
+
+### KEY_FORMAT
+
+The serialization format of the message key in the topic. For supported formats,
+see [Serialization Formats](/reference/serialization).
+
+In join queries, the `KEY_FORMAT` value is taken from the left-most stream or
+table.
+
+You can't use the `KEY_FORMAT` property with the `FORMAT` property in the
+same `CREATE TABLE AS SELECT` statement.
+
+### KEY_PROTOBUF_NULLABLE_REPRESENTATION
+
+In the default configuration, primitive fields in protobuf do not distinguish `null` from the
+default values (such as zero, empty string). To enable the use of a protobuf schema that can make
+this distinction, set `KEY_PROTOBUF_NULLABLE_REPRESENTATION` to either `OPTIONAL` or `WRAPPER`.
+The schema will be used to serialize keys for the table created by this `CREATE` statement.
+For more details, see the corresponding section in the
+[Serialization Formats](/reference/serialization#protobuf) documentation.
+
+### KEY_SCHEMA_FULL_NAME
+
+The full name of the key schema in {{ site.sr }}.
+
+The schema is used for schema inference and data serialization.
+
+### KEY_SCHEMA_ID
+
+The schema ID of the key schema in {{ site.sr }}.
+
+The schema is used for schema inference and data serialization.
+
+For more information, see
+[Schema Inference With Schema ID](/operate-and-deploy/schema-inference-with-id).
+
+### PARTITIONS
+
+The number of partitions in the backing topic.
+
+If `PARTITIONS` isn't set, the number of partitions of the input stream or
+table is used.
+
+In join queries, the `PARTITIONS` value is taken from the left-most stream or
+table.
+
+You can't change the number of partitions on an existing table. To change the
+partition count, you must drop the table and create it again.
+
+### REPLICAS
+
+The number of replicas in the backing topic.
+
+If `REPLICAS` isn't set, the number of replicas of the input stream or table
+is used.
+
+In join queries, the `REPLICAS` value is taken from the left-most stream or
+table.
+
+### RETENTION_MS
+
+!!! note
+    Available starting in version `0.28.3-RC7`.
+
+The retention specified in milliseconds in the backing topic.
+
+If `RETENTION_MS` isn't set, the retention of the input stream is
+used. But in the case of inheritance, the CREATE TABLE declaration is not
+the source of the `RETENTION_MS` value.
+
+This setting is only accepted while creating windowed tables.
+Additionally, the larger of `RETENTION_MS` and `RETENTION` is used while
+creating the backing topic if it doesn't exist.
+
+In join queries, the `RETENTION_MS` value is taken from the left-most stream.
+
+For example, to retain the computed windowed aggregation results for a week,
+you might run the following query with `retention_ms` = 604800000 and `retention` = 2 days:
+```sql
+CREATE TABLE pageviews_per_region 
+WITH (kafka_topic='pageviews-per-region', format='avro', partitions=3, retention_ms=604800000)
+AS SELECT regionid, count(*) FROM s1 
+WINDOW TUMBLING (SIZE 10 SECONDS, RETENTION 2 DAYS)
+GROUP BY regionid;
+```
+
+You can't change the retention on an existing table. To change the
+retention, you have these options:
+
+- Drop the table and the topic it's registered on with the DROP TABLE and
+  DELETE TOPIC statements, and create them again.
+- Drop the table with the DROP TABLE statement, update the topic with
+  `retention.ms=<new-value>` and register the table again with
+  `CREATE TABLE WITH (RETENTION_MS=<new-value>)`.
+- For a table that was created with `CREATE TABLE WITH (RETENTION_MS=<old-value>)`,
+  update the topic with `retention.ms=<new-value>`, and update the table with the
+  `CREATE OR REPLACE TABLE WITH (RETENTION_MS=<new-value>)` statement.
+
+### TIMESTAMP
+
+Sets a column within the tables's schema to be used as the default source of
+`ROWTIME` for any downstream queries.
+
+Timestamps have an accuracy of milliseconds.
+
+Downstream queries that use time-based operations, like windowing, process
+records in this table based on the timestamp in this column. The column is
+used to set the timestamp on any records emitted to {{ site.ak }}.
+
+If not provided, the `ROWTIME` of the source table is used.
+
+This doesn't affect the processing of the query that populates
+this table. For example, given the following statement:
+
+```sql
+CREATE TABLE foo WITH (TIMESTAMP='t2') AS
+  SELECT * FROM bar
+  WINDOW TUMBLING (size 10 seconds);
+  EMIT CHANGES;
+```
+
+The window into which each row of `bar` is placed is determined by `bar`'s
+`ROWTIME`, not `t2`.
+
+### TIMESTAMP_FORMAT
+
+Use with the `TIMESTAMP` property to specify the type and format of the
+timestamp column.
+
+- If set, the `TIMESTAMP` column must be of type `varchar` and have a format that
+  can be parsed with the Java [DateTimeFormatter](https://cnfl.io/java-dtf).
+- If not set, the ksqlDB timestamp column must be of type `bigint` or `timestamp`.
+
+If your timestamp format has characters that require single quotes, escape them
+with successive single quotes, `''`, for example: `'yyyy-MM-dd''T''HH:mm:ssX'`.
+
+For more information, see [Timestamp formats](/reference/sql/time/#timestamp-formats).
+
+### VALUE_AVRO_SCHEMA_FULL_NAME
+
+The full name of the value AVRO schema in {{ site.sr }}.
+
+The schema is used for schema inference and data serialization. 
+
+### VALUE_DELIMITER
+
+Set the delimiter string to use when `VALUE_FORMAT` is set to `DELIMITED`.
+
+You can use a single character as a delimiter. The default is `','`.
+
+For space-delimited and tab-delimited values, use the special values `SPACE`
+or `TAB` instead of the actual space or tab characters.
+
+### VALUE_FORMAT
+
+The serialization format of the message value in the topic. For supported formats,
+see [Serialization Formats](/reference/serialization).
+
+If `VALUE_FORMAT` isn't provided, the system default is used, defined by
+[ksql.persistence.default.format.value](/reference/server-configuration#ksqlpersistencedefaultformatvalue).
+If the default is also not set, the statement is rejected as invalid.
+
+You can't use the `VALUE_FORMAT` property with the `FORMAT` property in the
+same `CREATE TABLE AS SELECT` statement.
+
+### VALUE_PROTOBUF_NULLABLE_REPRESENTATION
+
+In the default configuration, primitive fields in protobuf do not distinguish `null` from the
+default values (such as zero, empty string). To enable the use of a protobuf schema that can make
+this distinction, set `VALUE_PROTOBUF_NULLABLE_REPRESENTATION` to either `OPTIONAL` or `WRAPPER`.
+The schema will be used to serialize values for the table created by this `CREATE` statement.
+For more details, see the corresponding section in the
+[Serialization Formats](/reference/serialization#protobuf) documentation.
+
+### VALUE_SCHEMA_FULL_NAME
+
+The full name of the value schema in {{ site.sr }}.
+
+The schema is used for schema inference and data serialization. 
+
+### VALUE_SCHEMA_ID
+
+The schema ID of the value schema in {{ site.sr }}.
+
+The schema is used for schema inference and data serialization.
+
+For more information, see
+[Schema Inference With Schema ID](/operate-and-deploy/schema-inference-with-id).
+
+### WRAP_SINGLE_VALUE
+
+Specifies how ksqlDB deserializes the value of messages in the backing
+topic that contain only a single column.
+
+- If set to `true`, ksqlDB expects the column to have been serialized as a
+  named column within a record.
+- If set to `false`, ksqlDB expects the column to have been serialized as an
+  anonymous value.
+- If not supplied, the system default is used, defined by the
+  [ksql.persistence.wrap.single.values](/reference/server-configuration#ksqlpersistencewrapsinglevalues)
+  configuration property and defaulting to `true`.
+
+!!! note
+
+    - Be careful when you have a single-column schema where the value can be `NULL`,
+      because `NULL` values have a special meaning in ksqlDB.
+    - Supplying this property for formats that don't support wrapping, for example
+      `DELIMITED`, or when the value schema has multiple columns, causes an error.
+
+For more information, see [Single field unwrapping](/reference/serialization/#single-field-unwrapping).
 
 Examples
 --------
@@ -124,6 +371,21 @@ Examples
 ```sql
 -- Derive a new view from an existing table:
 CREATE TABLE derived AS
+  SELECT
+    a,
+    b,
+    d
+  FROM source
+  WHERE A is not null
+  EMIT CHANGES;
+```
+
+```sql
+-- Derive a new view from an existing table with value serialization 
+-- schema defined by VALUE_SCHEMA_ID:
+CREATE TABLE derived WITH (
+    VALUE_SCHEMA_ID=1
+  ) AS
   SELECT
     a,
     b,

@@ -24,6 +24,7 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.plan.ExecutionStep;
+import io.confluent.ksql.logging.processing.MeteredProcessingLoggerFactory;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.name.ColumnName;
@@ -110,6 +111,8 @@ public class QueryDescriptionFactoryTest {
   private ProcessingLogger processingLogger;
   @Mock
   private QueryMetadata.Listener listener;
+  @Mock
+  private MeteredProcessingLoggerFactory processingLoggerFactory;
   
   private QueryMetadata transientQuery;
   private PersistentQueryMetadata persistentQuery;
@@ -144,7 +147,8 @@ public class QueryDescriptionFactoryTest {
         ResultType.STREAM,
         0L,
         0L,
-        listener
+        listener,
+        processingLoggerFactory
     );
     transientQuery.initialize();
 
@@ -155,7 +159,7 @@ public class QueryDescriptionFactoryTest {
         SQL_TEXT,
         PhysicalSchema.from(PERSISTENT_SCHEMA, SerdeFeatures.of(), SerdeFeatures.of()),
         SOURCE_NAMES,
-        sinkDataSource,
+        Optional.of(sinkDataSource),
         "execution plan",
         QUERY_ID,
         Optional.empty(),
@@ -173,7 +177,8 @@ public class QueryDescriptionFactoryTest {
         0L,
         0L,
         listener,
-        Optional.empty()
+        Optional.empty(),
+        processingLoggerFactory
     );
     persistentQuery.initialize();
 
@@ -287,7 +292,8 @@ public class QueryDescriptionFactoryTest {
         ResultType.STREAM,
         0L,
         0L,
-        listener
+        listener,
+        processingLoggerFactory
     );
     transientQuery.initialize();
 
@@ -327,7 +333,8 @@ public class QueryDescriptionFactoryTest {
         ResultType.STREAM,
         0L,
         0L,
-        listener
+        listener,
+        processingLoggerFactory
     );
     transientQuery.initialize();
 

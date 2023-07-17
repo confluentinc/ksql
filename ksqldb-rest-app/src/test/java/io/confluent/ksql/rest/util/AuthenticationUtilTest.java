@@ -38,7 +38,7 @@ public class AuthenticationUtilTest {
   private KsqlConfig ksqlConfig;
   @Mock
   private KsqlAuthTokenProvider authTokenProvider;
-  private static final String TOKEN = "token";
+  private static final String TOKEN = "TOKEN";
   private final AuthenticationUtil authenticationUtil
       = new AuthenticationUtil(Clock.fixed(Instant.ofEpochMilli(0), ZoneId.of("UTC")));
 
@@ -54,12 +54,17 @@ public class AuthenticationUtilTest {
     when(ksqlConfig.getLong(KsqlConfig.KSQL_WEBSOCKET_CONNECTION_MAX_TIMEOUT_MS)).thenReturn(0L);
 
     // Then:
-    assertThat(authenticationUtil.getTokenTimeout(TOKEN, ksqlConfig, Optional.of(authTokenProvider)), equalTo(Optional.empty()));
+    assertThat(authenticationUtil.getTokenTimeout(Optional.of(TOKEN), ksqlConfig, Optional.of(authTokenProvider)), equalTo(Optional.empty()));
+  }
+
+  @Test
+  public void shouldReturnDefaultWhenNoTokenPresent() {
+    assertThat(authenticationUtil.getTokenTimeout(Optional.empty(), ksqlConfig, Optional.of(authTokenProvider)), equalTo(Optional.of(60000L)));
   }
 
   @Test
   public void shouldReturnDefaultWhenNoAuthTokenProviderPresent() {
-    assertThat(authenticationUtil.getTokenTimeout(TOKEN, ksqlConfig, Optional.empty()), equalTo(Optional.of(60000L)));
+    assertThat(authenticationUtil.getTokenTimeout(Optional.of(TOKEN), ksqlConfig, Optional.empty()), equalTo(Optional.of(60000L)));
   }
 
   @Test
@@ -68,12 +73,12 @@ public class AuthenticationUtilTest {
     when(authTokenProvider.getLifetimeMs(TOKEN)).then(invokation -> { throw new Exception();});
 
     // Then:
-    assertThat(authenticationUtil.getTokenTimeout(TOKEN, ksqlConfig, Optional.of(authTokenProvider)), equalTo(Optional.of(60000L)));
+    assertThat(authenticationUtil.getTokenTimeout(Optional.of(TOKEN), ksqlConfig, Optional.of(authTokenProvider)), equalTo(Optional.of(60000L)));
   }
 
   @Test
   public void shouldReturnTokenExpiryTime() {
-    assertThat(authenticationUtil.getTokenTimeout(TOKEN, ksqlConfig, Optional.of(authTokenProvider)), equalTo(Optional.of(50000L)));
+    assertThat(authenticationUtil.getTokenTimeout(Optional.of(TOKEN), ksqlConfig, Optional.of(authTokenProvider)), equalTo(Optional.of(50000L)));
   }
 
   @Test
@@ -82,6 +87,6 @@ public class AuthenticationUtilTest {
     when(authTokenProvider.getLifetimeMs(TOKEN)).thenReturn(50000000L);
 
     // Then:
-    assertThat(authenticationUtil.getTokenTimeout(TOKEN, ksqlConfig, Optional.of(authTokenProvider)), equalTo(Optional.of(60000L)));
+    assertThat(authenticationUtil.getTokenTimeout(Optional.of(TOKEN), ksqlConfig, Optional.of(authTokenProvider)), equalTo(Optional.of(60000L)));
   }
 }

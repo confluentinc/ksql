@@ -18,10 +18,20 @@ package io.confluent.ksql.analyzer;
 import static io.confluent.ksql.links.DocumentationLinks.PUSH_PULL_QUERY_DOC_LINK;
 
 import com.google.common.collect.ImmutableList;
+import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
+import io.confluent.ksql.execution.expression.tree.Expression;
+import io.confluent.ksql.execution.util.ColumnExtractor;
+import io.confluent.ksql.name.Name;
+import io.confluent.ksql.parser.tree.SingleColumn;
+import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.util.KsqlException;
+import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
+import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 public class PullQueryValidator implements QueryValidator {
 
@@ -29,6 +39,13 @@ public class PullQueryValidator implements QueryValidator {
       + "See " + PUSH_PULL_QUERY_DOC_LINK + " for more info."
       + System.lineSeparator()
       + "Add EMIT CHANGES if you intended to issue a push query.";
+
+  private static final String PULL_QUERY_LIMIT_CLAUSE_ERROR_IF_DISABLED
+      = "LIMIT clause in pull queries is currently disabled. "
+      + "You can enable them by setting ksql.query.pull.limit.clause.enabled=true.";
+
+  private static final String PULL_QUERY_LIMIT_CLAUSE_ERROR_IF_NEGATIVE
+      = "Pull queries don't support negative integers in the LIMIT clause.";
 
   private static final List<Rule> RULES = ImmutableList.of(
       Rule.of(
@@ -56,12 +73,17 @@ public class PullQueryValidator implements QueryValidator {
           "Pull queries don't support HAVING clauses."
       ),
       Rule.of(
-          analysis -> !analysis.getLimitClause().isPresent(),
-          "Pull queries don't support LIMIT clauses."
+          PullQueryValidator::validateLimitClause
       ),
       Rule.of(
           analysis -> !analysis.getRefinementInfo().isPresent(),
           "Pull queries don't support EMIT clauses."
+      ),
+      Rule.of(
+          PullQueryValidator::disallowedColumnNameInSelectClause
+      ),
+      Rule.of(
+          PullQueryValidator::disallowedColumnNameInWhereClause
       )
   );
 
@@ -72,25 +94,95 @@ public class PullQueryValidator implements QueryValidator {
     } catch (final KsqlException e) {
       throw new KsqlException(e.getMessage() + PULL_QUERY_SYNTAX_HELP, e);
     }
+    QueryValidatorUtil.validateNoUserColumnsWithSameNameAsPseudoColumns(analysis);
+  }
+
+  private static Optional<String> validateLimitClause(final Analysis analysis) {
+    if (!analysis.getPullLimitClauseEnabled() && analysis.getLimitClause().isPresent()) {
+      return Optional.of(PULL_QUERY_LIMIT_CLAUSE_ERROR_IF_DISABLED);
+    } else if (analysis.getLimitClause().isPresent()
+            && analysis.getLimitClause().getAsInt() < 0) {
+      return Optional.of(PULL_QUERY_LIMIT_CLAUSE_ERROR_IF_NEGATIVE);
+    } else {
+      return Optional.empty();
+    }
+  }
+
+  private static Optional<String> disallowedColumnNameInSelectClause(final Analysis analysis) {
+
+    final String disallowedColumns =  analysis.getSelectItems()
+        .stream()
+        .filter(col -> col instanceof SingleColumn) //filter out select *
+        .map(SingleColumn.class::cast)
+        .map(SingleColumn::getExpression)
+        .map(ColumnExtractor::extractColumns)
+        .flatMap(Collection::stream)
+        .map(ColumnReferenceExp::getColumnName)
+        .filter(SystemColumns::isDisallowedInPullOrScalablePushQueries)
+        .map(Name::toString)
+        .collect(Collectors.joining(", "));
+
+    if (disallowedColumns.length() != 0) {
+      final String message = "Pull queries don't support the following columns in SELECT clauses: "
+          + disallowedColumns + "\n";
+      return Optional.of(message);
+    }
+
+    return Optional.empty();
+  }
+
+  private static Optional<String> disallowedColumnNameInWhereClause(final Analysis analysis) {
+    final Optional<Expression> expression = analysis.getWhereExpression();
+
+    if (!expression.isPresent()) {
+      return Optional.empty();
+    }
+
+    final String disallowedColumns = ColumnExtractor.extractColumns(expression.get())
+        .stream()
+        .map(ColumnReferenceExp::getColumnName)
+        .filter(SystemColumns::isDisallowedInPullOrScalablePushQueries)
+        .map(Name::toString)
+        .collect(Collectors.joining(", "));
+
+    if (disallowedColumns.length() != 0) {
+      final String message = "Pull queries don't support the following columns in WHERE clauses: "
+          + disallowedColumns + "\n";
+      return Optional.of(message);
+    }
+
+    return Optional.empty();
   }
 
   private static final class Rule {
 
-    private final Predicate<Analysis> condition;
-    private final String failureMsg;
+    private final Function<Analysis, Optional<String>> potentialErrorMessageGenerator;
 
     private static Rule of(final Predicate<Analysis> condition, final String failureMsg) {
-      return new Rule(condition, failureMsg);
+      final Function<Analysis, Optional<String>> potentialErrorMessageGenerator = (analysis) ->
+          !condition.test(analysis) ? Optional.of(failureMsg) : Optional.empty();
+
+      return new Rule(potentialErrorMessageGenerator);
     }
 
-    private Rule(final Predicate<Analysis> condition, final String failureMsg) {
-      this.condition = Objects.requireNonNull(condition, "condition");
-      this.failureMsg = Objects.requireNonNull(failureMsg, "failureMsg");
+    private static Rule of(
+        final Function<Analysis, Optional<String>> potentialErrorMessageGenerator) {
+      return new Rule(potentialErrorMessageGenerator);
+    }
+
+    private Rule(final Function<Analysis, Optional<String>> potentialErrorMessageGenerator) {
+      this.potentialErrorMessageGenerator =
+          Objects.requireNonNull(
+              potentialErrorMessageGenerator,
+              "potentialErrorMessageGenerator"
+          );
     }
 
     public void check(final Analysis analysis) {
-      if (!condition.test(analysis)) {
-        throw new KsqlException(failureMsg);
+      final Optional<String> exceptionMessage = potentialErrorMessageGenerator.apply(analysis);
+
+      if (exceptionMessage.isPresent()) {
+        throw new KsqlException(exceptionMessage.get());
       }
     }
   }

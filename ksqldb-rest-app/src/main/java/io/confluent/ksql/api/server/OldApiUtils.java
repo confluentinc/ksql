@@ -95,6 +95,15 @@ public final class OldApiUtils {
       final Optional<MetricsCallbackHolder> metricsCallbackHolder,
       final long startTimeNanos
   ) {
+    // If there's a {@link NextHandlerOutput}, then that an indication that the handler doesn't want
+    // to handle the response and is passing it off to the next handler in the line. This is
+    // primarily used for allowing one handler to have the first shot at trying to handle it and
+    // falling back to another, such as for a migration.
+    if (endpointResponse.getEntity() instanceof NextHandlerOutput) {
+      routingContext.next();
+      return;
+    }
+
     final HttpServerResponse response = routingContext.response();
     response.putHeader(CONTENT_TYPE_HEADER, JSON_CONTENT_TYPE);
 
@@ -144,6 +153,11 @@ public final class OldApiUtils {
                   streamingOutput.getWriteTimeoutMs());
           routingContext.request().connection().closeHandler(v -> {
             // Close the OutputStream on close of the HTTP connection
+            try {
+              streamingOutput.close();
+            } catch (final Throwable t) {
+              promise.fail(t);
+            }
             try {
               ros.close();
             } catch (IOException e) {

@@ -19,12 +19,14 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.Lists;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.api.server.StreamingOutput;
+import io.confluent.ksql.query.BlockingRowQueue;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.Errors;
+import io.confluent.ksql.rest.entity.PushContinuationToken;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.LogicalSchema.Builder;
-import io.confluent.ksql.util.KeyValue;
+import io.confluent.ksql.util.KeyValueMetadata;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PushQueryMetadata;
 import java.io.EOFException;
@@ -40,6 +42,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 class QueryStreamWriter implements StreamingOutput {
+
   private static final int WRITE_TIMEOUT_MS = 10 * 60000;
 
   private static final Logger log = LoggerFactory.getLogger(QueryStreamWriter.class);
@@ -50,6 +53,7 @@ class QueryStreamWriter implements StreamingOutput {
   private final TombstoneFactory tombstoneFactory;
   private volatile Exception streamsException;
   private volatile boolean limitReached = false;
+  private volatile boolean complete;
   private volatile boolean connectionClosed;
   private boolean closed;
 
@@ -59,24 +63,46 @@ class QueryStreamWriter implements StreamingOutput {
       final ObjectMapper objectMapper,
       final CompletableFuture<Void> connectionClosedFuture
   ) {
+    this(queryMetadata, disconnectCheckInterval, objectMapper, connectionClosedFuture, false);
+  }
+
+  QueryStreamWriter(
+      final PushQueryMetadata queryMetadata,
+      final long disconnectCheckInterval,
+      final ObjectMapper objectMapper,
+      final CompletableFuture<Void> connectionClosedFuture,
+      final boolean emptyStream
+  ) {
     this.objectMapper = Objects.requireNonNull(objectMapper, "objectMapper");
     this.disconnectCheckInterval = disconnectCheckInterval;
     this.queryMetadata = Objects.requireNonNull(queryMetadata, "queryMetadata");
-    this.queryMetadata.setLimitHandler(new LimitHandler());
+    this.queryMetadata.setLimitHandler(() -> limitReached = true);
+    this.queryMetadata.setCompletionHandler(() -> complete = true);
     this.queryMetadata.setUncaughtExceptionHandler(new StreamsExceptionHandler());
-    this.tombstoneFactory = TombstoneFactory.create(queryMetadata);
+    this.tombstoneFactory = TombstoneFactory.create(
+        queryMetadata.getLogicalSchema(), queryMetadata.getResultType());
     connectionClosedFuture.thenAccept(v -> connectionClosed = true);
-    queryMetadata.start();
+    if (emptyStream) {
+      // if we're writing an empty stream, it's already complete,
+      // and we don't even need to bother starting Streams.
+      complete = true;
+    } else {
+      queryMetadata.start();
+    }
   }
 
+  // CHECKSTYLE_RULES.OFF: CyclomaticComplexity
   @Override
   public void write(final OutputStream out) {
+    // CHECKSTYLE_RULES.ON: CyclomaticComplexity
     try {
       out.write("[".getBytes(StandardCharsets.UTF_8));
       write(out, buildHeader());
 
-      while (!connectionClosed && queryMetadata.isRunning() && !limitReached) {
-        final KeyValue<List<?>, GenericRow> row = queryMetadata.getRowQueue().poll(
+      final BlockingRowQueue rowQueue = queryMetadata.getRowQueue();
+
+      while (!connectionClosed && queryMetadata.isRunning() && !limitReached && !complete) {
+        final KeyValueMetadata<List<?>, GenericRow> row = rowQueue.poll(
             disconnectCheckInterval,
             TimeUnit.MILLISECONDS
         );
@@ -91,13 +117,20 @@ class QueryStreamWriter implements StreamingOutput {
         drainAndThrowOnError(out);
       }
 
+      if (connectionClosed) {
+        return;
+      }
+
       drain(out);
 
       if (limitReached) {
         objectMapper.writeValue(out, StreamedRow.finalMessage("Limit Reached"));
-        out.write("]\n".getBytes(StandardCharsets.UTF_8));
-        out.flush();
+      } else if (complete) {
+        objectMapper.writeValue(out, StreamedRow.finalMessage("Query Completed"));
       }
+
+      out.write("]\n".getBytes(StandardCharsets.UTF_8));
+      out.flush();
     } catch (final EOFException exception) {
       // The user has terminated the connection; we can stop writing
       log.warn("Query terminated due to exception:" + exception.toString());
@@ -142,13 +175,22 @@ class QueryStreamWriter implements StreamingOutput {
 
     storedSchema.value().forEach(projectionSchema::valueColumn);
 
+    // No session consistency offered for push or stream pull queries
     return StreamedRow.header(queryId, projectionSchema.build());
   }
 
-  private StreamedRow buildRow(final KeyValue<List<?>, GenericRow> row) {
-    return row.value() == null
-        ? StreamedRow.tombstone(tombstoneFactory.createRow(row))
-        : StreamedRow.pushRow(row.value());
+  private StreamedRow buildRow(final KeyValueMetadata<List<?>, GenericRow> row) {
+    if (row.getRowMetadata().isPresent()
+        && row.getRowMetadata().get().getPushOffsetsRange().isPresent()) {
+      return StreamedRow.continuationToken(new PushContinuationToken(
+          row.getRowMetadata().get().getPushOffsetsRange().get().serialize()));
+    } else {
+      if (row.getKeyValue().value() == null) {
+        return StreamedRow.tombstone(tombstoneFactory.createRow(row.getKeyValue()));
+      } else {
+        return StreamedRow.pushRow(row.getKeyValue().value());
+      }
+    }
   }
 
   private void outputException(final OutputStream out, final Throwable exception) {
@@ -176,10 +218,10 @@ class QueryStreamWriter implements StreamingOutput {
   }
 
   private void drain(final OutputStream out) throws IOException {
-    final List<KeyValue<List<?>, GenericRow>> rows = Lists.newArrayList();
+    final List<KeyValueMetadata<List<?>, GenericRow>> rows = Lists.newArrayList();
     queryMetadata.getRowQueue().drainTo(rows);
 
-    for (final KeyValue<List<?>, GenericRow> row : rows) {
+    for (final KeyValueMetadata<List<?>, GenericRow> row : rows) {
       write(out, buildRow(row));
     }
   }
@@ -194,10 +236,4 @@ class QueryStreamWriter implements StreamingOutput {
     }
   }
 
-  private class LimitHandler implements io.confluent.ksql.query.LimitHandler {
-    @Override
-    public void limitReached() {
-      limitReached = true;
-    }
-  }
 }

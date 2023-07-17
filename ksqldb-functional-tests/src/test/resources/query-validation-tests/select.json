@@ -22,7 +22,10 @@
       }
     },
     {
-      "name": "multi-key columns reordered",
+      "name": "multi-key columns reordered -- old planner",
+      "properties": {
+        "ksql.new.query.planner.enabled": "false"
+      },
       "statements": [
         "CREATE STREAM INPUT (id int KEY, age int KEY, name STRING) WITH (kafka_topic='test_topic', format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT age, id, NAME FROM INPUT;"
@@ -36,6 +39,27 @@
       "post": {
         "sources": [
           {"name": "OUTPUT", "type": "stream", "schema": "ID INT KEY, AGE INT KEY, NAME STRING"}
+        ]
+      }
+    },
+    {
+      "name": "multi-key columns reordered -- new planner",
+      "properties": {
+        "ksql.new.query.planner.enabled": "true"
+      },
+      "statements": [
+        "CREATE STREAM input (id INT KEY, age INT KEY, name STRING) WITH (kafka_topic='test_topic', format='JSON');",
+        "CREATE STREAM output AS SELECT age, id, name FROM input;"
+      ],
+      "inputs": [
+        {"topic":  "test_topic", "key": {"id": 1, "age": 20}, "value": {"name": "a"}}
+      ],
+      "outputs": [
+        {"topic":  "OUTPUT", "key": {"AGE": 20, "ID": 1}, "value": {"NAME": "a"}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "AGE INT KEY, ID INT KEY, NAME STRING"}
         ]
       }
     },
@@ -59,6 +83,10 @@
     },
     {
       "name": "all columns - star",
+      "config": ["true", "false"],
+      "properties": {
+        "ksql.new.query.planner.enabled": "{CONFIG}"
+      },
       "statements": [
         "CREATE STREAM INPUT (id int KEY, name STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
@@ -94,18 +122,46 @@
       }
     },
     {
-      "name": "key missing from projection",
+      "name": "key missing from projection -- old planner",
+      "properties": {
+        "ksql.new.query.planner.enabled": "false"
+      },
       "statements": [
         "CREATE STREAM INPUT (id int KEY, name STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT NAME FROM INPUT;"
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "The query used to build `OUTPUT` must include the key column ID in its projection."
+        "message": "The query used to build `OUTPUT` must include the key column ID in its projection (eg, SELECT ID...)"
+      }
+    },
+    {
+      "name": "key missing from projection -- new planner",
+      "properties": {
+        "ksql.new.query.planner.enabled": "true"
+      },
+      "statements": [
+        "CREATE STREAM input (id INT KEY, name STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM output AS SELECT name FROM input;"
+      ],
+      "inputs": [
+        {"topic":  "test_topic", "timestamp": 1234, "key": 8, "value": {"name": "a"}}
+      ],
+      "outputs": [
+        {"topic":  "OUTPUT", "timestamp": 1234, "key": null, "value": {"name": "a"}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "NAME STRING"}
+        ]
       }
     },
     {
       "name": "unknown column",
+      "config": ["true", "false"],
+      "properties": {
+        "ksql.new.query.planner.enabled": "{CONFIG}"
+      },
       "statements": [
         "CREATE STREAM INPUT (id int KEY, name STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT ID, BOB, NAME FROM INPUT;"

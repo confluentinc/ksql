@@ -19,6 +19,7 @@ import static java.util.Objects.requireNonNull;
 
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonDeserializer;
@@ -68,6 +69,7 @@ public final class RecordNode {
   private final JsonNode value;
   private final Optional<Long> timestamp;
   private final Optional<WindowData> window;
+  private final Optional<List<TestHeader>> headers;
 
   @VisibleForTesting
   RecordNode(
@@ -75,13 +77,15 @@ public final class RecordNode {
       final JsonNode key,
       final JsonNode value,
       final Optional<Long> timestamp,
-      final Optional<WindowData> window
+      final Optional<WindowData> window,
+      final Optional<List<TestHeader>> headers
   ) {
     this.topicName = topicName == null ? "" : topicName;
     this.key = requireNonNull(key, "key");
     this.value = requireNonNull(value, "value");
     this.timestamp = requireNonNull(timestamp, "timestamp");
     this.window = requireNonNull(window, "window");
+    this.headers = requireNonNull(headers, "headers");
 
     if (this.topicName.isEmpty()) {
       throw new MissingFieldException("topic");
@@ -113,7 +117,8 @@ public final class RecordNode {
             .orElse(recordValue),
         value,
         timestamp,
-        window.orElse(null)
+        window.orElse(null),
+        headers
     );
   }
 
@@ -123,7 +128,8 @@ public final class RecordNode {
         record.getJsonKey().orElse(NullNode.getInstance()),
         record.getJsonValue().orElse(NullNode.getInstance()),
         record.timestamp(),
-        Optional.ofNullable(record.getWindow())
+        Optional.ofNullable(record.getWindow()),
+        record.headers()
     );
   }
 
@@ -147,6 +153,7 @@ public final class RecordNode {
     }
   }
 
+  @SuppressWarnings("unchecked")
   private Object coerceRecord(
       final Object record,
       final ParsedSchema schema,
@@ -171,7 +178,7 @@ public final class RecordNode {
         return record;
     }
 
-    columns.stream().forEach(c -> coerceColumn(recordMap, c));
+    columns.forEach(c -> coerceColumn(recordMap, c));
     return recordMap;
   }
 
@@ -217,7 +224,11 @@ public final class RecordNode {
       final Optional<WindowData> window = JsonParsingUtil
           .getOptional("window", node, jp, WindowData.class);
 
-      return new RecordNode(topic, key.orElse(NullNode.getInstance()), value, timestamp, window);
+      final Optional<List<TestHeader>> headers = JsonParsingUtil
+          .getOptional("headers", node, jp, new TypeReference<List<TestHeader>>() {});
+
+      return new RecordNode(
+          topic, key.orElse(NullNode.getInstance()), value, timestamp, window, headers);
     }
   }
 
@@ -238,6 +249,9 @@ public final class RecordNode {
       }
       if (record.window.isPresent()) {
         jsonGenerator.writeObjectField("window", record.window);
+      }
+      if (record.headers.isPresent()) {
+        jsonGenerator.writeObjectField("headers", record.headers.get());
       }
       jsonGenerator.writeEndObject();
     }

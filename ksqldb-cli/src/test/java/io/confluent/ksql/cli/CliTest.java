@@ -34,6 +34,7 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -57,13 +58,15 @@ import io.confluent.ksql.integration.Retry;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.client.KsqlRestClient;
-import io.confluent.ksql.rest.client.KsqlRestClientException;
-import io.confluent.ksql.rest.client.KsqlUnsupportedServerException;
 import io.confluent.ksql.rest.client.RestResponse;
+import io.confluent.ksql.rest.client.exception.KsqlMissingCredentialsException;
+import io.confluent.ksql.rest.client.exception.KsqlRestClientException;
+import io.confluent.ksql.rest.client.exception.KsqlUnsupportedServerException;
 import io.confluent.ksql.rest.entity.CommandId;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatus.Status;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
+import io.confluent.ksql.rest.entity.ConnectorList;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.ServerInfo;
@@ -157,8 +160,6 @@ public class CliTest {
       .around(TEST_HARNESS)
       .around(REST_APP);
 
-  private static final ServerInfo SERVER_INFO = mock(ServerInfo.class);
-
   @Rule
   public final Timeout timeout = Timeout.builder()
       .withTimeout(1, TimeUnit.MINUTES)
@@ -189,6 +190,7 @@ public class CliTest {
         REST_APP.getHttpListener().toString(),
         ImmutableMap.of(),
         ImmutableMap.of(),
+        Optional.empty(),
         Optional.empty()
     );
 
@@ -852,9 +854,10 @@ public class CliTest {
     when(mockRestClient.getServerInfo())
         .thenThrow(new KsqlRestClientException("Boom", new IOException("")));
 
-    new Cli(1L, 1L, mockRestClient, console)
+    final int error_code = new Cli(1L, 1L, mockRestClient, console)
         .runCommand("this is a command");
 
+    assertThat(error_code, is(-1));
     assertThat(terminal.getOutputString(),
         containsString("Please ensure that the URL provided is for an active KSQL server."));
   }
@@ -1065,18 +1068,63 @@ public class CliTest {
   @Test
   public void shouldDescribeAggregateFunction() {
     final String expectedSummary =
-            "Name        : TOPK\n" +
-                "Author      : Confluent\n" +
-                "Type        : AGGREGATE\n" +
-            "Jar         : internal\n" +
-            "Variations  : \n";
+            "Name        : TOPK\n"
+            + "Author      : Confluent\n"
+            + "Overview    : Returns the top k values for a column and other values in those records.\n"
+            + "Type        : AGGREGATE\n"
+            + "Jar         : internal\n"
+            + "Variations  : \n";
 
     final String expectedVariant =
-        "\tVariation   : TOPK(val INT)\n"
-        + "\tReturns     : ARRAY<INT>\n"
-        + "\tDescription : Calculates the TopK value for a column, per key.";
+        "\tVariation   : TOPK(val1 INT, val2 ANY[], k INT)\n"
+        + "\tReturns     : ARRAY<S>\n"
+        + "\tDescription : Returns the top k values for an integer column and other values in those records.";
 
     localCli.handleLine("describe function topk;");
+
+    final String output = terminal.getOutputString();
+    assertThat(output, containsString(expectedSummary));
+    assertThat(output, containsString(expectedVariant));
+  }
+
+  @Test
+  public void shouldDescribeVariadicAggregateFunction() {
+    final String expectedSummary =
+            "Name        : MID_VAR_ARG\n"
+                    + "Author      : Confluent\n"
+                    + "Overview    : Returns the sum of the provided longs, lengths of strings, and initial arguments.\n"
+                    + "Type        : AGGREGATE\n"
+                    + "Jar         : internal\n"
+                    + "Variations  : \n";
+
+    final String expectedVariant =
+            "\tVariation   : MID_VAR_ARG(val1 BIGINT, val2 VARCHAR[], first INT, second INT)\n"
+                    + "\tReturns     : BIGINT\n"
+                    + "\tDescription : Testing factory";
+
+    localCli.handleLine("describe function mid_var_arg;");
+
+    final String output = terminal.getOutputString();
+    assertThat(output, containsString(expectedSummary));
+    assertThat(output, containsString(expectedVariant));
+  }
+
+  @Test
+  public void shouldDescribeVariadicObjectAggregateFunction() {
+    final String expectedSummary =
+            "Name        : OBJ_COL_ARG\n"
+                    + "Author      : Confluent\n"
+                    + "Overview    : Returns an array of rows where all the given columns are non-null.\n"
+                    + "Type        : AGGREGATE\n"
+                    + "Jar         : internal\n"
+                    + "Variations  : \n";
+
+    final String expectedVariant =
+            "\tVariation   : OBJ_COL_ARG(val1 INT, val2 ANY[])\n"
+                    + "\tReturns     : ARRAY<INT>\n"
+                    + "\tDescription : Testing factory";
+
+    localCli.handleLine("describe function obj_col_arg;");
 
     final String output = terminal.getOutputString();
     assertThat(output, containsString(expectedSummary));
@@ -1217,6 +1265,30 @@ public class CliTest {
   }
 
   @Test
+  public void shouldPrintOnlyFailedStatementFromScriptFile() throws Exception {
+    // Given:
+    final File scriptFile = TMP.newFile("script.sql");
+    Files.write(scriptFile.toPath(), (""
+        + "drop stream if exists s1;\n"
+        + "create stream if not exist s1(id int) with (kafka_topic='s1', value_format='json', "
+        + "partitions=1);\n").getBytes(StandardCharsets.UTF_8));
+
+    // When:
+    final int error_code = localCli.runScript(scriptFile.getPath());
+
+    // Then:
+    final String out = terminal.getOutputString();
+    final String expected = "line 2:22: Syntax Error\n" +
+        "Syntax error at or near 'exist' at line 2:22\n" +
+        "Statement: create stream if not exist s1(id int) with " +
+        "(kafka_topic='s1', value_format='json', partitions=1);\n" +
+        "Caused by: line 2:22: Syntax error at line 2:22\n";
+    assertThat(error_code, is(-1));
+    assertThat(out, is(expected));
+    assertThat(out, not(containsString("drop stream if exists")));
+  }
+
+  @Test
   public void shouldUpdateCommandSequenceNumber() throws Exception {
     // Given:
     final String statementText = "create stream foo;";
@@ -1345,6 +1417,85 @@ public class CliTest {
 
     // Then:
     assertLastCommandSequenceNumber(mockRestClient, -1L);
+  }
+
+  @Test
+  public void shouldIssueCCloudConnectorRequest() throws Exception {
+    // Given:
+    final KsqlRestClient mockRestClient = givenMockRestClient();
+    when(mockRestClient.getIsCCloudServer()).thenReturn(true);
+    when(mockRestClient.getHasCCloudApiKey()).thenReturn(true);
+    when(mockRestClient.makeConnectorRequest(anyString(), anyLong()))
+        .thenReturn(RestResponse.successful(
+            OK.code(),
+            new KsqlEntityList(Collections.singletonList(
+                new ConnectorList("list connectors;", Collections.emptyList(), Collections.emptyList())))
+        ));
+
+    // When:
+    localCli.handleLine("list connectors;");
+
+    // Then:
+    verify(mockRestClient).makeConnectorRequest(anyString(), anyLong());
+  }
+
+  @Test
+  public void shouldIssueNonCCloudConnectorRequest() throws Exception {
+    // Given:
+    final KsqlRestClient mockRestClient = givenMockRestClient();
+    when(mockRestClient.getIsCCloudServer()).thenReturn(false);
+    when(mockRestClient.makeConnectorRequest(anyString(), anyLong()))
+        .thenReturn(RestResponse.successful(
+            OK.code(),
+            new KsqlEntityList(Collections.singletonList(
+                new ConnectorList("list connectors;", Collections.emptyList(), Collections.emptyList())))
+        ));
+
+    // When:
+    localCli.handleLine("list connectors;");
+
+    // Then:
+    verify(mockRestClient).makeConnectorRequest(anyString(), anyLong());
+  }
+
+  @Test
+  public void shouldThrowOnCCloudConnectorRequestWithoutApiKey() throws Exception {
+    // Given:
+    final KsqlRestClient mockRestClient = givenMockRestClient();
+    when(mockRestClient.getIsCCloudServer()).thenReturn(true);
+    when(mockRestClient.getHasCCloudApiKey()).thenReturn(false);
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlMissingCredentialsException.class,
+        () -> localCli.handleLine("list connectors;")
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("In order to use ksqlDB's connector "
+        + "management capabilities with a Confluent Cloud ksqlDB server, launch the "
+        + "ksqlDB command line with the additional flags '--confluent-api-key' and "
+        + "'--confluent-api-secret' to pass a Confluent Cloud API key."));
+    verify(mockRestClient, never()).makeConnectorRequest(anyString(), anyLong());
+  }
+
+  @Test
+  public void shouldNotExecuteAnyStatementsOnFailedValidation() throws Exception {
+    // Given:
+    final KsqlRestClient mockRestClient = givenMockRestClient();
+    when(mockRestClient.getIsCCloudServer()).thenReturn(true);
+    when(mockRestClient.getHasCCloudApiKey()).thenReturn(false);
+
+    // When: "show streams;" is valid but "list connectors;" will fail validation
+    assertThrows(
+        KsqlMissingCredentialsException.class,
+        () -> localCli.handleLine("show streams; list connectors;")
+    );
+
+    // Then:
+    verify(mockRestClient, never()).makeConnectorRequest(anyString(), anyLong());
+    // "show streams;" should not have been executed either
+    verify(mockRestClient, never()).makeKsqlRequest(anyString(), anyLong());
   }
 
   private void givenRequestPipelining(final String setting) {

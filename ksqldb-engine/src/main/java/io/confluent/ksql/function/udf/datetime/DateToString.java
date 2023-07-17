@@ -55,6 +55,9 @@ public class DateToString {
       @UdfParameter(
           description = "The format pattern should be in the format expected by"
               + " java.time.format.DateTimeFormatter.") final String formatPattern) {
+    if (formatPattern == null) {
+      return null;
+    }
     try {
       final DateTimeFormatter formatter = formatters.get(formatPattern);
       return LocalDate.ofEpochDay(epochDays).format(formatter);

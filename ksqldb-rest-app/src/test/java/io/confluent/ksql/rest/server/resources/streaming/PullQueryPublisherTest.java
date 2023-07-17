@@ -15,14 +15,8 @@
 
 package io.confluent.ksql.rest.server.resources.streaming;
 
-import static com.google.common.util.concurrent.RateLimiter.create;
-import io.confluent.ksql.api.server.SlidingWindowRateLimiter;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsString;
-import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyBoolean;
-import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.inOrder;
@@ -31,31 +25,20 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.ListeningScheduledExecutorService;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.config.SessionConfig;
-import io.confluent.ksql.engine.KsqlEngine;
-import io.confluent.ksql.execution.streams.RoutingFilter.RoutingFilterFactory;
+import io.confluent.ksql.api.server.MetricsCallbackHolder;
+import io.confluent.ksql.execution.pull.PullQueryResult;
 import io.confluent.ksql.name.ColumnName;
-import io.confluent.ksql.parser.tree.Query;
-import io.confluent.ksql.physical.pull.HARouting;
-import io.confluent.ksql.physical.pull.PullQueryResult;
-import io.confluent.ksql.query.PullQueryQueue;
+import io.confluent.ksql.query.PullQueryWriteStream;
 import io.confluent.ksql.rest.entity.StreamedRow;
-import io.confluent.ksql.rest.util.ConcurrencyLimiter;
-import io.confluent.ksql.rest.util.ConcurrencyLimiter.Decrementer;
-import io.confluent.ksql.rest.server.resources.streaming.Flow.Subscriber;
 import io.confluent.ksql.rest.server.resources.streaming.Flow.Subscription;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import io.confluent.ksql.services.ServiceContext;
-import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KeyValue;
-import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KeyValueMetadata;
 import java.util.Collection;
 import java.util.List;
-import java.util.Optional;
 import java.util.function.Consumer;
 import org.junit.Before;
 import org.junit.Test;
@@ -78,40 +61,19 @@ public class PullQueryPublisherTest {
   private static final List<?> ROW1 = ImmutableList.of("a", "b");
   private static final List<?> ROW2 = ImmutableList.of("c", "d");
 
-  private static final KeyValue<List<?>, GenericRow> KV1
-      = new KeyValue<>(null, GenericRow.fromList(ROW1));
-  private static final KeyValue<List<?>, GenericRow> KV2
-      = new KeyValue<>(null, GenericRow.fromList(ROW2));
+  private static final KeyValueMetadata<List<?>, GenericRow> KV1
+      = new KeyValueMetadata<>(new KeyValue<>(null, GenericRow.fromList(ROW1)));
+  private static final KeyValueMetadata<List<?>, GenericRow> KV2
+      = new KeyValueMetadata<>(new KeyValue<>(null, GenericRow.fromList(ROW2)));
 
   @Mock
-  private KsqlEngine engine;
-  @Mock
-  private ServiceContext serviceContext;
-  @Mock
-  private ConfiguredStatement<Query> statement;
-  @Mock
-  private Subscriber<Collection<StreamedRow>> subscriber;
+  private WebSocketSubscriber<StreamedRow> subscriber;
   @Mock
   private ListeningScheduledExecutorService exec;
   @Mock
-  private PullQueryQueue pullQueryQueue;
+  private PullQueryWriteStream pullQueryQueue;
   @Mock
   private PullQueryResult pullQueryResult;
-  @Mock
-  private RoutingFilterFactory routingFilterFactory;
-  @Mock
-  private SessionConfig sessionConfig;
-  @Mock
-  private KsqlConfig ksqlConfig;
-  @Mock
-  private HARouting haRouting;
-  @Mock
-  private ConcurrencyLimiter concurrencyLimiter;
-  @Mock
-  private SlidingWindowRateLimiter pullBandRateLimiter;
-  @Mock
-  private Decrementer decrementer;
-
   @Captor
   private ArgumentCaptor<Subscription> subscriptionCaptor;
   @Captor
@@ -125,28 +87,18 @@ public class PullQueryPublisherTest {
   @Before
   public void setUp() {
     publisher = new PullQueryPublisher(
-        engine,
-        serviceContext,
         exec,
-        statement,
-        Optional.empty(),
-        TIME_NANOS,
-        routingFilterFactory,
-        create(1),
-        concurrencyLimiter,
-        pullBandRateLimiter,
-        haRouting);
+        pullQueryResult,
+        new MetricsCallbackHolder(),
+        TIME_NANOS);
 
-    when(statement.getSessionConfig()).thenReturn(sessionConfig);
-    when(sessionConfig.getConfig(false)).thenReturn(ksqlConfig);
-    when(sessionConfig.getOverrides()).thenReturn(ImmutableMap.of());
     when(pullQueryResult.getSchema()).thenReturn(PULL_SCHEMA);
     when(pullQueryResult.getPullQueryQueue()).thenReturn(pullQueryQueue);
     doNothing().when(pullQueryResult).onException(onErrorCaptor.capture());
     doNothing().when(pullQueryResult).onCompletion(completeCaptor.capture());
     int[] times = new int[1];
     doAnswer(inv -> {
-      Collection<? super KeyValue<List<?>, GenericRow>> c = inv.getArgument(0);
+      Collection<? super KeyValueMetadata<List<?>, GenericRow>> c = inv.getArgument(0);
       if (times[0] == 0) {
         c.add(KV1);
       } else if (times[0] == 1) {
@@ -156,14 +108,11 @@ public class PullQueryPublisherTest {
       times[0]++;
       return null;
     }).when(pullQueryQueue).drainTo(any());
-    when(engine.executePullQuery(any(), any(), any(), any(), any(), any(), anyBoolean()))
-        .thenReturn(pullQueryResult);
     when(exec.submit(any(Runnable.class))).thenAnswer(inv -> {
       Runnable runnable = inv.getArgument(0);
       runnable.run();
       return null;
     });
-    when(concurrencyLimiter.increment()).thenReturn(decrementer);
   }
 
   @Test
@@ -172,21 +121,7 @@ public class PullQueryPublisherTest {
     publisher.subscribe(subscriber);
 
     // Then:
-    verify(subscriber).onSubscribe(any());
-  }
-
-  @Test
-  public void shouldRunQueryWithCorrectParams() {
-    // Given:
-    givenSubscribed();
-
-    // When:
-    subscription.request(1);
-
-    // Then:
-    verify(engine).executePullQuery(
-        eq(serviceContext), eq(statement), eq(haRouting), any(), any(), eq(Optional.empty()),
-        anyBoolean());
+    verify(subscriber).onSubscribe(any(), any(), anyLong());
   }
 
   @Test
@@ -199,9 +134,6 @@ public class PullQueryPublisherTest {
 
     // Then:
     verify(subscriber).onNext(any());
-    verify(engine).executePullQuery(
-        eq(serviceContext), eq(statement), eq(haRouting), any(), any(),
-        eq(Optional.empty()), anyBoolean());
   }
 
   @Test
@@ -231,22 +163,6 @@ public class PullQueryPublisherTest {
 
     // Then:
     verify(subscriber).onSchema(PULL_SCHEMA);
-  }
-
-  @Test
-  public void shouldCallOnErrorOnFailure_initial() {
-    // Given:
-    when(engine.executePullQuery(any(), any(), any(), any(), any(), any(), anyBoolean()))
-        .thenThrow(new RuntimeException("Boom!"));
-
-    // When:
-    final Exception e = assertThrows(
-        RuntimeException.class,
-        () ->  givenSubscribed()
-    );
-
-    // Then:
-    assertThat(e.getMessage(), containsString("Boom!"));
   }
 
   @Test
@@ -285,7 +201,7 @@ public class PullQueryPublisherTest {
 
   private void givenSubscribed() {
     publisher.subscribe(subscriber);
-    verify(subscriber).onSubscribe(subscriptionCaptor.capture());
+    verify(subscriber).onSubscribe(subscriptionCaptor.capture(), any(), anyLong());
     subscription = subscriptionCaptor.getValue();
   }
 }

@@ -148,7 +148,7 @@ KSQL_JVM_PERFORMANCE_OPTS
     configuration.
 
     ```bash
-    export KSQL_JVM_PERFORMANCE_OPTS="-server -XX:+UseConcMarkSweepGC -XX:+CMSClassUnload ingEnabled -XX:+CMSScavengeBeforeRemark -XX:+ExplicitGCInvokesConcurrent -XX:New Ratio=1 -Djava.awt.headless=true"
+    export KSQL_JVM_PERFORMANCE_OPTS="-server -XX:MetaspaceSize=96m -XX:+UseG1GC -XX:MaxGCPauseMillis=20 -XX:InitiatingHeapOccupancyPercent=35 -XX:+ExplicitGCInvokesConcurrent -XX:G1HeapRegionSize=16 -XX:MinMetaspaceFreeRatio=50 -XX:MaxMetaspaceFreeRatio=80"
     ```
 
     For more information, see
@@ -203,7 +203,7 @@ REST endpoint and interactive use.
 ### Schema resolution
 
 When you run a ksqlDB application that uses Avro or Protobuf, ksqlDB infers 
-chemas from {{ site.sr }} automatically, but the behavior after restarting
+schemas from {{ site.sr }} automatically, but the behavior after restarting
 ksqlDB Server differs between interactive and non-interactive mode.
 
 - **Interactive mode:** after ksqlDB Server restarts, it doesn't contact
@@ -316,12 +316,12 @@ ksql.advertised.listener=http://host1.internal.example.com:8088
 
 In this setup, the node shares the URL in the `ksql.advertised.listener` config as its
 internal endpoint, which other nodes use for inter-node communication. Inter-node
-communication use the same listener as client communication.
+communication uses the same listener as client communication.
 
 ### Dual listeners
 
 You may choose to configure internal communication to use a different listener to client
-communication, which enables port filtering rules to deny clients access the internal listener or
+communication, which enables port filtering rules to deny clients access to the internal listener or
 the use of a different network interface for internal communication, for security or QoS reasons.
 
 This can be achieved by setting the `ksql.internal.listener` configuration to start a second

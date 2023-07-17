@@ -26,6 +26,10 @@ import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.transform.KsqlProcessingContext;
 import io.confluent.ksql.function.KsqlAggregateFunction;
+import io.confluent.ksql.function.udaf.VariadicArgs;
+import io.confluent.ksql.util.Pair;
+import java.util.Arrays;
+import java.util.List;
 import java.util.function.Function;
 import org.apache.kafka.streams.kstream.Merger;
 import org.junit.Before;
@@ -103,5 +107,51 @@ public class KudafAggregatorTest {
     // Then:
     assertThat(agg, is(GenericRow.genericRow(1, 2L, 4)));
     assertThat("invalid test", result, is(not(GenericRow.genericRow(1, 2L, 4))));
+  }
+
+  @Test
+  public void shouldNotMutateParametersOnApplyMultiParam() {
+    when(func1.convertToInput(any())).thenAnswer(
+            (invocation) -> {
+              List<?> inputs = invocation.getArgument(0, List.class);
+              return Pair.of(inputs.get(0), inputs.get(1));
+            }
+    );
+    when(func1.getArgIndicesInValue()).thenReturn(Arrays.asList(0, 1));
+
+    // Given:
+    final GenericRow value = GenericRow.genericRow(1, 2L);
+    final GenericRow agg = GenericRow.genericRow(1, 2L, 3);
+
+    // When:
+    final GenericRow result = aggregator.apply("key", value, agg);
+
+    // Then:
+    assertThat(value, is(GenericRow.genericRow(1, 2L)));
+    assertThat(agg, is(GenericRow.genericRow(1, 2L, 3)));
+    assertThat("invalid test", result, is(not(GenericRow.genericRow(1, 2L, 3))));
+  }
+
+  @Test
+  public void shouldNotMutateParametersOnApplyVariadicParam() {
+    when(func1.convertToInput(any())).thenAnswer(
+            (invocation) -> {
+              List<?> inputs = invocation.getArgument(0, List.class);
+              return Pair.of(inputs.get(0), new VariadicArgs<>(inputs.subList(1, 4)));
+            }
+    );
+    when(func1.getArgIndicesInValue()).thenReturn(Arrays.asList(0, 1, 2, 3));
+
+    // Given:
+    final GenericRow value = GenericRow.genericRow(1, 2L, 3L, 4L);
+    final GenericRow agg = GenericRow.genericRow(1, 2L, 3);
+
+    // When:
+    final GenericRow result = aggregator.apply("key", value, agg);
+
+    // Then:
+    assertThat(value, is(GenericRow.genericRow(1, 2L, 3L, 4L)));
+    assertThat(agg, is(GenericRow.genericRow(1, 2L, 3)));
+    assertThat("invalid test", result, is(not(GenericRow.genericRow(1, 2L, 3))));
   }
 }

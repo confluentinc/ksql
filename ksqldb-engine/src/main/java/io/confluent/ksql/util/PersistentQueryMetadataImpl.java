@@ -22,19 +22,22 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.plan.ExecutionStep;
+import io.confluent.ksql.execution.scalablepush.ScalablePushRegistry;
 import io.confluent.ksql.execution.streams.materialization.Materialization;
 import io.confluent.ksql.execution.streams.materialization.MaterializationProvider;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
+import io.confluent.ksql.logging.processing.ProcessingLoggerFactory;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.name.SourceName;
-import io.confluent.ksql.physical.scalablepush.ScalablePushRegistry;
 import io.confluent.ksql.query.KafkaStreamsBuilder;
 import io.confluent.ksql.query.MaterializationProviderBuilderFactory;
 import io.confluent.ksql.query.QueryErrorClassifier;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.query.QuerySchemas;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -49,7 +52,7 @@ import org.apache.kafka.streams.errors.StreamsUncaughtExceptionHandler;
 public class PersistentQueryMetadataImpl
     extends QueryMetadataImpl implements PersistentQueryMetadata {
   private final KsqlConstants.PersistentQueryType persistentQueryType;
-  private final DataSource sinkDataSource;
+  private final Optional<DataSource> sinkDataSource;
   private final QuerySchemas schemas;
   private final PhysicalSchema resultSchema;
   private final ExecutionStep<?> physicalPlan;
@@ -67,7 +70,7 @@ public class PersistentQueryMetadataImpl
       final String statementString,
       final PhysicalSchema schema,
       final Set<SourceName> sourceNames,
-      final DataSource sinkDataSource,
+      final Optional<DataSource> sinkDataSource,
       final String executionPlan,
       final QueryId id,
       final Optional<MaterializationProviderBuilderFactory.MaterializationProviderBuilder>
@@ -86,7 +89,8 @@ public class PersistentQueryMetadataImpl
       final long retryBackoffInitialMs,
       final long retryBackoffMaxMs,
       final QueryMetadata.Listener listener,
-      final Optional<ScalablePushRegistry> scalablePushRegistry
+      final Optional<ScalablePushRegistry> scalablePushRegistry,
+      final ProcessingLoggerFactory loggerFactory
   ) {
     // CHECKSTYLE_RULES.ON: ParameterNumberCheck
     super(
@@ -105,7 +109,8 @@ public class PersistentQueryMetadataImpl
         maxQueryErrorsQueueSize,
         retryBackoffInitialMs,
         retryBackoffMaxMs,
-        listener
+        new QueryListenerWrapper(listener, scalablePushRegistry),
+        loggerFactory
     );
     this.sinkDataSource = requireNonNull(sinkDataSource, "sinkDataSource");
     this.schemas = requireNonNull(schemas, "schemas");
@@ -133,7 +138,7 @@ public class PersistentQueryMetadataImpl
     this.schemas = original.schemas;
     this.resultSchema = original.resultSchema;
     this.materializationProvider = original.materializationProvider;
-    this.physicalPlan = original.physicalPlan;
+    this.physicalPlan = original.getPhysicalPlan();
     this.materializationProviderBuilder = original.materializationProviderBuilder;
     this.processingLogger = original.processingLogger;
     this.scalablePushRegistry = original.scalablePushRegistry;
@@ -163,16 +168,19 @@ public class PersistentQueryMetadataImpl
     return response;
   }
 
-  public DataSourceType getDataSourceType() {
-    return sinkDataSource.getDataSourceType();
+  @Override
+  public Optional<DataSourceType> getDataSourceType() {
+    return sinkDataSource.map(DataSource::getDataSourceType);
   }
 
-  public KsqlTopic getResultTopic() {
-    return sinkDataSource.getKsqlTopic();
+  @Override
+  public Optional<KsqlTopic> getResultTopic() {
+    return sinkDataSource.map(DataSource::getKsqlTopic);
   }
 
-  public SourceName getSinkName() {
-    return sinkDataSource.getName();
+  @Override
+  public Optional<SourceName> getSinkName() {
+    return sinkDataSource.map(DataSource::getName);
   }
 
   public QuerySchemas getQuerySchemas() {
@@ -187,17 +195,13 @@ public class PersistentQueryMetadataImpl
     return physicalPlan;
   }
 
-  public DataSource getSink() {
+  @Override
+  public Optional<DataSource> getSink() {
     return sinkDataSource;
   }
 
   public KsqlConstants.PersistentQueryType getPersistentQueryType() {
     return persistentQueryType;
-  }
-
-  @VisibleForTesting
-  public Optional<MaterializationProvider> getMaterializationProvider() {
-    return materializationProvider;
   }
 
   @VisibleForTesting
@@ -223,7 +227,21 @@ public class PersistentQueryMetadataImpl
     scalablePushRegistry.ifPresent(ScalablePushRegistry::close);
   }
 
+  public void stop(final boolean resetOffsets) {
+    stop();
+  }
+
+  @Override
+  public void register() {
+
+  }
+
   public Optional<ScalablePushRegistry> getScalablePushRegistry() {
     return scalablePushRegistry;
   }
+
+  public Collection<String> getSourceTopicNames() {
+    return Collections.emptySet();
+  }
+
 }

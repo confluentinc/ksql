@@ -31,12 +31,13 @@ import io.confluent.ksql.rest.server.resources.KsqlResource;
 import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.services.SimpleKsqlClient;
 import io.confluent.ksql.util.KsqlHostInfo;
+import io.vertx.core.streams.WriteStream;
 import java.net.URI;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-import java.util.function.Consumer;
+import java.util.function.Function;
 
 /**
  * A KSQL client implementation that sends requests to KsqlResource directly, rather than going
@@ -91,7 +92,9 @@ public class ServerInternalKsqlClient implements SimpleKsqlClient {
       final String sql,
       final Map<String, ?> configOverrides,
       final Map<String, ?> requestProperties,
-      final Consumer<List<StreamedRow>> rowConsumer
+      final WriteStream<List<StreamedRow>> rowConsumer,
+      final CompletableFuture<Void> shouldCloseConnection,
+      final Function<StreamedRow, StreamedRow> addHostInfo
   ) {
     throw new UnsupportedOperationException();
   }

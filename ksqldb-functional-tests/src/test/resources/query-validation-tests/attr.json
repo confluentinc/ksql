@@ -1,0 +1,141 @@
+{
+  "comments": [
+    "Tests covering the use of ATTR aggregate function"
+  ],
+  "tests": [
+    {
+      "name": "valid attr with various scalar fields",
+      "statements": [
+        "CREATE STREAM input (k INT KEY, s STRING, i INT, bi BIGINT, d DOUBLE, bo BOOLEAN) WITH (kafka_topic='in', value_format='JSON');",
+        "CREATE TABLE out AS SELECT k, ATTR(s) AS s, ATTR(i) AS i, ATTR(bi) AS bi, ATTR(d) AS d, ATTR(bo) AS bo FROM input GROUP BY k;"
+      ],
+      "inputs": [
+        {"topic": "in", "key": 1, "value": {"s": "s", "i": 1, "bi": 1, "d": 1.0, "bo": true}},
+        {"topic": "in", "key": 1, "value": {"s": "s", "i": 1, "bi": 1, "d": 1.0, "bo": true}},
+        {"topic": "in", "key": 1, "value": {"s": "s", "i": 1, "bi": 1, "d": 1.0, "bo": true}}
+      ],
+      "outputs": [
+        {"topic": "OUT", "key": 1, "value": {"S": "s", "I": 1, "BI": 1, "D": 1.0, "BO": true}},
+        {"topic": "OUT", "key": 1, "value": {"S": "s", "I": 1, "BI": 1, "D": 1.0, "BO": true}},
+        {"topic": "OUT", "key": 1, "value": {"S": "s", "I": 1, "BI": 1, "D": 1.0, "BO": true}}
+      ]
+    },
+    {
+      "name": "valid attr with various non-scalar fields",
+      "statements": [
+        "CREATE STREAM input (k INT KEY, li ARRAY<INT>, s STRUCT<A STRING, B INT>) WITH (kafka_topic='in', value_format='JSON');",
+        "CREATE TABLE out AS SELECT k, ATTR(li) AS li, ATTR(s) AS s FROM input GROUP BY k;"
+      ],
+      "inputs": [
+        {"topic": "in", "key": 1, "value": {"s": {"A": "a", "B": 1}, "li": [1, 2, 3]}},
+        {"topic": "in", "key": 1, "value": {"s": {"A": "a", "B": 1}, "li": [1, 2, 3]}},
+        {"topic": "in", "key": 1, "value": {"s": {"A": "a", "B": 1}, "li": [1, 2, 3]}}
+      ],
+      "outputs": [
+        {"topic": "OUT", "key": 1, "value": {"S": {"A": "a", "B": 1}, "LI": [1, 2, 3]}},
+        {"topic": "OUT", "key": 1, "value": {"S": {"A": "a", "B": 1}, "LI": [1, 2, 3]}},
+        {"topic": "OUT", "key": 1, "value": {"S": {"A": "a", "B": 1}, "LI": [1, 2, 3]}}
+      ]
+    },
+    {
+      "name": "valid attr with nulls",
+      "statements": [
+        "CREATE STREAM input (k INT KEY, s STRING) WITH (kafka_topic='in', value_format='JSON');",
+        "CREATE TABLE out AS SELECT k, ATTR(s) AS s FROM input GROUP BY k;"
+      ],
+      "inputs": [
+        {"topic": "in", "key": 1, "value": {"s": null}},
+        {"topic": "in", "key": 1, "value": {"s": null}},
+        {"topic": "in", "key": 1, "value": {"s": null}}
+      ],
+      "outputs": [
+        {"topic": "OUT", "key": 1, "value": {"S": null}},
+        {"topic": "OUT", "key": 1, "value": {"S": null}},
+        {"topic": "OUT", "key": 1, "value": {"S": null}}
+      ]
+    },
+    {
+      "name": "invalid attr",
+      "statements": [
+        "CREATE STREAM input (k INT KEY, s STRING) WITH (kafka_topic='in', value_format='JSON');",
+        "CREATE TABLE out AS SELECT k, ATTR(s) AS s FROM input GROUP BY k;"
+      ],
+      "inputs": [
+        {"topic": "in", "key": 1, "value": {"s": "1"}},
+        {"topic": "in", "key": 1, "value": {"s": "2"}},
+        {"topic": "in", "key": 1, "value": {"s": "3"}}
+      ],
+      "outputs": [
+        {"topic": "OUT", "key": 1, "value": {"S": "1"}},
+        {"topic": "OUT", "key": 1, "value": {"S": null}},
+        {"topic": "OUT", "key": 1, "value": {"S": null}}
+      ]
+    },
+    {
+      "name": "invalid attr with nulls",
+      "statements": [
+        "CREATE STREAM input (k INT KEY, s STRING) WITH (kafka_topic='in', value_format='JSON');",
+        "CREATE TABLE out AS SELECT k, ATTR(s) AS s FROM input GROUP BY k;"
+      ],
+      "inputs": [
+        {"topic": "in", "key": 1, "value": {"s": "1"}},
+        {"topic": "in", "key": 1, "value": {"s": null}},
+        {"topic": "in", "key": 1, "value": {"s": "1"}}
+      ],
+      "outputs": [
+        {"topic": "OUT", "key": 1, "value": {"S": "1"}},
+        {"topic": "OUT", "key": 1, "value": {"S": null}},
+        {"topic": "OUT", "key": 1, "value": {"S": null}}
+      ]
+    },
+    {
+      "name": "invalid attr with nulls as first entry",
+      "statements": [
+        "CREATE STREAM input (k INT KEY, s STRING) WITH (kafka_topic='in', value_format='JSON');",
+        "CREATE TABLE out AS SELECT k, ATTR(s) AS s FROM input GROUP BY k;"
+      ],
+      "inputs": [
+        {"topic": "in", "key": 1, "value": {"s": null}},
+        {"topic": "in", "key": 1, "value": {"s": "2"}},
+        {"topic": "in", "key": 1, "value": {"s": "2"}}
+      ],
+      "outputs": [
+        {"topic": "OUT", "key": 1, "value": {"S": null}},
+        {"topic": "OUT", "key": 1, "value": {"S": null}},
+        {"topic": "OUT", "key": 1, "value": {"S": null}}
+      ]
+    },
+    {
+      "name": "table attr with tombstones",
+      "statements": [
+        "CREATE TABLE input (k INT PRIMARY KEY, g INT, s STRING) WITH (kafka_topic='in', value_format='JSON');",
+        "CREATE TABLE out AS SELECT g, ATTR(s) AS s FROM input GROUP BY g;"
+      ],
+      "inputs": [
+        {"topic": "in", "key": 1, "value": null},
+        {"topic": "in", "key": 1, "value": {"g": 1, "s": "1"}},
+        // increments count to two
+        {"topic": "in", "key": 2, "value": {"g": 1, "s": "1"}},
+        // decrements count to one
+        {"topic": "in", "key": 1, "value": null},
+        // no longer a valid value
+        {"topic": "in", "key": 2, "value": null},
+        // increments count to one, but with a different ATTR
+        {"topic": "in", "key": 1, "value": {"g": 1, "s": "2"}},
+        // no longer a valid ATTR
+        {"topic": "in", "key": 2, "value": {"g": 1, "s": "3"}},
+        // valid again with ATTR = 2
+        {"topic": "in", "key": 2, "value": null}
+      ],
+      "outputs": [
+        {"topic": "OUT", "key": 1, "value": {"S": "1"}},
+        {"topic": "OUT", "key": 1, "value": {"S": "1"}},
+        {"topic": "OUT", "key": 1, "value": {"S": "1"}},
+        {"topic": "OUT", "key": 1, "value": {"S": null}},
+        {"topic": "OUT", "key": 1, "value": {"S": "2"}},
+        {"topic": "OUT", "key": 1, "value": {"S": null}},
+        {"topic": "OUT", "key": 1, "value": {"S": "2"}}
+      ]
+    }
+  ]
+}

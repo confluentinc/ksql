@@ -30,8 +30,12 @@ import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.KsqlConfigTestUtil;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.KsqlEngineTestUtil;
+import io.confluent.ksql.engine.KsqlPlan;
 import io.confluent.ksql.engine.QueryEventListener;
+import io.confluent.ksql.execution.ddl.commands.CreateStreamCommand;
+import io.confluent.ksql.execution.ddl.commands.DropSourceCommand;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
+import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.internal.KsqlEngineMetrics;
@@ -39,6 +43,7 @@ import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metrics.MetricCollectors;
+import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.properties.DenyListPropertyValidator;
 import io.confluent.ksql.query.QueryId;
@@ -53,7 +58,12 @@ import io.confluent.ksql.rest.server.state.ServerState;
 import io.confluent.ksql.rest.util.ClusterTerminator;
 import io.confluent.ksql.rest.util.PersistentQueryCleanupImpl;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.security.KsqlSecurityContext;
+import io.confluent.ksql.serde.FormatFactory;
+import io.confluent.ksql.serde.FormatInfo;
+import io.confluent.ksql.serde.KeyFormat;
+import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.services.FakeKafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
@@ -72,6 +82,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.apache.kafka.clients.producer.Producer;
+import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.streams.StreamsConfig;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
@@ -128,7 +139,9 @@ public class RecoveryTest {
         new MetaStoreImpl(new InternalFunctionRegistry()),
         ignored -> engineMetrics,
         queryIdGenerator,
-        ksqlConfig);
+        ksqlConfig,
+        new MetricCollectors()
+    );
   }
 
   private static class FakeCommandQueue implements CommandQueue {
@@ -228,7 +241,6 @@ public class RecoveryTest {
           queryIdGenerator
       );
 
-      MetricCollectors.initialize();
       this.commandRunner = new CommandRunner(
           statementExecutor,
           fakeCommandQueue,
@@ -241,7 +253,8 @@ public class RecoveryTest {
           InternalTopicSerdes.deserializer(Command.class),
           errorHandler,
           topicClient,
-          "command_topic"
+          "command_topic",
+          new Metrics()
       );
 
       this.ksqlResource = new KsqlResource(
@@ -254,7 +267,6 @@ public class RecoveryTest {
           denyListPropertyValidator
       );
 
-      this.statementExecutor.configure(ksqlConfig);
       this.ksqlResource.configure(ksqlConfig);
     }
 
@@ -266,7 +278,8 @@ public class RecoveryTest {
             StreamsConfig.STATE_DIR_CONFIG,
             StreamsConfig.configDef().defaultValues().get(StreamsConfig.STATE_DIR_CONFIG))
           .toString(),
-        serviceContext)
+        serviceContext,
+        ksqlConfig)
       );
     }
 
@@ -477,7 +490,7 @@ public class RecoveryTest {
   private static class PersistentQueryMetadataMatcher
       extends TypeSafeDiagnosingMatcher<PersistentQueryMetadata> {
     private final Matcher<Set<SourceName>> sourcesNamesMatcher;
-    private final Matcher<SourceName> sinkNamesMatcher;
+    private final Matcher<Optional<SourceName>> sinkNamesMatcher;
     private final Matcher<LogicalSchema> resultSchemaMatcher;
     private final Matcher<String> sqlMatcher;
     private final Matcher<String> stateMatcher;
@@ -585,6 +598,7 @@ public class RecoveryTest {
   @Before
   public void setUp() {
     topicClient.preconditionTopicExists("A");
+    topicClient.preconditionTopicExists("B");
     topicClient.preconditionTopicExists("command_topic");
   }
 
@@ -598,6 +612,15 @@ public class RecoveryTest {
   }
 
   @Test
+  public void shouldRecoverCreatesWithNonExistingTopic() {
+    server1.submitCommands(
+        "CREATE STREAM A (COLUMN STRING) WITH (KAFKA_TOPIC='newTopic', VALUE_FORMAT='JSON', PARTITIONS=1);",
+        "CREATE STREAM B AS SELECT * FROM A;"
+    );
+    shouldRecover(commands);
+  }
+  @Test
+
   public void shouldRecoverRecreates() {
     server1.submitCommands(
         "CREATE STREAM A (ROWKEY STRING KEY, C1 STRING, C2 INT) WITH (KAFKA_TOPIC='A', VALUE_FORMAT='JSON');",
@@ -632,12 +655,11 @@ public class RecoveryTest {
     shouldRecover(commands);
   }
 
-
   @Test
   public void shouldRecoverInsertIntos() {
     server1.submitCommands(
         "CREATE STREAM A (COLUMN STRING) WITH (KAFKA_TOPIC='A', VALUE_FORMAT='JSON');",
-        "CREATE STREAM B (COLUMN STRING) WITH (KAFKA_TOPIC='B', VALUE_FORMAT='JSON', PARTITIONS=1);",
+        "CREATE STREAM B (COLUMN STRING) WITH (KAFKA_TOPIC='B', VALUE_FORMAT='JSON');",
         "INSERT INTO B SELECT * FROM A;"
     );
     shouldRecover(commands);
@@ -647,7 +669,7 @@ public class RecoveryTest {
   public void shouldRecoverInsertIntosWithCustomQueryId() {
     server1.submitCommands(
         "CREATE STREAM A (COLUMN STRING) WITH (KAFKA_TOPIC='A', VALUE_FORMAT='JSON');",
-        "CREATE STREAM B (COLUMN STRING) WITH (KAFKA_TOPIC='B', VALUE_FORMAT='JSON', PARTITIONS=1);",
+        "CREATE STREAM B (COLUMN STRING) WITH (KAFKA_TOPIC='B', VALUE_FORMAT='JSON');",
         "INSERT INTO B WITH(QUERY_ID='MY_INSERT_ID') SELECT * FROM A;"
     );
     shouldRecover(commands);
@@ -657,10 +679,20 @@ public class RecoveryTest {
   public void shouldRecoverInsertIntosRecreates() {
     server1.submitCommands(
         "CREATE STREAM A (COLUMN STRING) WITH (KAFKA_TOPIC='A', VALUE_FORMAT='JSON');",
-        "CREATE STREAM B (COLUMN STRING) WITH (KAFKA_TOPIC='B', VALUE_FORMAT='JSON', PARTITIONS=1);",
+        "CREATE STREAM B (COLUMN STRING) WITH (KAFKA_TOPIC='B', VALUE_FORMAT='JSON');",
         "INSERT INTO B SELECT * FROM A;",
         "TERMINATE InsertQuery_2;",
         "INSERT INTO B SELECT * FROM A;"
+    );
+    shouldRecover(commands);
+  }
+
+  @Test
+  public void shouldRecoverIfNotExists() {
+    server1.submitCommands(
+        "CREATE STREAM A (COLUMN STRING) WITH (KAFKA_TOPIC='A', VALUE_FORMAT='JSON');",
+        "CREATE STREAM IF NOT EXISTS B AS SELECT * FROM A;",
+        "CREATE STREAM IF NOT EXISTS B AS SELECT * FROM A;"
     );
     shouldRecover(commands);
   }
@@ -702,35 +734,119 @@ public class RecoveryTest {
   }
 
   @Test
-  public void shouldRecoverDropWithSourceConstraintsFromOldMetastore() {
+  public void shouldRecoverWhenDropWithSourceConstraintsFoundOnMetastore() {
     // Verify that an upgrade will not be affected if DROP commands are not in order.
 
-    // Create and Drop the stream just to get the QueuedCommand for the 'DROP STREAM A'
-    server1.submitCommands(
-        "CREATE STREAM A (COLUMN STRING) WITH (KAFKA_TOPIC='A', VALUE_FORMAT='JSON');",
-        "DROP STREAM A;"
-    );
-
-    // Get the QueuedCommand for 'DROP STREAM A'
-    final QueuedCommand originalDropA = commands.get(1);
-    final QueuedCommand duplicateDropA = new QueuedCommand(
-        originalDropA.getCommandId(),
-        originalDropA.getCommand(),
-        Optional.empty(),
-        (long) commands.size()
-    );
-
-    // Now execute the real commands again, then add the 'DROP STREAM A' to the list to recover
     server1.submitCommands(
         "CREATE STREAM A (COLUMN STRING) WITH (KAFKA_TOPIC='A', VALUE_FORMAT='JSON');",
         "CREATE STREAM B AS SELECT * FROM A;",
-        "TERMINATE CSAS_B_3;"
+        "INSERT INTO B SELECT * FROM A;"
     );
 
-    // ksqlDB does not allow this because 'A' is used by 'B', even if the query has been terminated.
-    // However, if a ksqlDB upgrade is done, then this order can be possible. Make sure stream 'A'
-    // can be dropped before dropping 'B'.
-    commands.add(duplicateDropA);
+    // ksqlDB does not allow a DROP STREAM A because 'A' is used by 'B'.
+    // However, if a ksqlDB upgrade is done, then this order can be possible.
+    final Command dropACommand = new Command(
+        "DROP STREAM A;",
+        Optional.of(ImmutableMap.of()),
+        Optional.of(ImmutableMap.of()),
+        Optional.of(KsqlPlan.ddlPlanCurrent("DROP STREAM A;",
+            new DropSourceCommand(SourceName.of("A")))),
+        Optional.of(Command.VERSION)
+    );
+
+    // Add the DROP STREAM A manually to prevent server1 to fail if done on submitCommands()
+    commands.add(new QueuedCommand(
+        InternalTopicSerdes.serializer().serialize("",
+            new CommandId(CommandId.Type.STREAM, "`A`", CommandId.Action.DROP)),
+        InternalTopicSerdes.serializer().serialize("", dropACommand),
+        Optional.empty(),
+        (long) commands.size()
+    ));
+
+    final KsqlServer recovered = new KsqlServer(commands);
+    recovered.recover();
+
+    // Original server has streams 'A' and 'B' because DROP statements weren't executed, but
+    // the previous hack added them to the list of command topic statements
+    assertThat(server1.ksqlEngine.getMetaStore().getAllDataSources().size(), is(2));
+    assertThat(server1.ksqlEngine.getMetaStore().getAllDataSources(), hasKey(SourceName.of("A")));
+    assertThat(server1.ksqlEngine.getMetaStore().getAllDataSources(), hasKey(SourceName.of("B")));
+    assertThat(recovered.ksqlEngine.getAllLiveQueries().size(), is(2));
+
+    // Recovered server has stream 'B' only. It restored the previous CREATE and DROP statements
+    assertThat(recovered.ksqlEngine.getMetaStore().getAllDataSources().size(), is(1));
+    assertThat(recovered.ksqlEngine.getMetaStore().getAllDataSources(), hasKey(SourceName.of("B")));
+    assertThat(recovered.ksqlEngine.getAllLiveQueries().size(), is(2));
+  }
+
+  @Test
+  public void shouldRecoverWhenDropWithSourceConstraintsAndCreateSourceAgainFoundOnMetastore() {
+    // Verify that an upgrade will not be affected if DROP commands are not in order.
+
+    server1.submitCommands(
+        "CREATE STREAM A (COLUMN STRING) WITH (KAFKA_TOPIC='A', VALUE_FORMAT='JSON');",
+        "CREATE STREAM B AS SELECT * FROM A;"
+    );
+
+    // ksqlDB does not allow a DROP STREAM A because 'A' is used by 'B'.
+    // However, if a ksqlDB upgrade is done, then this order can be possible.
+    final Command dropACommand = new Command(
+        "DROP STREAM A;",
+        Optional.of(ImmutableMap.of()),
+        Optional.of(ImmutableMap.of()),
+        Optional.of(KsqlPlan.ddlPlanCurrent("DROP STREAM A;",
+            new DropSourceCommand(SourceName.of("A")))),
+        Optional.of(Command.VERSION)
+    );
+
+    // Add the DROP STREAM A manually to prevent server1 to fail if done on submitCommands()
+    commands.add(new QueuedCommand(
+        InternalTopicSerdes.serializer().serialize("",
+            new CommandId(CommandId.Type.STREAM, "`A`", CommandId.Action.DROP)),
+        InternalTopicSerdes.serializer().serialize("", dropACommand),
+        Optional.empty(),
+        (long) commands.size()
+    ));
+
+    // Add CREATE STREAM after the DROP again
+    final Command createACommand = new Command(
+        "CREATE STREAM A (COLUMN STRING) WITH (KAFKA_TOPIC='A', VALUE_FORMAT='JSON');",
+        Optional.of(ImmutableMap.of()),
+        Optional.of(ImmutableMap.of()),
+        Optional.of(KsqlPlan.ddlPlanCurrent(
+            "CREATE STREAM A (COLUMN STRING) WITH (KAFKA_TOPIC='A', VALUE_FORMAT='JSON');",
+            new CreateStreamCommand(
+                SourceName.of("A"),
+                LogicalSchema.builder()
+                    .valueColumn(ColumnName.of("COLUMN"), SqlTypes.STRING)
+                    .build(),
+                Optional.empty(),
+                "A",
+                Formats.of(
+                    KeyFormat
+                        .nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name()), SerdeFeatures.of())
+                        .getFormatInfo(),
+                    ValueFormat
+                        .of(FormatInfo.of(FormatFactory.JSON.name()), SerdeFeatures.of())
+                        .getFormatInfo(),
+                    SerdeFeatures.of(),
+                    SerdeFeatures.of()
+                ),
+                Optional.empty(),
+                Optional.of(false),
+                Optional.of(false)
+            ))),
+        Optional.of(Command.VERSION)
+    );
+
+    // Add the CREATE STREAM A manually to prevent server1 to fail if done on submitCommands()
+    commands.add(new QueuedCommand(
+        InternalTopicSerdes.serializer().serialize("",
+            new CommandId(CommandId.Type.STREAM, "`A`", CommandId.Action.CREATE)),
+        InternalTopicSerdes.serializer().serialize("", createACommand),
+        Optional.empty(),
+        (long) commands.size()
+    ));
 
     final KsqlServer recovered = new KsqlServer(commands);
     recovered.recover();
@@ -741,7 +857,8 @@ public class RecoveryTest {
     assertThat(server1.ksqlEngine.getMetaStore().getAllDataSources(), hasKey(SourceName.of("B")));
 
     // Recovered server has only stream 'B'
-    assertThat(recovered.ksqlEngine.getMetaStore().getAllDataSources().size(), is(1));
+    assertThat(recovered.ksqlEngine.getMetaStore().getAllDataSources().size(), is(2));
+    assertThat(recovered.ksqlEngine.getMetaStore().getAllDataSources(), hasKey(SourceName.of("A")));
     assertThat(recovered.ksqlEngine.getMetaStore().getAllDataSources(), hasKey(SourceName.of("B")));
   }
 

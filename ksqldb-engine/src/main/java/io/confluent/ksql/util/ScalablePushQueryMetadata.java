@@ -16,14 +16,22 @@
 package io.confluent.ksql.util;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import io.confluent.ksql.physical.scalablepush.PushQueryQueuePopulator;
-import io.confluent.ksql.physical.scalablepush.PushRouting.PushConnectionsHandle;
-import io.confluent.ksql.query.BlockingRowQueue;
+import io.confluent.ksql.execution.scalablepush.PushQueryPreparer;
+import io.confluent.ksql.execution.scalablepush.PushQueryQueuePopulator;
+import io.confluent.ksql.execution.scalablepush.PushRouting.PushConnectionsHandle;
+import io.confluent.ksql.internal.ScalablePushQueryMetrics;
+import io.confluent.ksql.query.CompletionHandler;
 import io.confluent.ksql.query.LimitHandler;
 import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.query.TransientQueryQueue;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.util.KsqlConstants.QuerySourceType;
+import io.confluent.ksql.util.KsqlConstants.RoutingNodeType;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 import org.apache.kafka.streams.errors.StreamsUncaughtExceptionHandler;
 
 public class ScalablePushQueryMetadata implements PushQueryMetadata {
@@ -31,9 +39,15 @@ public class ScalablePushQueryMetadata implements PushQueryMetadata {
   private volatile boolean closed = false;
   private final LogicalSchema logicalSchema;
   private final QueryId queryId;
-  private final BlockingRowQueue rowQueue;
+  private final TransientQueryQueue transientQueryQueue;
+  private final Optional<ScalablePushQueryMetrics> scalablePushQueryMetrics;
   private final ResultType resultType;
   private final PushQueryQueuePopulator pushQueryQueuePopulator;
+  private final PushQueryPreparer pushQueryPreparer;
+  private final QuerySourceType sourceType;
+  private final RoutingNodeType routingNodeType;
+  private final Supplier<Long> rowsProcessedSupplier;
+
 
   // Future for the start of the connections, which creates a handle
   private CompletableFuture<PushConnectionsHandle> startFuture = new CompletableFuture<>();
@@ -45,33 +59,56 @@ public class ScalablePushQueryMetadata implements PushQueryMetadata {
   public ScalablePushQueryMetadata(
       final LogicalSchema logicalSchema,
       final QueryId queryId,
-      final BlockingRowQueue blockingRowQueue,
+      final TransientQueryQueue transientQueryQueue,
+      final Optional<ScalablePushQueryMetrics> scalablePushQueryMetrics,
       final ResultType resultType,
-      final PushQueryQueuePopulator pushQueryQueuePopulator
+      final PushQueryQueuePopulator pushQueryQueuePopulator,
+      final PushQueryPreparer pushQueryPreparer,
+      final QuerySourceType sourceType,
+      final RoutingNodeType routingNodeType,
+      final Supplier<Long> rowsProcessedSupplier
   ) {
     this.logicalSchema = logicalSchema;
     this.queryId = queryId;
-    this.rowQueue = blockingRowQueue;
+    this.transientQueryQueue = transientQueryQueue;
+    this.scalablePushQueryMetrics = scalablePushQueryMetrics;
     this.resultType = resultType;
     this.pushQueryQueuePopulator = pushQueryQueuePopulator;
+    this.pushQueryPreparer = pushQueryPreparer;
+    this.sourceType = sourceType;
+    this.routingNodeType = routingNodeType;
+    this.rowsProcessedSupplier = rowsProcessedSupplier;
+
+  }
+
+  /**
+   * Prepare to start. Any exceptions thrown here will result in an error return code rather than
+   * an error written to the stream.
+   */
+  public void prepare() {
+    // Any exceptions aren't meant to trickle up to the caller.  This will result in non ok error
+    // codes and is good for fast failing.
+    pushQueryPreparer.prepare();
   }
 
   @Override
   public void start() {
-    pushQueryQueuePopulator.run().thenApply(handle -> {
-      startFuture.complete(handle);
-      handle.onException(runningFuture::completeExceptionally);
-      return null;
-    }).exceptionally(t -> {
-      startFuture.completeExceptionally(t);
-      runningFuture.completeExceptionally(t);
-      return null;
-    });
+    CompletableFuture.completedFuture(null)
+        .thenCompose(v -> pushQueryQueuePopulator.run())
+        .thenApply(handle -> {
+          startFuture.complete(handle);
+          handle.onException(runningFuture::completeExceptionally);
+          return null;
+        }).exceptionally(t -> {
+          startFuture.completeExceptionally(t);
+          runningFuture.completeExceptionally(t);
+          return null;
+        });
   }
 
   @Override
   public void close() {
-    rowQueue.close();
+    transientQueryQueue.close();
     startFuture.thenApply(handle -> {
       handle.close();
       return null;
@@ -86,18 +123,23 @@ public class ScalablePushQueryMetadata implements PushQueryMetadata {
 
   @Override
   @SuppressFBWarnings(value = "EI_EXPOSE_REP")
-  public BlockingRowQueue getRowQueue() {
-    return rowQueue;
+  public TransientQueryQueue getRowQueue() {
+    return transientQueryQueue;
   }
 
   @Override
   public void setLimitHandler(final LimitHandler limitHandler) {
-    rowQueue.setLimitHandler(limitHandler);
+    transientQueryQueue.setLimitHandler(limitHandler);
+  }
+
+  @Override
+  public void setCompletionHandler(final CompletionHandler completionHandler) {
+    transientQueryQueue.setCompletionHandler(completionHandler);
   }
 
   @Override
   public void setUncaughtExceptionHandler(final StreamsUncaughtExceptionHandler handler) {
-    // We don't do anything special here since the persistent query handles its own errors
+    onException(handler::handle);
   }
 
   @Override
@@ -117,8 +159,37 @@ public class ScalablePushQueryMetadata implements PushQueryMetadata {
 
   public void onException(final Consumer<Throwable> consumer) {
     runningFuture.exceptionally(t -> {
+      scalablePushQueryMetrics.ifPresent(metrics ->
+          metrics.recordErrorRate(1, sourceType, routingNodeType));
       consumer.accept(t);
       return null;
     });
+  }
+
+  public void onCompletion(final Consumer<Void> consumer) {
+    runningFuture.thenAccept(consumer);
+  }
+
+  public void onCompletionOrException(final BiConsumer<Void, Throwable> biConsumer) {
+    runningFuture.handle((v, t) -> {
+      biConsumer.accept(v, t);
+      return null;
+    });
+  }
+
+  public QuerySourceType getSourceType() {
+    return sourceType;
+  }
+
+  public RoutingNodeType getRoutingNodeType() {
+    return routingNodeType;
+  }
+
+  public long getTotalRowsReturned() {
+    return transientQueryQueue.getTotalRowsQueued();
+  }
+
+  public long getTotalRowsProcessed() {
+    return rowsProcessedSupplier.get();
   }
 }

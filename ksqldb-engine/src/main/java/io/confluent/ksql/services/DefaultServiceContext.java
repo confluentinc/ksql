@@ -33,6 +33,7 @@ public class DefaultServiceContext implements ServiceContext {
 
   private final KafkaClientSupplier kafkaClientSupplier;
   private final MemoizedSupplier<Admin> adminClientSupplier;
+  private final MemoizedSupplier<Admin> topicAdminClientSupplier;
   private final MemoizedSupplier<KafkaTopicClient> topicClientSupplier;
   private final Supplier<SchemaRegistryClient> srClientFactorySupplier;
   private final MemoizedSupplier<SchemaRegistryClient> srClient;
@@ -43,6 +44,7 @@ public class DefaultServiceContext implements ServiceContext {
   public DefaultServiceContext(
       final KafkaClientSupplier kafkaClientSupplier,
       final Supplier<Admin> adminClientSupplier,
+      final Supplier<Admin> topicAdminClientSupplier,
       final Supplier<SchemaRegistryClient> srClientSupplier,
       final Supplier<ConnectClient> connectClientSupplier,
       final Supplier<SimpleKsqlClient> ksqlClientSupplier
@@ -50,6 +52,7 @@ public class DefaultServiceContext implements ServiceContext {
     this(
         kafkaClientSupplier,
         adminClientSupplier,
+        topicAdminClientSupplier,
         KafkaTopicClientImpl::new,
         srClientSupplier,
         connectClientSupplier,
@@ -62,6 +65,7 @@ public class DefaultServiceContext implements ServiceContext {
   public DefaultServiceContext(
       final KafkaClientSupplier kafkaClientSupplier,
       final Supplier<Admin> adminClientSupplier,
+      final Supplier<Admin> topicAdminClientSupplier,
       final KafkaTopicClient topicClient,
       final Supplier<SchemaRegistryClient> srClientSupplier,
       final Supplier<ConnectClient> connectClientSupplier,
@@ -71,6 +75,7 @@ public class DefaultServiceContext implements ServiceContext {
     this(
         kafkaClientSupplier,
         adminClientSupplier,
+        topicAdminClientSupplier,
         adminSupplier -> topicClient,
         srClientSupplier,
         connectClientSupplier,
@@ -82,6 +87,7 @@ public class DefaultServiceContext implements ServiceContext {
   private DefaultServiceContext(
       final KafkaClientSupplier kafkaClientSupplier,
       final Supplier<Admin> adminClientSupplier,
+      final Supplier<Admin> topicAdminClientSupplier,
       final Function<Supplier<Admin>, KafkaTopicClient> topicClientProvider,
       final Supplier<SchemaRegistryClient> srClientSupplier,
       final Supplier<ConnectClient> connectClientSupplier,
@@ -90,6 +96,7 @@ public class DefaultServiceContext implements ServiceContext {
   ) {
     requireNonNull(adminClientSupplier, "adminClientSupplier");
     this.adminClientSupplier = new MemoizedSupplier<>(adminClientSupplier);
+    this.topicAdminClientSupplier = new MemoizedSupplier<>(topicAdminClientSupplier);
 
     this.srClientFactorySupplier = requireNonNull(srClientSupplier, "srClientSupplier");
 
@@ -105,7 +112,7 @@ public class DefaultServiceContext implements ServiceContext {
     this.kafkaClientSupplier = requireNonNull(kafkaClientSupplier, "kafkaClientSupplier");
 
     this.topicClientSupplier = new MemoizedSupplier<>(
-        () -> topicClientProvider.apply(this.adminClientSupplier));
+        () -> topicClientProvider.apply(this.topicAdminClientSupplier));
 
     this.consumerGroupClientSupplier = new MemoizedSupplier<>(
         () -> consumerGroupClientProvider.apply(this.adminClientSupplier));
@@ -155,6 +162,9 @@ public class DefaultServiceContext implements ServiceContext {
   public void close() {
     if (adminClientSupplier.isInitialized()) {
       adminClientSupplier.get().close();
+    }
+    if (topicAdminClientSupplier.isInitialized()) {
+      topicAdminClientSupplier.get().close();
     }
     if (ksqlClientSupplier.isInitialized()) {
       ksqlClientSupplier.get().close();

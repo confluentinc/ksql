@@ -35,6 +35,9 @@ public class UrlEncodeParam {
   @Udf
   public String encodeParam(
       @UdfParameter(description = "the value to encode") final String input) {
+    if (input == null) {
+      return null;
+    }
     final Escaper escaper = UrlEscapers.urlFormParameterEscaper();
     return escaper.escape(input);
   }

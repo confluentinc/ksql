@@ -17,13 +17,21 @@ package io.confluent.ksql.function;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.assertTrue;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.function.types.ParamTypes;
 import io.confluent.ksql.function.udaf.Udaf;
+import io.confluent.ksql.function.udaf.VariadicArgs;
 import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.schema.ksql.SqlTypeParser;
+import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.Pair;
 import java.lang.reflect.Method;
+import java.util.Collections;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
@@ -43,21 +51,193 @@ public class UdafTypesTest {
     final UdafTypes types = createTypes("udafWithNoInitParams");
 
     // Then:
-    assertThat(types.getInputSchema(""), is(ImmutableList.of(
-       new ParameterInfo("val", ParamTypes.INTEGER, "", false)
+    assertThat(types.getInputSchema(new String[]{""}), is(ImmutableList.of(
+       new ParameterInfo("val1", ParamTypes.INTEGER, "", false)
     )));
+    assertFalse(types.isVariadic());
+    assertTrue(types.literalParams().isEmpty());
   }
 
   @Test
   public void shouldAppendInitParamsToInputSchema() {
     // When:
     final UdafTypes types = createTypes("udafWithStringInitParam", String.class);
+    final ParameterInfo initParamInfo = new ParameterInfo(
+            "initParam",
+            ParamTypes.STRING,
+            "",
+            false
+    );
 
     // Then:
-    assertThat(types.getInputSchema(""), is(ImmutableList.of(
-        new ParameterInfo("val", ParamTypes.INTEGER, "", false),
-        new ParameterInfo("initParam", ParamTypes.STRING, "", false)
+    assertThat(types.getInputSchema(new String[]{""}), is(ImmutableList.of(
+        new ParameterInfo("val1", ParamTypes.INTEGER, "", false),
+        initParamInfo
     )));
+    assertFalse(types.isVariadic());
+    assertEquals(Collections.singletonList(initParamInfo), types.literalParams());
+  }
+
+  @Test
+  public void shouldDefaultToEmptySchemasWhenNotEnoughProvided() {
+    // When:
+    final UdafTypes types = createTypes("udafWithMultipleParams", String.class);
+    final ParameterInfo initParamInfo = new ParameterInfo(
+            "initParam",
+            ParamTypes.STRING,
+            "",
+            false
+    );
+
+    // Then:
+    assertThat(types.getInputSchema(new String[]{""}), is(ImmutableList.of(
+            new ParameterInfo("val1", ParamTypes.INTEGER, "", false),
+            new ParameterInfo("val2", ParamTypes.DOUBLE, "", false),
+            initParamInfo
+    )));
+    assertFalse(types.isVariadic());
+    assertEquals(Collections.singletonList(initParamInfo), types.literalParams());
+  }
+
+  @Test
+  public void shouldIgnoreExtraSchemasWhenTooManyProvided() {
+    // When:
+    final UdafTypes types = createTypes("udafWithMultipleParams", String.class);
+    final ParameterInfo initParamInfo = new ParameterInfo(
+            "initParam",
+            ParamTypes.STRING,
+            "",
+            false
+    );
+
+    // Then:
+    assertThat(types.getInputSchema(
+            new String[]{"", "", "STRUCT<A INTEGER, B INTEGER>"}),
+            is(ImmutableList.of(
+              new ParameterInfo("val1", ParamTypes.INTEGER, "", false),
+              new ParameterInfo("val2", ParamTypes.DOUBLE, "", false),
+              initParamInfo
+            ))
+    );
+    assertFalse(types.isVariadic());
+    assertEquals(Collections.singletonList(initParamInfo), types.literalParams());
+  }
+
+  @Test
+  public void shouldThrowWhenColArgAndInitArgAreVariadic() {
+    final Exception e = assertThrows(
+            KsqlException.class,
+            () -> createTypes("udafWithVariadicColAndInitArgs", int[].class)
+    );
+
+    assertThat(e.getMessage(), is("A UDAF and its factory can have at most one variadic argument"));
+  }
+
+  @Test
+  public void shouldNotThrowWhenOnlyColArgIsVariadic() {
+    UdafTypes udafTypes = createTypes("udafWithInitArgAndVariadicColArg", int.class);
+    assertTrue(udafTypes.isVariadic());
+    assertTrue(udafTypes.literalParams().stream().noneMatch(ParameterInfo::isVariadic));
+  }
+
+  @Test
+  public void shouldNotThrowWhenColArgIsObjVariadic() {
+    UdafTypes udafTypes = createTypes("udafWithObjVarArg", int.class);
+    assertTrue(udafTypes.isVariadic());
+    assertTrue(udafTypes.literalParams().stream().noneMatch(ParameterInfo::isVariadic));
+  }
+
+  @Test
+  public void shouldNotThrowWhenOnlyInitArgIsVariadic() {
+    UdafTypes udafTypes = createTypes("udafWithVariadicInitArg", int[].class);
+    assertTrue(udafTypes.isVariadic());
+    assertTrue(udafTypes.literalParams().get(0).isVariadic());
+  }
+
+  @Test
+  public void shouldNotThrowWhenColArgIsVariadicNoInitArg() {
+    UdafTypes udafTypes = createTypes("udafWithVariadicColArg");
+    assertTrue(udafTypes.isVariadic());
+    assertTrue(udafTypes.literalParams().isEmpty());
+  }
+
+  @Test
+  public void shouldThrowWhenMultipleColsVariadic() {
+    final Exception e = assertThrows(
+            KsqlException.class,
+            () -> createTypes("udafWithMultipleVariadicColArgs")
+    );
+
+    assertThat(e.getMessage(), is("A UDAF and its factory can have at most one variadic argument"));
+  }
+
+  @Test
+  public void shouldThrowWhenColArgVariadicWithoutTuple() {
+    final Exception e = assertThrows(
+            KsqlException.class,
+            () -> createTypes("udafWithVariadicColArgWithoutTuple")
+    );
+
+    assertThat(e.getMessage(), is("Variadic column arguments are only allowed inside tuples"));
+  }
+
+  @Test
+  public void shouldThrowWhenColArgAndInitArgAreObjVariadic() {
+    final Exception e = assertThrows(
+            KsqlException.class,
+            () -> createTypes("udafWithVariadicColAndInitArgs", int[].class)
+    );
+
+    assertThat(e.getMessage(), is("A UDAF and its factory can have at most one variadic argument"));
+  }
+
+  @Test
+  public void shouldThrowWhenNonVariadicObjArgBeforeVariadicArg() {
+    final Exception e = assertThrows(
+            KsqlException.class,
+            () -> createTypes("udafWithObjArgBeforeVariadicArg")
+    );
+
+    assertThat(e.getMessage(),
+            is("The Object type can only be used as a variadic column argument"));
+  }
+
+  @Test
+  public void shouldThrowWhenNonVariadicObjArgAfterVariadicArg() {
+    final Exception e = assertThrows(
+            KsqlException.class,
+            () -> createTypes("udafWithObjArgAfterVariadicArg")
+    );
+
+    assertThat(e.getMessage(),
+            is("The Object type can only be used as a variadic column argument"));
+  }
+
+  @Test
+  public void shouldThrowWhenNonVariadicObjArgBeforeObjVariadicArg() {
+    final Exception e = assertThrows(
+            KsqlException.class,
+            () -> createTypes("udafWithObjArgBeforeObjVarArg")
+    );
+
+    assertThat(e.getMessage(),
+            is("The Object type can only be used as a variadic column argument"));
+  }
+
+  @Test
+  public void shouldThrowWhenNonVariadicObjArgAfterObjVariadicArg() {
+    final Exception e = assertThrows(
+            KsqlException.class,
+            () -> createTypes("udafWithObjArgAfterObjVarArg")
+    );
+
+    assertThat(e.getMessage(),
+            is("The Object type can only be used as a variadic column argument"));
+  }
+
+  @SuppressWarnings({"unused", "MethodMayBeStatic"})
+  private Udaf<Pair<Integer, Double>, Long, Double> udafWithMultipleParams(String initParam) {
+    return null;
   }
 
   @SuppressWarnings({"unused", "MethodMayBeStatic"})
@@ -67,6 +247,73 @@ public class UdafTypesTest {
 
   @SuppressWarnings({"unused", "MethodMayBeStatic"})
   private Udaf<Integer, Long, Double> udafWithStringInitParam(final String initParam) {
+    return null;
+  }
+
+  @SuppressWarnings({"unused", "MethodMayBeStatic"})
+  private Udaf<Pair<Integer, VariadicArgs<Double>>, Long, Double> udafWithVariadicColAndInitArgs(
+          int... args) {
+    return null;
+  }
+
+  @SuppressWarnings({"unused", "MethodMayBeStatic"})
+  private Udaf<Pair<Integer, VariadicArgs<Double>>, Long, Double> udafWithVariadicObjColAndInitArgs(
+          Object... args) {
+    return null;
+  }
+
+  @SuppressWarnings({"unused", "MethodMayBeStatic"})
+  private Udaf<Pair<Object, VariadicArgs<Double>>, Long, Double> udafWithObjArgBeforeVariadicArg() {
+    return null;
+  }
+
+  @SuppressWarnings({"unused", "MethodMayBeStatic"})
+  private Udaf<Pair<VariadicArgs<Double>, Object>, Long, Double> udafWithObjArgAfterVariadicArg() {
+    return null;
+  }
+
+  @SuppressWarnings({"unused", "MethodMayBeStatic"})
+  private Udaf<Pair<Object, VariadicArgs<Object>>, Long, Double> udafWithObjArgBeforeObjVarArg() {
+    return null;
+  }
+
+  @SuppressWarnings({"unused", "MethodMayBeStatic"})
+  private Udaf<Pair<VariadicArgs<Object>, Object>, Long, Double> udafWithObjArgAfterObjVarArg() {
+    return null;
+  }
+
+  @SuppressWarnings({"unused", "MethodMayBeStatic"})
+  private Udaf<Pair<VariadicArgs<Object>, Integer>, Long, Double> udafWithObjVarArg(
+          final int param
+  ) {
+    return null;
+  }
+
+  @SuppressWarnings({"unused", "MethodMayBeStatic"})
+  private Udaf<Pair<Integer, VariadicArgs<Double>>, Long, Double>
+      udafWithInitArgAndVariadicColArg(int arg) {
+    return null;
+  }
+
+  @SuppressWarnings({"unused", "MethodMayBeStatic"})
+  private Udaf<Pair<Integer, Double>, Long, Double> udafWithVariadicInitArg(
+          int... args) {
+    return null;
+  }
+
+  @SuppressWarnings({"unused", "MethodMayBeStatic"})
+  private Udaf<Pair<Integer, VariadicArgs<Double>>, Long, Double> udafWithVariadicColArg() {
+    return null;
+  }
+
+  @SuppressWarnings({"unused", "MethodMayBeStatic"})
+  private Udaf<Pair<VariadicArgs<Integer>, VariadicArgs<Double>>, Long, Double>
+      udafWithMultipleVariadicColArgs() {
+    return null;
+  }
+
+  @SuppressWarnings({"unused", "MethodMayBeStatic"})
+  private Udaf<VariadicArgs<Integer>, Long, Double> udafWithVariadicColArgWithoutTuple() {
     return null;
   }
 

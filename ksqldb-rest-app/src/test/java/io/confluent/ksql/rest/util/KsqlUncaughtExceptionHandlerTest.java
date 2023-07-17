@@ -1,5 +1,6 @@
 package io.confluent.ksql.rest.util;
 
+import io.confluent.ksql.util.MockSystemExit;
 import org.apache.kafka.streams.processor.internals.StreamThread;
 import org.apache.log4j.LogManager;
 import org.junit.Test;
@@ -25,7 +26,7 @@ public class KsqlUncaughtExceptionHandlerTest {
     // When
     final CountDownLatch latch = new CountDownLatch(1);
     KsqlUncaughtExceptionHandler handler = new KsqlUncaughtExceptionHandler(LogManager::shutdown, Optional.of(latch));
-    handler.uncaughtException(streamThread, new Exception());
+    handler.uncaughtExceptionInternal(streamThread, new Exception(), new MockSystemExit());
     // Then
     assertThat(latch.await(60000, TimeUnit.MILLISECONDS), is(true));
   }

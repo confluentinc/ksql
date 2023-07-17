@@ -54,7 +54,7 @@ public class FormatTime {
       @UdfParameter(
           description = "The format pattern should be in the format expected by"
               + " java.time.format.DateTimeFormatter.") final String formatPattern) {
-    if (time == null) {
+    if (time == null || formatPattern == null) {
       return null;
     }
     try {

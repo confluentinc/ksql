@@ -87,13 +87,16 @@ public @interface UdafFactory {
   String description();
 
   /**
-   * The schema for the parameter.
+   * The schemas for the parameters.
    *
    * <p>For simple parameters, this is optional and can be determined from
    * the Java value itself. For complex input types (e.g. {@code Struct} types),
    * this is required and will fail if not supplied.
+   *
+   * <p>If you provide fewer schemas than there are actual parameters, the schemas
+   * for the remaining parameters will default to being empty.
    */
-  String paramSchema() default "";
+  String[] paramSchema() default "";
 
   /**
    * The schema for the intermediate aggregate value.

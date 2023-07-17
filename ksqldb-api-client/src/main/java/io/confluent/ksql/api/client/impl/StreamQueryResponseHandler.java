@@ -25,19 +25,43 @@ import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.parsetools.RecordParser;
+import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicReference;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class StreamQueryResponseHandler
     extends QueryResponseHandler<CompletableFuture<StreamedQueryResult>> {
+  private static final Logger LOG = LoggerFactory.getLogger(StreamQueryResponseHandler.class);
 
   private StreamedQueryResultImpl queryResult;
   private Map<String, Integer> columnNameToIndex;
   private boolean paused;
+  private AtomicReference<String> serializedConsistencyVector;
+  private AtomicReference<String> continuationToken;
+  private String sql;
+  private Map<String, Object> properties;
+  private ClientImpl client;
 
-  StreamQueryResponseHandler(final Context context, final RecordParser recordParser,
-      final CompletableFuture<StreamedQueryResult> cf) {
+  StreamQueryResponseHandler(
+      final Context context,
+      final RecordParser recordParser,
+      final CompletableFuture<StreamedQueryResult> cf,
+      final AtomicReference<String> serializedCV,
+      final AtomicReference<String> continuationToken,
+      final String sql,
+      final Map<String, Object> properties,
+      final ClientImpl client
+  ) {
     super(context, recordParser, cf);
+    this.serializedConsistencyVector = Objects.requireNonNull(serializedCV, "serializedCV");
+    this.continuationToken = Objects.requireNonNull(continuationToken, "continuationToken");
+    this.sql = Objects.requireNonNull(sql, "sql");
+    this.properties = Objects.requireNonNull(properties, "properties");
+    this.client = Objects.requireNonNull(client, "client");
   }
 
   @Override
@@ -46,39 +70,52 @@ public class StreamQueryResponseHandler
         context,
         queryResponseMetadata.queryId,
         queryResponseMetadata.columnNames,
-        RowUtil.columnTypesFromStrings(queryResponseMetadata.columnTypes)
+        RowUtil.columnTypesFromStrings(queryResponseMetadata.columnTypes),
+        continuationToken,
+        sql,
+        properties,
+        client
     );
     this.columnNameToIndex = RowUtil.valueToIndexMap(queryResponseMetadata.columnNames);
     cf.complete(queryResult);
   }
 
+  @SuppressWarnings("checkstyle:CyclomaticComplexity")
   @Override
   protected void handleRow(final Buffer buff) {
     if (queryResult == null) {
       throw new IllegalStateException("handleRow called before metadata processed");
     }
 
-    final Object json = buff.toJson();
-    if (json instanceof JsonArray) {
-      final Row row = new RowImpl(
-          queryResult.columnNames(),
-          queryResult.columnTypes(),
-          (JsonArray) json,
-          columnNameToIndex
-      );
-      final boolean full = queryResult.accept(row);
-      if (full && !paused) {
-        recordParser.pause();
-        queryResult.drainHandler(this::publisherReceptive);
-        paused = true;
+    final Row row;
+    final JsonObject jsonObject = buff.toJsonObject();
+
+    if (!jsonObject.containsKey("finalMessage")) {
+      if (jsonObject.containsKey("row")) {
+        row = new RowImpl(
+            queryResult.columnNames(),
+            queryResult.columnTypes(),
+            new JsonArray((List)((Map<?, ?>) jsonObject.getMap().get("row")).get("columns")),
+            columnNameToIndex
+        );
+        final boolean full = queryResult.accept(row);
+        if (full && !paused) {
+          recordParser.pause();
+          queryResult.drainHandler(this::publisherReceptive);
+          paused = true;
+        }
+      } else if (jsonObject.containsKey("continuationToken")) {
+        LOG.info("Response contains continuation token " + jsonObject);
+        continuationToken.set(
+            (String) ((Map<?, ?>) jsonObject.getMap()
+                .get("continuationToken"))
+                .get("continuationToken"));
+      } else if (jsonObject.containsKey("errorMessage")) {
+        queryResult.handleError(new KsqlException(
+            (String) ((Map<?, ?>) jsonObject.getMap().get("errorMessage")).get("message")));
+      } else {
+        throw new RuntimeException("Could not decode JSON: " + jsonObject);
       }
-    } else if (json instanceof JsonObject) {
-      final JsonObject error = (JsonObject) json;
-      queryResult.handleError(new KsqlException(
-          error.getString("message")
-      ));
-    } else {
-      throw new RuntimeException("Could not decode JSON: " + json);
     }
   }
 

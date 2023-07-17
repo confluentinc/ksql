@@ -19,6 +19,8 @@ import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.execution.ddl.commands.DdlCommand;
 import io.confluent.ksql.parser.tree.DdlStatement;
 import io.confluent.ksql.planner.plan.KsqlStructuredDataOutputNode;
+import io.confluent.ksql.serde.RefinementInfo;
+import java.util.Optional;
 
 public interface DdlCommandFactory {
   DdlCommand create(
@@ -28,6 +30,7 @@ public interface DdlCommandFactory {
   );
 
   DdlCommand create(
-      KsqlStructuredDataOutputNode outputNode
+      KsqlStructuredDataOutputNode outputNode,
+      Optional<RefinementInfo> emitStrategy
   );
 }

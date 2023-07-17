@@ -74,7 +74,9 @@ public class QueryProjectNode extends ProjectNode {
   private final boolean isScalablePush;
   private final boolean isSelectStar;
   private final boolean addAdditionalColumnsToIntermediateSchema;
+  private final KsqlConfig ksqlConfig;
 
+  @SuppressFBWarnings("EI_EXPOSE_REP2")
   public QueryProjectNode(
       final PlanNodeId id,
       final PlanNode source,
@@ -87,6 +89,7 @@ public class QueryProjectNode extends ProjectNode {
       final boolean isScalablePush
   ) {
     super(id, source);
+    this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
     this.projection = Projection.of(selectItems);
     this.analysis = Objects.requireNonNull(analysis, "analysis");
     this.queryPlannerOptions = Objects.requireNonNull(queryPlannerOptions, "queryPlannerOptions");
@@ -97,7 +100,7 @@ public class QueryProjectNode extends ProjectNode {
     this.addAdditionalColumnsToIntermediateSchema = shouldAddAdditionalColumnsInSchema();
     this.outputSchema = buildOutputSchema(metaStore);
     this.intermediateSchema = QueryLogicalPlanUtil.buildIntermediateSchema(
-          source.getSchema(),
+          source.getSchema().withoutPseudoAndKeyColsInValue(),
           addAdditionalColumnsToIntermediateSchema,
           isWindowed
       );
@@ -196,15 +199,19 @@ public class QueryProjectNode extends ProjectNode {
   private boolean shouldAddAdditionalColumnsInSchema() {
 
     final boolean hasSystemColumns = analysis.getSelectColumnNames().stream().anyMatch(
-        SystemColumns::isSystemColumn
+        columnName -> SystemColumns.isSystemColumn(columnName)
     );
 
     final boolean hasKeyColumns = analysis.getSelectColumnNames().stream().anyMatch(cn ->
         getSource().getSchema().isKeyColumn(cn)
     );
 
+    final boolean hasHeaderColumns = analysis.getSelectColumnNames().stream().anyMatch(cn ->
+        getSource().getSchema().isHeaderColumn(cn)
+    );
+
     // Select * also requires keys, in case it's not explicitly mentioned
-    return hasSystemColumns || hasKeyColumns || isSelectStar;
+    return hasSystemColumns || hasKeyColumns || hasHeaderColumns || isSelectStar;
   }
 
   private boolean isSelectStar() {
@@ -233,6 +240,7 @@ public class QueryProjectNode extends ProjectNode {
     }
 
     return builder
+        .headerColumns(schema.headers())
         .valueColumns(schema.value())
         .build();
   }

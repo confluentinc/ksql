@@ -1,5 +1,6 @@
 package io.confluent.ksql.schema.ksql;
 
+import io.confluent.ksql.util.KsqlStatementException;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
@@ -11,7 +12,6 @@ import io.confluent.ksql.metastore.TypeRegistry;
 import io.confluent.ksql.schema.ksql.types.SqlStruct;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.KsqlStatementException;
 import java.util.Optional;
 import org.junit.Before;
 import org.junit.Test;

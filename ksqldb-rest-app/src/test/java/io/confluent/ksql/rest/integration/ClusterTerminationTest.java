@@ -17,8 +17,10 @@ package io.confluent.ksql.rest.integration;
 
 import static io.confluent.ksql.serde.FormatFactory.JSON;
 import static io.confluent.ksql.serde.FormatFactory.KAFKA;
+import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
 import static io.netty.handler.codec.http.HttpResponseStatus.OK;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.either;
 import static org.hamcrest.Matchers.is;
 
 import com.google.common.collect.ImmutableList;
@@ -28,7 +30,9 @@ import io.confluent.ksql.integration.Retry;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.entity.ClusterTerminateRequest;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
+import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
+import io.confluent.ksql.rest.server.utils.TestUtils;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.PageViewDataProvider;
@@ -37,10 +41,12 @@ import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpVersion;
 import io.vertx.ext.web.client.HttpResponse;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import kafka.zookeeper.ZooKeeperClientException;
-import org.junit.BeforeClass;
+import org.junit.Before;
 import org.junit.ClassRule;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
@@ -54,48 +60,69 @@ public class ClusterTerminationTest {
 
   private static final String SINK_TOPIC = "sink_topic";
   private static final String SINK_STREAM = "sink_stream";
-
+  private static final String AGG_TABLE = "agg_table";
+  private static final String AGG_TOPIC = "agg_topic";
+  private static final String INTERNAL_TOPIC_AGG =
+      "_confluent-ksql-default_query_CTAS_AGG_TABLE_3-Aggregate-Aggregate-Materialize-changelog";
+  private static final String INTERNAL_TOPIC_GROUPBY =
+      "_confluent-ksql-default_query_CTAS_AGG_TABLE_3-Aggregate-GroupBy-repartition";
+  private static final String ALL_TOPICS = ".*";
+  private static final long WAIT_FOR_TOPIC_TIMEOUT_MS = 500;
   private static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.build();
+  private static final int INT_PORT0 = TestUtils.findFreeLocalPort();
+  private static final int INT_PORT1 = TestUtils.findFreeLocalPort();
 
-  private static final TestKsqlRestApp REST_APP = TestKsqlRestApp
+  private static final TestKsqlRestApp REST_APP_0 = TestKsqlRestApp
       .builder(TEST_HARNESS::kafkaBootstrapServers)
       .withStaticServiceContext(TEST_HARNESS::getServiceContext)
       .withProperty(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY, "http://foo:8080")
+      .withProperty(KsqlRestConfig.INTERNAL_LISTENER_CONFIG, "http://localhost:" + INT_PORT0)
+      .withProperty(KsqlRestConfig.ADVERTISED_LISTENER_CONFIG, "http://localhost:" + INT_PORT0)
+      .build();
+
+  private static final TestKsqlRestApp REST_APP_1 = TestKsqlRestApp
+      .builder(TEST_HARNESS::kafkaBootstrapServers)
+      .withStaticServiceContext(TEST_HARNESS::getServiceContext)
+      .withProperty(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY, "http://foo:8080")
+      .withProperty(KsqlRestConfig.INTERNAL_LISTENER_CONFIG, "http://localhost:" + INT_PORT1)
+      .withProperty(KsqlRestConfig.ADVERTISED_LISTENER_CONFIG, "http://localhost:" + INT_PORT1)
       .build();
 
   @ClassRule
   public static final RuleChain CHAIN = RuleChain
-      .outerRule(Retry.of(3, ZooKeeperClientException.class, 3, TimeUnit.SECONDS))
-      .around(TEST_HARNESS)
-      .around(REST_APP);
+      .outerRule(Retry.of(3, ZooKeeperClientException.class, 3, TimeUnit.SECONDS));
 
-  @BeforeClass
-  public static void setUpClass() {
+  @Rule
+  public final RuleChain CHAIN_TEST = RuleChain
+      .outerRule(TEST_HARNESS)
+      .around(REST_APP_0)
+      .around(REST_APP_1);
+
+  @Before
+  public void setUp() {
     TEST_HARNESS.ensureTopics(PAGE_VIEW_TOPIC);
 
-    RestIntegrationTestUtil.createStream(REST_APP, PAGE_VIEWS_PROVIDER);
-  }
+    RestIntegrationTestUtil.createStream(REST_APP_0, PAGE_VIEWS_PROVIDER);
 
-  @Test
-  public void shouldCleanUpSinkTopicsAndSchemasDuringClusterTermination() throws Exception {
-    // Given:
+    // Given
     RestIntegrationTestUtil.makeKsqlRequest(
-        REST_APP,
+        REST_APP_0,
         "CREATE STREAM " + SINK_STREAM
             + " WITH (kafka_topic='" + SINK_TOPIC + "',format='avro')"
             + " AS SELECT * FROM " + PAGE_VIEW_STREAM + ";"
     );
-
     TEST_HARNESS.getKafkaCluster().waitForTopicsToBePresent(SINK_TOPIC);
-
     // Produce to stream so that schema is registered by AvroConverter
     TEST_HARNESS.produceRows(PAGE_VIEW_TOPIC, PAGE_VIEWS_PROVIDER, KAFKA, JSON, System::currentTimeMillis);
 
     TEST_HARNESS.waitForSubjectToBePresent(KsqlConstants.getSRSubject(SINK_TOPIC, true));
     TEST_HARNESS.waitForSubjectToBePresent(KsqlConstants.getSRSubject(SINK_TOPIC, false));
+  }
 
+  @Test
+  public void shouldCleanUpSinkTopicsAndSchemasDuringClusterTermination() throws Exception {
     // When:
-    terminateCluster(ImmutableList.of(SINK_TOPIC));
+    terminateCluster(ImmutableList.of(SINK_TOPIC), REST_APP_0);
 
     // Then:
     TEST_HARNESS.getKafkaCluster().waitForTopicsToBeAbsent(SINK_TOPIC);
@@ -110,26 +137,110 @@ public class ClusterTerminationTest {
     );
 
     // Then:
-    shouldReturn50303WhenTerminating();
+    shouldReturn50303or50304WhenTerminating();
   }
 
-  private void shouldReturn50303WhenTerminating() {
+  @Test
+  public void shouldTerminateAllTopicsWithStarInBody() throws InterruptedException {
+    // Given
+    RestIntegrationTestUtil.makeKsqlRequest(
+        REST_APP_0,
+        "CREATE TABLE " + AGG_TABLE
+            + " WITH (kafka_topic='" + AGG_TOPIC + "',format='avro')"
+            + " AS SELECT USERID, COUNT(*) FROM " + PAGE_VIEW_STREAM + " GROUP BY USERID;"
+    );
+
+    TEST_HARNESS.getKafkaCluster().waitForTopicsToBePresent(AGG_TOPIC);
+
+    // Produce to stream so that schema is registered by AvroConverter
+    TEST_HARNESS.produceRows(PAGE_VIEW_TOPIC, PAGE_VIEWS_PROVIDER, KAFKA, JSON, System::currentTimeMillis);
+
+    TEST_HARNESS.getKafkaCluster().waitForTopicsToBePresent(INTERNAL_TOPIC_AGG);
+    TEST_HARNESS.getKafkaCluster().waitForTopicsToBePresent(INTERNAL_TOPIC_GROUPBY);
+
+    TEST_HARNESS.waitForSubjectToBePresent(KsqlConstants.getSRSubject(AGG_TOPIC, true));
+    TEST_HARNESS.waitForSubjectToBePresent(KsqlConstants.getSRSubject(AGG_TOPIC, false));
+
+    // When:
+    terminateCluster(ImmutableList.of(ALL_TOPICS), REST_APP_0);
+
+    // Then:
+    waitForTopicsToBeAbsentWithTimeout(AGG_TOPIC);
+    waitForTopicsToBeAbsentWithTimeout(INTERNAL_TOPIC_AGG);
+    waitForTopicsToBeAbsentWithTimeout(INTERNAL_TOPIC_GROUPBY);
+
+    TEST_HARNESS.waitForSubjectToBeAbsent(KsqlConstants.getSRSubject(AGG_TOPIC, true));
+    TEST_HARNESS.waitForSubjectToBeAbsent(KsqlConstants.getSRSubject(AGG_TOPIC, false));
+
+    assertThat(
+        "Should not delete non-sink topics",
+        TEST_HARNESS.topicExists(PAGE_VIEW_TOPIC),
+        is(true)
+    );
+
+    // should be the pageview and _confluent-command topic left
+    assertThat(TEST_HARNESS.getKafkaCluster().getTopics().size(), is(2));
+
+    // Then:
+    shouldReturn50303or50304WhenTerminating();
+  }
+
+  private void waitForTopicsToBeAbsentWithTimeout(final String topic) {
+    assertThatEventually(
+        () -> "expected topics to be deleted",
+        () -> {
+          try {
+            TEST_HARNESS.getKafkaCluster().waitForTopicsToBeAbsent(topic);
+            return true;
+          } catch (AssertionError e) {
+            return false;
+          }
+        },
+        is(true),
+        WAIT_FOR_TOPIC_TIMEOUT_MS,
+        TimeUnit.MILLISECONDS,
+        500,
+        30000);
+  }
+
+  @Test
+  public void shouldTerminateEvenWithMultipleServers(){
+    // When:
+    terminateCluster(ImmutableList.of(ALL_TOPICS), REST_APP_1);
+
+    // Then:
+    TEST_HARNESS.getKafkaCluster().waitForTopicsToBeAbsent(SINK_TOPIC);
+
+    TEST_HARNESS.waitForSubjectToBeAbsent(KsqlConstants.getSRSubject(SINK_TOPIC, true));
+    TEST_HARNESS.waitForSubjectToBeAbsent(KsqlConstants.getSRSubject(SINK_TOPIC, false));
+
+    assertThat(
+        "Should not delete non-sink topics",
+        TEST_HARNESS.topicExists(PAGE_VIEW_TOPIC),
+        is(true)
+    );
+
+    // Then:
+    shouldReturn50303or50304WhenTerminating();
+  }
+
+  private void shouldReturn50303or50304WhenTerminating() {
     // Given: TERMINATE CLUSTER has been issued
 
     // When:
-    final KsqlErrorMessage error = RestIntegrationTestUtil.makeKsqlRequestWithError(REST_APP, "SHOW STREAMS;");
+    final KsqlErrorMessage error = RestIntegrationTestUtil.makeKsqlRequestWithError(REST_APP_0, "SHOW STREAMS;");
 
     // Then:
-    assertThat(error.getErrorCode(), is(Errors.ERROR_CODE_SERVER_SHUTTING_DOWN));
+    assertThatEventually(error::getErrorCode,
+        either(is(Errors.ERROR_CODE_SERVER_SHUT_DOWN)).or(is(Errors.ERROR_CODE_SERVER_SHUTTING_DOWN)));
   }
 
-  private static void terminateCluster(final List<String> deleteTopicList) {
+  private static void terminateCluster(final List<String> deleteTopicList, final TestKsqlRestApp app) {
 
     HttpResponse<Buffer> resp = RestIntegrationTestUtil
-        .rawRestRequest(REST_APP, HttpVersion.HTTP_1_1,
-            HttpMethod.POST, "/ksql/terminate", new ClusterTerminateRequest(deleteTopicList));
+        .rawRestRequest(app, HttpVersion.HTTP_1_1, HttpMethod.POST, "/ksql/terminate",
+                        new ClusterTerminateRequest(deleteTopicList), Optional.empty());
 
     assertThat(resp.statusCode(), is(OK.code()));
   }
-
 }

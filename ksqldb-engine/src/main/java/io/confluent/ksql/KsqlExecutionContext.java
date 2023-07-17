@@ -15,28 +15,34 @@
 
 package io.confluent.ksql;
 
+import io.confluent.ksql.analyzer.ImmutableAnalysis;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.KsqlPlan;
+import io.confluent.ksql.execution.pull.HARouting;
+import io.confluent.ksql.execution.pull.PullQueryResult;
+import io.confluent.ksql.execution.scalablepush.PushRouting;
+import io.confluent.ksql.execution.scalablepush.PushRoutingOptions;
 import io.confluent.ksql.execution.streams.RoutingOptions;
 import io.confluent.ksql.internal.PullQueryExecutorMetrics;
+import io.confluent.ksql.internal.ScalablePushQueryMetrics;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.Query;
-import io.confluent.ksql.physical.pull.HARouting;
-import io.confluent.ksql.physical.pull.PullQueryResult;
-import io.confluent.ksql.physical.scalablepush.PushRouting;
-import io.confluent.ksql.physical.scalablepush.PushRoutingOptions;
 import io.confluent.ksql.planner.QueryPlannerOptions;
 import io.confluent.ksql.planner.plan.ConfiguredKsqlPlan;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
+import io.confluent.ksql.util.ConsistencyOffsetVector;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.ScalablePushQueryMetadata;
+import io.confluent.ksql.util.StreamPullQueryMetadata;
 import io.confluent.ksql.util.TransientQueryMetadata;
 import io.vertx.core.Context;
 import java.util.Collections;
@@ -65,6 +71,26 @@ public interface KsqlExecutionContext {
   MetaStore getMetaStore();
 
   /**
+   * @return read-only access to the context's {@link KsqlConfig}
+   */
+  KsqlConfig getKsqlConfig();
+
+  MetricCollectors metricCollectors();
+
+  /**
+   * Alters the system property to the specified value.
+   *
+   * @param propertyName the system property that we want to change.
+   * @param propertyValue the value we want to change the property to.
+   */
+  void alterSystemProperty(String propertyName, String propertyValue);
+
+  /**
+   * Updates properties in existing runtimes and restarts them
+   */
+  void updateStreamsPropertiesAndRestartRuntime();
+
+  /**
    * @return the service context used for this execution context
    */
   ServiceContext getServiceContext();
@@ -81,6 +107,14 @@ public interface KsqlExecutionContext {
    * @return the query's details or else {@code Optional.empty()} if no found.
    */
   Optional<PersistentQueryMetadata> getPersistentQuery(QueryId queryId);
+
+  /**
+   * Retrieve the details of a query.
+   *
+   * @param queryId the id of the query to retrieve.
+   * @return the query's details or else {@code Optional.empty()} if no found.
+   */
+  Optional<QueryMetadata> getQuery(QueryId queryId);
 
   /**
    * Retrieves the list of all running persistent queries.
@@ -138,7 +172,7 @@ public interface KsqlExecutionContext {
    * Executes a query using the supplied service context.
    * @return the query metadata
    */
-  TransientQueryMetadata executeQuery(
+  TransientQueryMetadata executeTransientQuery(
       ServiceContext serviceContext,
       ConfiguredStatement<Query> statement,
       boolean excludeTombstones
@@ -155,14 +189,16 @@ public interface KsqlExecutionContext {
    *                         call PullQueryResult.start to start the query.
    * @return the rows that are the result of the query evaluation.
    */
-  PullQueryResult executePullQuery(
+  PullQueryResult executeTablePullQuery(
+      ImmutableAnalysis analysis,
       ServiceContext serviceContext,
       ConfiguredStatement<Query> statement,
       HARouting routing,
       RoutingOptions routingOptions,
       QueryPlannerOptions queryPlannerOptions,
       Optional<PullQueryExecutorMetrics> pullQueryMetrics,
-      boolean startImmediately
+      boolean startImmediately,
+      Optional<ConsistencyOffsetVector> consistencyOffsetVector
   );
 
   /**
@@ -174,15 +210,34 @@ public interface KsqlExecutionContext {
    * @param pushRouting The push routing object
    * @param pushRoutingOptions The options for routing
    * @param context The Vertx context of the request
+   * @param scalablePushQueryMetrics JMX metrics
    * @return A ScalablePushQueryMetadata object
    */
   ScalablePushQueryMetadata executeScalablePushQuery(
+      ImmutableAnalysis analysis,
       ServiceContext serviceContext,
       ConfiguredStatement<Query> statement,
       PushRouting pushRouting,
       PushRoutingOptions pushRoutingOptions,
       QueryPlannerOptions queryPlannerOptions,
-      Context context
+      Context context,
+      Optional<ScalablePushQueryMetrics> scalablePushQueryMetrics
+  );
+
+  /**
+   * For analyzing queries that you know won't have an output topic, such as pull queries.
+   */
+  ImmutableAnalysis analyzeQueryWithNoOutputTopic(
+      Query query,
+      String queryText,
+      Map<String, Object> configOverrides
+  );
+
+  StreamPullQueryMetadata createStreamPullQuery(
+      ServiceContext serviceContext,
+      ImmutableAnalysis analysis,
+      ConfiguredStatement<Query> statementOrig,
+      boolean excludeTombstones
   );
 
   /**
@@ -193,7 +248,15 @@ public interface KsqlExecutionContext {
   /**
    * Executes a KSQL plan using the supplied service context.
    */
-  ExecuteResult execute(ServiceContext serviceContext, ConfiguredKsqlPlan plan);
+  default ExecuteResult execute(ServiceContext serviceContext, ConfiguredKsqlPlan plan) {
+    return execute(serviceContext, plan, false);
+  }
+
+  /**
+   * Executes a KSQL plan using the supplied service context.
+   */
+  ExecuteResult execute(ServiceContext serviceContext, ConfiguredKsqlPlan plan,
+                        boolean restoreInProgress);
 
   /**
    * Execute the supplied statement, updating the meta store and registering any query.

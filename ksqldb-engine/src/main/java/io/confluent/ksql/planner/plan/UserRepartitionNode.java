@@ -40,6 +40,7 @@ public class UserRepartitionNode extends SingleSourcePlanNode {
   private final ImmutableList<Expression> originalPartitionBys;
   private final ValueFormat valueFormat;
 
+  @SuppressFBWarnings("EI_EXPOSE_REP2")
   public UserRepartitionNode(
       final PlanNodeId id,
       final PlanNode source,

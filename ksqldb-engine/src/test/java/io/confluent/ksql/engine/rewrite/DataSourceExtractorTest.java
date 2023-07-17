@@ -21,6 +21,7 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasSize;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import io.confluent.ksql.analyzer.Analysis.AliasedDataSource;
 import io.confluent.ksql.function.FunctionRegistry;
@@ -38,7 +39,10 @@ import java.util.List;
 import java.util.stream.Collectors;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.junit.MockitoJUnitRunner;
 
+@RunWith(MockitoJUnitRunner.class)
 public class DataSourceExtractorTest {
 
   private static final SourceName TEST1 = SourceName.of("TEST1");
@@ -143,7 +147,7 @@ public class DataSourceExtractorTest {
   }
 
   @Test
-  public void shouldThrowIfRightJoinSourceDoesNotExist() {
+  public void shouldThrowIfInnerJoinSourceDoesNotExist() {
     // Given:
     final AstNode stmt = givenQuery("SELECT * FROM TEST1 JOIN UNKNOWN"
         + " ON test1.col1 = UNKNOWN.col1;");

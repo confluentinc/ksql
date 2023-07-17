@@ -50,4 +50,19 @@ public class PullQueryConfigPlannerOptions implements QueryPlannerOptions {
     }
     return ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PULL_INTERPRETER_ENABLED);
   }
+
+  @Override
+  public boolean getRangeScansEnabled() {
+    if (configOverrides.containsKey(KsqlConfig.KSQL_QUERY_PULL_RANGE_SCAN_ENABLED)) {
+      return (Boolean) configOverrides.get(KsqlConfig.KSQL_QUERY_PULL_RANGE_SCAN_ENABLED);
+    }
+    return ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PULL_RANGE_SCAN_ENABLED);
+  }
+
+  public boolean getLimitClauseEnabled() {
+    if (configOverrides.containsKey(KsqlConfig.KSQL_QUERY_PULL_LIMIT_CLAUSE_ENABLED)) {
+      return (Boolean) configOverrides.get(KsqlConfig.KSQL_QUERY_PULL_LIMIT_CLAUSE_ENABLED);
+    }
+    return ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PULL_LIMIT_CLAUSE_ENABLED);
+  }
 }

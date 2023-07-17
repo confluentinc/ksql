@@ -49,7 +49,8 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
-@RunWith(MockitoJUnitRunner.class)
+// some tests here make sure a mocked exception isn't thrown
+@RunWith(MockitoJUnitRunner.Silent.class)
 public class LocalCommandsTest {
   private static final String QUERY_APP_ID1 = "appId1";
   private static final String QUERY_APP_ID2 = "appId2";
@@ -187,25 +188,20 @@ public class LocalCommandsTest {
   }
 
   @Test
-  public void shouldFailToCleanup() throws IOException {
+  public void shouldNotThrowWhenFailToCleanup() throws IOException {
     // Given
     final File dir = commandsDir.newFolder();
     LocalCommands localCommands = LocalCommands.open(ksqlEngine, dir);
-    doThrow(new RuntimeException("Error")).when(ksqlEngine)
-        .cleanupOrphanedInternalTopics(any(), any());
+    doThrow(new KsqlServerException("Error")).when(localCommandsFile).readRecords();
 
     // When
     localCommands.write(metadata1);
     LocalCommands localCommands2 = LocalCommands.open(ksqlEngine, dir);
     localCommands2.write(metadata3);
     // Need to create a new local commands in order not to skip the "current" file we just wrote.
-    final Exception e = assertThrows(
-        KsqlServerException.class,
-        () -> localCommands2.processLocalCommandFiles(serviceContext)
-    );
+    localCommands2.processLocalCommandFiles(serviceContext);
 
-    // Then
-    assertThat(e.getMessage(), containsString("Error processing local commands"));
+    // Then no exception should be thrown
     verify(ksqlEngine).cleanupOrphanedInternalTopics(any(), eq(ImmutableSet.of(QUERY_APP_ID1)));
   }
 }

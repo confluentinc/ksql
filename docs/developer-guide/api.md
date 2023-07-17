@@ -23,7 +23,7 @@ Change the server configuration that controls the HTTP API endpoint by
 setting the `listeners` parameter in the ksqlDB server config file. For
 more info, see [listeners](../reference/server-configuration.md#listeners).
 To configure the endpoint to use HTTPS, see
-[Configure ksqlDB for HTTPS](../operate-and-deploy/installation/server-config/security.md#configure-ksqldb-for-https).
+[Configuring Listener for SSL encryption](../operate-and-deploy/installation/server-config/security.md#configuring-listener-for-ssl-encryption).
 
 Content Types
 -------------
@@ -73,10 +73,39 @@ Here's an example request that retrieves streaming data from
 curl -X "POST" "http://localhost:8088/query" \
      -H "Accept: application/vnd.ksql.v1+json" \
      -d $'{
-  "sql": "SELECT * FROM TEST_STREAM EMIT CHANGES;",
+  "ksql": "SELECT * FROM TEST_STREAM EMIT CHANGES;",
   "streamsProperties": {}
 }'
 ```
+
+A `PROTOBUF` content type where the rows are serialized in the `PROTOBUF` format
+is also supported for querying the `/query` and `/query-stream` endpoints.
+You can specify this serialization format in the `Accept` header:
+```
+Accept: application/vnd.ksql.v1+protobuf
+```
+The following example shows a curl command that issues a Pull query on a table called `CURRENTLOCATION`
+with the `PROTOBUF` content type:
+```bash
+curl -X "POST" "http://localhost:8088/query" \
+     -H "Accept: application/vnd.ksql.v1+protobuf" \
+     -d $'{
+  "ksql": "SELECT * FROM CURRENTLOCATION;",
+  "streamsProperties": {}
+}'
+```
+Response:
+```json
+[{"header":{"queryId":"query_1655152127973","schema":"`PROFILEID` STRING KEY, `LA` DOUBLE, `LO` DOUBLE","protoSchema":"syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  string PROFILEID = 1;\n  double LA = 2;\n  double LO = 3;\n}\n"}},
+{"row":{"protobufBytes":"CggxOGY0ZWE4NhF90LNZ9bFCQBmASL99HYRewA=="}},
+{"row":{"protobufBytes":"Cgg0YTdjN2I0MRFAE2HD07NCQBnM7snDQoVewA=="}},
+{"row":{"protobufBytes":"Cgg0YWI1Y2JhZBGKsOHplbJCQBmMSuoENIVewA=="}},
+{"row":{"protobufBytes":"Cgg0ZGRhZDAwMBHNO07RkeRCQBk9m1Wfq5lewA=="}},
+{"row":{"protobufBytes":"Cgg4YjZlYWU1ORFtxf6ye7JCQBmMSuoENIVewA=="}},
+{"row":{"protobufBytes":"CghjMjMwOWVlYxGUh4Va0+RCQBn0/dR46ZpewA=="}}]
+```
+The `protoSchema` field in the `header` corresponds to the content of a `.proto` file that the proto compiler uses at build time. 
+Use the `protoSchema` field to deserialize the `protobufBytes` into `PROTOBUF` messages.
 
 Provide the `--basic` and `--user` options if basic HTTPS authentication is
 enabled on the cluster, as shown in the following command.

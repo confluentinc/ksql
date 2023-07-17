@@ -26,6 +26,10 @@ import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlConstants;
 import java.math.BigDecimal;
+import java.nio.ByteBuffer;
+import java.sql.Date;
+import java.sql.Time;
+import java.sql.Timestamp;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
@@ -43,7 +47,7 @@ public class Least {
   @Udf
   public Integer least(@UdfParameter final Integer val, @UdfParameter final Integer... vals) {
 
-    return Stream.concat(Stream.of(val), Arrays.stream(vals))
+    return (vals == null) ? null : Stream.concat(Stream.of(val), Arrays.stream(vals))
         .filter(Objects::nonNull)
         .min(Integer::compareTo)
         .orElse(null);
@@ -52,7 +56,7 @@ public class Least {
   @Udf
   public Long least(@UdfParameter final Long val, @UdfParameter final Long... vals) {
 
-    return Stream.concat(Stream.of(val), Arrays.stream(vals))
+    return (vals == null) ? null : Stream.concat(Stream.of(val), Arrays.stream(vals))
         .filter(Objects::nonNull)
         .min(Long::compareTo)
         .orElse(null);
@@ -61,7 +65,7 @@ public class Least {
   @Udf
   public Double least(@UdfParameter final Double val, @UdfParameter final Double... vals) {
 
-    return Streams.concat(Stream.of(val), Arrays.stream(vals))
+    return (vals == null) ? null : Streams.concat(Stream.of(val), Arrays.stream(vals))
         .filter(Objects::nonNull)
         .min(Double::compareTo)
         .orElse(null);
@@ -70,17 +74,54 @@ public class Least {
   @Udf
   public String least(@UdfParameter final String val, @UdfParameter final String... vals) {
 
-    return Streams.concat(Stream.of(val), Arrays.stream(vals))
+    return (vals == null) ? null : Streams.concat(Stream.of(val), Arrays.stream(vals))
         .filter(Objects::nonNull)
         .min(String::compareTo)
         .orElse(null);
+  }
+
+  @Udf
+  public ByteBuffer least(@UdfParameter final ByteBuffer val,
+                          @UdfParameter final ByteBuffer... vals) {
+
+    return (vals == null) ? null : Streams.concat(Stream.of(val), Arrays.stream(vals))
+            .filter(Objects::nonNull)
+            .min(ByteBuffer::compareTo)
+            .orElse(null);
+  }
+
+  @Udf
+  public Date least(@UdfParameter final Date val, @UdfParameter final Date... vals) {
+
+    return (vals == null) ? null : Streams.concat(Stream.of(val), Arrays.stream(vals))
+            .filter(Objects::nonNull)
+            .min(Date::compareTo)
+            .orElse(null);
+  }
+
+  @Udf
+  public Time least(@UdfParameter final Time val, @UdfParameter final Time... vals) {
+
+    return (vals == null) ? null : Streams.concat(Stream.of(val), Arrays.stream(vals))
+            .filter(Objects::nonNull)
+            .min(Time::compareTo)
+            .orElse(null);
+  }
+
+  @Udf
+  public Timestamp least(@UdfParameter final Timestamp val, @UdfParameter final Timestamp... vals) {
+
+    return (vals == null) ? null : Streams.concat(Stream.of(val), Arrays.stream(vals))
+            .filter(Objects::nonNull)
+            .min(Timestamp::compareTo)
+            .orElse(null);
   }
 
   @Udf(schemaProvider = "leastDecimalProvider")
   public BigDecimal least(@UdfParameter final BigDecimal val,
       @UdfParameter final BigDecimal... vals) {
 
-    return Streams.concat(Stream.of(val), Arrays.stream(vals))
+    return (vals == null) ? null : Streams.concat(Stream.of(val), Arrays.stream(vals))
         .filter(Objects::nonNull)
         .min(Comparator.naturalOrder())
         .orElse(null);
@@ -90,10 +131,10 @@ public class Least {
   public SqlType leastDecimalProvider(final List<SqlArgument> params) {
 
     return params.stream()
-        .filter(s -> s.getSqlType().isPresent())
-        .map(SqlArgument::getSqlTypeOrThrow)
-        .reduce(DecimalUtil::widen)
-        .orElse(null);
+            .filter(s -> s.getSqlType().isPresent())
+            .map(SqlArgument::getSqlTypeOrThrow)
+            .reduce(DecimalUtil::widen)
+            .orElse(null);
   }
 
 }

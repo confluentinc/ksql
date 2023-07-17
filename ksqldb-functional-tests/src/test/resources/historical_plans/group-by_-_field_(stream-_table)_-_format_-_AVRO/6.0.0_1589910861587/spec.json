@@ -45,27 +45,32 @@
     "inputs" : [ {
       "topic" : "test_topic",
       "key" : "d1",
-      "value" : { },
+      "value" : {
+      },
       "timestamp" : 1
     }, {
       "topic" : "test_topic",
       "key" : "d2",
-      "value" : { },
+      "value" : {
+      },
       "timestamp" : 2
     }, {
       "topic" : "test_topic",
       "key" : "d1",
-      "value" : { },
+      "value" : {
+      },
       "timestamp" : 3
     }, {
       "topic" : "test_topic",
       "key" : "d2",
-      "value" : { },
+      "value" : {
+      },
       "timestamp" : 4
     }, {
       "topic" : "test_topic",
       "key" : "d1",
-      "value" : { },
+      "value" : {
+      },
       "timestamp" : 5
     } ],
     "outputs" : [ {
@@ -243,7 +248,8 @@
               "name" : "KSQL_AGG_VARIABLE_0",
               "type" : [ "null", "long" ],
               "default" : null
-            } ]
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
           }
         }, {
           "name" : "OUTPUT",
@@ -262,7 +268,8 @@
               "name" : "KSQL_COL_0",
               "type" : [ "null", "long" ],
               "default" : null
-            } ]
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
           }
         } ]
       }

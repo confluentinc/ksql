@@ -1,0 +1,133 @@
+{
+  "comments": [
+    "You can specify multiple statements per test case, i.e., to set up the various streams needed",
+    "for joins etc, but currently only the final topology will be verified. This should be enough",
+    "for most tests as we can simulate the outputs from previous stages into the final stage. If we",
+    "take a modular approach to testing we can still verify that it all works correctly, i.e, if we",
+    "verify the output of a select or aggregate is correct, we can use simulated output to feed into",
+    "a join or another aggregate."
+  ],
+  "tests": [
+    {
+      "name": "missing first argument",
+      "statements": [
+        "CREATE STREAM INPUT (ID BIGINT KEY, FIRST bigint, SECOND string, THIRD string) WITH (kafka_topic='input_topic', value_format='JSON');",
+        "CREATE TABLE OUTPUT as SELECT id, VAR_ARG(SECOND, THIRD) as RESULT FROM INPUT group by id;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Function 'VAR_ARG' does not accept parameters (STRING, STRING)."
+      }
+    },
+    {
+      "name": "var args type mismatch",
+      "statements": [
+        "CREATE STREAM INPUT (ID BIGINT KEY, FIRST bigint, SECOND integer) WITH (kafka_topic='input_topic', value_format='JSON');",
+        "CREATE TABLE OUTPUT as SELECT id, VAR_ARG(FIRST, SECOND) as RESULT FROM INPUT group by id;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Function 'VAR_ARG' does not accept parameters (BIGINT, INTEGER)."
+      }
+    },
+    {
+      "name": "all arguments",
+      "statements": [
+        "CREATE STREAM INPUT (ID BIGINT KEY, FIRST bigint, SECOND string, THIRD string, FOURTH string) WITH (kafka_topic='input_topic', value_format='JSON');",
+        "CREATE TABLE OUTPUT as SELECT id, VAR_ARG(FIRST, SECOND, THIRD, FOURTH) as RESULT FROM INPUT group by id;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": 0, "value": {"FIRST": 6, "SECOND": "hi", "THIRD": "hello", "FOURTH": "world"}},
+        {"topic": "input_topic", "key": 100, "value": {"FIRST": 2, "SECOND": "a", "THIRD": "hello", "FOURTH": "world"}},
+        {"topic": "input_topic", "key": 0, "value": {"FIRST": null, "SECOND": "hello", "THIRD": "hello", "FOURTH": "world"}},
+        {"topic": "input_topic", "key": 100, "value": {"FIRST": 5, "SECOND": "world", "THIRD": "hello", "FOURTH": "world"}},
+        {"topic": "input_topic", "key": 0, "value": {"FIRST": 5, "SECOND": null, "THIRD": "hello", "FOURTH": "world"}},
+        {"topic": "input_topic", "key": 100, "value": {"FIRST": 3, "SECOND": "test", "THIRD": "hello", "FOURTH": "world"}},
+        {"topic": "input_topic", "key": 100, "value": {"FIRST": 2, "SECOND": "testing", "THIRD": "hello", "FOURTH": "world"}},
+        {"topic": "input_topic", "key": 0, "value": {"FIRST": 21, "SECOND": "aggregate", "THIRD": "hello", "FOURTH": "world"}},
+        {"topic": "input_topic", "key": 100, "value": {"FIRST": null, "SECOND": "function", "THIRD": "hello", "FOURTH": "world"}},
+        {"topic": "input_topic", "key": 100, "value": {"FIRST": 3, "SECOND": "ksql", "THIRD": "hello", "FOURTH": "world"}},
+        {"topic": "input_topic", "key": 100, "value": {"FIRST": 6, "SECOND": "test", "THIRD": "hello", "FOURTH": "world"}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 0, "value": {"RESULT": 18}},
+        {"topic": "OUTPUT", "key": 100, "value": {"RESULT": 13}},
+        {"topic": "OUTPUT", "key": 0, "value": {"RESULT": 33}},
+        {"topic": "OUTPUT", "key": 100, "value": {"RESULT": 33}},
+        {"topic": "OUTPUT", "key": 0, "value": {"RESULT": 48}},
+        {"topic": "OUTPUT", "key": 100, "value": {"RESULT": 50}},
+        {"topic": "OUTPUT", "key": 100, "value": {"RESULT": 69}},
+        {"topic": "OUTPUT", "key": 0, "value": {"RESULT": 88}},
+        {"topic": "OUTPUT", "key": 100, "value": {"RESULT": 87}},
+        {"topic": "OUTPUT", "key": 100, "value": {"RESULT": 104}},
+        {"topic": "OUTPUT", "key": 100, "value": {"RESULT": 124}}
+      ]
+    },
+    {
+      "name": "regular arg literal",
+      "statements": [
+        "CREATE STREAM INPUT (ID BIGINT KEY, FIRST bigint, SECOND string) WITH (kafka_topic='input_topic', value_format='JSON');",
+        "CREATE TABLE OUTPUT as SELECT id, VAR_ARG(FIRST, 'hello', '10', '20', SECOND, '3') as RESULT FROM INPUT group by id;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": 0, "value": {"FIRST": 6, "SECOND": "hi"}},
+        {"topic": "input_topic", "key": 100, "value": {"FIRST": 2, "SECOND": "a"}},
+        {"topic": "input_topic", "key": 0, "value": {"FIRST": null, "SECOND": "hello"}},
+        {"topic": "input_topic", "key": 100, "value": {"FIRST": 5, "SECOND": "world"}},
+        {"topic": "input_topic", "key": 0, "value": {"FIRST": 5, "SECOND": null}},
+        {"topic": "input_topic", "key": 100, "value": {"FIRST": 3, "SECOND": "test"}},
+        {"topic": "input_topic", "key": 100, "value": {"FIRST": 2, "SECOND": "testing"}},
+        {"topic": "input_topic", "key": 0, "value": {"FIRST": 21, "SECOND": "aggregate"}},
+        {"topic": "input_topic", "key": 100, "value": {"FIRST": null, "SECOND": "function"}},
+        {"topic": "input_topic", "key": 100, "value": {"FIRST": 3, "SECOND": "ksql"}},
+        {"topic": "input_topic", "key": 100, "value": {"FIRST": 6, "SECOND": "test"}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 0, "value": {"RESULT": 18}},
+        {"topic": "OUTPUT", "key": 100, "value": {"RESULT": 13}},
+        {"topic": "OUTPUT", "key": 0, "value": {"RESULT": 33}},
+        {"topic": "OUTPUT", "key": 100, "value": {"RESULT": 33}},
+        {"topic": "OUTPUT", "key": 0, "value": {"RESULT": 48}},
+        {"topic": "OUTPUT", "key": 100, "value": {"RESULT": 50}},
+        {"topic": "OUTPUT", "key": 100, "value": {"RESULT": 69}},
+        {"topic": "OUTPUT", "key": 0, "value": {"RESULT": 88}},
+        {"topic": "OUTPUT", "key": 100, "value": {"RESULT": 87}},
+        {"topic": "OUTPUT", "key": 100, "value": {"RESULT": 104}},
+        {"topic": "OUTPUT", "key": 100, "value": {"RESULT": 124}}
+      ]
+    },
+    {
+      "name": "no variadic args",
+      "statements": [
+        "CREATE STREAM INPUT (ID BIGINT KEY, FIRST bigint, SECOND string) WITH (kafka_topic='input_topic', value_format='JSON');",
+        "CREATE TABLE OUTPUT as SELECT id, VAR_ARG(FIRST) as RESULT FROM INPUT group by id;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": 0, "value": {"FIRST": 6, "SECOND": "hi"}},
+        {"topic": "input_topic", "key": 100, "value": {"FIRST": 2, "SECOND": "a"}},
+        {"topic": "input_topic", "key": 0, "value": {"FIRST": null, "SECOND": "hello"}},
+        {"topic": "input_topic", "key": 100, "value": {"FIRST": 5, "SECOND": "world"}},
+        {"topic": "input_topic", "key": 0, "value": {"FIRST": 5, "SECOND": null}},
+        {"topic": "input_topic", "key": 100, "value": {"FIRST": 3, "SECOND": "test"}},
+        {"topic": "input_topic", "key": 100, "value": {"FIRST": 2, "SECOND": "testing"}},
+        {"topic": "input_topic", "key": 0, "value": {"FIRST": 21, "SECOND": "aggregate"}},
+        {"topic": "input_topic", "key": 100, "value": {"FIRST": null, "SECOND": "function"}},
+        {"topic": "input_topic", "key": 100, "value": {"FIRST": 3, "SECOND": "ksql"}},
+        {"topic": "input_topic", "key": 100, "value": {"FIRST": 6, "SECOND": "test"}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 0, "value": {"RESULT": 6}},
+        {"topic": "OUTPUT", "key": 100, "value": {"RESULT": 2}},
+        {"topic": "OUTPUT", "key": 0, "value": {"RESULT": 6}},
+        {"topic": "OUTPUT", "key": 100, "value": {"RESULT": 7}},
+        {"topic": "OUTPUT", "key": 0, "value": {"RESULT": 11}},
+        {"topic": "OUTPUT", "key": 100, "value": {"RESULT": 10}},
+        {"topic": "OUTPUT", "key": 100, "value": {"RESULT": 12}},
+        {"topic": "OUTPUT", "key": 0, "value": {"RESULT": 32}},
+        {"topic": "OUTPUT", "key": 100, "value": {"RESULT": 12}},
+        {"topic": "OUTPUT", "key": 100, "value": {"RESULT": 15}},
+        {"topic": "OUTPUT", "key": 100, "value": {"RESULT": 21}}
+      ]
+    }
+  ]
+}

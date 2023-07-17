@@ -76,7 +76,7 @@
       "replicas" : 1,
       "numPartitions" : 4
     } ],
-    "statements" : [ "CREATE STREAM INPUT (C1 BOOLEAN, C2 INTEGER, C3 BIGINT, C4 DOUBLE, C5 STRING) WITH (KAFKA_TOPIC='input', SCHEMA_ID=1, VALUE_FORMAT='AvRo');", "CREATE STREAM OUTPUT AS SELECT *\nFROM INPUT INPUT\nEMIT CHANGES;" ],
+    "statements" : [ "CREATE STREAM INPUT (C1 BOOLEAN, C2 INTEGER, C3 BIGINT, C4 DOUBLE, C5 STRING) WITH (KAFKA_TOPIC='input', VALUE_FORMAT='AvRo');", "CREATE STREAM OUTPUT AS SELECT *\nFROM INPUT INPUT\nEMIT CHANGES;" ],
     "post" : {
       "sources" : [ {
         "name" : "INPUT",
@@ -163,7 +163,8 @@
               "name" : "C5",
               "type" : [ "null", "string" ],
               "default" : null
-            } ]
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
           }
         } ]
       }

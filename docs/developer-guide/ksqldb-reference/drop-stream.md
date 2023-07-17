@@ -33,4 +33,14 @@ removal from brokers may take some time to complete.
     minutes to ensure that the topic was deleted.
 
 If the IF EXISTS clause is present, the statement doesn't fail if the
-table doesn't exist.
+stream doesn't exist.
+
+The DROP STREAM statement and the DELETE TOPIC clause are not atomic, because
+the schema subject is soft-deleted. The soft delete happens before the stream
+is dropped, and the stream may not appear to be dropped. Subsequent attempts to
+drop the stream fail, because the subject is already soft-deleted.
+
+To work around this situation, hard-delete the subject, then re-run the DROP
+STREAM statement.
+
+ 

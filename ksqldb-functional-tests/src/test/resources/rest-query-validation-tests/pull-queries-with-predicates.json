@@ -1,0 +1,449 @@
+{
+  "comments": [
+    "Tests covering pull queries with predicates"
+  ],
+  "tests": [
+    {
+      "name": "like operator on key and non-key columns",
+      "statements": [
+        "CREATE TABLE INPUT (ID STRING PRIMARY KEY, V0 STRING, V1 STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE MATVIEW AS SELECT ID, V0, V1 FROM INPUT;",
+        "SELECT ID, V0, V1 FROM MATVIEW WHERE ID LIKE '%1';",
+        "SELECT ID, V0, V1 FROM MATVIEW WHERE V0 LIKE 'v12%';",
+        "SELECT ID, V0, V1 FROM MATVIEW WHERE '12' LIKE '12';"
+      ],
+      "properties": {
+        "ksql.query.pull.table.scan.enabled":  true
+      },
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12345, "key": "10", "value": {"v0": "v10a", "v1": "v10b"}},
+        {"topic": "test_topic", "timestamp": 12355, "key": "11", "value": {"v0": "v11a", "v1": "v11b"}},
+        {"topic": "test_topic", "timestamp": 12365, "key": "12", "value": {"v0": "v12a", "v1": "v12b"}},
+        {"topic": "test_topic", "timestamp": 12375, "key": "13", "value": {"v0": "v13a", "v1": "v13b"}},
+        {"topic": "test_topic", "timestamp": 12385, "key": "14", "value": {"v0": "v14a", "v1": "v14b"}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ID` STRING KEY, `V0` STRING, `V1` STRING"}},
+          {"row":{"columns":["11", "v11a", "v11b"]}}
+        ]},
+        {"query": [
+          {"header":{"schema":"`ID` STRING KEY, `V0` STRING, `V1` STRING"}},
+          {"row":{"columns":["12", "v12a", "v12b"]}}
+        ]},
+        {"query": [
+          {"header":{"schema":"`ID` STRING KEY, `V0` STRING, `V1` STRING"}},
+          {"row":{"columns":["10", "v10a", "v10b"]}},
+          {"row":{"columns":["11", "v11a", "v11b"]}},
+          {"row":{"columns":["12", "v12a", "v12b"]}},
+          {"row":{"columns":["13", "v13a", "v13b"]}},
+          {"row":{"columns":["14", "v14a", "v14b"]}}
+        ]}
+      ]
+    },
+    {
+      "name": "like operator must fail on non-string pattern",
+      "statements": [
+        "CREATE TABLE INPUT (ID INTEGER PRIMARY KEY, V0 STRING, V1 STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE MATVIEW AS SELECT ID, V0, V1 FROM INPUT;",
+        "SELECT ID, V0, V1 FROM MATVIEW WHERE ID LIKE 12;"
+      ],
+      "properties": {
+        "ksql.query.pull.table.scan.enabled":  true
+      },
+      "expectedError": {
+        "message": "The column type for Like condition must be VARCHAR. The column type is INTEGER"
+      }
+    },
+    {
+      "name": "like operator must fail if table-scan is disabled",
+      "statements": [
+        "CREATE TABLE INPUT (ID INTEGER PRIMARY KEY, V0 STRING, V1 STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE MATVIEW AS SELECT ID, V0, V1 FROM INPUT;",
+        "SELECT ID, V0, V1 FROM MATVIEW WHERE '12' LIKE '12';"
+      ],
+      "properties": {
+        "ksql.query.pull.table.scan.enabled":  false
+      },
+      "expectedError": {
+        "message": "Like condition must be between strings"
+      }
+    },
+    {
+      "name": "between operator on key and non-key columns",
+      "statements": [
+        "CREATE STREAM INPUT (ID1 STRING KEY, ID2 INT, V0 STRING) WITH (kafka_topic='test_topic', format='JSON');",
+        "CREATE TABLE AGGREGATE AS SELECT ID1, ID2, V0, COUNT(1) AS COUNT FROM INPUT GROUP BY ID1, ID2, V0;",
+        "SELECT * FROM AGGREGATE WHERE ID1 BETWEEN '10' AND '11';",
+        "SELECT * FROM AGGREGATE WHERE ID2 BETWEEN 10 AND 12;",
+        "SELECT * FROM AGGREGATE WHERE V0 BETWEEN 'v10a' AND 'v12a';",
+        "SELECT * FROM AGGREGATE WHERE 10 BETWEEN 9 AND 11;"
+      ],
+      "properties": {
+        "ksql.query.pull.table.scan.enabled":  true
+      },
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12345, "key": "11", "value": {"id2": 10, "v0": "v10a"}},
+        {"topic": "test_topic", "timestamp": 12365, "key": "9", "value": {"id2": 12, "v0": "v12a"}},
+        {"topic": "test_topic", "timestamp": 12375, "key": "10", "value": {"id2": 15, "v0": "v15a"}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ID1` STRING KEY, `ID2` INTEGER KEY, `V0` STRING KEY, `COUNT` BIGINT"}},
+          {"row":{"columns":["11", 10, "v10a", 1]}},
+          {"row":{"columns":["10", 15, "v15a", 1]}}
+        ]},
+        {"query": [
+          {"header":{"schema":"`ID1` STRING KEY, `ID2` INTEGER KEY, `V0` STRING KEY, `COUNT` BIGINT"}},
+          {"row":{"columns":["9", 12, "v12a", 1]}},
+          {"row":{"columns":["11", 10, "v10a", 1]}}
+        ]},
+        {"query": [
+          {"header":{"schema":"`ID1` STRING KEY, `ID2` INTEGER KEY, `V0` STRING KEY, `COUNT` BIGINT"}},
+          {"row":{"columns":["9", 12, "v12a", 1]}},
+          {"row":{"columns":["11", 10, "v10a", 1]}}
+        ]},
+        {"query": [
+          {"header":{"schema":"`ID1` STRING KEY, `ID2` INTEGER KEY, `V0` STRING KEY, `COUNT` BIGINT"}},
+          {"row":{"columns":["9", 12, "v12a", 1]}},
+          {"row":{"columns":["10", 15, "v15a", 1]}},
+          {"row":{"columns":["11", 10, "v10a", 1]}}
+        ]}
+      ]
+    },
+    {
+      "name": "between operator must fail on non-matching literal",
+      "statements": [
+        "CREATE TABLE INPUT (ID INTEGER PRIMARY KEY, V0 STRING, V1 STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE MATVIEW AS SELECT ID, V0, V1 FROM INPUT;",
+        "SELECT ID, V0, V1 FROM MATVIEW WHERE V0 BETWEEN 10 AND 'v10a';"
+      ],
+      "properties": {
+        "ksql.query.pull.table.scan.enabled":  true
+      },
+      "expectedError": {
+        "message": "Invalid expression: Cannot compare V0 (STRING) to 10 (INTEGER) with GREATER_THAN_OR_EQUAL"
+      }
+    },
+    {
+      "name": "test with 3 partitions",
+      "statements": [
+        "CREATE TABLE INPUT (ID STRING PRIMARY KEY, V0 STRING, V1 STRING) WITH (kafka_topic='test_topic', value_format='JSON', PARTITIONS=3);",
+        "CREATE TABLE MATVIEW AS SELECT ID, V0, V1 FROM INPUT;",
+        "SELECT ID, V0, V1 FROM MATVIEW WHERE ID LIKE '12%';",
+        "SELECT ID, V0, V1 FROM MATVIEW WHERE V0 LIKE '%v11%';",
+        "SELECT ID, V0, V1 FROM MATVIEW WHERE ID BETWEEN '10' AND '11';",
+        "SELECT ID, V0, V1 FROM MATVIEW WHERE V1 BETWEEN 'v10b' AND 'v11b';",
+        "SELECT ID, V0, V1 FROM MATVIEW WHERE ID BETWEEN '10' AND '11' AND V0 IN ('v11a', 'v12a');"
+      ],
+      "properties": {
+        "ksql.query.pull.table.scan.enabled":  true
+      },
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12345, "key": "10", "value": {"v0": "v10a", "v1": "v10b"}},
+        {"topic": "test_topic", "timestamp": 12355, "key": "11", "value": {"v0": "v11a", "v1": "v11b"}},
+        {"topic": "test_topic", "timestamp": 12365, "key": "12", "value": {"v0": "v12a", "v1": "v12b"}},
+        {"topic": "test_topic", "timestamp": 12375, "key": "13", "value": {"v0": "v13a", "v1": "v13b"}},
+        {"topic": "test_topic", "timestamp": 12385, "key": "14", "value": {"v0": "v14a", "v1": "v14b"}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ID` STRING KEY, `V0` STRING, `V1` STRING"}},
+          {"row":{"columns":["12", "v12a", "v12b"]}}
+        ]},
+        {"query": [
+          {"header":{"schema":"`ID` STRING KEY, `V0` STRING, `V1` STRING"}},
+          {"row":{"columns":["11", "v11a", "v11b"]}}
+        ]},
+        {"query": [
+          {"header":{"schema":"`ID` STRING KEY, `V0` STRING, `V1` STRING"}},
+          {"row":{"columns":["10", "v10a", "v10b"]}},
+          {"row":{"columns":["11", "v11a", "v11b"]}}
+        ]},
+        {"query": [
+          {"header":{"schema":"`ID` STRING KEY, `V0` STRING, `V1` STRING"}},
+          {"row":{"columns":["10", "v10a", "v10b"]}},
+          {"row":{"columns":["11", "v11a", "v11b"]}}
+        ]},
+        {"query": [
+          {"header":{"schema":"`ID` STRING KEY, `V0` STRING, `V1` STRING"}},
+          {"row":{"columns":["11", "v11a", "v11b"]}}
+        ]}
+      ]
+    },
+    {
+      "name": "test with 4 partitions",
+      "statements": [
+        "CREATE TABLE INPUT (ID STRING PRIMARY KEY, V0 STRING, V1 STRING) WITH (kafka_topic='test_topic', value_format='JSON', PARTITIONS=4);",
+        "CREATE TABLE MATVIEW AS SELECT ID, V0, V1 FROM INPUT;",
+        "SELECT ID, V0, V1 FROM MATVIEW WHERE ID LIKE '12%';",
+        "SELECT ID, V0, V1 FROM MATVIEW WHERE V0 LIKE '%v11%';",
+        "SELECT ID, V0, V1 FROM MATVIEW WHERE ID BETWEEN '10' AND '11';",
+        "SELECT ID, V0, V1 FROM MATVIEW WHERE V1 BETWEEN 'v10b' AND 'v11b';",
+        "SELECT ID, V0, V1 FROM MATVIEW WHERE ID BETWEEN '10' AND '11' AND V0 IN ('v11a', 'v12a');"
+      ],
+      "properties": {
+        "ksql.query.pull.table.scan.enabled":  true
+      },
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12345, "key": "10", "value": {"v0": "v10a", "v1": "v10b"}},
+        {"topic": "test_topic", "timestamp": 12355, "key": "11", "value": {"v0": "v11a", "v1": "v11b"}},
+        {"topic": "test_topic", "timestamp": 12365, "key": "12", "value": {"v0": "v12a", "v1": "v12b"}},
+        {"topic": "test_topic", "timestamp": 12375, "key": "13", "value": {"v0": "v13a", "v1": "v13b"}},
+        {"topic": "test_topic", "timestamp": 12385, "key": "14", "value": {"v0": "v14a", "v1": "v14b"}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ID` STRING KEY, `V0` STRING, `V1` STRING"}},
+          {"row":{"columns":["12", "v12a", "v12b"]}}
+        ]},
+        {"query": [
+          {"header":{"schema":"`ID` STRING KEY, `V0` STRING, `V1` STRING"}},
+          {"row":{"columns":["11", "v11a", "v11b"]}}
+        ]},
+        {"query": [
+          {"header":{"schema":"`ID` STRING KEY, `V0` STRING, `V1` STRING"}},
+          {"row":{"columns":["10", "v10a", "v10b"]}},
+          {"row":{"columns":["11", "v11a", "v11b"]}}
+        ]},
+        {"query": [
+          {"header":{"schema":"`ID` STRING KEY, `V0` STRING, `V1` STRING"}},
+          {"row":{"columns":["10", "v10a", "v10b"]}},
+          {"row":{"columns":["11", "v11a", "v11b"]}}
+        ]},
+        {"query": [
+          {"header":{"schema":"`ID` STRING KEY, `V0` STRING, `V1` STRING"}},
+          {"row":{"columns":["11", "v11a", "v11b"]}}
+        ]}
+      ]
+    },
+    {
+      "name": "schema registry table-test one partition avro",
+      "statements": [
+        "CREATE TABLE INPUT (ID INT PRIMARY KEY, V0 STRING PRIMARY KEY, V1 STRING) WITH (kafka_topic='test_topic', format='AVRO', PARTITIONS=1);",
+        "CREATE TABLE MATVIEW AS SELECT * FROM INPUT;",
+        "SELECT * FROM MATVIEW WHERE ID=10 and V0='v10a';"
+      ],
+      "properties": {
+        "ksql.query.pull.table.scan.enabled":  true
+      },
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12345, "key": {"ID": "10", "v0": "v10a"}, "value": {"v1": "v10b"}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ID` INTEGER KEY, `V0` STRING KEY, `V1` STRING"}},
+          {"row":{"columns":[10, "v10a", "v10b"]}}
+        ]}
+      ]
+    },
+    {
+      "name": "schema registry table-test two partitions json",
+      "statements": [
+        "CREATE TABLE INPUT (ID INT PRIMARY KEY, V0 STRING PRIMARY KEY, V1 STRING) WITH (kafka_topic='test_topic', format='JSON', PARTITIONS=2);",
+        "CREATE TABLE MATVIEW AS SELECT * FROM INPUT;",
+        "SELECT * FROM MATVIEW WHERE ID=10 and V0='v10a';"
+      ],
+      "properties": {
+        "ksql.query.pull.table.scan.enabled":  true
+      },
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12345, "key": {"ID": "10", "v0": "v10a"}, "value": {"v1": "v10b"}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ID` INTEGER KEY, `V0` STRING KEY, `V1` STRING"}},
+          {"row":{"columns":[10, "v10a", "v10b"]}}
+        ]}
+      ]
+    },
+    {
+      "name": "schema registry table-test two partitions",
+      "statements": [
+        "CREATE TABLE INPUT (ID INT PRIMARY KEY, V0 STRING PRIMARY KEY, V1 STRING) WITH (kafka_topic='test_topic', format='AVRO', PARTITIONS=2);",
+        "CREATE TABLE MATVIEW AS SELECT * FROM INPUT;",
+        "SELECT * FROM MATVIEW WHERE ID=10 and V0='v10a';"
+      ],
+      "properties": {
+        "ksql.query.pull.table.scan.enabled":  true
+      },
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12345, "key": {"ID": "10", "v0": "v10a"}, "value": {"v1": "v10b"}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ID` INTEGER KEY, `V0` STRING KEY, `V1` STRING"}},
+          {"row":{"columns":[10, "v10a", "v10b"]}}
+        ]}
+      ]
+    },
+    {
+      "name": "schema registry stream-test one partition",
+      "statements": [
+        "CREATE STREAM INPUT (ID INT KEY, V0 STRING KEY, V1 STRING) WITH (kafka_topic='test_topic', format='AVRO', PARTITIONS=1);",
+        "CREATE TABLE MATVIEW AS SELECT ID, V0, COUNT(1) AS CNT FROM INPUT GROUP BY ID, V0;",
+        "SELECT * FROM MATVIEW WHERE ID=10 and V0='v10a';"
+      ],
+      "properties": {
+        "ksql.query.pull.table.scan.enabled":  true
+      },
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12345, "key": {"ID": "10", "v0": "v10a"}, "value": {"v1": "v10b"}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ID` INTEGER KEY, `V0` STRING KEY, `CNT` BIGINT"}},
+          {"row":{"columns":[10, "v10a", 1]}}
+        ]}
+      ]
+    },
+    {
+      "name": "schema registry stream-test two partitions",
+      "statements": [
+        "CREATE STREAM INPUT (ID INT KEY, V0 STRING KEY, V1 STRING) WITH (kafka_topic='test_topic', format='AVRO', PARTITIONS=2);",
+        "CREATE TABLE MATVIEW AS SELECT ID, V0, COUNT(1) AS CNT FROM INPUT GROUP BY ID, V0;",
+        "SELECT * FROM MATVIEW WHERE ID=10 and V0='v10a';"
+      ],
+      "properties": {
+        "ksql.query.pull.table.scan.enabled":  true
+      },
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12345, "key": {"ID": "10", "v0": "v10a"}, "value": {"v1": "v10b"}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ID` INTEGER KEY, `V0` STRING KEY, `CNT` BIGINT"}},
+          {"row":{"columns":[10, "v10a", 1]}}
+        ]}
+      ]
+    },
+    {
+      "name": "schema registry stream-test one partition protobuf",
+      "statements": [
+        "CREATE STREAM INPUT (ID INT KEY, V0 STRING KEY, V1 STRING) WITH (kafka_topic='test_topic', format='PROTOBUF', PARTITIONS=1);",
+        "CREATE TABLE MATVIEW AS SELECT ID, V0, COUNT(1) AS CNT FROM INPUT GROUP BY ID, V0;",
+        "SELECT * FROM MATVIEW WHERE ID=10 and V0='v10a';"
+      ],
+      "properties": {
+        "ksql.query.pull.table.scan.enabled":  true
+      },
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12345, "key": {"ID": "10", "v0": "v10a"}, "value": {"v1": "v10b"}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ID` INTEGER KEY, `V0` STRING KEY, `CNT` BIGINT"}},
+          {"row":{"columns":[10, "v10a", 1]}}
+        ]}
+      ]
+    },
+    {
+      "name": "schema registry stream-test two partitions protobuf",
+      "statements": [
+        "CREATE STREAM INPUT (ID INT KEY, V0 STRING KEY, V1 STRING) WITH (kafka_topic='test_topic', format='PROTOBUF', PARTITIONS=2);",
+        "CREATE TABLE MATVIEW AS SELECT ID, V0, COUNT(1) AS CNT FROM INPUT GROUP BY ID, V0;",
+        "SELECT * FROM MATVIEW WHERE ID=10 and V0='v10a';"
+      ],
+      "properties": {
+        "ksql.query.pull.table.scan.enabled":  true
+      },
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12345, "key": {"ID": "10", "v0": "v10a"}, "value": {"v1": "v10b"}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ID` INTEGER KEY, `V0` STRING KEY, `CNT` BIGINT"}},
+          {"row":{"columns":[10, "v10a", 1]}}
+        ]}
+      ]
+    },
+    {
+      "name": "schema registry table-test one partition protobuf",
+      "statements": [
+        "CREATE TABLE INPUT (ID INT PRIMARY KEY, V0 STRING PRIMARY KEY, V1 STRING) WITH (kafka_topic='test_topic', format='PROTOBUF', PARTITIONS=1);",
+        "CREATE TABLE MATVIEW AS SELECT * FROM INPUT;",
+        "SELECT * FROM MATVIEW WHERE ID=10 and V0='v10a';"
+      ],
+      "properties": {
+        "ksql.query.pull.table.scan.enabled":  true
+      },
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12345, "key": {"ID": "10", "v0": "v10a"}, "value": {"v1": "v10b"}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ID` INTEGER KEY, `V0` STRING KEY, `V1` STRING"}},
+          {"row":{"columns":[10, "v10a", "v10b"]}}
+        ]}
+      ]
+    },
+    {
+      "name": "schema registry table-test two partitions protobuf",
+      "statements": [
+        "CREATE TABLE INPUT (ID INT PRIMARY KEY, V0 STRING PRIMARY KEY, V1 STRING) WITH (kafka_topic='test_topic', format='PROTOBUF', PARTITIONS=2);",
+        "CREATE TABLE MATVIEW AS SELECT * FROM INPUT;",
+        "SELECT * FROM MATVIEW WHERE ID=10 and V0='v10a';"
+      ],
+      "properties": {
+        "ksql.query.pull.table.scan.enabled":  true
+      },
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12345, "key": {"ID": "10", "v0": "v10a"}, "value": {"v1": "v10b"}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ID` INTEGER KEY, `V0` STRING KEY, `V1` STRING"}},
+          {"row":{"columns":[10, "v10a", "v10b"]}}
+        ]}
+      ]
+    },
+    {
+      "name": "schema registry table-test kafka-avro",
+      "statements": [
+        "CREATE TABLE INPUT (ID INT PRIMARY KEY, V0 STRING) WITH (kafka_topic='test_topic', key_format='KAFKA', value_format='AVRO', partitions=4);",
+        "CREATE TABLE MATVIEW WITH (format='AVRO') as SELECT id, id + 1, COUNT(*) from INPUT group by id, id + 1;",
+        "SELECT * FROM MATVIEW WHERE ID=1 and KSQL_COL_0=2;"
+      ],
+      "properties": {
+        "ksql.query.pull.table.scan.enabled":  true
+      },
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12345, "key": 1, "value": {"v0": "v10a"}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ID` INTEGER KEY, `KSQL_COL_0` INTEGER KEY, `KSQL_COL_1` BIGINT"}},
+          {"row":{"columns":[1, 2, 1]}}
+        ]}
+      ]
+    }
+  ]
+}

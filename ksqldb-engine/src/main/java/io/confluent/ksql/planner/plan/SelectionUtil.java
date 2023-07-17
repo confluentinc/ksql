@@ -15,7 +15,9 @@
 
 package io.confluent.ksql.planner.plan;
 
+import com.google.common.collect.Streams;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
+import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.plan.SelectExpression;
@@ -25,10 +27,13 @@ import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.parser.tree.AllColumns;
 import io.confluent.ksql.parser.tree.SelectItem;
 import io.confluent.ksql.parser.tree.SingleColumn;
+import io.confluent.ksql.parser.tree.StructAll;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.Column.Namespace;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.LogicalSchema.Builder;
+import io.confluent.ksql.schema.ksql.types.SqlStruct;
+import io.confluent.ksql.schema.ksql.types.SqlStruct.Field;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -126,6 +131,10 @@ public final class SelectionUtil {
       } else {
         final Expression expression = select.getExpression();
         final SqlType type = expressionTypeManager.getExpressionSqlType(expression);
+        if (type == null) {
+          throw new IllegalArgumentException("Can't infer a type of null. Please explicitly cast "
+              + "it to a required type, e.g. CAST(null AS VARCHAR).");
+        }
         builder.valueColumn(select.getAlias(), type);
       }
     }
@@ -153,20 +162,15 @@ public final class SelectionUtil {
     final SelectItem selectItem = selectItems.get(idx);
 
     if (selectItem instanceof SingleColumn) {
-      final SingleColumn column = (SingleColumn) selectItem;
-      // if the column we are trying to coerce into a target schema is beyond
-      // the target schema's max columns ignore it. this will generate a failure
-      // down the line when we check that the result schema is identical to
-      // the schema of the source we are attempting to fit
-      final Optional<Column> targetColumn = targetSchema
-          .filter(schema -> schema.columns().size() > idx)
-          .map(schema -> schema.columns().get(idx));
-
-      return resolveSingleColumn(idx, parentNode, column, targetColumn);
+      return resolveSingleColumn(idx, parentNode, (SingleColumn) selectItem, targetSchema);
     }
 
     if (selectItem instanceof AllColumns) {
       return resolveAllColumns(parentNode, (AllColumns) selectItem);
+    }
+
+    if (selectItem instanceof StructAll) {
+      return resolveStructAll(idx, parentNode, (StructAll) selectItem, targetSchema);
     }
 
     throw new IllegalArgumentException(
@@ -177,8 +181,16 @@ public final class SelectionUtil {
       final int idx,
       final PlanNode parentNode,
       final SingleColumn column,
-      final Optional<Column> targetColumn
+      final Optional<LogicalSchema> targetSchema
   ) {
+    // if the column we are trying to coerce into a target schema is beyond
+    // the target schema's max columns ignore it. this will generate a failure
+    // down the line when we check that the result schema is identical to
+    // the schema of the source we are attempting to fit
+    final Optional<Column> targetColumn = targetSchema
+        .filter(schema -> schema.columns().size() > idx)
+        .map(schema -> schema.columns().get(idx));
+
     final Expression expression = parentNode.resolveSelect(idx, column.getExpression());
     final ColumnName alias = column.getAlias()
         .orElseThrow(() -> new IllegalStateException("Alias should be present by this point"));
@@ -203,5 +215,100 @@ public final class SelectionUtil {
             allColumns.getLocation(),
             name
         )));
+  }
+
+  private static Stream<SelectExpression> resolveStructAll(
+      final int idx,
+      final PlanNode parentNode,
+      final StructAll structAll,
+      final Optional<LogicalSchema> targetSchema
+  ) {
+    final LogicalSchema parentSchema = parentNode.getSchema();
+
+    // Resolve the base struct first. I don't know if this is necessary. Let's make it behave
+    // like a single column first.
+    final Stream<SelectExpression> selectExpression = resolveSingleColumn(
+        idx,
+        parentNode,
+        new SingleColumn(
+            structAll.getBaseStruct(),
+            Optional.of(ColumnName.of("UNUSED"))
+        ),
+        targetSchema
+    );
+
+    // The selectExpression produced above should return one single expression
+    final Expression expression = Streams.findLast(selectExpression).get().getExpression();
+
+    // Find all fields of the most nested struct referenced in the expression.
+    // i.e. `col0->l1->l2->*` should resolve all fields of `col0->l1->f2`
+    final SqlStruct mostNestedStructFields = resolveStructFields(parentSchema, expression);
+
+    // Now convert all fields to a SelectExpression
+    return mostNestedStructFields.fields().stream()
+        .map(f -> SelectExpression.of(
+            ColumnName.of(f.name()),
+            new DereferenceExpression(
+                Optional.empty(),
+                expression,
+                f.name()
+            )));
+  }
+
+  private static SqlStruct resolveStructFields(
+      final LogicalSchema parentSchema,
+      final Expression expression
+  ) {
+    // Different expressions are accepted in this method.
+    //
+    // 1. DereferenceExpression. Contains struct columns with -> references. i.e. `col0->l1`
+    // 2. ColumnReferenceExp. Contains column references only. i.e. `col0`
+    //
+    // This resolver goes back to the column reference, so it has access to the column schema. It
+    // then goes forward each struct field, specified in the DereferenceExpression, to get
+    // access to the nested fields.
+
+    // This is the column part of the parent schema, which is used to access the column type
+    if (expression instanceof ColumnReferenceExp) {
+      final ColumnName columnName = ((ColumnReferenceExp) expression).getColumnName();
+      final Optional<SqlType> parentColumnType = parentSchema
+          .findColumn(columnName)
+          .map(Column::type);
+
+      // Return the column type. If a struct, then it'll return the struct schema with all its
+      // fields. i.e. `struct<f1 int, f2 string, ...>`
+      if (parentColumnType.isPresent() && parentColumnType.get() instanceof SqlStruct) {
+        return ((SqlStruct) parentColumnType.get());
+      } else {
+        throw new IllegalArgumentException("Column " + columnName + " is not a STRUCT type.");
+      }
+    }
+
+    // This is a struct column with a reference to one of its fields. i.e. `col0->f1`
+    // In this case, it gets the base expression or struct and calls the resolver to find the
+    // parent column schema until
+    if (expression instanceof DereferenceExpression) {
+      final String fieldName = ((DereferenceExpression) expression).getFieldName();
+
+      final SqlStruct parentStruct =
+          resolveStructFields(parentSchema, ((DereferenceExpression) expression).getBase());
+
+      // Once all struct fields are obtained from the previous call, then find the field
+      // referenced in the DereferenceExpression
+      final Optional<Field> parentStructField = parentStruct.field(fieldName);
+
+      if (parentStructField.isPresent()) {
+        if (parentStructField.get().type() instanceof SqlStruct) {
+          return (SqlStruct) parentStructField.get().type();
+        } else {
+          throw new IllegalArgumentException("Field " + fieldName + " is not a STRUCT type.");
+        }
+      } else {
+        throw new IllegalArgumentException("Field " + fieldName + " was not found on STRUCT.");
+      }
+    }
+
+    throw new IllegalArgumentException(
+        "Unsupported struct column expression: " + expression.getClass().getName());
   }
 }

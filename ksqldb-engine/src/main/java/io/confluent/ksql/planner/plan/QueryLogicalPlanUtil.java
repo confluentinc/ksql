@@ -20,7 +20,6 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 final class QueryLogicalPlanUtil {
 
   private QueryLogicalPlanUtil() {
-
   }
 
   /**
@@ -36,7 +35,7 @@ final class QueryLogicalPlanUtil {
     if (!addAdditionalColumnsToIntermediateSchema) {
       return schema;
     } else {
-      return schema.withPseudoAndKeyColsInValue(isWindowed);
+      return schema.withPseudoAndKeyColsInValue(isWindowed, true);
     }
   }
 }

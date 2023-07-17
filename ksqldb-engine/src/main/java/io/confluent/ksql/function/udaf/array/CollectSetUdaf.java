@@ -19,9 +19,13 @@ import com.google.common.collect.Lists;
 import io.confluent.ksql.function.udaf.Udaf;
 import io.confluent.ksql.function.udaf.UdafDescription;
 import io.confluent.ksql.function.udaf.UdafFactory;
+import io.confluent.ksql.schema.ksql.SqlArgument;
+import io.confluent.ksql.schema.ksql.types.SqlArray;
+import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.util.KsqlConstants;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import org.apache.kafka.common.Configurable;
 
 @UdafDescription(name = "collect_set", 
@@ -39,36 +43,17 @@ public final class CollectSetUdaf {
   private CollectSetUdaf() {
     // just to make the checkstyle happy
   }
-  
+
   @UdafFactory(description = "collect distinct values of a Bigint field into a single Array")
-  public static Udaf<Long, List<Long>, List<Long>> createCollectSetLong() {
-    return new Collect<>();
-  }
-
-  @UdafFactory(description = "collect distinct values of an Integer field into a single Array")
-  public static Udaf<Integer, List<Integer>, List<Integer>> createCollectSetInt() {
-    return new Collect<>();
-  }
-
-  @UdafFactory(description = "collect distinct values of a Double field into a single Array")
-  public static Udaf<Double, List<Double>, List<Double>> createCollectSetDouble() {
-    return new Collect<>();
-  }
-
-  @UdafFactory(description = "collect distinct values of a String field into a single Array")
-  public static Udaf<String, List<String>, List<String>> createCollectSetString() {
-    return new Collect<>();
-  }
-
-  @UdafFactory(description = "collect distinct values of a Boolean field into a single Array")
-  public static Udaf<Boolean, List<Boolean>, List<Boolean>> createCollectSetBool() {
+  public static <T> Udaf<T, List<T>, List<T>> createCollectSetT() {
     return new Collect<>();
   }
 
   private static final class Collect<T> implements Udaf<T, List<T>, List<T>>, Configurable {
 
     private int limit = Integer.MAX_VALUE;
-
+    SqlType inputType;
+    
     @Override
     public void configure(final Map<String, ?> map) {
       final Object limit = map.get(LIMIT_CONFIG);
@@ -83,6 +68,21 @@ public final class CollectSetUdaf {
       if (this.limit < 0) {
         this.limit = Integer.MAX_VALUE;
       }
+    }
+
+    @Override
+    public void initializeTypeArguments(final List<SqlArgument> argTypeList) {
+      inputType = argTypeList.get(0).getSqlTypeOrThrow();
+    }
+
+    @Override
+    public Optional<SqlType> getAggregateSqlType() {
+      return Optional.of(SqlArray.of(inputType));
+    }
+
+    @Override
+    public Optional<SqlType> getReturnSqlType() {
+      return Optional.of(SqlArray.of(inputType));
     }
 
     @Override

@@ -86,7 +86,7 @@ public class CommandTopic {
     if (iterable != null) {
       for (ConsumerRecord<byte[], byte[]> record : iterable) {
         try {
-          backupRecord(record);
+          backupRecord(Optional.of(commandTopicBackup), record);
         } catch (final CommandTopicCorruptionException e) {
           log.warn("Backup is out of sync with the current command topic. "
               + "Backups will not work until the previous command topic is "
@@ -101,32 +101,50 @@ public class CommandTopic {
   }
 
   public List<QueuedCommand> getRestoreCommands(final Duration duration) {
-    final List<QueuedCommand> restoreCommands = Lists.newArrayList();
+    if (commandTopicBackup.commandTopicCorruption()) {
+      log.warn("Corruption detected. "
+          + "Use backup to restore command topic.");
+      return Collections.emptyList();
+    }
+    return getAllCommandsInCommandTopic(
+        commandConsumer,
+        commandTopicPartition,
+        Optional.of(commandTopicBackup),
+        duration
+    );
+  }
 
-    final long endOffset = getEndOffset();
+  public static List<QueuedCommand> getAllCommandsInCommandTopic(
+      final Consumer<byte[], byte[]> commandConsumer,
+      final TopicPartition topicPartition,
+      final Optional<CommandTopicBackup> backup,
+      final Duration duration
+  ) {
+    final List<QueuedCommand> commands = Lists.newArrayList();
+    final long endOffset = getEndOffsetFromTopicPartition(commandConsumer, topicPartition);
 
     commandConsumer.seekToBeginning(
-        Collections.singletonList(commandTopicPartition));
+        Collections.singletonList(topicPartition));
 
     log.info("Reading prior command records up to offset {}", endOffset);
 
-    while (commandConsumer.position(commandTopicPartition) < endOffset) {
+    while (commandConsumer.position(topicPartition) < endOffset) {
       final ConsumerRecords<byte[], byte[]> records = commandConsumer.poll(duration);
       log.info("Received {} records from command topic restore poll", records.count());
       for (final ConsumerRecord<byte[], byte[]> record : records) {
         try {
-          backupRecord(record);
+          backupRecord(backup, record);
         } catch (final CommandTopicCorruptionException e) {
           log.warn("Backup is out of sync with the current command topic. "
               + "Backups will not work until the previous command topic is "
               + "restored or all backup files are deleted.", e);
-          return restoreCommands;
+          return commands;
         }
 
         if (record.value() == null) {
           continue;
         }
-        restoreCommands.add(
+        commands.add(
             new QueuedCommand(
                 record.key(),
                 record.value(),
@@ -134,7 +152,7 @@ public class CommandTopic {
                 record.offset()));
       }
     }
-    return restoreCommands;
+    return commands;
   }
 
   public long getCommandTopicConsumerPosition() {
@@ -142,6 +160,13 @@ public class CommandTopic {
   }
 
   public long getEndOffset() {
+    return getEndOffsetFromTopicPartition(commandConsumer, commandTopicPartition);
+  }
+
+  private static long getEndOffsetFromTopicPartition(
+      final Consumer<byte[], byte[]> commandConsumer,
+      final TopicPartition commandTopicPartition
+  ) {
     return commandConsumer.endOffsets(Collections.singletonList(commandTopicPartition))
         .get(commandTopicPartition);
   }
@@ -155,7 +180,10 @@ public class CommandTopic {
     commandTopicBackup.close();
   }
 
-  private void backupRecord(final ConsumerRecord<byte[], byte[]> record) {
-    commandTopicBackup.writeRecord(record);
+  private static void backupRecord(
+      final Optional<CommandTopicBackup> backup,
+      final ConsumerRecord<byte[], byte[]> record
+  ) {
+    backup.ifPresent(topicBackup -> topicBackup.writeRecord(record));
   }
 }

@@ -16,8 +16,7 @@
 package io.confluent.ksql.rest.server.resources.streaming;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.equalTo;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
@@ -86,9 +85,9 @@ public class TopicStreamWriterTest {
         "Value format: ",
         "KAFKA_STRING",
         System.lineSeparator(),
-        "rowtime: N/A, key: key-0, value: value-0",
+        "rowtime: N/A, key: key-0, value: value-0, partition: 0",
         System.lineSeparator(),
-        "rowtime: N/A, key: key-1, value: value-1",
+        "rowtime: N/A, key: key-1, value: value-1, partition: 0",
         System.lineSeparator()
     );
     out.assertWrites(expected);
@@ -119,9 +118,9 @@ public class TopicStreamWriterTest {
         "Value format: ",
         "KAFKA_STRING",
         System.lineSeparator(),
-        "rowtime: N/A, key: key-0, value: value-0",
+        "rowtime: N/A, key: key-0, value: value-0, partition: 0",
         System.lineSeparator(),
-        "rowtime: N/A, key: key-2, value: value-2",
+        "rowtime: N/A, key: key-2, value: value-2, partition: 0",
         System.lineSeparator()
     );
     out.assertWrites(expected);
@@ -142,18 +141,19 @@ public class TopicStreamWriterTest {
       recordedWrites.add(new String(bytes, off, len, Charsets.UTF_8));
     }
 
+    /**
+     * In JDK 13+ the behavior of PrintStream was changed so that newlines are flushed
+     * in the same write as the line itself when written using `println()` method. This
+     * method attempts to support both behaviors.
+     *
+     * @see <a href=
+     *  "https://github.com/openjdk/jdk/commit/346018251f22187b0508e11edd13833a3074c0cc">
+     *  8215412: Optimize PrintStream.println methods</a>
+     */
     void assertWrites(final List<String> expected) {
-
-      for (int i = 0; i < recordedWrites.size(); i++) {
-        final String actual = recordedWrites.get(i);
-        if (expected.size() <= i) {
-          break;
-        }
-
-        assertThat(actual, containsString(expected.get(i)));
-      }
-
-      assertThat(recordedWrites, hasSize(expected.size()));
+      assertThat(
+          String.join("", recordedWrites),
+          equalTo(String.join("", expected)));
     }
   }
 }

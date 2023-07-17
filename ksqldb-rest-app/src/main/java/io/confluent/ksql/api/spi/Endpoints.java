@@ -33,6 +33,7 @@ import io.vertx.core.json.JsonObject;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscriber;
 
 /**
@@ -52,11 +53,12 @@ public interface Endpoints {
    * @param workerExecutor The worker executor to use for blocking operations
    * @return A CompletableFuture representing the future result of the operation
    */
-  CompletableFuture<QueryPublisher> createQueryPublisher(String sql,
+  CompletableFuture<Publisher<?>> createQueryPublisher(String sql,
       Map<String, Object> properties,
       Map<String, Object> sessionVariables, Map<String, Object> requestProperties,
       Context context, WorkerExecutor workerExecutor,
-      ApiSecurityContext apiSecurityContext, MetricsCallbackHolder metricsCallbackHolder);
+      ApiSecurityContext apiSecurityContext, MetricsCallbackHolder metricsCallbackHolder,
+      Optional<Boolean> isInternalRequest);
 
   /**
    * Create a subscriber which will receive a stream of inserts from the API server and process
@@ -121,5 +123,8 @@ public interface Endpoints {
   void executeWebsocketStream(ServerWebSocket webSocket, MultiMap requstParams,
       WorkerExecutor workerExecutor, ApiSecurityContext apiSecurityContext,
       Context context);
+
+  CompletableFuture<EndpointResponse> executeTest(
+      String test, ApiSecurityContext apiSecurityContext);
 
 }

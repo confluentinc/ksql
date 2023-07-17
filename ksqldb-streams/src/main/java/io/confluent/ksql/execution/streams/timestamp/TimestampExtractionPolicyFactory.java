@@ -61,7 +61,6 @@ public final class TimestampExtractionPolicyFactory {
 
     final SqlBaseType tsColumnType = column.type().baseType();
     if (tsColumnType == SqlBaseType.STRING) {
-
       final String format = timestampFormat.orElseThrow(() -> new KsqlException(
           "A String timestamp field has been specified without"
               + " also specifying the "
@@ -73,18 +72,22 @@ public final class TimestampExtractionPolicyFactory {
     if (timestampFormat.isPresent()) {
       throw new KsqlException("'" + CommonCreateConfigs.TIMESTAMP_FORMAT_PROPERTY
           + "' set in the WITH clause can only be used "
-          + "when the timestamp column in of type STRING.");
+          + "when the timestamp column is of type STRING.");
     }
 
     if (tsColumnType == SqlBaseType.BIGINT) {
       return new LongColumnTimestampExtractionPolicy(col);
     }
 
+    if (tsColumnType == SqlBaseType.TIMESTAMP) {
+      return new TimestampColumnTimestampExtractionPolicy(col);
+    }
+
     throw new KsqlException(
-        "Timestamp column, " + col + ", should be LONG(INT64)"
+        "Timestamp column, " + col + ", should be LONG(INT64), TIMESTAMP,"
             + " or a String with a "
             + CommonCreateConfigs.TIMESTAMP_FORMAT_PROPERTY.toLowerCase()
-            + " specified");
+            + " specified.");
   }
 
   private static TimestampExtractor getDefaultTimestampExtractor(final KsqlConfig ksqlConfig) {

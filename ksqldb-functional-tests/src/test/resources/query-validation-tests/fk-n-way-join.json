@@ -98,7 +98,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "The query used to build `OUTPUT` must include the join expressions LEFT_TABLE.ID1 or RIGHT_TABLE.ID3 in its projection."
+        "message": "The query used to build `OUTPUT` must include the join expressions LEFT_TABLE.ID1 or RIGHT_TABLE.ID3 in its projection (eg, SELECT LEFT_TABLE.ID1...)."
       }
     },
     {

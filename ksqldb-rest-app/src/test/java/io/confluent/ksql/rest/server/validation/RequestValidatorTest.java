@@ -47,6 +47,7 @@ import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.Explain;
+import io.confluent.ksql.parser.tree.ListStreams;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.rest.server.computation.ValidatedCommandFactory;
@@ -76,7 +77,7 @@ public class RequestValidatorTest {
   private static final String SOME_STREAM_SQL = "CREATE STREAM x WITH (value_format='json', kafka_topic='x');";
 
   @Mock
-  private SandboxEngine ksqlEngine;
+  private SandboxEngine sandboxEngine;
   @Mock
   private KsqlConfig ksqlConfig;
   @Mock
@@ -98,10 +99,11 @@ public class RequestValidatorTest {
   @Before
   public void setUp() {
     metaStore = new MetaStoreImpl(new InternalFunctionRegistry());
-    when(ksqlEngine.prepare(any(), any()))
+    when(sandboxEngine.prepare(any(), any()))
         .thenAnswer(invocation ->
             KSQL_PARSER.prepare(invocation.getArgument(0), metaStore));
-    executionContext = ksqlEngine;
+    when(sandboxEngine.getKsqlConfig()).thenReturn(ksqlConfig);
+    executionContext = sandboxEngine;
     serviceContext = SandboxedServiceContext.create(TestServiceContext.create());
     when(ksqlConfig.getInt(KsqlConfig.KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_CONFIG))
         .thenReturn(Integer.MAX_VALUE);
@@ -134,7 +136,7 @@ public class RequestValidatorTest {
     validator.validate(serviceContext, statements, sessionProperties, "sql");
 
     // Then
-    verify(ksqlEngine).prepare(statements.get(0), sessionVariables);
+    verify(sandboxEngine).prepare(statements.get(0), sessionVariables);
     verify(sessionProperties).getSessionVariables();
   }
 
@@ -150,7 +152,7 @@ public class RequestValidatorTest {
     validator.validate(serviceContext, statements, sessionProperties, "sql");
 
     // Then
-    verify(ksqlEngine).prepare(statements.get(0), Collections.emptyMap());
+    verify(sandboxEngine).prepare(statements.get(0), Collections.emptyMap());
     verify(sessionProperties, never()).getSessionVariables();
   }
 
@@ -257,6 +259,21 @@ public class RequestValidatorTest {
   }
 
   @Test
+  public void shouldNotThrowIfNotQueryDespiteTooManyPersistentQueries() {
+    // Given:
+    givenPersistentQueryCount(2);
+    givenRequestValidator(ImmutableMap.of(ListStreams.class, StatementValidator.NO_VALIDATION));
+
+    final List<ParsedStatement> statements =
+        givenParsed(
+            "SHOW STREAMS;"
+        );
+
+    // When/Then:
+    validator.validate(serviceContext, statements, sessionProperties, "sql");
+  }
+
+  @Test
   public void shouldNotThrowIfManyNonPersistentQueries() {
     // Given:
     givenRequestValidator(
@@ -264,7 +281,6 @@ public class RequestValidatorTest {
             CreateStream.class, StatementValidator.NO_VALIDATION,
             Explain.class, StatementValidator.NO_VALIDATION)
     );
-    when(ksqlConfig.getInt(KsqlConfig.KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_CONFIG)).thenReturn(1);
 
     final List<ParsedStatement> statements =
         givenParsed(
@@ -340,7 +356,6 @@ public class RequestValidatorTest {
         customValidators,
         (ec, sc) -> InjectorChain.of(schemaInjector, topicInjector),
         (sc) -> executionContext,
-        ksqlConfig,
         distributedStatementValidator
     );
   }
@@ -349,7 +364,7 @@ public class RequestValidatorTest {
   private void givenPersistentQueryCount(final int value) {
     final List<PersistentQueryMetadata> queries = mock(List.class);
     when(queries.size()).thenReturn(value);
-    when(ksqlEngine.getPersistentQueries()).thenReturn(queries);
+    when(sandboxEngine.getPersistentQueries()).thenReturn(queries);
   }
 
   @Sandbox

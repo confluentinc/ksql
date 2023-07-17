@@ -2,7 +2,9 @@ package io.confluent.ksql.execution.codegen;
 
 import static io.confluent.ksql.GenericRow.genericRow;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.times;
@@ -19,6 +21,8 @@ import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.lang.reflect.InvocationTargetException;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
@@ -26,6 +30,7 @@ import org.codehaus.commons.compiler.IExpressionEvaluator;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
@@ -86,7 +91,12 @@ public class CompiledExpressionTest {
 
     // Then:
     assertThat(result, equalTo(RETURN_VALUE));
-    verify(expressionEvaluator).evaluate(new Object[]{123, 456, DEFAULT_VAL, processingLogger, genericRow(123, 456)});
+
+    final Map<String, Object> arguments = new HashMap<>();
+    arguments.put("var0", 123);
+    arguments.put("var1", 456);
+
+    verify(expressionEvaluator).evaluate(new Object[]{arguments, DEFAULT_VAL, processingLogger, genericRow(123, 456)});
   }
 
   @Test
@@ -115,7 +125,12 @@ public class CompiledExpressionTest {
 
     // Then:
     assertThat(result, equalTo(RETURN_VALUE));
-    verify(expressionEvaluator).evaluate(new Object[]{udf, 123, DEFAULT_VAL, processingLogger, genericRow(123)});
+
+    final Map<String, Object> arguments = new HashMap<>();
+    arguments.put("var1", 123);
+    arguments.put("foo_0", udf);
+
+    verify(expressionEvaluator).evaluate(new Object[]{arguments, DEFAULT_VAL, processingLogger, genericRow(123)});
   }
 
   @Test
@@ -135,7 +150,17 @@ public class CompiledExpressionTest {
     final CountDownLatch threadLatch = new CountDownLatch(1);
     final CountDownLatch mainLatch = new CountDownLatch(1);
 
-    when(expressionEvaluator.evaluate(new Object[]{123, 456, DEFAULT_VAL, processingLogger, genericRow(123, 456)}))
+    final Map<String, Object> arguments1 = new HashMap<String, Object>() {{
+      put("var0", 123);
+      put("var1", 456);
+    }};
+
+    final Map<String, Object> arguments2 = new HashMap<String, Object>() {{
+      put("var0", 100);
+      put("var1", 200);
+    }};
+
+    when(expressionEvaluator.evaluate(new Object[]{arguments1, DEFAULT_VAL, processingLogger, genericRow(123, 456)}))
         .thenAnswer(
             invocation -> {
               threadLatch.countDown();
@@ -169,9 +194,9 @@ public class CompiledExpressionTest {
     // Then:
     thread.join();
     verify(expressionEvaluator, times(1))
-        .evaluate(new Object[]{123, 456, DEFAULT_VAL, processingLogger, genericRow(123, 456)});
+        .evaluate(new Object[]{arguments1, DEFAULT_VAL, processingLogger, genericRow(123, 456)});
     verify(expressionEvaluator, times(1))
-        .evaluate(new Object[]{100, 200, DEFAULT_VAL, processingLogger, genericRow(100, 200)});
+        .evaluate(new Object[]{arguments2, DEFAULT_VAL, processingLogger, genericRow(100, 200)});
   }
 
   @Test
@@ -276,7 +301,11 @@ public class CompiledExpressionTest {
         .evaluate(null, DEFAULT_VAL, processingLogger, errorMsgSupplier);
 
     // Then:
-    verify(processingLogger).error(RecordProcessingError
-        .recordProcessingError("It went wrong!", new NullPointerException(), (GenericRow)null));
+    ArgumentCaptor<RecordProcessingError> err = ArgumentCaptor.forClass(
+        RecordProcessingError.class);
+    verify(processingLogger).error(err.capture());
+
+    assertThat(err.getValue().getException().get(), instanceOf(NullPointerException.class));
+    assertThat(err.getValue().getMessage(), containsString("It went wrong!"));
   }
 }

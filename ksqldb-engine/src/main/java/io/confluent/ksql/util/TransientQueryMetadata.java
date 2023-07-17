@@ -16,8 +16,10 @@
 package io.confluent.ksql.util;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.confluent.ksql.logging.processing.ProcessingLoggerFactory;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.BlockingRowQueue;
+import io.confluent.ksql.query.CompletionHandler;
 import io.confluent.ksql.query.KafkaStreamsBuilder;
 import io.confluent.ksql.query.LimitHandler;
 import io.confluent.ksql.query.QueryErrorClassifier;
@@ -57,7 +59,8 @@ public class TransientQueryMetadata extends QueryMetadataImpl implements PushQue
       final ResultType resultType,
       final long retryBackoffInitialMs,
       final long retryBackoffMaxMs,
-      final Listener listener
+      final Listener listener,
+      final ProcessingLoggerFactory loggerFactory
   ) {
     // CHECKSTYLE_RULES.ON: ParameterNumberCheck
     super(
@@ -76,7 +79,8 @@ public class TransientQueryMetadata extends QueryMetadataImpl implements PushQue
         maxQueryErrorsQueueSize,
         retryBackoffInitialMs,
         retryBackoffMaxMs,
-        listener
+        listener,
+        loggerFactory
     );
     this.rowQueue = Objects.requireNonNull(rowQueue, "rowQueue");
     this.resultType = Objects.requireNonNull(resultType, "resultType");
@@ -93,7 +97,7 @@ public class TransientQueryMetadata extends QueryMetadataImpl implements PushQue
   }
 
   public boolean isRunning() {
-    return isRunning.get();
+    return isRunning.get() && getKafkaStreams().state().isRunningOrRebalancing();
   }
 
   @SuppressFBWarnings(value = "EI_EXPOSE_REP")
@@ -133,13 +137,23 @@ public class TransientQueryMetadata extends QueryMetadataImpl implements PushQue
   }
 
   @Override
+  public void setCompletionHandler(final CompletionHandler completionHandler) {
+    rowQueue.setCompletionHandler(completionHandler);
+  }
+
+
+  @Override
   public void close() {
+    // Push queries can be closed by both terminate commands and the client ending the request, so
+    // we ensure that there's no race and that close is called just once.
+    if (!this.isRunning.compareAndSet(true, false)) {
+      return;
+    }
     // To avoid deadlock, close the queue first to ensure producer side isn't blocked trying to
     // write to the blocking queue, otherwise super.close call can deadlock:
     rowQueue.close();
 
     // Now safe to close:
     super.close();
-    this.isRunning.set(false);
   }
 }

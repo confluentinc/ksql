@@ -2,49 +2,94 @@
 layout: page
 title: ksqlDB Scalar Functions
 tagline:  ksqlDB scalar functions for queries
-description: Scalar functions to use in ksqlDB statements and queries
-keywords: ksqlDB, function, scalar
+description: Scalar functions to use in SQL statements and queries
+keywords: ksqlDB, SQL, function, scalar
 ---
 
-## Numeric functions
+## **Numeric functions**
 
-### `ABS`
+### **`ABS`**
 
-Since: -
-
-```sql
+```sql title="Since: 0.1.0"
 ABS(col1)
 ```
 
-The absolute value of a value.
+Returns the absolute value of `col1`.
 
-### `AS_VALUE`
+---
 
-Since: 0.9.0
+### **`ACOS`**
 
-```sql
-AS_VALUE(keyCol)
+```sql title="Since: 0.28.0"
+ACOS(col1)
 ```
 
-Creates a copy of a key column in the value.
+Returns the inverse (arc) cosine of `col1`, in radians. Use the [DEGREES](#degrees) function to convert the output to degrees.
 
-For example:
+This function returns `NaN` for any input outside [-1, 1].
 
-```sql
+---
+
+### **`ASIN`**
+
+```sql title="Since: 0.28.0"
+ASIN(col1)
+```
+
+Returns the inverse (arc) sine of `col1`, in radians. Use the [DEGREES](#degrees) function to convert the output to degrees.
+
+This function returns `NaN` for any input outside [-1, 1].
+
+---
+
+### **`AS_VALUE`**
+
+```sql title="Since: 0.9.0"
+AS_VALUE(keyColumn)
+```
+
+Copies a row's key column into the row's value.
+
+```sql title="Example", hl_lines="4"
 CREATE TABLE AGG AS
    SELECT 
-     ID,                  -- this is the grouping column and will be stored in the message key.
-     AS_VALUE(ID) AS ID2  -- this creates a copy of ID, called ID2, stored in the message value.
+     ID,                  -- this is the grouping column, which is stored in the message key.
+     AS_VALUE(ID) AS ID2  -- this creates a copy of ID, named ID2, which is stored in the message value.
      COUNT(*) AS COUNT
    FROM S
    GROUP BY ID;
 ```
 
-### `CAST`
+!!! Tip "See AS_VALUE in action"
+    - [Understand user behavior with clickstream data](https://developer.confluent.io/tutorials/clickstream/confluent.html#execute-ksqldb-code)
 
-Since: -
+---
 
-```sql
+### **`ATAN`**
+
+```sql title="Since: 0.28.0"
+ATAN(col1)
+```
+
+Returns the inverse (arc) tangent of `col1`, in radians. Use the [DEGREES](#degrees) function to convert the output to degrees.
+
+---
+
+### **`ATAN2`**
+
+```sql title="Since: 0.28.0"
+ATAN2(y, x)
+```
+
+Returns the inverse (arc) tangent of `y / x`. This is equivalent to the angle _theta_ when Cartesian coordinates (x, y) are converted to polar coordinates (_radius_, _theta_). The returned value is in radians. Use the [DEGREES](#degrees) function to convert the output to degrees.
+
+If `x` is zero, `y / x` is undefined, and this function returns the approximate value of a multiple of _π/2_.
+
+---
+
+### **`CAST`**
+
+```sql title="Since: 0.1.0"
 CAST(COL0 AS BIGINT)
 ```
 
@@ -65,74 +110,127 @@ Converts one type to another. The following casts are supported:
 | `MAP` | `MAP` | (Since 0.14) Convert between maps of different key and value types |   
 | `STRUCT` | `STRUCT` | (Since 0.14) Convert between structs of different field types. Only fields that exist in the target STRUCT type are copied across. Any fields in the target type that don't exist in the source are set to `NULL`. Field name matching is case-sensitive. |
 
-### `CEIL`
+!!! Tip "See CAST in action"
+    - [Match users for online dating](https://developer.confluent.io/tutorials/online-dating/confluent.html#execute-ksqldb-code)
+    - [Understand user behavior with clickstream data](https://developer.confluent.io/tutorials/clickstream/confluent.html#execute-ksqldb-code)
 
-Since: -
+---
 
-```sql
+### **`CBRT`**
+
+```sql title="Since: 0.29.0"
+CBRT(col1)
+```
+
+Returns the cube root of `col1`.
+
+---
+
+### **`CEIL`**
+
+```sql title="Since: 0.1.0"
 CEIL(col1)
 ```
 
-The ceiling of a value.
+Returns the the smallest integer value that's greater than or equal to `col1`.
 
-### `ENTRIES`
+---
 
-Since: 0.6.0
+### **`COS`**
 
-```sql
+```sql title="Since: 0.28.0"
+COS(col1)
+```
+
+Returns the cosine of `col1`. `col1` is in radians. Use the [RADIANS](#radians) function to convert the input to radians, if necessary.
+
+---
+
+### **`COSH`**
+
+```sql title="Since: 0.28.0"
+COSH(col1)
+```
+
+Returns the hyperbolic cosine of `col1`. `col1` is in radians. Use the [RADIANS](#radians) function to convert the input to radians, if necessary.
+
+---
+
+### **`COT`**
+
+```sql title="Since: 0.28.0"
+COT(col1)
+```
+
+Returns the cotangent of `col1`. `col1` is in radians. Use the [RADIANS](#radians) function to convert the input to radians, if necessary.
+
+This implementation returns a large value approaching positive or negative infinity near the asymptotes, because _2π_ and similar values cannot be represented exactly. At _0_, it returns `Infinity` with the same sign as the input.
+
+---
+
+### **`DEGREES`**
+
+```sql title="Since: 0.28.0"
+DEGREES(col1)
+```
+
+Converts `col1` from radians to degrees.
+
+---
+
+### **`ENTRIES`**
+
+```sql title="Since: 0.6.0"
 ENTRIES(map MAP, sorted BOOLEAN)
 ```
 
-Constructs an array of structs from the entries in a map. Each struct has
-a field named `K` containing the key, which is a string, and a field named
-`V`, which holds the value.
+Creates an array of structs from the entries in a map. Each struct has a field
+named `K` containing the key, which is a string, and a field named `V`, which
+holds the value.
 
 If `sorted` is true, the entries are sorted by key.
 
-### `EXP`
+---
 
-Since: 0.6.0
+### **`EXP`**
 
-```sql
+```sql title="Since: 0.6.0"
 EXP(col1)
 ```
 
-The exponential of a value.
+Returns the exponential of `col1`, which is _e_ raised to the power of `col1`. 
 
-### `FLOOR`
+---
 
-Since: -
+### **`FLOOR`**
 
-```sql
+```sql title="Since: 0.1.0"
 FLOOR(col1)
 ```
 
-The floor of a value.
+Returns the largest integer value that's less than or equal to `col1`.
 
-### `GENERATE_SERIES`
+---
 
-Since: 0.6.0
+### **`GENERATE_SERIES`**
 
-```sql
+```sql title="Since: 0.6.0"
 GENERATE_SERIES(start, end)
-```
-
-```sql
 GENERATE_SERIES(start, end, step)
 ```
 
-Constructs an array of values between `start` and `end` (inclusive).
+Constructs an array of values between `start` and `end`, inclusive.
 
 Parameters `start` and `end` can be an `INT` or `BIGINT`.
 
 `step`, if supplied, specifies the step size. The step can be positive or negative.
 If not supplied, `step` defaults to `1`. Parameter `step` must be an `INT`.
 
-### `GEO_DISTANCE`
+---
 
-Since: 0.6.0
+### **`GEO_DISTANCE`**
 
-```sql
+```sql title="Since: 0.6.0"
 GEO_DISTANCE(lat1, lon1, lat2, lon2, unit)
 ```
 
@@ -140,561 +238,747 @@ The great-circle distance between two lat-long points, both specified
 in decimal degrees. An optional final parameter specifies `KM`
 (the default) or `miles`.
 
-### `GREATEST`
+---
 
-Since: 0.20.0
+### **`GREATEST`**
 
-```sql
-GREATEST(col1, col2...)
+```sql title="Since: 0.20.0"
+GREATEST(col1, col2, …)
 ```
 
-The highest non-null value among a variable number of comparable columns.
+Returns the largest non-null value from a variable number of comparable columns.
+
 If comparing columns of different numerical types, use [CAST](#cast) to first
 cast them to be of the same type.
 
-### `LEAST`
+---
 
-Since: 0.20.0
+### **`LEAST`**
 
-```sql
-LEAST(col1, col2...)
+```sql title="Since: 0.20.0"
+LEAST(col1, col2, …)
 ```
 
-The highest non-null value among a variable number of comparable columns.
+Returns the smallest non-null value from a variable number of comparable columns.
+
 If comparing columns of different numerical types, use [CAST](#cast) to first
 cast them to be of the same type.
 
-### `LN`
+---
 
-Since: 0.6.0
+### **`LN`**
 
-```sql
+```sql title="Since: 0.6.0"
 LN(col1)
 ```
 
-The natural logarithm of a value.
+Returns the natural logarithm of `col1`, which is .
 
-### `RANDOM`
+The value of `col1` must be greater than 0.
 
-Since: -
+---
 
-```sql
+### **`LOG`**
+
+```sql title="Since: 0.29.0"
+LOG(value)
+LOG(base, value)
+```
+
+The single-parameter version of this method returns the base 10 logarithm of the `value`. The two-parameter version returns the logarithm with the given `base` of the `value`.
+
+This function returns `-Infinity` for any `base` when the `value` is `0`. It returns `NaN` when the `value` is negative, when the `base` is negative, when the `base` is `0`, or when the `base` is `1`.
+
+---
+
+### **`PI`**
+
+```sql title="Since: 0.28.0"
+PI()
+```
+
+Returns an approximate value of _π_.
+
+---
+
+### **`POWER`**
+
+```sql title="Since: 0.29.0"
+POWER(base, exponent)
+```
+
+Calculates the value of the `base` raised to the `exponent`.
+
+This function returns `Infinity` when the result overflows the `DOUBLE` type.
+
+---
+
+### **`RADIANS`**
+
+```sql title="Since: 0.28.0"
+RADIANS(col1)
+```
+
+Converts `col1` from degrees to radians.
+
+---
+
+### **`RANDOM`**
+
+```sql title="Since: 0.1.0"
 RANDOM()
 ```
 
-Return a random DOUBLE value between 0.0 and 1.0.
+Returns a random `DOUBLE` value between 0.0 and 1.0.
 
-### `ROUND`
+---
 
-Since: 0.6.0
+### **`ROUND`**
 
-```sql
+```sql title="Since: 0.1.0"
 ROUND(col1)
-```
-
-```sql
 ROUND(col1, scale)
 ```
 
-Round a value to the number of decimal places
-as specified by scale to the right of the decimal
-point. If scale is negative then value is rounded
-to the right of the decimal point.
+Rounds a value to the number of decimal places specified by `scale`.
 
-Numbers equidistant to the nearest value are
-rounded up (in the positive direction).
-If the number of decimal places is not provided
-it defaults to zero.
+If `scale` is negative, the value is rounded to the right of the decimal point.
 
-### `SIGN`
+Numbers equidistant to the nearest value are rounded up, in the positive
+direction.
 
-Since: 0.6.0
+If the number of decimal places is not provided, it defaults to zero.
 
-```sql
+---
+
+### **`SIGN`**
+
+```sql title="Since: 0.6.0"
 SIGN(col1)
 ```
 
-The sign of a numeric value as an INTEGER:
+Returns the sign of `col1` as an `INTEGER`:
 
 * -1 if the argument is negative
 * 0 if the argument is zero
 * 1 if the argument is positive
-* `null` argument is null
+* `null` argument is `null`
 
-### `SQRT`
+---
 
-Since: 0.6.0
+### **`SIN`**
 
-```sql
+```sql title="Since: 0.28.0"
+SIN(col1)
+```
+
+Returns the sine of `col1`. `col1` is in radians. Use the [RADIANS](#radians) function to convert the input to radians, if necessary.
+
+---
+
+### **`SINH`**
+
+```sql title="Since: 0.28.0"
+SINH(col1)
+```
+
+Returns the hyperbolic sine of `col1`. `col1` is in radians. Use the [RADIANS](#radians) function to convert the input to radians, if necessary.
+
+---
+
+### **`SQRT`**
+
+```sql title="Since: 0.6.0"
 SQRT(col1)
 ```
 
-The square root of a value.
+Returns the square root of `col`.
 
-## Collections
+---
 
-### `ARRAY`
+### **`TAN`**
 
-Since: 0.7.0
-
-```sql
-ARRAY[exp1, exp2, ...]
+```sql title="Since: 0.28.0"
+TAN(col1)
 ```
 
-Construct an array from a variable number of inputs.
+Returns the tangent of `col1`. `col1` is in radians. Use the [RADIANS](#radians) function to convert the input to radians, if necessary.
 
-All elements must be [coercible to a common Sql type][1]. 
+This implementation returns a large value approaching positive or negative infinity near the asymptotes, because _π/2_ and similar values cannot be represented exactly.
 
-### `ARRAY_CONTAINS`
+---
 
-Since: 0.6.0
+### **`TANH`**
 
-```sql
-ARRAY_CONTAINS(ARRAY[1, 2, 3], 3)
+```sql title="Since: 0.28.0"
+TANH(col1)
 ```
 
-Given an array, checks if a search value is contained in the array.
+Returns the hyperbolic tangent of `col1`. `col1` is in radians. Use the [RADIANS](#radians) function to convert the input to radians, if necessary.
 
-Accepts any `ARRAY` type. The type of the second param must match the element type of the `ARRAY`.
+---
 
-### `ARRAY_DISTINCT`
+### **`TRUNC`**
 
-Since: 0.10.0
-
-```sql
-ARRAY_DISTINCT([1, 2, 3])
+```sql title="Since: 0.29.0"
+TRUNC(col1)
+TRUNC(col1, scale)
 ```
 
-Returns an array of all the distinct values, including NULL if present, from the input array.
-The output array elements are in order of their first occurrence in the input.
+Truncates (rounds toward zero) a value to the number of decimal places specified by `scale`.
 
-Returns NULL if the input array is NULL.
+If `scale` is negative, the value is truncated to the left of the decimal point. For example, 
+`TRUNC(12345.67, -3)` returns `12000`.
 
-Examples:
-```sql 
-ARRAY_DISTINCT(ARRAY[1, 1, 2, 3, 1, 2])  => [1, 2, 3]
-ARRAY_DISTINCT(ARRAY['apple', 'apple', NULL, 'cherry'])  => ['apple', NULL, 'cherry']
+If the number of decimal places is not provided, it defaults to zero.
+
+---
+
+## **Collections**
+
+### **`ARRAY`**
+
+```sql title="Since: 0.7.0"
+ARRAY[exp1, exp2, …]
 ```
 
-### `ARRAY_EXCEPT`
+Constructs an array from a variable number of inputs.
 
-Since: 0.10.0
+All elements must be coercible to a common SQL type.
+For more information, see
+[Implicit type coercion](type-coercion.md#implicit-type-coercion).
 
-```sql
-ARRAY_EXCEPT(array1, array2)
-```
+---
 
-Returns an array of all the distinct elements from an array, except for those also present in a second array. The order of entries in the first array is preserved but duplicates are removed. 
+### **`ARRAY_CONCAT`**
 
-Returns NULL if either input is NULL.
-
-Examples:
-```sql 
-ARRAY_EXCEPT(ARRAY[1, 2, 3, 1, 2], [2, 3])  => [1]
-ARRAY_EXCEPT(ARRAY['apple', 'apple', NULL, 'cherry'], ARRAY['cherry'])  => ['apple', NULL]
-```
-
-### `ARRAY_INTERSECT`
-
-Since: 0.10.0
-
-```sql
-ARRAY_INTERSECT(array1, array2)
-```
-
-Returns an array of all the distinct elements from the intersection of both input arrays. The order of entries in the output is the same as in the first input array.
-
-Returns NULL if either input array is NULL.
-
-Examples:
-```sql 
-ARRAY_INTERSECT(ARRAY[1, 2, 3, 1, 2], [2, 1])  => [1, 2]
-ARRAY_INTERSECT(ARRAY['apple', 'apple', NULL, 'cherry'], ARRAY['apple'])  => ['apple']
-```
-
-### `ARRAY_JOIN`
-
-Since: 0.10.0
-
-```sql
-ARRAY_JOIN(col1, delimiter)
-```
-
-Creates a flat string representation of all the elements contained in the given array.
-The elements in the resulting string are separated by the chosen `delimiter`, 
-which is an optional parameter that falls back to a comma `,`. The current implementation only
-allows for array elements of primitive ksqlDB types.
-
-### `ARRAY_LENGTH`
-
-Since: 0.8.0
-
-```sql
-ARRAY_LENGTH(ARRAY[1, 2, 3])
-```
-
-Given an array, return the number of elements in the array.
-
-If the supplied parameter is NULL the method returns NULL.
-
-### `ARRAY_MAX`
-
-Since: 0.10.0
-
-```sql
-ARRAY_MAX(['foo', 'bar', 'baz'])
-```
-
-Returns the maximum value from within a given array of primitive elements (not arrays of other arrays, or maps, or structs, or combinations thereof). 
-
-Array entries are compared according to their natural sort order, which sorts the various data-types per the following examples:
-- ```array_max[-1, 2, NULL, 0] -> 2```
-- ```array_max[false, NULL, true] -> true```
-- ```array_max['Foo', 'Bar', NULL, 'baz'] -> 'baz'``` (lower-case characters are "greater" than upper-case characters)
-
-If the array field is NULL, or contains only NULLs, then NULL is returned.
-
-### `ARRAY_MIN`
-
-Since: 0.10.0
-
-```sql
-ARRAY_MIN(['foo', 'bar', 'baz'])
-```
-
-Returns the minimum value from within a given array of primitive elements (not arrays of other arrays, or maps, or structs, or combinations thereof). 
-
-Array entries are compared according to their natural sort order, which sorts the various data-types per the following examples:
-- ```array_min[-1, 2, NULL, 0] -> -1```
-- ```array_min[false, NULL, true] -> false```
-- ```array_min['Foo', 'Bar', NULL, 'baz'] -> 'Bar'```
-
-If the array field is NULL, or contains only NULLs, then NULL is returned.
-
-### `ARRAY_REMOVE`
-
-Since: 0.11.0
-
-```sql
-ARRAY_REMOVE(array, element)
-```
-
-Removes all elements from the input array equal to `element`.
-
-Examples:
-```sql
-- array_remove([1, 2, 3, 2, 1], 2) -> [1, 3, 1]
-- array_remove([false, NULL, true, true], false) -> [NULL, true, true]
-- array_remove(['Foo', 'Bar', NULL, 'baz'], null) -> ['Foo', 'Bar', 'baz']
-```
-If the array field is NULL then NULL is returned.
-
-### `ARRAY_SORT`
-
-Since: 0.10.0
-
-```sql
-ARRAY_SORT(['foo', 'bar', 'baz'], 'ASC|DESC')
-```
-
-Given an array of primitive elements (not arrays of other arrays, or maps, or structs, or combinations thereof), returns an array of the same elements sorted according to their natural sort order. Any NULLs contained in the array will always be moved to the end.
-
-For example:
-- ```array_sort[-1, 2, NULL, 0] -> [-1, 0, 2, NULL]```
-- ```array_sort[false, NULL, true] -> [false, true, NULL]```
-- ```array_sort['Foo', 'Bar', NULL, 'baz'] -> ['Bar', 'Foo', 'baz', NULL]```
-
-If the array field is NULL then NULL is returned.
-
-An optional second parameter can be used to specify whether to sort the elements in 'ASC'ending or 'DESC'ending order. If neither is specified then the default is ascending order. 
-
-### `ARRAY_UNION`
-
-Since: 0.10.0
-
-```sql
-ARRAY_UNION(array1, array2)
-```
-
-Returns an array of all the distinct elements from both input arrays, in the order in which they are first encountered.
-
-Returns NULL if either input array is NULL.
-
-Examples:
-```sql 
-ARRAY_UNION(ARRAY[1, 2, 3, 1, 2], [4, 1])  => [1, 2, 3, 4]
-ARRAY_UNION(ARRAY['apple', 'apple', NULL, 'cherry'], ARRAY['cherry'])  => ['apple', NULL, 'cherry']
-```
-
-### `ARRAY_CONCAT`
-
-Since: 0.20.0
-
-```sql
+```sql title="Since: 0.21.0"
 ARRAY_CONCAT(array1, array2)
 ```
 
 Returns an array representing the concatenation of both input arrays.
 
-Returns NULL if both input arrays are NULL. If only one argument is NULL, the result is the other argument.
+Returns `NULL` if both input arrays are `NULL`. If only one argument is `NULL`,
+the result is the other argument.
 
-Examples:
-```sql 
+```sql title="Examples" 
 ARRAY_CONCAT(ARRAY[1, 2, 3, 1, 2], [4, 1])  => [1, 2, 3, 1, 2, 4, 1]
 ARRAY_CONCAT(ARRAY['apple', 'apple', NULL, 'cherry'], ARRAY['cherry'])  => ['apple', 'apple', NULL, 'cherry', 'cherry']
 ```
 
-### `AS_MAP`
+---
 
-Since: 0.6.0
+### **`ARRAY_CONTAINS`**
 
-```sql
+```sql title="Since: 0.6.0"
+ARRAY_CONTAINS(ARRAY[1, 2, 3], 3)
+```
+
+Given an array, checks if a search value is contained in the array.
+
+Accepts any `ARRAY` type. The type of the second param must match the element
+type of the `ARRAY`.
+
+!!! Tip "See ARRAY_CONTAINS in action"
+    - [Build Customer Loyalty Programs](https://developer.confluent.io/tutorials/loyalty-rewards/confluent.html#execute-ksqldb-code)
+
+---
+
+### **`ARRAY_DISTINCT`**
+
+```sql title="Since: 0.10.0"
+ARRAY_DISTINCT([1, 2, 3])
+```
+
+Returns an array of all the distinct values, including `NULL` if present,
+from the input array.
+
+The output array elements are in order of their first occurrence in the input.
+
+Returns `NULL` if the input array is `NULL`.
+
+```sql title="Examples" 
+ARRAY_DISTINCT(ARRAY[1, 1, 2, 3, 1, 2])  => [1, 2, 3]
+ARRAY_DISTINCT(ARRAY['apple', 'apple', NULL, 'cherry'])  => ['apple', NULL, 'cherry']
+```
+
+---
+
+### **`ARRAY_EXCEPT`**
+
+```sql title="Since: 0.10.0"
+ARRAY_EXCEPT(array1, array2)
+```
+
+Returns an array of all the distinct elements from an array, except for those
+also present in a second array.
+
+The order of entries in the first array is preserved but duplicates are removed. 
+
+Returns `NULL` if either input is `NULL`.
+
+```sql title="Examples" 
+ARRAY_EXCEPT(ARRAY[1, 2, 3, 1, 2], [2, 3])  => [1]
+ARRAY_EXCEPT(ARRAY['apple', 'apple', NULL, 'cherry'], ARRAY['cherry'])  => ['apple', NULL]
+```
+
+---
+
+### **`ARRAY_INTERSECT`**
+
+```sql title="Since: 0.10.0"
+ARRAY_INTERSECT(array1, array2)
+```
+
+Returns an array of all the distinct elements from the intersection of both
+input arrays.
+
+The order of entries in the output is the same as in the first input array.
+
+Returns `NULL` if either input array is `NULL`.
+
+```sql title="Examples" 
+ARRAY_INTERSECT(ARRAY[1, 2, 3, 1, 2], [2, 1])  => [1, 2]
+ARRAY_INTERSECT(ARRAY['apple', 'apple', NULL, 'cherry'], ARRAY['apple'])  => ['apple']
+```
+
+---
+
+### **`ARRAY_JOIN`**
+
+```sql title="Since: 0.10.0"
+ARRAY_JOIN(col1, delimiter)
+```
+
+Creates a flat string representation of all the elements contained in an
+array.
+
+The elements in the resulting string are separated by the chosen `delimiter`, 
+which is an optional parameter. The default is the comma character, `,`.
+
+Array elements are limited to primitive ksqlDB types only.
+
+!!! Tip "See ARRAY_JOIN in action"
+    - [Match users for online dating](https://developer.confluent.io/tutorials/online-dating/confluent.html#execute-ksqldb-code)
+
+---
+
+### **`ARRAY_LENGTH`**
+
+```sql title="Since: 0.8.0"
+ARRAY_LENGTH(ARRAY[1, 2, 3])
+```
+
+Returns the number of elements in an array.
+
+If the supplied parameter is `NULL`, the method returns `NULL`.
+
+---
+
+### **`ARRAY_MAX`**
+
+```sql title="Since: 0.10.0"
+ARRAY_MAX(['foo', 'bar', 'baz'])
+```
+
+Returns the maximum value from an array of primitive elements.
+
+Arrays of other arrays, arrays of maps, arrays of structs, or combinations
+of these types aren't supported.
+
+If the array field is `NULL`, or contains only `NULL` values, `NULL` is
+returned.
+
+Array entries are compared according to their natural sort order, which sorts
+the various data types as shown in the following examples.
+
+
+```sql title="Examples"
+ARRAY_MAX[-1, 2, NULL, 0] => 2
+ARRAY_MAX[false, NULL, true] => true
+ARRAY_MAX['Foo', 'Bar', NULL, 'baz'] => 'baz' -- (lower-case characters are "greater" than upper-case characters)
+```
+
+---
+
+### **`ARRAY_MIN`**
+
+```sql title="Since: 0.10.0"
+ARRAY_MIN(['foo', 'bar', 'baz'])
+```
+
+Returns the minimum value from an array of primitive elements.
+
+Arrays of other arrays, arrays of maps, arrays of structs, or combinations
+of these types aren't supported. 
+
+If the array field is `NULL`, or contains only `NULL` values, `NULL` is
+returned.
+
+Array entries are compared according to their natural sort order, which sorts
+the various data types as shown in the following examples.
+
+```sql title="Examples"
+ARRAY_MIN[-1, 2, NULL, 0] => -1
+ARRAY_MIN[false, NULL, true] => false
+ARRAY_MIN['Foo', 'Bar', NULL, 'baz'] => 'Bar'
+```
+
+---
+
+### **`ARRAY_REMOVE`**
+
+```sql title="Since: 0.11.0"
+ARRAY_REMOVE(array, element)
+```
+
+Removes all elements from `array` that are equal to `element`.
+
+If the `array` field is `NULL`, `NULL` is returned.
+
+```sql title="Examples"
+ARRAY_REMOVE([1, 2, 3, 2, 1], 2) => [1, 3, 1]
+ARRAY_REMOVE([false, NULL, true, true], false) => [NULL, true, true]
+ARRAY_REMOVE(['Foo', 'Bar', NULL, 'baz'], null) => ['Foo', 'Bar', 'baz']
+```
+
+---
+
+### **`ARRAY_SORT`**
+
+```sql title="Since: 0.10.0"
+ARRAY_SORT(['foo', 'bar', 'baz'], 'ASC|DESC')
+```
+
+Given an array of primitive elements, returns an array of the same elements
+sorted according to their natural sort order.
+
+Arrays of other arrays, arrays of maps, arrays of structs, or combinations
+of these types aren't supported.
+
+Any `NULL` values in the array are moved to the end.
+
+If the array field is `NULL`, `NULL` is returned.
+
+The optional second parameter specifies whether to sort the elements in ascending
+(`ASC`) or descending (`DESC`) order. If neither is specified, the default is
+ascending order.
+
+```sql title="Examples"
+ARRAY_SORT[-1, 2, NULL, 0] -> [-1, 0, 2, NULL]
+ARRAY_SORT[false, NULL, true] -> [false, true, NULL]
+ARRAY_SORT['Foo', 'Bar', NULL, 'baz'] -> ['Bar', 'Foo', 'baz', NULL]
+```
+
+!!! Tip "See ARRAY_SORT in action"
+    - [Match users for online dating](https://developer.confluent.io/tutorials/online-dating/confluent.html#execute-ksqldb-code)
+
+---
+
+### **`ARRAY_UNION`**
+
+```sql title="Since: 0.10.0"
+ARRAY_UNION(array1, array2)
+```
+
+Returns an array of all the distinct elements from both input arrays, in the
+order they're encountered.
+
+Returns `NULL` if either input array is `NULL`.
+
+```sql title="Examples" 
+ARRAY_UNION(ARRAY[1, 2, 3, 1, 2], [4, 1])  => [1, 2, 3, 4]
+ARRAY_UNION(ARRAY['apple', 'apple', NULL, 'cherry'], ARRAY['cherry'])  => ['apple', NULL, 'cherry']
+```
+
+---
+
+### **`AS_MAP`**
+
+```sql title="Since: 0.6.0"
 AS_MAP(keys, vals)
 ```
 
-Construct a map from a list of keys and a list of values.
+Constructs a map from a list of keys and a list of values.
 
-### `ELT`
+!!! Tip "See AS_MAP in action"
+    - [Match users for online dating](https://developer.confluent.io/tutorials/online-dating/confluent.html#execute-ksqldb-code)
 
-Since: 0.6.0
+---
 
-```sql
+### **`ELT`**
+
+```sql title="Since: 0.6.0"
 ELT(n INTEGER, args VARCHAR[])
 ```
 
-Returns element `n` in the `args` list of strings, or NULL if `n` is less than
-1 or greater than the number of arguments. This function is 1-indexed. ELT is
-the complement to FIELD.
+Returns element `n` in the `args` list of strings, or `NULL` if `n` is less than
+1 or greater than the number of arguments.
 
-### `FIELD`
+The `ELT` function is 1-indexed.
 
-Since: 0.6.0
+`ELT` is the complement to the `FIELD` function.
 
-```sql
+---
+
+### **`FIELD`**
+
+```sql title="Since: 0.6.0"
 FIELD(str VARCHAR, args VARCHAR[])
 ```
 
 Returns the 1-indexed position of `str` in `args`, or 0 if not found.
-If `str` is NULL, the return value is 0, because NULL is not considered
-to be equal to any value. FIELD is the complement to ELT.
 
-### `JSON_ARRAY_CONTAINS`
+If `str` is `NULL`, the return value is 0, because `NULL` isn't considered
+to be equal to any value.
 
-Since: 0.6.0
+`FIELD` is the complement to the `ELT` function.
 
-```sql
+---
+
+### **`JSON_ARRAY_CONTAINS`**
+
+```sql title="Since: 0.6.0"
 JSON_ARRAY_CONTAINS('[1, 2, 3]', 3)
 ```
 
-Given a `STRING` containing a JSON array, checks if a search value is contained in the array.
+Given a `STRING` containing a JSON array, checks if a search value is contained
+in the array.
 
-Returns `false` if the first parameter does not contain a JSON array.
+Returns `false` if the first parameter doesn't contain a JSON array.
 
-### `MAP`
+---
 
-Since: 0.7.0
+### **`MAP`**
 
-```sql
-MAP(key VARCHAR := value, ...)
+```sql title="Since: 0.7.0"
+MAP(key VARCHAR := value, …)
 ```
 
-Construct a map from specific key-value tuples.
+Constructs a map from specific key-value tuples.
 
-All values must be [coercible to a common Sql type][1].
+All values must be coercible to a common SQL type.
 
-### `MAP_KEYS`
+For more information, see
+[Implicit type coercion](type-coercion.md#implicit-type-coercion).
 
-Since: 0.10.0
+---
 
-```sql
+### **`MAP_KEYS`**
+
+```sql title="Since: 0.10.0"
 MAP_KEYS(a_map)
 ```
 
-Returns an array that contains all of the keys from the specified map.
+Returns an array that contains all keys from the specified map.
 
-Returns NULL if the input map is NULL.
+Returns `NULL` if the input map is `NULL`.
 
-Example:
-```sql
+```sql title="Example"
 map_keys( map('apple' := 10, 'banana' := 20) )  => ['apple', 'banana'] 
 ```
 
-### `MAP_VALUES`
+---
 
-Since: 0.10.0
+### **`MAP_VALUES`**
 
-```sql
+```sql title="Since: 0.10.0"
 MAP_VALUES(a_map)
 ```
 
-Returns an array that contains all of the values from the specified map.
+Returns an array that contains all values from the specified map.
 
-Returns NULL if the input map is NULL.
+Returns `NULL` if the input map is `NULL`.
 
-Example:
-```sql
+```sql title="Example"
 map_values( map('apple' := 10, 'banana' := 20) )  => [10, 20] 
 ```
 
-### `MAP_UNION`
+---
 
-Since: 0.10.0
+### **`MAP_UNION`**
 
-```sql
+```sql title="Since: 0.10.0"
 MAP_UNION(map1, map2)
 ```
 
-Returns a new map containing the union of all entries from both input maps. If a key is present in both input maps, the corresponding value from _map2_ is returned.
+Returns a new map containing the union of all entries from both input maps.
 
-Returns NULL if all of the input maps are NULL.
+If a key is present in both input maps, the corresponding value from _map2_
+is returned.
 
-Example:
-```sql
-map_union( map('apple' := 10, 'banana' := 20), map('cherry' := 99) )  => ['apple': 10, 'banana': 20, 'cherry': 99] 
+Returns `NULL` if all input maps are `NULL`.
 
-map_union( map('apple' := 10, 'banana' := 20), map('apple' := 50) )  => ['apple': 50, 'banana': 20] 
+```sql title="Examples"
+MAP_UNION( MAP('apple' := 10, 'banana' := 20), MAP('cherry' := 99) )  => ['apple': 10, 'banana': 20, 'cherry': 99] 
+MAP_UNION( MAP('apple' := 10, 'banana' := 20), MAP('apple' := 50) )  => ['apple': 50, 'banana': 20] 
 ```
 
-### `SLICE`
+---
 
-Since: 0.6.0
+### **`SLICE`**
 
-```sql
+```sql title="Since: 0.6.0"
 SLICE(col1, from, to)
 ```
 
-Slices a list based on the supplied indices. The indices start at 1 and
-include both endpoints.
+Slices a list based on the supplied indices.
 
-## Invocation Functions
+The indices start at 1 and include both endpoints.
+
+---
+
+## **Invocation Functions**
 
 Apply lambda functions to collections.
 
-### `TRANSFORM`
+### **`FILTER`**
 
-Since: 0.17.0
-
-```sql
-TRANSFORM(array, x => ...)
-
-TRANSFORM(map, (k,v) => ..., (k,v) => ...)
+```sql title="Since: 0.17.0"
+FILTER(array, x => …)
+FILTER(map, (k,v) => …)
 ```
 
-Transform a collection by using a lambda function.
-
-If the collection is an array, the lambda function must have one input argument.
-
-If the collection is a map, two lambda functions must be provided, and both lambdas must have two arguments: a map entry key and a map entry value.
-
-### `Reduce`
-
-Since: 0.17.0
-
-```sql
-REDUCE(array, state, (s, x) => ...)
-
-REDUCE(map, state, (s, k, v) => ...)
-```
-
-Reduce a collection starting from an initial state.
-
-If the collection is an array, the lambda function must have two input arguments.
-
-If the collection is a map, the lambda function must have three input arguments.
-
-If the state is `null`, the result is `null`.
-
-### `Filter`
-
-Since: 0.17.0
-
-```sql
-FILTER(array, x => ...)
-
-FILTER(map, (k,v) => ...)
-```
-
-Filter a collection with a lambda function.
+Filters a collection with a lambda function.
 
 If the collection is an array, the lambda function must have one input argument.
 
 If the collection is a map, the lambda function must have two input arguments.
 
-## Strings
+---
 
-### `CHR`
+### **`REDUCE`**
 
-Since: 0.10.0
+```sql title="Since: 0.17.0"
+REDUCE(array, state, (s, x) => …)
+REDUCE(map, state, (s, k, v) => …)
+```
 
-```sql
+Reduces a collection starting from an initial state.
+
+If the collection is an array, the lambda function must have two input arguments.
+
+If the collection is a map, the lambda function must have three input arguments.
+
+If the state is `NULL`, the result is `NULL`.
+
+---
+
+### **`TRANSFORM`**
+
+```sql title="Since: 0.17.0"
+TRANSFORM(array, x => …)
+TRANSFORM(map, (k,v) => …, (k,v) => …)
+```
+
+Transforms a collection by using a lambda function.
+
+If the collection is an array, the lambda function must have one input argument.
+
+If the collection is a map, two lambda functions must be provided, and both
+lambdas must have two arguments: a map entry key and a map entry value.
+
+---
+
+## **Strings**
+
+### **`CHR`**
+
+```sql title="Since: 0.10.0"
 CHR(decimal_code | utf_string)
 ```
 
-Returns a single-character string representing the Unicode code-point described by the input. The input parameter can be either a decimal character code or a string representation of a UTF code.
+Returns a single-character string representing the Unicode code-point described
+by the input.
 
-Returns NULL if the input is NULL or does not represent a valid code-point.
+The input parameter can be either a decimal character code or a string
+representation of a UTF code.
 
-Commonly used to insert control characters such as `Tab` (9), `Line Feed` (10), or `Carriage Return` (13) into strings.
+Returns `NULL` if the input is `NULL` or doesn't represent a valid code-point.
 
-Examples:
-```sql
+Commonly used to insert control characters such as `Tab` (9), `Line Feed` (10),
+or `Carriage Return` (13) into strings.
+
+```sql title="Examples"
 CHR(75)        => 'K'
 CHR('\u004b')  => 'K'
 CHR(22909)     => '好'
 CHR('\u597d')  => '好'
 ```
 
-### `CONCAT`
+---
 
-Since: -
+### **`CONCAT`**
 
-```sql
-CONCAT(col1, col2, 'hello', ..., col-n)
-CONCAT(bytes1, bytes2, ..., bytes-n)
+```sql title="Since: 0.1.0"
+CONCAT(col1, col2, 'hello', …, col-n)
+CONCAT(bytes1, bytes2, …, bytes-n)
 ```
 
-Concatenate two or more string or bytes expressions. Any inputs which evaluate to NULL are replaced with an empty string or bytes in the output.
+Concatenates two or more string or bytes expressions.
 
-### `CONCAT_WS`
+Any inputs which evaluate to `NULL` are replaced with an empty string or bytes
+in the output.
 
-Since: 0.10.0
+!!! Tip "See CONCAT in action"
+    - [Enrich orders with change data capture (CDC)](https://developer.confluent.io/tutorials/denormalization/confluent.html#execute-ksqldb-code)
 
-```sql
-CONCAT_WS(separator, expr1, expr2, ...)
+---
+
+### **`CONCAT_WS`**
+
+```sql title="Since: 0.10.0"
+CONCAT_WS(separator, expr1, expr2, …)
 ```
 
-Concatenates two or more string or bytes expressions, inserting a separator string or bytes between each.
+Concatenates two or more string or bytes expressions, inserting a separator
+string or bytes between each.
 
-If the separator is NULL, this function returns NULL.
-Any expressions which evaluate to NULL are skipped.
+If the separator is `NULL`, this function returns `NULL`.
 
-Example: 
-```sql
+Any expressions which evaluate to `NULL` are skipped.
+
+```sql title="Example"
 CONCAT_WS(', ', 'apple', 'banana', NULL, 'date')  ->  'apple, banana, date'
 ```
 
-### `ENCODE`
+---
 
-Since: 0.10.0
+### **`ENCODE`**
 
-```sql
+```sql title="Since: 0.10.0"
 ENCODE(col1, input_encoding, output_encoding)
 ```
 
-Given a STRING that is encoded as `input_encoding`, encode it using the `output_encoding`. The accepted input and output encodings are:
-`hex`, `utf8`, `ascii`, and `base64`. Throws an exception if the provided encodings are not supported.
+Given a STRING that is encoded as `input_encoding`, encode it using the
+`output_encoding`.
 
-For example, to encode a string in `hex` to `utf8`, use `ENCODE(string, 'hex', 'utf8')`.
+The accepted input and output encodings are:
 
-### `EXTRACTJSONFIELD`
+- `hex`
+- `utf8`
+- `ascii`
+- `base64`
 
-Since: -
+Throws an exception if the provided encodings are not supported.
 
-```sql
+The following example encodes a `hex` representation of a string to a
+`utf8` representation.
+
+```sql title="Example"
+ENCODE(string, 'hex', 'utf8')
+```
+
+---
+
+### **`EXTRACTJSONFIELD`**
+
+```sql title="Since: 0.11.0"
 EXTRACTJSONFIELD(message, '$.log.cloud')
 ```
 
-Given a STRING that contains JSON data, extract the value at the specified [JSONPath](https://jsonpath.com/).
+Given a `STRING` that contains JSON data, extracts the value at the specified
+[JSONPath](https://jsonpath.com/).
 
 For example, given a STRING containing the following JSON:
 
@@ -710,68 +994,259 @@ For example, given a STRING containing the following JSON:
 
 `EXTRACTJSONFIELD(message, '$.log.cloud')` returns the STRING `gcp836Csd`.
 
-If the requested JSONPath does not exist, the function returns NULL.
+If the requested JSONPath does not exist, the function returns `NULL`.
 
-The result of EXTRACTJSONFIELD is always a STRING. Use `CAST` to convert the result to another
-type. For example, `CAST(EXTRACTJSONFIELD(message, '$.log.instance') AS INT)` will extract the
-instance number from the above JSON object as a INT.
+The result of `EXTRACTJSONFIELD` is always a `STRING`. Use `CAST` to convert
+the result to another type.
 
-The return type of the UDF is STRING, so JSONPaths that select
+For example, `CAST(EXTRACTJSONFIELD(message, '$.log.instance') AS INT)`
+extracts the instance number from the previous JSON object as a `INT`.
+
+The return type of `EXTRACTJSONFIELD` is `STRING`, so JSONPaths that select
 multiple elements, like those containing wildcards, aren't supported.
 
 !!! note
-    EXTRACTJSONFIELD is useful for extracting data from JSON where either the schema of the JSON
-    data is not static, or where the JSON data is embedded in a row encoded using a different
-    format, for example, a JSON field within an Avro-encoded message.
+    `EXTRACTJSONFIELD` is useful for extracting data from JSON when either the
+    schema of the JSON data isn't static or the JSON data is embedded in a row
+    that's encoded using a different format, for example, a JSON field within
+    an Avro-encoded message.
 
-    If the whole row is encoded as JSON with a known schema or structure, use the `JSON` format and
-    define the structure as the source's columns.  For example, a stream of JSON objects similar to
-    the example above could be defined using a statement similar to this:
+    If the whole row is encoded as JSON with a known schema or structure, use
+    the `JSON` format and define the structure as the source's columns.
+    
+    For example, a stream of JSON objects similar to the previous example could
+    be defined using a statement similar to the following:
 
-    `CREATE STREAM LOGS (LOG STRUCT<CLOUD STRING, APP STRING, INSTANCE INT>, ...) WITH (VALUE_FORMAT='JSON', ...)`
+    ```sql
+    CREATE STREAM LOGS (LOG STRUCT<CLOUD STRING, APP STRING, INSTANCE INT>, …)
+      WITH (VALUE_FORMAT='JSON', …)
+    ```
 
-### `FROM_BYTES`
+---
 
-Since: - 0.21
+### **`FROM_BYTES`**
 
-```sql
+```sql title="Since: 0.21.0"
 FROM_BYTES(bytes, encoding)
 ```
 
-Converts a BYTES column to a STRING in the specified encoding type.
-Supported encoding types are: `hex`, `utf8`, `ascii`, and `base64`.
+Converts a `BYTES` column to a `STRING` in the specified encoding type.
 
-### `INITCAP`
+The following list shows the supported encoding types.
 
-Since: 0.6.0
+- `hex`
+- `utf8`
+- `ascii`
+- `base64`
 
-```sql
-INITCAP(col1)
+### `IS_JSON_STRING`
+
+```sql title="Since: 0.24.0"
+IS_JSON_STRING(json_string) => Boolean
 ```
 
-Capitalize the first letter in each word and convert all other letters
-to lowercase. Words are delimited by whitespace.
+Returns `true` if `json_string` can be parsed as a valid JSON value; otherwise,
+`false` .
 
-### `INSTR`
-
-Since: 0.10.0
-
-```sql
-INSTR(string, substring, [position], [occurrence])
+```sql title="Examples"
+IS_JSON_STRING('[1, 2, 3]') => true
+IS_JSON_STRING('{}') => true
+IS_JSON_STRING('1') => true
+IS_JSON_STRING('\"abc\"') => true
+IS_JSON_STRING('null') => true
+IS_JSON_STRING('') => false
+IS_JSON_STRING('abc') => false
+IS_JSON_STRING(NULL) => false
 ```
 
-Returns the position of `substring` in `string`. The first character is at position 1.
+### `JSON_ARRAY_LENGTH`
 
-If `position` is provided, search starts from the specified position. 
-Negative `position` causes the search to work from end to start of `string`.
+```sql title="Since: 0.24.0"
+JSON_ARRAY_LENGTH(json_string) => Integer
+```
 
-If `occurrence` is provided, the position of *n*-th occurrence is returned.
+Parses `json_string` as a JSON value and returns the length of the top-level
+array.
 
-If `substring` is not found, the return value is 0.
+Returns `NULL` if the string can't be interpreted as a JSON array, for example,
+when the string is `NULL` or it doesn't contain valid JSON, or the JSON value
+is not an array.
+
+```sql title="Examples"
+JSON_ARRAY_LENGTH('[1, 2, 3]') => 3
+JSON_ARRAY_LENGTH('[1, [1, [2]], 3]') =>  3
+JSON_ARRAY_LENGTH('[]') => 0
+JSON_ARRAY_LENGTH('{}') => NULL
+JSON_ARRAY_LENGTH('123') => NULL
+JSON_ARRAY_LENGTH(NULL) => NULL
+JSON_ARRAY_LENGTH('abc') => returns NULL and logs an "Invalid JSON format" exception in server log
+```
+
+### `JSON_CONCAT`
+
+```sql title="Since: 0.24.0"
+JSON_CONCAT(json_string1, json_string2, ...) => String
+```
+
+Given N strings, parses them as JSON values and returns a string representing
+their concatenation.
+
+Concatenation rules are identical to PostgreSQL's
+[|| operator](https://www.postgresql.org/docs/14/functions-json.html):
+
+* If all strings deserialize into JSON objects, return an object with a union
+  of the input keys. If there are duplicate objects, take values from the last
+  object.
+* If all strings deserialize into JSON arrays, return the result of array
+  concatenation.
+* If at least one of the deserialized values is not an object, convert
+  non-array inputs to a single-element array and return the result of
+  array concatenation.
+* If at least one of the input strings is `NULL` or can't be deserialized as
+  JSON, return `NULL`.
+
+Similar to PostgreSQL's `||` operator, this function merges only top-level
+object keys or arrays.
 
 Examples:
 
-```sql
+```sql title="Examples"
+JSON_CONCAT('{\"a\": 1}', '{\"b\": 2}') => '{"a":1,"b":2}'
+JSON_CONCAT('{\"a\": {\"5\": 6}}', '{\"a\": {\"3\": 4}}') => '{"a":{"3":4}}'
+JSON_CONCAT('{}', '{}') => '{}'
+JSON_CONCAT('[1, 2]', '[3, 4]') => '[1,2,3,4]'
+JSON_CONCAT('[1, [2]]', '[[[3]], [[[4]]]]') => '[ 1, [2], [[3]], [[[4]]] ]'
+JSON_CONCAT('null', 'null') => '[null, null]'
+JSON_CONCAT('[1, 2]', '{\"a\": 1}') => '[1,2,{"a":1}]'
+JSON_CONCAT('[1, 2]', '3') => '[1, 2, 3]'
+JSON_CONCAT('1', '2') => '[1, 2]'
+JSON_CONCAT('[]', '[]') => '[]'
+JSON_CONCAT('abc', '[1]') => NULL
+JSON_CONCAT(NULL, '[1]') => NULL
+```
+
+### `JSON_KEYS`
+
+```sql title="Since: 0.24.0"
+JSON_KEYS(json_string) => Array<String>
+```
+
+Parses `json_string` as a JSON object and returns an array of strings
+representing the top-level keys.
+
+Returns `NULL` if the string can't be interpreted as a JSON object,
+for example, when the string is `NULL` or it does not contain valid JSON,
+or the JSON value is not an object.
+
+```sql title="Examples"
+JSON_KEYS('{\"a\": \"abc\", \"b\": { \"c\": \"a\" }, \"d\": 1}') => ['a', 'b', 'd']
+JSON_KEYS('{}') => []
+JSON_KEYS('[]') => NULL
+JSON_KEYS('123') => NULL
+JSON_KEYS(NULL) => NULL
+JSON_KEYS('') => NULL
+```
+
+### `JSON_RECORDS`
+
+```sql title="Since: 0.24.0"
+JSON_RECORDS(json_string) => Map<String, String>
+```
+
+Parses `json_string` as a JSON object and returns a map representing the
+top-level keys and values.
+
+Returns `NULL` if the string can't be interpreted as a JSON object,
+for example, when the string is `NULL` or it does not contain valid JSON,
+or the JSON value is not an object.
+
+```sql title="Examples"
+JSON_RECORDS('{\"a\": \"abc\", \"b\": { \"c\": \"a\" }, \"d\": 1}') => {d=1, a="abc", b={"c":"a"}}
+JSON_RECORDS('{}') => {}
+JSON_RECORDS('[]') => NULL
+JSON_RECORDS('123') => NULL
+JSON_RECORDS(NULL) => NULL
+JSON_RECORDS('abc') => NULL
+```
+### `JSON_ITEMS`
+
+```sql title="Since: 0.29.0"
+JSON_ITEMS(json_string) => Array<String>
+```
+
+Given a string with JSON array, converts it to a ksqlDB array of JSON strings. 
+
+Returns `NULL` if the string can't be interpreted as a JSON array, for example, 
+when the string is `NULL` or it does not contain valid JSON, or the JSON value is not an array.
+
+```sql title="Examples"
+JSON_ITEMS('[{\"type\": \"A\", \"ts\": \"2022-01-27\"}, {\"type\": \"B\", \"ts\": \"2022-05-18\"}]') => ["{\"type\": \"A\", \"ts\": \"2022-01-27\"}", "{\"type\": \"B\", \"ts\": \"2022-05-18\"}"]
+JSON_ITEMS('[]') => []
+JSON_ITEMS('[1, 2, 3]') => ["1","2","3"]
+JSON_ITEMS(NULL) => NULL
+JSON_ITEMS('abc') => NULL
+```
+### `TO_JSON_STRING`
+
+```sql title="Since: 0.24.0"
+TO_JSON_STRING(val) => String
+```
+
+Given any ksqlDB type, returns the equivalent JSON string.
+
+```sql title="Primitives types"
+TO_JSON_STRING(1) => '1'
+TO_JSON_STRING(15.3) => '15.3'
+TO_JSON_STRING('abc') => '"abc"'
+TO_JSON_STRING(true) => 'true'
+TO_JSON_STRING(PARSE_DATE('2021-10-11', 'yyyy-MM-dd')) => '"2021-10-11"'
+TO_JSON_STRING(PARSE_TIME('13:25', 'HH:mm')) => '"13:25"'
+TO_JSON_STRING(PARSE_TIMESTAMP('2021-06-31 12:18:39.446', 'yyyy-MM-dd HH:mm:ss.SSS')) => '"2021-06-30T12:18:39.446"'
+TO_JSON_STRING(NULL) => 'null'
+```
+
+```sql title="Compound types"
+TO_JSON_STRING(Array[1, 2, 3]) => '[1, 2, 3]'
+TO_JSON_STRING(Struct(id := 1, name := 'A')) => '{"ID":1,"NAME":"A"}'
+TO_JSON_STRING(Map('c' := 2, 'd' := 4)) => '{"c": 2, "d": 4}'
+TO_JSON_STRING(Array[Struct(json_key := 1, json_value := Map('c' := 2, 'd' := 3))]) => '[{"JSON_KEY": 1, "JSON_VALUE": {"c": 2, "d": 3}}]'
+```
+
+---
+
+### **`INITCAP`**
+
+```sql title="Since: 0.6.0"
+INITCAP(col1)
+```
+
+Capitalizes the first letter in each word and converts all other letters
+to lowercase.
+
+Words are delimited by whitespace.
+
+---
+
+### **`INSTR`**
+
+```sql title="Since: 0.10.0"
+INSTR(string, substring, [position], [occurrence])
+```
+
+Returns the position of `substring` in `string`.
+
+The first character is at position 1.
+
+If `position` is provided, search starts from the specified position.
+
+A negative value for `position` causes the search to work from the end to the
+start of `string`.
+
+If `occurrence` is provided, the position of the *n*-th occurrence is returned.
+
+If `substring` is not found, the return value is 0.
+
+```sql title="Examples"
 INSTR('CORPORATE FLOOR', 'OR') -> 2
 INSTR('CORPORATE FLOOR', 'OR', 3) -> 5
 INSTR('CORPORATE FLOOR', 'OR', 3, 2) -> 14
@@ -780,407 +1255,993 @@ INSTR('CORPORATE FLOOR', 'OR', -3, 2) -> 2b
 INSTR('CORPORATE FLOOR', 'MISSING') -> 0
 ```
 
-### `LCASE`
+---
 
-Since: -
+### **`LCASE`**
 
-```sql
+```sql title="Since: 0.1.0"
 LCASE(col1)
 ```
 
-Convert a string to lowercase.
+Converts a string to lowercase.
 
-### `LEN`
+---
 
-Since: -
+### **`LEN`**
 
-```sql
+```sql title="Since: 0.1.0"
 LEN(string)
 LEN(bytes)
 ```
 
-The length of a string or the number of bytes in a BYTES value.
+Returns the length of a `STRING` or the number of bytes in a `BYTES` value.
 
-### `LPAD`
+---
 
-Since: 0.10.0
+### **`LPAD`**
 
-```sql
+```sql title="Since: 0.10.0"
 LPAD(input, length, padding)
 ```
 
-Pads the input string or bytes, starting from the left, with the specified padding of the same type until the target length is reached. 
-If the input is longer than the specified target length, it is truncated.
+Pads the input string or bytes, beginning from the left, with the specified
+padding of the same type, until the target length is reached.
 
-If the padding string or byte array is empty or NULL, or the target length is negative, NULL is returned.
+If the input is longer than `length`, it is truncated.
 
-Examples:
-```sql
+If the padding string or byte array is empty or `NULL`, or the target length
+is negative, `NULL` is returned.
+
+```sql title="Examples"
 LPAD('Foo', 7, 'Bar')  =>  'BarBFoo'
 LPAD('Foo', 2, 'Bar')  =>  'Fo'
 LPAD('', 2, 'Bar')  =>  'Ba'
 LPAD('123', 5, '0')  => '00123'
 ```
 
-### `MASK`
+---
 
-Since: 0.6.0
+### **`MASK`**
 
-```sql
+```sql title="Since: 0.6.0"
 MASK(col1, 'X', 'x', 'n', '-')
 ```
 
-Convert a string to a masked or obfuscated version of itself. The optional
-arguments following the input string to be masked are the characters to be
-substituted for upper-case, lower-case, numeric, and other characters of the
-input, respectively.
+Convert a string to a masked or obfuscated version of itself.
 
-If the mask characters are omitted then the default values, shown in the
-following example, are applied.
+The optional arguments following the input string to be masked are the
+characters to be substituted for upper-case, lower-case, numeric, and
+other characters of the input, respectively.
 
-Set a given mask character to NULL to prevent any masking of that character
-type. For example: `MASK("My Test $123")` will return `Xx-Xxxx--nnn`, applying
-all default masks. `MASK("My Test $123", '*', NULL, '1', NULL)` will yield
-`*y *est $111`.
-
-### `MASK_KEEP_LEFT`
-
-Since: 0.6.0
+If the mask characters are omitted, the default values are applied, as shown
+in the following example.
 
 ```sql
+MASK("My Test $123") => "Xx-Xxxx--nnn"
+```
+
+Set a given mask character to `NULL` to prevent any masking of that character
+type. 
+
+```sql
+MASK("My Test $123", '*', NULL, '1', NULL) => "*y *est $111" 
+```
+
+---
+
+### **`MASK_KEEP_LEFT`**
+
+```sql title="Since: 0.6.0"
 MASK_KEEP_LEFT(col1, numChars, 'X', 'x', 'n', '-')
 ```
 
-Similar to the `MASK` function above, except
-that the first or left-most `numChars`
-characters will not be masked in any way.
-For example: `MASK_KEEP_LEFT("My Test $123", 4)`
-will return `My Txxx--nnn`.
+Similar to the `MASK` function, except that the first or left-most `numChars`
+characters aren't masked in any way.
 
-### `MASK_KEEP_RIGHT`
+```sql title="Example"
+MASK_KEEP_LEFT("My Test $123", 4) => "My Txxx--nnn"
+```
 
-Since: 0.6.0
+---
 
-```sql
+### **`MASK_KEEP_RIGHT`**
+
+```sql title="Since: 0.6.0"
 MASK_KEEP_RIGHT(col1, numChars, 'X', 'x', 'n', '-')
 ```
 
-Similar to the `MASK` function above, except
-that the last or right-most `numChars`
-characters will not be masked in any way.
-For example:`MASK_KEEP_RIGHT("My Test $123", 4)`
-will return `Xx-Xxxx-$123`.
+Similar to the `MASK` function, except that the last or right-most
+`numChars` characters aren't masked in any way.
 
-### `MASK_LEFT`
+```sql title="Example"
+MASK_KEEP_RIGHT("My Test $123", 4) => "Xx-Xxxx-$123"
+```
 
-Since: 0.6.0
+---
 
-```sql
+### **`MASK_LEFT`**
+
+```sql title="Since: 0.6.0"
 MASK_LEFT(col1, numChars, 'X', 'x', 'n', '-')
 ```
 
-Similar to the `MASK` function above, except
-that only the first or left-most `numChars`
-characters will have any masking applied to them.
-For example, `MASK_LEFT("My Test $123", 4)`
-will return `Xx-Xest $123`.
+Similar to the `MASK` function, except that only the first or left-most
+`numChars` characters have any masking applied to them.
 
-### `MASK_RIGHT`
+```sql title="Example"
+MASK_LEFT("My Test $123", 4) => "Xx-Xest $123"
+```
 
-Since: 0.6.0
+---
 
-```sql
+### **`MASK_RIGHT`**
+
+```sql title="Since: 0.6.0"
 MASK_RIGHT(col1, numChars, 'X', 'x', 'n', '-')
 ```
 
-Similar to the `MASK` function above, except
-that only the last or right-most `numChars`
-characters will have any masking applied to them.
-For example: `MASK_RIGHT("My Test $123", 4)`
-will return `My Test -nnn`.
+Similar to the `MASK` function, except that only the last or right-most
+`numChars` characters have any masking applied to them.
 
-### `REPLACE`
+```sql title="Example"
+MASK_RIGHT("My Test $123", 4) => "My Test -nnn"
+```
 
-Since: 0.6.0
+---
 
-```sql
+### **`MD5`**
+
+```sql title="Since: 0.29.0"
+MD5('hash me')
+MD5(col1)
+```
+
+Returns the hex-encoded MD5 hash of the given `STRING`.
+
+---
+
+### **`REPLACE`**
+
+```sql title="Since: 0.6.0"
 REPLACE(col1, 'foo', 'bar')
 ```
 
-Replace all instances of a substring in a string with a new string.
+Replaces all instances of a substring in a string with a new string.
 
-### `REGEXP_EXTRACT`
+!!! Tip "See REPLACE in action"
+    - [Detect and analyze SSH attacks](https://developer.confluent.io/tutorials/SSH-attack/confluent.html#execute-ksqldb-code)
 
-Since: 0.8.0
+---
 
-```sql
+### **`REGEXP_EXTRACT`**
+
+```sql title="Since: 0.8.0"
 REGEXP_EXTRACT('.*', col1)
-```
-
-```sql
 REGEXP_EXTRACT('(([AEIOU]).)', col1, 2)
 ```
 
-Extract the first subtring matched by the regex pattern from the input.
+Extracts the first substring matched by the regular expression pattern from the
+input.
 
-A capturing group number can also be specified in order to return that specific group. If a number isn't specified,
-the entire substring is returned by default.
+You can specify a capturing group number to return that specific group. If a
+number isn't specified, the entire substring is returned by default.
 
-For example, `REGEXP_EXTRACT("(.*) (.*)", 'hello there', 2)`
-returns "there".
-
-### `REGEXP_EXTRACT_ALL`
-
-Since: 0.10.0
-
-```sql
-REGEXP_EXTRACT_ALL('.*', col1)
+```sql title="Example"
+REGEXP_EXTRACT("(.*) (.*)", 'hello there', 2) => "there"
 ```
 
-```sql
+---
+
+### **`REGEXP_EXTRACT_ALL`**
+
+```sql title="Since: 0.10.0"
+REGEXP_EXTRACT_ALL('.*', col1)
 REGEXP_EXTRACT_ALL('(([AEIOU]).)', col1, 2)
 ```
 
-Extract all subtrings matched by the regex pattern from the input.
+Extracts all subtrings matched by the regular expression pattern from the input.
 
-A capturing group number can also be specified in order to return that specific group. If a number isn't specified,
-the entire substring is returned by default.
+You can specify a capturing group number to return that specific group. If a
+number isn't specified, the entire substring is returned by default.
 
-For example, `REGEXP_EXTRACT("(\\w+) (\\w+)", 'hello there nice day', 2)`
-returns `['there', 'day']`.
+```sql title="Example"
+REGEXP_EXTRACT_ALL("(\\w+) (\\w+)", "hello there nice day", 2) => ["there", "day"]
+```
 
-### `REGEXP_REPLACE`
+---
 
-Since: 0.10.0
+### **`REGEXP_REPLACE`**
 
-```sql
+```sql title="Since: 0.10.0"
 REGEXP_REPLACE(col1, 'a.b+', 'bar')
 ```
 
-Replace all matches of a regex in an input string with a new string.
-If either the input string, regular expression, or new string is null,
-the result is null.
+Replaces all matches of a regular expression in an input string with a new
+string.
 
-### `REGEXP_SPLIT_TO_ARRAY`
+If either the input string, the regular expression, or the new string is `NULL`,
+the result is `NULL`.
 
-Since: 0.10.0
+---
 
-```sql
+### **`REGEXP_SPLIT_TO_ARRAY`**
+
+```sql title="Since: 0.10.0"
 REGEXP_SPLIT_TO_ARRAY(col1, 'a.b+')
 ```
 
-Splits a string into an array of substrings based
-on a regular expression. If there is no match,
-the original string is returned as the only
-element in the array. If the regular expression is empty,
-then all characters in the string are split.
-If either the string or the regular expression is `NULL`, a
-NULL value is returned.
+Splits a string into an array of substrings based on a regular expression.
 
-If the regular expression is found at the beginning or end
-of the string, or there are contiguous matches,
-then an empty element is added to the array.
+If there is no match, the original string is returned as the only element
+in the array.
 
-### `RPAD`
+If the regular expression is empty, all characters in the string are split.
 
-Since: 0.10.0
+If either the string or the regular expression is `NULL`, a `NULL` value is
+returned.
 
-```sql
+If the regular expression is found at the beginning or end of the string, or
+there are contiguous matches, an empty element is added to the array.
+
+---
+
+### **`RPAD`**
+
+```sql title="Since: 0.10.0"
 RPAD(input, length, padding)
 ```
 
-Pads the input string or bytes, starting from the end, with the specified padding of the same type until the target length is reached. 
-If the input is longer than the specified target length, it is truncated. 
+Pads the input string or bytes, starting from the end, with the specified
+padding of the same type, until the target length is reached.
 
-If the padding string or byte array is empty or NULL, or the target length is negative, NULL is returned.
+If the input is longer than the specified target length, it is truncated.
 
-Examples:
-```sql
+If the padding string or byte array is empty or `NULL`, or the target length
+is negative, `NULL` is returned.
+
+```sql title="Examples"
 RPAD('Foo', 7, 'Bar')  =>  'FooBarB'
 RPAD('Foo', 2, 'Bar')  =>  'Fo'
 RPAD('', 2, 'Bar')  =>  'Ba'
 ```
 
-### `SPLIT`
+---
 
-Since: 0.6.0
+### **`SPLIT`**
 
-```sql
+```sql title="Since: 0.6.0"
 SPLIT(col1, delimiter)
 ```
 
-Splits a string into an array of substrings, or
-bytes into an array of subarrays, based
-on a delimiter. If the delimiter is not found,
-the original string or byte array is returned as the only
-element in the array. If the delimiter is empty,
-every character in the string or byte in the array is split.
-Returns NULL if either parameter is NULL.
+Splits a string into an array of substrings, or bytes into an array of
+subarrays, based on a delimiter.
 
-If the delimiter is found at the beginning or end
-of the string or bytes, or there are contiguous delimiters,
-then an empty space is added to the array.
+If the delimiter isn't found, the original string or byte array is returned
+as the only element in the array.
 
-### `SPLIT_TO_MAP`
+If the delimiter is empty, every character in the string or byte in the array
+is split.
 
-Since: 0.10.0
+If the delimiter is found at the beginning or end of the string or bytes,
+or there are contiguous delimiters, an empty space is added to the array.
 
-```sql
+Returns `NULL` if either parameter is `NULL`.
+
+!!! Tip "See SPLIT in action"
+    - [Detect and analyze SSH attacks](https://developer.confluent.io/tutorials/SSH-attack/confluent.html#execute-ksqldb-code)
+
+---
+
+### **`SPLIT_TO_MAP`**
+
+```sql title="Since: 0.10.0"
 SPLIT_TO_MAP(input, entryDelimiter, kvDelimiter)
 ```
 
-Splits a string into key-value pairs and creates a map from them. The 
-`entryDelimiter` splits the string into key-value pairs which are then split by `kvDelimiter`. If the same key is present multiple times in the input, the latest value for that key is returned. 
+Splits a string into key-value pairs and creates a map from them.
 
-Returns NULL if the input text is NULL.
-Returns NULL if either of the delimiters is NULL or an empty string.
+The `entryDelimiter` splits the string into key-value pairs which are then
+split by `kvDelimiter`.
 
-Example:
-```sql
+If the same key is present multiple times in the input, the latest value for
+the key is returned. 
+
+Returns `NULL` if the input text is `NULL`.
+
+Returns `NULL` if either of the delimiters is `NULL` or an empty string.
+
+```sql title="Example"
 SPLIT_TO_MAP('apple':='green'/'cherry':='red', '/', ':=')  => { 'apple':'green', 'cherry':'red'}
 ```
 
-### `SUBSTRING`
+---
 
-Since: -
+### **`SUBSTRING`**
 
-```sql
-SUBSTRING(col1, 2, 5)
-```
-
-```sql
+```sql title="Since: 0.1.0"
 SUBSTRING(str, pos, [len])
 SUBSTRING(bytes, pos, [len])
 ```
 
-Returns the portion of `str` or `bytes` that starts at
-`pos` (first character or byte is at position 1) and
-has length `len`, or continues to the end of
-the string or bytes.
+Returns the portion of `str` or `bytes` that starts at `pos` and
+has length `len`, or continues to the end of the string or bytes.
 
-For example, `SUBSTRING("stream", 1, 4)`
-returns "stre".
+The first character or byte is at position 1.
 
-### `TO_BYTES`
+```sql title="Example"
+SUBSTRING("stream", 1, 4)  => "stre"
+```
 
-Since: - 0.21
+---
 
-```sql
+### **`TO_BYTES`**
+
+```sql title="Since: 0.21.0"
 TO_BYTES(string, encoding)
 ```
 
-Converts a STRING column in the specified encoding type to a BYTES column.
-Supported encoding types are: `hex`, `utf8`, `ascii`, and `base64`.
+Converts a `STRING` column in the specified encoding type to a `BYTES` column.
 
-### `TRIM`
+The following list shows the supported encoding types.
 
-Since: -
+- `hex`
+- `utf8`
+- `ascii`
+- `base64`
+
+The following example query shows how to convert a MongoDB ID in column 0
+from hexadecimal to a BIGINT to a datetime string.
 
 ```sql
+select from_unixtime(cast(int_from_bytes(to_bytes(substring('628b30f00000000000000000', 0, 8),'hex')) as bigint) * 1000) from s1;
+```
+
+The output resembles:
+
+```json
+{
+  "KSQL_COL_0": "2022-05-23T07:00:00.000"
+}
+```
+
+---
+
+### **`TRIM`**
+
+```sql title="Since: 0.1.0"
 TRIM(col1)
 ```
 
-Trim the spaces from the beginning and end of a string.
+Removes the spaces from the beginning and end of a string.
 
-### `UCASE`
+---
 
-Since: -
+### **`UCASE`**
 
-```sql
+```sql title="Since: 0.1.0"
 UCASE(col1)
 ```
 
-Convert a string to uppercase.
+Converts a string to uppercase.
 
-### `UUID`
+!!! Tip "See UCASE in action"
+    - [Handle corrupted data from Salesforce](https://developer.confluent.io/tutorials/salesforce/confluent.html#execute-ksqldb-code)
 
-Since: 0.10.0
+---
 
-```sql
+### **`UUID`**
+
+```sql title="Since: 0.10.0"
 UUID()
+UUID(bytes)
 ```
-Create a Universally Unique Identifier (UUID) generated according to RFC 4122. 
-A call to UUID() returns a value conforming to UUID version 4, sometimes called 
-"random UUID", as described in RFC 4122. The value is a 128-bit number represented 
-as a string of five hexadecimal numbers _aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee_.
+Creates a Universally Unique Identifier (UUID) generated according to RFC 4122.
 
-## Nulls
+A call to UUID() returns a value conforming to UUID version 4, sometimes called
+"random UUID", as described in RFC 4122.
 
-### `COALESCE`
+A call to UUID(bytes) returns a value conforming to UUID.
 
-Since: 0.9.0
+The value is a 128-bit number represented as a string of five hexadecimal numbers,
+_aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee_, for example, `237e9877-e79b-12d4-a765-321741963000`.
+
+---
+
+## **Bytes**
+
+### **`BIGINT_FROM_BYTES`**
+
+```sql title="Since: 0.23.1"
+BIGINT_FROM_BYTES(col1, [byteOrder])
+```
+
+Converts a `BYTES` value to a `BIGINT` value according to the specified byte order.
+
+`BYTES` must be 8 bytes long, or a `NULL` value is returned.
+
+Byte order values must be `BIG_ENDIAN` or `LITTLE_ENDIAN`. If omitted,
+`BIG_ENDIAN` is used.
+
+A `NULL` value is returned if an invalid byte order value is provided.
+
+Example, where `b` is a `BYTES` value represented as a base64 string
+`AAAAASoF8gA=`:
 
 ```sql
+BIGINT_FROM_BYTES(b, 'BIG_ENDIAN') => 5000000000
+```
+
+---
+
+### **`DOUBLE_FROM_BYTES`**
+
+```sql title="Since: 0.23.1"
+DOUBLE_FROM_BYTES(col1, [byteOrder])
+```
+
+Converts a `BYTES` value to a `DOUBLE` value according to the specified byte
+order.
+
+`BYTES` must be 8 bytes long, or a `NULL` value is returned.
+
+Byte order values must be `BIG_ENDIAN` or `LITTLE_ENDIAN`. If omitted,
+`BIG_ENDIAN` is used.
+
+A `NULL` value is returned if an invalid byte order value is provided.
+
+Example, where `b` is a `BYTES` value represented as a base64 string `QICm/ZvJ9YI=`:
+
+```sql
+DOUBLE_FROM_BYTES(b, 'BIG_ENDIAN') => 532.8738323
+```
+
+---
+
+### **`INT_FROM_BYTES`**
+
+```sql title="Since: 0.23.1"
+INT_FROM_BYTES(col1, [byteOrder])
+```
+
+Converts a `BYTES` value to an `INT` value according to the specified byte
+order.
+
+`BYTES` must be 4 bytes long, or a `NULL` value is returned.
+
+Byte order values must be `BIG_ENDIAN` or `LITTLE_ENDIAN`. If omitted,
+`BIG_ENDIAN` is used.
+
+A `NULL` value is returned if an invalid byte order value is provided.
+
+Example, where `b_big` is a `BYTES` value represented as a base64 string `AAAH5Q==`:
+
+```sql
+INT_FROM_BYTES(b, 'BIG_ENDIAN') -> 2021
+```
+
+---
+
+### **`TO_BYTES`**
+
+```sql title="Since: 0.21.0"
+TO_BYTES(col1, encoding)
+```
+
+Converts a `STRING` value in the specified encoding to `BYTES`.
+
+The following list shows the supported encoding types.
+
+- `hex`
+- `utf8`
+- `ascii`
+- `base64`
+
+---
+
+## **Nulls**
+
+### **`COALESCE`**
+
+```sql title="Since: 0.9.0"
 COALESCE(a, b, c, d)
 ```
 
-Returns the first parameter that is not NULL. All parameters must be of the same type.
+Returns the first parameter that is not `NULL`. All parameters must be
+of the same type.
 
-Where the parameter type is a complex type, for example `ARRAY` or `STRUCT`, the contents of the
-complex type are not inspected. The behaviour is the same: the first NOT NULL element is returned.
+If the parameter is a complex type, for example, `ARRAY` or `STRUCT`, the
+contents of the complex type are not inspected. The behaviour is the same:
+the first `NOT NULL` element is returned.
 
-### `IFNULL`
+---
 
-Since: -
+### **`IFNULL`**
 
-```sql
+```sql title="Since: 0.9.0"
 IFNULL(expression, altValue)
 ```
 
-If the provided `expression` is NULL, returns `altValue`, otherwise, returns `expression`.
+If `expression` is `NULL`, returns `altValue`; otherwise, returns `expression`.
 
-Where the parameter type is a complex type, for example `ARRAY` or `STRUCT`, the contents of the
-complex type are not inspected.
+If `expression` evaluates to a complex type, for example, `ARRAY` or `STRUCT`,
+the contents of the complex type are not inspected.
 
-### `NULLIF`
+---
 
-Since: -
+### **`NULLIF`**
 
-```sql
+```sql title="Since: 0.19.0"
 NULLIF(expression1, expression2)
 ```
 
-Returns NULL if `expression1` is equal to `expression2`; otherwise, returns `expression1`.
+Returns `NULL` if `expression1` is equal to `expression2`; otherwise, returns `expression1`.
 
-If the parameter type is a complex type, for example, `ARRAY` or `STRUCT`, the contents of the
-complex type are not inspected.
+If `expression` evaluates to a complex type, for example, `ARRAY` or `STRUCT`,
+the contents of the complex type are not inspected.
 
-## Date and time
+---
 
-### `UNIX_DATE`
+## **Date and time**
 
-Since: 0.6.0
+### **`CONVERT_TZ`**
 
-```sql
+```sql title="Since: 0.17.0"
+CONVERT_TZ(col1, 'from_timezone', 'to_timezone')
+```
+
+Converts a `TIMESTAMP` value from `from_timezone` to `to_timezone`.
+
+The `from_timezone` and `to_timezone` parameters are `java.util.TimeZone` ID
+formats, for example: 
+
+- "UTC"
+- "America/Los_Angeles"
+- "PDT"
+- "Europe/London"
+
+For more information on timestamp formats, see
+[DateTimeFormatter](https://cnfl.io/java-dtf).
+
+---
+
+### **`DATEADD`**
+
+```sql title="Since: 0.20.0"
+DATEADD(unit, interval, col0)
+```
+
+Adds an interval to a date.
+
+Intervals are defined by an integer value and a supported
+[time unit](../../reference/sql/time.md#Time units).
+
+---
+
+### **`DATESUB`**
+
+```sql title="Since: 0.20.0"
+DATESUB(unit, interval, col0)
+```
+
+Subtracts an interval from a date.
+
+Intervals are defined by an integer value and a supported
+[time unit](../../reference/sql/time.md#Time units).
+
+---
+
+### **`FORMAT_DATE`**
+
+```sql title="Since: 0.20.0"
+FORMAT_DATE(date, 'yyyy-MM-dd')
+```
+
+Converts a `DATE` value into a string that represents the date in the
+specified format.
+
+You can escape single-quote characters in the timestamp format by using two
+successive single quotes, `''`, for example: `'yyyy-MM-dd''T'''`.
+
+---
+
+### **`FORMAT_TIME`**
+
+```sql title="Since: 0.20.0"
+FORMAT_TIME(time, 'HH:mm:ss.SSS')
+```
+
+Converts a `TIME` value into the string representation of the time in the given
+format.
+
+You can escape single-quote characters in the time format by using two
+successive single quotes, `''`, for example: `'''T''HH:mm:ssX'`.
+
+For more information on time formats, see
+[DateTimeFormatter](https://cnfl.io/java-dtf).
+
+---
+
+### **`FORMAT_TIMESTAMP`**
+
+```sql title="Since: 0.17.0"
+FORMAT_TIMESTAMP(timestamp, 'yyyy-MM-dd HH:mm:ss.SSS' [, TIMEZONE])
+```
+
+Converts a `TIMESTAMP` value into the string representation of the timestamp in
+the specified format.
+
+You can escape single-quote characters in the timestamp format by using two
+successive single quotes, `''`, for example: `'yyyy-MM-dd''T''HH:mm:ssX'`.
+
+The optional `TIMEZONE` parameter is a `java.util.TimeZone` ID format,
+for example: 
+
+- "UTC"
+- "America/Los_Angeles"
+- "PDT"
+- "Europe/London"
+
+!!! note
+    To use the `FORMAT_TIMESTAMP` function with a BIGINT millisecond timestamp
+    parameter, convert the millisecond value to a `TIMESTAMP` by using the
+    `FROM_UNIXTIME` function, for example:
+
+    ```sql
+    FORMAT_TIMESTAMP(FROM_UNIXTIME(unix_timestamp))
+    ```
+
+For more information on timestamp formats, see
+[DateTimeFormatter](https://cnfl.io/java-dtf).
+
+!!! Tip "See FORMAT_TIMESTAMP in action"
+    - [Analyze datacenter power usage](https://developer.confluent.io/tutorials/datacenter/confluent.html#execute-ksqldb-code)
+    - [Detect and analyze SSH attacks](https://developer.confluent.io/tutorials/SSH-attack/confluent.html#execute-ksqldb-code)
+
+---
+
+### **`FROM_DAYS`**
+
+```sql title="Since: 0.20.0"
+FROM_DAYS(days)
+```
+
+Converts an `INT` number of days since epoch to a `DATE` value.
+
+---
+
+### **`FROM_UNIXTIME`**
+
+```sql title="Since: 0.17.0"
+FROM_UNIXTIME(milliseconds)
+```
+
+Converts a `BIGINT` millisecond timestamp value into a `TIMESTAMP` value.
+
+!!! Tip "See FROM_UNIXTIME in action"
+    - [Analyze datacenter power usage](https://developer.confluent.io/tutorials/datacenter/confluent.html#execute-ksqldb-code)
+
+---
+
+### **`PARSE_DATE`**
+
+```sql title="Since: 0.20.0"
+PARSE_DATE(col1, 'yyyy-MM-dd')
+```
+
+Converts a string representation of a date in the specified format into a `DATE`
+value.
+
+You can escape single-quote characters in the timestamp format by using two
+successive single quotes, `''`, for example: `'yyyy-MM-dd''T'''`.
+
+---
+
+### **`PARSE_TIME`**
+
+```sql title="Since: 0.20.0"
+PARSE_TIME(col1, 'HH:mm:ss.SSS')
+```
+
+Converts a string value in the specified format into a `TIME` value.
+
+You can escape single-quote characters in the time format by using successive
+single quotes, `''`, for example: `'''T''HH:mm:ssX'`.
+
+For more information on time formats, see [DateTimeFormatter](https://cnfl.io/java-dtf).
+
+---
+
+### **`PARSE_TIMESTAMP`**
+
+```sql title="Since: 0.17.0"
+PARSE_TIMESTAMP(col1, 'yyyy-MM-dd HH:mm:ss.SSS' [, TIMEZONE])
+```
+
+Converts a string value in the given format into the `TIMESTAMP` value.
+
+You can escape single-quote characters in the timestamp format by using
+successive single quotes, `''`, for example: `'yyyy-MM-dd''T''HH:mm:ssX'`.
+
+The optional `TIMEZONE` parameter is a `java.util.TimeZone` ID format,
+for example: 
+
+- "UTC"
+- "America/Los_Angeles"
+- "PDT"
+- "Europe/London"
+
+The timestamp format permits up to 9 digits in the millisecond field, for
+example, `yyyy-MM-dd HH:mm:ss.SSSSSSSSS`. If you provide more than 9 digits,
+the function fails to parse the timestamp.
+
+---
+
+### **`TIMEADD`**
+
+```sql title="Since: 0.20.0"
+TIMEADD(unit, interval, COL0)
+```
+
+Adds an interval to a `TIME`.
+
+Intervals are defined by an integer value and a supported
+[time unit](../../reference/sql/time.md#Time units).
+
+---
+
+### **`TIMESUB`**
+
+```sql title="Since: 0.20.0"
+TIMESUB(unit, interval, COL0)
+```
+
+Subtracts an interval from a `TIME`.
+
+Intervals are defined by an integer value and a supported
+[time unit](../../reference/sql/time.md#Time units).
+
+---
+
+### **`TIMESTAMPADD`**
+
+```sql title="Since: 0.17.0"
+TIMESTAMPADD(unit, interval, COL0)
+```
+
+Adds an interval to a `TIMESTAMP`.
+
+Intervals are defined by an integer value and a supported
+[time unit](../../reference/sql/time.md#Time units).
+
+---
+
+### **`TIMESTAMPSUB`**
+
+```sql title="Since: 0.17.0"
+TIMESTAMPSUB(unit, interval, COL0)
+```
+
+Subtracts an interval from a `TIMESTAMP`.
+
+Intervals are defined by an integer value and a supported
+[time unit](../../reference/sql/time.md#Time units).
+
+---
+
+### **`UNIX_DATE`**
+
+```sql title="Since: 0.6.0"
 UNIX_DATE([date])
 ```
 
-If `UNIX_DATE` is called with the date parameter, the function returns the DATE
-value as an INTEGER value representing the number of days since `1970-01-01`.
+If `UNIX_DATE` is called with the date parameter, the function returns the
+`DATE` value as an `INTEGER` value representing the number of days since
+`1970-01-01`.
 
-If the `date` parameter is not provided, it returns an integer representing days since `1970-01-01`.
-The returned integer may differ depending on the local time of different ksqlDB Server instances.
+If the `date` parameter is not provided, the function returns an integer
+representing days since `1970-01-01`.
 
-### `UNIX_TIMESTAMP`
+!!! important
+    The returned integer may differ depending on the local time of different
+    ksqlDB Server instances.
 
-Since: 0.6.0
+---
 
-```sql
+### **`UNIX_TIMESTAMP`**
+
+```sql title="Since: 0.6.0"
 UNIX_TIMESTAMP([timestamp])
 ```
 
-If `UNIX_TIMESTAMP` is called with the timestamp parameter, the function returns the TIMESTAMP
-value as a BIGINT value representing the number of milliseconds since `1970-01-01T00:00:00 UTC`.
+If `UNIX_TIMESTAMP` is called with the timestamp parameter, the function
+returns the `TIMESTAMP` value as a `BIGINT` value representing the number
+of milliseconds since `1970-01-01T00:00:00 UTC`.
 
-If the `timestamp` parameter is not provided, it returns the current Unix timestamp in milliseconds,
-represented as a BIGINT. The returned timestamp may differ depending on the local time of different
-ksqlDB Server instances.
+If the `timestamp` parameter is not provided, the function returns the current
+UNIX timestamp in milliseconds, represented as a `BIGINT`.
+
+!!! important
+    The returned `BIGINT` may differ depending on the local time of different
+    ksqlDB Server instances.
+
+---
+
+## **URLs**
+
+All ksqlDB URL functions assume URI syntax defined in
+[RFC 39386](https://tools.ietf.org/html/rfc3986). For more information on the
+structure of a URI, including definitions of the various components, see
+[Section 3 of the RFC](https://datatracker.ietf.org/doc/html/rfc3986#section-3).
+    
+For encoding and decoding, ksqlDB uses the `application/x-www-form-urlencoded`
+convention.
+
+### **`URL_DECODE_PARAM`**
+
+```sql title="Since: 0.6.0"
+URL_DECODE_PARAM(col1)
+```
+
+Unescapes the `URL-param-encoded`_ value in `col1`.
+
+This is the inverse of the `URL_ENCODE_PARAM` function.
+
+```sql title="Example"
+URL_DECODE_PARAM("url%20encoded") => "url encoded"
+```
+
+---
+
+### **`URL_ENCODE_PARAM`**
+
+```sql title="Since: 0.6.0"
+URL_ENCODE_PARAM(col1)
+```
+
+Escapes the value of `col1` such that it can safely be used in URL query
+parameters.
+
+!!! note
+    `URL_ENCODE_PARAM` is not the same as encoding a value for use in the path
+    portion of a URL.
+
+```sql title="Example"
+URL_ENCODE_PARAM("url encoded") => "url%20encoded"
+```
+
+---
+
+### **`URL_EXTRACT_FRAGMENT`**
+
+```sql title="Since: 0.6.0"
+URL_EXTRACT_FRAGMENT(url)
+```
+
+Extracts the fragment portion of the specified value.
+
+Returns `NULL` if `url` is not a valid URL or if the fragment doesn't exist.
+
+All encoded values are decoded.                         
+
+```sql title="Examples"
+URL_EXTRACT_FRAGMENT("http://test.com#frag") => "frag"
+URL_EXTRACT_FRAGMENT("http://test.com#frag%20space") => "frag space"
+```
+
+---
+
+### **`URL_EXTRACT_HOST`**
+
+```sql title="Since: 0.6.0"
+URL_EXTRACT_HOST(url)
+```
+
+Extracts the host-name portion of the specified value.
+
+Returns `NULL` if `url` is not a valid URI according to RFC-2396.                       
+
+```sql title="Example"
+URL_EXTRACT_HOST("http://test.com:8080/path") => "test.com"
+```
+
+---
+
+### **`URL_EXTRACT_PARAMETER`**
+
+```sql title="Since: 0.6.0"
+URL_EXTRACT_PARAMETER(url, parameter_name)
+```
+
+Extracts the value of the requested parameter from the query-string of `url`.
+
+Returns `NULL` if the parameter is not present, has no value specified for it
+in the query string, or `url` is not a valid URI.
+
+The function encodes the parameter and decodes the output.
+
+To get all parameter values from a URL as a single string, use
+`URL_EXTRACT_QUERY.`
+
+```sql title="Examples"
+URL_EXTRACT_PARAMETER("http://test.com?a%20b=c%20d", "a b") => "c d"
+URL_EXTRACT_PARAMETER("http://test.com?a=foo&b=bar", "b") => "bar"
+```
+
+---
+
+### **`URL_EXTRACT_PATH`**
+
+```sql title="Since: 0.6.0"
+URL_EXTRACT_PATH(url)
+```
+
+Extracts the path from `url`.
+
+Returns `NULL` if `url` is not a valid URI but returns an empty string if
+the path is empty.
+
+```sql title="Example"
+URL_EXTRACT_PATH("http://test.com/path/to#a") => "path/to"
+```
+
+---
+
+### **`URL_EXTRACT_PORT`**
+
+```sql title="Since: 0.6.0"
+URL_EXTRACT_PORT(url)
+```
+
+Extracts the port number from `url`.
+
+Returns `NULL` if `url` is not a valid URI or does not contain
+an explicit port number.            
+
+```sql title="Example"
+URL_EXTRACT_PORT("http://localhost:8080/path") => "8080"
+```
+
+---
+
+### **`URL_EXTRACT_PROTOCOL`**
+
+```sql title="Since: 0.6.0"
+URL_EXTRACT_PROTOCOL(url)
+```
+
+Extracts the protocol from `url`.
+
+Returns `NULL` if `url` is an invalid URI or has no protocol.
+
+```sql title="Example"
+URL_EXTRACT_PROTOCOL("http://test.com?a=foo&b=bar") => "http"
+```
+
+---
+
+### **`URL_EXTRACT_QUERY`**
+
+```sql title="Since: 0.6.0"
+URL_EXTRACT_QUERY(url)
+```
+
+Extracts the decoded query-string portion of `url`.
+
+Returns `NULL` if no query-string is present or `url` is not a valid URI.
+
+```sql title="Example"
+URL_EXTRACT_QUERY("http://test.com?a=foo%20bar&b=baz") => "a=foo bar&b=baz"
+```
+
+---
+
+## **Deprecated**
 
 ### `DATETOSTRING`
 
-Since: -
+Since: 0.7.1
 
-Deprecated since 0.20.0 (use FORMAT_DATE)
+**Deprecated since 0.20.0 (use FORMAT_DATE)**
 
 ```sql
 DATETOSTRING(START_DATE, 'yyyy-MM-dd')
@@ -1194,9 +2255,9 @@ The integer represents days since epoch matching the encoding used by
 
 ### `STRINGTODATE`
 
-Since: -
+Since: 0.7.1
 
-Deprecated since 0.20.0 (use PARSE_DATE)
+**Deprecated since 0.20.0 (use PARSE_DATE)**
 
 ```sql
 STRINGTODATE(col1, 'yyyy-MM-dd')
@@ -1210,9 +2271,9 @@ quotes, `''`, for example: `'yyyy-MM-dd''T'''`.
 
 ### `STRINGTOTIMESTAMP`
 
-Since: -
+Since: 0.7.1
 
-Deprecated since 0.16.0 (use PARSE_TIMESTAMP)
+**Deprecated since 0.17.0 (use PARSE_TIMESTAMP)**
 
 ```sql
 STRINGTOTIMESTAMP(col1, 'yyyy-MM-dd HH:mm:ss.SSS' [, TIMEZONE])
@@ -1233,348 +2294,28 @@ more information on timestamp formats, see
 
 ### `TIMESTAMPTOSTRING`
 
-Since: -
+Since: 0.7.1
 
-Deprecated since 0.16.0 (use FORMAT_TIMESTAMP)
+**Deprecated since 0.17.0 (use [FORMAT_TIMESTAMP](#format_timestamp))**
 
 ```sql
 TIMESTAMPTOSTRING(ROWTIME, 'yyyy-MM-dd HH:mm:ss.SSS' [, TIMEZONE])
 ```
 
-Converts a BIGINT millisecond timestamp value into
-the string representation of the timestamp in
-the given format. Single quotes in the
-timestamp format can be escaped with two
-successive single quotes, `''`, for example:
+Converts a BIGINT millisecond timestamp value into the string representation
+of the timestamp in the given format. Single quotes in the timestamp format
+can be escaped with two successive single quotes, `''`, for example:
 `'yyyy-MM-dd''T''HH:mm:ssX'`.
-TIMEZONE is an optional parameter and it is a
-`java.util.TimeZone` ID format, for example: "UTC",
-"America/Los_Angeles", "PDT", "Europe/London". For
-more information on timestamp formats, see
-[DateTimeFormatter](https://cnfl.io/java-dtf).
 
-### `FORMAT_TIMESTAMP`
-
-```sql
-FORMAT_TIMESTAMP(timestamp, 'yyyy-MM-dd HH:mm:ss.SSS' [, TIMEZONE])
-```
-
-Converts a TIMESTAMP value into the string representation of the timestamp in the given format.
-Single quotes in the timestamp format can be escaped with two successive single quotes, `''`, for
-example: `'yyyy-MM-dd''T''HH:mm:ssX'`.
-
-TIMEZONE is an optional parameter and it is a `java.util.TimeZone` ID format, for example: "UTC",
-"America/Los_Angeles", "PDT", "Europe/London". For more information on timestamp formats, see
-[DateTimeFormatter](https://cnfl.io/java-dtf).
-
-### `PARSE_TIMESTAMP`
-
-```sql
-PARSE_TIMESTAMP(col1, 'yyyy-MM-dd HH:mm:ss.SSS' [, TIMEZONE])
-```
-
-Converts a string value in the given format into the TIMESTAMP value. Single quotes in the timestamp
-format can be escaped with two successive single quotes, `''`, for example: `'yyyy-MM-dd''T''HH:mm:ssX'`.
-
-TIMEZONE is an optional parameter and it is a `java.util.TimeZone` ID format, for example: "UTC",
-"America/Los_Angeles", "PDT", "Europe/London". For more information on timestamp formats, see
-[DateTimeFormatter](https://cnfl.io/java-dtf).
-
-### `FORMAT_DATE`
-
-```sql
-FORMAT_DATE(date, 'yyyy-MM-dd')
-```
-
-Converts a DATE value into a string that represents the date in the given format.
-You can escape single-quote characters in the timestamp format by using two successive single
-quotes, `''`, for example: `'yyyy-MM-dd''T'''`.
-
-### `PARSE_DATE`
-
-```sql
-PARSE_DATE(col1, 'yyyy-MM-dd')
-```
-
-Converts a string representation of a date in the
-given format into a DATE value. You can escape
-single-quote characters in the timestamp format by using two successive single
-quotes, `''`, for example: `'yyyy-MM-dd''T'''`.
-
-### `FORMAT_TIME`
-
-Since: 0.20
-
-```sql
-FORMAT_TIME(time, 'HH:mm:ss.SSS')
-```
-
-Converts a TIME value into the string representation of the time in the given format.
-Single quotes in the time format can be escaped with two successive single quotes, `''`, for
-example: `'''T''HH:mm:ssX'`.
-
-For more information on time formats, see [DateTimeFormatter](https://cnfl.io/java-dtf).
-
-### `PARSE_TIME`
-
-Since: 0.20
-
-```sql
-PARSE_TIME(col1, 'HH:mm:ss.SSS')
-```
-
-Converts a string value in the given format into a TIME value. Single quotes in the time
-format can be escaped with two successive single quotes, `''`, for example: `'''T''HH:mm:ssX'`.
-
-For more information on time formats, see [DateTimeFormatter](https://cnfl.io/java-dtf).
-
-### `CONVERT_TZ`
-
-```sql
-CONVERT_TZ(col1, 'from_timezone', 'to_timezone')
-```
-
-Converts a TIMESTAMP value from `from_timezone` to `to_timezone`. `from_timezone` and
-`to_timezone` are `java.util.TimeZone` ID formats, for example: "UTC", "America/Los_Angeles",
-"PDT","Europe/London". For more information on timestamp formats,
-see [DateTimeFormatter](https://cnfl.io/java-dtf).
-
-### `FROM_UNIXTIME`
-
-```sql
-FROM_UNIXTIME(milliseconds)
-```
-
-Converts a BIGINT millisecond timestamp value into a TIMESTAMP value.
-
-### `FROM_DAYS`
-
-```sql
-FROM_DAYS(days)
-```
-
-Converts an INT number of days since epoch to a DATE value.
-
-### TIMESTAMPADD
-
-Since: 0.17
-
-```sql
-TIMESTAMPADD(unit, interval, COL0)
-```
-
-Adds an interval to a timestamp. Intervals are defined by an integer value and a supported
-[time unit](../../reference/sql/time.md#Time units).
-
-### TIMESTAMPSUB
-
-Since: 0.17
-
-```sql
-TIMESTAMPSUB(unit, interval, COL0)
-```
-
-Subtracts an interval from a timestamp. Intervals are defined by an integer value and a supported
-[time unit](../../reference/sql/time.md#Time units).
-
-### TIMEADD
-
-Since: 0.20
-
-```sql
-TIMEADD(unit, interval, COL0)
-```
-
-Adds an interval to a time. Intervals are defined by an integer value and a supported
-[time unit](../../reference/sql/time.md#Time units).
-
-### TIMESUB
-
-Since: 0.20
-
-```sql
-TIMESUB(unit, interval, COL0)
-```
-
-Subtracts an interval from a time. Intervals are defined by an integer value and a supported
-[time unit](../../reference/sql/time.md#Time units).
-
-### DATEADD
-
-Since: 0.20
-
-```sql
-DATEADD(unit, interval, COL0)
-```
-
-Adds an interval to a date. Intervals are defined by an integer value and a supported
-[time unit](../../reference/sql/time.md#Time units).
-
-### DATESUB
-
-Since: 0.20
-
-```sql
-DATESUB(unit, interval, COL0)
-```
-
-Subtracts an interval from a date. Intervals are defined by an integer value and a supported
-[time unit](../../reference/sql/time.md#Time units).
-
-## URLs
+TIMEZONE is an optional parameter, and it is a `java.util.TimeZone` ID format,
+for example, "UTC", "America/Los_Angeles", "PDT", or "Europe/London". For more
+information on timestamp formats, see [DateTimeFormatter](https://cnfl.io/java-dtf).
 
 !!! note
-    All ksqlDB URL functions assume URI syntax defined in
-    [RFC 39386](https://tools.ietf.org/html/rfc3986). For more information on the
-    structure of a URI, including definitions of the various components, see
-    Section 3 of the RFC. For encoding/decoding, the
-    `application/x-www-form-urlencoded` convention is followed.
+    To use the [`FORMAT_TIMESTAMP`](#format_timestamp) function with a BIGINT millisecond timestamp
+    parameter, convert the millisecond value to a `TIMESTAMP` by using the
+    `FROM_UNIXTIME` function, for example:
 
-### `URL_DECODE_PARAM`
-
-```sql
-URL_DECODE_PARAM(col1)
-```
-
-Since: 0.6.0
-
-Unescapes the `URL-param-encoded`_ value in `col1`. This is the inverse of
-`URL_ENCODE_PARAM`.
-
-- Input: `'url%20encoded`
-- Output: `url encoded`
-
-### `URL_ENCODE_PARAM`
-
-```sql
-URL_ENCODE_PARAM(col1)
-```
-
-Since: 0.6.0
-
-Escapes the value of `col1` such that it can
-safely be used in URL query parameters. Note that
-this is not the same as encoding a value for use 
-in the path portion of a URL.                    
-                                                 
-- Input: `url encoded`                             
-- Output: `'url%20encoded`                         
-
-### `URL_EXTRACT_FRAGMENT`
-
-```sql
-URL_EXTRACT_FRAGMENT(url)
-```
-
-Since: 0.6.0
-
-Extract the fragment portion of the specified
-value. Returns NULL if `url` is not a valid URL
-or if the fragment does not exist. Any encoded 
-value will be decoded.                         
-                                               
-- Input: `http://test.com#frag`,                 
-- Output: `frag`                                 
-
-- Input: `http://test.com#frag%20space`,         
-- Output: `frag space`                           
-
-### `URL_EXTRACT_HOST`
-
-```sql
-URL_EXTRACT_HOST(url)
-```
-
-Since: 0.6.0
-
-Extract the host-name portion of the specified
-value. Returns NULL if the `url` is not a valid  
-URI according to RFC-2396.                       
-                                                 
-- Input: `http://test.com:8080/path`,              
-- Output: `test.com`                               
-
-### `URL_EXTRACT_PARAMETER`
-
-Since: 0.6.0
-
-```sql
-URL_EXTRACT_PARAMETER(url, parameter_name)
-```
-
-Extract the value of the requested parameter from
-the query-string of `url`. Returns NULL
-if the parameter is not present, has no value
-specified for it in the query-string, or `url`
-is not a valid URI. Encodes the param and decodes
-the output (see examples).
-                                                 
-To get all of the parameter values from a
-URL as a single string, see `URL_EXTRACT_QUERY.`
-                                                 
-- Input: `http://test.com?a%20b=c%20d`, `a b`
-- Output: `c d`
-
-- Input: `http://test.com?a=foo&b=bar`, `b`
-- Output: `bar`
-
-### `URL_EXTRACT_PATH`
-
-```sql
-URL_EXTRACT_PATH(url)
-```
-
-Since: 0.6.0
-
-Extracts the path from `url`.
-Returns NULL if `url` is not a valid URI but  
-returns an empty string if the path is empty. 
-                                              
-- Input: `http://test.com/path/to#a`            
-- Output: `path/to`                             
-
-### `URL_EXTRACT_PORT`
-
-```sql
-URL_EXTRACT_PORT(url)
-```
-
-Since: 0.6.0
-
-Extract the port number from `url`.
-Returns NULL if `url` is not a valid URI or does
-not contain an explicit port number.            
-                                                
-- Input: `http://localhost:8080/path`             
-- Output: `8080`                                  
-
-### `URL_EXTRACT_PROTOCOL`
-
-```sql
-URL_EXTRACT_PROTOCOL(url)
-```
-
-Since: 0.6.0
-
-Extract the protocol from `url`. Returns NULL if
-`url` is an invalid URI or has no protocol.
-                                           
-- Input: `http://test.com?a=foo&b=bar`       
-- Output: `http`                             
-
-### `URL_EXTRACT_QUERY`
-
-Since: 0.6.0
-
-```sql
-URL_EXTRACT_QUERY(url)
-```
-
-Extract the decoded query-string portion of
-`url`. Returns NULL if no query-string is  
-present or `url` is not a valid URI.       
-                                           
-- Input: `http://test.com?a=foo%20bar&b=baz` 
-- Output: `a=foo bar&b=baz`                  
-
-[1]: type-coercion.md#implicit-type-coercion
+    ```sql
+    FORMAT_TIMESTAMP(FROM_UNIXTIME(unix_timestamp))
+    ```

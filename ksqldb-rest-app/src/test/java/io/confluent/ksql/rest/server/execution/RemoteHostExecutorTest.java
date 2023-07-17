@@ -15,17 +15,28 @@
 
 package io.confluent.ksql.rest.server.execution;
 
-import io.confluent.ksql.engine.KsqlEngine;
+import static org.easymock.EasyMock.anyInt;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.when;
+
 import io.confluent.ksql.parser.tree.DescribeStreams;
 import io.confluent.ksql.rest.SessionProperties;
-import io.confluent.ksql.rest.client.KsqlRestClientException;
 import io.confluent.ksql.rest.client.RestResponse;
+import io.confluent.ksql.rest.client.exception.KsqlRestClientException;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.server.TemporaryEngine;
 import io.confluent.ksql.rest.util.DiscoverRemoteHostsUtil;
 import io.confluent.ksql.services.SimpleKsqlClient;
 import io.confluent.ksql.statement.ConfiguredStatement;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.Pair;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -42,21 +53,8 @@ import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.junit.MockitoJUnitRunner;
 
-import static org.easymock.EasyMock.anyInt;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.empty;
-import static org.hamcrest.Matchers.hasSize;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertEquals;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.mockStatic;
-import static org.mockito.Mockito.when;
-
 @RunWith(MockitoJUnitRunner.class)
 public class RemoteHostExecutorTest {
-  @Mock
-  public final KsqlEngine executionContext = mock(KsqlEngine.class);
   private final Set<HostInfo> hosts = Stream.of("otherhost:1234", "anotherhost:444")
       .map(HostInfo::buildFromEndpoint)
       .collect(Collectors.toSet());
@@ -70,21 +68,21 @@ public class RemoteHostExecutorTest {
   private RestResponse<KsqlEntityList> response;
   @Mock
   private KsqlEntityList ksqlEntityList;
+  @Mock
+  private KsqlConfig ksqlConfig;
   private RemoteHostExecutor augmenter;
 
   @SuppressWarnings("unchecked")
   @Before
   public void setup() throws MalformedURLException {
-
     when(sessionProperties.getInternalRequest()).thenReturn(false);
     when(sessionProperties.getLocalUrl()).thenReturn(new URL("https://address"));
 
     augmenter = RemoteHostExecutor.create(
         (ConfiguredStatement<DescribeStreams>) engine.configure("describe streams;"),
         sessionProperties,
-        executionContext,
+        engine.getEngine(),
         ksqlClient);
-
   }
 
   @Test
@@ -101,7 +99,6 @@ public class RemoteHostExecutorTest {
 
   @Test
   public void testReturnsEmptyIfRequestIsInternal() {
-    when(sessionProperties.getInternalRequest()).thenReturn(true);
     Pair<Map<HostInfo, KsqlEntity>, Set<HostInfo>> remoteResults = augmenter.fetchAllRemoteResults();
     assertThat(remoteResults.getLeft().entrySet(), hasSize(0));
     assertThat(remoteResults.getRight(), hasSize(0));

@@ -23,6 +23,7 @@ import io.confluent.ksql.parser.SqlBaseParser;
 import io.confluent.ksql.parser.SqlBaseParser.AliasedRelationContext;
 import io.confluent.ksql.parser.SqlBaseParser.AlterOptionContext;
 import io.confluent.ksql.parser.SqlBaseParser.AlterSourceContext;
+import io.confluent.ksql.parser.SqlBaseParser.AlterSystemPropertyContext;
 import io.confluent.ksql.parser.SqlBaseParser.BooleanDefaultContext;
 import io.confluent.ksql.parser.SqlBaseParser.BooleanLiteralContext;
 import io.confluent.ksql.parser.SqlBaseParser.CreateConnectorContext;
@@ -86,6 +87,7 @@ import io.confluent.ksql.parser.SqlBaseParser.UnquotedIdentifierContext;
 import io.confluent.ksql.parser.SqlBaseParser.UnsetPropertyContext;
 import io.confluent.ksql.parser.SqlBaseParser.ValueExpressionContext;
 import io.confluent.ksql.parser.SqlBaseParser.WithinExpressionContext;
+import io.confluent.ksql.parser.tree.ColumnConstraints;
 import io.confluent.ksql.util.ParserUtil;
 import java.util.ArrayList;
 import java.util.Hashtable;
@@ -114,6 +116,7 @@ public class QueryAnonymizer {
     private int streamCount = 1;
     private int columnCount = 1;
     private int tableCount = 1;
+    private int headerCount = 1;
     private int udfCount = 1;
     private int sourceCount = 1;
     private final Hashtable<String, String> anonTable = new Hashtable<>();
@@ -308,6 +311,18 @@ public class QueryAnonymizer {
     }
 
     @Override
+    public String visitListTables(final SqlBaseParser.ListTablesContext context) {
+      final TerminalNode listOrVisit = context.LIST() != null ? context.LIST() : context.SHOW();
+      final StringBuilder stringBuilder = new StringBuilder(listOrVisit.toString() + " TABLES");
+
+      if (context.EXTENDED() != null) {
+        stringBuilder.append(" EXTENDED");
+      }
+
+      return stringBuilder.toString();
+    }
+
+    @Override
     public String visitListFunctions(final ListFunctionsContext context) {
       final TerminalNode listOrVisit = context.LIST() != null ? context.LIST() : context.SHOW();
       return String.format("%s FUNCTIONS", listOrVisit.toString());
@@ -433,6 +448,12 @@ public class QueryAnonymizer {
     public String visitSetProperty(final SetPropertyContext context) {
       final String propertyName = context.STRING(0).getText();
       return String.format("SET %s='[string]'", propertyName);
+    }
+
+    @Override
+    public String visitAlterSystemProperty(final AlterSystemPropertyContext context) {
+      final String propertyName = context.STRING(0).getText();
+      return String.format("ALTER SYSTEM %s='[string]'", propertyName);
     }
 
     @Override
@@ -571,6 +592,11 @@ public class QueryAnonymizer {
     public String visitCreateStream(final CreateStreamContext context) {
       final StringBuilder stringBuilder = new StringBuilder("CREATE ");
 
+      // optional source
+      if (context.SOURCE() != null) {
+        stringBuilder.append("SOURCE ");
+      }
+
       // optional replace
       if (context.OR() != null && context.REPLACE() != null) {
         stringBuilder.append("OR REPLACE ");
@@ -637,6 +663,11 @@ public class QueryAnonymizer {
     public String visitCreateTable(final CreateTableContext context) {
       final StringBuilder stringBuilder = new StringBuilder("CREATE ");
 
+      // optional source
+      if (context.SOURCE() != null) {
+        stringBuilder.append("SOURCE ");
+      }
+
       // optional replace
       if (context.OR() != null && context.REPLACE() != null) {
         stringBuilder.append("OR REPLACE ");
@@ -683,12 +714,23 @@ public class QueryAnonymizer {
       final String newName = getAnonColumnName(columnName);
       stringBuilder.append(String.format("%1$s %2$s", newName, visit(context.type())));
 
-      if (context.PRIMARY() != null) {
-        stringBuilder.append(" PRIMARY");
-      }
-      if (context.KEY() != null) {
+      final ColumnConstraints constraints =
+          ParserUtil.getColumnConstraints(context.columnConstraints());
+
+      if (constraints.isPrimaryKey()) {
+        stringBuilder.append(" PRIMARY KEY");
+      } else if (constraints.isKey()) {
         stringBuilder.append(" KEY");
+      } else if (constraints.isHeaders()) {
+        if (constraints.getHeaderKey().isPresent()) {
+          stringBuilder.append(" HEADER('")
+              .append(getAnonHeaderName(constraints.getHeaderKey().get()))
+              .append("')");
+        } else {
+          stringBuilder.append(" HEADERS");
+        }
       }
+
       return stringBuilder.toString();
     }
 
@@ -879,6 +921,11 @@ public class QueryAnonymizer {
 
         stringBuilder.append(String.format("%s",
             anonymizeJoinWindowSize(singleWithin.joinWindowSize())));
+
+        if (singleWithin.gracePeriodClause() != null) {
+          stringBuilder.append(String.format(" GRACE PERIOD %s",
+              anonymizeGracePeriod(singleWithin.gracePeriodClause())));
+        }
       } else if (context instanceof JoinWindowWithBeforeAndAfterContext) {
         final SqlBaseParser.JoinWindowWithBeforeAndAfterContext beforeAndAfterJoinWindow
             = (SqlBaseParser.JoinWindowWithBeforeAndAfterContext) context;
@@ -886,10 +933,16 @@ public class QueryAnonymizer {
         stringBuilder.append(String.format("(%s, %s)",
             anonymizeJoinWindowSize(beforeAndAfterJoinWindow.joinWindowSize(0)),
             anonymizeJoinWindowSize(beforeAndAfterJoinWindow.joinWindowSize(1))));
+
+        if (beforeAndAfterJoinWindow.gracePeriodClause() != null) {
+          stringBuilder.append(String.format(" GRACE PERIOD %s",
+              anonymizeGracePeriod(beforeAndAfterJoinWindow.gracePeriodClause())));
+        }
       } else {
         throw new RuntimeException("Expecting either a single join window, ie \"WITHIN 10 "
-            + "seconds\", or a join window with " + "before and after specified, ie. "
-            + "\"WITHIN (10 seconds, 20 seconds)\"");
+            + "seconds\" or \"WITHIN 10 seconds GRACE PERIOD 2 seconds\", or a join window with "
+            + "before and after specified, ie. \"WITHIN (10 seconds, 20 seconds)\" or "
+            + "WITHIN (10 seconds, 20 seconds) GRACE PERIOD 5 seconds");
       }
 
       return stringBuilder.append(' ').toString();
@@ -919,6 +972,7 @@ public class QueryAnonymizer {
         case ("DOUBLE"):
         case ("STRING"):
         case ("VARCHAR"):
+        case ("BYTES"):
           return context.getText().toUpperCase();
         default:
           return "CUSTOM_TYPE";
@@ -943,6 +997,10 @@ public class QueryAnonymizer {
 
     private String getAnonTableName(final String originName) {
       return getAnonName(originName, "table", tableCount++);
+    }
+
+    private String getAnonHeaderName(final String originName) {
+      return getAnonName(originName, "header", headerCount++);
     }
 
     private String getAnonName(final String originName, final String genericName, final int count) {

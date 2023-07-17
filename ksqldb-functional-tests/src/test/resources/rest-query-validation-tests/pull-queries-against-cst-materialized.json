@@ -1,0 +1,85 @@
+{
+  "comments": [
+    "Tests covering Pull queries of materialized using CST tables"
+  ],
+  "tests": [
+    {
+      "name": "select * against CST table",
+      "statements": [
+        "CREATE SOURCE TABLE INPUT (K INT PRIMARY KEY, text STRING) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
+        "SELECT * FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12345, "key": 1, "value": "a1"},
+        {"topic": "test_topic", "timestamp": 12345, "key": 2, "value": "a2"},
+        {"topic": "test_topic", "timestamp": 12345, "key": 3, "value": "a3"}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`K` INTEGER KEY, `TEXT` STRING"}},
+          {"row":{"columns":[1,"a1"]}},
+          {"row":{"columns":[2,"a2"]}},
+          {"row":{"columns":[3,"a3"]}}
+        ]}
+      ]
+    },
+    {
+      "name": "select * against CST table and filter by key",
+      "statements": [
+        "CREATE SOURCE TABLE INPUT (K INT PRIMARY KEY, text STRING) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
+        "SELECT * FROM INPUT WHERE K=2;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12345, "key": 1, "value": "a1"},
+        {"topic": "test_topic", "timestamp": 12345, "key": 2, "value": "a2"},
+        {"topic": "test_topic", "timestamp": 12345, "key": 3, "value": "a3"}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`K` INTEGER KEY, `TEXT` STRING"}},
+          {"row":{"columns":[2,"a2"]}}
+        ]}
+      ]
+    },
+    {
+      "name": "select with projection table scan and key lookup",
+      "statements": [
+        "CREATE SOURCE TABLE INPUT (K INT PRIMARY KEY, text STRING) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
+        "SELECT K, TEXT FROM INPUT;",
+        "SELECT K, TEXT FROM INPUT WHERE K=2;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12345, "key": 1, "value": "a1"},
+        {"topic": "test_topic", "timestamp": 12345, "key": 2, "value": "a2"},
+        {"topic": "test_topic", "timestamp": 12345, "key": 3, "value": "a3"}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`K` INTEGER KEY, `TEXT` STRING"}},
+          {"row":{"columns":[1,"a1"]}},
+          {"row":{"columns":[2,"a2"]}},
+          {"row":{"columns":[3,"a3"]}}
+        ]},
+        {"query": [
+          {"header":{"schema":"`K` INTEGER KEY, `TEXT` STRING"}},
+          {"row":{"columns":[2,"a2"]}}
+        ]}
+      ]
+    },
+    {
+      "name": "should not allow pull query with disallowed pseudocolumns in SELECT clause",
+      "statements": [
+        "CREATE STREAM S1 (mykey INT KEY, myvalue INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "SELECT mykey, myvalue, ROWPARTITION FROM S1;"
+      ],
+      "expectedError": {
+        "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
+        "message": "Pull queries don't support the following columns in SELECT clauses: `ROWPARTITION`",
+        "status": 400
+      }
+    }
+  ]
+}

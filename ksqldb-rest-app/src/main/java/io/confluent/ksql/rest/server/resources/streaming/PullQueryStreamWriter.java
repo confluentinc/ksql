@@ -19,21 +19,22 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.Lists;
 import io.confluent.ksql.api.server.StreamingOutput;
-import io.confluent.ksql.execution.streams.materialization.Locator.KsqlNode;
-import io.confluent.ksql.physical.pull.PullQueryResult;
-import io.confluent.ksql.physical.pull.PullQueryRow;
-import io.confluent.ksql.query.PullQueryQueue;
+import io.confluent.ksql.execution.pull.PullQueryResult;
+import io.confluent.ksql.execution.pull.PullQueryRow;
+import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
+import io.confluent.ksql.parser.tree.Query;
+import io.confluent.ksql.query.PullQueryWriteStream;
 import io.confluent.ksql.rest.Errors;
-import io.confluent.ksql.rest.entity.KsqlHostInfoEntity;
+import io.confluent.ksql.rest.entity.ConsistencyToken;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.KsqlStatementException;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.time.Clock;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -49,7 +50,7 @@ public class PullQueryStreamWriter implements StreamingOutput {
   private static final long MAX_FLUSH_MS = 1000;
 
   private final long disconnectCheckInterval;
-  private final PullQueryQueue pullQueryQueue;
+  private final PullQueryWriteStream pullQueryQueue;
   private final Clock clock;
   private final PullQueryResult result;
   private final ObjectMapper objectMapper;
@@ -63,9 +64,10 @@ public class PullQueryStreamWriter implements StreamingOutput {
       final PullQueryResult result,
       final long disconnectCheckInterval,
       final ObjectMapper objectMapper,
-      final PullQueryQueue pullQueryQueue,
+      final PullQueryWriteStream pullQueryQueue,
       final Clock clock,
-      final CompletableFuture<Void> connectionClosedFuture
+      final CompletableFuture<Void> connectionClosedFuture,
+      final PreparedStatement<Query> statement
   ) {
     this.result = Objects.requireNonNull(result, "result");
     this.objectMapper = Objects.requireNonNull(objectMapper, "objectMapper");
@@ -80,9 +82,21 @@ public class PullQueryStreamWriter implements StreamingOutput {
     });
     result.onCompletion(v -> {
       if (!completed.getAndSet(true)) {
+        result.getConsistencyOffsetVector().ifPresent(pullQueryQueue::putConsistencyVector);
         interruptWriterThread();
       }
     });
+    try {
+      result.start();
+    } catch (Exception e) {
+      throw new KsqlStatementException(
+          e.getMessage() == null
+              ? "Server Error"
+              : e.getMessage(),
+          statement.getMaskedStatementText(),
+          e
+      );
+    }
   }
 
   @Override
@@ -92,8 +106,7 @@ public class PullQueryStreamWriter implements StreamingOutput {
       final QueueWrapper queueWrapper = new QueueWrapper(pullQueryQueue, disconnectCheckInterval);
 
       // First write the header with the schema
-      final StreamedRow header
-          = StreamedRow.header(result.getQueryId(), result.getSchema());
+      final StreamedRow header = StreamedRow.header(result.getQueryId(), result.getSchema());
       writerState.append("[").append(writeValueAsString(header));
 
       // While the query is still running, and the client hasn't closed the connection, continue to
@@ -110,7 +123,7 @@ public class PullQueryStreamWriter implements StreamingOutput {
       drainAndThrowOnError(output, writerState, queueWrapper);
 
       // If no error was thrown above, drain the queue
-      drain(writerState, queueWrapper);
+      drainAndWrite(writerState, queueWrapper);
       writerState.append("]");
       if (writerState.length() > 0) {
         output.write(writerState.getStringToFlush().getBytes(StandardCharsets.UTF_8));
@@ -123,6 +136,8 @@ public class PullQueryStreamWriter implements StreamingOutput {
     } catch (Throwable e) {
       LOG.error("Exception occurred while writing to connection stream: ", e);
       outputException(output, e);
+    } finally {
+      close();
     }
   }
 
@@ -175,8 +190,13 @@ public class PullQueryStreamWriter implements StreamingOutput {
       writerState.append(",").append(System.lineSeparator());
       sentAtLeastOneRow = true;
     }
-    final StreamedRow streamedRow = StreamedRow
-        .pullRow(row.getGenericRow(), toKsqlHostInfo(row.getSourceNode()));
+    StreamedRow streamedRow = null;
+    if (row.getConsistencyOffsetVector().isPresent()) {
+      streamedRow = StreamedRow.consistencyToken(new ConsistencyToken(
+          row.getConsistencyOffsetVector().get().serialize()));
+    } else {
+      streamedRow = StreamedRow.pullRow(row.getGenericRow(), row.getSourceNode());
+    }
     writerState.append(writeValueAsString(streamedRow));
     if (hasAnotherRow) {
       writerState.append(",").append(System.lineSeparator());
@@ -195,7 +215,7 @@ public class PullQueryStreamWriter implements StreamingOutput {
       final QueueWrapper queueWrapper
   ) throws Throwable {
     if (pullQueryException.get() != null) {
-      drain(writerState, queueWrapper);
+      drainAndWrite(writerState, queueWrapper);
       output.write(writerState.getStringToFlush().getBytes(StandardCharsets.UTF_8));
       output.flush();
       throw pullQueryException.get();
@@ -207,7 +227,7 @@ public class PullQueryStreamWriter implements StreamingOutput {
    * @param writerState writer state
    * @param queueWrapper the queue wrapper
    */
-  private void drain(final WriterState writerState, final QueueWrapper queueWrapper) {
+  private void drainAndWrite(final WriterState writerState, final QueueWrapper queueWrapper) {
     final List<PullQueryRow> rows = queueWrapper.drain();
     int i = 0;
     for (final PullQueryRow row : rows) {
@@ -253,12 +273,16 @@ public class PullQueryStreamWriter implements StreamingOutput {
     return WRITE_TIMEOUT_MS;
   }
 
+  public boolean isClosed() {
+    return closed.get();
+  }
+
   private boolean isCompletedOrHasException() {
     return completed.get() || pullQueryException.get() != null;
   }
 
   private void interruptWriterThread() {
-    pullQueryQueue.putSentinelRow(QueueWrapper.END_ROW);
+    pullQueryQueue.end();
   }
 
   /**
@@ -274,13 +298,6 @@ public class PullQueryStreamWriter implements StreamingOutput {
     }
   }
 
-  /**
-   * Converts the KsqlNode to KsqlHostInfoEntity
-   */
-  private static Optional<KsqlHostInfoEntity> toKsqlHostInfo(final Optional<KsqlNode> ksqlNode) {
-    return ksqlNode.map(
-        node -> new KsqlHostInfoEntity(node.location().getHost(), node.location().getPort()));
-  }
 
   /**
    * State that's kept for the buffered response and the last flush time.
@@ -322,14 +339,14 @@ public class PullQueryStreamWriter implements StreamingOutput {
    * if there's something next.
    */
   static final class QueueWrapper {
-    public static final PullQueryRow END_ROW = new PullQueryRow(null, null, null);
-    private final PullQueryQueue pullQueryQueue;
+    public static final PullQueryRow END_ROW = new PullQueryRow(null, null, null, null);
+    private final PullQueryWriteStream pullQueryQueue;
     private final long disconnectCheckInterval;
     // We always keep a reference to the head of the queue so that we know if there's another
     // row in the result in order to produce proper JSON.
     private PullQueryRow head = null;
 
-    QueueWrapper(final PullQueryQueue pullQueryQueue, final long disconnectCheckInterval) {
+    QueueWrapper(final PullQueryWriteStream pullQueryQueue, final long disconnectCheckInterval) {
       this.pullQueryQueue = pullQueryQueue;
       this.disconnectCheckInterval = disconnectCheckInterval;
     }

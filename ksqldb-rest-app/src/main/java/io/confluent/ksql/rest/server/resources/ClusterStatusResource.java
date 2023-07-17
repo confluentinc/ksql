@@ -38,7 +38,6 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import org.apache.kafka.streams.StreamsMetadata;
 import org.apache.kafka.streams.state.HostInfo;
-import org.apache.kafka.streams.state.internals.StreamsMetadataImpl;
 
 /**
  * Endpoint that reports the view of the cluster that this server has.
@@ -75,7 +74,7 @@ public class ClusterStatusResource {
         .entrySet()
         .stream()
         .collect(Collectors.toMap(
-            entry -> new KsqlHostInfoEntity(entry.getKey().host(), entry.getKey().port()) ,
+            entry -> new KsqlHostInfoEntity(entry.getKey().host(), entry.getKey().port()),
             entry -> new HostStatusEntity(entry.getValue().isHostAlive(),
                                           entry.getValue().getLastStatusUpdateMs(),
                                           getActiveStandbyInformation(entry.getKey()),
@@ -102,9 +101,8 @@ public class ClusterStatusResource {
   ) {
     final Map<String, ActiveStandbyEntity> perQueryMap = new HashMap<>();
     for (PersistentQueryMetadata persistentQueryMetadata: engine.getPersistentQueries()) {
-      for (StreamsMetadata streamsMetadata: persistentQueryMetadata.getAllMetadata()) {
-        if (streamsMetadata.equals(StreamsMetadataImpl.NOT_AVAILABLE)
-            || !streamsMetadata.hostInfo().equals(asHostInfo(ksqlHostInfo))) {
+      for (StreamsMetadata streamsMetadata: persistentQueryMetadata.getAllStreamsHostMetadata()) {
+        if (!streamsMetadata.hostInfo().equals(asHostInfo(ksqlHostInfo))) {
           continue;
         }
         final QueryIdAndStreamsMetadata queryIdAndStreamsMetadata = new QueryIdAndStreamsMetadata(

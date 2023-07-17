@@ -58,11 +58,14 @@ import org.apache.kafka.streams.StreamsMetadata;
 import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.TopologyDescription;
 import org.apache.kafka.streams.TopologyDescription.Subtopology;
+import org.apache.kafka.streams.processor.internals.namedtopology.KafkaStreamsNamedTopologyWrapper;
 import org.apache.kafka.streams.state.HostInfo;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -123,6 +126,8 @@ public class KsLocatorTest {
   }
 
   @Mock
+  private KafkaStreamsNamedTopologyWrapper kafkaStreamsNamedTopologyWrapper;
+  @Mock
   private KafkaStreams kafkaStreams;
   @Mock
   private Topology topology;
@@ -134,6 +139,8 @@ public class KsLocatorTest {
   private RoutingFilter livenessFilter;
   @Mock
   private RoutingFilter activeFilter;
+  @Mock
+  private RoutingFilter lagFilter;
   @Mock
   private RoutingOptions routingOptions;
   @Mock
@@ -151,13 +158,22 @@ public class KsLocatorTest {
   private KsqlNode standByNode2;
   private RoutingFilters routingStandbyFilters;
   private RoutingFilters routingActiveFilters;
+  private RoutingFilters routingLagFilters;
   private RoutingFilterFactory routingFilterFactoryActive;
   private RoutingFilterFactory routingFilterFactoryStandby;
+  private RoutingFilterFactory routingFilterFactoryLag;
 
   @Before
   public void setUp() {
-    locator = new KsLocator(STORE_NAME, kafkaStreams, topology, keySerializer, LOCAL_HOST_URL,
-        APPLICATION_ID);
+    locator = new KsLocator(
+        STORE_NAME,
+        kafkaStreams,
+        topology,
+        keySerializer,
+        LOCAL_HOST_URL,
+        false,
+        "queryId"
+    );
 
     activeNode = locator.asNode(Host.include(ACTIVE_HOST));
     standByNode1 = locator.asNode(Host.include(STANDBY_HOST1));
@@ -165,6 +181,7 @@ public class KsLocatorTest {
 
     routingStandbyFilters = new RoutingFilters(ImmutableList.of(livenessFilter));
     routingActiveFilters = new RoutingFilters(ImmutableList.of(activeFilter, livenessFilter));
+    routingLagFilters = new RoutingFilters(ImmutableList.of(livenessFilter, lagFilter));
 
     // Only active serves query
     when(activeFilter.filter(eq(ACTIVE_HOST)))
@@ -182,10 +199,21 @@ public class KsLocatorTest {
     when(livenessFilter.filter(eq(STANDBY_HOST2)))
         .thenReturn(Host.include(STANDBY_HOST2));
 
+    // StandBy2 exceeds max allowed lag
+    when(lagFilter.filter(eq(ACTIVE_HOST)))
+        .thenReturn(Host.include(ACTIVE_HOST));
+    when(lagFilter.filter(eq(STANDBY_HOST1)))
+        .thenReturn(Host.include(STANDBY_HOST1));
+    when(lagFilter.filter(eq(STANDBY_HOST2)))
+        .thenReturn(Host.exclude(STANDBY_HOST2, "lag"));
+
+
     routingFilterFactoryActive = (routingOptions, hosts, active, applicationQueryId,
                                   storeName, partition) -> routingActiveFilters;
     routingFilterFactoryStandby = (routingOptions, hosts, active, applicationQueryId,
                                    storeName, partition) -> routingStandbyFilters;
+    routingFilterFactoryLag = (routingOptions, hosts, active, applicationQueryId,
+                                   storeName, partition) -> routingLagFilters;
   }
 
   @Test
@@ -205,12 +233,51 @@ public class KsLocatorTest {
     // When:
     final Exception e = assertThrows(
         MaterializationException.class,
-        () -> locator.locate(ImmutableList.of(KEY), routingOptions, routingFilterFactoryActive)
+        () -> locator.locate(ImmutableList.of(KEY), routingOptions, routingFilterFactoryActive, false)
     );
 
     // Then:
     assertThat(e.getMessage(), containsString(
         "Materialized data for key [1] is not available yet. Please try again later."));
+  }
+
+  @Test
+  public void shouldThrowIfMetadataIsEmpty() {
+    // Given:
+    getActiveAndStandbyMetadata();
+    when(topology.describe()).thenReturn(description);
+    when(description.subtopologies()).thenReturn(ImmutableSet.of(sub1));
+    when(sub1.nodes()).thenReturn(ImmutableSet.of(source, processor));
+    when(source.topicSet()).thenReturn(ImmutableSet.of(TOPIC_NAME));
+    when(processor.stores()).thenReturn(ImmutableSet.of(STORE_NAME));
+
+    // When:
+    final Exception e = assertThrows(
+        MaterializationException.class,
+        () -> locator.locate(Collections.emptyList(), routingOptions, routingFilterFactoryActive, false)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), is(
+        "Cannot determine which host contains the required partitions to serve the pull query. \n" +
+            "The underlying persistent query may be restarting (e.g. as a result of" +
+            " ALTER SYSTEM) view the status of your by issuing <DESCRIBE foo>."));
+  }
+
+  @Test
+  public void shouldThrowIfRangeScanAndKeysEmpty() {
+    // Given:
+    getEmtpyMetadata();
+
+    // When:
+    final Exception e = assertThrows(
+      IllegalStateException.class,
+      () -> locator.locate(Collections.emptyList(), routingOptions, routingFilterFactoryActive, true)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+      "Query is range scan but found no range keys."));
   }
 
   @Test
@@ -220,7 +287,7 @@ public class KsLocatorTest {
 
     // When:
     final List<KsqlPartitionLocation> result = locator.locate(ImmutableList.of(KEY), routingOptions,
-        routingFilterFactoryActive);
+        routingFilterFactoryActive, false);
 
     // Then:
     List<KsqlNode> nodeList = result.get(0).getNodes();
@@ -229,6 +296,33 @@ public class KsLocatorTest {
     assertThat(url.map(URI::getHost), is(Optional.of(ACTIVE_HOST.host())));
     assertThat(url.map(URI::getPort), is(Optional.of(ACTIVE_HOST.port())));
     assertThat(url.map(URI::getPath), is(Optional.of("/")));
+  }
+
+  @Test
+  public void shouldUseNamedTopologyWhenSharedRuntimeIsEnabledForStreamsMetadataForStore() {
+    // Given:
+    final KsLocator locator = new KsLocator(STORE_NAME, kafkaStreamsNamedTopologyWrapper, topology,
+        keySerializer, LOCAL_HOST_URL, true, "queryId");
+
+    // When:
+    locator.getStreamsMetadata();
+
+    // Then:
+    Mockito.verify(kafkaStreamsNamedTopologyWrapper).streamsMetadataForStore(STORE_NAME, "queryId");
+  }
+
+  @Test
+  public void shouldUseNamedTopologyWhenSharedRuntimeIsEnabledForQueryMetadataForKey() {
+    // Given:
+    final KsLocator locator = new KsLocator(STORE_NAME, kafkaStreamsNamedTopologyWrapper, topology,
+        keySerializer, LOCAL_HOST_URL, true, "queryId");
+
+    // When:
+    locator.getKeyQueryMetadata(KEY);
+
+    // Then:
+    Mockito.verify(kafkaStreamsNamedTopologyWrapper)
+        .queryMetadataForKey(STORE_NAME, KEY.getKey(), keySerializer, "queryId");
   }
 
   @Test
@@ -244,7 +338,7 @@ public class KsLocatorTest {
 
     // When:
     final List<KsqlPartitionLocation> result = locator.locate(ImmutableList.of(KEY),
-        routingOptions, routingFilterFactoryActive);
+        routingOptions, routingFilterFactoryActive, false);
 
     // Then:
     List<KsqlNode> nodeList = result.get(0).getNodes();
@@ -264,7 +358,7 @@ public class KsLocatorTest {
 
     // When:
     final List<KsqlPartitionLocation> result = locator.locate(ImmutableList.of(KEY), routingOptions,
-        routingFilterFactoryActive);
+        routingFilterFactoryActive, false);
 
     // Then:
     List<KsqlNode> nodeList = result.get(0).getNodes();
@@ -284,7 +378,7 @@ public class KsLocatorTest {
 
     // When:
     final List<KsqlPartitionLocation> result = locator.locate(ImmutableList.of(KEY), routingOptions,
-        routingFilterFactoryActive);
+        routingFilterFactoryActive, false);
 
     // Then:
     List<KsqlNode> nodeList = result.get(0).getNodes();
@@ -304,7 +398,7 @@ public class KsLocatorTest {
 
     // When:
     final List<KsqlPartitionLocation> result = locator.locate(ImmutableList.of(KEY), routingOptions,
-        routingFilterFactoryActive);
+        routingFilterFactoryActive, false);
 
     // Then:
     List<KsqlNode> nodeList = result.get(0).getNodes();
@@ -325,7 +419,7 @@ public class KsLocatorTest {
 
     // When:
     final List<KsqlPartitionLocation> result = locator.locate(ImmutableList.of(KEY), routingOptions,
-        routingFilterFactoryActive);
+        routingFilterFactoryActive, false);
 
     // Then:
     List<KsqlNode> nodeList = result.get(0).getNodes();
@@ -340,7 +434,7 @@ public class KsLocatorTest {
 
     // When:
     final List<KsqlPartitionLocation> result = locator.locate(ImmutableList.of(KEY), routingOptions,
-        routingFilterFactoryActive);
+        routingFilterFactoryActive, false);
 
     // Then:
     List<KsqlNode> nodeList = result.get(0).getNodes().stream()
@@ -357,7 +451,7 @@ public class KsLocatorTest {
 
     // When:
     final List<KsqlPartitionLocation> result = locator.locate(ImmutableList.of(KEY), routingOptions,
-        routingFilterFactoryStandby);
+        routingFilterFactoryStandby, false);
 
     // Then:
     List<KsqlNode> nodeList = result.get(0).getNodes();
@@ -375,7 +469,7 @@ public class KsLocatorTest {
 
     // When:
     final List<KsqlPartitionLocation> result = locator.locate(ImmutableList.of(KEY), routingOptions,
-        routingFilterFactoryStandby);
+        routingFilterFactoryStandby, false);
 
     // Then:
     List<KsqlNode> nodeList = result.get(0).getNodes().stream()
@@ -396,7 +490,7 @@ public class KsLocatorTest {
 
     // When:
     final List<KsqlPartitionLocation> result = locator.locate(ImmutableList.of(KEY), routingOptions,
-        routingFilterFactoryStandby);
+        routingFilterFactoryStandby, false);
 
     // Then:
     List<KsqlNode> nodeList = result.get(0).getNodes().stream()
@@ -407,6 +501,30 @@ public class KsLocatorTest {
   }
 
   @Test
+  public void shouldReturnStandBy1WhenActiveDownStandby2ExceedsLag() {
+    // Given:
+    getActiveAndStandbyMetadata();
+    when(livenessFilter.filter(eq(ACTIVE_HOST)))
+        .thenReturn(Host.exclude(ACTIVE_HOST, "liveness"));
+
+    // When:
+    final List<KsqlPartitionLocation> result = locator.locate(
+        ImmutableList.of(KEY), routingOptions, routingFilterFactoryLag, false);
+
+    // Then:
+    List<KsqlNode> nodeList = result.get(0).getNodes().stream()
+        .filter(node -> node.getHost().isSelected())
+        .collect(Collectors.toList());
+    assertThat(nodeList.size(), is(1));
+    assertThat(nodeList, containsInAnyOrder(standByNode1));
+  }
+
+
+
+  @Ignore
+  @Test
+  //For issue #7174. Temporarily ignore this test. It will call getMetadataForAllPartitions().
+  //Formerly it called getMetadataForKeys().
   public void shouldGroupKeysByLocation() {
     // Given:
     getActiveStandbyMetadata(SOME_KEY, 0, ACTIVE_HOST_INFO, STANDBY_HOST_INFO1);
@@ -417,7 +535,7 @@ public class KsLocatorTest {
     // When:
     final List<KsqlPartitionLocation> result = locator.locate(
         ImmutableList.of(KEY, KEY1, KEY2, KEY3), routingOptions,
-        routingFilterFactoryStandby);
+        routingFilterFactoryStandby, false);
 
     // Then:
     assertThat(result.size(), is(3));
@@ -451,7 +569,47 @@ public class KsLocatorTest {
 
     // When:
     final List<KsqlPartitionLocation> result = locator.locate(
-        ImmutableList.of(), routingOptions, routingFilterFactoryStandby);
+        ImmutableList.of(), routingOptions, routingFilterFactoryStandby, false);
+
+    // Then:
+    assertThat(result.size(), is(3));
+    int partition = result.get(0).getPartition();
+    assertThat(partition, is(0));
+    List<KsqlNode> nodeList = result.get(0).getNodes();
+    assertThat(nodeList.size(), is(3));
+    assertThat(nodeList.get(0), is(activeNode));
+    assertThat(nodeList.get(1), is(standByNode1));
+    assertThat(nodeList.get(2), is(standByNode2));
+    partition = result.get(1).getPartition();
+    assertThat(partition, is(1));
+    nodeList = result.get(1).getNodes();
+    assertThat(nodeList.size(), is(3));
+    assertThat(nodeList.get(0), is(standByNode1));
+    assertThat(nodeList.get(1), is(activeNode));
+    assertThat(nodeList.get(2), is(standByNode2));
+    partition = result.get(2).getPartition();
+    assertThat(partition, is(2));
+    nodeList = result.get(2).getNodes();
+    assertThat(nodeList.size(), is(3));
+    assertThat(nodeList.get(0), is(standByNode2));
+    assertThat(nodeList.get(1), is(activeNode));
+    assertThat(nodeList.get(2), is(standByNode1));
+  }
+
+  @Test
+  public void shouldFindAllPartitionsWithKeysAndRangeScan() {
+    // Given:
+    when(topology.describe()).thenReturn(description);
+    when(description.subtopologies()).thenReturn(ImmutableSet.of(sub1));
+    when(sub1.nodes()).thenReturn(ImmutableSet.of(source, processor));
+    when(source.topicSet()).thenReturn(ImmutableSet.of(TOPIC_NAME));
+    when(processor.stores()).thenReturn(ImmutableSet.of(STORE_NAME));
+    when(kafkaStreams.streamsMetadataForStore(any()))
+      .thenReturn(ImmutableList.of(HOST1_STREAMS_MD1, HOST1_STREAMS_MD2, HOST1_STREAMS_MD3));
+
+    // When:
+    final List<KsqlPartitionLocation> result = locator.locate(
+      ImmutableList.of(KEY), routingOptions, routingFilterFactoryStandby, true);
 
     // Then:
     assertThat(result.size(), is(3));

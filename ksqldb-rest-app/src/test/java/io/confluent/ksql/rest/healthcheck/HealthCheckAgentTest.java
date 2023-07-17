@@ -15,9 +15,9 @@
 
 package io.confluent.ksql.rest.healthcheck;
 
+import static io.confluent.ksql.rest.healthcheck.HealthCheckAgent.COMMAND_RUNNER_CHECK_NAME;
 import static io.confluent.ksql.rest.healthcheck.HealthCheckAgent.KAFKA_CHECK_NAME;
 import static io.confluent.ksql.rest.healthcheck.HealthCheckAgent.METASTORE_CHECK_NAME;
-import static io.confluent.ksql.rest.healthcheck.HealthCheckAgent.COMMAND_RUNNER_CHECK_NAME;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.fail;
@@ -36,14 +36,15 @@ import io.confluent.ksql.exception.KsqlTopicAuthorizationException;
 import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.entity.HealthCheckResponse;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
-import io.confluent.ksql.rest.server.computation.CommandRunner;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
-import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.rest.server.computation.CommandRunner;
+import io.confluent.ksql.rest.server.state.ServerState.State;
 import io.confluent.ksql.services.SimpleKsqlClient;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlRequestConfig;
 import java.net.URI;
 import java.net.URL;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
 import org.apache.kafka.clients.admin.Admin;
@@ -76,9 +77,7 @@ public class HealthCheckAgentTest {
   @Mock
   private KsqlRestConfig restConfig;
   @Mock
-  private ServiceContext serviceContext;
-  @Mock
-  private Admin adminClient;
+  private Admin internalAdminClient;
   @Mock
   private CommandRunner commandRunner;
   @Mock
@@ -94,19 +93,18 @@ public class HealthCheckAgentTest {
         .thenReturn(ImmutableList.of(SERVER_ADDRESS));
     when(successfulResponse.isSuccessful()).thenReturn(true);
     when(unSuccessfulResponse.isSuccessful()).thenReturn(false);
-    when(serviceContext.getAdminClient()).thenReturn(adminClient);
 
     final DescribeTopicsResult topicsResult = mock(DescribeTopicsResult.class);
-    when(adminClient.describeTopics(any(), any())).thenReturn(topicsResult);
-    when(topicsResult.all()).thenReturn(KafkaFuture.completedFuture(Collections.emptyMap()));
+    givenDescribeTopicsReturns(topicsResult);
+    when(topicsResult.allTopicNames()).thenReturn(KafkaFuture.completedFuture(Collections.emptyMap()));
     when(commandRunner.checkCommandRunnerStatus()).thenReturn(CommandRunner.CommandRunnerStatus.RUNNING);
-
+    when(commandRunner.checkServerState()).thenReturn(State.READY);
     final KsqlConfig ksqlConfig = new KsqlConfig(ImmutableMap.of(
         KsqlConfig.KSQL_SERVICE_ID_CONFIG,
         "default_"
     ));
 
-    healthCheckAgent = new HealthCheckAgent(ksqlClient, restConfig, serviceContext, ksqlConfig, commandRunner);
+    healthCheckAgent = new HealthCheckAgent(ksqlClient, restConfig, ksqlConfig, commandRunner, internalAdminClient);
   }
 
   @Test
@@ -139,7 +137,7 @@ public class HealthCheckAgentTest {
   @Test
   public void shouldReturnUnhealthyIfKafkaCheckFails() {
     // Given:
-    doThrow(KafkaResponseGetFailedException.class).when(adminClient).describeTopics(any(), any());
+    givenDescribeTopicsThrows(KafkaResponseGetFailedException.class);
 
     // When:
     final HealthCheckResponse response = healthCheckAgent.checkHealth();
@@ -165,7 +163,7 @@ public class HealthCheckAgentTest {
   @Test
   public void shouldReturnHealthyIfKafkaCheckFailsWithAuthorizationException() {
     // Given:
-    doThrow(KsqlTopicAuthorizationException.class).when(adminClient).describeTopics(any(), any());
+    givenDescribeTopicsThrows(KsqlTopicAuthorizationException.class);
 
     // When:
     final HealthCheckResponse response = healthCheckAgent.checkHealth();
@@ -178,7 +176,7 @@ public class HealthCheckAgentTest {
   @Test
   public void shouldReturnHealthyIfKafkaCheckFailsWithUnknownTopicOrPartitionExceptionAsRootCause() {
     // Given:
-    when(adminClient.describeTopics(any(), any())).thenThrow(new RuntimeException(new UnknownTopicOrPartitionException()));
+    givenDescribeTopicsThrows(new RuntimeException(new UnknownTopicOrPartitionException()));
 
     // When:
     final HealthCheckResponse response = healthCheckAgent.checkHealth();
@@ -191,7 +189,7 @@ public class HealthCheckAgentTest {
   @Test
   public void shouldReturnHealthyIfKafkaCheckFailsWithUnknownTopicOrPartitionException() {
     // Given:
-    when(adminClient.describeTopics(any(), any())).thenThrow(new UnknownTopicOrPartitionException());
+    givenDescribeTopicsThrows(new UnknownTopicOrPartitionException());
 
     // When:
     final HealthCheckResponse response = healthCheckAgent.checkHealth();
@@ -199,5 +197,21 @@ public class HealthCheckAgentTest {
     // Then:
     assertThat(response.getDetails().get(KAFKA_CHECK_NAME).getIsHealthy(), is(true));
     assertThat(response.getIsHealthy(), is(true));
+  }
+
+  // isolate suppressed calls to their own methods
+  @SuppressWarnings("unchecked")
+  private void givenDescribeTopicsReturns(final DescribeTopicsResult topicsResult) {
+    when(internalAdminClient.describeTopics(any(Collection.class), any())).thenReturn(topicsResult);
+  }
+
+  @SuppressWarnings("unchecked")
+  private void givenDescribeTopicsThrows(final Class<? extends Throwable> clazz) {
+    doThrow(clazz).when(internalAdminClient).describeTopics(any(Collection.class), any());
+  }
+
+  @SuppressWarnings("unchecked")
+  private void givenDescribeTopicsThrows(final Throwable t) {
+    doThrow(t).when(internalAdminClient).describeTopics(any(Collection.class), any());
   }
 }

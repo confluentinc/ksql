@@ -15,27 +15,22 @@
 
 package io.confluent.ksql.function.udaf.count;
 
-import io.confluent.ksql.GenericKey;
-import io.confluent.ksql.execution.function.TableAggregationFunction;
-import io.confluent.ksql.function.BaseAggregateFunction;
-import io.confluent.ksql.function.ParameterInfo;
-import io.confluent.ksql.function.types.ParamTypes;
-import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import java.util.Collections;
-import java.util.function.Function;
-import org.apache.kafka.streams.kstream.Merger;
+import io.confluent.ksql.function.udaf.TableUdaf;
+import io.confluent.ksql.function.udaf.UdafDescription;
+import io.confluent.ksql.function.udaf.UdafFactory;
+import io.confluent.ksql.util.KsqlConstants;
 
-public class CountKudaf
-    extends BaseAggregateFunction<Object, Long, Long>
-    implements TableAggregationFunction<Object, Long, Long> {
+@UdafDescription(
+        name = "COUNT",
+        description = CountKudaf.DESCRIPTION,
+        author = KsqlConstants.CONFLUENT_AUTHOR
+)
+public class CountKudaf<T> implements TableUdaf<T, Long, Long> {
+  public static final String DESCRIPTION = "Counts records by key.";
 
-  CountKudaf(final String functionName, final int argIndexInValue) {
-    super(functionName,
-          argIndexInValue, () -> 0L,
-          SqlTypes.BIGINT, SqlTypes.BIGINT,
-          Collections.singletonList(new ParameterInfo("key", ParamTypes.LONG, "", false)),
-         "Counts records by key."
-    );
+  @UdafFactory(description = CountKudaf.DESCRIPTION)
+  public static <T> TableUdaf<T, Long, Long> createCount() {
+    return new CountKudaf<>();
   }
 
   @Override
@@ -47,22 +42,25 @@ public class CountKudaf
   }
 
   @Override
-  public Merger<GenericKey, Long> getMerger() {
-    return (aggKey, aggOne, aggTwo) -> aggOne + aggTwo;
+  public Long initialize() {
+    return 0L;
   }
 
   @Override
-  public Function<Long, Long> getResultMapper() {
-    return Function.identity();
+  public Long merge(final Long aggOne, final Long aggTwo) {
+    return aggOne + aggTwo;
   }
 
+  @Override
+  public Long map(final Long agg) {
+    return agg;
+  }
 
   @Override
-  public Long undo(final Object valueToUndo, final Long aggregateValue) {
+  public Long undo(final T valueToUndo, final Long aggregateValue) {
     if (valueToUndo == null) {
       return aggregateValue;
     }
     return aggregateValue - 1;
   }
-
 }

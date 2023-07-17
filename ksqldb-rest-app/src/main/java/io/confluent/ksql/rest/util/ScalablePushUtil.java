@@ -15,23 +15,29 @@
 
 package io.confluent.ksql.rest.util;
 
-import io.confluent.ksql.engine.KsqlEngine;
+import io.confluent.ksql.KsqlExecutionContext;
+import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
+import io.confluent.ksql.execution.expression.tree.Expression;
+import io.confluent.ksql.execution.util.ColumnExtractor;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.OutputRefinement;
 import io.confluent.ksql.parser.tree.AliasedRelation;
 import io.confluent.ksql.parser.tree.AstVisitor;
 import io.confluent.ksql.parser.tree.Query;
+import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.util.KsqlConfig;
+import java.util.Collection;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import org.apache.kafka.clients.consumer.ConsumerConfig;
 
 public final class ScalablePushUtil {
 
-  private static String STREAMS_AUTO_OFFSET_RESET_CONFIG = "auto.offset.reset";
   private static String LATEST_VALUE = "latest";
 
   private ScalablePushUtil() {
@@ -41,11 +47,11 @@ public final class ScalablePushUtil {
   @SuppressWarnings({"BooleanExpressionComplexity", "CyclomaticComplexity"})
   public static boolean isScalablePushQuery(
       final Statement statement,
-      final KsqlEngine ksqlEngine,
+      final KsqlExecutionContext ksqlEngine,
       final KsqlConfig ksqlConfig,
       final Map<String, Object> overrides
   ) {
-    if (!ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PUSH_SCALABLE_ENABLED)) {
+    if (!isPushV2Enabled(ksqlConfig, overrides)) {
       return false;
     }
     if (! (statement instanceof Query)) {
@@ -62,10 +68,7 @@ public final class ScalablePushUtil {
     final SourceName sourceName = sourceFinder.getSourceName().get();
     final Set<QueryId> upstreamQueries = ksqlEngine.getQueriesWithSink(sourceName);
     // See if the config or override have set the stream to be "latest"
-    final boolean isLatest = overrides.containsKey(STREAMS_AUTO_OFFSET_RESET_CONFIG)
-        ? LATEST_VALUE.equals(overrides.get(STREAMS_AUTO_OFFSET_RESET_CONFIG))
-        : LATEST_VALUE.equals(ksqlConfig.getKsqlStreamConfigProp(STREAMS_AUTO_OFFSET_RESET_CONFIG)
-            .orElse(null));
+    final boolean isLatest = isLatest(ksqlConfig, overrides);
     // Cannot be a pull query, i.e. must be a push
     return !query.isPullQuery()
         // Group by is not supported
@@ -82,7 +85,76 @@ public final class ScalablePushUtil {
         // Must be reading from "latest"
         && isLatest
         // We only handle a single sink source at the moment from a CTAS/CSAS
-        && upstreamQueries.size() == 1;
+        && upstreamQueries.size() == 1
+        // ROWPARTITION and ROWOFFSET are not currently supported in SPQs
+        && !containsDisallowedColumns(query);
+  }
+
+  private static boolean containsDisallowedColumns(final Query query) {
+    return containsDisallowedColumnsInWhereClause(query)
+        || containsDisallowedColumnsInSelectClause(query);
+  }
+
+  // this code is a duplicate of what's in PullQueryValidator, but this is intended as
+  // we'll split the isDisallowedInPullOrScalableQueries boolean soon anyways
+  private static boolean containsDisallowedColumnsInWhereClause(
+      final Query query
+  ) {
+
+    final Optional<Expression> whereClause = query.getWhere();
+    if (!whereClause.isPresent()) {
+      return false;
+    }
+
+    return ColumnExtractor.extractColumns(whereClause.get())
+        .stream()
+        .map(ColumnReferenceExp::getColumnName)
+        .anyMatch(SystemColumns::isDisallowedInPullOrScalablePushQueries);
+  }
+
+  private static boolean containsDisallowedColumnsInSelectClause(
+      final Query query
+  ) {
+    return query.getSelect().getSelectItems()
+        .stream()
+        .filter(col -> col instanceof SingleColumn) //filter out select *
+        .map(SingleColumn.class::cast)
+        .map(SingleColumn::getExpression)
+        .map(ColumnExtractor::extractColumns)
+        .flatMap(Collection::stream)
+        .map(ColumnReferenceExp::getColumnName)
+        .anyMatch(SystemColumns::isDisallowedInPullOrScalablePushQueries);
+  }
+
+  private static boolean isPushV2Enabled(
+      final KsqlConfig ksqlConfig,
+      final Map<String, Object> overrides
+  ) {
+    if (overrides.containsKey(KsqlConfig.KSQL_QUERY_PUSH_V2_ENABLED)) {
+      return Boolean.TRUE.equals(overrides.get(KsqlConfig.KSQL_QUERY_PUSH_V2_ENABLED));
+    } else {
+      return ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PUSH_V2_ENABLED);
+    }
+  }
+
+  private static boolean isLatest(
+      final KsqlConfig ksqlConfig,
+      final Map<String, Object> overrides
+  ) {
+    if (overrides.containsKey(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG)) {
+      return LATEST_VALUE.equals(overrides.get(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG));
+    } else if (overrides.containsKey(
+        KsqlConfig.KSQL_STREAMS_PREFIX + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG)) {
+      return LATEST_VALUE.equals(
+          overrides.get(KsqlConfig.KSQL_STREAMS_PREFIX + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG));
+    } else if (ksqlConfig.getKsqlStreamConfigProp(
+        ConsumerConfig.AUTO_OFFSET_RESET_CONFIG).isPresent()) {
+      return LATEST_VALUE.equals(
+          ksqlConfig.getKsqlStreamConfigProp(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG).orElse(null));
+    } else {
+      // Implicitly assume latest since this is the default for push queries in ksqlDB.
+      return true;
+    }
   }
 
   /**

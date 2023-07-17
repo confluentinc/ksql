@@ -15,12 +15,18 @@
 
 package io.confluent.ksql.schema.ksql.inference;
 
+import static io.confluent.ksql.properties.with.CommonCreateConfigs.KEY_SCHEMA_ID;
+import static io.confluent.ksql.serde.connect.ConnectFormat.VALUE_SCHEMA_ID;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.hasKey;
 import static org.hamcrest.Matchers.hasProperty;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -54,7 +60,9 @@ import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.DefaultKsqlParser;
 import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
+import io.confluent.ksql.properties.with.CommonCreateConfigs;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.inference.TopicSchemaSupplier.SchemaAndId;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.schema.registry.SchemaRegistryUtil;
 import io.confluent.ksql.serde.FormatFactory;
@@ -71,6 +79,7 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlSchemaRegistryNotConfiguredException;
 import io.confluent.ksql.util.KsqlStatementException;
+import io.confluent.ksql.util.Pair;
 import java.io.IOException;
 import java.util.Optional;
 import org.apache.avro.Schema;
@@ -174,7 +183,8 @@ public class SchemaRegisterInjectorTest {
         SCHEMA,
         Optional.empty(),
         false,
-        sourceTopic
+        sourceTopic,
+        false
     );
     metaStore.putSource(source, false);
   }
@@ -333,7 +343,8 @@ public class SchemaRegisterInjectorTest {
     // Then:
     assertThat(e.getMessage(), containsString(
         "Could not register schema for topic"));
-    assertThat(e.getCause(), (hasProperty("message", is("FUBAR"))));
+    assertThat(e.getCause(), (hasProperty("message",
+        is("Could not register schema for topic: FUBAR"))));
   }
 
   @Test
@@ -403,12 +414,253 @@ public class SchemaRegisterInjectorTest {
     verify(schemaRegistryClient).register("expectedName-value", PROTOBUF_SCHEMA);
   }
 
+  @Test
+  public void shouldThrowWrongValueFormatExceptionWithOverrideSchema() {
+    // Given:
+    final SchemaAndId schemaAndId = SchemaAndId.schemaAndId(SCHEMA.value(), AVRO_SCHEMA, 1);
+    givenStatement("CREATE STREAM source (id int key, f1 varchar) "
+        + "WITH ("
+        + "kafka_topic='expectedName', "
+        + "key_format='KAFKA', "
+        + "value_format='JSON', "
+        + "value_schema_id=1, "
+        + "partitions=1"
+        + ");", Pair.of(null, schemaAndId));
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlStatementException.class,
+        () -> injector.inject(statement)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "VALUE_SCHEMA_ID is provided but format JSON doesn't "
+            + "support registering in Schema Registry"));
+  }
+
+  @Test
+  public void shouldThrowWrongKeyFormatExceptionWithOverrideSchema() throws Exception {
+    // Given:
+    final SchemaAndId keySchemaAndId = SchemaAndId.schemaAndId(SCHEMA.value(), AVRO_SCHEMA, 1);
+    final SchemaAndId valueSchemaAndId = SchemaAndId.schemaAndId(SCHEMA.value(), AVRO_SCHEMA, 2);
+    givenStatement("CREATE STREAM source (id int key, f1 varchar) "
+        + "WITH ("
+        + "kafka_topic='expectedName', "
+        + "key_format='KAFKA', "
+        + "value_format='AVRO', "
+        + "key_schema_id=1, "
+        + "value_schema_id=1, "
+        + "partitions=1"
+        + ");", Pair.of(keySchemaAndId, valueSchemaAndId));
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlStatementException.class,
+        () -> injector.inject(statement)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "KEY_SCHEMA_ID is provided but format KAFKA doesn't "
+            + "support registering in Schema Registry"));
+    verify(schemaRegistryClient, never()).register(anyString(), any(ParsedSchema.class));
+  }
+
+  @Test
+  public void shouldThrowInconsistentKeySchemaTypeExceptionWithOverrideSchema() {
+    // Given:
+    final SchemaAndId schemaAndId = SchemaAndId.schemaAndId(SCHEMA.value(), AVRO_SCHEMA, 1);
+    givenStatement("CREATE STREAM source (id int key, f1 varchar) "
+        + "WITH ("
+        + "kafka_topic='expectedName', "
+        + "key_format='PROTOBUF', "
+        + "value_format='JSON', "
+        + "key_schema_id=1, "
+        + "partitions=1"
+        + ");", Pair.of(schemaAndId, null));
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlStatementException.class,
+        () -> injector.inject(statement)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Format and fetched schema type using "
+        + "KEY_SCHEMA_ID 1 are different. Format: [PROTOBUF], Fetched schema type: [AVRO]."));
+  }
+
+  @Test
+  public void shouldThrowInconsistentValueSchemaTypeExceptionWithOverrideSchema() {
+    // Given:
+    final SchemaAndId schemaAndId = SchemaAndId.schemaAndId(SCHEMA.value(), AVRO_SCHEMA, 1);
+    givenStatement("CREATE STREAM source (id int key, f1 varchar) "
+        + "WITH ("
+        + "kafka_topic='expectedName', "
+        + "key_format='PROTOBUF', "
+        + "value_format='PROTOBUF', "
+        + "value_schema_id=1, "
+        + "partitions=1"
+        + ");", Pair.of(null, schemaAndId));
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlStatementException.class,
+        () -> injector.inject(statement)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Format and fetched schema type using "
+        + "VALUE_SCHEMA_ID 1 are different. Format: [PROTOBUF], Fetched schema type: [AVRO]."));
+  }
+
+  @Test
+  public void shouldThrowInconsistentSchemaIdExceptionWithOverrideSchema()
+      throws IOException, RestClientException {
+    // Given:
+    when(schemaRegistryClient.register(anyString(), any(ParsedSchema.class))).thenReturn(2);
+    final SchemaAndId schemaAndId = SchemaAndId.schemaAndId(SCHEMA.value(), AVRO_SCHEMA, 1);
+    givenStatement("CREATE STREAM source (id int key, f1 varchar) "
+        + "WITH ("
+        + "kafka_topic='expectedName', "
+        + "key_format='PROTOBUF', "
+        + "value_format='AVRO', "
+        + "value_schema_id=1, "
+        + "partitions=1"
+        + ");", Pair.of(null, schemaAndId));
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlStatementException.class,
+        () -> injector.inject(statement)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Schema id registered is 2 which is "
+        + "different from provided VALUE_SCHEMA_ID 1."
+        + System.lineSeparator()
+        + "Topic: expectedName"
+        + System.lineSeparator()
+        + "Subject: expectedName-value"));
+  }
+
+  @Test
+  public void shouldRegisterKeyOverrideSchemaAvro()
+      throws IOException, RestClientException {
+    // Given:
+    when(schemaRegistryClient.register(anyString(), any(ParsedSchema.class))).thenReturn(1);
+    final SchemaAndId schemaAndId = SchemaAndId.schemaAndId(SCHEMA.value(), AVRO_SCHEMA, 1);
+    givenStatement("CREATE STREAM source (id int key, f1 varchar) "
+        + "WITH ("
+        + "kafka_topic='expectedName', "
+        + "key_format='AVRO', "
+        + "value_format='JSON', "
+        + "key_schema_id=1, "
+        + "partitions=1"
+        + ");", Pair.of(schemaAndId, null));
+
+    // When:
+    injector.inject(statement);
+
+    // Then:
+    verify(schemaRegistryClient).register("expectedName-key", AVRO_SCHEMA);
+  }
+
+  @Test
+  public void shouldRegisterKeyOverrideSchemaAvroForCreateAs()
+      throws IOException, RestClientException {
+    // Given:
+    when(schemaRegistryClient.register(anyString(), any(ParsedSchema.class))).thenReturn(1);
+    final SchemaAndId keySchemaAndId = SchemaAndId.schemaAndId(SCHEMA.value(), AVRO_SCHEMA, 1);
+    final SchemaAndId valueSchemaAndId = SchemaAndId.schemaAndId(SCHEMA.value(), AVRO_SCHEMA, 1);
+    givenStatement("CREATE STREAM sink WITH (key_schema_id=1, value_schema_id=1, partitions=1"
+        + ") AS SELECT * FROM SOURCE;", Pair.of(keySchemaAndId, valueSchemaAndId));
+
+    // When:
+    injector.inject(statement);
+
+    // Then:
+    verify(schemaRegistryClient).register("SINK-key", AVRO_SCHEMA);
+    verify(schemaRegistryClient).register("SINK-value", AVRO_SCHEMA);
+  }
+
+  @Test
+  public void shouldRegisterValueOverrideSchemaProtobuf()
+      throws IOException, RestClientException {
+    // Given:
+    when(schemaRegistryClient.register(anyString(), any(ParsedSchema.class))).thenReturn(1);
+    final SchemaAndId schemaAndId = SchemaAndId.schemaAndId(SCHEMA.value(), PROTOBUF_SCHEMA, 1);
+    givenStatement("CREATE STREAM source (id int key, f1 varchar) "
+        + "WITH ("
+        + "kafka_topic='expectedName', "
+        + "key_format='JSON', "
+        + "value_format='PROTOBUF', "
+        + "value_schema_id=1, "
+        + "partitions=1"
+        + ");", Pair.of(null, schemaAndId));
+
+    // When:
+    injector.inject(statement);
+
+    // Then:
+    verify(schemaRegistryClient).register("expectedName-value", PROTOBUF_SCHEMA);
+  }
+
+  @Test
+  public void shouldRegisterKeyValueOverrideSchema()
+      throws IOException, RestClientException {
+    // Given:
+    when(schemaRegistryClient.register(anyString(), any(AvroSchema.class))).thenReturn(1);
+    when(schemaRegistryClient.register(anyString(), any(ProtobufSchema.class))).thenReturn(2);
+    final SchemaAndId keySchemaAndId = SchemaAndId.schemaAndId(SCHEMA.value(), AVRO_UNWRAPPED_KEY_SCHEMA, 1);
+    final SchemaAndId ValueSchemaAndId = SchemaAndId.schemaAndId(SCHEMA.value(), PROTOBUF_SCHEMA, 2);
+    givenStatement("CREATE STREAM source (id int key, f1 varchar) "
+        + "WITH ("
+        + "kafka_topic='expectedName', "
+        + "key_format='AVRO', "
+        + "value_format='PROTOBUF', "
+        + "value_schema_id=2, "
+        + "key_schema_id=1, "
+        + "partitions=1"
+        + ");", Pair.of(keySchemaAndId, ValueSchemaAndId));
+
+    // When:
+    ConfiguredStatement<?> newStatement = injector.inject(statement);
+
+    // Then:
+    verify(schemaRegistryClient).register("expectedName-key", AVRO_UNWRAPPED_KEY_SCHEMA);
+    verify(schemaRegistryClient).register("expectedName-value", PROTOBUF_SCHEMA);
+    assertTrue(statement.getSessionConfig().getOverrides().containsKey(KEY_SCHEMA_ID));
+    assertTrue(statement.getSessionConfig().getOverrides().containsKey(VALUE_SCHEMA_ID));
+    assertFalse(newStatement.getSessionConfig().getOverrides().containsKey(KEY_SCHEMA_ID));
+    assertFalse(newStatement.getSessionConfig().getOverrides().containsKey(VALUE_SCHEMA_ID));
+    assertThat(newStatement.getSessionConfig().getOverrides(), hasKey("Dummy key"));
+  }
+
   private void givenStatement(final String sql) {
+    givenStatement(sql, Pair.of(null, null));
+  }
+
+  private void givenStatement(
+      final String sql,
+      final Pair<SchemaAndId, SchemaAndId> rawSchemaAndId
+  ) {
     final PreparedStatement<?> preparedStatement =
         parser.prepare(parser.parse(sql).get(0), metaStore);
+
+    final ImmutableMap.Builder<String, Object> builder = ImmutableMap.builder();
+    if (rawSchemaAndId.left != null) {
+      builder.put(KEY_SCHEMA_ID, rawSchemaAndId.left);
+    }
+    if (rawSchemaAndId.right != null) {
+      builder.put(CommonCreateConfigs.VALUE_SCHEMA_ID, rawSchemaAndId.right);
+    }
+    builder.put("Dummy key", 1);
+
     statement = ConfiguredStatement.of(
         preparedStatement,
-        SessionConfig.of(config, ImmutableMap.of())
+        SessionConfig.of(config, builder.build())
     );
     when(executionSandbox.plan(any(), eq(statement)))
         .thenReturn(ksqlPlan);

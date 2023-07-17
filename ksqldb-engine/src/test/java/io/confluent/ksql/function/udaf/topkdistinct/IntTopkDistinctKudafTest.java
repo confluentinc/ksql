@@ -20,7 +20,7 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.google.common.collect.ImmutableList;
-import io.confluent.ksql.function.types.ParamTypes;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -61,7 +61,7 @@ public class IntTopkDistinctKudafTest {
     final List<Integer> array1 = ImmutableList.of(50, 45, 25);
     final List<Integer> array2 = ImmutableList.of(60, 50, 48);
 
-    assertThat("Invalid results.", intTopkDistinctKudaf.getMerger().apply(null, array1, array2),
+    assertThat("Invalid results.", intTopkDistinctKudaf.merge(array1, array2),
         equalTo(ImmutableList.of(60, 50, 48)));
   }
 
@@ -70,7 +70,7 @@ public class IntTopkDistinctKudafTest {
     final List<Integer> array1 = ImmutableList.of(50, 45);
     final List<Integer> array2 = ImmutableList.of(60);
 
-    assertThat("Invalid results.", intTopkDistinctKudaf.getMerger().apply(null, array1, array2),
+    assertThat("Invalid results.", intTopkDistinctKudaf.merge(array1, array2),
         equalTo(ImmutableList.of(60, 50, 45)));
   }
 
@@ -79,7 +79,7 @@ public class IntTopkDistinctKudafTest {
     final List<Integer> array1 = ImmutableList.of(50, 45);
     final List<Integer> array2 = ImmutableList.of(60, 50);
 
-    assertThat("Invalid results.", intTopkDistinctKudaf.getMerger().apply(null, array1, array2),
+    assertThat("Invalid results.", intTopkDistinctKudaf.merge(array1, array2),
         equalTo(ImmutableList.of(60, 50, 45)));
   }
 
@@ -88,7 +88,7 @@ public class IntTopkDistinctKudafTest {
     final List<Integer> array1 = ImmutableList.of(60);
     final List<Integer> array2 = ImmutableList.of(60);
 
-    assertThat("Invalid results.", intTopkDistinctKudaf.getMerger().apply(null, array1, array2),
+    assertThat("Invalid results.", intTopkDistinctKudaf.merge(array1, array2),
         equalTo(
                 new ArrayList<>(ImmutableList.of(60))));
   }
@@ -120,25 +120,19 @@ public class IntTopkDistinctKudafTest {
           }
           return aggregate;
         })
-        .reduce((agg1, agg2) -> intTopkDistinctKudaf.getMerger().apply(null, agg1, agg2))
+        .reduce(intTopkDistinctKudaf::merge)
         .orElse(new ArrayList<>());
 
     // Then:
     assertThat(result, is(ImmutableList.of(83, 82, 81, 80, 73, 72, 71, 70, 63, 62, 61, 60)));
   }
 
-  @SuppressWarnings("unchecked")
   //@Test
   public void testAggregatePerformance() {
     final int iterations = 1_000_000_000;
     final int topX = 10;
     final TopkDistinctKudaf<Integer> intTopkDistinctKudaf =
-        new TopkDistinctKudaf("TopkDistinctKudaf",
-                              0,
-                              topX,
-                              SqlTypes.INTEGER,
-                              ParamTypes.INTEGER,
-                              Integer.class);
+            TopKDistinctTestUtils.getTopKDistinctKudaf(topX, SqlTypes.INTEGER);
     final List<Integer> aggregate = new ArrayList<>();
     final long start = System.currentTimeMillis();
 
@@ -150,6 +144,10 @@ public class IntTopkDistinctKudafTest {
     System.out.println(took + "ms, " + ((double)took)/iterations);
   }
 
+  @SuppressFBWarnings(
+          value = "RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT",
+          justification = "Testing performance so merge result not needed"
+  )
   //@Test
   public void testMergePerformance() {
     final int iterations = 1_000_000_000;
@@ -166,7 +164,7 @@ public class IntTopkDistinctKudafTest {
     final long start = System.currentTimeMillis();
 
     for(int i = 0; i != iterations; ++i) {
-      intTopkDistinctKudaf.getMerger().apply(null, aggregate1, aggregate2);
+      intTopkDistinctKudaf.merge(aggregate1, aggregate2);
     }
 
     final long took = System.currentTimeMillis() - start;

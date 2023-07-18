@@ -60,7 +60,7 @@ public final class MaximumLagFilter implements RoutingFilter {
 
     final Optional<LagInfoEntity> lagInfoEntity = lagByHost.get(hostInfo);
 
-    if (!lagInfoEntity.isPresent()) {
+    if (lagInfoEntity == null || !lagInfoEntity.isPresent()) {
       // If we don't have lag info, we'll be conservative and not include the host.  We have a
       // dual purpose, in both having HA and also having lag guarantees.  This ensures that we are
       // honoring the lag guarantees, and we'll try to minimize the window where lag isn't

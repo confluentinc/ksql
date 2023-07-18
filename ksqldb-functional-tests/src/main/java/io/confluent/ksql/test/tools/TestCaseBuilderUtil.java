@@ -45,6 +45,7 @@ import io.confluent.ksql.serde.SerdeFeature;
 import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.SerdeFeaturesFactory;
 import io.confluent.ksql.statement.ConfiguredStatement;
+import io.confluent.ksql.statement.SourcePropertyInjector;
 import io.confluent.ksql.util.KsqlConfig;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -133,11 +134,25 @@ public final class TestCaseBuilderUtil {
                   .filter(Optional::isPresent)
                   .orElse(topicFromStatement.getValueSchema());
           topic = new Topic(topic.getName(), topic.getNumPartitions(), topic.getReplicas(),
-                  keySchema, valueSchema);
+                  keySchema, valueSchema, topic.getKeyFeatures(), topic.getValueFeatures());
 
           return topic;
         });
-        allTopics.putIfAbsent(topicFromStatement.getName(), topicFromStatement);
+        if (allTopics.containsKey(topicFromStatement.getName())) {
+          // If the topic already exists, just add the key/value serde features
+          final Topic existingTopic = allTopics.get(topicFromStatement.getName());
+          allTopics.put(topicFromStatement.getName(), new Topic(
+              existingTopic.getName(),
+              existingTopic.getNumPartitions(),
+              existingTopic.getReplicas(),
+              existingTopic.getKeySchema(),
+              existingTopic.getValueSchema(),
+              topicFromStatement.getKeyFeatures(),
+              topicFromStatement.getValueFeatures()
+          ));
+        } else {
+          allTopics.put(topicFromStatement.getName(), topicFromStatement);
+        }
       }
     }
 
@@ -190,7 +205,8 @@ public final class TestCaseBuilderUtil {
       final short rf = props.getReplicas()
           .orElse(Topic.DEFAULT_RF);
 
-      return new Topic(props.getKafkaTopic(), partitions, rf, keySchema, valueSchema);
+      return new Topic(props.getKafkaTopic(), partitions, rf, keySchema, valueSchema,
+          keySerdeFeats, valSerdeFeats);
     };
 
     try {
@@ -212,7 +228,9 @@ public final class TestCaseBuilderUtil {
           final ConfiguredStatement<?> configured =
               ConfiguredStatement.of(prepare, SessionConfig.of(ksqlConfig, Collections.emptyMap()));
           final ConfiguredStatement<?> withFormats = new DefaultFormatInjector().inject(configured);
-          topics.add(extractTopic.apply(withFormats));
+          final ConfiguredStatement<?> withSourceProps =
+              new SourcePropertyInjector().inject(withFormats);
+          topics.add(extractTopic.apply(withSourceProps));
         }
       }
 

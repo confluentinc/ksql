@@ -6,11 +6,7 @@ description: Syntax for the SELECT statement in ksqlDB for push queries
 keywords: ksqlDB, select, push query
 ---
 
-SELECT (Push Query)
-===================
-
-Synopsis
---------
+## Synopsis
 
 ```sql
 SELECT select_expr [, ...]
@@ -24,8 +20,7 @@ SELECT select_expr [, ...]
   [ LIMIT count ];
 ```
 
-Description
------------
+## Description
 
 Push a continuous stream of updates to the ksqlDB stream or table. The result of
 this statement isn't persisted in a Kafka topic and is printed out only in
@@ -60,10 +55,23 @@ including the `ROWTIME` pseudo column. `where_condition` is an expression that e
 for each record selected.
 
 In the WHERE expression, you can use any operator that ksqlDB supports.
-See [Operators in ksqlDB](../../developer-guide/ksqldb-reference/operators.md)
+For more information, see
+[Operators in ksqlDB](/developer-guide/ksqldb-reference/operators/#operators).
 
-Example
--------
+### EMIT
+
+The EMIT clause lets you control the output refinement of your push query. The output refinement is
+how you would like to *emit* your results. 
+
+ksqlDB supports the following output refinement types.
+
+### CHANGES
+
+This is the standard output refinement for push queries, for when we would like to see all changes 
+happening.
+
+
+## Examples
 
 The following statement shows how to select all records from a `pageviews`
 stream that have timestamps between two values.
@@ -113,11 +121,21 @@ back all results to the console.
       query the stream from the beginning. You must run this configuration
       before running the query:
 
+      ```sql
+      SET 'auto.offset.reset' = 'earliest';
+      ```
+
+### STRUCT output
+
+You can output a [struct](/reference/sql/data-types#struct) from a query
+by using a SELECT statement. The following example creates a struct from a
+stream named `s1`.
+
 ```sql
-SET 'auto.offset.reset' = 'earliest';
+SELECT STRUCT(f1 := v1, f2 := v2) FROM s1 EMIT CHANGES;
 ```
 
-#### WINDOW
+### WINDOW
 
 !!! note
     You can use the WINDOW clause only if the `from_item` is a stream.
@@ -125,7 +143,7 @@ SET 'auto.offset.reset' = 'earliest';
 The WINDOW clause lets you control how to group input records *that have
 the same key* into so-called *windows* for operations like aggregations
 or joins. Windows are tracked per record key. For more information, see 
-[Time and Windows in ksqlDB](../../concepts/time-and-windows-in-ksqldb-queries.md).
+[Time and Windows in ksqlDB](/concepts/time-and-windows-in-ksqldb-queries).
 
 Windowing adds two additional system columns to the data, which provide
 the window bounds: `WINDOWSTART` and `WINDOWEND`.
@@ -227,16 +245,3 @@ SELECT orderzip_code, TOPK(order_total, 5) FROM orders
   GROUP BY order_zipcode
   EMIT CHANGES;
 ```
-
-#### EMIT
-
-The EMIT clause lets you control the output refinement of your push query. The output refinement is
-how you would like to *emit* your results. 
-
-ksqlDB supports the following output refinement types.
-
-#### CHANGES
-
-This is the standard output refinement for push queries, for when we would like to see all changes 
-happening.
-

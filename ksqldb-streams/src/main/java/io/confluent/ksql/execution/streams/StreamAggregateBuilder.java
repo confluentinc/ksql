@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Confluent Inc.
+ * Copyright 2021 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -53,6 +53,8 @@ import org.apache.kafka.streams.kstream.Window;
 import org.apache.kafka.streams.kstream.Windowed;
 import org.apache.kafka.streams.state.KeyValueStore;
 
+// Can be fixed after GRACE is mandatory
+@SuppressWarnings("deprecation")
 public final class StreamAggregateBuilder {
   private StreamAggregateBuilder() {
   }
@@ -258,6 +260,7 @@ public final class StreamAggregateBuilder {
     }
 
     @Override
+    @SuppressWarnings("deprecation")  // can be fixed after GRACE clause is made mandatory
     public KTable<Windowed<GenericKey>, GenericRow>  visitHoppingWindowExpression(
         final HoppingWindowExpression window,
         final Void ctx) {
@@ -281,6 +284,7 @@ public final class StreamAggregateBuilder {
     }
 
     @Override
+    @SuppressWarnings("deprecation")  // can be fixed after GRACE clause is made mandatory
     public KTable<Windowed<GenericKey>, GenericRow>  visitSessionWindowExpression(
         final SessionWindowExpression window,
         final Void ctx) {
@@ -303,6 +307,7 @@ public final class StreamAggregateBuilder {
     }
 
     @Override
+    @SuppressWarnings("deprecation")  // can be fixed after GRACE clause is made mandatory
     public KTable<Windowed<GenericKey>, GenericRow> visitTumblingWindowExpression(
         final TumblingWindowExpression window,
         final Void ctx) {

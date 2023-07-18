@@ -421,6 +421,19 @@
       ]
     },
     {
+      "name": "Should not allow foreign key join on windowed tables",
+      "statements": [
+        "CREATE TABLE left_table (k STRING PRIMARY KEY, f1 STRING) WITH (kafka_topic='left_topic', value_format='JSON', WINDOW_TYPE='Tumbling', WINDOW_SIZE='1 SECOND');",
+        "CREATE TABLE right_table (k STRING PRIMARY KEY, id INT) WITH (kafka_topic='right_topic', value_format='JSON', WINDOW_TYPE='Tumbling', WINDOW_SIZE='1 SECOND');",
+        "SELECT * FROM left_table JOIN right_table ON left_table.f1 = right_table.k EMIT CHANGES;"
+      ],
+      "expectedError": {
+        "type": "io.confluent.ksql.rest.entity.KsqlErrorMessage",
+        "message": "Foreign-key table-table joins are not supported on windowed tables.",
+        "status": 400
+      }
+    },
+    {
       "name": "windowed group by - window bounds in SELECT",
       "statements": [
         "CREATE STREAM TEST (K INT KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
@@ -919,6 +932,66 @@
           {"finalMessage":"Limit Reached"}
         ]}
       ]
+    },
+    {
+      "name": "NULL Arithmetic Behavior - INTEGER addition",
+      "statements": [
+        "CREATE STREAM INPUT (ID INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "SELECT 1 + NULL FROM INPUT EMIT CHANGES;"
+      ],
+      "expectedError": {
+        "type": "io.confluent.ksql.rest.entity.KsqlErrorMessage",
+        "message": "Error processing expression: (1 + null). Arithmetic on types INTEGER and null are not supported.",
+        "status": 400
+      }
+    },
+    {
+      "name": "NULL Arithmetic Behavior - MAP addition",
+      "statements": [
+        "CREATE STREAM INPUT (ID INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "SELECT MAP(1 := 'cat') + NULL FROM INPUT EMIT CHANGES;"
+      ],
+      "expectedError": {
+        "type": "io.confluent.ksql.rest.entity.KsqlErrorMessage",
+        "message": "Error processing expression: (MAP(1:='cat') + null). Arithmetic on types MAP<INTEGER, STRING> and null are not supported.",
+        "status": 400
+      }
+    },
+    {
+      "name": "NULL Arithmetic Behavior - ARRAY addition",
+      "statements": [
+        "CREATE STREAM INPUT (ID INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "SELECT Array[1,2,3] + NULL FROM INPUT EMIT CHANGES;"
+      ],
+      "expectedError": {
+        "type": "io.confluent.ksql.rest.entity.KsqlErrorMessage",
+        "message": "Error processing expression: (ARRAY[1, 2, 3] + null). Arithmetic on types ARRAY<INTEGER> and null are not supported.",
+        "status": 400
+      }
+    },
+    {
+      "name": "NULL Arithmetic Behavior - DECIMAL division",
+      "statements": [
+        "CREATE STREAM INPUT (ID INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "SELECT 5.0 / NULL FROM INPUT EMIT CHANGES;"
+      ],
+      "expectedError": {
+        "type": "io.confluent.ksql.rest.entity.KsqlErrorMessage",
+        "message": "Error processing expression: (5.0 / null). Arithmetic on types DECIMAL(2, 1) and null are not supported.",
+        "status": 400
+      }
+    },
+    {
+      "name": "NULL Arithmetic Behavior - NULL NULL multiplication",
+      "statements": [
+        "CREATE STREAM INPUT (ID INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "SELECT NULL * NULL FROM INPUT EMIT CHANGES;"
+      ],
+      "expectedError": {
+        "type": "io.confluent.ksql.rest.entity.KsqlErrorMessage",
+        "message": "Error processing expression: (null * null). Arithmetic on types null and null are not supported.",
+        "status": 400
+      }
     }
   ]
 }

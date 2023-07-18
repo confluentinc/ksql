@@ -113,7 +113,7 @@ demo.
 ## Processing Log Security
 
 By default, the record-processing log doesn't log any actual row data.
-To help you debug, you can enable including row data in log messages by
+To help you debug, you can enable including row data in log records by
 setting the ksqlDB property `ksql.logging.processing.rows.include` to
 `true`.
 
@@ -192,7 +192,7 @@ message.deserializationError.topic (STRING)
 
 message.recordProcessingError (STRUCT)
 
-:   The contents of a message with type 1 (RECORD_PROCESSING_ERROR).
+:   The contents of a record with type 1 (RECORD_PROCESSING_ERROR).
     Logged when ksqlDB hits an error when processing a record, for
     example, an unexpected null value when evaluating an operator in a
     SELECT clause.

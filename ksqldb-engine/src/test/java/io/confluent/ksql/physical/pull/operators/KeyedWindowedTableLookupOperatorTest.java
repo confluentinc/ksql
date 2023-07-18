@@ -32,7 +32,7 @@ import io.confluent.ksql.execution.streams.materialization.WindowedRow;
 import io.confluent.ksql.execution.streams.materialization.ks.KsLocator;
 import io.confluent.ksql.planner.plan.DataSourceNode;
 import io.confluent.ksql.planner.plan.KeyConstraint.KeyConstraintKey;
-import io.confluent.ksql.planner.plan.PullFilterNode.WindowBounds;
+import io.confluent.ksql.planner.plan.QueryFilterNode.WindowBounds;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -144,6 +144,7 @@ public class KeyedWindowedTableLookupOperatorTest {
     assertThat(lookupOperator.next(), is(WINDOWED_ROW2));
     assertThat(lookupOperator.next(), is(WINDOWED_ROW4));
     assertThat(lookupOperator.next(), is(nullValue()));
+    assertThat(lookupOperator.getReturnedRowCount(), is(5L));
   }
 
   @Test
@@ -178,6 +179,7 @@ public class KeyedWindowedTableLookupOperatorTest {
     assertThat(lookupOperator.next(), is(WINDOWED_ROW2));
     assertThat(lookupOperator.next(), is(WINDOWED_ROW4));
     assertThat(lookupOperator.next(), is(nullValue()));
+    assertThat(lookupOperator.getReturnedRowCount(), is(5L));
   }
 
   @Test
@@ -226,5 +228,6 @@ public class KeyedWindowedTableLookupOperatorTest {
     assertThat(lookupOperator.next(), is(WINDOWED_ROW2));
     assertThat(lookupOperator.next(), is(WINDOWED_ROW4));
     assertThat(lookupOperator.next(), is(nullValue()));
+    assertThat(lookupOperator.getReturnedRowCount(), is(5L));
   }
 }

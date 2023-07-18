@@ -17,12 +17,15 @@ package io.confluent.ksql.engine;
 
 import static java.util.Objects.requireNonNull;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.exception.KafkaResponseGetFailedException;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.util.KsqlConfig;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.apache.kafka.streams.StreamsConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -31,9 +34,13 @@ public class OrphanedTransientQueryCleaner {
   private static final Logger LOG = LoggerFactory.getLogger(OrphanedTransientQueryCleaner.class);
 
   private final QueryCleanupService cleanupService;
+  private final KsqlConfig ksqlConfig;
 
-  public OrphanedTransientQueryCleaner(final QueryCleanupService cleanupService) {
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP")
+  public OrphanedTransientQueryCleaner(final QueryCleanupService cleanupService,
+                                       final KsqlConfig ksqlConfig) {
     this.cleanupService = requireNonNull(cleanupService);
+    this.ksqlConfig = ksqlConfig;
   }
 
   /**
@@ -65,7 +72,12 @@ public class OrphanedTransientQueryCleaner {
           new QueryCleanupService.QueryCleanupTask(
               serviceContext,
               queryApplicationId,
-              true
+              true,
+              ksqlConfig.getKsqlStreamConfigProps()
+                  .getOrDefault(
+                      StreamsConfig.STATE_DIR_CONFIG,
+                      StreamsConfig.configDef().defaultValues().get(StreamsConfig.STATE_DIR_CONFIG))
+                  .toString()
           ));
     }
   }

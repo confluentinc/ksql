@@ -22,10 +22,10 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.util.TransientQueryMetadata.ResultType;
+import io.confluent.ksql.util.PushQueryMetadata.ResultType;
+import io.confluent.ksql.util.QueryMetadata.Listener;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.Consumer;
 import org.apache.kafka.streams.Topology;
 import org.junit.Before;
 import org.junit.Test;
@@ -36,9 +36,9 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class SandboxedTransientQueryMetadataTest {
   private static final String STATEMENT = "stmt";
-  private static final Map<String, Object> PROPERTIES = ImmutableMap.of("foo", "bar");
-  private static final Map<String, Object> OVERRIDES = ImmutableMap.of("biz", "baz");
-  private static final Set<SourceName> SOURCE_NAMES = ImmutableSet.of(SourceName.of("one"));
+  private static final ImmutableMap<String, Object> PROPERTIES = ImmutableMap.of("foo", "bar");
+  private static final ImmutableMap<String, Object> OVERRIDES = ImmutableMap.of("biz", "baz");
+  private static final ImmutableSet<SourceName> SOURCE_NAMES = ImmutableSet.of(SourceName.of("one"));
   private static final String PLAN = "plan";
   private static final String APP_ID = "appid";
   private static final ResultType RESULT_TYPE = ResultType.TABLE;
@@ -46,11 +46,11 @@ public class SandboxedTransientQueryMetadataTest {
   @Mock
   private TransientQueryMetadata original;
   @Mock
-  private Consumer<QueryMetadata> closeCallback;
-  @Mock
   private LogicalSchema schema;
   @Mock
   private Topology topology;
+  @Mock
+  private Listener listener;
 
   SandboxedTransientQueryMetadata sandboxed;
 
@@ -62,10 +62,9 @@ public class SandboxedTransientQueryMetadataTest {
     when(original.getSourceNames()).thenReturn(SOURCE_NAMES);
     when(original.getExecutionPlan()).thenReturn(PLAN);
     when(original.getQueryApplicationId()).thenReturn(APP_ID);
-    when(original.getResultType()).thenReturn(RESULT_TYPE);
     when(original.getLogicalSchema()).thenReturn(schema);
     when(original.getTopology()).thenReturn(topology);
-    sandboxed = SandboxedTransientQueryMetadata.of(original, closeCallback);
+    sandboxed = SandboxedTransientQueryMetadata.of(original, listener);
   }
 
   @Test(expected = IllegalStateException.class)
@@ -78,17 +77,12 @@ public class SandboxedTransientQueryMetadataTest {
     sandboxed.start();
   }
 
-  @Test(expected = IllegalStateException.class)
-  public void shouldThrowIfStopped() {
-    sandboxed.stop();
-  }
-
   @Test
   public void shouldCallbackOnClose() {
     // when:
     sandboxed.close();
 
     // then:
-    verify(closeCallback).accept(sandboxed);
+    verify(listener).onClose(sandboxed);
   }
 }

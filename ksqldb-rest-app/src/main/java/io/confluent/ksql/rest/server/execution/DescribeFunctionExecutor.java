@@ -45,7 +45,9 @@ public final class DescribeFunctionExecutor {
   private static final SqlSchemaFormatter FORMATTER =
       new SqlSchemaFormatter(IdentifierUtil::needsQuotes);
 
-  private DescribeFunctionExecutor() { }
+  private DescribeFunctionExecutor() {
+
+  }
 
   public static Optional<KsqlEntity> execute(
       final ConfiguredStatement<DescribeFunction> statement,

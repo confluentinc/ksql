@@ -240,6 +240,20 @@ public class VariableSubstitutorTest {
     assertThrowOnInvalidVariables(statements, variablesMap);
   }
 
+  @Test
+  public void shouldSubstituteVariablesInString() {
+    // Given
+    final Map<String, String> variablesMap = new ImmutableMap.Builder<String, String>() {{
+      put("event", "birthday");
+    }}.build();
+
+    // When
+    final String substituted = VariableSubstitutor.substitute("Happy ${event} to you!", variablesMap);
+
+    // Then
+    assertThat(substituted, equalTo("Happy birthday to you!"));
+  }
+
   private void assertReplacedStatements(
       final List<Pair<String, String>> statements,
       final Map<String, String> variablesMap

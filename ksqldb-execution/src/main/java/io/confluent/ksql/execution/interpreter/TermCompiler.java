@@ -23,18 +23,21 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Streams;
 import com.google.errorprone.annotations.Immutable;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.execution.codegen.helpers.ArrayAccess;
 import io.confluent.ksql.execution.codegen.helpers.InListEvaluator;
 import io.confluent.ksql.execution.expression.tree.ArithmeticBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.ArithmeticUnaryExpression;
 import io.confluent.ksql.execution.expression.tree.BetweenPredicate;
 import io.confluent.ksql.execution.expression.tree.BooleanLiteral;
+import io.confluent.ksql.execution.expression.tree.BytesLiteral;
 import io.confluent.ksql.execution.expression.tree.Cast;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.CreateArrayExpression;
 import io.confluent.ksql.execution.expression.tree.CreateMapExpression;
 import io.confluent.ksql.execution.expression.tree.CreateStructExpression;
 import io.confluent.ksql.execution.expression.tree.CreateStructExpression.Field;
+import io.confluent.ksql.execution.expression.tree.DateLiteral;
 import io.confluent.ksql.execution.expression.tree.DecimalLiteral;
 import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
 import io.confluent.ksql.execution.expression.tree.DoubleLiteral;
@@ -124,6 +127,7 @@ public class TermCompiler implements ExpressionVisitor<Term, Context> {
   private final KsqlConfig ksqlConfig;
   private final ExpressionTypeManager expressionTypeManager;
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
   public TermCompiler(
       final FunctionRegistry functionRegistry,
       final LogicalSchema schema,
@@ -218,10 +222,18 @@ public class TermCompiler implements ExpressionVisitor<Term, Context> {
 
   @Override
   public Term visitTimeLiteral(
-      final TimeLiteral timeLiteral,
+      final TimeLiteral node,
       final Context context
   ) {
-    return visitUnsupported(timeLiteral);
+    return LiteralTerms.of(node.getValue());
+  }
+
+  @Override
+  public Term visitDateLiteral(
+      final DateLiteral node,
+      final Context context
+  ) {
+    return LiteralTerms.of(node.getValue());
   }
 
   @Override
@@ -294,7 +306,7 @@ public class TermCompiler implements ExpressionVisitor<Term, Context> {
 
   @Override
   public Term visitIntervalUnit(final IntervalUnit exp, final Context context) {
-    return visitUnsupported(exp);
+    return LiteralTerms.of(exp.getUnit());
   }
 
   @Override
@@ -344,6 +356,14 @@ public class TermCompiler implements ExpressionVisitor<Term, Context> {
   @Override
   public Term visitIntegerLiteral(
       final IntegerLiteral node,
+      final Context context
+  ) {
+    return LiteralTerms.of(node.getValue());
+  }
+
+  @Override
+  public Term visitBytesLiteral(
+      final BytesLiteral node,
       final Context context
   ) {
     return LiteralTerms.of(node.getValue());

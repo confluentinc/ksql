@@ -1,0 +1,7 @@
+
+ Property | Scope | Default override | Effective Value 
+-------------------------------------------------------
+ k1       | KSQL  | SERVER           | 1               
+ k2       | KSQL  | SERVER           | v2              
+ k3       | KSQL  | SERVER           | true            
+-------------------------------------------------------

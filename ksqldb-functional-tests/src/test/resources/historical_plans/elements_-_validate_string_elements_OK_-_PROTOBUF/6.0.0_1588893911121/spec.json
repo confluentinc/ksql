@@ -81,7 +81,8 @@
           "valueFormat" : {
             "format" : "PROTOBUF"
           },
-          "partitions" : 4
+          "partitions" : 4,
+          "valueSchema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  string V0 = 1;\n}\n"
         }, {
           "name" : "OUTPUT",
           "keyFormat" : {
@@ -90,7 +91,8 @@
           "valueFormat" : {
             "format" : "PROTOBUF"
           },
-          "partitions" : 4
+          "partitions" : 4,
+          "valueSchema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  string V0 = 1;\n}\n"
         } ]
       }
     }

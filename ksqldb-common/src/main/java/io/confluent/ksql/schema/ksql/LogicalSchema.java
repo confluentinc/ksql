@@ -25,6 +25,7 @@ import static io.confluent.ksql.schema.ksql.SystemColumns.WINDOWSTART_NAME;
 
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.Column.Namespace;
 import io.confluent.ksql.schema.ksql.types.SqlType;
@@ -80,6 +81,7 @@ public final class LogicalSchema {
   /**
    * @return all columns in the schema.
    */
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "columns is ImmutableList")
   public List<Column> columns() {
     return columns;
   }

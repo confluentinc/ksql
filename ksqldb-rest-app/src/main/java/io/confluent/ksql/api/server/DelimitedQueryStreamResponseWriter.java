@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.api.server;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.QueryResponseMetadata;
@@ -42,6 +43,7 @@ public class DelimitedQueryStreamResponseWriter implements QueryStreamResponseWr
 
   private final HttpServerResponse response;
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
   public DelimitedQueryStreamResponseWriter(final HttpServerResponse response) {
     this.response = Objects.requireNonNull(response);
   }

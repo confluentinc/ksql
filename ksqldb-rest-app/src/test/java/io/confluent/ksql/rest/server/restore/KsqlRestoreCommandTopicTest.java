@@ -23,7 +23,6 @@ import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableMap;
@@ -133,7 +132,7 @@ public class KsqlRestoreCommandTopicTest {
     restoreCommandTopic.restore(BACKUP_COMMANDS);
 
     // Then:
-    verifyCreateTopic(COMMAND_TOPIC_NAME);
+    verifyCreateCommandTopic();
 
     final InOrder inOrder = inOrder(kafkaProducer, future1, future2, future3);
     inOrder.verify(kafkaProducer).initTransactions();
@@ -166,7 +165,7 @@ public class KsqlRestoreCommandTopicTest {
 
     // Then:
     assertThat(e.getMessage(), containsString("Restore process was interrupted."));
-    verifyCreateTopic(COMMAND_TOPIC_NAME);
+    verifyCreateCommandTopic();
     final InOrder inOrder = inOrder(kafkaProducer, future1, future2);
     inOrder.verify(kafkaProducer).initTransactions();
     inOrder.verify(kafkaProducer).beginTransaction();
@@ -179,7 +178,7 @@ public class KsqlRestoreCommandTopicTest {
     inOrder.verify(kafkaProducer).abortTransaction();
     inOrder.verify(kafkaProducer).close();
     verifyNoMoreInteractions(kafkaProducer, future1, future2);
-    verifyZeroInteractions(future3);
+    verifyNoMoreInteractions(future3);
   }
 
   @Test
@@ -198,7 +197,7 @@ public class KsqlRestoreCommandTopicTest {
         containsString(String.format("Failed restoring command (line 2): %s",
             new String(RECORD_2.key(), StandardCharsets.UTF_8))));
 
-    verifyCreateTopic(COMMAND_TOPIC_NAME);
+    verifyCreateCommandTopic();
     final InOrder inOrder = inOrder(kafkaProducer, future1, future2);
     inOrder.verify(kafkaProducer).initTransactions();
     inOrder.verify(kafkaProducer).beginTransaction();
@@ -211,7 +210,7 @@ public class KsqlRestoreCommandTopicTest {
     inOrder.verify(kafkaProducer).abortTransaction();
     inOrder.verify(kafkaProducer).close();
     verifyNoMoreInteractions(kafkaProducer, future1, future2);
-    verifyZeroInteractions(future3);
+    verifyNoMoreInteractions(future3);
   }
 
   @Test
@@ -223,11 +222,11 @@ public class KsqlRestoreCommandTopicTest {
     restoreCommandTopic.restore(Collections.emptyList());
 
     // Then:
-    verifyCreateTopic(COMMAND_TOPIC_NAME);
+    verifyCreateCommandTopic();
     final InOrder inOrder = inOrder(kafkaProducer);
     inOrder.verify(kafkaProducer).initTransactions();
     inOrder.verify(kafkaProducer).close();
-    verifyZeroInteractions(kafkaProducer, future1, future2, future3);
+    verifyNoMoreInteractions(kafkaProducer, future1, future2, future3);
   }
 
   @Test
@@ -239,8 +238,8 @@ public class KsqlRestoreCommandTopicTest {
     restoreCommandTopic.restore(Collections.singletonList(BACKUP_COMMANDS.get(0)));
 
     // Then:
-    verifyDeleteTopic(COMMAND_TOPIC_NAME);
-    verifyCreateTopic(COMMAND_TOPIC_NAME);
+    verifyDeleteCommandTopic();
+    verifyCreateCommandTopic();
     final InOrder inOrder = inOrder(kafkaProducer, future1);
     inOrder.verify(kafkaProducer).initTransactions();
     inOrder.verify(kafkaProducer).beginTransaction();
@@ -264,7 +263,7 @@ public class KsqlRestoreCommandTopicTest {
 
     // Then:
     assertThat(e.getMessage(), containsString("denied"));
-    verifyZeroInteractions(kafkaProducer);
+    verifyNoMoreInteractions(kafkaProducer);
   }
 
   @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT")
@@ -285,7 +284,7 @@ public class KsqlRestoreCommandTopicTest {
     verify(topicClient).isTopicExists(COMMAND_TOPIC_NAME);
     verify(topicClient).deleteTopics(Collections.singletonList(COMMAND_TOPIC_NAME));
     verifyNoMoreInteractions(topicClient);
-    verifyZeroInteractions(kafkaProducer);
+    verifyNoMoreInteractions(kafkaProducer);
   }
 
   @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT")
@@ -305,18 +304,18 @@ public class KsqlRestoreCommandTopicTest {
     // Then:
     assertThat(e.getMessage(), containsString("denied"));
     verify(topicClient, times(2)).isTopicExists(COMMAND_TOPIC_NAME);
-    verifyCreateTopic(COMMAND_TOPIC_NAME);
+    verifyCreateCommandTopic();
     verifyNoMoreInteractions(topicClient);
-    verifyZeroInteractions(kafkaProducer);
+    verifyNoMoreInteractions(kafkaProducer);
   }
 
-  private void verifyDeleteTopic(final String topicName) {
-    verify(topicClient).deleteTopics(Collections.singletonList(topicName));
+  private void verifyDeleteCommandTopic() {
+    verify(topicClient).deleteTopics(Collections.singletonList(COMMAND_TOPIC_NAME));
   }
 
-  private void verifyCreateTopic(final String topicName) {
+  private void verifyCreateCommandTopic() {
     verify(topicClient).createTopic(
-        topicName,
+        COMMAND_TOPIC_NAME,
         INTERNAL_TOPIC_PARTITION_COUNT,
         INTERNAL_TOPIC_REPLICAS_COUNT,
         INTERNAL_TOPIC_CONFIG);

@@ -239,7 +239,7 @@ After the ksqlDB CLI starts, your terminal should resemble the following.
                   =      |   <\__ \ (_| | | |_| | |_) |     =
                   =      |_|\_\___/\__, |_|____/|____/      =
                   =                   |_|                   =
-                  =  Event Streaming Database purpose-built =
+                  =        The Database purpose-built       =
                   =        for stream processing apps       =
                   ===========================================
 

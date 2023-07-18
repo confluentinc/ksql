@@ -23,7 +23,9 @@ import org.antlr.v4.runtime.CommonTokenStream;
 
 public final class IdentifierUtil {
 
-  private IdentifierUtil() { }
+  private IdentifierUtil() {
+
+  }
 
   /**
    * @param identifier  the identifier

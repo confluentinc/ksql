@@ -25,7 +25,10 @@ public final class SqlTypes {
   public static final SqlPrimitiveType BIGINT = SqlPrimitiveType.of(SqlBaseType.BIGINT);
   public static final SqlPrimitiveType DOUBLE = SqlPrimitiveType.of(SqlBaseType.DOUBLE);
   public static final SqlPrimitiveType STRING = SqlPrimitiveType.of(SqlBaseType.STRING);
+  public static final SqlPrimitiveType TIME = SqlPrimitiveType.of(SqlBaseType.TIME);
+  public static final SqlPrimitiveType DATE = SqlPrimitiveType.of(SqlBaseType.DATE);
   public static final SqlPrimitiveType TIMESTAMP = SqlPrimitiveType.of(SqlBaseType.TIMESTAMP);
+  public static final SqlPrimitiveType BYTES = SqlPrimitiveType.of(SqlBaseType.BYTES);
 
   public static SqlDecimal decimal(final int precision, final int scale) {
     return SqlDecimal.of(precision, scale);

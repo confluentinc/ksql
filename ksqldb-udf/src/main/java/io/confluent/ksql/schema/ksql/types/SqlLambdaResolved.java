@@ -20,6 +20,7 @@ import static java.util.Objects.requireNonNull;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.schema.utils.FormatOptions;
 import java.util.List;
 import java.util.Objects;
@@ -59,6 +60,7 @@ public final class SqlLambdaResolved extends SqlLambda {
     this.returnType = requireNonNull(returnType, "returnType");
   }
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "inputTypes is ImmutableList")
   public List<SqlType> getInputType() {
     return inputTypes;
   }

@@ -40,8 +40,11 @@ public final class ParamTypes {
   public static final StringType STRING = StringType.INSTANCE;
   public static final LongType LONG = LongType.INSTANCE;
   public static final ParamType DECIMAL = DecimalType.INSTANCE;
+  public static final TimeType TIME = TimeType.INSTANCE;
+  public static final DateType DATE = DateType.INSTANCE;
   public static final TimestampType TIMESTAMP = TimestampType.INSTANCE;
   public static final IntervalUnitType INTERVALUNIT = IntervalUnitType.INSTANCE;
+  public static final BytesType BYTES = BytesType.INSTANCE;
 
   public static boolean areCompatible(final SqlArgument actual, final ParamType declared) {
     return areCompatible(actual, declared, false);
@@ -154,7 +157,10 @@ public final class ParamTypes {
         || base == SqlBaseType.BOOLEAN  && declared instanceof BooleanType
         || base == SqlBaseType.DOUBLE   && declared instanceof DoubleType
         || base == SqlBaseType.DECIMAL  && declared instanceof DecimalType
+        || base == SqlBaseType.TIME  && declared instanceof TimeType
+        || base == SqlBaseType.DATE  && declared instanceof DateType
         || base == SqlBaseType.TIMESTAMP  && declared instanceof TimestampType
+        || base == SqlBaseType.BYTES  && declared instanceof BytesType
         || allowCast && base.canImplicitlyCast(functionToSqlBaseConverter().toBaseType(declared));
     // CHECKSTYLE_RULES.ON: BooleanExpressionComplexity
   }

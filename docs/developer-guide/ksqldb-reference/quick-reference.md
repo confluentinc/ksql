@@ -349,6 +349,23 @@ DROP STREAM [IF EXISTS] stream_name [DELETE TOPIC];
 DROP TABLE  [IF EXISTS] table_name  [DELETE TOPIC];
 ```
 
+## IN
+Specifies multiple `OR` conditions.
+
+```sql hl_lines="3"
+  SELECT select_expr [, ...]
+    FROM from_stream | from_table
+    WHERE exp IN (exp0, exp1, exp2);
+```
+
+The above is equivalent to:
+
+```sql hl_lines="3"
+  SELECT select_expr [, ...]
+    FROM from_stream | from_table
+    WHERE exp = exp0 OR exp = exp1 OR exp = exp2;
+```
+
 ## INNER JOIN
 Select records in a stream or table that have matching values in another stream
 or table. For more information, see
@@ -419,23 +436,6 @@ SELECT user_id
   FROM users
   WHERE user_id LIKE 'santa%'
   EMIT CHANGES;
-```
-
-## IN
-Specifies multiple `OR` conditions.
-
-```sql hl_lines"3"
-  SELECT select_expr [, ...]
-    FROM from_stream | from_table
-    WHERE exp IN (exp0, exp1, exp2);
-```
-
-The above is equivalent to:
-
-```sql hl_lines"3"
-  SELECT select_expr [, ...]
-    FROM from_stream | from_table
-    WHERE exp = exp0 OR exp = exp1 OR exp = exp2;
 ```
 
 ## PARTITION BY
@@ -655,4 +655,13 @@ SELECT WINDOWSTART, WINDOWEND, aggregate_function
   FROM from_stream
   WINDOW window_expression
   EMIT CHANGES;
+```
+
+## NULLIF
+Returns NULL if two expressions are equal, otherwise it returns the first expression.
+
+```sql hl_lines="1"
+SELECT NULLIF(col1, col2) 
+    FROM from_stream | from_table
+    EMIT CHANGES;
 ```

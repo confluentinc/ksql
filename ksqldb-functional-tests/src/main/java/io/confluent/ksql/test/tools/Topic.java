@@ -18,6 +18,7 @@ package io.confluent.ksql.test.tools;
 import static java.util.Objects.requireNonNull;
 
 import io.confluent.kafka.schemaregistry.ParsedSchema;
+import io.confluent.ksql.serde.SerdeFeatures;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -31,13 +32,16 @@ public class Topic {
   private final short replicas;
   private final Optional<ParsedSchema> keySchema;
   private final Optional<ParsedSchema> valueSchema;
+  private final SerdeFeatures keyFeatures;
+  private final SerdeFeatures valueFeatures;
 
   public Topic(
       final String name,
       final Optional<ParsedSchema> keySchema,
       final Optional<ParsedSchema> valueSchema
   ) {
-    this(name, DEFAULT_PARTITIONS, DEFAULT_RF, keySchema, valueSchema);
+    this(name, DEFAULT_PARTITIONS, DEFAULT_RF, keySchema, valueSchema,
+        SerdeFeatures.of(), SerdeFeatures.of());
   }
 
   public Topic(
@@ -45,13 +49,17 @@ public class Topic {
       final int numPartitions,
       final int replicas,
       final Optional<ParsedSchema> keySchema,
-      final Optional<ParsedSchema> valueSchema
+      final Optional<ParsedSchema> valueSchema,
+      final SerdeFeatures keyFeatures,
+      final SerdeFeatures valueFeatures
   ) {
     this.name = requireNonNull(name, "name");
     this.keySchema = requireNonNull(keySchema, "keySchema");
     this.valueSchema = requireNonNull(valueSchema, "valueSchema");
     this.numPartitions = numPartitions;
     this.replicas = (short) replicas;
+    this.keyFeatures = keyFeatures;
+    this.valueFeatures = valueFeatures;
   }
 
   public String getName() {
@@ -72,6 +80,14 @@ public class Topic {
 
   public short getReplicas() {
     return replicas;
+  }
+
+  public SerdeFeatures getKeyFeatures() {
+    return keyFeatures;
+  }
+
+  public SerdeFeatures getValueFeatures() {
+    return valueFeatures;
   }
 
   @Override

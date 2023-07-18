@@ -81,7 +81,7 @@ You can define just the primary key and still load the value columns from the Sc
 ### CREATE STREAM changes
 
 A `CREATE STREAM` statement that does not define a `KEY` column will now result in a stream with no
-data being read from the Kafka message's key.
+data being read from the Kafka record's key.
 
 ```sql
 CREATE STREAM INPUT (A INT, B STRING) WITH (...);
@@ -100,7 +100,7 @@ can never be the key column.
 
 Internally, ksqlDB and the Kafka Streams library it leverages, heavily leverages a key-value model.
 Where a stream is created without a key column, internally ksqlDB will treat the key as a `Void` type,
-and the key will always deserialize to `null`, regardless of the binary payload in the Kafka message's
+and the key will always deserialize to `null`, regardless of the binary payload in the Kafka record's
 key.
 
 Likewise, when a row from a stream without a key is persisted to Kafka, the key will be serialized as

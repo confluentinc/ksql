@@ -27,19 +27,19 @@ import org.apache.kafka.streams.kstream.KTable;
 @Immutable
 public final class KTableHolder<K> {
 
-  private final KTable<K, GenericRow> stream;
+  private final KTable<K, GenericRow> ktable;
   private final ExecutionKeyFactory<K> executionKeyFactory;
   private final LogicalSchema schema;
   @EffectivelyImmutable // Ignored
   private final Optional<MaterializationInfo.Builder> materializationBuilder;
 
   private KTableHolder(
-      final KTable<K, GenericRow> stream,
+      final KTable<K, GenericRow> ktable,
       final LogicalSchema schema,
       final ExecutionKeyFactory<K> executionKeyFactory,
       final Optional<MaterializationInfo.Builder> materializationBuilder
   ) {
-    this.stream = Objects.requireNonNull(stream, "stream");
+    this.ktable = Objects.requireNonNull(ktable, "ktable");
     this.executionKeyFactory = Objects.requireNonNull(executionKeyFactory, "keySerdeFactory");
     this.schema = Objects.requireNonNull(schema, "schema");
     this.materializationBuilder =
@@ -47,21 +47,21 @@ public final class KTableHolder<K> {
   }
 
   public static <K> KTableHolder<K> unmaterialized(
-      final KTable<K, GenericRow> stream,
+      final KTable<K, GenericRow> ktable,
       final LogicalSchema schema,
       final ExecutionKeyFactory<K> executionKeyFactory
   ) {
-    return new KTableHolder<>(stream, schema, executionKeyFactory, Optional.empty());
+    return new KTableHolder<>(ktable, schema, executionKeyFactory, Optional.empty());
   }
 
   public static <K> KTableHolder<K> materialized(
-      final KTable<K, GenericRow> stream,
+      final KTable<K, GenericRow> ktable,
       final LogicalSchema schema,
       final ExecutionKeyFactory<K> executionKeyFactory,
       final MaterializationInfo.Builder materializationBuilder
   ) {
     return new KTableHolder<>(
-        stream,
+        ktable,
         schema,
         executionKeyFactory,
         Optional.of(materializationBuilder)
@@ -73,7 +73,7 @@ public final class KTableHolder<K> {
   }
 
   public KTable<K, GenericRow> getTable() {
-    return stream;
+    return ktable;
   }
 
   public Optional<MaterializationInfo.Builder> getMaterializationBuilder() {
@@ -90,7 +90,7 @@ public final class KTableHolder<K> {
 
   public KTableHolder<K> withMaterialization(final Optional<MaterializationInfo.Builder> builder) {
     return new KTableHolder<>(
-        stream,
+        ktable,
         schema,
         executionKeyFactory,
         builder

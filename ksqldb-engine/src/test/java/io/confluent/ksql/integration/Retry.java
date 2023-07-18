@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.integration;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.concurrent.TimeUnit;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.junit.rules.TestRule;
@@ -100,8 +101,9 @@ public class Retry implements TestRule {
   private long delay = 0;
   private TimeUnit unit = TimeUnit.MILLISECONDS;
 
-  private Retry() { }
+  private Retry() {}
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
   public void when(final Class<? extends Throwable> exception) {
     this.exception = exception;
   }

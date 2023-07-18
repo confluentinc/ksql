@@ -35,6 +35,7 @@ public class ClientOptionsImpl implements ClientOptions {
   private String basicAuthUsername;
   private String basicAuthPassword;
   private int executeQueryMaxResultRows = ClientOptions.DEFAULT_EXECUTE_QUERY_MAX_RESULT_ROWS;
+  private int http2MultiplexingLimit = ClientOptions.DEFAULT_HTTP2_MULTIPLEXING_LIMIT;
 
   /**
    * {@code ClientOptions} should be instantiated via {@link ClientOptions#create}, NOT via this
@@ -52,7 +53,7 @@ public class ClientOptionsImpl implements ClientOptions {
       final String trustStorePath, final String trustStorePassword,
       final String keyStorePath, final String keyStorePassword, final String keyPassword,
       final String keyAlias, final String basicAuthUsername, final String basicAuthPassword,
-      final int executeQueryMaxResultRows) {
+      final int executeQueryMaxResultRows, final int http2MultiplexingLimit) {
     this.host = Objects.requireNonNull(host);
     this.port = port;
     this.useTls = useTls;
@@ -68,6 +69,7 @@ public class ClientOptionsImpl implements ClientOptions {
     this.basicAuthUsername = basicAuthUsername;
     this.basicAuthPassword = basicAuthPassword;
     this.executeQueryMaxResultRows = executeQueryMaxResultRows;
+    this.http2MultiplexingLimit = http2MultiplexingLimit;
   }
 
   @Override
@@ -152,6 +154,12 @@ public class ClientOptionsImpl implements ClientOptions {
   }
 
   @Override
+  public ClientOptions setHttp2MultiplexingLimit(final int http2MultiplexingLimit) {
+    this.http2MultiplexingLimit = http2MultiplexingLimit;
+    return this;
+  }
+
+  @Override
   public String getHost() {
     return host == null ? "" : host;
   }
@@ -227,6 +235,11 @@ public class ClientOptionsImpl implements ClientOptions {
   }
 
   @Override
+  public int getHttp2MultiplexingLimit() {
+    return http2MultiplexingLimit;
+  }
+
+  @Override
   public ClientOptions copy() {
     return new ClientOptionsImpl(
         host, port,
@@ -235,7 +248,7 @@ public class ClientOptionsImpl implements ClientOptions {
         trustStorePath, trustStorePassword,
         keyStorePath, keyStorePassword, keyPassword, keyAlias,
         basicAuthUsername, basicAuthPassword,
-        executeQueryMaxResultRows);
+        executeQueryMaxResultRows, http2MultiplexingLimit);
   }
 
   // CHECKSTYLE_RULES.OFF: CyclomaticComplexity
@@ -262,14 +275,15 @@ public class ClientOptionsImpl implements ClientOptions {
         && Objects.equals(keyPassword, that.keyPassword)
         && Objects.equals(keyAlias, that.keyAlias)
         && Objects.equals(basicAuthUsername, that.basicAuthUsername)
-        && Objects.equals(basicAuthPassword, that.basicAuthPassword);
+        && Objects.equals(basicAuthPassword, that.basicAuthPassword)
+        && http2MultiplexingLimit == that.http2MultiplexingLimit;
   }
 
   @Override
   public int hashCode() {
     return Objects.hash(host, port, useTls, verifyHost, useAlpn, trustStorePath,
         trustStorePassword, keyStorePath, keyStorePassword, keyPassword, keyAlias,
-        basicAuthUsername, basicAuthPassword, executeQueryMaxResultRows);
+        basicAuthUsername, basicAuthPassword, executeQueryMaxResultRows, http2MultiplexingLimit);
   }
 
   @Override
@@ -288,7 +302,8 @@ public class ClientOptionsImpl implements ClientOptions {
         + ", keyAlias='" + keyAlias + '\''
         + ", basicAuthUsername='" + basicAuthUsername + '\''
         + ", basicAuthPassword='" + basicAuthPassword + '\''
-        + ", executeQueryMaxResultRows=" + executeQueryMaxResultRows
+        + ", executeQueryMaxResultRows=" + executeQueryMaxResultRows + '\''
+        + ", http2MultiplexingLimit=" + http2MultiplexingLimit
         + '}';
   }
 }

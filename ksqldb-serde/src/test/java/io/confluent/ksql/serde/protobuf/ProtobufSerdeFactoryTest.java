@@ -21,6 +21,7 @@ import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlConfig;
 
+import java.util.Collections;
 import java.util.function.Supplier;
 
 import org.apache.kafka.connect.data.ConnectSchema;
@@ -40,9 +41,13 @@ public class ProtobufSerdeFactoryTest {
   @Mock
   private Supplier<SchemaRegistryClient> srClientFactory;
 
+  private ProtobufSerdeFactory serdeFactory;
+
   @Before
   public void setUp() throws Exception {
     when(config.getString(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY)).thenReturn("http://localhost:8088");
+
+    serdeFactory = new ProtobufSerdeFactory(new ProtobufProperties(Collections.emptyMap()));
   }
 
   @Test
@@ -53,7 +58,7 @@ public class ProtobufSerdeFactoryTest {
         .build();
 
     // When:
-    ProtobufSerdeFactory.createSerde(schema, config, srClientFactory, Struct.class, false);
+    serdeFactory.createSerde(schema, config, srClientFactory, Struct.class, false);
 
     // Then (did not throw)
   }
@@ -66,7 +71,7 @@ public class ProtobufSerdeFactoryTest {
         .build();
 
     // When:
-    ProtobufSerdeFactory.createSerde(schema, config, srClientFactory, Struct.class, false);
+    serdeFactory.createSerde(schema, config, srClientFactory, Struct.class, false);
 
     // Then (did not throw)
   }

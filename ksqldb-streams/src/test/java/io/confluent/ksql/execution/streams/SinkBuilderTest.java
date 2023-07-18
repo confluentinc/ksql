@@ -14,15 +14,15 @@
 
 package io.confluent.ksql.execution.streams;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
@@ -201,8 +201,8 @@ public class SinkBuilderTest {
     verify(timestampExtractor).extract(key, row);
     verify(processorContext, Mockito.times(1))
         .forward(eq(key), eq(row), toCaptor.capture());
-    assertTrue(toCaptor.getValue().equals(To.all().withTimestamp(timestampColumnValue)));
-    verifyZeroInteractions(processingLogger);
+    assertEquals(toCaptor.getValue(), To.all().withTimestamp(timestampColumnValue));
+    verifyNoMoreInteractions(processingLogger);
   }
 
   @Test
@@ -247,7 +247,7 @@ public class SinkBuilderTest {
     assertNull(kv);
     verify(timestampExtractor).extract(key, row);
     verify(processingLogger, Mockito.times(1)).error(any());
-    verifyZeroInteractions(processorContext);
+    verifyNoMoreInteractions(processorContext);
   }
 
   @Test(expected = NullPointerException.class)

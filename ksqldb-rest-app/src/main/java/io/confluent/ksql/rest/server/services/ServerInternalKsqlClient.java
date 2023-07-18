@@ -18,6 +18,7 @@ package io.confluent.ksql.rest.server.services;
 import static io.netty.handler.codec.http.HttpResponseStatus.OK;
 import static java.util.Objects.requireNonNull;
 
+import io.confluent.ksql.reactive.BufferedPublisher;
 import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.entity.ClusterStatusResponse;
@@ -34,6 +35,7 @@ import java.net.URI;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
 /**
@@ -90,6 +92,16 @@ public class ServerInternalKsqlClient implements SimpleKsqlClient {
       final Map<String, ?> configOverrides,
       final Map<String, ?> requestProperties,
       final Consumer<List<StreamedRow>> rowConsumer
+  ) {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public CompletableFuture<RestResponse<BufferedPublisher<StreamedRow>>> makeQueryRequestStreamed(
+      final URI serverEndPoint,
+      final String sql,
+      final Map<String, ?> configOverrides,
+      final Map<String, ?> requestProperties
   ) {
     throw new UnsupportedOperationException();
   }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Confluent Inc.
+ * Copyright 2021 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -284,7 +284,7 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
     }
 
     final DeleteTopicsResult deleteTopicsResult = adminClient.get().deleteTopics(topicsToDelete);
-    final Map<String, KafkaFuture<Void>> results = deleteTopicsResult.values();
+    final Map<String, KafkaFuture<Void>> results = deleteTopicsResult.topicNameValues();
     final List<String> failList = Lists.newArrayList();
     final List<Pair<String, Throwable>> exceptionList = Lists.newArrayList();
     for (final Map.Entry<String, KafkaFuture<Void>> entry : results.entrySet()) {

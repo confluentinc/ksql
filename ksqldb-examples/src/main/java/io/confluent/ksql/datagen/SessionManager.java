@@ -80,7 +80,7 @@ public class SessionManager {
   public String recycleOldestExpired() {
     Map.Entry<String, SessionObject> oldest = null;
     for (final Map.Entry<String, SessionObject> entry : expiredSessions.entrySet()) {
-      if (oldest == null || (entry.getValue().created < oldest.getValue().created)) {
+      if (oldest == null || (entry.getValue().createdMs < oldest.getValue().createdMs)) {
         oldest = entry;
       }
     }
@@ -144,11 +144,11 @@ public class SessionManager {
 
   public static class SessionObject {
 
-    private final long created = System.currentTimeMillis();
+    private final long createdMs = System.currentTimeMillis();
     private final Duration sessionDuration;
 
     public SessionObject(final Duration duration) {
-      this.sessionDuration = duration;
+      this.sessionDuration = Duration.ofMillis(duration.toMillis());
     }
 
     public boolean isExpired() {
@@ -156,12 +156,12 @@ public class SessionManager {
     }
 
     private Duration age() {
-      return Duration.ofMillis(System.currentTimeMillis() - created);
+      return Duration.ofMillis(System.currentTimeMillis() - createdMs);
     }
 
     @Override
     public String toString() {
-      return "Session:" + new Date(created).toString();
+      return "Session:" + new Date(createdMs);
     }
   }
 

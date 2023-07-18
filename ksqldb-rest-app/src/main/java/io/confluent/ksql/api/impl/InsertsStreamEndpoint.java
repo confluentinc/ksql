@@ -18,6 +18,7 @@ package io.confluent.ksql.api.impl;
 import static io.confluent.ksql.rest.Errors.ERROR_CODE_BAD_REQUEST;
 import static io.confluent.ksql.rest.Errors.ERROR_CODE_BAD_STATEMENT;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.api.server.InsertResult;
 import io.confluent.ksql.api.server.InsertsStreamSubscriber;
 import io.confluent.ksql.api.server.KsqlApiException;
@@ -42,6 +43,7 @@ public class InsertsStreamEndpoint {
   private final KsqlConfig ksqlConfig;
   private final ReservedInternalTopics reservedInternalTopics;
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
   public InsertsStreamEndpoint(final KsqlEngine ksqlEngine, final KsqlConfig ksqlConfig,
       final ReservedInternalTopics reservedInternalTopics) {
     this.ksqlEngine = ksqlEngine;

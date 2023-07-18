@@ -147,8 +147,6 @@ rules.
   records, the timestamp of the output record is assigned `max(left.ts, right.ts)`.
 * For stream-table joins, the output record is assigned the timestamp from the
   stream record.
-* For aggregations, the timestamp of the resulting update record is
-  taken from the latest input record that triggered the update.
 * For aggregations, the `max` timestamp is computed over all
   records, per key, either globally (for non-windowed) or per-window.
 

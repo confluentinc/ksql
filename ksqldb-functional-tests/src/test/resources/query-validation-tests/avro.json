@@ -576,7 +576,7 @@
       }
     },
     {
-      "name": "should filter out columns with unsupported types",
+      "name": "should not filter out bytes",
       "statements": [
         "CREATE STREAM INPUT WITH (kafka_topic='input', value_format='AvRo');",
         "CREATE STREAM OUTPUT AS SELECT * FROM input;"
@@ -592,11 +592,11 @@
           ]}
         }
       ],
-      "inputs": [{"topic": "input", "value": {"expected": 1, "c2": null, "c3": null}}],
-      "outputs": [{"topic": "OUTPUT", "value": {"EXPECTED": 1}}],
+      "inputs": [{"topic": "input", "value": {"expected": 1, "c1": null, "c2": null, "c3": null}}],
+      "outputs": [{"topic": "OUTPUT", "value": {"EXPECTED": 1, "c1": null, "c2": null}}],
       "post": {
         "sources": [
-          {"name": "OUTPUT", "type": "stream", "schema": "EXPECTED INT"}
+          {"name": "OUTPUT", "type": "stream", "schema": "EXPECTED INT, C1 BYTES, C2 BYTES"}
         ]
       }
     },
@@ -856,6 +856,56 @@
         {"topic": "OUTPUT", "key": 65.21, "value": {"FOO": 10}},
         {"topic": "OUTPUT", "key": null, "value": {"FOO": 10}}
       ]
+    },
+    {
+      "name": "DECIMAL - key - inference - default precision",
+      "statements": [
+        "CREATE STREAM INPUT (foo INT) WITH (kafka_topic='input_topic', format='AVRO');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "topics": [
+        {
+          "name": "input_topic",
+          "keySchema": {
+            "type": "bytes",
+            "logicalType": "decimal",
+            "scale": 2
+          }
+        }
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": 65.21, "value": {"FOO": 10}},
+        {"topic": "input_topic", "key": null, "value": {"FOO": 10}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 65.21, "value": {"FOO": 10}},
+        {"topic": "OUTPUT", "key": null, "value": {"FOO": 10}}
+      ],
+      "post": {
+        "topics": {
+          "topics": [
+            {
+              "name": "OUTPUT",
+              "keyFormat" : { "format" : "AVRO", "features": ["UNWRAP_SINGLES"], "properties": {"fullSchemaName": "io.confluent.ksql.avro_schemas.OutputKey"} },
+              "keySchema": {
+                "type": "bytes",
+                "logicalType": "decimal",
+                "scale": 2,
+                "precision": 64
+              },
+              "valueFormat" : { "format" : "AVRO" },
+              "valueSchema": {
+                "type": "record",
+                "name": "KsqlDataSourceSchema",
+                "namespace": "io.confluent.ksql.avro_schemas",
+                "fields": [
+                  { "name": "FOO", "type": [ "null", "int" ], "default": null }
+                ]
+              }
+            }
+          ]
+        }
+      }
     },
     {
       "name": "ARRAY - key - no inference",

@@ -114,7 +114,6 @@ public class QueryAnonymizer {
     private int streamCount = 1;
     private int columnCount = 1;
     private int tableCount = 1;
-    private int headerCount = 1;
     private int udfCount = 1;
     private int sourceCount = 1;
     private final Hashtable<String, String> anonTable = new Hashtable<>();
@@ -684,6 +683,12 @@ public class QueryAnonymizer {
       final String newName = getAnonColumnName(columnName);
       stringBuilder.append(String.format("%1$s %2$s", newName, visit(context.type())));
 
+      if (context.PRIMARY() != null) {
+        stringBuilder.append(" PRIMARY");
+      }
+      if (context.KEY() != null) {
+        stringBuilder.append(" KEY");
+      }
       return stringBuilder.toString();
     }
 
@@ -883,9 +888,8 @@ public class QueryAnonymizer {
             anonymizeJoinWindowSize(beforeAndAfterJoinWindow.joinWindowSize(1))));
       } else {
         throw new RuntimeException("Expecting either a single join window, ie \"WITHIN 10 "
-            + "seconds\" or \"WITHIN 10 seconds GRACE PERIOD 2 seconds\", or a join window with "
-            + "before and after specified, ie. \"WITHIN (10 seconds, 20 seconds)\" or "
-            + "WITHIN (10 seconds, 20 seconds) GRACE PERIOD 5 seconds");
+            + "seconds\", or a join window with " + "before and after specified, ie. "
+            + "\"WITHIN (10 seconds, 20 seconds)\"");
       }
 
       return stringBuilder.append(' ').toString();
@@ -915,7 +919,6 @@ public class QueryAnonymizer {
         case ("DOUBLE"):
         case ("STRING"):
         case ("VARCHAR"):
-        case ("BYTES"):
           return context.getText().toUpperCase();
         default:
           return "CUSTOM_TYPE";
@@ -940,10 +943,6 @@ public class QueryAnonymizer {
 
     private String getAnonTableName(final String originName) {
       return getAnonName(originName, "table", tableCount++);
-    }
-
-    private String getAnonHeaderName(final String originName) {
-      return getAnonName(originName, "header", headerCount++);
     }
 
     private String getAnonName(final String originName, final String genericName, final int count) {

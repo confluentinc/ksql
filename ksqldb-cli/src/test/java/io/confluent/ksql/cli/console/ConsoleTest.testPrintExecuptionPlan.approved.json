@@ -1,0 +1,6 @@
+[ {
+  "@type" : "executionPlan",
+  "statementText" : "Test Execution Plan",
+  "warnings" : [ ],
+  "executionPlan" : "Test Execution Plan"
+} ]

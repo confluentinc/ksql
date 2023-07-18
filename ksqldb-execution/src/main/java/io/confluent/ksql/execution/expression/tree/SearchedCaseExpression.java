@@ -19,6 +19,7 @@ import static java.util.Objects.requireNonNull;
 
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.parser.NodeLocation;
 import java.util.List;
 import java.util.Objects;
@@ -46,6 +47,7 @@ public class SearchedCaseExpression extends Expression {
     this.defaultValue = requireNonNull(defaultValue, "defaultValue");
   }
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "whenClauses is ImmutableList")
   public List<WhenClause> getWhenClauses() {
     return whenClauses;
   }

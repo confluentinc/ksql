@@ -2,12 +2,14 @@
 layout: page
 title: ksqlDB Overview
 tagline: What is ksqlDB?
-description: Learn about ksqlDB, the event streaming database for creating stream processing applications with Apache Kafka®.
+description: Learn about ksqlDB, the database for creating stream processing applications with Apache Kafka®.
 keywords: ksqldb
 ---
 
-[ksqlDB](https://ksqldb.io/) is an event streaming database purpose-built to help developers create
-stream processing applications on top of {{ site.aktm }}.
+[ksqlDB](https://ksqldb.io/) is a database purpose-built
+for stream processing applications on top of {{ site.aktm }}.
+
+[Get Started](https://ksqldb.io/quickstart.html){ .md-button .md-button--top-level }
 
 ## Try it
 
@@ -15,7 +17,9 @@ stream processing applications on top of {{ site.aktm }}.
   <div class="card getting-started">
     <strong>Quickstarts</strong>
     <ul class="card-items">
-      <li><a href="https://ksqldb.io/quickstart.html">Standalone quickstart</a></li>
+      <li><a href="https://ksqldb.io/quickstart.html">With Standalone</a></li>
+      <li><a href="https://ksqldb.io/quickstart-cloud.html">With Confluent Cloud</a></li>
+      <li><a href="https://ksqldb.io/quickstart-platform.html">With Confluent Platform</a></li>
     </ul>
   </div>
 
@@ -74,6 +78,7 @@ stream processing applications on top of {{ site.aktm }}.
     </ul>
     <small><a href="https://ksqldb.io/news-and-community.html" class="card-more">More →</a></small>
   </div>
+
 </div>
 
 ## Watch
@@ -97,9 +102,20 @@ stream processing applications on top of {{ site.aktm }}.
       <li><a href="https://www.youtube.com/watch?v=2fUOi9wJPhk&ab_channel=RobinMoffatt">Building a streaming data pipeline</a></li>
     </ul>
   </div>
+
 </div>
 
 <div class="cards">
+
+  <div class="card getting-started">
+    <strong>Courses</strong>
+    <ul class="card-items">
+      <li><a href="https://developer.confluent.io/learn-kafka/ksqldb/intro/">ksqlDB 101</a></li>
+      <li><a href="https://developer.confluent.io/learn-kafka/inside-ksqldb/streaming-architecture/">Inside ksqlDB</a></li>
+    </ul>
+    <small><a href="https://developer.confluent.io/" class="card-more">More →</a></small>
+  </div>
+
   <div class="card getting-started how-to-videos">
     <strong>How to</strong>
     <ul class="card-items">

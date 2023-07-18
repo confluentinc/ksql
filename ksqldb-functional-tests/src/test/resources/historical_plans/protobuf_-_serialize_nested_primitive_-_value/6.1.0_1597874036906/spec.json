@@ -102,7 +102,8 @@
           "valueFormat" : {
             "format" : "PROTOBUF"
           },
-          "partitions" : 4
+          "partitions" : 4,
+          "valueSchema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  bool FOO = 1;\n}\n"
         }, {
           "name" : "OUTPUT",
           "keyFormat" : {
@@ -112,7 +113,8 @@
             "format" : "PROTOBUF",
             "features" : [ "WRAP_SINGLES" ]
           },
-          "partitions" : 4
+          "partitions" : 4,
+          "valueSchema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  bool FOO = 1;\n}\n"
         } ]
       }
     }

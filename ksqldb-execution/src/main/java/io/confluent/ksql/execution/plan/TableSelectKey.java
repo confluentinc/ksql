@@ -19,6 +19,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.testing.EffectivelyImmutable;
 import java.util.Collections;
@@ -76,6 +77,7 @@ public class TableSelectKey<K> implements ExecutionStep<KTableHolder<K>> {
 
   // maintain legacy name for backwards compatibility
   @JsonProperty(value = "keyExpression", required = true)
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "keyExpressions is ImmutableList")
   public List<Expression> getKeyExpressions() {
     return keyExpressions;
   }

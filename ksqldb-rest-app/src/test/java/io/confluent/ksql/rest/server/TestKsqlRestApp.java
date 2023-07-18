@@ -16,7 +16,7 @@
 package io.confluent.ksql.rest.server;
 
 import static java.util.Objects.requireNonNull;
-import static org.easymock.EasyMock.niceMock;
+import static org.mockito.Mockito.mock;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
@@ -125,7 +125,7 @@ public class TestKsqlRestApp extends ExternalResource {
   }
 
   public List<URL> getListeners() {
-    return this.listeners;
+    return Collections.unmodifiableList(this.listeners);
   }
 
   public Optional<URL> getInternalListener() {
@@ -311,7 +311,7 @@ public class TestKsqlRestApp extends ExternalResource {
       ksqlRestApplication = KsqlRestApplication.buildApplication(
           metricsPrefix,
           ksqlRestConfig,
-          (booleanSupplier) -> niceMock(VersionCheckerAgent.class),
+          (booleanSupplier) -> mock(VersionCheckerAgent.class),
           3,
           serviceContext.get(),
           () -> serviceContext.get().getSchemaRegistryClient(),

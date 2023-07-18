@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.function.udaf.max;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.function.AggregateFunctionFactory;
 import io.confluent.ksql.function.AggregateFunctionInitArguments;
 import io.confluent.ksql.function.KsqlAggregateFunction;
@@ -60,6 +61,7 @@ public class MaxAggFunctionFactory extends AggregateFunctionFactory {
   }
 
   @Override
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "NUMERICAL_ARGS is ImmutableList")
   public List<List<ParamType>> supportedArgs() {
     return NUMERICAL_ARGS;
   }

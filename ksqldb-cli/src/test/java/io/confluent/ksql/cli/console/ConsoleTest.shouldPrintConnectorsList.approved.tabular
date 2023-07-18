@@ -1,0 +1,6 @@
+
+ Connector Name | Type    | Class | Status 
+-------------------------------------------
+ foo            | SOURCE  | clazz | STATUS 
+ bar            | UNKNOWN |       |        
+-------------------------------------------

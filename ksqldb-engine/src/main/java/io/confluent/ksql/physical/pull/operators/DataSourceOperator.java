@@ -28,4 +28,6 @@ public interface DataSourceOperator {
   List<KsqlPartitionLocation> getPartitionLocations();
 
   void setPartitionLocations(List<KsqlPartitionLocation> partitionLocations);
+
+  long getReturnedRowCount();
 }

@@ -565,6 +565,13 @@ public class Cli implements KsqlRequestExecutor, Closeable {
   }
 
   private void setProperty(final String property, final String value) {
+    // check if property is allowed to be set
+    final RestResponse<Boolean> response = restClient.makeIsValidRequest(property);
+    if (response.isErroneous()) {
+      throw new IllegalArgumentException(String.valueOf(response.getErrorMessage()));
+    }
+
+    // set property
     final Object priorValue = restClient.setProperty(property, value);
     terminal.writer().printf(
         "Successfully changed local property '%s'%s to '%s'.%s%n",

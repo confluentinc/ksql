@@ -40,7 +40,9 @@ import java.math.MathContext;
 import java.math.RoundingMode;
 
 public final class ArithmeticInterpreter {
-  private ArithmeticInterpreter() { }
+  private ArithmeticInterpreter() {
+
+  }
 
   /**
    * Creates a term representing unary arithmetic on the given input term.
@@ -70,7 +72,7 @@ public final class ArithmeticInterpreter {
    * @param right The right term
    * @param resultType The type of the resulting operation
    * @param ksqlConfig The ksqlconfig
-   * @return The resulting Term
+   * @return the resulting term
    */
   public static Term doBinaryArithmetic(
       final Operator operator,

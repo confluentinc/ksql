@@ -29,7 +29,9 @@ import org.apache.hc.core5.http.HttpStatus;
  */
 final class SandboxConnectClient {
 
-  private SandboxConnectClient() { }
+  private SandboxConnectClient() {
+
+  }
 
   public static ConnectClient createProxy() {
     return LimitedProxyBuilder.forClass(ConnectClient.class)

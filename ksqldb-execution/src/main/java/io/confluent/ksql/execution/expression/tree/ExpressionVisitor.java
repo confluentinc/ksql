@@ -81,6 +81,8 @@ public interface ExpressionVisitor<R, C> {
 
   R visitTimeLiteral(TimeLiteral exp, C context);
 
+  R visitDateLiteral(DateLiteral exp, C context);
+
   R visitTimestampLiteral(TimestampLiteral exp, C context);
 
   R visitType(Type exp, C context);
@@ -92,4 +94,6 @@ public interface ExpressionVisitor<R, C> {
   R visitLambdaVariable(LambdaVariable exp, C context);
 
   R visitIntervalUnit(IntervalUnit exp, C context);
+
+  R visitBytesLiteral(BytesLiteral exp, C context);
 }

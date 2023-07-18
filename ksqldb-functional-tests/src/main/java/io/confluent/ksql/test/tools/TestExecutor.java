@@ -60,10 +60,12 @@ import io.confluent.ksql.test.tools.stubs.StubKafkaConsumerGroupClient;
 import io.confluent.ksql.test.tools.stubs.StubKafkaService;
 import io.confluent.ksql.test.tools.stubs.StubKafkaTopicClient;
 import io.confluent.ksql.test.utils.TestUtils;
+import io.confluent.ksql.util.BytesUtils;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlServerException;
 import java.io.Closeable;
+import java.nio.ByteBuffer;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
@@ -76,18 +78,14 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
-import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.ProducerRecord;
-import org.apache.kafka.common.serialization.ByteArrayDeserializer;
-import org.apache.kafka.common.serialization.ByteArraySerializer;
 import org.apache.kafka.streams.StreamsConfig;
-import org.apache.kafka.streams.TopologyTestDriver;
+import org.apache.kafka.streams.TestOutputTopic;
 import org.apache.kafka.streams.kstream.Windowed;
 import org.hamcrest.Matcher;
 import org.hamcrest.StringDescription;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
-@SuppressWarnings("deprecation")
 public class TestExecutor implements Closeable {
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
@@ -184,20 +182,20 @@ public class TestExecutor implements Closeable {
           verifyTopology(testCase);
         }
 
-        final Set<Topic> topicsFromInput = topologyTestDriverContainer.getSourceTopics()
+        final Set<String> topicsFromInput = topologyTestDriverContainer.getSourceTopicNames()
             .stream()
-            .filter(topic -> inputTopics.contains(topic.getName()))
+            .filter(inputTopics::contains)
             .collect(Collectors.toSet());
-        final Set<Topic> topicsFromKafka = topologyTestDriverContainer.getSourceTopics()
+        final Set<String> topicsFromKafka = topologyTestDriverContainer.getSourceTopicNames()
             .stream()
-            .filter(topic -> !inputTopics.contains(topic.getName()))
+            .filter(topicName -> !inputTopics.contains(topicName))
             .collect(Collectors.toSet());
         if (!topicsFromInput.isEmpty()) {
           pipeRecordsFromProvidedInput(testCase, topologyTestDriverContainer);
         }
-        for (final Topic kafkaTopic : topicsFromKafka) {
+        for (final String kafkaTopic : topicsFromKafka) {
           pipeRecordsFromKafka(
-              kafkaTopic.getName(),
+              kafkaTopic,
               topologyTestDriverContainer
           );
         }
@@ -295,7 +293,8 @@ public class TestExecutor implements Closeable {
         .collect(Collectors.toMap(Function.identity(), kafka::readRecords));
 
     expectedByTopic.forEach((kafkaTopic, expectedRecords) -> {
-      final TopicInfo topicInfo = topicInfoCache.get(kafkaTopic);
+      final TopicInfo topicInfo = topicInfoCache.get(kafkaTopic)
+          .orElseThrow(() -> new KsqlException("No information found for topic: " + kafkaTopic));
 
       final List<ProducerRecord<?, ?>> actualRecords = actualByTopic
           .getOrDefault(kafkaTopic, ImmutableList.of())
@@ -354,7 +353,8 @@ public class TestExecutor implements Closeable {
   private ProducerRecord<byte[], byte[]> serialize(
       final ProducerRecord<?, ?> rec
   ) {
-    final TopicInfo topicInfo = topicInfoCache.get(rec.topic());
+    final TopicInfo topicInfo = topicInfoCache.get(rec.topic())
+        .orElseThrow(() -> new KsqlException("No information found for topic: " + rec.topic()));
 
     final byte[] key;
     final byte[] value;
@@ -498,56 +498,40 @@ public class TestExecutor implements Closeable {
       final TopologyTestDriverContainer testDriver,
       final Set<Topic> possibleSinkTopics
   ) {
-    final String topicName = producedRecord.topic();
-
-    final ConsumerRecord<byte[], byte[]> consumerRecord =
-        new org.apache.kafka.streams.test.ConsumerRecordFactory<>(
-            new ByteArraySerializer(),
-            new ByteArraySerializer()
-        ).create(
-            topicName,
+    testDriver.getSourceTopic(producedRecord.topic())
+        .pipeInput(
             producedRecord.key(),
             producedRecord.value(),
-            producedRecord.timestamp()
-        );
+            producedRecord.timestamp());
 
-    testDriver.getTopologyTestDriver().pipeInput(consumerRecord);
+    final String sinkTopicName = testDriver.getSinkTopicName();
+    final TestOutputTopic<byte[], byte[]> sinkTopic = testDriver.getSinkTopic(sinkTopicName);
 
-    final Topic sinkTopic = testDriver.getSinkTopic();
-
-    processRecordsForTopic(
-        testDriver.getTopologyTestDriver(),
-        sinkTopic
-    );
+    processRecordsForTopic(sinkTopic, sinkTopicName);
 
     for (final Topic possibleSinkTopic : possibleSinkTopics) {
-      if (possibleSinkTopic.getName().equals(sinkTopic.getName())) {
+      if (possibleSinkTopic.getName().equals(sinkTopicName)) {
         continue;
       }
       processRecordsForTopic(
-          testDriver.getTopologyTestDriver(),
-          possibleSinkTopic
+          testDriver.getSinkTopic(possibleSinkTopic.getName()),
+          possibleSinkTopic.getName()
       );
     }
   }
 
   private void processRecordsForTopic(
-      final TopologyTestDriver topologyTestDriver,
-      final Topic sinkTopic
+      final TestOutputTopic<byte[], byte[]> sinkTopic,
+      final String sinkTopicName
   ) {
-    while (true) {
-      final ProducerRecord<byte[], byte[]> producerRecord = topologyTestDriver.readOutput(
-          sinkTopic.getName(),
-          new ByteArrayDeserializer(),
-          new ByteArrayDeserializer()
-      );
-
-      if (producerRecord == null) {
-        break;
-      }
-
-      kafka.writeRecord(producerRecord);
-    }
+    sinkTopic.readRecordsToList()
+        .forEach(testRecord -> kafka.writeRecord(new ProducerRecord<>(
+            sinkTopicName,
+            null, // partition
+            testRecord.timestamp(),
+            testRecord.getKey(),
+            testRecord.getValue()
+        )));
   }
 
   static ServiceContext getServiceContext() {
@@ -593,7 +577,8 @@ public class TestExecutor implements Closeable {
             Collections.emptyMap(),
             Optional.empty()),
         new SequentialQueryIdGenerator(),
-        KsqlConfig.empty()
+        KsqlConfig.empty(),
+        Collections.emptyList()
     );
   }
 
@@ -614,6 +599,25 @@ public class TestExecutor implements Closeable {
         .forEach(kafka::writeRecord);
   }
 
+  private static Object coerceRecordFields(final Object record) {
+    if (!(record instanceof Map)) {
+      return record;
+    }
+
+    final Map<String, Object> recordMap = (Map<String, Object>) record;
+    recordMap.forEach((k, v) -> {
+      if (v instanceof ByteBuffer) {
+        final byte[] fieldBytes = BytesUtils.getByteArray((ByteBuffer) v);
+        recordMap.put(k,
+            (fieldBytes != null && fieldBytes.length > 0)
+            ? BytesUtils.encode(fieldBytes, BytesUtils.Encoding.BASE64)
+            : null);
+      }
+    });
+
+    return recordMap;
+  }
+
   private static void validateCreatedMessage(
       final String topicName,
       final Record expectedRecord,
@@ -621,8 +625,8 @@ public class TestExecutor implements Closeable {
       final boolean ranWithInsertStatements,
       final int messageIndex
   ) {
-    final Object actualKey = actualProducerRecord.key();
-    final Object actualValue = actualProducerRecord.value();
+    final Object actualKey = coerceRecordFields(actualProducerRecord.key());
+    final Object actualValue = coerceRecordFields(actualProducerRecord.value());
     final long actualTimestamp = actualProducerRecord.timestamp();
 
     final JsonNode expectedKey = expectedRecord.getJsonKey().orElse(NullNode.getInstance());

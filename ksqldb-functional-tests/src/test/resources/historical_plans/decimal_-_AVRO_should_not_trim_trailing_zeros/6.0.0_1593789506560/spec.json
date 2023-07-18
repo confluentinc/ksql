@@ -114,7 +114,29 @@
           "valueFormat" : {
             "format" : "AVRO"
           },
-          "partitions" : 4
+          "partitions" : 4,
+          "valueSchema" : {
+            "type" : "record",
+            "name" : "KsqlDataSourceSchema",
+            "namespace" : "io.confluent.ksql.avro_schemas",
+            "fields" : [ {
+              "name" : "DEC",
+              "type" : [ "null", {
+                "type" : "bytes",
+                "scale" : 4,
+                "precision" : 6,
+                "connect.version" : 1,
+                "connect.parameters" : {
+                  "scale" : "4",
+                  "connect.decimal.precision" : "6"
+                },
+                "connect.name" : "org.apache.kafka.connect.data.Decimal",
+                "logicalType" : "decimal"
+              } ],
+              "default" : null
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
+          }
         }, {
           "name" : "OUTPUT",
           "keyFormat" : {
@@ -123,7 +145,22 @@
           "valueFormat" : {
             "format" : "AVRO"
           },
-          "partitions" : 4
+          "partitions" : 4,
+          "valueSchema" : {
+            "type" : "record",
+            "name" : "KsqlDataSourceSchema",
+            "namespace" : "io.confluent.ksql.avro_schemas",
+            "fields" : [ {
+              "name" : "DEC",
+              "type" : [ "null", {
+                "type" : "bytes",
+                "scale" : 4,
+                "precision" : 6,
+                "logicalType" : "decimal"
+              } ],
+              "default" : null
+            } ]
+          }
         } ]
       }
     }

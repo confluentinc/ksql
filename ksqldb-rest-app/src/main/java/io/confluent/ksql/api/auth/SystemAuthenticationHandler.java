@@ -29,7 +29,9 @@ import javax.net.ssl.SSLSession;
 
 public class SystemAuthenticationHandler implements Handler<RoutingContext> {
 
-  public SystemAuthenticationHandler() {}
+  public SystemAuthenticationHandler() {
+
+  }
 
   @Override
   public void handle(final RoutingContext routingContext) {

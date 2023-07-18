@@ -27,8 +27,10 @@ import io.confluent.ksql.api.server.Server;
 import io.confluent.ksql.api.utils.InsertsResponse;
 import io.confluent.ksql.api.utils.QueryResponse;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
+import io.confluent.ksql.security.AuthObjectType;
 import io.confluent.ksql.security.KsqlAuthTokenProvider;
 import io.confluent.ksql.security.KsqlAuthorizationProvider;
+import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.security.KsqlSecurityExtension;
 import io.confluent.ksql.security.KsqlUserContextProvider;
 import io.confluent.ksql.test.util.TestBasicJaasConfig;
@@ -43,12 +45,15 @@ import io.vertx.ext.web.client.HttpRequest;
 import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.WebClient;
 import java.security.Principal;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
+
+import org.apache.kafka.common.acl.AclOperation;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -552,9 +557,23 @@ public class AuthTest extends ApiTest {
     stopServer();
     stopClient();
     AtomicReference<Boolean> authorizationCallReference = new AtomicReference<>(false);
-    this.authorizationProvider = (user, method, path) -> {
-      authorizationCallReference.set(true);
+    this.authorizationProvider = new KsqlAuthorizationProvider() {
+      @Override
+      public void checkEndpointAccess(final Principal user,
+                                      final String method,
+                                      final String path) {
+        authorizationCallReference.set(true);
+      }
+
+      @Override
+      public void checkPrivileges(final KsqlSecurityContext securityContext,
+                                  final AuthObjectType objectType,
+                                  final String objectName,
+                                  final List<AclOperation> privileges) {
+        // Not required for vert.x authX as it only authorizes endpoints
+      }
     };
+
     createServer(createServerConfig());
     client = createClient();
     action.run();
@@ -569,12 +588,26 @@ public class AuthTest extends ApiTest {
     AtomicReference<Principal> principalAtomicReference = new AtomicReference<>();
     AtomicReference<String> methodAtomicReference = new AtomicReference<>();
     AtomicReference<String> pathAtomicReference = new AtomicReference<>();
-    this.authorizationProvider = (user, method, path) -> {
-      throwIfNullPrincipal(user);
-      principalAtomicReference.set(user);
-      methodAtomicReference.set(method);
-      pathAtomicReference.set(path);
+    this.authorizationProvider = new KsqlAuthorizationProvider() {
+      @Override
+      public void checkEndpointAccess(final Principal user,
+                                      final String method,
+                                      final String path) {
+        throwIfNullPrincipal(user);
+        principalAtomicReference.set(user);
+        methodAtomicReference.set(method);
+        pathAtomicReference.set(path);
+      }
+
+      @Override
+      public void checkPrivileges(final KsqlSecurityContext securityContext,
+                                  final AuthObjectType objectType,
+                                  final String objectName,
+                                  final List<AclOperation> privileges) {
+        // Not required for vert.x authX as it only authorizes endpoints
+      }
     };
+
     createServer(createServerConfig());
     client = createClient();
     action.run();
@@ -587,9 +620,23 @@ public class AuthTest extends ApiTest {
       ExceptionThrowingRunnable runnable) throws Exception {
     stopServer();
     stopClient();
-    this.authorizationProvider = (user, method, path) -> {
-      throw new KsqlException("Forbidden");
+    this.authorizationProvider = new KsqlAuthorizationProvider() {
+      @Override
+      public void checkEndpointAccess(final Principal user,
+                                      final String method,
+                                      final String path) {
+        throw new KsqlException("Forbidden");
+      }
+
+      @Override
+      public void checkPrivileges(final KsqlSecurityContext securityContext,
+                                  final AuthObjectType objectType,
+                                  final String objectName,
+                                  final List<AclOperation> privileges) {
+        // Not required for vert.x authX as it only authorizes endpoints
+      }
     };
+
     createServer(createServerConfig());
     client = createClient();
     runnable.run();

@@ -23,6 +23,7 @@ import static org.junit.Assume.assumeThat;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.testing.NullPointerTester;
 import com.google.common.testing.NullPointerTester.Visibility;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.test.util.ClassFinder;
 import io.confluent.ksql.test.util.ImmutableTester;
 import java.lang.reflect.Modifier;
@@ -54,6 +55,7 @@ public class SqlTypesTest {
         .collect(Collectors.toList());
   }
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
   public SqlTypesTest(final Class<?> modelClass) {
     this.modelClass = modelClass;
   }

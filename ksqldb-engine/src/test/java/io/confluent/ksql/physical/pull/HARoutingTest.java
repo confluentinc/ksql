@@ -22,11 +22,17 @@ import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.config.SessionConfig;
+import io.confluent.ksql.execution.streams.RoutingFilter.Host;
 import io.confluent.ksql.execution.streams.RoutingFilter.RoutingFilterFactory;
 import io.confluent.ksql.execution.streams.RoutingOptions;
 import io.confluent.ksql.execution.streams.materialization.Locator;
@@ -34,20 +40,31 @@ import io.confluent.ksql.execution.streams.materialization.Locator.KsqlNode;
 import io.confluent.ksql.execution.streams.materialization.Locator.KsqlPartitionLocation;
 import io.confluent.ksql.execution.streams.materialization.Materialization;
 import io.confluent.ksql.execution.streams.materialization.MaterializationException;
+import io.confluent.ksql.execution.streams.materialization.ks.KsLocator.PartitionLocation;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.physical.pull.HARouting.RouteQuery;
 import io.confluent.ksql.query.PullQueryQueue;
 import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.rest.client.RestResponse;
+import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.services.SimpleKsqlClient;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlHostInfo;
+import io.confluent.ksql.util.KsqlRequestConfig;
+import java.net.URI;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -76,19 +93,15 @@ public class HARoutingTest {
   @Mock
   private QueryId queryId;
   @Mock
-  private KsqlPartitionLocation location1;
-  @Mock
-  private KsqlPartitionLocation location2;
-  @Mock
-  private KsqlPartitionLocation location3;
-  @Mock
-  private KsqlPartitionLocation location4;
-  @Mock
   private KsqlNode node1;
   @Mock
   private KsqlNode node2;
   @Mock
+  private KsqlNode badNode;
+  @Mock
   private LogicalSchema logicalSchema;
+  @Mock
+  private LogicalSchema logicalSchema2;
   @Mock
   private RoutingFilterFactory routingFilterFactory;
   @Mock
@@ -101,6 +114,13 @@ public class HARoutingTest {
   private RouteQuery routeQuery;
   @Mock
   private KsqlConfig ksqlConfig;
+  @Mock
+  private SimpleKsqlClient ksqlClient;
+
+  private KsqlPartitionLocation location1;
+  private KsqlPartitionLocation location2;
+  private KsqlPartitionLocation location3;
+  private KsqlPartitionLocation location4;
 
   private PullQueryQueue pullQueryQueue = new PullQueryQueue();
 
@@ -108,15 +128,31 @@ public class HARoutingTest {
 
   @Before
   public void setUp() {
+    when(pullPhysicalPlan.getMaterialization()).thenReturn(materialization);
+    when(pullPhysicalPlan.getMaterialization().locator()).thenReturn(locator);
     when(statement.getMaskedStatementText()).thenReturn("foo");
-    when(location1.getNodes()).thenReturn(ImmutableList.of(node1, node2));
-    when(location2.getNodes()).thenReturn(ImmutableList.of(node2, node1));
-    when(location3.getNodes()).thenReturn(ImmutableList.of(node1, node2));
-    when(location4.getNodes()).thenReturn(ImmutableList.of(node2, node1));
+    when(statement.getUnMaskedStatementText()).thenReturn("foo");
+    when(statement.getSessionConfig()).thenReturn(SessionConfig.of(ksqlConfig,
+        ImmutableMap.of()));
+    when(node1.isLocal()).thenReturn(true);
+    when(node2.isLocal()).thenReturn(false);
+    when(node1.location()).thenReturn(URI.create("http://node1:8088"));
+    when(node2.location()).thenReturn(URI.create("http://node2:8089"));
+    when(badNode.location()).thenReturn(URI.create("http://badnode:8090"));
+    when(node1.getHost()).thenReturn(Host.include(new KsqlHostInfo("node1", 8088)));
+    when(node2.getHost()).thenReturn(Host.include(new KsqlHostInfo("node2", 8089)));
+    when(badNode.getHost()).thenReturn(Host.exclude(new KsqlHostInfo("badnode", 8090), "BAD"));
+
+    location1 = new PartitionLocation(Optional.empty(), 1, ImmutableList.of(node1, node2));
+    location2 = new PartitionLocation(Optional.empty(), 2, ImmutableList.of(node2, node1));
+    location3 = new PartitionLocation(Optional.empty(), 3, ImmutableList.of(node1, node2));
+    location4 = new PartitionLocation(Optional.empty(), 4, ImmutableList.of(node2, node1));
     // We require at least two threads, one for the orchestrator, and the other for the partitions.
     when(ksqlConfig.getInt(KsqlConfig.KSQL_QUERY_PULL_THREAD_POOL_SIZE_CONFIG)).thenReturn(2);
+
+    when(serviceContext.getKsqlClient()).thenReturn(ksqlClient);
     haRouting = new HARouting(
-        routingFilterFactory, Optional.empty(), ksqlConfig, routeQuery);
+        routingFilterFactory, Optional.empty(), ksqlConfig);
   }
 
   @After
@@ -129,29 +165,25 @@ public class HARoutingTest {
   @Test
   public void shouldCallRouteQuery_success() throws InterruptedException, ExecutionException {
     // Given:
-    List<KsqlPartitionLocation> locations = ImmutableList.of(location1, location2, location3, location4);
-    when(pullPhysicalPlan.getMaterialization()).thenReturn(materialization);
-    when(pullPhysicalPlan.getMaterialization().locator()).thenReturn(locator);
-    when(pullPhysicalPlan.getMaterialization().locator().locate(
-        pullPhysicalPlan.getKeys(),
-        routingOptions,
-        routingFilterFactory
-    )).thenReturn(locations);
-    List<List<KsqlPartitionLocation>> locationsQueried = new ArrayList<>();
-    doAnswer(inv -> {
-      locationsQueried.add(inv.getArgument(1));
-      PullQueryQueue queue = inv.getArgument(9);
+    locate(location1, location2, location3, location4);
+    doAnswer(i -> {
+      final PullQueryQueue queue = i.getArgument(1);
       queue.acceptRow(PQ_ROW1);
       return null;
-    }).when(routeQuery).routeQuery(eq(node1), any(), any(), any(), any(), any(), any(), any(),
-        any(), any());
-    doAnswer(inv -> {
-      locationsQueried.add(inv.getArgument(1));
-      PullQueryQueue queue = inv.getArgument(9);
-      queue.acceptRow(PQ_ROW2);
-      return null;
-    }).when(routeQuery).routeQuery(eq(node2), any(), any(), any(), any(), any(), any(), any(),
-        any(), any());
+    }).when(pullPhysicalPlan).execute(eq(ImmutableList.of(location1, location3)), any(), any());
+    when(ksqlClient.makeQueryRequest(eq(node2.location()), any(), any(), any(), any())).thenAnswer(
+        i -> {
+          Map<String, ?> requestProperties = i.getArgument(3);
+          Consumer<List<StreamedRow>> rowConsumer = i.getArgument(4);
+          assertThat(requestProperties.get(KsqlRequestConfig.KSQL_REQUEST_QUERY_PULL_PARTITIONS),
+              is ("2,4"));
+          rowConsumer.accept(
+              ImmutableList.of(
+                  StreamedRow.header(queryId, logicalSchema),
+                  StreamedRow.pullRow(GenericRow.fromList(ROW2), Optional.empty())));
+          return RestResponse.successful(200, 2);
+        }
+    );
 
     // When:
     CompletableFuture<Void> future = haRouting.handlePullQuery(
@@ -160,14 +192,7 @@ public class HARoutingTest {
     future.get();
 
     // Then:
-    verify(routeQuery).routeQuery(eq(node1), any(), any(), any(), any(), any(), any(), any(), any(),
-        any());
-    assertThat(locationsQueried.get(0).get(0), is(location1));
-    assertThat(locationsQueried.get(0).get(1), is(location3));
-    verify(routeQuery).routeQuery(eq(node2), any(), any(), any(), any(), any(), any(), any(), any(),
-        any());
-    assertThat(locationsQueried.get(1).get(0), is(location2));
-    assertThat(locationsQueried.get(1).get(1), is(location4));
+    verify(pullPhysicalPlan).execute(eq(ImmutableList.of(location1, location3)), any(), any());
 
     assertThat(pullQueryQueue.size(), is(2));
     assertThat(pullQueryQueue.pollRow(1, TimeUnit.SECONDS).getRow(), is(ROW1));
@@ -177,35 +202,37 @@ public class HARoutingTest {
   @Test
   public void shouldCallRouteQuery_twoRound() throws InterruptedException, ExecutionException {
     // Given:
-    List<KsqlPartitionLocation> locations = ImmutableList.of(location1, location2, location3, location4);
-    when(pullPhysicalPlan.getMaterialization()).thenReturn(materialization);
-    when(pullPhysicalPlan.getMaterialization().locator()).thenReturn(locator);
-    when(pullPhysicalPlan.getMaterialization().locator().locate(
-        pullPhysicalPlan.getKeys(),
-        routingOptions,
-        routingFilterFactory
-    )).thenReturn(locations);
-    List<List<KsqlPartitionLocation>> locationsQueried = new ArrayList<>();
-    doAnswer(inv -> {
-      locationsQueried.add(inv.getArgument(1));
-      throw new RuntimeException("Error!");
-    }).when(routeQuery).routeQuery(eq(node1), any(), any(), any(), any(), any(), any(), any(),
-        any(), any());
-    doAnswer(new Answer() {
-      private int count = 0;
+    locate(location1, location2, location3, location4);
+    doAnswer(i -> {
+      throw new StandbyFallbackException("Error!");
+    }).when(pullPhysicalPlan).execute(eq(ImmutableList.of(location1, location3)), any(), any());
+    when(ksqlClient.makeQueryRequest(eq(node2.location()), any(), any(), any(), any())).thenAnswer(
+        new Answer() {
+          private int count = 0;
 
-      public Object answer(InvocationOnMock invocation) {
-        locationsQueried.add(invocation.getArgument(1));
-        PullQueryQueue queue = invocation.getArgument(9);
-        if (++count == 1) {
-          queue.acceptRow(PQ_ROW2);
-        } else {
-          queue.acceptRow(PQ_ROW1);
+          public Object answer(InvocationOnMock i) {
+            Map<String, ?> requestProperties = i.getArgument(3);
+            Consumer<List<StreamedRow>> rowConsumer = i.getArgument(4);
+            if (++count == 1) {
+              assertThat(requestProperties.get(
+                  KsqlRequestConfig.KSQL_REQUEST_QUERY_PULL_PARTITIONS), is ("2,4"));
+              rowConsumer.accept(
+                  ImmutableList.of(
+                      StreamedRow.header(queryId, logicalSchema),
+                      StreamedRow.pullRow(GenericRow.fromList(ROW2), Optional.empty())));
+            } else {
+              assertThat(requestProperties.get(
+                  KsqlRequestConfig.KSQL_REQUEST_QUERY_PULL_PARTITIONS), is ("1,3"));
+              rowConsumer.accept(
+                  ImmutableList.of(
+                      StreamedRow.header(queryId, logicalSchema),
+                      StreamedRow.pullRow(GenericRow.fromList(ROW1), Optional.empty())));
+            }
+
+            return RestResponse.successful(200, 2);
+          }
         }
-        return null;
-      }
-    }).when(routeQuery).routeQuery(eq(node2), any(), any(), any(), any(), any(), any(), any(),
-        any(), any());
+    );
 
     // When:
     CompletableFuture<Void> future = haRouting.handlePullQuery(serviceContext, pullPhysicalPlan,
@@ -213,16 +240,8 @@ public class HARoutingTest {
     future.get();
 
     // Then:
-    verify(routeQuery).routeQuery(eq(node1), any(), any(), any(), any(), any(), any(), any(), any(),
-        any());
-    assertThat(locationsQueried.get(0).get(0), is(location1));
-    assertThat(locationsQueried.get(0).get(1), is(location3));
-    verify(routeQuery, times(2)).routeQuery(eq(node2), any(), any(), any(), any(), any(), any(),
-        any(), any(), any());
-    assertThat(locationsQueried.get(1).get(0), is(location2));
-    assertThat(locationsQueried.get(1).get(1), is(location4));
-    assertThat(locationsQueried.get(2).get(0), is(location1));
-    assertThat(locationsQueried.get(2).get(1), is(location3));
+    verify(pullPhysicalPlan).execute(eq(ImmutableList.of(location1, location3)), any(), any());
+    verify(ksqlClient, times(2)).makeQueryRequest(eq(node2.location()), any(), any(), any(), any());
 
     assertThat(pullQueryQueue.size(), is(2));
     assertThat(pullQueryQueue.pollRow(1, TimeUnit.SECONDS).getRow(), is(ROW2));
@@ -230,37 +249,65 @@ public class HARoutingTest {
   }
 
   @Test
-  public void shouldCallRouteQuery_allFail() {
+  public void shouldCallRouteQuery_twoRound_networkError()
+      throws InterruptedException, ExecutionException {
     // Given:
-    List<KsqlPartitionLocation> locations = ImmutableList.of(location1, location2, location3, location4);
-    when(pullPhysicalPlan.getMaterialization()).thenReturn(materialization);
-    when(pullPhysicalPlan.getMaterialization().locator()).thenReturn(locator);
-    when(pullPhysicalPlan.getMaterialization().locator().locate(
-        pullPhysicalPlan.getKeys(),
-        routingOptions,
-        routingFilterFactory
-    )).thenReturn(locations);
-    List<List<KsqlPartitionLocation>> locationsQueried = new ArrayList<>();
-    doAnswer(inv -> {
-      locationsQueried.add(inv.getArgument(1));
-      throw new RuntimeException("Error!");
-    }).when(routeQuery).routeQuery(eq(node1), any(), any(), any(), any(), any(), any(), any(),
-        any(), any());
-    doAnswer(new Answer() {
-      private int count = 0;
-
-      public Object answer(InvocationOnMock invocation) {
-        locationsQueried.add(invocation.getArgument(1));
-        PullQueryQueue queue = invocation.getArgument(9);
-        if (++count == 1) {
-          queue.acceptRow(PQ_ROW2);
-        } else {
-          throw new RuntimeException("Error!");
+    locate(location2);
+    when(ksqlClient.makeQueryRequest(eq(node2.location()), any(), any(), any(), any())).thenAnswer(
+        i -> {
+          throw new RuntimeException("Network error!");
         }
-        return null;
-      }
-    }).when(routeQuery).routeQuery(eq(node2), any(), any(), any(), any(), any(), any(), any(),
-        any(), any());
+    );
+    doAnswer(i -> {
+      final PullQueryQueue queue = i.getArgument(1);
+      queue.acceptRow(PQ_ROW1);
+      return null;
+    }).when(pullPhysicalPlan).execute(eq(ImmutableList.of(location2)), any(), any());
+
+    // When:
+    CompletableFuture<Void> future = haRouting.handlePullQuery(serviceContext, pullPhysicalPlan,
+        statement, routingOptions, logicalSchema, queryId, pullQueryQueue);
+    future.get();
+
+    // Then:
+    verify(ksqlClient, times(1)).makeQueryRequest(eq(node2.location()), any(), any(), any(), any());
+    verify(pullPhysicalPlan).execute(eq(ImmutableList.of(location2)), any(), any());
+
+    assertThat(pullQueryQueue.size(), is(1));
+    assertThat(pullQueryQueue.pollRow(1, TimeUnit.SECONDS).getRow(), is(ROW1));
+  }
+
+  @Test
+  public void shouldCallRouteQuery_allStandbysFail() {
+    // Given:
+    locate(location1, location2, location3, location4);
+    doAnswer(i -> {
+      throw new StandbyFallbackException("Error1!");
+    }).when(pullPhysicalPlan).execute(eq(ImmutableList.of(location1, location3)), any(), any());
+    when(ksqlClient.makeQueryRequest(eq(node2.location()), any(), any(), any(), any())).thenAnswer(
+        new Answer() {
+          private int count = 0;
+
+          public Object answer(InvocationOnMock i) {
+            Map<String, ?> requestProperties = i.getArgument(3);
+            Consumer<List<StreamedRow>> rowConsumer = i.getArgument(4);
+            if (++count == 1) {
+              assertThat(requestProperties.get(
+                  KsqlRequestConfig.KSQL_REQUEST_QUERY_PULL_PARTITIONS), is ("2,4"));
+              rowConsumer.accept(
+                  ImmutableList.of(
+                      StreamedRow.header(queryId, logicalSchema),
+                      StreamedRow.pullRow(GenericRow.fromList(ROW2), Optional.empty())));
+            } else {
+              assertThat(requestProperties.get(
+                  KsqlRequestConfig.KSQL_REQUEST_QUERY_PULL_PARTITIONS), is ("1,3"));
+              throw new RuntimeException("Error2!");
+            }
+
+            return RestResponse.successful(200, 2);
+          }
+        }
+    );
 
     // When:
     final Exception e = assertThrows(
@@ -273,33 +320,17 @@ public class HARoutingTest {
     );
 
     // Then:
-    verify(routeQuery).routeQuery(eq(node1), any(), any(), any(), any(), any(), any(), any(), any(),
-        any());
-    assertThat(locationsQueried.get(0).get(0), is(location1));
-    assertThat(locationsQueried.get(0).get(1), is(location3));
-    verify(routeQuery, times(2)).routeQuery(eq(node2), any(), any(), any(), any(), any(), any(),
-        any(), any(), any());
-    assertThat(locationsQueried.get(1).get(0), is(location2));
-    assertThat(locationsQueried.get(1).get(1), is(location4));
-    assertThat(locationsQueried.get(2).get(0), is(location1));
-    assertThat(locationsQueried.get(2).get(1), is(location3));
+    verify(pullPhysicalPlan).execute(eq(ImmutableList.of(location1, location3)), any(), any());
+    verify(ksqlClient, times(2)).makeQueryRequest(eq(node2.location()), any(), any(), any(), any());
 
-    assertThat(e.getCause().getMessage(), containsString("Unable to execute pull query: foo. "
-                                                  + "Exhausted standby hosts to try."));
+    assertThat(e.getCause().getMessage(), containsString("Exhausted standby hosts to try."));
   }
 
   @Test
-  public void shouldCallRouteQuery_allFiltered() {
+  public void shouldCallRouteQuery_couldNotFindHost() {
     // Given:
-    when(location1.getNodes()).thenReturn(ImmutableList.of());
-    List<KsqlPartitionLocation> locations = ImmutableList.of(location1, location2, location3, location4);
-    when(pullPhysicalPlan.getMaterialization()).thenReturn(materialization);
-    when(pullPhysicalPlan.getMaterialization().locator()).thenReturn(locator);
-    when(pullPhysicalPlan.getMaterialization().locator().locate(
-        pullPhysicalPlan.getKeys(),
-        routingOptions,
-        routingFilterFactory
-    )).thenReturn(locations);
+    location1 = new PartitionLocation(Optional.empty(), 1, ImmutableList.of());
+    locate(location1, location2, location3, location4);
 
     // When:
     final Exception e = assertThrows(
@@ -309,7 +340,183 @@ public class HARoutingTest {
     );
 
     // Then:
-    assertThat(e.getMessage(), containsString(
-        "Unable to execute pull query foo. All nodes are dead or exceed max allowed lag."));
+    assertThat(e.getMessage(),
+        containsString("Unable to execute pull query. " +
+            "[Partition 1 failed to find valid host. Hosts scanned: []]"));
+  }
+
+  @Test
+  public void shouldCallRouteQuery_allFilteredWithCause() {
+    // Given:
+    location1 = new PartitionLocation( Optional.empty(), 1, ImmutableList.of(badNode));
+    locate(location1, location2, location3, location4);
+
+    // When:
+    final Exception e = assertThrows(
+        MaterializationException.class,
+        () -> haRouting.handlePullQuery(serviceContext, pullPhysicalPlan, statement, routingOptions,
+            logicalSchema, queryId, pullQueryQueue)
+    );
+
+    // Then:
+    assertThat(e.getMessage(),
+        containsString("Hosts scanned: [badnode:8090 was not selected because BAD]]"));
+  }
+
+  @Test
+  public void shouldNotRouteToFilteredHost() throws InterruptedException, ExecutionException {
+    // Given:
+    location1 = new PartitionLocation(Optional.empty(), 1, ImmutableList.of(badNode, node1));
+    when(ksqlClient.makeQueryRequest(any(), any(), any(), any(), any()))
+        .then(invocationOnMock -> RestResponse.successful(200, 2));
+    locate(location1, location2, location3, location4);
+
+    // When:
+    final CompletableFuture<Void> fut = haRouting.handlePullQuery(
+        serviceContext,
+        pullPhysicalPlan,
+        statement,
+        routingOptions,
+        logicalSchema,
+        queryId,
+        pullQueryQueue);
+    fut.get();
+
+    // Then:
+    verify(ksqlClient, never())
+        .makeQueryRequest(eq(badNode.location()), any(), any(), any(), any());
+  }
+
+  @Test
+  public void forwardingError_errorRow() {
+    // Given:
+    locate(location2);
+    when(ksqlClient.makeQueryRequest(eq(node2.location()), any(), any(), any(), any())).thenAnswer(
+        i -> {
+          Map<String, ?> requestProperties = i.getArgument(3);
+          Consumer<List<StreamedRow>> rowConsumer = i.getArgument(4);
+          assertThat(requestProperties.get(KsqlRequestConfig.KSQL_REQUEST_QUERY_PULL_PARTITIONS),
+              is ("2"));
+          rowConsumer.accept(
+              ImmutableList.of(
+                  StreamedRow.header(queryId, logicalSchema),
+                  StreamedRow.error(new RuntimeException("Row Error!"), 500)));
+          return RestResponse.successful(200, 2);
+        }
+    );
+
+    // When:
+    CompletableFuture<Void> future = haRouting.handlePullQuery(
+        serviceContext, pullPhysicalPlan, statement, routingOptions, logicalSchema, queryId,
+        pullQueryQueue);
+    final Exception e = assertThrows(
+        ExecutionException.class,
+        future::get
+    );
+
+    // Then:
+    assertThat(pullQueryQueue.size(), is(0));
+    assertThat(Throwables.getRootCause(e).getMessage(), containsString("Row Error!"));
+  }
+
+  @Test
+  public void forwardingError_authError() {
+    // Given:
+    locate(location2);
+    when(ksqlClient.makeQueryRequest(eq(node2.location()), any(), any(), any(), any())).thenAnswer(
+        i -> {
+          Map<String, ?> requestProperties = i.getArgument(3);
+          Consumer<List<StreamedRow>> rowConsumer = i.getArgument(4);
+          assertThat(requestProperties.get(KsqlRequestConfig.KSQL_REQUEST_QUERY_PULL_PARTITIONS),
+              is ("2"));
+          rowConsumer.accept(ImmutableList.of());
+          return RestResponse.erroneous(401, "Authentication Error");
+        }
+    );
+
+    // When:
+    CompletableFuture<Void> future = haRouting.handlePullQuery(
+        serviceContext, pullPhysicalPlan, statement, routingOptions, logicalSchema, queryId,
+        pullQueryQueue);
+    final Exception e = assertThrows(
+        ExecutionException.class,
+        future::get
+    );
+
+    // Then:
+    assertThat(pullQueryQueue.size(), is(0));
+    assertThat(Throwables.getRootCause(e).getMessage(), containsString("Authentication Error"));
+  }
+
+  @Test
+  public void forwardingError_noRows() {
+    // Given:
+    locate(location2);
+    when(ksqlClient.makeQueryRequest(eq(node2.location()), any(), any(), any(), any())).thenAnswer(
+        i -> {
+          Map<String, ?> requestProperties = i.getArgument(3);
+          Consumer<List<StreamedRow>> rowConsumer = i.getArgument(4);
+          assertThat(requestProperties.get(KsqlRequestConfig.KSQL_REQUEST_QUERY_PULL_PARTITIONS),
+              is ("2"));
+          rowConsumer.accept(ImmutableList.of());
+          return RestResponse.successful(200, 0);
+        }
+    );
+
+    // When:
+    CompletableFuture<Void> future = haRouting.handlePullQuery(
+        serviceContext, pullPhysicalPlan, statement, routingOptions, logicalSchema, queryId,
+        pullQueryQueue);
+    final Exception e = assertThrows(
+        ExecutionException.class,
+        future::get
+    );
+
+    // Then:
+    assertThat(pullQueryQueue.size(), is(0));
+    assertThat(Throwables.getRootCause(e).getMessage(),
+        containsString("empty response from forwarding call, expected a header row"));
+  }
+
+  @Test
+  public void forwardingError_invalidSchema() {
+    // Given:
+    locate(location2);
+    when(ksqlClient.makeQueryRequest(eq(node2.location()), any(), any(), any(), any())).thenAnswer(
+        i -> {
+          Map<String, ?> requestProperties = i.getArgument(3);
+          Consumer<List<StreamedRow>> rowConsumer = i.getArgument(4);
+          assertThat(requestProperties.get(KsqlRequestConfig.KSQL_REQUEST_QUERY_PULL_PARTITIONS),
+              is ("2"));
+          rowConsumer.accept(
+              ImmutableList.of(
+                  StreamedRow.header(queryId, logicalSchema2),
+                  StreamedRow.error(new RuntimeException("Row Error!"), 500)));
+          return RestResponse.successful(200, 2);
+        }
+    );
+
+    // When:
+    CompletableFuture<Void> future = haRouting.handlePullQuery(
+        serviceContext, pullPhysicalPlan, statement, routingOptions, logicalSchema, queryId,
+        pullQueryQueue);
+    final Exception e = assertThrows(
+        ExecutionException.class,
+        future::get
+    );
+
+    // Then:
+    assertThat(pullQueryQueue.size(), is(0));
+    assertThat(Throwables.getRootCause(e).getMessage(),
+        containsString("Schemas logicalSchema2 from host node2 differs from schema logicalSchema"));
+  }
+
+  private void locate(final KsqlPartitionLocation... locations) {
+    List<KsqlPartitionLocation> locationsList = ImmutableList.copyOf(locations);
+    when(pullPhysicalPlan.getMaterialization().locator().locate(
+        pullPhysicalPlan.getKeys(),
+        routingOptions,
+        routingFilterFactory
+    )).thenReturn(locationsList);
   }
 }

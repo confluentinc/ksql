@@ -21,6 +21,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.google.common.collect.ImmutableMap;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.config.PropertyParser;
 import io.confluent.ksql.properties.LocalPropertyParser;
 import io.confluent.ksql.util.KsqlException;
@@ -43,15 +44,26 @@ public class KsqlRequest {
   private final String ksql;
   private final ImmutableMap<String, Object> configOverrides;
   private final ImmutableMap<String, Object> requestProperties;
+  private final ImmutableMap<String, Object> sessionVariables;
   private final Optional<Long> commandSequenceNumber;
   @JsonIgnore
   private String maskedKsql;
+
+  public KsqlRequest(
+      @JsonProperty("ksql") final String ksql,
+      @JsonProperty("streamsProperties") final Map<String, ?> configOverrides,
+      @JsonProperty("requestProperties") final Map<String, ?> requestProperties,
+      @JsonProperty("commandSequenceNumber") final Long commandSequenceNumber
+  ) {
+    this(ksql, configOverrides, requestProperties, null, commandSequenceNumber);
+  }
 
   @JsonCreator
   public KsqlRequest(
       @JsonProperty("ksql") final String ksql,
       @JsonProperty("streamsProperties") final Map<String, ?> configOverrides,
       @JsonProperty("requestProperties") final Map<String, ?> requestProperties,
+      @JsonProperty("sessionVariables") final Map<String, ?> sessionVariables,
       @JsonProperty("commandSequenceNumber") final Long commandSequenceNumber
   ) {
     this.ksql = ksql == null ? "" : ksql;
@@ -61,6 +73,9 @@ public class KsqlRequest {
     this.requestProperties = requestProperties == null
         ? ImmutableMap.of()
         : ImmutableMap.copyOf(serializeClassValues(requestProperties));
+    this.sessionVariables = sessionVariables == null
+        ? ImmutableMap.of()
+        : ImmutableMap.copyOf(serializeClassValues(sessionVariables));
     this.commandSequenceNumber = Optional.ofNullable(commandSequenceNumber);
   }
 
@@ -87,6 +102,11 @@ public class KsqlRequest {
     return coerceTypes(requestProperties);
   }
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "sessionVariables is ImmutableMap")
+  public Map<String, Object> getSessionVariables() {
+    return sessionVariables;
+  }
+
   public Optional<Long> getCommandSequenceNumber() {
     return commandSequenceNumber;
   }
@@ -105,12 +125,14 @@ public class KsqlRequest {
     return Objects.equals(ksql, that.ksql)
         && Objects.equals(configOverrides, that.configOverrides)
         && Objects.equals(requestProperties, that.requestProperties)
+        && Objects.equals(sessionVariables, that.sessionVariables)
         && Objects.equals(commandSequenceNumber, that.commandSequenceNumber);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(ksql, configOverrides, requestProperties, commandSequenceNumber);
+    return Objects.hash(ksql, configOverrides, requestProperties,
+        sessionVariables, commandSequenceNumber);
   }
 
   @Override
@@ -126,6 +148,7 @@ public class KsqlRequest {
         + "ksql='" + sql + '\''
         + ", configOverrides=" + configOverrides
         + ", requestProperties=" + requestProperties
+        + ", sessionVariables=" + sessionVariables
         + ", commandSequenceNumber=" + commandSequenceNumber
         + '}';
   }

@@ -20,7 +20,6 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.planner.QueryPlannerOptions;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Map;
-import java.util.Optional;
 
 public class PullQueryConfigPlannerOptions implements QueryPlannerOptions {
 
@@ -38,28 +37,32 @@ public class PullQueryConfigPlannerOptions implements QueryPlannerOptions {
 
   @Override
   public boolean getTableScansEnabled() {
-    return Optional.ofNullable(
-        (Boolean) configOverrides.get(KsqlConfig.KSQL_QUERY_PULL_TABLE_SCAN_ENABLED)
-    ).orElse(ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PULL_TABLE_SCAN_ENABLED));
+    if (configOverrides.containsKey(KsqlConfig.KSQL_QUERY_PULL_TABLE_SCAN_ENABLED)) {
+      return (Boolean) configOverrides.get(KsqlConfig.KSQL_QUERY_PULL_TABLE_SCAN_ENABLED);
+    }
+    return ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PULL_TABLE_SCAN_ENABLED);
   }
 
   @Override
   public boolean getInterpreterEnabled() {
-    return Optional.ofNullable(
-        (Boolean) configOverrides.get(KsqlConfig.KSQL_QUERY_PULL_INTERPRETER_ENABLED)
-    ).orElse(ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PULL_INTERPRETER_ENABLED));
+    if (configOverrides.containsKey(KsqlConfig.KSQL_QUERY_PULL_INTERPRETER_ENABLED)) {
+      return (Boolean) configOverrides.get(KsqlConfig.KSQL_QUERY_PULL_INTERPRETER_ENABLED);
+    }
+    return ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PULL_INTERPRETER_ENABLED);
   }
 
   @Override
   public boolean getRangeScansEnabled() {
-    return Optional.ofNullable(
-        (Boolean) configOverrides.get(KsqlConfig.KSQL_QUERY_PULL_RANGE_SCAN_ENABLED)
-    ).orElse(ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PULL_RANGE_SCAN_ENABLED));
+    if (configOverrides.containsKey(KsqlConfig.KSQL_QUERY_PULL_RANGE_SCAN_ENABLED)) {
+      return (Boolean) configOverrides.get(KsqlConfig.KSQL_QUERY_PULL_RANGE_SCAN_ENABLED);
+    }
+    return ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PULL_RANGE_SCAN_ENABLED);
   }
 
   public boolean getLimitClauseEnabled() {
-    return Optional.ofNullable(
-        (Boolean) configOverrides.get(KsqlConfig.KSQL_QUERY_PULL_LIMIT_CLAUSE_ENABLED)
-    ).orElse(ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PULL_LIMIT_CLAUSE_ENABLED));
+    if (configOverrides.containsKey(KsqlConfig.KSQL_QUERY_PULL_LIMIT_CLAUSE_ENABLED)) {
+      return (Boolean) configOverrides.get(KsqlConfig.KSQL_QUERY_PULL_LIMIT_CLAUSE_ENABLED);
+    }
+    return ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PULL_LIMIT_CLAUSE_ENABLED);
   }
 }

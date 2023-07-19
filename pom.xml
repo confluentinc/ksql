@@ -116,6 +116,7 @@
         <csv.version>1.4</csv.version>
         <commons.compress.version>1.21</commons.compress.version>
         <lang3.version>3.5</lang3.version>
+        <guava.version>30.1.1-jre</guava.version>
         <retrying.version>2.0.0</retrying.version>
         <inject.version>1</inject.version>
         <janino.version>3.0.7</janino.version>

@@ -360,12 +360,7 @@ public class JoinNode extends PlanNode implements JoiningNode {
     }
 
     Joiner<?> getJoiner(final DataSourceType leftType, final DataSourceType rightType) {
-      final Supplier<Joiner<?>> joinerSupplier = joinerMap.get(new Pair<>(leftType, rightType));
-      if (joinerSupplier == null) {
-        throw new IllegalStateException("Invalid joiner supplier requested: left type: "
-            + leftType + ", right type: " + rightType);
-      }
-      return joinerSupplier.get();
+      return joinerMap.get(new Pair<>(leftType, rightType)).get();
     }
   }
 

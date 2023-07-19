@@ -46,7 +46,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.apache.kafka.connect.data.Schema;
@@ -139,8 +138,8 @@ public final class CastEvaluator {
       return innerCode;
     }
 
-    return Optional.ofNullable(SUPPORTED.get(key(from.baseType(), to.baseType())))
-        .orElseThrow(() -> new UnsupportedCastException(from, to))
+    return SUPPORTED
+        .getOrDefault(key(from.baseType(), to.baseType()), CastEvaluator::unsupportedCast)
         .generateCode(innerCode, from, to, config);
   }
 
@@ -208,6 +207,15 @@ public final class CastEvaluator {
       final String function = LambdaUtil.toJavaCode("val", fromJavaType, lambdaBody);
       return NullSafe.generateApply(innerCode, function, toJavaType);
     };
+  }
+
+  private static String unsupportedCast(
+      final String innerCode,
+      final SqlType from,
+      final SqlType to,
+      final KsqlConfig config
+  ) {
+    throw new UnsupportedCastException(from, to);
   }
 
   private static String castToDecimal(

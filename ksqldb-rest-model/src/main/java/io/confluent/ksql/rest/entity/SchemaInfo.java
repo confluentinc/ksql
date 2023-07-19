@@ -152,7 +152,6 @@ public class SchemaInfo {
   public String toTypeString() {
     // needs a map instead of switch because for some reason switch creates an
     // internal class with no annotations that messes up EntityTest
-    return Optional.ofNullable(TO_TYPE_STRING.getOrDefault(type, si -> si.type.name()))
-        .orElseThrow(NullPointerException::new).apply(this);
+    return TO_TYPE_STRING.getOrDefault(type, si -> si.type.name()).apply(this);
   }
 }

@@ -1295,10 +1295,13 @@ public class DefaultSqlValueCoercerTest {
         final SqlBaseType to
     ) {
       if (coercer == DefaultSqlValueCoercer.LAX) {
-        final boolean supported = LAX_ADDITIONAL
-            .getOrDefault(from, ImmutableSet.of())
-            .contains(to);
-
+        final ImmutableSet<SqlBaseType> sqlBaseTypes = LAX_ADDITIONAL
+            .getOrDefault(from, ImmutableSet.of());
+        // needed to avoid spotbugs warning with guava 32.0.1
+        if (sqlBaseTypes == null) {
+          return false;
+        }
+        final boolean supported = sqlBaseTypes.contains(to);
         if (supported) {
           return true;
         }

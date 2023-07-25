@@ -76,9 +76,7 @@ public class JsonQueryStreamResponseWriter implements QueryStreamResponseWriter 
     if (keyValue.value() == null) {
       LOG.warn("Dropped tombstone. Not currently supported");
     } else {
-      Buffer buff = ServerUtils.serializeObject(keyValue.value().values());
-      System.out.println("Returning data " + buff.toString());
-      writeBuffer(buff);
+      writeBuffer(ServerUtils.serializeObject(keyValue.value().values()));
     }
     return this;
   }

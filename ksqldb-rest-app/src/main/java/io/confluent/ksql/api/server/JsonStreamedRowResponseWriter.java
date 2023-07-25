@@ -54,8 +54,9 @@ import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Struct;
 
 public class JsonStreamedRowResponseWriter implements QueryStreamResponseWriter {
-
-  private static final int FLUSH_SIZE_BYTES = 50 * 1024;
+  // Make sure this is not too large or else we will overwhelm the response write buffer which
+  // appears to corrupt the output.
+  private static final int FLUSH_SIZE_BYTES = 5 * 1024;
   private static final ObjectMapper OBJECT_MAPPER = ApiJsonMapper.INSTANCE.get();
   static final long MAX_FLUSH_MS = 200;
 
@@ -121,6 +122,7 @@ public class JsonStreamedRowResponseWriter implements QueryStreamResponseWriter 
       final KeyValueMetadata<List<?>, GenericRow> keyValueMetadata
   ) {
     final KeyValue<List<?>, GenericRow> keyValue = keyValueMetadata.getKeyValue();
+//    System.out.println("Alan: writeRow " + keyValue);
     final StreamedRow streamedRow;
     if (keyValue.value() == null) {
       Preconditions.checkState(tombstoneFactory.isPresent(),

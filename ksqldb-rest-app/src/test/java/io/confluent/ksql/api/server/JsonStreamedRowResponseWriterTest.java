@@ -240,10 +240,10 @@ public class JsonStreamedRowResponseWriterTest {
 
     // Then:
     assertThat(stringBuilder.toString().split("\n").length, is(4001));
-    verify(response, times(4)).write((String) any());
+    verify(response, times(38)).write((String) any());
     verify(response, never()).write((Buffer) any());
-    verify(vertx, times(4)).setTimer(anyLong(), any());
-    verify(vertx, times(4)).cancelTimer(anyLong());
+    verify(vertx, times(38)).setTimer(anyLong(), any());
+    verify(vertx, times(38)).cancelTimer(anyLong());
   }
 
   @Test

@@ -29,8 +29,7 @@ public class JsonPathTokenizerTest {
   @Test
   public void testJsonPathTokenizer() {
     final JsonPathTokenizer jsonPathTokenizer = new JsonPathTokenizer("$.logs[0].cloud.region");
-    final ImmutableList<String> tokens = ImmutableList.copyOf(jsonPathTokenizer);
-    final List<String> tokenList = tokens.asList();
+    final List<String> tokenList = ImmutableList.copyOf(jsonPathTokenizer);
     assertThat(tokenList.size(), is(equalTo(4)));
     assertThat(tokenList.get(0), is(equalTo("logs")));
 

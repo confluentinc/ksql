@@ -23,6 +23,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -45,33 +46,29 @@ public class PullQueryConfigRoutingOptions implements RoutingOptions {
   }
 
   private long getLong() {
-    if (configOverrides.containsKey(KsqlConfig.KSQL_QUERY_PULL_MAX_ALLOWED_OFFSET_LAG_CONFIG)) {
-      return (Long) configOverrides.get(KsqlConfig.KSQL_QUERY_PULL_MAX_ALLOWED_OFFSET_LAG_CONFIG);
-    }
-    return ksqlConfig.getLong(KsqlConfig.KSQL_QUERY_PULL_MAX_ALLOWED_OFFSET_LAG_CONFIG);
+    return Optional.ofNullable(
+        (Long) configOverrides.get(KsqlConfig.KSQL_QUERY_PULL_MAX_ALLOWED_OFFSET_LAG_CONFIG)
+    ).orElse(ksqlConfig.getLong(KsqlConfig.KSQL_QUERY_PULL_MAX_ALLOWED_OFFSET_LAG_CONFIG));
   }
 
   private boolean getForwardedFlag() {
-    if (requestProperties.containsKey(KsqlRequestConfig.KSQL_REQUEST_QUERY_PULL_SKIP_FORWARDING)) {
-      return (Boolean) requestProperties.get(
-          KsqlRequestConfig.KSQL_REQUEST_QUERY_PULL_SKIP_FORWARDING);
-    }
-    return KsqlRequestConfig.KSQL_REQUEST_QUERY_PULL_SKIP_FORWARDING_DEFAULT;
+    return Optional.ofNullable(
+        (Boolean) requestProperties.get(KsqlRequestConfig.KSQL_REQUEST_QUERY_PULL_SKIP_FORWARDING)
+    ).orElse(KsqlRequestConfig.KSQL_REQUEST_QUERY_PULL_SKIP_FORWARDING_DEFAULT);
   }
 
   public boolean getIsDebugRequest() {
-    if (requestProperties.containsKey(KsqlRequestConfig.KSQL_DEBUG_REQUEST)) {
-      return (Boolean) requestProperties.get(KsqlRequestConfig.KSQL_DEBUG_REQUEST);
-    }
-    return KsqlRequestConfig.KSQL_DEBUG_REQUEST_DEFAULT;
+    return Optional.ofNullable(
+        (Boolean) requestProperties.get(KsqlRequestConfig.KSQL_DEBUG_REQUEST)
+    ).orElse(KsqlRequestConfig.KSQL_DEBUG_REQUEST_DEFAULT);
   }
 
   @Override
   public Set<Integer> getPartitions() {
     if (requestProperties.containsKey(KsqlRequestConfig.KSQL_REQUEST_QUERY_PULL_PARTITIONS)) {
       @SuppressWarnings("unchecked")
-      final List<String> partitions = (List<String>) requestProperties.get(
-          KsqlRequestConfig.KSQL_REQUEST_QUERY_PULL_PARTITIONS);
+      final List<String> partitions = Optional.ofNullable((List<String>) requestProperties.get(
+          KsqlRequestConfig.KSQL_REQUEST_QUERY_PULL_PARTITIONS)).orElse(Collections.emptyList());
       return partitions.stream()
           .map(partition -> {
             try {

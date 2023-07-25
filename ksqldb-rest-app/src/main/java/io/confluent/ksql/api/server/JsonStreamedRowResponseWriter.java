@@ -122,7 +122,6 @@ public class JsonStreamedRowResponseWriter implements QueryStreamResponseWriter 
       final KeyValueMetadata<List<?>, GenericRow> keyValueMetadata
   ) {
     final KeyValue<List<?>, GenericRow> keyValue = keyValueMetadata.getKeyValue();
-//    System.out.println("Alan: writeRow " + keyValue);
     final StreamedRow streamedRow;
     if (keyValue.value() == null) {
       Preconditions.checkState(tombstoneFactory.isPresent(),

@@ -161,7 +161,6 @@
       <groupId>com.google.protobuf</groupId>
       <artifactId>protobuf-java-util</artifactId>
     </dependency>
-
   </dependencies>
 
   <build>

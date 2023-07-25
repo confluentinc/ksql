@@ -23,6 +23,7 @@ import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.function.udf.UdfParameter;
 import io.confluent.ksql.util.KsqlConstants;
 import java.nio.charset.StandardCharsets;
+import java.util.Optional;
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.codec.binary.Hex;
@@ -72,7 +73,9 @@ public class Encode {
       throw new KsqlFunctionException("Supported input and output encodings are: "
                                   + "hex, utf8, ascii and base64");
     }
-    return ENCODER_MAP.get(encodedString).apply(str);
+    return Optional.ofNullable(ENCODER_MAP.get(encodedString))
+        .orElseThrow(NullPointerException::new)
+        .apply(str);
   }
 
   interface Encoder {

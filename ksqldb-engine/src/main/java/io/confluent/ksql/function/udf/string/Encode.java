@@ -68,11 +68,12 @@ public class Encode {
 
     final String encodedString = inputEncoding.toLowerCase() + outputEncoding.toLowerCase();
 
-    if (ENCODER_MAP.get(encodedString) == null) {
+    final Encode.Encoder encoder = ENCODER_MAP.get(encodedString);
+    if (encoder == null) {
       throw new KsqlFunctionException("Supported input and output encodings are: "
                                   + "hex, utf8, ascii and base64");
     }
-    return ENCODER_MAP.get(encodedString).apply(str);
+    return encoder.apply(str);
   }
 
   interface Encoder {

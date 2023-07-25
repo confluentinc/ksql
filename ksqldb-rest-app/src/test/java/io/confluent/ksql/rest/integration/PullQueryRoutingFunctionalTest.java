@@ -579,6 +579,10 @@ public class PullQueryRoutingFunctionalTest {
     ActiveStandbyEntity entity1 = clusterStatusResponse.getClusterStatus().get(testApp1.getHost())
         .getActiveStandbyPerQuery().get(queryId);
 
+    if (entity0 == null || entity1 == null) {
+      throw new AssertionError("Could not find standby entity!");
+    }
+
     // find active
     if (!entity0.getActiveStores().isEmpty() && !entity0.getActivePartitions().isEmpty()) {
       clusterFormation.setActive(testApp0);

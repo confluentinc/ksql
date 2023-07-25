@@ -33,7 +33,6 @@ import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.logging.processing.MeteredProcessingLoggerFactory;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.logging.query.QueryLogger;
-import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.KafkaStreamsBuilder;
@@ -48,13 +47,7 @@ import io.confluent.ksql.util.KsqlConstants.KsqlQueryType;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
-
-import org.apache.kafka.common.metrics.Metrics;
-import org.apache.kafka.common.metrics.Sensor;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KafkaStreams.State;
 import org.apache.kafka.streams.Topology;
@@ -81,7 +74,8 @@ public class QueryMetadataTest {
       .valueColumn(ColumnName.of("f0"), SqlTypes.STRING)
       .build();
 
-  private static final Set<SourceName> SOME_SOURCES = ImmutableSet.of(SourceName.of("s1"), SourceName.of("s2"));
+  private static final Set<SourceName> SOME_SOURCES = ImmutableSet.of(SourceName.of("s1"),
+      SourceName.of("s2"));
   private static final Long closeTimeout = KsqlConfig.KSQL_SHUTDOWN_TIMEOUT_MS_DEFAULT;
 
   @Mock
@@ -127,7 +121,7 @@ public class QueryMetadataTest {
         0L,
         listener,
         loggerFactory
-    ){
+    ) {
     };
     query.initialize();
   }
@@ -243,7 +237,6 @@ public class QueryMetadataTest {
     // When:
     query.uncaughtHandler(new RuntimeException("foo"));
 
-
     // Then:
     verify(listener).onError(same(query), argThat(q -> q.getType().equals(Type.UNKNOWN)));
   }
@@ -255,7 +248,7 @@ public class QueryMetadataTest {
 
       logger.verify(() ->
           QueryLogger.error("Uncaught exception in query java.lang.RuntimeException: foo",
-          "foo"), times(1));
+              "foo"), times(1));
     }
   }
 
@@ -272,10 +265,10 @@ public class QueryMetadataTest {
 
     // When:
     final QueryMetadataImpl.RetryEvent retryEvent = new QueryMetadataImpl.RetryEvent(
-            QUERY_ID,
-            RETRY_BACKOFF_INITIAL_MS,
-            RETRY_BACKOFF_MAX_MS,
-            ticker
+        QUERY_ID,
+        RETRY_BACKOFF_INITIAL_MS,
+        RETRY_BACKOFF_MAX_MS,
+        ticker
     );
 
     // Then:
@@ -291,10 +284,10 @@ public class QueryMetadataTest {
 
     // When:
     final QueryMetadataImpl.RetryEvent retryEvent = new QueryMetadataImpl.RetryEvent(
-            QUERY_ID,
-            RETRY_BACKOFF_INITIAL_MS,
-            RETRY_BACKOFF_MAX_MS,
-            ticker
+        QUERY_ID,
+        RETRY_BACKOFF_INITIAL_MS,
+        RETRY_BACKOFF_MAX_MS,
+        ticker
     );
 
     retryEvent.backOff("thread-name");
@@ -305,7 +298,8 @@ public class QueryMetadataTest {
     // Then:
     assertThat(retryEvent.getNumRetries("thread-name"), is(2));
     assertThat(retryEvent.getNumRetries("thread-name-2"), is(1));
-    assertThat(retryEvent.nextRestartTimeMs(), is(now + (RETRY_BACKOFF_INITIAL_MS * (int)(Math.pow(2, numBackOff)))));
+    assertThat(retryEvent.nextRestartTimeMs(),
+        is(now + (RETRY_BACKOFF_INITIAL_MS * (int) (Math.pow(2, numBackOff)))));
   }
 
   @Test
@@ -316,10 +310,10 @@ public class QueryMetadataTest {
 
     // When:
     final QueryMetadataImpl.RetryEvent retryEvent = new QueryMetadataImpl.RetryEvent(
-            QUERY_ID,
-            RETRY_BACKOFF_INITIAL_MS,
-            RETRY_BACKOFF_MAX_MS,
-            ticker
+        QUERY_ID,
+        RETRY_BACKOFF_INITIAL_MS,
+        RETRY_BACKOFF_MAX_MS,
+        ticker
     );
     retryEvent.backOff("thread-name");
     retryEvent.backOff("thread-name");
@@ -336,7 +330,8 @@ public class QueryMetadataTest {
   @Test
   public void shouldEvictBasedOnTime() {
     // Given:
-    final QueryMetadataImpl.TimeBoundedQueue queue = new QueryMetadataImpl.TimeBoundedQueue(Duration.ZERO, 1);
+    final QueryMetadataImpl.TimeBoundedQueue queue = new QueryMetadataImpl.TimeBoundedQueue(
+        Duration.ZERO, 1);
     queue.add(new QueryError(System.currentTimeMillis(), "test", Type.SYSTEM));
 
     //Then:
@@ -344,11 +339,24 @@ public class QueryMetadataTest {
   }
 
   @Test
+  public void shouldEvictBasedOnSize() {
+    // Given:
+    final QueryMetadataImpl.TimeBoundedQueue queue = new QueryMetadataImpl.TimeBoundedQueue(
+        Duration.ofHours(1).minusMinutes(10), 1);
+    queue.add(new QueryError(System.currentTimeMillis(), "test", Type.SYSTEM));
+    queue.add(new QueryError(System.currentTimeMillis(), "test2", Type.SYSTEM));
+
+    //Then:
+    assertThat(queue.toImmutableList().size(), is(1));
+  }
+
+  @Test
   public void shouldCloseProcessingLoggers() {
     // Given:
     final ProcessingLogger processingLogger1 = mock(ProcessingLogger.class);
     final ProcessingLogger processingLogger2 = mock(ProcessingLogger.class);
-    when(loggerFactory.getLoggersWithPrefix(QUERY_ID.toString())).thenReturn(Arrays.asList(processingLogger1, processingLogger2));
+    when(loggerFactory.getLoggersWithPrefix(QUERY_ID.toString())).thenReturn(
+        Arrays.asList(processingLogger1, processingLogger2));
 
     // When:
     query.close();

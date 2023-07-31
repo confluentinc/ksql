@@ -398,9 +398,10 @@ public class QueryMetadataImpl implements QueryMetadata {
       evict();
       return ImmutableList.copyOf(queue);
     }
-    
+
+    @SuppressFBWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
     private void evict() {
-      while (queue.peek() != null) {
+      while (!queue.isEmpty()) {
         if (queue.peek().getTimestamp() > System.currentTimeMillis() - duration.toMillis()) {
           break;
         }

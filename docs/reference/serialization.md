@@ -318,6 +318,15 @@ The format is case-insensitive when matching a SQL field name with a
 JSON document's property name. The first case-insensitive match is
 used.
 
+#### Known Limitations
+
+The following keywords aren't supported and if present in your schema will
+cause serialization errors.
+
+- `additionalProperties: false`
+- `enum`
+- `required`
+
 ### Avro
 
 | Feature                      | Supported |

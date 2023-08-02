@@ -320,8 +320,8 @@ used.
 
 #### Known Limitations
 
-The following keywords aren't supported and if present in your schema will
-cause serialization errors.
+The following keywords aren't supported in JSON schema fields and if present
+in your schema will cause serialization errors.
 
 - `additionalProperties: false`
 - `enum`

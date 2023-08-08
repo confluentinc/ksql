@@ -304,9 +304,12 @@ traffic from internal traffic.
 **Per query:** no
 
 The number of replicas for the internal topics created by ksqlDB Server.
-The default is 1. Replicas for the record processing log topic should be
+The default is `1`. Replicas for the record processing log topic should be
 configured separately. For more information, see
 [Processing Log](/reference/processing-log).
+
+Setting this value to `-1` causes ksqlDB to create the internal topics
+with the broker defaults, if the topics don't exist.
 
 The default for {{ site.cp }} is `1`. The default for
 {{ site.ccloud }} is `3`.
@@ -371,6 +374,9 @@ default, this property has the value `1`.
 If automatic processing log topic creation is enabled, ksqlDB creates the
 topic with the number of replicas set to the value of this property. By
 default, this property has the value `1`.
+
+Setting this value to `-1` causes ksqlDB to create the processing log topic
+with the broker defaults, if the topic doesn't exist. 
 
 ## `ksql.logging.processing.stream.auto.create`
 
@@ -628,6 +634,20 @@ your query:
 - Must read newly arriving data only, `SET 'auto.offset.reset' = 'latest'`,
   which means that your query can't read historical data.
 - Must have a single upstream persistent query only.
+
+## `ksql.streams.replication.factor`
+
+**Per query:** no
+
+Specifies the replication factor of internal topics that {{ site.kstreams }}
+creates when local states are used or a stream is repartitioned for
+aggregation.
+
+Setting this value to `-1` causes ksqlDB to create the internal topics
+with the broker defaults, if the topics don't exist.
+
+Don't set the replication factor if there is a replica placement constraint
+on the broker.
 
 ## `ksql.runtime.feature.shared.enabled`
 

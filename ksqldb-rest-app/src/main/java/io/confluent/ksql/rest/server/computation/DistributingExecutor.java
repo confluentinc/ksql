@@ -40,6 +40,8 @@ import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.statement.Injector;
+import io.confluent.ksql.statement.InjectorWithSideEffects;
+import io.confluent.ksql.statement.InjectorWithSideEffects.ConfiguredStatementWithSideEffects;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlServerException;
@@ -172,10 +174,28 @@ public class DistributingExecutor {
           + System.lineSeparator()
           + commandRunnerWarningString);
     }
-    final ConfiguredStatement<?> injected = injectorFactory
-        .apply(executionContext, securityContext.getServiceContext())
-        .inject(statement);
+    final InjectorWithSideEffects injector = InjectorWithSideEffects.wrap(
+            injectorFactory.apply(executionContext, securityContext.getServiceContext()));
+    final ConfiguredStatementWithSideEffects<?> injectedWithSideEffects =
+            injector.injectWithSideEffects(statement);
+    try {
+      return executeInjected(
+            injectedWithSideEffects.getStatement(),
+            statement,
+            executionContext,
+            securityContext);
+    } catch (Exception e) {
+      injector.revertSideEffects(injectedWithSideEffects);
+      throw e;
+    }
+  }
 
+  private StatementExecutorResponse executeInjected(
+      final ConfiguredStatement<?> injected,
+      final ConfiguredStatement<? extends Statement> original,
+      final KsqlExecutionContext executionContext,
+      final KsqlSecurityContext securityContext
+  ) {
     if (injected.getStatement() instanceof InsertInto) {
       validateInsertIntoQueries(
           executionContext.getMetaStore(),
@@ -185,7 +205,7 @@ public class DistributingExecutor {
 
     final Optional<StatementExecutorResponse> response = checkIfNotExistsResponse(
         executionContext,
-        statement
+        original
     );
 
     if (response.isPresent()) {
@@ -206,9 +226,9 @@ public class DistributingExecutor {
           "Could not write the statement into the command topic: " + e.getMessage(),
           String.format(
               "Could not write the statement '%s' into the command topic: " + e.getMessage(),
-              statement.getMaskedStatementText()
+              original.getMaskedStatementText()
           ),
-          statement.getMaskedStatementText(),
+          original.getMaskedStatementText(),
           KsqlStatementException.Problem.OTHER,
           e);
     }
@@ -219,13 +239,13 @@ public class DistributingExecutor {
           "DDL/DML rate is crossing the configured rate limit of statements/second"
         ));
     }
-    
+
     CommandId commandId = null;
     try {
       transactionalProducer.beginTransaction();
       commandQueue.waitForCommandConsumer();
 
-      commandId = commandIdAssigner.getCommandId(statement.getStatement());
+      commandId = commandIdAssigner.getCommandId(original.getStatement());
       final Command command = validatedCommandFactory.create(
           injected,
           executionContext.createSandbox(executionContext.getServiceContext())
@@ -257,9 +277,9 @@ public class DistributingExecutor {
           "Could not write the statement into the command topic.",
           String.format(
               "Could not write the statement '%s' into the command topic.",
-              statement.getMaskedStatementText()
+              original.getMaskedStatementText()
           ),
-          statement.getMaskedStatementText(),
+          original.getMaskedStatementText(),
           KsqlStatementException.Problem.OTHER,
           e
       );
@@ -272,9 +292,9 @@ public class DistributingExecutor {
           "Could not write the statement into the command topic.",
           String.format(
               "Could not write the statement '%s' into the command topic.",
-              statement.getMaskedStatementText()
+              original.getMaskedStatementText()
           ),
-          statement.getMaskedStatementText(),
+          original.getMaskedStatementText(),
           KsqlStatementException.Problem.OTHER,
           e
       );

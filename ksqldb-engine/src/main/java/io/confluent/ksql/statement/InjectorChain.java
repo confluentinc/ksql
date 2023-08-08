@@ -17,12 +17,13 @@ package io.confluent.ksql.statement;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.parser.tree.Statement;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
  * Encapsulates a chain of injectors, ordered, into a single entity.
  */
-public final class InjectorChain implements Injector {
+public final class InjectorChain implements InjectorWithSideEffects {
 
   private final List<Injector> injectors;
 
@@ -42,5 +43,35 @@ public final class InjectorChain implements Injector {
       injected = injector.inject(injected);
     }
     return injected;
+  }
+
+  @Override
+  public <T extends Statement> ConfiguredStatementWithSideEffects<T> injectWithSideEffects(
+      final ConfiguredStatement<T> statement
+  ) {
+    ConfiguredStatement<T> injected = statement;
+    final List<Object> allSideEffects = new ArrayList<>();
+    for (final Injector injector : injectors) {
+      if (injector instanceof InjectorWithSideEffects) {
+        final ConfiguredStatementWithSideEffects<T> wse =
+                ((InjectorWithSideEffects) injector).injectWithSideEffects(injected);
+        injected = wse.getStatement();
+        allSideEffects.addAll(wse.getSideEffects());
+      } else {
+        injected = injector.inject(injected);
+      }
+    }
+    return new ConfiguredStatementWithSideEffects<>(injected, allSideEffects);
+  }
+
+  @Override
+  public <T extends Statement> void revertSideEffects(
+      final ConfiguredStatementWithSideEffects<T> statement
+  ) {
+    for (final Injector injector : injectors) {
+      if (injector instanceof InjectorWithSideEffects) {
+        ((InjectorWithSideEffects) injector).revertSideEffects(statement);
+      }
+    }
   }
 }

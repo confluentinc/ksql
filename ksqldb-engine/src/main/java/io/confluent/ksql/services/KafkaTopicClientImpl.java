@@ -91,7 +91,7 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
   }
 
   @Override
-  public void createTopic(
+  public boolean createTopic(
       final String topic,
       final int numPartitions,
       final short replicationFactor,
@@ -102,7 +102,7 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
 
     if (isTopicExists(topic)) {
       validateTopicProperties(topic, numPartitions, replicationFactor, retentionMs);
-      return;
+      return false;
     }
 
     final short resolvedReplicationFactor = replicationFactor == TopicProperties.DEFAULT_REPLICAS
@@ -124,6 +124,8 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
               createOptions
           ).all().get(),
           ExecutorUtil.RetryBehaviour.ON_RETRYABLE);
+      return true;
+
     } catch (final InterruptedException e) {
       Thread.currentThread().interrupt();
       throw new KafkaResponseGetFailedException(
@@ -134,6 +136,7 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
       // ensure that it matches the partition count, replication factor, and retention
       // before returning success
       validateTopicProperties(topic, numPartitions, replicationFactor, retentionMs);
+      return false;
 
     } catch (final TopicAuthorizationException e) {
       throw new KsqlTopicAuthorizationException(

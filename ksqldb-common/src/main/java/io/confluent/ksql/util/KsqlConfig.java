@@ -40,6 +40,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.apache.kafka.clients.CommonClientConfigs;
 import org.apache.kafka.clients.admin.AdminClientConfig;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
@@ -50,6 +51,7 @@ import org.apache.kafka.common.config.ConfigDef.Importance;
 import org.apache.kafka.common.config.ConfigDef.Type;
 import org.apache.kafka.common.config.ConfigDef.ValidString;
 import org.apache.kafka.common.config.ConfigDef.Validator;
+import org.apache.kafka.common.config.ConfigException;
 import org.apache.kafka.common.config.SslConfigs;
 import org.apache.kafka.common.config.TopicConfig;
 import org.apache.kafka.common.utils.AppInfoParser;
@@ -68,6 +70,17 @@ public class KsqlConfig extends AbstractConfig {
 
   static final String KSQ_FUNCTIONS_GLOBAL_PROPERTY_PREFIX =
       KSQL_FUNCTIONS_PROPERTY_PREFIX + "_global_.";
+
+  public static final String KSQL_DEPLOYMENT_TYPE_CONFIG =
+      KSQL_CONFIG_PROPERTY_PREFIX + "deployment.type";
+
+  public static enum DeploymentType {
+    onprem,
+    cloud
+  }
+
+  public static final String KSQL_DEPLOYMENT_TYPE_DOC =
+      "The type of deployment for ksql. Value must be one of " + Arrays.asList(DeploymentType.values());
 
   public static final String METRIC_REPORTER_CLASSES_CONFIG =
       CommonClientConfigs.METRIC_REPORTER_CLASSES_CONFIG;
@@ -855,10 +868,32 @@ public class KsqlConfig extends AbstractConfig {
     return generation == ConfigGeneration.CURRENT ? CURRENT_DEF : LEGACY_DEF;
   }
 
+  private static DeploymentType parseDeploymentType(Object value) {
+    try {
+      return DeploymentType.valueOf(value.toString());
+    } catch (IllegalArgumentException e) {
+      throw new ConfigException(
+          "'" + KSQL_DEPLOYMENT_TYPE_CONFIG + "' must be one of: "
+          + Arrays.asList(DeploymentType.values())
+          + " however we found '" + value + "'"
+      );
+    }
+  }
+
   // CHECKSTYLE_RULES.OFF: MethodLength
   private static ConfigDef buildConfigDef(final ConfigGeneration generation) {
     final ConfigDef configDef = new ConfigDef()
         .define(
+            KSQL_DEPLOYMENT_TYPE_CONFIG,
+            ConfigDef.Type.STRING,
+            "on-prem",
+            ConfigDef.LambdaValidator.with(
+                (name, value) -> parseDeploymentType(value),
+                () -> Arrays.asList(DeploymentType.values()).toString()
+            ),
+            ConfigDef.Importance.LOW,
+            KSQL_DEPLOYMENT_TYPE_DOC
+        ).define(
             KSQL_SERVICE_ID_CONFIG,
             ConfigDef.Type.STRING,
             KSQL_SERVICE_ID_DEFAULT,
@@ -867,8 +902,7 @@ public class KsqlConfig extends AbstractConfig {
                 + "all implicitly named resources created by this instance in Kafka. "
                 + "By convention, the id should end in a seperator character of some form, e.g. "
                 + "a dash or underscore, as this makes identifiers easier to read."
-        )
-        .define(
+        ).define(
             KSQL_TRANSIENT_QUERY_NAME_PREFIX_CONFIG,
             ConfigDef.Type.STRING,
             KSQL_TRANSIENT_QUERY_NAME_PREFIX_DEFAULT,
@@ -1684,14 +1718,18 @@ public class KsqlConfig extends AbstractConfig {
     this.ksqlStreamConfigProps = ksqlStreamConfigProps;
   }
 
-  public Map<String, Object> getKsqlStreamConfigProps(final String applicationId) {
+  public Map<String, Object> getKsqlStreamConfigProps(final String applicationId, boolean addConfluentMetricsContextConfigsKafka) {
     final Map<String, Object> map = new HashMap<>(getKsqlStreamConfigProps());
     map.put(
         MetricCollectors.RESOURCE_LABEL_PREFIX
             + StreamsConfig.APPLICATION_ID_CONFIG,
         applicationId
     );
-    map.putAll(addConfluentMetricsContextConfigsKafka(Collections.emptyMap()));
+
+    if (addConfluentMetricsContextConfigsKafka) {
+      map.putAll(addConfluentMetricsContextConfigsKafka(Collections.emptyMap()));
+    }
+
     return Collections.unmodifiableMap(map);
   }
 

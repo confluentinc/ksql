@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.query;
 
+import static io.confluent.ksql.util.KsqlConfig.KSQL_DEPLOYMENT_TYPE_CONFIG;
 import static io.confluent.ksql.util.KsqlConfig.KSQL_SHUTDOWN_TIMEOUT_MS_CONFIG;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -528,8 +529,15 @@ final class QueryBuilder {
       final KsqlConfig config,
       final ProcessingLogContext processingLogContext
   ) {
-    final Map<String, Object> newStreamsProperties
-        = new HashMap<>(config.getKsqlStreamConfigProps(applicationId));
+    final Map<String, Object> newStreamsProperties;
+
+    if (Objects.equals(config.getString(KSQL_DEPLOYMENT_TYPE_CONFIG),
+        KsqlConfig.DeploymentType.cloud.toString())) {
+      newStreamsProperties = new HashMap<>(config.getKsqlStreamConfigProps(applicationId, false));
+    } else {
+      newStreamsProperties = new HashMap<>(config.getKsqlStreamConfigProps(applicationId, true));
+    }
+
     newStreamsProperties.put(StreamsConfig.APPLICATION_ID_CONFIG, applicationId);
 
     // get logger

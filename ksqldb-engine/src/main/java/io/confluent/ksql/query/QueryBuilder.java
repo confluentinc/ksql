@@ -529,13 +529,12 @@ final class QueryBuilder {
       final KsqlConfig config,
       final ProcessingLogContext processingLogContext
   ) {
-    final Map<String, Object> newStreamsProperties;
+    Map<String, Object> newStreamsProperties = new HashMap<>(config.getKsqlStreamConfigProps(applicationId));
 
-    if (Objects.equals(config.getString(KSQL_DEPLOYMENT_TYPE_CONFIG),
-        KsqlConfig.DeploymentType.cloud.toString())) {
-      newStreamsProperties = new HashMap<>(config.getKsqlStreamConfigProps(applicationId, false));
-    } else {
-      newStreamsProperties = new HashMap<>(config.getKsqlStreamConfigProps(applicationId, true));
+    if (!KsqlConfig.DeploymentType.confluent.toString().equals(config.getString(KSQL_DEPLOYMENT_TYPE_CONFIG))) {
+      // Reassign here to make unmodifiable map modifiable
+      newStreamsProperties = new HashMap<>(newStreamsProperties);
+      newStreamsProperties.putAll(config.addConfluentMetricsContextConfigsKafka(Collections.emptyMap()));
     }
 
     newStreamsProperties.put(StreamsConfig.APPLICATION_ID_CONFIG, applicationId);

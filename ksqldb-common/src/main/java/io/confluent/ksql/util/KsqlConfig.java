@@ -75,8 +75,8 @@ public class KsqlConfig extends AbstractConfig {
       KSQL_CONFIG_PROPERTY_PREFIX + "deployment.type";
 
   public static enum DeploymentType {
-    onprem,
-    cloud
+    selfManaged,
+    confluent
   }
 
   public static final String KSQL_DEPLOYMENT_TYPE_DOC =
@@ -886,7 +886,7 @@ public class KsqlConfig extends AbstractConfig {
         .define(
             KSQL_DEPLOYMENT_TYPE_CONFIG,
             ConfigDef.Type.STRING,
-            "on-prem",
+            DeploymentType.confluent.name(),
             ConfigDef.LambdaValidator.with(
                 (name, value) -> parseDeploymentType(value),
                 () -> Arrays.asList(DeploymentType.values()).toString()
@@ -1718,17 +1718,13 @@ public class KsqlConfig extends AbstractConfig {
     this.ksqlStreamConfigProps = ksqlStreamConfigProps;
   }
 
-  public Map<String, Object> getKsqlStreamConfigProps(final String applicationId, boolean addConfluentMetricsContextConfigsKafka) {
+  public Map<String, Object> getKsqlStreamConfigProps(final String applicationId) {
     final Map<String, Object> map = new HashMap<>(getKsqlStreamConfigProps());
     map.put(
         MetricCollectors.RESOURCE_LABEL_PREFIX
             + StreamsConfig.APPLICATION_ID_CONFIG,
         applicationId
     );
-
-    if (addConfluentMetricsContextConfigsKafka) {
-      map.putAll(addConfluentMetricsContextConfigsKafka(Collections.emptyMap()));
-    }
 
     return Collections.unmodifiableMap(map);
   }

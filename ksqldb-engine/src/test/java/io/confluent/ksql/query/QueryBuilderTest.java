@@ -224,7 +224,7 @@ public class QueryBuilderTest {
     when(ksqlMaterializationFactory.create(any(), any(), any(), any())).thenReturn(materialization);
     when(processingLogContext.getLoggerFactory()).thenReturn(processingLoggerFactory);
     when(processingLoggerFactory.getLogger(any(), anyMap())).thenReturn(processingLogger);
-    when(ksqlConfig.getKsqlStreamConfigProps(anyString(), anyBoolean())).thenReturn(Collections.emptyMap());
+    when(ksqlConfig.getKsqlStreamConfigProps(anyString())).thenReturn(Collections.emptyMap());
     when(ksqlConfig.getString(KsqlConfig.KSQL_CUSTOM_METRICS_TAGS)).thenReturn("");
     when(ksqlConfig.getString(KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG))
         .thenReturn(PERSISTENT_PREFIX);
@@ -664,7 +664,7 @@ public class QueryBuilderTest {
     // Given:
     final Map<String, Object> properties =
         Collections.singletonMap(StreamsConfig.TOPOLOGY_OPTIMIZATION_CONFIG, value);
-    when(ksqlConfig.getKsqlStreamConfigProps(anyString(), anyBoolean())).thenReturn(properties);
+    when(ksqlConfig.getKsqlStreamConfigProps(anyString())).thenReturn(properties);
 
     // When:
     final PersistentQueryMetadata queryMetadata = buildPersistentQuery(
@@ -716,7 +716,7 @@ public class QueryBuilderTest {
   @Test
   public void shouldAddMetricsInterceptorsToExistingList() {
     // Given:
-    when(ksqlConfig.getKsqlStreamConfigProps(anyString(), anyBoolean())).thenReturn(ImmutableMap.of(
+    when(ksqlConfig.getKsqlStreamConfigProps(anyString())).thenReturn(ImmutableMap.of(
         StreamsConfig.consumerPrefix(ConsumerConfig.INTERCEPTOR_CLASSES_CONFIG),
         ImmutableList.of(DummyConsumerInterceptor.class.getName()),
         StreamsConfig.producerPrefix(ConsumerConfig.INTERCEPTOR_CLASSES_CONFIG),
@@ -737,7 +737,7 @@ public class QueryBuilderTest {
   @Test
   public void shouldAddMetricsInterceptorsToExistingString() {
     // When:
-    when(ksqlConfig.getKsqlStreamConfigProps(anyString(), anyBoolean())).thenReturn(ImmutableMap.of(
+    when(ksqlConfig.getKsqlStreamConfigProps(anyString())).thenReturn(ImmutableMap.of(
         StreamsConfig.consumerPrefix(ConsumerConfig.INTERCEPTOR_CLASSES_CONFIG),
         DummyConsumerInterceptor.class.getName(),
         StreamsConfig.producerPrefix(ConsumerConfig.INTERCEPTOR_CLASSES_CONFIG),
@@ -759,7 +759,7 @@ public class QueryBuilderTest {
   @SuppressWarnings("unchecked")
   public void shouldAddMetricsInterceptorsToExistingStringList() {
     // When:
-    when(ksqlConfig.getKsqlStreamConfigProps(anyString(), anyBoolean())).thenReturn(ImmutableMap.of(
+    when(ksqlConfig.getKsqlStreamConfigProps(anyString())).thenReturn(ImmutableMap.of(
         StreamsConfig.consumerPrefix(ConsumerConfig.INTERCEPTOR_CLASSES_CONFIG),
         DummyConsumerInterceptor.class.getName()
             + ","

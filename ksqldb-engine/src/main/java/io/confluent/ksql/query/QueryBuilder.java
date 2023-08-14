@@ -531,6 +531,7 @@ final class QueryBuilder {
   ) {
     Map<String, Object> newStreamsProperties = new HashMap<>(config.getKsqlStreamConfigProps(applicationId));
 
+    // Streams client metrics aren't used in Confluent deployment
     if (!KsqlConfig.DeploymentType.confluent.toString().equals(config.getString(KSQL_DEPLOYMENT_TYPE_CONFIG))) {
       // Reassign here to make unmodifiable map modifiable
       newStreamsProperties = new HashMap<>(newStreamsProperties);

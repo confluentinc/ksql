@@ -74,7 +74,7 @@ public class KsqlConfig extends AbstractConfig {
   public static final String KSQL_DEPLOYMENT_TYPE_CONFIG =
       KSQL_CONFIG_PROPERTY_PREFIX + "deployment.type";
 
-  public static enum DeploymentType {
+  public enum DeploymentType {
     selfManaged,
     confluent
   }
@@ -886,7 +886,7 @@ public class KsqlConfig extends AbstractConfig {
         .define(
             KSQL_DEPLOYMENT_TYPE_CONFIG,
             ConfigDef.Type.STRING,
-            DeploymentType.confluent.name(),
+            DeploymentType.selfManaged.name(),
             ConfigDef.LambdaValidator.with(
                 (name, value) -> parseDeploymentType(value),
                 () -> Arrays.asList(DeploymentType.values()).toString()
@@ -1586,7 +1586,7 @@ public class KsqlConfig extends AbstractConfig {
     return result;
   }
 
-  private boolean isKeyPrefixed(final String key, final String prefix) {
+  private static boolean isKeyPrefixed(final String key, final String prefix) {
     Objects.requireNonNull(key);
     Objects.requireNonNull(prefix);
     return key.startsWith(prefix) && key.length() > prefix.length();
@@ -1644,6 +1644,12 @@ public class KsqlConfig extends AbstractConfig {
     final Map<String, ConfigValue> streamConfigProps = new HashMap<>();
     applyStreamsConfig(baseStreamConfig, streamConfigProps);
     applyStreamsConfig(overrides, streamConfigProps);
+
+    // Streams client metrics aren't used in Confluent deployment
+    if (streamConfigProps.get(KSQL_DEPLOYMENT_TYPE_CONFIG).value.equals(DeploymentType.confluent.name())) {
+      streamConfigProps.entrySet().stream().filter(e -> isKeyPrefixed(e.getKey(), TELEMETRY_PREFIX)).forEach(streamConfigProps::remove);
+    }
+
     return ImmutableMap.copyOf(streamConfigProps);
   }
 

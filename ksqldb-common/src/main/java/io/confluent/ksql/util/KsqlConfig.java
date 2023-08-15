@@ -89,6 +89,8 @@ public class KsqlConfig extends AbstractConfig {
   public static final String METRIC_REPORTER_CLASSES_DOC =
       CommonClientConfigs.METRIC_REPORTER_CLASSES_DOC;
 
+  private static final String TELEMETRY_REPORTER_CLASS = "io.confluent.telemetry.reporter.TelemetryReporter";
+
   private static final String TELEMETRY_PREFIX = "confluent.telemetry";
   private static final Set<String> REPORTER_CONFIGS_PREFIXES =
       ImmutableSet.of(
@@ -1587,7 +1589,7 @@ public class KsqlConfig extends AbstractConfig {
     return result;
   }
 
-  private static boolean isKeyPrefixed(final String key, final String prefix) {
+  private boolean isKeyPrefixed(final String key, final String prefix) {
     Objects.requireNonNull(key);
     Objects.requireNonNull(prefix);
     return key.startsWith(prefix) && key.length() > prefix.length();
@@ -1645,7 +1647,6 @@ public class KsqlConfig extends AbstractConfig {
     final Map<String, ConfigValue> streamConfigProps = new HashMap<>();
     applyStreamsConfig(baseStreamConfig, streamConfigProps);
     applyStreamsConfig(overrides, streamConfigProps);
-
     return ImmutableMap.copyOf(streamConfigProps);
   }
 
@@ -1723,7 +1724,7 @@ public class KsqlConfig extends AbstractConfig {
   private void possiblyConfigureConfluentTelemetry(Map<String, Object> map) {
     if (KsqlConfig.DeploymentType.confluent.toString().equals(getString(KSQL_DEPLOYMENT_TYPE_CONFIG))) {
       List<String> metricReporters = new ArrayList<>(getList(METRIC_REPORTER_CLASSES_CONFIG));;
-      metricReporters.remove("io.confluent.telemetry.reporter.TelemetryReporter");
+      metricReporters.remove(TELEMETRY_REPORTER_CLASS);
       map.put(METRIC_REPORTER_CLASSES_CONFIG, metricReporters);
     } else {
       map.putAll(addConfluentMetricsContextConfigsKafka(Collections.emptyMap()));

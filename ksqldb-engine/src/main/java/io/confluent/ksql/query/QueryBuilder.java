@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.query;
 
-import static io.confluent.ksql.util.KsqlConfig.KSQL_DEPLOYMENT_TYPE_CONFIG;
 import static io.confluent.ksql.util.KsqlConfig.KSQL_SHUTDOWN_TIMEOUT_MS_CONFIG;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -98,12 +97,15 @@ import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.KTable;
 import org.apache.kafka.streams.processor.internals.namedtopology.NamedTopology;
 import org.apache.kafka.streams.processor.internals.namedtopology.NamedTopologyBuilder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A builder for creating queries metadata.
  */
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 final class QueryBuilder {
+  private static final Logger LOGGER = LoggerFactory.getLogger(QueryBuilder.class);
 
   private static final String KSQL_THREAD_EXCEPTION_UNCAUGHT_LOGGER
       = "ksql.logger.thread.exception.uncaught";
@@ -529,15 +531,8 @@ final class QueryBuilder {
       final KsqlConfig config,
       final ProcessingLogContext processingLogContext
   ) {
-    Map<String, Object> newStreamsProperties = new HashMap<>(config.getKsqlStreamConfigProps(applicationId));
-
-    // Streams client metrics aren't used in Confluent deployment
-    if (!KsqlConfig.DeploymentType.confluent.toString().equals(config.getString(KSQL_DEPLOYMENT_TYPE_CONFIG))) {
-      // Reassign here to make unmodifiable map modifiable
-      newStreamsProperties = new HashMap<>(newStreamsProperties);
-      newStreamsProperties.putAll(config.addConfluentMetricsContextConfigsKafka(Collections.emptyMap()));
-    }
-
+    final Map<String, Object> newStreamsProperties
+        = new HashMap<>(config.getKsqlStreamConfigProps(applicationId));
     newStreamsProperties.put(StreamsConfig.APPLICATION_ID_CONFIG, applicationId);
 
     // get logger

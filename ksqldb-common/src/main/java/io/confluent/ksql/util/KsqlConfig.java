@@ -31,16 +31,17 @@ import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.model.SemanticVersion;
 import io.confluent.ksql.query.QueryError;
 import io.confluent.ksql.testing.EffectivelyImmutable;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import org.apache.kafka.clients.CommonClientConfigs;
 import org.apache.kafka.clients.admin.AdminClientConfig;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
@@ -1645,11 +1646,6 @@ public class KsqlConfig extends AbstractConfig {
     applyStreamsConfig(baseStreamConfig, streamConfigProps);
     applyStreamsConfig(overrides, streamConfigProps);
 
-    // Streams client metrics aren't used in Confluent deployment
-    if (streamConfigProps.get(KSQL_DEPLOYMENT_TYPE_CONFIG).value.equals(DeploymentType.confluent.name())) {
-      streamConfigProps.entrySet().stream().filter(e -> isKeyPrefixed(e.getKey(), TELEMETRY_PREFIX)).forEach(streamConfigProps::remove);
-    }
-
     return ImmutableMap.copyOf(streamConfigProps);
   }
 
@@ -1724,6 +1720,16 @@ public class KsqlConfig extends AbstractConfig {
     this.ksqlStreamConfigProps = ksqlStreamConfigProps;
   }
 
+  private void possiblyConfigureConfluentTelemetry(Map<String, Object> map) {
+    if (KsqlConfig.DeploymentType.confluent.toString().equals(getString(KSQL_DEPLOYMENT_TYPE_CONFIG))) {
+      List<String> metricReporters = new ArrayList<>(getList(METRIC_REPORTER_CLASSES_CONFIG));;
+      metricReporters.remove("io.confluent.telemetry.reporter.TelemetryReporter");
+      map.put(METRIC_REPORTER_CLASSES_CONFIG, metricReporters);
+    } else {
+      map.putAll(addConfluentMetricsContextConfigsKafka(Collections.emptyMap()));
+    }
+  }
+
   public Map<String, Object> getKsqlStreamConfigProps(final String applicationId) {
     final Map<String, Object> map = new HashMap<>(getKsqlStreamConfigProps());
     map.put(
@@ -1732,6 +1738,8 @@ public class KsqlConfig extends AbstractConfig {
         applicationId
     );
 
+    // Streams client metrics aren't used in Confluent deployment
+    possiblyConfigureConfluentTelemetry(map);
     return Collections.unmodifiableMap(map);
   }
 
@@ -1750,21 +1758,24 @@ public class KsqlConfig extends AbstractConfig {
   public Map<String, Object> getKsqlAdminClientConfigProps() {
     final Map<String, Object> map = new HashMap<>();
     map.putAll(getConfigsFor(AdminClientConfig.configNames()));
-    map.putAll(addConfluentMetricsContextConfigsKafka(Collections.emptyMap()));
+    // admin client metrics aren't used in Confluent deployment
+    possiblyConfigureConfluentTelemetry(map);
     return Collections.unmodifiableMap(map);
   }
 
   public Map<String, Object> getProducerClientConfigProps() {
     final Map<String, Object> map = new HashMap<>();
     map.putAll(getConfigsFor(ProducerConfig.configNames()));
-    map.putAll(addConfluentMetricsContextConfigsKafka(Collections.emptyMap()));
+    // producer client metrics aren't used in Confluent deployment
+    possiblyConfigureConfluentTelemetry(map);
     return Collections.unmodifiableMap(map);
   }
 
   public Map<String, Object> getConsumerClientConfigProps() {
     final Map<String, Object> map = new HashMap<>();
     map.putAll(getConfigsFor(ConsumerConfig.configNames()));
-    map.putAll(addConfluentMetricsContextConfigsKafka(Collections.emptyMap()));
+    // consumer client metrics aren't used in Confluent deployment
+    possiblyConfigureConfluentTelemetry(map);
     return Collections.unmodifiableMap(map);
   }
 

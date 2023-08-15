@@ -97,15 +97,12 @@ import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.KTable;
 import org.apache.kafka.streams.processor.internals.namedtopology.NamedTopology;
 import org.apache.kafka.streams.processor.internals.namedtopology.NamedTopologyBuilder;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * A builder for creating queries metadata.
  */
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 final class QueryBuilder {
-  private static final Logger LOGGER = LoggerFactory.getLogger(QueryBuilder.class);
 
   private static final String KSQL_THREAD_EXCEPTION_UNCAUGHT_LOGGER
       = "ksql.logger.thread.exception.uncaught";

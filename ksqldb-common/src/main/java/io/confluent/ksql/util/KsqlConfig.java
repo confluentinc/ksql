@@ -81,7 +81,8 @@ public class KsqlConfig extends AbstractConfig {
   }
 
   public static final String KSQL_DEPLOYMENT_TYPE_DOC =
-      "The type of deployment for ksql. Value must be one of " + Arrays.asList(DeploymentType.values());
+      "The type of deployment for ksql. Value must be one of "
+              + Arrays.asList(DeploymentType.values());
 
   public static final String METRIC_REPORTER_CLASSES_CONFIG =
       CommonClientConfigs.METRIC_REPORTER_CLASSES_CONFIG;
@@ -89,7 +90,8 @@ public class KsqlConfig extends AbstractConfig {
   public static final String METRIC_REPORTER_CLASSES_DOC =
       CommonClientConfigs.METRIC_REPORTER_CLASSES_DOC;
 
-  private static final String TELEMETRY_REPORTER_CLASS = "io.confluent.telemetry.reporter.TelemetryReporter";
+  private static final String TELEMETRY_REPORTER_CLASS =
+          "io.confluent.telemetry.reporter.TelemetryReporter";
 
   private static final String TELEMETRY_PREFIX = "confluent.telemetry";
   private static final Set<String> REPORTER_CONFIGS_PREFIXES =
@@ -871,7 +873,7 @@ public class KsqlConfig extends AbstractConfig {
     return generation == ConfigGeneration.CURRENT ? CURRENT_DEF : LEGACY_DEF;
   }
 
-  private static DeploymentType parseDeploymentType(Object value) {
+  private static DeploymentType parseDeploymentType(final Object value) {
     try {
       return DeploymentType.valueOf(value.toString());
     } catch (IllegalArgumentException e) {
@@ -1721,9 +1723,10 @@ public class KsqlConfig extends AbstractConfig {
     this.ksqlStreamConfigProps = ksqlStreamConfigProps;
   }
 
-  private void possiblyConfigureConfluentTelemetry(Map<String, Object> map) {
-    if (KsqlConfig.DeploymentType.confluent.toString().equals(getString(KSQL_DEPLOYMENT_TYPE_CONFIG))) {
-      List<String> metricReporters = new ArrayList<>(getList(METRIC_REPORTER_CLASSES_CONFIG));;
+  private void possiblyConfigureConfluentTelemetry(final Map<String, Object> map) {
+    if (KsqlConfig.DeploymentType.confluent.toString()
+            .equals(getString(KSQL_DEPLOYMENT_TYPE_CONFIG))) {
+      final List<String> metricReporters = new ArrayList<>(getList(METRIC_REPORTER_CLASSES_CONFIG));
       metricReporters.remove(TELEMETRY_REPORTER_CLASS);
       map.put(METRIC_REPORTER_CLASSES_CONFIG, metricReporters);
     } else {

@@ -18,6 +18,7 @@ package io.confluent.ksql.services;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -36,6 +37,7 @@ import io.confluent.ksql.test.util.TestMethods;
 import io.confluent.ksql.test.util.TestMethods.TestCase;
 import java.util.Collection;
 import java.util.Objects;
+
 import org.apache.avro.Schema;
 import org.apache.hc.core5.http.HttpStatus;
 import org.junit.Before;
@@ -93,9 +95,12 @@ public final class SandboxedSchemaRegistryClientTest {
           mock(SchemaRegistryClient.class));
     }
 
-    @Test(expected = UnsupportedOperationException.class)
-    public void shouldThrowOnUnsupportedOperation() throws Throwable {
-      testCase.invokeMethod(sandboxedSchemaRegistryClient);
+    @Test
+    public void shouldThrowOnUnsupportedOperation() {
+      assertThrows(
+          UnsupportedOperationException.class, // thrown from .get() when the future completes exceptionally
+          () -> testCase.invokeMethod(sandboxedSchemaRegistryClient)
+      );
     }
   }
 

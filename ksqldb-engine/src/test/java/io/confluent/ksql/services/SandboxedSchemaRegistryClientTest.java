@@ -90,9 +90,12 @@ public final class SandboxedSchemaRegistryClientTest {
           mock(SchemaRegistryClient.class));
     }
 
-    @Test(expected = UnsupportedOperationException.class)
-    public void shouldThrowOnUnsupportedOperation() throws Throwable {
-      testCase.invokeMethod(sandboxedSchemaRegistryClient);
+    @Test
+    public void shouldThrowOnUnsupportedOperation() {
+      assertThrows(
+          UnsupportedOperationException.class,
+          () -> testCase.invokeMethod(sandboxedSchemaRegistryClient)
+      );
     }
   }
 

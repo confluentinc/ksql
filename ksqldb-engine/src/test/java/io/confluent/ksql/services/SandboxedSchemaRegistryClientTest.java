@@ -98,7 +98,7 @@ public final class SandboxedSchemaRegistryClientTest {
     @Test
     public void shouldThrowOnUnsupportedOperation() {
       assertThrows(
-          UnsupportedOperationException.class, // thrown from .get() when the future completes exceptionally
+          UnsupportedOperationException.class,
           () -> testCase.invokeMethod(sandboxedSchemaRegistryClient)
       );
     }

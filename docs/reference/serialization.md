@@ -320,8 +320,9 @@ used.
 
 #### Known Limitations
 
-The following keywords aren't supported in JSON schema fields and if present
-in your schema will cause serialization errors.
+The following keywords aren't supported in the VALUE_SCHEMA_ID field for INSERT
+INTO and CREATE TABLE AS SELECT statements, and if present in your JSON schema
+will cause serialization errors. They are supported in CREATE statements.
 
 - `additionalProperties: false`
 - `enum`

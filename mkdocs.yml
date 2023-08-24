@@ -264,10 +264,10 @@ extra:
         zk: ZooKeeper
 
         # Build-related string tokens
-        kafkaversion: 3.4
-        ksqldbversion: 0.29.0
-        cprelease: 7.4.0
-        releasepostbranch: 7.4.0-post
+        kafkaversion: 3.5
+        ksqldbversion: 0.30.0
+        cprelease: 7.5.0
+        releasepostbranch: 7.5.0-post
         scalaversion: 2.13
         voluble_version: 0.3.1
         jdbc_connector_version: 10.0.0

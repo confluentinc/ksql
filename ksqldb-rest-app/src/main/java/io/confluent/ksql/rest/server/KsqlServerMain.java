@@ -31,6 +31,8 @@ import io.confluent.ksql.util.KsqlServerException;
 import java.io.File;
 import java.io.IOException;
 import java.time.Instant;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -38,6 +40,10 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
+import org.apache.kafka.clients.CommonClientConfigs;
+import org.apache.kafka.common.config.internals.ConfluentConfigs;
+import org.apache.kafka.common.security.auth.SecurityProtocol;
+import org.apache.kafka.common.security.fips.FipsValidator;
 import org.apache.kafka.streams.StreamsConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -68,7 +74,8 @@ public class KsqlServerMain {
 
       final String installDir = properties.getOrDefault("ksql.server.install.dir", "");
       final KsqlConfig ksqlConfig = new KsqlConfig(properties);
-      validateConfig(ksqlConfig);
+      final KsqlRestConfig restConfig = new KsqlRestConfig(properties);
+      validateConfig(ksqlConfig, restConfig);
       QueryLogger.configure(ksqlConfig);
 
       final Optional<String> queriesFile = serverOptions.getQueriesFile(properties);
@@ -165,7 +172,8 @@ public class KsqlServerMain {
     return notified.get();
   }
 
-  private static void validateConfig(final KsqlConfig config) {
+  private static void validateConfig(final KsqlConfig config, final KsqlRestConfig restConfig) {
+    validateFips(config, restConfig);
     validateStateDir(config);
     validateDefaultTopicFormats(config);
   }
@@ -181,6 +189,34 @@ public class KsqlServerMain {
   static void validateDefaultTopicFormats(final KsqlConfig config) {
     validateTopicFormat(config, KsqlConfig.KSQL_DEFAULT_KEY_FORMAT_CONFIG, "key");
     validateTopicFormat(config, KsqlConfig.KSQL_DEFAULT_VALUE_FORMAT_CONFIG, "value");
+  }
+
+  private static void validateFips(final KsqlConfig config, final KsqlRestConfig restConfig) {
+    if (config.getBoolean(ConfluentConfigs.ENABLE_FIPS_CONFIG)) {
+      final FipsValidator fipsValidator = ConfluentConfigs.buildFipsValidator();
+
+      final Map<String, List<String>> fipsTlsMap = new HashMap<>();
+      fipsTlsMap.put(KsqlRestConfig.SSL_CIPHER_SUITES_CONFIG,
+          restConfig.getList(KsqlRestConfig.SSL_CIPHER_SUITES_CONFIG));
+      fipsTlsMap.put(KsqlRestConfig.SSL_ENABLED_PROTOCOLS_CONFIG,
+          restConfig.getList(KsqlRestConfig.SSL_ENABLED_PROTOCOLS_CONFIG));
+
+      final Map<String, SecurityProtocol> securityProtocolMap = new HashMap<>();
+      final String brokerSecurityProtocol =
+          config.getString(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG);
+      securityProtocolMap.put(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG,
+          SecurityProtocol.forName(brokerSecurityProtocol));
+      try {
+        fipsValidator.validateFipsTls(fipsTlsMap);
+        fipsValidator.validateFipsBrokerProtocol(securityProtocolMap);
+        fipsValidator.validateRestProtocol(restConfig.getString(
+            KsqlRestConfig.ADVERTISED_LISTENER_CONFIG));
+        log.info("FIPS mode enabled for ksqlDB!");
+      } catch (final Exception e) {
+        log.info("SSL configs violates FIPS!");
+        throw new RuntimeException("SSL configs violates FIPS!");
+      }
+    }
   }
 
   private static void validateTopicFormat(

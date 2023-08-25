@@ -1653,7 +1653,8 @@ public class KsqlConfig extends AbstractConfig {
   }
 
   private final Map<String, ConfigValue> ksqlStreamConfigProps;
-  private static final AppInfoParser.AppInfo appInfo = new AppInfoParser.AppInfo(System.currentTimeMillis());
+  private static final AppInfoParser.AppInfo appInfo
+      = new AppInfoParser.AppInfo(System.currentTimeMillis());
 
 
   public KsqlConfig(final Map<?, ?> props) {

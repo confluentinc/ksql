@@ -31,6 +31,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.regex.Matcher;
 import org.apache.kafka.common.MetricName;
 import org.apache.kafka.common.config.ConfigException;
@@ -56,6 +58,7 @@ public class ThroughputMetricsReporter implements MetricsReporter {
 
   private static final Map<String, Map<String, Map<MetricName, ThroughputTotalMetric>>> metrics =
       new HashMap<>();
+  private static final Lock lock = new ReentrantLock();
   private static final Map<String, String> customTags = new HashMap<>();
   private Metrics metricRegistry;
 
@@ -82,11 +85,16 @@ public class ThroughputMetricsReporter implements MetricsReporter {
           || !StreamsMetricsImpl.TOPIC_LEVEL_GROUP.equals(metric.metricName().group())) {
       return;
     }
-    addMetric(
-        metric,
-        getQueryId(metric),
-        getTopic(metric)
-    );
+    try {
+      lock.lock();
+      addMetric(
+          metric,
+          getQueryId(metric),
+          getTopic(metric)
+      );
+    } finally {
+      lock.unlock();
+    }
   }
 
   private synchronized void addMetric(
@@ -97,12 +105,8 @@ public class ThroughputMetricsReporter implements MetricsReporter {
     final MetricName throughputTotalMetricName =
           getThroughputTotalMetricName(queryId, topic, metric.metricName());
     LOGGER.debug("Adding metric {}", throughputTotalMetricName);
-    if (!metrics.containsKey(queryId)) {
-      metrics.put(queryId, new HashMap<>());
-    }
-    if (!metrics.get(queryId).containsKey(topic)) {
-      metrics.get(queryId).put(topic, new HashMap<>());
-    }
+    metrics.putIfAbsent(queryId, new HashMap<>());
+    metrics.get(queryId).putIfAbsent(topic, new HashMap<>());
 
     final ThroughputTotalMetric existingThroughputMetric =
           metrics.get(queryId).get(topic).get(throughputTotalMetricName);
@@ -127,12 +131,16 @@ public class ThroughputMetricsReporter implements MetricsReporter {
           || !StreamsMetricsImpl.TOPIC_LEVEL_GROUP.equals(metric.metricName().group())) {
       return;
     }
-
-    removeMetric(
-        metric,
-        getQueryId(metric),
-        getTopic(metric)
-    );
+    try {
+      lock.lock();
+      removeMetric(
+          metric,
+          getQueryId(metric),
+          getTopic(metric)
+      );
+    } finally {
+      lock.unlock();
+    }
   }
 
   private synchronized void removeMetric(

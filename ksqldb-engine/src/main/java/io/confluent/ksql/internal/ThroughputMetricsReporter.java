@@ -54,9 +54,9 @@ public class ThroughputMetricsReporter implements MetricsReporter {
   private static final Set<String> THROUGHPUT_METRIC_NAMES =
       mkSet(RECORDS_CONSUMED, BYTES_CONSUMED, RECORDS_PRODUCED, BYTES_PRODUCED);
 
-  private static final Map<String, Map<String, Map<MetricName, ThroughputTotalMetric>>> metrics =
+  private final Map<String, Map<String, Map<MetricName, ThroughputTotalMetric>>> metrics =
       new HashMap<>();
-  private static final Map<String, String> customTags = new HashMap<>();
+  private final Map<String, String> customTags = new HashMap<>();
   private Metrics metricRegistry;
 
   @Override
@@ -64,7 +64,7 @@ public class ThroughputMetricsReporter implements MetricsReporter {
   }
 
   @VisibleForTesting
-  static void reset() {
+  void reset() {
     metrics.clear();
   }
 

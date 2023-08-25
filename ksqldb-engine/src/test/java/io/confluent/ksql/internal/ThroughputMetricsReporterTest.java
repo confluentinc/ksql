@@ -98,11 +98,6 @@ public class ThroughputMetricsReporterTest {
         )
     );
   }
-
-  @Before
-  public void cleanUp() {
-    ThroughputMetricsReporter.reset();
-  }
     
   @Test
   public void shouldAddNewMeasurableForAllThroughputMetricsTypes() {

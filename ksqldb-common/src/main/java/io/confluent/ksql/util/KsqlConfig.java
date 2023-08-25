@@ -1653,6 +1653,8 @@ public class KsqlConfig extends AbstractConfig {
   }
 
   private final Map<String, ConfigValue> ksqlStreamConfigProps;
+  private static final AppInfoParser.AppInfo appInfo = new AppInfoParser.AppInfo(System.currentTimeMillis());
+
 
   public KsqlConfig(final Map<?, ?> props) {
     this(ConfigGeneration.CURRENT, props);
@@ -1730,7 +1732,7 @@ public class KsqlConfig extends AbstractConfig {
       metricReporters.remove(TELEMETRY_REPORTER_CLASS);
       map.put(METRIC_REPORTER_CLASSES_CONFIG, metricReporters);
     } else {
-      map.putAll(addConfluentMetricsContextConfigsKafka(Collections.emptyMap()));
+      map.putAll(addConfluentMetricsContextConfigsKafka(Collections.emptyMap(), appInfo));
     }
   }
 
@@ -1784,10 +1786,10 @@ public class KsqlConfig extends AbstractConfig {
   }
 
   public Map<String, Object> addConfluentMetricsContextConfigsKafka(
-      final Map<String,Object> props
+      final Map<String,Object> props,
+      final AppInfoParser.AppInfo appInfo
   ) {
     final Map<String, Object> updatedProps = new HashMap<>(props);
-    final AppInfoParser.AppInfo appInfo = new AppInfoParser.AppInfo(System.currentTimeMillis());
     updatedProps.putAll(getConfigsForPrefix(REPORTER_CONFIGS_PREFIXES));
     updatedProps.put(MetricCollectors.RESOURCE_LABEL_VERSION, appInfo.getVersion());
     updatedProps.put(MetricCollectors.RESOURCE_LABEL_COMMIT_ID, appInfo.getCommitId());

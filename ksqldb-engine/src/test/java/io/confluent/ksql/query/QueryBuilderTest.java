@@ -288,6 +288,7 @@ public class QueryBuilderTest {
     verify(kafkaStreamsBuilder).build(any(), propertyCaptor.capture());
     assertThat(queryMetadata.getStreamsProperties(), equalTo(propertyCaptor.getValue()));
     assertThat(queryMetadata.getStreamsProperties().get(InternalConfig.TOPIC_PREFIX_ALTERNATIVE), nullValue());
+    assertThat(queryMetadata.getStreamsProperties().get(StreamsConfig.NUM_STANDBY_REPLICAS_CONFIG), equalTo(0));
   }
 
   @Test

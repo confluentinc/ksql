@@ -790,7 +790,7 @@ example to change the value to `20000000` by using the ksqlDB CLI:
 SET 'cache.max.bytes.buffering'='20000000';
 ```
 
-The default for {{ site.cp }} is `0`. The default for
+The default for {{ site.cp }} is `10485760` (10 MB). The default for
 {{ site.ccloud }} is `10485760`.
 
 For more information, see the

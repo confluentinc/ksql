@@ -308,7 +308,7 @@ public class KsqlServerMain {
       final FipsValidator fipsValidator, final KsqlRestConfig restConfig) {
     if (!restConfig.originals()
         .containsKey(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY)) {
-      String errorMsg = "The Ksql schema registry url property "
+      final String errorMsg = "The Ksql schema registry url property "
           + "('ksql.schema.registry.url') is not specified.";
       log.error(errorMsg);
       throw new SecurityException(errorMsg);

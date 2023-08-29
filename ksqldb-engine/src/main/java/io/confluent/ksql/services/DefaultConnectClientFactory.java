@@ -97,7 +97,7 @@ public class DefaultConnectClientFactory implements ConnectClientFactory {
         requestHeadersExtension
             .map(extension -> extension.getHeaders(userPrincipal))
             .orElse(Collections.emptyMap()),
-        Optional.ofNullable(newSslContext(configWithPrefixOverrides, ksqlConfig)),
+        Optional.ofNullable(newSslContext(configWithPrefixOverrides)),
         shouldVerifySslHostname(configWithPrefixOverrides),
         ksqlConfig.getLong(KsqlConfig.CONNECT_REQUEST_TIMEOUT_MS)
     );
@@ -190,13 +190,9 @@ public class DefaultConnectClientFactory implements ConnectClientFactory {
     }
   }
 
-  private static SSLContext newSslContext(final Map<String, Object> config,
-      final KsqlConfig ksqlConfig) {
+  private static SSLContext newSslContext(final Map<String, Object> config) {
     final DefaultSslEngineFactory sslFactory = new DefaultSslEngineFactory();
     sslFactory.configure(config);
-    if (ksqlConfig.getBoolean(ConfluentConfigs.ENABLE_FIPS_CONFIG)) {
-      SecurityUtils.addConfiguredSecurityProviders(ksqlConfig.originals());
-    }
     return sslFactory.sslContext();
   }
 

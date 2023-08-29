@@ -16,6 +16,7 @@
 package io.confluent.ksql.rest.server;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Strings;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.function.MutableFunctionRegistry;
@@ -191,59 +192,30 @@ public class KsqlServerMain {
     validateTopicFormat(config, KsqlConfig.KSQL_DEFAULT_VALUE_FORMAT_CONFIG, "value");
   }
 
-  private static void validateFips(final KsqlConfig config, final KsqlRestConfig restConfig) {
+  @VisibleForTesting
+  static void validateFips(final KsqlConfig config, final KsqlRestConfig restConfig) {
     if (config.getBoolean(ConfluentConfigs.ENABLE_FIPS_CONFIG)) {
-      validateStateStoreType(restConfig);
-
       final FipsValidator fipsValidator = ConfluentConfigs.buildFipsValidator();
 
-      final Map<String, List<String>> fipsTlsMap = new HashMap<>();
-      fipsTlsMap.put(KsqlRestConfig.SSL_CIPHER_SUITES_CONFIG,
-          restConfig.getList(KsqlRestConfig.SSL_CIPHER_SUITES_CONFIG));
-      fipsTlsMap.put(KsqlRestConfig.SSL_ENABLED_PROTOCOLS_CONFIG,
-          restConfig.getList(KsqlRestConfig.SSL_ENABLED_PROTOCOLS_CONFIG));
+      // validate state store password encryption type
+      validateStateStoreType(restConfig);
 
-      final Map<String, SecurityProtocol> securityProtocolMap = new HashMap<>();
-      final String brokerSecurityProtocol =
-          config.getString(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG);
-      securityProtocolMap.put(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG,
-          SecurityProtocol.forName(brokerSecurityProtocol));
+      // validate cipher suites and TLS version
+      validateCipherSuites(fipsValidator, restConfig);
 
-      try {
-        // validate cipher suites and TLS version
-        fipsValidator.validateFipsTls(fipsTlsMap);
+      // validate broker
+      validateBroker(fipsValidator, config);
 
-        // validate broker
-        fipsValidator.validateFipsBrokerProtocol(securityProtocolMap);
+      // validate ssl endpoint algorithm
+      validateSslEndpointAlgo(fipsValidator, restConfig);
 
-        // validate ssl endpoint algorithm
-        fipsValidator.validateRestProtocol(
-            restConfig.getString(KsqlConfig.SSL_ENDPOINT_IDENTIFICATION_ALGORITHM_CONFIG));
+      // validate schema registry url
+      validateSrUrl(fipsValidator, restConfig);
 
-        // validate schema registry url
-        fipsValidator.validateRestProtocol(
-            determineProtocol(restConfig.getString(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY)));
+      // validate all listeners
+      validateListeners(fipsValidator, restConfig);
 
-        // validate all listeners
-        final List<String> listeners = restConfig.getList(KsqlRestConfig.LISTENERS_CONFIG);
-        for (String listener: listeners) {
-          fipsValidator.validateRestProtocol(determineProtocol(listener));
-        }
-        final List<String> proxyListeners =
-            restConfig.getList(KsqlRestConfig.PROXY_PROTOCOL_LISTENERS_CONFIG);
-        for (String listener: proxyListeners) {
-          fipsValidator.validateRestProtocol(determineProtocol(listener));
-        }
-        fipsValidator.validateRestProtocol(
-            determineProtocol(restConfig.getString(KsqlRestConfig.ADVERTISED_LISTENER_CONFIG)));
-        fipsValidator.validateRestProtocol(
-            determineProtocol(restConfig.getString(KsqlRestConfig.INTERNAL_LISTENER_CONFIG)));
-        log.info("FIPS mode enabled for ksqlDB!");
-      } catch (final Exception e) {
-        log.error("SSL configs violates FIPS!" + e.getMessage());
-        throw new SecurityException("SSL configs violates FIPS!"
-            + e.getMessage());
-      }
+      log.info("FIPS mode enabled for ksqlDB!");
     }
   }
 
@@ -252,13 +224,146 @@ public class KsqlServerMain {
         .equals(KsqlRestConfig.SSL_STORE_TYPE_PKCS12)) {
       log.error("Key value store is not PKCS12 password encrypted.");
       throw new SecurityException("Key value store is not PKCS12 password encrypted."
-          + "\n Make sure that the value of `"
+          + "\n Make sure that the value of '"
           + KsqlRestConfig.SSL_TRUSTSTORE_TYPE_CONFIG
-          + "` is "
+          + "' is "
           + KsqlRestConfig.SSL_STORE_TYPE_PKCS12 + "."
       );
     }
     log.info("Key value store is PKCS12 password encrypted.");
+  }
+
+  private static void validateCipherSuites(
+      final FipsValidator fipsValidator, final KsqlRestConfig restConfig) {
+    final Map<String, List<String>> fipsTlsMap = new HashMap<>();
+    final List<String> cipherSuites = restConfig.getList(KsqlRestConfig.SSL_CIPHER_SUITES_CONFIG);
+    if (cipherSuites.isEmpty()) {
+      final String errorMsg = "No cipher suites "
+          + "('"
+          + KsqlRestConfig.SSL_CIPHER_SUITES_CONFIG
+          + "') is specified.";
+      log.error(errorMsg);
+      throw new SecurityException(errorMsg);
+    }
+    fipsTlsMap.put(KsqlRestConfig.SSL_CIPHER_SUITES_CONFIG, cipherSuites);
+    fipsTlsMap.put(KsqlRestConfig.SSL_ENABLED_PROTOCOLS_CONFIG,
+        restConfig.getList(KsqlRestConfig.SSL_ENABLED_PROTOCOLS_CONFIG));
+
+    try {
+      fipsValidator.validateFipsTls(fipsTlsMap);
+    } catch (final Exception e) {
+      log.error(e.getMessage());
+      throw new SecurityException(e.getMessage());
+    }
+  }
+
+  private static void validateBroker(
+      final FipsValidator fipsValidator, final KsqlConfig config) {
+    final Map<String, SecurityProtocol> securityProtocolMap = new HashMap<>();
+    if (!config.originals()
+        .containsKey(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG)) {
+      final String errorMsg = "The security protocol "
+          + "('"
+          + CommonClientConfigs.SECURITY_PROTOCOL_CONFIG
+          + "') is not specified.";
+      log.error(errorMsg);
+      throw new SecurityException(errorMsg);
+    }
+    final String brokerSecurityProtocol =
+        config.originals().get(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG).toString();
+    securityProtocolMap.put(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG,
+        SecurityProtocol.forName(brokerSecurityProtocol));
+    try {
+      fipsValidator.validateFipsBrokerProtocol(securityProtocolMap);
+    } catch (final Exception e) {
+      log.error(e.getMessage());
+      throw new SecurityException(e.getMessage());
+    }
+  }
+
+  private static void validateSslEndpointAlgo(
+      final FipsValidator fipsValidator, final KsqlRestConfig restConfig) {
+    if (!restConfig.originals()
+        .containsKey(KsqlConfig.SSL_ENDPOINT_IDENTIFICATION_ALGORITHM_CONFIG)) {
+      final String errorMsg = "The SSL endpoint identification algorithm "
+          + "('"
+          + KsqlConfig.SSL_ENDPOINT_IDENTIFICATION_ALGORITHM_CONFIG
+          + "') is not specified.";
+      log.error(errorMsg);
+      throw new SecurityException(errorMsg);
+    }
+    try {
+      fipsValidator.validateRestProtocol(restConfig.originals()
+          .get(KsqlConfig.SSL_ENDPOINT_IDENTIFICATION_ALGORITHM_CONFIG).toString());
+    } catch (final Exception e) {
+      final String errorMsg = e.getMessage()
+          + "\nInvalid rest protocol for "
+          + KsqlConfig.SSL_ENDPOINT_IDENTIFICATION_ALGORITHM_CONFIG;
+      log.error(errorMsg);
+      throw new SecurityException(errorMsg);
+    }
+  }
+
+  private static void validateSrUrl(
+      final FipsValidator fipsValidator, final KsqlRestConfig restConfig) {
+    if (!restConfig.originals()
+        .containsKey(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY)) {
+      String errorMsg = "The Ksql schema registry url property "
+          + "('ksql.schema.registry.url') is not specified.";
+      log.error(errorMsg);
+      throw new SecurityException(errorMsg);
+    }
+    try {
+      fipsValidator.validateRestProtocol(determineProtocol(
+          restConfig.originals().get(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY).toString()));
+    } catch (final Exception e) {
+      final String errorMsg = e.getMessage()
+          + "\nInvalid rest protocol for "
+          + KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY;
+      log.error(errorMsg);
+      throw new SecurityException(errorMsg);
+    }
+  }
+
+  private static void validateListeners(
+      final FipsValidator fipsValidator, final KsqlRestConfig restConfig) {
+    try {
+      final List<String> listeners = restConfig.getList(KsqlRestConfig.LISTENERS_CONFIG);
+      for (String listener: listeners) {
+        fipsValidator.validateRestProtocol(determineProtocol(listener));
+      }
+      final List<String> proxyListeners =
+          restConfig.getList(KsqlRestConfig.PROXY_PROTOCOL_LISTENERS_CONFIG);
+      for (String listener: proxyListeners) {
+        fipsValidator.validateRestProtocol(determineProtocol(listener));
+      }
+
+      final String internalListener = restConfig.getString(
+          KsqlRestConfig.INTERNAL_LISTENER_CONFIG);
+      if (!Strings.isNullOrEmpty(internalListener)) {
+        fipsValidator.validateRestProtocol(
+            determineProtocol(internalListener));
+      }
+
+      final String advertisedListener = restConfig.getString(
+          KsqlRestConfig.ADVERTISED_LISTENER_CONFIG);
+      if (!Strings.isNullOrEmpty(advertisedListener)) {
+        fipsValidator.validateRestProtocol(
+            determineProtocol(advertisedListener));
+      }
+    } catch (final Exception e) {
+      final String errorMsg = e.getMessage()
+          + "\nInvalid rest protocol for listeners."
+          + "\nMake sure that all "
+          + KsqlRestConfig.LISTENERS_CONFIG
+          + ", " + KsqlRestConfig.PROXY_PROTOCOL_LISTENERS_CONFIG
+          + ", " + KsqlRestConfig.ADVERTISED_LISTENER_CONFIG
+          + ", and " + KsqlRestConfig.INTERNAL_LISTENER_CONFIG
+          + " follow FIPS 140-2.";
+
+      log.error(errorMsg);
+      throw new SecurityException(errorMsg);
+    }
   }
 
   private static String determineProtocol(final String url) {

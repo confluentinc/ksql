@@ -34,9 +34,7 @@ import java.util.Optional;
 import java.util.Properties;
 import javax.net.ssl.SSLContext;
 import org.apache.kafka.common.config.ConfigException;
-import org.apache.kafka.common.config.internals.ConfluentConfigs;
 import org.apache.kafka.common.security.ssl.DefaultSslEngineFactory;
-import org.apache.kafka.common.utils.SecurityUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

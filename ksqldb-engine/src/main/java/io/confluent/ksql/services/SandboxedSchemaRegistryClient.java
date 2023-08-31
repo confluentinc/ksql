@@ -280,5 +280,10 @@ final class SandboxedSchemaRegistryClient {
     public void reset() {
       throw new UnsupportedOperationException();
     }
+
+    @Override
+    public void close() {
+      throw new UnsupportedOperationException();
+    }
   }
 }

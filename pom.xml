@@ -36,7 +36,7 @@
     <artifactId>ksqldb-parent</artifactId>
     <packaging>pom</packaging>
     <name>ksqldb-parent</name>
-    <version>7.6.0-0</version>
+    <version>7.6.0-53</version>
 
     <licenses>
         <license>
@@ -141,7 +141,7 @@
         <jetty.version>9.4.51.v20230217</jetty.version>
         <git-commit-id-plugin.version>4.9.10</git-commit-id-plugin.version>
         <apache.io.version>2.7</apache.io.version>
-        <io.confluent.ksql.version>7.6.0-0</io.confluent.ksql.version>
+        <io.confluent.ksql.version>7.6.0-53</io.confluent.ksql.version>
         <io.confluent.schema-registry.version>7.6.0-110</io.confluent.schema-registry.version>
         <netty-tcnative-version>2.0.54.Final</netty-tcnative-version>
         <!-- We normally get this from common, but Vertx is built against this -->

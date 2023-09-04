@@ -267,38 +267,12 @@ public class KsqlServerMainTest {
   }
 
   @Test
-  public void shouldFailOnInvalidStateStorePasswordEncryption() {
-    // Given:
-    final KsqlConfig config = configWith(ImmutableMap.of(
-        ConfluentConfigs.ENABLE_FIPS_CONFIG, true
-    ));
-    final KsqlRestConfig restConfig = new KsqlRestConfig(ImmutableMap.<String, Object>builder()
-        .build()
-    );
-
-
-    // When:
-    final Exception e = assertThrows(
-        SecurityException.class,
-        () -> KsqlServerMain.validateFips(config, restConfig)
-    );
-
-    // Then:
-    assertThat(e.getMessage(), containsString(
-        "Key value store is not PKCS12 password encrypted.\n"
-            + " Make sure that the value of '"
-            + KsqlRestConfig.SSL_TRUSTSTORE_TYPE_CONFIG
-            + "' is PKCS12."));
-  }
-
-  @Test
   public void shouldFailOnEmptyCipherSuitesList() {
     // Given:
     final KsqlConfig config = configWith(ImmutableMap.of(
         ConfluentConfigs.ENABLE_FIPS_CONFIG, true
     ));
     final KsqlRestConfig restConfig = new KsqlRestConfig(ImmutableMap.<String, Object>builder()
-        .put(KsqlRestConfig.SSL_TRUSTSTORE_TYPE_CONFIG, KsqlRestConfig.SSL_STORE_TYPE_PKCS12)
         .build()
     );
 
@@ -324,7 +298,6 @@ public class KsqlServerMainTest {
     ));
     final String wrongCipherSuite = "TLS_RSA_WITH_NULL_MD5";
     final KsqlRestConfig restConfig = new KsqlRestConfig(ImmutableMap.<String, Object>builder()
-        .put(KsqlRestConfig.SSL_TRUSTSTORE_TYPE_CONFIG, KsqlRestConfig.SSL_STORE_TYPE_PKCS12)
         .put(KsqlRestConfig.SSL_CIPHER_SUITES_CONFIG,
             Collections.singletonList(wrongCipherSuite))
         .build()
@@ -350,7 +323,6 @@ public class KsqlServerMainTest {
     ));
     final String wrongEnabledProtocols = "TLSv1.0";
     final KsqlRestConfig restConfig = new KsqlRestConfig(ImmutableMap.<String, Object>builder()
-        .put(KsqlRestConfig.SSL_TRUSTSTORE_TYPE_CONFIG, KsqlRestConfig.SSL_STORE_TYPE_PKCS12)
         .put(KsqlRestConfig.SSL_CIPHER_SUITES_CONFIG,
             Collections.singletonList("TLS_RSA_WITH_AES_256_CCM"))
         .put(KsqlRestConfig.SSL_ENABLED_PROTOCOLS_CONFIG,
@@ -377,7 +349,6 @@ public class KsqlServerMainTest {
         ConfluentConfigs.ENABLE_FIPS_CONFIG, true
     ));
     final KsqlRestConfig restConfig = new KsqlRestConfig(ImmutableMap.<String, Object>builder()
-        .put(KsqlRestConfig.SSL_TRUSTSTORE_TYPE_CONFIG, KsqlRestConfig.SSL_STORE_TYPE_PKCS12)
         .put(KsqlRestConfig.SSL_CIPHER_SUITES_CONFIG,
             Collections.singletonList("TLS_RSA_WITH_AES_256_CCM"))
         .build()
@@ -404,7 +375,6 @@ public class KsqlServerMainTest {
         CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, SecurityProtocol.SASL_PLAINTEXT.name
     ));
     final KsqlRestConfig restConfig = new KsqlRestConfig(ImmutableMap.<String, Object>builder()
-        .put(KsqlRestConfig.SSL_TRUSTSTORE_TYPE_CONFIG, KsqlRestConfig.SSL_STORE_TYPE_PKCS12)
         .put(KsqlRestConfig.SSL_CIPHER_SUITES_CONFIG,
             Collections.singletonList("TLS_RSA_WITH_AES_256_CCM"))
         .build()
@@ -431,7 +401,6 @@ public class KsqlServerMainTest {
         CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, SecurityProtocol.SASL_SSL.name
     ));
     final KsqlRestConfig restConfig = new KsqlRestConfig(ImmutableMap.<String, Object>builder()
-        .put(KsqlRestConfig.SSL_TRUSTSTORE_TYPE_CONFIG, KsqlRestConfig.SSL_STORE_TYPE_PKCS12)
         .put(KsqlRestConfig.SSL_CIPHER_SUITES_CONFIG,
             Collections.singletonList("TLS_RSA_WITH_AES_256_CCM"))
         .build()
@@ -458,7 +427,6 @@ public class KsqlServerMainTest {
         CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, SecurityProtocol.SASL_SSL.name
     ));
     final KsqlRestConfig restConfig = new KsqlRestConfig(ImmutableMap.<String, Object>builder()
-        .put(KsqlRestConfig.SSL_TRUSTSTORE_TYPE_CONFIG, KsqlRestConfig.SSL_STORE_TYPE_PKCS12)
         .put(KsqlRestConfig.SSL_CIPHER_SUITES_CONFIG,
             Collections.singletonList("TLS_RSA_WITH_AES_256_CCM"))
         .put(KsqlConfig.SSL_ENDPOINT_IDENTIFICATION_ALGORITHM_CONFIG, "http")
@@ -486,7 +454,6 @@ public class KsqlServerMainTest {
         CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, SecurityProtocol.SASL_SSL.name
     ));
     final KsqlRestConfig restConfig = new KsqlRestConfig(ImmutableMap.<String, Object>builder()
-        .put(KsqlRestConfig.SSL_TRUSTSTORE_TYPE_CONFIG, KsqlRestConfig.SSL_STORE_TYPE_PKCS12)
         .put(KsqlRestConfig.SSL_CIPHER_SUITES_CONFIG,
             Collections.singletonList("TLS_RSA_WITH_AES_256_CCM"))
         .put(KsqlConfig.SSL_ENDPOINT_IDENTIFICATION_ALGORITHM_CONFIG, "https")
@@ -515,7 +482,6 @@ public class KsqlServerMainTest {
         CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, SecurityProtocol.SASL_SSL.name
     ));
     final KsqlRestConfig restConfig = new KsqlRestConfig(ImmutableMap.<String, Object>builder()
-        .put(KsqlRestConfig.SSL_TRUSTSTORE_TYPE_CONFIG, KsqlRestConfig.SSL_STORE_TYPE_PKCS12)
         .put(KsqlRestConfig.SSL_CIPHER_SUITES_CONFIG,
             Collections.singletonList("TLS_RSA_WITH_AES_256_CCM"))
         .put(KsqlConfig.SSL_ENDPOINT_IDENTIFICATION_ALGORITHM_CONFIG, "https")
@@ -545,7 +511,6 @@ public class KsqlServerMainTest {
         CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, SecurityProtocol.SASL_SSL.name
     ));
     final KsqlRestConfig restConfig = new KsqlRestConfig(ImmutableMap.<String, Object>builder()
-        .put(KsqlRestConfig.SSL_TRUSTSTORE_TYPE_CONFIG, KsqlRestConfig.SSL_STORE_TYPE_PKCS12)
         .put(KsqlRestConfig.SSL_CIPHER_SUITES_CONFIG,
             Collections.singletonList("TLS_RSA_WITH_AES_256_CCM"))
         .put(KsqlConfig.SSL_ENDPOINT_IDENTIFICATION_ALGORITHM_CONFIG, "https")
@@ -575,7 +540,6 @@ public class KsqlServerMainTest {
         CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, SecurityProtocol.SASL_SSL.name
     ));
     final KsqlRestConfig restConfig = new KsqlRestConfig(ImmutableMap.<String, Object>builder()
-        .put(KsqlRestConfig.SSL_TRUSTSTORE_TYPE_CONFIG, KsqlRestConfig.SSL_STORE_TYPE_PKCS12)
         .put(KsqlRestConfig.SSL_CIPHER_SUITES_CONFIG,
             Collections.singletonList("TLS_RSA_WITH_AES_256_CCM"))
         .put(KsqlConfig.SSL_ENDPOINT_IDENTIFICATION_ALGORITHM_CONFIG, "https")
@@ -609,7 +573,6 @@ public class KsqlServerMainTest {
         CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, SecurityProtocol.SASL_SSL.name
     ));
     final KsqlRestConfig restConfig = new KsqlRestConfig(ImmutableMap.<String, Object>builder()
-        .put(KsqlRestConfig.SSL_TRUSTSTORE_TYPE_CONFIG, KsqlRestConfig.SSL_STORE_TYPE_PKCS12)
         .put(KsqlRestConfig.SSL_CIPHER_SUITES_CONFIG,
             Collections.singletonList("TLS_RSA_WITH_AES_256_CCM"))
         .put(KsqlConfig.SSL_ENDPOINT_IDENTIFICATION_ALGORITHM_CONFIG, "https")
@@ -642,7 +605,6 @@ public class KsqlServerMainTest {
         CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, SecurityProtocol.SASL_SSL.name
     ));
     final KsqlRestConfig restConfig = new KsqlRestConfig(ImmutableMap.<String, Object>builder()
-        .put(KsqlRestConfig.SSL_TRUSTSTORE_TYPE_CONFIG, KsqlRestConfig.SSL_STORE_TYPE_PKCS12)
         .put(KsqlRestConfig.SSL_CIPHER_SUITES_CONFIG,
             Collections.singletonList("TLS_RSA_WITH_AES_256_CCM"))
         .put(KsqlConfig.SSL_ENDPOINT_IDENTIFICATION_ALGORITHM_CONFIG, "https")

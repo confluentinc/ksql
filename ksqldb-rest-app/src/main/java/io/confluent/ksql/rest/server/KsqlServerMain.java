@@ -197,9 +197,6 @@ public class KsqlServerMain {
     if (config.getBoolean(ConfluentConfigs.ENABLE_FIPS_CONFIG)) {
       final FipsValidator fipsValidator = ConfluentConfigs.buildFipsValidator();
 
-      // validate state store password encryption type
-      validateStateStoreType(restConfig);
-
       // validate cipher suites and TLS version
       validateCipherSuites(fipsValidator, restConfig);
 
@@ -217,20 +214,6 @@ public class KsqlServerMain {
 
       log.info("FIPS mode enabled for ksqlDB!");
     }
-  }
-
-  private static void validateStateStoreType(final KsqlRestConfig restConfig) {
-    if (!restConfig.getString(KsqlRestConfig.SSL_TRUSTSTORE_TYPE_CONFIG)
-        .equals(KsqlRestConfig.SSL_STORE_TYPE_PKCS12)) {
-      log.error("Key value store is not PKCS12 password encrypted.");
-      throw new SecurityException("Key value store is not PKCS12 password encrypted."
-          + "\n Make sure that the value of '"
-          + KsqlRestConfig.SSL_TRUSTSTORE_TYPE_CONFIG
-          + "' is "
-          + KsqlRestConfig.SSL_STORE_TYPE_PKCS12 + "."
-      );
-    }
-    log.info("Key value store is PKCS12 password encrypted.");
   }
 
   private static void validateCipherSuites(

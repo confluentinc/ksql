@@ -29,8 +29,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
 import javax.net.ssl.SSLContext;
+import org.apache.kafka.common.config.internals.ConfluentConfigs;
 import org.apache.kafka.common.security.auth.SslEngineFactory;
 import org.apache.kafka.common.security.ssl.DefaultSslEngineFactory;
+import org.apache.kafka.common.utils.SecurityUtils;
 
 /**
  * Configurable Schema Registry client factory, enabling SSL.
@@ -97,6 +99,9 @@ public class KsqlSchemaRegistryClientFactory {
   public static SSLContext newSslContext(final KsqlConfig config) {
     final DefaultSslEngineFactory sslFactory = new DefaultSslEngineFactory();
     configureSslEngineFactory(config, sslFactory);
+    if (config.getBoolean(ConfluentConfigs.ENABLE_FIPS_CONFIG)) {
+      SecurityUtils.addConfiguredSecurityProviders(config.originals());
+    }
     return sslFactory.sslContext();
   }
 

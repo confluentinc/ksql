@@ -55,6 +55,7 @@ import org.apache.kafka.common.config.ConfigDef.Validator;
 import org.apache.kafka.common.config.ConfigException;
 import org.apache.kafka.common.config.SslConfigs;
 import org.apache.kafka.common.config.TopicConfig;
+import org.apache.kafka.common.config.internals.ConfluentConfigs;
 import org.apache.kafka.common.utils.AppInfoParser;
 import org.apache.kafka.streams.StreamsConfig;
 import org.slf4j.Logger;
@@ -1556,7 +1557,14 @@ public class KsqlConfig extends AbstractConfig {
             Importance.LOW,
             KSQL_FETCH_REMOTE_HOSTS_TIMEOUT_SECONDS_DOC
         )
-        .withClientSslSupport();
+        .withClientSslSupport()
+        .define(
+            ConfluentConfigs.ENABLE_FIPS_CONFIG,
+            Type.BOOLEAN,
+            ConfluentConfigs.ENABLE_FIPS_DEFAULT,
+            Importance.LOW,
+            ConfluentConfigs.ENABLE_FIPS_DOC
+        );
 
     for (final CompatibilityBreakingConfigDef compatibilityBreakingConfigDef
         : COMPATIBLY_BREAKING_CONFIG_DEFS) {

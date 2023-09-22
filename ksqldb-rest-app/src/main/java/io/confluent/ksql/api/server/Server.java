@@ -81,6 +81,7 @@ public class Server {
   private URI internalListener;
   private WorkerExecutor workerExecutor;
   private FileWatcher fileWatcher;
+  static final int CHUNK_SIZE = 16 * 1024;
 
   @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
   public Server(
@@ -318,7 +319,8 @@ public class Server {
         .setIdleTimeout(idleTimeoutSeconds).setIdleTimeoutUnit(TimeUnit.SECONDS)
         .setPerMessageWebSocketCompressionSupported(true)
         .setPerFrameWebSocketCompressionSupported(true)
-        .setUseProxyProtocol(isProxyProtocolListener);
+        .setUseProxyProtocol(isProxyProtocolListener)
+        .setMaxChunkSize(CHUNK_SIZE);
 
     if (tls) {
       final String ksConfigName = isInternalListener

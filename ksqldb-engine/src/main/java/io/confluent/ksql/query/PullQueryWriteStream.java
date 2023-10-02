@@ -208,12 +208,8 @@ public class PullQueryWriteStream implements WriteStream<List<StreamedRow>>, Blo
 
     polled.handler.handle(new SucceededFuture<>(null, null));
 
-    if (monitor.enterIf(atHalfCapacity)) {
-      try {
-        drainHandler.forEach(h -> h.handle(null));
-      } finally {
-        monitor.leave();
-      }
+    if (isDone() || size() <= queueCapacity / 2) {
+      drainHandler.forEach(h -> h.handle(null));
     }
 
     return polled.row;

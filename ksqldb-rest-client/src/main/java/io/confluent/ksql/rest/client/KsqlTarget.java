@@ -351,7 +351,11 @@ public final class KsqlTarget {
     return executeSync(httpMethod, path, Optional.empty(), requestBody,
         resp -> responseSupplier.get(),
         (resp, vcf) -> {
-        final RecordParser recordParser = RecordParser.newDelimited(delimiter, resp);
+        // Use synchronized record parser to prevent races between the `RecordParser.resume` called
+        // by `PullQueryWriteStream` via the drain handler of the pipe, and `RecordParser.handle`.
+        // We may want to refactor PullQueryWriteStream to not call the drain handler from
+        // another thread.
+        final RecordParser recordParser = SyncronizedRecordParser.newDelimited(delimiter, resp);
         final AtomicBoolean end = new AtomicBoolean(false);
 
         final WriteStream<Buffer> ws = new BufferMapWriteStream<>(chunkMapper, chunkHandler);

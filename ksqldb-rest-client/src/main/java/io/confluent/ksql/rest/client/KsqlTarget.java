@@ -355,7 +355,7 @@ public final class KsqlTarget {
         // by `PullQueryWriteStream` via the drain handler of the pipe, and `RecordParser.handle`.
         // We may want to refactor PullQueryWriteStream to not call the drain handler from
         // another thread.
-        final RecordParser recordParser = SyncronizedRecordParser.newDelimited(delimiter, resp);
+        final RecordParser recordParser = SynchronizedRecordParser.newDelimited(delimiter, resp);
         final AtomicBoolean end = new AtomicBoolean(false);
 
         final WriteStream<Buffer> ws = new BufferMapWriteStream<>(chunkMapper, chunkHandler);

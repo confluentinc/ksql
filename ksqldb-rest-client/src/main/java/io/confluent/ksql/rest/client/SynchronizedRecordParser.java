@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.rest.client;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.vertx.codegen.annotations.Fluent;
 import io.vertx.codegen.annotations.Nullable;
 import io.vertx.core.Handler;
@@ -23,7 +24,7 @@ import io.vertx.core.parsetools.RecordParser;
 import io.vertx.core.streams.ReadStream;
 
 @SuppressWarnings("unused")
-public class SyncronizedRecordParser implements RecordParser {
+public class SynchronizedRecordParser implements RecordParser {
 
   private static class WrappedUpstream implements ReadStream<Buffer> {
 
@@ -76,7 +77,8 @@ public class SyncronizedRecordParser implements RecordParser {
   private final RecordParser delegate;
   private final ReadStream<Buffer> source;
 
-  public SyncronizedRecordParser(final RecordParser delegate, final ReadStream<Buffer> source) {
+  @SuppressFBWarnings("EI_EXPOSE_REP2")
+  public SynchronizedRecordParser(final RecordParser delegate, final ReadStream<Buffer> source) {
     this.delegate = delegate;
     this.source = source;
   }
@@ -87,7 +89,7 @@ public class SyncronizedRecordParser implements RecordParser {
   }
 
   public static RecordParser newDelimited(final String delim, final ReadStream<Buffer> stream) {
-    return new SyncronizedRecordParser(
+    return new SynchronizedRecordParser(
         RecordParser.newDelimited(delim, new WrappedUpstream(stream)),
         stream
     );

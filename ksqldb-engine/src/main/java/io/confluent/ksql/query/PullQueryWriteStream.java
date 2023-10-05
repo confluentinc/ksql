@@ -207,6 +207,9 @@ public class PullQueryWriteStream implements WriteStream<List<StreamedRow>>, Blo
     if (monitor.enterIf(atHalfCapacity)) {
       try {
         drainHandler.forEach(h -> h.handle(null));
+        // Users of this WriteStream, in particular vert.x's PipeImpl re-register the drain handler
+        // every time the WriteStream is full, so we can clear the drain handler collection after
+        // we have called it.
         drainHandler.clear();
       } finally {
         monitor.leave();
@@ -270,6 +273,10 @@ public class PullQueryWriteStream implements WriteStream<List<StreamedRow>>, Blo
 
   @Override
   public PullQueryWriteStream drainHandler(final Handler<Void> handler) {
+    // Make sure to run the drain handler in the context that registers the drain handler
+    // (that is, the pipe that is pushing data into this write stream), and not from the thread
+    // that is consuming data from the write queue. This will avoid data races inside the
+    // ReadStream.
     final Context context = Vertx.currentContext();
     drainHandler.add(v -> context.runOnContext(handler));
     return this;

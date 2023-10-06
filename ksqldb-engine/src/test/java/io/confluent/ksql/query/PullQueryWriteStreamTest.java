@@ -17,6 +17,9 @@ package io.confluent.ksql.query;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.verify;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.GenericRow;
@@ -24,6 +27,9 @@ import io.confluent.ksql.execution.pull.StreamedRowTranslator;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.util.KeyValueMetadata;
+import io.vertx.core.Context;
+import io.vertx.core.Handler;
+import io.vertx.core.Vertx;
 import java.util.List;
 import java.util.Optional;
 import java.util.OptionalInt;
@@ -40,6 +46,7 @@ import org.junit.Test;
 import org.junit.rules.Timeout;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
+import org.mockito.MockedStatic;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -117,17 +124,21 @@ public class PullQueryWriteStreamTest {
   @Test
   public void shouldCallDrainHandlerWhenHasCapacity() {
     // Given:
-    final AtomicBoolean called = new AtomicBoolean(false);
+    final Context context = mock(Context.class);
+    @SuppressWarnings("unchecked") final Handler<Void> handler = mock(Handler.class);
 
     writeStream.setWriteQueueMaxSize(1);
     writeStream.write(getData(1));
-    writeStream.drainHandler(ignored -> called.set(true));
+    try (MockedStatic<Vertx> mocked = mockStatic(Vertx.class)) {
+      mocked.when(Vertx::currentContext).thenReturn(context);
+      writeStream.drainHandler(handler);
+    }
 
     // When:
     writeStream.poll();
 
     // Then:
-    assertThat("expected drain handler to be called", called.get());
+    verify(context).runOnContext(handler);
   }
 
   @Test

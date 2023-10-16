@@ -20,6 +20,7 @@ import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.net.JksOptions;
+import io.vertx.core.net.KeyStoreOptions;
 import io.vertx.core.net.PfxOptions;
 import java.util.Map;
 import java.util.Optional;
@@ -57,6 +58,13 @@ public final class VertxSslOptionsFactory {
 
   private static JksOptions buildJksOptions(final Buffer buffer, final String password) {
     return new JksOptions().setValue(buffer).setPassword(Strings.nullToEmpty(password));
+  }
+
+  private static KeyStoreOptions buildBcfksOptions(final String password) {
+    return new KeyStoreOptions()
+        .setType("BCFKS")
+        .setProvider("/opt/confluent/confluent-7.4.0/share/java/kafka/bc-fips-1.0.2.3.jar")
+        .setPassword(Strings.nullToEmpty(password));
   }
 
   private static Buffer loadJksKeyStore(
@@ -121,6 +129,28 @@ public final class VertxSslOptionsFactory {
 
     if (!Strings.isNullOrEmpty(location)) {
       return Optional.of(buildPfxOptions(location, password));
+    }
+
+    return Optional.empty();
+  }
+
+  /**
+   * Returns a {@code KeyStoreOptions} object using the following truststore SSL configurations:
+   * <ul>
+   *  <li>Optional: {@value SslConfigs#SSL_TRUSTSTORE_PASSWORD_CONFIG}</li>
+   * </ul>
+   *
+   * @param props A Map with the truststore location and password configs.
+   * @return The {@code KeyStoreOptions} configured with the above SSL settings.
+   *         Optional.empty() if the truststore password is null or empty.
+   */
+
+  public static Optional<KeyStoreOptions> getBcfksStoreOptions(final Map<String, String> props) {
+
+    final String password = getTrustStorePassword(props);
+
+    if (!Strings.isNullOrEmpty(password)) {
+      return Optional.of(buildBcfksOptions(password));
     }
 
     return Optional.empty();

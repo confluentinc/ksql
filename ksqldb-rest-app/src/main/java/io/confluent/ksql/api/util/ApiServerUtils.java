@@ -28,6 +28,7 @@ import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpServerOptions;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.net.JksOptions;
+import io.vertx.core.net.KeyStoreOptions;
 import io.vertx.core.net.PfxOptions;
 import io.vertx.ext.web.RoutingContext;
 import java.net.URI;
@@ -222,6 +223,11 @@ public final class ApiServerUtils {
     } else if (trustStoreType.equals(KsqlRestConfig.SSL_STORE_TYPE_PKCS12)) {
       final Optional<PfxOptions> trustStoreOptions =
           VertxSslOptionsFactory.getPfxTrustStoreOptions(props);
+
+      trustStoreOptions.ifPresent(options -> httpServerOptions.setTrustOptions(options));
+    } else if (trustStoreType.equals(KsqlRestConfig.SSL_STORE_TYPE_BCFKS)) {
+      final Optional<KeyStoreOptions> trustStoreOptions =
+          VertxSslOptionsFactory.getBcfksStoreOptions(props);
 
       trustStoreOptions.ifPresent(options -> httpServerOptions.setTrustOptions(options));
     }

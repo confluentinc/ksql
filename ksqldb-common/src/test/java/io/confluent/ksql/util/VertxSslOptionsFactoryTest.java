@@ -19,6 +19,7 @@ import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.test.util.KsqlTestFolder;
 import io.confluent.ksql.test.util.secure.ServerKeyStore;
 import io.vertx.core.net.JksOptions;
+import io.vertx.core.net.KeyStoreOptions;
 import io.vertx.core.net.PfxOptions;
 import org.apache.kafka.common.config.SslConfigs;
 import org.junit.ClassRule;
@@ -126,6 +127,33 @@ public class VertxSslOptionsFactoryTest {
     assertThat(pfxOptions.get().getPath(), is("path"));
     assertThat(pfxOptions.get().getPassword(), is(""));
   }
+
+  @Test
+  public void shouldBuildTrustStoreBCFKSOptionsWithPassword() {
+    // When
+    final Optional<KeyStoreOptions> keyStoreOptions = VertxSslOptionsFactory.getBcfksStoreOptions(
+        ImmutableMap.of(
+            SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG,
+            "password"
+        )
+    );
+
+    // Then
+    assertThat(keyStoreOptions.get().getPassword(), is("password"));
+  }
+
+  @Test
+  public void shouldReturnEmptyTrustStoreBCFKSOptionsIfPasswordIsEmpty() {
+    // When
+    final Optional<KeyStoreOptions> keyStoreOptions = VertxSslOptionsFactory.getBcfksStoreOptions(
+        ImmutableMap.of()
+    );
+
+    // Then
+    assertThat(keyStoreOptions, is(Optional.empty()));
+  }
+
+
 
   @Test
   public void shouldBuildKeyStoreJksOptionsWithPathAndPassword() {

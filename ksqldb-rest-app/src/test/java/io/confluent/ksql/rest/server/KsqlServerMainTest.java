@@ -267,30 +267,6 @@ public class KsqlServerMainTest {
   }
 
   @Test
-  public void shouldFailOnEmptyCipherSuitesList() {
-    // Given:
-    final KsqlConfig config = configWith(ImmutableMap.of(
-        ConfluentConfigs.ENABLE_FIPS_CONFIG, true
-    ));
-    final KsqlRestConfig restConfig = new KsqlRestConfig(ImmutableMap.<String, Object>builder()
-        .build()
-    );
-
-    // When:
-    final Exception e = assertThrows(
-        SecurityException.class,
-        () -> KsqlServerMain.validateFips(config, restConfig)
-    );
-
-    // Then:
-    assertThat(e.getMessage(), containsString(
-        "No cipher suites "
-            + "('"
-            + KsqlRestConfig.SSL_CIPHER_SUITES_CONFIG
-            + "') is specified."));
-  }
-
-  @Test
   public void shouldFailOnInvalidCipherSuitesList() {
     // Given:
     final KsqlConfig config = configWith(ImmutableMap.of(

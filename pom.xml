@@ -130,28 +130,28 @@
         <wiremock.version>2.24.0</wiremock.version>
         <clearspring-analytics.version>2.9.5</clearspring-analytics.version>
         <icu.version>67.1</icu.version>
-        <vertx.version>3.9.15</vertx.version>
+        <vertx.version>4.4.6</vertx.version>
         <reactive-streams.version>1.0.3</reactive-streams.version>
         <skip.docker.build>true</skip.docker.build>
         <skip.docker.test>true</skip.docker.test>
         <!-- Temporarily disabling this because it is causing failures in packaging but not CI builds. -->
         <!-- <compile.warnings-flag>-Werror</compile.warnings-flag> -->
         <!-- Only used to provide login module implementation for tests -->
-        <jetty.version>9.4.51.v20230217</jetty.version>
+        <jetty.version>9.4.53.v20231009</jetty.version>
         <git-commit-id-plugin.version>2.2.6</git-commit-id-plugin.version>
         <apache.io.version>2.7</apache.io.version>
         <io.confluent.ksql.version>7.1.10-0</io.confluent.ksql.version>
         <io.confluent.schema-registry.version>${confluent.version.range}</io.confluent.schema-registry.version>
         <mockito.version>3.8.0</mockito.version>
-        <netty-tcnative-version>2.0.54.Final</netty-tcnative-version>
+        <netty-tcnative-version>2.0.61.Final</netty-tcnative-version>
         <!-- We normally get this from common, but Vertx is built against this -->
         <!-- Note: `netty` depends on `tcnative` and if we bump `netty`
              we might need to bump `tcnative`, too.
              Please check top level `pom.xml` at https://github.com/netty/netty
              for the netty version we bump to (ie, corresponding git tag),
              to find the correct `tcnative` version. -->
-        <netty.version>4.1.89.Final</netty.version>
-        <netty-codec-http2-version>4.1.89.Final</netty-codec-http2-version>
+        <netty.version>4.1.100.Final</netty.version>
+        <netty-codec-http2-version>4.1.100.Final</netty-codec-http2-version>
         <jersey-common>2.34</jersey-common>
     </properties>
 
@@ -519,6 +519,11 @@
              here -->
             <dependency>
                 <groupId>io.netty</groupId>
+                <artifactId>netty-all</artifactId>
+                <version>${netty.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.netty</groupId>
                 <artifactId>netty-common</artifactId>
                 <version>${netty.version}</version>
             </dependency>
@@ -575,6 +580,11 @@
             <dependency>
                 <groupId>io.netty</groupId>
                 <artifactId>netty-codec-dns</artifactId>
+                <version>${netty.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.netty</groupId>
+                <artifactId>netty-transport-native-kqueue</artifactId>
                 <version>${netty.version}</version>
             </dependency>
             <dependency>

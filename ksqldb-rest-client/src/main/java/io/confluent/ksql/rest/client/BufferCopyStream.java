@@ -24,13 +24,13 @@ public final class BufferCopyStream implements ReadStream<Buffer> {
 
   private final ReadStream<Buffer> source;
 
-  public BufferCopyStream(ReadStream<Buffer> source) {
+  public BufferCopyStream(final ReadStream<Buffer> source) {
     Objects.requireNonNull(source, "Source must be non-null");
     this.source = source;
   }
 
   @Override
-  public ReadStream<Buffer> handler(Handler<Buffer> handler) {
+  public ReadStream<Buffer> handler(final Handler<Buffer> handler) {
     if (handler == null) {
       source.handler(null);
     } else {
@@ -40,7 +40,7 @@ public final class BufferCopyStream implements ReadStream<Buffer> {
   }
 
   @Override
-  public ReadStream<Buffer> exceptionHandler(Handler<Throwable> handler) {
+  public ReadStream<Buffer> exceptionHandler(final Handler<Throwable> handler) {
     source.exceptionHandler(handler);
     return this;
   }
@@ -58,13 +58,13 @@ public final class BufferCopyStream implements ReadStream<Buffer> {
   }
 
   @Override
-  public ReadStream<Buffer> fetch(long amount) {
+  public ReadStream<Buffer> fetch(final long amount) {
     source.fetch(amount);
     return this;
   }
 
   @Override
-  public ReadStream<Buffer> endHandler(Handler<Void> endHandler) {
+  public ReadStream<Buffer> endHandler(final Handler<Void> endHandler) {
     source.endHandler(endHandler);
     return this;
   }

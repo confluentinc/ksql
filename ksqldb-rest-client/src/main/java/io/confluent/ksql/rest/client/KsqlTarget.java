@@ -351,7 +351,8 @@ public final class KsqlTarget {
     return executeSync(httpMethod, path, Optional.empty(), requestBody,
         resp -> responseSupplier.get(),
         (resp, vcf) -> {
-        final RecordParser recordParser = RecordParser.newDelimited(delimiter, resp);
+        final RecordParser recordParser =
+            RecordParser.newDelimited(delimiter, new BufferCopyStream(resp));
         final AtomicBoolean end = new AtomicBoolean(false);
 
         final WriteStream<Buffer> ws = new BufferMapWriteStream<>(chunkMapper, chunkHandler);

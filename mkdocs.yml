@@ -20,7 +20,7 @@ extra_css:
   - https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.10.2/css/all.min.css
 
 extra_javascript:
-  - js/extra.js
+  # - js/extra.js
   - js/analytics.js
 
 nav:

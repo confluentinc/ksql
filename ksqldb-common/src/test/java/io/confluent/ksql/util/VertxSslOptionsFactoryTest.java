@@ -131,7 +131,7 @@ public class VertxSslOptionsFactoryTest {
   @Test
   public void shouldBuildTrustStoreBCFKSOptionsWithPassword() {
     // When
-    final Optional<KeyStoreOptions> keyStoreOptions = VertxSslOptionsFactory.getBcfksStoreOptions(
+    final Optional<KeyStoreOptions> keyStoreOptions = VertxSslOptionsFactory.getBcfksTrustStoreOptions(
         ImmutableMap.of(
             SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG,
             "password"
@@ -145,7 +145,7 @@ public class VertxSslOptionsFactoryTest {
   @Test
   public void shouldReturnEmptyTrustStoreBCFKSOptionsIfPasswordIsEmpty() {
     // When
-    final Optional<KeyStoreOptions> keyStoreOptions = VertxSslOptionsFactory.getBcfksStoreOptions(
+    final Optional<KeyStoreOptions> keyStoreOptions = VertxSslOptionsFactory.getBcfksTrustStoreOptions(
         ImmutableMap.of()
     );
 

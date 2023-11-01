@@ -35,6 +35,7 @@ public class ClientOptionsImpl implements ClientOptions {
   private String keyStorePassword;
   private String keyPassword;
   private String keyAlias;
+  private String storeType;
   private String basicAuthUsername;
   private String basicAuthPassword;
   private int executeQueryMaxResultRows = ClientOptions.DEFAULT_EXECUTE_QUERY_MAX_RESULT_ROWS;
@@ -56,9 +57,9 @@ public class ClientOptionsImpl implements ClientOptions {
       final boolean useBasicAuth,
       final String trustStorePath, final String trustStorePassword,
       final String keyStorePath, final String keyStorePassword, final String keyPassword,
-      final String keyAlias, final String basicAuthUsername, final String basicAuthPassword,
-      final int executeQueryMaxResultRows, final int http2MultiplexingLimit,
-      final Map<String, String> requestHeaders) {
+      final String keyAlias, final String storeType, final String basicAuthUsername,
+      final String basicAuthPassword, final int executeQueryMaxResultRows,
+      final int http2MultiplexingLimit, final Map<String, String> requestHeaders) {
     this.host = Objects.requireNonNull(host);
     this.port = port;
     this.useTls = useTls;
@@ -71,6 +72,7 @@ public class ClientOptionsImpl implements ClientOptions {
     this.keyStorePassword = keyStorePassword;
     this.keyPassword = keyPassword;
     this.keyAlias = keyAlias;
+    this.storeType = storeType;
     this.basicAuthUsername = basicAuthUsername;
     this.basicAuthPassword = basicAuthPassword;
     this.executeQueryMaxResultRows = executeQueryMaxResultRows;
@@ -141,6 +143,12 @@ public class ClientOptionsImpl implements ClientOptions {
   @Override
   public ClientOptions setKeyAlias(final String keyAlias) {
     this.keyAlias = keyAlias;
+    return this;
+  }
+
+  @Override
+  public ClientOptions setStoreType(final String storeType) {
+    this.storeType = storeType;
     return this;
   }
 
@@ -232,6 +240,11 @@ public class ClientOptionsImpl implements ClientOptions {
   }
 
   @Override
+  public String getStoreType() {
+    return storeType == null ? "JKS" : storeType;
+  }
+
+  @Override
   public String getBasicAuthUsername() {
     return basicAuthUsername == null ? "" : basicAuthUsername;
   }
@@ -263,7 +276,7 @@ public class ClientOptionsImpl implements ClientOptions {
         useTls, verifyHost, useAlpn,
         useBasicAuth,
         trustStorePath, trustStorePassword,
-        keyStorePath, keyStorePassword, keyPassword, keyAlias,
+        keyStorePath, keyStorePassword, keyPassword, keyAlias, storeType,
         basicAuthUsername, basicAuthPassword,
         executeQueryMaxResultRows, http2MultiplexingLimit,
         requestHeaders);
@@ -292,6 +305,7 @@ public class ClientOptionsImpl implements ClientOptions {
         && Objects.equals(keyStorePassword, that.keyStorePassword)
         && Objects.equals(keyPassword, that.keyPassword)
         && Objects.equals(keyAlias, that.keyAlias)
+        && Objects.equals(storeType, that.storeType)
         && Objects.equals(basicAuthUsername, that.basicAuthUsername)
         && Objects.equals(basicAuthPassword, that.basicAuthPassword)
         && http2MultiplexingLimit == that.http2MultiplexingLimit
@@ -301,7 +315,7 @@ public class ClientOptionsImpl implements ClientOptions {
   @Override
   public int hashCode() {
     return Objects.hash(host, port, useTls, verifyHost, useAlpn, trustStorePath,
-        trustStorePassword, keyStorePath, keyStorePassword, keyPassword, keyAlias,
+        trustStorePassword, keyStorePath, keyStorePassword, keyPassword, keyAlias, storeType,
         basicAuthUsername, basicAuthPassword, executeQueryMaxResultRows, http2MultiplexingLimit,
         requestHeaders);
   }
@@ -320,6 +334,7 @@ public class ClientOptionsImpl implements ClientOptions {
         + ", keyStorePassword='" + keyStorePassword + '\''
         + ", keyPassword='" + keyPassword + '\''
         + ", keyAlias='" + keyAlias + '\''
+        + ", storeType='" + storeType + '\''
         + ", basicAuthUsername='" + basicAuthUsername + '\''
         + ", basicAuthPassword='" + basicAuthPassword + '\''
         + ", executeQueryMaxResultRows=" + executeQueryMaxResultRows

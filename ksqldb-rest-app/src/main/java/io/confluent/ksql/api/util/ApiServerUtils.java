@@ -204,6 +204,10 @@ public final class ApiServerUtils {
           VertxSslOptionsFactory.getPfxKeyStoreOptions(props);
 
       keyStoreOptions.ifPresent(options -> httpServerOptions.setPfxKeyCertOptions(options));
+    } else if (keyStoreType.equals(KsqlRestConfig.SSL_STORE_TYPE_BCFKS)) {
+      final Optional<KeyStoreOptions> keyStoreOptions =
+          VertxSslOptionsFactory.getBcfksKeyStoreOptions(props);
+      keyStoreOptions.ifPresent(options -> httpServerOptions.setKeyCertOptions(options));
     }
   }
 
@@ -227,8 +231,7 @@ public final class ApiServerUtils {
       trustStoreOptions.ifPresent(options -> httpServerOptions.setTrustOptions(options));
     } else if (trustStoreType.equals(KsqlRestConfig.SSL_STORE_TYPE_BCFKS)) {
       final Optional<KeyStoreOptions> trustStoreOptions =
-          VertxSslOptionsFactory.getBcfksStoreOptions(props);
-
+          VertxSslOptionsFactory.getBcfksTrustStoreOptions(props);
       trustStoreOptions.ifPresent(options -> httpServerOptions.setTrustOptions(options));
     }
   }

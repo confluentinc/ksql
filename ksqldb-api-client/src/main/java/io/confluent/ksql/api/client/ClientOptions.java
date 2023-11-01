@@ -117,6 +117,14 @@ public interface ClientOptions {
   ClientOptions setKeyAlias(String keyAlias);
 
   /**
+   * Sets key/trust store type.
+   *
+   * @param storeType store type
+   * @return a reference to this
+   */
+  ClientOptions setStoreType(String storeType);
+
+  /**
    * Sets the username and password to be used for HTTP basic authentication when connecting to the
    * ksqlDB server. Basic authentication will be used unless both username and password are null
    * (the default).
@@ -244,6 +252,13 @@ public interface ClientOptions {
    * @return key alias
    */
   String getKeyAlias();
+
+  /**
+   * Returns the store type.
+   *
+   * @return key/trust store type
+   */
+  String getStoreType();
 
   /**
    * Returns the username to be used for HTTP basic authentication, if applicable.

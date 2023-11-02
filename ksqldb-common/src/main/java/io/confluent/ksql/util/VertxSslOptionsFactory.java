@@ -64,6 +64,10 @@ public final class VertxSslOptionsFactory {
     return props.get(SslConfigs.SSL_KEYMANAGER_ALGORITHM_CONFIG);
   }
 
+  private static String getTrustManagerAlgorithm(final Map<String, String> props) {
+    return props.get(SslConfigs.SSL_TRUSTMANAGER_ALGORITHM_CONFIG);
+  }
+
   private static JksOptions buildJksOptions(final String path, final String password) {
     return new JksOptions().setPath(path).setPassword(Strings.nullToEmpty(password));
   }
@@ -72,19 +76,24 @@ public final class VertxSslOptionsFactory {
     return new JksOptions().setValue(buffer).setPassword(Strings.nullToEmpty(password));
   }
 
-  private static KeyStoreOptions buildBcfksOptions(
-      final String provider, final String path, final String password, final String aliasPassword,
-      final String keyManagerAlgorithm) {
+  public static KeyStoreOptions buildBcfksOptions(
+      final String path, final String password, final String aliasPassword) {
 
-    if (!Strings.isNullOrEmpty(keyManagerAlgorithm)) {
-      Security.setProperty("ssl.KeyManagerFactory.algorithm", keyManagerAlgorithm);
-    }
     return new KeyStoreOptions()
         .setType(SSL_STORE_TYPE_BCFKS)
-        .setProvider(provider)
         .setPath(path)
         .setPassword(Strings.nullToEmpty(password))
         .setAliasPassword(Strings.nullToEmpty(aliasPassword));
+  }
+
+  private static void specifySecurityProperties(final String securityProviders,
+      final String algorithm, final boolean isKeyManager) {
+    if (isKeyManager) {
+      Security.setProperty("ssl.KeyManagerFactory.algorithm", algorithm);
+    } else {
+      Security.setProperty("ssl.TrustManagerFactory.algorithm", algorithm);
+    }
+    Security.setProperty("security.providers", securityProviders);
   }
 
   private static Buffer loadJksKeyStore(
@@ -165,29 +174,40 @@ public final class VertxSslOptionsFactory {
    *         Optional.empty() if the truststore password is null or empty.
    */
 
+  @SuppressWarnings("checkstyle:BooleanExpressionComplexity")
   public static Optional<KeyStoreOptions> getBcfksKeyStoreOptions(final Map<String, String> props) {
-    final String providers = getSecurityProviders(props);
     final String location = getKeyStoreLocation(props);
     final String password = getKeyStorePassword(props);
-    final String keyPassword = getKeyPassword(props);
     final String keyManagerAlgorithm = getKeyManagerAlgorithm(props);
 
-    if (!Strings.isNullOrEmpty(location)
-        && !Strings.isNullOrEmpty(password)
-        && !Strings.isNullOrEmpty(providers)) {
-      return Optional.of(buildBcfksOptions(
-          providers, location, password, keyPassword, keyManagerAlgorithm));
-    }
+    final String keyPassword = getKeyPassword(props);
+    final String securityProviders = getSecurityProviders(props);
 
-    return Optional.empty();
+    if (Strings.isNullOrEmpty(location)
+        || Strings.isNullOrEmpty(password)
+        || Strings.isNullOrEmpty(keyManagerAlgorithm)
+        || Strings.isNullOrEmpty(keyPassword)
+        || Strings.isNullOrEmpty(securityProviders)) {
+      return Optional.empty();
+    }
+    specifySecurityProperties(securityProviders, keyManagerAlgorithm, true);
+    return Optional.of(buildBcfksOptions(location, password, keyPassword));
   }
 
+  @SuppressWarnings("checkstyle:BooleanExpressionComplexity")
   public static Optional<KeyStoreOptions> getBcfksKeyStoreOptions(
-      final String location, final String password, final String keyPassword) {
-    return getBcfksKeyStoreOptions(ImmutableMap.of(
-        SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG, location,
-        SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG, password,
-        SslConfigs.SSL_KEY_PASSWORD_CONFIG, keyPassword));
+      final String securityProviders, final String location, final String password,
+      final String keyPassword, final String keyManagerAlgorithm) {
+    if (Strings.isNullOrEmpty(location)
+        || Strings.isNullOrEmpty(password)
+        || Strings.isNullOrEmpty(keyManagerAlgorithm)
+        || Strings.isNullOrEmpty(keyPassword)
+        || Strings.isNullOrEmpty(securityProviders)) {
+      return Optional.empty();
+    }
+
+    specifySecurityProperties(securityProviders, keyManagerAlgorithm, true);
+    return Optional.of(buildBcfksOptions(location, password, keyPassword));
   }
 
 
@@ -202,33 +222,46 @@ public final class VertxSslOptionsFactory {
    *         Optional.empty() if the truststore password is null or empty.
    */
 
+  @SuppressWarnings("checkstyle:BooleanExpressionComplexity")
   public static Optional<KeyStoreOptions> getBcfksTrustStoreOptions(
       final Map<String, String> props) {
-    final String providers = getSecurityProviders(props);
     final String location = getTrustStoreLocation(props);
     final String password = getTrustStorePassword(props);
-    final String keyPassword = getKeyPassword(props);
-    final String keyManagerAlgorithm = getKeyManagerAlgorithm(props);
+    final String trustManagerAlgorithm = getTrustManagerAlgorithm(props);
 
-    if (!Strings.isNullOrEmpty(location)
-        && !Strings.isNullOrEmpty(password)
-        && !Strings.isNullOrEmpty(providers)) {
-      return Optional.of(buildBcfksOptions(
-          providers, location, password, keyPassword, keyManagerAlgorithm));
+    final String securityProviders = getSecurityProviders(props);
+    final String keyPassword = getKeyPassword(props);
+
+    if (Strings.isNullOrEmpty(location)
+        || Strings.isNullOrEmpty(password)
+        || Strings.isNullOrEmpty(trustManagerAlgorithm)
+        || Strings.isNullOrEmpty(keyPassword)
+        || Strings.isNullOrEmpty(securityProviders)) {
+      return Optional.empty();
     }
 
-    return Optional.empty();
+    specifySecurityProperties(securityProviders, trustManagerAlgorithm, false);
+    return Optional.of(buildBcfksOptions(location, password, keyPassword));
   }
 
+  @SuppressWarnings("checkstyle:BooleanExpressionComplexity")
   public static Optional<KeyStoreOptions> getBcfksTrustStoreOptions(
+      final String securityProviders,
       final String location,
       final String password,
-      final String keyPassword) {
-    return getBcfksTrustStoreOptions(ImmutableMap.of(
-        SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG, location,
-        SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG, password,
-        SslConfigs.SSL_KEY_PASSWORD_CONFIG, keyPassword
-    ));
+      final String keyPassword,
+      final String trustManagerAlgorithm) {
+
+    if (Strings.isNullOrEmpty(location)
+        || Strings.isNullOrEmpty(password)
+        || Strings.isNullOrEmpty(trustManagerAlgorithm)
+        || Strings.isNullOrEmpty(keyPassword)
+        || Strings.isNullOrEmpty(securityProviders)) {
+      return Optional.empty();
+    }
+
+    specifySecurityProperties(securityProviders, trustManagerAlgorithm, false);
+    return Optional.of(buildBcfksOptions(location, password, keyPassword));
   }
 
   /**

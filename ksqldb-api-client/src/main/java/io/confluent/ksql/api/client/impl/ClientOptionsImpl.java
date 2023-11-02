@@ -36,6 +36,9 @@ public class ClientOptionsImpl implements ClientOptions {
   private String keyPassword;
   private String keyAlias;
   private String storeType;
+  private String securityProviders;
+  private String keyManagerAlgorithm;
+  private String trustManagerAlgorithm;
   private String basicAuthUsername;
   private String basicAuthPassword;
   private int executeQueryMaxResultRows = ClientOptions.DEFAULT_EXECUTE_QUERY_MAX_RESULT_ROWS;
@@ -57,9 +60,11 @@ public class ClientOptionsImpl implements ClientOptions {
       final boolean useBasicAuth,
       final String trustStorePath, final String trustStorePassword,
       final String keyStorePath, final String keyStorePassword, final String keyPassword,
-      final String keyAlias, final String storeType, final String basicAuthUsername,
-      final String basicAuthPassword, final int executeQueryMaxResultRows,
-      final int http2MultiplexingLimit, final Map<String, String> requestHeaders) {
+      final String keyAlias, final String storeType, final String securityProviders,
+      final String keyManagerAlgorithm, final String trustManagerAlgorithm,
+      final String basicAuthUsername, final String basicAuthPassword,
+      final int executeQueryMaxResultRows, final int http2MultiplexingLimit,
+      final Map<String, String> requestHeaders) {
     this.host = Objects.requireNonNull(host);
     this.port = port;
     this.useTls = useTls;
@@ -73,6 +78,9 @@ public class ClientOptionsImpl implements ClientOptions {
     this.keyPassword = keyPassword;
     this.keyAlias = keyAlias;
     this.storeType = storeType;
+    this.securityProviders = securityProviders;
+    this.keyManagerAlgorithm = keyManagerAlgorithm;
+    this.trustManagerAlgorithm = trustManagerAlgorithm;
     this.basicAuthUsername = basicAuthUsername;
     this.basicAuthPassword = basicAuthPassword;
     this.executeQueryMaxResultRows = executeQueryMaxResultRows;
@@ -149,6 +157,24 @@ public class ClientOptionsImpl implements ClientOptions {
   @Override
   public ClientOptions setStoreType(final String storeType) {
     this.storeType = storeType;
+    return this;
+  }
+
+  @Override
+  public ClientOptions setSecurityProviders(final String securityProviders) {
+    this.securityProviders = securityProviders;
+    return this;
+  }
+
+  @Override
+  public ClientOptions setKeyManagerAlgorithm(final String keyManagerAlgorithm) {
+    this.keyManagerAlgorithm = keyManagerAlgorithm;
+    return this;
+  }
+
+  @Override
+  public ClientOptions setTrustManagerAlgorithm(final String trustManagerAlgorithm) {
+    this.trustManagerAlgorithm = trustManagerAlgorithm;
     return this;
   }
 
@@ -245,6 +271,21 @@ public class ClientOptionsImpl implements ClientOptions {
   }
 
   @Override
+  public String getSecurityProviders() {
+    return securityProviders == null ? "" : securityProviders;
+  }
+
+  @Override
+  public String getKeyManagerAlgorithm() {
+    return keyManagerAlgorithm == null ? "" : keyManagerAlgorithm;
+  }
+
+  @Override
+  public String getTrustManagerAlgorithm() {
+    return trustManagerAlgorithm == null ? "" : trustManagerAlgorithm;
+  }
+
+  @Override
   public String getBasicAuthUsername() {
     return basicAuthUsername == null ? "" : basicAuthUsername;
   }
@@ -277,6 +318,7 @@ public class ClientOptionsImpl implements ClientOptions {
         useBasicAuth,
         trustStorePath, trustStorePassword,
         keyStorePath, keyStorePassword, keyPassword, keyAlias, storeType,
+        securityProviders, keyManagerAlgorithm, trustManagerAlgorithm,
         basicAuthUsername, basicAuthPassword,
         executeQueryMaxResultRows, http2MultiplexingLimit,
         requestHeaders);
@@ -306,6 +348,9 @@ public class ClientOptionsImpl implements ClientOptions {
         && Objects.equals(keyPassword, that.keyPassword)
         && Objects.equals(keyAlias, that.keyAlias)
         && Objects.equals(storeType, that.storeType)
+        && Objects.equals(securityProviders, that.securityProviders)
+        && Objects.equals(keyManagerAlgorithm, that.keyManagerAlgorithm)
+        && Objects.equals(trustManagerAlgorithm, that.trustManagerAlgorithm)
         && Objects.equals(basicAuthUsername, that.basicAuthUsername)
         && Objects.equals(basicAuthPassword, that.basicAuthPassword)
         && http2MultiplexingLimit == that.http2MultiplexingLimit
@@ -316,6 +361,7 @@ public class ClientOptionsImpl implements ClientOptions {
   public int hashCode() {
     return Objects.hash(host, port, useTls, verifyHost, useAlpn, trustStorePath,
         trustStorePassword, keyStorePath, keyStorePassword, keyPassword, keyAlias, storeType,
+        securityProviders, keyManagerAlgorithm, trustManagerAlgorithm,
         basicAuthUsername, basicAuthPassword, executeQueryMaxResultRows, http2MultiplexingLimit,
         requestHeaders);
   }
@@ -335,6 +381,9 @@ public class ClientOptionsImpl implements ClientOptions {
         + ", keyPassword='" + keyPassword + '\''
         + ", keyAlias='" + keyAlias + '\''
         + ", storeType='" + storeType + '\''
+        + ", securityProviders='" + securityProviders + '\''
+        + ", keyManagerAlgorithm='" + keyManagerAlgorithm + '\''
+        + ", trustManagerAlgorithm='" + trustManagerAlgorithm + '\''
         + ", basicAuthUsername='" + basicAuthUsername + '\''
         + ", basicAuthPassword='" + basicAuthPassword + '\''
         + ", executeQueryMaxResultRows=" + executeQueryMaxResultRows

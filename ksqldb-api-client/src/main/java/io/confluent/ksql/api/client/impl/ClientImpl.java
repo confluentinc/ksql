@@ -909,9 +909,11 @@ public class ClientImpl implements Client {
       if (Objects.equals(clientOptions.getStoreType(), SSL_STORE_TYPE_BCFKS)) {
         final Optional<KeyStoreOptions> bcfksOptions =
             VertxSslOptionsFactory.getBcfksTrustStoreOptions(
+                clientOptions.getSecurityProviders(),
                 clientOptions.getTrustStore(),
                 clientOptions.getTrustStorePassword(),
-                clientOptions.getKeyPassword());
+                clientOptions.getKeyPassword(),
+                clientOptions.getTrustManagerAlgorithm());
 
         if (bcfksOptions.isPresent()) {
           options = options.setTrustOptions(bcfksOptions.get());
@@ -929,9 +931,11 @@ public class ClientImpl implements Client {
       if (Objects.equals(clientOptions.getStoreType(), SSL_STORE_TYPE_BCFKS)) {
         final Optional<KeyStoreOptions> keyStoreOptions =
             VertxSslOptionsFactory.getBcfksKeyStoreOptions(
+                clientOptions.getSecurityProviders(),
                 clientOptions.getKeyStore(),
                 clientOptions.getKeyStorePassword(),
-                clientOptions.getKeyPassword());
+                clientOptions.getKeyPassword(),
+                clientOptions.getKeyManagerAlgorithm());
 
         if (keyStoreOptions.isPresent()) {
           options = options.setKeyCertOptions(keyStoreOptions.get());

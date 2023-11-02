@@ -125,6 +125,31 @@ public interface ClientOptions {
   ClientOptions setStoreType(String storeType);
 
   /**
+   * Sets security providers.
+   *
+   * @param securityProviders security providers
+   * @return a reference to this
+   */
+  ClientOptions setSecurityProviders(String securityProviders);
+
+  /**
+   * Sets key manager algorithm.
+   *
+   * @param keyManagerAlgorithm key manager algorithm
+   * @return a reference to this
+   */
+  ClientOptions setKeyManagerAlgorithm(String keyManagerAlgorithm);
+
+  /**
+   * Sets trust manager algorithm.
+   *
+   * @param trustManagerAlgorithm trust manager algorithm
+   * @return a reference to this
+   */
+  ClientOptions setTrustManagerAlgorithm(String trustManagerAlgorithm);
+
+
+  /**
    * Sets the username and password to be used for HTTP basic authentication when connecting to the
    * ksqlDB server. Basic authentication will be used unless both username and password are null
    * (the default).
@@ -259,6 +284,27 @@ public interface ClientOptions {
    * @return key/trust store type
    */
   String getStoreType();
+
+  /**
+   * Returns the security providers.
+   *
+   * @return security providers
+   */
+  String getSecurityProviders();
+
+  /**
+   * Returns the key manager algorithm
+   *
+   * @return key manager algorithm
+   */
+  String getKeyManagerAlgorithm();
+
+  /**
+   * Returns the trust manager algorithm
+   *
+   * @return trust manager algorithm
+   */
+  String getTrustManagerAlgorithm();
 
   /**
    * Returns the username to be used for HTTP basic authentication, if applicable.

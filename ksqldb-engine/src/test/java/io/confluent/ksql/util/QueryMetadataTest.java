@@ -20,6 +20,7 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.lessThanOrEqualTo;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
@@ -229,6 +230,39 @@ public class QueryMetadataTest {
 
     // When:
     query.uncaughtHandler(new RuntimeException("oops"));
+
+    // Then:
+    verify(listener).onError(same(query), argThat(q -> q.getType().equals(Type.USER)));
+  }
+
+  @Test
+  public void shouldNotifyQueryStateListenerWithRecursiveClassification() {
+    final Exception e = new Exception();
+
+    // Given:
+    when(classifier.classify(eq(e))).thenReturn(Type.USER);
+
+    // When:
+    query.uncaughtHandler(new Exception("oops", e));
+
+    // Then:
+    verify(listener).onError(same(query), argThat(q -> q.getType().equals(Type.USER)));
+  }
+
+  @Test
+  public void shouldNotifyQueryStateListenerWithSelfReferencingException() {
+    final Exception e = new Exception() {
+      @Override
+      public synchronized Throwable getCause() {
+        return this;
+      }
+    };
+
+    // Given:
+    when(classifier.classify(eq(e))).thenReturn(Type.USER);
+
+    // When:
+    query.uncaughtHandler(new Exception("oops", e));
 
     // Then:
     verify(listener).onError(same(query), argThat(q -> q.getType().equals(Type.USER)));

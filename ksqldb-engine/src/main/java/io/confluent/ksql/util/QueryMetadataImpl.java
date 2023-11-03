@@ -189,7 +189,7 @@ public class QueryMetadataImpl implements QueryMetadata {
     try {
       QueryLogger.error(String.format("Uncaught exception in query %s", e),
           this.statementString);
-      errorType = errorClassifier.classify(e);
+      errorType = recursiveClassification(e, 10);
     } catch (final Exception classificationException) {
       LOG.error("Error classifying unhandled exception", classificationException);
     } finally {
@@ -445,6 +445,20 @@ public class QueryMetadataImpl implements QueryMetadata {
     kafkaStreams.resume();
     isPaused.set(false);
     listener.onResume(this);
+  }
+
+  private QueryError.Type recursiveClassification(Throwable throwable, int depthLeft) {
+    // depthLeft is used just here to safeguard against infinite recursion in the case of
+    // self-referencing exceptions
+    if (throwable != null && depthLeft > 0) {
+      final QueryError.Type errorType = errorClassifier.classify(throwable);
+      if (errorType != QueryError.Type.UNKNOWN) {
+        return errorType;
+      } else {
+        return recursiveClassification(throwable.getCause(), depthLeft - 1);
+      }
+    }
+    return QueryError.Type.UNKNOWN;
   }
 
   public static class RetryEvent implements QueryMetadata.RetryEvent {

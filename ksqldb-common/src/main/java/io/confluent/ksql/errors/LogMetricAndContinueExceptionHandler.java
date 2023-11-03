@@ -15,10 +15,12 @@
 
 package io.confluent.ksql.errors;
 
+import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import io.confluent.ksql.metrics.StreamsErrorCollector;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Map;
 import java.util.Objects;
+import java.util.OptionalLong;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.streams.errors.DeserializationExceptionHandler;
 import org.apache.kafka.streams.processor.ProcessorContext;
@@ -39,13 +41,38 @@ public class LogMetricAndContinueExceptionHandler implements DeserializationExce
   ) {
     log.debug(
         "Exception caught during Deserialization, "
-        + "taskId: {}, topic: {}, partition: {}, offset: {}",
+            + "taskId: {}, topic: {}, partition: {}, offset: {}",
         context.taskId(), record.topic(), record.partition(), record.offset(),
         exception
     );
 
     streamsErrorCollector.recordError(record.topic());
+
+    final OptionalLong restErrorCode = recursiveFindErrorCode(exception, 10);
+
+    if (restErrorCode.isPresent() && restErrorCode.getAsLong() == 40301) {
+      log.info(
+          "Permission error when attempting to access the schema during deserialization. "
+              + "taskId: {}, topic: {}, partition: {}, offset: {}",
+          context.taskId(), record.topic(), record.partition(), record.offset());
+      return DeserializationHandlerResponse.FAIL;
+    }
+
     return DeserializationHandlerResponse.CONTINUE;
+  }
+
+  private OptionalLong recursiveFindErrorCode(Throwable throwable, int depthLeft) {
+
+    // depthLeft is used just here to safeguard against infinite recursion in the case of
+    // self-referencing exceptions
+    if (throwable != null && depthLeft > 0) {
+      if (throwable instanceof RestClientException) {
+        return OptionalLong.of(((RestClientException) throwable).getErrorCode());
+      }
+      return recursiveFindErrorCode(throwable.getCause(), depthLeft - 1);
+    }
+
+    return OptionalLong.empty();
   }
 
   @Override

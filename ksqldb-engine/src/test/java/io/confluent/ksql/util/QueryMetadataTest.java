@@ -258,14 +258,11 @@ public class QueryMetadataTest {
       }
     };
 
-    // Given:
-    when(classifier.classify(eq(e))).thenReturn(Type.USER);
-
     // When:
     query.uncaughtHandler(new Exception("oops", e));
 
     // Then:
-    verify(listener).onError(same(query), argThat(q -> q.getType().equals(Type.USER)));
+    verify(listener).onError(same(query), argThat(q -> q.getType().equals(Type.UNKNOWN)));
   }
 
   @Test

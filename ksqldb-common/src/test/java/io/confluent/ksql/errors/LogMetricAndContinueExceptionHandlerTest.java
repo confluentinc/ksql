@@ -77,7 +77,7 @@ public class LogMetricAndContinueExceptionHandlerTest {
   }
 
   @Test
-  public void shouldTerminateForSelfReferencingExceptions() {
+  public void shouldReturnContinueForSelfReferencingExceptions() {
     assertThat(exceptionHandler.handle(context, record, new Exception() {
       @Override
       public synchronized Throwable getCause() {

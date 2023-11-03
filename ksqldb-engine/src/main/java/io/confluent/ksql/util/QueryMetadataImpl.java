@@ -189,7 +189,7 @@ public class QueryMetadataImpl implements QueryMetadata {
     try {
       QueryLogger.error(String.format("Uncaught exception in query %s", e),
           this.statementString);
-      errorType = recursiveClassification(e, 10);
+      errorType = causalChainClassification(e);
     } catch (final Exception classificationException) {
       LOG.error("Error classifying unhandled exception", classificationException);
     } finally {
@@ -447,17 +447,14 @@ public class QueryMetadataImpl implements QueryMetadata {
     listener.onResume(this);
   }
 
-  private QueryError.Type recursiveClassification(final Throwable throwable, final int depthLeft) {
-    // depthLeft is used just here to safeguard against infinite recursion in the case of
-    // self-referencing exceptions
-    if (throwable != null && depthLeft > 0) {
-      final QueryError.Type errorType = errorClassifier.classify(throwable);
+  private QueryError.Type causalChainClassification(final Throwable throwable) {
+    for (Throwable t : Throwables.getCausalChain(throwable)) {
+      final QueryError.Type errorType = errorClassifier.classify(t);
       if (errorType != QueryError.Type.UNKNOWN) {
         return errorType;
-      } else {
-        return recursiveClassification(throwable.getCause(), depthLeft - 1);
       }
     }
+
     return QueryError.Type.UNKNOWN;
   }
 

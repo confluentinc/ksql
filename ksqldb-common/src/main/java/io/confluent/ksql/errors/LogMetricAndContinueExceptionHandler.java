@@ -61,7 +61,7 @@ public class LogMetricAndContinueExceptionHandler implements DeserializationExce
     return DeserializationHandlerResponse.CONTINUE;
   }
 
-  private OptionalLong recursiveFindErrorCode(Throwable throwable, int depthLeft) {
+  private OptionalLong recursiveFindErrorCode(final Throwable throwable, final int depthLeft) {
 
     // depthLeft is used just here to safeguard against infinite recursion in the case of
     // self-referencing exceptions

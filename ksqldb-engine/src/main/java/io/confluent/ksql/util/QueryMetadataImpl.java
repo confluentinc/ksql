@@ -447,7 +447,7 @@ public class QueryMetadataImpl implements QueryMetadata {
     listener.onResume(this);
   }
 
-  private QueryError.Type recursiveClassification(Throwable throwable, int depthLeft) {
+  private QueryError.Type recursiveClassification(final Throwable throwable, final int depthLeft) {
     // depthLeft is used just here to safeguard against infinite recursion in the case of
     // self-referencing exceptions
     if (throwable != null && depthLeft > 0) {

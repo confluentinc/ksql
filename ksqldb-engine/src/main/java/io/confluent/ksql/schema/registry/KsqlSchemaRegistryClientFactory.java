@@ -97,11 +97,11 @@ public class KsqlSchemaRegistryClientFactory {
    * Creates an SslContext configured to be used with the KsqlSchemaRegistryClient.
    */
   public static SSLContext newSslContext(final KsqlConfig config) {
-    final DefaultSslEngineFactory sslFactory = new DefaultSslEngineFactory();
-    configureSslEngineFactory(config, sslFactory);
     if (config.getBoolean(ConfluentConfigs.ENABLE_FIPS_CONFIG)) {
       SecurityUtils.addConfiguredSecurityProviders(config.originals());
     }
+    final DefaultSslEngineFactory sslFactory = new DefaultSslEngineFactory();
+    configureSslEngineFactory(config, sslFactory);
     return sslFactory.sslContext();
   }
 

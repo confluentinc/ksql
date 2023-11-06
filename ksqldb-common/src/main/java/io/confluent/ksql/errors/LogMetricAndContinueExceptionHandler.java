@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.errors;
 
+import com.google.common.base.Throwables;
+import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import io.confluent.ksql.metrics.StreamsErrorCollector;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Map;
@@ -39,13 +41,33 @@ public class LogMetricAndContinueExceptionHandler implements DeserializationExce
   ) {
     log.debug(
         "Exception caught during Deserialization, "
-        + "taskId: {}, topic: {}, partition: {}, offset: {}",
+            + "taskId: {}, topic: {}, partition: {}, offset: {}",
         context.taskId(), record.topic(), record.partition(), record.offset(),
         exception
     );
 
     streamsErrorCollector.recordError(record.topic());
+
+    if (isCausedByAuthorizationError(exception)) {
+      log.info(
+          "Authorization error when attempting to access the schema during deserialization. "
+              + "taskId: {}, topic: {}, partition: {}, offset: {}",
+          context.taskId(), record.topic(), record.partition(), record.offset());
+      return DeserializationHandlerResponse.FAIL;
+    }
+
     return DeserializationHandlerResponse.CONTINUE;
+  }
+
+  private boolean isCausedByAuthorizationError(final Throwable throwable) {
+    try {
+      final Throwable error = Throwables.getRootCause(throwable);
+      return (error instanceof RestClientException
+          && ((((RestClientException) error).getStatus() == 401)
+          || ((RestClientException) error).getStatus() == 403));
+    } catch (Throwable t) {
+      return false;
+    }
   }
 
   @Override

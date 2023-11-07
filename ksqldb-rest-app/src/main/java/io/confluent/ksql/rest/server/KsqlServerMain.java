@@ -220,15 +220,9 @@ public class KsqlServerMain {
       final FipsValidator fipsValidator, final KsqlRestConfig restConfig) {
     final Map<String, List<String>> fipsTlsMap = new HashMap<>();
     final List<String> cipherSuites = restConfig.getList(KsqlRestConfig.SSL_CIPHER_SUITES_CONFIG);
-    if (cipherSuites.isEmpty()) {
-      final String errorMsg = "No cipher suites "
-          + "('"
-          + KsqlRestConfig.SSL_CIPHER_SUITES_CONFIG
-          + "') is specified.";
-      log.error(errorMsg);
-      throw new SecurityException(errorMsg);
+    if (!cipherSuites.isEmpty()) {
+      fipsTlsMap.put(KsqlRestConfig.SSL_CIPHER_SUITES_CONFIG, cipherSuites);
     }
-    fipsTlsMap.put(KsqlRestConfig.SSL_CIPHER_SUITES_CONFIG, cipherSuites);
     fipsTlsMap.put(KsqlRestConfig.SSL_ENABLED_PROTOCOLS_CONFIG,
         restConfig.getList(KsqlRestConfig.SSL_ENABLED_PROTOCOLS_CONFIG));
 

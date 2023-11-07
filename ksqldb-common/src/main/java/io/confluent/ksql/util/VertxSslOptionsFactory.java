@@ -230,18 +230,16 @@ public final class VertxSslOptionsFactory {
     final String trustManagerAlgorithm = getTrustManagerAlgorithm(props);
 
     final String securityProviders = getSecurityProviders(props);
-    final String keyPassword = getKeyPassword(props);
 
     if (Strings.isNullOrEmpty(location)
         || Strings.isNullOrEmpty(password)
         || Strings.isNullOrEmpty(trustManagerAlgorithm)
-        || Strings.isNullOrEmpty(keyPassword)
         || Strings.isNullOrEmpty(securityProviders)) {
       return Optional.empty();
     }
 
     specifySecurityProperties(securityProviders, trustManagerAlgorithm, false);
-    return Optional.of(buildBcfksOptions(location, password, keyPassword));
+    return Optional.of(buildBcfksOptions(location, password, ""));
   }
 
   @SuppressWarnings("checkstyle:BooleanExpressionComplexity")
@@ -249,19 +247,17 @@ public final class VertxSslOptionsFactory {
       final String securityProviders,
       final String location,
       final String password,
-      final String keyPassword,
       final String trustManagerAlgorithm) {
 
     if (Strings.isNullOrEmpty(location)
         || Strings.isNullOrEmpty(password)
         || Strings.isNullOrEmpty(trustManagerAlgorithm)
-        || Strings.isNullOrEmpty(keyPassword)
         || Strings.isNullOrEmpty(securityProviders)) {
       return Optional.empty();
     }
 
     specifySecurityProperties(securityProviders, trustManagerAlgorithm, false);
-    return Optional.of(buildBcfksOptions(location, password, keyPassword));
+    return Optional.of(buildBcfksOptions(location, password, ""));
   }
 
   /**

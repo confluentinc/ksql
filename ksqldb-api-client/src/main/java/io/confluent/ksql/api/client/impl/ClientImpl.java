@@ -912,7 +912,6 @@ public class ClientImpl implements Client {
                 clientOptions.getSecurityProviders(),
                 clientOptions.getTrustStore(),
                 clientOptions.getTrustStorePassword(),
-                clientOptions.getKeyPassword(),
                 clientOptions.getTrustManagerAlgorithm());
 
         if (bcfksOptions.isPresent()) {

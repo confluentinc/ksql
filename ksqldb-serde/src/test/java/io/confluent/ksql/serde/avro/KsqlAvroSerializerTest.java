@@ -108,7 +108,7 @@ public class KsqlAvroSerializerTest {
       parseAvroSchema("{\"type\": \"string\"}");
 
   private static final org.apache.avro.Schema BOOLEAN_ARRAY_AVRO_SCHEMA =
-      parseAvroSchema("{\"type\": \"array\", \"items\": [\"null\", \"boolean\"]}]");
+      parseAvroSchema("{\"type\": \"array\", \"items\": [\"null\", \"boolean\"]}");
 
   private static final org.apache.avro.Schema REQUIRED_KEY_MAP_AVRO_SCHEMA =
       parseAvroSchema("{\"type\": \"map\", \"values\": [\"null\", \"int\"]}");

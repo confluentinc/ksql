@@ -21,41 +21,62 @@ io.confluent.ksql.metrics:type=_confluent-ksql-engine-query-stats,ksql_service_i
 
 ### Attributes
 
-**Number of persistent queries**
-
-`num-persistent-queries`
-
-The current number of persistent queries running in this engine.
-
-**Total bytes consumed**
+**Bytes consumed total**
 
 `bytes-consumed-total`
 
 The total number of bytes consumed across all queries.
 
-**Minimum messages consumed**
+**Created queries**
 
-`messages-consumed-min`
+`created-queries`
 
-Min msgs consumed by query.
+The current number of created queries running in this engine.
+
+**Error rate**
+
+`error-rate`
+
+The proportion of failed queries to successful queries, indicating messages
+that were consumed but not processed. Messages may not be processed if, for
+exammple, the message contents could not be deserialized due to an incompatible
+schema. Alternatively, a consumed message may not have been produced, hence
+being effectively dropped. Such messages would also be counted toward the error
+rate. This can indicate problems with system configuration or issues in the 
+queries being executed.
+
+**Error queries**
+
+`error-queries`
+
+The number of queries that resulted in an error. This count can help identify
+issues within the curent query set.
+
+**Liveness indicator**
+
+`liveness-indicator`
+
+A metric with constant value `1` indicating the server is up and emitting metrics.
 
 **Maximum messages consumed**
 
 `messages-consumed-max`
 
-Max msgs consumed by query.
+The maximum number of messages consumed by all active queries.
 
-**Average messages consumed**
+**Messages consumed average**
 
 `messages-consumed-avg`
 
-Mean msgs consumed by query.
+The average number of messages consumed across all active queries. This can
+indicate the average load on the system.
 
 **Messages consumed per second**
 
 `messages-consumed-per-sec`
 
-The number of messages consumed per second across all queries.
+The number of messages consumed per second across all queries. Higher values
+can indicate a higher load on the system.
 
 **Messages consumed total**
 
@@ -67,19 +88,60 @@ The total number of messages consumed across all queries.
 
 `messages-produced-per-sec`
 
-The number of messages produced per second across all queries.
+The number of messages produced per second across all queries. This can
+indicate system throughput.
 
-**Error rate**
+**Minimum messages consumed**
 
-`error-rate`
+`messages-consumed-min`
 
-The number of messages that were consumed but not processed. Messages may not be processed if, for instance, the message contents could not be deserialized due to an incompatible schema. Alternatively, a consumed message may not have been produced, hence being effectively dropped. Such messages would also be counted toward the error rate.
+The minimum number of messages consumed by all active queries.
 
-**Liveness indicator**
+**Not-running queries**
 
-`liveness-indicator`
+`not-running-queries`
 
-A metric with constant value `1` indicating the server is up and emitting metrics.
+The number of queries that have been defined but are not currently running.
+
+**Number of active queries**
+
+`num-active-queries`
+
+The current number of active queries running in this engine.
+
+**Number of idle queries**
+
+`num-idle-queries`
+
+The number of queries that are currently idle, meaning that they are not 
+processing any data.
+
+**Number of persistent queries**
+
+`num-persistent-queries`
+
+The current number of persistent queries running in this engine.
+
+**Pending shutdown queries**
+
+`pending-shutdown-queries`
+
+The number of queries that are in the process of shutting down, usually due to
+a manual command to terminate.
+
+**Rebalancing queries**
+
+`rebalancing-queries`
+
+The number of queries that are currently undergoing a rebalance operation.
+Typically, this happens when a new worker joins a cluster or an existing one
+leaves.
+
+**Running queries**
+
+`running-queries`
+
+The current number of persistent queries running in this engine.
 
 ## Persistent query status
 

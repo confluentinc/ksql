@@ -596,7 +596,7 @@ public class ApiTest extends BaseApiTest {
     validateInsertStreamError(ERROR_CODE_SERVER_ERROR, "Error in processing inserts. Check server logs for details.",
         insertsResponse.error,
         (long) rows.size() - 1);
-    assertThat(testEndpoints.getInsertsSubscriber().isCompleted(), is(true));
+    assertThatEventually(() -> testEndpoints.getInsertsSubscriber().isCompleted(), is(true));
   }
 
   @Test

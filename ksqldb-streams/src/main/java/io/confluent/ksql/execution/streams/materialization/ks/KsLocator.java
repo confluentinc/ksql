@@ -281,7 +281,13 @@ public final class KsLocator implements Locator {
       return ((KafkaStreamsNamedTopologyWrapper) kafkaStreams)
           .queryMetadataForKey(storeName, key.getKey(), keySerializer, queryId);
     }
-    return kafkaStreams.queryMetadataForKey(storeName, key.getKey(), keySerializer);
+    try {
+      return kafkaStreams.queryMetadataForKey(storeName, key.getKey(), keySerializer);
+    } catch (IllegalStateException e) {
+      // We may be in `PENDING_SHUTDOWN` here, which means that we should let the client retry,
+      // as this will be happening during a roll.
+      return KeyQueryMetadata.NOT_AVAILABLE;
+    }
   }
 
   /**

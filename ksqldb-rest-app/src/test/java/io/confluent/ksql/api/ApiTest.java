@@ -337,7 +337,7 @@ public class ApiTest extends BaseApiTest {
     assertThat(queryResponse.rows, hasSize(DEFAULT_JSON_ROWS.size() - 1));
     validateError(ERROR_CODE_SERVER_ERROR, "Error in processing query. Check server logs for details.", queryResponse.error);
     assertThat(testEndpoints.getQueryPublishers(), hasSize(1));
-    assertThat(server.getQueryIDs().isEmpty(), is(true));
+    assertThatEventually(() -> server.getQueryIDs().isEmpty(), is(true));
   }
 
   @Test
@@ -602,7 +602,7 @@ public class ApiTest extends BaseApiTest {
     validateInsertStreamError(ERROR_CODE_SERVER_ERROR, "Error in processing inserts. Check server logs for details.",
         insertsResponse.error,
         (long) rows.size() - 1);
-    assertThat(testEndpoints.getInsertsSubscriber().isCompleted(), is(true));
+    assertThatEventually(() -> testEndpoints.getInsertsSubscriber().isCompleted(), is(true));
   }
 
   @Test

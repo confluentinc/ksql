@@ -38,7 +38,7 @@ public final class DefaultApiSecurityContext implements ApiSecurityContext {
     }
     final ApiUser apiUser = (ApiUser) user;
 
-    String authToken = routingContext.request().getHeader("Authorization");
+    String authToken = null;
     if (server.getAuthenticationPlugin().isPresent()) {
       authToken = server.getAuthenticationPlugin().get().getAuthHeader(routingContext);
     }

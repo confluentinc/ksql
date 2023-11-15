@@ -16,6 +16,7 @@
 package io.confluent.ksql.rest.server;
 
 import com.google.common.annotations.VisibleForTesting;
+import io.confluent.ksql.rest.server.computation.InternalTopicSerdes;
 import io.confluent.ksql.rest.server.resources.CommandTopicCorruptionException;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
@@ -145,6 +146,15 @@ public class CommandTopicBackupImpl implements CommandTopicBackup {
       LOG.warn(String.format("Can't backup a command topic record with a null key/value:"
               + " partition=%d, offset=%d",
           record.partition(), record.offset()));
+    }
+
+    if (Arrays.equals(record.key(), InternalTopicSerdes.serializer().serialize(
+        "",
+        CommandTopicMigrationUtil.MIGRATION_COMMAND_ID)
+    )) {
+      LOG.warn(String.format("Can't backup migration command topic record offset=%d",
+          record.offset()));
+      corruptionDetected = true;
       return;
     }
 

@@ -49,12 +49,15 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.ServiceContextFactory;
 import io.confluent.ksql.services.SimpleKsqlClient;
 import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
+import io.confluent.ksql.test.util.KsqlTestFolder;
+import io.confluent.ksql.util.Identifiers;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants.KsqlQueryType;
 import io.confluent.ksql.util.ReservedInternalTopics;
 import io.confluent.ksql.version.metrics.VersionCheckerAgent;
 import io.vertx.core.Vertx;
 import io.vertx.core.net.SocketAddress;
+import java.io.IOException;
 import java.net.URI;
 import java.net.URL;
 import java.time.Instant;
@@ -71,13 +74,14 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.Stack;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.streams.StreamsConfig;
 import org.junit.rules.ExternalResource;
+import org.junit.rules.TemporaryFolder;
 
 /**
  * Junit external resource for managing an instance of {@link KsqlRestApplication}.
@@ -98,9 +102,10 @@ import org.junit.rules.ExternalResource;
 public class TestKsqlRestApp extends ExternalResource {
 
   protected static final AtomicInteger COUNTER = new AtomicInteger();
+  private final TemporaryFolder temporaryFolder = KsqlTestFolder.temporaryFolder();
 
   protected final String metricsPrefix = "app-" + COUNTER.getAndIncrement() + "-";
-  protected final Map<String, ?> baseConfig;
+  protected final Map<String, Object> baseConfig;
   protected final Supplier<String> bootstrapServers;
   protected final Supplier<ServiceContext> serviceContext;
   protected final List<URL> listeners = new ArrayList<>();
@@ -327,11 +332,24 @@ public class TestKsqlRestApp extends ExternalResource {
     }
     ksqlRestApplication = null;
     lastCommandSequenceNumber = -1;
+    temporaryFolder.delete();
   }
 
   protected void initialize() {
     if (ksqlRestApplication != null) {
       after();
+    }
+
+    // Make sure that we set a different state directory for every run if none is set.
+    if (!baseConfig.containsKey(KsqlConfig.KSQL_STREAMS_PREFIX + StreamsConfig.STATE_DIR_CONFIG) &&
+        !baseConfig.containsKey(StreamsConfig.STATE_DIR_CONFIG)) {
+      try {
+        this.temporaryFolder.create();
+      } catch (IOException e) {
+        throw new RuntimeException("Cannot create temporary folder");
+      }
+      baseConfig.put(KsqlConfig.KSQL_STREAMS_PREFIX + StreamsConfig.STATE_DIR_CONFIG,
+          temporaryFolder.getRoot().getAbsolutePath());
     }
 
     ksqlRestConfig = buildConfig(bootstrapServers, baseConfig);
@@ -478,7 +496,6 @@ public class TestKsqlRestApp extends ExternalResource {
       final KsqlRestClient client
   ) {
     final Set<String> sourcesDropped = new HashSet<>(streams.size() + tables.size());
-
     Iterables.concat(streams, tables).forEach(source -> {
       if (!sourcesDropped.contains(source)) {
         final Iterator<String> dropInOrder = getOrderedSourcesToDrop(source, client);
@@ -589,7 +606,7 @@ public class TestKsqlRestApp extends ExternalResource {
     return new KsqlRestConfig(config);
   }
 
-  private static Map<String, ?> buildBaseConfig(final Map<String, ?> additionalProps) {
+  private static Map<String, Object> buildBaseConfig(final Map<String, ?> additionalProps) {
 
     final Map<String, Object> configMap = new HashMap<>();
     configMap.put(KsqlConfig.KSQL_STREAMS_PREFIX + "application.id", "KSQL");
@@ -599,6 +616,7 @@ public class TestKsqlRestApp extends ExternalResource {
     configMap.put(KsqlConfig.KSQL_ENABLE_UDFS, false);
     configMap.put(KsqlRestConfig.KSQL_HEARTBEAT_ENABLE_CONFIG, false);
     configMap.put(KsqlConfig.KSQL_QUERY_CLEANUP_SHUTDOWN_TIMEOUT_MS, 500L);
+    configMap.put(KsqlRestConfig.DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_CONFIG, 15000L);
     configMap.putAll(additionalProps);
     return configMap;
   }

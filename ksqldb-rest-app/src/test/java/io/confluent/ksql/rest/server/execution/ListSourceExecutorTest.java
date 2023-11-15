@@ -57,6 +57,7 @@ import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
+import io.confluent.ksql.util.IdentifierUtil;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlHostInfo;
 import io.confluent.ksql.util.KsqlStatementException;
@@ -139,7 +140,7 @@ public class ListSourceExecutorTest {
   public void shouldShowStreamsExtended() {
     // Given:
     final KsqlStream<?> stream1 = engine.givenSource(DataSourceType.KSTREAM, "stream1");
-    final KsqlStream<?> stream2 = engine.givenSource(DataSourceType.KSTREAM, "stream2",
+    final KsqlStream<?> stream2 = engine.givenSource(DataSourceType.KSTREAM, "STREAM2",
         ImmutableSet.of(SourceName.of("stream1")));
     engine.givenSource(DataSourceType.KTABLE, "table");
 
@@ -161,7 +162,7 @@ public class ListSourceExecutorTest {
             ImmutableList.of(),
             Optional.of(topicWith1PartitionAndRfOf1),
             ImmutableList.of(),
-            ImmutableList.of("stream2"),
+            ImmutableList.of("STREAM2"),
             new MetricCollectors()
         ),
         SourceDescriptionFactory.create(
@@ -258,7 +259,7 @@ public class ListSourceExecutorTest {
   public void shouldShowTablesExtended() {
     // Given:
     final KsqlTable<?> table1 = engine.givenSource(DataSourceType.KTABLE, "table1");
-    final KsqlTable<?> table2 = engine.givenSource(DataSourceType.KTABLE, "table2",
+    final KsqlTable<?> table2 = engine.givenSource(DataSourceType.KTABLE, "TABLE2",
         ImmutableSet.of(SourceName.of("table1")));
     engine.givenSource(DataSourceType.KSTREAM, "stream");
 
@@ -281,7 +282,7 @@ public class ListSourceExecutorTest {
             ImmutableList.of(),
             Optional.of(client.describeTopic(table1.getKafkaTopicName())),
             ImmutableList.of(),
-            ImmutableList.of("table2"),
+            ImmutableList.of("TABLE2"),
             new MetricCollectors()
         ),
         SourceDescriptionFactory.create(
@@ -407,6 +408,48 @@ public class ListSourceExecutorTest {
     // Then:
     assertThat(e.getMessage(), containsString(
         "Could not find STREAM/TABLE 'S' in the Metastore"));
+  }
+
+  @Test
+  public void shouldThrowOnDescribeSourceNameWithoutQuotes() {
+    // Given:
+    engine.givenSource(DataSourceType.KTABLE, "table1");
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlStatementException.class,
+        () -> CustomExecutors.SHOW_COLUMNS.execute(
+            engine.configure("DESCRIBE table1;"),
+            SESSION_PROPERTIES,
+            engine.getEngine(),
+            engine.getServiceContext()
+        )
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Could not find STREAM/TABLE 'TABLE1' in the Metastore\nDid you mean \"table1\"? Hint: wrap the source name in double quotes to make it case-sensitive."));
+  }
+
+  @Test
+  public void shouldThrowOnDescribeSourceNameWithQuotes() {
+    // Given:
+    engine.givenSource(DataSourceType.KSTREAM, "STREAM1");
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlStatementException.class,
+        () -> CustomExecutors.SHOW_COLUMNS.execute(
+            engine.configure("DESCRIBE \"stream1\";"),
+            SESSION_PROPERTIES,
+            engine.getEngine(),
+            engine.getServiceContext()
+        )
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Could not find STREAM/TABLE 'stream1' in the Metastore\nDid you mean STREAM1? Hint: try removing double quotes from the source name."));
   }
 
   @Test

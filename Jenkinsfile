@@ -2,6 +2,10 @@
 
 def channel = "${env.BRANCH_NAME}".contains('master') ? '#ksqldb-quality-oncall' : '#ksqldb-warn'
 
+def downStreams = "${env.BRANCH_NAME}".contains('master') ? 
+    ["confluent-security-plugins", "confluent-cloud-plugins", "cc-docker-ksql"] :
+    ["confluent-security-plugins", "confluent-cloud-plugins"]
+
 common {
     nodeLabel = 'docker-debian-jdk11'
     slackChannel = channel
@@ -11,11 +15,12 @@ common {
     dockerPush = false
     dockerScan = false
     dockerImageClean = false
-    downStreamRepos = ["confluent-security-plugins", "confluent-cloud-plugins"]
+    downStreamRepos = downStreams
     downStreamValidate = false
     nanoVersion = true
     maxBuildsToKeep = 99
     maxDaysToKeep = 90
     extraBuildArgs = "-Dmaven.gitcommitid.nativegit=true"
+    mavenBuildGoals = "clean install"
 }
 

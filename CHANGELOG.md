@@ -1,4 +1,37 @@
 # Change Log
+## [0.28.2](https://github.com/confluentinc/ksql/releases/tag/v0.28.2) (2022-08-02)
+
+### Features
+
+* Adding ksqlDB Query Status metric. ([#9283](https://github.com/confluentinc/ksql/pull/9283)) ([5ad9cf8](https://github.com/confluentinc/ksql/commit/5ad9cf89530489753f5aed2201ae2590dcf4183b))
+* Support pausing/resuming persistent queries ([#9203](https://github.com/confluentinc/ksql/pull/9203)) ([9f0f74a](https://github.com/confluentinc/ksql/commit/9f0f74a993f2703bc8b381191b9cac6d34152c54))
+* enable new emit-final implementation ([#9141](https://github.com/confluentinc/ksql/pull/9141)) ([2af201f](https://github.com/confluentinc/ksql/commit/2af201f45f45092d596a4844ca5f139455328844))
+* Added numerous trigonometric UDFs ([#9213](https://github.com/confluentinc/ksql/pull/9213)) ([cd85a43](https://github.com/confluentinc/ksql/commit/cd85a43ca24799a97b11ca203592f89cf762239e))
+
+
+
+### Bug Fixes
+
+* donot reset version for release branch ([227563b](https://github.com/confluentinc/ksql/commit/227563b4685d0b8f4a3691594b8647c336de6e7b))
+* make api client recognize ddl warnings better ([#9341](https://github.com/confluentinc/ksql/pull/9341)) ([c565ac5](https://github.com/confluentinc/ksql/commit/c565ac5ec3633080145cbae29d82b03f705b0ed1))
+* Map invalid casts to null. ([#9336](https://github.com/confluentinc/ksql/pull/9336)) ([36608cf](https://github.com/confluentinc/ksql/commit/36608cfa6a7e04053d6a26e976d318810f9b919c))
+* allow YATT to insert into and check contents of DDL sources ([#9321](https://github.com/confluentinc/ksql/pull/9321)) ([76e75b8](https://github.com/confluentinc/ksql/commit/76e75b86b444fb66fa9e2cd345c9bfcd266d3c27))
+* classify KsqlSerializationException as USER error based on topic(KSE-1045) ([56dddbb](https://github.com/confluentinc/ksql/commit/56dddbb140ac90ee7658ad46b77ff252cd7f676c))
+* Create a KsqlSerializationException class ([e986f66](https://github.com/confluentinc/ksql/commit/e986f668e61bb58f83dfc927505fb509d35582e4))
+* DESCRIBE FUNCTION failing for annotated UDAFs with initial args ([#9277](https://github.com/confluentinc/ksql/pull/9277)) ([cc69c20](https://github.com/confluentinc/ksql/commit/cc69c2033a6e882948d2cc1f0603ab34b3ca965f))
+* remove regex from migration tool ([#9254](https://github.com/confluentinc/ksql/pull/9254)) ([5089065](https://github.com/confluentinc/ksql/commit/5089065ee8cdd0318f94ce6af61381e1a26ed425))
+* Return proper status code for QPS ratelimit. ([dcfe794](https://github.com/confluentinc/ksql/commit/dcfe7941b445a41be7f662cb655812ab14cf64b8))
+* use JsonSchemaConverter to support JSON anyOf types ([#9130](https://github.com/confluentinc/ksql/pull/9130)) ([798c12d](https://github.com/confluentinc/ksql/commit/798c12d56c7696ebb8be7181d43943c8ad6b3c53))
+* add getAuthToken method to AuthenticationPlugin interface ([#9239](https://github.com/confluentinc/ksql/pull/9239)) ([b6fc8d9](https://github.com/confluentinc/ksql/commit/b6fc8d91152db35c2f8067f4db44ed6cba1c172b))
+* change auth token provider to accept token strings instead of principals ([#9255](https://github.com/confluentinc/ksql/pull/9255)) ([b45841a](https://github.com/confluentinc/ksql/commit/b45841ac75ad7787ea64e23905e975a34ae7df56))
+* Excludes Guava from Guava-retrying in order to manage Guava dependencies more reliably. ([#9260](https://github.com/confluentinc/ksql/pull/9260)) ([c901ac4](https://github.com/confluentinc/ksql/commit/c901ac4f58e01ffab1a7e70f8261929e045abef8))
+* Removing reverted configuration org.apache.kafka.streams.Streams… ([#9248](https://github.com/confluentinc/ksql/pull/9248)) ([bde8f40](https://github.com/confluentinc/ksql/commit/bde8f40dec29578e87f72e60f7ed6e51164964ad))
+* allow trig fxn differences between Java versions in tests ([#9226](https://github.com/confluentinc/ksql/pull/9226)) ([0cae003](https://github.com/confluentinc/ksql/commit/0cae003c2475d14ef7faae78183402c03f7242e4))
+* change consumer_group_member_id tag to just member to match Druid name ([#9225](https://github.com/confluentinc/ksql/pull/9225)) ([904d995](https://github.com/confluentinc/ksql/commit/904d995f9b57e1ff059be364a3ca57f7b4912759))
+* respect authentication.skip.paths properly ([#9224](https://github.com/confluentinc/ksql/pull/9224)) ([4c33edd](https://github.com/confluentinc/ksql/commit/4c33eddafafda31d2b6046a8cf69621db45f2fb3))
+* remove topic tag conversion hack and update tests ([#9219](https://github.com/confluentinc/ksql/pull/9219)) ([adb7a67](https://github.com/confluentinc/ksql/commit/adb7a67e643f54e2d52cf81e36cc870025314de4))
+
+
 ## [0.27.1](https://github.com/confluentinc/ksql/releases/tag/v0.27.1) (2022-07-21)
 
 ### Features

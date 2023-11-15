@@ -204,6 +204,15 @@ If the default is also not set, the statement is rejected as invalid.
 You can't use the `KEY_FORMAT` property with the `FORMAT` property in the
 same `CREATE TABLE` statement.
 
+### KEY_PROTOBUF_NULLABLE_REPRESENTATION
+
+In the default configuration, primitive fields in protobuf do not distinguish `null` from the
+default values (such as zero, empty string). To enable the use of a protobuf schema that can make
+this distinction, set `KEY_PROTOBUF_NULLABLE_REPRESENTATION` to either `OPTIONAL` or `WRAPPER`.
+The schema will be used to serialize keys for the table created by this `CREATE` statement.
+For more details, see the corresponding section in the
+[Serialization Formats](/reference/serialization#protobuf) documentation.
+
 ### KEY_SCHEMA_ID
 
 The schema ID of the key schema in {{ site.sr }}.
@@ -276,6 +285,15 @@ If the default is also not set, the statement is rejected as invalid.
 
 You can't use the `VALUE_FORMAT` property with the `FORMAT` property in the
 same `CREATE TABLE` statement.
+
+### VALUE_PROTOBUF_NULLABLE_REPRESENTATION
+
+In the default configuration, primitive fields in protobuf do not distinguish `null` from the
+default values (such as zero, empty string). To enable the use of a protobuf schema that can make
+this distinction, set `VALUE_PROTOBUF_NULLABLE_REPRESENTATION` to either `OPTIONAL` or `WRAPPER`.
+The schema will be used to serialize values for the table created by this `CREATE` statement.
+For more details, see the corresponding section in the
+[Serialization Formats](/reference/serialization#protobuf) documentation.
 
 ### VALUE_SCHEMA_ID
 

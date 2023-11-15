@@ -145,6 +145,12 @@
                 "type" : "bytes",
                 "scale" : 0,
                 "precision" : 17,
+                "connect.version" : 1,
+                "connect.parameters" : {
+                  "scale" : "0",
+                  "connect.decimal.precision" : "17"
+                },
+                "connect.name" : "org.apache.kafka.connect.data.Decimal",
                 "logicalType" : "decimal"
               } ],
               "default" : null
@@ -154,10 +160,17 @@
                 "type" : "bytes",
                 "scale" : 16,
                 "precision" : 33,
+                "connect.version" : 1,
+                "connect.parameters" : {
+                  "scale" : "16",
+                  "connect.decimal.precision" : "33"
+                },
+                "connect.name" : "org.apache.kafka.connect.data.Decimal",
                 "logicalType" : "decimal"
               } ],
               "default" : null
-            } ]
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
           }
         } ]
       }

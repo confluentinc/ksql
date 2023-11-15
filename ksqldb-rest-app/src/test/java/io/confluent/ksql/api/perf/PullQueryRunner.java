@@ -38,7 +38,6 @@ import io.confluent.ksql.rest.entity.KsqlMediaType;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.LagReportingMessage;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.util.KeyValue;
 import io.confluent.ksql.util.KeyValueMetadata;
 import io.confluent.ksql.util.PushQueryMetadata.ResultType;
 import io.confluent.ksql.util.VertxCompletableFuture;
@@ -57,6 +56,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Semaphore;
+import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscriber;
 
 public class PullQueryRunner extends BasePerfRunner {
@@ -123,7 +123,7 @@ public class PullQueryRunner extends BasePerfRunner {
     private final Set<PullQueryPublisher> publishers = new HashSet<>();
 
     @Override
-    public synchronized CompletableFuture<QueryPublisher> createQueryPublisher(final String sql,
+    public synchronized CompletableFuture<Publisher<?>> createQueryPublisher(final String sql,
         final Map<String, Object> properties,
         final Map<String, Object> sessionVariables,
         final Map<String, Object> requestProperties,
@@ -231,6 +231,12 @@ public class PullQueryRunner extends BasePerfRunner {
     public void executeWebsocketStream(ServerWebSocket webSocket, MultiMap requstParams,
         WorkerExecutor workerExecutor, ApiSecurityContext apiSecurityContext, Context context) {
 
+    }
+
+    @Override
+    public CompletableFuture<EndpointResponse> executeTest(String test,
+        ApiSecurityContext apiSecurityContext) {
+      return null;
     }
 
     synchronized void closePublishers() {

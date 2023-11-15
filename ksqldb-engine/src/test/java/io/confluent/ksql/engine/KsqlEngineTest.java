@@ -103,6 +103,7 @@ import java.util.stream.Collectors;
 import org.apache.avro.Schema;
 import org.apache.avro.SchemaBuilder;
 
+import org.apache.kafka.common.config.TopicConfig;
 import org.apache.kafka.streams.KafkaStreams;
 
 import org.apache.kafka.common.config.ConfigException;
@@ -533,6 +534,276 @@ public class KsqlEngineTest {
         );
   }
 
+  @Test
+  public void shouldShowHintWhenFailingToCreateQueryIfSelectingFromSourceNameWithoutQuotes() {
+    // Given:
+    KsqlEngineTestUtil.execute(
+        serviceContext,
+        ksqlEngine,
+        "create stream bar as select * from test1;",
+        ksqlConfig,
+        Collections.emptyMap()
+    );
+
+    // When:
+    final KsqlStatementException e = assertThrows(
+        KsqlStatementException.class,
+        () -> KsqlEngineTestUtil.execute(
+            serviceContext,
+            ksqlEngine,
+            "select * from \"bar\";",
+            ksqlConfig,
+            Collections.emptyMap()
+        )
+    );
+
+    // Then:
+    assertThat(e, rawMessage(is(
+        "Exception while preparing statement: bar does not exist.\n"
+            + "Did you mean BAR? Hint: try removing double quotes from the source name.")));
+    assertThat(e, statementText(is("select * from \"bar\";")));
+  }
+
+  @Test
+  public void shouldShowHintWhenFailingToCreateQueryIfSelectingFromSourceNameWithMisspelling() {
+    // Given:
+    KsqlEngineTestUtil.execute(
+        serviceContext,
+        ksqlEngine,
+        "create stream \"Bar\" as select * from test1;",
+        ksqlConfig,
+        Collections.emptyMap()
+    );
+
+    // When:
+    final KsqlStatementException e = assertThrows(
+        KsqlStatementException.class,
+        () -> KsqlEngineTestUtil.execute(
+            serviceContext,
+            ksqlEngine,
+            "select * from \"bAr\";",
+            ksqlConfig,
+            Collections.emptyMap()
+        )
+    );
+
+    // Then:
+    assertThat(e, rawMessage(is(
+        "Exception while preparing statement: bAr does not exist.\n"
+            + "Did you mean \"Bar\"? Hint: wrap the source name in double quotes to make it case-sensitive.")));
+    assertThat(e, statementText(is("select * from \"bAr\";")));
+  }
+  @Test
+  public void shouldShowCorrectHintsWhenIncorrectSourceMatchesWithTwo() {
+    // Given:
+    KsqlEngineTestUtil.execute(
+        serviceContext,
+        ksqlEngine,
+        "create stream \"Bar\" as select * from test1; "
+            + "create stream bar as select * from test1;",
+        ksqlConfig,
+        Collections.emptyMap()
+    );
+
+    // When:
+    final KsqlStatementException e = assertThrows(
+        KsqlStatementException.class,
+        () -> KsqlEngineTestUtil.execute(
+            serviceContext,
+            ksqlEngine,
+            "select * from \"bar\";",
+            ksqlConfig,
+            Collections.emptyMap()
+        )
+    );
+
+    // Then:
+    assertThat(e, rawMessage(is(
+        "Exception while preparing statement: bar does not exist.\n"
+            + "Did you mean \"BAR\" (STREAM) or \"Bar\" (STREAM)? Hint: wrap the source name in double quotes to make it case-sensitive.")));
+    assertThat(e, statementText(is("select * from \"bar\";")));
+  }
+
+  @Test
+  public void shouldShowCorrectHintsWhenIncorrectSourceMatchesWithThree() {
+    // Given:
+    KsqlEngineTestUtil.execute(
+        serviceContext,
+        ksqlEngine,
+        "create table \"Foo\" as select * from test2; "
+            + "create table foo as select * from test2; "
+            + "create stream \"foo\" as select * from test1;",
+        ksqlConfig,
+        Collections.emptyMap()
+    );
+
+    // When:
+    final KsqlStatementException e = assertThrows(
+        KsqlStatementException.class,
+        () -> KsqlEngineTestUtil.execute(
+            serviceContext,
+            ksqlEngine,
+            "select * from \"FoO\";",
+            ksqlConfig,
+            Collections.emptyMap()
+        )
+    );
+
+    // Then:
+    assertThat(e, rawMessage(is(
+        "Exception while preparing statement: FoO does not exist.\n"
+            + "Did you mean \"FOO\" (TABLE), \"Foo\" (TABLE), or \"foo\" (STREAM)? Hint: wrap the source name in double quotes to make it case-sensitive.")));
+    assertThat(e, statementText(is("select * from \"FoO\";")));
+  }
+
+  @Test
+  public void shouldShowHintWhenFailingToCreateQueryIfSelectingFromSourceNameWithQuotes() {
+    // Given:
+    KsqlEngineTestUtil.execute(
+        serviceContext,
+        ksqlEngine,
+        "create stream \"bar\" as select * from test1;",
+        ksqlConfig,
+        Collections.emptyMap()
+    );
+
+    // When:
+    final KsqlStatementException e = assertThrows(
+        KsqlStatementException.class,
+        () -> KsqlEngineTestUtil.execute(
+            serviceContext,
+            ksqlEngine,
+            "select * from bar;",
+            ksqlConfig,
+            Collections.emptyMap()
+        )
+    );
+
+    // Then:
+    assertThat(e, rawMessage(is(
+        "Exception while preparing statement: BAR does not exist.\n"
+            + "Did you mean \"bar\"? Hint: wrap the source name in double quotes to make it case-sensitive.")));
+    assertThat(e, statementText(is("select * from bar;")));
+  }
+
+  @Test
+  public void shouldShowHintWhenFailingToDropStreamWithSourceNameWithQuotes() {
+    // Given:
+    KsqlEngineTestUtil.execute(
+        serviceContext,
+        ksqlEngine,
+        "create stream bar as select * from test1;",
+        ksqlConfig,
+        Collections.emptyMap()
+    );
+
+    // When:
+    final KsqlStatementException e = assertThrows(
+        KsqlStatementException.class,
+        () -> KsqlEngineTestUtil.execute(
+            serviceContext,
+            ksqlEngine,
+            "drop stream \"bar\";",
+            ksqlConfig,
+            Collections.emptyMap()
+        )
+    );
+
+    // Then:
+    assertThat(e, rawMessage(is(
+        "Stream bar does not exist.\n"
+            + "Did you mean BAR? Hint: try removing double quotes from the source name.")));
+    assertThat(e, statementText(is("drop stream \"bar\";")));
+  }
+
+  @Test
+  public void shouldShowHintWhenFailingToDropTableWithSourceNameWithoutQuotes() {
+    // Given:
+    KsqlEngineTestUtil.execute(
+        serviceContext,
+        ksqlEngine,
+        "create table \"bar\" as select * from test2;",
+        ksqlConfig,
+        Collections.emptyMap()
+    );
+
+    // When:
+    final KsqlStatementException e = assertThrows(
+        KsqlStatementException.class,
+        () -> KsqlEngineTestUtil.execute(
+            serviceContext,
+            ksqlEngine,
+            "drop table bar;",
+            ksqlConfig,
+            Collections.emptyMap()
+        )
+    );
+
+    // Then:
+    assertThat(e, rawMessage(is(
+        "Table BAR does not exist.\n"
+            + "Did you mean \"bar\"? Hint: wrap the source name in double quotes to make it case-sensitive.")));
+    assertThat(e, statementText(is("drop table bar;")));
+  }
+
+  @Test
+  public void shouldNotShowHintWhenFailingToDropNonExistingTable() {
+    // Given:
+    KsqlEngineTestUtil.execute(
+        serviceContext,
+        ksqlEngine,
+        "create stream \"bar\" as select * from test1;",
+        ksqlConfig,
+        Collections.emptyMap()
+    );
+
+    // When:
+    final KsqlStatementException e = assertThrows(
+        KsqlStatementException.class,
+        () -> KsqlEngineTestUtil.execute(
+            serviceContext,
+            ksqlEngine,
+            "drop table bar;",
+            ksqlConfig,
+            Collections.emptyMap()
+        )
+    );
+
+    // Then:
+    assertThat(e, rawMessage(is(
+        "Table BAR does not exist.")));
+    assertThat(e, statementText(is("drop table bar;")));
+  }
+
+  @Test
+  public void shouldNotShowHintWhenFailingToDropNonExistingStream() {
+    // Given:
+    KsqlEngineTestUtil.execute(
+        serviceContext,
+        ksqlEngine,
+        "create table \"bar\" as select * from test2;",
+        ksqlConfig,
+        Collections.emptyMap()
+    );
+
+    // When:
+    final KsqlStatementException e = assertThrows(
+        KsqlStatementException.class,
+        () -> KsqlEngineTestUtil.execute(
+            serviceContext,
+            ksqlEngine,
+            "drop stream bar;",
+            ksqlConfig,
+            Collections.emptyMap()
+        )
+    );
+
+    // Then:
+    assertThat(e, rawMessage(is(
+        "Stream BAR does not exist.")));
+    assertThat(e, statementText(is("drop stream bar;")));
+  }
+
   @Test(expected = ParseFailedException.class)
   public void shouldFailWhenSyntaxIsInvalid() {
     KsqlEngineTestUtil.execute(
@@ -820,7 +1091,7 @@ public class KsqlEngineTest {
     KsqlEngineTestUtil.execute(
         serviceContext,
         ksqlEngine,
-                "drop stream foo;",
+        "drop stream foo;",
         ksqlConfig,
         Collections.emptyMap()
     );
@@ -886,12 +1157,12 @@ public class KsqlEngineTest {
   public void shouldDropTableIfAllReferencedQueriesTerminated() {
     // Given:
     final QueryMetadata secondQuery = KsqlEngineTestUtil.execute(
-        serviceContext,
-        ksqlEngine,
-        "create table bar as select * from test2;"
-            + "create table foo as select * from test2;",
+            serviceContext,
+            ksqlEngine,
+            "create table bar as select * from test2;"
+                + "create table foo as select * from test2;",
             ksqlConfig,
-        Collections.emptyMap())
+            Collections.emptyMap())
         .get(1);
 
     secondQuery.close();
@@ -1063,6 +1334,41 @@ public class KsqlEngineTest {
   }
 
   @Test
+  public void shouldNotDeleteSchemaNorTopicForStream() throws Exception {
+    // Given:
+    givenTopicsExist("BAR");
+    final QueryMetadata query = KsqlEngineTestUtil.execute(
+        serviceContext,
+        ksqlEngine,
+        "create stream bar with (value_format = 'avro') as select * from test1;",
+        ksqlConfig, Collections.emptyMap()
+    ).get(0);
+
+    query.close();
+
+    final Schema schema = SchemaBuilder
+        .record("Test").fields()
+        .name("clientHash").type().fixed("MD5").size(16).noDefault()
+        .endRecord();
+
+    schemaRegistryClient.register("BAR-value", new AvroSchema(schema));
+
+    // When:
+    KsqlEngineTestUtil.execute(
+        serviceContext,
+        ksqlEngine,
+        "DROP STREAM bar;",
+        ksqlConfig,
+        Collections.emptyMap()
+    );
+
+    // Then:
+    awaitCleanupComplete();
+    assertThat(serviceContext.getTopicClient().isTopicExists("BAR"), equalTo(true));
+    assertThat(schemaRegistryClient.getAllSubjects(), hasItem("BAR-value"));
+  }
+
+  @Test
   public void shouldCleanUpInternalTopicsOnClose() {
     // Given:
     ksqlConfig = KsqlConfigTestUtil.create("what-eva", sharedRuntimeDisabled);
@@ -1086,6 +1392,33 @@ public class KsqlEngineTest {
     // Then:
     awaitCleanupComplete();
     verify(topicClient, times(2)).deleteInternalTopics(query.getQueryApplicationId());
+  }
+
+  @Test
+  public void shouldCleanUpInternalTopicsOnCloseForPersistentQueries() {
+    // Given:
+    ksqlConfig = KsqlConfigTestUtil.create("what-eva", sharedRuntimeDisabled);
+    ksqlEngine = KsqlEngineTestUtil.createKsqlEngine(
+        serviceContext,
+        metaStore,
+        ksqlConfig
+    );
+
+    final List<QueryMetadata> query = KsqlEngineTestUtil.execute(
+        serviceContext,
+        ksqlEngine,
+        "create stream persistent as select * from test1 EMIT CHANGES;",
+        ksqlConfig, Collections.emptyMap()
+    );
+
+    query.get(0).start();
+
+    // When:
+    query.get(0).close();
+
+    // Then:
+    awaitCleanupComplete();
+    verify(topicClient, times(2)).deleteInternalTopics(query.get(0).getQueryApplicationId());
   }
 
   @Test
@@ -1349,6 +1682,38 @@ public class KsqlEngineTest {
   }
 
   @Test
+  public void shouldCleanUpPersistentConsumerGroupsOnClose() {
+    // Given:
+    ksqlConfig = KsqlConfigTestUtil.create("what-eva", sharedRuntimeDisabled);
+    ksqlEngine = KsqlEngineTestUtil.createKsqlEngine(
+        serviceContext,
+        metaStore,
+        ksqlConfig
+    );
+    final QueryMetadata query = KsqlEngineTestUtil.execute(
+        serviceContext,
+        ksqlEngine,
+        "create stream persistent as select * from test1 EMIT CHANGES;",
+        ksqlConfig, Collections.emptyMap()
+    ).get(0);
+
+    query.start();
+
+    // When:
+    query.close();
+
+    // Then:
+    awaitCleanupComplete();
+    final Set<String> deletedConsumerGroups = (
+        (FakeKafkaConsumerGroupClient) serviceContext.getConsumerGroupClient()
+    ).getDeletedConsumerGroups();
+
+    assertThat(
+        Iterables.getOnlyElement(deletedConsumerGroups),
+        containsString("_confluent-ksql-default_query_CSAS_PERSISTENT_"));
+  }
+
+  @Test
   public void shouldCleanUpTransientConsumerGroupsOnCloseSharedRuntimes() {
     // Given:
     ksqlConfig = KsqlConfigTestUtil.create("what-eva", sharedRuntimeEnabled);
@@ -1374,6 +1739,38 @@ public class KsqlEngineTest {
     assertThat(
         Iterables.getOnlyElement(deletedConsumerGroups),
         containsString("_confluent-ksql-default_transient_"));
+  }
+
+  @Test
+  public void shouldCleanUpPersistentConsumerGroupsOnCloseSharedRuntimes() {
+    // Given:
+    ksqlConfig = KsqlConfigTestUtil.create("what-eva", sharedRuntimeEnabled);
+    ksqlEngine = KsqlEngineTestUtil.createKsqlEngine(
+        serviceContext,
+        metaStore,
+        ksqlConfig
+    );
+    final QueryMetadata query = KsqlEngineTestUtil.execute(
+        serviceContext,
+        ksqlEngine,
+        "create stream persistent as select * from test1 EMIT CHANGES;",
+        ksqlConfig, Collections.emptyMap()
+    ).get(0);
+
+    query.start();
+
+    // When:
+    query.close();
+
+    // Then:
+    awaitCleanupComplete();
+    final Set<String> deletedConsumerGroups = (
+        (FakeKafkaConsumerGroupClient) serviceContext.getConsumerGroupClient()
+    ).getDeletedConsumerGroups();
+
+    assertThat(
+        Iterables.getOnlyElement(deletedConsumerGroups),
+        containsString("_confluent-ksql-default_query_"));
   }
 
   @Test
@@ -1445,7 +1842,7 @@ public class KsqlEngineTest {
   }
 
   @Test
-  public void shouldNotHardDeleteSubjectForPersistentQuery() throws IOException, RestClientException {
+  public void shouldHardDeleteSubjectForPersistentQuery() throws IOException, RestClientException {
     // Given:
     ksqlConfig = KsqlConfigTestUtil.create("what-eva", sharedRuntimeDisabled);
     ksqlEngine = KsqlEngineTestUtil.createKsqlEngine(
@@ -1483,14 +1880,15 @@ public class KsqlEngineTest {
     // Then:
     awaitCleanupComplete();
     verify(schemaRegistryClient, times(4)).deleteSubject(any());
-    verify(schemaRegistryClient, never()).deleteSubject(internalTopic1Val, true);
-    verify(schemaRegistryClient, never()).deleteSubject(internalTopic1Key, true);
-    verify(schemaRegistryClient, never()).deleteSubject(internalTopic2Val, true);
-    verify(schemaRegistryClient, never()).deleteSubject(internalTopic2Key, true);
+    verify(schemaRegistryClient).deleteSubject(internalTopic1Val, true);
+    verify(schemaRegistryClient).deleteSubject(internalTopic2Val, true);
+    verify(schemaRegistryClient).deleteSubject(internalTopic1Key, true);
+    verify(schemaRegistryClient).deleteSubject(internalTopic2Key, true);
+    verify(schemaRegistryClient, never()).deleteSubject("subject2");
   }
 
   @Test
-  public void shouldNotHardDeleteSubjectForPersistentQuerySharedRuntimes() throws IOException, RestClientException {
+  public void shouldHardDeleteSubjectForPersistentQuerySharedRuntimes() throws IOException, RestClientException {
     // Given:
     ksqlConfig = KsqlConfigTestUtil.create("what-eva", sharedRuntimeEnabled);
     final List<QueryMetadata> query = KsqlEngineTestUtil.execute(
@@ -1523,12 +1921,12 @@ public class KsqlEngineTest {
 
     // Then:
     awaitCleanupComplete();
-    verify(schemaRegistryClient).getAllSubjects();
     verify(schemaRegistryClient, times(4)).deleteSubject(any());
-    verify(schemaRegistryClient, never()).deleteSubject(internalTopic1Val, true);
-    verify(schemaRegistryClient, never()).deleteSubject(internalTopic1Key, true);
-    verify(schemaRegistryClient, never()).deleteSubject(internalTopic2Val, true);
-    verify(schemaRegistryClient, never()).deleteSubject(internalTopic2Key, true);
+    verify(schemaRegistryClient).deleteSubject(internalTopic1Val, true);
+    verify(schemaRegistryClient).deleteSubject(internalTopic2Val, true);
+    verify(schemaRegistryClient).deleteSubject(internalTopic1Key, true);
+    verify(schemaRegistryClient).deleteSubject(internalTopic2Key, true);
+    verify(schemaRegistryClient, never()).deleteSubject("subject2");
   }
 
   @Test
@@ -2059,7 +2457,8 @@ public class KsqlEngineTest {
   @Test
   public void shouldNotCreateAnyTopicsDuringTryExecute() {
     // Given:
-    topicClient.preconditionTopicExists("s1_topic", 1, (short) 1, Collections.emptyMap());
+    Map<String, ?> configs = ImmutableMap.of(TopicConfig.RETENTION_MS_CONFIG, 604800000L);
+    topicClient.preconditionTopicExists("s1_topic", 1, (short) 1, configs);
 
     final List<ParsedStatement> statements = parse(
         "CREATE STREAM S1 (COL1 BIGINT) WITH (KAFKA_TOPIC = 's1_topic', KEY_FORMAT = 'KAFKA', VALUE_FORMAT = 'JSON');"

@@ -109,14 +109,6 @@
         "L2" : "a"
       },
       "timestamp" : 60000
-    }, {
-      "topic" : "INNER_JOIN",
-      "key" : 2,
-      "value" : {
-        "L1" : "C",
-        "L2" : "c"
-      },
-      "timestamp" : 90000
     } ],
     "topics" : [ {
       "name" : "right_topic",

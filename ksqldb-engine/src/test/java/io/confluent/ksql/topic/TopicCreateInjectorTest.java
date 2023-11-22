@@ -113,7 +113,8 @@ public class TopicCreateInjectorTest {
         SCHEMA,
         Optional.empty(),
         false,
-        sourceTopic
+        sourceTopic,
+        false
     );
     metaStore.putSource(source, false);
 
@@ -129,7 +130,8 @@ public class TopicCreateInjectorTest {
         SCHEMA,
         Optional.empty(),
         false,
-        joinTopic
+        joinTopic,
+        false
     );
     metaStore.putSource(joinSource, false);
 
@@ -459,7 +461,7 @@ public class TopicCreateInjectorTest {
         + "stream/table please re-run the statement providing the required 'PARTITIONS' "
         + "configuration in the WITH clause (and optionally 'REPLICAS'). For example: "
         + "CREATE STREAM FOO (FOO STRING) "
-        + "WITH (KAFKA_TOPIC='doesntexist', PARTITIONS=2, REPLICAS=1, VALUE_FORMAT='avro');"));
+        + "WITH (KAFKA_TOPIC='doesntexist', PARTITIONS=2, VALUE_FORMAT='avro');"));
   }
 
   private ConfiguredStatement<?> givenStatement(final String sql) {

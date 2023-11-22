@@ -16,7 +16,6 @@
 package io.confluent.ksql.rest.server.computation;
 
 import com.google.common.annotations.VisibleForTesting;
-import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.ReservedInternalTopics;
 import java.io.Closeable;
@@ -43,10 +42,11 @@ public class CommandRunnerMetrics implements Closeable {
   CommandRunnerMetrics(
       final String ksqlServiceId,
       final CommandRunner commandRunner,
-      final String metricGroupPrefix
+      final String metricGroupPrefix,
+      final Metrics metrics
   ) {
     this(
-        MetricCollectors.getMetrics(),
+        metrics,
         commandRunner,
         ksqlServiceId,
         metricGroupPrefix.isEmpty() ? DEFAULT_METRIC_GROUP_PREFIX : metricGroupPrefix

@@ -24,6 +24,7 @@ import java.io.File;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingDeque;
@@ -90,20 +91,31 @@ public class QueryCleanupService extends AbstractExecutionThreadService {
 
   public static class QueryCleanupTask implements Runnable {
     private final String appId;
+    private final String queryTopicPrefix;
+    private final Optional<String> topologyName;
+    private final String pathName;
     private final boolean isTransient;
     private final ServiceContext serviceContext;
-    private String stateDir;
 
     public QueryCleanupTask(
         final ServiceContext serviceContext,
         final String appId,
+        final Optional<String> topologyName,
         final boolean isTransient,
         final String stateDir
     ) {
       this.serviceContext = Objects.requireNonNull(serviceContext, "serviceContext");
       this.appId = Objects.requireNonNull(appId, "appId");
+      this.topologyName = Objects.requireNonNull(topologyName, "topologyName");
+      queryTopicPrefix = topologyName.map(s -> appId + "-" + s).orElse(appId);
+      //generate the prefix depending on if using named topologies
       this.isTransient = isTransient;
-      this.stateDir = stateDir;
+      pathName = topologyName
+          .map(s -> stateDir + "/" + appId + "/__" + s + "__")
+          .orElse(stateDir + "/" + appId);
+      if (isTransient && topologyName.isPresent()) {
+        throw new IllegalArgumentException("Transient Queries can not have named topologies");
+      }
     }
 
     public String getAppId() {
@@ -113,32 +125,42 @@ public class QueryCleanupService extends AbstractExecutionThreadService {
     @Override
     public void run() {
       try {
-        final Path pathName = Paths.get(stateDir + "/" + appId);
+        final Path pathName = Paths.get(this.pathName);
         final File directory = new File(String.valueOf(pathName.normalize()));
         if (directory.exists()) {
           FileUtils.deleteDirectory(directory);
           LOG.warn(String.format("Deleted local state store for non-existing query %s. "
                   + "This is not expected and was likely due to a "
                   + "race condition when the query was dropped before.",
-              appId));
+              queryTopicPrefix));
         }
       } catch (Exception e) {
-        LOG.error(String.format("Error cleaning up state directory %s.", appId), e);
+        LOG.error(String.format("Error cleaning up state directory %s.", pathName), e);
       }
       tryRun(
-          () -> SchemaRegistryUtil.cleanupInternalTopicSchemas(
-            appId,
-            serviceContext.getSchemaRegistryClient(),
-            isTransient),
+          () -> {
+            LOG.info("Deleting schemas for prefix {}", queryTopicPrefix);
+            SchemaRegistryUtil.cleanupInternalTopicSchemas(
+                queryTopicPrefix,
+                serviceContext.getSchemaRegistryClient(),
+                isTransient);
+          },
           "internal topic schemas"
       );
-
-      tryRun(() -> serviceContext.getTopicClient().deleteInternalTopics(appId), "internal topics");
       tryRun(
-          () -> serviceContext
-              .getConsumerGroupClient()
-              .deleteConsumerGroups(ImmutableSet.of(appId)),
-          "internal consumer groups");
+          () -> {
+            LOG.info("Deleting topics for prefix {}", queryTopicPrefix);
+            serviceContext.getTopicClient().deleteInternalTopics(queryTopicPrefix);
+          },
+          "internal topics"
+      );
+      if (!topologyName.isPresent() || isTransient) {
+        tryRun(
+            () -> serviceContext
+                .getConsumerGroupClient()
+                .deleteConsumerGroups(ImmutableSet.of(appId)),
+            "internal consumer groups");
+      }
     }
 
     private void tryRun(final Runnable runnable, final String resource) {
@@ -147,10 +169,6 @@ public class QueryCleanupService extends AbstractExecutionThreadService {
       } catch (final Exception e) {
         LOG.warn(String.format("Failed to cleanup %s for %s", resource, appId), e);
       }
-    }
-
-    public void setStateDir(final String newStateDir) {
-      stateDir = newStateDir;
     }
   }
 

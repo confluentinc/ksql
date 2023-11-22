@@ -52,7 +52,9 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import org.junit.Test;
+import org.mockito.Mock;
 import org.mockito.MockedStatic;
+import org.mockito.Mockito;
 
 public class SourceDescriptionFactoryTest {
   private final List<TopicSensors.Stat> errorStats = IntStream.range(0, 5)
@@ -87,7 +89,8 @@ public class SourceDescriptionFactoryTest {
         schema,
         timestampColumn,
         false,
-        topic
+        topic,
+        false
     );
   }
 
@@ -96,49 +99,52 @@ public class SourceDescriptionFactoryTest {
     // Given:
     final String kafkaTopicName = "kafka";
     final DataSource dataSource = buildDataSource(kafkaTopicName, Optional.empty());
+    final MetricCollectors mock = Mockito.mock(MetricCollectors.class);
 
-    try (MockedStatic<MetricCollectors> mc = mockStatic(MetricCollectors.class)) {
-      mc.when(() -> MetricCollectors.getAndFormatStatsFor(anyString(), anyBoolean())).thenReturn(mockStringStat);
-      mc.when(() -> MetricCollectors.getStatsFor(dataSource.getKafkaTopicName(), true))
-          .thenReturn(errorStats);
-      mc.when(() -> MetricCollectors.getStatsFor(dataSource.getKafkaTopicName(), false))
-          .thenReturn(stats);
-      KsqlHostInfo localhost = new KsqlHostInfo("myhost", 10);
-      // When
-      final SourceDescription sourceDescription = SourceDescriptionFactory.create(
-          dataSource,
-          true,
-          Collections.emptyList(),
-          Collections.emptyList(),
-          Optional.empty(),
-          Collections.emptyList(),
-          Collections.emptyList(),
-          Stream.empty(),
-          Stream.empty(),
-          localhost
-      );
+    Mockito.when(mock.getAndFormatStatsFor(anyString(), anyBoolean()))
+        .thenReturn(mockStringStat);
+    Mockito.when(mock.getStatsFor(dataSource.getKafkaTopicName(), true))
+        .thenReturn(errorStats);
+    Mockito.when(mock.getStatsFor(dataSource.getKafkaTopicName(), false))
+        .thenReturn(stats);
+    KsqlHostInfo localhost = new KsqlHostInfo("myhost", 10);
+    // When
+    final SourceDescription sourceDescription = SourceDescriptionFactory.create(
+        dataSource,
+        true,
+        Collections.emptyList(),
+        Collections.emptyList(),
+        Optional.empty(),
+        Collections.emptyList(),
+        Collections.emptyList(),
+        Stream.empty(),
+        Stream.empty(),
+        localhost,
+        mock
+    );
 
-      // Then:
-      // TODO deprecate and remove
-      assertThat(
-          sourceDescription.getStatistics(),
-          containsString(mockStringStat));
-      assertThat(
-          sourceDescription.getErrorStats(),
-          containsString(mockStringStat));
-      // Also check includes its own stats in cluster stats
-      final Stream<QueryHostStat> localStats = stats.stream().map((s) -> QueryHostStat.fromStat(s, new KsqlHostInfoEntity(localhost)));
-      assertThat(
-          localStats.collect(Collectors.toList()),
-          everyItem(isIn(sourceDescription.getClusterStatistics()))
-      );
+    // Then:
+    // TODO deprecate and remove
+    assertThat(
+        sourceDescription.getStatistics(),
+        containsString(mockStringStat));
+    assertThat(
+        sourceDescription.getErrorStats(),
+        containsString(mockStringStat));
+    // Also check includes its own stats in cluster stats
+    final Stream<QueryHostStat> localStats = stats.stream()
+        .map((s) -> QueryHostStat.fromStat(s, new KsqlHostInfoEntity(localhost)));
+    assertThat(
+        localStats.collect(Collectors.toList()),
+        everyItem(isIn(sourceDescription.getClusterStatistics()))
+    );
 
-      final Stream<QueryHostStat> localErrors = errorStats.stream().map((s) -> QueryHostStat.fromStat(s, new KsqlHostInfoEntity(localhost)));
-      assertThat(
-          localErrors.collect(Collectors.toList()),
-          everyItem(isIn(sourceDescription.getClusterErrorStats()))
-      );
-    }
+    final Stream<QueryHostStat> localErrors = errorStats.stream()
+        .map((s) -> QueryHostStat.fromStat(s, new KsqlHostInfoEntity(localhost)));
+    assertThat(
+        localErrors.collect(Collectors.toList()),
+        everyItem(isIn(sourceDescription.getClusterErrorStats()))
+    );
   }
 
   @Test
@@ -160,39 +166,39 @@ public class SourceDescriptionFactoryTest {
             x)
         ).collect(Collectors.toList());
 
-    try (MockedStatic<MetricCollectors> mc = mockStatic(MetricCollectors.class)) {
-      // Given:
-      final String kafkaTopicName = "kafka";
-      final DataSource dataSource = buildDataSource(kafkaTopicName, Optional.empty());
+    // Given:
+    final String kafkaTopicName = "kafka";
+    final DataSource dataSource = buildDataSource(kafkaTopicName, Optional.empty());
+    final MetricCollectors mock = Mockito.mock(MetricCollectors.class);
 
-      mc.when(() -> MetricCollectors.getAndFormatStatsFor(anyString(), anyBoolean())).thenReturn(mockStringStat);
-      mc.when(() -> MetricCollectors.getStatsFor(dataSource.getKafkaTopicName(), true)).thenReturn(errorStats);
-      mc.when(() -> MetricCollectors.getStatsFor(dataSource.getKafkaTopicName(), false)).thenReturn(stats);
+    Mockito.when(mock.getAndFormatStatsFor(anyString(), anyBoolean())).thenReturn(mockStringStat);
+    Mockito.when(mock.getStatsFor(dataSource.getKafkaTopicName(), true)).thenReturn(errorStats);
+    Mockito.when(mock.getStatsFor(dataSource.getKafkaTopicName(), false)).thenReturn(stats);
 
-      // When
-      final SourceDescription sourceDescription = SourceDescriptionFactory.create(
-          dataSource,
-          true,
-          Collections.emptyList(),
-          Collections.emptyList(),
-          Optional.empty(),
-          Collections.emptyList(),
-          Collections.emptyList(),
-          remoteStats.stream(),
-          remoteErrors.stream(),
-          new KsqlHostInfo("myhost", 10)
-      );
+    // When
+    final SourceDescription sourceDescription = SourceDescriptionFactory.create(
+        dataSource,
+        true,
+        Collections.emptyList(),
+        Collections.emptyList(),
+        Optional.empty(),
+        Collections.emptyList(),
+        Collections.emptyList(),
+        remoteStats.stream(),
+        remoteErrors.stream(),
+        new KsqlHostInfo("myhost", 10),
+        mock
+    );
 
-      // Then:
-      assertThat(
-          remoteStats,
-          everyItem(isIn(sourceDescription.getClusterStatistics()))
-      );
-      assertThat(
-          remoteErrors,
-          everyItem(isIn(sourceDescription.getClusterErrorStats()))
-      );
-    }
+    // Then:
+    assertThat(
+        remoteStats,
+        everyItem(isIn(sourceDescription.getClusterStatistics()))
+    );
+    assertThat(
+        remoteErrors,
+        everyItem(isIn(sourceDescription.getClusterErrorStats()))
+    );
   }
 
   @Test
@@ -209,7 +215,9 @@ public class SourceDescriptionFactoryTest {
         Collections.emptyList(),
         Optional.empty(),
         Collections.emptyList(),
-        Collections.emptyList());
+        Collections.emptyList(),
+        new MetricCollectors()
+    );
 
     // Then:
     assertThat(sourceDescription.getTimestamp(), is(""));
@@ -229,7 +237,9 @@ public class SourceDescriptionFactoryTest {
         Collections.emptyList(),
         Optional.empty(),
         Collections.emptyList(),
-        ImmutableList.of("s1", "s2"));
+        ImmutableList.of("s1", "s2"),
+        new MetricCollectors()
+    );
 
     // Then:
     assertThat(sourceDescription.getSourceConstraints(), hasItems("s1", "s2"));
@@ -253,7 +263,9 @@ public class SourceDescriptionFactoryTest {
         Collections.emptyList(),
         Optional.empty(),
         Collections.emptyList(),
-        Collections.emptyList());
+        Collections.emptyList(),
+        new MetricCollectors()
+    );
 
     // Then:
     assertThat(sourceDescription.getTimestamp(), is("foo"));

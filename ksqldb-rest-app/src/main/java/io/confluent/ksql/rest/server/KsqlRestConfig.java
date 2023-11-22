@@ -364,6 +364,29 @@ public class KsqlRestConfig extends AbstractConfig {
   public static final String KSQL_LOCAL_COMMANDS_LOCATION_DOC = "Specify the directory where "
       + "KSQL tracks local commands, e.g. transient queries";
 
+  public static final String KSQL_ENDPOINT_LOGGING_LOG_QUERIES_CONFIG
+      = "ksql.endpoint.logging.log.queries";
+  private static final boolean KSQL_ENDPOINT_LOGGING_LOG_QUERIES_DEFAULT = false;
+  private static final String KSQL_ENDPOINT_LOGGING_LOG_QUERIES_DOC
+      = "Whether or not to log the query portion of the URI when logging endpoints. Note that"
+      + " enabling this may log sensitive information.";
+
+  public static final String KSQL_ENDPOINT_LOGGING_IGNORED_PATHS_REGEX_CONFIG
+      = "ksql.endpoint.logging.ignored.paths.regex";
+  public static final String KSQL_ENDPOINT_LOGGING_IGNORED_PATHS_REGEX_DEFAULT = "";
+  public static final String KSQL_ENDPOINT_LOGGING_IGNORED_PATHS_REGEX_DOC =
+      "A regex that allows users to filter out logging from certain endpoints. Without this filter,"
+          + " all endpoints are logged. An example usage of this configuration would be to disable"
+          + " heartbeat logging (e.g. ksql.endpoint.logging.filter=.*heartbeat.* ) which can"
+          + " otherwise be verbose. Note that this works on the entire URI, respecting the "
+          + KSQL_ENDPOINT_LOGGING_LOG_QUERIES_CONFIG + " configuration";
+
+  public static final String KSQL_INTERNAL_HTTP2_MAX_POOL_SIZE_CONFIG
+      = "ksql.internal.http2.max.pool.size";
+  public static final int KSQL_INTERNAL_HTTP2_MAX_POOL_SIZE_DEFAULT = 3000;
+  public static final String KSQL_INTERNAL_HTTP2_MAX_POOL_SIZE_DOC =
+      "The maximum connection pool size used by Vertx for http2 internal connections";
+
   private static final ConfigDef CONFIG_DEF;
 
   static {
@@ -693,6 +716,24 @@ public class KsqlRestConfig extends AbstractConfig {
             KSQL_LOCAL_COMMANDS_LOCATION_DEFAULT,
             Importance.LOW,
             KSQL_LOCAL_COMMANDS_LOCATION_DOC
+        ).define(
+            KSQL_ENDPOINT_LOGGING_IGNORED_PATHS_REGEX_CONFIG,
+            Type.STRING,
+            KSQL_ENDPOINT_LOGGING_IGNORED_PATHS_REGEX_DEFAULT,
+            Importance.LOW,
+            KSQL_ENDPOINT_LOGGING_IGNORED_PATHS_REGEX_DOC
+        ).define(
+            KSQL_ENDPOINT_LOGGING_LOG_QUERIES_CONFIG,
+            Type.BOOLEAN,
+            KSQL_ENDPOINT_LOGGING_LOG_QUERIES_DEFAULT,
+            Importance.LOW,
+            KSQL_ENDPOINT_LOGGING_LOG_QUERIES_DOC
+        ).define(
+            KSQL_INTERNAL_HTTP2_MAX_POOL_SIZE_CONFIG,
+            Type.INT,
+            KSQL_INTERNAL_HTTP2_MAX_POOL_SIZE_DEFAULT,
+            Importance.LOW,
+            KSQL_INTERNAL_HTTP2_MAX_POOL_SIZE_DOC
         );
   }
 

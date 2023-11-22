@@ -45,6 +45,7 @@ import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.SchemaConverters.SqlToJavaTypeConverter;
+import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
@@ -167,10 +168,10 @@ public class CodeGenRunner {
       return new CompiledExpression(ee, spec, returnType, expression);
     } catch (KsqlException | CompileException e) {
       throw new KsqlException("Invalid " + type + ": " + e.getMessage()
-          + ". expression:" + expression + ", schema:" + schema, e);
+          + ". expression: " + expression + ", schema:" + schema, e);
     } catch (final Exception e) {
       throw new RuntimeException("Unexpected error generating code for " + type
-          + ". expression:" + expression, e);
+          + ". expression: " + expression, e);
     }
   }
 
@@ -319,16 +320,32 @@ public class CodeGenRunner {
 
     private void addRequiredColumn(final ColumnName columnName) {
       final Column column = schema.findValueColumn(columnName)
-          .orElseThrow(() -> new KsqlException(
-              "Cannot find the select field in the available fields."
-                  + " field: " + columnName
-                  + ", schema: " + schema.value()));
+          .orElseThrow(() -> new KsqlException(fieldNotFoundErrorMessage(columnName, ksqlConfig)));
 
       spec.addParameter(
           column.name(),
           SQL_TO_JAVA_TYPE_CONVERTER.toJavaType(column.type()),
           column.index()
       );
+    }
+
+    private String fieldNotFoundErrorMessage(
+        final ColumnName columnName,
+        final KsqlConfig ksqlConfig
+    ) {
+      final String cannotFindFieldMessage =
+          "Cannot find the select field in the available fields."
+              + " field: " + columnName
+              + ", schema: " + schema.value();
+
+      if (SystemColumns.isPseudoColumn(columnName, ksqlConfig)) {
+        return cannotFindFieldMessage
+            + "\nIf this is a CREATE OR REPLACE query, pseudocolumns added in newer versions of"
+            + " ksqlDB after the original query was issued are not available"
+            + " for use in CREATE OR REPLACE";
+      }
+
+      return cannotFindFieldMessage;
     }
   }
 }

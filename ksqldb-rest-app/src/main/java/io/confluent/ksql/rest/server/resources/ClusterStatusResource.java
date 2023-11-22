@@ -75,7 +75,7 @@ public class ClusterStatusResource {
         .entrySet()
         .stream()
         .collect(Collectors.toMap(
-            entry -> new KsqlHostInfoEntity(entry.getKey().host(), entry.getKey().port()) ,
+            entry -> new KsqlHostInfoEntity(entry.getKey().host(), entry.getKey().port()),
             entry -> new HostStatusEntity(entry.getValue().isHostAlive(),
                                           entry.getValue().getLastStatusUpdateMs(),
                                           getActiveStandbyInformation(entry.getKey()),

@@ -1,0 +1,110 @@
+{
+  "version" : "7.1.0",
+  "timestamp" : 1633125922496,
+  "path" : "query-validation-tests/delimited.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`K` DECIMAL(6, 4) KEY, `V` INTEGER",
+      "keyFormat" : {
+        "format" : "DELIMITED"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`K` DECIMAL(6, 4) KEY, `V` INTEGER",
+      "keyFormat" : {
+        "format" : "DELIMITED"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "DECIMAL - key",
+    "inputs" : [ {
+      "topic" : "input_topic",
+      "key" : "12.3650",
+      "value" : "0"
+    }, {
+      "topic" : "input_topic",
+      "key" : "\"12.0\"",
+      "value" : "0"
+    }, {
+      "topic" : "input_topic",
+      "key" : null,
+      "value" : "0"
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : "12.3650",
+      "value" : "0"
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "12.0000",
+      "value" : "0"
+    }, {
+      "topic" : "OUTPUT",
+      "key" : null,
+      "value" : "0"
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "input_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM INPUT (K DECIMAL(6,4) KEY, V INT) WITH (kafka_topic='input_topic', format='DELIMITED');", "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`K` DECIMAL(6, 4) KEY, `V` INTEGER",
+        "keyFormat" : {
+          "format" : "DELIMITED"
+        },
+        "valueFormat" : "DELIMITED",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`K` DECIMAL(6, 4) KEY, `V` INTEGER",
+        "keyFormat" : {
+          "format" : "DELIMITED"
+        },
+        "valueFormat" : "DELIMITED",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "input_topic",
+          "keyFormat" : {
+            "format" : "DELIMITED"
+          },
+          "valueFormat" : {
+            "format" : "DELIMITED"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "format" : "DELIMITED"
+          },
+          "valueFormat" : {
+            "format" : "DELIMITED"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

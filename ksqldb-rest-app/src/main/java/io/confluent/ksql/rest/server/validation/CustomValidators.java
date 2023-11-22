@@ -17,7 +17,7 @@ package io.confluent.ksql.rest.server.validation;
 
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.KsqlExecutionContext;
-import io.confluent.ksql.engine.InsertValuesExecutor;
+import io.confluent.ksql.parser.tree.AlterSystemProperty;
 import io.confluent.ksql.parser.tree.CreateConnector;
 import io.confluent.ksql.parser.tree.DefineVariable;
 import io.confluent.ksql.parser.tree.DescribeConnector;
@@ -46,9 +46,11 @@ import io.confluent.ksql.parser.tree.UndefineVariable;
 import io.confluent.ksql.parser.tree.UnsetProperty;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.SessionProperties;
+import io.confluent.ksql.rest.server.execution.DefaultConnectServerErrors;
 import io.confluent.ksql.rest.server.execution.DescribeConnectorExecutor;
 import io.confluent.ksql.rest.server.execution.DescribeFunctionExecutor;
 import io.confluent.ksql.rest.server.execution.ExplainExecutor;
+import io.confluent.ksql.rest.server.execution.InsertValuesExecutor;
 import io.confluent.ksql.rest.server.execution.ListSourceExecutor;
 import io.confluent.ksql.rest.server.execution.ListVariablesExecutor;
 import io.confluent.ksql.rest.server.execution.PropertyExecutor;
@@ -70,11 +72,15 @@ import java.util.stream.Collectors;
  */
 @SuppressWarnings({"unchecked", "rawtypes"})
 public enum CustomValidators {
-  QUERY_ENDPOINT(Query.class, (statement, sessionProperties, executionContext, serviceContext) -> {
-    throw new KsqlRestException(Errors.queryEndpoint(statement.getMaskedStatementText()));
-  }),
+  QUERY_ENDPOINT(Query.class,
+      (statement,
+          sessionProperties,
+          executionContext,
+          serviceContext) -> {
+        throw new KsqlRestException(Errors.queryEndpoint(statement.getMaskedStatementText()));
+      }),
   PRINT_TOPIC(PrintTopic.class, PrintTopicValidator::validate),
-
+  ALTER_SYSTEM_PROPERTY(AlterSystemProperty.class, StatementValidator.NO_VALIDATION),
   LIST_TOPICS(ListTopics.class, StatementValidator.NO_VALIDATION),
   LIST_STREAMS(ListStreams.class, StatementValidator.NO_VALIDATION),
   LIST_TABLES(ListTables.class, StatementValidator.NO_VALIDATION),
@@ -94,7 +100,8 @@ public enum CustomValidators {
   SHOW_COLUMNS(ShowColumns.class, ListSourceExecutor::columns),
   EXPLAIN(Explain.class, ExplainExecutor::execute),
   DESCRIBE_FUNCTION(DescribeFunction.class, DescribeFunctionExecutor::execute),
-  DESCRIBE_CONNECTOR(DescribeConnector.class, new DescribeConnectorExecutor()::execute),
+  DESCRIBE_CONNECTOR(DescribeConnector.class,
+      new DescribeConnectorExecutor(new DefaultConnectServerErrors())::execute),
   SET_PROPERTY(SetProperty.class, PropertyExecutor::set),
   UNSET_PROPERTY(UnsetProperty.class, PropertyExecutor::unset),
   DEFINE_VARIABLE(DefineVariable.class, VariableExecutor::set),
@@ -133,6 +140,10 @@ public enum CustomValidators {
       final SessionProperties sessionProperties,
       final KsqlExecutionContext executionContext,
       final ServiceContext serviceContext) throws KsqlException {
-    validator.validate(statement, sessionProperties, executionContext, serviceContext);
+    validator.validate(
+        statement,
+        sessionProperties,
+        executionContext,
+        serviceContext);
   }
 }

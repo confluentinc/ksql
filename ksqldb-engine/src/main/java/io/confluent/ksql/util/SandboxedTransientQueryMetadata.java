@@ -17,6 +17,7 @@ package io.confluent.ksql.util;
 
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.query.BlockingRowQueue;
+import io.confluent.ksql.query.CompletionHandler;
 import io.confluent.ksql.query.LimitHandler;
 import java.util.Collection;
 import java.util.List;
@@ -53,7 +54,6 @@ public final class SandboxedTransientQueryMetadata extends TransientQueryMetadat
 
   @Override
   public void close() {
-    closed = true;
     isRunning.set(false);
     getListener().onClose(this);
   }
@@ -67,21 +67,27 @@ public final class SandboxedTransientQueryMetadata extends TransientQueryMetadat
       throwUseException();
     }
 
+    @Override
+    public void setCompletionHandler(final CompletionHandler completionHandler) {
+      throwUseException();
+    }
+
     public void setQueuedCallback(final Runnable callback) {
       throwUseException();
     }
 
-    public KeyValue<List<?>, GenericRow> poll(final long timeout, final TimeUnit unit) {
+    public KeyValueMetadata<List<?>, GenericRow> poll(final long timeout, final TimeUnit unit) {
       throwUseException();
       return null;
     }
 
-    public KeyValue<List<?>, GenericRow> poll() {
+    public KeyValueMetadata<List<?>, GenericRow> poll() {
       throwUseException();
       return null;
     }
 
-    public void drainTo(final Collection<? super KeyValue<List<?>, GenericRow>> collection) {
+    public void drainTo(
+        final Collection<? super KeyValueMetadata<List<?>, GenericRow>> collection) {
       throwUseException();
     }
 

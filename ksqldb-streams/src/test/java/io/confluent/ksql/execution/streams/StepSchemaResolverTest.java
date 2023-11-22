@@ -52,6 +52,7 @@ import io.confluent.ksql.execution.plan.TableGroupBy;
 import io.confluent.ksql.execution.plan.TableSelect;
 import io.confluent.ksql.execution.plan.TableSelectKey;
 import io.confluent.ksql.execution.plan.TableSource;
+import io.confluent.ksql.execution.plan.TableSourceV1;
 import io.confluent.ksql.execution.plan.WindowedStreamSource;
 import io.confluent.ksql.execution.plan.WindowedTableSource;
 import io.confluent.ksql.execution.windows.TumblingWindowExpression;
@@ -536,6 +537,26 @@ public class StepSchemaResolverTest {
   public void shouldResolveSchemaForTableSource() {
     // Given:
     final TableSource step = new TableSource(
+        PROPERTIES,
+        "foo",
+        formats,
+        Optional.empty(),
+        SCHEMA,
+        SystemColumns.CURRENT_PSEUDOCOLUMN_VERSION_NUMBER,
+        formats
+    );
+
+    // When:
+    final LogicalSchema result = resolver.resolve(step, SCHEMA);
+
+    // Then:
+    assertThat(result, is(SCHEMA.withPseudoAndKeyColsInValue(false)));
+  }
+
+  @Test
+  public void shouldResolveSchemaForTableSourceV1() {
+    // Given:
+    final TableSourceV1 step = new TableSourceV1(
         PROPERTIES,
         "foo",
         formats,

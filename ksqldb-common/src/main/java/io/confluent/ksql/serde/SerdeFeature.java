@@ -17,13 +17,14 @@ package io.confluent.ksql.serde;
 
 import com.google.common.collect.ImmutableSet;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.confluent.ksql.util.CompatibleElement;
 import java.util.Arrays;
 import java.util.Set;
 
 /**
  * Optional features a serde may support
  */
-public enum SerdeFeature {
+public enum SerdeFeature implements CompatibleElement<SerdeFeature> {
 
   /**
    * The format supports interaction with the Confluent Schema Registry.
@@ -62,6 +63,7 @@ public enum SerdeFeature {
   }
 
   @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "incompatibleWith is ImmutableSet")
+  @Override
   public Set<SerdeFeature> getIncompatibleWith() {
     return incompatibleWith;
   }

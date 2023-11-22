@@ -3,6 +3,7 @@ package io.confluent.ksql.planner.plan;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.function.FunctionRegistry;
@@ -37,6 +38,14 @@ public class PullQueryRewriterTest {
             + "(ORDERS.ITEMID = 'c'))))");
   }
 
+  @Test
+  public void shouldRewriteBetweenPredicate() {
+    assertRewrite("ORDERS", "ORDERID BETWEEN 2 AND 5",
+            "((ORDERS.ORDERID >= 2) AND (ORDERS.ORDERID <= 5))");
+    assertRewrite("ORDERS", "ORDERS.ITEMID BETWEEN 'a' AND 'b'",
+            "((ORDERS.ITEMID >= 'a') AND (ORDERS.ITEMID <= 'b'))");
+  }
+
   private void assertRewrite(final String table, final String expressionStr,
       final String expectedStr) {
     Expression expression = getWhereExpression(table, expressionStr);
@@ -48,7 +57,7 @@ public class PullQueryRewriterTest {
 
   private Expression getWhereExpression(final String table, String expression) {
     final Query statement = (Query) KsqlParserTestUtil
-        .buildSingleAst("SELECT * FROM " + table + " WHERE " + expression + ";", metaStore)
+        .buildSingleAst("SELECT * FROM " + table + " WHERE " + expression + ";", metaStore, true)
         .getStatement();
 
     assertThat(statement.getWhere().isPresent(), is(true));

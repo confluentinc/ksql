@@ -135,8 +135,9 @@ final class EndToEndEngineTestUtil {
         final Map<String, Object> ret = Maps.newHashMap();
         schema.getTypes()
             .forEach(
-                s -> ret.put(s.getName().toUpperCase(), null));
-        ret.put(schema.getTypes().get(pos).getName().toUpperCase(), resolved);
+                s -> ret.put(toUpper ? s.getName().toUpperCase() : s.getName(), null));
+        final String name = schema.getTypes().get(pos).getName();
+        ret.put(toUpper ? name.toUpperCase() : name, resolved);
         return ret;
       default:
         throw new RuntimeException("Test cannot handle data of type: " + schema.getType());
@@ -221,8 +222,10 @@ final class EndToEndEngineTestUtil {
         }
 
         final ObjectNode ret = JsonNodeFactory.instance.objectNode();
-        schema.getTypes().forEach(s -> ret.set(s.getName().toUpperCase(), null));
-        ret.set(schema.getTypes().get(pos).getName().toUpperCase(), resolved);
+        schema.getTypes().forEach(
+            s -> ret.set(toUpper ? s.getName().toUpperCase() : s.getName(), null));
+        final String name = schema.getTypes().get(pos).getName();
+        ret.set(toUpper ? name.toUpperCase() : name, resolved);
         return ret;
       default:
         throw new RuntimeException("Test cannot handle data of type: " + schema.getType());

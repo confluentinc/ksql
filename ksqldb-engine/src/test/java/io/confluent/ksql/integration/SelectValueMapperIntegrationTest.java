@@ -19,6 +19,7 @@ import static io.confluent.ksql.GenericRow.genericRow;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
+import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.plan.SelectExpression;
@@ -70,7 +71,7 @@ public class SelectValueMapperIntegrationTest {
     // When:
     final GenericRow transformed = selectTransformer.transform(
         NON_WINDOWED_KEY,
-        genericRow("hi", "bye", 2.0D, "blah", "dar", 1521834663L, 1L),
+        genericRow("hi", "bye", 2.0D, "blah", "dar", ImmutableList.of(), 1521834663L, 0, 0L, 1L),
         ctx
     );
 
@@ -89,7 +90,7 @@ public class SelectValueMapperIntegrationTest {
     // When:
     final GenericRow row = selectTransformer.transform(
         NON_WINDOWED_KEY,
-        genericRow("foo", "whatever", 6.9D, "boo", "hoo", 1521834663L, 2L),
+        genericRow("foo", "whatever", 6.9D, "boo", "hoo", 0, 0L, ImmutableList.of(), 1521834663L, 2L),
         ctx
     );
 

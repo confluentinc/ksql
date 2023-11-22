@@ -10,13 +10,17 @@
         {"topic": "test_topic", "key": "0", "value": "0,zero,2018-05-11Lit,yyyy-MM-dd'Lit'"},
         {"topic": "test_topic", "key": "1", "value": "1,zero,11/05/2019,dd/MM/yyyy"},
         {"topic": "test_topic", "key": "2", "value": "2,zero,01-Jan-2022,dd-MMM-yyyy"},
-        {"topic": "test_topic", "key": "3", "value": "3,yyy,01-01-1970,dd-MM-yyyy"}
+        {"topic": "test_topic", "key": "3", "value": "3,yyy,01-01-1970,dd-MM-yyyy"},
+        {"topic": "test_topic", "key": "4", "value": "4,yyy,01-JAN-2022,dd-MMM-yyyy"},
+        {"topic": "test_topic", "key": "4", "value": "4,yyy,JAN-2022,MMM-yyyy"}
       ],
       "outputs": [
         {"topic": "TS", "key": "0", "value": "0,17662"},
         {"topic": "TS", "key": "1", "value": "1,18027"},
         {"topic": "TS", "key": "2", "value": "2,18993"},
-        {"topic": "TS", "key": "3", "value": "3,0"}
+        {"topic": "TS", "key": "3", "value": "3,0"},
+        {"topic": "TS", "key": "4", "value": "4,18993"},
+        {"topic": "TS", "key": "4", "value": "4,18993"}
       ]
     }
   ]

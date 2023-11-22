@@ -20,8 +20,6 @@ import io.confluent.ksql.parser.tree.ListConnectors;
 import io.confluent.ksql.parser.tree.ListConnectors.Scope;
 import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.rest.entity.ConnectorList;
-import io.confluent.ksql.rest.entity.ErrorEntity;
-import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlWarning;
 import io.confluent.ksql.rest.entity.SimpleConnectorInfo;
 import io.confluent.ksql.services.ConnectClient;
@@ -39,13 +37,14 @@ import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo.Abstrac
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorType;
 
 public final class ListConnectorsExecutor {
+  private final ConnectServerErrors connectErrorHandler;
 
-  private ListConnectorsExecutor() {
-
+  ListConnectorsExecutor(final ConnectServerErrors connectErrorHandler) {
+    this.connectErrorHandler = connectErrorHandler;
   }
 
   @SuppressWarnings("OptionalGetWithoutIsPresent")
-  public static Optional<KsqlEntity> execute(
+  public StatementExecutorResponse execute(
       final ConfiguredStatement<ListConnectors> configuredStatement,
       final SessionProperties sessionProperties,
       final KsqlExecutionContext ksqlExecutionContext,
@@ -54,10 +53,8 @@ public final class ListConnectorsExecutor {
     final ConnectClient connectClient = serviceContext.getConnectClient();
     final ConnectResponse<List<String>> connectors = serviceContext.getConnectClient().connectors();
     if (connectors.error().isPresent()) {
-      return Optional.of(new ErrorEntity(
-          configuredStatement.getMaskedStatementText(),
-          connectors.error().get()
-      ));
+      return StatementExecutorResponse.handled(connectErrorHandler.handle(
+          configuredStatement, connectors));
     }
 
     final List<SimpleConnectorInfo> infos = new ArrayList<>();
@@ -84,12 +81,12 @@ public final class ListConnectorsExecutor {
       }
     }
 
-    return Optional.of(
+    return StatementExecutorResponse.handled(Optional.of(
         new ConnectorList(
             configuredStatement.getMaskedStatementText(),
             warnings,
             infos)
-    );
+    ));
   }
 
   private static boolean inScope(final ConnectorType type, final Scope scope) {

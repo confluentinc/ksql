@@ -709,6 +709,11 @@ public class Cli implements KsqlRequestExecutor, Closeable {
 
     @Override
     protected synchronized void handleValue(final StreamedRow row) {
+      if (row.getConsistencyToken().isPresent()) {
+        restClient.getSerializedConsistencyVector().set(
+            row.getConsistencyToken().get().getConsistencyToken());
+        return;
+      }
       if (closed) {
         return;
       }

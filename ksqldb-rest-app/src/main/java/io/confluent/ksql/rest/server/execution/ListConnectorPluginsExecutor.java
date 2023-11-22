@@ -19,8 +19,6 @@ import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.parser.tree.ListConnectorPlugins;
 import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.rest.entity.ConnectorPluginsList;
-import io.confluent.ksql.rest.entity.ErrorEntity;
-import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.SimpleConnectorPluginInfo;
 import io.confluent.ksql.services.ConnectClient.ConnectResponse;
 import io.confluent.ksql.services.ServiceContext;
@@ -32,11 +30,14 @@ import java.util.Optional;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorPluginInfo;
 
 public final class ListConnectorPluginsExecutor {
-  private ListConnectorPluginsExecutor() {
+  private final ConnectServerErrors connectErrorHandler;
+
+  ListConnectorPluginsExecutor(final ConnectServerErrors connectErrorHandler) {
+    this.connectErrorHandler = connectErrorHandler;
   }
 
   @SuppressWarnings("OptionalGetWithoutIsPresent")
-  public static Optional<KsqlEntity> execute(
+  public StatementExecutorResponse execute(
       final ConfiguredStatement<ListConnectorPlugins> configuredStatement,
       final SessionProperties sessionProperties,
       final KsqlExecutionContext ksqlExecutionContext,
@@ -45,10 +46,8 @@ public final class ListConnectorPluginsExecutor {
     final ConnectResponse<List<ConnectorPluginInfo>> plugins =
         serviceContext.getConnectClient().connectorPlugins();
     if (plugins.error().isPresent()) {
-      return Optional.of(new ErrorEntity(
-        configuredStatement.getMaskedStatementText(),
-        plugins.error().get()
-      ));
+      return StatementExecutorResponse.handled(connectErrorHandler.handle(
+          configuredStatement, plugins));
     }
 
     final List<SimpleConnectorPluginInfo> pluginInfos = new ArrayList<>();
@@ -60,12 +59,12 @@ public final class ListConnectorPluginsExecutor {
       ));
     }
 
-    return Optional.of(
+    return StatementExecutorResponse.handled(Optional.of(
       new ConnectorPluginsList(
         configuredStatement.getMaskedStatementText(),
         Collections.emptyList(),
         pluginInfos
       )
-    );
+    ));
   }
 }

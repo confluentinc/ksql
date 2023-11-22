@@ -18,6 +18,7 @@ package io.confluent.ksql.util;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.BlockingRowQueue;
+import io.confluent.ksql.query.CompletionHandler;
 import io.confluent.ksql.query.KafkaStreamsBuilder;
 import io.confluent.ksql.query.LimitHandler;
 import io.confluent.ksql.query.QueryErrorClassifier;
@@ -93,7 +94,7 @@ public class TransientQueryMetadata extends QueryMetadataImpl implements PushQue
   }
 
   public boolean isRunning() {
-    return isRunning.get();
+    return isRunning.get() && getKafkaStreams().state().isRunningOrRebalancing();
   }
 
   @SuppressFBWarnings(value = "EI_EXPOSE_REP")
@@ -130,6 +131,11 @@ public class TransientQueryMetadata extends QueryMetadataImpl implements PushQue
 
   public void setLimitHandler(final LimitHandler limitHandler) {
     rowQueue.setLimitHandler(limitHandler);
+  }
+
+  @Override
+  public void setCompletionHandler(final CompletionHandler completionHandler) {
+    rowQueue.setCompletionHandler(completionHandler);
   }
 
   @Override

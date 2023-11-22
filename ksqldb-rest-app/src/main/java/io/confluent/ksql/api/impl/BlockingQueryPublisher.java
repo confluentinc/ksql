@@ -21,9 +21,11 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.api.server.QueryHandle;
 import io.confluent.ksql.api.spi.QueryPublisher;
 import io.confluent.ksql.query.BlockingRowQueue;
+import io.confluent.ksql.query.PullQueryQueue;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.reactive.BasePublisher;
-import io.confluent.ksql.util.KeyValue;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.util.KeyValueMetadata;
 import io.vertx.core.Context;
 import io.vertx.core.WorkerExecutor;
 import java.util.List;
@@ -40,7 +42,7 @@ import org.slf4j.LoggerFactory;
  * this won't prevent the thread from doing useful work elsewhere but it does mean we can't have too
  * many push queries in the server at any one time as we can end up with a lot of threads.
  */
-public class BlockingQueryPublisher extends BasePublisher<KeyValue<List<?>, GenericRow>>
+public class BlockingQueryPublisher extends BasePublisher<KeyValueMetadata<List<?>, GenericRow>>
     implements QueryPublisher {
 
   private static final Logger log = LoggerFactory.getLogger(BlockingQueryPublisher.class);
@@ -54,8 +56,10 @@ public class BlockingQueryPublisher extends BasePublisher<KeyValue<List<?>, Gene
   private QueryHandle queryHandle;
   private ImmutableList<String> columnNames;
   private ImmutableList<String> columnTypes;
+  private LogicalSchema logicalSchema;
   private QueryId queryId;
   private boolean complete;
+  private boolean hitLimit;
   private volatile boolean closed;
 
   public BlockingQueryPublisher(final Context ctx,
@@ -68,14 +72,38 @@ public class BlockingQueryPublisher extends BasePublisher<KeyValue<List<?>, Gene
       final boolean isScalablePushQuery) {
     this.columnNames = ImmutableList.copyOf(queryHandle.getColumnNames());
     this.columnTypes = ImmutableList.copyOf(queryHandle.getColumnTypes());
+    this.logicalSchema = queryHandle.getLogicalSchema();
     this.queue = queryHandle.getQueue();
     this.isPullQuery = isPullQuery;
     this.isScalablePushQuery = isScalablePushQuery;
     this.queryId = queryHandle.getQueryId();
     this.queue.setQueuedCallback(this::maybeSend);
     this.queue.setLimitHandler(() -> {
+      if (isPullQuery) {
+        queryHandle.getConsistencyOffsetVector().ifPresent(
+            ((PullQueryQueue) queue)::putConsistencyVector);
+        maybeSend();
+      }
       complete = true;
+      hitLimit = true;
       // This allows us to hit the limit without having to queue one last row
+      if (queue.isEmpty()) {
+        ctx.runOnContext(v -> sendComplete());
+      }
+    });
+    // Justification for duplicated code:
+    // The way we handle query completion right now happens to be the same as the way
+    // we handle limit above, but this is not necessarily going to stay the same. For example,
+    // we should be returning a "Limit Reached" message as we do in the HTTP/1 endpoint when
+    // we hit the limit, but for query completion, we should just end the response stream.
+    this.queue.setCompletionHandler(() -> {
+      if (isPullQuery) {
+        queryHandle.getConsistencyOffsetVector().ifPresent(
+            ((PullQueryQueue) queue)::putConsistencyVector);
+        maybeSend();
+      }
+      complete = true;
+      // This allows us to finish the query immediately if the query is already fully streamed.
       if (queue.isEmpty()) {
         ctx.runOnContext(v -> sendComplete());
       }
@@ -94,6 +122,11 @@ public class BlockingQueryPublisher extends BasePublisher<KeyValue<List<?>, Gene
   @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "columnTypes is ImmutableList")
   public List<String> getColumnTypes() {
     return columnTypes;
+  }
+
+  @Override
+  public LogicalSchema geLogicalSchema() {
+    return logicalSchema;
   }
 
   public void close() {
@@ -122,6 +155,11 @@ public class BlockingQueryPublisher extends BasePublisher<KeyValue<List<?>, Gene
   }
 
   @Override
+  public boolean hitLimit() {
+    return hitLimit;
+  }
+
+  @Override
   protected void maybeSend() {
     ctx.runOnContext(v -> doSend());
   }
@@ -145,12 +183,10 @@ public class BlockingQueryPublisher extends BasePublisher<KeyValue<List<?>, Gene
       justification = "Vert.x ensures this is executed on event loop only")
   private void doSend() {
     checkContext();
-
     int num = 0;
     while (getDemand() > 0 && !queue.isEmpty()) {
       if (num < SEND_MAX_BATCH_SIZE) {
         doOnNext(queue.poll());
-
         if (complete && queue.isEmpty()) {
           ctx.runOnContext(v -> sendComplete());
         }

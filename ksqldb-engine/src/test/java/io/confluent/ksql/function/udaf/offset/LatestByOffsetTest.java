@@ -18,10 +18,14 @@ package io.confluent.ksql.function.udaf.offset;
 import static io.confluent.ksql.function.udaf.offset.KudafByOffsetUtils.INTERMEDIATE_STRUCT_COMPARATOR_IGNORE_NULLS;
 import static io.confluent.ksql.function.udaf.offset.KudafByOffsetUtils.SEQ_FIELD;
 import static io.confluent.ksql.function.udaf.offset.KudafByOffsetUtils.STRUCT_BOOLEAN;
+import static io.confluent.ksql.function.udaf.offset.KudafByOffsetUtils.STRUCT_BYTES;
+import static io.confluent.ksql.function.udaf.offset.KudafByOffsetUtils.STRUCT_DATE;
 import static io.confluent.ksql.function.udaf.offset.KudafByOffsetUtils.STRUCT_DOUBLE;
 import static io.confluent.ksql.function.udaf.offset.KudafByOffsetUtils.STRUCT_INTEGER;
 import static io.confluent.ksql.function.udaf.offset.KudafByOffsetUtils.STRUCT_LONG;
 import static io.confluent.ksql.function.udaf.offset.KudafByOffsetUtils.STRUCT_STRING;
+import static io.confluent.ksql.function.udaf.offset.KudafByOffsetUtils.STRUCT_TIME;
+import static io.confluent.ksql.function.udaf.offset.KudafByOffsetUtils.STRUCT_TIMESTAMP;
 import static io.confluent.ksql.function.udaf.offset.KudafByOffsetUtils.VAL_FIELD;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
@@ -34,6 +38,10 @@ import static org.hamcrest.Matchers.nullValue;
 import com.google.common.collect.Lists;
 import io.confluent.ksql.function.udaf.Udaf;
 import io.confluent.ksql.util.KsqlException;
+import java.nio.ByteBuffer;
+import java.sql.Date;
+import java.sql.Time;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
 import org.apache.kafka.connect.data.Struct;
@@ -375,6 +383,128 @@ public class LatestByOffsetTest {
     assertThat(res.get(0).get(VAL_FIELD), is("bar"));
     assertThat(res.get(1).get(VAL_FIELD), is("baz"));
     assertThat(res.get(2).get(VAL_FIELD), is("boo"));
+  }
+
+  @Test
+  public void shouldComputeLatestTimestamp() {
+    // Given:
+    final Udaf<Timestamp, Struct, Timestamp> udaf = LatestByOffset.latestTimestamp();
+
+    // When:
+    final Struct res = udaf.aggregate(new Timestamp(123), LatestByOffset.createStruct(STRUCT_TIMESTAMP, new Timestamp(456)));
+
+    // Then:
+    assertThat(res.get(VAL_FIELD), is(new Timestamp(123)));
+  }
+
+  @Test
+  public void shouldComputeLatestNTimestamps() {
+    // Given:
+    final Udaf<Timestamp, List<Struct>, List<Timestamp>> udaf = LatestByOffset.latestTimestamps(3);
+
+    // When:
+    final List<Struct> res = udaf.aggregate(new Timestamp(123),
+        Lists.newArrayList(LatestByOffset.createStruct(STRUCT_TIMESTAMP, new Timestamp(1)),
+            LatestByOffset.createStruct(STRUCT_TIMESTAMP, new Timestamp(2)),
+            LatestByOffset.createStruct(STRUCT_TIMESTAMP, new Timestamp(3))));
+
+    // Then:
+    assertThat(res.size(), is(3));
+    assertThat(res.get(0).get(VAL_FIELD), is(new Timestamp(2)));
+    assertThat(res.get(1).get(VAL_FIELD), is(new Timestamp(3)));
+    assertThat(res.get(2).get(VAL_FIELD), is(new Timestamp(123)));
+  }
+
+  @Test
+  public void shouldComputeLatestTime() {
+    // Given:
+    final Udaf<Time, Struct, Time> udaf = LatestByOffset.latestTime();
+
+    // When:
+    final Struct res = udaf.aggregate(new Time(1), LatestByOffset.createStruct(STRUCT_TIME, new Time(5)));
+
+    // Then:
+    assertThat(res.get(VAL_FIELD), is(new Time(1)));
+  }
+
+  @Test
+  public void shouldComputeLatestNTimes() {
+    // Given:
+    final Udaf<Time, List<Struct>, List<Time>> udaf = LatestByOffset.latestTimes(3);
+
+    // When:
+    final List<Struct> res = udaf.aggregate(new Time(3),
+        Lists.newArrayList(LatestByOffset.createStruct(STRUCT_TIME, new Time(6)),
+            LatestByOffset.createStruct(STRUCT_TIME, new Time(5)),
+            LatestByOffset.createStruct(STRUCT_TIME, new Time(4))));
+
+    // Then:
+    assertThat(res.size(), is(3));
+    assertThat(res.get(0).get(VAL_FIELD), is(new Time(5)));
+    assertThat(res.get(1).get(VAL_FIELD), is(new Time(4)));
+    assertThat(res.get(2).get(VAL_FIELD), is(new Time(3)));
+  }
+
+  @Test
+  public void shouldComputeLatestDate() {
+    // Given:
+    final Udaf<Date, Struct, Date> udaf = LatestByOffset.latestDate();
+
+    // When:
+    final Struct res = udaf.aggregate(new Date(123), LatestByOffset.createStruct(STRUCT_DATE, new Date(456)));
+
+    // Then:
+    assertThat(res.get(VAL_FIELD), is(new Date(123)));
+  }
+
+  @Test
+  public void shouldComputeLatestNDates() {
+    // Given:
+    final Udaf<Date, List<Struct>, List<Date>> udaf = LatestByOffset.latestDates(3);
+
+    // When:
+    final List<Struct> res = udaf.aggregate(new Date(123),
+        Lists.newArrayList(LatestByOffset.createStruct(STRUCT_DATE, new Date(1)),
+            LatestByOffset.createStruct(STRUCT_DATE, new Date(2)),
+            LatestByOffset.createStruct(STRUCT_DATE, new Date(3))));
+
+    // Then:
+    assertThat(res.size(), is(3));
+    assertThat(res.get(0).get(VAL_FIELD), is(new Date(2)));
+    assertThat(res.get(1).get(VAL_FIELD), is(new Date(3)));
+    assertThat(res.get(2).get(VAL_FIELD), is(new Date(123)));
+  }
+
+  @Test
+  public void shouldComputeLatestBytes() {
+    // Given:
+    final Udaf<ByteBuffer, Struct, ByteBuffer> udaf = LatestByOffset.latestBytes();
+
+    // When:
+    final Struct res = udaf.aggregate(
+        ByteBuffer.wrap(new byte[] { 123 }),
+        LatestByOffset.createStruct(STRUCT_BYTES, ByteBuffer.wrap(new byte[] { 23 })));
+
+    // Then:
+    assertThat(res.get(VAL_FIELD), is(ByteBuffer.wrap(new byte[] { 123 })));
+  }
+
+  @Test
+  public void shouldComputeLatestNBytes() {
+    // Given:
+    final Udaf<ByteBuffer, List<Struct>, List<ByteBuffer>> udaf = LatestByOffset.latestBytes(3);
+
+    // When:
+    final List<Struct> res = udaf.aggregate(ByteBuffer.wrap(new byte[] { 123 }),
+        Lists.newArrayList(LatestByOffset.createStruct(STRUCT_BYTES, ByteBuffer.wrap(new byte[] { 1 })),
+            LatestByOffset.createStruct(STRUCT_BYTES, ByteBuffer.wrap(new byte[] { 2 })),
+            LatestByOffset.createStruct(STRUCT_BYTES, ByteBuffer.wrap(new byte[] { 3 }))));
+
+    // Then:
+    assertThat(res.size(), is(3));
+    assertThat(res.get(0).get(VAL_FIELD), is(ByteBuffer.wrap(new byte[] { 2 })));
+    assertThat(res.get(1).get(VAL_FIELD), is(ByteBuffer.wrap(new byte[] { 3 })));
+    assertThat(res.get(2).get(VAL_FIELD), is(ByteBuffer.wrap(new byte[] { 123 })));
   }
 
   @Test

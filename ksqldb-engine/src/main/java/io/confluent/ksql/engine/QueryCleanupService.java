@@ -29,8 +29,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingDeque;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.log4j.Logger;
 
 /**
  * {@code QueryCleanupService} helps cleanup external resources from queries
@@ -44,7 +43,7 @@ import org.slf4j.LoggerFactory;
 @SuppressWarnings("UnstableApiUsage")
 public class QueryCleanupService extends AbstractExecutionThreadService {
 
-  private static final Logger LOG = LoggerFactory.getLogger(QueryCleanupService.class);
+  private static final Logger LOG = Logger.getLogger(QueryCleanupService.class);
   private static final Runnable SHUTDOWN_SENTINEL = () -> { };
 
   private final BlockingQueue<Runnable> cleanupTasks;
@@ -143,17 +142,17 @@ public class QueryCleanupService extends AbstractExecutionThreadService {
         final File directory = new File(String.valueOf(pathName.normalize()));
         if (directory.exists()) {
           FileUtils.deleteDirectory(directory);
-          LOG.warn("Deleted local state store for non-existing query {}. "
+          LOG.warn(String.format("Deleted local state store for non-existing query %s. "
                   + "This is not expected and was likely due to a "
                   + "race condition when the query was dropped before.",
-              queryTopicPrefix);
+              queryTopicPrefix));
         }
       } catch (Exception e) {
-        LOG.error("Error cleaning up state directory {}\n. {}", pathName, e);
+        LOG.error(String.format("Error cleaning up state directory %s.", pathName), e);
       }
       tryRun(
           () -> {
-            LOG.info("Deleting schemas for prefix {}", queryTopicPrefix);
+            LOG.info(String.format("Deleting schemas for prefix %s", queryTopicPrefix));
             SchemaRegistryUtil.cleanupInternalTopicSchemas(
                 queryTopicPrefix,
                 serviceContext.getSchemaRegistryClient(),
@@ -163,7 +162,7 @@ public class QueryCleanupService extends AbstractExecutionThreadService {
       );
       tryRun(
           () -> {
-            LOG.info("Deleting topics for prefix {}", queryTopicPrefix);
+            LOG.info(String.format("Deleting topics for prefix %s", queryTopicPrefix));
             serviceContext.getTopicClient().deleteInternalTopics(queryTopicPrefix);
             serviceContext.getTopicClient().deleteInternalTopics(altQueryTopicPrefix);
 
@@ -183,7 +182,7 @@ public class QueryCleanupService extends AbstractExecutionThreadService {
       try {
         runnable.run();
       } catch (final Exception e) {
-        LOG.warn("Failed to cleanup {} for {}", resource, appId, e);
+        LOG.warn(String.format("Failed to cleanup %s for %s", resource, appId), e);
       }
     }
   }

@@ -20,7 +20,6 @@ import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.metastore.TypeRegistry.CustomType;
 import io.confluent.ksql.parser.tree.ListTypes;
 import io.confluent.ksql.rest.SessionProperties;
-import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.SchemaInfo;
 import io.confluent.ksql.rest.entity.TypeList;
 import io.confluent.ksql.rest.util.EntityUtil;
@@ -35,7 +34,7 @@ public final class ListTypesExecutor {
 
   }
 
-  public static Optional<KsqlEntity> execute(
+  public static StatementExecutorResponse execute(
       final ConfiguredStatement<ListTypes> configuredStatement,
       final SessionProperties sessionProperties,
       final KsqlExecutionContext executionContext,
@@ -49,6 +48,7 @@ public final class ListTypesExecutor {
       types.put(customType.getName(), EntityUtil.schemaInfo(customType.getType()));
     }
 
-    return Optional.of(new TypeList(configuredStatement.getMaskedStatementText(), types.build()));
+    return StatementExecutorResponse.handled(Optional.of(
+        new TypeList(configuredStatement.getMaskedStatementText(), types.build())));
   }
 }

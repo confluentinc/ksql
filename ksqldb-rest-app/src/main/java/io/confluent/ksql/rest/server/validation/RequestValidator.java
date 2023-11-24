@@ -52,7 +52,6 @@ public class RequestValidator {
   private final Map<Class<? extends Statement>, StatementValidator<?>> customValidators;
   private final BiFunction<KsqlExecutionContext, ServiceContext, Injector> injectorFactory;
   private final Function<ServiceContext, KsqlExecutionContext> snapshotSupplier;
-  private final KsqlConfig ksqlConfig;
   private final ValidatedCommandFactory distributedStatementValidator;
 
   /**
@@ -61,24 +60,22 @@ public class RequestValidator {
    * @param snapshotSupplier        supplies a snapshot of the current execution state, the
    *                                snapshot returned will be owned by this class and changes
    *                                to the snapshot should not affect the source and vice versa
-   * @param ksqlConfig              the {@link KsqlConfig} to validate against
    */
   public RequestValidator(
       final Map<Class<? extends Statement>, StatementValidator<?>> customValidators,
       final BiFunction<KsqlExecutionContext, ServiceContext, Injector> injectorFactory,
       final Function<ServiceContext, KsqlExecutionContext> snapshotSupplier,
-      final KsqlConfig ksqlConfig,
       final ValidatedCommandFactory distributedStatementValidator
   ) {
     this.customValidators = requireNonNull(customValidators, "customValidators");
     this.injectorFactory = requireNonNull(injectorFactory, "injectorFactory");
     this.snapshotSupplier = requireNonNull(snapshotSupplier, "snapshotSupplier");
-    this.ksqlConfig = requireNonNull(ksqlConfig, "ksqlConfig");
     this.distributedStatementValidator = requireNonNull(
         distributedStatementValidator, "distributedStatementValidator");
   }
 
-  private boolean isVariableSubstitutionEnabled(final SessionProperties sessionProperties) {
+  private boolean isVariableSubstitutionEnabled(final SessionProperties sessionProperties,
+      final KsqlConfig ksqlConfig) {
     final Object substitutionEnabled = sessionProperties.getMutableScopedProperties()
         .get(KsqlConfig.KSQL_VARIABLE_SUBSTITUTION_ENABLE);
 
@@ -113,12 +110,13 @@ public class RequestValidator {
 
     final KsqlExecutionContext ctx = requireSandbox(snapshotSupplier.apply(serviceContext));
     final Injector injector = injectorFactory.apply(ctx, serviceContext);
+    final KsqlConfig ksqlConfig = ctx.getKsqlConfig();
 
     int numPersistentQueries = 0;
     for (final ParsedStatement parsed : statements) {
       final PreparedStatement<?> prepared = ctx.prepare(
           parsed,
-          (isVariableSubstitutionEnabled(sessionProperties)
+          (isVariableSubstitutionEnabled(sessionProperties, ksqlConfig)
               ? sessionProperties.getSessionVariables()
               : Collections.emptyMap())
       );
@@ -127,7 +125,13 @@ public class RequestValidator {
       );
 
       numPersistentQueries +=
-          validate(serviceContext, configured, sessionProperties, ctx, injector);
+          validate(
+              serviceContext,
+              configured,
+              sessionProperties,
+              ctx,
+              injector
+          );
 
       if (QueryCapacityUtil.exceedsPersistentQueryCapacity(ctx, ksqlConfig)) {
         QueryCapacityUtil.throwTooManyActivePersistentQueriesException(ctx, ksqlConfig, sql);
@@ -156,8 +160,12 @@ public class RequestValidator {
         customValidators.get(statementClass);
 
     if (customValidator != null) {
-      customValidator
-          .validate(configured, sessionProperties, executionContext, serviceContext);
+      customValidator.validate(
+          configured,
+          sessionProperties,
+          executionContext,
+          serviceContext
+      );
     } else if (KsqlEngine.isExecutableStatement(configured.getStatement())
         || configured.getStatement() instanceof TerminateQuery) {
       final ConfiguredStatement<?> statementInjected = injector.inject(configured);

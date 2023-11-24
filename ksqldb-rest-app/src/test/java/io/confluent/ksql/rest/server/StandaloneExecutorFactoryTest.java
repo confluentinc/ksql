@@ -14,6 +14,7 @@ import static org.mockito.hamcrest.MockitoHamcrest.argThat;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.engine.KsqlEngine;
+import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.rest.server.StandaloneExecutorFactory.StandaloneExecutorConstructor;
 import io.confluent.ksql.rest.server.computation.ConfigStore;
 import io.confluent.ksql.services.KafkaTopicClient;
@@ -77,14 +78,14 @@ public class StandaloneExecutorFactoryTest {
     when(configStoreFactory.apply(any(), any())).thenReturn(configStore);
     when(topicClient.isTopicExists(configTopicName)).thenReturn(false);
     when(configStore.getKsqlConfig()).thenReturn(mergedConfig);
-    when(constructor.create(any(), any(), any(), argumentCaptor.capture(), anyString(), any(), anyBoolean(), any(), any()))
+    when(constructor.create(any(), any(), any(), argumentCaptor.capture(), anyString(), any(), anyBoolean(), any(), any(), any()))
         .thenReturn(standaloneExecutor);
   }
 
   @After
   public void tearDown() throws Exception {
     verify(constructor)
-        .create(any(), any(), any(), engineCaptor.capture(), any(), any(), anyBoolean(), any(), any());
+        .create(any(), any(), any(), engineCaptor.capture(), any(), any(), anyBoolean(), any(), any(), any());
 
     engineCaptor.getAllValues().forEach(KsqlEngine::close);
   }
@@ -97,7 +98,8 @@ public class StandaloneExecutorFactoryTest {
         serviceContextFactory,
         configStoreFactory,
         activeQuerySupplier -> versionChecker,
-        constructor
+        constructor,
+        new MetricCollectors()
     );
   }
 
@@ -135,7 +137,7 @@ public class StandaloneExecutorFactoryTest {
     inOrder.verify(topicClient).createTopic(eq(configTopicName), anyInt(), anyShort(), anyMap());
     inOrder.verify(configStoreFactory).apply(eq(configTopicName), argThat(sameConfig(baseConfig)));
     inOrder.verify(constructor).create(
-        any(), any(), same(mergedConfig), any(), anyString(), any(), anyBoolean(), any(), any());
+        any(), any(), same(mergedConfig), any(), anyString(), any(), anyBoolean(), any(), any(), any());
 
     argumentCaptor.getValue().close();
   }

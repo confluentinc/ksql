@@ -31,7 +31,6 @@ import io.confluent.ksql.rest.entity.ArgumentInfo;
 import io.confluent.ksql.rest.entity.FunctionDescriptionList;
 import io.confluent.ksql.rest.entity.FunctionInfo;
 import io.confluent.ksql.rest.entity.FunctionType;
-import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.schema.connect.SqlSchemaFormatter;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
@@ -49,7 +48,7 @@ public final class DescribeFunctionExecutor {
 
   }
 
-  public static Optional<KsqlEntity> execute(
+  public static StatementExecutorResponse execute(
       final ConfiguredStatement<DescribeFunction> statement,
       final SessionProperties sessionProperties,
       final KsqlExecutionContext executionContext,
@@ -59,20 +58,20 @@ public final class DescribeFunctionExecutor {
     final FunctionName functionName = FunctionName.of(describeFunction.getFunctionName());
 
     if (executionContext.getMetaStore().isAggregate(functionName)) {
-      return Optional.of(
+      return StatementExecutorResponse.handled(Optional.of(
           describeAggregateFunction(executionContext, functionName,
-              statement.getMaskedStatementText()));
+              statement.getMaskedStatementText())));
     }
 
     if (executionContext.getMetaStore().isTableFunction(functionName)) {
-      return Optional.of(
+      return StatementExecutorResponse.handled(Optional.of(
           describeTableFunction(executionContext, functionName,
-              statement.getMaskedStatementText()));
+              statement.getMaskedStatementText())));
     }
 
-    return Optional.of(
+    return StatementExecutorResponse.handled(Optional.of(
         describeNonAggregateFunction(executionContext, functionName,
-            statement.getMaskedStatementText()));
+            statement.getMaskedStatementText())));
   }
 
   private static FunctionDescriptionList describeAggregateFunction(

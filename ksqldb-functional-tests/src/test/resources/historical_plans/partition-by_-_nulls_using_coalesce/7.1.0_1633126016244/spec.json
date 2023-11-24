@@ -1,0 +1,120 @@
+{
+  "version" : "7.1.0",
+  "timestamp" : 1633126016244,
+  "path" : "query-validation-tests/partition-by.json",
+  "schemas" : {
+    "CSAS_REPARTITIONED_0.KsqlTopic.Source" : {
+      "schema" : "`ID` BIGINT KEY, `NAME` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_REPARTITIONED_0.REPARTITIONED" : {
+      "schema" : "`KSQL_COL_0` STRING KEY, `ID` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "nulls using coalesce",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : 0,
+      "value" : {
+        "NAME" : "fred"
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : 1,
+      "value" : {
+        "NAME" : null
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : 2,
+      "value" : { }
+    } ],
+    "outputs" : [ {
+      "topic" : "REPARTITIONED",
+      "key" : "fred",
+      "value" : {
+        "ID" : 0
+      }
+    }, {
+      "topic" : "REPARTITIONED",
+      "key" : "default",
+      "value" : {
+        "ID" : 1
+      }
+    }, {
+      "topic" : "REPARTITIONED",
+      "key" : "default",
+      "value" : {
+        "ID" : 2
+      }
+    } ],
+    "topics" : [ {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "REPARTITIONED",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM TEST (ID BIGINT KEY, NAME varchar) with (kafka_topic='test_topic', value_format = 'json');", "CREATE STREAM REPARTITIONED AS select COALESCE(name, 'default'), id from TEST partition by COALESCE(name, 'default');" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "REPARTITIONED",
+        "type" : "STREAM",
+        "schema" : "`KSQL_COL_0` STRING KEY, `ID` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`ID` BIGINT KEY, `NAME` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "REPARTITIONED",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

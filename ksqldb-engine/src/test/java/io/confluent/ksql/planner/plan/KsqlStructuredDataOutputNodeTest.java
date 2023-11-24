@@ -40,7 +40,7 @@ import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.ValueFormat;
-import io.confluent.ksql.serde.avro.AvroFormat;
+import io.confluent.ksql.serde.connect.ConnectProperties;
 import io.confluent.ksql.structured.SchemaKStream;
 import java.util.Optional;
 import java.util.OptionalInt;
@@ -144,7 +144,7 @@ public class KsqlStructuredDataOutputNodeTest {
     KeyFormat.nonWindowed(
         FormatInfo.of(
             FormatFactory.AVRO.name(),
-            ImmutableMap.of(AvroFormat.FULL_SCHEMA_NAME, "key-name")
+            ImmutableMap.of(ConnectProperties.FULL_SCHEMA_NAME, "key-name")
         ),
         SerdeFeatures.of()
     );
@@ -152,7 +152,7 @@ public class KsqlStructuredDataOutputNodeTest {
     ValueFormat.of(
         FormatInfo.of(
             FormatFactory.AVRO.name(),
-            ImmutableMap.of(AvroFormat.FULL_SCHEMA_NAME, "name")
+            ImmutableMap.of(ConnectProperties.FULL_SCHEMA_NAME, "name")
         ),
         SerdeFeatures.of()
     );

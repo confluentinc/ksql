@@ -80,6 +80,10 @@ public class PlanInfoExtractor {
     return visitJoinStep(streamTableJoin);
   }
 
+  public PlanInfo visitTableSource(final TableSourceV1 tableSourceV1) {
+    return visitSourceStep(tableSourceV1);
+  }
+
   public PlanInfo visitTableSource(final TableSource tableSource) {
     return visitSourceStep(tableSource);
   }

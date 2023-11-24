@@ -24,10 +24,13 @@ import io.confluent.ksql.rest.entity.QueryResponseMetadata;
 import io.vertx.core.Context;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonArray;
+import io.vertx.core.json.JsonObject;
 import io.vertx.core.parsetools.RecordParser;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.concurrent.atomic.AtomicReference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,15 +43,18 @@ public class ExecuteQueryResponseHandler extends QueryResponseHandler<BatchedQue
   private List<String> columnNames;
   private List<ColumnType> columnTypes;
   private Map<String, Integer> columnNameToIndex;
+  private AtomicReference<String> serializedConsistencyVector;
 
   ExecuteQueryResponseHandler(
       final Context context,
       final RecordParser recordParser,
       final BatchedQueryResult cf,
-      final int maxRows) {
+      final int maxRows,
+      final AtomicReference<String> serializedCV) {
     super(context, recordParser, cf);
     this.maxRows = maxRows;
     this.rows = new ArrayList<>();
+    this.serializedConsistencyVector = Objects.requireNonNull(serializedCV, "serializedCV");
   }
 
   @Override
@@ -61,14 +67,32 @@ public class ExecuteQueryResponseHandler extends QueryResponseHandler<BatchedQue
 
   @Override
   protected void handleRow(final Buffer buff) {
-    final JsonArray values = new JsonArray(buff);
-    if (rows.size() < maxRows) {
-      rows.add(new RowImpl(columnNames, columnTypes, values, columnNameToIndex));
+    final Row row;
+    final Object json = buff.toJson();
+
+    if (json instanceof JsonObject) {
+      final JsonObject jsonObject = (JsonObject) json;
+      // This is the serialized consistency vector
+      // Don't add it to the result list since the user should not see it
+      if (jsonObject.getMap() != null && jsonObject.getMap().containsKey("consistencyToken")) {
+        log.info("Response contains consistency vector " + jsonObject);
+        serializedConsistencyVector.set((String) ((JsonObject) json).getMap().get(
+            "consistencyToken"));
+      } else {
+        throw new RuntimeException("Could not decode JSON, expected consistency toke: " + json);
+      }
+    } else  if (json instanceof JsonArray) {
+      final JsonArray values = new JsonArray(buff);
+      if (rows.size() < maxRows) {
+        rows.add(new RowImpl(columnNames, columnTypes, values, columnNameToIndex));
+      } else {
+        throw new KsqlClientException(
+            "Reached max number of rows that may be returned by executeQuery(). "
+                + "Increase the limit via ClientOptions#setExecuteQueryMaxResultRows(). "
+                + "Current limit: " + maxRows);
+      }
     } else {
-      throw new KsqlClientException(
-          "Reached max number of rows that may be returned by executeQuery(). "
-              + "Increase the limit via ClientOptions#setExecuteQueryMaxResultRows(). "
-              + "Current limit: " + maxRows);
+      throw new RuntimeException("Could not decode JSON: " + json);
     }
   }
 

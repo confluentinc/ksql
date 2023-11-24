@@ -17,10 +17,15 @@ package io.confluent.ksql.query;
 
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.physical.pull.PullQueryRow;
+import io.confluent.ksql.util.ConsistencyOffsetVector;
 import io.confluent.ksql.util.KeyValue;
+import io.confluent.ksql.util.KeyValueMetadata;
+import io.confluent.ksql.util.RowMetadata;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
+import java.util.OptionalInt;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
@@ -53,33 +58,47 @@ public class PullQueryQueue implements BlockingRowQueue {
   private final long offerTimeoutMs;
   private AtomicBoolean closed = new AtomicBoolean(false);
   private AtomicLong totalRowsQueued = new AtomicLong(0);
+  private final OptionalInt limit;
 
   /**
-   * The callback run when we've hit the end of the data. Specifically, this happens when
-   * {@link #close()} is called.
+   * The callback run when we've hit the limit. Specifically, this happens when
+   * {@link #closeInternal(boolean)}} is called with true.
    */
   private LimitHandler limitHandler;
   /**
    * Callback is checked before enqueueing new rows and called when new rows are actually added.
    */
   private Runnable queuedCallback;
+  /**
+   * The callback run when we've hit the end of the data. Specifically, this happens when
+   * {@link #close()} is called.
+   */
+  private CompletionHandler completionHandler;
 
-  public PullQueryQueue() {
-    this(BLOCKING_QUEUE_CAPACITY, DEFAULT_OFFER_TIMEOUT_MS);
+  public PullQueryQueue(final OptionalInt limit) {
+    this(BLOCKING_QUEUE_CAPACITY, DEFAULT_OFFER_TIMEOUT_MS, limit);
   }
 
   public PullQueryQueue(
       final int queueSizeLimit,
-      final long offerTimeoutMs) {
+      final long offerTimeoutMs,
+      final OptionalInt limit) {
     this.queuedCallback = () -> { };
     this.limitHandler = () -> { };
+    this.completionHandler = () -> { };
     this.rowQueue = new ArrayBlockingQueue<>(queueSizeLimit);
     this.offerTimeoutMs = offerTimeoutMs;
+    this.limit = limit;
   }
 
   @Override
   public void setLimitHandler(final LimitHandler limitHandler) {
     this.limitHandler = limitHandler;
+  }
+
+  @Override
+  public void setCompletionHandler(final CompletionHandler completionHandler) {
+    this.completionHandler = completionHandler;
   }
 
   @Override
@@ -93,22 +112,22 @@ public class PullQueryQueue implements BlockingRowQueue {
   }
 
   @Override
-  public KeyValue<List<?>, GenericRow> poll(final long timeout, final TimeUnit unit)
+  public KeyValueMetadata<List<?>, GenericRow> poll(final long timeout, final TimeUnit unit)
       throws InterruptedException {
-    return pullQueryRowToKeyValue(rowQueue.poll(timeout, unit));
+    return pullQueryRowToKeyValueMetadata(rowQueue.poll(timeout, unit));
   }
 
   @Override
-  public KeyValue<List<?>, GenericRow> poll() {
-    return pullQueryRowToKeyValue(rowQueue.poll());
+  public KeyValueMetadata<List<?>, GenericRow> poll() {
+    return  pullQueryRowToKeyValueMetadata(rowQueue.poll());
   }
 
   @Override
-  public void drainTo(final Collection<? super KeyValue<List<?>, GenericRow>> collection) {
+  public void drainTo(final Collection<? super KeyValueMetadata<List<?>, GenericRow>> collection) {
     final List<PullQueryRow> list = new ArrayList<>();
     drainRowsTo(list);
     list.stream()
-        .map(PullQueryQueue::pullQueryRowToKeyValue)
+        .map(PullQueryQueue::pullQueryRowToKeyValueMetadata)
         .forEach(collection::add);
   }
 
@@ -142,14 +161,22 @@ public class PullQueryQueue implements BlockingRowQueue {
    * wants to end pull queries prematurely, such as when the client connection closes, this should
    * also be called then.
    */
-  @Override
-  public void close() {
+  private void closeInternal(final boolean limitHit) {
     if (!closed.getAndSet(true)) {
       // Unlike limits based on a number of rows which can be checked and possibly triggered after
       // every queuing of a row, pull queries just declare they've reached their limit when close is
       // called.
-      limitHandler.limitReached();
+      if (limitHit) {
+        limitHandler.limitReached();
+      } else {
+        completionHandler.complete();
+      }
     }
+  }
+
+  @Override
+  public void close() {
+    closeInternal(false);
   }
 
   public boolean isClosed() {
@@ -172,34 +199,61 @@ public class PullQueryQueue implements BlockingRowQueue {
     return true;
   }
 
-  private static KeyValue<List<?>, GenericRow> pullQueryRowToKeyValue(final PullQueryRow row) {
+  private static KeyValueMetadata<List<?>, GenericRow> pullQueryRowToKeyValueMetadata(
+      final PullQueryRow row) {
     if (row == null) {
       return null;
     }
-    return KeyValue.keyValue(null, row.getGenericRow());
+
+    if (row.getConsistencyOffsetVector().isPresent()) {
+      LOG.info("Poll consistency vector from queue " + row.getConsistencyOffsetVector());
+      return new KeyValueMetadata<>(new RowMetadata(
+          Optional.empty(), row.getConsistencyOffsetVector()));
+    }
+    return new KeyValueMetadata<>(KeyValue.keyValue(null, row.getGenericRow()));
   }
 
   /**
    * Enqueues a row on the queue.  Blocks until the row can be accepted.
    * @param row The row to enqueue.
    */
-  public boolean acceptRow(final PullQueryRow row) {
+  public synchronized boolean acceptRow(final PullQueryRow row) {
     try {
       if (row == null) {
         return false;
       }
 
-      while (!closed.get()) {
-        if (rowQueue.offer(row, offerTimeoutMs, TimeUnit.MILLISECONDS)) {
-          totalRowsQueued.incrementAndGet();
-          queuedCallback.run();
-          return true;
+      final boolean accepted;
+      if (limit.isPresent()) {
+        synchronized (this) {
+          if (totalRowsQueued.get() >= limit.getAsInt()) {
+            closeInternal(true);
+            return false;
+          }
+          accepted = doAcceptRow(row);
         }
+      } else {
+        accepted = doAcceptRow(row);
       }
+
+      if (accepted) {
+        queuedCallback.run();
+      }
+      return accepted;
     } catch (final InterruptedException e) {
       // Forced shutdown?
       LOG.error("Interrupted while trying to offer row to queue", e);
       Thread.currentThread().interrupt();
+    }
+    return false;
+  }
+
+  private boolean doAcceptRow(final PullQueryRow row) throws InterruptedException {
+    while (!closed.get()) {
+      if (rowQueue.offer(row, offerTimeoutMs, TimeUnit.MILLISECONDS)) {
+        totalRowsQueued.incrementAndGet();
+        return true;
+      }
     }
     return false;
   }
@@ -215,6 +269,16 @@ public class PullQueryQueue implements BlockingRowQueue {
       rowQueue.put(row);
     } catch (InterruptedException e) {
       LOG.error("Interrupted while trying to put row into queue", e);
+      Thread.currentThread().interrupt();
+    }
+  }
+
+  public void putConsistencyVector(final ConsistencyOffsetVector consistencyOffsetVector) {
+    try {
+      LOG.info("Push consistency token to queue " + consistencyOffsetVector);
+      rowQueue.put(new PullQueryRow(null, null, null, Optional.of(consistencyOffsetVector)));
+    } catch (InterruptedException e) {
+      LOG.error("Interrupted while trying to put consistency token into queue", e);
       Thread.currentThread().interrupt();
     }
   }

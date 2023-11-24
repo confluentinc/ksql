@@ -19,17 +19,24 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
+    <scm>
+        <connection>scm:git:git://github.com/confluentinc/ksql.git</connection>
+        <developerConnection>scm:git:git@github.com:confluentinc/ksql.git</developerConnection>
+        <url>https://github.com/confluentinc/ksql</url>
+        <tag>HEAD</tag>
+    </scm>
+  
     <parent>
         <groupId>io.confluent</groupId>
         <artifactId>common</artifactId>
-        <version>[7.0.13-0, 7.0.14-0)</version>
+        <version>[7.1.11-0, 7.1.12-0)</version>
     </parent>
 
     <groupId>io.confluent.ksql</groupId>
     <artifactId>ksqldb-parent</artifactId>
     <packaging>pom</packaging>
     <name>ksqldb-parent</name>
-    <version>7.0.13-0</version>
+    <version>7.1.11-0</version>
 
     <licenses>
         <license>
@@ -103,11 +110,11 @@
         <podam.version>6.0.2.RELEASE</podam.version>
         <airlift.version>0.29</airlift.version>
         <airline.version>2.6.0</airline.version>
-        <antlr.version>4.7.1</antlr.version>
+        <antlr.version>4.9.2</antlr.version>
         <commons-text.version>1.10.0</commons-text.version>
         <csv.version>1.4</csv.version>
         <commons.compress.version>1.21</commons.compress.version>
-        <lang3.version>3.3.1</lang3.version>
+        <lang3.version>3.5</lang3.version>
         <retrying.version>2.0.0</retrying.version>
         <inject.version>1</inject.version>
         <janino.version>3.0.7</janino.version>
@@ -133,7 +140,7 @@
         <jetty.version>9.4.53.v20231009</jetty.version>
         <git-commit-id-plugin.version>2.2.6</git-commit-id-plugin.version>
         <apache.io.version>2.7</apache.io.version>
-        <io.confluent.ksql.version>7.0.13-0</io.confluent.ksql.version>
+        <io.confluent.ksql.version>7.1.11-0</io.confluent.ksql.version>
         <io.confluent.schema-registry.version>${confluent.version.range}</io.confluent.schema-registry.version>
         <mockito.version>3.8.0</mockito.version>
         <netty-tcnative-version>2.0.61.Final</netty-tcnative-version>
@@ -308,7 +315,7 @@
                 <groupId>org.apache.kafka</groupId>
                 <artifactId>kafka-log4j-appender</artifactId>
                 <version>${kafka.version}</version>
-		<exclusions>
+                <exclusions>
                     <exclusion>
                         <groupId>org.slf4j</groupId>
                         <artifactId>slf4j-log4j12</artifactId>
@@ -430,6 +437,12 @@
                 <groupId>org.apache.commons</groupId>
                 <artifactId>commons-csv</artifactId>
                 <version>${csv.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-compress</artifactId>
+                <version>${commons.compress.version}</version>
             </dependency>
 
             <dependency>
@@ -636,6 +649,11 @@
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-reload4j</artifactId>
           </dependency>
+
+        <dependency>
+            <groupId>io.confluent</groupId>
+            <artifactId>logredactor</artifactId>
+        </dependency>
     </dependencies>
 
     <build>

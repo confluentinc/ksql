@@ -28,7 +28,9 @@ result of the inner `SELECT` feeds into the outer declared collection. You
 don't need to declare a schema when deriving a new collection, because ksqlDB
 infers the column names and types from the inner `SELECT` statement. 
 The value of the `ROWTIME` pseudo column
-defines the timestamp of the record written to {{ site.ak }}. The value of system columns
+defines the timestamp of the record written to {{ site.ak }}, and the value of
+the `ROWPARTITION` and `ROWOFFSET` pseudo columns define the partition and offset
+of the source record, respectively. The value of system columns
 can not be set in the `SELECT`.
 
 Here are a few examples of deriving between the different collection types.

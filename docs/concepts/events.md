@@ -48,6 +48,15 @@ to {{ site.ak }}, they also describe the time at which the event was true.
 ksqlDB aims to raise the abstraction from working with a lower-level stream
 processor. Usually, an event is called a "row", as if it were a row in a
 relational database. Each row is composed of a series of columns. Columns
-are either read from the event's key or value. ksqlDB also supports a `ROWTIME` 
-pseudo column, available on every row, that represents the time of the event. 
+are either read from the event's key or value. ksqlDB also supports 3
+pseudo columns, available on every row: `ROWTIME`, which represents the
+time of the event, as well as `ROWPARTITION` and `ROWOFFSET`, which represent
+the partition and offset of the source record, respectively.
 In addition, windowed sources have `WINDOWSTART` and `WINDOWEND` system columns.
+
+Starting in ksqlDB 0.24, you can create columns that are populated by a
+record's header field. {{ site.ak }} headers are a list of zero or more key-value pairs,
+where the keys are (not necessarily unique) strings and the values are byte arrays.
+Headers typically contain metadata about records, which can then be used for routing
+or processing For example, the header could store information about how to deserialize
+strings in the value.

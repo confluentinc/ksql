@@ -1,0 +1,296 @@
+{
+  "version" : "7.1.0",
+  "timestamp" : 1633125935286,
+  "path" : "query-validation-tests/fk-join.json",
+  "schemas" : {
+    "CTAS_OUTPUT_0.PrependAliasLeft" : {
+      "schema" : "`LEFT_TABLE_L_ID` BIGINT KEY, `LEFT_TABLE_NAME` STRING, `LEFT_TABLE_FOREIGN_KEY` BIGINT, `LEFT_TABLE_ROWTIME` BIGINT, `LEFT_TABLE_ROWPARTITION` INTEGER, `LEFT_TABLE_ROWOFFSET` BIGINT, `LEFT_TABLE_L_ID` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CTAS_OUTPUT_0.Join" : {
+      "schema" : "`LEFT_TABLE_L_ID` BIGINT KEY, `LEFT_TABLE_NAME` STRING, `LEFT_TABLE_FOREIGN_KEY` BIGINT, `LEFT_TABLE_ROWTIME` BIGINT, `LEFT_TABLE_ROWPARTITION` INTEGER, `LEFT_TABLE_ROWOFFSET` BIGINT, `LEFT_TABLE_L_ID` BIGINT, `RIGHT_TABLE_F1` STRING, `RIGHT_TABLE_F2` BIGINT, `RIGHT_TABLE_ROWTIME` BIGINT, `RIGHT_TABLE_ROWPARTITION` INTEGER, `RIGHT_TABLE_ROWOFFSET` BIGINT, `RIGHT_TABLE_R_ID` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CTAS_OUTPUT_0.KafkaTopic_Left.Source.Materialized" : {
+      "schema" : "`L_ID` BIGINT KEY, `NAME` STRING, `FOREIGN_KEY` BIGINT, `ROWPARTITION` INTEGER, `ROWOFFSET` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CTAS_OUTPUT_0.KafkaTopic_Left.Source" : {
+      "schema" : "`L_ID` BIGINT KEY, `NAME` STRING, `FOREIGN_KEY` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CTAS_OUTPUT_0.Project" : {
+      "schema" : "`L_ID` BIGINT KEY, `R_ID` BIGINT, `NAME` STRING, `F1` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CTAS_OUTPUT_0.KafkaTopic_Right.Source" : {
+      "schema" : "`R_ID` BIGINT KEY, `F1` STRING, `F2` BIGINT",
+      "keyFormat" : {
+        "format" : "JSON",
+        "features" : [ "UNWRAP_SINGLES" ]
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CTAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`L_ID` BIGINT KEY, `R_ID` BIGINT, `NAME` STRING, `F1` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CTAS_OUTPUT_0.PrependAliasRight" : {
+      "schema" : "`RIGHT_TABLE_R_ID` BIGINT KEY, `RIGHT_TABLE_F1` STRING, `RIGHT_TABLE_F2` BIGINT, `RIGHT_TABLE_ROWTIME` BIGINT, `RIGHT_TABLE_ROWPARTITION` INTEGER, `RIGHT_TABLE_ROWOFFSET` BIGINT, `RIGHT_TABLE_R_ID` BIGINT",
+      "keyFormat" : {
+        "format" : "JSON",
+        "features" : [ "UNWRAP_SINGLES" ]
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CTAS_OUTPUT_0.KafkaTopic_Right.Source.Materialized" : {
+      "schema" : "`R_ID` BIGINT KEY, `F1` STRING, `F2` BIGINT, `ROWPARTITION` INTEGER, `ROWOFFSET` BIGINT",
+      "keyFormat" : {
+        "format" : "JSON",
+        "features" : [ "UNWRAP_SINGLES" ]
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "Should allow key format mismatch",
+    "inputs" : [ {
+      "topic" : "right_topic",
+      "key" : 0,
+      "value" : {
+        "F1" : "blah",
+        "F2" : 4
+      },
+      "timestamp" : 0
+    }, {
+      "topic" : "left_topic",
+      "key" : 1,
+      "value" : {
+        "NAME" : "zero",
+        "FOREIGN_KEY" : 0
+      },
+      "timestamp" : 10000
+    }, {
+      "topic" : "left_topic",
+      "key" : 0,
+      "value" : {
+        "NAME" : "foo",
+        "FOREIGN_KEY" : 100
+      },
+      "timestamp" : 13000
+    }, {
+      "topic" : "right_topic",
+      "key" : 0,
+      "value" : {
+        "F1" : "a",
+        "F2" : 10
+      },
+      "timestamp" : 15000
+    }, {
+      "topic" : "left_topic",
+      "key" : 10,
+      "value" : {
+        "NAME" : "bar",
+        "FOREIGN_KEY" : 0
+      },
+      "timestamp" : 16000
+    }, {
+      "topic" : "right_topic",
+      "key" : 0,
+      "value" : null,
+      "timestamp" : 17000
+    }, {
+      "topic" : "left_topic",
+      "key" : 1,
+      "value" : null,
+      "timestamp" : 18000
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : 1,
+      "value" : {
+        "R_ID" : 0,
+        "NAME" : "zero",
+        "F1" : "blah"
+      },
+      "timestamp" : 10000
+    }, {
+      "topic" : "OUTPUT",
+      "key" : 1,
+      "value" : {
+        "R_ID" : 0,
+        "NAME" : "zero",
+        "F1" : "a"
+      },
+      "timestamp" : 15000
+    }, {
+      "topic" : "OUTPUT",
+      "key" : 10,
+      "value" : {
+        "R_ID" : 0,
+        "NAME" : "bar",
+        "F1" : "a"
+      },
+      "timestamp" : 16000
+    }, {
+      "topic" : "OUTPUT",
+      "key" : 1,
+      "value" : null,
+      "timestamp" : 17000
+    }, {
+      "topic" : "OUTPUT",
+      "key" : 10,
+      "value" : null,
+      "timestamp" : 17000
+    }, {
+      "topic" : "OUTPUT",
+      "key" : 1,
+      "value" : null,
+      "timestamp" : 18000
+    } ],
+    "topics" : [ {
+      "name" : "right_topic",
+      "replicas" : 1,
+      "keySerdeFeatures" : [ "UNWRAP_SINGLES" ],
+      "numPartitions" : 4
+    }, {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "left_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE TABLE left_table (l_id BIGINT PRIMARY KEY, name VARCHAR, foreign_key BIGINT) WITH (kafka_topic='left_topic', value_format='JSON');", "CREATE TABLE right_table (r_id BIGINT PRIMARY KEY, f1 VARCHAR, f2 BIGINT) WITH (kafka_topic='right_topic', format='JSON');", "CREATE TABLE output AS SELECT l_id, r_id, name, f1 FROM left_table JOIN right_table ON foreign_key = r_id;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "LEFT_TABLE",
+        "type" : "TABLE",
+        "schema" : "`L_ID` BIGINT KEY, `NAME` STRING, `FOREIGN_KEY` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "OUTPUT",
+        "type" : "TABLE",
+        "schema" : "`L_ID` BIGINT KEY, `R_ID` BIGINT, `NAME` STRING, `F1` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "RIGHT_TABLE",
+        "type" : "TABLE",
+        "schema" : "`R_ID` BIGINT KEY, `F1` STRING, `F2` BIGINT",
+        "keyFormat" : {
+          "format" : "JSON"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ "UNWRAP_SINGLES" ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Project-Last-changelog",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          }
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-KafkaTopic_Right-Reduce-changelog",
+          "keyFormat" : {
+            "format" : "JSON",
+            "features" : [ "UNWRAP_SINGLES" ]
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          }
+        }, {
+          "name" : "left_topic",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-KafkaTopic_Left-Reduce-changelog",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          }
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "right_topic",
+          "keyFormat" : {
+            "format" : "JSON",
+            "features" : [ "UNWRAP_SINGLES" ]
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ],
+        "blackList" : ".*-repartition"
+      }
+    }
+  }
+}

@@ -17,14 +17,15 @@ package io.confluent.ksql.serde.protobuf;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.protobuf.ByteString;
-import com.google.protobuf.BytesValue;
 import com.google.protobuf.Descriptors;
 import com.google.protobuf.Message;
 import com.google.protobuf.Timestamp;
 import com.google.type.Date;
 import com.google.type.TimeOfDay;
+import io.confluent.ksql.serde.connect.ConnectProperties;
 import java.nio.ByteBuffer;
-import java.util.Collections;
+import java.util.Optional;
+import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.connect.data.ConnectSchema;
@@ -49,9 +50,13 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.protobuf.type.Decimal;
 import io.confluent.protobuf.type.utils.DecimalUtils;
 
+import static io.confluent.ksql.util.KsqlConstants.getSRSubject;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThrows;
 
 @SuppressWarnings({"SameParameterValue", "rawtypes", "unchecked"})
 @RunWith(MockitoJUnitRunner.class)
@@ -92,6 +97,58 @@ public class KsqlProtobufSerializerTest {
               "import \"google/protobuf/timestamp.proto\";\n" +
               "\n" +
               "message ConnectDefault1 {google.protobuf.Timestamp F1 = 1;}\n");
+  private static final ParsedSchema PROTOBUF_STRUCT_SCHEMA =
+      parseProtobufSchema(
+          "syntax = \"proto3\";\n" +
+              "\n" +
+              "message StructName {\n int64 id = 1;\n" +
+              "int32 age = 2;\n" +
+              "string name = 3;\n}\n"
+      );
+
+  private static final ParsedSchema PROTOBUF_STRUCT_SCHEMA_WITH_EXTRA_FIELD =
+      parseProtobufSchema(
+          "syntax = \"proto3\";\n" +
+              "\n" +
+              "message StructName {\n int64 id = 1;\n" +
+              "int32 age = 2;\n" +
+              "string name = 3;\n" +
+              "string address = 4;\n}\n"
+      );
+
+  private static final ParsedSchema PROTOBUF_STRUCT_SCHEMA_WITH_MISSING_FIELD =
+      parseProtobufSchema(
+          "syntax = \"proto3\";\n" +
+              "\n" +
+              "message StructName {\n int64 id = 1;\n" +
+              "string name = 2;\n}\n"
+      );
+
+  private static final Schema STRUCT_SCHEMA = SchemaBuilder.struct()
+      .field("id", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
+      .field("age", SchemaBuilder.OPTIONAL_INT32_SCHEMA)
+      .field("name", SchemaBuilder.OPTIONAL_STRING_SCHEMA)
+      .name("StructName")
+      .optional()
+      .build();
+
+  private static final Schema RANDOM_NAME_STRUCT_SCHEMA = SchemaBuilder.struct()
+      .field("id", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
+      .field("age", SchemaBuilder.OPTIONAL_INT32_SCHEMA)
+      .field("name", SchemaBuilder.OPTIONAL_STRING_SCHEMA)
+      .name("RandomName")
+      .optional()
+      .build();
+
+  private static final Struct STRUCT_RECORD = new Struct(STRUCT_SCHEMA)
+      .put("id", 123L)
+      .put("age", 20)
+      .put("name", "bob");
+
+  private static final Struct RANDOM_NAME_STRUCT_RECORD = new Struct(RANDOM_NAME_STRUCT_SCHEMA)
+      .put("id", 123L)
+      .put("age", 20)
+      .put("name", "bob");
 
   private static final String SOME_TOPIC = "bob";
 
@@ -161,6 +218,67 @@ public class KsqlProtobufSerializerTest {
     assertThat(((ByteString) record.getField(field)).toByteArray(), equalTo("abc".getBytes(UTF_8)));
   }
 
+  @Test
+  public void shouldSerializeStructWithSchemaId() throws Exception {
+    // Given:
+    int schemaId = givenPhysicalSchema(getSRSubject(SOME_TOPIC, false), PROTOBUF_STRUCT_SCHEMA);
+    final Serializer<Struct> serializer = givenSerializerForSchema(STRUCT_SCHEMA,
+        Struct.class, Optional.of(schemaId), Optional.of("StructName"));
+
+    // When:
+    final byte[] bytes = serializer.serialize(SOME_TOPIC, STRUCT_RECORD);
+    final Message deserialized = deserialize(bytes);
+
+    // Then:
+    assertThat(deserialized.getField(
+        deserialized.getDescriptorForType().findFieldByName("id")), is(123L));
+    assertThat(deserialized.getField(
+        deserialized.getDescriptorForType().findFieldByName("age")), is(20));
+    assertThat(deserialized.getField(
+        deserialized.getDescriptorForType().findFieldByName("name")), is("bob"));
+  }
+
+  @Test
+  public void shouldSerializeStructWithExtraFieldWithSchemaId() throws Exception {
+    // Given:
+    int schemaId = givenPhysicalSchema(getSRSubject(SOME_TOPIC, false),
+        PROTOBUF_STRUCT_SCHEMA_WITH_EXTRA_FIELD);
+    final Serializer<Struct> serializer = givenSerializerForSchema(STRUCT_SCHEMA,
+        Struct.class, Optional.of(schemaId), Optional.of("StructName"));
+
+    // When:
+    final byte[] bytes = serializer.serialize(SOME_TOPIC, STRUCT_RECORD);
+    final Message deserialized = deserialize(bytes);
+
+    // Then:
+    assertThat(deserialized.getField(
+        deserialized.getDescriptorForType().findFieldByName("id")), is(123L));
+    assertThat(deserialized.getField(
+        deserialized.getDescriptorForType().findFieldByName("age")), is(20));
+    assertThat(deserialized.getField(
+        deserialized.getDescriptorForType().findFieldByName("name")), is("bob"));
+    assertThat(deserialized.getField(
+        deserialized.getDescriptorForType().findFieldByName("address")), is(""));
+  }
+
+  @Test
+  public void shouldThrowIfSchemaMissesFieldNotCompatible() throws Exception {
+    // Given:
+    int schemaId = givenPhysicalSchema(getSRSubject(SOME_TOPIC, false),
+        PROTOBUF_STRUCT_SCHEMA_WITH_MISSING_FIELD);
+    final Serializer<Struct> serializer = givenSerializerForSchema(RANDOM_NAME_STRUCT_SCHEMA,
+        Struct.class, Optional.of(schemaId), Optional.of("RandomName"));
+
+    // When:
+    final Exception e = assertThrows(
+        SerializationException.class,
+        () -> serializer.serialize(SOME_TOPIC, RANDOM_NAME_STRUCT_RECORD)
+    );
+
+    // Then:
+    assertThat(e.getMessage(),
+        containsString("Schema from Schema Registry misses field with name: age"));
+  }
 
   @SuppressWarnings("unchecked")
   private <T> T deserialize(final byte[] serializedRow) {
@@ -197,11 +315,30 @@ public class KsqlProtobufSerializerTest {
     return deserialize(bytes);
   }
 
+  private int givenPhysicalSchema(
+      final String subject,
+      final ParsedSchema physicalSchema
+  ) throws Exception {
+    return schemaRegistryClient.register(subject, physicalSchema);
+  }
+
   private <T> Serializer<T> givenSerializerForSchema(
       final Schema schema,
       final Class<T> targetType
   ) {
-    return new ProtobufSerdeFactory(new ProtobufProperties(Collections.emptyMap()))
+    return givenSerializerForSchema(schema, targetType, Optional.empty(), Optional.empty());
+  }
+
+  private <T> Serializer<T> givenSerializerForSchema(
+      final Schema schema,
+      final Class<T> targetType,
+      final Optional<Integer> schemaId,
+      final Optional<String> schemaName
+  ) {
+    final ImmutableMap.Builder<String, String> builder = ImmutableMap.builder();
+    schemaName.ifPresent(s -> builder.put(ConnectProperties.FULL_SCHEMA_NAME, s));
+    schemaId.ifPresent(integer -> builder.put(ConnectProperties.SCHEMA_ID, String.valueOf(integer)));
+    return new ProtobufSerdeFactory(builder.build())
         .createSerde(
             (ConnectSchema) schema,
             ksqlConfig,

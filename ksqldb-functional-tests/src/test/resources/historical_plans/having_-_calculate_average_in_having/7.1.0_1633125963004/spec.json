@@ -1,0 +1,161 @@
+{
+  "version" : "7.1.0",
+  "timestamp" : 1633125963004,
+  "path" : "query-validation-tests/having.json",
+  "schemas" : {
+    "CTAS_AVG_0.Aggregate.Project" : {
+      "schema" : "`ID` BIGINT KEY, `AVG` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
+    },
+    "CTAS_AVG_0.Aggregate.GroupBy" : {
+      "schema" : "`ID` BIGINT KEY, `ID` BIGINT, `VALUE` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
+    },
+    "CTAS_AVG_0.AVG" : {
+      "schema" : "`ID` BIGINT KEY, `AVG` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
+    },
+    "CTAS_AVG_0.Aggregate.Aggregate.Materialize" : {
+      "schema" : "`ID` BIGINT KEY, `ID` BIGINT, `VALUE` BIGINT, `KSQL_AGG_VARIABLE_0` BIGINT, `KSQL_AGG_VARIABLE_1` BIGINT, `KSQL_AGG_VARIABLE_2` BIGINT, `KSQL_AGG_VARIABLE_3` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
+    },
+    "CTAS_AVG_0.KsqlTopic.Source" : {
+      "schema" : "`ID` BIGINT KEY, `NAME` STRING, `VALUE` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "calculate average in having",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : 0,
+      "value" : "zero,50"
+    }, {
+      "topic" : "test_topic",
+      "key" : 0,
+      "value" : "zero,10"
+    }, {
+      "topic" : "test_topic",
+      "key" : 0,
+      "value" : "zero,15"
+    }, {
+      "topic" : "test_topic",
+      "key" : 1,
+      "value" : "one,100"
+    }, {
+      "topic" : "test_topic",
+      "key" : 1,
+      "value" : "one,10"
+    } ],
+    "outputs" : [ {
+      "topic" : "AVG",
+      "key" : 0,
+      "value" : "50"
+    }, {
+      "topic" : "AVG",
+      "key" : 0,
+      "value" : "30"
+    }, {
+      "topic" : "AVG",
+      "key" : 0,
+      "value" : null
+    }, {
+      "topic" : "AVG",
+      "key" : 1,
+      "value" : "100"
+    }, {
+      "topic" : "AVG",
+      "key" : 1,
+      "value" : "55"
+    } ],
+    "topics" : [ {
+      "name" : "AVG",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM TEST (ID BIGINT KEY, NAME varchar, VALUE bigint) WITH (kafka_topic='test_topic', value_format='DELIMITED');", "CREATE TABLE AVG AS select id, sum(value)/count(id) as avg from test GROUP BY id HAVING sum(value)/count(id)> 25;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "AVG",
+        "type" : "TABLE",
+        "schema" : "`ID` BIGINT KEY, `AVG` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "DELIMITED",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`ID` BIGINT KEY, `NAME` STRING, `VALUE` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "DELIMITED",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "DELIMITED"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "AVG",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "DELIMITED"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_AVG_0-Aggregate-Aggregate-Materialize-changelog",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "DELIMITED"
+          }
+        } ]
+      }
+    }
+  }
+}

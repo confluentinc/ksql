@@ -39,6 +39,8 @@ public final class CommonCreateConfigs {
 
   // Persistence Props:
   public static final String VALUE_AVRO_SCHEMA_FULL_NAME = "VALUE_AVRO_SCHEMA_FULL_NAME";
+  public static final String KEY_SCHEMA_FULL_NAME = "KEY_SCHEMA_FULL_NAME";
+  public static final String VALUE_SCHEMA_FULL_NAME = "VALUE_SCHEMA_FULL_NAME";
   public static final String VALUE_FORMAT_PROPERTY = "VALUE_FORMAT";
   public static final String KEY_FORMAT_PROPERTY = "KEY_FORMAT";
   public static final String FORMAT_PROPERTY = "FORMAT";
@@ -46,6 +48,10 @@ public final class CommonCreateConfigs {
 
   public static final String VALUE_DELIMITER_PROPERTY = "VALUE_DELIMITER";
   public static final String KEY_DELIMITER_PROPERTY = "KEY_DELIMITER";
+
+  // Schema Props:
+  public static final String KEY_SCHEMA_ID = "KEY_SCHEMA_ID";
+  public static final String VALUE_SCHEMA_ID = "VALUE_SCHEMA_ID";
 
   public static void addToConfigDef(
       final ConfigDef configDef,
@@ -94,9 +100,9 @@ public final class CommonCreateConfigs {
             Importance.MEDIUM,
             "The name of a field within the Kafka record value that contains the "
                 + "timestamp KSQL should use inplace of the default Kafka record timestamp. "
-                + "By default, KSQL requires the timestamp to be a `BIGINT`. Alternatively, you "
-                + "can supply '" + TIMESTAMP_FORMAT_PROPERTY
-                + "' to control how the field is parsed"
+                + "By default, KSQL requires the timestamp to be a `BIGINT` or a `TIMESTAMP`. "
+                + "Alternatively, you can supply '" + TIMESTAMP_FORMAT_PROPERTY + "' to control "
+                + "how the field is parsed"
         )
         .define(
             TIMESTAMP_FORMAT_PROPERTY,
@@ -122,7 +128,21 @@ public final class CommonCreateConfigs {
             ConfigDef.Type.STRING,
             null,
             Importance.LOW,
-            "The fully qualified name of the Avro schema to use"
+            "The fully qualified name of the Avro schema to use for value"
+        )
+        .define(
+            KEY_SCHEMA_FULL_NAME,
+            ConfigDef.Type.STRING,
+            null,
+            Importance.LOW,
+            "The fully qualified name of the schema to use"
+        )
+        .define(
+            VALUE_SCHEMA_FULL_NAME,
+            ConfigDef.Type.STRING,
+            null,
+            Importance.LOW,
+            "The fully qualified name of the schema to use"
         )
         .define(
             KEY_DELIMITER_PROPERTY,
@@ -131,9 +151,9 @@ public final class CommonCreateConfigs {
             ConfigValidators.nullsAllowed(ConfigValidators.parses(Delimiter::parse)),
             Importance.LOW,
             "The delimiter to use when KEY_FORMAT='DELIMITED'. Supports single "
-              + "character to be a delimiter, defaults to ','. For space and tab delimited values "
-              + "you must use the special values 'SPACE' or 'TAB', not an actual space or tab "
-              + "character. Also see " + VALUE_DELIMITER_PROPERTY)
+                + "character to be a delimiter, defaults to ','. For space and tab delimited "
+                + "values you must use the special values 'SPACE' or 'TAB', not an actual space "
+                + "or tab character. Also see " + VALUE_DELIMITER_PROPERTY)
         .define(
             VALUE_DELIMITER_PROPERTY,
             ConfigDef.Type.STRING,
@@ -141,9 +161,9 @@ public final class CommonCreateConfigs {
             ConfigValidators.nullsAllowed(ConfigValidators.parses(Delimiter::parse)),
             Importance.LOW,
             "The delimiter to use when VALUE_FORMAT='DELIMITED'. Supports single "
-              + "character to be a delimiter, defaults to ','. For space and tab delimited values "
-              + "you must use the special values 'SPACE' or 'TAB', not an actual space or tab "
-              + "character. Also see " + KEY_DELIMITER_PROPERTY)
+                + "character to be a delimiter, defaults to ','. For space and tab delimited "
+                + "values you must use the special values 'SPACE' or 'TAB', not an actual space "
+                + "or tab character. Also see " + KEY_DELIMITER_PROPERTY)
         .define(
             KEY_FORMAT_PROPERTY,
             ConfigDef.Type.STRING,
@@ -156,27 +176,52 @@ public final class CommonCreateConfigs {
             ConfigDef.Type.STRING,
             null,
             Importance.HIGH,
-            "The format of the serialized key and value");
+            "The format of the serialized key and value")
+        .define(
+            KEY_SCHEMA_ID,
+            ConfigDef.Type.INT,
+            null,
+            Importance.LOW,
+            "Undocumented feature"
+        ).define(
+            VALUE_SCHEMA_ID,
+            ConfigDef.Type.INT,
+            null,
+            Importance.LOW,
+            "Undocumented feature");
   }
 
   public static void validateKeyValueFormats(final Map<String, Object> configs) {
     final Object value = configs.get(FORMAT_PROPERTY);
-    if (value == null) {
+    if (value != null) {
+      if (configs.get(KEY_FORMAT_PROPERTY) != null) {
+        throw new KsqlException("Cannot supply both '" + KEY_FORMAT_PROPERTY + "' and '"
+            + FORMAT_PROPERTY + "' properties, as '" + FORMAT_PROPERTY
+            + "' sets both key and value "
+            + "formats. Either use just '" + FORMAT_PROPERTY + "', or use '" + KEY_FORMAT_PROPERTY
+            + "' and '" + VALUE_FORMAT_PROPERTY + "'.");
+      }
+      if (configs.get(VALUE_FORMAT_PROPERTY) != null) {
+        throw new KsqlException("Cannot supply both '" + VALUE_FORMAT_PROPERTY + "' and '"
+            + FORMAT_PROPERTY + "' properties, as '" + FORMAT_PROPERTY
+            + "' sets both key and value "
+            + "formats. Either use just '" + FORMAT_PROPERTY + "', or use '" + KEY_FORMAT_PROPERTY
+            + "' and '" + VALUE_FORMAT_PROPERTY + "'.");
+      }
+    }
+
+    final Object avroValueSchemaFullName = configs.get(VALUE_AVRO_SCHEMA_FULL_NAME);
+    if (avroValueSchemaFullName == null) {
       return;
     }
 
-    if (configs.get(KEY_FORMAT_PROPERTY) != null) {
-      throw new KsqlException("Cannot supply both '" + KEY_FORMAT_PROPERTY + "' and '"
-          + FORMAT_PROPERTY + "' properties, as '" + FORMAT_PROPERTY + "' sets both key and value "
-          + "formats. Either use just '" + FORMAT_PROPERTY + "', or use '" + KEY_FORMAT_PROPERTY
-          + "' and '" + VALUE_FORMAT_PROPERTY + "'.");
+    final Object valueSchemaFullName = configs.get(VALUE_SCHEMA_FULL_NAME);
+    if (valueSchemaFullName != null) {
+      throw new KsqlException("Cannot supply both '" + VALUE_AVRO_SCHEMA_FULL_NAME + "' and '"
+          + VALUE_SCHEMA_FULL_NAME + "' properties. Please only set '" + VALUE_SCHEMA_FULL_NAME
+          + "'.");
     }
-    if (configs.get(VALUE_FORMAT_PROPERTY) != null) {
-      throw new KsqlException("Cannot supply both '" + VALUE_FORMAT_PROPERTY + "' and '"
-          + FORMAT_PROPERTY + "' properties, as '" + FORMAT_PROPERTY + "' sets both key and value "
-          + "formats. Either use just '" + FORMAT_PROPERTY + "', or use '" + KEY_FORMAT_PROPERTY
-          + "' and '" + VALUE_FORMAT_PROPERTY + "'.");
-    }
+
   }
 
   private CommonCreateConfigs() {

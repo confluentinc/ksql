@@ -30,7 +30,12 @@ public class ProducerCollectorTest {
   @Test
   public void shouldDisplayRateThroughput() {
 
-    final ProducerCollector collector = new ProducerCollector().configure(new Metrics(), "clientid", MetricCollectors.getTime());
+    final MetricCollectors metricCollectors = new MetricCollectors();
+    final ProducerCollector collector = new ProducerCollector();
+    collector.configure(
+        "clientid",
+        metricCollectors
+    );
 
     for (int i = 0; i < 1000; i++){
       collector.onSend(new ProducerRecord<>(TEST_TOPIC, 1, "key", "value"));

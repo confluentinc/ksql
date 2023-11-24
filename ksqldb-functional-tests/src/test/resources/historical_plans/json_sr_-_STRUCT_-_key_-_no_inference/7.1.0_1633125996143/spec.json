@@ -1,0 +1,230 @@
+{
+  "version" : "7.1.0",
+  "timestamp" : 1633125996143,
+  "path" : "query-validation-tests/json_sr.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`K` STRUCT<`F1` STRING> KEY, `FOO` INTEGER",
+      "keyFormat" : {
+        "format" : "JSON_SR",
+        "features" : [ "UNWRAP_SINGLES" ]
+      },
+      "valueFormat" : {
+        "format" : "JSON_SR"
+      }
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`K` STRUCT<`F1` STRING> KEY, `FOO` INTEGER",
+      "keyFormat" : {
+        "format" : "JSON_SR",
+        "features" : [ "UNWRAP_SINGLES" ]
+      },
+      "valueFormat" : {
+        "format" : "JSON_SR"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "STRUCT - key - no inference",
+    "inputs" : [ {
+      "topic" : "input_topic",
+      "key" : {
+        "F1" : "foo"
+      },
+      "value" : {
+        "FOO" : 10
+      }
+    }, {
+      "topic" : "input_topic",
+      "key" : {
+        "F1" : null
+      },
+      "value" : {
+        "FOO" : 10
+      }
+    }, {
+      "topic" : "input_topic",
+      "key" : null,
+      "value" : {
+        "FOO" : 10
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : {
+        "F1" : "foo"
+      },
+      "value" : {
+        "FOO" : 10
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : {
+        "F1" : null
+      },
+      "value" : {
+        "FOO" : 10
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : null,
+      "value" : {
+        "FOO" : 10
+      }
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "input_topic",
+      "keySchema" : {
+        "oneOf" : [ {
+          "type" : "null"
+        }, {
+          "type" : "object",
+          "properties" : {
+            "F1" : {
+              "connect.index" : 0,
+              "oneOf" : [ {
+                "type" : "null"
+              }, {
+                "type" : "string"
+              } ]
+            }
+          }
+        } ]
+      },
+      "valueSchema" : {
+        "type" : "object",
+        "properties" : {
+          "FOO" : {
+            "connect.index" : 0,
+            "oneOf" : [ {
+              "type" : "null"
+            }, {
+              "type" : "integer",
+              "connect.type" : "int32"
+            } ]
+          }
+        }
+      },
+      "keyFormat" : "JSON",
+      "valueFormat" : "JSON",
+      "replicas" : 1,
+      "keySerdeFeatures" : [ "UNWRAP_SINGLES" ],
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM INPUT (K STRUCT<F1 VARCHAR> KEY, foo INT) WITH (kafka_topic='input_topic', format='JSON_SR');", "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`K` STRUCT<`F1` STRING> KEY, `FOO` INTEGER",
+        "keyFormat" : {
+          "format" : "JSON_SR"
+        },
+        "valueFormat" : "JSON_SR",
+        "keyFeatures" : [ "UNWRAP_SINGLES" ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`K` STRUCT<`F1` STRING> KEY, `FOO` INTEGER",
+        "keyFormat" : {
+          "format" : "JSON_SR"
+        },
+        "valueFormat" : "JSON_SR",
+        "keyFeatures" : [ "UNWRAP_SINGLES" ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "input_topic",
+          "keyFormat" : {
+            "format" : "JSON_SR",
+            "features" : [ "UNWRAP_SINGLES" ]
+          },
+          "valueFormat" : {
+            "format" : "JSON_SR"
+          },
+          "partitions" : 4,
+          "keySchema" : {
+            "oneOf" : [ {
+              "type" : "null"
+            }, {
+              "type" : "object",
+              "properties" : {
+                "F1" : {
+                  "connect.index" : 0,
+                  "oneOf" : [ {
+                    "type" : "null"
+                  }, {
+                    "type" : "string"
+                  } ]
+                }
+              }
+            } ]
+          },
+          "valueSchema" : {
+            "type" : "object",
+            "properties" : {
+              "FOO" : {
+                "connect.index" : 0,
+                "oneOf" : [ {
+                  "type" : "null"
+                }, {
+                  "type" : "integer",
+                  "connect.type" : "int32"
+                } ]
+              }
+            }
+          }
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "format" : "JSON_SR",
+            "features" : [ "UNWRAP_SINGLES" ]
+          },
+          "valueFormat" : {
+            "format" : "JSON_SR"
+          },
+          "partitions" : 4,
+          "keySchema" : {
+            "oneOf" : [ {
+              "type" : "null"
+            }, {
+              "type" : "object",
+              "properties" : {
+                "F1" : {
+                  "connect.index" : 0,
+                  "oneOf" : [ {
+                    "type" : "null"
+                  }, {
+                    "type" : "string"
+                  } ]
+                }
+              }
+            } ]
+          },
+          "valueSchema" : {
+            "type" : "object",
+            "properties" : {
+              "FOO" : {
+                "connect.index" : 0,
+                "oneOf" : [ {
+                  "type" : "null"
+                }, {
+                  "type" : "integer",
+                  "connect.type" : "int32"
+                } ]
+              }
+            }
+          }
+        } ]
+      }
+    }
+  }
+}

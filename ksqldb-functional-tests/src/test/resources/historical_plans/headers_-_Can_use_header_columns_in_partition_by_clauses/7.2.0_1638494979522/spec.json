@@ -1,0 +1,133 @@
+{
+  "version" : "7.2.0",
+  "timestamp" : 1638494979522,
+  "path" : "query-validation-tests/headers.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`ID` INTEGER KEY, `H` ARRAY<STRUCT<`KEY` STRING, `VALUE` BYTES>> HEADERS, `AGE` INTEGER",
+      "keyFormat" : {
+        "format" : "JSON",
+        "features" : [ "UNWRAP_SINGLES" ]
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`VALUE` BYTES KEY, `ID` INTEGER, `AGE` INTEGER",
+      "keyFormat" : {
+        "format" : "JSON",
+        "features" : [ "UNWRAP_SINGLES" ]
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "Can use header columns in partition by clauses",
+    "inputs" : [ {
+      "topic" : "input",
+      "key" : 10,
+      "value" : {
+        "AGE" : 22
+      },
+      "headers" : [ {
+        "KEY" : "a",
+        "VALUE" : "IQ=="
+      } ]
+    }, {
+      "topic" : "input",
+      "key" : 11,
+      "value" : {
+        "AGE" : 23
+      },
+      "headers" : [ {
+        "KEY" : "a",
+        "VALUE" : "Iw=="
+      } ]
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : "IQ==",
+      "value" : {
+        "ID" : 10,
+        "AGE" : 22
+      },
+      "headers" : [ {
+        "KEY" : "a",
+        "VALUE" : "IQ=="
+      } ]
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "Iw==",
+      "value" : {
+        "ID" : 11,
+        "AGE" : 23
+      },
+      "headers" : [ {
+        "KEY" : "a",
+        "VALUE" : "Iw=="
+      } ]
+    } ],
+    "topics" : [ {
+      "name" : "input",
+      "replicas" : 1,
+      "keySerdeFeatures" : [ "UNWRAP_SINGLES" ],
+      "numPartitions" : 4
+    }, {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM INPUT (ID INT KEY, H ARRAY<STRUCT<key STRING, value BYTES>> HEADERS, AGE INT) with (kafka_topic='input', format='JSON');", "CREATE STREAM OUTPUT AS select ID, AGE, H[1]->VALUE from INPUT partition by H[1]->VALUE;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`ID` INTEGER KEY, `H` ARRAY<STRUCT<`KEY` STRING, `VALUE` BYTES>> HEADERS, `AGE` INTEGER",
+        "keyFormat" : {
+          "format" : "JSON"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ "UNWRAP_SINGLES" ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`VALUE` BYTES KEY, `ID` INTEGER, `AGE` INTEGER",
+        "keyFormat" : {
+          "format" : "JSON"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ "UNWRAP_SINGLES" ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "input",
+          "keyFormat" : {
+            "format" : "JSON",
+            "features" : [ "UNWRAP_SINGLES" ]
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "format" : "JSON",
+            "features" : [ "UNWRAP_SINGLES" ]
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

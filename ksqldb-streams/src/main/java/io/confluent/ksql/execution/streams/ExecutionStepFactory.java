@@ -48,6 +48,7 @@ import io.confluent.ksql.execution.plan.TableSelect;
 import io.confluent.ksql.execution.plan.TableSelectKey;
 import io.confluent.ksql.execution.plan.TableSink;
 import io.confluent.ksql.execution.plan.TableSource;
+import io.confluent.ksql.execution.plan.TableSourceV1;
 import io.confluent.ksql.execution.plan.TableSuppress;
 import io.confluent.ksql.execution.plan.TableTableJoin;
 import io.confluent.ksql.execution.plan.WindowedStreamSource;
@@ -57,7 +58,6 @@ import io.confluent.ksql.execution.windows.KsqlWindowExpression;
 import io.confluent.ksql.execution.windows.WindowTimeClause;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.serde.RefinementInfo;
 import io.confluent.ksql.serde.WindowInfo;
 import java.time.Duration;
@@ -79,9 +79,11 @@ public final class ExecutionStepFactory {
       final String topicName,
       final Formats formats,
       final WindowInfo windowInfo,
-      final Optional<TimestampColumn> timestampColumn
+      final Optional<TimestampColumn> timestampColumn,
+      final int pseudoColumnVersion
   ) {
     final QueryContext queryContext = stacker.getQueryContext();
+
     return new WindowedStreamSource(
         new ExecutionStepPropertiesV1(queryContext),
         topicName,
@@ -89,7 +91,7 @@ public final class ExecutionStepFactory {
         windowInfo,
         timestampColumn,
         sourceSchema,
-        OptionalInt.of(SystemColumns.CURRENT_PSEUDOCOLUMN_VERSION_NUMBER)
+        OptionalInt.of(pseudoColumnVersion)
     );
   }
 
@@ -98,16 +100,39 @@ public final class ExecutionStepFactory {
       final LogicalSchema sourceSchema,
       final String topicName,
       final Formats formats,
-      final Optional<TimestampColumn> timestampColumn
+      final Optional<TimestampColumn> timestampColumn,
+      final int pseudoColumnVersion
   ) {
     final QueryContext queryContext = stacker.getQueryContext();
+
     return new StreamSource(
         new ExecutionStepPropertiesV1(queryContext),
         topicName,
         formats,
         timestampColumn,
         sourceSchema,
-        OptionalInt.of(SystemColumns.CURRENT_PSEUDOCOLUMN_VERSION_NUMBER)
+        OptionalInt.of(pseudoColumnVersion)
+    );
+  }
+
+  public static TableSourceV1 tableSourceV1(
+      final QueryContext.Stacker stacker,
+      final LogicalSchema sourceSchema,
+      final String topicName,
+      final Formats formats,
+      final Optional<TimestampColumn> timestampColumn,
+      final int pseudoColumnVersion
+  ) {
+    final QueryContext queryContext = stacker.getQueryContext();
+
+    return new TableSourceV1(
+        new ExecutionStepPropertiesV1(queryContext),
+        topicName,
+        formats,
+        timestampColumn,
+        sourceSchema,
+        Optional.of(true),
+        OptionalInt.of(pseudoColumnVersion)
     );
   }
 
@@ -116,17 +141,20 @@ public final class ExecutionStepFactory {
       final LogicalSchema sourceSchema,
       final String topicName,
       final Formats formats,
-      final Optional<TimestampColumn> timestampColumn
+      final Optional<TimestampColumn> timestampColumn,
+      final Formats stateStoreFormats,
+      final int pseudoColumnVersion
   ) {
     final QueryContext queryContext = stacker.getQueryContext();
+
     return new TableSource(
         new ExecutionStepPropertiesV1(queryContext),
         topicName,
         formats,
         timestampColumn,
         sourceSchema,
-        Optional.of(true),
-        OptionalInt.of(SystemColumns.CURRENT_PSEUDOCOLUMN_VERSION_NUMBER)
+        pseudoColumnVersion,
+        stateStoreFormats
     );
   }
 
@@ -136,9 +164,11 @@ public final class ExecutionStepFactory {
       final String topicName,
       final Formats formats,
       final WindowInfo windowInfo,
-      final Optional<TimestampColumn> timestampColumn
+      final Optional<TimestampColumn> timestampColumn,
+      final int pseudoColumnVersion
   ) {
     final QueryContext queryContext = stacker.getQueryContext();
+
     return new WindowedTableSource(
         new ExecutionStepPropertiesV1(queryContext),
         topicName,
@@ -146,7 +176,7 @@ public final class ExecutionStepFactory {
         windowInfo,
         timestampColumn,
         sourceSchema,
-        OptionalInt.of(SystemColumns.CURRENT_PSEUDOCOLUMN_VERSION_NUMBER)
+        OptionalInt.of(pseudoColumnVersion)
     );
   }
 

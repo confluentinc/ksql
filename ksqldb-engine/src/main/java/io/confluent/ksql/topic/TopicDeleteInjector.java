@@ -97,6 +97,9 @@ public class TopicDeleteInjector implements Injector {
     final DataSource source = metastore.getSource(sourceName);
 
     if (source != null) {
+      if (source.isSource()) {
+        throw new KsqlException("Cannot delete topic for read-only source: " + sourceName.text());
+      }
       checkTopicRefs(source);
 
       deleteTopic(source);

@@ -21,7 +21,7 @@ import io.confluent.kafka.schemaregistry.avro.AvroSchema;
 import io.confluent.ksql.test.serde.ConnectSerdeSupplier;
 import org.apache.kafka.connect.data.Schema;
 
-public class ValueSpecAvroSerdeSupplier extends ConnectSerdeSupplier<AvroSchema>  {
+public class ValueSpecAvroSerdeSupplier extends ConnectSerdeSupplier<AvroSchema> {
 
   public ValueSpecAvroSerdeSupplier() {
     super(AvroConverter::new);

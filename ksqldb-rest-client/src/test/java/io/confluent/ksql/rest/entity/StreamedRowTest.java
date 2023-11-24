@@ -20,12 +20,14 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.ApiJsonMapper;
 import io.confluent.ksql.rest.client.KsqlClient;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
+import io.confluent.ksql.util.ConsistencyOffsetVector;
 import java.math.BigDecimal;
 import java.util.Optional;
 import org.junit.Test;
@@ -46,6 +48,8 @@ public class StreamedRowTest {
       .keyColumn(ColumnName.of("ID"), SqlTypes.BIGINT)
       .valueColumn(ColumnName.of("VAL"), SqlTypes.STRING)
       .build();
+
+  private static final ConsistencyOffsetVector CONSISTENCY_TOKEN = new ConsistencyOffsetVector();
 
   @Test
   public void shouldRoundTripPullHeader() throws Exception {
@@ -172,6 +176,18 @@ public class StreamedRowTest {
     testRoundTrip(row, expectedJson);
   }
 
+  @Test
+  public void shouldRoundTripConsistencyVectorRow() throws Exception {
+    CONSISTENCY_TOKEN.addTopicOffsets("table1", ImmutableMap.of(1, 1L, 2, 2L));
+    final StreamedRow row =
+        StreamedRow.consistencyToken(new ConsistencyToken(CONSISTENCY_TOKEN.serialize()));
+
+    final String expectedJson =
+        "{\"consistencyToken\":{\"consistencyToken\":\"eyJ2ZXJzaW9uIjowLCJvZmZzZXRWZWN0b3IiOnsidGFi"
+            + "bGUxIjp7IjEiOjEsIjIiOjJ9fX0=\"}}";
+
+    testRoundTrip(row, expectedJson);
+  }
 
   private static void testRoundTrip(
       final StreamedRow row,

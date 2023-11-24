@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.rest.integration;
 
-import static io.confluent.ksql.rest.integration.HighAvailabilityTestUtil.sendClusterStatusRequest;
 import static io.confluent.ksql.rest.integration.HighAvailabilityTestUtil.waitForClusterToBeDiscovered;
 import static io.confluent.ksql.rest.integration.HighAvailabilityTestUtil.waitForRemoteServerToChangeStatus;
 import static io.confluent.ksql.rest.server.utils.TestUtils.findFreeLocalPort;
@@ -225,15 +224,19 @@ public class SystemAuthenticationFunctionalTest {
       Thread.sleep(6000);
 
       // When:
-      waitForRemoteServerToChangeStatus(
-          REST_APP_0, host0, HighAvailabilityTestUtil::remoteServerIsUp, Optional.of(USER1));
-      waitForRemoteServerToChangeStatus(
-          REST_APP_0, host1, HighAvailabilityTestUtil::remoteServerIsUp, Optional.of(USER1));
-      ClusterStatusResponse response = sendClusterStatusRequest(REST_APP_0, Optional.of(USER1));
+      // wait for a single response that shows both are alive, this is necessary
+      // because if we wait for them separately the test can be flaky as one might
+      // go down while we wait for the other
+      final ClusterStatusResponse response = waitForRemoteServerToChangeStatus(
+          REST_APP_0,
+          clusterStatus -> clusterStatus.get(host0).getHostAlive()
+              && clusterStatus.get(host1).getHostAlive(),
+          Optional.of(USER1)
+      );
 
       // Then:
-      assertThat(response.getClusterStatus().get(host0).getHostAlive(), is(true));
-      assertThat(response.getClusterStatus().get(host1).getHostAlive(), is(true));
+      assertThat( response.getClusterStatus().get(host0).getHostAlive(), is(true));
+      assertThat( response.getClusterStatus().get(host1).getHostAlive(), is(true));
       verify(authorizationProvider, never())
           .checkEndpointAccess(argThat(new PrincipalMatcher(USER1)), any(),
               not(eq("/clusterStatus")));
@@ -301,15 +304,19 @@ public class SystemAuthenticationFunctionalTest {
       Thread.sleep(6000);
 
       // When:
-      waitForRemoteServerToChangeStatus(
-          REST_APP_0, host0, HighAvailabilityTestUtil::remoteServerIsUp);
-      waitForRemoteServerToChangeStatus(
-          REST_APP_0, host1, HighAvailabilityTestUtil::remoteServerIsUp);
-      ClusterStatusResponse response = sendClusterStatusRequest(REST_APP_0);
+      // wait for a single response that shows both are alive, this is necessary
+      // because if we wait for them separately the test can be flaky as one might
+      // go down while we wait for the other
+      final ClusterStatusResponse response = waitForRemoteServerToChangeStatus(
+          REST_APP_0,
+          clusterStatus -> clusterStatus.get(host0).getHostAlive()
+              && clusterStatus.get(host1).getHostAlive(),
+          Optional.empty()
+      );
 
       // Then:
-      assertThat(response.getClusterStatus().get(host0).getHostAlive(), is(true));
-      assertThat(response.getClusterStatus().get(host1).getHostAlive(), is(true));
+      assertThat( response.getClusterStatus().get(host0).getHostAlive(), is(true));
+      assertThat( response.getClusterStatus().get(host1).getHostAlive(), is(true));
     }
   }
 

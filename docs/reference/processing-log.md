@@ -61,22 +61,6 @@ config file to assign Log4J properties.
 
 All entries are written under the `processing` logger hierarchy.
 
-Internally, the log uses Log4J to write entries, so you can configure it
-just like you configure the normal ksqlDB log.
-
-Internally, the log uses Log4J to write entries, so you can configure it
-just like you configure the normal ksqlDB log.
-
-- For local deployments, edit the
-[log4j.properties](https://github.com/confluentinc/ksql/blob/master/config/log4j.properties)
-config file to assign Log4J properties.
-- For Docker deployments, set the corresponding environment variables. For more
-  information, see
-  [Configure ksqlDB with Docker](/operate-and-deploy/installation/install-ksqldb-with-docker/)
-  and [Configure Docker Logging](https://docs.confluent.io/platform/current/installation/docker/operations/logging.html#log4j-log-levels).
-
-All entries are written under the `processing` logger hierarchy.
-
 Restart the ksqlDB Server for your configuration changes to take effect.
 
 The following example shows how to configure the processing log to emit all
@@ -117,13 +101,18 @@ To help you debug, you can enable including row data in log records by
 setting the ksqlDB property `ksql.logging.processing.rows.include` to
 `true`.
 
-If you do this, ensure that the log is configured to write to a
-destination where it is safe to write the data being processed. It's
-also important to set `log4j.additivity.processing=false` as shown in
-the previous example, to ensure that processing log events are not
+!!! important
+    In {{ site.ccloud }}, `ksql.logging.processing.rows.include` is set
+    to `true`, so the default behavior is to include row data in the
+    processing log. Contact support to disable this default setting.
+
+When `ksql.logging.processing.rows.include` is set to `true`, ensure that the
+log is configured to write to a destination where it is safe to write the data
+being processed. It's also important to set `log4j.additivity.processing=false`
+as shown in the previous example, to ensure that processing log events are not
 forwarded to appenders configured for the other ksqlDB loggers.
 
-You can disable the log completely by setting the level to OFF in the
+You can disable the log completely by setting the level to `OFF` in the
 [log4j.properties](https://github.com/confluentinc/ksql/blob/master/config/log4j.properties)
 file:
 

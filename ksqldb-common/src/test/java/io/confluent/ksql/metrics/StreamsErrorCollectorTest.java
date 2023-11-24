@@ -17,20 +17,16 @@ package io.confluent.ksql.metrics;
 
 import static io.confluent.ksql.metrics.StreamsErrorCollector.CONSUMER_FAILED_MESSAGES;
 import static io.confluent.ksql.metrics.StreamsErrorCollector.CONSUMER_FAILED_MESSAGES_PER_SEC;
-import static io.confluent.ksql.metrics.StreamsErrorCollector.notifyApplicationClose;
-import static io.confluent.ksql.metrics.StreamsErrorCollector.recordError;
+import static io.confluent.ksql.test.util.OptionalMatchers.of;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
-import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.hasSize;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.metrics.TopicSensors.Stat;
 import java.util.Collection;
-import java.util.Map;
 import java.util.Optional;
 import java.util.stream.IntStream;
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -56,73 +52,108 @@ public class StreamsErrorCollectorTest {
     applicationId = buildApplicationId();
   }
 
-  @SuppressFBWarnings("ST_WRITE_TO_STATIC_FROM_INSTANCE_METHOD")
-  @After
-  public void tearDown() {
-    while (appCounter > 0) {
-      StreamsErrorCollector.notifyApplicationClose(buildApplicationId(appCounter));
-      appCounter--;
-    }
-  }
-
   @Test
   public void shouldCountStreamsErrors() {
+    final MetricCollectors metricCollectors = new MetricCollectors();
+    final StreamsErrorCollector collector = StreamsErrorCollector.create(
+        applicationId,
+        metricCollectors
+    );
+
     // When:
     final int nmsgs = 3;
-    IntStream.range(0, nmsgs).forEach(i -> recordError(applicationId, TOPIC_NAME));
+    IntStream.range(0, nmsgs).forEach(i -> collector.recordError(TOPIC_NAME));
 
     // Then:
     assertThat(
-        MetricCollectors.aggregateStat(CONSUMER_FAILED_MESSAGES, true),
+        metricCollectors.aggregateStat(CONSUMER_FAILED_MESSAGES, true),
         equalTo(1.0 * nmsgs));
   }
 
   @Test
   public void shouldComputeErrorRate() {
+    final MetricCollectors metricCollectors = new MetricCollectors();
+    final StreamsErrorCollector collector = StreamsErrorCollector.create(
+        applicationId,
+        metricCollectors
+    );
+
     // When:
     final int nmsgs = 3;
-    IntStream.range(0, nmsgs).forEach(i -> recordError(applicationId, TOPIC_NAME));
+    IntStream.range(0, nmsgs).forEach(i -> collector.recordError(TOPIC_NAME));
 
     // Then:
     assertThat(
-        MetricCollectors.aggregateStat(CONSUMER_FAILED_MESSAGES_PER_SEC, true),
+        metricCollectors.aggregateStat(CONSUMER_FAILED_MESSAGES_PER_SEC, true),
         greaterThan(0.0));
   }
 
   @Test
   public void shouldComputeTopicLevelErrorStats() {
+    final MetricCollectors metricCollectors = new MetricCollectors();
+    final StreamsErrorCollector collector = StreamsErrorCollector.create(
+        applicationId,
+        metricCollectors
+    );
+
     // Given:
     final String otherTopic = "other-topic";
     final int nmsgs = 3;
 
     // When:
-    IntStream.range(0, nmsgs).forEach(i -> recordError(applicationId, TOPIC_NAME));
-    IntStream.range(0, nmsgs + 1).forEach(i -> recordError(applicationId, otherTopic));
+    IntStream.range(0, nmsgs).forEach(i -> collector.recordError(TOPIC_NAME));
+    IntStream.range(0, nmsgs + 1).forEach(i -> collector.recordError(otherTopic));
 
     // Then:
-    final Collection<Stat> stats = MetricCollectors.getStatsFor(TOPIC_NAME, true);
+    final Collection<Stat> stats = metricCollectors.getStatsFor(TOPIC_NAME, true);
     final Optional<Stat> stat = stats.stream().filter((c) -> c.name().equals(CONSUMER_FAILED_MESSAGES)).findFirst();
     assertThat(stat.get().getValue(), equalTo(nmsgs * 1.0));
-    final Collection<Stat> otherStats = MetricCollectors.getStatsFor(otherTopic, true);
+    final Collection<Stat> otherStats = metricCollectors.getStatsFor(otherTopic, true);
     final Optional<Stat> otherStat = otherStats.stream().filter((c) -> c.name().equals(CONSUMER_FAILED_MESSAGES)).findFirst();
     assertThat(otherStat.get().getValue(), equalTo((nmsgs + 1) * 1.0));
   }
 
   @Test
   public void shouldComputeIndependentErrorStatsForQuery() {
-    // Given:
+    final MetricCollectors metricCollectors = new MetricCollectors();
+    final StreamsErrorCollector collector = StreamsErrorCollector.create(
+        applicationId,
+        metricCollectors
+    );
+
     final String otherAppId = buildApplicationId();
+    final StreamsErrorCollector otherCollector = StreamsErrorCollector.create(
+        otherAppId,
+        metricCollectors
+    );
+
     final String otherTopicId = "other-topic-id";
     final int nmsgs = 3;
-    IntStream.range(0, nmsgs).forEach(i -> recordError(applicationId, TOPIC_NAME));
-    IntStream.range(0, nmsgs + 1).forEach(i -> recordError(otherAppId, otherTopicId));
+    IntStream.range(0, nmsgs).forEach(i -> collector.recordError(TOPIC_NAME));
+    IntStream.range(0, nmsgs + 1).forEach(i -> otherCollector.recordError(otherTopicId));
 
     // When:
-    notifyApplicationClose(otherAppId);
+    otherCollector.cleanup();
 
     // Then:
+    final Collection<Stat> statsFor = metricCollectors.getStatsFor(TOPIC_NAME, true);
+    assertThat(statsFor, hasSize(2));
+    assertThat(getStat(statsFor, "consumer-failed-messages"), of(equalTo(nmsgs * 1.0)));
+    assertThat(getStat(statsFor, "consumer-failed-messages-per-sec"), of(greaterThan(0.0)));
+
+    final Collection<Stat> otherStatsFor = metricCollectors.getStatsFor(otherTopicId, true);
+    assertThat(otherStatsFor, hasSize(0));
+
     assertThat(
-        MetricCollectors.aggregateStat(CONSUMER_FAILED_MESSAGES, true),
+        metricCollectors.aggregateStat(CONSUMER_FAILED_MESSAGES, true),
         equalTo(nmsgs * 1.0));
+  }
+
+  private Optional<Double> getStat(final Collection<Stat> statsFor, final String s) {
+    return statsFor
+        .stream()
+        .filter(stat -> stat.name().equals(s))
+        .map(Stat::getValue)
+        .findFirst();
   }
 }

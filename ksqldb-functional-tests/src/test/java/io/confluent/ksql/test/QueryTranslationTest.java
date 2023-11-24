@@ -83,6 +83,7 @@ public class QueryTranslationTest {
    */
   @SuppressWarnings("unused")
   public QueryTranslationTest(final String name, final TestCase testCase) {
+
     this.testCase = requireNonNull(testCase, "testCase");
   }
 

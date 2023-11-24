@@ -27,12 +27,14 @@ import static org.mockito.Mockito.verify;
 
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.util.KeyValue;
+import io.confluent.ksql.util.KeyValueMetadata;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.OptionalInt;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.junit.After;
 import org.junit.Before;
@@ -121,13 +123,13 @@ public class TransientQueryQueueTest {
     queue.acceptRow(KEY_TWO, VAL_TWO);
 
     // When:
-    final KeyValue<List<?>, GenericRow> result1 = queue.poll(1, TimeUnit.SECONDS);
-    final KeyValue<List<?>, GenericRow> result2 = queue.poll(1, TimeUnit.SECONDS);
-    final KeyValue<List<?>, GenericRow> result3 = queue.poll(1, TimeUnit.MICROSECONDS);
+    final KeyValueMetadata<List<?>, GenericRow> result1 = queue.poll(1, TimeUnit.SECONDS);
+    final KeyValueMetadata<List<?>, GenericRow> result2 = queue.poll(1, TimeUnit.SECONDS);
+    final KeyValueMetadata<List<?>, GenericRow> result3 = queue.poll(1, TimeUnit.MICROSECONDS);
 
     // Then:
-    assertThat(result1, is(keyValue(KEY_ONE, VAL_ONE)));
-    assertThat(result2, is(keyValue(KEY_TWO, VAL_TWO)));
+    assertThat(result1.getKeyValue(), is(keyValue(KEY_ONE, VAL_ONE)));
+    assertThat(result2.getKeyValue(), is(keyValue(KEY_TWO, VAL_TWO)));
     assertThat(result3, is(nullValue()));
   }
 
@@ -190,8 +192,19 @@ public class TransientQueryQueueTest {
   }
 
   private List<KeyValue<List<?>, GenericRow>> drainValues() {
-    final List<KeyValue<List<?>, GenericRow>> entries = new ArrayList<>();
+    final List<KeyValueMetadata<List<?>, GenericRow>> entries = new ArrayList<>();
     queue.drainTo(entries);
-    return entries;
+    return entries.stream().map(KeyValueMetadata::getKeyValue).collect(Collectors.toList());
+  }
+
+  @Test
+  public void shouldCountTotalRowsQueued() {
+    // When:
+    queue.acceptRow(KEY_ONE, VAL_ONE);
+
+    // Then:
+    assertThat(queue.getTotalRowsQueued(), is(1L));
+    queue.acceptRow(KEY_TWO, VAL_TWO);
+    assertThat(queue.getTotalRowsQueued(), is(2L));
   }
 }

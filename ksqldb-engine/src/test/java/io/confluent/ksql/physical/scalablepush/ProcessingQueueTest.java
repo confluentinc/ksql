@@ -7,6 +7,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 import io.confluent.ksql.execution.streams.materialization.TableRow;
+import io.confluent.ksql.physical.common.QueryRow;
 import io.confluent.ksql.query.QueryId;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -19,11 +20,11 @@ public class ProcessingQueueTest {
   @Mock
   private Runnable runnable;
   @Mock
-  private TableRow row1;
+  private QueryRow row1;
   @Mock
-  private TableRow row2;
+  private QueryRow row2;
   @Mock
-  private TableRow row3;
+  private QueryRow row3;
 
   @Test
   public void shouldOfferAndPoll() {
@@ -62,5 +63,14 @@ public class ProcessingQueueTest {
     assertThat(queue.poll(), is(row2));
     assertThat(queue.poll(), nullValue());
     assertThat(queue.hasDroppedRows(), is(true));
+  }
+
+  @Test
+  public void shouldDefaultToFalseForHasError() {
+    // Given:
+    final ProcessingQueue queue = new ProcessingQueue(new QueryId("a"));
+
+    // Then:
+    assertThat(queue.getHasError(),is(false));
   }
 }

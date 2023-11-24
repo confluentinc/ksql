@@ -55,6 +55,10 @@ public final class ConfiguredStatement<T extends Statement> {
     return (ConfiguredStatement<S>) this;
   }
 
+  public PreparedStatement<T> getPreparedStatement() {
+    return statement;
+  }
+
   public T getStatement() {
     return statement.getStatement();
   }

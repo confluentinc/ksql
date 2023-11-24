@@ -18,6 +18,7 @@ package io.confluent.ksql.api.client;
 import static io.confluent.ksql.api.client.util.ClientTestUtil.awaitLatch;
 import static io.confluent.ksql.api.client.util.ClientTestUtil.subscribeAndWait;
 import static io.confluent.ksql.rest.Errors.ERROR_CODE_BAD_REQUEST;
+import static io.confluent.ksql.rest.Errors.ERROR_CODE_BAD_STATEMENT;
 import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
@@ -37,10 +38,12 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.api.BaseApiTest;
 import io.confluent.ksql.api.TestQueryPublisher;
+import io.confluent.ksql.api.client.Client.HttpResponse;
 import io.confluent.ksql.api.client.QueryInfo.QueryType;
 import io.confluent.ksql.api.client.exception.KsqlClientException;
 import io.confluent.ksql.api.client.exception.KsqlException;
 import io.confluent.ksql.api.client.impl.ConnectorTypeImpl;
+import io.confluent.ksql.api.client.impl.ExecuteStatementResultImpl;
 import io.confluent.ksql.api.client.impl.StreamedQueryResultImpl;
 import io.confluent.ksql.api.client.util.ClientTestUtil;
 import io.confluent.ksql.api.client.util.ClientTestUtil.TestSubscriber;
@@ -82,6 +85,7 @@ import io.confluent.ksql.rest.entity.SourceInfo;
 import io.confluent.ksql.rest.entity.StreamsList;
 import io.confluent.ksql.rest.entity.TablesList;
 import io.confluent.ksql.rest.entity.TypeList;
+import io.confluent.ksql.rest.entity.WarningEntity;
 import io.confluent.ksql.schema.ksql.types.SqlBaseType;
 import io.confluent.ksql.util.AppInfo;
 import io.confluent.ksql.util.KsqlConstants.KsqlQueryStatus;
@@ -211,7 +215,7 @@ public class ClientTest extends BaseApiTest {
     // Then
     assertThat(streamedQueryResult.columnNames(), is(DEFAULT_COLUMN_NAMES));
     assertThat(streamedQueryResult.columnTypes(), is(DEFAULT_COLUMN_TYPES));
-    assertThat(streamedQueryResult.queryID(), is(nullValue()));
+    assertThat(streamedQueryResult.queryID(), is(notNullValue()));
 
     shouldReceiveRows(streamedQueryResult, true);
 
@@ -229,7 +233,7 @@ public class ClientTest extends BaseApiTest {
     // Then
     assertThat(streamedQueryResult.columnNames(), is(DEFAULT_COLUMN_NAMES));
     assertThat(streamedQueryResult.columnTypes(), is(DEFAULT_COLUMN_TYPES));
-    assertThat(streamedQueryResult.queryID(), is(nullValue()));
+    assertThat(streamedQueryResult.queryID(), is(notNullValue()));
 
     for (int i = 0; i < DEFAULT_JSON_ROWS.size(); i++) {
       final Row row = streamedQueryResult.poll();
@@ -471,7 +475,7 @@ public class ClientTest extends BaseApiTest {
     final BatchedQueryResult batchedQueryResult = javaClient.executeQuery(DEFAULT_PULL_QUERY);
 
     // Then
-    assertThat(batchedQueryResult.queryID().get(), is(nullValue()));
+    assertThat(batchedQueryResult.queryID().get(), is(notNullValue()));
 
     verifyRows(batchedQueryResult.get());
 
@@ -594,7 +598,7 @@ public class ClientTest extends BaseApiTest {
   @Test
   public void shouldHandleErrorResponseFromInsertInto() {
     // Given
-    KsqlApiException exception = new KsqlApiException("Cannot insert into a table", ERROR_CODE_BAD_REQUEST);
+    KsqlApiException exception = new KsqlApiException("Invalid target name", ERROR_CODE_BAD_STATEMENT);
     testEndpoints.setCreateInsertsSubscriberException(exception);
 
     // When
@@ -606,7 +610,7 @@ public class ClientTest extends BaseApiTest {
     // Then
     assertThat(e.getCause(), instanceOf(KsqlClientException.class));
     assertThat(e.getCause().getMessage(), containsString("Received 400 response from server"));
-    assertThat(e.getCause().getMessage(), containsString("Cannot insert into a table"));
+    assertThat(e.getCause().getMessage(), containsString("Invalid target name"));
   }
 
   @Test
@@ -670,7 +674,7 @@ public class ClientTest extends BaseApiTest {
   @Test
   public void shouldHandleErrorResponseFromStreamInserts() {
     // Given
-    KsqlApiException exception = new KsqlApiException("Cannot insert into a table", ERROR_CODE_BAD_REQUEST);
+    KsqlApiException exception = new KsqlApiException("Invalid target name", ERROR_CODE_BAD_STATEMENT);
     testEndpoints.setCreateInsertsSubscriberException(exception);
 
     // When
@@ -682,7 +686,7 @@ public class ClientTest extends BaseApiTest {
     // Then
     assertThat(e.getCause(), instanceOf(KsqlClientException.class));
     assertThat(e.getCause().getMessage(), containsString("Received 400 response from server"));
-    assertThat(e.getCause().getMessage(), containsString("Cannot insert into a table"));
+    assertThat(e.getCause().getMessage(), containsString("Invalid target name"));
   }
 
   @Test
@@ -785,6 +789,24 @@ public class ClientTest extends BaseApiTest {
     assertThat(e.getCause(), instanceOf(KsqlClientException.class));
     assertThat(e.getCause().getMessage(), containsString("Received 500 response from server"));
     assertThat(e.getCause().getMessage(), containsString("something bad"));
+  }
+
+  @Test
+  public void shouldHandleIfNotExistsWarningResponseFromExecuteStatement() throws Exception {
+    // Given
+    KsqlEntity ksqlEntity = new WarningEntity(
+        "CREATE STREAM IF NOT EXISTS ",
+        "Cannot add stream `HIGH_VALUE_STOCK_TRADES`: A stream with the same name already exists."
+    );
+    testEndpoints.setKsqlEndpointResponse(Collections.singletonList(ksqlEntity));
+
+
+    final ExecuteStatementResult result = javaClient.executeStatement("CSAS;").get();
+
+
+    // Then
+    assertThat(result.queryId(),
+        equalTo(Optional.empty()));
   }
 
   @Test
@@ -1021,7 +1043,7 @@ public class ClientTest extends BaseApiTest {
         new QueryDescription(new QueryId("id"), "sql", Optional.empty(),
             Collections.emptyList(), Collections.emptySet(), Collections.emptySet(), "topology",
             "executionPlan", Collections.emptyMap(), Collections.emptyMap(),
-            KsqlQueryType.PERSISTENT, Collections.emptyList(), Collections.emptySet()));
+            KsqlQueryType.PERSISTENT, Collections.emptyList(), Collections.emptySet(), "consumerGroupId"));
     testEndpoints.setKsqlEndpointResponse(Collections.singletonList(entity));
 
     // When
@@ -1707,6 +1729,38 @@ public class ClientTest extends BaseApiTest {
     assertThat(testEndpoints.getLastSessionVariables(), is(new JsonObject().put("a", "a")));
   }
 
+  @Test
+  public void clientShouldMakeHttpRequests() throws Exception {
+    HttpResponse response = javaClient.buildRequest("GET", "/info").send().get();
+    assertThat(response.status(), is(200));
+
+    Map<String, Map<String, Object>> info = response.bodyAsMap();
+    Map<String, Object> serverInfo = info.get("KsqlServerInfo");
+    assertThat(serverInfo.get("version"), is(AppInfo.getVersion()));
+    assertThat(serverInfo.get("ksqlServiceId"), is("ksql-service-id"));
+    assertThat(serverInfo.get("kafkaClusterId"), is("kafka-cluster-id"));
+  }
+
+  @Test
+  public void clientShouldReturn404Responses() throws Exception {
+    HttpResponse response = javaClient.buildRequest("GET", "/abc").send().get();
+    assertThat(response.status(), is(404));
+  }
+
+  @Test
+  public void setSessionVariablesWithHttpRequest() throws Exception {
+    javaClient.define("some-var", "var-value");
+    HttpResponse response = javaClient.buildRequest("POST", "/ksql")
+        .payload("ksql", "CREATE STREAM FOO AS CONCAT(A, `wow;`) FROM `BAR`;")
+        .propertiesKey("streamsProperties")
+        .property("auto.offset.reset", "earliest")
+        .send()
+        .get();
+    assertThat(response.status(), is(200));
+    assertThat(testEndpoints.getLastSessionVariables(), is(new JsonObject().put("some-var", "var-value")));
+    assertThat(testEndpoints.getLastProperties(), is(new JsonObject().put("auto.offset.reset", "earliest")));
+  }
+
   protected Client createJavaClient() {
     return Client.create(createJavaClientOptions(), vertx);
   }
@@ -1816,6 +1870,9 @@ public class ClientTest extends BaseApiTest {
     assertThat(values.getKsqlObject(8), is(row.getKsqlObject("f_map")));
     assertThat(values.getKsqlObject(9), is(row.getKsqlObject("f_struct")));
     assertThat(values.getValue(10), is(nullValue()));
+    assertThat(values.getValue(11), is(row.getString("f_timestamp")));
+    assertThat(values.getValue(12), is(row.getString("f_date")));
+    assertThat(values.getValue(13), is(row.getString("f_time")));
     assertThat(values.toJsonString(), is((new JsonArray(values.getList())).toString()));
     assertThat(values.toString(), is(values.toJsonString()));
 

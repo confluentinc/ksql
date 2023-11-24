@@ -22,6 +22,8 @@ import io.confluent.ksql.rest.server.CommandTopic;
 import io.confluent.ksql.rest.server.CommandTopicBackup;
 import io.confluent.ksql.rest.server.CommandTopicBackupImpl;
 import io.confluent.ksql.rest.server.CommandTopicBackupNoOp;
+import io.confluent.ksql.rest.util.CommandTopicBackupUtil;
+import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlServerException;
 import io.confluent.ksql.util.KsqlStatementException;
@@ -78,7 +80,7 @@ public class CommandStore implements CommandQueue, Closeable {
   private final Serializer<Command> commandSerializer;
   private final Deserializer<CommandId> commandIdDeserializer;
   private final CommandTopicBackup commandTopicBackup;
-  
+
 
   public static final class Factory {
 
@@ -90,8 +92,8 @@ public class CommandStore implements CommandQueue, Closeable {
         final String commandTopicName,
         final Duration commandQueueCatchupTimeout,
         final Map<String, Object> kafkaConsumerProperties,
-        final Map<String, Object> kafkaProducerProperties
-    ) {
+        final Map<String, Object> kafkaProducerProperties,
+        final ServiceContext serviceContext) {
       kafkaConsumerProperties.put(
           ConsumerConfig.ISOLATION_LEVEL_CONFIG,
           IsolationLevel.READ_COMMITTED.toString().toLowerCase(Locale.ROOT)
@@ -110,10 +112,11 @@ public class CommandStore implements CommandQueue, Closeable {
       );
 
       CommandTopicBackup commandTopicBackup = new CommandTopicBackupNoOp();
-      if (!ksqlConfig.getString(KsqlConfig.KSQL_METASTORE_BACKUP_LOCATION).isEmpty()) {
+      if (!CommandTopicBackupUtil.backupLocation(ksqlConfig).isEmpty()) {
         commandTopicBackup = new CommandTopicBackupImpl(
-            ksqlConfig.getString(KsqlConfig.KSQL_METASTORE_BACKUP_LOCATION),
-            commandTopicName
+            CommandTopicBackupUtil.backupLocation(ksqlConfig),
+            commandTopicName,
+            serviceContext.getTopicClient()
         );
       }
 

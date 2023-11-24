@@ -1,0 +1,228 @@
+{
+  "version" : "7.1.0",
+  "timestamp" : 1633125966571,
+  "path" : "query-validation-tests/in.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`VAL0` INTEGER, `VAL1` BIGINT, `VAL2` DOUBLE, `VAL3` DECIMAL(4, 2)",
+      "keyFormat" : {
+        "format" : "JSON"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`X` DOUBLE, `VAL0` BOOLEAN, `VAL1` BOOLEAN, `VAL2` BOOLEAN, `VAL3` BOOLEAN",
+      "keyFormat" : {
+        "format" : "JSON"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "double - valid",
+    "inputs" : [ {
+      "topic" : "input_topic",
+      "key" : null,
+      "value" : {
+        "VAL0" : 0,
+        "VAL1" : 0,
+        "VAL2" : 1.0,
+        "VAL3" : 0
+      }
+    }, {
+      "topic" : "input_topic",
+      "key" : null,
+      "value" : {
+        "VAL0" : 0,
+        "VAL1" : 0,
+        "VAL2" : 2.0,
+        "VAL3" : 0
+      }
+    }, {
+      "topic" : "input_topic",
+      "key" : null,
+      "value" : {
+        "VAL0" : 0,
+        "VAL1" : 0,
+        "VAL2" : 3.0,
+        "VAL3" : 0
+      }
+    }, {
+      "topic" : "input_topic",
+      "key" : null,
+      "value" : {
+        "VAL0" : 0,
+        "VAL1" : 0,
+        "VAL2" : 4.0,
+        "VAL3" : 0
+      }
+    }, {
+      "topic" : "input_topic",
+      "key" : null,
+      "value" : {
+        "VAL0" : 0,
+        "VAL1" : 0,
+        "VAL2" : 5.0,
+        "VAL3" : 0
+      }
+    }, {
+      "topic" : "input_topic",
+      "key" : null,
+      "value" : {
+        "VAL0" : 10,
+        "VAL1" : 10,
+        "VAL2" : 10.0,
+        "VAL3" : 10.00
+      }
+    }, {
+      "topic" : "input_topic",
+      "key" : null,
+      "value" : {
+        "VAL0" : 11,
+        "VAL1" : 11,
+        "VAL2" : 11.01,
+        "VAL3" : 11.01
+      }
+    }, {
+      "topic" : "input_topic",
+      "key" : null,
+      "value" : {
+        "VAL0" : -2147483648,
+        "VAL1" : 2147483648,
+        "VAL2" : 2147483648,
+        "VAL3" : 10.00
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : null,
+      "value" : {
+        "X" : 1.0,
+        "VAL0" : false,
+        "VAL1" : false,
+        "VAL2" : true,
+        "VAL3" : false
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : null,
+      "value" : {
+        "X" : 2.0,
+        "VAL0" : false,
+        "VAL1" : false,
+        "VAL2" : true,
+        "VAL3" : false
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : null,
+      "value" : {
+        "X" : 3.0,
+        "VAL0" : false,
+        "VAL1" : false,
+        "VAL2" : true,
+        "VAL3" : false
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : null,
+      "value" : {
+        "X" : 4.0,
+        "VAL0" : false,
+        "VAL1" : false,
+        "VAL2" : true,
+        "VAL3" : false
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : null,
+      "value" : {
+        "X" : 10.0,
+        "VAL0" : true,
+        "VAL1" : true,
+        "VAL2" : true,
+        "VAL3" : true
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : null,
+      "value" : {
+        "X" : 11.01,
+        "VAL0" : false,
+        "VAL1" : false,
+        "VAL2" : true,
+        "VAL3" : true
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : null,
+      "value" : {
+        "X" : 2147483648,
+        "VAL0" : false,
+        "VAL1" : true,
+        "VAL2" : true,
+        "VAL3" : false
+      }
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "input_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM INPUT (VAL0 INT, VAL1 BIGINT, VAL2 DOUBLE, VAL3 DECIMAL(4, 2)) WITH (kafka_topic='input_topic', format='JSON');", "CREATE STREAM OUTPUT AS SELECT VAL2 AS X, VAL2 IN (VAL0) AS VAL0, VAL2 IN (VAL1) AS VAL1, VAL2 IN (VAL2) AS VAL2, VAL2 IN (VAL3) AS VAL3 FROM INPUT WHERE VAL2 IN (1, 2.0, 3.00, '4.000', 5.10, VAl0, VAL1, VAL3);" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`VAL0` INTEGER, `VAL1` BIGINT, `VAL2` DOUBLE, `VAL3` DECIMAL(4, 2)",
+        "keyFormat" : {
+          "format" : "JSON"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`X` DOUBLE, `VAL0` BOOLEAN, `VAL1` BOOLEAN, `VAL2` BOOLEAN, `VAL3` BOOLEAN",
+        "keyFormat" : {
+          "format" : "JSON"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "input_topic",
+          "keyFormat" : {
+            "format" : "JSON"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "format" : "JSON"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

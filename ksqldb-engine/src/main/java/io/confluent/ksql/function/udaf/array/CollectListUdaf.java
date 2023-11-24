@@ -20,6 +20,10 @@ import io.confluent.ksql.function.udaf.TableUdaf;
 import io.confluent.ksql.function.udaf.UdafDescription;
 import io.confluent.ksql.function.udaf.UdafFactory;
 import io.confluent.ksql.util.KsqlConstants;
+import java.nio.ByteBuffer;
+import java.sql.Date;
+import java.sql.Time;
+import java.sql.Timestamp;
 import java.util.List;
 import java.util.Map;
 import org.apache.kafka.common.Configurable;
@@ -64,6 +68,27 @@ public final class CollectListUdaf {
 
   @UdafFactory(description = "collect values of a Boolean field into a single Array")
   public static TableUdaf<Boolean, List<Boolean>, List<Boolean>> createCollectListBool() {
+    return new Collect<>();
+  }
+
+  @UdafFactory(description = "collect values of a Timestamp field into a single Array")
+  public static TableUdaf<Timestamp, List<Timestamp>, List<Timestamp>>
+      createCollectListTimestamp() {
+    return new Collect<>();
+  }
+
+  @UdafFactory(description = "collect values of a Time field into a single Array")
+  public static TableUdaf<Time, List<Time>, List<Time>> createCollectListTime() {
+    return new Collect<>();
+  }
+
+  @UdafFactory(description = "collect values of a Date field into a single Array")
+  public static TableUdaf<Date, List<Date>, List<Date>> createCollectListDate() {
+    return new Collect<>();
+  }
+
+  @UdafFactory(description = "collect values of a Bytes field into a single Array")
+  public static TableUdaf<ByteBuffer, List<ByteBuffer>, List<ByteBuffer>> createCollectListBytes() {
     return new Collect<>();
   }
 

@@ -53,16 +53,19 @@ import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.test.model.PostConditionsNode.PostTopicNode;
 import io.confluent.ksql.test.model.SchemaNode;
+import io.confluent.ksql.test.model.TestHeader;
 import io.confluent.ksql.test.serde.json.ValueSpecJsonSerdeSupplier;
 import io.confluent.ksql.test.tools.TestExecutor.TopologyBuilder;
 import io.confluent.ksql.test.tools.conditions.PostConditions;
 import io.confluent.ksql.test.tools.stubs.StubKafkaService;
 import io.confluent.ksql.util.KsqlException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalInt;
 import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.common.header.Header;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.streams.TestInputTopic;
@@ -141,7 +144,7 @@ public class TestExecutorTest {
     final TopologyTestDriverContainer container = TopologyTestDriverContainer.of(
         topologyTestDriver,
         ImmutableList.of(sourceTopic),
-        sinkTopic
+        Optional.of(sinkTopic)
     );
 
     when(topologyTestDriver.producedTopicNames()).thenReturn(ImmutableSet.of(SINK_TOPIC_NAME));
@@ -345,8 +348,8 @@ public class TestExecutorTest {
     final ProducerRecord<byte[], byte[]> rec0 = producerRecord(sinkTopic, 123456719L, "k1", "v1");
     when(kafkaService.readRecords(SINK_TOPIC_NAME)).thenReturn(ImmutableList.of(rec0));
 
-    final Record expected_0 = new Record(SINK_TOPIC_NAME, "k1", null, "v1", null, Optional.of(1L), null);
-    final Record expected_1 = new Record(SINK_TOPIC_NAME, "k1", null, "v1", null, Optional.of(1L), null);
+    final Record expected_0 = new Record(SINK_TOPIC_NAME, "k1", null, "v1", null, Optional.of(1L), null, Optional.empty());
+    final Record expected_1 = new Record(SINK_TOPIC_NAME, "k1", null, "v1", null, Optional.of(1L), null, Optional.empty());
     when(testCase.getOutputRecords()).thenReturn(ImmutableList.of(expected_0, expected_1));
 
     // When:
@@ -369,7 +372,7 @@ public class TestExecutorTest {
     final ProducerRecord<byte[], byte[]> rec1 = producerRecord(sinkTopic, 123456789L, "k2", "v2");
     when(kafkaService.readRecords(SINK_TOPIC_NAME)).thenReturn(ImmutableList.of(rec0, rec1));
 
-    final Record expected_0 = new Record(SINK_TOPIC_NAME, "k1", null, "v1", null, Optional.of(1L), null);
+    final Record expected_0 = new Record(SINK_TOPIC_NAME, "k1", null, "v1", null, Optional.of(1L), null, Optional.empty());
     when(testCase.getOutputRecords()).thenReturn(ImmutableList.of(expected_0));
 
     // When:
@@ -381,8 +384,8 @@ public class TestExecutorTest {
     // Then:
     assertThat(e.getMessage(), is("Topic sink_topic. Expected <1> records but it was <2>\n"
         + "Actual records: \n"
-        + "<k1, \"v1\"> with timestamp=123456719\n"
-        + "<k2, \"v2\"> with timestamp=123456789")
+        + "<k1, \"v1\"> with timestamp=123456719 and headers=[]\n"
+        + "<k2, \"v2\"> with timestamp=123456789 and headers=[]")
     );
   }
 
@@ -394,9 +397,9 @@ public class TestExecutorTest {
     when(kafkaService.readRecords(SINK_TOPIC_NAME)).thenReturn(ImmutableList.of(rec0, rec1));
 
     final Record expected_0 = new Record(SINK_TOPIC_NAME, "k1", TextNode.valueOf("k1"), "v1", TextNode.valueOf("v1"),
-        Optional.of(123456719L), null);
+        Optional.of(123456719L), null, Optional.empty());
     final Record expected_1 = new Record(SINK_TOPIC_NAME, "k2", TextNode.valueOf("k2"), "different",
-        TextNode.valueOf("different"), Optional.of(123456789L), null);
+        TextNode.valueOf("different"), Optional.of(123456789L), null, Optional.empty());
     when(testCase.getOutputRecords()).thenReturn(ImmutableList.of(expected_0, expected_1));
 
     // When:
@@ -407,7 +410,33 @@ public class TestExecutorTest {
 
     // Then:
     assertThat(e.getMessage(), containsString(
-        "Expected <\"k2\", \"different\"> with timestamp=123456789 but was <k2, \"v2\"> with timestamp=123456789"));
+        "Expected <\"k2\", \"different\"> with timestamp=123456789 and headers=[] but was <k2, \"v2\"> with timestamp=123456789 and headers=[]"));
+  }
+
+  @Test
+  public void shouldFailOnMismatchedHeaders() {
+    // Given:
+    final TestHeader h1 = new TestHeader("a", new byte[] {12, 23});
+    final TestHeader h2 = new TestHeader("b", new byte[] {123});
+    final ProducerRecord<byte[], byte[]> rec0 = producerRecord(sinkTopic, 123456719L, "k1", "v1", Serdes.String().serializer(), ImmutableList.of(h1));
+    final ProducerRecord<byte[], byte[]> rec1 = producerRecord(sinkTopic, 123456789L, "k2", "v2", Serdes.String().serializer(), ImmutableList.of(h1));
+    when(kafkaService.readRecords(SINK_TOPIC_NAME)).thenReturn(ImmutableList.of(rec0, rec1));
+
+    final Record expected_0 = new Record(SINK_TOPIC_NAME, "k1", TextNode.valueOf("k1"), "v1", TextNode.valueOf("v1"),
+        Optional.of(123456719L), null, Optional.of(ImmutableList.of(h1)));
+    final Record expected_1 = new Record(SINK_TOPIC_NAME, "k2", TextNode.valueOf("k2"), "v2", TextNode.valueOf("v2"),
+        Optional.of(123456789L), null, Optional.of(ImmutableList.of(h2)));
+    when(testCase.getOutputRecords()).thenReturn(ImmutableList.of(expected_0, expected_1));
+
+    // When:
+    final AssertionError e = assertThrows(
+        AssertionError.class,
+        () -> executor.buildAndExecuteQuery(testCase, listener)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Expected <\"k2\", \"v2\"> with timestamp=123456789 and headers=[{KEY=b,VALUE=ew==}] but was <k2, \"v2\"> with timestamp=123456789 and headers=[{KEY=a,VALUE=DBc=}]"));
   }
 
   @Test
@@ -418,9 +447,9 @@ public class TestExecutorTest {
     when(kafkaService.readRecords(SINK_TOPIC_NAME)).thenReturn(ImmutableList.of(rec0, rec1));
 
     final Record expected_0 = new Record(SINK_TOPIC_NAME, "k1", TextNode.valueOf("k1"), "v1", TextNode.valueOf("v1"),
-        Optional.of(123456719L), null);
+        Optional.of(123456719L), null, Optional.empty());
     final Record expected_1 = new Record(SINK_TOPIC_NAME, "k2", TextNode.valueOf("k2"), "v2", TextNode.valueOf("v2"),
-        Optional.of(123456789L), null);
+        Optional.of(123456789L), null, Optional.empty());
     when(testCase.getOutputRecords()).thenReturn(ImmutableList.of(expected_0, expected_1));
 
     // When:
@@ -437,9 +466,9 @@ public class TestExecutorTest {
     when(kafkaService.readRecords(SINK_TOPIC_NAME)).thenReturn(ImmutableList.of(rec0, rec1));
 
     final Record expected_0 = new Record(SINK_TOPIC_NAME, 1, IntNode.valueOf(1), "v1", TextNode.valueOf("v1"),
-        Optional.of(123456719L), null);
+        Optional.of(123456719L), null, Optional.empty());
     final Record expected_1 = new Record(SINK_TOPIC_NAME, 1, IntNode.valueOf(1), "v2", TextNode.valueOf("v2"),
-        Optional.of(123456789L), null);
+        Optional.of(123456789L), null, Optional.empty());
     when(testCase.getOutputRecords()).thenReturn(ImmutableList.of(expected_0, expected_1));
 
     final LogicalSchema schema = LogicalSchema.builder()
@@ -524,7 +553,7 @@ public class TestExecutorTest {
       final String key,
       final String value
   ) {
-    return producerRecord(topic, rowTime, key, value, Serdes.String().serializer());
+    return producerRecord(topic, rowTime, key, value, Serdes.String().serializer(), ImmutableList.of());
   }
 
   private static ProducerRecord<byte[], byte[]> producerRecord(
@@ -533,7 +562,7 @@ public class TestExecutorTest {
       final int key,
       final String value
   ) {
-    return producerRecord(topic, rowTime, key, value, Serdes.Integer().serializer());
+    return producerRecord(topic, rowTime, key, value, Serdes.Integer().serializer(), ImmutableList.of());
   }
 
   private static <K> ProducerRecord<byte[], byte[]> producerRecord(
@@ -541,7 +570,8 @@ public class TestExecutorTest {
       final long rowTime,
       final K key,
       final String value,
-      final Serializer<K> keySerializer
+      final Serializer<K> keySerializer,
+      final List<Header> headers
   ) {
     final byte[] serializedKey = keySerializer.serialize("", key);
     final byte[] serializeValue = new ValueSpecJsonSerdeSupplier(false)
@@ -553,7 +583,8 @@ public class TestExecutorTest {
         1,
         rowTime,
         serializedKey,
-        serializeValue
+        serializeValue,
+        headers
     );
   }
 }

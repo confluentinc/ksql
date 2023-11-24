@@ -45,6 +45,7 @@ import io.confluent.ksql.execution.plan.TableSelect;
 import io.confluent.ksql.execution.plan.TableSelectKey;
 import io.confluent.ksql.execution.plan.TableSink;
 import io.confluent.ksql.execution.plan.TableSource;
+import io.confluent.ksql.execution.plan.TableSourceV1;
 import io.confluent.ksql.execution.plan.TableSuppress;
 import io.confluent.ksql.execution.plan.TableTableJoin;
 import io.confluent.ksql.execution.plan.WindowedStreamSource;
@@ -94,6 +95,7 @@ public final class StepSchemaResolver {
       .put(TableSelectKey.class, StepSchemaResolver::handleTableSelectKey)
       .put(TableSuppress.class, StepSchemaResolver::sameSchema)
       .put(TableSink.class, StepSchemaResolver::sameSchema)
+      .put(TableSourceV1.class, StepSchemaResolver::handleSource)
       .put(TableSource.class, StepSchemaResolver::handleSource)
       .put(WindowedTableSource.class, StepSchemaResolver::handleWindowedSource)
       .build();
@@ -279,11 +281,11 @@ public final class StepSchemaResolver {
   }
 
   private LogicalSchema handleSource(final LogicalSchema schema, final SourceStep<?> step) {
-    return buildSourceSchema(schema, false);
+    return buildSourceSchema(schema, false, step.getPseudoColumnVersion());
   }
 
   private LogicalSchema handleWindowedSource(final LogicalSchema schema, final SourceStep<?> step) {
-    return buildSourceSchema(schema, true);
+    return buildSourceSchema(schema, true, step.getPseudoColumnVersion());
   }
 
   private LogicalSchema handleStreamStreamJoin(
@@ -357,10 +359,11 @@ public final class StepSchemaResolver {
 
   private LogicalSchema buildSourceSchema(
       final LogicalSchema schema,
-      final boolean windowed
+      final boolean windowed,
+      final int pseudoColumnVersion
   ) {
     return schema
-        .withPseudoAndKeyColsInValue(windowed);
+        .withPseudoAndKeyColsInValue(windowed, pseudoColumnVersion);
   }
 
   private LogicalSchema buildSelectSchema(

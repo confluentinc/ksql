@@ -82,11 +82,20 @@ public final class ExecutorUtil {
       final Predicate<Throwable> shouldRetry,
       final Supplier<Duration> retryBackOff
   ) throws Exception {
+    return executeWithRetries(executable, shouldRetry, (retry) -> retryBackOff.get(), NUM_RETRIES);
+  }
+
+  public static <T> T executeWithRetries(
+      final Callable<T> executable,
+      final Predicate<Throwable> shouldRetry,
+      final java.util.function.Function<Integer, Duration> retryBackOff,
+      final int numRetries
+  ) throws Exception {
     Exception lastException = null;
-    for (int retries = 0; retries < NUM_RETRIES; ++retries) {
+    for (int retries = 0; retries < numRetries; ++retries) {
       try {
         if (retries != 0) {
-          Thread.sleep(retryBackOff.get().toMillis());
+          Thread.sleep(retryBackOff.apply(retries).toMillis());
         }
         return executable.call();
       } catch (final Exception e) {

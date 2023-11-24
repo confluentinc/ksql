@@ -113,7 +113,23 @@ public class DropSourceFactoryTest {
     );
 
     // Then:
-    assertThat(e.getMessage(), containsString("Source bob does not exist."));
+    assertThat(e.getMessage(), containsString("Stream bob does not exist."));
+  }
+
+  @Test
+  public void shouldFailDropSourceOnMissingSourceWithNoIfExistsForTable() {
+    // Given:
+    final DropTable dropTable = new DropTable(SOME_NAME, false, true);
+    when(metaStore.getSource(SOME_NAME)).thenReturn(null);
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> dropSourceFactory.create(dropTable)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Table bob does not exist."));
   }
 
   @Test
@@ -131,6 +147,38 @@ public class DropSourceFactoryTest {
     );
 
     // Then:
-    assertThat(e.getMessage(), containsString("Incompatible data source type is TABLE"));
+    assertThat(e.getMessage(), containsString("Incompatible data source type is table"));
+  }
+
+  @Test
+  public void shouldFailDeleteTopicForSourceStream() {
+    // Given:
+    final DropStream dropStream = new DropStream(SOME_NAME, false, true);
+    when(ksqlStream.isSource()).thenReturn(true);
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> dropSourceFactory.create(dropStream)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Cannot delete topic for read-only source: bob"));
+  }
+
+  @Test
+  public void shouldFailDeleteTopicForSourceTable() {
+    // Given:
+    final DropTable dropTable = new DropTable(TABLE_NAME, false, true);
+    when(ksqlTable.isSource()).thenReturn(true);
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> dropSourceFactory.create(dropTable)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Cannot delete topic for read-only source: tablename"));
   }
 }

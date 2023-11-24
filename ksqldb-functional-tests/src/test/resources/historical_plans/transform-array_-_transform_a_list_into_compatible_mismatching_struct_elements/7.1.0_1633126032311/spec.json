@@ -1,0 +1,115 @@
+{
+  "version" : "7.1.0",
+  "timestamp" : 1633126032311,
+  "path" : "query-validation-tests/transform-array.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`A` INTEGER, `BIGINT_ARRAY` ARRAY<BIGINT>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`TRANSFORMED` ARRAY<ARRAY<STRUCT<`Y` BIGINT, `Z` BIGINT, `X` INTEGER>>>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "transform a list into compatible mismatching struct elements",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : null,
+      "value" : {
+        "a" : 30,
+        "BIGINT_ARRAY" : [ 40, 50 ]
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : null,
+      "value" : {
+        "TRANSFORMED" : [ [ null, {
+          "X" : 30,
+          "Y" : 40,
+          "Z" : null
+        }, {
+          "X" : null,
+          "Y" : 30,
+          "Z" : 40
+        } ], [ null, {
+          "X" : 30,
+          "Y" : 50,
+          "Z" : null
+        }, {
+          "X" : null,
+          "Y" : 30,
+          "Z" : 50
+        } ] ]
+      }
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM TEST (a INT, BIGINT_ARRAY Array<BIGINT>) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE STREAM OUTPUT AS SELECT TRANSFORM(BIGINT_ARRAY, x => ARRAY[null, struct(x := a, y := x), struct(y := a, z:= x)]) as transformed FROM TEST;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`TRANSFORMED` ARRAY<ARRAY<STRUCT<`Y` BIGINT, `Z` BIGINT, `X` INTEGER>>>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`A` INTEGER, `BIGINT_ARRAY` ARRAY<BIGINT>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

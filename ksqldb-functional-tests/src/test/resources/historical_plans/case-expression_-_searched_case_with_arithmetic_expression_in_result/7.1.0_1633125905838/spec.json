@@ -1,0 +1,125 @@
+{
+  "version" : "7.1.0",
+  "timestamp" : 1633125905838,
+  "path" : "query-validation-tests/case-expression.json",
+  "schemas" : {
+    "CSAS_S1_0.KsqlTopic.Source" : {
+      "schema" : "`ID` STRING KEY, `ORDERID` BIGINT, `ORDERUNITS` DOUBLE",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_S1_0.S1" : {
+      "schema" : "`ID` STRING KEY, `CASE_RESAULT` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "searched case with arithmetic expression in result",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : null,
+      "value" : {
+        "ORDERID" : 4,
+        "ORDERUNITS" : 1.9
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : null,
+      "value" : {
+        "ORDERID" : 5,
+        "ORDERUNITS" : 1.0
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : null,
+      "value" : {
+        "ORDERID" : 5,
+        "ORDERUNITS" : 2.0
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "S1",
+      "key" : null,
+      "value" : {
+        "CASE_RESAULT" : 6
+      }
+    }, {
+      "topic" : "S1",
+      "key" : null,
+      "value" : {
+        "CASE_RESAULT" : 7
+      }
+    }, {
+      "topic" : "S1",
+      "key" : null,
+      "value" : {
+        "CASE_RESAULT" : null
+      }
+    } ],
+    "topics" : [ {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "S1",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM orders (ID STRING KEY, orderid bigint, ORDERUNITS double) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE STREAM S1 AS SELECT ID, CASE WHEN orderunits < 2.0 THEN orderid + 2 END AS case_resault FROM orders;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "ORDERS",
+        "type" : "STREAM",
+        "schema" : "`ID` STRING KEY, `ORDERID` BIGINT, `ORDERUNITS` DOUBLE",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "S1",
+        "type" : "STREAM",
+        "schema" : "`ID` STRING KEY, `CASE_RESAULT` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "S1",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

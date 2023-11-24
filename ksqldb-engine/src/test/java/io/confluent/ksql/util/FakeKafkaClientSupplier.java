@@ -31,7 +31,7 @@ public class FakeKafkaClientSupplier implements KafkaClientSupplier {
 
   @Override
   public Admin getAdmin(final Map<String, Object> config) {
-    final Node node = new Node(1, "localhost", 1234);
+    final Node node = new Node(0, "localhost", 1234);
     return new MockAdminClient(Collections.singletonList(node), node);
   }
 

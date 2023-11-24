@@ -1,0 +1,114 @@
+{
+  "tests": [
+    {
+      "name": "create source stream",
+      "statements": [
+        "CREATE SOURCE STREAM INPUT (K STRING KEY, text STRING) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
+        "CREATE STREAM OUTPUT AS select * from INPUT;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "value": "a1"},
+        {"topic": "test_topic", "value": "b1"},
+        {"topic": "test_topic", "value": "B2"}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": "a1"},
+        {"topic": "OUTPUT", "value": "b1"},
+        {"topic": "OUTPUT", "value": "B2"}
+      ],
+      "post": {
+        "sources": [
+          {
+            "name": "INPUT",
+            "type": "stream",
+            "schema": "K STRING KEY, TEXT STRING",
+            "isSource": true
+          },
+          {
+            "name": "OUTPUT",
+            "type": "stream",
+            "schema": "K STRING KEY, TEXT STRING",
+            "isSource": false
+          }
+        ]
+      }
+    },
+    {
+      "name": "rejects INSERT VALUES statements for source streams",
+      "statements": [
+        "CREATE SOURCE STREAM INPUT (K STRING KEY, text STRING) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
+        "INSERT INTO INPUT VALUES ('a', 'b');"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlException",
+        "message": "Cannot insert values into read-only stream: INPUT"
+      }
+    },
+    {
+      "name": "rejects INSERT INTO ... SELECT statements for source streams",
+      "statements": [
+        "CREATE SOURCE STREAM INPUT (K STRING KEY, text STRING) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
+        "CREATE STREAM INPUT2 (K STRING KEY, text STRING) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
+        "INSERT INTO INPUT SELECT * FROM INPUT2;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlException",
+        "message": "Cannot insert into read-only stream: INPUT"
+      }
+    },
+    {
+      "name": "rejects DROP ... DELETE TOPIC statements for source streams",
+      "statements": [
+        "CREATE SOURCE STREAM INPUT (K STRING KEY, text STRING) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
+        "DROP STREAM INPUT DELETE TOPIC;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlException",
+        "message": "Cannot delete topic for read-only source: INPUT"
+      }
+    },
+    {
+      "name": "rejects CREATE OR REPLACE SOURCE ... statements",
+      "statements": [
+        "CREATE OR REPLACE SOURCE STREAM INPUT (K STRING KEY, text STRING) WITH (kafka_topic='test_topic', value_format='DELIMITED');"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlException",
+        "message": "Cannot add stream 'INPUT': CREATE OR REPLACE is not supported on source streams."
+      }
+    },
+    {
+      "name": "rejects CREATE OR REPLACE ... statements on existing source streams",
+      "statements": [
+        "CREATE SOURCE STREAM INPUT (K STRING KEY, text STRING) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
+        "CREATE OR REPLACE STREAM INPUT (K STRING KEY, text STRING) WITH (kafka_topic='test_topic', value_format='DELIMITED');"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlException",
+        "message": "Cannot add stream 'INPUT': CREATE OR REPLACE is not supported on source streams."
+      }
+    },
+    {
+      "name": "rejects CREATE OR REPLACE SOURCE ... statements on existing non-source streams",
+      "statements": [
+        "CREATE STREAM INPUT (K STRING KEY, text STRING) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
+        "CREATE OR REPLACE SOURCE STREAM INPUT (K STRING KEY, text STRING) WITH (kafka_topic='test_topic', value_format='DELIMITED');"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlException",
+        "message": "Cannot add stream 'INPUT': CREATE OR REPLACE is not supported on source streams."
+      }
+    },
+    {
+      "name": "rejects ALTER ... statements on existing source streams",
+      "statements": [
+        "CREATE SOURCE STREAM INPUT (K STRING KEY, text STRING) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
+        "ALTER STREAM INPUT ADD COLUMN newCol INT;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlException",
+        "message": "Cannot alter stream 'INPUT': ALTER operations are not supported on source streams."
+      }
+    }
+  ]
+}

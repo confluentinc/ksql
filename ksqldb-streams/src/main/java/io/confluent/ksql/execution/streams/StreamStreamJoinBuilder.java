@@ -88,8 +88,20 @@ public final class StreamStreamJoinBuilder {
     final JoinParams joinParams = JoinParamsFactory
         .create(join.getKeyColName(), leftSchema, rightSchema);
 
-    final JoinWindows joinWindows = JoinWindows.of(join.getBeforeMillis())
-        .after(join.getAfterMillis());
+    JoinWindows joinWindows;
+
+    // Grace, as optional, helps to identify if a user specified the GRACE PERIOD syntax in the
+    // join window. If specified, then we'll call the new KStreams API ofTimeDifferenceAndGrace()
+    // which enables the "spurious" results bugfix with left/outer joins (see KAFKA-10847).
+    if (join.getGraceMillis().isPresent()) {
+      joinWindows = JoinWindows.ofTimeDifferenceAndGrace(
+            join.getBeforeMillis(),
+            join.getGraceMillis().get());
+    } else {
+      joinWindows = JoinWindows.of(join.getBeforeMillis());
+    }
+
+    joinWindows = joinWindows.after(join.getAfterMillis());
 
     final KStream<K, GenericRow> result;
     switch (join.getJoinType()) {

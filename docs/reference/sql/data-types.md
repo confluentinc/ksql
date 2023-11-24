@@ -14,9 +14,9 @@ keywords: ksqldb, sql, syntax, data type
 
 ## Character types
 
-| name                | description                | backing Java type
-|---------------------|----------------------------|------------------
-| `varchar`, `string` | variable-length string     | [`java.lang.String`](https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/String.html)
+| name                | description            | backing Java type
+|---------------------|------------------------|------------------
+| `varchar`, `string` | variable-length string | [`java.lang.String`](https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/String.html)
 | `bytes`             | variable-length byte array | [byte []](https://docs.oracle.com/javase/8/docs/api/java/lang/Byte.html)
 
 The `varchar` type represents a string in UTF-16 format.

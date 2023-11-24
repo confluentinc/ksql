@@ -66,19 +66,21 @@ public final class AstSanitizer {
   private AstSanitizer() {
   }
 
-
   public static Statement sanitize(
       final Statement node,
-      final MetaStore metaStore) {
-    return sanitize(node, metaStore, true);
+      final MetaStore metaStore,
+      final boolean rowpartitionRowoffsetEnabled) {
+    return sanitize(node, metaStore, true, rowpartitionRowoffsetEnabled);
   }
 
   public static Statement sanitize(
       final Statement node,
       final MetaStore metaStore,
-      final Boolean lambdaEnabled
+      final Boolean lambdaEnabled,
+      final boolean rowpartitionRowoffsetEnabled
   ) {
-    final DataSourceExtractor dataSourceExtractor = new DataSourceExtractor(metaStore);
+    final DataSourceExtractor dataSourceExtractor =
+        new DataSourceExtractor(metaStore, rowpartitionRowoffsetEnabled);
     dataSourceExtractor.extractDataSources(node);
 
     final RewriterPlugin rewriterPlugin =
@@ -134,6 +136,11 @@ public final class AstSanitizer {
         throw new KsqlException(
             "INSERT INTO can only be used to insert into a stream. "
                 + target.getName().toString(FormatOptions.noEscape()) + " is a table.");
+      }
+
+      if (!target.getSchema().headers().isEmpty()) {
+        throw new KsqlException("Cannot insert into " + target.getName().text()
+            + " because it has header columns");
       }
 
       return Optional.empty();

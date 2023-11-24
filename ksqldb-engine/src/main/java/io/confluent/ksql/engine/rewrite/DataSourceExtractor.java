@@ -17,6 +17,7 @@ package io.confluent.ksql.engine.rewrite;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
+import io.confluent.ksql.analyzer.Analysis;
 import io.confluent.ksql.analyzer.Analysis.AliasedDataSource;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
@@ -37,22 +38,26 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-class DataSourceExtractor {
+public class DataSourceExtractor {
 
   private final MetaStore metaStore;
 
   private final Set<AliasedDataSource> allSources = new HashSet<>();
   private final Set<ColumnName> allColumns = new HashSet<>();
   private final Set<ColumnName> clashingColumns = new HashSet<>();
+  private final boolean rowpartitionRowoffsetEnabled;
 
   private boolean isJoin = false;
 
-  DataSourceExtractor(final MetaStore metaStore) {
+  public DataSourceExtractor(final MetaStore metaStore,
+                             final boolean rowpartitionRowoffsetEnabled) {
     this.metaStore = Objects.requireNonNull(metaStore, "metaStore");
+    this.rowpartitionRowoffsetEnabled = rowpartitionRowoffsetEnabled;
   }
 
-  public void extractDataSources(final AstNode node) {
+  public Set<Analysis.AliasedDataSource> extractDataSources(final AstNode node) {
     new Visitor().process(node, null);
+    return getAllSources();
   }
 
   public Set<AliasedDataSource> getAllSources() {
@@ -68,7 +73,7 @@ class DataSourceExtractor {
       return false;
     }
 
-    if (SystemColumns.isPseudoColumn(name)) {
+    if (SystemColumns.isPseudoColumn(name, rowpartitionRowoffsetEnabled)) {
       return true;
     }
 
@@ -77,13 +82,17 @@ class DataSourceExtractor {
 
   public List<SourceName> getSourcesFor(final ColumnName columnName) {
     return allSources.stream()
-        .filter(aliased -> hasColumn(columnName, aliased))
+        .filter(aliased -> hasColumn(columnName, aliased, rowpartitionRowoffsetEnabled))
         .map(AliasedDataSource::getAlias)
         .collect(Collectors.toList());
   }
 
-  private static boolean hasColumn(final ColumnName columnName, final AliasedDataSource aliased) {
-    if (SystemColumns.isPseudoColumn(columnName)) {
+  private static boolean hasColumn(
+      final ColumnName columnName,
+      final AliasedDataSource aliased,
+      final boolean rowpartitionRowoffsetEnabled
+  ) {
+    if (SystemColumns.isPseudoColumn(columnName, rowpartitionRowoffsetEnabled)) {
       return true;
     }
 

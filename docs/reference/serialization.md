@@ -146,10 +146,10 @@ This data format supports all SQL
 [data types](/reference/sql/data-types) except `ARRAY`, `MAP` and
 `STRUCT`. 
 
-`TIMESTAMP` typed data is serialized as a `long` value indicating the Unix epoch time in milliseconds.
-`TIME` typed data is serialized as an `int` value indicating the number of milliseconds since the beginning of the day.
-`DATE` typed data is serialized as an `int` value indicating the number of days since the Unix epoch.
-`BYTES` typed data is serialized as a Base64-encoded string value.
+- `TIMESTAMP` typed data is serialized as a `long` value indicating the Unix epoch time in milliseconds.
+- `TIME` typed data is serialized as an `int` value indicating the number of milliseconds since the beginning of the day.
+- `DATE` typed data is serialized as an `int` value indicating the number of days since the Unix epoch.
+- `BYTES` typed data is serialized as a Base64-encoded string value.
 
 ### JSON
 
@@ -300,8 +300,8 @@ ksqlDb deserializes a number as a `DATE` if it corresponds to a `DATE` typed fie
 the stream.
 
 #### Bytes Serialization
-Bytes are serialized as a Base64-encoded string value. For example, the byte array `[61, 62, 63]` is
-serialized as
+Bytes are serialized as a Base64-encoded string value. For example, the byte
+array `[61, 62, 63]` is serialized as:
 
 ```json
 {
@@ -513,7 +513,7 @@ Single field (un)wrapping
 
 ksqlDB assumes that any single key is unwrapped, which mean that it's not contained in an outer
 record or object. Conversely, ksqlDB assumes that any key with multiple columns
-(for example, `CREATE STREAM K1 INT KEY, K2 INT KEY, C1 INT`) _is_ wrapped, which means that it is a record
+(for example, `CREATE STREAM x (K1 INT KEY, K2 INT KEY, C1 INT)`) _is_ wrapped, which means that it is a record
 with each column as a field within the key. 
 
 To declare a single-column key that's wrapped, specify a `STRUCT` type

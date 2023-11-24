@@ -64,15 +64,16 @@ statement
     | TERMINATE identifier                                                  #terminateQuery
     | TERMINATE ALL                                                         #terminateQuery
     | SET STRING EQ STRING                                                  #setProperty
+    | ALTER SYSTEM STRING EQ STRING                                         #alterSystemProperty
     | UNSET STRING                                                          #unsetProperty
     | DEFINE variableName EQ variableValue                                  #defineVariable
     | UNDEFINE variableName                                                 #undefineVariable
-    | CREATE (OR REPLACE)? STREAM (IF NOT EXISTS)? sourceName
+    | CREATE (OR REPLACE)? (SOURCE)? STREAM (IF NOT EXISTS)? sourceName
                 (tableElements)?
                 (WITH tableProperties)?                                     #createStream
     | CREATE (OR REPLACE)? STREAM (IF NOT EXISTS)? sourceName
             (WITH tableProperties)? AS query                                #createStreamAs
-    | CREATE (OR REPLACE)? TABLE (IF NOT EXISTS)? sourceName
+    | CREATE (OR REPLACE)? (SOURCE)? TABLE (IF NOT EXISTS)? sourceName
                     (tableElements)?
                     (WITH tableProperties)?                                 #createTable
     | CREATE (OR REPLACE)? TABLE (IF NOT EXISTS)? sourceName
@@ -127,7 +128,13 @@ tableElements
     ;
 
 tableElement
-    : identifier type ((PRIMARY)? KEY)?
+    : identifier type columnConstraints?
+    ;
+
+columnConstraints
+    : ((PRIMARY)? KEY)
+    | HEADERS
+    | HEADER '(' STRING ')'
     ;
 
 tableProperties
@@ -228,8 +235,8 @@ joinWindow
     ;
 
 withinExpression
-    : '(' joinWindowSize ',' joinWindowSize ')' # joinWindowWithBeforeAndAfter
-    | joinWindowSize                            # singleJoinWindow
+    : '(' joinWindowSize ',' joinWindowSize ')' (gracePeriodClause)?  # joinWindowWithBeforeAndAfter
+    | joinWindowSize (gracePeriodClause)?                             # singleJoinWindow
     ;
 
 joinWindowSize
@@ -402,9 +409,10 @@ nonReserved
     | ASSERT
     | ALTER
     | ADD
+    | HEADER | HEADERS
     | GRACE | PERIOD
     | DEFINE | UNDEFINE | VARIABLES
-    | PLUGINS
+    | PLUGINS | SYSTEM
     ;
 
 EMIT: 'EMIT';
@@ -541,6 +549,9 @@ ADD: 'ADD';
 ALTER: 'ALTER';
 VARIABLES: 'VARIABLES';
 PLUGINS: 'PLUGINS';
+HEADERS: 'HEADERS';
+HEADER: 'HEADER';
+SYSTEM: 'SYSTEM';
 
 IF: 'IF';
 

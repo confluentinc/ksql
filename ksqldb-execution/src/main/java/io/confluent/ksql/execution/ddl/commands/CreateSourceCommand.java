@@ -19,7 +19,6 @@ import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Objects;
@@ -37,6 +36,7 @@ public abstract class CreateSourceCommand implements DdlCommand {
   private final Formats formats;
   private final Optional<WindowInfo> windowInfo;
   private final Boolean orReplace;
+  private final Boolean isSource;
 
   CreateSourceCommand(
       final SourceName sourceName,
@@ -45,7 +45,8 @@ public abstract class CreateSourceCommand implements DdlCommand {
       final String topicName,
       final Formats formats,
       final Optional<WindowInfo> windowInfo,
-      final Boolean orReplace
+      final Boolean orReplace,
+      final Boolean isSource
   ) {
     this.sourceName = Objects.requireNonNull(sourceName, "sourceName");
     this.schema = Objects.requireNonNull(schema, "schema");
@@ -55,6 +56,7 @@ public abstract class CreateSourceCommand implements DdlCommand {
     this.formats = Objects.requireNonNull(formats, "formats");
     this.windowInfo = Objects.requireNonNull(windowInfo, "windowInfo");
     this.orReplace = orReplace;
+    this.isSource = isSource;
 
     validate(schema, windowInfo.isPresent());
   }
@@ -87,10 +89,11 @@ public abstract class CreateSourceCommand implements DdlCommand {
     return orReplace;
   }
 
+  public Boolean getIsSource() {
+    return isSource;
+  }
+
   private static void validate(final LogicalSchema schema, final boolean windowed) {
-    if (schema.valueContainsAny(SystemColumns.systemColumnNames())) {
-      throw new IllegalArgumentException("Schema contains system columns in value schema");
-    }
 
     if (windowed && schema.key().isEmpty()) {
       throw new KsqlException("Windowed sources require a key column.");
@@ -111,12 +114,13 @@ public abstract class CreateSourceCommand implements DdlCommand {
         && Objects.equals(timestampColumn, that.timestampColumn)
         && Objects.equals(topicName, that.topicName)
         && Objects.equals(formats, that.formats)
-        && Objects.equals(windowInfo, that.windowInfo);
+        && Objects.equals(windowInfo, that.windowInfo)
+        && Objects.equals(isSource, that.isSource);
   }
 
   @Override
   public int hashCode() {
     return Objects
-        .hash(sourceName, schema, timestampColumn, topicName, formats, windowInfo);
+        .hash(sourceName, schema, timestampColumn, topicName, formats, windowInfo, isSource);
   }
 }

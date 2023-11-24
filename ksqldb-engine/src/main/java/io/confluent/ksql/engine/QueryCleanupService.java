@@ -132,14 +132,14 @@ public class QueryCleanupService extends AbstractExecutionThreadService {
           LOG.warn(String.format("Deleted local state store for non-existing query %s. "
                   + "This is not expected and was likely due to a "
                   + "race condition when the query was dropped before.",
-              queryTopicPrefix));
+              appId));
         }
       } catch (Exception e) {
         LOG.error(String.format("Error cleaning up state directory %s.", pathName), e);
       }
       tryRun(
           () -> {
-            LOG.info("Deleting schemas for prefix {}", queryTopicPrefix);
+            LOG.info(String.format("Deleting schemas for prefix %s", queryTopicPrefix));
             SchemaRegistryUtil.cleanupInternalTopicSchemas(
                 queryTopicPrefix,
                 serviceContext.getSchemaRegistryClient(),
@@ -149,7 +149,7 @@ public class QueryCleanupService extends AbstractExecutionThreadService {
       );
       tryRun(
           () -> {
-            LOG.info("Deleting topics for prefix {}", queryTopicPrefix);
+            LOG.info(String.format("Deleting topics for prefix %s", queryTopicPrefix));
             serviceContext.getTopicClient().deleteInternalTopics(queryTopicPrefix);
           },
           "internal topics"

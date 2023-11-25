@@ -15,16 +15,15 @@
 
 package io.confluent.ksql.api.auth;
 
-
 import io.confluent.ksql.api.server.Server;
+import io.confluent.ksql.security.KsqlPrincipal;
 import io.vertx.ext.auth.User;
 import io.vertx.ext.web.RoutingContext;
-import java.security.Principal;
 import java.util.Optional;
 
 public final class DefaultApiSecurityContext implements ApiSecurityContext {
 
-  private final Optional<Principal> principal;
+  private final Optional<KsqlPrincipal> principal;
   private final Optional<String> authToken;
 
   public static DefaultApiSecurityContext create(final RoutingContext routingContext,
@@ -34,7 +33,7 @@ public final class DefaultApiSecurityContext implements ApiSecurityContext {
       throw new IllegalStateException("Not an ApiUser: " + user);
     }
     final ApiUser apiUser = (ApiUser) user;
-    String authToken = null;
+    String authToken = routingContext.request().getHeader("Authorization");
     if (server.getAuthenticationPlugin().isPresent()) {
       authToken = server.getAuthenticationPlugin().get().getAuthToken(routingContext);
     }
@@ -42,13 +41,13 @@ public final class DefaultApiSecurityContext implements ApiSecurityContext {
         authToken);
   }
 
-  private DefaultApiSecurityContext(final Principal principal, final String authToken) {
+  private DefaultApiSecurityContext(final KsqlPrincipal principal, final String authToken) {
     this.principal = Optional.ofNullable(principal);
     this.authToken = Optional.ofNullable(authToken);
   }
 
   @Override
-  public Optional<Principal> getPrincipal() {
+  public Optional<KsqlPrincipal> getPrincipal() {
     return principal;
   }
 

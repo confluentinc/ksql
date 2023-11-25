@@ -1,0 +1,146 @@
+{
+  "version" : "7.1.0",
+  "timestamp" : 1633125905485,
+  "path" : "query-validation-tests/binary-comparison.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`A` INTEGER KEY, `B` STRUCT<`ID` INTEGER>, `C` STRUCT<`ID` INTEGER>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`A` INTEGER KEY, `KSQL_COL_0` BOOLEAN, `KSQL_COL_1` BOOLEAN, `KSQL_COL_2` BOOLEAN, `KSQL_COL_3` BOOLEAN",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "struct equality",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : 1,
+      "value" : {
+        "B" : {
+          "id" : 2
+        },
+        "C" : {
+          "id" : 2.0
+        }
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : 2,
+      "value" : {
+        "B" : {
+          "id" : 2
+        },
+        "C" : {
+          "id" : 1
+        }
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : 3,
+      "value" : {
+        "B" : {
+          "id" : 2
+        },
+        "C" : {
+          "i" : 2
+        }
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : 1,
+      "value" : {
+        "KSQL_COL_0" : true,
+        "KSQL_COL_1" : false,
+        "KSQL_COL_2" : true,
+        "KSQL_COL_3" : false
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : 2,
+      "value" : {
+        "KSQL_COL_0" : false,
+        "KSQL_COL_1" : true,
+        "KSQL_COL_2" : false,
+        "KSQL_COL_3" : true
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : 3,
+      "value" : {
+        "KSQL_COL_0" : false,
+        "KSQL_COL_1" : true,
+        "KSQL_COL_2" : false,
+        "KSQL_COL_3" : true
+      }
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM INPUT (A INT KEY, B STRUCT<ID INT>, C STRUCT<ID INT>) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE STREAM OUTPUT AS SELECT A, B = C, B <> C, B IS NOT DISTINCT FROM C, B IS DISTINCT FROM C FROM INPUT;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`A` INTEGER KEY, `B` STRUCT<`ID` INTEGER>, `C` STRUCT<`ID` INTEGER>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`A` INTEGER KEY, `KSQL_COL_0` BOOLEAN, `KSQL_COL_1` BOOLEAN, `KSQL_COL_2` BOOLEAN, `KSQL_COL_3` BOOLEAN",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

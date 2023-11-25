@@ -13,7 +13,7 @@ Synopsis
 --------
 
 ```sql
-PRINT topicName [FROM BEGINNING] [INTERVAL interval] [LIMIT limit]
+PRINT topicName [FROM BEGINNING] [INTERVAL | SAMPLE interval] [LIMIT limit]
 ```
 
 Description

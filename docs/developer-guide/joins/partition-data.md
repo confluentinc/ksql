@@ -54,7 +54,8 @@ CREATE STREAM clicks (
     url STRING
   ) WITH (
     kafka_topic='clickstream', 
-    value_format='json'
+    value_format='json',
+    partitions=1
   );
 
 -- users table, with userId primary key. 
@@ -64,8 +65,9 @@ CREATE TABLE users (
     fullName STRING
   ) WITH (
     kafka_topic='users', 
-    value_format='json'
-  );
+    value_format='json',
+    partitions=1
+);
 
 -- join of users table with clicks stream, joining on the table's primary key and the stream's userId column:
 -- join will automatically repartition clicks stream:
@@ -74,7 +76,8 @@ SELECT
   c.url, 
   u.fullName 
 FROM clicks c
-  JOIN users u ON c.userId = u.id;
+  JOIN users u ON c.userId = u.id
+EMIT CHANGES;
 ```
 
 Co-partitioning Requirements
@@ -134,7 +137,8 @@ SELECT
   clicks.url, 
   users.fullName 
 FROM clicks 
-  JOIN users ON CAST(clicks.userId AS BIGINT) = users.id;
+  JOIN users ON CAST(clicks.userId AS BIGINT) = users.id
+EMIT CHANGES;
 ```
 
 Tables created on top of existing Kafka topics, for example those created with
@@ -183,8 +187,7 @@ CREATE STREAM products_rekeyed
 ```
 
 For more information, see
-[How to rekey a stream with a value](https://kafka-tutorials.confluent.io/rekey-a-stream/ksql.html)
-in [Kafka Tutorials](https://kafka-tutorials.confluent.io/).
+[How to rekey a stream with a value](https://developer.confluent.io/tutorials/rekey-a-stream/ksql.html).
 
 ### Records Have the Same Number of Partitions
 

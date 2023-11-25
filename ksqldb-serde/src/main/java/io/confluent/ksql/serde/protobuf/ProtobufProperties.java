@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 Confluent Inc.
+ * Copyright 2021 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -15,27 +15,41 @@
 
 package io.confluent.ksql.serde.protobuf;
 
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.errorprone.annotations.Immutable;
-import io.confluent.ksql.serde.FormatProperties;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.confluent.ksql.serde.connect.ConnectProperties;
 import java.util.Map;
 
-@Immutable
-public class ProtobufProperties {
+public class ProtobufProperties extends ConnectProperties {
 
   public static final String UNWRAP_PRIMITIVES = "unwrapPrimitives";
   public static final String UNWRAP = "true";
   private static final String WRAP = "false";
 
-  static final ImmutableSet<String> SUPPORTED_PROPERTIES = ImmutableSet.of(UNWRAP_PRIMITIVES);
+  static final ImmutableSet<String> SUPPORTED_PROPERTIES = ImmutableSet.of(
+      FULL_SCHEMA_NAME,
+      SCHEMA_ID,
+      UNWRAP_PRIMITIVES
+  );
 
-  private final ImmutableMap<String, String> properties;
+  static final ImmutableSet<String> INHERITABLE_PROPERTIES = ImmutableSet.of(
+      FULL_SCHEMA_NAME
+  );
 
   public ProtobufProperties(final Map<String, String> formatProps) {
-    this.properties = ImmutableMap.copyOf(formatProps);
+    super(ProtobufFormat.NAME, formatProps);
+  }
 
-    FormatProperties.validateProperties(ProtobufFormat.NAME, formatProps, SUPPORTED_PROPERTIES);
+  @Override
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP")
+  public ImmutableSet<String> getSupportedProperties() {
+    return SUPPORTED_PROPERTIES;
+  }
+
+  @Override
+  public String getDefaultFullSchemaName() {
+    // Return null to be backward compatible for unset schema name
+    return null;
   }
 
   public boolean getUnwrapPrimitives() {

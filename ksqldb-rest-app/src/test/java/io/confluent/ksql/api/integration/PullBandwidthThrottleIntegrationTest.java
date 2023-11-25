@@ -15,24 +15,26 @@
 
 package io.confluent.ksql.api.integration;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
+import static io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster.VALID_USER2;
+import static io.confluent.ksql.util.KsqlConfig.KSQL_DEFAULT_KEY_FORMAT_CONFIG;
+import static io.confluent.ksql.util.KsqlConfig.KSQL_QUERY_PULL_MAX_HOURLY_BANDWIDTH_MEGABYTES_CONFIG;
+import static io.confluent.ksql.util.KsqlConfig.KSQL_STREAMS_PREFIX;
+import static org.hamcrest.Matchers.hasSize;
+import static org.junit.Assert.assertEquals;
+
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.api.utils.QueryResponse;
 import io.confluent.ksql.integration.IntegrationTestHarness;
 import io.confluent.ksql.integration.Retry;
-import static io.confluent.ksql.rest.Errors.ERROR_CODE_BAD_STATEMENT;
 import io.confluent.ksql.rest.integration.RestIntegrationTestUtil;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
 import io.confluent.ksql.serde.FormatFactory;
-import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
 import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
-import static io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster.VALID_USER2;
 import io.confluent.ksql.test.util.secure.ClientTrustStore;
 import io.confluent.ksql.test.util.secure.Credentials;
 import io.confluent.ksql.test.util.secure.SecureKafkaHelper;
-import static io.confluent.ksql.util.KsqlConfig.KSQL_DEFAULT_KEY_FORMAT_CONFIG;
-import static io.confluent.ksql.util.KsqlConfig.KSQL_QUERY_PULL_MAX_HOURLY_BANDWIDTH_MEGABYTES_CONFIG;
-import static io.confluent.ksql.util.KsqlConfig.KSQL_STREAMS_PREFIX;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PageViewDataProvider;
 import io.confluent.ksql.util.VertxCompletableFuture;
@@ -44,22 +46,17 @@ import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.client.WebClientOptions;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
 import kafka.zookeeper.ZooKeeperClientException;
 import org.apache.kafka.streams.StreamsConfig;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.hasSize;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.startsWith;
 import org.junit.After;
-import org.junit.AfterClass;
-import static org.junit.Assert.assertEquals;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
+import org.junit.rules.Timeout;
 
 @Category({IntegrationTest.class})
 public class PullBandwidthThrottleIntegrationTest {
@@ -78,7 +75,8 @@ public class PullBandwidthThrottleIntegrationTest {
                             .withSaslSslListeners()
             ).build();
 
-    private static final TestKsqlRestApp REST_APP = TestKsqlRestApp
+    @Rule
+    public final TestKsqlRestApp REST_APP = TestKsqlRestApp
             .builder(TEST_HARNESS::kafkaBootstrapServers)
             .withProperty("security.protocol", "SASL_SSL")
             .withProperty("sasl.mechanism", "PLAIN")
@@ -88,21 +86,31 @@ public class PullBandwidthThrottleIntegrationTest {
             .withProperty(KSQL_QUERY_PULL_MAX_HOURLY_BANDWIDTH_MEGABYTES_CONFIG, 1)
             .withProperty(KSQL_STREAMS_PREFIX + StreamsConfig.NUM_STREAM_THREADS_CONFIG, 1)
             .withProperty(KSQL_DEFAULT_KEY_FORMAT_CONFIG, "JSON")
+            .withProperty(KsqlConfig.KSQL_QUERY_STREAM_PULL_QUERY_ENABLED, true)
+            .withProperty("auto.offset.reset", "earliest")
             .build();
 
     @ClassRule
     public static final RuleChain CHAIN = RuleChain
             .outerRule(Retry.of(3, ZooKeeperClientException.class, 3, TimeUnit.SECONDS))
-            .around(TEST_HARNESS)
-            .around(REST_APP);
+            .around(TEST_HARNESS);
     private static final String RATE_LIMIT_MESSAGE = "Host is at bandwidth rate limit for pull queries.";
+
+    @Rule
+    public final Timeout timeout = Timeout.builder()
+        .withTimeout(2, TimeUnit.MINUTES)
+        .withLookingForStuckThread(true)
+        .build();
 
     @BeforeClass
     public static void setUpClass() {
         TEST_HARNESS.ensureTopics(TEST_TOPIC);
 
         TEST_HARNESS.produceRows(TEST_TOPIC, TEST_DATA_PROVIDER, FormatFactory.JSON, FormatFactory.JSON);
+    }
 
+    @Before
+    public void before() {
         RestIntegrationTestUtil.createStream(REST_APP, TEST_DATA_PROVIDER);
 
         makeKsqlRequest("CREATE TABLE " + AGG_TABLE + " AS "
@@ -110,9 +118,10 @@ public class PullBandwidthThrottleIntegrationTest {
         );
     }
 
-    @AfterClass
-    public static void classTearDown() {
-        REST_APP.getPersistentQueries().forEach(str -> makeKsqlRequest("TERMINATE " + str + ";"));
+    @After
+    public void after() {
+        REST_APP.closePersistentQueries();
+        REST_APP.dropSourcesExcept();
     }
 
     private Vertx vertx;
@@ -135,26 +144,45 @@ public class PullBandwidthThrottleIntegrationTest {
         REST_APP.getServiceContext().close();
     }
 
-    @SuppressFBWarnings({"DLS_DEAD_LOCAL_STORE"})
     @Test
-    public void pullBandwidthThrottleTest() {
+    public void pullTableBandwidthThrottleTest() {
         String veryLong = createDataSize(100000);
 
         String sql = "SELECT CONCAT(\'"+ veryLong + "\') as placeholder from " + AGG_TABLE + ";";
 
         //the pull query should go through 2 times
         for (int i = 0; i < 2; i += 1) {
-            AtomicReference<QueryResponse> atomicReference1 = new AtomicReference<>();
             assertThatEventually(() -> {
                 QueryResponse queryResponse1 = executeQuery(sql);
-                atomicReference1.set(queryResponse1);
                 return queryResponse1.rows;
             }, hasSize(5));
         }
 
         //the third try should fail
         try {
-            QueryResponse queryResponse3 = executeQuery(sql);
+            executeQuery(sql);
+        } catch (KsqlException e) {
+            assertEquals(RATE_LIMIT_MESSAGE, e.getMessage());
+        }
+    }
+
+    @Test
+    public void pullStreamBandwidthThrottleTest() {
+        String veryLong = createDataSize(100000);
+
+        String sql = "SELECT CONCAT(\'"+ veryLong + "\') as placeholder from " + TEST_STREAM + ";";
+
+        //the pull query should go through 2 times
+        for (int i = 0; i < 2; i += 1) {
+            assertThatEventually(() -> {
+                QueryResponse queryResponse1 = executeQuery(sql);
+                return queryResponse1.rows;
+            }, hasSize(7));
+        }
+
+        //the third try should fail
+        try {
+            executeQuery(sql);
         } catch (KsqlException e) {
             assertEquals(RATE_LIMIT_MESSAGE, e.getMessage());
         }
@@ -166,19 +194,6 @@ public class PullBandwidthThrottleIntegrationTest {
             sb.append('a');
         }
         return sb.toString();
-    }
-
-
-    private void shouldFailToExecuteQuery(final String sql, final String message) {
-        // When:
-        QueryResponse response = executeQuery(sql);
-
-        // Then:
-        assertThat(response.rows, hasSize(0));
-        assertThat(response.responseObject.getInteger("error_code"),
-                is(ERROR_CODE_BAD_STATEMENT));
-        assertThat(response.responseObject.getString("message"),
-                startsWith(message));
     }
 
     private QueryResponse executeQuery(final String sql) {
@@ -217,7 +232,7 @@ public class PullBandwidthThrottleIntegrationTest {
         }
     }
 
-    private static void makeKsqlRequest(final String sql) {
+    private void makeKsqlRequest(final String sql) {
         RestIntegrationTestUtil.makeKsqlRequest(REST_APP, sql);
     }
 }

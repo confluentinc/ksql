@@ -18,6 +18,9 @@ package io.confluent.ksql.api.perf;
 import com.google.common.collect.ImmutableList;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.vertx.codegen.annotations.Nullable;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
@@ -32,6 +35,11 @@ public class RunnerUtils {
       .of("name", "age", "male");
   protected static final List<String> DEFAULT_COLUMN_TYPES = ImmutableList
       .of("STRING", "INT", "BOOLEAN");
+  protected static final LogicalSchema SCHEMA = LogicalSchema.builder()
+      .keyColumn(ColumnName.of("name"), SqlTypes.STRING)
+      .valueColumn(ColumnName.of("age"), SqlTypes.INTEGER)
+      .keyColumn(ColumnName.of("male"), SqlTypes.BOOLEAN)
+      .build();
 
   protected static final List<?> DEFAULT_KEY = ImmutableList.of("tim");
 

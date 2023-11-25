@@ -17,13 +17,16 @@ package io.confluent.ksql.test.rest;
 
 
 import static io.confluent.ksql.test.util.ThreadTestUtil.filterBuilder;
+import static io.confluent.ksql.util.KsqlConfig.KSQL_STREAMS_PREFIX;
 import static java.util.Objects.requireNonNull;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.integration.IntegrationTestHarness;
 import io.confluent.ksql.integration.Retry;
+import io.confluent.ksql.logging.query.QueryLogger;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
 import io.confluent.ksql.test.loader.JsonTestLoader;
 import io.confluent.ksql.test.loader.TestFile;
@@ -37,14 +40,19 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
+import io.confluent.ksql.util.RetryUtil;
 import kafka.zookeeper.ZooKeeperClientException;
+import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.test.IntegrationTest;
 import org.junit.After;
+import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
@@ -80,22 +88,29 @@ public class RestQueryTranslationTest {
   private static final TestKsqlRestApp REST_APP = TestKsqlRestApp
       .builder(TEST_HARNESS::kafkaBootstrapServers)
       .withProperty(
-          KsqlConfig.KSQL_STREAMS_PREFIX + StreamsConfig.STATE_DIR_CONFIG,
+          KSQL_STREAMS_PREFIX + StreamsConfig.STATE_DIR_CONFIG,
           TestUtils.tempDirectory().toAbsolutePath().toString()
       )
       .withProperty(
-          KsqlConfig.KSQL_STREAMS_PREFIX + StreamsConfig.PROCESSING_GUARANTEE_CONFIG,
+          KSQL_STREAMS_PREFIX + StreamsConfig.PROCESSING_GUARANTEE_CONFIG,
           StreamsConfig.EXACTLY_ONCE_V2 // To stabilize tests
       )
       // Setting to anything lower will cause the tests to fail because we won't correctly commit
       // transaction marker offsets. This was previously set to 0 to presumably avoid flakiness,
       // so we should keep an eye out for this.
-      .withProperty(KsqlConfig.KSQL_STREAMS_PREFIX + StreamsConfig.COMMIT_INTERVAL_MS_CONFIG, 2000)
-      .withProperty(KsqlConfig.KSQL_STREAMS_PREFIX + StreamsConfig.NUM_STREAM_THREADS_CONFIG, 1)
+      .withProperty(KSQL_STREAMS_PREFIX + StreamsConfig.COMMIT_INTERVAL_MS_CONFIG, 2000)
+      .withProperty(KSQL_STREAMS_PREFIX + StreamsConfig.NUM_STREAM_THREADS_CONFIG, 1)
+      // The default session timeout was recently increased. Setting to a lower value so that
+      // departed nodes are removed from the consumer group quickly.
+      .withProperty(KSQL_STREAMS_PREFIX + ConsumerConfig.SESSION_TIMEOUT_MS_CONFIG, 10000)
       .withProperty(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY, "set")
       .withProperty(KsqlConfig.KSQL_QUERY_PULL_TABLE_SCAN_ENABLED, true)
       .withProperty(KsqlConfig.KSQL_QUERY_PULL_INTERPRETER_ENABLED, true)
-      .withProperty(KsqlConfig.KSQL_QUERY_PUSH_SCALABLE_ENABLED, true)
+      .withProperty(KsqlConfig.KSQL_QUERY_PUSH_V2_REGISTRY_INSTALLED, true)
+      .withProperty(KsqlConfig.KSQL_QUERY_PUSH_V2_ENABLED, true)
+      .withProperty(KsqlConfig.KSQL_QUERY_PUSH_V2_NEW_LATEST_DELAY_MS, 0L)
+      .withProperty(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED, true)
+      .withProperty(KsqlConfig.KSQL_HEADERS_COLUMNS_ENABLED, true)
       .withStaticServiceContext(TEST_HARNESS::getServiceContext)
       .build();
 
@@ -136,7 +151,18 @@ public class RestQueryTranslationTest {
   public void tearDown() {
     REST_APP.closePersistentQueries();
     REST_APP.dropSourcesExcept();
-    TEST_HARNESS.getKafkaCluster().deleteAllTopics(TestKsqlRestApp.getCommandTopicName());
+
+
+    // Sometimes a race-condition throws an error when deleting a changelog topic (created by
+    // a CST query) that is later deleted automatically just before the Kafka API delete is called.
+    // Let's retry a few more times before marking this deletion as failure.
+    RetryUtil.retryWithBackoff(
+        10,
+        10,
+        (int) TimeUnit.SECONDS.toMillis(10),
+        () -> TEST_HARNESS.getKafkaCluster()
+            .deleteAllTopics(TestKsqlRestApp.getCommandTopicName())
+    );
 
     final ThreadSnapshot thread = STARTING_THREADS.get();
     if (thread == null) {
@@ -145,8 +171,10 @@ public class RestQueryTranslationTest {
           .excludeTerminated()
           // There is a pool of ksql worker threads that grows over time, but is capped.
           .nameMatches(name -> !name.startsWith("ksql-workers"))
-          // There is a pool for HARouting worker threads that grows over time, but is capped to 100
-          .nameMatches(name -> !name.startsWith("pull-query-executor"))
+          // There are two pools for HARouting worker threads that grows over time,
+          // but they are capped to 100
+          .nameMatches(name -> !name.startsWith("pull-query-coordinator"))
+          .nameMatches(name -> !name.startsWith("pull-query-router"))
           .build()));
     } else {
       thread.assertSameThreads();

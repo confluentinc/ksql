@@ -54,6 +54,10 @@ public class ConnectDataTranslator implements DataTranslator {
     return toKsqlValue(schema, connectSchema, connectData, "");
   }
 
+  public Schema getSchema() {
+    return schema;
+  }
+
   public Object toConnectRow(final Object ksqlData) {
     return ksqlData;
   }

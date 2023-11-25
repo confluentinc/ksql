@@ -1,0 +1,136 @@
+{
+  "version" : "7.2.0",
+  "timestamp" : 1639450823104,
+  "path" : "query-validation-tests/headers.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`K` STRING KEY, `HEADERS` ARRAY<STRUCT<`KEY` STRING, `VALUE` BYTES>> HEADERS, `V` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`K` STRING KEY, `V` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "Can use header columns in filters",
+    "inputs" : [ {
+      "topic" : "stream-source",
+      "key" : "k1",
+      "value" : {
+        "v" : 40000
+      },
+      "headers" : [ {
+        "KEY" : "abc",
+        "VALUE" : "IQ=="
+      } ]
+    }, {
+      "topic" : "stream-source",
+      "key" : "k2",
+      "value" : {
+        "v" : 40000
+      },
+      "headers" : [ {
+        "KEY" : "def",
+        "VALUE" : "IQ=="
+      } ]
+    }, {
+      "topic" : "stream-source",
+      "key" : "k3",
+      "value" : {
+        "v" : 400
+      },
+      "headers" : [ {
+        "KEY" : "abc",
+        "VALUE" : "Iw=="
+      } ]
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : "k1",
+      "value" : {
+        "V" : 40000
+      },
+      "headers" : [ {
+        "KEY" : "abc",
+        "VALUE" : "IQ=="
+      } ]
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "k3",
+      "value" : {
+        "V" : 400
+      },
+      "headers" : [ {
+        "KEY" : "abc",
+        "VALUE" : "Iw=="
+      } ]
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "stream-source",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM SOURCE1 (K STRING KEY, HEADERS ARRAY<STRUCT<key STRING, value BYTES>> HEADERS, V BIGINT) WITH (kafka_topic='stream-source', value_format='json');", "CREATE STREAM OUTPUT AS SELECT K, V FROM SOURCE1 WHERE HEADERS[1]->KEY='abc';" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`K` STRING KEY, `V` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "SOURCE1",
+        "type" : "STREAM",
+        "schema" : "`K` STRING KEY, `HEADERS` ARRAY<STRUCT<`KEY` STRING, `VALUE` BYTES>> HEADERS, `V` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "stream-source",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

@@ -1,0 +1,169 @@
+{
+  "version" : "7.1.0",
+  "timestamp" : 1633125967055,
+  "path" : "query-validation-tests/insert-into.json",
+  "schemas" : {
+    "INSERTQUERY_1.KafkaTopic_Right.Source" : {
+      "schema" : "`K` STRING KEY, `DATA` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
+    },
+    "INSERTQUERY_1.Join.Right" : {
+      "schema" : "`S2_K` STRING KEY, `S2_DATA` STRING, `S2_ROWTIME` BIGINT, `S2_ROWPARTITION` INTEGER, `S2_ROWOFFSET` BIGINT, `S2_K` STRING",
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
+    },
+    "INSERTQUERY_1.Join" : {
+      "schema" : "`S1_K` STRING KEY, `S1_DATA` STRING, `S1_ROWTIME` BIGINT, `S1_ROWPARTITION` INTEGER, `S1_ROWOFFSET` BIGINT, `S1_K` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      }
+    },
+    "INSERTQUERY_1.OUTPUT" : {
+      "schema" : "`K` STRING KEY, `DATA_1` STRING, `DATA_2` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
+    },
+    "INSERTQUERY_1.Join.Left" : {
+      "schema" : "`S1_K` STRING KEY, `S1_DATA` STRING, `S1_ROWTIME` BIGINT, `S1_ROWPARTITION` INTEGER, `S1_ROWOFFSET` BIGINT, `S1_K` STRING",
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
+    },
+    "INSERTQUERY_1.KafkaTopic_Left.Source" : {
+      "schema" : "`K` STRING KEY, `DATA` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "join",
+    "inputs" : [ {
+      "topic" : "stream-source",
+      "key" : "k1",
+      "value" : "v1"
+    }, {
+      "topic" : "insert-source",
+      "key" : "k1",
+      "value" : "v2"
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : "k1",
+      "value" : "v1,v1"
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "k1",
+      "value" : "v1,v2"
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "stream-source",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "insert-source",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM SOURCE1 (K STRING KEY, data VARCHAR) WITH (kafka_topic='stream-source', value_format='DELIMITED');", "CREATE STREAM SOURCE2 (K STRING KEY, data VARCHAR) WITH (kafka_topic='insert-source', value_format='DELIMITED');", "CREATE STREAM OUTPUT AS SELECT K, DATA AS DATA_1, DATA AS DATA_2 FROM SOURCE1;", "INSERT INTO OUTPUT SELECT S1.K AS K, S1.DATA AS DATA_1, S2.DATA AS DATA_2 FROM SOURCE1 S1 JOIN SOURCE2 S2 WITHIN 1 SECOND ON S1.K = S2.K;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`K` STRING KEY, `DATA_1` STRING, `DATA_2` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "DELIMITED",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "SOURCE1",
+        "type" : "STREAM",
+        "schema" : "`K` STRING KEY, `DATA` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "DELIMITED",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "SOURCE2",
+        "type" : "STREAM",
+        "schema" : "`K` STRING KEY, `DATA` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "DELIMITED",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "stream-source",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "DELIMITED"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_INSERTQUERY_1-KSTREAM-JOINTHIS-0000000008-store-changelog",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "DELIMITED"
+          }
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "DELIMITED"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "insert-source",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "DELIMITED"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_INSERTQUERY_1-KSTREAM-JOINOTHER-0000000009-store-changelog",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "DELIMITED"
+          }
+        } ]
+      }
+    }
+  }
+}

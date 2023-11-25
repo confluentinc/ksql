@@ -127,7 +127,8 @@ public class DataSourceNodeTest {
           "topic",
           KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name()), SerdeFeatures.of()),
           ValueFormat.of(FormatInfo.of(FormatFactory.JSON.name()), SerdeFeatures.of())
-      )
+      ),
+      false
   );
 
   @Mock
@@ -156,6 +157,8 @@ public class DataSourceNodeTest {
   private ProcessingLogger processingLogger;
   @Mock
   private Projection projection;
+  @Mock
+  private KsqlConfig ksqlConfig;
 
   private DataSourceNode node;
 
@@ -191,11 +194,13 @@ public class DataSourceNodeTest {
 
     givenWindowedSource(false);
 
+    when(ksqlConfig.getBoolean(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED)).thenReturn(true);
     node = new DataSourceNode(
         PLAN_NODE_ID,
         SOME_SOURCE,
         SOME_SOURCE.getName(),
-        false
+        false,
+        ksqlConfig
     );
   }
 
@@ -244,14 +249,16 @@ public class DataSourceNodeTest {
             "topic2",
             KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name()), SerdeFeatures.of()),
             ValueFormat.of(FormatInfo.of(FormatFactory.JSON.name()), SerdeFeatures.of())
-        )
+        ),
+        false
     );
 
     node = new DataSourceNode(
         PLAN_NODE_ID,
         table,
         table.getName(),
-        false
+        false,
+        ksqlConfig
     );
 
     // When:
@@ -267,7 +274,7 @@ public class DataSourceNodeTest {
     final LogicalSchema schema = node.getSchema();
 
     // Then:
-    assertThat(schema, is(REAL_SCHEMA.withPseudoAndKeyColsInValue(false)));
+    assertThat(schema, is(REAL_SCHEMA.withPseudoAndKeyColsInValue(false, ksqlConfig)));
   }
 
   @Test
@@ -280,7 +287,7 @@ public class DataSourceNodeTest {
     final LogicalSchema schema = node.getSchema();
 
     // Then:
-    assertThat(schema, is(REAL_SCHEMA.withPseudoAndKeyColsInValue(true)));
+    assertThat(schema, is(REAL_SCHEMA.withPseudoAndKeyColsInValue(true, ksqlConfig)));
   }
 
   @Test
@@ -453,7 +460,8 @@ public class DataSourceNodeTest {
         dataSource,
         SOURCE_NAME,
         schemaKStreamFactory,
-        false
+        false,
+        ksqlConfig
     );
   }
 

@@ -1,0 +1,128 @@
+{
+  "version" : "7.1.0",
+  "timestamp" : 1633126028074,
+  "path" : "query-validation-tests/table-functions.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`K` STRING KEY, `ID` BIGINT, `MY_ARR` ARRAY<BIGINT>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`K` STRING KEY, `KSQL_COL_0` BIGINT, `KSQL_COL_1` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "with duplicate udtfs",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : "0",
+      "value" : {
+        "ID" : 0,
+        "MY_ARR" : [ 1, 2 ]
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : "1",
+      "value" : {
+        "ID" : 1,
+        "MY_ARR" : [ 3, 4 ]
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : "0",
+      "value" : {
+        "KSQL_COL_0" : 1,
+        "KSQL_COL_1" : 1
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "0",
+      "value" : {
+        "KSQL_COL_0" : 2,
+        "KSQL_COL_1" : 2
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "1",
+      "value" : {
+        "KSQL_COL_0" : 3,
+        "KSQL_COL_1" : 3
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "1",
+      "value" : {
+        "KSQL_COL_0" : 4,
+        "KSQL_COL_1" : 4
+      }
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM TEST (K STRING KEY, ID BIGINT, MY_ARR ARRAY<BIGINT>) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE STREAM OUTPUT AS SELECT K, EXPLODE(MY_ARR), EXPLODE(MY_ARR) FROM TEST;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`K` STRING KEY, `KSQL_COL_0` BIGINT, `KSQL_COL_1` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`K` STRING KEY, `ID` BIGINT, `MY_ARR` ARRAY<BIGINT>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

@@ -83,7 +83,7 @@ FROM s1
 EMIT CHANGES;
 ```
 
-Your results should look similiar to what is below with the exception of `ROWTIME` and `ROWTIME_FORMATTED`, which will mirror your wall clock. Because you didn't yet instruct ksqlDB to use event-time, `ROWTIME` is inherited from the underlying Kafka record. Kafka's default is to set the timestamp at which the record was produced to the topic.
+Your results should look similar to what is below with the exception of `ROWTIME` and `ROWTIME_FORMATTED`, which will mirror your wall clock. Because you didn't yet instruct ksqlDB to use event-time, `ROWTIME` is inherited from the underlying Kafka record. Kafka's default is to set the timestamp at which the record was produced to the topic.
 
 ```
 +------------------------------------+------------------------------------+------------------------------------+------------------------------------+------------------------------------+------------------------------------+
@@ -193,7 +193,7 @@ INSERT INTO s4 (
 );
 ```
 
-And run a similiar query as above. Remember to set `auto.offset.reset` to `earliest` if you haven't yet.
+And run a similar query as above. Remember to set `auto.offset.reset` to `earliest` if you haven't yet.
 
 ```sql
 SELECT k,
@@ -216,4 +216,72 @@ The query should return the following results.
 |k1                            |1562634000000                 |1562634000000                 |2019-07-09 01:00:00.000       |2019-07-09 01:00:00.000       |0                             |a                             |
 |k2                            |1588509000000                 |1588509000000                 |2020-05-03 12:30:00.000       |2020-05-03 12:30:00.000       |1                             |b                             |
 |k3                            |1588736700000                 |1588736700000                 |2020-05-06 03:45:00.000       |2020-05-06 03:45:00.000       |2                             |c                             |
+```
+
+
+## Timestamps represented by TIMESTAMP columns
+
+Similar to the previous section, you can also use columns of type `TIMESTAMP`. These columns require data to be in `yyyy-mm-ddThh:mm:ss[.S]` format, so there is no need to provide the `timestamp_format` property.
+
+Create a stream `s5` with a column `ts` of type `TIMESTAMP`.
+
+```sql
+CREATE STREAM s5 (
+    k VARCHAR KEY,
+    ts TIMESTAMP,
+    v1 INT,
+    v2 VARCHAR
+) WITH (
+    kafka_topic = 's5',
+    partitions = 1,
+    value_format = 'avro',
+    timestamp = 'ts'
+);
+```
+
+Insert some rows with timestamps.
+
+
+```sql
+INSERT INTO s5 (
+    k, ts, v1, v2
+) VALUES (
+    'k1', '2019-07-09T01:00', 0, 'a'
+);
+
+INSERT INTO s5 (
+    k, ts, v1, v2
+) VALUES (
+    'k2', '2020-05-03T12:30:00', 1, 'b'
+);
+
+INSERT INTO s5 (
+    k, ts, v1, v2
+) VALUES (
+    'k3', '2020-05-06T03:45', 2, 'c'
+);
+```
+
+And run the following query. Remember to set `auto.offset.reset` to `earliest` if you haven't yet.
+
+
+```sql
+SELECT k,
+       ROWTIME,
+       ts,
+       v1,
+       v2
+FROM s5
+EMIT CHANGES;
+```
+
+The query should return the following results.
+
+```sql
++------------------------------+------------------------------+------------------------------+------------------------------+------------------------------+
+|K                             |ROWTIME                       |TS                            |V1                            |V2                            |
++------------------------------+------------------------------+------------------------------+------------------------------+------------------------------+
+|k1                            |1562634000000                 |2019-07-09T01:00:00.000       |0                             |a                             |
+|k2                            |1588509000000                 |2020-05-03T12:30:00.000       |1                             |b                             |
+|k3                            |1588736700000                 |2020-05-06T03:45:00.000       |2                             |c                             |
 ```

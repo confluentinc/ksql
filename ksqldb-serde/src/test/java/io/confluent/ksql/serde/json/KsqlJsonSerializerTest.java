@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.serde.json;
 
+import static io.confluent.ksql.util.KsqlConstants.getSRSubject;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -29,12 +30,14 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
+import io.confluent.kafka.schemaregistry.json.JsonSchema;
+import io.confluent.ksql.serde.connect.ConnectProperties;
 import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -46,6 +49,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Serializer;
@@ -127,6 +131,20 @@ public class KsqlJsonSerializerTest {
       .optional()
       .build();
 
+  private static final Schema NON_OPTIONAL_ITEM_SCHEMA = SchemaBuilder.struct()
+      .name("SomeName")
+      .field(ITEMID, Schema.OPTIONAL_INT64_SCHEMA)
+      .field("NAME", Schema.OPTIONAL_STRING_SCHEMA)
+      .field("CATEGORIES", SchemaBuilder.array(CATEGORY_SCHEMA).optional().build())
+      .build();
+
+  private static final Schema NON_OPTIONAL_FIELD_ITEM_SCHEMA = SchemaBuilder.struct()
+      .name("SomeName")
+      .field(ITEMID, Schema.INT64_SCHEMA)
+      .field("NAME", Schema.OPTIONAL_STRING_SCHEMA)
+      .field("CATEGORIES", SchemaBuilder.array(CATEGORY_SCHEMA).optional().build())
+      .build();
+
   private static final Schema SCHEMA_WITH_STRUCT = SchemaBuilder.struct()
       .field("ordertime", Schema.OPTIONAL_INT64_SCHEMA)
       .field("orderid", Schema.OPTIONAL_INT64_SCHEMA)
@@ -143,6 +161,57 @@ public class KsqlJsonSerializerTest {
       .field("address", ADDRESS_SCHEMA)
       .build();
 
+  private static final JsonSchema INT_JSON_SCHEMA = new JsonSchema(
+      "{\"oneOf\":[{\"type\":\"null\"},{\"type\":\"integer\",\"connect.type\":\"int64\"}]}");
+
+  private static final JsonSchema ITEM_JSON_SCHEMA = new JsonSchema(
+      "{\"type\":\"object\",\"properties\":"
+          + "{\"ITEMID\":{\"connect.index\":0,\"oneOf\":[{\"type\":\"null\"},{\"type\":\"integer\",\"connect.type\":\"int64\"}]},"
+          + "\"CATEGORIES\":{\"connect.index\":2,\"oneOf\":"
+          + "[{\"type\":\"null\"},"
+          + "{\"type\":\"array\",\"items\":{\"oneOf\":"
+          + "[{\"type\":\"null\"},{\"type\":\"object\",\"properties\":{\"ID\":{\"connect.index\":0,\"oneOf\":"
+          + "[{\"type\":\"null\"},{\"type\":\"integer\",\"connect.type\":\"int64\"}]},"
+          + "\"NAME\":{\"connect.index\":1,\"oneOf\":[{\"type\":\"null\"},{\"type\":\"string\"}]}}}]}}]},"
+          + "\"NAME\":{\"connect.index\":1,\"oneOf\":[{\"type\":\"null\"},{\"type\":\"string\"}]}}}"
+  );
+
+  private static final JsonSchema NON_OPTIONAL_ITEM_JSON_SCHEMA = new JsonSchema(
+      "{\"type\":\"object\",\"properties\":"
+          + "{\"ITEMID\":{\"connect.index\":0,\"type\":\"integer\",\"connect.type\":\"int64\"},"
+          + "\"CATEGORIES\":{\"connect.index\":2,"
+          + "\"type\":\"array\",\"items\":{"
+          + "\"type\":\"object\",\"properties\":{\"ID\":{\"connect.index\":0,\"oneOf\":"
+          + "[{\"type\":\"null\"},{\"type\":\"integer\",\"connect.type\":\"int64\"}]},"
+          + "\"NAME\":{\"connect.index\":1,\"oneOf\":[{\"type\":\"null\"},{\"type\":\"string\"}]}}}},"
+          + "\"NAME\":{\"connect.index\":1,\"type\":\"string\"}}}"
+  );
+
+  private static final JsonSchema ITEM_JSON_SCHEMA_WITH_OPTIONAL_EXTRA_FIELD = new JsonSchema(
+      "{\"type\":\"object\",\"properties\":"
+          + "{\"ITEMID\":{\"connect.index\":0,\"oneOf\":[{\"type\":\"null\"},{\"type\":\"integer\",\"connect.type\":\"int64\"}]},"
+          + "\"CATEGORIES\":{\"connect.index\":2,\"oneOf\":"
+          + "[{\"type\":\"null\"},"
+          + "{\"type\":\"array\",\"items\":{\"oneOf\":"
+          + "[{\"type\":\"null\"},{\"type\":\"object\",\"properties\":{\"ID\":{\"connect.index\":0,\"oneOf\":"
+          + "[{\"type\":\"null\"},{\"type\":\"integer\",\"connect.type\":\"int64\"}]},"
+          + "\"NAME\":{\"connect.index\":1,\"oneOf\":[{\"type\":\"null\"},{\"type\":\"string\"}]}}}]}}]},"
+          + "\"NAME\":{\"connect.index\":1,\"oneOf\":[{\"type\":\"null\"},{\"type\":\"string\"}]},"
+          + "\"EXPIRATION_DATE\":{\"connect.index\":3,\"oneOf\":[{\"type\":\"null\"},{\"type\":\"integer\"}]}}}"
+  );
+
+  private static final JsonSchema ITEM_JSON_SCHEMA_WITH_EXTRA_FIELD = new JsonSchema(
+      "{\"type\":\"object\",\"properties\":"
+          + "{\"ITEMID\":{\"connect.index\":0,\"oneOf\":[{\"type\":\"null\"},{\"type\":\"integer\",\"connect.type\":\"int64\"}]},"
+          + "\"CATEGORIES\":{\"connect.index\":2,\"oneOf\":"
+          + "[{\"type\":\"null\"},"
+          + "{\"type\":\"array\",\"items\":{\"oneOf\":"
+          + "[{\"type\":\"null\"},{\"type\":\"object\",\"properties\":{\"ID\":{\"connect.index\":0,\"oneOf\":"
+          + "[{\"type\":\"null\"},{\"type\":\"integer\",\"connect.type\":\"int64\"}]},"
+          + "\"NAME\":{\"connect.index\":1,\"oneOf\":[{\"type\":\"null\"},{\"type\":\"string\"}]}}}]}}]},"
+          + "\"NAME\":{\"connect.index\":1,\"oneOf\":[{\"type\":\"null\"},{\"type\":\"string\"}]},"
+          + "\"DATE\":{\"connect.index\":3,\"type\":\"integer\"}}}"
+  );
   @Parameters(name = "{0}")
   public static Collection<Object[]> data() {
     return Arrays.asList(new Object[][]{{"Plain JSON", false}, {"Magic byte prefixed", true}});
@@ -266,7 +335,7 @@ public class KsqlJsonSerializerTest {
 
     // Then:
     if (useSchemas) {
-      assertThat(srClient.getAllSubjects(), contains(KsqlConstants.getSRSubject(SOME_TOPIC, false)));
+      assertThat(srClient.getAllSubjects(), contains(getSRSubject(SOME_TOPIC, false)));
     }
     assertThat(asJsonString(bytes), is("true"));
   }
@@ -274,7 +343,7 @@ public class KsqlJsonSerializerTest {
   @Test
   public void shouldSerializeKeyAndRegisterKeySubject() throws IOException, RestClientException {
     // Given;
-    final Serializer<Boolean> serializer = new KsqlJsonSerdeFactory(useSchemas)
+    final Serializer<Boolean> serializer = givenJsonSerdeFactory()
         .createSerde((ConnectSchema) Schema.OPTIONAL_BOOLEAN_SCHEMA, config, () -> srClient, Boolean.class, true)
         .serializer();
 
@@ -283,7 +352,7 @@ public class KsqlJsonSerializerTest {
 
     // Then:
     if (useSchemas) {
-      assertThat(srClient.getAllSubjects(), contains(KsqlConstants.getSRSubject(SOME_TOPIC, true)));
+      assertThat(srClient.getAllSubjects(), contains(getSRSubject(SOME_TOPIC, true)));
     }
     assertThat(asJsonString(bytes), is("true"));
   }
@@ -536,7 +605,7 @@ public class KsqlJsonSerializerTest {
             .build())
         .build();
 
-    final KsqlJsonSerdeFactory factory = new KsqlJsonSerdeFactory(false);
+    final KsqlJsonSerdeFactory factory = new KsqlJsonSerdeFactory();
 
     // When:
     final Exception e = assertThrows(
@@ -563,7 +632,7 @@ public class KsqlJsonSerializerTest {
             .build())
         .build();
 
-    final KsqlJsonSerdeFactory factory = new KsqlJsonSerdeFactory(false);
+    final KsqlJsonSerdeFactory factory = new KsqlJsonSerdeFactory();
 
     // When:
     final Exception e = assertThrows(
@@ -656,6 +725,123 @@ public class KsqlJsonSerializerTest {
     assertThat(ExceptionUtils.getStackTrace(e), not(containsString("personal info")));
   }
 
+  @Test
+  public void shouldSerializePrimitiveWithSchemaId() throws Exception {
+    // Given:
+    final int intSchemaId = givenPhysicalSchema(getSRSubject(SOME_TOPIC, false), INT_JSON_SCHEMA);
+    final Serializer<Long> intSerializer = givenSerializerForSchema(Schema.OPTIONAL_INT64_SCHEMA,
+        Long.class, Optional.of(intSchemaId), Optional.empty());
+
+    // When:
+    final byte[] intBytes = intSerializer.serialize(SOME_TOPIC, 123L);
+
+    // Then:
+    assertThat(asJsonString(intBytes), is("123"));
+  }
+
+  @Test
+  public void shouldSerializeStructWithSchemaId() throws Exception {
+    // Given:
+    final int schemaId = givenPhysicalSchema(getSRSubject(SOME_TOPIC, false), ITEM_JSON_SCHEMA);
+    final Serializer<Struct> serializer = givenSerializerForSchema(NON_OPTIONAL_ITEM_SCHEMA,
+        Struct.class, Optional.of(schemaId), Optional.empty());
+    final Struct category = new Struct(CATEGORY_SCHEMA);
+    category.put("ID", 1L);
+    category.put("NAME", "Food");
+
+    final Struct item = new Struct(NON_OPTIONAL_ITEM_SCHEMA);
+    item.put(ITEMID, 10L);
+    item.put("NAME", "Item_10");
+    item.put("CATEGORIES", Collections.singletonList(category));
+
+    // When:
+    final byte[] bytes = serializer.serialize(SOME_TOPIC, item);
+
+    // Then:
+    assertThat(asJsonString(bytes), is("{\"ITEMID\":10,\"NAME\":\"Item_10\",\"CATEGORIES\":[{\"ID\":1,\"NAME\":\"Food\"}]}"));
+  }
+
+  @Test
+  public void shouldSerializeStructWithExtraOptionalFieldWithSchemaId() throws Exception {
+    // Given:
+    final int schemaId = givenPhysicalSchema(getSRSubject(SOME_TOPIC, false),
+        ITEM_JSON_SCHEMA_WITH_OPTIONAL_EXTRA_FIELD);
+    final Serializer<Struct> serializer = givenSerializerForSchema(NON_OPTIONAL_ITEM_SCHEMA,
+        Struct.class, Optional.of(schemaId), Optional.empty());
+    final Struct category = new Struct(CATEGORY_SCHEMA);
+    category.put("ID", 1L);
+    category.put("NAME", "Food");
+
+    final Struct item = new Struct(NON_OPTIONAL_ITEM_SCHEMA);
+    item.put(ITEMID, 10L);
+    item.put("NAME", "Item_10");
+    item.put("CATEGORIES", Collections.singletonList(category));
+
+    // When:
+    final byte[] bytes = serializer.serialize(SOME_TOPIC, item);
+
+    // Then:
+    if (useSchemas) {
+      assertThat(asJsonString(bytes), is("{\"ITEMID\":10,\"NAME\":\"Item_10\",\"CATEGORIES\":"
+          + "[{\"ID\":1,\"NAME\":\"Food\"}],\"EXPIRATION_DATE\":null}"));
+    } else {
+       assertThat(asJsonString(bytes), is("{\"ITEMID\":10,\"NAME\":\"Item_10\",\"CATEGORIES\":"
+          + "[{\"ID\":1,\"NAME\":\"Food\"}]}"));
+    }
+  }
+
+  @Test
+  public void shouldSerializeWithExtraNonOptionalFieldWithSchemaId() throws Exception {
+    // Given:
+    final int schemaId = givenPhysicalSchema(getSRSubject(SOME_TOPIC, false),
+        ITEM_JSON_SCHEMA_WITH_EXTRA_FIELD);
+    final Serializer<Struct> serializer = givenSerializerForSchema(NON_OPTIONAL_ITEM_SCHEMA,
+        Struct.class, Optional.of(schemaId), Optional.empty());
+    final Struct category = new Struct(CATEGORY_SCHEMA);
+    category.put("ID", 1L);
+    category.put("NAME", "Food");
+
+    final Struct item = new Struct(NON_OPTIONAL_ITEM_SCHEMA);
+    item.put(ITEMID, 10L);
+    item.put("NAME", "Item_10");
+    item.put("CATEGORIES", Collections.singletonList(category));
+
+    // When:
+    final byte[] bytes = serializer.serialize(SOME_TOPIC, item);
+
+    // Then:
+    assertThat(asJsonString(bytes), is("{\"ITEMID\":10,\"NAME\":\"Item_10\",\"CATEGORIES\":"
+        + "[{\"ID\":1,\"NAME\":\"Food\"}]}"));
+  }
+
+  @Test
+  public void shouldThrowIfOptionalSchemaNotCompatible() throws Exception {
+    // Given:
+    int schemaId = givenPhysicalSchema(getSRSubject(SOME_TOPIC, false),
+        NON_OPTIONAL_ITEM_JSON_SCHEMA);
+    final Serializer<Struct> serializer = givenSerializerForSchema(NON_OPTIONAL_ITEM_SCHEMA,
+        Struct.class, Optional.of(schemaId), Optional.of("randomName"));
+    final Struct category = new Struct(CATEGORY_SCHEMA);
+    category.put("ID", 1L);
+    category.put("NAME", null);
+
+    final Struct item = new Struct(NON_OPTIONAL_ITEM_SCHEMA);
+    item.put(ITEMID, 10L);
+    item.put("NAME", "Food");
+    item.put("CATEGORIES", null);
+
+    // When:
+    if (useSchemas) {
+      final Exception e = assertThrows(
+          SerializationException.class,
+          () -> serializer.serialize(SOME_TOPIC, item)
+      );
+
+      // Then:
+      assertThat(e.getMessage(), containsString("Error serializing message to topic: bob"));
+    }
+  }
+
   private String asJsonString(final byte[] bytes) {
     if (useSchemas) {
       return new String(Arrays.copyOfRange(bytes, 5, bytes.length), StandardCharsets.UTF_8);
@@ -702,8 +888,36 @@ public class KsqlJsonSerializerTest {
   }
 
   private <T> Serializer<T> givenSerializerForSchema(final Schema schema, final Class<T> type) {
-    return new KsqlJsonSerdeFactory(useSchemas)
-        .createSerde((ConnectSchema) schema, config, () -> srClient, type, false)
+    return givenSerializerForSchema(schema, type, Optional.empty(), Optional.empty());
+  }
+
+  private <T> Serializer<T> givenSerializerForSchema(
+      final Schema schema,
+      final Class<T> targetType,
+      final Optional<Integer> schemaId,
+      final Optional<String> schemaName
+  ) {
+    final ImmutableMap.Builder<String, String> builder = ImmutableMap.builder();
+    schemaName.ifPresent(s -> builder.put(ConnectProperties.FULL_SCHEMA_NAME, s));
+    schemaId.ifPresent(integer -> builder.put(ConnectProperties.SCHEMA_ID, String.valueOf(integer)));
+
+    final KsqlJsonSerdeFactory factory = useSchemas ?
+        new KsqlJsonSerdeFactory(new JsonSchemaProperties(builder.build())) :
+        new KsqlJsonSerdeFactory();
+    return factory
+        .createSerde((ConnectSchema) schema, config, () -> srClient, targetType, false)
         .serializer();
+  }
+
+  private KsqlJsonSerdeFactory givenJsonSerdeFactory() {
+     return useSchemas ? new KsqlJsonSerdeFactory(new JsonSchemaProperties(ImmutableMap.of())) :
+        new KsqlJsonSerdeFactory();
+  }
+
+  private int givenPhysicalSchema(
+      final String subject,
+      final ParsedSchema physicalSchema
+  ) throws Exception {
+    return srClient.register(subject, physicalSchema);
   }
 }

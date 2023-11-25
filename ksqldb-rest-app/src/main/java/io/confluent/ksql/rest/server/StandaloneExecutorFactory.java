@@ -53,7 +53,8 @@ public final class StandaloneExecutorFactory {
   public static StandaloneExecutor create(
       final Map<String, String> properties,
       final String queriesFile,
-      final String installDir
+      final String installDir,
+      final MetricCollectors metricCollectors
   ) {
     final KsqlConfig tempConfig = new KsqlConfig(properties);
     
@@ -66,7 +67,7 @@ public final class StandaloneExecutorFactory {
     final String ksqlServerId = tempConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG);
     final Map<String, Object> updatedProperties = tempConfig.originals();
     updatedProperties.putAll(
-        MetricCollectors.addConfluentMetricsContextConfigs(ksqlServerId, kafkaClusterId));
+        metricCollectors.addConfluentMetricsContextConfigs(ksqlServerId, kafkaClusterId));
 
     return create(
         updatedProperties,
@@ -75,7 +76,8 @@ public final class StandaloneExecutorFactory {
         serviceContextFactory,
         KafkaConfigStore::new,
         KsqlVersionCheckerAgent::new,
-        StandaloneExecutor::new
+        StandaloneExecutor::new,
+        metricCollectors
     );
   }
 
@@ -90,7 +92,8 @@ public final class StandaloneExecutorFactory {
         UserFunctionLoader udfLoader,
         boolean failOnNoQueries,
         VersionCheckerAgent versionChecker,
-        BiFunction<KsqlExecutionContext, ServiceContext, Injector> injectorFactory
+        BiFunction<KsqlExecutionContext, ServiceContext, Injector> injectorFactory,
+        MetricCollectors metricCollectors
     );
   }
 
@@ -102,7 +105,8 @@ public final class StandaloneExecutorFactory {
       final Function<KsqlConfig, ServiceContext> serviceContextFactory,
       final BiFunction<String, KsqlConfig, ConfigStore> configStoreFactory,
       final Function<Supplier<Boolean>, VersionCheckerAgent> versionCheckerFactory,
-      final StandaloneExecutorConstructor constructor
+      final StandaloneExecutorConstructor constructor,
+      final MetricCollectors metricCollectors
   ) {
     final KsqlConfig baseConfig = new KsqlConfig(properties);
 
@@ -131,10 +135,13 @@ public final class StandaloneExecutorFactory {
         ServiceInfo.create(ksqlConfig),
         new SequentialQueryIdGenerator(),
         ksqlConfig,
-        Collections.emptyList());
+        Collections.emptyList(),
+        metricCollectors
+        );
 
     final UserFunctionLoader udfLoader =
-        UserFunctionLoader.newInstance(ksqlConfig, functionRegistry, installDir);
+        UserFunctionLoader.newInstance(ksqlConfig, functionRegistry, installDir,
+            metricCollectors.getMetrics());
 
     final VersionCheckerAgent versionChecker = versionCheckerFactory
         .apply(ksqlEngine::hasActiveQueries);
@@ -148,7 +155,8 @@ public final class StandaloneExecutorFactory {
         udfLoader,
         true,
         versionChecker,
-        Injectors.NO_TOPIC_DELETE
+        Injectors.NO_TOPIC_DELETE,
+        metricCollectors
     );
   }
 }

@@ -66,7 +66,8 @@ public final class MaterializationProviderBuilderFactory {
       final PhysicalSchema querySchema,
       final KeyFormat keyFormat,
       final Map<String, Object> streamsProperties,
-      final String applicationId
+      final String applicationId,
+      final String queryId
   ) {
     return (kafkaStreams, topology) -> buildMaterializationProvider(
         kafkaStreams,
@@ -75,7 +76,8 @@ public final class MaterializationProviderBuilderFactory {
         querySchema,
         keyFormat,
         streamsProperties,
-        applicationId
+        applicationId,
+        queryId
     );
   }
 
@@ -86,7 +88,8 @@ public final class MaterializationProviderBuilderFactory {
       final PhysicalSchema schema,
       final KeyFormat keyFormat,
       final Map<String, Object> streamsProperties,
-      final String applicationId
+      final String applicationId,
+      final String queryId
   ) {
     final Serializer<GenericKey> keySerializer = new GenericKeySerDe().create(
         keyFormat.getFormatInfo(),
@@ -108,14 +111,15 @@ public final class MaterializationProviderBuilderFactory {
             keyFormat.getWindowInfo(),
             streamsProperties,
             ksqlConfig,
-            applicationId
+            applicationId,
+            queryId
         );
 
-    return ksMaterialization.map(ksMat -> (queryId, contextStacker) -> ksqlMaterializationFactory
+    return ksMaterialization.map(ksMat -> (queryId1, contextStacker) -> ksqlMaterializationFactory
         .create(
             ksMat,
             materializationInfo,
-            queryId,
+            queryId1,
             contextStacker
         ));
   }

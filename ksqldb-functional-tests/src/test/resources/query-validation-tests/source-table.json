@@ -1,0 +1,114 @@
+{
+  "tests": [
+    {
+      "name": "create source table",
+      "statements": [
+        "CREATE SOURCE TABLE INPUT (K INT PRIMARY KEY, text STRING) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
+        "CREATE TABLE OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 1, "value": "a1"},
+        {"topic": "test_topic", "key": 2, "value": "a2"},
+        {"topic": "test_topic", "key": 3, "value": "a3"}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 1, "value": "a1"},
+        {"topic": "OUTPUT", "key": 2, "value": "a2"},
+        {"topic": "OUTPUT", "key": 3, "value": "a3"}
+      ],
+      "post": {
+        "sources": [
+          {
+            "name": "INPUT",
+            "type": "table",
+            "schema": "K INT PRIMARY KEY, TEXT STRING",
+            "isSource": true
+          },
+          {
+            "name": "OUTPUT",
+            "type": "table",
+            "schema": "K INT PRIMARY KEY, TEXT STRING",
+            "isSource": false
+          }
+        ]
+      }
+    },
+    {
+      "name": "rejects INSERT VALUES statements for source streams",
+      "statements": [
+        "CREATE SOURCE TABLE INPUT (K INT PRIMARY KEY, text STRING) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
+        "INSERT INTO INPUT VALUES (1, 'b');"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlException",
+        "message": "Cannot insert values into read-only table: INPUT"
+      }
+    },
+    {
+      "name": "rejects INSERT INTO ... SELECT statements for source tables",
+      "statements": [
+        "CREATE SOURCE TABLE INPUT (K INT PRIMARY KEY, text STRING) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
+        "CREATE SOURCE TABLE INPUT2 (K INT PRIMARY KEY, text STRING) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
+        "INSERT INTO INPUT SELECT * FROM INPUT2;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlException",
+        "message": "INSERT INTO can only be used to insert into a stream. INPUT is a table."
+      }
+    },
+    {
+      "name": "rejects DROP ... DELETE TOPIC statements for source tables",
+      "statements": [
+        "CREATE SOURCE TABLE INPUT (K INT PRIMARY KEY, text STRING) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
+        "DROP TABLE INPUT DELETE TOPIC;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlException",
+        "message": "Cannot delete topic for read-only source: INPUT"
+      }
+    },
+    {
+      "name": "rejects CREATE OR REPLACE SOURCE ... statements",
+      "statements": [
+        "CREATE OR REPLACE SOURCE TABLE INPUT (K INT PRIMARY KEY, text STRING) WITH (kafka_topic='test_topic', value_format='DELIMITED');"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlException",
+        "message": "Cannot add table 'INPUT': CREATE OR REPLACE is not supported on source tables."
+      }
+    },
+    {
+      "name": "rejects CREATE OR REPLACE ... statements on existing source tables",
+      "statements": [
+        "CREATE SOURCE TABLE INPUT (K INT PRIMARY KEY, text STRING) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
+        "CREATE OR REPLACE TABLE INPUT (K INT PRIMARY KEY, text STRING) WITH (kafka_topic='test_topic', value_format='DELIMITED');"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlException",
+        "message": "Cannot add table 'INPUT': CREATE OR REPLACE is not supported on source tables."
+      }
+    },
+    {
+      "name": "rejects CREATE OR REPLACE SOURCE ... statements on existing non-source tables",
+      "statements": [
+        "CREATE TABLE INPUT (K INT PRIMARY KEY, text STRING) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
+        "CREATE OR REPLACE SOURCE TABLE INPUT (K INT PRIMARY KEY, text STRING) WITH (kafka_topic='test_topic', value_format='DELIMITED');"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlException",
+        "message": "Cannot add table 'INPUT': CREATE OR REPLACE is not supported on source tables."
+      }
+    },
+    {
+      "name": "rejects ALTER ... statements on existing source streams",
+      "statements": [
+        "CREATE SOURCE TABLE INPUT (K INT PRIMARY KEY, text STRING) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
+        "ALTER TABLE INPUT ADD COLUMN newCol INT;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlException",
+        "message": "Cannot alter table 'INPUT': ALTER operations are not supported on source tables."
+      }
+    }
+  ]
+}

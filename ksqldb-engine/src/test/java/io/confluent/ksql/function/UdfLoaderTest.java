@@ -50,6 +50,7 @@ import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.function.udf.UdfParameter;
 import io.confluent.ksql.function.udf.UdfSchemaProvider;
 import io.confluent.ksql.metastore.TypeRegistry;
+import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.schema.ksql.SqlArgument;
 import io.confluent.ksql.schema.ksql.SqlTypeParser;
@@ -635,7 +636,12 @@ public class UdfLoaderTest {
         .build();
     final KsqlConfig config
         = new KsqlConfig(configMap);
-    UserFunctionLoader.newInstance(config, functionRegistry, "").load();
+    UserFunctionLoader.newInstance(
+        config,
+        functionRegistry,
+        "",
+        new Metrics()
+    ).load();
     // will throw if it doesn't exist
     functionRegistry.getUdfFactory(FunctionName.of("tostring"));
   }
@@ -648,7 +654,12 @@ public class UdfLoaderTest {
         .build();
     final KsqlConfig config
         = new KsqlConfig(configMap);
-    UserFunctionLoader.newInstance(config, new InternalFunctionRegistry(), "").load();
+    UserFunctionLoader.newInstance(
+        config,
+        new InternalFunctionRegistry(),
+        "",
+        new Metrics()
+    ).load();
   }
 
   @Test

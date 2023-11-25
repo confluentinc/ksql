@@ -18,11 +18,13 @@ package io.confluent.ksql.metrics;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.common.utils.Time;
 import io.confluent.ksql.metrics.TopicSensors.SensorMetric;
+import io.confluent.ksql.util.KsqlConfig;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerInterceptor;
 import org.apache.kafka.clients.producer.ProducerRecord;
@@ -39,26 +41,26 @@ public class ProducerCollector implements MetricCollector, ProducerInterceptor<O
   public static final String PRODUCER_MESSAGES_PER_SEC = "messages-per-sec";
   public static final String PRODUCER_TOTAL_MESSAGES = "total-messages";
 
+  private MetricCollectors metricsCollectors;
+  private Metrics metrics;
   private final Map<String, TopicSensors<ProducerRecord<Object, Object>>> topicSensors =
       new HashMap<>();
-  private Metrics metrics;
   private String id;
   private Time time;
 
   public void configure(final Map<String, ?> map) {
     final String id = (String) map.get(ProducerConfig.CLIENT_ID_CONFIG);
-    configure(
-        MetricCollectors.getMetrics(),
-        MetricCollectors.addCollector(id, this),
-        MetricCollectors.getTime()
+    final MetricCollectors collectors = (MetricCollectors) Objects.requireNonNull(
+        map.get(KsqlConfig.KSQL_INTERNAL_METRIC_COLLECTORS_CONFIG)
     );
+    configure(id, collectors);
   }
 
-  ProducerCollector configure(final Metrics metrics, final String id, final Time time) {
-    this.id = id;
-    this.metrics = metrics;
-    this.time = time;
-    return this;
+  void configure(final String id, final MetricCollectors metricCollectors) {
+    this.metricsCollectors = metricCollectors;
+    this.metrics = metricCollectors.getMetrics();
+    this.id = metricCollectors.addCollector(id, this);
+    this.time = metricCollectors.getTime();
   }
 
   @Override
@@ -132,7 +134,7 @@ public class ProducerCollector implements MetricCollector, ProducerInterceptor<O
   }
 
   public void close() {
-    MetricCollectors.remove(this.id);
+    metricsCollectors.remove(this.id);
     topicSensors.values().forEach(v -> v.close(metrics));
   }
 

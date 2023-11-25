@@ -1,0 +1,43 @@
+
+Name                 : TestSource
+Type                 : TABLE
+Timestamp field      : 2000-01-01
+Key format           : kafka
+Value format         : avro
+Kafka topic          : kafka-topic (partitions: 1, replication: 1)
+Statement            : sql statement
+
+ Field  | Type                             
+-------------------------------------------
+ ROWKEY | VARCHAR(STRING)  (primary key)   
+ f_0    | BOOLEAN                          
+ f_1    | INTEGER                          
+ f_2    | BIGINT                           
+ f_3    | DOUBLE                           
+ f_4    | VARCHAR(STRING)                  
+ f_5    | ARRAY<VARCHAR(STRING)>           
+ f_6    | MAP<STRING, BIGINT>              
+ f_7    | STRUCT<a DOUBLE>                 
+ HEAD   | BYTES            (header('abc')) 
+-------------------------------------------
+
+Queries that read from this TABLE
+-----------------------------------
+readId (ERROR) : read query
+
+For query topology and execution plan please run: EXPLAIN <QueryId>
+
+Queries that write from this TABLE
+-----------------------------------
+writeId (ERROR) : write query
+
+For query topology and execution plan please run: EXPLAIN <QueryId>
+
+Local runtime statistics
+------------------------
+The statistics field is deprecated and will be removed in a future version of ksql. Please update your client to the latest version and use statisticsMap instead.
+stats
+The errorStats field is deprecated and will be removed in a future version of ksql. Please update your client to the latest version and use errorStatsMap instead.
+errors
+
+(Statistics of the local KSQL server interaction with the Kafka topic kafka-topic)

@@ -18,8 +18,6 @@ package io.confluent.ksql.rest.server;
 import static org.hamcrest.CoreMatchers.hasItem;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyMap;
@@ -34,18 +32,13 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.util.concurrent.RateLimiter;
-import io.confluent.ksql.api.server.SlidingWindowRateLimiter;
 import io.confluent.ksql.engine.KsqlEngine;
-import io.confluent.ksql.execution.streams.RoutingFilter.RoutingFilterFactory;
 import io.confluent.ksql.logging.processing.ProcessingLogConfig;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.logging.processing.ProcessingLogServerUtils;
 import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
-import io.confluent.ksql.physical.pull.HARouting;
-import io.confluent.ksql.physical.scalablepush.PushRouting;
 import io.confluent.ksql.properties.DenyListPropertyValidator;
 import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
@@ -55,11 +48,11 @@ import io.confluent.ksql.rest.entity.SourceInfo;
 import io.confluent.ksql.rest.entity.StreamsList;
 import io.confluent.ksql.rest.server.computation.CommandRunner;
 import io.confluent.ksql.rest.server.computation.CommandStore;
+import io.confluent.ksql.rest.server.query.QueryExecutor;
 import io.confluent.ksql.rest.server.resources.KsqlResource;
 import io.confluent.ksql.rest.server.resources.StatusResource;
 import io.confluent.ksql.rest.server.resources.streaming.StreamedQueryResource;
 import io.confluent.ksql.rest.server.state.ServerState;
-import io.confluent.ksql.rest.util.ConcurrencyLimiter;
 import io.confluent.ksql.rest.util.PersistentQueryCleanupImpl;
 import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.security.KsqlSecurityExtension;
@@ -68,7 +61,6 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.version.metrics.VersionCheckerAgent;
 import io.vertx.core.Vertx;
-
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
@@ -142,17 +134,7 @@ public class KsqlRestApplicationTest {
   @Mock
   private DenyListPropertyValidator denyListPropertyValidator;
   @Mock
-  private RoutingFilterFactory routingFilterFactory;
-  @Mock
-  private RateLimiter rateLimiter;
-  @Mock
-  private ConcurrencyLimiter concurrencyLimiter;
-  @Mock
-  private SlidingWindowRateLimiter pullBandRateLimiter;
-  @Mock
-  private HARouting haRouting;
-  @Mock
-  private PushRouting pushRouting;
+  private QueryExecutor queryExecutor;
 
   @Mock
   private Vertx vertx;
@@ -210,14 +192,8 @@ public class KsqlRestApplicationTest {
         processingLogConfig,
         ksqlConfig
     );
-    MetricCollectors.initialize();
 
-    givenAppWithRestConfig(ImmutableMap.of(KsqlRestConfig.LISTENERS_CONFIG, "http://localhost:0"));
-  }
-
-  @After
-  public void tearDown() {
-    MetricCollectors.cleanUp();
+    givenAppWithRestConfig(ImmutableMap.of(KsqlRestConfig.LISTENERS_CONFIG, "http://localhost:0"), new MetricCollectors());
   }
 
   @Test
@@ -244,10 +220,11 @@ public class KsqlRestApplicationTest {
     final MetricsReporter mockReporter = mock(MetricsReporter.class);
     when(ksqlConfig.getConfiguredInstances(anyString(), any(), any()))
         .thenReturn(Collections.singletonList(mockReporter));
-    givenAppWithRestConfig(Collections.emptyMap());
+    final MetricCollectors metricCollectors = new MetricCollectors();
+    givenAppWithRestConfig(Collections.emptyMap(), metricCollectors);
 
     // Then:
-    final List<MetricsReporter> reporters = MetricCollectors.getMetrics().reporters();
+    final List<MetricsReporter> reporters = metricCollectors.getMetrics().reporters();
     assertThat(reporters, hasItem(mockReporter));
   }
 
@@ -436,10 +413,13 @@ public class KsqlRestApplicationTest {
   @Test
   public void shouldConfigureIQWithInterNodeListenerIfSet() {
     // Given:
-    givenAppWithRestConfig(ImmutableMap.of(
-        KsqlRestConfig.LISTENERS_CONFIG, "http://localhost:0",
-        KsqlRestConfig.ADVERTISED_LISTENER_CONFIG, "https://some.host:12345"
-    ));
+    givenAppWithRestConfig(
+        ImmutableMap.of(
+            KsqlRestConfig.LISTENERS_CONFIG, "http://localhost:0",
+            KsqlRestConfig.ADVERTISED_LISTENER_CONFIG, "https://some.host:12345"
+        ),
+        new MetricCollectors()
+    );
 
     // When:
     final KsqlConfig ksqlConfig = app.buildConfigWithPort();
@@ -454,9 +434,12 @@ public class KsqlRestApplicationTest {
   @Test
   public void shouldConfigureIQWithFirstListenerIfInterNodeNotSet() {
     // Given:
-    givenAppWithRestConfig(ImmutableMap.of(
-        KsqlRestConfig.LISTENERS_CONFIG, "http://some.host:1244,https://some.other.host:1258"
-    ));
+    givenAppWithRestConfig(
+        ImmutableMap.of(
+            KsqlRestConfig.LISTENERS_CONFIG, "http://some.host:1244,https://some.other.host:1258"
+        ),
+        new MetricCollectors()
+    );
 
     // When:
     final KsqlConfig ksqlConfig = app.buildConfigWithPort();
@@ -468,7 +451,9 @@ public class KsqlRestApplicationTest {
     );
   }
 
-  private void givenAppWithRestConfig(final Map<String, Object> restConfigMap) {
+  private void givenAppWithRestConfig(
+      final Map<String, Object> restConfigMap,
+      final MetricCollectors metricCollectors) {
 
     restConfig = new KsqlRestConfig(restConfigMap);
 
@@ -496,13 +481,10 @@ public class KsqlRestApplicationTest {
         vertx,
         denyListPropertyValidator,
         Optional.empty(),
-        routingFilterFactory,
-        rateLimiter,
-        concurrencyLimiter,
-        pullBandRateLimiter,
-        haRouting,
-        pushRouting,
-        Optional.empty()
+        Optional.empty(),
+        Optional.empty(),
+        queryExecutor,
+        metricCollectors
     );
   }
 

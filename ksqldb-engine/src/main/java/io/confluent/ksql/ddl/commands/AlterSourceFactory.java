@@ -15,21 +15,40 @@
 
 package io.confluent.ksql.ddl.commands;
 
+import static java.util.Objects.requireNonNull;
+
 import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.execution.ddl.commands.AlterSourceCommand;
+import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.parser.tree.AlterSource;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.Column.Namespace;
+import io.confluent.ksql.util.KsqlException;
 import java.util.List;
 import java.util.stream.Collectors;
 
 public class AlterSourceFactory {
+  private final MetaStore metaStore;
+
   @VisibleForTesting
-  AlterSourceFactory() {
+  public AlterSourceFactory(final MetaStore metaStore) {
+    this.metaStore = requireNonNull(metaStore, "metaStore");
   }
 
   public AlterSourceCommand create(final AlterSource statement) {
+    final DataSource dataSource = metaStore.getSource(statement.getName());
+    final String dataSourceType = statement.getDataSourceType().getKsqlType();
+
+    if (dataSource != null && dataSource.isSource()) {
+      throw new KsqlException(
+          String.format("Cannot alter %s '%s': ALTER operations are not supported on source %s.",
+              dataSourceType.toLowerCase(),
+              statement.getName().text(),
+              dataSourceType.toLowerCase() + "s"));
+    }
+
     final List<Column> newColumns = statement
         .getAlterOptions()
         .stream()
@@ -43,7 +62,7 @@ public class AlterSourceFactory {
 
     return new AlterSourceCommand(
         statement.getName(),
-        statement.getDataSourceType().getKsqlType(),
+        dataSourceType,
         newColumns
     );
   }

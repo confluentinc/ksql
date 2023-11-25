@@ -32,7 +32,6 @@ import io.confluent.ksql.serde.SerdeUtils;
 import io.confluent.ksql.util.KsqlException;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Field;
@@ -43,16 +42,16 @@ class ConnectFormatSchemaTranslator implements SchemaTranslator {
 
   private final ConnectFormat format;
   private final ConnectSchemaTranslator connectSrTranslator;
-  private final Function<Schema, Schema> connectKsqlTranslator;
+  private final ConnectKsqlSchemaTranslator connectKsqlTranslator;
 
   ConnectFormatSchemaTranslator(
       final ConnectFormat format,
       final Map<String, String> formatProps,
-      final Function<Schema, Schema> connectKsqlTranslator
+      final ConnectKsqlSchemaTranslator connectKsqlSchemaTranslator
   ) {
     this.format = requireNonNull(format, "format");
     this.connectSrTranslator = requireNonNull(format.getConnectSchemaTranslator(formatProps));
-    this.connectKsqlTranslator = requireNonNull(connectKsqlTranslator, "toKsqlTransformer");
+    this.connectKsqlTranslator = requireNonNull(connectKsqlSchemaTranslator);
   }
 
   @Override
@@ -83,7 +82,7 @@ class ConnectFormatSchemaTranslator implements SchemaTranslator {
           + "=false' in the WITH clause properties.");
     }
 
-    final Schema rowSchema = connectKsqlTranslator.apply(connectSchema);
+    final Schema rowSchema = connectKsqlTranslator.toKsqlSchema(connectSchema);
 
     return rowSchema.fields().stream()
         .map(ConnectFormatSchemaTranslator::toColumn)

@@ -20,6 +20,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
@@ -57,6 +58,22 @@ public class CommandParserTest {
     assertThat(insertValues.getColumns(), is(Collections.emptyList()));
     assertThat(insertValues.getValues().size(), is(1));
     assertThat(toFieldType(insertValues.getValues().get(0)), is(55));
+  }
+
+  @Test
+  public void shouldParseInsertNullValuesStatement() {
+    // When:
+    List<SqlCommand> commands = parse("INSERT INTO FOO VALUES (NULL);");
+
+    // Then:
+    assertThat(commands.size(), is(1));
+    assertThat(commands.get(0), instanceOf(SqlInsertValues.class));
+    final SqlInsertValues insertValues = (SqlInsertValues) commands.get(0);
+
+    assertThat(insertValues.getSourceName(), is("`FOO`"));
+    assertThat(insertValues.getColumns(), is(Collections.emptyList()));
+    assertThat(insertValues.getValues().size(), is(1));
+    assertNull(toFieldType(insertValues.getValues().get(0)));
   }
 
   @Test

@@ -146,6 +146,7 @@
         <netty.version>4.1.100.Final</netty.version>
         <netty-codec-http2-version>4.1.100.Final</netty-codec-http2-version>
         <jersey-common>2.34</jersey-common>
+        <dropwizard.version>4.1.12.1</dropwizard.version>
     </properties>
 
     <dependencyManagement>

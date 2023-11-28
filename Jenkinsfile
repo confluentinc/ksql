@@ -20,7 +20,7 @@ common {
     nanoVersion = true
     maxBuildsToKeep = 99
     maxDaysToKeep = 90
-    extraBuildArgs = "-Dmaven.gitcommitid.nativegit=true -DskipTests -DskipIntegrationTests"
+    extraBuildArgs = "-Dmaven.gitcommitid.nativegit=true"
     mavenBuildGoals = "clean install"
     runMergeCheck = false
 }

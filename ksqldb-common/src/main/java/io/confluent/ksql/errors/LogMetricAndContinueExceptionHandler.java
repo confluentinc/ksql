@@ -24,13 +24,12 @@ import java.util.Objects;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.streams.errors.DeserializationExceptionHandler;
 import org.apache.kafka.streams.processor.ProcessorContext;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.log4j.Logger;
 
 public class LogMetricAndContinueExceptionHandler implements DeserializationExceptionHandler {
 
   private static final Logger log
-      = LoggerFactory.getLogger(LogMetricAndContinueExceptionHandler.class);
+      = Logger.getLogger(LogMetricAndContinueExceptionHandler.class);
   private StreamsErrorCollector streamsErrorCollector;
 
   @Override
@@ -40,9 +39,9 @@ public class LogMetricAndContinueExceptionHandler implements DeserializationExce
       final Exception exception
   ) {
     log.debug(
-        "Exception caught during Deserialization, "
-            + "taskId: {}, topic: {}, partition: {}, offset: {}",
-        context.taskId(), record.topic(), record.partition(), record.offset(),
+        String.format("Exception caught during Deserialization, "
+            + "taskId: %s, topic: %s, partition: %d, offset: %d",
+        context.taskId(), record.topic(), record.partition(), record.offset()),
         exception
     );
 
@@ -50,9 +49,10 @@ public class LogMetricAndContinueExceptionHandler implements DeserializationExce
 
     if (isCausedByAuthorizationError(exception)) {
       log.info(
-          "Authorization error when attempting to access the schema during deserialization. "
-              + "taskId: {}, topic: {}, partition: {}, offset: {}",
-          context.taskId(), record.topic(), record.partition(), record.offset());
+          String.format(
+              "Authorization error when attempting to access the schema during deserialization. "
+              + "taskId: %s, topic: %s, partition: %d, offset: %d",
+          context.taskId(), record.topic(), record.partition(), record.offset()));
       return DeserializationHandlerResponse.FAIL;
     }
 

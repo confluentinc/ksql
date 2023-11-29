@@ -54,11 +54,10 @@ import org.apache.kafka.streams.StreamsMetadata;
 import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.errors.StreamsException;
 import org.apache.kafka.streams.errors.StreamsUncaughtExceptionHandler;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.log4j.Logger;
 
 public class QueryMetadataImpl implements QueryMetadata {
-  private static final Logger LOG = LoggerFactory.getLogger(QueryMetadataImpl.class);
+  private static final Logger LOG = Logger.getLogger(QueryMetadataImpl.class);
   private final AtomicBoolean isPaused = new AtomicBoolean(false);
   private final String statementString;
   private final String executionPlan;
@@ -206,10 +205,10 @@ public class QueryMetadataImpl implements QueryMetadata {
           );
       listener.onError(this, queryError);
       queryErrors.add(queryError);
-      LOG.error(
-          "Unhandled exception caught in streams thread {}. ({})",
+      LOG.error(String.format(
+          "Unhandled exception caught in streams thread %s. (%s)",
           Thread.currentThread().getName(),
-          errorType,
+          errorType),
           e
       );
     }
@@ -418,7 +417,7 @@ public class QueryMetadataImpl implements QueryMetadata {
               "Failed to initialize query %s before starting it",
               queryApplicationId));
     }
-    LOG.info("Starting query with application id: {}", queryApplicationId);
+    LOG.info(String.format("Starting query with application id: %s", queryApplicationId));
     everStarted = true;
     listener.onStateChange(this, kafkaStreams.state(), kafkaStreams.state());
     kafkaStreams.start();
@@ -504,11 +503,11 @@ public class QueryMetadataImpl implements QueryMetadata {
 
       final int retries = numRetries.merge(threadName, 1, Integer::sum);
 
-      LOG.info(
-          "Restarting query {} thread {} (attempt #{})",
+      LOG.info(String.format(
+          "Restarting query %s thread %s (attempt #%d)",
           queryId,
           threadName,
-          retries);
+          retries));
 
       // Math.max() prevents overflow if now is Long.MAX_VALUE (found just in tests)
       this.expiryTimeMs = Math.max(now, now + waitingTimeMs);

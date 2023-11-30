@@ -112,6 +112,7 @@ public class SystemAuthenticationFunctionalTest {
         .put(KSQL_STREAMS_PREFIX + StreamsConfig.STATE_DIR_CONFIG, getNewStateDir(TMP))
         .put(KSQL_STREAMS_PREFIX + StreamsConfig.NUM_STANDBY_REPLICAS_CONFIG, 1)
         .put(KsqlConfig.KSQL_SHUTDOWN_TIMEOUT_MS_CONFIG, 1000)
+        .put(KsqlConfig.KSQL_SERVICE_ID_CONFIG, "system-auth-functional-test")
         .putAll(SERVER_KEY_STORE.keyStoreProps())
         .build();
   }

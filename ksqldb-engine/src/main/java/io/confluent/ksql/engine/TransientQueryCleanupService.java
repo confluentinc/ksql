@@ -39,11 +39,10 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import org.apache.kafka.streams.StreamsConfig;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.log4j.Logger;
 
 public class TransientQueryCleanupService extends AbstractScheduledService {
-  private static final Logger LOG = LoggerFactory.getLogger(TransientQueryCleanupService.class);
+  private static final Logger LOG = Logger.getLogger(TransientQueryCleanupService.class);
   private final Pattern internalTopicPrefixPattern;
   private final Pattern transientAppIdPattern;
   private final Set<String> queriesGuaranteedToBeRunningAtSomePoint;
@@ -109,7 +108,7 @@ public class TransientQueryCleanupService extends AbstractScheduledService {
     try {
       final List<String> leakedTopics = findLeakedTopics();
       this.numLeakedTopics = leakedTopics.size();
-      LOG.info("Cleaning up {} leaked topics: {}", numLeakedTopics, leakedTopics);
+      LOG.info(String.format("Cleaning up %d leaked topics: %s", numLeakedTopics, leakedTopics));
       getTopicClient().deleteTopics(leakedTopics);
       this.numLeakedTopicsFailedToCleanUp = findLeakedTopics().size();
     } catch (Throwable t) {
@@ -122,10 +121,10 @@ public class TransientQueryCleanupService extends AbstractScheduledService {
     try {
       final List<String> leakedStateDirs = findLeakedStateDirs();
       this.numLeakedStateDirs = leakedStateDirs.size();
-      LOG.info("Cleaning up {} leaked state directories: {}",
+      LOG.info(String.format("Cleaning up %d leaked state directories: %s",
               numLeakedStateDirs,
               leakedStateDirs.stream().map(file -> stateDir + "/" + file)
-                      .collect(Collectors.toList()));
+                      .collect(Collectors.toList())));
       leakedStateDirs.forEach(this::deleteLeakedStateDir);
       this.numLeakedStateDirsFailedToCleanUp = findLeakedStateDirs().size();
     } catch (Throwable t) {

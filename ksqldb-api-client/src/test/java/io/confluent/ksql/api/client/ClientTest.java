@@ -1568,6 +1568,7 @@ public class ClientTest extends BaseApiTest {
     final io.confluent.ksql.api.client.ConnectorDescription connector = javaClient.describeConnector("name").get();
 
     // Then:
+    assertThat(testEndpoints.getLastSql(), is("describe connector \"name\";"));
     assertThat(connector.state(), is("state"));
     assertThat(connector.className(), is("connectorClass"));
     assertThat(connector.type(), is(new ConnectorTypeImpl("SOURCE")));

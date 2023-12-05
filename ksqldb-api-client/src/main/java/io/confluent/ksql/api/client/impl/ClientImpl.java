@@ -476,7 +476,7 @@ public class ClientImpl implements Client {
     makePostRequest(
         KSQL_ENDPOINT,
         new JsonObject()
-            .put("ksql", "describe connector " + name + ";")
+            .put("ksql", String.format("describe connector \"%s\";", name))
             .put("sessionVariables", sessionVariables),
         cf,
         response -> handleSingleEntityResponse(

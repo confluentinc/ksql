@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Confluent Inc.
+ * Copyright 2021 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -72,6 +72,7 @@ import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.util.KsqlConfig;
 import java.time.Duration;
 import java.util.Optional;
+import java.util.OptionalInt;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 import org.junit.Before;
@@ -110,6 +111,8 @@ public class StepSchemaResolverTest {
   private Formats formats;
   @Mock
   private KsqlConfig config;
+  @Mock
+  private Optional<Formats> internalFormats;
 
   private StepSchemaResolver resolver;
 
@@ -335,7 +338,8 @@ public class StepSchemaResolverTest {
         "foo",
         formats,
         Optional.empty(),
-        SCHEMA
+        SCHEMA,
+        OptionalInt.of(SystemColumns.CURRENT_PSEUDOCOLUMN_VERSION_NUMBER)
     );
 
     // When:
@@ -353,7 +357,8 @@ public class StepSchemaResolverTest {
         formats,
         WindowInfo.of(WindowType.TUMBLING, Optional.of(Duration.ofMillis(123))),
         Optional.empty(),
-        SCHEMA
+        SCHEMA,
+        OptionalInt.of(SystemColumns.CURRENT_PSEUDOCOLUMN_VERSION_NUMBER)
     );
 
     // When:
@@ -438,7 +443,8 @@ public class StepSchemaResolverTest {
         ImmutableList.of(
             add("JUICE", "ORANGE", "APPLE"),
             ref("PLANTAIN", "BANANA"),
-            ref("CITRUS", "ORANGE"))
+            ref("CITRUS", "ORANGE")),
+            internalFormats
     );
 
     // When:
@@ -465,7 +471,8 @@ public class StepSchemaResolverTest {
         ImmutableList.of(
             add("JUICE", "ORANGE", "APPLE"),
             ref("PLANTAIN", "BANANA"),
-            ref("CITRUS", "ORANGE"))
+            ref("CITRUS", "ORANGE")),
+            internalFormats
     );
 
     // When:
@@ -534,7 +541,8 @@ public class StepSchemaResolverTest {
         formats,
         Optional.empty(),
         SCHEMA,
-        Optional.of(true)
+        Optional.of(true),
+        OptionalInt.of(SystemColumns.CURRENT_PSEUDOCOLUMN_VERSION_NUMBER)
     );
 
     // When:
@@ -553,7 +561,8 @@ public class StepSchemaResolverTest {
         formats,
         mock(WindowInfo.class),
         Optional.empty(),
-        SCHEMA
+        SCHEMA,
+        OptionalInt.of(SystemColumns.CURRENT_PSEUDOCOLUMN_VERSION_NUMBER)
     );
 
     // When:
@@ -571,7 +580,7 @@ public class StepSchemaResolverTest {
     when(tableFunction.getReturnType(any())).thenReturn(returnType);
   }
 
-  @SuppressWarnings("unchecked")
+  @SuppressWarnings({"unchecked", "rawtypes"})
   private void givenAggregateFunction(final String name, final SqlType returnType) {
     final KsqlAggregateFunction aggregateFunction = mock(KsqlAggregateFunction.class);
     when(functionRegistry.getAggregateFunction(eq(FunctionName.of(name)), any(), any()))

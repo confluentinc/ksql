@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Confluent Inc.
+ * Copyright 2021 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -47,7 +47,7 @@ public class MaterializedFactoryTest {
   private Optional<Duration> retention;
 
   @Test
-  @SuppressWarnings("unchecked")
+  @SuppressWarnings({"unchecked", "rawtypes"})
   public void shouldCreateJoinedCorrectlyWhenOptimizationsEnabled() {
     // Given:
     final Materialized asName = mock(Materialized.class);

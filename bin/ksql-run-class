@@ -113,7 +113,9 @@ while [ $# -gt 0 ]; do
       shift 2
       ;;
     -loggc)
-      GC_LOG_ENABLED="true"
+      if [ -z "$KSQL_GC_LOG_OPTS" ]; then
+        GC_LOG_ENABLED="true"
+      fi
       shift
       ;;
     -daemon)
@@ -134,7 +136,6 @@ done
 # GC options
 GC_FILE_SUFFIX='-gc.log'
 GC_LOG_FILE_NAME=''
-KSQL_GC_LOG_OPTS=""
 if [ "x$GC_LOG_ENABLED" = "xtrue" ]; then
   GC_LOG_FILE_NAME=$DAEMON_NAME$GC_FILE_SUFFIX
   # The first segment of the version number, which is '1' for releases before Java 9

@@ -16,6 +16,7 @@
 package io.confluent.ksql.serde;
 
 import com.google.common.collect.ImmutableSet;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.Arrays;
 import java.util.Set;
 
@@ -60,6 +61,7 @@ public enum SerdeFeature {
     this.unvalidated = ImmutableSet.copyOf(incompatibleWith);
   }
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "incompatibleWith is ImmutableSet")
   public Set<SerdeFeature> getIncompatibleWith() {
     return incompatibleWith;
   }

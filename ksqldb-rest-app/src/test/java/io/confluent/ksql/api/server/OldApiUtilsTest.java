@@ -36,7 +36,9 @@ import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.net.SocketAddress;
 import io.vertx.ext.web.RoutingContext;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.atomic.AtomicReference;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -56,6 +58,8 @@ public class OldApiUtilsTest {
   @Before
   public void setUp() {
     when(routingContext.request()).thenReturn(request);
+    when(request.headers()).thenReturn(MultiMap.caseInsensitiveMultiMap());
+    when(request.remoteAddress()).thenReturn(SocketAddress.inetSocketAddress(9000, "remote"));
   }
 
   @Test

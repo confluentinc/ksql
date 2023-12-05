@@ -32,6 +32,7 @@ import com.google.common.testing.NullPointerTester;
 import com.google.common.testing.NullPointerTester.Visibility;
 import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.execution.streams.RoutingFilter;
+import io.confluent.ksql.execution.streams.RoutingFilter.Host;
 import io.confluent.ksql.execution.streams.RoutingFilter.RoutingFilterFactory;
 import io.confluent.ksql.execution.streams.RoutingFilters;
 import io.confluent.ksql.execution.streams.RoutingOptions;
@@ -39,7 +40,6 @@ import io.confluent.ksql.execution.streams.materialization.Locator.KsqlKey;
 import io.confluent.ksql.execution.streams.materialization.Locator.KsqlNode;
 import io.confluent.ksql.execution.streams.materialization.Locator.KsqlPartitionLocation;
 import io.confluent.ksql.execution.streams.materialization.MaterializationException;
-import io.confluent.ksql.util.HostStatus;
 import io.confluent.ksql.util.KsqlHostInfo;
 import java.net.MalformedURLException;
 import java.net.URI;
@@ -47,17 +47,18 @@ import java.net.URL;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KeyQueryMetadata;
+import org.apache.kafka.streams.StreamsMetadata;
 import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.TopologyDescription;
 import org.apache.kafka.streams.TopologyDescription.Subtopology;
 import org.apache.kafka.streams.state.HostInfo;
-import org.apache.kafka.streams.state.StreamsMetadata;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -94,18 +95,32 @@ public class KsLocatorTest {
   private static final TopicPartition BAD_TOPIC_PARTITION1 = new TopicPartition(BAD_TOPIC_NAME, 0);
   private static final TopicPartition BAD_TOPIC_PARTITION2 = new TopicPartition(BAD_TOPIC_NAME, 1);
   private static final TopicPartition BAD_TOPIC_PARTITION3 = new TopicPartition(BAD_TOPIC_NAME, 2);
-  private static final StreamsMetadata HOST1_STREAMS_MD1 = new StreamsMetadata(ACTIVE_HOST_INFO,
-      ImmutableSet.of(STORE_NAME), ImmutableSet.of(TOPIC_PARTITION1, BAD_TOPIC_PARTITION3),
-      ImmutableSet.of(STORE_NAME), ImmutableSet.of(TOPIC_PARTITION2, TOPIC_PARTITION3,
-      BAD_TOPIC_PARTITION1, BAD_TOPIC_PARTITION2));
-  private static final StreamsMetadata HOST1_STREAMS_MD2 = new StreamsMetadata(STANDBY_HOST_INFO1,
-      ImmutableSet.of(STORE_NAME), ImmutableSet.of(TOPIC_PARTITION2, BAD_TOPIC_PARTITION1),
-      ImmutableSet.of(STORE_NAME), ImmutableSet.of(TOPIC_PARTITION1, TOPIC_PARTITION3,
-      BAD_TOPIC_PARTITION2, BAD_TOPIC_PARTITION3));
-  private static final StreamsMetadata HOST1_STREAMS_MD3 = new StreamsMetadata(STANDBY_HOST_INFO2,
-      ImmutableSet.of(STORE_NAME), ImmutableSet.of(TOPIC_PARTITION3, BAD_TOPIC_PARTITION2),
-      ImmutableSet.of(STORE_NAME), ImmutableSet.of(TOPIC_PARTITION1, TOPIC_PARTITION2,
-      BAD_TOPIC_PARTITION1, BAD_TOPIC_PARTITION3));
+
+  private static final StreamsMetadata HOST1_STREAMS_MD1 = mock(StreamsMetadata.class);
+  private static final StreamsMetadata HOST1_STREAMS_MD2 = mock(StreamsMetadata.class);
+  private static final StreamsMetadata HOST1_STREAMS_MD3 = mock(StreamsMetadata.class);
+  {
+    when(HOST1_STREAMS_MD1.hostInfo()).thenReturn(ACTIVE_HOST_INFO);
+    when(HOST1_STREAMS_MD1.stateStoreNames()).thenReturn(ImmutableSet.of(STORE_NAME));
+    when(HOST1_STREAMS_MD1.standbyStateStoreNames()).thenReturn(ImmutableSet.of(STORE_NAME));
+    when(HOST1_STREAMS_MD1.topicPartitions()).thenReturn(ImmutableSet.of(TOPIC_PARTITION1, BAD_TOPIC_PARTITION3));
+    when(HOST1_STREAMS_MD1.standbyTopicPartitions()).thenReturn(ImmutableSet.of(TOPIC_PARTITION2, TOPIC_PARTITION3,
+                                                                                BAD_TOPIC_PARTITION1, BAD_TOPIC_PARTITION2));
+
+    when(HOST1_STREAMS_MD2.hostInfo()).thenReturn(STANDBY_HOST_INFO1);
+    when(HOST1_STREAMS_MD2.stateStoreNames()).thenReturn(ImmutableSet.of(STORE_NAME));
+    when(HOST1_STREAMS_MD2.standbyStateStoreNames()).thenReturn(ImmutableSet.of(STORE_NAME));
+    when(HOST1_STREAMS_MD2.topicPartitions()).thenReturn(ImmutableSet.of(TOPIC_PARTITION2, BAD_TOPIC_PARTITION1));
+    when(HOST1_STREAMS_MD2.standbyTopicPartitions()).thenReturn(ImmutableSet.of(TOPIC_PARTITION1, TOPIC_PARTITION3,
+                                                                                BAD_TOPIC_PARTITION2, BAD_TOPIC_PARTITION3));
+
+    when(HOST1_STREAMS_MD3.hostInfo()).thenReturn(STANDBY_HOST_INFO2);
+    when(HOST1_STREAMS_MD3.stateStoreNames()).thenReturn(ImmutableSet.of(STORE_NAME));
+    when(HOST1_STREAMS_MD3.standbyStateStoreNames()).thenReturn(ImmutableSet.of(STORE_NAME));
+    when(HOST1_STREAMS_MD3.topicPartitions()).thenReturn(ImmutableSet.of(TOPIC_PARTITION3, BAD_TOPIC_PARTITION2));
+    when(HOST1_STREAMS_MD3.standbyTopicPartitions()).thenReturn(ImmutableSet.of(TOPIC_PARTITION1, TOPIC_PARTITION2,
+                                                                                BAD_TOPIC_PARTITION1, BAD_TOPIC_PARTITION3));
+  }
 
   @Mock
   private KafkaStreams kafkaStreams;
@@ -138,36 +153,34 @@ public class KsLocatorTest {
   private RoutingFilters routingActiveFilters;
   private RoutingFilterFactory routingFilterFactoryActive;
   private RoutingFilterFactory routingFilterFactoryStandby;
-  private static final HostStatus HOST_ALIVE = new HostStatus(true, 0L);
-  private static final HostStatus HOST_DEAD = new HostStatus(false, 0L);
 
   @Before
   public void setUp() {
     locator = new KsLocator(STORE_NAME, kafkaStreams, topology, keySerializer, LOCAL_HOST_URL,
         APPLICATION_ID);
 
-    activeNode = locator.asNode(ACTIVE_HOST);
-    standByNode1 = locator.asNode(STANDBY_HOST1);
-    standByNode2 = locator.asNode(STANDBY_HOST2);
+    activeNode = locator.asNode(Host.include(ACTIVE_HOST));
+    standByNode1 = locator.asNode(Host.include(STANDBY_HOST1));
+    standByNode2 = locator.asNode(Host.include(STANDBY_HOST2));
 
     routingStandbyFilters = new RoutingFilters(ImmutableList.of(livenessFilter));
     routingActiveFilters = new RoutingFilters(ImmutableList.of(activeFilter, livenessFilter));
 
     // Only active serves query
     when(activeFilter.filter(eq(ACTIVE_HOST)))
-        .thenReturn(true);
+        .thenReturn(Host.include(ACTIVE_HOST));
     when(activeFilter.filter(eq(STANDBY_HOST1)))
-        .thenReturn(false);
+        .thenReturn(Host.exclude(STANDBY_HOST1, "active"));
     when(activeFilter.filter(eq(STANDBY_HOST2)))
-        .thenReturn(false);
+        .thenReturn(Host.exclude(STANDBY_HOST2, "active"));
 
     // Heartbeat not enabled, all hosts alive
     when(livenessFilter.filter(eq(ACTIVE_HOST)))
-        .thenReturn(true);
+        .thenReturn(Host.include(ACTIVE_HOST));
     when(livenessFilter.filter(eq(STANDBY_HOST1)))
-        .thenReturn(true);
+        .thenReturn(Host.include(STANDBY_HOST1));
     when(livenessFilter.filter(eq(STANDBY_HOST2)))
-        .thenReturn(true);
+        .thenReturn(Host.include(STANDBY_HOST2));
 
     routingFilterFactoryActive = (routingOptions, hosts, active, applicationQueryId,
                                   storeName, partition) -> routingActiveFilters;
@@ -225,9 +238,9 @@ public class KsLocatorTest {
     final KsqlHostInfo localHost = locator.asKsqlHost(localHostInfo);
     getActiveAndStandbyMetadata(localHostInfo);
     when(activeFilter.filter(eq(localHost)))
-        .thenReturn(true);
+        .thenReturn(Host.include(localHost));
     when(livenessFilter.filter(eq(localHost)))
-        .thenReturn(true);
+        .thenReturn(Host.include(localHost));
 
     // When:
     final List<KsqlPartitionLocation> result = locator.locate(ImmutableList.of(KEY),
@@ -245,9 +258,9 @@ public class KsLocatorTest {
     final KsqlHostInfo localHost = locator.asKsqlHost(localHostInfo);
     getActiveAndStandbyMetadata(localHostInfo);
     when(activeFilter.filter(eq(localHost)))
-        .thenReturn(true);
+        .thenReturn(Host.include(localHost));
     when(livenessFilter.filter(eq(localHost)))
-        .thenReturn(true);
+        .thenReturn(Host.include(localHost));
 
     // When:
     final List<KsqlPartitionLocation> result = locator.locate(ImmutableList.of(KEY), routingOptions,
@@ -265,9 +278,9 @@ public class KsLocatorTest {
     final KsqlHostInfo localHost = locator.asKsqlHost(localHostInfo);
     getActiveAndStandbyMetadata(localHostInfo);
     when(activeFilter.filter(eq(localHost)))
-        .thenReturn(true);
+        .thenReturn(Host.include(localHost));
     when(livenessFilter.filter(eq(localHost)))
-        .thenReturn(true);
+        .thenReturn(Host.include(localHost));
 
     // When:
     final List<KsqlPartitionLocation> result = locator.locate(ImmutableList.of(KEY), routingOptions,
@@ -285,9 +298,9 @@ public class KsLocatorTest {
     final KsqlHostInfo localHost = locator.asKsqlHost(localHostInfo);
     getActiveAndStandbyMetadata(localHostInfo);
     when(activeFilter.filter(eq(localHost)))
-        .thenReturn(true);
+        .thenReturn(Host.include(localHost));
     when(livenessFilter.filter(eq(localHost)))
-        .thenReturn(true);
+        .thenReturn(Host.include(localHost));
 
     // When:
     final List<KsqlPartitionLocation> result = locator.locate(ImmutableList.of(KEY), routingOptions,
@@ -306,9 +319,9 @@ public class KsLocatorTest {
     final KsqlHostInfo localHost = locator.asKsqlHost(localHostInfo);
     getActiveAndStandbyMetadata(localHostInfo);
     when(activeFilter.filter(eq(localHost)))
-        .thenReturn(true);
+        .thenReturn(Host.include(localHost));
     when(livenessFilter.filter(eq(localHost)))
-        .thenReturn(true);
+        .thenReturn(Host.include(localHost));
 
     // When:
     final List<KsqlPartitionLocation> result = locator.locate(ImmutableList.of(KEY), routingOptions,
@@ -330,7 +343,9 @@ public class KsLocatorTest {
         routingFilterFactoryActive);
 
     // Then:
-    List<KsqlNode> nodeList = result.get(0).getNodes();
+    List<KsqlNode> nodeList = result.get(0).getNodes().stream()
+        .filter(node -> node.getHost().isSelected())
+        .collect(Collectors.toList());
     assertThat(nodeList.size(), is(1));
     assertThat(nodeList.stream().findFirst().get(), is(activeNode));
   }
@@ -356,14 +371,16 @@ public class KsLocatorTest {
     // Given:
     getActiveAndStandbyMetadata();
     when(livenessFilter.filter(eq(ACTIVE_HOST)))
-        .thenReturn(false);
+        .thenReturn(Host.exclude(ACTIVE_HOST, "liveness"));
 
     // When:
     final List<KsqlPartitionLocation> result = locator.locate(ImmutableList.of(KEY), routingOptions,
         routingFilterFactoryStandby);
 
     // Then:
-    List<KsqlNode> nodeList = result.get(0).getNodes();
+    List<KsqlNode> nodeList = result.get(0).getNodes().stream()
+        .filter(node -> node.getHost().isSelected())
+        .collect(Collectors.toList());;
     assertThat(nodeList.size(), is(2));
     assertThat(nodeList, containsInAnyOrder(standByNode1, standByNode2));
   }
@@ -373,16 +390,18 @@ public class KsLocatorTest {
     // Given:
     getActiveAndStandbyMetadata();
     when(livenessFilter.filter(eq(ACTIVE_HOST)))
-        .thenReturn(false);
+        .thenReturn(Host.exclude(ACTIVE_HOST, "liveness"));
     when(livenessFilter.filter(eq(STANDBY_HOST1)))
-        .thenReturn(false);
+        .thenReturn(Host.exclude(STANDBY_HOST1, "liveness"));
 
     // When:
     final List<KsqlPartitionLocation> result = locator.locate(ImmutableList.of(KEY), routingOptions,
         routingFilterFactoryStandby);
 
     // Then:
-    List<KsqlNode> nodeList = result.get(0).getNodes();
+    List<KsqlNode> nodeList = result.get(0).getNodes().stream()
+        .filter(node -> node.getHost().isSelected())
+        .collect(Collectors.toList());
     assertThat(nodeList.size(), is(1));
     assertThat(nodeList.stream().findFirst().get(), is(standByNode2));
   }
@@ -427,7 +446,7 @@ public class KsLocatorTest {
     when(sub1.nodes()).thenReturn(ImmutableSet.of(source, processor));
     when(source.topicSet()).thenReturn(ImmutableSet.of(TOPIC_NAME));
     when(processor.stores()).thenReturn(ImmutableSet.of(STORE_NAME));
-    when(kafkaStreams.allMetadataForStore(any()))
+    when(kafkaStreams.streamsMetadataForStore(any()))
         .thenReturn(ImmutableList.of(HOST1_STREAMS_MD1, HOST1_STREAMS_MD2, HOST1_STREAMS_MD3));
 
     // When:

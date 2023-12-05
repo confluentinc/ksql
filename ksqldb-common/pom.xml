@@ -22,7 +22,7 @@
     <parent>
         <groupId>io.confluent.ksql</groupId>
         <artifactId>ksqldb-parent</artifactId>
-        <version>6.2.14-0</version>
+        <version>7.0.13-0</version>
     </parent>
 
     <artifactId>ksqldb-common</artifactId>
@@ -147,22 +147,11 @@
             <resource>
                 <directory>src/main/resources</directory>
                 <filtering>true</filtering>
-                <includes>
-                    <include>ksql-version.streamsProperties</include>
-                </includes>
             </resource>
 
             <resource>
-                <directory>src/main/resources</directory>
+                <directory>src/main/resources/ksqldb</directory>
                 <filtering>true</filtering>
-            </resource>
-
-            <resource>
-                <directory>src/main/resources</directory>
-                <filtering>false</filtering>
-                <excludes>
-                    <exclude>ksql-version.streamsProperties</exclude>
-                </excludes>
             </resource>
         </resources>
     </build>

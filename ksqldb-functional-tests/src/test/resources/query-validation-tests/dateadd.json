@@ -1,0 +1,63 @@
+{
+  "comments": ["tests for dateadd"],
+  "tests": [
+    {
+      "name": "adds",
+      "statements": [
+        "CREATE STREAM TEST (ID STRING KEY, date DATE) WITH (kafka_topic='test', value_format='DELIMITED');",
+        "CREATE STREAM TEST2 AS SELECT id, dateadd(DAYS, 10, date) FROM TEST;"
+      ],
+      "inputs": [
+        {"topic": "test", "value": "10"}
+      ],
+      "outputs": [
+        {"topic": "TEST2", "value": "20"}
+      ]
+    },
+    {
+      "name": "throws on incorrect type",
+      "statements": [
+        "CREATE STREAM TEST (ID STRING KEY, date DATE) WITH (kafka_topic='test', value_format='DELIMITED');",
+        "CREATE STREAM TEST2 AS SELECT id, dateadd(date, 5, date) FROM TEST;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Function 'dateadd' does not accept parameters (DATE, INTEGER, DATE)."
+      }
+    },
+    {
+      "name": "adds negative intervals",
+      "statements": [
+        "CREATE STREAM TEST (ID INT KEY, date DATE) WITH (kafka_topic='test', value_format='AVRO');",
+        "CREATE STREAM TEST2 AS SELECT id, dateadd(DAYS, -5, date) AS VALUE FROM TEST;"
+      ],
+      "inputs": [
+        {"topic": "test", "key": 0, "value": {"date": 5}},
+        {"topic": "test", "key": 0, "value": {"date": 10}},
+        {"topic": "test", "key": 0, "value": {"date": 2}}
+      ],
+      "outputs": [
+        {"topic": "TEST2", "key": 0, "value": {"VALUE": 0}},
+        {"topic": "TEST2", "key": 0, "value": {"VALUE": 5}},
+        {"topic": "TEST2", "key": 0, "value": {"VALUE": -3}}
+      ]
+    },
+    {
+      "name": "handles null values",
+      "statements": [
+        "CREATE STREAM TEST (ID INT KEY, date DATE, num INTEGER) WITH (kafka_topic='test', value_format='AVRO');",
+        "CREATE STREAM TEST2 AS SELECT id, dateadd(MILLISECONDS, num, date) AS VALUE FROM TEST;"
+      ],
+      "inputs": [
+        {"topic": "test", "key": 0, "value": {"date": null, "num": 5}},
+        {"topic": "test", "key": 0, "value": {"date": 5, "num": null}},
+        {"topic": "test", "key": 0, "value": {"date": null, "num": null}}
+      ],
+      "outputs": [
+        {"topic": "TEST2", "key": 0, "value": {"VALUE": null}},
+        {"topic": "TEST2", "key": 0, "value": {"VALUE": null}},
+        {"topic": "TEST2", "key": 0, "value": {"VALUE": null}}
+      ]
+    }
+  ]
+}

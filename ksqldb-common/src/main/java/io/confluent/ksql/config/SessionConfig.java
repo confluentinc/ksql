@@ -16,6 +16,7 @@ package io.confluent.ksql.config;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.errorprone.annotations.Immutable;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.testing.EffectivelyImmutable;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Map;
@@ -71,6 +72,7 @@ public final class SessionConfig {
   /**
    * @return User supplied overrides, i.e. those provided in the request to the server.
    */
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "overrides is ImmutableMap")
   public Map<String, Object> getOverrides() {
     return overrides;
   }

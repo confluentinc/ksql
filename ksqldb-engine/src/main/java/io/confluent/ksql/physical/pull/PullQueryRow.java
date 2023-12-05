@@ -15,9 +15,11 @@
 
 package io.confluent.ksql.physical.pull;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.streams.materialization.Locator.KsqlNode;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -27,6 +29,7 @@ public class PullQueryRow {
   private final LogicalSchema schema;
   private final Optional<KsqlNode> sourceNode;
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
   public PullQueryRow(
       final List<?> row,
       final LogicalSchema schema,
@@ -37,7 +40,7 @@ public class PullQueryRow {
   }
 
   public List<?> getRow() {
-    return row;
+    return Collections.unmodifiableList(row);
   }
 
   public LogicalSchema getSchema() {

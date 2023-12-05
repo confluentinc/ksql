@@ -67,7 +67,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Error in WHERE expression: Unsupported arithmetic types. BOOLEAN DECIMAL"
+        "message": "Error in WHERE expression: Error processing expression: (true + 1.5). Unsupported arithmetic types. BOOLEAN DECIMAL"
       }
     },
     {

@@ -111,9 +111,7 @@
           "valueFormat" : {
             "format" : "JSON"
           },
-          "partitions" : 4,
-          "keySchema" : null,
-          "valueSchema" : null
+          "partitions" : 4
         }, {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-GroupBy-repartition",
           "keyFormat" : {
@@ -121,9 +119,7 @@
           },
           "valueFormat" : {
             "format" : "JSON"
-          },
-          "keySchema" : null,
-          "valueSchema" : null
+          }
         }, {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog",
           "keyFormat" : {
@@ -131,9 +127,7 @@
           },
           "valueFormat" : {
             "format" : "JSON"
-          },
-          "keySchema" : null,
-          "valueSchema" : null
+          }
         }, {
           "name" : "OUTPUT",
           "keyFormat" : {
@@ -142,9 +136,7 @@
           "valueFormat" : {
             "format" : "JSON"
           },
-          "partitions" : 4,
-          "keySchema" : null,
-          "valueSchema" : null
+          "partitions" : 4
         } ]
       }
     }

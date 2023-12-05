@@ -22,6 +22,7 @@ import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.serializers.AbstractKafkaSchemaSerDeConfig;
@@ -30,9 +31,12 @@ import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.parser.DurationParser;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.query.QuerySchemas;
 import io.confluent.ksql.schema.query.QuerySchemas.SchemaInfo;
 import io.confluent.ksql.serde.FormatFactory;
+import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
+import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.test.TestFrameworkException;
@@ -87,6 +91,21 @@ public class TopicInfoCache {
       )
   );
 
+  // Internal topic names that are ignored by the TopicInfoCache::get() method.
+  // This is a temporary fix to allow foreign key QT tests to pass without complaining about
+  // internal FK topics not unknown or with not clear schema information. A long-term fix
+  // to support multiple schema information in FK internal topics can be found here -
+  // https://github.com/confluentinc/ksql/issues/7586
+  private static final Set<Pattern> IGNORE_INTERNAL_TOPIC_NAMES_PATTERNS = ImmutableSet.of(
+      Pattern.compile(TOPIC_PATTERN_PREFIX + ".*-FK-JOIN-SUBSCRIPTION-REGISTRATION-\\d+-topic"),
+      Pattern.compile(TOPIC_PATTERN_PREFIX + ".*-FK-JOIN-SUBSCRIPTION-RESPONSE-\\d+-topic"),
+      Pattern.compile(TOPIC_PATTERN_PREFIX + ".*-FK-JOIN-SUBSCRIPTION-STATE-STORE-\\d+-changelog")
+  );
+
+  private static final ValueFormat NONE_VALUE_FORMAT = ValueFormat.of(
+      FormatInfo.of(FormatFactory.NONE.name()), SerdeFeatures.of()
+  );
+
   private final KsqlExecutionContext ksqlEngine;
   private final SchemaRegistryClient srClient;
   private final LoadingCache<String, TopicInfo> cache;
@@ -101,8 +120,12 @@ public class TopicInfoCache {
         .build(CacheLoader.from(this::load));
   }
 
-  public TopicInfo get(final String topicName) {
-    return cache.getUnchecked(topicName);
+  public Optional<TopicInfo> get(final String topicName) {
+    if (ignoreInternalTopic(topicName)) {
+      return Optional.empty();
+    }
+
+    return Optional.of(cache.getUnchecked(topicName));
   }
 
   public List<TopicInfo> all() {
@@ -111,6 +134,16 @@ public class TopicInfoCache {
 
   public void clear() {
     cache.invalidateAll();
+  }
+
+  private boolean ignoreInternalTopic(final String topicName) {
+    for (final Pattern p : IGNORE_INTERNAL_TOPIC_NAMES_PATTERNS) {
+      if (p.matcher(topicName).matches()) {
+        return true;
+      }
+    }
+
+    return false;
   }
 
   private TopicInfo load(final String topicName) {
@@ -130,15 +163,45 @@ public class TopicInfoCache {
             .orElseThrow(() ->
                 new TestFrameworkException("Unknown queryId for internal topic: " + queryId));
 
-        final SchemaInfo schemaInfo = query.getQuerySchemas().getTopicInfo(topicName);
+        final QuerySchemas.MultiSchemaInfo schemasInfo = query.getQuerySchemas()
+            .getTopicInfo(topicName);
 
-        final KeyFormat keyFormat = schemaInfo.keyFormat().orElseThrow(IllegalStateException::new);
+        final Set<KeyFormat> keyFormats = schemasInfo.getKeyFormats();
+        final Set<ValueFormat> valueFormats = schemasInfo.getValueFormats();
+
+        // The QTT framework only supports one key and value serdes. All joins tests in QTT
+        // are using same serdes. If we add tests that use different key/value serdes, then QTT
+        // will have to support those. See https://github.com/confluentinc/ksql/issues/7586
+
+        // Only one key format is allowed for QTT. We should support multiple key formats for
+        // foreign key joins once the above github issue is implemented.
+        if (keyFormats.size() != 1) {
+          final String result = keyFormats.size() == 0 ? "Zero" : "Multiple";
+
+          throw new Exception(result + " key formats registered for topic."
+              + System.lineSeparator()
+              + "topic: " + topicName
+              + "formats: " + keyFormats.stream().map(KeyFormat::getFormat)
+              .sorted().collect(Collectors.toList())
+          );
+        }
+
+        // Zero or one value format is allowed for QTT. We should support multiple value formats
+        // for stream-stream left/outer joins once the above github issue is implemented.
+        if (valueFormats.size() > 1) {
+          throw new Exception("Multiple value formats registered for topic."
+              + System.lineSeparator()
+              + "topic: " + topicName
+              + "formats: " + valueFormats.stream().map(ValueFormat::getFormat)
+              .sorted().collect(Collectors.toList())
+          );
+        }
 
         return new TopicInfo(
             topicName,
             query.getLogicalSchema(),
-            internalTopic.get().keyFormat(keyFormat, query),
-            schemaInfo.valueFormat().orElseThrow(IllegalStateException::new),
+            internalTopic.get().keyFormat(Iterables.getOnlyElement(keyFormats), query),
+            Iterables.getOnlyElement(valueFormats, NONE_VALUE_FORMAT),
             internalTopic.get().changeLogWindowSize(query)
         );
       }
@@ -369,7 +432,7 @@ public class TopicInfoCache {
     @SuppressWarnings({"unchecked", "rawtypes"})
     public Serializer<Object> getValueSerializer() {
       final SerdeSupplier<?> valueSerdeSupplier = SerdeUtil
-          .getSerdeSupplier(FormatFactory.of(valueFormat.getFormatInfo()), schema);
+          .getSerdeSupplier(valueFormat.getFormatInfo(), schema);
 
       final Serializer<?> serializer = valueSerdeSupplier.getSerializer(srClient, false);
 
@@ -402,7 +465,7 @@ public class TopicInfoCache {
 
     public Deserializer<?> getValueDeserializer() {
       final SerdeSupplier<?> valueSerdeSupplier = SerdeUtil
-          .getSerdeSupplier(FormatFactory.of(valueFormat.getFormatInfo()), schema);
+          .getSerdeSupplier(valueFormat.getFormatInfo(), schema);
 
       final Deserializer<?> deserializer = valueSerdeSupplier.getDeserializer(srClient, false);
 

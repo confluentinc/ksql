@@ -288,6 +288,27 @@
       "outputs": [
         {"topic": "TEST2", "value": {"S": 1, "A":  5, "M": 4}}
       ]
+    },
+    {
+      "name": "timestamp schema inference",
+      "statements": [
+        "CREATE STREAM INPUT WITH (kafka_topic='input', value_format='AVRO');",
+        "CREATE STREAM OUTPUT as SELECT CAST(c1 AS STRING) AS C2 FROM input;"
+      ],
+      "topics": [
+        {
+          "name": "input",
+          "valueSchema": {"name": "blah", "type": "record", "fields": [{"name": "c1", "type": {"connect.name": "org.apache.kafka.connect.data.Timestamp", "connect.version": 1, "logicalType": "timestamp-millis", "type": "long"}}]},
+          "valueFormat": "AVRO"
+        },
+        {
+          "name": "OUTPUT",
+          "valueFormat": "AVRO",
+          "partitions": 4
+        }
+      ],
+      "inputs": [{"topic": "input", "value": {"c1": 4}}],
+      "outputs": [{"topic": "OUTPUT", "value": {"C2": "1970-01-01T00:00:00.004"}}]
     }
   ]
 }

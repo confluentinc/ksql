@@ -20,7 +20,7 @@
   <parent>
     <artifactId>ksqldb-parent</artifactId>
     <groupId>io.confluent.ksql</groupId>
-    <version>6.2.14-0</version>
+    <version>7.0.13-0</version>
   </parent>
   <modelVersion>4.0.0</modelVersion>
 
@@ -97,7 +97,15 @@
 
     <dependency>
       <groupId>org.mockito</groupId>
+      <artifactId>mockito-inline</artifactId>
+      <version>${mockito.version}</version>
+      <scope>compile</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>org.mockito</groupId>
       <artifactId>mockito-core</artifactId>
+      <version>${mockito.version}</version>
       <scope>compile</scope>
     </dependency>
 
@@ -107,10 +115,5 @@
       <scope>compile</scope>
     </dependency>
 
-    <dependency>
-      <groupId>io.dropwizard.metrics</groupId>
-      <artifactId>metrics-core</artifactId>
-      <version>${dropwizard.version}</version>
-    </dependency>
   </dependencies>
 </project>

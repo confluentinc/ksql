@@ -23,22 +23,27 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.apache.kafka.streams.StreamsMetadata;
 import org.apache.kafka.streams.state.HostInfo;
-import org.apache.kafka.streams.state.StreamsMetadata;
+import org.apache.kafka.streams.state.internals.StreamsMetadataImpl;
 
 public final class DiscoverRemoteHostsUtil {
 
-  private DiscoverRemoteHostsUtil() {}
+  private DiscoverRemoteHostsUtil() {
+
+  }
 
   public static Set<HostInfo> getRemoteHosts(
       final List<PersistentQueryMetadata> currentQueries, 
       final KsqlHostInfo localHost
   ) {
     return currentQueries.stream()
+        // required filter else QueryMetadata.getAllMetadata() throws
+        .filter(q -> q.getState().isRunningOrRebalancing())
         .map(QueryMetadata::getAllMetadata)
         .filter(Objects::nonNull)
         .flatMap(Collection::stream)
-        .filter(streamsMetadata -> streamsMetadata != StreamsMetadata.NOT_AVAILABLE)
+        .filter(streamsMetadata -> !(streamsMetadata.equals(StreamsMetadataImpl.NOT_AVAILABLE)))
         .map(StreamsMetadata::hostInfo)
         .filter(hostInfo -> !(hostInfo.host().equals(localHost.host())
             && hostInfo.port() == (localHost.port())))

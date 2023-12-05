@@ -134,7 +134,27 @@
             "format" : "JSON_SR",
             "features" : [ "WRAP_SINGLES" ]
           },
-          "partitions" : 4
+          "partitions" : 4,
+          "valueSchema" : {
+            "type" : "object",
+            "properties" : {
+              "FOO" : {
+                "connect.index" : 0,
+                "oneOf" : [ {
+                  "type" : "null"
+                }, {
+                  "type" : "array",
+                  "items" : {
+                    "oneOf" : [ {
+                      "type" : "null"
+                    }, {
+                      "type" : "string"
+                    } ]
+                  }
+                } ]
+              }
+            }
+          }
         }, {
           "name" : "OUTPUT",
           "keyFormat" : {
@@ -143,7 +163,27 @@
           "valueFormat" : {
             "format" : "JSON_SR"
           },
-          "partitions" : 4
+          "partitions" : 4,
+          "valueSchema" : {
+            "type" : "object",
+            "properties" : {
+              "FOO" : {
+                "connect.index" : 0,
+                "oneOf" : [ {
+                  "type" : "null"
+                }, {
+                  "type" : "array",
+                  "items" : {
+                    "oneOf" : [ {
+                      "type" : "null"
+                    }, {
+                      "type" : "string"
+                    } ]
+                  }
+                } ]
+              }
+            }
+          }
         } ]
       }
     }

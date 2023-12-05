@@ -100,7 +100,32 @@
           "valueFormat" : {
             "format" : "AVRO"
           },
-          "partitions" : 1
+          "partitions" : 1,
+          "valueSchema" : {
+            "type" : "record",
+            "name" : "blah",
+            "fields" : [ {
+              "name" : "expected",
+              "type" : "int"
+            }, {
+              "name" : "c1",
+              "type" : [ "null", "bytes" ],
+              "default" : null
+            }, {
+              "name" : "c2",
+              "type" : [ "null", {
+                "type" : "fixed",
+                "name" : "md5",
+                "size" : 16,
+                "connect.parameters" : {
+                  "connect.fixed.size" : "16"
+                },
+                "connect.name" : "md5"
+              } ],
+              "default" : null
+            } ],
+            "connect.name" : "blah"
+          }
         }, {
           "name" : "OUTPUT",
           "keyFormat" : {
@@ -109,7 +134,17 @@
           "valueFormat" : {
             "format" : "AVRO"
           },
-          "partitions" : 4
+          "partitions" : 4,
+          "valueSchema" : {
+            "type" : "record",
+            "name" : "KsqlDataSourceSchema",
+            "namespace" : "io.confluent.ksql.avro_schemas",
+            "fields" : [ {
+              "name" : "EXPECTED",
+              "type" : [ "null", "int" ],
+              "default" : null
+            } ]
+          }
         } ]
       }
     }

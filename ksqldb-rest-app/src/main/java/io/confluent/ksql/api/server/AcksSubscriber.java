@@ -17,6 +17,7 @@ package io.confluent.ksql.api.server;
 
 import static io.confluent.ksql.rest.Errors.ERROR_CODE_SERVER_ERROR;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.reactive.BaseSubscriber;
 import io.confluent.ksql.rest.entity.InsertAck;
 import io.confluent.ksql.rest.entity.InsertError;
@@ -43,6 +44,7 @@ public class AcksSubscriber extends BaseSubscriber<InsertResult> {
   private boolean drainHandlerSet;
   private boolean responseEnded;
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
   public AcksSubscriber(final Context context, final HttpServerResponse response,
       final InsertsStreamResponseWriter insertsStreamResponseWriter) {
     super(context);

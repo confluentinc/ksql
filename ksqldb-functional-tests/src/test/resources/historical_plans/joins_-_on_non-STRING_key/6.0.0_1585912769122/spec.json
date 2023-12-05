@@ -82,7 +82,7 @@
         "S_ROWTIME" : 300,
         "S_SF" : 10,
         "T_ROWKEY" : 12589,
-        "T_ROWTIME" : 300,
+        "T_ROWTIME" : 200,
         "T_TF" : 12
       },
       "timestamp" : 300

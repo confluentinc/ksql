@@ -22,11 +22,11 @@
     <parent>
         <groupId>io.confluent.ksql</groupId>
         <artifactId>ksqldb-parent</artifactId>
-        <version>6.2.14-0</version>
+        <version>7.0.13-0</version>
     </parent>
 
     <artifactId>ksqldb-udf</artifactId>
-    <version>6.2.14-0</version>
+    <version>7.0.13-0</version>
 
     <dependencies>
         <!-- Required for running tests -->
@@ -38,8 +38,18 @@
             <scope>test</scope>
         </dependency>
         <dependency>
+            <groupId>com.google.errorprone</groupId>
+            <artifactId>error_prone_annotations</artifactId>
+            <version>2.2.0</version>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.github.spotbugs</groupId>
+            <artifactId>spotbugs-annotations</artifactId>
         </dependency>
 
     </dependencies>

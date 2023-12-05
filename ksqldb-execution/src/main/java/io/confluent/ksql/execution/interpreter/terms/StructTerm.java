@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.execution.interpreter.terms;
 
+import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.execution.interpreter.TermEvaluationContext;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.types.SqlType;
@@ -28,7 +29,7 @@ public class StructTerm implements Term {
   private final SqlType resultType;
 
   public StructTerm(final Map<String, Term> nameToTermMap, final SqlType resultType) {
-    this.nameToTermMap = nameToTermMap;
+    this.nameToTermMap = ImmutableMap.copyOf(nameToTermMap);
     this.resultType = resultType;
   }
 

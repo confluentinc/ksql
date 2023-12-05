@@ -21,6 +21,7 @@ import io.confluent.ksql.execution.context.QueryContext.Stacker;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.plan.ExecutionStep;
+import io.confluent.ksql.execution.plan.ForeignKeyTableTableJoin;
 import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.JoinType;
 import io.confluent.ksql.execution.plan.KTableHolder;
@@ -121,13 +122,15 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
       final List<ColumnName> keyColumnNames,
       final List<SelectExpression> selectExpressions,
       final Stacker contextStacker,
-      final PlanBuildContext buildContext
+      final PlanBuildContext buildContext,
+      final FormatInfo valueFormat
   ) {
     final TableSelect<K> step = ExecutionStepFactory.tableMapValues(
         contextStacker,
         sourceTableStep,
         keyColumnNames,
-        selectExpressions
+        selectExpressions,
+        InternalFormats.of(keyFormat, valueFormat)
     );
 
     return new SchemaKTable<>(
@@ -244,7 +247,7 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
         functionRegistry);
   }
 
-  public SchemaKTable<K> join(
+  public SchemaKTable<K> innerJoin(
       final SchemaKTable<K> schemaKTable,
       final ColumnName keyColName,
       final Stacker contextStacker
@@ -306,6 +309,60 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
         sourceTableStep,
         schemaKTable.getSourceTableStep()
     );
+
+    return new SchemaKTable<>(
+        step,
+        resolveSchema(step, schemaKTable),
+        keyFormat,
+        ksqlConfig,
+        functionRegistry
+    );
+  }
+
+  public <KRightT> SchemaKTable<K> foreignKeyInnerJoin(
+      final SchemaKTable<KRightT> schemaKTable,
+      final Optional<ColumnName> leftJoinColumnName,
+      final Optional<Expression> leftJoinExpression,
+      final Stacker contextStacker,
+      final FormatInfo valueFormatInfo
+  ) {
+    final ForeignKeyTableTableJoin<K, KRightT> step =
+        ExecutionStepFactory.foreignKeyTableTableJoin(
+            contextStacker,
+            JoinType.INNER,
+            leftJoinColumnName,
+            InternalFormats.of(keyFormat, valueFormatInfo),
+            sourceTableStep,
+            schemaKTable.getSourceTableStep(),
+            leftJoinExpression
+        );
+
+    return new SchemaKTable<>(
+        step,
+        resolveSchema(step, schemaKTable),
+        keyFormat,
+        ksqlConfig,
+        functionRegistry
+    );
+  }
+
+  public <KRightT> SchemaKTable<K> foreignKeyLeftJoin(
+      final SchemaKTable<KRightT> schemaKTable,
+      final Optional<ColumnName> leftJoinColumnName,
+      final Optional<Expression> leftJoinExpression,
+      final Stacker contextStacker,
+      final FormatInfo valueFormatInfo
+  ) {
+    final ForeignKeyTableTableJoin<K, KRightT> step =
+        ExecutionStepFactory.foreignKeyTableTableJoin(
+            contextStacker,
+            JoinType.LEFT,
+            leftJoinColumnName,
+            InternalFormats.of(keyFormat, valueFormatInfo),
+            sourceTableStep,
+            schemaKTable.getSourceTableStep(),
+            leftJoinExpression
+        );
 
     return new SchemaKTable<>(
         step,

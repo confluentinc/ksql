@@ -11,7 +11,7 @@ Server, which can be useful for health checks and troubleshooting. You
 can use the `curl` command to query the `/info` endpoint:
 
 ```bash
-curl -sX GET "http://localhost:8088/info" | jq '.'
+curl --http1.1 -sX GET "http://localhost:8088/info" | jq '.'
 ```
 
 Your output should resemble:
@@ -30,7 +30,7 @@ You can also check the health of your ksqlDB server by using the
 ``/healthcheck`` resource:
 
 ```bash
-curl -sX GET "http://localhost:8088/healthcheck" | jq '.'
+curl --http1.1 -sX GET "http://localhost:8088/healthcheck" | jq '.'
 ```
 
 Your output should resemble:

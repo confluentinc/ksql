@@ -63,6 +63,9 @@ public class ClientOptionsImplTest {
         .addEqualityGroup(
             ClientOptions.create().setExecuteQueryMaxResultRows(10)
         )
+        .addEqualityGroup(
+            ClientOptions.create().setHttp2MultiplexingLimit(5)
+        )
         .testEquals();
   }
 

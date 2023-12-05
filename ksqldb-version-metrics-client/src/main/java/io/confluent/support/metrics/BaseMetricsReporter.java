@@ -15,6 +15,7 @@
 
 package io.confluent.support.metrics;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.support.metrics.common.Collector;
 import io.confluent.support.metrics.serde.AvroSerializer;
 import io.confluent.support.metrics.submitters.ConfluentSubmitter;
@@ -87,6 +88,7 @@ public abstract class BaseMetricsReporter extends Thread implements Closeable {
    * @param responseHandler Http Response Handler
    * @param enableSettlingTime Enable settling time before starting metrics
    */
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
   public BaseMetricsReporter(final String threadName,
       final boolean isDaemon,
       final BaseSupportConfig supportConfig,

@@ -95,7 +95,7 @@ Since: 0.7.0
 COUNT_DISTINCT(col1)
 ```
 
-Stream, Table
+Stream
 
 Returns the _approximate_ number of unique values of `col1` in a group.
 The function implementation uses [HyperLogLog](https://en.wikipedia.org/wiki/HyperLogLog)
@@ -263,6 +263,15 @@ Stream
 Return the Top *K* values for the given column and window
 Rows that have `col1` set to null are ignored.
 
+Example
+
+```sql
+SELECT orderzip_code, TOPK(order_total, 5) 
+  FROM orders WINDOW TUMBLING (SIZE 1 HOUR)
+  GROUP BY order_zipcode
+  EMIT CHANGES;
+```
+
 ## `TOPKDISTINCT`
 
 Since: -
@@ -275,3 +284,12 @@ Stream
 
 Return the distinct Top *K* values for the given column and window
 Rows that have `col1` set to null are ignored.
+
+Example
+
+```sql
+SELECT pageid, TOPKDISTINCT(viewtime, 5)
+  FROM pageviews_users
+  GROUP BY pageid
+  EMIT CHANGES;
+```

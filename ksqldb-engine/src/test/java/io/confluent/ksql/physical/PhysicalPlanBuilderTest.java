@@ -267,26 +267,6 @@ public class PhysicalPlanBuilderTest {
   }
 
   @Test
-  public void shouldThrowIfLeftTableNotJoiningOnTableKey() {
-    // Given:
-    givenKafkaTopicsExist("test4", "test5");
-    execute(CREATE_TABLE_TEST4 + CREATE_TABLE_TEST5);
-
-    // When:
-    final Exception e = assertThrows(
-        KsqlException.class,
-        () -> execute("CREATE TABLE t1 AS "
-            + "SELECT * FROM test4 JOIN test5 "
-            + "ON test4.col0 = test5.id;")
-    );
-
-    // Then:
-    assertThat(e.getMessage(), containsString(
-        "Cannot repartition a TABLE source. If this is a join, make "
-            + "sure that the criteria uses the TABLE's key column ID instead of [COL0]"));
-  }
-
-  @Test
   public void shouldThrowIfRightTableNotJoiningOnTableKey() {
     // Given:
     givenKafkaTopicsExist("test4", "test5");
@@ -301,9 +281,14 @@ public class PhysicalPlanBuilderTest {
     );
 
     // Then:
-    assertThat(e.getMessage(), containsString(
-        "Cannot repartition a TABLE source. If this is a join, make "
-            + "sure that the criteria uses the TABLE's key column ID instead of [COL0]"));
+    assertThat(
+        e.getMessage(),
+        containsString(
+            "Invalid join condition:"
+                + " table-table joins require to join on the primary key of the right input table."
+                + " Got TEST4.ID = TEST5.COL0."
+        )
+    );
   }
 
   @Test

@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Confluent Inc.
+ * Copyright 2021 Confluent Inc.
  *
  * Licensed under the Confluent Community License; you may not use this file
  * except in compliance with the License.  You may obtain a copy of the License at
@@ -21,6 +21,7 @@ import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.ExecutionStepPropertiesV1;
+import io.confluent.ksql.execution.plan.ForeignKeyTableTableJoin;
 import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.JoinType;
 import io.confluent.ksql.execution.plan.KGroupedStreamHolder;
@@ -53,13 +54,16 @@ import io.confluent.ksql.execution.plan.WindowedStreamSource;
 import io.confluent.ksql.execution.plan.WindowedTableSource;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.execution.windows.KsqlWindowExpression;
+import io.confluent.ksql.execution.windows.WindowTimeClause;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.serde.RefinementInfo;
 import io.confluent.ksql.serde.WindowInfo;
 import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
+import java.util.OptionalInt;
 import org.apache.kafka.streams.kstream.JoinWindows;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
@@ -84,7 +88,8 @@ public final class ExecutionStepFactory {
         formats,
         windowInfo,
         timestampColumn,
-        sourceSchema
+        sourceSchema,
+        OptionalInt.of(SystemColumns.CURRENT_PSEUDOCOLUMN_VERSION_NUMBER)
     );
   }
 
@@ -101,7 +106,8 @@ public final class ExecutionStepFactory {
         topicName,
         formats,
         timestampColumn,
-        sourceSchema
+        sourceSchema,
+        OptionalInt.of(SystemColumns.CURRENT_PSEUDOCOLUMN_VERSION_NUMBER)
     );
   }
 
@@ -119,7 +125,8 @@ public final class ExecutionStepFactory {
         formats,
         timestampColumn,
         sourceSchema,
-        Optional.of(true)
+        Optional.of(true),
+        OptionalInt.of(SystemColumns.CURRENT_PSEUDOCOLUMN_VERSION_NUMBER)
     );
   }
 
@@ -138,7 +145,8 @@ public final class ExecutionStepFactory {
         formats,
         windowInfo,
         timestampColumn,
-        sourceSchema
+        sourceSchema,
+        OptionalInt.of(SystemColumns.CURRENT_PSEUDOCOLUMN_VERSION_NUMBER)
     );
   }
 
@@ -227,7 +235,8 @@ public final class ExecutionStepFactory {
       final Formats rightFormats,
       final ExecutionStep<KStreamHolder<K>> left,
       final ExecutionStep<KStreamHolder<K>> right,
-      final JoinWindows joinWindows
+      final JoinWindows joinWindows,
+      final Optional<WindowTimeClause> gracePeriod
   ) {
     final QueryContext queryContext = stacker.getQueryContext();
     return new StreamStreamJoin<>(
@@ -239,7 +248,8 @@ public final class ExecutionStepFactory {
         left,
         right,
         Duration.ofMillis(joinWindows.beforeMs),
-        Duration.ofMillis(joinWindows.afterMs)
+        Duration.ofMillis(joinWindows.afterMs),
+        gracePeriod.map(grace -> Duration.ofMillis(grace.toDuration().toMillis()))
     );
   }
 
@@ -288,7 +298,8 @@ public final class ExecutionStepFactory {
       final QueryContext.Stacker stacker,
       final ExecutionStep<KTableHolder<K>> source,
       final List<ColumnName> keyColumnNames,
-      final List<SelectExpression> selectExpressions
+      final List<SelectExpression> selectExpressions,
+      final Formats format
   ) {
     final ExecutionStepPropertiesV1 properties = new ExecutionStepPropertiesV1(
         stacker.getQueryContext()
@@ -297,7 +308,8 @@ public final class ExecutionStepFactory {
         properties,
         source,
         keyColumnNames,
-        selectExpressions
+        selectExpressions,
+        Optional.ofNullable(format)
     );
   }
 
@@ -313,6 +325,28 @@ public final class ExecutionStepFactory {
         new ExecutionStepPropertiesV1(queryContext),
         joinType,
         keyColName,
+        left,
+        right
+    );
+  }
+
+  public static <KLeftT, KRightT> ForeignKeyTableTableJoin<KLeftT, KRightT>
+      foreignKeyTableTableJoin(
+          final QueryContext.Stacker stacker,
+          final JoinType joinType,
+          final Optional<ColumnName> leftJoinColumnName,
+          final Formats formats,
+          final ExecutionStep<KTableHolder<KLeftT>> left,
+          final ExecutionStep<KTableHolder<KRightT>> right,
+          final Optional<Expression> leftJoinExpression
+  ) {
+    final QueryContext queryContext = stacker.getQueryContext();
+    return new ForeignKeyTableTableJoin<>(
+        new ExecutionStepPropertiesV1(queryContext),
+        joinType,
+        leftJoinColumnName,
+        leftJoinExpression,
+        formats,
         left,
         right
     );

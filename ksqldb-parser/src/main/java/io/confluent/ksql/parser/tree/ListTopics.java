@@ -21,27 +21,21 @@ import io.confluent.ksql.parser.NodeLocation;
 import java.util.Objects;
 import java.util.Optional;
 
-public class ListTopics extends Statement {
+public class ListTopics extends StatementWithExtendedClause {
 
   private final boolean showAll;
-  private final boolean showExtended;
 
   public ListTopics(
       final Optional<NodeLocation> location,
       final boolean showAll,
       final boolean showExtended
   ) {
-    super(location);
+    super(location, showExtended);
     this.showAll = showAll;
-    this.showExtended = showExtended;
   }
 
   public boolean getShowAll() {
     return showAll;
-  }
-
-  public boolean getShowExtended() {
-    return showExtended;
   }
 
   @Override

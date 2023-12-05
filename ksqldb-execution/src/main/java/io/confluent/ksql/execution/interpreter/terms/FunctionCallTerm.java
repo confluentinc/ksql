@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.execution.interpreter.terms;
 
+import com.google.common.collect.ImmutableList;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.execution.interpreter.TermEvaluationContext;
 import io.confluent.ksql.function.udf.Kudf;
 import io.confluent.ksql.schema.ksql.types.SqlType;
@@ -28,6 +30,7 @@ public class FunctionCallTerm implements Term {
   private final Class<?> resultJavaClass;
   private final SqlType resultType;
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
   public FunctionCallTerm(
       final Kudf kudf,
       final List<Term> arguments,
@@ -35,7 +38,7 @@ public class FunctionCallTerm implements Term {
       final SqlType resultType
   ) {
     this.kudf = kudf;
-    this.arguments = arguments;
+    this.arguments = ImmutableList.copyOf(arguments);
     this.resultJavaClass = resultJavaClass;
     this.resultType = resultType;
   }

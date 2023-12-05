@@ -70,7 +70,7 @@ public final class KsqlRestClient implements Closeable {
         clientProps,
         creds,
         (cprops, credz, lprops) -> new KsqlClient(cprops, credz, lprops,
-            new HttpClientOptions())
+            new HttpClientOptions(), Optional.empty())
     );
   }
 
@@ -170,6 +170,10 @@ public final class KsqlRestClient implements Closeable {
 
   public RestResponse<CommandStatus> makeStatusRequest(final String commandId) {
     return target().getStatus(commandId);
+  }
+
+  public RestResponse<Boolean> makeIsValidRequest(final String propertyName) {
+    return target().getIsValidRequest(propertyName);
   }
 
   public RestResponse<StreamPublisher<StreamedRow>> makeQueryRequestStreamed(final String ksql,

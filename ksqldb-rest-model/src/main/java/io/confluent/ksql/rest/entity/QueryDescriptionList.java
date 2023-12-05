@@ -19,6 +19,7 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
@@ -36,6 +37,7 @@ public class QueryDescriptionList extends KsqlEntity {
     this.queryDescriptions = ImmutableList.copyOf(queryDescriptions);
   }
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "queryDescriptions is ImmutableList")
   public List<QueryDescription> getQueryDescriptions() {
     return queryDescriptions;
   }

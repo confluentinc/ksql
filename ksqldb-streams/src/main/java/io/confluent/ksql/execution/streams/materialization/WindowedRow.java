@@ -18,6 +18,7 @@ package io.confluent.ksql.execution.streams.materialization;
 import static java.util.Objects.requireNonNull;
 
 import com.google.common.annotations.VisibleForTesting;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.streams.materialization.TableRowValidation.Validator;
@@ -88,6 +89,7 @@ public final class WindowedRow implements TableRow {
   }
 
   @Override
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "should be mutable")
   public GenericRow value() {
     return value;
   }

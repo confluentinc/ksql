@@ -24,6 +24,7 @@ import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchema;
 import io.confluent.kafka.serializers.protobuf.AbstractKafkaProtobufSerializer;
 import io.confluent.kafka.serializers.subject.DefaultReferenceSubjectNameStrategy;
 import io.confluent.ksql.KsqlExecutionContext;
+import io.confluent.ksql.exception.KsqlSchemaAuthorizationException;
 import io.confluent.ksql.execution.ddl.commands.CreateSourceCommand;
 import io.confluent.ksql.parser.properties.with.SourcePropertiesUtil;
 import io.confluent.ksql.parser.tree.CreateAsSelect;
@@ -50,6 +51,7 @@ import io.confluent.ksql.util.KsqlStatementException;
 import java.io.IOException;
 import java.util.List;
 import java.util.Objects;
+import org.apache.kafka.common.acl.AclOperation;
 
 public class SchemaRegisterInjector implements Injector {
 
@@ -238,6 +240,16 @@ public class SchemaRegisterInjector implements Injector {
         }
       }
     } catch (IOException | RestClientException e) {
+      if (SchemaRegistryUtil.isAuthErrorCode(e)) {
+        final AclOperation deniedOperation = SchemaRegistryUtil.getDeniedOperation(e.getMessage());
+
+        if (deniedOperation != AclOperation.UNKNOWN) {
+          throw new KsqlSchemaAuthorizationException(
+              deniedOperation,
+              subject);
+        }
+      }
+
       throw new KsqlStatementException(
           "Could not register schema for topic: " + e.getMessage(),
           statementText,

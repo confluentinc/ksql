@@ -20,6 +20,8 @@ import static io.confluent.ksql.execution.plan.JoinType.LEFT;
 import com.google.common.testing.EqualsTester;
 import io.confluent.ksql.name.ColumnName;
 import java.time.Duration;
+import java.util.Optional;
+
 import org.apache.kafka.connect.data.Struct;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -32,6 +34,7 @@ public class StreamStreamJoinTest {
   private static final ColumnName KEY = ColumnName.of("Bob");
   private static final ColumnName KEY2 = ColumnName.of("Vic");
 
+  private static final Duration TWO_SEC = Duration.ofSeconds(2);
   private static final Duration SIX_SEC = Duration.ofSeconds(6);
   private static final Duration TEN_SEC = Duration.ofSeconds(10);
 
@@ -57,35 +60,50 @@ public class StreamStreamJoinTest {
   public void shouldImplementEquals() {
     new EqualsTester()
         .addEqualityGroup(
-            new StreamStreamJoin<>(props, INNER, KEY, lFmts, rFmts, left, right, TEN_SEC, SIX_SEC),
-            new StreamStreamJoin<>(props, INNER, KEY, lFmts, rFmts, left, right, TEN_SEC, SIX_SEC)
+            new StreamStreamJoin<>(props, INNER, KEY, lFmts, rFmts,
+                left, right, TEN_SEC, SIX_SEC, Optional.empty()),
+            new StreamStreamJoin<>(props, INNER, KEY, lFmts, rFmts,
+                left, right, TEN_SEC, SIX_SEC, Optional.empty())
         )
         .addEqualityGroup(
-            new StreamStreamJoin<>(props2, INNER, KEY, lFmts, rFmts, left, right, TEN_SEC, SIX_SEC)
+            new StreamStreamJoin<>(props2, INNER, KEY, lFmts, rFmts,
+                left, right, TEN_SEC, SIX_SEC, Optional.empty())
         )
         .addEqualityGroup(
-            new StreamStreamJoin<>(props, LEFT, KEY, lFmts, rFmts, left, right, TEN_SEC, SIX_SEC)
+            new StreamStreamJoin<>(props, LEFT, KEY, lFmts, rFmts,
+                left, right, TEN_SEC, SIX_SEC, Optional.empty())
         )
         .addEqualityGroup(
-            new StreamStreamJoin<>(props, LEFT, KEY2, lFmts, rFmts, left, right, TEN_SEC, SIX_SEC)
+            new StreamStreamJoin<>(props, LEFT, KEY2, lFmts, rFmts,
+                left, right, TEN_SEC, SIX_SEC, Optional.empty())
         )
         .addEqualityGroup(
-            new StreamStreamJoin<>(props, INNER, KEY, rFmts, rFmts, left, right, TEN_SEC, SIX_SEC)
+            new StreamStreamJoin<>(props, INNER, KEY, rFmts, rFmts,
+                left, right, TEN_SEC, SIX_SEC, Optional.empty())
         )
         .addEqualityGroup(
-            new StreamStreamJoin<>(props, INNER, KEY, lFmts, lFmts, left, right, TEN_SEC, SIX_SEC)
+            new StreamStreamJoin<>(props, INNER, KEY, lFmts, lFmts,
+                left, right, TEN_SEC, SIX_SEC, Optional.empty())
         )
         .addEqualityGroup(
-            new StreamStreamJoin<>(props, INNER, KEY, lFmts, rFmts, left2, right, TEN_SEC, SIX_SEC)
+            new StreamStreamJoin<>(props, INNER, KEY, lFmts, rFmts,
+                left2, right, TEN_SEC, SIX_SEC, Optional.empty())
         )
         .addEqualityGroup(
-            new StreamStreamJoin<>(props, INNER, KEY, lFmts, rFmts, left, right2, TEN_SEC, SIX_SEC)
+            new StreamStreamJoin<>(props, INNER, KEY, lFmts, rFmts,
+                left, right2, TEN_SEC, SIX_SEC, Optional.empty())
         )
         .addEqualityGroup(
-            new StreamStreamJoin<>(props, INNER, KEY, lFmts, rFmts, left, right, SIX_SEC, SIX_SEC)
+            new StreamStreamJoin<>(props, INNER, KEY, lFmts, rFmts,
+                left, right, SIX_SEC, SIX_SEC, Optional.empty())
         )
         .addEqualityGroup(
-            new StreamStreamJoin<>(props, INNER, KEY, lFmts, rFmts, left, right, TEN_SEC, TEN_SEC)
+            new StreamStreamJoin<>(props, INNER, KEY, lFmts, rFmts,
+                left, right, TEN_SEC, TEN_SEC, Optional.empty())
+        )
+        .addEqualityGroup(
+            new StreamStreamJoin<>(props, INNER, KEY, lFmts, rFmts,
+                left, right, TEN_SEC, SIX_SEC, Optional.of(TWO_SEC))
         ).testEquals();
   }
 }

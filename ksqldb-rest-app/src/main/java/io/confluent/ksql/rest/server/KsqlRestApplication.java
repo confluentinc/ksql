@@ -32,9 +32,11 @@ import io.confluent.ksql.api.impl.DefaultKsqlSecurityContextProvider;
 import io.confluent.ksql.api.impl.KsqlSecurityContextProvider;
 import io.confluent.ksql.api.impl.MonitoredEndpoints;
 import io.confluent.ksql.api.server.Server;
+import io.confluent.ksql.api.server.SlidingWindowRateLimiter;
 import io.confluent.ksql.api.spi.Endpoints;
 import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.engine.KsqlEngine;
+import io.confluent.ksql.engine.QueryEventListener;
 import io.confluent.ksql.execution.streams.RoutingFilter;
 import io.confluent.ksql.execution.streams.RoutingFilter.RoutingFilterFactory;
 import io.confluent.ksql.execution.streams.RoutingFilters;
@@ -42,6 +44,7 @@ import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.function.MutableFunctionRegistry;
 import io.confluent.ksql.function.UserFunctionLoader;
 import io.confluent.ksql.internal.PullQueryExecutorMetrics;
+import io.confluent.ksql.internal.UtilizationMetricsListener;
 import io.confluent.ksql.logging.processing.ProcessingLogConfig;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.logging.processing.ProcessingLogServerUtils;
@@ -50,6 +53,7 @@ import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.physical.pull.HARouting;
+import io.confluent.ksql.physical.scalablepush.PushRouting;
 import io.confluent.ksql.properties.DenyListPropertyValidator;
 import io.confluent.ksql.properties.PropertiesUtil;
 import io.confluent.ksql.query.id.SpecificQueryIdGenerator;
@@ -86,6 +90,7 @@ import io.confluent.ksql.rest.util.ClusterTerminator;
 import io.confluent.ksql.rest.util.ConcurrencyLimiter;
 import io.confluent.ksql.rest.util.KsqlInternalTopicUtils;
 import io.confluent.ksql.rest.util.KsqlUncaughtExceptionHandler;
+import io.confluent.ksql.rest.util.PersistentQueryCleanupImpl;
 import io.confluent.ksql.rest.util.RocksDBConfigSetterHandler;
 import io.confluent.ksql.schema.registry.KsqlSchemaRegistryClientFactory;
 import io.confluent.ksql.security.KsqlAuthorizationValidator;
@@ -122,6 +127,7 @@ import java.net.URI;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
@@ -131,6 +137,7 @@ import java.util.Properties;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
@@ -150,6 +157,8 @@ public final class KsqlRestApplication implements Executable {
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
   private static final Logger log = LoggerFactory.getLogger(KsqlRestApplication.class);
+
+  private static final int NUM_MILLISECONDS_IN_HOUR = 3600 * 1000;
 
   private static final SourceName COMMANDS_STREAM_NAME = SourceName.of("KSQL_COMMANDS");
 
@@ -178,6 +187,7 @@ public final class KsqlRestApplication implements Executable {
   private final Optional<ClusterStatusResource> clusterStatusResource;
   private final Optional<LagReportingResource> lagReportingResource;
   private final HealthCheckResource healthCheckResource;
+  private final PushRouting pushQueryRouting;
   private volatile ServerMetadataResource serverMetadataResource;
   private volatile WSQueryEndpoint wsQueryEndpoint;
   @SuppressWarnings("UnstableApiUsage")
@@ -190,6 +200,7 @@ public final class KsqlRestApplication implements Executable {
   private final Optional<PullQueryExecutorMetrics> pullQueryMetrics;
   private final RateLimiter pullQueryRateLimiter;
   private final ConcurrencyLimiter pullConcurrencyLimiter;
+  private final SlidingWindowRateLimiter pullBandRateLimiter;
   private final HARouting pullQueryRouting;
   private final Optional<LocalCommands> localCommands;
 
@@ -231,7 +242,9 @@ public final class KsqlRestApplication implements Executable {
       final RoutingFilterFactory routingFilterFactory,
       final RateLimiter pullQueryRateLimiter,
       final ConcurrencyLimiter pullConcurrencyLimiter,
+      final SlidingWindowRateLimiter pullBandRateLimiter,
       final HARouting pullQueryRouting,
+      final PushRouting pushQueryRouting,
       final Optional<LocalCommands> localCommands
   ) {
     log.debug("Creating instance of ksqlDB API server");
@@ -288,7 +301,9 @@ public final class KsqlRestApplication implements Executable {
     this.routingFilterFactory = requireNonNull(routingFilterFactory, "routingFilterFactory");
     this.pullQueryRateLimiter = requireNonNull(pullQueryRateLimiter, "pullQueryRateLimiter");
     this.pullConcurrencyLimiter = requireNonNull(pullConcurrencyLimiter, "pullConcurrencyLimiter");
+    this.pullBandRateLimiter = requireNonNull(pullBandRateLimiter, "pullBandRateLimiter");
     this.pullQueryRouting = requireNonNull(pullQueryRouting, "pullQueryRouting");
+    this.pushQueryRouting = pushQueryRouting;
     this.localCommands = requireNonNull(localCommands, "localCommands");
   }
 
@@ -298,7 +313,8 @@ public final class KsqlRestApplication implements Executable {
     this.serverMetadataResource = ServerMetadataResource.create(serviceContext, ksqlConfigNoPort);
     final StatementParser statementParser = new StatementParser(ksqlEngine);
     final Optional<KsqlAuthorizationValidator> authorizationValidator =
-        KsqlAuthorizationValidatorFactory.create(ksqlConfigNoPort, serviceContext);
+        KsqlAuthorizationValidatorFactory.create(ksqlConfigNoPort, serviceContext,
+            securityExtension.getAuthorizationProvider());
     final Errors errorHandler = new Errors(restConfig.getConfiguredInstance(
         KsqlRestConfig.KSQL_SERVER_ERROR_MESSAGES,
         ErrorMessages.class
@@ -332,8 +348,10 @@ public final class KsqlRestApplication implements Executable {
         routingFilterFactory,
         pullQueryRateLimiter,
         pullConcurrencyLimiter,
+        pullBandRateLimiter,
         pullQueryRouting,
-        localCommands
+        localCommands,
+        pushQueryRouting
     );
 
     startAsyncThreadRef.set(Thread.currentThread());
@@ -357,7 +375,9 @@ public final class KsqlRestApplication implements Executable {
           pullQueryMetrics,
           pullQueryRateLimiter,
           pullConcurrencyLimiter,
+          pullBandRateLimiter,
           pullQueryRouting,
+          pushQueryRouting,
           localCommands,
           securityExtension.getAuthTokenProvider()
       );
@@ -460,7 +480,16 @@ public final class KsqlRestApplication implements Executable {
         processingLogContext.getConfig(),
         ksqlConfigNoPort
     );
-    commandRunner.processPriorCommands();
+    commandRunner.processPriorCommands(new PersistentQueryCleanupImpl(
+        configWithApplicationServer
+        .getKsqlStreamConfigProps()
+        .getOrDefault(
+          StreamsConfig.STATE_DIR_CONFIG,
+          StreamsConfig.configDef().defaultValues().get(StreamsConfig.STATE_DIR_CONFIG))
+        .toString(),
+        serviceContext)
+    );
+
     commandRunner.start();
     maybeCreateProcessingLogStream(
         processingLogContext.getConfig(),
@@ -676,13 +705,24 @@ public final class KsqlRestApplication implements Executable {
     final SpecificQueryIdGenerator specificQueryIdGenerator =
         new SpecificQueryIdGenerator();
 
+    final ScheduledExecutorService executorService = Executors.newScheduledThreadPool(1,
+        new ThreadFactoryBuilder()
+            .setNameFormat("ksql-csu-metrics-reporter-%d")
+            .build()
+    );
+    final UtilizationMetricsListener csuMetricReporter = new UtilizationMetricsListener();
+    executorService.scheduleAtFixedRate(csuMetricReporter, 0, 300000, TimeUnit.MILLISECONDS);
+    final List<QueryEventListener> listeners = new ArrayList<>();
+    listeners.add(csuMetricReporter);
+
     final KsqlEngine ksqlEngine = new KsqlEngine(
         serviceContext,
         processingLogContext,
         functionRegistry,
         ServiceInfo.create(ksqlConfig, metricsPrefix),
         specificQueryIdGenerator,
-        new KsqlConfig(restConfig.getKsqlConfigProperties())
+        new KsqlConfig(restConfig.getKsqlConfigProperties()),
+        listeners
     );
 
     UserFunctionLoader.newInstance(ksqlConfig, functionRegistry, ksqlInstallDir).load();
@@ -721,7 +761,8 @@ public final class KsqlRestApplication implements Executable {
         restConfig);
 
     final Optional<KsqlAuthorizationValidator> authorizationValidator =
-        KsqlAuthorizationValidatorFactory.create(ksqlConfig, serviceContext);
+        KsqlAuthorizationValidatorFactory.create(ksqlConfig, serviceContext,
+            securityExtension.getAuthorizationProvider());
 
     final Errors errorHandler = new Errors(restConfig.getConfiguredInstance(
         KsqlRestConfig.KSQL_SERVER_ERROR_MESSAGES,
@@ -739,7 +780,9 @@ public final class KsqlRestApplication implements Executable {
     final ConcurrencyLimiter pullQueryConcurrencyLimiter = new ConcurrencyLimiter(
         ksqlConfig.getInt(KsqlConfig.KSQL_QUERY_PULL_MAX_CONCURRENT_REQUESTS_CONFIG),
         "pull queries");
-
+    final SlidingWindowRateLimiter pullBandRateLimiter = new SlidingWindowRateLimiter(
+            ksqlConfig.getInt(KsqlConfig.KSQL_QUERY_PULL_MAX_HOURLY_BANDWIDTH_MEGABYTES_CONFIG),
+            NUM_MILLISECONDS_IN_HOUR);
     final DenyListPropertyValidator denyListPropertyValidator = new DenyListPropertyValidator(
         ksqlConfig.getList(KsqlConfig.KSQL_PROPERTIES_OVERRIDES_DENYLIST));
 
@@ -754,6 +797,7 @@ public final class KsqlRestApplication implements Executable {
 
     final HARouting pullQueryRouting = new HARouting(
         routingFilterFactory, pullQueryMetrics, ksqlConfig);
+    final PushRouting pushQueryRouting = new PushRouting();
 
     final Optional<LocalCommands> localCommands = createLocalCommands(restConfig, ksqlEngine);
 
@@ -772,7 +816,9 @@ public final class KsqlRestApplication implements Executable {
         routingFilterFactory,
         pullQueryRateLimiter,
         pullQueryConcurrencyLimiter,
+        pullBandRateLimiter,
         pullQueryRouting,
+        pushQueryRouting,
         localCommands
     );
 
@@ -849,7 +895,9 @@ public final class KsqlRestApplication implements Executable {
         routingFilterFactory,
         pullQueryRateLimiter,
         pullQueryConcurrencyLimiter,
+        pullBandRateLimiter,
         pullQueryRouting,
+        pushQueryRouting,
         localCommands
     );
   }

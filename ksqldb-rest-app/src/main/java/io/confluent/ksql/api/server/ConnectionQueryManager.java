@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.api.server;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.api.spi.QueryPublisher;
 import io.confluent.ksql.util.VertxUtils;
 import io.vertx.core.Context;
@@ -33,6 +34,7 @@ public class ConnectionQueryManager {
   private final Server server;
   private final Map<HttpConnection, ConnectionQueries> connectionsMap = new HashMap<>();
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
   public ConnectionQueryManager(final Context context, final Server server) {
     this.context = Objects.requireNonNull(context);
     this.server = Objects.requireNonNull(server);

@@ -88,6 +88,7 @@ import java.util.function.LongSupplier;
 import java.util.function.Supplier;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.common.errors.ClusterAuthorizationException;
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.errors.TopicAuthorizationException;
 import org.apache.kafka.common.serialization.Serde;
@@ -667,6 +668,35 @@ public class InsertValuesExecutorTest {
   }
 
   @Test
+  public void shouldThrowOnClusterAuthorizationException() {
+    // Given:
+    final ConfiguredStatement<InsertValues> statement = givenInsertValues(
+        allAndPseudoColumnNames(SCHEMA),
+        ImmutableList.of(
+            new LongLiteral(1L),
+            new StringLiteral("str"),
+            new StringLiteral("str"),
+            new LongLiteral(2L))
+    );
+    doThrow(new ClusterAuthorizationException("Cluster authorization failed"))
+        .when(producer).send(any());
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> executor.execute(statement, mock(SessionProperties.class), engine, serviceContext)
+    );
+
+    // Then:
+    assertThat(e.getCause(), (hasMessage(
+        containsString("Authorization denied to Write on topic(s): [" + TOPIC_NAME + "]. "
+            + "Caused by: The producer is not authorized to do idempotent sends. "
+            + "Check that you have write permissions to the specified topic, "
+            + "and disable idempotent sends by setting 'enable.idempotent=false' "
+            + " if necessary."))));
+  }
+
+  @Test
   public void shouldThrowIfNotEnoughValuesSuppliedWithNoSchema() {
     // Given:
     final ConfiguredStatement<InsertValues> statement = givenInsertValues(
@@ -970,7 +1000,8 @@ public class InsertValuesExecutorTest {
 
     // Then:
     assertThat(e.getMessage(), containsString(
-        "Not authorized to read Schema Registry subject: [" + KsqlConstants.getSRSubject(TOPIC_NAME, true)));
+        "Authorization denied to Read on Schema Registry subject: ["
+            + KsqlConstants.getSRSubject(TOPIC_NAME, true)));
   }
 
   @Test
@@ -1006,7 +1037,8 @@ public class InsertValuesExecutorTest {
 
     // Then:
     assertThat(e.getMessage(), containsString(
-        "Not authorized to write Schema Registry subject: [" + KsqlConstants.getSRSubject(TOPIC_NAME, true)));
+        "Authorization denied to Write on Schema Registry subject: ["
+            + KsqlConstants.getSRSubject(TOPIC_NAME, true)));
   }
 
   @Test
@@ -1042,7 +1074,8 @@ public class InsertValuesExecutorTest {
 
     // Then:
     assertThat(e.getMessage(), containsString(
-        "Not authorized to write Schema Registry subject: [" + KsqlConstants.getSRSubject(TOPIC_NAME, false)));
+        "Authorization denied to Write on Schema Registry subject: ["
+            + KsqlConstants.getSRSubject(TOPIC_NAME, false)));
   }
 
   private static ConfiguredStatement<InsertValues> givenInsertValues(

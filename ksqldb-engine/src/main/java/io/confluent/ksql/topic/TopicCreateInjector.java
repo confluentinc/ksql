@@ -147,7 +147,7 @@ public class TopicCreateInjector implements Injector {
 
     final SourceTopicsExtractor extractor = new SourceTopicsExtractor(metaStore);
     extractor.process(statement.getStatement().getQuery(), null);
-    final String sourceTopicName = extractor.getPrimaryKafkaTopicName();
+    final String sourceTopicName = extractor.getPrimarySourceTopic().getKafkaTopicName();
 
     topicPropertiesBuilder
         .withName(prefix + createAsSelect.getName().text())

@@ -25,6 +25,7 @@ import com.github.rvesse.airline.parser.errors.ParseArgumentsMissingException;
 import com.github.rvesse.airline.parser.errors.ParseOptionOutOfRangeException;
 import com.github.rvesse.airline.parser.errors.ParseTooManyArgumentsException;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.confluent.ksql.test.util.KsqlTestFolder;
 import java.io.File;
 import java.nio.file.Paths;
 import org.junit.Before;
@@ -41,7 +42,7 @@ public class CreateMigrationCommandTest {
   private static final String EXPECTED_FILE_SUFFIX = "migration_file_description.sql";
 
   @Rule
-  public TemporaryFolder folder = new TemporaryFolder();
+  public TemporaryFolder folder = KsqlTestFolder.temporaryFolder();
 
   private String migrationsDir;
   private CreateMigrationCommand command;

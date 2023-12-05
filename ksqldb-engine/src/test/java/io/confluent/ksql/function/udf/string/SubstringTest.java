@@ -22,6 +22,8 @@ import static org.hamcrest.Matchers.nullValue;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.nio.ByteBuffer;
+
 public class SubstringTest {
 
   private Substring udf;
@@ -32,33 +34,65 @@ public class SubstringTest {
   }
 
   @Test
-  public void shouldReturnNullOnNullValue() {
-    assertThat(udf.substring(null, 1), is(nullValue()));
-    assertThat(udf.substring(null, 1, 1), is(nullValue()));
+  public void shouldReturnNullOnStringNullValue() {
+    assertThat(udf.substring((String) null, 1), is(nullValue()));
+    assertThat(udf.substring((String) null, 1, 1), is(nullValue()));
     assertThat(udf.substring("some string", null, 1), is(nullValue()));
     assertThat(udf.substring("some string", 1, null), is(nullValue()));
   }
 
   @Test
-  public void shouldUseOneBasedIndexing() {
+  public void shouldReturnNullOnBytesNullValue() {
+    assertThat(udf.substring((ByteBuffer) null, 1), is(nullValue()));
+    assertThat(udf.substring((ByteBuffer) null, 1, 1), is(nullValue()));
+    assertThat(udf.substring(ByteBuffer.wrap(new byte[]{1}), null, 1), is(nullValue()));
+    assertThat(udf.substring(ByteBuffer.wrap(new byte[]{1}), 1, null), is(nullValue()));
+  }
+
+  @Test
+  public void shouldUseOneBasedIndexingOnString() {
     assertThat(udf.substring("a test string", 1, 1), is("a"));
     assertThat(udf.substring("a test string", -1, 1), is("g"));
   }
 
   @Test
-  public void shouldExtractFromStartForPositivePositions() {
+  public void shouldUseOneBasedIndexingOnBytes() {
+    assertThat(udf.substring(ByteBuffer.wrap(new byte[]{1,2,3,4}), 1, 1),
+        is(ByteBuffer.wrap(new byte[]{1})));
+    assertThat(udf.substring(ByteBuffer.wrap(new byte[]{1,2,3,4}), -1, 1),
+        is(ByteBuffer.wrap(new byte[]{4})));
+  }
+
+  @Test
+  public void shouldExtractFromStartForPositivePositionsOnStrings() {
     assertThat(udf.substring("a test string", 3), is("test string"));
     assertThat(udf.substring("a test string", 3, 4), is("test"));
   }
 
   @Test
-  public void shouldExtractFromEndForNegativePositions() {
+  public void shouldExtractFromStartForPositivePositionsOnBytes() {
+    assertThat(udf.substring(ByteBuffer.wrap(new byte[]{1,2,3,4}), 3),
+        is(ByteBuffer.wrap(new byte[]{3,4})));
+    assertThat(udf.substring(ByteBuffer.wrap(new byte[]{1,2,3,4}), 3, 4),
+        is(ByteBuffer.wrap(new byte[]{3,4})));
+  }
+
+  @Test
+  public void shouldExtractFromEndForNegativePositionsOnStrings() {
     assertThat(udf.substring("a test string", -6), is("string"));
     assertThat(udf.substring("a test string", -6, 2), is("st"));
   }
 
   @Test
-  public void shouldTruncateOutOfBoundIndexes() {
+  public void shouldExtractFromEndForNegativePositionsOnBytes() {
+    assertThat(udf.substring(ByteBuffer.wrap(new byte[]{1,2,3,4}), -3),
+        is(ByteBuffer.wrap(new byte[]{2,3,4})));
+    assertThat(udf.substring(ByteBuffer.wrap(new byte[]{1,2,3,4}), -3, 3),
+        is(ByteBuffer.wrap(new byte[]{2,3,4})));
+  }
+
+  @Test
+  public void shouldTruncateOutOfBoundIndexesOnStrings() {
     assertThat(udf.substring("a test string", 0), is("a test string"));
     assertThat(udf.substring("a test string", 100), is(""));
     assertThat(udf.substring("a test string", -100), is("a test string"));
@@ -66,4 +100,17 @@ public class SubstringTest {
     assertThat(udf.substring("a test string", 3, -100), is(""));
   }
 
+  @Test
+  public void shouldTruncateOutOfBoundIndexesOnBytes() {
+    assertThat(udf.substring(ByteBuffer.wrap(new byte[]{1,2,3,4}), 0),
+        is(ByteBuffer.wrap(new byte[]{1,2,3,4})));
+    assertThat(udf.substring(ByteBuffer.wrap(new byte[]{1,2,3,4}), 100),
+        is(ByteBuffer.wrap(new byte[]{})));
+    assertThat(udf.substring(ByteBuffer.wrap(new byte[]{1,2,3,4}), -100),
+        is(ByteBuffer.wrap(new byte[]{1,2,3,4})));
+    assertThat(udf.substring(ByteBuffer.wrap(new byte[]{1,2,3,4}), 3, 100),
+        is(ByteBuffer.wrap(new byte[]{3,4})));
+    assertThat(udf.substring(ByteBuffer.wrap(new byte[]{1,2,3,4}), 3, -100),
+        is(ByteBuffer.wrap(new byte[]{})));
+  }
 }

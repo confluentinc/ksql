@@ -32,6 +32,7 @@ import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.connect.ConnectSchemas;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -51,6 +52,7 @@ public class StructuredTypesDataProvider extends TestDataProvider {
       .valueColumn(ColumnName.of("STR"), SqlTypes.STRING)
       .valueColumn(ColumnName.of("LONG"), SqlTypes.BIGINT)
       .valueColumn(ColumnName.of("DEC"), SqlTypes.decimal(4, 2))
+      .valueColumn(ColumnName.of("BYTES_"), SqlTypes.BYTES)
       .valueColumn(ColumnName.of("ARRAY"), SqlTypes.array(SqlTypes.STRING))
       .valueColumn(ColumnName.of("MAP"), SqlTypes.map(SqlTypes.STRING, SqlTypes.STRING))
       .valueColumn(ColumnName.of("STRUCT"), SqlTypes.struct().field("F1", SqlTypes.INTEGER).build())
@@ -86,13 +88,19 @@ public class StructuredTypesDataProvider extends TestDataProvider {
 
   private static final Multimap<GenericKey, GenericRow> ROWS = ImmutableListMultimap
       .<GenericKey, GenericRow>builder()
-      .put(genericKey(generateStructKey("a")), genericRow("FOO", 1L, new BigDecimal("1.11"), Collections.singletonList("a"), Collections.singletonMap("k1", "v1"), generateSimpleStructValue(2), generateComplexStructValue(0)))
-      .put(genericKey(generateStructKey("b")), genericRow("BAR", 2L, new BigDecimal("2.22"), Collections.emptyList(), Collections.emptyMap(), generateSimpleStructValue(3), generateComplexStructValue(1)))
-      .put(genericKey(generateStructKey("c")), genericRow("BAZ", 3L, new BigDecimal("30.33"), Collections.singletonList("b"), Collections.emptyMap(), generateSimpleStructValue(null), generateComplexStructValue(2)))
-      .put(genericKey(generateStructKey("d")), genericRow("BUZZ", 4L, new BigDecimal("40.44"), ImmutableList.of("c", "d"), Collections.emptyMap(), generateSimpleStructValue(88), generateComplexStructValue(3)))
+      .put(genericKey(generateStructKey("a")), genericRow("FOO", 1L, new BigDecimal("1.11"), new byte[]{1},
+          Collections.singletonList("a"), Collections.singletonMap("k1", "v1"), generateSimpleStructValue(2), generateComplexStructValue(0)))
+      .put(genericKey(generateStructKey("b")), genericRow("BAR", 2L, new BigDecimal("2.22"), new byte[]{2},
+          Collections.emptyList(), Collections.emptyMap(), generateSimpleStructValue(3), generateComplexStructValue(1)))
+      .put(genericKey(generateStructKey("c")), genericRow("BAZ", 3L, new BigDecimal("30.33"), new byte[]{3},
+          Collections.singletonList("b"), Collections.emptyMap(), generateSimpleStructValue(null), generateComplexStructValue(2)))
+      .put(genericKey(generateStructKey("d")), genericRow("BUZZ", 4L, new BigDecimal("40.44"), new byte[]{4},
+          ImmutableList.of("c", "d"), Collections.emptyMap(), generateSimpleStructValue(88), generateComplexStructValue(3)))
       // Additional entries for repeated keys
-      .put(genericKey(generateStructKey("c")), genericRow("BAZ", 5L, new BigDecimal("12.0"), ImmutableList.of("e"), ImmutableMap.of("k1", "v1", "k2", "v2"), generateSimpleStructValue(0), generateComplexStructValue(4)))
-      .put(genericKey(generateStructKey("d")), genericRow("BUZZ", 6L, new BigDecimal("10.1"), ImmutableList.of("f", "g"), Collections.emptyMap(), generateSimpleStructValue(null), generateComplexStructValue(5)))
+      .put(genericKey(generateStructKey("c")), genericRow("BAZ", 5L, new BigDecimal("12.0"), new byte[]{15},
+          ImmutableList.of("e"), ImmutableMap.of("k1", "v1", "k2", "v2"), generateSimpleStructValue(0), generateComplexStructValue(4)))
+      .put(genericKey(generateStructKey("d")), genericRow("BUZZ", 6L, new BigDecimal("10.1"), new byte[]{6},
+          ImmutableList.of("f", "g"), Collections.emptyMap(), generateSimpleStructValue(null), generateComplexStructValue(5)))
       .build();
 
   public StructuredTypesDataProvider() {

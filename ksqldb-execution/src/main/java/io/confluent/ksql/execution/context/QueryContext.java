@@ -20,6 +20,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonValue;
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -50,6 +51,7 @@ public final class QueryContext {
   }
 
   @JsonIgnore
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "context is ImmutableList")
   public List<String> getContext() {
     return context;
   }

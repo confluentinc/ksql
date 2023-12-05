@@ -20,6 +20,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableMap;
 import com.google.errorprone.annotations.Immutable;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.Map;
 import java.util.Objects;
 
@@ -55,6 +56,10 @@ public class HostStatusEntity {
     return lastStatusUpdateMs;
   }
 
+  @SuppressFBWarnings(
+      value = "EI_EXPOSE_REP",
+      justification = "activeStandbyPerQuery is ImmutableMap"
+  )
   public ImmutableMap<String, ActiveStandbyEntity> getActiveStandbyPerQuery() {
     return activeStandbyPerQuery;
   }

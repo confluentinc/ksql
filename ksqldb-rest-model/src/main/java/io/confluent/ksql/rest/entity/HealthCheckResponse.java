@@ -22,6 +22,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableMap;
 import com.google.errorprone.annotations.Immutable;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.Map;
 import java.util.Objects;
 
@@ -45,6 +46,7 @@ public final class HealthCheckResponse {
     return isHealthy;
   }
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "details is ImmutableMap")
   public Map<String, HealthCheckResponseDetail> getDetails() {
     return details;
   }

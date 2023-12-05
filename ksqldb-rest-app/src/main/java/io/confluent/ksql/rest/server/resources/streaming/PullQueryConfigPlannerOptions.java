@@ -15,34 +15,38 @@
 
 package io.confluent.ksql.rest.server.resources.streaming;
 
-import io.confluent.ksql.planner.PullPlannerOptions;
+import com.google.common.collect.ImmutableMap;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.confluent.ksql.planner.QueryPlannerOptions;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Map;
+import java.util.Optional;
 
-public class PullQueryConfigPlannerOptions implements PullPlannerOptions {
+public class PullQueryConfigPlannerOptions implements QueryPlannerOptions {
 
   private final KsqlConfig ksqlConfig;
-  private final Map<String, ?> configOverrides;
+  private final ImmutableMap<String, ?> configOverrides;
 
-  public PullQueryConfigPlannerOptions(final KsqlConfig ksqlConfig,
-      final Map<String, ?> configOverrides) {
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
+  public PullQueryConfigPlannerOptions(
+      final KsqlConfig ksqlConfig,
+      final Map<String, ?> configOverrides
+  ) {
     this.ksqlConfig = ksqlConfig;
-    this.configOverrides = configOverrides;
+    this.configOverrides = ImmutableMap.copyOf(configOverrides);
   }
 
   @Override
   public boolean getTableScansEnabled() {
-    if (configOverrides.containsKey(KsqlConfig.KSQL_QUERY_PULL_TABLE_SCAN_ENABLED)) {
-      return (Boolean) configOverrides.get(KsqlConfig.KSQL_QUERY_PULL_TABLE_SCAN_ENABLED);
-    }
-    return ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PULL_TABLE_SCAN_ENABLED);
+    return Optional.ofNullable(
+        (Boolean) configOverrides.get(KsqlConfig.KSQL_QUERY_PULL_TABLE_SCAN_ENABLED)
+    ).orElse(ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PULL_TABLE_SCAN_ENABLED));
   }
 
   @Override
   public boolean getInterpreterEnabled() {
-    if (configOverrides.containsKey(KsqlConfig.KSQL_QUERY_PULL_INTERPRETER_ENABLED)) {
-      return (Boolean) configOverrides.get(KsqlConfig.KSQL_QUERY_PULL_INTERPRETER_ENABLED);
-    }
-    return ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PULL_INTERPRETER_ENABLED);
+    return Optional.ofNullable(
+        (Boolean) configOverrides.get(KsqlConfig.KSQL_QUERY_PULL_INTERPRETER_ENABLED)
+    ).orElse(ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PULL_INTERPRETER_ENABLED));
   }
 }

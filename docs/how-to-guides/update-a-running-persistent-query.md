@@ -46,10 +46,10 @@ ksqlDB provides two mechanisms to change a query that is already running:
 
 Obviously, it would be preferable to always perform an in-place upgrade
 when you change a query. But because of how streaming programs are constructed,
-this isn't not always possible to do that.
+this isn't always possible.
 
 To better understand the different types of upgrades that are allowed on persistent
-queries, here's a taxonomy usin gthe combination of three
+queries, here's a taxonomy using the combination of three
 types of query characteristics: _source query_, _upgrade_ and (optionally) _environment_.
 
 | **Category** | **Characteristic** | **Description** |
@@ -73,7 +73,7 @@ types of query characteristics: _source query_, _upgrade_ and (optionally) _envi
 | | Ordered | Ordered environments require that a single offset delineates pre- and post-migration (no events are interleaved) |
 | | Live | Live environments describe queries that cannot afford downtime, either by means of acting as live storage (e.g. responding to pull queries) or feeding into high availability systems (powering important functionality) |
 
-ksqlDB supports only in-place upgrades for _data selection_ and
+ksqlDB supports in-place upgrades for only _data selection_ and
 _schema evolution_ upgrades on a limited subset of query characteristics.
 ksqlDB doesn't guarantee validity of any environments when performing an
 in-place upgrade.
@@ -103,7 +103,7 @@ CREATE STREAM valid_purchases AS
 ### Data selection
 
 Over time, ksqlMart changes its return policy and begins issuing full refunds.
-These events have a negative `cost` column value. Since these events are now
+These records have a negative `cost` column value. Since these records are now
 valid, ksqlMart needs to update the query to remove the `cost > 0.00` clause:
 
 ```sql
@@ -115,7 +115,7 @@ CREATE OR REPLACE STREAM valid_purchases AS
 
 The `CREATE OR REPLACE` statement instructs ksqlDB to terminate the old query,
 and create a new one that will continue from the last
-event that the previous query processed. Note that this means any previously 
+record that the previous query processed. Note that this means any previously 
 processed data with negative cost will not be included, even if issuing the
 query with `SET 'auto.offset.reset'='earliest';`.
 
@@ -161,7 +161,7 @@ renaming, or changing the type of any existing field is invalid.
 ### Stateful data selection
 
 The previous examples all involve _stateless_ upgrades, but ksqlDB also enables
-_data selection_ and limitted _schema evolution_ upgrades on some stateful queries. 
+_data selection_ and limited _schema evolution_ upgrades on some stateful queries.
 ksqlMart, as is common with data-driven companies that leverage ksqlDB, also has 
 queries that generate analytics on their purchases:
 
@@ -176,7 +176,7 @@ CREATE TABLE purchase_stats AS
 
 After some time, they realize that the `purchase_stats` stream doesn't account
 properly for refunds. They're OK with having the initial purchase count toward
-the `purhcase_stats`, but they don't want the refund to increment the `COUNT(*)`
+the `purchase_stats`, but they don't want the refund to increment the `COUNT(*)`
 aggregation, so they update their query in place to add a filter for this
 condition:
 
@@ -199,7 +199,7 @@ replacing upgrade that read from the earliest offset in the `valid_purchases` st
 ```sql
 TERMINATE CTAS_PURCHASE_STATS_0;
 
-DROP STREAM purhcase_stats;
+DROP STREAM purchase_stats;
 
 SET 'auto.offset.reset'='earliest';
 

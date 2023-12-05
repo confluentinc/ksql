@@ -162,9 +162,7 @@ public class SchemaRegistryTopicSchemaSupplierTest {
     // Then:
     assertThat(result.schemaAndId, is(Optional.empty()));
     assertThat(result.failureReason, is(not(Optional.empty())));
-    assertThat(result.failureReason.get().getMessage(), containsString(
-        "Schema for message values on topic " + TOPIC_NAME
-            + " does not exist in the Schema Registry."));
+    verifyFailureMessageForValue(result);
   }
 
   @Test
@@ -180,9 +178,7 @@ public class SchemaRegistryTopicSchemaSupplierTest {
     // Then:
     assertThat(result.schemaAndId, is(Optional.empty()));
     assertThat(result.failureReason, is(not(Optional.empty())));
-    assertThat(result.failureReason.get().getMessage(), containsString(
-        "Schema for message keys on topic " + TOPIC_NAME
-            + " does not exist in the Schema Registry."));
+    verifyFailureMessageForKey(result);
   }
 
   @Test
@@ -198,9 +194,7 @@ public class SchemaRegistryTopicSchemaSupplierTest {
     // Then:
     assertThat(result.schemaAndId, is(Optional.empty()));
     assertThat(result.failureReason, is(not(Optional.empty())));
-    assertThat(result.failureReason.get().getMessage(), containsString(
-        "Schema for message values on topic " + TOPIC_NAME
-            + " does not exist in the Schema Registry."));
+    verifyFailureMessageForValue(result);
   }
 
   @Test
@@ -216,9 +210,7 @@ public class SchemaRegistryTopicSchemaSupplierTest {
     // Then:
     assertThat(result.schemaAndId, is(Optional.empty()));
     assertThat(result.failureReason, is(not(Optional.empty())));
-    assertThat(result.failureReason.get().getMessage(), containsString(
-        "Schema for message keys on topic " + TOPIC_NAME
-            + " does not exist in the Schema Registry."));
+    verifyFailureMessageForKey(result);
   }
 
   @Test
@@ -234,9 +226,7 @@ public class SchemaRegistryTopicSchemaSupplierTest {
     // Then:
     assertThat(result.schemaAndId, is(Optional.empty()));
     assertThat(result.failureReason, is(not(Optional.empty())));
-    assertThat(result.failureReason.get().getMessage(), containsString(
-        "Schema for message values on topic " + TOPIC_NAME
-            + " does not exist in the Schema Registry."));
+    verifyFailureMessageForValue(result);
   }
 
   @Test
@@ -252,9 +242,7 @@ public class SchemaRegistryTopicSchemaSupplierTest {
     // Then:
     assertThat(result.schemaAndId, is(Optional.empty()));
     assertThat(result.failureReason, is(not(Optional.empty())));
-    assertThat(result.failureReason.get().getMessage(), containsString(
-        "Schema for message keys on topic " + TOPIC_NAME
-            + " does not exist in the Schema Registry."));
+    verifyFailureMessageForKey(result);
   }
 
   @Test
@@ -270,9 +258,7 @@ public class SchemaRegistryTopicSchemaSupplierTest {
     // Then:
     assertThat(result.schemaAndId, is(Optional.empty()));
     assertThat(result.failureReason, is(not(Optional.empty())));
-    assertThat(result.failureReason.get().getMessage(), containsString(
-        "Schema for message values on topic " + TOPIC_NAME
-            + " does not exist in the Schema Registry."));
+    verifyFailureMessageForValue(result);
   }
 
   @Test
@@ -288,9 +274,35 @@ public class SchemaRegistryTopicSchemaSupplierTest {
     // Then:
     assertThat(result.schemaAndId, is(Optional.empty()));
     assertThat(result.failureReason, is(not(Optional.empty())));
-    assertThat(result.failureReason.get().getMessage(), containsString(
-        "Schema for message keys on topic " + TOPIC_NAME
-            + " does not exist in the Schema Registry."));
+    verifyFailureMessageForKey(result);
+  }
+
+  private void verifyFailureMessageForKey(final SchemaResult result) {
+    verifyFailureMessage(result, true);
+  }
+
+  private void verifyFailureMessageForValue(final SchemaResult result) {
+    verifyFailureMessage(result, false);
+  }
+
+  private void verifyFailureMessage(final SchemaResult result,
+                                    final boolean isKey) {
+    final String keyOrValue = isKey ? "keys" : "values";
+    final String keyOrValueSuffix = isKey ? "key" : "value";
+    assertThat(result.failureReason.get().getMessage(), is(
+        "Schema for message " + keyOrValue + " on topic '" + TOPIC_NAME + "' does not exist in the Schema Registry." + System.lineSeparator()
+            + "Subject: " + TOPIC_NAME + "-" + keyOrValueSuffix + System.lineSeparator()
+            + "Possible causes include:" + System.lineSeparator()
+            + "- The topic itself does not exist" + System.lineSeparator()
+            + "\t-> Use SHOW TOPICS; to check" + System.lineSeparator()
+            + "- Messages on the topic are not serialized using a format Schema Registry supports" + System.lineSeparator()
+            + "\t-> Use PRINT '" + TOPIC_NAME + "' FROM BEGINNING; to verify" + System.lineSeparator()
+            + "- Messages on the topic have not been serialized using a Confluent Schema Registry supported serializer" + System.lineSeparator()
+            + "\t-> See https://docs.confluent.io/current/schema-registry/docs/serializer-formatter.html" + System.lineSeparator()
+            + "- The schema is registered on a different instance of the Schema Registry" + System.lineSeparator()
+            + "\t-> Use the REST API to list available subjects\thttps://docs.confluent.io/current/schema-registry/docs/api.html#get--subjects" + System.lineSeparator()
+            + "- You do not have permissions to access the Schema Registry." + System.lineSeparator()
+            + "\t-> See https://docs.confluent.io/current/schema-registry/docs/security.html"));
   }
 
   @Test

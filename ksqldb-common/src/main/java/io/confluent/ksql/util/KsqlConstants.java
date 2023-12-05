@@ -43,10 +43,17 @@ public final class KsqlConstants {
   public static final String LAMBDA_FUNCTION = "=>";
 
   public static final String KSQL_SERVICE_ID_METRICS_TAG = "ksql_service_id";
+  public static final String KSQL_QUERY_SOURCE_TAG = "query_source";
+  public static final String KSQL_QUERY_PLAN_TYPE_TAG = "query_plan_type";
+  public static final String KSQL_QUERY_ROUTING_TYPE_TAG = "query_routing_type";
 
   public enum KsqlQueryType {
     PERSISTENT,
     PUSH
+  }
+
+  public enum PersistentQueryType {
+    CREATE_AS, INSERT
   }
 
   public enum KsqlQueryStatus {
@@ -70,5 +77,6 @@ public final class KsqlConstants {
    * Default time and date patterns
    */
   public static final String TIME_PATTERN = "HH:mm:ss.SSS";
-  public static final String DATE_TIME_PATTERN = "yyyy-MM-dd'T'" + TIME_PATTERN;
+  public static final String DATE_PATTERN = "yyyy-MM-dd";
+  public static final String DATE_TIME_PATTERN = DATE_PATTERN + "'T'" + TIME_PATTERN;
 }

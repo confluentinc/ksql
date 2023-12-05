@@ -43,6 +43,7 @@ import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
 import io.confluent.ksql.security.KsqlAuthorizationProvider;
 import io.confluent.ksql.serde.FormatFactory;
+import io.confluent.ksql.test.util.KsqlTestFolder;
 import io.confluent.ksql.test.util.secure.MultiNodeKeyStore;
 import io.confluent.ksql.test.util.secure.MultiNodeTrustStore;
 import io.confluent.ksql.test.util.secure.ServerKeyStore;
@@ -75,46 +76,47 @@ import org.mockito.junit.MockitoJUnitRunner;
 @Category({IntegrationTest.class})
 @RunWith(Enclosed.class)
 public class SystemAuthenticationFunctionalTest {
-
   private static final ServerKeyStore SERVER_KEY_STORE = new ServerKeyStore();
-  private static final TemporaryFolder TMP = new TemporaryFolder();
-
-  static {
-    try {
-      TMP.create();
-    } catch (final IOException e) {
-      throw new AssertionError("Failed to init TMP", e);
-    }
-  }
-
-  private static final PageViewDataProvider PAGE_VIEWS_PROVIDER = new PageViewDataProvider();
-  private static final String PAGE_VIEW_TOPIC = PAGE_VIEWS_PROVIDER.topicName();
-  private static final String PAGE_VIEW_STREAM = PAGE_VIEWS_PROVIDER.sourceName();
+  @ClassRule
+  public static final TemporaryFolder TMP = KsqlTestFolder.temporaryFolder();
+  private static PageViewDataProvider PAGE_VIEWS_PROVIDER;
+  private static String PAGE_VIEW_TOPIC;
   private static final BiFunction<Integer, String, SocketAddress> LOCALHOST_FACTORY =
       (port, host) -> SocketAddress.inetSocketAddress(port, "localhost");
+  private static String PAGE_VIEW_STREAM;
 
-  private static final Map<String, Object> JASS_AUTH_CONFIG = ImmutableMap.<String, Object>builder()
-      .put("authentication.method", "BASIC")
-      .put("authentication.roles", "**")
-      // Reuse the Kafka JAAS config for KSQL authentication which has the same valid users
-      .put("authentication.realm", JAAS_KAFKA_PROPS_NAME)
-      .put(
-          KsqlConfig.KSQL_SECURITY_EXTENSION_CLASS,
-          MockKsqlSecurityExtension.class.getName()
-      )
-      .build();
+  private static Map<String, Object> JASS_AUTH_CONFIG;
+  private static Map<String, Object> COMMON_CONFIG;
 
-  private static final Map<String, Object> COMMON_CONFIG = ImmutableMap.<String, Object>builder()
-      .put(KsqlRestConfig.KSQL_HEARTBEAT_ENABLE_CONFIG, true)
-      .put(KsqlRestConfig.KSQL_HEARTBEAT_SEND_INTERVAL_MS_CONFIG, 1000)
-      .put(KsqlRestConfig.KSQL_HEARTBEAT_CHECK_INTERVAL_MS_CONFIG, 3000)
-      .put(KsqlRestConfig.KSQL_HEARTBEAT_DISCOVER_CLUSTER_MS_CONFIG, 3000)
-      .put(KsqlConfig.KSQL_SERVICE_ID_CONFIG, "system-auth-functional-test")
-      .put(KSQL_STREAMS_PREFIX + StreamsConfig.STATE_DIR_CONFIG, getNewStateDir())
-      .put(KSQL_STREAMS_PREFIX + StreamsConfig.NUM_STANDBY_REPLICAS_CONFIG, 1)
-      .put(KsqlConfig.KSQL_SHUTDOWN_TIMEOUT_MS_CONFIG, 1000)
-      .putAll(SERVER_KEY_STORE.keyStoreProps())
-      .build();
+  @BeforeClass
+  public static void setupClass() {
+    PAGE_VIEWS_PROVIDER = new PageViewDataProvider();
+    PAGE_VIEW_TOPIC = PAGE_VIEWS_PROVIDER.topicName();
+    PAGE_VIEW_STREAM = PAGE_VIEWS_PROVIDER.sourceName();
+
+    JASS_AUTH_CONFIG = ImmutableMap.<String, Object>builder()
+        .put("authentication.method", "BASIC")
+        .put("authentication.roles", "**")
+        // Reuse the Kafka JAAS config for KSQL authentication which has the same valid users
+        .put("authentication.realm", JAAS_KAFKA_PROPS_NAME)
+        .put(
+            KsqlConfig.KSQL_SECURITY_EXTENSION_CLASS,
+            MockKsqlSecurityExtension.class.getName()
+        )
+        .build();
+
+    COMMON_CONFIG = ImmutableMap.<String, Object>builder()
+        .put(KsqlRestConfig.KSQL_HEARTBEAT_ENABLE_CONFIG, true)
+        .put(KsqlRestConfig.KSQL_HEARTBEAT_SEND_INTERVAL_MS_CONFIG, 1000)
+        .put(KsqlRestConfig.KSQL_HEARTBEAT_CHECK_INTERVAL_MS_CONFIG, 3000)
+        .put(KsqlRestConfig.KSQL_HEARTBEAT_DISCOVER_CLUSTER_MS_CONFIG, 3000)
+        .put(KSQL_STREAMS_PREFIX + StreamsConfig.STATE_DIR_CONFIG, getNewStateDir(TMP))
+        .put(KSQL_STREAMS_PREFIX + StreamsConfig.NUM_STANDBY_REPLICAS_CONFIG, 1)
+        .put(KsqlConfig.KSQL_SHUTDOWN_TIMEOUT_MS_CONFIG, 1000)
+        .put(KsqlConfig.KSQL_SERVICE_ID_CONFIG, "system-auth-functional-test")
+        .putAll(SERVER_KEY_STORE.keyStoreProps())
+        .build();
+  }
 
   private static Map<String, String> internalKeyStoreProps(boolean node1) {
     Map<String, String> keyStoreProps = MultiNodeKeyStore.keyStoreProps();
@@ -332,9 +334,9 @@ public class SystemAuthenticationFunctionalTest {
     }
   }
 
-  private static String getNewStateDir() {
+  public static String getNewStateDir(TemporaryFolder rootTempDir) {
     try {
-      return TMP.newFolder().getAbsolutePath();
+      return rootTempDir.newFolder().getAbsolutePath();
     } catch (final IOException e) {
       throw new AssertionError("Failed to create new state dir", e);
     }

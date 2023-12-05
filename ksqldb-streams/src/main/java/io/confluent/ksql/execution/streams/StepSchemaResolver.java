@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Confluent Inc.
+ * Copyright 2021 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -15,10 +15,12 @@
 
 package io.confluent.ksql.execution.streams;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.execution.codegen.CodeGenRunner;
 import io.confluent.ksql.execution.codegen.CompiledExpression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.plan.ExecutionStep;
+import io.confluent.ksql.execution.plan.ForeignKeyTableTableJoin;
 import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.execution.plan.SourceStep;
 import io.confluent.ksql.execution.plan.StreamAggregate;
@@ -68,7 +70,7 @@ public final class StepSchemaResolver {
   @SuppressWarnings("rawtypes")
   private static final HandlerMaps.ClassHandlerMapR2
       <ExecutionStep, StepSchemaResolver, LogicalSchema, LogicalSchema> HANDLERS
-      = HandlerMaps.forClass(ExecutionStep.class)
+          = HandlerMaps.forClass(ExecutionStep.class)
       .withArgTypes(StepSchemaResolver.class, LogicalSchema.class)
       .withReturnType(LogicalSchema.class)
       .put(StreamAggregate.class, StepSchemaResolver::handleStreamAggregate)
@@ -99,17 +101,19 @@ public final class StepSchemaResolver {
   @SuppressWarnings("rawtypes")
   private static final HandlerMaps.ClassHandlerMapR2
       <ExecutionStep, StepSchemaResolver, JoinSchemas, LogicalSchema> JOIN_HANDLERS
-      = HandlerMaps.forClass(ExecutionStep.class)
+          = HandlerMaps.forClass(ExecutionStep.class)
       .withArgTypes(StepSchemaResolver.class, JoinSchemas.class)
       .withReturnType(LogicalSchema.class)
       .put(StreamTableJoin.class, StepSchemaResolver::handleStreamTableJoin)
       .put(StreamStreamJoin.class, StepSchemaResolver::handleStreamStreamJoin)
       .put(TableTableJoin.class, StepSchemaResolver::handleTableTableJoin)
+      .put(ForeignKeyTableTableJoin.class, StepSchemaResolver::handleForeignKeyTableTableJoin)
       .build();
 
   private final KsqlConfig ksqlConfig;
   private final FunctionRegistry functionRegistry;
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
   public StepSchemaResolver(
       final KsqlConfig ksqlConfig,
       final FunctionRegistry functionRegistry) {
@@ -301,6 +305,13 @@ public final class StepSchemaResolver {
       final TableTableJoin<?> step
   ) {
     return handleJoin(schemas, step.getKeyColName());
+  }
+
+  private LogicalSchema handleForeignKeyTableTableJoin(
+      final JoinSchemas schemas,
+      final ForeignKeyTableTableJoin<?, ?> step
+  ) {
+    return ForeignKeyJoinParamsFactory.createSchema(schemas.left, schemas.right);
   }
 
   private LogicalSchema handleJoin(

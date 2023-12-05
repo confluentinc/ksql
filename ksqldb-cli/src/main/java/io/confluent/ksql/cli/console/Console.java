@@ -21,6 +21,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Streams;
 import io.confluent.ksql.cli.console.CliConfig.OnOff;
 import io.confluent.ksql.cli.console.KsqlTerminal.HistoryEntry;
 import io.confluent.ksql.cli.console.KsqlTerminal.StatusClosable;
@@ -30,6 +31,7 @@ import io.confluent.ksql.cli.console.table.Table.Builder;
 import io.confluent.ksql.cli.console.table.builder.CommandStatusTableBuilder;
 import io.confluent.ksql.cli.console.table.builder.ConnectorInfoTableBuilder;
 import io.confluent.ksql.cli.console.table.builder.ConnectorListTableBuilder;
+import io.confluent.ksql.cli.console.table.builder.ConnectorPluginsListTableBuilder;
 import io.confluent.ksql.cli.console.table.builder.DropConnectorTableBuilder;
 import io.confluent.ksql.cli.console.table.builder.ErrorEntityTableBuilder;
 import io.confluent.ksql.cli.console.table.builder.ExecutionPlanTableBuilder;
@@ -44,6 +46,7 @@ import io.confluent.ksql.cli.console.table.builder.TablesListTableBuilder;
 import io.confluent.ksql.cli.console.table.builder.TopicDescriptionTableBuilder;
 import io.confluent.ksql.cli.console.table.builder.TypeListTableBuilder;
 import io.confluent.ksql.cli.console.table.builder.WarningEntityTableBuilder;
+import io.confluent.ksql.metrics.TopicSensors.Stat;
 import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.query.QueryError;
 import io.confluent.ksql.rest.ApiJsonMapper;
@@ -51,6 +54,7 @@ import io.confluent.ksql.rest.entity.ArgumentInfo;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
 import io.confluent.ksql.rest.entity.ConnectorDescription;
 import io.confluent.ksql.rest.entity.ConnectorList;
+import io.confluent.ksql.rest.entity.ConnectorPluginsList;
 import io.confluent.ksql.rest.entity.CreateConnectorEntity;
 import io.confluent.ksql.rest.entity.DropConnectorEntity;
 import io.confluent.ksql.rest.entity.ErrorEntity;
@@ -71,6 +75,7 @@ import io.confluent.ksql.rest.entity.Queries;
 import io.confluent.ksql.rest.entity.QueryDescription;
 import io.confluent.ksql.rest.entity.QueryDescriptionEntity;
 import io.confluent.ksql.rest.entity.QueryDescriptionList;
+import io.confluent.ksql.rest.entity.QueryHostStat;
 import io.confluent.ksql.rest.entity.QueryOffsetSummary;
 import io.confluent.ksql.rest.entity.QueryTopicOffsetSummary;
 import io.confluent.ksql.rest.entity.RunningQuery;
@@ -105,6 +110,8 @@ import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -115,6 +122,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kafka.common.config.ConfigException;
@@ -171,6 +179,8 @@ public class Console implements Closeable {
               tablePrinter(DropConnectorEntity.class, DropConnectorTableBuilder::new))
           .put(ConnectorList.class,
               tablePrinter(ConnectorList.class, ConnectorListTableBuilder::new))
+          .put(ConnectorPluginsList.class,
+              tablePrinter(ConnectorPluginsList.class, ConnectorPluginsListTableBuilder::new))
           .put(ConnectorDescription.class,
               Console::printConnectorDescription)
           .put(TypeList.class,
@@ -306,7 +316,7 @@ public class Console implements Closeable {
   }
 
   public Map<String, CliSpecificCommand> getCliSpecificCommands() {
-    return cliSpecificCommands;
+    return new HashMap<>(cliSpecificCommands);
   }
 
   public String nextNonCliCommand() {
@@ -636,6 +646,44 @@ public class Console implements Closeable {
     }
   }
 
+  private void printStatistics(final SourceDescription source) {
+    final List<QueryHostStat> statistics = source.getClusterStatistics();
+    final List<QueryHostStat> errors = source.getClusterErrorStats();
+
+    if (statistics.isEmpty() && errors.isEmpty()) {
+      writer().println(String.format(
+          "%n%-20s%n%s",
+          "Local runtime statistics",
+          "------------------------"
+      ));
+      writer().println(source.getStatistics());
+      writer().println(source.getErrorStats());
+      return;
+    }
+    final List<String> headers = ImmutableList.of("Host", "Metric", "Value", "Last Message");
+    final Stream<QueryHostStat> rows = Streams.concat(statistics.stream(), errors.stream());
+
+    writer().println(String.format(
+        "%n%-20s%n%s",
+        "Runtime statistics by host",
+        "-------------------------"
+    ));
+    final Table statsTable = new Table.Builder()
+        .withColumnHeaders(headers)
+        .withRows(rows
+            .sorted(Comparator
+                .comparing(QueryHostStat::host)
+                .thenComparing(Stat::name)
+            )
+            .map((metric) -> {
+              final String hostCell = metric.host().toString();
+              final String formattedValue = String.format("%10.0f", metric.getValue());
+              return ImmutableList.of(hostCell, metric.name(), formattedValue, metric.timestamp());
+            }))
+        .build();
+    statsTable.print(this);
+  }
+
   private void printSourceDescription(final SourceDescription source) {
     final boolean isTable = source.getType().equalsIgnoreCase("TABLE");
 
@@ -659,14 +707,8 @@ public class Console implements Closeable {
     printQueries(source.getReadQueries(), source.getType(), "read");
 
     printQueries(source.getWriteQueries(), source.getType(), "write");
+    printStatistics(source);
 
-    writer().println(String.format(
-        "%n%-20s%n%s",
-        "Local runtime statistics",
-        "------------------------"
-    ));
-    writer().println(source.getStatistics());
-    writer().println(source.getErrorStats());
     writer().println(String.format(
         "(%s)",
         "Statistics of the local KSQL server interaction with the Kafka topic "
@@ -944,6 +986,7 @@ public class Console implements Closeable {
 
     private final CliSpecificCommand cmd;
     private final List<String> args;
+
 
     private static CliCmdExecutor of(final CliSpecificCommand cmd, final List<String> lineParts) {
       final String[] nameParts = cmd.getName().split("\\s+");

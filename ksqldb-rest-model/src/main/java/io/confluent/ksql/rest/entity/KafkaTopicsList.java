@@ -19,7 +19,8 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Preconditions;
-import java.util.ArrayList;
+import com.google.common.collect.ImmutableList;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
@@ -27,7 +28,7 @@ import java.util.Objects;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class KafkaTopicsList extends KsqlEntity {
 
-  private final Collection<KafkaTopicInfo> topics;
+  private final ImmutableList<KafkaTopicInfo> topics;
 
   @JsonCreator
   public KafkaTopicsList(
@@ -36,11 +37,12 @@ public class KafkaTopicsList extends KsqlEntity {
   ) {
     super(statementText);
     Preconditions.checkNotNull(topics, "topics field must not be null");
-    this.topics = topics;
+    this.topics = ImmutableList.copyOf(topics);
   }
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "topics is ImmutableList")
   public List<KafkaTopicInfo> getTopics() {
-    return new ArrayList<>(topics);
+    return topics;
   }
 
   @Override

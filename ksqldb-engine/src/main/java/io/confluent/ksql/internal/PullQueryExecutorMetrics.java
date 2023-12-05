@@ -16,11 +16,16 @@
 package io.confluent.ksql.internal;
 
 import com.google.common.collect.ImmutableMap;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.metrics.MetricCollectors;
+import io.confluent.ksql.physical.pull.PullPhysicalPlan.PullPhysicalPlanType;
+import io.confluent.ksql.physical.pull.PullPhysicalPlan.PullSourceType;
+import io.confluent.ksql.physical.pull.PullPhysicalPlan.RoutingNodeType;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.ReservedInternalTopics;
 import java.io.Closeable;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -30,6 +35,7 @@ import org.apache.kafka.common.metrics.MeasurableStat;
 import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.common.metrics.Sensor;
 import org.apache.kafka.common.metrics.stats.Avg;
+import org.apache.kafka.common.metrics.stats.CumulativeCount;
 import org.apache.kafka.common.metrics.stats.CumulativeSum;
 import org.apache.kafka.common.metrics.stats.Max;
 import org.apache.kafka.common.metrics.stats.Min;
@@ -37,7 +43,6 @@ import org.apache.kafka.common.metrics.stats.Percentile;
 import org.apache.kafka.common.metrics.stats.Percentiles;
 import org.apache.kafka.common.metrics.stats.Percentiles.BucketSizing;
 import org.apache.kafka.common.metrics.stats.Rate;
-import org.apache.kafka.common.metrics.stats.WindowedCount;
 import org.apache.kafka.common.utils.Time;
 
 @SuppressWarnings("checkstyle:ClassDataAbstractionCoupling")
@@ -50,10 +55,19 @@ public class PullQueryExecutorMetrics implements Closeable {
   private final Sensor localRequestsSensor;
   private final Sensor remoteRequestsSensor;
   private final Sensor latencySensor;
+  private final Map<MetricsKey, Sensor> latencySensorMap;
   private final Sensor requestRateSensor;
   private final Sensor errorRateSensor;
+  private final Map<MetricsKey, Sensor> errorRateSensorMap;
   private final Sensor requestSizeSensor;
   private final Sensor responseSizeSensor;
+  private final Map<MetricsKey, Sensor> responseSizeSensorMap;
+  private final Sensor responseCode2XX;
+  private final Sensor responseCode3XX;
+  private final Sensor responseCode4XX;
+  private final Sensor responseCode5XX;
+  private final Map<MetricsKey, Sensor> rowsReturnedSensorMap;
+  private final Map<MetricsKey, Sensor> rowsProcessedSensorMap;
   private final Metrics metrics;
   private final Map<String, String> legacyCustomMetricsTags;
   private final Map<String, String> customMetricsTags;
@@ -80,11 +94,20 @@ public class PullQueryExecutorMetrics implements Closeable {
     this.sensors = new ArrayList<>();
     this.localRequestsSensor = configureLocalRequestsSensor();
     this.remoteRequestsSensor = configureRemoteRequestsSensor();
-    this.latencySensor = configureRequestSensor();
+    this.latencySensor = configureLatencySensor();
+    this.latencySensorMap = configureLatencySensorMap();
     this.requestRateSensor = configureRateSensor();
     this.errorRateSensor = configureErrorRateSensor();
+    this.errorRateSensorMap = configureErrorSensorMap();
     this.requestSizeSensor = configureRequestSizeSensor();
     this.responseSizeSensor = configureResponseSizeSensor();
+    this.responseSizeSensorMap = configureResponseSizeSensorMap();
+    this.responseCode2XX = configureStatusCodeSensor("2XX");
+    this.responseCode3XX = configureStatusCodeSensor("3XX");
+    this.responseCode4XX = configureStatusCodeSensor("4XX");
+    this.responseCode5XX = configureStatusCodeSensor("5XX");
+    this.rowsReturnedSensorMap = configureRowsReturnedSensorMap();
+    this.rowsProcessedSensorMap = configureRowsProcessedSensorMap();
   }
 
   @Override
@@ -100,30 +123,104 @@ public class PullQueryExecutorMetrics implements Closeable {
     this.remoteRequestsSensor.record(value);
   }
 
-  public void recordLatency(final long startTimeNanos) {
+  public void recordLatency(
+      final long startTimeNanos,
+      final PullSourceType sourceType,
+      final PullPhysicalPlanType planType,
+      final RoutingNodeType routingNodeType
+  ) {
     // Record latency at microsecond scale
     final long nowNanos = time.nanoseconds();
     final double latency = TimeUnit.NANOSECONDS.toMicros(nowNanos - startTimeNanos);
     this.latencySensor.record(latency);
     this.requestRateSensor.record(1);
+    final MetricsKey key = new MetricsKey(sourceType, planType, routingNodeType);
+    if (latencySensorMap.containsKey(key)) {
+      latencySensorMap.get(key).record(latency);
+    } else {
+      throw new IllegalStateException("Metrics not configured correctly, missing " + key);
+    }
   }
 
-  public void recordErrorRate(final double value) {
+  public void recordErrorRate(
+      final double value,
+      final PullSourceType sourceType,
+      final PullPhysicalPlanType planType,
+      final RoutingNodeType routingNodeType
+  ) {
     this.errorRateSensor.record(value);
+    final MetricsKey key = new MetricsKey(sourceType, planType, routingNodeType);
+    if (errorRateSensorMap.containsKey(key)) {
+      errorRateSensorMap.get(key).record(value);
+    } else {
+      throw new IllegalStateException("Metrics not configured correctly, missing " + key);
+    }
   }
 
   public void recordRequestSize(final double value) {
     this.requestSizeSensor.record(value);
   }
 
-  public void recordResponseSize(final double value) {
+  public void recordResponseSize(
+      final double value,
+      final PullSourceType sourceType,
+      final PullPhysicalPlanType planType,
+      final RoutingNodeType routingNodeType
+  ) {
     this.responseSizeSensor.record(value);
+    final MetricsKey key = new MetricsKey(sourceType, planType, routingNodeType);
+    if (responseSizeSensorMap.containsKey(key)) {
+      responseSizeSensorMap.get(key).record(value);
+    } else {
+      throw new IllegalStateException("Metrics not configured correctly, missing " + key);
+    }
+  }
+
+  public void recordStatusCode(final int statusCode) {
+    if (statusCode >= 200 && statusCode < 300) {
+      responseCode2XX.record(1);
+    } else if (statusCode >= 300 && statusCode < 400) {
+      responseCode3XX.record(1);
+    } else if (statusCode >= 400 && statusCode < 500) {
+      responseCode4XX.record(1);
+    } else if (statusCode >= 500) {
+      responseCode5XX.record(1);
+    }
+  }
+
+  public void recordRowsReturned(
+      final double value,
+      final PullSourceType sourceType,
+      final PullPhysicalPlanType planType,
+      final RoutingNodeType routingNodeType
+  ) {
+    final MetricsKey key = new MetricsKey(sourceType, planType, routingNodeType);
+    if (rowsReturnedSensorMap.containsKey(key)) {
+      rowsReturnedSensorMap.get(key).record(value);
+    } else {
+      throw new IllegalStateException("Metrics not configured correctly, missing " + key);
+    }
+  }
+
+  public void recordRowsProcessed(
+      final double value,
+      final PullSourceType sourceType,
+      final PullPhysicalPlanType planType,
+      final RoutingNodeType routingNodeType
+  ) {
+    final MetricsKey key = new MetricsKey(sourceType, planType, routingNodeType);
+    if (rowsProcessedSensorMap.containsKey(key)) {
+      rowsProcessedSensorMap.get(key).record(value);
+    } else {
+      throw new IllegalStateException("Metrics not configured correctly, missing " + key);
+    }
   }
 
   public List<Sensor> getSensors() {
-    return sensors;
+    return Collections.unmodifiableList(sensors);
   }
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "should be mutable")
   public Metrics getMetrics() {
     return metrics;
   }
@@ -131,7 +228,7 @@ public class PullQueryExecutorMetrics implements Closeable {
   private Sensor configureLocalRequestsSensor() {
     final Sensor sensor = metrics.sensor(
         PULL_QUERY_METRIC_GROUP + "-" + PULL_REQUESTS + "-local");
-    
+
     // legacy
     addSensor(
         sensor,
@@ -139,7 +236,7 @@ public class PullQueryExecutorMetrics implements Closeable {
         ksqlServiceIdLegacyPrefix + PULL_QUERY_METRIC_GROUP,
         "Count of local pull query requests",
         legacyCustomMetricsTags,
-        new WindowedCount()
+        new CumulativeCount()
     );
     addSensor(
         sensor,
@@ -157,7 +254,7 @@ public class PullQueryExecutorMetrics implements Closeable {
         ksqlServicePrefix + PULL_QUERY_METRIC_GROUP,
         "Count of local pull query requests",
         customMetricsTags,
-        new WindowedCount()
+        new CumulativeCount()
     );
     addSensor(
         sensor,
@@ -182,7 +279,7 @@ public class PullQueryExecutorMetrics implements Closeable {
         ksqlServiceIdLegacyPrefix + PULL_QUERY_METRIC_GROUP,
         "Count of remote pull query requests",
         legacyCustomMetricsTags,
-        new WindowedCount()
+        new CumulativeCount()
     );
     addSensor(
         sensor,
@@ -200,7 +297,7 @@ public class PullQueryExecutorMetrics implements Closeable {
         ksqlServicePrefix + PULL_QUERY_METRIC_GROUP,
         "Count of remote pull query requests",
         customMetricsTags,
-        new WindowedCount()
+        new CumulativeCount()
     );
     addSensor(
         sensor,
@@ -218,7 +315,7 @@ public class PullQueryExecutorMetrics implements Closeable {
   private Sensor configureRateSensor() {
     final Sensor sensor = metrics.sensor(
         PULL_QUERY_METRIC_GROUP + "-" + PULL_REQUESTS + "-rate");
-    
+
     // legacy
     addSensor(
         sensor,
@@ -261,7 +358,7 @@ public class PullQueryExecutorMetrics implements Closeable {
         ksqlServiceIdLegacyPrefix + PULL_QUERY_METRIC_GROUP,
         "Total number of erroneous pull query requests",
         legacyCustomMetricsTags,
-        new WindowedCount()
+        new CumulativeCount()
     );
 
     // new metrics with ksql service id in tags
@@ -279,154 +376,134 @@ public class PullQueryExecutorMetrics implements Closeable {
         ksqlServicePrefix + PULL_QUERY_METRIC_GROUP,
         "Total number of erroneous pull query requests",
         customMetricsTags,
-        new WindowedCount()
+        new CumulativeCount()
     );
 
     sensors.add(sensor);
     return sensor;
   }
 
-  private Sensor configureRequestSensor() {
+  private Map<MetricsKey, Sensor> configureErrorSensorMap() {
+    return configureSensorMap("error", (sensor, tags, variantName) -> {
+      addSensor(
+          sensor,
+          PULL_REQUESTS + "-detailed-error-total",
+          ksqlServicePrefix + PULL_QUERY_METRIC_GROUP,
+          "Total number of erroneous pull query requests - " + variantName,
+          tags,
+          new CumulativeCount()
+      );
+    });
+  }
+
+  private Sensor configureStatusCodeSensor(final String codeName) {
     final Sensor sensor = metrics.sensor(
-        PULL_QUERY_METRIC_GROUP + "-" + PULL_REQUESTS + "-latency");
-    // legacy
-    sensor.add(
-        metrics.metricName(
-            PULL_REQUESTS + "-latency-avg",
-            ksqlServiceIdLegacyPrefix + PULL_QUERY_METRIC_GROUP,
-            "Average time for a pull query request",
-            legacyCustomMetricsTags
-        ),
-        new Avg()
-    );
-    sensor.add(
-        metrics.metricName(
-            PULL_REQUESTS + "-latency-max",
-            ksqlServiceIdLegacyPrefix + PULL_QUERY_METRIC_GROUP,
-            "Max time for a pull query request",
-            legacyCustomMetricsTags
-        ),
-        new Max()
-    );
-    sensor.add(
-        metrics.metricName(
-            PULL_REQUESTS + "-latency-min",
-            ksqlServiceIdLegacyPrefix + PULL_QUERY_METRIC_GROUP,
-            "Min time for a pull query request",
-            legacyCustomMetricsTags
-        ),
-        new Min()
-    );
-    sensor.add(
-        metrics.metricName(
-            PULL_REQUESTS + "-total",
-            ksqlServiceIdLegacyPrefix + PULL_QUERY_METRIC_GROUP,
-            "Total number of pull query request",
-            legacyCustomMetricsTags
-        ),
-        new WindowedCount()
-    );
-
-    // new metrics with ksql service id in tags
+        PULL_QUERY_METRIC_GROUP + "-" + PULL_REQUESTS + "-" + codeName + "-total");
     addSensor(
         sensor,
-        PULL_REQUESTS + "-latency-avg",
+        PULL_REQUESTS + "-" + codeName + "-total",
         ksqlServicePrefix + PULL_QUERY_METRIC_GROUP,
-        "Average time for a pull query request",
+        "Total number of status code " + codeName + " responses",
         customMetricsTags,
-        new Avg()
+        new CumulativeCount()
     );
-    addSensor(
-        sensor,
-        PULL_REQUESTS + "-latency-max",
-        ksqlServicePrefix + PULL_QUERY_METRIC_GROUP,
-        "Max time for a pull query request",
-        customMetricsTags,
-        new Max()
-    );
-    addSensor(
-        sensor,
-        PULL_REQUESTS + "-latency-min",
-        ksqlServicePrefix + PULL_QUERY_METRIC_GROUP,
-        "Min time for a pull query request",
-        customMetricsTags,
-        new Min()
-    );
-    addSensor(
-        sensor,
-        PULL_REQUESTS + "-total",
-        ksqlServicePrefix + PULL_QUERY_METRIC_GROUP,
-        "Total number of pull query request",
-        customMetricsTags,
-        new WindowedCount()
-    );
-
-    // legacy percentiles
-    sensor.add(new Percentiles(
-        100,
-        0,
-        1000,
-        BucketSizing.CONSTANT,
-        new Percentile(metrics.metricName(
-            PULL_REQUESTS + "-distribution-50",
-            ksqlServiceIdLegacyPrefix + PULL_QUERY_METRIC_GROUP,
-            "Latency distribution",
-            legacyCustomMetricsTags
-        ), 50.0),
-        new Percentile(metrics.metricName(
-            PULL_REQUESTS + "-distribution-75",
-            ksqlServiceIdLegacyPrefix + PULL_QUERY_METRIC_GROUP,
-            "Latency distribution",
-            legacyCustomMetricsTags
-        ), 75.0),
-        new Percentile(metrics.metricName(
-            PULL_REQUESTS + "-distribution-90",
-            ksqlServiceIdLegacyPrefix + PULL_QUERY_METRIC_GROUP,
-            "Latency distribution",
-            legacyCustomMetricsTags
-        ), 90.0),
-        new Percentile(metrics.metricName(
-            PULL_REQUESTS + "-distribution-99",
-            ksqlServiceIdLegacyPrefix + PULL_QUERY_METRIC_GROUP,
-            "Latency distribution",
-            legacyCustomMetricsTags
-        ), 99.0)
-        ));
-    
-    // new percentile metrics with ksql service id in tag
-    sensor.add(new Percentiles(
-        100,
-        0,
-        1000,
-        BucketSizing.CONSTANT,
-        new Percentile(metrics.metricName(
-            PULL_REQUESTS + "-distribution-50",
-            ksqlServicePrefix + PULL_QUERY_METRIC_GROUP,
-            "Latency distribution",
-            customMetricsTags
-        ), 50.0),
-        new Percentile(metrics.metricName(
-            PULL_REQUESTS + "-distribution-75",
-            ksqlServicePrefix + PULL_QUERY_METRIC_GROUP,
-            "Latency distribution",
-            customMetricsTags
-        ), 75.0),
-        new Percentile(metrics.metricName(
-            PULL_REQUESTS + "-distribution-90",
-            ksqlServicePrefix + PULL_QUERY_METRIC_GROUP,
-            "Latency distribution",
-            customMetricsTags
-        ), 90.0),
-        new Percentile(metrics.metricName(
-            PULL_REQUESTS + "-distribution-99",
-            ksqlServicePrefix + PULL_QUERY_METRIC_GROUP,
-            "Latency distribution",
-            customMetricsTags
-        ), 99.0)
-    ));
 
     sensors.add(sensor);
     return sensor;
+  }
+
+  private Sensor configureLatencySensor() {
+    final Sensor sensor = metrics.sensor(
+        PULL_QUERY_METRIC_GROUP + "-" + PULL_REQUESTS + "-latency");
+
+    // Legacy metrics
+    addRequestMetricsToSensor(sensor, ksqlServiceIdLegacyPrefix, PULL_REQUESTS,
+        legacyCustomMetricsTags, "");
+
+    // New metrics
+    addRequestMetricsToSensor(sensor, ksqlServicePrefix, PULL_REQUESTS, customMetricsTags, "");
+
+    sensors.add(sensor);
+    return sensor;
+  }
+
+  private Map<MetricsKey, Sensor> configureLatencySensorMap() {
+    return configureSensorMap("latency", (sensor, tags, variantName) -> {
+      addRequestMetricsToSensor(sensor, ksqlServicePrefix, PULL_REQUESTS + "-detailed",
+          tags, " - " + variantName);
+    });
+  }
+
+  private void addRequestMetricsToSensor(
+      final Sensor sensor,
+      final String servicePrefix,
+      final String metricNamePrefix,
+      final Map<String, String> metricsTags,
+      final String descriptionSuffix
+  ) {
+    addSensor(
+        sensor,
+        metricNamePrefix + "-latency-avg",
+        servicePrefix + PULL_QUERY_METRIC_GROUP,
+        "Average time for a pull query request" + descriptionSuffix,
+        metricsTags,
+        new Avg()
+    );
+    addSensor(
+        sensor,
+        metricNamePrefix + "-latency-max",
+        servicePrefix + PULL_QUERY_METRIC_GROUP,
+        "Max time for a pull query request" + descriptionSuffix,
+        metricsTags,
+        new Max()
+    );
+    addSensor(
+        sensor,
+        metricNamePrefix + "-latency-min",
+        servicePrefix + PULL_QUERY_METRIC_GROUP,
+        "Min time for a pull query request" + descriptionSuffix,
+        metricsTags,
+        new Min()
+    );
+    addSensor(
+        sensor,
+        metricNamePrefix + "-total",
+        servicePrefix + PULL_QUERY_METRIC_GROUP,
+        "Total number of pull query request" + descriptionSuffix,
+        metricsTags,
+        new CumulativeCount()
+    );
+
+    sensor.add(new Percentiles(
+        100,
+        0,
+        1000,
+        BucketSizing.CONSTANT,
+        new Percentile(metrics.metricName(
+            metricNamePrefix + "-distribution-50",
+            servicePrefix + PULL_QUERY_METRIC_GROUP,
+            "Latency distribution" + descriptionSuffix,
+            metricsTags
+        ), 50.0),
+        new Percentile(metrics.metricName(
+            metricNamePrefix + "-distribution-75",
+            servicePrefix + PULL_QUERY_METRIC_GROUP,
+            "Latency distribution" + descriptionSuffix,
+            metricsTags
+        ), 75.0),
+        new Percentile(metrics.metricName(
+            metricNamePrefix + "-distribution-90",
+            servicePrefix + PULL_QUERY_METRIC_GROUP,
+            "Latency distribution" + descriptionSuffix,
+            metricsTags
+        ), 90.0),
+        new Percentile(metrics.metricName(
+            metricNamePrefix + "-distribution-99",
+            servicePrefix + PULL_QUERY_METRIC_GROUP,
+            "Latency distribution" + descriptionSuffix,
+            metricsTags
+        ), 99.0)
+    ));
   }
 
   private Sensor configureRequestSizeSensor() {
@@ -483,6 +560,45 @@ public class PullQueryExecutorMetrics implements Closeable {
     return sensor;
   }
 
+  private Map<MetricsKey, Sensor> configureResponseSizeSensorMap() {
+    return configureSensorMap("response-size", (sensor, tags, variantName) -> {
+      addSensor(
+          sensor,
+          PULL_REQUESTS + "-detailed-response-size",
+          ksqlServicePrefix + PULL_QUERY_METRIC_GROUP,
+          "Size in bytes of pull query response - " + variantName,
+          tags,
+          new CumulativeSum()
+      );
+    });
+  }
+
+  private Map<MetricsKey, Sensor> configureRowsReturnedSensorMap() {
+    return configureSensorMap("rows-returned", (sensor, tags, variantName) -> {
+      addSensor(
+          sensor,
+          PULL_REQUESTS + "-rows-returned-total",
+          ksqlServicePrefix + PULL_QUERY_METRIC_GROUP,
+          "Number of rows returned - " + variantName,
+          tags,
+          new CumulativeSum()
+      );
+    });
+  }
+
+  private Map<MetricsKey, Sensor> configureRowsProcessedSensorMap() {
+    return configureSensorMap("rows-processed", (sensor, tags, variantName) -> {
+      addSensor(
+          sensor,
+          PULL_REQUESTS + "-rows-processed-total",
+          ksqlServicePrefix + PULL_QUERY_METRIC_GROUP,
+          "Number of rows processed -" + variantName,
+          tags,
+          new CumulativeSum()
+      );
+    });
+  }
+
   private void addSensor(
           final Sensor sensor,
           final String metricName,
@@ -500,5 +616,88 @@ public class PullQueryExecutorMetrics implements Closeable {
         ),
         measureableStat
     );
+  }
+
+  private Map<MetricsKey, Sensor> configureSensorMap(
+      final String sensorBaseName, final MetricsAdder metricsAdder) {
+    final ImmutableMap.Builder<MetricsKey, Sensor> builder
+        = ImmutableMap.builder();
+
+    for (final PullSourceType sourceType : PullSourceType.values()) {
+      for (final PullPhysicalPlanType planType : PullPhysicalPlanType.values()) {
+        for (final RoutingNodeType routingNodeType : RoutingNodeType.values()) {
+          final String variantName = sourceType.name().toLowerCase() + "-"
+              + planType.name().toLowerCase() + "-" + routingNodeType.name().toLowerCase();
+          final Sensor sensor = metrics.sensor(
+              PULL_QUERY_METRIC_GROUP + "-" + PULL_REQUESTS + "-" + sensorBaseName + "-"
+                  + variantName);
+
+          final ImmutableMap<String, String> tags = ImmutableMap.<String, String>builder()
+              .putAll(customMetricsTags)
+              .put(KsqlConstants.KSQL_QUERY_SOURCE_TAG, sourceType.name().toLowerCase())
+              .put(KsqlConstants.KSQL_QUERY_PLAN_TYPE_TAG, planType.name().toLowerCase())
+              .put(KsqlConstants.KSQL_QUERY_ROUTING_TYPE_TAG,
+                  routingNodeType.name().toLowerCase())
+              .build();
+
+          metricsAdder.addMetrics(sensor, tags, variantName);
+
+          builder.put(new MetricsKey(sourceType, planType, routingNodeType), sensor);
+          sensors.add(sensor);
+        }
+      }
+    }
+
+    return builder.build();
+  }
+
+  private interface MetricsAdder {
+    void addMetrics(Sensor sensor, Map<String, String> tags, String variantName);
+  }
+
+  // Detailed metrics are broken down by multiple parameters represented by the following key.
+  private static class MetricsKey {
+
+    private final PullSourceType sourceType;
+    private final PullPhysicalPlanType planType;
+    private final RoutingNodeType routingNodeType;
+
+    MetricsKey(
+        final PullSourceType sourceType,
+        final PullPhysicalPlanType planType,
+        final RoutingNodeType routingNodeType
+    ) {
+      this.sourceType = sourceType;
+      this.planType = planType;
+      this.routingNodeType = routingNodeType;
+    }
+
+    @Override
+    public boolean equals(final Object o) {
+      if (this == o) {
+        return true;
+      }
+      if (o == null || getClass() != o.getClass()) {
+        return false;
+      }
+      final MetricsKey key = (MetricsKey) o;
+      return Objects.equals(sourceType, key.sourceType)
+          && Objects.equals(planType, key.planType)
+          && Objects.equals(routingNodeType, key.routingNodeType);
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(sourceType, planType, routingNodeType);
+    }
+
+    @Override
+    public String toString() {
+      return "MetricsKey{"
+          + "sourceType=" + sourceType
+          + ", planType=" + planType
+          + ", routingNodeType=" + routingNodeType
+          + '}';
+    }
   }
 }

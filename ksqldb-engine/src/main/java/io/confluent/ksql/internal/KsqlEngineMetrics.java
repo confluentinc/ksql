@@ -16,10 +16,11 @@
 package io.confluent.ksql.internal;
 
 import com.google.common.collect.ImmutableMap;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.engine.KsqlEngine;
+import io.confluent.ksql.engine.QueryEventListener;
 import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.util.KsqlConstants;
-import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.ReservedInternalTopics;
 import java.io.Closeable;
 import java.util.ArrayList;
@@ -139,6 +140,7 @@ public class KsqlEngineMetrics implements Closeable {
     recordErrorRate(MetricCollectors.currentErrorRate());
   }
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "should be mutable")
   public Metrics getMetrics() {
     return metrics;
   }
@@ -148,18 +150,11 @@ public class KsqlEngineMetrics implements Closeable {
     return sensors;
   }
 
-  public void registerQuery(final QueryMetadata query) {
-    final String metricsPrefix = metricGroupPrefix.equals(DEFAULT_METRIC_GROUP_PREFIX)
-        ? ""
-        : metricGroupPrefix;
-
-    final QueryStateListener listener = new QueryStateListener(
-        metrics,
-        metricsPrefix,
-        query.getQueryApplicationId()
-    );
-
-    query.setQueryStateListener(listener);
+  public QueryEventListener getQueryEventListener() {
+    final String metricsPrefix
+        = metricGroupPrefix.equals(KsqlEngineMetrics.DEFAULT_METRIC_GROUP_PREFIX)
+        ? "" : metricGroupPrefix;
+    return new QueryStateMetricsReportingListener(metrics, metricsPrefix);
   }
 
   private void recordMessageConsumptionByQueryStats(

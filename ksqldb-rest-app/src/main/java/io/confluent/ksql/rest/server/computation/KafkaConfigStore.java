@@ -20,6 +20,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableMap;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.rest.server.computation.ConfigTopicKey.StringKey;
 import io.confluent.ksql.util.KsqlConfig;
 import java.time.Duration;
@@ -107,6 +108,7 @@ public class KafkaConfigStore implements ConfigStore {
   }
 
   @Override
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP")
   public KsqlConfig getKsqlConfig() {
     return ksqlConfig;
   }
@@ -128,6 +130,7 @@ public class KafkaConfigStore implements ConfigStore {
 
     @SuppressWarnings("DefaultAnnotationParam") // ALWAYS overrides the default set on the mapper.
     @JsonInclude(content = Include.ALWAYS)
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP")
     public Map<String, String> getKsqlProperties() {
       return ksqlProperties;
     }

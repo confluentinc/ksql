@@ -16,6 +16,7 @@
 package io.confluent.ksql.rest.server.resources.streaming;
 
 import static com.google.common.util.concurrent.RateLimiter.create;
+import io.confluent.ksql.api.server.SlidingWindowRateLimiter;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertThrows;
@@ -107,6 +108,8 @@ public class PullQueryPublisherTest {
   @Mock
   private ConcurrencyLimiter concurrencyLimiter;
   @Mock
+  private SlidingWindowRateLimiter pullBandRateLimiter;
+  @Mock
   private Decrementer decrementer;
 
   @Captor
@@ -131,6 +134,7 @@ public class PullQueryPublisherTest {
         routingFilterFactory,
         create(1),
         concurrencyLimiter,
+        pullBandRateLimiter,
         haRouting);
 
     when(statement.getSessionConfig()).thenReturn(sessionConfig);

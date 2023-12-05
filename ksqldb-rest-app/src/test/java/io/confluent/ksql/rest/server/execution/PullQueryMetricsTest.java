@@ -27,10 +27,12 @@ import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.internal.PullQueryExecutorMetrics;
 import io.confluent.ksql.metrics.MetricCollectors;
-import java.util.Map;
-
+import io.confluent.ksql.physical.pull.PullPhysicalPlan.PullPhysicalPlanType;
+import io.confluent.ksql.physical.pull.PullPhysicalPlan.PullSourceType;
+import io.confluent.ksql.physical.pull.PullPhysicalPlan.RoutingNodeType;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.ReservedInternalTopics;
+import java.util.Map;
 import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.common.utils.Time;
 import org.junit.After;
@@ -120,27 +122,50 @@ public class PullQueryMetricsTest {
   @Test
   public void shouldRecordErrorRate() {
     // Given:
-    pullMetrics.recordErrorRate(3);
+    pullMetrics.recordErrorRate(3, PullSourceType.NON_WINDOWED, PullPhysicalPlanType.KEY_LOOKUP,
+        RoutingNodeType.SOURCE_NODE);
 
     // When:
     final double value = getMetricValue("-error-total");
     final double rate = getMetricValue("-error-rate");
     final double legacyValue = getMetricValueLegacy("-error-total");
     final double legacyRate = getMetricValueLegacy("-error-rate");
+    final double detailedValue = getMetricValue("-detailed-error-total",
+        PullSourceType.NON_WINDOWED, PullPhysicalPlanType.KEY_LOOKUP, RoutingNodeType.SOURCE_NODE);
 
     // Then:
     assertThat(value, equalTo(1.0));
     assertThat(rate, closeTo(0.03, 0.001));
     assertThat(legacyValue, equalTo(1.0));
     assertThat(legacyRate, closeTo(0.03, 0.001));
+    assertThat(detailedValue, equalTo(1.0));
+  }
+
+  @Test
+  public void shouldRecordResponseSize() {
+    // Given:
+    pullMetrics.recordResponseSize(1500, PullSourceType.NON_WINDOWED,
+        PullPhysicalPlanType.KEY_LOOKUP, RoutingNodeType.SOURCE_NODE);
+
+    // When:
+    final double value = getMetricValue("-response-size");
+    final double detailedValue = getMetricValue("-detailed-response-size",
+        PullSourceType.NON_WINDOWED, PullPhysicalPlanType.KEY_LOOKUP, RoutingNodeType.SOURCE_NODE);
+
+    // Then:
+    assertThat(value, equalTo(1500.0));
+    assertThat(detailedValue, equalTo(1500.0));
   }
 
   @Test
   public void shouldRecordRequestRate() {
     // Given:
-    pullMetrics.recordLatency(3000);
-    pullMetrics.recordLatency(3000);
-    pullMetrics.recordLatency(3000);
+    pullMetrics.recordLatency(3000, PullSourceType.NON_WINDOWED, PullPhysicalPlanType.KEY_LOOKUP,
+        RoutingNodeType.SOURCE_NODE);
+    pullMetrics.recordLatency(3000, PullSourceType.NON_WINDOWED, PullPhysicalPlanType.KEY_LOOKUP,
+        RoutingNodeType.SOURCE_NODE);
+    pullMetrics.recordLatency(3000, PullSourceType.NON_WINDOWED, PullPhysicalPlanType.KEY_LOOKUP,
+        RoutingNodeType.SOURCE_NODE);
 
     // When:
     final double rate = getMetricValue("-rate");
@@ -154,7 +179,8 @@ public class PullQueryMetricsTest {
   @Test
   public void shouldRecordLatency() {
     // Given:
-    pullMetrics.recordLatency(3000);
+    pullMetrics.recordLatency(3000, PullSourceType.NON_WINDOWED, PullPhysicalPlanType.KEY_LOOKUP,
+        RoutingNodeType.SOURCE_NODE);
 
     // When:
     final double avg = getMetricValue("-latency-avg");
@@ -165,6 +191,14 @@ public class PullQueryMetricsTest {
     final double legacyMax = getMetricValueLegacy("-latency-max");
     final double legacyMin = getMetricValueLegacy("-latency-min");
     final double legacyTotal = getMetricValueLegacy("-total");
+    final double detailedAvg = getMetricValue("-detailed-latency-avg",
+        PullSourceType.NON_WINDOWED, PullPhysicalPlanType.KEY_LOOKUP, RoutingNodeType.SOURCE_NODE);
+    final double detailedMax = getMetricValue("-detailed-latency-max",
+        PullSourceType.NON_WINDOWED, PullPhysicalPlanType.KEY_LOOKUP, RoutingNodeType.SOURCE_NODE);
+    final double detailedMin = getMetricValue("-detailed-latency-min",
+        PullSourceType.NON_WINDOWED, PullPhysicalPlanType.KEY_LOOKUP, RoutingNodeType.SOURCE_NODE);
+    final double detailedTotal = getMetricValue("-detailed-total",
+        PullSourceType.NON_WINDOWED, PullPhysicalPlanType.KEY_LOOKUP, RoutingNodeType.SOURCE_NODE);
 
     // Then:
     assertThat(avg, is(3.0));
@@ -175,6 +209,59 @@ public class PullQueryMetricsTest {
     assertThat(legacyMin, is(3.0));
     assertThat(legacyMax, is(3.0));
     assertThat(legacyTotal, is(1.0));
+    assertThat(detailedAvg, is(3.0));
+    assertThat(detailedMin, is(3.0));
+    assertThat(detailedMax, is(3.0));
+    assertThat(detailedTotal, is(1.0));
+  }
+
+  @Test
+  public void shouldRecordStatus() {
+    // Given:
+    pullMetrics.recordStatusCode(200);
+    pullMetrics.recordStatusCode(200);
+    pullMetrics.recordStatusCode(401);
+    pullMetrics.recordStatusCode(401);
+    pullMetrics.recordStatusCode(401);
+    pullMetrics.recordStatusCode(502);
+
+    // When:
+    final double total2XX = getMetricValue("-2XX-total");
+    final double total4XX = getMetricValue("-4XX-total");
+    final double total5XX = getMetricValue("-5XX-total");
+
+    // Then:
+    assertThat(total2XX, is(2.0));
+    assertThat(total4XX, is(3.0));
+    assertThat(total5XX, is(1.0));
+  }
+
+  @Test
+  public void shouldRecordRowsReturned() {
+    // Given:
+    pullMetrics.recordRowsReturned(12, PullSourceType.NON_WINDOWED,
+        PullPhysicalPlanType.KEY_LOOKUP, RoutingNodeType.SOURCE_NODE);
+
+    // When:
+    final double detailedValue = getMetricValue("-rows-returned-total",
+        PullSourceType.NON_WINDOWED, PullPhysicalPlanType.KEY_LOOKUP, RoutingNodeType.SOURCE_NODE);
+
+    // Then:
+    assertThat(detailedValue, equalTo(12.0));
+  }
+
+  @Test
+  public void shouldRecordRowsProcessed() {
+    // Given:
+    pullMetrics.recordRowsProcessed(1399, PullSourceType.NON_WINDOWED,
+        PullPhysicalPlanType.KEY_LOOKUP, RoutingNodeType.SOURCE_NODE);
+
+    // When:
+    final double detailedValue = getMetricValue("-rows-processed-total",
+        PullSourceType.NON_WINDOWED, PullPhysicalPlanType.KEY_LOOKUP, RoutingNodeType.SOURCE_NODE);
+
+    // Then:
+    assertThat(detailedValue, equalTo(1399.0));
   }
 
   private double getMetricValue(final String metricName) {
@@ -185,6 +272,29 @@ public class PullQueryMetricsTest {
                 "pull-query-requests" + metricName,
                 ReservedInternalTopics.KSQL_INTERNAL_TOPIC_PREFIX + "pull-query",
                 CUSTOM_TAGS_WITH_SERVICE_ID)
+        ).metricValue().toString()
+    );
+  }
+
+  private double getMetricValue(
+      final String metricName,
+      final PullSourceType sourceType,
+      final PullPhysicalPlanType planType,
+      final RoutingNodeType routingNodeType
+  ) {
+    final Metrics metrics = pullMetrics.getMetrics();
+    final Map<String, String> tags = ImmutableMap.<String, String>builder()
+        .putAll(CUSTOM_TAGS_WITH_SERVICE_ID)
+        .put(KsqlConstants.KSQL_QUERY_SOURCE_TAG, sourceType.name().toLowerCase())
+        .put(KsqlConstants.KSQL_QUERY_PLAN_TYPE_TAG, planType.name().toLowerCase())
+        .put(KsqlConstants.KSQL_QUERY_ROUTING_TYPE_TAG, routingNodeType.name().toLowerCase())
+        .build();
+    return Double.parseDouble(
+        metrics.metric(
+            metrics.metricName(
+                "pull-query-requests" + metricName,
+                ReservedInternalTopics.KSQL_INTERNAL_TOPIC_PREFIX + "pull-query",
+                tags)
         ).metricValue().toString()
     );
   }

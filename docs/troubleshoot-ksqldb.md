@@ -63,11 +63,11 @@ Example output showing an empty source topic:
 % Reached end of topic pageviews [0] at offset 0
 ```
 
-### Verify that new messages are arriving at the source topic
+### Verify that new records are arriving at the source topic
 
 The topic is populated if the {{ site.kcat }} prints messages. However,
-it may not be receiving *new* messages. By default, ksqlDB reads from the
-end of a topic. A query does not return results if no new messages are
+it may not be receiving *new* records. By default, ksqlDB reads from the
+end of a topic. A query does not return results if no new records are
 being written to the topic.
 
 To check your query, you can set ksqlDB to read from the beginning of a
@@ -86,8 +86,8 @@ Successfully changed local property 'auto.offset.reset' from 'null' to 'earliest
 
 Run your query again. You should get results from the beginning of the
 topic. Note that the query may appear to hang if the query reaches the
-latest offset and no new messages arrive. The query is simply waiting
-for the next message. Use Ctrl+C to stop the query.
+latest offset and no new records arrive. The query is simply waiting
+for the next record. Use Ctrl+C to stop the query.
 
 ### Verify that the query predicate is not too restrictive
 
@@ -98,7 +98,7 @@ Remove `WHERE` and `HAVING` clauses and run your query again.
 ### Verify that there are no deserialization errors
 
 ksqlDB doesn't write query results if it's not able to deserialize
-message data. Use the `DESCRIBE EXTENDED` statement to check that the
+record data. Use the `DESCRIBE EXTENDED` statement to check that the
 `VALUE_FORMAT` of the stream matches the format of the records that {{
 site.kcat }} prints for your topic. Enter the following statement in the
 CLI:
@@ -130,7 +130,7 @@ Example output from {{ site.kcat }} for a DELIMITED topic:
 ^C
 ```
 
-[Check for message processing failures](#check-for-message-processing-failures)
+[Check for record processing failures](#check-for-record-processing-failures)
 for serialization errors. For example, if your query specifies JSON for the
 `VALUE_FORMAT`, and the underlying topic is not formatted as JSON, you'll see
 `JsonParseException` warnings in the ksqlDB Server log. For example:

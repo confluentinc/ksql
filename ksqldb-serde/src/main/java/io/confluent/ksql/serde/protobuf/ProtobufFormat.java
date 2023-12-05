@@ -16,6 +16,7 @@
 package io.confluent.ksql.serde.protobuf;
 
 import com.google.common.collect.ImmutableSet;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.serde.FormatProperties;
 import io.confluent.ksql.serde.SerdeFeature;
@@ -43,16 +44,22 @@ public class ProtobufFormat extends ConnectFormat {
   }
 
   @Override
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "SUPPORTED_FEATURES is ImmutableSet")
   public Set<SerdeFeature> supportedFeatures() {
     return SUPPORTED_FEATURES;
+  }
+
+  @Override
+  public Set<String> getSupportedProperties() {
+    return ProtobufProperties.SUPPORTED_PROPERTIES;
   }
 
   @Override
   protected ConnectSchemaTranslator getConnectSchemaTranslator(
       final Map<String, String> formatProps
   ) {
-    FormatProperties.validateProperties(name(), formatProps, ImmutableSet.of());
-    return new ProtobufSchemaTranslator();
+    FormatProperties.validateProperties(name(), formatProps, getSupportedProperties());
+    return new ProtobufSchemaTranslator(new ProtobufProperties(formatProps));
   }
 
   @Override
@@ -64,6 +71,7 @@ public class ProtobufFormat extends ConnectFormat {
       final Class<T> targetType,
       final boolean isKey
   ) {
-    return ProtobufSerdeFactory.createSerde(connectSchema, config, srFactory, targetType, isKey);
+    return new ProtobufSerdeFactory(new ProtobufProperties(formatProps))
+        .createSerde(connectSchema, config, srFactory, targetType, isKey);
   }
 }

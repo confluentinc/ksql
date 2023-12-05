@@ -17,6 +17,7 @@ package io.confluent.ksql.execution.expression.tree;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.errorprone.annotations.Immutable;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.parser.NodeLocation;
 import java.util.Map;
 import java.util.Objects;
@@ -39,6 +40,7 @@ public class CreateMapExpression extends Expression {
     this(Optional.empty(), map);
   }
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "map is ImmutableMap")
   public ImmutableMap<Expression, Expression> getMap() {
     return map;
   }

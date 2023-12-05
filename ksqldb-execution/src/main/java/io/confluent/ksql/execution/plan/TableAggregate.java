@@ -22,6 +22,7 @@ import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.name.ColumnName;
@@ -74,11 +75,19 @@ public class TableAggregate implements ExecutionStep<KTableHolder<GenericKey>> {
     return internalFormats;
   }
 
+  @SuppressFBWarnings(
+      value = "EI_EXPOSE_REP",
+      justification = "aggregationFunctions is ImmutableList"
+  )
   public List<FunctionCall> getAggregationFunctions() {
     return aggregationFunctions;
   }
 
   @JsonInclude(Include.NON_NULL)
+  @SuppressFBWarnings(
+      value = "EI_EXPOSE_REP",
+      justification = "nonAggregateColumns is ImmutableList"
+  )
   public List<ColumnName> getNonAggregateColumns() {
     return nonAggregateColumns;
   }

@@ -17,9 +17,12 @@ package io.confluent.ksql.schema.ksql;
 
 import static io.confluent.ksql.schema.ksql.types.SqlTypes.BIGINT;
 import static io.confluent.ksql.schema.ksql.types.SqlTypes.BOOLEAN;
+import static io.confluent.ksql.schema.ksql.types.SqlTypes.BYTES;
+import static io.confluent.ksql.schema.ksql.types.SqlTypes.DATE;
 import static io.confluent.ksql.schema.ksql.types.SqlTypes.DOUBLE;
 import static io.confluent.ksql.schema.ksql.types.SqlTypes.INTEGER;
 import static io.confluent.ksql.schema.ksql.types.SqlTypes.STRING;
+import static io.confluent.ksql.schema.ksql.types.SqlTypes.TIME;
 import static io.confluent.ksql.schema.ksql.types.SqlTypes.TIMESTAMP;
 import static io.confluent.ksql.schema.ksql.types.SqlTypes.array;
 import static io.confluent.ksql.schema.ksql.types.SqlTypes.decimal;
@@ -48,6 +51,9 @@ import io.confluent.ksql.schema.ksql.types.SqlStruct.Field;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.math.BigDecimal;
+import java.nio.ByteBuffer;
+import java.sql.Date;
+import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.Arrays;
 import java.util.Collection;
@@ -284,10 +290,36 @@ public class DefaultSqlValueCoercerTest {
             .put(TIMESTAMP, new Timestamp(1535792475000L))
             .build()
         )
+        .put("09:01:15", ImmutableMap.<SqlType, Object>builder()
+            .put(STRING, "09:01:15")
+            .put(TIME, new Time(32475000L))
+            .build()
+        )
+        .put("2018-09-01", ImmutableMap.<SqlType, Object>builder()
+            .put(STRING, "2018-09-01")
+            .put(DATE, new Date(1535760000000L))
+            .put(TIMESTAMP, new Timestamp(1535760000000L))
+            .build()
+        )
         // TIMESTAMP:
         .put(new Timestamp(1535792475000L), ImmutableMap.<SqlType, Object>builder()
             .put(TIMESTAMP, new Timestamp(1535792475000L))
             .put(STRING, laxOnly("2018-09-01T09:01:15.000"))
+            .build()
+        )
+        .put(new Time(1000L), ImmutableMap.<SqlType, Object>builder()
+            .put(TIME, new Time(1000L))
+            .put(STRING, laxOnly("00:00:01"))
+            .build()
+        )
+        .put(new Date(636451200000L), ImmutableMap.<SqlType, Object>builder()
+            .put(DATE, new Date(636451200000L))
+            .put(STRING, laxOnly("1990-03-03"))
+            .build()
+        )
+        // BYTES:
+        .put(ByteBuffer.wrap(new byte[] {110}), ImmutableMap.<SqlType, Object>builder()
+            .put(BYTES, ByteBuffer.wrap(new byte[] {110}))
             .build()
         )
         // ARRAY:
@@ -301,7 +333,10 @@ public class DefaultSqlValueCoercerTest {
             .put(array(array(BOOLEAN)), ImmutableList.of())
             .put(array(map(STRING, STRING)), ImmutableList.of())
             .put(array(SqlTypes.struct().field("a", INTEGER).build()), ImmutableList.of())
+            .put(array(TIME), ImmutableList.of())
+            .put(array(DATE), ImmutableList.of())
             .put(array(TIMESTAMP), ImmutableList.of())
+            .put(array(BYTES), ImmutableList.of())
             .build()
         )
         .put(ImmutableList.of(true, false), ImmutableMap.<SqlType, Object>builder()
@@ -396,6 +431,18 @@ public class DefaultSqlValueCoercerTest {
                 .put(
                     struct().field("a", TIMESTAMP).build(),
                     createStruct(struct().field("a", TIMESTAMP).build())
+                )
+                .put(
+                    struct().field("abc", TIME).build(),
+                    createStruct(struct().field("abc", TIME).build())
+                )
+                .put(
+                    struct().field("def", DATE).build(),
+                    createStruct(struct().field("def", DATE).build())
+                )
+                .put(
+                    struct().field("ghi", BYTES).build(),
+                    createStruct(struct().field("ghi", BYTES).build())
                 )
                 .build()
         )
@@ -983,7 +1030,8 @@ public class DefaultSqlValueCoercerTest {
           is(ImmutableSet.of(
               SqlBaseType.BOOLEAN, SqlBaseType.INTEGER, SqlBaseType.BIGINT, SqlBaseType.DECIMAL,
               SqlBaseType.DOUBLE, SqlBaseType.STRING, SqlBaseType.ARRAY, SqlBaseType.MAP,
-              SqlBaseType.STRUCT, SqlBaseType.TIMESTAMP
+              SqlBaseType.STRUCT, SqlBaseType.TIME, SqlBaseType.DATE, SqlBaseType.TIMESTAMP,
+              SqlBaseType.BYTES
           ))
       );
     }
@@ -1054,7 +1102,10 @@ public class DefaultSqlValueCoercerTest {
         .put(SqlBaseType.STRUCT, SqlTypes.struct()
             .field("Bob", SqlTypes.STRING)
             .build())
+        .put(SqlBaseType.TIME, SqlTypes.TIME)
+        .put(SqlBaseType.DATE, SqlTypes.DATE)
         .put(SqlBaseType.TIMESTAMP, SqlTypes.TIMESTAMP)
+        .put(SqlBaseType.BYTES, BYTES)
         .build();
 
     static SqlType typeInstanceFor(final SqlBaseType baseType) {
@@ -1078,9 +1129,13 @@ public class DefaultSqlValueCoercerTest {
         .put(SqlBaseType.DECIMAL, new BigDecimal("12.01"))
         .put(SqlBaseType.DOUBLE, 34.98d)
         .put(SqlBaseType.STRING, "11")
+        .put(SqlBaseType.TIME, new Time(1000L))
+        .put(SqlBaseType.DATE, new Date(636451200000L))
         .put(SqlBaseType.TIMESTAMP, new Timestamp(1535792475000L))
+        .put(SqlBaseType.BYTES, ByteBuffer.wrap(new byte[] {88, 34, 120}))
         .build();
 
+    @SuppressWarnings("fallthrough")
     static Object instanceFor(final SqlType from, final SqlType to) {
       switch (from.baseType()) {
         case ARRAY:
@@ -1116,6 +1171,12 @@ public class DefaultSqlValueCoercerTest {
           }
           if (to.baseType() == SqlBaseType.TIMESTAMP) {
             return "2018-09-01T09:01:15.000";
+          }
+          if (to.baseType() == SqlBaseType.TIME) {
+            return "09:01:15";
+          }
+          if (to.baseType() == SqlBaseType.DATE) {
+            return "2018-09-01";
           }
           // Intentional fall through
         default:
@@ -1157,6 +1218,8 @@ public class DefaultSqlValueCoercerTest {
                 .build())
             .put(SqlBaseType.STRING, ImmutableSet.<SqlBaseType>builder()
                 .add(SqlBaseType.STRING)
+                .add(SqlBaseType.TIME)
+                .add(SqlBaseType.DATE)
                 .add(SqlBaseType.TIMESTAMP)
                 .build())
             .put(SqlBaseType.ARRAY, ImmutableSet.<SqlBaseType>builder()
@@ -1168,8 +1231,17 @@ public class DefaultSqlValueCoercerTest {
             .put(SqlBaseType.STRUCT, ImmutableSet.<SqlBaseType>builder()
                 .add(SqlBaseType.STRUCT)
                 .build())
+            .put(SqlBaseType.TIME, ImmutableSet.<SqlBaseType>builder()
+                .add(SqlBaseType.TIME)
+                .build())
+            .put(SqlBaseType.DATE, ImmutableSet.<SqlBaseType>builder()
+                .add(SqlBaseType.DATE)
+                .build())
             .put(SqlBaseType.TIMESTAMP, ImmutableSet.<SqlBaseType>builder()
                 .add(SqlBaseType.TIMESTAMP)
+                .build())
+            .put(SqlBaseType.BYTES, ImmutableSet.<SqlBaseType>builder()
+                .add(SqlBaseType.BYTES)
                 .build())
             .build();
 
@@ -1206,6 +1278,15 @@ public class DefaultSqlValueCoercerTest {
             .put(SqlBaseType.TIMESTAMP, ImmutableSet.<SqlBaseType>builder()
                 .add(SqlBaseType.STRING)
                 .build())
+            .put(SqlBaseType.TIME, ImmutableSet.<SqlBaseType>builder()
+                .add(SqlBaseType.STRING)
+                .build())
+            .put(SqlBaseType.DATE, ImmutableSet.<SqlBaseType>builder()
+                .add(SqlBaseType.STRING)
+                .build())
+            .put(SqlBaseType.BYTES, ImmutableSet.<SqlBaseType>builder()
+                .add(SqlBaseType.BYTES)
+                .build())
             .build();
 
     private static boolean supported(
@@ -1214,12 +1295,14 @@ public class DefaultSqlValueCoercerTest {
         final SqlBaseType to
     ) {
       if (coercer == DefaultSqlValueCoercer.LAX) {
-        final ImmutableSet<SqlBaseType> sqlBaseTypes = LAX_ADDITIONAL.getOrDefault(from, ImmutableSet.of());
+        final ImmutableSet<SqlBaseType> sqlBaseTypes = LAX_ADDITIONAL
+            .getOrDefault(from, ImmutableSet.of());
         // needed to avoid spotbugs warning with guava 32.0.1
         if (sqlBaseTypes == null) {
-            return false;
+          return false;
         }
         final boolean supported = sqlBaseTypes.contains(to);
+
         if (supported) {
           return true;
         }

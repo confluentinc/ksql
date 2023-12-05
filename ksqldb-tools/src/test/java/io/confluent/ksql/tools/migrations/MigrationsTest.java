@@ -223,43 +223,52 @@ public class MigrationsTest {
         1,
         "foo FOO fO0",
         configFilePath,
-        "CREATE STREAM FOO (A STRING) WITH (KAFKA_TOPIC='FOO', PARTITIONS=1, VALUE_FORMAT='JSON');\n" +
+        "CREATE STREAM ${streamName} (A STRING) WITH (KAFKA_TOPIC='FOO', PARTITIONS=1, VALUE_FORMAT='JSON');\n" +
             "-- let's create some connectors!!!\n" +
             "CREATE SOURCE CONNECTOR C WITH ('connector.class'='org.apache.kafka.connect.tools.MockSourceConnector');\n" +
             "CREATE SINK CONNECTOR D WITH ('connector.class'='org.apache.kafka.connect.tools.MockSinkConnector', 'topics'='d');\n" +
             "CREATE TABLE blue (ID BIGINT PRIMARY KEY, A STRING) WITH (KAFKA_TOPIC='blue', PARTITIONS=1, VALUE_FORMAT='DELIMITED');" +
-            "drop TABLE blue;"
+            "DROP TABLE blue;" +
+            "DEFINE onlyDefinedInFile1 = 'nope';"
     );
     createMigrationFile(
         2,
         "bar_bar_BAR",
         configFilePath,
-        "CREATE OR REPLACE STREAM FOO (A STRING, B INT) WITH (KAFKA_TOPIC='FOO', PARTITIONS=1, VALUE_FORMAT='JSON');"
-            + "ALTeR STREAM FOO ADD COLUMN C BIGINT;" +
+        "CREATE OR REPLACE STREAM ${streamName} (A STRING, B INT) WITH (KAFKA_TOPIC='FOO', PARTITIONS=1, VALUE_FORMAT='JSON');"
+            + "ALTER STREAM ${streamName} ADD COLUMN C BIGINT;" +
             "/* add some '''data''' to FOO */" +
-            "INsERT INTO FOO VALUES ('HELLO', 50, -4325);" +
+            "DEFINE variable = '50';" +
+            "INSERT INTO FOO VALUES ('HELLO', ${variable}, -4325);" +
             "INSERT INTO FOO (A) VALUES ('GOOD''BYE');" +
-            "INSERT INTO FOO (A) VALUES ('mua--ha\nha');" +
+            "INSERT INTO ${streamName} (A) VALUES ('${onlyDefinedInFile1}--ha\nha');" +
             "INSERT INTO FOO (A) VALUES ('');" +
-            "SeT 'ksql.output.topic.name.prefix' = 'cool';" +
+            "DEFINE variable = 'cool';" +
+            "SeT 'ksql.output.topic.name.prefix' = '${variable}';" +
             "CREATE STREAM `bar` AS SELECT CONCAT(A, 'woo''hoo') AS A FROM FOO;" +
             "UnSET 'ksql.output.topic.name.prefix';" +
             "CREATE STREAM CAR AS SELECT * FROM FOO;" +
             "DROP CONNECTOR D;" +
             "INSERT INTO `bar` SELECT A FROM CAR;" +
             "CREATE TYPE ADDRESS AS STRUCT<number INTEGER, street VARCHAR, city VARCHAR>;" +
-            "CREATE STREAM HOMES (ADDR ADDRESS) WITH (KAFKA_TOPIC='HOMES', PARTITIONS=1, VALUE_FORMAT='JSON');" +
-            "INSERT INTO HOMES VALUES (STRUCT(number := 123, street := 'sesame st', city := 'New York City'));" +
+            "DEFINE suffix = 'OMES';" +
+            "DEFINE variable = 'H${suffix}';" +
+            "CREATE STREAM ${variable} (ADDR ADDRESS) WITH (KAFKA_TOPIC='${variable}', PARTITIONS=1, VALUE_FORMAT='JSON');" +
+            "UNDEFINE variable;" +
+            "INSERT INTO HOMES VALUES (STRUCT(number := 123, street := 'sesame st', city := '${variable}'));" +
             "DROP TYPE ADDRESS;"
     );
 
     // When:
-    final int applyStatus = MIGRATIONS_CLI.parse("--config-file", configFilePath, "apply", "-a").runCommand();
+    final int applyStatus = MIGRATIONS_CLI.parse("--config-file", configFilePath, "apply", "-a", "-d", "streamName=FOO").runCommand();
 
     // Then:
     assertThat(applyStatus, is(0));
 
     verifyMigrationsApplied();
+
+    // Verify that older versions cannot be applied
+    assertThat(MIGRATIONS_CLI.parse("--config-file", configFilePath, "apply", "-v", "1").runCommand(), is(1));
   }
 
   private void shouldDisplayInfo() {
@@ -342,7 +351,7 @@ public class MigrationsTest {
     assertThat(foo.get(2).getRow().get().getColumns().get(0), is("GOOD'BYE"));
     assertNull(foo.get(2).getRow().get().getColumns().get(1));
     assertNull(foo.get(2).getRow().get().getColumns().get(2));
-    assertThat(foo.get(3).getRow().get().getColumns().get(0), is("mua--ha\nha"));
+    assertThat(foo.get(3).getRow().get().getColumns().get(0), is("${onlyDefinedInFile1}--ha\nha"));
     assertThat(foo.get(4).getRow().get().getColumns().get(0), is(""));
 
     // verify bar
@@ -351,7 +360,7 @@ public class MigrationsTest {
         hasSize(6)); // first row is a header, last row is a message saying "Limit Reached"
     assertThat(bar.get(1).getRow().get().getColumns().get(0), is("HELLOwoo'hoo"));
     assertThat(bar.get(2).getRow().get().getColumns().get(0), is("GOOD'BYEwoo'hoo"));
-    assertThat(bar.get(3).getRow().get().getColumns().get(0), is("mua--ha\nhawoo'hoo"));
+    assertThat(bar.get(3).getRow().get().getColumns().get(0), is("${onlyDefinedInFile1}--ha\nhawoo'hoo"));
     assertThat(bar.get(4).getRow().get().getColumns().get(0), is("woo'hoo"));
 
     verifyConnector("C", true);
@@ -362,7 +371,7 @@ public class MigrationsTest {
         () -> makeKsqlQuery("SELECT * FROM HOMES EMIT CHANGES LIMIT 1;"),
         hasSize(3)); // first row is a header, last row is a message saying "Limit Reached"
     assertThat(homes.get(1).getRow().get().getColumns().size(), is(1));
-    assertThat(homes.get(1).getRow().get().getColumns().get(0).toString(), is("{NUMBER=123, STREET=sesame st, CITY=New York City}"));
+    assertThat(homes.get(1).getRow().get().getColumns().get(0).toString(), is("{NUMBER=123, STREET=sesame st, CITY=${variable}}"));
 
     // verify type was dropped:
     assertTypeCount(0);
@@ -403,6 +412,7 @@ public class MigrationsTest {
     }
   }
 
+  @SuppressWarnings("unchecked")
   private static void initializeAndVerifyMetadataStreamAndTable(final String configFile) {
     // use `initialize-metadata` to create metadata stream and table
     final int status = MIGRATIONS_CLI.parse("--config-file", configFile, "initialize-metadata").runCommand();
@@ -621,6 +631,7 @@ public class MigrationsTest {
 
   private static List<StreamedRow> waitForNumRows(final String pullQuery, final int numRows) {
     return assertThatEventually(
+        "Query '" + pullQuery + "' never got " + numRows + " rows",
         () -> {
           try {
             return makeKsqlQuery(pullQuery);
@@ -634,7 +645,9 @@ public class MigrationsTest {
             }
           }
         },
-        hasSize(numRows)
+        hasSize(numRows),
+        1,
+        TimeUnit.MINUTES
     );
   }
 }

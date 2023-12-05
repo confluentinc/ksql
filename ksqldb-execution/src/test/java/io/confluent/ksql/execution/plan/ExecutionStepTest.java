@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.execution.plan;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.test.util.ClassFinder;
 import io.confluent.ksql.test.util.ImmutableTester;
 import java.util.Collection;
@@ -37,6 +38,7 @@ public class ExecutionStepTest {
         .collect(Collectors.toList());
   }
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
   public ExecutionStepTest(final Class<?> modelClass) {
     this.modelClass = modelClass;
   }

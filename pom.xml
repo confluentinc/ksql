@@ -111,7 +111,7 @@
         <podam.version>6.0.2.RELEASE</podam.version>
         <airlift.version>0.29</airlift.version>
         <airline.version>2.6.0</airline.version>
-        <antlr.version>4.13.1</antlr.version>
+        <antlr.version>4.9.2</antlr.version>
         <commons-text.version>1.10.0</commons-text.version>
         <csv.version>1.4</csv.version>
         <commons.compress.version>1.21</commons.compress.version>

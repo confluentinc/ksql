@@ -379,7 +379,12 @@ public class ClientImpl implements Client {
         KSQL_ENDPOINT,
         new JsonObject()
             .put("ksql",
-                String.format("CREATE %s CONNECTOR %s WITH (%s);", type, name, connectorConfigs))
+                String.format(
+                    "CREATE %s CONNECTOR \"%s\" WITH (%s);",
+                    type,
+                    name,
+                    connectorConfigs
+                ))
             .put("sessionVariables", sessionVariables),
         cf,
         response -> handleSingleEntityResponse(
@@ -408,7 +413,7 @@ public class ClientImpl implements Client {
         KSQL_ENDPOINT,
         new JsonObject()
             .put("ksql",
-                String.format("CREATE %s CONNECTOR %s %s WITH (%s);",
+                String.format("CREATE %s CONNECTOR %s \"%s\" WITH (%s);",
                     type, ifNotExistsClause, name, connectorConfigs))
             .put("sessionVariables", sessionVariables),
         cf,
@@ -426,7 +431,7 @@ public class ClientImpl implements Client {
     makePostRequest(
         KSQL_ENDPOINT,
         new JsonObject()
-            .put("ksql", "drop connector " + name + ";")
+            .put("ksql", String.format("drop connector \"%s\";", name))
             .put("sessionVariables", sessionVariables),
         cf,
         response -> handleSingleEntityResponse(
@@ -439,12 +444,12 @@ public class ClientImpl implements Client {
   @Override
   public CompletableFuture<Void> dropConnector(final String name, final boolean ifExists) {
     final CompletableFuture<Void> cf = new CompletableFuture<>();
-    final String ifExistsClause = ifExists ? "if exists " : "";
+    final String ifExistsClause = ifExists ? "if exists" : "";
 
     makePostRequest(
         KSQL_ENDPOINT,
         new JsonObject()
-            .put("ksql", "drop connector " + ifExistsClause + name + ";")
+            .put("ksql", String.format("drop connector %s \"%s\";", ifExistsClause, name))
             .put("sessionVariables", sessionVariables),
         cf,
         response -> handleSingleEntityResponse(

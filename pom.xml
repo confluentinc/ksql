@@ -807,7 +807,7 @@
                         <log4j.configuration>file:${project.basedir}/../ksqldb-test-util/src/main/resources/log4j.properties</log4j.configuration>
                     </systemPropertyVariables>
                     <argLine>-verbose:gc -Xloggc:"${project.build.directory}/gc.log"</argLine>
-                    <argLine>-Duser.timezone=UTC</argLine>
+                    <argLine>-Duser.timezone=UTC -Xmx1g -Xms1g</argLine>
                 </configuration>
             </plugin>
             <plugin>

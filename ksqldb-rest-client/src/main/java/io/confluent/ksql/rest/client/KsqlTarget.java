@@ -514,21 +514,11 @@ public final class KsqlTarget {
 
       final HttpClientRequest httpClientRequest = ar.result();
       httpClientRequest.response(response -> {
-        if (path.equals("/query")) {
-          if (response.failed()) {
-            vcf.completeExceptionally(response.cause());
-          }
-        } else {
-          if (response.failed()) {
-            vcf.completeExceptionally(response.cause());
-          }
+        if (response.failed()) {
+          vcf.completeExceptionally(response.cause());
         }
-
-        if (path.equals("/query")) {
-          responseHandler.accept(response.result(), vcf);
-        } else {
-          responseHandler.accept(response.result(), vcf);
-        }
+        
+        responseHandler.accept(response.result(), vcf);
       });
       httpClientRequest.exceptionHandler(vcf::completeExceptionally);
 

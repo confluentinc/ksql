@@ -353,6 +353,18 @@ public final class KsqlTarget {
     return executeSync(httpMethod, path, Optional.empty(), requestBody,
         resp -> responseSupplier.get(),
         (resp, vcf) -> {
+        if (resp.statusCode() != 200) {
+          try {
+            final String msg = "Closing connection since status code is " + resp.statusCode()
+                + ", body is " + resp.body();
+            resp.request().connection().close();
+            vcf.completeExceptionally(new KsqlRestClientException(msg));
+          } catch (Throwable closing) {
+            log.error("Error while handling close", closing);
+            vcf.completeExceptionally(closing);
+          }
+          return;
+        }
         final ReadStream<Buffer> readStream;
         if (resp.request().connection().isSsl()) {
           readStream = new BufferCopyStream(resp);

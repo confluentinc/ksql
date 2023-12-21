@@ -353,6 +353,18 @@ public final class KsqlTarget {
     return executeSync(httpMethod, path, Optional.empty(), requestBody,
         resp -> responseSupplier.get(),
         (resp, vcf) -> {
+        if (resp.statusCode() != 200) {
+          try {
+            final String msg = "Closing connection since status code is " + resp.statusCode()
+                + ", body is " + resp.body();
+            resp.request().connection().close();
+            vcf.completeExceptionally(new KsqlRestClientException(msg));
+          } catch (Throwable closing) {
+            log.error("Error while handling close", closing);
+            vcf.completeExceptionally(closing);
+          }
+          return;
+        }
         final ReadStream<Buffer> readStream;
         if (resp.request().connection().isSsl()) {
           readStream = new BufferCopyStream(resp);
@@ -502,11 +514,21 @@ public final class KsqlTarget {
 
       final HttpClientRequest httpClientRequest = ar.result();
       httpClientRequest.response(response -> {
-        if (response.failed()) {
-          vcf.completeExceptionally(response.cause());
+        if (path.equals("/query")) {
+          if (response.failed()) {
+            vcf.completeExceptionally(response.cause());
+          }
+        } else {
+          if (response.failed()) {
+            vcf.completeExceptionally(response.cause());
+          }
         }
 
-        responseHandler.accept(response.result(), vcf);
+        if (path.equals("/query")) {
+          responseHandler.accept(response.result(), vcf);
+        } else {
+          responseHandler.accept(response.result(), vcf);
+        }
       });
       httpClientRequest.exceptionHandler(vcf::completeExceptionally);
 

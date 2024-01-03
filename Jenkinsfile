@@ -2,9 +2,10 @@
 
 def channel = "${env.BRANCH_NAME}".contains('master') ? '#ksqldb-quality-oncall' : '#ksqldb-warn'
 
+// removed confluent-security-plugins and confluent-cloud-plugins from downstream due to Jenkins deprecation
 def downStreams = "${env.BRANCH_NAME}".contains('master') ? 
-    ["confluent-security-plugins", "confluent-cloud-plugins", "cc-docker-ksql"] :
-    ["confluent-security-plugins", "confluent-cloud-plugins"]
+    ["cc-docker-ksql"] :
+    []
 
 common {
     nodeLabel = 'docker-debian-jdk11'

@@ -11,7 +11,7 @@ common {
     dockerPush = false
     dockerScan = false
     dockerImageClean = false
-    downStreamRepos = ["confluent-security-plugins", "confluent-cloud-plugins"]
+    // downStreamRepos = ["confluent-security-plugins", "confluent-cloud-plugins"]
     downStreamValidate = false
     nanoVersion = true
     maxBuildsToKeep = 99

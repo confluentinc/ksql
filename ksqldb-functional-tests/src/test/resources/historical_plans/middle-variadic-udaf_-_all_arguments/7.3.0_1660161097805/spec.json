@@ -1,0 +1,286 @@
+{
+  "version" : "7.3.0",
+  "timestamp" : 1660161097805,
+  "path" : "query-validation-tests/middle-variadic-udaf.json",
+  "schemas" : {
+    "CTAS_OUTPUT_0.Aggregate.Project" : {
+      "schema" : "`ID` BIGINT KEY, `RESULT` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CTAS_OUTPUT_0.Aggregate.GroupBy" : {
+      "schema" : "`ID` BIGINT KEY, `ID` BIGINT, `FIRST` BIGINT, `SECOND` STRING, `THIRD` STRING, `FOURTH` STRING, `KSQL_INTERNAL_COL_5` INTEGER, `KSQL_INTERNAL_COL_6` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CTAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`ID` BIGINT KEY, `FIRST` BIGINT, `SECOND` STRING, `THIRD` STRING, `FOURTH` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CTAS_OUTPUT_0.Aggregate.Aggregate.Materialize" : {
+      "schema" : "`ID` BIGINT KEY, `ID` BIGINT, `FIRST` BIGINT, `SECOND` STRING, `THIRD` STRING, `FOURTH` STRING, `KSQL_AGG_VARIABLE_0` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CTAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ID` BIGINT KEY, `RESULT` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "all arguments",
+    "inputs" : [ {
+      "topic" : "input_topic",
+      "key" : 0,
+      "value" : {
+        "FIRST" : 6,
+        "SECOND" : "hi",
+        "THIRD" : "hello",
+        "FOURTH" : "world"
+      }
+    }, {
+      "topic" : "input_topic",
+      "key" : 100,
+      "value" : {
+        "FIRST" : 2,
+        "SECOND" : "a",
+        "THIRD" : "hello",
+        "FOURTH" : "world"
+      }
+    }, {
+      "topic" : "input_topic",
+      "key" : 0,
+      "value" : {
+        "FIRST" : null,
+        "SECOND" : "hello",
+        "THIRD" : "hello",
+        "FOURTH" : "world"
+      }
+    }, {
+      "topic" : "input_topic",
+      "key" : 100,
+      "value" : {
+        "FIRST" : 5,
+        "SECOND" : "world",
+        "THIRD" : "hello",
+        "FOURTH" : "world"
+      }
+    }, {
+      "topic" : "input_topic",
+      "key" : 0,
+      "value" : {
+        "FIRST" : 5,
+        "SECOND" : null,
+        "THIRD" : "hello",
+        "FOURTH" : "world"
+      }
+    }, {
+      "topic" : "input_topic",
+      "key" : 100,
+      "value" : {
+        "FIRST" : 3,
+        "SECOND" : "test",
+        "THIRD" : "hello",
+        "FOURTH" : "world"
+      }
+    }, {
+      "topic" : "input_topic",
+      "key" : 100,
+      "value" : {
+        "FIRST" : 2,
+        "SECOND" : "testing",
+        "THIRD" : "hello",
+        "FOURTH" : "world"
+      }
+    }, {
+      "topic" : "input_topic",
+      "key" : 0,
+      "value" : {
+        "FIRST" : 21,
+        "SECOND" : "aggregate",
+        "THIRD" : "hello",
+        "FOURTH" : "world"
+      }
+    }, {
+      "topic" : "input_topic",
+      "key" : 100,
+      "value" : {
+        "FIRST" : null,
+        "SECOND" : "function",
+        "THIRD" : "hello",
+        "FOURTH" : "world"
+      }
+    }, {
+      "topic" : "input_topic",
+      "key" : 100,
+      "value" : {
+        "FIRST" : 3,
+        "SECOND" : "ksql",
+        "THIRD" : "hello",
+        "FOURTH" : "world"
+      }
+    }, {
+      "topic" : "input_topic",
+      "key" : 100,
+      "value" : {
+        "FIRST" : 6,
+        "SECOND" : "test",
+        "THIRD" : "hello",
+        "FOURTH" : "world"
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : 0,
+      "value" : {
+        "RESULT" : 28
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : 100,
+      "value" : {
+        "RESULT" : 23
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : 0,
+      "value" : {
+        "RESULT" : 43
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : 100,
+      "value" : {
+        "RESULT" : 43
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : 0,
+      "value" : {
+        "RESULT" : 58
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : 100,
+      "value" : {
+        "RESULT" : 60
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : 100,
+      "value" : {
+        "RESULT" : 79
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : 0,
+      "value" : {
+        "RESULT" : 98
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : 100,
+      "value" : {
+        "RESULT" : 97
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : 100,
+      "value" : {
+        "RESULT" : 114
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : 100,
+      "value" : {
+        "RESULT" : 134
+      }
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "input_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM INPUT (ID BIGINT KEY, FIRST bigint, SECOND string, THIRD string, FOURTH string) WITH (kafka_topic='input_topic', value_format='JSON');", "CREATE TABLE OUTPUT as SELECT id, MID_VAR_ARG(FIRST, SECOND, THIRD, FOURTH, 7, 3) as RESULT FROM INPUT group by id;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`ID` BIGINT KEY, `FIRST` BIGINT, `SECOND` STRING, `THIRD` STRING, `FOURTH` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "OUTPUT",
+        "type" : "TABLE",
+        "schema" : "`ID` BIGINT KEY, `RESULT` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "input_topic",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          }
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

@@ -241,7 +241,8 @@
               "name" : "F2",
               "type" : [ "null", "string" ],
               "default" : null
-            } ]
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.LKey"
           },
           "valueSchema" : {
             "type" : "record",
@@ -260,7 +261,8 @@
                   "name" : "F2",
                   "type" : [ "null", "string" ],
                   "default" : null
-                } ]
+                } ],
+                "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema_L_L0"
               } ],
               "default" : null
             }, {
@@ -283,7 +285,8 @@
               "name" : "L_ID",
               "type" : [ "null", "string" ],
               "default" : null
-            } ]
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
           }
         }, {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-Join-right-repartition",
@@ -309,7 +312,8 @@
               "name" : "F2",
               "type" : [ "null", "string" ],
               "default" : null
-            } ]
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.LKey"
           },
           "valueSchema" : {
             "type" : "record",
@@ -328,7 +332,8 @@
                   "name" : "F2",
                   "type" : [ "null", "string" ],
                   "default" : null
-                } ]
+                } ],
+                "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema_R_R0"
               } ],
               "default" : null
             }, {
@@ -351,7 +356,8 @@
               "name" : "R_ID",
               "type" : [ "null", "string" ],
               "default" : null
-            } ]
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
           }
         }, {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-KSTREAM-JOINTHIS-0000000016-store-changelog",
@@ -377,7 +383,8 @@
               "name" : "F2",
               "type" : [ "null", "string" ],
               "default" : null
-            } ]
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.LKey"
           },
           "valueSchema" : {
             "type" : "record",
@@ -396,7 +403,8 @@
                   "name" : "F2",
                   "type" : [ "null", "string" ],
                   "default" : null
-                } ]
+                } ],
+                "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema_L_L0"
               } ],
               "default" : null
             }, {
@@ -419,7 +427,8 @@
               "name" : "L_ID",
               "type" : [ "null", "string" ],
               "default" : null
-            } ]
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
           }
         }, {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-KSTREAM-JOINOTHER-0000000017-store-changelog",
@@ -445,7 +454,8 @@
               "name" : "F2",
               "type" : [ "null", "string" ],
               "default" : null
-            } ]
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.LKey"
           },
           "valueSchema" : {
             "type" : "record",
@@ -464,7 +474,8 @@
                   "name" : "F2",
                   "type" : [ "null", "string" ],
                   "default" : null
-                } ]
+                } ],
+                "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema_R_R0"
               } ],
               "default" : null
             }, {
@@ -487,7 +498,8 @@
               "name" : "R_ID",
               "type" : [ "null", "string" ],
               "default" : null
-            } ]
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
           }
         }, {
           "name" : "left_topic",
@@ -556,7 +568,8 @@
               "name" : "F2",
               "type" : [ "null", "string" ],
               "default" : null
-            } ]
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.OutputKey"
           },
           "valueSchema" : {
             "type" : "record",
@@ -574,7 +587,8 @@
               "name" : "R1",
               "type" : [ "null", "int" ],
               "default" : null
-            } ]
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
           }
         }, {
           "name" : "right_topic",

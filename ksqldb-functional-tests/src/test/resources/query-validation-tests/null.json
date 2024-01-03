@@ -308,7 +308,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.parser.exception.ParseFailedException",
-        "message": "mismatched input 'NULL'"
+        "message": "Syntax Error"
       }
     },
     {
@@ -318,7 +318,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.parser.exception.ParseFailedException",
-        "message": "mismatched input 'NULL'"
+        "message": "Syntax Error"
       }
     },
     {
@@ -328,7 +328,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.parser.exception.ParseFailedException",
-        "message": "mismatched input 'NULL'"
+        "message": "Syntax Error"
       }
     },
     {
@@ -338,7 +338,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.parser.exception.ParseFailedException",
-        "message": "mismatched input 'NULL'"
+        "message": "Syntax Error"
       }
     },
     {

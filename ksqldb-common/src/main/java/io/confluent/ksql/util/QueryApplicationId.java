@@ -22,6 +22,8 @@ import io.confluent.ksql.query.QueryId;
  */
 public final class QueryApplicationId {
 
+  public static String PERSISTENT_QUERY_INDICATOR = "query";
+
   private QueryApplicationId() {
   }
 

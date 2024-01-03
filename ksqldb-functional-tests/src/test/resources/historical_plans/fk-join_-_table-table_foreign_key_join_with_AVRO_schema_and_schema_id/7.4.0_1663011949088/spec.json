@@ -1,0 +1,550 @@
+{
+  "version" : "7.4.0",
+  "timestamp" : 1663011949088,
+  "path" : "query-validation-tests/fk-join.json",
+  "schemas" : {
+    "CTAS_OUTPUT_0.PrependAliasLeft" : {
+      "schema" : "`L_ROWKEY` BIGINT KEY, `L_NAME` STRING, `L_FOREIGN_KEY` BIGINT, `L_ROWTIME` BIGINT, `L_ROWPARTITION` INTEGER, `L_ROWOFFSET` BIGINT, `L_ROWKEY` BIGINT",
+      "keyFormat" : {
+        "format" : "AVRO",
+        "properties" : {
+          "fullSchemaName" : "io.confluent.ksql.avro_schemas.LeftTableKey"
+        },
+        "features" : [ "UNWRAP_SINGLES" ]
+      },
+      "valueFormat" : {
+        "format" : "AVRO",
+        "properties" : {
+          "fullSchemaName" : "com.test.namespace.leftValueSchema"
+        }
+      }
+    },
+    "CTAS_OUTPUT_0.Join" : {
+      "schema" : "`L_ROWKEY` BIGINT KEY, `L_NAME` STRING, `L_FOREIGN_KEY` BIGINT, `L_ROWTIME` BIGINT, `L_ROWPARTITION` INTEGER, `L_ROWOFFSET` BIGINT, `L_ROWKEY` BIGINT, `R_F1` STRING, `R_F2` BIGINT, `R_ROWTIME` BIGINT, `R_ROWPARTITION` INTEGER, `R_ROWOFFSET` BIGINT, `R_ROWKEY` BIGINT",
+      "keyFormat" : {
+        "format" : "AVRO",
+        "properties" : {
+          "fullSchemaName" : "io.confluent.ksql.avro_schemas.LeftTableKey"
+        },
+        "features" : [ "UNWRAP_SINGLES" ]
+      },
+      "valueFormat" : {
+        "format" : "AVRO",
+        "properties" : {
+          "fullSchemaName" : "com.test.namespace.leftValueSchema"
+        }
+      }
+    },
+    "CTAS_OUTPUT_0.KafkaTopic_Left.Source.Materialized" : {
+      "schema" : "`ROWKEY` BIGINT KEY, `NAME` STRING, `FOREIGN_KEY` BIGINT, `ROWPARTITION` INTEGER, `ROWOFFSET` BIGINT",
+      "keyFormat" : {
+        "format" : "AVRO",
+        "properties" : {
+          "fullSchemaName" : "io.confluent.ksql.avro_schemas.LeftTableKey"
+        },
+        "features" : [ "UNWRAP_SINGLES" ]
+      },
+      "valueFormat" : {
+        "format" : "AVRO",
+        "properties" : {
+          "fullSchemaName" : "com.test.namespace.leftValueSchema"
+        }
+      }
+    },
+    "CTAS_OUTPUT_0.KafkaTopic_Left.Source" : {
+      "schema" : "`ROWKEY` BIGINT KEY, `NAME` STRING, `FOREIGN_KEY` BIGINT",
+      "keyFormat" : {
+        "format" : "AVRO",
+        "properties" : {
+          "fullSchemaName" : "io.confluent.ksql.avro_schemas.LeftTableKey",
+          "schemaId" : "101"
+        },
+        "features" : [ "UNWRAP_SINGLES" ]
+      },
+      "valueFormat" : {
+        "format" : "AVRO",
+        "properties" : {
+          "fullSchemaName" : "com.test.namespace.leftValueSchema",
+          "schemaId" : "102"
+        }
+      }
+    },
+    "CTAS_OUTPUT_0.Project" : {
+      "schema" : "`L_ROWKEY` BIGINT KEY, `R_ROWKEY` BIGINT, `NAME` STRING, `F1` STRING",
+      "keyFormat" : {
+        "format" : "AVRO",
+        "properties" : {
+          "fullSchemaName" : "io.confluent.ksql.avro_schemas.LeftTableKey"
+        },
+        "features" : [ "UNWRAP_SINGLES" ]
+      },
+      "valueFormat" : {
+        "format" : "AVRO",
+        "properties" : {
+          "fullSchemaName" : "com.test.namespace.leftValueSchema"
+        }
+      }
+    },
+    "CTAS_OUTPUT_0.KafkaTopic_Right.Source" : {
+      "schema" : "`ROWKEY` BIGINT KEY, `F1` STRING, `F2` BIGINT",
+      "keyFormat" : {
+        "format" : "AVRO",
+        "properties" : {
+          "fullSchemaName" : "io.confluent.ksql.avro_schemas.RightTableKey",
+          "schemaId" : "201"
+        },
+        "features" : [ "UNWRAP_SINGLES" ]
+      },
+      "valueFormat" : {
+        "format" : "AVRO",
+        "properties" : {
+          "fullSchemaName" : "com.test.namespace.rightValueSchema",
+          "schemaId" : "202"
+        }
+      }
+    },
+    "CTAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`L_ROWKEY` BIGINT KEY, `R_ROWKEY` BIGINT, `NAME` STRING, `F1` STRING",
+      "keyFormat" : {
+        "format" : "AVRO",
+        "properties" : {
+          "fullSchemaName" : "io.confluent.ksql.avro_schemas.OutputKey"
+        },
+        "features" : [ "UNWRAP_SINGLES" ]
+      },
+      "valueFormat" : {
+        "format" : "AVRO"
+      }
+    },
+    "CTAS_OUTPUT_0.PrependAliasRight" : {
+      "schema" : "`R_ROWKEY` BIGINT KEY, `R_F1` STRING, `R_F2` BIGINT, `R_ROWTIME` BIGINT, `R_ROWPARTITION` INTEGER, `R_ROWOFFSET` BIGINT, `R_ROWKEY` BIGINT",
+      "keyFormat" : {
+        "format" : "AVRO",
+        "properties" : {
+          "fullSchemaName" : "io.confluent.ksql.avro_schemas.RightTableKey"
+        },
+        "features" : [ "UNWRAP_SINGLES" ]
+      },
+      "valueFormat" : {
+        "format" : "AVRO",
+        "properties" : {
+          "fullSchemaName" : "com.test.namespace.rightValueSchema"
+        }
+      }
+    },
+    "CTAS_OUTPUT_0.KafkaTopic_Right.Source.Materialized" : {
+      "schema" : "`ROWKEY` BIGINT KEY, `F1` STRING, `F2` BIGINT, `ROWPARTITION` INTEGER, `ROWOFFSET` BIGINT",
+      "keyFormat" : {
+        "format" : "AVRO",
+        "properties" : {
+          "fullSchemaName" : "io.confluent.ksql.avro_schemas.RightTableKey"
+        },
+        "features" : [ "UNWRAP_SINGLES" ]
+      },
+      "valueFormat" : {
+        "format" : "AVRO",
+        "properties" : {
+          "fullSchemaName" : "com.test.namespace.rightValueSchema"
+        }
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "table-table foreign key join with AVRO schema and schema id",
+    "inputs" : [ {
+      "topic" : "right_topic",
+      "key" : 0,
+      "value" : {
+        "F1" : "blah",
+        "F2" : 4
+      },
+      "timestamp" : 0
+    }, {
+      "topic" : "left_topic",
+      "key" : 1,
+      "value" : {
+        "NAME" : "zero",
+        "FOREIGN_KEY" : 0
+      },
+      "timestamp" : 10000
+    }, {
+      "topic" : "left_topic",
+      "key" : 0,
+      "value" : {
+        "NAME" : "foo",
+        "FOREIGN_KEY" : 100
+      },
+      "timestamp" : 13000
+    }, {
+      "topic" : "right_topic",
+      "key" : 0,
+      "value" : {
+        "F1" : "a",
+        "F2" : 10
+      },
+      "timestamp" : 15000
+    }, {
+      "topic" : "left_topic",
+      "key" : 10,
+      "value" : {
+        "NAME" : "bar",
+        "FOREIGN_KEY" : 0
+      },
+      "timestamp" : 16000
+    }, {
+      "topic" : "right_topic",
+      "key" : 0,
+      "value" : null,
+      "timestamp" : 17000
+    }, {
+      "topic" : "left_topic",
+      "key" : 1,
+      "value" : null,
+      "timestamp" : 18000
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : 1,
+      "value" : {
+        "R_ROWKEY" : 0,
+        "NAME" : "zero",
+        "F1" : "blah"
+      },
+      "timestamp" : 10000
+    }, {
+      "topic" : "OUTPUT",
+      "key" : 1,
+      "value" : {
+        "R_ROWKEY" : 0,
+        "NAME" : "zero",
+        "F1" : "a"
+      },
+      "timestamp" : 15000
+    }, {
+      "topic" : "OUTPUT",
+      "key" : 10,
+      "value" : {
+        "R_ROWKEY" : 0,
+        "NAME" : "bar",
+        "F1" : "a"
+      },
+      "timestamp" : 16000
+    }, {
+      "topic" : "OUTPUT",
+      "key" : 1,
+      "value" : null,
+      "timestamp" : 17000
+    }, {
+      "topic" : "OUTPUT",
+      "key" : 10,
+      "value" : null,
+      "timestamp" : 17000
+    }, {
+      "topic" : "OUTPUT",
+      "key" : 1,
+      "value" : null,
+      "timestamp" : 18000
+    } ],
+    "topics" : [ {
+      "name" : "right_topic",
+      "keySchemaId" : 201,
+      "valueSchemaId" : 202,
+      "keySchema" : "long",
+      "valueSchema" : {
+        "type" : "record",
+        "name" : "rightValueSchema",
+        "namespace" : "com.test.namespace",
+        "fields" : [ {
+          "name" : "F1",
+          "type" : "string"
+        }, {
+          "name" : "F2",
+          "type" : "long"
+        } ]
+      },
+      "keyFormat" : "AVRO",
+      "valueFormat" : "AVRO",
+      "replicas" : 1,
+      "numPartitions" : 1
+    }, {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "left_topic",
+      "keySchemaId" : 101,
+      "valueSchemaId" : 102,
+      "keySchema" : "long",
+      "valueSchema" : {
+        "type" : "record",
+        "name" : "leftValueSchema",
+        "namespace" : "com.test.namespace",
+        "fields" : [ {
+          "name" : "NAME",
+          "type" : "string"
+        }, {
+          "name" : "FOREIGN_KEY",
+          "type" : "long"
+        } ]
+      },
+      "keyFormat" : "AVRO",
+      "valueFormat" : "AVRO",
+      "replicas" : 1,
+      "numPartitions" : 1
+    } ],
+    "statements" : [ "CREATE TABLE left_table WITH (kafka_topic='left_topic', partitions=128, format='AVRO', KEY_SCHEMA_ID=101, VALUE_SCHEMA_ID=102);", "CREATE TABLE right_table WITH (kafka_topic='right_topic', partitions=128, format='AVRO', KEY_SCHEMA_ID=201, VALUE_SCHEMA_ID=202);", "CREATE TABLE output AS SELECT L.ROWKEY, R.ROWKEY, L.NAME, R.F1 FROM left_table L JOIN right_table R ON L.FOREIGN_KEY = R.ROWKEY;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "LEFT_TABLE",
+        "type" : "TABLE",
+        "schema" : "`ROWKEY` BIGINT KEY, `NAME` STRING, `FOREIGN_KEY` BIGINT",
+        "keyFormat" : {
+          "format" : "AVRO"
+        },
+        "valueFormat" : "AVRO",
+        "keyFeatures" : [ "UNWRAP_SINGLES" ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "OUTPUT",
+        "type" : "TABLE",
+        "schema" : "`L_ROWKEY` BIGINT KEY, `R_ROWKEY` BIGINT, `NAME` STRING, `F1` STRING",
+        "keyFormat" : {
+          "format" : "AVRO"
+        },
+        "valueFormat" : "AVRO",
+        "keyFeatures" : [ "UNWRAP_SINGLES" ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "RIGHT_TABLE",
+        "type" : "TABLE",
+        "schema" : "`ROWKEY` BIGINT KEY, `F1` STRING, `F2` BIGINT",
+        "keyFormat" : {
+          "format" : "AVRO"
+        },
+        "valueFormat" : "AVRO",
+        "keyFeatures" : [ "UNWRAP_SINGLES" ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Project-Last-changelog",
+          "keyFormat" : {
+            "format" : "AVRO",
+            "properties" : {
+              "fullSchemaName" : "io.confluent.ksql.avro_schemas.LeftTableKey"
+            },
+            "features" : [ "UNWRAP_SINGLES" ]
+          },
+          "valueFormat" : {
+            "format" : "AVRO",
+            "properties" : {
+              "fullSchemaName" : "com.test.namespace.leftValueSchema"
+            }
+          },
+          "keySchema" : "long",
+          "valueSchema" : {
+            "type" : "record",
+            "name" : "leftValueSchema",
+            "namespace" : "com.test.namespace",
+            "fields" : [ {
+              "name" : "R_ROWKEY",
+              "type" : [ "null", "long" ],
+              "default" : null
+            }, {
+              "name" : "NAME",
+              "type" : [ "null", "string" ],
+              "default" : null
+            }, {
+              "name" : "F1",
+              "type" : [ "null", "string" ],
+              "default" : null
+            } ],
+            "connect.name" : "com.test.namespace.leftValueSchema"
+          }
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-KafkaTopic_Right-Reduce-changelog",
+          "keyFormat" : {
+            "format" : "AVRO",
+            "properties" : {
+              "fullSchemaName" : "io.confluent.ksql.avro_schemas.RightTableKey"
+            },
+            "features" : [ "UNWRAP_SINGLES" ]
+          },
+          "valueFormat" : {
+            "format" : "AVRO",
+            "properties" : {
+              "fullSchemaName" : "com.test.namespace.rightValueSchema"
+            }
+          },
+          "keySchema" : "long",
+          "valueSchema" : {
+            "type" : "record",
+            "name" : "rightValueSchema",
+            "namespace" : "com.test.namespace",
+            "fields" : [ {
+              "name" : "F1",
+              "type" : [ "null", "string" ],
+              "default" : null
+            }, {
+              "name" : "F2",
+              "type" : [ "null", "long" ],
+              "default" : null
+            }, {
+              "name" : "ROWPARTITION",
+              "type" : [ "null", "int" ],
+              "default" : null
+            }, {
+              "name" : "ROWOFFSET",
+              "type" : [ "null", "long" ],
+              "default" : null
+            } ],
+            "connect.name" : "com.test.namespace.rightValueSchema"
+          }
+        }, {
+          "name" : "left_topic",
+          "keyFormat" : {
+            "format" : "AVRO",
+            "properties" : {
+              "fullSchemaName" : "io.confluent.ksql.avro_schemas.LeftTableKey",
+              "schemaId" : "101"
+            },
+            "features" : [ "UNWRAP_SINGLES" ]
+          },
+          "valueFormat" : {
+            "format" : "AVRO",
+            "properties" : {
+              "fullSchemaName" : "com.test.namespace.leftValueSchema",
+              "schemaId" : "102"
+            }
+          },
+          "partitions" : 1,
+          "keySchemaId" : 101,
+          "valueSchemaId" : 102,
+          "keySchema" : "long",
+          "valueSchema" : {
+            "type" : "record",
+            "name" : "leftValueSchema",
+            "namespace" : "com.test.namespace",
+            "fields" : [ {
+              "name" : "NAME",
+              "type" : "string"
+            }, {
+              "name" : "FOREIGN_KEY",
+              "type" : "long"
+            } ],
+            "connect.name" : "com.test.namespace.leftValueSchema"
+          }
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-KafkaTopic_Left-Reduce-changelog",
+          "keyFormat" : {
+            "format" : "AVRO",
+            "properties" : {
+              "fullSchemaName" : "io.confluent.ksql.avro_schemas.LeftTableKey"
+            },
+            "features" : [ "UNWRAP_SINGLES" ]
+          },
+          "valueFormat" : {
+            "format" : "AVRO",
+            "properties" : {
+              "fullSchemaName" : "com.test.namespace.leftValueSchema"
+            }
+          },
+          "keySchema" : "long",
+          "valueSchema" : {
+            "type" : "record",
+            "name" : "leftValueSchema",
+            "namespace" : "com.test.namespace",
+            "fields" : [ {
+              "name" : "NAME",
+              "type" : [ "null", "string" ],
+              "default" : null
+            }, {
+              "name" : "FOREIGN_KEY",
+              "type" : [ "null", "long" ],
+              "default" : null
+            }, {
+              "name" : "ROWPARTITION",
+              "type" : [ "null", "int" ],
+              "default" : null
+            }, {
+              "name" : "ROWOFFSET",
+              "type" : [ "null", "long" ],
+              "default" : null
+            } ],
+            "connect.name" : "com.test.namespace.leftValueSchema"
+          }
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "format" : "AVRO",
+            "properties" : {
+              "fullSchemaName" : "io.confluent.ksql.avro_schemas.OutputKey"
+            },
+            "features" : [ "UNWRAP_SINGLES" ]
+          },
+          "valueFormat" : {
+            "format" : "AVRO"
+          },
+          "partitions" : 4,
+          "keySchema" : "long",
+          "valueSchema" : {
+            "type" : "record",
+            "name" : "KsqlDataSourceSchema",
+            "namespace" : "io.confluent.ksql.avro_schemas",
+            "fields" : [ {
+              "name" : "R_ROWKEY",
+              "type" : [ "null", "long" ],
+              "default" : null
+            }, {
+              "name" : "NAME",
+              "type" : [ "null", "string" ],
+              "default" : null
+            }, {
+              "name" : "F1",
+              "type" : [ "null", "string" ],
+              "default" : null
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
+          }
+        }, {
+          "name" : "right_topic",
+          "keyFormat" : {
+            "format" : "AVRO",
+            "properties" : {
+              "fullSchemaName" : "io.confluent.ksql.avro_schemas.RightTableKey",
+              "schemaId" : "201"
+            },
+            "features" : [ "UNWRAP_SINGLES" ]
+          },
+          "valueFormat" : {
+            "format" : "AVRO",
+            "properties" : {
+              "fullSchemaName" : "com.test.namespace.rightValueSchema",
+              "schemaId" : "202"
+            }
+          },
+          "partitions" : 1,
+          "keySchemaId" : 201,
+          "valueSchemaId" : 202,
+          "keySchema" : "long",
+          "valueSchema" : {
+            "type" : "record",
+            "name" : "rightValueSchema",
+            "namespace" : "com.test.namespace",
+            "fields" : [ {
+              "name" : "F1",
+              "type" : "string"
+            }, {
+              "name" : "F2",
+              "type" : "long"
+            } ],
+            "connect.name" : "com.test.namespace.rightValueSchema"
+          }
+        } ]
+      }
+    }
+  }
+}

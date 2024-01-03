@@ -15,12 +15,14 @@
 
 package io.confluent.ksql.util;
 
+import io.confluent.ksql.util.BytesUtils.Encoding;
 import org.junit.Test;
 
 import java.nio.ByteBuffer;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
 
 public class BytesUtilTest {
     @Test
@@ -89,5 +91,21 @@ public class BytesUtilTest {
 
         // Then
         assertThat(bytes, is(new byte[]{2, 3}));
+    }
+
+    @Test
+    public void shouldHandleNullEncoding() {
+        assertThat(BytesUtils.encode(null, Encoding.UTF8), nullValue());
+        assertThat(BytesUtils.encode(null, Encoding.BASE64), nullValue());
+        assertThat(BytesUtils.encode(null, Encoding.ASCII), nullValue());
+        assertThat(BytesUtils.encode(null, Encoding.HEX), nullValue());
+    }
+
+    @Test
+    public void shouldHandleNullDecoding() {
+        assertThat(BytesUtils.decode(null, Encoding.UTF8), nullValue());
+        assertThat(BytesUtils.decode(null, Encoding.BASE64), nullValue());
+        assertThat(BytesUtils.decode(null, Encoding.ASCII), nullValue());
+        assertThat(BytesUtils.decode(null, Encoding.HEX), nullValue());
     }
 }

@@ -119,14 +119,6 @@
       "timestamp" : 90000
     }, {
       "topic" : "LEFT_JOIN",
-      "key" : 2,
-      "value" : {
-        "L1" : "C",
-        "L2" : "c"
-      },
-      "timestamp" : 90000
-    }, {
-      "topic" : "LEFT_JOIN",
       "key" : 3,
       "value" : {
         "L1" : "D",
@@ -229,7 +221,8 @@
               "name" : "T_ID",
               "type" : [ "null", "long" ],
               "default" : null
-            } ]
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
           }
         }, {
           "name" : "LEFT_JOIN",
@@ -252,7 +245,8 @@
               "name" : "L2",
               "type" : [ "null", "string" ],
               "default" : null
-            } ]
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
           }
         }, {
           "name" : "left_topic",
@@ -318,7 +312,8 @@
               "name" : "TT_ID",
               "type" : [ "null", "long" ],
               "default" : null
-            } ]
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
           }
         } ]
       }

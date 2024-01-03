@@ -80,6 +80,40 @@ public class ProtobufPropertiesTest {
   }
 
   @Test
+  public void shouldGetDefaultNullableRepresentation() {
+    // Given:
+    final ProtobufProperties properties = new ProtobufProperties(ImmutableMap.of());
+
+    // When/Then:
+    assertThat(properties.isNullableAsWrapper(), is(false));
+    assertThat(properties.isNullableAsOptional(), is(false));
+  }
+
+  @Test
+  public void shouldGetNullableAsOptional() {
+    // Given:
+    final ProtobufProperties properties = new ProtobufProperties(ImmutableMap.of(
+        ProtobufProperties.NULLABLE_REPRESENTATION, ProtobufProperties.NULLABLE_AS_OPTIONAL
+    ));
+
+    // When/Then:
+    assertThat(properties.isNullableAsWrapper(), is(false));
+    assertThat(properties.isNullableAsOptional(), is(true));
+  }
+
+  @Test
+  public void shouldGetNullableAsWrapper() {
+    // Given:
+    final ProtobufProperties properties = new ProtobufProperties(ImmutableMap.of(
+        ProtobufProperties.NULLABLE_REPRESENTATION, ProtobufProperties.NULLABLE_AS_WRAPPER
+    ));
+
+    // When/Then:
+    assertThat(properties.isNullableAsWrapper(), is(true));
+    assertThat(properties.isNullableAsOptional(), is(false));
+  }
+
+  @Test
   public void shouldThrowWithUnsupportedProperty() {
     // When:
     final Exception e = assertThrows(KsqlException.class,

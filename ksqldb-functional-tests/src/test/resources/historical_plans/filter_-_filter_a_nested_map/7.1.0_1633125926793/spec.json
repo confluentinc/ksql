@@ -94,7 +94,8 @@
       "topic" : "OUTPUT",
       "key" : 10,
       "value" : {
-        "LAMBDA" : { }
+        "LAMBDA" : {
+        }
       }
     }, {
       "topic" : "OUTPUT",
@@ -243,10 +244,12 @@
                     "default" : null
                   } ],
                   "connect.internal.type" : "MapEntry"
-                }
+                },
+                "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema_LAMBDA"
               } ],
               "default" : null
-            } ]
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
           }
         } ]
       }

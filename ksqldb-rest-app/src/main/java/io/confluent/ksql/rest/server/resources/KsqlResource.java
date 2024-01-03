@@ -41,6 +41,7 @@ import io.confluent.ksql.rest.entity.ClusterTerminateRequest;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlRequest;
+import io.confluent.ksql.rest.entity.KsqlTestResult;
 import io.confluent.ksql.rest.entity.KsqlWarning;
 import io.confluent.ksql.rest.entity.PropertiesList;
 import io.confluent.ksql.rest.server.ServerUtil;
@@ -60,6 +61,9 @@ import io.confluent.ksql.services.SandboxedServiceContext;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.Injector;
 import io.confluent.ksql.statement.Injectors;
+import io.confluent.ksql.tools.test.SqlTestExecutor;
+import io.confluent.ksql.tools.test.parser.SqlTestLoader;
+import io.confluent.ksql.tools.test.parser.SqlTestLoader.SqlTest;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConfigurable;
 import io.confluent.ksql.util.KsqlException;
@@ -67,8 +71,12 @@ import io.confluent.ksql.util.KsqlHostInfo;
 import io.confluent.ksql.util.KsqlRequestConfig;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.version.metrics.ActivenessRegistrar;
+import java.io.IOException;
 import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -79,6 +87,7 @@ import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
 import java.util.regex.PatternSyntaxException;
+import org.apache.commons.io.FileUtils;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.state.HostInfo;
 import org.slf4j.Logger;
@@ -380,6 +389,43 @@ public class KsqlResource implements KsqlConfigurable {
           e,
           Errors.serverErrorForStatement(e, request.getMaskedKsql())
       );
+    }
+  }
+
+  public EndpointResponse runTest(final String test) {
+    try {
+      final List<SqlTest> tests = SqlTestLoader.loadTest(test);
+      return EndpointResponse.ok(runTests(tests));
+    } catch (final Exception e) {
+      return errorHandler.generateResponse(e, Errors.badRequest(e));
+    }
+  }
+
+  private List<KsqlTestResult> runTests(final List<SqlTest> tests) throws IOException {
+    final List<KsqlTestResult> results = new ArrayList<>();
+    for (final SqlTest test : tests) {
+      final Path tempFolder = Files.createTempDirectory("test-temp");
+      final SqlTestExecutor executor = SqlTestExecutor.create(tempFolder);
+
+      try {
+        executor.executeTest(test);
+        results.add(new KsqlTestResult(true, test.getName(), ""));
+      } catch (final Throwable e) {
+        results.add(new KsqlTestResult(false, test.getName(), e.getMessage()));
+      } finally {
+        cleanUp(executor, tempFolder);
+        executor.close();
+      }
+    }
+    return results;
+  }
+
+  private static void cleanUp(final SqlTestExecutor executor, final Path tempFolder) {
+    executor.close();
+    try {
+      FileUtils.deleteDirectory(tempFolder.toFile());
+    } catch (final Exception e) {
+      LOG.warn("Failed to clean up temporary test folder: " + e.getMessage());
     }
   }
 

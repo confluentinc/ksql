@@ -1066,7 +1066,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.parser.exception.ParseFailedException",
-        "message": "mismatched input 'AND' expecting {';'"
+        "message": "Syntax Error"
       }
     },
     {
@@ -1266,7 +1266,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.parser.exception.ParseFailedException",
-        "message": "line 2:74: missing ')' at ','"
+        "message": "line 2:74: Syntax Error\nmissing ')' at ','"
       }
     },
     {
@@ -2806,7 +2806,8 @@
                 "fields": [
                   { "name": "A", "type": [ "null", "int" ], "default": null },
                   { "name": "B", "type": [ "null", "int" ], "default": null }
-                ]
+                ],
+                "connect.name" : "io.confluent.ksql.avro_schemas.OutputKey"
               },
               "valueFormat" : { "format" : "AVRO" },
               "valueSchema": {
@@ -2815,7 +2816,8 @@
                 "namespace": "io.confluent.ksql.avro_schemas",
                 "fields": [
                   { "name": "COUNT", "type": [ "null", "long" ], "default": null }
-                ]
+                ],
+                "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
               }
             }
           ]
@@ -2885,7 +2887,8 @@
                 "fields": [
                   { "name": "A", "type": [ "null", "int" ], "default": null },
                   { "name": "B", "type": [ "null", "int" ], "default": null }
-                ]
+                ],
+                "connect.name" : "io.confluent.ksql.avro_schemas.OutputKey"
               },
               "valueFormat" : { "format" : "JSON" }
             }
@@ -2918,6 +2921,90 @@
         {"topic": "OUTPUT", "key": {"F1": 1}, "value": {"SUM": 1}},
         {"topic": "OUTPUT", "key": {"F1": 1}, "value": {"SUM": 2}}
       ]
+    },
+    {
+      "name": "PROTOBUF schema and schema_id",
+      "statements": [
+        "CREATE STREAM SOURCE WITH (kafka_topic='source', format='PROTOBUF', KEY_SCHEMA_ID=100, KEY_SCHEMA_FULL_NAME='ProtobufKey2', VALUE_SCHEMA_ID=101, VALUE_SCHEMA_FULL_NAME='ProtobufValue2');",
+        "CREATE TABLE OUT AS SELECT K, COUNT(*) AS COUNT FROM SOURCE GROUP BY K;"
+      ],
+      "topics": [
+        {
+          "name": "source",
+          "keyFormat": "PROTOBUF",
+          "keySchemaId": 100,
+          "keySchema": "syntax = \"proto3\"; message ProtobufKey1 {uint32 k1 = 1;} message ProtobufKey2 {string K = 1;}",
+          "valueFormat": "PROTOBUF",
+          "valueSchemaId": 101,
+          "valueSchema": "syntax = \"proto3\"; message ProtobufValue1 {float c1 = 1; uint32 c2 = 2;} message ProtobufValue2 {uint64 A = 1; string B = 2;}"
+        }
+      ],
+      "inputs": [
+        {"topic": "source", "key": {"K": "falcon"}, "value": {"A": 1230, "B": "falcon"}, "timestamp": 0},
+        {"topic": "source", "key": {"K": "giraffe"}, "value": {"A": 4560, "B": "giraffe"}, "timestamp": 0},
+        {"topic": "source", "key": {"K": "turtle"}, "value": {"A": 7890, "B": "turtle"}, "timestamp": 0},
+        {"topic": "source", "key": {"K": "falcon"}, "value": {"A": 1250, "B": "falcon"}, "timestamp": 0}
+      ],
+      "outputs": [
+        {"topic": "OUT", "key": {"K": "falcon"}, "value": {"COUNT": 1}, "timestamp": 0},
+        {"topic": "OUT", "key": {"K": "giraffe"}, "value": {"COUNT": 1}, "timestamp": 0},
+        {"topic": "OUT", "key": {"K": "turtle"}, "value": {"COUNT": 1}, "timestamp": 0},
+        {"topic": "OUT", "key": {"K": "falcon"}, "value": {"COUNT": 2}, "timestamp": 0}
+      ],
+      "post": {
+        "sources": [
+          {
+            "name": "OUT",
+            "type": "table",
+            "keyFormat": {"format": "PROTOBUF", "properties": {"unwrapPrimitives": "true"}},
+            "schema": "K STRING KEY, COUNT BIGINT"
+          }
+        ]
+      }
+    },
+    {
+      "name": "AVRO schema and schema id",
+      "statements": [
+        "CREATE STREAM TEST WITH (kafka_topic='test_topic', format='AVRO', KEY_SCHEMA_ID=100, VALUE_SCHEMA_ID=101);",
+        "CREATE TABLE OUTPUT AS SELECT STRUCT(a:=A, b:=B) AS ROWKEY, COUNT(*) AS COUNT FROM TEST GROUP BY STRUCT(a:=A, b:=B);"
+      ],
+      "topics": [
+        {
+          "name": "test_topic",
+          "keySchema": {"type": "int"},
+          "keySchemaId": 100,
+          "keyFormat": "AVRO",
+          "valueSchema": {"name": "ignored", "type": "record", "fields": [{"name": "A", "type": "int"}, {"name": "B", "type": "int"}]},
+          "valueFormat": "AVRO",
+          "valueSchemaId": 101
+        }
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": {"A": 1, "B": 1}},
+        {"topic": "test_topic", "key": 1, "value": {"A": 2, "B": 1}},
+        {"topic": "test_topic", "key": 2, "value": {"A": 1, "B": 1}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": {"A": 1, "B": 1}, "value": {"COUNT": 1}},
+        {"topic": "OUTPUT", "key": {"A": 2, "B": 1}, "value": {"COUNT": 1}},
+        {"topic": "OUTPUT", "key": {"A": 1, "B": 1}, "value": {"COUNT": 2}}
+      ],
+      "post": {
+        "sources": [
+          {
+            "comment": "unwrap singles is implicitly set on all key formats that support both wrapping and unwrapping, including AVRO",
+            "name" : "OUTPUT",
+            "type" : "TABLE",
+            "schema" : "`ROWKEY` STRUCT<A INTEGER, B INTEGER> KEY, `COUNT` BIGINT",
+            "keyFormat" : {
+              "format" : "AVRO"
+            },
+            "valueFormat" : "AVRO",
+            "keyFeatures" : [ "UNWRAP_SINGLES" ],
+            "valueFeatures" : [ ]
+          }
+        ]
+      }
     }
   ]
 }

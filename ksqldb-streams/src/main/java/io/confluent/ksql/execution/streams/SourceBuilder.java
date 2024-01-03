@@ -36,6 +36,7 @@ import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.SystemColumns;
+import io.confluent.ksql.serde.connect.ConnectProperties;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -150,13 +151,13 @@ final class SourceBuilder extends SourceBuilderBase {
 
     final Serde<GenericRow> valueSerdeToMaterialize = getValueSerde(
         buildContext,
-        source,
+        source.getFormats().getValueFormat().copyWithoutProperty(ConnectProperties.SCHEMA_ID),
         physicalSchema,
         queryContext
     );
 
     final Serde<GenericKey> keySerdeToMaterialize = getKeySerde(
-        source,
+        source.getFormats().getKeyFormat().copyWithoutProperty(ConnectProperties.SCHEMA_ID),
         physicalSchema,
         buildContext,
         queryContext

@@ -23,7 +23,7 @@
     <parent>
         <groupId>io.confluent.ksql</groupId>
         <artifactId>ksqldb-parent</artifactId>
-        <version>7.3.7-0</version>
+        <version>7.4.4-0</version>
     </parent>
 
     <artifactId>ksqldb-rest-app</artifactId>
@@ -59,6 +59,12 @@
         <dependency>
             <groupId>io.confluent.ksql</groupId>
             <artifactId>ksqldb-version-metrics-client</artifactId>
+            <version>${io.confluent.ksql.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>io.confluent.ksql</groupId>
+            <artifactId>ksqldb-testing-tool</artifactId>
             <version>${io.confluent.ksql.version}</version>
         </dependency>
 

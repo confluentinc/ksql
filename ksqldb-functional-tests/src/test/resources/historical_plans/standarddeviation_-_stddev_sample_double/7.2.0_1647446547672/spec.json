@@ -67,7 +67,7 @@
       "topic" : "test_topic",
       "key" : 100,
       "value" : {
-        "value" : 9223372036854.775807
+        "value" : 9.223372036854775E12
       }
     }, {
       "topic" : "test_topic",
@@ -122,7 +122,7 @@
       "topic" : "OUTPUT",
       "key" : 100,
       "value" : {
-        "STDDEV" : 6521908912453.693
+        "STDDEV" : 6.521908912453693E12
       }
     }, {
       "topic" : "OUTPUT",
@@ -134,13 +134,13 @@
       "topic" : "OUTPUT",
       "key" : 100,
       "value" : {
-        "STDDEV" : 5325116385962.54
+        "STDDEV" : 5.32511638596254E12
       }
     }, {
       "topic" : "OUTPUT",
       "key" : 100,
       "value" : {
-        "STDDEV" : 4611686051710.689
+        "STDDEV" : 4.611686051710689E12
       }
     }, {
       "topic" : "OUTPUT",
@@ -253,10 +253,12 @@
                   "name" : "M2",
                   "type" : [ "null", "double" ],
                   "default" : null
-                } ]
+                } ],
+                "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema_KSQL_AGG_VARIABLE_0"
               } ],
               "default" : null
-            } ]
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
           }
         }, {
           "name" : "OUTPUT",
@@ -275,7 +277,8 @@
               "name" : "STDDEV",
               "type" : [ "null", "double" ],
               "default" : null
-            } ]
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
           }
         } ]
       }

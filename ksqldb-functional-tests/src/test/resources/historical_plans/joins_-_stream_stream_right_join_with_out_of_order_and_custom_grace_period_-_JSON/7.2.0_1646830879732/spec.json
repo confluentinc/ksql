@@ -113,7 +113,7 @@
       "topic" : "RIGHT_JOIN",
       "key" : 2,
       "value" : {
-        "L1" : "C",
+        "L1" : null,
         "L2" : "c"
       },
       "timestamp" : 90000

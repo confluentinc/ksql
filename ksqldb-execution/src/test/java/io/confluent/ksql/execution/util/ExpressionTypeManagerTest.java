@@ -551,10 +551,9 @@ public class ExpressionTypeManagerTest {
     );
 
     // Then:
-    assertThat(e.getUnloggedMessage(), Matchers.containsString(
-        "Error processing expression: (A + B). " +
-            "Unsupported arithmetic types. DOUBLE STRING\n" +
-            "Statement: (A + B)"));
+    assertThat(e.getUnloggedMessage(), Matchers.containsString("Error processing expression: (A + B). Unsupported arithmetic types. DOUBLE STRING" +
+                                                               System.lineSeparator() +
+                                                               "Statement: (A + B)"));
     assertThat(e.getMessage(), Matchers.is(
         "Error processing expression."));
   }

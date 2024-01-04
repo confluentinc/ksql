@@ -21,7 +21,7 @@ common {
     nanoVersion = true
     maxBuildsToKeep = 99
     maxDaysToKeep = 90
-    extraBuildArgs = "-Dmaven.gitcommitid.nativegit=true"
+    extraBuildArgs = "-Dmaven.gitcommitid.nativegit=true -Xmx2g -Xms2g"
     mavenBuildGoals = "clean install"
 }
 

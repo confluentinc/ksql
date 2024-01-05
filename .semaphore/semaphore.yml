@@ -24,7 +24,7 @@ global_job_config:
   prologue:
     commands:
       - checkout
-      - . set-cp-java-version
+      - sem-version java 8
       - . cache-maven restore
 
 blocks:

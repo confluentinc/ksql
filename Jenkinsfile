@@ -17,5 +17,6 @@ common {
     maxBuildsToKeep = 99
     maxDaysToKeep = 90
     extraBuildArgs = "-Dmaven.gitcommitid.nativegit=true"
+    mvnSkipDeploy = true
 }
 

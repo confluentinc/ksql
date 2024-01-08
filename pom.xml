@@ -29,7 +29,7 @@
     <parent>
         <groupId>io.confluent</groupId>
         <artifactId>common</artifactId>
-        <version>7.7.0-316</version>
+        <version>7.7.0-317</version>
     </parent>
 
     <groupId>io.confluent.ksql</groupId>
@@ -143,7 +143,7 @@
         <apache.io.version>2.7</apache.io.version>
         <io.confluent.ksql.version>7.7.0-0</io.confluent.ksql.version>
         <!-- We need to bump this version manually after each version bump on `master`: next bump should be 8.0.0-0 -->
-        <io.confluent.schema-registry.version>7.7.0-209</io.confluent.schema-registry.version>
+        <io.confluent.schema-registry.version>7.7.0-214</io.confluent.schema-registry.version>
         <netty-tcnative-version>2.0.61.Final</netty-tcnative-version>
         <!-- We normally get this from common, but Vertx is built against this -->
         <!-- Note: `netty` depends on `tcnative` and if we bump `netty`

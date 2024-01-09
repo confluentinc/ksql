@@ -28,6 +28,7 @@ import io.confluent.ksql.KsqlConfigTestUtil;
 import io.confluent.ksql.integration.IntegrationTestHarness;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.rest.server.computation.KafkaConfigStore;
+import io.confluent.ksql.rest.util.RocksDBConfigSetterHandler;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.SystemColumns;
@@ -45,9 +46,11 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Collections;
 import java.util.Map;
 import java.util.function.Function;
 import org.apache.kafka.clients.CommonClientConfigs;
+import org.apache.kafka.streams.StreamsConfig;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -102,10 +105,21 @@ public class StandaloneExecutorFunctionalTest {
   public void setUp() throws Exception {
     queryFile = TMP.newFile().toPath();
 
+    s1 = KsqlIdentifierTestUtil.uniqueIdentifierName("S1");
+    s2 = KsqlIdentifierTestUtil.uniqueIdentifierName("S2");
+    t1 = KsqlIdentifierTestUtil.uniqueIdentifierName("T1");
+  }
+
+  private void setupStandaloneExecutor() {
+      setupStandaloneExecutor(Collections.emptyMap());
+  }
+
+  private void setupStandaloneExecutor(final Map<String, Object> additionalProperties) {
     final Map<String, Object> properties = ImmutableMap.<String, Object>builder()
         .putAll(KsqlConfigTestUtil.baseTestConfig())
         .put(CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG, TEST_HARNESS.kafkaBootstrapServers())
         .put(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY, "http://foo:8080")
+        .putAll(additionalProperties)
         .build();
 
     final Function<KsqlConfig, ServiceContext> serviceContextFactory = config ->
@@ -121,12 +135,9 @@ public class StandaloneExecutorFunctionalTest {
         serviceContextFactory,
         KafkaConfigStore::new,
         activeQuerySupplier -> versionChecker,
-        StandaloneExecutor::new
+        StandaloneExecutor::new,
+        RocksDBConfigSetterHandler::maybeConfigureRocksDBConfigSetter
     );
-
-    s1 = KsqlIdentifierTestUtil.uniqueIdentifierName("S1");
-    s2 = KsqlIdentifierTestUtil.uniqueIdentifierName("S2");
-    t1 = KsqlIdentifierTestUtil.uniqueIdentifierName("T1");
   }
 
   @After
@@ -135,8 +146,43 @@ public class StandaloneExecutorFunctionalTest {
   }
 
   @Test
+  public void shouldConfigureKsqlBoundedMemoryRocksDBConfigSetter() {
+    // Given:
+    final Map<String, Object> additionalProperties = ImmutableMap.<String, Object>builder()
+        .put(StreamsConfig.ROCKSDB_CONFIG_SETTER_CLASS_CONFIG, "io.confluent.ksql.rocksdb.KsqlBoundedMemoryRocksDBConfigSetter")
+        .put("ksql.plugins.rocksdb.cache.size", 10)
+        .build();
+    setupStandaloneExecutor(additionalProperties);
+    givenScript(""
+        + "CREATE STREAM S (ROWKEY STRING KEY, ORDERTIME BIGINT)"
+        + "    WITH (kafka_topic='" + JSON_TOPIC + "', value_format='json');\n"
+        + "\n"
+        + "SET 'auto.offset.reset' = 'earliest';"
+        + "\n"
+        + "CREATE TABLE " + s1 + " AS SELECT rowkey, LATEST_BY_OFFSET(ordertime) AS ordertime FROM S GROUP BY rowkey;\n");
+
+    // When:
+    standalone.startAsync();
+
+    final PhysicalSchema dataSchema = PhysicalSchema.from(
+        LogicalSchema.builder()
+            .keyColumn(SystemColumns.ROWKEY_NAME, SqlTypes.STRING)
+            .valueColumn(ColumnName.of("ORDERTIME"), SqlTypes.BIGINT)
+            .build(),
+        SerdeFeatures.of(),
+        SerdeFeatures.of()
+    );
+
+    // Then:
+    TEST_HARNESS.verifyAvailableRows(s1, DATA_SIZE, KAFKA, JSON, dataSchema);
+
+    standalone.shutdown();
+  }
+
+  @Test
   public void shouldHandleJsonWithSchemas() {
     // Given:
+    setupStandaloneExecutor();
     givenScript(""
         + "CREATE STREAM S (ROWKEY STRING KEY, ORDERTIME BIGINT)"
         + "    WITH (kafka_topic='" + JSON_TOPIC + "', value_format='json');\n"
@@ -180,6 +226,7 @@ public class StandaloneExecutorFunctionalTest {
   @Test
   public void shouldHandleAvroWithSchemas() {
     // Given:
+    setupStandaloneExecutor();
     givenScript(""
         + "CREATE STREAM S (ROWKEY STRING KEY, ORDERTIME BIGINT)"
         + "    WITH (kafka_topic='" + AVRO_TOPIC + "', value_format='avro');\n"
@@ -223,6 +270,7 @@ public class StandaloneExecutorFunctionalTest {
   @Test
   public void shouldInferAvroSchema() {
     // Given:
+    setupStandaloneExecutor();
     givenScript(""
         + "SET 'auto.offset.reset' = 'earliest';"
         + ""
@@ -242,6 +290,7 @@ public class StandaloneExecutorFunctionalTest {
     // Given:
     TEST_HARNESS.ensureTopics("topic-without-schema");
 
+    setupStandaloneExecutor();
     givenScript(""
         + "SET 'auto.offset.reset' = 'earliest';"
         + ""
@@ -261,6 +310,7 @@ public class StandaloneExecutorFunctionalTest {
   @Test
   public void shouldHandleComments() {
     // Given:
+    setupStandaloneExecutor();
     givenScript(""
         + "-- Single line comment\n"
         + ""

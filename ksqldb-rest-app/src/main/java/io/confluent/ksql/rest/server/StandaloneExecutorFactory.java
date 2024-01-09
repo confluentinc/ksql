@@ -29,6 +29,7 @@ import io.confluent.ksql.query.id.SequentialQueryIdGenerator;
 import io.confluent.ksql.rest.server.computation.ConfigStore;
 import io.confluent.ksql.rest.server.computation.KafkaConfigStore;
 import io.confluent.ksql.rest.util.KsqlInternalTopicUtils;
+import io.confluent.ksql.rest.util.RocksDBConfigSetterHandler;
 import io.confluent.ksql.services.DisabledKsqlClient;
 import io.confluent.ksql.services.KafkaClusterUtil;
 import io.confluent.ksql.services.ServiceContext;
@@ -42,6 +43,7 @@ import io.confluent.ksql.version.metrics.VersionCheckerAgent;
 import java.util.Collections;
 import java.util.Map;
 import java.util.function.BiFunction;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -68,6 +70,9 @@ public final class StandaloneExecutorFactory {
     updatedProperties.putAll(
         MetricCollectors.addConfluentMetricsContextConfigs(ksqlServerId, kafkaClusterId));
 
+    final Consumer<KsqlConfig> rocksDBConfigSetterHandler =
+        RocksDBConfigSetterHandler::maybeConfigureRocksDBConfigSetter;
+
     return create(
         updatedProperties,
         queriesFile,
@@ -75,12 +80,14 @@ public final class StandaloneExecutorFactory {
         serviceContextFactory,
         KafkaConfigStore::new,
         KsqlVersionCheckerAgent::new,
-        StandaloneExecutor::new
+        StandaloneExecutor::new,
+        rocksDBConfigSetterHandler
     );
   }
 
   interface StandaloneExecutorConstructor {
 
+    @SuppressWarnings({"checkstyle:ParameterNumber"})
     StandaloneExecutor create(
         ServiceContext serviceContext,
         ProcessingLogConfig processingLogConfig,
@@ -90,7 +97,8 @@ public final class StandaloneExecutorFactory {
         UserFunctionLoader udfLoader,
         boolean failOnNoQueries,
         VersionCheckerAgent versionChecker,
-        BiFunction<KsqlExecutionContext, ServiceContext, Injector> injectorFactory
+        BiFunction<KsqlExecutionContext, ServiceContext, Injector> injectorFactory,
+        Consumer<KsqlConfig> rocksDBConfigSetterHandler
     );
   }
 
@@ -102,7 +110,8 @@ public final class StandaloneExecutorFactory {
       final Function<KsqlConfig, ServiceContext> serviceContextFactory,
       final BiFunction<String, KsqlConfig, ConfigStore> configStoreFactory,
       final Function<Supplier<Boolean>, VersionCheckerAgent> versionCheckerFactory,
-      final StandaloneExecutorConstructor constructor
+      final StandaloneExecutorConstructor constructor,
+      final Consumer<KsqlConfig> rocksDBConfigSetterHandler
   ) {
     final KsqlConfig baseConfig = new KsqlConfig(properties);
 
@@ -148,7 +157,8 @@ public final class StandaloneExecutorFactory {
         udfLoader,
         true,
         versionChecker,
-        Injectors.NO_TOPIC_DELETE
+        Injectors.NO_TOPIC_DELETE,
+        rocksDBConfigSetterHandler
     );
   }
 }

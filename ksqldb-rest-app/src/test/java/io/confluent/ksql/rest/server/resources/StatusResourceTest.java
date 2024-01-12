@@ -25,6 +25,7 @@ import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 
+import io.confluent.ksql.BaseTest;
 import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.entity.CommandId;
@@ -37,7 +38,7 @@ import java.util.Map;
 import java.util.Optional;
 import org.junit.Test;
 
-public class StatusResourceTest {
+public class StatusResourceTest extends BaseTest {
 
   private static final Map<CommandId, CommandStatus> mockCommandStatuses;
 

@@ -27,8 +27,10 @@ import static org.jline.reader.Parser.ParseContext.UNSPECIFIED;
 
 import org.easymock.EasyMockRunner;
 import org.easymock.Mock;
+import org.easymock.internal.LastControl;
 import org.jline.reader.ParsedLine;
 import org.jline.reader.Parser;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -45,6 +47,13 @@ public class TrimmingParserTest {
   @Before
   public void setUp() {
     parser = new TrimmingParser(delegate);
+
+    LastControl.pullMatchers();
+  }
+
+  @After
+  public void after(){
+    LastControl.pullMatchers();
   }
 
   @Test

@@ -27,10 +27,12 @@ import java.util.function.Predicate;
 import org.easymock.EasyMock;
 import org.easymock.EasyMockRunner;
 import org.easymock.Mock;
+import org.easymock.internal.LastControl;
 import org.jline.reader.EOFError;
 import org.jline.reader.ParsedLine;
 import org.jline.reader.Parser;
 import org.jline.reader.Parser.ParseContext;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -55,6 +57,13 @@ public class KsqlLineParserTest {
     EasyMock.replay(cliLinePredicate);
 
     parser = new KsqlLineParser(delegate, cliLinePredicate);
+
+    LastControl.pullMatchers();
+  }
+
+  @After
+  public void a() {
+    LastControl.pullMatchers();
   }
 
   @Test(expected = NullPointerException.class)

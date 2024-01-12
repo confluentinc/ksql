@@ -70,7 +70,7 @@ public class StatusResourceTest extends BaseTest {
       expect(mockStatementExecutor.getStatus(commandEntry.getKey())).andReturn(Optional.of(commandEntry.getValue()));
     }
 
-    expect(mockStatementExecutor.getStatus(anyObject(CommandId.class))).andReturn(Optional.empty());
+    expect(mockStatementExecutor.getStatus(anyObject(CommandId.class))).andReturn(Optional.<CommandStatus>empty());
 
     replay(mockStatementExecutor);
 

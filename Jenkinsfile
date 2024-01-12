@@ -19,6 +19,7 @@ common {
     downStreamRepos = downStreams
     downStreamValidate = false
     nanoVersion = true
+    pinnedNanoVersions = true
     maxBuildsToKeep = 99
     maxDaysToKeep = 90
     extraBuildArgs = "-Dmaven.gitcommitid.nativegit=true -DskipTests -DskipIntegrationTests"

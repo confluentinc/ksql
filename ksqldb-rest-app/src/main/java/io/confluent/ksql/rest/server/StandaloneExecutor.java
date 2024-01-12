@@ -110,7 +110,8 @@ public class StandaloneExecutor implements Executable {
     this.versionChecker = requireNonNull(versionChecker, "versionChecker");
     this.injectorFactory = requireNonNull(injectorFactory, "injectorFactory");
     MetricCollectors.addConfigurableReporter(ksqlConfig);
-    this.rocksDBConfigSetterHandler = requireNonNull(rocksDBConfigSetterHandler, "rocksDBConfigSetter");
+    this.rocksDBConfigSetterHandler =
+        requireNonNull(rocksDBConfigSetterHandler, "rocksDBConfigSetter");
   }
 
   public void startAsync() {

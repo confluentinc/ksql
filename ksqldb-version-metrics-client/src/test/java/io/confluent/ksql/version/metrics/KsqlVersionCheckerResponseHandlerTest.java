@@ -27,10 +27,23 @@ import java.nio.charset.StandardCharsets;
 import org.apache.hc.core5.http.ClassicHttpResponse;
 import org.apache.hc.core5.http.HttpEntity;
 import org.apache.hc.core5.http.HttpStatus;
+import org.easymock.internal.LastControl;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
 
 public class KsqlVersionCheckerResponseHandlerTest {
+
+  @Before
+  public void before(){
+    LastControl.pullMatchers();
+  }
+
+  @After
+  public void after(){
+    LastControl.pullMatchers();
+  }
 
   @Test
   public void testHandle() throws IOException {

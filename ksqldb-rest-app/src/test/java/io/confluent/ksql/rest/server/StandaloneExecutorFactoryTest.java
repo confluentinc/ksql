@@ -17,6 +17,7 @@ import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.rest.server.StandaloneExecutorFactory.StandaloneExecutorConstructor;
 import io.confluent.ksql.rest.server.computation.ConfigStore;
+import io.confluent.ksql.rest.util.RocksDBConfigSetterHandler;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
@@ -78,14 +79,15 @@ public class StandaloneExecutorFactoryTest {
     when(configStoreFactory.apply(any(), any())).thenReturn(configStore);
     when(topicClient.isTopicExists(configTopicName)).thenReturn(false);
     when(configStore.getKsqlConfig()).thenReturn(mergedConfig);
-    when(constructor.create(any(), any(), any(), argumentCaptor.capture(), anyString(), any(), anyBoolean(), any(), any(), any()))
+    when(constructor.create(
+        any(), any(), any(), argumentCaptor.capture(), anyString(), any(), anyBoolean(), any(), any(), any(), any()))
         .thenReturn(standaloneExecutor);
   }
 
   @After
   public void tearDown() throws Exception {
     verify(constructor)
-        .create(any(), any(), any(), engineCaptor.capture(), any(), any(), anyBoolean(), any(), any(), any());
+        .create(any(), any(), any(), engineCaptor.capture(), any(), any(), anyBoolean(), any(), any(), any(), any());
 
     engineCaptor.getAllValues().forEach(KsqlEngine::close);
   }
@@ -99,7 +101,8 @@ public class StandaloneExecutorFactoryTest {
         configStoreFactory,
         activeQuerySupplier -> versionChecker,
         constructor,
-        new MetricCollectors()
+        new MetricCollectors(),
+        RocksDBConfigSetterHandler::maybeConfigureRocksDBConfigSetter
     );
   }
 
@@ -137,7 +140,7 @@ public class StandaloneExecutorFactoryTest {
     inOrder.verify(topicClient).createTopic(eq(configTopicName), anyInt(), anyShort(), anyMap());
     inOrder.verify(configStoreFactory).apply(eq(configTopicName), argThat(sameConfig(baseConfig)));
     inOrder.verify(constructor).create(
-        any(), any(), same(mergedConfig), any(), anyString(), any(), anyBoolean(), any(), any(), any());
+        any(), any(), same(mergedConfig), any(), anyString(), any(), anyBoolean(), any(), any(), any(), any());
 
     argumentCaptor.getValue().close();
   }

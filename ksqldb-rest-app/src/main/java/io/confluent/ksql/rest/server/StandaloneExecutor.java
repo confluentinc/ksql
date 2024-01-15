@@ -66,6 +66,7 @@ import java.util.Properties;
 import java.util.concurrent.CountDownLatch;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -84,7 +85,9 @@ public class StandaloneExecutor implements Executable {
   private final boolean failOnNoQueries;
   private final VersionCheckerAgent versionChecker;
   private final BiFunction<KsqlExecutionContext, ServiceContext, Injector> injectorFactory;
+  private final Consumer<KsqlConfig> rocksDBConfigSetterHandler;
 
+  @SuppressWarnings({"checkstyle:ParameterNumber"})
   StandaloneExecutor(
       final ServiceContext serviceContext,
       final ProcessingLogConfig processingLogConfig,
@@ -95,7 +98,8 @@ public class StandaloneExecutor implements Executable {
       final boolean failOnNoQueries,
       final VersionCheckerAgent versionChecker,
       final BiFunction<KsqlExecutionContext, ServiceContext, Injector> injectorFactory,
-      final MetricCollectors metricCollectors
+      final MetricCollectors metricCollectors,
+      final Consumer<KsqlConfig> rocksDBConfigSetterHandler
   ) {
     this.serviceContext = requireNonNull(serviceContext, "serviceContext");
     this.processingLogConfig = requireNonNull(processingLogConfig, "processingLogConfig");
@@ -107,6 +111,8 @@ public class StandaloneExecutor implements Executable {
     this.versionChecker = requireNonNull(versionChecker, "versionChecker");
     this.injectorFactory = requireNonNull(injectorFactory, "injectorFactory");
     metricCollectors.addConfigurableReporter(ksqlConfig);
+    this.rocksDBConfigSetterHandler =
+        requireNonNull(rocksDBConfigSetterHandler, "rocksDBConfigSetter");
   }
 
   public void startAsync() {
@@ -120,6 +126,7 @@ public class StandaloneExecutor implements Executable {
         log.warn("processing log auto-create is enabled, but this is not supported "
             + "for headless mode.");
       }
+      rocksDBConfigSetterHandler.accept(ksqlConfig);
       processesQueryFile(readQueriesFile(queriesFile));
       showWelcomeMessage();
       final Properties properties = new Properties();

@@ -123,18 +123,13 @@ class UdafTypes {
       throw new KsqlException("A UDAF and its factory can have at most one variadic argument");
     }
 
-    variadicColIndex = indexOfVariadic(inputTypes);
+    variadicColIndex = indexOfType(inputTypes, VARIADIC_TYPE);
     if (method.isVarArgs()) {
       this.isVariadic = true;
     } else if (isMultipleArgs && variadicColIndex > -1) {
       this.isVariadic = true;
       this.inputTypes[variadicColIndex] = ((ParameterizedType) inputTypes[variadicColIndex])
               .getActualTypeArguments()[0];
-
-      // TEMPORARY: Disallow initial args when col arg is variadic
-      if (method.getParameterCount() > 0) {
-        throw new KsqlException("Methods with variadic column args cannot have factory args");
-      }
 
     } else if (variadicColIndex > -1) {
 
@@ -145,15 +140,23 @@ class UdafTypes {
       this.isVariadic = false;
     }
 
+    // Disallow an object type outside a variadic column
+    final boolean hasMultipleObjectArgs = countTypes(inputTypes, Object.class) > 1;
+    final int indexOfFirstObj = indexOfType(inputTypes, Object.class);
+    final boolean objArgIsNotVariadic = indexOfFirstObj >= 0 && indexOfFirstObj != variadicColIndex;
+    if (hasMultipleObjectArgs || objArgIsNotVariadic) {
+      throw new KsqlException("The Object type can only be used as a variadic column argument");
+    }
+
     this.aggregateType = type.getActualTypeArguments()[1];
     this.outputType = type.getActualTypeArguments()[2];
 
     this.literalParams = FunctionLoaderUtils
         .createParameters(method, functionName.text(), sqlTypeParser);
 
-    validateTypes(inputTypes);
-    validateType(aggregateType);
-    validateType(outputType);
+    validateTypes(inputTypes, variadicColIndex);
+    validateType(aggregateType, false);
+    validateType(outputType, false);
   }
 
   List<ParameterInfo> getInputSchema(final String[] inSchemas) {
@@ -166,9 +169,11 @@ class UdafTypes {
 
       validateStructAnnotation(inputType, schema, "paramSchema");
 
-      ParamType paramType = getSchemaFromType(inputType, schema);
+      final ParamType paramType;
       if (paramIndex == variadicColIndex) {
-        paramType = ArrayType.of(paramType);
+        paramType = ArrayType.of(getSchemaFromType(inputType, schema, true));
+      } else {
+        paramType = getSchemaFromType(inputType, schema, false);
       }
 
       paramTypes.add(paramType);
@@ -194,12 +199,12 @@ class UdafTypes {
 
   ParamType getAggregateSchema(final String aggSchema) {
     validateStructAnnotation(aggregateType, aggSchema, "aggregateSchema");
-    return getSchemaFromType(aggregateType, aggSchema);
+    return getSchemaFromType(aggregateType, aggSchema, false);
   }
 
   ParamType getOutputSchema(final String outSchema) {
     validateStructAnnotation(outputType, outSchema, "returnSchema");
-    return getSchemaFromType(outputType, outSchema);
+    return getSchemaFromType(outputType, outSchema, false);
   }
 
   boolean isVariadic() {
@@ -210,20 +215,22 @@ class UdafTypes {
     return ImmutableList.copyOf(literalParams);
   }
 
-  private void validateType(final Type t) {
-    if (!(t instanceof TypeVariable) && isUnsupportedType((Class<?>) getRawType(t))) {
+  private void validateType(final Type t, final boolean isVariadic) {
+    if (!(t instanceof TypeVariable)
+            && isUnsupportedType((Class<?>) getRawType(t), isVariadic)) {
+
       throw new KsqlException(String.format(invalidClassErrorMsg, t));
     }
   }
 
-  private void validateTypes(final Type[] types) {
-    for (Type type : types) {
-      validateType(type);
+  private void validateTypes(final Type[] types, final int variadicColIndex) {
+    for (int index = 0; index < types.length; index++) {
+      validateType(types[index], index == variadicColIndex);
     }
   }
 
   private static long countVariadic(final Type[] types, final Method factory) {
-    long count = Arrays.stream(types).filter((type) -> getRawType(type) == VARIADIC_TYPE).count();
+    long count = countTypes(types, VARIADIC_TYPE);
 
     /* If there is a variadic initial argument, include it in the total number of variadic
     arguments. We need to include this because there can only be one variadic argument in
@@ -235,13 +242,15 @@ class UdafTypes {
     return count;
   }
 
-  private static int indexOfVariadic(final Type[] types) {
-    final int lastTypeIndex = types.length - 1;
-    if (types.length > 0 && getRawType(types[lastTypeIndex]) == VARIADIC_TYPE) {
-      return lastTypeIndex;
-    }
+  private static long countTypes(final Type[] types, final Type matchType) {
+    return Arrays.stream(types).filter((type) -> getRawType(type).equals(matchType)).count();
+  }
 
-    return -1;
+  private static int indexOfType(final Type[] types, final Type matchType) {
+    return IntStream.range(0, types.length)
+            .filter((index) -> getRawType(types[index]).equals(matchType))
+            .findFirst()
+            .orElse(-1);
   }
 
   private static void validateStructAnnotation(
@@ -255,11 +264,15 @@ class UdafTypes {
     }
   }
 
-  private ParamType getSchemaFromType(final Type type, final String schema) {
-    return schema.isEmpty()
-        ? UdfUtil.getSchemaFromType(type)
-        : SchemaConverters.sqlToFunctionConverter().toFunctionType(
-            sqlTypeParser.parse(schema).getSqlType());
+  private ParamType getSchemaFromType(final Type type, final String schema,
+                                      final boolean isVariadic) {
+    if (schema.isEmpty()) {
+      return isVariadic ? UdfUtil.getVarArgsSchemaFromType(type) : UdfUtil.getSchemaFromType(type);
+    }
+
+    return SchemaConverters.sqlToFunctionConverter().toFunctionType(
+            sqlTypeParser.parse(schema).getSqlType()
+    );
   }
 
   private static Type getRawType(final Type type) {
@@ -269,14 +282,16 @@ class UdafTypes {
     return type;
   }
 
-  static boolean isUnsupportedType(final Class<?> type) {
+  @SuppressWarnings("checkstyle:BooleanExpressionComplexity")
+  private static boolean isUnsupportedType(final Class<?> type, final boolean allowObject) {
     return !SUPPORTED_TYPES.contains(type)
         && (!type.isArray() || !SUPPORTED_TYPES.contains(type.getComponentType()))
-        && SUPPORTED_TYPES.stream().noneMatch(supported -> supported.isAssignableFrom(type));
+        && SUPPORTED_TYPES.stream().noneMatch(supported -> supported.isAssignableFrom(type))
+        && (!allowObject || !type.equals(Object.class));
   }
 
   static void checkSupportedType(final Method method, final Class<?> type) {
-    if (UdafTypes.isUnsupportedType(type)) {
+    if (UdafTypes.isUnsupportedType(type, false)) {
       throw new KsqlException(
           String.format(
               "Type %s is not supported by UDF methods. "

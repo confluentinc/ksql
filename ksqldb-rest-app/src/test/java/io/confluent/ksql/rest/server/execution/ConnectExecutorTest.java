@@ -39,6 +39,8 @@ import io.confluent.ksql.parser.tree.CreateConnector;
 import io.confluent.ksql.parser.tree.CreateConnector.Type;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.SessionProperties;
+import io.confluent.ksql.rest.entity.ConfigInfos.ConfigInfo;
+import io.confluent.ksql.rest.entity.ConfigInfos.ConfigValueInfo;
 import io.confluent.ksql.rest.entity.CreateConnectorEntity;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
@@ -54,12 +56,9 @@ import java.util.Arrays;
 import java.util.Map;
 import java.util.Optional;
 import org.apache.hc.core5.http.HttpStatus;
-import org.apache.kafka.connect.runtime.rest.entities.ConfigInfo;
-import org.apache.kafka.connect.runtime.rest.entities.ConfigInfos;
-import org.apache.kafka.connect.runtime.rest.entities.ConfigKeyInfo;
-import org.apache.kafka.connect.runtime.rest.entities.ConfigValueInfo;
-import org.apache.kafka.connect.runtime.rest.entities.ConnectorInfo;
-import org.apache.kafka.connect.runtime.rest.entities.ConnectorType;
+import io.confluent.ksql.rest.entity.ConfigInfos;
+import io.confluent.ksql.rest.entity.ConnectorInfo;
+import io.confluent.ksql.rest.entity.ConnectorType;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -285,26 +284,13 @@ public class ConnectExecutorTest {
                 ImmutableList.of()), HttpStatus.SC_OK));
   }
 
+
   private void givenValidationError() {
-    final ConfigInfo configInfo1  = new ConfigInfo(new ConfigKeyInfo("name", "STRING",
-        true, null, "HIGH", "docs",
-            "Common", 1, "MEDIUM", "Connector name",
-        ImmutableList.of()),
-        new ConfigValueInfo("name", null, ImmutableList.of(), ImmutableList.of(
-            "Name is missing"), true));
-    final ConfigInfo configInfo2 = new ConfigInfo(new ConfigKeyInfo("hostname",
-        "STRING", false, null, "HIGH",
-        "docs for hostname",
-        "Common", 2, "MEDIUM", "hostname",
-        ImmutableList.of()),
-        new ConfigValueInfo("hostname", null, ImmutableList.of(),
-            ImmutableList.of("Hostname is required", "Some other error"), true));
-    final ConfigInfo configInfo3 = new ConfigInfo(new ConfigKeyInfo("port",
-        "INT", false, null, "HIGH",
-        "docs for port",
-        "Common", 3, "MEDIUM", "hostname",
-        ImmutableList.of()),
-        new ConfigValueInfo("port", null, ImmutableList.of(), ImmutableList.of(), true));
+    final ConfigInfo configInfo1  = new ConfigInfo(
+        new ConfigValueInfo("name", ImmutableList.of("Name is missing")));
+    final ConfigInfo configInfo2 = new ConfigInfo(
+        new ConfigValueInfo("hostname", ImmutableList.of("Hostname is required", "Some other error")));
+    final ConfigInfo configInfo3 = new ConfigInfo(new ConfigValueInfo("port", ImmutableList.of()));
     when(connectClient.validate(anyString(), anyMap()))
         .thenReturn(ConnectResponse.success(
             new ConfigInfos(

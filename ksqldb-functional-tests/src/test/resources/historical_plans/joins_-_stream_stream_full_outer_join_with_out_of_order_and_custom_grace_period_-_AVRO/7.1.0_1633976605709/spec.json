@@ -126,9 +126,9 @@
       "key" : 2,
       "value" : {
         "T_ID" : 2,
-        "TT_ID" : 2,
+        "TT_ID" : null,
         "L1" : "C",
-        "L2" : "c"
+        "L2" : null
       },
       "timestamp" : 90000
     }, {
@@ -258,7 +258,8 @@
               "name" : "TT_ID",
               "type" : [ "null", "long" ],
               "default" : null
-            } ]
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
           }
         }, {
           "name" : "OUTER_JOIN",
@@ -289,7 +290,8 @@
               "name" : "L2",
               "type" : [ "null", "string" ],
               "default" : null
-            } ]
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
           }
         }, {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTER_JOIN_0-KSTREAM-OUTERTHIS-0000000008-store-changelog",
@@ -323,7 +325,8 @@
               "name" : "T_ID",
               "type" : [ "null", "long" ],
               "default" : null
-            } ]
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
           }
         }, {
           "name" : "left_topic",
@@ -397,7 +400,8 @@
               "name" : "TT_ID",
               "type" : [ "null", "long" ],
               "default" : null
-            } ]
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
           }
         } ]
       }

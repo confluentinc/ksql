@@ -77,7 +77,6 @@ public final class KsLocator implements Locator {
   private final Topology topology;
   private final Serializer<GenericKey> keySerializer;
   private final URL localHost;
-  private final String applicationId;
   private final boolean sharedRuntimesEnabled;
   private final String queryId;
 
@@ -87,7 +86,6 @@ public final class KsLocator implements Locator {
       final Topology topology,
       final Serializer<GenericKey> keySerializer,
       final URL localHost,
-      final String applicationId,
       final boolean sharedRuntimesEnabled,
       final String queryId
   ) {
@@ -96,7 +94,6 @@ public final class KsLocator implements Locator {
     this.keySerializer = requireNonNull(keySerializer, "keySerializer");
     this.storeName = requireNonNull(stateStoreName, "stateStoreName");
     this.localHost = requireNonNull(localHost, "localHost");
-    this.applicationId = requireNonNull(applicationId, "applicationId");
     this.sharedRuntimesEnabled = sharedRuntimesEnabled;
     this.queryId = requireNonNull(queryId, "queryId");
   }
@@ -369,7 +366,7 @@ public final class KsLocator implements Locator {
         routingOptions,
         allHosts,
         activeHost,
-        applicationId,
+        queryId,
         storeName,
         partition
     );

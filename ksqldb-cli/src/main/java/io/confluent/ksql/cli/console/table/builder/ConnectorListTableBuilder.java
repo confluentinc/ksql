@@ -18,9 +18,9 @@ package io.confluent.ksql.cli.console.table.builder;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.cli.console.table.Table;
 import io.confluent.ksql.rest.entity.ConnectorList;
+import io.confluent.ksql.rest.entity.ConnectorType;
 import java.util.List;
 import org.apache.commons.lang3.ObjectUtils;
-import org.apache.kafka.connect.runtime.rest.entities.ConnectorType;
 
 public class ConnectorListTableBuilder implements TableBuilder<ConnectorList>  {
 

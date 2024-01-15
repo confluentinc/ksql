@@ -85,6 +85,7 @@ Start by creating a `pom.xml` for your Java application:
             <groupId>io.confluent.ksql</groupId>
             <artifactId>ksqldb-api-client</artifactId>
             <version>${ksqldb.version}</version>
+            <classifier>with-dependencies</classifier>
         </dependency>
     </dependencies>
 
@@ -112,6 +113,21 @@ Start by creating a `pom.xml` for your Java application:
       from [http://packages.confluent.io/maven/](http://packages.confluent.io/maven/)
       by replacing the repositories in the example POM above with a repository with this
       URL instead. Also update `ksqldb.version` to be a CP version, such as `{{ site.cprelease }}`, instead.
+
+!!! note
+      The `with-dependencies` artifact was introduced in ksqlDB version 0.29 and CP version 7.4.0.  This jar includes  
+      all the necessary dependencies and relocates most of them in an attempt to avoid classpath issues.  Using this jar
+      provides the easiest way to get started.
+      If you want more control over the dependencies on the classpath, you can depend directly on the client 
+      using this dependency block instead:
+      ```
+          <dependency>
+              <groupId>io.confluent.ksql</groupId>
+              <artifactId>ksqldb-api-client</artifactId>
+              <version>${ksqldb.version}</version>
+          </dependency>
+      ```
+      If you do this, you will need to add all the transitive dependencies for `ksqldb-api-client`.
 
 Create your example app at `src/main/java/my/ksqldb/app/ExampleApp.java`:
 
@@ -533,7 +549,7 @@ Starting with ksqlDB 0.11.0, the `executeStatement()` method enables client apps
 - Create new ksqlDB streams and tables
 - Drop existing ksqlDB streams and tables
 - Create new persistent queries, i.e., `CREATE ... AS SELECT` and `INSERT INTO ... AS SELECT` statements
-- Terminate persistent queries
+- Pause, Resume, and Terminate persistent queries
 
 ```java
 public interface Client {

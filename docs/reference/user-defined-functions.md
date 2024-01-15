@@ -155,10 +155,18 @@ earlier documentation on this for further information.
 When a class is annotated with `@UdafDescription`, it's scanned for any public static methods that are annotated with `@UdafFactory` that return either `Udaf` or `TableUdaf`. If it matches, the class is loaded as an aggregation function. The factory function represents a collection of UDAFs all with the same name but
 may have different arguments and return types. Here is what each of these annotations can be parameterized with.
 
-Both `Udaf` and `TableUdaf` are parameterized by three generic types: `I` is the
-input type of the UDAF. `A` is the data type of the intermediate storage
-used to keep track of the state of the UDAF. `O` is the data type of the
-return value. Decoupling the data types of the state and return value
+Both `Udaf` and `TableUdaf` are parameterized by three generic types: 
+
+1. `I` is the input type of the UDAF. `I` can be a tuple type, one of `Pair`, `Triple`, `Quadruple`, 
+   or `Quintuple`, when there are multiple column arguments. `VariadicArgs` can be nested inside a tuple 
+   to create a variadic column argument. A function can have at most one variadic argument anywhere in its 
+   signature (including the parameters of `UdafFactory`). A variadic column argument may have `Object` as its
+   type parameter to accept any number of columns of any type, though a variadic `Object` factory argument is 
+   not supported. A variadic column argument outside a tuple is not supported.
+2. `A` is the data type of the intermediate storage used to keep track of the state of the UDAF. 
+3. `O` is the data type of the return value. 
+
+Decoupling the data types of the state and return value
 enables you to define UDAFs like `average`, as shown in the following example.
 
 When you create a UDAF, you can use the `map` method to provide the logic that
@@ -185,16 +193,16 @@ class annotated with `@UdafDescription`. The method must return either
 annotated method is a factory for an invocable aggregate function in
 SQL. The annotation supports the following fields:
 
-| Field           | Description                                                    | Required                       |
-|-----------------|----------------------------------------------------------------|--------------------------------|
-| description     | A string describing generally what the function(s) in this class do. | Yes                            |
-| paramSchema     | The ksqlDB schema for the input parameter.                       | For complex types, like `STRUCT` |
-| aggregateSchema | The ksqlDB schema for the intermediate state.                    | For complex types, like `STRUCT` |
-| returnSchema    | The ksqlDB schema for the return value.                          | For complex types, like `STRUCT` |
+| Field           | Description                                                                                                                                                                                                                                                             | Required                         |
+|-----------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------------------------------|
+| description     | A string describing generally what the function(s) in this class do.                                                                                                                                                                                                    | Yes                              |
+| paramSchema     | The ksqlDB schema(s) for the input parameter(s). If you provide fewer schemas than there are parameters, the schemas for the remaining parameters will default to being empty. if you provide more schemas than there are arguments, the extra schemas will be ignored. | For complex types, like `STRUCT` |
+| aggregateSchema | The ksqlDB schema for the intermediate state.                                                                                                                                                                                                                           | For complex types, like `STRUCT` |
+| returnSchema    | The ksqlDB schema for the return value.                                                                                                                                                                                                                                 | For complex types, like `STRUCT` |
 
 !!! note
       If `paramSchema` , `aggregateSchema` or `returnSchema` is supplied in
-      the `@UdfParameter` annotation for a `STRUCT`, it's considered
+      the `@UdafFactory` annotation for a `STRUCT`, it's considered
       "strict" - any inputs must match exactly, including order and names of
       the fields.
 

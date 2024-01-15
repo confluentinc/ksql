@@ -1,0 +1,320 @@
+{
+  "version" : "7.4.0",
+  "timestamp" : 1661540843446,
+  "path" : "query-validation-tests/math.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`K` STRING KEY, `V` DECIMAL(12, 7)",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`K` STRING KEY, `R0` DECIMAL(5, 0), `R00` DECIMAL(12, 7), `R1` DECIMAL(12, 7), `R2` DECIMAL(12, 7), `R10` DECIMAL(12, 7), `1R` DECIMAL(12, 7), `2R` DECIMAL(12, 7)",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "trunc - decimal",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : null,
+      "value" : {
+        "v" : 1.2
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : null,
+      "value" : {
+        "v" : 1.7
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : null,
+      "value" : {
+        "v" : 1.5
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : null,
+      "value" : {
+        "v" : 3
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : null,
+      "value" : {
+        "v" : 1.234567
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : null,
+      "value" : {
+        "v" : 0
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : null,
+      "value" : {
+        "v" : 111
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : null,
+      "value" : {
+        "v" : null
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : null,
+      "value" : {
+        "v" : -1.1
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : null,
+      "value" : {
+        "v" : -1.5
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : null,
+      "value" : {
+        "v" : -1.7
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : null,
+      "value" : {
+        "v" : 12345.678
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : null,
+      "value" : {
+        "v" : -12345.678
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : null,
+      "value" : {
+        "R0" : 1,
+        "R00" : 1.0000000,
+        "R1" : 1.2000000,
+        "R2" : 1.2000000,
+        "R10" : 1.2000000,
+        "1R" : 0.0000000,
+        "2R" : 0.0000000
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : null,
+      "value" : {
+        "R0" : 1,
+        "R00" : 1.0000000,
+        "R1" : 1.7000000,
+        "R2" : 1.7000000,
+        "R10" : 1.7000000,
+        "1R" : 0.0000000,
+        "2R" : 0.0000000
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : null,
+      "value" : {
+        "R0" : 1,
+        "R00" : 1.0000000,
+        "R1" : 1.5000000,
+        "R2" : 1.5000000,
+        "R10" : 1.5000000,
+        "1R" : 0.0000000,
+        "2R" : 0.0000000
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : null,
+      "value" : {
+        "R0" : 3,
+        "R00" : 3.0000000,
+        "R1" : 3.0000000,
+        "R2" : 3.0000000,
+        "R10" : 3.0000000,
+        "1R" : 0.0000000,
+        "2R" : 0.0000000
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : null,
+      "value" : {
+        "R0" : 1,
+        "R00" : 1.0000000,
+        "R1" : 1.2000000,
+        "R2" : 1.2300000,
+        "R10" : 1.2345670,
+        "1R" : 0.0000000,
+        "2R" : 0.0000000
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : null,
+      "value" : {
+        "R0" : 0,
+        "R00" : 0.0000000,
+        "R1" : 0.0000000,
+        "R2" : 0.0000000,
+        "R10" : 0.0000000,
+        "1R" : 0.0000000,
+        "2R" : 0.0000000
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : null,
+      "value" : {
+        "R0" : 111,
+        "R00" : 111.0000000,
+        "R1" : 111.0000000,
+        "R2" : 111.0000000,
+        "R10" : 111.0000000,
+        "1R" : 110.0000000,
+        "2R" : 100.0000000
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : null,
+      "value" : {
+        "R0" : null,
+        "R00" : null,
+        "R1" : null,
+        "R2" : null,
+        "R10" : null,
+        "1R" : null,
+        "2R" : null
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : null,
+      "value" : {
+        "R0" : -1,
+        "R00" : -1.0000000,
+        "R1" : -1.1000000,
+        "R2" : -1.1000000,
+        "R10" : -1.1000000,
+        "1R" : 0.0000000,
+        "2R" : 0.0000000
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : null,
+      "value" : {
+        "R0" : -1,
+        "R00" : -1.0000000,
+        "R1" : -1.5000000,
+        "R2" : -1.5000000,
+        "R10" : -1.5000000,
+        "1R" : 0.0000000,
+        "2R" : 0.0000000
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : null,
+      "value" : {
+        "R0" : -1,
+        "R00" : -1.0000000,
+        "R1" : -1.7000000,
+        "R2" : -1.7000000,
+        "R10" : -1.7000000,
+        "1R" : 0.0000000,
+        "2R" : 0.0000000
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : null,
+      "value" : {
+        "R0" : 12345,
+        "R00" : 12345.0000000,
+        "R1" : 12345.6000000,
+        "R2" : 12345.6700000,
+        "R10" : 12345.6780000,
+        "1R" : 12340.0000000,
+        "2R" : 12300.0000000
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : null,
+      "value" : {
+        "R0" : -12345,
+        "R00" : -12345.0000000,
+        "R1" : -12345.6000000,
+        "R2" : -12345.6700000,
+        "R10" : -12345.6780000,
+        "1R" : -12340.0000000,
+        "2R" : -12300.0000000
+      }
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM test (K STRING KEY, v DECIMAL(12, 7)) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE STREAM OUTPUT AS SELECT K, TRUNC(v) as R0, TRUNC(v, 0) as R00, TRUNC(v, 1) as R1, TRUNC(v, 2) as R2, TRUNC(v, 10) as R10, TRUNC(v , -1) as 1R , TRUNC(v , -2) as 2R  FROM test;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`K` STRING KEY, `R0` DECIMAL(5, 0), `R00` DECIMAL(12, 7), `R1` DECIMAL(12, 7), `R2` DECIMAL(12, 7), `R10` DECIMAL(12, 7), `1R` DECIMAL(12, 7), `2R` DECIMAL(12, 7)",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`K` STRING KEY, `V` DECIMAL(12, 7)",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

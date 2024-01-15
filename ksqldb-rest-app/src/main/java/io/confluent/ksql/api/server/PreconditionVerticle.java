@@ -18,6 +18,7 @@ package io.confluent.ksql.api.server;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.api.util.ApiServerUtils;
+import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.server.state.ServerState;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Promise;
@@ -35,14 +36,17 @@ public class PreconditionVerticle extends AbstractVerticle {
   private final HttpServerOptions httpServerOptions;
   private final ServerState serverState;
   private HttpServer httpServer;
+  private KsqlRestConfig restConfig;
 
   @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
   public PreconditionVerticle(
       final HttpServerOptions httpServerOptions,
-      final ServerState serverState
+      final ServerState serverState,
+      final KsqlRestConfig restConfig
   ) {
     this.httpServerOptions = Objects.requireNonNull(httpServerOptions);
     this.serverState = Objects.requireNonNull(serverState, "serverState");
+    this.restConfig = Objects.requireNonNull(restConfig, "restConfig");
   }
 
   @Override
@@ -69,6 +73,7 @@ public class PreconditionVerticle extends AbstractVerticle {
 
   private Router setupRouter() {
     final Router router = Router.router(vertx);
+    KsqlCorsHandler.setupCorsHandler(restConfig, router);
     router.route(HttpMethod.GET, "/chc/ready").handler(ApiServerUtils::chcHandler);
     router.route(HttpMethod.GET, "/chc/live").handler(ApiServerUtils::chcHandler);
     router.route().handler(new ServerStateHandler(serverState));

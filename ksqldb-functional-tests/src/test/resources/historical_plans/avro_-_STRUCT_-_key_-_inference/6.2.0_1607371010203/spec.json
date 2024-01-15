@@ -187,7 +187,8 @@
               "name" : "F1",
               "type" : [ "null", "string" ],
               "default" : null
-            } ]
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.OutputKey"
           },
           "valueSchema" : {
             "type" : "record",
@@ -197,7 +198,8 @@
               "name" : "FOO",
               "type" : [ "null", "int" ],
               "default" : null
-            } ]
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
           }
         } ]
       }

@@ -275,7 +275,9 @@ public final class ListSourceExecutor {
     final DataSource dataSource = ksqlExecutionContext.getMetaStore().getSource(name);
     if (dataSource == null) {
       throw new KsqlStatementException(String.format(
-          "Could not find STREAM/TABLE '%s' in the Metastore",
+          "Could not find STREAM/TABLE '%s' in the Metastore"
+              + ksqlExecutionContext.getMetaStore().checkAlternatives(
+                  name, Optional.empty()),
           name.text()
       ), statement.getMaskedStatementText());
     }

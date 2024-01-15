@@ -23,7 +23,7 @@ import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.services.ConnectClient.ConnectResponse;
 import java.util.List;
 import java.util.Map;
-import org.apache.kafka.connect.runtime.rest.entities.ConfigInfos;
+import io.confluent.ksql.rest.entity.ConfigInfos;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;

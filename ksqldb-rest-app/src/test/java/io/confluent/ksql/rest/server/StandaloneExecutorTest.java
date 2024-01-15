@@ -95,12 +95,12 @@ import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Properties;
 import java.util.function.BiFunction;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.metrics.MetricsReporter;
 import org.apache.kafka.test.TestUtils;
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -256,6 +256,8 @@ public class StandaloneExecutorTest {
   private Injector topicInjector;
   @Mock
   private Injector sandBoxTopicInjector;
+  @Mock
+  private Consumer<KsqlConfig> rocksDBConfigSetterHandler;
 
   private Path queriesFile;
   private StandaloneExecutor standaloneExecutor;
@@ -307,7 +309,8 @@ public class StandaloneExecutorTest {
         false,
         versionChecker,
         injectorFactory,
-        new MetricCollectors()
+        new MetricCollectors(),
+        rocksDBConfigSetterHandler
     );
   }
 
@@ -338,7 +341,8 @@ public class StandaloneExecutorTest {
         false,
         versionChecker,
         injectorFactory,
-        metricCollectors
+        metricCollectors,
+        rocksDBConfigSetterHandler
     );
 
     // Then:
@@ -360,7 +364,8 @@ public class StandaloneExecutorTest {
         false,
         versionChecker,
         injectorFactory,
-        new MetricCollectors()
+        new MetricCollectors(),
+        rocksDBConfigSetterHandler
     );
 
     // When:
@@ -397,7 +402,8 @@ public class StandaloneExecutorTest {
         false,
         versionChecker,
         injectorFactory,
-        new MetricCollectors()
+        new MetricCollectors(),
+        rocksDBConfigSetterHandler
     );
 
     // When:
@@ -453,7 +459,8 @@ public class StandaloneExecutorTest {
         false,
         versionChecker,
         (ec, sc) -> InjectorChain.of(schemaInjector, topicInjector),
-        new MetricCollectors()
+        new MetricCollectors(),
+        rocksDBConfigSetterHandler
     );
 
     // When:
@@ -837,6 +844,20 @@ public class StandaloneExecutorTest {
     verify(sandBox).execute(sandBoxServiceContext, CSAS_CFG_WITH_TOPIC);
   }
 
+  @Test
+  public void shouldConfigureRocksDBConfigSetter() {
+    // Given:
+    givenQueryFileParsesTo(PREPARED_CSAS);
+    when(sandBoxTopicInjector.inject(argThat(configured(equalTo(PREPARED_CSAS)))))
+        .thenReturn((ConfiguredStatement) CSAS_CFG_WITH_TOPIC);
+
+    // When:
+    standaloneExecutor.startAsync();
+
+    // Then:
+    verify(rocksDBConfigSetterHandler).accept(ksqlConfig);
+  }
+
   private void givenExecutorWillFailOnNoQueries() {
     standaloneExecutor = new StandaloneExecutor(
         serviceContext,
@@ -848,7 +869,8 @@ public class StandaloneExecutorTest {
         true,
         versionChecker,
         (ec, sc) -> InjectorChain.of(schemaInjector, topicInjector),
-        new MetricCollectors()
+        new MetricCollectors(),
+        rocksDBConfigSetterHandler
     );
   }
 

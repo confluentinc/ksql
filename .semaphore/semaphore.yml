@@ -25,6 +25,7 @@ global_job_config:
     commands:
       - checkout
       - sem-version java 8
+      - . cache-maven restore
 
 blocks:
   - name: Test
@@ -38,6 +39,7 @@ blocks:
           commands:
             - . ci-tools ci-update-version
             - mvn -Dmaven.gitcommitid.nativegit=true -U -Dmaven.wagon.http.retryHandler.count=10 --batch-mode --no-transfer-progress clean install
+            - . cache-maven store
       epilogue:
         always:
           commands:

@@ -28,9 +28,23 @@ import java.util.LinkedList;
 import java.util.List;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.easymock.EasyMock;
+import org.easymock.internal.LastControl;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 
 public class ThreadLocalDeserializerTest {
+
+  @Before
+  public void before(){
+    LastControl.pullMatchers();
+  }
+
+  @After
+  public void after(){
+    LastControl.pullMatchers();
+  }
+
   @Test
   public void shouldUseAThreadLocalDeserializer() throws InterruptedException {
     final List<Deserializer<GenericRow>> serializers = new LinkedList<>();

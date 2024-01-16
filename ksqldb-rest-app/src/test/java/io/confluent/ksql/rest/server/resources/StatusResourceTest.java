@@ -66,7 +66,7 @@ public class StatusResourceTest {
     expect(mockStatementExecutor.getStatuses()).andReturn(mockCommandStatuses);
 
     for (final Map.Entry<CommandId, CommandStatus> commandEntry : mockCommandStatuses.entrySet()) {
-      expect(mockStatementExecutor.getStatus(commandEntry.getKey())).andReturn(Optional.of(commandEntry.getValue()));
+      expect(mockStatementExecutor.getStatus(commandEntry.getKey())).andReturn(Optional.of(commandEntry.<CommandStatus>getValue()));
     }
 
     expect(mockStatementExecutor.getStatus(anyObject(CommandId.class))).andReturn(Optional.empty());

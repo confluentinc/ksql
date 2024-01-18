@@ -22,7 +22,7 @@
     <parent>
         <groupId>io.confluent</groupId>
         <artifactId>common</artifactId>
-        <version>6.1.16-6</version>
+        <version>6.1.16-7</version>
     </parent>
 
     <groupId>io.confluent.ksql</groupId>

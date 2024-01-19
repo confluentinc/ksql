@@ -10,7 +10,7 @@ def downStreams = "${env.BRANCH_NAME}".contains('master') ?
 common {
     nodeLabel = 'docker-debian-jdk11'
     slackChannel = channel
-    timeoutHours = 5
+    timeoutHours = 6
     upstreamProjects = 'confluentinc/schema-registry'
     extraDeployArgs = '-Ddocker.skip=true'
     dockerPush = false

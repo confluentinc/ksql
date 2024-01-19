@@ -151,7 +151,12 @@ ksql-migrations {-c | --config-file} <config-file> initialize-metadata
 ```
 
 Provide the path to the config file of your migrations project when you 
-run this command.
+run this command. 
+
+!!! note
+
+    You must run the `ksql-migrations` tool in the directory that contains the
+    config file. 
 
 ```
 $ ksql-migrations --config-file /my/migrations/project/ksql-migrations.properties initialize-metadata

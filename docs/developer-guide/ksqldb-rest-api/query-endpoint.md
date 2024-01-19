@@ -12,6 +12,8 @@ until the `LIMIT` specified in the statement is reached, or the client
 closes the connection. If no `LIMIT` is specified in the statement, then
 the response is streamed until the client closes the connection.
 
+Append `EMIT CHANGES` to specify a push query with continuous output.
+
 !!! note
       This endpoint was proposed to be deprecated as part of 
       [KLIP-15](https://github.com/confluentinc/ksql/blob/master/design-proposals/klip-15-new-api-and-client.md)

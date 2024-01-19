@@ -59,6 +59,14 @@ public class KsqlRestConfig extends AbstractConfig {
           + "hostname, and port. For example: http://myhost:8080, https://0.0.0.0:8081";
   protected static final String LISTENERS_DEFAULT = "http://0.0.0.0:8088";
 
+  public static final String PROXY_PROTOCOL_LISTENERS_CONFIG = "listeners.proxy.protocol";
+  protected static final String PROXY_PROTOCOL_LISTENERS_DOC =
+      "List of listeners expecting proxy protocol headers. Must be a subset of the listeners "
+          + "provided in the configuration `" + LISTENERS_CONFIG + "`. "
+          + "http and https are supported. Each listener must include the protocol, "
+          + "hostname, and port. For example: http://myhost:8080, https://0.0.0.0:8081";
+  protected static final String PROXY_PROTOCOL_LISTENERS_DEFAULT = "";
+
   public static final String AUTHENTICATION_SKIP_PATHS_CONFIG = "authentication.skip.paths";
   public static final String AUTHENTICATION_SKIP_PATHS_DOC = "Comma separated list of paths that "
       + "can be "
@@ -397,10 +405,10 @@ public class KsqlRestConfig extends AbstractConfig {
           + "returns a 421 mis-directed response. (NOTE: this check should not be enabled if "
           + "ksqlDB servers have mutual TLS enabled)";
 
-  public static final String KSQL_COMMAND_TOPIC_RATE_LIMIT_CONFIG = 
+  public static final String KSQL_COMMAND_TOPIC_RATE_LIMIT_CONFIG =
       KSQL_CONFIG_PREFIX + "server.command.topic.rate.limit";
   public static final double KSQL_COMMAND_TOPIC_RATE_LIMIT_CONFIG_DEFAULT = Double.MAX_VALUE;
-  private static final String KSQL_COMMAND_TOPIC_RATE_LIMIT_CONFIG_DEFAULT_DOC = 
+  private static final String KSQL_COMMAND_TOPIC_RATE_LIMIT_CONFIG_DEFAULT_DOC =
       "Sets the number of statements that can be executed against the command topic per second";
 
   public static final String KSQL_PRECONDITION_CHECKER_BACK_OFF_TIME_MS =
@@ -468,6 +476,12 @@ public class KsqlRestConfig extends AbstractConfig {
             LISTENERS_DEFAULT,
             Importance.HIGH,
             LISTENERS_DOC
+        ).define(
+            PROXY_PROTOCOL_LISTENERS_CONFIG,
+            Type.LIST,
+            PROXY_PROTOCOL_LISTENERS_DEFAULT,
+            Importance.MEDIUM,
+            PROXY_PROTOCOL_LISTENERS_DOC
         ).define(
             ACCESS_CONTROL_ALLOW_ORIGIN_CONFIG,
             Type.STRING,
@@ -818,6 +832,11 @@ public class KsqlRestConfig extends AbstractConfig {
 
     listeners
         .forEach(listener -> ConfigValidators.validUrl().ensureValid(LISTENERS_CONFIG, listener));
+
+    final List<String> proxyProtocolListeners = getList(PROXY_PROTOCOL_LISTENERS_CONFIG);
+    proxyProtocolListeners.forEach(listener ->
+            ConfigValidators.validUrl().ensureValid(PROXY_PROTOCOL_LISTENERS_CONFIG, listener));
+
   }
 
   // Bit of a hack to get around the fact that RestConfig.originals() is private for some reason

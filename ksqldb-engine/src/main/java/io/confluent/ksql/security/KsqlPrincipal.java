@@ -48,4 +48,11 @@ public interface KsqlPrincipal extends Principal {
   default String getIpAddress() {
     return "";
   }
+
+  /**
+   * Returns the user's port number, as set by the ksqlDB server's request context.
+   */
+  default int getPort() {
+    return 0;
+  }
 }

@@ -83,6 +83,67 @@ public class ListenersTest extends BaseApiTest {
   }
 
   @Test
+  public void shouldSupportOneProxyProtocolListener() {
+    // Given:
+    init();
+    createServer(createConfig("http://localhost:8088", false, "http://localhost:8088"));
+    this.client = createClient();
+
+    // When:
+    List<URI> listeners = server.getListeners();
+    List<URI> proxyProtocolListeners = server.getProxyProtocolListeners();
+
+    // Then:
+    assertThat(listeners, hasSize(1));
+    assertThat(listeners.get(0), is(URI.create("http://localhost:8088")));
+    assertThat(proxyProtocolListeners, hasSize(1));
+    assertThat(proxyProtocolListeners.get(0), is(URI.create("http://localhost:8088")));
+  }
+
+  @Test
+  public void shouldSupportAdditionalProxyProtocolListenersAndTLS() {
+    // Given:
+    init();
+    createServer(createConfig(
+        "http://localhost:8087, http://localhost:8088, https://localhost:8090", true,
+        "http://localhost:8088, https://localhost:8090"));
+    this.client = createClient();
+
+    // When:
+    List<URI> listeners = server.getListeners();
+    List<URI> proxyProtocolListeners = server.getProxyProtocolListeners();
+
+    // Then:
+    assertThat(listeners, hasSize(3));
+    assertThat(listeners.get(0), is(URI.create("http://localhost:8087")));
+    assertThat(listeners.get(1), is(URI.create("http://localhost:8088")));
+    assertThat(listeners.get(2), is(URI.create("https://localhost:8090")));
+    assertThat(proxyProtocolListeners, hasSize(2));
+    assertThat(proxyProtocolListeners.get(0), is(URI.create("http://localhost:8088")));
+    assertThat(proxyProtocolListeners.get(1), is(URI.create("https://localhost:8090")));
+  }
+
+  @Test
+  public void shouldFailToStartIfNonExistingListenerInProxyProtocolList() {
+    // Given:
+    init();
+
+    // When:
+    final Exception e = assertThrows(
+        ConfigException.class,
+        () -> createServer(createConfig(
+            "http://localhost:8089", false,
+            "http://localhost:8089, http://localhost:8090"))
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Listener http://localhost:8090 is listed in listeners.proxy.protocol"
+            + " but not in listeners"));
+
+  }
+
+  @Test
   public void shouldFailToStartIfListenerWithHttpsButNoKeyStore() {
     // Given:
     init();
@@ -130,10 +191,15 @@ public class ListenersTest extends BaseApiTest {
     assertThat(e.getMessage(), containsString(
         "Invalid listener URI"));
   }
-
   private static KsqlRestConfig createConfig(String listeners, boolean tls) {
+    return createConfig(listeners, tls, "");
+  }
+
+  private static KsqlRestConfig createConfig(String listeners, boolean tls,
+      String proxyProtocolListeners) {
     Map<String, Object> config = new HashMap<>();
     config.put(KsqlRestConfig.LISTENERS_CONFIG, listeners);
+    config.put(KsqlRestConfig.PROXY_PROTOCOL_LISTENERS_CONFIG, proxyProtocolListeners);
     config.put(KsqlRestConfig.VERTICLE_INSTANCES, 4);
 
     if (tls) {

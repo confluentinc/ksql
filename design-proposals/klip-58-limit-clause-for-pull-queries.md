@@ -1,8 +1,8 @@
 # KLIP 58 - LIMIT clause for Pull Queries
 
 **Author**: Chittaranjan Prasad (@cprasad1) | 
-**Release Target**: 0.24.0 | 
-**Status**: _In Discussion_ | 
+**Release Target**: 0.24.0; 7.2.0 | 
+**Status**: _Merged_ | 
 **Discussion**: https://github.com/confluentinc/ksql/pull/8298
 
 **tl;dr:** Users of pull queries don't have any way of restricting the number of rows returned by a pull query. The 

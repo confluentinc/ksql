@@ -1,8 +1,8 @@
 # KLIP 49 - Add Source Stream/Table Semantic 
 
 **Author**: Boyang Chen (@boyang) | 
-**Release Target**: TBD | 
-**Status**: _In Discussion_ | 
+**Release Target**: 0.22.0; 7.1.0 | 
+**Status**: _Merged_ | 
 **Discussion**: https://github.com/confluentinc/ksql/pull/7474
 
 **tl;dr:** _Add support for source stream/table. This will give users a read-only view of data that 

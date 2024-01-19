@@ -106,7 +106,6 @@
         {"topic": "OUTPUT", "key": "a", "value": {"CORRELATION": "NaN"}},
         {"topic": "OUTPUT", "key": "a", "value": {"CORRELATION": 1.0}},
         {"topic": "OUTPUT", "key": "a", "value": {"CORRELATION": "NaN"}},
-        {"topic": "OUTPUT", "key": "a", "value": {"CORRELATION": "NaN"}},
         {"topic": "OUTPUT", "key": "a", "value": {"CORRELATION": -0.7205766921228921}}
       ]
     }

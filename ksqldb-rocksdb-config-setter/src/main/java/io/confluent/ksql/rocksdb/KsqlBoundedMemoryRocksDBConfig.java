@@ -20,6 +20,8 @@ import org.apache.kafka.common.config.AbstractConfig;
 import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.common.config.ConfigDef.Importance;
 import org.apache.kafka.common.config.ConfigDef.Type;
+import org.rocksdb.CompactionStyle;
+import org.rocksdb.CompressionType;
 
 public class KsqlBoundedMemoryRocksDBConfig extends AbstractConfig {
 
@@ -28,7 +30,7 @@ public class KsqlBoundedMemoryRocksDBConfig extends AbstractConfig {
   public static final String BLOCK_CACHE_SIZE = CONFIG_PREFIX + "cache.size";
   private static final String TOTAL_OFF_HEAP_MEMORY_DOC =
       "All RocksDB instances across all KSQL queries (i.e., all Kafka Streams applications) "
-      + "will be limited to sharing this much memory (in bytes) for block cache.";
+          + "will be limited to sharing this much memory (in bytes) for block cache.";
 
   public static final String WRITE_BUFFER_LIMIT = CONFIG_PREFIX + "write.buffer.size";
   private static final String WRITE_BUFFER_LIMIT_DOC =
@@ -54,7 +56,31 @@ public class KsqlBoundedMemoryRocksDBConfig extends AbstractConfig {
   private static final double INDEX_FILTER_BLOCK_RATIO_DEFAULT = 0.0;
   private static final String INDEX_FILTER_BLOCK_RATIO_DOC =
       "Percentage of the RocksDB block cache to set aside for high-priority entries, i.e., "
-      + "index and filter blocks.";
+          + "index and filter blocks.";
+
+  public static final String COMPACTION_STYLE = CONFIG_PREFIX + "compaction.style";
+  private static final String COMPACTION_STYLE_DOC =
+      "The RocksDB instance will apply this compaction style "
+          + "to remove the invalidated records of the state store.";
+
+  public static final String COMPRESSION_TYPE = CONFIG_PREFIX + "compression.type";
+  private static final String COMPRESSION_TYPE_DOC =
+      "The RocksDB instance will apply this compression strategy to compress the SST files.";
+
+  public static final String MAX_BACKGROUND_JOBS = CONFIG_PREFIX + "max.background.jobs";
+  private static final String MAX_BACKGROUND_JOBS_DOC =
+      "The RocksDB instance will apply this as the number of background threads are used for "
+          + "compaction and memtable flushes.";
+
+  public static final String COMPACTION_TRIVIAL_MOVE =
+      CONFIG_PREFIX + "compaction.trivial.move";
+  private static final String COMPACTION_TRIVIAL_MOVE_DOC =
+      "The RocksDB instance will enable trivial move if this flag is true. This feature is always "
+          + "enabled for LEVELED compaction. Therefore, this is only relevant if the compaction "
+          + "style is set to UNIVERSAL.";
+
+
+
 
   private static final ConfigDef CONFIG_DEF = new ConfigDef()
       .define(
@@ -92,7 +118,42 @@ public class KsqlBoundedMemoryRocksDBConfig extends AbstractConfig {
           Type.DOUBLE,
           INDEX_FILTER_BLOCK_RATIO_DEFAULT,
           Importance.LOW,
-          INDEX_FILTER_BLOCK_RATIO_DOC
+          INDEX_FILTER_BLOCK_RATIO_DOC)
+      .define(
+          COMPACTION_STYLE,
+          Type.STRING,
+          CompactionStyle.UNIVERSAL.name(),
+          ConfigDef.ValidString.in(
+              CompactionStyle.UNIVERSAL.name(), CompactionStyle.LEVEL.name()),
+          Importance.LOW,
+          COMPACTION_STYLE_DOC)
+      .define(
+          COMPRESSION_TYPE,
+          Type.STRING,
+          CompressionType.NO_COMPRESSION.name(),
+          ConfigDef.ValidString.in(
+              CompressionType.NO_COMPRESSION.name(),
+              CompressionType.SNAPPY_COMPRESSION.name(),
+              CompressionType.ZLIB_COMPRESSION.name(),
+              CompressionType.BZLIB2_COMPRESSION.name(),
+              CompressionType.LZ4_COMPRESSION.name(),
+              CompressionType.LZ4HC_COMPRESSION.name(),
+              CompressionType.XPRESS_COMPRESSION.name(),
+              CompressionType.ZSTD_COMPRESSION.name()),
+          Importance.LOW,
+          COMPRESSION_TYPE_DOC
+      ).define(
+          MAX_BACKGROUND_JOBS,
+          Type.INT,
+          -1,
+          Importance.LOW,
+          MAX_BACKGROUND_JOBS_DOC
+      ).define(
+          COMPACTION_TRIVIAL_MOVE,
+          Type.BOOLEAN,
+          false,
+          Importance.LOW,
+          COMPACTION_TRIVIAL_MOVE_DOC
       );
 
   public KsqlBoundedMemoryRocksDBConfig(final Map<?, ?> properties) {

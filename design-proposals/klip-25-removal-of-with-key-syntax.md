@@ -1,8 +1,8 @@
 # KLIP 25 - Removal of WITH(KEY) syntax
 
 **Author**: @big-andy-coates |
-**Release Target**: TBD |
-**Status**: Accepted |
+**Release Target**: 0.10.0; 6.0.0 |
+**Status**: _Merged_ |
 **Discussion**: [Github PR](https://github.com/confluentinc/ksql/pull/5117)
 
 **tl;dr:** The `WITH(KEY)` syntax is the cause of much confusion and errors as it requires users to

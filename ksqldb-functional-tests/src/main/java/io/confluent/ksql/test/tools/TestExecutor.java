@@ -612,6 +612,7 @@ public class TestExecutor implements Closeable {
     return new DefaultServiceContext(
         kafkaClientSupplier,
         () -> kafkaClientSupplier.getAdmin(Collections.emptyMap()),
+        () -> kafkaClientSupplier.getAdmin(Collections.emptyMap()),
         new StubKafkaTopicClient(),
         () -> schemaRegistryClient,
         () -> new DefaultConnectClient(

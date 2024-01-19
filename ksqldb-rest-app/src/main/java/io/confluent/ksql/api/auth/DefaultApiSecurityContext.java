@@ -25,7 +25,6 @@ import java.util.Map.Entry;
 import java.util.Optional;
 
 public final class DefaultApiSecurityContext implements ApiSecurityContext {
-
   private final Optional<KsqlPrincipal> principal;
   private final Optional<String> authToken;
   private final List<Entry<String, String>> requestHeaders;
@@ -38,16 +37,18 @@ public final class DefaultApiSecurityContext implements ApiSecurityContext {
     }
     final ApiUser apiUser = (ApiUser) user;
 
-    String authToken = null;
+    String authToken = routingContext.request().getHeader("Authorization");
     if (server.getAuthenticationPlugin().isPresent()) {
       authToken = server.getAuthenticationPlugin().get().getAuthHeader(routingContext);
     }
 
     final List<Entry<String, String>> requestHeaders = routingContext.request().headers().entries();
     final String ipAddress = routingContext.request().remoteAddress().host();
+    final int port = routingContext.request().remoteAddress().port();
+
     return new DefaultApiSecurityContext(
         apiUser != null
-            ? apiUser.getPrincipal().withIpAddress(ipAddress == null ? "" : ipAddress)
+            ? apiUser.getPrincipal().withIpAddressAndPort(ipAddress == null ? "" : ipAddress, port)
             : null,
         authToken,
         requestHeaders);

@@ -34,13 +34,13 @@ Example
 -------
 
 ```sql
-CREATE SOURCE CONNECTOR `jdbc-connector` WITH(
-    "connector.class"='io.confluent.connect.jdbc.JdbcSourceConnector',
-    "connection.url"='jdbc:postgresql://localhost:5432/my.db',
-    "mode"='bulk',
-    "topic.prefix"='jdbc-',
-    "table.whitelist"='users',
-    "key"='username');
+CREATE SOURCE CONNECTOR `jdbc-connector` WITH (
+    'connector.class'='io.confluent.connect.jdbc.JdbcSourceConnector',
+    'connection.url'='jdbc:postgresql://localhost:5432/my.db',
+    'mode'='bulk',
+    'topic.prefix'='jdbc-',
+    'table.whitelist'='users',
+    'key'='username');
 ```
 
 !!! Tip "See CREATE CONNECTOR in action"

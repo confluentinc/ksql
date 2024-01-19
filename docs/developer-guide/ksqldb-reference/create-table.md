@@ -47,6 +47,10 @@ A ksqlDB table works much like tables in other SQL systems. A table has zero or
 more rows. Each row is identified by its `PRIMARY KEY`. A row's `PRIMARY KEY`
 can't be `NULL`.
 
+Tables with multiple primary keys can have nulls written into the primary key
+fields, because the key becomes a struct concatenation of the individual
+fields, resulting in the actual key never being null.
+
 !!! important
     You must declare a PRIMARY KEY when you create a table on a {{ site.ak }}
     topic.
@@ -213,6 +217,12 @@ The schema will be used to serialize keys for the table created by this `CREATE`
 For more details, see the corresponding section in the
 [Serialization Formats](/reference/serialization#protobuf) documentation.
 
+### KEY_SCHEMA_FULL_NAME
+
+The full name of the key schema in {{ site.sr }}.
+
+The schema is used for schema inference and data serialization.
+
 ### KEY_SCHEMA_ID
 
 The schema ID of the key schema in {{ site.sr }}.
@@ -265,6 +275,12 @@ with successive single quotes, `''`, for example: `'yyyy-MM-dd''T''HH:mm:ssX'`.
 
 For more information, see [Timestamp formats](/reference/sql/time/#timestamp-formats).
 
+### VALUE_AVRO_SCHEMA_FULL_NAME
+
+The full name of the value AVRO schema in {{ site.sr }}.
+
+The schema is used for schema inference and data serialization. 
+
 ### VALUE_DELIMITER
 
 Set the delimiter string to use when `VALUE_FORMAT` is set to `DELIMITED`.
@@ -295,10 +311,19 @@ The schema will be used to serialize values for the table created by this `CREAT
 For more details, see the corresponding section in the
 [Serialization Formats](/reference/serialization#protobuf) documentation.
 
+### VALUE_SCHEMA_FULL_NAME
+
+The full name of the value schema in {{ site.sr }}.
+
+The schema is used for schema inference and data serialization. 
+
 ### VALUE_SCHEMA_ID
 
-The schema ID of the value schema in {{ site.sr }}. The schema is used for
-schema inference and data serialization. For more information, see
+The schema ID of the value schema in {{ site.sr }}.
+
+The schema is used for schema inference and data serialization.
+
+For more information, see
 [Schema Inference With Schema ID](/operate-and-deploy/schema-inference-with-id).
 
 ### WRAP_SINGLE_VALUE

@@ -16,14 +16,12 @@
 package io.confluent.ksql.rest.server.resources;
 
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
-import static org.easymock.EasyMock.anyObject;
-import static org.easymock.EasyMock.expect;
-import static org.easymock.EasyMock.mock;
-import static org.easymock.EasyMock.replay;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.Errors;
@@ -36,6 +34,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import org.junit.Test;
+import org.mockito.Mockito;
 
 public class StatusResourceTest {
 
@@ -63,15 +62,12 @@ public class StatusResourceTest {
   private StatusResource getTestStatusResource() {
     final InteractiveStatementExecutor mockStatementExecutor = mock(InteractiveStatementExecutor.class);
 
-    expect(mockStatementExecutor.getStatuses()).andReturn(mockCommandStatuses);
+    when(mockStatementExecutor.getStatuses()).thenReturn(mockCommandStatuses);
 
+    when(mockStatementExecutor.getStatus(Mockito.any(CommandId.class))).thenReturn(Optional.empty());
     for (final Map.Entry<CommandId, CommandStatus> commandEntry : mockCommandStatuses.entrySet()) {
-      expect(mockStatementExecutor.getStatus(commandEntry.getKey())).andReturn(Optional.of(commandEntry.getValue()));
+      when(mockStatementExecutor.getStatus(commandEntry.getKey())).thenReturn(Optional.of(commandEntry.getValue()));
     }
-
-    expect(mockStatementExecutor.getStatus(anyObject(CommandId.class))).andReturn(Optional.<CommandStatus>empty());
-
-    replay(mockStatementExecutor);
 
     return new StatusResource(mockStatementExecutor);
   }

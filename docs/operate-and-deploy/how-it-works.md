@@ -251,8 +251,8 @@ where `<service id>` is the value in the `ksql.service.id` property.
 The following table shows which SQL operations are supported in
 headless and interactive deployments.
 
-|                                     SQL Operation                                     |     Interactive ksqlDB      |   Headless ksqlDB   |
-| ------------------------------------------------------------------------------------- | --------------------------- | ------------------- |
+| SQL Operation                                                                         |     Interactive ksqlDB      |   Headless ksqlDB   |
+|---------------------------------------------------------------------------------------| --------------------------- | ------------------- |
 | Describe a stream or table, including runtime stats (DESCRIBE, DESCRIBE EXTENDED)     | Supported                   | Not Supported       |
 | Explain a query, including runtime stats (EXPLAIN)                                    | Supported                   | Not Supported       |
 | CREATE a stream or table                                                              | Supported                   | Supported           |
@@ -266,6 +266,7 @@ headless and interactive deployments.
 | Show contents of a stream or table (SELECT)                                           | Supported                   | Not Supported       |
 | Show properties of a query (SHOW PROPERTIES)                                          | Supported                   | Not Supported       |
 | Show results of a query (SELECT)                                                      | Supported                   | Not Supported       |
+| PAUSE / RESUME a persistent query                                                     | Supported                   | Not Supported       |
 | TERMINATE a query                                                                     | Supported                   | Not Supported       |
 | Start and stop a ksqlDB Server instance                                               | Not with ksqlDB API         | Not with ksqlDB API |
 | Cleanup and delete internal data (internal topics) of a ksqlDB cluster or application | Supported (ksqlDB REST API) | Not with ksqlDB API |

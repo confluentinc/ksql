@@ -65,11 +65,11 @@ public class QueuedCommand {
     return  Arrays.copyOf(command, command.length);
   }
 
-  CommandId getAndDeserializeCommandId() {
+  public CommandId getAndDeserializeCommandId() {
     return InternalTopicSerdes.deserializer(CommandId.class).deserialize("", commandId);
   }
 
-  Command getAndDeserializeCommand(final Deserializer<Command> deserializer) {
+  public Command getAndDeserializeCommand(final Deserializer<Command> deserializer) {
     return deserializer.deserialize("", command);
   }
 

@@ -64,6 +64,11 @@ public final class UdfUtil {
       .put(TimeUnit.class, ParamTypes.INTERVALUNIT)
       .put(ByteBuffer.class, ParamTypes.BYTES)
       .build();
+  private static final Map<Type, ParamType> VARARGS_JAVA_TO_ARG_TYPE
+          = ImmutableMap.<Type, ParamType>builder()
+          .putAll(JAVA_TO_ARG_TYPE)
+          .put(Object.class, ParamTypes.ANY)
+          .build();
 
   private UdfUtil() {
 
@@ -106,14 +111,23 @@ public final class UdfUtil {
     }
   }
 
+  public static ParamType getVarArgsSchemaFromType(final Type type) {
+    return getSchemaFromType(type, VARARGS_JAVA_TO_ARG_TYPE);
+  }
+
   public static ParamType getSchemaFromType(final Type type) {
+    return getSchemaFromType(type, JAVA_TO_ARG_TYPE);
+  }
+
+  private static ParamType getSchemaFromType(final Type type,
+                                             final Map<Type, ParamType> javaToArgType) {
     ParamType schema;
     if (type instanceof TypeVariable) {
       schema = GenericType.of(((TypeVariable) type).getName());
     } else {
-      schema = JAVA_TO_ARG_TYPE.get(type);
+      schema = javaToArgType.get(type);
       if (schema == null) {
-        schema = handleParameterizedType(type);
+        schema = handleParameterizedType(type, javaToArgType);
       }
     }
 
@@ -121,23 +135,24 @@ public final class UdfUtil {
   }
 
   // CHECKSTYLE_RULES.OFF: CyclomaticComplexity
-  private static ParamType handleParameterizedType(final Type type) {
+  private static ParamType handleParameterizedType(final Type type,
+                                                   final Map<Type, ParamType> javaToArgType) {
     // CHECKSTYLE_RULES.ON: CyclomaticComplexity
     if (type instanceof ParameterizedType) {
       final ParameterizedType parameterizedType = (ParameterizedType) type;
       if (parameterizedType.getRawType() == Map.class) {
-        return handleMapType(parameterizedType);
+        return handleMapType(parameterizedType, javaToArgType);
       } else if (parameterizedType.getRawType() == List.class) {
-        return handleListType((ParameterizedType) type);
+        return handleListType((ParameterizedType) type, javaToArgType);
       }
       if (parameterizedType.getRawType() == Function.class
           || parameterizedType.getRawType() == BiFunction.class
           || parameterizedType.getRawType() == TriFunction.class) {
-        return handleLambdaType((ParameterizedType) type);
+        return handleLambdaType((ParameterizedType) type, javaToArgType);
       }
     } else if (type instanceof Class<?> && ((Class<?>) type).isArray()) {
       // handle var args
-      return ArrayType.of(getSchemaFromType(((Class<?>) type).getComponentType()));
+      return ArrayType.of(getSchemaFromType(((Class<?>) type).getComponentType(), javaToArgType));
     } else if (type instanceof GenericArrayType) {
       return ArrayType.of(
           GenericType.of(
@@ -151,36 +166,39 @@ public final class UdfUtil {
     throw new KsqlException("Type inference is not supported for: " + type);
   }
 
-  private static ParamType handleMapType(final ParameterizedType type) {
+  private static ParamType handleMapType(final ParameterizedType type,
+                                         final Map<Type, ParamType> javaToArgType) {
     final Type keyType = type.getActualTypeArguments()[0];
     final ParamType keyParamType = keyType instanceof TypeVariable
         ? GenericType.of(((TypeVariable<?>) keyType).getName())
-        : getSchemaFromType(keyType);
+        : getSchemaFromType(keyType, javaToArgType);
 
     final Type valueType = type.getActualTypeArguments()[1];
     final ParamType valueParamType = valueType instanceof TypeVariable
         ? GenericType.of(((TypeVariable<?>) valueType).getName())
-        : getSchemaFromType(valueType);
+        : getSchemaFromType(valueType, javaToArgType);
 
     return MapType.of(keyParamType, valueParamType);
   }
 
-  private static ParamType handleListType(final ParameterizedType type) {
+  private static ParamType handleListType(final ParameterizedType type,
+                                          final Map<Type, ParamType> javaToArgType) {
     final Type elementType = type.getActualTypeArguments()[0];
     final ParamType elementParamType = elementType instanceof TypeVariable
         ? GenericType.of(((TypeVariable<?>) elementType).getName())
-        : getSchemaFromType(elementType);
+        : getSchemaFromType(elementType, javaToArgType);
 
     return ArrayType.of(elementParamType);
   }
 
-  private static ParamType handleLambdaType(final ParameterizedType type) {
+  private static ParamType handleLambdaType(final ParameterizedType type,
+                                            final Map<Type, ParamType> javaToArgType) {
     final List<ParamType> inputParamTypes = new ArrayList<>();
     for (int i = 0; i < type.getActualTypeArguments().length - 1; i++) {
       final Type inputType = type.getActualTypeArguments()[i];
       final ParamType inputParamType = inputType instanceof TypeVariable
           ? GenericType.of(((TypeVariable<?>) inputType).getName())
-          : getSchemaFromType(inputType);
+          : getSchemaFromType(inputType, javaToArgType);
       inputParamTypes.add(inputParamType);
     }
 
@@ -188,7 +206,7 @@ public final class UdfUtil {
         type.getActualTypeArguments()[type.getActualTypeArguments().length - 1];
     final ParamType returnParamType = returnType instanceof TypeVariable
         ? GenericType.of(((TypeVariable<?>) returnType).getName())
-        : getSchemaFromType(returnType);
+        : getSchemaFromType(returnType, javaToArgType);
 
     return LambdaType.of(inputParamTypes, returnParamType);
   }

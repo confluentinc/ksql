@@ -1,0 +1,309 @@
+{
+  "version" : "7.4.0",
+  "timestamp" : 1663178481833,
+  "path" : "query-validation-tests/table.json",
+  "schemas" : {
+    "CTAS_T1_0.KsqlTopic.Source" : {
+      "schema" : "`ROWKEY` STRING KEY, `ID` DOUBLE, `VALUE` BIGINT, `NAME` STRING",
+      "keyFormat" : {
+        "format" : "JSON_SR",
+        "properties" : {
+          "schemaId" : "101"
+        },
+        "features" : [ "UNWRAP_SINGLES" ]
+      },
+      "valueFormat" : {
+        "format" : "JSON_SR",
+        "properties" : {
+          "schemaId" : "102"
+        }
+      }
+    },
+    "CTAS_T1_0.Project" : {
+      "schema" : "`ROWKEY` STRING KEY, `NAME` STRING, `VALUE` BIGINT",
+      "keyFormat" : {
+        "format" : "JSON_SR",
+        "features" : [ "UNWRAP_SINGLES" ]
+      },
+      "valueFormat" : {
+        "format" : "JSON_SR"
+      }
+    },
+    "CTAS_T1_0.T1" : {
+      "schema" : "`ROWKEY` STRING KEY, `NAME` STRING, `VALUE` BIGINT",
+      "keyFormat" : {
+        "format" : "JSON_SR",
+        "features" : [ "UNWRAP_SINGLES" ]
+      },
+      "valueFormat" : {
+        "format" : "JSON_SR"
+      }
+    },
+    "CTAS_T1_0.KsqlTopic.Source.Materialized" : {
+      "schema" : "`ROWKEY` STRING KEY, `ID` DOUBLE, `VALUE` BIGINT, `NAME` STRING, `ROWPARTITION` INTEGER, `ROWOFFSET` BIGINT",
+      "keyFormat" : {
+        "format" : "JSON_SR",
+        "features" : [ "UNWRAP_SINGLES" ]
+      },
+      "valueFormat" : {
+        "format" : "JSON_SR"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "JSON_SR schema and schema id",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : "1",
+      "value" : {
+        "ID" : 1,
+        "NAME" : "one",
+        "VALUE" : 100
+      },
+      "timestamp" : 10
+    }, {
+      "topic" : "test_topic",
+      "key" : "1",
+      "value" : {
+        "ID" : 2,
+        "NAME" : "two",
+        "VALUE" : 200
+      },
+      "timestamp" : 20
+    }, {
+      "topic" : "test_topic",
+      "key" : "1",
+      "value" : {
+        "ID" : 3,
+        "NAME" : "three",
+        "VALUE" : 300
+      },
+      "timestamp" : 30
+    } ],
+    "outputs" : [ {
+      "topic" : "T1",
+      "key" : "1",
+      "value" : {
+        "NAME" : "one",
+        "VALUE" : 100
+      }
+    }, {
+      "topic" : "T1",
+      "key" : "1",
+      "value" : {
+        "NAME" : "two",
+        "VALUE" : 200
+      }
+    }, {
+      "topic" : "T1",
+      "key" : "1",
+      "value" : {
+        "NAME" : "three",
+        "VALUE" : 300
+      }
+    } ],
+    "topics" : [ {
+      "name" : "test_topic",
+      "keySchemaId" : 101,
+      "valueSchemaId" : 102,
+      "keySchema" : {
+        "type" : "string"
+      },
+      "valueSchema" : {
+        "type" : "object",
+        "properties" : {
+          "ID" : {
+            "type" : "number"
+          },
+          "NAME" : {
+            "type" : "string"
+          },
+          "VALUE" : {
+            "type" : "integer"
+          }
+        }
+      },
+      "keyFormat" : "JSON",
+      "valueFormat" : "JSON",
+      "replicas" : 1,
+      "numPartitions" : 1
+    }, {
+      "name" : "T1",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE TABLE TEST WITH (kafka_topic='test_topic', format='JSON_SR', KEY_SCHEMA_ID=101, VALUE_SCHEMA_ID=102);", "CREATE TABLE T1 as SELECT ROWKEY, NAME, VALUE FROM test;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "T1",
+        "type" : "TABLE",
+        "schema" : "`ROWKEY` STRING KEY, `NAME` STRING, `VALUE` BIGINT",
+        "keyFormat" : {
+          "format" : "JSON_SR"
+        },
+        "valueFormat" : "JSON_SR",
+        "keyFeatures" : [ "UNWRAP_SINGLES" ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "TEST",
+        "type" : "TABLE",
+        "schema" : "`ROWKEY` STRING KEY, `ID` DOUBLE, `VALUE` BIGINT, `NAME` STRING",
+        "keyFormat" : {
+          "format" : "JSON_SR"
+        },
+        "valueFormat" : "JSON_SR",
+        "keyFeatures" : [ "UNWRAP_SINGLES" ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "T1",
+          "keyFormat" : {
+            "format" : "JSON_SR",
+            "features" : [ "UNWRAP_SINGLES" ]
+          },
+          "valueFormat" : {
+            "format" : "JSON_SR"
+          },
+          "partitions" : 4,
+          "keySchema" : {
+            "oneOf" : [ {
+              "type" : "null"
+            }, {
+              "type" : "string"
+            } ]
+          },
+          "valueSchema" : {
+            "type" : "object",
+            "properties" : {
+              "VALUE" : {
+                "connect.index" : 1,
+                "oneOf" : [ {
+                  "type" : "null"
+                }, {
+                  "type" : "integer",
+                  "connect.type" : "int64"
+                } ]
+              },
+              "NAME" : {
+                "connect.index" : 0,
+                "oneOf" : [ {
+                  "type" : "null"
+                }, {
+                  "type" : "string"
+                } ]
+              }
+            }
+          }
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_T1_0-KsqlTopic-Reduce-changelog",
+          "keyFormat" : {
+            "format" : "JSON_SR",
+            "features" : [ "UNWRAP_SINGLES" ]
+          },
+          "valueFormat" : {
+            "format" : "JSON_SR"
+          },
+          "keySchema" : {
+            "oneOf" : [ {
+              "type" : "null"
+            }, {
+              "type" : "string"
+            } ]
+          },
+          "valueSchema" : {
+            "type" : "object",
+            "properties" : {
+              "ROWPARTITION" : {
+                "connect.index" : 3,
+                "oneOf" : [ {
+                  "type" : "null"
+                }, {
+                  "type" : "integer",
+                  "connect.type" : "int32"
+                } ]
+              },
+              "ID" : {
+                "connect.index" : 0,
+                "oneOf" : [ {
+                  "type" : "null"
+                }, {
+                  "type" : "number",
+                  "connect.type" : "float64"
+                } ]
+              },
+              "VALUE" : {
+                "connect.index" : 1,
+                "oneOf" : [ {
+                  "type" : "null"
+                }, {
+                  "type" : "integer",
+                  "connect.type" : "int64"
+                } ]
+              },
+              "ROWOFFSET" : {
+                "connect.index" : 4,
+                "oneOf" : [ {
+                  "type" : "null"
+                }, {
+                  "type" : "integer",
+                  "connect.type" : "int64"
+                } ]
+              },
+              "NAME" : {
+                "connect.index" : 2,
+                "oneOf" : [ {
+                  "type" : "null"
+                }, {
+                  "type" : "string"
+                } ]
+              }
+            }
+          }
+        }, {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "format" : "JSON_SR",
+            "properties" : {
+              "schemaId" : "101"
+            },
+            "features" : [ "UNWRAP_SINGLES" ]
+          },
+          "valueFormat" : {
+            "format" : "JSON_SR",
+            "properties" : {
+              "schemaId" : "102"
+            }
+          },
+          "partitions" : 1,
+          "keySchemaId" : 101,
+          "valueSchemaId" : 102,
+          "keySchema" : {
+            "type" : "string"
+          },
+          "valueSchema" : {
+            "type" : "object",
+            "properties" : {
+              "ID" : {
+                "type" : "number",
+                "connect.index" : 0,
+                "connect.type" : "float64"
+              },
+              "VALUE" : {
+                "type" : "integer",
+                "connect.index" : 1,
+                "connect.type" : "int64"
+              },
+              "NAME" : {
+                "type" : "string",
+                "connect.index" : 2
+              }
+            }
+          }
+        } ]
+      }
+    }
+  }
+}

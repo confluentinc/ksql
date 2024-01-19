@@ -180,11 +180,13 @@
                     "name" : "VALUE",
                     "type" : [ "null", "bytes" ],
                     "default" : null
-                  } ]
+                  } ],
+                  "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema_H"
                 } ]
               } ],
               "default" : null
-            } ]
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
           }
         } ]
       }

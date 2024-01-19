@@ -15,26 +15,38 @@
 
 package io.confluent.ksql.rest.entity;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonValue;
 import com.google.errorprone.annotations.Immutable;
+import java.util.Locale;
 import java.util.Objects;
-import org.apache.kafka.connect.runtime.rest.entities.ConnectorType;
+import org.apache.kafka.common.config.provider.ConfigProvider;
+import org.apache.kafka.connect.connector.policy.ConnectorClientConfigOverridePolicy;
+import org.apache.kafka.connect.rest.ConnectRestExtension;
+import org.apache.kafka.connect.sink.SinkConnector;
+import org.apache.kafka.connect.source.SourceConnector;
+import org.apache.kafka.connect.storage.Converter;
+import org.apache.kafka.connect.storage.HeaderConverter;
+import org.apache.kafka.connect.transforms.Transformation;
+import org.apache.kafka.connect.transforms.predicates.Predicate;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @Immutable
 public class SimpleConnectorPluginInfo {
+  @JsonAlias({"class"})
   private final String className;
-  private final ConnectorType type;
+  private final PluginType type;
   private final String version;
 
   @JsonCreator
   public SimpleConnectorPluginInfo(
       @JsonProperty("className") final String className,
-      @JsonProperty("type") final ConnectorType type,
+      @JsonProperty("type") final PluginType type,
       @JsonProperty("version") final String version
   ) {
     this.className = Objects.requireNonNull(className, "className");
@@ -46,7 +58,7 @@ public class SimpleConnectorPluginInfo {
     return className;
   }
 
-  public ConnectorType getType() {
+  public PluginType getType() {
     return type;
   }
 
@@ -80,5 +92,47 @@ public class SimpleConnectorPluginInfo {
         + ", type=" + type
         + ", version='" + version + '\''
         + '}';
+  }
+
+  public enum PluginType {
+    SOURCE(SourceConnector.class),
+    SINK(SinkConnector.class),
+    CONVERTER(Converter.class),
+    HEADER_CONVERTER(HeaderConverter.class),
+    TRANSFORMATION(Transformation.class),
+    PREDICATE(Predicate.class),
+    CONFIGPROVIDER(ConfigProvider.class),
+    REST_EXTENSION(ConnectRestExtension.class),
+    CONNECTOR_CLIENT_CONFIG_OVERRIDE_POLICY(ConnectorClientConfigOverridePolicy.class),
+    UNKNOWN(Object.class);
+
+    private final Class<?> klass;
+
+    PluginType(final Class<?> klass) {
+      this.klass = klass;
+    }
+
+    public static PluginType from(final Class<?> klass) {
+      final PluginType[] var1 = values();
+      final int var2 = var1.length;
+
+      for (int var3 = 0; var3 < var2; ++var3) {
+        final PluginType type = var1[var3];
+        if (type.klass.isAssignableFrom(klass)) {
+          return type;
+        }
+      }
+
+      return UNKNOWN;
+    }
+
+    public String simpleName() {
+      return this.klass.getSimpleName();
+    }
+
+    @JsonValue
+    public String toString() {
+      return super.toString().toLowerCase(Locale.ROOT);
+    }
   }
 }

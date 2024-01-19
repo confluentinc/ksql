@@ -45,10 +45,10 @@ public interface KsqlPlan {
   }
 
   static KsqlPlan queryPlanCurrent(
-      final String statementText,
+      final String maskedStatement,
       final Optional<DdlCommand> ddlCommand,
       final QueryPlan queryPlan
   ) {
-    return new KsqlPlanV1(statementText, ddlCommand, Optional.of(queryPlan));
+    return new KsqlPlanV1(maskedStatement, ddlCommand, Optional.of(queryPlan));
   }
 }

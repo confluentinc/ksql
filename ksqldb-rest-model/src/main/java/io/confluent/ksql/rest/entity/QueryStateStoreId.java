@@ -31,19 +31,19 @@ import java.util.Objects;
 public final class QueryStateStoreId {
   private static final String SEPARATOR = "#";
 
-  private final String queryApplicationId;
+  private final String queryId;
   private final String stateStoreName;
 
-  public static QueryStateStoreId of(final String queryApplicationId, final String stateStoreName) {
-    return new QueryStateStoreId(queryApplicationId, stateStoreName);
+  public static QueryStateStoreId of(final String queryId, final String stateStoreName) {
+    return new QueryStateStoreId(queryId, stateStoreName);
   }
 
   public static QueryStateStoreId of(final String serializedKey) {
     return new QueryStateStoreId(serializedKey);
   }
 
-  private QueryStateStoreId(final String queryApplicationId, final String stateStoreName) {
-    this.queryApplicationId = queryApplicationId;
+  private QueryStateStoreId(final String queryId, final String stateStoreName) {
+    this.queryId = queryId;
     this.stateStoreName = stateStoreName;
   }
 
@@ -51,12 +51,12 @@ public final class QueryStateStoreId {
   public QueryStateStoreId(final String serializedPair) {
     final String [] parts = serializedPair.split("\\" + SEPARATOR);
     Preconditions.checkArgument(parts.length == 2);
-    this.queryApplicationId = Objects.requireNonNull(parts[0]);
+    this.queryId = Objects.requireNonNull(parts[0]);
     this.stateStoreName = Objects.requireNonNull(parts[1]);
   }
 
-  public String getQueryApplicationId() {
-    return queryApplicationId;
+  public String getQueryId() {
+    return queryId;
   }
 
   public String getStateStoreName() {
@@ -74,18 +74,18 @@ public final class QueryStateStoreId {
     }
 
     final QueryStateStoreId that = (QueryStateStoreId) o;
-    return Objects.equals(queryApplicationId, that.queryApplicationId)
+    return Objects.equals(queryId, that.queryId)
         && Objects.equals(stateStoreName, that.stateStoreName);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(queryApplicationId, stateStoreName);
+    return Objects.hash(queryId, stateStoreName);
   }
 
   @JsonValue
   @Override
   public String toString() {
-    return queryApplicationId + SEPARATOR + stateStoreName;
+    return queryId + SEPARATOR + stateStoreName;
   }
 }

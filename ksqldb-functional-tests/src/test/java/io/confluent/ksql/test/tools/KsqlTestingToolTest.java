@@ -17,6 +17,7 @@ package io.confluent.ksql.test.tools;
 
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -116,7 +117,7 @@ public class KsqlTestingToolTest {
   @Test
   public void shouldFailWithIncorrectTest() throws Exception {
     // When:
-    KsqlTestingTool.runWithTripleFiles(
+    final int code = KsqlTestingTool.runWithTripleFiles(
         INCORRECT_TESTS_FOLDER + "/expected_mismatch/statements.sql",
         INCORRECT_TESTS_FOLDER + "/expected_mismatch/input.json",
         INCORRECT_TESTS_FOLDER + "/expected_mismatch/output.json",
@@ -125,6 +126,7 @@ public class KsqlTestingToolTest {
     // Then:
     assertThat(errContent.toString(UTF_8),
         containsString("Test failed: Topic 'S1', message 0: Expected <\"1001\", \"101\"> with timestamp=0 and headers=[] but was <101, \"101\"> with timestamp=0 and headers=[]\n"));
+    assertEquals(1, code);
   }
 
   @Test
@@ -199,7 +201,7 @@ public class KsqlTestingToolTest {
   @Test
   public void shouldPropagateInsertValuesExecutorError() throws Exception {
     // When:
-    KsqlTestingTool.runWithTripleFiles(
+    final int code = KsqlTestingTool.runWithTripleFiles(
         "src/test/resources/test-runner/incorrect/insert_values/statements.sql",
         null,
         "src/test/resources/test-runner/incorrect/insert_values/output.json",
@@ -208,6 +210,7 @@ public class KsqlTestingToolTest {
     // Then:
     assertThat(errContent.toString(UTF_8),
         containsString("Test failed: Failed to insert values into 'TEST'."));
+    assertEquals(1, code);
   }
 
   @Test
@@ -233,7 +236,7 @@ public class KsqlTestingToolTest {
       final Optional<String> extensionDir
   ) throws Exception {
     // When:
-    KsqlTestingTool.runWithTripleFiles(statementsFilePath, inputFilePath, outputFilePath,
+    final int code = KsqlTestingTool.runWithTripleFiles(statementsFilePath, inputFilePath, outputFilePath,
         extensionDir);
 
     // Then:
@@ -242,6 +245,7 @@ public class KsqlTestingToolTest {
         + errContent.toString(UTF_8);
 
     assertThat(reason, outContent.toString(UTF_8), containsString("Test passed!"));
+    assertEquals(0, code);
   }
 
   private void runTestCaseAndAssertPassed(
@@ -249,7 +253,7 @@ public class KsqlTestingToolTest {
       final String outputFilePath
   ) throws Exception {
     // When:
-    KsqlTestingTool.runWithTripleFiles(statementsFilePath, null, outputFilePath,
+    final int code = KsqlTestingTool.runWithTripleFiles(statementsFilePath, null, outputFilePath,
         Optional.empty());
 
     // Then:
@@ -258,5 +262,6 @@ public class KsqlTestingToolTest {
         + errContent.toString(UTF_8);
 
     assertThat(reason, outContent.toString(UTF_8), containsString("Test passed!"));
+    assertEquals(0, code);
   }
 }

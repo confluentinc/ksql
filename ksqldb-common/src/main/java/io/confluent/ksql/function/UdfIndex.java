@@ -16,7 +16,6 @@
 package io.confluent.ksql.function;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.Iterables;
 import io.confluent.ksql.function.types.ArrayType;
 import io.confluent.ksql.function.types.GenericType;
 import io.confluent.ksql.function.types.ParamType;
@@ -25,8 +24,10 @@ import io.confluent.ksql.schema.ksql.SqlArgument;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.utils.FormatOptions;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.Pair;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
@@ -35,6 +36,7 @@ import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -46,10 +48,10 @@ import org.slf4j.LoggerFactory;
  *
  * <p>Resolving a method signature takes the following precedence rules:
  * <ul>
- *   <li>If only one exact method exists, return it</li>
+ *   <li>If only one exact method exists, return it.</li>
  *   <li>If a method exists such that all non-null {@code Schema} in the
- *       parameters match, and all other parameters are optional, return
- *       that method</li>
+ *       parameters match, and all of the method's other parameters are null,
+ *       return that method.</li>
  *   <li>If two methods exist that match given the above rules, and one
  *       does not have variable arguments (e.g. {@code String...}, return
  *       that one.</li>
@@ -57,7 +59,12 @@ import org.slf4j.LoggerFactory;
  *       have variable arguments, return the method with the more non-variable
  *       arguments.</li>
  *   <li>If two methods exist that match given the above rules, return the
- *       method with fewer generic arguments.</li>
+ *       method with fewer generic arguments, including any
+ *       {@code Object...} arguments.</li>
+ *   <li>If two methods exist that match given the above rules, return the
+ *       method without an {@code Object...} argument.</li>
+ *   <li>If two methods exist that match given the above rules, return the
+ *       method with the variadic argument in the later position.</li>
  *   <li>If two methods exist that match given the above rules, the function
  *       call is ambiguous and an exception is thrown.</li>
  * </ul>
@@ -65,32 +72,40 @@ import org.slf4j.LoggerFactory;
 public class UdfIndex<T extends FunctionSignature> {
   // this class is implemented as a custom Trie data structure that resolves
   // the rules described above. the Trie is built so that each node in the
-  // trie references a single possible parameter in the signature. take for
-  // example the following method signatures:
+  // trie references a single possible pair of parameters in the signature.
+  // take for example the following method signatures:
   //
   // A: void foo(String a)
   // B: void foo(String a, Integer b)
   // C: void foo(String a, Integer... ints)
   // D: void foo(Integer a)
-  // E: void foo(Integer... ints)
   //
   // The final constructed trie would look like:
   //
-  //                 Ø -> E
-  //               /   \
-  //    A <-- String   Integer -> D
-  //         /            \
-  // B <-- Integer      Integer (VARARG) -> E
-  //        /
-  // C <-- Integer (VARARG)
+  // D <-- (int, ?) -- Ø
+  //                 /   \
+  //                /     \
+  //   A <-- (str, ?)     (str, int) --> B
+  //                       /       \
+  //                      /        (int, ?) --> C
+  //                     /
+  //                   (int, int) (VARARGS) --> C
+  //                   /
+  //                 (int, ?) --> C
   //
   // To resolve a query against the trie, this class simply traverses down each
   // matching path of the trie until it exhausts the input List<Schema>. The
-  // final node that it reaches will contain the method that is returned. If
-  // multiple methods are returned, the rules described above are used to select
-  // the best candidate (e.g. foo(null, int) matches B, C and E).
+  // List<Schema> is consumed at both ends, one parameter at a time, to make a
+  // pair. The final node that it reaches will contain the method that is returned.
+  // If multiple methods are returned, the rules described above are used to select
+  // the best candidate (e.g. foo(null, int) matches B and C).
+  //
+  // See also:
+  // Tree diagram: Docs: https://docs.google.com/document/d/14cfKl6A8HGM4zwnGvwuCMaJiGWKH4yUNdysEPX-Wy1Y/edit?usp=sharing
+  //               Gist: https://gist.github.com/reneesoika/2ec934940c98dad6b0f68c89769fbe42
 
   private static final Logger LOG = LoggerFactory.getLogger(UdfIndex.class);
+  private static final ParamType OBJ_VAR_ARG = ArrayType.of(ParamTypes.ANY);
 
   private final String udfName;
   private final Node root = new Node();
@@ -104,44 +119,117 @@ public class UdfIndex<T extends FunctionSignature> {
   }
 
   void addFunction(final T function) {
-    final List<ParamType> parameters = function.parameters();
-    if (allFunctions.put(parameters, function) != null) {
+    final List<ParameterInfo> parameters = function.parameterInfo();
+    if (allFunctions.put(function.parameters(), function) != null) {
       throw new KsqlFunctionException(
           "Can't add function " + function.name()
               + " with parameters " + function.parameters()
               + " as a function with the same name and parameter types already exists "
-              + allFunctions.get(parameters)
+              + allFunctions.get(function.parameters())
       );
     }
 
+    /* Build the tree for non-variadic functions, or build the tree that includes one variadic
+    argument for variadic functions. */
+    final Pair<Node, Integer> variadicParentAndOffset = buildTree(
+            root,
+            parameters,
+            function,
+            false,
+            false
+    );
+    final Node variadicParent = variadicParentAndOffset.getLeft();
 
-    Node curr = root;
-    Node parent = curr;
-    for (final ParamType parameter : parameters) {
-      final Parameter param = new Parameter(parameter, false);
-      parent = curr;
-      curr = curr.children.computeIfAbsent(param, ignored -> new Node());
+    if (variadicParent != null) {
+      final int offset = variadicParentAndOffset.getRight();
+
+      // Build a branch of the tree that handles var args given as list.
+      buildTree(variadicParent, parameters, function, true, false);
+
+      // Determine which side the variadic parameter is on.
+      final boolean isLeftVariadic = parameters.get(offset).isVariadic();
+
+      /* Build a branch of the tree that handles no var args by excluding the variadic param.
+      Note that non-variadic parameters that are always paired with another non-variadic parameter
+      are not included in paramsWithoutVariadic. For example, if the function signature is
+      (int, boolean..., double, bigint, decimal), then paramsWithoutVariadic will be
+      [double, bigint]. The (int, decimal) edge will be in a node above the variadicParent, so
+      we need to only include parameters that might be paired with a variadic parameter. */
+      final List<ParameterInfo> paramsWithoutVariadic = isLeftVariadic
+              ? parameters.subList(offset + 1, parameters.size() - offset)
+              : parameters.subList(offset, parameters.size() - offset - 1);
+      buildTree(
+              variadicParent,
+              paramsWithoutVariadic,
+              function,
+              false,
+              false
+      );
+
+      // Build branches of the tree that handles more than two var args.
+      final ParameterInfo variadicParam = isLeftVariadic
+              ? parameters.get(offset)
+              : parameters.get(parameters.size() - offset - 1);
+
+      // Create copies of the variadic parameter that will be used to build the tree.
+      final int maxAddedVariadics = paramsWithoutVariadic.size() + 1;
+      final List<ParameterInfo> addedVariadics = Collections.nCopies(
+              maxAddedVariadics,
+              variadicParam
+      );
+
+      // Add the copies of the variadic parameter on the same side as the variadic parameter.
+      final List<ParameterInfo> combinedAllParams = new ArrayList<>();
+      int fromIndex;
+      int toIndex;
+      if (isLeftVariadic) {
+        combinedAllParams.addAll(addedVariadics);
+        combinedAllParams.addAll(paramsWithoutVariadic);
+        fromIndex = maxAddedVariadics - 1;
+        toIndex = combinedAllParams.size();
+      } else {
+        combinedAllParams.addAll(paramsWithoutVariadic);
+        combinedAllParams.addAll(addedVariadics);
+        fromIndex = 0;
+        toIndex = combinedAllParams.size() - maxAddedVariadics + 1;
+      }
+
+      /* Successively build branches of the tree that include one additional variadic parameter
+      until maxAddedVariadics have been processed. During the first iteration, buildTree()
+      iterates through the already-created branch for the case where there is one variadic
+      parameter. This is necessary because the variadic loop was not added when that branch
+      was built, but it needs to be added if there are no non-variadic parameters (i.e.
+      paramsWithoutVariadic.size() == 0 and maxAddedVariadics == 1).
+
+      The number of nodes added here is quadratic with respect to paramsWithoutVariadic.size().
+      However, this tree is only built on ksql startup, and this tree structure allows resolving
+      functions with variadic arguments in the middle in linear time. The number of node generated
+      as a function of paramsWithoutVariadic.size() is roughly 0.25x^2 + 1.5x + 3, which is not
+      excessive for reasonable numbers of arguments. */
+      while (fromIndex >= 0 && toIndex <= combinedAllParams.size()) {
+        buildTree(
+                variadicParent,
+                combinedAllParams.subList(fromIndex, toIndex),
+                function,
+                false,
+
+                /* Add the variadic loop after longest branch to handle variadic parameters not
+                paired with a non-variadic parameter. */
+                toIndex - fromIndex == combinedAllParams.size()
+
+        );
+
+        // Increment the size of the sublist in the direction of the variadic parameters.
+        if (isLeftVariadic) {
+          fromIndex--;
+        } else {
+          toIndex++;
+        }
+
+      }
+
     }
 
-    if (function.isVariadic()) {
-      // first add the function to the parent to address the
-      // case of empty varargs
-      parent.update(function);
-
-      // then add a new child node with the parameter value type
-      // and add this function to that node
-      final ParamType varargSchema = Iterables.getLast(parameters);
-      final Parameter vararg = new Parameter(varargSchema, true);
-      final Node leaf = parent.children.computeIfAbsent(vararg, ignored -> new Node());
-      leaf.update(function);
-
-      // add a self referential loop for varargs so that we can
-      // add as many of the same param at the end and still retrieve
-      // this node
-      leaf.children.putIfAbsent(vararg, leaf);
-    }
-
-    curr.update(function);
   }
 
   T getFunction(final List<SqlArgument> arguments) {
@@ -160,6 +248,98 @@ public class UdfIndex<T extends FunctionSignature> {
       return candidate.get();
     }
     throw createNoMatchingFunctionException(arguments);
+  }
+
+  /* The given node will be modified so that it is the root of a tree that can resolve a function
+  with the given parameters. */
+  private Pair<Node, Integer> buildTree(final Node root, final List<ParameterInfo> parameters,
+                                        final T function, final boolean keepArrays,
+                                        final boolean appendVariadicLoop) {
+    final int rightStartIndex = parameters.size() - 1;
+
+    Node curr = root;
+    Node parent = curr;
+
+    // The edge containing the first variadic parameterInfo starts at the parentOfVariadic.
+    Node parentOfVariadic = null;
+    int variadicOffset = -1;
+
+    for (int offset = 0; offset < indexAfterCenter(parameters.size()); offset++) {
+      final ParameterInfo leftParamInfo = parameters.get(offset);
+      final int rightParamIndex = rightStartIndex - offset;
+      final ParameterInfo rightParamInfo = parameters.get(rightParamIndex);
+
+      final Parameter leftParam = new Parameter(
+              toType(leftParamInfo, keepArrays),
+              false
+      );
+      final Parameter rightParam = offset == rightParamIndex
+              ? null
+              : new Parameter(toType(rightParamInfo, keepArrays), false);
+
+      parent = curr;
+      curr = curr.children.computeIfAbsent(Pair.of(leftParam, rightParam), ignored -> new Node());
+
+      // The case of one var arg will be handled here, but we need to handle the other cases later
+      if (leftParamInfo.isVariadic() || rightParamInfo.isVariadic()) {
+        parentOfVariadic = parent;
+        variadicOffset = offset;
+      }
+    }
+
+    if (appendVariadicLoop) {
+
+      /* Sanity check--throw a clearer exception if we aren't in a valid state
+      since parameters.get() will fail anyway. */
+      if (variadicOffset < 0) {
+        throw new IllegalStateException(
+                String.format(
+                        "appendVariadicLoop was set for a function named %s "
+                          + "with parameters %s. The actual parameter types "
+                          + "being used to build the tree were %s.",
+                        function.name(),
+                        function.parameterInfo(),
+                        parameters
+                )
+        );
+      }
+
+      /* Setting isVararg to true makes the Parameter have a different hash, so it won't conflict
+      with any non-variadic functions added later. */
+      final ParamType varArgSchema = toType(parameters.get(variadicOffset), keepArrays);
+      final Parameter varArg = new Parameter(varArgSchema, true);
+
+      /* Add a self-referential loop for varargs so that we can add as many of the same param
+      at the end and still retrieve this node. */
+      final Node loop = parent.children.computeIfAbsent(
+              Pair.of(varArg, varArg),
+              ignored -> new Node()
+      );
+      loop.update(function);
+      loop.children.putIfAbsent(Pair.of(varArg, varArg), loop);
+
+      // Add a leaf node to handle an odd number of arguments after the loop
+      final Node leaf = loop.children.computeIfAbsent(
+              Pair.of(varArg, null),
+              ignored -> new Node()
+      );
+      leaf.update(function);
+
+    }
+
+    curr.update(function);
+
+    return Pair.of(parentOfVariadic, variadicOffset);
+  }
+
+  private int indexAfterCenter(final int size) {
+    return (size + 1) / 2;
+  }
+
+  private ParamType toType(final ParameterInfo info, final boolean keepArrays) {
+    return info.isVariadic() && !keepArrays
+            ? ((ArrayType) info.type()).element()
+            : info.type();
   }
 
   private Optional<T> findMatchingCandidate(
@@ -183,27 +363,48 @@ public class UdfIndex<T extends FunctionSignature> {
     return Optional.empty();
   }
 
+  @SuppressWarnings("checkstyle:CyclomaticComplexity")
   private void getCandidates(
       final List<SqlArgument> arguments,
-      final int argIndex,
+      final int argOffset,
       final Node current,
       final List<Node> candidates,
       final Map<GenericType, SqlType> reservedGenerics,
       final boolean allowCasts
   ) {
-    if (argIndex == arguments.size()) {
+    final int rightArgIndex = arguments.size() - 1 - argOffset;
+
+    // The left and right "pointers" have passed each other, so we must have processed all args.
+    if (argOffset > rightArgIndex) {
       if (current.value != null) {
         candidates.add(current);
       }
       return;
     }
 
-    final SqlArgument arg = arguments.get(argIndex);
-    for (final Entry<Parameter, Node> candidate : current.children.entrySet()) {
+    final SqlArgument leftArg = arguments.get(argOffset);
+
+    // We can't simply check if the right arg is null because the user may have provided null.
+    final boolean isRightArgEmpty = rightArgIndex == argOffset;
+    final SqlArgument rightArg = isRightArgEmpty ? null : arguments.get(rightArgIndex);
+
+    for (final Entry<Pair<Parameter, Parameter>, Node> candidate : current.children.entrySet()) {
       final Map<GenericType, SqlType> reservedCopy = new HashMap<>(reservedGenerics);
-      if (candidate.getKey().accepts(arg, reservedCopy, allowCasts)) {
+
+      /* If there is an odd number of parameters, we always treat the single argument as the
+      left argument, so we do not need to check for null here. */
+      final Parameter leftParam = candidate.getKey().getLeft();
+      final boolean leftParamAccepts = leftParam.accepts(leftArg, reservedCopy, allowCasts);
+
+      // The right argument might be empty, so we do need to check for empty on the right side.
+      final Parameter rightParam = candidate.getKey().getRight();
+      final boolean rightParamAlsoEmpty = rightParam == null && isRightArgEmpty;
+      final boolean rightParamAccepts = !isRightArgEmpty && rightParam != null
+              && rightParam.accepts(rightArg, reservedCopy, allowCasts);
+
+      if (leftParamAccepts && (rightParamAlsoEmpty || rightParamAccepts)) {
         final Node node = candidate.getValue();
-        getCandidates(arguments, argIndex + 1, node, candidates, reservedCopy, allowCasts);
+        getCandidates(arguments, argOffset + 1, node, candidates, reservedCopy, allowCasts);
       }
     }
   }
@@ -271,7 +472,6 @@ public class UdfIndex<T extends FunctionSignature> {
   }
 
   private static <T extends FunctionSignature> String formatAvailableSignatures(final T function) {
-    final boolean variadicFunction = function.isVariadic();
     final List<ParameterInfo> parameters = function.parameterInfo();
 
     final StringBuilder result = new StringBuilder();
@@ -279,8 +479,7 @@ public class UdfIndex<T extends FunctionSignature> {
 
     for (int i = 0; i < parameters.size(); i++) {
       final ParameterInfo param = parameters.get(i);
-      final boolean variadicParam = variadicFunction && i == (parameters.size() - 1);
-      final String type = variadicParam
+      final String type = param.isVariadic()
           ? ((ArrayType) param.type()).element().toString() + "..."
           : param.type().toString();
 
@@ -299,16 +498,22 @@ public class UdfIndex<T extends FunctionSignature> {
   }
 
   private final class Node {
-
     @VisibleForTesting
     private final Comparator<T> compareFunctions =
         Comparator.nullsFirst(
             Comparator
                 .<T, Integer>comparing(fun -> fun.isVariadic() ? 0 : 1)
                 .thenComparing(fun -> fun.parameters().size())
+                .thenComparing(fun -> -countGenerics(fun))
+                .thenComparing(fun ->
+                        fun.parameters().stream().anyMatch(
+                                (param) -> param.equals(OBJ_VAR_ARG)
+                        )
+                        ? 0 : 1
+                ).thenComparing(this::indexOfVariadic)
         );
 
-    private final Map<Parameter, Node> children;
+    private final Map<Pair<Parameter, Parameter>, Node> children;
     private T value;
 
     private Node() {
@@ -317,13 +522,14 @@ public class UdfIndex<T extends FunctionSignature> {
     }
 
     private void update(final T function) {
-      if (compareFunctions.compare(function, value) > 0) {
+      final int compareVal = compareFunctions.compare(function, value);
+      if (compareVal > 0) {
         value = function;
       }
     }
 
     private void describe(final StringBuilder builder, final int indent) {
-      for (final Entry<Parameter, Node> child : children.entrySet()) {
+      for (final Entry<Pair<Parameter, Parameter>, Node> child : children.entrySet()) {
         if (child.getValue() != this) {
           builder.append(StringUtils.repeat(' ', indent * 2))
               .append('-')
@@ -342,15 +548,26 @@ public class UdfIndex<T extends FunctionSignature> {
     }
 
     int compare(final Node other) {
-      final int compareVal = compareFunctions.compare(value, other.value);
-      return compareVal == 0 ? countGenerics(other) - countGenerics(this) : compareVal;
+      return compareFunctions.compare(value, other.value);
     }
 
-    private int countGenerics(final Node node) {
-      return node.value.parameters().stream()
-          .filter(GenericsUtil::hasGenerics)
+    private int countGenerics(final T function) {
+      return function.parameters().stream()
+          .filter((param) -> GenericsUtil.hasGenerics(param)
+                  || param.equals(OBJ_VAR_ARG))
           .mapToInt(p -> 1)
           .sum();
+    }
+
+    private int indexOfVariadic(final T function) {
+      if (function == null) {
+        return -1;
+      }
+
+      return IntStream.range(0, function.parameterInfo().size())
+              .filter((index) -> function.parameterInfo().get(index).isVariadic())
+              .findFirst()
+              .orElse(-1);
     }
 
   }
@@ -366,7 +583,7 @@ public class UdfIndex<T extends FunctionSignature> {
 
     private Parameter(final ParamType type, final boolean isVararg) {
       this.isVararg = isVararg;
-      this.type = isVararg ? ((ArrayType) type).element() : type;
+      this.type = type;
     }
 
     @Override

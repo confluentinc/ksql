@@ -154,10 +154,13 @@
               "name" : "VALUE",
               "type" : [ "null", {
                 "type" : "long",
+                "connect.version" : 1,
+                "connect.name" : "org.apache.kafka.connect.data.Timestamp",
                 "logicalType" : "timestamp-millis"
               } ],
               "default" : null
-            } ]
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
           }
         } ]
       }

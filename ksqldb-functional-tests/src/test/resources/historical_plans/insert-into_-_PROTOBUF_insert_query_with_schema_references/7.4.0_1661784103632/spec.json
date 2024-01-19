@@ -1,0 +1,186 @@
+{
+  "version" : "7.4.0",
+  "timestamp" : 1661784103632,
+  "path" : "query-validation-tests/insert-into.json",
+  "schemas" : {
+    "INSERTQUERY_1.OUTPUT" : {
+      "schema" : "`EVENT` STRUCT<`TIMESTAMP` BIGINT>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "PROTOBUF",
+        "properties" : {
+          "fullSchemaName" : "Logistics",
+          "unwrapPrimitives" : "true"
+        }
+      }
+    },
+    "INSERTQUERY_1.KsqlTopic.Source" : {
+      "schema" : "`EVENT` STRUCT<`TIMESTAMP` BIGINT>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "PROTOBUF",
+        "properties" : {
+          "fullSchemaName" : "Logistics",
+          "unwrapPrimitives" : "true",
+          "schemaId" : "5"
+        }
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "PROTOBUF insert query with schema references",
+    "inputs" : [ {
+      "topic" : "stream-source",
+      "key" : null,
+      "value" : {
+        "EVENT" : {
+          "TIMESTAMP" : 1234
+        }
+      }
+    }, {
+      "topic" : "insert-source",
+      "key" : null,
+      "value" : {
+        "EVENT" : {
+          "TIMESTAMP" : 4321
+        }
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : null,
+      "value" : {
+        "EVENT" : {
+          "TIMESTAMP" : 1234
+        }
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : null,
+      "value" : {
+        "EVENT" : {
+          "TIMESTAMP" : 4321
+        }
+      }
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "stream-source",
+      "valueSchemaId" : 5,
+      "valueSchema" : "syntax = \"proto3\";\n\nimport \"event.proto\";\n\nmessage Logistics {\n  Event EVENT = 1;\n}\n",
+      "valueSchemaReferences" : [ {
+        "name" : "event.proto",
+        "format" : "PROTOBUF",
+        "schema" : "syntax = \"proto3\";\n\nmessage Event {\n  int64 TIMESTAMP = 1;\n}\n"
+      } ],
+      "valueFormat" : "PROTOBUF",
+      "replicas" : 1,
+      "numPartitions" : 1
+    }, {
+      "name" : "insert-source",
+      "valueSchemaId" : 5,
+      "valueSchema" : "syntax = \"proto3\";\n\nimport \"event.proto\";\n\nmessage Logistics {\n  Event EVENT = 1;\n}\n",
+      "valueSchemaReferences" : [ {
+        "name" : "event.proto",
+        "format" : "PROTOBUF",
+        "schema" : "syntax = \"proto3\";\n\nmessage Event {\n  int64 TIMESTAMP = 1;\n}\n"
+      } ],
+      "valueFormat" : "PROTOBUF",
+      "replicas" : 1,
+      "numPartitions" : 1
+    } ],
+    "statements" : [ "CREATE STREAM SOURCE1 WITH (kafka_topic='stream-source', value_format='PROTOBUF', value_schema_id=5);", "CREATE STREAM SOURCE2 WITH (kafka_topic='insert-source', value_format='PROTOBUF', value_schema_id=5);", "CREATE STREAM OUTPUT as SELECT * from SOURCE1;", "INSERT INTO OUTPUT SELECT * FROM SOURCE2;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`EVENT` STRUCT<`TIMESTAMP` BIGINT>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "PROTOBUF",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "SOURCE1",
+        "type" : "STREAM",
+        "schema" : "`EVENT` STRUCT<`TIMESTAMP` BIGINT>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "PROTOBUF",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "SOURCE2",
+        "type" : "STREAM",
+        "schema" : "`EVENT` STRUCT<`TIMESTAMP` BIGINT>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "PROTOBUF",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "stream-source",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "PROTOBUF",
+            "properties" : {
+              "fullSchemaName" : "Logistics",
+              "unwrapPrimitives" : "true",
+              "schemaId" : "5"
+            }
+          },
+          "partitions" : 1,
+          "valueSchemaId" : 5,
+          "valueSchema" : "syntax = \"proto3\";\n\nmessage Logistics {\n  Event EVENT = 1;\n\n  message Event {\n    int64 TIMESTAMP = 1;\n  }\n}\n"
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "PROTOBUF",
+            "properties" : {
+              "fullSchemaName" : "Logistics",
+              "unwrapPrimitives" : "true"
+            }
+          },
+          "partitions" : 4,
+          "valueSchema" : "syntax = \"proto3\";\n\nmessage Logistics {\n  ConnectDefault1 EVENT = 1;\n\n  message ConnectDefault1 {\n    int64 TIMESTAMP = 1;\n  }\n}\n"
+        }, {
+          "name" : "insert-source",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "PROTOBUF",
+            "properties" : {
+              "fullSchemaName" : "Logistics",
+              "unwrapPrimitives" : "true",
+              "schemaId" : "5"
+            }
+          },
+          "partitions" : 1,
+          "valueSchemaId" : 5,
+          "valueSchema" : "syntax = \"proto3\";\n\nmessage Logistics {\n  Event EVENT = 1;\n\n  message Event {\n    int64 TIMESTAMP = 1;\n  }\n}\n"
+        } ]
+      }
+    }
+  }
+}

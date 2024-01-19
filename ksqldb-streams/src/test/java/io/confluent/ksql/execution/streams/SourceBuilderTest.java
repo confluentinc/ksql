@@ -167,6 +167,7 @@ public class SourceBuilderTest {
   );
 
   private final QueryContext ctx = new Stacker().push("base").push("source").getQueryContext();
+  private final QueryContext matCtx = new Stacker().push("base").push("source").push("Materialized").getQueryContext();
   @Mock
   private RuntimeBuildContext buildContext;
   @Mock
@@ -179,6 +180,10 @@ public class SourceBuilderTest {
   private FormatInfo keyFormatInfo;
   @Mock
   private FormatInfo valueFormatInfo;
+  @Mock
+  private FormatInfo keyFormatInfoWithoutProps;
+  @Mock
+  private FormatInfo valueFormatInfoWithoutProps;
   @Mock
   private Serde<GenericRow> valueSerde;
   @Mock
@@ -248,6 +253,8 @@ public class SourceBuilderTest {
     when(materializationFactory.create(any(), any(), any()))
         .thenReturn((Materialized) materialized);
     when(valueFormatInfo.getFormat()).thenReturn(FormatFactory.AVRO.name());
+    when(keyFormatInfo.copyWithoutProperty("schemaId")).thenReturn(keyFormatInfoWithoutProps);
+    when(valueFormatInfo.copyWithoutProperty("schemaId")).thenReturn(valueFormatInfoWithoutProps);
 
     planBuilder = new KSPlanBuilder(
         buildContext,
@@ -461,6 +468,28 @@ public class SourceBuilderTest {
         keyFormatInfo,
         PhysicalSchema.from(SOURCE_SCHEMA, KEY_FEATURES, VALUE_FEATURES),
         ctx
+    );
+  }
+
+  @Test
+  public void shouldNotContainSchemaIdInMaterializedSchema() {
+    // Given:
+    givenUnwindowedSourceTable();
+
+    // When:
+    tableSource.build(planBuilder, planInfo);
+
+    // Then:
+    verify(buildContext).buildKeySerde(
+        keyFormatInfoWithoutProps,
+        PhysicalSchema.from(SOURCE_SCHEMA.withPseudoColumnsToMaterialize(1), KEY_FEATURES, VALUE_FEATURES),
+        matCtx
+    );
+
+    verify(buildContext).buildValueSerde(
+        valueFormatInfoWithoutProps,
+        PhysicalSchema.from(SOURCE_SCHEMA.withPseudoColumnsToMaterialize(1), KEY_FEATURES, VALUE_FEATURES),
+        matCtx
     );
   }
 

@@ -1,0 +1,543 @@
+{
+  "version" : "7.4.0",
+  "timestamp" : 1663011952180,
+  "path" : "query-validation-tests/fk-join.json",
+  "schemas" : {
+    "CTAS_OUTPUT_0.PrependAliasLeft" : {
+      "schema" : "`L_ROWKEY` BIGINT KEY, `L_FOREIGN_KEY` BIGINT, `L_NAME` STRING, `L_ROWTIME` BIGINT, `L_ROWPARTITION` INTEGER, `L_ROWOFFSET` BIGINT, `L_ROWKEY` BIGINT",
+      "keyFormat" : {
+        "format" : "JSON_SR",
+        "features" : [ "UNWRAP_SINGLES" ]
+      },
+      "valueFormat" : {
+        "format" : "JSON_SR"
+      }
+    },
+    "CTAS_OUTPUT_0.Join" : {
+      "schema" : "`L_ROWKEY` BIGINT KEY, `L_FOREIGN_KEY` BIGINT, `L_NAME` STRING, `L_ROWTIME` BIGINT, `L_ROWPARTITION` INTEGER, `L_ROWOFFSET` BIGINT, `L_ROWKEY` BIGINT, `R_F1` DOUBLE, `R_ROWTIME` BIGINT, `R_ROWPARTITION` INTEGER, `R_ROWOFFSET` BIGINT, `R_ROWKEY` BIGINT",
+      "keyFormat" : {
+        "format" : "JSON_SR",
+        "features" : [ "UNWRAP_SINGLES" ]
+      },
+      "valueFormat" : {
+        "format" : "JSON_SR"
+      }
+    },
+    "CTAS_OUTPUT_0.KafkaTopic_Left.Source.Materialized" : {
+      "schema" : "`ROWKEY` BIGINT KEY, `FOREIGN_KEY` BIGINT, `NAME` STRING, `ROWPARTITION` INTEGER, `ROWOFFSET` BIGINT",
+      "keyFormat" : {
+        "format" : "JSON_SR",
+        "features" : [ "UNWRAP_SINGLES" ]
+      },
+      "valueFormat" : {
+        "format" : "JSON_SR"
+      }
+    },
+    "CTAS_OUTPUT_0.KafkaTopic_Left.Source" : {
+      "schema" : "`ROWKEY` BIGINT KEY, `FOREIGN_KEY` BIGINT, `NAME` STRING",
+      "keyFormat" : {
+        "format" : "JSON_SR",
+        "properties" : {
+          "schemaId" : "101"
+        },
+        "features" : [ "UNWRAP_SINGLES" ]
+      },
+      "valueFormat" : {
+        "format" : "JSON_SR",
+        "properties" : {
+          "schemaId" : "102"
+        }
+      }
+    },
+    "CTAS_OUTPUT_0.Project" : {
+      "schema" : "`L_ROWKEY` BIGINT KEY, `NAME` STRING, `FOREIGN_KEY` BIGINT, `F1` DOUBLE",
+      "keyFormat" : {
+        "format" : "JSON_SR",
+        "features" : [ "UNWRAP_SINGLES" ]
+      },
+      "valueFormat" : {
+        "format" : "JSON_SR"
+      }
+    },
+    "CTAS_OUTPUT_0.KafkaTopic_Right.Source" : {
+      "schema" : "`ROWKEY` BIGINT KEY, `F1` DOUBLE",
+      "keyFormat" : {
+        "format" : "JSON_SR",
+        "properties" : {
+          "schemaId" : "201"
+        },
+        "features" : [ "UNWRAP_SINGLES" ]
+      },
+      "valueFormat" : {
+        "format" : "JSON_SR",
+        "properties" : {
+          "schemaId" : "202"
+        }
+      }
+    },
+    "CTAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`L_ROWKEY` BIGINT KEY, `NAME` STRING, `FOREIGN_KEY` BIGINT, `F1` DOUBLE",
+      "keyFormat" : {
+        "format" : "JSON_SR",
+        "features" : [ "UNWRAP_SINGLES" ]
+      },
+      "valueFormat" : {
+        "format" : "JSON_SR"
+      }
+    },
+    "CTAS_OUTPUT_0.PrependAliasRight" : {
+      "schema" : "`R_ROWKEY` BIGINT KEY, `R_F1` DOUBLE, `R_ROWTIME` BIGINT, `R_ROWPARTITION` INTEGER, `R_ROWOFFSET` BIGINT, `R_ROWKEY` BIGINT",
+      "keyFormat" : {
+        "format" : "JSON_SR",
+        "features" : [ "UNWRAP_SINGLES" ]
+      },
+      "valueFormat" : {
+        "format" : "JSON_SR"
+      }
+    },
+    "CTAS_OUTPUT_0.KafkaTopic_Right.Source.Materialized" : {
+      "schema" : "`ROWKEY` BIGINT KEY, `F1` DOUBLE, `ROWPARTITION` INTEGER, `ROWOFFSET` BIGINT",
+      "keyFormat" : {
+        "format" : "JSON_SR",
+        "features" : [ "UNWRAP_SINGLES" ]
+      },
+      "valueFormat" : {
+        "format" : "JSON_SR"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "table-table foreign key join with JSON_SR schema and schema id",
+    "inputs" : [ {
+      "topic" : "right_topic",
+      "key" : 0,
+      "value" : {
+        "F1" : 0
+      },
+      "timestamp" : 10000
+    }, {
+      "topic" : "right_topic",
+      "key" : 1,
+      "value" : {
+        "F1" : 1
+      },
+      "timestamp" : 10000
+    }, {
+      "topic" : "right_topic",
+      "key" : 2,
+      "value" : {
+        "F1" : 2
+      },
+      "timestamp" : 10000
+    }, {
+      "topic" : "left_topic",
+      "key" : 0,
+      "value" : {
+        "NAME" : "zero",
+        "FOREIGN_KEY" : 0
+      },
+      "timestamp" : 11000
+    }, {
+      "topic" : "left_topic",
+      "key" : 1,
+      "value" : {
+        "NAME" : "bar",
+        "FOREIGN_KEY" : 1
+      },
+      "timestamp" : 11000
+    }, {
+      "topic" : "left_topic",
+      "key" : 2,
+      "value" : {
+        "NAME" : "foo",
+        "FOREIGN_KEY" : 2
+      },
+      "timestamp" : 11000
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : 0,
+      "value" : {
+        "FOREIGN_KEY" : 0,
+        "NAME" : "zero",
+        "F1" : 0
+      },
+      "timestamp" : 11000
+    }, {
+      "topic" : "OUTPUT",
+      "key" : 1,
+      "value" : {
+        "FOREIGN_KEY" : 1,
+        "NAME" : "bar",
+        "F1" : 1
+      },
+      "timestamp" : 11000
+    }, {
+      "topic" : "OUTPUT",
+      "key" : 2,
+      "value" : {
+        "FOREIGN_KEY" : 2,
+        "NAME" : "foo",
+        "F1" : 2
+      },
+      "timestamp" : 11000
+    } ],
+    "topics" : [ {
+      "name" : "right_topic",
+      "keySchemaId" : 201,
+      "valueSchemaId" : 202,
+      "keySchema" : {
+        "type" : "integer"
+      },
+      "valueSchema" : {
+        "type" : "object",
+        "properties" : {
+          "F1" : {
+            "type" : "number"
+          }
+        }
+      },
+      "keyFormat" : "JSON",
+      "valueFormat" : "JSON",
+      "replicas" : 1,
+      "numPartitions" : 1
+    }, {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "left_topic",
+      "keySchemaId" : 101,
+      "valueSchemaId" : 102,
+      "keySchema" : {
+        "type" : "integer"
+      },
+      "valueSchema" : {
+        "type" : "object",
+        "properties" : {
+          "NAME" : {
+            "type" : "string"
+          },
+          "FOREIGN_KEY" : {
+            "type" : "integer"
+          }
+        }
+      },
+      "keyFormat" : "JSON",
+      "valueFormat" : "JSON",
+      "replicas" : 1,
+      "numPartitions" : 1
+    } ],
+    "statements" : [ "CREATE TABLE left_table WITH (kafka_topic='left_topic', partitions=128, format='JSON_SR', KEY_SCHEMA_ID=101, VALUE_SCHEMA_ID=102);", "CREATE TABLE right_table WITH (kafka_topic='right_topic', partitions=128, format='JSON_SR', KEY_SCHEMA_ID=201, VALUE_SCHEMA_ID=202);", "CREATE TABLE output AS SELECT L.ROWKEY, L.NAME, L.FOREIGN_KEY, R.F1 FROM left_table L JOIN right_table R ON L.FOREIGN_KEY = R.ROWKEY;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "LEFT_TABLE",
+        "type" : "TABLE",
+        "schema" : "`ROWKEY` BIGINT KEY, `FOREIGN_KEY` BIGINT, `NAME` STRING",
+        "keyFormat" : {
+          "format" : "JSON_SR"
+        },
+        "valueFormat" : "JSON_SR",
+        "keyFeatures" : [ "UNWRAP_SINGLES" ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "OUTPUT",
+        "type" : "TABLE",
+        "schema" : "`L_ROWKEY` BIGINT KEY, `NAME` STRING, `FOREIGN_KEY` BIGINT, `F1` DOUBLE",
+        "keyFormat" : {
+          "format" : "JSON_SR"
+        },
+        "valueFormat" : "JSON_SR",
+        "keyFeatures" : [ "UNWRAP_SINGLES" ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "RIGHT_TABLE",
+        "type" : "TABLE",
+        "schema" : "`ROWKEY` BIGINT KEY, `F1` DOUBLE",
+        "keyFormat" : {
+          "format" : "JSON_SR"
+        },
+        "valueFormat" : "JSON_SR",
+        "keyFeatures" : [ "UNWRAP_SINGLES" ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Project-Last-changelog",
+          "keyFormat" : {
+            "format" : "JSON_SR",
+            "features" : [ "UNWRAP_SINGLES" ]
+          },
+          "valueFormat" : {
+            "format" : "JSON_SR"
+          },
+          "keySchema" : {
+            "oneOf" : [ {
+              "type" : "null"
+            }, {
+              "type" : "integer",
+              "connect.type" : "int64"
+            } ]
+          },
+          "valueSchema" : {
+            "type" : "object",
+            "properties" : {
+              "FOREIGN_KEY" : {
+                "connect.index" : 1,
+                "oneOf" : [ {
+                  "type" : "null"
+                }, {
+                  "type" : "integer",
+                  "connect.type" : "int64"
+                } ]
+              },
+              "F1" : {
+                "connect.index" : 2,
+                "oneOf" : [ {
+                  "type" : "null"
+                }, {
+                  "type" : "number",
+                  "connect.type" : "float64"
+                } ]
+              },
+              "NAME" : {
+                "connect.index" : 0,
+                "oneOf" : [ {
+                  "type" : "null"
+                }, {
+                  "type" : "string"
+                } ]
+              }
+            }
+          }
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-KafkaTopic_Right-Reduce-changelog",
+          "keyFormat" : {
+            "format" : "JSON_SR",
+            "features" : [ "UNWRAP_SINGLES" ]
+          },
+          "valueFormat" : {
+            "format" : "JSON_SR"
+          },
+          "keySchema" : {
+            "oneOf" : [ {
+              "type" : "null"
+            }, {
+              "type" : "integer",
+              "connect.type" : "int64"
+            } ]
+          },
+          "valueSchema" : {
+            "type" : "object",
+            "properties" : {
+              "ROWPARTITION" : {
+                "connect.index" : 1,
+                "oneOf" : [ {
+                  "type" : "null"
+                }, {
+                  "type" : "integer",
+                  "connect.type" : "int32"
+                } ]
+              },
+              "F1" : {
+                "connect.index" : 0,
+                "oneOf" : [ {
+                  "type" : "null"
+                }, {
+                  "type" : "number",
+                  "connect.type" : "float64"
+                } ]
+              },
+              "ROWOFFSET" : {
+                "connect.index" : 2,
+                "oneOf" : [ {
+                  "type" : "null"
+                }, {
+                  "type" : "integer",
+                  "connect.type" : "int64"
+                } ]
+              }
+            }
+          }
+        }, {
+          "name" : "left_topic",
+          "keyFormat" : {
+            "format" : "JSON_SR",
+            "properties" : {
+              "schemaId" : "101"
+            },
+            "features" : [ "UNWRAP_SINGLES" ]
+          },
+          "valueFormat" : {
+            "format" : "JSON_SR",
+            "properties" : {
+              "schemaId" : "102"
+            }
+          },
+          "partitions" : 1,
+          "keySchemaId" : 101,
+          "valueSchemaId" : 102,
+          "keySchema" : {
+            "type" : "integer",
+            "connect.type" : "int64"
+          },
+          "valueSchema" : {
+            "type" : "object",
+            "properties" : {
+              "FOREIGN_KEY" : {
+                "type" : "integer",
+                "connect.index" : 0,
+                "connect.type" : "int64"
+              },
+              "NAME" : {
+                "type" : "string",
+                "connect.index" : 1
+              }
+            }
+          }
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-KafkaTopic_Left-Reduce-changelog",
+          "keyFormat" : {
+            "format" : "JSON_SR",
+            "features" : [ "UNWRAP_SINGLES" ]
+          },
+          "valueFormat" : {
+            "format" : "JSON_SR"
+          },
+          "keySchema" : {
+            "oneOf" : [ {
+              "type" : "null"
+            }, {
+              "type" : "integer",
+              "connect.type" : "int64"
+            } ]
+          },
+          "valueSchema" : {
+            "type" : "object",
+            "properties" : {
+              "ROWPARTITION" : {
+                "connect.index" : 2,
+                "oneOf" : [ {
+                  "type" : "null"
+                }, {
+                  "type" : "integer",
+                  "connect.type" : "int32"
+                } ]
+              },
+              "FOREIGN_KEY" : {
+                "connect.index" : 0,
+                "oneOf" : [ {
+                  "type" : "null"
+                }, {
+                  "type" : "integer",
+                  "connect.type" : "int64"
+                } ]
+              },
+              "ROWOFFSET" : {
+                "connect.index" : 3,
+                "oneOf" : [ {
+                  "type" : "null"
+                }, {
+                  "type" : "integer",
+                  "connect.type" : "int64"
+                } ]
+              },
+              "NAME" : {
+                "connect.index" : 1,
+                "oneOf" : [ {
+                  "type" : "null"
+                }, {
+                  "type" : "string"
+                } ]
+              }
+            }
+          }
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "format" : "JSON_SR",
+            "features" : [ "UNWRAP_SINGLES" ]
+          },
+          "valueFormat" : {
+            "format" : "JSON_SR"
+          },
+          "partitions" : 4,
+          "keySchema" : {
+            "oneOf" : [ {
+              "type" : "null"
+            }, {
+              "type" : "integer",
+              "connect.type" : "int64"
+            } ]
+          },
+          "valueSchema" : {
+            "type" : "object",
+            "properties" : {
+              "FOREIGN_KEY" : {
+                "connect.index" : 1,
+                "oneOf" : [ {
+                  "type" : "null"
+                }, {
+                  "type" : "integer",
+                  "connect.type" : "int64"
+                } ]
+              },
+              "F1" : {
+                "connect.index" : 2,
+                "oneOf" : [ {
+                  "type" : "null"
+                }, {
+                  "type" : "number",
+                  "connect.type" : "float64"
+                } ]
+              },
+              "NAME" : {
+                "connect.index" : 0,
+                "oneOf" : [ {
+                  "type" : "null"
+                }, {
+                  "type" : "string"
+                } ]
+              }
+            }
+          }
+        }, {
+          "name" : "right_topic",
+          "keyFormat" : {
+            "format" : "JSON_SR",
+            "properties" : {
+              "schemaId" : "201"
+            },
+            "features" : [ "UNWRAP_SINGLES" ]
+          },
+          "valueFormat" : {
+            "format" : "JSON_SR",
+            "properties" : {
+              "schemaId" : "202"
+            }
+          },
+          "partitions" : 1,
+          "keySchemaId" : 201,
+          "valueSchemaId" : 202,
+          "keySchema" : {
+            "type" : "integer",
+            "connect.type" : "int64"
+          },
+          "valueSchema" : {
+            "type" : "object",
+            "properties" : {
+              "F1" : {
+                "type" : "number",
+                "connect.index" : 0,
+                "connect.type" : "float64"
+              }
+            }
+          }
+        } ]
+      }
+    }
+  }
+}

@@ -506,6 +506,22 @@ have the concept of a `null` value, so the conversion between PROTOBUF and Java
 - **Message field:** the field is not set. Its exact value is language-dependent.
   See the generated code guide for details.
 
+To enable alternative representations for `null` values in protobuf, protobuf-specific properties
+can be passed to `CREATE` statements. For example, the following `CREATE` statement will
+create a protobuf schema that wraps all primitive types into the corresponding standard wrappers 
+(e.g. `google.protobuf.StringValue` for `string`). 
+
+```sql
+CREATE STREAM USERS (ID STRING KEY, i INTEGER, s STRING) WITH (VALUE_FORMAT='PROTOBUF', VALUE_PROTOBUF_NULLABLE_REPRESENTATION='WRAPPER');
+```
+
+This way, `null` can be distinguished from default values. Similarly, when 
+`VALUE_PROTOBUF_NULLABLE_REPRESENTATION` is set to `OPTIONAL`, all fields in protobuf will be
+declared optional, also allowing `null` primitive fields to be distinguished from default values. 
+
+The same property values can be used with the `KEY_PROTOBUF_NULLABLE_REPRESENTATION` property to
+customize the protobuf serialization of the key.
+
 Single field (un)wrapping
 -------------------------
 

@@ -236,7 +236,6 @@ public class PauseResumeIntegrationTest {
     TEST_HARNESS.getKafkaCluster().waitForTopicsToBePresent(SINK_TOPIC + suffix);
   }
 
-  @NotNull
   private Supplier<Integer> getSupplier(int streamNumber) {
     return () -> RestIntegrationTestUtil.makeQueryRequest(REST_APP,
         "select * from " + SINK_STREAM + streamNumber + ";",Optional.empty()).size();

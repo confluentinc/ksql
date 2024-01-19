@@ -25,6 +25,7 @@ import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.SimpleColumn;
 import io.confluent.ksql.schema.ksql.types.SqlType;
+import io.confluent.ksql.schema.utils.FormatOptions;
 import io.confluent.ksql.serde.SchemaTranslator;
 import io.confluent.ksql.serde.SerdeFeature;
 import io.confluent.ksql.serde.SerdeFeatures;
@@ -133,6 +134,17 @@ class ConnectFormatSchemaTranslator implements SchemaTranslator {
     @Override
     public SqlType type() {
       return type;
+    }
+
+    @Override
+    public String toString() {
+      return toString(FormatOptions.none());
+    }
+
+    public String toString(final FormatOptions formatOptions) {
+      final String fmtType = type.toString(formatOptions);
+
+      return name.toString(formatOptions) + " " + fmtType;
     }
   }
 }

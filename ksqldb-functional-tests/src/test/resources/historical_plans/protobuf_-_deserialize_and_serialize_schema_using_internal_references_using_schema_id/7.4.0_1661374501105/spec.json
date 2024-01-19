@@ -1,0 +1,141 @@
+{
+  "version" : "7.4.0",
+  "timestamp" : 1661374501105,
+  "path" : "query-validation-tests/protobuf.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`event` STRUCT<`timestamp` BIGINT>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "PROTOBUF",
+        "properties" : {
+          "fullSchemaName" : "Logistics",
+          "unwrapPrimitives" : "true",
+          "schemaId" : "10"
+        }
+      }
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`event` STRUCT<`timestamp` BIGINT>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "PROTOBUF",
+        "properties" : {
+          "fullSchemaName" : "Logistics",
+          "schemaId" : "11",
+          "unwrapPrimitives" : "true"
+        }
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "deserialize and serialize schema using internal references using schema id",
+    "inputs" : [ {
+      "topic" : "input",
+      "key" : null,
+      "value" : {
+        "event" : {
+          "timestamp" : 1
+        }
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : null,
+      "value" : {
+        "event" : {
+          "timestamp" : 1
+        }
+      }
+    } ],
+    "topics" : [ {
+      "name" : "input",
+      "valueSchemaId" : 10,
+      "valueSchema" : "syntax = \"proto3\";\n\nimport \"event.proto\";\n\nmessage Logistics {\n  Event event = 1;\n}\n",
+      "valueSchemaReferences" : [ {
+        "name" : "event.proto",
+        "format" : "PROTOBUF",
+        "schema" : "syntax = \"proto3\";\n\nmessage Event {\n  int64 timestamp = 1;\n}\n"
+      } ],
+      "valueFormat" : "PROTOBUF",
+      "replicas" : 1,
+      "numPartitions" : 1
+    }, {
+      "name" : "OUTPUT",
+      "valueSchemaId" : 11,
+      "valueSchema" : "syntax = \"proto3\";\n\nimport \"event.proto\";\n\nmessage Logistics {\n  Event event = 1;\n}\n",
+      "valueSchemaReferences" : [ {
+        "name" : "event.proto",
+        "format" : "PROTOBUF",
+        "schema" : "syntax = \"proto3\";\n\nmessage Event {\n  int64 timestamp = 1;\n}\n"
+      } ],
+      "valueFormat" : "PROTOBUF",
+      "replicas" : 1,
+      "numPartitions" : 1
+    } ],
+    "statements" : [ "CREATE STREAM INPUT WITH (kafka_topic='input', value_format='PROTOBUF', value_schema_id=10);", "CREATE STREAM OUTPUT WITH (value_schema_id=11) as SELECT * from INPUT;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`event` STRUCT<`timestamp` BIGINT>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "PROTOBUF",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`event` STRUCT<`timestamp` BIGINT>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "PROTOBUF",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "input",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "PROTOBUF",
+            "properties" : {
+              "fullSchemaName" : "Logistics",
+              "unwrapPrimitives" : "true",
+              "schemaId" : "10"
+            }
+          },
+          "partitions" : 1,
+          "valueSchemaId" : 10,
+          "valueSchema" : "syntax = \"proto3\";\n\nmessage Logistics {\n  Event event = 1;\n\n  message Event {\n    int64 timestamp = 1;\n  }\n}\n"
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "PROTOBUF",
+            "properties" : {
+              "fullSchemaName" : "Logistics",
+              "schemaId" : "11",
+              "unwrapPrimitives" : "true"
+            }
+          },
+          "partitions" : 4,
+          "valueSchema" : "syntax = \"proto3\";\n\nimport \"event.proto\";\n\nmessage Logistics {\n  Event event = 1;\n}\n"
+        } ]
+      }
+    }
+  }
+}

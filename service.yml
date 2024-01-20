@@ -1,0 +1,17 @@
+name: ksql
+lang: unknown
+lang_version: unknown
+codeowners:
+  enable: true
+semaphore:
+  enable: true
+  pipeline_type: cp
+  nano_version: true
+  execution_time_limit: {"hours": 6}
+  downstream_projects: ["confluent-security-plugins", "confluent-cloud-plugins", "cc-docker-ksql"]
+  extra_deploy_args: '-Ddocker.skip=true'
+  extra_build_args: "-Dmaven.gitcommitid.nativegit=true"
+  maven_build_goals: "clean install"
+  run_merge_check: false
+git:
+  enable: true

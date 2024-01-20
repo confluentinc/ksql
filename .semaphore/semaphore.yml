@@ -14,7 +14,7 @@ fail_fast:
     when: "true"
 
 execution_time_limit:
-  hours: 3
+  hours: 6
 
 queue:
   - when: "branch != 'master' and branch !~ '[0-9]+\\.[0-9]+\\.x'"
@@ -33,6 +33,9 @@ blocks:
       # don't run the tests on non-functional changes...
       when: "change_in('/', {exclude: ['/.deployed-versions/', '.github/']})"
     task:
+      env_vars:
+        - name: SEMAPHORE_AGENT_UPLOAD_JOB_LOGS
+          value: when-trimmed
       jobs:
         - name: Test
           commands:

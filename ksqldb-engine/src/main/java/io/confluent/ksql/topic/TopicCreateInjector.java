@@ -30,12 +30,15 @@ import io.confluent.ksql.properties.with.CommonCreateConfigs;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
-import io.confluent.ksql.statement.Injector;
+import io.confluent.ksql.statement.InjectorWithSideEffects;
 import io.confluent.ksql.topic.TopicProperties.Builder;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -50,7 +53,7 @@ import org.apache.kafka.common.config.TopicConfig;
  *
  * @see TopicProperties.Builder
  */
-public class TopicCreateInjector implements Injector {
+public class TopicCreateInjector implements InjectorWithSideEffects {
 
   private static final String CLEANUP_POLICY_PRESENT_EXCEPTION =
       String.format(
@@ -86,28 +89,57 @@ public class TopicCreateInjector implements Injector {
     return inject(statement, new TopicProperties.Builder());
   }
 
-  @SuppressWarnings("unchecked")
   @VisibleForTesting
   <T extends Statement> ConfiguredStatement<T> inject(
       final ConfiguredStatement<T> statement,
       final TopicProperties.Builder topicPropertiesBuilder
   ) {
-    if (statement.getStatement() instanceof CreateAsSelect) {
-      return (ConfiguredStatement<T>) injectForCreateAsSelect(
-          (ConfiguredStatement<? extends CreateAsSelect>) statement,
-          topicPropertiesBuilder);
-    }
+    return injectInternal(statement, topicPropertiesBuilder).getStatement();
+  }
 
+  @Override
+  public <T extends Statement> ConfiguredStatementWithSideEffects<T> injectWithSideEffects(
+          final ConfiguredStatement<T> statement
+  ) {
+    return injectInternal(statement, new TopicProperties.Builder());
+  }
+
+  @Override
+  public <T extends Statement> void revertSideEffects(
+          final ConfiguredStatementWithSideEffects<T> statement
+  ) {
+    final Collection<String> topicsToDelete = new ArrayList<>();
+    for (Object e : statement.getSideEffects()) {
+      if (e instanceof TopicCreationSideEffect) {
+        topicsToDelete.add(((TopicCreationSideEffect) e).topicName);
+      }
+    }
+    if (!topicsToDelete.isEmpty()) {
+      topicClient.deleteTopics(topicsToDelete);
+    }
+  }
+
+  @SuppressWarnings("unchecked")
+  private <T extends Statement> ConfiguredStatementWithSideEffects<T> injectInternal(
+      final ConfiguredStatement<T> statement,
+      final TopicProperties.Builder topicPropertiesBuilder
+  ) {
+    if (statement.getStatement() instanceof CreateAsSelect) {
+      return (ConfiguredStatementWithSideEffects<T>) injectForCreateAsSelect(
+              (ConfiguredStatement<CreateAsSelect>) statement,
+              topicPropertiesBuilder
+      );
+    }
     if (statement.getStatement() instanceof CreateSource) {
-      return (ConfiguredStatement<T>) injectForCreateSource(
+      return (ConfiguredStatementWithSideEffects<T>) injectForCreateSource(
           (ConfiguredStatement<? extends CreateSource>) statement,
           topicPropertiesBuilder);
     }
 
-    return statement;
+    return ConfiguredStatementWithSideEffects.withNoEffects(statement);
   }
 
-  private ConfiguredStatement<? extends CreateSource> injectForCreateSource(
+  private ConfiguredStatementWithSideEffects<CreateSource> injectForCreateSource(
       final ConfiguredStatement<? extends CreateSource> statement,
       final TopicProperties.Builder topicPropertiesBuilder
   ) {
@@ -150,13 +182,16 @@ public class TopicCreateInjector implements Injector {
             properties.getReplicas(),
             properties.getRetentionInMillis());
 
-    createTopic(topicPropertiesBuilder, topicCleanUpPolicy);
+    final TopicCreationResult result = createTopic(topicPropertiesBuilder, topicCleanUpPolicy);
 
-    return buildConfiguredStatement(statement, properties.withCleanupPolicy(topicCleanUpPolicy));
+    final ConfiguredStatement<CreateSource> stmt = buildConfiguredStatement(
+            statement,
+            properties.withCleanupPolicy(topicCleanUpPolicy));
+    return new ConfiguredStatementWithSideEffects<>(stmt, result.getSideEffects());
   }
 
   @SuppressWarnings("unchecked")
-  private <T extends CreateAsSelect> ConfiguredStatement<?> injectForCreateAsSelect(
+  private <T extends CreateAsSelect> ConfiguredStatementWithSideEffects<T> injectForCreateAsSelect(
       final ConfiguredStatement<T> statement,
       final TopicProperties.Builder topicPropertiesBuilder
   ) {
@@ -206,8 +241,12 @@ public class TopicCreateInjector implements Injector {
 
     throwIfRetentionPresentForTable(topicCleanUpPolicy, properties.getRetentionInMillis());
 
-    final TopicProperties info
-        = createTopic(topicPropertiesBuilder, topicCleanUpPolicy, additionalTopicConfigs);
+    final TopicCreationResult result = createTopic(
+            topicPropertiesBuilder,
+            topicCleanUpPolicy,
+            additionalTopicConfigs
+    );
+    final TopicProperties info = result.getTopicProperties();
 
     final CreateSourceAsProperties injectedProperties = properties.withTopic(
         info.getTopicName(),
@@ -217,7 +256,10 @@ public class TopicCreateInjector implements Injector {
             .getOrDefault(TopicConfig.RETENTION_MS_CONFIG, info.getRetentionInMillis()))
         .withCleanupPolicy(topicCleanUpPolicy);
 
-    return buildConfiguredStatement(statement, injectedProperties);
+    return new ConfiguredStatementWithSideEffects<>(
+        (ConfiguredStatement<T>) buildConfiguredStatement(statement, injectedProperties),
+        result.getSideEffects()
+    );
   }
 
   private void throwIfRetentionPresentForTable(
@@ -232,14 +274,14 @@ public class TopicCreateInjector implements Injector {
     }
   }
 
-  private TopicProperties createTopic(
+  private TopicCreationResult createTopic(
       final Builder topicPropertiesBuilder,
       final String topicCleanUpPolicy
   ) {
     return createTopic(topicPropertiesBuilder, topicCleanUpPolicy, Collections.emptyMap());
   }
 
-  private TopicProperties createTopic(
+  private TopicCreationResult createTopic(
       final Builder topicPropertiesBuilder,
       final String topicCleanUpPolicy,
       final Map<String, Object> additionalTopicConfigs
@@ -270,9 +312,14 @@ public class TopicCreateInjector implements Injector {
       config.remove(TopicConfig.RETENTION_MS_CONFIG);
     }
 
-    topicClient.createTopic(info.getTopicName(), info.getPartitions(), info.getReplicas(), config);
+    final boolean created = topicClient.createTopic(
+            info.getTopicName(),
+            info.getPartitions(),
+            info.getReplicas(),
+            config
+    );
 
-    return info;
+    return TopicCreationResult.resultFor(info, created);
   }
 
   private static ConfiguredStatement<CreateSource> buildConfiguredStatement(
@@ -310,5 +357,47 @@ public class TopicCreateInjector implements Injector {
       formattedSql = formattedSql + ";";
     }
     return KsqlParser.PreparedStatement.of(formattedSql, stmt);
+  }
+
+  private static final class TopicCreationSideEffect {
+    public final String topicName;
+
+    private TopicCreationSideEffect(final String topicName) {
+      this.topicName = topicName;
+    }
+
+    @Override
+    public String toString() {
+      return String.format("TopicCreationSideEffect{topicName='%s'}", topicName);
+    }
+  }
+
+  private static final class TopicCreationResult {
+    private final TopicProperties topicProperties;
+    private final List<?> sideEffects;
+
+    private TopicCreationResult(final TopicProperties topicProperties, final List<?> sideEffects) {
+      this.topicProperties = topicProperties;
+      this.sideEffects = new ArrayList<>(sideEffects);
+    }
+
+    public List<Object> getSideEffects() {
+      return Collections.unmodifiableList(sideEffects);
+    }
+
+    public TopicProperties getTopicProperties() {
+      return topicProperties;
+    }
+
+    public static TopicCreationResult resultFor(
+            final TopicProperties properties,
+            final boolean created
+    ) {
+      return new TopicCreationResult(properties,
+              created
+              ? Collections.singletonList(new TopicCreationSideEffect(properties.getTopicName()))
+              : Collections.emptyList());
+    }
+
   }
 }

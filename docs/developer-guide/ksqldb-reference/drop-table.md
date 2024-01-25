@@ -35,3 +35,11 @@ complete.
 
 If the IF EXISTS clause is present, the statement doesn't fail if the
 table doesn't exist.
+
+The DROP TABLE statement and the DELETE TOPIC clause are not atomic, because
+the schema subject is soft-deleted. The soft delete happens before the table is
+dropped, and the table may not appear to be dropped. Subsequent attempts to
+drop the table fail, because the subject is already soft-deleted.
+
+To work around this situation, hard-delete the subject, then re-run the DROP
+TABLE statement.

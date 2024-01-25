@@ -1,6 +1,7 @@
 package io.confluent.ksql.rest.client;
 
 import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
+import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.OK;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
@@ -165,6 +166,22 @@ public class KsqlTargetTest {
 
   @Test
   public void shouldPostQueryRequest_chunkHandler_exception() {
+    ksqlTarget = new KsqlTarget(httpClient, socketAddress, localProperties, authHeader, HOST,
+        Collections.emptyMap(), RequestOptions.DEFAULT_TIMEOUT);
+    executor.submit(this::expectPostQueryRequestChunkHandler);
+
+    assertThatEventually(requestStarted::get, is(true));
+
+    exceptionCaptor.getValue().handle(new RuntimeException("Error!"));
+
+    assertThatEventually(error::get, notNullValue());
+    assertThat(error.get().getMessage(),
+        containsString("Error issuing POST to KSQL server. path:/query"));
+  }
+
+  @Test
+  public void shouldPostQueryRequest_chunkHandler_nonOkStatusCode() {
+    when(httpClientResponse.statusCode()).thenReturn(BAD_REQUEST.code());
     ksqlTarget = new KsqlTarget(httpClient, socketAddress, localProperties, authHeader, HOST,
         Collections.emptyMap(), RequestOptions.DEFAULT_TIMEOUT);
     executor.submit(this::expectPostQueryRequestChunkHandler);

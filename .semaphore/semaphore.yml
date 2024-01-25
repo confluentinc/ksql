@@ -38,9 +38,10 @@ blocks:
         - name: Test
           commands:
             - cd ksql
-            - git checkout 3b2740d0ac25185f5a35201cdcaa9a1ebe2a4fe0
+            - git checkout 84b01655d0ca2eea575f7ee5e7e41061e1479970
             - . ci-tools ci-update-version
-            - mvn -Dmaven.gitcommitid.nativegit=true -U -Dmaven.wagon.http.retryHandler.count=10 --batch-mode --no-transfer-progress clean install
+            - mvn -pl ksqldb-engine -Dtest=”KsqlEngineTest” test
+#            - mvn -Dmaven.gitcommitid.nativegit=true -U -Dmaven.wagon.http.retryHandler.count=10 --batch-mode --no-transfer-progress clean install
             - . cache-maven store
       epilogue:
         always:

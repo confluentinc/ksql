@@ -37,6 +37,7 @@ import io.confluent.ksql.test.util.TestMethods;
 import io.confluent.ksql.test.util.TestMethods.TestCase;
 import java.util.Collection;
 import java.util.Objects;
+
 import org.apache.avro.Schema;
 import org.apache.hc.core5.http.HttpStatus;
 import org.junit.Before;

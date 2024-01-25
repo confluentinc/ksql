@@ -130,8 +130,8 @@ public class SlidingWindowRateLimiter {
       this.numBytesInWindow -= responseSizesLog.poll().right;
     }
     if (this.numBytesInWindow > throttleLimit) {
-      LOG.warn("Hit bandwidth rate limit of " + throttleLimit + "MB with use of "
-          + numBytesInWindow + "MB");
+      LOG.warn("Hit bandwidth rate limit of " + throttleLimit + "B with use of "
+          + numBytesInWindow + "B");
       rejectSensor.record();
       throw new KsqlApiException("Host is at bandwidth rate limit for "
           + ksqlQueryType.toString().toLowerCase() + " queries.",

@@ -1,4 +1,60 @@
 # Change Log
+
+## [0.29.0](https://github.com/confluentinc/ksql/releases/tag/v0.29.0) (2023-06-22)
+
+### Features
+
+* Alternative representations for nullable protobuf fields ([169b087](https://github.com/confluentinc/ksql/commit/169b087))
+* Allow alternative nullable representations also for protobuf_nosr ([#9702](https://github.com/confluentinc/ksql/pull/9702)) ([f73f4ff](https://github.com/confluentinc/ksql/commit/f73f4ff))
+* Add `log`, `power`, and `cbrt` UDFs ([#9366](https://github.com/confluentinc/ksql/pull/9366)) ([002a810](https://github.com/confluentinc/ksql/commit/002a810))
+* Add `TRUNC` function ([#9502](https://github.com/confluentinc/ksql/pull/9502)) ([#9522](https://github.com/confluentinc/ksql/issues/9522)) ([4755817](https://github.com/confluentinc/ksql/commit/4755817))
+* add `CORRELATION` UDAF ([#9383](https://github.com/confluentinc/ksql/pull/9383)) ([cb9d163](https://github.com/confluentinc/ksql/commit/cb9d163))
+* Variadic TopK that can select other columns ([#9493](https://github.com/confluentinc/ksql/pull/9493)) ([2a4c696](https://github.com/confluentinc/ksql/commit/2a4c696))
+* Support Bytes to UUID UDF Function ([#9640](https://github.com/confluentinc/ksql/pull/9640)) ([c3bc367](https://github.com/confluentinc/ksql/commit/c3bc367))
+* Add config to set topic retention in the WITH clause [#5148](https://github.com/confluentinc/ksql/issues/5148) ([0f69926](https://github.com/confluentinc/ksql/commit/0f69926))
+* Add metrics for pull query thread pools ([#9856](https://github.com/confluentinc/ksql/pull/9856)) ([79f8471](https://github.com/confluentinc/ksql/commit/79f8471))
+* add support for JSON arrays ([#9402](https://github.com/confluentinc/ksql/pull/9402)) ([c62c2d2](https://github.com/confluentinc/ksql/commit/c62c2d2))
+* add a custom log4j MetricAppender to track log level stats ([#9504](https://github.com/confluentinc/ksql/pull/9504)) ([893f6de](https://github.com/confluentinc/ksql/commit/893f6de))
+* ksql-test-runner tool returns exit code "1" on test failure ([#9735](https://github.com/confluentinc/ksql/pull/9735)) ([c02a1e3](https://github.com/confluentinc/ksql/commit/c02a1e3))
+* give hint when source name has extra/lacks dquotes ([#9594](https://github.com/confluentinc/ksql/pull/9594)) ([f6ec16a](https://github.com/confluentinc/ksql/commit/f6ec16a))
+* improve syntax error messages ([#9524](https://github.com/confluentinc/ksql/pull/9524)) ([b4dc298](https://github.com/confluentinc/ksql/commit/b4dc298))
+* allow base64 strings to be coerced to bytes ([#9626](https://github.com/confluentinc/ksql/pull/9626)) ([8620fb7](https://github.com/confluentinc/ksql/commit/8620fb7))
+* Add shaded jar for java-client and document its use ([#9443](https://github.com/confluentinc/ksql/pull/9443)) ([2f86863](https://github.com/confluentinc/ksql/commit/2f86863))
+* hard delete internal schemas for persistent queries. ([#9496](https://github.com/confluentinc/ksql/pull/9496)) ([e591ff3](https://github.com/confluentinc/ksql/commit/e591ff3))
+* Support `Object` as the type parameter for a UDAF variadic column argument ([#9481](https://github.com/confluentinc/ksql/pull/9481)) ([9444fe1](https://github.com/confluentinc/ksql/commit/9444fe1))
+* Support variadic arguments in the middle of a UDAF function signature ([#9451](https://github.com/confluentinc/ksql/pull/9451)) ([656241e](https://github.com/confluentinc/ksql/commit/656241e))
+* Add support for four and five column arguments to UDAFs ([#9378](https://github.com/confluentinc/ksql/pull/9378)) ([289cd59](https://github.com/confluentinc/ksql/commit/289cd59))
+* UDAFs with multiple/variadic args ([#9361](https://github.com/confluentinc/ksql/pull/9361)) ([02899ff](https://github.com/confluentinc/ksql/commit/02899ff))
+* add source connector property to CREATE SOURCE statements ([#9534](https://github.com/confluentinc/ksql/pull/9534)) ([7fa5bc0](https://github.com/confluentinc/ksql/commit/7fa5bc0))
+* add stop co-ordinates to NodeLocation ([#9453](https://github.com/confluentinc/ksql/pull/9453)) ([eed6b1d](https://github.com/confluentinc/ksql/commit/eed6b1d))
+
+
+### Bug Fixes
+
+* dont throw persistent query limit errors for non-queries ([#9588](https://github.com/confluentinc/ksql/pull/9588)) ([f4375f1](https://github.com/confluentinc/ksql/commit/f4375f1))
+* null handling in headers ([#9619](https://github.com/confluentinc/ksql/pull/9619)) ([7f4bdea](https://github.com/confluentinc/ksql/commit/7f4bdea))
+* Set timeout for pull query forwarded requsts to 20s ([#9823](https://github.com/confluentinc/ksql/pull/9823)) ([7ac28eb](https://github.com/confluentinc/ksql/commit/7ac28eb))
+* avoid race in PullQueryWriteStream ([#9537](https://github.com/confluentinc/ksql/pull/9537)) ([34fbf87](https://github.com/confluentinc/ksql/commit/34fbf87))
+* don't block event loop in PullQueryQueue ([#9409](https://github.com/confluentinc/ksql/pull/9409)) ([9300b46](https://github.com/confluentinc/ksql/commit/9300b46))
+* allow assert values command to check partial columns ([#9463](https://github.com/confluentinc/ksql/pull/9463)) ([81a138c](https://github.com/confluentinc/ksql/commit/81a138c))
+* Fix VALUE_SCHEMA_ID to work with Avro optional fields [#8919](https://github.com/confluentinc/ksql/issues/8919) ([54acc05](https://github.com/confluentinc/ksql/commit/54acc05))
+* Ignore schema id while creating internal schemas [#9163](https://github.com/confluentinc/ksql/issues/9163) ([1b327c6](https://github.com/confluentinc/ksql/commit/1b327c6))
+* throw an exception if schema not found from SR during INSERT ([#9457](https://github.com/confluentinc/ksql/pull/9457)) ([49bb8d4](https://github.com/confluentinc/ksql/commit/49bb8d4))
+* Avoid new schema version registration on INSERT VALUES ([#9238](https://github.com/confluentinc/ksql/pull/9238)) ([018ad3a](https://github.com/confluentinc/ksql/commit/018ad3a))
+* replace struct schemas with missing connect name ([#9433](https://github.com/confluentinc/ksql/pull/9433)) ([c778b69](https://github.com/confluentinc/ksql/commit/c778b69))
+* disable SR ID_COMPATIBILITY_STRICT for Protobuf to allow serialization with external references ([#9369](https://github.com/confluentinc/ksql/pull/9369)) ([72608fe](https://github.com/confluentinc/ksql/commit/72608fe))
+* Do not clean up when in degraded mode ([#9452](https://github.com/confluentinc/ksql/pull/9452)) ([0c2d221](https://github.com/confluentinc/ksql/commit/0c2d221))
+* change password-based configs to Type.PASSWORD ([#9717](https://github.com/confluentinc/ksql/pull/9717)) ([e7c5c1f](https://github.com/confluentinc/ksql/commit/e7c5c1f))
+* make sure to close clients from precondition checker ([#9391](https://github.com/confluentinc/ksql/pull/9391)) ([f197dc1](https://github.com/confluentinc/ksql/commit/f197dc1))
+* move udf loading to run before the precondition checker ([#9392](https://github.com/confluentinc/ksql/pull/9392)) ([2bd3aa6](https://github.com/confluentinc/ksql/commit/2bd3aa6))
+* use resolved configs in precondition checker ([#9567](https://github.com/confluentinc/ksql/pull/9567)) ([47e8aa6](https://github.com/confluentinc/ksql/commit/47e8aa6))
+* default to get authHeader if using basic ([#9818](https://github.com/confluentinc/ksql/pull/9818)) ([2059902](https://github.com/confluentinc/ksql/commit/2059902))
+* use args map instead of method args in generated java code ([#9711](https://github.com/confluentinc/ksql/pull/9711)) ([d5b6dd3](https://github.com/confluentinc/ksql/commit/d5b6dd3))
+
+
+
+
+
 ## [0.28.2](https://github.com/confluentinc/ksql/releases/tag/v0.28.2) (2022-08-02)
 
 ### Features

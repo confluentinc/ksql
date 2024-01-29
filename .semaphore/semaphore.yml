@@ -24,7 +24,7 @@ global_job_config:
   prologue:
     commands:
       - checkout
-      - sem-version java 8
+      - sem-version java 11
 
 blocks:
   - name: Test
@@ -75,7 +75,7 @@ after_pipeline:
       - name: SonarQube
         commands:
           - checkout
-          - sem-version java 8
+          - sem-version java 11
           - emit-sonarqube-data -a test-results
       - name: Trigger downstream projects
         commands:

@@ -116,7 +116,6 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 @SuppressWarnings({"OptionalGetWithoutIsPresent", "SameParameterValue"})
 @RunWith(MockitoJUnitRunner.class)
-@Ignore
 public class KsqlEngineTest {
 
   private KsqlConfig ksqlConfig;

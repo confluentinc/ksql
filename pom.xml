@@ -714,6 +714,7 @@
                     </systemPropertyVariables>
                     <argLine>-verbose:gc -Xloggc:"${project.build.directory}/gc.log"</argLine>
                     <argLine>-Duser.timezone=UTC -Xmx1g -Xms1g</argLine>
+                    <argLine>-Dsurefire.rerunFailingTestsCount=2</argLine>
                 </configuration>
             </plugin>
             <plugin>

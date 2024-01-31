@@ -160,9 +160,6 @@ public class KsqlEngineTest {
         topicClient,
         schemaRegistryClientFactory
     );
-
-    sandbox = ksqlEngine.createSandbox(serviceContext);
-    sandboxServiceContext = sandbox.getServiceContext();
   }
 
   private void setupKsqlEngineWithSharedRuntimeEnabled() {
@@ -172,6 +169,8 @@ public class KsqlEngineTest {
         metaStore,
         ksqlConfig
     );
+    sandbox = ksqlEngine.createSandbox(serviceContext);
+    sandboxServiceContext = sandbox.getServiceContext();
   }
 
   private void setupKsqlEngineWithSharedRuntimeDisabled() {
@@ -181,6 +180,8 @@ public class KsqlEngineTest {
         metaStore,
         ksqlConfig
     );
+    sandbox = ksqlEngine.createSandbox(serviceContext);
+    sandboxServiceContext = sandbox.getServiceContext();
   }
 
   @After
@@ -1492,7 +1493,7 @@ public class KsqlEngineTest {
     // Then (there are no transient queries, so no internal topics should be deleted):
     awaitCleanupComplete();
     final String topicPrefix = query.get(0).getQueryApplicationId().split("query")[0] + "query_";
-    verify(topicClient, times(2)).deleteInternalTopics( topicPrefix + query.get(0).getQueryId().toString());
+    verify(topicClient).deleteInternalTopics( topicPrefix + query.get(0).getQueryId().toString());
   }
 
   @Test

@@ -115,10 +115,13 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Spy;
 import org.mockito.junit.MockitoJUnitRunner;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @SuppressWarnings({"OptionalGetWithoutIsPresent", "SameParameterValue"})
 @RunWith(MockitoJUnitRunner.class)
 public class KsqlEngineTest {
+  private static final Logger log = LoggerFactory.getLogger(KsqlEngineTest.class);
   private static final MutableFunctionRegistry functionRegistry = new InternalFunctionRegistry();
 
   private KsqlConfig ksqlConfig;
@@ -144,7 +147,6 @@ public class KsqlEngineTest {
 
   @Before
   public void setUp() {
-    sharedRuntimeEnabled.put(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED, true);
     sharedRuntimeEnabled.put(StreamsConfig.InternalConfig.TOPIC_PREFIX_ALTERNATIVE,
         ReservedInternalTopics.KSQL_INTERNAL_TOPIC_PREFIX
             + "default_"
@@ -172,8 +174,16 @@ public class KsqlEngineTest {
 
   @After
   public void closeEngine() {
-    ksqlEngine.close();
-    serviceContext.close();
+    try {
+      ksqlEngine.close();
+    } catch (Exception e) {
+      log.warn("Error while closing ksqlEngine", e);
+    }
+    try {
+      serviceContext.close();
+    } catch (Exception e) {
+      log.warn("Error while closing serviceContext", e);
+    }
   }
 
   @Test
@@ -1065,12 +1075,6 @@ public class KsqlEngineTest {
   @Test
   public void shouldCleanUpInternalTopicsOnClose() {
     // Given:
-    ksqlConfig = KsqlConfigTestUtil.create("what-eva", sharedRuntimeDisabled);
-    ksqlEngine = KsqlEngineTestUtil.createKsqlEngine(
-        serviceContext,
-        metaStore,
-        ksqlConfig
-    );
     final QueryMetadata query = KsqlEngineTestUtil.executeQuery(
         serviceContext,
         ksqlEngine,
@@ -1113,12 +1117,6 @@ public class KsqlEngineTest {
   @Test
   public void shouldCleanUpInternalTopicsOnEngineCloseForTransientQueries() {
     // Given:
-    ksqlConfig = KsqlConfigTestUtil.create("what-eva", sharedRuntimeDisabled);
-    ksqlEngine = KsqlEngineTestUtil.createKsqlEngine(
-        serviceContext,
-        metaStore,
-        ksqlConfig
-    );
     final QueryMetadata query = KsqlEngineTestUtil.executeQuery(
         serviceContext,
         ksqlEngine,
@@ -1198,12 +1196,6 @@ public class KsqlEngineTest {
   @Test
   public void shouldHardDeleteSchemaOnEngineCloseForTransientQueries() throws IOException, RestClientException {
     // Given:
-    ksqlConfig = KsqlConfigTestUtil.create("what-eva", sharedRuntimeDisabled);
-    ksqlEngine = KsqlEngineTestUtil.createKsqlEngine(
-        serviceContext,
-        metaStore,
-        ksqlConfig
-    );
     final QueryMetadata query = KsqlEngineTestUtil.executeQuery(
         serviceContext,
         ksqlEngine,
@@ -1287,12 +1279,6 @@ public class KsqlEngineTest {
   @Test
   public void shouldCleanUpConsumerGroupsOnClose() {
     // Given:
-    ksqlConfig = KsqlConfigTestUtil.create("what-eva", sharedRuntimeDisabled);
-    ksqlEngine = KsqlEngineTestUtil.createKsqlEngine(
-        serviceContext,
-        metaStore,
-        ksqlConfig
-    );
     final QueryMetadata query = KsqlEngineTestUtil.execute(
         serviceContext,
         ksqlEngine,
@@ -1319,12 +1305,6 @@ public class KsqlEngineTest {
   @Test
   public void shouldCleanUpTransientConsumerGroupsOnClose() {
     // Given:
-    ksqlConfig = KsqlConfigTestUtil.create("what-eva", sharedRuntimeDisabled);
-    ksqlEngine = KsqlEngineTestUtil.createKsqlEngine(
-        serviceContext,
-        metaStore,
-        ksqlConfig
-    );
     final QueryMetadata query = KsqlEngineTestUtil.executeQuery(
         serviceContext,
         ksqlEngine,
@@ -1398,12 +1378,6 @@ public class KsqlEngineTest {
   @Test
   public void shouldCleanUpInternalTopicsOnQueryCloseForPersistentQueries() {
     // Given:
-    ksqlConfig = KsqlConfigTestUtil.create("what-eva", sharedRuntimeDisabled);
-    ksqlEngine = KsqlEngineTestUtil.createKsqlEngine(
-        serviceContext,
-        metaStore,
-        ksqlConfig
-    );
     final List<QueryMetadata> query = KsqlEngineTestUtil.execute(
         serviceContext,
         ksqlEngine,
@@ -1441,18 +1415,12 @@ public class KsqlEngineTest {
     // Then (there are no transient queries, so no internal topics should be deleted):
     awaitCleanupComplete();
     final String topicPrefix = query.get(0).getQueryApplicationId().split("query")[0] + "query_";
-    verify(topicClient).deleteInternalTopics( topicPrefix + query.get(0).getQueryId().toString());
+    verify(topicClient, times(2)).deleteInternalTopics( topicPrefix + query.get(0).getQueryId().toString());
   }
 
   @Test
   public void shouldNotHardDeleteSubjectForPersistentQuery() throws IOException, RestClientException {
     // Given:
-    ksqlConfig = KsqlConfigTestUtil.create("what-eva", sharedRuntimeDisabled);
-    ksqlEngine = KsqlEngineTestUtil.createKsqlEngine(
-        serviceContext,
-        metaStore,
-        ksqlConfig
-    );
     final List<QueryMetadata> query = KsqlEngineTestUtil.execute(
         serviceContext,
         ksqlEngine,

@@ -160,9 +160,6 @@ public class KsqlEngineTest {
         topicClient,
         schemaRegistryClientFactory
     );
-
-    sandbox = ksqlEngine.createSandbox(serviceContext);
-    sandboxServiceContext = sandbox.getServiceContext();
   }
 
   private void setupKsqlEngineWithSharedRuntimeEnabled() {
@@ -172,6 +169,8 @@ public class KsqlEngineTest {
         metaStore,
         ksqlConfig
     );
+    sandbox = ksqlEngine.createSandbox(serviceContext);
+    sandboxServiceContext = sandbox.getServiceContext();
   }
 
   private void setupKsqlEngineWithSharedRuntimeDisabled() {
@@ -181,6 +180,8 @@ public class KsqlEngineTest {
         metaStore,
         ksqlConfig
     );
+    sandbox = ksqlEngine.createSandbox(serviceContext);
+    sandboxServiceContext = sandbox.getServiceContext();
   }
 
   @After

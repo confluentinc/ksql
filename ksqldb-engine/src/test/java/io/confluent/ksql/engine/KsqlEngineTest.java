@@ -1490,13 +1490,7 @@ public class KsqlEngineTest {
   @Test
   public void shouldCleanUpInternalTopicsOnCloseForPersistentQueries() {
     // Given:
-    setupKsqlEngineWithSharedRuntimeEnabled();
-    ksqlConfig = KsqlConfigTestUtil.create("what-eva", sharedRuntimeDisabled);
-    ksqlEngine = KsqlEngineTestUtil.createKsqlEngine(
-        serviceContext,
-        metaStore,
-        ksqlConfig
-    );
+    setupKsqlEngineWithSharedRuntimeDisabled();
 
     final List<QueryMetadata> query = KsqlEngineTestUtil.execute(
         serviceContext,

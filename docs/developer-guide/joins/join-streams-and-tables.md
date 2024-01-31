@@ -388,17 +388,21 @@ CREATE STREAM joined AS
 
 ### Limitations of N-Way Joins
 
-The limitations and restrictions described in the previous sections to each intermediate 
-step in N-way joins. For example, `FULL OUTER` joins between streams and tables are
-not supported. This means that if any stage in the N-way join resolves to a `FULL OUTER`
-join between a stream and a table the entire query fails:
+- The limitations and restrictions described in the previous sections to each intermediate 
+  step in N-way joins. For example, `FULL OUTER` joins between streams and tables are
+  not supported. This means that if any stage in the N-way join resolves to a `FULL OUTER`
+  join between a stream and a table the entire query fails:
 
-```sql
---- This JOIN fails with the following exception:
---- Join between invalid operands requested: left type: KTABLE, right type: KSTREAM
-CREATE STREAM joined AS 
-  SELECT * 
-  FROM A
-    JOIN B WITHIN 10 SECONDS ON A.id = B.product_id
-    FULL OUTER JOIN C ON A.id = C.purchased_id;
-```
+  ```sql
+  --- This JOIN fails with the following exception:
+  --- Join between invalid operands requested: left type: KTABLE, right type: KSTREAM
+  CREATE STREAM joined AS 
+    SELECT * 
+    FROM A
+      JOIN B WITHIN 10 SECONDS ON A.id = B.product_id
+      FULL OUTER JOIN C ON A.id = C.purchased_id;
+  ```
+
+- Although ksqlDB supports N-way joins in general, it's not possible to have a
+  `FULL OUTER` N-way table join in a single query. You must break the query into
+  multiple queries, with each doing a single `FULL OUTER` table-table join.

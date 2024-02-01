@@ -192,10 +192,12 @@ public class KsqlEngineTest {
 
   @After
   public void closeEngine() {
-    try {
-      ksqlEngine.close();
-    } catch (Exception e) {
-      log.warn("Error while closing ksqlEngine", e);
+    if (ksqlEngine != null) {
+      try {
+        ksqlEngine.close();
+      } catch (Exception e) {
+        log.warn("Error while closing ksqlEngine", e);
+      }
     }
     try {
       serviceContext.close();
@@ -1207,6 +1209,7 @@ public class KsqlEngineTest {
 
     // When:
     ksqlEngine.close();
+    ksqlEngine = null;
 
     // Then:
     verify(topicClient, times(2)).deleteInternalTopics(query.getQueryApplicationId());
@@ -1229,6 +1232,7 @@ public class KsqlEngineTest {
 
     // When:
     ksqlEngine.close();
+    ksqlEngine = null;
 
     // Then:
     verify(topicClient, times(2)).deleteInternalTopics(query.getQueryApplicationId());
@@ -1453,6 +1457,7 @@ public class KsqlEngineTest {
 
     // When:
     ksqlEngine.close();
+    ksqlEngine = null;
 
     // Then (there are no transient queries, so no internal topics should be deleted):
     verify(topicClient, never()).deleteInternalTopics(any());

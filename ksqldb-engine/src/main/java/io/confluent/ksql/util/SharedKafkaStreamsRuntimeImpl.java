@@ -28,6 +28,8 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 import org.apache.kafka.common.KafkaFuture;
 import org.apache.kafka.streams.KafkaStreams;
@@ -197,11 +199,11 @@ public class SharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRuntime {
           topolgogiesToAdd.clear();
           kafkaStreams.removeNamedTopology(queryId.toString(), !isCreateOrReplace)
               .all()
-              .get();
+              .get(shutdownTimeout, TimeUnit.MILLISECONDS);
           if (!isCreateOrReplace) {
             kafkaStreams.cleanUpNamedTopology(queryId.toString());
           }
-        } catch (ExecutionException | InterruptedException e) {
+        } catch (ExecutionException | InterruptedException | TimeoutException e) {
           final Throwable t = e.getCause() == null ? e : e.getCause();
           throw new IllegalStateException(String.format(
                 "Encountered an error when trying to stop query %s in runtime: %s",

@@ -138,7 +138,6 @@ public class KsqlEngineTest {
 
   private KsqlEngine ksqlEngine;
   private ServiceContext serviceContext;
-  private ServiceContext sandboxServiceContext;
   @Spy
   private final FakeKafkaTopicClient topicClient = new FakeKafkaTopicClient();
   private KsqlExecutionContext sandbox;
@@ -181,7 +180,6 @@ public class KsqlEngineTest {
         ksqlConfig
     );
     sandbox = ksqlEngine.createSandbox(serviceContext);
-    sandboxServiceContext = sandbox.getServiceContext();
   }
 
   private void setupKsqlEngineWithSharedRuntimeDisabled() {
@@ -192,7 +190,6 @@ public class KsqlEngineTest {
         ksqlConfig
     );
     sandbox = ksqlEngine.createSandbox(serviceContext);
-    sandboxServiceContext = sandbox.getServiceContext();
   }
 
   @After
@@ -332,7 +329,7 @@ public class KsqlEngineTest {
 
     // When:
     final ExecuteResult result = sandbox
-        .execute(sandboxServiceContext, ConfiguredStatement.of(
+        .execute(sandbox.getServiceContext(), ConfiguredStatement.of(
             sandbox.prepare(statements.get(1)),
             SessionConfig.of(ksqlConfig, Collections.emptyMap())
         ));
@@ -955,7 +952,7 @@ public class KsqlEngineTest {
     final Exception e = assertThrows(
         KsqlStatementException.class,
         () -> sandbox.execute(
-            sandboxServiceContext,
+            sandbox.getServiceContext(),
             ConfiguredStatement.of(prepared, SessionConfig.of(ksqlConfig, Collections.emptyMap()))
         )
     );
@@ -1019,7 +1016,7 @@ public class KsqlEngineTest {
     final KsqlStatementException e = assertThrows(
         KsqlStatementException.class,
         () -> sandbox.execute(
-            sandboxServiceContext,
+            sandbox.getServiceContext(),
             ConfiguredStatement.of(statement, SessionConfig.of(ksqlConfig, ImmutableMap.of()))
         )
     );
@@ -1719,8 +1716,7 @@ public class KsqlEngineTest {
   public void shouldHandleMultipleStatements() {
     // Given:
     setupKsqlEngineWithSharedRuntimeEnabled();
-    final String sql = ""
-        + "-- single line comment\n"
+    final String sql = "-- single line comment\n"
         + "/*\n"
         + "   Multi-line comment\n"
         + "*/\n"
@@ -1825,7 +1821,7 @@ public class KsqlEngineTest {
     sandbox = ksqlEngine.createSandbox(serviceContext);
 
     // When:
-    ExecuteResult executeResult = sandbox.execute(sandboxServiceContext, newQuery);
+    ExecuteResult executeResult = sandbox.execute(sandbox.getServiceContext(), newQuery);
 
     // Then:
     assertThat(executeResult.getQuery().get().getQueryId(), is(oldQueryId));
@@ -1844,7 +1840,7 @@ public class KsqlEngineTest {
         .get().getQueryId();
 
     // When:
-    ExecuteResult executeResult = ksqlEngine.execute(sandboxServiceContext, newQuery);
+    ExecuteResult executeResult = ksqlEngine.execute(sandbox.getServiceContext(), newQuery);
 
     // Then:
     assertThat(executeResult.getQuery().get().getQueryId(), is(oldQueryId));
@@ -2118,7 +2114,7 @@ public class KsqlEngineTest {
     // When:
     statements
         .forEach(stmt -> sandbox.execute(
-            sandboxServiceContext,
+            sandbox.getServiceContext(),
             ConfiguredStatement
                 .of(sandbox.prepare(stmt), SessionConfig.of(ksqlConfig, new HashMap<>())
                 )));
@@ -2146,7 +2142,7 @@ public class KsqlEngineTest {
     // When:
     statements.forEach(
         stmt -> sandbox.execute(
-            sandboxServiceContext,
+            sandbox.getServiceContext(),
             ConfiguredStatement
                 .of(sandbox.prepare(stmt), SessionConfig.of(ksqlConfig, new HashMap<>())
                 ))
@@ -2166,7 +2162,7 @@ public class KsqlEngineTest {
 
     // When:
     sandbox.execute(
-        sandboxServiceContext,
+        sandbox.getServiceContext(),
         ConfiguredStatement
             .of(statement, SessionConfig.of(ksqlConfig, new HashMap<>()))
     );
@@ -2192,7 +2188,7 @@ public class KsqlEngineTest {
 
     // When:
     sandbox.execute(
-        sandboxServiceContext,
+        sandbox.getServiceContext(),
         ConfiguredStatement
             .of(prepared, SessionConfig.of(ksqlConfig, new HashMap<>()))
     );
@@ -2233,7 +2229,7 @@ public class KsqlEngineTest {
 
     // When:
     final ExecuteResult result = sandbox.execute(
-        sandboxServiceContext,
+        sandbox.getServiceContext(),
         ConfiguredStatement
             .of(prepared, SessionConfig.of(ksqlConfig, new HashMap<>()))
     );
@@ -2305,7 +2301,7 @@ public class KsqlEngineTest {
 
     // When:
     final ExecuteResult result = sandbox.execute(
-        sandboxServiceContext,
+        sandbox.getServiceContext(),
         ConfiguredStatement
             .of(statement, SessionConfig.of(ksqlConfig, new HashMap<>()))
     );

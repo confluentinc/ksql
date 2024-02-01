@@ -137,6 +137,7 @@ public class KsqlEngineTest {
       () -> schemaRegistryClient;
 
   private KsqlEngine ksqlEngine;
+  private boolean isKsqlEngineClosed = false;
   private ServiceContext serviceContext;
   @Spy
   private final FakeKafkaTopicClient topicClient = new FakeKafkaTopicClient();
@@ -192,10 +193,12 @@ public class KsqlEngineTest {
 
   @After
   public void closeEngine() {
-    try {
-      ksqlEngine.close();
-    } catch (Exception e) {
-      log.warn("Error while closing ksqlEngine", e);
+    if (!isKsqlEngineClosed) {
+      try {
+        ksqlEngine.close();
+      } catch (Exception e) {
+        log.warn("Error while closing ksqlEngine", e);
+      }
     }
     try {
       serviceContext.close();
@@ -1207,6 +1210,7 @@ public class KsqlEngineTest {
 
     // When:
     ksqlEngine.close();
+    isKsqlEngineClosed = true;
 
     // Then:
     verify(topicClient, times(2)).deleteInternalTopics(query.getQueryApplicationId());
@@ -1229,6 +1233,7 @@ public class KsqlEngineTest {
 
     // When:
     ksqlEngine.close();
+    isKsqlEngineClosed = true;
 
     // Then:
     verify(topicClient, times(2)).deleteInternalTopics(query.getQueryApplicationId());
@@ -1453,6 +1458,7 @@ public class KsqlEngineTest {
 
     // When:
     ksqlEngine.close();
+    isKsqlEngineClosed = true;
 
     // Then (there are no transient queries, so no internal topics should be deleted):
     verify(topicClient, never()).deleteInternalTopics(any());
@@ -2493,6 +2499,7 @@ public class KsqlEngineTest {
 
   private void awaitCleanupComplete() {
     awaitCleanupComplete(ksqlEngine);
+    isKsqlEngineClosed = true;
   }
 
   private void awaitCleanupComplete(final KsqlEngine ksqlEngine) {

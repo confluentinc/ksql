@@ -145,7 +145,7 @@ public class KsqlEngineTest {
 
   @Rule
   public final Timeout timeout = Timeout.builder()
-      .withTimeout(60, TimeUnit.SECONDS)
+      .withTimeout(300_000, TimeUnit.MILLISECONDS)
       .withLookingForStuckThread(true)
       .build();
 

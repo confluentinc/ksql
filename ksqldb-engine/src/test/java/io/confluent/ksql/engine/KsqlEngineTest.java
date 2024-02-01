@@ -145,7 +145,7 @@ public class KsqlEngineTest {
 
   @Rule
   public final Timeout timeout = Timeout.builder()
-      .withTimeout(60, TimeUnit.SECONDS)
+      .withTimeout(120_000, TimeUnit.MILLISECONDS)
       .withLookingForStuckThread(true)
       .build();
 
@@ -156,11 +156,13 @@ public class KsqlEngineTest {
 
   @Before
   public void setUp() {
+    sharedRuntimeEnabled.put(KsqlConfig.KSQL_SHUTDOWN_TIMEOUT_MS_CONFIG, 60_000);
     sharedRuntimeEnabled.put(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED, true);
     sharedRuntimeEnabled.put(StreamsConfig.InternalConfig.TOPIC_PREFIX_ALTERNATIVE,
         ReservedInternalTopics.KSQL_INTERNAL_TOPIC_PREFIX
             + "default_"
             + "query");
+    sharedRuntimeDisabled.put(KsqlConfig.KSQL_SHUTDOWN_TIMEOUT_MS_CONFIG, 60_000);
     sharedRuntimeDisabled.put(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED, false);
 
     metaStore = MetaStoreFixture.getNewMetaStore(functionRegistry);

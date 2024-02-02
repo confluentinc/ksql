@@ -75,4 +75,20 @@ public final class ExpressionMatchers {
         description.appendText(type.getSimpleName() + " with name of ").appendValue(value);
     }
   }
+
+  public static Matcher<? super String> matchesRegex(final String regex) {
+    return new TypeSafeDiagnosingMatcher<String>() {
+      @Override
+      protected boolean matchesSafely(
+          final String actual,
+          final Description mismatchDescription) {
+        return actual.matches(regex);
+      }
+
+      @Override
+      public void describeTo(final Description description) {
+        description.appendText("matches regex: " + regex);
+      }
+    };
+  }
 }

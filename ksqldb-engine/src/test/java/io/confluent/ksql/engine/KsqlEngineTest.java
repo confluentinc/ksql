@@ -98,6 +98,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -143,6 +144,8 @@ public class KsqlEngineTest {
   private final FakeKafkaTopicClient topicClient = new FakeKafkaTopicClient();
   private KsqlExecutionContext sandbox;
 
+  private static final AtomicBoolean isFunctionRegistryLoaded = new AtomicBoolean(false);
+
   @Rule
   public final Timeout timeout = Timeout.builder()
       .withTimeout(180, TimeUnit.SECONDS)
@@ -151,18 +154,14 @@ public class KsqlEngineTest {
 
   @BeforeClass
   public static void setUpFunctionRegistry() {
-    loadAllUserFunctions(functionRegistry);
+    if (!isFunctionRegistryLoaded.get()) {
+      loadAllUserFunctions(functionRegistry);
+      isFunctionRegistryLoaded.compareAndSet(false, true);
+    }
   }
 
   @Before
   public void setUp() {
-    sharedRuntimeEnabled.put(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED, true);
-    sharedRuntimeEnabled.put(StreamsConfig.InternalConfig.TOPIC_PREFIX_ALTERNATIVE,
-        ReservedInternalTopics.KSQL_INTERNAL_TOPIC_PREFIX
-            + "default_"
-            + "query");
-    sharedRuntimeDisabled.put(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED, false);
-
     metaStore = MetaStoreFixture.getNewMetaStore(functionRegistry);
 
     serviceContext = TestServiceContext.create(
@@ -172,6 +171,11 @@ public class KsqlEngineTest {
   }
 
   private void setupKsqlEngineWithSharedRuntimeEnabled() {
+    sharedRuntimeEnabled.put(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED, true);
+    sharedRuntimeEnabled.put(StreamsConfig.InternalConfig.TOPIC_PREFIX_ALTERNATIVE,
+        ReservedInternalTopics.KSQL_INTERNAL_TOPIC_PREFIX
+            + "default_"
+            + "query");
     ksqlConfig = KsqlConfigTestUtil.create("what-eva", sharedRuntimeEnabled);
     ksqlEngine = KsqlEngineTestUtil.createKsqlEngine(
         serviceContext,
@@ -182,6 +186,7 @@ public class KsqlEngineTest {
   }
 
   private void setupKsqlEngineWithSharedRuntimeDisabled() {
+    sharedRuntimeDisabled.put(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED, false);
     ksqlConfig = KsqlConfigTestUtil.create("what-eva", sharedRuntimeDisabled);
     ksqlEngine = KsqlEngineTestUtil.createKsqlEngine(
         serviceContext,

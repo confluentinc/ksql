@@ -18,6 +18,7 @@ package io.confluent.ksql.engine;
 import static io.confluent.ksql.engine.KsqlEngineTestUtil.execute;
 import static io.confluent.ksql.function.UserFunctionLoaderTestUtil.loadAllUserFunctions;
 import static io.confluent.ksql.metastore.model.MetaStoreMatchers.FieldMatchers.hasFullName;
+import static io.confluent.ksql.util.ExpressionMatchers.matchesRegex;
 import static io.confluent.ksql.util.KsqlExceptionMatcher.rawMessage;
 import static io.confluent.ksql.util.KsqlExceptionMatcher.statementText;
 import static java.util.Collections.emptyMap;
@@ -98,6 +99,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -143,6 +145,8 @@ public class KsqlEngineTest {
   private final FakeKafkaTopicClient topicClient = new FakeKafkaTopicClient();
   private KsqlExecutionContext sandbox;
 
+  private final AtomicLong idSequence = new AtomicLong(1);
+
   @Rule
   public final Timeout timeout = Timeout.builder()
       .withTimeout(180, TimeUnit.SECONDS)
@@ -156,13 +160,6 @@ public class KsqlEngineTest {
 
   @Before
   public void setUp() {
-    sharedRuntimeEnabled.put(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED, true);
-    sharedRuntimeEnabled.put(StreamsConfig.InternalConfig.TOPIC_PREFIX_ALTERNATIVE,
-        ReservedInternalTopics.KSQL_INTERNAL_TOPIC_PREFIX
-            + "default_"
-            + "query");
-    sharedRuntimeDisabled.put(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED, false);
-
     metaStore = MetaStoreFixture.getNewMetaStore(functionRegistry);
 
     serviceContext = TestServiceContext.create(
@@ -172,17 +169,23 @@ public class KsqlEngineTest {
   }
 
   private void setupKsqlEngineWithSharedRuntimeEnabled() {
-    ksqlConfig = KsqlConfigTestUtil.create("what-eva", sharedRuntimeEnabled);
-    ksqlEngine = KsqlEngineTestUtil.createKsqlEngine(
-        serviceContext,
-        metaStore,
-        ksqlConfig
-    );
-    sandbox = ksqlEngine.createSandbox(serviceContext);
+    sharedRuntimeEnabled.put(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED, true);
+    sharedRuntimeEnabled.put(StreamsConfig.InternalConfig.TOPIC_PREFIX_ALTERNATIVE,
+        ReservedInternalTopics.KSQL_INTERNAL_TOPIC_PREFIX
+            + "default_"
+            + "query");
+    sharedRuntimeEnabled.put(KsqlConfig.KSQL_SERVICE_ID_CONFIG, "default_" + idSequence.getAndIncrement());
+    setUpKsqlEngine(sharedRuntimeEnabled);
   }
 
   private void setupKsqlEngineWithSharedRuntimeDisabled() {
-    ksqlConfig = KsqlConfigTestUtil.create("what-eva", sharedRuntimeDisabled);
+    sharedRuntimeDisabled.put(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED, false);
+    sharedRuntimeDisabled.put(KsqlConfig.KSQL_SERVICE_ID_CONFIG, "default_" + idSequence.getAndIncrement());
+    setUpKsqlEngine(sharedRuntimeDisabled);
+  }
+
+  private void setUpKsqlEngine(Map<String, Object> additionalProperties) {
+    ksqlConfig = KsqlConfigTestUtil.create("what-eva", additionalProperties);
     ksqlEngine = KsqlEngineTestUtil.createKsqlEngine(
         serviceContext,
         metaStore,
@@ -1412,7 +1415,7 @@ public class KsqlEngineTest {
 
     assertThat(
         Iterables.getOnlyElement(deletedConsumerGroups),
-        containsString("_confluent-ksql-default_transient_"));
+        matchesRegex("^_confluent-ksql-default_\\dtransient_.*"));
   }
 
   @Test
@@ -1440,7 +1443,7 @@ public class KsqlEngineTest {
 
     assertThat(
         Iterables.getOnlyElement(deletedConsumerGroups),
-        containsString("_confluent-ksql-default_transient_"));
+        matchesRegex("^_confluent-ksql-default_\\dtransient_.*"));
   }
 
   @Test

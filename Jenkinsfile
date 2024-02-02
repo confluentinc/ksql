@@ -25,5 +25,6 @@ common {
     extraBuildArgs = "-Dmaven.gitcommitid.nativegit=true"
     mavenBuildGoals = "clean install"
     runMergeCheck = false
+    mvnSkipDeploy = true
 }
 

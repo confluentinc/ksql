@@ -18,6 +18,7 @@ package io.confluent.ksql.engine;
 import static io.confluent.ksql.engine.KsqlEngineTestUtil.execute;
 import static io.confluent.ksql.function.UserFunctionLoaderTestUtil.loadAllUserFunctions;
 import static io.confluent.ksql.metastore.model.MetaStoreMatchers.FieldMatchers.hasFullName;
+import static io.confluent.ksql.util.ExpressionMatchers.matchesRegex;
 import static io.confluent.ksql.util.KsqlExceptionMatcher.rawMessage;
 import static io.confluent.ksql.util.KsqlExceptionMatcher.statementText;
 import static java.util.Collections.emptyMap;
@@ -97,7 +98,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -143,6 +146,10 @@ public class KsqlEngineTest {
   private final FakeKafkaTopicClient topicClient = new FakeKafkaTopicClient();
   private KsqlExecutionContext sandbox;
 
+  private static final AtomicBoolean isFunctionRegistryLoaded = new AtomicBoolean(false);
+
+  private static final String UUID_PATTERN = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
+
   @Rule
   public final Timeout timeout = Timeout.builder()
       .withTimeout(180, TimeUnit.SECONDS)
@@ -151,18 +158,14 @@ public class KsqlEngineTest {
 
   @BeforeClass
   public static void setUpFunctionRegistry() {
-    loadAllUserFunctions(functionRegistry);
+    if (!isFunctionRegistryLoaded.get()) {
+      loadAllUserFunctions(functionRegistry);
+      isFunctionRegistryLoaded.compareAndSet(false, true);
+    }
   }
 
   @Before
   public void setUp() {
-    sharedRuntimeEnabled.put(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED, true);
-    sharedRuntimeEnabled.put(StreamsConfig.InternalConfig.TOPIC_PREFIX_ALTERNATIVE,
-        ReservedInternalTopics.KSQL_INTERNAL_TOPIC_PREFIX
-            + "default_"
-            + "query");
-    sharedRuntimeDisabled.put(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED, false);
-
     metaStore = MetaStoreFixture.getNewMetaStore(functionRegistry);
 
     serviceContext = TestServiceContext.create(
@@ -172,17 +175,23 @@ public class KsqlEngineTest {
   }
 
   private void setupKsqlEngineWithSharedRuntimeEnabled() {
-    ksqlConfig = KsqlConfigTestUtil.create("what-eva", sharedRuntimeEnabled);
-    ksqlEngine = KsqlEngineTestUtil.createKsqlEngine(
-        serviceContext,
-        metaStore,
-        ksqlConfig
-    );
-    sandbox = ksqlEngine.createSandbox(serviceContext);
+    sharedRuntimeEnabled.put(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED, true);
+    sharedRuntimeEnabled.put(StreamsConfig.InternalConfig.TOPIC_PREFIX_ALTERNATIVE,
+        ReservedInternalTopics.KSQL_INTERNAL_TOPIC_PREFIX
+            + "default_"
+            + "query");
+    sharedRuntimeEnabled.put(KsqlConfig.KSQL_SERVICE_ID_CONFIG, "default_" + UUID.randomUUID());
+    setUpKsqlEngine(sharedRuntimeEnabled);
   }
 
   private void setupKsqlEngineWithSharedRuntimeDisabled() {
-    ksqlConfig = KsqlConfigTestUtil.create("what-eva", sharedRuntimeDisabled);
+    sharedRuntimeDisabled.put(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED, false);
+    sharedRuntimeDisabled.put(KsqlConfig.KSQL_SERVICE_ID_CONFIG, "default_" + UUID.randomUUID());
+    setUpKsqlEngine(sharedRuntimeDisabled);
+  }
+
+  private void setUpKsqlEngine(Map<String, Object> additionalProperties) {
+    ksqlConfig = KsqlConfigTestUtil.create("what-eva", additionalProperties);
     ksqlEngine = KsqlEngineTestUtil.createKsqlEngine(
         serviceContext,
         metaStore,
@@ -1412,7 +1421,7 @@ public class KsqlEngineTest {
 
     assertThat(
         Iterables.getOnlyElement(deletedConsumerGroups),
-        containsString("_confluent-ksql-default_transient_"));
+        matchesRegex(String.format("^_confluent-ksql-default_%stransient_.*", UUID_PATTERN)));
   }
 
   @Test
@@ -1440,7 +1449,7 @@ public class KsqlEngineTest {
 
     assertThat(
         Iterables.getOnlyElement(deletedConsumerGroups),
-        containsString("_confluent-ksql-default_transient_"));
+        matchesRegex(String.format("^_confluent-ksql-default_%stransient_.*", UUID_PATTERN)));
   }
 
   @Test

@@ -24,7 +24,6 @@ global_job_config:
   prologue:
     commands:
       - checkout
-      - cache restore
       - sem-version java 11
 
 blocks:
@@ -42,7 +41,6 @@ blocks:
           commands:
             - . ci-tools ci-update-version
             - mvn -Dsurefire.rerunFailingTestsCount=3 -Dmaven.gitcommitid.nativegit=true -U -Dmaven.wagon.http.retryHandler.count=10 --batch-mode --no-transfer-progress clean install
-            - cache store maven-$SEMAPHORE_GIT_BRANCH ~/.m2/repository
       epilogue:
         always:
           commands:
@@ -63,6 +61,7 @@ blocks:
             - . ci-tools ci-push-tag
             - mvn -Ddocker.skip=true -U -Dmaven.wagon.http.retryHandler.count=10 --batch-mode -DaltDeploymentRepository=confluent-codeartifact-internal::default::https://confluent-519856050701.d.codeartifact.us-west-2.amazonaws.com/maven/maven-snapshots/
               -DrepositoryId=confluent-codeartifact-internal deploy -DskipTests
+
 
 after_pipeline:
   task:

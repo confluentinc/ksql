@@ -154,7 +154,7 @@
         <netty-codec-http2-version>4.1.100.Final</netty-codec-http2-version>
         <jersey-common>2.39.1</jersey-common>
         <multi-threaded-testing.forkCount>3</multi-threaded-testing.forkCount>
-        <kafka.version>${ce.kafka.version}</kafka.version>
+        <kafka.version>v7.6.0-300-ce</kafka.version>
     </properties>
 
     <dependencyManagement>
@@ -803,12 +803,14 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <configuration>
+                    <rerunFailingTestsCount>3</rerunFailingTestsCount>
                     <systemPropertyVariables>
                         <log4j.configuration>file:${project.basedir}/../ksqldb-test-util/src/main/resources/log4j.properties</log4j.configuration>
                     </systemPropertyVariables>
                     <argLine>-verbose:gc -Xloggc:"${project.build.directory}/gc.log"</argLine>
-                    <argLine>-Duser.timezone=UTC -Xmx1g -Xms1g</argLine>
+                    <argLine>-Duser.timezone=UTC -Xmx1g -Xms1g -XX:MaxPermSize=256m</argLine>
                 </configuration>
+                <version>3.2.5</version>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>

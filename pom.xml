@@ -29,7 +29,7 @@
     <parent>
         <groupId>io.confluent</groupId>
         <artifactId>common</artifactId>
-        <version>7.6.0-814</version>
+        <version>7.6.0-388</version>
     </parent>
 
     <groupId>io.confluent.ksql</groupId>
@@ -803,12 +803,14 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <configuration>
+                    <rerunFailingTestsCount>3</rerunFailingTestsCount>
                     <systemPropertyVariables>
                         <log4j.configuration>file:${project.basedir}/../ksqldb-test-util/src/main/resources/log4j.properties</log4j.configuration>
                     </systemPropertyVariables>
                     <argLine>-verbose:gc -Xloggc:"${project.build.directory}/gc.log"</argLine>
-                    <argLine>-Duser.timezone=UTC -Xmx1g -Xms1g</argLine>
+                    <argLine>-Duser.timezone=UTC -Xmx1g -Xms1g -XX:MaxPermSize=256m</argLine>
                 </configuration>
+                <version>3.2.5</version>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>

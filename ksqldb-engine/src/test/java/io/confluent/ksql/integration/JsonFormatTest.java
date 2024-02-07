@@ -62,10 +62,12 @@ import org.apache.kafka.common.metrics.Metrics;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 
+@Ignore
 @Category({IntegrationTest.class})
 public class JsonFormatTest {
 

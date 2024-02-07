@@ -610,6 +610,7 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
     config.put(KafkaConfig.TransactionsTopicReplicationFactorProp(), (short) 1);
     // Set to 1 because only 1 broker
     config.put(KafkaConfig.TransactionsTopicMinISRProp(), 1);
+    config.put("confluent.license.topic.replication.factor", "1");
 
     return config;
   }

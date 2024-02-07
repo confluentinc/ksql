@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project>
   <modelVersion>4.0.0</modelVersion>
-  <groupId>org.example2.ksql.udf</groupId>
+  <groupId>io.confluent.example2.ksql.udf</groupId>
   <artifactId>udf-example-2</artifactId>
   <version>1</version>
 

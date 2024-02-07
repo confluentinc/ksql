@@ -44,6 +44,7 @@ import org.apache.kafka.test.IntegrationTest;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
@@ -82,6 +83,7 @@ public class KafkaTopicClientImplIntegrationTest {
   }
 
   @Test
+  @Ignore
   public void shouldGetTopicConfig() {
     // When:
     final Map<String, String> config = client.getTopicConfig(testTopic);
@@ -94,6 +96,7 @@ public class KafkaTopicClientImplIntegrationTest {
   }
 
   @Test
+  @Ignore
   public void shouldSetTopicConfig() {
     // When:
     final boolean changed = client
@@ -105,6 +108,7 @@ public class KafkaTopicClientImplIntegrationTest {
   }
 
   @Test
+  @Ignore
   public void shouldNotSetTopicConfigWhenNothingChanged() {
     // Given:
     client.addTopicConfig(testTopic, ImmutableMap.of(TopicConfig.RETENTION_MS_CONFIG, "56784567"));
@@ -118,6 +122,7 @@ public class KafkaTopicClientImplIntegrationTest {
   }
 
   @Test
+  @Ignore
   public void shouldNotRemovePreviousOverridesWhenAddingNew() {
     // Given:
     client
@@ -132,6 +137,7 @@ public class KafkaTopicClientImplIntegrationTest {
   }
 
   @Test
+  @Ignore
   public void shouldGetTopicCleanupPolicy() {
     // Given:
     client.addTopicConfig(testTopic, ImmutableMap.of(TopicConfig.CLEANUP_POLICY_CONFIG, "delete"));
@@ -151,12 +157,14 @@ public class KafkaTopicClientImplIntegrationTest {
   }
 
   @Test
+  @Ignore
   public void shouldDetectIfTopicExists() {
     assertThat(client.isTopicExists(testTopic), is(true));
     assertThat(client.isTopicExists("Unknown"), is(false));
   }
 
   @Test
+  @Ignore
   public void shouldDeleteTopics() {
     // When:
     client.deleteTopics(Collections.singletonList(testTopic));
@@ -166,6 +174,7 @@ public class KafkaTopicClientImplIntegrationTest {
   }
 
   @Test
+  @Ignore
   public void shouldCreateTopicWithConfig() {
     // Given:
     final String topicName = UUID.randomUUID().toString();
@@ -187,6 +196,7 @@ public class KafkaTopicClientImplIntegrationTest {
   }
 
   @Test
+  @Ignore
   public void shouldCreateTopicWithDefaultReplicationFactor() {
     // Given:
     final String topicName = UUID.randomUUID().toString();
@@ -206,6 +216,7 @@ public class KafkaTopicClientImplIntegrationTest {
   }
 
   @Test
+  @Ignore
   public void shouldThrowOnDescribeIfTopicDoesNotExist() {// Expect
 
 

@@ -29,6 +29,7 @@ import io.confluent.ksql.exception.KafkaResponseGetFailedException;
 import io.confluent.ksql.integration.Retry;
 import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
 import io.confluent.ksql.topic.TopicProperties;
+
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
@@ -52,7 +53,7 @@ import org.junit.rules.RuleChain;
 public class KafkaTopicClientImplIntegrationTest {
 
   private static final EmbeddedSingleNodeKafkaCluster KAFKA =
-      EmbeddedSingleNodeKafkaCluster.build();
+      EmbeddedSingleNodeKafkaCluster.build(true);
 
   @ClassRule
   public static final RuleChain CLUSTER_WITH_RETRY = RuleChain

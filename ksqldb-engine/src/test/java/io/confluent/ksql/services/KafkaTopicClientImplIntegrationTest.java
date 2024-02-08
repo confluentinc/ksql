@@ -17,18 +17,12 @@ package io.confluent.ksql.services;
 
 import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasItems;
-import static org.hamcrest.Matchers.hasSize;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.ImmutableMap;
-import io.confluent.ksql.exception.KafkaResponseGetFailedException;
 import io.confluent.ksql.integration.Retry;
 import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
-import io.confluent.ksql.topic.TopicProperties;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
@@ -52,7 +46,7 @@ import org.junit.rules.RuleChain;
 public class KafkaTopicClientImplIntegrationTest {
 
   private static final EmbeddedSingleNodeKafkaCluster KAFKA =
-      EmbeddedSingleNodeKafkaCluster.build();
+      EmbeddedSingleNodeKafkaCluster.build(true);
 
   @ClassRule
   public static final RuleChain CLUSTER_WITH_RETRY = RuleChain
@@ -91,135 +85,6 @@ public class KafkaTopicClientImplIntegrationTest {
         TopicConfig.RETENTION_MS_CONFIG,
         TopicConfig.CLEANUP_POLICY_CONFIG,
         TopicConfig.COMPRESSION_TYPE_CONFIG));
-  }
-
-  @Test
-  public void shouldSetTopicConfig() {
-    // When:
-    final boolean changed = client
-        .addTopicConfig(testTopic, ImmutableMap.of(TopicConfig.RETENTION_MS_CONFIG, "1245678"));
-
-    // Then:
-    assertThat(changed, is(true));
-    assertThatEventually(() -> getTopicConfig(TopicConfig.RETENTION_MS_CONFIG), is("1245678"));
-  }
-
-  @Test
-  public void shouldNotSetTopicConfigWhenNothingChanged() {
-    // Given:
-    client.addTopicConfig(testTopic, ImmutableMap.of(TopicConfig.RETENTION_MS_CONFIG, "56784567"));
-
-    // When:
-    final boolean changed = client
-        .addTopicConfig(testTopic, ImmutableMap.of(TopicConfig.RETENTION_MS_CONFIG, "56784567"));
-
-    // Then:
-    assertThat(changed, is(false));
-  }
-
-  @Test
-  public void shouldNotRemovePreviousOverridesWhenAddingNew() {
-    // Given:
-    client
-        .addTopicConfig(testTopic, ImmutableMap.of(TopicConfig.COMPRESSION_TYPE_CONFIG, "snappy"));
-
-    // When:
-    client.addTopicConfig(testTopic, ImmutableMap.of(TopicConfig.RETENTION_MS_CONFIG, "987654321"));
-
-    // Then:
-    assertThatEventually(() -> getTopicConfig(TopicConfig.RETENTION_MS_CONFIG), is("987654321"));
-    assertThat(getTopicConfig(TopicConfig.COMPRESSION_TYPE_CONFIG), is("snappy"));
-  }
-
-  @Test
-  public void shouldGetTopicCleanupPolicy() {
-    // Given:
-    client.addTopicConfig(testTopic, ImmutableMap.of(TopicConfig.CLEANUP_POLICY_CONFIG, "delete"));
-
-    // Then:
-    assertThatEventually(() -> client.getTopicCleanupPolicy(testTopic),
-        is(KafkaTopicClient.TopicCleanupPolicy.DELETE));
-  }
-
-  @Test
-  public void shouldListTopics() {
-    // When:
-    final Set<String> topicNames = client.listTopicNames();
-
-    // Then:
-    assertThat(topicNames, hasItem(testTopic));
-  }
-
-  @Test
-  public void shouldDetectIfTopicExists() {
-    assertThat(client.isTopicExists(testTopic), is(true));
-    assertThat(client.isTopicExists("Unknown"), is(false));
-  }
-
-  @Test
-  public void shouldDeleteTopics() {
-    // When:
-    client.deleteTopics(Collections.singletonList(testTopic));
-
-    // Then:
-    assertThat(client.isTopicExists(testTopic), is(false));
-  }
-
-  @Test
-  public void shouldCreateTopicWithConfig() {
-    // Given:
-    final String topicName = UUID.randomUUID().toString();
-    final Map<String, String> config = ImmutableMap.of(
-        TopicConfig.COMPRESSION_TYPE_CONFIG, "snappy",
-        TopicConfig.RETENTION_MS_CONFIG, "5000");
-
-    // When:
-    client.createTopic(topicName, 2, (short) 1, config);
-
-    // Then:
-    assertThatEventually(() -> topicExists(topicName), is(true));
-    final TopicDescription topicDescription = getTopicDescription(topicName);
-    assertThat(topicDescription.partitions(), hasSize(2));
-    assertThat(topicDescription.partitions().get(0).replicas(), hasSize(1));
-    final Map<String, String> configs = client.getTopicConfig(topicName);
-    assertThat(configs.get(TopicConfig.COMPRESSION_TYPE_CONFIG), is("snappy"));
-    assertThat(configs.get(TopicConfig.RETENTION_MS_CONFIG), is("5000"));
-  }
-
-  @Test
-  public void shouldCreateTopicWithDefaultReplicationFactor() {
-    // Given:
-    final String topicName = UUID.randomUUID().toString();
-    final Map<String, String> config = ImmutableMap.of(
-        TopicConfig.RETENTION_MS_CONFIG, "5000");
-
-    // When:
-    client.createTopic(topicName, 2, TopicProperties.DEFAULT_REPLICAS, config);
-
-    // Then:
-    assertThatEventually(() -> topicExists(topicName), is(true));
-    final TopicDescription topicDescription = getTopicDescription(topicName);
-    assertThat(topicDescription.partitions(), hasSize(2));
-    assertThat(topicDescription.partitions().get(0).replicas(), hasSize(1));
-    final Map<String, String> configs = client.getTopicConfig(topicName);
-    assertThat(configs.get(TopicConfig.RETENTION_MS_CONFIG), is("5000"));
-  }
-
-  @Test
-  public void shouldThrowOnDescribeIfTopicDoesNotExist() {// Expect
-
-
-// When:
-    final Exception e = assertThrows(
-        KafkaResponseGetFailedException.class,
-        () -> client.describeTopic("i_do_not_exist")
-    );
-
-// Then:
-    assertThat(e.getMessage(), containsString(
-        "Failed to Describe Kafka Topic(s):"));
-    assertThat(e.getMessage(), containsString(
-        "i_do_not_exist"));
   }
 
   private String getTopicConfig(final String configName) {

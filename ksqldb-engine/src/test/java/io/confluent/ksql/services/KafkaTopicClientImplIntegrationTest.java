@@ -25,17 +25,16 @@ import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.ImmutableMap;
+
 import io.confluent.ksql.exception.KafkaResponseGetFailedException;
-import io.confluent.ksql.integration.Retry;
 import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
 import io.confluent.ksql.topic.TopicProperties;
+
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
-import kafka.zookeeper.ZooKeeperClientException;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.AdminClientConfig;
 import org.apache.kafka.clients.admin.TopicDescription;
@@ -43,28 +42,24 @@ import org.apache.kafka.common.config.TopicConfig;
 import org.apache.kafka.test.IntegrationTest;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
-import org.junit.rules.RuleChain;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Category({IntegrationTest.class})
 public class KafkaTopicClientImplIntegrationTest {
 
-  private static final EmbeddedSingleNodeKafkaCluster KAFKA =
-      EmbeddedSingleNodeKafkaCluster.build();
-
-  @ClassRule
-  public static final RuleChain CLUSTER_WITH_RETRY = RuleChain
-      .outerRule(Retry.of(3, ZooKeeperClientException.class, 3, TimeUnit.SECONDS))
-      .around(KAFKA);
-
+  private static final Logger LOG = LoggerFactory.getLogger(KafkaTopicClientImplIntegrationTest.class);
+  private EmbeddedSingleNodeKafkaCluster KAFKA;
   private String testTopic;
   private KafkaTopicClient client;
   private AdminClient adminClient;
 
   @Before
-  public void setUp() {
+  public void setUp() throws Exception {
+    KAFKA = EmbeddedSingleNodeKafkaCluster.build(true);
+    KAFKA.start();
     testTopic = UUID.randomUUID().toString();
     KAFKA.createTopics(testTopic);
 
@@ -78,7 +73,16 @@ public class KafkaTopicClientImplIntegrationTest {
 
   @After
   public void tearDown() {
-    adminClient.close();
+    try {
+      adminClient.close();
+    } catch (Exception e) {
+      LOG.warn("Error while closing admin client.", e);
+    }
+    try {
+      KAFKA.stop();
+    } catch (Exception e) {
+      LOG.warn("Error while closing Kafka cluster client.", e);
+    }
   }
 
   @Test

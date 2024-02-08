@@ -52,7 +52,7 @@ import org.junit.rules.RuleChain;
 public class KafkaTopicClientImplIntegrationTest {
 
   private static final EmbeddedSingleNodeKafkaCluster KAFKA =
-      EmbeddedSingleNodeKafkaCluster.build();
+      EmbeddedSingleNodeKafkaCluster.build(true);
 
   @ClassRule
   public static final RuleChain CLUSTER_WITH_RETRY = RuleChain

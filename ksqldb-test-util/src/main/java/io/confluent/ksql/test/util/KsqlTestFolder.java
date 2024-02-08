@@ -17,6 +17,10 @@ package io.confluent.ksql.test.util;
 
 import java.io.File;
 import java.lang.ref.WeakReference;
+import java.util.concurrent.atomic.AtomicBoolean;
+
+import org.apache.commons.io.monitor.FileAlterationListener;
+import org.apache.commons.io.monitor.FileAlterationObserver;
 import org.junit.rules.TemporaryFolder;
 
 /**
@@ -62,5 +66,115 @@ public final class KsqlTestFolder {
     Runtime.getRuntime().addShutdownHook(hook);
 
     return temporaryFolder;
+  }
+
+  public static void startWatching(TemporaryFolder folder, boolean isWithFileWatcher,
+                             AtomicBoolean isWatcherRunning) {
+    if (isWithFileWatcher) {
+      try {
+        FileAlterationObserver fileAlterationObserver = new FileAlterationObserver(folder.getRoot());
+        fileAlterationObserver.addListener(new FileAlterationListener() {
+          @Override
+          public void onStart(FileAlterationObserver fileAlterationObserver) {
+
+          }
+
+          @Override
+          public void onDirectoryCreate(File file) {
+            if (file.getAbsolutePath().contains("_confluent-command-0")) {
+              System.out.println("Checkthis");
+            }
+            System.out.printf("##### Directory created - %s. can-read - %b, can-write - %b, "
+                    + "can-execute - %b\n%n",
+                file.getAbsolutePath(),
+                file.canRead(),
+                file.canWrite(),
+                file.canExecute()
+            );
+          }
+
+          @Override
+          public void onDirectoryChange(File file) {
+            if (file.getAbsolutePath().contains("_confluent-command-0")) {
+              System.out.println("Checkthis");
+            }
+            System.out.printf("##### Directory changed - %s. can-read - %b, can-write - %b, "
+                    + "can-execute - %b\n%n",
+                file.getAbsolutePath(),
+                file.canRead(),
+                file.canWrite(),
+                file.canExecute()
+            );
+          }
+
+          @Override
+          public void onDirectoryDelete(File file) {
+            if (file.getAbsolutePath().contains("_confluent-command-0")) {
+              System.out.println("Checkthis");
+            }
+            System.out.printf("##### Directory deleted - %s. can-read - %b, can-write - %b, "
+                    + "can-execute - %b\n%n",
+                file.getAbsolutePath(),
+                file.canRead(),
+                file.canWrite(),
+                file.canExecute()
+            );
+          }
+
+          @Override
+          public void onFileCreate(File file) {
+            if (file.getAbsolutePath().contains("_confluent-command-0")) {
+              System.out.println("Checkthis");
+            }
+            System.out.printf("##### File created - %s. can-read - %b, can-write - %b, "
+                    + "can-execute - %b\n%n",
+                file.getAbsolutePath(),
+                file.canRead(),
+                file.canWrite(),
+                file.canExecute()
+            );
+          }
+
+          @Override
+          public void onFileChange(File file) {
+            if (file.getAbsolutePath().contains("_confluent-command-0")) {
+              System.out.println("Checkthis");
+            }
+            System.out.printf("##### File changed - %s. can-read - %b, can-write - %b, "
+                    + "can-execute - %b\n%n",
+                file.getAbsolutePath(),
+                file.canRead(),
+                file.canWrite(),
+                file.canExecute()
+            );
+          }
+
+          @Override
+          public void onFileDelete(File file) {
+            if (file.getAbsolutePath().contains("_confluent-command-0")) {
+              System.out.println("Checkthis");
+            }
+            System.out.printf("##### File deleted - %s. can-read - %b, can-write - %b, "
+                    + "can-execute - %b\n%n",
+                file.getAbsolutePath(),
+                file.canRead(),
+                file.canWrite(),
+                file.canExecute()
+            );
+          }
+
+          @Override
+          public void onStop(FileAlterationObserver fileAlterationObserver) {
+
+          }
+        });
+        FileAlterationObserverRunner runner =
+            new FileAlterationObserverRunner(fileAlterationObserver, isWatcherRunning);
+        Thread fileObs = new Thread(runner);
+        fileObs.start();
+      } catch (Exception e) {
+        System.out.println("Error while starting file alteration observer." + e.getMessage());
+      }
+    }
   }
 }

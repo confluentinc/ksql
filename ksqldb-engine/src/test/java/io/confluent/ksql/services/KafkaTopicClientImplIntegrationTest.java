@@ -26,8 +26,8 @@ import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.exception.KafkaResponseGetFailedException;
+import io.confluent.ksql.integration.IntegrationTestHarness;
 import io.confluent.ksql.integration.Retry;
-import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
 import io.confluent.ksql.topic.TopicProperties;
 import java.util.Collections;
 import java.util.Map;
@@ -51,13 +51,12 @@ import org.junit.rules.RuleChain;
 @Category({IntegrationTest.class})
 public class KafkaTopicClientImplIntegrationTest {
 
-  private static final EmbeddedSingleNodeKafkaCluster KAFKA =
-      EmbeddedSingleNodeKafkaCluster.build();
+  private static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.build();
 
   @ClassRule
   public static final RuleChain CLUSTER_WITH_RETRY = RuleChain
       .outerRule(Retry.of(3, ZooKeeperClientException.class, 3, TimeUnit.SECONDS))
-      .around(KAFKA);
+      .around(TEST_HARNESS);
 
   private String testTopic;
   private KafkaTopicClient client;
@@ -66,10 +65,10 @@ public class KafkaTopicClientImplIntegrationTest {
   @Before
   public void setUp() {
     testTopic = UUID.randomUUID().toString();
-    KAFKA.createTopics(testTopic);
+    TEST_HARNESS.ensureTopics(testTopic);
 
     adminClient = AdminClient.create(ImmutableMap.of(
-        AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, KAFKA.bootstrapServers()));
+        AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, TEST_HARNESS.kafkaBootstrapServers()));
 
     client = new KafkaTopicClientImpl(() -> adminClient);
 

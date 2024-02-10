@@ -167,14 +167,16 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
    * Creates and starts a Kafka cluster.
    */
   public void start() throws Exception {
-    log.debug("Initiating embedded Kafka cluster startup");
+    log.info("Initiating embedded Kafka cluster startup");
 
     tmpFolder.create();
     KsqlTestFolder.startWatching(tmpFolder, isWithFileWatcher, isWatcherRunning);
 
     installJaasConfig();
     zookeeper = new ZooKeeperEmbedded();
-    broker = new KafkaEmbedded(buildBrokerConfig(tmpFolder.newFolder().getAbsolutePath()));
+    String absolutePath = tmpFolder.newFolder().getAbsolutePath();
+    log.info("Path for starting kafka  " + absolutePath);
+    broker = new KafkaEmbedded(buildBrokerConfig(absolutePath));
 
     initialAcls.forEach((key, ops) ->
         addUserAcl(key.userName, AclPermissionType.ALLOW, key.resourcePattern, ops));

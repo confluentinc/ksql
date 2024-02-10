@@ -43,7 +43,7 @@ import org.apache.kafka.common.config.TopicConfig;
 import org.apache.kafka.test.IntegrationTest;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Rule;
+import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
@@ -51,11 +51,11 @@ import org.junit.rules.RuleChain;
 @Category({IntegrationTest.class})
 public class KafkaTopicClientImplIntegrationTest {
 
-  private final EmbeddedSingleNodeKafkaCluster KAFKA =
+  private static final EmbeddedSingleNodeKafkaCluster KAFKA =
       EmbeddedSingleNodeKafkaCluster.build(true);
 
-  @Rule
-  public final RuleChain CLUSTER_WITH_RETRY = RuleChain
+  @ClassRule
+  public static final RuleChain CLUSTER_WITH_RETRY = RuleChain
       .outerRule(Retry.of(3, ZooKeeperClientException.class, 3, TimeUnit.SECONDS))
       .around(KAFKA);
 

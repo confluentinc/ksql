@@ -15,38 +15,33 @@
 
 package io.confluent.ksql.integration;
 
-import static io.confluent.ksql.serde.FormatFactory.JSON;
-import static io.confluent.ksql.serde.FormatFactory.KAFKA;
 import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
-import static org.hamcrest.Matchers.hasEntry;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasItems;
+import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThrows;
 
-import com.google.common.collect.ImmutableList;
-import io.confluent.ksql.KsqlConfigTestUtil;
-import io.confluent.ksql.test.util.ConsumerGroupTestUtil;
-import io.confluent.ksql.test.util.TopicTestUtil;
-import io.confluent.ksql.services.KafkaConsumerGroupClient;
-import io.confluent.ksql.services.KafkaConsumerGroupClient.ConsumerSummary;
-import io.confluent.ksql.services.KafkaConsumerGroupClientImpl;
-import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.OrderDataProvider;
-import java.time.Duration;
-import java.util.Collection;
+import io.confluent.ksql.exception.KafkaResponseGetFailedException;
+import io.confluent.ksql.services.KafkaTopicClient;
+import io.confluent.ksql.services.KafkaTopicClientImpl;
+import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
+import io.confluent.ksql.topic.TopicProperties;
 import java.util.Collections;
-import java.util.List;
 import java.util.Map;
-import java.util.Objects;
+import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
+
+import com.google.common.collect.ImmutableMap;
 import kafka.zookeeper.ZooKeeperClientException;
 import org.apache.kafka.clients.admin.AdminClient;
-import org.apache.kafka.clients.consumer.ConsumerConfig;
-import org.apache.kafka.clients.consumer.KafkaConsumer;
-import org.apache.kafka.clients.consumer.OffsetAndMetadata;
-import org.apache.kafka.common.TopicPartition;
-import org.apache.kafka.common.serialization.ByteArrayDeserializer;
-import org.apache.kafka.common.serialization.StringDeserializer;
+import org.apache.kafka.clients.admin.AdminClientConfig;
+import org.apache.kafka.clients.admin.TopicDescription;
+import org.apache.kafka.common.config.TopicConfig;
 import org.apache.kafka.test.IntegrationTest;
 import org.junit.After;
 import org.junit.Before;
@@ -63,155 +58,199 @@ import org.junit.rules.RuleChain;
 @Category({IntegrationTest.class})
 public class KafkaConsumerGroupClientTest {
 
-  private static final int PARTITION_COUNT = 3;
-
-  private static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.build();
+  private static final EmbeddedSingleNodeKafkaCluster KAFKA =
+      EmbeddedSingleNodeKafkaCluster.build(true);
 
   @ClassRule
-  public static final RuleChain clusterWithRetry = RuleChain
+  public static final RuleChain CLUSTER_WITH_RETRY = RuleChain
       .outerRule(Retry.of(3, ZooKeeperClientException.class, 3, TimeUnit.SECONDS))
-      .around(TEST_HARNESS);
+      .around(KAFKA);
 
+  private String testTopic;
+  private KafkaTopicClient client;
   private AdminClient adminClient;
-  private KafkaConsumerGroupClient consumerGroupClient;
-  private String topicName;
-  private String group0;
-  private String group1;
 
   @Before
-  public void startUp() {
-    final KsqlConfig ksqlConfig = KsqlConfigTestUtil.create(TEST_HARNESS.getKafkaCluster());
+  public void setUp() {
+    testTopic = UUID.randomUUID().toString();
+    KAFKA.createTopics(testTopic);
 
-    adminClient = AdminClient.create(ksqlConfig.getKsqlAdminClientConfigProps());
-    consumerGroupClient = new KafkaConsumerGroupClientImpl(() -> adminClient);
+    adminClient = AdminClient.create(ImmutableMap.of(
+        AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, KAFKA.bootstrapServers()));
 
-    topicName = TopicTestUtil.uniqueTopicName();
+    client = new KafkaTopicClientImpl(() -> adminClient);
 
-    group0 = ConsumerGroupTestUtil.uniqueGroupId("0");
-    group1 = ConsumerGroupTestUtil.uniqueGroupId("1");
+    allowForAsyncTopicCreation();
   }
 
   @After
-  public void shutdown() {
+  public void tearDown() {
     adminClient.close();
   }
 
   @Test
-  public void shouldListConsumerGroupsWhenTheyExist() {
-    givenTopicExistsWithData();
-    verifyListsGroups(group0, ImmutableList.of(group0));
-    verifyListsGroups(group1, ImmutableList.of(group0, group1));
+  public void shouldGetTopicConfig() {
+    // When:
+    final Map<String, String> config = client.getTopicConfig(testTopic);
+
+    // Then:
+    assertThat(config.keySet(), hasItems(
+        TopicConfig.RETENTION_MS_CONFIG,
+        TopicConfig.CLEANUP_POLICY_CONFIG,
+        TopicConfig.COMPRESSION_TYPE_CONFIG));
   }
 
   @Test
-  public void shouldDescribeConsumerGroup() {
-    givenTopicExistsWithData();
-    try (KafkaConsumer<String, byte[]> c1 = createConsumer(group0)) {
-      verifyDescribeConsumerGroup(1, group0, ImmutableList.of(c1));
-      try (KafkaConsumer<String, byte[]> c2 = createConsumer(group0)) {
-        verifyDescribeConsumerGroup(2, group0, ImmutableList.of(c1, c2));
+  public void shouldSetTopicConfig() {
+    // When:
+    final boolean changed = client
+        .addTopicConfig(testTopic, ImmutableMap.of(TopicConfig.RETENTION_MS_CONFIG, "1245678"));
+
+    // Then:
+    assertThat(changed, is(true));
+    assertThatEventually(() -> getTopicConfig(TopicConfig.RETENTION_MS_CONFIG), is("1245678"));
+  }
+
+  @Test
+  public void shouldNotSetTopicConfigWhenNothingChanged() {
+    // Given:
+    client.addTopicConfig(testTopic, ImmutableMap.of(TopicConfig.RETENTION_MS_CONFIG, "56784567"));
+
+    // When:
+    final boolean changed = client
+        .addTopicConfig(testTopic, ImmutableMap.of(TopicConfig.RETENTION_MS_CONFIG, "56784567"));
+
+    // Then:
+    assertThat(changed, is(false));
+  }
+
+  @Test
+  public void shouldNotRemovePreviousOverridesWhenAddingNew() {
+    // Given:
+    client
+        .addTopicConfig(testTopic, ImmutableMap.of(TopicConfig.COMPRESSION_TYPE_CONFIG, "snappy"));
+
+    // When:
+    client.addTopicConfig(testTopic, ImmutableMap.of(TopicConfig.RETENTION_MS_CONFIG, "987654321"));
+
+    // Then:
+    assertThatEventually(() -> getTopicConfig(TopicConfig.RETENTION_MS_CONFIG), is("987654321"));
+    assertThat(getTopicConfig(TopicConfig.COMPRESSION_TYPE_CONFIG), is("snappy"));
+  }
+
+  @Test
+  public void shouldGetTopicCleanupPolicy() {
+    // Given:
+    client.addTopicConfig(testTopic, ImmutableMap.of(TopicConfig.CLEANUP_POLICY_CONFIG, "delete"));
+
+    // Then:
+    assertThatEventually(() -> client.getTopicCleanupPolicy(testTopic),
+        is(KafkaTopicClient.TopicCleanupPolicy.DELETE));
+  }
+
+  @Test
+  public void shouldListTopics() {
+    // When:
+    final Set<String> topicNames = client.listTopicNames();
+
+    // Then:
+    assertThat(topicNames, hasItem(testTopic));
+  }
+
+  @Test
+  public void shouldDetectIfTopicExists() {
+    assertThat(client.isTopicExists(testTopic), is(true));
+    assertThat(client.isTopicExists("Unknown"), is(false));
+  }
+
+  @Test
+  public void shouldDeleteTopics() {
+    // When:
+    client.deleteTopics(Collections.singletonList(testTopic));
+
+    // Then:
+    assertThat(client.isTopicExists(testTopic), is(false));
+  }
+
+  @Test
+  public void shouldCreateTopicWithConfig() {
+    // Given:
+    final String topicName = UUID.randomUUID().toString();
+    final Map<String, String> config = ImmutableMap.of(
+        TopicConfig.COMPRESSION_TYPE_CONFIG, "snappy",
+        TopicConfig.RETENTION_MS_CONFIG, "5000");
+
+    // When:
+    client.createTopic(topicName, 2, (short) 1, config);
+
+    // Then:
+    assertThatEventually(() -> topicExists(topicName), is(true));
+    final TopicDescription topicDescription = getTopicDescription(topicName);
+    assertThat(topicDescription.partitions(), hasSize(2));
+    assertThat(topicDescription.partitions().get(0).replicas(), hasSize(1));
+    final Map<String, String> configs = client.getTopicConfig(topicName);
+    assertThat(configs.get(TopicConfig.COMPRESSION_TYPE_CONFIG), is("snappy"));
+    assertThat(configs.get(TopicConfig.RETENTION_MS_CONFIG), is("5000"));
+  }
+
+  @Test
+  public void shouldCreateTopicWithDefaultReplicationFactor() {
+    // Given:
+    final String topicName = UUID.randomUUID().toString();
+    final Map<String, String> config = ImmutableMap.of(
+        TopicConfig.RETENTION_MS_CONFIG, "5000");
+
+    // When:
+    client.createTopic(topicName, 2, TopicProperties.DEFAULT_REPLICAS, config);
+
+    // Then:
+    assertThatEventually(() -> topicExists(topicName), is(true));
+    final TopicDescription topicDescription = getTopicDescription(topicName);
+    assertThat(topicDescription.partitions(), hasSize(2));
+    assertThat(topicDescription.partitions().get(0).replicas(), hasSize(1));
+    final Map<String, String> configs = client.getTopicConfig(topicName);
+    assertThat(configs.get(TopicConfig.RETENTION_MS_CONFIG), is("5000"));
+  }
+
+  @Test
+  public void shouldThrowOnDescribeIfTopicDoesNotExist() {// Expect
+
+
+// When:
+    final Exception e = assertThrows(
+        KafkaResponseGetFailedException.class,
+        () -> client.describeTopic("i_do_not_exist")
+    );
+
+// Then:
+    assertThat(e.getMessage(), containsString(
+        "Failed to Describe Kafka Topic(s):"));
+    assertThat(e.getMessage(), containsString(
+        "i_do_not_exist"));
+  }
+
+  private String getTopicConfig(final String configName) {
+    final Map<String, String> configs = client.getTopicConfig(testTopic);
+    return configs.get(configName);
+  }
+
+  private boolean topicExists(final String topicName) {
+    return client.isTopicExists(topicName);
+  }
+
+  private TopicDescription getTopicDescription(final String topicName) {
+    return client.describeTopic(topicName);
+  }
+
+  private void allowForAsyncTopicCreation() {
+    final Supplier<Set<String>> topicNamesSupplier = () -> {
+      try {
+        return adminClient.listTopics().names().get();
+      } catch (final Exception e) {
+        return Collections.emptySet();
       }
-    }
-  }
-
-  @Test
-  public void shouldListConsumerGroupOffsetsWhenTheyExist() {
-    givenTopicExistsWithData();
-    verifyListsConsumerGroupOffsets(group0);
-  }
-
-  private void verifyDescribeConsumerGroup(
-      final int expectedNumConsumers,
-      final String group,
-      final List<KafkaConsumer<?, ?>> consumers
-  ) {
-    final Supplier<ConsumerAndPartitionCount> pollAndGetCounts = () -> {
-      consumers.forEach(consumer -> consumer.poll(Duration.ofMillis(1)));
-
-      final Collection<ConsumerSummary> summaries = consumerGroupClient
-          .describeConsumerGroup(group).consumers();
-
-      final long partitionCount = summaries.stream()
-          .mapToLong(summary -> summary.partitions().size())
-          .sum();
-
-      return new ConsumerAndPartitionCount(consumers.size(), (int) partitionCount);
     };
 
-    assertThatEventually(pollAndGetCounts,
-        is(new ConsumerAndPartitionCount(expectedNumConsumers, PARTITION_COUNT)));
-  }
-
-  private void verifyListsGroups(final String newGroup, final List<String> consumerGroups) {
-    try (KafkaConsumer<String, byte[]> consumer = createConsumer(newGroup)) {
-
-      final Supplier<List<String>> pollAndGetGroups = () -> {
-        consumer.poll(Duration.ofMillis(1));
-        return consumerGroupClient.listGroups();
-      };
-
-      assertThatEventually(pollAndGetGroups, hasItems(consumerGroups.toArray(new String[0])));
-    }
-  }
-
-  private void verifyListsConsumerGroupOffsets(
-      final String newGroup
-  ) {
-    try (KafkaConsumer<String, byte[]> consumer = createConsumer(newGroup)) {
-      final Supplier<Map<TopicPartition, OffsetAndMetadata>> pollAndGetGroups = () -> {
-        consumer.poll(Duration.ofMillis(1));
-        return consumerGroupClient.listConsumerGroupOffsets(newGroup);
-      };
-
-      assertThatEventually(pollAndGetGroups,
-          hasEntry(new TopicPartition(topicName, 0), new OffsetAndMetadata(0)));
-    }
-  }
-
-  private void givenTopicExistsWithData() {
-    TEST_HARNESS.ensureTopics(PARTITION_COUNT, topicName);
-    TEST_HARNESS.produceRows(topicName, new OrderDataProvider(), KAFKA, JSON, System::currentTimeMillis);
-  }
-
-  private KafkaConsumer<String, byte[]> createConsumer(final String group) {
-    final Map<String, Object> consumerConfigs = TEST_HARNESS.getKafkaCluster().consumerConfig();
-    consumerConfigs.put(ConsumerConfig.GROUP_ID_CONFIG, group);
-
-    final KafkaConsumer<String, byte[]> consumer = new KafkaConsumer<>(
-        consumerConfigs,
-        new StringDeserializer(),
-        new ByteArrayDeserializer());
-
-    consumer.subscribe(Collections.singleton(topicName));
-    return consumer;
-  }
-
-  private static final class ConsumerAndPartitionCount {
-
-    private final int consumerCount;
-    private final int partitionCount;
-
-    private ConsumerAndPartitionCount(final int consumerCount, final int partitionCount) {
-      this.consumerCount = consumerCount;
-      this.partitionCount = partitionCount;
-    }
-
-    @Override
-    public boolean equals(final Object o) {
-      if (this == o) {
-        return true;
-      }
-      if (o == null || getClass() != o.getClass()) {
-        return false;
-      }
-      final ConsumerAndPartitionCount that = (ConsumerAndPartitionCount) o;
-      return consumerCount == that.consumerCount
-          && partitionCount == that.partitionCount;
-    }
-
-    @Override
-    public int hashCode() {
-      return Objects.hash(consumerCount, partitionCount);
-    }
+    assertThatEventually(topicNamesSupplier, hasItem(testTopic));
   }
 }

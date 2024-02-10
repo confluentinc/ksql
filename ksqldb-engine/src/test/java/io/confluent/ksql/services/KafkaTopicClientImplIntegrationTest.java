@@ -46,9 +46,12 @@ import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
+import org.junit.jupiter.api.MethodOrderer;
+import org.junit.jupiter.api.TestMethodOrder;
 import org.junit.rules.RuleChain;
 
 @Category({IntegrationTest.class})
+@TestMethodOrder(MethodOrderer.MethodName.class)
 public class KafkaTopicClientImplIntegrationTest {
 
   private static final EmbeddedSingleNodeKafkaCluster KAFKA =

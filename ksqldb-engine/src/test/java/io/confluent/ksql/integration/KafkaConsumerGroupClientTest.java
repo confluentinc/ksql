@@ -65,7 +65,7 @@ public class KafkaConsumerGroupClientTest {
 
   private static final int PARTITION_COUNT = 3;
 
-  private static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.build();
+  private static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.build(true);
 
   @ClassRule
   public static final RuleChain clusterWithRetry = RuleChain

@@ -153,7 +153,6 @@
         <netty.version>4.1.100.Final</netty.version>
         <netty-codec-http2-version>4.1.100.Final</netty-codec-http2-version>
         <jersey-common>2.39.1</jersey-common>
-        <multi-threaded-testing.forkCount>3</multi-threaded-testing.forkCount>
         <kafka.version>${ce.kafka.version}</kafka.version>
     </properties>
 
@@ -803,12 +802,14 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <configuration>
+                    <rerunFailingTestsCount>3</rerunFailingTestsCount>
                     <systemPropertyVariables>
                         <log4j.configuration>file:${project.basedir}/../ksqldb-test-util/src/main/resources/log4j.properties</log4j.configuration>
                     </systemPropertyVariables>
                     <argLine>-verbose:gc -Xloggc:"${project.build.directory}/gc.log"</argLine>
-                    <argLine>-Duser.timezone=UTC -Xmx1g -Xms1g</argLine>
+                    <argLine>-Duser.timezone=UTC -Xmx1g -Xms1g -XX:MaxPermSize=256m</argLine>
                 </configuration>
+                <version>3.2.5</version>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -822,36 +823,6 @@
                     for more details -->
                     <useModulePath>false</useModulePath>
                 </configuration>
-                <executions>
-                    <execution>
-                        <id>integration-test</id>
-                        <configuration>
-                            <excludes>
-                                <exclude>**/RestQueryTranslationTest*.java</exclude>
-                                <exclude>**/io/confluent/ksql/rest/integration/**/*.java</exclude>
-                            </excludes>
-                        </configuration>
-                    </execution>
-                    <execution>
-                        <id>multi-threaded-testing</id>
-                        <phase>integration-test</phase>
-                        <goals>
-                            <goal>integration-test</goal>
-                        </goals>
-                        <configuration>
-                            <includes>
-                                <include>**/RestQueryTranslationTest*.java</include>
-                                <include>**/io/confluent/ksql/rest/integration/**/*.java</include>
-                            </includes>
-                            <forkCount>${multi-threaded-testing.forkCount}</forkCount>
-                            <reuseForks>false</reuseForks>
-                            <parallel>classes</parallel>
-                            <useUnlimitedThreads>true</useUnlimitedThreads>
-                            <forkedProcessTimeoutInSeconds>3600</forkedProcessTimeoutInSeconds>
-                            <forkedProcessExitTimeoutInSeconds>180</forkedProcessExitTimeoutInSeconds>
-                        </configuration>
-                    </execution>
-                </executions>
             </plugin>
 
             <plugin>

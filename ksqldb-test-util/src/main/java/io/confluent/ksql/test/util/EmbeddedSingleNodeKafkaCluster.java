@@ -174,7 +174,9 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
 
     installJaasConfig();
     zookeeper = new ZooKeeperEmbedded();
-    broker = new KafkaEmbedded(buildBrokerConfig(tmpFolder.newFolder().getAbsolutePath()));
+    final String absolutePath = tmpFolder.newFolder().getAbsolutePath();
+    log.info(String.format("Path for starting kafka %s", absolutePath));
+    broker = new KafkaEmbedded(buildBrokerConfig(absolutePath));
 
     initialAcls.forEach((key, ops) ->
         addUserAcl(key.userName, AclPermissionType.ALLOW, key.resourcePattern, ops));

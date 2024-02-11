@@ -71,10 +71,10 @@ public final class KsqlTestFolder {
                              final AtomicBoolean isWatcherRunning) {
     if (isWithFileWatcher) {
       try {
-        //final FileAlterationObserver fileAlterationObserver =
-        //    new FileAlterationObserver(folder.getRoot());
         final FileAlterationObserver fileAlterationObserver =
-            new FileAlterationObserver(System.getProperty("user.dir"));
+            new FileAlterationObserver(folder.getRoot());
+//        final FileAlterationObserver fileAlterationObserver =
+//            new FileAlterationObserver(System.getProperty("user.dir"));
         fileAlterationObserver.addListener(new FileAlterationListener() {
           @Override
           public void onStart(final FileAlterationObserver fileAlterationObserver) {

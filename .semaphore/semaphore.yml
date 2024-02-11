@@ -39,7 +39,6 @@ blocks:
       jobs:
         - name: Test
           commands:
-            - . ci-tools ci-update-version
             - mvn -Dsurefire.rerunFailingTestsCount=3 -Dmaven.gitcommitid.nativegit=true -U -Dmaven.wagon.http.retryHandler.count=10 --batch-mode --no-transfer-progress -pl ksqldb-engine failsafe:integration-test
       epilogue:
         always:

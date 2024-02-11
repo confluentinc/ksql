@@ -806,6 +806,7 @@
                     <rerunFailingTestsCount>3</rerunFailingTestsCount>
                     <systemPropertyVariables>
                         <log4j.configuration>file:${project.basedir}/../ksqldb-test-util/src/main/resources/log4j.properties</log4j.configuration>
+                        <junit.platform.execution.listeners.deactivate>org.apache.kafka.test.ThreadLeakListener</junit.platform.execution.listeners.deactivate>
                     </systemPropertyVariables>
                     <argLine>-verbose:gc -Xloggc:"${project.build.directory}/gc.log"</argLine>
                     <argLine>-Duser.timezone=UTC -Xmx1g -Xms1g -XX:MaxPermSize=256m</argLine>
@@ -825,6 +826,9 @@
                     for more details -->
                     <useModulePath>false</useModulePath>
                     <groups>io.confluent.common.utils.IntegrationTest, IntegrationTest</groups>
+                    <systemPropertyVariables>
+                        <junit.platform.execution.listeners.deactivate>org.apache.kafka.test.ThreadLeakListener</junit.platform.execution.listeners.deactivate>
+                    </systemPropertyVariables>
                 </configuration>
                 <executions>
                     <execution>

@@ -111,7 +111,7 @@ public class KsqlServerMainTest {
   public void shouldNotifyAppOnTerminate() throws Exception {
     // Given:
     final Capture<Runnable> captureShutdownHandler = newCapture();
-    shutdownHandler.execute(capture(captureShutdownHandler));
+    shutdownHandler.execute(captureShutdownHandler.getValue());
     expectLastCall();
     precondition.notifyTerminated();
     expectLastCall();

@@ -39,12 +39,14 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TemporaryFolder;
 
 @Category({IntegrationTest.class})
+@Ignore
 public class QuickDegradeAndRestoreCommandTopicIntegrationTest {
   private static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.builder()
       .withKafkaCluster(

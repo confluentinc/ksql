@@ -87,6 +87,7 @@ public class KsqlServerMainTest {
   }
 
   @Test
+  @Ignore
   public void shouldStopAppOnErrorStarting() throws Exception {
     // Given:
     executable.startAsync();

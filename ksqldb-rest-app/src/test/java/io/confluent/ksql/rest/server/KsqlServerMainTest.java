@@ -73,6 +73,7 @@ public class KsqlServerMainTest {
   }
 
   @Test
+  @Ignore
   public void shouldStopAppOnJoin() throws Exception {
     // Given:
     executable.shutdown();

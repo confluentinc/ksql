@@ -90,7 +90,9 @@ public class QuickDegradeAndRestoreCommandTopicIntegrationTest {
   @After
   public void teardown() {
     REST_APP.stop();
-    TEST_HARNESS.deleteTopics(Collections.singletonList(commandTopic));
+    if (commandTopic != null) {
+      TEST_HARNESS.deleteTopics(Collections.singletonList(commandTopic));
+    }
   }
 
   @After

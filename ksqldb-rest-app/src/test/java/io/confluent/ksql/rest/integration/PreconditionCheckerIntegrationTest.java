@@ -28,6 +28,8 @@ import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.server.PreconditionChecker;
 import io.confluent.ksql.rest.server.state.ServerState;
+import io.confluent.ksql.rest.server.utils.TestUtils;
+
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpMethod;
@@ -48,13 +50,7 @@ import org.junit.experimental.categories.Category;
 
 @Category({IntegrationTest.class})
 public class PreconditionCheckerIntegrationTest {
-  private static final Map<String, String> PROPERTIES = ImmutableMap.of(
-      KsqlRestConfig.KSQL_SERVER_PRECONDITIONS,
-      PreconditionCheckerIntegrationTestPrecondition.class.getCanonicalName(),
-      ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG,
-      "localhost:8888"
-  );
-
+  private Map<String, String> properties;
   private final ServerState serverState = new ServerState();
   private final CorsTest corsTest = new CorsTest(this::init, 503);
 
@@ -65,6 +61,12 @@ public class PreconditionCheckerIntegrationTest {
 
   @Before
   public void setup() {
+    properties = ImmutableMap.of(
+        KsqlRestConfig.KSQL_SERVER_PRECONDITIONS,
+        PreconditionCheckerIntegrationTestPrecondition.class.getCanonicalName(),
+        ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG,
+        "localhost:" + TestUtils.findFreeLocalPort()
+    );
     vertx = Vertx.vertx();
     PreconditionCheckerIntegrationTestPrecondition.ACTION.set(() -> Optional.of(new KsqlErrorMessage(123, "oops")));
   }
@@ -256,7 +258,7 @@ public class PreconditionCheckerIntegrationTest {
   private WebClient init(final Map<String, String> configs) {
     checker = new PreconditionChecker(
         () -> ImmutableMap.<String, String>builder()
-            .putAll(PROPERTIES)
+            .putAll(properties)
             .putAll(configs).build(),
         serverState
     );

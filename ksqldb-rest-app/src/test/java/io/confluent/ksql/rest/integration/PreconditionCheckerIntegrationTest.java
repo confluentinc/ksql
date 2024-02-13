@@ -28,6 +28,8 @@ import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.server.PreconditionChecker;
 import io.confluent.ksql.rest.server.state.ServerState;
+import io.confluent.ksql.rest.server.utils.TestUtils;
+
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpMethod;
@@ -52,7 +54,7 @@ public class PreconditionCheckerIntegrationTest {
       KsqlRestConfig.KSQL_SERVER_PRECONDITIONS,
       PreconditionCheckerIntegrationTestPrecondition.class.getCanonicalName(),
       ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG,
-      "localhost:8888"
+      "localhost:" + TestUtils.findFreeLocalPort()
   );
 
   private final ServerState serverState = new ServerState();

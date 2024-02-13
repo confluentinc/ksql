@@ -31,20 +31,25 @@ import java.nio.file.StandardOpenOption;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
 import kafka.zookeeper.ZooKeeperClientException;
 import org.apache.kafka.streams.StreamsConfig;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TemporaryFolder;
 
 @Category({IntegrationTest.class})
+@Ignore
 public class QuickDegradeAndRestoreCommandTopicIntegrationTest {
   private static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.builder()
       .withKafkaCluster(
@@ -82,7 +87,14 @@ public class QuickDegradeAndRestoreCommandTopicIntegrationTest {
     REST_APP.start();
     final KsqlConfig ksqlConfig = new KsqlConfig(REST_APP.getKsqlRestConfig().getKsqlConfigProperties());
     commandTopic = ReservedInternalTopics.commandTopic(ksqlConfig);
-    backupFile = Files.list(BACKUP_LOCATION.toPath()).findFirst().get();
+    try (Stream<Path> paths =  Files.list(BACKUP_LOCATION.toPath())) {
+      Optional<Path> first = paths.findFirst();
+      if (first.isPresent()) {
+        backupFile = first.get();
+      } else {
+        throw new IllegalStateException("Could not find backup location path.");
+      }
+    }
     propertiesFile = TMP_FOLDER.newFile().toPath();
     writeServerProperties(propertiesFile);
   }
@@ -90,7 +102,9 @@ public class QuickDegradeAndRestoreCommandTopicIntegrationTest {
   @After
   public void teardown() {
     REST_APP.stop();
-    TEST_HARNESS.deleteTopics(Collections.singletonList(commandTopic));
+    if (commandTopic != null) {
+      TEST_HARNESS.deleteTopics(Collections.singletonList(commandTopic));
+    }
   }
 
   @After

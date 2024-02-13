@@ -47,8 +47,11 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
+import org.junit.jupiter.api.MethodOrderer;
+import org.junit.jupiter.api.TestMethodOrder;
 
 @Category({IntegrationTest.class})
+@TestMethodOrder(MethodOrderer.MethodName.class)
 public class PreconditionCheckerIntegrationTest {
   private final ServerState serverState = new ServerState();
   private final CorsTest corsTest = new CorsTest(this::init, 503);

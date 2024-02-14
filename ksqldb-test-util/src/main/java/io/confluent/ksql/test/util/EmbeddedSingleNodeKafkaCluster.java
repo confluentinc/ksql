@@ -47,6 +47,7 @@ import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -120,12 +121,15 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
   private final String previousJassConfig;
   private final Map<String, Object> customBrokerConfig;
   private final Map<String, Object> customClientConfig;
-  private final TemporaryFolder tmpFolder = KsqlTestFolder.temporaryFolder();
+  private final TemporaryFolder tmpFolder;
   private final List<AclBinding> addedAcls = new ArrayList<>();
   private final Map<AclKey, Set<AclOperation>> initialAcls;
+  private final boolean isWithFileWatcher;
 
   private ZooKeeperEmbedded zookeeper;
   private KafkaEmbedded broker;
+
+  private AtomicBoolean isWatcherRunning = new AtomicBoolean(true);
 
   /**
    * Creates and starts a Kafka cluster.
@@ -137,29 +141,42 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
       final Map<String, Object> customBrokerConfig,
       final Map<String, Object> customClientConfig,
       final String additionalJaasConfig,
-      final Map<AclKey, Set<AclOperation>> initialAcls
+      final Map<AclKey, Set<AclOperation>> initialAcls,
+      final boolean isWithFileWatcher
   ) {
     this.customBrokerConfig = ImmutableMap
         .copyOf(requireNonNull(customBrokerConfig, "customBrokerConfig"));
     this.customClientConfig = ImmutableMap
         .copyOf(requireNonNull(customClientConfig, "customClientConfig"));
     this.initialAcls = ImmutableMap.copyOf(initialAcls);
+    this.isWithFileWatcher = isWithFileWatcher;
 
     this.previousJassConfig = System.getProperty("java.security.auth.login.config");
     this.jassConfigFile = createServerJaasConfig(additionalJaasConfig);
+    this.tmpFolder = KsqlTestFolder.temporaryFolder();
+    if (isWithFileWatcher) {
+      System.out.printf(
+          "Created folder %d - %s%n",
+          Thread.currentThread().getId(),
+          Thread.currentThread().getName()
+      );
+    }
   }
 
   /**
    * Creates and starts a Kafka cluster.
    */
   public void start() throws Exception {
-    log.debug("Initiating embedded Kafka cluster startup");
+    log.info("Initiating embedded Kafka cluster startup");
 
     tmpFolder.create();
+    KsqlTestFolder.startWatching(tmpFolder, isWithFileWatcher, isWatcherRunning);
 
     installJaasConfig();
     zookeeper = new ZooKeeperEmbedded();
-    broker = new KafkaEmbedded(buildBrokerConfig(tmpFolder.newFolder().getAbsolutePath()));
+    final String absolutePath = tmpFolder.newFolder().getAbsolutePath();
+    log.info(String.format("Path for starting kafka %s", absolutePath));
+    broker = new KafkaEmbedded(buildBrokerConfig(absolutePath));
 
     initialAcls.forEach((key, ops) ->
         addUserAcl(key.userName, AclPermissionType.ALLOW, key.resourcePattern, ops));
@@ -173,6 +190,7 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
   @Override
   protected void after() {
     stop();
+    isWatcherRunning.set(false);
   }
 
   /**
@@ -193,7 +211,9 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
 
     resetJaasConfig();
 
-    tmpFolder.delete();
+    //System.out.println("################## Called folder delete #######################");
+    //tmpFolder.delete();
+    //System.out.println("################## Completed folder delete #######################");
   }
 
   /**
@@ -566,6 +586,10 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
     return newBuilder().build();
   }
 
+  public static EmbeddedSingleNodeKafkaCluster build(final boolean isWithFileWatcher) {
+    return newBuilder().build(isWithFileWatcher);
+  }
+
   /**
    * Build config designed to keep the tests as stable as possible
    */
@@ -764,7 +788,12 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
 
     public EmbeddedSingleNodeKafkaCluster build() {
       return new EmbeddedSingleNodeKafkaCluster(
-          brokerConfig, clientConfig, additionalJaasConfig.toString(), acls);
+          brokerConfig, clientConfig, additionalJaasConfig.toString(), acls, false);
+    }
+
+    public EmbeddedSingleNodeKafkaCluster build(final boolean isWithFileWatcher) {
+      return new EmbeddedSingleNodeKafkaCluster(
+          brokerConfig, clientConfig, additionalJaasConfig.toString(), acls, isWithFileWatcher);
     }
 
     private void addListenersProp(final String listenerType) {

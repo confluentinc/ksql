@@ -13,7 +13,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package org.example2.ksql.udf;
+package io.confluent.example2.ksql.udf;
 
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;

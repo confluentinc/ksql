@@ -212,7 +212,7 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
     resetJaasConfig();
 
     //System.out.println("################## Called folder delete #######################");
-    //tmpFolder.delete();
+    tmpFolder.delete();
     //System.out.println("################## Completed folder delete #######################");
   }
 

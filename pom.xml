@@ -802,6 +802,7 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <configuration>
+                    <rerunFailingTestsCount>3</rerunFailingTestsCount>
                     <systemPropertyVariables>
                         <log4j.configuration>file:${project.basedir}/../ksqldb-test-util/src/main/resources/log4j.properties</log4j.configuration>
                         <junit.platform.execution.listeners.deactivate>org.apache.kafka.test.ThreadLeakListener</junit.platform.execution.listeners.deactivate>

@@ -106,7 +106,7 @@
         <antlr.version>4.7.1</antlr.version>
         <commons-text.version>1.10.0</commons-text.version>
         <csv.version>1.4</csv.version>
-        <commons.compress.version>1.26</commons.compress.version>
+        <commons.compress.version>1.26.0</commons.compress.version>
         <lang3.version>3.3.1</lang3.version>
         <retrying.version>2.0.0</retrying.version>
         <inject.version>1</inject.version>

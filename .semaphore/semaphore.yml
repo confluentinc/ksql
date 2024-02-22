@@ -39,7 +39,6 @@ blocks:
       jobs:
         - name: Test
           commands:
-            - . ci-tools ci-update-version
             - mvn -pl ksqldb-rest-app failsafe:integration-test -am
             - mkdir -p thread-leak-tests
             - mv leaked_tests_summary.txt thread-leak-tests/

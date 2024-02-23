@@ -89,6 +89,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.apache.avro.Schema;
@@ -97,7 +98,9 @@ import org.apache.kafka.streams.KafkaStreams;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.Timeout;
 import org.junit.runner.RunWith;
 import org.mockito.Spy;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -120,6 +123,12 @@ public class KsqlEngineTest {
   @Spy
   private final FakeKafkaTopicClient topicClient = new FakeKafkaTopicClient();
   private KsqlExecutionContext sandbox;
+
+  @Rule
+  public final Timeout timeout = Timeout.builder()
+      .withTimeout(180, TimeUnit.SECONDS)
+      .withLookingForStuckThread(true)
+      .build();
 
   @Before
   public void setUp() {

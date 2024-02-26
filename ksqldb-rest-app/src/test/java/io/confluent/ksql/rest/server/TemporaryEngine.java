@@ -38,9 +38,11 @@ import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTable;
+import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.DefaultKsqlParser;
+import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SqlTypeParser;
 import io.confluent.ksql.schema.ksql.SystemColumns;
@@ -88,7 +90,9 @@ public class TemporaryEngine extends ExternalResource {
     metaStore = new MetaStoreImpl(functionRegistry);
 
     serviceContext = TestServiceContext.create();
-    engine = (KsqlEngineTestUtil.createKsqlEngine(getServiceContext(), metaStore));
+    engine = (KsqlEngineTestUtil.createKsqlEngine(getServiceContext(), metaStore,
+        new MetricCollectors()
+    ));
 
     ksqlConfig = KsqlConfigTestUtil.create(
         "localhost:9092",
@@ -150,7 +154,8 @@ public class TemporaryEngine extends ExternalResource {
                 SCHEMA,
                 Optional.empty(),
                 false,
-                topic
+                topic,
+                false
             );
         break;
       case KTABLE:
@@ -161,7 +166,8 @@ public class TemporaryEngine extends ExternalResource {
                 SCHEMA,
                 Optional.empty(),
                 false,
-                topic
+                topic,
+                false
             );
         break;
       default:
@@ -178,7 +184,7 @@ public class TemporaryEngine extends ExternalResource {
         .preconditionTopicExists(name, 1, (short) 1, Collections.emptyMap());
   }
 
-  public ConfiguredStatement<?> configure(final String sql) {
+  public ConfiguredStatement<? extends Statement> configure(final String sql) {
     return ConfiguredStatement.of(getEngine().prepare(new DefaultKsqlParser().parse(sql).get(0)),
         SessionConfig.of(ksqlConfig, ImmutableMap.of()));
   }
@@ -188,6 +194,7 @@ public class TemporaryEngine extends ExternalResource {
     return ksqlConfig;
   }
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP")
   public KsqlEngine getEngine() {
     return engine;
   }

@@ -1,0 +1,98 @@
+{
+  "version" : "7.1.0",
+  "timestamp" : 1633126018007,
+  "path" : "query-validation-tests/quoted-identifiers.json",
+  "schemas" : {
+    "CSAS_FOO-TOO_0.KsqlTopic.Source" : {
+      "schema" : "`K` STRING KEY, `ID` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_FOO-TOO_0.foo-too" : {
+      "schema" : "`K` STRING KEY, `ID` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "source names requiring quotes",
+    "inputs" : [ {
+      "topic" : "foo-source",
+      "key" : null,
+      "value" : {
+        "id" : "1"
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "foo-too",
+      "key" : null,
+      "value" : {
+        "ID" : "1"
+      }
+    } ],
+    "topics" : [ {
+      "name" : "foo-source",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "foo-too",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM `foo-source` (K STRING KEY, id VARCHAR) WITH (kafka_topic='foo-source', value_format='JSON');", "CREATE STREAM `foo-too` AS SELECT K, `foo-source`.id FROM `foo-source`;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "foo-source",
+        "type" : "STREAM",
+        "schema" : "`K` STRING KEY, `ID` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "foo-too",
+        "type" : "STREAM",
+        "schema" : "`K` STRING KEY, `ID` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "foo-source",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "foo-too",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

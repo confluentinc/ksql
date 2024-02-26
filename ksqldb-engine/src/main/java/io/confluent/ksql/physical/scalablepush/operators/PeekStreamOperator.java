@@ -15,13 +15,16 @@
 
 package io.confluent.ksql.physical.scalablepush.operators;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.physical.common.operators.AbstractPhysicalOperator;
 import io.confluent.ksql.physical.scalablepush.ProcessingQueue;
 import io.confluent.ksql.physical.scalablepush.ScalablePushRegistry;
+import io.confluent.ksql.physical.scalablepush.ScalablePushRegistry.CatchupMetadata;
 import io.confluent.ksql.planner.plan.DataSourceNode;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.query.QueryId;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * A physical operator which utilizes a {@link ScalablePushRegistry} to register for output rows.
@@ -32,24 +35,30 @@ public class PeekStreamOperator extends AbstractPhysicalOperator implements Push
   private final DataSourceNode logicalNode;
   private final ScalablePushRegistry scalablePushRegistry;
   private final ProcessingQueue processingQueue;
+  private final Optional<CatchupMetadata> catchupMetadata;
+  private long rowsRead = 0;
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
   public PeekStreamOperator(
       final ScalablePushRegistry scalablePushRegistry,
       final DataSourceNode logicalNode,
-      final QueryId queryId
+      final QueryId queryId,
+      final Optional<CatchupMetadata> catchupMetadata
   ) {
     this.scalablePushRegistry = scalablePushRegistry;
     this.logicalNode = logicalNode;
     this.processingQueue = new ProcessingQueue(queryId);
+    this.catchupMetadata = catchupMetadata;
   }
 
   @Override
   public void open() {
-    scalablePushRegistry.register(processingQueue);
+    scalablePushRegistry.register(processingQueue, catchupMetadata);
   }
 
   @Override
   public Object next() {
+    rowsRead++;
     return processingQueue.poll();
   }
 
@@ -79,6 +88,10 @@ public class PeekStreamOperator extends AbstractPhysicalOperator implements Push
     return null;
   }
 
+  @SuppressFBWarnings(
+      value = "EI_EXPOSE_REP",
+      justification = "scalablePushRegistry is meant to be exposed"
+  )
   @Override
   public ScalablePushRegistry getScalablePushRegistry() {
     return scalablePushRegistry;
@@ -92,5 +105,15 @@ public class PeekStreamOperator extends AbstractPhysicalOperator implements Push
   @Override
   public boolean droppedRows() {
     return processingQueue.hasDroppedRows();
+  }
+
+  @Override
+  public boolean hasError() {
+    return processingQueue.getHasError();
+  }
+
+  @Override
+  public long getRowsReadCount() {
+    return rowsRead;
   }
 }

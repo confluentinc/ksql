@@ -1,0 +1,372 @@
+{
+  "version" : "7.1.0",
+  "timestamp" : 1633125991081,
+  "path" : "query-validation-tests/joins.json",
+  "schemas" : {
+    "CTAS_OUTPUT_0.PrependAliasLeft" : {
+      "schema" : "`T1_ID` BIGINT KEY, `T1_NAME` STRING, `T1_ROWTIME` BIGINT, `T1_ROWPARTITION` INTEGER, `T1_ROWOFFSET` BIGINT, `T1_ID` BIGINT",
+      "keyFormat" : {
+        "format" : "AVRO",
+        "properties" : {
+          "fullSchemaName" : "io.confluent.ksql.avro_schemas.T1Key"
+        },
+        "features" : [ "UNWRAP_SINGLES" ]
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CTAS_OUTPUT_0.KafkaTopic_Left.Source.Materialized" : {
+      "schema" : "`ID` BIGINT KEY, `NAME` STRING, `ROWPARTITION` INTEGER, `ROWOFFSET` BIGINT",
+      "keyFormat" : {
+        "format" : "AVRO",
+        "properties" : {
+          "fullSchemaName" : "io.confluent.ksql.avro_schemas.T1Key"
+        },
+        "features" : [ "UNWRAP_SINGLES" ]
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CTAS_OUTPUT_0.KafkaTopic_Left.Source" : {
+      "schema" : "`ID` BIGINT KEY, `NAME` STRING",
+      "keyFormat" : {
+        "format" : "AVRO",
+        "properties" : {
+          "fullSchemaName" : "io.confluent.ksql.avro_schemas.T1Key"
+        },
+        "features" : [ "UNWRAP_SINGLES" ]
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CTAS_OUTPUT_0.Project" : {
+      "schema" : "`T1_ID` BIGINT KEY, `NAME` STRING, `F1` STRING",
+      "keyFormat" : {
+        "format" : "AVRO",
+        "properties" : {
+          "fullSchemaName" : "io.confluent.ksql.avro_schemas.T1Key"
+        },
+        "features" : [ "UNWRAP_SINGLES" ]
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CTAS_OUTPUT_0.KafkaTopic_Right.Source" : {
+      "schema" : "`ID` BIGINT KEY, `F1` STRING",
+      "keyFormat" : {
+        "format" : "AVRO",
+        "properties" : {
+          "fullSchemaName" : "io.confluent.ksql.avro_schemas.T2Key"
+        },
+        "features" : [ "UNWRAP_SINGLES" ]
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CTAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`T1_ID` BIGINT KEY, `NAME` STRING, `F1` STRING",
+      "keyFormat" : {
+        "format" : "AVRO",
+        "properties" : {
+          "fullSchemaName" : "io.confluent.ksql.avro_schemas.OutputKey"
+        },
+        "features" : [ "UNWRAP_SINGLES" ]
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CTAS_OUTPUT_0.PrependAliasRight" : {
+      "schema" : "`T2_ID` BIGINT KEY, `T2_F1` STRING, `T2_ROWTIME` BIGINT, `T2_ROWPARTITION` INTEGER, `T2_ROWOFFSET` BIGINT, `T2_ID` BIGINT",
+      "keyFormat" : {
+        "format" : "AVRO",
+        "properties" : {
+          "fullSchemaName" : "io.confluent.ksql.avro_schemas.T1Key"
+        },
+        "features" : [ "UNWRAP_SINGLES" ]
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CTAS_OUTPUT_0.RightSourceKeyed.Materialize" : {
+      "schema" : "`ID` BIGINT KEY, `F1` STRING, `ROWTIME` BIGINT, `ROWPARTITION` INTEGER, `ROWOFFSET` BIGINT, `ID` BIGINT",
+      "keyFormat" : {
+        "format" : "AVRO",
+        "properties" : {
+          "fullSchemaName" : "io.confluent.ksql.avro_schemas.T1Key"
+        },
+        "features" : [ "UNWRAP_SINGLES" ]
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CTAS_OUTPUT_0.KafkaTopic_Right.Source.Materialized" : {
+      "schema" : "`ID` BIGINT KEY, `F1` STRING, `ROWPARTITION` INTEGER, `ROWOFFSET` BIGINT",
+      "keyFormat" : {
+        "format" : "AVRO",
+        "properties" : {
+          "fullSchemaName" : "io.confluent.ksql.avro_schemas.T2Key"
+        },
+        "features" : [ "UNWRAP_SINGLES" ]
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CTAS_OUTPUT_0.LeftSourceKeyed.Materialize" : {
+      "schema" : "`ID` BIGINT KEY, `NAME` STRING, `ROWTIME` BIGINT, `ROWPARTITION` INTEGER, `ROWOFFSET` BIGINT, `ID` BIGINT",
+      "keyFormat" : {
+        "format" : "AVRO",
+        "properties" : {
+          "fullSchemaName" : "io.confluent.ksql.avro_schemas.T1Key"
+        },
+        "features" : [ "UNWRAP_SINGLES" ]
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "table-table - SR-enabled key format - with nulls",
+    "inputs" : [ {
+      "topic" : "t1",
+      "key" : 0,
+      "value" : {
+        "NAME" : "zero"
+      }
+    }, {
+      "topic" : "t2",
+      "key" : 0,
+      "value" : {
+        "F1" : "blah"
+      }
+    }, {
+      "topic" : "t2",
+      "key" : 0,
+      "value" : null
+    }, {
+      "topic" : "t1",
+      "key" : 0,
+      "value" : null
+    }, {
+      "topic" : "t2",
+      "key" : 0,
+      "value" : {
+        "F1" : "foo"
+      }
+    }, {
+      "topic" : "t1",
+      "key" : 0,
+      "value" : {
+        "NAME" : "goo"
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : 0,
+      "value" : {
+        "NAME" : "zero",
+        "F1" : null
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : 0,
+      "value" : {
+        "NAME" : "zero",
+        "F1" : "blah"
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : 0,
+      "value" : {
+        "NAME" : "zero",
+        "F1" : null
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : 0,
+      "value" : null
+    }, {
+      "topic" : "OUTPUT",
+      "key" : 0,
+      "value" : {
+        "NAME" : "goo",
+        "F1" : "foo"
+      }
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "t1",
+      "keySchema" : "long",
+      "keyFormat" : "AVRO",
+      "replicas" : 1,
+      "keySerdeFeatures" : [ "UNWRAP_SINGLES" ],
+      "numPartitions" : 4
+    }, {
+      "name" : "t2",
+      "keySchema" : "long",
+      "keyFormat" : "AVRO",
+      "replicas" : 1,
+      "keySerdeFeatures" : [ "UNWRAP_SINGLES" ],
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE TABLE T1 (ID BIGINT PRIMARY KEY, NAME varchar) WITH (kafka_topic='t1', key_format='AVRO', value_format='JSON');", "CREATE TABLE T2 (ID BIGINT PRIMARY KEY, F1 varchar) WITH (kafka_topic='t2', key_format='AVRO', value_format='JSON');", "CREATE TABLE OUTPUT as SELECT T1.id, name, f1 FROM T1 left join T2 on T1.id = T2.id;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "OUTPUT",
+        "type" : "TABLE",
+        "schema" : "`T1_ID` BIGINT KEY, `NAME` STRING, `F1` STRING",
+        "keyFormat" : {
+          "format" : "AVRO"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ "UNWRAP_SINGLES" ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "T1",
+        "type" : "TABLE",
+        "schema" : "`ID` BIGINT KEY, `NAME` STRING",
+        "keyFormat" : {
+          "format" : "AVRO"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ "UNWRAP_SINGLES" ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "T2",
+        "type" : "TABLE",
+        "schema" : "`ID` BIGINT KEY, `F1` STRING",
+        "keyFormat" : {
+          "format" : "AVRO"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ "UNWRAP_SINGLES" ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-LeftSourceKeyed-Materialize-changelog",
+          "keyFormat" : {
+            "format" : "AVRO",
+            "properties" : {
+              "fullSchemaName" : "io.confluent.ksql.avro_schemas.T1Key"
+            },
+            "features" : [ "UNWRAP_SINGLES" ]
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "keySchema" : "long"
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Project-Last-changelog",
+          "keyFormat" : {
+            "format" : "AVRO",
+            "properties" : {
+              "fullSchemaName" : "io.confluent.ksql.avro_schemas.T1Key"
+            },
+            "features" : [ "UNWRAP_SINGLES" ]
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "keySchema" : "long"
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-RightSourceKeyed-Materialize-changelog",
+          "keyFormat" : {
+            "format" : "AVRO",
+            "properties" : {
+              "fullSchemaName" : "io.confluent.ksql.avro_schemas.T1Key"
+            },
+            "features" : [ "UNWRAP_SINGLES" ]
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "keySchema" : "long"
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-LeftSourceKeyed-SelectKey-repartition",
+          "keyFormat" : {
+            "format" : "AVRO",
+            "properties" : {
+              "fullSchemaName" : "io.confluent.ksql.avro_schemas.T1Key"
+            },
+            "features" : [ "UNWRAP_SINGLES" ]
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "keySchema" : "long"
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-RightSourceKeyed-SelectKey-repartition",
+          "keyFormat" : {
+            "format" : "AVRO",
+            "properties" : {
+              "fullSchemaName" : "io.confluent.ksql.avro_schemas.T1Key"
+            },
+            "features" : [ "UNWRAP_SINGLES" ]
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "keySchema" : "long"
+        }, {
+          "name" : "t2",
+          "keyFormat" : {
+            "format" : "AVRO",
+            "properties" : {
+              "fullSchemaName" : "io.confluent.ksql.avro_schemas.T2Key"
+            },
+            "features" : [ "UNWRAP_SINGLES" ]
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4,
+          "keySchema" : "long"
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "format" : "AVRO",
+            "properties" : {
+              "fullSchemaName" : "io.confluent.ksql.avro_schemas.OutputKey"
+            },
+            "features" : [ "UNWRAP_SINGLES" ]
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4,
+          "keySchema" : "long"
+        }, {
+          "name" : "t1",
+          "keyFormat" : {
+            "format" : "AVRO",
+            "properties" : {
+              "fullSchemaName" : "io.confluent.ksql.avro_schemas.T1Key"
+            },
+            "features" : [ "UNWRAP_SINGLES" ]
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4,
+          "keySchema" : "long"
+        } ]
+      }
+    }
+  }
+}

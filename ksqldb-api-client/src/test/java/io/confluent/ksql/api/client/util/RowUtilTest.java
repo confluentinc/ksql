@@ -38,7 +38,10 @@ public class RowUtilTest {
         "ARRAY<STRING>",
         "MAP<STRING, STRING>",
         "DECIMAL(4, 2)",
-        "STRUCT<`F1` STRING, `F2` INTEGER>"
+        "STRUCT<`F1` STRING, `F2` INTEGER>",
+        "TIMESTAMP",
+        "DATE",
+        "TIME"
     );
 
     // When
@@ -58,7 +61,10 @@ public class RowUtilTest {
             "ARRAY",
             "MAP",
             "DECIMAL",
-            "STRUCT"
+            "STRUCT",
+            "TIMESTAMP",
+            "DATE",
+            "TIME"
     ));
   }
 }

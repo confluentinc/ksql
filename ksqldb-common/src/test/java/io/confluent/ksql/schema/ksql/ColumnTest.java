@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.schema.ksql;
 
+import static io.confluent.ksql.schema.ksql.Column.Namespace.HEADERS;
 import static io.confluent.ksql.schema.ksql.Column.Namespace.KEY;
 import static io.confluent.ksql.schema.ksql.Column.Namespace.VALUE;
 import static io.confluent.ksql.schema.ksql.types.SqlTypes.BIGINT;
@@ -30,12 +31,13 @@ import com.google.common.testing.NullPointerTester;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.utils.FormatOptions;
+import java.util.Optional;
 import org.junit.Test;
 
 public class ColumnTest {
 
   private static final ColumnName SOME_NAME = ColumnName.of("SomeName");
-  private static final ColumnName SOME_OHTER_NAME = ColumnName.of("SOMENAME");
+  private static final ColumnName SOME_OTHER_NAME = ColumnName.of("SOMENAME");
 
   @SuppressWarnings("UnstableApiUsage")
   @Test
@@ -55,7 +57,7 @@ public class ColumnTest {
             Column.of(SOME_NAME, INTEGER, VALUE, 10)
         )
         .addEqualityGroup(
-            Column.of(SOME_OHTER_NAME, INTEGER, VALUE, 10)
+            Column.of(SOME_OTHER_NAME, INTEGER, VALUE, 10)
         )
         .addEqualityGroup(
             Column.of(SOME_NAME, DOUBLE, VALUE, 10)
@@ -65,6 +67,15 @@ public class ColumnTest {
         )
         .addEqualityGroup(
             Column.of(SOME_NAME, INTEGER, VALUE, 5)
+        )
+        .addEqualityGroup(
+            Column.of(SOME_NAME, INTEGER, HEADERS, 5)
+        )
+        .addEqualityGroup(
+            Column.of(SOME_NAME, INTEGER, HEADERS, 5, Optional.of("key1"))
+        )
+        .addEqualityGroup(
+            Column.of(SOME_NAME, INTEGER, HEADERS, 5, Optional.of("key2"))
         )
         .testEquals();
   }
@@ -87,6 +98,10 @@ public class ColumnTest {
   public void shouldReturnNamespace() {
     assertThat(Column.of(SOME_NAME, BOOLEAN, KEY, 10)
         .namespace(), is(KEY));
+    assertThat(Column.of(SOME_NAME, BOOLEAN, HEADERS, 10)
+        .namespace(), is(HEADERS));
+    assertThat(Column.of(SOME_NAME, BOOLEAN, HEADERS, 10, Optional.of("key"))
+        .namespace(), is(HEADERS));
   }
 
   @Test
@@ -102,6 +117,11 @@ public class ColumnTest {
 
     assertThat(Column.of(SOME_NAME, INTEGER, KEY, 10).toString(),
         is("`SomeName` INTEGER KEY"));
+
+    assertThat(Column.of(SOME_NAME, INTEGER, HEADERS, 10).toString(),
+        is("`SomeName` INTEGER HEADERS"));
+    assertThat(Column.of(SOME_NAME, INTEGER, HEADERS, 10, Optional.of("abc")).toString(),
+        is("`SomeName` INTEGER HEADER('abc')"));
   }
 
   @Test

@@ -20,7 +20,6 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 final class QueryLogicalPlanUtil {
 
   private QueryLogicalPlanUtil() {
-
   }
 
   /**
@@ -31,12 +30,13 @@ final class QueryLogicalPlanUtil {
   static LogicalSchema buildIntermediateSchema(
       final LogicalSchema schema,
       final boolean addAdditionalColumnsToIntermediateSchema,
-      final boolean isWindowed
+      final boolean isWindowed,
+      final boolean rowpartitionRowoffsetEnabled
   ) {
     if (!addAdditionalColumnsToIntermediateSchema) {
       return schema;
     } else {
-      return schema.withPseudoAndKeyColsInValue(isWindowed);
+      return schema.withPseudoAndKeyColsInValue(isWindowed, rowpartitionRowoffsetEnabled, true);
     }
   }
 }

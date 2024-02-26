@@ -25,7 +25,7 @@ public abstract class AbstractPhysicalOperator {
 
   public abstract void open();
 
-  // Scan returns TableRow, Project returns List<List<?>>
+  // Scan returns QueryRow, Project returns List<List<?>>
   public abstract Object next();
 
   public abstract void close();

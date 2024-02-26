@@ -80,6 +80,8 @@ public class StreamSelectKeyBuilderTest {
       .valueColumn(ColumnName.of("BIG"), SqlTypes.BIGINT)
       .valueColumn(ColumnName.of("BOI"), SqlTypes.BIGINT)
       .valueColumn(ColumnName.of(SystemColumns.ROWTIME_NAME.text()), SqlTypes.BIGINT)
+      .valueColumn(ColumnName.of(SystemColumns.ROWPARTITION_NAME.text()), SqlTypes.INTEGER)
+      .valueColumn(ColumnName.of(SystemColumns.ROWOFFSET_NAME.text()), SqlTypes.BIGINT)
       .valueColumn(ColumnName.of("k0"), SqlTypes.DOUBLE)
       .build();
 

@@ -75,7 +75,7 @@ public interface QueryMetadata {
 
   void close();
 
-  void start() ;
+  void start();
 
   interface RetryEvent {
 

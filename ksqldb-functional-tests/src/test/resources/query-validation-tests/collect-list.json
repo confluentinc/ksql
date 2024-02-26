@@ -109,6 +109,76 @@
       ]
     },
     {
+      "name": "collect_list timestamp map",
+      "format": ["JSON", "PROTOBUF"],
+      "statements": [
+        "CREATE STREAM TEST (ID BIGINT KEY, NAME varchar, VALUE map<varchar, timestamp>) WITH (kafka_topic='test_topic', value_format='{FORMAT}');",
+        "CREATE TABLE S2 as SELECT ID, collect_list(value['key1']) AS collected FROM test group by id;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": {"name": "zero", "value": {"key1":10, "key2":15}}},
+        {"topic": "test_topic", "key": 0, "value": {"name": "zero", "value": {"key1":20, "key2":25}}},
+        {"topic": "test_topic", "key": 0, "value": {"name": "zero", "value": {"key1":30, "key2":35}}}
+      ],
+      "outputs": [
+        {"topic": "S2", "key": 0, "value": {"COLLECTED":[10]}},
+        {"topic": "S2", "key": 0, "value": {"COLLECTED":[10,20]}},
+        {"topic": "S2", "key": 0, "value": {"COLLECTED":[10,20,30]}}
+      ]
+    },
+    {
+      "name": "collect_list time map",
+      "format": ["JSON", "PROTOBUF"],
+      "statements": [
+        "CREATE STREAM TEST (ID BIGINT KEY, NAME varchar, VALUE map<varchar, time>) WITH (kafka_topic='test_topic', value_format='{FORMAT}');",
+        "CREATE TABLE S2 as SELECT ID, collect_list(value['key1']) AS collected FROM test group by id;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": {"name": "zero", "value": {"key1":10, "key2":15}}},
+        {"topic": "test_topic", "key": 0, "value": {"name": "zero", "value": {"key1":20, "key2":25}}},
+        {"topic": "test_topic", "key": 0, "value": {"name": "zero", "value": {"key1":30, "key2":35}}}
+      ],
+      "outputs": [
+        {"topic": "S2", "key": 0, "value": {"COLLECTED":[10]}},
+        {"topic": "S2", "key": 0, "value": {"COLLECTED":[10,20]}},
+        {"topic": "S2", "key": 0, "value": {"COLLECTED":[10,20,30]}}
+      ]
+    },
+    {
+      "name": "collect_list date map",
+      "format": ["JSON", "PROTOBUF"],
+      "statements": [
+        "CREATE STREAM TEST (ID BIGINT KEY, NAME varchar, VALUE map<varchar, date>) WITH (kafka_topic='test_topic', value_format='{FORMAT}');",
+        "CREATE TABLE S2 as SELECT ID, collect_list(value['key1']) AS collected FROM test group by id;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": {"name": "zero", "value": {"key1":10, "key2":15}}},
+        {"topic": "test_topic", "key": 0, "value": {"name": "zero", "value": {"key1":20, "key2":25}}},
+        {"topic": "test_topic", "key": 0, "value": {"name": "zero", "value": {"key1":30, "key2":35}}}
+      ],
+      "outputs": [
+        {"topic": "S2", "key": 0, "value": {"COLLECTED":[10]}},
+        {"topic": "S2", "key": 0, "value": {"COLLECTED":[10,20]}},
+        {"topic": "S2", "key": 0, "value": {"COLLECTED":[10,20,30]}}
+      ]
+    },
+    {
+      "name": "collect_list bytes map",
+      "format": ["JSON"],
+      "statements": [
+        "CREATE STREAM TEST (ID BIGINT KEY, NAME varchar, VALUE map<varchar, bytes>) WITH (kafka_topic='test_topic', value_format='{FORMAT}');",
+        "CREATE TABLE S2 as SELECT ID, collect_list(value['key1']) AS collected FROM test group by id;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": {"name": "zero", "value": {"key1":"YQ=="}}},
+        {"topic": "test_topic", "key": 0, "value": {"name": "zero", "value": {"key1":"Yg=="}}}
+      ],
+      "outputs": [
+        {"topic": "S2", "key": 0, "value": {"COLLECTED":["YQ=="]}},
+        {"topic": "S2", "key": 0, "value": {"COLLECTED":["YQ==","Yg=="]}}
+      ]
+    },
+    {
       "name": "collect_list int table",
       "format": ["AVRO", "JSON", "PROTOBUF"],
       "statements": [
@@ -217,6 +287,83 @@
         {"topic": "S2", "key": 0,"value": {"COLLECTED":[false]}},
         {"topic": "S2", "key": 0,"value": {"COLLECTED":[]}},
         {"topic": "S2", "key": 0,"value": {"COLLECTED":[true]}}
+      ]
+    },
+    {
+      "name": "collect_list timestamp map table",
+      "format": ["JSON", "PROTOBUF"],
+      "statements": [
+        "CREATE TABLE TEST (ID BIGINT PRIMARY KEY, NAME varchar, VALUE map<varchar, timestamp>) WITH (kafka_topic='test_topic', value_format='{FORMAT}');",
+        "CREATE TABLE S2 as SELECT ID, collect_list(value['key1']) AS collected FROM test group by id;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": {"name": "zero", "value": {"key1":10, "key2":15}}},
+        {"topic": "test_topic", "key": 0, "value": {"name": "zero", "value": {"key1":20, "key2":25}}},
+        {"topic": "test_topic", "key": 0, "value": {"name": "zero", "value": {"key1":30, "key2":35}}}
+      ],
+      "outputs": [
+        {"topic": "S2", "key": 0, "value": {"COLLECTED":[10]}},
+        {"topic": "S2", "key": 0, "value": {"COLLECTED":[]}},
+        {"topic": "S2", "key": 0, "value": {"COLLECTED":[20]}},
+        {"topic": "S2", "key": 0, "value": {"COLLECTED":[]}},
+        {"topic": "S2", "key": 0, "value": {"COLLECTED":[30]}}
+      ]
+    },
+    {
+      "name": "collect_list time map table",
+      "format": ["JSON", "PROTOBUF"],
+      "statements": [
+        "CREATE TABLE TEST (ID BIGINT PRIMARY KEY, NAME varchar, VALUE map<varchar, time>) WITH (kafka_topic='test_topic', value_format='{FORMAT}');",
+        "CREATE TABLE S2 as SELECT ID, collect_list(value['key1']) AS collected FROM test group by id;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": {"name": "zero", "value": {"key1":10, "key2":15}}},
+        {"topic": "test_topic", "key": 0, "value": {"name": "zero", "value": {"key1":20, "key2":25}}},
+        {"topic": "test_topic", "key": 0, "value": {"name": "zero", "value": {"key1":30, "key2":35}}}
+      ],
+      "outputs": [
+        {"topic": "S2", "key": 0, "value": {"COLLECTED":[10]}},
+        {"topic": "S2", "key": 0, "value": {"COLLECTED":[]}},
+        {"topic": "S2", "key": 0, "value": {"COLLECTED":[20]}},
+        {"topic": "S2", "key": 0, "value": {"COLLECTED":[]}},
+        {"topic": "S2", "key": 0, "value": {"COLLECTED":[30]}}
+      ]
+    },
+    {
+      "name": "collect_list date map table",
+      "format": ["JSON", "PROTOBUF"],
+      "statements": [
+        "CREATE TABLE TEST (ID BIGINT PRIMARY KEY, NAME varchar, VALUE map<varchar, date>) WITH (kafka_topic='test_topic', value_format='{FORMAT}');",
+        "CREATE TABLE S2 as SELECT ID, collect_list(value['key1']) AS collected FROM test group by id;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": {"name": "zero", "value": {"key1":10, "key2":15}}},
+        {"topic": "test_topic", "key": 0, "value": {"name": "zero", "value": {"key1":20, "key2":25}}},
+        {"topic": "test_topic", "key": 0, "value": {"name": "zero", "value": {"key1":30, "key2":35}}}
+      ],
+      "outputs": [
+        {"topic": "S2", "key": 0, "value": {"COLLECTED":[10]}},
+        {"topic": "S2", "key": 0, "value": {"COLLECTED":[]}},
+        {"topic": "S2", "key": 0, "value": {"COLLECTED":[20]}},
+        {"topic": "S2", "key": 0, "value": {"COLLECTED":[]}},
+        {"topic": "S2", "key": 0, "value": {"COLLECTED":[30]}}
+      ]
+    },
+    {
+      "name": "collect_list bytes map table",
+      "format": ["JSON"],
+      "statements": [
+        "CREATE TABLE TEST (ID BIGINT PRIMARY KEY, NAME varchar, VALUE map<varchar, bytes>) WITH (kafka_topic='test_topic', value_format='{FORMAT}');",
+        "CREATE TABLE S2 as SELECT ID, collect_list(value['key1']) AS collected FROM test group by id;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": {"name": "zero", "value": {"key1":"YQ=="}}},
+        {"topic": "test_topic", "key": 0, "value": {"name": "zero", "value": {"key1":"Yg=="}}}
+      ],
+      "outputs": [
+        {"topic": "S2", "key": 0, "value": {"COLLECTED":["YQ=="]}},
+        {"topic": "S2", "key": 0, "value": {"COLLECTED":[]}},
+        {"topic": "S2", "key": 0, "value": {"COLLECTED":["Yg=="]}}
       ]
     },
     {

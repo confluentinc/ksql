@@ -17,10 +17,14 @@ package io.confluent.ksql.function.udaf.offset;
 
 import static io.confluent.ksql.function.udaf.offset.KudafByOffsetUtils.SEQ_FIELD;
 import static io.confluent.ksql.function.udaf.offset.KudafByOffsetUtils.STRUCT_BOOLEAN;
+import static io.confluent.ksql.function.udaf.offset.KudafByOffsetUtils.STRUCT_BYTES;
+import static io.confluent.ksql.function.udaf.offset.KudafByOffsetUtils.STRUCT_DATE;
 import static io.confluent.ksql.function.udaf.offset.KudafByOffsetUtils.STRUCT_DOUBLE;
 import static io.confluent.ksql.function.udaf.offset.KudafByOffsetUtils.STRUCT_INTEGER;
 import static io.confluent.ksql.function.udaf.offset.KudafByOffsetUtils.STRUCT_LONG;
 import static io.confluent.ksql.function.udaf.offset.KudafByOffsetUtils.STRUCT_STRING;
+import static io.confluent.ksql.function.udaf.offset.KudafByOffsetUtils.STRUCT_TIME;
+import static io.confluent.ksql.function.udaf.offset.KudafByOffsetUtils.STRUCT_TIMESTAMP;
 import static io.confluent.ksql.function.udaf.offset.KudafByOffsetUtils.VAL_FIELD;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
@@ -32,6 +36,10 @@ import static org.hamcrest.Matchers.nullValue;
 import com.google.common.collect.Lists;
 import io.confluent.ksql.function.udaf.Udaf;
 import io.confluent.ksql.util.KsqlException;
+import java.nio.ByteBuffer;
+import java.sql.Date;
+import java.sql.Time;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
 import org.apache.kafka.connect.data.Struct;
@@ -324,6 +332,126 @@ public class EarliestByOffsetTest {
     assertThat(res.size(), is(2));
     assertThat(res.get(0).get(VAL_FIELD), is(false));
     assertThat(res.get(1).get(VAL_FIELD), is(true));
+  }
+
+  @Test
+  public void shouldComputeEarliestTimestamp() {
+    // Given:
+    final Udaf<Timestamp, Struct, Timestamp> udaf = EarliestByOffset.earliestTimestamp();
+
+    // When:
+    final Struct res = udaf.aggregate(new Timestamp(123), EarliestByOffset.createStruct(STRUCT_TIMESTAMP, new Timestamp(321)));
+
+    // Then:
+    assertThat(res.get(VAL_FIELD), is(new Timestamp(321)));
+  }
+
+  @Test
+  public void shouldComputeEarliestNTimestamps() {
+    // Given:
+    final Udaf<Timestamp, List<Struct>, List<Timestamp>> udaf = EarliestByOffset.earliestTimestamps(3);
+
+    // When:
+    final List<Struct> res = udaf.aggregate(new Timestamp(123),
+        Lists.newArrayList(EarliestByOffset.createStruct(STRUCT_TIMESTAMP, new Timestamp(321)),
+            EarliestByOffset.createStruct(STRUCT_TIMESTAMP, new Timestamp(456)),
+            EarliestByOffset.createStruct(STRUCT_TIMESTAMP, new Timestamp(654))));
+
+    // Then:
+    assertThat(res.size(), is(3));
+    assertThat(res.get(0).get(VAL_FIELD), is(new Timestamp(321)));
+    assertThat(res.get(1).get(VAL_FIELD), is(new Timestamp(456)));
+    assertThat(res.get(2).get(VAL_FIELD), is(new Timestamp(654)));
+  }
+
+  @Test
+  public void shouldComputeEarliestDate() {
+    // Given:
+    final Udaf<Date, Struct, Date> udaf = EarliestByOffset.earliestDate();
+
+    // When:
+    final Struct res = udaf.aggregate(new Date(123), EarliestByOffset.createStruct(STRUCT_DATE, new Date(321)));
+
+    // Then:
+    assertThat(res.get(VAL_FIELD), is(new Date(321)));
+  }
+
+  @Test
+  public void shouldComputeEarliestNDates() {
+    // Given:
+    final Udaf<Date, List<Struct>, List<Date>> udaf = EarliestByOffset.earliestDates(3);
+
+    // When:
+    final List<Struct> res = udaf.aggregate(new Date(123),
+        Lists.newArrayList(EarliestByOffset.createStruct(STRUCT_DATE, new Date(321)),
+            EarliestByOffset.createStruct(STRUCT_DATE, new Date(456)),
+            EarliestByOffset.createStruct(STRUCT_DATE, new Date(654))));
+
+    // Then:
+    assertThat(res.size(), is(3));
+    assertThat(res.get(0).get(VAL_FIELD), is(new Date(321)));
+    assertThat(res.get(1).get(VAL_FIELD), is(new Date(456)));
+    assertThat(res.get(2).get(VAL_FIELD), is(new Date(654)));
+  }
+
+  @Test
+  public void shouldComputeEarliestTime() {
+    // Given:
+    final Udaf<Time, Struct, Time> udaf = EarliestByOffset.earliestTime();
+
+    // When:
+    final Struct res = udaf.aggregate(new Time(123), EarliestByOffset.createStruct(STRUCT_TIME, new Time(321)));
+
+    // Then:
+    assertThat(res.get(VAL_FIELD), is(new Time(321)));
+  }
+
+  @Test
+  public void shouldComputeEarliestNTimes() {
+    // Given:
+    final Udaf<Time, List<Struct>, List<Time>> udaf = EarliestByOffset.earliestTimes(3);
+
+    // When:
+    final List<Struct> res = udaf.aggregate(new Time(123),
+        Lists.newArrayList(EarliestByOffset.createStruct(STRUCT_TIME, new Time(321)),
+            EarliestByOffset.createStruct(STRUCT_TIME, new Time(456)),
+            EarliestByOffset.createStruct(STRUCT_TIME, new Time(654))));
+
+    // Then:
+    assertThat(res.size(), is(3));
+    assertThat(res.get(0).get(VAL_FIELD), is(new Time(321)));
+    assertThat(res.get(1).get(VAL_FIELD), is(new Time(456)));
+    assertThat(res.get(2).get(VAL_FIELD), is(new Time(654)));
+  }
+
+  @Test
+  public void shouldComputeEarliestBytes() {
+    // Given:
+    final Udaf<Timestamp, Struct, Timestamp> udaf = EarliestByOffset.earliestTimestamp();
+
+    // When:
+    final Struct res = udaf.aggregate(new Timestamp(123), EarliestByOffset.createStruct(STRUCT_TIMESTAMP, new Timestamp(321)));
+
+    // Then:
+    assertThat(res.get(VAL_FIELD), is(new Timestamp(321)));
+  }
+
+  @Test
+  public void shouldComputeEarliestNBytes() {
+    // Given:
+    final Udaf<ByteBuffer, List<Struct>, List<ByteBuffer>> udaf = EarliestByOffset.earliestBytes(3);
+
+    // When:
+    final List<Struct> res = udaf.aggregate(ByteBuffer.wrap(new byte[] { 123 }),
+        Lists.newArrayList(EarliestByOffset.createStruct(STRUCT_BYTES, ByteBuffer.wrap(new byte[] { 1 })),
+            EarliestByOffset.createStruct(STRUCT_BYTES, ByteBuffer.wrap(new byte[] { 2 })),
+            EarliestByOffset.createStruct(STRUCT_BYTES, ByteBuffer.wrap(new byte[] { 3 }))));
+
+    // Then:
+    assertThat(res.size(), is(3));
+    assertThat(res.get(0).get(VAL_FIELD), is(ByteBuffer.wrap(new byte[] { 1 })));
+    assertThat(res.get(1).get(VAL_FIELD), is(ByteBuffer.wrap(new byte[] { 2 })));
+    assertThat(res.get(2).get(VAL_FIELD), is(ByteBuffer.wrap(new byte[] { 3 })));
   }
 
   @Test

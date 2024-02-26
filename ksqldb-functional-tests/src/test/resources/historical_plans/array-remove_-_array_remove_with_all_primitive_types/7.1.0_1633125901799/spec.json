@@ -1,0 +1,226 @@
+{
+  "version" : "7.1.0",
+  "timestamp" : 1633125901799,
+  "path" : "query-validation-tests/array-remove.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`ID` STRING KEY, `BOOLS` ARRAY<BOOLEAN>, `BAD_BOOL` BOOLEAN, `INTS` ARRAY<INTEGER>, `BAD_INT` INTEGER, `BIGINTS` ARRAY<BIGINT>, `BAD_BIGINT` BIGINT, `DOUBLES` ARRAY<DOUBLE>, `BAD_DOUBLE` DOUBLE, `STRINGS` ARRAY<STRING>, `BAD_STRING` STRING, `DECIMALS` ARRAY<DECIMAL(2, 1)>, `BAD_DECIMAL` DECIMAL(2, 1)",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ID` STRING KEY, `BOOLS` ARRAY<BOOLEAN>, `INTS` ARRAY<INTEGER>, `BIGINTS` ARRAY<BIGINT>, `DOUBLES` ARRAY<DOUBLE>, `STRINGS` ARRAY<STRING>, `DECIMALS` ARRAY<DECIMAL(2, 1)>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "array_remove with all primitive types",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : "r1",
+      "value" : {
+        "bools" : [ false, true, false ],
+        "bad_bool" : true,
+        "ints" : [ 0, 0, 1, 0, -1 ],
+        "bad_int" : -1,
+        "bigints" : [ 345, -123, 345 ],
+        "bad_bigint" : 345,
+        "doubles" : [ 0.0, 0.2, -12345.678, 0.2 ],
+        "bad_double" : 0.2,
+        "strings" : [ "foo", "bar", "foo" ],
+        "bad_string" : "foo",
+        "decimals" : [ 1.0, -0.2, 1.0, -9.9 ],
+        "bad_decimal" : -0.2
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : "r2",
+      "value" : {
+        "bools" : [ null, false, true ],
+        "bad_bool" : true,
+        "ints" : [ 0, null, 1, 0, -1 ],
+        "bad_int" : -1,
+        "bigints" : [ null, -123, 345 ],
+        "bad_bigint" : 345,
+        "doubles" : [ 0.3, -12345.678, null, 0.3 ],
+        "bad_double" : 0.3,
+        "strings" : [ "foo", "Food", null, "food" ],
+        "bad_string" : "foo",
+        "decimals" : [ 1.0, 1.1, 1.1, -0.2, null, 1.0 ],
+        "bad_decimal" : -0.2
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : "r3",
+      "value" : {
+        "bools" : [ null, false, true ],
+        "bad_bool" : null,
+        "ints" : [ 0, null, 1, 0, -1 ],
+        "bad_int" : null,
+        "bigints" : [ null, -123, 345 ],
+        "bad_bigint" : null,
+        "doubles" : [ 0.3, -12345.678, null, 0.3 ],
+        "bad_double" : null,
+        "strings" : [ "foo", "Food", null, "food" ],
+        "bad_string" : null,
+        "decimals" : [ 1.0, 1.1, 1.1, -0.2, null, 1.0 ],
+        "bad_decimal" : null
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : "r4",
+      "value" : {
+        "bools" : [ ],
+        "bad_bool" : true,
+        "ints" : [ ],
+        "bad_int" : -1,
+        "bigints" : [ ],
+        "bad_bigint" : 345,
+        "doubles" : [ ],
+        "bad_double" : 0.2,
+        "strings" : [ ],
+        "bad_string" : "foo",
+        "decimals" : [ ],
+        "bad_decimal" : -0.2
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : "r5",
+      "value" : {
+        "bools" : null,
+        "bad_bool" : true,
+        "ints" : null,
+        "bad_int" : -1,
+        "bigints" : null,
+        "bad_bigint" : 345,
+        "doubles" : null,
+        "bad_double" : 0.2,
+        "strings" : null,
+        "bad_string" : "foo",
+        "decimals" : null,
+        "bad_decimal" : -0.2
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : "r1",
+      "value" : {
+        "BOOLS" : [ false, false ],
+        "INTS" : [ 0, 0, 1, 0 ],
+        "BIGINTS" : [ -123 ],
+        "DOUBLES" : [ 0.0, -12345.678 ],
+        "STRINGS" : [ "bar" ],
+        "DECIMALS" : [ 1.0, 1.0, -9.9 ]
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "r2",
+      "value" : {
+        "BOOLS" : [ null, false ],
+        "INTS" : [ 0, null, 1, 0 ],
+        "BIGINTS" : [ null, -123 ],
+        "DOUBLES" : [ -12345.678, null ],
+        "STRINGS" : [ "Food", null, "food" ],
+        "DECIMALS" : [ 1.0, 1.1, 1.1, null, 1.0 ]
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "r3",
+      "value" : {
+        "BOOLS" : [ false, true ],
+        "INTS" : [ 0, 1, 0, -1 ],
+        "BIGINTS" : [ -123, 345 ],
+        "DOUBLES" : [ 0.3, -12345.678, 0.3 ],
+        "STRINGS" : [ "foo", "Food", "food" ],
+        "DECIMALS" : [ 1.0, 1.1, 1.1, -0.2, 1.0 ]
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "r4",
+      "value" : {
+        "BOOLS" : [ ],
+        "INTS" : [ ],
+        "BIGINTS" : [ ],
+        "DOUBLES" : [ ],
+        "STRINGS" : [ ],
+        "DECIMALS" : [ ]
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "r5",
+      "value" : {
+        "BOOLS" : null,
+        "INTS" : null,
+        "BIGINTS" : null,
+        "DOUBLES" : null,
+        "STRINGS" : null,
+        "DECIMALS" : null
+      }
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM INPUT (id STRING KEY, bools ARRAY<BOOLEAN>, bad_bool BOOLEAN, ints ARRAY<INT>, bad_int INT, bigints ARRAY<BIGINT>, bad_bigint BIGINT, doubles ARRAY<DOUBLE>, bad_double DOUBLE, strings ARRAY<STRING>, bad_string STRING, decimals ARRAY<DECIMAL(2,1)>, bad_decimal DECIMAL(2,1)) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE STREAM OUTPUT AS SELECT id, array_remove(bools, bad_bool) as bools, array_remove(ints, bad_int) as ints, array_remove(bigints, bad_bigint) as bigints, array_remove(doubles, bad_double) as doubles, array_remove(strings, bad_string) as strings, array_remove(decimals, bad_decimal) as decimals FROM INPUT;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`ID` STRING KEY, `BOOLS` ARRAY<BOOLEAN>, `BAD_BOOL` BOOLEAN, `INTS` ARRAY<INTEGER>, `BAD_INT` INTEGER, `BIGINTS` ARRAY<BIGINT>, `BAD_BIGINT` BIGINT, `DOUBLES` ARRAY<DOUBLE>, `BAD_DOUBLE` DOUBLE, `STRINGS` ARRAY<STRING>, `BAD_STRING` STRING, `DECIMALS` ARRAY<DECIMAL(2, 1)>, `BAD_DECIMAL` DECIMAL(2, 1)",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`ID` STRING KEY, `BOOLS` ARRAY<BOOLEAN>, `INTS` ARRAY<INTEGER>, `BIGINTS` ARRAY<BIGINT>, `DOUBLES` ARRAY<DOUBLE>, `STRINGS` ARRAY<STRING>, `DECIMALS` ARRAY<DECIMAL(2, 1)>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

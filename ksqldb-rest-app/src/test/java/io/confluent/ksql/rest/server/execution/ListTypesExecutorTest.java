@@ -31,9 +31,11 @@ import io.confluent.ksql.parser.tree.ListTypes;
 import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.TypeList;
+import io.confluent.ksql.rest.server.computation.DistributingExecutor;
 import io.confluent.ksql.rest.util.EntityUtil;
 import io.confluent.ksql.schema.ksql.types.SqlBaseType;
 import io.confluent.ksql.schema.ksql.types.SqlPrimitiveType;
+import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Optional;
@@ -52,6 +54,10 @@ public class ListTypesExecutorTest {
   private KsqlExecutionContext context;
   @Mock
   private MetaStore metaStore;
+  @Mock
+  private DistributingExecutor distributingExecutor;
+  @Mock
+  private KsqlSecurityContext ksqlSecurityContext;
 
   @Before
   public void setUp() {
@@ -71,7 +77,8 @@ public class ListTypesExecutorTest {
             SessionConfig.of(KSQL_CONFIG, ImmutableMap.of())),
         mock(SessionProperties.class),
         context,
-        null);
+        null
+    ).getEntity();
 
     // Then:
     assertThat("expected a response", entity.isPresent());

@@ -21,6 +21,7 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -35,11 +36,11 @@ import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.SerdeFeature;
 import io.confluent.ksql.serde.SerdeFeatures;
+import io.confluent.ksql.serde.avro.AvroProperties;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Schema.Type;
@@ -54,7 +55,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class ConnectFormatSchemaTranslatorTest {
 
   @Mock
-  private Function<Schema, Schema> connectKsqlTranslator;
+  private ConnectKsqlSchemaTranslator connectKsqlTranslator;
   @Mock
   private ParsedSchema parsedSchema;
   @Mock
@@ -72,7 +73,7 @@ public class ConnectFormatSchemaTranslatorTest {
 
   @Before
   public void setUp() {
-    when(connectKsqlTranslator.apply(any())).thenReturn(transformedSchema);
+    when(connectKsqlTranslator.toKsqlSchema(any())).thenReturn(transformedSchema);
     when(connectSchema.type()).thenReturn(Type.STRUCT);
 
     when(format.getConnectSchemaTranslator(any())).thenReturn(innerTranslator);
@@ -93,7 +94,7 @@ public class ConnectFormatSchemaTranslatorTest {
     translator.toColumns(parsedSchema, SerdeFeatures.of(), false);
 
     // Then:
-    verify(connectKsqlTranslator).apply(connectSchema);
+    verify(connectKsqlTranslator).toKsqlSchema(connectSchema);
   }
 
   @Test
@@ -157,7 +158,7 @@ public class ConnectFormatSchemaTranslatorTest {
     translator.toColumns(parsedSchema, SerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES), false);
 
     // Then:
-    verify(connectKsqlTranslator).apply(SchemaBuilder.struct()
+    verify(connectKsqlTranslator).toKsqlSchema(SchemaBuilder.struct()
         .field("ROWVAL", connectSchema)
         .build());
   }
@@ -171,7 +172,7 @@ public class ConnectFormatSchemaTranslatorTest {
     translator.toColumns(parsedSchema, SerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES), true);
 
     // Then:
-    verify(connectKsqlTranslator).apply(SchemaBuilder.struct()
+    verify(connectKsqlTranslator).toKsqlSchema(SchemaBuilder.struct()
         .field("ROWKEY", connectSchema)
         .build());
   }
@@ -180,6 +181,7 @@ public class ConnectFormatSchemaTranslatorTest {
   public void shouldSupportBuildingPrimitiveSchemas() {
     // Given:
     when(format.supportedFeatures()).thenReturn(ImmutableSet.of(SerdeFeature.UNWRAP_SINGLES));
+
 
     // When:
     translator.toParsedSchema(

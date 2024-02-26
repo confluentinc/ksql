@@ -1,0 +1,204 @@
+{
+  "version" : "7.1.0",
+  "timestamp" : 1633125988719,
+  "path" : "query-validation-tests/joins.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KafkaTopic_Right.Source" : {
+      "schema" : "`A` INTEGER KEY, `B` INTEGER, `C` INTEGER",
+      "keyFormat" : {
+        "format" : "JSON",
+        "features" : [ "UNWRAP_SINGLES" ]
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_OUTPUT_0.KafkaTopic_Right.Source.Materialized" : {
+      "schema" : "`A` INTEGER KEY, `B` INTEGER, `C` INTEGER, `ROWPARTITION` INTEGER, `ROWOFFSET` BIGINT",
+      "keyFormat" : {
+        "format" : "JSON",
+        "features" : [ "UNWRAP_SINGLES" ]
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_OUTPUT_0.Join.Left" : {
+      "schema" : "`L_A` INTEGER KEY, `L_B` INTEGER, `L_C` INTEGER, `L_ROWTIME` BIGINT, `L_ROWPARTITION` INTEGER, `L_ROWOFFSET` BIGINT, `L_A` INTEGER",
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`L_A` INTEGER KEY, `L_B` INTEGER, `L_C` INTEGER, `R_A` INTEGER, `R_B` INTEGER, `R_C` INTEGER",
+      "keyFormat" : {
+        "format" : "JSON",
+        "features" : [ "UNWRAP_SINGLES" ]
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_OUTPUT_0.KafkaTopic_Left.Source" : {
+      "schema" : "`A` INTEGER KEY, `B` INTEGER, `C` INTEGER",
+      "keyFormat" : {
+        "format" : "JSON",
+        "features" : [ "UNWRAP_SINGLES" ]
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_OUTPUT_0.Join" : {
+      "schema" : "`L_A` INTEGER KEY, `L_B` INTEGER, `L_C` INTEGER, `L_ROWTIME` BIGINT, `L_ROWPARTITION` INTEGER, `L_ROWOFFSET` BIGINT, `L_A` INTEGER",
+      "keyFormat" : {
+        "format" : "JSON",
+        "features" : [ "UNWRAP_SINGLES" ]
+      }
+    },
+    "CSAS_OUTPUT_0.PrependAliasRight" : {
+      "schema" : "`R_A` INTEGER KEY, `R_B` INTEGER, `R_C` INTEGER, `R_ROWTIME` BIGINT, `R_ROWPARTITION` INTEGER, `R_ROWOFFSET` BIGINT, `R_A` INTEGER",
+      "keyFormat" : {
+        "format" : "JSON",
+        "features" : [ "UNWRAP_SINGLES" ]
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "non-KAFKA key format",
+    "inputs" : [ {
+      "topic" : "RIGHT",
+      "key" : 1,
+      "value" : {
+        "B" : -1,
+        "C" : -2
+      },
+      "timestamp" : 10
+    }, {
+      "topic" : "LEFT",
+      "key" : 1,
+      "value" : {
+        "B" : 1,
+        "C" : 2
+      },
+      "timestamp" : 11
+    }, {
+      "topic" : "LEFT",
+      "key" : 2,
+      "value" : {
+        "B" : 2,
+        "C" : 3
+      },
+      "timestamp" : 12
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : 1,
+      "value" : {
+        "R_A" : 1,
+        "L_B" : 1,
+        "R_B" : -1,
+        "L_C" : 2,
+        "R_C" : -2
+      },
+      "timestamp" : 11
+    } ],
+    "topics" : [ {
+      "name" : "LEFT",
+      "replicas" : 1,
+      "keySerdeFeatures" : [ "UNWRAP_SINGLES" ],
+      "numPartitions" : 4
+    }, {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "RIGHT",
+      "replicas" : 1,
+      "keySerdeFeatures" : [ "UNWRAP_SINGLES" ],
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM L (A INT KEY, B INT, C INT) WITH (kafka_topic='LEFT', format='JSON');", "CREATE TABLE R (A INT PRIMARY KEY, B INT, C INT) WITH (kafka_topic='RIGHT', format='JSON');", "CREATE STREAM OUTPUT AS SELECT * FROM L INNER JOIN R ON L.A = R.A;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "L",
+        "type" : "STREAM",
+        "schema" : "`A` INTEGER KEY, `B` INTEGER, `C` INTEGER",
+        "keyFormat" : {
+          "format" : "JSON"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ "UNWRAP_SINGLES" ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`L_A` INTEGER KEY, `L_B` INTEGER, `L_C` INTEGER, `R_A` INTEGER, `R_B` INTEGER, `R_C` INTEGER",
+        "keyFormat" : {
+          "format" : "JSON"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ "UNWRAP_SINGLES" ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "R",
+        "type" : "TABLE",
+        "schema" : "`A` INTEGER KEY, `B` INTEGER, `C` INTEGER",
+        "keyFormat" : {
+          "format" : "JSON"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ "UNWRAP_SINGLES" ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-KafkaTopic_Right-Reduce-changelog",
+          "keyFormat" : {
+            "format" : "JSON",
+            "features" : [ "UNWRAP_SINGLES" ]
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          }
+        }, {
+          "name" : "RIGHT",
+          "keyFormat" : {
+            "format" : "JSON",
+            "features" : [ "UNWRAP_SINGLES" ]
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "format" : "JSON",
+            "features" : [ "UNWRAP_SINGLES" ]
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "LEFT",
+          "keyFormat" : {
+            "format" : "JSON",
+            "features" : [ "UNWRAP_SINGLES" ]
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

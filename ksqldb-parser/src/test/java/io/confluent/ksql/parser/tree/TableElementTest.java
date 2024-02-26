@@ -15,9 +15,7 @@
 
 package io.confluent.ksql.parser.tree;
 
-import static io.confluent.ksql.parser.tree.TableElement.Namespace.KEY;
-import static io.confluent.ksql.parser.tree.TableElement.Namespace.PRIMARY_KEY;
-import static io.confluent.ksql.parser.tree.TableElement.Namespace.VALUE;
+import static io.confluent.ksql.parser.tree.ColumnConstraints.NO_COLUMN_CONSTRAINTS;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
@@ -36,25 +34,44 @@ public class TableElementTest {
 
   private static final ColumnName NAME = ColumnName.of("name");
 
+  private static final ColumnConstraints PRIMARY_KEY_CONSTRAINT =
+      new ColumnConstraints.Builder().primaryKey().build();
+
+  private static final ColumnConstraints KEY_CONSTRAINT =
+      new ColumnConstraints.Builder().key().build();
+
+  private static final ColumnConstraints HEADERS_CONSTRAINT =
+      new ColumnConstraints.Builder().headers().build();
+
+  private static final ColumnConstraints HEADER_SINGLE_KEY_CONSTRAINT =
+      new ColumnConstraints.Builder().header("k1").build();
+
   @SuppressWarnings("UnstableApiUsage")
   @Test
   public void shouldImplementEquals() {
     new EqualsTester()
         .addEqualityGroup(
-            new TableElement(A_LOCATION, VALUE, NAME, new Type(SqlTypes.STRING)),
-            new TableElement(VALUE, NAME, new Type(SqlTypes.STRING))
+            new TableElement(A_LOCATION, NAME, new Type(SqlTypes.STRING), NO_COLUMN_CONSTRAINTS),
+            new TableElement(NAME, new Type(SqlTypes.STRING), NO_COLUMN_CONSTRAINTS)
         )
         .addEqualityGroup(
-            new TableElement(VALUE, ColumnName.of("different"), new Type(SqlTypes.STRING))
+            new TableElement(ColumnName.of("different"), new Type(SqlTypes.STRING),
+                NO_COLUMN_CONSTRAINTS)
         )
         .addEqualityGroup(
-            new TableElement(VALUE, NAME, new Type(SqlTypes.INTEGER))
+            new TableElement(NAME, new Type(SqlTypes.INTEGER), NO_COLUMN_CONSTRAINTS)
         )
         .addEqualityGroup(
-            new TableElement(KEY, NAME, new Type(SqlTypes.STRING))
+            new TableElement(NAME, new Type(SqlTypes.STRING), KEY_CONSTRAINT)
         )
         .addEqualityGroup(
-            new TableElement(PRIMARY_KEY, NAME, new Type(SqlTypes.STRING))
+            new TableElement(NAME, new Type(SqlTypes.STRING), PRIMARY_KEY_CONSTRAINT)
+        )
+        .addEqualityGroup(
+            new TableElement(NAME, new Type(SqlTypes.STRING), HEADERS_CONSTRAINT)
+        )
+        .addEqualityGroup(
+            new TableElement(NAME, new Type(SqlTypes.STRING), HEADER_SINGLE_KEY_CONSTRAINT)
         )
         .testEquals();
   }
@@ -63,7 +80,7 @@ public class TableElementTest {
   public void shouldReturnName() {
     // Given:
     final TableElement element =
-        new TableElement(VALUE, NAME, new Type(SqlTypes.STRING));
+        new TableElement(NAME, new Type(SqlTypes.STRING), NO_COLUMN_CONSTRAINTS);
 
     // Then:
     assertThat(element.getName(), is(NAME));
@@ -72,18 +89,58 @@ public class TableElementTest {
   @Test
   public void shouldReturnType() {
     // Given:
-    final TableElement element = new TableElement(VALUE, NAME, new Type(SqlTypes.STRING));
+    final TableElement element = new TableElement(NAME, new Type(SqlTypes.STRING));
 
     // Then:
     assertThat(element.getType(), is(new Type(SqlTypes.STRING)));
   }
 
   @Test
-  public void shouldReturnNamespace() {
+  public void shouldReturnEmptyConstraints() {
     // Given:
-    final TableElement valueElement = new TableElement(VALUE, NAME, new Type(SqlTypes.STRING));
+    final TableElement valueElement = new TableElement(NAME, new Type(SqlTypes.STRING));
 
     // Then:
-    assertThat(valueElement.getNamespace(), is(VALUE));
+    assertThat(valueElement.getConstraints(), is(NO_COLUMN_CONSTRAINTS));
+  }
+
+  @Test
+  public void shouldReturnPrimaryKey() {
+    // Given:
+    final TableElement valueElement = new TableElement(NAME, new Type(SqlTypes.STRING),
+        PRIMARY_KEY_CONSTRAINT);
+
+    // Then:
+    assertThat(valueElement.getConstraints(), is(PRIMARY_KEY_CONSTRAINT));
+  }
+
+  @Test
+  public void shouldReturnKeyConstraint() {
+    // Given:
+    final TableElement valueElement = new TableElement(NAME, new Type(SqlTypes.STRING),
+        KEY_CONSTRAINT);
+
+    // Then:
+    assertThat(valueElement.getConstraints(), is(KEY_CONSTRAINT));
+  }
+
+  @Test
+  public void shouldReturnHeadersConstraint() {
+    // Given:
+    final TableElement valueElement = new TableElement(NAME, new Type(SqlTypes.STRING),
+        HEADERS_CONSTRAINT);
+
+    // Then:
+    assertThat(valueElement.getConstraints(), is(HEADERS_CONSTRAINT));
+  }
+
+  @Test
+  public void shouldReturnSingleHeaderKeyConstraint() {
+    // Given:
+    final TableElement valueElement = new TableElement(NAME, new Type(SqlTypes.STRING),
+        HEADER_SINGLE_KEY_CONSTRAINT);
+
+    // Then:
+    assertThat(valueElement.getConstraints(), is(HEADER_SINGLE_KEY_CONSTRAINT));
   }
 }

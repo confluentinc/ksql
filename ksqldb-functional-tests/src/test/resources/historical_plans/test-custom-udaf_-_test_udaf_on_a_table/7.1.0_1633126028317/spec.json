@@ -1,0 +1,207 @@
+{
+  "version" : "7.1.0",
+  "timestamp" : 1633126028317,
+  "path" : "query-validation-tests/test-custom-udaf.json",
+  "schemas" : {
+    "CTAS_SUM_ID_BY_REGION_0.Aggregate.Project" : {
+      "schema" : "`REGION` STRING KEY, `KSQL_COL_0` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
+    },
+    "CTAS_SUM_ID_BY_REGION_0.Aggregate.GroupBy" : {
+      "schema" : "`REGION` STRING KEY, `REGION` STRING, `ID` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
+    },
+    "CTAS_SUM_ID_BY_REGION_0.Aggregate.Aggregate.Materialize" : {
+      "schema" : "`REGION` STRING KEY, `REGION` STRING, `ID` BIGINT, `KSQL_AGG_VARIABLE_0` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
+    },
+    "CTAS_SUM_ID_BY_REGION_0.SUM_ID_BY_REGION" : {
+      "schema" : "`REGION` STRING KEY, `KSQL_COL_0` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
+    },
+    "CTAS_SUM_ID_BY_REGION_0.KsqlTopic.Source" : {
+      "schema" : "`ID` BIGINT KEY, `NAME` STRING, `REGION` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
+    },
+    "CTAS_SUM_ID_BY_REGION_0.Aggregate.Prepare" : {
+      "schema" : "`ID` BIGINT KEY, `REGION` STRING, `ID` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
+    },
+    "CTAS_SUM_ID_BY_REGION_0.KsqlTopic.Source.Materialized" : {
+      "schema" : "`ID` BIGINT KEY, `NAME` STRING, `REGION` STRING, `ROWPARTITION` INTEGER, `ROWOFFSET` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "test_udaf on a table",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : 0,
+      "value" : "alice,east"
+    }, {
+      "topic" : "test_topic",
+      "key" : 1,
+      "value" : "bob,east"
+    }, {
+      "topic" : "test_topic",
+      "key" : 2,
+      "value" : "carol,west"
+    }, {
+      "topic" : "test_topic",
+      "key" : 3,
+      "value" : "dave,west"
+    }, {
+      "topic" : "test_topic",
+      "key" : 1,
+      "value" : "bob,west"
+    }, {
+      "topic" : "test_topic",
+      "key" : 1,
+      "value" : null
+    } ],
+    "outputs" : [ {
+      "topic" : "SUM_ID_BY_REGION",
+      "key" : "east",
+      "value" : "0"
+    }, {
+      "topic" : "SUM_ID_BY_REGION",
+      "key" : "east",
+      "value" : "1"
+    }, {
+      "topic" : "SUM_ID_BY_REGION",
+      "key" : "west",
+      "value" : "2"
+    }, {
+      "topic" : "SUM_ID_BY_REGION",
+      "key" : "west",
+      "value" : "5"
+    }, {
+      "topic" : "SUM_ID_BY_REGION",
+      "key" : "east",
+      "value" : "0"
+    }, {
+      "topic" : "SUM_ID_BY_REGION",
+      "key" : "west",
+      "value" : "6"
+    }, {
+      "topic" : "SUM_ID_BY_REGION",
+      "key" : "west",
+      "value" : "5"
+    } ],
+    "topics" : [ {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "SUM_ID_BY_REGION",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE TABLE TEST (ID BIGINT PRIMARY KEY, NAME varchar, REGION string) WITH (kafka_topic='test_topic', value_format='DELIMITED');", "CREATE TABLE SUM_ID_BY_REGION AS SELECT REGION, test_udaf(id) FROM TEST GROUP BY REGION;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "SUM_ID_BY_REGION",
+        "type" : "TABLE",
+        "schema" : "`REGION` STRING KEY, `KSQL_COL_0` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "DELIMITED",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "TEST",
+        "type" : "TABLE",
+        "schema" : "`ID` BIGINT KEY, `NAME` STRING, `REGION` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "DELIMITED",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "SUM_ID_BY_REGION",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "DELIMITED"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_SUM_ID_BY_REGION_0-KsqlTopic-Reduce-changelog",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "DELIMITED"
+          }
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_SUM_ID_BY_REGION_0-Aggregate-GroupBy-repartition",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "DELIMITED"
+          }
+        }, {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "DELIMITED"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_SUM_ID_BY_REGION_0-Aggregate-Aggregate-Materialize-changelog",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "DELIMITED"
+          }
+        } ]
+      }
+    }
+  }
+}

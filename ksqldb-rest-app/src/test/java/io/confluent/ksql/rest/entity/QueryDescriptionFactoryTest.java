@@ -155,7 +155,7 @@ public class QueryDescriptionFactoryTest {
         SQL_TEXT,
         PhysicalSchema.from(PERSISTENT_SCHEMA, SerdeFeatures.of(), SerdeFeatures.of()),
         SOURCE_NAMES,
-        sinkDataSource,
+        Optional.of(sinkDataSource),
         "execution plan",
         QUERY_ID,
         Optional.empty(),

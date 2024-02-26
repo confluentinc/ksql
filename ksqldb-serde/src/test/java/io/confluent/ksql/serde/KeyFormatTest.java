@@ -30,7 +30,7 @@ import static org.mockito.Mockito.mock;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.testing.EqualsTester;
 import com.google.common.testing.NullPointerTester;
-import io.confluent.ksql.serde.avro.AvroFormat;
+import io.confluent.ksql.serde.connect.ConnectProperties;
 import java.time.Duration;
 import java.util.Optional;
 import org.junit.Test;
@@ -86,7 +86,7 @@ public class KeyFormatTest {
   @Test
   public void shouldImplementToString() {
     // Given:
-    final FormatInfo formatInfo = FormatInfo.of(AVRO.name(), ImmutableMap.of(AvroFormat.FULL_SCHEMA_NAME, "something"));
+    final FormatInfo formatInfo = FormatInfo.of(AVRO.name(), ImmutableMap.of(ConnectProperties.FULL_SCHEMA_NAME, "something"));
     final WindowInfo windowInfo = WindowInfo.of(HOPPING, Optional.of(Duration.ofMillis(10101)));
 
     final KeyFormat keyFormat = KeyFormat.windowed(formatInfo, SerdeFeatures.of(WRAP_SINGLES), windowInfo);
@@ -116,7 +116,7 @@ public class KeyFormatTest {
   @Test
   public void shouldGetFormatInfo() {
     // Given:
-    final FormatInfo format = FormatInfo.of(AVRO.name(), ImmutableMap.of(AvroFormat.FULL_SCHEMA_NAME, "something"));
+    final FormatInfo format = FormatInfo.of(AVRO.name(), ImmutableMap.of(ConnectProperties.FULL_SCHEMA_NAME, "something"));
     final KeyFormat keyFormat = KeyFormat.nonWindowed(format, SerdeFeatures.of());
 
     // When:
@@ -169,13 +169,13 @@ public class KeyFormatTest {
   public void shouldHandleWindowedWithAvroSchemaName() {
     // Given:
     final KeyFormat keyFormat = KeyFormat.windowed(
-        FormatInfo.of(AVRO.name(), ImmutableMap.of(AvroFormat.FULL_SCHEMA_NAME, "something")),
+        FormatInfo.of(AVRO.name(), ImmutableMap.of(ConnectProperties.FULL_SCHEMA_NAME, "something")),
         SerdeFeatures.of(),
         WindowInfo.of(HOPPING, Optional.of(Duration.ofMinutes(4)))
     );
 
     // Then:
-    assertThat(keyFormat.getFormatInfo(), is(FormatInfo.of(AVRO.name(), ImmutableMap.of(AvroFormat.FULL_SCHEMA_NAME, "something"))));
+    assertThat(keyFormat.getFormatInfo(), is(FormatInfo.of(AVRO.name(), ImmutableMap.of(ConnectProperties.FULL_SCHEMA_NAME, "something"))));
   }
 
   @Test

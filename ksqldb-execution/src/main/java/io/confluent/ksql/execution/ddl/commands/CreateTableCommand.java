@@ -23,6 +23,7 @@ import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.WindowInfo;
+import java.util.Objects;
 import java.util.Optional;
 
 @JsonIgnoreProperties({"keyField"}) // Removed at version 0.10
@@ -36,7 +37,8 @@ public class CreateTableCommand extends CreateSourceCommand {
       @JsonProperty(value = "topicName", required = true) final String topicName,
       @JsonProperty(value = "formats", required = true) final Formats formats,
       @JsonProperty(value = "windowInfo") final Optional<WindowInfo> windowInfo,
-      @JsonProperty(value = "orReplace", defaultValue = "false") final Optional<Boolean> orReplace
+      @JsonProperty(value = "orReplace", defaultValue = "false") final Optional<Boolean> orReplace,
+      @JsonProperty(value = "isSource", defaultValue = "false") final Optional<Boolean> isSource
   ) {
     super(
         sourceName,
@@ -45,12 +47,37 @@ public class CreateTableCommand extends CreateSourceCommand {
         topicName,
         formats,
         windowInfo,
-        orReplace.orElse(false)
+        orReplace.orElse(false),
+        isSource.orElse(false)
     );
 
     if (schema.key().isEmpty()) {
       throw new UnsupportedOperationException("Tables require key columns");
     }
+  }
+
+  @Override
+  public boolean equals(final Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    final CreateTableCommand that = (CreateTableCommand) o;
+    return super.equals(that);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(
+        getSourceName(),
+        getSchema(),
+        getTimestampColumn(),
+        getTopicName(),
+        getFormats(),
+        getWindowInfo(),
+        getIsSource());
   }
 
   @Override

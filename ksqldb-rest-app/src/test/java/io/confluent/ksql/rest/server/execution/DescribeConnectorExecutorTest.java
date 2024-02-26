@@ -15,11 +15,13 @@
 
 package io.confluent.ksql.rest.server.execution;
 
+import static io.confluent.ksql.util.KsqlConfig.KSQL_CONNECT_SERVER_ERROR_HANDLER;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -34,6 +36,7 @@ import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
+import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
@@ -122,7 +125,9 @@ public class DescribeConnectorExecutorTest {
 
   @Before
   public void setUp() {
+    final MetricCollectors metricCollectors = new MetricCollectors();
     when(engine.getMetaStore()).thenReturn(metaStore);
+    when(engine.metricCollectors()).thenReturn(metricCollectors);
     when(serviceContext.getConnectClient()).thenReturn(connectClient);
     when(metaStore.getAllDataSources()).thenReturn(ImmutableMap.of(SourceName.of("source"), source));
     when(source.getKafkaTopicName()).thenReturn(TOPIC);
@@ -145,7 +150,7 @@ public class DescribeConnectorExecutorTest {
     when(connectClient.describe("connector")).thenReturn(ConnectResponse.success(INFO, HttpStatus.SC_OK));
 
     connectorFactory = info -> Optional.of(connector);
-    executor = new DescribeConnectorExecutor(connectorFactory);
+    executor = new DescribeConnectorExecutor(connectorFactory, new DefaultConnectServerErrors());
 
     final DescribeConnector describeConnector = new DescribeConnector(Optional.empty(), "connector");
     final KsqlConfig ksqlConfig = new KsqlConfig(ImmutableMap.of());
@@ -169,10 +174,11 @@ public class DescribeConnectorExecutorTest {
 
     // When:
     final Optional<KsqlEntity> entity = executor
-        .execute(describeStatement, mock(SessionProperties.class), engine, serviceContext);
+        .execute(describeStatement, mock(SessionProperties.class), engine, serviceContext).getEntity();
 
     // Then:
     verify(engine).getMetaStore();
+    verify(engine).metricCollectors();
     verify(metaStore).getAllDataSources();
     verify(connectClient).status("connector");
     verify(connectClient).describe("connector");
@@ -198,7 +204,7 @@ public class DescribeConnectorExecutorTest {
 
     // When:
     final Optional<KsqlEntity> entity = executor
-        .execute(describeStatement, mock(SessionProperties.class), engine, serviceContext);
+        .execute(describeStatement, mock(SessionProperties.class), engine, serviceContext).getEntity();
 
     // Then:
     verify(engine).getMetaStore();
@@ -222,7 +228,7 @@ public class DescribeConnectorExecutorTest {
 
     // When:
     final Optional<KsqlEntity> entity = executor
-        .execute(describeStatement, mock(SessionProperties.class), engine, serviceContext);
+        .execute(describeStatement, mock(SessionProperties.class), engine, serviceContext).getEntity();
 
     // Then:
     verify(connectClient).status("connector");
@@ -238,7 +244,7 @@ public class DescribeConnectorExecutorTest {
 
     // When:
     final Optional<KsqlEntity> entity = executor
-        .execute(describeStatement, mock(SessionProperties.class), engine, serviceContext);
+        .execute(describeStatement, mock(SessionProperties.class), engine, serviceContext).getEntity();
 
     // Then:
     verify(connectClient).status("connector");
@@ -249,14 +255,39 @@ public class DescribeConnectorExecutorTest {
   }
 
   @Test
-  public void shouldWorkIfUnknownConnector() {
+  public void shouldNotWarnClientOnMissingTopicsEndpoint() {
     // Given:
-    connectorFactory = info -> Optional.empty();
-    executor = new DescribeConnectorExecutor(connectorFactory);
+    when(connectClient.topics(any())).thenReturn(ConnectResponse.failure("not found",
+        HttpStatus.SC_NOT_FOUND));
 
     // When:
     final Optional<KsqlEntity> entity = executor
-        .execute(describeStatement, mock(SessionProperties.class), engine, serviceContext);
+        .execute(describeStatement, mock(SessionProperties.class), engine, serviceContext)
+        .getEntity();
+
+    // Then:
+    verify(engine).getMetaStore();
+    verify(metaStore).getAllDataSources();
+    verify(connectClient).status("connector");
+    verify(connectClient).describe("connector");
+    verify(connectClient).topics("connector");
+    assertThat("Expected a response", entity.isPresent());
+    assertThat(entity.get(), instanceOf(ConnectorDescription.class));
+
+    final ConnectorDescription description = (ConnectorDescription) entity.get();
+    assertThat(description.getTopics(), empty());
+    assertThat(description.getWarnings(), empty());
+  }
+
+  @Test
+  public void shouldWorkIfUnknownConnector() {
+    // Given:
+    connectorFactory = info -> Optional.empty();
+    executor = new DescribeConnectorExecutor(connectorFactory, new DefaultConnectServerErrors());
+
+    // When:
+    final Optional<KsqlEntity> entity = executor
+        .execute(describeStatement, mock(SessionProperties.class), engine, serviceContext).getEntity();
 
     // Then:
     verify(connectClient).status("connector");
@@ -270,4 +301,83 @@ public class DescribeConnectorExecutorTest {
     assertThat(description.getSources(), empty());
   }
 
+  @Test
+  public void shouldReturnPluggableForbiddenError() {
+    //Given:
+    when(connectClient.describe(anyString()))
+        .thenReturn(
+            ConnectResponse.failure("FORBIDDEN", HttpStatus.SC_FORBIDDEN));
+    final ConnectServerErrors connectErrorHandler = givenCustomConnectErrorHandler();
+
+    // When:
+    final Optional<KsqlEntity> entity = new DescribeConnectorExecutor(connectErrorHandler)
+        .execute(describeStatement,
+            mock(SessionProperties.class),
+            null,
+            serviceContext).getEntity();
+
+    // Then:
+    verify(connectClient).status("connector");
+    verify(connectClient).describe("connector");
+    assertThat("Expected non-empty response", entity.isPresent());
+    assertThat(entity.get(), instanceOf(ErrorEntity.class));
+    assertThat(((ErrorEntity) entity.get()).getErrorMessage(),
+        is(DummyConnectServerErrors.FORBIDDEN_ERR));
+  }
+
+  @Test
+  public void shouldReturnPluggableUnauthorizedError() {
+    //Given:
+    when(connectClient.describe(anyString()))
+        .thenReturn(
+            ConnectResponse.failure("UNAUTHORIZED", HttpStatus.SC_UNAUTHORIZED));
+    final ConnectServerErrors connectErrorHandler = givenCustomConnectErrorHandler();
+
+    // When:
+    final Optional<KsqlEntity> entity = new DescribeConnectorExecutor(connectErrorHandler)
+        .execute(describeStatement,
+            mock(SessionProperties.class),
+            null,
+            serviceContext).getEntity();
+
+    // Then:
+    verify(connectClient).status("connector");
+    verify(connectClient).describe("connector");
+    assertThat("Expected non-empty response", entity.isPresent());
+    assertThat(entity.get(), instanceOf(ErrorEntity.class));
+    assertThat(((ErrorEntity) entity.get()).getErrorMessage(),
+        is(DummyConnectServerErrors.UNAUTHORIZED_ERR));
+  }
+
+  @Test
+  public void shouldReturnDefaultPluggableErrorOnUnknownCode() {
+    //Given:
+    when(connectClient.describe(anyString()))
+        .thenReturn(
+            ConnectResponse.failure("NOT ACCEPTABLE", HttpStatus.SC_NOT_ACCEPTABLE));
+    final ConnectServerErrors connectErrorHandler = givenCustomConnectErrorHandler();
+
+    // When:
+    final Optional<KsqlEntity> entity = new DescribeConnectorExecutor(connectErrorHandler)
+        .execute(describeStatement,
+            mock(SessionProperties.class),
+            null,
+            serviceContext).getEntity();
+
+    // Then:
+    verify(connectClient).status("connector");
+    verify(connectClient).describe("connector");
+    assertThat("Expected non-empty response", entity.isPresent());
+    assertThat(entity.get(), instanceOf(ErrorEntity.class));
+    assertThat(((ErrorEntity) entity.get()).getErrorMessage(),
+        is(DummyConnectServerErrors.DEFAULT_ERR));
+  }
+
+  private ConnectServerErrors givenCustomConnectErrorHandler() {
+    final KsqlConfig config = new KsqlConfig(ImmutableMap.of(
+        KSQL_CONNECT_SERVER_ERROR_HANDLER, DummyConnectServerErrors.class));
+    return config.getConfiguredInstance(
+        KSQL_CONNECT_SERVER_ERROR_HANDLER,
+        ConnectServerErrors.class);
+  }
 }

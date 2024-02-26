@@ -19,7 +19,6 @@ import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.parser.tree.DefineVariable;
 import io.confluent.ksql.parser.tree.UndefineVariable;
 import io.confluent.ksql.rest.SessionProperties;
-import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.WarningEntity;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
@@ -29,7 +28,7 @@ public final class VariableExecutor {
   private VariableExecutor() {
   }
 
-  public static Optional<KsqlEntity> set(
+  public static StatementExecutorResponse set(
       final ConfiguredStatement<DefineVariable> statement,
       final SessionProperties sessionProperties,
       final KsqlExecutionContext executionContext,
@@ -41,10 +40,10 @@ public final class VariableExecutor {
         defineVariable.getVariableValue()
     );
 
-    return Optional.empty();
+    return StatementExecutorResponse.handled(Optional.empty());
   }
 
-  public static Optional<KsqlEntity> unset(
+  public static StatementExecutorResponse unset(
       final ConfiguredStatement<UndefineVariable> statement,
       final SessionProperties sessionProperties,
       final KsqlExecutionContext executionContext,
@@ -53,14 +52,14 @@ public final class VariableExecutor {
     final String variableName = statement.getStatement().getVariableName();
 
     if (!sessionProperties.getSessionVariables().containsKey(variableName)) {
-      return Optional.of(new WarningEntity(
+      return StatementExecutorResponse.handled(Optional.of(new WarningEntity(
           statement.getMaskedStatementText(),
           String.format("Cannot undefine variable '%s' which was never defined", variableName)
-      ));
+      )));
     }
 
     sessionProperties.unsetVariable(variableName);
 
-    return Optional.empty();
+    return StatementExecutorResponse.handled(Optional.empty());
   }
 }

@@ -2,22 +2,23 @@
     background-color: #252839;
 }
 
-.md-header-nav .ksqldb-home {
+.md-header__inner .ksqldb-home {
     font-size: .65rem;
     border: 1px solid #787a82;
     align-self: center;
     padding: 7px 10px;
+    margin: 10px;
     border-radius: 5px;
     font-weight: 600;
     background: #1b1e2b;
 }
 
-.md-header-nav .ksqldb-home i {
+.md-header__inner .ksqldb-home i {
     color: #787a82;
     padding-left: 3px;
 }
 
-.md-header-nav__title {
+.md-header__title {
     padding-left: .1rem;
 }
 
@@ -30,6 +31,7 @@ select.version {
     border-radius: 0;
     -webkit-appearance: none;
     -moz-appearance: none;
+    -ms-appearance: none;
     appearance: none;
     background-repeat: no-repeat;
     background-size: 0.6em auto;
@@ -43,6 +45,10 @@ select.version {
 
 select.version::-ms-expand {
     display: none;
+}
+
+select.version option {
+    color: #000;
 }
 
 @media screen and (min-width:0\0) {

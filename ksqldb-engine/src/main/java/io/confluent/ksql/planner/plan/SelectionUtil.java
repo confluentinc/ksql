@@ -126,6 +126,10 @@ public final class SelectionUtil {
       } else {
         final Expression expression = select.getExpression();
         final SqlType type = expressionTypeManager.getExpressionSqlType(expression);
+        if (type == null) {
+          throw new IllegalArgumentException("Can't infer a type of null. Please explicitly cast "
+              + "it to a required type, e.g. CAST(null AS VARCHAR).");
+        }
         builder.valueColumn(select.getAlias(), type);
       }
     }

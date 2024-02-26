@@ -32,6 +32,23 @@ public abstract class CreateSource extends Statement {
   private final boolean notExists;
   private final CreateSourceProperties properties;
   private final boolean orReplace;
+  private final boolean isSource;
+
+  public enum SourceType {
+    STREAM("Stream"),
+    TABLE("Table");
+
+    private final String typeName;
+
+    SourceType(final String typeName) {
+      this.typeName = typeName;
+    }
+
+    @Override
+    public String toString() {
+      return typeName;
+    }
+  }
 
   CreateSource(
       final Optional<NodeLocation> location,
@@ -39,7 +56,8 @@ public abstract class CreateSource extends Statement {
       final TableElements elements,
       final boolean orReplace,
       final boolean notExists,
-      final CreateSourceProperties properties
+      final CreateSourceProperties properties,
+      final boolean isSource
   ) {
     super(location);
     this.name = requireNonNull(name, "name");
@@ -47,7 +65,9 @@ public abstract class CreateSource extends Statement {
     this.orReplace = orReplace;
     this.notExists = notExists;
     this.properties = requireNonNull(properties, "properties");
+    this.isSource = isSource;
   }
+
 
   public CreateSourceProperties getProperties() {
     return properties;
@@ -69,11 +89,17 @@ public abstract class CreateSource extends Statement {
     return notExists;
   }
 
+  public boolean isSource() {
+    return isSource;
+  }
+
+  public abstract SourceType getSourceType();
+
   public abstract CreateSource copyWith(TableElements elements, CreateSourceProperties properties);
 
   @Override
   public int hashCode() {
-    return Objects.hash(name, elements, orReplace, notExists, properties);
+    return Objects.hash(name, elements, orReplace, notExists, properties, isSource);
   }
 
   @Override
@@ -89,6 +115,7 @@ public abstract class CreateSource extends Statement {
         && orReplace == that.orReplace
         && Objects.equals(name, that.name)
         && Objects.equals(elements, that.elements)
-        && Objects.equals(properties, that.properties);
+        && Objects.equals(properties, that.properties)
+        && isSource == that.isSource;
   }
 }

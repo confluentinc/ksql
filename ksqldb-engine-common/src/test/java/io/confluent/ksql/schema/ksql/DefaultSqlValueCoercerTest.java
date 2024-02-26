@@ -1302,7 +1302,6 @@ public class DefaultSqlValueCoercerTest {
           return false;
         }
         final boolean supported = sqlBaseTypes.contains(to);
-
         if (supported) {
           return true;
         }

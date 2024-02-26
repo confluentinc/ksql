@@ -46,6 +46,15 @@ public class ParseTimeTest {
   }
 
   @Test
+  public void shouldConvertCaseInsensitiveStringToDate() {
+    // When:
+    final Time result = udf.parseTime("12:01:05 aM", "hh:mm:ss a");
+
+    // Then:
+    assertThat(result.getTime(), is(65000L));
+  }
+
+  @Test
   public void shouldThrowOnUnsupportedFields() {
     // When:
     final Exception e = assertThrows(

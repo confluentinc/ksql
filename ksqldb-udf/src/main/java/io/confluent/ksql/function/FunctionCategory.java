@@ -33,4 +33,5 @@ public final class FunctionCategory {
   public static final String AGGREGATE = "AGGREGATE";
   public static final String TABLE = "TABLE";
   public static final String LAMBDA = "LAMBDA";
+  public static final String CONVERSIONS = "CONVERSIONS";
 }

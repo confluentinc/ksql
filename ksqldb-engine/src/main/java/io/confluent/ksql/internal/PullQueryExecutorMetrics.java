@@ -16,12 +16,12 @@
 package io.confluent.ksql.internal;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableMap.Builder;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.physical.pull.PullPhysicalPlan.PullPhysicalPlanType;
-import io.confluent.ksql.physical.pull.PullPhysicalPlan.PullSourceType;
-import io.confluent.ksql.physical.pull.PullPhysicalPlan.RoutingNodeType;
 import io.confluent.ksql.util.KsqlConstants;
+import io.confluent.ksql.util.KsqlConstants.QuerySourceType;
+import io.confluent.ksql.util.KsqlConstants.RoutingNodeType;
 import io.confluent.ksql.util.ReservedInternalTopics;
 import java.io.Closeable;
 import java.util.ArrayList;
@@ -50,10 +50,14 @@ public class PullQueryExecutorMetrics implements Closeable {
 
   private static final String PULL_QUERY_METRIC_GROUP = "pull-query";
   private static final String PULL_REQUESTS = "pull-query-requests";
+  private static final long MAX_LATENCY_BUCKET_VALUE_MICROS = TimeUnit.SECONDS.toMicros(10);
+  private static final int NUM_LATENCY_BUCKETS = 1000;
 
   private final List<Sensor> sensors;
   private final Sensor localRequestsSensor;
   private final Sensor remoteRequestsSensor;
+  private final Sensor partitionFetchSensor;
+  private final Sensor resubmissionRequestsSensor;
   private final Sensor latencySensor;
   private final Map<MetricsKey, Sensor> latencySensorMap;
   private final Sensor requestRateSensor;
@@ -75,10 +79,12 @@ public class PullQueryExecutorMetrics implements Closeable {
   private final String ksqlServicePrefix;
   private final Time time;
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP2", justification = "metrics")
   public PullQueryExecutorMetrics(
       final String ksqlServiceId,
       final Map<String, String> customMetricsTags,
-      final Time time
+      final Time time,
+      final Metrics metrics
   ) {
     this.ksqlServiceIdLegacyPrefix = ReservedInternalTopics.KSQL_INTERNAL_TOPIC_PREFIX
         + ksqlServiceId;
@@ -90,10 +96,12 @@ public class PullQueryExecutorMetrics implements Closeable {
     this.customMetricsTags = ImmutableMap.copyOf(metricsTags);
 
     this.time = Objects.requireNonNull(time, "time");
-    this.metrics = MetricCollectors.getMetrics();
+    this.metrics = metrics;
     this.sensors = new ArrayList<>();
     this.localRequestsSensor = configureLocalRequestsSensor();
     this.remoteRequestsSensor = configureRemoteRequestsSensor();
+    this.partitionFetchSensor = configurePartitionFetchSensor();
+    this.resubmissionRequestsSensor = configureResubmissionRequestsSensor();
     this.latencySensor = configureLatencySensor();
     this.latencySensorMap = configureLatencySensorMap();
     this.requestRateSensor = configureRateSensor();
@@ -123,18 +131,88 @@ public class PullQueryExecutorMetrics implements Closeable {
     this.remoteRequestsSensor.record(value);
   }
 
+  public void recordPartitionFetchRequest(final double value) {
+    this.partitionFetchSensor.record(value);
+  }
+
+  public void recordResubmissionRequest(final double value) {
+    this.partitionFetchSensor.record(value);
+    this.resubmissionRequestsSensor.record(value);
+  }
+
+  private Sensor configurePartitionFetchSensor() {
+    final Sensor sensor = metrics.sensor(
+        PULL_QUERY_METRIC_GROUP + "-" + PULL_REQUESTS + "-partition-fetch");
+
+    addSensor(
+         sensor,
+        PULL_REQUESTS + "-partition-fetch-count",
+        ksqlServicePrefix + PULL_QUERY_METRIC_GROUP,
+        "Count of total partition fetch pull query requests",
+         customMetricsTags,
+         new CumulativeCount()
+    );
+
+    addSensor(
+         sensor,
+        PULL_REQUESTS + "-partition-fetch-rate",
+        ksqlServicePrefix + PULL_QUERY_METRIC_GROUP,
+        "Rate of total partition fetch pull query requests",
+         customMetricsTags,
+         new Rate()
+    );
+
+    sensors.add(sensor);
+    return sensor;
+  }
+
+  private Sensor configureResubmissionRequestsSensor() {
+    final Sensor sensor = metrics.sensor(
+        PULL_QUERY_METRIC_GROUP + "-" + PULL_REQUESTS + "-partition-fetch-resubmission");
+
+    addSensor(
+         sensor,
+        PULL_REQUESTS + "-partition-fetch-resubmission-count",
+        ksqlServicePrefix + PULL_QUERY_METRIC_GROUP,
+        "Count of resubmission partition fetch pull query requests",
+         customMetricsTags,
+         new CumulativeCount()
+    );
+
+    addSensor(
+         sensor,
+        PULL_REQUESTS + "-partition-fetch-resubmission-rate",
+        ksqlServicePrefix + PULL_QUERY_METRIC_GROUP,
+        "Rate of resubmission partition fetch pull query requests",
+         customMetricsTags,
+         new Rate()
+    );
+
+    sensors.add(sensor);
+    return sensor;
+  }
+
   public void recordLatency(
       final long startTimeNanos,
-      final PullSourceType sourceType,
+      final QuerySourceType sourceType,
       final PullPhysicalPlanType planType,
       final RoutingNodeType routingNodeType
   ) {
+    final MetricsKey key = new MetricsKey(sourceType, planType, routingNodeType);
+    innerRecordLatency(startTimeNanos, key);
+  }
+
+  public void recordLatencyForError(final long startTimeNanos) {
+    final MetricsKey key = new MetricsKey();
+    innerRecordLatency(startTimeNanos, key);
+  }
+
+  private void innerRecordLatency(final long startTimeNanos, final MetricsKey key) {
     // Record latency at microsecond scale
     final long nowNanos = time.nanoseconds();
     final double latency = TimeUnit.NANOSECONDS.toMicros(nowNanos - startTimeNanos);
     this.latencySensor.record(latency);
     this.requestRateSensor.record(1);
-    final MetricsKey key = new MetricsKey(sourceType, planType, routingNodeType);
     if (latencySensorMap.containsKey(key)) {
       latencySensorMap.get(key).record(latency);
     } else {
@@ -144,12 +222,22 @@ public class PullQueryExecutorMetrics implements Closeable {
 
   public void recordErrorRate(
       final double value,
-      final PullSourceType sourceType,
+      final QuerySourceType sourceType,
       final PullPhysicalPlanType planType,
       final RoutingNodeType routingNodeType
   ) {
     this.errorRateSensor.record(value);
     final MetricsKey key = new MetricsKey(sourceType, planType, routingNodeType);
+    if (errorRateSensorMap.containsKey(key)) {
+      errorRateSensorMap.get(key).record(value);
+    } else {
+      throw new IllegalStateException("Metrics not configured correctly, missing " + key);
+    }
+  }
+
+  public void recordErrorRateForNoResult(final double value) {
+    this.errorRateSensor.record(value);
+    final MetricsKey key = new MetricsKey();
     if (errorRateSensorMap.containsKey(key)) {
       errorRateSensorMap.get(key).record(value);
     } else {
@@ -163,7 +251,7 @@ public class PullQueryExecutorMetrics implements Closeable {
 
   public void recordResponseSize(
       final double value,
-      final PullSourceType sourceType,
+      final QuerySourceType sourceType,
       final PullPhysicalPlanType planType,
       final RoutingNodeType routingNodeType
   ) {
@@ -171,6 +259,16 @@ public class PullQueryExecutorMetrics implements Closeable {
     final MetricsKey key = new MetricsKey(sourceType, planType, routingNodeType);
     if (responseSizeSensorMap.containsKey(key)) {
       responseSizeSensorMap.get(key).record(value);
+    } else {
+      throw new IllegalStateException("Metrics not configured correctly, missing " + key);
+    }
+  }
+
+  public void recordResponseSizeForError(final long responseBytes) {
+    this.responseSizeSensor.record(responseBytes);
+    final MetricsKey key = new MetricsKey();
+    if (responseSizeSensorMap.containsKey(key)) {
+      responseSizeSensorMap.get(key).record(responseBytes);
     } else {
       throw new IllegalStateException("Metrics not configured correctly, missing " + key);
     }
@@ -190,7 +288,7 @@ public class PullQueryExecutorMetrics implements Closeable {
 
   public void recordRowsReturned(
       final double value,
-      final PullSourceType sourceType,
+      final QuerySourceType sourceType,
       final PullPhysicalPlanType planType,
       final RoutingNodeType routingNodeType
   ) {
@@ -202,15 +300,33 @@ public class PullQueryExecutorMetrics implements Closeable {
     }
   }
 
+  public void recordZeroRowsReturnedForError() {
+    final MetricsKey key = new MetricsKey();
+    if (rowsReturnedSensorMap.containsKey(key)) {
+      rowsReturnedSensorMap.get(key).record(0);
+    } else {
+      throw new IllegalStateException("Metrics not configured correctly, missing " + key);
+    }
+  }
+
   public void recordRowsProcessed(
       final double value,
-      final PullSourceType sourceType,
+      final QuerySourceType sourceType,
       final PullPhysicalPlanType planType,
       final RoutingNodeType routingNodeType
   ) {
     final MetricsKey key = new MetricsKey(sourceType, planType, routingNodeType);
     if (rowsProcessedSensorMap.containsKey(key)) {
       rowsProcessedSensorMap.get(key).record(value);
+    } else {
+      throw new IllegalStateException("Metrics not configured correctly, missing " + key);
+    }
+  }
+
+  public void recordZeroRowsProcessedForError() {
+    final MetricsKey key = new MetricsKey();
+    if (rowsProcessedSensorMap.containsKey(key)) {
+      rowsProcessedSensorMap.get(key).record(0);
     } else {
       throw new IllegalStateException("Metrics not configured correctly, missing " + key);
     }
@@ -289,7 +405,7 @@ public class PullQueryExecutorMetrics implements Closeable {
         legacyCustomMetricsTags,
         new Rate()
     );
-    
+
     // new metrics with ksql service in tags
     addSensor(
         sensor,
@@ -335,7 +451,7 @@ public class PullQueryExecutorMetrics implements Closeable {
         customMetricsTags,
         new Rate()
     );
-    
+
     sensors.add(sensor);
     return sensor;
   }
@@ -469,16 +585,15 @@ public class PullQueryExecutorMetrics implements Closeable {
         sensor,
         metricNamePrefix + "-total",
         servicePrefix + PULL_QUERY_METRIC_GROUP,
-        "Total number of pull query request" + descriptionSuffix,
+        "Total number of pull query requests" + descriptionSuffix,
         metricsTags,
         new CumulativeCount()
     );
 
     sensor.add(new Percentiles(
-        100,
-        0,
-        1000,
-        BucketSizing.CONSTANT,
+        4 * NUM_LATENCY_BUCKETS,
+        MAX_LATENCY_BUCKET_VALUE_MICROS,
+        BucketSizing.LINEAR,
         new Percentile(metrics.metricName(
             metricNamePrefix + "-distribution-50",
             servicePrefix + PULL_QUERY_METRIC_GROUP,
@@ -605,7 +720,7 @@ public class PullQueryExecutorMetrics implements Closeable {
           final String groupName,
           final String description,
           final Map<String, String> metricsTags,
-          final MeasurableStat measureableStat
+          final MeasurableStat measurableStat
   ) {
     sensor.add(
         metrics.metricName(
@@ -614,62 +729,88 @@ public class PullQueryExecutorMetrics implements Closeable {
             description,
             metricsTags
         ),
-        measureableStat
+        measurableStat
     );
   }
 
   private Map<MetricsKey, Sensor> configureSensorMap(
       final String sensorBaseName, final MetricsAdder metricsAdder) {
-    final ImmutableMap.Builder<MetricsKey, Sensor> builder
-        = ImmutableMap.builder();
+    final ImmutableMap.Builder<MetricsKey, Sensor> builder = ImmutableMap.builder();
 
-    for (final PullSourceType sourceType : PullSourceType.values()) {
+    for (final QuerySourceType sourceType : QuerySourceType.values()) {
       for (final PullPhysicalPlanType planType : PullPhysicalPlanType.values()) {
         for (final RoutingNodeType routingNodeType : RoutingNodeType.values()) {
-          final String variantName = sourceType.name().toLowerCase() + "-"
-              + planType.name().toLowerCase() + "-" + routingNodeType.name().toLowerCase();
-          final Sensor sensor = metrics.sensor(
-              PULL_QUERY_METRIC_GROUP + "-" + PULL_REQUESTS + "-" + sensorBaseName + "-"
-                  + variantName);
-
-          final ImmutableMap<String, String> tags = ImmutableMap.<String, String>builder()
-              .putAll(customMetricsTags)
-              .put(KsqlConstants.KSQL_QUERY_SOURCE_TAG, sourceType.name().toLowerCase())
-              .put(KsqlConstants.KSQL_QUERY_PLAN_TYPE_TAG, planType.name().toLowerCase())
-              .put(KsqlConstants.KSQL_QUERY_ROUTING_TYPE_TAG,
-                  routingNodeType.name().toLowerCase())
-              .build();
-
-          metricsAdder.addMetrics(sensor, tags, variantName);
-
-          builder.put(new MetricsKey(sourceType, planType, routingNodeType), sensor);
-          sensors.add(sensor);
+          addSensorToMap(
+              sensorBaseName,
+              metricsAdder,
+              builder,
+              new MetricsKey(sourceType, planType, routingNodeType)
+          );
         }
       }
     }
 
+    // Add one more sensor for collecting metrics when there is no response
+    addSensorToMap(sensorBaseName, metricsAdder, builder, new MetricsKey());
+
     return builder.build();
   }
 
+  private void addSensorToMap(final String sensorBaseName, final MetricsAdder metricsAdder,
+      final Builder<MetricsKey, Sensor> builder, final MetricsKey metricsKey) {
+    final String variantName = metricsKey.variantName();
+    final Sensor sensor = metrics.sensor(
+        PULL_QUERY_METRIC_GROUP + "-"
+            + PULL_REQUESTS + "-"
+            + sensorBaseName + "-"
+            + variantName);
+
+    final ImmutableMap<String, String> tags = ImmutableMap.<String, String>builder()
+        .putAll(customMetricsTags)
+        .put(KsqlConstants.KSQL_QUERY_SOURCE_TAG, metricsKey.sourceTypeName())
+        .put(KsqlConstants.KSQL_QUERY_PLAN_TYPE_TAG, metricsKey.planTypeName())
+        .put(KsqlConstants.KSQL_QUERY_ROUTING_TYPE_TAG, metricsKey.routingNodeTypeName())
+        .build();
+
+    metricsAdder.addMetrics(sensor, tags, variantName);
+
+    builder.put(
+        metricsKey,
+        sensor
+    );
+    sensors.add(sensor);
+  }
+
   private interface MetricsAdder {
+
     void addMetrics(Sensor sensor, Map<String, String> tags, String variantName);
   }
 
   // Detailed metrics are broken down by multiple parameters represented by the following key.
   private static class MetricsKey {
 
-    private final PullSourceType sourceType;
+    private final QuerySourceType sourceType;
     private final PullPhysicalPlanType planType;
     private final RoutingNodeType routingNodeType;
 
+    /**
+     * Constructor representing an "unknown key" for situations in which we record metrics for an
+     * API call that didn't have a result (because it had an error instead)
+     */
+    MetricsKey() {
+      this.sourceType = null;
+      this.planType = null;
+      this.routingNodeType = null;
+    }
+
     MetricsKey(
-        final PullSourceType sourceType,
+        final QuerySourceType sourceType,
         final PullPhysicalPlanType planType,
         final RoutingNodeType routingNodeType
     ) {
-      this.sourceType = sourceType;
-      this.planType = planType;
-      this.routingNodeType = routingNodeType;
+      this.sourceType = Objects.requireNonNull(sourceType, "sourceType");
+      this.planType = Objects.requireNonNull(planType, "planType");
+      this.routingNodeType = Objects.requireNonNull(routingNodeType, "routingNodeType");
     }
 
     @Override
@@ -698,6 +839,32 @@ public class PullQueryExecutorMetrics implements Closeable {
           + ", planType=" + planType
           + ", routingNodeType=" + routingNodeType
           + '}';
+    }
+
+    public String variantName() {
+      return sourceTypeName() + "-"
+          + planTypeName() + "-"
+          + routingNodeTypeName();
+    }
+
+    public String sourceTypeName() {
+      return getName(sourceType);
+    }
+
+    public String planTypeName() {
+      return getName(planType);
+    }
+
+    public String routingNodeTypeName() {
+      return getName(routingNodeType);
+    }
+
+    private String getName(final Enum<?> o) {
+      if (o == null) {
+        return "unknown";
+      } else {
+        return o.name().toLowerCase();
+      }
     }
   }
 }

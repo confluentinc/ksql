@@ -1,0 +1,110 @@
+{
+  "version" : "7.1.0",
+  "timestamp" : 1633125901765,
+  "path" : "query-validation-tests/array-remove.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`ID` STRING KEY, `DUMMY` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ID` STRING KEY, `A1` ARRAY<STRING>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "array_remove with literal array",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : "r1",
+      "value" : {
+        "dummy" : 0
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : "r2",
+      "value" : {
+        "dummy" : 0
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : "r1",
+      "value" : {
+        "A1" : [ "bar" ]
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "r2",
+      "value" : {
+        "A1" : [ "bar" ]
+      }
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM INPUT (id STRING KEY, dummy INTEGER) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE STREAM OUTPUT AS SELECT id, array_remove(array['foo', 'bar', 'foo'], 'foo') as a1 FROM INPUT;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`ID` STRING KEY, `DUMMY` INTEGER",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`ID` STRING KEY, `A1` ARRAY<STRING>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

@@ -21,17 +21,15 @@ import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.OptionalInt;
 import javax.annotation.Nonnull;
 
 @Immutable
 public final class TableSource extends SourceStep<KTableHolder<GenericKey>> {
 
-  private final Boolean forceChangelog;
+  private final Formats stateStoreFormats;
 
   private static final ImmutableList<Property> MUST_MATCH = ImmutableList.of(
       new Property("class", Object::getClass),
@@ -39,18 +37,17 @@ public final class TableSource extends SourceStep<KTableHolder<GenericKey>> {
       new Property("topicName", s -> ((TableSource) s).topicName),
       new Property("formats", s -> ((TableSource) s).formats),
       new Property("timestampColumn", s -> ((TableSource) s).timestampColumn),
-      new Property("forceChangelog", s -> ((TableSource) s).forceChangelog)
+      new Property("stateStoreFormats", s -> ((TableSource) s).stateStoreFormats)
   );
 
   public TableSource(
-      @JsonProperty(value = "properties", required = true)
-      final ExecutionStepPropertiesV1 props,
+      @JsonProperty(value = "properties", required = true) final ExecutionStepPropertiesV1 props,
       @JsonProperty(value = "topicName", required = true) final String topicName,
       @JsonProperty(value = "formats", required = true) final Formats formats,
       @JsonProperty("timestampColumn") final Optional<TimestampColumn> timestampColumn,
       @JsonProperty(value = "sourceSchema", required = true) final LogicalSchema sourceSchema,
-      @JsonProperty(value = "forceChangelog") final Optional<Boolean> forceChangelog,
-      @JsonProperty("pseudoColumnVersion") final OptionalInt pseudoColumnVersion
+      @JsonProperty(value = "pseudoColumnVersion", required = true) final int pseudoColumnVersion,
+      @JsonProperty(value = "stateStoreFormats", required = true) final Formats stateStoreFormats
   ) {
     super(
         props,
@@ -58,13 +55,14 @@ public final class TableSource extends SourceStep<KTableHolder<GenericKey>> {
         formats,
         timestampColumn,
         sourceSchema,
-        pseudoColumnVersion.orElse(SystemColumns.LEGACY_PSEUDOCOLUMN_VERSION_NUMBER)
+        pseudoColumnVersion
     );
-    this.forceChangelog = forceChangelog.orElse(false);
+    this.stateStoreFormats = Objects.requireNonNull(stateStoreFormats,
+        "stateStoreFormats");
   }
 
-  public Boolean isForceChangelog() {
-    return forceChangelog;
+  public Formats getStateStoreFormats() {
+    return stateStoreFormats;
   }
 
   @Override
@@ -112,8 +110,8 @@ public final class TableSource extends SourceStep<KTableHolder<GenericKey>> {
         && Objects.equals(formats, that.formats)
         && Objects.equals(timestampColumn, that.timestampColumn)
         && Objects.equals(sourceSchema, that.sourceSchema)
-        && Objects.equals(forceChangelog, that.forceChangelog)
-        && Objects.equals(pseudoColumnVersion, that.pseudoColumnVersion);
+        && Objects.equals(pseudoColumnVersion, that.pseudoColumnVersion)
+        && Objects.equals(stateStoreFormats, that.stateStoreFormats);
   }
 
   @Override
@@ -124,7 +122,7 @@ public final class TableSource extends SourceStep<KTableHolder<GenericKey>> {
         formats,
         timestampColumn,
         sourceSchema,
-        forceChangelog,
-        pseudoColumnVersion);
+        pseudoColumnVersion,
+        stateStoreFormats);
   }
 }

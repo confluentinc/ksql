@@ -30,8 +30,13 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.util.Optional;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.junit.MockitoJUnitRunner;
 
+@RunWith(MockitoJUnitRunner.class)
 public class SourceSchemasTest {
+
+  private static final boolean ROWPARTITION_ROWOFFSET_ENABLED = true;
 
   private static final SourceName ALIAS_1 = SourceName.of("S1");
   private static final SourceName ALIAS_2 = SourceName.of("S2");
@@ -61,18 +66,18 @@ public class SourceSchemasTest {
 
   @Before
   public void setUp() {
-    sourceSchemas = new SourceSchemas(ImmutableMap.of(ALIAS_1, SCHEMA_1, ALIAS_2, SCHEMA_2));
+    sourceSchemas = new SourceSchemas(ImmutableMap.of(ALIAS_1, SCHEMA_1, ALIAS_2, SCHEMA_2), ROWPARTITION_ROWOFFSET_ENABLED);
   }
 
   @Test(expected = IllegalArgumentException.class)
   public void shouldThrowOnNoSchemas() {
-    new SourceSchemas(ImmutableMap.of());
+    new SourceSchemas(ImmutableMap.of(), ROWPARTITION_ROWOFFSET_ENABLED);
   }
 
   @Test
   public void shouldNotBeJoinIfSingleSchema() {
     // When:
-    sourceSchemas = new SourceSchemas(ImmutableMap.of(ALIAS_1, SCHEMA_1));
+    sourceSchemas = new SourceSchemas(ImmutableMap.of(ALIAS_1, SCHEMA_1), ROWPARTITION_ROWOFFSET_ENABLED);
 
     // Then:
     assertThat(sourceSchemas.isJoin(), is(false));
@@ -81,7 +86,7 @@ public class SourceSchemasTest {
   @Test
   public void shouldBeJoinIfMultipleSchemas() {
     // When:
-    sourceSchemas = new SourceSchemas(ImmutableMap.of(ALIAS_1, SCHEMA_1, ALIAS_2, SCHEMA_2));
+    sourceSchemas = new SourceSchemas(ImmutableMap.of(ALIAS_1, SCHEMA_1, ALIAS_2, SCHEMA_2), ROWPARTITION_ROWOFFSET_ENABLED);
 
     // Then:
     assertThat(sourceSchemas.isJoin(), is(true));

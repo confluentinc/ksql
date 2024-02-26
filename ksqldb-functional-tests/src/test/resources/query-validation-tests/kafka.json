@@ -7,7 +7,7 @@
         "CREATE STREAM INPUT (K STRING KEY, foo INT) WITH (WRAP_SINGLE_VALUE=true, kafka_topic='input', value_format='KAFKA');"
       ],
       "expectedException": {
-        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "type": "io.confluent.ksql.util.KsqlException",
         "message": "Format 'KAFKA' does not support 'WRAP_SINGLE_VALUE' set to 'true'."
       }
     },

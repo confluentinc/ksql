@@ -65,6 +65,8 @@ public class ExpressionEvaluatorParityTest {
   private static final String STREAM_NAME = "ORDERS";
   private static final long ORDER_ID = 10;
   private static final long ROW_TIME = 20000;
+  private static final long ROWPARTITION = 5;
+  private static final long ROWOFFSET = 100;
   private static final long ORDER_TIME = 100;
   private static final String ITEM_ID = "item_id_0";
   private static final long ITEM_ITEM_ID = 890;
@@ -109,7 +111,7 @@ public class ExpressionEvaluatorParityTest {
     final Map<String, Double> map = ImmutableMap.of("abc", 6.75d, "def", 9.5d);
     // Note key isn't included first since it's assumed that it's provided as a value
     ordersRow = GenericRow.genericRow(ORDER_ID, ITEM_ID, itemInfo, ORDER_UNITS,
-        doubleArray, map, null, TIMESTAMP, TIME, DATE, BYTES, ROW_TIME, ORDER_TIME);
+        doubleArray, map, null, TIMESTAMP, TIME, DATE, BYTES, ROW_TIME, ROWPARTITION, ROWOFFSET, ORDER_TIME);
   }
 
   @After
@@ -145,7 +147,7 @@ public class ExpressionEvaluatorParityTest {
   public void shouldDoComparisons_null() throws Exception {
     ordersRow = GenericRow.genericRow(null, null, null, null, null, null, null, null, null);
     assertOrdersError("1 = null",
-        compileTime("Unexpected error generating code for Test. expression:(1 = null)"),
+        compileTime("Unexpected error generating code for Test. expression: (1 = null)"),
         compileTime("Invalid expression: Comparison with NULL not supported: INTEGER = NULL"));
     assertOrders("ORDERID = 1", false);
     assertOrders("ITEMID > 'a'", false);
@@ -367,7 +369,7 @@ public class ExpressionEvaluatorParityTest {
         = ExpressionTreeRewriter.rewriteWith(columnReferenceRewriter::process, expression);
 
     LogicalSchema schema = metaStore.getSource(SourceName.of(streamName)).getSchema()
-        .withPseudoAndKeyColsInValue(false);
+        .withPseudoAndKeyColsInValue(false, ksqlConfig);
 
     runEvaluator(row,
         () -> CodeGenRunner.compileExpression(
@@ -437,7 +439,7 @@ public class ExpressionEvaluatorParityTest {
 
   private Expression getWhereExpression(final String table, String expression) {
     final Query statement = (Query) KsqlParserTestUtil
-        .buildSingleAst("SELECT * FROM " + table + " WHERE " + expression + ";", metaStore)
+        .buildSingleAst("SELECT * FROM " + table + " WHERE " + expression + ";", metaStore, true)
         .getStatement();
 
     assertThat(statement.getWhere().isPresent(), is(true));

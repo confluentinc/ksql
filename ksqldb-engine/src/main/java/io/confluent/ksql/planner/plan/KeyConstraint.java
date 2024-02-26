@@ -27,27 +27,17 @@ import java.util.Optional;
  * available through the given methods. These are used as hints for the physical planning
  * layer about how to fetch the corresponding rows.
  */
-public class KeyConstraint implements LookupConstraint {
+public class KeyConstraint implements LookupConstraint, KsqlKey {
 
   private final ConstraintOperator operator;
   private final GenericKey key;
   private final Optional<WindowBounds> windowBounds;
 
-  public KeyConstraint(
-      final ConstraintOperator operator,
-      final GenericKey key,
-      final Optional<WindowBounds> windowBounds
-  ) {
+  public KeyConstraint(final ConstraintOperator operator, final GenericKey key,
+                       final Optional<WindowBounds> windowBounds) {
     this.operator = operator;
     this.key = key;
     this.windowBounds = windowBounds;
-  }
-
-  public static KeyConstraint equal(
-      final GenericKey key,
-      final Optional<WindowBounds> windowBounds
-  ) {
-    return new KeyConstraint(ConstraintOperator.EQUAL, key, windowBounds);
   }
 
   // The key value.
@@ -56,7 +46,7 @@ public class KeyConstraint implements LookupConstraint {
   }
 
   // The constraint operator associated with the value
-  public ConstraintOperator getConstraintOperator() {
+  public ConstraintOperator getOperator() {
     return operator;
   }
 
@@ -65,8 +55,8 @@ public class KeyConstraint implements LookupConstraint {
     return windowBounds;
   }
 
-  public KeyConstraintKey getKsqlKey() {
-    return new KeyConstraintKey(key, windowBounds);
+  public KsqlKey getKsqlKey() {
+    return this;
   }
 
   // If the operator represents a range of keys
@@ -82,48 +72,28 @@ public class KeyConstraint implements LookupConstraint {
     GREATER_THAN_OR_EQUAL
   }
 
-  public static class KeyConstraintKey implements KsqlKey {
+  @Override
+  public int hashCode() {
+    return Objects.hash(key, windowBounds);
+  }
 
-    private final GenericKey key;
-    private final Optional<WindowBounds> windowBounds;
-
-    public KeyConstraintKey(final GenericKey key, final Optional<WindowBounds> windowBounds) {
-      this.key = key;
-      this.windowBounds = windowBounds;
+  @Override
+  public boolean equals(final Object o) {
+    if (this == o) {
+      return true;
     }
 
-    @Override
-    public GenericKey getKey() {
-      return key;
+    if (o == null || getClass() != o.getClass()) {
+      return false;
     }
 
-    public Optional<WindowBounds> getWindowBounds() {
-      return windowBounds;
-    }
+    final KeyConstraint that = (KeyConstraint) o;
+    return Objects.equals(this.key, that.key)
+      && Objects.equals(this.windowBounds, that.windowBounds);
+  }
 
-    @Override
-    public int hashCode() {
-      return Objects.hash(key, windowBounds);
-    }
-
-    @Override
-    public boolean equals(final Object o) {
-      if (this == o) {
-        return true;
-      }
-
-      if (o == null || getClass() != o.getClass()) {
-        return false;
-      }
-
-      final KeyConstraintKey that = (KeyConstraintKey) o;
-      return Objects.equals(this.key, that.key)
-          && Objects.equals(this.windowBounds, that.windowBounds);
-    }
-
-    @Override
-    public String toString() {
-      return key.toString() + "-" + windowBounds.toString();
-    }
+  @Override
+  public String toString() {
+    return key.toString() + "-" + windowBounds.toString();
   }
 }

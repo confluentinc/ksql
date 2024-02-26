@@ -765,7 +765,7 @@ public class ExpressionTreeRewriterTest {
   private <T extends Expression> T parseExpression(final String asText) {
     final String ksql = String.format("SELECT %s FROM test1;", asText);
 
-    final PreparedStatement<Query> stmt = KsqlParserTestUtil.buildSingleAst(ksql, metaStore);
+    final PreparedStatement<Query> stmt = KsqlParserTestUtil.buildSingleAst(ksql, metaStore, true);
     final SelectItem selectItem = stmt.getStatement().getSelect().getSelectItems().get(0);
     return (T) ((SingleColumn) selectItem).getExpression();
   }

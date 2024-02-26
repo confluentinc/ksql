@@ -1,0 +1,100 @@
+{
+  "version" : "7.1.0",
+  "timestamp" : 1633125925032,
+  "path" : "query-validation-tests/elements.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`@TIMESTAMP` BIGINT, `FROM` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`@TIMESTAMP` BIGINT, `FROM` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "with invalid or reserved words in schema - JSON",
+    "inputs" : [ {
+      "topic" : "input",
+      "key" : null,
+      "value" : {
+        "@timestamp" : 4,
+        "from" : 5
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : null,
+      "value" : {
+        "@TIMESTAMP" : 4,
+        "FROM" : 5
+      }
+    } ],
+    "topics" : [ {
+      "name" : "input",
+      "replicas" : 1,
+      "numPartitions" : 1
+    }, {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 1
+    } ],
+    "statements" : [ "CREATE STREAM INPUT (`@TIMESTAMP` BIGINT, `FROM` BIGINT) WITH (kafka_topic='input', value_format='JSON');", "CREATE STREAM OUTPUT AS SELECT * FROM input;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`@TIMESTAMP` BIGINT, `FROM` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`@TIMESTAMP` BIGINT, `FROM` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "input",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 1
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

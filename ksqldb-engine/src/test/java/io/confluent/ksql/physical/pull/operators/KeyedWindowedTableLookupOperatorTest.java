@@ -24,14 +24,16 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Range;
 import io.confluent.ksql.GenericKey;
+import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.streams.materialization.Locator.KsqlNode;
 import io.confluent.ksql.execution.streams.materialization.Locator.KsqlPartitionLocation;
 import io.confluent.ksql.execution.streams.materialization.Materialization;
 import io.confluent.ksql.execution.streams.materialization.MaterializedWindowedTable;
 import io.confluent.ksql.execution.streams.materialization.WindowedRow;
 import io.confluent.ksql.execution.streams.materialization.ks.KsLocator;
+import io.confluent.ksql.physical.common.QueryRow;
 import io.confluent.ksql.planner.plan.DataSourceNode;
-import io.confluent.ksql.planner.plan.KeyConstraint.KeyConstraintKey;
+import io.confluent.ksql.planner.plan.KeyConstraint;
 import io.confluent.ksql.planner.plan.QueryFilterNode.WindowBounds;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -58,13 +60,13 @@ public class KeyedWindowedTableLookupOperatorTest {
   @Mock
   private DataSourceNode logicalNode;
   @Mock
-  private KeyConstraintKey KEY1;
+  private KeyConstraint KEY1;
   @Mock
-  private KeyConstraintKey KEY2;
+  private KeyConstraint KEY2;
   @Mock
-  private KeyConstraintKey KEY3;
+  private KeyConstraint KEY3;
   @Mock
-  private KeyConstraintKey KEY4;
+  private KeyConstraint KEY4;
   @Mock
   private GenericKey GKEY1;
   @Mock
@@ -108,6 +110,10 @@ public class KeyedWindowedTableLookupOperatorTest {
     when(KEY4.getWindowBounds()).thenReturn(Optional.of(windowBounds1));
     when(windowBounds1.getMergedStart()).thenReturn(WINDOW_START_BOUNDS);
     when(windowBounds1.getMergedEnd()).thenReturn(WINDOW_END_BOUNDS);
+    when(WINDOWED_ROW1.key()).thenReturn(GKEY1);
+    when(WINDOWED_ROW2.key()).thenReturn(GKEY2);
+    when(WINDOWED_ROW3.key()).thenReturn(GKEY3);
+    when(WINDOWED_ROW4.key()).thenReturn(GKEY4);
   }
 
   @Test
@@ -138,11 +144,11 @@ public class KeyedWindowedTableLookupOperatorTest {
     lookupOperator.open();
 
     //Then:
-    assertThat(lookupOperator.next(), is(WINDOWED_ROW1));
-    assertThat(lookupOperator.next(), is(WINDOWED_ROW2));
-    assertThat(lookupOperator.next(), is(WINDOWED_ROW3));
-    assertThat(lookupOperator.next(), is(WINDOWED_ROW2));
-    assertThat(lookupOperator.next(), is(WINDOWED_ROW4));
+    assertThat(((QueryRow) lookupOperator.next()).key(), is(GKEY1));
+    assertThat(((QueryRow) lookupOperator.next()).key(), is(GKEY2));
+    assertThat(((QueryRow) lookupOperator.next()).key(), is(GKEY3));
+    assertThat(((QueryRow) lookupOperator.next()).key(), is(GKEY2));
+    assertThat(((QueryRow) lookupOperator.next()).key(), is(GKEY4));
     assertThat(lookupOperator.next(), is(nullValue()));
     assertThat(lookupOperator.getReturnedRowCount(), is(5L));
   }
@@ -173,11 +179,11 @@ public class KeyedWindowedTableLookupOperatorTest {
     lookupOperator.open();
 
     //Then:
-    assertThat(lookupOperator.next(), is(WINDOWED_ROW1));
-    assertThat(lookupOperator.next(), is(WINDOWED_ROW2));
-    assertThat(lookupOperator.next(), is(WINDOWED_ROW3));
-    assertThat(lookupOperator.next(), is(WINDOWED_ROW2));
-    assertThat(lookupOperator.next(), is(WINDOWED_ROW4));
+    assertThat(((QueryRow) lookupOperator.next()).key(), is(GKEY1));
+    assertThat(((QueryRow) lookupOperator.next()).key(), is(GKEY2));
+    assertThat(((QueryRow) lookupOperator.next()).key(), is(GKEY3));
+    assertThat(((QueryRow) lookupOperator.next()).key(), is(GKEY2));
+    assertThat(((QueryRow) lookupOperator.next()).key(), is(GKEY4));
     assertThat(lookupOperator.next(), is(nullValue()));
     assertThat(lookupOperator.getReturnedRowCount(), is(5L));
   }
@@ -222,11 +228,11 @@ public class KeyedWindowedTableLookupOperatorTest {
     lookupOperator.open();
 
     //Then:
-    assertThat(lookupOperator.next(), is(WINDOWED_ROW1));
-    assertThat(lookupOperator.next(), is(WINDOWED_ROW2));
-    assertThat(lookupOperator.next(), is(WINDOWED_ROW3));
-    assertThat(lookupOperator.next(), is(WINDOWED_ROW2));
-    assertThat(lookupOperator.next(), is(WINDOWED_ROW4));
+    assertThat(((QueryRow) lookupOperator.next()).key(), is(GKEY1));
+    assertThat(((QueryRow) lookupOperator.next()).key(), is(GKEY2));
+    assertThat(((QueryRow) lookupOperator.next()).key(), is(GKEY3));
+    assertThat(((QueryRow) lookupOperator.next()).key(), is(GKEY2));
+    assertThat(((QueryRow) lookupOperator.next()).key(), is(GKEY4));
     assertThat(lookupOperator.next(), is(nullValue()));
     assertThat(lookupOperator.getReturnedRowCount(), is(5L));
   }

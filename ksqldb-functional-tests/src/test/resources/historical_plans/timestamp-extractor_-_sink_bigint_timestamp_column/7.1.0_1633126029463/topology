@@ -1,0 +1,16 @@
+Topologies:
+   Sub-topology: 0
+    Source: KSTREAM-SOURCE-0000000000 (topics: [test_topic])
+      --> KSTREAM-TRANSFORMVALUES-0000000001
+    Processor: KSTREAM-TRANSFORMVALUES-0000000001 (stores: [])
+      --> Project
+      <-- KSTREAM-SOURCE-0000000000
+    Processor: Project (stores: [])
+      --> ApplyTimestampTransform-TS
+      <-- KSTREAM-TRANSFORMVALUES-0000000001
+    Processor: ApplyTimestampTransform-TS (stores: [])
+      --> KSTREAM-SINK-0000000003
+      <-- Project
+    Sink: KSTREAM-SINK-0000000003 (topic: TS)
+      <-- ApplyTimestampTransform-TS
+

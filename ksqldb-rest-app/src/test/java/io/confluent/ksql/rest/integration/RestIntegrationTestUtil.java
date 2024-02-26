@@ -201,7 +201,7 @@ public final class RestIntegrationTestUtil {
       final String sql,
       final Optional<BasicCredentials> userCreds,
       final Map<String, ?> properties,
-      final Map<String, ?> requestProperties
+      final Map<String, Object> requestProperties
   ) {
     try (final KsqlRestClient restClient = restApp.buildKsqlClient(userCreds)) {
 
@@ -418,26 +418,35 @@ public final class RestIntegrationTestUtil {
       final TestDataProvider dataProvider,
       final Optional<BasicCredentials> userCreds
   ) {
-    createSource(restApp, dataProvider, false, userCreds);
+    createSource(restApp, dataProvider, false,false, userCreds);
   }
 
   public static void createTable(
       final TestKsqlRestApp restApp,
       final TestDataProvider dataProvider
   ) {
-    createSource(restApp, dataProvider, true, Optional.empty());
+    createSource(restApp, dataProvider, false, true, Optional.empty());
+  }
+
+  public static void createTable(
+      final TestKsqlRestApp restApp,
+      final TestDataProvider dataProvider,
+      final boolean isSource
+  ) {
+    createSource(restApp, dataProvider, isSource,true, Optional.empty());
   }
 
   public static void createSource(
       final TestKsqlRestApp restApp,
       final TestDataProvider dataProvider,
+      final boolean isSource,
       final boolean table,
       final Optional<BasicCredentials> userCreds
   ) {
     makeKsqlRequest(
         restApp,
-        "CREATE " + (table ? "TABLE" : "STREAM") + " " + dataProvider.sourceName()
-            + " (" + dataProvider.ksqlSchemaString(table) + ") "
+        "CREATE " + (isSource ? "SOURCE " : "") + (table ? "TABLE" : "STREAM") + " "
+            + dataProvider.sourceName() + " (" + dataProvider.ksqlSchemaString(table) + ") "
             + "WITH (kafka_topic='" + dataProvider.topicName() + "', value_format='json');",
         userCreds
     );
@@ -499,7 +508,9 @@ public final class RestIntegrationTestUtil {
       final String sql,
       final Optional<String> mediaType,
       final Optional<String> contentType,
-      final Optional<Credentials> credentials
+      final Optional<Credentials> credentials,
+      final Optional<Map<String, Object>> overrides,
+      final Optional<Map<String, Object>> requestProperties
   ) {
     Vertx vertx = Vertx.vertx();
     HttpClient httpClient = null;
@@ -507,7 +518,7 @@ public final class RestIntegrationTestUtil {
       httpClient = vertx.createHttpClient();
 
       final String uri = baseUri.toString() + "/ws/query?request="
-          + buildStreamingRequest(sql, Optional.empty())
+          + buildStreamingRequest(sql, overrides, requestProperties)
           + "&access_token=" + buildBasicAuthHeader(credentials.get());
 
       final MultiMap headers = MultiMap.caseInsensitiveMultiMap();
@@ -558,7 +569,7 @@ public final class RestIntegrationTestUtil {
     final HttpClient httpClient = vertx.createHttpClient();
 
     final String uri = baseUri.toString() + "/ws/query?request="
-        + buildStreamingRequest(sql, Optional.of(overrides));
+        + buildStreamingRequest(sql, Optional.of(overrides), Optional.empty());
 
     final MultiMap headers = MultiMap.caseInsensitiveMultiMap();
 
@@ -602,9 +613,10 @@ public final class RestIntegrationTestUtil {
   }
 
   private static String buildStreamingRequest(final String sql,
-      Optional<Map<String, Object>> overrides) {
+      Optional<Map<String, Object>> overrides, Optional<Map<String, Object>> requestProperties
+  ) {
     KsqlRequest request = new KsqlRequest(sql, overrides.orElse(Collections.emptyMap()),
-        Collections.emptyMap(), null);
+        requestProperties.orElse(Collections.emptyMap()), null);
     final String requestStr;
     try {
       requestStr = ApiJsonMapper.INSTANCE.get().writeValueAsString(request);

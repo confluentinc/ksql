@@ -1,0 +1,13 @@
+Topologies:
+   Sub-topology: 0
+    Source: KSTREAM-SOURCE-0000000000 (topics: [test_topic])
+      --> KSTREAM-TRANSFORMVALUES-0000000001
+    Processor: KSTREAM-TRANSFORMVALUES-0000000001 (stores: [])
+      --> Project
+      <-- KSTREAM-SOURCE-0000000000
+    Processor: Project (stores: [])
+      --> KSTREAM-SINK-0000000003
+      <-- KSTREAM-TRANSFORMVALUES-0000000001
+    Sink: KSTREAM-SINK-0000000003 (topic: DISTANCE_STREAM)
+      <-- Project
+

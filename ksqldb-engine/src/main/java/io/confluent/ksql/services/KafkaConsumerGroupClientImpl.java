@@ -25,7 +25,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.apache.kafka.clients.admin.Admin;
@@ -108,7 +107,6 @@ public class KafkaConsumerGroupClientImpl implements KafkaConsumerGroupClient {
 
   @Override
   public void deleteConsumerGroups(final Set<String> groups) {
-    final AtomicInteger retryCount = new AtomicInteger(0);
     try {
       // it takes heartbeat.interval.ms after a consumer is closed for the broker
       // to recognize that there are no more consumers in the consumer group - for
@@ -117,10 +115,11 @@ public class KafkaConsumerGroupClientImpl implements KafkaConsumerGroupClient {
       ExecutorUtil.executeWithRetries(
           () -> adminClient.get().deleteConsumerGroups(groups).all().get(),
           e -> (e instanceof RetriableException)
-              || (e instanceof GroupNotEmptyException && retryCount.getAndIncrement() < 5),
-          () -> Duration.of(3, ChronoUnit.SECONDS)
+              || (e instanceof GroupNotEmptyException),
+          (retry) -> Duration.of(3L * retry, ChronoUnit.SECONDS),
+          10
       );
-    } catch (Exception e) {
+    } catch (final Exception e) {
       throw new KafkaResponseGetFailedException("Failed to delete consumer groups: " + groups, e);
     }
   }

@@ -30,9 +30,11 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.BiFunction;
 import java.util.function.Function;
-import java.util.function.Supplier;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class InternalKsqlClientFactory {
+  private static final Logger LOG = LoggerFactory.getLogger(InternalKsqlClientFactory.class);
 
   private InternalKsqlClientFactory() {
 
@@ -60,9 +62,9 @@ public final class InternalKsqlClientFactory {
 
   private static Function<Boolean, HttpClientOptions> httpOptionsFactory(
       final Map<String, String> clientProps, final boolean verifyHost,
-      final Supplier<HttpClientOptions> optionsSupplier) {
+      final BiFunction<Map<String, String>, Boolean, HttpClientOptions> clientOptions) {
     return (tls) -> {
-      final HttpClientOptions httpClientOptions = optionsSupplier.get();
+      final HttpClientOptions httpClientOptions = clientOptions.apply(clientProps, tls);
       if (!tls) {
         return httpClientOptions;
       }
@@ -89,11 +91,38 @@ public final class InternalKsqlClientFactory {
     };
   }
 
-  private static HttpClientOptions createClientOptions() {
+  private static HttpClientOptions createClientOptions(
+      final Map<String, String> clientProps,
+      final boolean tls
+  ) {
     return new HttpClientOptions().setMaxPoolSize(100);
   }
 
-  private static HttpClientOptions createClientOptionsHttp2() {
-    return new HttpClientOptions().setHttp2MaxPoolSize(100).setProtocolVersion(HttpVersion.HTTP_2);
+  private static HttpClientOptions createClientOptionsHttp2(
+      final Map<String, String> clientProps,
+      final boolean tls
+  ) {
+    final String size = clientProps.get(
+        KsqlRestConfig.KSQL_INTERNAL_HTTP2_MAX_POOL_SIZE_CONFIG);
+    int sizeInt;
+    if (size != null) {
+      try {
+        sizeInt = Integer.parseInt(size);
+      } catch (NumberFormatException e) {
+        LOG.error("Bad int passed in for " + KsqlRestConfig.KSQL_INTERNAL_HTTP2_MAX_POOL_SIZE_CONFIG
+            + ", using " + KsqlRestConfig.KSQL_INTERNAL_HTTP2_MAX_POOL_SIZE_DEFAULT, e);
+        sizeInt = KsqlRestConfig.KSQL_INTERNAL_HTTP2_MAX_POOL_SIZE_DEFAULT;
+      }
+    } else {
+      sizeInt = KsqlRestConfig.KSQL_INTERNAL_HTTP2_MAX_POOL_SIZE_DEFAULT;
+    }
+    return new HttpClientOptions()
+        // At the moment, we cannot asynchronously end long-running queries in http2, in a way that
+        // we can with http1.1, by just closing the connection. For that reason, we've disabled
+        // multiplexing: https://github.com/confluentinc/ksql/issues/8505
+        .setHttp2MultiplexingLimit(1)
+        .setHttp2MaxPoolSize(sizeInt)
+        .setProtocolVersion(HttpVersion.HTTP_2)
+        .setUseAlpn(tls);
   }
 }

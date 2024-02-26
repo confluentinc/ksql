@@ -19,6 +19,7 @@ import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertThrows;
 
+import com.google.common.collect.ImmutableMap;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
@@ -44,7 +45,7 @@ public class KsqlJsonSerdeFactoryTest {
 
   @Before
   public void setUp() {
-    jsonFactory = new KsqlJsonSerdeFactory(true);
+    jsonFactory = new KsqlJsonSerdeFactory(new JsonSchemaProperties(ImmutableMap.of()));
   }
 
   @Test

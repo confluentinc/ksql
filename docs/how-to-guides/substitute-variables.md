@@ -111,9 +111,7 @@ INSERT INTO ${streamName} (
   '${val2}'
 );
 
-SELECT * FROM ${streamName}
-WHERE ${colName1} == ${val1} and ${colName2} == '${val2}'
-EMIT CHANGES; 
+SELECT * FROM ${streamName} EMIT CHANGES;
 ```
 
 Using a variable in a statement that doesn't support variables causes a SQL parsing error.

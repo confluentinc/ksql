@@ -22,6 +22,7 @@ import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.utils.FormatOptions;
 import io.confluent.ksql.util.DecimalUtil;
 import java.util.Objects;
+import java.util.Optional;
 
 /**
  * A named field within KSQL schema types.
@@ -32,13 +33,15 @@ public final class Column implements SimpleColumn {
   // The order of the enum defines the order of precedence of {@code LogicalScheam.findColumn}.
   public enum Namespace {
     KEY,
-    VALUE
+    VALUE,
+    HEADERS
   }
 
   private final ColumnName name;
   private final SqlType type;
   private final Namespace namespace;
   private final int index;
+  private final Optional<String> headerKey;
 
   /**
    * @param name the name of the field.
@@ -54,19 +57,40 @@ public final class Column implements SimpleColumn {
       final Namespace namespace,
       final int indexWithinNamespace
   ) {
-    return new Column(name, type, namespace, indexWithinNamespace);
+    return new Column(name, type, namespace, indexWithinNamespace, Optional.empty());
+  }
+
+  /**
+   * @param name the name of the field.
+   * @param type the type of the field.
+   * @param namespace the namespace of the field.
+   * @param indexWithinNamespace the column index within the namespace.
+   * @param headerKey the key to extract from the header, if this is a header column
+   *
+   * @return the immutable field.
+   */
+  public static Column of(
+      final ColumnName name,
+      final SqlType type,
+      final Namespace namespace,
+      final int indexWithinNamespace,
+      final Optional<String> headerKey
+  ) {
+    return new Column(name, type, namespace, indexWithinNamespace, headerKey);
   }
 
   private Column(
       final ColumnName name,
       final SqlType type,
       final Namespace namespace,
-      final int index
+      final int index,
+      final Optional<String> headerKey
   ) {
     this.name = Objects.requireNonNull(name, "name");
     this.type = Objects.requireNonNull(type, "type");
     this.namespace = Objects.requireNonNull(namespace, "namespace");
     this.index = index;
+    this.headerKey = Objects.requireNonNull(headerKey, "headerKey");
 
     if (index < 0) {
       throw new IllegalArgumentException("Invalid column index: " + index);
@@ -96,6 +120,13 @@ public final class Column implements SimpleColumn {
   }
 
   /**
+   * @return the column namespace.
+   */
+  public Optional<String> headerKey() {
+    return headerKey;
+  }
+
+  /**
    * @return index of the column <i>within the namespace</i>.
    */
   public int index() {
@@ -113,7 +144,8 @@ public final class Column implements SimpleColumn {
   public boolean equalsIgnoreType(final Column that) {
     return Objects.equals(index, that.index)
         && Objects.equals(namespace, that.namespace)
-        && Objects.equals(name, that.name);
+        && Objects.equals(name, that.name)
+        && Objects.equals(headerKey, that.headerKey);
   }
 
   @Override
@@ -139,9 +171,14 @@ public final class Column implements SimpleColumn {
   }
 
   public String toString(final FormatOptions formatOptions) {
-    final String fmtNs = namespace == Namespace.VALUE
-        ? ""
-        : " " + namespace;
+    final String fmtNs;
+    if (namespace == Namespace.HEADERS && headerKey.isPresent()) {
+      fmtNs = " HEADER('" + headerKey.get() + "')";
+    } else if (namespace == Namespace.VALUE) {
+      fmtNs = "";
+    } else {
+      fmtNs = " " + namespace;
+    }
 
     final String fmtType = type.toString(formatOptions);
 

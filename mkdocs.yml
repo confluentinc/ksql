@@ -2,8 +2,6 @@ site_name: ksqlDB Documentation
 site_url: https://docs.ksqldb.io/en/latest/
 site_description: ksqlDB documentation
 site_author: Confluent
-copyright: Copyright &copy; 2020 <a href="https://www.confluent.io/">Confluent</a>.
-
 repo_name: confluentinc/ksql
 repo_url: https://github.com/confluentinc/ksql
 edit_uri: ""
@@ -84,6 +82,7 @@ nav:
       - Monitoring: operate-and-deploy/monitoring.md
       - Exactly once semantics: operate-and-deploy/exactly-once-semantics.md
       - Schema Registry integration: operate-and-deploy/schema-registry-integration.md
+      - Schema Inference With ID: operate-and-deploy/schema-inference-with-id.md
       - High availability for pull queries: operate-and-deploy/high-availability-pull-queries.md
       - Plan Capacity: operate-and-deploy/capacity-planning.md
       - Performance Guidelines: operate-and-deploy/performance-guidelines.md
@@ -220,6 +219,16 @@ plugins:
             operate-and-deploy/installation/server-config/config-reference.md: reference/server-configuration.md
 
 extra:
+    social:
+        - icon: fontawesome/brands/github
+          link: https://github.com/confluentinc/ksql
+          name: ksqlDB on GitHub
+        - icon: fontawesome/brands/twitter
+          link: https://twitter.com/ksqlDB
+          name: ksqlDB on Twitter
+        - icon: fontawesome/brands/slack
+          link: https://launchpass.com/confluentcommunity
+          name: ksqldb Slack channel          
     site:
         # Product-related string tokens
         aktm: Apache Kafka®
@@ -249,12 +258,12 @@ extra:
         zk: ZooKeeper
 
         # Build-related string tokens
-        kafkaversion: 2.8
-        ksqldbversion: 0.21.0
-        kstreamsbetatag: 7.0.0-beta210811194853
+        kafkaversion: 3.1
+        ksqldbversion: 0.24.0
+        kstreamsbetatag: 7.1.0-beta210918170926
         kstreamsbetabuild: 1
-        cprelease: 7.0.0
-        releasepostbranch: 7.0.0-post
+        cprelease: 7.1.0
+        releasepostbranch: 7.1.0-post
         scalaversion: 2.13
         voluble_version: 0.3.1
         jdbc_connector_version: 10.0.0

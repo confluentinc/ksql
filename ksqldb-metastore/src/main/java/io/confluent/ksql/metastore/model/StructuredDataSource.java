@@ -29,7 +29,6 @@ import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.testing.EffectivelyImmutable;
 import java.util.List;
 import java.util.Optional;
@@ -47,6 +46,7 @@ abstract class StructuredDataSource<K> implements DataSource {
   private final KsqlTopic ksqlTopic;
   private final String sqlExpression;
   private final boolean casTarget;
+  private final boolean isSource;
 
   private static final ImmutableList<Property<?>> PROPERTIES = ImmutableList.of(
       new Property<>("name", DataSource::getName),
@@ -64,7 +64,8 @@ abstract class StructuredDataSource<K> implements DataSource {
       final Optional<TimestampColumn> tsExtractionPolicy,
       final DataSourceType dataSourceType,
       final boolean casTarget,
-      final KsqlTopic ksqlTopic
+      final KsqlTopic ksqlTopic,
+      final boolean isSource
   ) {
     this.sqlExpression = requireNonNull(sqlExpression, "sqlExpression");
     this.dataSourceName = requireNonNull(dataSourceName, "dataSourceName");
@@ -73,10 +74,7 @@ abstract class StructuredDataSource<K> implements DataSource {
     this.dataSourceType = requireNonNull(dataSourceType, "dataSourceType");
     this.ksqlTopic = requireNonNull(ksqlTopic, "ksqlTopic");
     this.casTarget = casTarget;
-
-    if (schema.valueContainsAny(SystemColumns.systemColumnNames())) {
-      throw new IllegalArgumentException("Schema contains system columns in value schema");
-    }
+    this.isSource = isSource;
 
     final Set<ColumnName> keyNames = schema.key().stream()
         .map(Column::name)
@@ -124,6 +122,11 @@ abstract class StructuredDataSource<K> implements DataSource {
   @Override
   public String getSqlExpression() {
     return sqlExpression;
+  }
+
+  @Override
+  public boolean isSource() {
+    return isSource;
   }
 
   @Override

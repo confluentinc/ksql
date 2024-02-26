@@ -35,10 +35,15 @@ import java.util.stream.Collectors;
 public final class SourceSchemas {
 
   private final ImmutableMap<SourceName, LogicalSchema> sourceSchemas;
+  private final boolean rowpartitionRowoffsetEnabled;
 
-  SourceSchemas(final Map<SourceName, LogicalSchema> sourceSchemas) {
+  SourceSchemas(
+      final Map<SourceName, LogicalSchema> sourceSchemas,
+      final boolean rowpartitionRowoffsetEnabled) {
     this.sourceSchemas = ImmutableMap.copyOf(requireNonNull(sourceSchemas, "sourceSchemas"));
+    this.rowpartitionRowoffsetEnabled = rowpartitionRowoffsetEnabled;
 
+    // This will fail
     if (sourceSchemas.isEmpty()) {
       throw new IllegalArgumentException("Must supply at least one schema");
     }
@@ -94,7 +99,9 @@ public final class SourceSchemas {
   boolean matchesNonValueField(final Optional<SourceName> source, final ColumnName column) {
     if (!source.isPresent()) {
       return sourceSchemas.values().stream()
-          .anyMatch(schema -> SystemColumns.isPseudoColumn(column) || schema.isKeyColumn(column));
+          .anyMatch(schema ->
+              SystemColumns.isPseudoColumn(column, rowpartitionRowoffsetEnabled)
+                  || schema.isKeyColumn(column));
     }
 
     final SourceName sourceName = source.get();
@@ -103,6 +110,7 @@ public final class SourceSchemas {
       throw new IllegalArgumentException("Unknown source: " + sourceName);
     }
 
-    return sourceSchema.isKeyColumn(column) || SystemColumns.isPseudoColumn(column);
+    return sourceSchema.isKeyColumn(column)
+        || SystemColumns.isPseudoColumn(column, rowpartitionRowoffsetEnabled);
   }
 }

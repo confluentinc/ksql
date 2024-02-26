@@ -31,7 +31,8 @@ public class KsqlStream<K> extends StructuredDataSource<K> {
       final LogicalSchema schema,
       final Optional<TimestampColumn> timestampExtractionPolicy,
       final boolean isKsqlSink,
-      final KsqlTopic ksqlTopic
+      final KsqlTopic ksqlTopic,
+      final boolean isSourceStream
   ) {
     super(
         sqlExpression,
@@ -40,7 +41,8 @@ public class KsqlStream<K> extends StructuredDataSource<K> {
         timestampExtractionPolicy,
         DataSourceType.KSTREAM,
         isKsqlSink,
-        ksqlTopic
+        ksqlTopic,
+        isSourceStream
     );
   }
 
@@ -52,7 +54,8 @@ public class KsqlStream<K> extends StructuredDataSource<K> {
         schema,
         getTimestampColumn(),
         isCasTarget(),
-        getKsqlTopic()
+        getKsqlTopic(),
+        isSource()
     );
   }
 }

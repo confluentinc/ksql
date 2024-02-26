@@ -151,7 +151,7 @@ public class AggregateNodeTest {
     final ValueTransformerWithKey preAggSelectMapper = valueTransformers.get(1).get();
     preAggSelectMapper.init(ctx);
     final GenericRow result = (GenericRow) preAggSelectMapper
-        .transform(null, genericRow("1", "2", 3.0D, null, null, "rowtime", 0L));
+        .transform(null, genericRow("1", "2", 3.0D, null, null, "headers", "rowtime", "rowpartition", "rowoffset", 0L));
     assertThat("should select col0, col1, col2, col3", result.values(),
         contains(0L, "1", "2", 3.0));
   }

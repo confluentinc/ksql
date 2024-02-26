@@ -8,10 +8,9 @@ keywords: ksqlDB, query, insert, select
 
 !!! note
 
-    These endpoints are used by the ksqlDB Java client. If you are using Java you might want
-    to use the Java client rather than using this API directly.
-
-    These endpoints are only available when using HTTP 2.
+    - These endpoints are used by the ksqlDB Java client. If you are using Java you might want
+      to use the Java client rather than using this API directly.
+    - These endpoints are only available when using HTTP 2.
 
 ### Executing pull or push queries
 

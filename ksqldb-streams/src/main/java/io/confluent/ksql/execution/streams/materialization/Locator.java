@@ -45,7 +45,8 @@ public interface Locator {
   List<KsqlPartitionLocation> locate(
       List<KsqlKey> keys,
       RoutingOptions routingOptions,
-      RoutingFilterFactory routingFilterFactory
+      RoutingFilterFactory routingFilterFactory,
+      boolean isRangeScan
   );
 
   interface KsqlNode {
@@ -89,6 +90,11 @@ public interface Locator {
      *         {@link RoutingOptions} as invalid candidates for routing.
      */
     KsqlPartitionLocation removeFilteredHosts();
+
+    /**
+     * @return a {@code KsqlPartitionLocation} without the head node.
+     */
+    KsqlPartitionLocation removeHeadHost();
   }
 
   /**

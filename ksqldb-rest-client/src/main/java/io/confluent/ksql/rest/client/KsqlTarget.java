@@ -37,6 +37,7 @@ import io.confluent.ksql.rest.entity.ServerInfo;
 import io.confluent.ksql.rest.entity.ServerMetadata;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.util.VertxCompletableFuture;
+import io.vertx.core.Context;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpClient;
@@ -44,12 +45,13 @@ import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.http.HttpClientResponse;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.net.SocketAddress;
-import java.util.ArrayList;
+import io.vertx.core.parsetools.RecordParser;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
@@ -186,7 +188,8 @@ public final class KsqlTarget {
       final String ksql,
       final Map<String, ?> requestProperties,
       final Optional<Long> previousCommandSeqNum,
-      final Consumer<List<StreamedRow>> rowConsumer
+      final Consumer<List<StreamedRow>> rowConsumer,
+      final CompletableFuture<Void> shouldCloseConnection
   ) {
     final AtomicInteger rowCount = new AtomicInteger(0);
     return post(
@@ -194,11 +197,13 @@ public final class KsqlTarget {
         createKsqlRequest(ksql, requestProperties, previousCommandSeqNum),
         rowCount::get,
         rows -> {
-          final List<StreamedRow> streamedRows = toRows(rows);
+          final List<StreamedRow> streamedRows = KsqlTargetUtil.toRows(rows);
           rowCount.addAndGet(streamedRows.size());
           return streamedRows;
         },
-        rowConsumer);
+        "\n", // delimiter
+        rowConsumer,
+        shouldCloseConnection);
   }
 
   public RestResponse<List<StreamedRow>> postQueryRequest(
@@ -214,9 +219,10 @@ public final class KsqlTarget {
 
   public RestResponse<StreamPublisher<StreamedRow>> postQueryRequestStreamed(
       final String sql,
+      final Map<String, ?> requestProperties,
       final Optional<Long> previousCommandSeqNum
   ) {
-    return executeQueryRequestWithStreamResponse(sql, previousCommandSeqNum,
+    return executeQueryRequestWithStreamResponse(sql, requestProperties, previousCommandSeqNum,
         buff -> deserialize(buff, StreamedRow.class));
   }
 
@@ -233,7 +239,8 @@ public final class KsqlTarget {
       final String ksql,
       final Optional<Long> previousCommandSeqNum
   ) {
-    return executeQueryRequestWithStreamResponse(ksql, previousCommandSeqNum, Object::toString);
+    return executeQueryRequestWithStreamResponse(ksql, Collections.emptyMap(),
+        previousCommandSeqNum, Object::toString);
   }
 
   private KsqlRequest createKsqlRequest(
@@ -266,10 +273,12 @@ public final class KsqlTarget {
       final Object jsonEntity,
       final Supplier<R> responseSupplier,
       final Function<Buffer, T> mapper,
-      final Consumer<T> chunkHandler
+      final String delimiter,
+      final Consumer<T> chunkHandler,
+      final CompletableFuture<Void> shouldCloseConnection
   ) {
     return executeRequestSync(HttpMethod.POST, path, jsonEntity, responseSupplier, mapper,
-        chunkHandler);
+        delimiter, chunkHandler, shouldCloseConnection);
   }
 
   private <T> CompletableFuture<RestResponse<T>> executeRequestAsync(
@@ -300,12 +309,17 @@ public final class KsqlTarget {
       final Object requestBody,
       final Supplier<R> responseSupplier,
       final Function<Buffer, T> chunkMapper,
-      final Consumer<T> chunkHandler
+      final String delimiter,
+      final Consumer<T> chunkHandler,
+      final CompletableFuture<Void> shouldCloseConnection
   ) {
     return executeSync(httpMethod, path, Optional.empty(), requestBody,
         resp -> responseSupplier.get(),
         (resp, vcf) -> {
-        resp.handler(buff -> {
+        final RecordParser recordParser = RecordParser.newDelimited(delimiter, resp);
+        final AtomicBoolean end = new AtomicBoolean(false);
+        recordParser.exceptionHandler(vcf::completeExceptionally);
+        recordParser.handler(buff -> {
           try {
             chunkHandler.accept(chunkMapper.apply(buff));
           } catch (Throwable t) {
@@ -313,8 +327,9 @@ public final class KsqlTarget {
             vcf.completeExceptionally(t);
           }
         });
-        resp.endHandler(v -> {
+        recordParser.endHandler(v -> {
           try {
+            end.set(true);
             chunkHandler.accept(null);
             vcf.complete(new ResponseWithBody(resp, Buffer.buffer()));
           } catch (Throwable t) {
@@ -322,16 +337,34 @@ public final class KsqlTarget {
             vcf.completeExceptionally(t);
           }
         });
+        // Closing after the end handle was called resulted in errors about the connection being
+        // closed, so we even turn this on the context so there's no race.
+        final Context context = Vertx.currentContext();
+        shouldCloseConnection.handle((v, t) -> {
+          context.runOnContext(v2 -> {
+            if (!end.get()) {
+              try {
+                resp.request().connection().close();
+                vcf.completeExceptionally(new KsqlRestClientException("Closing connection"));
+              } catch (Throwable closing) {
+                log.error("Error while handling close", closing);
+                vcf.completeExceptionally(closing);
+              }
+            }
+          });
+          return null;
+        });
       });
   }
 
   private <T> RestResponse<StreamPublisher<T>> executeQueryRequestWithStreamResponse(
       final String ksql,
+      final Map<String, ?> requestProperties,
       final Optional<Long> previousCommandSeqNum,
       final Function<Buffer, T> mapper
   ) {
     final KsqlRequest ksqlRequest = createKsqlRequest(
-        ksql, Collections.emptyMap(), previousCommandSeqNum);
+        ksql, requestProperties, previousCommandSeqNum);
     final AtomicReference<StreamPublisher<T>> pubRef = new AtomicReference<>();
     return executeSync(HttpMethod.POST, QUERY_PATH, Optional.empty(), ksqlRequest,
         resp -> pubRef.get(),
@@ -436,29 +469,6 @@ public final class KsqlTarget {
   }
 
   private static List<StreamedRow> toRows(final ResponseWithBody resp) {
-    return toRows(resp.getBody());
+    return KsqlTargetUtil.toRows(resp.getBody());
   }
-
-  // This is meant to parse partial chunk responses as well as full pull query responses.
-  private static List<StreamedRow> toRows(final Buffer buff) {
-
-    final List<StreamedRow> rows = new ArrayList<>();
-    int begin = 0;
-
-    for (int i = 0; i <= buff.length(); i++) {
-      if ((i == buff.length() && (i - begin > 1))
-          || (i < buff.length() && buff.getByte(i) == (byte) '\n')) {
-        if (begin != i) { // Ignore random newlines - the server can send these
-          final Buffer sliced = buff.slice(begin, i);
-          final Buffer tidied = StreamPublisher.toJsonMsg(sliced, true);
-          final StreamedRow row = deserialize(tidied, StreamedRow.class);
-          rows.add(row);
-        }
-
-        begin = i + 1;
-      }
-    }
-    return rows;
-  }
-
 }

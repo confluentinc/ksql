@@ -90,7 +90,8 @@ public class SchemaTranslationTest {
           avroToValueSpec(avro, avroSchema, true),
           spec,
           Optional.of(0L),
-          null
+          null,
+          Optional.empty()
       );
 
       list.add(record);
@@ -108,7 +109,8 @@ public class SchemaTranslationTest {
                 r.value(),
                 r.getJsonValue().orElse(null),
                 Optional.of(0L),
-                null
+                null,
+                Optional.empty()
             ))
         .collect(Collectors.toList());
 

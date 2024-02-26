@@ -6,20 +6,20 @@
     {
       "name": "latest by offset",
       "statements": [
-        "CREATE STREAM INPUT (ID BIGINT KEY, F0 INT, F1 BIGINT, F2 DOUBLE, F3 BOOLEAN, F4 STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE TABLE OUTPUT AS SELECT ID, LATEST_BY_OFFSET(F0) AS L0, LATEST_BY_OFFSET(F1) AS L1, LATEST_BY_OFFSET(F2) AS L2, LATEST_BY_OFFSET(F3) AS L3, LATEST_BY_OFFSET(F4) AS L4 FROM INPUT GROUP BY ID;"
+        "CREATE STREAM INPUT (ID BIGINT KEY, F0 INT, F1 BIGINT, F2 DOUBLE, F3 BOOLEAN, F4 STRING, F5 TIMESTAMP, F6 TIME, F7 DATE, F8 BYTES) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT ID, LATEST_BY_OFFSET(F0) AS L0, LATEST_BY_OFFSET(F1) AS L1, LATEST_BY_OFFSET(F2) AS L2, LATEST_BY_OFFSET(F3) AS L3, LATEST_BY_OFFSET(F4) AS L4, LATEST_BY_OFFSET(F5) AS L5, LATEST_BY_OFFSET(F6) AS L6, LATEST_BY_OFFSET(F7) AS L7, LATEST_BY_OFFSET(F8) AS L8 FROM INPUT GROUP BY ID;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": 0, "value": {"F0": 12, "F1": 1000, "F2": 1.23, "F3": true, "F4": "foo"}},
-        {"topic": "test_topic", "key": 1, "value": {"F0": 12, "F1": 1000, "F2": 1.23, "F3": true, "F4": "foo"}},
-        {"topic": "test_topic", "key": 0, "value": {"F0": 21, "F1": 2000, "F2": 2.23, "F3": false, "F4": "bar"}},
-        {"topic": "test_topic", "key": 1, "value": {"F0": 21, "F1": 2000, "F2": 2.23, "F3": false, "F4": "bar"}}
+        {"topic": "test_topic", "key": 0, "value": {"F0": 12, "F1": 1000, "F2": 1.23, "F3": true, "F4": "foo", "F5": 12, "F6": 123, "F7": 1234, "F8": "YQ=="}},
+        {"topic": "test_topic", "key": 1, "value": {"F0": 12, "F1": 1000, "F2": 1.23, "F3": true, "F4": "foo", "F5": 12, "F6": 123, "F7": 1234, "F8": "YQ=="}},
+        {"topic": "test_topic", "key": 0, "value": {"F0": 21, "F1": 2000, "F2": 2.23, "F3": false, "F4": "bar", "F5": 34, "F6": 234, "F7": 2345, "F8": "Yg=="}},
+        {"topic": "test_topic", "key": 1, "value": {"F0": 21, "F1": 2000, "F2": 2.23, "F3": false, "F4": "bar", "F5": 34, "F6": 234, "F7": 2345, "F8": "Yg=="}}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": 0, "value": {"L0": 12, "L1": 1000, "L2": 1.23, "L3": true, "L4": "foo"}},
-        {"topic": "OUTPUT", "key": 1, "value": {"L0": 12, "L1": 1000, "L2": 1.23, "L3": true, "L4": "foo"}},
-        {"topic": "OUTPUT", "key": 0, "value": {"L0": 21, "L1": 2000, "L2": 2.23, "L3": false, "L4": "bar"}},
-        {"topic": "OUTPUT", "key": 1, "value": {"L0": 21, "L1": 2000, "L2": 2.23, "L3": false, "L4": "bar"}}
+        {"topic": "OUTPUT", "key": 0, "value": {"L0": 12, "L1": 1000, "L2": 1.23, "L3": true, "L4": "foo", "L5": 12, "L6": 123, "L7": 1234, "L8": "YQ=="}},
+        {"topic": "OUTPUT", "key": 1, "value": {"L0": 12, "L1": 1000, "L2": 1.23, "L3": true, "L4": "foo", "L5": 12, "L6": 123, "L7": 1234, "L8": "YQ=="}},
+        {"topic": "OUTPUT", "key": 0, "value": {"L0": 21, "L1": 2000, "L2": 2.23, "L3": false, "L4": "bar", "L5": 34, "L6": 234, "L7": 2345, "L8": "Yg=="}},
+        {"topic": "OUTPUT", "key": 1, "value": {"L0": 21, "L1": 2000, "L2": 2.23, "L3": false, "L4": "bar", "L5": 34, "L6": 234, "L7": 2345, "L8": "Yg=="}}
       ]
     },
     {

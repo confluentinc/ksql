@@ -25,6 +25,8 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.api.server.KsqlApiException;
 import io.confluent.ksql.api.server.Server;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
+import io.confluent.ksql.security.DefaultKsqlPrincipal;
+import io.confluent.ksql.security.KsqlPrincipal;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
 import io.vertx.core.json.JsonObject;
@@ -103,10 +105,11 @@ public class AuthenticationPluginHandler implements Handler<RoutingContext> {
 
   private static class AuthPluginUser implements ApiUser {
 
-    private final Principal principal;
+    private final KsqlPrincipal principal;
 
     AuthPluginUser(final Principal principal) {
-      this.principal = Objects.requireNonNull(principal);
+      Objects.requireNonNull(principal);
+      this.principal = new DefaultKsqlPrincipal(principal);
     }
 
     @SuppressWarnings("deprecation")
@@ -133,7 +136,7 @@ public class AuthenticationPluginHandler implements Handler<RoutingContext> {
     }
 
     @Override
-    public Principal getPrincipal() {
+    public KsqlPrincipal getPrincipal() {
       return principal;
     }
   }

@@ -98,7 +98,8 @@ public class DdlCommandExec {
           createStream.getSchema(),
           createStream.getTimestampColumn(),
           withQuery,
-          getKsqlTopic(createStream)
+          getKsqlTopic(createStream),
+          createStream.getIsSource()
       );
 
       metaStore.putSource(ksqlStream, createStream.isOrReplace());
@@ -118,16 +119,24 @@ public class DdlCommandExec {
                     + "already exists.",
                 sourceName, sourceType.toLowerCase()));
       }
+
       final KsqlTable<?> ksqlTable = new KsqlTable<>(
           sql,
           createTable.getSourceName(),
           createTable.getSchema(),
           createTable.getTimestampColumn(),
           withQuery,
-          getKsqlTopic(createTable)
+          getKsqlTopic(createTable),
+          createTable.getIsSource()
       );
       metaStore.putSource(ksqlTable, createTable.isOrReplace());
-      metaStore.addSourceReferences(ksqlTable.getName(), withQuerySources);
+
+      // Source tables only has a query source reference to itself. We don't need to register
+      // this source for source tables.
+      if (!createTable.getIsSource()) {
+        metaStore.addSourceReferences(ksqlTable.getName(), withQuerySources);
+      }
+
       return new DdlCommandResult(true, "Table created");
     }
 

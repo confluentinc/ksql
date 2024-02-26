@@ -1,0 +1,169 @@
+{
+  "version" : "7.1.0",
+  "timestamp" : 1633125958077,
+  "path" : "query-validation-tests/group-by.json",
+  "schemas" : {
+    "CTAS_OUTPUT_0.Aggregate.Project" : {
+      "schema" : "`F1` INTEGER KEY, `F3` STRING, `KSQL_COL_0` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
+    },
+    "CTAS_OUTPUT_0.Aggregate.GroupBy" : {
+      "schema" : "`F1` INTEGER KEY, `F1` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
+    },
+    "CTAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`ID` INTEGER KEY, `F1` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
+    },
+    "CTAS_OUTPUT_0.Aggregate.Aggregate.Materialize" : {
+      "schema" : "`F1` INTEGER KEY, `F1` INTEGER, `KSQL_AGG_VARIABLE_0` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
+    },
+    "CTAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`F1` INTEGER KEY, `F3` STRING, `KSQL_COL_0` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "with constants in the projection (stream->table)",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : 1,
+      "value" : "1"
+    }, {
+      "topic" : "test_topic",
+      "key" : 2,
+      "value" : "2"
+    }, {
+      "topic" : "test_topic",
+      "key" : 1,
+      "value" : "1"
+    }, {
+      "topic" : "test_topic",
+      "key" : 2,
+      "value" : "2"
+    }, {
+      "topic" : "test_topic",
+      "key" : 3,
+      "value" : "3"
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : 1,
+      "value" : "some constant,1"
+    }, {
+      "topic" : "OUTPUT",
+      "key" : 2,
+      "value" : "some constant,1"
+    }, {
+      "topic" : "OUTPUT",
+      "key" : 1,
+      "value" : "some constant,2"
+    }, {
+      "topic" : "OUTPUT",
+      "key" : 2,
+      "value" : "some constant,2"
+    }, {
+      "topic" : "OUTPUT",
+      "key" : 3,
+      "value" : "some constant,1"
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM TEST (ID INT KEY, f1 INT) WITH (kafka_topic='test_topic', value_format='DELIMITED');", "CREATE TABLE OUTPUT AS SELECT f1, 'some constant' as f3, COUNT(f1) FROM TEST GROUP BY f1;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "OUTPUT",
+        "type" : "TABLE",
+        "schema" : "`F1` INTEGER KEY, `F3` STRING, `KSQL_COL_0` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "DELIMITED",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`ID` INTEGER KEY, `F1` INTEGER",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "DELIMITED",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "DELIMITED"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-GroupBy-repartition",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "DELIMITED"
+          }
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "DELIMITED"
+          }
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "DELIMITED"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

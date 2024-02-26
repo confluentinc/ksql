@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.api.auth;
 
+import io.confluent.ksql.security.DefaultKsqlPrincipal;
+import io.confluent.ksql.security.KsqlPrincipal;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
 import io.vertx.core.http.HttpConnection;
@@ -59,10 +61,13 @@ public class SystemAuthenticationHandler implements Handler<RoutingContext> {
 
   private static class SystemUser implements ApiUser {
 
-    private final Principal principal;
+    private final KsqlPrincipal principal;
 
     SystemUser(final Principal principal) {
-      this.principal = Objects.requireNonNull(principal);
+      Objects.requireNonNull(principal);
+      this.principal = principal instanceof DefaultKsqlPrincipal
+          ? (DefaultKsqlPrincipal) principal
+          : new DefaultKsqlPrincipal(principal);
     }
 
     @SuppressWarnings("deprecation")
@@ -89,7 +94,7 @@ public class SystemAuthenticationHandler implements Handler<RoutingContext> {
     }
 
     @Override
-    public Principal getPrincipal() {
+    public KsqlPrincipal getPrincipal() {
       return principal;
     }
   }

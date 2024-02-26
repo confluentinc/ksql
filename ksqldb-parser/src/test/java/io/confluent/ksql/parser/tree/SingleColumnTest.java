@@ -16,15 +16,12 @@
 package io.confluent.ksql.parser.tree;
 
 import static io.confluent.ksql.schema.ksql.SystemColumns.WINDOWSTART_NAME;
-import static java.util.Optional.of;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
-import static org.junit.Assert.assertThrows;
 
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.parser.NodeLocation;
-import io.confluent.ksql.parser.exception.ParseFailedException;
 import java.util.Optional;
 import org.junit.Test;
 
@@ -34,14 +31,11 @@ public class SingleColumnTest {
   private static final Expression AN_EXPRESSION = new StringLiteral("foo");
 
   @Test
-  public void shouldThrowIfAliasIsSystemColumnName() {
+  public void shouldCreateSingleColumn() {
     // When:
-    final ParseFailedException e = assertThrows(
-        ParseFailedException.class,
-        () -> new SingleColumn(A_LOCATION, AN_EXPRESSION, of(WINDOWSTART_NAME))
-    );
+    SingleColumn col = new SingleColumn(A_LOCATION, AN_EXPRESSION, Optional.of(WINDOWSTART_NAME));
 
     // Then:
-    assertThat(e.getUnloggedMessage(), containsString("is a reserved column name."));
+    assertThat(col.toString(), containsString("SingleColumn{, alias=Optional[`WINDOWSTART`], expression='foo'}"));
   }
 }

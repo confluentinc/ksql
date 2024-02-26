@@ -59,7 +59,7 @@ public final class LocalCommandsFile  implements Closeable {
     return new LocalCommandsFile(file, true);
   }
 
-  public void write(final LocalCommand localCommand) throws IOException {
+  public synchronized void write(final LocalCommand localCommand) throws IOException {
     if (writer == null) {
       throw new IOException("Write permission denied.");
     }
@@ -80,7 +80,7 @@ public final class LocalCommandsFile  implements Closeable {
   }
 
   @Override
-  public void close() throws IOException {
+  public synchronized void close() throws IOException {
     if (writer != null) {
       writer.close();
     }

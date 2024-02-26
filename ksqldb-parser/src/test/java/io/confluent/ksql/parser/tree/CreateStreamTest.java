@@ -28,7 +28,6 @@ import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.NodeLocation;
 import io.confluent.ksql.parser.exception.ParseFailedException;
 import io.confluent.ksql.parser.properties.with.CreateSourceProperties;
-import io.confluent.ksql.parser.tree.TableElement.Namespace;
 import io.confluent.ksql.properties.with.CommonCreateConfigs;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.util.Optional;
@@ -36,11 +35,14 @@ import org.junit.Test;
 
 public class CreateStreamTest {
 
+  private static final ColumnConstraints PRIMARY_KEY_CONSTRAINT =
+      new ColumnConstraints.Builder().primaryKey().build();
+
   public static final NodeLocation SOME_LOCATION = new NodeLocation(0, 0);
   public static final NodeLocation OTHER_LOCATION = new NodeLocation(1, 0);
   private static final SourceName SOME_NAME = SourceName.of("bob");
   private static final TableElements SOME_ELEMENTS = TableElements.of(
-      new TableElement(Namespace.VALUE, ColumnName.of("Bob"), new Type(SqlTypes.STRING))
+      new TableElement(ColumnName.of("Bob"), new Type(SqlTypes.STRING))
   );
   private static final CreateSourceProperties SOME_PROPS = CreateSourceProperties.from(
       ImmutableMap.of(
@@ -60,25 +62,28 @@ public class CreateStreamTest {
     new EqualsTester()
         .addEqualityGroup(
             // Note: At the moment location does not take part in equality testing
-            new CreateStream(SOME_NAME, SOME_ELEMENTS, false, true, SOME_PROPS),
-            new CreateStream(SOME_NAME, SOME_ELEMENTS, false, true, SOME_PROPS),
-            new CreateStream(Optional.of(SOME_LOCATION), SOME_NAME, SOME_ELEMENTS, false, true, SOME_PROPS),
-            new CreateStream(Optional.of(OTHER_LOCATION), SOME_NAME, SOME_ELEMENTS, false, true, SOME_PROPS)
+            new CreateStream(SOME_NAME, SOME_ELEMENTS, false, true, SOME_PROPS, false),
+            new CreateStream(SOME_NAME, SOME_ELEMENTS, false, true, SOME_PROPS, false),
+            new CreateStream(Optional.of(SOME_LOCATION), SOME_NAME, SOME_ELEMENTS, false, true, SOME_PROPS, false),
+            new CreateStream(Optional.of(OTHER_LOCATION), SOME_NAME, SOME_ELEMENTS, false, true, SOME_PROPS, false)
         )
         .addEqualityGroup(
-            new CreateStream(SourceName.of("jim"), SOME_ELEMENTS, false, true, SOME_PROPS)
+            new CreateStream(SourceName.of("jim"), SOME_ELEMENTS, false, true, SOME_PROPS, false)
         )
         .addEqualityGroup(
-            new CreateStream(SOME_NAME, TableElements.of(), false, true, SOME_PROPS)
+            new CreateStream(SOME_NAME, TableElements.of(), false, true, SOME_PROPS, false)
         )
         .addEqualityGroup(
-            new CreateStream(SOME_NAME, SOME_ELEMENTS, true, true, SOME_PROPS)
+            new CreateStream(SOME_NAME, SOME_ELEMENTS, true, true, SOME_PROPS, false)
         )
         .addEqualityGroup(
-            new CreateStream(SOME_NAME, SOME_ELEMENTS, false, false, SOME_PROPS)
+            new CreateStream(SOME_NAME, SOME_ELEMENTS, false, false, SOME_PROPS, false)
         )
         .addEqualityGroup(
-            new CreateStream(SOME_NAME, SOME_ELEMENTS, false, true, OTHER_PROPS)
+            new CreateStream(SOME_NAME, SOME_ELEMENTS, false, true, OTHER_PROPS, false)
+        )
+        .addEqualityGroup(
+            new CreateStream(SOME_NAME, SOME_ELEMENTS, false, true, OTHER_PROPS, true)
         )
         .testEquals();
   }
@@ -92,22 +97,22 @@ public class CreateStreamTest {
     final TableElements invalidElements = TableElements.of(
         new TableElement(
             Optional.of(loc),
-            Namespace.PRIMARY_KEY,
             name,
-            new Type(SqlTypes.STRING)
+            new Type(SqlTypes.STRING),
+            PRIMARY_KEY_CONSTRAINT
         ),
         new TableElement(
             Optional.of(new NodeLocation(3, 4)),
-            Namespace.VALUE,
             ColumnName.of("values are always valid"),
-            new Type(SqlTypes.STRING)
+            new Type(SqlTypes.STRING),
+            ColumnConstraints.NO_COLUMN_CONSTRAINTS
         )
     );
 
     // When:
     final ParseFailedException e = assertThrows(
         ParseFailedException.class,
-        () -> new CreateStream(SOME_NAME, invalidElements, false, false, SOME_PROPS)
+        () -> new CreateStream(SOME_NAME, invalidElements, false, false, SOME_PROPS, false)
     );
 
     // Then:

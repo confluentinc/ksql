@@ -1,0 +1,146 @@
+{
+  "version" : "7.1.0",
+  "timestamp" : 1633125919096,
+  "path" : "query-validation-tests/complex-lambda.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`ID` STRING KEY, `ARRAYING` ARRAY<MAP<STRING, INTEGER>>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ID` STRING KEY, `OUTPUT` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "reduce an array of maps",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : "one",
+      "value" : {
+        "arraying" : [ {
+          "to be or not to be" : 15
+        }, {
+          "hello" : 25
+        } ]
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : "two",
+      "value" : {
+        "arraying" : [ {
+          "goodmorning" : 23,
+          "gn" : 12
+        }, {
+          "woooooow" : 9
+        } ]
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : "three",
+      "value" : {
+        "arraying" : [ {
+          "a" : null,
+          "bcdefg" : 4
+        } ]
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : "four",
+      "value" : {
+        "arraying" : null
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : "one",
+      "value" : {
+        "OUTPUT" : 71
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "two",
+      "value" : {
+        "OUTPUT" : 107
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "three",
+      "value" : {
+        "OUTPUT" : 5
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "four",
+      "value" : {
+        "OUTPUT" : 5
+      }
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM test (ID STRING KEY, arraying ARRAY<MAP<STRING, INTEGER>>) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE STREAM OUTPUT AS SELECT ID, reduce(arraying, 5, (s, a) => s + REDUCE(TRANSFORM(FILTER(a, (x, y) => len(x) > 5 AND y % 2 != 0), (e, f) => concat(e, 'leah'), (g, h) => h + len(g)), 0, (s2,r, b) => s2+2*b)) AS OUTPUT FROM test;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`ID` STRING KEY, `OUTPUT` INTEGER",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`ID` STRING KEY, `ARRAYING` ARRAY<MAP<STRING, INTEGER>>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

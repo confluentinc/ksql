@@ -32,6 +32,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 import java.io.File;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
@@ -112,7 +113,7 @@ public class PersistentQueryCleanupImplTest {
   private void awaitCleanupComplete() {
     // add a task to the end of the queue to make sure that
     // we've finished processing everything up until this point
-    cleanup.getQueryCleanupService().addCleanupTask(new QueryCleanupService.QueryCleanupTask(context, "", false, "") {
+    cleanup.getQueryCleanupService().addCleanupTask(new QueryCleanupService.QueryCleanupTask(context, "", Optional.empty(),false, "") {
       @Override
       public void run() {
         // do nothing

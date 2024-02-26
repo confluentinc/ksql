@@ -53,6 +53,7 @@ public class QueryStateMetricsReportingListenerTest {
   private static final MetricName METRIC_NAME_2 =
       new MetricName("dylan", "g1", "d1", ImmutableMap.of());
   private static final QueryId QUERY_ID = new QueryId("foo");
+  private static final String TAG = "_confluent-ksql-" + "some-prefix-" + "query_" + QUERY_ID.toString();
 
   @Mock
   private Metrics metrics;
@@ -71,10 +72,9 @@ public class QueryStateMetricsReportingListenerTest {
     when(metrics.metricName(any(), any(), any(), anyMap()))
         .thenReturn(METRIC_NAME_1)
         .thenReturn(METRIC_NAME_2);
-    when(query.getQueryApplicationId()).thenReturn("app-id");
     when(query.getQueryId()).thenReturn(QUERY_ID);
 
-    listener = new QueryStateMetricsReportingListener(metrics, "");
+    listener = new QueryStateMetricsReportingListener(metrics, "some-prefix-");
   }
 
   @Test
@@ -88,12 +88,12 @@ public class QueryStateMetricsReportingListenerTest {
     listener.onCreate(serviceContext, metaStore, query);
 
     // Then:
-    verify(metrics).metricName("query-status", "ksql-queries",
+    verify(metrics).metricName("query-status", "some-prefix-ksql-queries",
         "The current status of the given query.",
-        ImmutableMap.of("status", "app-id"));
-    verify(metrics).metricName("error-status", "ksql-queries",
+        ImmutableMap.of("status", TAG));
+    verify(metrics).metricName("error-status", "some-prefix-ksql-queries",
         "The current error status of the given query, if the state is in ERROR state",
-        ImmutableMap.of("status", "app-id"));
+        ImmutableMap.of("status", TAG));
 
     verify(metrics).addMetric(eq(METRIC_NAME_1), isA(Gauge.class));
     verify(metrics).addMetric(eq(METRIC_NAME_2), isA(Gauge.class));
@@ -133,10 +133,10 @@ public class QueryStateMetricsReportingListenerTest {
     // Then:
     verify(metrics).metricName("query-status", groupPrefix + "ksql-queries",
         "The current status of the given query.",
-        ImmutableMap.of("status", "app-id"));
+        ImmutableMap.of("status", TAG));
     verify(metrics).metricName("error-status", groupPrefix + "ksql-queries",
         "The current error status of the given query, if the state is in ERROR state",
-        ImmutableMap.of("status", "app-id"));
+        ImmutableMap.of("status", TAG));
   }
 
   @Test

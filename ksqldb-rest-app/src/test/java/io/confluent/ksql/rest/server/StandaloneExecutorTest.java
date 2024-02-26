@@ -67,7 +67,6 @@ import io.confluent.ksql.parser.tree.Select;
 import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.parser.tree.TableElement;
-import io.confluent.ksql.parser.tree.TableElement.Namespace;
 import io.confluent.ksql.parser.tree.TableElements;
 import io.confluent.ksql.parser.tree.UnsetProperty;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
@@ -103,7 +102,6 @@ import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.metrics.MetricsReporter;
 import org.apache.kafka.test.TestUtils;
 import org.junit.Before;
-import org.junit.After;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
@@ -126,7 +124,7 @@ public class StandaloneExecutorTest {
   );
 
   private static final TableElements SOME_ELEMENTS = TableElements.of(
-      new TableElement(Namespace.VALUE, ColumnName.of("bob"), new Type(SqlTypes.STRING)));
+      new TableElement(ColumnName.of("bob"), new Type(SqlTypes.STRING)));
 
   private static final SourceName SOME_NAME = SourceName.of("Bob");
   private static final String SOME_TOPIC = "some-topic";
@@ -148,7 +146,7 @@ public class StandaloneExecutorTest {
   );
 
   private static final CreateStream CREATE_STREAM = new CreateStream(
-      SOME_NAME, SOME_ELEMENTS, false, true, JSON_PROPS);
+      SOME_NAME, SOME_ELEMENTS, false, true, JSON_PROPS, false);
 
   private static final CreateStreamAsSelect CREATE_STREAM_AS_SELECT = new CreateStreamAsSelect(
       SourceName.of("stream"),
@@ -198,7 +196,8 @@ public class StandaloneExecutorTest {
           SOME_ELEMENTS,
           false,
           true,
-          JSON_PROPS
+          JSON_PROPS,
+          false
       ));
 
   private final static ConfiguredStatement<?> CFG_0_WITH_SCHEMA = ConfiguredStatement
@@ -210,7 +209,8 @@ public class StandaloneExecutorTest {
           SOME_ELEMENTS,
           false,
           true,
-          JSON_PROPS
+          JSON_PROPS,
+          false
       ));
 
   private final static ConfiguredStatement<?> CFG_1_WITH_SCHEMA = ConfiguredStatement
@@ -298,7 +298,6 @@ public class StandaloneExecutorTest {
     when(sandBoxTopicInjector.inject(any()))
         .thenAnswer(inv -> inv.getArgument(0));
     when(topicInjector.inject(any())).thenAnswer(inv -> inv.getArgument(0));
-    MetricCollectors.initialize();
 
     standaloneExecutor = new StandaloneExecutor(
         serviceContext,
@@ -310,13 +309,9 @@ public class StandaloneExecutorTest {
         false,
         versionChecker,
         injectorFactory,
+        new MetricCollectors(),
         rocksDBConfigSetterHandler
     );
-  }
-
-  @After
-  public void tearDown() {
-    MetricCollectors.cleanUp();
   }
 
   @Test
@@ -335,6 +330,7 @@ public class StandaloneExecutorTest {
     when(mockKsqlConfig.getConfiguredInstances(anyString(), any(), any()))
         .thenReturn(Collections.singletonList(mockReporter));
     when(mockKsqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG)).thenReturn("ksql-id");
+    final MetricCollectors metricCollectors = new MetricCollectors();
     standaloneExecutor = new StandaloneExecutor(
         serviceContext,
         processingLogConfig,
@@ -345,11 +341,12 @@ public class StandaloneExecutorTest {
         false,
         versionChecker,
         injectorFactory,
+        metricCollectors,
         rocksDBConfigSetterHandler
     );
 
     // Then:
-    final List<MetricsReporter> reporters = MetricCollectors.getMetrics().reporters();
+    final List<MetricsReporter> reporters = metricCollectors.getMetrics().reporters();
     assertThat(reporters, hasItem(mockReporter));
   }
 
@@ -367,6 +364,7 @@ public class StandaloneExecutorTest {
         false,
         versionChecker,
         injectorFactory,
+        new MetricCollectors(),
         rocksDBConfigSetterHandler
     );
 
@@ -404,6 +402,7 @@ public class StandaloneExecutorTest {
         false,
         versionChecker,
         injectorFactory,
+        new MetricCollectors(),
         rocksDBConfigSetterHandler
     );
 
@@ -460,6 +459,7 @@ public class StandaloneExecutorTest {
         false,
         versionChecker,
         (ec, sc) -> InjectorChain.of(schemaInjector, topicInjector),
+        new MetricCollectors(),
         rocksDBConfigSetterHandler
     );
 
@@ -520,7 +520,7 @@ public class StandaloneExecutorTest {
   public void shouldRunCsStatement() {
     // Given:
     final PreparedStatement<CreateStream> cs = PreparedStatement.of("CS",
-        new CreateStream(SOME_NAME, SOME_ELEMENTS, false, false, JSON_PROPS));
+        new CreateStream(SOME_NAME, SOME_ELEMENTS, false, false, JSON_PROPS, false));
 
     givenQueryFileParsesTo(cs);
 
@@ -536,7 +536,8 @@ public class StandaloneExecutorTest {
   public void shouldRunCtStatement() {
     // Given:
     final PreparedStatement<CreateTable> ct = PreparedStatement.of("CT",
-        new CreateTable(SOME_NAME, SOME_ELEMENTS, false, false, JSON_PROPS));
+        new CreateTable(SOME_NAME, SOME_ELEMENTS, false, false, JSON_PROPS,
+            false));
 
     givenQueryFileParsesTo(ct);
 
@@ -555,7 +556,7 @@ public class StandaloneExecutorTest {
         new SetProperty(Optional.empty(), ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest"));
 
     final PreparedStatement<CreateStream> cs = PreparedStatement.of("CS",
-        new CreateStream(SOME_NAME, SOME_ELEMENTS, false, false, JSON_PROPS));
+        new CreateStream(SOME_NAME, SOME_ELEMENTS, false, false, JSON_PROPS, false));
 
     givenQueryFileParsesTo(setProp, cs);
 
@@ -577,7 +578,7 @@ public class StandaloneExecutorTest {
         new SetProperty(Optional.empty(), ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest"));
 
     final PreparedStatement<CreateStream> cs = PreparedStatement.of("CS",
-        new CreateStream(SOME_NAME, SOME_ELEMENTS, false, false, JSON_PROPS));
+        new CreateStream(SOME_NAME, SOME_ELEMENTS, false, false, JSON_PROPS, false));
 
     givenQueryFileParsesTo(cs, setProp);
 
@@ -599,7 +600,7 @@ public class StandaloneExecutorTest {
         new UnsetProperty(Optional.empty(), ConsumerConfig.AUTO_OFFSET_RESET_CONFIG));
 
     final PreparedStatement<CreateStream> cs = PreparedStatement.of("CS",
-        new CreateStream(SOME_NAME, SOME_ELEMENTS, false, false, JSON_PROPS));
+        new CreateStream(SOME_NAME, SOME_ELEMENTS, false, false, JSON_PROPS, false));
 
     final ConfiguredStatement<?> configured = ConfiguredStatement
         .of(cs, SessionConfig.of(ksqlConfig, emptyMap()));
@@ -792,7 +793,7 @@ public class StandaloneExecutorTest {
   public void shouldThrowOnCreateStatementWithNoElements() {
     // Given:
     final PreparedStatement<CreateStream> cs = PreparedStatement.of("CS",
-        new CreateStream(SOME_NAME, TableElements.of(), false, false, JSON_PROPS));
+        new CreateStream(SOME_NAME, TableElements.of(), false, false, JSON_PROPS, false));
 
     givenQueryFileParsesTo(cs);
 
@@ -810,7 +811,7 @@ public class StandaloneExecutorTest {
   public void shouldSupportSchemaInference() {
     // Given:
     final PreparedStatement<CreateStream> cs = PreparedStatement.of("CS",
-        new CreateStream(SOME_NAME, TableElements.of(), false, false, AVRO_PROPS));
+        new CreateStream(SOME_NAME, TableElements.of(), false, false, AVRO_PROPS, false));
 
     givenQueryFileParsesTo(cs);
 
@@ -868,6 +869,7 @@ public class StandaloneExecutorTest {
         true,
         versionChecker,
         (ec, sc) -> InjectorChain.of(schemaInjector, topicInjector),
+        new MetricCollectors(),
         rocksDBConfigSetterHandler
     );
   }

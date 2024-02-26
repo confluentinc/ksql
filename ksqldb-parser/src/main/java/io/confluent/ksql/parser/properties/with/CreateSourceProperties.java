@@ -34,6 +34,7 @@ import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.SerdeFeature;
 import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.avro.AvroFormat;
+import io.confluent.ksql.serde.connect.ConnectProperties;
 import io.confluent.ksql.serde.delimited.DelimitedFormat;
 import io.confluent.ksql.serde.protobuf.ProtobufFormat;
 import io.confluent.ksql.serde.protobuf.ProtobufProperties;
@@ -131,11 +132,11 @@ public final class CreateSourceProperties {
   }
 
   public Optional<Integer> getKeySchemaId() {
-    return Optional.ofNullable(props.getInt(CreateConfigs.KEY_SCHEMA_ID));
+    return Optional.ofNullable(props.getInt(CommonCreateConfigs.KEY_SCHEMA_ID));
   }
 
   public Optional<Integer> getValueSchemaId() {
-    return Optional.ofNullable(props.getInt(CreateConfigs.VALUE_SCHEMA_ID));
+    return Optional.ofNullable(props.getInt(CommonCreateConfigs.VALUE_SCHEMA_ID));
   }
 
   public Optional<FormatInfo> getKeyFormat(final SourceName name) {
@@ -147,11 +148,14 @@ public final class CreateSourceProperties {
 
   public Map<String, String> getKeyFormatProperties(final String keyFormat, final String name) {
     final Builder<String, String> builder = ImmutableMap.builder();
-    if (AvroFormat.NAME.equalsIgnoreCase(keyFormat)) {
+    final String schemaName = props.getString(CommonCreateConfigs.KEY_SCHEMA_FULL_NAME);
+    if (schemaName != null) {
+      builder.put(ConnectProperties.FULL_SCHEMA_NAME, schemaName);
+    } else if (AvroFormat.NAME.equalsIgnoreCase(keyFormat)) {
       // ensure that the schema name for the key is unique to the sink - this allows
       // users to always generate valid, non-conflicting avro record definitions in
       // generated Java classes (https://github.com/confluentinc/ksql/issues/6465)
-      builder.put(AvroFormat.FULL_SCHEMA_NAME, AvroFormat.getKeySchemaName(name));
+      builder.put(ConnectProperties.FULL_SCHEMA_NAME, AvroFormat.getKeySchemaName(name));
     }
 
     final String delimiter = props.getString(CommonCreateConfigs.KEY_DELIMITER_PROPERTY);
@@ -162,6 +166,9 @@ public final class CreateSourceProperties {
     if (ProtobufFormat.NAME.equalsIgnoreCase(keyFormat) && unwrapProtobufPrimitives) {
       builder.put(ProtobufProperties.UNWRAP_PRIMITIVES, ProtobufProperties.UNWRAP);
     }
+
+    final Optional<Integer> keySchemaId = getKeySchemaId();
+    keySchemaId.ifPresent(id -> builder.put(ConnectProperties.SCHEMA_ID, String.valueOf(id)));
 
     return builder.build();
   }
@@ -176,9 +183,12 @@ public final class CreateSourceProperties {
   public Map<String, String> getValueFormatProperties(final String valueFormat) {
     final ImmutableMap.Builder<String, String> builder = ImmutableMap.builder();
 
-    final String schemaName = props.getString(CommonCreateConfigs.VALUE_AVRO_SCHEMA_FULL_NAME);
+    final String avroSchemaName = props.getString(CommonCreateConfigs.VALUE_AVRO_SCHEMA_FULL_NAME);
+    final String schemaName =
+        avroSchemaName == null ? props.getString(CommonCreateConfigs.VALUE_SCHEMA_FULL_NAME)
+            : avroSchemaName;
     if (schemaName != null) {
-      builder.put(AvroFormat.FULL_SCHEMA_NAME, schemaName);
+      builder.put(ConnectProperties.FULL_SCHEMA_NAME, schemaName);
     }
 
     final String delimiter = props.getString(CommonCreateConfigs.VALUE_DELIMITER_PROPERTY);
@@ -189,6 +199,10 @@ public final class CreateSourceProperties {
     if (ProtobufFormat.NAME.equalsIgnoreCase(valueFormat) && unwrapProtobufPrimitives) {
       builder.put(ProtobufProperties.UNWRAP_PRIMITIVES, ProtobufProperties.UNWRAP);
     }
+
+    final Optional<Integer> valueSchemaId = getValueSchemaId();
+    valueSchemaId.ifPresent(id ->
+        builder.put(ConnectProperties.SCHEMA_ID, String.valueOf(id)));
 
     return builder.build();
   }
@@ -204,26 +218,24 @@ public final class CreateSourceProperties {
     return SerdeFeatures.from(builder.build());
   }
 
-  public CreateSourceProperties withSchemaIds(
-      final Optional<Integer> keySchemaId,
-      final Optional<Integer> valueSchemaId
+  public CreateSourceProperties withKeyValueSchemaName(
+      final Optional<String> keySchemaName,
+      final Optional<String> valueSchemaName
   ) {
     final Map<String, Literal> originals = props.copyOfOriginalLiterals();
-    keySchemaId.ifPresent(id ->
-        originals.put(CreateConfigs.KEY_SCHEMA_ID, new IntegerLiteral(id)));
-    valueSchemaId.ifPresent(id ->
-        originals.put(CreateConfigs.VALUE_SCHEMA_ID, new IntegerLiteral(id)));
+    keySchemaName.ifPresent(
+        s -> originals.put(CommonCreateConfigs.KEY_SCHEMA_FULL_NAME, new StringLiteral(s)));
+    valueSchemaName.ifPresent(
+        s -> originals.put(CommonCreateConfigs.VALUE_SCHEMA_FULL_NAME, new StringLiteral(s)));
 
     return new CreateSourceProperties(originals, durationParser, unwrapProtobufPrimitives);
   }
 
-  public CreateSourceProperties withPartitionsAndReplicas(
-      final int partitions,
-      final short replicas
+  public CreateSourceProperties withPartitions(
+      final int partitions
   ) {
     final Map<String, Literal> originals = props.copyOfOriginalLiterals();
     originals.put(CommonCreateConfigs.SOURCE_NUMBER_OF_PARTITIONS, new IntegerLiteral(partitions));
-    originals.put(CommonCreateConfigs.SOURCE_NUMBER_OF_REPLICAS, new IntegerLiteral(replicas));
 
     return new CreateSourceProperties(originals, durationParser, unwrapProtobufPrimitives);
   }

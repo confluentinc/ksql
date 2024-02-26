@@ -1,0 +1,169 @@
+{
+  "version" : "7.1.0",
+  "timestamp" : 1633126024957,
+  "path" : "query-validation-tests/sum.json",
+  "schemas" : {
+    "CTAS_OUTPUT_0.Aggregate.Project" : {
+      "schema" : "`ID` STRING KEY, `SUM_VAL` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CTAS_OUTPUT_0.Aggregate.GroupBy" : {
+      "schema" : "`ID` STRING KEY, `ID` STRING, `VALUE` ARRAY<BIGINT>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CTAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`ID` STRING KEY, `VALUE` ARRAY<BIGINT>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CTAS_OUTPUT_0.Aggregate.Aggregate.Materialize" : {
+      "schema" : "`ID` STRING KEY, `ID` STRING, `VALUE` ARRAY<BIGINT>, `KSQL_AGG_VARIABLE_0` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CTAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ID` STRING KEY, `SUM_VAL` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "sum list of longs into a single long",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : "a",
+      "value" : {
+        "value" : [ 1, 1 ]
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : "a",
+      "value" : {
+        "value" : [ 2, 2 ]
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : "a",
+      "value" : {
+        "value" : [ 100, 100 ]
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : "a",
+      "value" : {
+        "value" : [ 100, 100, null ]
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : "a",
+      "value" : {
+        "SUM_VAL" : 2
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "a",
+      "value" : {
+        "SUM_VAL" : 6
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "a",
+      "value" : {
+        "SUM_VAL" : 206
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "a",
+      "value" : {
+        "SUM_VAL" : 406
+      }
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM INPUT (ID STRING KEY, VALUE ARRAY<bigint>) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE TABLE OUTPUT as SELECT ID, sum_list(VALUE) AS sum_val FROM INPUT group by ID;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`ID` STRING KEY, `VALUE` ARRAY<BIGINT>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "OUTPUT",
+        "type" : "TABLE",
+        "schema" : "`ID` STRING KEY, `SUM_VAL` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          }
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

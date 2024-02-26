@@ -34,6 +34,7 @@ import io.confluent.ksql.engine.KsqlEngineTestUtil;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.metastore.MutableMetaStore;
+import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
@@ -61,7 +62,8 @@ public class ProcessingLogServerUtilsTest {
   private final MutableMetaStore metaStore = new MetaStoreImpl(new InternalFunctionRegistry());
   private final KsqlEngine ksqlEngine = KsqlEngineTestUtil.createKsqlEngine(
       serviceContext,
-      metaStore
+      metaStore,
+      new MetricCollectors()
   );
   private final ProcessingLogConfig config = new ProcessingLogConfig(
       ImmutableMap.of(

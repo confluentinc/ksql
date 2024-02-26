@@ -15,22 +15,19 @@
 
 package io.confluent.ksql.util;
 
-import com.google.common.collect.ImmutableListMultimap;
-import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.LinkedListMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
-import com.google.common.collect.TreeMultimap;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.schema.ksql.Column.Namespace;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
-import java.util.Collections;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import org.apache.kafka.streams.KeyValue;
 
@@ -60,7 +57,8 @@ public class TestDataProvider {
 
   public String ksqlSchemaString(final boolean asTable) {
     return schema.logicalSchema().columns().stream()
-        .map(col -> col.name() + " " + col.type() + namespace(col.namespace(), asTable))
+        .map(col ->
+            col.name() + " " + col.type() + namespace(col.namespace(), asTable, col.headerKey()))
         .collect(Collectors.joining(", "));
   }
 
@@ -90,9 +88,14 @@ public class TestDataProvider {
     return sourceName;
   }
 
-  private static String namespace(final Namespace namespace, final boolean asTable) {
-    if (namespace != Namespace.KEY) {
+  private static String namespace(
+      final Namespace namespace, final boolean asTable, final Optional<String> headerKey) {
+    if (namespace == Namespace.VALUE) {
       return "";
+    } else if (namespace == Namespace.HEADERS) {
+      return headerKey.isPresent()
+          ? " HEADER('" + headerKey.get() + "')"
+          : " HEADERS";
     }
 
     return asTable

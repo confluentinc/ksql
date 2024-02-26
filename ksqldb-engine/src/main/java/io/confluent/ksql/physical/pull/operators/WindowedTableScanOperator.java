@@ -21,6 +21,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.execution.streams.materialization.Locator.KsqlPartitionLocation;
 import io.confluent.ksql.execution.streams.materialization.Materialization;
 import io.confluent.ksql.execution.streams.materialization.WindowedRow;
+import io.confluent.ksql.physical.common.QueryRowImpl;
 import io.confluent.ksql.physical.common.operators.AbstractPhysicalOperator;
 import io.confluent.ksql.physical.common.operators.UnaryPhysicalOperator;
 import io.confluent.ksql.planner.plan.DataSourceNode;
@@ -28,6 +29,7 @@ import io.confluent.ksql.planner.plan.PlanNode;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -38,6 +40,7 @@ public class WindowedTableScanOperator extends AbstractPhysicalOperator
 
   private final Materialization mat;
   private final DataSourceNode logicalNode;
+  private final CompletableFuture<Void> shouldCancelOperations;
 
   private ImmutableList<KsqlPartitionLocation> partitionLocations;
   private Iterator<WindowedRow> resultIterator;
@@ -47,10 +50,13 @@ public class WindowedTableScanOperator extends AbstractPhysicalOperator
 
   public WindowedTableScanOperator(
       final Materialization mat,
-      final DataSourceNode logicalNode
+      final DataSourceNode logicalNode,
+      final CompletableFuture<Void> shouldCancelOperations
   ) {
     this.mat = Objects.requireNonNull(mat, "mat");
     this.logicalNode = Objects.requireNonNull(logicalNode, "logicalNode");
+    this.shouldCancelOperations =  Objects.requireNonNull(shouldCancelOperations,
+        "shouldCancelOperations");
   }
 
   @Override
@@ -68,6 +74,10 @@ public class WindowedTableScanOperator extends AbstractPhysicalOperator
 
   @Override
   public Object next() {
+    if (shouldCancelOperations.isDone()) {
+      return null;
+    }
+
     while (!resultIterator.hasNext()) {
       // Exhausted resultIterator
       if (partitionLocationIterator.hasNext()) {
@@ -84,7 +94,14 @@ public class WindowedTableScanOperator extends AbstractPhysicalOperator
     }
 
     returnedRows++;
-    return resultIterator.next();
+    final WindowedRow row = resultIterator.next();
+    return QueryRowImpl.of(
+        row.schema(),
+        row.key(),
+        row.window(),
+        row.value(),
+        row.rowTime()
+    );
   }
 
   @Override

@@ -23,6 +23,7 @@ import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.physical.common.operators.AbstractPhysicalOperator;
 import io.confluent.ksql.physical.common.operators.ProjectOperator;
 import io.confluent.ksql.physical.common.operators.SelectOperator;
+import io.confluent.ksql.physical.scalablepush.ScalablePushRegistry.CatchupMetadata;
 import io.confluent.ksql.physical.scalablepush.operators.PeekStreamOperator;
 import io.confluent.ksql.physical.scalablepush.operators.PushDataSourceOperator;
 import io.confluent.ksql.planner.LogicalPlanNode;
@@ -33,11 +34,14 @@ import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.planner.plan.QueryFilterNode;
 import io.confluent.ksql.planner.plan.QueryProjectNode;
 import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.util.KsqlConstants.QuerySourceType;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
+import io.confluent.ksql.util.PushOffsetRange;
 import io.vertx.core.Context;
 import java.util.Objects;
-import java.util.concurrent.ThreadLocalRandom;
+import java.util.Optional;
+import java.util.UUID;
 
 /**
  * Traverses the logical plan top-down and creates a physical plan for scalable push queries.
@@ -51,6 +55,8 @@ public class PushPhysicalPlanBuilder {
   private final PersistentQueryMetadata persistentQueryMetadata;
   private final Stacker contextStacker;
   private final QueryId queryId;
+
+  private QuerySourceType querySourceType;
 
   public PushPhysicalPlanBuilder(
       final ProcessingLogContext processingLogContext,
@@ -71,8 +77,11 @@ public class PushPhysicalPlanBuilder {
    */
   public PushPhysicalPlan buildPushPhysicalPlan(
       final LogicalPlanNode logicalPlanNode,
-      final Context context
+      final Context context,
+      final Optional<PushOffsetRange> offsetRange,
+      final Optional<String> catchupConsumerGroup
   ) {
+    final String catchupConsumerGroupId = getConsumerGroupId(catchupConsumerGroup);
     PushDataSourceOperator dataSourceOperator = null;
 
     final OutputNode outputNode = logicalPlanNode.getNode()
@@ -94,7 +103,7 @@ public class PushPhysicalPlanBuilder {
         currentPhysicalOp = translateFilterNode((QueryFilterNode) currentLogicalNode);
       } else if (currentLogicalNode instanceof DataSourceNode) {
         currentPhysicalOp = translateDataSourceNode(
-            (DataSourceNode) currentLogicalNode);
+            (DataSourceNode) currentLogicalNode, offsetRange, catchupConsumerGroupId);
         dataSourceOperator = (PushDataSourceOperator) currentPhysicalOp;
       } else {
         throw new KsqlException(String.format(
@@ -125,9 +134,11 @@ public class PushPhysicalPlanBuilder {
         rootPhysicalOp,
         (rootPhysicalOp).getLogicalNode().getSchema(),
         queryId,
+        catchupConsumerGroupId,
         dataSourceOperator.getScalablePushRegistry(),
         dataSourceOperator,
-        context);
+        context,
+        querySourceType);
   }
 
   private ProjectOperator translateProjectNode(final QueryProjectNode logicalNode) {
@@ -155,15 +166,29 @@ public class PushPhysicalPlanBuilder {
   }
 
   private AbstractPhysicalOperator translateDataSourceNode(
-      final DataSourceNode logicalNode
+      final DataSourceNode logicalNode,
+      final Optional<PushOffsetRange> offsetRange,
+      final String catchupConsumerGroupId
   ) {
     final ScalablePushRegistry scalablePushRegistry =
         persistentQueryMetadata.getScalablePushRegistry()
         .orElseThrow(() -> new IllegalStateException("Scalable push registry cannot be found"));
-    return new PeekStreamOperator(scalablePushRegistry, logicalNode, queryId);
+    querySourceType = logicalNode.isWindowed()
+        ? QuerySourceType.WINDOWED : QuerySourceType.NON_WINDOWED;
+    final Optional<CatchupMetadata> catchupMetadata = offsetRange.map(or ->
+        new CatchupMetadata(or, catchupConsumerGroupId));
+    return new PeekStreamOperator(scalablePushRegistry, logicalNode, queryId, catchupMetadata);
+  }
+
+  private String getConsumerGroupId(final Optional<String> catchupConsumerGroupFromSource) {
+    final ScalablePushRegistry scalablePushRegistry =
+        persistentQueryMetadata.getScalablePushRegistry()
+            .orElseThrow(() -> new IllegalStateException("Scalable push registry cannot be found"));
+    return catchupConsumerGroupFromSource.orElse(
+        scalablePushRegistry.getCatchupConsumerId(UUID.randomUUID().toString()));
   }
 
   private QueryId uniqueQueryId() {
-    return new QueryId("SCALABLE_PUSH_QUERY_" + Math.abs(ThreadLocalRandom.current().nextLong()));
+    return new QueryId("SCALABLE_PUSH_QUERY_" + UUID.randomUUID());
   }
 }

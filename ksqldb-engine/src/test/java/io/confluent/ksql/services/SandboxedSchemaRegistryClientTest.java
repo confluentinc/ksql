@@ -17,6 +17,8 @@ package io.confluent.ksql.services;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
@@ -64,7 +66,11 @@ public final class SandboxedSchemaRegistryClientTest {
           .ignore("testCompatibility", String.class, ParsedSchema.class)
           .ignore("deleteSubject", String.class)
           .ignore("getAllSubjects")
+          .ignore("getId", String.class, ParsedSchema.class)
+          .ignore("getId", String.class, ParsedSchema.class, boolean.class)
+          .ignore("getId", String.class, Schema.class)
           .ignore("getVersion", String.class, ParsedSchema.class)
+          .ignore("getSchemaById", int.class)
           .build();
     }
 
@@ -93,6 +99,8 @@ public final class SandboxedSchemaRegistryClientTest {
     private SchemaRegistryClient delegate;
     @Mock
     private AvroSchema schema;
+    @Mock
+    private ParsedSchema parsedSchema;
     @Mock
     private SchemaMetadata schemaMetadata;
     private SchemaRegistryClient sandboxedClient;
@@ -172,6 +180,31 @@ public final class SandboxedSchemaRegistryClientTest {
 
       // Then:
       assertThat(version, is(6));
+    }
+
+    @Test
+    public void shouldGetSchemaById() throws Exception {
+      // Given:
+      when(delegate.getSchemaById(anyInt())).thenReturn(parsedSchema);
+
+      // When:
+      final ParsedSchema retSchema = sandboxedClient.getSchemaById(1);
+
+      // Then:
+      assertThat(retSchema, is(parsedSchema));
+    }
+
+    @Test
+    public void shouldGetId() throws Exception {
+      // When:
+      final int id = sandboxedClient.getId("some subject", schema);
+      final int id1 = sandboxedClient.getId("some subject", parsedSchema);
+      final int id2 = sandboxedClient.getId("some subject", parsedSchema, true);
+
+      // Then:
+      assertThat(id, is(123));
+      assertThat(id1, is(123));
+      assertThat(id2, is(123));
     }
   }
 }

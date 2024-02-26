@@ -72,6 +72,7 @@ public class OrphanedTransientQueryCleaner {
           new QueryCleanupService.QueryCleanupTask(
               serviceContext,
               queryApplicationId,
+              Optional.empty(),
               true,
               ksqlConfig.getKsqlStreamConfigProps()
                   .getOrDefault(

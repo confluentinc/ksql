@@ -28,6 +28,7 @@ import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.metastore.model.KsqlStream;
+import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.tree.Statement;
@@ -84,7 +85,11 @@ public class SourceTopicsExtractorTest {
   @Before
   public void setUp() {
     metaStore = new MetaStoreImpl(new InternalFunctionRegistry());
-    ksqlEngine = KsqlEngineTestUtil.createKsqlEngine(serviceContext, metaStore);
+    ksqlEngine = KsqlEngineTestUtil.createKsqlEngine(
+        serviceContext,
+        metaStore,
+        new MetricCollectors()
+    );
     extractor = new SourceTopicsExtractor(metaStore);
 
     givenStreamWithTopic(STREAM_TOPIC_1, TOPIC_1);
@@ -166,7 +171,8 @@ public class SourceTopicsExtractorTest {
         SCHEMA,
         Optional.empty(),
         false,
-        sourceTopic
+        sourceTopic,
+        false
     );
 
     metaStore.putSource(streamSource, false);

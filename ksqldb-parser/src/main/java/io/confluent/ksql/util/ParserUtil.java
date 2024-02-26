@@ -18,6 +18,7 @@ package io.confluent.ksql.util;
 import static io.confluent.ksql.parser.SqlBaseParser.DecimalLiteralContext;
 import static java.util.Objects.requireNonNull;
 
+import com.google.common.base.Strings;
 import io.confluent.ksql.execution.expression.tree.DecimalLiteral;
 import io.confluent.ksql.execution.expression.tree.DoubleLiteral;
 import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
@@ -34,6 +35,7 @@ import io.confluent.ksql.parser.SqlBaseParser.IntegerLiteralContext;
 import io.confluent.ksql.parser.SqlBaseParser.NumberContext;
 import io.confluent.ksql.parser.SqlBaseParser.SourceNameContext;
 import io.confluent.ksql.parser.exception.ParseFailedException;
+import io.confluent.ksql.parser.tree.ColumnConstraints;
 import java.math.BigDecimal;
 import java.util.Optional;
 import java.util.Set;
@@ -239,5 +241,29 @@ public final class ParserUtil {
     final Set<String> allVocab = ParserKeywordValidatorUtil.getKsqlReservedWords();
 
     return allVocab.contains(token.toLowerCase());
+  }
+
+  public static ColumnConstraints getColumnConstraints(
+      final SqlBaseParser.ColumnConstraintsContext context
+  ) {
+    if (context == null) {
+      return ColumnConstraints.NO_COLUMN_CONSTRAINTS;
+    }
+
+    ColumnConstraints.Builder builder = new ColumnConstraints.Builder();
+    if (context.KEY() != null) {
+      if (context.PRIMARY() != null) {
+        builder = builder.primaryKey();
+      } else {
+        builder = builder.key();
+      }
+    } else if (context.HEADERS() != null) {
+      builder = builder.headers();
+    } else if (context.HEADER() != null) {
+      builder =
+          builder.header(Strings.emptyToNull(unquote(context.STRING().getText(), "'").trim()));
+    }
+
+    return builder.build();
   }
 }

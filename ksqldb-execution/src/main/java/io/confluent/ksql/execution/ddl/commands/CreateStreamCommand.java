@@ -37,7 +37,8 @@ public class CreateStreamCommand extends CreateSourceCommand {
       @JsonProperty(value = "topicName", required = true) final String topicName,
       @JsonProperty(value = "formats", required = true) final Formats formats,
       @JsonProperty(value = "windowInfo") final Optional<WindowInfo> windowInfo,
-      @JsonProperty(value = "orReplace", defaultValue = "false") final Optional<Boolean> orReplace
+      @JsonProperty(value = "orReplace", defaultValue = "false") final Optional<Boolean> orReplace,
+      @JsonProperty(value = "isSource", defaultValue = "false") final Optional<Boolean> isSource
   ) {
     super(
         sourceName,
@@ -46,7 +47,8 @@ public class CreateStreamCommand extends CreateSourceCommand {
         topicName,
         formats,
         windowInfo,
-        orReplace.orElse(false)
+        orReplace.orElse(false),
+        isSource.orElse(false)
     );
   }
 

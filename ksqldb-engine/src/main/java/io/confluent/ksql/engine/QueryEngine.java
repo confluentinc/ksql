@@ -18,9 +18,9 @@ package io.confluent.ksql.engine;
 import io.confluent.ksql.analyzer.Analysis;
 import io.confluent.ksql.analyzer.QueryAnalyzer;
 import io.confluent.ksql.config.SessionConfig;
+import io.confluent.ksql.execution.plan.PlanInfo;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Sink;
 import io.confluent.ksql.physical.PhysicalPlan;
@@ -57,12 +57,19 @@ class QueryEngine {
       final Query query,
       final Optional<Sink> sink,
       final MetaStore metaStore,
-      final KsqlConfig config
+      final KsqlConfig config,
+      final boolean rowpartitionRowoffsetEnabled
   ) {
     final String outputPrefix = config.getString(KsqlConfig.KSQL_OUTPUT_TOPIC_NAME_PREFIX_CONFIG);
+    final Boolean pullLimitClauseEnabled = config.getBoolean(
+            KsqlConfig.KSQL_QUERY_PULL_LIMIT_CLAUSE_ENABLED);
 
     final QueryAnalyzer queryAnalyzer =
-        new QueryAnalyzer(metaStore, outputPrefix);
+        new QueryAnalyzer(metaStore,
+            outputPrefix,
+            rowpartitionRowoffsetEnabled,
+            pullLimitClauseEnabled
+        );
 
     final Analysis analysis = queryAnalyzer.analyze(query, sink);
 
@@ -72,8 +79,9 @@ class QueryEngine {
   PhysicalPlan buildPhysicalPlan(
       final LogicalPlanNode logicalPlanNode,
       final SessionConfig config,
-      final MutableMetaStore metaStore,
-      final QueryId queryId
+      final MetaStore metaStore,
+      final QueryId queryId,
+      final Optional<PlanInfo> oldPlanInfo
   ) {
 
     final StreamsBuilder builder = new StreamsBuilder();
@@ -87,6 +95,6 @@ class QueryEngine {
         metaStore
     );
 
-    return physicalPlanBuilder.buildPhysicalPlan(logicalPlanNode, queryId);
+    return physicalPlanBuilder.buildPhysicalPlan(logicalPlanNode, queryId, oldPlanInfo);
   }
 }

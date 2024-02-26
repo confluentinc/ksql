@@ -1,0 +1,134 @@
+{
+  "version" : "7.1.0",
+  "timestamp" : 1633125901353,
+  "path" : "query-validation-tests/arrayindex.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`ID` STRING KEY, `COLORS` ARRAY<STRING>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ID` STRING KEY, `C` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "select the first element of an Array",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : null,
+      "value" : {
+        "colors" : [ "Red", "Green" ]
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : null,
+      "value" : {
+        "colors" : [ "Black" ]
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : null,
+      "value" : {
+        "colors" : [ null, "Yellow", "Pink" ]
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : null,
+      "value" : {
+        "colors" : [ ]
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : null,
+      "value" : {
+        "C" : "Red"
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : null,
+      "value" : {
+        "C" : "Black"
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : null,
+      "value" : {
+        "C" : null
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : null,
+      "value" : {
+        "C" : null
+      }
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM test (ID STRING KEY, colors ARRAY<STRING>) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE STREAM OUTPUT AS SELECT ID, colors[1] as C FROM test;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`ID` STRING KEY, `C` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`ID` STRING KEY, `COLORS` ARRAY<STRING>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

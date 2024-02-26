@@ -24,6 +24,7 @@ import io.confluent.ksql.metastore.TypeRegistry;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
+import io.confluent.ksql.rest.entity.PushContinuationToken;
 import io.confluent.ksql.rest.entity.QueryResponseMetadata;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -32,6 +33,7 @@ import io.confluent.ksql.schema.ksql.SqlTypeParser;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.util.Pair;
 import io.vertx.core.buffer.Buffer;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -41,17 +43,48 @@ public final class KsqlTargetUtil {
 
   }
 
+  // This is meant to parse partial chunk responses as well as full pull query responses.
+  public static List<StreamedRow> toRows(final Buffer buff) {
+
+    final List<StreamedRow> rows = new ArrayList<>();
+    int begin = 0;
+
+    for (int i = 0; i <= buff.length(); i++) {
+      if ((i == buff.length() && (i - begin > 1))
+          || (i < buff.length() && buff.getByte(i) == (byte) '\n')) {
+        if (begin != i) { // Ignore random newlines - the server can send these
+          final Buffer sliced = buff.slice(begin, i);
+          final Buffer tidied = StreamPublisher.toJsonMsg(sliced, true);
+          if (tidied.length() > 0) {
+            final StreamedRow row = deserialize(tidied, StreamedRow.class);
+            rows.add(row);
+          }
+        }
+
+        begin = i + 1;
+      }
+    }
+    return rows;
+  }
+
   public static StreamedRow toRowFromDelimited(final Buffer buff) {
     try {
       final QueryResponseMetadata metadata = deserialize(buff, QueryResponseMetadata.class);
       return StreamedRow.header(new QueryId(Strings.nullToEmpty(metadata.queryId)),
-          createSchema(metadata));
+        createSchema(metadata));
     } catch (KsqlRestClientException e) {
       // Not a {@link QueryResponseMetadata}
     }
     try {
       final KsqlErrorMessage error = deserialize(buff, KsqlErrorMessage.class);
       return StreamedRow.error(new RuntimeException(error.getMessage()), error.getErrorCode());
+    } catch (KsqlRestClientException e) {
+      // Not a {@link KsqlErrorMessage}
+    }
+    try {
+      final PushContinuationToken continuationToken
+          = deserialize(buff, PushContinuationToken.class);
+      return StreamedRow.continuationToken(continuationToken);
     } catch (KsqlRestClientException e) {
       // Not a {@link KsqlErrorMessage}
     }

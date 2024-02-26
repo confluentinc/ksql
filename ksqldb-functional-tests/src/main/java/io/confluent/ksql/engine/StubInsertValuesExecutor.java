@@ -18,6 +18,7 @@ package io.confluent.ksql.engine;
 import static java.util.Objects.requireNonNull;
 
 import com.google.common.annotations.VisibleForTesting;
+import io.confluent.ksql.rest.server.execution.InsertValuesExecutor;
 import io.confluent.ksql.test.tools.stubs.StubKafkaService;
 import org.apache.kafka.clients.producer.ProducerRecord;
 

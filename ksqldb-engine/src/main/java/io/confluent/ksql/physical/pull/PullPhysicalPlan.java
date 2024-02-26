@@ -20,17 +20,21 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.execution.streams.materialization.Locator.KsqlKey;
 import io.confluent.ksql.execution.streams.materialization.Locator.KsqlPartitionLocation;
 import io.confluent.ksql.execution.streams.materialization.Materialization;
+import io.confluent.ksql.physical.common.QueryRow;
 import io.confluent.ksql.physical.common.operators.AbstractPhysicalOperator;
 import io.confluent.ksql.physical.pull.operators.DataSourceOperator;
 import io.confluent.ksql.planner.plan.KeyConstraint;
-import io.confluent.ksql.planner.plan.KeyConstraint.ConstraintOperator;
 import io.confluent.ksql.planner.plan.LookupConstraint;
 import io.confluent.ksql.query.PullQueryQueue;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.util.ConsistencyOffsetVector;
+import io.confluent.ksql.util.KsqlConstants.QuerySourceType;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.function.BiFunction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -49,7 +53,7 @@ public class PullPhysicalPlan {
   private final QueryId queryId;
   private final List<LookupConstraint> lookupConstraints;
   private final PullPhysicalPlanType pullPhysicalPlanType;
-  private final PullSourceType pullSourceType;
+  private final QuerySourceType querySourceType;
   private final Materialization mat;
   private final DataSourceOperator dataSourceOperator;
 
@@ -59,7 +63,7 @@ public class PullPhysicalPlan {
       final QueryId queryId,
       final List<LookupConstraint> lookupConstraints,
       final PullPhysicalPlanType pullPhysicalPlanType,
-      final PullSourceType pullSourceType,
+      final QuerySourceType querySourceType,
       final Materialization mat,
       final DataSourceOperator dataSourceOperator
   ) {
@@ -69,7 +73,7 @@ public class PullPhysicalPlan {
     this.lookupConstraints = Objects.requireNonNull(lookupConstraints, "lookupConstraints");
     this.pullPhysicalPlanType = Objects.requireNonNull(pullPhysicalPlanType,
         "pullPhysicalPlanType");
-    this.pullSourceType = Objects.requireNonNull(pullSourceType, "pullSourceType");
+    this.querySourceType = Objects.requireNonNull(querySourceType, "pullSourceType");
     this.mat = Objects.requireNonNull(mat, "mat");
     this.dataSourceOperator = Objects.requireNonNull(
         dataSourceOperator, "dataSourceOperator");
@@ -78,15 +82,16 @@ public class PullPhysicalPlan {
   public void execute(
       final List<KsqlPartitionLocation> locations,
       final PullQueryQueue pullQueryQueue,
-      final BiFunction<List<?>, LogicalSchema, PullQueryRow> rowFactory) {
+      final BiFunction<List<?>, LogicalSchema, PullQueryRow> rowFactory,
+      final Optional<ConsistencyOffsetVector> consistencyOffsetVector) {
 
     // We only know at runtime which partitions to get from which node.
     // That's why we need to set this explicitly for the dataSource operators
     dataSourceOperator.setPartitionLocations(locations);
 
     open();
-    List<?> row;
-    while ((row = (List<?>)next()) != null) {
+    QueryRow row;
+    while ((row = (QueryRow)next()) != null) {
       if (pullQueryQueue.isClosed()) {
         // If the queue has been closed, we stop adding rows and cleanup. This should be triggered
         // because the client has closed their connection with the server before the results have
@@ -94,7 +99,7 @@ public class PullPhysicalPlan {
         LOGGER.info("Queue closed before results completed. Stopping execution.");
         break;
       }
-      if (!pullQueryQueue.acceptRow(rowFactory.apply(row, schema))) {
+      if (!pullQueryQueue.acceptRow(rowFactory.apply(row.value().values(), schema))) {
         LOGGER.info("Failed to queue row");
       }
     }
@@ -123,26 +128,17 @@ public class PullPhysicalPlan {
   }
 
   public List<KsqlKey> getKeys() {
-    if (requiresRequestsToAllPartitions()) {
-      return Collections.emptyList();
+    final List<KsqlKey> list = new ArrayList<>();
+    for (LookupConstraint c : lookupConstraints) {
+      if (c instanceof KeyConstraint) {
+        final KeyConstraint kc = (KeyConstraint) c;
+        list.add(kc.getKsqlKey());
+      } else {
+        //we shouldn't see any NonKeyContraints here
+        return Collections.emptyList();
+      }
     }
-    return lookupConstraints.stream()
-        .filter(lookupConstraint -> lookupConstraint instanceof KeyConstraint)
-        .map(KeyConstraint.class::cast)
-        .filter(keyConstraint -> keyConstraint.getConstraintOperator() == ConstraintOperator.EQUAL)
-        .map(KeyConstraint::getKsqlKey)
-        .collect(ImmutableList.toImmutableList());
-  }
-
-  private boolean requiresRequestsToAllPartitions() {
-    return lookupConstraints.stream()
-        .anyMatch(lookupConstraint -> {
-          if (lookupConstraint instanceof KeyConstraint) {
-            final KeyConstraint keyConstraint = (KeyConstraint) lookupConstraint;
-            return keyConstraint.getConstraintOperator() != ConstraintOperator.EQUAL;
-          }
-          return true;
-        });
+    return ImmutableList.copyOf(list);
   }
 
   public LogicalSchema getOutputSchema() {
@@ -153,8 +149,8 @@ public class PullPhysicalPlan {
     return pullPhysicalPlanType;
   }
 
-  public PullSourceType getSourceType() {
-    return pullSourceType;
+  public QuerySourceType getSourceType() {
+    return querySourceType;
   }
 
   public long getRowsReadFromDataSource() {
@@ -172,27 +168,8 @@ public class PullPhysicalPlan {
   public enum PullPhysicalPlanType {
     // Could be one or more keys
     KEY_LOOKUP,
+    RANGE_SCAN,
     TABLE_SCAN,
-    UNKNOWN
-  }
-
-  /**
-   * The types we consider for metrics purposes. These should only be added to. You can deprecate
-   * a field, but don't delete it or change its meaning
-   */
-  public enum PullSourceType {
-    NON_WINDOWED,
-    WINDOWED,
-    UNKNOWN
-  }
-
-  /**
-   * The types we consider for metrics purposes. These should only be added to. You can deprecate
-   * a field, but don't delete it or change its meaning
-   */
-  public enum RoutingNodeType {
-    SOURCE_NODE,
-    REMOTE_NODE,
     UNKNOWN
   }
 }

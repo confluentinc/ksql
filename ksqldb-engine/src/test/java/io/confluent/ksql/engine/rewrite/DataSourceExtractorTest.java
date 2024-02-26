@@ -21,6 +21,7 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasSize;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import io.confluent.ksql.analyzer.Analysis.AliasedDataSource;
 import io.confluent.ksql.function.FunctionRegistry;
@@ -38,8 +39,13 @@ import java.util.List;
 import java.util.stream.Collectors;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.junit.MockitoJUnitRunner;
 
+@RunWith(MockitoJUnitRunner.class)
 public class DataSourceExtractorTest {
+
+  private static final boolean ROWPARTITION_ROWOFFSET_ENABLED = true;
 
   private static final SourceName TEST1 = SourceName.of("TEST1");
   private static final SourceName TEST2 = SourceName.of("TEST2");
@@ -55,7 +61,7 @@ public class DataSourceExtractorTest {
 
   @Before
   public void setUp() {
-    extractor = new DataSourceExtractor(META_STORE);
+    extractor = new DataSourceExtractor(META_STORE, ROWPARTITION_ROWOFFSET_ENABLED);
   }
 
   @Test
@@ -210,7 +216,7 @@ public class DataSourceExtractorTest {
     extractor.extractDataSources(stmt);
 
     // Then:
-    SystemColumns.pseudoColumnNames().forEach(pseudoCol ->
+    SystemColumns.pseudoColumnNames(ROWPARTITION_ROWOFFSET_ENABLED).forEach(pseudoCol ->
         assertThat(pseudoCol + " should clash", extractor.isClashingColumnName(pseudoCol))
     );
   }

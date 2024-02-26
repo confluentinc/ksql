@@ -7,15 +7,15 @@
       "name": "concat two extracted fields",
       "statements": [
         "CREATE STREAM TEST (K STRING KEY, source VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT K, EXTRACTJSONFIELD(source, '$.name') AS SOURCE, EXTRACTJSONFIELD(source, '$.version') AS VERSION, CONCAT(EXTRACTJSONFIELD(source, '$.name'), EXTRACTJSONFIELD(source, '$.version')) AS BOTH FROM TEST;"
+        "CREATE STREAM OUTPUT AS SELECT K, EXTRACTJSONFIELD(source, '$.name') AS SOURCE, EXTRACTJSONFIELD(source, '$.version') AS VERSION, CONCAT(EXTRACTJSONFIELD(source, '$.name'), EXTRACTJSONFIELD(source, '$.version')) AS BOTH, EXTRACTJSONFIELD(source, '$.@type') AS TYPE FROM TEST;"
       ],
       "inputs": [
-        {"topic": "test_topic", "value": {"source": "{\"name\": \"cdc\", \"version\": \"1\"}"}},
-        {"topic": "test_topic", "value": {"source": "{\"name\": \"cdd\", \"version\": \"2\"}"}}
+        {"topic": "test_topic", "value": {"source": "{\"name\": \"cdc\", \"version\": \"1\", \"@type\": \"UDF\"}"}},
+        {"topic": "test_topic", "value": {"source": "{\"name\": \"cdd\", \"version\": \"2\", \"@type\": \"VAL\"}}"}}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "value": {"SOURCE":"cdc","VERSION":"1","BOTH":"cdc1"}},
-        {"topic": "OUTPUT", "value": {"SOURCE":"cdd","VERSION":"2","BOTH":"cdd2"}}
+        {"topic": "OUTPUT", "value": {"SOURCE":"cdc","VERSION":"1","BOTH":"cdc1","TYPE":"UDF"}},
+        {"topic": "OUTPUT", "value": {"SOURCE":"cdd","VERSION":"2","BOTH":"cdd2","TYPE":"VAL"}}
       ]
     },
     {

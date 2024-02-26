@@ -141,8 +141,9 @@ public class ServerVerticle extends AbstractVerticle {
     router.route(HttpMethod.POST, "/query-stream")
         .produces(DELIMITED_CONTENT_TYPE)
         .produces(JSON_CONTENT_TYPE)
+        .produces(KsqlMediaType.KSQL_V1_JSON.mediaType())
         .handler(BodyHandler.create(false))
-        .handler(new QueryStreamHandler(endpoints, connectionQueryManager, context, server));
+        .handler(new QueryStreamHandler(endpoints, connectionQueryManager, context, server, false));
     router.route(HttpMethod.POST, "/inserts-stream")
         .produces(DELIMITED_CONTENT_TYPE)
         .produces(JSON_CONTENT_TYPE)
@@ -391,7 +392,7 @@ public class ServerVerticle extends AbstractVerticle {
    * @return If an internal listener is in use and this is an internal request, or
    *         {@code Optional.empty} if an internal listener is not enabled.
    */
-  private static Optional<Boolean> isInternalRequest(final RoutingContext routingContext) {
+  static Optional<Boolean> isInternalRequest(final RoutingContext routingContext) {
     return Optional.ofNullable(routingContext.get(CONTEXT_DATA_IS_INTERNAL));
   }
 }

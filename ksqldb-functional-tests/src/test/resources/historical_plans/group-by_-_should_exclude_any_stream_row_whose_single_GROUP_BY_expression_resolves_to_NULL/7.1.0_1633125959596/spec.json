@@ -1,0 +1,149 @@
+{
+  "version" : "7.1.0",
+  "timestamp" : 1633125959596,
+  "path" : "query-validation-tests/group-by.json",
+  "schemas" : {
+    "CTAS_OUTPUT_0.Aggregate.Project" : {
+      "schema" : "`KSQL_COL_0` STRING KEY, `KSQL_COL_1` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
+    },
+    "CTAS_OUTPUT_0.Aggregate.GroupBy" : {
+      "schema" : "`KSQL_COL_0` STRING KEY, `STR` STRING, `POS` INTEGER, `ROWTIME` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
+    },
+    "CTAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`K` STRING KEY, `STR` STRING, `POS` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
+    },
+    "CTAS_OUTPUT_0.Aggregate.Aggregate.Materialize" : {
+      "schema" : "`KSQL_COL_0` STRING KEY, `STR` STRING, `POS` INTEGER, `ROWTIME` BIGINT, `KSQL_AGG_VARIABLE_0` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
+    },
+    "CTAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`KSQL_COL_0` STRING KEY, `KSQL_COL_1` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "should exclude any stream row whose single GROUP BY expression resolves to NULL",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : null,
+      "value" : "xx,1"
+    }, {
+      "topic" : "test_topic",
+      "key" : null,
+      "value" : "x,"
+    }, {
+      "topic" : "test_topic",
+      "key" : null,
+      "value" : "xx,1"
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : "xx",
+      "value" : "1"
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "xx",
+      "value" : "2"
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM TEST (K STRING KEY, str STRING, pos INT) WITH (kafka_topic='test_topic', value_format='DELIMITED');", "CREATE TABLE OUTPUT AS SELECT SUBSTRING(str, pos), COUNT() FROM TEST GROUP BY SUBSTRING(str, pos);" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "OUTPUT",
+        "type" : "TABLE",
+        "schema" : "`KSQL_COL_0` STRING KEY, `KSQL_COL_1` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "DELIMITED",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`K` STRING KEY, `STR` STRING, `POS` INTEGER",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "DELIMITED",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "DELIMITED"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-GroupBy-repartition",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "DELIMITED"
+          }
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "DELIMITED"
+          }
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "DELIMITED"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

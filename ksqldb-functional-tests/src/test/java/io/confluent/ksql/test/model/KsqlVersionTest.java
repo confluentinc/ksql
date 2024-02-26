@@ -18,6 +18,7 @@ package io.confluent.ksql.test.model;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.lessThan;
+import static org.junit.Assert.assertThrows;
 
 import io.confluent.ksql.model.SemanticVersion;
 import org.junit.Test;
@@ -50,7 +51,6 @@ public class KsqlVersionTest {
     final KsqlVersion result = KsqlVersion.parse("5.4.1");
 
     // Then:
-    assertThat(result.getName(), is("5.4.1"));
     assertThat(result.getVersion(), is(SemanticVersion.of(5, 4, 1)));
   }
 
@@ -72,6 +72,48 @@ public class KsqlVersionTest {
     // Then:
     assertThat(result.getName(), is("5.4.1-0"));
     assertThat(result.getVersion(), is(SemanticVersion.of(5, 4, 1)));
+  }
+
+  @Test
+  public void shouldParseReleaseStabilizationsCandidates() {
+    // When:
+    final KsqlVersion result = KsqlVersion.parse("7.1.0-ksqldb-rest-app.2-496-rc1");
+
+    // Then:
+    assertThat(result.getName(), is("7.1.0-ksqldb-rest-app.2-496-rc1"));
+    assertThat(result.getVersion(), is(SemanticVersion.of(7, 1, 0)));
+  }
+
+  @Test
+  public void shouldParseReleaseStabilizationsFinalCandidates() {
+    // When:
+    final KsqlVersion result = KsqlVersion.parse("7.1.0-ksqldb-rest-app.2-496");
+
+    // Then:
+    assertThat(result.getName(), is("7.1.0-ksqldb-rest-app.2-496"));
+    assertThat(result.getVersion(), is(SemanticVersion.of(7, 1, 0)));
+  }
+
+  @Test
+  public void shouldParseReleaseStabilizationsWithMultiDigitBuildNumber() {
+    // When:
+    final KsqlVersion result = KsqlVersion.parse("7.1.0-ksqldb-rest-app.21-496-rc1");
+
+    // Then:
+    assertThat(result.getName(), is("7.1.0-ksqldb-rest-app.21-496-rc1"));
+    assertThat(result.getVersion(), is(SemanticVersion.of(7, 1, 0)));
+  }
+
+  @Test
+  public void shouldNotParseReleaseStabilizationsWithoutNanoversion() {
+    // When:
+    final Exception e = assertThrows(
+            IllegalArgumentException.class,
+            () -> KsqlVersion.parse("7.1.0-ksqldb-rest-app.2--rc1"));
+
+    // Then:
+    assertThat(e.getMessage(), is("Failed to parse version: '7.1.0-ksqldb-rest-app.2--rc1'. "
+            + "Version must be in format '(?<major>\\d+)\\.(?<minor>\\d+)(?<patch>.\\d+)?(?:-([A-Za-z0-9]+|\\d+))*(\\.\\d+-\\d+)?(-rc\\d*)?'. "));
   }
 
   @Test

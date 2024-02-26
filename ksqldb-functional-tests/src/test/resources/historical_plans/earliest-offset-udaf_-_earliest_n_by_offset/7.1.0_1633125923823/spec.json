@@ -1,0 +1,221 @@
+{
+  "version" : "7.1.0",
+  "timestamp" : 1633125923823,
+  "path" : "query-validation-tests/earliest-offset-udaf.json",
+  "schemas" : {
+    "CTAS_OUTPUT_0.Aggregate.Project" : {
+      "schema" : "`ID` BIGINT KEY, `L0` ARRAY<INTEGER>, `L1` ARRAY<BIGINT>, `L2` ARRAY<DOUBLE>, `L3` ARRAY<BOOLEAN>, `L4` ARRAY<STRING>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CTAS_OUTPUT_0.Aggregate.GroupBy" : {
+      "schema" : "`ID` BIGINT KEY, `ID` BIGINT, `F0` INTEGER, `F1` BIGINT, `F2` DOUBLE, `F3` BOOLEAN, `F4` STRING, `KSQL_INTERNAL_COL_6` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CTAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`ID` BIGINT KEY, `F0` INTEGER, `F1` BIGINT, `F2` DOUBLE, `F3` BOOLEAN, `F4` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CTAS_OUTPUT_0.Aggregate.Aggregate.Materialize" : {
+      "schema" : "`ID` BIGINT KEY, `ID` BIGINT, `F0` INTEGER, `F1` BIGINT, `F2` DOUBLE, `F3` BOOLEAN, `F4` STRING, `KSQL_AGG_VARIABLE_0` ARRAY<STRUCT<`SEQ` BIGINT, `VAL` INTEGER>>, `KSQL_AGG_VARIABLE_1` ARRAY<STRUCT<`SEQ` BIGINT, `VAL` BIGINT>>, `KSQL_AGG_VARIABLE_2` ARRAY<STRUCT<`SEQ` BIGINT, `VAL` DOUBLE>>, `KSQL_AGG_VARIABLE_3` ARRAY<STRUCT<`SEQ` BIGINT, `VAL` BOOLEAN>>, `KSQL_AGG_VARIABLE_4` ARRAY<STRUCT<`SEQ` BIGINT, `VAL` STRING>>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CTAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ID` BIGINT KEY, `L0` ARRAY<INTEGER>, `L1` ARRAY<BIGINT>, `L2` ARRAY<DOUBLE>, `L3` ARRAY<BOOLEAN>, `L4` ARRAY<STRING>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "earliest n by offset",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : 0,
+      "value" : {
+        "F0" : 12,
+        "F1" : 1000,
+        "F2" : 1.23,
+        "F3" : true,
+        "F4" : "foo"
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : 1,
+      "value" : {
+        "F0" : 12,
+        "F1" : 1000,
+        "F2" : 1.23,
+        "F3" : true,
+        "F4" : "foo"
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : 0,
+      "value" : {
+        "F0" : 21,
+        "F1" : 2000,
+        "F2" : 2.23,
+        "F3" : false,
+        "F4" : "bar"
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : 1,
+      "value" : {
+        "F0" : 21,
+        "F1" : 2000,
+        "F2" : 2.23,
+        "F3" : false,
+        "F4" : "bar"
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : 0,
+      "value" : {
+        "F0" : 31,
+        "F1" : 3000,
+        "F2" : 3.23,
+        "F3" : false,
+        "F4" : "baz"
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : 0,
+      "value" : {
+        "L0" : [ 12 ],
+        "L1" : [ 1000 ],
+        "L2" : [ 1.23 ],
+        "L3" : [ true ],
+        "L4" : [ "foo" ]
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : 1,
+      "value" : {
+        "L0" : [ 12 ],
+        "L1" : [ 1000 ],
+        "L2" : [ 1.23 ],
+        "L3" : [ true ],
+        "L4" : [ "foo" ]
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : 0,
+      "value" : {
+        "L0" : [ 12, 21 ],
+        "L1" : [ 1000, 2000 ],
+        "L2" : [ 1.23, 2.23 ],
+        "L3" : [ true, false ],
+        "L4" : [ "foo", "bar" ]
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : 1,
+      "value" : {
+        "L0" : [ 12, 21 ],
+        "L1" : [ 1000, 2000 ],
+        "L2" : [ 1.23, 2.23 ],
+        "L3" : [ true, false ],
+        "L4" : [ "foo", "bar" ]
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : 0,
+      "value" : {
+        "L0" : [ 12, 21 ],
+        "L1" : [ 1000, 2000 ],
+        "L2" : [ 1.23, 2.23 ],
+        "L3" : [ true, false ],
+        "L4" : [ "foo", "bar" ]
+      }
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM INPUT (ID BIGINT KEY, F0 INT, F1 BIGINT, F2 DOUBLE, F3 BOOLEAN, F4 STRING) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE TABLE OUTPUT AS SELECT ID, EARLIEST_BY_OFFSET(F0, 2) AS L0, EARLIEST_BY_OFFSET(F1, 2) AS L1, EARLIEST_BY_OFFSET(F2, 2) AS L2, EARLIEST_BY_OFFSET(F3, 2) AS L3, EARLIEST_BY_OFFSET(F4, 2) AS L4 FROM INPUT GROUP BY ID;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`ID` BIGINT KEY, `F0` INTEGER, `F1` BIGINT, `F2` DOUBLE, `F3` BOOLEAN, `F4` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "OUTPUT",
+        "type" : "TABLE",
+        "schema" : "`ID` BIGINT KEY, `L0` ARRAY<INTEGER>, `L1` ARRAY<BIGINT>, `L2` ARRAY<DOUBLE>, `L3` ARRAY<BOOLEAN>, `L4` ARRAY<STRING>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          }
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

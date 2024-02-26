@@ -1,0 +1,69 @@
+Topologies:
+   Sub-topology: 0
+    Source: Join-repartition-source (topics: [Join-repartition])
+      --> Join
+    Processor: Join (stores: [KafkaTopic_Right-Reduce])
+      --> Aggregate-Prepare
+      <-- Join-repartition-source
+    Processor: Aggregate-Prepare (stores: [])
+      --> KSTREAM-AGGREGATE-0000000015
+      <-- Join
+    Processor: KSTREAM-AGGREGATE-0000000015 (stores: [Aggregate-Aggregate-Materialize])
+      --> Aggregate-Aggregate-ToOutputSchema
+      <-- Aggregate-Prepare
+    Processor: Aggregate-Aggregate-ToOutputSchema (stores: [])
+      --> Aggregate-Aggregate-WindowSelect
+      <-- KSTREAM-AGGREGATE-0000000015
+    Processor: Aggregate-Aggregate-WindowSelect (stores: [])
+      --> Aggregate-HavingFilter-ApplyPredicate
+      <-- Aggregate-Aggregate-ToOutputSchema
+    Processor: Aggregate-HavingFilter-ApplyPredicate (stores: [])
+      --> Aggregate-HavingFilter-Filter
+      <-- Aggregate-Aggregate-WindowSelect
+    Processor: Aggregate-HavingFilter-Filter (stores: [])
+      --> Aggregate-HavingFilter-PostProcess
+      <-- Aggregate-HavingFilter-ApplyPredicate
+    Source: KSTREAM-SOURCE-0000000001 (topics: [a])
+      --> KTABLE-SOURCE-0000000002
+    Processor: Aggregate-HavingFilter-PostProcess (stores: [])
+      --> Aggregate-Project
+      <-- Aggregate-HavingFilter-Filter
+    Processor: KTABLE-SOURCE-0000000002 (stores: [])
+      --> KTABLE-TRANSFORMVALUES-0000000003
+      <-- KSTREAM-SOURCE-0000000001
+    Processor: Aggregate-Project (stores: [])
+      --> KTABLE-TOSTREAM-0000000022
+      <-- Aggregate-HavingFilter-PostProcess
+    Processor: KTABLE-TRANSFORMVALUES-0000000003 (stores: [KafkaTopic_Right-Reduce])
+      --> KTABLE-TRANSFORMVALUES-0000000004
+      <-- KTABLE-SOURCE-0000000002
+    Processor: KTABLE-TOSTREAM-0000000022 (stores: [])
+      --> KSTREAM-SINK-0000000023
+      <-- Aggregate-Project
+    Processor: KTABLE-TRANSFORMVALUES-0000000004 (stores: [])
+      --> PrependAliasRight
+      <-- KTABLE-TRANSFORMVALUES-0000000003
+    Sink: KSTREAM-SINK-0000000023 (topic: TEST)
+      <-- KTABLE-TOSTREAM-0000000022
+    Processor: PrependAliasRight (stores: [])
+      --> none
+      <-- KTABLE-TRANSFORMVALUES-0000000004
+
+  Sub-topology: 1
+    Source: KSTREAM-SOURCE-0000000006 (topics: [b])
+      --> KSTREAM-TRANSFORMVALUES-0000000007
+    Processor: KSTREAM-TRANSFORMVALUES-0000000007 (stores: [])
+      --> LeftSourceKeyed-SelectKey
+      <-- KSTREAM-SOURCE-0000000006
+    Processor: LeftSourceKeyed-SelectKey (stores: [])
+      --> PrependAliasLeft
+      <-- KSTREAM-TRANSFORMVALUES-0000000007
+    Processor: PrependAliasLeft (stores: [])
+      --> Join-repartition-filter
+      <-- LeftSourceKeyed-SelectKey
+    Processor: Join-repartition-filter (stores: [])
+      --> Join-repartition-sink
+      <-- PrependAliasLeft
+    Sink: Join-repartition-sink (topic: Join-repartition)
+      <-- Join-repartition-filter
+

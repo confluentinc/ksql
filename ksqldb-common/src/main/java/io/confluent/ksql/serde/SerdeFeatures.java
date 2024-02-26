@@ -18,28 +18,23 @@ package io.confluent.ksql.serde;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Sets;
 import com.google.errorprone.annotations.Immutable;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import io.confluent.ksql.util.GrammaticalJoiner;
-import java.util.Objects;
-import java.util.Optional;
+import io.confluent.ksql.util.CompatibleSet;
 import java.util.Set;
 
 
 /**
- * Validated set of enabled features
+ * Validated set of enabled Serde features
  *
  * <p>Known to not have conflicting features enabled
  */
 @Immutable
-public final class SerdeFeatures {
+public final class SerdeFeatures extends CompatibleSet<SerdeFeature> {
 
   public static final ImmutableSet<SerdeFeature> WRAPPING_FEATURES = ImmutableSet.of(
       SerdeFeature.WRAP_SINGLES, SerdeFeature.UNWRAP_SINGLES
   );
-
-  private final ImmutableSet<SerdeFeature> features;
 
   @JsonCreator
   public static SerdeFeatures from(final Set<SerdeFeature> features) {
@@ -51,56 +46,18 @@ public final class SerdeFeatures {
   }
 
   private SerdeFeatures(final Set<SerdeFeature> features) {
-    validate(features);
-    this.features = ImmutableSet.copyOf(features);
+    super(features);
   }
 
   public boolean enabled(final SerdeFeature feature) {
-    return features.contains(feature);
+    return contains(feature);
   }
 
   @JsonValue
   @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "incompatibleWith is ImmutableSet")
+  @Override
   public Set<SerdeFeature> all() {
-    return features;
-  }
-
-  public Optional<SerdeFeature> findAny(final Set<SerdeFeature> anyOf) {
-    return anyOf.stream()
-        .filter(features::contains)
-        .findAny();
-  }
-
-  @Override
-  public boolean equals(final Object o) {
-    if (this == o) {
-      return true;
-    }
-    if (o == null || getClass() != o.getClass()) {
-      return false;
-    }
-    final SerdeFeatures that = (SerdeFeatures) o;
-    return Objects.equals(features, that.features);
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hash(features);
-  }
-
-  @Override
-  public String toString() {
-    return features.toString();
-  }
-
-  private static void validate(final Set<SerdeFeature> features) {
-    features.forEach(f -> {
-      final Set<SerdeFeature> incompatible = Sets.intersection(f.getIncompatibleWith(), features);
-      if (!incompatible.isEmpty()) {
-        throw new IllegalArgumentException("Can't set "
-            + f + " with " + GrammaticalJoiner.or().join(incompatible));
-      }
-    });
+    return values;
   }
 
   /**
@@ -116,7 +73,7 @@ public final class SerdeFeatures {
         return false;
       }
 
-      return ((SerdeFeatures) obj).features.isEmpty();
+      return ((SerdeFeatures) obj).values.isEmpty();
     }
 
     @Override

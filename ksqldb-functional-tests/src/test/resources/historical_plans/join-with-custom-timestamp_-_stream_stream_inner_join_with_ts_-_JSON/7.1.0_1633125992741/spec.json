@@ -1,0 +1,223 @@
+{
+  "version" : "7.1.0",
+  "timestamp" : 1633125992741,
+  "path" : "query-validation-tests/join-with-custom-timestamp.json",
+  "schemas" : {
+    "CSAS_S1_JOIN_S2_0.KafkaTopic_Left.Source" : {
+      "schema" : "`ID` BIGINT KEY, `NAME` STRING, `TS` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_S1_JOIN_S2_0.Join.Right" : {
+      "schema" : "`S2_ID` BIGINT KEY, `S2_F1` STRING, `S2_F2` STRING, `S2_ROWTIME` BIGINT, `S2_ROWPARTITION` INTEGER, `S2_ROWOFFSET` BIGINT, `S2_ID` BIGINT",
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_S1_JOIN_S2_0.Join.Left" : {
+      "schema" : "`S1_ID` BIGINT KEY, `S1_NAME` STRING, `S1_TS` BIGINT, `S1_ROWTIME` BIGINT, `S1_ROWPARTITION` INTEGER, `S1_ROWOFFSET` BIGINT, `S1_ID` BIGINT",
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_S1_JOIN_S2_0.S1_JOIN_S2" : {
+      "schema" : "`S1_ID` BIGINT KEY, `NAME` STRING, `TS` BIGINT, `F1` STRING, `F2` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_S1_JOIN_S2_0.Join" : {
+      "schema" : "`S1_ID` BIGINT KEY, `S1_NAME` STRING, `S1_TS` BIGINT, `S1_ROWTIME` BIGINT, `S1_ROWPARTITION` INTEGER, `S1_ROWOFFSET` BIGINT, `S1_ID` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      }
+    },
+    "CSAS_S1_JOIN_S2_0.KafkaTopic_Right.Source" : {
+      "schema" : "`ID` BIGINT KEY, `F1` STRING, `F2` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "stream stream inner join with ts - JSON",
+    "inputs" : [ {
+      "topic" : "s1",
+      "key" : 0,
+      "value" : {
+        "NAME" : "zero",
+        "TS" : 0
+      },
+      "timestamp" : 0
+    }, {
+      "topic" : "s2",
+      "key" : 0,
+      "value" : {
+        "F1" : "blah",
+        "F2" : "foo"
+      },
+      "timestamp" : 10000
+    }, {
+      "topic" : "s2",
+      "key" : 10,
+      "value" : {
+        "F1" : "foo",
+        "F2" : "bar"
+      },
+      "timestamp" : 13000
+    }, {
+      "topic" : "s1",
+      "key" : 10,
+      "value" : {
+        "NAME" : "100",
+        "TS" : 11000
+      },
+      "timestamp" : 22000
+    }, {
+      "topic" : "s1",
+      "key" : 0,
+      "value" : {
+        "NAME" : "jan",
+        "TS" : 8000
+      },
+      "timestamp" : 33000
+    } ],
+    "outputs" : [ {
+      "topic" : "S1_JOIN_S2",
+      "key" : 0,
+      "value" : {
+        "NAME" : "zero",
+        "TS" : 0,
+        "F1" : "blah",
+        "F2" : "foo"
+      },
+      "timestamp" : 0
+    }, {
+      "topic" : "S1_JOIN_S2",
+      "key" : 10,
+      "value" : {
+        "NAME" : "100",
+        "TS" : 11000,
+        "F1" : "foo",
+        "F2" : "bar"
+      },
+      "timestamp" : 11000
+    }, {
+      "topic" : "S1_JOIN_S2",
+      "key" : 0,
+      "value" : {
+        "NAME" : "jan",
+        "TS" : 8000,
+        "F1" : "blah",
+        "F2" : "foo"
+      },
+      "timestamp" : 8000
+    } ],
+    "topics" : [ {
+      "name" : "S1_JOIN_S2",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "s1",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "s2",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM S1 (ID BIGINT KEY, NAME varchar, TS bigint) WITH (timestamp='TS', kafka_topic='s1', value_format='JSON');", "CREATE STREAM S2 (ID BIGINT KEY, F1 varchar, F2 varchar) WITH (kafka_topic='s2', value_format='JSON');", "CREATE STREAM S1_JOIN_S2 WITH(timestamp='TS') as SELECT S1.ID, S1.name as name, S1.ts as ts, s2.f1, s2.f2 from S1 join S2 WITHIN 11 SECONDS ON s1.id = s2.id;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "S1",
+        "type" : "STREAM",
+        "schema" : "`ID` BIGINT KEY, `NAME` STRING, `TS` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "S1_JOIN_S2",
+        "type" : "STREAM",
+        "schema" : "`S1_ID` BIGINT KEY, `NAME` STRING, `TS` BIGINT, `F1` STRING, `F2` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "S2",
+        "type" : "STREAM",
+        "schema" : "`ID` BIGINT KEY, `F1` STRING, `F2` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_S1_JOIN_S2_0-KSTREAM-JOINOTHER-0000000009-store-changelog",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          }
+        }, {
+          "name" : "s2",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "s1",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "S1_JOIN_S2",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_S1_JOIN_S2_0-KSTREAM-JOINTHIS-0000000008-store-changelog",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          }
+        } ]
+      }
+    }
+  }
+}

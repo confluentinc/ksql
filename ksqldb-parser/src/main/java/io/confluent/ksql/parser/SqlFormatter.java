@@ -27,11 +27,13 @@ import io.confluent.ksql.parser.tree.AliasedRelation;
 import io.confluent.ksql.parser.tree.AllColumns;
 import io.confluent.ksql.parser.tree.AlterOption;
 import io.confluent.ksql.parser.tree.AlterSource;
+import io.confluent.ksql.parser.tree.AlterSystemProperty;
 import io.confluent.ksql.parser.tree.AssertStream;
 import io.confluent.ksql.parser.tree.AssertTombstone;
 import io.confluent.ksql.parser.tree.AssertValues;
 import io.confluent.ksql.parser.tree.AstNode;
 import io.confluent.ksql.parser.tree.AstVisitor;
+import io.confluent.ksql.parser.tree.ColumnConstraints;
 import io.confluent.ksql.parser.tree.CreateAsSelect;
 import io.confluent.ksql.parser.tree.CreateSource;
 import io.confluent.ksql.parser.tree.CreateStream;
@@ -485,6 +487,17 @@ public final class SqlFormatter {
     }
 
     @Override
+    protected Void visitAlterSystemProperty(final AlterSystemProperty node, final Integer context) {
+      builder.append("ALTER SYSTEM '");
+      builder.append(node.getPropertyName());
+      builder.append("'='");
+      builder.append(node.getPropertyValue());
+      builder.append("'");
+
+      return null;
+    }
+
+    @Override
     protected Void visitDefineVariable(final DefineVariable node, final Integer context) {
       builder.append("DEFINE ");
       builder.append(node.getVariableName());
@@ -607,6 +620,10 @@ public final class SqlFormatter {
         builder.append("OR REPLACE ");
       }
 
+      if (node.isSource()) {
+        builder.append("SOURCE ");
+      }
+
       builder.append(type);
       builder.append(" ");
 
@@ -694,16 +711,20 @@ public final class SqlFormatter {
 
     private static String formatTableElement(final TableElement e) {
       final String postFix;
-      switch (e.getNamespace()) {
-        case PRIMARY_KEY:
-          postFix = " PRIMARY KEY";
-          break;
-        case KEY:
-          postFix = " KEY";
-          break;
-        default:
-          postFix = "";
-          break;
+
+      final ColumnConstraints columnConstraints = e.getConstraints();
+      if (columnConstraints.isPrimaryKey()) {
+        postFix = " PRIMARY KEY";
+      } else if (columnConstraints.isKey()) {
+        postFix = " KEY";
+      } else if (columnConstraints.isHeaders()) {
+        if (columnConstraints.getHeaderKey().isPresent()) {
+          postFix = " HEADER('" + e.getConstraints().getHeaderKey().get() + "')";
+        } else {
+          postFix = " HEADERS";
+        }
+      } else {
+        postFix = "";
       }
 
       return escapedName(e.getName())

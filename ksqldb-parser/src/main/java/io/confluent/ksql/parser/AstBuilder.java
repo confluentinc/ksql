@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.parser;
 
+import static io.confluent.ksql.schema.ksql.SystemColumns.HEADERS_TYPE;
 import static io.confluent.ksql.util.ParserUtil.getIdentifierText;
 import static io.confluent.ksql.util.ParserUtil.getLocation;
 import static io.confluent.ksql.util.ParserUtil.processIntegerNumber;
@@ -101,10 +102,12 @@ import io.confluent.ksql.parser.tree.AliasedRelation;
 import io.confluent.ksql.parser.tree.AllColumns;
 import io.confluent.ksql.parser.tree.AlterOption;
 import io.confluent.ksql.parser.tree.AlterSource;
+import io.confluent.ksql.parser.tree.AlterSystemProperty;
 import io.confluent.ksql.parser.tree.AssertStatement;
 import io.confluent.ksql.parser.tree.AssertStream;
 import io.confluent.ksql.parser.tree.AssertTombstone;
 import io.confluent.ksql.parser.tree.AssertValues;
+import io.confluent.ksql.parser.tree.ColumnConstraints;
 import io.confluent.ksql.parser.tree.CreateConnector;
 import io.confluent.ksql.parser.tree.CreateConnector.Type;
 import io.confluent.ksql.parser.tree.CreateStream;
@@ -152,7 +155,6 @@ import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.Statements;
 import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.parser.tree.TableElement;
-import io.confluent.ksql.parser.tree.TableElement.Namespace;
 import io.confluent.ksql.parser.tree.TableElements;
 import io.confluent.ksql.parser.tree.TerminateQuery;
 import io.confluent.ksql.parser.tree.UndefineVariable;
@@ -162,6 +164,8 @@ import io.confluent.ksql.parser.tree.WithinExpression;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.Operator;
 import io.confluent.ksql.schema.ksql.SqlTypeParser;
+import io.confluent.ksql.schema.ksql.types.SqlType;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.RefinementInfo;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
@@ -287,7 +291,8 @@ public class AstBuilder {
           TableElements.of(elements),
           context.REPLACE() != null,
           context.EXISTS() != null,
-          CreateSourceProperties.from(properties)
+          CreateSourceProperties.from(properties),
+          context.SOURCE() != null
       );
     }
 
@@ -305,7 +310,8 @@ public class AstBuilder {
           TableElements.of(elements),
           context.REPLACE() != null,
           context.EXISTS() != null,
-          CreateSourceProperties.from(properties)
+          CreateSourceProperties.from(properties),
+          context.SOURCE() != null
       );
     }
 
@@ -314,6 +320,8 @@ public class AstBuilder {
       final Map<String, Literal> properties = processTableProperties(context.tableProperties());
 
       final Query query = withinPersistentQuery(() -> visitQuery(context.query()));
+
+      disallowLimitClause(query, "STREAM");
 
       return new CreateStreamAsSelect(
           getLocation(context),
@@ -330,6 +338,8 @@ public class AstBuilder {
       final Map<String, Literal> properties = processTableProperties(context.tableProperties());
 
       final Query query = withinPersistentQuery(() -> visitQuery(context.query()));
+
+      disallowLimitClause(query, "TABLE");
 
       return new CreateTableAsSelect(
           getLocation(context),
@@ -578,18 +588,19 @@ public class AstBuilder {
 
         beforeSize = getSizeAndUnitFromJoinWindowSize(singleWithin.joinWindowSize());
         afterSize = beforeSize;
-        gracePeriod = Optional.empty();
+        gracePeriod = gracePeriodClause(singleWithin.gracePeriodClause());
       } else if (ctx instanceof SqlBaseParser.JoinWindowWithBeforeAndAfterContext) {
         final SqlBaseParser.JoinWindowWithBeforeAndAfterContext beforeAndAfterJoinWindow
             = (SqlBaseParser.JoinWindowWithBeforeAndAfterContext) ctx;
 
         beforeSize = getSizeAndUnitFromJoinWindowSize(beforeAndAfterJoinWindow.joinWindowSize(0));
         afterSize = getSizeAndUnitFromJoinWindowSize(beforeAndAfterJoinWindow.joinWindowSize(1));
-        gracePeriod = Optional.empty();
+        gracePeriod = gracePeriodClause(beforeAndAfterJoinWindow.gracePeriodClause());
       } else {
         throw new RuntimeException("Expecting either a single join window, ie \"WITHIN 10 "
-            + "seconds\", or a join window with " + "before and after specified, ie. "
-            + "\"WITHIN (10 seconds, 20 seconds)\"");
+            + "seconds\" or \"WITHIN 10 seconds GRACE PERIOD 2 seconds\", or a join window with "
+            + "before and after specified, ie. \"WITHIN (10 seconds, 20 seconds)\" or "
+            + "WITHIN (10 seconds, 20 seconds) GRACE PERIOD 5 seconds");
       }
       return new WithinExpression(
           getLocation(ctx),
@@ -786,6 +797,13 @@ public class AstBuilder {
       final String propertyName = ParserUtil.unquote(context.STRING(0).getText(), "'");
       final String propertyValue = ParserUtil.unquote(context.STRING(1).getText(), "'");
       return new SetProperty(getLocation(context), propertyName, propertyValue);
+    }
+
+    @Override
+    public Node visitAlterSystemProperty(final SqlBaseParser.AlterSystemPropertyContext context) {
+      final String propertyName = ParserUtil.unquote(context.STRING(0).getText(), "'");
+      final String propertyValue = ParserUtil.unquote(context.STRING(1).getText(), "'");
+      return new AlterSystemProperty(getLocation(context), propertyName, propertyValue);
     }
 
     @Override
@@ -1238,14 +1256,36 @@ public class AstBuilder {
 
     @Override
     public Node visitTableElement(final SqlBaseParser.TableElementContext context) {
+      final io.confluent.ksql.execution.expression.tree.Type type =
+          typeParser.getType(context.type());
+      final ColumnConstraints constraints =
+          ParserUtil.getColumnConstraints(context.columnConstraints());
+      if (constraints.isHeaders()) {
+        throwOnIncorrectHeaderColumnType(type.getSqlType(), constraints.getHeaderKey());
+      }
       return new TableElement(
           getLocation(context),
-          context.KEY() == null
-              ? Namespace.VALUE
-              : context.PRIMARY() == null ? Namespace.KEY : Namespace.PRIMARY_KEY,
           ColumnName.of(ParserUtil.getIdentifierText(context.identifier())),
-          typeParser.getType(context.type())
-      );
+          type,
+          constraints);
+    }
+
+    private void throwOnIncorrectHeaderColumnType(
+        final SqlType type, final Optional<String> headerKey) {
+      if (headerKey.isPresent()) {
+        if (type != SqlTypes.BYTES) {
+          throw new KsqlException(String.format(
+              "Invalid type for HEADER('%s') column: expected BYTES, got %s",
+              headerKey.get(),
+              type)
+          );
+        }
+      } else {
+        if (!type.toString().equals(HEADERS_TYPE.toString())) {
+          throw new KsqlException(
+              "Invalid type for HEADERS column: expected " + HEADERS_TYPE + ", got " + type);
+        }
+      }
     }
 
     @Override
@@ -1417,7 +1457,8 @@ public class AstBuilder {
           TableElements.of(elements),
           false,
           false,
-          CreateSourceProperties.from(properties)
+          CreateSourceProperties.from(properties),
+          false
       );
 
       return new AssertStream(getLocation(context), createStream);
@@ -1437,7 +1478,8 @@ public class AstBuilder {
           TableElements.of(elements),
           false,
           false,
-          CreateSourceProperties.from(properties)
+          CreateSourceProperties.from(properties),
+          false
       );
 
       return new AssertTable(getLocation(context), createTable);
@@ -1540,6 +1582,16 @@ public class AstBuilder {
     } catch (final StackOverflowError e) {
       throw new KsqlException("Error processing statement: Statement is too large to parse. "
           + "This may be caused by having too many nested expressions in the statement.");
+    }
+  }
+
+  private static void disallowLimitClause(final Query query, final String streamOrTable)
+          throws KsqlException {
+    if (query.getLimit().isPresent()) {
+      final String errorMessage = String.format(
+              "CREATE %s AS SELECT statements don't support LIMIT clause.",
+              streamOrTable);
+      throw new KsqlException(errorMessage);
     }
   }
 

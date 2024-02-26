@@ -160,6 +160,21 @@ class KsqlMaterialization implements Materialization {
           .map(Optional::get)
           .iterator();
     }
+
+    @Override
+    public Iterator<Row> get(final int partition, final GenericKey from, final GenericKey to) {
+      if (transforms.isEmpty()) {
+        return table.get(partition, from, to);
+      }
+
+      return Streams.stream(table.get(partition, from, to))
+        .map(row -> filterAndTransform(row.key(), getIntermediateRow(row), row.rowTime())
+          .map(v -> row.withValue(v, schema())))
+        .filter(Optional::isPresent)
+        .map(Optional::get)
+        .iterator();
+    }
+
   }
 
   final class KsqlMaterializedWindowedTable implements MaterializedWindowedTable {

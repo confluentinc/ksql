@@ -19,6 +19,7 @@ import io.confluent.ksql.util.KsqlPreconditions;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import org.apache.kafka.connect.runtime.rest.entities.ConfigInfos;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorInfo;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorPluginInfo;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo;
@@ -58,6 +59,14 @@ public interface ConnectClient {
    * @param config    the connector configuration
    */
   ConnectResponse<ConnectorInfo> create(String connector, Map<String, String> config);
+
+  /**
+   * Validates specified connector configuration for the given plugin.
+   *
+   * @param plugin  the name of the connector plugin
+   * @param config  the connector configuration
+   */
+  ConnectResponse<ConfigInfos> validate(String plugin, Map<String, String> config);
 
   /**
    * Get the status of {@code connector}.

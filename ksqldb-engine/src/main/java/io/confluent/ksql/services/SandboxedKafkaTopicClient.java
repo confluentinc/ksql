@@ -20,6 +20,8 @@ import static io.confluent.ksql.util.LimitedProxyBuilder.methodParams;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.confluent.ksql.topic.TopicProperties;
+import io.confluent.ksql.util.KsqlServerException;
 import io.confluent.ksql.util.LimitedProxyBuilder;
 import java.util.Collection;
 import java.util.Collections;
@@ -29,8 +31,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.common.Node;
 import org.apache.kafka.common.TopicPartition;
@@ -46,8 +50,9 @@ import org.apache.kafka.common.acl.AclOperation;
 @SuppressWarnings("unused")  // Methods invoked via reflection.
 final class SandboxedKafkaTopicClient {
 
-  static KafkaTopicClient createProxy(final KafkaTopicClient delegate) {
-    final SandboxedKafkaTopicClient sandbox = new SandboxedKafkaTopicClient(delegate);
+  static KafkaTopicClient createProxy(final KafkaTopicClient delegate,
+                                      final Supplier<Admin> sharedAdmin) {
+    final SandboxedKafkaTopicClient sandbox = new SandboxedKafkaTopicClient(delegate, sharedAdmin);
 
     return LimitedProxyBuilder.forClass(KafkaTopicClient.class)
         .forward("createTopic",
@@ -63,12 +68,17 @@ final class SandboxedKafkaTopicClient {
         .build();
   }
 
+  private static final String DEFAULT_REPLICATION_PROP = "default.replication.factor";
+
   private final KafkaTopicClient delegate;
+  private final Supplier<Admin> adminClient;
 
   private final Map<String, TopicDescription> createdTopics = new HashMap<>();
 
-  private SandboxedKafkaTopicClient(final KafkaTopicClient delegate) {
+  private SandboxedKafkaTopicClient(final KafkaTopicClient delegate,
+                                    final Supplier<Admin> sharedAdminClient) {
     this.delegate = Objects.requireNonNull(delegate, "delegate");
+    this.adminClient = Objects.requireNonNull(sharedAdminClient, "sharedAdminClient");
   }
 
   private void createTopic(
@@ -90,7 +100,11 @@ final class SandboxedKafkaTopicClient {
       return;
     }
 
-    final List<Node> replicas = IntStream.range(0, replicationFactor)
+    final short resolvedReplicationFactor = replicationFactor == TopicProperties.DEFAULT_REPLICAS
+        ? getDefaultClusterReplication()
+        : replicationFactor;
+
+    final List<Node> replicas = IntStream.range(0, resolvedReplicationFactor)
         .mapToObj(idx -> (Node) null)
         .collect(Collectors.toList());
 
@@ -103,7 +117,7 @@ final class SandboxedKafkaTopicClient {
         .collect(Collectors.toList());
 
     // This is useful to validate permissions to create the topic
-    delegate.validateCreateTopic(topic, numPartitions, replicationFactor, configs);
+    delegate.validateCreateTopic(topic, numPartitions, resolvedReplicationFactor, configs);
 
     createdTopics.put(topic, new TopicDescription(
         topic,
@@ -111,6 +125,19 @@ final class SandboxedKafkaTopicClient {
         partitions,
         Sets.newHashSet(AclOperation.READ, AclOperation.WRITE)
     ));
+  }
+
+  private short getDefaultClusterReplication() {
+    try {
+      final String defaultReplication = KafkaClusterUtil.getConfig(adminClient.get())
+          .get(DEFAULT_REPLICATION_PROP)
+          .value();
+      return Short.parseShort(defaultReplication);
+    } catch (final KsqlServerException e) {
+      throw e;
+    } catch (final Exception e) {
+      throw new KsqlServerException("Could not get default replication from Kafka cluster!", e);
+    }
   }
 
   private boolean isTopicExists(final String topic) {

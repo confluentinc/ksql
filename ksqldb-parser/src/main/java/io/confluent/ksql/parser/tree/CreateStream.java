@@ -22,7 +22,6 @@ import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.NodeLocation;
 import io.confluent.ksql.parser.exception.ParseFailedException;
 import io.confluent.ksql.parser.properties.with.CreateSourceProperties;
-import io.confluent.ksql.parser.tree.TableElement.Namespace;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -34,9 +33,10 @@ public class CreateStream extends CreateSource implements ExecutableDdlStatement
       final TableElements elements,
       final boolean orReplace,
       final boolean notExists,
-      final CreateSourceProperties properties
+      final CreateSourceProperties properties,
+      final boolean isSource
   ) {
-    this(Optional.empty(), name, elements, orReplace, notExists, properties);
+    this(Optional.empty(), name, elements, orReplace, notExists, properties, isSource);
   }
 
   public CreateStream(
@@ -45,11 +45,17 @@ public class CreateStream extends CreateSource implements ExecutableDdlStatement
       final TableElements elements,
       final boolean orReplace,
       final boolean notExists,
-      final CreateSourceProperties properties
+      final CreateSourceProperties properties,
+      final boolean isSource
   ) {
-    super(location, name, elements, orReplace, notExists, properties);
+    super(location, name, elements, orReplace, notExists, properties, isSource);
 
     throwOnPrimaryKeys(elements);
+  }
+
+  @Override
+  public SourceType getSourceType() {
+    return SourceType.STREAM;
   }
 
   @Override
@@ -63,7 +69,8 @@ public class CreateStream extends CreateSource implements ExecutableDdlStatement
         elements,
         isOrReplace(),
         isNotExists(),
-        properties);
+        properties,
+        isSource());
   }
 
   @Override
@@ -90,12 +97,13 @@ public class CreateStream extends CreateSource implements ExecutableDdlStatement
         .add("orReplace", isOrReplace())
         .add("notExists", isNotExists())
         .add("properties", getProperties())
+        .add("isSource", isSource())
         .toString();
   }
 
   private static void throwOnPrimaryKeys(final TableElements elements) {
     final Optional<TableElement> wrongKey = elements.stream()
-        .filter(e -> e.getNamespace().isKey() && e.getNamespace() != Namespace.KEY)
+        .filter(e -> e.getConstraints().isPrimaryKey())
         .findFirst();
 
     wrongKey.ifPresent(col -> {

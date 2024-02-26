@@ -19,11 +19,14 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThrows;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.name.SourceName;
+import io.confluent.ksql.parser.tree.CreateTable;
+import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.planner.plan.DataSourceNode;
 import io.confluent.ksql.planner.plan.KsqlBareOutputNode;
 import io.confluent.ksql.planner.plan.KsqlStructuredDataOutputNode;
@@ -62,6 +65,8 @@ public class QueryIdUtilTest {
   private DataSourceNode dataSourceNode;
   @Mock
   private SourceName sourceName;
+  @Mock
+  private Statement statement;
   @Before
   public void setup() {
     when(engineContext.getQueryRegistry()).thenReturn(queryRegistry);
@@ -78,7 +83,7 @@ public class QueryIdUtilTest {
 
     // When:
     long numUniqueIds = IntStream.range(0, 100)
-        .mapToObj(i -> QueryIdUtil.buildId(engineContext, idGenerator, transientPlan,
+        .mapToObj(i -> QueryIdUtil.buildId(statement, engineContext, idGenerator, transientPlan,
             false, Optional.empty()))
         .distinct()
         .count();
@@ -94,7 +99,7 @@ public class QueryIdUtilTest {
     when(idGenerator.getNext()).thenReturn("1");
 
     // When:
-    final QueryId queryId = QueryIdUtil.buildId(engineContext, idGenerator, plan,
+    final QueryId queryId = QueryIdUtil.buildId(statement, engineContext, idGenerator, plan,
         false, Optional.empty());
 
     // Then:
@@ -112,7 +117,7 @@ public class QueryIdUtilTest {
     when(queryRegistry.getQueriesWithSink(SINK)).thenReturn(ImmutableSet.of());
 
     // When:
-    final QueryId queryId = QueryIdUtil.buildId(engineContext, idGenerator, plan,
+    final QueryId queryId = QueryIdUtil.buildId(statement, engineContext, idGenerator, plan,
         false, Optional.empty());
     // Then:
     assertThat(queryId, is(new QueryId("CSAS_FOO_1")));
@@ -129,11 +134,27 @@ public class QueryIdUtilTest {
     when(queryRegistry.getQueriesWithSink(SINK)).thenReturn(ImmutableSet.of());
 
     // When:
-    final QueryId queryId = QueryIdUtil.buildId(engineContext, idGenerator, plan,
+    final QueryId queryId = QueryIdUtil.buildId(statement, engineContext, idGenerator, plan,
         false, Optional.empty());
 
     // Then:
     assertThat(queryId, is(new QueryId("CTAS_FOO_1")));
+  }
+
+  @Test
+  public void shouldComputeQueryIdCorrectlyForNewSourceTable() {
+    // Given:
+    final CreateTable createTableStmt = mock(CreateTable.class);
+    when(createTableStmt.getName()).thenReturn(SourceName.of("FOO"));
+    when(createTableStmt.isSource()).thenReturn(true);
+    when(idGenerator.getNext()).thenReturn("1");
+
+    // When:
+    final QueryId queryId = QueryIdUtil.buildId(createTableStmt, engineContext, idGenerator, plan,
+        false, Optional.empty());
+
+    // Then:
+    assertThat(queryId, is(new QueryId("CST_FOO_1")));
   }
 
   @Test
@@ -145,7 +166,7 @@ public class QueryIdUtilTest {
         .thenReturn(ImmutableSet.of(new QueryId("CTAS_FOO_10")));
 
     // When:
-    final QueryId queryId = QueryIdUtil.buildId(engineContext, idGenerator, plan,
+    final QueryId queryId = QueryIdUtil.buildId(statement, engineContext, idGenerator, plan,
         true, Optional.empty());
 
     // Then:
@@ -162,7 +183,7 @@ public class QueryIdUtilTest {
         .thenReturn(ImmutableSet.of(new QueryId("CTAS_FOO_10")));
 
     // When:
-    QueryIdUtil.buildId(engineContext, idGenerator, plan,
+    QueryIdUtil.buildId(statement, engineContext, idGenerator, plan,
         false, Optional.empty());
   }
 
@@ -176,7 +197,8 @@ public class QueryIdUtilTest {
 
     // When:
     final KsqlException e = assertThrows(KsqlException.class, () ->
-        QueryIdUtil.buildId(engineContext, idGenerator, plan, false, Optional.empty()));
+        QueryIdUtil.buildId(statement, engineContext, idGenerator, plan, false,
+            Optional.empty()));
 
     // Then:
     assertThat(e.getMessage(), containsString("there are multiple queries writing"));
@@ -185,7 +207,7 @@ public class QueryIdUtilTest {
   @Test
   public void shouldReturnWithQueryIdInUppercase(){
     // When:
-    final QueryId queryId = QueryIdUtil.buildId(engineContext, idGenerator, plan,
+    final QueryId queryId = QueryIdUtil.buildId(statement, engineContext, idGenerator, plan,
         false, Optional.of("my_query_id"));
 
     // Then:
@@ -197,13 +219,14 @@ public class QueryIdUtilTest {
     // When:
     final Exception e = assertThrows(
         Exception.class,
-        () -> QueryIdUtil.buildId(engineContext, idGenerator, plan,
+        () -> QueryIdUtil.buildId(statement, engineContext, idGenerator, plan,
             false, Optional.of("insertquery_custom"))
     );
 
     // Then:
     assertThat(e.getMessage(), containsString("Query IDs must not start with a "
-        + "reserved query ID prefix (INSERTQUERY_, CTAS_, CSAS_). Got 'INSERTQUERY_CUSTOM'."));
+        + "reserved query ID prefix (INSERTQUERY_, CTAS_, CSAS_, CST_). "
+        + "Got 'INSERTQUERY_CUSTOM'."));
   }
 
   @Test
@@ -211,7 +234,7 @@ public class QueryIdUtilTest {
     // When:
     final Exception e = assertThrows(
         Exception.class,
-        () -> QueryIdUtil.buildId(engineContext, idGenerator, plan,
+        () -> QueryIdUtil.buildId(statement, engineContext, idGenerator, plan,
             false, Optional.of("with space"))
     );
 
@@ -230,7 +253,7 @@ public class QueryIdUtilTest {
     when(sourceName.text()).thenReturn(SOURCE);
 
     // When:
-    final QueryId queryId = QueryIdUtil.buildId(engineContext, idGenerator, transientPlan,
+    final QueryId queryId = QueryIdUtil.buildId(statement, engineContext, idGenerator, transientPlan,
         false, Optional.empty());
 
     // Then:

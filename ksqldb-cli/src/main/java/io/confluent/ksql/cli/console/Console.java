@@ -43,6 +43,7 @@ import io.confluent.ksql.cli.console.table.builder.QueriesTableBuilder;
 import io.confluent.ksql.cli.console.table.builder.StreamsListTableBuilder;
 import io.confluent.ksql.cli.console.table.builder.TableBuilder;
 import io.confluent.ksql.cli.console.table.builder.TablesListTableBuilder;
+import io.confluent.ksql.cli.console.table.builder.TerminateQueryTableBuilder;
 import io.confluent.ksql.cli.console.table.builder.TopicDescriptionTableBuilder;
 import io.confluent.ksql.cli.console.table.builder.TypeListTableBuilder;
 import io.confluent.ksql.cli.console.table.builder.WarningEntityTableBuilder;
@@ -87,6 +88,7 @@ import io.confluent.ksql.rest.entity.StreamedRow.DataRow;
 import io.confluent.ksql.rest.entity.StreamedRow.Header;
 import io.confluent.ksql.rest.entity.StreamsList;
 import io.confluent.ksql.rest.entity.TablesList;
+import io.confluent.ksql.rest.entity.TerminateQueryEntity;
 import io.confluent.ksql.rest.entity.TopicDescription;
 import io.confluent.ksql.rest.entity.TypeList;
 import io.confluent.ksql.rest.entity.VariablesList;
@@ -191,6 +193,8 @@ public class Console implements Closeable {
               tablePrinter(WarningEntity.class, WarningEntityTableBuilder::new))
           .put(VariablesList.class,
               tablePrinter(VariablesList.class, ListVariablesTableBuilder::new))
+          .put(TerminateQueryEntity.class,
+              tablePrinter(TerminateQueryEntity.class, TerminateQueryTableBuilder::new))
           .build();
 
   private static <T extends KsqlEntity> Handler1<KsqlEntity, Console> tablePrinter(
@@ -498,6 +502,13 @@ public class Console implements Closeable {
       final boolean isTable
   ) {
     final FieldType possibleFieldType = field.getType().orElse(null);
+
+    if (possibleFieldType == FieldType.HEADER) {
+      final String headerType = field.getHeaderKey()
+          .map(k -> "(header('" + k + "'))")
+          .orElse("(headers)");
+      return String.format("%-16s %s", field.getSchema().toTypeString(), headerType);
+    }
 
     if (possibleFieldType == FieldType.KEY) {
       final String wt = windowType

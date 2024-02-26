@@ -110,7 +110,7 @@ public class TopicCreateInjector implements Injector {
     } else if (!properties.getPartitions().isPresent()) {
       final CreateSource example = createSource.copyWith(
           createSource.getElements(),
-          properties.withPartitionsAndReplicas(2, (short) 1));
+          properties.withPartitions(2));
       throw new KsqlException(
           "Topic '" + topicName + "' does not exist. If you want to create a new topic for the "
               + "stream/table please re-run the statement providing the required '"

@@ -1,0 +1,123 @@
+{
+  "version" : "7.1.0",
+  "timestamp" : 1633126013727,
+  "path" : "query-validation-tests/none.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`FOO` INTEGER, `BAR` INTEGER",
+      "keyFormat" : {
+        "format" : "NONE"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`BAR` INTEGER KEY, `FOO` INTEGER",
+      "keyFormat" : {
+        "format" : "JSON",
+        "features" : [ "UNWRAP_SINGLES" ]
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "inherited in CSAS - PARTITION BY",
+    "inputs" : [ {
+      "topic" : "input_topic",
+      "key" : null,
+      "value" : {
+        "foo" : 10
+      }
+    }, {
+      "topic" : "input_topic",
+      "key" : "data that should be ignored",
+      "value" : {
+        "foo" : 11
+      }
+    }, {
+      "topic" : "input_topic",
+      "key" : null,
+      "value" : null
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : null,
+      "value" : {
+        "FOO" : 10
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : null,
+      "value" : {
+        "FOO" : 11
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : null,
+      "value" : null
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "input_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM INPUT (foo INT, bar INT) WITH (kafka_topic='input_topic', key_format='NONE', value_format='JSON');", "CREATE STREAM OUTPUT AS SELECT * FROM INPUT PARTITION BY BAR;" ],
+    "properties" : {
+      "ksql.persistence.default.format.key" : "JSON"
+    },
+    "post" : {
+      "sources" : [ {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`FOO` INTEGER, `BAR` INTEGER",
+        "keyFormat" : {
+          "format" : "NONE"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`BAR` INTEGER KEY, `FOO` INTEGER",
+        "keyFormat" : {
+          "format" : "JSON"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ "UNWRAP_SINGLES" ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "input_topic",
+          "keyFormat" : {
+            "format" : "NONE"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "format" : "JSON",
+            "features" : [ "UNWRAP_SINGLES" ]
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

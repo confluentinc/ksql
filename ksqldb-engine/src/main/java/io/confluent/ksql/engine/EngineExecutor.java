@@ -17,38 +17,58 @@ package io.confluent.ksql.engine;
 
 import static io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
 import io.confluent.ksql.analyzer.ImmutableAnalysis;
-import io.confluent.ksql.analyzer.QueryAnalyzer;
-import io.confluent.ksql.analyzer.RewrittenAnalysis;
 import io.confluent.ksql.config.SessionConfig;
-import io.confluent.ksql.engine.QueryExecutionUtil.ColumnReferenceRewriter;
+import io.confluent.ksql.execution.ddl.commands.CreateTableCommand;
 import io.confluent.ksql.execution.ddl.commands.DdlCommand;
+import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
+import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.plan.ExecutionStep;
+import io.confluent.ksql.execution.plan.Formats;
+import io.confluent.ksql.execution.plan.PlanInfo;
+import io.confluent.ksql.execution.plan.PlanInfoExtractor;
 import io.confluent.ksql.execution.streams.RoutingOptions;
+import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.internal.PullQueryExecutorMetrics;
+import io.confluent.ksql.internal.ScalablePushQueryMetrics;
 import io.confluent.ksql.logging.query.QueryLogger;
+import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.metastore.MetaStoreImpl;
+import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
+import io.confluent.ksql.metastore.model.KsqlTable;
 import io.confluent.ksql.name.SourceName;
+import io.confluent.ksql.parser.OutputRefinement;
+import io.confluent.ksql.parser.tree.AliasedRelation;
 import io.confluent.ksql.parser.tree.CreateAsSelect;
+import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
+import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.CreateTableAsSelect;
 import io.confluent.ksql.parser.tree.ExecutableDdlStatement;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.QueryContainer;
+import io.confluent.ksql.parser.tree.Relation;
+import io.confluent.ksql.parser.tree.Select;
+import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.parser.tree.Sink;
 import io.confluent.ksql.parser.tree.Statement;
+import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.physical.PhysicalPlan;
 import io.confluent.ksql.physical.pull.HARouting;
 import io.confluent.ksql.physical.pull.PullPhysicalPlan;
-import io.confluent.ksql.physical.pull.PullPhysicalPlan.PullPhysicalPlanType;
-import io.confluent.ksql.physical.pull.PullPhysicalPlan.PullSourceType;
-import io.confluent.ksql.physical.pull.PullPhysicalPlan.RoutingNodeType;
 import io.confluent.ksql.physical.pull.PullPhysicalPlanBuilder;
 import io.confluent.ksql.physical.pull.PullQueryQueuePopulator;
 import io.confluent.ksql.physical.pull.PullQueryResult;
 import io.confluent.ksql.physical.scalablepush.PushPhysicalPlan;
 import io.confluent.ksql.physical.scalablepush.PushPhysicalPlanBuilder;
+import io.confluent.ksql.physical.scalablepush.PushPhysicalPlanCreator;
+import io.confluent.ksql.physical.scalablepush.PushPhysicalPlanManager;
+import io.confluent.ksql.physical.scalablepush.PushQueryPreparer;
 import io.confluent.ksql.physical.scalablepush.PushQueryQueuePopulator;
 import io.confluent.ksql.physical.scalablepush.PushRouting;
 import io.confluent.ksql.physical.scalablepush.PushRoutingOptions;
@@ -65,24 +85,37 @@ import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.query.QueryRegistry;
 import io.confluent.ksql.query.TransientQueryQueue;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.utils.FormatOptions;
+import io.confluent.ksql.serde.KeyFormat;
+import io.confluent.ksql.serde.RefinementInfo;
+import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
+import io.confluent.ksql.util.ConsistencyOffsetVector;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlConstants;
+import io.confluent.ksql.util.KsqlConstants.RoutingNodeType;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.PlanSummary;
+import io.confluent.ksql.util.PushOffsetRange;
 import io.confluent.ksql.util.PushQueryMetadata;
 import io.confluent.ksql.util.PushQueryMetadata.ResultType;
 import io.confluent.ksql.util.QueryMask;
 import io.confluent.ksql.util.ScalablePushQueryMetadata;
 import io.confluent.ksql.util.TransientQueryMetadata;
 import io.vertx.core.Context;
+import java.util.Collection;
 import java.util.Collections;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.OptionalInt;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
+import org.apache.kafka.common.TopicPartition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -128,9 +161,8 @@ final class EngineExecutor {
   }
 
   ExecuteResult execute(final KsqlPlan plan) {
-    final Optional<QueryPlan> queryPlan = plan.getQueryPlan();
     final String maskedStatement = QueryMask.getMaskedStatement(plan.getStatementText());
-    if (!queryPlan.isPresent()) {
+    if (!plan.getQueryPlan().isPresent()) {
       final String ddlResult = plan
           .getDdlCommand()
           .map(ddl -> executeDdl(ddl, maskedStatement, false, Collections.emptySet()))
@@ -140,18 +172,47 @@ final class EngineExecutor {
       return ExecuteResult.of(ddlResult);
     }
 
+    final QueryPlan queryPlan = plan.getQueryPlan().get();
+    final KsqlConstants.PersistentQueryType persistentQueryType =
+        plan.getPersistentQueryType().get();
+
+    // CREATE_SOURCE do not write to any topic. We check for read-only topics only for queries
+    // that attempt to write to a sink (i.e. INSERT or CREATE_AS).
+    if (persistentQueryType != KsqlConstants.PersistentQueryType.CREATE_SOURCE) {
+      final DataSource sinkSource = engineContext.getMetaStore()
+          .getSource(queryPlan.getSink().get());
+
+      if (sinkSource != null && sinkSource.isSource()) {
+        throw new KsqlException(String.format("Cannot insert into read-only %s: %s",
+            sinkSource.getDataSourceType().getKsqlType().toLowerCase(),
+            sinkSource.getName().text()));
+      }
+    }
+
     final Optional<String> ddlResult = plan.getDdlCommand().map(ddl ->
-        executeDdl(ddl, maskedStatement, true, queryPlan.get().getSources()));
+        executeDdl(ddl, maskedStatement, true, queryPlan.getSources()));
 
     // Return if the source to create already exists.
     if (ddlResult.isPresent() && ddlResult.get().contains("already exists")) {
       return ExecuteResult.of(ddlResult.get());
     }
 
+    // Do not execute the plan (found on new CST commands or commands read from the command topic)
+    // for source tables if the feature is disabled. CST will still be read-only, but no query
+    // must be executed.
+    if (persistentQueryType == KsqlConstants.PersistentQueryType.CREATE_SOURCE
+        && !isSourceTableMaterializationEnabled()) {
+      LOG.info(String.format(
+          "Source table query '%s' won't be materialized because '%s' is disabled.",
+          maskedStatement,
+          KsqlConfig.KSQL_SOURCE_TABLE_MATERIALIZATION_ENABLED));
+      return ExecuteResult.of(ddlResult.get());
+    }
+
     return ExecuteResult.of(executePersistentQuery(
-        queryPlan.get(),
+        queryPlan,
         maskedStatement,
-        plan.getDdlCommand().isPresent())
+        persistentQueryType)
     );
   }
 
@@ -163,66 +224,72 @@ final class EngineExecutor {
    * @param pullQueryMetrics JMX metrics
    * @return the rows that are the result of evaluating the pull query
    */
-  PullQueryResult executePullQuery(
+  PullQueryResult executeTablePullQuery(
+      final ImmutableAnalysis analysis,
       final ConfiguredStatement<Query> statement,
       final HARouting routing,
       final RoutingOptions routingOptions,
       final QueryPlannerOptions queryPlannerOptions,
       final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
-      final boolean startImmediately
+      final boolean startImmediately,
+      final Optional<ConsistencyOffsetVector> consistencyOffsetVector
   ) {
 
     if (!statement.getStatement().isPullQuery()) {
       throw new IllegalArgumentException("Executor can only handle pull queries");
     }
     final SessionConfig sessionConfig = statement.getSessionConfig();
-    PullSourceType sourceType = null;
-    PullPhysicalPlanType planType = null;
-    RoutingNodeType routingNodeType = null;
+
+    // If we ever change how many hops a request can do, we'll need to update this for correct
+    // metrics.
+    final RoutingNodeType routingNodeType = routingOptions.getIsSkipForwardRequest()
+        ? RoutingNodeType.REMOTE_NODE : RoutingNodeType.SOURCE_NODE;
+
+    PullPhysicalPlan plan = null;
 
     try {
-      final QueryAnalyzer queryAnalyzer = new QueryAnalyzer(engineContext.getMetaStore(),
-          NO_OUTPUT_TOPIC_PREFIX);
-      final ImmutableAnalysis analysis = new RewrittenAnalysis(
-          queryAnalyzer.analyze(statement.getStatement(), Optional.empty()),
-          new ColumnReferenceRewriter()::process
-      );
       // Do not set sessionConfig.getConfig to true! The copying is inefficient and slows down pull
       // query performance significantly.  Instead use QueryPlannerOptions which check overrides
       // deliberately.
       final KsqlConfig ksqlConfig = sessionConfig.getConfig(false);
       final LogicalPlanNode logicalPlan = buildAndValidateLogicalPlan(
           statement, analysis, ksqlConfig, queryPlannerOptions, false);
-      final PullPhysicalPlan physicalPlan = buildPullPhysicalPlan(
+
+      // This is a cancel signal that is used to stop both local operations and requests
+      final CompletableFuture<Void> shouldCancelRequests = new CompletableFuture<>();
+
+      plan = buildPullPhysicalPlan(
           logicalPlan,
-          analysis
+          analysis,
+          queryPlannerOptions,
+          shouldCancelRequests
       );
-      sourceType = physicalPlan.getSourceType();
-      planType = physicalPlan.getPlanType();
-      // If we ever change how many hops a request can do, we'll need to update this for correct
-      // metrics.
-      routingNodeType = routingOptions.getIsSkipForwardRequest()
-          ? RoutingNodeType.REMOTE_NODE : RoutingNodeType.SOURCE_NODE;
-      final PullQueryQueue pullQueryQueue = new PullQueryQueue();
+      final PullPhysicalPlan physicalPlan = plan;
+
+      final PullQueryQueue pullQueryQueue = new PullQueryQueue(analysis.getLimitClause());
       final PullQueryQueuePopulator populator = () -> routing.handlePullQuery(
           serviceContext,
           physicalPlan, statement, routingOptions, physicalPlan.getOutputSchema(),
-          physicalPlan.getQueryId(), pullQueryQueue);
+          physicalPlan.getQueryId(), pullQueryQueue, shouldCancelRequests, consistencyOffsetVector);
       final PullQueryResult result = new PullQueryResult(physicalPlan.getOutputSchema(), populator,
           physicalPlan.getQueryId(), pullQueryQueue, pullQueryMetrics, physicalPlan.getSourceType(),
-          physicalPlan.getPlanType(), routingNodeType, physicalPlan::getRowsReadFromDataSource);
+          physicalPlan.getPlanType(), routingNodeType, physicalPlan::getRowsReadFromDataSource,
+          shouldCancelRequests, consistencyOffsetVector);
       if (startImmediately) {
         result.start();
       }
       return result;
     } catch (final Exception e) {
-      final PullSourceType finalSourceType = sourceType;
-      final PullPhysicalPlanType finalPlanType = planType;
-      final RoutingNodeType finalRoutingNodeType = routingNodeType;
-      pullQueryMetrics.ifPresent(metrics -> metrics.recordErrorRate(1,
-          Optional.ofNullable(finalSourceType).orElse(PullSourceType.UNKNOWN),
-          Optional.ofNullable(finalPlanType).orElse(PullPhysicalPlanType.UNKNOWN),
-          Optional.ofNullable(finalRoutingNodeType).orElse(RoutingNodeType.UNKNOWN)));
+      if (plan == null) {
+        pullQueryMetrics.ifPresent(m -> m.recordErrorRateForNoResult(1));
+      } else {
+        final PullPhysicalPlan physicalPlan = plan;
+        pullQueryMetrics.ifPresent(metrics -> metrics.recordErrorRate(1,
+            physicalPlan.getSourceType(),
+            physicalPlan.getPlanType(),
+            routingNodeType
+        ));
+      }
 
       QueryLogger.error(
           "Failure to execute pull query",
@@ -249,28 +316,43 @@ final class EngineExecutor {
   }
 
   ScalablePushQueryMetadata executeScalablePushQuery(
+      final ImmutableAnalysis analysis,
       final ConfiguredStatement<Query> statement,
       final PushRouting pushRouting,
       final PushRoutingOptions pushRoutingOptions,
       final QueryPlannerOptions queryPlannerOptions,
-      final Context context
+      final Context context,
+      final Optional<ScalablePushQueryMetrics> scalablePushQueryMetrics
   ) {
     final SessionConfig sessionConfig = statement.getSessionConfig();
+
+    // If we ever change how many hops a request can do, we'll need to update this for correct
+    // metrics.
+    final RoutingNodeType routingNodeType = pushRoutingOptions.getHasBeenForwarded()
+        ? RoutingNodeType.REMOTE_NODE : RoutingNodeType.SOURCE_NODE;
+
+    PushPhysicalPlan plan = null;
+
     try {
-      final QueryAnalyzer queryAnalyzer = new QueryAnalyzer(engineContext.getMetaStore(),
-          NO_OUTPUT_TOPIC_PREFIX);
-      final ImmutableAnalysis analysis = new RewrittenAnalysis(
-          queryAnalyzer.analyze(statement.getStatement(), Optional.empty()),
-          new ColumnReferenceRewriter()::process
-      );
       final KsqlConfig ksqlConfig = sessionConfig.getConfig(false);
       final LogicalPlanNode logicalPlan = buildAndValidateLogicalPlan(
           statement, analysis, ksqlConfig, queryPlannerOptions, true);
-      final PushPhysicalPlan physicalPlan = buildScalablePushPhysicalPlan(
-          logicalPlan,
-          analysis,
-          context
-      );
+      final PushPhysicalPlanCreator pushPhysicalPlanCreator = (offsetRange, catchupConsumerGroup) ->
+          buildScalablePushPhysicalPlan(
+              logicalPlan,
+              analysis,
+              context,
+              offsetRange,
+              catchupConsumerGroup
+          );
+      final Optional<PushOffsetRange> offsetRange = pushRoutingOptions.getContinuationToken()
+          .map(PushOffsetRange::deserialize);
+      final Optional<String> catchupConsumerGroup = pushRoutingOptions.getCatchupConsumerGroup();
+      final PushPhysicalPlanManager physicalPlanManager = new PushPhysicalPlanManager(
+          pushPhysicalPlanCreator, catchupConsumerGroup, offsetRange);
+      final PushPhysicalPlan physicalPlan = physicalPlanManager.getPhysicalPlan();
+      plan = physicalPlan;
+
       final TransientQueryQueue transientQueryQueue
           = new TransientQueryQueue(analysis.getLimitClause());
       final PushQueryMetadata.ResultType resultType =
@@ -280,21 +362,39 @@ final class EngineExecutor {
           : ResultType.STREAM;
 
       final PushQueryQueuePopulator populator = () ->
-          pushRouting.handlePushQuery(serviceContext, physicalPlan, statement, pushRoutingOptions,
-              physicalPlan.getOutputSchema(), transientQueryQueue);
+          pushRouting.handlePushQuery(serviceContext, physicalPlanManager, statement,
+              pushRoutingOptions, physicalPlan.getOutputSchema(), transientQueryQueue,
+              scalablePushQueryMetrics, offsetRange);
+      final PushQueryPreparer preparer = () ->
+          pushRouting.preparePushQuery(physicalPlanManager, statement, pushRoutingOptions);
       final ScalablePushQueryMetadata metadata = new ScalablePushQueryMetadata(
           physicalPlan.getOutputSchema(),
           physicalPlan.getQueryId(),
           transientQueryQueue,
+          scalablePushQueryMetrics,
           resultType,
-          populator
+          populator,
+          preparer,
+          physicalPlan.getSourceType(),
+          routingNodeType,
+          physicalPlan::getRowsReadFromDataSource
       );
 
       return metadata;
     } catch (final Exception e) {
+      if (plan == null) {
+        scalablePushQueryMetrics.ifPresent(m -> m.recordErrorRateForNoResult(1));
+      } else {
+        final PushPhysicalPlan pushPhysicalPlan = plan;
+        scalablePushQueryMetrics.ifPresent(metrics -> metrics.recordErrorRate(1,
+                pushPhysicalPlan.getSourceType(),
+                routingNodeType
+        ));
+      }
+
       QueryLogger.error(
           "Failure to execute push query V2. "
-              + pushRoutingOptions.toString() + " "
+              + pushRoutingOptions.debugString() + " "
               + queryPlannerOptions.debugString(),
           statement.getMaskedStatementText(),
           e
@@ -321,12 +421,12 @@ final class EngineExecutor {
 
 
   @SuppressWarnings("OptionalGetWithoutIsPresent") // Known to be non-empty
-  TransientQueryMetadata executeQuery(
+  TransientQueryMetadata executeTransientQuery(
       final ConfiguredStatement<Query> statement,
       final boolean excludeTombstones
   ) {
     final ExecutorPlans plans = planQuery(statement, statement.getStatement(),
-        Optional.empty(), Optional.empty());
+        Optional.empty(), Optional.empty(), engineContext.getMetaStore());
     final KsqlBareOutputNode outputNode = (KsqlBareOutputNode) plans.logicalPlan.getNode().get();
     engineContext.createQueryValidator().validateQuery(
         config,
@@ -352,6 +452,141 @@ final class EngineExecutor {
     );
   }
 
+  @SuppressWarnings("OptionalGetWithoutIsPresent") // Known to be non-empty
+  TransientQueryMetadata executeStreamPullQuery(
+      final ConfiguredStatement<Query> statement,
+      final boolean excludeTombstones,
+      final ImmutableMap<TopicPartition, Long> endOffsets
+  ) {
+    final ExecutorPlans plans = planQuery(statement, statement.getStatement(),
+        Optional.empty(), Optional.empty(), engineContext.getMetaStore());
+    final KsqlBareOutputNode outputNode = (KsqlBareOutputNode) plans.logicalPlan.getNode().get();
+    engineContext.createQueryValidator().validateQuery(
+        config,
+        plans.physicalPlan,
+        engineContext.getQueryRegistry().getAllLiveQueries()
+    );
+    return engineContext.getQueryRegistry().createStreamPullQuery(
+        config,
+        serviceContext,
+        engineContext.getProcessingLogContext(),
+        engineContext.getMetaStore(),
+        statement.getMaskedStatementText(),
+        plans.physicalPlan.getQueryId(),
+        getSourceNames(outputNode),
+        plans.physicalPlan.getPhysicalPlan(),
+        buildPlanSummary(
+            plans.physicalPlan.getQueryId(),
+            plans.physicalPlan.getPhysicalPlan()),
+        outputNode.getSchema(),
+        outputNode.getLimit(),
+        outputNode.getWindowInfo(),
+        excludeTombstones,
+        endOffsets
+    );
+  }
+
+  @SuppressFBWarnings(value = "NP_NULL_PARAM_DEREF_NONVIRTUAL")
+  private KsqlPlan sourceTablePlan(
+      final ConfiguredStatement<?> statement) {
+    final CreateTable createTable = (CreateTable) statement.getStatement();
+    final CreateTableCommand ddlCommand = (CreateTableCommand) engineContext.createDdlCommand(
+        statement.getMaskedStatementText(),
+        (ExecutableDdlStatement) statement.getStatement(),
+        config
+    );
+
+    final Relation from = new AliasedRelation(
+        new Table(createTable.getName()), createTable.getName());
+
+    // Only VALUE or HEADER columns must be selected from the source table. When running a
+    // pull query, the keys are added if selecting all columns.
+    final Select select = new Select(
+        createTable.getElements().stream()
+            .filter(column -> !column.getConstraints().isKey()
+                && !column.getConstraints().isPrimaryKey())
+            .map(column -> new SingleColumn(
+                new UnqualifiedColumnReferenceExp(column.getName()),
+                Optional.of(column.getName())))
+            .collect(Collectors.toList()));
+
+    // Source table need to keep emitting changes so every new record is materialized for
+    // pull query availability.
+    final RefinementInfo refinementInfo = RefinementInfo.of(OutputRefinement.CHANGES);
+
+    // This is a plan for a `select * from <source-table> emit changes` statement,
+    // without a sink topic to write the results. The query is just made to materialize the
+    // source table.
+    final Query query = new Query(
+        Optional.empty(),
+        select,
+        from,
+        Optional.empty(),
+        Optional.empty(),
+        Optional.empty(),
+        Optional.empty(),
+        Optional.empty(),
+        Optional.of(refinementInfo),
+        false,
+        OptionalInt.empty());
+
+    // The source table does not exist in the current metastore, so a temporary metastore that
+    // contains only the source table is created here. This metastore is used later to create
+    // ExecutorsPlan.
+    final MutableMetaStore tempMetastore = new MetaStoreImpl(new InternalFunctionRegistry());
+    final Formats formats = ddlCommand.getFormats();
+    tempMetastore.putSource(new KsqlTable<>(
+        statement.getMaskedStatementText(),
+        createTable.getName(),
+        ddlCommand.getSchema(),
+        Optional.empty(),
+        false,
+        new KsqlTopic(
+            ddlCommand.getTopicName(),
+            KeyFormat.of(formats.getKeyFormat(), formats.getKeyFeatures(), Optional.empty()),
+            ValueFormat.of(formats.getValueFormat(), formats.getValueFeatures())
+        ),
+        true
+    ), false);
+
+    final ExecutorPlans plans = planQuery(
+        statement,
+        query,
+        Optional.empty(),
+        Optional.empty(),
+        tempMetastore
+    );
+
+    final KsqlBareOutputNode outputNode =
+        (KsqlBareOutputNode) plans.logicalPlan.getNode().get();
+
+    final QueryPlan queryPlan = new QueryPlan(
+        getSourceNames(outputNode),
+        Optional.empty(),
+        plans.physicalPlan.getPhysicalPlan(),
+        plans.physicalPlan.getQueryId(),
+        getApplicationId(plans.physicalPlan.getQueryId(),
+            getSourceNames(outputNode))
+    );
+
+    engineContext.createQueryValidator().validateQuery(
+        config,
+        plans.physicalPlan,
+        engineContext.getQueryRegistry().getAllLiveQueries()
+    );
+
+    return KsqlPlan.queryPlanCurrent(
+        statement.getMaskedStatementText(),
+        Optional.of(ddlCommand),
+        queryPlan);
+  }
+
+  private boolean isSourceTableMaterializationEnabled() {
+    // Do not get overridden configs because this must be set only from the Server side
+    return config.getConfig(false)
+        .getBoolean(KsqlConfig.KSQL_SOURCE_TABLE_MATERIALIZATION_ENABLED);
+  }
+
   // Known to be non-empty
   @SuppressWarnings("OptionalGetWithoutIsPresent")
   KsqlPlan plan(final ConfiguredStatement<?> statement) {
@@ -359,13 +594,30 @@ final class EngineExecutor {
       throwOnNonExecutableStatement(statement);
 
       if (statement.getStatement() instanceof ExecutableDdlStatement) {
-        final DdlCommand ddlCommand = engineContext.createDdlCommand(
-            statement.getMaskedStatementText(),
-            (ExecutableDdlStatement) statement.getStatement(),
-            config
-        );
+        final boolean isSourceStream = statement.getStatement() instanceof CreateStream
+            && ((CreateStream) statement.getStatement()).isSource();
 
-        return KsqlPlan.ddlPlanCurrent(statement.getMaskedStatementText(), ddlCommand);
+        final boolean isSourceTable = statement.getStatement() instanceof CreateTable
+            && ((CreateTable) statement.getStatement()).isSource();
+
+        if ((isSourceStream || isSourceTable) && !isSourceTableMaterializationEnabled()) {
+          throw new KsqlStatementException("Cannot execute command because source table "
+              + "materialization is disabled.", statement.getMaskedStatementText());
+        }
+
+        if (isSourceTable) {
+          return sourceTablePlan(statement);
+        } else {
+          final DdlCommand ddlCommand = engineContext.createDdlCommand(
+              statement.getMaskedStatementText(),
+              (ExecutableDdlStatement) statement.getStatement(),
+              config
+          );
+
+          return KsqlPlan.ddlPlanCurrent(
+              statement.getMaskedStatementText(),
+              ddlCommand);
+        }
       }
 
       final QueryContainer queryContainer = (QueryContainer) statement.getStatement();
@@ -373,7 +625,8 @@ final class EngineExecutor {
           statement,
           queryContainer.getQuery(),
           Optional.of(queryContainer.getSink()),
-          queryContainer.getQueryId()
+          queryContainer.getQueryId(),
+          engineContext.getMetaStore()
       );
 
       final KsqlStructuredDataOutputNode outputNode =
@@ -388,9 +641,11 @@ final class EngineExecutor {
 
       final QueryPlan queryPlan = new QueryPlan(
           getSourceNames(outputNode),
-          outputNode.getSinkName().get(),
+          outputNode.getSinkName(),
           plans.physicalPlan.getPhysicalPlan(),
-          plans.physicalPlan.getQueryId()
+          plans.physicalPlan.getQueryId(),
+          getApplicationId(plans.physicalPlan.getQueryId(),
+              getSourceNames(outputNode))
       );
 
       engineContext.createQueryValidator().validateQuery(
@@ -411,21 +666,35 @@ final class EngineExecutor {
     }
   }
 
+  private Optional<String> getApplicationId(final QueryId queryId,
+                                            final Collection<SourceName> sources) {
+    return config.getConfig(true).getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)
+        ? Optional.of(
+        engineContext.getRuntimeAssignor()
+            .getRuntimeAndMaybeAddRuntime(queryId, sources, config.getConfig(true))) :
+        Optional.empty();
+  }
+
   private ExecutorPlans planQuery(
       final ConfiguredStatement<?> statement,
       final Query query,
       final Optional<Sink> sink,
-      final Optional<String> withQueryId) {
+      final Optional<String> withQueryId,
+      final MetaStore metaStore) {
     final QueryEngine queryEngine = engineContext.createQueryEngine(serviceContext);
     final KsqlConfig ksqlConfig = config.getConfig(true);
     final OutputNode outputNode = QueryEngine.buildQueryLogicalPlan(
         query,
         sink,
-        engineContext.getMetaStore(),
-        ksqlConfig
+        metaStore,
+        ksqlConfig,
+        getRowpartitionRowoffsetEnabled(ksqlConfig, statement.getSessionConfig().getOverrides())
     );
+
     final LogicalPlanNode logicalPlan = new LogicalPlanNode(Optional.of(outputNode));
+
     final QueryId queryId = QueryIdUtil.buildId(
+        statement.getStatement(),
         engineContext,
         engineContext.idGenerator(),
         outputNode,
@@ -437,12 +706,24 @@ final class EngineExecutor {
         && engineContext.getQueryRegistry().getPersistentQuery(queryId).isPresent()) {
       throw new KsqlException(String.format("Query ID '%s' already exists.", queryId));
     }
+    final Optional<PersistentQueryMetadata> persistentQueryMetadata =
+        engineContext.getQueryRegistry().getPersistentQuery(queryId);
+
+    final Optional<PlanInfo> oldPlanInfo;
+
+    if (persistentQueryMetadata.isPresent()) {
+      final ExecutionStep<?> oldPlan = persistentQueryMetadata.get().getPhysicalPlan();
+      oldPlanInfo = Optional.of(oldPlan.extractPlanInfo(new PlanInfoExtractor()));
+    } else {
+      oldPlanInfo = Optional.empty();
+    }
 
     final PhysicalPlan physicalPlan = queryEngine.buildPhysicalPlan(
         logicalPlan,
         config,
-        engineContext.getMetaStore(),
-        queryId
+        metaStore,
+        queryId,
+        oldPlanInfo
     );
     return new ExecutorPlans(logicalPlan, physicalPlan);
   }
@@ -462,25 +743,31 @@ final class EngineExecutor {
   private PushPhysicalPlan buildScalablePushPhysicalPlan(
       final LogicalPlanNode logicalPlan,
       final ImmutableAnalysis analysis,
-      final Context context
+      final Context context,
+      final Optional<PushOffsetRange> offsetRange,
+      final Optional<String> catchupConsumerGroup
   ) {
 
     final PushPhysicalPlanBuilder builder = new PushPhysicalPlanBuilder(
         engineContext.getProcessingLogContext(),
         ScalablePushQueryExecutionUtil.findQuery(engineContext, analysis)
     );
-    return builder.buildPushPhysicalPlan(logicalPlan, context);
+    return builder.buildPushPhysicalPlan(logicalPlan, context, offsetRange, catchupConsumerGroup);
   }
 
   private PullPhysicalPlan buildPullPhysicalPlan(
       final LogicalPlanNode logicalPlan,
-      final ImmutableAnalysis analysis
+      final ImmutableAnalysis analysis,
+      final QueryPlannerOptions queryPlannerOptions,
+      final CompletableFuture<Void> shouldCancelRequests
   ) {
 
     final PullPhysicalPlanBuilder builder = new PullPhysicalPlanBuilder(
         engineContext.getProcessingLogContext(),
         PullQueryExecutionUtil.findMaterializingQuery(engineContext, analysis),
-        analysis
+        analysis,
+        queryPlannerOptions,
+        shouldCancelRequests
     );
     return builder.buildPullPhysicalPlan(logicalPlan);
   }
@@ -611,10 +898,24 @@ final class EngineExecutor {
     }
   }
 
+  private Set<DataSource> getSources(final QueryPlan queryPlan) {
+    final ImmutableSet.Builder<DataSource> sources = ImmutableSet.builder();
+    for (final SourceName name : queryPlan.getSources()) {
+      final DataSource dataSource = engineContext.getMetaStore().getSource(name);
+      if (dataSource == null) {
+        throw new KsqlException("Unknown source: " + name.toString(FormatOptions.noEscape()));
+      }
+
+      sources.add(dataSource);
+    }
+
+    return sources.build();
+  }
+
   private PersistentQueryMetadata executePersistentQuery(
       final QueryPlan queryPlan,
       final String statementText,
-      final boolean createAsQuery
+      final KsqlConstants.PersistentQueryType persistentQueryType
   ) {
     final QueryRegistry queryRegistry = engineContext.getQueryRegistry();
     return queryRegistry.createOrReplacePersistentQuery(
@@ -624,16 +925,30 @@ final class EngineExecutor {
         engineContext.getMetaStore(),
         statementText,
         queryPlan.getQueryId(),
-        engineContext.getMetaStore().getSource(queryPlan.getSink()),
-        queryPlan.getSources(),
+        queryPlan.getSink().map(s -> engineContext.getMetaStore().getSource(s)),
+        getSources(queryPlan),
         queryPlan.getPhysicalPlan(),
         buildPlanSummary(queryPlan.getQueryId(), queryPlan.getPhysicalPlan()),
-        createAsQuery
+        persistentQueryType,
+        queryPlan.getRuntimeId()
     );
   }
 
   private String buildPlanSummary(final QueryId queryId, final ExecutionStep<?> plan) {
     return new PlanSummary(queryId, config.getConfig(true), engineContext.getMetaStore())
         .summarize(plan);
+  }
+
+  private static boolean getRowpartitionRowoffsetEnabled(
+      final KsqlConfig ksqlConfig,
+      final Map<String, Object> configOverrides
+  ) {
+    final Object rowpartitionRowoffsetEnabled =
+        configOverrides.get(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED);
+    if (rowpartitionRowoffsetEnabled != null) {
+      return "true".equalsIgnoreCase(rowpartitionRowoffsetEnabled.toString());
+    }
+
+    return ksqlConfig.getBoolean(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED);
   }
 }

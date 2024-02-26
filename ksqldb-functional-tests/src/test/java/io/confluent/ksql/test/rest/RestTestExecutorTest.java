@@ -60,13 +60,14 @@ public class RestTestExecutorTest {
                 )
             ),
             of("the SQL"),
-            0
+            0,
+            false
         )
     );
 
     // Then:
     assertThat(e.getMessage(), containsString(
-        "Response mismatch at responses[0]->query[0]->header->schema"));
+      "Response mismatch"));
     assertThat(e.getMessage(), containsString(
         "Expected: is \"`expected` STRING\""));
     assertThat(e.getMessage(), containsString(
@@ -91,7 +92,8 @@ public class RestTestExecutorTest {
                 )
             ),
             of("the SQL"),
-            0
+            0,
+            false
         )
     );
 
@@ -125,7 +127,8 @@ public class RestTestExecutorTest {
                 )
             ),
             of("the SQL"),
-            0
+            0,
+            false
         )
     );
 
@@ -160,7 +163,244 @@ public class RestTestExecutorTest {
             )
         ),
         ImmutableList.of("the SQL"),
-        0
+        0,
+        false
     );
   }
+
+  @Test
+  public void shouldPassVerificationOnMatchMultipleRows() {
+    // Given:
+    final RqttQueryResponse response = new RqttQueryResponse(ImmutableList.of(
+      header(new QueryId("not checked"), SCHEMA),
+      StreamedRow.pushRow(GenericRow.genericRow("key", 55, new BigDecimal("66.675"))),
+      StreamedRow.pushRow(GenericRow.genericRow("key", 56, new BigDecimal("66.675"))),
+      StreamedRow.pushRow(GenericRow.genericRow("key", 57, new BigDecimal("66.675")))
+    ));
+
+    // When:
+    response.verify(
+      "query",
+      ImmutableList.of(
+        ImmutableMap.of("header",
+          ImmutableMap.of(
+            "schema", "`col0` STRING"
+          )
+        ),
+        ImmutableMap.of("row",
+          ImmutableMap.of("columns", ImmutableList.of("key", 55, new BigDecimal("66.675")))
+        ),
+        ImmutableMap.of("row",
+          ImmutableMap.of("columns", ImmutableList.of("key", 56, new BigDecimal("66.675")))
+        ),
+        ImmutableMap.of("row",
+          ImmutableMap.of("columns", ImmutableList.of("key", 57, new BigDecimal("66.675")))
+        )
+      ),
+      ImmutableList.of("the SQL"),
+      0,
+      false
+    );
+  }
+
+  @Test
+  public void shouldPassVerificationOnMatchMultipleRowsReOrdered() {
+    // Given:
+    final RqttQueryResponse response = new RqttQueryResponse(ImmutableList.of(
+      header(new QueryId("not checked"), SCHEMA),
+      StreamedRow.pushRow(GenericRow.genericRow("key", 55, new BigDecimal("66.675"))),
+      StreamedRow.pushRow(GenericRow.genericRow("key", 56, new BigDecimal("66.675"))),
+      StreamedRow.pushRow(GenericRow.genericRow("key", 57, new BigDecimal("66.675")))
+    ));
+
+    // When:
+    response.verify(
+      "query",
+      ImmutableList.of(
+        ImmutableMap.of("header",
+          ImmutableMap.of(
+            "schema", "`col0` STRING"
+          )
+        ),
+        ImmutableMap.of("row",
+          ImmutableMap.of("columns", ImmutableList.of("key", 56, new BigDecimal("66.675")))
+        ),
+        ImmutableMap.of("row",
+          ImmutableMap.of("columns", ImmutableList.of("key", 57, new BigDecimal("66.675")))
+        ),
+        ImmutableMap.of("row",
+          ImmutableMap.of("columns", ImmutableList.of("key", 55, new BigDecimal("66.675")))
+        )
+      ),
+      ImmutableList.of("the SQL"),
+      0,
+      false
+    );
+  }
+
+  @Test
+  public void shouldFailVerificationOnUnorderedWithVerifyOrder() {
+    // Given:
+    final RqttQueryResponse response = new RqttQueryResponse(ImmutableList.of(
+      header(new QueryId("not checked"), SCHEMA),
+      StreamedRow.pushRow(GenericRow.genericRow("key", 55, new BigDecimal("66.675"))),
+      StreamedRow.pushRow(GenericRow.genericRow("key", 56, new BigDecimal("66.675"))),
+      StreamedRow.pushRow(GenericRow.genericRow("key", 57, new BigDecimal("66.675")))
+    ));
+
+    // When:
+    final AssertionError e = assertThrows(
+      AssertionError.class,
+      () -> response.verify(
+        "query",
+        ImmutableList.of(
+          ImmutableMap.of("header",
+            ImmutableMap.of(
+              "schema", "`col0` STRING"
+            )
+          ),
+          ImmutableMap.of("row",
+            ImmutableMap.of("columns", ImmutableList.of("key", 56, new BigDecimal("66.675")))
+          ),
+          ImmutableMap.of("row",
+            ImmutableMap.of("columns", ImmutableList.of("key", 57, new BigDecimal("66.675")))
+          ),
+          ImmutableMap.of("row",
+            ImmutableMap.of("columns", ImmutableList.of("key", 55, new BigDecimal("66.675")))
+          )
+        ),
+        ImmutableList.of("the SQL"),
+        0,
+        true
+      )
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+      "Response mismatch"));
+  }
+
+  @Test
+  public void shouldFailVerificationRowCountMismatch() {
+    // Given:
+    final RqttQueryResponse response = new RqttQueryResponse(ImmutableList.of(
+      header(new QueryId("not checked"), SCHEMA),
+      StreamedRow.pushRow(GenericRow.genericRow("key", 55, new BigDecimal("66.675"))),
+      StreamedRow.pushRow(GenericRow.genericRow("key", 56, new BigDecimal("66.675"))),
+      StreamedRow.pushRow(GenericRow.genericRow("key", 57, new BigDecimal("66.675")))
+    ));
+
+    // When:
+    final AssertionError e = assertThrows(
+      AssertionError.class,
+      () -> response.verify(
+        "query",
+        ImmutableList.of(
+          ImmutableMap.of("header",
+            ImmutableMap.of(
+              "schema", "`col0` STRING"
+            )
+          ),
+          ImmutableMap.of("row",
+            ImmutableMap.of("columns", ImmutableList.of("key", 56, new BigDecimal("66.675")))
+          ),
+          ImmutableMap.of("row",
+            ImmutableMap.of("columns", ImmutableList.of("key", 57, new BigDecimal("66.675")))
+          )
+        ),
+        ImmutableList.of("the SQL"),
+        0,
+        false
+      )
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+      "row count mismatch"));
+  }
+
+  @Test
+  public void shouldFailVerificationOnMatchWrongRow() {
+    // Given:
+    final RqttQueryResponse response = new RqttQueryResponse(ImmutableList.of(
+      header(new QueryId("not checked"), SCHEMA),
+      StreamedRow.pushRow(GenericRow.genericRow("key", 55, new BigDecimal("66.675"))),
+      StreamedRow.pushRow(GenericRow.genericRow("key", 56, new BigDecimal("66.675"))),
+      StreamedRow.pushRow(GenericRow.genericRow("key", 57, new BigDecimal("66.675")))
+    ));
+
+    // When:
+    final AssertionError e = assertThrows(
+      AssertionError.class,
+      () -> response.verify(
+        "query",
+        ImmutableList.of(
+          ImmutableMap.of("header",
+            ImmutableMap.of(
+              "schema", "`col0` STRING"
+            )
+          ),
+          ImmutableMap.of("row",
+            ImmutableMap.of("columns", ImmutableList.of("key", 56, new BigDecimal("66.675")))
+          ),
+          ImmutableMap.of("row",
+            ImmutableMap.of("columns", ImmutableList.of("key", 57, new BigDecimal("66.675")))
+          ),
+          ImmutableMap.of("row",
+            ImmutableMap.of("columns", ImmutableList.of("key", 58, new BigDecimal("66.675")))
+          )
+        ),
+        ImmutableList.of("the SQL"),
+        0,
+        false
+      )
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+      "Response mismatch"));
+  }
+
+  @Test
+  public void shouldFailVerificationOnMatchDuplicateRow() {
+    // Given:
+    final RqttQueryResponse response = new RqttQueryResponse(ImmutableList.of(
+      header(new QueryId("not checked"), SCHEMA),
+      StreamedRow.pushRow(GenericRow.genericRow("key", 55, new BigDecimal("66.675"))),
+      StreamedRow.pushRow(GenericRow.genericRow("key", 56, new BigDecimal("66.675"))),
+      StreamedRow.pushRow(GenericRow.genericRow("key", 55, new BigDecimal("66.675")))
+    ));
+
+    // When:
+    final AssertionError e = assertThrows(
+      AssertionError.class,
+      () -> response.verify(
+        "query",
+        ImmutableList.of(
+          ImmutableMap.of("header",
+            ImmutableMap.of(
+              "schema", "`col0` STRING"
+            )
+          ),
+          ImmutableMap.of("row",
+            ImmutableMap.of("columns", ImmutableList.of("key", 55, new BigDecimal("66.675")))
+          ),
+          ImmutableMap.of("row",
+            ImmutableMap.of("columns", ImmutableList.of("key", 56, new BigDecimal("66.675")))
+          ),
+          ImmutableMap.of("row",
+            ImmutableMap.of("columns", ImmutableList.of("key", 57, new BigDecimal("76.675")))
+          )
+        ),
+        ImmutableList.of("the SQL"),
+        0,
+        false
+      )
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+      "Uneven occurrence of expected vs actual for row [key, 55, 66.675]"));
+  }
 }
+

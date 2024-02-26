@@ -47,12 +47,21 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import org.apache.kafka.clients.admin.Admin;
+import org.apache.kafka.clients.admin.Config;
+import org.apache.kafka.clients.admin.ConfigEntry;
+import org.apache.kafka.clients.admin.DescribeClusterResult;
+import org.apache.kafka.clients.admin.DescribeConfigsResult;
 import org.apache.kafka.clients.admin.TopicDescription;
+import org.apache.kafka.common.KafkaFuture;
 import org.apache.kafka.common.Node;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.TopicPartitionInfo;
 import org.apache.kafka.common.acl.AclOperation;
+import org.apache.kafka.common.config.ConfigResource;
+import org.apache.kafka.common.config.ConfigResource.Type;
 import org.apache.kafka.common.errors.TopicAuthorizationException;
+import org.apache.kafka.common.internals.KafkaFutureImpl;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.runners.Enclosed;
@@ -94,7 +103,10 @@ public class SandboxedKafkaTopicClientTest {
 
     @Before
     public void setUp() {
-      sandboxedKafkaTopicClient = SandboxedKafkaTopicClient.createProxy(mock(KafkaTopicClient.class));
+      sandboxedKafkaTopicClient = SandboxedKafkaTopicClient.createProxy(
+          mock(KafkaTopicClient.class),
+          () -> mock(Admin.class)
+      );
     }
 
     @Test(expected = UnsupportedOperationException.class)
@@ -108,12 +120,18 @@ public class SandboxedKafkaTopicClientTest {
 
     @Mock
     private KafkaTopicClient delegate;
+    @Mock
+    private Admin mockedAdmin;
+
     private KafkaTopicClient sandboxedClient;
     private final Map<String, ?> configs = ImmutableMap.of("some config", 1);
 
     @Before
     public void setUp() {
-      sandboxedClient = SandboxedKafkaTopicClient.createProxy(delegate);
+      sandboxedClient = SandboxedKafkaTopicClient.createProxy(
+          delegate,
+          () -> mockedAdmin
+      );
     }
 
     @Test
@@ -191,6 +209,51 @@ public class SandboxedKafkaTopicClientTest {
           false,
           topicPartitions(2, 3),
           Sets.newHashSet(AclOperation.READ, AclOperation.WRITE))));
+    }
+
+    @Test
+    public void shouldCreateTopicWithBrokerDefaultReplicationFactor() {
+      // Given:
+      final short defaultReplicationFactor = 5;
+      final short userBrokerDefaultReplicationFactor = -1;
+      mockAdmin(defaultReplicationFactor);
+
+      // When:
+      sandboxedClient.createTopic("some topic", 2, userBrokerDefaultReplicationFactor, configs);
+
+      // Then:
+      final TopicDescription result = sandboxedClient
+          .describeTopic("some topic");
+
+      assertThat(result, is(new TopicDescription(
+          "some topic",
+          false,
+          topicPartitions(2, defaultReplicationFactor),
+          Sets.newHashSet(AclOperation.READ, AclOperation.WRITE))
+      ));
+    }
+
+    private void mockAdmin(final short defaultReplicationFactor) {
+      final Node broker = mock(Node.class);
+      when(broker.idString()).thenReturn("someId");
+      final KafkaFutureImpl<Collection<Node>> nodes = new KafkaFutureImpl<>();
+      nodes.complete(Collections.singleton(broker));
+
+      final DescribeClusterResult mockCluster = mock(DescribeClusterResult.class);
+      when(mockCluster.nodes()).thenReturn(nodes);
+      when(mockedAdmin.describeCluster()).thenReturn(mockCluster);
+
+      final KafkaFutureImpl<Map<ConfigResource, Config>> config = new KafkaFutureImpl<>();
+      config.complete(Collections.singletonMap(
+          new ConfigResource(Type.BROKER, "someId"),
+          new Config(Collections.singleton(
+              new ConfigEntry("default.replication.factor", String.valueOf(defaultReplicationFactor))
+          )))
+      );
+      final DescribeConfigsResult mockConfigs = mock (DescribeConfigsResult.class);
+      when(mockConfigs.all()).thenReturn(config);
+
+      when(mockedAdmin.describeConfigs(any())).thenReturn(mockConfigs);
     }
 
     @Test

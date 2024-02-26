@@ -23,7 +23,6 @@ import io.confluent.ksql.parser.tree.QueryContainer;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.SessionProperties;
-import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlHostInfoEntity;
 import io.confluent.ksql.rest.entity.QueryDescription;
 import io.confluent.ksql.rest.entity.QueryDescriptionEntity;
@@ -47,18 +46,18 @@ public final class ExplainExecutor {
   private ExplainExecutor() {
   }
 
-  public static Optional<KsqlEntity> execute(
+  public static StatementExecutorResponse execute(
       final ConfiguredStatement<Explain> statement,
       final SessionProperties sessionProperties,
       final KsqlExecutionContext executionContext,
       final ServiceContext serviceContext
   ) {
-    return Optional
+    return StatementExecutorResponse.handled(Optional
         .of(ExplainExecutor.explain(
             serviceContext,
             statement,
             executionContext,
-            sessionProperties));
+            sessionProperties)));
   }
 
   /**
@@ -109,7 +108,7 @@ public final class ExplainExecutor {
     final QueryMetadata metadata;
     final KsqlExecutionContext sandbox = executionContext.createSandbox(serviceContext);
     if (preparedStatement.getStatement() instanceof Query) {
-      metadata = sandbox.executeQuery(
+      metadata = sandbox.executeTransientQuery(
           serviceContext,
           ConfiguredStatement.of(preparedStatement, explain.getSessionConfig()).cast(),
           false);

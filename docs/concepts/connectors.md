@@ -30,7 +30,7 @@ There are two ways to deploy the ksqlDB-Connect integration:
 
 1.  **External**: If a {{ site.kconnect }} cluster is available, set the
     `ksql.connect.url` property in your ksqlDB Server configuration file.
-    The default value for this is `localhost:8083`.
+    The default value for this is `http://localhost:8083`.
 2.  **Embedded**: ksqlDB can double as a {{ site.kconnect }} server and
     will run a
     [Distributed Mode](https://docs.confluent.io/current/connect/userguide.html#distributed-mode)

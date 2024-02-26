@@ -149,6 +149,8 @@ final class AvroSchemas {
 
     if (schema.name() == null) {
       schemaBuilder.name(context.name());
+    } else {
+      schemaBuilder.name(schema.name());
     }
 
     for (final Field f : schema.fields()) {

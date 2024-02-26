@@ -15,9 +15,7 @@
 
 package io.confluent.ksql.engine;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Iterables;
-import com.google.common.util.concurrent.RateLimiter;
 import io.confluent.ksql.analyzer.ImmutableAnalysis;
 import io.confluent.ksql.analyzer.PullQueryValidator;
 import io.confluent.ksql.metastore.model.DataSource;
@@ -34,14 +32,6 @@ public final class PullQueryExecutionUtil {
 
   }
 
-  @VisibleForTesting
-  public static void checkRateLimit(final RateLimiter rateLimiter) {
-    if (!rateLimiter.tryAcquire()) {
-      throw new KsqlException("Host is at rate limit for pull queries. Currently set to "
-                                  + rateLimiter.getRate() + " qps.");
-    }
-  }
-
   static PersistentQueryMetadata findMaterializingQuery(
       final EngineContext engineContext, final ImmutableAnalysis analysis) {
 
@@ -51,7 +41,8 @@ public final class PullQueryExecutionUtil {
     final Set<QueryId> queries = engineContext.getQueryRegistry().getQueriesWithSink(sourceName);
 
     if (source.getDataSourceType() != DataSourceType.KTABLE) {
-      throw new KsqlException("Pull queries are not supported on streams."
+      throw new KsqlException("Unexpected data source type for table pull query: "
+          + source.getDataSourceType() + " "
           + PullQueryValidator.PULL_QUERY_SYNTAX_HELP);
     }
 

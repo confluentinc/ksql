@@ -15,6 +15,9 @@
 
 package io.confluent.ksql.schema.ksql.types;
 
+import com.google.common.collect.ImmutableList;
+import java.util.Collection;
+
 public final class SqlTypes {
 
   private SqlTypes() {
@@ -29,6 +32,17 @@ public final class SqlTypes {
   public static final SqlPrimitiveType DATE = SqlPrimitiveType.of(SqlBaseType.DATE);
   public static final SqlPrimitiveType TIMESTAMP = SqlPrimitiveType.of(SqlBaseType.TIMESTAMP);
   public static final SqlPrimitiveType BYTES = SqlPrimitiveType.of(SqlBaseType.BYTES);
+
+  public static final Collection<SqlPrimitiveType> ALL = ImmutableList.of(
+      BOOLEAN,
+      INTEGER,
+      BIGINT,
+      DOUBLE,
+      STRING,
+      TIME,
+      DATE,
+      TIMESTAMP,
+      BYTES);
 
   public static SqlDecimal decimal(final int precision, final int scale) {
     return SqlDecimal.of(precision, scale);

@@ -15,11 +15,15 @@
 
 package io.confluent.ksql.serde.avro;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.connect.avro.AvroConverter;
 import io.confluent.connect.avro.AvroDataConfig;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.serializers.AbstractKafkaSchemaSerDeConfig;
+import io.confluent.ksql.serde.SerdeUtils;
+import io.confluent.ksql.serde.connect.ConnectDataTranslator;
+import io.confluent.ksql.serde.connect.DataTranslator;
 import io.confluent.ksql.serde.connect.KsqlConnectDeserializer;
 import io.confluent.ksql.serde.connect.KsqlConnectSerializer;
 import io.confluent.ksql.serde.tls.ThreadLocalDeserializer;
@@ -27,6 +31,7 @@ import io.confluent.ksql.serde.tls.ThreadLocalSerializer;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.function.Supplier;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serde;
@@ -36,15 +41,23 @@ import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Schema;
 
 @Immutable
+@SuppressWarnings("checkstyle:ClassDataAbstractionCoupling")
 class KsqlAvroSerdeFactory {
 
   private final String fullSchemaName;
+  private final AvroProperties properties;
 
-  KsqlAvroSerdeFactory(final String fullSchemaName) {
-    this.fullSchemaName = Objects.requireNonNull(fullSchemaName, "fullSchemaName").trim();
+  KsqlAvroSerdeFactory(final AvroProperties properties) {
+    this.properties = Objects.requireNonNull(properties, "properties");
+    this.fullSchemaName = Objects.requireNonNull(
+        properties.getFullSchemaName(), "fullSchemaName").trim();
     if (this.fullSchemaName.isEmpty()) {
       throw new IllegalArgumentException("the schema name cannot be empty");
     }
+  }
+
+  KsqlAvroSerdeFactory(final ImmutableMap<String, String> properties) {
+    this(new AvroProperties(properties));
   }
 
   <T> Serde<T> createSerde(
@@ -55,12 +68,16 @@ class KsqlAvroSerdeFactory {
       final boolean isKey
   ) {
     AvroUtil.throwOnInvalidSchema(schema);
+    final Optional<Schema> physicalSchema = properties.getSchemaId().isPresent() ? Optional.of(
+        SerdeUtils.getAndTranslateSchema(srFactory, properties.getSchemaId()
+            .get(), new AvroSchemaTranslator(properties))) : Optional.empty();
 
     final Supplier<Serializer<T>> serializerSupplier = createConnectSerializer(
         schema,
         ksqlConfig,
         srFactory,
         targetType,
+        physicalSchema,
         isKey
     );
 
@@ -69,6 +86,7 @@ class KsqlAvroSerdeFactory {
         ksqlConfig,
         srFactory,
         targetType,
+        physicalSchema,
         isKey
     );
 
@@ -87,16 +105,20 @@ class KsqlAvroSerdeFactory {
       final KsqlConfig ksqlConfig,
       final Supplier<SchemaRegistryClient> srFactory,
       final Class<T> targetType,
+      final Optional<Schema> physicalSchema,
       final boolean isKey
   ) {
     return () -> {
-      final AvroDataTranslator translator = createAvroTranslator(schema);
+      final DataTranslator translator = createAvroTranslator(schema, physicalSchema, false);
+      final Schema compatibleSchema = translator instanceof AvroDataTranslator
+          ? ((AvroDataTranslator) translator).getAvroCompatibleSchema()
+          : ((ConnectDataTranslator) translator).getSchema();
 
       final AvroConverter avroConverter =
-          getAvroConverter(srFactory.get(), ksqlConfig, isKey);
+          getAvroConverter(srFactory.get(), ksqlConfig, properties.getSchemaId(), isKey);
 
       return new KsqlConnectSerializer<>(
-          translator.getAvroCompatibleSchema(),
+          compatibleSchema,
           translator,
           avroConverter,
           targetType
@@ -109,25 +131,33 @@ class KsqlAvroSerdeFactory {
       final KsqlConfig ksqlConfig,
       final Supplier<SchemaRegistryClient> srFactory,
       final Class<T> targetType,
+      final Optional<Schema> physicalSchema,
       final boolean isKey
   ) {
     return () -> {
-      final AvroDataTranslator translator = createAvroTranslator(schema);
+      final DataTranslator translator = createAvroTranslator(schema, physicalSchema, true);
 
       final AvroConverter avroConverter =
-          getAvroConverter(srFactory.get(), ksqlConfig, isKey);
+          getAvroConverter(srFactory.get(), ksqlConfig, Optional.empty(), isKey);
 
       return new KsqlConnectDeserializer<>(avroConverter, translator, targetType);
     };
   }
 
-  private AvroDataTranslator createAvroTranslator(final Schema schema) {
-    return new AvroDataTranslator(schema, fullSchemaName);
+  private DataTranslator createAvroTranslator(final Schema schema,
+      final Optional<Schema> physicalSchema, final boolean isDeserializer) {
+    // If physical schema exists, we use physical schema to translate to connect data. During
+    // deserialization, if physical schema exists, we use original schema to translate to ksql data.
+    return physicalSchema.<DataTranslator>map(
+            value -> isDeserializer ? new ConnectDataTranslator(schema)
+                : new AvroSRSchemaDataTranslator(value))
+        .orElseGet(() -> new AvroDataTranslator(schema, fullSchemaName));
   }
 
   private static AvroConverter getAvroConverter(
       final SchemaRegistryClient schemaRegistryClient,
       final KsqlConfig ksqlConfig,
+      final Optional<Integer> schemaId,
       final boolean isKey
   ) {
     final AvroConverter avroConverter = new AvroConverter(schemaRegistryClient);
@@ -139,6 +169,12 @@ class KsqlAvroSerdeFactory {
         ksqlConfig.getString(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY));
 
     avroConfig.put(AvroDataConfig.CONNECT_META_DATA_CONFIG, false);
+
+    if (schemaId.isPresent()) {
+      // Disable auto registering schema if schema id is used
+      avroConfig.put(AbstractKafkaSchemaSerDeConfig.AUTO_REGISTER_SCHEMAS, false);
+      avroConfig.put(AbstractKafkaSchemaSerDeConfig.USE_SCHEMA_ID, schemaId.get());
+    }
 
     avroConverter.configure(avroConfig, isKey);
     return avroConverter;

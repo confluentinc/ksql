@@ -40,6 +40,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiFunction;
+import java.util.function.Function;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
@@ -99,10 +100,22 @@ class HighAvailabilityTestUtil {
       final BiFunction<KsqlHostInfoEntity, Map<KsqlHostInfoEntity, HostStatusEntity>, Boolean> function,
       final Optional<BasicCredentials> credentials
   ) {
+    return waitForRemoteServerToChangeStatus(
+        restApp,
+        response -> function.apply(remoteServer, response),
+        credentials
+    );
+  }
+
+  static ClusterStatusResponse  waitForRemoteServerToChangeStatus(
+      final TestKsqlRestApp restApp,
+      final Function<Map<KsqlHostInfoEntity, HostStatusEntity>, Boolean> function,
+      final Optional<BasicCredentials> credentials
+  ) {
     while (true) {
       final ClusterStatusResponse clusterStatusResponse = sendClusterStatusRequest(restApp,
           credentials);
-      if (function.apply(remoteServer, clusterStatusResponse.getClusterStatus())) {
+      if (function.apply(clusterStatusResponse.getClusterStatus())) {
         return clusterStatusResponse;
       }
       try {
@@ -191,13 +204,7 @@ class HighAvailabilityTestUtil {
       final KsqlHostInfoEntity remoteServer,
       final Map<KsqlHostInfoEntity, HostStatusEntity> clusterStatus
   ) {
-    for( Entry<KsqlHostInfoEntity, HostStatusEntity> entry: clusterStatus.entrySet()) {
-      if (entry.getKey().getPort() == remoteServer.getPort()
-          && entry.getValue().getHostAlive()) {
-        return true;
-      }
-    }
-    return false;
+    return clusterStatus.get(remoteServer).getHostAlive();
   }
 
   private static boolean allServersDiscovered(
@@ -460,7 +467,9 @@ class HighAvailabilityTestUtil {
         sql,
         Optional.of(mediaType),
         Optional.of(contentType),
-        Optional.of(credentials)
+        Optional.of(credentials),
+        overrides,
+        requestProperties
     );
   }
 }

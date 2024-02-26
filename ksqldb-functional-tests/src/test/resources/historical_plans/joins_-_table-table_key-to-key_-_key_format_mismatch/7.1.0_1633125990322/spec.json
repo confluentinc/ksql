@@ -1,0 +1,225 @@
+{
+  "version" : "7.1.0",
+  "timestamp" : 1633125990322,
+  "path" : "query-validation-tests/joins.json",
+  "schemas" : {
+    "CTAS_OUTPUT_0.PrependAliasLeft" : {
+      "schema" : "`T1_ID` INTEGER KEY, `T1_VAL` STRING, `T1_ROWTIME` BIGINT, `T1_ROWPARTITION` INTEGER, `T1_ROWOFFSET` BIGINT, `T1_ID` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CTAS_OUTPUT_0.KafkaTopic_Left.Source.Materialized" : {
+      "schema" : "`ID` INTEGER KEY, `VAL` STRING, `ROWPARTITION` INTEGER, `ROWOFFSET` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CTAS_OUTPUT_0.KafkaTopic_Left.Source" : {
+      "schema" : "`ID` INTEGER KEY, `VAL` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CTAS_OUTPUT_0.Project" : {
+      "schema" : "`T1_ID` INTEGER KEY, `T1_VAL` STRING, `T2_ID` INTEGER, `T2_FOO` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CTAS_OUTPUT_0.KafkaTopic_Right.Source" : {
+      "schema" : "`ID` INTEGER KEY, `FOO` INTEGER",
+      "keyFormat" : {
+        "format" : "DELIMITED"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CTAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`T1_ID` INTEGER KEY, `T1_VAL` STRING, `T2_ID` INTEGER, `T2_FOO` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CTAS_OUTPUT_0.PrependAliasRight" : {
+      "schema" : "`T2_ID` INTEGER KEY, `T2_FOO` INTEGER, `T2_ROWTIME` BIGINT, `T2_ROWPARTITION` INTEGER, `T2_ROWOFFSET` BIGINT, `T2_ID` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CTAS_OUTPUT_0.RightSourceKeyed.Materialize" : {
+      "schema" : "`ID` INTEGER KEY, `FOO` INTEGER, `ROWTIME` BIGINT, `ROWPARTITION` INTEGER, `ROWOFFSET` BIGINT, `ID` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CTAS_OUTPUT_0.KafkaTopic_Right.Source.Materialized" : {
+      "schema" : "`ID` INTEGER KEY, `FOO` INTEGER, `ROWPARTITION` INTEGER, `ROWOFFSET` BIGINT",
+      "keyFormat" : {
+        "format" : "DELIMITED"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "table-table key-to-key - key format mismatch",
+    "inputs" : [ {
+      "topic" : "t1",
+      "key" : 10,
+      "value" : {
+        "VAL" : "hello"
+      }
+    }, {
+      "topic" : "t2",
+      "key" : "10",
+      "value" : {
+        "FOO" : 1
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : 10,
+      "value" : {
+        "T1_VAL" : "hello",
+        "T2_ID" : 10,
+        "T2_FOO" : 1
+      }
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "t1",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "t2",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE TABLE T1 (ID INT PRIMARY KEY, VAL STRING) WITH (kafka_topic='t1', key_format='KAFKA', value_format='JSON');", "CREATE TABLE T2 (ID INT PRIMARY KEY, FOO INT) WITH (kafka_topic='t2', key_format='DELIMITED', value_format='JSON');", "CREATE TABLE OUTPUT AS SELECT * FROM T1 JOIN T2 ON T1.ID = T2.ID;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "OUTPUT",
+        "type" : "TABLE",
+        "schema" : "`T1_ID` INTEGER KEY, `T1_VAL` STRING, `T2_ID` INTEGER, `T2_FOO` INTEGER",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "T1",
+        "type" : "TABLE",
+        "schema" : "`ID` INTEGER KEY, `VAL` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "T2",
+        "type" : "TABLE",
+        "schema" : "`ID` INTEGER KEY, `FOO` INTEGER",
+        "keyFormat" : {
+          "format" : "DELIMITED"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Project-Last-changelog",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          }
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-RightSourceKeyed-Materialize-changelog",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          }
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-RightSourceKeyed-SelectKey-repartition",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          }
+        }, {
+          "name" : "t2",
+          "keyFormat" : {
+            "format" : "DELIMITED"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-KafkaTopic_Left-Reduce-changelog",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          }
+        }, {
+          "name" : "t1",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

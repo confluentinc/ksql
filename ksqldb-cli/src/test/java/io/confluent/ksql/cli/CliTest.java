@@ -1217,6 +1217,29 @@ public class CliTest {
   }
 
   @Test
+  public void shouldPrintOnlyFailedStatementFromScriptFile() throws Exception {
+    // Given:
+    final File scriptFile = TMP.newFile("script.sql");
+    Files.write(scriptFile.toPath(), (""
+        + "drop stream if exists s1;\n"
+        + "create stream if not exist s1(id int) with (kafka_topic='s1', value_format='json', "
+        + "partitions=1);\n").getBytes(StandardCharsets.UTF_8));
+
+    // When:
+    localCli.runScript(scriptFile.getPath());
+
+    // Then:
+    final String out = terminal.getOutputString();
+    final String expected = "line 2:22: " +
+        "no viable alternative at input 'create stream if not exist'\n" +
+        "Statement: create stream if not exist s1(id int) with " +
+        "(kafka_topic='s1', value_format='json', partitions=1);\n" +
+        "Caused by: line 2:22: Syntax error at line 2:22\n";
+    assertThat(out, is(expected));
+    assertThat(out, not(containsString("drop stream if exists")));
+  }
+
+  @Test
   public void shouldUpdateCommandSequenceNumber() throws Exception {
     // Given:
     final String statementText = "create stream foo;";

@@ -1,0 +1,116 @@
+{
+  "version" : "7.1.0",
+  "timestamp" : 1635180586623,
+  "path" : "query-validation-tests/timestampformat.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`K` STRING KEY, `ID` BIGINT, `EVENT_TS` TIMESTAMP",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`K` STRING KEY, `ID` BIGINT, `EVENT_TS` TIMESTAMP",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "timestamp column of TIMESTAMP type",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : null,
+      "value" : {
+        "ID" : 1,
+        "EVENT_TS" : 1526075913000
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : null,
+      "value" : {
+        "ID" : 2,
+        "EVENT_TS" : 1589234313000
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : null,
+      "value" : {
+        "ID" : 1,
+        "EVENT_TS" : 1526075913000
+      },
+      "timestamp" : 1526075913000
+    }, {
+      "topic" : "OUTPUT",
+      "key" : null,
+      "value" : {
+        "ID" : 2,
+        "EVENT_TS" : 1589234313000
+      },
+      "timestamp" : 1589234313000
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM INPUT (K STRING KEY, ID bigint, EVENT_TS TIMESTAMP) WITH (kafka_topic='test_topic', value_format='JSON', timestamp='EVENT_TS');", "CREATE STREAM OUTPUT AS SELECT K, ID, EVENT_TS FROM INPUT;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`K` STRING KEY, `ID` BIGINT, `EVENT_TS` TIMESTAMP",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`K` STRING KEY, `ID` BIGINT, `EVENT_TS` TIMESTAMP",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

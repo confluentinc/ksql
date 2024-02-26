@@ -49,4 +49,17 @@ public class PullQueryConfigPlannerOptions implements QueryPlannerOptions {
         (Boolean) configOverrides.get(KsqlConfig.KSQL_QUERY_PULL_INTERPRETER_ENABLED)
     ).orElse(ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PULL_INTERPRETER_ENABLED));
   }
+
+  @Override
+  public boolean getRangeScansEnabled() {
+    return Optional.ofNullable(
+        (Boolean) configOverrides.get(KsqlConfig.KSQL_QUERY_PULL_RANGE_SCAN_ENABLED)
+    ).orElse(ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PULL_RANGE_SCAN_ENABLED));
+  }
+
+  public boolean getLimitClauseEnabled() {
+    return Optional.ofNullable(
+        (Boolean) configOverrides.get(KsqlConfig.KSQL_QUERY_PULL_LIMIT_CLAUSE_ENABLED)
+    ).orElse(ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PULL_LIMIT_CLAUSE_ENABLED));
+  }
 }

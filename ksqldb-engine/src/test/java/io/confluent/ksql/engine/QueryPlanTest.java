@@ -20,6 +20,8 @@ import com.google.common.testing.EqualsTester;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.QueryId;
+
+import java.util.Optional;
 import java.util.Set;
 import org.junit.Before;
 import org.junit.Test;
@@ -56,12 +58,12 @@ public class QueryPlanTest {
   public void shouldImplementEquals() {
     new EqualsTester()
         .addEqualityGroup(
-            new QueryPlan(sources1, sink1, plan1, id1),
-            new QueryPlan(sources1, sink1, plan1, id1))
-        .addEqualityGroup(new QueryPlan(sources2, sink1, plan1, id1))
-        .addEqualityGroup(new QueryPlan(sources1, sink2, plan1, id1))
-        .addEqualityGroup(new QueryPlan(sources1, sink1, plan2, id1))
-        .addEqualityGroup(new QueryPlan(sources1, sink1, plan1, id2))
+            new QueryPlan(sources1, Optional.of(sink1), plan1, id1, Optional.empty()),
+            new QueryPlan(sources1, Optional.of(sink1), plan1, id1, Optional.empty()))
+        .addEqualityGroup(new QueryPlan(sources2, Optional.of(sink1), plan1, id1, Optional.empty()))
+        .addEqualityGroup(new QueryPlan(sources1, Optional.of(sink2), plan1, id1, Optional.empty()))
+        .addEqualityGroup(new QueryPlan(sources1, Optional.of(sink1), plan2, id1, Optional.empty()))
+        .addEqualityGroup(new QueryPlan(sources1, Optional.of(sink1), plan1, id2, Optional.empty()))
         .testEquals();
   }
 }

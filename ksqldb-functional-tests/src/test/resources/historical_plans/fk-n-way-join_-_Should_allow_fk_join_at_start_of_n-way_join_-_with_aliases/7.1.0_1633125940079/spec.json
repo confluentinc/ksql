@@ -1,0 +1,365 @@
+{
+  "version" : "7.1.0",
+  "timestamp" : 1633125940079,
+  "path" : "query-validation-tests/fk-n-way-join.json",
+  "schemas" : {
+    "CTAS_OUTPUT_0.KafkaTopic_L_Right.Source.Materialized" : {
+      "schema" : "`M_ID` BIGINT KEY, `F2` BIGINT, `OTHER` STRING, `ROWPARTITION` INTEGER, `ROWOFFSET` BIGINT",
+      "keyFormat" : {
+        "format" : "JSON",
+        "features" : [ "UNWRAP_SINGLES" ]
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CTAS_OUTPUT_0.PrependAliasL_Left" : {
+      "schema" : "`LT_L_ID` BIGINT KEY, `LT_FOREIGN_KEY` BIGINT, `LT_ROWTIME` BIGINT, `LT_ROWPARTITION` INTEGER, `LT_ROWOFFSET` BIGINT, `LT_L_ID` BIGINT",
+      "keyFormat" : {
+        "format" : "JSON",
+        "features" : [ "UNWRAP_SINGLES" ]
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CTAS_OUTPUT_0.KafkaTopic_L_Left.Source.Materialized" : {
+      "schema" : "`L_ID` BIGINT KEY, `FOREIGN_KEY` BIGINT, `ROWPARTITION` INTEGER, `ROWOFFSET` BIGINT",
+      "keyFormat" : {
+        "format" : "JSON",
+        "features" : [ "UNWRAP_SINGLES" ]
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CTAS_OUTPUT_0.PrependAliasL_Right" : {
+      "schema" : "`MT_M_ID` BIGINT KEY, `MT_F2` BIGINT, `MT_OTHER` STRING, `MT_ROWTIME` BIGINT, `MT_ROWPARTITION` INTEGER, `MT_ROWOFFSET` BIGINT, `MT_M_ID` BIGINT",
+      "keyFormat" : {
+        "format" : "JSON",
+        "features" : [ "UNWRAP_SINGLES" ]
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CTAS_OUTPUT_0.KafkaTopic_L_Right.Source" : {
+      "schema" : "`M_ID` BIGINT KEY, `F2` BIGINT, `OTHER` STRING",
+      "keyFormat" : {
+        "format" : "JSON",
+        "features" : [ "UNWRAP_SINGLES" ]
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CTAS_OUTPUT_0.KafkaTopic_L_Left.Source" : {
+      "schema" : "`L_ID` BIGINT KEY, `FOREIGN_KEY` BIGINT",
+      "keyFormat" : {
+        "format" : "JSON",
+        "features" : [ "UNWRAP_SINGLES" ]
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CTAS_OUTPUT_0.Project" : {
+      "schema" : "`L_ID` BIGINT KEY, `M_ID_ALIAS` BIGINT, `FOREIGN_KEY` BIGINT, `MT_F2_ALIAS` BIGINT, `F3` BIGINT",
+      "keyFormat" : {
+        "format" : "JSON",
+        "features" : [ "UNWRAP_SINGLES" ]
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CTAS_OUTPUT_0.KafkaTopic_Right.Source" : {
+      "schema" : "`R_ID` BIGINT KEY, `F3` BIGINT",
+      "keyFormat" : {
+        "format" : "JSON",
+        "features" : [ "UNWRAP_SINGLES" ]
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CTAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`L_ID` BIGINT KEY, `M_ID_ALIAS` BIGINT, `FOREIGN_KEY` BIGINT, `MT_F2_ALIAS` BIGINT, `F3` BIGINT",
+      "keyFormat" : {
+        "format" : "JSON",
+        "features" : [ "UNWRAP_SINGLES" ]
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CTAS_OUTPUT_0.PrependAliasRight" : {
+      "schema" : "`RT_R_ID` BIGINT KEY, `RT_F3` BIGINT, `RT_ROWTIME` BIGINT, `RT_ROWPARTITION` INTEGER, `RT_ROWOFFSET` BIGINT, `RT_R_ID` BIGINT",
+      "keyFormat" : {
+        "format" : "JSON",
+        "features" : [ "UNWRAP_SINGLES" ]
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CTAS_OUTPUT_0.KafkaTopic_Right.Source.Materialized" : {
+      "schema" : "`R_ID` BIGINT KEY, `F3` BIGINT, `ROWPARTITION` INTEGER, `ROWOFFSET` BIGINT",
+      "keyFormat" : {
+        "format" : "JSON",
+        "features" : [ "UNWRAP_SINGLES" ]
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CTAS_OUTPUT_0.L_Join" : {
+      "schema" : "`LT_L_ID` BIGINT KEY, `LT_FOREIGN_KEY` BIGINT, `LT_ROWTIME` BIGINT, `LT_ROWPARTITION` INTEGER, `LT_ROWOFFSET` BIGINT, `LT_L_ID` BIGINT, `MT_F2` BIGINT, `MT_OTHER` STRING, `MT_ROWTIME` BIGINT, `MT_ROWPARTITION` INTEGER, `MT_ROWOFFSET` BIGINT, `MT_M_ID` BIGINT",
+      "keyFormat" : {
+        "format" : "JSON",
+        "features" : [ "UNWRAP_SINGLES" ]
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "Should allow fk join at start of n-way join - with aliases",
+    "inputs" : [ {
+      "topic" : "middle_topic",
+      "key" : 0,
+      "value" : {
+        "F2" : 100,
+        "OTHER" : "unused"
+      },
+      "timestamp" : 0
+    }, {
+      "topic" : "left_topic",
+      "key" : 1,
+      "value" : {
+        "FOREIGN_KEY" : 0
+      },
+      "timestamp" : 10000
+    }, {
+      "topic" : "right_topic",
+      "key" : 1,
+      "value" : {
+        "F3" : 4
+      },
+      "timestamp" : 11000
+    }, {
+      "topic" : "middle_topic",
+      "key" : 8,
+      "value" : {
+        "F2" : 10,
+        "OTHER" : "unused"
+      },
+      "timestamp" : 13000
+    }, {
+      "topic" : "left_topic",
+      "key" : 1,
+      "value" : {
+        "FOREIGN_KEY" : 8
+      },
+      "timestamp" : 16000
+    }, {
+      "topic" : "left_topic",
+      "key" : 1,
+      "value" : null,
+      "timestamp" : 18000
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : 1,
+      "value" : {
+        "M_ID_ALIAS" : 0,
+        "FOREIGN_KEY" : 0,
+        "MT_F2_ALIAS" : 100,
+        "F3" : null
+      },
+      "timestamp" : 10000
+    }, {
+      "topic" : "OUTPUT",
+      "key" : 1,
+      "value" : {
+        "M_ID_ALIAS" : 0,
+        "FOREIGN_KEY" : 0,
+        "MT_F2_ALIAS" : 100,
+        "F3" : 4
+      },
+      "timestamp" : 11000
+    }, {
+      "topic" : "OUTPUT",
+      "key" : 1,
+      "value" : {
+        "M_ID_ALIAS" : 8,
+        "FOREIGN_KEY" : 8,
+        "MT_F2_ALIAS" : 10,
+        "F3" : 4
+      },
+      "timestamp" : 16000
+    }, {
+      "topic" : "OUTPUT",
+      "key" : 1,
+      "value" : null,
+      "timestamp" : 18000
+    } ],
+    "topics" : [ {
+      "name" : "right_topic",
+      "replicas" : 1,
+      "keySerdeFeatures" : [ "UNWRAP_SINGLES" ],
+      "numPartitions" : 4
+    }, {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "middle_topic",
+      "replicas" : 1,
+      "keySerdeFeatures" : [ "UNWRAP_SINGLES" ],
+      "numPartitions" : 4
+    }, {
+      "name" : "left_topic",
+      "replicas" : 1,
+      "keySerdeFeatures" : [ "UNWRAP_SINGLES" ],
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE TABLE left_table (l_id BIGINT PRIMARY KEY, foreign_key BIGINT) WITH (kafka_topic='left_topic', format='JSON');", "CREATE TABLE middle_table (m_id BIGINT PRIMARY KEY, f2 BIGINT, other STRING) WITH (kafka_topic='middle_topic', format='JSON');", "CREATE TABLE right_table (r_id BIGINT PRIMARY KEY, f3 BIGINT) WITH (kafka_topic='right_topic', format='JSON');", "CREATE TABLE output AS SELECT l_id, m_id AS m_id_alias, foreign_key, mt.f2 AS mt_f2_alias, rt.f3 FROM left_table AS lt JOIN middle_table AS mt ON foreign_key = mt.m_id LEFT JOIN right_table AS rt ON lt.l_id = r_id;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "LEFT_TABLE",
+        "type" : "TABLE",
+        "schema" : "`L_ID` BIGINT KEY, `FOREIGN_KEY` BIGINT",
+        "keyFormat" : {
+          "format" : "JSON"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ "UNWRAP_SINGLES" ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "MIDDLE_TABLE",
+        "type" : "TABLE",
+        "schema" : "`M_ID` BIGINT KEY, `F2` BIGINT, `OTHER` STRING",
+        "keyFormat" : {
+          "format" : "JSON"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ "UNWRAP_SINGLES" ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "OUTPUT",
+        "type" : "TABLE",
+        "schema" : "`L_ID` BIGINT KEY, `M_ID_ALIAS` BIGINT, `FOREIGN_KEY` BIGINT, `MT_F2_ALIAS` BIGINT, `F3` BIGINT",
+        "keyFormat" : {
+          "format" : "JSON"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ "UNWRAP_SINGLES" ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "RIGHT_TABLE",
+        "type" : "TABLE",
+        "schema" : "`R_ID` BIGINT KEY, `F3` BIGINT",
+        "keyFormat" : {
+          "format" : "JSON"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ "UNWRAP_SINGLES" ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Project-Last-changelog",
+          "keyFormat" : {
+            "format" : "JSON",
+            "features" : [ "UNWRAP_SINGLES" ]
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          }
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-KafkaTopic_L_Right-Reduce-changelog",
+          "keyFormat" : {
+            "format" : "JSON",
+            "features" : [ "UNWRAP_SINGLES" ]
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          }
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-KafkaTopic_Right-Reduce-changelog",
+          "keyFormat" : {
+            "format" : "JSON",
+            "features" : [ "UNWRAP_SINGLES" ]
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          }
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-KTABLE-FK-JOIN-OUTPUT-STATE-STORE-0000000025-changelog",
+          "keyFormat" : {
+            "format" : "JSON",
+            "features" : [ "UNWRAP_SINGLES" ]
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          }
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-KafkaTopic_L_Left-Reduce-changelog",
+          "keyFormat" : {
+            "format" : "JSON",
+            "features" : [ "UNWRAP_SINGLES" ]
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          }
+        }, {
+          "name" : "middle_topic",
+          "keyFormat" : {
+            "format" : "JSON",
+            "features" : [ "UNWRAP_SINGLES" ]
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "format" : "JSON",
+            "features" : [ "UNWRAP_SINGLES" ]
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "left_topic",
+          "keyFormat" : {
+            "format" : "JSON",
+            "features" : [ "UNWRAP_SINGLES" ]
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "right_topic",
+          "keyFormat" : {
+            "format" : "JSON",
+            "features" : [ "UNWRAP_SINGLES" ]
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

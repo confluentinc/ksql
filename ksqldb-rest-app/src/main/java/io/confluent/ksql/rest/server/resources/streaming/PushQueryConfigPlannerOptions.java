@@ -40,9 +40,14 @@ public class PushQueryConfigPlannerOptions implements QueryPlannerOptions {
 
   @Override
   public boolean getInterpreterEnabled() {
-    if (configOverrides.containsKey(KsqlConfig.KSQL_QUERY_PUSH_SCALABLE_INTERPRETER_ENABLED)) {
-      return (Boolean) configOverrides.get(KsqlConfig.KSQL_QUERY_PUSH_SCALABLE_INTERPRETER_ENABLED);
+    if (configOverrides.containsKey(KsqlConfig.KSQL_QUERY_PUSH_V2_INTERPRETER_ENABLED)) {
+      return (Boolean) configOverrides.get(KsqlConfig.KSQL_QUERY_PUSH_V2_INTERPRETER_ENABLED);
     }
-    return ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PUSH_SCALABLE_INTERPRETER_ENABLED);
+    return ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PUSH_V2_INTERPRETER_ENABLED);
+  }
+
+  @Override
+  public boolean getRangeScansEnabled() {
+    return true;
   }
 }

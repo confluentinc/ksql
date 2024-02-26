@@ -22,10 +22,12 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.mock;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterators;
 import io.confluent.ksql.execution.expression.tree.ArithmeticBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
@@ -44,6 +46,9 @@ import io.confluent.ksql.parser.SqlBaseParser.SingleStatementContext;
 import io.confluent.ksql.parser.exception.ParseFailedException;
 import io.confluent.ksql.parser.tree.AliasedRelation;
 import io.confluent.ksql.parser.tree.AllColumns;
+import io.confluent.ksql.parser.tree.ColumnConstraints;
+import io.confluent.ksql.parser.tree.CreateStream;
+import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.Explain;
 import io.confluent.ksql.parser.tree.Join;
 import io.confluent.ksql.parser.tree.Query;
@@ -51,6 +56,7 @@ import io.confluent.ksql.parser.tree.QueryContainer;
 import io.confluent.ksql.parser.tree.Select;
 import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.parser.tree.Table;
+import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.schema.Operator;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.MetaStoreFixture;
@@ -611,6 +617,57 @@ public class AstBuilderTest {
   }
 
   @Test
+  public void shouldCreateSourceTable() {
+    // Given:
+    final SingleStatementContext stmt =
+        givenQuery("CREATE SOURCE TABLE X WITH (kafka_topic='X');");
+
+    // When:
+    final CreateTable result = (CreateTable) builder.buildStatement(stmt);
+
+    // Then:
+    assertThat(result.isSource(), is(true));
+  }
+
+  @Test
+  public void shouldCreateNormalTable() {
+    // Given:
+    final SingleStatementContext stmt =
+        givenQuery("CREATE TABLE X WITH (kafka_topic='X');");
+
+    // When:
+    final CreateTable result = (CreateTable) builder.buildStatement(stmt);
+
+    // Then:
+    assertThat(result.isSource(), is(false));
+  }
+
+  public void shouldCreateSourceStream() {
+    // Given:
+    final SingleStatementContext stmt =
+        givenQuery("CREATE SOURCE STREAM X WITH (kafka_topic='X');");
+
+    // When:
+    final CreateStream result = (CreateStream) builder.buildStatement(stmt);
+
+    // Then:
+    assertThat(result.isSource(), is(true));
+  }
+
+  @Test
+  public void shouldCreateNormalStream() {
+    // Given:
+    final SingleStatementContext stmt =
+        givenQuery("CREATE STREAM X WITH (kafka_topic='X');");
+
+    // When:
+    final CreateStream result = (CreateStream) builder.buildStatement(stmt);
+
+    // Then:
+    assertThat(result.isSource(), is(false));
+  }
+
+  @Test
   public void shouldDefaultToEmitChangesForCsas() {
     // Given:
     final SingleStatementContext stmt =
@@ -819,5 +876,98 @@ public class AstBuilderTest {
             ParseFailedException.class,
             () -> givenQuery("CREATE STREAM INPUT (K BIGINT (KEY)) WITH (kafka_topic='input',value_format='JSON');")
     );
+  }
+
+  @Test
+  public void shouldSupportHeadersColumns() {
+    // Given:
+    final SingleStatementContext stmt
+        = givenQuery("CREATE STREAM INPUT (K ARRAY<STRUCT<key STRING, value BYTES>> HEADERS) WITH (kafka_topic='input',value_format='JSON');");
+
+    // When:
+    final CreateStream createStream = (CreateStream) builder.buildStatement(stmt);
+
+    // Then:
+    final TableElement column = Iterators.getOnlyElement(createStream.getElements().iterator());
+    assertThat(column.getConstraints(), is((new ColumnConstraints.Builder()).headers().build()));
+  }
+
+  @Test
+  public void shouldSupportSingleHeaderColumn() {
+    // Given:
+    final SingleStatementContext stmt
+        = givenQuery("CREATE STREAM INPUT (K BYTES HEADER('h1')) WITH (kafka_topic='input',value_format='JSON');");
+
+    // When:
+    final CreateStream createStream = (CreateStream) builder.buildStatement(stmt);
+
+    // Then:
+    final TableElement column = Iterators.getOnlyElement(createStream.getElements().iterator());
+    assertThat(column.getConstraints(),
+        is((new ColumnConstraints.Builder()).header("h1").build()));
+  }
+
+  @Test
+  public void shouldRejectIncorrectlyTypedHeadersColumns() {
+    // Given:
+    final SingleStatementContext stmt
+        = givenQuery("CREATE STREAM INPUT (K BIGINT HEADERS) WITH (kafka_topic='input',value_format='JSON');");
+
+    // When:
+    final KsqlException e = assertThrows(KsqlException.class, () -> {
+      builder.buildStatement(stmt);
+    });
+
+    // Then:
+    assertThat(e.getMessage(), is("Invalid type for HEADERS column: expected ARRAY<STRUCT<`KEY` STRING, `VALUE` BYTES>>, got BIGINT"));
+  }
+
+  @Test
+  public void shouldRejectIncorrectlyTypedSingleHeaderColumns() {
+    // Given:
+    final SingleStatementContext stmt
+        = givenQuery("CREATE STREAM INPUT (K BIGINT HEADER('abc')) WITH (kafka_topic='input',value_format='JSON');");
+
+    // When:
+    final KsqlException e = assertThrows(KsqlException.class, () -> {
+      builder.buildStatement(stmt);
+    });
+
+    // Then:
+    assertThat(e.getMessage(), is("Invalid type for HEADER('abc') column: expected BYTES, got BIGINT"));
+  }
+
+  @Test
+  public void shouldFailOnPersistentQueryLimitClauseStream() {
+    // Given:
+    final SingleStatementContext stmt
+            = givenQuery("CREATE STREAM X AS SELECT * FROM TEST1 LIMIT 5;");
+
+    // Then:
+    Exception exception = assertThrows(KsqlException.class, () -> {
+      builder.buildStatement(stmt);
+    });
+
+    String expectedMessage = "CREATE STREAM AS SELECT statements don't support LIMIT clause.";
+    String actualMessage = exception.getMessage();
+
+    assertEquals(expectedMessage, actualMessage);
+  }
+
+  @Test
+  public void shouldFailOnPersistentQueryLimitClauseTable() {
+    // Given:
+    final SingleStatementContext stmt
+            = givenQuery("CREATE TABLE X AS SELECT * FROM TEST1 LIMIT 5;");
+
+    // Then:
+    Exception exception = assertThrows(KsqlException.class, () -> {
+      builder.buildStatement(stmt);
+    });
+
+    String expectedMessage = "CREATE TABLE AS SELECT statements don't support LIMIT clause.";
+    String actualMessage = exception.getMessage();
+
+    assertEquals(expectedMessage, actualMessage);
   }
 }

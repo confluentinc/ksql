@@ -261,6 +261,17 @@
       }
     },
     {
+      "name": "null as column",
+      "statements": [
+        "CREATE STREAM INPUT (COL0 INT KEY) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT COL0, null as COL2 FROM INPUT;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Can't infer a type of null. Please explicitly cast it to a required type, e.g. CAST(null AS VARCHAR)."
+      }
+    },
+    {
       "name": "null if",
       "statements": [
         "CREATE STREAM INPUT (COL0 INT KEY, COL1 STRING, COL2 ARRAY<INT>) WITH (kafka_topic='test_topic', value_format='JSON');",

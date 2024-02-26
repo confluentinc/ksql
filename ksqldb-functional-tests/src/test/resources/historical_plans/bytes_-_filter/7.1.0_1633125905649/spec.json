@@ -1,0 +1,132 @@
+{
+  "version" : "7.1.0",
+  "timestamp" : 1633125905649,
+  "path" : "query-validation-tests/bytes.json",
+  "schemas" : {
+    "CSAS_TEST2_0.TEST2" : {
+      "schema" : "`ID` STRING KEY, `RESULT` BYTES",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_TEST2_0.KsqlTopic.Source" : {
+      "schema" : "`ID` STRING KEY, `A` BYTES, `B` BYTES, `C` BYTES",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "filter",
+    "inputs" : [ {
+      "topic" : "test",
+      "key" : null,
+      "value" : {
+        "A" : "Yg==",
+        "B" : "YQ==",
+        "C" : "Yg=="
+      }
+    }, {
+      "topic" : "test",
+      "key" : null,
+      "value" : {
+        "A" : null,
+        "B" : "YQ==",
+        "C" : "YQ=="
+      }
+    }, {
+      "topic" : "test",
+      "key" : null,
+      "value" : {
+        "A" : "YQ==",
+        "B" : null,
+        "C" : "YQ=="
+      }
+    }, {
+      "topic" : "test",
+      "key" : null,
+      "value" : {
+        "A" : "YQ==",
+        "B" : "YQ==",
+        "C" : null
+      }
+    }, {
+      "topic" : "test",
+      "key" : null,
+      "value" : {
+        "A" : "YQ==",
+        "B" : "Yg==",
+        "C" : "Yw=="
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "TEST2",
+      "key" : null,
+      "value" : {
+        "RESULT" : "Yw=="
+      }
+    } ],
+    "topics" : [ {
+      "name" : "TEST2",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "test",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM TEST (ID STRING KEY, a BYTES, b BYTES, c BYTES) WITH (kafka_topic='test', value_format='JSON');", "CREATE STREAM TEST2 AS SELECT ID, C AS RESULT FROM TEST WHERE b BETWEEN a AND c;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`ID` STRING KEY, `A` BYTES, `B` BYTES, `C` BYTES",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "TEST2",
+        "type" : "STREAM",
+        "schema" : "`ID` STRING KEY, `RESULT` BYTES",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "test",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "TEST2",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

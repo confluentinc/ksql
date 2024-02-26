@@ -19,8 +19,6 @@ import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.parser.tree.DropConnector;
 import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.rest.entity.DropConnectorEntity;
-import io.confluent.ksql.rest.entity.ErrorEntity;
-import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.WarningEntity;
 import io.confluent.ksql.services.ConnectClient.ConnectResponse;
 import io.confluent.ksql.services.ServiceContext;
@@ -29,12 +27,13 @@ import java.util.Optional;
 import org.apache.hc.core5.http.HttpStatus;
 
 public final class DropConnectorExecutor {
+  private final ConnectServerErrors connectErrorHandler;
 
-  private DropConnectorExecutor() {
-
+  DropConnectorExecutor(final ConnectServerErrors connectErrorHandler) {
+    this.connectErrorHandler = connectErrorHandler;
   }
 
-  public static Optional<KsqlEntity> execute(
+  public StatementExecutorResponse execute(
       final ConfiguredStatement<DropConnector> statement,
       final SessionProperties sessionProperties,
       final KsqlExecutionContext executionContext,
@@ -47,14 +46,16 @@ public final class DropConnectorExecutor {
 
     if (response.error().isPresent()) {
       if (ifExists && response.httpCode() == HttpStatus.SC_NOT_FOUND) {
-        return Optional.of(new WarningEntity(statement.getMaskedStatementText(),
-                "Connector '" + connectorName + "' does not exist."));
+        return StatementExecutorResponse.handled(Optional.of(
+            new WarningEntity(statement.getMaskedStatementText(),
+                "Connector '" + connectorName + "' does not exist.")));
       } else {
-        return Optional.of(
-            new ErrorEntity(statement.getMaskedStatementText(), response.error().get()));
+        return StatementExecutorResponse.handled(connectErrorHandler.handle(
+            statement, response));
       }
     }
 
-    return Optional.of(new DropConnectorEntity(statement.getMaskedStatementText(), connectorName));
+    return StatementExecutorResponse.handled(Optional.of(
+        new DropConnectorEntity(statement.getMaskedStatementText(), connectorName)));
   }
 }

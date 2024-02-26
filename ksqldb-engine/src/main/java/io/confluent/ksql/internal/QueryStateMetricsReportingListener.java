@@ -60,7 +60,7 @@ public class QueryStateMetricsReportingListener implements QueryEventListener {
     }
     perQuery.put(
         queryMetadata.getQueryId(),
-        new PerQueryListener(metrics, metricsPrefix, queryMetadata.getQueryApplicationId())
+        new PerQueryListener(metrics, metricsPrefix, queryMetadata.getQueryId().toString())
     );
   }
 
@@ -104,35 +104,38 @@ public class QueryStateMetricsReportingListener implements QueryEventListener {
     PerQueryListener(
         final Metrics metrics,
         final String groupPrefix,
-        final String queryApplicationId
+        final String queryId
     ) {
-      this(metrics, groupPrefix, queryApplicationId, CURRENT_TIME_MILLIS_TICKER);
+      this(metrics, groupPrefix, queryId, CURRENT_TIME_MILLIS_TICKER);
     }
 
     PerQueryListener(
         final Metrics metrics,
         final String groupPrefix,
-        final String queryApplicationId,
+        final String queryId,
         final Ticker ticker
     ) {
       Objects.requireNonNull(groupPrefix, "groupPrefix");
-      Objects.requireNonNull(queryApplicationId, "queryApplicationId");
+      Objects.requireNonNull(queryId, "queryId");
       this.metrics = Objects.requireNonNull(metrics, "metrics cannot be null.");
       this.ticker = Objects.requireNonNull(ticker, "ticker");
+
+      final String type = queryId.toLowerCase().contains("transient") ? "transient_" : "query_" ;
+
+      final String tag = "_confluent-ksql-" + groupPrefix + type + queryId;
 
       this.stateMetricName = metrics.metricName(
           "query-status",
           groupPrefix + "ksql-queries",
           "The current status of the given query.",
-          Collections.singletonMap("status", queryApplicationId));
+          Collections.singletonMap("status", tag));
 
       errorMetricName = metrics.metricName(
           "error-status",
           groupPrefix + "ksql-queries",
           "The current error status of the given query, if the state is in ERROR state",
-          Collections.singletonMap("status", queryApplicationId)
+          Collections.singletonMap("status", tag)
       );
-
       this.metrics.addMetric(stateMetricName, (Gauge<String>) (config, now) -> state);
       this.metrics.addMetric(errorMetricName, (Gauge<String>) (config, now) -> error);
     }

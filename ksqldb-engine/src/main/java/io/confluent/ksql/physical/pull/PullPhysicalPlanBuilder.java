@@ -29,27 +29,33 @@ import io.confluent.ksql.physical.common.operators.AbstractPhysicalOperator;
 import io.confluent.ksql.physical.common.operators.ProjectOperator;
 import io.confluent.ksql.physical.common.operators.SelectOperator;
 import io.confluent.ksql.physical.pull.PullPhysicalPlan.PullPhysicalPlanType;
-import io.confluent.ksql.physical.pull.PullPhysicalPlan.PullSourceType;
 import io.confluent.ksql.physical.pull.operators.DataSourceOperator;
 import io.confluent.ksql.physical.pull.operators.KeyedTableLookupOperator;
 import io.confluent.ksql.physical.pull.operators.KeyedWindowedTableLookupOperator;
+import io.confluent.ksql.physical.pull.operators.LimitOperator;
 import io.confluent.ksql.physical.pull.operators.TableScanOperator;
 import io.confluent.ksql.physical.pull.operators.WindowedTableScanOperator;
 import io.confluent.ksql.planner.LogicalPlanNode;
+import io.confluent.ksql.planner.QueryPlannerOptions;
 import io.confluent.ksql.planner.plan.DataSourceNode;
+import io.confluent.ksql.planner.plan.KeyConstraint;
+import io.confluent.ksql.planner.plan.KeyConstraint.ConstraintOperator;
 import io.confluent.ksql.planner.plan.KsqlBareOutputNode;
 import io.confluent.ksql.planner.plan.LookupConstraint;
 import io.confluent.ksql.planner.plan.NonKeyConstraint;
 import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.planner.plan.QueryFilterNode;
+import io.confluent.ksql.planner.plan.QueryLimitNode;
 import io.confluent.ksql.planner.plan.QueryProjectNode;
 import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.util.KsqlConstants.QuerySourceType;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * Traverses the logical plan top-down and creates a physical plan for pull queries.
@@ -64,28 +70,35 @@ public class PullPhysicalPlanBuilder {
   private final ProcessingLogContext processingLogContext;
   private final Stacker contextStacker;
   private final PersistentQueryMetadata persistentQueryMetadata;
+  private final CompletableFuture<Void> shouldCancelOperations;
   private final QueryId queryId;
   private final Materialization mat;
+  private final QueryPlannerOptions queryPlannerOptions;
 
   private List<LookupConstraint> lookupConstraints;
   private PullPhysicalPlanType pullPhysicalPlanType;
-  private PullSourceType pullSourceType;
+  private QuerySourceType querySourceType;
   private boolean seenSelectOperator = false;
 
   public PullPhysicalPlanBuilder(
       final ProcessingLogContext processingLogContext,
       final PersistentQueryMetadata persistentQueryMetadata,
-      final ImmutableAnalysis analysis
+      final ImmutableAnalysis analysis,
+      final QueryPlannerOptions queryPlannerOptions,
+      final CompletableFuture<Void> shouldCancelOperations
   ) {
     this.processingLogContext = Objects.requireNonNull(
         processingLogContext, "processingLogContext");
     this.persistentQueryMetadata = Objects.requireNonNull(
         persistentQueryMetadata, "persistentQueryMetadata");
+    this.shouldCancelOperations =  Objects.requireNonNull(shouldCancelOperations,
+        "shouldCancelOperations");
     this.contextStacker = new Stacker();
     queryId = uniqueQueryId();
     mat = this.persistentQueryMetadata
         .getMaterialization(queryId, contextStacker)
         .orElseThrow(() -> notMaterializedException(getSourceName(analysis)));
+    this.queryPlannerOptions = queryPlannerOptions;
   }
 
   /**
@@ -93,7 +106,9 @@ public class PullPhysicalPlanBuilder {
    * @param logicalPlanNode the logical plan root node
    * @return the root node of the tree of physical operators
    */
+  // CHECKSTYLE_RULES.OFF: CyclomaticComplexity
   public PullPhysicalPlan buildPullPhysicalPlan(final LogicalPlanNode logicalPlanNode) {
+    // CHECKSTYLE_RULES.ON: CyclomaticComplexity
     DataSourceOperator dataSourceOperator = null;
 
     final OutputNode outputNode = logicalPlanNode.getNode()
@@ -114,6 +129,8 @@ public class PullPhysicalPlanBuilder {
       } else if (currentLogicalNode instanceof QueryFilterNode) {
         currentPhysicalOp = translateFilterNode((QueryFilterNode) currentLogicalNode);
         seenSelectOperator = true;
+      } else if (currentLogicalNode instanceof QueryLimitNode) {
+        currentPhysicalOp = new LimitOperator((QueryLimitNode) currentLogicalNode);
       } else if (currentLogicalNode instanceof DataSourceNode) {
         currentPhysicalOp = translateDataSourceNode(
             (DataSourceNode) currentLogicalNode);
@@ -149,7 +166,7 @@ public class PullPhysicalPlanBuilder {
         queryId,
         lookupConstraints,
         pullPhysicalPlanType,
-        pullSourceType,
+        querySourceType,
         mat,
         dataSourceOperator);
   }
@@ -180,27 +197,53 @@ public class PullPhysicalPlanBuilder {
     return new SelectOperator(logicalNode, logger);
   }
 
+  private PullPhysicalPlanType getPlanType() {
+    if (!seenSelectOperator) {
+      lookupConstraints = Collections.emptyList();
+      return PullPhysicalPlanType.TABLE_SCAN;
+    } else if (lookupConstraints.stream().anyMatch(lc -> lc instanceof NonKeyConstraint)) {
+      lookupConstraints = Collections.emptyList();
+      return PullPhysicalPlanType.TABLE_SCAN;
+    } else if (lookupConstraints.stream().allMatch(lc -> ((KeyConstraint) lc).getOperator()
+        == ConstraintOperator.EQUAL)) {
+      return PullPhysicalPlanType.KEY_LOOKUP;
+    } else if (lookupConstraints.size() == 1
+        && lookupConstraints.stream().allMatch(lc -> ((KeyConstraint) lc).getOperator()
+        != ConstraintOperator.EQUAL)) {
+      return PullPhysicalPlanType.RANGE_SCAN;
+    } else {
+      lookupConstraints = Collections.emptyList();
+      return PullPhysicalPlanType.TABLE_SCAN;
+    }
+  }
+
   private AbstractPhysicalOperator translateDataSourceNode(
       final DataSourceNode logicalNode
   ) {
-    boolean isTableScan = false;
-    if (!seenSelectOperator) {
-      lookupConstraints = Collections.emptyList();
-      isTableScan = true;
-    } else if (lookupConstraints.stream().anyMatch(lc -> lc instanceof NonKeyConstraint)) {
-      isTableScan = true;
-    }
-    pullSourceType = logicalNode.isWindowed()
-        ? PullSourceType.WINDOWED : PullSourceType.NON_WINDOWED;
-    if (isTableScan) {
+    pullPhysicalPlanType = getPlanType();
+    if (pullPhysicalPlanType == PullPhysicalPlanType.RANGE_SCAN
+        && (!queryPlannerOptions.getRangeScansEnabled() || logicalNode.isWindowed())) {
       pullPhysicalPlanType = PullPhysicalPlanType.TABLE_SCAN;
-      if (!logicalNode.isWindowed()) {
-        return new TableScanOperator(mat, logicalNode);
+    }
+    if (pullPhysicalPlanType == PullPhysicalPlanType.TABLE_SCAN) {
+      if (queryPlannerOptions.getTableScansEnabled()) {
+        lookupConstraints = Collections.emptyList();
       } else {
-        return new WindowedTableScanOperator(mat, logicalNode);
+        throw new KsqlException("Query requires table scan to be enabled. Table scans can be"
+          + " enabled by setting ksql.query.pull.table.scan.enabled=true");
       }
     }
-    pullPhysicalPlanType = PullPhysicalPlanType.KEY_LOOKUP;
+
+    querySourceType = logicalNode.isWindowed()
+        ? QuerySourceType.WINDOWED : QuerySourceType.NON_WINDOWED;
+    if (pullPhysicalPlanType == PullPhysicalPlanType.TABLE_SCAN) {
+      if (!logicalNode.isWindowed()) {
+        return new TableScanOperator(mat, logicalNode, shouldCancelOperations);
+      } else {
+        return new WindowedTableScanOperator(mat, logicalNode, shouldCancelOperations);
+      }
+    }
+
     if (!logicalNode.isWindowed()) {
       return new KeyedTableLookupOperator(mat, logicalNode);
     } else {

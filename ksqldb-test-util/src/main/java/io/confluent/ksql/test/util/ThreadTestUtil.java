@@ -19,6 +19,7 @@ import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
 import static java.util.Objects.requireNonNull;
 import static org.hamcrest.Matchers.is;
 
+import com.google.common.collect.ImmutableSet;
 import java.lang.Thread.State;
 import java.util.Arrays;
 import java.util.Collections;
@@ -65,13 +66,8 @@ public final class ThreadTestUtil {
       final Set<Thread> previousThreads,
       final Map<Thread, StackTraceElement[]> currentThreads
   ) {
-    final Set<Thread> system = currentThreads.keySet().stream()
-        .filter(thread -> thread.getThreadGroup() != null
-            && thread.getThreadGroup().getName().equals(SYSTEM_THREAD_GROUP_NAME))
-        .collect(Collectors.toSet());
     final Map<Thread, StackTraceElement[]> difference = new HashMap<>(currentThreads);
     difference.keySet().removeAll(previousThreads);
-    difference.keySet().removeAll(system);
     return difference;
   }
 
@@ -112,7 +108,7 @@ public final class ThreadTestUtil {
     public void assertSameThreads() {
       // Give threads a chance to die...
       assertThatEventually(
-          () -> "Active thead-count is on the up: "
+          () -> "Active thread-count is on the up: "
               + "is there new ExecutorService that's not being shutdown somewhere?"
               + System.lineSeparator()
               + threadSnapshot(predicate).detailsOfNewThreads(this),
@@ -131,7 +127,14 @@ public final class ThreadTestUtil {
     private ThreadFilterBuilder() {
       this.excludeJunitThread()
           .excludeJmxServerThreads()
-          .excludeJdkThreads();
+          .excludeJdkThreads()
+          .excludeSystem();
+    }
+
+    public ThreadFilterBuilder excludeSystem() {
+      filter(e -> e.getKey().getThreadGroup() == null
+          || !e.getKey().getThreadGroup().getName().equals(SYSTEM_THREAD_GROUP_NAME));
+      return this;
     }
 
     public ThreadFilterBuilder excludeTerminated() {
@@ -168,7 +171,11 @@ public final class ThreadTestUtil {
     }
 
     public ThreadFilterBuilder excludeJdkThreads() {
-      nameMatches(name -> !name.equals("executor-Heartbeat"));
+      nameMatches(name -> {
+        final ImmutableSet<String> jdkThreads =
+            ImmutableSet.of("executor-Heartbeat", "executor-Rebalance");
+        return !jdkThreads.contains(name);
+      });
       return this;
     }
   }

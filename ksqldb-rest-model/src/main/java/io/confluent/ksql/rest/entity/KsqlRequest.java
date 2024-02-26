@@ -38,6 +38,7 @@ import org.slf4j.LoggerFactory;
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonSubTypes({})
 public class KsqlRequest {
+
   private static final PropertyParser PROPERTY_PARSER = new LocalPropertyParser();
   private static final Logger LOG = LoggerFactory.getLogger(KsqlRequest.class);
 

@@ -21,7 +21,6 @@ import static java.util.Objects.requireNonNull;
 import io.confluent.ksql.metastore.TypeRegistry;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.parser.tree.TableElement;
-import io.confluent.ksql.parser.tree.TableElement.Namespace;
 import io.confluent.ksql.parser.tree.TableElements;
 import io.confluent.ksql.schema.ksql.SqlTypeParser;
 import io.confluent.ksql.util.KsqlException;
@@ -87,11 +86,9 @@ public final class SchemaParser {
         .stream()
         .map(ctx -> new TableElement(
             getLocation(ctx),
-            ctx.KEY() == null
-                ? Namespace.VALUE
-                : ctx.PRIMARY() == null ? Namespace.KEY : Namespace.PRIMARY_KEY,
             ColumnName.of(ParserUtil.getIdentifierText(ctx.identifier())),
-            typeParser.getType(ctx.type())
+            typeParser.getType(ctx.type()),
+            ParserUtil.getColumnConstraints(ctx.columnConstraints())
         ))
         .collect(Collectors.toList());
 

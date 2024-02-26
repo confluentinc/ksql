@@ -57,6 +57,9 @@ Use the [ksqlDB migrations tool](migrations-tool.md)
 to manage your ksqlDB clusters' metadata schemas, including
 the creation, deletion, and updating of streams, tables, and queries.
 
+Use [Schema Inference With ID](schema-inference-with-id.md) to retrieve 
+and register schemas as needed.
+
 Using High Availability for Pull Queries
 ---------------------------------------
 The [HA for pull queries guide](high-availability-pull-queries.md) gives an overview of how to

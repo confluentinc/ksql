@@ -38,6 +38,7 @@ import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.properties.with.CreateSourceProperties;
 import io.confluent.ksql.parser.tree.AliasedRelation;
+import io.confluent.ksql.parser.tree.ColumnConstraints;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.DescribeStreams;
@@ -55,7 +56,6 @@ import io.confluent.ksql.parser.tree.ListVariables;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.parser.tree.TableElement;
-import io.confluent.ksql.parser.tree.TableElement.Namespace;
 import io.confluent.ksql.parser.tree.TableElements;
 import io.confluent.ksql.parser.tree.TerminateQuery;
 import io.confluent.ksql.parser.tree.WithinExpression;
@@ -89,6 +89,21 @@ public class SqlFormatterTest {
 
   private static final SourceName TEST = SourceName.of("TEST");
   private static final SourceName SOMETHING = SourceName.of("SOMETHING");
+
+  private static final ColumnConstraints PRIMARY_KEY_CONSTRAINT =
+      new ColumnConstraints.Builder().primaryKey().build();
+
+  private static final ColumnConstraints KEY_CONSTRAINT =
+      new ColumnConstraints.Builder().key().build();
+
+  private static final ColumnConstraints HEADERS_CONSTRAINT =
+      new ColumnConstraints.Builder().headers().build();
+
+  private static final ColumnConstraints HEADER_KEY1_CONSTRAINT =
+      new ColumnConstraints.Builder().header("k1").build();
+
+  private static final ColumnConstraints HEADER_KEY2_CONSTRAINT =
+      new ColumnConstraints.Builder().header("k2").build();
 
   private static final SqlType addressSchema = SqlTypes.struct()
       .field("NUMBER", SqlTypes.BIGINT)
@@ -140,19 +155,30 @@ public class SqlFormatterTest {
           CommonCreateConfigs.KAFKA_TOPIC_NAME_PROPERTY, new StringLiteral("topic_test"))
   );
 
+  private static final TableElements ELEMENTS_WITH_SINGLE_HEADERS = TableElements.of(
+      new TableElement(ColumnName.of("h1"), new Type(SqlTypes.STRING), HEADER_KEY1_CONSTRAINT),
+      new TableElement(ColumnName.of("h2"), new Type(SqlTypes.STRING), HEADER_KEY2_CONSTRAINT),
+      new TableElement(ColumnName.of("Foo"), new Type(SqlTypes.STRING))
+  );
+
+  private static final TableElements ELEMENTS_WITH_HEADER = TableElements.of(
+      new TableElement(ColumnName.of("k3"), new Type(SqlTypes.STRING), HEADERS_CONSTRAINT),
+      new TableElement(ColumnName.of("Foo"), new Type(SqlTypes.STRING))
+  );
+  
   private static final TableElements ELEMENTS_WITH_KEY = TableElements.of(
-      new TableElement(Namespace.KEY, ColumnName.of("k3"), new Type(SqlTypes.STRING)),
-      new TableElement(Namespace.VALUE, ColumnName.of("Foo"), new Type(SqlTypes.STRING))
+      new TableElement(ColumnName.of("k3"), new Type(SqlTypes.STRING), KEY_CONSTRAINT),
+      new TableElement(ColumnName.of("Foo"), new Type(SqlTypes.STRING))
   );
 
   private static final TableElements ELEMENTS_WITH_PRIMARY_KEY = TableElements.of(
-      new TableElement(Namespace.PRIMARY_KEY, ColumnName.of("k3"), new Type(SqlTypes.STRING)),
-      new TableElement(Namespace.VALUE, ColumnName.of("Foo"), new Type(SqlTypes.STRING))
+      new TableElement(ColumnName.of("k3"), new Type(SqlTypes.STRING), PRIMARY_KEY_CONSTRAINT),
+      new TableElement(ColumnName.of("Foo"), new Type(SqlTypes.STRING))
   );
 
   private static final TableElements ELEMENTS_WITHOUT_KEY = TableElements.of(
-      new TableElement(Namespace.VALUE, ColumnName.of("Foo"), new Type(SqlTypes.STRING)),
-      new TableElement(Namespace.VALUE, ColumnName.of("Bar"), new Type(SqlTypes.STRING))
+      new TableElement(ColumnName.of("Foo"), new Type(SqlTypes.STRING)),
+      new TableElement(ColumnName.of("Bar"), new Type(SqlTypes.STRING))
   );
 
   @Before
@@ -186,7 +212,8 @@ public class SqlFormatterTest {
         ORDERS_SCHEMA,
         Optional.empty(),
         false,
-        ksqlTopicOrders
+        ksqlTopicOrders,
+        false
     );
 
     metaStore.putSource(ksqlStreamOrders, false);
@@ -202,7 +229,8 @@ public class SqlFormatterTest {
         ITEM_INFO_SCHEMA,
         Optional.empty(),
         false,
-        ksqlTopicItems
+        ksqlTopicItems,
+        false
     );
 
     metaStore.putSource(ksqlTableOrders, false);
@@ -213,10 +241,49 @@ public class SqlFormatterTest {
         TABLE_SCHEMA,
         Optional.empty(),
         false,
-        ksqlTopicItems
+        ksqlTopicItems,
+        false
     );
 
     metaStore.putSource(ksqlTableTable, false);
+  }
+
+  @Test
+  public void shouldFormatCreateStreamStatementWithHeader() {
+    // Given:
+    final CreateStream createStream = new CreateStream(
+        TEST,
+        ELEMENTS_WITH_HEADER,
+        false,
+        false,
+        SOME_WITH_PROPS,
+        false);
+
+    // When:
+    final String sql = SqlFormatter.formatSql(createStream);
+
+    // Then:
+    assertThat(sql, is("CREATE STREAM TEST (`k3` STRING HEADERS, `Foo` STRING) "
+        + "WITH (KAFKA_TOPIC='topic_test', VALUE_FORMAT='JSON');"));
+  }
+
+  @Test
+  public void shouldFormatCreateStreamStatementWithSingleHeaderKeys() {
+    // Given:
+    final CreateStream createStream = new CreateStream(
+        TEST,
+        ELEMENTS_WITH_SINGLE_HEADERS,
+        false,
+        false,
+        SOME_WITH_PROPS,
+        false);
+
+    // When:
+    final String sql = SqlFormatter.formatSql(createStream);
+
+    // Then:
+    assertThat(sql, is("CREATE STREAM TEST (`h1` STRING HEADER('k1'), `h2` STRING HEADER('k2'), `Foo` STRING) "
+        + "WITH (KAFKA_TOPIC='topic_test', VALUE_FORMAT='JSON');"));
   }
 
   @Test
@@ -227,7 +294,8 @@ public class SqlFormatterTest {
         ELEMENTS_WITH_KEY,
         false,
         false,
-        SOME_WITH_PROPS);
+        SOME_WITH_PROPS,
+        false);
 
     // When:
     final String sql = SqlFormatter.formatSql(createStream);
@@ -245,7 +313,8 @@ public class SqlFormatterTest {
         ELEMENTS_WITHOUT_KEY,
         false,
         false,
-        SOME_WITH_PROPS);
+        SOME_WITH_PROPS,
+        false);
 
     // When:
     final String sql = SqlFormatter.formatSql(createStream);
@@ -268,13 +337,62 @@ public class SqlFormatterTest {
         ELEMENTS_WITHOUT_KEY,
         true,
         false,
-        props);
+        props,
+        false);
 
     // When:
     final String sql = SqlFormatter.formatSql(createTable);
 
     // Then:
     assertThat(sql, is("CREATE OR REPLACE STREAM TEST (`Foo` STRING, `Bar` STRING) "
+        + "WITH (KAFKA_TOPIC='topic_test', VALUE_FORMAT='JSON');"));
+  }
+
+  @Test
+  public void shouldFormatCreateSourceTableStatement() {
+    // Given:
+    final CreateSourceProperties props = CreateSourceProperties.from(
+        new ImmutableMap.Builder<String, Literal>()
+            .putAll(SOME_WITH_PROPS.copyOfOriginalLiterals())
+            .build()
+    );
+    final CreateTable createTable = new CreateTable(
+        TEST,
+        ELEMENTS_WITH_PRIMARY_KEY,
+        false,
+        false,
+        props,
+        true);
+
+    // When:
+    final String sql = SqlFormatter.formatSql(createTable);
+
+    // Then:
+    assertThat(sql, is("CREATE SOURCE TABLE TEST (`k3` STRING PRIMARY KEY, `Foo` STRING) "
+        + "WITH (KAFKA_TOPIC='topic_test', VALUE_FORMAT='JSON');"));
+  }
+
+  @Test
+  public void shouldFormatCreateSourceStreamStatement() {
+    // Given:
+    final CreateSourceProperties props = CreateSourceProperties.from(
+        new ImmutableMap.Builder<String, Literal>()
+            .putAll(SOME_WITH_PROPS.copyOfOriginalLiterals())
+            .build()
+    );
+    final CreateStream createStream = new CreateStream(
+        TEST,
+        ELEMENTS_WITH_KEY,
+        false,
+        false,
+        props,
+        true);
+
+    // When:
+    final String sql = SqlFormatter.formatSql(createStream);
+
+    // Then:
+    assertThat(sql, is("CREATE SOURCE STREAM TEST (`k3` STRING KEY, `Foo` STRING) "
         + "WITH (KAFKA_TOPIC='topic_test', VALUE_FORMAT='JSON');"));
   }
 
@@ -291,7 +409,8 @@ public class SqlFormatterTest {
         ELEMENTS_WITH_PRIMARY_KEY,
         true,
         false,
-        props);
+        props,
+        false);
 
     // When:
     final String sql = SqlFormatter.formatSql(createTable);
@@ -316,7 +435,8 @@ public class SqlFormatterTest {
         ELEMENTS_WITH_PRIMARY_KEY,
         false,
         false,
-        props);
+        props,
+        false);
 
     // When:
     final String sql = SqlFormatter.formatSql(createTable);
@@ -335,7 +455,8 @@ public class SqlFormatterTest {
         ELEMENTS_WITH_PRIMARY_KEY,
         false,
         false,
-        SOME_WITH_PROPS);
+        SOME_WITH_PROPS,
+        false);
 
     // When:
     final String sql = SqlFormatter.formatSql(createTable);
@@ -353,7 +474,8 @@ public class SqlFormatterTest {
         ELEMENTS_WITHOUT_KEY,
         false,
         false,
-        SOME_WITH_PROPS);
+        SOME_WITH_PROPS,
+        false);
 
     // When:
     final String sql = SqlFormatter.formatSql(createTable);
@@ -367,8 +489,8 @@ public class SqlFormatterTest {
   public void shouldFormatTableElementsNamedAfterReservedWords() {
     // Given:
     final TableElements tableElements = TableElements.of(
-        new TableElement(Namespace.VALUE, ColumnName.of("GROUP"), new Type(SqlTypes.STRING)),
-        new TableElement(Namespace.VALUE, ColumnName.of("Having"), new Type(SqlTypes.STRING))
+        new TableElement(ColumnName.of("GROUP"), new Type(SqlTypes.STRING)),
+        new TableElement(ColumnName.of("Having"), new Type(SqlTypes.STRING))
     );
 
     final CreateStream createStream = new CreateStream(
@@ -376,7 +498,8 @@ public class SqlFormatterTest {
         tableElements,
         false,
         false,
-        SOME_WITH_PROPS);
+        SOME_WITH_PROPS,
+        false);
 
     // When:
     final String sql = SqlFormatter.formatSql(createStream);

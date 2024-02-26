@@ -1,0 +1,148 @@
+{
+  "version" : "7.1.0",
+  "timestamp" : 1633126016654,
+  "path" : "query-validation-tests/partition-by.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`NAME` STRING, `ID` INTEGER, `AGE` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ID` INTEGER KEY, `AGE` INTEGER KEY, `NAME` STRING",
+      "keyFormat" : {
+        "format" : "JSON"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "multiple columns - KAFKA to non-KAFKA key format",
+    "inputs" : [ {
+      "topic" : "input",
+      "key" : null,
+      "value" : {
+        "NAME" : "bob",
+        "ID" : 10,
+        "AGE" : 30
+      }
+    }, {
+      "topic" : "input",
+      "key" : null,
+      "value" : {
+        "NAME" : "bob",
+        "ID" : null,
+        "AGE" : 30
+      }
+    }, {
+      "topic" : "input",
+      "key" : null,
+      "value" : {
+        "NAME" : "bob",
+        "ID" : null,
+        "AGE" : null
+      }
+    }, {
+      "topic" : "input",
+      "key" : null,
+      "value" : null
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : {
+        "ID" : 10,
+        "AGE" : 30
+      },
+      "value" : {
+        "NAME" : "bob"
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : {
+        "ID" : null,
+        "AGE" : 30
+      },
+      "value" : {
+        "NAME" : "bob"
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : {
+        "ID" : null,
+        "AGE" : null
+      },
+      "value" : {
+        "NAME" : "bob"
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : {
+        "ID" : null,
+        "AGE" : null
+      },
+      "value" : null
+    } ],
+    "topics" : [ {
+      "name" : "input",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM INPUT (NAME STRING, ID INT, AGE INT) with (kafka_topic='input', value_format='JSON');", "CREATE STREAM OUTPUT WITH (KEY_FORMAT='JSON') AS select * from INPUT partition by ID, AGE;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`NAME` STRING, `ID` INTEGER, `AGE` INTEGER",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`ID` INTEGER KEY, `AGE` INTEGER KEY, `NAME` STRING",
+        "keyFormat" : {
+          "format" : "JSON"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "input",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "format" : "JSON"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

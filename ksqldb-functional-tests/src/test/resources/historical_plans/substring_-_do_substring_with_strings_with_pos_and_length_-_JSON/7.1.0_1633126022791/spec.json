@@ -1,0 +1,131 @@
+{
+  "version" : "7.1.0",
+  "timestamp" : 1633126022791,
+  "path" : "query-validation-tests/substring.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`K` STRING KEY, `SOURCE` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`K` STRING KEY, `SUBSTRING` STRING, `NULL_STR` STRING, `NULL_POS` STRING, `NULL_LEN` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "do substring with strings with pos and length - JSON",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : null,
+      "value" : {
+        "source" : "some_string"
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : null,
+      "value" : {
+        "source" : "another"
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : null,
+      "value" : {
+        "source" : "short"
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : null,
+      "value" : {
+        "SUBSTRING" : "str",
+        "NULL_STR" : null,
+        "NULL_POS" : null,
+        "NULL_LEN" : null
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : null,
+      "value" : {
+        "SUBSTRING" : "er",
+        "NULL_STR" : null,
+        "NULL_POS" : null,
+        "NULL_LEN" : null
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : null,
+      "value" : {
+        "SUBSTRING" : "",
+        "NULL_STR" : null,
+        "NULL_POS" : null,
+        "NULL_LEN" : null
+      }
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM TEST (K STRING KEY, source VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE STREAM OUTPUT AS SELECT K, SUBSTRING(source, 6, 3) AS SUBSTRING, SUBSTRING(CAST(null AS STRING), 1) AS NULL_STR, SUBSTRING(source, null) AS NULL_POS, SUBSTRING(source, 6, null) AS NULL_LEN FROM TEST;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`K` STRING KEY, `SUBSTRING` STRING, `NULL_STR` STRING, `NULL_POS` STRING, `NULL_LEN` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`K` STRING KEY, `SOURCE` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

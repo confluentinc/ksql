@@ -27,54 +27,6 @@ io.confluent.ksql.metrics:type=_confluent-ksql-engine-query-stats,ksql_service_i
 
 The current number of persistent queries running in this engine.
 
-**Number of active queries**
-
-`num-active-queries`
-
-The current number of active queries running in this engine.
-
-**Number of running queries**
-
-`RUNNING-queries`
-
-Count of queries in `RUNNING` state.
-
-**Number of idle queries**
-
-`num-idle-queries`
-
-Number of inactive queries.
-
-**Number of not running queries**
-
-`NOT_RUNNING-queries`
-
-Count of queries in `NOT_RUNNING` state.
-
-**Number of rebalancing queries**
-
-`REBALANCING-queries`
-
-Count of queries in `REBALANCING` state.
-
-**Number of created queries**
-
-`CREATED-queries`
-
-Count of queries in `CREATED` state.
-
-**Number of pending shutdown queries**
-
-`PENDING_SHUTDOWN-queries`
-
-Count of queries in `PENDING_SHUTDOWN` state.
-
-**Number of error queries**
-
-`ERROR-queries`
-
-Count of queries in `ERROR` state.
-
 **Total bytes consumed**
 
 `bytes-consumed-total`

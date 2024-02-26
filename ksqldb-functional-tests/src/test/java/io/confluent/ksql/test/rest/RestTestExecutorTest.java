@@ -25,12 +25,17 @@ import static org.junit.Assert.assertThrows;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.api.server.JsonStreamedRowResponseWriter.RowFormat;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.rest.entity.QueryResponseMetadata;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
+import io.confluent.ksql.test.rest.RestTestExecutor.RqttQueryProtoResponse;
 import io.confluent.ksql.test.rest.RestTestExecutor.RqttQueryResponse;
+import io.confluent.ksql.util.KeyValue;
+import io.confluent.ksql.util.KeyValueMetadata;
 import java.math.BigDecimal;
 import org.junit.Test;
 
@@ -401,6 +406,72 @@ public class RestTestExecutorTest {
     // Then:
     assertThat(e.getMessage(), containsString(
       "Uneven occurrence of expected vs actual for row [key, 55, 66.675]"));
+  }
+
+  @Test
+  public void shouldVerifyUnorderedProtoResponse() {
+    // Given:
+    final RqttQueryProtoResponse response = new RqttQueryProtoResponse(ImmutableList.of(
+        RowFormat.PROTOBUF.metadataRow(new QueryResponseMetadata(
+            "not checked",
+            ImmutableList.of("col0"),
+            ImmutableList.of("STRING"),
+            SCHEMA)
+        ),
+        RowFormat.PROTOBUF.dataRow(new KeyValueMetadata<>(KeyValue.keyValue(null, GenericRow.genericRow("hello")))),
+        RowFormat.PROTOBUF.dataRow(new KeyValueMetadata<>(KeyValue.keyValue(null, GenericRow.genericRow("goodbye")))),
+        StreamedRow.finalMessage("end")
+    ));
+
+    // When:
+    response.verify(
+        "queryProto",
+        ImmutableList.of(
+            ImmutableMap.of("header", ImmutableMap.of("protoSchema", "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  string col0 = 1;\n}\n")),
+            ImmutableMap.of("finalMessage", "end"),
+            ImmutableMap.of("row", "col0: \"goodbye\"\n"),
+            ImmutableMap.of("row", "col0: \"hello\"\n")
+        ),
+        null,
+        0,
+        false
+    );
+  }
+
+  @Test
+  public void shouldThrowOnMisorderedProtoResponse() {
+    // Given:
+    final RqttQueryProtoResponse response = new RqttQueryProtoResponse(ImmutableList.of(
+        RowFormat.PROTOBUF.metadataRow(new QueryResponseMetadata(
+            "not checked",
+            ImmutableList.of("col0"),
+            ImmutableList.of("STRING"),
+            SCHEMA)
+        ),
+        RowFormat.PROTOBUF.dataRow(new KeyValueMetadata<>(KeyValue.keyValue(null, GenericRow.genericRow("hello")))),
+        RowFormat.PROTOBUF.dataRow(new KeyValueMetadata<>(KeyValue.keyValue(null, GenericRow.genericRow("goodbye")))),
+        StreamedRow.finalMessage("end")
+    ));
+
+    // When:
+    final AssertionError e = assertThrows(
+        AssertionError.class,
+        () -> response.verify(
+            "queryProto",
+            ImmutableList.of(
+                ImmutableMap.of("header", ImmutableMap.of("protoSchema", "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  string col0 = 1;\n}\n")),
+                ImmutableMap.of("row", "col0: \"goodbye\"\n"),
+                ImmutableMap.of("row", "col0: \"hello\"\n"),
+                ImmutableMap.of("finalMessage", "end")
+            ),
+            null,
+            0,
+            true
+        )
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Response mismatch"));
   }
 }
 

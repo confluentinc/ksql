@@ -74,6 +74,7 @@ import io.confluent.ksql.rest.entity.RunningQuery;
 import io.confluent.ksql.rest.entity.SchemaInfo;
 import io.confluent.ksql.rest.entity.SimpleConnectorInfo;
 import io.confluent.ksql.rest.entity.SimpleConnectorPluginInfo;
+import io.confluent.ksql.rest.entity.SimpleConnectorPluginInfo.PluginType;
 import io.confluent.ksql.rest.entity.SourceDescription;
 import io.confluent.ksql.rest.entity.SourceDescriptionEntity;
 import io.confluent.ksql.rest.entity.SourceInfo;
@@ -105,10 +106,10 @@ import java.util.TimeZone;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo;
-import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo.ConnectorState;
-import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo.TaskState;
-import org.apache.kafka.connect.runtime.rest.entities.ConnectorType;
+import io.confluent.ksql.rest.entity.ConnectorStateInfo;
+import io.confluent.ksql.rest.entity.ConnectorStateInfo.ConnectorState;
+import io.confluent.ksql.rest.entity.ConnectorStateInfo.TaskState;
+import io.confluent.ksql.rest.entity.ConnectorType;
 import org.approvaltests.Approvals;
 import org.approvaltests.core.Options;
 import org.junit.After;
@@ -683,8 +684,8 @@ public class ConsoleTest {
             "statement",
             ImmutableList.of(),
             ImmutableList.of(
-                new SimpleConnectorPluginInfo("clazz1", ConnectorType.SOURCE, "v1"),
-                new SimpleConnectorPluginInfo("clazz2", ConnectorType.SINK, "v2")
+                new SimpleConnectorPluginInfo("clazz1", PluginType.SOURCE, "v1"),
+                new SimpleConnectorPluginInfo("clazz2", PluginType.SINK, "v2")
             ))
     ));
 

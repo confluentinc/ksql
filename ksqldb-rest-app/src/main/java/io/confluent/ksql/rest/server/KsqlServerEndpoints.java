@@ -26,7 +26,6 @@ import io.confluent.ksql.api.server.InsertResult;
 import io.confluent.ksql.api.server.InsertsStreamSubscriber;
 import io.confluent.ksql.api.server.MetricsCallbackHolder;
 import io.confluent.ksql.api.spi.Endpoints;
-import io.confluent.ksql.api.spi.QueryPublisher;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.internal.PullQueryExecutorMetrics;
 import io.confluent.ksql.rest.EndpointResponse;
@@ -64,6 +63,7 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscriber;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
@@ -130,7 +130,7 @@ public class KsqlServerEndpoints implements Endpoints {
   }
 
   @Override
-  public CompletableFuture<QueryPublisher> createQueryPublisher(final String sql,
+  public CompletableFuture<Publisher<?>> createQueryPublisher(final String sql,
       final Map<String, Object> properties,
       final Map<String, Object> sessionVariables,
       final Map<String, Object> requestProperties,
@@ -319,6 +319,13 @@ public class KsqlServerEndpoints implements Endpoints {
       }
       return null;
     }, workerExecutor);
+  }
+
+  @Override
+  public CompletableFuture<EndpointResponse> executeTest(
+      final String test, final ApiSecurityContext apiSecurityContext) {
+    return executeOldApiEndpoint(
+        apiSecurityContext, ksqlSecurityContext -> ksqlResource.runTest(test));
   }
 
   private <R> CompletableFuture<R> executeOnWorker(final Supplier<R> supplier,

@@ -132,10 +132,13 @@
               "name" : "TIME",
               "type" : [ "null", {
                 "type" : "int",
+                "connect.version" : 1,
+                "connect.name" : "org.apache.kafka.connect.data.Time",
                 "logicalType" : "time-millis"
               } ],
               "default" : null
-            } ]
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
           }
         } ]
       }

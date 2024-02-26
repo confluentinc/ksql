@@ -109,20 +109,10 @@
     }, {
       "topic" : "S2",
       "key" : 0,
-      "value" : null,
-      "timestamp" : 0,
-      "window" : {
-        "start" : 0,
-        "end" : 0,
-        "type" : "SESSION"
-      }
-    }, {
-      "topic" : "S2",
-      "key" : 0,
       "value" : "6",
       "timestamp" : 10010,
       "window" : {
-        "start" : 0,
+        "start" : 10010,
         "end" : 10010,
         "type" : "SESSION"
       }

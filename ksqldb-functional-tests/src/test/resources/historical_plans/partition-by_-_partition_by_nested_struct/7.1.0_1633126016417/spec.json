@@ -136,10 +136,12 @@
                   "name" : "F2",
                   "type" : [ "null", "int" ],
                   "default" : null
-                } ]
+                } ],
+                "connect.name" : "io.confluent.ksql.avro_schemas.OutputKey_F1"
               } ],
               "default" : null
-            } ]
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.OutputKey"
           }
         } ]
       }

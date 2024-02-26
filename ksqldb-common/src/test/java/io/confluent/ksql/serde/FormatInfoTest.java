@@ -64,4 +64,22 @@ public class FormatInfoTest {
     assertThat(FormatInfo.of("KAFKA").getFormat(), is("KAFKA"));
   }
 
+  @Test
+  public void shouldNotContainSchemaId() {
+    // Given:
+    final FormatInfo info = FormatInfo.of(
+        "AVRO",
+        ImmutableMap.of(
+            "fullSchemaName", "something",
+            "schemaId", "1"));
+
+    // When:
+    final FormatInfo copy = info.copyWithoutProperty("schemaId");
+
+    // Then:
+    assertThat(copy.getFormat(), is("AVRO"));
+    assertThat(copy.getProperties().get("fullSchemaName"), is("something"));
+    assertThat(copy.getProperties().containsKey("schemaId"), is(false));
+  }
+
 }

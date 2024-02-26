@@ -95,7 +95,6 @@ public final class KsMaterializationFactory {
         topology,
         keySerializer,
         localHost,
-        applicationId,
         ksqlConfig.getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED),
         queryId
     );
@@ -138,7 +137,6 @@ public final class KsMaterializationFactory {
         Topology topology,
         Serializer<GenericKey> keySerializer,
         URL localHost,
-        String applicationId,
         boolean sharedRuntimesEnabled,
         String queryId
     );

@@ -83,7 +83,8 @@ public class PreconditionServer {
             createHttpServerOptions(config, listener.getHost(), listener.getPort(),
                 listener.getScheme().equalsIgnoreCase("https"),
                 idleConnectionTimeoutSeconds),
-            serverState
+            serverState,
+            config
         );
         vertx.deployVerticle(serverVerticle, vcf);
         deployFutures.add(vcf);

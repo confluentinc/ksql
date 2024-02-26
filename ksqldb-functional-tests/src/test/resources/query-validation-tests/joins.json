@@ -1103,8 +1103,7 @@
         {"topic": "right_topic", "key": 3, "value": {"L2": "d"}, "timestamp": 60000}
       ],
       "outputs": [
-        {"topic": "INNER_JOIN", "key": 0, "value": {"L1": "A", "L2": "a"}, "timestamp": 60000},
-        {"topic": "INNER_JOIN", "key": 2, "value": {"L1": "C", "L2": "c"}, "timestamp": 90000}
+        {"topic": "INNER_JOIN", "key": 0, "value": {"L1": "A", "L2": "a"}, "timestamp": 60000}
       ]
     },
     {
@@ -1127,7 +1126,6 @@
       "outputs": [
         {"topic": "LEFT_JOIN", "key": 0, "value": {"L1": "A", "L2": "a"}, "timestamp": 60000},
         {"topic": "LEFT_JOIN", "key": 2, "value": {"L1": "C", "L2": null}, "timestamp": 90000},
-        {"topic": "LEFT_JOIN", "key": 2, "value": {"L1": "C", "L2": "c"}, "timestamp": 90000},
         {"topic": "LEFT_JOIN", "key": 3, "value": {"L1": "D", "L2": null}, "timestamp": 60000}
       ]
     },
@@ -1150,7 +1148,7 @@
       ],
       "outputs": [
         {"topic": "RIGHT_JOIN", "key": 0, "value": {"L1": "A", "L2": "a"}, "timestamp": 60000},
-        {"topic": "RIGHT_JOIN", "key": 2, "value": {"L1": "C", "L2": "c"}, "timestamp": 90000},
+        {"topic": "RIGHT_JOIN", "key": 2, "value": {"L1": null, "L2": "c"}, "timestamp": 90000},
         {"topic": "RIGHT_JOIN", "key": 3, "value": {"L1": null, "L2": "d"}, "timestamp": 60000},
         {"topic": "RIGHT_JOIN", "key": 3, "value": {"L1": "D", "L2": "d"}, "timestamp": 90000}
       ]
@@ -1175,7 +1173,7 @@
       "outputs": [
         {"topic": "OUTER_JOIN", "key": 0, "value": {"T_ID": 0, "TT_ID": 0, "L1": "A", "L2": "a"}, "timestamp": 60000},
         {"topic": "OUTER_JOIN", "key": 2, "value": {"T_ID": null, "TT_ID": 2, "L1": null, "L2": "c"}, "timestamp": 90000},
-        {"topic": "OUTER_JOIN", "key": 2, "value": {"T_ID": 2, "TT_ID": 2, "L1": "C", "L2": "c"}, "timestamp": 90000},
+        {"topic": "OUTER_JOIN", "key": 2, "value": {"T_ID": 2, "TT_ID": null, "L1": "C", "L2": null}, "timestamp": 90000},
         {"topic": "OUTER_JOIN", "key": 3, "value": {"T_ID": null, "TT_ID": 3, "L1": null, "L2": "d"}, "timestamp": 60000},
         {"topic": "OUTER_JOIN", "key": 3, "value": {"T_ID": 3, "TT_ID": null, "L1": "D", "L2": null}, "timestamp": 60000}
       ]
@@ -3754,6 +3752,312 @@
         "type": "io.confluent.ksql.util.KsqlStatementException",
         "message": "Implicit repartitioning of windowed sources is not supported. See https://github.com/confluentinc/ksql/issues/4385."
       }
+    },
+    {
+      "name": "stream-table value-to-key join with protobuf schema and schema_id in stream",
+      "statements": [
+        "CREATE STREAM SOURCE WITH (kafka_topic='source', format='PROTOBUF', KEY_SCHEMA_ID=1, KEY_SCHEMA_FULL_NAME='ProtobufKey2', VALUE_SCHEMA_ID=2, VALUE_SCHEMA_FULL_NAME='ProtobufValue2');",
+        "CREATE TABLE SINK WITH (kafka_topic='source2', format='PROTOBUF', KEY_SCHEMA_FULL_NAME='ProtobufKey2', VALUE_SCHEMA_FULL_NAME='ProtobufValue2');",
+        "CREATE STREAM OUT AS SELECT S.*, SS.* FROM SOURCE S JOIN SINK SS ON S.B=SS.K;"
+      ],
+      "topics": [
+        {
+          "name": "source",
+          "keyFormat": "PROTOBUF",
+          "keySchema": "syntax = \"proto3\"; message ProtobufKey1 {uint32 k1 = 1;} message ProtobufKey2 {string K = 1;}",
+          "valueFormat": "PROTOBUF",
+          "valueSchema": "syntax = \"proto3\"; message ProtobufValue1 {float c1 = 1; uint32 c2 = 2;} message ProtobufValue2 {uint64 A = 1; string B = 2;}"
+        },
+        {
+          "name": "source2",
+          "keyFormat": "PROTOBUF",
+          "keySchema": "syntax = \"proto3\"; message ProtobufKey1 {uint32 k1 = 1;} message ProtobufKey2 {string K = 1;}",
+          "valueFormat": "PROTOBUF",
+          "valueSchema": "syntax = \"proto3\"; message ProtobufValue1 {float c1 = 1; uint32 c2 = 2;} message ProtobufValue2 {uint64 A = 1; string B = 2;}"
+        }
+      ],
+      "inputs": [
+        {"topic": "source2", "key": {"K": "falcon"}, "value": {"A": 123, "B": "falcon"}, "timestamp": 0},
+        {"topic": "source2", "key": {"K": "giraffe"}, "value": {"A": 456, "B": "giraffe"}, "timestamp": 0},
+        {"topic": "source2", "key": {"K": "turtle"}, "value": {"A": 789, "B": "turtle"}, "timestamp": 0},
+        {"topic": "source", "key": {"K": "0"}, "value": {"A": 123, "B": "falcon"}, "timestamp": 0},
+        {"topic": "source", "key": {"K": "0"}, "value": {"A": 456, "B": "giraffe"}, "timestamp": 0},
+        {"topic": "source", "key": {"K": "0"}, "value": {"A": 789, "B": "turtle"}, "timestamp": 0},
+        {"topic": "source2", "key": {"K": "turtle"}, "value": {"A": 800, "B": "turtle"}, "timestamp": 0}
+      ],
+      "outputs": [
+        {"topic": "OUT", "key": {"S_B": "falcon"}, "value": {"S_A": 123, "S_K": "0", "SS_A": 123, "SS_B": "falcon", "SS_K": "falcon"}, "timestamp": 0},
+        {"topic": "OUT", "key": {"S_B": "giraffe"}, "value": {"S_A": 456, "S_K": "0", "SS_A": 456, "SS_B": "giraffe", "SS_K": "giraffe"}, "timestamp": 0},
+        {"topic": "OUT", "key": {"S_B": "turtle"}, "value": {"S_A": 789, "S_K": "0", "SS_A": 789, "SS_B": "turtle", "SS_K": "turtle"}, "timestamp": 0}
+      ],
+      "post": {
+        "sources": [
+          {
+            "name": "OUT",
+            "type": "stream",
+            "keyFormat": {"format": "PROTOBUF", "properties": {"unwrapPrimitives": "true"}},
+            "schema": "S_B STRING KEY, S_K STRING, S_A BIGINT, SS_K STRING, SS_A BIGINT, SS_B STRING"
+          }
+        ]
+      }
+    },
+    {
+      "name": "stream-table key-to-key join with protobuf schema and schema_id in stream",
+      "statements": [
+        "CREATE STREAM SOURCE WITH (kafka_topic='source', format='PROTOBUF', KEY_SCHEMA_ID=1, KEY_SCHEMA_FULL_NAME='ProtobufKey2', VALUE_SCHEMA_ID=2, VALUE_SCHEMA_FULL_NAME='ProtobufValue2');",
+        "CREATE TABLE SINK WITH (kafka_topic='source2', format='PROTOBUF', KEY_SCHEMA_FULL_NAME='ProtobufKey2', VALUE_SCHEMA_FULL_NAME='ProtobufValue2');",
+        "CREATE STREAM OUT AS SELECT S.*, SS.* FROM SOURCE S JOIN SINK SS ON S.K=SS.K;"
+      ],
+      "topics": [
+        {
+          "name": "source",
+          "keyFormat": "PROTOBUF",
+          "keySchema": "syntax = \"proto3\"; message ProtobufKey1 {uint32 k1 = 1;} message ProtobufKey2 {string K = 1;}",
+          "valueFormat": "PROTOBUF",
+          "valueSchema": "syntax = \"proto3\"; message ProtobufValue1 {float c1 = 1; uint32 c2 = 2;} message ProtobufValue2 {uint64 A = 1; string B = 2;}"
+        },
+        {
+          "name": "source2",
+          "keyFormat": "PROTOBUF",
+          "keySchema": "syntax = \"proto3\"; message ProtobufKey1 {uint32 k1 = 1;} message ProtobufKey2 {string K = 1;}",
+          "valueFormat": "PROTOBUF",
+          "valueSchema": "syntax = \"proto3\"; message ProtobufValue1 {float c1 = 1; uint32 c2 = 2;} message ProtobufValue2 {uint64 A = 1; string B = 2;}"
+        }
+      ],
+      "inputs": [
+        {"topic": "source2", "key": {"K": "falcon"}, "value": {"A": 123, "B": "falcon"}, "timestamp": 0},
+        {"topic": "source2", "key": {"K": "giraffe"}, "value": {"A": 456, "B": "giraffe"}, "timestamp": 0},
+        {"topic": "source2", "key": {"K": "turtle"}, "value": {"A": 789, "B": "turtle"}, "timestamp": 0},
+        {"topic": "source", "key": {"K": "falcon"}, "value": {"A": 1230, "B": "falcon"}, "timestamp": 0},
+        {"topic": "source", "key": {"K": "giraffe"}, "value": {"A": 4560, "B": "giraffe"}, "timestamp": 0},
+        {"topic": "source", "key": {"K": "turtle"}, "value": {"A": 7890, "B": "turtle"}, "timestamp": 0},
+        {"topic": "source2", "key": {"K": "turtle"}, "value": {"A": 8000, "B": "turtle"}, "timestamp": 0}
+      ],
+      "outputs": [
+        {"topic": "OUT", "key": {"S_K": "falcon"}, "value": {"S_A": 1230, "S_B": "falcon", "SS_A": 123, "SS_B": "falcon", "SS_K": "falcon"}, "timestamp": 0},
+        {"topic": "OUT", "key": {"S_K": "giraffe"}, "value": {"S_A": 4560, "S_B": "giraffe", "SS_A": 456, "SS_B": "giraffe", "SS_K": "giraffe"}, "timestamp": 0},
+        {"topic": "OUT", "key": {"S_K": "turtle"}, "value": {"S_A": 7890, "S_B": "turtle", "SS_A": 789, "SS_B": "turtle", "SS_K": "turtle"}, "timestamp": 0}
+      ],
+      "post": {
+        "sources": [
+          {
+            "name": "OUT",
+            "type": "stream",
+            "keyFormat": {"format": "PROTOBUF", "properties": {"unwrapPrimitives": "true"}},
+            "schema": "S_K STRING KEY, S_A BIGINT, S_B STRING, SS_K STRING, SS_A BIGINT, SS_B STRING"
+          }
+        ]
+      }
+    },
+    {
+      "name": "stream-table value-to-key join with protobuf schema and schema_id in table",
+      "statements": [
+        "CREATE STREAM SOURCE WITH (kafka_topic='source', format='PROTOBUF', KEY_SCHEMA_FULL_NAME='ProtobufKey2', VALUE_SCHEMA_FULL_NAME='ProtobufValue2');",
+        "CREATE TABLE SINK WITH (kafka_topic='source2', format='PROTOBUF', KEY_SCHEMA_ID=1, KEY_SCHEMA_FULL_NAME='ProtobufKey2', VALUE_SCHEMA_ID=2, VALUE_SCHEMA_FULL_NAME='ProtobufValue2');",
+        "CREATE STREAM OUT AS SELECT S.*, SS.* FROM SOURCE S JOIN SINK SS ON S.B=SS.K;"
+      ],
+      "topics": [
+        {
+          "name": "source",
+          "keyFormat": "PROTOBUF",
+          "keySchema": "syntax = \"proto3\"; message ProtobufKey1 {uint32 k1 = 1;} message ProtobufKey2 {string K = 1;}",
+          "valueFormat": "PROTOBUF",
+          "valueSchema": "syntax = \"proto3\"; message ProtobufValue1 {float c1 = 1; uint32 c2 = 2;} message ProtobufValue2 {uint64 A = 1; string B = 2;}"
+        },
+        {
+          "name": "source2",
+          "keyFormat": "PROTOBUF",
+          "keySchema": "syntax = \"proto3\"; message ProtobufKey1 {uint32 k1 = 1;} message ProtobufKey2 {string K = 1;}",
+          "valueFormat": "PROTOBUF",
+          "valueSchema": "syntax = \"proto3\"; message ProtobufValue1 {float c1 = 1; uint32 c2 = 2;} message ProtobufValue2 {uint64 A = 1; string B = 2;}"
+        }
+      ],
+      "inputs": [
+        {"topic": "source2", "key": {"K": "falcon"}, "value": {"A": 123, "B": "falcon"}, "timestamp": 0},
+        {"topic": "source2", "key": {"K": "giraffe"}, "value": {"A": 456, "B": "giraffe"}, "timestamp": 0},
+        {"topic": "source2", "key": {"K": "turtle"}, "value": {"A": 789, "B": "turtle"}, "timestamp": 0},
+        {"topic": "source", "key": {"K": "0"}, "value": {"A": 123, "B": "falcon"}, "timestamp": 0},
+        {"topic": "source", "key": {"K": "0"}, "value": {"A": 456, "B": "giraffe"}, "timestamp": 0},
+        {"topic": "source", "key": {"K": "0"}, "value": {"A": 789, "B": "turtle"}, "timestamp": 0},
+        {"topic": "source2", "key": {"K": "turtle"}, "value": {"A": 800, "B": "turtle"}, "timestamp": 0}
+      ],
+      "outputs": [
+        {"topic": "OUT", "key": {"S_B": "falcon"}, "value": {"S_A": 123, "S_K": "0", "SS_A": 123, "SS_B": "falcon", "SS_K": "falcon"}, "timestamp": 0},
+        {"topic": "OUT", "key": {"S_B": "giraffe"}, "value": {"S_A": 456, "S_K": "0", "SS_A": 456, "SS_B": "giraffe", "SS_K": "giraffe"}, "timestamp": 0},
+        {"topic": "OUT", "key": {"S_B": "turtle"}, "value": {"S_A": 789, "S_K": "0", "SS_A": 789, "SS_B": "turtle", "SS_K": "turtle"}, "timestamp": 0}
+      ],
+      "post": {
+        "sources": [
+          {
+            "name": "OUT",
+            "type": "stream",
+            "keyFormat": {"format": "PROTOBUF", "properties": {"unwrapPrimitives": "true"}},
+            "schema": "S_B STRING KEY, S_K STRING, S_A BIGINT, SS_K STRING, SS_A BIGINT, SS_B STRING"
+          }
+        ]
+      }
+    },
+    {
+      "name": "stream-table key-to-key join with protobuf schema and schema_id in table",
+      "statements": [
+        "CREATE STREAM SOURCE WITH (kafka_topic='source', format='PROTOBUF', KEY_SCHEMA_FULL_NAME='ProtobufKey2', VALUE_SCHEMA_FULL_NAME='ProtobufValue2');",
+        "CREATE TABLE SINK WITH (kafka_topic='source2', format='PROTOBUF', KEY_SCHEMA_ID=1, KEY_SCHEMA_FULL_NAME='ProtobufKey2', VALUE_SCHEMA_ID=2, VALUE_SCHEMA_FULL_NAME='ProtobufValue2');",
+        "CREATE STREAM OUT AS SELECT S.*, SS.* FROM SOURCE S JOIN SINK SS ON S.K=SS.K;"
+      ],
+      "topics": [
+        {
+          "name": "source",
+          "keyFormat": "PROTOBUF",
+          "keySchema": "syntax = \"proto3\"; message ProtobufKey1 {uint32 k1 = 1;} message ProtobufKey2 {string K = 1;}",
+          "valueFormat": "PROTOBUF",
+          "valueSchema": "syntax = \"proto3\"; message ProtobufValue1 {float c1 = 1; uint32 c2 = 2;} message ProtobufValue2 {uint64 A = 1; string B = 2;}"
+        },
+        {
+          "name": "source2",
+          "keyFormat": "PROTOBUF",
+          "keySchema": "syntax = \"proto3\"; message ProtobufKey1 {uint32 k1 = 1;} message ProtobufKey2 {string K = 1;}",
+          "valueFormat": "PROTOBUF",
+          "valueSchema": "syntax = \"proto3\"; message ProtobufValue1 {float c1 = 1; uint32 c2 = 2;} message ProtobufValue2 {uint64 A = 1; string B = 2;}"
+        }
+      ],
+      "inputs": [
+        {"topic": "source2", "key": {"K": "falcon"}, "value": {"A": 123, "B": "falcon"}, "timestamp": 0},
+        {"topic": "source2", "key": {"K": "giraffe"}, "value": {"A": 456, "B": "giraffe"}, "timestamp": 0},
+        {"topic": "source2", "key": {"K": "turtle"}, "value": {"A": 789, "B": "turtle"}, "timestamp": 0},
+        {"topic": "source", "key": {"K": "falcon"}, "value": {"A": 1230, "B": "falcon"}, "timestamp": 0},
+        {"topic": "source", "key": {"K": "giraffe"}, "value": {"A": 4560, "B": "giraffe"}, "timestamp": 0},
+        {"topic": "source", "key": {"K": "turtle"}, "value": {"A": 7890, "B": "turtle"}, "timestamp": 0},
+        {"topic": "source2", "key": {"K": "turtle"}, "value": {"A": 800, "B": "turtle"}, "timestamp": 0}
+      ],
+      "outputs": [
+        {"topic": "OUT", "key": {"S_K": "falcon"}, "value": {"S_A": 1230, "S_B": "falcon", "SS_A": 123, "SS_B": "falcon", "SS_K": "falcon"}, "timestamp": 0},
+        {"topic": "OUT", "key": {"S_K": "giraffe"}, "value": {"S_A": 4560, "S_B": "giraffe", "SS_A": 456, "SS_B": "giraffe", "SS_K": "giraffe"}, "timestamp": 0},
+        {"topic": "OUT", "key": {"S_K": "turtle"}, "value": {"S_A": 7890, "S_B": "turtle", "SS_A": 789, "SS_B": "turtle", "SS_K": "turtle"}, "timestamp": 0}
+      ],
+      "post": {
+        "sources": [
+          {
+            "name": "OUT",
+            "type": "stream",
+            "keyFormat": {"format": "PROTOBUF", "properties": {"unwrapPrimitives": "true"}},
+            "schema": "S_K STRING KEY, S_A BIGINT, S_B STRING, SS_K STRING, SS_A BIGINT, SS_B STRING"
+          }
+        ]
+      }
+    },
+    {
+      "name": "stream-table value-to-key join with avro schema and schema_ids in stream",
+      "statements": [
+        "CREATE STREAM SOURCE WITH (kafka_topic='source', format='AVRO', KEY_SCHEMA_ID=1, KEY_SCHEMA_FULL_NAME='com.test.namespace.keySchema', VALUE_SCHEMA_ID=2, VALUE_SCHEMA_FULL_NAME='com.test.namespace.valueSchema');",
+        "CREATE TABLE SINK WITH (kafka_topic='source2', format='AVRO');",
+        "CREATE STREAM OUT AS SELECT S.*, SS.* FROM SOURCE S JOIN SINK SS ON STRUCT(K := S.B)=SS.ROWKEY;"
+      ],
+      "topics": [
+        {
+          "name": "source",
+          "keyFormat": "AVRO",
+          "keySchema": {"type":"record","namespace":"com.test.namespace","name":"keySchema","fields":[{"name":"K","type":"string"}]},
+          "valueFormat": "AVRO",
+          "valueSchema": {"type":"record","namespace":"com.test.namespace","name":"valueSchema","fields":[{"name":"A","type":"int"},{"name":"B","type":"string"}]}
+        },
+        {
+          "name": "source2",
+          "keyFormat": "AVRO",
+          "keySchema": {"type":"record","namespace":"com.test.namespace","name":"keySchema","fields":[{"name":"K","type":"string"}]},
+          "valueFormat": "AVRO",
+          "valueSchema": {"type":"record","namespace":"com.test.namespace","name":"valueSchema","fields":[{"name":"A","type":"int"},{"name":"B","type":"string"}]}
+        }
+      ],
+      "inputs": [
+        {"topic": "source2", "key": {"K": "falcon"}, "value": {"A": 123, "B": "falcon"}, "timestamp": 0},
+        {"topic": "source2", "key": {"K": "giraffe"}, "value": {"A": 456, "B": "giraffe"}, "timestamp": 0},
+        {"topic": "source2", "key": {"K": "turtle"}, "value": {"A": 789, "B": "turtle"}, "timestamp": 0},
+        {"topic": "source", "key": {"K": "0"}, "value": {"A": 123, "B": "falcon"}, "timestamp": 0},
+        {"topic": "source", "key": {"K": "0"}, "value": {"A": 456, "B": "giraffe"}, "timestamp": 0},
+        {"topic": "source", "key": {"K": "0"}, "value": {"A": 789, "B": "turtle"}, "timestamp": 0},
+        {"topic": "source2", "key": {"K": "turtle"}, "value": {"A": 800, "B": "turtle"}, "timestamp": 0}
+      ],
+      "outputs": [
+        {"topic": "OUT", "key": {"K": "falcon"}, "value": {"S_ROWKEY": {"K": "0"}, "S_A": 123, "S_B": "falcon", "SS_A": 123, "SS_B": "falcon"}, "timestamp": 0},
+        {"topic": "OUT", "key": {"K": "giraffe"}, "value": {"S_ROWKEY": {"K": "0"}, "S_A": 456, "S_B": "giraffe", "SS_A": 456, "SS_B": "giraffe"}, "timestamp": 0},
+        {"topic": "OUT", "key": {"K": "turtle"}, "value": {"S_ROWKEY": {"K": "0"}, "S_A": 789, "S_B": "turtle", "SS_A": 789, "SS_B": "turtle"}, "timestamp": 0}
+      ],
+      "post": {
+        "sources": [
+          {
+            "name": "OUT",
+            "type": "stream",
+            "keyFormat": {"format": "AVRO", "properties": {"fullSchemaName": "io.confluent.ksql.avro_schemas.OutKey"}, "features": ["UNWRAP_SINGLES"]},
+            "schema": "SS_ROWKEY STRUCT<K STRING> KEY, S_ROWKEY STRUCT<K STRING>, S_A INTEGER , S_B STRING, SS_A INTEGER, SS_B STRING"
+          }
+        ]
+      }
+    },
+    {
+      "name": "stream-stream key-to-key join with JSON_SR schema and schema id",
+      "statements": [
+        "CREATE STREAM S1 WITH (kafka_topic='s1', key_format='JSON_SR', key_schema_id=100, value_format='JSON_SR', value_schema_id=101);",
+        "CREATE STREAM S2 WITH (kafka_topic='s2', key_format='JSON_SR', key_schema_id=200, value_format='JSON_SR', value_schema_id=201);",
+        "CREATE STREAM OUTPUT AS SELECT ROWKEY_1, AS_VALUE(S1.ROWKEY) AS S1_KEY, AS_VALUE(S2.ROWKEY) AS S2_KEY, S2.VAL FROM S1 FULL OUTER JOIN S2 WITHIN 10 SECONDS ON S1.ROWKEY = S2.ROWKEY;"
+      ],
+      "topics": [
+        {
+          "name": "s1",
+          "keyFormat": "JSON_SR",
+          "keySchema": {"type":"integer","connect.type":"int32"},
+          "keySchemaId": 100,
+          "valueFormat": "JSON_SR",
+          "valueSchema": {"type": "object", "properties": {"foo": {"type": "integer"}}},
+          "valueSchemaId": 101
+        },
+        {
+          "name": "s2",
+          "keyFormat": "JSON_SR",
+          "keySchema": {"oneOf":[{"type":"null"},{"type":"integer","connect.type":"int32"}]},
+          "keySchemaId": 200,
+          "valueFormat": "JSON_SR",
+          "valueSchema": {"type": "object", "properties": {"VAL": {"type": "string"}}},
+          "valueSchemaId": 201
+        }
+      ],
+      "inputs": [
+        {"topic": "s1", "key": 10, "value": {"foo": 22}},
+        {"topic": "s2", "key": 10, "value": {"VAL": "hello"}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 10, "value": {"S1_KEY": 10, "S2_KEY": null, "VAL": null}},
+        {"topic": "OUTPUT", "key": 10, "value": {"S1_KEY": 10, "S2_KEY": 10, "VAL": "hello"}}
+      ]
+    },
+    {
+      "name": "stream-stream value-to-value with JSON_SR and schema id",
+      "statements": [
+        "CREATE STREAM S1 WITH (kafka_topic='s1', key_format='NONE', value_format='JSON_SR', value_schema_id=101);",
+        "CREATE STREAM S2 WITH (kafka_topic='s2', key_format='NONE', value_format='JSON_SR', value_schema_id=201);",
+        "CREATE STREAM OUTPUT AS SELECT S1.ID, S2.VAL FROM S1 LEFT OUTER JOIN S2 WITHIN 10 SECONDS ON S1.ID = S2.ID;"
+      ],
+      "topics": [
+        {
+          "name": "s1",
+          "valueFormat": "JSON_SR",
+          "valueSchema": {"type": "object", "properties": {"ID": {"type": "integer"}, "foo": {"type": "integer"}}},
+          "valueSchemaId": 101
+        },
+        {
+          "name": "s2",
+          "valueFormat": "JSON_SR",
+          "valueSchema": {"type": "object", "properties": {"ID": {"type": "integer"}, "VAL": {"type": "string"}}},
+          "valueSchemaId": 201
+        }
+      ],
+      "inputs": [
+        {"topic": "s1", "value": {"ID": 10, "foo": 22}},
+        {"topic": "s2", "value": {"ID": 10, "VAL": "hello"}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 10, "value": {"VAL": null}},
+        {"topic": "OUTPUT", "key": 10, "value": {"VAL": "hello"}}
+      ]
     }
   ]
 }

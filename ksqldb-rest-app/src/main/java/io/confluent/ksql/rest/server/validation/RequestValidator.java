@@ -126,16 +126,17 @@ public class RequestValidator {
           SessionConfig.of(ksqlConfig, sessionProperties.getMutableScopedProperties())
       );
 
-      numPersistentQueries +=
-          validate(
-              serviceContext,
-              configured,
-              sessionProperties,
-              ctx,
-              injector
-          );
+      final int currNumPersistentQueries = validate(
+          serviceContext,
+          configured,
+          sessionProperties,
+          ctx,
+          injector
+      );
+      numPersistentQueries += currNumPersistentQueries;
 
-      if (QueryCapacityUtil.exceedsPersistentQueryCapacity(ctx, ksqlConfig)) {
+      if (currNumPersistentQueries > 0
+          && QueryCapacityUtil.exceedsPersistentQueryCapacity(ctx, ksqlConfig)) {
         QueryCapacityUtil.throwTooManyActivePersistentQueriesException(ctx, ksqlConfig, sql);
       }
     }

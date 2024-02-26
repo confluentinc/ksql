@@ -16,11 +16,8 @@
 package io.confluent.ksql.serde.protobuf;
 
 import io.confluent.ksql.serde.connect.ConnectSRSchemaDataTranslator;
+import io.confluent.ksql.serde.connect.ConnectSchemas;
 import io.confluent.ksql.util.KsqlException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
@@ -37,34 +34,7 @@ public class ProtobufSRSchemaDataTranslator extends ConnectSRSchemaDataTranslato
       return ksqlData;
     }
 
-    return compatibleWithSchema(ksqlData, getSchema());
-  }
-
-  @SuppressWarnings("unchecked")
-  private Object compatibleWithSchema(final Object object, final Schema schema) {
-    if (object == null) {
-      return object;
-    }
-
-    switch (schema.type()) {
-      case ARRAY:
-        final List<Object> ksqlArray = new ArrayList<>(((List<Object>) object).size());
-        ((List<Object>) object).forEach(
-            e -> ksqlArray.add(compatibleWithSchema(e, schema.valueSchema())));
-        return ksqlArray;
-      case MAP:
-        final Map<Object, Object> ksqlMap = new HashMap<>();
-        ((Map<Object, Object>) object).forEach(
-            (key, value) -> ksqlMap.put(
-                compatibleWithSchema(key, schema.keySchema()),
-                compatibleWithSchema(value, schema.valueSchema())
-            ));
-        return ksqlMap;
-      case STRUCT:
-        return convertStruct((Struct) object, schema);
-      default:
-        return object;
-    }
+    return convertStruct((Struct) ksqlData, getSchema());
   }
 
   private Struct convertStruct(final Struct source, final Schema targetSchema) {
@@ -79,7 +49,7 @@ public class ProtobufSRSchemaDataTranslator extends ConnectSRSchemaDataTranslato
 
       if (originalField.isPresent()) {
         final Object originalValue = source.get(originalField.get());
-        struct.put(field, compatibleWithSchema(originalValue, field.schema()));
+        struct.put(field, ConnectSchemas.withCompatibleSchema(field.schema(), originalValue));
       } else {
         if (field.schema().defaultValue() != null || field.schema().isOptional()) {
           struct.put(field, field.schema().defaultValue());

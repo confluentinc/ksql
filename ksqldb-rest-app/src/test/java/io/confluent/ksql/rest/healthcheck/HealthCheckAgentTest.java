@@ -38,6 +38,7 @@ import io.confluent.ksql.rest.entity.HealthCheckResponse;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.server.computation.CommandRunner;
+import io.confluent.ksql.rest.server.state.ServerState.State;
 import io.confluent.ksql.services.SimpleKsqlClient;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlRequestConfig;
@@ -97,7 +98,7 @@ public class HealthCheckAgentTest {
     givenDescribeTopicsReturns(topicsResult);
     when(topicsResult.allTopicNames()).thenReturn(KafkaFuture.completedFuture(Collections.emptyMap()));
     when(commandRunner.checkCommandRunnerStatus()).thenReturn(CommandRunner.CommandRunnerStatus.RUNNING);
-
+    when(commandRunner.checkServerState()).thenReturn(State.READY);
     final KsqlConfig ksqlConfig = new KsqlConfig(ImmutableMap.of(
         KsqlConfig.KSQL_SERVICE_ID_CONFIG,
         "default_"

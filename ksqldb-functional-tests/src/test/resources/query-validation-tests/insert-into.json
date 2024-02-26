@@ -291,6 +291,51 @@
       ]
     },
     {
+      "name": "PROTOBUF insert query with schema references",
+      "statements": [
+        "CREATE STREAM SOURCE1 WITH (kafka_topic='stream-source', value_format='PROTOBUF', value_schema_id=5);",
+        "CREATE STREAM SOURCE2 WITH (kafka_topic='insert-source', value_format='PROTOBUF', value_schema_id=5);",
+        "CREATE STREAM OUTPUT as SELECT * from SOURCE1;",
+        "INSERT INTO OUTPUT SELECT * FROM SOURCE2;"
+      ],
+      "topics": [
+        {
+          "name": "stream-source",
+          "valueFormat": "PROTOBUF",
+          "valueSchemaId": 5,
+          "valueSchema":"syntax = \"proto3\";\n\nimport \"event.proto\"; \n\nmessage Logistics {\n Event EVENT = 1;\n}",
+          "valueSchemaReferences": [
+            {
+              "name": "event.proto",
+              "format": "PROTOBUF",
+              "schema": "syntax = \"proto3\";\n\nmessage Event {\n int64 TIMESTAMP = 1;\n}"
+            }
+          ]
+        },
+        {
+          "name": "insert-source",
+          "valueFormat": "PROTOBUF",
+          "valueSchemaId": 5,
+          "valueSchema":"syntax = \"proto3\";\n\nimport \"event.proto\"; \n\nmessage Logistics {\n Event EVENT = 1;\n}",
+          "valueSchemaReferences": [
+            {
+              "name": "event.proto",
+              "format": "PROTOBUF",
+              "schema": "syntax = \"proto3\";\n\nmessage Event {\n int64 TIMESTAMP = 1;\n}"
+            }
+          ]
+        }
+      ],
+      "inputs": [
+        { "topic": "stream-source", "value": { "EVENT": { "TIMESTAMP": 1234 } } },
+        { "topic": "insert-source", "value": { "EVENT": { "TIMESTAMP": 4321 } } }
+      ],
+      "outputs": [
+        { "topic": "OUTPUT", "value": { "EVENT": { "TIMESTAMP": 1234 } } },
+        { "topic": "OUTPUT", "value": { "EVENT": { "TIMESTAMP": 4321 } } }
+      ]
+    },
+    {
       "name": "join mismatch (fewer columns than expected)",
       "statements": [
         "CREATE STREAM SOURCE1 (K STRING KEY, data VARCHAR) WITH (kafka_topic='stream-source', value_format='DELIMITED');",
@@ -314,6 +359,28 @@
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
         "message": "Result schema is `K` STRING KEY, `DATA_1` STRING, `DATA_2` STRING, `DATA_3` STRING\nSink schema is `K` STRING KEY, `DATA_1` STRING, `DATA_2` STRING"
+      }
+    },
+    {
+      "name": "insert into source name without quotes",
+      "statements": [
+        "CREATE STREAM \"input\" (id INT KEY, val STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "INSERT INTO input (id, val) VALUES (1, 'hello');"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlException",
+        "message": "Cannot insert values into an unknown stream/table: `INPUT`\nDid you mean \"input\"? Hint: wrap the source name in double quotes to make it case-sensitive."
+      }
+    },
+    {
+      "name": "insert into source name with quotes",
+      "statements": [
+        "CREATE STREAM input (id INT KEY, val STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "INSERT INTO \"input\" (id, val) VALUES (1, 'hello');"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlException",
+        "message": "Cannot insert values into an unknown stream/table: `input`\nDid you mean INPUT? Hint: try removing double quotes from the source name."
       }
     }
   ]

@@ -122,8 +122,8 @@ public final class AstSanitizer {
         final Optional<NodeLocation> targetLocation = node.getLocation()
             .map(
                 l -> new NodeLocation(
-                    l.getLineNumber(),
-                    l.getColumnNumber() + "INSERT INTO".length()
+                    l.getStartLineNumber(),
+                    l.getStartColumnNumber() + "INSERT INTO".length()
                 )
             );
 

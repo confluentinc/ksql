@@ -24,6 +24,10 @@ import com.github.rholder.retry.WaitStrategies;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.rest.entity.ConfigInfos;
+import io.confluent.ksql.rest.entity.ConnectorInfo;
+import io.confluent.ksql.rest.entity.ConnectorStateInfo;
+import io.confluent.ksql.rest.entity.SimpleConnectorPluginInfo;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlServerException;
 import io.confluent.ksql.util.QueryMask;
@@ -56,10 +60,6 @@ import org.apache.hc.core5.http.io.entity.EntityUtils;
 import org.apache.hc.core5.http.message.BasicHeader;
 import org.apache.hc.core5.util.TimeValue;
 import org.apache.hc.core5.util.Timeout;
-import org.apache.kafka.connect.runtime.rest.entities.ConfigInfos;
-import org.apache.kafka.connect.runtime.rest.entities.ConnectorInfo;
-import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo;
-import org.apache.kafka.connect.runtime.rest.entities.PluginInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -209,19 +209,22 @@ public class DefaultConnectClient implements ConnectClient {
   }
 
   @Override
-  public ConnectResponse<List<PluginInfo>> connectorPlugins() {
+  public ConnectResponse<List<SimpleConnectorPluginInfo>> connectorPlugins() {
     try {
       LOG.debug("Issuing request to Kafka Connect at URI {} to list connector plugins", connectUri);
 
-      final ConnectResponse<List<PluginInfo>> connectResponse = withRetries(() -> Request
-          .get(resolveUri(CONNECTOR_PLUGINS))
-          .setHeaders(requestHeaders)
-          .responseTimeout(Timeout.ofMilliseconds(requestTimeoutMs))
-          .connectTimeout(Timeout.ofMilliseconds(requestTimeoutMs))
-          .execute(httpClient)
-          .handleResponse(
-              createHandler(HttpStatus.SC_OK, new TypeReference<List<PluginInfo>>() {},
-                  Function.identity())));
+      final ConnectResponse<List<SimpleConnectorPluginInfo>> connectResponse =
+          withRetries(() -> Request
+              .get(resolveUri(CONNECTOR_PLUGINS))
+              .setHeaders(requestHeaders)
+              .responseTimeout(Timeout.ofMilliseconds(requestTimeoutMs))
+              .connectTimeout(Timeout.ofMilliseconds(requestTimeoutMs))
+              .execute(httpClient)
+              .handleResponse(
+                  createHandler(
+                      HttpStatus.SC_OK,
+                      new TypeReference<List<SimpleConnectorPluginInfo>>() {},
+                      Function.identity())));
 
       connectResponse.error()
           .ifPresent(error -> LOG.warn("Could not list connector plugins: {}.", error));

@@ -25,6 +25,7 @@ import com.google.errorprone.annotations.Immutable;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 @Immutable
@@ -32,14 +33,17 @@ public final class HealthCheckResponse {
 
   private final boolean isHealthy;
   private final ImmutableMap<String, HealthCheckResponseDetail> details;
+  private final Optional<String> serverState;
 
   @JsonCreator
   public HealthCheckResponse(
       @JsonProperty("isHealthy") final boolean isHealthy,
-      @JsonProperty("details") final Map<String, HealthCheckResponseDetail> details
+      @JsonProperty("details") final Map<String, HealthCheckResponseDetail> details,
+      @JsonProperty("serverState") final Optional<String> serverState
   ) {
     this.isHealthy = isHealthy;
     this.details = ImmutableMap.copyOf(requireNonNull(details, "details"));
+    this.serverState = serverState;
   }
 
   public boolean getIsHealthy() {
@@ -49,6 +53,10 @@ public final class HealthCheckResponse {
   @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "details is ImmutableMap")
   public Map<String, HealthCheckResponseDetail> getDetails() {
     return details;
+  }
+
+  public Optional<String> getServerState() {
+    return serverState;
   }
 
   @Override
@@ -63,11 +71,12 @@ public final class HealthCheckResponse {
 
     final HealthCheckResponse that = (HealthCheckResponse) o;
     return isHealthy == that.isHealthy
-        && Objects.equals(details, that.details);
+        && Objects.equals(details, that.details)
+        && Objects.equals(serverState, that.serverState);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(isHealthy, details);
+    return Objects.hash(isHealthy, details, serverState);
   }
 }

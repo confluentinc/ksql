@@ -1,0 +1,16 @@
+Topologies:
+   Sub-topology: 0
+    Source: KSTREAM-SOURCE-0000000000 (topics: [source])
+      --> KSTREAM-TRANSFORMVALUES-0000000001
+    Processor: KSTREAM-TRANSFORMVALUES-0000000001 (stores: [])
+      --> PartitionBy-SelectKey
+      <-- KSTREAM-SOURCE-0000000000
+    Processor: PartitionBy-SelectKey (stores: [])
+      --> Project
+      <-- KSTREAM-TRANSFORMVALUES-0000000001
+    Processor: Project (stores: [])
+      --> KSTREAM-SINK-0000000004
+      <-- PartitionBy-SelectKey
+    Sink: KSTREAM-SINK-0000000004 (topic: OUT)
+      <-- Project
+

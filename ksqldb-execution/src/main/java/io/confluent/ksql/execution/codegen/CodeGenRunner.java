@@ -57,7 +57,6 @@ import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import org.apache.commons.lang3.ArrayUtils;
 import org.apache.kafka.connect.data.Schema;
 import org.codehaus.commons.compiler.CompileException;
 import org.codehaus.commons.compiler.CompilerFactoryFactory;
@@ -164,8 +163,7 @@ public class CodeGenRunner {
 
       final Class<?> expressionType = SQL_TO_JAVA_TYPE_CONVERTER.toJavaType(returnType);
 
-      final IExpressionEvaluator ee =
-          cook(javaCode, expressionType, spec.argumentNames(), spec.argumentTypes());
+      final IExpressionEvaluator ee = cook(javaCode, expressionType);
 
       return new CompiledExpression(ee, spec, returnType, expression);
     } catch (KsqlException | CompileException e) {
@@ -185,17 +183,15 @@ public class CodeGenRunner {
   @VisibleForTesting
   public static IExpressionEvaluator cook(
       final String javaCode,
-      final Class<?> expressionType,
-      final String[] argNames,
-      final Class<?>[] argTypes
+      final Class<?> expressionType
   ) throws Exception {
     final IExpressionEvaluator ee = CompilerFactoryFactory.getDefaultCompilerFactory()
         .newExpressionEvaluator();
 
     ee.setDefaultImports(SqlToJavaVisitor.JAVA_IMPORTS.toArray(new String[0]));
     ee.setParameters(
-        ArrayUtils.addAll(argNames, "defaultValue", "logger", "row"),
-        ArrayUtils.addAll(argTypes, Object.class, ProcessingLogger.class, GenericRow.class)
+            new String[]{"arguments", "defaultValue", "logger", "row"},
+            new Class[]{Map.class, Object.class, ProcessingLogger.class, GenericRow.class}
     );
     ee.setExpressionType(expressionType);
     ee.cook(javaCode);

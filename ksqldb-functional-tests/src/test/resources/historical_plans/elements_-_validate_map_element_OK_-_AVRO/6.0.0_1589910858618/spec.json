@@ -171,10 +171,12 @@
                     "default" : null
                   } ],
                   "connect.internal.type" : "MapEntry"
-                }
+                },
+                "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema_V0"
               } ],
               "default" : null
-            } ]
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
           }
         } ]
       }

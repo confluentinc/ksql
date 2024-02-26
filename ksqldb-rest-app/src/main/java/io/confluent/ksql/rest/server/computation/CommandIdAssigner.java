@@ -73,7 +73,7 @@ public class CommandIdAssigner {
           .put(DropTable.class,
               command -> getDropTableCommandId((DropTable) command))
           .put(TerminateCluster.class,
-              command -> new CommandId(Type.CLUSTER, "TerminateCluster", Action.TERMINATE))
+              command -> getTerminateClusterCommandId())
           .put(AlterSource.class, command -> getAlterSourceCommandId((AlterSource) command))
           .put(AlterSystemProperty.class, command
               -> getAlterSystemCommandId((AlterSystemProperty) command))
@@ -186,5 +186,9 @@ public class CommandIdAssigner {
 
   private static CommandId getSourceCommandId(final CommandId.Type type, final String sourceName) {
     return new CommandId(type, sourceName, CommandId.Action.CREATE);
+  }
+
+  public static CommandId getTerminateClusterCommandId() {
+    return new CommandId(Type.CLUSTER, "TerminateCluster", Action.TERMINATE);
   }
 }

@@ -19,6 +19,7 @@ import com.github.rvesse.airline.annotations.Command;
 import com.github.rvesse.airline.annotations.Option;
 import com.github.rvesse.airline.annotations.restrictions.Once;
 import com.github.rvesse.airline.annotations.restrictions.Required;
+import io.confluent.ksql.tools.test.command.TestOptionsParser;
 import java.io.IOException;
 import java.util.Optional;
 

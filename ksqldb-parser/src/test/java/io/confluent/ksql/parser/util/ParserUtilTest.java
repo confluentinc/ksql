@@ -113,9 +113,12 @@ public class ParserUtilTest {
   }
 
   private static void mockLocation(final ParserRuleContext ctx, final int line, final int col) {
-    final Token token = mock(Token.class);
-    when(token.getLine()).thenReturn(line);
-    when(token.getCharPositionInLine()).thenReturn(col);
-    when(ctx.getStart()).thenReturn(token);
+    final Token startToken = mock(Token.class);
+    when(startToken.getLine()).thenReturn(line);
+    when(startToken.getCharPositionInLine()).thenReturn(col);
+    when(ctx.getStart()).thenReturn(startToken);
+
+    final Token stopToken = mock(Token.class);
+    when(ctx.getStop()).thenReturn(stopToken);
   }
 }

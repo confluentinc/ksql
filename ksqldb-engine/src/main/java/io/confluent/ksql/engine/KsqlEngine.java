@@ -59,6 +59,7 @@ import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.query.id.QueryIdGenerator;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
+import io.confluent.ksql.util.BinPackedPersistentQueryMetadataImpl;
 import io.confluent.ksql.util.ConsistencyOffsetVector;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConfigurable;
@@ -730,8 +731,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable, KsqlConfigur
     ) {
       final String applicationId = query.getQueryApplicationId();
       Optional<String> topologyName = Optional.empty();
-      if (ksqlConfig.getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)
-          && !(query instanceof TransientQueryMetadata)) {
+      if (query instanceof BinPackedPersistentQueryMetadataImpl) {
         topologyName = Optional.of(query.getQueryId().toString());
       }
       if (query.hasEverBeenStarted()) {

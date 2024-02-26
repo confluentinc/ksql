@@ -29,9 +29,7 @@ import io.confluent.ksql.planner.Projection;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.structured.SchemaKStream;
-import io.confluent.ksql.util.KsqlConfig;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Stream;
 
@@ -41,7 +39,6 @@ public class UserRepartitionNode extends SingleSourcePlanNode {
   private final LogicalSchema schema;
   private final ImmutableList<Expression> originalPartitionBys;
   private final ValueFormat valueFormat;
-  private final KsqlConfig ksqlConfig;
 
   @SuppressFBWarnings("EI_EXPOSE_REP2")
   public UserRepartitionNode(
@@ -49,8 +46,7 @@ public class UserRepartitionNode extends SingleSourcePlanNode {
       final PlanNode source,
       final LogicalSchema schema,
       final List<Expression> originalPartitionBys,
-      final List<Expression> partitionBys,
-      final KsqlConfig ksqlConfig
+      final List<Expression> partitionBys
   ) {
     super(id, source.getNodeOutputType(), source.getSourceName(), source);
     this.schema = requireNonNull(schema, "schema");
@@ -62,7 +58,6 @@ public class UserRepartitionNode extends SingleSourcePlanNode {
         .getDataSource()
         .getKsqlTopic()
         .getValueFormat();
-    this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
   }
 
   @Override
@@ -109,7 +104,7 @@ public class UserRepartitionNode extends SingleSourcePlanNode {
     }
 
     // Note: the 'value' columns include the key columns at this point:
-    return orderColumns(getSchema().value(), getSchema(), ksqlConfig);
+    return orderColumns(getSchema().value(), getSchema());
   }
 
   @Override

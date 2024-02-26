@@ -27,6 +27,7 @@ import io.confluent.ksql.query.QueryError;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.query.QuerySchemas;
+import java.util.Collection;
 import java.util.Optional;
 import org.apache.kafka.streams.KafkaStreams.State;
 import org.apache.kafka.streams.errors.StreamsUncaughtExceptionHandler;
@@ -68,6 +69,8 @@ public interface PersistentQueryMetadata extends QueryMetadata {
 
   Optional<ScalablePushRegistry> getScalablePushRegistry();
 
+  Collection<String> getSourceTopicNames();
+
   final class QueryListenerWrapper implements Listener {
     private final Listener listener;
     private final Optional<ScalablePushRegistry> scalablePushRegistry;
@@ -87,6 +90,16 @@ public interface PersistentQueryMetadata extends QueryMetadata {
     @Override
     public void onStateChange(final QueryMetadata query, final State old, final State newState) {
       this.listener.onStateChange(query, old, newState);
+    }
+
+    @Override
+    public void onPause(final QueryMetadata queryMetadata) {
+      this.listener.onPause(queryMetadata);
+    }
+
+    @Override
+    public void onResume(final QueryMetadata queryMetadata) {
+      this.listener.onResume(queryMetadata);
     }
 
     @Override

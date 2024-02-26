@@ -18,15 +18,12 @@ package io.confluent.ksql.function;
 import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.function.types.ParamType;
 import io.confluent.ksql.function.udf.UdfMetadata;
-import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.SqlArgument;
-import io.confluent.ksql.schema.ksql.types.SqlBaseType;
-import io.confluent.ksql.schema.ksql.types.SqlPrimitiveType;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.util.KsqlException;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 
 public class UdafAggregateFunctionFactory extends AggregateFunctionFactory {
@@ -51,22 +48,39 @@ public class UdafAggregateFunctionFactory extends AggregateFunctionFactory {
   }
 
   @Override
-  public synchronized KsqlAggregateFunction<?, ?, ?> createAggregateFunction(
-      final List<SqlArgument> argTypeList,
-      final AggregateFunctionInitArguments initArgs
-  ) {
-    final List<SqlArgument> allParams = buildAllParams(argTypeList, initArgs);
-    final UdafFactoryInvoker creator = udfIndex.getFunction(allParams);
+  public synchronized FunctionSource getFunction(final List<SqlType> argTypeList) {
+
+    final List<SqlArgument> args = argTypeList.stream()
+            .map((type) -> type == null ? null : SqlArgument.of(type))
+            .collect(Collectors.toList());
+
+    final UdafFactoryInvoker creator = udfIndex.getFunction(args);
     if (creator == null) {
       throw new KsqlException("There is no aggregate function with name='" + getName()
           + "' that has arguments of type="
-          + allParams.stream()
-          .map(SqlArgument::getSqlTypeOrThrow)
+          + argTypeList.stream()
           .map(SqlType::baseType)
           .map(Objects::toString)
           .collect(Collectors.joining(",")));
     }
-    return creator.createFunction(initArgs, argTypeList);
+
+    final boolean isFactoryVariadic = creator.literalParams().stream()
+            .anyMatch(ParameterInfo::isVariadic);
+
+    /* There can only be one variadic argument, so we know either the column args are bounded
+    or the initial args are bounded. */
+    final int numInitArgs;
+    final int numSignatureInitArgs = creator.literalParams().size();
+    if (isFactoryVariadic) {
+      numInitArgs = argTypeList.size() - (creator.parameterInfo().size() - numSignatureInitArgs);
+    } else {
+      numInitArgs = numSignatureInitArgs;
+    }
+
+    return new FunctionSource(
+            numInitArgs,
+            (initArgs) -> creator.createFunction(initArgs, args)
+    );
   }
 
   @Override
@@ -77,36 +91,9 @@ public class UdafAggregateFunctionFactory extends AggregateFunctionFactory {
         .collect(Collectors.toList());
   }
 
-  private List<SqlArgument> buildAllParams(
-      final List<SqlArgument> argTypeList,
-      final AggregateFunctionInitArguments initArgs
-  ) {
-    if (initArgs.args().isEmpty()) {
-      return argTypeList;
-    }
-
-    final List<SqlArgument> allParams =
-        new ArrayList<>(argTypeList.size() + initArgs.args().size());
-    allParams.addAll(argTypeList);
-
-    for (final Object arg : initArgs.args()) {
-      if (arg == null) {
-        allParams.add(null);
-        continue;
-      }
-
-      final SqlBaseType baseType = SchemaConverters.javaToSqlConverter().toSqlType(arg.getClass());
-
-      try {
-        // Only primitive types currently supported:
-        final SqlPrimitiveType primitiveType = SqlPrimitiveType.of(baseType);
-        allParams.add(SqlArgument.of(primitiveType));
-      } catch (final Exception e) {
-        throw new KsqlFunctionException("Only primitive init arguments are supported by UDAF "
-            + getName() + ", but got " + arg, e);
-      }
-    }
-
-    return allParams;
+  @Override
+  public void eachFunction(final BiConsumer<FunctionSignature, String> consumer) {
+    udfIndex.values().forEach((invoker) -> consumer.accept(invoker, invoker.getDescription()));
   }
+
 }

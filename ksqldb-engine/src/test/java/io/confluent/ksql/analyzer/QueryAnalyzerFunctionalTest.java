@@ -15,27 +15,21 @@
 
 package io.confluent.ksql.analyzer;
 
+import static io.confluent.ksql.function.UserFunctionLoaderTestUtil.loadAllUserFunctions;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThrows;
 
-import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.function.InternalFunctionRegistry;
-import io.confluent.ksql.function.UserFunctionLoader;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Sink;
 import io.confluent.ksql.serde.FormatFactory;
-import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlParserTestUtil;
 import io.confluent.ksql.util.MetaStoreFixture;
-import java.io.File;
 import java.util.Optional;
 import org.junit.Test;
 
@@ -49,24 +43,16 @@ import org.junit.Test;
 @SuppressWarnings("OptionalGetWithoutIsPresent")
 public class QueryAnalyzerFunctionalTest {
 
-  private static final boolean ROWPARTITION_ROWOFFSET_ENABLED = true;
   private static final boolean PULL_LIMIT_CLAUSE_ENABLED = true;
 
   private final InternalFunctionRegistry functionRegistry = new InternalFunctionRegistry();
   private final MetaStore metaStore = MetaStoreFixture.getNewMetaStore(functionRegistry);
   private final QueryAnalyzer queryAnalyzer =
-      new QueryAnalyzer(metaStore, "prefix-~", ROWPARTITION_ROWOFFSET_ENABLED, PULL_LIMIT_CLAUSE_ENABLED);
+      new QueryAnalyzer(metaStore, "prefix-~", PULL_LIMIT_CLAUSE_ENABLED);
 
   @Test
   public void shouldAnalyseTableFunctions() {
-
-    // We need to load udfs for this
-    final UserFunctionLoader loader = new UserFunctionLoader(functionRegistry, new File(""),
-        Thread.currentThread().getContextClassLoader(),
-        s -> false,
-        Optional.empty(), true
-    );
-    loader.load();
+    loadAllUserFunctions(functionRegistry);
 
     // Given:
     final Query query = givenQuery("SELECT ID, EXPLODE(ARR1) FROM SENSOR_READINGS EMIT CHANGES;");
@@ -80,27 +66,25 @@ public class QueryAnalyzerFunctionalTest {
   }
 
   @Test
-  public void shouldThrowIfUdafsAndNoGroupBy() {
+  public void shouldAnalyseAggregateFunctions() {
+    loadAllUserFunctions(functionRegistry);
+
     // Given:
-    final Query query = givenQuery("select itemid, sum(orderunits) from orders EMIT CHANGES;");
+    final Query query = givenQuery("SELECT ID, COUNT(ARR1) FROM SENSOR_READINGS EMIT CHANGES;");
 
     // When:
-    final Exception e = assertThrows(
-        KsqlException.class,
-        () -> queryAnalyzer.analyze(query, Optional.empty())
-    );
+    final Analysis analysis = queryAnalyzer.analyze(query, Optional.empty());
 
     // Then:
-    assertThat(e.getMessage(), containsString(
-        "Use of aggregate function SUM requires a GROUP BY clause."
-    ));
+    assertThat(analysis.getAggregateFunctions(), hasSize(1));
+    assertThat(analysis.getAggregateFunctions().get(0).getName().text(), equalTo("COUNT"));
   }
 
   @Test
   public void shouldHandleValueFormat() {
     // Given:
     final PreparedStatement<CreateStreamAsSelect> statement = KsqlParserTestUtil.buildSingleAst(
-        "create stream s with(value_format='delimited') as select * from test1;", metaStore, ROWPARTITION_ROWOFFSET_ENABLED);
+        "create stream s with(value_format='delimited') as select * from test1;", metaStore);
     final Query query = statement.getStatement().getQuery();
     final Optional<Sink> sink = Optional.of(statement.getStatement().getSink());
 
@@ -113,6 +97,6 @@ public class QueryAnalyzerFunctionalTest {
   }
 
   private Query givenQuery(final String sql) {
-    return KsqlParserTestUtil.<Query>buildSingleAst(sql, metaStore, ROWPARTITION_ROWOFFSET_ENABLED).getStatement();
+    return KsqlParserTestUtil.<Query>buildSingleAst(sql, metaStore).getStatement();
   }
 }

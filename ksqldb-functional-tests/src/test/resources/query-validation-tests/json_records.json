@@ -27,6 +27,21 @@
         {"topic": "OUTPUT", "key": "1", "value": {"COLORS": {"White": "Seven"}}, "timestamp": 0},
         {"topic": "OUTPUT", "key": "1", "value": {"COLORS": {}}, "timestamp": 0}
       ]
+    },
+    {
+      "name": "extract records from a json objects nested",
+      "statements": [
+        "CREATE STREAM test (K STRING KEY, colors_obj STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT K, JSON_RECORDS(colors_obj)['Red'] AS COLORS FROM test WHERE JSON_RECORDS(colors_obj) IS NOT NULL;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": "1", "value": {"colors_obj": "{\"Red\": 3, \"Green\": 5}"}, "timestamp": 0},
+        {"topic": "test_topic", "key": "1", "value": {"colors_obj": "{\"Black\": 2}"}, "timestamp": 0}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "1", "value": {"COLORS": "3"}, "timestamp": 0},
+        {"topic": "OUTPUT", "key": "1", "value": {"COLORS": null}, "timestamp": 0}
+      ]
     }
   ]
 }

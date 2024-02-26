@@ -38,17 +38,18 @@ public class UdafAggregateFunction<I, A, O> extends BaseAggregateFunction<I, A, 
 
   protected UdafAggregateFunction(
       final String functionName,
-      final int udafIndex,
+      final List<Integer> udafIndices,
       final Udaf<I, A, O> udaf,
       final SqlType aggregateType,
       final SqlType outputType,
       final List<ParameterInfo> arguments,
       final String description,
       final Optional<Metrics> metrics,
-      final String method
+      final String method,
+      final int numColArgs
   ) {
-    super(functionName, udafIndex, udaf::initialize, aggregateType,
-        outputType, arguments, description);
+    super(functionName, udafIndices, udaf::initialize, aggregateType,
+        outputType, arguments, description, numColArgs);
 
     this.udaf = Objects.requireNonNull(udaf, "udaf");
 

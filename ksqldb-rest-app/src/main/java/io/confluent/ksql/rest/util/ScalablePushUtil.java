@@ -15,7 +15,7 @@
 
 package io.confluent.ksql.rest.util;
 
-import io.confluent.ksql.engine.KsqlEngine;
+import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.util.ColumnExtractor;
@@ -47,7 +47,7 @@ public final class ScalablePushUtil {
   @SuppressWarnings({"BooleanExpressionComplexity", "CyclomaticComplexity"})
   public static boolean isScalablePushQuery(
       final Statement statement,
-      final KsqlEngine ksqlEngine,
+      final KsqlExecutionContext ksqlEngine,
       final KsqlConfig ksqlConfig,
       final Map<String, Object> overrides
   ) {
@@ -87,24 +87,18 @@ public final class ScalablePushUtil {
         // We only handle a single sink source at the moment from a CTAS/CSAS
         && upstreamQueries.size() == 1
         // ROWPARTITION and ROWOFFSET are not currently supported in SPQs
-        && !containsDisallowedColumns(query, ksqlConfig);
+        && !containsDisallowedColumns(query);
   }
 
-  private static boolean containsDisallowedColumns(final Query query, final KsqlConfig ksqlConfig) {
-    //if the flag is not enabled, these are user columns and can be used in SPQs
-    if (!ksqlConfig.getBoolean(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED)) {
-      return false;
-    }
-
-    return containsDisallowedColumnsInWhereClause(query, ksqlConfig)
-        || containsDisallowedColumnsInSelectClause(query, ksqlConfig);
+  private static boolean containsDisallowedColumns(final Query query) {
+    return containsDisallowedColumnsInWhereClause(query)
+        || containsDisallowedColumnsInSelectClause(query);
   }
 
   // this code is a duplicate of what's in PullQueryValidator, but this is intended as
   // we'll split the isDisallowedInPullOrScalableQueries boolean soon anyways
   private static boolean containsDisallowedColumnsInWhereClause(
-      final Query query,
-      final KsqlConfig ksqlConfig
+      final Query query
   ) {
 
     final Optional<Expression> whereClause = query.getWhere();
@@ -112,22 +106,15 @@ public final class ScalablePushUtil {
       return false;
     }
 
-    final int pseudoColumnVersion = SystemColumns.getPseudoColumnVersionFromConfig(ksqlConfig);
-
     return ColumnExtractor.extractColumns(whereClause.get())
         .stream()
         .map(ColumnReferenceExp::getColumnName)
-        .anyMatch(name ->
-            SystemColumns.isDisallowedInPullOrScalablePushQueries(name, pseudoColumnVersion));
+        .anyMatch(SystemColumns::isDisallowedInPullOrScalablePushQueries);
   }
 
   private static boolean containsDisallowedColumnsInSelectClause(
-      final Query query,
-      final KsqlConfig ksqlConfig
+      final Query query
   ) {
-
-    final int pseudoColumnVersion = SystemColumns.getPseudoColumnVersionFromConfig(ksqlConfig);
-
     return query.getSelect().getSelectItems()
         .stream()
         .filter(col -> col instanceof SingleColumn) //filter out select *
@@ -136,8 +123,7 @@ public final class ScalablePushUtil {
         .map(ColumnExtractor::extractColumns)
         .flatMap(Collection::stream)
         .map(ColumnReferenceExp::getColumnName)
-        .anyMatch(name ->
-            SystemColumns.isDisallowedInPullOrScalablePushQueries(name, pseudoColumnVersion));
+        .anyMatch(SystemColumns::isDisallowedInPullOrScalablePushQueries);
   }
 
   private static boolean isPushV2Enabled(

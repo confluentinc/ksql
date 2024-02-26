@@ -87,12 +87,11 @@ Every query started by a `CREATE STREAM AS SELECT` or
 topic. The created topic is configured with the following properties:
 
 -   **Name:** By default, ksqlDB creates the output topic with the same name as
-    the stream or table created by the statement. You can specify a
-    custom name in the `KAFKA_TOPIC` property of the statement's `WITH`
-    clause.
--   **Partitions:** By default ksqlDB creates an output topic with 4
-    partitions. You can specify a custom partition count in the
-    `PARTITIONS` property of the statement's `WITH` clause.
+    the stream or table created by the statement. You can specify a custom name
+    in the `KAFKA_TOPIC` property of the statement's `WITH` clause.
+-   **Partitions:** By default, ksqlDB creates an output topic with the same
+    number of partitions as the input topic. You can specify a custom partition
+    count in the `PARTITIONS` property of the statement's `WITH` clause.
 -   **Replication Factor:** By default, ksqlDB creates the output topic with a
     replication factor of 1. You can specify a custom replication factor
     in the `REPLICAS` property of the statement's `WITH` clause.
@@ -234,7 +233,7 @@ command topics. Command topics have a single partition and default to a
 replication factor of 1.
 
 !!! note
-		Headless mode deployments don't have a command topic.
+		{{ site.ccloud }} and Headless mode deployments don't have a command topic.
 
 #### Consumption and Production
 

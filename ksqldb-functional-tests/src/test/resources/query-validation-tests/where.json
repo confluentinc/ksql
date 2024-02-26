@@ -55,7 +55,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Line: 2, Col: 55: WHERE column 'BOB' cannot be resolved."
+        "message": "WHERE column 'BOB' cannot be resolved."
       }
     }
   ]

@@ -1,0 +1,210 @@
+{
+  "comments": [
+    "You can specify multiple statements per test case, i.e., to set up the various streams needed",
+    "for joins etc, but currently only the final topology will be verified. This should be enough",
+    "for most tests as we can simulate the outputs from previous stages into the final stage. If we",
+    "take a modular approach to testing we can still verify that it all works correctly, i.e, if we",
+    "verify the output of a select or aggregate is correct, we can use simulated output to feed into",
+    "a join or another aggregate."
+  ],
+  "tests": [
+    {
+      "name": "missing required initial arg",
+      "statements": [
+        "CREATE STREAM INPUT (ID BIGINT KEY, FIRST bigint, SECOND string) WITH (kafka_topic='input_topic', value_format='JSON');",
+        "CREATE TABLE OUTPUT as SELECT id, MULTI_ARG(FIRST, SECOND) as RESULT FROM INPUT group by id;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Function 'MULTI_ARG' does not accept parameters (BIGINT, STRING)."
+      }
+    },
+    {
+      "name": "missing first argument",
+      "statements": [
+        "CREATE STREAM INPUT (ID BIGINT KEY, FIRST bigint, SECOND string) WITH (kafka_topic='input_topic', value_format='JSON');",
+        "CREATE TABLE OUTPUT as SELECT id, MULTI_ARG(SECOND, 5, '10', '20', '3') as RESULT FROM INPUT group by id;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Function 'MULTI_ARG' does not accept parameters (STRING, INTEGER, STRING, STRING, STRING)."
+      }
+    },
+    {
+      "name": "missing second argument",
+      "statements": [
+        "CREATE STREAM INPUT (ID BIGINT KEY, FIRST bigint, SECOND string) WITH (kafka_topic='input_topic', value_format='JSON');",
+        "CREATE TABLE OUTPUT as SELECT id, MULTI_ARG(FIRST, 5, '10', '20', '3') as RESULT FROM INPUT group by id;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Function 'MULTI_ARG' does not accept parameters (BIGINT, INTEGER, STRING, STRING, STRING)."
+      }
+    },
+    {
+      "name": "all arguments",
+      "statements": [
+        "CREATE STREAM INPUT (ID BIGINT KEY, FIRST bigint, SECOND string) WITH (kafka_topic='input_topic', value_format='JSON');",
+        "CREATE TABLE OUTPUT as SELECT id, MULTI_ARG(FIRST, SECOND, 5, '10', '20', '3') as RESULT FROM INPUT group by id;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": 0, "value": {"FIRST": 6, "SECOND": "hi"}},
+        {"topic": "input_topic", "key": 100, "value": {"FIRST": 2, "SECOND": "a"}},
+        {"topic": "input_topic", "key": 0, "value": {"FIRST": null, "SECOND": "hello"}},
+        {"topic": "input_topic", "key": 100, "value": {"FIRST": 5, "SECOND": "world"}},
+        {"topic": "input_topic", "key": 0, "value": {"FIRST": 5, "SECOND": null}},
+        {"topic": "input_topic", "key": 100, "value": {"FIRST": 3, "SECOND": "test"}},
+        {"topic": "input_topic", "key": 100, "value": {"FIRST": 2, "SECOND": "testing"}},
+        {"topic": "input_topic", "key": 0, "value": {"FIRST": 21, "SECOND": "aggregate"}},
+        {"topic": "input_topic", "key": 100, "value": {"FIRST": null, "SECOND": "function"}},
+        {"topic": "input_topic", "key": 100, "value": {"FIRST": 3, "SECOND": "ksql"}},
+        {"topic": "input_topic", "key": 100, "value": {"FIRST": 6, "SECOND": "test"}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 0, "value": {"RESULT": 18}},
+        {"topic": "OUTPUT", "key": 100, "value": {"RESULT": 13}},
+        {"topic": "OUTPUT", "key": 0, "value": {"RESULT": 23}},
+        {"topic": "OUTPUT", "key": 100, "value": {"RESULT": 23}},
+        {"topic": "OUTPUT", "key": 0, "value": {"RESULT": 28}},
+        {"topic": "OUTPUT", "key": 100, "value": {"RESULT": 30}},
+        {"topic": "OUTPUT", "key": 100, "value": {"RESULT": 39}},
+        {"topic": "OUTPUT", "key": 0, "value": {"RESULT": 58}},
+        {"topic": "OUTPUT", "key": 100, "value": {"RESULT": 47}},
+        {"topic": "OUTPUT", "key": 100, "value": {"RESULT": 54}},
+        {"topic": "OUTPUT", "key": 100, "value": {"RESULT": 64}}
+      ]
+    },
+    {
+      "name": "regular arg literal",
+      "statements": [
+        "CREATE STREAM INPUT (ID BIGINT KEY, FIRST bigint, SECOND string) WITH (kafka_topic='input_topic', value_format='JSON');",
+        "CREATE TABLE OUTPUT as SELECT id, MULTI_ARG(FIRST, 'hello', 5, '10', '20', '3') as RESULT FROM INPUT group by id;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": 0, "value": {"FIRST": 6, "SECOND": "hi"}},
+        {"topic": "input_topic", "key": 100, "value": {"FIRST": 2, "SECOND": "a"}},
+        {"topic": "input_topic", "key": 0, "value": {"FIRST": null, "SECOND": "hello"}},
+        {"topic": "input_topic", "key": 100, "value": {"FIRST": 5, "SECOND": "world"}},
+        {"topic": "input_topic", "key": 0, "value": {"FIRST": 5, "SECOND": null}},
+        {"topic": "input_topic", "key": 100, "value": {"FIRST": 3, "SECOND": "test"}},
+        {"topic": "input_topic", "key": 100, "value": {"FIRST": 2, "SECOND": "testing"}},
+        {"topic": "input_topic", "key": 0, "value": {"FIRST": 21, "SECOND": "aggregate"}},
+        {"topic": "input_topic", "key": 100, "value": {"FIRST": null, "SECOND": "function"}},
+        {"topic": "input_topic", "key": 100, "value": {"FIRST": 3, "SECOND": "ksql"}},
+        {"topic": "input_topic", "key": 100, "value": {"FIRST": 6, "SECOND": "test"}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 0, "value": {"RESULT": 21}},
+        {"topic": "OUTPUT", "key": 100, "value": {"RESULT": 17}},
+        {"topic": "OUTPUT", "key": 0, "value": {"RESULT": 26}},
+        {"topic": "OUTPUT", "key": 100, "value": {"RESULT": 27}},
+        {"topic": "OUTPUT", "key": 0, "value": {"RESULT": 36}},
+        {"topic": "OUTPUT", "key": 100, "value": {"RESULT": 35}},
+        {"topic": "OUTPUT", "key": 100, "value": {"RESULT": 42}},
+        {"topic": "OUTPUT", "key": 0, "value": {"RESULT": 62}},
+        {"topic": "OUTPUT", "key": 100, "value": {"RESULT": 47}},
+        {"topic": "OUTPUT", "key": 100, "value": {"RESULT": 55}},
+        {"topic": "OUTPUT", "key": 100, "value": {"RESULT": 66}}
+      ]
+    },
+    {
+      "name": "no variadic args",
+      "statements": [
+        "CREATE STREAM INPUT (ID BIGINT KEY, FIRST bigint, SECOND string) WITH (kafka_topic='input_topic', value_format='JSON');",
+        "CREATE TABLE OUTPUT as SELECT id, MULTI_ARG(FIRST, SECOND, 5) as RESULT FROM INPUT group by id;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": 0, "value": {"FIRST": 6, "SECOND": "hi"}},
+        {"topic": "input_topic", "key": 100, "value": {"FIRST": 2, "SECOND": "a"}},
+        {"topic": "input_topic", "key": 0, "value": {"FIRST": null, "SECOND": "hello"}},
+        {"topic": "input_topic", "key": 100, "value": {"FIRST": 5, "SECOND": "world"}},
+        {"topic": "input_topic", "key": 0, "value": {"FIRST": 5, "SECOND": null}},
+        {"topic": "input_topic", "key": 100, "value": {"FIRST": 3, "SECOND": "test"}},
+        {"topic": "input_topic", "key": 100, "value": {"FIRST": 2, "SECOND": "testing"}},
+        {"topic": "input_topic", "key": 0, "value": {"FIRST": 21, "SECOND": "aggregate"}},
+        {"topic": "input_topic", "key": 100, "value": {"FIRST": null, "SECOND": "function"}},
+        {"topic": "input_topic", "key": 100, "value": {"FIRST": 3, "SECOND": "ksql"}},
+        {"topic": "input_topic", "key": 100, "value": {"FIRST": 6, "SECOND": "test"}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 0, "value": {"RESULT": 13}},
+        {"topic": "OUTPUT", "key": 100, "value": {"RESULT": 8}},
+        {"topic": "OUTPUT", "key": 0, "value": {"RESULT": 18}},
+        {"topic": "OUTPUT", "key": 100, "value": {"RESULT": 18}},
+        {"topic": "OUTPUT", "key": 0, "value": {"RESULT": 23}},
+        {"topic": "OUTPUT", "key": 100, "value": {"RESULT": 25}},
+        {"topic": "OUTPUT", "key": 100, "value": {"RESULT": 34}},
+        {"topic": "OUTPUT", "key": 0, "value": {"RESULT": 53}},
+        {"topic": "OUTPUT", "key": 100, "value": {"RESULT": 42}},
+        {"topic": "OUTPUT", "key": 100, "value": {"RESULT": 49}},
+        {"topic": "OUTPUT", "key": 100, "value": {"RESULT": 59}}
+      ]
+    },
+    {
+      "name": "all arguments (four cols)",
+      "statements": [
+        "CREATE STREAM INPUT (ID BIGINT KEY, FIRST bigint, SECOND string, THIRD string, FOURTH string) WITH (kafka_topic='input_topic', value_format='JSON');",
+        "CREATE TABLE OUTPUT as SELECT id, FOUR_ARG(FIRST, SECOND, THIRD, FOURTH, 5, '10', '20', '3') as RESULT FROM INPUT group by id;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": 0, "value": {"FIRST": 6, "SECOND": "hi", "THIRD": "apples", "FOURTH": null}},
+        {"topic": "input_topic", "key": 100, "value": {"FIRST": 2, "SECOND": "a", "THIRD": "oranges", "FOURTH": "Mercury"}},
+        {"topic": "input_topic", "key": 0, "value": {"FIRST": null, "SECOND": "hello", "THIRD": "bananas", "FOURTH": "Venus"}},
+        {"topic": "input_topic", "key": 100, "value": {"FIRST": 5, "SECOND": "world", "THIRD": "peaches", "FOURTH": "Earth"}},
+        {"topic": "input_topic", "key": 0, "value": {"FIRST": 5, "SECOND": null, "THIRD": "grapes", "FOURTH": "Mars"}},
+        {"topic": "input_topic", "key": 100, "value": {"FIRST": 3, "SECOND": "test", "THIRD": null, "FOURTH": "Asteroid Belt"}},
+        {"topic": "input_topic", "key": 100, "value": {"FIRST": 2, "SECOND": "testing", "THIRD": "strawberries", "FOURTH": "Jupiter"}},
+        {"topic": "input_topic", "key": 0, "value": {"FIRST": 21, "SECOND": "aggregate", "THIRD": "avocados", "FOURTH": "Saturn"}},
+        {"topic": "input_topic", "key": 100, "value": {"FIRST": null, "SECOND": "function", "THIRD": "pears", "FOURTH": "Uranus"}},
+        {"topic": "input_topic", "key": 100, "value": {"FIRST": 3, "SECOND": "ksql", "THIRD": "plums", "FOURTH": "Neptune"}},
+        {"topic": "input_topic", "key": 100, "value": {"FIRST": 6, "SECOND": "test", "THIRD": "oranges", "FOURTH": "Pluto"}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 0, "value": {"RESULT": 24}},
+        {"topic": "OUTPUT", "key": 100, "value": {"RESULT": 27}},
+        {"topic": "OUTPUT", "key": 0, "value": {"RESULT": 41}},
+        {"topic": "OUTPUT", "key": 100, "value": {"RESULT": 49}},
+        {"topic": "OUTPUT", "key": 0, "value": {"RESULT": 56}},
+        {"topic": "OUTPUT", "key": 100, "value": {"RESULT": 69}},
+        {"topic": "OUTPUT", "key": 100, "value": {"RESULT": 97}},
+        {"topic": "OUTPUT", "key": 0, "value": {"RESULT": 100}},
+        {"topic": "OUTPUT", "key": 100, "value": {"RESULT": 116}},
+        {"topic": "OUTPUT", "key": 100, "value": {"RESULT": 135}},
+        {"topic": "OUTPUT", "key": 100, "value": {"RESULT": 157}}
+      ]
+    },
+    {
+      "name": "all arguments (five cols)",
+      "statements": [
+        "CREATE STREAM INPUT (ID BIGINT KEY, FIRST bigint, SECOND string, THIRD string, FOURTH string, FIFTH integer) WITH (kafka_topic='input_topic', value_format='JSON');",
+        "CREATE TABLE OUTPUT as SELECT id, FIVE_ARG(FIRST, SECOND, THIRD, FOURTH, FIFTH, 5, '10', '20', '3') as RESULT FROM INPUT group by id;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": 0, "value": {"FIRST": 6, "SECOND": "hi", "THIRD": "apples", "FOURTH": null, "FIFTH": 9}},
+        {"topic": "input_topic", "key": 100, "value": {"FIRST": 2, "SECOND": "a", "THIRD": "oranges", "FOURTH": "Mercury", "FIFTH": null}},
+        {"topic": "input_topic", "key": 0, "value": {"FIRST": null, "SECOND": "hello", "THIRD": "bananas", "FOURTH": "Venus", "FIFTH": 1}},
+        {"topic": "input_topic", "key": 100, "value": {"FIRST": 5, "SECOND": "world", "THIRD": "peaches", "FOURTH": "Earth", "FIFTH": 200}},
+        {"topic": "input_topic", "key": 0, "value": {"FIRST": 5, "SECOND": null, "THIRD": "grapes", "FOURTH": "Mars", "FIFTH": -4}},
+        {"topic": "input_topic", "key": 100, "value": {"FIRST": 3, "SECOND": "test", "THIRD": null, "FOURTH": "Asteroid Belt", "FIFTH": 1}},
+        {"topic": "input_topic", "key": 100, "value": {"FIRST": 2, "SECOND": "testing", "THIRD": "strawberries", "FOURTH": "Jupiter", "FIFTH": 10}},
+        {"topic": "input_topic", "key": 0, "value": {"FIRST": 21, "SECOND": "aggregate", "THIRD": "avocados", "FOURTH": "Saturn", "FIFTH": 2}},
+        {"topic": "input_topic", "key": 100, "value": {"FIRST": null, "SECOND": "function", "THIRD": "pears", "FOURTH": "Uranus", "FIFTH": 123}},
+        {"topic": "input_topic", "key": 100, "value": {"FIRST": 3, "SECOND": "ksql", "THIRD": "plums", "FOURTH": "Neptune", "FIFTH": 45}},
+        {"topic": "input_topic", "key": 100, "value": {"FIRST": 6, "SECOND": "test", "THIRD": "oranges", "FOURTH": "Pluto", "FIFTH": -2}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 0, "value": {"RESULT": 33}},
+        {"topic": "OUTPUT", "key": 100, "value": {"RESULT": 27}},
+        {"topic": "OUTPUT", "key": 0, "value": {"RESULT": 51}},
+        {"topic": "OUTPUT", "key": 100, "value": {"RESULT": 249}},
+        {"topic": "OUTPUT", "key": 0, "value": {"RESULT": 62}},
+        {"topic": "OUTPUT", "key": 100, "value": {"RESULT": 270}},
+        {"topic": "OUTPUT", "key": 100, "value": {"RESULT": 308}},
+        {"topic": "OUTPUT", "key": 0, "value": {"RESULT": 108}},
+        {"topic": "OUTPUT", "key": 100, "value": {"RESULT": 450}},
+        {"topic": "OUTPUT", "key": 100, "value": {"RESULT": 514}},
+        {"topic": "OUTPUT", "key": 100, "value": {"RESULT": 534}}
+      ]
+    }
+  ]
+}

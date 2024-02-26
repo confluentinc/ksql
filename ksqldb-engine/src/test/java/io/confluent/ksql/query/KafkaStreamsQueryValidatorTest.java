@@ -20,6 +20,7 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.config.SessionConfig;
+import io.confluent.ksql.util.BinPackedPersistentQueryMetadataImpl;
 import io.confluent.ksql.execution.ExecutionPlan;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
@@ -52,6 +53,10 @@ public class KafkaStreamsQueryValidatorTest {
   @Mock
   private  PersistentQueryMetadata persistentQueryMetadata2;
   @Mock
+  private BinPackedPersistentQueryMetadataImpl binPackedPersistentQueryMetadata;
+  @Mock
+  private BinPackedPersistentQueryMetadataImpl binPackedPersistentQueryMetadata2;
+  @Mock
   private ExecutionPlan plan;
 
   private Collection<QueryMetadata> queries;
@@ -64,11 +69,17 @@ public class KafkaStreamsQueryValidatorTest {
     when(transientQueryMetadata2.getStreamsProperties()).thenReturn(streamPropsWithCacheLimit(20));
     when(persistentQueryMetadata1.getStreamsProperties()).thenReturn(streamPropsWithCacheLimit(10));
     when(persistentQueryMetadata2.getStreamsProperties()).thenReturn(streamPropsWithCacheLimit(20));
+    when(binPackedPersistentQueryMetadata.getQueryApplicationId()).thenReturn("runtime 1");
+    when(binPackedPersistentQueryMetadata2.getQueryApplicationId()).thenReturn("runtime 1");
+    when(binPackedPersistentQueryMetadata.getStreamsProperties()).thenReturn(streamPropsWithCacheLimit(10));
+    when(binPackedPersistentQueryMetadata2.getStreamsProperties()).thenReturn(streamPropsWithCacheLimit(10));
     queries = ImmutableList.of(
         transientQueryMetadata1,
         transientQueryMetadata2,
         persistentQueryMetadata1,
-        persistentQueryMetadata2
+        persistentQueryMetadata2,
+        binPackedPersistentQueryMetadata,
+        binPackedPersistentQueryMetadata2
     );
   }
 
@@ -84,7 +95,7 @@ public class KafkaStreamsQueryValidatorTest {
   @Test
   public void shouldNotThrowIfUnderLimit() {
     // Given:
-    final SessionConfig config = configWithLimits(5, OptionalLong.of(40));
+    final SessionConfig config = configWithLimits(5, OptionalLong.of(60));
 
     // When/Then (no throw)
     queryValidator.validateQuery(config, plan, queries);
@@ -125,6 +136,38 @@ public class KafkaStreamsQueryValidatorTest {
     // Given:
     final SessionConfig config = SessionConfig.of(
         new KsqlConfig(ImmutableMap.of(KsqlConfig.KSQL_TOTAL_CACHE_MAX_BYTES_BUFFERING, 30)),
+        ImmutableMap.of(
+            StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG, 50,
+            KsqlConfig.KSQL_TOTAL_CACHE_MAX_BYTES_BUFFERING, 500
+        )
+    );
+
+    // When/Then:
+    assertThrows(
+        KsqlException.class,
+        () -> queryValidator.validateQuery(config, plan, queries)
+    );
+  }
+
+  @Test
+  public void shouldValidateSharedRuntimes() {
+    // Given:
+    final SessionConfig config = SessionConfig.of(
+        new KsqlConfig(ImmutableMap.of(KsqlConfig.KSQL_TOTAL_CACHE_MAX_BYTES_BUFFERING, 50,
+        KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED, true)),
+        ImmutableMap.of(StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG, 10)
+    );
+
+    // When/Then:
+    queryValidator.validateQuery(config, plan, queries);
+  }
+
+  @Test
+  public void shouldNotValidateSharedRuntimesWhenCreatingAnewRuntimeWouldGoOverTheLimit() {
+    // Given:
+    final SessionConfig config = SessionConfig.of(
+        new KsqlConfig(ImmutableMap.of(KsqlConfig.KSQL_TOTAL_CACHE_MAX_BYTES_BUFFERING, 50,
+            KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED, true)),
         ImmutableMap.of(
             StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG, 50,
             KsqlConfig.KSQL_TOTAL_CACHE_MAX_BYTES_BUFFERING, 500

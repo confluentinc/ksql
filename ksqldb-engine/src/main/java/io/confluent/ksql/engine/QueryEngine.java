@@ -60,7 +60,6 @@ class QueryEngine {
       final Optional<Sink> sink,
       final MetaStore metaStore,
       final KsqlConfig config,
-      final boolean rowpartitionRowoffsetEnabled,
       final String statementTextMasked
   ) {
     final String outputPrefix = config.getString(KsqlConfig.KSQL_OUTPUT_TOPIC_NAME_PREFIX_CONFIG);
@@ -70,7 +69,6 @@ class QueryEngine {
     final QueryAnalyzer queryAnalyzer =
         new QueryAnalyzer(metaStore,
             outputPrefix,
-            rowpartitionRowoffsetEnabled,
             pullLimitClauseEnabled
         );
 

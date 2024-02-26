@@ -487,8 +487,8 @@ public class SqlToJavaVisitor {
 
       final String struct = process(node.getBase(), context).getLeft();
       final String field = process(new StringLiteral(node.getFieldName()), context).getLeft();
-      final String codeString = "((" + javaReturnType + ") "
-          + struct + ".get(" + field + "))";
+      final String codeString = "((" + javaReturnType + ")("
+          + struct + " == null ? null : " + struct + ".get(" + field + ")))";
 
       return new Pair<>(codeString, functionReturnSchema);
     }
@@ -858,7 +858,10 @@ public class SqlToJavaVisitor {
     ) {
       final Pair<String, SqlType> expr = process(node.getExpression(), context);
       final SqlType to = node.getType().getSqlType();
-      return Pair.of(genCastCode(expr, to), to);
+      final String javaType = SchemaConverters.sqlToJavaConverter()
+              .toJavaType(node.getType().getSqlType()).getTypeName();
+      final String code = evaluateOrReturnNull(genCastCode(expr,to), to.toString(), javaType);
+      return Pair.of(code, to);
     }
 
     @Override
@@ -1066,8 +1069,9 @@ public class SqlToJavaVisitor {
           final String suppliedIdx = process(node.getIndex(), context).getLeft();
 
           final String code = format(
-              "((%s) (%s.arrayAccess((%s) %s, ((int) %s))))",
+              "((%s) (%s == null ? null : (%s.arrayAccess((%s) %s, ((int) %s)))))",
               SchemaConverters.sqlToJavaConverter().toJavaType(array.getItemType()).getSimpleName(),
+              listName,
               ArrayAccess.class.getSimpleName(),
               internalSchemaJavaType,
               listName,
@@ -1078,16 +1082,16 @@ public class SqlToJavaVisitor {
 
         case MAP:
           final SqlMap map = (SqlMap) internalSchema;
-          return new Pair<>(
-              String.format(
-                  "((%s) ((%s)%s).get(%s))",
-                  SchemaConverters.sqlToJavaConverter()
-                      .toJavaType(map.getValueType()).getSimpleName(),
-                  internalSchemaJavaType,
-                  process(node.getBase(), context).getLeft(),
-                  process(node.getIndex(), context).getLeft()
-              ),
-              map.getValueType()
+          final String baseCode = process(node.getBase(), context).getLeft();
+          final String mapCode = String.format(
+              "((%s) (%s == null ? null : ((%s)%s).get(%s)))",
+              SchemaConverters.sqlToJavaConverter()
+                  .toJavaType(map.getValueType()).getSimpleName(),
+              baseCode,
+              internalSchemaJavaType,
+              baseCode,
+              process(node.getIndex(), context).getLeft());
+          return new Pair<>(mapCode, map.getValueType()
           );
         default:
           throw new UnsupportedOperationException();
@@ -1189,6 +1193,25 @@ public class SqlToJavaVisitor {
             + "  return defaultValue;"
             + " }"
             + "}}).get()";
+      } else {
+        return s;
+      }
+    }
+
+    private String evaluateOrReturnNull(final String s, final String type, final String javaType) {
+      if (ksqlConfig.getBoolean(KsqlConfig.KSQL_NESTED_ERROR_HANDLING_CONFIG)) {
+        return " (new " + Supplier.class.getSimpleName() + "<" + javaType + ">() {"
+                + "@Override public " + javaType + " get() {"
+                + " try {"
+                + "  return " + s + ";"
+                + " } catch (Exception e) {"
+                + "  logger.error(RecordProcessingError.recordProcessingError("
+                + "    \"Error processing " + type + "\","
+                + "    e instanceof InvocationTargetException? e.getCause() : e,"
+                + "    row));"
+                + "  return (" + javaType + ") defaultValue;"
+                + " }"
+                + "}}).get()";
       } else {
         return s;
       }

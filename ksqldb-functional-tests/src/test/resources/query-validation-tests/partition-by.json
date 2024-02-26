@@ -222,7 +222,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "The query used to build `OUTPUT` must include the partitioning expression ABS(INPUT.ID) in its projection."
+        "message": "The query used to build `OUTPUT` must include the partitioning expression ABS(INPUT.ID) in its projection (eg, SELECT ABS(INPUT.ID)...)."
       }
     },
     {
@@ -233,7 +233,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "The query used to build `OUTPUT` must include the partitioning expression INPUT.ID in its projection."
+        "message": "The query used to build `OUTPUT` must include the partitioning expression INPUT.ID in its projection (eg, SELECT INPUT.ID...)."
       }
     },
     {
@@ -601,7 +601,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlException",
-        "message": "Line: 2, Col: 90: PARTITION BY column 'ID_NEW' cannot be resolved."
+        "message": "PARTITION BY column 'ID_NEW' cannot be resolved."
       }
     },
     {
@@ -1385,7 +1385,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "The query used to build `OUTPUT` must include the partitioning expressions INPUT.ID and INPUT.AGE in its projection."
+        "message": "The query used to build `OUTPUT` must include the partitioning expressions INPUT.ID and INPUT.AGE in its projection (eg, SELECT INPUT.ID, INPUT.AGE...)."
       }
     },
     {

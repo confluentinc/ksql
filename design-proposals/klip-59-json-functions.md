@@ -1,8 +1,8 @@
 # KLIP-59 - JSON functions
 
 **Authors**: Aleksandr Sorokoumov (@gerrrr), Colin Hicks (@colinhicks)
-**Release Target**: TBD
-**Status**: _Approved_ |
+**Release Target**: 0.24.0; 7.2.0 |
+**Status**: _Merged_ |
 **Discussion**: [GitHub PR](https://github.com/confluentinc/ksql/pull/8550)
 
 ## Motivation and background

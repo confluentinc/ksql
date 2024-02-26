@@ -76,6 +76,7 @@ public class Server {
   private final Optional<AuthenticationPlugin> authenticationPlugin;
   private final ServerState serverState;
   private final List<URI> listeners = new ArrayList<>();
+  private final List<URI> proxyProtocolListeners = new ArrayList<>();
   private final Optional<PullQueryExecutorMetrics> pullQueryMetrics;
   private URI internalListener;
   private WorkerExecutor workerExecutor;
@@ -115,6 +116,8 @@ public class Server {
     configureTlsCertReload(config);
 
     final List<URI> listenUris = ApiServerUtils.parseListeners(config);
+    final List<URI> proxyProtocolListenUris = ApiServerUtils.parseProxyProtocolListeners(config);
+    final Set<URI> proxyProtocolListenUriSet = new HashSet<>(proxyProtocolListenUris);
     final Optional<URI> internalListenUri = parseInternalListener(config, listenUris);
     final List<URI> allListenUris = new ArrayList<>(listenUris);
     internalListenUri.ifPresent(allListenUris::add);
@@ -127,12 +130,15 @@ public class Server {
     for (URI listener : allListenUris) {
       final Optional<Boolean> isInternalListener =
           internalListenUri.map(uri -> uri.equals(listener));
+      final boolean isProxyProtocolListener = proxyProtocolListenUriSet.contains(listener);
 
       for (int i = 0; i < instances; i++) {
         final VertxCompletableFuture<String> vcf = new VertxCompletableFuture<>();
         final ServerVerticle serverVerticle = new ServerVerticle(endpoints,
             createHttpServerOptions(config, listener.getHost(), listener.getPort(),
-                listener.getScheme().equalsIgnoreCase("https"), isInternalListener.orElse(false),
+                listener.getScheme().equalsIgnoreCase("https"),
+                isInternalListener.orElse(false),
+                isProxyProtocolListener,
                 idleConnectionTimeoutSeconds),
             this, isInternalListener, loggingRateLimiter);
         vertx.deployVerticle(serverVerticle, vcf);
@@ -164,13 +170,21 @@ public class Server {
     } catch (Exception e) {
       throw new KsqlException("Failed to start API server", e);
     }
+    initListeners(listenUris, proxyProtocolListenUris, internalListenUri, uris);
+    log.info("API server started");
+  }
+
+  private void initListeners(final List<URI> listenUris, final List<URI> proxyProtocolListenUris,
+      final Optional<URI> internalListenUri, final Map<URI, URI> uris) {
     for (URI uri : listenUris) {
       listeners.add(uris.get(uri));
+    }
+    for (URI uri : proxyProtocolListenUris) {
+      proxyProtocolListeners.add(uris.get(uri));
     }
     if (internalListenUri.isPresent()) {
       internalListener = uris.get(internalListenUri.get());
     }
-    log.info("API server started");
   }
 
   public synchronized void stop() {
@@ -196,6 +210,7 @@ public class Server {
     }
     deploymentIds.clear();
     listeners.clear();
+    proxyProtocolListeners.clear();
     log.info("API server stopped");
   }
 
@@ -265,6 +280,10 @@ public class Server {
     return Optional.ofNullable(internalListener);
   }
 
+  public synchronized List<URI> getProxyProtocolListeners() {
+    return ImmutableList.copyOf(proxyProtocolListeners);
+  }
+
   private void configureTlsCertReload(final KsqlRestConfig config) {
     if (config.getBoolean(KsqlRestConfig.SSL_KEYSTORE_RELOAD_CONFIG)) {
       final Path watchLocation;
@@ -287,7 +306,9 @@ public class Server {
 
   private static HttpServerOptions createHttpServerOptions(final KsqlRestConfig ksqlRestConfig,
       final String host, final int port, final boolean tls,
-      final boolean isInternalListener, final int idleTimeoutSeconds) {
+      final boolean isInternalListener, final boolean isProxyProtocolListener,
+      final int idleTimeoutSeconds
+  ) {
 
     final HttpServerOptions options = new HttpServerOptions()
         .setHost(host)
@@ -296,7 +317,8 @@ public class Server {
         .setReusePort(true)
         .setIdleTimeout(idleTimeoutSeconds).setIdleTimeoutUnit(TimeUnit.SECONDS)
         .setPerMessageWebSocketCompressionSupported(true)
-        .setPerFrameWebSocketCompressionSupported(true);
+        .setPerFrameWebSocketCompressionSupported(true)
+        .setUseProxyProtocol(isProxyProtocolListener);
 
     if (tls) {
       final String ksConfigName = isInternalListener

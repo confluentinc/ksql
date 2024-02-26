@@ -139,6 +139,7 @@ public class SqlTestExecutor implements Closeable {
     final ServiceContext serviceContext = new DefaultServiceContext(
         kafkaClientSupplier,
         () -> kafkaClientSupplier.getAdmin(Collections.emptyMap()),
+        () -> kafkaClientSupplier.getAdmin(Collections.emptyMap()),
         topicClient,
         () -> srClient,
         () -> new DefaultConnectClient(

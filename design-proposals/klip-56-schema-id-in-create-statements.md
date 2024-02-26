@@ -1,7 +1,7 @@
 # KLIP 56 - Schema ID in Create Statements
 
 **Author**: Hao Li (@lihaosky) | 
-**Release Target**: 0.24 | 
+**Release Target**: 0.24.0; 7.2.0 | 
 **Status**: _Merged_ | 
 **Discussion**: [Issue](https://github.com/confluentinc/ksql/issues/3634), [GitHub PR1](https://github.com/confluentinc/ksql/pull/8177)
 

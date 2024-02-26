@@ -604,4 +604,24 @@ public class KsqlConfigTest {
     assertThat(ksqlConfig.getProducerClientConfigProps(), hasEntry(ProducerConfig.CLIENT_ID_CONFIG, null));
     assertThat(ksqlConfig.getProducerClientConfigProps(), not(hasKey("not.a.config")));
   }
+
+  @Test
+  public void shouldGetClientIPPortConfig() {
+     // Given:
+    final Map<String, Object> configs = new HashMap<>();
+    configs.put("ksql.client.ip_port.configuration.enabled", "true");
+    final Map<String, Object> configs1 = new HashMap<>();
+    configs1.put("ksql.client.ip_port.configuration.enabled", "false");
+    // Default to false
+    final Map<String, Object> configs2 = new HashMap<>();
+
+    final KsqlConfig ksqlConfig = new KsqlConfig(configs);
+    final KsqlConfig ksqlConfig1 = new KsqlConfig(configs1);
+    final KsqlConfig ksqlConfig2 = new KsqlConfig(configs2);
+
+    // When:
+    assertThat(ksqlConfig.getBoolean(KsqlConfig.KSQL_CLIENT_IP_PORT_CONFIGURATION_ENABLED), is(true));
+    assertThat(ksqlConfig1.getBoolean(KsqlConfig.KSQL_CLIENT_IP_PORT_CONFIGURATION_ENABLED), is(false));
+    assertThat(ksqlConfig2.getBoolean(KsqlConfig.KSQL_CLIENT_IP_PORT_CONFIGURATION_ENABLED), is(false));
+  }
 }

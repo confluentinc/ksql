@@ -71,4 +71,11 @@ public class DefaultKsqlPrincipalTest {
     assertThat(wrappedKsqlPrincipal.getOriginalPrincipal(), is(ksqlPrincipal));
     assertThat(wrappedOtherPrincipal.getOriginalPrincipal(), is(otherPrincipal));
   }
+
+  @Test
+  public void shouldReturnIpAndPort() {
+    final KsqlPrincipal principal = wrappedKsqlPrincipal.withIpAddressAndPort("127.0.0.1", 1234);
+    assertThat(principal.getPort(), is(1234));
+    assertThat(principal.getIpAddress(), is("127.0.0.1"));
+  }
 }

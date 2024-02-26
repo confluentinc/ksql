@@ -1,8 +1,8 @@
 # KLIP 46 - DATE and TIME Data Type Support
 
 **Author**: Zara Lim (@jzaralim) | 
-**Release Target**: 0.20 | 
-**Status**: _In Discussion_ | 
+**Release Target**: 0.20.0; 7.0.0 | 
+**Status**: _Merged_ | 
 **Discussion**: https://github.com/confluentinc/ksql/pull/7417
 
 **tl;dr:** _Add support for DATE and TIME types. This will give users a more complete set of types

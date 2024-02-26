@@ -41,13 +41,9 @@
       "outputs": [
         {"topic": "OUTPUT", "key": 0,"value": {"SUM": 0}},
         {"topic": "OUTPUT", "key": 1,"value": {"SUM": 0}},
-        {"topic": "OUTPUT", "key": 0,"value": {"SUM": 0}},
         {"topic": "OUTPUT", "key": 0,"value": {"SUM": 5}},
-        {"topic": "OUTPUT", "key": 1,"value": {"SUM": 0}},
         {"topic": "OUTPUT", "key": 1,"value": {"SUM": 10}},
-        {"topic": "OUTPUT", "key": 0,"value": {"SUM": 0}},
         {"topic": "OUTPUT", "key": 0,"value": {"SUM": 20}},
-        {"topic": "OUTPUT", "key": 0,"value": {"SUM": 0}},
         {"topic": "OUTPUT", "key": 0,"value": {"SUM": 0}}
       ]
     },

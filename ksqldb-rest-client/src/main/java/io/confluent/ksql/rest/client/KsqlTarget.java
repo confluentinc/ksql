@@ -88,6 +88,7 @@ public final class KsqlTarget {
   private final Optional<String> authHeader;
   private final String host;
   private final Map<String, String> additionalHeaders;
+  private final long timeout;
 
   /**
    * Create a KsqlTarget containing all of the connection information required to make a request
@@ -103,7 +104,8 @@ public final class KsqlTarget {
       final LocalProperties localProperties,
       final Optional<String> authHeader,
       final String host,
-      final Map<String, String> additionalHeaders
+      final Map<String, String> additionalHeaders,
+      final long timeout
   ) {
     this.httpClient = requireNonNull(httpClient, "httpClient");
     this.socketAddress = requireNonNull(socketAddress, "socketAddress");
@@ -111,17 +113,24 @@ public final class KsqlTarget {
     this.authHeader = requireNonNull(authHeader, "authHeader");
     this.host = host;
     this.additionalHeaders = requireNonNull(additionalHeaders, "additionalHeaders");
+    this.timeout = timeout;
   }
 
   public KsqlTarget authorizationHeader(final String authHeader) {
     return new KsqlTarget(httpClient, socketAddress, localProperties,
-        Optional.of(authHeader), host, additionalHeaders);
+        Optional.of(authHeader), host, additionalHeaders, timeout);
   }
 
   public KsqlTarget properties(final Map<String, ?> properties) {
     return new KsqlTarget(httpClient, socketAddress,
         new LocalProperties(properties),
-        authHeader, host, additionalHeaders);
+        authHeader, host, additionalHeaders, timeout);
+  }
+
+  public KsqlTarget timeout(final long timeout) {
+    return new KsqlTarget(httpClient, socketAddress,
+        localProperties,
+        authHeader, host, additionalHeaders, timeout);
   }
 
   public RestResponse<ServerInfo> getServerInfo() {
@@ -475,6 +484,7 @@ public final class KsqlTarget {
     options.setPort(socketAddress.port());
     options.setHost(host);
     options.setURI(path);
+    options.setTimeout(timeout);
 
     httpClient.request(options, ar -> {
       if (ar.failed()) {

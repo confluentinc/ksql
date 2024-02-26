@@ -106,8 +106,6 @@
         {"topic": "OUTPUT", "key": "a", "value": {"AVG": 1.0}},
         {"topic": "OUTPUT", "key": "a", "value": {"AVG": 1.5}},
         {"topic": "OUTPUT", "key": "a", "value": {"AVG": 2.0}},
-        {"topic": "OUTPUT", "key": "a", "value": {"AVG": 2.0}},
-        {"topic": "OUTPUT", "key": "a", "value": {"AVG": 2.0}},
         {"topic": "OUTPUT", "key": "a", "value": {"AVG": 3.0}}
       ]
     }

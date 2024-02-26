@@ -14,13 +14,14 @@
 
 package io.confluent.ksql.execution.streams;
 
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
@@ -186,8 +187,7 @@ public class SinkBuilderTest {
   public void shouldTransformTimestampRow() {
     // Given
     final long timestampColumnValue = 10001;
-    final KsqlTimestampExtractor timestampExtractor
-        = mock(KsqlTimestampExtractor.class);
+    final KsqlTimestampExtractor timestampExtractor = mock(KsqlTimestampExtractor.class);
     when(timestampExtractor.extract(any(), any())).thenReturn(timestampColumnValue);
 
     // When
@@ -200,8 +200,27 @@ public class SinkBuilderTest {
     assertNull(kv);
     verify(timestampExtractor).extract(key, row);
     verify(processorContext, Mockito.times(1))
-        .forward(eq(key), eq(row), toCaptor.capture());
-    assertEquals(toCaptor.getValue(), To.all().withTimestamp(timestampColumnValue));
+        .forward(eq(key), eq(row), eq(To.all().withTimestamp(timestampColumnValue)));
+    verifyNoMoreInteractions(processingLogger);
+  }
+
+  @Test
+  public void shouldTransformTombstone() {
+    // Given
+    final long streamTime = 111111;
+    final KsqlTimestampExtractor timestampExtractor = mock(KsqlTimestampExtractor.class);
+    when(processorContext.currentStreamTimeMs()).thenReturn(streamTime);
+
+    // When
+    final Transformer<Struct, GenericRow, KeyValue<Struct, GenericRow>> transformer =
+        getTransformer(timestampExtractor, processingLogger);
+    transformer.init(processorContext);
+    final KeyValue<Struct, GenericRow> kv = transformer.transform(key, null);
+
+    // Then
+    assertNull(kv);
+    verify(timestampExtractor, never()).extract(key, null);
+    verify(processorContext).forward(eq(key), isNull(), eq(To.all().withTimestamp(streamTime)));
     verifyNoMoreInteractions(processingLogger);
   }
 

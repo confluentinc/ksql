@@ -1,8 +1,8 @@
 # KLIP 14 - ROWTIME as Pseudocolumn
 
 **Author**: @big-andy-coates | 
-**Release Target**: TBD | 
-**Status**: Merged |
+**Release Target**: 0.9.0; 6.0.0 | 
+**Status**: _Merged_ |
 **Discussion**: https://github.com/confluentinc/ksql/pull/4026
 
 **tl;dr:**

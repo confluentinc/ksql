@@ -15,17 +15,13 @@ In this case, configurations are applied when the cluster starts.
 
 A subset of these configuration parameters can be applied on a running cluster,
 either for individual queries (using the `SET` command or the Confluent Cloud
-Console) or for the entire cluster (using the `ALTER SYSTEM` command or the
-Confluent Cloud Console). When this is the case for a parameter, it is called
+Console) or for the entire cluster. When this is the case for a parameter, it is called
 out in the parameter description's **Per query** block. Currently, you can edit
 parameters in this subset only in {{ site.ccloud }}.
 
 You can assign the value of some parameters on a per-persistent query basis
 by using the `SET` statement. This is indicated in the following parameter
-sections with the **Per query** block. For ksqlDB in {{ site.ccloud }}, some 
-parameters can be set only by using the `ALTER SYSTEM` statement and are applied
-to all queries running on the current cluster, as indicated in the corresponding
-**Per query** block.
+sections with the **Per query** block.
 
 !!! note
     You can change per-query configs by using the `SET` statement, but you must
@@ -59,6 +55,13 @@ For more information on setting properties, see
     modified with any valid properties. Simply use the form `ksql.streams.producer.xxx`,
     `ksql.streams.consumer.xxx` to pass the property through. For example,
     `ksql.streams.producer.compression.type` sets the compression type on the producer.
+
+## `authentication.skip.paths`
+
+**Per query:** no
+
+Sets endpoints on the ksqlDB server that can be accessed without authentication.
+The setting is a comma-separated list of paths, for example, `/lag,/heartbeat`.
 
 ## `compression.type`
 
@@ -223,6 +226,12 @@ other, to aid in faster failure detection for improved pull query routing.
 Also enables the [`/clusterStatus` endpoint](../developer-guide/ksqldb-rest-api/cluster-status-endpoint.md).
 The default is `false`.
 
+When heartbeating is enabled with the default (recommended) send interval of
+100ms, it can generate a lot of noise in the ksqlDB server log. You can reduce
+log noise with heartbeating enabled by setting either the
+`ksql.endpoint.logging.ignored.paths.regex` or `ksql.logging.server.rate.limited.request.paths`
+configurations.
+
 !!! important
     Be careful when you change heartbeat configuration values, because
     the stability and availability of ksqlDB applications depend sensitively on them.
@@ -303,6 +312,14 @@ The number of replicas for the internal topics created by ksqlDB Server.
 The default is 1. Replicas for the record processing log topic should be
 configured separately. For more information, see
 [Processing Log](/reference/processing-log).
+
+## `ksql.json_sr.converter.deserializer.enabled`
+
+**Per query:** no
+
+Enables using `JsonSchemaConverter` for schema deserialization, which supports
+`anyOf` types. If not enabled, ksqlDB uses plain JSON serdes. The default is
+`true`.
 
 ## `ksql.lag.reporting.enable`
 
@@ -535,6 +552,12 @@ statements.
     the default value you set, the format ignores the setting. For information on which formats
     support wrapping and unwrapping, see the [serialization docs](/reference/serialization).
 
+## `ksql.plugins.rocksdb.cache.limit.strict`
+
+**Per query:** no
+
+Sets a hard boundary on cache size (memory usage) to avoid out-of-memory
+exceptions when RocksDB reaches memory usage above configured properties.
 
 ## `ksql.properties.overrides.denylist`
 
@@ -569,6 +592,31 @@ Specifies the server properties that ksqlDB clients and users can't override.
       KSQL_PROCESSING_LOG | default_ksql_processing_log | JSON   
     ------------------------------------------------------------
     ```
+
+## `ksql.query.push.v2.enabled`
+
+**Per query:** yes
+
+Enables v2 push queries, which support larger scale use cases. With this config
+set, your push queries have these characteristics:
+
+- Up to 1,000 concurrent subscriptions, per ksqlDB server instance, across
+  numerous clients, depending on the rate of data production.
+- Lightweight, on-the-fly matching using the query ``WHERE`` clause.
+- Easy subscription lifetime management lasting for the lifetime of a query.
+- Best effort message delivery.
+
+These queries are suitable for applications with shorter lifespans. They consume
+data which has already been processed and is shared between many requests, so
+there’s little overhead.
+
+To utilize the scaling improvements, the following limitations are placed on
+your query:
+
+- No `GROUP BY`, `PARTITION BY`, or windowing expressions.
+- Must read newly arriving data only, `SET 'auto.offset.reset' = 'latest'`,
+  which means that your query can't read historical data.
+- Must have a single upstream persistent query only.
 
 ## `ksql.schema.registry.url`
 
@@ -681,7 +729,7 @@ and
 
 ## `ksql.streams.commit.interval.ms`
 
-**Per query:** no (may be set with ALTER SYSTEM, for {{ site.ccloud }} only)
+**Per query:** no
 
 The frequency to save the position of the processor. The default value
 in ksqlDB is `2000`. Here is an example to change the value to `5000` by
@@ -713,7 +761,7 @@ For more information, see
 
 ## `ksql.streams.num.standby.replicas`
 
-**Per query:** no (may be set with ALTER SYSTEM, for {{ site.ccloud }} only)
+**Per query:** no
 
 Sets the number of hot-standby replicas of internal state to maintain. If a
 server fails and a standby replica is present, the standby will be able to take
@@ -740,7 +788,7 @@ information about the {{ site.kstreams }} threading model, see
 
 ## `ksql.streams.processing.guarantee`
 
-**Per query:** no (may be set with ALTER SYSTEM, for {{ site.ccloud }} only)
+**Per query:** no
 
 The processing semantics to use for persistent queries. The default is 
 `at_least_once`. To enable exactly-once semantics, use `exactly_once`. 
@@ -749,7 +797,7 @@ For more information, see [Processing Guarantees](/operate-and-deploy/exactly-on
 
 ## `ksql.streams.producer.compression.type`
 
-**Per query:** no (may be set with ALTER SYSTEM, for {{ site.ccloud }} only)
+**Per query:** yes
 
 The type of compression used by streams producers for topics created by INSERT INTO, 
 CREATE TABLE AS SELECT, and CREATE STREAM AS SELECT statements. The default is `snappy`.

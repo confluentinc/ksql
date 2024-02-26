@@ -1,8 +1,8 @@
 # KLIP 53 - Pull Queries on Streams
 
 **Author**: John Roesler (@vvcephei) | 
-**Release Target**: 0.22 | 
-**Status**: _In Discussion_ | 
+**Release Target**: 0.23.1; 7.1.0 | 
+**Status**: _Merged_ | 
 **Discussion**: _link to the design discussion PR_
 
 **tl;dr:** People should be able to issue pull (ad-hoc, self-terminating) queries on streams,

@@ -1579,9 +1579,7 @@
       ],
       "outputs": [
         {"topic": "OUTPUT", "key": 2, "value": "20"},
-        {"topic": "OUTPUT", "key": 2, "value": "0"},
         {"topic": "OUTPUT", "key": 2, "value": "40"},
-        {"topic": "OUTPUT", "key": 2, "value": "0"},
         {"topic": "OUTPUT", "key": 2, "value": "60"},
         {"topic": "OUTPUT", "key": 2, "value": "0"}
       ]
@@ -1846,7 +1844,6 @@
         {"topic": "OUTPUT", "key": 1, "value": "2"},
         {"topic": "OUTPUT", "key": 1, "value": "3"},
         {"topic": "OUTPUT", "key": 1, "value": "2"},
-        {"topic": "OUTPUT", "key": 1, "value": "1"},
         {"topic": "OUTPUT", "key": 1, "value": "2"}
       ]
     },
@@ -2527,13 +2524,9 @@
       "outputs": [
         {"topic": "OUTPUT", "key": 0,"value": {"SUM": 100}},
         {"topic": "OUTPUT", "key": 1,"value": {"SUM": 101}},
-        {"topic": "OUTPUT", "key": 0,"value": null},
         {"topic": "OUTPUT", "key": 0,"value": {"SUM": 105}},
-        {"topic": "OUTPUT", "key": 1,"value": null},
         {"topic": "OUTPUT", "key": 1,"value": {"SUM": 111}},
-        {"topic": "OUTPUT", "key": 0,"value": null},
         {"topic": "OUTPUT", "key": 0,"value": {"SUM": 120}},
-        {"topic": "OUTPUT", "key": 0,"value": null},
         {"topic": "OUTPUT", "key": 0,"value": {"SUM": 100}}
       ]
     },

@@ -201,6 +201,12 @@ The schema will be used to serialize keys for the stream created by this `CREATE
 For more details, see the corresponding section in the
 [Serialization Formats](/reference/serialization#protobuf) documentation.
 
+### KEY_SCHEMA_FULL_NAME
+
+The full name of the key schema in {{ site.sr }}.
+
+The schema is used for schema inference and data serialization.
+
 ### KEY_SCHEMA_ID
 
 The schema ID of the key schema in {{ site.sr }}.
@@ -227,12 +233,25 @@ is used for creating a new topic.
 
 ### RETENTION_MS
 
-The retention specified in milliseconds in the backing topic. You must set this
-property if you create a stream without an existing topic, and the statement
-fails if the topic doesn't exist.
+!!! note
+    Available starting in version `0.28.3-RC7`.
+
+The retention specified in milliseconds in the backing topic.
+
+If you create a stream without an existing topic, `RETENTION_MS` is set to the
+broker default log retention.
 
 You can't change the retention on an existing stream. To change the
-retention, you must drop the stream and create it again.
+retention, you have these options:
+
+- Drop the stream and the topic it's registered on with the DROP STREAM and
+  DELETE TOPIC statements, and create them again.
+- Drop the stream with the DROP STREAM statement, update the topic with
+  `retention.ms=<new-value>` and register the stream again with
+  `CREATE STREAM WITH (RETENTION_MS=<new-value>)`.
+- For a stream that was created with `CREATE STREAM WITH (RETENTION_MS=<old-value>)`,
+  update the topic with `retention.ms=<new-value>`, and update the stream with the
+  `CREATE OR REPLACE STREAM WITH (RETENTION_MS=<new-value>)` statement.
 
 ### TIMESTAMP
 
@@ -261,6 +280,12 @@ If your timestamp format has characters that require single quotes, escape them
 with successive single quotes, `''`, for example: `'yyyy-MM-dd''T''HH:mm:ssX'`.
 
 For more information, see [Timestamp formats](/reference/sql/time/#timestamp-formats).
+
+### VALUE_AVRO_SCHEMA_FULL_NAME
+
+The full name of the value AVRO schema in {{ site.sr }}.
+
+The schema is used for schema inference and data serialization. 
 
 ### VALUE_DELIMITER
 
@@ -292,10 +317,19 @@ The schema will be used to serialize values for the stream created by this `CREA
 For more details, see the corresponding section in the
 [Serialization Formats](/reference/serialization#protobuf) documentation.
 
+### VALUE_SCHEMA_FULL_NAME
+
+The full name of the value schema in {{ site.sr }}.
+
+The schema is used for schema inference and data serialization. 
+
 ### VALUE_SCHEMA_ID
 
-The schema ID of the value schema in {{ site.sr }}. The schema is used for
-schema inference and data serialization. For more information, see
+The schema ID of the value schema in {{ site.sr }}.
+
+The schema is used for schema inference and data serialization.
+
+For more information, see
 [Schema Inference With Schema ID](/operate-and-deploy/schema-inference-with-id).
 
 ### WRAP_SINGLE_VALUE

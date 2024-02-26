@@ -148,7 +148,7 @@ KSQL_JVM_PERFORMANCE_OPTS
     configuration.
 
     ```bash
-    export KSQL_JVM_PERFORMANCE_OPTS="-server -XX:+UseConcMarkSweepGC -XX:+CMSClassUnload ingEnabled -XX:+CMSScavengeBeforeRemark -XX:+ExplicitGCInvokesConcurrent -XX:New Ratio=1 -Djava.awt.headless=true"
+    export KSQL_JVM_PERFORMANCE_OPTS="-server -XX:MetaspaceSize=96m -XX:+UseG1GC -XX:MaxGCPauseMillis=20 -XX:InitiatingHeapOccupancyPercent=35 -XX:+ExplicitGCInvokesConcurrent -XX:G1HeapRegionSize=16 -XX:MinMetaspaceFreeRatio=50 -XX:MaxMetaspaceFreeRatio=80"
     ```
 
     For more information, see

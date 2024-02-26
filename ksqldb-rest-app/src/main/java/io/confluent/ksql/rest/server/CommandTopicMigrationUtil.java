@@ -34,11 +34,13 @@ import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.serialization.ByteArrayDeserializer;
+import org.apache.kafka.common.serialization.ByteArraySerializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+// CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public final class CommandTopicMigrationUtil {
-
+  // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
   private static final Logger log = LoggerFactory.getLogger(CommandTopicMigrationUtil.class);
   public static final CommandId MIGRATION_COMMAND_ID =
       new CommandId(CommandId.Type.CLUSTER, "migration", CommandId.Action.ALTER);
@@ -112,21 +114,21 @@ public final class CommandTopicMigrationUtil {
         ProducerConfig.TRANSACTIONAL_ID_CONFIG,
         config.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG) + "-migration-producer"
     );
-    try (Producer<CommandId, Command> newBrokerProducer = new KafkaProducer<>(
+    try (Producer<byte[], byte[]> newBrokerProducer = new KafkaProducer<>(
         newBrokerProducerConfigs,
-        InternalTopicSerdes.serializer(),
-        InternalTopicSerdes.serializer()
+        new ByteArraySerializer(),
+        new ByteArraySerializer()
     )) {
       newBrokerProducer.initTransactions();
       newBrokerProducer.beginTransaction();
 
       // re-create command topic
       for (QueuedCommand command : commandsToMigrate) {
-        final ProducerRecord<CommandId, Command> producerRecord = new ProducerRecord<>(
+        final ProducerRecord<byte[], byte[]> producerRecord = new ProducerRecord<>(
             commandTopic,
             0,
-            command.getAndDeserializeCommandId(),
-            command.getAndDeserializeCommand(InternalTopicSerdes.deserializer(Command.class)));
+            command.getCommandId(),
+            command.getCommand());
         newBrokerProducer.send(producerRecord);
       }
       newBrokerProducer.commitTransaction();

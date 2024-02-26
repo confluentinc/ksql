@@ -10,7 +10,7 @@ def downStreams = "${env.BRANCH_NAME}".contains('master') ?
 common {
     nodeLabel = 'docker-debian-jdk11'
     slackChannel = channel
-    timeoutHours = 6
+    timeoutHours = 5
     upstreamProjects = 'confluentinc/schema-registry'
     extraDeployArgs = '-Ddocker.skip=true'
     dockerPush = false
@@ -22,9 +22,8 @@ common {
     pinnedNanoVersions = true
     maxBuildsToKeep = 99
     maxDaysToKeep = 90
-    extraBuildArgs = "-Dmaven.gitcommitid.nativegit=true"
+    extraBuildArgs = "-Dmaven.gitcommitid.nativegit=true -DskipTests -DskipIntegrationTests"
     mavenBuildGoals = "clean install"
     runMergeCheck = false
-    mvnSkipDeploy = true
 }
 

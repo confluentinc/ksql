@@ -249,14 +249,10 @@ public class KsqlResourceTest {
               "VALUE_FORMAT", new StringLiteral("avro")
           )),
           false));
-
-  private static final Properties DEFAULT_KSQL_CONFIG = getDefaultKsqlConfig();
-
-  private static final ConfiguredStatement<CreateStream> CFG_0_WITH_SCHEMA =
-      ConfiguredStatement.of(
-        STMT_0_WITH_SCHEMA,
-        SessionConfig.of(new KsqlConfig(DEFAULT_KSQL_CONFIG), ImmutableMap.of())
-    );
+  private static final ConfiguredStatement<CreateStream> CFG_0_WITH_SCHEMA = ConfiguredStatement.of(
+      STMT_0_WITH_SCHEMA,
+      SessionConfig.of(new KsqlConfig(getDefaultKsqlConfig()), ImmutableMap.of())
+  );
 
   private static final PreparedStatement<CreateStream> STMT_1_WITH_SCHEMA = PreparedStatement.of(
       "other sql with schema",
@@ -273,7 +269,7 @@ public class KsqlResourceTest {
           false));
   private static final ConfiguredStatement<CreateStream> CFG_1_WITH_SCHEMA = ConfiguredStatement
       .of(STMT_1_WITH_SCHEMA,
-          SessionConfig.of(new KsqlConfig(DEFAULT_KSQL_CONFIG), ImmutableMap.of())
+          SessionConfig.of(new KsqlConfig(getDefaultKsqlConfig()), ImmutableMap.of())
       );
 
   private static final LogicalSchema SOME_SCHEMA = LogicalSchema.builder()
@@ -352,7 +348,7 @@ public class KsqlResourceTest {
     serviceContext = TestServiceContext.create(kafkaTopicClient, kafkaConsumerGroupClient);
     schemaRegistryClient = serviceContext.getSchemaRegistryClient();
     registerValueSchema(schemaRegistryClient);
-    ksqlRestConfig = new KsqlRestConfig(DEFAULT_KSQL_CONFIG);
+    ksqlRestConfig = new KsqlRestConfig(getDefaultKsqlConfig());
     ksqlConfig = new KsqlConfig(ksqlRestConfig.getKsqlConfigProperties());
     final KsqlExecutionContext.ExecuteResult result = mock(KsqlExecutionContext.ExecuteResult.class);
     when(sandbox.execute(any(), any(ConfiguredKsqlPlan.class))).thenReturn(result);

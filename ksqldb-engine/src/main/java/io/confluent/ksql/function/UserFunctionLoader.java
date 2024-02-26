@@ -133,7 +133,6 @@ public class UserFunctionLoader {
   private ClassGraph.ClasspathElementFilter ksqlEngineFilter(final ClassLoader loader) {
     // if we are loading from the parent classloader then restrict the name space to only
     // jars/dirs containing "ksql-engine". This is so we don't end up scanning every jar
-    //return name -> parentClassLoader != loader || name.contains("ksqldb-engine");
     return name -> parentClassLoader != loader || name.contains("ksqldb-rest-app")
         || name.contains("ksqldb-engine");
   }

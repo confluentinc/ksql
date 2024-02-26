@@ -45,6 +45,7 @@ import io.confluent.ksql.test.utils.SerdeUtil;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import java.time.Duration;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalLong;
 import java.util.Set;
@@ -416,9 +417,9 @@ public class TopicInfoCache {
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})
-    public Serializer<Object> getKeySerializer() {
+    public Serializer<Object> getKeySerializer(final Map<String, Object> properties) {
       final SerdeSupplier<?> keySerdeSupplier = SerdeUtil
-          .getKeySerdeSupplier(keyFormat, schema);
+          .getKeySerdeSupplier(keyFormat, schema, properties);
 
       final Serializer<?> serializer = keySerdeSupplier.getSerializer(srClient, true);
 
@@ -430,9 +431,9 @@ public class TopicInfoCache {
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})
-    public Serializer<Object> getValueSerializer() {
+    public Serializer<Object> getValueSerializer(final Map<String, Object> properties) {
       final SerdeSupplier<?> valueSerdeSupplier = SerdeUtil
-          .getSerdeSupplier(valueFormat.getFormatInfo(), schema);
+          .getSerdeSupplier(valueFormat.getFormatInfo(), schema, properties);
 
       final Serializer<?> serializer = valueSerdeSupplier.getSerializer(srClient, false);
 
@@ -443,9 +444,9 @@ public class TopicInfoCache {
       return (Serializer) serializer;
     }
 
-    public Deserializer<?> getKeyDeserializer() {
+    public Deserializer<?> getKeyDeserializer(final Map<String, Object> properties) {
       final SerdeSupplier<?> keySerdeSupplier = SerdeUtil
-          .getKeySerdeSupplier(keyFormat, schema);
+          .getKeySerdeSupplier(keyFormat, schema, properties);
 
       final Deserializer<?> deserializer = keySerdeSupplier.getDeserializer(srClient, true);
 
@@ -463,9 +464,9 @@ public class TopicInfoCache {
       return changeLogDeserializer;
     }
 
-    public Deserializer<?> getValueDeserializer() {
+    public Deserializer<?> getValueDeserializer(final Map<String, Object> properties) {
       final SerdeSupplier<?> valueSerdeSupplier = SerdeUtil
-          .getSerdeSupplier(valueFormat.getFormatInfo(), schema);
+          .getSerdeSupplier(valueFormat.getFormatInfo(), schema, properties);
 
       final Deserializer<?> deserializer = valueSerdeSupplier.getDeserializer(srClient, false);
 

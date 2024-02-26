@@ -37,7 +37,7 @@ public class ArrayMax {
       return null;
     }
 
-    T candidate = (T) null;
+    T candidate = null;
     for (T thisVal : input) {
       if (thisVal != null) {
         if (candidate == null) {

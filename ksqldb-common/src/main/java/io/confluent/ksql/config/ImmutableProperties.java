@@ -22,7 +22,8 @@ import java.util.Set;
 import org.apache.kafka.streams.StreamsConfig;
 
 /**
- * Hard coded list of known immutable properties
+ * Hard coded list of known immutable properties.
+ * They cannot be changed using `SET` command.
  */
 public final class ImmutableProperties {
 
@@ -35,6 +36,7 @@ public final class ImmutableProperties {
       .add(KsqlConfig.KSQL_READONLY_TOPICS_CONFIG)
       .add(KsqlConfig.KSQL_SOURCE_TABLE_MATERIALIZATION_ENABLED)
       .add(KsqlConfig.KSQL_HEADERS_COLUMNS_ENABLED)
+      .add(KsqlConfig.KSQL_NEW_QUERY_PLANNER_ENABLED)
       .addAll(KsqlConfig.SSL_CONFIG_NAMES)
       .build();
 

@@ -86,8 +86,8 @@ into the same partition, which is useful because of the strong ordering
 guarantees.
 
 The order of the records is tracked by a piece of data known as an offset,
-which is set when the record is appended. A record with offset of _10_ happened
-earlier than a record in the same partition with offset of _20_.
+which is set when the record is appended. A record with an offset of _10_ happened
+earlier than a record in the same partition with an offset of _20_.
 
 Much of the mechanics here are handled automatically by ksqlDB on your behalf.
 When you create a stream or table, you choose the number of partitions for the

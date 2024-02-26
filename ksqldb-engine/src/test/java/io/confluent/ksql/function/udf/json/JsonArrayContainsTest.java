@@ -100,5 +100,8 @@ public class JsonArrayContainsTest
         assertEquals(false, jsonUdf.contains("[false, false]", true));
     }
 
-//
+    @Test
+    public void shouldHandleNullsInJsonArray() {
+        assertEquals(false, jsonUdf.contains("[false, false, true, false]", null));
+    }
 }

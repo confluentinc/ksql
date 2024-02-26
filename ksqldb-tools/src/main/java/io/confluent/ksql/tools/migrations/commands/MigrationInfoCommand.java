@@ -16,7 +16,7 @@
 package io.confluent.ksql.tools.migrations.commands;
 
 import static io.confluent.ksql.tools.migrations.util.MetadataUtil.getOptionalInfoForVersions;
-import static io.confluent.ksql.tools.migrations.util.MigrationsDirectoryUtil.getMigrationsDirFromConfigFile;
+import static io.confluent.ksql.tools.migrations.util.MigrationsDirectoryUtil.getMigrationsDir;
 
 import com.github.rvesse.airline.annotations.Command;
 import com.google.common.annotations.VisibleForTesting;
@@ -63,7 +63,7 @@ public class MigrationInfoCommand extends BaseCommand {
     return command(
         config,
         MigrationsUtil::getKsqlClient,
-        getMigrationsDirFromConfigFile(getConfigFile())
+        getMigrationsDir(getConfigFile(), config)
     );
   }
 

@@ -3,7 +3,10 @@ package io.confluent.ksql.internal;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
+import static org.hamcrest.Matchers.greaterThanOrEqualTo;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.mock;
@@ -16,12 +19,16 @@ import io.confluent.ksql.util.KsqlConfig;
 import java.io.File;
 import java.io.IOException;
 import java.math.BigInteger;
+import java.util.Collections;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
+
 import org.apache.kafka.common.MetricName;
 import org.apache.kafka.common.metrics.Gauge;
 import org.apache.kafka.common.metrics.KafkaMetric;
 import org.apache.kafka.common.metrics.MetricValueProvider;
 import org.apache.kafka.common.metrics.Metrics;
+import org.codehaus.janino.Java;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -35,6 +42,7 @@ public class StorageUtilizationMetricsReporterTest {
 
   private static final String KAFKA_METRIC_NAME = "total-sst-files-size";
   private static final String KAFKA_METRIC_GROUP = "streams-metric";
+  private static final String KSQL_METRIC_GROUP = "ksqldb_utilization";
   private static final String THREAD_ID = "_confluent_blahblah_query_CTAS_TEST_1-blahblah";
   private static final String TRANSIENT_THREAD_ID = "_confluent_blahblah_transient_blahblah_4-blahblah";
   private static final String TASK_STORAGE_METRIC = "task_storage_used_bytes";
@@ -71,6 +79,12 @@ public class StorageUtilizationMetricsReporterTest {
   })
   public void shouldAddNodeMetricsOnConfigure() throws IOException {
     // Given:
+    listener.metricChange(mockMetric(
+        KAFKA_METRIC_GROUP,
+        KAFKA_METRIC_NAME,
+        BigInteger.valueOf(2),
+        ImmutableMap.of("task-id", "t1", "thread-id", THREAD_ID))
+    );
     final File f = new File("/tmp/storage-test/");
     f.getParentFile().mkdirs();
     f.createNewFile();
@@ -85,12 +99,18 @@ public class StorageUtilizationMetricsReporterTest {
     final Object storageUsedValue = storageUsedGauge.value(null, 0);
     final Gauge<?> pctUsedGauge = verifyAndGetRegisteredMetric("storage_utilization", BASE_TAGS);
     final Object pctUsedValue = pctUsedGauge.value(null, 0);
-
+    final Gauge<?> maxTaskUsageGauge = verifyAndGetRegisteredMetric("max_used_task_storage_bytes", BASE_TAGS);
+    final Object maxTaskUsageValue = maxTaskUsageGauge.value(null, 0);
+    final Gauge<?> numStatefulTasksGauge = verifyAndGetRegisteredMetric("num_stateful_tasks", BASE_TAGS);
+    final Object numStatefulTasksValue = numStatefulTasksGauge.value(null, 0);
+    
     // Then:
     assertThat((Long) storageFreeValue, greaterThan(0L));
     assertThat((Long) storageTotalValue, greaterThan(0L));
     assertThat((Long) storageUsedValue, greaterThan(0L));
     assertThat((Double) pctUsedValue, greaterThan(0.0));
+    assertThat((Integer) numStatefulTasksValue, greaterThan(0));
+    assertThat((BigInteger) maxTaskUsageValue, greaterThanOrEqualTo(BigInteger.ZERO));
   }
 
   @Test
@@ -252,6 +272,101 @@ public class StorageUtilizationMetricsReporterTest {
 
     // Then:
     assertThrows(AssertionError.class, () -> verifyAndGetRegisteredMetric(TASK_STORAGE_METRIC, TASK_ONE_TAGS));
+  }
+
+  @Test
+  public void shouldCombineTaskMetricsToQueryMetricWithSharedRuntimeQueries() {
+    // When:
+    listener.metricChange(mockMetric(
+        KAFKA_METRIC_GROUP,
+        KAFKA_METRIC_NAME,
+        BigInteger.valueOf(2),
+        ImmutableMap.of("task-id", "CTAS_TEST_1__1_0", "thread-id", "THREAD_ID", "logical_cluster_id", "logical-id"))
+    );
+    listener.metricChange(mockMetric(
+        KAFKA_METRIC_GROUP,
+        KAFKA_METRIC_NAME,
+        BigInteger.valueOf(5),
+        ImmutableMap.of("task-id", "CTAS_TEST_1__1_1", "thread-id", "THREAD_ID", "logical_cluster_id", "logical-id"))
+    );
+
+    // Then:
+    final Gauge<?> queryGauge = verifyAndGetRegisteredMetric(QUERY_STORAGE_METRIC, QUERY_TAGS);
+    final Object queryValue = queryGauge.value(null, 0);
+    final Map<String, String> task1 = ImmutableMap.of("logical_cluster_id", "logical-id", "query-id", "CTAS_TEST_1", "task-id", "CTAS_TEST_1__1_0");
+    final Gauge<?> taskGaugeOne = verifyAndGetRegisteredMetric(TASK_STORAGE_METRIC, task1);
+    final Object taskValueOne = taskGaugeOne.value(null, 0);
+    final Map<String, String> task2 = ImmutableMap.of("logical_cluster_id", "logical-id", "query-id", "CTAS_TEST_1", "task-id", "CTAS_TEST_1__1_1");
+    final Gauge<?> taskGaugeTwo = verifyAndGetRegisteredMetric(TASK_STORAGE_METRIC, task2);
+    final Object taskValueTwo = taskGaugeTwo.value(null, 0);
+    
+    assertThat(taskValueOne, equalTo(BigInteger.valueOf(2)));
+    assertThat(taskValueTwo, equalTo(BigInteger.valueOf(5)));
+    assertThat(queryValue, equalTo(BigInteger.valueOf(7)));
+  }
+  
+  @Test
+  public void shouldRecordMaxTaskUsage() {
+    // Given:
+    KafkaMetric m1 = mockMetric(
+      KSQL_METRIC_GROUP,
+      TASK_STORAGE_METRIC,
+      BigInteger.valueOf(2),
+      ImmutableMap.of("task-id", "t1"));
+    KafkaMetric m2 = mockMetric(
+      KSQL_METRIC_GROUP,
+      TASK_STORAGE_METRIC,
+      BigInteger.valueOf(5),
+      ImmutableMap.of("task-id", "t2"));
+    MetricName n1 = m1.metricName();
+    MetricName n2 = m2.metricName();
+    when(metrics.metrics()).thenReturn(ImmutableMap.of(n1, m1, n2, m2));
+    
+    // When:
+    listener.metricChange(m1);
+    listener.metricChange(m2);
+    
+    // Then:
+    BigInteger maxVal = StorageUtilizationMetricsReporter.getMaxTaskUsage(metrics);
+    assertTrue(maxVal.equals(BigInteger.valueOf(5)));
+  }
+
+  @Test
+  public void shouldRecordMaxTaskUsageWithNoTasks() {
+    // Given:
+    when(metrics.metrics()).thenReturn(Collections.EMPTY_MAP);
+
+    // When:
+
+    // Then:
+    BigInteger maxVal = StorageUtilizationMetricsReporter.getMaxTaskUsage(metrics);
+    assertTrue(maxVal.equals(BigInteger.valueOf(0)));
+  }
+  
+  @Test
+  public void shouldRecordNumStatefulTasks() {
+    // Given:
+    final File f = new File("/tmp/storage-test/");
+    listener.configureShared(f, metrics, BASE_TAGS);
+    final Gauge<?> numStatefulTasksGauge = verifyAndGetRegisteredMetric("num_stateful_tasks", BASE_TAGS);
+
+    // When:
+    listener.metricChange(mockMetric(
+      KAFKA_METRIC_GROUP,
+      KAFKA_METRIC_NAME,
+      BigInteger.valueOf(2),
+      ImmutableMap.of("store-id", "s1", "task-id", "t2", "thread-id", TRANSIENT_THREAD_ID))
+    );
+    listener.metricChange(mockMetric(
+      KAFKA_METRIC_GROUP,
+      KAFKA_METRIC_NAME,
+      BigInteger.valueOf(5),
+      ImmutableMap.of("store-id", "s2", "task-id", "t1", "thread-id", TRANSIENT_THREAD_ID))
+    );
+    
+    // Then:
+    final Object numStatefulTasksValue = numStatefulTasksGauge.value(null, 0);
+    assertEquals((int) numStatefulTasksValue, 2);
   }
 
   private KafkaMetric mockMetric(

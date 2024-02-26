@@ -176,19 +176,20 @@ public class DestroyMigrationsCommand extends BaseCommand {
   ) {
     final List<QueryInfo> queries = tableDesc.writeQueries();
     if (queries.size() == 0) {
-      LOGGER.info("Found 0 queries writing to metadata table");
+      LOGGER.info("Found 0 queries writing to the metadata table");
       return;
     }
 
     if (queries.size() > 1) {
-      throw new MigrationException("Found multiple queries writing to metadata table. Query IDs: "
+      throw new MigrationException(
+              "Found multiple queries writing to the metadata table. Query IDs: "
           + queries.stream()
               .map(QueryInfo::getId)
               .collect(Collectors.joining("', '", "'", "'.")));
     }
 
     final String queryId = queries.get(0).getId();
-    LOGGER.info("Found 1 query writing to metadata table. Query ID: {}", queryId);
+    LOGGER.info("Found 1 query writing to the metadata table. Query ID: {}", queryId);
 
     LOGGER.info("Terminating query with ID: {}", queryId);
     try {

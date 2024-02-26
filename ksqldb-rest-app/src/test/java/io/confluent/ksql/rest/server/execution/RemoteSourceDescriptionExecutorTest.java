@@ -35,6 +35,9 @@ public class RemoteSourceDescriptionExecutorTest  {
       .excludeField(
           named("fields")
               .and(inClass(SourceDescription.class))
+      ).excludeField(
+          named("windowType") // since JDK17 does not support randomizing optionals
+              .and(inClass(SourceDescription.class))
       );
   final EasyRandom objectMother = new EasyRandom(parameters);
 

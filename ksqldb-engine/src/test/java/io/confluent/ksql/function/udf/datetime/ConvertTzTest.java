@@ -64,9 +64,27 @@ public class ConvertTzTest {
   }
 
   @Test
-  public void shouldReturnNull() {
+  public void shouldReturnNullForNullTimestamp() {
     // When:
     final Object result = udf.convertTz(null, "America/Los_Angeles", "America/New_York");
+
+    // Then:
+    assertNull(result);
+  }
+
+  @Test
+  public void shouldReturnNullForNullFromTimeZone() {
+    // When:
+    final Object result = udf.convertTz(Timestamp.valueOf("2000-01-01 00:00:00"), null, "America/New_York");
+
+    // Then:
+    assertNull(result);
+  }
+
+  @Test
+  public void shouldReturnNullForNullToTimeZone() {
+    // When:
+    final Object result = udf.convertTz(Timestamp.valueOf("2000-01-01 00:00:00"), "America/Los_Angeles", null);
 
     // Then:
     assertNull(result);

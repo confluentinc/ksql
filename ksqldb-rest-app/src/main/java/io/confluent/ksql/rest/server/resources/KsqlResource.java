@@ -40,6 +40,7 @@ import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.KsqlWarning;
+import io.confluent.ksql.rest.entity.PropertiesList;
 import io.confluent.ksql.rest.server.ServerUtil;
 import io.confluent.ksql.rest.server.computation.CommandRunner;
 import io.confluent.ksql.rest.server.computation.DistributingExecutor;
@@ -250,7 +251,15 @@ public class KsqlResource implements KsqlConfigurable {
       final Map<String, Object> properties = new HashMap<>();
       properties.put(property, "");
       denyListPropertyValidator.validateAll(properties);
-
+      if (ksqlEngine.getKsqlConfig().getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)) {
+        if (!PropertiesList.QueryLevelPropertyList.contains(property)) {
+          throw new KsqlException(String.format("When shared runtimes are enabled, the"
+              + " config %s can only be set for the entire cluster and all queries currently"
+              + " running in it, and not configurable for individual queries."
+              + " Please use ALTER SYSTEM to change this config for all queries.",
+              properties));
+        }
+      }
       return EndpointResponse.ok(true);
     } catch (final KsqlException e) {
       LOG.info("Processed unsuccessfully, reason: ", e);

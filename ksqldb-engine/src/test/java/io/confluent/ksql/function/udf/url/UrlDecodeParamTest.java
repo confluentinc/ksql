@@ -16,7 +16,9 @@
 package io.confluent.ksql.function.udf.url;
 
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -43,5 +45,10 @@ public class UrlDecodeParamTest {
   @Test
   public void shouldReturnEmptyStringForEmptyInput() {
     assertThat(decodeUdf.decodeParam(""), equalTo(""));
+  }
+
+  @Test
+  public void shouldReturnForNullValue() {
+    assertThat(decodeUdf.decodeParam(null), is(nullValue()));
   }
 }

@@ -36,40 +36,40 @@ public class DecimalMinKudafTest {
 
   @Test
   public void shouldFindCorrectMin() {
-    final DecimalMinKudaf doubleMinKudaf = getDecimalMinKudaf(2);
+    final MinKudaf<BigDecimal> decimalMinKudaf = getDecimalMinKudaf(2);
     final double[] values = new double[]{3.0, 5.0, 8.0, 2.2, 3.5, 4.6, 5.0};
     BigDecimal currentMin = null;
     for (final double i: values) {
-      currentMin = doubleMinKudaf.aggregate(new BigDecimal(i, new MathContext(2)), currentMin);
+      currentMin = decimalMinKudaf.aggregate(new BigDecimal(i, new MathContext(2)), currentMin);
     }
     assertThat(currentMin, is(new BigDecimal(2.2, new MathContext(2))));
   }
 
   @Test
   public void shouldHandleNull() {
-    final DecimalMinKudaf doubleMinKudaf = getDecimalMinKudaf(2);
+    final MinKudaf<BigDecimal> decimalMinKudaf = getDecimalMinKudaf(2);
     final double[] values = new double[]{3.0, 5.0, 8.0, 2.2, 3.5, 4.6, 5.0};
     BigDecimal currentMin = null;
 
     // null before any aggregation
-    currentMin = doubleMinKudaf.aggregate(null, currentMin);
+    currentMin = decimalMinKudaf.aggregate(null, currentMin);
     assertThat(null, equalTo(currentMin));
 
     // now send each value to aggregation and verify
     for (final double i: values) {
-      currentMin = doubleMinKudaf.aggregate(new BigDecimal(i, new MathContext(2)), currentMin);
+      currentMin = decimalMinKudaf.aggregate(new BigDecimal(i, new MathContext(2)), currentMin);
     }
     assertThat(new BigDecimal(2.2, new MathContext(2)), equalTo(currentMin));
 
     // null should not impact result
-    currentMin = doubleMinKudaf.aggregate(null, currentMin);
+    currentMin = decimalMinKudaf.aggregate(null, currentMin);
     assertThat(new BigDecimal(2.2, new MathContext(2)), equalTo(currentMin));
   }
 
   @Test
   public void shouldFindCorrectMinForMerge() {
-    final DecimalMinKudaf doubleMinKudaf = getDecimalMinKudaf(3);
-    final Merger<GenericKey, BigDecimal> merger = doubleMinKudaf.getMerger();
+    final MinKudaf decimalMinKudaf = getDecimalMinKudaf(3);
+    final Merger<GenericKey, BigDecimal> merger = decimalMinKudaf.getMerger();
     final BigDecimal mergeResult1 = merger.apply(null, new BigDecimal(10.0), new BigDecimal(12.0));
     assertThat(mergeResult1, equalTo(new BigDecimal(10.0, new MathContext(3))));
     final BigDecimal mergeResult2 = merger.apply(null, new BigDecimal(10.0), new BigDecimal(-12.0));
@@ -79,12 +79,12 @@ public class DecimalMinKudafTest {
   }
 
 
-  private DecimalMinKudaf getDecimalMinKudaf(final int precision) {
+  private MinKudaf getDecimalMinKudaf(final int precision) {
     final KsqlAggregateFunction aggregateFunction = new MinAggFunctionFactory()
         .createAggregateFunction(Collections.singletonList(SqlArgument.of(SqlDecimal.of(precision, 1))),
             AggregateFunctionInitArguments.EMPTY_ARGS);
-    assertThat(aggregateFunction, instanceOf(DecimalMinKudaf.class));
-    return  (DecimalMinKudaf) aggregateFunction;
+    assertThat(aggregateFunction, instanceOf(MinKudaf.class));
+    return  (MinKudaf) aggregateFunction;
   }
 
 }

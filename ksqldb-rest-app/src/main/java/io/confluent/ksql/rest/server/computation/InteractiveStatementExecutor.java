@@ -128,7 +128,8 @@ public class InteractiveStatementExecutor implements KsqlConfigurable {
         queuedCommand.getAndDeserializeCommandId(),
         queuedCommand.getStatus(),
         Mode.EXECUTE,
-        queuedCommand.getOffset()
+        queuedCommand.getOffset(),
+        false
     );
   }
 
@@ -140,7 +141,8 @@ public class InteractiveStatementExecutor implements KsqlConfigurable {
         queuedCommand.getAndDeserializeCommandId(),
         queuedCommand.getStatus(),
         Mode.RESTORE,
-        queuedCommand.getOffset()
+        queuedCommand.getOffset(),
+        true
     );
   }
 
@@ -194,11 +196,13 @@ public class InteractiveStatementExecutor implements KsqlConfigurable {
       final CommandId commandId,
       final Optional<CommandStatusFuture> commandStatusFuture,
       final Mode mode,
-      final long offset
+      final long offset,
+      final boolean restoreInProgress
   ) {
     try {
       if (command.getPlan().isPresent()) {
-        executePlan(command, commandId, commandStatusFuture, command.getPlan().get(), mode, offset);
+        executePlan(command, commandId, commandStatusFuture, command.getPlan().get(), mode, offset,
+            restoreInProgress);
         return;
       }
       final String statementString = command.getStatement();
@@ -231,7 +235,8 @@ public class InteractiveStatementExecutor implements KsqlConfigurable {
       final Optional<CommandStatusFuture> commandStatusFuture,
       final KsqlPlan plan,
       final Mode mode,
-      final long offset
+      final long offset,
+      final boolean restoreInProgress
   ) {
     final KsqlConfig mergedConfig = buildMergedConfig(command);
     final ConfiguredKsqlPlan configured = ConfiguredKsqlPlan.of(
@@ -243,7 +248,8 @@ public class InteractiveStatementExecutor implements KsqlConfigurable {
         commandStatusFuture,
         new CommandStatus(CommandStatus.Status.EXECUTING, "Executing statement")
     );
-    final ExecuteResult result = ksqlEngine.execute(serviceContext, configured);
+    final ExecuteResult result = ksqlEngine.execute(serviceContext, configured,
+        restoreInProgress);
     queryIdGenerator.setNextId(offset + 1);
     if (result.getQuery().isPresent()) {
       if (mode == Mode.EXECUTE) {

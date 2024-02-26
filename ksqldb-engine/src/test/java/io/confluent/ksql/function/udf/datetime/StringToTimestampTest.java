@@ -25,6 +25,7 @@ import io.confluent.ksql.function.KsqlFunctionException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.stream.IntStream;
+import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -147,6 +148,29 @@ public class StringToTimestampTest {
             fail(e.getMessage());
           }
         });
+  }
+
+  @Test
+  public void shouldThrowOnNullDate() {
+    // When:
+    final Exception e = assertThrows(
+        KsqlFunctionException.class,
+        () -> udf.stringToTimestamp(null, "yyyy-MM-dd")
+    );
+
+    // Then:
+    assertThat(e.getMessage(), Matchers.containsString("Failed to parse timestamp 'null' with formatter"));
+  }
+
+  @Test
+  public void shouldThrowOnNullDateFormat() {
+    final Exception e = assertThrows(
+        KsqlFunctionException.class,
+        () -> udf.stringToTimestamp("2021-12-01", null)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), Matchers.containsString("Failed to parse timestamp '2021-12-01' with formatter 'null'"));
   }
 
   @Test

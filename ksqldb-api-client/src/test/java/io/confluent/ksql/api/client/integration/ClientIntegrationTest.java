@@ -41,6 +41,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.Sets;
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
@@ -107,12 +108,20 @@ import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 import kafka.zookeeper.ZooKeeperClientException;
+import org.apache.kafka.clients.admin.Admin;
+import org.apache.kafka.clients.admin.ListOffsetsResult.ListOffsetsResultInfo;
+import org.apache.kafka.clients.admin.OffsetSpec;
+import org.apache.kafka.clients.admin.RecordsToDelete;
+import org.apache.kafka.clients.admin.TopicDescription;
+import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.header.Header;
 import org.apache.kafka.common.header.internals.RecordHeader;
 import org.apache.kafka.connect.data.Struct;
@@ -137,6 +146,7 @@ import org.reactivestreams.Publisher;
 public class ClientIntegrationTest {
 
   private static final StructuredTypesDataProvider TEST_DATA_PROVIDER = new StructuredTypesDataProvider();
+
   private static final String TEST_TOPIC = TEST_DATA_PROVIDER.topicName();
   private static final String TEST_STREAM = TEST_DATA_PROVIDER.sourceName();
   private static final int TEST_NUM_ROWS = TEST_DATA_PROVIDER.data().size();
@@ -148,7 +158,6 @@ public class ClientIntegrationTest {
           "BYTES", "ARRAY", "MAP", "STRUCT", "STRUCT", "TIMESTAMP", "DATE", "TIME", "BYTES"));
   private static final List<KsqlArray> TEST_EXPECTED_ROWS =
       convertToClientRows(TEST_DATA_PROVIDER.data());
-
   private static final Format KEY_FORMAT = FormatFactory.JSON;
   private static final Format VALUE_FORMAT = FormatFactory.JSON;
   private static final Supplier<Long> TS_SUPPLIER = () -> 0L;
@@ -171,6 +180,13 @@ public class ClientIntegrationTest {
       "EMPTY_STRUCTURED_TYPES", TEST_DATA_PROVIDER.schema(), ImmutableListMultimap.of());
   private static final String EMPTY_TEST_TOPIC = EMPTY_TEST_DATA_PROVIDER.topicName();
   private static final String EMPTY_TEST_STREAM = EMPTY_TEST_DATA_PROVIDER.sourceName();
+
+  private static final TestDataProvider TRUNCATED_TEST_DATA_PROVIDER = new StructuredTypesDataProvider(
+      "TRUNCATED_STRUCTURED_TYPES"
+  );
+  private static final String TRUNCATED_TEST_TOPIC = TRUNCATED_TEST_DATA_PROVIDER.topicName();
+  private static final String TRUNCATED_TEST_STREAM = TRUNCATED_TEST_DATA_PROVIDER.sourceName();
+
 
   private static final String PUSH_QUERY = "SELECT * FROM " + TEST_STREAM + " EMIT CHANGES;";
   private static final String PULL_QUERY_ON_STREAM = "SELECT * FROM " + TEST_STREAM + ";";
@@ -225,9 +241,12 @@ public class ClientIntegrationTest {
 
   @BeforeClass
   public static void setUpClass() throws Exception {
-    TEST_HARNESS.ensureTopics(TEST_TOPIC, EMPTY_TEST_TOPIC);
+    TEST_HARNESS.ensureTopics(TEST_TOPIC, EMPTY_TEST_TOPIC, TRUNCATED_TEST_TOPIC);
     TEST_HARNESS.produceRows(TEST_TOPIC, TEST_DATA_PROVIDER, KEY_FORMAT, VALUE_FORMAT, TS_SUPPLIER, HEADERS_SUPPLIER);
     RestIntegrationTestUtil.createStream(REST_APP, TEST_DATA_PROVIDER);
+    TEST_HARNESS.produceRows(TRUNCATED_TEST_TOPIC, TRUNCATED_TEST_DATA_PROVIDER, KEY_FORMAT, VALUE_FORMAT, TS_SUPPLIER, HEADERS_SUPPLIER);
+    truncateTopic(TRUNCATED_TEST_TOPIC);
+    RestIntegrationTestUtil.createStream(REST_APP, TRUNCATED_TEST_DATA_PROVIDER);
     RestIntegrationTestUtil.createStream(REST_APP, EMPTY_TEST_DATA_PROVIDER);
 
     makeKsqlRequest("CREATE TABLE " + AGG_TABLE + " AS "
@@ -263,6 +282,54 @@ public class ClientIntegrationTest {
 
     CONNECT = ConnectExecutable.of(connectFilePath);
     CONNECT.startAsync();
+  }
+
+  private static void truncateTopic(final String truncatedTestTopic) throws InterruptedException, ExecutionException {
+    try (final Admin admin = Admin.create(TEST_HARNESS.getKafkaCluster().getClientProperties())) {
+      final TopicDescription describeTopicsResult =
+          admin
+              .describeTopics(Collections.singleton(truncatedTestTopic))
+              .allTopicNames()
+              .get()
+              .get(truncatedTestTopic);
+      final Map<TopicPartition, ListOffsetsResultInfo> latestOffsets =
+          admin.listOffsets(
+                  describeTopicsResult.partitions().stream()
+                      .map(tpi -> new TopicPartition(truncatedTestTopic, tpi.partition())).collect(
+                          Collectors.toMap(tp -> tp, tp -> OffsetSpec.latest())
+                      )
+              )
+              .all()
+              .get();
+      admin.deleteRecords(
+              latestOffsets
+                  .entrySet()
+                  .stream()
+                  .collect(
+                      Collectors.toMap(
+                          Entry::getKey,
+                          e -> RecordsToDelete.beforeOffset(e.getValue().offset())
+                      )
+                  )
+          )
+          .all()
+          .get();
+
+      final Map<TopicPartition, ListOffsetsResultInfo> earliestOffsets =
+          admin.listOffsets(
+                  describeTopicsResult.partitions().stream()
+                      .map(tpi -> new TopicPartition(truncatedTestTopic, tpi.partition())).collect(
+                          Collectors.toMap(tp -> tp, tp -> OffsetSpec.earliest())
+                      )
+              )
+              .all()
+              .get();
+      for (final TopicPartition topicPartition : Sets.union(earliestOffsets.keySet(), latestOffsets.keySet())) {
+        assertThat(latestOffsets.get(topicPartition), notNullValue());
+        assertThat(earliestOffsets.get(topicPartition), notNullValue());
+        assertThat(earliestOffsets.get(topicPartition).offset(), is(latestOffsets.get(topicPartition).offset()));
+      }
+    }
   }
 
   private static void writeConnectConfigs(final String path, final Map<String, String> configs) throws Exception {
@@ -420,6 +487,36 @@ public class ClientIntegrationTest {
     // When
     final StreamedQueryResult streamedQueryResult = client.streamQuery(
         "SELECT * FROM " + EMPTY_TEST_STREAM + ";").get();
+
+    // Then
+    assertThat(streamedQueryResult.columnNames(), is(TEST_COLUMN_NAMES));
+    assertThat(streamedQueryResult.columnTypes(), is(TEST_COLUMN_TYPES));
+    assertThat(streamedQueryResult.queryID(), is(notNullValue()));
+
+    final List<Row> results = new LinkedList<>();
+    Row row;
+    while (true) {
+      row = streamedQueryResult.poll();
+      if (row == null) {
+        break;
+      } else {
+        results.add(row);
+      }
+    }
+
+    verifyStreamRows(results, 0);
+
+    assertThatEventually(streamedQueryResult::isComplete, is(true));
+  }
+
+  @Test
+  public void shouldStreamPullQueryOnTruncatedStreamSync() throws Exception {
+    // double-check to make sure it's really truncated
+    truncateTopic(TRUNCATED_TEST_TOPIC);
+
+    // When
+    final StreamedQueryResult streamedQueryResult = client.streamQuery(
+        "SELECT * FROM " + TRUNCATED_TEST_STREAM + ";").get();
 
     // Then
     assertThat(streamedQueryResult.columnNames(), is(TEST_COLUMN_NAMES));
@@ -797,7 +894,8 @@ public class ClientIntegrationTest {
     // Then
     assertThat("" + streams, streams, containsInAnyOrder(
         streamForProvider(TEST_DATA_PROVIDER),
-        streamForProvider(EMPTY_TEST_DATA_PROVIDER)
+        streamForProvider(EMPTY_TEST_DATA_PROVIDER),
+        streamForProvider(TRUNCATED_TEST_DATA_PROVIDER)
     ));
   }
 
@@ -825,6 +923,7 @@ public class ClientIntegrationTest {
     }, containsInAnyOrder(
         topicInfo(TEST_TOPIC),
         topicInfo(EMPTY_TEST_TOPIC),
+        topicInfo(TRUNCATED_TEST_TOPIC),
         topicInfo(AGG_TABLE),
         topicInfo("connect-config")
     ));
@@ -974,6 +1073,13 @@ public class ClientIntegrationTest {
   }
 
   @Test
+  public void shouldNotFailToDropNonExistantConnector() throws Exception {
+    // When/Then:
+    client.dropConnector("nonExistentConnector", true).get();
+  }
+
+
+  @Test
   public void shouldCreateConnector() throws Exception {
     // When:
     client.createConnector("FOO", true, ImmutableMap.of("connector.class", MOCK_SOURCE_CLASS)).get();
@@ -989,6 +1095,15 @@ public class ClientIntegrationTest {
         },
         is("RUNNING")
     );
+  }
+
+  @Test
+  public void shouldNotFailToCreateConnectorThatExists() throws Exception {
+    // Given:
+    givenConnectorExists();
+
+    // When/Then:
+    client.createConnector(TEST_CONNECTOR, true, ImmutableMap.of("connector.class", MOCK_SOURCE_CLASS), true).get();
   }
 
   @Test
@@ -1363,5 +1478,4 @@ public class ClientIntegrationTest {
       }
     };
   }
-
 }

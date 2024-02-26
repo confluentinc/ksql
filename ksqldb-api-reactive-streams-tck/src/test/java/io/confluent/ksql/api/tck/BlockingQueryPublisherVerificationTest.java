@@ -24,6 +24,7 @@ import io.confluent.ksql.query.TransientQueryQueue;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.util.ConsistencyOffsetVector;
 import io.confluent.ksql.util.KeyValueMetadata;
+import io.confluent.ksql.util.PushQueryMetadata.ResultType;
 import io.vertx.core.Context;
 import io.vertx.core.Vertx;
 import io.vertx.core.WorkerExecutor;
@@ -127,6 +128,11 @@ public class BlockingQueryPublisherVerificationTest extends PublisherVerificatio
 
     @Override
     public Optional<ConsistencyOffsetVector> getConsistencyOffsetVector() {
+      return Optional.empty();
+    }
+
+    @Override
+    public Optional<ResultType> getResultType() {
       return Optional.empty();
     }
   }

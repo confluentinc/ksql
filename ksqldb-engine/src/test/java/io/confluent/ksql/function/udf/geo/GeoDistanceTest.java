@@ -93,4 +93,10 @@ public class GeoDistanceTest {
     assertThat(e.getMessage(), containsString(
         "GeoDistance function units parameter must be one of"));
   }
+
+  @Test
+  public void shouldComputeDistanceBetweenLocationsWithNullUnitsUsingKM() {
+    assertEquals(8634.6528,
+        (double) distanceUdf.geoDistance(37.4439, -122.1663, 51.5257, -0.1122, null), 0.5);
+  }
 }

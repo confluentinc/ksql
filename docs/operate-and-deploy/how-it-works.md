@@ -174,7 +174,7 @@ manipulate data, by creating a derivative of existing records.
 ksqlDB Deployment Modes
 -----------------------
 
-You can use deploy your ksqlDB streaming applications using either **Interactive** or **Headless** mode. We recommend using interactive mode when possible.
+You can deploy your ksqlDB streaming applications using either **Interactive** or **Headless** mode. We recommend using interactive mode when possible.
 
 In both deployment modes, ksqlDB enables distributing the processing load
 for your ksqlDB applications across all ksqlDB Server instances, and you can

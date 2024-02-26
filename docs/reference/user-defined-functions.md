@@ -203,7 +203,7 @@ SQL. The annotation supports the following fields:
 If a user defined function uses primitive types in its signature it is indicating that the
 parameter should never be `null`. Conversely, using boxed types indicates
 the function can accept `null` values for the parameter. It's up to the
-implementor of the UDF to choose which is the more appropriate. A common
+implementer of the UDF to choose which is the more appropriate. A common
 pattern is to return `null` if the input is `null`, though generally
 this is only for parameters that are expected to be supplied from the
 source row being processed.
@@ -230,7 +230,7 @@ type, like `DECIMAL` or `STRUCT`. For example, a UDF that returns
 precision and scale of the output based on the input schema.
 
 To use this functionality, you need to specify a method with signature
-`public SqlType <your-method-name>(final List<SqlType> params)` and
+`public SqlType <your-method-name>(final List<SqlArgument> params)` and
 annotate it with `@UdfSchemaProvider`. Also, you need to link it to the
 corresponding UDF by using the `schemaProvider=<your-method-name>`
 parameter of the `@Udf` annotation.
@@ -238,6 +238,11 @@ parameter of the `@Udf` annotation.
 When implementing dynamic returns for a UDTF function, if your method returns
 a value of type `List<T>`, the type referred to by the schema provider method
 is the type `T`, not the type `List<T>`.
+
+For dynamic UDAFs, the `aggregate` or `map` methods may depend on the input SQL type, so
+implementations of the `Udaf` interface override some of the following three methods:
+`initializeTypeArguments(List<SqlArgument> argTypeList)`, `getAggregateSqlType()`, and 
+`getReturnSqlType()`.
 
 ## Generics
 

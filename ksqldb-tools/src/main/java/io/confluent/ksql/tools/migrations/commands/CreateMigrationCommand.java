@@ -18,7 +18,7 @@ package io.confluent.ksql.tools.migrations.commands;
 import static io.confluent.ksql.tools.migrations.util.MigrationsDirectoryUtil.getAllVersions;
 import static io.confluent.ksql.tools.migrations.util.MigrationsDirectoryUtil.getFilePrefixForVersion;
 import static io.confluent.ksql.tools.migrations.util.MigrationsDirectoryUtil.getMigrationForVersion;
-import static io.confluent.ksql.tools.migrations.util.MigrationsDirectoryUtil.getMigrationsDirFromConfigFile;
+import static io.confluent.ksql.tools.migrations.util.MigrationsDirectoryUtil.getMigrationsDir;
 
 import com.github.rvesse.airline.annotations.Arguments;
 import com.github.rvesse.airline.annotations.Command;
@@ -28,8 +28,10 @@ import com.github.rvesse.airline.annotations.restrictions.Once;
 import com.github.rvesse.airline.annotations.restrictions.Required;
 import com.github.rvesse.airline.annotations.restrictions.ranges.IntegerRange;
 import com.google.common.annotations.VisibleForTesting;
+import io.confluent.ksql.tools.migrations.MigrationConfig;
 import io.confluent.ksql.tools.migrations.MigrationException;
 import io.confluent.ksql.tools.migrations.util.MigrationFile;
+import io.confluent.ksql.util.KsqlException;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Paths;
@@ -77,7 +79,15 @@ public class CreateMigrationCommand extends BaseCommand {
       return 1;
     }
 
-    return command(getMigrationsDirFromConfigFile(getConfigFile()));
+    final MigrationConfig config;
+    try {
+      config = MigrationConfig.load(getConfigFile());
+    } catch (KsqlException | MigrationException e) {
+      LOGGER.error(e.getMessage());
+      return 1;
+    }
+
+    return command(getMigrationsDir(getConfigFile(), config));
   }
 
   @VisibleForTesting

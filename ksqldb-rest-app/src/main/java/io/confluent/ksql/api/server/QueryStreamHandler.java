@@ -35,9 +35,11 @@ import io.vertx.core.Context;
 import io.vertx.core.Handler;
 import io.vertx.core.http.HttpVersion;
 import io.vertx.ext.web.RoutingContext;
+import java.time.Clock;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.kafka.common.utils.Time;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,6 +47,7 @@ import org.slf4j.LoggerFactory;
 /**
  * Handles requests to the query-stream endpoint
  */
+@SuppressWarnings({"ClassDataAbstractionCoupling"})
 public class QueryStreamHandler implements Handler<RoutingContext> {
 
   private static final Logger log = LoggerFactory.getLogger(QueryStreamHandler.class);
@@ -85,9 +88,6 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
               ERROR_CODE_BAD_REQUEST));
     }
 
-    final QueryStreamResponseWriter queryStreamResponseWriter
-        = getQueryStreamResponseWriter(routingContext);
-
     final CommonRequest request = getRequest(routingContext);
     if (request == null) {
       return;
@@ -106,7 +106,6 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
           handleQueryPublisher(
               routingContext,
               queryPublisher,
-              queryStreamResponseWriter,
               metricsCallbackHolder,
               startTimeNanos);
         })
@@ -115,7 +114,11 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
   }
 
   private QueryStreamResponseWriter getQueryStreamResponseWriter(
-      final RoutingContext routingContext
+      final RoutingContext routingContext,
+      final QueryPublisher queryPublisher,
+      final Optional<String> completionMessage,
+      final Optional<String> limitMessage,
+      final boolean bufferOutput
   ) {
     final String contentType = routingContext.getAcceptableContentType();
     if (DELIMITED_CONTENT_TYPE.equals(contentType)
@@ -125,7 +128,8 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
     } else if (KsqlMediaType.KSQL_V1_JSON.mediaType().equals(contentType)
         || ((contentType == null || JSON_CONTENT_TYPE.equals(contentType)
         && queryCompatibilityMode))) {
-      return new JsonStreamedRowResponseWriter(routingContext.response());
+      return new JsonStreamedRowResponseWriter(routingContext.response(), queryPublisher,
+          completionMessage, limitMessage, Clock.systemUTC(), bufferOutput, context);
     } else {
       return new JsonQueryStreamResponseWriter(routingContext.response());
     }
@@ -165,13 +169,19 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
   private void handleQueryPublisher(
       final RoutingContext routingContext,
       final QueryPublisher queryPublisher,
-      final QueryStreamResponseWriter queryStreamResponseWriter,
       final MetricsCallbackHolder metricsCallbackHolder,
       final long startTimeNanos
   ) {
 
     final QueryResponseMetadata metadata;
-    final Optional<String> completionMessage;
+    Optional<String> completionMessage = Optional.empty();
+    Optional<String> limitMessage = Optional.of("Limit Reached");
+    boolean bufferOutput = false;
+    // The end handler can be called twice if the connection is closed by the client.  The
+    // call to response.end() resulting from queryPublisher.close() may result in a second
+    // call to the end handler, which will mess up metrics, so we ensure that this called just
+    // once by keeping track of the calls.
+    final AtomicBoolean endedResponse = new AtomicBoolean(false);
 
     if (queryPublisher.isPullQuery()) {
       metadata = new QueryResponseMetadata(
@@ -179,10 +189,15 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
           queryPublisher.getColumnNames(),
           queryPublisher.getColumnTypes(),
           queryPublisher.geLogicalSchema());
-      completionMessage = Optional.of("Pull query complete");
+      limitMessage = Optional.empty();
+      bufferOutput = true;
 
       // When response is complete, publisher should be closed
       routingContext.response().endHandler(v -> {
+        if (endedResponse.getAndSet(true)) {
+          log.warn("Connection already closed so just returning");
+          return;
+        }
         queryPublisher.close();
         metricsCallbackHolder.reportMetrics(
             routingContext.response().getStatusCode(),
@@ -196,8 +211,12 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
           queryPublisher.getColumnNames(),
           queryPublisher.getColumnTypes(),
           preparePushProjectionSchema(queryPublisher.geLogicalSchema()));
-      completionMessage = Optional.empty();
+
       routingContext.response().endHandler(v -> {
+        if (endedResponse.getAndSet(true)) {
+          log.warn("Connection already closed so just returning");
+          return;
+        }
         queryPublisher.close();
         metricsCallbackHolder.reportMetrics(
             routingContext.response().getStatusCode(),
@@ -210,14 +229,18 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
           .createApiQuery(queryPublisher, routingContext.request());
 
       metadata = new QueryResponseMetadata(
-          query.getId().toString(),
+          queryPublisher.queryId().toString(),
           queryPublisher.getColumnNames(),
           queryPublisher.getColumnTypes(),
           preparePushProjectionSchema(queryPublisher.geLogicalSchema()));
-      completionMessage = Optional.empty();
+      completionMessage = Optional.of("Query Completed");
 
       // When response is complete, publisher should be closed and query unregistered
       routingContext.response().endHandler(v -> {
+        if (endedResponse.getAndSet(true)) {
+          log.warn("Connection already closed so just returning");
+          return;
+        }
         query.close();
         metricsCallbackHolder.reportMetrics(
             routingContext.response().getStatusCode(),
@@ -227,10 +250,13 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
       });
     }
 
+    final QueryStreamResponseWriter queryStreamResponseWriter
+        = getQueryStreamResponseWriter(routingContext, queryPublisher, completionMessage,
+        limitMessage, bufferOutput);
     queryStreamResponseWriter.writeMetadata(metadata);
 
     final QuerySubscriber querySubscriber = new QuerySubscriber(context,
-        routingContext.response(), queryStreamResponseWriter, completionMessage,
+        routingContext.response(), queryStreamResponseWriter,
         queryPublisher::hitLimit);
 
     queryPublisher.subscribe(querySubscriber);

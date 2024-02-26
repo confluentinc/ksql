@@ -32,8 +32,8 @@ import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.tree.ListQueries;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.SessionProperties;
-import io.confluent.ksql.rest.client.KsqlRestClientException;
 import io.confluent.ksql.rest.client.RestResponse;
+import io.confluent.ksql.rest.client.exception.KsqlRestClientException;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.KsqlHostInfoEntity;
@@ -522,7 +522,7 @@ public class ListQueriesExecutorTest {
     final List<StreamsMetadata> streamsData = new ArrayList<>();
     streamsData.add(localStreamsMetadata);
     streamsData.add(remoteStreamsMetadata);
-    when(metadata.getAllMetadata()).thenReturn(streamsData);
+    when(metadata.getAllStreamsHostMetadata()).thenReturn(streamsData);
   }
 
   public static RunningQuery persistentQueryMetadataToRunningQuery(

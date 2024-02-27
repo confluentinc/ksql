@@ -155,6 +155,7 @@ import java.util.stream.Collectors;
 import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.errors.WakeupException;
+import org.apache.kafka.common.utils.AppInfoParser;
 import org.apache.kafka.common.utils.Time;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.processor.internals.DefaultKafkaClientSupplier;
@@ -785,14 +786,15 @@ public final class KsqlRestApplication implements Executable {
     final Admin internalAdmin = createCommandTopicAdminClient(restConfig, ksqlConfig);
     final KafkaTopicClient internalTopicClient = new KafkaTopicClientImpl(() -> internalAdmin);
 
+    final AppInfoParser.AppInfo appInfo = new AppInfoParser.AppInfo(System.currentTimeMillis());
     final CommandStore commandStore = CommandStore.Factory.create(
         ksqlConfig,
         commandTopicName,
         Duration.ofMillis(restConfig.getLong(DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_CONFIG)),
         ksqlConfig.addConfluentMetricsContextConfigsKafka(
-            restConfig.getCommandConsumerProperties()),
+            restConfig.getCommandConsumerProperties(), appInfo),
         ksqlConfig.addConfluentMetricsContextConfigsKafka(
-            restConfig.getCommandProducerProperties()),
+            restConfig.getCommandProducerProperties(), appInfo),
         internalTopicClient
     );
 

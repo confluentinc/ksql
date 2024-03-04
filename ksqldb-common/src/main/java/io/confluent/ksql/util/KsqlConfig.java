@@ -351,7 +351,7 @@ public class KsqlConfig extends AbstractConfig {
       "Config to enable pull queries that scan over the data";
   public static final boolean KSQL_QUERY_PULL_TABLE_SCAN_ENABLED_DEFAULT = true;
 
-  public static final String KSQL_QUERY_STREAM_PULL_QUERY_ENABLED 
+  public static final String KSQL_QUERY_STREAM_PULL_QUERY_ENABLED
       = "ksql.query.pull.stream.enabled";
   public static final String KSQL_QUERY_STREAM_PULL_QUERY_ENABLED_DOC =
       "Config to enable pull queries on streams";
@@ -1796,7 +1796,8 @@ public class KsqlConfig extends AbstractConfig {
       final Map<String,Object> props
   ) {
     final Map<String, Object> updatedProps = new HashMap<>(props);
-    final AppInfoParser.AppInfo appInfo = new AppInfoParser.AppInfo(System.currentTimeMillis());
+    final AppInfoParser.AppInfo appInfo = new AppInfoParser.AppInfo(System.currentTimeMillis(),
+            KsqlConstants.enableLoggingAppInfo);
     updatedProps.putAll(getConfigsForPrefix(REPORTER_CONFIGS_PREFIXES));
     updatedProps.put(MetricCollectors.RESOURCE_LABEL_VERSION, appInfo.getVersion());
     updatedProps.put(MetricCollectors.RESOURCE_LABEL_COMMIT_ID, appInfo.getCommitId());

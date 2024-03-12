@@ -188,6 +188,12 @@
             <artifactId>mbknor-jackson-jsonschema_${kafka.scala.version}</artifactId>
             <version>1.0.39</version>
             <scope>test</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.jetbrains.kotlin</groupId>
+                    <artifactId>kotlin-stdlib</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
 
 

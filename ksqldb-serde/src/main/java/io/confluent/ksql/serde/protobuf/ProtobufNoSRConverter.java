@@ -44,6 +44,16 @@ public class ProtobufNoSRConverter implements Converter {
 
   private ProtobufData protobufData;
 
+  /**
+   * This constructor is defined only to adhere to the Converter plugin semantics to defining a
+   * no-arg constructor. The usage of this class is internal to ksqldb and is instantiated
+   * explicitly with Schema
+   */
+  public ProtobufNoSRConverter() {
+    super();
+    this.schema = null;
+  }
+
   public ProtobufNoSRConverter(final Schema schema) {
     this.schema = schema;
   }
@@ -55,6 +65,11 @@ public class ProtobufNoSRConverter implements Converter {
 
   @Override
   public byte[] fromConnectData(final String topic, final Schema schema, final Object value) {
+    if (this.schema == null) {
+      throw new UnsupportedOperationException("ProtobufNoSRConverter is an internal "
+          + "converter to ksqldb. It should not be used via reflection through a no-arg "
+          + "constructor.");
+    }
     try {
       final ProtobufSchemaAndValue schemaAndValue = protobufData.fromConnectData(schema, value);
       final Object v = schemaAndValue.getValue();
@@ -79,6 +94,11 @@ public class ProtobufNoSRConverter implements Converter {
 
   @Override
   public SchemaAndValue toConnectData(final String topic, final byte[] value) {
+    if (this.schema == null) {
+      throw new UnsupportedOperationException("ProtobufNoSRConverter is an internal "
+          + "converter to ksqldb. It should not be instantiated via reflection through a no-arg "
+          + "constructor.");
+    }
     try {
       final ProtobufSchema protobufSchema = protobufData.fromConnectSchema(schema);
       final Object deserialized = deserializer.deserialize(value, protobufSchema);
@@ -126,8 +146,6 @@ public class ProtobufNoSRConverter implements Converter {
     }
   }
 
-
-
   @VisibleForTesting
   public static class Deserializer {
     public Object deserialize(final byte[] payload, final ProtobufSchema schema) {
@@ -155,5 +173,4 @@ public class ProtobufNoSRConverter implements Converter {
       }
     }
   }
-
 }

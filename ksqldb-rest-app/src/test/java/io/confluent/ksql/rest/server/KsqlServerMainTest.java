@@ -423,34 +423,6 @@ public class KsqlServerMainTest {
   }
 
   @Test
-  public void shouldFailOnNullSRUrl() {
-    // Given:
-    final KsqlConfig config = configWith(ImmutableMap.of(
-        ConfluentConfigs.ENABLE_FIPS_CONFIG, true,
-        CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, SecurityProtocol.SASL_SSL.name
-    ));
-    final KsqlRestConfig restConfig = new KsqlRestConfig(ImmutableMap.<String, Object>builder()
-        .put(KsqlRestConfig.SSL_CIPHER_SUITES_CONFIG,
-            Collections.singletonList("TLS_RSA_WITH_AES_256_CCM"))
-        .put(KsqlConfig.SSL_ENDPOINT_IDENTIFICATION_ALGORITHM_CONFIG, "https")
-        .build()
-    );
-
-    // When:
-    final Exception e = assertThrows(
-        SecurityException.class,
-        () -> KsqlServerMain.validateFips(config, restConfig)
-    );
-
-    // Then:
-    assertThat(e.getMessage(), containsString(
-        "The Ksql schema registry url property "
-            + "('"
-            + KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY
-            + "') is not specified."));
-  }
-
-  @Test
   public void shouldFailOnInvalidSRUrl() {
     // Given:
     final KsqlConfig config = configWith(ImmutableMap.of(
@@ -490,7 +462,6 @@ public class KsqlServerMainTest {
         .put(KsqlRestConfig.SSL_CIPHER_SUITES_CONFIG,
             Collections.singletonList("TLS_RSA_WITH_AES_256_CCM"))
         .put(KsqlConfig.SSL_ENDPOINT_IDENTIFICATION_ALGORITHM_CONFIG, "https")
-        .put(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY, "https://foo:8080")
         .build()
     );
 
@@ -519,7 +490,6 @@ public class KsqlServerMainTest {
         .put(KsqlRestConfig.SSL_CIPHER_SUITES_CONFIG,
             Collections.singletonList("TLS_RSA_WITH_AES_256_CCM"))
         .put(KsqlConfig.SSL_ENDPOINT_IDENTIFICATION_ALGORITHM_CONFIG, "https")
-        .put(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY, "https://foo:8080")
         .put(KsqlRestConfig.LISTENERS_CONFIG,
             Collections.singletonList("https://bar:8080"))
         .put(KsqlRestConfig.PROXY_PROTOCOL_LISTENERS_CONFIG,
@@ -552,7 +522,6 @@ public class KsqlServerMainTest {
         .put(KsqlRestConfig.SSL_CIPHER_SUITES_CONFIG,
             Collections.singletonList("TLS_RSA_WITH_AES_256_CCM"))
         .put(KsqlConfig.SSL_ENDPOINT_IDENTIFICATION_ALGORITHM_CONFIG, "https")
-        .put(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY, "https://foo:8080")
         .put(KsqlRestConfig.LISTENERS_CONFIG,
             Collections.singletonList("https://bar:8080"))
         .put(KsqlRestConfig.INTERNAL_LISTENER_CONFIG, "http://baz:8080")
@@ -584,7 +553,6 @@ public class KsqlServerMainTest {
         .put(KsqlRestConfig.SSL_CIPHER_SUITES_CONFIG,
             Collections.singletonList("TLS_RSA_WITH_AES_256_CCM"))
         .put(KsqlConfig.SSL_ENDPOINT_IDENTIFICATION_ALGORITHM_CONFIG, "https")
-        .put(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY, "https://foo:8080")
         .put(KsqlRestConfig.LISTENERS_CONFIG,
             Collections.singletonList("https://bar:8080"))
         .put(KsqlRestConfig.ADVERTISED_LISTENER_CONFIG, "http://baz:8080")

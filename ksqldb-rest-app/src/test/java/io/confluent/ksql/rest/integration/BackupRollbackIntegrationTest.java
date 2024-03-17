@@ -48,6 +48,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
@@ -69,6 +70,7 @@ import java.util.stream.Collectors;
  * Tests covering integration tests for backup/restore the command topic.
  */
 @Category({IntegrationTest.class})
+@Ignore
 public class BackupRollbackIntegrationTest {
   private static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.build();
 

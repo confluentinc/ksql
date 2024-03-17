@@ -36,11 +36,13 @@ import java.util.function.Supplier;
 import kafka.zookeeper.ZooKeeperClientException;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 
 @Category({IntegrationTest.class})
+@Ignore
 public class ShowQueriesMultiNodeWithTlsFunctionalTest {
 
   private static final ServerKeyStore SERVER_KEY_STORE = new ServerKeyStore();

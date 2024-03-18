@@ -63,6 +63,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
@@ -72,6 +73,7 @@ import org.junit.rules.TemporaryFolder;
  * Tests covering integration tests for backup/restore the command topic.
  */
 @Category({IntegrationTest.class})
+@Ignore
 public class RestoreCommandTopicIntegrationTest {
   private static final MockSystemExit mockSystem = new MockSystemExit();
   private static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.build();

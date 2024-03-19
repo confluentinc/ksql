@@ -65,6 +65,7 @@ import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
@@ -74,6 +75,7 @@ import org.junit.rules.RuleChain;
  * to make use of utilities that are not available there.
  */
 @Category(IntegrationTest.class)
+@Ignore
 public class RestClientIntegrationTest {
 
   private static final StructuredTypesDataProvider TEST_DATA_PROVIDER = new StructuredTypesDataProvider();

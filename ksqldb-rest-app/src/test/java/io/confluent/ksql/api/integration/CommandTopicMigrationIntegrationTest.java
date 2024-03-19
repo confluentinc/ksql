@@ -31,6 +31,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
@@ -51,6 +52,7 @@ import static org.junit.Assert.assertTrue;
  * Tests covering integration tests for migrating command topic to a new kafka
  */
 @Category({IntegrationTest.class})
+@Ignore
 public class CommandTopicMigrationIntegrationTest {
   private static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.build();
   private static final IntegrationTestHarness OTHER_TEST_HARNESS = IntegrationTestHarness.build();

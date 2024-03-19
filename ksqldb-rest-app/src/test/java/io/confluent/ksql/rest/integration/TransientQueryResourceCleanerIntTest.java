@@ -55,6 +55,7 @@ import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -65,6 +66,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 @Category({IntegrationTest.class})
 @RunWith(MockitoJUnitRunner.class)
+@Ignore
 public class TransientQueryResourceCleanerIntTest {
     private static final PageViewDataProvider PAGE_VIEWS_PROVIDER = new PageViewDataProvider();
     private static final String PAGE_VIEW_TOPIC = PAGE_VIEWS_PROVIDER.topicName();

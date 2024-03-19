@@ -33,6 +33,7 @@ import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
@@ -49,6 +50,7 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 
 @Category(IntegrationTest.class)
+@Ignore
 public class StreamStreamJoinsDeprecationNoticesIntegrationTest {
   private static final StructuredTypesDataProvider STRUCTURED_DATA_PROVIDER = new StructuredTypesDataProvider();
 

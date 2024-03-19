@@ -97,6 +97,10 @@ public final class IntegrationTestHarness extends ExternalResource {
     return builder().build();
   }
 
+  public static IntegrationTestHarness build(final boolean isWithFileWatcher) {
+    return builder().build(isWithFileWatcher);
+  }
+
   private IntegrationTestHarness(
       final EmbeddedSingleNodeKafkaCluster kafkaCluster,
       final SchemaRegistryClient schemaRegistryClient
@@ -738,6 +742,7 @@ public final class IntegrationTestHarness extends ExternalResource {
     }
   }
 
+  @Override
   protected void before() throws Exception {
     kafkaCluster.start();
   }
@@ -844,6 +849,10 @@ public final class IntegrationTestHarness extends ExternalResource {
 
     public IntegrationTestHarness build() {
       return new IntegrationTestHarness(kafkaCluster.build(), schemaRegistry);
+    }
+
+    public IntegrationTestHarness build(final boolean isWithFileWatcher) {
+      return new IntegrationTestHarness(kafkaCluster.build(isWithFileWatcher), schemaRegistry);
     }
   }
 

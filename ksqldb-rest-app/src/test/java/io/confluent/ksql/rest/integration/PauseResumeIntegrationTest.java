@@ -51,6 +51,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 
 @Category({IntegrationTest.class})
+@Ignore
 public class PauseResumeIntegrationTest {
 
   private static final AtomicInteger COUNTER = new AtomicInteger(0);

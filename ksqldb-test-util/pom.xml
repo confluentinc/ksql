@@ -65,6 +65,7 @@
       <groupId>org.apache.kafka</groupId>
       <artifactId>kafka_${kafka.scala.version}</artifactId>
       <classifier>test</classifier>
+      <version>${kafka.version}</version>
       <scope>compile</scope>
     </dependency>
 

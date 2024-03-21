@@ -18,12 +18,10 @@ package io.confluent.ksql.rest.server;
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.integration.IntegrationTestHarness;
 import org.junit.ClassRule;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 
 @Category({IntegrationTest.class})
-@Ignore
 public final class TestKsqlRestAppTest {
 
   @ClassRule

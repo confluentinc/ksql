@@ -44,7 +44,6 @@ import org.easymock.EasyMockRunner;
 import org.easymock.Mock;
 import org.easymock.MockType;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -73,7 +72,6 @@ public class KsqlServerMainTest {
   }
 
   @Test
-  @Ignore
   public void shouldStopAppOnJoin() throws Exception {
     // Given:
     executable.shutdown();
@@ -88,7 +86,6 @@ public class KsqlServerMainTest {
   }
 
   @Test
-  @Ignore
   public void shouldStopAppOnErrorStarting() throws Exception {
     // Given:
     executable.startAsync();
@@ -111,7 +108,6 @@ public class KsqlServerMainTest {
   }
 
   @Test
-  @Ignore
   public void shouldNotifyAppOnTerminate() throws Exception {
     // Given:
     final Capture<Runnable> captureShutdownHandler = newCapture();

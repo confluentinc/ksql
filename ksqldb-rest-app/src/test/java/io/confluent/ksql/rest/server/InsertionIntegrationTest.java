@@ -37,7 +37,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 
 @Category({IntegrationTest.class})
-@Ignore
 public class InsertionIntegrationTest {
 
   private static final Logger LOG = LoggerFactory.getLogger(InsertionIntegrationTest.class);

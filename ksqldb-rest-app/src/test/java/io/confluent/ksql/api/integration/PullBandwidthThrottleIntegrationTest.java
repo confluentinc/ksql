@@ -52,7 +52,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -60,7 +59,6 @@ import org.junit.rules.RuleChain;
 import org.junit.rules.Timeout;
 
 @Category({IntegrationTest.class})
-@Ignore
 public class PullBandwidthThrottleIntegrationTest {
 
     private static final PageViewDataProvider TEST_DATA_PROVIDER = new PageViewDataProvider();

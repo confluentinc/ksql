@@ -113,11 +113,6 @@ public class BackupRollbackIntegrationTest {
     TEST_HARNESS.deleteTopics(Collections.singletonList(commandTopic));
   }
 
-  @After
-  public void teardownClass() {
-    TMP_FOLDER.delete();
-  }
-
   @Test
   public void shouldEnterDegradedStateWithBackupEnabled() {
     // Given

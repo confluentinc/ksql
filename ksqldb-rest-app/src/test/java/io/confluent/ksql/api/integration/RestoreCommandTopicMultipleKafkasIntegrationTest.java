@@ -114,12 +114,9 @@ public class RestoreCommandTopicMultipleKafkasIntegrationTest {
   @After
   public void teardown() {
     REST_APP.stop();
-    INTERNAL_TEST_HARNESS.deleteTopics(Collections.singletonList(commandTopic));
-  }
-
-  @After
-  public void teardownClass() {
-    TMP_FOLDER.delete();
+    if (commandTopic != null) {
+      INTERNAL_TEST_HARNESS.deleteTopics(Collections.singletonList(commandTopic));
+    }
   }
 
   private static void writeServerProperties(final Path propertiesFile) throws IOException {

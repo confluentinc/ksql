@@ -52,6 +52,7 @@
       <groupId>org.apache.kafka</groupId>
       <artifactId>kafka-server-common</artifactId>
       <classifier>test</classifier>
+      <version>${kafka.version}</version>
       <scope>compile</scope>
     </dependency>
 

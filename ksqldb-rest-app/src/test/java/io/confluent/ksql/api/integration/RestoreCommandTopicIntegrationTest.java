@@ -120,11 +120,6 @@ public class RestoreCommandTopicIntegrationTest {
     TEST_HARNESS.deleteTopics(Collections.singletonList(commandTopic));
   }
 
-  @After
-  public void teardownClass() {
-    TMP_FOLDER.delete();
-  }
-
   private static void writeServerProperties(final Path propertiesFile) throws IOException {
     final Map<String, Object> map = REST_APP.getKsqlRestConfig().getKsqlConfigProperties();
 

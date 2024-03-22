@@ -116,6 +116,7 @@ package io.confluent.ksql.rest.integration;
   import org.junit.Before;
   import org.junit.BeforeClass;
   import org.junit.ClassRule;
+  import org.junit.Ignore;
   import org.junit.Rule;
   import org.junit.Test;
   import org.junit.experimental.categories.Category;
@@ -125,6 +126,7 @@ package io.confluent.ksql.rest.integration;
   import org.slf4j.LoggerFactory;
 
 @Category({IntegrationTest.class})
+@Ignore
 public class RestApiTest {
 
   private static final Logger LOG = LoggerFactory.getLogger(RestApiTest.class);

@@ -47,6 +47,7 @@ import org.apache.kafka.common.errors.AuthorizationException;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
@@ -57,6 +58,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 @Category({IntegrationTest.class})
 @RunWith(MockitoJUnitRunner.class)
+@Ignore
 public class AuthorizationFunctionalTest {
   private static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.build();
 

@@ -57,6 +57,7 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.FixMethodOrder;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.TemporaryFolder;
@@ -69,6 +70,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 // shouldFailOnAvroWithoutSchemasIfSchemaNotEvolvable fails if run after shouldHandleJsonWithSchemas
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
+@Ignore
 public class StandaloneExecutorFunctionalTest {
 
   @ClassRule

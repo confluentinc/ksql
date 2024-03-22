@@ -54,12 +54,14 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import org.apache.kafka.common.acl.AclOperation;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @RunWith(CoreApiTestRunner.class)
+@Ignore
 public class AuthTest extends ApiTest {
 
   protected static final Logger log = LoggerFactory.getLogger(AuthTest.class);

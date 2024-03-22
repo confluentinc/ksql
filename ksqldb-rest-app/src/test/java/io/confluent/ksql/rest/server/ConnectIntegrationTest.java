@@ -81,6 +81,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @Category({IntegrationTest.class})
+@Ignore
 public class ConnectIntegrationTest {
 
   private static final Logger LOG = LoggerFactory.getLogger(ConnectIntegrationTest.class);

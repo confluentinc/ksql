@@ -81,7 +81,7 @@ import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
-@RunWith(MockitoJUnitRunner.class)
+@RunWith(MockitoJUnitRunner.Silent.class)
 public class DataSourceNodeTest {
 
   private static final PlanNodeId PLAN_NODE_ID = new PlanNodeId("0");

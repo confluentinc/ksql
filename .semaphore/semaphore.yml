@@ -42,13 +42,13 @@ blocks:
           commands:
             - . ci-tools ci-update-version
             - mvn -Dsurefire.rerunFailingTestsCount=3 -Dmaven.gitcommitid.nativegit=true -U -Dmaven.wagon.http.retryHandler.count=10 --batch-mode --no-transfer-progress clean install
-            - mkdir -p thread-leak-tests
-            - mv leaked_tests_summary.txt thread-leak-tests/
-            - find . -path "*/thread-reports/**" -name "leakedTestStackDump-*.log" -not -path "thread-leak-tests/*" -exec mv {} thread-leak-tests/ \;
-            - artifact push workflow thread-leak-tests
-            - mkdir -p build-hang-files
-            - find . -type f -name "build-timeout-java-thread-dump-*.log" -not -path "build-hang-files/*" -exec mv {} build-hang-files/ \;
-            - artifact push workflow build-hang-files
+#            - mkdir -p thread-leak-tests
+#            - mv leaked_tests_summary.txt thread-leak-tests/
+#            - find . -path "*/thread-reports/**" -name "leakedTestStackDump-*.log" -not -path "thread-leak-tests/*" -exec mv {} thread-leak-tests/ \;
+#            - artifact push workflow thread-leak-tests
+#            - mkdir -p build-hang-files
+#            - find . -type f -name "build-timeout-java-thread-dump-*.log" -not -path "build-hang-files/*" -exec mv {} build-hang-files/ \;
+#            - artifact push workflow build-hang-files
       epilogue:
         always:
           commands:

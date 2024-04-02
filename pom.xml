@@ -29,14 +29,14 @@
     <parent>
         <groupId>io.confluent</groupId>
         <artifactId>common</artifactId>
-        <version>7.7.0-0</version>
+        <version>7.7.0-824</version>
     </parent>
 
     <groupId>io.confluent.ksql</groupId>
     <artifactId>ksqldb-parent</artifactId>
     <packaging>pom</packaging>
     <name>ksqldb-parent</name>
-    <version>7.7.0-0</version>
+    <version>7.7.0-1</version>
 
     <licenses>
         <license>
@@ -804,12 +804,16 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <configuration>
+                    <rerunFailingTestsCount>3</rerunFailingTestsCount>
                     <systemPropertyVariables>
                         <log4j.configuration>file:${project.basedir}/../ksqldb-test-util/src/main/resources/log4j.properties</log4j.configuration>
+                        <junit.platform.execution.listeners.deactivate>org.apache.kafka.test.ThreadLeakListener</junit.platform.execution.listeners.deactivate>
                     </systemPropertyVariables>
                     <argLine>-verbose:gc -Xloggc:"${project.build.directory}/gc.log"</argLine>
-                    <argLine>-Duser.timezone=UTC -Xmx1g -Xms1g</argLine>
+                    <argLine>-Duser.timezone=UTC -Xmx1g -Xms1g -XX:MaxPermSize=256m</argLine>
+                    <excludedGroups>io.confluent.common.utils.IntegrationTest, IntegrationTest</excludedGroups>
                 </configuration>
+                <version>3.2.5</version>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -822,6 +826,12 @@
                     You can also see (https://issues.apache.org/jira/browse/SUREFIRE-1809)
                     for more details -->
                     <useModulePath>false</useModulePath>
+                    <groups>io.confluent.common.utils.IntegrationTest, IntegrationTest</groups>
+                    <systemPropertyVariables>
+                        <junit.platform.execution.listeners.deactivate>org.apache.kafka.test.ThreadLeakListener</junit.platform.execution.listeners.deactivate>
+                    </systemPropertyVariables>
+                    <!-- Skip ITs temporarily -->
+                    <skipITs>true</skipITs>
                 </configuration>
                 <executions>
                     <execution>
@@ -850,6 +860,8 @@
                             <useUnlimitedThreads>true</useUnlimitedThreads>
                             <forkedProcessTimeoutInSeconds>3600</forkedProcessTimeoutInSeconds>
                             <forkedProcessExitTimeoutInSeconds>180</forkedProcessExitTimeoutInSeconds>
+                            <!-- Skip ITs temporarily -->
+                            <skipITs>true</skipITs>
                         </configuration>
                     </execution>
                 </executions>

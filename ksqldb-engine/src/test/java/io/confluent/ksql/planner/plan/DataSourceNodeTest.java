@@ -178,7 +178,8 @@ public class DataSourceNodeTest {
         .thenReturn((Serde)keySerde);
     when(executeContext.buildValueSerde(any(), any(), any())).thenReturn(rowSerde);
 
-    when(rowSerde.serializer()).thenReturn(mock(Serializer.class));
+//    This stubbing is unnecessary so commenting it out for now
+//    when(rowSerde.serializer()).thenReturn(mock(Serializer.class));
     when(rowSerde.deserializer()).thenReturn(mock(Deserializer.class));
 
     when(dataSource.getKsqlTopic()).thenReturn(topic);

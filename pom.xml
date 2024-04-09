@@ -29,8 +29,7 @@
     <parent>
         <groupId>io.confluent</groupId>
         <artifactId>common</artifactId>
-<!--    There are functionality test failures on versions above 7.7.0-722, so we are pinning it to this version       -->
-        <version>7.7.0-722</version>
+        <version>7.7.0-995</version>
     </parent>
 
     <groupId>io.confluent.ksql</groupId>

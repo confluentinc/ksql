@@ -129,8 +129,8 @@ ksql.connect.basic.auth.credentials.file=/path/to/credentials
 **Per query:** no
 
 The source for credentials when using authentication with the
-{{ site.kconnect }} API. Valid values are "FILE" and "NONE". The default is
-"NONE".
+{{ site.kconnect }} API. Valid values are `FILE` and `NONE`. The default
+is `NONE`.
 
 Use in conjunction with the `ksql.connect.basic.auth.credentials.file`
 setting.

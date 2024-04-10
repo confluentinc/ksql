@@ -100,6 +100,42 @@ The amount of time an `ASSERT SCHEMA` statement will wait for the assertion to s
 
 The amount of time an `ASSERT TOPIC` assertion will wait for the assertion to succeed if no timeout is specified. The default is `1000`.
 
+## `ksql.connect.basic.auth.credentials.file`
+
+**Per query:** no
+
+The path to the file that contains credentials for basic authentication to
+a {{ site.kconnect }} cluster, for example,
+`/mnt/secrets/basic-credential/basic.txt`.
+
+The file contents are:
+
+```
+username: <user-name>
+password: <user-password>
+```
+
+Use in conjunction with the `ksql.connect.basic.auth.credentials.source`
+and `ksql.connect.url` settings, for example:
+
+```properties
+ksql.connect.url=https://url.to.your.kafka.connect/
+ksql.connect.basic.auth.credentials.source=FILE
+ksql.connect.basic.auth.credentials.file=/path/to/credentials
+```
+
+## `ksql.connect.basic.auth.credentials.source`
+
+**Per query:** no
+
+The source for credentials when using authentication with the
+{{ site.kconnect }} API. Valid values are "FILE" and "NONE". The default is
+"NONE".
+
+Use in conjunction with the `ksql.connect.basic.auth.credentials.file`
+setting.
+
+
 ## `ksql.connect.url`
 
 **Per query:** no

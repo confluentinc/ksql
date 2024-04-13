@@ -12,6 +12,7 @@ import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -54,6 +55,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.streams.KafkaStreams.State;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -408,6 +410,22 @@ public class QueryRegistryImplTest {
     // Then:
     verify(listener1).onCreate(serviceContext, metaStore, query);
     verify(listener2).onCreate(serviceContext, metaStore, query);
+  }
+
+  @Test
+  public void shouldBeUsableEvenIfCreateListenerFails() {
+    // Given:
+    doThrow(new RuntimeException("oops")).when(listener1).onCreate(any(), any(), any());
+
+    // When:
+    try {
+      givenCreate(registry, "q1", "source", "sink1", true);
+      Assert.fail("register should have thrown");
+    } catch (final RuntimeException e) {
+    }
+
+    // Then
+    verify(registry.getPersistentQuery(new QueryId("q1")).get()).initialize();
   }
 
   @Test

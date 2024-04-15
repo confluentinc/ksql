@@ -799,6 +799,24 @@ public class QueryFilterNode extends SingleSourcePlanNode {
     );
   }
 
+  public static final class KeyBounds {
+    private final GenericKey start;
+    private final GenericKey end;
+
+    public KeyBounds(final GenericKey start, final GenericKey end) {
+      this.start = Objects.requireNonNull(start, "startBounds");
+      this.end = Objects.requireNonNull(end, "endBounds");
+    }
+
+    public GenericKey getStart() {
+      return start;
+    }
+
+    public GenericKey getEnd() {
+      return end;
+    }
+  }
+
   public static final class WindowBounds {
 
     private WindowRange start;

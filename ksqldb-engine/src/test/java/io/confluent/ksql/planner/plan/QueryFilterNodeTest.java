@@ -193,19 +193,20 @@ public class QueryFilterNodeTest {
 
   @Test
   public void shouldExtractKeyValueFromExpressionEquals_multipleDisjuncts() {
+    when(plannerOptions.getTableScansEnabled()).thenReturn(true);
     // Given:
     final Expression keyExp1 = new ComparisonExpression(
-        Type.EQUAL,
+        Type.GREATER_THAN,
         new UnqualifiedColumnReferenceExp(ColumnName.of("K")),
         new IntegerLiteral(1)
     );
     final Expression keyExp2 = new ComparisonExpression(
-        Type.EQUAL,
+        Type.LESS_THAN,
         new UnqualifiedColumnReferenceExp(ColumnName.of("K")),
         new IntegerLiteral(2)
     );
     final Expression expression = new LogicalBinaryExpression(
-        LogicalBinaryExpression.Type.OR,
+        LogicalBinaryExpression.Type.AND,
         keyExp1,
         keyExp2
     );

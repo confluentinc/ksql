@@ -65,24 +65,27 @@ services:
       - schema-registry
     ports:
       - "8088:8088"
+      - "5005:5005"
     environment:
       KSQL_LISTENERS: http://0.0.0.0:8088
       KSQL_BOOTSTRAP_SERVERS: kafka:9092
       KSQL_KSQL_SCHEMA_REGISTRY_URL: http://schema-registry:8081
       KSQL_KSQL_LOGGING_PROCESSING_STREAM_AUTO_CREATE: "true"
       KSQL_KSQL_LOGGING_PROCESSING_TOPIC_AUTO_CREATE: "true"
+      KSQL_DEBUG: "true"
+      KSQL_JAVA_DEBUG_OPTS: '-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=0.0.0.0:5005'
 
-  additional-ksqldb-server:
-    image: ${KSQL_IMAGE_BASE}confluentinc/ksqldb-server:${KSQL_VERSION}
-    hostname: additional-ksqldb-server
-    depends_on:
-      - primary-ksqldb-server
-    ports:
-      - "8090"
-    environment:
-      KSQL_LISTENERS: http://0.0.0.0:8090
-      KSQL_BOOTSTRAP_SERVERS: kafka:9092
-      KSQL_KSQL_SCHEMA_REGISTRY_URL: http://schema-registry:8081
+#  additional-ksqldb-server:
+#    image: ${KSQL_IMAGE_BASE}confluentinc/ksqldb-server:${KSQL_VERSION}
+#    hostname: additional-ksqldb-server
+#    depends_on:
+#      - primary-ksqldb-server
+#    ports:
+#      - "8090"
+#    environment:
+#      KSQL_LISTENERS: http://0.0.0.0:8090
+#      KSQL_BOOTSTRAP_SERVERS: kafka:9092
+#      KSQL_KSQL_SCHEMA_REGISTRY_URL: http://schema-registry:8081
 
   # Access the cli by running:
   # > docker-compose exec ksqldb-cli  ksql http://primary-ksqldb-server:8088

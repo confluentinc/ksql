@@ -41,7 +41,6 @@ public final class PropertiesUtil {
 
   private static final Set<Predicate<String>> BLACK_LIST = ImmutableSet
       .<Predicate<String>>builder()
-      .add(key -> key.startsWith("java."))
       .add(key -> key.startsWith("os."))
       .add(key -> key.startsWith("sun."))
       .add(key -> key.startsWith("user."))

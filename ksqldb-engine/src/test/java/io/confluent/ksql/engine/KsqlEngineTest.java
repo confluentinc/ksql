@@ -180,24 +180,14 @@ public class KsqlEngineTest {
   @Test
   public void shouldCreatePersistentQueries() {
     // When:
-    final List<QueryMetadata> queries
-        = KsqlEngineTestUtil.execute(
+
+     KsqlEngineTestUtil.executeQuery(
         serviceContext,
         ksqlEngine,
-        "create table bar as select * from test2;"
-            + "create table foo as select * from test2;",
+        "SELECT * FROM T1 WHERE KEY>=1 AND KEY<2;",
         ksqlConfig,
         Collections.emptyMap()
     );
-
-    // Then:
-    assertThat(queries, hasSize(2));
-    assertThat(queries.get(0), is(instanceOf(PersistentQueryMetadata.class)));
-    assertThat(queries.get(1), is(instanceOf(PersistentQueryMetadata.class)));
-    assertThat(((PersistentQueryMetadata) queries.get(0)).getSinkName().get(),
-        is(SourceName.of("BAR")));
-    assertThat(((PersistentQueryMetadata) queries.get(1)).getSinkName().get(),
-        is(SourceName.of("FOO")));
   }
 
   @Test

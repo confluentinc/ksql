@@ -104,14 +104,14 @@ public class LogicalPlannerTest {
     final String simpleQuery = "SELECT t1.col1, t2.col1, t1.col4, t2.col2 FROM test1 t1 LEFT JOIN test2 t2 ON t1.col0 = t2.col0 EMIT CHANGES;";
     final PlanNode logicalPlan = buildLogicalPlan(simpleQuery);
 
-    assertThat(logicalPlan.getSources().get(0), instanceOf(ProjectNode.class));
-    assertThat(logicalPlan.getSources().get(0).getSources().get(0), instanceOf(JoinNode.class));
-    final PlanNode leftSource =
-        logicalPlan.getSources().get(0).getSources().get(0).getSources().get(0);
+    PlanNode projectNode = logicalPlan.getSources().get(0);
+    assertThat(projectNode, instanceOf(ProjectNode.class));
+    PlanNode joinNode = projectNode.getSources().get(0);
+    assertThat(joinNode, instanceOf(JoinNode.class));
+    final PlanNode leftSource = joinNode.getSources().get(0);
     assertThat(leftSource, instanceOf(ProjectNode.class));
     assertThat(leftSource.getSources().get(0), instanceOf(PreJoinRepartitionNode.class));
-    final PlanNode rightSource =
-        logicalPlan.getSources().get(0).getSources().get(0).getSources().get(1);
+    final PlanNode rightSource = joinNode.getSources().get(1);
     assertThat(rightSource, instanceOf(ProjectNode.class));
     assertThat(rightSource.getSources().get(0), instanceOf(PreJoinRepartitionNode.class));
 

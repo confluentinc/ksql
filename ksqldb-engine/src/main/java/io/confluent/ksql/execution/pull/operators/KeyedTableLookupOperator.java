@@ -29,6 +29,7 @@ import io.confluent.ksql.planner.plan.DataSourceNode;
 import io.confluent.ksql.planner.plan.KeyConstraint;
 import io.confluent.ksql.planner.plan.KeyConstraint.ConstraintOperator;
 import io.confluent.ksql.planner.plan.PlanNode;
+import io.confluent.ksql.planner.plan.QueryFilterNode;
 import io.confluent.ksql.util.ConsistencyOffsetVector;
 import java.util.Iterator;
 import java.util.List;
@@ -120,34 +121,28 @@ public class KeyedTableLookupOperator
     }
     final KeyConstraint keyConstraintKey = (KeyConstraint) ksqlKey;
     final Iterator<Row> result;
-    if (keyConstraintKey.getOperator() == ConstraintOperator.EQUAL) {
-      result = mat
-          .nonWindowed()
-          .get(ksqlKey.getKey(), nextLocation.getPartition(), consistencyOffsetVector);
-    } else if (keyConstraintKey.getOperator() == ConstraintOperator.GREATER_THAN
-        || keyConstraintKey.getOperator() == ConstraintOperator.GREATER_THAN_OR_EQUAL) {
-      //Underlying store will always return keys inclusive the endpoints
-      //and filtering is used to trim start and end of the range in case of ">"
-      final GenericKey fromKey = keyConstraintKey.getKey();
-      final GenericKey toKey = null;
-      result =  mat
-          .nonWindowed()
-          .get(nextLocation.getPartition(), fromKey, toKey, consistencyOffsetVector);
-    } else if (keyConstraintKey.getOperator() == ConstraintOperator.LESS_THAN
-        || keyConstraintKey.getOperator() == ConstraintOperator.LESS_THAN_OR_EQUAL) {
-      //Underlying store will always return keys inclusive the endpoints
-      //and filtering is used to trim start and end of the range in case of "<"
-      final GenericKey fromKey = null;
-      final GenericKey toKey = keyConstraintKey.getKey();
-      result =  mat
-          .nonWindowed()
-          .get(nextLocation.getPartition(), fromKey, toKey, consistencyOffsetVector);
-    } else {
-      throw new IllegalStateException(String.format("Invalid comparator type "
-        + keyConstraintKey.getOperator()));
+    switch (keyConstraintKey.getOperator()) {
+      case EQUAL:
+        return mat
+            .nonWindowed()
+            .get(ksqlKey.getKey(), nextLocation.getPartition(), consistencyOffsetVector);
+      case BETWEEN:
+      case LESS_THAN:
+      case LESS_THAN_OR_EQUAL:
+      case GREATER_THAN:
+      case GREATER_THAN_OR_EQUAL:
+        //Underlying store will always return keys inclusive the endpoints
+        //and filtering is used to trim start and end of the range in case of ">"
+        QueryFilterNode.KeyBounds keyBounds = keyConstraintKey.getKeyBounds().get();
+        final GenericKey fromKey = keyBounds.getStart();
+        final GenericKey toKey = keyBounds.getEnd();
+        return mat
+            .nonWindowed()
+            .get(nextLocation.getPartition(), fromKey, toKey, consistencyOffsetVector);
+      default:
+        throw new IllegalStateException(String.format("Invalid comparator type "
+            + keyConstraintKey.getOperator()));
     }
-
-    return result;
   }
 
   @Override

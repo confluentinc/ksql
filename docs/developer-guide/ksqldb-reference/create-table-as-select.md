@@ -254,7 +254,7 @@ retention, you have these options:
 
 ### TIMESTAMP
 
-Sets a column within the tables's schema to be used as the default source of
+Sets a column within the tables schema to be used as the default source of
 `ROWTIME` for any downstream queries.
 
 Timestamps have an accuracy of milliseconds.

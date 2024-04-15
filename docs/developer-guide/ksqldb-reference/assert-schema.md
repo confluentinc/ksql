@@ -16,7 +16,7 @@ ASSERT (NOT EXISTS)? SCHEMA (SUBJECT subjectName)? (ID id)? (TIMEOUT timeout);
 
 Asserts that a schema exists or does not exist.
 
-Schemas can be specifed by either their subject name, id or both.
+Schemas can be specified by either their subject name, id or both.
 
 The `TIMEOUT` clause specifies the amount of time to wait for the assertion to succeed before failing.
 If the `TIMEOUT` clause is not present, then ksqlDB will use the timeout specified by the server

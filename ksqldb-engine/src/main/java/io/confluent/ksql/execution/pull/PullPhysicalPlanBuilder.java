@@ -216,8 +216,17 @@ public class PullPhysicalPlanBuilder {
     } else if (lookupConstraints.size() == 1
         && lookupConstraints.stream().allMatch(lc -> ((KeyConstraint) lc).getOperator()
         != ConstraintOperator.EQUAL)) {
+      // KEY < {VALUE}
       return PullPhysicalPlanType.RANGE_SCAN;
-    } else {
+    }
+//    else if (lookupConstraints.size() == 2
+//        && lookupConstraints.stream().allMatch(lc -> ((KeyConstraint) lc).getOperator()
+//        != ConstraintOperator.EQUAL)) {
+//      // KEY > {VALUE-1} AND KEY < {VALUE-2}
+//      // KEY BETWEEN {VALUE-1} AND {VALUE-2}
+//      return PullPhysicalPlanType.RANGE_SCAN;
+//    }
+    else {
       lookupConstraints = Collections.emptyList();
       return PullPhysicalPlanType.TABLE_SCAN;
     }

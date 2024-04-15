@@ -66,6 +66,10 @@ public final class KsqlConstants {
     INSERT
   }
 
+  /**
+   * The ordinal values of the KsqlQueryStatus enum are used as the metrics values.
+   * Please ensure preservation of the current order.
+   */
   public enum KsqlQueryStatus {
     RUNNING,
     ERROR,

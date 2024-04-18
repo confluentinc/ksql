@@ -130,7 +130,6 @@
         <avro.random.generator.version>0.2.2</avro.random.generator.version>
         <apache.curator.version>5.2.0</apache.curator.version>
         <wiremock.version>2.24.0</wiremock.version>
-<!--        <clearspring-analytics.version>2.9.5</clearspring-analytics.version>-->
         <icu.version>67.1</icu.version>
         <vertx.version>4.4.6</vertx.version>
         <reactive-streams.version>1.0.3</reactive-streams.version>
@@ -588,12 +587,6 @@
                 <artifactId>validation-api</artifactId>
                 <version>${javax-validation.version}</version>
             </dependency>
-
-<!--            <dependency>-->
-<!--                <groupId>com.clearspring.analytics</groupId>-->
-<!--                <artifactId>stream</artifactId>-->
-<!--                <version>${clearspring-analytics.version}</version>-->
-<!--            </dependency>-->
 
             <dependency>
                 <groupId>com.ibm.icu</groupId>

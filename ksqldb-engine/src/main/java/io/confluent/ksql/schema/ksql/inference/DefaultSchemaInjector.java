@@ -54,7 +54,6 @@ import io.confluent.ksql.statement.Injector;
 import io.confluent.ksql.util.ErrorMessageUtil;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlStatementException;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -351,7 +350,7 @@ public class DefaultSchemaInjector implements Injector {
     return result.schemaAndId.get();
   }
 
-  @SuppressWarnings({"checkstyle:CyclomaticComplexity", "checkstyle:NPathComplexity"})
+  @SuppressWarnings({"checkstyle:CyclomaticComplexity", "checkstyle:NPathComplexity", "unchecked"})
   private static boolean shouldInferSchema(
       final Optional<Integer> schemaId,
       final ConfiguredStatement<? extends Statement> statement,
@@ -572,7 +571,11 @@ public class DefaultSchemaInjector implements Injector {
       final Optional<SchemaAndId> keySchema,
       final Optional<SchemaAndId> valueSchema
   ) {
-    final List<TableElement> elements = new ArrayList<>();
+    final List<TableElement> elements = preparedStatement.getStatement()
+        .getElements()
+        .stream()
+        .filter(tableElement -> tableElement.getConstraints().isHeaders())
+        .collect(Collectors.toList());
 
     if (keySchema.isPresent()) {
       final ColumnConstraints constraints = getKeyConstraints(preparedStatement.getStatement());

@@ -29,8 +29,8 @@ public class ParsingException
   public ParsingException(final String message, final Optional<NodeLocation> nodeLocation) {
     this(
         message,
-        nodeLocation.map(NodeLocation::getLineNumber).orElse(1),
-        nodeLocation.map(NodeLocation::getColumnNumber).orElse(0)
+        nodeLocation.map(NodeLocation::getStartLineNumber).orElse(1),
+        nodeLocation.map(NodeLocation::getStartColumnNumber).orElse(0)
     );
   }
 

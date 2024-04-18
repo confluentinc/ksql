@@ -78,7 +78,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Collectors;
 import org.apache.kafka.common.Configurable;
 import org.apache.kafka.common.metrics.KafkaMetric;
 import org.apache.kafka.common.metrics.Metrics;
@@ -90,7 +89,6 @@ import org.apache.kafka.connect.data.Struct;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.function.ThrowingRunnable;
 import org.junit.rules.TemporaryFolder;
 
 /**
@@ -142,7 +140,7 @@ public class UdfLoaderTest {
   @Test
   public void shouldLoadBadFunctionButNotLetItExit() {
     // Given:
-    final List<SqlArgument> argList =  Arrays.asList(SqlArgument.of(SqlTypes.STRING));
+    final List<SqlArgument> argList = singletonList(SqlArgument.of(SqlTypes.STRING));
     // We do need to set up the ExtensionSecurityManager for our test.
     // This is controlled by a feature flag and in this test, we just directly enable it.
     SecurityManager manager = System.getSecurityManager();
@@ -169,7 +167,7 @@ public class UdfLoaderTest {
   @Test
   public void shouldLoadBadFunctionButNotLetItExit2() {
     // Given:
-    final List<SqlArgument> argList =  Arrays.asList(SqlArgument.of(SqlTypes.STRING));
+    final List<SqlArgument> argList = singletonList(SqlArgument.of(SqlTypes.STRING));
     // We do need to set up the ExtensionSecurityManager for our test.
     // This is controlled by a feature flag and in this test, we just directly enable it.
     SecurityManager manager = System.getSecurityManager();
@@ -195,18 +193,18 @@ public class UdfLoaderTest {
     assertEquals(System.getSecurityManager(), manager);
   }
 
-  @SuppressWarnings("unchecked")
+  @SuppressWarnings({"rawtypes", "unchecked"})
   @Test
   public void shouldLoadUdafs() {
-    final KsqlAggregateFunction instance = FUNC_REG
-        .getAggregateFunction(FunctionName.of("test_udaf"), SqlTypes.BIGINT,
-            AggregateFunctionInitArguments.EMPTY_ARGS);
+    final KsqlAggregateFunction instance = FUNC_REG.getAggregateFactory(of("test_udaf"))
+            .getFunction(singletonList(SqlTypes.BIGINT))
+            .source.apply(AggregateFunctionInitArguments.EMPTY_ARGS);
     assertThat(instance.getInitialValueSupplier().get(), equalTo(0L));
     assertThat(instance.aggregate(1L, 1L), equalTo(2L));
     assertThat(instance.getMerger().apply(null, 2L, 3L), equalTo(5L));
   }
 
-  @SuppressWarnings("unchecked")
+  @SuppressWarnings({"rawtypes", "unchecked"})
   @Test
   public void shouldLoadStructUdafs() {
     final Schema schema = SchemaBuilder.struct()
@@ -220,8 +218,10 @@ public class UdfLoaderTest {
         .build();
 
     final KsqlAggregateFunction instance = FUNC_REG
-        .getAggregateFunction(FunctionName.of("test_udaf"), sqlSchema,
-            AggregateFunctionInitArguments.EMPTY_ARGS);
+            .getAggregateFactory(of("test_udaf"))
+            .getFunction(singletonList(sqlSchema))
+            .source
+            .apply(AggregateFunctionInitArguments.EMPTY_ARGS);
 
     assertThat(instance.getInitialValueSupplier().get(),
         equalTo(new Struct(schema).put("A", 0).put("B", 0)));
@@ -238,6 +238,7 @@ public class UdfLoaderTest {
   }
 
   @Test
+  @SuppressWarnings({"rawtypes", "unchecked"})
   public void shouldNotLetBadUdafsExitWithBadCreate() {
     // Given:
     // We do need to set up the ExtensionSecurityManager for our test.
@@ -250,10 +251,11 @@ public class UdfLoaderTest {
     final Exception e1 = assertThrows(
         KsqlException.class,
         () -> {
-
-          KsqlAggregateFunction function = ((KsqlAggregateFunction) FUNC_REG
-              .getAggregateFunction(FunctionName.of("bad_test_udaf"), SqlTypes.array(SqlTypes.INTEGER),
-                  AggregateFunctionInitArguments.EMPTY_ARGS));
+          KsqlAggregateFunction function = FUNC_REG
+                  .getAggregateFactory(of("bad_test_udaf"))
+                  .getFunction(singletonList(SqlTypes.array(SqlTypes.INTEGER)))
+                  .source
+                  .apply(AggregateFunctionInitArguments.EMPTY_ARGS);
           function.aggregate("foo", 2L);
         }
     );
@@ -278,8 +280,11 @@ public class UdfLoaderTest {
         KsqlException.class,
         () ->
             ((Configurable)FUNC_REG
-                .getAggregateFunction(FunctionName.of("bad_test_udaf"), SqlTypes.INTEGER,
-                    AggregateFunctionInitArguments.EMPTY_ARGS)).configure(Collections.EMPTY_MAP)
+                    .getAggregateFactory(of("bad_test_udaf"))
+                    .getFunction(singletonList(SqlTypes.INTEGER))
+                    .source
+                    .apply(AggregateFunctionInitArguments.EMPTY_ARGS)
+            ).configure(Collections.emptyMap())
     );
 
     // Then:
@@ -300,14 +305,12 @@ public class UdfLoaderTest {
     // This will exit via initialize
     final Exception e3 = assertThrows(
         SecurityException.class,
-        new ThrowingRunnable() {
-          @Override
-          public void run() throws Throwable {
-            FUNC_REG
-                .getAggregateFunction(FunctionName.of("bad_test_udaf"), SqlTypes.DOUBLE,
-                    AggregateFunctionInitArguments.EMPTY_ARGS).getInitialValueSupplier().get();
-          }
-        }
+        () -> FUNC_REG
+                .getAggregateFactory(of("bad_test_udaf"))
+                .getFunction(singletonList(SqlTypes.DOUBLE))
+                .source
+                .apply(AggregateFunctionInitArguments.EMPTY_ARGS)
+                .getInitialValueSupplier().get()
     );
 
     // Then:
@@ -317,6 +320,7 @@ public class UdfLoaderTest {
   }
 
   @Test
+  @SuppressWarnings({"rawtypes", "unchecked"})
   public void shouldNotLetBadUdafsExitWithBadMap() {
     // Given:
     // We do need to set up the ExtensionSecurityManager for our test.
@@ -330,8 +334,11 @@ public class UdfLoaderTest {
         SecurityException.class,
         () ->
             ((KsqlAggregateFunction) FUNC_REG
-                .getAggregateFunction(FunctionName.of("bad_test_udaf"), SqlTypes.BOOLEAN,
-                    AggregateFunctionInitArguments.EMPTY_ARGS)).getResultMapper().apply(true)
+                    .getAggregateFactory(of("bad_test_udaf"))
+                    .getFunction(singletonList(SqlTypes.BOOLEAN))
+                    .source
+                    .apply(AggregateFunctionInitArguments.EMPTY_ARGS)
+            ).getResultMapper().apply(true)
     );
 
     // Then:
@@ -340,8 +347,8 @@ public class UdfLoaderTest {
     assertEquals(System.getSecurityManager(), manager);
   }
 
-
   @Test
+  @SuppressWarnings({"rawtypes", "unchecked"})
   public void shouldNotLetBadUdafsExitWithBadMerge() {
     // Given:
     // We do need to set up the ExtensionSecurityManager for our test.
@@ -364,9 +371,12 @@ public class UdfLoaderTest {
     final Exception e5 = assertThrows(
         SecurityException.class,
         () ->
-            ((KsqlAggregateFunction) FUNC_REG.getAggregateFunction(FunctionName.of("bad_test_udaf"),
-                sqlSchema,
-                AggregateFunctionInitArguments.EMPTY_ARGS)).getMerger().apply(null, input, input)
+            ((KsqlAggregateFunction) FUNC_REG
+                    .getAggregateFactory(of("bad_test_udaf"))
+                    .getFunction(singletonList(sqlSchema))
+                    .source
+                    .apply(AggregateFunctionInitArguments.EMPTY_ARGS)
+            ).getMerger().apply(null, input, input)
     );
 
     // Then:
@@ -376,6 +386,7 @@ public class UdfLoaderTest {
   }
 
   @Test
+  @SuppressWarnings({"rawtypes", "unchecked"})
   public void shouldNotLetBadUdafsExitWithBadAggregate() {
     // Given:
     // We do need to set up the ExtensionSecurityManager for our test.
@@ -389,8 +400,11 @@ public class UdfLoaderTest {
         SecurityException.class,
         () ->
             ((KsqlAggregateFunction) FUNC_REG
-                .getAggregateFunction(FunctionName.of("bad_test_udaf"), SqlTypes.STRING,
-                    AggregateFunctionInitArguments.EMPTY_ARGS)).aggregate("foo", 2L)
+                    .getAggregateFactory(of("bad_test_udaf"))
+                    .getFunction(singletonList(SqlTypes.STRING))
+                    .source
+                    .apply(AggregateFunctionInitArguments.EMPTY_ARGS)
+            ).aggregate("foo", 2L)
     );
 
     // Then:
@@ -400,6 +414,7 @@ public class UdfLoaderTest {
   }
 
   @Test
+  @SuppressWarnings({"rawtypes", "unchecked"})
   public void shouldNotLetBadUdatsExitWithBadUnfo() {
     // Given:
     // We do need to set up the ExtensionSecurityManager for our test.
@@ -413,8 +428,11 @@ public class UdfLoaderTest {
         SecurityException.class,
         () ->
             ((TableAggregationFunction) FUNC_REG
-                .getAggregateFunction(FunctionName.of("bad_test_udaf"), SqlTypes.BIGINT,
-                    AggregateFunctionInitArguments.EMPTY_ARGS)).undo(1L, 1L)
+                    .getAggregateFactory(of("bad_test_udaf"))
+                    .getFunction(singletonList(SqlTypes.BIGINT))
+                    .source
+                    .apply(AggregateFunctionInitArguments.EMPTY_ARGS)
+            ).undo(1L, 1L)
     );
 
     // Then:
@@ -435,12 +453,11 @@ public class UdfLoaderTest {
     // This will exit due to a bad getAggregateSqlType.
     final Exception error = assertThrows(
         KsqlException.class,
-        () -> {
-          KsqlAggregateFunction func = ((KsqlAggregateFunction) FUNC_REG
-              .getAggregateFunction(FunctionName.of("bad_test_udaf"),
-                  SqlTypes.array(SqlTypes.BIGINT),
-                  AggregateFunctionInitArguments.EMPTY_ARGS));
-        }
+        () -> FUNC_REG
+                .getAggregateFactory(of("bad_test_udaf"))
+                .getFunction(singletonList(SqlTypes.array(SqlTypes.BIGINT)))
+                .source
+                .apply(AggregateFunctionInitArguments.EMPTY_ARGS)
     );
 
     // Then:
@@ -461,11 +478,11 @@ public class UdfLoaderTest {
     // This will exit due to a bad getReturnSqlType.
     final Exception error = assertThrows(
         KsqlException.class,
-        () -> {
-          KsqlAggregateFunction func = ((KsqlAggregateFunction) FUNC_REG
-              .getAggregateFunction(FunctionName.of("bad_test_udaf"), SqlTypes.array(SqlTypes.BOOLEAN),
-                  AggregateFunctionInitArguments.EMPTY_ARGS));
-        }
+        () -> FUNC_REG
+                .getAggregateFactory(of("bad_test_udaf"))
+                .getFunction(singletonList(SqlTypes.array(SqlTypes.BOOLEAN)))
+                .source
+                .apply(AggregateFunctionInitArguments.EMPTY_ARGS)
     );
 
     // Then:
@@ -647,90 +664,87 @@ public class UdfLoaderTest {
   }
 
   @Test
-  public void shouldThrowOnMissingAnnotation() throws ClassNotFoundException {
+  public void shouldThrowOnMissingAnnotation() throws Exception {
     // Given:
     final MutableFunctionRegistry functionRegistry = new InternalFunctionRegistry();
     final Path udfJar = new File("src/test/resources/udf-failing-tests.jar").toPath();
-    final UdfClassLoader udfClassLoader = newClassLoader(udfJar,
-        PARENT_CLASS_LOADER,
-        resourceName -> false);
-    final Class<?> clazz = udfClassLoader.loadClass("org.damian.ksql.udf.MissingAnnotationUdf");
-    final UdfLoader udfLoader = new UdfLoader(
-        functionRegistry,
-        empty(),
-        create(EMPTY),
-        true
-    );
+    try (UdfClassLoader udfClassLoader = newClassLoader(udfJar, PARENT_CLASS_LOADER, resourceName -> false)) {
+      final Class<?> clazz = udfClassLoader.loadClass("org.damian.ksql.udf.MissingAnnotationUdf");
+      final UdfLoader udfLoader = new UdfLoader(
+          functionRegistry,
+          empty(),
+          create(EMPTY),
+          true
+      );
 
-    // When:
-    final Exception e = assertThrows(
-        KsqlException.class,
-        () -> udfLoader.loadUdfFromClass(clazz)
-    );
+      // When:
+      final Exception e = assertThrows(
+          KsqlException.class,
+          () -> udfLoader.loadUdfFromClass(clazz)
+      );
 
-    // Then:
-    assertThat(e.getMessage(), containsString(
-        "Cannot load UDF MissingAnnotation. DECIMAL return type is " +
-            "not supported without an explicit schema"));
-
+      // Then:
+      assertThat(e.getMessage(), containsString(
+          "Cannot load UDF MissingAnnotation. DECIMAL return type is " +
+              "not supported without an explicit schema"));
+    }
   }
 
   @Test
-  public void shouldThrowOnMissingSchemaProvider() throws ClassNotFoundException {
+  public void shouldThrowOnMissingSchemaProvider() throws Exception {
     // Given:
     final MutableFunctionRegistry functionRegistry = new InternalFunctionRegistry();
     final Path udfJar = new File("src/test/resources/udf-failing-tests.jar").toPath();
-    final UdfClassLoader udfClassLoader = newClassLoader(udfJar,
-        PARENT_CLASS_LOADER,
-        resourceName -> false);
-    final Class<?> clazz = udfClassLoader.loadClass("org.damian.ksql.udf.MissingSchemaProviderUdf");
-    final UdfLoader udfLoader = new UdfLoader(
-        functionRegistry,
-        empty(),
-        create(EMPTY),
-        true
-    );
+    try (final UdfClassLoader udfClassLoader = newClassLoader(udfJar, PARENT_CLASS_LOADER, resourceName -> false)) {
+      final Class<?> clazz = udfClassLoader.loadClass(
+          "org.damian.ksql.udf.MissingSchemaProviderUdf");
+      final UdfLoader udfLoader = new UdfLoader(
+          functionRegistry,
+          empty(),
+          create(EMPTY),
+          true
+      );
 
-    // When:
-    final Exception e = assertThrows(
-        KsqlException.class,
-        () -> udfLoader.loadUdfFromClass(clazz)
-    );
+      // When:
+      final Exception e = assertThrows(
+          KsqlException.class,
+          () -> udfLoader.loadUdfFromClass(clazz)
+      );
 
-    // Then:
-    assertThat(e.getMessage(), containsString(
-        "Cannot find schema provider method with name provideSchema "
-            + "and parameter List<SqlType> in class org.damian.ksql.udf."
-            + "MissingSchemaProviderUdf."));
+      // Then:
+      assertThat(e.getMessage(), containsString(
+          "Cannot find schema provider method with name provideSchema "
+              + "and parameter List<SqlType> in class org.damian.ksql.udf."
+              + "MissingSchemaProviderUdf."));
+    }
   }
 
   @Test
-  public void shouldThrowOnReturnDecimalWithoutSchemaProvider() throws ClassNotFoundException {
+  public void shouldThrowOnReturnDecimalWithoutSchemaProvider() throws Exception {
     // Given:
     final MutableFunctionRegistry functionRegistry = new InternalFunctionRegistry();
     final Path udfJar = new File("src/test/resources/udf-failing-tests.jar").toPath();
-    final UdfClassLoader udfClassLoader = newClassLoader(udfJar,
-        PARENT_CLASS_LOADER,
-        resourceName -> false);
-    final Class<?> clazz = udfClassLoader.loadClass("org.damian.ksql.udf."
-        + "ReturnDecimalWithoutSchemaProviderUdf");
-    final UdfLoader udfLoader = new UdfLoader(
-        functionRegistry,
-        empty(),
-        create(EMPTY),
-        true
-    );
+    try (final UdfClassLoader udfClassLoader = newClassLoader(udfJar, PARENT_CLASS_LOADER, resourceName -> false)) {
+      final Class<?> clazz = udfClassLoader.loadClass("org.damian.ksql.udf."
+          + "ReturnDecimalWithoutSchemaProviderUdf");
+      final UdfLoader udfLoader = new UdfLoader(
+          functionRegistry,
+          empty(),
+          create(EMPTY),
+          true
+      );
 
-    // When:
-    final Exception e = assertThrows(
-        KsqlException.class,
-        () -> udfLoader.loadUdfFromClass(clazz)
-    );
+      // When:
+      final Exception e = assertThrows(
+          KsqlException.class,
+          () -> udfLoader.loadUdfFromClass(clazz)
+      );
 
-    // Then:
-    assertThat(e.getMessage(), containsString(
-        "Cannot load UDF ReturnDecimalWithoutSchemaProvider. DECIMAL return type is not " +
-            "supported without an explicit schema"));
+      // Then:
+      assertThat(e.getMessage(), containsString(
+          "Cannot load UDF ReturnDecimalWithoutSchemaProvider. DECIMAL return type is not " +
+              "supported without an explicit schema"));
+    }
   }
 
   @Test
@@ -752,7 +766,6 @@ public class UdfLoaderTest {
 
   @Test
   public void shouldAllowClassesWithSameFQCNInDifferentUDFJars() throws Exception {
-
     final File pluginDir = tempFolder.newFolder();
     Files.copy(Paths.get("src/test/resources/udf-example.jar"),
         new File(pluginDir, "udf-example.jar").toPath());
@@ -789,9 +802,7 @@ public class UdfLoaderTest {
   @Test
   public void shouldCreateUdfFactoryWithJarPathWhenExternal() {
     final UdfFactory tostring = FUNC_REG.getUdfFactory(FunctionName.of("tostring"));
-    String expectedPath = Arrays.asList("src", "test", "resources", "udf-example.jar")
-        .stream()
-        .collect(Collectors.joining(File.separator));
+    String expectedPath = String.join(File.separator, "src", "test", "resources", "udf-example.jar");
     assertThat(tostring.getMetadata().getPath(), equalTo(expectedPath));
   }
 
@@ -1118,14 +1129,15 @@ public class UdfLoaderTest {
         TestUdaf.class.getMethod("createSumLong"),
         FunctionName.of("test-udf"),
         "desc",
-        "",
+        new String[]{""},
         "",
         "");
-    assertThat(creator.createFunction(AggregateFunctionInitArguments.EMPTY_ARGS, Collections.EMPTY_LIST),
+    assertThat(creator.createFunction(AggregateFunctionInitArguments.EMPTY_ARGS, Collections.emptyList()),
         not(nullValue()));
   }
 
   @Test
+  @SuppressWarnings("rawtypes")
   public void shouldConfigureConfigurableUdaf() throws Exception {
     // Given:
     final UdafFactoryInvoker creator
@@ -1133,14 +1145,16 @@ public class UdfLoaderTest {
         TestUdaf.class.getMethod("createSumInt"),
         FunctionName.of("test-udf"),
         "desc",
-        "",
+         new String[]{""},
         "",
         "");
     final AggregateFunctionInitArguments initArgs = new AggregateFunctionInitArguments(
-        0, ImmutableMap.of("ksql.functions.test_udaf.init", 100L));
+            Collections.singletonList(0),
+            ImmutableMap.of("ksql.functions.test_udaf.init", 100L)
+    );
 
     // When:
-    final KsqlAggregateFunction function = creator.createFunction(initArgs, Collections.EMPTY_LIST);
+    final KsqlAggregateFunction function = creator.createFunction(initArgs, Collections.emptyList());
     final Object initvalue = function.getInitialValueSupplier().get();
 
     // Then:
@@ -1162,21 +1176,23 @@ public class UdfLoaderTest {
   }
 
   @Test
+  @SuppressWarnings("rawtypes")
   public void shouldImplementTableAggregateFunctionWhenTableUdafClass() throws Exception {
     final UdafFactoryInvoker creator
         = createUdafLoader().createUdafFactoryInvoker(
         TestUdaf.class.getMethod("createSumLong"),
         FunctionName.of("test-udf"),
         "desc",
-        "",
+        new String[]{""},
         "",
         "");
     final KsqlAggregateFunction function = creator
-        .createFunction(AggregateFunctionInitArguments.EMPTY_ARGS, Collections.EMPTY_LIST);
+        .createFunction(AggregateFunctionInitArguments.EMPTY_ARGS, Collections.emptyList());
     assertThat(function, instanceOf(TableAggregationFunction.class));
   }
 
   @Test
+  @SuppressWarnings("rawtypes")
   public void shouldInvokeUdafWhenMethodHasArgs() throws Exception {
     final UdafFactoryInvoker creator
         = createUdafLoader().createUdafFactoryInvoker(
@@ -1185,11 +1201,13 @@ public class UdfLoaderTest {
             String.class),
         FunctionName.of("test-udf"),
         "desc",
-        "",
+        new String[]{""},
         "",
         "");
-    final KsqlAggregateFunction instance =
-        creator.createFunction(new AggregateFunctionInitArguments(0, "foo"), Collections.EMPTY_LIST);
+    final KsqlAggregateFunction instance = creator.createFunction(
+            new AggregateFunctionInitArguments(Collections.singletonList(0), "foo"),
+            Collections.emptyList()
+    );
     assertThat(instance,
         not(nullValue()));
     assertThat(instance, not(instanceOf(TableAggregationFunction.class)));
@@ -1205,7 +1223,7 @@ public class UdfLoaderTest {
         TestUdaf.class.getMethod("createSumLong"),
         FunctionName.of("test-udf"),
         "desc",
-        "",
+        new String[]{""},
         "",
         "");
 
@@ -1221,13 +1239,14 @@ public class UdfLoaderTest {
   }
 
   @Test
+  @SuppressWarnings("unchecked")
   public void shouldPassSqlInputTypesToUdafs() throws Exception {
     final UdafFactoryInvoker creator
         = createUdafLoader().createUdafFactoryInvoker(
         TestUdaf.class.getMethod("createSumT"),
         FunctionName.of("test-udf"),
         "desc",
-        "",
+        new String[]{""},
         "",
         "");
 
@@ -1252,14 +1271,14 @@ public class UdfLoaderTest {
         UdfLoaderTest.class.getMethod("invalidInputTypeUdaf"),
         FunctionName.of("test"),
         "desc",
-        "",
+        new String[]{""},
         "",
         ""
     );
   }
 
   @Test
-  public void shouldThrowIfMissingInputTypeSchema() throws Exception {
+  public void shouldThrowIfMissingInputTypeSchema() {
     // When:
     final Exception e = assertThrows(
         KsqlException.class,
@@ -1267,7 +1286,7 @@ public class UdfLoaderTest {
             UdfLoaderTest.class.getMethod("missingInputSchemaAnnotationUdaf"),
             of("test"),
             "desc",
-            "",
+        new String[]{""},
             "",
             "")
     );
@@ -1284,7 +1303,7 @@ public class UdfLoaderTest {
         UdfLoaderTest.class.getMethod("missingAggregateSchemaAnnotationUdaf"),
         of("test"),
         "desc",
-        "",
+        new String[]{""},
         "",
         ""
     );
@@ -1302,27 +1321,25 @@ public class UdfLoaderTest {
   @Test
   public void shouldThrowIfMissingOutputTypeSchema() throws Exception {
     // When:
-    UdafFactoryInvoker invoker = createUdafLoader().createUdafFactoryInvoker(
-        UdfLoaderTest.class.getMethod("missingOutputSchemaAnnotationUdaf"),
-        of("test"),
-        "desc",
-        "",
-        "",
-        ""
-    );
     final Exception e = assertThrows(
         KsqlException.class,
-        () -> invoker.createFunction(AggregateFunctionInitArguments.EMPTY_ARGS,
-            Collections.emptyList())
+        () -> createUdafLoader().createUdafFactoryInvoker(
+                UdfLoaderTest.class.getMethod("missingOutputSchemaAnnotationUdaf"),
+                of("test"),
+                "desc",
+                new String[]{""},
+                "",
+                ""
+        )
     );
 
     // Then:
-    assertThat(e.getCause().getMessage(), containsString("Must specify 'returnSchema' for STRUCT"
+    assertThat(e.getMessage(), containsString("Must specify 'returnSchema' for STRUCT"
         + " parameter in @UdafFactory or implement getAggregateSqlType()/getReturnSqlType()."));
   }
 
   @Test
-  public void shouldThrowIfArrayWithoutVarArgs() throws Exception {
+  public void shouldThrowIfArrayWithoutVarArgs() {
     // When:
     final Exception e = assertThrows(
         KsqlFunctionException.class,
@@ -1336,7 +1353,7 @@ public class UdfLoaderTest {
   }
 
   @Test
-  public void shouldThrowIfArrayAndVarArgs() throws Exception {
+  public void shouldThrowIfArrayAndVarArgs() {
     // When:
     final Exception e = assertThrows(
         KsqlFunctionException.class,
@@ -1367,7 +1384,7 @@ public class UdfLoaderTest {
   }
 
   @Test
-  public void shouldThrowWhenUdafReturnTypeIsntAUdaf() throws Exception {
+  public void shouldThrowWhenUdafReturnTypeIsntAUdaf() {
     // When:
     final Exception e = assertThrows(
         KsqlException.class,
@@ -1375,7 +1392,7 @@ public class UdfLoaderTest {
             UdfLoaderTest.class.getMethod("createBlah"),
             of("test"),
             "desc",
-            "",
+        new String[]{""},
             "",
             "")
     );
@@ -1391,7 +1408,7 @@ public class UdfLoaderTest {
         UdfLoaderTest.class.getMethod("createLongDouble"),
         FunctionName.of("test"),
         "desc",
-        "",
+        new String[]{""},
         "",
         "");
   }
@@ -1402,7 +1419,7 @@ public class UdfLoaderTest {
         UdfLoaderTest.class.getMethod("createDoubleLong"),
         FunctionName.of("test"),
         "desc",
-        "",
+        new String[]{""},
         "",
         "");
   }
@@ -1413,7 +1430,7 @@ public class UdfLoaderTest {
         UdfLoaderTest.class.getMethod("createIntegerString"),
         FunctionName.of("test"),
         "desc",
-        "",
+        new String[]{""},
         "",
         "");
   }
@@ -1424,7 +1441,7 @@ public class UdfLoaderTest {
         UdfLoaderTest.class.getMethod("createStringInteger"),
         FunctionName.of("test"),
         "desc",
-        "",
+        new String[]{""},
         "",
         "");
   }
@@ -1435,7 +1452,7 @@ public class UdfLoaderTest {
         UdfLoaderTest.class.getMethod("createBooleanList"),
         FunctionName.of("test"),
         "desc",
-        "",
+        new String[]{""},
         "",
         "");
   }
@@ -1446,7 +1463,7 @@ public class UdfLoaderTest {
         UdfLoaderTest.class.getMethod("createListBoolean"),
         FunctionName.of("test"),
         "desc",
-        "",
+        new String[]{""},
         "",
         "");
   }
@@ -1457,7 +1474,7 @@ public class UdfLoaderTest {
         UdfLoaderTest.class.getMethod("createMapMap"),
         FunctionName.of("test"),
         "desc",
-        "",
+        new String[]{""},
         "",
         "");
   }
@@ -1468,7 +1485,7 @@ public class UdfLoaderTest {
         UdfLoaderTest.class.getMethod("createMapMap", int.class),
         FunctionName.of("test"),
         "desc",
-        "",
+        new String[]{""},
         "",
         "");
   }
@@ -1479,13 +1496,13 @@ public class UdfLoaderTest {
         UdfLoaderTest.class.getMethod("createStructStruct"),
         FunctionName.of("test"),
         "desc",
-        "STRUCT<A VARCHAR>",
+        new String[]{"STRUCT<A VARCHAR>"},
         "STRUCT<B VARCHAR>",
         "STRUCT<B VARCHAR>");
   }
 
   @Test
-  public void shouldThrowWhenTryingToGenerateUdafThatHasIncorrectTypes() throws Exception {
+  public void shouldThrowWhenTryingToGenerateUdafThatHasIncorrectTypes() {
     // When:
     final Exception e = assertThrows(
         KsqlException.class,
@@ -1493,7 +1510,7 @@ public class UdfLoaderTest {
             UdfLoaderTest.class.getMethod("createBad"),
             of("test"),
             "desc",
-            "",
+        new String[]{""},
             "",
             "")
     );
@@ -1504,7 +1521,7 @@ public class UdfLoaderTest {
   }
 
   @Test
-  public void shouldThrowWhenUdafFactoryMethodIsntStatic() throws Exception {
+  public void shouldThrowWhenUdafFactoryMethodIsntStatic() {
     // When:
     final Exception e = assertThrows(
         KsqlException.class,
@@ -1512,7 +1529,7 @@ public class UdfLoaderTest {
             UdfLoaderTest.class.getMethod("createNonStatic"),
             of("test"),
             "desc",
-            "",
+        new String[]{""},
             "",
             "")
     );
@@ -1522,7 +1539,7 @@ public class UdfLoaderTest {
         "UDAF factory methods must be static public io.confluent.ksql.function.udaf.Udaf"));
   }
 
-  public String udf(final Set val) {
+  public String udf(final Set<?> val) {
     return val.toString();
   }
 

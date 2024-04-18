@@ -26,6 +26,7 @@ import io.confluent.ksql.schema.ksql.SqlTypeParser;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.security.ExtensionSecurityManager;
 import io.confluent.ksql.util.KsqlException;
+import java.lang.reflect.Array;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.List;
@@ -45,18 +46,17 @@ class UdafFactoryInvoker implements FunctionSignature {
   private final Optional<Metrics> metrics;
   private final List<ParamType> paramTypes;
   private final List<ParameterInfo> params;
+  private final ParamType aggregateReturnType;
   private final Method method;
   private final String description;
   private final UdafTypes types;
   private final String aggregateSchema;
-  private final String outputSchema;
-  private ParamType aggregateReturnType;
 
   UdafFactoryInvoker(
       final Method method,
       final FunctionName functionName,
       final String description,
-      final String inputSchema,
+      final String[] inputSchemas,
       final String aggregateSchema,
       final String outputSchema,
       final SqlTypeParser typeParser,
@@ -76,19 +76,22 @@ class UdafFactoryInvoker implements FunctionSignature {
     this.types = new UdafTypes(method, functionName, typeParser);
     this.functionName = Objects.requireNonNull(functionName);
     this.aggregateSchema = aggregateSchema; // This can be null if the annotation is not used.
-    this.outputSchema = outputSchema;       // This can be null if the annotation is not used.
     this.metrics = Objects.requireNonNull(metrics);
-    this.params = types.getInputSchema(Objects.requireNonNull(inputSchema));
+    this.params = types.getInputSchema(Objects.requireNonNull(inputSchemas));
     this.paramTypes = params.stream().map(ParameterInfo::type).collect(Collectors.toList());
+    this.aggregateReturnType = types.getOutputSchema(Objects.requireNonNull(outputSchema));
     this.method = Objects.requireNonNull(method);
     this.description = Objects.requireNonNull(description);
   }
 
   @SuppressFBWarnings({"EXS_EXCEPTION_SOFTENING_NO_CONSTRAINTS", "REC_CATCH_EXCEPTION"})
-  @SuppressWarnings("unchecked")
+  @SuppressWarnings({"rawtypes", "unchecked"})
   KsqlAggregateFunction createFunction(final AggregateFunctionInitArguments initArgs,
       final List<SqlArgument> argTypeList) {
-    final Object[] factoryArgs = initArgs.args().toArray();
+    final Object[] factoryArgs = method.isVarArgs()
+            ? convertToVariadicArgs(initArgs.args().toArray())
+            : initArgs.args().toArray();
+
     try {
       ExtensionSecurityManager.INSTANCE.pushInUdf();
       final Udaf udaf = (Udaf)method.invoke(null, factoryArgs);
@@ -103,33 +106,33 @@ class UdafFactoryInvoker implements FunctionSignature {
       final SqlType returnSqlType = (SqlType) udaf.getReturnSqlType()
           .orElseGet(() ->
               SchemaConverters.functionToSqlConverter()
-                  .toSqlType(types.getOutputSchema(outputSchema)));
-      this.aggregateReturnType =
-          SchemaConverters.sqlToFunctionConverter().toFunctionType(returnSqlType);
+                  .toSqlType(aggregateReturnType));
 
       final KsqlAggregateFunction function;
       if (TableUdaf.class.isAssignableFrom(method.getReturnType())) {
         function = new UdafTableAggregateFunction(
             functionName.text(),
-            initArgs.udafIndex(),
+            initArgs.udafIndices(),
             udaf,
             aggregateSqlType,
             returnSqlType,
             params,
             description,
             metrics,
-            method.getName());
+            method.getName(),
+            params.size() - literalParams().size());
       } else {
         function = new UdafAggregateFunction(
             functionName.text(),
-            initArgs.udafIndex(),
+            initArgs.udafIndices(),
             udaf,
             aggregateSqlType,
             returnSqlType,
             params,
             description,
             metrics,
-            method.getName());
+            method.getName(),
+            params.size() - literalParams().size());
       }
       return function;
     } catch (final Exception e) {
@@ -162,7 +165,46 @@ class UdafFactoryInvoker implements FunctionSignature {
 
   @Override
   public boolean isVariadic() {
-    return false;
+    return types.isVariadic();
+  }
+
+  public List<ParameterInfo> literalParams() {
+    return types.literalParams();
+  }
+
+  public String getDescription() {
+    return description;
+  }
+
+  private Object[] convertToVariadicArgs(final Object[] factoryArgs) {
+    final int varArgsStartIndex = method.getParameterCount() - 1;
+
+    /* When invoking a variadic method via reflection, the variadic arguments must be
+    placed into an array nested inside the main array of parameters. We need to adjust
+    the original factory arguments, which is simply a flat array. */
+    final Object[] adjustedFactoryArgs = new Object[method.getParameterCount()];
+
+    // Copy the regular, non-variadic arguments
+    System.arraycopy(factoryArgs, 0, adjustedFactoryArgs, 0, varArgsStartIndex);
+
+    /* The factory method will do type checking on the array type when it is invoked, so we
+    need to create an array with elements of the correct type. A sub-array cannot be cast
+    directly from Object[] to a more specific type. Thus, a new array of the correct type is
+    created, and then it is filled with the initial arguments. (Type checking has been done
+    previously by the UdfIndex, so we don't need to type-check individual elements.) */
+    final int numVarArgs = factoryArgs.length - varArgsStartIndex;
+    final Object[] varArgs = (Object[]) Array.newInstance(
+            method.getParameterTypes()[varArgsStartIndex].getComponentType(),
+            numVarArgs
+    );
+
+    // Copy the variadic arguments into the nested array
+    System.arraycopy(factoryArgs, varArgsStartIndex, varArgs, 0, numVarArgs);
+
+    // Add the nested array to the main array of arguments
+    adjustedFactoryArgs[varArgsStartIndex] = varArgs;
+
+    return adjustedFactoryArgs;
   }
 
 }

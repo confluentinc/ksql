@@ -56,7 +56,7 @@ verify REST responses: `RestQueryTranslationTest`. These tests are much slower a
 be used sparingly. To run a subset of these tests, supply a regex of the test name:
 
 ```
-mvn test -pl ksqldb-functional-tests -Dtest=RestQueryTranslationTest -Dksql.rqtt.regex="pull-queries.*join"
+mvn test -pl ksqldb-functional-tests -Dtest=RestQueryTranslationTest -Dksql.functional.test.regex="pull-queries.*join"
 ```
 
 

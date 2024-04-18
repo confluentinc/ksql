@@ -43,7 +43,8 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class KsqlRestClientTest {
 
   private static final String SOME_SERVER_ADDRESS = "http://singleServer:8088";
-  private static final Map<String, ?> LOCAL_PROPS = ImmutableMap.of("auto.offset.reset", "earliest");
+  private static final Map<String, ?> LOCAL_PROPS = ImmutableMap.of("auto.offset.reset",
+      "earliest");
   private static final Map<String, String> CLIENT_PROPS = ImmutableMap.of("foo", "bar");
 
   private static final String CCLOUD_API_KEY = "api_key";
@@ -63,6 +64,7 @@ public class KsqlRestClientTest {
   }
 
   @Test
+  @SuppressWarnings("resource")
   public void shouldThrowOnInvalidServerAddress() {
     // When:
     final Exception e = assertThrows(
@@ -82,10 +84,10 @@ public class KsqlRestClientTest {
     final URI singleServerURI = new URI(singleServerAddress);
 
     // When:
-    KsqlRestClient ksqlRestClient = clientWithServerAddresses(singleServerAddress);
-
-    // Then:
-    assertThat(ksqlRestClient.getServerAddress(), is(singleServerURI));
+    try (KsqlRestClient ksqlRestClient = clientWithServerAddresses(singleServerAddress)) {
+      // Then:
+      assertThat(ksqlRestClient.getServerAddress(), is(singleServerURI));
+    }
   }
 
   @Test
@@ -96,13 +98,14 @@ public class KsqlRestClientTest {
     final URI firstServerURI = new URI(firstServerAddress);
 
     // When:
-    KsqlRestClient ksqlRestClient = clientWithServerAddresses(multipleServerAddresses);
-
-    // Then:
-    assertThat(ksqlRestClient.getServerAddress(), is(firstServerURI));
+    try (KsqlRestClient ksqlRestClient = clientWithServerAddresses(multipleServerAddresses)) {
+      // Then:
+      assertThat(ksqlRestClient.getServerAddress(), is(firstServerURI));
+    }
   }
 
   @Test
+  @SuppressWarnings("resource")
   public void shouldThrowIfAnyServerAddressIsInvalid() {
     // When:
     final Exception e = assertThrows(
@@ -122,10 +125,10 @@ public class KsqlRestClientTest {
     final URI serverURI = new URI(serverAddress);
 
     // When:
-    KsqlRestClient ksqlRestClient = clientWithServerAddresses(serverAddress);
-
-    // Then:
-    assertThat(ksqlRestClient.getServerAddress(), is(serverURI));
+    try (KsqlRestClient ksqlRestClient = clientWithServerAddresses(serverAddress)) {
+      // Then:
+      assertThat(ksqlRestClient.getServerAddress(), is(serverURI));
+    }
   }
 
   @Test
@@ -135,10 +138,10 @@ public class KsqlRestClientTest {
     final URI serverURI = new URI(serverAddress.concat(":80"));
 
     // When:
-    KsqlRestClient ksqlRestClient = clientWithServerAddresses(serverAddress);
-
-    // Then:
-    assertThat(ksqlRestClient.getServerAddress(), is(serverURI));
+    try (KsqlRestClient ksqlRestClient = clientWithServerAddresses(serverAddress)) {
+      // Then:
+      assertThat(ksqlRestClient.getServerAddress(), is(serverURI));
+    }
   }
 
   @Test
@@ -148,27 +151,29 @@ public class KsqlRestClientTest {
     final URI serverURI = new URI(serverAddress.concat(":443"));
 
     // When:
-    KsqlRestClient ksqlRestClient = clientWithServerAddresses(serverAddress);
-
-    // Then:
-    assertThat(ksqlRestClient.getServerAddress(), is(serverURI));
+    try (KsqlRestClient ksqlRestClient = clientWithServerAddresses(serverAddress)) {
+      // Then:
+      assertThat(ksqlRestClient.getServerAddress(), is(serverURI));
+    }
   }
 
   @Test
   public void shouldIncludeAdditionalHeadersForCCloudConnectorRequest() throws Exception {
     // Given:
-    final KsqlRestClient ksqlRestClient = clientWithServerAddresses(
-        SOME_SERVER_ADDRESS,
-        Optional.of(BasicCredentials.of(CCLOUD_API_KEY, CCLOUD_API_SECRET)));
-    ksqlRestClient.setIsCCloudServer(true);
-
     final Map<String, String> expectedHeaders = ImmutableMap.of(
         CCLOUD_CONNECT_USERNAME_HEADER, CCLOUD_API_KEY,
         CCLOUD_CONNECT_PASSWORD_HEADER, CCLOUD_API_SECRET
     );
 
-    // When:
-    ksqlRestClient.makeConnectorRequest("create connector ... ;", 0L);
+    try (final KsqlRestClient ksqlRestClient = clientWithServerAddresses(
+        SOME_SERVER_ADDRESS,
+        Optional.of(BasicCredentials.of(CCLOUD_API_KEY, CCLOUD_API_SECRET)))) {
+
+      ksqlRestClient.setIsCCloudServer(true);
+
+      // When:
+      ksqlRestClient.makeConnectorRequest("create connector ... ;", 0L);
+    }
 
     // Then:
     verify(client).target(new URI(SOME_SERVER_ADDRESS), expectedHeaders);
@@ -178,15 +183,17 @@ public class KsqlRestClientTest {
   @Test
   public void shouldNotIncludeAdditionalHeadersForOnPremConnectorRequest() throws Exception {
     // Given:
-    final KsqlRestClient ksqlRestClient = clientWithServerAddresses(
+    try (final KsqlRestClient ksqlRestClient = clientWithServerAddresses(
         SOME_SERVER_ADDRESS,
-        Optional.of(BasicCredentials.of(CCLOUD_API_KEY, CCLOUD_API_SECRET)));
-    // even though a cloud apikey has been provided above, it will be ignored (not sent
-    // with any requests) because the server connected to is not a ccloud server
-    ksqlRestClient.setIsCCloudServer(false);
+        Optional.of(BasicCredentials.of(CCLOUD_API_KEY, CCLOUD_API_SECRET)))) {
 
-    // When:
-    ksqlRestClient.makeConnectorRequest("create connector ... ;", 0L);
+      // even though a cloud apikey has been provided above, it will be ignored (not sent
+      // with any requests) because the server connected to is not a ccloud server
+      ksqlRestClient.setIsCCloudServer(false);
+
+      // When:
+      ksqlRestClient.makeConnectorRequest("create connector ... ;", 0L);
+    }
 
     // Then:
     verify(client).target(new URI(SOME_SERVER_ADDRESS), Collections.emptyMap());
@@ -196,27 +203,30 @@ public class KsqlRestClientTest {
   @Test
   public void shouldNotIncludeAdditionalHeadersForCCloudNonConnectorRequest() throws Exception {
     // Given:
-    final KsqlRestClient ksqlRestClient = clientWithServerAddresses(
+    try (final KsqlRestClient ksqlRestClient = clientWithServerAddresses(
         SOME_SERVER_ADDRESS,
-        Optional.of(BasicCredentials.of(CCLOUD_API_KEY, CCLOUD_API_SECRET)));
-    ksqlRestClient.setIsCCloudServer(true);
+        Optional.of(BasicCredentials.of(CCLOUD_API_KEY, CCLOUD_API_SECRET)))) {
 
-    // When:
-    ksqlRestClient.makeKsqlRequest("some ksql;", 0L);
+      ksqlRestClient.setIsCCloudServer(true);
+
+      // When:
+      ksqlRestClient.makeKsqlRequest("some ksql;",0L);
+    }
 
     // Then:
-    verify(client).target(new URI(SOME_SERVER_ADDRESS), Collections.emptyMap());
-    verify(target).postKsqlRequest("some ksql;", Collections.emptyMap(), Optional.of(0L));
+    verify(client).target(new URI(SOME_SERVER_ADDRESS),Collections.emptyMap());
+    verify(target).postKsqlRequest("some ksql;",Collections.emptyMap(),Optional.of(0L));
   }
 
   @Test
   public void shouldNotIncludeAdditionalHeadersForOnPremNonConnectorRequest() throws Exception {
     // Given:
-    final KsqlRestClient ksqlRestClient = clientWithServerAddresses(SOME_SERVER_ADDRESS);
-    ksqlRestClient.setIsCCloudServer(false);
+    try (final KsqlRestClient ksqlRestClient = clientWithServerAddresses(SOME_SERVER_ADDRESS)) {
+      ksqlRestClient.setIsCCloudServer(false);
 
-    // When:
-    ksqlRestClient.makeKsqlRequest("some ksql;", 0L);
+      // When:
+      ksqlRestClient.makeKsqlRequest("some ksql;", 0L);
+    }
 
     // Then:
     verify(client).target(new URI(SOME_SERVER_ADDRESS), Collections.emptyMap());
@@ -224,6 +234,7 @@ public class KsqlRestClientTest {
   }
 
   @Test
+  @SuppressWarnings("deprecation")
   public void shouldAllowCallingCreateWithoutNeedingACCloudApiKey() {
     // This is a backwards compatibility check
 

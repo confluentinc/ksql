@@ -84,30 +84,6 @@ public interface FunctionRegistry {
   AggregateFunctionFactory getAggregateFactory(FunctionName functionName);
 
   /**
-   * Get an instance of an aggregate function.
-   *
-   * <p>The current assumption is that all aggregate functions take a single argument for
-   * computing the aggregate at runtime. For functions that have no runtime arguments pass {@link
-   * #DEFAULT_FUNCTION_ARG_SCHEMA} for the {@code argumentType} parameter.
-   *
-   * <p>Some aggregate functions also take initialisation arguments, e.g.
-   * <code> SELECT TOPK(AGE, 5) FROM PEOPLE</code>.
-   *
-   * <p>In the above 5 is an initialisation argument which needs to be provided when creating the
-   * <code>KsqlAggregateFunction</code> instance.
-   *
-   * @param functionName the name of the function.
-   * @param argumentType the schema of the argument.
-   * @return the function instance.
-   * @throws KsqlException on unknown UDAF, or on unsupported {@code argumentType}.
-   */
-  KsqlAggregateFunction<?, ?, ?> getAggregateFunction(
-      FunctionName functionName,
-      SqlType argumentType,
-      AggregateFunctionInitArguments initArgs
-  );
-
-  /**
    * Get a table function.
    *
    * @param functionName  the name of the function.

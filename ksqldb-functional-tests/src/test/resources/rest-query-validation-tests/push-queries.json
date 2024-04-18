@@ -85,9 +85,6 @@
     },
     {
       "name": "explicit ROWPARTITION and ROWOFFSET",
-      "properties": {
-        "ksql.rowpartition.rowoffset.enabled": true
-      },
       "statements": [
         "CREATE STREAM INPUT (K STRING KEY, ID INT) WITH (kafka_topic='test_topic', value_format='JSON');",
         "SELECT ROWPARTITION, ROWOFFSET, * FROM INPUT EMIT CHANGES LIMIT 2;"
@@ -297,9 +294,6 @@
     },
     {
       "name": "join with ROWPARTITION and ROWOFFSET",
-      "properties": {
-        "ksql.rowpartition.rowoffset.enabled": true
-      },
       "statements": [
         "CREATE STREAM INPUT_1 (K STRING KEY, ID INT) WITH (kafka_topic='test_topic_1', value_format='JSON');",
         "CREATE STREAM INPUT_2 (K STRING KEY, ID INT) WITH (kafka_topic='test_topic_2', value_format='JSON');",
@@ -471,9 +465,6 @@
     },
     {
       "name": "windowed join - with rowpartition/rowoffset",
-      "properties": {
-        "ksql.rowpartition.rowoffset.enabled": true
-      },
       "statements": [
         "CREATE STREAM S1 (K INT KEY, ID bigint) WITH (kafka_topic='left_topic', value_format='JSON', WINDOW_TYPE='Tumbling', WINDOW_SIZE='2 SECONDS');",
         "CREATE STREAM S2 (K INT KEY, ID bigint) WITH (kafka_topic='right_topic', value_format='JSON', WINDOW_TYPE='Tumbling', WINDOW_SIZE='2 SECOND');",
@@ -649,6 +640,46 @@
           {"header":{"schema":"`COUNT` BIGINT"}},
           {"row":{"columns":[1]}},
           {"row":{"columns":[2]}},
+          {"finalMessage":"Limit Reached"}
+        ]}
+      ]
+    },
+    {
+      "name": "aggregate without GROUP BY expression",
+      "statements": [
+        "CREATE STREAM TEST (K INT KEY, ID INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "SELECT count(*) AS count FROM test EMIT CHANGES LIMIT 2;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": {"id": 2}, "timestamp": 10345},
+        {"topic": "test_topic", "key": 1, "value": {"id": 2}, "timestamp": 13251}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`COUNT` BIGINT"}},
+          {"row":{"columns":[1]}},
+          {"row":{"columns":[2]}},
+          {"finalMessage":"Limit Reached"}
+        ]}
+      ]
+    },
+    {
+      "name": "multiple aggregates without GROUP BY expression",
+      "statements": [
+        "CREATE STREAM TEST (K INT KEY, ID INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "SELECT sum(ID) AS sum, count(*) AS count FROM test EMIT CHANGES LIMIT 2;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": {"id": 2}, "timestamp": 10345},
+        {"topic": "test_topic", "key": 1, "value": {"id": 2}, "timestamp": 13251}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`SUM` INTEGER, `COUNT` BIGINT"}},
+          {"row":{"columns":[2, 1]}},
+          {"row":{"columns":[4, 2]}},
           {"finalMessage":"Limit Reached"}
         ]}
       ]

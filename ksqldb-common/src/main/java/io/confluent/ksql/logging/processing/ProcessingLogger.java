@@ -44,4 +44,9 @@ public interface ProcessingLogger {
    * @param msg the error to log
    */
   void error(ErrorMessage msg);
+
+  /**
+   * Close the processing logger
+   */
+  void close();
 }

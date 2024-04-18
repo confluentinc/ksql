@@ -36,6 +36,16 @@ public final class SandboxedBinPackedPersistentQueryMetadataImpl
   }
 
   @Override
+  public void pause() {
+    // no-op
+  }
+
+  @Override
+  public void resume() {
+    // no-op
+  }
+
+  @Override
   public void stop() {
     //no-op
   }

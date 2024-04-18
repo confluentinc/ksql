@@ -15,7 +15,7 @@
 
 package io.confluent.ksql.rest.util;
 
-import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.KsqlRateLimitException;
 import io.confluent.ksql.util.ReservedInternalTopics;
 import java.util.Map;
 import org.apache.kafka.common.MetricName;
@@ -51,7 +51,7 @@ public class RateLimiter {
   public void checkLimit() {
     if (!rateLimiter.tryAcquire()) {
       rejectSensor.record();
-      throw new KsqlException("Host is at rate limit for pull queries. Currently set to "
+      throw new KsqlRateLimitException("Host is at rate limit for pull queries. Currently set to "
           + rateLimiter.getRate() + " qps.");
     }
   }

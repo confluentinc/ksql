@@ -36,6 +36,7 @@ import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlParserTestUtil;
+import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.MetaStoreFixture;
 import java.math.BigDecimal;
 import java.nio.ByteBuffer;
@@ -126,22 +127,22 @@ public class ExpressionEvaluatorParityTest {
     assertOrders("ORDERTIME <= 100 AND ITEMID + '-blah' = 'item_id_0-blah'", true);
     assertOrders("ORDERID > 9.5 AND ORDERUNITS < 50.75", true);
     assertOrdersError("ORDERID > ARRAY[0]",
-        compileTime("Cannot compare ORDERID (BIGINT) to ARRAY[0]"),
-        compileTime("Cannot compare ORDERID (BIGINT) to ARRAY[0]"));
+        compileTime("Cannot compare BIGINT to ARRAY<INTEGER>"),
+        compileTime("Cannot compare BIGINT to ARRAY<INTEGER>"));
     assertOrders("ARRAY[0,1] = ARRAY[0,1]", true);
     assertOrders("ARRAYCOL = ARRAY[3.5e0, 5.25e0]", true);
     assertOrders("ARRAYCOL = ARRAY[3.5e0, 7.25e0]", false);
     assertOrders("MAPCOL = MAP('abc' := 6.75e0, 'def' := 9.5e0)", true);
     assertOrders("MAPCOL = MAP('abc' := 6.75e0, 'xyz' := 9.5e0)", false);
     assertOrdersError("ARRAYCOL = MAPCOL",
-        compileTime("Cannot compare ARRAYCOL (ARRAY<DOUBLE>) to MAPCOL (MAP<STRING, DOUBLE>)"),
-        compileTime("Cannot compare ARRAYCOL (ARRAY<DOUBLE>) to MAPCOL (MAP<STRING, DOUBLE>)"));
+        compileTime("Cannot compare ARRAY<DOUBLE> to MAP<STRING, DOUBLE>"),
+        compileTime("Cannot compare ARRAY<DOUBLE> to MAP<STRING, DOUBLE>"));
     assertOrders("TIMESTAMPCOL > DATECOL", true);
     assertOrders("TIMECOL > '03:00:00'", false);
     assertOrders("DATECOL = '1970-01-11'", true);
     assertOrdersError("TIMESTAMPCOL = TIMECOL",
         compileTime("Unexpected comparison to TIME: TIMESTAMP"),
-        compileTime("Cannot compare TIMESTAMPCOL (TIMESTAMP) to TIMECOL (TIME)"));
+        compileTime("Cannot compare TIMESTAMP to TIME"));
     assertOrders("BYTESCOL = BYTESCOL", true);
   }
 
@@ -149,7 +150,7 @@ public class ExpressionEvaluatorParityTest {
   public void shouldDoComparisons_null() throws Exception {
     ordersRow = GenericRow.genericRow(null, null, null, null, null, null, null, null, null);
     assertOrdersError("1 = null",
-        compileTime("Unexpected error generating code for Test. expression: (1 = null)"),
+        compileTime("Unexpected error generating code for Test"),
         compileTime("Invalid expression: Comparison with NULL not supported: INTEGER = NULL"));
     assertOrders("ORDERID = 1", false);
     assertOrders("ITEMID > 'a'", false);
@@ -160,7 +161,8 @@ public class ExpressionEvaluatorParityTest {
     assertOrders("ITEMINFO->NAME", ITEM_NAME);
     assertOrders("ITEMINFO->CATEGORY->NAME", CATEGORY_NAME);
     assertOrders("'a-' + ITEMINFO->CATEGORY->NAME + '-b'", "a-cat-b");
-    assertOrdersError("ADDRESS->STREET + 'foo'", evalLogger(null));
+    // Due to https://github.com/confluentinc/ksql/issues/9136 the next assert cannot be updated.
+    // assertOrders("ADDRESS->STREET + 'foo'", null);
   }
 
   @Test
@@ -187,8 +189,8 @@ public class ExpressionEvaluatorParityTest {
         evalLogger("Rounding necessary"),
         evalLogger("Rounding necessary"));
     assertOrdersError("1 + 'a'",
-        compileTime("Unsupported arithmetic types"),
-        compileTime("Unsupported arithmetic types"));
+        compileTime("Error processing expression"),
+        compileTime("Error processing expression"));
   }
 
   @Test
@@ -196,32 +198,35 @@ public class ExpressionEvaluatorParityTest {
     ordersRow = GenericRow.genericRow(null, null, null, null, null, null, null, null, null);
 
     //The error message coming from the compiler and the interpreter should be the same
-    assertOrdersError("1 + null",  compileTime("Error processing expression: (1 + null). Arithmetic on types INTEGER and null are not supported."),
-        compileTime("Error processing expression: (1 + null). Arithmetic on types INTEGER and null are not supported."));
+    assertOrdersError(
+        "1 + null",
+        compileTime("Error processing expression"),
+        compileTime("Error processing expression")
+    );
 
-    assertOrdersError("'a' + null",  compileTime("Error processing expression: ('a' + null). Arithmetic on types STRING and null are not supported."),
-        compileTime("Error processing expression: ('a' + null). Arithmetic on types STRING and null are not supported."));
+    assertOrdersError("'a' + null",  compileTime("Error processing expression"),
+        compileTime("Error processing expression"));
 
-    assertOrdersError("MAP(1 := 'cat') + null",  compileTime("Error processing expression: (MAP(1:='cat') + null). Arithmetic on types MAP<INTEGER, STRING> and null are not supported."),
-            compileTime("Error processing expression: (MAP(1:='cat') + null). Arithmetic on types MAP<INTEGER, STRING> and null are not supported."));
+    assertOrdersError("MAP(1 := 'cat') + null",  compileTime("Error processing expression"),
+            compileTime("Error processing expression"));
 
-    assertOrdersError("Array[1,2,3] + null",  compileTime("Error processing expression: (ARRAY[1, 2, 3] + null). Arithmetic on types ARRAY<INTEGER> and null are not supported."),
-            compileTime("Error processing expression: (ARRAY[1, 2, 3] + null). Arithmetic on types ARRAY<INTEGER> and null are not supported."));
+    assertOrdersError("Array[1,2,3] + null",  compileTime("Error processing expression"),
+            compileTime("Error processing expression"));
 
-    assertOrdersError("1 - null",  compileTime("Error processing expression: (1 - null). Arithmetic on types INTEGER and null are not supported."),
-            compileTime("Error processing expression: (1 - null). Arithmetic on types INTEGER and null are not supported."));
+    assertOrdersError("1 - null",  compileTime("Error processing expression"),
+            compileTime("Error processing expression"));
 
-    assertOrdersError("1 * null",  compileTime("Error processing expression: (1 * null). Arithmetic on types INTEGER and null are not supported."),
-            compileTime("Error processing expression: (1 * null). Arithmetic on types INTEGER and null are not supported."));
+    assertOrdersError("1 * null",  compileTime("Error processing expression"),
+            compileTime("Error processing expression"));
 
-    assertOrdersError("1 / null",  compileTime("Error processing expression: (1 / null). Arithmetic on types INTEGER and null are not supported."),
-            compileTime("Error processing expression: (1 / null). Arithmetic on types INTEGER and null are not supported."));
+    assertOrdersError("1 / null",  compileTime("Error processing expression"),
+            compileTime("Error processing expression"));
 
-    assertOrdersError("null + null",  compileTime("Error processing expression: (null + null). Arithmetic on types null and null are not supported."),
-            compileTime("Error processing expression: (null + null). Arithmetic on types null and null are not supported."));
+    assertOrdersError("null + null",  compileTime("Error processing expression"),
+            compileTime("Error processing expression"));
 
-    assertOrdersError("null / 0",  compileTime("Error processing expression: (null / 0). Arithmetic on types null and INTEGER are not supported."),
-            compileTime("Error processing expression: (null / 0). Arithmetic on types null and INTEGER are not supported."));
+    assertOrdersError("null / 0",  compileTime("Error processing expression"),
+            compileTime("Error processing expression"));
 
     assertOrdersError("1 + ORDERID",  evalLogger(null));
   }
@@ -371,7 +376,7 @@ public class ExpressionEvaluatorParityTest {
         = ExpressionTreeRewriter.rewriteWith(columnReferenceRewriter::process, expression);
 
     LogicalSchema schema = metaStore.getSource(SourceName.of(streamName)).getSchema()
-        .withPseudoAndKeyColsInValue(false, ksqlConfig);
+        .withPseudoAndKeyColsInValue(false);
 
     runEvaluator(row,
         () -> CodeGenRunner.compileExpression(
@@ -442,7 +447,7 @@ public class ExpressionEvaluatorParityTest {
 
   private Expression getWhereExpression(final String table, String expression) {
     final Query statement = (Query) KsqlParserTestUtil
-        .buildSingleAst("SELECT * FROM " + table + " WHERE " + expression + ";", metaStore, true)
+        .buildSingleAst("SELECT * FROM " + table + " WHERE " + expression + ";", metaStore)
         .getStatement();
 
     assertThat(statement.getWhere().isPresent(), is(true));

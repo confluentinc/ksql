@@ -29,6 +29,7 @@ import static org.mockito.Mockito.mock;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterators;
 import io.confluent.ksql.execution.expression.tree.ArithmeticBinaryExpression;
+import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
 import io.confluent.ksql.execution.expression.tree.IntervalUnit;
@@ -46,17 +47,23 @@ import io.confluent.ksql.parser.SqlBaseParser.SingleStatementContext;
 import io.confluent.ksql.parser.exception.ParseFailedException;
 import io.confluent.ksql.parser.tree.AliasedRelation;
 import io.confluent.ksql.parser.tree.AllColumns;
+import io.confluent.ksql.parser.tree.AssertSchema;
+import io.confluent.ksql.parser.tree.AssertTopic;
 import io.confluent.ksql.parser.tree.ColumnConstraints;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.Explain;
 import io.confluent.ksql.parser.tree.Join;
+import io.confluent.ksql.parser.tree.PauseQuery;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.QueryContainer;
+import io.confluent.ksql.parser.tree.ResumeQuery;
 import io.confluent.ksql.parser.tree.Select;
 import io.confluent.ksql.parser.tree.SingleColumn;
+import io.confluent.ksql.parser.tree.StructAll;
 import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.parser.tree.TableElement;
+import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.Operator;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.MetaStoreFixture;
@@ -83,6 +90,36 @@ public class AstBuilderTest {
   @Before
   public void setup() {
     builder = new AstBuilder(META_STORE);
+  }
+
+  @Test
+  public void shouldParsePause() {
+    // Given:
+    final SingleStatementContext allStmt = givenQuery("PAUSE ALL;");
+    final SingleStatementContext oneStmt = givenQuery("PAUSE QUERY1;");
+
+    // When:
+    final PauseQuery allResult = (PauseQuery) builder.buildStatement(allStmt);
+    final PauseQuery oneResult = (PauseQuery) builder.buildStatement(oneStmt);
+
+    // Then:
+    assertThat(allResult.getQueryId(), is(Optional.empty()));
+    assertThat(oneResult.getQueryId(), is(Optional.of(new QueryId("QUERY1"))));
+  }
+
+  @Test
+  public void shouldParseResume() {
+    // Given:
+    final SingleStatementContext allStmt = givenQuery("RESUME ALL;");
+    final SingleStatementContext oneStmt = givenQuery("RESUME QUERY1;");
+
+    // When:
+    final ResumeQuery allResult = (ResumeQuery) builder.buildStatement(allStmt);
+    final ResumeQuery oneResult = (ResumeQuery) builder.buildStatement(oneStmt);
+
+    // Then:
+    assertThat(allResult.getQueryId(), is(Optional.empty()));
+    assertThat(oneResult.getQueryId(), is(Optional.of(new QueryId("QUERY1"))));
   }
 
   @Test
@@ -202,6 +239,41 @@ public class AstBuilderTest {
     assertThat(result.getFrom(), is(instanceOf(Join.class)));
     assertThat((Join) result.getFrom(), hasLeft(new AliasedRelation(TEST1, SourceName.of("T1"))));
     assertThat((Join) result.getFrom(), hasRights(new AliasedRelation(TEST2, SourceName.of("T2"))));
+  }
+
+  @Test
+  public void shouldHandleSelectStructAll() {
+    // Given:
+    final SingleStatementContext stmt =
+        givenQuery("SELECT NESTED_ORDER_COL->* FROM NESTED_STREAM;");
+
+    // When:
+    final Query result = (Query) builder.buildStatement(stmt);
+
+    // Then:
+    assertThat(result.getSelect(), is(new Select(ImmutableList.of(
+        new StructAll(column("NESTED_ORDER_COL"))
+    ))));
+  }
+
+  @Test
+  public void shouldHandleSelectStructAllOnNestedStruct() {
+    // Given:
+    final SingleStatementContext stmt =
+        givenQuery("SELECT NESTED_ORDER_COL->ITEMINFO->* FROM NESTED_STREAM;");
+
+    // When:
+    final Query result = (Query) builder.buildStatement(stmt);
+
+    // Then:
+    assertThat(result.getSelect(), is(new Select(ImmutableList.of(
+        new StructAll(
+            new DereferenceExpression(
+                Optional.empty(),
+                new UnqualifiedColumnReferenceExp(ColumnName.of("NESTED_ORDER_COL")),
+                "ITEMINFO"
+            ))
+    ))));
   }
 
   @Test
@@ -403,8 +475,7 @@ public class AstBuilderTest {
     // Then:
     assertThat(
         e.getUnloggedMessage(),
-        containsString("line 1:26: mismatched input '=>' expecting {',', ')'}\n" +
-            "Statement: SELECT TRANSFORM_ARRAY(X => X + 5, Col4) FROM TEST1;"));
+        containsString("no viable alternative at input 'TRANSFORM_ARRAY(X =>"));
     assertThat(
         e.getMessage(),
         containsString("line 1:26: Syntax error at line 1:26")
@@ -969,5 +1040,112 @@ public class AstBuilderTest {
     String actualMessage = exception.getMessage();
 
     assertEquals(expectedMessage, actualMessage);
+  }
+
+  @Test
+  public void shouldBuildAssertTopic() {
+    // Given:
+    final SingleStatementContext stmt
+        = givenQuery("ASSERT TOPIC X;");
+
+    // When:
+    final AssertTopic assertTopic = (AssertTopic) builder.buildStatement(stmt);
+
+    // Then:
+    assertThat(assertTopic.getTopic(), is("X"));
+    assertThat(assertTopic.getConfig().size(), is(0));
+    assertThat(assertTopic.getTimeout(), is(Optional.empty()));
+    assertThat(assertTopic.checkExists(), is(true));
+  }
+
+  @Test
+  public void shouldBuildAssertNotExistsTopicWithConfigsAndTimeout() {
+    // Given:
+    final SingleStatementContext stmt
+        = givenQuery("ASSERT NOT EXISTS TOPIC 'a-b-c' WITH (REPLICAS=1, partitions=1) TIMEOUT 10 SECONDS;");
+
+    // When:
+    final AssertTopic assertTopic = (AssertTopic) builder.buildStatement(stmt);
+
+    // Then:
+    assertThat(assertTopic.getTopic(), is("a-b-c"));
+    assertThat(assertTopic.getConfig().get("REPLICAS").getValue(), is(1));
+    assertThat(assertTopic.getConfig().get("PARTITIONS").getValue(), is(1));
+    assertThat(assertTopic.getTimeout().get().getTimeUnit(), is(TimeUnit.SECONDS));
+    assertThat(assertTopic.getTimeout().get().getValue(), is(10L));
+    assertThat(assertTopic.checkExists(), is(false));
+  }
+
+  @Test
+  public void shouldBuildAssertSchemaWithSubject() {
+    // Given:
+    final SingleStatementContext stmt
+        = givenQuery("ASSERT SCHEMA SUBJECT X;");
+
+    // When:
+    final AssertSchema assertSchema = (AssertSchema) builder.buildStatement(stmt);
+
+    // Then:
+    assertThat(assertSchema.getSubject(), is(Optional.of("X")));
+    assertThat(assertSchema.getId(), is(Optional.empty()));
+    assertThat(assertSchema.getTimeout(), is(Optional.empty()));
+    assertThat(assertSchema.checkExists(), is(true));
+  }
+
+  @Test
+  public void shouldBuildAssertNotExistsSchemaWithIdAndTimeout() {
+    // Given:
+    final SingleStatementContext stmt
+        = givenQuery("ASSERT NOT EXISTS SCHEMA ID 24 TIMEOUT 10 SECONDS;");
+
+    // When:
+    final AssertSchema assertSchema = (AssertSchema) builder.buildStatement(stmt);
+
+    // Then:
+    assertThat(assertSchema.getSubject(), is(Optional.empty()));
+    assertThat(assertSchema.getId(), is(Optional.of(24)));
+    assertThat(assertSchema.getTimeout().get().getTimeUnit(), is(TimeUnit.SECONDS));
+    assertThat(assertSchema.checkExists(), is(false));
+  }
+
+  @Test
+  public void shouldBuildAssertNotExistsWithSubjectAndId() {
+    // Given:
+    final SingleStatementContext stmt
+        = givenQuery("ASSERT NOT EXISTS SCHEMA SUBJECT 'a-b-c' ID 33;");
+
+    // When:
+    final AssertSchema assertSchema = (AssertSchema) builder.buildStatement(stmt);
+
+    // Then:
+    assertThat(assertSchema.getSubject(), is(Optional.of("a-b-c")));
+    assertThat(assertSchema.getId(), is(Optional.of(33)));
+    assertThat(assertSchema.getTimeout(), is(Optional.empty()));
+    assertThat(assertSchema.checkExists(), is(false));
+  }
+
+  @Test
+  public void shouldThrowOnNoSubjectOrId() {
+    // Given:
+    final SingleStatementContext stmt = givenQuery("ASSERT SCHEMA TIMEOUT 10 SECONDS;");
+
+    // When:
+    final Exception e = assertThrows(KsqlException.class, () -> builder.buildStatement(stmt));
+
+    // Then:
+    assertThat(e.getMessage(), is("ASSERT SCHEMA statements much include a subject name or an id"));
+  }
+
+  @Test
+  public void shouldThrowOnNonIntegerId() {
+    // Given:
+    final SingleStatementContext stmt =
+        givenQuery("ASSERT SCHEMA ID FALSE TIMEOUT 10 SECONDS;");
+
+    // When:
+    final Exception e = assertThrows(KsqlException.class, () -> builder.buildStatement(stmt));
+
+    // Then:
+    assertThat(e.getMessage(), is("ID must be an integer"));
   }
 }

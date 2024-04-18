@@ -37,6 +37,8 @@ public final class KsqlConstants {
 
   public static final long defaultSinkWindowChangeLogAdditionalRetention = 1000000;
 
+  public static final boolean enableLoggingAppInfo = true;
+
   public static final long defaultCommitIntervalMsConfig = 2000;
   public static final long defaultCacheMaxBytesBufferingConfig = 10000000;
   public static final int defaultNumberOfStreamsThreads = 4;
@@ -64,6 +66,10 @@ public final class KsqlConstants {
     INSERT
   }
 
+  /**
+   * The ordinal values of the KsqlQueryStatus enum are used as the metrics values.
+   * Please ensure preservation of the current order.
+   */
   public enum KsqlQueryStatus {
     RUNNING,
     ERROR,

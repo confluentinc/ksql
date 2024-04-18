@@ -35,7 +35,9 @@ import static org.hamcrest.Matchers.not;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Multimap;
 import io.confluent.common.utils.IntegrationTest;
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.api.AuthTest.StringPrincipal;
 import io.confluent.ksql.api.auth.AuthenticationPlugin;
 import io.confluent.ksql.api.server.KsqlApiException;
@@ -85,6 +87,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 import kafka.zookeeper.ZooKeeperClientException;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.processor.TaskId;
 import org.apache.kafka.streams.processor.internals.assignment.AssignorConfiguration.AssignmentConfigs;
@@ -263,13 +266,15 @@ public class PullQueryRoutingFunctionalTest {
     topic = USER_TOPIC + KsqlIdentifierTestUtil.uniqueIdentifierName();
     TEST_HARNESS.ensureTopics(1, topic);
 
-    TEST_HARNESS.produceRows(
+    final Multimap<GenericKey, RecordMetadata> producedRows = TEST_HARNESS.produceRows(
         topic,
         USER_PROVIDER,
         FormatFactory.KAFKA,
         FormatFactory.JSON,
         timestampSupplier::getAndIncrement
     );
+
+    LOG.info("Produced rows " + producedRows.size());
 
     //Create stream
     makeAdminRequest(

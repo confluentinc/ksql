@@ -72,7 +72,7 @@ With respect to monitoring, here it what this does:
 
 An easy way to check that ksqlDB is properly emitting metrics is by
 using `jconsole`. JConsole is a graphical monitoring tool to monitor
-the JVM, and it ships with by default with Oracle JDK installations.
+the JVM, and it is included in Oracle JDK installations.
 
 On your host machine, run the command:
 
@@ -81,7 +81,8 @@ jconsole
 ```
 
 You will be prompted for a host and port. If you used the example
-configuration, `localhost:1099` establishes the connection. You
-should see a series of graphs showing resource utilization. If you
-don't, make sure the networking between your machine and the Docker
-container is configured correctly.
+configuration above, then entering `localhost:1099` will allow
+JConsole to establish the connection. You should see a series of 
+graphs showing resource utilization. If you don't, make sure the 
+networking between your machine and the Docker container is 
+configured correctly.

@@ -40,6 +40,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Queue;
 import java.util.Set;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.stream.Collectors;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KafkaStreams.State;
@@ -259,7 +260,7 @@ public class QueryMetadataImpl implements QueryMetadata {
     }
   }
 
-  public Collection<StreamsMetadata> getAllMetadata() {
+  public Collection<StreamsMetadata> getAllStreamsHostMetadata() {
     try {
       return ImmutableList.copyOf(kafkaStreams.metadataForAllStreamsClients());
     } catch (IllegalStateException e) {
@@ -374,7 +375,7 @@ public class QueryMetadataImpl implements QueryMetadata {
     private final Queue<QueryError> queue;
 
     TimeBoundedQueue(final Duration duration, final int capacity) {
-      queue = EvictingQueue.create(capacity);
+      queue = new ConcurrentLinkedQueue<>(EvictingQueue.create(capacity));
       this.duration = duration;
     }
 

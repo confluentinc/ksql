@@ -88,7 +88,7 @@ INSERT INTO `s2` (
 Issue a push query to select the rows. The relevant identifiers are
 again surrounded with backticks. Notice that since `qux` wasn't
 declared with backticks, it can be referred to with any casing. ksqlDB
-will find the matching identifer by uppercasing it automatically.
+will find the matching identifier by uppercasing it automatically.
 
 ```sql
 SELECT `foo`,

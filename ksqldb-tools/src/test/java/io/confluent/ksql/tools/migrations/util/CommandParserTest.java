@@ -361,6 +361,66 @@ public class CommandParserTest {
   }
 
   @Test
+  public void shouldParseCreateConnectorStatementWithVariables() {
+    // Given:
+    final String createConnector = "CREATE SOURCE CONNECTOR ${name} WITH(\n"
+        + "    \"connector.class\"='io.confluent.connect.jdbc.JdbcSourceConnector',\n"
+        + "    \"connection.url\"=${url},\n"
+        + "    \"mode\"='bulk',\n"
+        + "    \"topic.prefix\"='jdbc-',\n"
+        + "    \"table.whitelist\"='users',\n"
+        + "    \"key\"='username');";
+
+    // When:
+    List<SqlCommand> commands = parse(createConnector, ImmutableMap.of("url", "'jdbc:postgresql://localhost:5432/my.db'", "name", "`jdbc_connector`"));
+
+    // Then:
+    assertThat(commands.size(), is(1));
+    assertThat(commands.get(0), instanceOf(SqlCreateConnectorStatement.class));
+    assertThat(commands.get(0).getCommand(), is(createConnector));
+    assertThat(((SqlCreateConnectorStatement) commands.get(0)).getName(), is("`jdbc_connector`"));
+    assertThat(((SqlCreateConnectorStatement) commands.get(0)).isSource(), is(true));
+    assertThat(((SqlCreateConnectorStatement) commands.get(0)).getProperties().size(), is(6));
+    assertThat(((SqlCreateConnectorStatement) commands.get(0)).getProperties().get("connector.class"), is("io.confluent.connect.jdbc.JdbcSourceConnector"));
+    assertThat(((SqlCreateConnectorStatement) commands.get(0)).getProperties().get("connection.url"), is("jdbc:postgresql://localhost:5432/my.db"));
+    assertThat(((SqlCreateConnectorStatement) commands.get(0)).getProperties().get("mode"), is("bulk"));
+    assertThat(((SqlCreateConnectorStatement) commands.get(0)).getProperties().get("topic.prefix"), is("jdbc-"));
+    assertThat(((SqlCreateConnectorStatement) commands.get(0)).getProperties().get("table.whitelist"), is("users"));
+    assertThat(((SqlCreateConnectorStatement) commands.get(0)).getProperties().get("key"), is("username"));
+    assertThat(((SqlCreateConnectorStatement) commands.get(0)).getIfNotExists(), is(false));
+  }
+
+  @Test
+  public void shouldParseCreateConnectorIfNotExistsStatement() {
+    // Given:
+    final String createConnector = "CREATE SOURCE CONNECTOR IF NOT EXISTS ${name} WITH(\n"
+        + "    \"connector.class\"='io.confluent.connect.jdbc.JdbcSourceConnector',\n"
+        + "    \"connection.url\"=${url},\n"
+        + "    \"mode\"='bulk',\n"
+        + "    \"topic.prefix\"='jdbc-',\n"
+        + "    \"table.whitelist\"='users',\n"
+        + "    \"key\"='username');";
+
+    // When:
+    List<SqlCommand> commands = parse(createConnector, ImmutableMap.of("url", "'jdbc:postgresql://localhost:5432/my.db'", "name", "`jdbc_connector`"));
+
+    // Then:
+    assertThat(commands.size(), is(1));
+    assertThat(commands.get(0), instanceOf(SqlCreateConnectorStatement.class));
+    assertThat(commands.get(0).getCommand(), is(createConnector));
+    assertThat(((SqlCreateConnectorStatement) commands.get(0)).getName(), is("`jdbc_connector`"));
+    assertThat(((SqlCreateConnectorStatement) commands.get(0)).isSource(), is(true));
+    assertThat(((SqlCreateConnectorStatement) commands.get(0)).getProperties().size(), is(6));
+    assertThat(((SqlCreateConnectorStatement) commands.get(0)).getProperties().get("connector.class"), is("io.confluent.connect.jdbc.JdbcSourceConnector"));
+    assertThat(((SqlCreateConnectorStatement) commands.get(0)).getProperties().get("connection.url"), is("jdbc:postgresql://localhost:5432/my.db"));
+    assertThat(((SqlCreateConnectorStatement) commands.get(0)).getProperties().get("mode"), is("bulk"));
+    assertThat(((SqlCreateConnectorStatement) commands.get(0)).getProperties().get("topic.prefix"), is("jdbc-"));
+    assertThat(((SqlCreateConnectorStatement) commands.get(0)).getProperties().get("table.whitelist"), is("users"));
+    assertThat(((SqlCreateConnectorStatement) commands.get(0)).getProperties().get("key"), is("username"));
+    assertThat(((SqlCreateConnectorStatement) commands.get(0)).getIfNotExists(), is(true));
+  }
+
+  @Test
   public void shouldParseDropConnectorStatement() {
     // Given:
     final String dropConnector = "DRoP CONNEcTOR `jdbc-connector` ;"; // The space at the end is to make sure that the regex doesn't capture it as a part of the name
@@ -372,8 +432,24 @@ public class CommandParserTest {
     assertThat(commands.size(), is(1));
     assertThat(commands.get(0).getCommand(), is(dropConnector));
     assertThat(commands.get(0), instanceOf(SqlDropConnectorStatement.class));
-    assertThat(commands.get(0).getCommand(), is(dropConnector));
     assertThat(((SqlDropConnectorStatement) commands.get(0)).getName(), is("`jdbc-connector`"));
+    assertThat(((SqlDropConnectorStatement) commands.get(0)).getIfExists(), is(false));
+  }
+
+  @Test
+  public void shouldParseDropConnectorIfExistsStatement() {
+    // Given:
+    final String dropConnector = "DRoP CONNEcTOR IF EXISTS `jdbc-connector` ;";
+
+    // When:
+    List<SqlCommand> commands = parse(dropConnector);
+
+    // Then:
+    assertThat(commands.size(), is(1));
+    assertThat(commands.get(0).getCommand(), is(dropConnector));
+    assertThat(commands.get(0), instanceOf(SqlDropConnectorStatement.class));
+    assertThat(((SqlDropConnectorStatement) commands.get(0)).getName(), is("`jdbc-connector`"));
+    assertThat(((SqlDropConnectorStatement) commands.get(0)).getIfExists(), is(true));
   }
 
   @Test

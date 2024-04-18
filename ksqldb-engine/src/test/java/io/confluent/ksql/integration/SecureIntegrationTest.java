@@ -244,6 +244,7 @@ public class SecureIntegrationTest {
     ksqlConfig.put(KSQL_SERVICE_ID_CONFIG, SERVICE_ID);
     ksqlConfig.put(KSQL_QUERY_RETRY_BACKOFF_INITIAL_MS, 0L);
     ksqlConfig.put(KSQL_QUERY_RETRY_BACKOFF_MAX_MS, 0L);
+    ksqlConfig.put(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED, false);
 
     givenTestSetupWithAclsForQuery();
     givenTestSetupWithConfig(ksqlConfig);
@@ -265,6 +266,41 @@ public class SecureIntegrationTest {
         ),
         String.format(
             "%s: One or more source topics were missing during rebalance",
+            MissingSourceTopicException.class.getName()
+        )
+    );
+  }
+
+  @Test
+  public void shouldClassifyMissingSourceTopicExceptionAsUserErrorSharedRuntimes() {
+    // Given:
+    final Map<String, Object> ksqlConfig = getKsqlConfig(NORMAL_USER);
+    ksqlConfig.put(KSQL_SERVICE_ID_CONFIG, SERVICE_ID);
+    ksqlConfig.put(KSQL_QUERY_RETRY_BACKOFF_INITIAL_MS, 0L);
+    ksqlConfig.put(KSQL_QUERY_RETRY_BACKOFF_MAX_MS, 0L);
+    ksqlConfig.put(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED, true);
+
+
+    givenTestSetupWithAclsForQuery();
+    givenTestSetupWithConfig(ksqlConfig);
+
+    // When:
+    topicClient.deleteTopics(Collections.singleton(INPUT_TOPIC));
+    assertThatEventually(
+        "Wait for async topic deleting",
+        () -> topicClient.isTopicExists(outputTopic),
+        is(false)
+    );
+
+    // Then:
+    assertQueryFailsWithUserError(
+        String.format(
+            "CREATE STREAM %s AS SELECT * FROM %s;",
+            outputTopic,
+            INPUT_STREAM
+        ),
+        String.format(
+            "%s: Missing source topics",
             MissingSourceTopicException.class.getName()
         )
     );

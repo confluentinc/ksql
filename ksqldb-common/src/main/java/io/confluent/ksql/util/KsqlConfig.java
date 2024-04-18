@@ -129,6 +129,13 @@ public class KsqlConfig extends AbstractConfig {
   public static final String CONNECT_BASIC_AUTH_CREDENTIALS_RELOAD_PROPERTY =
       KSQL_CONNECT_PREFIX + "basic.auth.credentials.reload";
 
+  public static final String CONNECT_REQUEST_TIMEOUT_MS =
+      KSQL_CONNECT_PREFIX + "request.timeout.ms";
+  public static final Long CONNECT_REQUEST_TIMEOUT_DEFAULT = 5_000L;
+  private static final String CONNECT_REQUEST_TIMEOUT_MS_DOC =
+      "Timeout, in milliseconds, used for each of the connection timeout and request timeout "
+          + "for connector requests issued by ksqlDB.";
+
   public static final String CONNECT_REQUEST_HEADERS_PLUGIN =
       KSQL_CONNECT_PREFIX + "request.headers.plugin";
   private static final String CONNECT_REQUEST_HEADERS_PLUGIN_DOC =
@@ -351,11 +358,6 @@ public class KsqlConfig extends AbstractConfig {
           + " much faster for short-lived queries.";
   public static final boolean KSQL_QUERY_PULL_INTERPRETER_ENABLED_DEFAULT = true;
 
-  public static final String KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED
-      = "ksql.query.pull.consistency.token.enabled";
-  public static final String KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED_DOC =
-      "Enables the use of the consistency token to offer monotonic read consistency for pull "
-          + "queries.";
   public static final boolean KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED_DEFAULT = false;
 
   public static final String KSQL_QUERY_PULL_LIMIT_CLAUSE_ENABLED
@@ -429,6 +431,11 @@ public class KsqlConfig extends AbstractConfig {
       "How close the catchup consumer must be to the latest before it will stop the latest to join"
           + " with it.";
   public static final int KSQL_QUERY_PUSH_V2_CATCHUP_CONSUMER_MSG_WINDOW_DEFAULT = 50;
+
+  public static final String KSQL_QUERY_PUSH_V2_METRICS_ENABLED =
+      "ksql.query.push.v2.metrics.enabled";
+  public static final String KSQL_QUERY_PUSH_V2_METRICS_ENABLED_DOC =
+      "Config to enable/disable collecting JMX metrics for push queries v2.";
 
   public static final String KSQL_STRING_CASE_CONFIG_TOGGLE = "ksql.cast.strings.preserve.nulls";
   public static final String KSQL_STRING_CASE_CONFIG_TOGGLE_DOC =
@@ -564,9 +571,14 @@ public class KsqlConfig extends AbstractConfig {
           + "Default is false. If false, persistent queries will use separate "
           + " runtimes, if true, new queries may share streams instances.";
 
+  public static final String KSQL_NEW_QUERY_PLANNER_ENABLED =
+      "ksql.new.query.planner.enabled";
+  private static final Boolean KSQL_NEW_QUERY_PLANNER_ENABLED_DEFAULT = false;
+  private static final String KSQL_NEW_QUERY_PLANNER_ENABLED_DOC =
+      "Feature flag that enables the new planner for persistent queries. Default is false.";
 
   public static final String KSQL_SHARED_RUNTIMES_COUNT = "ksql.shared.runtimes.count";
-  public static final Integer KSQL_SHARED_RUNTIMES_COUNT_DEFAULT = 8;
+  public static final Integer KSQL_SHARED_RUNTIMES_COUNT_DEFAULT = 2;
   public static final String KSQL_SHARED_RUNTIMES_COUNT_DOC =
       "Controls how many runtimes queries are allocated over initially."
           + "this is only used when ksql.runtime.feature.shared.enabled is true.";
@@ -637,6 +649,32 @@ public class KsqlConfig extends AbstractConfig {
   public static final long KSQL_QUERY_CLEANUP_SHUTDOWN_TIMEOUT_MS_DEFAULT = 30000;
   public static final String KSQL_QUERY_CLEANUP_SHUTDOWN_TIMEOUT_MS_DOC
       = "The total time that the query cleanup spends trying to clean things up on shutdown.";
+
+  public static final String KSQL_TRANSIENT_QUERY_CLEANUP_SERVICE_ENABLE
+      = "ksql.transient.query.cleanup.service.enable";
+  public static final boolean KSQL_TRANSIENT_QUERY_CLEANUP_SERVICE_ENABLE_DEFAULT = true;
+  public static final String KSQL_TRANSIENT_QUERY_CLEANUP_SERVICE_ENABLE_DOC
+      = "Enable transient query cleanup service.";
+
+  public static final String KSQL_TRANSIENT_QUERY_CLEANUP_SERVICE_INITIAL_DELAY_SECONDS
+      = "ksql.transient.query.cleanup.service.initial.delay.seconds";
+  public static final Integer KSQL_TRANSIENT_QUERY_CLEANUP_SERVICE_INITIAL_DELAY_SECONDS_DEFAULT
+      = 600;
+  public static final String KSQL_TRANSIENT_QUERY_CLEANUP_SERVICE_INITIAL_DELAY_SECONDS_DOC
+      = "The time to delay the first execution of the transient query cleanup service in seconds.";
+
+  public static final String KSQL_TRANSIENT_QUERY_CLEANUP_SERVICE_PERIOD_SECONDS
+      = "ksql.transient.query.cleanup.service.period.seconds";
+  public static final Integer KSQL_TRANSIENT_QUERY_CLEANUP_SERVICE_PERIOD_SECONDS_DEFAULT
+      = 600;
+  public static final String KSQL_TRANSIENT_QUERY_CLEANUP_SERVICE_PERIOD_SECONDS_DOC
+      = "the period between successive executions of the transient query cleanup service.";
+
+  public static final String KSQL_ENDPOINT_MIGRATE_QUERY_CONFIG
+      = "ksql.endpoint.migrate.query";
+  private static final boolean KSQL_ENDPOINT_MIGRATE_QUERY_DEFAULT = true;
+  private static final String KSQL_ENDPOINT_MIGRATE_QUERY_DOC
+      = "Migrates the /query endpoint to use the same handler as /query-stream.";
 
   private enum ConfigGeneration {
     LEGACY,
@@ -871,6 +909,12 @@ public class KsqlConfig extends AbstractConfig {
             "If true, basic auth credentials for connector auth will automatically reload "
                 + "on file change (creation or modification). File deletion is not monitored and "
                 + "old credentials will continue to be used in this case."
+        ).define(
+            CONNECT_REQUEST_TIMEOUT_MS,
+            Type.LONG,
+            CONNECT_REQUEST_TIMEOUT_DEFAULT,
+            ConfigDef.Importance.LOW,
+            CONNECT_REQUEST_TIMEOUT_MS_DOC
         ).define(
             CONNECT_REQUEST_HEADERS_PLUGIN,
             Type.CLASS,
@@ -1149,13 +1193,6 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_QUERY_PULL_INTERPRETER_ENABLED_DOC
         )
         .define(
-            KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED,
-            Type.BOOLEAN,
-            KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED_DEFAULT,
-            Importance.LOW,
-            KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED_DOC
-        )
-        .define(
             KSQL_QUERY_PULL_LIMIT_CLAUSE_ENABLED,
             Type.BOOLEAN,
             KSQL_QUERY_PULL_LIMIT_CLAUSE_ENABLED_DEFAULT,
@@ -1224,6 +1261,13 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_QUERY_PUSH_V2_CATCHUP_CONSUMER_MSG_WINDOW_DEFAULT,
             Importance.LOW,
             KSQL_QUERY_PUSH_V2_CATCHUP_CONSUMER_MSG_WINDOW_DOC
+        )
+        .define(
+            KSQL_QUERY_PUSH_V2_METRICS_ENABLED,
+            Type.BOOLEAN,
+            true,
+            Importance.LOW,
+            KSQL_QUERY_PUSH_V2_METRICS_ENABLED_DOC
         )
         .define(
             KSQL_ERROR_CLASSIFIER_REGEX_PREFIX,
@@ -1350,6 +1394,13 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_SOURCE_TABLE_MATERIALIZATION_ENABLED_DOC
         )
         .define(
+            KSQL_NEW_QUERY_PLANNER_ENABLED,
+            Type.BOOLEAN,
+            KSQL_NEW_QUERY_PLANNER_ENABLED_DEFAULT,
+            Importance.LOW,
+            KSQL_NEW_QUERY_PLANNER_ENABLED_DOC
+        )
+        .define(
             KSQL_QUERY_CLEANUP_SHUTDOWN_TIMEOUT_MS,
             Type.LONG,
             KSQL_QUERY_CLEANUP_SHUTDOWN_TIMEOUT_MS_DEFAULT,
@@ -1376,6 +1427,34 @@ public class KsqlConfig extends AbstractConfig {
             Importance.LOW,
             KSQL_WEBSOCKET_CONNECTION_MAX_TIMEOUT_MS_DOC
         )
+        .define(
+            KSQL_ENDPOINT_MIGRATE_QUERY_CONFIG,
+            Type.BOOLEAN,
+            KSQL_ENDPOINT_MIGRATE_QUERY_DEFAULT,
+            Importance.LOW,
+            KSQL_ENDPOINT_MIGRATE_QUERY_DOC
+        )
+        .define(
+            KSQL_TRANSIENT_QUERY_CLEANUP_SERVICE_ENABLE,
+            Type.BOOLEAN,
+            KSQL_TRANSIENT_QUERY_CLEANUP_SERVICE_ENABLE_DEFAULT,
+            Importance.LOW,
+            KSQL_TRANSIENT_QUERY_CLEANUP_SERVICE_ENABLE_DOC
+        )
+        .define(
+            KSQL_TRANSIENT_QUERY_CLEANUP_SERVICE_INITIAL_DELAY_SECONDS,
+            Type.INT,
+            KSQL_TRANSIENT_QUERY_CLEANUP_SERVICE_INITIAL_DELAY_SECONDS_DEFAULT,
+            Importance.LOW,
+            KSQL_TRANSIENT_QUERY_CLEANUP_SERVICE_INITIAL_DELAY_SECONDS_DOC
+        )
+        .define(
+            KSQL_TRANSIENT_QUERY_CLEANUP_SERVICE_PERIOD_SECONDS,
+            Type.INT,
+            KSQL_TRANSIENT_QUERY_CLEANUP_SERVICE_PERIOD_SECONDS_DEFAULT,
+            Importance.LOW,
+            KSQL_TRANSIENT_QUERY_CLEANUP_SERVICE_PERIOD_SECONDS_DOC
+        )
         .withClientSslSupport();
 
     for (final CompatibilityBreakingConfigDef compatibilityBreakingConfigDef
@@ -1389,6 +1468,33 @@ public class KsqlConfig extends AbstractConfig {
     return configDef;
   }
   // CHECKSTYLE_RULES.ON: MethodLength
+
+  public Map<String, Object> originalsWithPrefixOverride(final String prefix) {
+    final Map<String, Object> originals = originals();
+    final Map<String, Object> result = new HashMap<>();
+    // first we iterate over the originals and we add only the entries without the prefix
+    for (Map.Entry<String, ?> entry : originals.entrySet()) {
+      if (!isKeyPrefixed(entry.getKey(), prefix)) {
+        result.put(entry.getKey(), entry.getValue());
+      }
+    }
+    // then we add only prefixed entries with dropped prefix
+    for (Map.Entry<String, ?> entry : originals.entrySet()) {
+      if (isKeyPrefixed(entry.getKey(), prefix)) {
+        result.put(entry.getKey().substring(prefix.length()), entry.getValue());
+      }
+    }
+    // two iterations are necessary to avoid a situation where the unprefixed value
+    // is handled after the prefixed one, because we do not control the order in which
+    // the entries are presented from the originals map
+    return result;
+  }
+
+  private boolean isKeyPrefixed(final String key, final String prefix) {
+    Objects.requireNonNull(key);
+    Objects.requireNonNull(prefix);
+    return key.startsWith(prefix) && key.length() > prefix.length();
+  }
 
   private static final class ConfigValue {
     final ConfigItem configItem;
@@ -1478,7 +1584,8 @@ public class KsqlConfig extends AbstractConfig {
             config.name,
             generation == ConfigGeneration.CURRENT
                 ? config.defaultValueCurrent : config.defaultValueLegacy));
-    this.ksqlStreamConfigProps = buildStreamingConfig(streamsConfigDefaults, originals());
+    this.ksqlStreamConfigProps = buildStreamingConfig(streamsConfigDefaults,
+            originalsWithPrefixOverride(KSQL_STREAMS_PREFIX));
   }
 
   private static Set<String> streamTopicConfigNames() {

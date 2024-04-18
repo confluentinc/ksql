@@ -39,14 +39,14 @@ ksqlDB provides two mechanisms to change a query that is already running:
    in-place upgrade is `CREATE OR REPLACE`.
 1. *Replacing upgrades*: you tear down an existing query,
    and start a new one from either `earliest` or `latest` offsets.
-   To accomplish this, users you first issue a `TERMINATE <query_id>;` and a
+   To accomplish this, you first issue a `TERMINATE <query_id>;` and a
    `DROP <source>` before creating the query again.
 
 ## Understanding upgrades
 
 Obviously, it would be preferable to always perform an in-place upgrade
 when you change a query. But because of how streaming programs are constructed,
-it's not always possible to do this.
+this is not always possible.
 
 To better understand the different types of upgrades that are allowed on persistent
 queries, here's a taxonomy using the combination of three

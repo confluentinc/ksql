@@ -20,9 +20,10 @@ import static io.netty.handler.codec.http.HttpResponseStatus.NOT_ACCEPTABLE;
 import io.confluent.ksql.links.DocumentationLinks;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.client.KsqlRestClient;
-import io.confluent.ksql.rest.client.KsqlRestClientException;
 import io.confluent.ksql.rest.client.RestResponse;
+import io.confluent.ksql.rest.client.exception.KsqlRestClientException;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
+import io.confluent.ksql.rest.entity.ServerInfo;
 import io.confluent.ksql.util.ErrorMessageUtil;
 import io.confluent.ksql.util.Event;
 import java.io.PrintWriter;
@@ -40,6 +41,9 @@ public final class RemoteServerSpecificCommand implements CliSpecificCommand {
       + "\nserver <server>:" + System.lineSeparator()
       + "\tChange the current server to <server>" + System.lineSeparator()
       + "\t example: \"server http://my.awesome.server.com:9098;\"";
+
+  private static final String CCLOUD_KSQL_SERVICE_ID_PREFIX = "pksqlc-";
+  private static final String CCLOUD_KSQL_ADDRESS_SUBSTRING = ".cloud";
 
   private final KsqlRestClient restClient;
   private final Event resetCliForNewServer;
@@ -88,7 +92,7 @@ public final class RemoteServerSpecificCommand implements CliSpecificCommand {
       final KsqlRestClient restClient
   ) {
     try {
-      final RestResponse<?> restResponse = restClient.getServerInfo();
+      final RestResponse<ServerInfo> restResponse = restClient.getServerInfo();
       if (restResponse.isErroneous()) {
         final KsqlErrorMessage ksqlError = restResponse.getErrorMessage();
         if (Errors.toStatusCode(ksqlError.getErrorCode()) == NOT_ACCEPTABLE.code()) {
@@ -97,6 +101,8 @@ public final class RemoteServerSpecificCommand implements CliSpecificCommand {
         }
         writer.format(
             "Couldn't connect to the KSQL server: %s%n%n", ksqlError.getMessage());
+      } else {
+        maybeSetIsCCloudServer(restClient, restResponse.getResponse());
       }
     } catch (final IllegalArgumentException exception) {
       writer.println("Server URL must begin with protocol (e.g., http:// or https://)");
@@ -126,5 +132,22 @@ public final class RemoteServerSpecificCommand implements CliSpecificCommand {
     } finally {
       writer.flush();
     }
+  }
+
+  private static void maybeSetIsCCloudServer(
+      final KsqlRestClient restClient,
+      final ServerInfo serverInfo) {
+    final String ksqlServiceId = serverInfo.getKsqlServiceId();
+    final String ksqlServerAddress = restClient.getServerAddress().toString();
+    restClient.setIsCCloudServer(isCCloudServer(ksqlServiceId, ksqlServerAddress));
+  }
+
+  private static boolean isCCloudServer(
+      final String ksqlServiceId,
+      final String ksqlServerAddress
+  ) {
+    return ksqlServiceId.startsWith(CCLOUD_KSQL_SERVICE_ID_PREFIX)
+        && ksqlServerAddress.contains(CCLOUD_KSQL_ADDRESS_SUBSTRING)
+        && ksqlServerAddress.contains(ksqlServiceId);
   }
 }

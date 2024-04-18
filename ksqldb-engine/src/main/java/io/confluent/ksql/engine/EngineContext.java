@@ -241,14 +241,16 @@ final class EngineContext {
       final String sqlExpression,
       final DdlCommand command,
       final boolean withQuery,
-      final Set<SourceName> withQuerySources
+      final Set<SourceName> withQuerySources,
+      final boolean restoreInProgress
   ) {
-    if (command instanceof DropSourceCommand) {
+    if (command instanceof DropSourceCommand && !restoreInProgress) {
       throwIfInsertQueriesExist(((DropSourceCommand) command).getSourceName());
     }
 
     final DdlCommandResult result =
-        ddlCommandExec.execute(sqlExpression, command, withQuery, withQuerySources);
+        ddlCommandExec.execute(sqlExpression, command, withQuery, withQuerySources,
+            restoreInProgress);
     if (!result.isSuccess()) {
       throw new KsqlStatementException(result.getMessage(), sqlExpression);
     }

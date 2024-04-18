@@ -21,13 +21,13 @@ import io.confluent.ksql.api.server.QueryHandle;
 import io.confluent.ksql.api.spi.QueryPublisher;
 import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.engine.KsqlEngine;
+import io.confluent.ksql.execution.pull.PullQueryResult;
 import io.confluent.ksql.internal.PullQueryExecutorMetrics;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Statement;
-import io.confluent.ksql.physical.pull.PullQueryResult;
 import io.confluent.ksql.query.BlockingRowQueue;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.server.query.QueryExecutor;
@@ -41,6 +41,7 @@ import io.confluent.ksql.util.ConsistencyOffsetVector;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PushQueryMetadata;
+import io.confluent.ksql.util.PushQueryMetadata.ResultType;
 import io.confluent.ksql.util.VertxUtils;
 import io.vertx.core.Context;
 import io.vertx.core.WorkerExecutor;
@@ -108,7 +109,13 @@ public class QueryEndpoint {
       final PullQueryResult result = queryMetadataHolder.getPullQueryResult().get();
       final BlockingQueryPublisher publisher = new BlockingQueryPublisher(context, workerExecutor);
 
-      publisher.setQueryHandle(new KsqlPullQueryHandle(result, pullQueryMetrics), true, false);
+      publisher.setQueryHandle(new KsqlPullQueryHandle(result, pullQueryMetrics,
+          statement.getPreparedStatement().getMaskedStatementText()), true, false);
+
+      // Start from the worker thread so that errors can bubble up, and we can get a proper response
+      // code rather than waiting until later after the header has been written and all we can do
+      // is write an error message.
+      publisher.startFromWorkerThread();
       return publisher;
     } else if (queryMetadataHolder.getPushQueryMetadata().isPresent()) {
       final PushQueryMetadata metadata = queryMetadataHolder.getPushQueryMetadata().get();
@@ -221,18 +228,27 @@ public class QueryEndpoint {
     public Optional<ConsistencyOffsetVector> getConsistencyOffsetVector() {
       return Optional.empty();
     }
+
+    @Override
+    public Optional<ResultType> getResultType() {
+      return Optional.of(queryMetadata.getResultType());
+    }
   }
 
   private static class KsqlPullQueryHandle implements QueryHandle {
 
     private final PullQueryResult result;
     private final Optional<PullQueryExecutorMetrics>  pullQueryMetrics;
+    private final String maskedStatementText;
     private final CompletableFuture<Void> future = new CompletableFuture<>();
 
     KsqlPullQueryHandle(final PullQueryResult result,
-        final Optional<PullQueryExecutorMetrics> pullQueryMetrics) {
+        final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
+        final String maskedStatementText
+    ) {
       this.result = Objects.requireNonNull(result);
       this.pullQueryMetrics = Objects.requireNonNull(pullQueryMetrics);
+      this.maskedStatementText = maskedStatementText;
     }
 
     @Override
@@ -253,12 +269,16 @@ public class QueryEndpoint {
     @Override
     public void start() {
       try {
-        result.start();
         result.onException(future::completeExceptionally);
         result.onCompletion(future::complete);
+        result.start();
       } catch (Exception e) {
         pullQueryMetrics.ifPresent(metrics -> metrics.recordErrorRate(1, result.getSourceType(),
             result.getPlanType(), result.getRoutingNodeType()));
+        // Let this error bubble up since start is called from the worker thread and will fail the
+        // query.
+        throw new KsqlStatementException("Error starting pull query: " + e.getMessage(),
+            maskedStatementText, e);
       }
     }
 
@@ -288,6 +308,11 @@ public class QueryEndpoint {
     @Override
     public Optional<ConsistencyOffsetVector> getConsistencyOffsetVector() {
       return result.getConsistencyOffsetVector();
+    }
+
+    @Override
+    public Optional<ResultType> getResultType() {
+      return Optional.empty();
     }
   }
 }

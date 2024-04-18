@@ -26,7 +26,6 @@ import io.confluent.ksql.api.server.KsqlApiException;
 import io.confluent.ksql.api.server.Server;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.security.DefaultKsqlPrincipal;
-import io.confluent.ksql.security.KsqlPrincipal;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
 import io.vertx.core.json.JsonObject;
@@ -105,7 +104,7 @@ public class AuthenticationPluginHandler implements Handler<RoutingContext> {
 
   private static class AuthPluginUser implements ApiUser {
 
-    private final KsqlPrincipal principal;
+    private final DefaultKsqlPrincipal principal;
 
     AuthPluginUser(final Principal principal) {
       Objects.requireNonNull(principal);
@@ -136,7 +135,7 @@ public class AuthenticationPluginHandler implements Handler<RoutingContext> {
     }
 
     @Override
-    public KsqlPrincipal getPrincipal() {
+    public DefaultKsqlPrincipal getPrincipal() {
       return principal;
     }
   }

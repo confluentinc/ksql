@@ -48,7 +48,7 @@ public class Transform {
       @UdfParameter(description = "The array") final List<T> array,
       @UdfParameter(description = "The lambda function") final Function<T, R> function
   ) {
-    if (array == null) {
+    if (array == null || function == null) {
       return null;
     }
     return array.stream().map(function).collect(Collectors.toList());
@@ -67,7 +67,7 @@ public class Transform {
       @UdfParameter(description = "The key lambda function") final BiFunction<K, V, R> biFunction1,
       @UdfParameter(description = "The value lambda function") final BiFunction<K, V, T> biFunction2
   ) {
-    if (map == null) {
+    if (map == null || biFunction1 == null || biFunction2 == null) {
       return null;
     }
 

@@ -190,6 +190,29 @@
       }
     },
     {
+      "name": "coalesce - with parse_date",
+      "statements": [
+        "CREATE STREAM INPUT (date_string VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT parse_date(date_string, 'yyyy-MM-dd') as parse_as_date, parse_date(concat(date_string, '-01-01'), 'yyyy-MM-dd') as parse_as_year, coalesce(parse_date(date_string, 'yyyy-MM-dd'),  parse_date(concat(date_string, '-01-01'), 'yyyy-MM-dd')) as parse_as_either FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": null, "value": {"date_string": "2003-12-24"}},
+        {"topic": "test_topic", "key": null, "value": {"date_string": "2008-08-13"}},
+        {"topic": "test_topic", "key": null, "value": {"date_string": "2004"}},
+        {"topic": "test_topic", "key": null, "value": {"date_string": "2012"}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": null, "value": {"PARSE_AS_DATE":  12410,
+          "PARSE_AS_YEAR": 12410, "PARSE_AS_EITHER": 12410}},
+        {"topic": "OUTPUT", "key": null, "value": {"parse_as_date":  14104,
+          "parse_as_year": 14104, "parse_as_either": 14104}},
+        {"topic": "OUTPUT", "key": null, "value": {"parse_as_date":  null,
+          "parse_as_year": 12418, "parse_as_either": 12418}},
+        {"topic": "OUTPUT", "key": null, "value": {"parse_as_date":  null,
+          "parse_as_year": 15340, "parse_as_either": 15340}}
+      ]
+    },
+    {
       "name": "if null",
       "statements": [
         "CREATE STREAM INPUT (COL0 INT KEY, COL1 STRING, COL2 ARRAY<INT>) WITH (kafka_topic='test_topic', value_format='JSON');",
@@ -206,6 +229,25 @@
         {"topic": "OUTPUT", "key": null, "value": {"A": 10, "B": "x", "C": [10, 20]}},
         {"topic": "OUTPUT", "key": null, "value": null},
         {"topic": "OUTPUT", "key": 2, "value": {"A": 2, "B": "not null", "C": [4, 5, 6]}}
+      ]
+    },
+    {
+      "name": "if null with nested structs",
+      "statements": [
+        "CREATE STREAM INPUT (COL0 INT KEY, COL1 STRUCT<Person STRUCT<Name STRING>>, COL2 ARRAY<INT>) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT COL0, IFNULL(COL0, 10) AS A, IFNULL(COL1->Person->Name, 'x') AS B, IFNULL(COL2, ARRAY[10, 20]) AS C FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 1, "value": {"COL1": {"Person":  {"Name": "George"}}, "COL2": [1, 2, 3]}},
+        {"topic": "test_topic", "key": null, "value": {}},
+        {"topic": "test_topic", "key": null, "value": null},
+        {"topic": "test_topic", "key": 2, "value": {"COL1": {"Person":  null}, "COL2": [4, 5, 6]}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 1, "value": {"A": 1, "B": "George", "C": [1, 2, 3]}},
+        {"topic": "OUTPUT", "key": null, "value": {"A": 10, "B": "x", "C": [10, 20]}},
+        {"topic": "OUTPUT", "key": null, "value": null},
+        {"topic": "OUTPUT", "key": 2, "value": {"A": 2, "B": "x", "C": [4, 5, 6]}}
       ]
     },
     {

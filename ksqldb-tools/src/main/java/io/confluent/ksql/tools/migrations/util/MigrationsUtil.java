@@ -18,10 +18,14 @@ package io.confluent.ksql.tools.migrations.util;
 import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.api.client.Client;
 import io.confluent.ksql.api.client.ClientOptions;
+import io.confluent.ksql.properties.PropertiesUtil;
 import io.confluent.ksql.tools.migrations.MigrationConfig;
 import io.confluent.ksql.tools.migrations.MigrationException;
+import io.confluent.ksql.util.KsqlException;
+import java.io.File;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.Map;
 
 public final class MigrationsUtil {
 
@@ -31,6 +35,11 @@ public final class MigrationsUtil {
   public static final String MIGRATIONS_COMMAND = "ksql-migrations";
 
   public static Client getKsqlClient(final MigrationConfig config) throws MigrationException {
+    return getKsqlClient(config, null);
+  }
+
+  public static Client getKsqlClient(final MigrationConfig config, final String headersFile)
+      throws MigrationException {
     return getKsqlClient(
         config.getString(MigrationConfig.KSQL_SERVER_URL),
         config.getString(MigrationConfig.KSQL_BASIC_AUTH_USERNAME),
@@ -42,7 +51,8 @@ public final class MigrationsUtil {
         config.getPassword(MigrationConfig.SSL_KEY_PASSWORD).value(),
         config.getString(MigrationConfig.SSL_KEY_ALIAS),
         config.getBoolean(MigrationConfig.SSL_ALPN),
-        config.getBoolean(MigrationConfig.SSL_VERIFY_HOST)
+        config.getBoolean(MigrationConfig.SSL_VERIFY_HOST),
+        loadRequestHeaders(headersFile)
     );
   }
 
@@ -59,11 +69,12 @@ public final class MigrationsUtil {
       final String sslKeyPassword,
       final String sslKeyAlias,
       final boolean sslAlpn,
-      final boolean sslVerifyHost
+      final boolean sslVerifyHost,
+      final Map<String, String> requestHeaders
   ) {
     return Client.create(createClientOptions(ksqlServerUrl, username, password,
         sslTrustStoreLocation, sslTrustStorePassword, sslKeystoreLocation, sslKeystorePassword,
-        sslKeyPassword, sslKeyAlias, sslAlpn, sslVerifyHost));
+        sslKeyPassword, sslKeyAlias, sslAlpn, sslVerifyHost, requestHeaders));
   }
 
   @VisibleForTesting
@@ -80,7 +91,8 @@ public final class MigrationsUtil {
       final String sslKeyPassword,
       final String sslKeyAlias,
       final boolean useAlpn,
-      final boolean verifyHost
+      final boolean verifyHost,
+      final Map<String, String> requestHeaders
   ) {
     final URL url;
     try {
@@ -112,6 +124,23 @@ public final class MigrationsUtil {
       options.setUseAlpn(useAlpn);
       options.setVerifyHost(verifyHost);
     }
+
+    if (requestHeaders != null) {
+      options.setRequestHeaders(requestHeaders);
+    }
+
     return options;
+  }
+
+  private static Map<String, String> loadRequestHeaders(final String headersFile) {
+    if (headersFile == null || headersFile.trim().isEmpty()) {
+      return null;
+    }
+
+    try {
+      return PropertiesUtil.loadProperties(new File(headersFile.trim()));
+    } catch (KsqlException e) {
+      throw new MigrationException("Could not parse headers file '" + headersFile + "'.");
+    }
   }
 }

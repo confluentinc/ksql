@@ -22,6 +22,7 @@ import com.github.rholder.retry.RetryerBuilder;
 import com.github.rholder.retry.StopStrategies;
 import com.github.rholder.retry.WaitStrategies;
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlServerException;
@@ -31,6 +32,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -56,15 +58,16 @@ import org.apache.hc.core5.util.TimeValue;
 import org.apache.hc.core5.util.Timeout;
 import org.apache.kafka.connect.runtime.rest.entities.ConfigInfos;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorInfo;
-import org.apache.kafka.connect.runtime.rest.entities.ConnectorPluginInfo;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo;
+import org.apache.kafka.connect.runtime.rest.entities.PluginInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
  * The default implementation of {@code ConnectClient}. This implementation is
  * thread safe, and the methods are all <i>blocking</i> and are configured with
- * default timeouts of {@value #DEFAULT_TIMEOUT_MS}ms.
+ * timeouts configurable via
+ * {@link io.confluent.ksql.util.KsqlConfig#CONNECT_REQUEST_TIMEOUT_MS}.
  */
 public class DefaultConnectClient implements ConnectClient {
 
@@ -77,19 +80,20 @@ public class DefaultConnectClient implements ConnectClient {
   private static final String STATUS = "/status";
   private static final String TOPICS = "/topics";
   private static final String VALIDATE_CONNECTOR = CONNECTOR_PLUGINS + "/%s/config/validate";
-  private static final int DEFAULT_TIMEOUT_MS = 5_000;
   private static final int MAX_ATTEMPTS = 3;
 
   private final URI connectUri;
   private final Header[] requestHeaders;
   private final CloseableHttpClient httpClient;
+  private final long requestTimeoutMs;
 
   public DefaultConnectClient(
       final String connectUri,
       final Optional<String> authHeader,
       final Map<String, String> additionalRequestHeaders,
       final Optional<SSLContext> sslContext,
-      final boolean verifySslHostname
+      final boolean verifySslHostname,
+      final long requestTimeoutMs
   ) {
     Objects.requireNonNull(connectUri, "connectUri");
     Objects.requireNonNull(authHeader, "authHeader");
@@ -103,6 +107,7 @@ public class DefaultConnectClient implements ConnectClient {
     }
     this.requestHeaders = buildHeaders(authHeader, additionalRequestHeaders);
     this.httpClient = buildHttpClient(sslContext, verifySslHostname);
+    this.requestTimeoutMs = requestTimeoutMs;
   }
 
   @Override
@@ -120,8 +125,8 @@ public class DefaultConnectClient implements ConnectClient {
       final ConnectResponse<ConnectorInfo> connectResponse = withRetries(() -> Request
           .post(resolveUri(CONNECTORS))
           .setHeaders(requestHeaders)
-          .responseTimeout(Timeout.ofMilliseconds(DEFAULT_TIMEOUT_MS))
-          .connectTimeout(Timeout.ofMilliseconds(DEFAULT_TIMEOUT_MS))
+          .responseTimeout(Timeout.ofMilliseconds(requestTimeoutMs))
+          .connectTimeout(Timeout.ofMilliseconds(requestTimeoutMs))
           .bodyString(
               MAPPER.writeValueAsString(
                   ImmutableMap.of(
@@ -157,8 +162,8 @@ public class DefaultConnectClient implements ConnectClient {
       final ConnectResponse<ConfigInfos> connectResponse = withRetries(() -> Request
           .put(resolveUri(String.format(VALIDATE_CONNECTOR, plugin)))
           .setHeaders(requestHeaders)
-          .responseTimeout(Timeout.ofMilliseconds(DEFAULT_TIMEOUT_MS))
-          .connectTimeout(Timeout.ofMilliseconds(DEFAULT_TIMEOUT_MS))
+          .responseTimeout(Timeout.ofMilliseconds(requestTimeoutMs))
+          .connectTimeout(Timeout.ofMilliseconds(requestTimeoutMs))
           .bodyString(MAPPER.writeValueAsString(config), ContentType.APPLICATION_JSON)
           .execute(httpClient)
           .handleResponse(
@@ -186,8 +191,8 @@ public class DefaultConnectClient implements ConnectClient {
       final ConnectResponse<List<String>> connectResponse = withRetries(() -> Request
           .get(resolveUri(CONNECTORS))
           .setHeaders(requestHeaders)
-          .responseTimeout(Timeout.ofMilliseconds(DEFAULT_TIMEOUT_MS))
-          .connectTimeout(Timeout.ofMilliseconds(DEFAULT_TIMEOUT_MS))
+          .responseTimeout(Timeout.ofMilliseconds(requestTimeoutMs))
+          .connectTimeout(Timeout.ofMilliseconds(requestTimeoutMs))
           .execute(httpClient)
           .handleResponse(
               createHandler(HttpStatus.SC_OK, new TypeReference<List<String>>() {},
@@ -204,18 +209,18 @@ public class DefaultConnectClient implements ConnectClient {
   }
 
   @Override
-  public ConnectResponse<List<ConnectorPluginInfo>> connectorPlugins() {
+  public ConnectResponse<List<PluginInfo>> connectorPlugins() {
     try {
       LOG.debug("Issuing request to Kafka Connect at URI {} to list connector plugins", connectUri);
 
-      final ConnectResponse<List<ConnectorPluginInfo>> connectResponse = withRetries(() -> Request
+      final ConnectResponse<List<PluginInfo>> connectResponse = withRetries(() -> Request
           .get(resolveUri(CONNECTOR_PLUGINS))
           .setHeaders(requestHeaders)
-          .responseTimeout(Timeout.ofMilliseconds(DEFAULT_TIMEOUT_MS))
-          .connectTimeout(Timeout.ofMilliseconds(DEFAULT_TIMEOUT_MS))
+          .responseTimeout(Timeout.ofMilliseconds(requestTimeoutMs))
+          .connectTimeout(Timeout.ofMilliseconds(requestTimeoutMs))
           .execute(httpClient)
           .handleResponse(
-              createHandler(HttpStatus.SC_OK, new TypeReference<List<ConnectorPluginInfo>>() {},
+              createHandler(HttpStatus.SC_OK, new TypeReference<List<PluginInfo>>() {},
                   Function.identity())));
 
       connectResponse.error()
@@ -237,8 +242,8 @@ public class DefaultConnectClient implements ConnectClient {
       final ConnectResponse<ConnectorStateInfo> connectResponse = withRetries(() -> Request
           .get(resolveUri(CONNECTORS + "/" + connector + STATUS))
           .setHeaders(requestHeaders)
-          .responseTimeout(Timeout.ofMilliseconds(DEFAULT_TIMEOUT_MS))
-          .connectTimeout(Timeout.ofMilliseconds(DEFAULT_TIMEOUT_MS))
+          .responseTimeout(Timeout.ofMilliseconds(requestTimeoutMs))
+          .connectTimeout(Timeout.ofMilliseconds(requestTimeoutMs))
           .execute(httpClient)
           .handleResponse(
               createHandler(HttpStatus.SC_OK, new TypeReference<ConnectorStateInfo>() {},
@@ -263,8 +268,8 @@ public class DefaultConnectClient implements ConnectClient {
       final ConnectResponse<ConnectorInfo> connectResponse = withRetries(() -> Request
           .get(resolveUri(String.format("%s/%s", CONNECTORS, connector)))
           .setHeaders(requestHeaders)
-          .responseTimeout(Timeout.ofMilliseconds(DEFAULT_TIMEOUT_MS))
-          .connectTimeout(Timeout.ofMilliseconds(DEFAULT_TIMEOUT_MS))
+          .responseTimeout(Timeout.ofMilliseconds(requestTimeoutMs))
+          .connectTimeout(Timeout.ofMilliseconds(requestTimeoutMs))
           .execute(httpClient)
           .handleResponse(
               createHandler(HttpStatus.SC_OK, new TypeReference<ConnectorInfo>() {},
@@ -289,11 +294,13 @@ public class DefaultConnectClient implements ConnectClient {
       final ConnectResponse<String> connectResponse = withRetries(() -> Request
           .delete(resolveUri(String.format("%s/%s", CONNECTORS, connector)))
           .setHeaders(requestHeaders)
-          .responseTimeout(Timeout.ofMilliseconds(DEFAULT_TIMEOUT_MS))
-          .connectTimeout(Timeout.ofMilliseconds(DEFAULT_TIMEOUT_MS))
+          .responseTimeout(Timeout.ofMilliseconds(requestTimeoutMs))
+          .connectTimeout(Timeout.ofMilliseconds(requestTimeoutMs))
           .execute(httpClient)
           .handleResponse(
-              createHandler(HttpStatus.SC_NO_CONTENT, new TypeReference<Object>() {},
+              createHandler(
+                  ImmutableList.of(HttpStatus.SC_NO_CONTENT, HttpStatus.SC_OK),
+                  new TypeReference<Object>() {},
                   foo -> connector)));
 
 
@@ -315,8 +322,8 @@ public class DefaultConnectClient implements ConnectClient {
       final ConnectResponse<Map<String, Map<String, List<String>>>> connectResponse = withRetries(
           () -> Request.get(resolveUri(CONNECTORS + "/" + connector + TOPICS))
               .setHeaders(requestHeaders)
-              .responseTimeout(Timeout.ofMilliseconds(DEFAULT_TIMEOUT_MS))
-              .connectTimeout(Timeout.ofMilliseconds(DEFAULT_TIMEOUT_MS))
+              .responseTimeout(Timeout.ofMilliseconds(requestTimeoutMs))
+              .connectTimeout(Timeout.ofMilliseconds(requestTimeoutMs))
               .execute(httpClient)
               .handleResponse(
                   createHandler(HttpStatus.SC_OK,
@@ -438,9 +445,17 @@ public class DefaultConnectClient implements ConnectClient {
       final TypeReference<C> entityTypeRef,
       final Function<C, T> cast
   ) {
+    return createHandler(Collections.singletonList(expectedStatus), entityTypeRef, cast);
+  }
+
+  private static <T, C> HttpClientResponseHandler<ConnectResponse<T>> createHandler(
+      final List<Integer> expectedStatuses,
+      final TypeReference<C> entityTypeRef,
+      final Function<C, T> cast
+  ) {
     return httpResponse -> {
       final int code = httpResponse.getCode();
-      if (httpResponse.getCode() != expectedStatus) {
+      if (!expectedStatuses.contains(httpResponse.getCode())) {
         final String entity = EntityUtils.toString(httpResponse.getEntity());
         return ConnectResponse.failure(entity, code);
       }

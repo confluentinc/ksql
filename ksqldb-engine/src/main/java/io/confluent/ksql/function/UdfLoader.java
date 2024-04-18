@@ -24,6 +24,7 @@ import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.function.udf.UdfMetadata;
 import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.schema.ksql.SqlTypeParser;
+import io.confluent.ksql.security.ExtensionSecurityManager;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.lang.reflect.Method;
@@ -186,8 +187,13 @@ public class UdfLoader {
       final Object actualUdf = FunctionLoaderUtils.instantiateFunctionInstance(
           method.getDeclaringClass(), udfDescriptionAnnotation.name());
       if (actualUdf instanceof Configurable) {
-        ((Configurable) actualUdf)
-            .configure(ksqlConfig.getKsqlFunctionsConfigProps(functionName));
+        ExtensionSecurityManager.INSTANCE.pushInUdf();
+        try {
+          ((Configurable) actualUdf)
+              .configure(ksqlConfig.getKsqlFunctionsConfigProps(functionName));
+        } finally {
+          ExtensionSecurityManager.INSTANCE.popOutUdf();
+        }
       }
       final PluggableUdf theUdf = new PluggableUdf(invoker, actualUdf);
       return metrics.<Kudf>map(m -> new UdfMetricProducer(

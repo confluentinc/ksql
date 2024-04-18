@@ -16,10 +16,10 @@
 package io.confluent.ksql.util;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.confluent.ksql.execution.scalablepush.PushQueryPreparer;
+import io.confluent.ksql.execution.scalablepush.PushQueryQueuePopulator;
+import io.confluent.ksql.execution.scalablepush.PushRouting.PushConnectionsHandle;
 import io.confluent.ksql.internal.ScalablePushQueryMetrics;
-import io.confluent.ksql.physical.scalablepush.PushQueryPreparer;
-import io.confluent.ksql.physical.scalablepush.PushQueryQueuePopulator;
-import io.confluent.ksql.physical.scalablepush.PushRouting.PushConnectionsHandle;
 import io.confluent.ksql.query.CompletionHandler;
 import io.confluent.ksql.query.LimitHandler;
 import io.confluent.ksql.query.QueryId;

@@ -149,7 +149,7 @@ public class DataSourceExtractorTest {
   }
 
   @Test
-  public void shouldThrowIfRightJoinSourceDoesNotExist() {
+  public void shouldThrowIfInnerJoinSourceDoesNotExist() {
     // Given:
     final AstNode stmt = givenQuery("SELECT * FROM TEST1 JOIN UNKNOWN"
         + " ON test1.col1 = UNKNOWN.col1;");

@@ -78,8 +78,9 @@ public class OrphanedTransientQueryCleaner {
                   .getOrDefault(
                       StreamsConfig.STATE_DIR_CONFIG,
                       StreamsConfig.configDef().defaultValues().get(StreamsConfig.STATE_DIR_CONFIG))
-                  .toString()
-          ));
+                  .toString(),
+              ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG),
+              ksqlConfig.getString(KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG)));
     }
   }
 }

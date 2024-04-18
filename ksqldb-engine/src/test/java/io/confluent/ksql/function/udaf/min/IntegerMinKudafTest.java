@@ -32,7 +32,7 @@ public class IntegerMinKudafTest {
 
   @Test
   public void shouldFindCorrectMin() {
-    final IntegerMinKudaf integerMinKudaf = getIntegerMinKudaf();
+    final MinKudaf<Integer> integerMinKudaf = getIntegerMinKudaf();
     final int[] values = new int[]{3, 5, 8, 2, 3, 4, 5};
     int currentMin = Integer.MAX_VALUE;
     for (final int i: values) {
@@ -43,7 +43,7 @@ public class IntegerMinKudafTest {
 
   @Test
   public void shouldHandleNull() {
-    final IntegerMinKudaf integerMinKudaf = getIntegerMinKudaf();
+    final MinKudaf<Integer> integerMinKudaf = getIntegerMinKudaf();
     final int[] values = new int[]{3, 5, 8, 2, 3, 4, 5};
     Integer currentMin = null;
 
@@ -64,7 +64,7 @@ public class IntegerMinKudafTest {
 
   @Test
   public void shouldFindCorrectMinForMerge() {
-    final IntegerMinKudaf integerMinKudaf = getIntegerMinKudaf();
+    final MinKudaf integerMinKudaf = getIntegerMinKudaf();
     final Merger<GenericKey, Integer> merger = integerMinKudaf.getMerger();
     final Integer mergeResult1 = merger.apply(null, 10, 12);
     assertThat(mergeResult1, equalTo(10));
@@ -76,11 +76,11 @@ public class IntegerMinKudafTest {
   }
 
 
-  private IntegerMinKudaf getIntegerMinKudaf() {
+  private MinKudaf getIntegerMinKudaf() {
     final KsqlAggregateFunction aggregateFunction = new MinAggFunctionFactory()
         .createAggregateFunction(Collections.singletonList(SqlArgument.of(SqlTypes.INTEGER)),
             AggregateFunctionInitArguments.EMPTY_ARGS);
-    assertThat(aggregateFunction, instanceOf(IntegerMinKudaf.class));
-    return  (IntegerMinKudaf) aggregateFunction;
+    assertThat(aggregateFunction, instanceOf(MinKudaf.class));
+    return  (MinKudaf) aggregateFunction;
   }
 }

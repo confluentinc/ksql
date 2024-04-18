@@ -81,7 +81,7 @@ docker run -d \
 `KSQL_LISTENERS`
 
 :   A list of URIs, including the protocol, that the broker listens on.
-    If you are using IPv6, set to `http://[::]:8088`.
+    If you are using IPv6, set it to `http://[::]:8088`.
 
 `KSQL_CLASSPATH`
 
@@ -166,7 +166,7 @@ docker run -d \
 `KSQL_LISTENERS`
 
 :   A list of URIs, including the protocol, that the broker listens on.
-    If you are using IPv6, set to `http://[::]:8088`.
+    If you are using IPv6, set it to `http://[::]:8088`.
 
 `KSQL_KSQL_SINK_REPLICAS`
 
@@ -341,7 +341,7 @@ dockerized ksqlDB CLI.
 
 ### Start ksqlDB CLI With a Provided Configuration File
 
-Set up a a ksqlDB CLI instance by using a configuration file, and run it
+Set up a ksqlDB CLI instance by using a configuration file, and run it
 in a container:
 
 ```bash
@@ -388,7 +388,7 @@ processes that run in containers.
 -   [Wait for an HTTP Endpoint to Be Available](#wait-for-an-http-endpoint-to-be-available)
 -   [Wait for a Particular Phrase in a Container's Log](#wait-for-a-particular-phrase-in-a-containers-log)
 -   [Run Custom Code Before Launching a Container's Program](#run-custom-code-before-launching-a-containers-program)
--   [Execute a ksqlDB script in the ksqlDB CLI](#execute-a-ksql-script-in-the-ksql-cli)
+-   [Execute a ksqlDB script in the ksqlDB CLI](#execute-a-ksqldb-script-in-the-ksqldb-cli)
 
 ### Wait for an HTTP endpoint to be available
 

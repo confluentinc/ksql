@@ -18,6 +18,7 @@ package io.confluent.ksql.api.auth;
 import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.api.server.Server;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
+import io.confluent.ksql.security.DefaultKsqlPrincipal;
 import io.confluent.ksql.security.KsqlPrincipal;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
@@ -132,7 +133,7 @@ public class JaasAuthProvider implements AuthProvider {
     final boolean authorized = validateRoles(user, allowedRoles);
 
     // if the subject from the login context is already a KsqlPrincipal, use the subject
-    // directly rather than creating a new one
+    // (wrapped inside another DefaultKsqlPrincipal) rather than creating a new one
     final Optional<KsqlPrincipal> ksqlPrincipal = user.getSubject().getPrincipals().stream()
         .filter(p -> p instanceof KsqlPrincipal)
         .map(p -> (KsqlPrincipal)p)
@@ -158,7 +159,7 @@ public class JaasAuthProvider implements AuthProvider {
   @SuppressWarnings("deprecation")
   static class JaasUser extends io.vertx.ext.auth.AbstractUser implements ApiUser {
 
-    private final KsqlPrincipal principal;
+    private final DefaultKsqlPrincipal principal;
     private final boolean authorized;
 
     JaasUser(
@@ -166,18 +167,21 @@ public class JaasAuthProvider implements AuthProvider {
         final String password,
         final boolean authorized
     ) {
-      this(
-          new JaasPrincipal(
-              Objects.requireNonNull(username, "username"),
-              Objects.requireNonNull(password, "password")),
-          authorized);
+      this.principal = new JaasPrincipal(
+          Objects.requireNonNull(username, "username"),
+          Objects.requireNonNull(password, "password")
+      );
+      this.authorized = authorized;
     }
 
     JaasUser(
         final KsqlPrincipal principal,
         final boolean authorized
     ) {
-      this.principal = Objects.requireNonNull(principal, "principal");
+      Objects.requireNonNull(principal, "principal");
+      this.principal = principal instanceof DefaultKsqlPrincipal
+          ? (DefaultKsqlPrincipal) principal
+          : new DefaultKsqlPrincipal(principal);
       this.authorized = authorized;
     }
 
@@ -199,7 +203,7 @@ public class JaasAuthProvider implements AuthProvider {
     }
 
     @Override
-    public KsqlPrincipal getPrincipal() {
+    public DefaultKsqlPrincipal getPrincipal() {
       return principal;
     }
   }

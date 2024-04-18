@@ -23,7 +23,7 @@ Change the server configuration that controls the HTTP API endpoint by
 setting the `listeners` parameter in the ksqlDB server config file. For
 more info, see [listeners](../reference/server-configuration.md#listeners).
 To configure the endpoint to use HTTPS, see
-[Configure ksqlDB for HTTPS](../operate-and-deploy/installation/server-config/security.md#configure-ksqldb-for-https).
+[Configuring Listener for SSL encryption](../operate-and-deploy/installation/server-config/security.md#configuring-listener-for-ssl-encryption).
 
 Content Types
 -------------
@@ -73,7 +73,7 @@ Here's an example request that retrieves streaming data from
 curl -X "POST" "http://localhost:8088/query" \
      -H "Accept: application/vnd.ksql.v1+json" \
      -d $'{
-  "sql": "SELECT * FROM TEST_STREAM EMIT CHANGES;",
+  "ksql": "SELECT * FROM TEST_STREAM EMIT CHANGES;",
   "streamsProperties": {}
 }'
 ```

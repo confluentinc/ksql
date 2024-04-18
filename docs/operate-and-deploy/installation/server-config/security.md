@@ -71,10 +71,10 @@ a single listener:
 
 [Securing single listener setup](#securing-single-listener-setup): Ideal for
 single-node installations, or where the inter-node communication is over the
-same network interfaces as client communication.
+same network interface as client communication.
 
 [Securing dual listener setup](#securing-dual-listener-setup): Useful where
-inter-node communication is over a different network interfaces or requires
+inter-node communication is over a different network interface or requires
 different authentication or encryption configuration.
 
 
@@ -181,11 +181,11 @@ Configuring listener for HTTP-BASIC Authentication/Authorization
 
 ksqlDB can be configured to require users to authenticate using a username
 and password via the Basic HTTP authentication mechanism. You can
-also provide role-base authorization by specifying which roles can access the ksqlDB server.
+also provide role-based authorization by specifying which roles can access the ksqlDB server.
 
 !!! note
-	If you're using Basic authentication, we recommended that you
-    [configure ksqlDB to use HTTPS for secure communication](#configuring-listner-for-ssl-encryption),
+	If you're using Basic authentication, we recommend that you
+    [configure ksqlDB to use HTTPS for secure communication](#configuring-listener-for-ssl-encryption),
     because the Basic protocol passes credentials in plain text.
 
 ### Create the `jaas_config.file`
@@ -350,12 +350,12 @@ the internal APIs are protected from use.
 [Configuring internal for SSL-mutual authentication and external for SSL encryption](#configuring-internal-for-ssl-mutual-authentication-and-external-for-ssl-encryption):
 Creates secure and authenticated connections for inter-node
 communication and uses SSL for the external client API. This is most
-likely to be pair with authentication below.
+likely to be used with authentication below.
 
 [Configuring internal for SSL-mutual authentication and external for HTTP-BASIC authentication](#configuring-internal-for-ssl-mutual-authentication-and-external-for-http-basic-authentication):
 Creates secure and authenticated connections for inter-node
 communication and uses basic authentication for the external client API.
-This is most likely to be paired with SSL above.
+This is most likely to be used with SSL above.
 
 Configuring internal for SSL-mutual authentication
 --------------------------------------------------
@@ -396,8 +396,8 @@ internal listener. This ensures that neither the client or internal
 APIs can be accessed by unauthorized users.
 
 !!! note
-	If you're using Basic authentication, we recommended that you
-    [configure ksqlDB to use HTTPS for secure communication](#configuring-listner-for-ssl-encryption),
+	If you're using Basic authentication, we recommend that you
+    [configure ksqlDB to use HTTPS for secure communication](#configuring-listener-for-ssl-encryption),
     because the Basic protocol passes credentials in plain text.
 
 Below is an example configuration:
@@ -605,6 +605,16 @@ details, and instructions on how to create suitable trust stores, please
 refer to the
 [Security Guide](https://docs.confluent.io/current/security/index.html).
 
+To use separate trust stores for encrypted communication with {{ site.ak }}
+and external communication with ksqlDB clients, prefix the SSL truststore configs
+with `ksql.streams.`:
+
+```properties
+security.protocol=SSL
+ksql.streams.ssl.truststore.location=/etc/kafka/secrets/kafka.client.truststore.jks
+ksql.streams.ssl.truststore.password=confluent
+```
+
 ### Configure Kafka Authentication
 
 This configuration enables ksqlDB to connect to a secure Kafka cluster
@@ -667,7 +677,7 @@ Operation
 
 Resource
 
-:   A resource is comprised of a resource type and resource name:
+:   A resource consists of a resource type and resource name:
 
     -   `RESOURCE_TYPE`, for example `TOPIC` or consumer `GROUP`.
     -   Resource name, for example the name of a topic or a
@@ -675,13 +685,13 @@ Resource
 
 ResourcePattern
 
-:   A resource pattern matches zero or more Resources and is comprised
+:   A resource pattern matches zero or more Resources and consists
     of a resource type, a resource name and a pattern type.
 
     -   `RESOURCE_TYPE`, for example `TOPIC` or consumer `GROUP`. The
         pattern will only match resources of the same resource type.
     -   Resource name. How the pattern uses the name to match Resources
-        is dependant on the pattern type.
+        is dependent on the pattern type.
     -   `PATTERN_TYPE`, controls how the pattern matches a Resource's
         name to the patterns. Valid values are:
         -   `LITERAL` pattern types match the name of a resource
@@ -768,9 +778,9 @@ require `READ` and `WRITE` permissions for such topics.
 The set of input and output topics that a ksqlDB cluster requires access
 to will depend on your use case and whether the ksqlDB cluster is
 configured in
-[interactive](#interactive-ksql-clusters)
+[interactive](#interactive-ksqldb-clusters)
 or
-[non-interactive](#non-interactive-headless-ksql-clusters)
+[non-interactive](#non-interactive-headless-ksqldb-clusters)
 mode.
 
 #### Non-Interactive (headless) ksqlDB clusters
@@ -917,9 +927,9 @@ later versions of Kafka, which simplify the ACLs required to run ksqlDB
 against a Kafka cluster secured with ACLs. This means a much larger, or
 wider range, set of ACLs must be defined. The set of ACLs that must be
 defined depends on whether the ksqlDB cluster is configured for
-[interactive](#interactive-ksqldb-clusters-pre-kafka-2-0)
+[interactive](#interactive-ksqldb-clusters-pre-kafka-20)
 or
-[non-interactive (headless)](#non-interactive-headless-ksqldb-clusters-pre-kafka-2-0).
+[non-interactive (headless)](#non-interactive-headless-ksqldb-clusters-pre-kafka-20).
 
 #### ACL definition
 
@@ -942,7 +952,7 @@ Operation
 
 Resource
 
-:   A resource is comprised of a resource type and resource name:
+:   A resource consists of a resource type and resource name:
 
     -   `RESOURCE_TYPE`, for example `TOPIC` or consumer `GROUP`.
     -   Resource name, where the name is either specific, for example
@@ -1060,7 +1070,7 @@ Change-log and repartition topics
     Alternatively, you can create topics manually before running ksqlDB.
     To determine the list of output topics and their required
     configuration, (partition count, replication factor, retention
-    policy, etc), you can run initially run ksqlDB on a Kafka cluster with
+    policy, etc), you can initially run ksqlDB on a Kafka cluster with
     none or open ACLs first.
 
     All changelog and repartition topics are prefixed with

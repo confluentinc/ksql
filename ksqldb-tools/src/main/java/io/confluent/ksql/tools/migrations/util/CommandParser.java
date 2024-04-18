@@ -59,8 +59,8 @@ public final class CommandParser {
       Pattern.CASE_INSENSITIVE);
   private static final Pattern UNSET_PROPERTY = Pattern.compile(
       "\\s*UNSET\\s+'((?:[^']*|(?:''))*)'\\s*;\\s*", Pattern.CASE_INSENSITIVE);
-  private static final Pattern DROP_CONNECTOR =
-      Pattern.compile("\\s*DROP\\s+CONNECTOR\\s+(.*?)\\s*;\\s*", Pattern.CASE_INSENSITIVE);
+  private static final Pattern DROP_CONNECTOR = Pattern.compile(
+      "\\s*DROP\\s+CONNECTOR\\s+(IF\\s+EXISTS\\s+)?(.*?)\\s*;\\s*", Pattern.CASE_INSENSITIVE);
   private static final Pattern DEFINE_VARIABLE = Pattern.compile(
       "\\s*DEFINE\\s+([a-zA-Z_][a-zA-Z0-9_@]*)\\s*=\\s*'((?:[^']*|(?:''))*)'\\s*;\\s*",
       Pattern.CASE_INSENSITIVE);
@@ -219,7 +219,7 @@ public final class CommandParser {
       case INSERT_VALUES:
         return getInsertValuesStatement(sql, variables);
       case CREATE_CONNECTOR:
-        return getCreateConnectorStatement(sql);
+        return getCreateConnectorStatement(sql, variables);
       case DROP_CONNECTOR:
         return getDropConnectorStatement(sql);
       case STATEMENT:
@@ -260,11 +260,18 @@ public final class CommandParser {
             .map(ColumnName::text).collect(Collectors.toList()));
   }
 
-  private static SqlCreateConnectorStatement getCreateConnectorStatement(final String sql) {
+  private static SqlCreateConnectorStatement getCreateConnectorStatement(
+      final String sql,
+      final Map<String, String> variables
+  ) {
     final CreateConnector createConnector;
     try {
+      final String substituted = VariableSubstitutor.substitute(
+          KSQL_PARSER.parse(sql).get(0),
+          variables
+      );
       createConnector = (CreateConnector) new AstBuilder(TypeRegistry.EMPTY)
-          .buildStatement(KSQL_PARSER.parse(sql).get(0).getStatement());
+          .buildStatement(KSQL_PARSER.parse(substituted).get(0).getStatement());
     } catch (ParseFailedException e) {
       throw new MigrationException(String.format(
           "Failed to parse CREATE CONNECTOR statement. Statement: %s. Reason: %s",
@@ -275,7 +282,8 @@ public final class CommandParser {
         preserveCase(createConnector.getName()),
         createConnector.getType() == Type.SOURCE,
         createConnector.getConfig().entrySet().stream()
-            .collect(Collectors.toMap(Entry::getKey, e -> toFieldType(e.getValue())))
+            .collect(Collectors.toMap(Entry::getKey, e -> toFieldType(e.getValue()))),
+        createConnector.ifNotExists()
     );
   }
 
@@ -284,7 +292,11 @@ public final class CommandParser {
     if (!dropConnectorMatcher.matches()) {
       throw new MigrationException("Invalid DROP CONNECTOR command: " + sql);
     }
-    return new SqlDropConnectorStatement(sql, dropConnectorMatcher.group(1));
+    return new SqlDropConnectorStatement(
+        sql,
+        dropConnectorMatcher.group(2),
+        dropConnectorMatcher.group(1) != null
+    );
   }
 
   private static SqlPropertyCommand getSetPropertyCommand(
@@ -485,17 +497,20 @@ public final class CommandParser {
     final String name;
     final boolean isSource;
     final ImmutableMap<String, Object> properties;
+    final boolean ifNotExist;
 
     SqlCreateConnectorStatement(
         final String command,
         final String name,
         final boolean isSource,
-        final Map<String, Object> properties
+        final Map<String, Object> properties,
+        final boolean ifNotExist
     ) {
       super(command);
       this.name = Objects.requireNonNull(name);
       this.isSource = isSource;
       this.properties = ImmutableMap.copyOf(Objects.requireNonNull(properties));
+      this.ifNotExist = ifNotExist;
     }
 
     public String getName() {
@@ -504,6 +519,10 @@ public final class CommandParser {
 
     public boolean isSource() {
       return isSource;
+    }
+
+    public boolean getIfNotExists() {
+      return ifNotExist;
     }
 
     @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "properties is ImmutableMap")
@@ -517,17 +536,24 @@ public final class CommandParser {
    */
   public static class SqlDropConnectorStatement extends SqlCommand {
     final String name;
+    final boolean ifExists;
 
     SqlDropConnectorStatement(
         final String command,
-        final String name
+        final String name,
+        final boolean ifExists
     ) {
       super(command);
       this.name = Objects.requireNonNull(name);
+      this.ifExists = ifExists;
     }
 
     public String getName() {
       return name;
+    }
+
+    public boolean getIfExists() {
+      return ifExists;
     }
   }
 

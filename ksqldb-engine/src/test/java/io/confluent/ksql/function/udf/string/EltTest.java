@@ -74,4 +74,13 @@ public class EltTest {
     assertThat(el, is(nullValue()));
   }
 
+  @Test
+  public void shouldHandleNullArgs() {
+    // When:
+    String[] array = null;
+    final String el = elt.elt(2, array);
+
+    // Then:
+    assertThat(el, is(nullValue()));
+  }
 }

@@ -31,6 +31,7 @@ import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.verify;
 
 import com.github.rvesse.airline.Cli;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.integration.IntegrationTestHarness;
@@ -62,6 +63,7 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -88,16 +90,19 @@ import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.MockitoJUnit;
+import org.mockito.junit.MockitoRule;
 
-@RunWith(MockitoJUnitRunner.class)
+@RunWith(Parameterized.class)
 @Category({IntegrationTest.class})
 public class MigrationsTest {
 
@@ -126,24 +131,41 @@ public class MigrationsTest {
       .around(TEST_HARNESS)
       .around(REST_APP);
 
+  @Rule
+  public final MockitoRule mockitoRule = MockitoJUnit.rule();
+
+  @Parameterized.Parameters(name = "{1}")
+  public static Collection<Object[]> migrationsDirOverrides() {
+    return ImmutableList.of(new Object[]{false, "no dir override"}, new Object[]{true, "with dir override"});
+  }
+
   private static final Cli<BaseCommand> MIGRATIONS_CLI = new Cli<>(Migrations.class);
 
   private static final String MIGRATIONS_STREAM = "custom_migration_stream_name";
   private static final String MIGRATIONS_TABLE = "custom_migration_table_name";
+
+  private static String testDir;
+  private static String configFilePath;
+
+  private static ConnectExecutable CONNECT;
 
   @Mock
   private AppenderSkeleton logAppender;
   @Captor
   private ArgumentCaptor<LoggingEvent> logCaptor;
 
-  private static String configFilePath;
+  private final boolean withMigrationsDirOverride;
 
-  private static ConnectExecutable CONNECT;
+  private String migrationsDir;
+
+  public MigrationsTest(final boolean withMigrationsDirOverride, final String testName) {
+    this.withMigrationsDirOverride = withMigrationsDirOverride;
+  }
 
   @BeforeClass
   public static void setUpClass() throws Exception {
 
-    final String testDir = Paths.get(TestUtils.tempDirectory().getAbsolutePath(), "migrations_integ_test").toString();
+    testDir = Paths.get(TestUtils.tempDirectory().getAbsolutePath(), "migrations_integ_test").toString();
     createAndVerifyDirectoryStructure(testDir);
 
     configFilePath = Paths.get(testDir, MigrationsDirectoryUtil.MIGRATIONS_CONFIG_FILE).toString();
@@ -199,11 +221,23 @@ public class MigrationsTest {
   @AfterClass
   public static void classTearDown() {
     CONNECT.shutdown();
-    REST_APP.getPersistentQueries().forEach(str -> makeKsqlRequest("TERMINATE " + str + ";"));
+    REST_APP.closePersistentQueries();
   }
 
   @Before
-  public void setUp() {
+  public void setUp() throws Exception {
+    if (withMigrationsDirOverride) {
+      migrationsDir = Paths.get(testDir, "my/custom/migrations_dir").toString();
+      assertThat(new File(migrationsDir).mkdirs(), is(true));
+
+      writeAdditionalConfigs(configFilePath, ImmutableMap.of(
+          MigrationConfig.KSQL_MIGRATIONS_DIR_OVERRIDE,
+          migrationsDir
+      ));
+    } else {
+      migrationsDir = MigrationsDirectoryUtil.getMigrationsDirFromConfigFile(configFilePath);
+    }
+
     initializeAndVerifyMetadataStreamAndTable(configFilePath);
     waitForMetadataTableReady();
   }
@@ -211,6 +245,11 @@ public class MigrationsTest {
   @After
   public void tearDown() {
     cleanAndVerify(configFilePath);
+
+    // reset ksql server state in preparation for next run
+    makeKsqlRequest("DROP CONNECTOR C;");
+    REST_APP.closePersistentQueries();
+    REST_APP.dropSourcesExcept();
   }
 
   @Test
@@ -225,10 +264,13 @@ public class MigrationsTest {
         1,
         "foo FOO fO0",
         configFilePath,
+        migrationsDir,
         "CREATE STREAM ${streamName} (A STRING) WITH (KAFKA_TOPIC='FOO', PARTITIONS=1, VALUE_FORMAT='JSON');\n" +
+            "DROP CONNECTOR IF EXISTS nonExistant;\n" +
             "-- let's create some connectors!!!\n" +
             "CREATE SOURCE CONNECTOR C WITH ('connector.class'='org.apache.kafka.connect.tools.MockSourceConnector');\n" +
-            "CREATE SINK CONNECTOR D WITH ('connector.class'='org.apache.kafka.connect.tools.MockSinkConnector', 'topics'='d');\n" +
+            "DEFINE connectorName = 'D';" +
+            "CREATE SINK CONNECTOR ${connectorName} WITH ('connector.class'='org.apache.kafka.connect.tools.MockSinkConnector', 'topics'='d');\n" +
             "CREATE TABLE blue (ID BIGINT PRIMARY KEY, A STRING, H BYTES HEADER('a')) WITH (KAFKA_TOPIC='blue', PARTITIONS=1, VALUE_FORMAT='DELIMITED');" +
             "DROP TABLE blue;" +
             "DEFINE onlyDefinedInFile1 = 'nope';"
@@ -237,6 +279,7 @@ public class MigrationsTest {
         2,
         "bar_bar_BAR",
         configFilePath,
+        migrationsDir,
         "CREATE OR REPLACE STREAM ${streamName} (A STRING, B INT) WITH (KAFKA_TOPIC='FOO', PARTITIONS=1, VALUE_FORMAT='JSON');"
             + "ALTER STREAM ${streamName} ADD COLUMN C BIGINT;" +
             "/* add some '''data''' to FOO */" +
@@ -251,7 +294,8 @@ public class MigrationsTest {
             "CREATE STREAM `bar` AS SELECT CONCAT(A, 'woo''hoo') AS A FROM FOO;" +
             "UnSET 'ksql.output.topic.name.prefix';" +
             "CREATE STREAM CAR AS SELECT * FROM FOO;" +
-            "DROP CONNECTOR D;" +
+            "DEFINE connectorName = 'D';" +
+            "DROP CONNECTOR ${connectorName};" +
             "INSERT INTO `bar` SELECT A FROM CAR;" +
             "CREATE TYPE ADDRESS AS STRUCT<number INTEGER, street VARCHAR, city VARCHAR>;" +
             "DEFINE suffix = 'OMES';" +
@@ -259,6 +303,7 @@ public class MigrationsTest {
             "CREATE STREAM ${variable} (ADDR ADDRESS) WITH (KAFKA_TOPIC='${variable}', PARTITIONS=1, VALUE_FORMAT='JSON');" +
             "UNDEFINE variable;" +
             "INSERT INTO HOMES VALUES (STRUCT(number := 123, street := 'sesame st', city := '${variable}'));" +
+            "CREATE SOURCE CONNECTOR IF NOT EXISTS C WITH ('connector.class'='org.apache.kafka.connect.tools.MockSourceConnector');\n" +
             "DROP TYPE ADDRESS;"
     );
 
@@ -403,7 +448,7 @@ public class MigrationsTest {
 
     // verify config file contents
     final List<String> lines = Files.readAllLines(configFile.toPath());
-    assertThat(lines, hasSize(22));
+    assertThat(lines, hasSize(25));
     assertThat(lines.get(0), is(MigrationConfig.KSQL_SERVER_URL + "=" + REST_APP.getHttpsListener().toString()));
   }
 
@@ -607,6 +652,7 @@ public class MigrationsTest {
       final int version,
       final String name,
       final String configFilePath,
+      final String migrationsDir,
       final String content
   ) throws IOException {
     // use `create` to create empty file
@@ -615,7 +661,7 @@ public class MigrationsTest {
 
     // validate file created
     final File filePath = new File(Paths.get(
-        MigrationsDirectoryUtil.getMigrationsDirFromConfigFile(configFilePath),
+        migrationsDir,
         String.format("/V00000%d__%s.sql", version, name.replace(' ', '_'))
     ).toString());
     assertThat(filePath.exists(), is(true));

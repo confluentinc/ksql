@@ -27,6 +27,7 @@ import java.util.OptionalInt;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -45,6 +46,7 @@ public class TransientQueryQueue implements BlockingRowQueue {
   private CompletionHandler completionHandler;
   private Runnable queuedCallback;
   private AtomicLong totalRowsQueued = new AtomicLong(0);
+  private AtomicBoolean invokedHandler = new AtomicBoolean(false);
 
   public TransientQueryQueue(final OptionalInt limit) {
     this(limit, BLOCKING_QUEUE_CAPACITY, 100);
@@ -70,6 +72,7 @@ public class TransientQueryQueue implements BlockingRowQueue {
   public void setLimitHandler(final LimitHandler limitHandler) {
     this.limitHandler = limitHandler;
     if (passedLimit()) {
+      invokedHandler.set(true);
       limitHandler.limitReached();
     }
   }
@@ -108,6 +111,11 @@ public class TransientQueryQueue implements BlockingRowQueue {
   @Override
   public void close() {
     closed = true;
+    // This ensures that we call at least some callback, which is required
+    // to close connections.
+    if (invokedHandler.compareAndSet(false, true)) {
+      complete();
+    }
   }
 
   public void acceptRow(final List<?> key, final GenericRow value) {
@@ -172,6 +180,7 @@ public class TransientQueryQueue implements BlockingRowQueue {
 
   private void onQueued() {
     if (remaining != null && remaining.decrementAndGet() <= 0) {
+      invokedHandler.set(true);
       limitHandler.limitReached();
     }
     if (queuedCallback != null) {

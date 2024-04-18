@@ -16,6 +16,7 @@
 package io.confluent.ksql.function.udf.datetime;
 
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.either;
@@ -30,6 +31,7 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.TimeZone;
 import java.util.stream.IntStream;
+import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -100,6 +102,33 @@ public class FormatTimestampTest {
 
     // Then:
     assertThat(universalTime, is("2018-08-15 17:10:43 UTC"));
+  }
+
+  @Test
+  public void shouldReturnNullOnNullDate() {
+    // When:
+    final String returnValue = udf.formatTimestamp(null, "yyyy-MM-dd");
+
+    // Then:
+    assertThat(returnValue, is(nullValue()));
+  }
+
+  @Test
+  public void shouldReturnNullOnNullDateFormat() {
+    // When:
+    final String returnValue = udf.formatTimestamp( new Timestamp(1534353043000L), null);
+
+    // Then:
+    assertThat(returnValue, is(nullValue()));
+  }
+
+  @Test
+  public void shouldReturnNullOnNullTimeZone() {
+    // When:
+    final String returnValue = udf.formatTimestamp( new Timestamp(1534353043000L), "yyyy-MM-dd", null);
+
+    // Then:
+    assertThat(returnValue, is(nullValue()));
   }
 
   @Test

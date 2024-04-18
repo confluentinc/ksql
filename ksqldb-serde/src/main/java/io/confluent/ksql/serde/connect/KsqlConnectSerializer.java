@@ -53,7 +53,8 @@ public class KsqlConnectSerializer<T> implements Serializer<T> {
       return converter.fromConnectData(topic, schema, connectRow);
     } catch (final Exception e) {
       throw new KsqlSerializationException(
-          topic, "Error serializing message to topic: " + topic + ". " + e.getMessage(), e);
+          topic, "Error serializing message to topic: " + topic + ". " + e.getMessage()
+          + "\nHint: You probably forgot to add VALUE_SCHEMA_ID when creating the source.", e);
     }
   }
 

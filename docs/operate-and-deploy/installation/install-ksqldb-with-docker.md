@@ -521,7 +521,7 @@ ksql-cli:
         sleep 5
       done
       echo -e "\n\n-> Running SQL commands\n"
-      cat /data/scripts/my-ksql-script.sql <(echo 'EXIT')| ksql http://<ksql-server-ip>:8088
+      cat /data/scripts/my-ksql-script.sql <(echo -e '\nEXIT')| ksql http://<ksql-server-ip>:8088
       echo -e "\n\n-> Sleeping…\n"
       sleep infinity
 ```

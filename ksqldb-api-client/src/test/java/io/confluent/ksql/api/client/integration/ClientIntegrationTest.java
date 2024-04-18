@@ -75,6 +75,7 @@ import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.integration.IntegrationTestHarness;
 import io.confluent.ksql.integration.Retry;
 import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.properties.with.CommonCreateConfigs;
 import io.confluent.ksql.rest.ApiJsonMapper;
 import io.confluent.ksql.rest.entity.ConnectorList;
 import io.confluent.ksql.rest.entity.KsqlEntity;
@@ -815,7 +816,7 @@ public class ClientIntegrationTest {
     // Then
     assertThat(e.getCause(), instanceOf(KsqlClientException.class));
     assertThat(e.getCause().getMessage(), containsString("Received 400 response from server"));
-    assertThat(e.getCause().getMessage(), containsString("mismatched input"));
+    assertThat(e.getCause().getMessage(), containsString("Syntax Error"));
     assertThat(e.getCause().getMessage(), containsString("Error code: 40001"));
   }
 
@@ -972,7 +973,7 @@ public class ClientIntegrationTest {
             hasProperty("queryType", is(QueryType.PERSISTENT)),
             hasProperty("id", startsWith("CTAS_" + AGG_TABLE)),
             hasProperty("sql", is(
-                    "CREATE TABLE " + AGG_TABLE + " WITH (KAFKA_TOPIC='" + AGG_TABLE + "', PARTITIONS=1, REPLICAS=1) AS SELECT\n"
+                    "CREATE TABLE " + AGG_TABLE + " WITH (CLEANUP_POLICY='compact', KAFKA_TOPIC='" + AGG_TABLE + "', PARTITIONS=1, REPLICAS=1, RETENTION_MS=-1) AS SELECT\n"
                             + "  " + TEST_STREAM + ".K K,\n"
                             + "  LATEST_BY_OFFSET(" + TEST_STREAM + ".LONG) LONG\n"
                             + "FROM " + TEST_STREAM + " " + TEST_STREAM + "\n"
@@ -1005,7 +1006,7 @@ public class ClientIntegrationTest {
     assertThat(description.readQueries().get(0).getQueryType(), is(QueryType.PERSISTENT));
     assertThat(description.readQueries().get(0).getId(), startsWith("CTAS_" + AGG_TABLE));
     assertThat(description.readQueries().get(0).getSql(), is(
-        "CREATE TABLE " + AGG_TABLE + " WITH (KAFKA_TOPIC='" + AGG_TABLE + "', PARTITIONS=1, REPLICAS=1) AS SELECT\n"
+        "CREATE TABLE " + AGG_TABLE + " WITH (CLEANUP_POLICY='compact', KAFKA_TOPIC='" + AGG_TABLE + "', PARTITIONS=1, REPLICAS=1, RETENTION_MS=-1) AS SELECT\n"
             + "  " + TEST_STREAM + ".K K,\n"
             + "  LATEST_BY_OFFSET(" + TEST_STREAM + ".LONG) LONG\n"
             + "FROM " + TEST_STREAM + " " + TEST_STREAM + "\n"
@@ -1023,7 +1024,7 @@ public class ClientIntegrationTest {
             + "ARRAY_ARRAY ARRAY<ARRAY<STRING>>, ARRAY_STRUCT ARRAY<STRUCT<F1 STRING>>, "
             + "ARRAY_MAP ARRAY<MAP<STRING, INTEGER>>, MAP_ARRAY MAP<STRING, ARRAY<STRING>>, "
             + "MAP_MAP MAP<STRING, MAP<STRING, INTEGER>>, MAP_STRUCT MAP<STRING, STRUCT<F1 STRING>>>, TIMESTAMP TIMESTAMP, DATE DATE, TIME TIME, HEAD BYTES HEADER('h0')) "
-            + "WITH (KAFKA_TOPIC='STRUCTURED_TYPES_TOPIC', KEY_FORMAT='JSON', VALUE_FORMAT='JSON');"));
+            + "WITH (CLEANUP_POLICY='delete', KAFKA_TOPIC='STRUCTURED_TYPES_TOPIC', KEY_FORMAT='JSON', VALUE_FORMAT='JSON');"));
   }
 
   @Test

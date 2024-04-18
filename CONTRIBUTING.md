@@ -61,17 +61,21 @@ including any errors.
 If you would rather have the ksqlDB server logs spool to the console, then
 drop the `-daemon` switch, and start the CLI in a second console.
 
+It is recommended to instruct maven to use the native `git` client on your system by setting
+`export MAVEN_OPTS="-Dmaven.gitcommitid.nativegit=true $MAVEN_OPTS"`. This will drastically
+reduce build times.
+
 #### Building a released version
 
-The source for standalone ksqlDB versions is tagged with the pattern vN.NN.N-ksqldb. For
-example, the tag for the 0.18.0 standalone release is v0.18.0-ksqldb.
+The source for standalone ksqlDB versions is tagged with the pattern vN.NN.N. For
+example, the tag for the 0.28.2 standalone release is v0.28.2.
 
-If you wish to build a released version, run the following commands, replacing `0.18.0`
+If you wish to build a released version, run the following commands, replacing `0.28.2`
 with the desired version:
 
 ```shell
 $ git fetch origin --tags
-$ git checkout v0.18.0-ksqldb
+$ git checkout v0.28.2
 $ ./mvnw --settings maven-settings.xml clean package -DskipTests
 ```
 

@@ -20,7 +20,7 @@ import io.confluent.ksql.api.server.InsertResult;
 import io.confluent.ksql.api.server.InsertsStreamSubscriber;
 import io.confluent.ksql.api.server.MetricsCallbackHolder;
 import io.confluent.ksql.api.spi.Endpoints;
-import io.confluent.ksql.api.spi.QueryPublisher;
+import io.confluent.ksql.reactive.BasePublisher;
 import io.confluent.ksql.reactive.BaseSubscriber;
 import io.confluent.ksql.reactive.BufferedPublisher;
 import io.confluent.ksql.rest.EndpointResponse;
@@ -44,6 +44,7 @@ import io.vertx.ext.web.codec.BodyCodec;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
 
@@ -160,7 +161,7 @@ public class InsertsStreamRunner extends BasePerfRunner {
   private class InsertsStreamEndpoints implements Endpoints {
 
     @Override
-    public CompletableFuture<QueryPublisher> createQueryPublisher(final String sql,
+    public CompletableFuture<Publisher<?>> createQueryPublisher(final String sql,
         final Map<String, Object> properties,
         final Map<String, Object> sessionVariables,
         final Map<String, Object> requestProperties,
@@ -266,6 +267,12 @@ public class InsertsStreamRunner extends BasePerfRunner {
     public void executeWebsocketStream(ServerWebSocket webSocket, MultiMap requstParams,
         WorkerExecutor workerExecutor, ApiSecurityContext apiSecurityContext, Context context) {
 
+    }
+
+    @Override
+    public CompletableFuture<EndpointResponse> executeTest(String test,
+        ApiSecurityContext apiSecurityContext) {
+      return null;
     }
   }
 

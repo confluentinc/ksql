@@ -19,11 +19,11 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Splitter;
 import io.confluent.ksql.connect.Connector;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
+import io.confluent.ksql.rest.entity.ConnectorInfo;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import org.apache.kafka.connect.runtime.rest.entities.ConnectorInfo;
 import org.apache.kafka.connect.transforms.ExtractField;
 import org.apache.kafka.connect.transforms.ValueToKey;
 

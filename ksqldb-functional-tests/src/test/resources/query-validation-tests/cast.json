@@ -200,7 +200,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.parser.exception.ParseFailedException",
-        "message": "no viable alternative at input 'cast(f0 as NULL'"
+        "message": "Syntax error at or near 'NULL' at line 2:47"
       }
     },
     {

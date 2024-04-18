@@ -126,9 +126,9 @@
       "key" : 2,
       "value" : {
         "T_ID" : 2,
-        "TT_ID" : 2,
+        "TT_ID" : null,
         "L1" : "C",
-        "L2" : "c"
+        "L2" : null
       },
       "timestamp" : 90000
     }, {

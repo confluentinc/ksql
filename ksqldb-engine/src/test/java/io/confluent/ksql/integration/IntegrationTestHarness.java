@@ -68,6 +68,7 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.TopicPartition;
+import org.apache.kafka.common.config.TopicConfig;
 import org.apache.kafka.common.header.Header;
 import org.apache.kafka.common.serialization.ByteArrayDeserializer;
 import org.apache.kafka.common.serialization.Deserializer;
@@ -156,11 +157,13 @@ public final class IntegrationTestHarness extends ExternalResource {
    */
   public void ensureTopics(final int partitionCount, final String... topicNames) {
     final KafkaTopicClient topicClient = serviceContext.get().getTopicClient();
+    final Map<String, String> config = ImmutableMap.of(
+        TopicConfig.RETENTION_MS_CONFIG, "-1");
 
     Arrays.stream(topicNames)
         .filter(name -> !topicClient.isTopicExists(name))
         .forEach(name ->
-            topicClient.createTopic(name, partitionCount, DEFAULT_REPLICATION_FACTOR));
+            topicClient.createTopic(name, partitionCount, DEFAULT_REPLICATION_FACTOR, config));
   }
 
   /**
@@ -714,6 +717,22 @@ public final class IntegrationTestHarness extends ExternalResource {
     try {
       final SchemaMetadata md = getSchemaRegistryClient().getLatestSchemaMetadata(subjectName);
       return getSchemaRegistryClient().getSchemaBySubjectAndId(subjectName, md.getId());
+    } catch (Exception e) {
+      throw new AssertionError("Failed to get schema: " + subjectName, e);
+    }
+  }
+
+  public int getLatestSchemaVersion(final String subjectName) {
+    try {
+      return getSchemaRegistryClient().getLatestSchemaMetadata(subjectName).getVersion();
+    } catch (Exception e) {
+      throw new AssertionError("Failed to get schema: " + subjectName, e);
+    }
+  }
+
+  public int getLatestSchemaID(final String subjectName) {
+    try {
+      return getSchemaRegistryClient().getLatestSchemaMetadata(subjectName).getId();
     } catch (Exception e) {
       throw new AssertionError("Failed to get schema: " + subjectName, e);
     }

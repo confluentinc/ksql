@@ -249,6 +249,9 @@ public class KsqlRestoreCommandTopic {
       backupCommands = loadBackup(backupFile, restoreOptions, serverConfig);
     } catch (final Exception e) {
       System.err.printf("Failed loading backup file.%nError = %s%n", e.getMessage());
+      for (final StackTraceElement s: e.getStackTrace()) {
+        System.err.printf("%s%n", s.toString());
+      }
       systemExit.exit(1);
     }
 
@@ -410,7 +413,7 @@ public class KsqlRestoreCommandTopic {
     }
   }
 
-  @SuppressWarnings("unchecked")
+  @SuppressWarnings({"unchecked", "checkstyle:CyclomaticComplexity"})
   private static void maybeCleanUpQuery(final byte[] command, final KsqlConfig ksqlConfig) {
     boolean queryIdFound = false;
     final Map<String, Object> streamsProperties =
@@ -420,10 +423,11 @@ public class KsqlRestoreCommandTopic {
     final JSONObject jsonObject = new JSONObject(new String(command, StandardCharsets.UTF_8));
     if (hasKey(jsonObject, "plan") && !jsonObject.isNull("plan")) {
       final JSONObject plan = jsonObject.getJSONObject("plan");
-      if (hasKey(plan, "queryPlan")) {
+      if (hasKey(plan, "queryPlan") && !plan.isNull("queryPlan")) {
         final JSONObject queryPlan = plan.getJSONObject("queryPlan");
         queryId = queryPlan.getString("queryId");
         if (hasKey(queryPlan, "runtimeId")
+            && !queryPlan.isNull("runtimeId")
             && ((Optional<String>) queryPlan.get("runtimeId")).isPresent()) {
           streamsProperties.put(
               StreamsConfig.APPLICATION_ID_CONFIG,

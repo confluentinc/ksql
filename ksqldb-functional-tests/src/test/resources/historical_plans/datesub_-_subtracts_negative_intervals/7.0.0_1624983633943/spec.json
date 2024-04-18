@@ -142,10 +142,13 @@
               "name" : "VALUE",
               "type" : [ "null", {
                 "type" : "int",
+                "connect.version" : 1,
+                "connect.name" : "org.apache.kafka.connect.data.Date",
                 "logicalType" : "date"
               } ],
               "default" : null
-            } ]
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
           }
         } ]
       }

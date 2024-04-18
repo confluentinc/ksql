@@ -324,6 +324,20 @@ CREATE STREAM stream_name
   EMIT CHANGES;
 ```
 
+## EMIT FINAL
+Specify a push query with a suppressed output refinement in a SELECT statement
+on a windowed aggregation. For more information, see
+[Push Queries](/concepts/queries#push).
+
+```sql
+CREATE TABLE table_name
+  AS SELECT  select_expr_with_aggregation [, ...]
+  FROM from_stream
+  [ WINDOW window_expression ]
+  [ GROUP BY grouping_expression ]
+  EMIT FINAL;
+```
+
 ## EXPLAIN
 Show the execution plan for a SQL expression or running query. For more
 information, see [EXPLAIN](../../ksqldb-reference/explain).
@@ -524,12 +538,26 @@ CREATE STREAM stream_name
   EMIT CHANGES;
 ```
 
+## PAUSE
+Pause a persistent query. For more information, see [PAUSE](../../ksqldb-reference/pause).
+
+```sql
+PAUSE query_id;
+```
+
 ## PRINT
 Print the contents of {{ site.ak }} topics to the ksqlDB CLI. For more
 information, see [PRINT](../../ksqldb-reference/print).
 
 ```sql
 PRINT topicName [FROM BEGINNING] [INTERVAL interval] [LIMIT limit]
+```
+
+## RESUME
+End a paused persistent query. For more information, see [RESUME](../../ksqldb-reference/resume).
+
+```sql
+RESUME query_id;
 ```
 
 ## RIGHT JOIN

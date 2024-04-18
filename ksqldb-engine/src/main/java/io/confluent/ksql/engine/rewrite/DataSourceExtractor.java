@@ -35,6 +35,7 @@ import io.confluent.ksql.util.KsqlException;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -112,7 +113,8 @@ public class DataSourceExtractor {
       final SourceName fromName = ((Table) relation.getRelation()).getName();
       final DataSource source = metaStore.getSource(fromName);
       if (source == null) {
-        throw new KsqlException(fromName.text() + " does not exist.");
+        final String hint = metaStore.checkAlternatives(fromName, Optional.empty());
+        throw new KsqlException(fromName.text() + " does not exist." + hint);
       }
 
       allSources.add(new AliasedDataSource(relation.getAlias(), source));

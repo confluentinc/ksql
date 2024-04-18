@@ -64,8 +64,8 @@ import org.slf4j.LoggerFactory;
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public class CommandStore implements CommandQueue, Closeable {
 
+  public static final Duration POLLING_TIMEOUT_FOR_COMMAND_TOPIC = Duration.ofMillis(5000);
   private static final Logger LOG = LoggerFactory.getLogger(CommandStore.class);
-  private static final Duration POLLING_TIMEOUT_FOR_COMMAND_TOPIC = Duration.ofMillis(5000);
   private static final int COMMAND_TOPIC_PARTITION = 0;
 
   private final CommandTopic commandTopic;

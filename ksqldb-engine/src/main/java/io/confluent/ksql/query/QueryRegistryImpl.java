@@ -410,7 +410,7 @@ public class QueryRegistryImpl implements QueryRegistry {
       } else {
         // stop will not unregister the query, since it's possible for a query to be stopped
         // but still managed by the registry. So we explicitly unregister here.
-        ((PersistentQueryMetadata) queryMetadata).stop();
+        ((PersistentQueryMetadata) queryMetadata).stop(false);
         unregisterQuery(queryMetadata);
       }
     }
@@ -458,7 +458,7 @@ public class QueryRegistryImpl implements QueryRegistry {
       // topics and the state store, instead use QueryMetadata#stop
       log.info("Detected that query {} already exists so will replace it."
           + "First will stop without resetting offsets", oldQuery.getQueryId());
-      oldQuery.stop(true);
+      oldQuery.stop(false);
       unregisterQuery(oldQuery);
     }
 

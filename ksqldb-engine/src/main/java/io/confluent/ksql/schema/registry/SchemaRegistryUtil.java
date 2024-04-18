@@ -52,15 +52,12 @@ public final class SchemaRegistryUtil {
 
   public static void cleanupInternalTopicSchemas(
       final String applicationId,
-      final SchemaRegistryClient schemaRegistryClient,
-      final boolean isPermanent
-  ) {
+      final SchemaRegistryClient schemaRegistryClient) {
     getInternalSubjectNames(applicationId, schemaRegistryClient)
         .forEach(subject -> tryDeleteInternalSubject(
             applicationId,
             schemaRegistryClient,
-            subject,
-            isPermanent));
+            subject));
   }
 
   public static Stream<String> getSubjectNames(final SchemaRegistryClient schemaRegistryClient) {
@@ -115,28 +112,23 @@ public final class SchemaRegistryUtil {
     return getLatestSchema(srClient, subject).map(SchemaMetadata::getId);
   }
 
-  public static Optional<ParsedSchema> getLatestParsedSchema(
+  public static Optional<SchemaAndId> getLatestSchemaAndId(
       final SchemaRegistryClient srClient,
       final String topic,
       final boolean isKey
   ) {
     final String subject = KsqlConstants.getSRSubject(topic, isKey);
 
-    final Optional<SchemaMetadata> metadata = getLatestSchema(srClient, subject);
-    if (!metadata.isPresent()) {
-      return Optional.empty();
-    }
-
-    final int schemaId = metadata.get().getId();
-
-    try {
-      return Optional.of(srClient.getSchemaById(schemaId));
-    } catch (final Exception e) {
-      throwOnAuthError(e, subject);
-
-      throw new KsqlException(
-          "Could not get schema for subject " + subject + " and id " + schemaId, e);
-    }
+    return getLatestSchemaId(srClient, topic, isKey)
+        .map(id -> {
+          try {
+            return new SchemaAndId(srClient.getSchemaById(id), id);
+          } catch (final Exception e) {
+            throwOnAuthError(e, subject);
+            throw new KsqlException(
+                "Could not get schema for subject " + subject + " and id " + id, e);
+          }
+        });
   }
 
   private static void throwOnAuthError(final Exception e, final String subject) {
@@ -255,14 +247,10 @@ public final class SchemaRegistryUtil {
   private static void tryDeleteInternalSubject(
       final String applicationId,
       final SchemaRegistryClient schemaRegistryClient,
-      final String subjectName,
-      final boolean isPermanent
-  ) {
+      final String subjectName) {
     try {
       deleteSubjectWithRetries(schemaRegistryClient, subjectName);
-      if (isPermanent) {
-        hardDeleteSubjectWithRetries(schemaRegistryClient, subjectName);
-      }
+      hardDeleteSubjectWithRetries(schemaRegistryClient, subjectName);
     } catch (final Exception e) {
       LOG.warn("Could not clean up the schema registry for"
           + " query: " + applicationId

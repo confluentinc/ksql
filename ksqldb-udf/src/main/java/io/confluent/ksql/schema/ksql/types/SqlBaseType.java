@@ -54,7 +54,8 @@ public enum SqlBaseType {
     }
     final boolean canCastNumber = (isNumber() && to.isNumber() && this.ordinal() <= to.ordinal());
     final boolean canCastTime = this.equals(STRING) && to.isTime();
-    return this.equals(to) || canCastNumber || canCastTime;
+    final boolean canCastBytes = this.equals(STRING) && to == BYTES;
+    return this.equals(to) || canCastNumber || canCastTime || canCastBytes;
   }
 
   public static Stream<SqlBaseType> numbers() {

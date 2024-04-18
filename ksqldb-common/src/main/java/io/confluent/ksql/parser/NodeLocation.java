@@ -18,16 +18,45 @@ package io.confluent.ksql.parser;
 import com.google.errorprone.annotations.Immutable;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.OptionalInt;
 
+/**
+ * Entity that contains the location information of the start token
+ * and the stop token. The terms "Token" and "token" refer to
+ * {@link org.antlr.v4.runtime.Token}
+ */
 @Immutable
 public final class NodeLocation {
 
-  private final int line;
-  private final int charPositionInLine;
+  /**
+   * location information for the start {@link org.antlr.v4.runtime.Token}
+   * of the Node.
+   */
+  private final TokenLocation start;
 
-  public NodeLocation(final int line, final int charPositionInLine) {
-    this.line = line;
-    this.charPositionInLine = charPositionInLine;
+  /**
+   * location information for the stop {@link org.antlr.v4.runtime.Token}
+   * of the Node.
+   */
+  private final Optional<TokenLocation> stop;
+
+  /**
+   * @param start {@link TokenLocation} of the start {@link org.antlr.v4.runtime.Token}
+   * @param stop {@link TokenLocation} of the stop {@link org.antlr.v4.runtime.Token}
+   */
+  public NodeLocation(final TokenLocation start, final TokenLocation stop) {
+    this.start = start;
+    this.stop = Optional.of(stop);
+  }
+
+  /**
+   * @param startLine line number of the start token
+   * @param startCharPositionInLine position of the first character of the start token
+   *                                within the start line
+   */
+  public NodeLocation(final int startLine, final int startCharPositionInLine) {
+    this.start = TokenLocation.of(startLine, startCharPositionInLine);
+    this.stop = Optional.empty();
   }
 
   /**
@@ -35,7 +64,7 @@ public final class NodeLocation {
    *     Note: the line numbers start from 1 (and not 0).
    */
   public int getStartLineNumber() {
-    return getLineNumber();
+    return start.getLine();
   }
 
   /**
@@ -43,15 +72,30 @@ public final class NodeLocation {
    *     Note: the column numbers start from 1 (and not 0)
    */
   public int getStartColumnNumber() {
-    return getColumnNumber();
+    return start.getCharPositionInLine() + 1;
   }
 
-  public int getLineNumber() {
-    return line;
+  /**
+   * @return the length of the statement represented by the {@link Node}
+   */
+  public OptionalInt getLength() {
+    return stop.map(tokenLocation ->
+        OptionalInt.of(tokenLocation.getStopIndex() - start.getStartIndex() + 1))
+        .orElseGet(OptionalInt::empty);
   }
 
-  public int getColumnNumber() {
-    return charPositionInLine + 1;
+  /**
+   * @return the {@link TokenLocation} of the start {@link org.antlr.v4.runtime.Token}
+   */
+  public TokenLocation getStartTokenLocation() {
+    return start;
+  }
+
+  /**
+   * @return the {@link TokenLocation} of the stop {@link org.antlr.v4.runtime.Token}
+   */
+  public Optional<TokenLocation> getStopTokenLocation() {
+    return stop;
   }
 
   public String asPrefix() {
@@ -66,7 +110,9 @@ public final class NodeLocation {
 
   @Override
   public String toString() {
-    return String.format("Line: %d, Col: %d", line, charPositionInLine + 1);
+    return String.format("Line: %d, Col: %d",
+        start.getLine(),
+        start.getCharPositionInLine() + 1);
   }
 
   @Override
@@ -80,12 +126,12 @@ public final class NodeLocation {
     }
 
     final NodeLocation that = (NodeLocation) o;
-    return line == that.line
-        && charPositionInLine == that.charPositionInLine;
+    return start.equals(that.start)
+        && stop.equals(that.stop);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(line, charPositionInLine);
+    return Objects.hash(start, stop);
   }
 }

@@ -240,12 +240,18 @@ final class ProtobufSerdeFactory implements SerdeFactory {
       // Disable auto registering schema if schema id is used
       protobufConfig.put(AbstractKafkaSchemaSerDeConfig.AUTO_REGISTER_SCHEMAS, false);
       protobufConfig.put(AbstractKafkaSchemaSerDeConfig.USE_SCHEMA_ID, schemaId.get());
+
+      // Disable strict compatibility to prevent serialization issues when schema references exists.
+      // Note: There's no issue with schema references when subject name is used. This only applies
+      // when schemaId is present.
+      protobufConfig.put(AbstractKafkaSchemaSerDeConfig.ID_COMPATIBILITY_STRICT, false);
     }
 
-    protobufConfig.put(
-        ProtobufDataConfig.WRAPPER_FOR_RAW_PRIMITIVES_CONFIG,
-        properties.getUnwrapPrimitives()
-    );
+    protobufConfig.putAll(ImmutableMap.of(
+        ProtobufDataConfig.WRAPPER_FOR_RAW_PRIMITIVES_CONFIG, properties.getUnwrapPrimitives(),
+        ProtobufDataConfig.OPTIONAL_FOR_NULLABLES_CONFIG, properties.isNullableAsOptional(),
+        ProtobufDataConfig.WRAPPER_FOR_NULLABLES_CONFIG, properties.isNullableAsWrapper()
+    ));
 
     final ProtobufConverter converter = new ProtobufConverter(schemaRegistryClient);
     converter.configure(protobufConfig, isKey);

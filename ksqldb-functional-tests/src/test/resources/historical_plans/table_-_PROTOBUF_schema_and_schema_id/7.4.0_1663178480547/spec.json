@@ -1,0 +1,246 @@
+{
+  "version" : "7.4.0",
+  "timestamp" : 1663178480547,
+  "path" : "query-validation-tests/table.json",
+  "schemas" : {
+    "CTAS_T1_0.KsqlTopic.Source" : {
+      "schema" : "`K` STRING KEY, `ID` BIGINT, `NAME` STRING, `VALUE` BIGINT",
+      "keyFormat" : {
+        "format" : "PROTOBUF",
+        "properties" : {
+          "fullSchemaName" : "ProtobufKey2",
+          "unwrapPrimitives" : "true",
+          "schemaId" : "101"
+        }
+      },
+      "valueFormat" : {
+        "format" : "PROTOBUF",
+        "properties" : {
+          "fullSchemaName" : "ProtobufValue2",
+          "unwrapPrimitives" : "true",
+          "schemaId" : "102"
+        }
+      }
+    },
+    "CTAS_T1_0.Project" : {
+      "schema" : "`K` STRING KEY, `NAME` STRING, `VALUE` BIGINT",
+      "keyFormat" : {
+        "format" : "PROTOBUF",
+        "properties" : {
+          "fullSchemaName" : "ProtobufKey2",
+          "unwrapPrimitives" : "true"
+        }
+      },
+      "valueFormat" : {
+        "format" : "PROTOBUF",
+        "properties" : {
+          "fullSchemaName" : "ProtobufValue2",
+          "unwrapPrimitives" : "true"
+        }
+      }
+    },
+    "CTAS_T1_0.T1" : {
+      "schema" : "`K` STRING KEY, `NAME` STRING, `VALUE` BIGINT",
+      "keyFormat" : {
+        "format" : "PROTOBUF",
+        "properties" : {
+          "fullSchemaName" : "ProtobufKey2",
+          "unwrapPrimitives" : "true"
+        }
+      },
+      "valueFormat" : {
+        "format" : "PROTOBUF",
+        "properties" : {
+          "fullSchemaName" : "ProtobufValue2",
+          "unwrapPrimitives" : "true"
+        }
+      }
+    },
+    "CTAS_T1_0.KsqlTopic.Source.Materialized" : {
+      "schema" : "`K` STRING KEY, `ID` BIGINT, `NAME` STRING, `VALUE` BIGINT, `ROWPARTITION` INTEGER, `ROWOFFSET` BIGINT",
+      "keyFormat" : {
+        "format" : "PROTOBUF",
+        "properties" : {
+          "fullSchemaName" : "ProtobufKey2",
+          "unwrapPrimitives" : "true"
+        }
+      },
+      "valueFormat" : {
+        "format" : "PROTOBUF",
+        "properties" : {
+          "fullSchemaName" : "ProtobufValue2",
+          "unwrapPrimitives" : "true"
+        }
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "PROTOBUF schema and schema id",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : {
+        "K" : "1"
+      },
+      "value" : {
+        "ID" : 1,
+        "NAME" : "one",
+        "VALUE" : 100
+      },
+      "timestamp" : 10
+    }, {
+      "topic" : "test_topic",
+      "key" : {
+        "K" : "1"
+      },
+      "value" : {
+        "ID" : 2,
+        "NAME" : "two",
+        "VALUE" : 200
+      },
+      "timestamp" : 20
+    }, {
+      "topic" : "test_topic",
+      "key" : {
+        "K" : "1"
+      },
+      "value" : {
+        "ID" : 3,
+        "NAME" : "three",
+        "VALUE" : 300
+      },
+      "timestamp" : 30
+    } ],
+    "outputs" : [ {
+      "topic" : "T1",
+      "key" : {
+        "K" : "1"
+      },
+      "value" : {
+        "NAME" : "one",
+        "VALUE" : 100
+      }
+    }, {
+      "topic" : "T1",
+      "key" : {
+        "K" : "1"
+      },
+      "value" : {
+        "NAME" : "two",
+        "VALUE" : 200
+      }
+    }, {
+      "topic" : "T1",
+      "key" : {
+        "K" : "1"
+      },
+      "value" : {
+        "NAME" : "three",
+        "VALUE" : 300
+      }
+    } ],
+    "topics" : [ {
+      "name" : "test_topic",
+      "keySchemaId" : 101,
+      "valueSchemaId" : 102,
+      "keySchema" : "syntax = \"proto3\";\n\nmessage ProtobufKey1 {\n  uint32 k1 = 1;\n}\nmessage ProtobufKey2 {\n  string K = 1;\n}\n",
+      "valueSchema" : "syntax = \"proto3\";\n\nmessage ProtobufValue1 {\n  float c1 = 1;\n  uint32 c2 = 2;\n}\nmessage ProtobufValue2 {\n  uint64 ID = 1;\n  string NAME = 2;\n  uint32 VALUE = 3;\n}\n",
+      "keyFormat" : "PROTOBUF",
+      "valueFormat" : "PROTOBUF",
+      "replicas" : 1,
+      "numPartitions" : 1
+    }, {
+      "name" : "T1",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE TABLE TEST WITH (kafka_topic='test_topic', format='PROTOBUF', KEY_SCHEMA_ID=101, KEY_SCHEMA_FULL_NAME='ProtobufKey2', VALUE_SCHEMA_ID=102, VALUE_SCHEMA_FULL_NAME='ProtobufValue2');", "CREATE TABLE T1 as SELECT K, NAME, VALUE FROM test;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "T1",
+        "type" : "TABLE",
+        "schema" : "`K` STRING KEY, `NAME` STRING, `VALUE` BIGINT",
+        "keyFormat" : {
+          "format" : "PROTOBUF"
+        },
+        "valueFormat" : "PROTOBUF",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "TEST",
+        "type" : "TABLE",
+        "schema" : "`K` STRING KEY, `ID` BIGINT, `NAME` STRING, `VALUE` BIGINT",
+        "keyFormat" : {
+          "format" : "PROTOBUF"
+        },
+        "valueFormat" : "PROTOBUF",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "T1",
+          "keyFormat" : {
+            "format" : "PROTOBUF",
+            "properties" : {
+              "fullSchemaName" : "ProtobufKey2",
+              "unwrapPrimitives" : "true"
+            }
+          },
+          "valueFormat" : {
+            "format" : "PROTOBUF",
+            "properties" : {
+              "fullSchemaName" : "ProtobufValue2",
+              "unwrapPrimitives" : "true"
+            }
+          },
+          "partitions" : 4,
+          "keySchema" : "syntax = \"proto3\";\n\nmessage ProtobufKey2 {\n  string K = 1;\n}\n",
+          "valueSchema" : "syntax = \"proto3\";\n\nmessage ProtobufValue2 {\n  string NAME = 1;\n  int64 VALUE = 2;\n}\n"
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_T1_0-KsqlTopic-Reduce-changelog",
+          "keyFormat" : {
+            "format" : "PROTOBUF",
+            "properties" : {
+              "fullSchemaName" : "ProtobufKey2",
+              "unwrapPrimitives" : "true"
+            }
+          },
+          "valueFormat" : {
+            "format" : "PROTOBUF",
+            "properties" : {
+              "fullSchemaName" : "ProtobufValue2",
+              "unwrapPrimitives" : "true"
+            }
+          },
+          "keySchema" : "syntax = \"proto3\";\n\nmessage ProtobufKey2 {\n  string K = 1;\n}\n",
+          "valueSchema" : "syntax = \"proto3\";\n\nmessage ProtobufValue2 {\n  int64 ID = 1;\n  string NAME = 2;\n  int64 VALUE = 3;\n  int32 ROWPARTITION = 4;\n  int64 ROWOFFSET = 5;\n}\n"
+        }, {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "format" : "PROTOBUF",
+            "properties" : {
+              "fullSchemaName" : "ProtobufKey2",
+              "unwrapPrimitives" : "true",
+              "schemaId" : "101"
+            }
+          },
+          "valueFormat" : {
+            "format" : "PROTOBUF",
+            "properties" : {
+              "fullSchemaName" : "ProtobufValue2",
+              "unwrapPrimitives" : "true",
+              "schemaId" : "102"
+            }
+          },
+          "partitions" : 1,
+          "keySchemaId" : 101,
+          "valueSchemaId" : 102,
+          "keySchema" : "syntax = \"proto3\";\n\nmessage ProtobufKey2 {\n  string K = 1;\n}\n",
+          "valueSchema" : "syntax = \"proto3\";\n\nmessage ProtobufValue2 {\n  uint64 ID = 1;\n  string NAME = 2;\n  uint32 VALUE = 3;\n}\n"
+        } ]
+      }
+    }
+  }
+}

@@ -34,6 +34,7 @@ import io.confluent.ksql.util.VertxUtils;
 import io.vertx.core.Context;
 import io.vertx.core.WorkerExecutor;
 import io.vertx.core.json.JsonObject;
+import java.util.Optional;
 import org.reactivestreams.Subscriber;
 
 public class InsertsStreamEndpoint {
@@ -86,7 +87,8 @@ public class InsertsStreamEndpoint {
     final DataSource dataSource = metaStore.getSource(sourceName);
     if (dataSource == null) {
       throw new KsqlApiException(
-          "Cannot insert values into an unknown stream/table: " + sourceName,
+          "Cannot insert values into an unknown stream/table: " + sourceName
+          + metaStore.checkAlternatives(sourceName, Optional.empty()),
             ERROR_CODE_BAD_STATEMENT);
     }
 

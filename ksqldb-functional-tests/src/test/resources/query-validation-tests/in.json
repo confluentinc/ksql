@@ -8,7 +8,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.parser.exception.ParseFailedException",
-        "message": "line 2:59: mismatched input ')' expecting"
+        "message": "Syntax Error"
       }
     },
     {

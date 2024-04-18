@@ -42,6 +42,7 @@ import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.ConsistencyOffsetVector;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.PersistentQueryMetadata;
+import io.confluent.ksql.util.PersistentQueryMetadataImpl;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.Sandbox;
 import io.confluent.ksql.util.ScalablePushQueryMetadata;
@@ -172,7 +173,8 @@ final class SandboxedExecutionContext implements KsqlExecutionContext {
       ).execute(ksqlPlan.getPlan(), restoreInProgress);
 
       // Having a streams running in a sandboxed environment is not necessary
-      if (!getKsqlConfig().getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)) {
+      if (result.getQuery().isPresent()
+          && result.getQuery().get() instanceof PersistentQueryMetadataImpl) {
         result.getQuery().map(QueryMetadata::getKafkaStreams).ifPresent(streams -> streams.close());
       }
       return result;

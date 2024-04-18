@@ -7,8 +7,8 @@ keywords: ksqldb
 ---
 
 The `/ksql` resource runs a sequence of SQL statements. All statements,
-except those starting with SELECT, can be run on this endpoint. To run
-SELECT statements use the `/query` endpoint.
+except those starting with SELECT and PRINT, can be run on this endpoint. To run
+SELECT and PRINT statements use the `/query` endpoint.
 
 !!! note
       If you use the SET or UNSET statements to assign query properties by

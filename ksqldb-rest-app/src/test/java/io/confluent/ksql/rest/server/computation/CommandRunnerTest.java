@@ -24,6 +24,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
@@ -534,6 +535,42 @@ public class CommandRunnerTest {
 
     // Then:
     verify(statementExecutor, never()).handleRestore(queuedCommand2);
+  }
+
+  @Test
+  public void shouldNotCleanUpInDegradedMode() {
+    // Given:
+    when(commandStore.corruptionDetected()).thenReturn(true);
+    givenQueuedCommands(queuedCommand1, queuedCommand2, queuedCommand3);
+    when(ksqlEngine.getPersistentQueries()).thenReturn(ImmutableList.of(queryMetadata1, queryMetadata2, queryMetadata3));
+
+    // When:
+    commandRunner.processPriorCommands(persistentQueryCleanupImpl);
+
+    // Then:
+    final InOrder inOrder = inOrder(statementExecutor);
+    inOrder.verify(statementExecutor).handleRestore(eq(queuedCommand1));
+    inOrder.verify(statementExecutor).handleRestore(eq(queuedCommand2));
+    inOrder.verify(statementExecutor).handleRestore(eq(queuedCommand3));
+    verify(persistentQueryCleanupImpl, never()).cleanupLeakedQueries(any());
+  }
+
+  @Test
+  public void shouldCleanUpInNotDegradedMode() {
+    // Given:
+    when(commandStore.corruptionDetected()).thenReturn(false);
+    givenQueuedCommands(queuedCommand1, queuedCommand2, queuedCommand3);
+    when(ksqlEngine.getPersistentQueries()).thenReturn(ImmutableList.of(queryMetadata1, queryMetadata2, queryMetadata3));
+
+    // When:
+    commandRunner.processPriorCommands(persistentQueryCleanupImpl);
+
+    // Then:
+    final InOrder inOrder = inOrder(statementExecutor);
+    inOrder.verify(statementExecutor).handleRestore(eq(queuedCommand1));
+    inOrder.verify(statementExecutor).handleRestore(eq(queuedCommand2));
+    inOrder.verify(statementExecutor).handleRestore(eq(queuedCommand3));
+    verify(persistentQueryCleanupImpl, atLeastOnce()).cleanupLeakedQueries(any());
   }
 
   @Test

@@ -22,7 +22,6 @@ import com.google.common.collect.ImmutableList;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.List;
 import java.util.Objects;
-import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class ConnectorDescription extends KsqlEntity {

@@ -128,7 +128,9 @@ public class TransientQueryResourceCleanerIntTest {
         logger = Logger.getRootLogger();
         logger.addAppender(appender);
 
-        FileUtils.cleanDirectory(stateDir);
+        if (FileUtils.fileExists(stateDir)) {
+            FileUtils.cleanDirectory(stateDir);
+        }
 
         service = Executors.newFixedThreadPool(1);
         final String sql = format("select * from %s pv left join %s u on pv.userid=u.userid emit changes;",

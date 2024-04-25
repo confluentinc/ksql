@@ -84,15 +84,15 @@ final class SandboxedKafkaTopicClient {
     this.adminClient = Objects.requireNonNull(sharedAdminClient, "sharedAdminClient");
   }
 
-  private void createTopic(
+  private boolean createTopic(
       final String topic,
       final int numPartitions,
       final short replicationFactor
   ) {
-    createTopic(topic, numPartitions, replicationFactor, Collections.emptyMap());
+    return createTopic(topic, numPartitions, replicationFactor, Collections.emptyMap());
   }
 
-  private void createTopic(
+  private boolean createTopic(
       final String topic,
       final int numPartitions,
       final short replicationFactor,
@@ -101,7 +101,7 @@ final class SandboxedKafkaTopicClient {
     if (isTopicExists(topic)) {
       final Optional<Long> retentionMs = KafkaTopicClient.getRetentionMs(configs);
       validateTopicProperties(topic, numPartitions, replicationFactor, retentionMs);
-      return;
+      return false;
     }
 
     final short resolvedReplicationFactor = replicationFactor == TopicProperties.DEFAULT_REPLICAS
@@ -131,6 +131,7 @@ final class SandboxedKafkaTopicClient {
     ));
 
     createdTopicsConfig.put(topic, toStringConfigs(configs));
+    return true;
   }
 
   private short getDefaultClusterReplication() {
@@ -185,6 +186,7 @@ final class SandboxedKafkaTopicClient {
 
   private void deleteTopics(final Collection<String> topicsToDelete) {
     topicsToDelete.forEach(createdTopics::remove);
+    delegate.deleteTopics(topicsToDelete);
   }
 
   private void validateTopicProperties(

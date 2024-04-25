@@ -152,6 +152,8 @@
              to find the correct `tcnative` version. -->
         <netty.version>4.1.108.Final</netty.version>
         <netty-codec-http2-version>4.1.108.Final</netty-codec-http2-version>
+        <!-- Override jackson version so that shading doesn't fail -->
+        <jackson.version>2.14.2</jackson.version>
         <jersey-common>2.39.1</jersey-common>
         <multi-threaded-testing.forkCount>3</multi-threaded-testing.forkCount>
         <kafka.version>${ce.kafka.version}</kafka.version>
@@ -809,7 +811,7 @@
                         <junit.platform.execution.listeners.deactivate>org.apache.kafka.test.ThreadLeakListener</junit.platform.execution.listeners.deactivate>
                     </systemPropertyVariables>
                     <argLine>-verbose:gc -Xloggc:"${project.build.directory}/gc.log"</argLine>
-                    <argLine>-Duser.timezone=UTC -Xmx1g -Xms1g -XX:MaxPermSize=256m</argLine>
+                    <argLine>-Duser.timezone=UTC -Xmx1g -Xms1g</argLine>
                     <excludedGroups>io.confluent.common.utils.IntegrationTest, IntegrationTest</excludedGroups>
                 </configuration>
                 <version>3.2.5</version>

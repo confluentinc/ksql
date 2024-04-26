@@ -103,6 +103,9 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
 
   public static final String JAAS_KAFKA_PROPS_NAME = "KafkaServer";
 
+  private static final String ZK_URL_PROP = "authorizer.zookeeper.url";
+  private static final String LOG_CLEANER_ENABLE_PROP = "log.cleaner.enable";
+
   public static final Credentials VALID_USER1 =
       new Credentials("valid_user_1", "some-password");
   public static final Credentials VALID_USER2 =
@@ -578,13 +581,13 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
     config.put(KafkaConfig.LogDirProp(), logDir);
     // Need to know where ZK is:
     config.put(KafkaConfig.ZkConnectProp(), zookeeper.connectString());
-    config.put(AclAuthorizer.ZkUrlProp(), zookeeper.connectString());
+    config.put(ZK_URL_PROP, zookeeper.connectString());
     // Default to small number of partitions for auto-created topics:
     config.put(KafkaConfig.NumPartitionsProp(), 1);
     // Allow tests to delete topics:
     config.put(KafkaConfig.DeleteTopicEnableProp(), true);
     // Do not clean logs from under the tests or waste resources doing so:
-    config.put(KafkaConfig.LogCleanerEnableProp(), false);
+    config.put(LOG_CLEANER_ENABLE_PROP, false);
     // Only single node, so only single RF on offset topic partitions:
     config.put(KafkaConfig.OffsetsTopicReplicationFactorProp(), (short) 1);
     // Tests do not need large numbers of offset topic partitions:

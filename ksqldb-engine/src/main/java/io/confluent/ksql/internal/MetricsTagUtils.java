@@ -19,7 +19,16 @@ import java.util.regex.Pattern;
 
 public final class MetricsTagUtils {
 
-  private MetricsTagUtils() {
+  public MetricsTagUtils(String persistentQueryPrefix, String transientQueryPrefix) {
+    UNSHARED_RUNTIME_THREAD_PATTERN =
+        Pattern.compile(
+            // group 1: the lookbehind (?<=) matches the prefix and discards everything before it
+            "(?<=" + persistentQueryPrefix + "|" + transientQueryPrefix + ")"
+                // group 2: just matches anything/everything that's between group 1 and group 3
+                + "(" + QUERY_ID_PATTERN + ")"
+                // group 3: matches the suffix & lookahead to discard the rest (in case we add to it)
+                + "(?=(" + THREAD_ID_SUFFIX_PATTERN + "))"
+        );
   }
 
   public static final String KSQL_CONSUMER_GROUP_MEMBER_ID_TAG = "member";
@@ -39,18 +48,9 @@ public final class MetricsTagUtils {
   public static final String UUID_PATTERN =
       "-[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}";
   public static final String THREAD_ID_SUFFIX_PATTERN = UUID_PATTERN + "-StreamThread-\\d";
-  public static final String THREAD_ID_PREFIX_PATTERN = "query_|transient_";
 
   public static final String QUERY_ID_PATTERN = ".*";
 
-  public static final Pattern UNSHARED_RUNTIME_THREAD_PATTERN =
-      Pattern.compile(
-          // group 1: the lookbehind (?<=) matches the prefix and discards everything before it
-          "(?<=" + THREAD_ID_PREFIX_PATTERN + ")"
-              // group 2: just matches anything/everything that's between group 1 and group 3
-              + "(" + QUERY_ID_PATTERN + ")"
-              // group 3: matches the suffix & lookahead to discard the rest (in case we add to it)
-              + "(?=(" + THREAD_ID_SUFFIX_PATTERN + "))"
-      );
+  public final Pattern UNSHARED_RUNTIME_THREAD_PATTERN;
 
 }

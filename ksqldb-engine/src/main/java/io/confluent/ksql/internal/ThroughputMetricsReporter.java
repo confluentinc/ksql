@@ -19,7 +19,6 @@ import static io.confluent.ksql.internal.MetricsTagUtils.KSQL_CONSUMER_GROUP_MEM
 import static io.confluent.ksql.internal.MetricsTagUtils.KSQL_QUERY_ID_TAG;
 import static io.confluent.ksql.internal.MetricsTagUtils.KSQL_TOPIC_TAG;
 import static io.confluent.ksql.internal.MetricsTagUtils.SHARED_RUNTIME_THREAD_PATTERN;
-import static io.confluent.ksql.internal.MetricsTagUtils.UNSHARED_RUNTIME_THREAD_PATTERN;
 import static java.util.Objects.requireNonNull;
 import static org.apache.kafka.common.utils.Utils.mkSet;
 
@@ -58,6 +57,7 @@ public class ThroughputMetricsReporter implements MetricsReporter {
       new HashMap<>();
   private static final Map<String, String> customTags = new HashMap<>();
   private Metrics metricRegistry;
+  private MetricsTagUtils metricsTagUtils;
 
   @Override
   public void init(final List<KafkaMetric> initial) {
@@ -71,9 +71,21 @@ public class ThroughputMetricsReporter implements MetricsReporter {
   @Override
   public synchronized void configure(final Map<String, ?> configMap) {
     this.metricRegistry = (Metrics) requireNonNull(
-      configMap.get(KsqlConfig.KSQL_INTERNAL_METRICS_CONFIG)
+        configMap.get(KsqlConfig.KSQL_INTERNAL_METRICS_CONFIG)
     );
     customTags.putAll(KsqlConfig.getStringAsMap(KsqlConfig.KSQL_CUSTOM_METRICS_TAGS, configMap));
+
+    String persistentQueryPrefix =
+        configMap.containsKey(KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG) ?
+        (String) configMap.get(KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG) :
+        KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_DEFAULT;
+
+    String transientQueryPrefix =
+        configMap.containsKey(KsqlConfig.KSQL_TRANSIENT_QUERY_NAME_PREFIX_CONFIG) ?
+        (String) configMap.get(KsqlConfig.KSQL_TRANSIENT_QUERY_NAME_PREFIX_CONFIG) :
+        KsqlConfig.KSQL_TRANSIENT_QUERY_NAME_PREFIX_DEFAULT;
+
+    metricsTagUtils = new MetricsTagUtils(persistentQueryPrefix, transientQueryPrefix);
   }
 
   @Override
@@ -215,7 +227,7 @@ public class ThroughputMetricsReporter implements MetricsReporter {
 
     final String queryIdTag =
         metric.metricName().tags().getOrDefault(StreamsMetricsImpl.THREAD_ID_TAG, "");
-    final Matcher matcher = UNSHARED_RUNTIME_THREAD_PATTERN.matcher(queryIdTag);
+    final Matcher matcher = metricsTagUtils.UNSHARED_RUNTIME_THREAD_PATTERN.matcher(queryIdTag);
 
     if (matcher.find()) {
       return matcher.group(1);

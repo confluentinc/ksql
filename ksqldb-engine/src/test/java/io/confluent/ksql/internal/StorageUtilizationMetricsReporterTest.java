@@ -40,8 +40,8 @@ public class StorageUtilizationMetricsReporterTest {
   private static final String KAFKA_METRIC_GROUP = "streams-metric";
   private static final String KSQL_METRIC_GROUP = "ksqldb_utilization";
   private static final String THREAD_ID_SUFFIX = "3d62ddb9-d520-4cb3-9c23-968f8e61e201-StreamThread-1";
-  private static final String THREAD_ID = "_confluent_blahblah_query_CTAS_TEST_1-" + THREAD_ID_SUFFIX;
-  private static final String TRANSIENT_THREAD_ID = "_confluent_blahblah_transient_blahblah_4-" + THREAD_ID_SUFFIX;
+  private static final String THREAD_ID = "_confluent_blahblah_another_p_CTAS_TEST_1-" + THREAD_ID_SUFFIX;
+  private static final String TRANSIENT_THREAD_ID = "_confluent_blahblah_another_t_blahblah_4-" + THREAD_ID_SUFFIX;
   private static final String TASK_STORAGE_METRIC = "task_storage_used_bytes";
   private static final String QUERY_STORAGE_METRIC = "query_storage_used_bytes";
   private static final Map<String, String> BASE_TAGS = ImmutableMap.of("logical_cluster_id", "logical-id");
@@ -62,7 +62,9 @@ public class StorageUtilizationMetricsReporterTest {
     listener = new StorageUtilizationMetricsReporter();
     listener.configure(
         ImmutableMap.of(
-            KsqlConfig.KSQL_INTERNAL_METRICS_CONFIG, metrics
+            KsqlConfig.KSQL_INTERNAL_METRICS_CONFIG, metrics,
+            KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG, "another_p_",
+            KsqlConfig.KSQL_TRANSIENT_QUERY_NAME_PREFIX_CONFIG, "another_t_"
         )
     );
     when(metrics.metricName(any(), any(), any(Map.class))).thenAnswer(

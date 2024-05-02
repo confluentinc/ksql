@@ -18,7 +18,6 @@ package io.confluent.ksql.internal;
 import static io.confluent.ksql.internal.MetricsTagUtils.KSQL_QUERY_ID_TAG;
 import static io.confluent.ksql.internal.MetricsTagUtils.KSQL_TASK_ID_TAG;
 import static io.confluent.ksql.internal.MetricsTagUtils.SHARED_RUNTIME_THREAD_PATTERN;
-import static io.confluent.ksql.internal.MetricsTagUtils.UNSHARED_RUNTIME_THREAD_PATTERN;
 import static java.util.Objects.requireNonNull;
 import static org.apache.kafka.streams.processor.internals.metrics.StreamsMetricsImpl.TASK_ID_TAG;
 import static org.apache.kafka.streams.processor.internals.metrics.StreamsMetricsImpl.THREAD_ID_TAG;
@@ -58,6 +57,7 @@ public class StorageUtilizationMetricsReporter implements MetricsReporter {
 
   private Map<String, Map<String, TaskStorageMetric>> metricsSeen;
   private Metrics metricRegistry;
+  private MetricsTagUtils metricsTagUtils;
   private static Map<String, String> customTags = new HashMap<>();
   private static final AtomicInteger numberStatefulTasks = new AtomicInteger(0);
 
@@ -71,6 +71,18 @@ public class StorageUtilizationMetricsReporter implements MetricsReporter {
         map.get(KsqlConfig.KSQL_INTERNAL_METRICS_CONFIG)
     );
     this.metricsSeen = new HashMap<>();
+
+    String persistentQueryPrefix =
+        map.containsKey(KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG) ?
+        (String) map.get(KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG) :
+        KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_DEFAULT;
+
+    String transientQueryPrefix =
+        map.containsKey(KsqlConfig.KSQL_TRANSIENT_QUERY_NAME_PREFIX_CONFIG) ?
+        (String) map.get(KsqlConfig.KSQL_TRANSIENT_QUERY_NAME_PREFIX_CONFIG) :
+        KsqlConfig.KSQL_TRANSIENT_QUERY_NAME_PREFIX_DEFAULT;
+
+    metricsTagUtils = new MetricsTagUtils(persistentQueryPrefix, transientQueryPrefix);
   }
 
   public static void configureShared(
@@ -276,7 +288,7 @@ public class StorageUtilizationMetricsReporter implements MetricsReporter {
     }
 
     final String queryIdTag = metric.metricName().tags().getOrDefault(THREAD_ID_TAG, "");
-    final Matcher matcher = UNSHARED_RUNTIME_THREAD_PATTERN.matcher(queryIdTag);
+    final Matcher matcher = metricsTagUtils.UNSHARED_RUNTIME_THREAD_PATTERN.matcher(queryIdTag);
     if (matcher.find()) {
       return matcher.group(1);
     } else {

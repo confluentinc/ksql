@@ -127,8 +127,7 @@
             "oneOf" : [ {
               "type" : "null"
             }, {
-              "type" : "string",
-              "connect.type" : "int32"
+              "type" : "string"
             } ]
           }
         }
@@ -268,8 +267,7 @@
                 "oneOf" : [ {
                   "type" : "null"
                 }, {
-                  "type" : "string",
-                  "connect.type" : "int32"
+                  "type" : "string"
                 } ]
               }
             }

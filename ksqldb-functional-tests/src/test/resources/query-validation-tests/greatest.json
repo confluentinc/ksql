@@ -197,6 +197,74 @@
         "type": "io.confluent.ksql.util.KsqlStatementException",
         "message": "Function 'greatest' does not accept parameters ()."
       }
+    },
+    {
+      "name": "test greatest with bytes",
+      "statements": [
+        "CREATE STREAM INPUT (ID BIGINT KEY, S1 BYTES, S2 BYTES, S3 BYTES, S4 BYTES) WITH (kafka_topic='input_topic',value_format='json');",
+        "CREATE STREAM OUTPUT AS SELECT ID, GREATEST(S1, S2, S3, S4, null, null, TO_BYTES('hello', 'ascii')) AS HIGHEST FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": 1, "value": {"S1": "YXBwbGU=", "S2": "YmFuYW5h", "S3": "YWFyZGF2YXJr",  "S4": null}},
+        {"topic": "input_topic", "key": 2, "value": {"S1": null, "S2": null, "S3": null,  "S4": null}},
+        {"topic": "input_topic", "key": 3, "value": {"S1": "IQ==", "S2": "emVicmE=", "S3": "YWFyZGF2YXJr",  "S4": null}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 1, "value": {"HIGHEST": "aGVsbG8="}},
+        {"topic": "OUTPUT", "key": 2, "value": {"HIGHEST": "aGVsbG8="}},
+        {"topic": "OUTPUT", "key": 3, "value": {"HIGHEST": "emVicmE="}}
+      ]
+    },
+    {
+      "name": "test greatest with dates",
+      "statements": [
+        "CREATE STREAM INPUT (ID BIGINT KEY, S1 DATE, S2 DATE, S3 DATE, S4 DATE) WITH (kafka_topic='input_topic',value_format='json');",
+        "CREATE STREAM OUTPUT AS SELECT ID, GREATEST(S1, S2, S3, S4, null, null, '2022-06-14') AS HIGHEST FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": 1, "value": {"S1": 19071, "S2": 18824, "S3": -5883,  "S4": null}},
+        {"topic": "input_topic", "key": 2, "value": {"S1": null, "S2": null, "S3": null,  "S4": null}},
+        {"topic": "input_topic", "key": 3, "value": {"S1": 19158, "S2": 19187, "S3": -92,  "S4": null}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 1, "value": {"HIGHEST": 19157}},
+        {"topic": "OUTPUT", "key": 2, "value": {"HIGHEST": 19157}},
+        {"topic": "OUTPUT", "key": 3, "value": {"HIGHEST": 19187}}
+      ]
+    },
+    {
+      "name": "test greatest with times",
+      "statements": [
+        "CREATE STREAM INPUT (ID BIGINT KEY, S1 TIME, S2 TIME, S3 TIME, S4 TIME) WITH (kafka_topic='input_topic',value_format='json');",
+        "CREATE STREAM OUTPUT AS SELECT ID, GREATEST(S1, S2, S3, S4, null, null, '09:16:00') AS HIGHEST FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": 1, "value": {"S1": 33359999, "S2": 23361230, "S3": 10,  "S4": null}},
+        {"topic": "input_topic", "key": 2, "value": {"S1": null, "S2": null, "S3": null,  "S4": null}},
+        {"topic": "input_topic", "key": 3, "value": {"S1": 32560000, "S2": 33370000, "S3": 33360001,  "S4": null}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 1, "value": {"HIGHEST": 33360000}},
+        {"topic": "OUTPUT", "key": 2, "value": {"HIGHEST": 33360000}},
+        {"topic": "OUTPUT", "key": 3, "value": {"HIGHEST": 33370000}}
+      ]
+    },
+    {
+      "name": "test greatest with timestamps",
+      "statements": [
+        "CREATE STREAM INPUT (ID BIGINT KEY, S1 TIMESTAMP, S2 TIMESTAMP, S3 TIMESTAMP, S4 TIMESTAMP) WITH (kafka_topic='input_topic',value_format='json');",
+        "CREATE STREAM OUTPUT AS SELECT ID, GREATEST(S1, S2, S3, S4, null, null, '2022-06-14') AS HIGHEST FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": 1, "value": {"S1": 1647734400000, "S2": 1626393600000, "S3": -508291200000,  "S4": null}},
+        {"topic": "input_topic", "key": 2, "value": {"S1": null, "S2": null, "S3": null,  "S4": null}},
+        {"topic": "input_topic", "key": 3, "value": {"S1": 1655251200000, "S2": 1657756800000, "S3": -7948800000,  "S4": null}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 1, "value": {"HIGHEST": 1655164800000}},
+        {"topic": "OUTPUT", "key": 2, "value": {"HIGHEST": 1655164800000}},
+        {"topic": "OUTPUT", "key": 3, "value": {"HIGHEST": 1657756800000}}
+      ]
     }
   ]
 }

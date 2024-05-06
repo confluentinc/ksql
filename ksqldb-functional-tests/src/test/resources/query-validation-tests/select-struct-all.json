@@ -1,0 +1,120 @@
+{
+  "comments": [
+    "Tests covering SELECT clause with ASTERISK on STRUCT columns (i.e. col0->*)"
+  ],
+  "tests": [
+    {
+      "name": "value struct colum",
+      "statements": [
+        "CREATE STREAM INPUT (k1 INT KEY, v1 STRUCT<a INT, b INT>) WITH (kafka_topic='test_topic', format='JSON');",
+        "CREATE STREAM OUTPUT_1 AS SELECT k1, v1->* FROM INPUT;",
+        "CREATE STREAM OUTPUT_2 AS SELECT I.`K1`, I.`V1`->* FROM INPUT I;",
+        "CREATE STREAM OUTPUT_3 AS SELECT k1, v1->a AS A_FIELD, v1->b AS B_FIELD, v1->* FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic":  "test_topic", "key": 1, "value": {"V1":  {"a": 1, "b": 2}}}
+      ],
+      "outputs": [
+        {"topic":  "OUTPUT_1", "key": 1, "value": {"A": 1, "B": 2}},
+        {"topic":  "OUTPUT_2", "key": 1, "value": {"A": 1, "B": 2}},
+        {"topic":  "OUTPUT_3", "key": 1, "value": {"A_FIELD": 1, "B_FIELD": 2, "A": 1, "B": 2}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT_1", "type": "stream", "schema": "K1 INT KEY, A INT, B INT"},
+          {"name": "OUTPUT_2", "type": "stream", "schema": "K1 INT KEY, A INT, B INT"},
+          {"name": "OUTPUT_3", "type": "stream", "schema": "K1 INT KEY, A_FIELD INT, B_FIELD INT, A INT, B INT"}
+        ]
+      }
+    },
+    {
+      "name": "value nested struct field",
+      "statements": [
+        "CREATE STREAM INPUT (v1 STRUCT<a STRUCT<b STRUCT<f1 INT, f2 STRING>>>) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT_1 AS SELECT v1->a->b->* FROM INPUT;",
+        "CREATE STREAM OUTPUT_2 AS SELECT v1->a->* FROM INPUT;",
+        "CREATE STREAM OUTPUT_3 AS SELECT v1->* FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic":  "test_topic", "key": null, "value": {"V1":  {"a":  {"b":  {"f1": 1, "f2": "2"}}}}}
+      ],
+      "outputs": [
+        {"topic":  "OUTPUT_1", "key": null, "value": {"F1": 1, "F2": "2"}},
+        {"topic":  "OUTPUT_2", "key": null, "value": {"B": {"F1": 1, "F2": "2"}}},
+        {"topic":  "OUTPUT_3", "key": null, "value": {"A": {"B": {"F1": 1, "F2": "2"}}}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT_1", "type": "stream", "schema": "F1 INT, F2 STRING"},
+          {"name": "OUTPUT_2", "type": "stream", "schema": "B STRUCT<F1 INT, F2 STRING>"},
+          {"name": "OUTPUT_3", "type": "stream", "schema": "A STRUCT<B STRUCT<F1 INT, F2 STRING>>"}
+        ]
+      }
+    },
+    {
+      "name": "key struct colum",
+      "statements": [
+        "CREATE STREAM INPUT (k1 STRUCT<a INT, b INT> KEY, v1 INT) WITH (kafka_topic='test_topic', format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT k1, k1->*, v1 FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic":  "test_topic", "key": {"a": 1, "b": 2}, "value": {"v1": 1}}
+      ],
+      "outputs": [
+        {"topic":  "OUTPUT", "key": {"A": 1, "B": 2}, "value": {"A": 1, "B": 2, "V1": 1}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "K1 STRUCT<A INT, B INT> KEY, A INT, B INT, V1 INT"}
+        ]
+      }
+    },
+    {
+      "name": "struct fields with back quoted strings",
+      "statements": [
+        "CREATE STREAM INPUT (v1 STRUCT<`f 1` INT, f2 INT, `f 3` INT>) WITH (kafka_topic='test_topic', format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT v1->* FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic":  "test_topic", "key": null, "value": {"V1":  {"f 1": 1, "f2": 2, "f 3": 3}}}
+      ],
+      "outputs": [
+        {"topic":  "OUTPUT", "key": null, "value": {"f 1": 1, "F2": 2, "f 3": 3}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "`f 1` INT, F2 INT, `f 3` INT"}
+        ]
+      }
+    },
+    {
+      "name": "read all struct fields and insert into another stream",
+      "statements": [
+        "CREATE STREAM INPUT (v1 STRUCT<a INT, b INT>) WITH (kafka_topic='test_topic', format='JSON');",
+        "CREATE STREAM OUTPUT (A INT, B INT) WITH (kafka_topic='OUTPUT', format='JSON');",
+        "INSERT INTO OUTPUT SELECT v1->* FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic":  "test_topic", "key": null, "value": {"V1":  {"a": 1, "b": 2}}}
+      ],
+      "outputs": [
+        {"topic":  "OUTPUT", "key": null, "value": {"A": 1, "B": 2}}
+      ]
+    },
+    {
+      "name": "joins and struct all on projection",
+      "statements": [
+        "CREATE STREAM INPUT_1 (k1 INT KEY, v1 STRUCT<a INT, b INT>) WITH (kafka_topic='test_topic_1', format='JSON');",
+        "CREATE STREAM INPUT_2 (k1 INT KEY, v1 STRUCT<a INT, b INT>) WITH (kafka_topic='test_topic_2', format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT I1.k1, I1.v1->*, I2.v1->a AS I2_A, I2.v1->b AS I2_B FROM INPUT_1 I1 JOIN INPUT_2 I2 WITHIN (1 SECOND, 100 SECONDS) ON I1.k1 = I2.k1;"
+      ],
+      "inputs": [
+        {"topic":  "test_topic_1", "key": 1, "value": {"V1":  {"a": 10, "b": 11}}},
+        {"topic":  "test_topic_2", "key": 1, "value": {"V1":  {"a": 20, "b": 21}}}
+      ],
+      "outputs": [
+        {"topic":  "OUTPUT", "key": 1, "value": {"A": 10, "B": 11, "I2_A": 20, "I2_B": 21}}
+      ]
+    }
+  ]
+}

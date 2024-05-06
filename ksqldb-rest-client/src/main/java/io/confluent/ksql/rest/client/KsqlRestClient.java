@@ -308,6 +308,14 @@ public final class KsqlRestClient implements Closeable {
         ksql, requestPropertiesToSend, Optional.ofNullable(commandSeqNum));
   }
 
+  public RestResponse<List<StreamedRow>> makeQueryStreamRequestProto(
+          final String ksql,
+          final Map<String, Object> requestProperties
+  ) {
+    final KsqlTarget target = target();
+    return target.postQueryStreamRequestProto(ksql, requestProperties);
+  }
+
   public RestResponse<StreamPublisher<String>> makePrintTopicRequest(
       final String ksql,
       final Long commandSeqNum

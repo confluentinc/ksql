@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.structured;
 
+import static io.confluent.ksql.function.UserFunctionLoaderTestUtil.loadAllUserFunctions;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
@@ -31,8 +32,8 @@ import io.confluent.ksql.execution.streams.ExecutionStepFactory;
 import io.confluent.ksql.execution.windows.KsqlWindowExpression;
 import io.confluent.ksql.execution.windows.SessionWindowExpression;
 import io.confluent.ksql.execution.windows.WindowTimeClause;
-import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.InternalFunctionRegistry;
+import io.confluent.ksql.function.MutableFunctionRegistry;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.parser.tree.WindowExpression;
@@ -50,6 +51,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
@@ -84,6 +86,8 @@ public class SchemaKGroupedStreamTest {
       ColumnName.of("IN0")
   );
 
+  private static final MutableFunctionRegistry functionRegistry = new InternalFunctionRegistry();
+
   @Mock
   private KsqlConfig config;
   @Mock
@@ -99,11 +103,15 @@ public class SchemaKGroupedStreamTest {
   @Mock
   private FormatInfo valueformatInfo;
 
-  private final FunctionRegistry functionRegistry = new InternalFunctionRegistry();
   private final QueryContext.Stacker queryContext
       = new QueryContext.Stacker().push("node");
 
   private SchemaKGroupedStream schemaGroupedStream;
+
+  @BeforeClass
+  public static void setUpFunctionRegistry() {
+    loadAllUserFunctions(functionRegistry);
+  }
 
   @Before
   public void setUp() {

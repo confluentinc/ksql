@@ -181,7 +181,7 @@ public class CommandStoreTest {
     );
 
     assertThat(e.getMessage(), containsString(
-        "Could not write the statement into the command topic."
+        "Could not write the statement into the command topic"
     ));
 
     // When:

@@ -127,6 +127,7 @@ public class TransientQueryResourceCleanerIntTest {
         appender = new TestAppender();
         logger = Logger.getRootLogger();
         logger.addAppender(appender);
+
         if (FileUtils.fileExists(stateDir)) {
             FileUtils.cleanDirectory(stateDir);
         }

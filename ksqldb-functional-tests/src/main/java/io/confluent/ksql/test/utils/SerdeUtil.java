@@ -31,6 +31,7 @@ import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
+import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.avro.AvroFormat;
 import io.confluent.ksql.serde.delimited.DelimitedFormat;
 import io.confluent.ksql.serde.json.JsonFormat;
@@ -38,12 +39,15 @@ import io.confluent.ksql.serde.json.JsonSchemaFormat;
 import io.confluent.ksql.serde.kafka.KafkaFormat;
 import io.confluent.ksql.serde.none.NoneFormat;
 import io.confluent.ksql.serde.protobuf.ProtobufFormat;
+import io.confluent.ksql.serde.protobuf.ProtobufNoSRFormat;
 import io.confluent.ksql.serde.protobuf.ProtobufProperties;
 import io.confluent.ksql.test.serde.SerdeSupplier;
 import io.confluent.ksql.test.serde.avro.ValueSpecAvroSerdeSupplier;
+import io.confluent.ksql.test.serde.json.ValueSpecJsonSchemaSerdeSupplier;
 import io.confluent.ksql.test.serde.json.ValueSpecJsonSerdeSupplier;
 import io.confluent.ksql.test.serde.kafka.KafkaSerdeSupplier;
 import io.confluent.ksql.test.serde.none.NoneSerdeSupplier;
+import io.confluent.ksql.test.serde.protobuf.ValueSpecProtobufNoSRSerdeSupplier;
 import io.confluent.ksql.test.serde.protobuf.ValueSpecProtobufSerdeSupplier;
 import io.confluent.ksql.test.serde.string.StringSerdeSupplier;
 import io.confluent.ksql.test.tools.exceptions.InvalidFieldException;
@@ -69,7 +73,8 @@ public final class SerdeUtil {
   public static SerdeSupplier<?> getSerdeSupplier(
       final FormatInfo formatInfo,
       final LogicalSchema schema,
-      final Map<String, Object> properties
+      final Map<String, Object> properties,
+      final SerdeFeatures serdeFeatures
   ) {
     final Format format = FormatFactory.of(formatInfo);
     switch (format.name()) {
@@ -77,8 +82,10 @@ public final class SerdeUtil {
       case ProtobufFormat.NAME:
         return new ValueSpecProtobufSerdeSupplier(
             new ProtobufProperties(formatInfo.getProperties()));
-      case JsonFormat.NAME:       return new ValueSpecJsonSerdeSupplier(false, properties);
-      case JsonSchemaFormat.NAME: return new ValueSpecJsonSerdeSupplier(true, properties);
+      case ProtobufNoSRFormat.NAME:
+        return new ValueSpecProtobufNoSRSerdeSupplier(schema, formatInfo.getProperties());
+      case JsonFormat.NAME:       return new ValueSpecJsonSerdeSupplier(properties);
+      case JsonSchemaFormat.NAME: return new ValueSpecJsonSchemaSerdeSupplier();
       case DelimitedFormat.NAME:  return new StringSerdeSupplier();
       case KafkaFormat.NAME:      return new KafkaSerdeSupplier(schema);
       case NoneFormat.NAME:       return new NoneSerdeSupplier();
@@ -124,7 +131,9 @@ public final class SerdeUtil {
     final SerdeSupplier<T> inner = (SerdeSupplier<T>) getSerdeSupplier(
         keyFormat.getFormatInfo(),
         schema,
-        properties);
+        properties,
+        keyFormat.getFeatures()
+    );
 
     if (!keyFormat.getWindowType().isPresent()) {
       return inner;

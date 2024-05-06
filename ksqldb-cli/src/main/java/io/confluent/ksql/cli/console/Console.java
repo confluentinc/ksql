@@ -33,7 +33,6 @@ import io.confluent.ksql.cli.console.table.builder.ConnectorInfoTableBuilder;
 import io.confluent.ksql.cli.console.table.builder.ConnectorListTableBuilder;
 import io.confluent.ksql.cli.console.table.builder.ConnectorPluginsListTableBuilder;
 import io.confluent.ksql.cli.console.table.builder.DropConnectorTableBuilder;
-import io.confluent.ksql.cli.console.table.builder.ErrorEntityTableBuilder;
 import io.confluent.ksql.cli.console.table.builder.ExecutionPlanTableBuilder;
 import io.confluent.ksql.cli.console.table.builder.FunctionNameListTableBuilder;
 import io.confluent.ksql.cli.console.table.builder.KafkaTopicsListTableBuilder;
@@ -52,13 +51,14 @@ import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.query.QueryError;
 import io.confluent.ksql.rest.ApiJsonMapper;
 import io.confluent.ksql.rest.entity.ArgumentInfo;
+import io.confluent.ksql.rest.entity.AssertSchemaEntity;
+import io.confluent.ksql.rest.entity.AssertTopicEntity;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
 import io.confluent.ksql.rest.entity.ConnectorDescription;
 import io.confluent.ksql.rest.entity.ConnectorList;
 import io.confluent.ksql.rest.entity.ConnectorPluginsList;
 import io.confluent.ksql.rest.entity.CreateConnectorEntity;
 import io.confluent.ksql.rest.entity.DropConnectorEntity;
-import io.confluent.ksql.rest.entity.ErrorEntity;
 import io.confluent.ksql.rest.entity.ExecutionPlan;
 import io.confluent.ksql.rest.entity.FieldInfo;
 import io.confluent.ksql.rest.entity.FieldInfo.FieldType;
@@ -187,14 +187,14 @@ public class Console implements Closeable {
               Console::printConnectorDescription)
           .put(TypeList.class,
               tablePrinter(TypeList.class, TypeListTableBuilder::new))
-          .put(ErrorEntity.class,
-              tablePrinter(ErrorEntity.class, ErrorEntityTableBuilder::new))
           .put(WarningEntity.class,
               tablePrinter(WarningEntity.class, WarningEntityTableBuilder::new))
           .put(VariablesList.class,
               tablePrinter(VariablesList.class, ListVariablesTableBuilder::new))
           .put(TerminateQueryEntity.class,
               tablePrinter(TerminateQueryEntity.class, TerminateQueryTableBuilder::new))
+          .put(AssertTopicEntity.class, Console::printAssertTopic)
+          .put(AssertSchemaEntity.class, Console::printAssertSchema)
           .build();
 
   private static <T extends KsqlEntity> Handler1<KsqlEntity, Console> tablePrinter(
@@ -906,6 +906,26 @@ public class Console implements Closeable {
               .forEach(a -> printDescription(subFormat, a.getName(), a.getDescription()));
         }
     );
+  }
+
+  private void printAssertTopic(final AssertTopicEntity assertTopic) {
+    final String existence = assertTopic.getExists() ? " exists" : " does not exist";
+    writer().printf("Topic " + assertTopic.getTopicName() + existence + ".\n");
+  }
+
+  private void printAssertSchema(final AssertSchemaEntity assertSchema) {
+    if (!assertSchema.getId().isPresent() && !assertSchema.getSubject().isPresent()) {
+      throw new RuntimeException("No subject or id found in AssertSchema response.");
+    }
+
+    final String existence = assertSchema.getExists() ? " exists" : " does not exist";
+    final String subject = assertSchema.getSubject().isPresent()
+        ? " subject " + assertSchema.getSubject().get()
+        : "";
+    final String id = assertSchema.getId().isPresent()
+        ? " id " + assertSchema.getId().get()
+        : "";
+    writer().printf("Schema with" + subject + id + existence + ".\n");
   }
 
   private static String argToString(final ArgumentInfo arg) {

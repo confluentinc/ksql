@@ -15,6 +15,19 @@
       ]
     },
     {
+      "name": "KAFKA in/out",
+      "statements": [
+        "CREATE STREAM TEST (ID STRING KEY, b BYTES) WITH (kafka_topic='test', value_format='KAFKA');",
+        "CREATE STREAM TEST2 AS SELECT * FROM TEST;"
+      ],
+      "inputs": [
+        {"topic": "test", "value": "dmFyaWF0aW9ucw=="}
+      ],
+      "outputs": [
+        {"topic": "TEST2", "value": "dmFyaWF0aW9ucw=="}
+      ]
+    },
+    {
       "name": "JSON in/out",
       "statements": [
         "CREATE STREAM TEST (ID STRING KEY, b BYTES) WITH (kafka_topic='test', value_format='JSON');",
@@ -51,6 +64,19 @@
           {"name": "TEST2", "type": "stream", "schema": "B BYTES"}
         ]
       }
+    },
+    {
+      "name": "PROTOBUF_NOSR in/out",
+      "statements": [
+        "CREATE STREAM TEST (ID STRING KEY, b BYTES) WITH (kafka_topic='test', value_format='PROTOBUF_NOSR');",
+        "CREATE STREAM TEST2 AS SELECT * FROM TEST;"
+      ],
+      "inputs": [
+        {"topic": "test", "value": {"b": "dmFyaWF0aW9ucw=="}}
+      ],
+      "outputs": [
+        {"topic": "TEST2", "value": {"B": "dmFyaWF0aW9ucw=="}}
+      ]
     },
     {
       "name": "AVRO in/out",

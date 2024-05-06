@@ -19,13 +19,10 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
 
-import io.confluent.ksql.GenericKey;
-import io.confluent.ksql.function.AggregateFunctionInitArguments;
-import io.confluent.ksql.function.KsqlAggregateFunction;
+import io.confluent.ksql.function.udaf.Udaf;
 import io.confluent.ksql.schema.ksql.SqlArgument;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.util.Collections;
-import org.apache.kafka.streams.kstream.Merger;
 import org.junit.Test;
 
 public class IntegerMaxKudafTest {
@@ -64,23 +61,21 @@ public class IntegerMaxKudafTest {
 
   @Test
   public void shouldFindCorrectMaxForMerge() {
-    final MaxKudaf integerMaxKudaf = getMaxComparableKudaf();
-    final Merger<GenericKey, Integer> merger = integerMaxKudaf.getMerger();
-    final Integer mergeResult1 = merger.apply(null, 10, 12);
+    final MaxKudaf<Integer> integerMaxKudaf = getMaxComparableKudaf();
+    final Integer mergeResult1 = integerMaxKudaf.merge(10, 12);
     assertThat(mergeResult1, equalTo(12));
-    final Integer mergeResult2 = merger.apply(null, 10, -12);
+    final Integer mergeResult2 = integerMaxKudaf.merge(10, -12);
     assertThat(mergeResult2, equalTo(10));
-    final Integer mergeResult3 = merger.apply(null, -10, 0);
+    final Integer mergeResult3 = integerMaxKudaf.merge(-10, 0);
     assertThat(mergeResult3, equalTo(0));
-
   }
 
-  private MaxKudaf getMaxComparableKudaf() {
-    final KsqlAggregateFunction aggregateFunction = new MaxAggFunctionFactory()
-        .createAggregateFunction(Collections.singletonList(SqlArgument.of(SqlTypes.INTEGER)),
-            AggregateFunctionInitArguments.EMPTY_ARGS);
+  private MaxKudaf<Integer> getMaxComparableKudaf() {
+    final Udaf<Integer, Integer, Integer> aggregateFunction = MaxKudaf.createMaxInt();
+    aggregateFunction.initializeTypeArguments(
+            Collections.singletonList(SqlArgument.of(SqlTypes.INTEGER))
+    );
     assertThat(aggregateFunction, instanceOf(MaxKudaf.class));
-    return  (MaxKudaf) aggregateFunction;
+    return  (MaxKudaf<Integer>) aggregateFunction;
   }
-
 }

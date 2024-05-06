@@ -6,6 +6,11 @@ description: Aggregate functions to use in SQL statements and queries
 keywords: ksqlDB, SQL, function, aggregate
 ---
 
+!!! Important
+    In an aggregation function, providing a `*` character or an empty argument
+    list causes the function to return only the ROWTIME column. For example,
+    calling `AVG(*)` or `AVG()`  returns the  average of ROWTIME.
+
 ## **`AVG`**
 
 ```sql title="Applies to: stream, table<br>Since: 0.6.0"
@@ -32,6 +37,11 @@ The size of the result ARRAY can be limited to a maximum of
 `ksql.functions.collect_list.limit` entries, and any values beyond this
 limit are ignored silently.
 
+!!! note
+
+    In {{ site.ccloud }}, the `ksql.functions.collect_list.limit` config is set
+    to 1000 and can't be changed.
+
 When used with `SESSION` window, sometimes two session windows are merged
 together into one, when a out-of-order record with a timestamp between
 the two windows is processed. In this case, the record limit is calculated by
@@ -56,6 +66,11 @@ each input row (for the specified grouping and time window, if any).
 The size of the result ARRAY can be limited to a maximum of
 `ksql.functions.collect_set.limit` entries, and any values beyond this
 limit are ignored silently.
+
+!!! note
+
+    In {{ site.ccloud }}, the `ksql.functions.collect_set.limit` config is set
+    to 1000 and can't be changed.
 
 When used with a `SESSION` window, sometimes two session windows are merged
 together into one, when a out-of-order record with a timestamp between

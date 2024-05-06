@@ -1,7 +1,7 @@
 {
   "plan" : [ {
     "@type" : "ksqlPlanV1",
-    "statementText" : "CREATE STREAM TEST (C1 INTEGER) WITH (AVRO_SCHEMA_ID=1, KAFKA_TOPIC='input', VALUE_FORMAT='AVRO');",
+    "statementText" : "CREATE STREAM TEST (C1 INTEGER) WITH (KAFKA_TOPIC='input', VALUE_FORMAT='AVRO');",
     "ddlCommand" : {
       "@type" : "createStreamV1",
       "sourceName" : "TEST",

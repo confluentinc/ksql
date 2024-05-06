@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.parser;
 
+import org.antlr.v4.runtime.ParserRuleContext;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertThrows;
@@ -136,9 +137,13 @@ public class SyntaxErrorValidatorTest {
       final RuleContext context,
       final Token offendingToken
   ) {
-    final RecognitionException exception = mock(RecognitionException.class);
-    when(exception.getCtx()).thenReturn(context);
-    when(exception.getOffendingToken()).thenReturn(offendingToken);
+    final RecognitionException exception =
+        new RecognitionException("message", null, null, (ParserRuleContext) context) {
+          @Override
+          public Token getOffendingToken() {
+            return offendingToken;
+          }
+        };
     return exception;
   }
 

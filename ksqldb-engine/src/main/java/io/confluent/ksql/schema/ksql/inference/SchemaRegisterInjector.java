@@ -183,19 +183,17 @@ public class SchemaRegisterInjector implements Injector {
               .plan(sandboxServiceContext, cas)
               .getDdlCommand()
               .get();
+    } catch (final KsqlStatementException e) {
+      throw new KsqlStatementException(
+          "Could not determine output schema for query due to error: " + e.getMessage(),
+          "Could not determine output schema for query due to error: " + e.getUnloggedMessage(),
+          cas.getMaskedStatementText(),
+          e
+      );
     } catch (final Exception e) {
-      if (e instanceof KsqlStatementException) {
-        throw new KsqlStatementException(
-            e.getMessage() == null ? "Server Error" : e.getMessage(),
-            ((KsqlStatementException) e).getUnloggedMessage(),
-            ((KsqlStatementException) e).getSqlStatement(),
-            e
-        );
-      } else {
-        throw new KsqlStatementException(
-            "Could not determine output schema for query due to error: "
-                + e.getMessage(), cas.getMaskedStatementText(), e);
-      }
+      throw new KsqlStatementException(
+          "Could not determine output schema for query due to error: "
+              + e.getMessage(), cas.getMaskedStatementText(), e);
     }
 
     final SchemaAndId rawKeySchema = (SchemaAndId) cas.getSessionConfig().getOverrides()

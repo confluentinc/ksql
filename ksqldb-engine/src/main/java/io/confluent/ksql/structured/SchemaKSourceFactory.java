@@ -35,7 +35,6 @@ import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.serde.InternalFormats;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.WindowInfo;
-import io.confluent.ksql.util.KsqlConfig;
 import java.util.Set;
 import org.apache.kafka.streams.kstream.Windowed;
 
@@ -194,13 +193,7 @@ public final class SchemaKSourceFactory {
           .anyMatch(executionStep -> executionStep instanceof TableSourceV1);
     }
 
-    if (useOldExecutionStepVersion
-        && pseudoColumnVersionToUse != SystemColumns.LEGACY_PSEUDOCOLUMN_VERSION_NUMBER) {
-      throw new IllegalStateException("TableSourceV2 was released in conjunction with pseudocolumn"
-          + "version 1. Something has gone very wrong");
-    }
-    if (buildContext.getKsqlConfig().getBoolean(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED)
-        && !useOldExecutionStepVersion) {
+    if (!useOldExecutionStepVersion) {
       step = ExecutionStepFactory.tableSource(
           contextStacker,
           dataSource.getSchema(),
@@ -210,8 +203,11 @@ public final class SchemaKSourceFactory {
           InternalFormats.of(keyFormat, Formats.from(dataSource.getKsqlTopic()).getValueFormat()),
           pseudoColumnVersionToUse
       );
-
     } else {
+      if (pseudoColumnVersionToUse != SystemColumns.LEGACY_PSEUDOCOLUMN_VERSION_NUMBER) {
+        throw new IllegalStateException("TableSourceV2 was released in conjunction with "
+            + "pseudocolumn version 1. Something has gone very wrong");
+      }
       step = ExecutionStepFactory.tableSourceV1(
           contextStacker,
           dataSource.getSchema(),
@@ -242,7 +238,7 @@ public final class SchemaKSourceFactory {
           .mapToInt(SourceStep::getPseudoColumnVersion)
           .findAny().getAsInt();
     }
-    return SystemColumns.getPseudoColumnVersionFromConfig(buildContext.getKsqlConfig());
+    return SystemColumns.CURRENT_PSEUDOCOLUMN_VERSION_NUMBER;
   }
 
   private static <K> SchemaKStream<K> schemaKStream(

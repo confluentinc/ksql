@@ -26,6 +26,7 @@ import io.confluent.ksql.execution.scalablepush.ScalablePushRegistry;
 import io.confluent.ksql.execution.streams.materialization.Materialization;
 import io.confluent.ksql.execution.streams.materialization.MaterializationProvider;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
+import io.confluent.ksql.logging.processing.ProcessingLoggerFactory;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.name.SourceName;
@@ -35,6 +36,8 @@ import io.confluent.ksql.query.QueryErrorClassifier;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.query.QuerySchemas;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -86,7 +89,8 @@ public class PersistentQueryMetadataImpl
       final long retryBackoffInitialMs,
       final long retryBackoffMaxMs,
       final QueryMetadata.Listener listener,
-      final Optional<ScalablePushRegistry> scalablePushRegistry
+      final Optional<ScalablePushRegistry> scalablePushRegistry,
+      final ProcessingLoggerFactory loggerFactory
   ) {
     // CHECKSTYLE_RULES.ON: ParameterNumberCheck
     super(
@@ -105,7 +109,8 @@ public class PersistentQueryMetadataImpl
         maxQueryErrorsQueueSize,
         retryBackoffInitialMs,
         retryBackoffMaxMs,
-        new QueryListenerWrapper(listener, scalablePushRegistry)
+        new QueryListenerWrapper(listener, scalablePushRegistry),
+        loggerFactory
     );
     this.sinkDataSource = requireNonNull(sinkDataSource, "sinkDataSource");
     this.schemas = requireNonNull(schemas, "schemas");
@@ -233,6 +238,10 @@ public class PersistentQueryMetadataImpl
 
   public Optional<ScalablePushRegistry> getScalablePushRegistry() {
     return scalablePushRegistry;
+  }
+
+  public Collection<String> getSourceTopicNames() {
+    return Collections.emptySet();
   }
 
 }

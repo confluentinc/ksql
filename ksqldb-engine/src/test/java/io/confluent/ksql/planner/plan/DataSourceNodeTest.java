@@ -157,8 +157,6 @@ public class DataSourceNodeTest {
   private ProcessingLogger processingLogger;
   @Mock
   private Projection projection;
-  @Mock
-  private KsqlConfig ksqlConfig;
 
   private DataSourceNode node;
 
@@ -194,13 +192,11 @@ public class DataSourceNodeTest {
 
     givenWindowedSource(false);
 
-    when(ksqlConfig.getBoolean(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED)).thenReturn(true);
     node = new DataSourceNode(
         PLAN_NODE_ID,
         SOME_SOURCE,
         SOME_SOURCE.getName(),
-        false,
-        ksqlConfig
+        false
     );
   }
 
@@ -257,8 +253,7 @@ public class DataSourceNodeTest {
         PLAN_NODE_ID,
         table,
         table.getName(),
-        false,
-        ksqlConfig
+        false
     );
 
     // When:
@@ -274,7 +269,7 @@ public class DataSourceNodeTest {
     final LogicalSchema schema = node.getSchema();
 
     // Then:
-    assertThat(schema, is(REAL_SCHEMA.withPseudoAndKeyColsInValue(false, ksqlConfig)));
+    assertThat(schema, is(REAL_SCHEMA.withPseudoAndKeyColsInValue(false)));
   }
 
   @Test
@@ -287,7 +282,7 @@ public class DataSourceNodeTest {
     final LogicalSchema schema = node.getSchema();
 
     // Then:
-    assertThat(schema, is(REAL_SCHEMA.withPseudoAndKeyColsInValue(true, ksqlConfig)));
+    assertThat(schema, is(REAL_SCHEMA.withPseudoAndKeyColsInValue(true)));
   }
 
   @Test
@@ -434,7 +429,7 @@ public class DataSourceNodeTest {
 
     // Then:
     assertThat(e.getMessage(), containsString("The query used to build `datasource` must include "
-        + "the key columns k0 and k1 in its projection."));
+        + "the key columns k0 and k1 in its projection (eg, SELECT k0, k1...)."));
   }
 
   @Test
@@ -450,7 +445,7 @@ public class DataSourceNodeTest {
 
     // Then:
     assertThat(e.getMessage(), containsString("The query used to build `datasource` must include " +
-        "the key columns k0 and k1 in its projection."));
+        "the key columns k0 and k1 in its projection (eg, SELECT k0, k1...)."));
   }
 
   private void givenNodeWithMockSource() {
@@ -460,8 +455,7 @@ public class DataSourceNodeTest {
         dataSource,
         SOURCE_NAME,
         schemaKStreamFactory,
-        false,
-        ksqlConfig
+        false
     );
   }
 
@@ -481,7 +475,7 @@ public class DataSourceNodeTest {
 
     final KeyFormat keyFormat = windowed
         ? KeyFormat
-        .windowed(format, SerdeFeatures.of(), WindowInfo.of(WindowType.SESSION, Optional.empty()))
+        .windowed(format, SerdeFeatures.of(), WindowInfo.of(WindowType.SESSION, Optional.empty(), Optional.empty()))
         : KeyFormat.nonWindowed(format, SerdeFeatures.of());
 
     when(topic.getKeyFormat()).thenReturn(keyFormat);

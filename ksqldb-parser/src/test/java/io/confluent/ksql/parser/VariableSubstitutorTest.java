@@ -254,6 +254,22 @@ public class VariableSubstitutorTest {
     assertThat(substituted, equalTo("Happy birthday to you!"));
   }
 
+  @Test
+  public void shouldSubstituteVariablesInAssert() {
+    // Given
+    final Map<String, String> variablesMap = new ImmutableMap.Builder<String, String>() {{
+      put("name", "foo");
+    }}.build();
+
+    // When
+    final String substitutedString = VariableSubstitutor.substitute("ASSERT TOPIC '${name}';", variablesMap);
+    final String substitutedIdentifier = VariableSubstitutor.substitute("ASSERT TOPIC ${name};", variablesMap);
+
+    // Then
+    assertThat(substitutedString, equalTo("ASSERT TOPIC 'foo';"));
+    assertThat(substitutedIdentifier, equalTo("ASSERT TOPIC foo;"));
+  }
+
   private void assertReplacedStatements(
       final List<Pair<String, String>> statements,
       final Map<String, String> variablesMap

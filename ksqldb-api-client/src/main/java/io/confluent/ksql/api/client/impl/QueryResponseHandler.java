@@ -15,17 +15,18 @@
 
 package io.confluent.ksql.api.client.impl;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import io.confluent.ksql.api.client.util.JsonMapper;
+import static io.confluent.ksql.util.BytesUtils.toJsonMsg;
+
+import io.confluent.ksql.api.client.util.RowUtil;
 import io.confluent.ksql.rest.entity.QueryResponseMetadata;
 import io.vertx.core.Context;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.parsetools.RecordParser;
+import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 
 abstract class QueryResponseHandler<T extends CompletableFuture<?>> extends ResponseHandler<T> {
-
-  private static final ObjectMapper JSON_MAPPER = JsonMapper.get();
 
   protected boolean hasReadArguments;
 
@@ -35,10 +36,14 @@ abstract class QueryResponseHandler<T extends CompletableFuture<?>> extends Resp
 
   @Override
   protected void doHandleBodyBuffer(final Buffer buff) {
+    final Buffer strippedValidJson = toJsonMsg(buff, true);
+
     if (!hasReadArguments) {
-      handleArgs(buff);
+      handleArgs(strippedValidJson);
     } else {
-      handleRow(buff);
+      if (!Objects.equals(strippedValidJson.toString(), "")) {
+        handleRow(strippedValidJson);
+      }
     }
   }
 
@@ -59,10 +64,16 @@ abstract class QueryResponseHandler<T extends CompletableFuture<?>> extends Resp
 
   private void handleArgs(final Buffer buff) {
     hasReadArguments = true;
-
     final QueryResponseMetadata queryResponseMetadata;
     try {
-      queryResponseMetadata = JSON_MAPPER.readValue(buff.getBytes(), QueryResponseMetadata.class);
+      final Object header = buff.toJsonObject().getMap().get("header");
+      final String queryId = (String) ((Map<?, ?>) header).get("queryId");
+      final String schema = (String) ((Map<?, ?>) header).get("schema");
+      queryResponseMetadata =
+              new QueryResponseMetadata(queryId,
+                      RowUtil.colNamesFromSchema(schema),
+                      RowUtil.colTypesFromSchema(schema),
+                      null);
     } catch (Exception e) {
       cf.completeExceptionally(e);
       return;

@@ -15,23 +15,14 @@
 
 package io.confluent.ksql.function;
 
-import io.confluent.ksql.function.udaf.count.CountAggFunctionFactory;
-import io.confluent.ksql.function.udaf.max.MaxAggFunctionFactory;
-import io.confluent.ksql.function.udaf.min.MinAggFunctionFactory;
-import io.confluent.ksql.function.udaf.sum.SumAggFunctionFactory;
-import io.confluent.ksql.function.udaf.topk.TopKAggregateFunctionFactory;
-import io.confluent.ksql.function.udaf.topkdistinct.TopkDistinctAggFunctionFactory;
 import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.schema.ksql.SqlArgument;
-import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.ParserKeywordValidatorUtil;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import javax.annotation.concurrent.ThreadSafe;
 
 @ThreadSafe
@@ -41,10 +32,6 @@ public class InternalFunctionRegistry implements MutableFunctionRegistry {
   private final Map<String, AggregateFunctionFactory> udafs = new HashMap<>();
   private final Map<String, TableFunctionFactory> udtfs = new HashMap<>();
   private final ParserKeywordValidatorUtil functionNameValidator = new ParserKeywordValidatorUtil();
-
-  public InternalFunctionRegistry() {
-    new BuiltInInitializer(this).init();
-  }
 
   @Override
   public synchronized UdfFactory getUdfFactory(final FunctionName functionName) {
@@ -107,22 +94,6 @@ public class InternalFunctionRegistry implements MutableFunctionRegistry {
       return true;
     }
     return udtfs.containsKey(functionName.text().toUpperCase());
-  }
-
-  @Override
-  public synchronized KsqlAggregateFunction getAggregateFunction(
-      final FunctionName functionName,
-      final SqlType argumentType,
-      final AggregateFunctionInitArguments initArgs
-  ) {
-    final AggregateFunctionFactory udafFactory = udafs.get(functionName.text().toUpperCase());
-    if (udafFactory == null) {
-      throw new KsqlException("No aggregate function with name " + functionName + " exists!");
-    }
-    return udafFactory.createAggregateFunction(
-        Collections.singletonList(SqlArgument.of(argumentType)),
-        initArgs
-    );
   }
 
   @Override
@@ -225,35 +196,6 @@ public class InternalFunctionRegistry implements MutableFunctionRegistry {
       throw new KsqlException(functionName + " is not a valid function name."
           + " Function names must be valid java identifiers and not a KSQL reserved word"
       );
-    }
-  }
-
-  // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
-  private static final class BuiltInInitializer {
-    // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
-
-    private final InternalFunctionRegistry functionRegistry;
-
-    private BuiltInInitializer(
-        final InternalFunctionRegistry functionRegistry
-    ) {
-      this.functionRegistry = Objects.requireNonNull(functionRegistry, "functionRegistry");
-    }
-
-    private void init() {
-      addUdafFunctions();
-    }
-
-    private void addUdafFunctions() {
-
-      functionRegistry.addAggregateFunctionFactory(new CountAggFunctionFactory());
-      functionRegistry.addAggregateFunctionFactory(new SumAggFunctionFactory());
-
-      functionRegistry.addAggregateFunctionFactory(new MaxAggFunctionFactory());
-      functionRegistry.addAggregateFunctionFactory(new MinAggFunctionFactory());
-
-      functionRegistry.addAggregateFunctionFactory(new TopKAggregateFunctionFactory());
-      functionRegistry.addAggregateFunctionFactory(new TopkDistinctAggFunctionFactory());
     }
   }
 }

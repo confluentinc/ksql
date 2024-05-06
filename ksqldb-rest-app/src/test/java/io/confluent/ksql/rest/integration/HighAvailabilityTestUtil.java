@@ -468,8 +468,8 @@ class HighAvailabilityTestUtil {
         Optional.of(mediaType),
         Optional.of(contentType),
         Optional.of(credentials),
-        overrides,
-        requestProperties
+        Optional.empty(),
+        Optional.empty()
     );
   }
 }

@@ -16,11 +16,13 @@
 package io.confluent.ksql.api.client.impl;
 
 import static io.confluent.ksql.api.client.impl.DdlDmlRequestValidators.validateExecuteStatementRequest;
+import static io.netty.handler.codec.http.HttpHeaderNames.ACCEPT;
 import static io.netty.handler.codec.http.HttpHeaderNames.AUTHORIZATION;
 import static io.netty.handler.codec.http.HttpHeaderNames.USER_AGENT;
 import static io.netty.handler.codec.http.HttpResponseStatus.OK;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.api.client.AcksPublisher;
 import io.confluent.ksql.api.client.BatchedQueryResult;
 import io.confluent.ksql.api.client.Client;
@@ -37,6 +39,7 @@ import io.confluent.ksql.api.client.StreamedQueryResult;
 import io.confluent.ksql.api.client.TableInfo;
 import io.confluent.ksql.api.client.TopicInfo;
 import io.confluent.ksql.api.client.exception.KsqlClientException;
+import io.confluent.ksql.rest.entity.KsqlMediaType;
 import io.confluent.ksql.util.AppInfo;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlRequestConfig;
@@ -52,12 +55,14 @@ import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.http.HttpClientResponse;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpVersion;
+import io.vertx.core.http.RequestOptions;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.net.JksOptions;
 import io.vertx.core.net.SocketAddress;
 import io.vertx.core.parsetools.RecordParser;
 import java.nio.charset.Charset;
+import java.time.Duration;
 import java.util.Base64;
 import java.util.Collections;
 import java.util.HashMap;
@@ -480,6 +485,127 @@ public class ClientImpl implements Client {
   }
 
   @Override
+  public CompletableFuture<Void> assertSchema(final String subject, final boolean exists) {
+    return assertSchema(Optional.of(subject), Optional.empty(), exists, Optional.empty());
+  }
+
+  @Override
+  public CompletableFuture<Void> assertSchema(final int id, final boolean exists) {
+    return assertSchema(Optional.empty(), Optional.of(id), exists, Optional.empty());
+  }
+
+  @Override
+  public CompletableFuture<Void> assertSchema(
+      final String subject, final int id, final boolean exists) {
+    return assertSchema(Optional.of(subject), Optional.of(id), exists, Optional.empty());
+  }
+
+  @Override
+  public CompletableFuture<Void> assertSchema(
+      final String subject, final boolean exists, final Duration timeout) {
+    return assertSchema(Optional.of(subject), Optional.empty(), exists, Optional.of(timeout));
+  }
+
+  @Override
+  public CompletableFuture<Void> assertSchema(
+      final int id, final boolean exists, final Duration timeout) {
+    return assertSchema(Optional.empty(), Optional.of(id), exists, Optional.of(timeout));
+  }
+
+  @Override
+  public CompletableFuture<Void> assertSchema(
+      final String subject, final int id, final boolean exists, final Duration timeout) {
+    return assertSchema(Optional.of(subject), Optional.of(id), exists, Optional.of(timeout));
+  }
+
+  private CompletableFuture<Void> assertSchema(
+      final Optional<String> subject,
+      final Optional<Integer> id,
+      final boolean exists,
+      final Optional<Duration> timeout
+  ) {
+    final CompletableFuture<Void> cf = new CompletableFuture<>();
+    final String existClause = exists ? "" : " not exists";
+    final String subjectClause = subject.isPresent() ? " subject '" + subject.get() + "'" : "";
+    final String idClause = id.isPresent() ? " id " + id.get() : "";
+    final String timeoutClause =
+        timeout.isPresent() ? " timeout " + timeout.get().getSeconds() + " seconds" : "";
+    final String command =
+        "assert" + existClause + " schema" + subjectClause + idClause + timeoutClause + ";";
+    makePostRequest(
+        KSQL_ENDPOINT,
+        new JsonObject()
+            .put("ksql", command)
+            .put("sessionVariables", sessionVariables),
+        cf,
+        response -> handleSingleEntityResponse(
+            response, cf, AssertResponseHandler::handleAssertSchemaResponse)
+    );
+    return cf;
+  }
+
+  @Override
+  public CompletableFuture<Void> assertTopic(final String topic, final boolean exists) {
+    return assertTopic(topic, ImmutableMap.of(), exists, Optional.empty());
+  }
+
+  @Override
+  public CompletableFuture<Void> assertTopic(
+      final String topic, final boolean exists, final Duration timeout) {
+    return assertTopic(topic, ImmutableMap.of(), exists, Optional.of(timeout));
+  }
+
+  @Override
+  public CompletableFuture<Void> assertTopic(
+      final String topic, final Map<String, Integer> configs, final boolean exists) {
+    return assertTopic(topic, configs, exists, Optional.empty());
+  }
+
+  @Override
+  public CompletableFuture<Void> assertTopic(
+      final String topic,
+      final Map<String, Integer> configs,
+      final boolean exists,
+      final Duration timeout
+  ) {
+    return assertTopic(topic, configs, exists, Optional.of(timeout));
+  }
+
+  private CompletableFuture<Void> assertTopic(
+      final String topic,
+      final Map<String, Integer> configs,
+      final boolean exists,
+      final Optional<Duration> timeout
+  ) {
+    final CompletableFuture<Void> cf = new CompletableFuture<>();
+    final String existClause = exists ? "" : " not exists";
+    final String configString = configs.size() > 0 ? createConfigString(configs) : "";
+    final String timeoutClause =
+        timeout.isPresent() ? " timeout " + timeout.get().getSeconds() + " seconds" : "";
+    final String command =
+        "assert" + existClause + " topic '" + topic + "'" + configString + timeoutClause + ";";
+    makePostRequest(
+        KSQL_ENDPOINT,
+        new JsonObject()
+            .put("ksql", command)
+            .put("sessionVariables", sessionVariables),
+        cf,
+        response -> handleSingleEntityResponse(
+            response, cf, AssertResponseHandler::handleAssertTopicResponse)
+    );
+    return cf;
+  }
+
+  private String createConfigString(final Map<String, Integer> configs) {
+    return " with ("
+        + configs.entrySet()
+        .stream()
+        .map((entry) -> entry.getKey() + "=" + entry.getValue())
+        .collect(Collectors.joining(","))
+        + ")";
+  }
+
+  @Override
   public void define(final String variable, final Object value) {
     sessionVariables.put(variable, value);
   }
@@ -604,30 +730,55 @@ public class ClientImpl implements Client {
       final Handler<HttpClientResponse> responseHandler,
       final boolean endRequest,
       final HttpMethod method) {
-    HttpClientRequest request = httpClient.request(method,
-        serverSocketAddress, clientOptions.getPort(), clientOptions.getHost(),
-        path,
-        responseHandler)
-        .exceptionHandler(cf::completeExceptionally);
-    request = configureUserAgent(request);
-    if (clientOptions.isUseBasicAuth()) {
-      request = configureBasicAuth(request);
-    }
-    if (clientOptions.getRequestHeaders() != null) {
-      for (final Entry<String, String> entry : clientOptions.getRequestHeaders().entrySet()) {
-        request.putHeader(entry.getKey(), entry.getValue());
+    final RequestOptions options = new RequestOptions();
+    options.setMethod(method);
+    options.setServer(serverSocketAddress);
+    options.setPort(clientOptions.getPort());
+    options.setHost(clientOptions.getHost());
+    options.setURI(path);
+
+    httpClient.request(options, ar -> {
+      if (ar.failed()) {
+        cf.completeExceptionally(ar.cause());
       }
-    }
-    if (endRequest) {
-      request.end(requestBody);
-    } else {
-      final HttpClientRequest finalRequest = request;
-      finalRequest.sendHead(version -> finalRequest.writeCustomFrame(0, 0, requestBody));
-    }
+
+      HttpClientRequest request = ar.result();
+      request.response(response -> {
+        if (response.failed()) {
+          cf.completeExceptionally(response.cause());
+        }
+
+        responseHandler.handle(response.result());
+      });
+      request.exceptionHandler(cf::completeExceptionally);
+
+      request = configureUserAgent(request);
+      if (clientOptions.isUseBasicAuth()) {
+        request = configureBasicAuth(request);
+      }
+      if (path.equals(QUERY_STREAM_ENDPOINT)) {
+        request = configureAcceptTypeToLatestMediaType(request);
+      }
+      if (clientOptions.getRequestHeaders() != null) {
+        for (final Entry<String, String> entry : clientOptions.getRequestHeaders().entrySet()) {
+          request.putHeader(entry.getKey(), entry.getValue());
+        }
+      }
+      if (endRequest) {
+        request.end(requestBody);
+      } else {
+        final HttpClientRequest finalRequest = request;
+        finalRequest.sendHead(version -> finalRequest.writeCustomFrame(0, 0, requestBody));
+      }
+    });
   }
 
   private HttpClientRequest configureBasicAuth(final HttpClientRequest request) {
     return request.putHeader(AUTHORIZATION.toString(), basicAuthHeader);
+  }
+
+  private HttpClientRequest configureAcceptTypeToLatestMediaType(final HttpClientRequest request) {
+    return request.putHeader(ACCEPT.toString(), KsqlMediaType.LATEST_FORMAT.mediaType());
   }
 
   private HttpClientRequest configureUserAgent(final HttpClientRequest request) {

@@ -18,7 +18,6 @@ package io.confluent.ksql.tools.migrations.commands;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.inOrder;
@@ -48,6 +47,7 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.nio.charset.Charset;
 import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.util.Collections;
@@ -101,6 +101,16 @@ public class ApplyMigrationCommandTest {
       + "INSERT INTO FOO VALUES ('${str}');"
       + "UNDEFINE str;"
       + "INSERT INTO FOO VALUES ('${str}');";
+  private static final String ASSERT_TOPIC_COMMANDS = "ASSERT TOPIC 'abc';"
+      + "ASSERT NOT EXISTS TOPIC abc TIMEOUT 10 SECONDS;"
+      + "ASSERT NOT EXISTS TOPIC abc WITH (foo=4, bar=6);"
+      + "ASSERT TOPIC abc WITH (foo=4, bar=6) TIMEOUT 10 SECONDS;";
+  private static final String ASSERT_SCHEMA_COMMANDS = "ASSERT SCHEMA SUBJECT abc;"
+      + "ASSERT NOT EXISTS SCHEMA ID 6;"
+      + "ASSERT SCHEMA SUBJECT 'abc' ID 6;"
+      + "ASSERT SCHEMA SUBJECT abc TIMEOUT 10 SECONDS;"
+      + "ASSERT SCHEMA ID 6 TIMEOUT 10 SECONDS;"
+      + "ASSERT NOT EXISTS SCHEMA SUBJECT abc ID 6 TIMEOUT 10 SECONDS;";
 
   @Rule
   public TemporaryFolder folder = KsqlTestFolder.temporaryFolder();
@@ -155,14 +165,23 @@ public class ApplyMigrationCommandTest {
     when(ksqlClient.describeSource("`FOO`")).thenReturn(fooDescriptionCf);
     when(ksqlClient.createConnector("`WOOF`", false, CONNECTOR_PROPERTIES, false)).thenReturn(voidCf);
     when(ksqlClient.createConnector("`WOOF`", false, CONNECTOR_PROPERTIES, true)).thenReturn(voidCf);
-    when(ksqlClient.dropConnector("WOOF", false)).thenReturn(voidCf);
-    when(ksqlClient.dropConnector("WOOF", true)).thenReturn(voidCf);
+    when(ksqlClient.dropConnector("`WOOF`", false)).thenReturn(voidCf);
+    when(ksqlClient.dropConnector("`WOOF`", true)).thenReturn(voidCf);
     when(sourceDescriptionCf.get()).thenReturn(sourceDescription);
     when(statementResultCf.get()).thenReturn(statementResult);
     when(fooDescriptionCf.get()).thenReturn(fooDescription);
     when(fooDescription.fields()).thenReturn(Collections.singletonList(field));
     when(field.name()).thenReturn("A");
-
+    when(ksqlClient.assertTopic("abc",ImmutableMap.of(), true)).thenReturn(voidCf);
+    when(ksqlClient.assertTopic("abc", ImmutableMap.of(), false, Duration.ofSeconds(10))).thenReturn(voidCf);
+    when(ksqlClient.assertTopic("abc", ImmutableMap.of("FOO", 4, "BAR", 6), false)).thenReturn(voidCf);
+    when(ksqlClient.assertTopic("abc", ImmutableMap.of("FOO", 4, "BAR", 6), true, Duration.ofSeconds(10))).thenReturn(voidCf);
+    when(ksqlClient.assertSchema("abc", true)).thenReturn(voidCf);
+    when(ksqlClient.assertSchema(6, false)).thenReturn(voidCf);
+    when(ksqlClient.assertSchema("abc", 6, true)).thenReturn(voidCf);
+    when(ksqlClient.assertSchema("abc", true, Duration.ofSeconds(10))).thenReturn(voidCf);
+    when(ksqlClient.assertSchema(6, true, Duration.ofSeconds(10))).thenReturn(voidCf);
+    when(ksqlClient.assertSchema("abc", 6, false, Duration.ofSeconds(10))).thenReturn(voidCf);
     migrationsDir = folder.getRoot().getPath();
   }
 
@@ -241,7 +260,7 @@ public class ApplyMigrationCommandTest {
       inOrder.verify(ksqlClient).executeStatement(COMMAND, new HashMap<>());
       inOrder.verify(ksqlClient).define("pre", "a");
       inOrder.verify(ksqlClient).define("str", "abc");
-      inOrder.verify(ksqlClient).executeStatement(eq("CREATE STREAM ${str} AS SELECT * FROM FOO;"), propCaptor.capture());
+      inOrder.verify(ksqlClient).executeStatement(eq("CREATE STREAM abc AS SELECT * FROM FOO;"), propCaptor.capture());
       assertThat(propCaptor.getValue().size(), is(1));
       assertThat(propCaptor.getValue().get("abc"), is("yay"));
       inOrder.verify(ksqlClient).insertInto("`FOO`", new KsqlObject(ImmutableMap.of("`A`", "abc")));
@@ -664,7 +683,7 @@ public class ApplyMigrationCommandTest {
     assertThat(result, is(0));
     final InOrder inOrder = inOrder(ksqlClient);
     verifyMigratedVersion(inOrder, 3, "1", MigrationState.MIGRATED,
-        () -> inOrder.verify(ksqlClient).dropConnector("WOOF", false));
+        () -> inOrder.verify(ksqlClient).dropConnector("`WOOF`", false));
     inOrder.verify(ksqlClient).close();
     inOrder.verifyNoMoreInteractions();
   }
@@ -686,7 +705,7 @@ public class ApplyMigrationCommandTest {
     assertThat(result, is(0));
     final InOrder inOrder = inOrder(ksqlClient);
     verifyMigratedVersion(inOrder, 3, "1", MigrationState.MIGRATED,
-        () -> inOrder.verify(ksqlClient).dropConnector("WOOF", true));
+        () -> inOrder.verify(ksqlClient).dropConnector("`WOOF`", true));
     inOrder.verify(ksqlClient).close();
     inOrder.verifyNoMoreInteractions();
   }
@@ -705,6 +724,62 @@ public class ApplyMigrationCommandTest {
 
     // Then:
     assertThat(result, is(1));
+  }
+
+  @Test
+  public void shouldApplyAssertTopicCommands() throws Exception {
+    command = PARSER.parse("-v", "3");
+    createMigrationFile(1, NAME, migrationsDir, COMMAND);
+    createMigrationFile(3, NAME, migrationsDir, ASSERT_TOPIC_COMMANDS);
+    givenCurrentMigrationVersion("1");
+    givenAppliedMigration(1, NAME, MigrationState.MIGRATED);
+
+    // When:
+    final int result = command.command(config, (cfg, headers) -> ksqlClient, migrationsDir, Clock.fixed(
+        Instant.ofEpochMilli(1000), ZoneId.systemDefault()));
+
+    // Then:
+    assertThat(result, is(0));
+    final InOrder inOrder = inOrder(ksqlClient);
+
+    verifyMigratedVersion(inOrder, 3, "1", MigrationState.MIGRATED,
+        () -> {
+          inOrder.verify(ksqlClient).assertTopic("abc", ImmutableMap.of(), true);
+          inOrder.verify(ksqlClient).assertTopic("abc", ImmutableMap.of(), false, Duration.ofSeconds(10));
+          inOrder.verify(ksqlClient).assertTopic("abc", ImmutableMap.of("FOO", 4, "BAR", 6), false);
+          inOrder.verify(ksqlClient).assertTopic("abc", ImmutableMap.of("FOO", 4, "BAR", 6), true, Duration.ofSeconds(10));
+        });
+    inOrder.verify(ksqlClient).close();
+    inOrder.verifyNoMoreInteractions();
+  }
+
+  @Test
+  public void shouldApplyAssertSchemaCommands() throws Exception {
+    command = PARSER.parse("-v", "3");
+    createMigrationFile(1, NAME, migrationsDir, COMMAND);
+    createMigrationFile(3, NAME, migrationsDir, ASSERT_SCHEMA_COMMANDS);
+    givenCurrentMigrationVersion("1");
+    givenAppliedMigration(1, NAME, MigrationState.MIGRATED);
+
+    // When:
+    final int result = command.command(config, (cfg, headers) -> ksqlClient, migrationsDir, Clock.fixed(
+        Instant.ofEpochMilli(1000), ZoneId.systemDefault()));
+
+    // Then:
+    assertThat(result, is(0));
+    final InOrder inOrder = inOrder(ksqlClient);
+
+    verifyMigratedVersion(inOrder, 3, "1", MigrationState.MIGRATED,
+        () -> {
+          inOrder.verify(ksqlClient).assertSchema("abc", true);
+          inOrder.verify(ksqlClient).assertSchema(6, false);
+          inOrder.verify(ksqlClient).assertSchema("abc", 6, true);
+          inOrder.verify(ksqlClient).assertSchema("abc", true, Duration.ofSeconds(10));
+          inOrder.verify(ksqlClient).assertSchema(6, true, Duration.ofSeconds(10));
+          inOrder.verify(ksqlClient).assertSchema("abc", 6, false, Duration.ofSeconds(10));
+        });
+    inOrder.verify(ksqlClient).close();
+    inOrder.verifyNoMoreInteractions();
   }
 
   private void createMigrationFile(

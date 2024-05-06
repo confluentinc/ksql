@@ -70,9 +70,11 @@ import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.SqlBaseParser.AlterOptionContext;
 import io.confluent.ksql.parser.SqlBaseParser.AlterSourceContext;
 import io.confluent.ksql.parser.SqlBaseParser.ArrayConstructorContext;
+import io.confluent.ksql.parser.SqlBaseParser.AssertSchemaContext;
 import io.confluent.ksql.parser.SqlBaseParser.AssertStreamContext;
 import io.confluent.ksql.parser.SqlBaseParser.AssertTableContext;
 import io.confluent.ksql.parser.SqlBaseParser.AssertTombstoneContext;
+import io.confluent.ksql.parser.SqlBaseParser.AssertTopicContext;
 import io.confluent.ksql.parser.SqlBaseParser.AssertValuesContext;
 import io.confluent.ksql.parser.SqlBaseParser.CreateConnectorContext;
 import io.confluent.ksql.parser.SqlBaseParser.DescribeConnectorContext;
@@ -89,7 +91,9 @@ import io.confluent.ksql.parser.SqlBaseParser.LimitClauseContext;
 import io.confluent.ksql.parser.SqlBaseParser.ListConnectorsContext;
 import io.confluent.ksql.parser.SqlBaseParser.ListTypesContext;
 import io.confluent.ksql.parser.SqlBaseParser.NumberContext;
+import io.confluent.ksql.parser.SqlBaseParser.PauseQueryContext;
 import io.confluent.ksql.parser.SqlBaseParser.RegisterTypeContext;
+import io.confluent.ksql.parser.SqlBaseParser.ResumeQueryContext;
 import io.confluent.ksql.parser.SqlBaseParser.RetentionClauseContext;
 import io.confluent.ksql.parser.SqlBaseParser.SourceNameContext;
 import io.confluent.ksql.parser.SqlBaseParser.TablePropertiesContext;
@@ -103,9 +107,11 @@ import io.confluent.ksql.parser.tree.AllColumns;
 import io.confluent.ksql.parser.tree.AlterOption;
 import io.confluent.ksql.parser.tree.AlterSource;
 import io.confluent.ksql.parser.tree.AlterSystemProperty;
+import io.confluent.ksql.parser.tree.AssertSchema;
 import io.confluent.ksql.parser.tree.AssertStatement;
 import io.confluent.ksql.parser.tree.AssertStream;
 import io.confluent.ksql.parser.tree.AssertTombstone;
+import io.confluent.ksql.parser.tree.AssertTopic;
 import io.confluent.ksql.parser.tree.AssertValues;
 import io.confluent.ksql.parser.tree.ColumnConstraints;
 import io.confluent.ksql.parser.tree.CreateConnector;
@@ -142,10 +148,12 @@ import io.confluent.ksql.parser.tree.ListTopics;
 import io.confluent.ksql.parser.tree.ListTypes;
 import io.confluent.ksql.parser.tree.ListVariables;
 import io.confluent.ksql.parser.tree.PartitionBy;
+import io.confluent.ksql.parser.tree.PauseQuery;
 import io.confluent.ksql.parser.tree.PrintTopic;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.RegisterType;
 import io.confluent.ksql.parser.tree.Relation;
+import io.confluent.ksql.parser.tree.ResumeQuery;
 import io.confluent.ksql.parser.tree.Select;
 import io.confluent.ksql.parser.tree.SelectItem;
 import io.confluent.ksql.parser.tree.SetProperty;
@@ -153,6 +161,7 @@ import io.confluent.ksql.parser.tree.ShowColumns;
 import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.Statements;
+import io.confluent.ksql.parser.tree.StructAll;
 import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.parser.tree.TableElements;
@@ -756,6 +765,30 @@ public class AstBuilder {
     }
 
     @Override
+    public Node visitPauseQuery(final PauseQueryContext context) {
+      final Optional<NodeLocation> location = getLocation(context);
+
+      return context.ALL() != null
+          ? PauseQuery.all(location)
+          : PauseQuery.query(
+              location,
+              new QueryId(ParserUtil.getIdentifierText(false, context.identifier()))
+          );
+    }
+
+    @Override
+    public Node visitResumeQuery(final ResumeQueryContext context) {
+      final Optional<NodeLocation> location = getLocation(context);
+
+      return context.ALL() != null
+          ? ResumeQuery.all(location)
+          : ResumeQuery.query(
+              location,
+              new QueryId(ParserUtil.getIdentifierText(false, context.identifier()))
+          );
+    }
+
+    @Override
     public Node visitTerminateQuery(final SqlBaseParser.TerminateQueryContext context) {
       final Optional<NodeLocation> location = getLocation(context);
 
@@ -829,12 +862,7 @@ public class AstBuilder {
     public Node visitPrintTopic(final SqlBaseParser.PrintTopicContext context) {
       final boolean fromBeginning = context.printClause().FROM() != null;
 
-      final String topicName;
-      if (context.STRING() != null) {
-        topicName = ParserUtil.unquote(context.STRING().getText(), "'");
-      } else {
-        topicName = ParserUtil.getIdentifierText(true, context.identifier());
-      }
+      final String topicName = getResourceName(context.resourceName());
 
       final IntervalClauseContext intervalContext = context.printClause().intervalClause();
       final OptionalInt interval = intervalContext == null
@@ -850,6 +878,16 @@ public class AstBuilder {
           interval,
           limit
       );
+    }
+
+    private String getResourceName(
+        final SqlBaseParser.ResourceNameContext context
+    ) {
+      if (context.STRING() != null) {
+        return ParserUtil.unquote(context.STRING().getText(), "'");
+      } else {
+        return ParserUtil.getIdentifierText(true, context.identifier());
+      }
     }
 
     @Override
@@ -1189,6 +1227,12 @@ public class AstBuilder {
     }
 
     @Override
+    public Node visitSelectStructAll(final SqlBaseParser.SelectStructAllContext context) {
+      final Expression baseExpression = (Expression) visit(context.base);
+      return new StructAll(getLocation(context), baseExpression);
+    }
+
+    @Override
     public Node visitColumnReference(final SqlBaseParser.ColumnReferenceContext context) {
       final UnqualifiedColumnReferenceExp column = ColumnReferenceParser.resolve(context);
       if (lambdaArgs.contains(column.toString())) {
@@ -1394,6 +1438,54 @@ public class AstBuilder {
           ParserUtil.getIdentifierText(context.identifier()),
           typeParser.getType(context.type()),
           context.EXISTS() != null
+      );
+    }
+
+    @Override
+    public Node visitAssertTopic(final AssertTopicContext context) {
+      return new AssertTopic(
+          getLocation(context),
+          getResourceName(context.resourceName()),
+          context.WITH() == null
+              ? ImmutableMap.of()
+              : processTableProperties(context.tableProperties()),
+          context.timeout() == null
+              ? Optional.empty()
+              : Optional.of(getTimeClause(
+                  context.timeout().number(), context.timeout().windowUnit())),
+          context.EXISTS() == null
+      );
+    }
+
+    @Override
+    public Node visitAssertSchema(final AssertSchemaContext context) {
+      if (context.resourceName() == null && context.literal() == null) {
+        throw new KsqlException("ASSERT SCHEMA statements much include a subject name or an id");
+      }
+
+      final Optional<Integer> id;
+      if (context.literal() == null) {
+        id = Optional.empty();
+      } else {
+        final Object value = ((Literal) visit(context.literal())).getValue();
+        if (value instanceof Integer) {
+          id = Optional.of((Integer) value);
+        } else {
+          throw new KsqlException("ID must be an integer");
+        }
+      }
+
+      return new AssertSchema(
+          getLocation(context),
+          context.resourceName() == null
+              ? Optional.empty()
+              : Optional.of(getResourceName(context.resourceName())),
+          id,
+          context.timeout() == null
+              ? Optional.empty()
+              : Optional.of(getTimeClause(
+                  context.timeout().number(), context.timeout().windowUnit())),
+          context.EXISTS() == null
       );
     }
 

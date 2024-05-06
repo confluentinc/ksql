@@ -26,9 +26,11 @@ import java.util.regex.Pattern;
  */
 public enum KsqlMediaType {
 
-  KSQL_V1_JSON("application/vnd.ksql.v1+json");
+  KSQL_V1_JSON("application/vnd.ksql.v1+json"),
+  KSQL_V1_PROTOBUF("application/vnd.ksql.v1+protobuf");
 
   public static final KsqlMediaType LATEST_FORMAT = KSQL_V1_JSON;
+  public static final KsqlMediaType LATEST_FORMAT_PROTOBUF = KSQL_V1_PROTOBUF;
 
   private final int version;
   private final String mediaType;

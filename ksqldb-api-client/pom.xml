@@ -188,6 +188,7 @@
                             <shadedArtifactAttached>true</shadedArtifactAttached>
                             <shadedClassifierName>with-dependencies</shadedClassifierName>
                             <createDependencyReducedPom>false</createDependencyReducedPom>
+                            
                             <filters>
                                 <filter>
                                     <excludes>

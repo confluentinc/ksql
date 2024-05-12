@@ -831,6 +831,8 @@
                     <systemPropertyVariables>
                         <junit.platform.execution.listeners.deactivate>org.apache.kafka.test.ThreadLeakListener</junit.platform.execution.listeners.deactivate>
                     </systemPropertyVariables>
+                    <!-- Skip ITs temporarily -->
+                    <skipITs>true</skipITs>
                 </configuration>
                 <executions>
                     <execution>

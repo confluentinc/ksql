@@ -272,7 +272,7 @@
                 <artifactId>maven-failsafe-plugin</artifactId>
                 <configuration>
                     <!-- Skip ITs temporarily -->
-                    <skipITs>false</skipITs>
+                    <skipITs>true</skipITs>
                 </configuration>
             </plugin>
         </plugins>

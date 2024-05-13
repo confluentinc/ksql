@@ -106,6 +106,10 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
   private static final String ZK_URL_PROP = "authorizer.zookeeper.url";
   private static final String LOG_CLEANER_ENABLE_PROP = "log.cleaner.enable";
 
+  private static final String ZK_CONNECT_PROP = "zookeeper.connect";
+  private static final String ZK_CONNECTION_TIMEOUT_MS_PROP = "zookeeper.connection.timeout.ms";
+  private static final String ZK_SESSION_TIMEOUT_MS_PROP = "zookeeper.session.timeout.ms";
+
   public static final Credentials VALID_USER1 =
       new Credentials("valid_user_1", "some-password");
   public static final Credentials VALID_USER2 =
@@ -580,7 +584,7 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
     // Set the log dir for the node:
     config.put(KafkaConfig.LogDirProp(), logDir);
     // Need to know where ZK is:
-    config.put(KafkaConfig.ZkConnectProp(), zookeeper.connectString());
+    config.put(ZK_CONNECT_PROP, zookeeper.connectString());
     config.put(ZK_URL_PROP, zookeeper.connectString());
     // Default to small number of partitions for auto-created topics:
     config.put(KafkaConfig.NumPartitionsProp(), 1);
@@ -595,9 +599,9 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
     // Shutdown quick:
     config.put(KafkaConfig.ControlledShutdownEnableProp(), false);
     // Set ZK connect timeout high enough to give ZK time to build log file on build server:
-    config.put(KafkaConfig.ZkConnectionTimeoutMsProp(), (int) ZK_CONNECT_TIMEOUT.toMillis());
+    config.put(ZK_CONNECTION_TIMEOUT_MS_PROP, (int) ZK_CONNECT_TIMEOUT.toMillis());
     // Set ZK session timeout high enough that slow build servers don't hit it:
-    config.put(KafkaConfig.ZkSessionTimeoutMsProp(), (int) ZK_SESSION_TIMEOUT.toMillis());
+    config.put(ZK_SESSION_TIMEOUT_MS_PROP, (int) ZK_SESSION_TIMEOUT.toMillis());
     // Explicitly set to be less that the default 30 second timeout of KSQL functional tests
     config.put(KafkaConfig.ControllerSocketTimeoutMsProp(), 20_000);
     // Streams runs multiple consumers, so let's give them all a chance to join.

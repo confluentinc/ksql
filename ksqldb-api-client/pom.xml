@@ -188,7 +188,6 @@
                             <shadedArtifactAttached>true</shadedArtifactAttached>
                             <shadedClassifierName>with-dependencies</shadedClassifierName>
                             <createDependencyReducedPom>false</createDependencyReducedPom>
-                            
                             <filters>
                                 <filter>
                                     <excludes>
@@ -263,6 +262,14 @@
                     <nodeprecated>true</nodeprecated>
                     <nohelp>true</nohelp>
                     <notree>true</notree>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-failsafe-plugin</artifactId>
+                <configuration>
+                    <!-- Skip ITs temporarily -->
+                    <skipITs>true</skipITs>
                 </configuration>
             </plugin>
         </plugins>

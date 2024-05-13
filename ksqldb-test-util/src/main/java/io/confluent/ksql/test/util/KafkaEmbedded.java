@@ -72,6 +72,8 @@ class KafkaEmbedded {
 
   private static final Logger log = LoggerFactory.getLogger(KafkaEmbedded.class);
 
+  private static final String ZK_CONNECT_PROP = "zookeeper.connect";
+
   private final Properties config;
   private final KafkaServer kafka;
 
@@ -244,7 +246,7 @@ class KafkaEmbedded {
       };
 
       assertThatEventually(
-          "topics not all prresent after timeout",
+          "topics not all present after timeout",
           remaining,
           is(required)
       );
@@ -345,7 +347,7 @@ class KafkaEmbedded {
   }
 
   private String zookeeperConnect() {
-    return config.getProperty(KafkaConfig.ZkConnectProp());
+    return config.getProperty(ZK_CONNECT_PROP);
   }
 
   private String logDir() {

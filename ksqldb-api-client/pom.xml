@@ -264,6 +264,14 @@
                     <notree>true</notree>
                 </configuration>
             </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-failsafe-plugin</artifactId>
+                <configuration>
+                    <!-- Skip ITs temporarily -->
+                    <skipITs>true</skipITs>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
 </project>

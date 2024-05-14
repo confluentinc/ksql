@@ -252,7 +252,10 @@ public class KsqlAvroSerializerTest {
 
     // Then:
     assertThat(e.getCause(), (hasMessage(containsString(
-        "java.lang.Integer cannot be cast to org.apache.kafka.connect.data.Struct"))));
+        "class java.lang.Integer cannot be cast to class " +
+                "org.apache.kafka.connect.data.Struct " +
+                "(java.lang.Integer is in module java.base of loader 'bootstrap'; " +
+                "org.apache.kafka.connect.data.Struct is in unnamed module of loader 'app')"))));
   }
 
   @Test
@@ -481,7 +484,8 @@ public class KsqlAvroSerializerTest {
 
     // Then:
     assertThat(e.getCause(), (hasMessage(CoreMatchers.is(
-        "java.lang.Boolean cannot be cast to java.util.List"))));
+        "class java.lang.Boolean cannot be cast to class java.util.List " +
+                "(java.lang.Boolean and java.util.List are in module java.base of loader 'bootstrap')"))));
   }
 
   @Test
@@ -668,7 +672,8 @@ public class KsqlAvroSerializerTest {
 
     // Then:
     assertThat(e.getCause(), (hasMessage(CoreMatchers.is(
-        "java.lang.Boolean cannot be cast to java.util.Map"))));
+        "class java.lang.Boolean cannot be cast to class java.util.Map " +
+                "(java.lang.Boolean and java.util.Map are in module java.base of loader 'bootstrap')"))));
   }
 
   @Test

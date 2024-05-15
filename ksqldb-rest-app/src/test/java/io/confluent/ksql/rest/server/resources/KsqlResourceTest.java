@@ -143,7 +143,6 @@ import io.confluent.ksql.rest.server.computation.CommandRunner;
 import io.confluent.ksql.rest.server.computation.CommandStatusFuture;
 import io.confluent.ksql.rest.server.computation.CommandStore;
 import io.confluent.ksql.rest.server.computation.QueuedCommandStatus;
-import io.confluent.ksql.rest.server.execution.ConnectServerErrors;
 import io.confluent.ksql.rest.util.EntityUtil;
 import io.confluent.ksql.rest.util.TerminateCluster;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -250,10 +249,14 @@ public class KsqlResourceTest {
               "VALUE_FORMAT", new StringLiteral("avro")
           )),
           false));
-  private static final ConfiguredStatement<CreateStream> CFG_0_WITH_SCHEMA = ConfiguredStatement.of(
-      STMT_0_WITH_SCHEMA,
-      SessionConfig.of(new KsqlConfig(getDefaultKsqlConfig()), ImmutableMap.of())
-  );
+
+  private static final Properties DEFAULT_KSQL_CONFIG = getDefaultKsqlConfig();
+
+  private static final ConfiguredStatement<CreateStream> CFG_0_WITH_SCHEMA =
+      ConfiguredStatement.of(
+        STMT_0_WITH_SCHEMA,
+        SessionConfig.of(new KsqlConfig(DEFAULT_KSQL_CONFIG), ImmutableMap.of())
+    );
 
   private static final PreparedStatement<CreateStream> STMT_1_WITH_SCHEMA = PreparedStatement.of(
       "other sql with schema",
@@ -270,7 +273,7 @@ public class KsqlResourceTest {
           false));
   private static final ConfiguredStatement<CreateStream> CFG_1_WITH_SCHEMA = ConfiguredStatement
       .of(STMT_1_WITH_SCHEMA,
-          SessionConfig.of(new KsqlConfig(getDefaultKsqlConfig()), ImmutableMap.of())
+          SessionConfig.of(new KsqlConfig(DEFAULT_KSQL_CONFIG), ImmutableMap.of())
       );
 
   private static final LogicalSchema SOME_SCHEMA = LogicalSchema.builder()
@@ -315,8 +318,6 @@ public class KsqlResourceTest {
   @Mock
   private Errors errorsHandler;
   @Mock
-  private ConnectServerErrors connectErrorHandler;
-  @Mock
   private DenyListPropertyValidator denyListPropertyValidator;
   @Mock
   private Supplier<String> commandRunnerWarning;
@@ -351,7 +352,7 @@ public class KsqlResourceTest {
     serviceContext = TestServiceContext.create(kafkaTopicClient, kafkaConsumerGroupClient);
     schemaRegistryClient = serviceContext.getSchemaRegistryClient();
     registerValueSchema(schemaRegistryClient);
-    ksqlRestConfig = new KsqlRestConfig(getDefaultKsqlConfig());
+    ksqlRestConfig = new KsqlRestConfig(DEFAULT_KSQL_CONFIG);
     ksqlConfig = new KsqlConfig(ksqlRestConfig.getKsqlConfigProperties());
     final KsqlExecutionContext.ExecuteResult result = mock(KsqlExecutionContext.ExecuteResult.class);
     when(sandbox.execute(any(), any(ConfiguredKsqlPlan.class))).thenReturn(result);
@@ -453,7 +454,6 @@ public class KsqlResourceTest {
             new TopicDeleteInjector(ec, sc)),
         Optional.of(authorizationValidator),
         errorsHandler,
-        connectErrorHandler,
         denyListPropertyValidator,
         commandRunnerWarning
     );
@@ -486,7 +486,6 @@ public class KsqlResourceTest {
             new TopicDeleteInjector(ec, sc)),
         Optional.of(authorizationValidator),
         errorsHandler,
-        connectErrorHandler,
         denyListPropertyValidator,
         commandRunnerWarning
     );
@@ -2105,6 +2104,7 @@ public class KsqlResourceTest {
     assertThat(result.getMessage(),
         containsString("Statement is too large to parse. "
             + "This may be caused by having too many nested expressions in the statement."));
+    assertThat(((KsqlStatementErrorMessage) result).getStatementText(), is(secondStatement));
   }
 
   @Test
@@ -2159,6 +2159,9 @@ public class KsqlResourceTest {
     assertThat(response.getEntity().toString(),
         CoreMatchers
             .startsWith("Could not write the statement 'TERMINATE CLUSTER;' into the command "));
+    assertThat(response.getEntity(), instanceOf(KsqlStatementErrorMessage.class));
+    final KsqlStatementErrorMessage entity = (KsqlStatementErrorMessage) response.getEntity();
+    assertThat(entity.getStatementText(), containsString("TERMINATE CLUSTER"));
   }
 
   @Test
@@ -2291,6 +2294,9 @@ public class KsqlResourceTest {
     assertThat(e, exceptionErrorMessage(errorMessage(is(
         "Could not write the statement '" + statement
             + "' into the command topic." + System.lineSeparator() + "Caused by: blah"))));
+    assertThat(e.getResponse().getEntity(), instanceOf(KsqlStatementErrorMessage.class));
+    final KsqlStatementErrorMessage entity = (KsqlStatementErrorMessage) e.getResponse().getEntity();
+    assertThat(entity.getStatementText(), containsString(statement));
   }
 
   private Answer<?> executeAgainstEngine(final String sql) {
@@ -2387,8 +2393,8 @@ public class KsqlResourceTest {
                 ? ImmutableSet.of(md.getResultTopic().get().getKafkaTopicName())
                 : ImmutableSet.of(),
             md.getQueryId(),
-            QueryStatusCount.fromStreamsStateCounts(
-                Collections.singletonMap(md.getState(), 1)), KsqlConstants.KsqlQueryType.PERSISTENT)
+            new QueryStatusCount(Collections.singletonMap(KsqlConstants.fromStreamsState(md.getState()), 1)),
+            KsqlConstants.KsqlQueryType.PERSISTENT)
     ).collect(Collectors.toList());
   }
 
@@ -2533,7 +2539,6 @@ public class KsqlResourceTest {
             new TopicDeleteInjector(ec, sc)),
         Optional.of(authorizationValidator),
         errorsHandler,
-        connectErrorHandler,
         denyListPropertyValidator,
         commandRunnerWarning
     );
@@ -2571,6 +2576,21 @@ public class KsqlResourceTest {
 
     // Then:
     assertThat(response.getStatus(), equalTo(400));
+  }
+
+  @Test
+  public void shouldNotBadRequestWhenIsValidatorIsCalledWithNonQueryLevelProps() {
+    final Map<String, Object> properties = new HashMap<>();
+    properties.put(StreamsConfig.COMMIT_INTERVAL_MS_CONFIG, "");
+    givenKsqlConfigWith(ImmutableMap.of(
+        KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED, true
+    ));
+
+    // When:
+    final EndpointResponse response = ksqlResource.isValidProperty("ksql.streams.auto.offset.reset");
+
+    // Then:
+    assertThat(response.getStatus(), equalTo(200));
   }
 
   @Test
@@ -2643,7 +2663,6 @@ public class KsqlResourceTest {
             new TopicDeleteInjector(ec, sc)),
         Optional.of(authorizationValidator),
         errorsHandler,
-        connectErrorHandler,
         denyListPropertyValidator,
         commandRunnerWarning
     );

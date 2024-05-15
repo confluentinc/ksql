@@ -32,6 +32,7 @@ import java.util.stream.Collectors;
 import org.apache.kafka.common.KafkaFuture;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KafkaStreams.StateListener;
+import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.errors.StreamsException;
 import org.apache.kafka.streams.errors.StreamsUncaughtExceptionHandler;
 import org.apache.kafka.streams.processor.TaskId;
@@ -247,6 +248,9 @@ public class SharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRuntime {
 
   @Override
   public void overrideStreamsProperties(final Map<String, Object> newProperties) {
+    newProperties.put(StreamsConfig.APPLICATION_SERVER_CONFIG,
+        streamsProperties.get(StreamsConfig.APPLICATION_SERVER_CONFIG));
+    //The application server should not be overwritten
     streamsProperties = ImmutableMap.copyOf(newProperties);
   }
 
@@ -258,10 +262,12 @@ public class SharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRuntime {
     final KafkaStreamsNamedTopologyWrapper kafkaStreamsNamedTopologyWrapper = kafkaStreamsBuilder
         .buildNamedTopologyWrapper(streamsProperties);
     kafkaStreams = kafkaStreamsNamedTopologyWrapper;
+    kafkaStreams.setStateListener(stateListener());
     for (final NamedTopology topology : liveTopologies) {
       final BinPackedPersistentQueryMetadataImpl query = collocatedQueries
           .get(new QueryId(topology.name()));
-      kafkaStreamsNamedTopologyWrapper.addNamedTopology(query.getTopologyCopy(this));
+      query.updateTopology(query.getTopologyCopy(this));
+      kafkaStreamsNamedTopologyWrapper.addNamedTopology(query.getTopology());
     }
     setupAndStartKafkaStreams(kafkaStreamsNamedTopologyWrapper);
   }

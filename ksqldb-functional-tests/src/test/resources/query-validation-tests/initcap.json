@@ -5,12 +5,12 @@
   "tests": [
     {
       "name": "do initcap",
-      "format": ["JSON", "PROTOBUF"],
+      "format": ["JSON", "AVRO"],
       "properties": {
         "ksql.functions.substring.legacy.args": false
       },
       "statements": [
-        "CREATE STREAM TEST (K STRING KEY, source VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM TEST (K STRING KEY, source VARCHAR) WITH (kafka_topic='test_topic', value_format='{FORMAT}');",
         "CREATE STREAM OUTPUT AS SELECT K, INITCAP(source) AS INITCAP FROM TEST;"
       ],
       "inputs": [
@@ -21,6 +21,27 @@
       "outputs": [
         {"topic": "OUTPUT", "value": {"INITCAP":"Some_string"}},
         {"topic": "OUTPUT", "value": {"INITCAP":null}},
+        {"topic": "OUTPUT", "value": {"INITCAP":"The   Quick Br0wn Fox"}}
+      ]
+    },
+    {
+      "name": "do initcap - PROTOBUFs",
+      "format": ["PROTOBUF", "PROTOBUF_NOSR"],
+      "properties": {
+        "ksql.functions.substring.legacy.args": false
+      },
+      "statements": [
+        "CREATE STREAM TEST (K STRING KEY, source VARCHAR) WITH (kafka_topic='test_topic', value_format='{FORMAT}');",
+        "CREATE STREAM OUTPUT AS SELECT K, INITCAP(source) AS INITCAP FROM TEST;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "value": {"source": "some_string"}},
+        {"topic": "test_topic", "value": {"source": null}},
+        {"topic": "test_topic", "value": {"source": "the   Quick br0wn fOx"}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"INITCAP":"Some_string"}},
+        {"topic": "OUTPUT", "value": {"INITCAP":""}},
         {"topic": "OUTPUT", "value": {"INITCAP":"The   Quick Br0wn Fox"}}
       ]
     }

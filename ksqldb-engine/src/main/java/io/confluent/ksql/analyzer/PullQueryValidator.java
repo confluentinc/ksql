@@ -21,7 +21,6 @@ import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.util.ColumnExtractor;
-import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.Name;
 import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.schema.ksql.SystemColumns;
@@ -119,7 +118,7 @@ public class PullQueryValidator implements QueryValidator {
         .map(ColumnExtractor::extractColumns)
         .flatMap(Collection::stream)
         .map(ColumnReferenceExp::getColumnName)
-        .filter(name -> disallowedInPullQueries(name, analysis.getRowpartitionRowoffsetEnabled()))
+        .filter(SystemColumns::isDisallowedInPullOrScalablePushQueries)
         .map(Name::toString)
         .collect(Collectors.joining(", "));
 
@@ -142,7 +141,7 @@ public class PullQueryValidator implements QueryValidator {
     final String disallowedColumns = ColumnExtractor.extractColumns(expression.get())
         .stream()
         .map(ColumnReferenceExp::getColumnName)
-        .filter(name -> disallowedInPullQueries(name, analysis.getRowpartitionRowoffsetEnabled()))
+        .filter(SystemColumns::isDisallowedInPullOrScalablePushQueries)
         .map(Name::toString)
         .collect(Collectors.joining(", "));
 
@@ -153,15 +152,6 @@ public class PullQueryValidator implements QueryValidator {
     }
 
     return Optional.empty();
-  }
-
-  private static boolean disallowedInPullQueries(
-      final ColumnName columnName,
-      final boolean rowpartitionRowoffsetEnabled
-  ) {
-    final int pseudoColumnVersion = SystemColumns
-        .getPseudoColumnVersionFromConfig(rowpartitionRowoffsetEnabled);
-    return SystemColumns.isDisallowedInPullOrScalablePushQueries(columnName, pseudoColumnVersion);
   }
 
   private static final class Rule {

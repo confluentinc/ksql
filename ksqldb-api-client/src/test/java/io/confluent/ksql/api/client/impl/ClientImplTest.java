@@ -15,19 +15,25 @@
 
 package io.confluent.ksql.api.client.impl;
 
+import static io.netty.handler.codec.http.HttpHeaderNames.ACCEPT;
 import static io.netty.handler.codec.http.HttpHeaderNames.USER_AGENT;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.when;
 
 import com.google.common.testing.EqualsTester;
 import io.confluent.ksql.api.client.Client;
 import io.confluent.ksql.api.client.ClientOptions;
+import io.confluent.ksql.rest.entity.KsqlMediaType;
+import io.vertx.core.AsyncResult;
+import io.vertx.core.Future;
+import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientRequest;
+import io.vertx.core.http.RequestOptions;
 import java.util.HashMap;
 import org.junit.Before;
 import org.junit.Test;
@@ -62,7 +68,7 @@ public class ClientImplTest {
   }
 
   @Test
-  public void shouldSetUserAgent() {
+  public void shouldSetUserAgentAndAcceptHeaders() {
     // Given
     Vertx vertx = Mockito.mock(Vertx.class);
     HttpClient httpClient = Mockito.mock(HttpClient.class);
@@ -71,7 +77,11 @@ public class ClientImplTest {
 
     // When
     when(vertx.createHttpClient(any())).thenReturn(httpClient);
-    when(httpClient.request(any(), any(), anyInt(), any(), any(), any())).thenReturn(clientRequest);
+    doAnswer(a -> {
+      ((Handler<AsyncResult<HttpClientRequest>>) a.getArgument(1))
+          .handle(Future.succeededFuture(clientRequest));
+      return null;
+    }).when(httpClient).request(any(RequestOptions.class), any(Handler.class));
     when(clientRequest.exceptionHandler(any())).thenReturn(clientRequest);
     when(clientRequest.putHeader((String) any(), (String) any())).thenAnswer(a -> {
       String key = a.getArgument(0);
@@ -83,10 +93,14 @@ public class ClientImplTest {
     // Then
     Client client = Client.create(OPTIONS_1, vertx);
     client.streamQuery("SELECT * from STREAM1 EMIT CHANGES;");
-    assertThat(headers.size(), is(1));
+    assertThat(headers.size(), is(2));
     assertThat(headers.containsKey(USER_AGENT.toString()), is(true));
-    assertThat(headers.get(USER_AGENT.toString()).matches("ksqlDB Java Client v\\d\\.\\d\\.\\d.*"),
+    assertThat(headers.get(USER_AGENT.toString()).matches("ksqlDB Java Client v(\\d|[1-9]\\d+)\\.(\\d|[1-9]\\d+)\\.(\\d|[1-9]\\d+).*"),
         is(true));
+
+    assertThat(headers.containsKey(ACCEPT.toString()), is(true));
+    assertThat(headers.get(ACCEPT.toString()).equals(KsqlMediaType.LATEST_FORMAT.mediaType()),
+            is(true));
   }
 
 }

@@ -21,11 +21,12 @@ SELECT [...], aggregate_function
   WINDOW HOPPING (SIZE <time_span> <time_units>, ADVANCE BY <time_span> <time_units>) [...]
 ```
 
-## ALTER property
-Change a property value.
+## ALTER SYSTEM
+Change a system-level property value (only available in {{ site.ccloud }}).
+
 
 ```sql
-ALTER 'auto.offset.reset'='earliest';
+ALTER SYSTEM 'auto.offset.reset'='earliest';
 ```
 
 ## ALTER STREAM
@@ -74,6 +75,20 @@ Assert values, stream, table, or tombstones.
 
 ```sql
 ASSERT NULL VALUES sourceName (columns)? KEY values            
+```
+
+## ASSERT SCHEMA
+Assert the existence or non-existence of a schema.
+
+```sql
+ASSERT (NOT EXISTS)? SCHEMA (SUBJECT subjectName)? (ID id)? (TIMEOUT timeout)?;     
+```
+
+## ASSERT TOPIC
+Assert the existence or non-existence of a topic.
+
+```sql
+ASSERT (NOT EXISTS)? TOPIC topicName (WITH properties)? (TIMEOUT timeout)?;         
 ```
 
 ## BETWEEN

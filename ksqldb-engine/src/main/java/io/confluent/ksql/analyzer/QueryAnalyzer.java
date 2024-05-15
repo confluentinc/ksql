@@ -35,14 +35,12 @@ public class QueryAnalyzer {
   public QueryAnalyzer(
       final MetaStore metaStore,
       final String outputTopicPrefix,
-      final boolean rowpartitionRowoffsetEnabled,
       final boolean pullLimitClauseEnabled
   ) {
     this(
         new Analyzer(
                 metaStore,
                 outputTopicPrefix,
-                rowpartitionRowoffsetEnabled,
                 pullLimitClauseEnabled),
 
         new PullQueryValidator(),

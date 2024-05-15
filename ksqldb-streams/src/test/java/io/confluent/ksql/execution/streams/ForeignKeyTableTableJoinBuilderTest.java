@@ -38,6 +38,7 @@ import io.confluent.ksql.execution.plan.JoinType;
 import io.confluent.ksql.execution.plan.KTableHolder;
 import io.confluent.ksql.execution.plan.PlanBuilder;
 import io.confluent.ksql.execution.plan.PlanInfo;
+import io.confluent.ksql.execution.runtime.MaterializedFactory;
 import io.confluent.ksql.execution.runtime.RuntimeBuildContext;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.name.ColumnName;
@@ -153,6 +154,9 @@ public class ForeignKeyTableTableJoinBuilderTest {
     final RuntimeBuildContext context = mock(RuntimeBuildContext.class);
     when((context.getFunctionRegistry())).thenReturn(mock(FunctionRegistry.class));
     when((context.getKsqlConfig())).thenReturn(mock(KsqlConfig.class));
+    final MaterializedFactory materializedFactory = mock(MaterializedFactory.class);
+    when(materializedFactory.create(any(), any())).thenReturn(mock(Materialized.class));
+    when((context.getMaterializedFactory())).thenReturn(materializedFactory);
 
     planBuilder = new KSPlanBuilder(
         context,

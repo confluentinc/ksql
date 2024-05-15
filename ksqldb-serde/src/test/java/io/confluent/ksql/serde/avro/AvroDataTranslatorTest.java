@@ -28,6 +28,8 @@ import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlException;
 import java.math.BigDecimal;
+import java.nio.ByteBuffer;
+
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
@@ -357,6 +359,6 @@ public class AvroDataTranslatorTest {
     // Then:
     assertThat(
         translator.toKsqlRow(Schema.BYTES_SCHEMA, new byte[] {123}),
-        is(new byte[] {123}));
+        is(ByteBuffer.wrap(new byte[] {123})));
   }
 }

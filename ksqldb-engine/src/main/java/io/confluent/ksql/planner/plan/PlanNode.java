@@ -35,7 +35,6 @@ import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.util.GrammaticalJoiner;
-import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.util.List;
 import java.util.Objects;
@@ -181,20 +180,22 @@ public abstract class PlanNode {
         + "This expression must be included in the projection and may be aliased. "
         : "";
 
-    throw new KsqlException("Key" + keyPostfix + " missing from projection. "
+    throw new KsqlException("Key" + keyPostfix + " missing from projection (ie, SELECT). "
         + additional1
         + System.lineSeparator()
-        + "The query used to build " + sinkName
-        + " must include the " + types + " " + joined + " in its projection."
-        + additional2
+        + "The query used to build " + sinkName + " must include the " + types + " " + joined
+        + " in its projection (eg, SELECT "
+        + (requireAll
+              ? GrammaticalJoiner.comma().join(requiredKeys)
+              : requiredKeys.stream().findFirst().get())
+        + "...)." + additional2
     );
   }
 
   @SuppressWarnings("UnstableApiUsage")
   static Stream<ColumnName> orderColumns(
       final List<Column> columns,
-      final LogicalSchema schema,
-      final KsqlConfig ksqlConfig
+      final LogicalSchema schema
   ) {
     // When doing a `select *` key columns should be at the front of the column list
     // but are added at the back during processing for performance reasons. Furthermore,
@@ -210,7 +211,7 @@ public abstract class PlanNode {
 
     final Stream<Column> values = columns.stream()
         .filter(c -> !SystemColumns.isWindowBound(c.name()))
-        .filter(c -> !SystemColumns.isPseudoColumn(c.name(), ksqlConfig))
+        .filter(c -> !SystemColumns.isPseudoColumn(c.name()))
         .filter(c -> !schema.isKeyColumn(c.name()));
 
     return Streams.concat(keys, windowBounds, values).map(Column::name);

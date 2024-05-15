@@ -61,6 +61,7 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.ConsistencyOffsetVector;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlConfigurable;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlServerException;
 import io.confluent.ksql.util.KsqlStatementException;
@@ -99,7 +100,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
-public class KsqlEngine implements KsqlExecutionContext, Closeable {
+public class KsqlEngine implements KsqlExecutionContext, Closeable, KsqlConfigurable {
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
   private static final Logger log = LoggerFactory.getLogger(KsqlEngine.class);
@@ -366,6 +367,14 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
   @Override
   public MetricCollectors metricCollectors() {
     return metricCollectors;
+  }
+
+  @Override
+  public void configure(final KsqlConfig config) {
+    if (!config.getKsqlStreamConfigProps().containsKey(StreamsConfig.APPLICATION_SERVER_CONFIG)) {
+      throw new IllegalArgumentException("Need KS application server set");
+    }
+    this.primaryContext.configure(config);
   }
 
   @Override
@@ -670,7 +679,6 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
     final QueryAnalyzer queryAnalyzer = new QueryAnalyzer(
         getMetaStore(),
         "",
-        getRowpartitionRowoffsetEnabled(ksqlConfig, configOverrides),
         ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PULL_LIMIT_CLAUSE_ENABLED)
     );
 
@@ -754,19 +762,6 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
         ((StreamsErrorCollector) o).cleanup();
       }
     }
-  }
-
-  private static boolean getRowpartitionRowoffsetEnabled(
-      final KsqlConfig ksqlConfig,
-      final Map<String, Object> configOverrides
-  ) {
-    final Object rowpartitionRowoffsetEnabled =
-        configOverrides.get(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED);
-    if (rowpartitionRowoffsetEnabled != null) {
-      return "true".equalsIgnoreCase(rowpartitionRowoffsetEnabled.toString());
-    }
-
-    return ksqlConfig.getBoolean(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED);
   }
 
   private boolean getTransientQueryCleanupServiceEnabled(final KsqlConfig ksqlConfig) {

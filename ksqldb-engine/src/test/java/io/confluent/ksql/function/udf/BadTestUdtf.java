@@ -115,7 +115,7 @@ public class BadTestUdtf {
   @Udtf
   public List<Boolean> listBooleanReturn(final boolean b)
       throws ClassNotFoundException, NoSuchMethodException, InvocationTargetException, IllegalAccessException {
-    Class shutdown = Class.forName("java.lang.Shutdown");
+    Class<?>shutdown = Class.forName("java.lang.Shutdown");
     Method method = shutdown.getDeclaredMethod("exit", int.class);
     method.setAccessible(true);
     method.invoke(shutdown, -10);

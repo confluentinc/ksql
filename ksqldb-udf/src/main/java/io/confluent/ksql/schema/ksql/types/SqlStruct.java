@@ -22,6 +22,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.errorprone.annotations.Immutable;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.confluent.connect.json.JsonSchemaData;
 import io.confluent.ksql.schema.utils.DataException;
 import io.confluent.ksql.schema.utils.FormatOptions;
 import java.util.ArrayList;
@@ -30,6 +31,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 @Immutable
@@ -59,6 +61,36 @@ public final class SqlStruct extends SqlType {
 
   public Optional<Field> field(final String name) {
     return Optional.ofNullable(byName.get(name));
+  }
+
+  public boolean isUnionType() {
+    // Union/AnyOf types in Schema Registry are encoded in Connect as a Struct with a special
+    // schema name: io.confluent.connect.json.OneOf and one field for each of the alternative types.
+    //
+    // {"anyOf":[{"type":"string"},{"type":"integer"},{"type":"boolean"}]
+    //
+    // The fields for each alternative types are named as following:
+    // io.confluent.connect.json.OneOf.field.0 - String type
+    // io.confluent.connect.json.OneOf.field.1 - Integer type
+    // io.confluent.connect.json.OneOf.field.2 - boolean type
+    //
+    // During Ser/De in the JsonSchemaConverter the first field with a non-null value is picked as
+    // the value of the current Union/AnyOf type. (@see Class JsonSchemaData in Schema Registry).
+    //
+    // KsqlDB schema in the Command object does not maintain this special information for the
+    // Structs (nor does it store the names associated with the field schemas) and hence it ends
+    // up treating it as a regular struct thereby changing its interpretation during serialization.
+    // This results in Schema mismatch errors.
+    //
+    // To handle this, If all the fields in this struct follow the above naming convention,
+    // we infer this Struct to be of a Union type.
+    //
+    // While preparing the Connect record for Serialization, we explicitly set the schema name as
+    // io.confluent.connect.json.OneOf if the current Struct is of Union type.
+    // @see io.confluent.ksql.schema.ksql.SchemaConverters
+    final Predicate<Field> isUnionTypeField =
+        field -> field.name.startsWith(JsonSchemaData.JSON_TYPE_ONE_OF + ".field");
+    return !fields.isEmpty() && fields.stream().allMatch(isUnionTypeField);
   }
 
   @Override

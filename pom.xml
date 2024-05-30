@@ -84,7 +84,7 @@
         </repository>
         <repository>
             <id>confluent-snapshots</id>
-            <url>https://s3-us-west-2.amazonaws.com/confluent-snapshots/</url>
+            <url>https://confluent-snapshots.public.confluent.io/</url>
         </repository>
     </repositories>
 
@@ -95,7 +95,7 @@
         </pluginRepository>
         <pluginRepository>
             <id>confluent-snapshots</id>
-            <url>https://s3-us-west-2.amazonaws.com/confluent-snapshots/</url>
+            <url>https://confluent-snapshots.public.confluent.io/</url>
             <snapshots>
                 <enabled>true</enabled>
             </snapshots>

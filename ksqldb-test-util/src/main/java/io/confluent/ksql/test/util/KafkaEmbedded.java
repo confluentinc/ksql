@@ -73,6 +73,7 @@ class KafkaEmbedded {
   private static final Logger log = LoggerFactory.getLogger(KafkaEmbedded.class);
 
   private static final String ZK_CONNECT_PROP = "zookeeper.connect";
+  private static final String LOG_DIR_PROP = "log.dir";
 
   private final Properties config;
   private final KafkaServer kafka;
@@ -351,7 +352,7 @@ class KafkaEmbedded {
   }
 
   private String logDir() {
-    return config.getProperty(KafkaConfig.LogDirProp());
+    return config.getProperty(LOG_DIR_PROP);
   }
 
   private AdminClient adminClient() {

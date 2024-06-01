@@ -15,10 +15,12 @@
 
 package io.confluent.ksql.function.udaf.array;
 
+import static io.confluent.ksql.function.udaf.array.CollectListUdaf.LIMIT;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.isIn;
 import static org.hamcrest.Matchers.not;
 
 import io.confluent.ksql.function.udaf.TableUdaf;
@@ -71,6 +73,33 @@ public class CollectListUdafTest {
     assertThat(runningList, hasItem(1));
     assertThat(runningList, hasItem(1000));
     assertThat(runningList, not(hasItem(1001)));
+  }
+
+  @Test
+  public void shouldUndo() {
+    final TableUdaf<Integer, List<Integer>> udaf = CollectListUdaf.createCollectListInt();
+    final Integer[] values = new Integer[] {3, 4, 5, 3};
+    List<Integer> runningList = udaf.initialize();
+    for (final Integer i : values) {
+      runningList = udaf.aggregate(i, runningList);
+    }
+    runningList = udaf.undo(4, runningList);
+    assertThat(runningList, contains(3, 5, 3));
+    runningList = udaf.undo(3, runningList);
+    assertThat(runningList, contains(3, 5));
+  }
+
+  @Test
+  public void shouldUndoAfterHittingLimit() {
+    final TableUdaf<Integer, List<Integer>> udaf = CollectListUdaf.createCollectListInt();
+    List<Integer> runningList = udaf.initialize();
+    for (int i = 0; i < LIMIT; i++) {
+      runningList = udaf.aggregate(i, runningList);
+    }
+    runningList = udaf.aggregate(LIMIT + 1, runningList);
+    assertThat(LIMIT + 1, not(isIn(runningList)));
+    runningList = udaf.undo(LIMIT + 1, runningList);
+    assertThat(LIMIT + 1, not(isIn(runningList)));
   }
 
 }

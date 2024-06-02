@@ -53,6 +53,7 @@ import java.util.stream.Stream;
 import javax.security.auth.login.Configuration;
 import kafka.security.authorizer.AclAuthorizer;
 import kafka.server.KafkaConfig;
+//import SocketServerConfigs;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.AdminClientConfig;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
@@ -717,7 +718,7 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
       brokerConfig.put(KafkaConfig.AuthorizerClassNameProp(), AclAuthorizer.class.getName());
       brokerConfig.put(AclAuthorizer.AllowEveryoneIfNoAclIsFoundProp(),
           true);
-      brokerConfig.put(KafkaConfig.ListenersProp(), "PLAINTEXT://:0");
+      brokerConfig.put("listeners", "PLAINTEXT://:0");
       brokerConfig.put(AUTO_CREATE_TOPICS_ENABLE_PROP, true);
     }
 
@@ -791,16 +792,16 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
     }
 
     private void addListenersProp(final String listenerType) {
-      final Object current = brokerConfig.get(KafkaConfig.ListenersProp());
-      brokerConfig.put(KafkaConfig.ListenersProp(), current + "," + listenerType + "://:0");
+      final Object current = brokerConfig.get("listeners");
+      brokerConfig.put("listeners", current + "," + listenerType + "://:0");
     }
 
     private void removeListenersProp(final String listenerType) {
-      final String current = (String)brokerConfig.get(KafkaConfig.ListenersProp());
+      final String current = (String)brokerConfig.get("listeners");
       final String replacement = Arrays.stream(current.split(","))
           .filter(part -> !part.startsWith(listenerType + "://"))
           .collect(Collectors.joining(","));
-      brokerConfig.put(KafkaConfig.ListenersProp(), replacement);
+      brokerConfig.put("listeners", replacement);
     }
   }
 

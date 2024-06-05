@@ -20,6 +20,7 @@ import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
@@ -75,11 +76,11 @@ public class SqlStructTest {
           new Field("f0", SqlTypes.BIGINT, 0),
           new Field("f1", SqlTypes.DOUBLE, 1)
       ));
-      assertFalse(struct.isUnionType());
+      assertFalse(struct.unionType().isPresent());
     }
 
     @Test
-    public void shouldRecognizeUnionType() {
+    public void shouldRecognizeOneOfUnionType() {
       // When:
       final SqlStruct struct = SqlStruct.builder()
           .field("io.confluent.connect.json.OneOf.field.0", SqlTypes.BIGINT)
@@ -87,13 +88,27 @@ public class SqlStructTest {
           .build();
 
       // Then:
-      assertTrue(struct.isUnionType());
+      assertTrue(struct.unionType().isPresent());
+      assertEquals(SqlStruct.UnionType.ONE_OF_TYPE, struct.unionType().get());
+    }
+
+    @Test
+    public void shouldRecognizeGeneralizedUnionType() {
+      // When:
+      final SqlStruct struct = SqlStruct.builder()
+          .field("connect_union_field_0", SqlTypes.BIGINT)
+          .field("connect_union_field_1", SqlTypes.DOUBLE)
+          .build();
+
+      // Then:
+      assertTrue(struct.unionType().isPresent());
+      assertEquals(SqlStruct.UnionType.GENERALIZED_TYPE, struct.unionType().get());
     }
 
     @Test
     public void shouldNotThrowIfNoFields() {
       SqlStruct struct = SqlStruct.builder().build();
-      assertFalse(struct.isUnionType());
+      assertFalse(struct.unionType().isPresent());
     }
 
     @Test
@@ -125,7 +140,7 @@ public class SqlStructTest {
           new Field("f0", SqlTypes.BOOLEAN, 0),
           new Field("F0", SqlTypes.BOOLEAN, 1)
       ));
-      assertFalse(struct.isUnionType());
+      assertFalse(struct.unionType().isPresent());
     }
 
     @Test
@@ -146,7 +161,7 @@ public class SqlStructTest {
               + ", `F1` " + SqlTypes.array(SqlTypes.DOUBLE)
               + ">"
       ));
-      assertFalse(struct.isUnionType());
+      assertFalse(struct.unionType().isPresent());
     }
 
     @Test
@@ -159,7 +174,7 @@ public class SqlStructTest {
 
       // Then:
       assertThat(sql, is("STRUCT< >"));
-      assertFalse(emptyStruct.isUnionType());
+      assertFalse(emptyStruct.unionType().isPresent());
     }
 
     @Test
@@ -182,7 +197,7 @@ public class SqlStructTest {
               + ", `F1` " + SqlTypes.array(SqlTypes.DOUBLE)
               + ">"
       ));
-      assertFalse(struct.isUnionType());
+      assertFalse(struct.unionType().isPresent());
     }
 
     @SuppressWarnings("OptionalGetWithoutIsPresent")
@@ -199,7 +214,7 @@ public class SqlStructTest {
       // Then:
       assertThat(result, is(not(Optional.empty())));
       assertThat(result.get().name(), is("f0"));
-      assertFalse(schema.isUnionType());
+      assertFalse(schema.unionType().isPresent());
     }
 
     @Test
@@ -214,7 +229,7 @@ public class SqlStructTest {
 
       // Then:
       assertThat(result, is(Optional.empty()));
-      assertFalse(schema.isUnionType());
+      assertFalse(schema.unionType().isPresent());
     }
 
     @Test
@@ -229,7 +244,7 @@ public class SqlStructTest {
 
       // Then:
       assertThat(result, is(Optional.empty()));
-      assertFalse(schema.isUnionType());
+      assertFalse(schema.unionType().isPresent());
     }
   }
 

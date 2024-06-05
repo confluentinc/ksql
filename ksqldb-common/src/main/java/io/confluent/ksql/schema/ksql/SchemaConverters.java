@@ -41,6 +41,7 @@ import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.function.Function;
 import org.apache.kafka.connect.data.Date;
 import org.apache.kafka.connect.data.Schema;
@@ -345,10 +346,20 @@ public final class SchemaConverters {
       struct.fields()
           .forEach(field -> builder.field(field.name(), connectType(field.type()).build()));
 
-      if (struct.isUnionType()) {
-        builder.name(JsonSchemaData.JSON_TYPE_ONE_OF);
-      }
+      final Optional<SqlStruct.UnionType> unionType = struct.unionType();
 
+      if (unionType.isPresent()) {
+        switch (unionType.get()) {
+          case ONE_OF_TYPE:
+            builder.name(JsonSchemaData.JSON_TYPE_ONE_OF);
+            break;
+          case GENERALIZED_TYPE:
+            builder.parameter(JsonSchemaData.GENERALIZED_TYPE_UNION, "0");
+            break;
+          default:
+            throw new IllegalStateException("Unexpected value: " + struct.unionType());
+        }
+      }
       return builder.optional();
     }
   }

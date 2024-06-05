@@ -23,6 +23,7 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
@@ -32,6 +33,7 @@ import com.google.common.collect.ImmutableBiMap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import io.confluent.connect.json.JsonSchemaData;
 import io.confluent.ksql.function.types.ArrayType;
 import io.confluent.ksql.function.types.MapType;
 import io.confluent.ksql.function.types.ParamType;
@@ -316,7 +318,7 @@ public class SchemaConvertersTest {
   }
 
   @Test
-  public void shouldConvertUnionTypeFromSqlToConnect() {
+  public void shouldConvertOneOfUnionTypeFromSqlToConnect() {
     // Given:
     SqlStruct sqlStruct = SqlStruct.builder()
         .field("io.confluent.connect.json.OneOf.field.0", SqlPrimitiveType.of(SqlBaseType.STRING))
@@ -330,6 +332,24 @@ public class SchemaConvertersTest {
     // Then:
     assertThat(connectSchema.type(), is(Schema.Type.STRUCT));
     assertEquals(JSON_TYPE_ONE_OF, connectSchema.schema().name());
+  }
+
+  @Test
+  public void shouldConvertGeneralizedUnionTypeFromSqlToConnect() {
+    // Given:
+    SqlStruct sqlStruct = SqlStruct.builder()
+        .field("connect_union_field_0", SqlPrimitiveType.of(SqlBaseType.STRING))
+        .field("connect_union_field_1", SqlPrimitiveType.of(SqlBaseType.BOOLEAN))
+        .field("connect_union_field_2", SqlPrimitiveType.of(SqlBaseType.INTEGER))
+        .build();
+
+    // When:
+    Schema connectSchema = sqlToConnectConverter().toConnectSchema(sqlStruct);
+
+    // Then:
+    assertThat(connectSchema.type(), is(Schema.Type.STRUCT));
+    assertFalse(connectSchema.schema().parameters().isEmpty());
+    assertTrue(connectSchema.schema().parameters().containsKey(JsonSchemaData.GENERALIZED_TYPE_UNION));
   }
 
   @Test

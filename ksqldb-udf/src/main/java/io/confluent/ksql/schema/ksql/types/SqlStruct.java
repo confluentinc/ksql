@@ -63,7 +63,7 @@ public final class SqlStruct extends SqlType {
     return Optional.ofNullable(byName.get(name));
   }
 
-  public boolean isUnionType() {
+  public Optional<UnionType> unionType() {
     // Union/AnyOf types in Schema Registry are encoded in Connect as a Struct with a special
     // schema name: io.confluent.connect.json.OneOf and one field for each of the alternative types.
     //
@@ -88,9 +88,40 @@ public final class SqlStruct extends SqlType {
     // While preparing the Connect record for Serialization, we explicitly set the schema name as
     // io.confluent.connect.json.OneOf if the current Struct is of Union type.
     // @see io.confluent.ksql.schema.ksql.SchemaConverters
-    final Predicate<Field> isUnionTypeField =
-        field -> field.name.startsWith(JsonSchemaData.JSON_TYPE_ONE_OF + ".field");
-    return !fields.isEmpty() && fields.stream().allMatch(isUnionTypeField);
+
+    // There is another way in which Union type is defined in the format
+    // connect_union_field_1,
+    // connect_union_field_2,
+    // connect_union_field_3......
+    // This format is used when generalized.sum.type.support is true (default is false)
+    if (UnionType.ONE_OF_TYPE.matches(fields)) {
+      return Optional.of(UnionType.ONE_OF_TYPE);
+    } else if (UnionType.GENERALIZED_TYPE.matches(fields)) {
+      return Optional.of(UnionType.GENERALIZED_TYPE);
+    } else {
+      return Optional.empty();
+    }
+  }
+
+  public enum UnionType {
+    GENERALIZED_TYPE {
+      @Override
+      public boolean matches(final ImmutableList<Field> fields) {
+        final Predicate<Field> isConnectUnionTypeField =
+            field -> field.name.startsWith(JsonSchemaData.GENERALIZED_TYPE_UNION_FIELD_PREFIX);
+        return !fields.isEmpty() && fields.stream().allMatch(isConnectUnionTypeField);
+      }
+    },
+    ONE_OF_TYPE {
+      @Override
+      public boolean matches(final ImmutableList<Field> fields) {
+        final Predicate<Field> isOneOfUnionTypeField =
+            field -> field.name.startsWith(JsonSchemaData.JSON_TYPE_ONE_OF + ".field");
+        return !fields.isEmpty() && fields.stream().allMatch(isOneOfUnionTypeField);
+      }
+    };
+
+    public abstract boolean matches(ImmutableList<Field> fields);
   }
 
   @Override

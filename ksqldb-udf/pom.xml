@@ -29,8 +29,13 @@
     <version>7.7.0-0</version>
 
     <dependencies>
-        <!-- Required for running tests -->
+        <dependency>
+            <groupId>io.confluent</groupId>
+            <artifactId>kafka-connect-json-schema-converter</artifactId>
+            <version>${io.confluent.schema-registry.version}</version>
+        </dependency>
 
+        <!-- Required for running tests -->
         <dependency>
             <groupId>io.confluent.ksql</groupId>
             <artifactId>ksqldb-test-util</artifactId>

@@ -493,7 +493,30 @@ public class AstBuilderTest {
   }
 
   @Test
-  public void shouldBuildIntervalUnit() {
+  public void shouldBuildIntervalUnitSingular() {
+    // Given:
+    final SingleStatementContext stmt = givenQuery("SELECT TIMESTAMPADD(MINUTE, 5, Col4) FROM TEST1;");
+
+    // When:
+    final Query result = (Query) builder.buildStatement(stmt);
+
+    // Then:
+    assertThat(result.getSelect(), is(new Select(ImmutableList.of(
+        new SingleColumn(
+            new FunctionCall(
+                FunctionName.of("TIMESTAMPADD"),
+                ImmutableList.of(
+                    new IntervalUnit(TimeUnit.MINUTES),
+                    new IntegerLiteral(5),
+                    column("COL4")
+                )
+            ),
+            Optional.empty())
+    ))));
+  }
+
+  @Test
+  public void shouldBuildIntervalUnitPlural() {
     // Given:
     final SingleStatementContext stmt = givenQuery("SELECT TIMESTAMPADD(MINUTES, 5, Col4) FROM TEST1;");
 

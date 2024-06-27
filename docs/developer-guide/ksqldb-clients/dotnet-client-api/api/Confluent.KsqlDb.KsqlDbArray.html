@@ -1,0 +1,593 @@
+﻿<!DOCTYPE html>
+<!--[if IE]><![endif]-->
+<html>
+  
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <title>Class KsqlDbArray
+   | Confluent.KsqlDb </title>
+    <meta name="viewport" content="width=device-width">
+    <meta name="title" content="Class KsqlDbArray
+   | Confluent.KsqlDb ">
+    <meta name="generator" content="docfx 2.59.3.0">
+    
+    <link rel="shortcut icon" href="../favicon.ico">
+    <link rel="stylesheet" href="../styles/docfx.vendor.css">
+    <link rel="stylesheet" href="../styles/docfx.css">
+    <link rel="stylesheet" href="../styles/main.css">
+    <meta property="docfx:navrel" content="">
+    <meta property="docfx:tocrel" content="toc.html">
+    
+    
+    
+  </head>
+  <body data-spy="scroll" data-target="#affix" data-offset="120">
+    <div id="wrapper">
+      <header>
+        <nav class="navbar navbar-inverse">
+             <div class="container">
+               <div class="navbar-header ">
+                 <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+                   <span class="sr-only">Toggle navigation</span>
+                   <span class="icon-bar"></span>
+                   <span class="icon-bar"></span>
+                   <span class="icon-bar"></span>
+                 </button>
+                 <a class="navbar-brand" href="Confluent.KsqlDb.html"><span class="dotnet">confluent-ksqldb-dotnet</span></a>
+               </div>
+               <div id="navbar" class="collapse navbar-collapse">
+               </div><!--/.nav-collapse -->
+             </div>
+           </nav>
+        
+        <div class="subnav navbar navbar-default">
+          <div class="container hide-when-search" id="breadcrumb">
+            <ul class="breadcrumb">
+              <li></li>
+            </ul>
+          </div>
+        </div>
+      </header>
+      <div role="main" class="container body-content hide-when-search">
+        
+        <div class="sidenav hide-when-search">
+          <a class="btn toc-toggle collapse" data-toggle="collapse" href="#sidetoggle" aria-expanded="false" aria-controls="sidetoggle">Show / Hide Table of Contents</a>
+          <div class="sidetoggle collapse" id="sidetoggle">
+            <div id="sidetoc"></div>
+          </div>
+        </div>
+        <div class="article row grid-right">
+          <div class="col-md-10">
+            <article class="content wrap" id="_content" data-uid="Confluent.KsqlDb.KsqlDbArray">
+  
+  
+  <h1 id="Confluent_KsqlDb_KsqlDbArray" data-uid="Confluent.KsqlDb.KsqlDbArray" class="text-break">Class KsqlDbArray
+  </h1>
+  <div class="markdown level0 summary"><p>Represents an array object which is returned from the ksqlDB. The array can be accessed by position
+for the various types which may exist. If the object is not natively that type, it will attempt to be
+converted.</p>
+</div>
+  <div class="markdown level0 conceptual"></div>
+  <div class="inheritance">
+    <h5>Inheritance</h5>
+    <div class="level0"><span class="xref">System.Object</span></div>
+    <div class="level1"><span class="xref">KsqlDbArray</span></div>
+  </div>
+  <div class="inheritedMembers">
+    <h5>Inherited Members</h5>
+    <div>
+      <span class="xref">System.Object.Equals(System.Object)</span>
+    </div>
+    <div>
+      <span class="xref">System.Object.Equals(System.Object, System.Object)</span>
+    </div>
+    <div>
+      <span class="xref">System.Object.GetHashCode()</span>
+    </div>
+    <div>
+      <span class="xref">System.Object.GetType()</span>
+    </div>
+    <div>
+      <span class="xref">System.Object.MemberwiseClone()</span>
+    </div>
+    <div>
+      <span class="xref">System.Object.ReferenceEquals(System.Object, System.Object)</span>
+    </div>
+  </div>
+  <h6><strong>Namespace</strong>: <a class="xref" href="Confluent.KsqlDb.html">Confluent.KsqlDb</a></h6>
+  <h6><strong>Assembly</strong>: cs.temp.dll.dll</h6>
+  <h5 id="Confluent_KsqlDb_KsqlDbArray_syntax">Syntax</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public class KsqlDbArray</code></pre>
+  </div>
+  <h3 id="properties">Properties
+  </h3>
+  <a id="Confluent_KsqlDb_KsqlDbArray_Count_" data-uid="Confluent.KsqlDb.KsqlDbArray.Count*"></a>
+  <h4 id="Confluent_KsqlDb_KsqlDbArray_Count" data-uid="Confluent.KsqlDb.KsqlDbArray.Count">Count</h4>
+  <div class="markdown level1 summary"><p>Returns the number of entries</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public int Count { get; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.Int32</span></td>
+        <td><p>The number of entries</p>
+</td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="Confluent_KsqlDb_KsqlDbArray_IsEmpty_" data-uid="Confluent.KsqlDb.KsqlDbArray.IsEmpty*"></a>
+  <h4 id="Confluent_KsqlDb_KsqlDbArray_IsEmpty" data-uid="Confluent.KsqlDb.KsqlDbArray.IsEmpty">IsEmpty</h4>
+  <div class="markdown level1 summary"><p>If the array is empty</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public bool IsEmpty { get; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.Boolean</span></td>
+        <td><p>True if empty, false otherwise</p>
+</td>
+      </tr>
+    </tbody>
+  </table>
+  <h3 id="methods">Methods
+  </h3>
+  <a id="Confluent_KsqlDb_KsqlDbArray_GetBoolean_" data-uid="Confluent.KsqlDb.KsqlDbArray.GetBoolean*"></a>
+  <h4 id="Confluent_KsqlDb_KsqlDbArray_GetBoolean_System_Int32_" data-uid="Confluent.KsqlDb.KsqlDbArray.GetBoolean(System.Int32)">GetBoolean(Int32)</h4>
+  <div class="markdown level1 summary"><p>Gets the value as a boolean, possibly converting if necessary.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public bool GetBoolean(int pos)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.Int32</span></td>
+        <td><span class="parametername">pos</span></td>
+        <td><p>The position within the array</p>
+</td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.Boolean</span></td>
+        <td><p>The boolean value at the given position</p>
+</td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="Confluent_KsqlDb_KsqlDbArray_GetDecimal_" data-uid="Confluent.KsqlDb.KsqlDbArray.GetDecimal*"></a>
+  <h4 id="Confluent_KsqlDb_KsqlDbArray_GetDecimal_System_Int32_" data-uid="Confluent.KsqlDb.KsqlDbArray.GetDecimal(System.Int32)">GetDecimal(Int32)</h4>
+  <div class="markdown level1 summary"><p>Gets the value as a decimal, possibly converting if necessary. This is appropriate for
+ksqlDB Decimal types, though it should be noted that precision and scale may be lost as this
+type is parsed as a C# native decimal which does not have arbitrary precision and scale. </p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public decimal GetDecimal(int pos)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.Int32</span></td>
+        <td><span class="parametername">pos</span></td>
+        <td><p>The position within the array</p>
+</td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.Decimal</span></td>
+        <td><p>The decimal value at the given position</p>
+</td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="Confluent_KsqlDb_KsqlDbArray_GetDouble_" data-uid="Confluent.KsqlDb.KsqlDbArray.GetDouble*"></a>
+  <h4 id="Confluent_KsqlDb_KsqlDbArray_GetDouble_System_Int32_" data-uid="Confluent.KsqlDb.KsqlDbArray.GetDouble(System.Int32)">GetDouble(Int32)</h4>
+  <div class="markdown level1 summary"><p>Gets the value as a double, possibly converting if necessary.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public double GetDouble(int pos)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.Int32</span></td>
+        <td><span class="parametername">pos</span></td>
+        <td><p>The position within the array</p>
+</td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.Double</span></td>
+        <td><p>The double value at the given position</p>
+</td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="Confluent_KsqlDb_KsqlDbArray_GetInteger_" data-uid="Confluent.KsqlDb.KsqlDbArray.GetInteger*"></a>
+  <h4 id="Confluent_KsqlDb_KsqlDbArray_GetInteger_System_Int32_" data-uid="Confluent.KsqlDb.KsqlDbArray.GetInteger(System.Int32)">GetInteger(Int32)</h4>
+  <div class="markdown level1 summary"><p>Gets the value as an integer, possibly converting if necessary.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public int GetInteger(int pos)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.Int32</span></td>
+        <td><span class="parametername">pos</span></td>
+        <td><p>The position within the array</p>
+</td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.Int32</span></td>
+        <td><p>The integer value at the given position</p>
+</td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="Confluent_KsqlDb_KsqlDbArray_GetKsqlDbArray_" data-uid="Confluent.KsqlDb.KsqlDbArray.GetKsqlDbArray*"></a>
+  <h4 id="Confluent_KsqlDb_KsqlDbArray_GetKsqlDbArray_System_Int32_" data-uid="Confluent.KsqlDb.KsqlDbArray.GetKsqlDbArray(System.Int32)">GetKsqlDbArray(Int32)</h4>
+  <div class="markdown level1 summary"><p>Gets the value as an array. This is appropriate for ksqlDB List types.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public KsqlDbArray GetKsqlDbArray(int pos)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.Int32</span></td>
+        <td><span class="parametername">pos</span></td>
+        <td><p>The position within the array</p>
+</td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="Confluent.KsqlDb.KsqlDbArray.html">KsqlDbArray</a></td>
+        <td><p>The array value at the given position</p>
+</td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="Confluent_KsqlDb_KsqlDbArray_GetKsqlDbObject_" data-uid="Confluent.KsqlDb.KsqlDbArray.GetKsqlDbObject*"></a>
+  <h4 id="Confluent_KsqlDb_KsqlDbArray_GetKsqlDbObject_System_Int32_" data-uid="Confluent.KsqlDb.KsqlDbArray.GetKsqlDbObject(System.Int32)">GetKsqlDbObject(Int32)</h4>
+  <div class="markdown level1 summary"><p>Gets the value as an object. This is appropriate for ksqlDB Map and Struct types.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public KsqlDbObject GetKsqlDbObject(int pos)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.Int32</span></td>
+        <td><span class="parametername">pos</span></td>
+        <td><p>The position within the array</p>
+</td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="Confluent.KsqlDb.KsqlDbObject.html">KsqlDbObject</a></td>
+        <td><p>The object value at the given position</p>
+</td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="Confluent_KsqlDb_KsqlDbArray_GetLong_" data-uid="Confluent.KsqlDb.KsqlDbArray.GetLong*"></a>
+  <h4 id="Confluent_KsqlDb_KsqlDbArray_GetLong_System_Int32_" data-uid="Confluent.KsqlDb.KsqlDbArray.GetLong(System.Int32)">GetLong(Int32)</h4>
+  <div class="markdown level1 summary"><p>Gets the value as a long, possibly converting if necessary.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public long GetLong(int pos)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.Int32</span></td>
+        <td><span class="parametername">pos</span></td>
+        <td><p>The position within the array</p>
+</td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.Int64</span></td>
+        <td><p>The long value at the given position</p>
+</td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="Confluent_KsqlDb_KsqlDbArray_GetString_" data-uid="Confluent.KsqlDb.KsqlDbArray.GetString*"></a>
+  <h4 id="Confluent_KsqlDb_KsqlDbArray_GetString_System_Int32_" data-uid="Confluent.KsqlDb.KsqlDbArray.GetString(System.Int32)">GetString(Int32)</h4>
+  <div class="markdown level1 summary"><p>Gets the value as a string, possibly converting if necessary.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public string GetString(int pos)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.Int32</span></td>
+        <td><span class="parametername">pos</span></td>
+        <td><p>The position within the array</p>
+</td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.String</span></td>
+        <td><p>The string value at the given position</p>
+</td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="Confluent_KsqlDb_KsqlDbArray_GetValue_" data-uid="Confluent.KsqlDb.KsqlDbArray.GetValue*"></a>
+  <h4 id="Confluent_KsqlDb_KsqlDbArray_GetValue_System_Int32_" data-uid="Confluent.KsqlDb.KsqlDbArray.GetValue(System.Int32)">GetValue(Int32)</h4>
+  <div class="markdown level1 summary"><p>Gets the value in its native type, without any attempt at conversion.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public object GetValue(int pos)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.Int32</span></td>
+        <td><span class="parametername">pos</span></td>
+        <td><p>The position within the array</p>
+</td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.Object</span></td>
+        <td><p>The value at the given position</p>
+</td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="Confluent_KsqlDb_KsqlDbArray_ToString_" data-uid="Confluent.KsqlDb.KsqlDbArray.ToString*"></a>
+  <h4 id="Confluent_KsqlDb_KsqlDbArray_ToString" data-uid="Confluent.KsqlDb.KsqlDbArray.ToString">ToString()</h4>
+  <div class="markdown level1 summary"><p>Returns a string representation of the array.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public override string ToString()</code></pre>
+  </div>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.String</span></td>
+        <td><p>The string representation</p>
+</td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="overrides">Overrides</h5>
+  <div><span class="xref">System.Object.ToString()</span></div>
+</article>
+          </div>
+          
+          <div class="hidden-sm col-md-2" role="complementary">
+            <div class="sideaffix">
+              <nav class="bs-docs-sidebar hidden-print hidden-xs hidden-sm affix" id="affix">
+                <h5>In This Article</h5>
+                <div></div>
+              </nav>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <script type="text/javascript" src="../styles/docfx.vendor.js"></script>
+    <script type="text/javascript" src="../styles/docfx.js"></script>
+    <script type="text/javascript" src="../styles/main.js"></script>
+  </body>
+</html>

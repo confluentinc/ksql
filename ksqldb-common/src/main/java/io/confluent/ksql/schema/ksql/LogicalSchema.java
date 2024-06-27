@@ -41,7 +41,6 @@ import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.schema.utils.FormatOptions;
 import io.confluent.ksql.util.DuplicateColumnException;
-import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
 import java.util.ArrayList;
@@ -153,7 +152,9 @@ public final class LogicalSchema {
    * @return the new schema.
    */
   public LogicalSchema withPseudoAndKeyColsInValue(
-      final boolean windowed, final int pseudoColumnVersion) {
+      final boolean windowed,
+      final int pseudoColumnVersion
+  ) {
     return rebuildWithPseudoAndKeyColsInValue(windowed, pseudoColumnVersion, false);
   }
 
@@ -174,65 +175,19 @@ public final class LogicalSchema {
    * Copies pseudo and key columns to the value schema with the current pseudocolumn version number
    *
    * <p>Similar to the above implementation, but determines the version to use by looking at the
-   * config
-   *
-   * @param windowed indicates that the source is windowed
-   * @param ksqlConfig the config to utilize for finding the version number
-   * @return the new schema.
-   */
-  public LogicalSchema withPseudoAndKeyColsInValue(
-      final boolean windowed,
-      final KsqlConfig ksqlConfig
-  ) {
-    return withPseudoAndKeyColsInValue(
-        windowed,
-        ksqlConfig.getBoolean(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED),
-        false
-    );
-  }
-
-  /**
-   * Copies pseudo and key columns to the value schema with the current pseudocolumn version number
-   *
-   * <p>Similar to the above implementation, but determines the version to use by using the
-   * provided boolean
-   *
-   * @param windowed indicates that the source is windowed
-   * @param rowpartitionRowoffsetEnabled whether KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED
-   *                                     is enabled
-   * @return the new schema.
-   */
-  public LogicalSchema withPseudoAndKeyColsInValue(
-      final boolean windowed,
-      final boolean rowpartitionRowoffsetEnabled
-  ) {
-    return withPseudoAndKeyColsInValue(
-        windowed,
-        rowpartitionRowoffsetEnabled,
-        false
-    );
-  }
-
-  /**
-   * Copies pseudo and key columns to the value schema with the current pseudocolumn version number
-   *
-   * <p>Similar to the above implementation, but determines the version to use by looking at the
    * config and whether or not the calling context is a pull or scalable push query.
    *
    * @param windowed indicates that the source is windowed
-   * @param rowpartitionRowoffsetEnabled whether KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED
-   *                                     is enabled
    * @param forPullOrScalablePushQuery whether this is a pull or scalable push query schema
    * @return the new schema.
    */
   public LogicalSchema withPseudoAndKeyColsInValue(
       final boolean windowed,
-      final boolean rowpartitionRowoffsetEnabled,
       final boolean forPullOrScalablePushQuery
   ) {
     return rebuildWithPseudoAndKeyColsInValue(
         windowed,
-        SystemColumns.getPseudoColumnVersionFromConfig(rowpartitionRowoffsetEnabled),
+        CURRENT_PSEUDOCOLUMN_VERSION_NUMBER,
         forPullOrScalablePushQuery
     );
   }
@@ -254,11 +209,6 @@ public final class LogicalSchema {
    */
   public LogicalSchema withoutPseudoAndKeyColsInValue() {
     return withoutPseudoAndKeyColsInValue(CURRENT_PSEUDOCOLUMN_VERSION_NUMBER);
-  }
-
-  public LogicalSchema withoutPseudoAndKeyColsInValue(final KsqlConfig ksqlConfig) {
-    return withoutPseudoAndKeyColsInValue(
-        SystemColumns.getPseudoColumnVersionFromConfig(ksqlConfig));
   }
 
   /**

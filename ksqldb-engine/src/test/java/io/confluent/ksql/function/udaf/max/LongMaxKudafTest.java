@@ -19,13 +19,10 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
 
-import io.confluent.ksql.GenericKey;
-import io.confluent.ksql.function.AggregateFunctionInitArguments;
-import io.confluent.ksql.function.KsqlAggregateFunction;
+import io.confluent.ksql.function.udaf.Udaf;
 import io.confluent.ksql.schema.ksql.SqlArgument;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.util.Collections;
-import org.apache.kafka.streams.kstream.Merger;
 import org.junit.Test;
 
 public class LongMaxKudafTest {
@@ -64,23 +61,21 @@ public class LongMaxKudafTest {
 
   @Test
   public void shouldFindCorrectMaxForMerge() {
-    final MaxKudaf longMaxKudaf = getMaxComparableKudaf();
-    final Merger<GenericKey, Long> merger = longMaxKudaf.getMerger();
-    final Long mergeResult1 = merger.apply(null, 10L, 12L);
+    final MaxKudaf<Long> longMaxKudaf = getMaxComparableKudaf();
+    final Long mergeResult1 = longMaxKudaf.merge(10L, 12L);
     assertThat(mergeResult1, equalTo(12L));
-    final Long mergeResult2 = merger.apply(null, 10L, -12L);
+    final Long mergeResult2 = longMaxKudaf.merge(10L, -12L);
     assertThat(mergeResult2, equalTo(10L));
-    final Long mergeResult3 = merger.apply(null, -10L, 0L);
+    final Long mergeResult3 = longMaxKudaf.merge(-10L, 0L);
     assertThat(mergeResult3, equalTo(0L));
-
   }
 
-  private MaxKudaf getMaxComparableKudaf() {
-    final KsqlAggregateFunction aggregateFunction = new MaxAggFunctionFactory()
-        .createAggregateFunction(Collections.singletonList(SqlArgument.of(SqlTypes.BIGINT)),
-            AggregateFunctionInitArguments.EMPTY_ARGS);
+  private MaxKudaf<Long> getMaxComparableKudaf() {
+    final Udaf<Long, Long, Long> aggregateFunction = MaxKudaf.createMaxLong();
+    aggregateFunction.initializeTypeArguments(
+            Collections.singletonList(SqlArgument.of(SqlTypes.BIGINT))
+    );
     assertThat(aggregateFunction, instanceOf(MaxKudaf.class));
-    return  (MaxKudaf) aggregateFunction;
+    return  (MaxKudaf<Long>) aggregateFunction;
   }
-
 }

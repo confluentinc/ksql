@@ -22,28 +22,30 @@ import io.vertx.core.logging.LoggerFactory;
 import java.time.Clock;
 import java.util.Objects;
 import java.util.Optional;
+import org.apache.commons.lang3.StringUtils;
 
 public class AuthenticationUtil {
 
   final Clock clock;
   private static final Logger log = LoggerFactory.getLogger(AuthenticationUtil.class);
+  private static final String BEARER = "Bearer ";
 
   public AuthenticationUtil(final Clock clock) {
     this.clock = Objects.requireNonNull(clock);
   }
 
   public Optional<Long> getTokenTimeout(
-      final String authToken,
+      final Optional<String> token,
       final KsqlConfig ksqlConfig,
       final Optional<KsqlAuthTokenProvider> authTokenProvider
   ) {
     final long maxTimeout =
         ksqlConfig.getLong(KsqlConfig.KSQL_WEBSOCKET_CONNECTION_MAX_TIMEOUT_MS);
     if (maxTimeout > 0) {
-      if (authTokenProvider.isPresent() && authToken != null) {
+      if (authTokenProvider.isPresent() && token.isPresent()) {
         try {
-          final long tokenTimeout = authTokenProvider.get().getLifetimeMs(authToken)
-              - clock.millis();
+          final long tokenTimeout = authTokenProvider.get()
+              .getLifetimeMs(StringUtils.removeStart(token.get(), BEARER)) - clock.millis();
           return Optional.of(Math.min(tokenTimeout, maxTimeout));
         } catch (final Exception e) {
           log.error(e.getMessage());

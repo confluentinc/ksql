@@ -45,8 +45,6 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class DataSourceExtractorTest {
 
-  private static final boolean ROWPARTITION_ROWOFFSET_ENABLED = true;
-
   private static final SourceName TEST1 = SourceName.of("TEST1");
   private static final SourceName TEST2 = SourceName.of("TEST2");
 
@@ -61,7 +59,7 @@ public class DataSourceExtractorTest {
 
   @Before
   public void setUp() {
-    extractor = new DataSourceExtractor(META_STORE, ROWPARTITION_ROWOFFSET_ENABLED);
+    extractor = new DataSourceExtractor(META_STORE);
   }
 
   @Test
@@ -216,7 +214,7 @@ public class DataSourceExtractorTest {
     extractor.extractDataSources(stmt);
 
     // Then:
-    SystemColumns.pseudoColumnNames(ROWPARTITION_ROWOFFSET_ENABLED).forEach(pseudoCol ->
+    SystemColumns.pseudoColumnNames().forEach(pseudoCol ->
         assertThat(pseudoCol + " should clash", extractor.isClashingColumnName(pseudoCol))
     );
   }

@@ -16,12 +16,10 @@
 package io.confluent.ksql.services;
 
 import static io.confluent.ksql.util.LimitedProxyBuilder.methodParams;
+import static io.confluent.ksql.util.LimitedProxyBuilder.noParams;
 
-import com.google.common.collect.ImmutableList;
-import io.confluent.ksql.services.ConnectClient.ConnectResponse;
 import io.confluent.ksql.util.LimitedProxyBuilder;
 import java.util.Map;
-import org.apache.hc.core5.http.HttpStatus;
 
 /**
  * Supplies {@link ConnectClient}s to use that do not make any
@@ -33,18 +31,10 @@ final class SandboxConnectClient {
 
   }
 
-  public static ConnectClient createProxy() {
+  public static ConnectClient createProxy(final ConnectClient delegate) {
     return LimitedProxyBuilder.forClass(ConnectClient.class)
-        .swallow("create", methodParams(String.class, Map.class),
-            ConnectResponse.failure("sandbox", HttpStatus.SC_INTERNAL_SERVER_ERROR))
-        .swallow("describe", methodParams(String.class),
-            ConnectResponse.failure("sandbox", HttpStatus.SC_INTERNAL_SERVER_ERROR))
-        .swallow("connectors", methodParams(),
-            ConnectResponse.success(ImmutableList.of(), HttpStatus.SC_OK))
-        .swallow("status", methodParams(String.class),
-            ConnectResponse.failure("sandbox", HttpStatus.SC_INTERNAL_SERVER_ERROR))
-        .swallow("delete", methodParams(String.class),
-            ConnectResponse.success("sandbox", HttpStatus.SC_NO_CONTENT))
+        .forward("validate", methodParams(String.class, Map.class), delegate)
+        .forward("connectors", noParams(), delegate)
         .build();
   }
 }

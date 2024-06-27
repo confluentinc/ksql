@@ -67,32 +67,35 @@ public class ExecuteQueryResponseHandler extends QueryResponseHandler<BatchedQue
 
   @Override
   protected void handleRow(final Buffer buff) {
-    final Row row;
-    final Object json = buff.toJson();
+    final JsonObject json = buff.toJsonObject();
 
-    if (json instanceof JsonObject) {
-      final JsonObject jsonObject = (JsonObject) json;
-      // This is the serialized consistency vector
-      // Don't add it to the result list since the user should not see it
-      if (jsonObject.getMap() != null && jsonObject.getMap().containsKey("consistencyToken")) {
-        log.info("Response contains consistency vector " + jsonObject);
-        serializedConsistencyVector.set((String) ((JsonObject) json).getMap().get(
-            "consistencyToken"));
+    if (!json.containsKey("finalMessage")) {
+      if (json.containsKey("row")) {
+        if (rows.size() < maxRows) {
+          rows.add(new RowImpl(
+                  columnNames,
+                  columnTypes,
+                  new JsonArray((List)((Map<?, ?>) json.getMap().get("row")).get("columns")),
+                  columnNameToIndex));
+        } else {
+          throw new KsqlClientException(
+                  "Reached max number of rows that may be returned by executeQuery(). "
+                          + "Increase the limit via ClientOptions#setExecuteQueryMaxResultRows(). "
+                          + "Current limit: " + maxRows);
+        }
+      } else if (json.getMap() != null) {
+        // This is the serialized consistency vector
+        // Don't add it to the result list since the user should not see it
+        if (json.getMap().containsKey("consistencyToken")) {
+          log.info("Response contains consistency vector " + json);
+          serializedConsistencyVector.set((String) json.getMap().get(
+              "consistencyToken"));
+        } else {
+          throw new RuntimeException("Could not decode JSON, expected consistency token: " + json);
+        }
       } else {
-        throw new RuntimeException("Could not decode JSON, expected consistency toke: " + json);
+        throw new RuntimeException("Could not decode JSON: " + json);
       }
-    } else  if (json instanceof JsonArray) {
-      final JsonArray values = new JsonArray(buff);
-      if (rows.size() < maxRows) {
-        rows.add(new RowImpl(columnNames, columnTypes, values, columnNameToIndex));
-      } else {
-        throw new KsqlClientException(
-            "Reached max number of rows that may be returned by executeQuery(). "
-                + "Increase the limit via ClientOptions#setExecuteQueryMaxResultRows(). "
-                + "Current limit: " + maxRows);
-      }
-    } else {
-      throw new RuntimeException("Could not decode JSON: " + json);
     }
   }
 

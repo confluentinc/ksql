@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Confluent Inc.
+ * Copyright 2022 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -31,6 +31,7 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.List;
+import java.util.Optional;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -77,6 +78,7 @@ public class SelectionTest {
     selection = Selection.of(
         SCHEMA,
         ImmutableList.of(ALIASED_KEY),
+        Optional.empty(),
         SELECT_EXPRESSIONS,
         ksqlConfig,
         functionRegistry
@@ -118,6 +120,7 @@ public class SelectionTest {
     selection = Selection.of(
         SCHEMA,
         ImmutableList.of(),
+        Optional.empty(),
         SELECT_EXPRESSIONS,
         ksqlConfig,
         functionRegistry

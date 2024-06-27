@@ -20,7 +20,9 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -66,14 +68,19 @@ public class RocksDBMetricsCollectorTest {
   @Before
   public void setup() {
     collector = new RocksDBMetricsCollector();
-    when(metrics.metricName(any(), any())).thenAnswer(
-        a -> new MetricName(a.getArgument(0), a.getArgument(1), "", Collections.emptyMap()));
+    resetMetrics();
     collector.configure(
         ImmutableMap.of(
             RocksDBMetricsCollector.UPDATE_INTERVAL_CONFIG, UPDATE_INTERVAL,
             KsqlConfig.KSQL_INTERNAL_METRICS_CONFIG, metrics
         )
     );
+  }
+
+  private void resetMetrics() {
+    reset(metrics);
+    when(metrics.metricName(any(), any())).thenAnswer(
+        a -> new MetricName(a.getArgument(0), a.getArgument(1), "", Collections.emptyMap()));
   }
 
   @After
@@ -228,9 +235,29 @@ public class RocksDBMetricsCollectorTest {
   }
 
   @Test
+  public void shouldComputeIntervalChangeCorrectlyInSameInstant() {
+    // Given:
+    final Instant now = Instant.now();
+    when(clock.get()).thenReturn(now, now);
+    final Interval interval = new Interval(UPDATE_INTERVAL, clock);
+
+    // When/Then:
+    assertThat(interval.check(), is(true));
+    assertThat(interval.check(), is(false));
+  }
+
+  @Test
   public void shouldNotUpdateIfWithinInterval() {
     // Given:
     final RocksDBMetricsCollector collector = new RocksDBMetricsCollector();
+    resetMetrics();
+    RocksDBMetricsCollector.reset();
+    collector.configure(
+        ImmutableMap.of(
+            RocksDBMetricsCollector.UPDATE_INTERVAL_CONFIG, 7200,
+            KsqlConfig.KSQL_INTERNAL_METRICS_CONFIG, metrics
+        )
+    );
     final KafkaMetric metric = mockMetric(
         StreamsMetricsImpl.STATE_STORE_LEVEL_GROUP,
         RocksDBMetricsCollector.BLOCK_CACHE_USAGE,
@@ -238,12 +265,6 @@ public class RocksDBMetricsCollectorTest {
         BigInteger.valueOf(2)
     );
     collector.metricChange(metric);
-    collector.configure(
-        ImmutableMap.of(
-            RocksDBMetricsCollector.UPDATE_INTERVAL_CONFIG, 3600,
-            KsqlConfig.KSQL_INTERNAL_METRICS_CONFIG, metrics
-        )
-    );
     final Gauge<?> gauge = verifyAndGetRegisteredMetric(
         RocksDBMetricsCollector.BLOCK_CACHE_USAGE + "-total");
 
@@ -266,7 +287,7 @@ public class RocksDBMetricsCollectorTest {
   }
 
   private Gauge<?> verifyAndGetRegisteredMetric(final String name) {
-    verify(metrics).addMetric(
+    verify(metrics, atLeastOnce()).addMetric(
         argThat(
             n -> n.group().equals(RocksDBMetricsCollector.KSQL_ROCKSDB_METRICS_GROUP)
                 && n.name().equals(name)

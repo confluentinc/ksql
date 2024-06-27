@@ -1,0 +1,298 @@
+{
+  "version" : "7.3.0",
+  "timestamp" : 1657131146423,
+  "path" : "query-validation-tests/suppress.json",
+  "schemas" : {
+    "CTAS_OUTPUT_1.Aggregate.Aggregate.Materialize" : {
+      "schema" : "`L_A` INTEGER KEY, `L_A` INTEGER, `ROWTIME` BIGINT, `KSQL_AGG_VARIABLE_0` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CTAS_OUTPUT_1.KsqlTopic.Source" : {
+      "schema" : "`L_A` INTEGER KEY, `L_B` INTEGER, `L_C` INTEGER, `R_A` INTEGER, `R_B` INTEGER, `R_C` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CTAS_OUTPUT_1.OUTPUT" : {
+      "schema" : "`L_A` INTEGER KEY, `COUNT` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA",
+        "windowInfo" : {
+          "type" : "TUMBLING",
+          "size" : 0.002000000,
+          "emitStrategy" : "FINAL"
+        }
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CTAS_OUTPUT_1.Aggregate.GroupBy" : {
+      "schema" : "`L_A` INTEGER KEY, `L_A` INTEGER, `ROWTIME` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CTAS_OUTPUT_1.Aggregate.Project" : {
+      "schema" : "`L_A` INTEGER KEY, `COUNT` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "should suppress after join",
+    "inputs" : [ {
+      "topic" : "LEFT",
+      "key" : 0,
+      "value" : {
+        "B" : 1,
+        "C" : 2
+      },
+      "timestamp" : 0
+    }, {
+      "topic" : "RIGHT",
+      "key" : 0,
+      "value" : {
+        "B" : -1,
+        "C" : -2
+      },
+      "timestamp" : 1
+    }, {
+      "topic" : "LEFT",
+      "key" : 0,
+      "value" : {
+        "B" : 10,
+        "C" : 20
+      },
+      "timestamp" : 0
+    }, {
+      "topic" : "LEFT",
+      "key" : 1,
+      "value" : {
+        "B" : 11,
+        "C" : 22
+      },
+      "timestamp" : 0
+    }, {
+      "topic" : "RIGHT",
+      "key" : 1,
+      "value" : {
+        "B" : -11,
+        "C" : -22
+      },
+      "timestamp" : 0
+    }, {
+      "topic" : "LEFT",
+      "key" : 2,
+      "value" : {
+        "B" : 3,
+        "C" : 4
+      },
+      "timestamp" : 2
+    }, {
+      "topic" : "RIGHT",
+      "key" : 2,
+      "value" : {
+        "B" : -3,
+        "C" : -4
+      },
+      "timestamp" : 2
+    }, {
+      "topic" : "LEFT",
+      "key" : 3,
+      "value" : {
+        "B" : 0,
+        "C" : 0
+      },
+      "timestamp" : 3
+    }, {
+      "topic" : "RIGHT",
+      "key" : 3,
+      "value" : {
+        "B" : 0,
+        "C" : 0
+      },
+      "timestamp" : 3
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : 0,
+      "value" : {
+        "COUNT" : 2
+      },
+      "timestamp" : 1,
+      "window" : {
+        "start" : 0,
+        "end" : 2,
+        "type" : "TIME"
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : 1,
+      "value" : {
+        "COUNT" : 1
+      },
+      "timestamp" : 0,
+      "window" : {
+        "start" : 0,
+        "end" : 2,
+        "type" : "TIME"
+      }
+    } ],
+    "topics" : [ {
+      "name" : "LEFT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "RIGHT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM L (A INT KEY, B INT, C INT) WITH (kafka_topic='LEFT', value_format='JSON');", "CREATE STREAM R (A INT KEY, B INT, C INT) WITH (kafka_topic='RIGHT', value_format='JSON');", "CREATE STREAM JOINED_OUTPUT AS SELECT * FROM L INNER JOIN R WITHIN 1 SECONDS ON L.A = R.A;", "CREATE TABLE OUTPUT AS SELECT L_A, COUNT(*) as COUNT FROM JOINED_OUTPUT WINDOW TUMBLING (SIZE 2 MILLISECONDS, GRACE PERIOD 1 MILLISECONDS) GROUP BY L_A EMIT FINAL;" ],
+    "properties" : {
+      "ksql.streams.__emit.interval.ms.kstreams.windowed.aggregation__" : 0
+    },
+    "post" : {
+      "sources" : [ {
+        "name" : "JOINED_OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`L_A` INTEGER KEY, `L_B` INTEGER, `L_C` INTEGER, `R_A` INTEGER, `R_B` INTEGER, `R_C` INTEGER",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "L",
+        "type" : "STREAM",
+        "schema" : "`A` INTEGER KEY, `B` INTEGER, `C` INTEGER",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "OUTPUT",
+        "type" : "TABLE",
+        "schema" : "`L_A` INTEGER KEY, `COUNT` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA",
+          "windowType" : "TUMBLING",
+          "windowSize" : 2
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "R",
+        "type" : "STREAM",
+        "schema" : "`A` INTEGER KEY, `B` INTEGER, `C` INTEGER",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_1-Aggregate-Aggregate-Materialize-changelog",
+          "keyFormat" : {
+            "format" : "KAFKA",
+            "windowInfo" : {
+              "type" : "TUMBLING",
+              "size" : 0.002000000,
+              "emitStrategy" : "CHANGES"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          }
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_JOINED_OUTPUT_0-KSTREAM-JOINOTHER-0000000009-store-changelog",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          }
+        }, {
+          "name" : "RIGHT",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_JOINED_OUTPUT_0-KSTREAM-JOINTHIS-0000000008-store-changelog",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          }
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "format" : "KAFKA",
+            "windowInfo" : {
+              "type" : "TUMBLING",
+              "size" : 0.002000000,
+              "emitStrategy" : "FINAL"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "LEFT",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "JOINED_OUTPUT",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ],
+        "blackList" : ".*-repartition"
+      }
+    }
+  }
+}

@@ -48,6 +48,15 @@ public class ServerStateTest extends BaseApiTest {
     validateResponse(503, Errors.ERROR_CODE_SERVER_SHUTTING_DOWN, "The server is shutting down");
   }
 
+  @Test
+  public void shouldReturn503IfTerminated() throws Exception {
+    // Given:
+    this.serverState.setTerminated();
+
+    // When/Then:
+    validateResponse(503, Errors.ERROR_CODE_SERVER_SHUT_DOWN, "The server is shut down");
+  }
+
   private void validateResponse(
       final int expectedStatus,
       final int expectedErrorCode,

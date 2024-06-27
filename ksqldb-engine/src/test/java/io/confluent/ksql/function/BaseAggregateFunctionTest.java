@@ -19,6 +19,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
 import io.confluent.ksql.GenericKey;
+import io.confluent.ksql.function.types.ParamTypes;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.util.Collections;
@@ -42,10 +43,10 @@ public class BaseAggregateFunctionTest {
     // When:
     final TestAggFunc aggFunc = new TestAggFunc(
         "funcName",
-        0,
+        Collections.singletonList(0),
         initialValueSupplier,
         SqlTypes.BIGINT,
-        Collections.emptyList(),
+        Collections.singletonList(new ParameterInfo("val", ParamTypes.STRING, "", false)),
         "the description"
     );
 
@@ -57,14 +58,14 @@ public class BaseAggregateFunctionTest {
 
     TestAggFunc(
         final String functionName,
-        final int argIndexInValue,
+        final List<Integer> argIndicesInValue,
         final Supplier<Integer> initialValueSupplier,
         final SqlType returnType,
         final List<ParameterInfo> arguments,
         final String description
     ) {
-      super(functionName, argIndexInValue, initialValueSupplier, returnType, returnType,
-          arguments, description);
+      super(functionName, argIndicesInValue, initialValueSupplier, returnType, returnType,
+          arguments, description, 1);
     }
 
     @Override

@@ -86,7 +86,7 @@ public class DefaultKsqlSecurityContextProviderTest {
     );
 
     when(apiSecurityContext.getPrincipal()).thenReturn(Optional.of(user1));
-    when(apiSecurityContext.getAuthToken()).thenReturn(Optional.empty());
+    when(apiSecurityContext.getAuthHeader()).thenReturn(Optional.empty());
     when(apiSecurityContext.getRequestHeaders()).thenReturn(incomingRequestHeaders);
 
     when(defaultServiceContextFactory.create(any(), any(), any(), any(), any(), any(), any()))
@@ -144,7 +144,7 @@ public class DefaultKsqlSecurityContextProviderTest {
   public void shouldPassAuthHeaderToDefaultFactory() {
     // Given:
     when(securityExtension.getUserContextProvider()).thenReturn(Optional.empty());
-    when(apiSecurityContext.getAuthToken()).thenReturn(Optional.of("some-auth"));
+    when(apiSecurityContext.getAuthHeader()).thenReturn(Optional.of("some-auth"));
 
     // When:
     ksqlSecurityContextProvider.provide(apiSecurityContext);
@@ -157,7 +157,7 @@ public class DefaultKsqlSecurityContextProviderTest {
   public void shouldPassAuthHeaderToUserFactory() {
     // Given:
     when(securityExtension.getUserContextProvider()).thenReturn(Optional.of(userContextProvider));
-    when(apiSecurityContext.getAuthToken()).thenReturn(Optional.of("some-auth"));
+    when(apiSecurityContext.getAuthHeader()).thenReturn(Optional.of("some-auth"));
 
     // When:
     ksqlSecurityContextProvider.provide(apiSecurityContext);

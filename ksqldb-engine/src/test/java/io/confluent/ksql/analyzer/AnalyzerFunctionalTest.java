@@ -72,7 +72,6 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class AnalyzerFunctionalTest {
 
-  private static final boolean ROWPARTITION_ROWOFFSET_ENABLED = true;
   private static final boolean PULL_LIMIT_CLAUSE_ENABLED = true;
 
   private static final ColumnName COL0 = ColumnName.of("COL0");
@@ -96,7 +95,7 @@ public class AnalyzerFunctionalTest {
         ValueFormat.of(FormatInfo.of(FormatFactory.AVRO.name()), SerdeFeatures.of())
     );
 
-    analyzer = new Analyzer(jsonMetaStore, "", ROWPARTITION_ROWOFFSET_ENABLED, PULL_LIMIT_CLAUSE_ENABLED);
+    analyzer = new Analyzer(jsonMetaStore, "", PULL_LIMIT_CLAUSE_ENABLED);
 
     query = parseSingle("Select COL0, COL1 from TEST1;");
 
@@ -115,7 +114,7 @@ public class AnalyzerFunctionalTest {
     final CreateStreamAsSelect createStreamAsSelect = (CreateStreamAsSelect) statements.get(0);
     final Query query = createStreamAsSelect.getQuery();
 
-    final Analyzer analyzer = new Analyzer(jsonMetaStore, "", ROWPARTITION_ROWOFFSET_ENABLED, PULL_LIMIT_CLAUSE_ENABLED);
+    final Analyzer analyzer = new Analyzer(jsonMetaStore, "", PULL_LIMIT_CLAUSE_ENABLED);
     final Analysis analysis = analyzer.analyze(query, Optional.of(createStreamAsSelect.getSink()));
 
     assertThat(analysis.getInto(), is(not(Optional.empty())));
@@ -132,7 +131,7 @@ public class AnalyzerFunctionalTest {
     final CreateStreamAsSelect createStreamAsSelect = (CreateStreamAsSelect) statements.get(0);
     final Query query = createStreamAsSelect.getQuery();
 
-    final Analyzer analyzer = new Analyzer(jsonMetaStore, "", ROWPARTITION_ROWOFFSET_ENABLED, PULL_LIMIT_CLAUSE_ENABLED);
+    final Analyzer analyzer = new Analyzer(jsonMetaStore, "", PULL_LIMIT_CLAUSE_ENABLED);
     final Analysis analysis = analyzer.analyze(query, Optional.of(createStreamAsSelect.getSink()));
 
     assertThat(analysis.getInto(), is(not(Optional.empty())));
@@ -148,7 +147,7 @@ public class AnalyzerFunctionalTest {
     final CreateStreamAsSelect createStreamAsSelect = (CreateStreamAsSelect) statements.get(0);
     final Query query = createStreamAsSelect.getQuery();
 
-    final Analyzer analyzer = new Analyzer(avroMetaStore, "", ROWPARTITION_ROWOFFSET_ENABLED, PULL_LIMIT_CLAUSE_ENABLED);
+    final Analyzer analyzer = new Analyzer(avroMetaStore, "", PULL_LIMIT_CLAUSE_ENABLED);
     final Analysis analysis = analyzer.analyze(query, Optional.of(createStreamAsSelect.getSink()));
 
     assertThat(analysis.getInto(), is(not(Optional.empty())));
@@ -192,7 +191,7 @@ public class AnalyzerFunctionalTest {
     final CreateStreamAsSelect createStreamAsSelect = (CreateStreamAsSelect) statements.get(0);
     final Query query = createStreamAsSelect.getQuery();
 
-    final Analyzer analyzer = new Analyzer(newAvroMetaStore, "", ROWPARTITION_ROWOFFSET_ENABLED, PULL_LIMIT_CLAUSE_ENABLED);
+    final Analyzer analyzer = new Analyzer(newAvroMetaStore, "", PULL_LIMIT_CLAUSE_ENABLED);
     final Analysis analysis = analyzer.analyze(query, Optional.of(createStreamAsSelect.getSink()));
 
     assertThat(analysis.getInto(), is(not(Optional.empty())));
@@ -208,7 +207,7 @@ public class AnalyzerFunctionalTest {
     final CreateStreamAsSelect createStreamAsSelect = (CreateStreamAsSelect) statements.get(0);
     final Query query = createStreamAsSelect.getQuery();
 
-    final Analyzer analyzer = new Analyzer(avroMetaStore, "", ROWPARTITION_ROWOFFSET_ENABLED, PULL_LIMIT_CLAUSE_ENABLED);
+    final Analyzer analyzer = new Analyzer(avroMetaStore, "", PULL_LIMIT_CLAUSE_ENABLED);
     final Analysis analysis = analyzer.analyze(query, Optional.of(createStreamAsSelect.getSink()));
 
     assertThat(analysis.getInto(), is(not(Optional.empty())));
@@ -242,7 +241,7 @@ public class AnalyzerFunctionalTest {
 
     final Query query = createStreamAsSelect.getQuery();
 
-    final Analyzer analyzer = new Analyzer(jsonMetaStore, "", ROWPARTITION_ROWOFFSET_ENABLED, PULL_LIMIT_CLAUSE_ENABLED);
+    final Analyzer analyzer = new Analyzer(jsonMetaStore, "", PULL_LIMIT_CLAUSE_ENABLED);
 
     // When:
     final Exception e = assertThrows(
@@ -265,7 +264,7 @@ public class AnalyzerFunctionalTest {
 
     final Query query = createStreamAsSelect.getQuery();
 
-    final Analyzer analyzer = new Analyzer(jsonMetaStore, "", ROWPARTITION_ROWOFFSET_ENABLED, PULL_LIMIT_CLAUSE_ENABLED);
+    final Analyzer analyzer = new Analyzer(jsonMetaStore, "", PULL_LIMIT_CLAUSE_ENABLED);
 
     // When:
     final Exception e = assertThrows(
@@ -290,7 +289,7 @@ public class AnalyzerFunctionalTest {
 
     final Query query = createStreamAsSelect.getQuery();
 
-    final Analyzer analyzer = new Analyzer(jsonMetaStore, "", ROWPARTITION_ROWOFFSET_ENABLED, PULL_LIMIT_CLAUSE_ENABLED);
+    final Analyzer analyzer = new Analyzer(jsonMetaStore, "", PULL_LIMIT_CLAUSE_ENABLED);
 
     // When:
     final Exception e = assertThrows(
@@ -307,7 +306,7 @@ public class AnalyzerFunctionalTest {
   public void shouldFailOnTableFunctionInsideCaseFunction() {
     // Given:
     final Query query = parseSingle("SELECT CASE WHEN false then EXPLODE(ARRAY[1.2]) END FROM test1;");
-    final Analyzer analyzer = new Analyzer(jsonMetaStore, "", ROWPARTITION_ROWOFFSET_ENABLED, PULL_LIMIT_CLAUSE_ENABLED);
+    final Analyzer analyzer = new Analyzer(jsonMetaStore, "", PULL_LIMIT_CLAUSE_ENABLED);
     when(functionRegistry.isTableFunction(FunctionName.of("EXPLODE"))).thenReturn(true);
 
     // When:
@@ -332,7 +331,7 @@ public class AnalyzerFunctionalTest {
 
     final Query query = createStreamAsSelect.getQuery();
 
-    final Analyzer analyzer = new Analyzer(jsonMetaStore, "", ROWPARTITION_ROWOFFSET_ENABLED, PULL_LIMIT_CLAUSE_ENABLED);
+    final Analyzer analyzer = new Analyzer(jsonMetaStore, "", PULL_LIMIT_CLAUSE_ENABLED);
 
     // When:
     final Exception e = assertThrows(
@@ -357,7 +356,7 @@ public class AnalyzerFunctionalTest {
 
     final Query query = createStreamAsSelect.getQuery();
 
-    final Analyzer analyzer = new Analyzer(jsonMetaStore, "", ROWPARTITION_ROWOFFSET_ENABLED, PULL_LIMIT_CLAUSE_ENABLED);
+    final Analyzer analyzer = new Analyzer(jsonMetaStore, "", PULL_LIMIT_CLAUSE_ENABLED);
 
     // When:
     final Exception e = assertThrows(
@@ -382,7 +381,7 @@ public class AnalyzerFunctionalTest {
 
     final Query query = createStreamAsSelect.getQuery();
 
-    final Analyzer analyzer = new Analyzer(jsonMetaStore, "", ROWPARTITION_ROWOFFSET_ENABLED, PULL_LIMIT_CLAUSE_ENABLED);
+    final Analyzer analyzer = new Analyzer(jsonMetaStore, "", PULL_LIMIT_CLAUSE_ENABLED);
 
     // When:
     final Exception e = assertThrows(
@@ -430,7 +429,7 @@ public class AnalyzerFunctionalTest {
       final String simpleQuery,
       final MetaStore metaStore
   ) {
-    return KsqlParserTestUtil.buildAst(simpleQuery, metaStore, ROWPARTITION_ROWOFFSET_ENABLED)
+    return KsqlParserTestUtil.buildAst(simpleQuery, metaStore)
         .stream()
         .map(PreparedStatement::getStatement)
         .collect(Collectors.toList());

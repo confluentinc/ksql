@@ -632,7 +632,7 @@ public class DefaultSchemaInjectorFunctionalTest {
     }
 
     final PreparedStatement<Statement> prepared = KsqlParserTestUtil
-        .buildSingleAst(this.statement, metaStore, true);
+        .buildSingleAst(this.statement, metaStore);
 
     // When:
     final KsqlConfig ksqlConfig = new KsqlConfig(ImmutableMap.of());
@@ -644,7 +644,7 @@ public class DefaultSchemaInjectorFunctionalTest {
       validateCsasInference((ConfiguredStatement<CreateStreamAsSelect>) inferred, this.avroSchema);
     } else {
       final Statement withSchema = KsqlParserTestUtil
-          .buildSingleAst(inferred.getUnMaskedStatementText(), metaStore, true)
+          .buildSingleAst(inferred.getMaskedStatementText(), metaStore)
           .getStatement();
 
       final Schema actual = getSchemaForDdlStatement((CreateSource) withSchema);

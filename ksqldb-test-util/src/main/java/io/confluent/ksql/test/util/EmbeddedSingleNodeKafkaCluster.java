@@ -52,7 +52,6 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.security.auth.login.Configuration;
 import kafka.security.authorizer.AclAuthorizer;
-import kafka.server.KafkaConfig;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.AdminClientConfig;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
@@ -126,6 +125,14 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
   private static final String INTER_BROKER_SECURITY_PROTOCOL_PROP =
       "security.inter.broker.protocol";
   private static final String LISTENERS_PROP = "listeners";
+  public static final String BROKER_ID_CONFIG = "broker.id";
+  public static final String DELETE_TOPIC_ENABLE_CONFIG = "delete.topic.enable";
+  public static final String CONTROLLED_SHUTDOWN_ENABLE_CONFIG = "controlled.shutdown.enable";
+  public static final String MESSAGE_MAX_BYTES_CONFIG = "message.max.bytes";
+  public static final String AUTHORIZER_CLASS_NAME_CONFIG = "authorizer.class.name";
+  public static final String SASL_ENABLED_MECHANISMS_CONFIG = "sasl.enabled.mechanisms";
+  public static final String SASL_MECHANISM_INTER_BROKER_PROTOCOL_CONFIG =
+          "sasl.mechanism.inter.broker.protocol";
   public static final Credentials VALID_USER1 =
       new Credentials("valid_user_1", "some-password");
   public static final Credentials VALID_USER2 =
@@ -596,7 +603,7 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
     final Properties config = new Properties();
     config.putAll(customBrokerConfig);
     // Only single node, so broker id always:
-    config.put(KafkaConfig.BrokerIdProp(), 0);
+    config.put(BROKER_ID_CONFIG, 0);
     // Set the log dir for the node:
     config.put(LOG_DIR_PROP, logDir);
     // Need to know where ZK is:
@@ -605,7 +612,7 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
     // Default to small number of partitions for auto-created topics:
     config.put(NUM_PARTITIONS_PROP, 1);
     // Allow tests to delete topics:
-    config.put(KafkaConfig.DeleteTopicEnableProp(), true);
+    config.put(DELETE_TOPIC_ENABLE_CONFIG, true);
     // Do not clean logs from under the tests or waste resources doing so:
     config.put(LOG_CLEANER_ENABLE_PROP, false);
     // Only single node, so only single RF on offset topic partitions:
@@ -613,7 +620,7 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
     // Tests do not need large numbers of offset topic partitions:
     config.put(OFFSETS_TOPIC_PARTITIONS_PROP, "1");
     // Shutdown quick:
-    config.put(KafkaConfig.ControlledShutdownEnableProp(), false);
+    config.put(CONTROLLED_SHUTDOWN_ENABLE_CONFIG, false);
     // Set ZK connect timeout high enough to give ZK time to build log file on build server:
     config.put(ZK_CONNECTION_TIMEOUT_MS_PROP, (int) ZK_CONNECT_TIMEOUT.toMillis());
     // Set ZK session timeout high enough that slow build servers don't hit it:
@@ -624,7 +631,7 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
     // (Tests run quicker and with a more stable consumer group):
     config.put(GROUP_INITIAL_REBALANCE_DELAY_MS_PROP, 100);
     // Stop people writing silly data in tests:
-    config.put(KafkaConfig.MessageMaxBytesProp(), 100_000);
+    config.put(MESSAGE_MAX_BYTES_CONFIG, 100_000);
     // Stop logs being deleted due to retention limits:
     config.put(LOG_RETENTION_TIME_MILLIS_PROP, -1);
     // Stop logs marked for deletion from being deleted
@@ -714,7 +721,7 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
     private final Map<AclKey, Set<AclOperation>> acls = new HashMap<>();
 
     Builder() {
-      brokerConfig.put(KafkaConfig.AuthorizerClassNameProp(), AclAuthorizer.class.getName());
+      brokerConfig.put(AUTHORIZER_CLASS_NAME_CONFIG, AclAuthorizer.class.getName());
       brokerConfig.put(AclAuthorizer.AllowEveryoneIfNoAclIsFoundProp(),
           true);
       brokerConfig.put(LISTENERS_PROP, "PLAINTEXT://:0");
@@ -735,10 +742,10 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
 
     public Builder withSaslSslListeners() {
       addListenersProp("SASL_SSL");
-      brokerConfig.put(KafkaConfig.SaslEnabledMechanismsProp(), "PLAIN");
+      brokerConfig.put(SASL_ENABLED_MECHANISMS_CONFIG, "PLAIN");
       brokerConfig.put(INTER_BROKER_SECURITY_PROTOCOL_PROP,
           SecurityProtocol.SASL_SSL.name());
-      brokerConfig.put(KafkaConfig.SaslMechanismInterBrokerProtocolProp(), "PLAIN");
+      brokerConfig.put(SASL_MECHANISM_INTER_BROKER_PROTOCOL_CONFIG, "PLAIN");
       brokerConfig.putAll(SERVER_KEY_STORE.keyStoreProps());
       brokerConfig.put(SslConfigs.SSL_ENDPOINT_IDENTIFICATION_ALGORITHM_CONFIG, "");
 

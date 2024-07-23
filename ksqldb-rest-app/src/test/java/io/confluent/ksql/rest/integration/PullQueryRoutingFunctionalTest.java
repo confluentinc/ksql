@@ -91,10 +91,11 @@ import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.processor.TaskId;
-import org.apache.kafka.streams.processor.internals.assignment.AssignorConfiguration.AssignmentConfigs;
+import org.apache.kafka.streams.processor.assignment.AssignmentConfigs;
+import org.apache.kafka.streams.processor.assignment.ProcessId;
 import org.apache.kafka.streams.processor.internals.assignment.ClientState;
 import org.apache.kafka.streams.processor.internals.assignment.RackAwareTaskAssignor;
-import org.apache.kafka.streams.processor.internals.assignment.TaskAssignor;
+import org.apache.kafka.streams.processor.internals.assignment.LegacyTaskAssignor;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -735,18 +736,18 @@ public class PullQueryRoutingFunctionalTest {
     }
   }
   
-  public static class StaticStreamsTaskAssignor implements TaskAssignor {
+  public static class StaticStreamsTaskAssignor implements LegacyTaskAssignor {
     public StaticStreamsTaskAssignor() { }
 
     @Override
     public boolean assign(
-        final Map<UUID, ClientState> clients,
+        final Map<ProcessId, ClientState> clients,
         final Set<TaskId> allTaskIds,
         final Set<TaskId> statefulTaskIds,
         final RackAwareTaskAssignor rackAwareTaskAssignor,
         final AssignmentConfigs configs
     ) {
-      Preconditions.checkState(configs.numStandbyReplicas == 1);
+      Preconditions.checkState(configs.numStandbyReplicas() == 1);
       Preconditions.checkState(clients.size() == 3);
       final List<ClientState> clientStates = clients.entrySet().stream()
           .sorted(Comparator.comparing(Entry::getKey))

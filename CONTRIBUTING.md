@@ -186,7 +186,7 @@ You can set up IntelliJ for CheckStyle. First install the CheckStyle IDEA plugin
 #### Commit messages
 
 The project uses [Conventional Commits][https://www.conventionalcommits.org/en/v1.0.0-beta.4/] for commit messages
-in order to aid in automatic generation of changelogs. As described in the Conventional Commmits specification,
+in order to aid in automatic generation of changelogs. As described in the Conventional Commits specification,
 commit messages should be of the form:
 
     <type>[optional scope]: <description>

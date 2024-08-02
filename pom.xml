@@ -791,7 +791,7 @@
                 <artifactId>pitest-maven</artifactId>
                 <version>1.6.4</version>
                 <configuration>
-                    <threads>8</threads>
+                    <threads>1</threads>
                     <targetClasses>
                         <param>io.confluent.ksql.*</param>
                     </targetClasses>

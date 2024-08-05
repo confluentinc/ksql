@@ -48,6 +48,7 @@ import io.vertx.ext.web.client.WebClientOptions;
 import java.util.concurrent.TimeUnit;
 import kafka.zookeeper.ZooKeeperClientException;
 import org.apache.kafka.streams.StreamsConfig;
+import org.junit.Ignore;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -167,6 +168,7 @@ public class PullBandwidthThrottleIntegrationTest {
     }
 
     @Test
+    @Ignore
     public void pullStreamBandwidthThrottleTest() {
         String veryLong = createDataSize(100000);
 

@@ -25,6 +25,8 @@ import static org.junit.Assert.assertThrows;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.KsqlConfigTestUtil;
+import io.confluent.ksql.function.udaf.Udaf;
+import io.confluent.ksql.function.udaf.offset.LatestByOffset;
 import io.confluent.ksql.integration.IntegrationTestHarness;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.rest.server.computation.KafkaConfigStore;
@@ -50,6 +52,7 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.function.Function;
 import org.apache.kafka.clients.CommonClientConfigs;
+import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.StreamsConfig;
 import org.junit.After;
 import org.junit.Before;
@@ -127,6 +130,9 @@ public class StandaloneExecutorFunctionalTest {
             new KsqlConfig(properties),
             TEST_HARNESS.getServiceContext().getSchemaRegistryClientFactory()
         );
+
+    final Udaf<Integer, Struct, Integer> udaf = LatestByOffset.latestInteger();
+    udaf.initialize();
 
     standalone = StandaloneExecutorFactory.create(
         (Map) properties,

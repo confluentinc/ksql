@@ -18,6 +18,8 @@ package io.confluent.ksql.api.integration;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.api.utils.QueryResponse;
+import io.confluent.ksql.function.udaf.Udaf;
+import io.confluent.ksql.function.udaf.offset.LatestByOffset;
 import io.confluent.ksql.integration.IntegrationTestHarness;
 import io.confluent.ksql.integration.Retry;
 import static io.confluent.ksql.rest.Errors.ERROR_CODE_BAD_STATEMENT;
@@ -46,6 +48,7 @@ import io.vertx.ext.web.client.WebClientOptions;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import kafka.zookeeper.ZooKeeperClientException;
+import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.StreamsConfig;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasSize;
@@ -122,6 +125,8 @@ public class PullBandwidthThrottleIntegrationTest {
     public void setUp() {
         vertx = Vertx.vertx();
         client = createClient();
+        final Udaf<Integer, Struct, Integer> udaf = LatestByOffset.latestInteger();
+        udaf.initialize();
     }
 
     @After

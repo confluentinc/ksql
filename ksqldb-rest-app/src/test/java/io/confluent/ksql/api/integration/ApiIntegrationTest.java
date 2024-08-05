@@ -35,6 +35,8 @@ import io.confluent.ksql.api.utils.InsertsResponse;
 import io.confluent.ksql.api.utils.QueryResponse;
 import io.confluent.ksql.api.utils.ReceiveStream;
 import io.confluent.ksql.engine.KsqlEngine;
+import io.confluent.ksql.function.udaf.Udaf;
+import io.confluent.ksql.function.udaf.offset.LatestByOffset;
 import io.confluent.ksql.integration.IntegrationTestHarness;
 import io.confluent.ksql.integration.Retry;
 import io.confluent.ksql.rest.integration.RestIntegrationTestUtil;
@@ -60,6 +62,7 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import kafka.zookeeper.ZooKeeperClientException;
+import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.StreamsConfig;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -139,6 +142,8 @@ public class ApiIntegrationTest {
   public void setUp() {
     vertx = Vertx.vertx();
     client = createClient();
+    final Udaf<Integer, Struct, Integer> udaf = LatestByOffset.latestInteger();
+    udaf.initialize();
   }
 
   @After

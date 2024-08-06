@@ -1,0 +1,196 @@
+#!/bin/bash
+# (Copyright) [2017 - 2017] Confluent, Inc.
+
+# Use shellcheck to lint this file
+
+base_dir=$( cd -P "$( dirname "${BASH_SOURCE[0]}" )/.." && pwd )
+
+# Log directory to use
+if [ "x$LOG_DIR" = "x" ]; then
+  LOG_DIR="$base_dir/logs"
+fi
+
+# create logs directory
+if [ ! -d "$LOG_DIR" ]; then
+  mkdir -p "$LOG_DIR"
+fi
+
+: "${KSQL_CLASSPATH:=""}"
+: "${KSQL_LOG4J_OPTS:=""}"
+: "${KSQL_JMX_OPTS:=""}"
+: "${KSQL_OPTS:=""}"
+: "${KSQL_HEAP_OPTS:=""}"
+: "${KSQL_JVM_PERFORMANCE_OPTS:=""}"
+: "${JMX_PORT:=""}"
+: "${JAVA_HOME:=""}"
+
+# Development jars. `mvn package` should collect all the required dependency jars here
+for project in ksqldb-engine ksqldb-examples ksqldb-rest-app ksqldb-cli ksqldb-functional-tests ksqldb-tools; do
+    for dir in "$base_dir/$project/target/$project"-*-development; do
+      KSQL_DIR="$dir/share/java/$project"
+      if [ -d "$KSQL_DIR" ]; then
+        KSQL_CLASSPATH="$KSQL_CLASSPATH:$KSQL_DIR/*"
+      fi
+    done
+done
+
+# Production jars - each one is prepended so they will appear in reverse order.  KSQL jars take precedence over other stuff passed in via CLASSPATH env var
+for library in "confluent-common" "confluent-telemetry" "ksqldb-examples" "rest-utils" "ksqldb-engine" "ksqldb-rest-app" "ksqldb-cli" "ksqldb-functional-tests" "ksqldb" "monitoring-interceptors" "confluent-security/ksql" "ksqldb-tools"; do
+  DIR="$base_dir/share/java/$library"
+  if [ -d "$DIR" ]; then
+    KSQL_CLASSPATH="$DIR/*:$KSQL_CLASSPATH"
+  fi
+done
+
+# logj4 settings
+if [ -z "$KSQL_LOG4J_OPTS" ]; then
+  # Test for files from dev -> packages so this will work as expected in dev if you have packages
+  # installed
+  if [ -e "$base_dir/config/log4j.properties" ]; then # Dev environment
+    KSQL_LOG4J_OPTS="-Dlog4j.configuration=file:$base_dir/config/log4j.properties"
+  elif [ -e "$base_dir/etc/ksqldb/log4j.properties" ]; then # Simple zip file layout
+    KSQL_LOG4J_OPTS="-Dlog4j.configuration=file:$base_dir/etc/ksqldb/log4j.properties"
+  elif [ -e "/etc/ksqldb/log4j.properties" ]; then # Normal install layout
+    KSQL_LOG4J_OPTS="-Dlog4j.configuration=file:/etc/ksqldb/log4j.properties"
+  fi
+fi
+
+ KSQL_LOG4J_OPTS="-Dksql.log.dir=$LOG_DIR ${KSQL_LOG4J_OPTS}"
+
+# JMX settings
+if [ -z "$KSQL_JMX_OPTS" ]; then
+  KSQL_JMX_OPTS="-Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false "
+fi
+
+# JMX port to use
+if [ ! -z "$JMX_PORT" ]; then
+  KSQL_JMX_OPTS="$KSQL_JMX_OPTS -Dcom.sun.management.jmxremote.port=$JMX_PORT "
+fi
+
+# Generic jvm settings you want to add
+if [ -z "$KSQL_OPTS" ]; then
+  KSQL_OPTS=""
+fi
+
+# Which java to use
+if [ -z "$JAVA_HOME" ]; then
+  JAVA="java"
+else
+  JAVA="$JAVA_HOME/bin/java"
+fi
+
+# Memory options
+if [ -z "$KSQL_HEAP_OPTS" ]; then
+  KSQL_HEAP_OPTS="-Xmx3g"
+fi
+
+# JVM performance options
+if [ -z "$KSQL_JVM_PERFORMANCE_OPTS" ]; then
+  KSQL_JVM_PERFORMANCE_OPTS="-server -XX:+UseG1GC -XX:+ExplicitGCInvokesConcurrent -XX:NewRatio=1 -Djava.awt.headless=true"
+fi
+
+if [ $# -lt 1 ];
+then
+  echo "USAGE: $0 [-daemon] [opts] [-help]"
+    exit 1
+fi
+
+MAIN="$1"
+shift
+
+DAEMON_NAME=""
+GC_LOG_ENABLED=""
+DAEMON_MODE=""
+HELP=""
+if [ "$1" = "help" ]; then
+  HELP="true"
+fi
+while [ $# -gt 0 ]; do
+  COMMAND="$1"
+  case "$COMMAND" in
+    -name)
+      DAEMON_NAME=$2
+      shift 2
+      ;;
+    -loggc)
+      if [ -z "$KSQL_GC_LOG_OPTS" ]; then
+        GC_LOG_ENABLED="true"
+      fi
+      shift
+      ;;
+    -daemon)
+      DAEMON_MODE="true"
+      shift
+      ;;
+    -help)
+      HELP="true"
+      shift
+      ;;
+   *)
+      break
+      ;;
+  esac
+done
+
+
+# GC options
+GC_FILE_SUFFIX='-gc.log'
+GC_LOG_FILE_NAME=''
+if [ "x$GC_LOG_ENABLED" = "xtrue" ]; then
+  GC_LOG_FILE_NAME=$DAEMON_NAME$GC_FILE_SUFFIX
+  # The first segment of the version number, which is '1' for releases before Java 9
+  # it then becomes '9', '10', ...
+  # Some examples of the first line of `java --version`:
+  # 8 -> java version "1.8.0_152"
+  # 9.0.4 -> java version "9.0.4"
+  # 10 -> java version "10" 2018-03-20
+  # 10.0.1 -> java version "10.0.1" 2018-04-17
+  # We need to match to the end of the line to prevent sed from printing the characters that do not match
+  JAVA_MAJOR_VERSION=$($JAVA -version 2>&1 | sed -E -n 's/.* version "([0-9]*).*$/\1/p')
+  if [[ "$JAVA_MAJOR_VERSION" -ge "9" ]] ; then
+    KSQL_GC_LOG_OPTS="-Xlog:gc*:file=$LOG_DIR/$GC_LOG_FILE_NAME:time,tags:filecount=10,filesize=102400"
+  else
+    KSQL_GC_LOG_OPTS="-Xloggc:$LOG_DIR/$GC_LOG_FILE_NAME -verbose:gc -XX:+PrintGCDetails -XX:+PrintGCDateStamps -XX:+PrintGCTimeStamps -XX:+UseGCLogFileRotation -XX:NumberOfGCLogFiles=10 -XX:GCLogFileSize=100M"
+  fi
+fi
+
+
+if [ "x$HELP" = "xtrue" ]; then
+  exec "$JAVA" -cp "$KSQL_CLASSPATH" "$MAIN" --help
+  exit 1
+fi
+
+# Set Debug options if enabled
+if [ "x$KSQL_DEBUG" != "x" ]; then
+    # Use default ports
+    DEFAULT_JAVA_DEBUG_PORT="5005"
+    if [ -z "$KSQL_JAVA_DEBUG_PORT" ]; then
+        KSQL_JAVA_DEBUG_PORT="$DEFAULT_JAVA_DEBUG_PORT"
+    fi
+    # Use the defaults if KSQL_JAVA_DEBUG_OPTS was not set
+    DEFAULT_JAVA_DEBUG_OPTS="-agentlib:jdwp=transport=dt_socket,server=y,suspend=${DEBUG_SUSPEND_FLAG:-n},address=$KSQL_JAVA_DEBUG_PORT"
+    if [ -z "$KSQL_JAVA_DEBUG_OPTS" ]; then
+        KSQL_JAVA_DEBUG_OPTS="$DEFAULT_JAVA_DEBUG_OPTS"
+    fi
+    echo "Enabling Java debug options: $KSQL_JAVA_DEBUG_OPTS"
+fi
+
+OPTIONS=($KSQL_HEAP_OPTS)
+OPTIONS+=($KSQL_JVM_PERFORMANCE_OPTS)
+OPTIONS+=($KSQL_JMX_OPTS)
+OPTIONS+=($KSQL_LOG4J_OPTS)
+OPTIONS+=($KSQL_OPTS)
+OPTIONS+=($KSQL_GC_LOG_OPTS)
+OPTIONS+=($KSQL_JAVA_DEBUG_OPTS)
+
+echo "Debug Options: $KSQL_JAVA_DEBUG_OPTS"
+# echo "Complete Options: ${OPTIONS[@]}"
+
+# Launch mode
+if [ "x$DAEMON_MODE" = "xtrue" ]; then
+  DAEMON_STDOUT_FILE="$LOG_DIR/ksql.out"
+  echo "Writing console output to $DAEMON_STDOUT_FILE"
+  nohup "$JAVA" -cp "$KSQL_CLASSPATH" "${OPTIONS[@]}" "$MAIN" "$@" 2>&1 < /dev/null > "$DAEMON_STDOUT_FILE" &
+else
+  exec "$JAVA" -cp "$KSQL_CLASSPATH" "${OPTIONS[@]}" "$MAIN" "$@"
+fi

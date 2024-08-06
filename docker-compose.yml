@@ -1,4 +1,4 @@
-# Docker compose from bringing up a local ksqlDB cluster and dependencies.
+# Docker compose for bringing up a local ksqlDB cluster and dependencies.
 #
 # By default, the cluster has two ksqlDB servers. You can scale the number of ksqlDB nodes in the
 # cluster by using the docker `--scale` command line arg.

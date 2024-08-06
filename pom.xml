@@ -15,143 +15,938 @@
   -->
 
 <project xmlns="http://maven.apache.org/POM/4.0.0"
-  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-  <modelVersion>4.0.0</modelVersion>
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
 
-  <parent>
-    <artifactId>ksqldb-parent</artifactId>
+    <scm>
+        <connection>scm:git:git://github.com/confluentinc/ksql.git</connection>
+        <developerConnection>scm:git:git@github.com:confluentinc/ksql.git</developerConnection>
+        <url>https://github.com/confluentinc/ksql</url>
+        <tag>HEAD</tag>
+    </scm>
+  
+    <parent>
+        <groupId>io.confluent</groupId>
+        <artifactId>common</artifactId>
+        <version>[7.8.0-0, 7.8.1-0)</version>
+    </parent>
+
     <groupId>io.confluent.ksql</groupId>
+    <artifactId>ksqldb-parent</artifactId>
+    <packaging>pom</packaging>
+    <name>ksqldb-parent</name>
     <version>7.8.0-0</version>
-  </parent>
 
-  <artifactId>ksqldb-docker</artifactId>
+    <licenses>
+        <license>
+            <name>Confluent Community License</name>
+            <url>http://www.confluent.io/confluent-community-license</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
 
-  <properties>
-    <air.main.basedir>${project.parent.basedir}</air.main.basedir>
-    <docker.skip-build>${skip.docker.build}</docker.skip-build>
-    <docker.skip-test>${skip.docker.test}</docker.skip-test>
-  </properties>
+    <modules>
+        <module>ksqldb-stream-lib</module>
+        <module>ksqldb-udf</module>
+        <module>ksqldb-common</module>
+        <module>ksqldb-udf-quickstart</module>
+        <module>ksqldb-serde</module>
+        <module>ksqldb-metastore</module>
+        <module>ksqldb-execution</module>
+        <module>ksqldb-parser</module>
+        <module>ksqldb-streams</module>
+        <module>ksqldb-engine</module>
+        <module>ksqldb-tools</module>
+        <module>ksqldb-cli</module>
+        <module>ksqldb-examples</module>
+        <module>ksqldb-rest-model</module>
+        <module>ksqldb-rest-client</module>
+        <module>ksqldb-rest-app</module>
+        <module>ksqldb-version-metrics-client</module>
+        <module>ksqldb-console-scripts</module>
+        <module>ksqldb-etc</module>
+        <module>ksqldb-package</module>
+        <module>ksqldb-test-util</module>
+        <module>ksqldb-benchmark</module>
+        <module>ksqldb-functional-tests</module>
+        <module>ksqldb-rocksdb-config-setter</module>
+        <module>ksqldb-docker</module>
+        <module>ksqldb-api-reactive-streams-tck</module>
+        <module>ksqldb-api-client</module>
+        <module>ksqldb-engine-common</module>
+        <module>ksqldb-testing-tool</module>
+    </modules>
 
-  <dependencies>
-    <dependency>
-      <groupId>io.confluent.ksql</groupId>
-      <artifactId>ksqldb-rest-app</artifactId>
-      <version>${io.confluent.ksql.version}</version>
-    </dependency>
+    <repositories>
+        <repository>
+            <id>confluent</id>
+            <url>https://packages.confluent.io/maven/</url>
+        </repository>
+        <repository>
+            <id>confluent-snapshots</id>
+            <url>https://confluent-snapshots.public.confluent.io/</url>
+        </repository>
+    </repositories>
 
-    <dependency>
-      <groupId>io.confluent.ksql</groupId>
-      <artifactId>ksqldb-cli</artifactId>
-      <version>${io.confluent.ksql.version}</version>
-    </dependency>
+    <pluginRepositories>
+        <pluginRepository>
+            <id>confluent</id>
+            <url>https://packages.confluent.io/maven/</url>
+        </pluginRepository>
+        <pluginRepository>
+            <id>confluent-snapshots</id>
+            <url>https://confluent-snapshots.public.confluent.io/</url>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+        </pluginRepository>
+    </pluginRepositories>
 
-    <dependency>
-      <groupId>io.confluent.ksql</groupId>
-      <artifactId>ksqldb-functional-tests</artifactId>
-      <version>${io.confluent.ksql.version}</version>
-    </dependency>
+    <properties>
+        <apache.directory.server.version>2.0.0-M22</apache.directory.server.version>
+        <apache.directory.api.version>1.0.0-M33</apache.directory.api.version>
+        <apache.httpcomponents.version>5.0.3</apache.httpcomponents.version>
+        <confluent.maven.repo>https://packages.confluent.io/maven/</confluent.maven.repo>
+        <exec-maven-plugin.version>1.2.1</exec-maven-plugin.version>
+        <podam.version>6.0.2.RELEASE</podam.version>
+        <airlift.version>0.29</airlift.version>
+        <airline.version>2.6.0</airline.version>
+        <antlr.version>4.9.2</antlr.version>
+        <commons-text.version>1.10.0</commons-text.version>
+        <csv.version>1.4</csv.version>
+        <commons.compress.version>1.26.0</commons.compress.version>
+        <lang3.version>3.5</lang3.version>
+        <retrying.version>2.0.0</retrying.version>
+        <inject.version>1</inject.version>
+        <janino.version>3.1.10</janino.version>
+        <javax-validation.version>2.0.1.Final</javax-validation.version>
+        <jline.version>3.13.1</jline.version>
+        <jna.version>4.4.0</jna.version>
+        <jsr305.version>3.0.2</jsr305.version>
+        <maven.plugins.version>3.0.0-M1</maven.plugins.version>
+        <really.executable.jar.version>1.5.0</really.executable.jar.version>
+        <generext.version>1.0.2</generext.version>
+        <avro.random.generator.version>0.2.2</avro.random.generator.version>
+        <apache.curator.version>5.2.0</apache.curator.version>
+        <wiremock.version>2.24.0</wiremock.version>
+        <icu.version>67.1</icu.version>
+        <vertx.version>4.4.8</vertx.version>
+        <reactive-streams.version>1.0.3</reactive-streams.version>
+        <skip.docker.build>true</skip.docker.build>
+        <skip.docker.test>true</skip.docker.test>
+        <!-- Temporarily disabling this because it is causing failures in packaging but not CI builds. -->
+        <!-- <compile.warnings-flag>-Werror</compile.warnings-flag> -->
+        <!-- Only used to provide login module implementation for tests -->
+        <jetty.version>9.4.53.v20231009</jetty.version>
+        <git-commit-id-plugin.version>4.9.10</git-commit-id-plugin.version>
+        <apache.io.version>2.11.0</apache.io.version>
+        <io.confluent.ksql.version>7.8.0-0</io.confluent.ksql.version>
+        <io.confluent.schema-registry.version>${confluent.version.range}</io.confluent.schema-registry.version>
+        <netty-tcnative-version>2.0.65.Final</netty-tcnative-version>
+        <!-- We normally get this from common, but Vertx is built against this -->
+        <!-- Note: `netty` depends on `tcnative` and if we bump `netty`
+             we might need to bump `tcnative`, too.
+             Please check top level `pom.xml` at https://github.com/netty/netty
+             for the netty version we bump to (ie, corresponding git tag),
+             to find the correct `tcnative` version. -->
+        <netty.version>4.1.108.Final</netty.version>
+        <netty-codec-http2-version>4.1.108.Final</netty-codec-http2-version>
+        <jersey-common>2.39.1</jersey-common>
+        <multi-threaded-testing.forkCount>3</multi-threaded-testing.forkCount>
+        <kafka.version>${ce.kafka.version}</kafka.version>
+    </properties>
 
-    <dependency>
-      <groupId>io.confluent.ksql</groupId>
-      <artifactId>ksqldb-tools</artifactId>
-      <version>${io.confluent.ksql.version}</version>
-    </dependency>
-
-    <!-- Need to explicitly add dependencies with classifier as they are not automatically pulled
-         in. -->
-    <dependency>
-      <groupId>org.apache.kafka</groupId>
-      <artifactId>kafka-clients</artifactId>
-      <version>${kafka.version}</version>
-      <classifier>test</classifier>
-      <scope>compile</scope>
-    </dependency>
-
-    <dependency>
-      <groupId>org.apache.kafka</groupId>
-      <artifactId>kafka_${kafka.scala.version}</artifactId>
-      <classifier>test</classifier>
-      <scope>compile</scope>
-    </dependency>
-
-    <dependency>
-      <groupId>org.hamcrest</groupId>
-      <artifactId>hamcrest-all</artifactId>
-      <scope>compile</scope>
-    </dependency>
-
-    <dependency>
-      <groupId>junit</groupId>
-      <artifactId>junit</artifactId>
-      <scope>compile</scope>
-    </dependency>
-
-  </dependencies>
-
-
-  <build>
-    <plugins>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-assembly-plugin</artifactId>
-        <configuration>
-          <descriptors>
-            <descriptor>src/assembly/package.xml</descriptor>
-          </descriptors>
-          <attach>false</attach>
-        </configuration>
-        <executions>
-          <execution>
-            <id>make-assembly</id>
-            <phase>package</phase>
-            <goals>
-              <goal>single</goal>
-            </goals>
-          </execution>
-        </executions>
-      </plugin>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-jar-plugin</artifactId>
-        <executions>
-          <execution>
-            <goals>
-              <goal>test-jar</goal>
-            </goals>
-          </execution>
-        </executions>
-      </plugin>
-      <plugin>
-        <groupId>com.spotify</groupId>
-        <artifactId>dockerfile-maven-plugin</artifactId>
-        <version>1.4.8</version>
+    <dependencyManagement>
         <dependencies>
-          <dependency>
-            <groupId>com.github.jnr</groupId>
-            <artifactId>jnr-unixsocket</artifactId>
-            <version>0.38.14</version>
-          </dependency>
+            <!-- Cross-submodule dependencies -->
+            <dependency>
+                <groupId>org.apache.kafka</groupId>
+                <artifactId>kafka_${kafka.scala.version}</artifactId>
+                <version>${kafka.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>org.slf4j</groupId>
+                        <artifactId>slf4j-log4j12</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.zookeeper</groupId>
+                <artifactId>zookeeper</artifactId>
+                <version>${zookeeper.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>ch.qos.logback</groupId>
+                        <artifactId>logback-core</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>ch.qos.logback</groupId>
+                        <artifactId>logback-classic</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+
+            <dependency>
+                <groupId>org.apache.kafka</groupId>
+                <artifactId>kafka-streams</artifactId>
+                <version>${kafka.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.kafka</groupId>
+                <artifactId>kafka-clients</artifactId>
+                <version>${kafka.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>org.slf4j</groupId>
+                        <artifactId>slf4j-log4j12</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.kafka</groupId>
+                <artifactId>connect-api</artifactId>
+                <version>${kafka.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.kafka</groupId>
+                <artifactId>connect-runtime</artifactId>
+                <version>${kafka.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.kafka</groupId>
+                <artifactId>connect-json</artifactId>
+                <version>${kafka.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.kafka</groupId>
+                <artifactId>connect-file</artifactId>
+                <version>${kafka.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.kafka</groupId>
+                <artifactId>kafka-streams-test-utils</artifactId>
+                <version>${kafka.version}</version>
+            </dependency>
+
+            <!-- Kafka's SSL utilities are used in tests. -->
+            <dependency>
+                <groupId>org.apache.kafka</groupId>
+                <artifactId>kafka_${kafka.scala.version}</artifactId>
+                <version>${kafka.version}</version>
+                <classifier>test</classifier>
+                <scope>test</scope>
+                <exclusions>
+                    <exclusion>
+                        <groupId>org.slf4j</groupId>
+                        <artifactId>slf4j-log4j12</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.kafka</groupId>
+                <artifactId>kafka-clients</artifactId>
+                <version>${kafka.version}</version>
+                <classifier>test</classifier>
+                <scope>test</scope>
+                <exclusions>
+                    <exclusion>
+                        <groupId>org.slf4j</groupId>
+                        <artifactId>slf4j-log4j12</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.kafka</groupId>
+                <artifactId>kafka-server-common</artifactId>
+                <version>${kafka.version}</version>
+                <classifier>test</classifier>
+                <scope>compile</scope>
+            </dependency>
+
+            <dependency>
+                <groupId>io.confluent</groupId>
+                <artifactId>ce-sbk_${kafka.scala.version}</artifactId>
+                <version>${kafka.version}</version>
+                <scope>compile</scope>
+            </dependency>
+
+            <dependency>
+                <groupId>io.confluent.ksql</groupId>
+                <artifactId>ksqldb-common</artifactId>
+                <version>${io.confluent.ksql.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.confluent.ksql</groupId>
+                <artifactId>ksqldb-engine-common</artifactId>
+                <version>${io.confluent.ksql.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.confluent.ksql</groupId>
+                <artifactId>ksqldb-udf</artifactId>
+                <version>${io.confluent.ksql.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.confluent.ksql</groupId>
+                <artifactId>ksqldb-serde</artifactId>
+                <version>${io.confluent.ksql.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.confluent.ksql</groupId>
+                <artifactId>ksqldb-metastore</artifactId>
+                <version>${io.confluent.ksql.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.confluent.ksql</groupId>
+                <artifactId>ksqldb-cli</artifactId>
+                <version>${io.confluent.ksql.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.confluent.ksql</groupId>
+                <artifactId>ksqldb-engine</artifactId>
+                <version>${io.confluent.ksql.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.confluent.ksql</groupId>
+                <artifactId>ksqldb-execution</artifactId>
+                <version>${io.confluent.ksql.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.confluent.ksql</groupId>
+                <artifactId>ksqldb-parser</artifactId>
+                <version>${io.confluent.ksql.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.confluent.ksql</groupId>
+                <artifactId>ksqldb-streams</artifactId>
+                <version>${io.confluent.ksql.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.confluent.ksql</groupId>
+                <artifactId>ksqldb-examples</artifactId>
+                <version>${io.confluent.ksql.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.confluent.ksql</groupId>
+                <artifactId>ksqldb-rest-model</artifactId>
+                <version>${io.confluent.ksql.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.confluent.ksql</groupId>
+                <artifactId>ksqldb-rest-client</artifactId>
+                <version>${io.confluent.ksql.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.confluent.ksql</groupId>
+                <artifactId>ksqldb-rest-app</artifactId>
+                <version>${io.confluent.ksql.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.confluent.ksql</groupId>
+                <artifactId>ksqldb-functional-tests</artifactId>
+                <version>${io.confluent.ksql.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.confluent.ksql</groupId>
+                <artifactId>ksqldb-version-metrics-client</artifactId>
+                <version>${io.confluent.ksql.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.confluent.ksql</groupId>
+                <artifactId>package-ksql</artifactId>
+                <version>${io.confluent.ksql.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.confluent.ksql</groupId>
+                <artifactId>ksqldb-api-reactive-streams-tck</artifactId>
+                <version>${io.confluent.ksql.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.confluent.ksql</groupId>
+                <artifactId>ksqldb-api-client</artifactId>
+                <version>${io.confluent.ksql.version}</version>
+            </dependency>
+            <!-- End cross-submodule dependencies -->
+
+            <!-- Confluent dependencies -->
+            <dependency>
+                <groupId>io.confluent</groupId>
+                <artifactId>kafka-connect-avro-converter</artifactId>
+                <version>${io.confluent.schema-registry.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.confluent</groupId>
+                <artifactId>kafka-json-serializer</artifactId>
+                <version>${io.confluent.schema-registry.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.confluent</groupId>
+                <artifactId>kafka-avro-serializer</artifactId>
+                <version>${io.confluent.schema-registry.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.confluent</groupId>
+                <artifactId>kafka-schema-registry-client</artifactId>
+                <version>${io.confluent.schema-registry.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.apache.kafka</groupId>
+                <artifactId>kafka-log4j-appender</artifactId>
+                <version>${kafka.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.confluent</groupId>
+                <artifactId>common-utils</artifactId>
+                <version>${io.confluent.common.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.confluent</groupId>
+                <artifactId>common-docker</artifactId>
+                <version>${io.confluent.common-docker.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.confluent</groupId>
+                <artifactId>kafka-json-schema-provider</artifactId>
+                <version>${io.confluent.schema-registry.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.confluent</groupId>
+                <artifactId>kafka-protobuf-provider</artifactId>
+                <version>${io.confluent.schema-registry.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.confluent</groupId>
+                <artifactId>kafka-connect-json-schema-converter</artifactId>
+                <version>${io.confluent.schema-registry.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.confluent</groupId>
+                <artifactId>kafka-connect-protobuf-converter</artifactId>
+                <version>${io.confluent.schema-registry.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.confluent</groupId>
+                <artifactId>broker-plugins</artifactId>
+                <version>${kafka.version}</version>
+            </dependency>
+
+            <!-- End Confluent dependencies -->
+
+            <dependency>
+                <groupId>com.github.rvesse</groupId>
+                <artifactId>airline</artifactId>
+                <version>${airline.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.google.code.findbugs</groupId>
+                <artifactId>jsr305</artifactId>
+                <version>${jsr305.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.google.guava</groupId>
+                <artifactId>guava</artifactId>
+                <version>${guava.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.google.protobuf</groupId>
+                <artifactId>protobuf-java</artifactId>
+                <version>${protobuf.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.google.protobuf</groupId>
+                <artifactId>protobuf-java-util</artifactId>
+                <version>${protobuf.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.github.rholder</groupId>
+                <artifactId>guava-retrying</artifactId>
+                <version>${retrying.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>com.google.guava</groupId>
+                        <artifactId>guava</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+
+            <dependency>
+                <groupId>io.airlift</groupId>
+                <artifactId>slice</artifactId>
+                <version>${airlift.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>javax.inject</groupId>
+                <artifactId>javax.inject</artifactId>
+                <version>${inject.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>net.java.dev.jna</groupId>
+                <artifactId>jna</artifactId>
+                <version>${jna.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.antlr</groupId>
+                <artifactId>antlr4-runtime</artifactId>
+                <version>${antlr.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.apache.avro</groupId>
+                <artifactId>avro</artifactId>
+                <version>${avro.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>com.google.guava</groupId>
+                        <artifactId>guava</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+
+            <dependency>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-csv</artifactId>
+                <version>${csv.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-compress</artifactId>
+                <version>${commons.compress.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-lang3</artifactId>
+                <version>${lang3.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>commons-io</groupId>
+                <artifactId>commons-io</artifactId>
+                <version>${apache.io.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-text</artifactId>
+                <version>${commons-text.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.codehaus.janino</groupId>
+                <artifactId>janino</artifactId>
+                <version>${janino.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.jline</groupId>
+                <artifactId>jline</artifactId>
+                <version>${jline.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>javax.validation</groupId>
+                <artifactId>validation-api</artifactId>
+                <version>${javax-validation.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.ibm.icu</groupId>
+                <artifactId>icu4j</artifactId>
+                <version>${icu.version}</version>
+            </dependency>
+
+            <!-- We need to fix our Scala versions as otherwise our depdendencies bring in
+            different versions via different routes
+            https://github.com/confluentinc/common/pull/260 -->
+            <dependency>
+                <groupId>org.scala-lang</groupId>
+                <artifactId>scala-library</artifactId>
+                <version>${scala.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.scala-lang</groupId>
+                <artifactId>scala-reflect</artifactId>
+                <version>${scala.version}</version>
+            </dependency>
+
+            <!-- Explicitly override all netty artifacts to get the version we want. Doing netty-all
+             doesn't seem to correctly override its individual dependencies, so all are enumerated
+             here -->
+            <dependency>
+                <groupId>io.netty</groupId>
+                <artifactId>netty-all</artifactId>
+                <version>${netty.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.netty</groupId>
+                <artifactId>netty-common</artifactId>
+                <version>${netty.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.netty</groupId>
+                <artifactId>netty-buffer</artifactId>
+                <version>${netty.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.netty</groupId>
+                <artifactId>netty-transport</artifactId>
+                <version>${netty.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.netty</groupId>
+                <artifactId>netty-handler</artifactId>
+                <version>${netty.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.netty</groupId>
+                <artifactId>netty-codec</artifactId>
+                <version>${netty.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.netty</groupId>
+                <artifactId>netty-handler-proxy</artifactId>
+                <version>${netty.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.netty</groupId>
+                <artifactId>netty-codec-socks</artifactId>
+                <version>${netty.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.netty</groupId>
+                <artifactId>netty-codec-http</artifactId>
+                <version>${netty.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.netty</groupId>
+                <artifactId>netty-codec-http2</artifactId>
+                <version>${netty-codec-http2-version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.netty</groupId>
+                <artifactId>netty-resolver</artifactId>
+                <version>${netty.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.netty</groupId>
+                <artifactId>netty-resolver-dns</artifactId>
+                <version>${netty.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.netty</groupId>
+                <artifactId>netty-codec-dns</artifactId>
+                <version>${netty.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.netty</groupId>
+                <artifactId>netty-transport-native-kqueue</artifactId>
+                <version>${netty.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.netty</groupId>
+                <artifactId>netty-transport-native-epoll</artifactId>
+                <version>${netty.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.netty</groupId>
+                <artifactId>netty-transport-native-unix-common</artifactId>
+                <version>${netty.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.netty</groupId>
+                <artifactId>netty-tcnative-boringssl-static</artifactId>
+                <version>${netty-tcnative-version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.glassfish.jersey.core</groupId>
+                <artifactId>jersey-common</artifactId>
+                <version>${jersey-common}</version>
+            </dependency>
+
+            <!-- Required for running tests -->
+            <dependency>
+                <groupId>junit</groupId>
+                <artifactId>junit</artifactId>
+                <version>${junit.version}</version>
+                <scope>test</scope>
+                <exclusions>
+                    <exclusion>
+                        <groupId>org.hamcrest</groupId>
+                        <artifactId>hamcrest-core</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+
+            <dependency>
+                <groupId>com.google.guava</groupId>
+                <artifactId>guava-testlib</artifactId>
+                <version>${guava.version}</version>
+                <scope>test</scope>
+            </dependency>
+
+            <dependency>
+                <groupId>com.github.tomakehurst</groupId>
+                <artifactId>wiremock-jre8</artifactId>
+                <version>${wiremock.version}</version>
+                <scope>test</scope>
+            </dependency>
         </dependencies>
-        <executions>
-          <execution>
-            <id>package</id>
-            <goals>
-              <goal>build</goal>
-              <goal>push</goal>
-            </goals>
-            <configuration>
-              <repository>${docker.registry}confluentinc/${project.artifactId}</repository>
-              <tag>${docker.tag}</tag>
-              <buildArgs>
-                <DOCKER_UPSTREAM_REGISTRY>${docker.upstream-registry}</DOCKER_UPSTREAM_REGISTRY>
-                <DOCKER_UPSTREAM_TAG>${docker.upstream-tag}</DOCKER_UPSTREAM_TAG>
-              </buildArgs>
-              <skip>${docker.skip-build}</skip>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
-    </plugins>
-  </build>
+    </dependencyManagement>
+
+    <dependencies>
+
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-reload4j</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.confluent</groupId>
+            <artifactId>logredactor</artifactId>
+        </dependency>
+            <dependency>
+                <groupId>io.confluent</groupId>
+                <artifactId>broker-plugins</artifactId>
+            </dependency>
+    </dependencies>
+
+    <build>
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <artifactId>maven-assembly-plugin</artifactId>
+                    <configuration>
+                        <tarLongFileMode>posix</tarLongFileMode>
+                    </configuration>
+                </plugin>
+                <plugin>
+                    <groupId>org.codehaus.mojo</groupId>
+                    <artifactId>exec-maven-plugin</artifactId>
+                    <version>${exec-maven-plugin.version}</version>
+                </plugin>
+            </plugins>
+        </pluginManagement>
+
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <showWarnings>true</showWarnings>
+                    <showDeprecation>true</showDeprecation>
+                    <compilerVersion>1.8</compilerVersion>
+                    <source>1.8</source>
+                    <target>1.8</target>
+                    <compilerArgs>
+                        <arg>-Xlint:all,-serial,-options,-path</arg>
+                        <arg>-parameters</arg>
+                        <arg>${compile.warnings-flag}</arg>
+                    </compilerArgs>
+                </configuration>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-checkstyle-plugin</artifactId>
+                <configuration>
+                    <propertiesLocation>checkstyle/checkstyle.properties</propertiesLocation>
+                    <suppressionsLocation>checkstyle/suppressions.xml</suppressionsLocation>
+                </configuration>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <rerunFailingTestsCount>3</rerunFailingTestsCount>
+                    <systemPropertyVariables>
+                        <log4j.configuration>file:${project.basedir}/../ksqldb-test-util/src/main/resources/log4j.properties</log4j.configuration>
+                        <junit.platform.execution.listeners.deactivate>org.apache.kafka.test.ThreadLeakListener</junit.platform.execution.listeners.deactivate>
+                    </systemPropertyVariables>
+                    <argLine>-verbose:gc -Xloggc:"${project.build.directory}/gc.log"</argLine>
+                    <argLine>-Duser.timezone=UTC -Xmx1g -Xms1g</argLine>
+                    <excludedGroups>io.confluent.common.utils.IntegrationTest, IntegrationTest</excludedGroups>
+                </configuration>
+                <version>3.2.5</version>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-failsafe-plugin</artifactId>
+                <configuration>
+                    <!-- we haven't yet fully migrated to JDK9 Jigsaw, but when compiling
+                    with JDKs that are >9 failsafe fails with many NoClassDefFoundErrors
+                    unless we disable this flag.
+
+                    You can also see (https://issues.apache.org/jira/browse/SUREFIRE-1809)
+                    for more details -->
+                    <useModulePath>false</useModulePath>
+                    <groups>io.confluent.common.utils.IntegrationTest, IntegrationTest</groups>
+                    <systemPropertyVariables>
+                        <junit.platform.execution.listeners.deactivate>org.apache.kafka.test.ThreadLeakListener</junit.platform.execution.listeners.deactivate>
+                    </systemPropertyVariables>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>integration-test</id>
+                        <configuration>
+                            <excludes>
+                                <exclude>**/RestQueryTranslationTest*.java</exclude>
+                                <exclude>**/io/confluent/ksql/rest/integration/**/*.java</exclude>
+                            </excludes>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>multi-threaded-testing</id>
+                        <phase>integration-test</phase>
+                        <goals>
+                            <goal>integration-test</goal>
+                        </goals>
+                        <configuration>
+                            <includes>
+                                <include>**/RestQueryTranslationTest*.java</include>
+                                <include>**/io/confluent/ksql/rest/integration/**/*.java</include>
+                            </includes>
+                            <forkCount>${multi-threaded-testing.forkCount}</forkCount>
+                            <reuseForks>false</reuseForks>
+                            <parallel>classes</parallel>
+                            <useUnlimitedThreads>true</useUnlimitedThreads>
+                            <forkedProcessTimeoutInSeconds>3600</forkedProcessTimeoutInSeconds>
+                            <forkedProcessExitTimeoutInSeconds>180</forkedProcessExitTimeoutInSeconds>
+                            <!-- Skip ITs temporarily -->
+                            <skipITs>true</skipITs>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>java</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <plugin>
+                <groupId>com.github.spotbugs</groupId>
+                <artifactId>spotbugs-maven-plugin</artifactId>
+                <version>${spotbugs.maven.plugin.version}</version>
+                <configuration>
+                    <xmlOutput>true</xmlOutput>
+                    <excludeFilterFile>${project.basedir}/../findbugs/findbugs-exclude.xml</excludeFilterFile>
+                    <effort>Max</effort>
+                    <threshold>Max</threshold>
+                    <failOnError>true</failOnError>
+                    <includeTests>true</includeTests>
+                </configuration>
+                <executions>
+                    <!--
+                    Ensures that FindBugs inspects source code when project is compiled.
+                -->
+                    <execution>
+                        <id>analyze-compile</id>
+                        <phase>compile</phase>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <plugin>
+                <groupId>pl.project13.maven</groupId>
+                <artifactId>git-commit-id-plugin</artifactId>
+                <version>${git-commit-id-plugin.version}</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>revision</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <dotGitDirectory>${project.basedir}/.git</dotGitDirectory>
+                    <generateGitPropertiesFile>true</generateGitPropertiesFile>
+                    <generateGitPropertiesFilename>${project.build.outputDirectory}/git.properties</generateGitPropertiesFilename>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.pitest</groupId>
+                <artifactId>pitest-maven</artifactId>
+                <version>1.6.4</version>
+                <configuration>
+                    <threads>8</threads>
+                    <targetClasses>
+                        <param>io.confluent.ksql.*</param>
+                    </targetClasses>
+                    <excludedClasses>
+                        <param>io.confluent.ksql.engine.StubInsertValuesExecutor</param>
+                        <param>io.confluent.ksql.test.*</param>
+                    </excludedClasses>
+                    <excludedTestClasses>
+                        <param>io.confluent.ksql.rest.app.ImmutabilityTest</param>
+                        <param>io.confluent.ksql.rest.integration.*</param>
+                        <param>io.confluent.ksql.rest.server.resources.*ResourceTest</param>
+                        <param>io.confluent.ksql.*.Immutability*</param>
+                        <param>io.confluent.ksql.*.ImmutableTester*</param>
+                        <param>io.confluent.ksql.schema.ksql.types.SqlTypesTest</param>
+                        <param>io.confluent.ksql.schema.ksql.PhysicalSchemaTest</param>
+                        <param>io.confluent.ksql.rest.entity.KsqlRequestTest</param>
+                        <param>io.confluent.ksql.execution.plan.ExecutionStepTest</param>
+                        <param>io.confluent.ksql.metastore.model.MetaStoreModelTest</param>
+                        <param>io.confluent.ksql.test.*</param>
+                        <param>io.confluent.ksql.rocksdb.KsqlBoundedMemoryRocksDBConfigSetterTest</param>
+                    </excludedTestClasses>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+    <reporting>
+        <plugins>
+
+        </plugins>
+    </reporting>
 </project>

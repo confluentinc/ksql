@@ -125,6 +125,14 @@
       <plugin>
         <groupId>com.spotify</groupId>
         <artifactId>dockerfile-maven-plugin</artifactId>
+        <version>1.4.8</version>
+        <dependencies>
+          <dependency>
+            <groupId>com.github.jnr</groupId>
+            <artifactId>jnr-unixsocket</artifactId>
+            <version>0.38.14</version>
+          </dependency>
+        </dependencies>
         <executions>
           <execution>
             <id>package</id>

@@ -115,7 +115,7 @@ public class UserFunctionLoader {
         .enableAnnotationInfo()
         .ignoreParentClassLoaders()
         .filterClasspathElements(ksqlEngineFilter(loader))
-        .scan(1)
+        .scan()
     ) {
       for (ClassInfo udf : scan.getClassesWithAnnotation(UdfDescription.class.getName())) {
         udfLoader.loadUdfFromClass(udf.loadClass(), pathLoadedFrom);

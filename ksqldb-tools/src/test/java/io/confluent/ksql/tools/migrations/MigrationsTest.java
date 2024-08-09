@@ -110,6 +110,9 @@ public class MigrationsTest {
 
   private static final ServerKeyStore SERVER_KEY_STORE = new ServerKeyStore();
 
+  private static final int CONNECT_PORT
+      = io.confluent.ksql.rest.server.utils.TestUtils.findFreeLocalPort();
+
   private static final TestKsqlRestApp REST_APP = TestKsqlRestApp
       .builder(TEST_HARNESS::kafkaBootstrapServers)
       .withProperty(KSQL_STREAMS_PREFIX + StreamsConfig.NUM_STREAM_THREADS_CONFIG, 1)
@@ -125,6 +128,7 @@ public class MigrationsTest {
       .withProperty(KsqlConfig.KSQL_HEADERS_COLUMNS_ENABLED, true)
       .withStaticServiceContext(TEST_HARNESS::getServiceContext)
       .withProperty(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY, "http://foo:8080")
+      .withProperty(KsqlConfig.CONNECT_URL_PROPERTY, "http://localhost:" + CONNECT_PORT)
       .build();
 
   @ClassRule
@@ -213,6 +217,7 @@ public class MigrationsTest {
         .put("status.storage.replication.factor", "1")
         .put("config.storage.replication.factor", "1")
         .put("value.converter.schemas.enable", "false")
+        .put("listeners", "http://localhost:" + CONNECT_PORT)
         .build()
     );
 

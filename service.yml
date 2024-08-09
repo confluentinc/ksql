@@ -7,7 +7,7 @@ semaphore:
   enable: true
   pipeline_type: cp
   nano_version: true
-  execution_time_limit: {"hours": 3}
+  execution_time_limit: {"hours": 6}
   downstream_projects: ["confluent-security-plugins", "confluent-cloud-plugins", "cc-docker-ksql"]
   extra_deploy_args: '-Ddocker.skip=true'
   extra_build_args: "-Dmaven.gitcommitid.nativegit=true"

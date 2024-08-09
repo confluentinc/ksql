@@ -148,7 +148,6 @@
             <groupId>org.apache.kafka</groupId>
             <artifactId>kafka-streams</artifactId>
             <version>${kafka.version}</version>
-            <scope>test</scope>
         </dependency>
 
         <!-- Only required to provide LoginModule implementation in tests -->

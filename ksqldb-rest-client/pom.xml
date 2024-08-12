@@ -23,7 +23,7 @@
   <parent>
     <groupId>io.confluent.ksql</groupId>
     <artifactId>ksqldb-parent</artifactId>
-    <version>7.8.0-0</version>
+    <version>7.8.0-803</version>
   </parent>
 
   <artifactId>ksqldb-rest-client</artifactId>

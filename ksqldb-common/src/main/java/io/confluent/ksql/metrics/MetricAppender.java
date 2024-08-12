@@ -23,7 +23,6 @@ import org.apache.kafka.common.metrics.MetricConfig;
 import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.common.metrics.Sensor;
 import org.apache.kafka.common.metrics.stats.Rate;
-import org.apache.kafka.common.utils.SystemTime;
 import org.apache.log4j.AppenderSkeleton;
 import org.apache.log4j.Level;
 import org.apache.log4j.spi.LoggingEvent;
@@ -46,7 +45,7 @@ public class MetricAppender extends AppenderSkeleton {
     metrics = new Metrics(
         new MetricConfig().samples(100).timeWindow(1, TimeUnit.SECONDS),
         ImmutableList.of(new JmxReporter()),
-        new SystemTime(),
+        org.apache.kafka.common.utils.Time.SYSTEM,
         new KafkaMetricsContext(KSQL_LOGGING_JMX_PREFIX)
     );
 

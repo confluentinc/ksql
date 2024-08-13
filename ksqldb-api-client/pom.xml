@@ -115,6 +115,13 @@
         </dependency>
 
         <dependency>
+            <groupId>org.apache.kafka</groupId>
+            <artifactId>connect-test-plugins</artifactId>
+            <version>${kafka.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
             <groupId>io.confluent.ksql</groupId>
             <artifactId>ksqldb-rest-app</artifactId>
             <version>${io.confluent.ksql.version}</version>
@@ -266,10 +273,6 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-failsafe-plugin</artifactId>
-                <configuration>
-                    <!-- Skip ITs temporarily -->
-                    <skipITs>true</skipITs>
-                </configuration>
             </plugin>
         </plugins>
     </build>

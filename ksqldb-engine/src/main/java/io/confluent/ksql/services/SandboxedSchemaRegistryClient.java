@@ -90,8 +90,10 @@ final class SandboxedSchemaRegistryClient {
 
     @Override
     public RegisterSchemaResponse registerWithResponse(
-            final String subject, final ParsedSchema schema, final boolean normalize, final boolean propagateSchemaTags)
-            throws RestClientException {
+            final String subject,
+            final ParsedSchema schema,
+            final boolean normalize,
+            final boolean propagateSchemaTags) throws RestClientException {
       return sandboxCacheClient.registerWithResponse(subject, schema, normalize, propagateSchemaTags);
     }
 

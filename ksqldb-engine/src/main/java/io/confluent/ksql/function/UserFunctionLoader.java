@@ -22,7 +22,6 @@ import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.function.udtf.UdtfDescription;
 import io.confluent.ksql.metastore.TypeRegistry;
 import io.confluent.ksql.schema.ksql.SqlTypeParser;
-import io.confluent.ksql.security.ExtensionSecurityManager;
 import io.confluent.ksql.util.KsqlConfig;
 import io.github.classgraph.ClassGraph;
 import io.github.classgraph.ClassInfo;

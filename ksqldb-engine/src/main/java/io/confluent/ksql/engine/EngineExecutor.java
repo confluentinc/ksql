@@ -267,7 +267,7 @@ final class EngineExecutor {
 
     try {
       // Do not set sessionConfig.getConfig to true! The copying is inefficient and slows down pull
-      // query performance significantly.  Instead use QueryPlannerOptions which check overrides
+      // query performance significantly.  Instead, use QueryPlannerOptions which check overrides
       // deliberately.
       final KsqlConfig ksqlConfig = sessionConfig.getConfig(false);
       final LogicalPlanNode logicalPlan = buildAndValidateLogicalPlan(

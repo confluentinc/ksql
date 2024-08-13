@@ -36,6 +36,7 @@ import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.tree.AllColumns;
 import io.confluent.ksql.parser.tree.SelectItem;
 import io.confluent.ksql.parser.tree.SingleColumn;
+import io.confluent.ksql.parser.tree.StructAll;
 import io.confluent.ksql.planner.QueryPlannerOptions;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SystemColumns;
@@ -323,4 +324,89 @@ public class QueryProjectNodeTest {
         projectNode::getCompiledSelectExpressions
     );
   }
+
+  @Test
+  public void shouldSelectEntireStruct() {
+    // Given:
+    final ColumnName structColumn = ColumnName.of("STRUCT_COL");
+
+    final LogicalSchema inputSchema = LogicalSchema.builder()
+        .keyColumn(K, SqlTypes.STRING)
+        .valueColumn(structColumn, SqlTypes.struct()
+            .field("NESTED_FIELD1", SqlTypes.STRING)
+            .field("NESTED_FIELD2", SqlTypes.INTEGER)
+            .build())
+        .build();
+
+    when(source.getSchema()).thenReturn(inputSchema);
+    selects = ImmutableList.of(new SingleColumn(new UnqualifiedColumnReferenceExp(structColumn), Optional.of(structColumn)));
+    when(keyFormat.isWindowed()).thenReturn(false);
+    when(analysis.getSelectColumnNames()).thenReturn(ImmutableSet.of(structColumn));
+
+    // When:
+    final QueryProjectNode projectNode = new QueryProjectNode(
+        NODE_ID,
+        source,
+        selects,
+        metaStore,
+        ksqlConfig,
+        analysis,
+        false,
+        plannerOptions,
+        false
+    );
+
+    // Then:
+    final LogicalSchema expectedSchema = LogicalSchema.builder()
+        .valueColumn(structColumn, SqlTypes.struct()
+            .field("NESTED_FIELD1", SqlTypes.STRING)
+            .field("NESTED_FIELD2", SqlTypes.INTEGER)
+            .build())
+        .build();
+
+    assertThat(expectedSchema, is(projectNode.getSchema()));
+  }
+
+  @Test
+  public void shouldExpandSelectStructStarColumns() {
+    // Given:
+    final ColumnName structColumn = ColumnName.of("STRUCT_COL");
+    final ColumnName nestedField1 = ColumnName.of("NESTED_FIELD1");
+    final ColumnName nestedField2 = ColumnName.of("NESTED_FIELD2");
+
+    final LogicalSchema inputSchema = LogicalSchema.builder()
+        .keyColumn(K, SqlTypes.STRING)
+        .valueColumn(structColumn, SqlTypes.struct()
+            .field("NESTED_FIELD1", SqlTypes.STRING)
+            .field("NESTED_FIELD2", SqlTypes.INTEGER)
+            .build())
+        .build();
+
+    when(source.getSchema()).thenReturn(inputSchema);
+    selects = ImmutableList.of(new StructAll(new UnqualifiedColumnReferenceExp(structColumn)));
+    when(keyFormat.isWindowed()).thenReturn(false);
+    when(analysis.getSelectColumnNames()).thenReturn(ImmutableSet.of(structColumn));
+
+    // When:
+    final QueryProjectNode projectNode = new QueryProjectNode(
+        NODE_ID,
+        source,
+        selects,
+        metaStore,
+        ksqlConfig,
+        analysis,
+        false,
+        plannerOptions,
+        false
+    );
+
+    // Then:
+    final LogicalSchema expectedSchema = LogicalSchema.builder()
+        .valueColumn(ColumnName.of("NESTED_FIELD1"), SqlTypes.STRING)
+        .valueColumn(ColumnName.of("NESTED_FIELD2"), SqlTypes.INTEGER)
+        .build();
+
+    assertThat(expectedSchema, is(projectNode.getSchema()));
+  }
+
 }

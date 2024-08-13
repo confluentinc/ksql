@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.rest.server.computation;
 
+import static io.confluent.ksql.function.UserFunctionLoaderTestUtil.loadAllUserFunctions;
 import static java.util.Collections.emptyMap;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -35,6 +36,8 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
+import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.KsqlConfigTestUtil;
 import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
 import io.confluent.ksql.config.SessionConfig;
@@ -42,9 +45,11 @@ import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.KsqlEngineTestUtil;
 import io.confluent.ksql.engine.KsqlPlan;
 import io.confluent.ksql.function.InternalFunctionRegistry;
+import io.confluent.ksql.function.MutableFunctionRegistry;
 import io.confluent.ksql.integration.Retry;
 import io.confluent.ksql.internal.KsqlEngineMetrics;
 import io.confluent.ksql.metastore.MetaStoreImpl;
+import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
@@ -85,6 +90,7 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
@@ -95,6 +101,7 @@ import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
+@Category({IntegrationTest.class})
 public class InteractiveStatementExecutorTest {
   private static final String CREATE_STREAM_FOO_STATEMENT = "CREATE STREAM foo ("
       + "biz bigint,"
@@ -144,13 +151,22 @@ public class InteractiveStatementExecutorTest {
     fakeKafkaTopicClient.createTopic("pageview_topic_json", 1, (short) 1, emptyMap());
     serviceContext = TestServiceContext.create(fakeKafkaTopicClient);
     final SpecificQueryIdGenerator hybridQueryIdGenerator = new SpecificQueryIdGenerator();
+    final MetricCollectors metricCollectors = new MetricCollectors();
+
+    MutableFunctionRegistry functionRegistry = new InternalFunctionRegistry();
+    loadAllUserFunctions(functionRegistry);
+
     ksqlEngine = KsqlEngineTestUtil.createKsqlEngine(
         serviceContext,
-        new MetaStoreImpl(new InternalFunctionRegistry()),
-        (engine) -> new KsqlEngineMetrics("", engine, Collections.emptyMap(), Optional.empty()),
+        new MetaStoreImpl(functionRegistry),
+        (engine) -> new KsqlEngineMetrics("", engine, Collections.emptyMap(), Optional.empty(),
+            metricCollectors
+        ),
         hybridQueryIdGenerator,
-        ksqlConfig
+        ksqlConfig,
+        metricCollectors
     );
+    when(mockEngine.getKsqlConfig()).thenReturn(ksqlConfig);
 
     statementParser = new StatementParser(ksqlEngine);
     statementExecutor = new InteractiveStatementExecutor(
@@ -167,9 +183,6 @@ public class InteractiveStatementExecutorTest {
         mockQueryIdGenerator,
         commandDeserializer
     );
-
-    statementExecutor.configure(ksqlConfig);
-    statementExecutorWithMocks.configure(ksqlConfig);
 
     plannedCommand = new Command(
         CREATE_STREAM_FOO_STATEMENT,
@@ -192,15 +205,6 @@ public class InteractiveStatementExecutorTest {
       .outerRule(Retry.of(3, ZooKeeperClientException.class, 3, TimeUnit.SECONDS))
       .around(CLUSTER);
 
-  @Test(expected = IllegalArgumentException.class)
-  public void shouldThrowOnConfigureIfAppServerNotSet() {
-    // Given:
-    final KsqlConfig configNoAppServer = new KsqlConfig(ImmutableMap.of());
-
-    // When:
-    statementExecutorWithMocks.configure(configNoAppServer);
-  }
-
   @Test(expected = IllegalStateException.class)
   public void shouldThrowOnHandleStatementIfNotConfigured() {
     // Given:
@@ -211,6 +215,9 @@ public class InteractiveStatementExecutorTest {
         mockQueryIdGenerator,
         commandDeserializer
     );
+    final Map<String, Object> withoutAppServer = ksqlConfig.originals();
+    withoutAppServer.remove(StreamsConfig.APPLICATION_SERVER_CONFIG);
+    when(mockEngine.getKsqlConfig()).thenReturn(new KsqlConfig(withoutAppServer));
 
     // When:
     statementExecutor.handleStatement(queuedCommand);
@@ -226,6 +233,9 @@ public class InteractiveStatementExecutorTest {
         mockQueryIdGenerator,
         commandDeserializer
     );
+    final Map<String, Object> withoutAppServer = ksqlConfig.originals();
+    withoutAppServer.remove(StreamsConfig.APPLICATION_SERVER_CONFIG);
+    when(mockEngine.getKsqlConfig()).thenReturn(new KsqlConfig(withoutAppServer));
 
     // When:
     statementExecutor.handleRestore(queuedCommand);
@@ -290,7 +300,7 @@ public class InteractiveStatementExecutorTest {
         "_CSASGen",
         CommandId.Action.CREATE);
 
-    when(mockEngine.execute(eq(serviceContext), eqConfiguredPlan(plan)))
+    when(mockEngine.execute(eq(serviceContext), eqConfiguredPlan(plan), eq(false)))
         .thenReturn(ExecuteResult.of(mockQueryMetadata));
 
     // When:
@@ -324,6 +334,26 @@ public class InteractiveStatementExecutorTest {
   }
 
   @Test
+  public void restartsRuntimeWhenAlterSystemIsSuccessful() {
+    // Given:
+    final String alterSystemQuery = "ALTER SYSTEM 'TEST'='TEST';";
+    when(mockParser.parseSingleStatement(alterSystemQuery))
+        .thenReturn(statementParser.parseSingleStatement(alterSystemQuery));
+    final Command alterSystemCommand = new Command(
+        "ALTER SYSTEM 'TEST'='TEST';",
+        emptyMap(),
+        ksqlConfig.getAllConfigPropsWithSecretsObfuscated(),
+        Optional.empty()
+    );
+
+    // When:
+    handleStatement(statementExecutorWithMocks, alterSystemCommand, COMMAND_ID, Optional.empty(), 0L);
+
+    // Then:
+    verify(mockEngine).updateStreamsPropertiesAndRestartRuntime();
+  }
+
+  @Test
   public void shouldExecutePlannedCommand() {
     // Given:
     givenMockPlannedQuery();
@@ -336,7 +366,8 @@ public class InteractiveStatementExecutorTest {
         plannedCommand.getOriginalProperties());
     verify(mockEngine).execute(
         serviceContext,
-        ConfiguredKsqlPlan.of(plan, SessionConfig.of(expectedConfig, emptyMap()))
+        ConfiguredKsqlPlan.of(plan, SessionConfig.of(expectedConfig, emptyMap())),
+        false
     );
   }
 
@@ -370,7 +401,7 @@ public class InteractiveStatementExecutorTest {
     final InOrder inOrder = Mockito.inOrder(status, mockEngine);
     inOrder.verify(status).setStatus(
         new CommandStatus(Status.EXECUTING, "Executing statement"));
-    inOrder.verify(mockEngine).execute(any(), any(ConfiguredKsqlPlan.class));
+    inOrder.verify(mockEngine).execute(any(), any(ConfiguredKsqlPlan.class), any(Boolean.class));
     inOrder.verify(status).setFinalStatus(
         new CommandStatus(Status.SUCCESS, "Created query with ID qid", Optional.of(QUERY_ID)));
   }
@@ -378,7 +409,7 @@ public class InteractiveStatementExecutorTest {
   @Test
   public void shouldSetCorrectFinalStatusOnCompletedPlannedDDLCommand() {
     // Given:
-    when(mockEngine.execute(any(), any(ConfiguredKsqlPlan.class)))
+    when(mockEngine.execute(any(), any(ConfiguredKsqlPlan.class), any(Boolean.class)))
         .thenReturn(ExecuteResult.of("result"));
 
     // When:
@@ -422,17 +453,18 @@ public class InteractiveStatementExecutorTest {
         ImmutableMap.of(StreamsConfig.APPLICATION_SERVER_CONFIG, "appid"));
     final KsqlConfig mergedConfig = mock(KsqlConfig.class);
     when(mockConfig.overrideBreakingConfigsWithOriginalValues(any())).thenReturn(mergedConfig);
+    when(mockEngine.getKsqlConfig()).thenReturn(mockConfig);
     givenMockPlannedQuery();
 
     // When:
-    statementExecutorWithMocks.configure(mockConfig);
     handleStatement(statementExecutorWithMocks, plannedCommand, COMMAND_ID, Optional.empty(), 0L);
 
     // Then:
     verify(mockConfig).overrideBreakingConfigsWithOriginalValues(savedConfigs);
     verify(mockEngine).execute(
         any(),
-        eq(ConfiguredKsqlPlan.of(plan, SessionConfig.of(mergedConfig, emptyMap())))
+        eq(ConfiguredKsqlPlan.of(plan, SessionConfig.of(mergedConfig, emptyMap()))),
+        eq(false)
     );
   }
 
@@ -573,7 +605,7 @@ public class InteractiveStatementExecutorTest {
   ) {
     final PersistentQueryMetadata mockQuery = mock(PersistentQueryMetadata.class);
     when(mockQuery.getQueryId()).thenReturn(queryId);
-    when(mockEngine.execute(eq(serviceContext), eqConfiguredPlan(plan)))
+    when(mockEngine.execute(eq(serviceContext), eqConfiguredPlan(plan), any(Boolean.class)))
         .thenReturn(ExecuteResult.of(mockQuery));
     return mockQuery;
   }
@@ -1010,7 +1042,7 @@ public class InteractiveStatementExecutorTest {
 
   private void givenMockPlannedQuery() {
     when(mockQueryMetadata.getQueryId()).thenReturn(QUERY_ID);
-    when(mockEngine.execute(any(), any(ConfiguredKsqlPlan.class)))
+    when(mockEngine.execute(any(), any(ConfiguredKsqlPlan.class), any(Boolean.class)))
         .thenReturn(ExecuteResult.of(mockQueryMetadata));
   }
 

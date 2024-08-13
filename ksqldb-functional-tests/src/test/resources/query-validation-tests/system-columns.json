@@ -10,8 +10,8 @@
         "CREATE STREAM OUTPUT AS SELECT K, x AS rowtime FROM INPUT;"
       ],
       "expectedException": {
-        "type": "io.confluent.ksql.parser.exception.ParseFailedException",
-        "message": "'ROWTIME' is a reserved column name. You cannot use it as an alias for a column."
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "`ROWTIME` is a reserved column name. You cannot use it as an alias for a column."
       }
     },
     {
@@ -21,8 +21,8 @@
         "CREATE STREAM OUTPUT AS SELECT K, x AS windowstart FROM INPUT;"
       ],
       "expectedException": {
-        "type": "io.confluent.ksql.parser.exception.ParseFailedException",
-        "message": "'WINDOWSTART' is a reserved column name. You cannot use it as an alias for a column."
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "`WINDOWSTART` is a reserved column name. You cannot use it as an alias for a column."
       }
     },
     {
@@ -32,8 +32,8 @@
         "CREATE STREAM OUTPUT AS SELECT K, x AS windowend FROM INPUT;"
       ],
       "expectedException": {
-        "type": "io.confluent.ksql.parser.exception.ParseFailedException",
-        "message": "'WINDOWEND' is a reserved column name. You cannot use it as an alias for a column."
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "`WINDOWEND` is a reserved column name. You cannot use it as an alias for a column."
       }
     }
   ]

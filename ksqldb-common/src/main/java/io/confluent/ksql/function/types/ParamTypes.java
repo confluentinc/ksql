@@ -45,6 +45,7 @@ public final class ParamTypes {
   public static final TimestampType TIMESTAMP = TimestampType.INSTANCE;
   public static final IntervalUnitType INTERVALUNIT = IntervalUnitType.INSTANCE;
   public static final BytesType BYTES = BytesType.INSTANCE;
+  public static final AnyType ANY = AnyType.INSTANCE;
 
   public static boolean areCompatible(final SqlArgument actual, final ParamType declared) {
     return areCompatible(actual, declared, false);
@@ -59,6 +60,10 @@ public final class ParamTypes {
   ) {
     // CHECKSTYLE_RULES.ON: CyclomaticComplexity
     // CHECKSTYLE_RULES.ON: NPathComplexity
+    if (declared instanceof AnyType) {
+      return true;
+    }
+
     final Optional<SqlLambda> sqlLambdaOptional = argument.getSqlLambda();
 
     if (sqlLambdaOptional.isPresent() && declared instanceof LambdaType) {

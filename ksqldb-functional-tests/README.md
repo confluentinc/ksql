@@ -29,7 +29,7 @@ generator to do so.
 
 To generate new plans, just run `PlannedTestGeneratorTest.manuallyGeneratePlans`
 
-## Topology comparision
+## Topology comparison
 These tests also validate the generated topology matches the expected topology,
 i.e. a test will fail if the topology has changed from previous runs.
 This is needed to detect potentially non-backwards compatible changes to the generated topology.
@@ -56,7 +56,7 @@ verify REST responses: `RestQueryTranslationTest`. These tests are much slower a
 be used sparingly. To run a subset of these tests, supply a regex of the test name:
 
 ```
-mvn test -pl ksqldb-functional-tests -Dtest=RestQueryTranslationTest -Dksql.rqtt.regex="pull-queries.*join"
+mvn integration-test -pl ksqldb-functional-tests -Dit.test=RestQueryTranslationTest* -Dksql.functional.test.regex="pull-queries.*join"
 ```
 
 
@@ -140,8 +140,9 @@ Each test case can have the following attributes:
 | description      | (Optional) A description of what the test case is testing. Not used or displayed anywhere |
 | versions         | (Optional) A object describing the min and/or max version of KSQL the test is valid for. (See below for more info) |
 | format           | (Optional) An array of multiple different formats to run the test case as, e.g. AVRO, JSON, DELIMITED. (See below for more info) |
+| config           | (Optional) An array of multiple different config values for a single property to run the test case as (See below for more info) |
 | statements       | (Required) The list of statements to execute as this test case |
-| properties       | (Optional) A map of property name to value. Can contain any valid Ksql config. The config is passed to the engine when executing the statements in the test case |
+| properties       | (Optional) A map of property name to value. Can contain any valid Ksql config. The config is passed to the engine when executing the statements in the test case. One property may have value `{CONFIG}` to re-run the test with different config values (cf `config` attribute) |
 | topics           | (Optional) An array of the topics this test case needs. Allows more information about the topic to be supplied, e.g. an existing Avro schema (See below for more info) |
 | inputs           | (Required if `expectedException` not supplied and statements do not include `INSERT INTO` statements) The set of input messages to be produced to Kafka topic(s), (See below for more info) |
 | outputs          | (Required if `expectedException` not supplied) The set of output messages expected in the output topic(s), (See below for more info) |
@@ -162,7 +163,7 @@ For example:
 {
   "name": "test only valid for versions at or after 5.4",
   "versions": {
-     "max": "5.4"  
+     "min": "5.4"  
   }  
 },
 {
@@ -204,6 +205,27 @@ For example:
 The test will run once for each defined format.
 
 Make use of the `format` option only where the serialized format of the data may affect the functionality.
+
+### Config
+A test case can optionally supply an array of config values for a single property to re-run the same test with different configs.
+The corresponding property must have value `{CONFIG}`. Note, that only a single property can be `{CONFIG}`.
+
+For example:
+```json
+{
+  "name": "my first test that will run with different configs",
+  "config": ["at_least_once", "exactly_once_v2"],
+  "properties": {
+    "ksql.streams.processing.guarantee": "{CONFIG}"
+    "ksql.streams.commit.interval": 1000
+  },
+  "statements": [
+    "CREATE STREAM test (id BIGINT) WITH (kafka_topic='test_topic', value_format='JSON');"
+    "CREATE STREAM test2 AS SELECT * FROM test;
+  ]
+  ...
+}
+```
 
 ### Statements
 You can specify multiple statements per test case, i.e. to set up the various streams needed

@@ -22,6 +22,7 @@ import static io.confluent.ksql.test.util.MapMatchers.mapHasSize;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Multimap;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -41,6 +42,7 @@ import io.confluent.ksql.serde.GenericKeySerDe;
 import io.confluent.ksql.serde.GenericRowSerDe;
 import io.confluent.ksql.serde.SchemaTranslator;
 import io.confluent.ksql.serde.avro.AvroFormat;
+import io.confluent.ksql.serde.connect.ConnectProperties;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
@@ -65,6 +67,9 @@ import java.util.function.Supplier;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.RecordMetadata;
+import org.apache.kafka.common.TopicPartition;
+import org.apache.kafka.common.config.TopicConfig;
+import org.apache.kafka.common.header.Header;
 import org.apache.kafka.common.serialization.ByteArrayDeserializer;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serde;
@@ -79,6 +84,7 @@ public final class IntegrationTestHarness extends ExternalResource {
   private static final int DEFAULT_PARTITION_COUNT = 1;
   private static final short DEFAULT_REPLICATION_FACTOR = (short) 1;
   private static final Supplier<Long> DEFAULT_TS_SUPPLIER = () -> null;
+  private static final Supplier<List<Header>> DEFAULT_HEADERS_SUPPLIER = () -> ImmutableList.of();
 
   private final LazyServiceContext serviceContext;
   private final EmbeddedSingleNodeKafkaCluster kafkaCluster;
@@ -133,7 +139,7 @@ public final class IntegrationTestHarness extends ExternalResource {
   /**
    * Ensure topics with the given {@code topicNames} exist.
    *
-   * <p>Topics will be creates, if they do not already exist, with a single partition and replica.
+   * <p>Topics will be created, if they do not already exist, with a single partition and replica.
    *
    * @param topicNames the names of the topics to create.
    */
@@ -144,18 +150,20 @@ public final class IntegrationTestHarness extends ExternalResource {
   /**
    * Ensure topics with the given {@code topicNames} exist.
    *
-   * <p>Topics will be creates, if they do not already exist, with the specified
+   * <p>Topics will be created, if they do not already exist, with the specified
    * {@code partitionCount}.
    *
    * @param topicNames the names of the topics to create.
    */
   public void ensureTopics(final int partitionCount, final String... topicNames) {
     final KafkaTopicClient topicClient = serviceContext.get().getTopicClient();
+    final Map<String, String> config = ImmutableMap.of(
+        TopicConfig.RETENTION_MS_CONFIG, "-1");
 
     Arrays.stream(topicNames)
         .filter(name -> !topicClient.isTopicExists(name))
         .forEach(name ->
-            topicClient.createTopic(name, partitionCount, DEFAULT_REPLICATION_FACTOR));
+            topicClient.createTopic(name, partitionCount, DEFAULT_REPLICATION_FACTOR, config));
   }
 
   /**
@@ -186,7 +194,8 @@ public final class IntegrationTestHarness extends ExternalResource {
         Collections.singletonMap(key, data).entrySet(),
         new StringSerializer(),
         new StringSerializer(),
-        DEFAULT_TS_SUPPLIER
+        DEFAULT_TS_SUPPLIER,
+        DEFAULT_HEADERS_SUPPLIER
     );
   }
 
@@ -234,7 +243,36 @@ public final class IntegrationTestHarness extends ExternalResource {
         dataProvider.data().entries(),
         getKeySerializer(keyFormat, dataProvider.schema()),
         getValueSerializer(valueFormat, dataProvider.schema()),
-        timestampSupplier
+        timestampSupplier,
+        DEFAULT_HEADERS_SUPPLIER
+    );
+  }
+
+  /**
+   * Publish test data to the supplied {@code topic}.
+   *
+   * @param topic the name of the topic to produce to.
+   * @param dataProvider the provider of the test data.
+   * @param valueFormat the format values should be produced as.
+   * @param timestampSupplier supplier of timestamps.
+   * @param headersSupplier supplier of headers.
+   * @return the map of produced rows
+   */
+  public Multimap<GenericKey, RecordMetadata> produceRows(
+      final String topic,
+      final TestDataProvider dataProvider,
+      final Format keyFormat,
+      final Format valueFormat,
+      final Supplier<Long> timestampSupplier,
+      final Supplier<List<Header>> headersSupplier
+  ) {
+    return produceRows(
+        topic,
+        dataProvider.data().entries(),
+        getKeySerializer(keyFormat, dataProvider.schema()),
+        getValueSerializer(valueFormat, dataProvider.schema()),
+        timestampSupplier,
+        headersSupplier
     );
   }
 
@@ -259,7 +297,8 @@ public final class IntegrationTestHarness extends ExternalResource {
         rowsToPublish,
         getKeySerializer(keyFormat, schema),
         getValueSerializer(valueFormat, schema),
-        DEFAULT_TS_SUPPLIER
+        DEFAULT_TS_SUPPLIER,
+        DEFAULT_HEADERS_SUPPLIER
     );
   }
 
@@ -278,14 +317,16 @@ public final class IntegrationTestHarness extends ExternalResource {
       final Collection<Entry<GenericKey, GenericRow>> recordsToPublish,
       final Serializer<GenericKey> keySerializer,
       final Serializer<GenericRow> valueSerializer,
-      final Supplier<Long> timestampSupplier
+      final Supplier<Long> timestampSupplier,
+      final Supplier<List<Header>> headersSupplier
   ) {
     return kafkaCluster.produceRows(
         topic,
         recordsToPublish,
         keySerializer,
         valueSerializer,
-        timestampSupplier
+        timestampSupplier,
+        headersSupplier
     );
   }
 
@@ -517,6 +558,41 @@ public final class IntegrationTestHarness extends ExternalResource {
     }
   }
 
+  public Map<GenericKey, GenericRow> verifyAvailableUniqueRows(
+      final List<TopicPartition> topicPartitions,
+      final int expectedCount,
+      final Format keyFormat,
+      final Format valueFormat,
+      final PhysicalSchema schema
+  ) {
+    final Matcher<Map<? extends GenericKey, ? extends GenericRow>> expected =
+        mapHasSize(is(expectedCount));
+    final Deserializer<GenericKey> keyDeserializer = getKeyDeserializer(keyFormat, schema);
+    final Deserializer<GenericRow> valueDeserializer = getValueDeserializer(valueFormat, schema);
+
+    return verifyAvailableUniqueRows(topicPartitions, expected, keyDeserializer, valueDeserializer);
+  }
+
+  public <K> Map<K, GenericRow> verifyAvailableUniqueRows(
+      final List<TopicPartition> topicPartitions,
+      final Matcher<Map<? extends K, ? extends GenericRow>> expected,
+      final Deserializer<K> keyDeserializer,
+      final Deserializer<GenericRow> valueDeserializer
+  ) {
+    try (KafkaConsumer<K, GenericRow> consumer = new KafkaConsumer<>(
+        kafkaCluster.consumerConfig(),
+        keyDeserializer,
+        valueDeserializer
+    )) {
+      consumer.assign(topicPartitions);
+
+      final List<ConsumerRecord<K, GenericRow>> consumerRecords = ConsumerTestUtil
+          .verifyAvailableRecords(consumer, hasUniqueRecords(expected));
+
+      return toUniqueRecords(consumerRecords);
+    }
+  }
+
   /**
    * Verify there are {@code expectedCount} unique rows available on the supplied {@code topic}.
    *
@@ -646,6 +722,23 @@ public final class IntegrationTestHarness extends ExternalResource {
     }
   }
 
+  public int getLatestSchemaVersion(final String subjectName) {
+    try {
+      return getSchemaRegistryClient().getLatestSchemaMetadata(subjectName).getVersion();
+    } catch (Exception e) {
+      throw new AssertionError("Failed to get schema: " + subjectName, e);
+    }
+  }
+
+  public int getLatestSchemaID(final String subjectName) {
+    try {
+      return getSchemaRegistryClient().getLatestSchemaMetadata(subjectName).getId();
+    } catch (Exception e) {
+      throw new AssertionError("Failed to get schema: " + subjectName, e);
+    }
+  }
+
+  @Override
   protected void before() throws Exception {
     kafkaCluster.start();
   }
@@ -722,7 +815,7 @@ public final class IntegrationTestHarness extends ExternalResource {
     final SchemaRegistryClient srClient = serviceContext.get().getSchemaRegistryClient();
     try {
       final Map<String, String> formatProps = ImmutableMap
-          .of(AvroFormat.FULL_SCHEMA_NAME, "test_" + topicName);
+          .of(ConnectProperties.FULL_SCHEMA_NAME, "test_" + topicName);
 
       final SchemaTranslator translator = new AvroFormat().getSchemaTranslator(formatProps);
 

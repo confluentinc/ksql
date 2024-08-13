@@ -38,7 +38,10 @@ public class RowUtilTest {
         "ARRAY<STRING>",
         "MAP<STRING, STRING>",
         "DECIMAL(4, 2)",
-        "STRUCT<`F1` STRING, `F2` INTEGER>"
+        "STRUCT<`F1` STRING, `F2` INTEGER>",
+        "TIMESTAMP",
+        "DATE",
+        "TIME"
     );
 
     // When
@@ -58,7 +61,90 @@ public class RowUtilTest {
             "ARRAY",
             "MAP",
             "DECIMAL",
-            "STRUCT"
+            "STRUCT",
+            "TIMESTAMP",
+            "DATE",
+            "TIME"
     ));
+  }
+
+  @Test
+  public void shouldGetColumnNamesFromSchema() {
+    // Given
+    final String schema = "`K` STRUCT<`F1` ARRAY<STRING>>, "
+            + "`STR` STRING, "
+            + "`LONG` BIGINT, "
+            + "`DEC` DECIMAL(4, 2),"
+            + "`BYTES_` BYTES, "
+            + "`ARRAY` ARRAY<STRING>, "
+            + "`MAP` MAP<STRING, STRING>, "
+            + "`STRUCT` STRUCT<`F1` INTEGER>, "
+            + "`COMPLEX` STRUCT<`DECIMAL` DECIMAL(2, 1), `STRUCT` STRUCT<`F1` STRING, `F2` INTEGER>, `ARRAY_ARRAY` ARRAY<ARRAY<STRING>>, `ARRAY_STRUCT` ARRAY<STRUCT<`F1` STRING>>, `ARRAY_MAP` ARRAY<MAP<STRING, INTEGER>>, `MAP_ARRAY` MAP<STRING, ARRAY<STRING>>, `MAP_MAP` MAP<STRING, MAP<STRING, INTEGER>>, `MAP_STRUCT` MAP<STRING, STRUCT<`F1` STRING>>>, "
+            + "`TIMESTAMP` TIMESTAMP, "
+            + "`DATE` DATE, "
+            + "`TIME` TIME, "
+            + "`HEAD` BYTES";
+
+    // When
+    final List<String> columnNames = RowUtil.colNamesFromSchema(schema);
+
+    // Then
+    assertThat(
+            columnNames,
+            contains(
+                    "K",
+                    "STR",
+                    "LONG",
+                    "DEC",
+                    "BYTES_",
+                    "ARRAY",
+                    "MAP",
+                    "STRUCT",
+                    "COMPLEX",
+                    "TIMESTAMP",
+                    "DATE",
+                    "TIME",
+                    "HEAD"
+            ));
+  }
+
+  @Test
+  public void shouldGetColumnTypesFromSchema() {
+    // Given
+    final String schema = "`K` STRUCT<`F1` ARRAY<STRING>>, "
+            + "`STR` STRING, "
+            + "`LONG` BIGINT, "
+            + "`DEC` DECIMAL(4, 2),"
+            + "`BYTES_` BYTES, "
+            + "`ARRAY` ARRAY<STRING>, "
+            + "`MAP` MAP<STRING, STRING>, "
+            + "`STRUCT` STRUCT<`F1` INTEGER>, "
+            + "`COMPLEX` STRUCT<`DECIMAL` DECIMAL(2, 1), `STRUCT` STRUCT<`F1` STRING, `F2` INTEGER>, `ARRAY_ARRAY` ARRAY<ARRAY<STRING>>, `ARRAY_STRUCT` ARRAY<STRUCT<`F1` STRING>>, `ARRAY_MAP` ARRAY<MAP<STRING, INTEGER>>, `MAP_ARRAY` MAP<STRING, ARRAY<STRING>>, `MAP_MAP` MAP<STRING, MAP<STRING, INTEGER>>, `MAP_STRUCT` MAP<STRING, STRUCT<`F1` STRING>>>, "
+            + "`TIMESTAMP` TIMESTAMP, "
+            + "`DATE` DATE, "
+            + "`TIME` TIME, "
+            + "`HEAD` BYTES";
+
+    // When
+    final List<String> columnTypes = RowUtil.colTypesFromSchema(schema);
+
+    // Then
+    assertThat(
+            columnTypes,
+            contains(
+                    "STRUCT<F1 ARRAY<STRING>>",
+                    "STRING",
+                    "BIGINT",
+                    "DECIMAL(4, 2)",
+                    "BYTES",
+                    "ARRAY<STRING>",
+                    "MAP<STRING, STRING>",
+                    "STRUCT<F1 INTEGER>",
+                    "STRUCT<DECIMAL DECIMAL(2, 1), STRUCT STRUCT<F1 STRING, F2 INTEGER>, ARRAY_ARRAY ARRAY<ARRAY<STRING>>, ARRAY_STRUCT ARRAY<STRUCT<F1 STRING>>, ARRAY_MAP ARRAY<MAP<STRING, INTEGER>>, MAP_ARRAY MAP<STRING, ARRAY<STRING>>, MAP_MAP MAP<STRING, MAP<STRING, INTEGER>>, MAP_STRUCT MAP<STRING, STRUCT<F1 STRING>>>",
+                    "TIMESTAMP",
+                    "DATE",
+                    "TIME",
+                    "BYTES"
+            ));
   }
 }

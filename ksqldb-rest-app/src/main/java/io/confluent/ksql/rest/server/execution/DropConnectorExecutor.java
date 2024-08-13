@@ -17,11 +17,13 @@ package io.confluent.ksql.rest.server.execution;
 
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.parser.tree.DropConnector;
+import io.confluent.ksql.rest.EndpointResponse;
+import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.rest.entity.DropConnectorEntity;
-import io.confluent.ksql.rest.entity.ErrorEntity;
-import io.confluent.ksql.rest.entity.KsqlEntity;
+import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.WarningEntity;
+import io.confluent.ksql.rest.server.resources.KsqlRestException;
 import io.confluent.ksql.services.ConnectClient.ConnectResponse;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
@@ -31,10 +33,9 @@ import org.apache.hc.core5.http.HttpStatus;
 public final class DropConnectorExecutor {
 
   private DropConnectorExecutor() {
-
   }
 
-  public static Optional<KsqlEntity> execute(
+  public static StatementExecutorResponse execute(
       final ConfiguredStatement<DropConnector> statement,
       final SessionProperties sessionProperties,
       final KsqlExecutionContext executionContext,
@@ -47,14 +48,20 @@ public final class DropConnectorExecutor {
 
     if (response.error().isPresent()) {
       if (ifExists && response.httpCode() == HttpStatus.SC_NOT_FOUND) {
-        return Optional.of(new WarningEntity(statement.getMaskedStatementText(),
-                "Connector '" + connectorName + "' does not exist."));
+        return StatementExecutorResponse.handled(Optional.of(
+            new WarningEntity(statement.getMaskedStatementText(),
+                "Connector '" + connectorName + "' does not exist.")));
       } else {
-        return Optional.of(
-            new ErrorEntity(statement.getMaskedStatementText(), response.error().get()));
+        final String errorMsg = "Failed to drop connector: " + response.error().get();
+        throw new KsqlRestException(EndpointResponse.create()
+            .status(response.httpCode())
+            .entity(new KsqlErrorMessage(Errors.toErrorCode(response.httpCode()), errorMsg))
+            .build()
+        );
       }
     }
 
-    return Optional.of(new DropConnectorEntity(statement.getMaskedStatementText(), connectorName));
+    return StatementExecutorResponse.handled(Optional.of(
+        new DropConnectorEntity(statement.getMaskedStatementText(), connectorName)));
   }
 }

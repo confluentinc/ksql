@@ -21,89 +21,62 @@ io.confluent.ksql.metrics:type=_confluent-ksql-engine-query-stats,ksql_service_i
 
 ### Attributes
 
-**Number of persistent queries**
-
-`num-persistent-queries`
-
-The current number of persistent queries running in this engine.
-
-**Number of active queries**
-
-`num-active-queries`
-
-The current number of active queries running in this engine.
-
-**Number of running queries**
-
-`RUNNING-queries`
-
-Count of queries in `RUNNING` state.
-
-**Number of idle queries**
-
-`num-idle-queries`
-
-Number of inactive queries.
-
-**Number of not running queries**
-
-`NOT_RUNNING-queries`
-
-Count of queries in `NOT_RUNNING` state.
-
-**Number of rebalancing queries**
-
-`REBALANCING-queries`
-
-Count of queries in `REBALANCING` state.
-
-**Number of created queries**
-
-`CREATED-queries`
-
-Count of queries in `CREATED` state.
-
-**Number of pending shutdown queries**
-
-`PENDING_SHUTDOWN-queries`
-
-Count of queries in `PENDING_SHUTDOWN` state.
-
-**Number of error queries**
-
-`ERROR-queries`
-
-Count of queries in `ERROR` state.
-
-**Total bytes consumed**
+**Bytes consumed total**
 
 `bytes-consumed-total`
 
 The total number of bytes consumed across all queries.
 
-**Minimum messages consumed**
+**Created queries**
 
-`messages-consumed-min`
+`created-queries`
 
-Min msgs consumed by query.
+The current number of created queries running in this engine.
+
+**Error rate**
+
+`error-rate`
+
+The proportion of failed queries to successful queries, indicating messages
+that were consumed but not processed. Messages may not be processed if, for
+exammple, the message contents could not be deserialized due to an incompatible
+schema. Alternatively, a consumed message may not have been produced, hence
+being effectively dropped. Such messages would also be counted toward the error
+rate. This can indicate problems with system configuration or issues in the 
+queries being executed.
+
+**Error queries**
+
+`error-queries`
+
+The number of queries that resulted in an error. This count can help identify
+issues within the curent query set.
+
+**Liveness indicator**
+
+`liveness-indicator`
+
+A metric with constant value `1` indicating the server is up and emitting metrics.
 
 **Maximum messages consumed**
 
 `messages-consumed-max`
 
-Max msgs consumed by query.
+The maximum number of messages consumed by all active queries.
 
-**Average messages consumed**
+**Messages consumed average**
 
 `messages-consumed-avg`
 
-Mean msgs consumed by query.
+The average number of messages consumed across all active queries. This can
+indicate the average load on the system.
 
 **Messages consumed per second**
 
 `messages-consumed-per-sec`
 
-The number of messages consumed per second across all queries.
+The number of messages consumed per second across all queries. Higher values
+can indicate a higher load on the system.
 
 **Messages consumed total**
 
@@ -115,19 +88,60 @@ The total number of messages consumed across all queries.
 
 `messages-produced-per-sec`
 
-The number of messages produced per second across all queries.
+The number of messages produced per second across all queries. This can
+indicate system throughput.
 
-**Error rate**
+**Minimum messages consumed**
 
-`error-rate`
+`messages-consumed-min`
 
-The number of messages that were consumed but not processed. Messages may not be processed if, for instance, the message contents could not be deserialized due to an incompatible schema. Alternately, a consumed message may not have been produced, hence being effectively dropped. Such messages would also be counted toward the error rate.
+The minimum number of messages consumed by all active queries.
 
-**Liveness indicator**
+**Not-running queries**
 
-`liveness-indicator`
+`not-running-queries`
 
-A metric with constant value `1` indicating the server is up and emitting metrics.
+The number of queries that have been defined but are not currently running.
+
+**Number of active queries**
+
+`num-active-queries`
+
+The current number of active queries running in this engine.
+
+**Number of idle queries**
+
+`num-idle-queries`
+
+The number of queries that are currently idle, meaning that they are not 
+processing any data.
+
+**Number of persistent queries**
+
+`num-persistent-queries`
+
+The current number of persistent queries running in this engine.
+
+**Pending shutdown queries**
+
+`pending-shutdown-queries`
+
+The number of queries that are in the process of shutting down, usually due to
+a manual command to terminate.
+
+**Rebalancing queries**
+
+`rebalancing-queries`
+
+The number of queries that are currently undergoing a rebalance operation.
+Typically, this happens when a new worker joins a cluster or an existing one
+leaves.
+
+**Running queries**
+
+`running-queries`
+
+The current number of persistent queries running in this engine.
 
 ## Persistent query status
 
@@ -139,11 +153,20 @@ io.confluent.ksql.metrics:type=ksql-queries
 
 ### Attributes
 
+**ksqlDB query status**
+
+`ksql-query-status`
+
+The current ksqlDB status of the given query.   
+The metric `query-status` shows the {{ site.kstreams }} application state.  
+The `PAUSE` / `RESUME` commands do not impact the {{ site.kstreams }} state, so this new metric shows when a query is paused.
+
 **Query status**
 
 `query-status`
 
-The current status of the given query.
+The current {{ site.kstreams }} status of the given query.  
+The `ksql-query-status` metric has been added to show the ksqlDB query status.
 
 **Error status**
 
@@ -211,7 +234,7 @@ this reference to avoid redundancy.
 
 ## HTTP server
 
-ksqlDB's REST API is built ontop of Vert, and consequentially exposes
+ksqlDB's REST API is built using Vert.x, and consequentially exposes
 many [Vert.x
 metrics](https://vertx.io/docs/vertx-dropwizard-metrics/java/)
 directly. These metrics are omitted from this reference to avoid redundancy.
@@ -383,3 +406,36 @@ io.confluent.ksql.metrics:type=_confluent-ksql-rest-app-command-runner
 `status`
 
 The status of the commandRunner thread as it processes the command topic.
+
+## RocksDB
+
+Metrics that report the resource utilization for RocksDB. If RocksDB runs out
+of resources, it spools to disk, affecting performance. 
+
+Run the `free -m` command to check for high cache usage. You may see that the
+process is running at its configured memory threshold.
+
+Also, you can check the following JMX metrics for high usage.
+
+```
+io.confluent.ksql.metrics:type=_ksql-rocksdb-aggregates
+```
+
+### Attributes
+
+**Block cache usage**
+
+`block-cache-usage`
+
+Bytes allocated for the block cache. 
+
+!!! note
+
+    The `block-cache-usage` metric is distinct from the OS page cache reported
+    by the `free -m` command.
+
+**Current size of all memory tables**
+
+`cur-size-all-mem-tables`
+
+Amount of memory allocated for the write buffer.

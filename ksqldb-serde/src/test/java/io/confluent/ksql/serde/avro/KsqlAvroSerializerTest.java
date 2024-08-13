@@ -15,14 +15,19 @@
 
 package io.confluent.ksql.serde.avro;
 
+import static io.confluent.ksql.util.KsqlConstants.getSRSubject;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.kafka.connect.data.Schema.FLOAT64_SCHEMA;
+import static org.apache.kafka.connect.data.Schema.INT64_SCHEMA;
 import static org.apache.kafka.connect.data.Schema.OPTIONAL_BOOLEAN_SCHEMA;
 import static org.apache.kafka.connect.data.Schema.OPTIONAL_BYTES_SCHEMA;
 import static org.apache.kafka.connect.data.Schema.OPTIONAL_FLOAT64_SCHEMA;
 import static org.apache.kafka.connect.data.Schema.OPTIONAL_INT32_SCHEMA;
 import static org.apache.kafka.connect.data.Schema.OPTIONAL_INT64_SCHEMA;
 import static org.apache.kafka.connect.data.Schema.OPTIONAL_STRING_SCHEMA;
+import static org.apache.kafka.connect.data.Schema.STRING_SCHEMA;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
@@ -35,14 +40,15 @@ import static org.junit.internal.matchers.ThrowableMessageMatcher.hasMessage;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.connect.avro.AvroData;
+import io.confluent.kafka.schemaregistry.avro.AvroSchema;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaMetadata;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.serializers.AbstractKafkaSchemaSerDeConfig;
 import io.confluent.kafka.serializers.KafkaAvroDeserializer;
+import io.confluent.ksql.serde.connect.ConnectProperties;
 import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import java.math.BigDecimal;
 import java.nio.ByteBuffer;
@@ -50,6 +56,7 @@ import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import org.apache.avro.Conversions.DecimalConversion;
 import org.apache.avro.LogicalTypes;
 import org.apache.avro.Schema.Type;
@@ -95,12 +102,108 @@ public class KsqlAvroSerializerTest {
       + " {\"name\": \"MAPCOL\", \"type\": [\"null\",{\"type\": \"map\", \"values\": [\"null\",\"double\"]}], \"default\": null}"
       + " ]"
       + "}");
+  private static final org.apache.avro.Schema ORDER_AVRO_SCHEMA_WITH_CONNECT = parseAvroSchema("{"
+      + "\"namespace\": \"io.confluent.ksql.avro_schemas\","
+      + "\"name\": \"KsqlDataSourceSchema\","
+      + "\"type\": \"record\","
+      + "\"fields\": ["
+      + " {\"name\": \"ORDERTIME\", \"type\": [\"null\",\"long\"], \"default\": null},"
+      + " {\"name\": \"ORDERID\",  \"type\": [\"null\",\"long\"], \"default\": null},"
+      + " {\"name\": \"ITEMID\", \"type\": [\"null\",\"string\"], \"default\": null},"
+      + " {\"name\": \"ORDERUNITS\", \"type\": [\"null\",\"double\"], \"default\": null},"
+      + " {\"name\": \"ARRAYCOL\", \"type\": [\"null\",{\"type\": \"array\", \"items\": [\"null\",\"double\"]}], \"default\": null},"
+      + " {\"name\": \"MAPCOL\", \"type\": [\"null\",{\"type\": \"map\", \"values\": [\"null\",\"double\"], \"connect.name\":\"io.confluent.ksql.avro_schemas.KsqlDataSourceSchema_MAPCOL\"}], \"default\": null}"
+      + " ],"
+      + "\"connect.name\":\"io.confluent.ksql.avro_schemas.KsqlDataSourceSchema\""
+      + "}");
+  private static final org.apache.avro.Schema MAP_VALUE_ORDER_AVRO_SCHEMA = parseAvroSchema("{"
+      + "\"namespace\": \"io.confluent.ksql.avro_schemas\","
+      + "\"name\": \"KsqlDataSourceSchema_MapValue\","
+      + "\"type\": \"record\","
+      + "\"fields\": ["
+      + " {\"name\": \"ORDERTIME\", \"type\": [\"null\",\"long\"], \"default\": null},"
+      + " {\"name\": \"ORDERID\",  \"type\": [\"null\",\"long\"], \"default\": null},"
+      + " {\"name\": \"ITEMID\", \"type\": [\"null\",\"string\"], \"default\": null},"
+      + " {\"name\": \"ORDERUNITS\", \"type\": [\"null\",\"double\"], \"default\": null},"
+      + " {\"name\": \"ARRAYCOL\", \"type\": [\"null\",{\"type\": \"array\", \"items\": [\"null\",\"double\"]}], \"default\": null},"
+      + " {\"name\": \"MAPCOL\", \"type\": [\"null\",{\"type\": \"map\", \"values\": [\"null\",\"double\"], \"connect.name\": \"io.confluent.ksql.avro_schemas.KsqlDataSourceSchema_MapValue_MAPCOL\"}], \"default\": null}"
+      + " ],"
+      + "\"connect.name\": \"io.confluent.ksql.avro_schemas.KsqlDataSourceSchema_MapValue\""
+      + "}");
+  private static final org.apache.avro.Schema NESTED_ORDER_AVRO_SCHEMA = parseAvroSchema("{"
+    + "\"namespace\": \"io.confluent.ksql.avro_schemas\","
+    + "\"name\": \"KsqlDataSourceSchema_nested\","
+    + "\"type\": \"record\","
+    + "\"fields\": ["
+    + " {\"name\": \"ORDERTIME\", \"type\": [\"null\",\"long\"], \"default\": null},"
+    + " {\"name\": \"ORDERID\",  \"type\": [\"null\",\"long\"], \"default\": null},"
+    + " {\"name\": \"ITEMID\", \"type\": [\"null\",\"string\"], \"default\": null},"
+    + " {\"name\": \"ORDERUNITS\", \"type\": [\"null\",\"double\"], \"default\": null},"
+    + " {\"name\": \"ARRAYCOL\", \"type\": [\"null\",{\"type\": \"array\", \"items\": [\"null\",\"double\"]}], \"default\": null},"
+    + " {\"name\": \"MAPCOL\", \"type\": [\"null\",{\"type\": \"map\", \"values\": [\"null\",\"double\"], \"connect.name\": \"io.confluent.ksql.avro_schemas.KsqlDataSourceSchema_nested_MAPCOL\"}], \"default\": null}"
+    + " ],"
+    + "\"connect.name\": \"io.confluent.ksql.avro_schemas.KsqlDataSourceSchema_nested\""
+    + "}");
+
+  private static final org.apache.avro.Schema ORDER_SCHEMA_WITH_EXTRA_FIELD = parseAvroSchema("{"
+      + "\"namespace\": \"io.confluent.ksql.somename\","
+      + "\"name\": \"somename\","
+      + "\"type\": \"record\","
+      + "\"fields\": ["
+      + " {\"name\": \"ORDERTIME\", \"type\": [\"null\",\"long\"], \"default\": null},"
+      + " {\"name\": \"ORDERID\",  \"type\": [\"null\",\"long\"], \"default\": null},"
+      + " {\"name\": \"ITEMID\", \"type\": [\"null\",\"string\"], \"default\": null},"
+      + " {\"name\": \"ORDERUNITS\", \"type\": [\"null\",\"double\"], \"default\": null},"
+      + " {\"name\": \"ARRAYCOL\", \"type\": [\"null\",{\"type\": \"array\", \"items\": [\"null\",\"double\"]}], \"default\": null},"
+      + " {\"name\": \"MAPCOL\", \"type\": [\"null\",{\"type\": \"map\", \"values\": [\"null\",\"double\"]}], \"default\": null},"
+      + " {\"name\": \"EXTRA\", \"type\":[\"null\", {\"type\": \"record\", \"name\": \"someothername\", \"fields\": [{\"name\": \"F\", \"type\": [\"null\",\"long\"], \"default\": null}]}], \"default\": null}"
+      + " ]"
+      + "}");
+
+  private static final org.apache.avro.Schema ORDER_SCHEMA_WITH_NON_OPTIONAL_EXTRA_FIELD = parseAvroSchema("{"
+      + "\"namespace\": \"io.confluent.ksql.somename\","
+      + "\"name\": \"somename\","
+      + "\"type\": \"record\","
+      + "\"fields\": ["
+      + " {\"name\": \"ORDERTIME\", \"type\": [\"null\",\"long\"], \"default\": null},"
+      + " {\"name\": \"ORDERID\",  \"type\": [\"null\",\"long\"], \"default\": null},"
+      + " {\"name\": \"ITEMID\", \"type\": [\"null\",\"string\"], \"default\": null},"
+      + " {\"name\": \"ORDERUNITS\", \"type\": [\"null\",\"double\"], \"default\": null},"
+      + " {\"name\": \"ARRAYCOL\", \"type\": [\"null\",{\"type\": \"array\", \"items\": [\"null\",\"double\"]}], \"default\": null},"
+      + " {\"name\": \"MAPCOL\", \"type\": [\"null\",{\"type\": \"map\", \"values\": [\"null\",\"double\"]}], \"default\": null},"
+      + " {\"name\": \"EXTRA\", \"type\": \"long\"}"
+      + " ]"
+      + "}");
+
+  private static final org.apache.avro.Schema ORDER_SCHEMA_WITH_DEFAULT_EXTRA_FIELD = parseAvroSchema("{"
+      + "\"namespace\": \"io.confluent.ksql.somename\","
+      + "\"name\": \"somename\","
+      + "\"type\": \"record\","
+      + "\"fields\": ["
+      + " {\"name\": \"ORDERTIME\", \"type\": [\"null\",\"long\"], \"default\": null},"
+      + " {\"name\": \"ORDERID\",  \"type\": [\"null\",\"long\"], \"default\": null},"
+      + " {\"name\": \"ITEMID\", \"type\": [\"null\",\"string\"], \"default\": null},"
+      + " {\"name\": \"ORDERUNITS\", \"type\": [\"null\",\"double\"], \"default\": null},"
+      + " {\"name\": \"ARRAYCOL\", \"type\": [\"null\",{\"type\": \"array\", \"items\": [\"null\",\"double\"]}], \"default\": null},"
+      + " {\"name\": \"MAPCOL\", \"type\": [\"null\",{\"type\": \"map\", \"values\": [\"null\",\"double\"]}], \"default\": null},"
+      + " {\"name\": \"EXTRA\", \"type\": \"long\", \"default\": 123}"
+      + " ]"
+      + "}");
+
+  private static final AvroSchema ORDER_PARSED_AVRO_SCHEMA = new AvroSchema(ORDER_AVRO_SCHEMA);
+  private static final AvroSchema ORDER_AVRO_SCHEMA_WITH_EXTRA_FIELD = new AvroSchema(ORDER_SCHEMA_WITH_EXTRA_FIELD);
+  private static final AvroSchema ORDER_AVRO_SCHEMA_WITH_NON_OPTIONAL_EXTRA_FIELD = new AvroSchema(ORDER_SCHEMA_WITH_NON_OPTIONAL_EXTRA_FIELD);
+  private static final AvroSchema ORDER_AVRO_SCHEMA_WITH_DEFAULT_EXTRA_FIELD = new AvroSchema(ORDER_SCHEMA_WITH_DEFAULT_EXTRA_FIELD);
 
   private static final org.apache.avro.Schema BOOLEAN_AVRO_SCHEMA =
       parseAvroSchema("{\"type\": \"boolean\"}");
 
+  private static final AvroSchema BOOLEAN_PARSED_AVRO_SCHEMA = new AvroSchema(BOOLEAN_AVRO_SCHEMA);
+
   private static final org.apache.avro.Schema INT_AVRO_SCHEMA =
       parseAvroSchema("{\"type\": \"int\"}");
+
+  private static final AvroSchema INT_PARSED_AVRO_SCHEMA = new AvroSchema(INT_AVRO_SCHEMA);
 
   private static final org.apache.avro.Schema LONG_AVRO_SCHEMA =
       parseAvroSchema("{\"type\": \"long\"}");
@@ -115,7 +218,8 @@ public class KsqlAvroSerializerTest {
       parseAvroSchema("{\"type\": \"array\", \"items\": [\"null\", \"boolean\"]}");
 
   private static final org.apache.avro.Schema REQUIRED_KEY_MAP_AVRO_SCHEMA =
-      parseAvroSchema("{\"type\": \"map\", \"values\": [\"null\", \"int\"]}");
+      parseAvroSchema("{\"type\": \"map\", \"values\": [\"null\", \"int\"],"
+          + "\"connect.name\":\"io.confluent.ksql.avro_schemas.KsqlDataSourceSchema\"}");
 
   private static final org.apache.avro.Schema OPTIONAL_KEY_MAP_AVRO_SCHEMA =
       parseAvroSchema("{"
@@ -127,7 +231,8 @@ public class KsqlAvroSerializerTest {
           + "\"fields\":["
           + "{\"name\":\"key\",\"type\":[\"null\",\"string\"],\"default\":null},"
           + "{\"name\":\"value\",\"type\":[\"null\",\"int\"],\"default\":null}],"
-          + "\"connect.internal.type\":\"MapEntry\"}}");
+          + "\"connect.internal.type\":\"MapEntry\"},"
+          + "\"connect.name\":\"io.confluent.ksql.avro_schemas.KsqlDataSourceSchema\"}");
 
   private static final org.apache.avro.Schema DECIMAL_SCHEMA =
       parseAvroSchema(
@@ -135,7 +240,10 @@ public class KsqlAvroSerializerTest {
               + "\"type\": \"bytes\","
               + "\"logicalType\": \"decimal\","
               + "\"precision\": 4,"
-              + "\"scale\": 2"
+              + "\"scale\": 2,"
+              + "\"connect.version\": 1,"
+              + "\"connect.parameters\":{\"scale\":\"2\",\"connect.decimal.precision\":\"4\"},"
+              + "\"connect.name\":\"org.apache.kafka.connect.data.Decimal\""
               + "}");
 
 
@@ -143,19 +251,25 @@ public class KsqlAvroSerializerTest {
       parseAvroSchema(
           "{"
               + "\"type\": \"long\","
-              + "\"logicalType\": \"timestamp-millis\""
+              + "\"logicalType\": \"timestamp-millis\","
+              + "\"connect.version\":1,"
+              + "\"connect.name\":\"org.apache.kafka.connect.data.Timestamp\""
               + "}");
   private static final org.apache.avro.Schema TIME_SCHEMA =
       parseAvroSchema(
           "{"
               + "\"type\": \"int\","
-              + "\"logicalType\": \"time-millis\""
+              + "\"logicalType\": \"time-millis\","
+              + "\"connect.version\":1,"
+              + "\"connect.name\":\"org.apache.kafka.connect.data.Time\""
               + "}");
   private static final org.apache.avro.Schema DATE_SCHEMA =
       parseAvroSchema(
           "{"
               + "\"type\": \"int\","
-              + "\"logicalType\": \"date\""
+              + "\"logicalType\": \"date\","
+              + "\"connect.version\":1,"
+              + "\"connect.name\":\"org.apache.kafka.connect.data.Date\""
               + "}");
 
   private static final String SOME_TOPIC = "bob";
@@ -166,6 +280,7 @@ public class KsqlAvroSerializerTest {
   private static final String ORDERUNITS = "ORDERUNITS";
   private static final String ARRAYCOL = "ARRAYCOL";
   private static final String MAPCOL = "MAPCOL";
+  private static final String EXTRA = "EXTRA";
 
   private static final Schema ORDER_SCHEMA = SchemaBuilder.struct()
       .field(ORDERTIME, OPTIONAL_INT64_SCHEMA)
@@ -175,8 +290,19 @@ public class KsqlAvroSerializerTest {
       .field(ARRAYCOL, SchemaBuilder
           .array(OPTIONAL_FLOAT64_SCHEMA).optional().build())
       .field(MAPCOL, SchemaBuilder
-          .map(Schema.STRING_SCHEMA, OPTIONAL_FLOAT64_SCHEMA).optional().build())
+          .map(STRING_SCHEMA, OPTIONAL_FLOAT64_SCHEMA).optional().build())
       .optional()
+      .build();
+
+  private static final Schema NON_OPTIONAL_ORDER_SCHEMA = SchemaBuilder.struct()
+      .field(ORDERTIME, INT64_SCHEMA)
+      .field(ORDERID, INT64_SCHEMA)
+      .field(ITEMID, STRING_SCHEMA)
+      .field(ORDERUNITS, FLOAT64_SCHEMA)
+      .field(ARRAYCOL, SchemaBuilder
+          .array(FLOAT64_SCHEMA).optional().build())
+      .field(MAPCOL, SchemaBuilder
+          .map(STRING_SCHEMA, OPTIONAL_FLOAT64_SCHEMA).build())
       .build();
 
   private final SchemaRegistryClient schemaRegistryClient = new MockSchemaRegistryClient();
@@ -186,6 +312,8 @@ public class KsqlAvroSerializerTest {
   private Deserializer<Object> deserializer;
   private Struct orderStruct;
   private GenericRecord avroOrder;
+  private GenericRecord avroOrderWithExtraField;
+  private GenericRecord avroOrderWithExtraDefaultField;
 
   @Before
   public void setup() {
@@ -204,13 +332,31 @@ public class KsqlAvroSerializerTest {
         .put(ARRAYCOL, Collections.singletonList(100.0))
         .put(MAPCOL, Collections.singletonMap("key1", 100.0));
 
-    avroOrder = new GenericData.Record(ORDER_AVRO_SCHEMA);
+    avroOrder = new GenericData.Record(ORDER_AVRO_SCHEMA_WITH_CONNECT);
     avroOrder.put(ORDERTIME, 1511897796092L);
     avroOrder.put(ORDERID, 1L);
     avroOrder.put(ITEMID, "item_1");
     avroOrder.put(ORDERUNITS, 10.0);
     avroOrder.put(ARRAYCOL, ImmutableList.of(100.0));
     avroOrder.put(MAPCOL, ImmutableMap.of(new Utf8("key1"), 100.0));
+
+    avroOrderWithExtraField = new GenericData.Record(ORDER_SCHEMA_WITH_EXTRA_FIELD);
+    avroOrderWithExtraField.put(ORDERTIME, 1511897796092L);
+    avroOrderWithExtraField.put(ORDERID, 1L);
+    avroOrderWithExtraField.put(ITEMID, "item_1");
+    avroOrderWithExtraField.put(ORDERUNITS, 10.0);
+    avroOrderWithExtraField.put(ARRAYCOL, ImmutableList.of(100.0));
+    avroOrderWithExtraField.put(MAPCOL, ImmutableMap.of(new Utf8("key1"), 100.0));
+    avroOrderWithExtraField.put(EXTRA, null);
+
+    avroOrderWithExtraDefaultField = new GenericData.Record(ORDER_SCHEMA_WITH_DEFAULT_EXTRA_FIELD);
+    avroOrderWithExtraDefaultField .put(ORDERTIME, 1511897796092L);
+    avroOrderWithExtraDefaultField.put(ORDERID, 1L);
+    avroOrderWithExtraDefaultField.put(ITEMID, "item_1");
+    avroOrderWithExtraDefaultField.put(ORDERUNITS, 10.0);
+    avroOrderWithExtraDefaultField.put(ARRAYCOL, ImmutableList.of(100.0));
+    avroOrderWithExtraDefaultField.put(MAPCOL, ImmutableMap.of(new Utf8("key1"), 100.0));
+    avroOrderWithExtraDefaultField.put(EXTRA, 123L);
   }
 
   @Test
@@ -229,14 +375,13 @@ public class KsqlAvroSerializerTest {
   public void shouldSerializeStructCorrectly() {
     // Given:
     final Serializer<Struct> serializer = givenSerializerForSchema(ORDER_SCHEMA, Struct.class);
-
     // When:
     final byte[] serializedRow = serializer.serialize(SOME_TOPIC, orderStruct);
 
     // Then:
     final GenericRecord deserialized = deserialize(serializedRow);
     assertThat(deserialized, is(avroOrder));
-    assertThat(avroSchemaStoredInSchemaRegistry(), is(ORDER_AVRO_SCHEMA));
+    assertThat(avroSchemaStoredInSchemaRegistry(), is(ORDER_AVRO_SCHEMA_WITH_CONNECT));
   }
 
   @Test
@@ -251,8 +396,16 @@ public class KsqlAvroSerializerTest {
     );
 
     // Then:
-    assertThat(e.getCause(), (hasMessage(containsString(
-        "java.lang.Integer cannot be cast to org.apache.kafka.connect.data.Struct"))));
+    assertThat(
+        e.getCause(),
+        hasMessage(
+            allOf(
+                containsString("java.lang.Integer"),
+                containsString("cannot be cast"),
+                containsString("org.apache.kafka.connect.data.Struct")
+            )
+        )
+    );
   }
 
   @Test
@@ -272,10 +425,8 @@ public class KsqlAvroSerializerTest {
     final byte[] serializedRow = serializer.serialize(SOME_TOPIC, value);
 
     // Then:
-    final org.apache.avro.Schema nestedSchema = rename(ORDER_AVRO_SCHEMA,
-        "KsqlDataSourceSchema_nested");
 
-    avroOrder = new GenericData.Record(nestedSchema);
+    avroOrder = new GenericData.Record(NESTED_ORDER_AVRO_SCHEMA);
     avroOrder.put(ORDERTIME, 1511897796092L);
     avroOrder.put(ORDERID, 1L);
     avroOrder.put(ITEMID, "item_1");
@@ -284,9 +435,11 @@ public class KsqlAvroSerializerTest {
     avroOrder.put(MAPCOL, ImmutableMap.of(new Utf8("key1"), 100.0));
 
     final GenericRecord avroValue =
-        new GenericData.Record(recordSchema(ImmutableMap.of("nested", nestedSchema)));
+        new GenericData.Record(recordSchema(ImmutableMap.of("nested", NESTED_ORDER_AVRO_SCHEMA)));
     avroValue.put("nested", avroOrder);
-
+    avroValue.getSchema().addProp(
+        "connect.name",
+        AvroProperties.AVRO_SCHEMA_NAMESPACE + ".KsqlDataSourceSchema");
     final GenericRecord deserialized = deserialize(serializedRow);
     assertThat(deserialized, is(avroValue));
   }
@@ -300,7 +453,6 @@ public class KsqlAvroSerializerTest {
     // When:
     final byte[] bytes = serializer.serialize(SOME_TOPIC, true);
 
-    // Then:
     // Then:
     assertThat(deserialize(bytes), is(true));
     assertThat(avroSchemaStoredInSchemaRegistry(), is(BOOLEAN_AVRO_SCHEMA));
@@ -480,8 +632,16 @@ public class KsqlAvroSerializerTest {
     );
 
     // Then:
-    assertThat(e.getCause(), (hasMessage(CoreMatchers.is(
-        "java.lang.Boolean cannot be cast to java.util.List"))));
+    assertThat(
+        e.getCause(),
+        hasMessage(
+            allOf(
+                containsString("java.lang.Boolean"),
+                containsString("cannot be cast"),
+                containsString("java.util.List")
+            )
+        )
+    );
   }
 
   @Test
@@ -612,14 +772,14 @@ public class KsqlAvroSerializerTest {
     final byte[] bytes = serializer.serialize(SOME_TOPIC, value);
 
     // Then:
-    assertThat(deserialize(bytes), is(ImmutableList.of(avroOrder)));
+    assertThat(deserialize(bytes), is((List<GenericRecord>) ImmutableList.of(avroOrder)));
   }
 
   @Test
   public void shouldSerializeMapWithRequiredKeys() {
     // Given:
     final Serializer<Map> serializer = givenSerializerForSchema(
-        SchemaBuilder.map(Schema.STRING_SCHEMA, OPTIONAL_INT32_SCHEMA).build(),
+        SchemaBuilder.map(STRING_SCHEMA, OPTIONAL_INT32_SCHEMA).build(),
         Map.class
     );
 
@@ -667,8 +827,16 @@ public class KsqlAvroSerializerTest {
     );
 
     // Then:
-    assertThat(e.getCause(), (hasMessage(CoreMatchers.is(
-        "java.lang.Boolean cannot be cast to java.util.Map"))));
+    assertThat(
+        e.getCause(),
+        hasMessage(
+            allOf(
+                containsString("java.lang.Boolean"),
+                containsString("cannot be cast"),
+                containsString("java.util.Map")
+            )
+        )
+    );
   }
 
   @Test
@@ -718,8 +886,10 @@ public class KsqlAvroSerializerTest {
     // When:
     final Exception e = assertThrows(
         KsqlException.class,
-        () -> new KsqlAvroSerdeFactory(AvroProperties.DEFAULT_AVRO_SCHEMA_FULL_NAME)
-            .createSerde(
+        () -> new KsqlAvroSerdeFactory(
+            ImmutableMap.of(
+                ConnectProperties.FULL_SCHEMA_NAME, AvroProperties.DEFAULT_AVRO_SCHEMA_FULL_NAME)
+        ).createSerde(
                 schema,
                 ksqlConfig,
                 () -> schemaRegistryClient,
@@ -745,8 +915,10 @@ public class KsqlAvroSerializerTest {
     // When:
     final Exception e = assertThrows(
         KsqlException.class,
-        () -> new KsqlAvroSerdeFactory(AvroProperties.DEFAULT_AVRO_SCHEMA_FULL_NAME)
-            .createSerde(
+        () -> new KsqlAvroSerdeFactory(
+            ImmutableMap.of(
+                ConnectProperties.FULL_SCHEMA_NAME, AvroProperties.DEFAULT_AVRO_SCHEMA_FULL_NAME)
+        ).createSerde(
                 schema,
                 ksqlConfig,
                 () -> schemaRegistryClient,
@@ -779,13 +951,12 @@ public class KsqlAvroSerializerTest {
         ImmutableMap.of(new Utf8("a"), 1, new Utf8("b"), 2),
         org.apache.avro.Schema.create(Type.INT)
     );
-
+    org.apache.avro.Schema valueSchema = AvroTestUtil.connectOptionalKeyMapSchema(
+        AvroTestUtil.connectOptionalKeyMapEntrySchema("KsqlDataSourceSchema_MapValue",
+            org.apache.avro.Schema.create(Type.INT)));
+    valueSchema.addProp("connect.name", AvroProperties.AVRO_SCHEMA_NAMESPACE + ".KsqlDataSourceSchema_MapValue");
     final GenericArray<?> expected = buildConnectMapEntries(
-        ImmutableMap.of(new Utf8("k"), inner),
-        AvroTestUtil.connectOptionalKeyMapSchema(
-            AvroTestUtil.connectOptionalKeyMapEntrySchema("KsqlDataSourceSchema_MapValue",
-                org.apache.avro.Schema.create(Type.INT)))
-    );
+        ImmutableMap.of(new Utf8("k"), inner), valueSchema);
 
     final GenericArray<?> actual = deserialize(bytes);
     assertThat(actual, is(expected));
@@ -804,10 +975,7 @@ public class KsqlAvroSerializerTest {
     final byte[] bytes = serializer.serialize(SOME_TOPIC, value);
 
     // Then:
-    final org.apache.avro.Schema elementSchema =
-        rename(ORDER_AVRO_SCHEMA, "KsqlDataSourceSchema_MapValue");
-
-    avroOrder = new GenericData.Record(elementSchema);
+    avroOrder = new GenericData.Record(MAP_VALUE_ORDER_AVRO_SCHEMA);
     avroOrder.put(ORDERTIME, 1511897796092L);
     avroOrder.put(ORDERID, 1L);
     avroOrder.put(ITEMID, new Utf8("item_1"));
@@ -817,7 +985,7 @@ public class KsqlAvroSerializerTest {
 
     final GenericArray<?> expected = buildConnectMapEntries(
         ImmutableMap.of(new Utf8("k"), avroOrder),
-        elementSchema
+        MAP_VALUE_ORDER_AVRO_SCHEMA
     );
 
     final GenericArray<?> actual = deserialize(bytes);
@@ -978,7 +1146,7 @@ public class KsqlAvroSerializerTest {
     final org.apache.avro.Schema avroSchema =
         AvroTestUtil.connectOptionalKeyMapSchema(
             connectMapEntrySchema(AvroProperties.AVRO_SCHEMA_NAMESPACE + ".KsqlDataSourceSchema_field0"));
-
+    avroSchema.addProp("connect.name", AvroProperties.AVRO_SCHEMA_NAMESPACE + ".KsqlDataSourceSchema_field0");
     shouldSerializeMap(avroSchema);
   }
 
@@ -996,10 +1164,13 @@ public class KsqlAvroSerializerTest {
             .namespace("io.confluent.ksql.avro_schemas")
             .fields()
             .name("inner0").type().unionOf().nullType().and().array()
+            .prop("connect.name",AvroProperties.AVRO_SCHEMA_NAMESPACE + ".KsqlDataSourceSchema_field0_inner0")
             .items(avroInnerSchema0).endUnion().nullDefault()
             .name("inner1").type().unionOf().nullType().and().array()
+            .prop("connect.name",AvroProperties.AVRO_SCHEMA_NAMESPACE + ".KsqlDataSourceSchema_field0_inner1")
             .items(avroInnerSchema1).endUnion().nullDefault()
             .endRecord();
+    avroSchema.addProp("connect.name", AvroProperties.AVRO_SCHEMA_NAMESPACE + ".KsqlDataSourceSchema_field0");
 
     final Schema ksqlSchema = SchemaBuilder.struct()
         .field(
@@ -1044,6 +1215,7 @@ public class KsqlAvroSerializerTest {
         .nullDefault()
         .endRecord();
     final GenericRecord avroValue = new GenericData.Record(avroSchema);
+    avroSchema.addProp("connect.name", AvroProperties.AVRO_SCHEMA_NAMESPACE + ".KsqlDataSourceSchema_field0");
     avroValue.put("field1", 123);
     avroValue.put("field2", "foobar");
     final Schema ksqlSchema = SchemaBuilder.struct()
@@ -1096,8 +1268,10 @@ public class KsqlAvroSerializerTest {
         .put("field0", ksqlValue);
 
     final Serializer<Struct> serializer =
-        new KsqlAvroSerdeFactory(schemaNamespace + "." + schemaName)
-            .createSerde(
+        new KsqlAvroSerdeFactory(
+            ImmutableMap.of(
+                ConnectProperties.FULL_SCHEMA_NAME, schemaNamespace + "." + schemaName)
+        ).createSerde(
                 (ConnectSchema) ksqlRecordSchema,
                 ksqlConfig,
                 () -> schemaRegistryClient,
@@ -1112,6 +1286,99 @@ public class KsqlAvroSerializerTest {
 
     assertThat(avroRecord.getSchema().getNamespace(), is(schemaNamespace));
     assertThat(avroRecord.getSchema().getName(), is(schemaName));
+  }
+
+  @Test
+  public void shouldSerializePrimitiveWithSchemaId() throws Exception {
+    // Given:
+    int boolSchemaId = givenPhysicalSchema(getSRSubject(SOME_TOPIC, false), BOOLEAN_PARSED_AVRO_SCHEMA);
+    final Serializer<Boolean> boolSerializer = givenSerializerForSchema(OPTIONAL_BOOLEAN_SCHEMA,
+        Boolean.class, Optional.of(boolSchemaId), Optional.empty());
+
+    int intSchemaId = givenPhysicalSchema(getSRSubject(SOME_TOPIC, false), INT_PARSED_AVRO_SCHEMA);
+    final Serializer<Integer> intSerializer = givenSerializerForSchema(OPTIONAL_INT32_SCHEMA,
+        Integer.class, Optional.of(intSchemaId), Optional.empty());
+
+    // When:
+    final byte[] boolBytes = boolSerializer.serialize(SOME_TOPIC, true);
+    final byte[] intBytes = intSerializer.serialize(SOME_TOPIC, 123);
+
+    // Then:
+    assertThat(deserialize(boolBytes), is(true));
+    assertThat(deserialize(intBytes), is(123));
+  }
+
+  @Test
+  public void shouldSerializeStructWithSchemaId() throws Exception {
+    // Given:
+    int schemaId = givenPhysicalSchema(getSRSubject(SOME_TOPIC, false), ORDER_PARSED_AVRO_SCHEMA);
+    final Serializer<Struct> serializer = givenSerializerForSchema(ORDER_SCHEMA,
+        Struct.class, Optional.of(schemaId), Optional.empty());
+
+    // When:
+    final byte[] bytes = serializer.serialize(SOME_TOPIC, orderStruct);
+
+    // Then:
+    avroOrder = new GenericData.Record(ORDER_AVRO_SCHEMA);
+    avroOrder.put(ORDERTIME, 1511897796092L);
+    avroOrder.put(ORDERID, 1L);
+    avroOrder.put(ITEMID, "item_1");
+    avroOrder.put(ORDERUNITS, 10.0);
+    avroOrder.put(ARRAYCOL, ImmutableList.of(100.0));
+    avroOrder.put(MAPCOL, ImmutableMap.of(new Utf8("key1"), 100.0));
+    final GenericRecord deserialized = deserialize(bytes);
+    assertThat(deserialized, is(avroOrder));
+  }
+
+  @Test
+  public void shouldSerializeStructWithExtraFieldWithSchemaId() throws Exception {
+    // Given:
+    int schemaId = givenPhysicalSchema(getSRSubject(SOME_TOPIC, false),
+        ORDER_AVRO_SCHEMA_WITH_EXTRA_FIELD);
+    final Serializer<Struct> serializer = givenSerializerForSchema(ORDER_SCHEMA,
+        Struct.class, Optional.of(schemaId), Optional.empty());
+
+    // When:
+    final byte[] bytes = serializer.serialize(SOME_TOPIC, orderStruct);
+
+    // Then:
+    final GenericRecord deserialized = deserialize(bytes);
+    assertThat(deserialized, is(avroOrderWithExtraField));
+  }
+
+  @Test
+  public void shouldSerializeStructWithExtraDefaultFieldWithSchemaId() throws Exception {
+    // Given:
+    int schemaId = givenPhysicalSchema(getSRSubject(SOME_TOPIC, false),
+        ORDER_AVRO_SCHEMA_WITH_DEFAULT_EXTRA_FIELD);
+    final Serializer<Struct> serializer = givenSerializerForSchema(ORDER_SCHEMA,
+        Struct.class, Optional.of(schemaId), Optional.empty());
+
+    // When:
+    final byte[] bytes = serializer.serialize(SOME_TOPIC, orderStruct);
+
+    // Then:
+    final GenericRecord deserialized = deserialize(bytes);
+    assertThat(deserialized, is(avroOrderWithExtraDefaultField));
+  }
+
+  @Test
+  public void shouldThrowSerializeNonOptionalStruct() throws Exception {
+    // Given:
+    int schemaId = givenPhysicalSchema(getSRSubject(SOME_TOPIC, false),
+        ORDER_AVRO_SCHEMA_WITH_NON_OPTIONAL_EXTRA_FIELD);
+    final Serializer<Struct> serializer = givenSerializerForSchema(ORDER_SCHEMA,
+        Struct.class, Optional.of(schemaId), Optional.empty());
+
+    // When:
+    final Exception e = assertThrows(
+        SerializationException.class,
+        () -> serializer.serialize(SOME_TOPIC, orderStruct)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Missing default value for required Avro "
+        + "field: [EXTRA]. This field appears in Avro schema in Schema Registry"));
   }
 
   private static org.apache.avro.Schema legacyMapEntrySchema() {
@@ -1219,7 +1486,23 @@ public class KsqlAvroSerializerTest {
       final Schema schema,
       final Class<T> targetType
   ) {
-    return new KsqlAvroSerdeFactory(AvroProperties.DEFAULT_AVRO_SCHEMA_FULL_NAME)
+    return givenSerializerForSchema(schema, targetType, Optional.empty(), Optional.empty());
+  }
+
+  private <T> Serializer<T> givenSerializerForSchema(
+      final Schema schema,
+      final Class<T> targetType,
+      final Optional<Integer> schemaId,
+      final Optional<String> schemaName
+  ) {
+    final ImmutableMap.Builder<String, String> builder = ImmutableMap.builder();
+    if (schemaName.isPresent()) {
+      builder.put(ConnectProperties.FULL_SCHEMA_NAME, schemaName.get());
+    } else {
+      builder.put(ConnectProperties.FULL_SCHEMA_NAME, AvroProperties.DEFAULT_AVRO_SCHEMA_FULL_NAME);
+    }
+    schemaId.ifPresent(integer -> builder.put(ConnectProperties.SCHEMA_ID, String.valueOf(integer)));
+    return new KsqlAvroSerdeFactory(builder.build())
         .createSerde(
             (ConnectSchema) schema,
             ksqlConfig,
@@ -1228,10 +1511,17 @@ public class KsqlAvroSerializerTest {
             false).serializer();
   }
 
+  private int givenPhysicalSchema(
+      final String subject,
+      final AvroSchema physicalSchema
+  ) throws Exception {
+    return schemaRegistryClient.register(subject, physicalSchema);
+  }
+
   private org.apache.avro.Schema avroSchemaStoredInSchemaRegistry() {
     try {
       final SchemaMetadata schemaMetadata = schemaRegistryClient
-          .getLatestSchemaMetadata(KsqlConstants.getSRSubject(SOME_TOPIC, false));
+          .getLatestSchemaMetadata(getSRSubject(SOME_TOPIC, false));
 
       return parseAvroSchema(schemaMetadata.getSchema());
     } catch (final Exception e) {
@@ -1259,26 +1549,8 @@ public class KsqlAvroSerializerTest {
         .map(e -> new GenericRecordBuilder(entrySchema).set("key", e.getKey())
             .set("value", e.getValue()).build())
         .forEach(entries::add);
-
+    entries.getSchema().addProp(
+        "connect.name", AvroProperties.AVRO_SCHEMA_NAMESPACE + "." + entrySchema.getName());
     return entries;
-  }
-
-  private static org.apache.avro.Schema rename(
-      final org.apache.avro.Schema schema,
-      final String newName
-  ) {
-    final FieldAssembler<org.apache.avro.Schema> builder = org.apache.avro.SchemaBuilder
-        .builder(schema.getNamespace())
-        .record(newName)
-        .fields();
-
-    schema.getFields().forEach(f -> builder
-        .name(f.name())
-        .doc(f.doc())
-        .type(f.schema())
-        .withDefault(f.defaultVal() == org.apache.avro.Schema.NULL_VALUE ? null : f.defaultVal())
-    );
-
-    return builder.endRecord();
   }
 }

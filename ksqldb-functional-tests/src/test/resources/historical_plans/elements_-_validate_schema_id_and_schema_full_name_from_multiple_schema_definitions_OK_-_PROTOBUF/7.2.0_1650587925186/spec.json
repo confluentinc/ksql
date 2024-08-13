@@ -1,0 +1,146 @@
+{
+  "version" : "7.2.0",
+  "timestamp" : 1650587925186,
+  "path" : "query-validation-tests/elements.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`K1` INTEGER KEY, `C1` INTEGER",
+      "keyFormat" : {
+        "format" : "PROTOBUF",
+        "properties" : {
+          "fullSchemaName" : "KeySchema2",
+          "unwrapPrimitives" : "true",
+          "schemaId" : "1"
+        }
+      },
+      "valueFormat" : {
+        "format" : "PROTOBUF",
+        "properties" : {
+          "fullSchemaName" : "ValueSchema2",
+          "unwrapPrimitives" : "true",
+          "schemaId" : "2"
+        }
+      }
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`K1` INTEGER KEY, `C1` INTEGER",
+      "keyFormat" : {
+        "format" : "PROTOBUF",
+        "properties" : {
+          "fullSchemaName" : "KeySchema2",
+          "unwrapPrimitives" : "true"
+        }
+      },
+      "valueFormat" : {
+        "format" : "PROTOBUF",
+        "properties" : {
+          "fullSchemaName" : "ValueSchema2",
+          "unwrapPrimitives" : "true"
+        }
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "validate schema id and schema full name from multiple schema definitions OK - PROTOBUF",
+    "inputs" : [ {
+      "topic" : "input",
+      "key" : {
+        "k1" : 42
+      },
+      "value" : {
+        "c1" : 4
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : {
+        "k1" : 42
+      },
+      "value" : {
+        "c1" : 4
+      }
+    } ],
+    "topics" : [ {
+      "name" : "input",
+      "keySchema" : "syntax = \"proto3\";\n\nmessage KeySchema1 {\n  int32 K0 = 1;\n}\nmessage KeySchema2 {\n  int32 K1 = 1;\n}\n",
+      "valueSchema" : "syntax = \"proto3\";\n\nmessage ValueSchema1 {\n  int32 C0 = 1;\n}\nmessage ValueSchema2 {\n  int32 C1 = 1;\n}\n",
+      "keyFormat" : "PROTOBUF",
+      "valueFormat" : "PROTOBUF",
+      "replicas" : 1,
+      "numPartitions" : 1
+    }, {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 1
+    } ],
+    "statements" : [ "CREATE STREAM INPUT WITH (kafka_topic='input', format='PROTOBUF', key_schema_id=1, key_schema_full_name='KeySchema2', value_schema_id=2, value_schema_full_name='ValueSchema2');", "CREATE STREAM OUTPUT AS SELECT * FROM input;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`K1` INTEGER KEY, `C1` INTEGER",
+        "keyFormat" : {
+          "format" : "PROTOBUF"
+        },
+        "valueFormat" : "PROTOBUF",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`K1` INTEGER KEY, `C1` INTEGER",
+        "keyFormat" : {
+          "format" : "PROTOBUF"
+        },
+        "valueFormat" : "PROTOBUF",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "input",
+          "keyFormat" : {
+            "format" : "PROTOBUF",
+            "properties" : {
+              "fullSchemaName" : "KeySchema2",
+              "unwrapPrimitives" : "true",
+              "schemaId" : "1"
+            }
+          },
+          "valueFormat" : {
+            "format" : "PROTOBUF",
+            "properties" : {
+              "fullSchemaName" : "ValueSchema2",
+              "unwrapPrimitives" : "true",
+              "schemaId" : "2"
+            }
+          },
+          "partitions" : 1,
+          "keySchema" : "syntax = \"proto3\";\n\nmessage KeySchema2 {\n  int32 K1 = 1;\n}\n",
+          "valueSchema" : "syntax = \"proto3\";\n\nmessage ValueSchema2 {\n  int32 C1 = 1;\n}\n"
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "format" : "PROTOBUF",
+            "properties" : {
+              "fullSchemaName" : "KeySchema2",
+              "unwrapPrimitives" : "true"
+            }
+          },
+          "valueFormat" : {
+            "format" : "PROTOBUF",
+            "properties" : {
+              "fullSchemaName" : "ValueSchema2",
+              "unwrapPrimitives" : "true"
+            }
+          },
+          "partitions" : 4,
+          "keySchema" : "syntax = \"proto3\";\n\nmessage KeySchema2 {\n  int32 K1 = 1;\n}\n",
+          "valueSchema" : "syntax = \"proto3\";\n\nmessage ValueSchema2 {\n  int32 C1 = 1;\n}\n"
+        } ]
+      }
+    }
+  }
+}

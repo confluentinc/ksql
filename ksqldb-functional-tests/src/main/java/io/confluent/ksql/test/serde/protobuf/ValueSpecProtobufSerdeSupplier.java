@@ -15,31 +15,48 @@
 
 package io.confluent.ksql.test.serde.protobuf;
 
-import static io.confluent.connect.protobuf.ProtobufDataConfig.SCHEMAS_CACHE_SIZE_CONFIG;
-import static io.confluent.connect.protobuf.ProtobufDataConfig.WRAPPER_FOR_RAW_PRIMITIVES_CONFIG;
+import static io.confluent.connect.protobuf.ProtobufDataConfig.OPTIONAL_FOR_NULLABLES_CONFIG;
+import static io.confluent.connect.protobuf.ProtobufDataConfig.WRAPPER_FOR_NULLABLES_CONFIG;
 
 import com.google.common.collect.ImmutableMap;
 import io.confluent.connect.protobuf.ProtobufConverter;
-import io.confluent.connect.protobuf.ProtobufData;
-import io.confluent.connect.protobuf.ProtobufDataConfig;
 import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchema;
+import io.confluent.kafka.serializers.AbstractKafkaSchemaSerDeConfig;
+import io.confluent.ksql.serde.protobuf.ProtobufProperties;
+import io.confluent.ksql.serde.protobuf.ProtobufSchemaTranslator;
 import io.confluent.ksql.test.serde.ConnectSerdeSupplier;
 import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.storage.Converter;
 
 public class ValueSpecProtobufSerdeSupplier extends ConnectSerdeSupplier<ProtobufSchema> {
 
-  private final boolean unwrapPrimitives;
+  private final ProtobufSchemaTranslator schemaTranslator;
 
-  public ValueSpecProtobufSerdeSupplier(final boolean unwrapPrimitives) {
+  private final ImmutableMap<String, Boolean> converterConfig;
+
+  public ValueSpecProtobufSerdeSupplier(final ProtobufProperties protobufProperties) {
     super(ProtobufConverter::new);
-    this.unwrapPrimitives = unwrapPrimitives;
+    this.schemaTranslator = new ProtobufSchemaTranslator(protobufProperties);
+    this.converterConfig = ImmutableMap.of(
+        OPTIONAL_FOR_NULLABLES_CONFIG, protobufProperties.isNullableAsOptional(),
+        WRAPPER_FOR_NULLABLES_CONFIG, protobufProperties.isNullableAsWrapper()
+    );
   }
 
   @Override
   protected Schema fromParsedSchema(final ProtobufSchema schema) {
-    return new ProtobufData(new ProtobufDataConfig(ImmutableMap.of(
-        SCHEMAS_CACHE_SIZE_CONFIG, 1,
-        WRAPPER_FOR_RAW_PRIMITIVES_CONFIG, unwrapPrimitives
-    ))).toConnectSchema(schema);
+    return schemaTranslator.toConnectSchema(schema);
   }
+
+  @Override
+  protected void configureConverter(final Converter c, final boolean isKey) {
+    c.configure(
+        ImmutableMap.<String, Object>builder()
+            .putAll(converterConfig)
+            .put(AbstractKafkaSchemaSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG, "foo")
+            .build(),
+        isKey
+    );
+  }
+
 }

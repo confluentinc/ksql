@@ -67,12 +67,16 @@ the order was placed, and shipped within 2 hours of the payment being received.
 Joins and Windows
 -----------------
 
-ksqlDB enables grouping records that have the same key for stateful
-operations, like joins, into *windows*. At the moment, ksqlDB uses a fixed grace period of 24 hours,
-which mean that a record can arrive out-of-order for up to 24 hours, and it's still joined correctly
-based on its timestamp.
-If a record arrives after the window's grace period has passed, the record is discarded and
-isn't processed.
+ksqlDB enables grouping records that have the same key for stateful operations,
+like joins, into *windows*. A window has a _grace period_, which means that a
+record can arrive out-of-order for a specified period of time, and it's still
+joined correctly based on its timestamp.
+
+If a record arrives after the window's grace period has passed, the record is
+discarded and isn't processed.
+
+For more information on grace periods, see
+[Out-of-order events](../../concepts/time-and-windows-in-ksqldb-queries.md#out-of-order-events).
 
 !!! note
     Only stream-stream joins are windowed.
@@ -108,22 +112,18 @@ ksqlDB supports a large set of join operations for streams and tables,
 including INNER, LEFT OUTER, and FULL OUTER. Frequently, LEFT OUTER is
 shortened to LEFT JOIN, and FULL OUTER is shortened to OUTER JOIN.
 
-!!! note
-      RIGHT OUTER JOIN isn't supported at the moment. Instead, swap the operands and use
-      LEFT JOIN.
-
 The following table shows the supported combinations.
 
-|               | Type         | INNER     | LEFT OUTER | FULL OUTER    |
-|---------------|--------------|-----------|------------|---------------|
-| Stream-Stream | Windowed     | Supported | Supported  | Supported     |
-| Table-Table   | Non-windowed | Supported | Supported  | Supported     |
-| Stream-Table  | Non-windowed | Supported | Supported  | Not Supported |
+|               | Type         | INNER     | LEFT OUTER | RIGHT OUTER   | FULL OUTER    |
+|---------------|--------------|-----------|------------|---------------|---------------|
+| Stream-Stream | Windowed     | Supported | Supported  | Supported     | Supported     |
+| Table-Table   | Non-windowed | Supported | Supported  | Supported     | Supported     |
+| Stream-Table  | Non-windowed | Supported | Supported  | Not Supported | Not Supported |
 
 Stream-Stream Joins
 -------------------
 
-ksqlDB supports INNER, LEFT OUTER, and FULL OUTER joins between streams.
+ksqlDB supports INNER, LEFT OUTER, RIGHT OUTER, and FULL OUTER joins between streams.
 
 All of these operations support out-of-order records.
 
@@ -147,6 +147,10 @@ LEFT OUTER joins will contain leftRecord-NULL records in the result
 stream, which means that the join contains NULL values for fields
 selected from the right-hand stream where no match is made.
 
+RIGHT OUTER joins will contain rightRecord-NULL records in the result
+stream, which means that the join contains NULL values for fields
+selected from the left-hand stream where no match is made.
+
 FULL OUTER joins will contain leftRecord-NULL or NULL-rightRecord
 records in the result stream, which means that the join contains NULL
 values for fields coming from a stream where no match is made.
@@ -158,30 +162,42 @@ the following table. In the table, each row represents a new incoming
 record. The following assumptions apply:
 
 -   All records have the same key.
--   All records belong to a single join window.
 -   All records are processed in timestamp order.
+-   The join window is 15 seconds, and the grace period is 5 seconds.
 
 When new input is received, the join is triggered under the conditions
 listed in the table. Input records with a NULL key or a NULL value are
 ignored and don't trigger the join.
 
-| Timestamp | Left Stream | Right Stream | INNER JOIN                     | LEFT JOIN                      | RIGHT JOIN                     |
-|-----------|-------------|--------------|--------------------------------|--------------------------------|--------------------------------|
-| 1         | null        |              |                                |                                |                                |
-| 2         |             | null         |                                |                                |                                |
-| 3         | A           |              |                                | [A, null]                      | [A, null]                      |
-| 4         |             | a            | [A, a]                         | [A, a]                         | [A, a]                         |
-| 5         | B           |              | [B, a]                         | [B, a]                         | [B, a]                         |
-| 6         |             | b            | [A, b], [B, b]                 | [A, b], [B, b]                 | [A, b], [B, b]                 |
-| 7         | null        |              |                                |                                |                                |
-| 8         |             | null         |                                |                                |                                |
-| 9         | C           |              | [C, a], [C, b]                 | [C, a], [C, b]                 | [C, a], [C, b]                 |
-| 10        |             | c            | [A, c], [B, c], [C, c]         | [A, c], [B, c], [C, c]         | [A, c], [B, c], [C, c]         |
-| 11        |             | null         |                                |                                |                                |
-| 12        | null        |              |                                |                                |                                |
-| 13        |             | null         |                                |                                |                                |
-| 14        |             | d            | [A, d], [B, d], [C, d]         | [A, d], [B, d], [C, d]         | [A, d], [B, d], [C, d]         |
-| 15        | D           |              | [D, a], [D, b], [D, c], [D, d] | [D, a], [D, b], [D, c], [D, d] | [D, a], [D, b], [D, c], [D, d] |
+!!! important
+    If you don't specify a grace period, left/outer join results are emitted eagerly,
+    and the observed result might differ from the result shown below.
+
+| Timestamp | Left Stream | Right Stream | INNER JOIN                     | LEFT JOIN                      | FULL JOIN                      | OUTER JOIN                     |
+|-----------|-------------|--------------|--------------------------------|--------------------------------|--------------------------------|--------------------------------|
+| 1         | null        |              |                                |                                |                                |                                |
+| 2         |             | null         |                                |                                |                                |                                |
+| 3         | A           |              |                                |                                |                                |                                |
+| 4         |             | a            | [A, a]                         | [A, a]                         | [A, a]                         | [A, a]                         |
+| 5         | B           |              | [B, a]                         | [B, a]                         | [B, a]                         | [B, a]                         |
+| 6         |             | b            | [A, b], [B, b]                 | [A, b], [B, b]                 | [A, b], [B, b]                 | [A, b], [B, b]                 |
+| 7         | null        |              |                                |                                |                                |                                |
+| 8         |             | null         |                                |                                |                                |                                |
+| 9         | C           |              | [C, a], [C, b]                 | [C, a], [C, b]                 | [C, a], [C, b]                 | [C, a], [C, b]                 |
+| 10        |             | c            | [A, c], [B, c], [C, c]         | [A, c], [B, c], [C, c]         | [A, c], [B, c], [C, c]         | [A, c], [B, c], [C, c]         |                                |
+| 11        |             | null         |                                |                                |                                |                                |
+| 12        | null        |              |                                |                                |                                |                                |
+| 13        |             | null         |                                |                                |                                |                                |
+| 14        |             | d            | [A, d], [B, d], [C, d]         | [A, d], [B, d], [C, d]         | [A, d], [B, d], [C, d]         | [A, d], [B, d], [C, d]         |
+| 15        | D           |              | [D, a], [D, b], [D, c], [D, d] | [D, a], [D, b], [D, c], [D, d] | [D, a], [D, b], [D, c], [D, d] | [D, a], [D, b], [D, c], [D, d] |
+| ...       |             |              |                                |                                |                                |                                |
+| 40        | E           |              |                                |                                |                                |                                |
+| ...       |             |              |                                |                                |                                |                                |
+| 60        | F           |              |                                | [E,null]                       |                                | [E,null]                       |
+| ...       |             |              |                                |                                |                                |                                |
+| 80        |             | f            |                                | [F,null]                       | [F,null]                       | [F,null]                       |
+| ...       |             |              |                                |                                |                                |                                |
+| 100       | G           |              |                                |                                | [null,f]                       | [null,f]                       |
 
 Stream-Table Joins
 ------------------
@@ -252,6 +268,11 @@ To maximise join predictability, ensure historic table data is available in the
 source topic, the query is running, and ksqlDB has had enough time to process 
 the table data _before_ starting to produce to your stream.
 
+!!! tip
+    If no records are showing for a stream-table join, you may need to set the
+    `max.task.idle.ms` config to make stream records wait for table records
+    before being processed so they can be joined. 
+
 Table-Table Joins
 -----------------
 
@@ -287,23 +308,25 @@ When an input tombstone is received, an output tombstone may be forwarded
 to the join result table, if the corresponding join result exists in the result table.
 
 
-| Timestamp | Left Table       | Right Table      | INNER JOIN       | LEFT JOIN        | OUTER JOIN       |
-|-----------|------------------|------------------|------------------|------------------|------------------|
-| 1         | null (tombstone) |                  |                  |                  |                  |
-| 2         |                  | null (tombstone) |                  |                  |                  |
-| 3         | A                |                  |                  | [A, null]        | [A, null]        |
-| 4         |                  | a                | [A, a]           | [A, a]           | [A, a]           |
-| 5         | B                |                  | [B, a]           | [B, a]           | [B, a]           |
-| 6         |                  | b                | [B, b]           | [B, b]           | [B, b]           |
-| 7         | null (tombstone) |                  | null (tombstone) | null (tombstone) | [null, b]        |
-| 8         |                  | null (tombstone) |                  |                  | null (tombstone) |
-| 9         | C                |                  |                  | [C, null]        | [C, null]        |
-| 10        |                  | c                | [C, c]           | [C, c]           | [C, c]           |
-| 11        |                  | null (tombstone) | null (tombstone) | [C, null]        | [C, null]        |
-| 12        | null (tombstone) |                  |                  | null (tombstone) | null (tombstone) |
-| 13        |                  | null (tombstone) |                  |                  |                  |
-| 14        |                  | d                |                  |                  | [null, d]        |
-| 15        | D                |                  | [D, d]           | [D, d]           | [D, d]           |
+| Timestamp | Left Table       | Right Table      | INNER JOIN       | LEFT JOIN        | RIGHT JOIN       | OUTER JOIN       |
+|-----------|------------------|------------------|------------------|------------------|------------------|------------------|
+| 1         | null (tombstone) |                  |                  |                  |                  |                  |
+| 2         |                  | null (tombstone) |                  |                  |                  |                  |
+| 3         | A                |                  |                  | [A, null]        |                  | [A, null]        |
+| 4         |                  | a                | [A, a]           | [A, a]           | [A, a]           | [A, a]           |
+| 5         | B                |                  | [B, a]           | [B, a]           | [B, a]           | [B, a]           |
+| 6         |                  | b                | [B, b]           | [B, b]           | [B, b]           | [B, b]           |
+| 7         | null (tombstone) |                  | null (tombstone) | null (tombstone) | [null, b]        | [null, b]        |
+| 8         |                  | null (tombstone) |                  |                  | null (tombstone) | null (tombstone) |
+| 9         | C                |                  |                  | [C, null]        |                  | [C, null]        |
+| 10        |                  | c                | [C, c]           | [C, c]           | [C, c]           | [C, c]           |
+| 11        |                  | null (tombstone) | null (tombstone) | [C, null]        | null (tombstone) | [C, null]        |
+| 12        | null (tombstone) |                  |                  | null (tombstone) |                  | null (tombstone) |
+| 13        |                  | null (tombstone) |                  |                  |                  |                  |
+| 14        |                  | d                |                  |                  | [null, d]        | [null, d]        |
+| 15        | D                |                  | [D, d]           | [D, d]           | [D, d]           | [D, d]           |
+| 16        |                  |                  |                  |                  |                  |                  |
+| 17        |                  | d                | [D, d]           | [D, d]           | [D, d]           | [D, d]           |
 
 ### Semantics of Foreign-Key Table-Table Joins
 
@@ -318,7 +341,7 @@ record. The following assumptions apply:
 Input records with a `null` value are interpreted as tombstones for the
 corresponding key, which indicate the deletion of the key from the table.
 When an input tombstone is received, one or multiple output tombstones
-may be forwarded to the join result table, if a corresponding join results
+may be forwarded to the join result table, if a corresponding join result
 exists in the result table.
 
 
@@ -372,17 +395,21 @@ CREATE STREAM joined AS
 
 ### Limitations of N-Way Joins
 
-The limitations and restrictions described in the previous sections to each intermediate 
-step in N-way joins. For example, `FULL OUTER` joins between streams and tables are
-not supported. This means that if any stage in the N-way join resolves to a `FULL OUTER`
-join between a stream and a table the entire query fails:
+- The limitations and restrictions described in the previous sections to each intermediate 
+  step in N-way joins. For example, `FULL OUTER` joins between streams and tables are
+  not supported. This means that if any stage in the N-way join resolves to a `FULL OUTER`
+  join between a stream and a table the entire query fails:
 
-```sql
---- This JOIN fails with the following exception:
---- Join between invalid operands requested: left type: KTABLE, right type: KSTREAM
-CREATE STREAM joined AS 
-  SELECT * 
-  FROM A
-    JOIN B WITHIN 10 SECONDS ON A.id = B.product_id
-    FULL OUTER JOIN C ON A.id = C.purchased_id;
-```
+  ```sql
+  --- This JOIN fails with the following exception:
+  --- Join between invalid operands requested: left type: KTABLE, right type: KSTREAM
+  CREATE STREAM joined AS 
+    SELECT * 
+    FROM A
+      JOIN B WITHIN 10 SECONDS ON A.id = B.product_id
+      FULL OUTER JOIN C ON A.id = C.purchased_id;
+  ```
+
+- Although ksqlDB supports N-way joins in general, it's not possible to have a
+  `FULL OUTER` N-way table join in a single query. You must break the query into
+  multiple queries, with each doing a single `FULL OUTER` table-table join.

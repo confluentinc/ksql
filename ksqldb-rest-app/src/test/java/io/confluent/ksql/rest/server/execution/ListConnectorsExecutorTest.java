@@ -28,6 +28,7 @@ import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.ListConnectors;
 import io.confluent.ksql.parser.tree.ListConnectors.Scope;
 import io.confluent.ksql.rest.SessionProperties;
+import io.confluent.ksql.rest.entity.ConfigInfos;
 import io.confluent.ksql.rest.entity.ConnectorList;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlWarning;
@@ -39,12 +40,11 @@ import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Optional;
 import org.apache.hc.core5.http.HttpStatus;
-import org.apache.kafka.connect.runtime.ConnectorConfig;
-import org.apache.kafka.connect.runtime.rest.entities.ConnectorInfo;
-import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo;
-import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo.ConnectorState;
-import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo.TaskState;
-import org.apache.kafka.connect.runtime.rest.entities.ConnectorType;
+import io.confluent.ksql.rest.entity.ConnectorInfo;
+import io.confluent.ksql.rest.entity.ConnectorStateInfo;
+import io.confluent.ksql.rest.entity.ConnectorStateInfo.ConnectorState;
+import io.confluent.ksql.rest.entity.ConnectorStateInfo.TaskState;
+import io.confluent.ksql.rest.entity.ConnectorType;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -59,7 +59,7 @@ public class ListConnectorsExecutorTest {
 
   private static final ConnectorInfo INFO = new ConnectorInfo(
       "connector",
-      ImmutableMap.of(ConnectorConfig.CONNECTOR_CLASS_CONFIG, CONNECTOR_CLASS),
+      ImmutableMap.of(ConfigInfos.CONNECTOR_CLASS_CONFIG, CONNECTOR_CLASS),
       ImmutableList.of(),
       ConnectorType.SOURCE
   );
@@ -114,7 +114,7 @@ public class ListConnectorsExecutorTest {
 
     // When:
     final Optional<KsqlEntity> entity = ListConnectorsExecutor
-        .execute(statement, mock(SessionProperties.class), engine, serviceContext);
+        .execute(statement, mock(SessionProperties.class), engine, serviceContext).getEntity();
 
     // Then:
     assertThat("expected response!", entity.isPresent());
@@ -143,7 +143,7 @@ public class ListConnectorsExecutorTest {
 
     // When:
     final Optional<KsqlEntity> entity = ListConnectorsExecutor
-        .execute(statement, mock(SessionProperties.class), engine, serviceContext);
+        .execute(statement, mock(SessionProperties.class), engine, serviceContext).getEntity();
 
     // Then:
     assertThat("expected response!", entity.isPresent());
@@ -171,7 +171,7 @@ public class ListConnectorsExecutorTest {
 
     // When:
     final Optional<KsqlEntity> entity = ListConnectorsExecutor
-        .execute(statement, mock(SessionProperties.class), engine, serviceContext);
+        .execute(statement, mock(SessionProperties.class), engine, serviceContext).getEntity();
 
     // Then:
     assertThat("expected response!", entity.isPresent());
@@ -196,7 +196,7 @@ public class ListConnectorsExecutorTest {
 
     // When:
     final Optional<KsqlEntity> entity = ListConnectorsExecutor
-        .execute(statement, mock(SessionProperties.class), engine, serviceContext);
+        .execute(statement, mock(SessionProperties.class), engine, serviceContext).getEntity();
 
     // Then:
     assertThat("expected response!", entity.isPresent());

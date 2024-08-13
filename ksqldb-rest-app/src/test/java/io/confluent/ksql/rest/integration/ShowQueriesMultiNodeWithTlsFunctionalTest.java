@@ -26,6 +26,7 @@ import io.confluent.ksql.rest.entity.Queries;
 import io.confluent.ksql.rest.entity.RunningQuery;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
+import io.confluent.ksql.rest.server.utils.TestUtils;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.test.util.secure.ServerKeyStore;
 import io.confluent.ksql.util.PageViewDataProvider;
@@ -47,12 +48,16 @@ public class ShowQueriesMultiNodeWithTlsFunctionalTest {
   private static final PageViewDataProvider PAGE_VIEWS_PROVIDER = new PageViewDataProvider();
   private static final String PAGE_VIEW_TOPIC = PAGE_VIEWS_PROVIDER.topicName();
   private static final String PAGE_VIEW_STREAM = PAGE_VIEWS_PROVIDER.sourceName();
+  private static final int INT_PORT00 = TestUtils.findFreeLocalPort();
+  private static final int INT_PORT01 = TestUtils.findFreeLocalPort();
+  private static final int INT_PORT10 = TestUtils.findFreeLocalPort();
+  private static final int INT_PORT11 = TestUtils.findFreeLocalPort();
   private static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.build();
   private static final TestKsqlRestApp REST_APP_0 = TestKsqlRestApp
       .builder(TEST_HARNESS::kafkaBootstrapServers)
       .withProperty(KsqlRestConfig.LISTENERS_CONFIG,
-          "http://localhost:8088,https://localhost:8189")
-      .withProperty(KsqlRestConfig.ADVERTISED_LISTENER_CONFIG, "https://localhost:8189")
+          "http://localhost:" + INT_PORT00 + ",https://localhost:" + INT_PORT01)
+      .withProperty(KsqlRestConfig.ADVERTISED_LISTENER_CONFIG, "https://localhost:" + INT_PORT01)
       .withProperties(SERVER_KEY_STORE.keyStoreProps())
       .withProperty(KsqlRestConfig.KSQL_SSL_KEYSTORE_ALIAS_EXTERNAL_CONFIG,
           SERVER_KEY_STORE.getKeyAlias())
@@ -62,8 +67,8 @@ public class ShowQueriesMultiNodeWithTlsFunctionalTest {
   private static final TestKsqlRestApp REST_APP_1 = TestKsqlRestApp
       .builder(TEST_HARNESS::kafkaBootstrapServers)
       .withProperty(KsqlRestConfig.LISTENERS_CONFIG,
-          "http://localhost:8098,https://localhost:8199")
-      .withProperty(KsqlRestConfig.ADVERTISED_LISTENER_CONFIG, "https://localhost:8199")
+          "http://localhost:" + INT_PORT10 + ",https://localhost:" + INT_PORT11)
+      .withProperty(KsqlRestConfig.ADVERTISED_LISTENER_CONFIG, "https://localhost:" + INT_PORT11)
       .withProperties(SERVER_KEY_STORE.keyStoreProps())
       .withProperty(KsqlRestConfig.KSQL_SSL_KEYSTORE_ALIAS_EXTERNAL_CONFIG,
           SERVER_KEY_STORE.getKeyAlias())
@@ -96,8 +101,8 @@ public class ShowQueriesMultiNodeWithTlsFunctionalTest {
     final Supplier<String> app1Response = () -> getShowQueriesResult(REST_APP_1);
 
     // Then:
-    assertThatEventually("App0", app0Response, is("RUNNING:2"));
-    assertThatEventually("App1", app1Response, is("RUNNING:2"));
+    assertThatEventually("App0", app0Response, is("RUNNING:2"), 60, TimeUnit.SECONDS);
+    assertThatEventually("App1", app1Response, is("RUNNING:2"), 60, TimeUnit.SECONDS);
   }
 
   private static String getShowQueriesResult(final TestKsqlRestApp restApp) {

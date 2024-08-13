@@ -18,7 +18,10 @@ package io.confluent.ksql.rest.util;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.engine.QueryCleanupService;
 import io.confluent.ksql.logging.query.TestAppender;
+import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.util.BinPackedPersistentQueryMetadataImpl;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
@@ -32,6 +35,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 import java.io.File;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
@@ -45,9 +49,13 @@ public class PersistentQueryCleanupImplTest {
   PersistentQueryCleanupImpl cleanup;
 
   @Mock
+  KsqlConfig ksqlConfig;
+  @Mock
   ServiceContext context;
   @Mock
   PersistentQueryMetadata runningQuery;
+  @Mock
+  BinPackedPersistentQueryMetadataImpl binPackedPersistentQueryMetadata;
   @Before
   public void setUp() {
     tempFile = new File("/tmp/cat/");
@@ -60,7 +68,8 @@ public class PersistentQueryCleanupImplTest {
       }
     }
 
-    cleanup = new PersistentQueryCleanupImpl("/tmp/cat/", context);
+    cleanup = new PersistentQueryCleanupImpl("/tmp/cat/", context, ksqlConfig);
+    when(binPackedPersistentQueryMetadata.getQueryId()).thenReturn(new QueryId("test"));
   }
 
   @Test
@@ -85,10 +94,27 @@ public class PersistentQueryCleanupImplTest {
     final List<LoggingEvent> log = appender.getLog();
     final LoggingEvent firstLogEntry = log.get(0);
 
-    assertThat(firstLogEntry.getLevel(), is(Level.WARN));
     assertThat((String) firstLogEntry.getMessage(), is(
       "Deleted local state store for non-existing query fakeStateStore. " +
         "This is not expected and was likely due to a race condition when the query was dropped before."));
+    assertThat(firstLogEntry.getLevel(), is(Level.WARN));
+  }
+
+  @Test
+  public void shouldNotDeleteSharedRuntimesWhenTheyHaveAQuery() {
+    // Given:
+    when(binPackedPersistentQueryMetadata.getQueryApplicationId()).thenReturn("testQueryID");
+    File fakeStateStore = new File(tempFile.getAbsolutePath() + "testQueryID");
+    if (!fakeStateStore.exists()) {
+      assertTrue(fakeStateStore.mkdirs());
+    }
+    // When:
+    cleanup.cleanupLeakedQueries(ImmutableList.of(binPackedPersistentQueryMetadata));
+    awaitCleanupComplete();
+
+    // Then:
+    assertTrue(fakeStateStore.exists());
+    assertTrue(tempFile.exists());
   }
 
   @Test
@@ -112,7 +138,7 @@ public class PersistentQueryCleanupImplTest {
   private void awaitCleanupComplete() {
     // add a task to the end of the queue to make sure that
     // we've finished processing everything up until this point
-    cleanup.getQueryCleanupService().addCleanupTask(new QueryCleanupService.QueryCleanupTask(context, "", false, "") {
+    cleanup.getQueryCleanupService().addCleanupTask(new QueryCleanupService.QueryCleanupTask(context, "", Optional.empty(), false,"", KsqlConfig.KSQL_SERVICE_ID_DEFAULT, "") {
       @Override
       public void run() {
         // do nothing

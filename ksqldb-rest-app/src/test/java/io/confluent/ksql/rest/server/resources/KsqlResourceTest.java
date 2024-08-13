@@ -56,6 +56,7 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -85,12 +86,14 @@ import io.confluent.ksql.function.FunctionCategory;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.function.MutableFunctionRegistry;
 import io.confluent.ksql.function.UserFunctionLoader;
+import io.confluent.ksql.internal.KsqlEngineMetrics;
 import io.confluent.ksql.logging.query.QueryLogger;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTable;
+import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
@@ -98,9 +101,10 @@ import io.confluent.ksql.parser.properties.with.CreateSourceProperties;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.TableElement;
-import io.confluent.ksql.parser.tree.TableElement.Namespace;
 import io.confluent.ksql.parser.tree.TableElements;
+import io.confluent.ksql.planner.plan.ConfiguredKsqlPlan;
 import io.confluent.ksql.properties.DenyListPropertyValidator;
+import io.confluent.ksql.query.id.SequentialQueryIdGenerator;
 import io.confluent.ksql.rest.DefaultErrorMessages;
 import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.Errors;
@@ -190,6 +194,7 @@ import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.acl.AclOperation;
+import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.streams.StreamsConfig;
 import org.hamcrest.CoreMatchers;
 import org.hamcrest.Description;
@@ -229,7 +234,7 @@ public class KsqlResourceTest {
   private static final ClusterTerminateRequest VALID_TERMINATE_REQUEST =
       new ClusterTerminateRequest(ImmutableList.of("Foo"));
   private static final TableElements SOME_ELEMENTS = TableElements.of(
-      new TableElement(Namespace.VALUE, ColumnName.of("f0"), new io.confluent.ksql.execution.expression.tree.Type(SqlTypes.STRING))
+      new TableElement(ColumnName.of("f0"), new io.confluent.ksql.execution.expression.tree.Type(SqlTypes.STRING))
   );
   private static final PreparedStatement<CreateStream> STMT_0_WITH_SCHEMA = PreparedStatement.of(
       "sql with schema",
@@ -242,11 +247,16 @@ public class KsqlResourceTest {
               "KAFKA_TOPIC", new StringLiteral("orders-topic"),
               "KEY_FORMAT", new StringLiteral("kafka"),
               "VALUE_FORMAT", new StringLiteral("avro")
-          ))));
-  private static final ConfiguredStatement<CreateStream> CFG_0_WITH_SCHEMA = ConfiguredStatement.of(
-      STMT_0_WITH_SCHEMA,
-      SessionConfig.of(new KsqlConfig(getDefaultKsqlConfig()), ImmutableMap.of())
-  );
+          )),
+          false));
+
+  private static final Properties DEFAULT_KSQL_CONFIG = getDefaultKsqlConfig();
+
+  private static final ConfiguredStatement<CreateStream> CFG_0_WITH_SCHEMA =
+      ConfiguredStatement.of(
+        STMT_0_WITH_SCHEMA,
+        SessionConfig.of(new KsqlConfig(DEFAULT_KSQL_CONFIG), ImmutableMap.of())
+    );
 
   private static final PreparedStatement<CreateStream> STMT_1_WITH_SCHEMA = PreparedStatement.of(
       "other sql with schema",
@@ -259,10 +269,11 @@ public class KsqlResourceTest {
               "KAFKA_TOPIC", new StringLiteral("orders-topic"),
               "KEY_FORMAT", new StringLiteral("kafka"),
               "VALUE_FORMAT", new StringLiteral("avro")
-          ))));
+          )),
+          false));
   private static final ConfiguredStatement<CreateStream> CFG_1_WITH_SCHEMA = ConfiguredStatement
       .of(STMT_1_WITH_SCHEMA,
-          SessionConfig.of(new KsqlConfig(getDefaultKsqlConfig()), ImmutableMap.of())
+          SessionConfig.of(new KsqlConfig(DEFAULT_KSQL_CONFIG), ImmutableMap.of())
       );
 
   private static final LogicalSchema SOME_SCHEMA = LogicalSchema.builder()
@@ -310,6 +321,8 @@ public class KsqlResourceTest {
   private DenyListPropertyValidator denyListPropertyValidator;
   @Mock
   private Supplier<String> commandRunnerWarning;
+  @Mock
+  private Optional<PersistentQueryMetadata> persistentQuery;
 
   private KsqlResource ksqlResource;
   private SchemaRegistryClient schemaRegistryClient;
@@ -339,16 +352,32 @@ public class KsqlResourceTest {
     serviceContext = TestServiceContext.create(kafkaTopicClient, kafkaConsumerGroupClient);
     schemaRegistryClient = serviceContext.getSchemaRegistryClient();
     registerValueSchema(schemaRegistryClient);
-    ksqlRestConfig = new KsqlRestConfig(getDefaultKsqlConfig());
+    ksqlRestConfig = new KsqlRestConfig(DEFAULT_KSQL_CONFIG);
     ksqlConfig = new KsqlConfig(ksqlRestConfig.getKsqlConfigProperties());
+    final KsqlExecutionContext.ExecuteResult result = mock(KsqlExecutionContext.ExecuteResult.class);
+    when(sandbox.execute(any(), any(ConfiguredKsqlPlan.class))).thenReturn(result);
+    when(result.getQuery()).thenReturn(Optional.empty());
 
     MutableFunctionRegistry fnRegistry = new InternalFunctionRegistry();
-    UserFunctionLoader.newInstance(ksqlConfig, fnRegistry, ".").load();
+    final Metrics metrics = new Metrics();
+    UserFunctionLoader.newInstance(ksqlConfig, fnRegistry, ".",
+        metrics
+    ).load();
     metaStore = new MetaStoreImpl(fnRegistry);
-
+    final MetricCollectors metricCollectors = new MetricCollectors(metrics);
     realEngine = KsqlEngineTestUtil.createKsqlEngine(
         serviceContext,
-        metaStore
+        metaStore,
+        (engine) -> new KsqlEngineMetrics(
+            "",
+            engine,
+            Collections.emptyMap(),
+            Optional.empty(),
+            metricCollectors
+        ),
+        new SequentialQueryIdGenerator(),
+        ksqlConfig,
+        metricCollectors
     );
 
     securityContext = new KsqlSecurityContext(Optional.empty(), serviceContext);
@@ -359,6 +388,7 @@ public class KsqlResourceTest {
         .thenReturn(transactionalProducer);
 
     ksqlEngine = realEngine;
+
     when(sandbox.getMetaStore()).thenAnswer(inv -> metaStore.copy());
 
     addTestTopicAndSources();
@@ -519,18 +549,23 @@ public class KsqlResourceTest {
 
     // Then:
     assertThat(descriptionList.getSourceDescriptions(), containsInAnyOrder(
-        SourceDescriptionFactory.create(
-            ksqlEngine.getMetaStore().getSource(SourceName.of("TEST_STREAM")),
-            true, Collections.emptyList(), Collections.emptyList(),
-            Optional.of(kafkaTopicClient.describeTopic("KAFKA_TOPIC_2")),
-            Collections.emptyList(),
-            Collections.emptyList()),
-        SourceDescriptionFactory.create(
-            ksqlEngine.getMetaStore().getSource(SourceName.of("new_stream")),
-            true, Collections.emptyList(), Collections.emptyList(),
-            Optional.of(kafkaTopicClient.describeTopic("new_topic")),
-            Collections.emptyList(),
-            Collections.emptyList()))
+            SourceDescriptionFactory.create(
+                ksqlEngine.getMetaStore().getSource(SourceName.of("TEST_STREAM")),
+                true, Collections.emptyList(), Collections.emptyList(),
+                Optional.of(kafkaTopicClient.describeTopic("KAFKA_TOPIC_2")),
+                Collections.emptyList(),
+                Collections.emptyList(),
+                new MetricCollectors()
+            ),
+            SourceDescriptionFactory.create(
+                ksqlEngine.getMetaStore().getSource(SourceName.of("new_stream")),
+                true, Collections.emptyList(), Collections.emptyList(),
+                Optional.of(kafkaTopicClient.describeTopic("new_topic")),
+                Collections.emptyList(),
+                Collections.emptyList(),
+                new MetricCollectors()
+            )
+        )
     );
   }
 
@@ -553,22 +588,28 @@ public class KsqlResourceTest {
 
     // Then:
     assertThat(descriptionList.getSourceDescriptions(), containsInAnyOrder(
-        SourceDescriptionFactory.create(
-            ksqlEngine.getMetaStore().getSource(SourceName.of("TEST_STREAM")),
-            false,
-            Collections.emptyList(),
-            Collections.emptyList(),
-            Optional.of(kafkaTopicClient.describeTopic("KAFKA_TOPIC_2")),
-            Collections.emptyList(),
-            Collections.emptyList()),
-        SourceDescriptionFactory.create(
-            ksqlEngine.getMetaStore().getSource(SourceName.of("new_stream")),
-            false,
-            Collections.emptyList(),
-            Collections.emptyList(),
-            Optional.of(kafkaTopicClient.describeTopic("new_topic")),
-            Collections.emptyList(),
-            Collections.emptyList())));
+            SourceDescriptionFactory.create(
+                ksqlEngine.getMetaStore().getSource(SourceName.of("TEST_STREAM")),
+                false,
+                Collections.emptyList(),
+                Collections.emptyList(),
+                Optional.of(kafkaTopicClient.describeTopic("KAFKA_TOPIC_2")),
+                Collections.emptyList(),
+                Collections.emptyList(),
+                new MetricCollectors()
+            ),
+            SourceDescriptionFactory.create(
+                ksqlEngine.getMetaStore().getSource(SourceName.of("new_stream")),
+                false,
+                Collections.emptyList(),
+                Collections.emptyList(),
+                Optional.of(kafkaTopicClient.describeTopic("new_topic")),
+                Collections.emptyList(),
+                Collections.emptyList(),
+                new MetricCollectors()
+            )
+        )
+    );
   }
 
   @Test
@@ -590,18 +631,23 @@ public class KsqlResourceTest {
 
     // Then:
     assertThat(descriptionList.getSourceDescriptions(), containsInAnyOrder(
-        SourceDescriptionFactory.create(
-            ksqlEngine.getMetaStore().getSource(SourceName.of("TEST_STREAM")),
-            true, Collections.emptyList(), Collections.emptyList(),
-            Optional.of(kafkaTopicClient.describeTopic("KAFKA_TOPIC_2")),
-            Collections.emptyList(),
-            Collections.emptyList()),
-        SourceDescriptionFactory.create(
-            ksqlEngine.getMetaStore().getSource(SourceName.of("new_stream")),
-            true, Collections.emptyList(), Collections.emptyList(),
-            Optional.of(kafkaTopicClient.describeTopic("new_topic")),
-            Collections.emptyList(),
-            Collections.emptyList()))
+            SourceDescriptionFactory.create(
+                ksqlEngine.getMetaStore().getSource(SourceName.of("TEST_STREAM")),
+                true, Collections.emptyList(), Collections.emptyList(),
+                Optional.of(kafkaTopicClient.describeTopic("KAFKA_TOPIC_2")),
+                Collections.emptyList(),
+                Collections.emptyList(),
+                new MetricCollectors()
+            ),
+            SourceDescriptionFactory.create(
+                ksqlEngine.getMetaStore().getSource(SourceName.of("new_stream")),
+                true, Collections.emptyList(), Collections.emptyList(),
+                Optional.of(kafkaTopicClient.describeTopic("new_topic")),
+                Collections.emptyList(),
+                Collections.emptyList(),
+                new MetricCollectors()
+            )
+        )
     );
   }
 
@@ -624,18 +670,23 @@ public class KsqlResourceTest {
 
     // Then:
     assertThat(descriptionList.getSourceDescriptions(), containsInAnyOrder(
-        SourceDescriptionFactory.create(
-            ksqlEngine.getMetaStore().getSource(SourceName.of("TEST_TABLE")),
-            true, Collections.emptyList(), Collections.emptyList(),
-            Optional.of(kafkaTopicClient.describeTopic("KAFKA_TOPIC_1")),
-            Collections.emptyList(),
-            ImmutableList.of("new_table")),
-        SourceDescriptionFactory.create(
-            ksqlEngine.getMetaStore().getSource(SourceName.of("new_table")),
-            true, Collections.emptyList(), Collections.emptyList(),
-            Optional.of(kafkaTopicClient.describeTopic("new_topic")),
-            Collections.emptyList(),
-            Collections.emptyList()))
+            SourceDescriptionFactory.create(
+                ksqlEngine.getMetaStore().getSource(SourceName.of("TEST_TABLE")),
+                true, Collections.emptyList(), Collections.emptyList(),
+                Optional.of(kafkaTopicClient.describeTopic("KAFKA_TOPIC_1")),
+                Collections.emptyList(),
+                ImmutableList.of("new_table"),
+                new MetricCollectors()
+            ),
+            SourceDescriptionFactory.create(
+                ksqlEngine.getMetaStore().getSource(SourceName.of("new_table")),
+                true, Collections.emptyList(), Collections.emptyList(),
+                Optional.of(kafkaTopicClient.describeTopic("new_topic")),
+                Collections.emptyList(),
+                Collections.emptyList(),
+                new MetricCollectors()
+            )
+        )
     );
   }
 
@@ -658,22 +709,27 @@ public class KsqlResourceTest {
 
     // Then:
     assertThat(descriptionList.getSourceDescriptions(), containsInAnyOrder(
-        SourceDescriptionFactory.create(
-            ksqlEngine.getMetaStore().getSource(SourceName.of("TEST_TABLE")),
-            false,
-            Collections.emptyList(),
-            Collections.emptyList(),
-            Optional.of(kafkaTopicClient.describeTopic("KAFKA_TOPIC_1")),
-            Collections.emptyList(),
-            ImmutableList.of("new_table")),
-        SourceDescriptionFactory.create(
-            ksqlEngine.getMetaStore().getSource(SourceName.of("new_table")),
-            false,
-            Collections.emptyList(),
-            Collections.emptyList(),
-            Optional.of(kafkaTopicClient.describeTopic("new_topic")),
-            Collections.emptyList(),
-            Collections.emptyList()))
+            SourceDescriptionFactory.create(
+                ksqlEngine.getMetaStore().getSource(SourceName.of("TEST_TABLE")),
+                false,
+                Collections.emptyList(),
+                Collections.emptyList(),
+                Optional.of(kafkaTopicClient.describeTopic("KAFKA_TOPIC_1")),
+                Collections.emptyList(),
+                ImmutableList.of("new_table"),
+                new MetricCollectors()
+            ),
+            SourceDescriptionFactory.create(
+                ksqlEngine.getMetaStore().getSource(SourceName.of("new_table")),
+                false,
+                Collections.emptyList(),
+                Collections.emptyList(),
+                Optional.of(kafkaTopicClient.describeTopic("new_topic")),
+                Collections.emptyList(),
+                Collections.emptyList(),
+                new MetricCollectors()
+            )
+        )
     );
   }
 
@@ -696,18 +752,23 @@ public class KsqlResourceTest {
 
     // Then:
     assertThat(descriptionList.getSourceDescriptions(), containsInAnyOrder(
-        SourceDescriptionFactory.create(
-            ksqlEngine.getMetaStore().getSource(SourceName.of("TEST_TABLE")),
-            true, Collections.emptyList(), Collections.emptyList(),
-            Optional.of(kafkaTopicClient.describeTopic("KAFKA_TOPIC_1")),
-            Collections.emptyList(),
-            ImmutableList.of("new_table")),
-        SourceDescriptionFactory.create(
-            ksqlEngine.getMetaStore().getSource(SourceName.of("new_table")),
-            true, Collections.emptyList(), Collections.emptyList(),
-            Optional.of(kafkaTopicClient.describeTopic("new_topic")),
-            Collections.emptyList(),
-            Collections.emptyList()))
+            SourceDescriptionFactory.create(
+                ksqlEngine.getMetaStore().getSource(SourceName.of("TEST_TABLE")),
+                true, Collections.emptyList(), Collections.emptyList(),
+                Optional.of(kafkaTopicClient.describeTopic("KAFKA_TOPIC_1")),
+                Collections.emptyList(),
+                ImmutableList.of("new_table"),
+                new MetricCollectors()
+            ),
+            SourceDescriptionFactory.create(
+                ksqlEngine.getMetaStore().getSource(SourceName.of("new_table")),
+                true, Collections.emptyList(), Collections.emptyList(),
+                Optional.of(kafkaTopicClient.describeTopic("new_topic")),
+                Collections.emptyList(),
+                Collections.emptyList(),
+                new MetricCollectors()
+            )
+        )
     );
   }
 
@@ -778,7 +839,9 @@ public class KsqlResourceTest {
         Collections.singletonList(queries.get(0)),
         Optional.empty(),
         Collections.emptyList(),
-        Collections.emptyList());
+        Collections.emptyList(),
+        new MetricCollectors()
+    );
 
     assertThat(description.getSourceDescription(), is(expectedDescription));
   }
@@ -1014,17 +1077,64 @@ public class KsqlResourceTest {
   }
 
   @Test
-  public void shouldReturnForbiddenKafkaAccessIfKsqlTopicAuthorizationException() {
+  public void shouldReturnCustomErrorOnRawException() {
     // Given:
     final String errorMsg = "some error";
-    when(errorsHandler.generateResponse(any(), any())).thenReturn(EndpointResponse.create()
+    final Exception e = new KsqlTopicAuthorizationException(
+        AclOperation.DELETE,
+        Collections.singleton("topic"));
+    when(errorsHandler.generateResponse(eq(e), any())).thenReturn(EndpointResponse.create()
         .status(FORBIDDEN.code())
         .entity(new KsqlErrorMessage(ERROR_CODE_FORBIDDEN_KAFKA_ACCESS, errorMsg))
         .build());
-    doThrow(new KsqlTopicAuthorizationException(
+    doThrow(e).when(authorizationValidator).checkAuthorization(any(), any(), any());
+
+    // When:
+    final KsqlErrorMessage result = makeFailingRequest(
+        "DROP STREAM TEST_STREAM DELETE TOPIC;",
+        FORBIDDEN.code());
+
+    // Then:
+    assertThat(result, is(instanceOf(KsqlErrorMessage.class)));
+    assertThat(result.getErrorCode(), is(Errors.ERROR_CODE_FORBIDDEN_KAFKA_ACCESS));
+    assertThat(result.getMessage(), is(errorMsg));
+  }
+
+  @Test
+  public void shouldReturnCustomErrorOnKsqlException() {
+    // Given:
+    final String errorMsg = "some error";
+    final Exception e = new KsqlException(new KsqlTopicAuthorizationException(
         AclOperation.DELETE,
-        Collections.singleton("topic"))).when(authorizationValidator)
-        .checkAuthorization(any(), any(), any());
+        Collections.singleton("topic")));
+    when(errorsHandler.generateResponse(eq(e), any())).thenReturn(EndpointResponse.create()
+        .status(FORBIDDEN.code())
+        .entity(new KsqlErrorMessage(ERROR_CODE_FORBIDDEN_KAFKA_ACCESS, errorMsg))
+        .build());
+    doThrow(e).when(authorizationValidator).checkAuthorization(any(), any(), any());
+
+    // When:
+    final KsqlErrorMessage result = makeFailingRequest(
+        "DROP STREAM TEST_STREAM DELETE TOPIC;",
+        FORBIDDEN.code());
+
+    // Then:
+    assertThat(result, is(instanceOf(KsqlErrorMessage.class)));
+    assertThat(result.getErrorCode(), is(Errors.ERROR_CODE_FORBIDDEN_KAFKA_ACCESS));
+    assertThat(result.getMessage(), is(errorMsg));
+  }
+
+  @Test
+  public void shouldReturnCustomErrorOnKsqlStatementException() {
+    // Given:
+    final String errorMsg = "some error";
+    final Exception e = new KsqlStatementException("foo", "sql",
+        new KsqlTopicAuthorizationException(AclOperation.DELETE, Collections.singleton("topic")));
+    when(errorsHandler.generateResponse(eq(e), any())).thenReturn(EndpointResponse.create()
+        .status(FORBIDDEN.code())
+        .entity(new KsqlErrorMessage(ERROR_CODE_FORBIDDEN_KAFKA_ACCESS, errorMsg))
+        .build());
+    doThrow(e).when(authorizationValidator).checkAuthorization(any(), any(), any());
 
     // When:
     final KsqlErrorMessage result = makeFailingRequest(
@@ -1639,6 +1749,7 @@ public class KsqlResourceTest {
                 .prepare(invocation.getArgument(0), Collections.emptyMap()));
     when(sandbox.plan(any(), any(ConfiguredStatement.class)))
         .thenThrow(new RuntimeException("internal error"));
+    when(sandbox.getKsqlConfig()).thenReturn(ksqlConfig);
 
     // When:
     final KsqlErrorMessage result = makeFailingRequest(
@@ -1822,6 +1933,29 @@ public class KsqlResourceTest {
         containsString("would cause the number of active, persistent queries "
             + "to exceed the configured limit"));
 
+    verify(commandStore, never()).enqueueCommand(any(), any(), any());
+  }
+
+  @Test
+  public void shouldRejectQueryButAcceptNonQueryWhenKsqlRestartsWithLowerQueryLimit() {
+    // Given 6 queries already running:
+    givenPersistentQueryCount(6);
+
+    // When we restart ksql with a lower persistent query count
+    givenKsqlConfigWith(
+        ImmutableMap.of(KsqlConfig.KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_CONFIG, 3));
+    givenMockEngine();
+
+    // When/Then:
+    makeSingleRequest("SHOW STREAMS;", StreamsList.class);
+
+    // No further queries can be made
+    final KsqlErrorMessage result = makeFailingRequest(
+        "CREATE STREAM " + streamName + " AS SELECT * FROM test_stream;", BAD_REQUEST.code());
+    assertThat(result.getErrorCode(), is(Errors.ERROR_CODE_BAD_REQUEST));
+    assertThat(result.getMessage(),
+        containsString("would cause the number of active, persistent queries "
+            + "to exceed the configured limit"));
     verify(commandStore, never()).enqueueCommand(any(), any(), any());
   }
 
@@ -2040,6 +2174,7 @@ public class KsqlResourceTest {
     assertThat(result.getMessage(),
         containsString("Statement is too large to parse. "
             + "This may be caused by having too many nested expressions in the statement."));
+    assertThat(((KsqlStatementErrorMessage) result).getStatementText(), is(secondStatement));
   }
 
   @Test
@@ -2094,6 +2229,9 @@ public class KsqlResourceTest {
     assertThat(response.getEntity().toString(),
         CoreMatchers
             .startsWith("Could not write the statement 'TERMINATE CLUSTER;' into the command "));
+    assertThat(response.getEntity(), instanceOf(KsqlStatementErrorMessage.class));
+    final KsqlStatementErrorMessage entity = (KsqlStatementErrorMessage) response.getEntity();
+    assertThat(entity.getStatementText(), containsString("TERMINATE CLUSTER"));
   }
 
   @Test
@@ -2226,6 +2364,9 @@ public class KsqlResourceTest {
     assertThat(e, exceptionErrorMessage(errorMessage(is(
         "Could not write the statement '" + statement
             + "' into the command topic." + System.lineSeparator() + "Caused by: blah"))));
+    assertThat(e.getResponse().getEntity(), instanceOf(KsqlStatementErrorMessage.class));
+    final KsqlStatementErrorMessage entity = (KsqlStatementErrorMessage) e.getResponse().getEntity();
+    assertThat(entity.getStatementText(), containsString(statement));
   }
 
   private Answer<?> executeAgainstEngine(final String sql) {
@@ -2277,6 +2418,8 @@ public class KsqlResourceTest {
             new DropSourceCommand(SourceName.of("bob"))
         )
     );
+    when(ksqlEngine.getKsqlConfig()).thenReturn(ksqlConfig);
+    when(sandbox.getKsqlConfig()).thenReturn(ksqlConfig);
     when(ksqlEngine.createSandbox(any())).thenReturn(sandbox);
     when(ksqlEngine.getMetaStore()).thenReturn(metaStore);
     when(topicInjectorFactory.apply(ksqlEngine)).thenReturn(topicInjector);
@@ -2313,11 +2456,15 @@ public class KsqlResourceTest {
         .stream()
         .map(md -> new RunningQuery(
             md.getStatementString(),
-            ImmutableSet.of(md.getSinkName().toString(FormatOptions.noEscape())),
-            ImmutableSet.of(md.getResultTopic().getKafkaTopicName()),
+            md.getSinkName().isPresent()
+                ? ImmutableSet.of(md.getSinkName().get().text())
+                : ImmutableSet.of(),
+            md.getResultTopic().isPresent()
+                ? ImmutableSet.of(md.getResultTopic().get().getKafkaTopicName())
+                : ImmutableSet.of(),
             md.getQueryId(),
-            QueryStatusCount.fromStreamsStateCounts(
-                Collections.singletonMap(md.getState(), 1)), KsqlConstants.KsqlQueryType.PERSISTENT)
+            new QueryStatusCount(Collections.singletonMap(KsqlConstants.fromStreamsState(md.getState()), 1)),
+            KsqlConstants.KsqlQueryType.PERSISTENT)
     ).collect(Collectors.toList());
   }
 
@@ -2487,6 +2634,36 @@ public class KsqlResourceTest {
   }
 
   @Test
+  public void shouldReturnBadRequestWhenIsValidatorIsCalledWithNonQueryLevelProps() {
+    final Map<String, Object> properties = new HashMap<>();
+    properties.put(StreamsConfig.COMMIT_INTERVAL_MS_CONFIG, "");
+    givenKsqlConfigWith(ImmutableMap.of(
+        KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED, true
+    ));
+
+    // When:
+    final EndpointResponse response = ksqlResource.isValidProperty("ksql.service.id");
+
+    // Then:
+    assertThat(response.getStatus(), equalTo(400));
+  }
+
+  @Test
+  public void shouldNotBadRequestWhenIsValidatorIsCalledWithNonQueryLevelProps() {
+    final Map<String, Object> properties = new HashMap<>();
+    properties.put(StreamsConfig.COMMIT_INTERVAL_MS_CONFIG, "");
+    givenKsqlConfigWith(ImmutableMap.of(
+        KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED, true
+    ));
+
+    // When:
+    final EndpointResponse response = ksqlResource.isValidProperty("ksql.streams.auto.offset.reset");
+
+    // Then:
+    assertThat(response.getStatus(), equalTo(200));
+  }
+
+  @Test
   public void shouldThrowOnDenyListValidatorWhenTerminateCluster() {
     final Map<String, Object> terminateStreamProperties =
         ImmutableMap.of(DELETE_TOPIC_LIST_PROP, Collections.singletonList("Foo"));
@@ -2589,6 +2766,17 @@ public class KsqlResourceTest {
     final Map<String, Object> config = ksqlRestConfig.getKsqlConfigProperties();
     config.putAll(additionalConfig);
     ksqlConfig = new KsqlConfig(config);
+    final MetricCollectors metricCollectors = new MetricCollectors();
+    ksqlEngine = KsqlEngineTestUtil.createKsqlEngine(
+        serviceContext,
+        metaStore,
+        (engine) -> new KsqlEngineMetrics("", engine, Collections.emptyMap(), Optional.empty(),
+            metricCollectors
+        ),
+        new SequentialQueryIdGenerator(),
+        ksqlConfig,
+        metricCollectors
+    );
 
     setUpKsqlResource();
   }
@@ -2646,7 +2834,8 @@ public class KsqlResourceTest {
             schema,
             Optional.empty(),
             false,
-            ksqlTopic
+            ksqlTopic,
+            false
         );
         break;
       case KTABLE:
@@ -2656,7 +2845,8 @@ public class KsqlResourceTest {
             schema,
             Optional.empty(),
             false,
-            ksqlTopic
+            ksqlTopic,
+            false
         );
         break;
       default:

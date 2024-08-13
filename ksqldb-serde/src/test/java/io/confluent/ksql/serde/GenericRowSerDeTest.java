@@ -51,6 +51,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class GenericRowSerDeTest {
 
   private static final String LOGGER_PREFIX = "bob";
+  private static final String queryId = "query";
 
   @Mock
   private GenericSerdeFactory innerFactory;
@@ -83,10 +84,10 @@ public class GenericRowSerDeTest {
 
   @Before
   public void setUp() {
-    factory = new GenericRowSerDe(innerFactory);
+    factory = new GenericRowSerDe(innerFactory, Optional.of(queryId));
 
     when(innerFactory.createFormatSerde(any(), any(), any(), any(), any(), anyBoolean())).thenReturn(innerSerde);
-    when(innerFactory.wrapInLoggingSerde(any(), any(), any())).thenReturn(loggingSerde);
+    when(innerFactory.wrapInLoggingSerde(any(), any(), any(), any())).thenReturn(loggingSerde);
     when(innerFactory.wrapInTrackingSerde(any(), any())).thenReturn(trackingSerde);
     when(innerSerde.serializer()).thenReturn(innerSerializer);
     when(innerSerde.deserializer()).thenReturn(innerDeserializer);
@@ -109,7 +110,7 @@ public class GenericRowSerDeTest {
         Optional.empty());
 
     // Then:
-    verify(innerFactory).wrapInLoggingSerde(any(), eq(LOGGER_PREFIX), eq(processingLogCxt));
+    verify(innerFactory).wrapInLoggingSerde(any(), eq(LOGGER_PREFIX), eq(processingLogCxt), eq(Optional.of(queryId)));
   }
 
   @Test
@@ -149,7 +150,7 @@ public class GenericRowSerDeTest {
         Optional.empty());
 
     // Then:
-    verify(innerFactory).wrapInLoggingSerde(rowSerdeCaptor.capture(), any(), any());
+    verify(innerFactory).wrapInLoggingSerde(rowSerdeCaptor.capture(), any(), any(), any());
 
     assertThat(rowSerdeCaptor.getValue().serializer(), is(instanceOf(GenericSerializer.class)));
     assertThat(rowSerdeCaptor.getValue().deserializer(),

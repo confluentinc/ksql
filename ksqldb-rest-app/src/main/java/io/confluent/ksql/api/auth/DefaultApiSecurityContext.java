@@ -15,17 +15,19 @@
 
 package io.confluent.ksql.api.auth;
 
-
+import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.api.server.Server;
+import io.confluent.ksql.security.KsqlPrincipal;
 import io.vertx.ext.auth.User;
 import io.vertx.ext.web.RoutingContext;
-import java.security.Principal;
+import java.util.List;
+import java.util.Map.Entry;
 import java.util.Optional;
 
 public final class DefaultApiSecurityContext implements ApiSecurityContext {
-
-  private final Optional<Principal> principal;
+  private final Optional<KsqlPrincipal> principal;
   private final Optional<String> authToken;
+  private final List<Entry<String, String>> requestHeaders;
 
   public static DefaultApiSecurityContext create(final RoutingContext routingContext,
       final Server server) {
@@ -34,27 +36,45 @@ public final class DefaultApiSecurityContext implements ApiSecurityContext {
       throw new IllegalStateException("Not an ApiUser: " + user);
     }
     final ApiUser apiUser = (ApiUser) user;
-    String authToken = null;
+
+    String authToken = routingContext.request().getHeader("Authorization");
     if (server.getAuthenticationPlugin().isPresent()) {
-      authToken = server.getAuthenticationPlugin().get().getAuthToken(routingContext);
+      authToken = server.getAuthenticationPlugin().get().getAuthHeader(routingContext);
     }
-    return new DefaultApiSecurityContext(apiUser != null ? apiUser.getPrincipal() : null,
-        authToken);
+
+    final List<Entry<String, String>> requestHeaders = routingContext.request().headers().entries();
+    final String ipAddress = routingContext.request().remoteAddress().host();
+    final int port = routingContext.request().remoteAddress().port();
+
+    return new DefaultApiSecurityContext(
+        apiUser != null
+            ? apiUser.getPrincipal().withIpAddressAndPort(ipAddress == null ? "" : ipAddress, port)
+            : null,
+        authToken,
+        requestHeaders);
   }
 
-  private DefaultApiSecurityContext(final Principal principal, final String authToken) {
+  private DefaultApiSecurityContext(
+      final KsqlPrincipal principal,
+      final String authToken,
+      final List<Entry<String, String>> requestHeaders) {
     this.principal = Optional.ofNullable(principal);
     this.authToken = Optional.ofNullable(authToken);
+    this.requestHeaders = requestHeaders;
   }
 
   @Override
-  public Optional<Principal> getPrincipal() {
+  public Optional<KsqlPrincipal> getPrincipal() {
     return principal;
   }
 
   @Override
-  public Optional<String> getAuthToken() {
+  public Optional<String> getAuthHeader() {
     return authToken;
   }
 
+  @Override
+  public List<Entry<String, String>> getRequestHeaders() {
+    return ImmutableList.copyOf(requestHeaders);
+  }
 }

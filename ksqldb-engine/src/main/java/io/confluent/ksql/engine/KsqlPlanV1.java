@@ -16,7 +16,9 @@
 package io.confluent.ksql.engine;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import io.confluent.ksql.execution.ddl.commands.CreateTableCommand;
 import io.confluent.ksql.execution.ddl.commands.DdlCommand;
+import io.confluent.ksql.util.KsqlConstants;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -36,11 +38,11 @@ final class KsqlPlanV1 implements KsqlPlan {
   private final Optional<QueryPlan> queryPlan;
 
   KsqlPlanV1(
-      @JsonProperty(value = "statementText", required = true) final String statementText,
+      @JsonProperty(value = "statementText", required = true) final String maskedStatement,
       @JsonProperty(value = "ddlCommand") final Optional<DdlCommand> ddlCommand,
       @JsonProperty(value = "queryPlan") final Optional<QueryPlan> queryPlan
   ) {
-    this.statementText = Objects.requireNonNull(statementText, "statementText");
+    this.statementText = Objects.requireNonNull(maskedStatement, "statementText");
     this.ddlCommand = Objects.requireNonNull(ddlCommand, "ddlCommand");
     this.queryPlan = Objects.requireNonNull(queryPlan, "queryPlan");
 
@@ -64,6 +66,27 @@ final class KsqlPlanV1 implements KsqlPlan {
   @Override
   public KsqlPlan withoutQuery() {
     return new KsqlPlanV1(statementText, ddlCommand, Optional.empty());
+  }
+
+  @Override
+  public Optional<KsqlConstants.PersistentQueryType> getPersistentQueryType() {
+    if (!queryPlan.isPresent()) {
+      return Optional.empty();
+    }
+
+    // CREATE_AS and CREATE_SOURCE commands contain a DDL command and a Query plan.
+    if (ddlCommand.isPresent()) {
+      if (ddlCommand.get() instanceof CreateTableCommand
+          && ((CreateTableCommand) ddlCommand.get()).getIsSource()) {
+        return Optional.of(KsqlConstants.PersistentQueryType.CREATE_SOURCE);
+      } else {
+        return Optional.of(KsqlConstants.PersistentQueryType.CREATE_AS);
+      }
+    } else {
+      // INSERT INTO persistent queries are the only queries types that exist without a
+      // DDL command linked to the plan.
+      return Optional.of(KsqlConstants.PersistentQueryType.INSERT);
+    }
   }
 
   @Override

@@ -22,6 +22,7 @@ import io.confluent.ksql.function.udf.UdfParameter;
 import io.confluent.ksql.util.KsqlConstants;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -47,7 +48,7 @@ public class Filter {
       @UdfParameter(description = "The array") final List<T> array,
       @UdfParameter(description = "The lambda function") final Function<T, Boolean> function
   ) {
-    if (array == null) {
+    if (array == null || function == null) {
       return null;
     }
     return array.stream().filter(function::apply).collect(Collectors.toList());
@@ -62,13 +63,13 @@ public class Filter {
       @UdfParameter(description = "The map") final Map<K, V> map,
       @UdfParameter(description = "The lambda function") final BiFunction<K, V, Boolean> biFunction
   ) {
-    if (map == null) {
+    if (map == null || biFunction == null) {
       return null;
     }
 
     return map.entrySet()
         .stream()
         .filter(e -> biFunction.apply(e.getKey(), e.getValue()))
-        .collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue()));
+        .collect(Collectors.toMap(Entry::getKey, Entry::getValue));
   }
 }

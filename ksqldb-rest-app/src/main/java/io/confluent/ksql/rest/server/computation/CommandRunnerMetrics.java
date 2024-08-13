@@ -16,7 +16,6 @@
 package io.confluent.ksql.rest.server.computation;
 
 import com.google.common.annotations.VisibleForTesting;
-import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.ReservedInternalTopics;
 import java.io.Closeable;
@@ -39,14 +38,17 @@ public class CommandRunnerMetrics implements Closeable {
   private final MetricName commandRunnerDegradedReasonMetricNameLegacy;
   private final MetricName commandRunnerStatusMetricName;
   private final MetricName commandRunnerDegradedReasonMetricName;
+  private final MetricName commandRunnerStatusNumMetricName;
+  private final MetricName commandRunnerDegradedReasonNumMetricName;
 
   CommandRunnerMetrics(
       final String ksqlServiceId,
       final CommandRunner commandRunner,
-      final String metricGroupPrefix
+      final String metricGroupPrefix,
+      final Metrics metrics
   ) {
     this(
-        MetricCollectors.getMetrics(),
+        metrics,
         commandRunner,
         ksqlServiceId,
         metricGroupPrefix.isEmpty() ? DEFAULT_METRIC_GROUP_PREFIX : metricGroupPrefix
@@ -90,6 +92,20 @@ public class CommandRunnerMetrics implements Closeable {
         Collections.singletonMap(KsqlConstants.KSQL_SERVICE_ID_METRICS_TAG, ksqlServiceId)
     );
 
+    this.commandRunnerStatusNumMetricName = metrics.metricName(
+            "status-num",
+            ReservedInternalTopics.CONFLUENT_PREFIX + metricGroupName,
+            "The status number of the commandRunner thread as it processes the command topic.",
+            Collections.singletonMap(KsqlConstants.KSQL_SERVICE_ID_METRICS_TAG, ksqlServiceId)
+    );
+
+    this.commandRunnerDegradedReasonNumMetricName = metrics.metricName(
+            "degraded-reason-num",
+            ReservedInternalTopics.CONFLUENT_PREFIX + metricGroupName,
+            "The reason number for why the commandRunner thread is in a DEGRADED state.",
+            Collections.singletonMap(KsqlConstants.KSQL_SERVICE_ID_METRICS_TAG, ksqlServiceId)
+    );
+
     this.metrics.addMetric(commandRunnerStatusMetricNameLegacy, (Gauge<String>)
         (config, now) -> commandRunner.checkCommandRunnerStatus().name());
     this.metrics.addMetric(commandRunnerDegradedReasonMetricNameLegacy, (Gauge<String>)
@@ -98,6 +114,10 @@ public class CommandRunnerMetrics implements Closeable {
         (config, now) -> commandRunner.checkCommandRunnerStatus().name());
     this.metrics.addMetric(commandRunnerDegradedReasonMetricName, (Gauge<String>)
         (config, now) -> commandRunner.getCommandRunnerDegradedReason().name());
+    this.metrics.addMetric(commandRunnerStatusNumMetricName, (Gauge<Integer>)
+            (config, now) -> commandRunner.checkCommandRunnerStatus().ordinal());
+    this.metrics.addMetric(commandRunnerDegradedReasonNumMetricName, (Gauge<Integer>)
+            (config, now) -> commandRunner.getCommandRunnerDegradedReason().ordinal());
   }
 
   /**
@@ -105,6 +125,8 @@ public class CommandRunnerMetrics implements Closeable {
    */
   @Override
   public void close() {
+    metrics.removeMetric(commandRunnerStatusNumMetricName);
+    metrics.removeMetric(commandRunnerDegradedReasonNumMetricName);
     metrics.removeMetric(commandRunnerStatusMetricName);
     metrics.removeMetric(commandRunnerDegradedReasonMetricName);
     metrics.removeMetric(commandRunnerStatusMetricNameLegacy);

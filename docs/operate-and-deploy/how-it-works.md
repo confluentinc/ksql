@@ -174,7 +174,7 @@ manipulate data, by creating a derivative of existing records.
 ksqlDB Deployment Modes
 -----------------------
 
-You can use deploy your ksqlDB streaming applications using either **Interactive** or **Headless** mode. We recommend using interactive mode when possible.
+You can deploy your ksqlDB streaming applications using either **Interactive** or **Headless** mode. We recommend using interactive mode when possible.
 
 In both deployment modes, ksqlDB enables distributing the processing load
 for your ksqlDB applications across all ksqlDB Server instances, and you can
@@ -212,6 +212,9 @@ By convention, the `ksql.service.id` property should end with a
 separator character of some form, for example a dash or underscore, as
 this makes the topic name easier to read.
 
+!!! note
+	In {{ site.ccloud }}, the Command Topic is managed by Confluent and not visible in the {{ site.ak }} cluster. Previous versions of ksqlDB in {{ site.ccloud }} created a Command Topic in user-owned {{ site.ak }} clusters, but this isn't the case for newly created ksqlDB clusters.
+
 ### Headless Deployment
 
 When you deploy a ksqlDB Server in headless mode, the REST
@@ -248,8 +251,8 @@ where `<service id>` is the value in the `ksql.service.id` property.
 The following table shows which SQL operations are supported in
 headless and interactive deployments.
 
-|                                     SQL Operation                                     |     Interactive ksqlDB      |   Headless ksqlDB   |
-| ------------------------------------------------------------------------------------- | --------------------------- | ------------------- |
+| SQL Operation                                                                         |     Interactive ksqlDB      |   Headless ksqlDB   |
+|---------------------------------------------------------------------------------------| --------------------------- | ------------------- |
 | Describe a stream or table, including runtime stats (DESCRIBE, DESCRIBE EXTENDED)     | Supported                   | Not Supported       |
 | Explain a query, including runtime stats (EXPLAIN)                                    | Supported                   | Not Supported       |
 | CREATE a stream or table                                                              | Supported                   | Supported           |
@@ -257,12 +260,14 @@ headless and interactive deployments.
 | List existing streams and tables (SHOW STREAMS, SHOW TABLES)                          | Supported                   | Not Supported       |
 | List running queries (SHOW QUERIES)                                                   | Supported                   | Not Supported       |
 | Describe existing streams and tables (DESCRIBE STREAMS, DESCRIBE TABLES)              | Supported                   | Not Supported       |
+| Operations on connectors (CREATE CONNECTOR, DROP CONNECTOR, SHOW CONNECTORS)          | Supported                   | Not Supported       |
 | Run a script (RUN SCRIPT)                                                             | Supported                   | Not Supported       |
 | Set query properties (SET)                                                            | Supported                   | Supported           |
 | Show contents of a Kafka topic (PRINT)                                                | Supported                   | Not Supported       |
 | Show contents of a stream or table (SELECT)                                           | Supported                   | Not Supported       |
 | Show properties of a query (SHOW PROPERTIES)                                          | Supported                   | Not Supported       |
 | Show results of a query (SELECT)                                                      | Supported                   | Not Supported       |
+| PAUSE / RESUME a persistent query                                                     | Supported                   | Not Supported       |
 | TERMINATE a query                                                                     | Supported                   | Not Supported       |
 | Start and stop a ksqlDB Server instance                                               | Not with ksqlDB API         | Not with ksqlDB API |
 | Cleanup and delete internal data (internal topics) of a ksqlDB cluster or application | Supported (ksqlDB REST API) | Not with ksqlDB API |
@@ -482,15 +487,9 @@ Usually, ksqlDB isn't a good fit for BI reports, ad-hoc querying, or
 queries with random access patterns, because it's a continuous query
 system on data streams.
 
-To get started with ksqlDB, try the
-[Tutorials and Examples](../tutorials/index.md).
-
-To get started with {{ site.kstreams }}, try the
-[Streams Quick Start](https://docs.confluent.io/current/streams/quickstart.html).
-
 Next Steps
 ----------
-
--   [Quickstart](https://ksqldb.io/quickstart.html)
--   [Streams Developer Guide](https://docs.confluent.io/current/streams/developer-guide/index.html)
-
+- See ksqlDB in action with the [Quickstart](https://ksqldb.io/quickstart.html).
+- Learn more with the [ksqlDB Tutorials and Examples](../tutorials/index.md).  
+- Take the developer courses: [Introduction to ksqlDB](https://developer.confluent.io/learn-kafka/ksqldb/intro/)
+  and [ksqlDB Architecture](https://developer.confluent.io/learn-kafka/inside-ksqldb/streaming-architecture/).

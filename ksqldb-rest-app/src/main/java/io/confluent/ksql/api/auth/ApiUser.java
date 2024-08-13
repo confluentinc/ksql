@@ -15,10 +15,10 @@
 
 package io.confluent.ksql.api.auth;
 
+import io.confluent.ksql.security.DefaultKsqlPrincipal;
 import io.vertx.ext.auth.User;
-import java.security.Principal;
 
 public interface ApiUser extends User {
 
-  Principal getPrincipal();
+  DefaultKsqlPrincipal getPrincipal();
 }

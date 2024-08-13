@@ -1,0 +1,147 @@
+{
+  "version" : "7.1.0",
+  "timestamp" : 1633126002038,
+  "path" : "query-validation-tests/multi-col-keys.json",
+  "schemas" : {
+    "CTAS_OUTPUT_0.Aggregate.Project" : {
+      "schema" : "`K` INTEGER KEY, `K2` INTEGER KEY, `COUNT` BIGINT",
+      "keyFormat" : {
+        "format" : "JSON"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CTAS_OUTPUT_0.Aggregate.GroupBy" : {
+      "schema" : "`K` INTEGER KEY, `K2` INTEGER KEY, `K` INTEGER, `K2` INTEGER, `ROWTIME` BIGINT",
+      "keyFormat" : {
+        "format" : "JSON"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CTAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`K` INTEGER KEY, `K2` INTEGER KEY, `V` INTEGER",
+      "keyFormat" : {
+        "format" : "JSON"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CTAS_OUTPUT_0.Aggregate.Aggregate.Materialize" : {
+      "schema" : "`K` INTEGER KEY, `K2` INTEGER KEY, `K` INTEGER, `K2` INTEGER, `ROWTIME` BIGINT, `KSQL_AGG_VARIABLE_0` BIGINT",
+      "keyFormat" : {
+        "format" : "JSON"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CTAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`K` INTEGER KEY, `K2` INTEGER KEY, `COUNT` BIGINT",
+      "keyFormat" : {
+        "format" : "JSON"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "group by two cols",
+    "inputs" : [ {
+      "topic" : "input_topic",
+      "key" : {
+        "K" : 1,
+        "K2" : 2
+      },
+      "value" : {
+        "V" : 0
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : {
+        "K" : 1,
+        "K2" : 2
+      },
+      "value" : {
+        "COUNT" : 1
+      }
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "input_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM INPUT (K INT KEY, K2 INT KEY, V INT) WITH (kafka_topic='input_topic', format='JSON');", "CREATE TABLE OUTPUT AS SELECT K, K2, COUNT(*) as COUNT FROM INPUT GROUP BY K, K2;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`K` INTEGER KEY, `K2` INTEGER KEY, `V` INTEGER",
+        "keyFormat" : {
+          "format" : "JSON"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "OUTPUT",
+        "type" : "TABLE",
+        "schema" : "`K` INTEGER KEY, `K2` INTEGER KEY, `COUNT` BIGINT",
+        "keyFormat" : {
+          "format" : "JSON"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "input_topic",
+          "keyFormat" : {
+            "format" : "JSON"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-GroupBy-repartition",
+          "keyFormat" : {
+            "format" : "JSON"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          }
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog",
+          "keyFormat" : {
+            "format" : "JSON"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          }
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "format" : "JSON"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

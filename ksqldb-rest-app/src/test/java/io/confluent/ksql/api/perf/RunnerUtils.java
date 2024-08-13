@@ -18,8 +18,12 @@ package io.confluent.ksql.api.perf;
 import com.google.common.collect.ImmutableList;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.vertx.codegen.annotations.Nullable;
 import io.vertx.core.AsyncResult;
+import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.parsetools.RecordParser;
@@ -32,6 +36,11 @@ public class RunnerUtils {
       .of("name", "age", "male");
   protected static final List<String> DEFAULT_COLUMN_TYPES = ImmutableList
       .of("STRING", "INT", "BOOLEAN");
+  protected static final LogicalSchema SCHEMA = LogicalSchema.builder()
+      .keyColumn(ColumnName.of("name"), SqlTypes.STRING)
+      .valueColumn(ColumnName.of("age"), SqlTypes.INTEGER)
+      .keyColumn(ColumnName.of("male"), SqlTypes.BOOLEAN)
+      .build();
 
   protected static final List<?> DEFAULT_KEY = ImmutableList.of("tim");
 
@@ -52,19 +61,19 @@ public class RunnerUtils {
     }
 
     @Override
-    public WriteStream<Buffer> write(final Buffer data) {
-      return write(data, null);
+    public Future<Void> write(final Buffer data) {
+      write(data, null);
+      return Future.succeededFuture();
     }
 
     @Override
-    public WriteStream<Buffer> write(final Buffer data, final Handler<AsyncResult<Void>> handler) {
+    public void write(final Buffer data, final Handler<AsyncResult<Void>> handler) {
       recordParser.handle(data);
-      return this;
     }
 
     @Override
-    public void end() {
-
+    public Future<Void> end() {
+      return Future.succeededFuture();
     }
 
     @Override

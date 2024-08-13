@@ -25,14 +25,11 @@ import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.function.udf.UdfParameter;
 import io.confluent.ksql.util.KsqlConstants;
 import java.sql.Date;
-import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
-import java.time.temporal.ChronoField;
-import java.time.temporal.TemporalAccessor;
-import java.util.Arrays;
-import java.util.Optional;
+import java.text.ParseException;
+import java.util.TimeZone;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import org.apache.commons.lang3.time.FastDateFormat;
 
 @UdfDescription(
     name = "parse_date",
@@ -40,14 +37,17 @@ import java.util.concurrent.TimeUnit;
     author = KsqlConstants.CONFLUENT_AUTHOR,
     description = "Converts a string representation of a date in the given format"
         + " into a DATE value. The format pattern should be in the format expected by"
-        + " java.time.format.DateTimeFormatter"
+        + " java.text.SimpleDateFormat"
 )
 public class ParseDate {
 
-  private final LoadingCache<String, DateTimeFormatter> formatters =
+  private static final long MILLIS_IN_DAY = TimeUnit.DAYS.toMillis(1);
+
+  private final LoadingCache<String, FastDateFormat> formatters =
       CacheBuilder.newBuilder()
           .maximumSize(1000)
-          .build(CacheLoader.from(DateTimeFormatter::ofPattern));
+          .build(CacheLoader.from(pattern ->
+              FastDateFormat.getInstance(pattern, TimeZone.getTimeZone("GMT"))));
 
   @Udf(description = "Converts a string representation of a date in the given format"
       + " into a DATE value.")
@@ -56,22 +56,17 @@ public class ParseDate {
           description = "The string representation of a date.") final String formattedDate,
       @UdfParameter(
           description = "The format pattern should be in the format expected by"
-              + " java.time.format.DateTimeFormatter.") final String formatPattern) {
+              + " java.text.SimpleDateFormat.") final String formatPattern) {
+    if (formattedDate == null || formatPattern == null) {
+      return null;
+    }
     try {
-
-      final TemporalAccessor ta = formatters.get(formatPattern).parse(formattedDate);
-      final Optional<ChronoField> timeField = Arrays.stream(ChronoField.values())
-          .filter(field -> field.isTimeBased())
-          .filter(field -> ta.isSupported(field))
-          .findFirst();
-
-      if (timeField.isPresent()) {
+      final long time = formatters.get(formatPattern).parse(formattedDate).getTime();
+      if (time % MILLIS_IN_DAY != 0) {
         throw new KsqlFunctionException("Date format contains time field.");
       }
-
-      return new Date(
-          TimeUnit.DAYS.toMillis(LocalDate.from(ta).toEpochDay()));
-    } catch (final ExecutionException | RuntimeException e) {
+      return new Date(time);
+    } catch (final ExecutionException | RuntimeException | ParseException e) {
       throw new KsqlFunctionException("Failed to parse date '" + formattedDate
           + "' with formatter '" + formatPattern
           + "': " + e.getMessage(), e);

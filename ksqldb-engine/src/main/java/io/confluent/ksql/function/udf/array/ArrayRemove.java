@@ -37,9 +37,8 @@ public class ArrayRemove {
       return null;
     }
 
-    final List<T> result = array.stream()
+    return array.stream()
         .filter(el -> !Objects.equals(el, victim))
         .collect(Collectors.toList());
-    return result;
   }
 }

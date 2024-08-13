@@ -10,19 +10,26 @@ keywords: ksqlDB, select, pull query
 
 ```sql
 SELECT select_expr [, ...]
-  FROM table
+  FROM from_item
   [ WHERE where_condition ]
-  [ AND window_bounds ];
+  [ AND window_bounds ]
+  [ LIMIT count ];
 ```
 
 ## Description
 
-Pulls the current value from the materialized view and terminates. The result
+Pulls the current value from the `from_item` and terminates. The `from_item` can be a 
+materialized view, a table, or a stream. The result
 of this statement is not persisted in a {{ site.ak }} topic and is printed out
 only in the console. Pull queries run with predictably low latency because 
 materialized views are incrementally updated as new events arrive.
 They are a great match for request/response flows. For asynchronous application flows, see 
 [Push Queries](select-push-query.md).
+
+!!! Tip "See pull queries in action"
+    - [Confluent Platform quickstart](https://ksqldb.io/quickstart-platform.html#quickstart-content)
+    - [Confluent Cloud quickstart](https://ksqldb.io/quickstart-cloud.html#quickstart-content)
+    - Recipe: [Detect Unusual Credit Card Activity](https://developer.confluent.io/tutorials/credit-card-activity/confluent.html#execute-ksqldb-code)
 
 You can execute a pull query by sending an HTTP request to the ksqlDB REST API, and
 the API responds with a single response.  
@@ -30,8 +37,10 @@ the API responds with a single response.
 -   Pull queries are expressed using a strict subset of ANSI SQL.
 -   You can issue a pull query against any table that was created by a 
     [CREATE TABLE AS SELECT](create-table-as-select.md) statement.
+-   You can issue a pull query against any stream.    
 -   Currently, we do not support pull queries against tables created by using a [CREATE TABLE](create-table.md) statement.
 -   Pull queries do not support `JOIN`, `PARTITION BY`, `GROUP BY` and `WINDOW` clauses (but can query materialized tables that contain those clauses).
+-   `LIMIT` clause supports non-negative integers.
 
 ## `WHERE` Clause Guidelines
 
@@ -52,10 +61,24 @@ Table scans can also be enabled by default by setting a server configuration pro
 -   References to subsets of columns from a multi-column key.
 -   Complex expressions without direct column references using UDFs and function calls (e.g. `instr(NAME_COL, 'hello') > 0`).
 
-!!! note
-	Table scan based queries are just the next incremental step for ksqlDB pull queries. 
-	In future releases, we will continue pushing the envelope of new query capabilities and 
-	greater performance and efficiency.
+Session-windowed tables can't be table-scanned, and only key-lookup queries
+are possible against them.
+
+!!! important
+    ksqlDB may experience a deadlock if you run multiple pull queries concurrently.
+
+    If you experience hanging pull queries, the following mitigations may help.
+
+    - Rewrite your persistent queries or add a new persistent query to enable
+      efficient pull queries, ideally key lookups, but at least short-range scans,
+      or decrease state store size.
+    - Rewrite your table scans as individual key lookups.
+    - Continue issuing table scans, but issue fewer of them at once.
+    - Adjust your pull query load to avoid sharp spikes in the pull query
+      request rate all at once.
+    - Implement timeouts from your client so that if pull queries take too
+      long to run, your client terminates the connection to free up resources
+      and unblock other queries.
 
 ## Examples
 
@@ -100,7 +123,24 @@ If you want to look up the students whose ranks lie in the range `(4, 8)`:
 
 ```sql
 SELECT * FROM TOP_TEN_RANKS
-  WHERE ID > 4 AND ID < 8;
+  WHERE RANK > 4 AND RANK < 8;
+```
+
+#### STREAM
+Pull queries against a stream.
+
+First, create a stream named `STUDENTS` by using a [CREATE STREAM](create-stream.md) statement:
+
+```sql
+CREATE STREAM STUDENTS (ID STRING KEY, SCORE INT) 
+  WITH (kafka_topic='students_topic', value_format='JSON', partitions=4);
+```
+
+If you want to look up students with ranks greater than `5` you can issue the query:
+
+```sql
+SELECT * FROM STUDENTS
+  WHERE rank > 5;
 ```
 
 #### INNER JOIN
@@ -126,14 +166,16 @@ You can fetch the current state of your table `INNER_JOIN` by using a pull query
 SELECT * FROM INNER_JOIN [ WHERE where_condition ];
 ```
 
+!!! Tip "See INNER_JOIN in action"
+    - [Analyze datacenter power usage](https://developer.confluent.io/tutorials/datacenter/confluent.html#execute-ksqldb-code)
+    - [Build a dynamic pricing strategy](https://developer.confluent.io/tutorials/dynamic-pricing/confluent.html#execute-ksqldb-code)
+    - [Notify passengers of flight updates](https://developer.confluent.io/tutorials/aviation/confluent.html#execute-ksqldb-code)
+    - [Streaming ETL pipeline](/tutorials/etl/#join-the-streams-together)
+
 #### WINDOW
 
-Pull queries against a windowed table `NUMBER_OF_TESTS` created by aggregating a stream `STUDENTS`:
-
-```sql
-CREATE STREAM STUDENTS (ID STRING KEY, SCORE INT) 
-  WITH (kafka_topic='students_topic', value_format='JSON', partitions=4);
-```
+Pull queries against a windowed table `NUMBER_OF_TESTS` created by aggregating the stream `STUDENTS` 
+created above:
 
 ```sql
 CREATE TABLE NUMBER_OF_TESTS AS 
@@ -169,3 +211,15 @@ stream named `s1`.
 ```sql
 SELECT STRUCT(f1 := v1, f2 := v2) FROM s1;
 ```
+
+### Pull queries with pseudo columns
+
+You can use the `ROWTIME` pseudo column within pull queries. Below
+is an example of issuing a pull query with `ROWTIME` in both the
+`SELECT` and `WHERE` clauses.
+
+```sql
+SELECT name, ROWTIME FROM users WHERE ROWTIME > 50000;
+```
+
+However, this is disallowed for `ROWPARTITION` and `ROWOFFSET`.

@@ -1,11 +1,8 @@
 # Query Execution Plans
 
-Author: Rohan Desai (rodesai)
-
-Release target: 5.4
-
-Status: Accepted
-
+Author: Rohan Desai (rodesai) |
+Release target: 5.4 |
+Status: _Merged_ |
 Discussion:
 
 ## Motivation and background

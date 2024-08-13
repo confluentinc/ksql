@@ -25,6 +25,8 @@ import io.confluent.ksql.util.KsqlConfig;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KafkaStreams.State;
 import org.apache.kafka.streams.StoreQueryParameters;
+import org.apache.kafka.streams.processor.internals.namedtopology.KafkaStreamsNamedTopologyWrapper;
+import org.apache.kafka.streams.processor.internals.namedtopology.NamedTopologyStoreQueryParameters;
 import org.apache.kafka.streams.state.QueryableStoreType;
 
 /**
@@ -36,35 +38,57 @@ class KsStateStore {
   private final KafkaStreams kafkaStreams;
   private final LogicalSchema schema;
   private final KsqlConfig ksqlConfig;
+  private final String queryId;
 
   @VisibleForTesting
   KsStateStore(
       final String stateStoreName,
       final KafkaStreams kafkaStreams,
       final LogicalSchema schema,
-      final KsqlConfig ksqlConfig
+      final KsqlConfig ksqlConfig,
+      final String queryId
   ) {
     this.kafkaStreams = requireNonNull(kafkaStreams, "kafkaStreams");
     this.stateStoreName = requireNonNull(stateStoreName, "stateStoreName");
     this.schema = requireNonNull(schema, "schema");
     this.ksqlConfig = requireNonNull(ksqlConfig, "ksqlConfig");
+    this.queryId = requireNonNull(queryId, "queryId");
   }
 
   LogicalSchema schema() {
     return schema;
   }
 
+  String getStateStoreName() {
+    return stateStoreName;
+  }
+
+  KafkaStreams getKafkaStreams() {
+    return kafkaStreams;
+  }
+
+  KsqlConfig getKsqlConfig() {
+    return ksqlConfig;
+  }
+
   <T> T store(final QueryableStoreType<T> queryableStoreType, final int partition) {
     try {
-      final StoreQueryParameters<T> parameters = StoreQueryParameters.fromNameAndType(
-          stateStoreName, queryableStoreType).withPartition(partition);
-      if (ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PULL_ENABLE_STANDBY_READS)) {
-        // True flag allows queries on standby and replica state stores
-        return kafkaStreams.store(parameters.enableStaleStores());
-      } else {
-        // False flag allows queries only on active state store
-        return kafkaStreams.store(parameters);
-      }
+      final boolean enableStaleStores =
+          ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PULL_ENABLE_STANDBY_READS);
+      final boolean sharedRuntime = kafkaStreams instanceof KafkaStreamsNamedTopologyWrapper;
+
+      final StoreQueryParameters<T> parameters = sharedRuntime
+          ? NamedTopologyStoreQueryParameters.fromNamedTopologyAndStoreNameAndType(
+              queryId,
+              stateStoreName,
+              queryableStoreType).withPartition(partition)
+          : StoreQueryParameters.fromNameAndType(
+              stateStoreName,
+              queryableStoreType).withPartition(partition);
+
+      return enableStaleStores
+          ? kafkaStreams.store(parameters.enableStaleStores())
+          : kafkaStreams.store(parameters);
     } catch (final Exception e) {
       final State state = kafkaStreams.state();
       if (state != State.RUNNING) {

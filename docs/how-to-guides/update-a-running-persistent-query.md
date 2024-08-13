@@ -39,14 +39,14 @@ ksqlDB provides two mechanisms to change a query that is already running:
    in-place upgrade is `CREATE OR REPLACE`.
 1. *Replacing upgrades*: you tear down an existing query,
    and start a new one from either `earliest` or `latest` offsets.
-   To accomplish this, users you first issue a `TERMINATE <query_id>;` and a
+   To accomplish this, you first issue a `TERMINATE <query_id>;` and a
    `DROP <source>` before creating the query again.
 
 ## Understanding upgrades
 
 Obviously, it would be preferable to always perform an in-place upgrade
 when you change a query. But because of how streaming programs are constructed,
-this isn't always possible.
+this is not always possible.
 
 To better understand the different types of upgrades that are allowed on persistent
 queries, here's a taxonomy using the combination of three
@@ -73,7 +73,7 @@ types of query characteristics: _source query_, _upgrade_ and (optionally) _envi
 | | Ordered | Ordered environments require that a single offset delineates pre- and post-migration (no events are interleaved) |
 | | Live | Live environments describe queries that cannot afford downtime, either by means of acting as live storage (e.g. responding to pull queries) or feeding into high availability systems (powering important functionality) |
 
-ksqlDB supports in-place upgrades for only _data selection_ and
+ksqlDB supports only in-place upgrades for _data selection_ and
 _schema evolution_ upgrades on a limited subset of query characteristics.
 ksqlDB doesn't guarantee validity of any environments when performing an
 in-place upgrade.
@@ -161,7 +161,7 @@ renaming, or changing the type of any existing field is invalid.
 ### Stateful data selection
 
 The previous examples all involve _stateless_ upgrades, but ksqlDB also enables
-_data selection_ and limited _schema evolution_ upgrades on some stateful queries.
+_data selection_ and limited _schema evolution_ upgrades on some stateful queries. 
 ksqlMart, as is common with data-driven companies that leverage ksqlDB, also has 
 queries that generate analytics on their purchases:
 

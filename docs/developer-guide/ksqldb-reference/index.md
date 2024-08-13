@@ -36,6 +36,8 @@ keywords: ksqldb, api, reference, function, operator, metadata, connector, query
 - [SELECT (Pull Query)](select-pull-query.md)
 - [SELECT (Push Query)](select-push-query.md)
 - [EXPLAIN](explain.md)
+- [PAUSE](pause.md)
+- [RESUME](resume.md)
 - [TERMINATE](terminate.md)
 
 ## Connectors
@@ -65,4 +67,9 @@ keywords: ksqldb, api, reference, function, operator, metadata, connector, query
 ## Execution
 
 - [RUN SCRIPT](run-script.md)
+- [ALTER SYSTEM](alter-system.md)
+
+## Assertions
+- [ASSERT SCHEMA](assert-schema.md)
+- [ASSERT TOPIC](assert-topic.md)
 

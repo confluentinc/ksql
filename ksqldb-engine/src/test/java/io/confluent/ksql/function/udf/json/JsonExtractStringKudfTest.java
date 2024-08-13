@@ -47,6 +47,15 @@ public class JsonExtractStringKudfTest {
   }
 
   @Test
+  public void shouldExtractJsonFieldWithAtCharacter() {
+    // When:
+    final String result = udf.extract("{\"@type\": \"foo\"}", "$.@type");
+
+    // Then:
+    assertThat(result, is("foo"));
+  }
+
+  @Test
   public void shouldExtractJsonDoc() {
     // When:
     final String result = udf.extract(JSON_DOC, "$.thing1");
@@ -104,5 +113,14 @@ public class JsonExtractStringKudfTest {
     IntStream.range(0, 10_000)
         .parallel()
         .forEach(idx -> shouldExtractJsonField());
+  }
+
+  @Test
+  public void shouldParseCorrectlyDifferentPathsOnSameInstance() {
+    final String thing1 = udf.extract(JSON_DOC, "$.thing1");
+    assertThat(thing1, is("{\"thing2\":\"hello\"}"));
+
+    final String array = udf.extract(JSON_DOC, "$.array.1");
+    assertThat(array, is("102"));
   }
 }

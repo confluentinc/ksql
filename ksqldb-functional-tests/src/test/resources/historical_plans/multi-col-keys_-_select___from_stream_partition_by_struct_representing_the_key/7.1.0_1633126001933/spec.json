@@ -1,0 +1,108 @@
+{
+  "version" : "7.1.0",
+  "timestamp" : 1633126001933,
+  "path" : "query-validation-tests/multi-col-keys.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`K` INTEGER KEY, `K2` INTEGER KEY, `V` INTEGER",
+      "keyFormat" : {
+        "format" : "JSON"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`KSQL_COL_0` STRUCT<`K` INTEGER, `K2` INTEGER> KEY, `V` INTEGER, `K` INTEGER, `K2` INTEGER",
+      "keyFormat" : {
+        "format" : "JSON",
+        "features" : [ "UNWRAP_SINGLES" ]
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "select * from stream partition by struct representing the key",
+    "inputs" : [ {
+      "topic" : "input_topic",
+      "key" : {
+        "K" : 1,
+        "K2" : 2
+      },
+      "value" : {
+        "V" : 0
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : {
+        "K" : 1,
+        "K2" : 2
+      },
+      "value" : {
+        "V" : 0,
+        "K" : 1,
+        "K2" : 2
+      }
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "input_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM INPUT (K INT KEY, K2 INT KEY, V INT) WITH (kafka_topic='input_topic', format='JSON');", "CREATE STREAM OUTPUT AS SELECT * FROM INPUT PARTITION BY STRUCT(K:=K, K2:=K2);" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`K` INTEGER KEY, `K2` INTEGER KEY, `V` INTEGER",
+        "keyFormat" : {
+          "format" : "JSON"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`KSQL_COL_0` STRUCT<`K` INTEGER, `K2` INTEGER> KEY, `V` INTEGER, `K` INTEGER, `K2` INTEGER",
+        "keyFormat" : {
+          "format" : "JSON"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ "UNWRAP_SINGLES" ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "input_topic",
+          "keyFormat" : {
+            "format" : "JSON"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "format" : "JSON",
+            "features" : [ "UNWRAP_SINGLES" ]
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

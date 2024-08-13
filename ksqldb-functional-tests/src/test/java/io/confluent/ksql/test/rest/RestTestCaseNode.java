@@ -19,8 +19,6 @@ import static io.confluent.ksql.test.utils.ImmutableCollections.immutableCopyOf;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.test.model.RecordNode;
 import io.confluent.ksql.test.model.TopicNode;
@@ -48,7 +46,9 @@ public class RestTestCaseNode {
   private final Map<String, Object> properties;
   private final Optional<ExpectedErrorNode> expectedError;
   private final Optional<InputConditions> inputConditions;
+  private final Optional<OutputConditions> outputConditions;
   private final boolean enabled;
+  private final boolean testPullWithProtoFormat;
 
   public RestTestCaseNode(
       @JsonProperty("name") final String name,
@@ -61,7 +61,9 @@ public class RestTestCaseNode {
       @JsonProperty("expectedError") final ExpectedErrorNode expectedError,
       @JsonProperty("responses") final List<Response> responses,
       @JsonProperty("inputConditions") final InputConditions inputConditions,
-      @JsonProperty("enabled") final Boolean enabled
+      @JsonProperty("outputConditions") final OutputConditions outputConditions,
+      @JsonProperty("enabled") final Boolean enabled,
+      @JsonProperty("testPullWithProtoFormat") final Boolean testPullWithProtoFormat
   ) {
     this.name = name == null ? "" : name;
     this.formats = immutableCopyOf(formats);
@@ -73,9 +75,15 @@ public class RestTestCaseNode {
     this.expectedError = Optional.ofNullable(expectedError);
     this.responses = immutableCopyOf(responses);
     this.inputConditions = Optional.ofNullable(inputConditions);
+    this.outputConditions = Optional.ofNullable(outputConditions);
     this.enabled = !Boolean.FALSE.equals(enabled);
+    this.testPullWithProtoFormat = Boolean.TRUE.equals(testPullWithProtoFormat);
 
     validate();
+  }
+
+  public boolean isTestPullWithProtoFormat() {
+    return testPullWithProtoFormat;
   }
 
   public boolean isEnabled() {
@@ -129,6 +137,10 @@ public class RestTestCaseNode {
     return inputConditions;
   }
 
+  public Optional<OutputConditions> getOutputConditions() {
+    return outputConditions;
+  }
+
   private void validate() {
     if (this.name.isEmpty()) {
       throw new MissingFieldException("name");
@@ -141,6 +153,23 @@ public class RestTestCaseNode {
     if (!this.inputs.isEmpty() && this.expectedError.isPresent()) {
       throw new InvalidFieldException("inputs and expectedError",
           "can not both be set");
+    }
+
+    if (isTestPullWithProtoFormat()) {
+      final int numQueryResponses = (int) getResponses()
+              .stream()
+              .filter(response -> response.getContent().containsKey("query"))
+              .count();
+      final int numQueryProtoResponses = (int) getResponses()
+              .stream()
+              .filter(response -> response.getContent().containsKey("queryProto"))
+              .count();
+
+      if (numQueryResponses != numQueryProtoResponses) {
+        throw new InvalidFieldException("responses",
+                "Number of query responses must be equal to number of queryProto responses " +
+                        "when `testPullWithProtoFormat` flag is set to `True`");
+      }
     }
   }
 }

@@ -39,11 +39,7 @@ public class ArrayDistinct {
       return null;
     }
     final Set<T> distinctVals = Sets.newLinkedHashSetWithExpectedSize(input.size());
-    input.forEach(entry -> {
-      distinctVals.add(entry);
-    });
-    final List<T> output = new ArrayList<T>(distinctVals);
-    return output;
+    distinctVals.addAll(input);
+    return new ArrayList<>(distinctVals);
   }
-
 }

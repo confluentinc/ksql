@@ -3,7 +3,7 @@ layout: page
 title: ksqlDB Table Functions
 tagline: Functions that return 0 or more rows
 description: Learn how to use table function in a SELECT clause  
-keywords: ksqldb, table, function, select
+keywords: ksqldb, SQL, table, function, select
 ---
 
 ## Synopsis
@@ -14,6 +14,9 @@ Contrast this to a scalar function, which returns a single value.
 Table functions are analogous to the `FlatMap` operation commonly found in
 functional programming or stream processing frameworks such as
 {{ site.kstreams }}.
+
+!!! important
+    Table functions are supported only on stream sources. 
 
 Table functions are used in the SELECT clause of a query. They cause the query
 to output potentially more than one row for each input value.
@@ -92,19 +95,18 @@ Would give:
 
 ## Functions
 
-### `CUBE`
+### **`CUBE_EXPLODE`**
 
-Since: 0.7.0
-
-```sql
-cube_explode(array[col1, ..., colN])
+```sql title="Applies to: array<br>Since: 0.7.0"
+CUBE_EXPLODE(array[col1, ..., colN])
 ```
 
-Array
+For the specified array of columns, outputs all of their possible combinations.
 
-Takes as argument an array of columns and outputs all possible combinations of them.
-It produces `2^d` new rows where `d` is the number of columns given as parameter.
-Duplicate entries for columns with null value are skipped.
+The `CUBE_EXPLODE` function produces _2^d_ new rows, where _d_ is the number of columns
+given as parameter.
+
+Duplicate entries for columns with `NULL` value are skipped.
 
 For example, given the following input records:
 
@@ -120,7 +122,7 @@ CREATE STREAM TEST (col1 INT, col2 INT) WITH (kafka_topic='test_topic', value_fo
 CREATE STREAM OUTPUT AS SELECT cube_explode(array[col1, col2]) VAL FROM TEST;
 ```
 
-The `cube_explode` function produces the following output:
+The `CUBE_EXPLODE` function produces the following output:
 
 ```sql
 {"topic": "OUTPUT", "key": "0", "value": {"VAL": [null, null]}}
@@ -131,15 +133,14 @@ The `cube_explode` function produces the following output:
 {"topic": "OUTPUT", "key": "1", "value": {"VAL": [1, null]}}
 ```
 
-### `EXPLODE`
+---
 
-Since: 0.6.0
+### **`EXPLODE`**
 
-```sql
-EXPLODE(col1)
+```sql title="Applies to: array<br>Since: 0.6.0"
+EXPLODE(array)
 ```
 
-Array
+Outputs one value for each of the elements in `array`.
 
-This function takes an Array and outputs one value for each of the elements
-of the array. The output values have the same type as the  array elements.                                                    
+The output values have the same type as the array elements.

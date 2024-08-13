@@ -16,6 +16,7 @@
 package io.confluent.ksql.api.client;
 
 import io.confluent.ksql.api.client.impl.ClientOptionsImpl;
+import java.util.Map;
 
 /**
  * Options for the ksqlDB {@link Client}.
@@ -116,6 +117,39 @@ public interface ClientOptions {
   ClientOptions setKeyAlias(String keyAlias);
 
   /**
+   * Sets key/trust store type.
+   *
+   * @param storeType store type
+   * @return a reference to this
+   */
+  ClientOptions setStoreType(String storeType);
+
+  /**
+   * Sets security providers.
+   *
+   * @param securityProviders security providers
+   * @return a reference to this
+   */
+  ClientOptions setSecurityProviders(String securityProviders);
+
+  /**
+   * Sets key manager algorithm.
+   *
+   * @param keyManagerAlgorithm key manager algorithm
+   * @return a reference to this
+   */
+  ClientOptions setKeyManagerAlgorithm(String keyManagerAlgorithm);
+
+  /**
+   * Sets trust manager algorithm.
+   *
+   * @param trustManagerAlgorithm trust manager algorithm
+   * @return a reference to this
+   */
+  ClientOptions setTrustManagerAlgorithm(String trustManagerAlgorithm);
+
+
+  /**
    * Sets the username and password to be used for HTTP basic authentication when connecting to the
    * ksqlDB server. Basic authentication will be used unless both username and password are null
    * (the default).
@@ -142,6 +176,23 @@ public interface ClientOptions {
    * @return a reference to this
    */
   ClientOptions setHttp2MultiplexingLimit(int http2MultiplexingLimit);
+
+  /**
+   * Sets custom request headers to be sent with requests to the ksqlDB server.
+   * These headers are in addition to any automatic headers such as the
+   * authorization header.
+   *
+   * <p>If this method is called more than once, only the headers passed on
+   * the last invocation will be used. To update existing custom headers,
+   * use this method in combination with {@link ClientOptions#getRequestHeaders()}.
+   *
+   * <p>In case of overlap between these custom headers and automatic headers such
+   * as the authorization header, these custom headers take precedence.
+   *
+   * @param requestHeaders custom request headers
+   * @return a reference to this
+   */
+  ClientOptions setRequestHeaders(Map<String, String> requestHeaders);
 
   /**
    * Returns the host name of the ksqlDB server to connect to.
@@ -228,6 +279,34 @@ public interface ClientOptions {
   String getKeyAlias();
 
   /**
+   * Returns the store type.
+   *
+   * @return key/trust store type
+   */
+  String getStoreType();
+
+  /**
+   * Returns the security providers.
+   *
+   * @return security providers
+   */
+  String getSecurityProviders();
+
+  /**
+   * Returns the key manager algorithm
+   *
+   * @return key manager algorithm
+   */
+  String getKeyManagerAlgorithm();
+
+  /**
+   * Returns the trust manager algorithm
+   *
+   * @return trust manager algorithm
+   */
+  String getTrustManagerAlgorithm();
+
+  /**
    * Returns the username to be used for HTTP basic authentication, if applicable.
    *
    * @return username
@@ -254,6 +333,14 @@ public interface ClientOptions {
    * @return number of requests
    */
   int getHttp2MultiplexingLimit();
+
+  /**
+   * Returns a copy of the custom request headers to be sent with ksqlDB requests.
+   * If not set, then this method returns an empty map.
+   *
+   * @return custom request headers
+   */
+  Map<String, String> getRequestHeaders();
 
   /**
    * Creates a copy of these {@code ClientOptions}.

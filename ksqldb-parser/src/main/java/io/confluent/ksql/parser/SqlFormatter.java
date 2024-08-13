@@ -27,11 +27,13 @@ import io.confluent.ksql.parser.tree.AliasedRelation;
 import io.confluent.ksql.parser.tree.AllColumns;
 import io.confluent.ksql.parser.tree.AlterOption;
 import io.confluent.ksql.parser.tree.AlterSource;
+import io.confluent.ksql.parser.tree.AlterSystemProperty;
 import io.confluent.ksql.parser.tree.AssertStream;
 import io.confluent.ksql.parser.tree.AssertTombstone;
 import io.confluent.ksql.parser.tree.AssertValues;
 import io.confluent.ksql.parser.tree.AstNode;
 import io.confluent.ksql.parser.tree.AstVisitor;
+import io.confluent.ksql.parser.tree.ColumnConstraints;
 import io.confluent.ksql.parser.tree.CreateAsSelect;
 import io.confluent.ksql.parser.tree.CreateSource;
 import io.confluent.ksql.parser.tree.CreateStream;
@@ -58,14 +60,17 @@ import io.confluent.ksql.parser.tree.ListStreams;
 import io.confluent.ksql.parser.tree.ListTables;
 import io.confluent.ksql.parser.tree.ListVariables;
 import io.confluent.ksql.parser.tree.PartitionBy;
+import io.confluent.ksql.parser.tree.PauseQuery;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.RegisterType;
 import io.confluent.ksql.parser.tree.Relation;
+import io.confluent.ksql.parser.tree.ResumeQuery;
 import io.confluent.ksql.parser.tree.Select;
 import io.confluent.ksql.parser.tree.SelectItem;
 import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.ShowColumns;
 import io.confluent.ksql.parser.tree.SingleColumn;
+import io.confluent.ksql.parser.tree.StructAll;
 import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.parser.tree.TableElements;
@@ -75,6 +80,7 @@ import io.confluent.ksql.parser.tree.UnsetProperty;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.utils.FormatOptions;
 import io.confluent.ksql.util.IdentifierUtil;
+import io.confluent.ksql.util.KsqlConstants;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -205,6 +211,12 @@ public final class SqlFormatter {
 
       builder.append("*");
 
+      return null;
+    }
+
+    @Override
+    protected Void visitStructAll(final StructAll node, final Integer context) {
+      builder.append(node.getBaseStruct() + KsqlConstants.STRUCT_FIELD_REF + "*");
       return null;
     }
 
@@ -415,6 +427,20 @@ public final class SqlFormatter {
     }
 
     @Override
+    protected Void visitPauseQuery(final PauseQuery node, final Integer context) {
+      builder.append("PAUSE ");
+      builder.append(node.getQueryId().map(QueryId::toString).orElse(PauseQuery.ALL_QUERIES));
+      return null;
+    }
+
+    @Override
+    protected Void visitResumeQuery(final ResumeQuery node, final Integer context) {
+      builder.append("RESUME ");
+      builder.append(node.getQueryId().map(QueryId::toString).orElse(ResumeQuery.ALL_QUERIES));
+      return null;
+    }
+
+    @Override
     protected Void visitTerminateQuery(final TerminateQuery node, final Integer context) {
       builder.append("TERMINATE ");
       builder.append(node.getQueryId().map(QueryId::toString).orElse(TerminateQuery.ALL_QUERIES));
@@ -476,6 +502,17 @@ public final class SqlFormatter {
     @Override
     protected Void visitSetProperty(final SetProperty node, final Integer context) {
       builder.append("SET '");
+      builder.append(node.getPropertyName());
+      builder.append("'='");
+      builder.append(node.getPropertyValue());
+      builder.append("'");
+
+      return null;
+    }
+
+    @Override
+    protected Void visitAlterSystemProperty(final AlterSystemProperty node, final Integer context) {
+      builder.append("ALTER SYSTEM '");
       builder.append(node.getPropertyName());
       builder.append("'='");
       builder.append(node.getPropertyValue());
@@ -607,6 +644,10 @@ public final class SqlFormatter {
         builder.append("OR REPLACE ");
       }
 
+      if (node.isSource()) {
+        builder.append("SOURCE ");
+      }
+
       builder.append(type);
       builder.append(" ");
 
@@ -694,16 +735,20 @@ public final class SqlFormatter {
 
     private static String formatTableElement(final TableElement e) {
       final String postFix;
-      switch (e.getNamespace()) {
-        case PRIMARY_KEY:
-          postFix = " PRIMARY KEY";
-          break;
-        case KEY:
-          postFix = " KEY";
-          break;
-        default:
-          postFix = "";
-          break;
+
+      final ColumnConstraints columnConstraints = e.getConstraints();
+      if (columnConstraints.isPrimaryKey()) {
+        postFix = " PRIMARY KEY";
+      } else if (columnConstraints.isKey()) {
+        postFix = " KEY";
+      } else if (columnConstraints.isHeaders()) {
+        if (columnConstraints.getHeaderKey().isPresent()) {
+          postFix = " HEADER('" + e.getConstraints().getHeaderKey().get() + "')";
+        } else {
+          postFix = " HEADERS";
+        }
+      } else {
+        postFix = "";
       }
 
       return escapedName(e.getName())

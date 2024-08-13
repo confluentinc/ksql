@@ -17,13 +17,12 @@ package io.confluent.ksql.metastore;
 
 import com.google.common.collect.Iterables;
 import io.confluent.ksql.function.AggregateFunctionFactory;
-import io.confluent.ksql.function.AggregateFunctionInitArguments;
 import io.confluent.ksql.function.FunctionRegistry;
-import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.function.KsqlTableFunction;
 import io.confluent.ksql.function.TableFunctionFactory;
 import io.confluent.ksql.function.UdfFactory;
 import io.confluent.ksql.metastore.model.DataSource;
+import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.SqlArgument;
@@ -32,6 +31,7 @@ import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlReferentialIntegrityException;
 import io.vertx.core.impl.ConcurrentHashSet;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -42,9 +42,13 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.annotation.concurrent.ThreadSafe;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @ThreadSafe
 public final class MetaStoreImpl implements MutableMetaStore {
+  private static final Logger LOG = LoggerFactory.getLogger(MetaStoreImpl.class);
+
   // these sources have a constraint that cannot be deleted until the references are dropped first
   private final Map<SourceName, Set<SourceName>> dropConstraints = new ConcurrentHashMap<>();
 
@@ -108,10 +112,26 @@ public final class MetaStoreImpl implements MutableMetaStore {
     // a copy of the previous source info
     dataSources.put(dataSource.getName(),
         (existing != null) ? existing.copyWith(dataSource) : new SourceInfo(dataSource));
+
+    LOG.info("Source {} created on the metastore", dataSource.getName().text());
+
+    // Re-build the DROP constraints if existing sources have references to this new source.
+    // This logic makes sure that drop constraints are set back if sources were deleted during
+    // the metastore restoration (See deleteSource()).
+    dataSources.forEach((name, info) -> {
+      info.references.forEach(ref -> {
+        if (ref.equals(dataSource.getName())) {
+          LOG.debug("Add a drop constraint reference back to source '{}' from source '{}'",
+              dataSource.getName().text(), name.text());
+
+          addConstraint(dataSource.getName(), name);
+        }
+      });
+    });
   }
 
   @Override
-  public void deleteSource(final SourceName sourceName) {
+  public void deleteSource(final SourceName sourceName, final boolean restoreInProgress) {
     synchronized (metaStoreLock) {
       dataSources.compute(sourceName, (ignored, sourceInfo) -> {
         if (sourceInfo == null) {
@@ -120,20 +140,37 @@ public final class MetaStoreImpl implements MutableMetaStore {
         }
 
         if (dropConstraints.containsKey(sourceName)) {
-          throw new KsqlReferentialIntegrityException(String.format(
-              "Cannot drop %s.%n"
-                  + "The following streams and/or tables read from this source: [%s].%n"
-                  + "You need to drop them before dropping %s.",
-              sourceName.text(),
-              dropConstraints.get(sourceName).stream().map(SourceName::text)
-                  .sorted().collect(Collectors.joining(", ")),
-              sourceName.text()
-          ));
+          final String references = dropConstraints.get(sourceName).stream().map(SourceName::text)
+              .sorted().collect(Collectors.joining(", "));
+
+          // If this request is part of the metastore restoration process, then ignore any
+          // constraints this source may have. This logic fixes a compatibility issue caused by
+          // https://github.com/confluentinc/ksql/pull/6545, which makes the restoration to fail if
+          // this source has another source referencing to it.
+          if (restoreInProgress) {
+            LOG.warn("The following streams and/or tables read from the '{}' source: [{}].\n"
+                    + "Ignoring DROP constraints when restoring the metastore. \n"
+                    + "Future CREATE statements that recreate this '{}' source may not have "
+                    + "DROP constraints if existing source references exist.",
+                sourceName.text(), references);
+
+            dropConstraints.remove(sourceName);
+          } else {
+            throw new KsqlReferentialIntegrityException(String.format(
+                "Cannot drop %s.%n"
+                    + "The following streams and/or tables read from this source: [%s].%n"
+                    + "You need to drop them before dropping %s.",
+                sourceName.text(),
+                references,
+                sourceName.text()
+            ));
+          }
         }
 
         // Remove drop constraints from the referenced sources
         sourceInfo.references.stream().forEach(ref -> dropConstraint(ref, sourceName));
 
+        LOG.info("Source {} deleted from the metastore", sourceName.text());
         return null;
       });
     }
@@ -164,6 +201,69 @@ public final class MetaStoreImpl implements MutableMetaStore {
       // add all references to the source
       dataSources.get(sourceName).references.addAll(sourceReferences);
     }
+  }
+
+  @Override
+  public String checkAlternatives(
+      final SourceName sourceName, final Optional<DataSourceType> sourceType) {
+    final StringBuilder hint = new StringBuilder();
+    final List<DataSource> matchedSources = getAllDataSources()
+        .values()
+        .stream()
+        .filter(dataSource -> {
+          final boolean nameMatches = dataSource
+              .getName()
+              .text()
+              .equalsIgnoreCase(sourceName.text());
+          final boolean sourceTypeMatches = sourceType
+              .map(st -> st.equals(dataSource.getDataSourceType()))
+              .orElse(true);
+          return nameMatches && sourceTypeMatches;
+        })
+        .sorted(Comparator.comparing(x -> x.getName().text()))
+        .collect(Collectors.toList());
+
+    if (matchedSources.size() > 0) {
+      hint.append("\nDid you mean ");
+      if (matchedSources.size() > 1) {
+        final int n = matchedSources.size();
+        for (int i = 0; i < n; i++) {
+          final String dataSourceType = matchedSources.get(i).getDataSourceType().getKsqlType();
+          final String sourceNameText = matchedSources.get(i).getName().text();
+          final String punctuation;
+          if (i < n - 2) {
+            punctuation = ", ";
+          } else if (i == n - 2) { // the item before the last item of the list
+            if (i == 0) { // when the list contains only two matched sources
+              punctuation = " or ";
+            } else {
+              punctuation = ", or ";
+            }
+          } else { // the last item of the list
+            punctuation = "? ";
+          }
+          hint.append(
+              String.format("\"%s\" (%s)%s", sourceNameText, dataSourceType, punctuation)
+          );
+        }
+        hint.append("Hint: wrap the source name in double quotes to make it case-sensitive.");
+      } else {
+        // contains at least one small letter
+        final String sourceNameText = matchedSources.get(0).getName().text();
+        if (sourceNameText.chars().anyMatch(Character::isLowerCase)) {
+          hint.append(
+              String.format("\"%s\"? Hint: wrap the source name in double quotes "
+                  + "to make it case-sensitive.", sourceNameText));
+        } else { // contains only capital letters
+          hint.append(
+              String.format("%s? Hint: try removing double quotes from the source name.",
+                  sourceNameText)
+          );
+        }
+      }
+    }
+
+    return hint.toString();
   }
 
   Set<SourceName> getSourceReferences(final SourceName sourceName) {
@@ -222,14 +322,6 @@ public final class MetaStoreImpl implements MutableMetaStore {
 
   public boolean isPresent(final FunctionName functionName) {
     return functionRegistry.isPresent(functionName);
-  }
-
-  public KsqlAggregateFunction<?, ?, ?> getAggregateFunction(
-      final FunctionName functionName,
-      final SqlType argumentType,
-      final AggregateFunctionInitArguments initArgs
-  ) {
-    return functionRegistry.getAggregateFunction(functionName, argumentType, initArgs);
   }
 
   public KsqlTableFunction getTableFunction(

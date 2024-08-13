@@ -17,6 +17,7 @@ package io.confluent.ksql.engine.rewrite;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
+import io.confluent.ksql.analyzer.Analysis;
 import io.confluent.ksql.analyzer.Analysis.AliasedDataSource;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
@@ -34,10 +35,11 @@ import io.confluent.ksql.util.KsqlException;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-class DataSourceExtractor {
+public class DataSourceExtractor {
 
   private final MetaStore metaStore;
 
@@ -47,12 +49,13 @@ class DataSourceExtractor {
 
   private boolean isJoin = false;
 
-  DataSourceExtractor(final MetaStore metaStore) {
+  public DataSourceExtractor(final MetaStore metaStore) {
     this.metaStore = Objects.requireNonNull(metaStore, "metaStore");
   }
 
-  public void extractDataSources(final AstNode node) {
+  public Set<Analysis.AliasedDataSource> extractDataSources(final AstNode node) {
     new Visitor().process(node, null);
+    return getAllSources();
   }
 
   public Set<AliasedDataSource> getAllSources() {
@@ -82,7 +85,10 @@ class DataSourceExtractor {
         .collect(Collectors.toList());
   }
 
-  private static boolean hasColumn(final ColumnName columnName, final AliasedDataSource aliased) {
+  private static boolean hasColumn(
+      final ColumnName columnName,
+      final AliasedDataSource aliased
+  ) {
     if (SystemColumns.isPseudoColumn(columnName)) {
       return true;
     }
@@ -107,7 +113,8 @@ class DataSourceExtractor {
       final SourceName fromName = ((Table) relation.getRelation()).getName();
       final DataSource source = metaStore.getSource(fromName);
       if (source == null) {
-        throw new KsqlException(fromName.text() + " does not exist.");
+        final String hint = metaStore.checkAlternatives(fromName, Optional.empty());
+        throw new KsqlException(fromName.text() + " does not exist." + hint);
       }
 
       allSources.add(new AliasedDataSource(relation.getAlias(), source));

@@ -15,14 +15,8 @@
 
 package io.confluent.ksql.function.udaf.sum;
 
-import static org.hamcrest.CoreMatchers.instanceOf;
-import static org.hamcrest.MatcherAssert.assertThat;
-
-import io.confluent.ksql.function.AggregateFunctionInitArguments;
-import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.schema.ksql.SqlArgument;
 import io.confluent.ksql.schema.ksql.types.SqlDecimal;
-
 import java.math.BigDecimal;
 import java.util.Collections;
 
@@ -33,11 +27,12 @@ public class DecimalSumKudafTest extends BaseSumKudafTest<BigDecimal, DecimalSum
   }
 
   protected DecimalSumKudaf getSumKudaf() {
-    final KsqlAggregateFunction aggregateFunction = new SumAggFunctionFactory()
-        .createAggregateFunction(Collections.singletonList(SqlArgument.of(SqlDecimal.of(4, 2))),
-            AggregateFunctionInitArguments.EMPTY_ARGS);
-    assertThat(aggregateFunction, instanceOf(DecimalSumKudaf.class));
-    return (DecimalSumKudaf) aggregateFunction;
+    DecimalSumKudaf udaf = (DecimalSumKudaf) SumKudaf.createSumDecimal();
+
+    SqlArgument intDecimalArg = SqlArgument.of(SqlDecimal.of(19, 0));
+    udaf.initializeTypeArguments(Collections.singletonList(intDecimalArg));
+
+    return udaf;
   }
 
 }

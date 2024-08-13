@@ -20,6 +20,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableMap;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.model.WindowType;
@@ -48,7 +49,7 @@ public class AnalysisTest {
 
   private static final SourceName ALIAS = SourceName.of("ds1");
   private static final FormatInfo A_FORMAT = FormatInfo.of("JSON");
-  private static final WindowInfo A_WINDOW = WindowInfo.of(WindowType.SESSION, Optional.empty());
+  private static final WindowInfo A_WINDOW = WindowInfo.of(WindowType.SESSION, Optional.empty(), Optional.empty());
 
   private static final LogicalSchema SOURCE_SCHEMA = LogicalSchema.builder()
       .keyColumn(SystemColumns.ROWKEY_NAME, SqlTypes.STRING)
@@ -68,12 +69,13 @@ public class AnalysisTest {
 
   @Before
   public void setUp() {
-    analysis = new Analysis(Optional.of(refinementInfo), sourceSchemasFactory);
+    analysis = new Analysis(Optional.of(refinementInfo), sourceSchemasFactory, true);
 
     when(dataSource.getSchema()).thenReturn(SOURCE_SCHEMA);
   }
 
   @Test
+  @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT")
   public void shouldGetNoneWindowedSourceSchemasPreAggregate() {
     // Given:
     analysis.addDataSource(ALIAS, dataSource);
@@ -84,13 +86,16 @@ public class AnalysisTest {
     analysis.getFromSourceSchemas(false);
 
     // Then:
-    verify(sourceSchemasFactory).apply(ImmutableMap.of(
-        ALIAS,
-        SOURCE_SCHEMA.withPseudoAndKeyColsInValue(false)
-    ));
+    verify(sourceSchemasFactory).apply(
+        ImmutableMap.of(
+            ALIAS,
+            SOURCE_SCHEMA.withPseudoAndKeyColsInValue(false)
+        )
+    );
   }
 
   @Test
+  @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT")
   public void shouldGetWindowedSourceSchemasPreAggregate() {
     // Given:
     analysis.addDataSource(ALIAS, dataSource);
@@ -101,13 +106,16 @@ public class AnalysisTest {
     analysis.getFromSourceSchemas(false);
 
     // Then:
-    verify(sourceSchemasFactory).apply(ImmutableMap.of(
-        ALIAS,
-        SOURCE_SCHEMA.withPseudoAndKeyColsInValue(true)
-    ));
+    verify(sourceSchemasFactory).apply(
+        ImmutableMap.of(
+            ALIAS,
+            SOURCE_SCHEMA.withPseudoAndKeyColsInValue(true)
+        )
+    );
   }
 
   @Test
+  @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT")
   public void shouldGetWindowedGroupBySourceSchemasPreAggregate() {
     // Given:
     analysis.addDataSource(ALIAS, dataSource);
@@ -119,13 +127,16 @@ public class AnalysisTest {
     analysis.getFromSourceSchemas(false);
 
     // Then:
-    verify(sourceSchemasFactory).apply(ImmutableMap.of(
-        ALIAS,
-        SOURCE_SCHEMA.withPseudoAndKeyColsInValue(false)
-    ));
+    verify(sourceSchemasFactory).apply(
+        ImmutableMap.of(
+            ALIAS,
+            SOURCE_SCHEMA.withPseudoAndKeyColsInValue(false)
+        )
+    );
   }
 
   @Test
+  @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT")
   public void shouldGetNonWindowedSourceSchemasPostAggregate() {
     // Given:
     analysis.addDataSource(ALIAS, dataSource);
@@ -136,13 +147,16 @@ public class AnalysisTest {
     analysis.getFromSourceSchemas(true);
 
     // Then:
-    verify(sourceSchemasFactory).apply(ImmutableMap.of(
-        ALIAS,
-        SOURCE_SCHEMA.withPseudoAndKeyColsInValue(false)
-    ));
+    verify(sourceSchemasFactory).apply(
+        ImmutableMap.of(
+            ALIAS,
+            SOURCE_SCHEMA.withPseudoAndKeyColsInValue(false)
+        )
+    );
   }
 
   @Test
+  @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT")
   public void shouldGetWindowedSourceSchemasPostAggregate() {
     // Given:
     analysis.addDataSource(ALIAS, dataSource);
@@ -153,13 +167,16 @@ public class AnalysisTest {
     analysis.getFromSourceSchemas(true);
 
     // Then:
-    verify(sourceSchemasFactory).apply(ImmutableMap.of(
-        ALIAS,
-        SOURCE_SCHEMA.withPseudoAndKeyColsInValue(true)
-    ));
+    verify(sourceSchemasFactory).apply(
+        ImmutableMap.of(
+            ALIAS,
+            SOURCE_SCHEMA.withPseudoAndKeyColsInValue(true)
+        )
+    );
   }
 
   @Test
+  @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT")
   public void shouldGetWindowedGroupBySourceSchemasPostAggregate() {
     // Given:
     analysis.addDataSource(ALIAS, dataSource);
@@ -171,10 +188,12 @@ public class AnalysisTest {
     analysis.getFromSourceSchemas(true);
 
     // Then:
-    verify(sourceSchemasFactory).apply(ImmutableMap.of(
-        ALIAS,
-        SOURCE_SCHEMA.withPseudoAndKeyColsInValue(true)
-    ));
+    verify(sourceSchemasFactory).apply(
+        ImmutableMap.of(
+            ALIAS,
+            SOURCE_SCHEMA.withPseudoAndKeyColsInValue(true)
+        )
+    );
   }
 
   private static void givenNoneWindowedSource(final KsqlStream<?> dataSource) {

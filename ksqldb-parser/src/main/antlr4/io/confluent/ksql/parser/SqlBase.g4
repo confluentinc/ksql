@@ -59,20 +59,25 @@ statement
     | DESCRIBE STREAMS EXTENDED?                                            #describeStreams
     | DESCRIBE FUNCTION identifier                                          #describeFunction
     | DESCRIBE CONNECTOR identifier                                         #describeConnector
-    | PRINT (identifier| STRING) printClause                                #printTopic
+    | PRINT resourceName printClause                                        #printTopic
     | (LIST | SHOW) QUERIES EXTENDED?                                       #listQueries
     | TERMINATE identifier                                                  #terminateQuery
     | TERMINATE ALL                                                         #terminateQuery
+    | PAUSE identifier                                                      #pauseQuery
+    | PAUSE ALL                                                             #pauseQuery
+    | RESUME identifier                                                     #resumeQuery
+    | RESUME ALL                                                            #resumeQuery
     | SET STRING EQ STRING                                                  #setProperty
+    | ALTER SYSTEM STRING EQ STRING                                         #alterSystemProperty
     | UNSET STRING                                                          #unsetProperty
     | DEFINE variableName EQ variableValue                                  #defineVariable
     | UNDEFINE variableName                                                 #undefineVariable
-    | CREATE (OR REPLACE)? STREAM (IF NOT EXISTS)? sourceName
+    | CREATE (OR REPLACE)? (SOURCE)? STREAM (IF NOT EXISTS)? sourceName
                 (tableElements)?
                 (WITH tableProperties)?                                     #createStream
     | CREATE (OR REPLACE)? STREAM (IF NOT EXISTS)? sourceName
             (WITH tableProperties)? AS query                                #createStreamAs
-    | CREATE (OR REPLACE)? TABLE (IF NOT EXISTS)? sourceName
+    | CREATE (OR REPLACE)? (SOURCE)? TABLE (IF NOT EXISTS)? sourceName
                     (tableElements)?
                     (WITH tableProperties)?                                 #createTable
     | CREATE (OR REPLACE)? TABLE (IF NOT EXISTS)? sourceName
@@ -88,6 +93,10 @@ statement
     | CREATE TYPE (IF NOT EXISTS)? identifier AS type                       #registerType
     | DROP TYPE (IF EXISTS)? identifier                                     #dropType
     | ALTER (STREAM | TABLE) sourceName alterOption (',' alterOption)*      #alterSource
+    | ASSERT (NOT EXISTS)? TOPIC resourceName
+            (WITH tableProperties)? timeout?                                #assertTopic
+    | ASSERT (NOT EXISTS)? SCHEMA
+            (SUBJECT resourceName)? (ID literal)? timeout?                  #assertSchema
     ;
 
 assertStatement
@@ -99,6 +108,11 @@ assertStatement
 
 runScript
     : RUN SCRIPT STRING
+    ;
+
+resourceName
+    : identifier
+    | STRING
     ;
 
 query
@@ -118,6 +132,10 @@ resultMaterialization
     | FINAL
     ;
 
+timeout
+    : TIMEOUT number windowUnit
+    ;
+
 alterOption
     : ADD (COLUMN)? identifier type
     ;
@@ -127,7 +145,13 @@ tableElements
     ;
 
 tableElement
-    : identifier type ((PRIMARY)? KEY)?
+    : identifier type columnConstraints?
+    ;
+
+columnConstraints
+    : ((PRIMARY)? KEY)
+    | HEADERS
+    | HEADER '(' STRING ')'
     ;
 
 tableProperties
@@ -203,9 +227,10 @@ values
     ;
 
 selectItem
-    : expression (AS? identifier)?  #selectSingle
-    | identifier '.' ASTERISK       #selectAll
-    | ASTERISK                      #selectAll
+    : expression (AS? identifier)?                       #selectSingle
+    | base=primaryExpression STRUCT_FIELD_REF ASTERISK   #selectStructAll
+    | identifier '.' ASTERISK                            #selectAll
+    | ASTERISK                                           #selectAll
     ;
 
 relation
@@ -221,6 +246,7 @@ joinType
     : INNER? #innerJoin
     | FULL OUTER? #outerJoin
     | LEFT OUTER? #leftJoin
+    | RIGHT OUTER? #rightJoin
     ;
 
 joinWindow
@@ -228,8 +254,8 @@ joinWindow
     ;
 
 withinExpression
-    : '(' joinWindowSize ',' joinWindowSize ')' # joinWindowWithBeforeAndAfter
-    | joinWindowSize                            # singleJoinWindow
+    : '(' joinWindowSize ',' joinWindowSize ')' (gracePeriodClause)?  # joinWindowWithBeforeAndAfter
+    | joinWindowSize (gracePeriodClause)?                             # singleJoinWindow
     ;
 
 joinWindowSize
@@ -402,9 +428,11 @@ nonReserved
     | ASSERT
     | ALTER
     | ADD
+    | HEADER | HEADERS
     | GRACE | PERIOD
     | DEFINE | UNDEFINE | VARIABLES
-    | PLUGINS
+    | PLUGINS | SYSTEM
+    | TIMEOUT | SCHEMA| SUBJECT | ID
     ;
 
 EMIT: 'EMIT';
@@ -501,6 +529,8 @@ TOPICS: 'TOPICS';
 QUERY: 'QUERY';
 QUERIES: 'QUERIES';
 TERMINATE: 'TERMINATE';
+PAUSE: 'PAUSE';
+RESUME: 'RESUME';
 LOAD: 'LOAD';
 COLUMNS: 'COLUMNS';
 COLUMN: 'COLUMN';
@@ -541,6 +571,13 @@ ADD: 'ADD';
 ALTER: 'ALTER';
 VARIABLES: 'VARIABLES';
 PLUGINS: 'PLUGINS';
+HEADERS: 'HEADERS';
+HEADER: 'HEADER';
+SYSTEM: 'SYSTEM';
+TIMEOUT: 'TIMEOUT';
+SCHEMA: 'SCHEMA';
+SUBJECT: 'SUBJECT';
+ID: 'ID';
 
 IF: 'IF';
 

@@ -1,0 +1,301 @@
+{
+  "version" : "7.1.0",
+  "timestamp" : 1633126009663,
+  "path" : "query-validation-tests/multi-joins.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.L_Join.Left" : {
+      "schema" : "`S1_ID` INTEGER KEY, `S1_V0` BIGINT, `S1_ROWTIME` BIGINT, `S1_ROWPARTITION` INTEGER, `S1_ROWOFFSET` BIGINT, `S1_ID` INTEGER",
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_OUTPUT_0.KafkaTopic_Right.Source" : {
+      "schema" : "`ID` INTEGER KEY, `V0` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_OUTPUT_0.KafkaTopic_L_Right.Source" : {
+      "schema" : "`ID` INTEGER KEY, `V0` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_OUTPUT_0.L_Join.Right" : {
+      "schema" : "`S2_ID` INTEGER KEY, `S2_V0` BIGINT, `S2_ROWTIME` BIGINT, `S2_ROWPARTITION` INTEGER, `S2_ROWOFFSET` BIGINT, `S2_ID` INTEGER",
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_OUTPUT_0.Join.Left" : {
+      "schema" : "`S1_ID` INTEGER KEY, `S1_V0` BIGINT, `S1_ROWTIME` BIGINT, `S1_ROWPARTITION` INTEGER, `S1_ROWOFFSET` BIGINT, `S1_ID` INTEGER, `S2_V0` BIGINT, `S2_ROWTIME` BIGINT, `S2_ROWPARTITION` INTEGER, `S2_ROWOFFSET` BIGINT, `S2_ID` INTEGER, `ROWKEY` INTEGER",
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_OUTPUT_0.L_Join" : {
+      "schema" : "`S1_ID` INTEGER KEY, `S1_V0` BIGINT, `S1_ROWTIME` BIGINT, `S1_ROWPARTITION` INTEGER, `S1_ROWOFFSET` BIGINT, `S1_ID` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      }
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ROWKEY` INTEGER KEY, `S1_V0` BIGINT, `S2_V0` BIGINT, `S3_V0` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_OUTPUT_0.Join" : {
+      "schema" : "`S1_ID` INTEGER KEY, `S1_V0` BIGINT, `S1_ROWTIME` BIGINT, `S1_ROWPARTITION` INTEGER, `S1_ROWOFFSET` BIGINT, `S1_ID` INTEGER, `S2_V0` BIGINT, `S2_ROWTIME` BIGINT, `S2_ROWPARTITION` INTEGER, `S2_ROWOFFSET` BIGINT, `S2_ID` INTEGER, `ROWKEY` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      }
+    },
+    "CSAS_OUTPUT_0.KafkaTopic_L_Left.Source" : {
+      "schema" : "`ID` INTEGER KEY, `V0` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_OUTPUT_0.Join.Right" : {
+      "schema" : "`S3_ID` INTEGER KEY, `S3_V0` BIGINT, `S3_ROWTIME` BIGINT, `S3_ROWPARTITION` INTEGER, `S3_ROWOFFSET` BIGINT, `S3_ID` INTEGER",
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "stream-stream-stream - outer-outer",
+    "inputs" : [ {
+      "topic" : "left",
+      "key" : 0,
+      "value" : {
+        "V0" : 1
+      },
+      "timestamp" : 0
+    }, {
+      "topic" : "right",
+      "key" : 0,
+      "value" : {
+        "V0" : 2
+      },
+      "timestamp" : 1
+    }, {
+      "topic" : "right2",
+      "key" : 0,
+      "value" : {
+        "V0" : 3
+      },
+      "timestamp" : 2
+    }, {
+      "topic" : "left",
+      "key" : 0,
+      "value" : {
+        "V0" : 4
+      },
+      "timestamp" : 3
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : 0,
+      "value" : {
+        "S1_V0" : 1,
+        "S2_V0" : null,
+        "S3_V0" : null
+      },
+      "timestamp" : 0
+    }, {
+      "topic" : "OUTPUT",
+      "key" : 0,
+      "value" : {
+        "S1_V0" : 1,
+        "S2_V0" : 2,
+        "S3_V0" : null
+      },
+      "timestamp" : 1
+    }, {
+      "topic" : "OUTPUT",
+      "key" : 0,
+      "value" : {
+        "S1_V0" : 1,
+        "S2_V0" : null,
+        "S3_V0" : 3
+      },
+      "timestamp" : 2
+    }, {
+      "topic" : "OUTPUT",
+      "key" : 0,
+      "value" : {
+        "S1_V0" : 1,
+        "S2_V0" : 2,
+        "S3_V0" : 3
+      },
+      "timestamp" : 2
+    }, {
+      "topic" : "OUTPUT",
+      "key" : 0,
+      "value" : {
+        "S1_V0" : 4,
+        "S2_V0" : 2,
+        "S3_V0" : 3
+      },
+      "timestamp" : 3
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "left",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "right2",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "right",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM S1 (ID INT KEY, V0 bigint) WITH (kafka_topic='left', value_format='JSON');", "CREATE STREAM S2 (ID INT KEY, V0 bigint) WITH (kafka_topic='right', value_format='JSON');", "CREATE STREAM S3 (ID INT KEY, V0 bigint) WITH (kafka_topic='right2', value_format='JSON');", "CREATE STREAM OUTPUT as SELECT ROWKEY, s1.V0, s2.V0, s3.V0 FROM S1 FULL OUTER JOIN S2 WITHIN 5 seconds ON S1.ID = S2.ID FULL OUTER JOIN S3 WITHIN 10 seconds ON S1.ID = S3.ID;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` INTEGER KEY, `S1_V0` BIGINT, `S2_V0` BIGINT, `S3_V0` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "S1",
+        "type" : "STREAM",
+        "schema" : "`ID` INTEGER KEY, `V0` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "S2",
+        "type" : "STREAM",
+        "schema" : "`ID` INTEGER KEY, `V0` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "S3",
+        "type" : "STREAM",
+        "schema" : "`ID` INTEGER KEY, `V0` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-Join-left-repartition",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          }
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-KSTREAM-OUTERTHIS-0000000008-store-changelog",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          }
+        }, {
+          "name" : "left",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-KSTREAM-OUTEROTHER-0000000021-store-changelog",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          }
+        }, {
+          "name" : "right2",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "right",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-KSTREAM-OUTERTHIS-0000000020-store-changelog",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          }
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-KSTREAM-OUTEROTHER-0000000009-store-changelog",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          }
+        } ]
+      }
+    }
+  }
+}

@@ -16,6 +16,7 @@
 package io.confluent.ksql.planner.plan;
 
 import static io.confluent.ksql.GenericRow.genericRow;
+import static io.confluent.ksql.function.UserFunctionLoaderTestUtil.loadAllUserFunctions;
 import static io.confluent.ksql.planner.plan.PlanTestUtil.SOURCE_NODE;
 import static io.confluent.ksql.planner.plan.PlanTestUtil.TRANSFORM_NODE;
 import static io.confluent.ksql.planner.plan.PlanTestUtil.getNodeByName;
@@ -43,8 +44,8 @@ import io.confluent.ksql.execution.runtime.RuntimeBuildContext;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.context.QueryLoggerUtil;
 import io.confluent.ksql.execution.streams.KSPlanBuilder;
-import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.InternalFunctionRegistry;
+import io.confluent.ksql.function.MutableFunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.name.ColumnName;
@@ -82,6 +83,7 @@ import org.apache.kafka.streams.kstream.ValueMapperWithKey;
 import org.apache.kafka.streams.kstream.ValueTransformerWithKey;
 import org.apache.kafka.streams.kstream.ValueTransformerWithKeySupplier;
 import org.apache.kafka.streams.processor.ProcessorContext;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
@@ -93,7 +95,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class AggregateNodeTest {
 
-  private static final FunctionRegistry FUNCTION_REGISTRY = new InternalFunctionRegistry();
+  private static final MutableFunctionRegistry FUNCTION_REGISTRY = new InternalFunctionRegistry();
   private static final KsqlConfig KSQL_CONFIG = new KsqlConfig(new HashMap<>());
 
   @Mock
@@ -111,6 +113,11 @@ public class AggregateNodeTest {
 
   private StreamsBuilder builder = new StreamsBuilder();
   private final QueryId queryId = new QueryId("queryid");
+
+  @BeforeClass
+  public static void setUpFunctionRegistry() {
+    loadAllUserFunctions(FUNCTION_REGISTRY);
+  }
 
   @Test
   public void shouldBuildSourceNode() {
@@ -151,7 +158,7 @@ public class AggregateNodeTest {
     final ValueTransformerWithKey preAggSelectMapper = valueTransformers.get(1).get();
     preAggSelectMapper.init(ctx);
     final GenericRow result = (GenericRow) preAggSelectMapper
-        .transform(null, genericRow("1", "2", 3.0D, null, null, "rowtime", 0L));
+        .transform(null, genericRow("1", "2", 3.0D, null, null, "headers", "rowtime", "rowpartition", "rowoffset", 0L));
     assertThat("should select col0, col1, col2, col3", result.values(),
         contains(0L, "1", "2", 3.0));
   }
@@ -256,6 +263,38 @@ public class AggregateNodeTest {
   }
 
   @Test
+  public void shouldBuildCorrectMultiArgAggregateSchema() {
+    // When:
+    final SchemaKStream<?> stream = buildQuery("SELECT col0, multi_arg(col0, col1, 20) FROM test1 "
+            + "window TUMBLING (size 2 second) "
+            + "WHERE col0 > 100 GROUP BY col0 EMIT CHANGES;");
+
+    // Then:
+    assertThat(stream.getSchema(), is(LogicalSchema.builder()
+            .keyColumn(ColumnName.of("COL0"), SqlTypes.BIGINT)
+            .valueColumn(ColumnName.of("COL0"), SqlTypes.BIGINT)
+            .valueColumn(ColumnName.of("KSQL_COL_0"), SqlTypes.BIGINT)
+            .build()
+    ));
+  }
+
+  @Test
+  public void shouldBuildCorrectVarArgAggregateSchema() {
+    // When:
+    final SchemaKStream<?> stream = buildQuery("SELECT col0, var_arg(col0, col1, col2) FROM test1 "
+            + "window TUMBLING (size 2 second) "
+            + "WHERE col0 > 100 GROUP BY col0 EMIT CHANGES;");
+
+    // Then:
+    assertThat(stream.getSchema(), is(LogicalSchema.builder()
+            .keyColumn(ColumnName.of("COL0"), SqlTypes.BIGINT)
+            .valueColumn(ColumnName.of("COL0"), SqlTypes.BIGINT)
+            .valueColumn(ColumnName.of("KSQL_COL_0"), SqlTypes.BIGINT)
+            .build()
+    ));
+  }
+
+  @Test
   public void shouldBeSchemaKTableResult() {
     final SchemaKStream stream = build();
     assertThat(stream.getClass(), equalTo(SchemaKTable.class));
@@ -337,7 +376,7 @@ public class AggregateNodeTest {
   }
 
   private static AggregateNode buildAggregateNode(final String queryString) {
-    final MetaStore newMetaStore = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
+    final MetaStore newMetaStore = MetaStoreFixture.getNewMetaStore(FUNCTION_REGISTRY);
     final KsqlBareOutputNode planNode = (KsqlBareOutputNode) AnalysisTestUtil
         .buildLogicalPlan(KSQL_CONFIG, queryString, newMetaStore);
 

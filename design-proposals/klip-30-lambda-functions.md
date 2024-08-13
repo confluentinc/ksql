@@ -1,8 +1,8 @@
 # KLIP-30 - Lambda Expressions
 
 **Authors**: derekjn, blueedgenick |
-**Release Target**: N/A |
-**Status**: _In Discussion_ |
+**Release Target**: 0.17.0; 6.2.0 |
+**Status**: _Merged_ |
 **Discussion**: [#5661](https://github.com/confluentinc/ksql/pull/5661)
 
 **tl;dr**: The introduction of lambda functions would bridge the gap somewhat between builtins and UDFs.

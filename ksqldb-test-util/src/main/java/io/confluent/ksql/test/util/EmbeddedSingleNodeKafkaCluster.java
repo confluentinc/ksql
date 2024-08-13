@@ -52,7 +52,6 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.security.auth.login.Configuration;
 import kafka.security.authorizer.AclAuthorizer;
-import kafka.server.KafkaConfig;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.AdminClientConfig;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
@@ -70,6 +69,7 @@ import org.apache.kafka.common.acl.AclBindingFilter;
 import org.apache.kafka.common.acl.AclOperation;
 import org.apache.kafka.common.acl.AclPermissionType;
 import org.apache.kafka.common.config.SslConfigs;
+import org.apache.kafka.common.header.Header;
 import org.apache.kafka.common.resource.PatternType;
 import org.apache.kafka.common.resource.ResourcePattern;
 import org.apache.kafka.common.resource.ResourceType;
@@ -102,6 +102,37 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
 
   public static final String JAAS_KAFKA_PROPS_NAME = "KafkaServer";
 
+  private static final String ZK_URL_PROP = "authorizer.zookeeper.url";
+  private static final String LOG_CLEANER_ENABLE_PROP = "log.cleaner.enable";
+
+  private static final String ZK_CONNECT_PROP = "zookeeper.connect";
+  private static final String ZK_CONNECTION_TIMEOUT_MS_PROP = "zookeeper.connection.timeout.ms";
+  private static final String ZK_SESSION_TIMEOUT_MS_PROP = "zookeeper.session.timeout.ms";
+  private static final String LOG_DIR_PROP = "log.dir";
+  private static final String NUM_PARTITIONS_PROP = "num.partitions";
+  private static final String OFFSETS_TOPIC_REPLICATION_FACTOR = "offsets.topic.replication.factor";
+  private static final String OFFSETS_TOPIC_PARTITIONS_PROP = "offsets.topic.num.partitions";
+  private static final String CONTROLLER_SOCKET_TIMEOUT_MS_PROP = "controller.socket.timeout.ms";
+  private static final String GROUP_INITIAL_REBALANCE_DELAY_MS_PROP =
+      "group.initial.rebalance.delay.ms";
+  private static final String LOG_RETENTION_TIME_MILLIS_PROP = "log.retention.ms";
+  private static final String LOG_DELETE_DELAY_MS_PROP = "log.segment.delete.delay.ms";
+  private static final String TRANSACTIONS_TOPIC_REPLICATION_FACTOR_PROP =
+      "transaction.state.log.replication.factor";
+  private static final String TRANSACTIONS_TOPIC_MIN_ISR_PROP =
+      "transaction.state.log.min.isr";
+  private static final String AUTO_CREATE_TOPICS_ENABLE_PROP = "auto.create.topics.enable";
+  private static final String INTER_BROKER_SECURITY_PROTOCOL_PROP =
+      "security.inter.broker.protocol";
+  private static final String LISTENERS_PROP = "listeners";
+  public static final String BROKER_ID_CONFIG = "broker.id";
+  public static final String DELETE_TOPIC_ENABLE_CONFIG = "delete.topic.enable";
+  public static final String CONTROLLED_SHUTDOWN_ENABLE_CONFIG = "controlled.shutdown.enable";
+  public static final String MESSAGE_MAX_BYTES_CONFIG = "message.max.bytes";
+  public static final String AUTHORIZER_CLASS_NAME_CONFIG = "authorizer.class.name";
+  public static final String SASL_ENABLED_MECHANISMS_CONFIG = "sasl.enabled.mechanisms";
+  public static final String SASL_MECHANISM_INTER_BROKER_PROTOCOL_CONFIG =
+          "sasl.mechanism.inter.broker.protocol";
   public static final Credentials VALID_USER1 =
       new Credentials("valid_user_1", "some-password");
   public static final Credentials VALID_USER2 =
@@ -354,6 +385,7 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
    * @param keySerializer the serializer to use to serialize keys.
    * @param valueSerializer the serializer to use to serialize values.
    * @param timestampSupplier supplier of timestamps.
+   * @param headersSupplier supplier of headers.
    * @return the map of produced rows, with an iteration order that matches produce order.
    */
   public <K, V> Multimap<K, RecordMetadata> produceRows(
@@ -361,7 +393,8 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
       final Collection<Entry<K, V>> recordsToPublish,
       final Serializer<K> keySerializer,
       final Serializer<V> valueSerializer,
-      final Supplier<Long> timestampSupplier
+      final Supplier<Long> timestampSupplier,
+      final Supplier<List<Header>> headersSupplier
   ) {
     try (KafkaProducer<K, V> producer = new KafkaProducer<>(
         producerConfig(),
@@ -374,8 +407,9 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
         final K key = entry.getKey();
         final V value = entry.getValue();
         final Long timestamp = timestampSupplier.get();
+        final List<Header> headers = headersSupplier.get();
         final Future<RecordMetadata> f = producer
-            .send(new ProducerRecord<>(topic, null, timestamp, key, value));
+            .send(new ProducerRecord<>(topic, null, timestamp, key, value, headers));
         futures.put(key, f);
       });
 
@@ -389,7 +423,6 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
           throw new RuntimeException("Failed to send record to " + topic, e);
         }
       });
-
       return result;
     }
   }
@@ -570,45 +603,43 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
     final Properties config = new Properties();
     config.putAll(customBrokerConfig);
     // Only single node, so broker id always:
-    config.put(KafkaConfig.BrokerIdProp(), 0);
+    config.put(BROKER_ID_CONFIG, 0);
     // Set the log dir for the node:
-    config.put(KafkaConfig.LogDirProp(), logDir);
+    config.put(LOG_DIR_PROP, logDir);
     // Need to know where ZK is:
-    config.put(KafkaConfig.ZkConnectProp(), zookeeper.connectString());
-    config.put(AclAuthorizer.ZkUrlProp(), zookeeper.connectString());
-    // Do not require tests to explicitly create tests:
-    config.put(KafkaConfig.AutoCreateTopicsEnableProp(), true);
+    config.put(ZK_CONNECT_PROP, zookeeper.connectString());
+    config.put(ZK_URL_PROP, zookeeper.connectString());
     // Default to small number of partitions for auto-created topics:
-    config.put(KafkaConfig.NumPartitionsProp(), 1);
+    config.put(NUM_PARTITIONS_PROP, 1);
     // Allow tests to delete topics:
-    config.put(KafkaConfig.DeleteTopicEnableProp(), true);
+    config.put(DELETE_TOPIC_ENABLE_CONFIG, true);
     // Do not clean logs from under the tests or waste resources doing so:
-    config.put(KafkaConfig.LogCleanerEnableProp(), false);
+    config.put(LOG_CLEANER_ENABLE_PROP, false);
     // Only single node, so only single RF on offset topic partitions:
-    config.put(KafkaConfig.OffsetsTopicReplicationFactorProp(), (short) 1);
+    config.put(OFFSETS_TOPIC_REPLICATION_FACTOR, (short) 1);
     // Tests do not need large numbers of offset topic partitions:
-    config.put(KafkaConfig.OffsetsTopicPartitionsProp(), "1");
+    config.put(OFFSETS_TOPIC_PARTITIONS_PROP, "1");
     // Shutdown quick:
-    config.put(KafkaConfig.ControlledShutdownEnableProp(), false);
+    config.put(CONTROLLED_SHUTDOWN_ENABLE_CONFIG, false);
     // Set ZK connect timeout high enough to give ZK time to build log file on build server:
-    config.put(KafkaConfig.ZkConnectionTimeoutMsProp(), (int) ZK_CONNECT_TIMEOUT.toMillis());
+    config.put(ZK_CONNECTION_TIMEOUT_MS_PROP, (int) ZK_CONNECT_TIMEOUT.toMillis());
     // Set ZK session timeout high enough that slow build servers don't hit it:
-    config.put(KafkaConfig.ZkSessionTimeoutMsProp(), (int) ZK_SESSION_TIMEOUT.toMillis());
+    config.put(ZK_SESSION_TIMEOUT_MS_PROP, (int) ZK_SESSION_TIMEOUT.toMillis());
     // Explicitly set to be less that the default 30 second timeout of KSQL functional tests
-    config.put(KafkaConfig.ControllerSocketTimeoutMsProp(), 20_000);
+    config.put(CONTROLLER_SOCKET_TIMEOUT_MS_PROP, 20_000);
     // Streams runs multiple consumers, so let's give them all a chance to join.
     // (Tests run quicker and with a more stable consumer group):
-    config.put(KafkaConfig.GroupInitialRebalanceDelayMsProp(), 100);
+    config.put(GROUP_INITIAL_REBALANCE_DELAY_MS_PROP, 100);
     // Stop people writing silly data in tests:
-    config.put(KafkaConfig.MessageMaxBytesProp(), 100_000);
+    config.put(MESSAGE_MAX_BYTES_CONFIG, 100_000);
     // Stop logs being deleted due to retention limits:
-    config.put(KafkaConfig.LogRetentionTimeMillisProp(), -1);
+    config.put(LOG_RETENTION_TIME_MILLIS_PROP, -1);
     // Stop logs marked for deletion from being deleted
-    config.put(KafkaConfig.LogDeleteDelayMsProp(), Long.MAX_VALUE);
+    config.put(LOG_DELETE_DELAY_MS_PROP, Long.MAX_VALUE);
     // Set to 1 because only 1 broker
-    config.put(KafkaConfig.TransactionsTopicReplicationFactorProp(), (short) 1);
+    config.put(TRANSACTIONS_TOPIC_REPLICATION_FACTOR_PROP, (short) 1);
     // Set to 1 because only 1 broker
-    config.put(KafkaConfig.TransactionsTopicMinISRProp(), 1);
+    config.put(TRANSACTIONS_TOPIC_MIN_ISR_PROP, 1);
 
     return config;
   }
@@ -690,10 +721,18 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
     private final Map<AclKey, Set<AclOperation>> acls = new HashMap<>();
 
     Builder() {
-      brokerConfig.put(KafkaConfig.AuthorizerClassNameProp(), AclAuthorizer.class.getName());
+      brokerConfig.put(AUTHORIZER_CLASS_NAME_CONFIG, AclAuthorizer.class.getName());
       brokerConfig.put(AclAuthorizer.AllowEveryoneIfNoAclIsFoundProp(),
           true);
-      brokerConfig.put(KafkaConfig.ListenersProp(), "PLAINTEXT://:0");
+      brokerConfig.put(LISTENERS_PROP, "PLAINTEXT://:0");
+      brokerConfig.put(AUTO_CREATE_TOPICS_ENABLE_PROP, true);
+    }
+
+    public Builder withoutAutoCreateTopics() {
+      // Create topics explicitly when needed to avoid a race which
+      // automatically recreates deleted topic:
+      brokerConfig.put(AUTO_CREATE_TOPICS_ENABLE_PROP, false);
+      return this;
     }
 
     public Builder withoutPlainListeners() {
@@ -703,10 +742,10 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
 
     public Builder withSaslSslListeners() {
       addListenersProp("SASL_SSL");
-      brokerConfig.put(KafkaConfig.SaslEnabledMechanismsProp(), "PLAIN");
-      brokerConfig.put(KafkaConfig.InterBrokerSecurityProtocolProp(),
+      brokerConfig.put(SASL_ENABLED_MECHANISMS_CONFIG, "PLAIN");
+      brokerConfig.put(INTER_BROKER_SECURITY_PROTOCOL_PROP,
           SecurityProtocol.SASL_SSL.name());
-      brokerConfig.put(KafkaConfig.SaslMechanismInterBrokerProtocolProp(), "PLAIN");
+      brokerConfig.put(SASL_MECHANISM_INTER_BROKER_PROTOCOL_CONFIG, "PLAIN");
       brokerConfig.putAll(SERVER_KEY_STORE.keyStoreProps());
       brokerConfig.put(SslConfigs.SSL_ENDPOINT_IDENTIFICATION_ALGORITHM_CONFIG, "");
 
@@ -759,16 +798,16 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
     }
 
     private void addListenersProp(final String listenerType) {
-      final Object current = brokerConfig.get(KafkaConfig.ListenersProp());
-      brokerConfig.put(KafkaConfig.ListenersProp(), current + "," + listenerType + "://:0");
+      final Object current = brokerConfig.get(LISTENERS_PROP);
+      brokerConfig.put(LISTENERS_PROP, current + "," + listenerType + "://:0");
     }
 
     private void removeListenersProp(final String listenerType) {
-      final String current = (String)brokerConfig.get(KafkaConfig.ListenersProp());
+      final String current = (String)brokerConfig.get(LISTENERS_PROP);
       final String replacement = Arrays.stream(current.split(","))
           .filter(part -> !part.startsWith(listenerType + "://"))
           .collect(Collectors.joining(","));
-      brokerConfig.put(KafkaConfig.ListenersProp(), replacement);
+      brokerConfig.put(LISTENERS_PROP, replacement);
     }
   }
 

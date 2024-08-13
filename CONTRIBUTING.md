@@ -1,15 +1,15 @@
 # Contributing
 
-Thanks for helping us to make KSQL even better!
+Thanks for helping us to make ksqlDB even better!
 
-If you have any questions about how to contribute, either [create a GH issue](https://github.com/confluentinc/ksql/issues) or ask your question in the #ksql channel in our public [Confluent Community Slack](https://slackpass.io/confluentcommunity) (account registration is free and self-service).
+If you have any questions about how to contribute, either [create a GH issue](https://github.com/confluentinc/ksql/issues) or ask your question in the #ksqldb channel in our public [Confluent Community Slack](https://slackpass.io/confluentcommunity) (account registration is free and self-service).
 
 
-## Developing KSQL
+## Developing ksqlDB
 
 ### About the Apache Maven wrapper
 
-Development versions of KSQL use version ranges for dependencies
+Development versions of ksqlDB use version ranges for dependencies
 on other Confluent projects, and due to
 [a bug in Apache Maven](https://issues.apache.org/jira/browse/MRESOLVER-164),
 you may find that both Maven and your IDE download hundreds or thousands
@@ -44,22 +44,49 @@ Finally, you may need to restart the IDE to get it to reload the Maven binary.
 
 There is likely a similar option available for other IDEs.
 
-### Building and running KSQL locally
+### Building and running ksqlDB locally
 
-To build and run KSQL locally, run the following commands:
+To build ksqlDB locally, run the following commands:
 
 ```shell
 $ ./mvnw clean package -DskipTests
+```
+
+To run ksqldb locally, you can start the ksqlDB server and CLI with the following commands. Ensure you have dependent
+services like Kafka and Schema Registry running before starting ksqlDB.
+
+```shell
 $ ./bin/ksql-server-start -daemon config/ksql-server.properties
 $ ./bin/ksql
 ```
 
-This will start the KSQL server in the background and the KSQL CLI in the
+This will start the ksqlDB server in the background and the ksqlDB CLI in the
 foreground. Check the `logs` folder for the log files that the server writes 
 including any errors.
 
-If you would rather have the KSQL server logs spool to the console, then
+If you would rather have the ksqlDB server logs spool to the console, then
 drop the `-daemon` switch, and start the CLI in a second console.
+
+It is recommended to instruct maven to use the native `git` client on your system by setting
+`export MAVEN_OPTS="-Dmaven.gitcommitid.nativegit=true $MAVEN_OPTS"`. This will drastically
+reduce build times.
+
+#### Building a released version
+
+The source for standalone ksqlDB versions is tagged with the pattern vN.NN.N. For
+example, the tag for the 0.28.2 standalone release is v0.28.2.
+
+If you wish to build a released version, run the following commands, replacing `0.28.2`
+with the desired version:
+
+```shell
+$ git fetch origin --tags
+$ git checkout v0.28.2
+$ ./mvnw --settings maven-settings.xml clean package -DskipTests
+```
+
+Note that the `--settings maven-settings.xml` argument is necessary to ensure all dependencies
+can be pulled respective to the target version.
 
 #### Running in an IDE
 
@@ -147,7 +174,7 @@ You can set up IntelliJ for CheckStyle. First install the CheckStyle IDEA plugin
 
     IntelliJ → Preferences → Tools → CheckStyle
 
-    In top left corner select CheckStyle version 8.18 (newer versions fail to parse the provided XML)
+    In top left corner select CheckStyle version 8.44 or newer (older versions fail to parse the provided XML)
 
     - Add a new configurations file using the '+' button:
        Description: Confluent Checks
@@ -165,7 +192,7 @@ You can set up IntelliJ for CheckStyle. First install the CheckStyle IDEA plugin
 #### Commit messages
 
 The project uses [Conventional Commits][https://www.conventionalcommits.org/en/v1.0.0-beta.4/] for commit messages
-in order to aid in automatic generation of changelogs. As described in the Conventional Commmits specification,
+in order to aid in automatic generation of changelogs. As described in the Conventional Commits specification,
 commit messages should be of the form:
 
     <type>[optional scope]: <description>
@@ -174,17 +201,25 @@ commit messages should be of the form:
 
     [optional footer]
 
-where the `type` is one of
+where the `type` is one of the following, and determines whether or not the commit will appear in 
+the auto-generated changelog for releases. Commit types that do appear in changelogs are:
  * "fix": for bug fixes
  * "feat": for new features
- * "refactor": for refactors
- * "test": for test-only changes
- * "docs": for docs-only changes
+ * "perf": for performance enhancements
  * "revert": for reverting other changes
- * "perf", "style", "build", "ci", or "chore": as described in the [Angular specification][https://github.com/angular/angular/blob/22b96b9/CONTRIBUTING.md#type] for Conventional Commits.
+ 
+Commit types that do not appear in changelogs include:
+ * "docs": for docs-only changes
+ * "test": for test-only changes
+ * "refactor": for refactors
+ * "style": for stylistic-only changes
+ * "build": for build-related changes
+ * "chore": for automated changes, as well as other changes not relevant for users.
+   This can include changes that don't fall cleanly into any of the other categories above such as
+   PRs that contain progress towards an incomplete feature. 
 
 The (optional) scope is a noun describing the section of the codebase affected by the change.
-Examples that could make sense for KSQL include "parser", "analyzer", "rest server", "testing tool",
+Examples that could make sense for ksqlDB include "parser", "analyzer", "rest server", "testing tool",
 "cli", "processing log", and "metrics", to name a few.
 
 The optional body and footer are for specifying additional information, such as linking to issues fixed by the commit
@@ -218,7 +253,7 @@ Breaking changes must be called out in commit messages, PR descriptions, and upg
 
 This project has [commitlint][https://github.com/conventional-changelog/commitlint] configured
 to ensure that commit messages are of the expected format.
-To enable commitlint, simply run `npm install` from the root directory of the KSQL repo
+To enable commitlint, simply run `npm install` from the root directory of the ksqlDB repo
 (after [installing `npm`][https://www.npmjs.com/get-npm].)
 Once enabled, commitlint will reject commits with improperly formatted commit messages.
 

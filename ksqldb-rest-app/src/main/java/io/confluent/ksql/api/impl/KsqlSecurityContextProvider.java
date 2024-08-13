@@ -21,4 +21,6 @@ import io.confluent.ksql.security.KsqlSecurityContext;
 public interface KsqlSecurityContextProvider {
 
   KsqlSecurityContext provide(ApiSecurityContext apiSecurityContext);
+
+  default void close() {}
 }

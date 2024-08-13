@@ -25,6 +25,8 @@ import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.ImmutableMap;
+
+import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.exception.KafkaResponseGetFailedException;
 import io.confluent.ksql.integration.Retry;
 import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
@@ -40,7 +42,6 @@ import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.AdminClientConfig;
 import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.common.config.TopicConfig;
-import org.apache.kafka.test.IntegrationTest;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
@@ -166,26 +167,12 @@ public class KafkaTopicClientImplIntegrationTest {
   }
 
   @Test
-  public void shouldCreateTopic() {
-    // Given:
-    final String topicName = UUID.randomUUID().toString();
-
-    // When:
-    client.createTopic(topicName, 3, (short) 1);
-
-    // Then:
-    assertThatEventually(() -> topicExists(topicName), is(true));
-    final TopicDescription topicDescription = getTopicDescription(topicName);
-    assertThat(topicDescription.partitions(), hasSize(3));
-    assertThat(topicDescription.partitions().get(0).replicas(), hasSize(1));
-  }
-
-  @Test
   public void shouldCreateTopicWithConfig() {
     // Given:
     final String topicName = UUID.randomUUID().toString();
     final Map<String, String> config = ImmutableMap.of(
-        TopicConfig.COMPRESSION_TYPE_CONFIG, "snappy");
+        TopicConfig.COMPRESSION_TYPE_CONFIG, "snappy",
+        TopicConfig.RETENTION_MS_CONFIG, "5000");
 
     // When:
     client.createTopic(topicName, 2, (short) 1, config);
@@ -197,21 +184,26 @@ public class KafkaTopicClientImplIntegrationTest {
     assertThat(topicDescription.partitions().get(0).replicas(), hasSize(1));
     final Map<String, String> configs = client.getTopicConfig(topicName);
     assertThat(configs.get(TopicConfig.COMPRESSION_TYPE_CONFIG), is("snappy"));
+    assertThat(configs.get(TopicConfig.RETENTION_MS_CONFIG), is("5000"));
   }
 
   @Test
   public void shouldCreateTopicWithDefaultReplicationFactor() {
     // Given:
     final String topicName = UUID.randomUUID().toString();
+    final Map<String, String> config = ImmutableMap.of(
+        TopicConfig.RETENTION_MS_CONFIG, "5000");
 
     // When:
-    client.createTopic(topicName, 2, TopicProperties.DEFAULT_REPLICAS);
+    client.createTopic(topicName, 2, TopicProperties.DEFAULT_REPLICAS, config);
 
     // Then:
     assertThatEventually(() -> topicExists(topicName), is(true));
     final TopicDescription topicDescription = getTopicDescription(topicName);
     assertThat(topicDescription.partitions(), hasSize(2));
     assertThat(topicDescription.partitions().get(0).replicas(), hasSize(1));
+    final Map<String, String> configs = client.getTopicConfig(topicName);
+    assertThat(configs.get(TopicConfig.RETENTION_MS_CONFIG), is("5000"));
   }
 
   @Test

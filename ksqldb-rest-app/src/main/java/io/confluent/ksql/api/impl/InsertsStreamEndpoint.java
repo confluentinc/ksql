@@ -25,7 +25,6 @@ import io.confluent.ksql.api.server.KsqlApiException;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
-import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.Identifiers;
@@ -35,6 +34,7 @@ import io.confluent.ksql.util.VertxUtils;
 import io.vertx.core.Context;
 import io.vertx.core.WorkerExecutor;
 import io.vertx.core.json.JsonObject;
+import java.util.Optional;
 import org.reactivestreams.Subscriber;
 
 public class InsertsStreamEndpoint {
@@ -73,11 +73,9 @@ public class InsertsStreamEndpoint {
           "Invalid target name: " + e.getMessage(), ERROR_CODE_BAD_STATEMENT);
     }
 
+
     final DataSource dataSource = getDataSource(ksqlEngine.getMetaStore(),
         SourceName.of(target));
-    if (dataSource.getDataSourceType() == DataSourceType.KTABLE) {
-      throw new KsqlApiException("Cannot insert into a table", ERROR_CODE_BAD_STATEMENT);
-    }
     return InsertsSubscriber.createInsertsSubscriber(serviceContext, properties, dataSource,
         ksqlConfig, context, acksSubscriber, workerExecutor);
   }
@@ -89,12 +87,14 @@ public class InsertsStreamEndpoint {
     final DataSource dataSource = metaStore.getSource(sourceName);
     if (dataSource == null) {
       throw new KsqlApiException(
-          "Cannot insert values into an unknown stream: " + sourceName, ERROR_CODE_BAD_STATEMENT);
+          "Cannot insert values into an unknown stream/table: " + sourceName
+          + metaStore.checkAlternatives(sourceName, Optional.empty()),
+            ERROR_CODE_BAD_STATEMENT);
     }
 
     if (dataSource.getKsqlTopic().getKeyFormat().isWindowed()) {
       throw new KsqlApiException(
-          "Cannot insert values into windowed stream", ERROR_CODE_BAD_STATEMENT);
+          "Cannot insert values into windowed stream/table", ERROR_CODE_BAD_STATEMENT);
     }
 
     if (reservedInternalTopics.isReadOnly(dataSource.getKafkaTopicName())) {

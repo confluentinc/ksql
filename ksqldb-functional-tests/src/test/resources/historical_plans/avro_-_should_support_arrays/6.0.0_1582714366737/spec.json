@@ -59,7 +59,7 @@
       "replicas" : 1,
       "numPartitions" : 4
     } ],
-    "statements" : [ "CREATE STREAM INPUT (C1 ARRAY<STRING>) WITH (AVRO_SCHEMA_ID=1, KAFKA_TOPIC='input', VALUE_FORMAT='AvRo');", "CREATE STREAM OUTPUT AS SELECT *\nFROM INPUT INPUT\nEMIT CHANGES;" ],
+    "statements" : [ "CREATE STREAM INPUT (C1 ARRAY<STRING>) WITH (KAFKA_TOPIC='input', VALUE_FORMAT='AvRo');", "CREATE STREAM OUTPUT AS SELECT *\nFROM INPUT INPUT\nEMIT CHANGES;" ],
     "post" : {
       "sources" : [ {
         "name" : "INPUT",
@@ -124,7 +124,8 @@
                 "items" : [ "null", "string" ]
               } ],
               "default" : null
-            } ]
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
           }
         } ]
       }

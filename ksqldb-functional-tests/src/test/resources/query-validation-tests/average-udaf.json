@@ -89,6 +89,25 @@
         "type": "io.confluent.ksql.util.KsqlException",
         "message": "One of the functions used in the statement has an intermediate type that the value format can not handle. Please remove the function or change the format."
       }
+    },
+    {
+      "name": "average udaf with table",
+      "statements": [
+        "CREATE TABLE INPUT (ID STRING PRIMARY KEY, K STRING, VALUE integer) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT K, avg(value) AS avg FROM INPUT group by K;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": "alice", "value": {"K": "a", "value": 1}},
+        {"topic": "test_topic", "key": "bob", "value": {"K": "a", "value": 2}},
+        {"topic": "test_topic", "key": "alice", "value": {"K": "a", "value": null}},
+        {"topic": "test_topic", "key": "alice", "value": {"K": "a", "value": 4}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "a", "value": {"AVG": 1.0}},
+        {"topic": "OUTPUT", "key": "a", "value": {"AVG": 1.5}},
+        {"topic": "OUTPUT", "key": "a", "value": {"AVG": 2.0}},
+        {"topic": "OUTPUT", "key": "a", "value": {"AVG": 3.0}}
+      ]
     }
   ]
 }

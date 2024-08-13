@@ -17,6 +17,11 @@ package io.confluent.ksql.services;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.junit.Assert.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
@@ -26,11 +31,15 @@ import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.kafka.schemaregistry.avro.AvroSchema;
 import io.confluent.kafka.schemaregistry.client.SchemaMetadata;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.kafka.schemaregistry.client.rest.entities.requests.RegisterSchemaResponse;
+import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import io.confluent.ksql.test.util.TestMethods;
 import io.confluent.ksql.test.util.TestMethods.TestCase;
 import java.util.Collection;
 import java.util.Objects;
+
 import org.apache.avro.Schema;
+import org.apache.hc.core5.http.HttpStatus;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.runners.Enclosed;
@@ -59,12 +68,17 @@ public final class SandboxedSchemaRegistryClientTest {
           .ignore("register", String.class, Schema.class, int.class, int.class)
           .ignore("register", String.class, ParsedSchema.class, int.class, int.class)
           .ignore("getLatestSchemaMetadata", String.class)
+          .ignore("registerWithResponse", String.class, ParsedSchema.class, boolean.class)
           .ignore("getSchemaBySubjectAndId", String.class, int.class)
           .ignore("testCompatibility", String.class, Schema.class)
           .ignore("testCompatibility", String.class, ParsedSchema.class)
           .ignore("deleteSubject", String.class)
           .ignore("getAllSubjects")
+          .ignore("getId", String.class, ParsedSchema.class)
+          .ignore("getId", String.class, ParsedSchema.class, boolean.class)
+          .ignore("getId", String.class, Schema.class)
           .ignore("getVersion", String.class, ParsedSchema.class)
+          .ignore("getSchemaById", int.class)
           .build();
     }
 
@@ -77,12 +91,16 @@ public final class SandboxedSchemaRegistryClientTest {
 
     @Before
     public void setUp() {
-      sandboxedSchemaRegistryClient = SandboxedSchemaRegistryClient.createProxy(mock(SchemaRegistryClient.class));
+      sandboxedSchemaRegistryClient = SandboxedSchemaRegistryClient.createProxy(
+          mock(SchemaRegistryClient.class));
     }
 
-    @Test(expected = UnsupportedOperationException.class)
-    public void shouldThrowOnUnsupportedOperation() throws Throwable {
-      testCase.invokeMethod(sandboxedSchemaRegistryClient);
+    @Test
+    public void shouldThrowOnUnsupportedOperation() {
+      assertThrows(
+          UnsupportedOperationException.class,
+          () -> testCase.invokeMethod(sandboxedSchemaRegistryClient)
+      );
     }
   }
 
@@ -93,6 +111,8 @@ public final class SandboxedSchemaRegistryClientTest {
     private SchemaRegistryClient delegate;
     @Mock
     private AvroSchema schema;
+    @Mock
+    private ParsedSchema parsedSchema;
     @Mock
     private SchemaMetadata schemaMetadata;
     private SchemaRegistryClient sandboxedClient;
@@ -172,6 +192,65 @@ public final class SandboxedSchemaRegistryClientTest {
 
       // Then:
       assertThat(version, is(6));
+    }
+
+    @Test
+    public void shouldRegisterWithResponse() throws Exception {
+      // When:
+      final RegisterSchemaResponse response = sandboxedClient
+          .registerWithResponse("some subject", schema, false);
+
+      // Then:
+      assertThat(response, is(notNullValue()));
+      assertThat(response.getId(), is(1));
+    }
+
+    @Test
+    public void shouldGetSchemaById() throws Exception {
+      // Given:
+      when(delegate.getSchemaById(anyInt())).thenReturn(parsedSchema);
+
+      // When:
+      final ParsedSchema retSchema = sandboxedClient.getSchemaById(1);
+
+      // Then:
+      assertThat(retSchema, is(parsedSchema));
+    }
+
+    @Test
+    public void shouldGetId() throws Exception {
+      // Given:
+      when(delegate.getId(anyString(), any(ParsedSchema.class)))
+          .thenReturn(123)
+          .thenReturn(124)
+          .thenReturn(125); // we swallow the third boolean argument in the implementation
+
+      // When:
+      final int id = sandboxedClient.getId("some subject", schema);
+      final int id1 = sandboxedClient.getId("some subject", parsedSchema);
+      final int id2 = sandboxedClient.getId("some subject", parsedSchema, true);
+
+      // Then:
+      assertThat(id, is(123));
+      assertThat(id1, is(124));
+      assertThat(id2, is(125));
+    }
+
+    @Test
+    public void shouldGetIdFromCache() throws Exception {
+      // Given:
+      final RestClientException exception = mock(RestClientException.class);
+      when(exception.getStatus()).thenReturn(HttpStatus.SC_NOT_FOUND);
+      when(delegate.getId(anyString(), any(ParsedSchema.class))).thenThrow(exception);
+
+      final int newId = sandboxedClient.register("newSubject", parsedSchema);
+
+      // When:
+      final int id = sandboxedClient.getId("newSubject", parsedSchema);
+
+      // Then:
+      assertThat(id, is(newId));
+
     }
   }
 }

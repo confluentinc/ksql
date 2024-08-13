@@ -65,6 +65,36 @@ public class ListPropertiesExecutorTest {
   }
 
   @Test
+  public void shouldContainAllowField() {
+    // When:
+    final PropertiesList properties = (PropertiesList) CustomExecutors.LIST_PROPERTIES.execute(
+        engine.configure("LIST PROPERTIES;"),
+        mock(SessionProperties.class),
+        engine.getEngine(),
+        engine.getServiceContext()
+    ).getEntity().orElseThrow(IllegalStateException::new);
+
+    // Then:
+    assertThat(toMap(properties).get("ksql.streams.commit.interval.ms").getEditable(), equalTo(true));
+    assertThat(toMap(properties).get(KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG).getEditable(), equalTo(false));
+  }
+
+  @Test
+  public void shouldContainLevelField() {
+    // When:
+    final PropertiesList properties = (PropertiesList) CustomExecutors.LIST_PROPERTIES.execute(
+        engine.configure("LIST PROPERTIES;"),
+        mock(SessionProperties.class),
+        engine.getEngine(),
+        engine.getServiceContext()
+    ).getEntity().orElseThrow(IllegalStateException::new);
+
+    // Then:
+    assertThat(toMap(properties).get(KsqlConfig.KSQL_EXT_DIR).getLevel(), equalTo("SERVER"));
+    assertThat(toMap(properties).get(KsqlConfig.KSQL_STRING_CASE_CONFIG_TOGGLE).getLevel(), equalTo("QUERY"));
+  }
+
+  @Test
   public void shouldListProperties() {
     // When:
     final PropertiesList properties = (PropertiesList) CustomExecutors.LIST_PROPERTIES.execute(
@@ -72,11 +102,11 @@ public class ListPropertiesExecutorTest {
         mock(SessionProperties.class),
         engine.getEngine(),
         engine.getServiceContext()
-    ).orElseThrow(IllegalStateException::new);
+    ).getEntity().orElseThrow(IllegalStateException::new);
 
     // Then:
     assertThat(
-        toMap(properties),
+        toStringMap(properties),
         equalTo(engine.getKsqlConfig().getAllConfigPropsWithSecretsObfuscated()));
     assertThat(properties.getOverwrittenProperties(), is(empty()));
   }
@@ -90,7 +120,7 @@ public class ListPropertiesExecutorTest {
         mock(SessionProperties.class),
         engine.getEngine(),
         engine.getServiceContext()
-    ).orElseThrow(IllegalStateException::new);
+    ).getEntity().orElseThrow(IllegalStateException::new);
 
     // Then:
     assertThat(
@@ -107,7 +137,7 @@ public class ListPropertiesExecutorTest {
         mock(SessionProperties.class),
         engine.getEngine(),
         engine.getServiceContext()
-    ).orElseThrow(IllegalStateException::new);
+    ).getEntity().orElseThrow(IllegalStateException::new);
 
     // Then:
     assertThat(
@@ -125,7 +155,7 @@ public class ListPropertiesExecutorTest {
         mock(SessionProperties.class),
         engine.getEngine(),
         engine.getServiceContext()
-    ).orElseThrow(IllegalStateException::new);
+    ).getEntity().orElseThrow(IllegalStateException::new);
 
     // Then:
     assertThat(
@@ -155,7 +185,7 @@ public class ListPropertiesExecutorTest {
         mock(SessionProperties.class),
         engine.getEngine(),
         engine.getServiceContext()
-    ).orElseThrow(IllegalStateException::new);
+    ).getEntity().orElseThrow(IllegalStateException::new);
 
     // Then:
     assertThat(
@@ -178,7 +208,15 @@ public class ListPropertiesExecutorTest {
     }
   }
 
-  private static Map<String, String> toMap(final PropertiesList properties) {
+  private static Map<String, Property> toMap(final PropertiesList properties) {
+    final Map<String, Property> map = new HashMap<>();
+    for (final Property property : properties.getProperties()) {
+      map.put(property.getName(), property);
+    }
+    return map;
+  }
+
+  private static Map<String, String> toStringMap(final PropertiesList properties) {
     final Map<String, String> map = new HashMap<>();
     for (final Property property : properties.getProperties()) {
       map.put(property.getName(), property.getValue());

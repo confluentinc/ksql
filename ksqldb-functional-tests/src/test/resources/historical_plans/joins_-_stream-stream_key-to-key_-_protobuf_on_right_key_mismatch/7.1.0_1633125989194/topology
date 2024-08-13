@@ -1,0 +1,51 @@
+Topologies:
+   Sub-topology: 0
+    Source: KSTREAM-SOURCE-0000000000 (topics: [s1])
+      --> KSTREAM-TRANSFORMVALUES-0000000001
+    Processor: KSTREAM-TRANSFORMVALUES-0000000001 (stores: [])
+      --> PrependAliasLeft
+      <-- KSTREAM-SOURCE-0000000000
+    Source: Join-right-repartition-source (topics: [Join-right-repartition])
+      --> Join-other-windowed
+    Processor: PrependAliasLeft (stores: [])
+      --> Join-this-windowed
+      <-- KSTREAM-TRANSFORMVALUES-0000000001
+    Processor: Join-other-windowed (stores: [KSTREAM-JOINOTHER-0000000013-store])
+      --> Join-other-join
+      <-- Join-right-repartition-source
+    Processor: Join-this-windowed (stores: [KSTREAM-JOINTHIS-0000000012-store])
+      --> Join-this-join
+      <-- PrependAliasLeft
+    Processor: Join-other-join (stores: [KSTREAM-JOINTHIS-0000000012-store])
+      --> Join-merge
+      <-- Join-other-windowed
+    Processor: Join-this-join (stores: [KSTREAM-JOINOTHER-0000000013-store])
+      --> Join-merge
+      <-- Join-this-windowed
+    Processor: Join-merge (stores: [])
+      --> Project
+      <-- Join-this-join, Join-other-join
+    Processor: Project (stores: [])
+      --> KSTREAM-SINK-0000000016
+      <-- Join-merge
+    Sink: KSTREAM-SINK-0000000016 (topic: OUTPUT)
+      <-- Project
+
+  Sub-topology: 1
+    Source: KSTREAM-SOURCE-0000000003 (topics: [s2])
+      --> KSTREAM-TRANSFORMVALUES-0000000004
+    Processor: KSTREAM-TRANSFORMVALUES-0000000004 (stores: [])
+      --> RightSourceKeyed-SelectKey
+      <-- KSTREAM-SOURCE-0000000003
+    Processor: RightSourceKeyed-SelectKey (stores: [])
+      --> PrependAliasRight
+      <-- KSTREAM-TRANSFORMVALUES-0000000004
+    Processor: PrependAliasRight (stores: [])
+      --> Join-right-repartition-filter
+      <-- RightSourceKeyed-SelectKey
+    Processor: Join-right-repartition-filter (stores: [])
+      --> Join-right-repartition-sink
+      <-- PrependAliasRight
+    Sink: Join-right-repartition-sink (topic: Join-right-repartition)
+      <-- Join-right-repartition-filter
+

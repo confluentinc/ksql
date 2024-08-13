@@ -11,7 +11,10 @@ keywords: ksqlDB, select, push query
 ```sql
 SELECT select_expr [, ...]
   FROM from_item
-  [[ LEFT | FULL | INNER ] JOIN join_item ON [ WITHIN [(before TIMEUNIT, after TIMEUNIT) | N TIMEUNIT] ] join_criteria]*
+  [[ LEFT | FULL | INNER ]
+    JOIN join_item
+        [WITHIN [<size> <timeunit> | (<before_size> <timeunit>, <after_size> <timeunit>)] [GRACE PERIOD <grace_size> <timeunit>]]
+    ON join_criteria]*
   [ WINDOW window_expression ]
   [ WHERE where_condition ]
   [ GROUP BY grouping_expression ]
@@ -33,11 +36,13 @@ Push queries enable you to subscribe to changes, which enable
 reacting to new information in real-time. They’re a good fit for asynchronous
 application flows. For request/response flows, see [Pull Queries](select-pull-query.md).
 
+!!! Tip "See push queries in action"
+    - [Detect Unusual Credit Card Activity](https://developer.confluent.io/tutorials/credit-card-activity/confluent.html#execute-ksqldb-code)
+    - [How to Efficiently Subscribe to a SQL Query for Changes](https://www.confluent.io/blog/push-queries-v2-with-ksqldb-scalable-sql-query-subscriptions/)
+
 Push queries can use all available SQL features, which can be useful when prototyping a
 persistent query or when running ad-hoc queries from the CLI. But unlike persistent queries,
-
 push queries are not shared. If multiple clients submit the same push query, ksqlDB computes
-
 independent results for each client.
 
 !!! tip
@@ -51,8 +56,8 @@ In the previous statements, `from_item` is one of the following:
 -   `from_item LEFT JOIN from_item ON join_condition`
 
 The WHERE clause can refer to any column defined for a stream or table,
-including the `ROWTIME` pseudo column. `where_condition` is an expression that evaluates to true
-for each record selected.
+including the `ROWTIME`, `ROWPARTITION`, and `ROWOFFSET` pseudo columns.
+`where_condition` is an expression that evaluates to true for each record selected.
 
 In the WHERE expression, you can use any operator that ksqlDB supports.
 For more information, see
@@ -60,15 +65,26 @@ For more information, see
 
 ### EMIT
 
-The EMIT clause lets you control the output refinement of your push query. The output refinement is
-how you would like to *emit* your results. 
+The EMIT clause lets you control the output refinement of your push query. The
+output refinement is how you would like to *emit* your results. 
 
 ksqlDB supports the following output refinement types.
 
-### CHANGES
+#### CHANGES
 
-This is the standard output refinement for push queries, for when we would like to see all changes 
-happening.
+This is the standard output refinement for push queries, for when you would
+like to see all changes happening.
+
+#### FINAL
+
+Use the EMIT FINAL output refinement when you want to emit only the final
+result of a windowed aggregation and suppress the intermediate results until
+the window closes. This output refinement is supported only for windowed
+aggregations.
+
+!!! note
+    EMIT `output_refinement` defaults to CHANGES unless explicitly set to FINAL on
+    a windowed aggregation.
 
 
 ## Examples
@@ -208,7 +224,7 @@ SELECT windowstart, windowend, item_id, SUM(quantity)
   EMIT CHANGES;
 ```
 
-#### WITHIN
+#### WITHIN and GRACE PERIOD
 
 !!! note
     Stream-Stream joins must have a WITHIN clause specified.
@@ -232,6 +248,32 @@ the order was placed, and shipped within 2 hours of the payment being received.
         INNER JOIN payments p WITHIN 1 HOURS ON p.id = o.id
         INNER JOIN shipments s WITHIN 2 HOURS ON s.id = o.id;
 ```
+
+The GRACE PERIOD, part of the WITHIN clause, allows the join to process out-of-order records for up
+to the specified grace period. Events that arrive after the grace period has passed are dropped
+as _late_ records and not joined.
+
+```sql
+   CREATE STREAM shipped_orders AS
+     SELECT
+        o.id as orderId
+        o.itemid as itemId,
+        s.id as shipmentId,
+        p.id as paymentId
+     FROM orders o
+        INNER JOIN payments p WITHIN 1 HOURS GRACE PERIOD 15 MINUTES ON p.id = o.id
+        INNER JOIN shipments s WITHIN 2 HOURS GRACE PERIOD 15 MINUTES ON s.id = o.id;
+```
+
+If you don't specify a grace period explicitly, the default grace period is 24 hours. This could
+cause a huge amount of disk usage on high-throughput streams. Setting a specific GRACE PERIOD is
+recommended to reduce high disk usage.
+
+!!! important
+    If you specify a GRACE PERIOD for left/outer joins, the grace period defines when the left/outer
+    join result is emitted. If you don't specify a GRACE PERIOD for left/outer joins,
+    left/outer join results are emitted eagerly, which may cause "spurious" result records, so
+    we recommended that you specify a GRACE PERIOD.
 
 #### Out-of-order events
 

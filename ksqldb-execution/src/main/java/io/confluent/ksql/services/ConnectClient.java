@@ -15,13 +15,14 @@
 
 package io.confluent.ksql.services;
 
+import io.confluent.ksql.rest.entity.ConfigInfos;
+import io.confluent.ksql.rest.entity.ConnectorInfo;
+import io.confluent.ksql.rest.entity.ConnectorStateInfo;
+import io.confluent.ksql.rest.entity.SimpleConnectorPluginInfo;
 import io.confluent.ksql.util.KsqlPreconditions;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import org.apache.kafka.connect.runtime.rest.entities.ConnectorInfo;
-import org.apache.kafka.connect.runtime.rest.entities.ConnectorPluginInfo;
-import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo;
 
 /**
  * An interface defining the common operations to communicate with
@@ -41,7 +42,7 @@ public interface ConnectClient {
    *
    * @return a list of connector plugins
    */
-  ConnectResponse<List<ConnectorPluginInfo>> connectorPlugins();
+  ConnectResponse<List<SimpleConnectorPluginInfo>> connectorPlugins();
 
   /**
    * Gets the configuration for a specified connector.
@@ -58,6 +59,14 @@ public interface ConnectClient {
    * @param config    the connector configuration
    */
   ConnectResponse<ConnectorInfo> create(String connector, Map<String, String> config);
+
+  /**
+   * Validates specified connector configuration for the given plugin.
+   *
+   * @param plugin  the name of the connector plugin
+   * @param config  the connector configuration
+   */
+  ConnectResponse<ConfigInfos> validate(String plugin, Map<String, String> config);
 
   /**
    * Get the status of {@code connector}.

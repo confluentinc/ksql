@@ -22,7 +22,7 @@
     <parent>
         <groupId>io.confluent.ksql</groupId>
         <artifactId>ksqldb-parent</artifactId>
-        <version>7.0.16-0</version>
+        <version>7.8.0-0</version>
     </parent>
 
     <artifactId>ksqldb-engine</artifactId>
@@ -114,6 +114,16 @@
         <dependency>
             <groupId>org.apache.kafka</groupId>
             <artifactId>connect-runtime</artifactId>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.apache.logging.log4j</groupId>
+                    <artifactId>log4j-core</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.logging.log4j</groupId>
+                    <artifactId>log4j-api</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
 
         <dependency>
@@ -128,8 +138,9 @@
         </dependency>
 
         <dependency>
-            <groupId>com.clearspring.analytics</groupId>
-            <artifactId>stream</artifactId>
+            <groupId>io.confluent.ksql</groupId>
+            <artifactId>ksqldb-stream-lib</artifactId>
+            <version>${io.confluent.ksql.version}</version>
         </dependency>
 
         <!-- Required for running tests -->

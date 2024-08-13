@@ -24,7 +24,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.function.Supplier;
 
 /**
  * This interface is used to report metrics as data points to a
@@ -87,7 +86,7 @@ public interface MetricsReporter extends Closeable, Configurable {
       }
       final DataPoint dataPoint = (DataPoint) o;
       return time == dataPoint.time
-          && value == dataPoint.value
+          && Objects.equals(value, dataPoint.value)
           && Objects.equals(name, dataPoint.name)
           && Objects.equals(tags, dataPoint.tags);
     }
@@ -107,7 +106,12 @@ public interface MetricsReporter extends Closeable, Configurable {
   /**
    * Reports a list of data points.
    *
-   * @param dataPointSupplier supplier of the list of data points
+   * @param dataPoints the list of data points
    */
-  void report(Supplier<List<DataPoint>> dataPointSupplier);
+  void report(List<DataPoint> dataPoints);
+
+  /**
+   * Notifies the reporter that the metric with name and tags can be cleaned up
+   */
+  void cleanup(String name, Map<String, String> tags);
 }

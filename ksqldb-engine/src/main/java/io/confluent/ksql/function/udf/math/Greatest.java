@@ -26,6 +26,10 @@ import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlConstants;
 import java.math.BigDecimal;
+import java.nio.ByteBuffer;
+import java.sql.Date;
+import java.sql.Time;
+import java.sql.Timestamp;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
@@ -44,7 +48,7 @@ public class Greatest {
   @Udf
   public Integer greatest(@UdfParameter final Integer val, @UdfParameter final Integer... vals) {
 
-    return Stream.concat(Stream.of(val), Arrays.stream(vals))
+    return (vals == null) ? null : Stream.concat(Stream.of(val), Arrays.stream(vals))
         .filter(Objects::nonNull)
         .max(Integer::compareTo)
         .orElse(null);
@@ -53,7 +57,7 @@ public class Greatest {
   @Udf
   public Long greatest(@UdfParameter final Long val, @UdfParameter final Long... vals) {
 
-    return Stream.concat(Stream.of(val), Arrays.stream(vals))
+    return (vals == null) ? null : Stream.concat(Stream.of(val), Arrays.stream(vals))
         .filter(Objects::nonNull)
         .max(Long::compareTo)
         .orElse(null);
@@ -62,7 +66,7 @@ public class Greatest {
   @Udf
   public Double greatest(@UdfParameter final Double val, @UdfParameter final Double... vals) {
 
-    return Streams.concat(Stream.of(val), Arrays.stream(vals))
+    return (vals == null) ? null : Streams.concat(Stream.of(val), Arrays.stream(vals))
         .filter(Objects::nonNull)
         .max(Double::compareTo)
         .orElse(null);
@@ -70,18 +74,55 @@ public class Greatest {
 
   @Udf
   public String greatest(@UdfParameter final String val, @UdfParameter final String... vals) {
-
-    return Streams.concat(Stream.of(val), Arrays.stream(vals))
+    return (vals == null) ? null : Streams.concat(Stream.of(val), Arrays.stream(vals))
         .filter(Objects::nonNull)
         .max(String::compareTo)
         .orElse(null);
+  }
+
+  @Udf
+  public ByteBuffer greatest(@UdfParameter final ByteBuffer val,
+                             @UdfParameter final ByteBuffer... vals) {
+
+    return (vals == null) ? null : Streams.concat(Stream.of(val), Arrays.stream(vals))
+            .filter(Objects::nonNull)
+            .max(ByteBuffer::compareTo)
+            .orElse(null);
+  }
+
+  @Udf
+  public Date greatest(@UdfParameter final Date val, @UdfParameter final Date... vals) {
+
+    return (vals == null) ? null : Streams.concat(Stream.of(val), Arrays.stream(vals))
+            .filter(Objects::nonNull)
+            .max(Date::compareTo)
+            .orElse(null);
+  }
+
+  @Udf
+  public Time greatest(@UdfParameter final Time val, @UdfParameter final Time... vals) {
+
+    return (vals == null) ? null : Streams.concat(Stream.of(val), Arrays.stream(vals))
+            .filter(Objects::nonNull)
+            .max(Time::compareTo)
+            .orElse(null);
+  }
+
+  @Udf
+  public Timestamp greatest(@UdfParameter final Timestamp val,
+                            @UdfParameter final Timestamp... vals) {
+
+    return (vals == null) ? null : Streams.concat(Stream.of(val), Arrays.stream(vals))
+            .filter(Objects::nonNull)
+            .max(Timestamp::compareTo)
+            .orElse(null);
   }
 
   @Udf(schemaProvider = "greatestDecimalProvider")
   public BigDecimal greatest(@UdfParameter final BigDecimal val,
       @UdfParameter final BigDecimal... vals) {
 
-    return Streams.concat(Stream.of(val), Arrays.stream(vals))
+    return (vals == null) ? null : Streams.concat(Stream.of(val), Arrays.stream(vals))
         .filter(Objects::nonNull)
         .max(Comparator.naturalOrder())
         .orElse(null);

@@ -61,7 +61,7 @@
       }
     },
     {
-      "name": "Should fail if all result key columns are missing for inner join",
+      "name": "Should fail if all result key columns are missing for left join",
       "statements": [
         "CREATE TABLE left_table (l_id_1 BIGINT PRIMARY KEY, l_id_2 BIGINT PRIMARY KEY, f1 VARCHAR, foreign_key BIGINT) WITH (kafka_topic='left_topic', format='JSON');",
         "CREATE TABLE right_table (r_id BIGINT PRIMARY KEY, f2 BIGINT) WITH (kafka_topic='right_topic', format='JSON');",
@@ -142,12 +142,26 @@
         {"topic": "OUTPUT", "key": 1, "value": {"R_ID": null, "NAME": "zero", "F1": null}, "timestamp": 17000},
         {"topic": "OUTPUT", "key": 10, "value": {"R_ID": null, "NAME": "bar", "F1": null}, "timestamp": 17000},
         {"topic": "OUTPUT", "key": 1, "value": null, "timestamp": 18000},
+        {"topic": "OUTPUT", "key": 1, "value": null, "timestamp": 18000},
+        {"topic": "OUTPUT", "key": 0, "value": null, "timestamp": 19000},
         {"topic": "OUTPUT", "key": 0, "value": null, "timestamp": 19000}
       ],
       "post": {
         "sources": [
           {"name": "OUTPUT", "type": "table", "schema": "L_ID BIGINT KEY, R_ID BIGINT, NAME STRING, F1 STRING"}
         ]
+      }
+    },
+    {
+      "name": "Should fail on a FK right join",
+      "statements": [
+        "CREATE TABLE left_table (l_id BIGINT PRIMARY KEY, name VARCHAR, foreign_key BIGINT) WITH (kafka_topic='left_topic', value_format='JSON');",
+        "CREATE TABLE right_table (r_id BIGINT PRIMARY KEY, f1 VARCHAR, f2 BIGINT) WITH (kafka_topic='right_topic', value_format='JSON');",
+        "CREATE TABLE output AS SELECT l_id, r_id, name, f1 FROM left_table RIGHT JOIN right_table ON foreign_key = r_id;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "RIGHT OUTER JOIN on a foreign key is not supported"
       }
     },
     {
@@ -208,6 +222,8 @@
         {"topic": "OUTPUT", "key": {"L_ID": 1, "L_ID_2_FOREIGN_KEY": 0}, "value": {"R_ID": null, "NAME": "zero", "F1": null}, "timestamp": 17000},
         {"topic": "OUTPUT", "key": {"L_ID": 10, "L_ID_2_FOREIGN_KEY": 0}, "value": {"R_ID": null, "NAME": "bar", "F1": null}, "timestamp": 17000},
         {"topic": "OUTPUT", "key": {"L_ID": 1, "L_ID_2_FOREIGN_KEY": 0}, "value": null, "timestamp": 18000},
+        {"topic": "OUTPUT", "key": {"L_ID": 1, "L_ID_2_FOREIGN_KEY": 0}, "value": null, "timestamp": 18000},
+        {"topic": "OUTPUT", "key": {"L_ID": 0, "L_ID_2_FOREIGN_KEY": 100}, "value": null, "timestamp": 19000},
         {"topic": "OUTPUT", "key": {"L_ID": 0, "L_ID_2_FOREIGN_KEY": 100}, "value": null, "timestamp": 19000}
       ],
       "post": {
@@ -274,6 +290,8 @@
         {"topic": "OUTPUT", "key": 1, "value": {"RT_ID": null, "NAME": "zero", "F1": null}, "timestamp": 17000},
         {"topic": "OUTPUT", "key": 10, "value": {"RT_ID": null, "NAME": "bar", "F1": null}, "timestamp": 17000},
         {"topic": "OUTPUT", "key": 1, "value": null, "timestamp": 18000},
+        {"topic": "OUTPUT", "key": 1, "value": null, "timestamp": 18000},
+        {"topic": "OUTPUT", "key": 0, "value": null, "timestamp": 19000},
         {"topic": "OUTPUT", "key": 0, "value": null, "timestamp": 19000}
       ],
       "post": {
@@ -430,6 +448,8 @@
         {"topic": "OUTPUT", "key": 1, "value": {"RT_ID_ALIAS": null, "NAME_ALIAS": "zero", "F1": null}, "timestamp": 17000},
         {"topic": "OUTPUT", "key": 10, "value": {"RT_ID_ALIAS": null, "NAME_ALIAS": "bar", "F1": null}, "timestamp": 17000},
         {"topic": "OUTPUT", "key": 1, "value": null, "timestamp": 18000},
+        {"topic": "OUTPUT", "key": 1, "value": null, "timestamp": 18000},
+        {"topic": "OUTPUT", "key": 0, "value": null, "timestamp": 19000},
         {"topic": "OUTPUT", "key": 0, "value": null, "timestamp": 19000}
       ],
       "post": {
@@ -507,6 +527,7 @@
         {"topic": "OUTPUT", "key": 1, "value": {"RIGHT_TABLE_R_ID": null, "RIGHT_TABLE_F1": null, "RIGHT_TABLE_F2": null}, "timestamp": 0},
         {"topic": "OUTPUT", "key": 1, "value": {"RIGHT_TABLE_R_ID": 0, "RIGHT_TABLE_F1": "blah", "RIGHT_TABLE_F2": 4}, "timestamp": 10000},
         {"topic": "OUTPUT", "key": 1, "value": {"RIGHT_TABLE_R_ID": 0, "RIGHT_TABLE_F1": "blah", "RIGHT_TABLE_F2": 4}, "timestamp": 11000},
+        {"topic": "OUTPUT", "key": 1, "value": null, "timestamp": 18000},
         {"topic": "OUTPUT", "key": 1, "value": null, "timestamp": 18000}
       ],
       "post": {
@@ -554,6 +575,7 @@
         {"topic": "OUTPUT", "key": 1, "value": {"LT_NAME": "zero", "LT_FOREIGN_KEY": 0, "RT_R_ID": null, "RT_F1": null, "RT_F2": null, "NAME_ALIAS": "zero"}, ",timestamp": 0},
         {"topic": "OUTPUT", "key": 1, "value": {"LT_NAME": "zero", "LT_FOREIGN_KEY": 0, "RT_R_ID": 0, "RT_F1": "blah", "RT_F2": 4, "NAME_ALIAS": "zero"}, "timestamp": 10000},
         {"topic": "OUTPUT", "key": 1, "value": {"LT_NAME": "zero", "LT_FOREIGN_KEY": 0, "RT_R_ID": 0, "RT_F1": "blah", "RT_F2": 4, "NAME_ALIAS": "zero"}, "timestamp": 11000},
+        {"topic": "OUTPUT", "key": 1, "value": null, "timestamp": 18000},
         {"topic": "OUTPUT", "key": 1, "value": null, "timestamp": 18000}
       ],
       "post": {
@@ -592,6 +614,56 @@
         ],
         "topics": {
           "blacklist": ".*-repartition"
+        }
+      }
+    },
+    {
+      "name": "Should repartition RHS if the key format comes from Schema Registry",
+      "statements": [
+        "CREATE TABLE left_table (l_id BIGINT PRIMARY KEY, name VARCHAR, foreign_key STRUCT<val BIGINT>) WITH (kafka_topic='left_topic', format='AVRO', partitions=128);",
+        "CREATE TABLE right_table (r_id STRUCT<val BIGINT> PRIMARY KEY, f1 INTEGER) WITH (kafka_topic='right_topic', format='AVRO', partitions=128);",
+        "CREATE TABLE output AS SELECT l_id, r_id, name, f1 FROM left_table JOIN right_table ON foreign_key = r_id;"
+      ],
+      "topics": [
+        {"name":  "right_topic",
+         "keySchema":  {
+           "fields": [
+             {
+               "doc": "Comprehensive documentation missing in the autogenerated left_topic's schema",
+               "name": "val",
+               "type": "long"
+             }
+           ],
+           "name": "EntityId",
+           "namespace": "com.example",
+           "type": "record",
+           "version": "2"
+         },
+         "keyFormat": "AVRO"}
+      ],
+      "inputs": [
+        {"topic": "right_topic", "key": {"VAL": 0}, "value": {"F1": 0}, "timestamp": 10000},
+        {"topic": "right_topic", "key": {"VAL": 1}, "value": {"F1": 1}, "timestamp": 10000},
+        {"topic": "right_topic", "key": {"VAL": 2}, "value": {"F1": 2}, "timestamp": 10000},
+        {"topic": "left_topic", "key": 0, "value": {"NAME": "zero", "FOREIGN_KEY": {"VAL": 0}}, "timestamp": 11000},
+        {"topic": "left_topic", "key": 1, "value": {"NAME": "bar", "FOREIGN_KEY": {"VAL": 1}}, "timestamp": 11000},
+        {"topic": "left_topic", "key": 2, "value": {"NAME": "foo", "FOREIGN_KEY": {"VAL": 2}}, "timestamp": 11000}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 0, "value": {"R_ID": {"VAL": 0}, "NAME": "zero", "F1": 0}, "timestamp": 11000},
+        {"topic": "OUTPUT", "key": 1, "value": {"R_ID": {"VAL": 1}, "NAME": "bar", "F1": 1}, "timestamp": 11000},
+        {"topic": "OUTPUT", "key": 2, "value": {"R_ID": {"VAL": 2}, "NAME": "foo", "F1": 2}, "timestamp": 11000}
+      ],
+      "post": {
+        "topics": {
+          "topics": [
+            {"name": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-RightSourceKeyed-SelectKey-repartition",
+             "keyFormat": {
+               "format": "AVRO",
+               "properties": { "fullSchemaName": "io.confluent.ksql.avro_schemas.LeftTableKey" },
+               "features": [ "UNWRAP_SINGLES" ]},
+             "valueFormat": { "format": "AVRO" }}
+          ]
         }
       }
     },
@@ -707,6 +779,133 @@
           "blacklist": ".*-repartition"
         }
       }
+    },
+    {
+      "name": "table-table foreign key join with PROTOBUF schema and schema id",
+      "statements": [
+        "CREATE TABLE left_table WITH (kafka_topic='left_topic', partitions=128, format='PROTOBUF', KEY_SCHEMA_FULL_NAME='ProtobufLeftKey2', KEY_SCHEMA_ID=101, VALUE_SCHEMA_FULL_NAME='ProtobufLeftValue2', VALUE_SCHEMA_ID=102);",
+        "CREATE TABLE right_table WITH (kafka_topic='right_topic', partitions=128, format='PROTOBUF', KEY_SCHEMA_FULL_NAME='ProtobufRightKey2', KEY_SCHEMA_ID=201, VALUE_SCHEMA_FULL_NAME='ProtobufRightValue2', VALUE_SCHEMA_ID=202);",
+        "CREATE TABLE output AS SELECT L.K, L.NAME, L.FOREIGN_KEY, R.F1 FROM left_table L JOIN right_table R ON L.FOREIGN_KEY = R.K;"
+      ],
+      "topics": [
+        {
+          "name": "left_topic",
+          "keyFormat": "PROTOBUF",
+          "keySchemaId": 101,
+          "keySchema": "syntax = \"proto3\"; message ProtobufLeftKey1 {uint32 k1 = 1;} message ProtobufLeftKey2 {int32 K = 1;}",
+          "valueFormat": "PROTOBUF",
+          "valueSchemaId": 102,
+          "valueSchema": "syntax = \"proto3\"; message ProtobufLeftValue1 {float c1 = 1; uint32 c2 = 2;} message ProtobufLeftValue2 {string NAME = 1; int32 FOREIGN_KEY = 2;}"
+        },
+        {
+          "name": "right_topic",
+          "keyFormat": "PROTOBUF",
+          "keySchemaId": 201,
+          "keySchema": "syntax = \"proto3\"; message ProtobufRightKey1 {uint32 k1 = 1;} message ProtobufRightKey2 {int32 K = 1;}",
+          "valueFormat": "PROTOBUF",
+          "valueSchemaId": 202,
+          "valueSchema": "syntax = \"proto3\"; message ProtobufRightValue1 {float c1 = 1; uint32 c2 = 2;} message ProtobufRightValue2 {uint64 F1 = 1;}"
+        }
+      ],
+      "inputs": [
+        {"topic": "right_topic", "key": {"K": 0}, "value": {"F1": 0}, "timestamp": 10000},
+        {"topic": "right_topic", "key": {"K": 1}, "value": {"F1": 1}, "timestamp": 10000},
+        {"topic": "right_topic", "key": {"K": 2}, "value": {"F1": 2}, "timestamp": 10000},
+        {"topic": "left_topic", "key": {"K": 0}, "value": {"NAME": "zero", "FOREIGN_KEY": 0}, "timestamp": 11000},
+        {"topic": "left_topic", "key": {"K": 1}, "value": {"NAME": "bar", "FOREIGN_KEY": 1}, "timestamp": 11000},
+        {"topic": "left_topic", "key": {"K": 2}, "value": {"NAME": "foo", "FOREIGN_KEY": 2}, "timestamp": 11000}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": {"L_K": 0}, "value": {"FOREIGN_KEY": 0, "NAME": "zero", "F1": 0}, "timestamp": 11000},
+        {"topic": "OUTPUT", "key": {"L_K": 1}, "value": {"FOREIGN_KEY": 1, "NAME": "bar", "F1": 1}, "timestamp": 11000},
+        {"topic": "OUTPUT", "key": {"L_K": 2}, "value": {"FOREIGN_KEY": 2, "NAME": "foo", "F1": 2}, "timestamp": 11000}
+      ]
+    },
+    {
+      "name": "table-table foreign key join with AVRO schema and schema id",
+      "statements": [
+        "CREATE TABLE left_table WITH (kafka_topic='left_topic', partitions=128, format='AVRO', KEY_SCHEMA_ID=101, VALUE_SCHEMA_ID=102);",
+        "CREATE TABLE right_table WITH (kafka_topic='right_topic', partitions=128, format='AVRO', KEY_SCHEMA_ID=201, VALUE_SCHEMA_ID=202);",
+        "CREATE TABLE output AS SELECT L.ROWKEY, R.ROWKEY, L.NAME, R.F1 FROM left_table L JOIN right_table R ON L.FOREIGN_KEY = R.ROWKEY;"
+      ],
+      "topics": [
+        {
+          "name": "left_topic",
+          "keyFormat": "AVRO",
+          "keySchemaId": 101,
+          "keySchema": {"type": "long", "namespace": "com.test.namespace", "name": "leftKeySchema"},
+          "valueFormat": "AVRO",
+          "valueSchemaId": 102,
+          "valueSchema": {"type":"record","namespace":"com.test.namespace","name":"leftValueSchema","fields":[{"name":"NAME","type":"string"},{"name":"FOREIGN_KEY","type":"long"}]}
+        },
+        {
+          "name": "right_topic",
+          "keyFormat": "AVRO",
+          "keySchemaId": 201,
+          "keySchema": {"type": "long", "namespace": "com.test.namespace", "name": "rightKeySchema"},
+          "valueFormat": "AVRO",
+          "valueSchemaId": 202,
+          "valueSchema": {"type":"record","namespace":"com.test.namespace","name":"rightValueSchema","fields":[{"name":"F1","type":"string"},{"name":"F2","type":"long"}]}
+        }
+      ],
+      "inputs": [
+        {"topic": "right_topic", "key": 0, "value": {"F1": "blah", "F2": 4}, "timestamp": 0},
+        {"topic": "left_topic", "key": 1, "value": {"NAME": "zero", "FOREIGN_KEY": 0}, "timestamp": 10000},
+        {"topic": "left_topic", "key": 0, "value": {"NAME": "foo", "FOREIGN_KEY": 100}, "timestamp": 13000},
+        {"topic": "right_topic", "key": 0, "value": {"F1": "a", "F2": 10}, "timestamp": 15000},
+        {"topic": "left_topic", "key": 10, "value": {"NAME": "bar", "FOREIGN_KEY": 0}, "timestamp": 16000},
+        {"topic": "right_topic", "key": 0, "value": null, "timestamp": 17000},
+        {"topic": "left_topic", "key": 1, "value": null, "timestamp": 18000}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 1, "value": {"R_ROWKEY": 0, "NAME": "zero", "F1": "blah"}, "timestamp": 10000},
+        {"topic": "OUTPUT", "key": 1, "value": {"R_ROWKEY": 0, "NAME": "zero", "F1": "a"}, "timestamp": 15000},
+        {"topic": "OUTPUT", "key": 10, "value": {"R_ROWKEY": 0, "NAME": "bar", "F1": "a"}, "timestamp": 16000},
+        {"topic": "OUTPUT", "key": 1, "value": null, "timestamp": 17000},
+        {"topic": "OUTPUT", "key": 10, "value": null, "timestamp": 17000},
+        {"topic": "OUTPUT", "key": 1, "value": null, "timestamp": 18000}
+      ]
+    },
+    {
+      "name": "table-table foreign key join with JSON_SR schema and schema id",
+      "statements": [
+        "CREATE TABLE left_table WITH (kafka_topic='left_topic', partitions=128, format='JSON_SR', KEY_SCHEMA_ID=101, VALUE_SCHEMA_ID=102);",
+        "CREATE TABLE right_table WITH (kafka_topic='right_topic', partitions=128, format='JSON_SR', KEY_SCHEMA_ID=201, VALUE_SCHEMA_ID=202);",
+        "CREATE TABLE output AS SELECT L.ROWKEY, L.NAME, L.FOREIGN_KEY, R.F1 FROM left_table L JOIN right_table R ON L.FOREIGN_KEY = R.ROWKEY;"
+      ],
+      "topics": [
+        {
+          "name": "left_topic",
+          "keyFormat": "JSON_SR",
+          "keySchemaId": 101,
+          "keySchema": {"type": "integer"},
+          "valueFormat": "JSON_SR",
+          "valueSchemaId": 102,
+          "valueSchema": {"type": "object", "properties": {"NAME": {"type": "string"}, "FOREIGN_KEY": {"type": "integer"}}}
+        },
+        {
+          "name": "right_topic",
+          "keyFormat": "JSON_SR",
+          "keySchemaId": 201,
+          "keySchema": {"type": "integer"},
+          "valueFormat": "JSON_SR",
+          "valueSchemaId": 202,
+          "valueSchema": {"type": "object", "properties": {"F1": {"type": "number"}}}
+        }
+      ],
+      "inputs": [
+        {"topic": "right_topic", "key": 0, "value": {"F1": 0}, "timestamp": 10000},
+        {"topic": "right_topic", "key": 1, "value": {"F1": 1}, "timestamp": 10000},
+        {"topic": "right_topic", "key": 2, "value": {"F1": 2}, "timestamp": 10000},
+        {"topic": "left_topic", "key": 0, "value": {"NAME": "zero", "FOREIGN_KEY": 0}, "timestamp": 11000},
+        {"topic": "left_topic", "key": 1, "value": {"NAME": "bar", "FOREIGN_KEY": 1}, "timestamp": 11000},
+        {"topic": "left_topic", "key": 2, "value": {"NAME": "foo", "FOREIGN_KEY": 2}, "timestamp": 11000}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 0, "value": {"FOREIGN_KEY": 0, "NAME": "zero", "F1": 0}, "timestamp": 11000},
+        {"topic": "OUTPUT", "key": 1, "value": {"FOREIGN_KEY": 1, "NAME": "bar", "F1": 1}, "timestamp": 11000},
+        {"topic": "OUTPUT", "key": 2, "value": {"FOREIGN_KEY": 2, "NAME": "foo", "F1": 2}, "timestamp": 11000}
+      ]
     }
   ]
 }

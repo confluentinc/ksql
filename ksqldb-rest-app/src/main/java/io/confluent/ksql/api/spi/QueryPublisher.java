@@ -17,8 +17,12 @@ package io.confluent.ksql.api.spi;
 
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.query.QueryId;
-import io.confluent.ksql.util.KeyValue;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.util.KeyValueMetadata;
+import io.confluent.ksql.util.PushQueryMetadata.ResultType;
+import io.vertx.core.Future;
 import java.util.List;
+import java.util.Optional;
 import org.reactivestreams.Publisher;
 
 /**
@@ -26,7 +30,7 @@ import org.reactivestreams.Publisher;
  * query that is executed. A subscriber from the API implementation then subscribes to it, then a
  * stream of query results flows from back-end to front-end where they are written to the wire.
  */
-public interface QueryPublisher extends Publisher<KeyValue<List<?>, GenericRow>> {
+public interface QueryPublisher extends Publisher<KeyValueMetadata<List<?>, GenericRow>> {
 
   /**
    * @return List of the names of the columns of the query results
@@ -39,9 +43,14 @@ public interface QueryPublisher extends Publisher<KeyValue<List<?>, GenericRow>>
   List<String> getColumnTypes();
 
   /**
+   * @return The logical schema associated with the query results
+   */
+  LogicalSchema geLogicalSchema();
+
+  /**
    * Close the publisher
    */
-  void close();
+  Future<Void> close();
 
   /**
    * @return true if pull query
@@ -57,4 +66,11 @@ public interface QueryPublisher extends Publisher<KeyValue<List<?>, GenericRow>>
    * The query id
    */
   QueryId queryId();
+
+  /**
+   * If the query was completed by hitting the limit.
+   */
+  boolean hitLimit();
+
+  Optional<ResultType> getResultType();
 }

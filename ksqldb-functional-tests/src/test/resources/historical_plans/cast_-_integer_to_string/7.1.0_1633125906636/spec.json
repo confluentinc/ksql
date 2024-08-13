@@ -1,0 +1,141 @@
+{
+  "version" : "7.1.0",
+  "timestamp" : 1633125906636,
+  "path" : "query-validation-tests/cast.json",
+  "schemas" : {
+    "CSAS_OUT_0.KsqlTopic.Source" : {
+      "schema" : "`ID` STRING KEY, `COL0` INTEGER, `COL1` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "AVRO"
+      }
+    },
+    "CSAS_OUT_0.OUT" : {
+      "schema" : "`ID` STRING KEY, `VAL` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "AVRO"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "integer to string",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : null,
+      "value" : {
+        "col0" : 1,
+        "col1" : 2
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "OUT",
+      "key" : null,
+      "value" : {
+        "VAL" : "-1"
+      }
+    } ],
+    "topics" : [ {
+      "name" : "test_topic",
+      "valueSchema" : {
+        "type" : "record",
+        "name" : "KsqlDataSourceSchema",
+        "namespace" : "io.confluent.ksql.avro_schemas",
+        "fields" : [ {
+          "name" : "COL0",
+          "type" : [ "null", "int" ],
+          "default" : null
+        }, {
+          "name" : "COL1",
+          "type" : [ "null", "int" ],
+          "default" : null
+        } ],
+        "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
+      },
+      "valueFormat" : "AVRO",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "OUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM INPUT (ID STRING KEY, col0 INT, col1 INT) WITH (kafka_topic='test_topic', value_format='AVRO');", "CREATE STREAM OUT AS SELECT ID, cast((col0 - col1) AS STRING) as VAL FROM INPUT;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`ID` STRING KEY, `COL0` INTEGER, `COL1` INTEGER",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "AVRO",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "OUT",
+        "type" : "STREAM",
+        "schema" : "`ID` STRING KEY, `VAL` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "AVRO",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "AVRO"
+          },
+          "partitions" : 4,
+          "valueSchema" : {
+            "type" : "record",
+            "name" : "KsqlDataSourceSchema",
+            "namespace" : "io.confluent.ksql.avro_schemas",
+            "fields" : [ {
+              "name" : "COL0",
+              "type" : [ "null", "int" ],
+              "default" : null
+            }, {
+              "name" : "COL1",
+              "type" : [ "null", "int" ],
+              "default" : null
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
+          }
+        }, {
+          "name" : "OUT",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "AVRO"
+          },
+          "partitions" : 4,
+          "valueSchema" : {
+            "type" : "record",
+            "name" : "KsqlDataSourceSchema",
+            "namespace" : "io.confluent.ksql.avro_schemas",
+            "fields" : [ {
+              "name" : "VAL",
+              "type" : [ "null", "string" ],
+              "default" : null
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
+          }
+        } ]
+      }
+    }
+  }
+}

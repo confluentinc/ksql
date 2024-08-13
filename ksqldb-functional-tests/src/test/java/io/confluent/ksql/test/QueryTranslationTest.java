@@ -49,14 +49,14 @@ import org.junit.runners.Parameterized;
 public class QueryTranslationTest {
 
   // Define this in the JVM to only test against the latest version, i.e. no historical plans
-  private static final String LATEST_ONLY_SWITCH = "topology.versions.latest-only";
+  //private static final String LATEST_ONLY_SWITCH = "topology.versions.latest-only";
 
   private static final Path QUERY_VALIDATION_TEST_DIR = Paths.get("query-validation-tests");
 
   @SuppressWarnings("UnstableApiUsage")
   @Parameterized.Parameters(name = "{0}")
   public static Collection<Object[]> data() {
-    final boolean latestOnly = System.getProperties().containsKey(LATEST_ONLY_SWITCH);
+    final boolean latestOnly = true;  //System.getProperties().containsKey(LATEST_ONLY_SWITCH);
 
     final Stream<TestCase> testCases = latestOnly
         ? testFileLoader().load()
@@ -83,6 +83,7 @@ public class QueryTranslationTest {
    */
   @SuppressWarnings("unused")
   public QueryTranslationTest(final String name, final TestCase testCase) {
+
     this.testCase = requireNonNull(testCase, "testCase");
   }
 

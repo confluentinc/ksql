@@ -2,7 +2,7 @@
 
 **Author**: agavra | 
 **Release Target**: 5.3 | 
-**Status**: Approved | 
+**Status**: _Merged_ | 
 **Discussion**: [#2693](https://github.com/confluentinc/ksql/pull/2693)
 
 **tl;dr:** *Improve the interactivity of the development story by enabling CLI users to directly

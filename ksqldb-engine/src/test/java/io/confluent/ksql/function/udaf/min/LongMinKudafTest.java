@@ -19,20 +19,17 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
 
-import io.confluent.ksql.GenericKey;
-import io.confluent.ksql.function.AggregateFunctionInitArguments;
-import io.confluent.ksql.function.KsqlAggregateFunction;
+import io.confluent.ksql.function.udaf.Udaf;
 import io.confluent.ksql.schema.ksql.SqlArgument;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.util.Collections;
-import org.apache.kafka.streams.kstream.Merger;
 import org.junit.Test;
 
 public class LongMinKudafTest {
 
   @Test
   public void shouldFindCorrectMin() {
-    final LongMinKudaf longMinKudaf = getLongMinKudaf();
+    final MinKudaf<Long> longMinKudaf = getLongMinKudaf();
     final long[] values = new long[]{3L, 5L, 8L, 2L, 3L, 4L, 5L};
     long currentMin = Long.MAX_VALUE;
     for (final long i: values) {
@@ -43,7 +40,7 @@ public class LongMinKudafTest {
 
   @Test
   public void shouldHandleNull() {
-    final LongMinKudaf longMinKudaf = getLongMinKudaf();
+    final MinKudaf<Long> longMinKudaf = getLongMinKudaf();
     final long[] values = new long[]{3L, 5L, 8L, 2L, 3L, 4L, 5L};
     Long currentMin = null;
 
@@ -64,23 +61,21 @@ public class LongMinKudafTest {
 
   @Test
   public void shouldFindCorrectMinForMerge() {
-    final LongMinKudaf longMinKudaf = getLongMinKudaf();
-    final Merger<GenericKey, Long> merger = longMinKudaf.getMerger();
-    final Long mergeResult1 = merger.apply(null, 10L, 12L);
+    final MinKudaf<Long> longMinKudaf = getLongMinKudaf();
+    final Long mergeResult1 = longMinKudaf.merge(10L, 12L);
     assertThat(mergeResult1, equalTo(10L));
-    final Long mergeResult2 = merger.apply(null, 10L, -12L);
+    final Long mergeResult2 = longMinKudaf.merge(10L, -12L);
     assertThat(mergeResult2, equalTo(-12L));
-    final Long mergeResult3 = merger.apply(null, -10L, 0L);
+    final Long mergeResult3 = longMinKudaf.merge(-10L, 0L);
     assertThat(mergeResult3, equalTo(-10L));
-
   }
 
-
-  private LongMinKudaf getLongMinKudaf() {
-    final KsqlAggregateFunction aggregateFunction = new MinAggFunctionFactory()
-        .createAggregateFunction(Collections.singletonList(SqlArgument.of(SqlTypes.BIGINT)),
-            AggregateFunctionInitArguments.EMPTY_ARGS);
-    assertThat(aggregateFunction, instanceOf(LongMinKudaf.class));
-    return  (LongMinKudaf) aggregateFunction;
+  private MinKudaf<Long> getLongMinKudaf() {
+    final Udaf<Long, Long, Long> aggregateFunction = MinKudaf.createMinLong();
+    aggregateFunction.initializeTypeArguments(
+            Collections.singletonList(SqlArgument.of(SqlTypes.BIGINT))
+    );
+    assertThat(aggregateFunction, instanceOf(MinKudaf.class));
+    return  (MinKudaf<Long>) aggregateFunction;
   }
 }

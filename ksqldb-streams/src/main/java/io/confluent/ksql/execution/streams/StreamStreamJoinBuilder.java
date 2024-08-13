@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.execution.streams;
 
+import static io.confluent.ksql.execution.plan.JoinType.RIGHT;
+
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.plan.Formats;
@@ -44,10 +46,27 @@ public final class StreamStreamJoinBuilder {
       final StreamStreamJoin<K> join,
       final RuntimeBuildContext buildContext,
       final StreamJoinedFactory streamJoinedFactory) {
-    final Formats leftFormats = join.getLeftInternalFormats();
     final QueryContext queryContext = join.getProperties().getQueryContext();
     final QueryContext.Stacker stacker = QueryContext.Stacker.of(queryContext);
-    final LogicalSchema leftSchema = left.getSchema();
+
+    final LogicalSchema leftSchema;
+    final LogicalSchema rightSchema;
+    final Formats rightFormats;
+    final Formats leftFormats;
+    if (join.getJoinType().equals(RIGHT)) {
+      leftFormats = join.getRightInternalFormats();
+      rightFormats = join.getLeftInternalFormats();
+
+      leftSchema = right.getSchema();
+      rightSchema = left.getSchema();
+    } else {
+      leftFormats = join.getLeftInternalFormats();
+      rightFormats = join.getRightInternalFormats();
+
+      leftSchema = left.getSchema();
+      rightSchema = right.getSchema();
+    }
+
     final PhysicalSchema leftPhysicalSchema = PhysicalSchema.from(
         leftSchema,
         leftFormats.getKeyFeatures(),
@@ -59,8 +78,6 @@ public final class StreamStreamJoinBuilder {
         leftPhysicalSchema,
         stacker.push(LEFT_SERDE_CTX).getQueryContext()
     );
-    final Formats rightFormats = join.getRightInternalFormats();
-    final LogicalSchema rightSchema = right.getSchema();
     final PhysicalSchema rightPhysicalSchema = PhysicalSchema.from(
         rightSchema,
         rightFormats.getKeyFeatures(),
@@ -88,14 +105,30 @@ public final class StreamStreamJoinBuilder {
     final JoinParams joinParams = JoinParamsFactory
         .create(join.getKeyColName(), leftSchema, rightSchema);
 
-    final JoinWindows joinWindows = JoinWindows.of(join.getBeforeMillis())
-        .after(join.getAfterMillis());
+    JoinWindows joinWindows;
+
+    // Grace, as optional, helps to identify if a user specified the GRACE PERIOD syntax in the
+    // join window. If specified, then we'll call the new KStreams API ofTimeDifferenceAndGrace()
+    // which enables the "spurious" results bugfix with left/outer joins (see KAFKA-10847).
+    if (join.getGraceMillis().isPresent()) {
+      joinWindows = JoinWindows.ofTimeDifferenceAndGrace(
+            join.getBeforeMillis(),
+            join.getGraceMillis().get());
+    } else {
+      joinWindows = JoinWindows.of(join.getBeforeMillis());
+    }
+
+    joinWindows = joinWindows.after(join.getAfterMillis());
 
     final KStream<K, GenericRow> result;
     switch (join.getJoinType()) {
       case LEFT:
         result = left.getStream().leftJoin(
             right.getStream(), joinParams.getJoiner(), joinWindows, joined);
+        break;
+      case RIGHT:
+        result = right.getStream().leftJoin(
+            left.getStream(), joinParams.getJoiner(), joinWindows, joined);
         break;
       case OUTER:
         result = left.getStream().outerJoin(

@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.integration;
 
+import static io.confluent.ksql.function.UserFunctionLoaderTestUtil.loadAllUserFunctions;
 import static io.confluent.ksql.serde.FormatFactory.JSON;
 import static io.confluent.ksql.serde.FormatFactory.KAFKA;
 import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
@@ -37,6 +38,7 @@ import static org.apache.kafka.common.resource.ResourceType.CLUSTER;
 import static org.apache.kafka.common.resource.ResourceType.GROUP;
 import static org.apache.kafka.common.resource.ResourceType.TOPIC;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.is;
 
@@ -46,7 +48,9 @@ import io.confluent.ksql.ServiceInfo;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.KsqlEngineTestUtil;
 import io.confluent.ksql.function.InternalFunctionRegistry;
+import io.confluent.ksql.function.MutableFunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
+import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.query.QueryError;
 import io.confluent.ksql.query.QueryError.Type;
 import io.confluent.ksql.query.QueryId;
@@ -108,7 +112,7 @@ public class SecureIntegrationTest {
   private static final Credentials NORMAL_USER = VALID_USER2;
   private static final AtomicInteger COUNTER = new AtomicInteger(0);
   private static final String SERVICE_ID = "my-service-id_";
-  private static final String QUERY_ID_PREFIX = "_confluent-ksql-" + SERVICE_ID;
+  private static final String QUERY_ID_PREFIX = "_confluent-ksql-";
 
   public static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness
       .builder()
@@ -242,6 +246,7 @@ public class SecureIntegrationTest {
     ksqlConfig.put(KSQL_SERVICE_ID_CONFIG, SERVICE_ID);
     ksqlConfig.put(KSQL_QUERY_RETRY_BACKOFF_INITIAL_MS, 0L);
     ksqlConfig.put(KSQL_QUERY_RETRY_BACKOFF_MAX_MS, 0L);
+    ksqlConfig.put(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED, false);
 
     givenTestSetupWithAclsForQuery();
     givenTestSetupWithConfig(ksqlConfig);
@@ -263,6 +268,41 @@ public class SecureIntegrationTest {
         ),
         String.format(
             "%s: One or more source topics were missing during rebalance",
+            MissingSourceTopicException.class.getName()
+        )
+    );
+  }
+
+  @Test
+  public void shouldClassifyMissingSourceTopicExceptionAsUserErrorSharedRuntimes() {
+    // Given:
+    final Map<String, Object> ksqlConfig = getKsqlConfig(NORMAL_USER);
+    ksqlConfig.put(KSQL_SERVICE_ID_CONFIG, SERVICE_ID);
+    ksqlConfig.put(KSQL_QUERY_RETRY_BACKOFF_INITIAL_MS, 0L);
+    ksqlConfig.put(KSQL_QUERY_RETRY_BACKOFF_MAX_MS, 0L);
+    ksqlConfig.put(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED, true);
+
+
+    givenTestSetupWithAclsForQuery();
+    givenTestSetupWithConfig(ksqlConfig);
+
+    // When:
+    topicClient.deleteTopics(Collections.singleton(INPUT_TOPIC));
+    assertThatEventually(
+        "Wait for async topic deleting",
+        () -> topicClient.isTopicExists(outputTopic),
+        is(false)
+    );
+
+    // Then:
+    assertQueryFailsWithUserError(
+        String.format(
+            "CREATE STREAM %s AS SELECT * FROM %s;",
+            outputTopic,
+            INPUT_STREAM
+        ),
+        String.format(
+            "%s: Missing source topics",
             MissingSourceTopicException.class.getName()
         )
     );
@@ -328,10 +368,10 @@ public class SecureIntegrationTest {
             INPUT_STREAM
         ),
         String.format(
-            "%s: Not authorized to access group: %squery_",
+            "%s: Not authorized to access group:",
             GroupAuthorizationException.class.getName(),
             QUERY_ID_PREFIX
-        ) + "%s"
+        )
     );
   }
 
@@ -414,14 +454,19 @@ public class SecureIntegrationTest {
   private void givenTestSetupWithConfig(final Map<String, Object> ksqlConfigs) {
     ksqlConfig = new KsqlConfig(ksqlConfigs);
     serviceContext = ServiceContextFactory.create(ksqlConfig, DisabledKsqlClient::instance);
+
+    MutableFunctionRegistry functionRegistry = new InternalFunctionRegistry();
+    loadAllUserFunctions(functionRegistry);
+
     ksqlEngine = new KsqlEngine(
         serviceContext,
         ProcessingLogContext.create(),
-        new InternalFunctionRegistry(),
+        functionRegistry,
         ServiceInfo.create(ksqlConfig),
         new SequentialQueryIdGenerator(),
         ksqlConfig,
-        Collections.emptyList()
+        Collections.emptyList(),
+        new MetricCollectors()
     );
 
     execInitCreateStreamQueries();
@@ -483,7 +528,7 @@ public class SecureIntegrationTest {
         assertThat(error.getType(), is(Type.USER));
         assertThat(
             error.getErrorMessage().split("\n")[0],
-            is(String.format(errorMsg, queryMetadata.getQueryId()))
+            containsString(String.format(errorMsg, queryMetadata.getQueryId()))
         );
     }
   }

@@ -29,9 +29,10 @@ import io.confluent.ksql.planner.plan.ConfiguredKsqlPlan;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.test.model.QttTestFile;
 import io.confluent.ksql.test.model.TestCaseNode;
-import io.confluent.ksql.test.model.TestLocation;
 import io.confluent.ksql.test.tools.TestExecutorUtil.PlannedStatement;
 import io.confluent.ksql.test.tools.stubs.StubKafkaService;
+import io.confluent.ksql.tools.test.model.TestLocation;
+import io.confluent.ksql.tools.test.model.Topic;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlStatementException;
 import java.io.File;
@@ -89,6 +90,7 @@ public class TestExecutorUtilTest {
         ksqlEngine,
         testCase,
         ksqlConfig,
+        serviceContext,
         Optional.of(serviceContext.getSchemaRegistryClient()),
         stubKafkaService
     );
@@ -136,7 +138,7 @@ public class TestExecutorUtilTest {
     assertThat(topologyTestDriverContainer.getSourceTopicNames().size(), equalTo(1));
     assertThat(topologyTestDriverContainer.getSourceTopicNames().iterator().next(),
         equalTo("test_topic"));
-    assertThat(topologyTestDriverContainer.getSinkTopicName(), equalTo("S1"));
+    assertThat(topologyTestDriverContainer.getSinkTopicName(), equalTo(Optional.of("S1")));
     assertThat(topologyTestDriverContainer.getTopologyTestDriver(), notNullValue());
   }
 
@@ -149,6 +151,7 @@ public class TestExecutorUtilTest {
         ksqlEngine,
         testCase,
         ksqlConfig,
+        serviceContext,
         Optional.of(serviceContext.getSchemaRegistryClient()),
         stubKafkaService
     );
@@ -169,6 +172,7 @@ public class TestExecutorUtilTest {
         ksqlEngine,
         testCase,
         ksqlConfig,
+        serviceContext,
         Optional.of(serviceContext.getSchemaRegistryClient()),
         stubKafkaService
     );

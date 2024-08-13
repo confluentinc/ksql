@@ -20,6 +20,7 @@ import io.confluent.ksql.query.QueryError;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.entity.StreamsTaskMetadata;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.util.KsqlConstants.KsqlQueryStatus;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -43,6 +44,8 @@ public interface QueryMetadata {
 
   KafkaStreams.State getState();
 
+  KsqlQueryStatus getQueryStatus();
+
   String getExecutionPlan();
 
   String getQueryApplicationId();
@@ -51,7 +54,7 @@ public interface QueryMetadata {
 
   Map<String, Map<Integer, LagInfo>> getAllLocalStorePartitionLags();
 
-  Collection<StreamsMetadata> getAllMetadata();
+  Collection<StreamsMetadata> getAllStreamsHostMetadata();
 
   Map<String, Object> getStreamsProperties();
 
@@ -73,17 +76,21 @@ public interface QueryMetadata {
 
   KafkaStreams getKafkaStreams();
 
+  void pause();
+
+  void resume();
+
   void close();
 
-  void start() ;
+  void start();
 
   interface RetryEvent {
 
     long nextRestartTimeMs();
 
-    int getNumRetries();
+    int getNumRetries(String threadName);
 
-    void backOff();
+    void backOff(String threadName);
   }
 
   interface Listener {
@@ -99,6 +106,10 @@ public interface QueryMetadata {
         QueryMetadata queryMetadata,
         KafkaStreams.State before,
         KafkaStreams.State after);
+
+    void onPause(QueryMetadata queryMetadata);
+
+    void onResume(QueryMetadata queryMetadata);
 
     void onClose(QueryMetadata queryMetadata);
   }

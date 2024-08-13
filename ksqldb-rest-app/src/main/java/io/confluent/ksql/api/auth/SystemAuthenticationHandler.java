@@ -15,12 +15,14 @@
 
 package io.confluent.ksql.api.auth;
 
+import io.confluent.ksql.security.DefaultKsqlPrincipal;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
 import io.vertx.core.http.HttpConnection;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.auth.AuthProvider;
 import io.vertx.ext.auth.User;
+import io.vertx.ext.auth.authorization.Authorization;
 import io.vertx.ext.web.RoutingContext;
 import java.security.Principal;
 import java.util.Objects;
@@ -59,10 +61,26 @@ public class SystemAuthenticationHandler implements Handler<RoutingContext> {
 
   private static class SystemUser implements ApiUser {
 
-    private final Principal principal;
+    private final DefaultKsqlPrincipal principal;
 
     SystemUser(final Principal principal) {
-      this.principal = Objects.requireNonNull(principal);
+      Objects.requireNonNull(principal);
+      this.principal = principal instanceof DefaultKsqlPrincipal
+          ? (DefaultKsqlPrincipal) principal
+          : new DefaultKsqlPrincipal(principal);
+    }
+
+    @Override
+    public JsonObject attributes() {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public User isAuthorized(
+        final Authorization authority,
+        final Handler<AsyncResult<Boolean>> resultHandler
+    ) {
+      throw new UnsupportedOperationException();
     }
 
     @SuppressWarnings("deprecation")
@@ -89,7 +107,12 @@ public class SystemAuthenticationHandler implements Handler<RoutingContext> {
     }
 
     @Override
-    public Principal getPrincipal() {
+    public User merge(final User other) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public DefaultKsqlPrincipal getPrincipal() {
       return principal;
     }
   }

@@ -1,7 +1,7 @@
 /*
  * Copyright 2020 Confluent Inc.
  *
- * Licensed under the Confluent Community License (final the "License"); you may not use
+ * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
  * License at
  *
@@ -18,6 +18,7 @@ package io.confluent.ksql.execution.plan;
 import java.util.HashMap;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * Information about an execution step plan to be passed to a {@link PlanBuilder}
@@ -70,6 +71,10 @@ public class PlanInfo {
     return new PlanInfo(allSources.merge(other.allSources));
   }
 
+  public Set<ExecutionStep<?>> getSources() {
+    return allSources.sourceSet;
+  }
+
   private static class SourceInfo {
     final ExecutionStep<?> sourceStep;
     boolean isRepartitionedInPlan;
@@ -85,6 +90,8 @@ public class PlanInfo {
    */
   private static class Sources {
     private final HashMap<ExecutionStep<?>, SourceInfo> sources = new HashMap<>();
+
+    Set<ExecutionStep<?>> sourceSet = sources.keySet();
 
     SourceInfo addSource(final ExecutionStep<?> sourceStep) {
       final SourceInfo sourceInfo = new SourceInfo(sourceStep);

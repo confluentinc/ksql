@@ -25,7 +25,9 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Multimap;
 import io.confluent.common.utils.IntegrationTest;
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.integration.IntegrationTestHarness;
 import io.confluent.ksql.integration.Retry;
 import io.confluent.ksql.name.ColumnName;
@@ -55,6 +57,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 import kafka.zookeeper.ZooKeeperClientException;
+import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.streams.StreamsConfig;
 import org.junit.After;
 import org.junit.Before;
@@ -64,6 +67,8 @@ import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TemporaryFolder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Test to ensure pull queries route across multiple KSQL nodes correctly.
@@ -75,6 +80,7 @@ import org.junit.rules.TemporaryFolder;
 @Category({IntegrationTest.class})
 public class PullQueryFunctionalTest {
 
+  private static final Logger LOG = LoggerFactory.getLogger(PullQueryFunctionalTest.class);
   private static final TemporaryFolder TMP = KsqlTestFolder.temporaryFolder();
 
   static {
@@ -162,13 +168,15 @@ public class PullQueryFunctionalTest {
 
     final AtomicLong timestampSupplier = new AtomicLong(BASE_TIME);
 
-    TEST_HARNESS.produceRows(
+    final Multimap<GenericKey, RecordMetadata> producedRows = TEST_HARNESS.produceRows(
         USER_TOPIC,
         USER_PROVIDER,
         KEY_FORMAT,
         VALUE_FORMAT,
         timestampSupplier::getAndIncrement
     );
+
+    LOG.info("Produced rows: " + producedRows.size());
 
     makeAdminRequest(
         "CREATE STREAM " + USERS_STREAM
@@ -238,7 +246,6 @@ public class PullQueryFunctionalTest {
 
     // When:
     final List<StreamedRow> rows_0 = makePullQueryRequest(REST_APP_0, sql);
-    System.out.println("-----> Final result= " + rows_0);
     final List<StreamedRow> rows_1 = makePullQueryRequest(REST_APP_1, sql);
 
     // Then:

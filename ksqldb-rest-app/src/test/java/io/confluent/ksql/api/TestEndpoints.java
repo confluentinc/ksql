@@ -22,13 +22,15 @@ import io.confluent.ksql.api.server.InsertResult;
 import io.confluent.ksql.api.server.InsertsStreamSubscriber;
 import io.confluent.ksql.api.server.MetricsCallbackHolder;
 import io.confluent.ksql.api.spi.Endpoints;
-import io.confluent.ksql.api.spi.QueryPublisher;
 import io.confluent.ksql.api.utils.RowGenerator;
+import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.reactive.BasePublisher;
 import io.confluent.ksql.reactive.BufferedPublisher;
 import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.entity.ClusterTerminateRequest;
 import io.confluent.ksql.rest.entity.HeartbeatMessage;
 import io.confluent.ksql.rest.entity.KsqlEntity;
+import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlMediaType;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.LagReportingMessage;
@@ -49,27 +51,29 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
+import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscriber;
 
 public class TestEndpoints implements Endpoints {
 
   private Supplier<RowGenerator> rowGeneratorFactory;
   private TestInsertsSubscriber insertsSubscriber;
-  private List<KsqlEntity> ksqlEndpointResponse;
+  private KsqlEntityList ksqlEndpointResponse;
   private String lastSql;
   private JsonObject lastProperties;
   private JsonObject lastSessionVariables;
   private String lastTarget;
-  private final Set<TestQueryPublisher> queryPublishers = new HashSet<>();
+  private final Set<Publisher<?>> publishers = new HashSet<>();
   private int acksBeforePublisherError = -1;
   private int rowsBeforePublisherError = -1;
   private RuntimeException createQueryPublisherException;
   private RuntimeException createInsertsSubscriberException;
   private RuntimeException executeKsqlRequestException;
   private ApiSecurityContext lastApiSecurityContext;
+  private int queryCount = 0;
 
   @Override
-  public synchronized CompletableFuture<QueryPublisher> createQueryPublisher(
+  public synchronized CompletableFuture<Publisher<?>> createQueryPublisher(
       final String sql,
       final Map<String, Object> properties,
       final Map<String, Object> sessionVariables,
@@ -77,25 +81,32 @@ public class TestEndpoints implements Endpoints {
       final Context context,
       final WorkerExecutor workerExecutor,
       final ApiSecurityContext apiSecurityContext,
-      final MetricsCallbackHolder metricsCallbackHolder) {
-    CompletableFuture<QueryPublisher> completableFuture = new CompletableFuture<>();
+      final MetricsCallbackHolder metricsCallbackHolder,
+      final Optional<Boolean> isInternalRequest) {
+    CompletableFuture<Publisher<?>> completableFuture = new CompletableFuture<>();
     if (createQueryPublisherException != null) {
       createQueryPublisherException.fillInStackTrace();
       completableFuture.completeExceptionally(createQueryPublisherException);
     } else {
+
       this.lastSql = sql;
       this.lastProperties = new JsonObject(properties);
       this.lastSessionVariables = new JsonObject(sessionVariables);
       this.lastApiSecurityContext = apiSecurityContext;
       final boolean push = sql.toLowerCase().contains("emit changes");
       final int limit = extractLimit(sql);
-      final TestQueryPublisher queryPublisher = new TestQueryPublisher(context,
+      final Publisher<?> publisher;
+
+      publisher = new TestQueryPublisher(context,
           rowGeneratorFactory.get(),
           rowsBeforePublisherError,
           push,
-          limit);
-      queryPublishers.add(queryPublisher);
-      completableFuture.complete(queryPublisher);
+          limit,
+          new QueryId("queryId" + (queryCount > 0 ? queryCount : "")));
+
+      publishers.add(publisher);
+      completableFuture.complete(publisher);
+      queryCount++;
     }
     return completableFuture;
   }
@@ -162,7 +173,8 @@ public class TestEndpoints implements Endpoints {
   }
 
   @Override
-  public synchronized CompletableFuture<EndpointResponse> executeInfo(ApiSecurityContext apiSecurityContext) {
+  public synchronized CompletableFuture<EndpointResponse> executeInfo(
+      ApiSecurityContext apiSecurityContext) {
     this.lastApiSecurityContext = apiSecurityContext;
     final ServerInfo entity = new ServerInfo(
         AppInfo.getVersion(), "kafka-cluster-id", "ksql-service-id", "server-status");
@@ -231,6 +243,12 @@ public class TestEndpoints implements Endpoints {
 
   }
 
+  @Override
+  public CompletableFuture<EndpointResponse> executeTest(String test,
+      ApiSecurityContext apiSecurityContext) {
+    return null;
+  }
+
   public synchronized void setRowGeneratorFactory(
       final Supplier<RowGenerator> rowGeneratorFactory) {
     this.rowGeneratorFactory = rowGeneratorFactory;
@@ -241,7 +259,7 @@ public class TestEndpoints implements Endpoints {
   }
 
   public synchronized void setKsqlEndpointResponse(final List<KsqlEntity> entities) {
-    this.ksqlEndpointResponse = ImmutableList.copyOf(entities);
+    this.ksqlEndpointResponse = new KsqlEntityList(ImmutableList.copyOf(entities));
   }
 
   public synchronized String getLastSql() {
@@ -256,8 +274,8 @@ public class TestEndpoints implements Endpoints {
     return lastSessionVariables.copy();
   }
 
-  public synchronized Set<TestQueryPublisher> getQueryPublishers() {
-    return Collections.unmodifiableSet(queryPublishers);
+  public synchronized Set<Publisher<?>> getPublishers() {
+    return Collections.unmodifiableSet(publishers);
   }
 
   public synchronized String getLastTarget() {

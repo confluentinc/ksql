@@ -84,6 +84,26 @@
       ]
     },
     {
+      "name": "explicit ROWPARTITION and ROWOFFSET",
+      "statements": [
+        "CREATE STREAM INPUT (K STRING KEY, ID INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "SELECT ROWPARTITION, ROWOFFSET, * FROM INPUT EMIT CHANGES LIMIT 2;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12345, "key": "11", "value": {"id": 100}},
+        {"topic": "test_topic", "timestamp": 12365, "key": "11", "value": {"id": 101}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ROWPARTITION` INTEGER, `ROWOFFSET` BIGINT, `K` STRING, `ID` INTEGER"}},
+          {"row":{"columns":[0, 0, "11", 100]}},
+          {"row":{"columns":[0, 1, "11", 101]}},
+          {"finalMessage":"Limit Reached"}
+        ]}
+      ]
+    },
+    {
       "name": "non-windowed stream - STRING key",
       "statements": [
         "CREATE STREAM INPUT (K STRING KEY, ID INT) WITH (kafka_topic='test_topic', value_format='JSON');",
@@ -273,6 +293,29 @@
       ]
     },
     {
+      "name": "join with ROWPARTITION and ROWOFFSET",
+      "statements": [
+        "CREATE STREAM INPUT_1 (K STRING KEY, ID INT) WITH (kafka_topic='test_topic_1', value_format='JSON');",
+        "CREATE STREAM INPUT_2 (K STRING KEY, ID INT) WITH (kafka_topic='test_topic_2', value_format='JSON');",
+        "SELECT *, I1.ROWPARTITION, I2.ROWOFFSET FROM INPUT_1 I1 JOIN INPUT_2 I2 WITHIN 60 SECONDS ON I1.K = I2.K EMIT CHANGES LIMIT 2;"
+      ],
+      "inputs": [
+        {"topic": "test_topic_1", "timestamp": 12345, "key": "x", "value": {"id": 100}},
+        {"topic": "test_topic_2", "timestamp": 12365, "key": "x", "value": {"id": 101}},
+        {"topic": "test_topic_2", "timestamp": 12365, "key": "x", "value": {"id": 102}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`I1_K` STRING, `I1_ID` INTEGER, `I2_K` STRING, `I2_ID` INTEGER, `I1_ROWPARTITION` INTEGER, `I2_ROWOFFSET` BIGINT"}},
+          {"row":{"columns":["x", 100, "x", 101, 2, 0]}},
+          {"row":{"columns":["x", 100, "x", 102, 2, 1]}},
+          {"finalMessage":"Limit Reached"}
+        ]}
+      ]
+    },
+    {
       "name": "join on STRING key",
       "statements": [
         "CREATE STREAM INPUT_1 (K STRING KEY, ID INT) WITH (kafka_topic='test_topic_1', value_format='JSON');",
@@ -379,7 +422,7 @@
       "statements": [
         "CREATE STREAM S1 (K INT KEY, ID bigint) WITH (kafka_topic='left_topic', value_format='JSON', WINDOW_TYPE='Tumbling', WINDOW_SIZE='2 SECONDS');",
         "CREATE STREAM S2 (K INT KEY, ID bigint) WITH (kafka_topic='right_topic', value_format='JSON', WINDOW_TYPE='Tumbling', WINDOW_SIZE='2 SECOND');",
-        "CREATE STREAM OUTPUT as SELECT * FROM S1 JOIN S2 WITHIN 1 MINUTE ON S1.K = S2.K;",
+        "CREATE STREAM OUTPUT AS SELECT * FROM S1 JOIN S2 WITHIN 1 MINUTE ON S1.K = S2.K;",
         "SELECT * FROM OUTPUT EMIT CHANGES LIMIT 1;"
       ],
       "inputs": [
@@ -402,7 +445,7 @@
       "statements": [
         "CREATE STREAM S1 (K INT KEY, ID bigint) WITH (kafka_topic='left_topic', value_format='JSON', WINDOW_TYPE='Tumbling', WINDOW_SIZE='2 SECONDS');",
         "CREATE STREAM S2 (K INT KEY, ID bigint) WITH (kafka_topic='right_topic', value_format='JSON', WINDOW_TYPE='Tumbling', WINDOW_SIZE='2 SECOND');",
-        "CREATE STREAM OUTPUT as SELECT * FROM S1 JOIN S2 WITHIN 1 MINUTE ON S1.K = S2.K;",
+        "CREATE STREAM OUTPUT AS SELECT * FROM S1 JOIN S2 WITHIN 1 MINUTE ON S1.K = S2.K;",
         "SELECT ROWTIME, * FROM OUTPUT EMIT CHANGES LIMIT 1;"
       ],
       "inputs": [
@@ -421,6 +464,34 @@
       ]
     },
     {
+      "name": "windowed join - with rowpartition/rowoffset",
+      "statements": [
+        "CREATE STREAM S1 (K INT KEY, ID bigint) WITH (kafka_topic='left_topic', value_format='JSON', WINDOW_TYPE='Tumbling', WINDOW_SIZE='2 SECONDS');",
+        "CREATE STREAM S2 (K INT KEY, ID bigint) WITH (kafka_topic='right_topic', value_format='JSON', WINDOW_TYPE='Tumbling', WINDOW_SIZE='2 SECOND');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM S1 JOIN S2 WITHIN 1 MINUTE ON S1.K = S2.K;",
+        "SELECT ROWPARTITION, ROWOFFSET, * FROM OUTPUT EMIT CHANGES LIMIT 3;"
+      ],
+      "inputs": [
+        {"topic": "left_topic", "key": 1, "value": {"ID": 1}, "timestamp": 0, "window": {"start": 0, "end": 2000, "type": "time"}},
+        {"topic": "left_topic", "key": 1, "value": {"ID": 2}, "timestamp": 1000, "window": {"start": 0, "end": 2000, "type": "time"}},
+        {"topic": "left_topic", "key": 1, "value": {"ID": 3}, "timestamp": 2000, "window": {"start": 2000, "end": 4000, "type": "time"}},
+        {"topic": "right_topic", "key": 1, "value": {"ID": 4}, "timestamp": 0, "window": {"start": 0, "end": 2000, "type": "time"}},
+        {"topic": "right_topic", "key": 1, "value": {"ID": 5}, "timestamp": 2000, "window": {"start": 2000, "end": 4000, "type": "time"}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ROWPARTITION` INTEGER, `ROWOFFSET` BIGINT, `S1_K` INTEGER, `WINDOWSTART` BIGINT, `WINDOWEND` BIGINT, `S1_WINDOWSTART` BIGINT, `S1_WINDOWEND` BIGINT, `S1_ID` BIGINT, `S2_K` INTEGER, `S2_WINDOWSTART` BIGINT, `S2_WINDOWEND` BIGINT, `S2_ID` BIGINT"}},
+          {"row":{"columns":[0, 0, 1, 0, 2000, 0, 2000, 1, 1, 0, 2000, 4]}},
+          {"row":{"columns":[0, 1, 1, 0, 2000, 0, 2000, 2, 1, 0, 2000, 4]}},
+          {"row":{"columns":[0, 2, 1, 2000, 4000, 2000, 4000, 3, 1, 2000, 4000, 5]}},
+          {"finalMessage":"Limit Reached"}
+        ]}
+      ]
+    },
+    {
       "name": "Should not allow foreign key join on windowed tables",
       "statements": [
         "CREATE TABLE left_table (k STRING PRIMARY KEY, f1 STRING) WITH (kafka_topic='left_topic', value_format='JSON', WINDOW_TYPE='Tumbling', WINDOW_SIZE='1 SECOND');",
@@ -434,10 +505,10 @@
       }
     },
     {
-      "name": "windowed group by - window bounds in SELECT",
+      "name": "windowed GROUP BY - window bounds in SELECT",
       "statements": [
         "CREATE STREAM TEST (K INT KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "SELECT windowstart, windowend, count(1) as count FROM test WINDOW TUMBLING (SIZE 1 SECOND) group by K EMIT CHANGES LIMIT 2;"
+        "SELECT windowstart, windowend, count(1) AS count FROM test WINDOW TUMBLING (SIZE 1 SECOND) GROUP BY K EMIT CHANGES LIMIT 2;"
       ],
       "inputs": [
         {"topic": "test_topic", "key": 0, "value": {}, "timestamp": 10345},
@@ -454,10 +525,10 @@
       ]
     },
     {
-      "name": "windowed group by - key not in projection",
+      "name": "windowed GROUP BY - key not in projection",
       "statements": [
         "CREATE STREAM TEST (K INT KEY, ID INT) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "SELECT count(1) as count FROM test WINDOW TUMBLING (SIZE 1 SECOND) group by ID EMIT CHANGES LIMIT 2;"
+        "SELECT count(1) AS count FROM test WINDOW TUMBLING (SIZE 1 SECOND) GROUP BY ID EMIT CHANGES LIMIT 2;"
       ],
       "inputs": [
         {"topic": "test_topic", "key": 0, "value": {"id": 2}, "timestamp": 10345},
@@ -474,10 +545,10 @@
       ]
     },
     {
-      "name": "non-windowed group by - key not in projection",
+      "name": "non-windowed GROUP BY - key not in projection",
       "statements": [
         "CREATE STREAM TEST (K INT KEY, ID INT) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "SELECT count(1) as count FROM test group by ID EMIT CHANGES LIMIT 2;"
+        "SELECT count(1) AS count FROM test GROUP BY ID EMIT CHANGES LIMIT 2;"
       ],
       "inputs": [
         {"topic": "test_topic", "key": 0, "value": {"id": 2}, "timestamp": 10345},
@@ -494,10 +565,10 @@
       ]
     },
     {
-      "name": "windowed group by - repartition - key in projection",
+      "name": "windowed GROUP BY - repartition - key in projection",
       "statements": [
         "CREATE STREAM TEST (K INT KEY, ID INT) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "SELECT ID, count(1) as count FROM test WINDOW TUMBLING (SIZE 1 SECOND) group by ID EMIT CHANGES LIMIT 2;"
+        "SELECT ID, count(1) AS count FROM test WINDOW TUMBLING (SIZE 1 SECOND) GROUP BY ID EMIT CHANGES LIMIT 2;"
       ],
       "inputs": [
         {"topic": "test_topic", "key": 0, "value": {"id": 2}, "timestamp": 10345},
@@ -514,7 +585,7 @@
       ]
     },
     {
-      "name": "windowed group by - no-repartition - key in projection",
+      "name": "windowed GROUP BY - no-repartition - key in projection",
       "statements": [
         "CREATE STREAM TEST (K INT KEY, ID INT) WITH (kafka_topic='test_topic', value_format='JSON');",
         "SELECT K, COUNT(1) AS count FROM TEST WINDOW TUMBLING (SIZE 1 SECOND) GROUP BY K EMIT CHANGES LIMIT 2;"
@@ -534,10 +605,10 @@
       ]
     },
     {
-      "name": "non-windowed group by - key in projection",
+      "name": "non-windowed GROUP BY - key in projection",
       "statements": [
         "CREATE STREAM TEST (K INT KEY, ID INT) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "SELECT ID, count(1) as count FROM test group by ID EMIT CHANGES LIMIT 2;"
+        "SELECT ID, count(1) AS count FROM test GROUP BY ID EMIT CHANGES LIMIT 2;"
       ],
       "inputs": [
         {"topic": "test_topic", "key": 0, "value": {"id": 2}, "timestamp": 10345},
@@ -554,10 +625,10 @@
       ]
     },
     {
-      "name": "non-windowed group by expression - key not in projection",
+      "name": "non-windowed GROUP BY expression - key not in projection",
       "statements": [
         "CREATE STREAM TEST (K INT KEY, ID INT) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "SELECT count(1) as count FROM test group by ABS(ID) EMIT CHANGES LIMIT 2;"
+        "SELECT count(1) AS count FROM test GROUP BY ABS(ID) EMIT CHANGES LIMIT 2;"
       ],
       "inputs": [
         {"topic": "test_topic", "key": 0, "value": {"id": 2}, "timestamp": 10345},
@@ -569,6 +640,46 @@
           {"header":{"schema":"`COUNT` BIGINT"}},
           {"row":{"columns":[1]}},
           {"row":{"columns":[2]}},
+          {"finalMessage":"Limit Reached"}
+        ]}
+      ]
+    },
+    {
+      "name": "aggregate without GROUP BY expression",
+      "statements": [
+        "CREATE STREAM TEST (K INT KEY, ID INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "SELECT count(*) AS count FROM test EMIT CHANGES LIMIT 2;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": {"id": 2}, "timestamp": 10345},
+        {"topic": "test_topic", "key": 1, "value": {"id": 2}, "timestamp": 13251}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`COUNT` BIGINT"}},
+          {"row":{"columns":[1]}},
+          {"row":{"columns":[2]}},
+          {"finalMessage":"Limit Reached"}
+        ]}
+      ]
+    },
+    {
+      "name": "multiple aggregates without GROUP BY expression",
+      "statements": [
+        "CREATE STREAM TEST (K INT KEY, ID INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "SELECT sum(ID) AS sum, count(*) AS count FROM test EMIT CHANGES LIMIT 2;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": {"id": 2}, "timestamp": 10345},
+        {"topic": "test_topic", "key": 1, "value": {"id": 2}, "timestamp": 13251}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`SUM` INTEGER, `COUNT` BIGINT"}},
+          {"row":{"columns":[2, 1]}},
+          {"row":{"columns":[4, 2]}},
           {"finalMessage":"Limit Reached"}
         ]}
       ]
@@ -615,10 +726,10 @@
       ]
     },
     {
-      "name": "windowed group by - window bounds in WHERE",
+      "name": "windowed GROUP BY - window bounds in WHERE",
       "statements": [
         "CREATE STREAM TEST (K INT KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "SELECT count(1) FROM test WINDOW TUMBLING (SIZE 1 SECOND) WHERE windowstart > 1000 AND windowend < 1000000000 group by K EMIT CHANGES LIMIT 1;"
+        "SELECT count(1) FROM test WINDOW TUMBLING (SIZE 1 SECOND) WHERE windowstart > 1000 AND windowend < 1000000000 GROUP BY K EMIT CHANGES LIMIT 1;"
       ],
       "expectedError": {
         "type": "io.confluent.ksql.rest.entity.KsqlErrorMessage",
@@ -627,10 +738,10 @@
       }
     },
     {
-      "name": "windowed group by - window bounds in HAVING",
+      "name": "windowed GROUP BY - window bounds in HAVING",
       "statements": [
         "CREATE STREAM TEST (K INT KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "SELECT count(1) FROM test WINDOW TUMBLING (SIZE 1 SECOND) group by K having min(windowstart) > 1000 EMIT CHANGES LIMIT 1;"
+        "SELECT count(1) FROM test WINDOW TUMBLING (SIZE 1 SECOND) GROUP BY K having min(windowstart) > 1000 EMIT CHANGES LIMIT 1;"
       ],
       "expectedError": {
         "type": "io.confluent.ksql.rest.entity.KsqlErrorMessage",

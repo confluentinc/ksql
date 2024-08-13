@@ -1,0 +1,141 @@
+{
+  "version" : "7.1.0",
+  "timestamp" : 1633125999824,
+  "path" : "query-validation-tests/map.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`ID` STRING KEY, `A_MAP` MAP<STRING, INTEGER>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ID` STRING KEY, `KEYS` ARRAY<STRING>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "map_keys",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : "r1",
+      "value" : {
+        "A_MAP" : {
+          "foo" : 10,
+          "bar" : 20,
+          "baz" : 30
+        }
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : "r2",
+      "value" : {
+        "A_MAP" : {
+          "foo" : 10,
+          "bar" : null
+        }
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : "r3",
+      "value" : {
+        "A_MAP" : { }
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : "r4",
+      "value" : {
+        "A_MAP" : null
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : "r1",
+      "value" : {
+        "KEYS" : [ "bar", "baz", "foo" ]
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "r2",
+      "value" : {
+        "KEYS" : [ "bar", "foo" ]
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "r3",
+      "value" : {
+        "KEYS" : [ ]
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "r4",
+      "value" : {
+        "KEYS" : null
+      }
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM INPUT (id STRING KEY, a_map MAP<STRING, INT>) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE STREAM OUTPUT AS SELECT id, array_sort(map_keys(a_map)) as keys FROM INPUT;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`ID` STRING KEY, `A_MAP` MAP<STRING, INTEGER>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`ID` STRING KEY, `KEYS` ARRAY<STRING>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

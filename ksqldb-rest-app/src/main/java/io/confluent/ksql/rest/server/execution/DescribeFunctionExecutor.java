@@ -31,7 +31,6 @@ import io.confluent.ksql.rest.entity.ArgumentInfo;
 import io.confluent.ksql.rest.entity.FunctionDescriptionList;
 import io.confluent.ksql.rest.entity.FunctionInfo;
 import io.confluent.ksql.rest.entity.FunctionType;
-import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.schema.connect.SqlSchemaFormatter;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
@@ -49,7 +48,7 @@ public final class DescribeFunctionExecutor {
 
   }
 
-  public static Optional<KsqlEntity> execute(
+  public static StatementExecutorResponse execute(
       final ConfiguredStatement<DescribeFunction> statement,
       final SessionProperties sessionProperties,
       final KsqlExecutionContext executionContext,
@@ -59,20 +58,20 @@ public final class DescribeFunctionExecutor {
     final FunctionName functionName = FunctionName.of(describeFunction.getFunctionName());
 
     if (executionContext.getMetaStore().isAggregate(functionName)) {
-      return Optional.of(
+      return StatementExecutorResponse.handled(Optional.of(
           describeAggregateFunction(executionContext, functionName,
-              statement.getMaskedStatementText()));
+              statement.getMaskedStatementText())));
     }
 
     if (executionContext.getMetaStore().isTableFunction(functionName)) {
-      return Optional.of(
+      return StatementExecutorResponse.handled(Optional.of(
           describeTableFunction(executionContext, functionName,
-              statement.getMaskedStatementText()));
+              statement.getMaskedStatementText())));
     }
 
-    return Optional.of(
+    return StatementExecutorResponse.handled(Optional.of(
         describeNonAggregateFunction(executionContext, functionName,
-            statement.getMaskedStatementText()));
+            statement.getMaskedStatementText())));
   }
 
   private static FunctionDescriptionList describeAggregateFunction(
@@ -85,9 +84,9 @@ public final class DescribeFunctionExecutor {
 
     final ImmutableList.Builder<FunctionInfo> listBuilder = ImmutableList.builder();
 
-    aggregateFactory.eachFunction(func -> listBuilder.add(
+    aggregateFactory.eachFunction((func, description) -> listBuilder.add(
         getFunctionInfo(
-            func.parameterInfo(), func.declaredReturnType(), func.getDescription(), false)));
+            func.parameterInfo(), func.declaredReturnType(), description)));
 
     return createFunctionDescriptionList(
         statementText, aggregateFactory.getMetadata(), listBuilder.build(), FunctionType.AGGREGATE);
@@ -107,8 +106,7 @@ public final class DescribeFunctionExecutor {
         getFunctionInfo(
             func.parameterInfo(),
             func.declaredReturnType(),
-            func.getDescription(),
-            func.isVariadic()
+            func.getDescription()
         )));
 
     return createFunctionDescriptionList(
@@ -132,8 +130,7 @@ public final class DescribeFunctionExecutor {
         getFunctionInfo(
             func.parameterInfo(),
             func.declaredReturnType(),
-            func.getDescription(),
-            func.isVariadic()
+            func.getDescription()
         )));
 
     return createFunctionDescriptionList(
@@ -147,17 +144,14 @@ public final class DescribeFunctionExecutor {
   private static FunctionInfo getFunctionInfo(
       final List<ParameterInfo> argTypes,
       final ParamType returnTypeSchema,
-      final String description,
-      final boolean variadic
+      final String description
   ) {
     final List<ArgumentInfo> args = new ArrayList<>();
-    for (int i = 0; i < argTypes.size(); i++) {
-      final ParameterInfo param = argTypes.get(i);
-      final boolean isVariadic = variadic && i == (argTypes.size() - 1);
-      final String type = isVariadic
-          ? ((ArrayType) param.type()).element().toString()
-          : param.type().toString();
-      args.add(new ArgumentInfo(param.name(), type, param.description(), isVariadic));
+    for (final ParameterInfo param : argTypes) {
+      final String type = param.isVariadic()
+              ? ((ArrayType) param.type()).element().toString()
+              : param.type().toString();
+      args.add(new ArgumentInfo(param.name(), type, param.description(), param.isVariadic()));
     }
 
     return new FunctionInfo(args, returnTypeSchema.toString(), description);

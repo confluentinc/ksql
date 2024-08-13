@@ -21,15 +21,18 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertThrows;
+import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
+import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
@@ -43,16 +46,19 @@ import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.ValueFormat;
-import io.confluent.ksql.serde.avro.AvroFormat;
+import io.confluent.ksql.serde.connect.ConnectProperties;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlParserTestUtil;
 import io.confluent.ksql.util.MetaStoreFixture;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 
 /**
@@ -66,9 +72,14 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class AnalyzerFunctionalTest {
 
+  private static final boolean PULL_LIMIT_CLAUSE_ENABLED = true;
+
   private static final ColumnName COL0 = ColumnName.of("COL0");
   private static final ColumnName COL1 = ColumnName.of("COL1");
   private static final ColumnName COL2 = ColumnName.of("COL2");
+
+  @Mock
+  private FunctionRegistry functionRegistry;
 
   private MutableMetaStore jsonMetaStore;
   private MutableMetaStore avroMetaStore;
@@ -78,19 +89,23 @@ public class AnalyzerFunctionalTest {
 
   @Before
   public void init() {
-    jsonMetaStore = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
+    jsonMetaStore = MetaStoreFixture.getNewMetaStore(functionRegistry);
     avroMetaStore = MetaStoreFixture.getNewMetaStore(
         new InternalFunctionRegistry(),
         ValueFormat.of(FormatInfo.of(FormatFactory.AVRO.name()), SerdeFeatures.of())
     );
 
-    analyzer = new Analyzer(jsonMetaStore, "");
+    analyzer = new Analyzer(jsonMetaStore, "", PULL_LIMIT_CLAUSE_ENABLED);
 
     query = parseSingle("Select COL0, COL1 from TEST1;");
 
     registerKafkaSource();
   }
 
+  @After
+  public void tearDown() {
+    Mockito.reset(functionRegistry);
+  }
 
   @Test
   public void shouldUseExplicitNamespaceForAvroSchema() {
@@ -99,13 +114,13 @@ public class AnalyzerFunctionalTest {
     final CreateStreamAsSelect createStreamAsSelect = (CreateStreamAsSelect) statements.get(0);
     final Query query = createStreamAsSelect.getQuery();
 
-    final Analyzer analyzer = new Analyzer(jsonMetaStore, "");
+    final Analyzer analyzer = new Analyzer(jsonMetaStore, "", PULL_LIMIT_CLAUSE_ENABLED);
     final Analysis analysis = analyzer.analyze(query, Optional.of(createStreamAsSelect.getSink()));
 
     assertThat(analysis.getInto(), is(not(Optional.empty())));
     assertThat(analysis.getInto().get().getNewTopic().get().getValueFormat(), is(FormatInfo.of(
         FormatFactory.AVRO.name(),
-        ImmutableMap.of(AvroFormat.FULL_SCHEMA_NAME, "com.custom.schema"))
+        ImmutableMap.of(ConnectProperties.FULL_SCHEMA_NAME, "com.custom.schema"))
     ));
   }
 
@@ -116,7 +131,7 @@ public class AnalyzerFunctionalTest {
     final CreateStreamAsSelect createStreamAsSelect = (CreateStreamAsSelect) statements.get(0);
     final Query query = createStreamAsSelect.getQuery();
 
-    final Analyzer analyzer = new Analyzer(jsonMetaStore, "");
+    final Analyzer analyzer = new Analyzer(jsonMetaStore, "", PULL_LIMIT_CLAUSE_ENABLED);
     final Analysis analysis = analyzer.analyze(query, Optional.of(createStreamAsSelect.getSink()));
 
     assertThat(analysis.getInto(), is(not(Optional.empty())));
@@ -132,13 +147,13 @@ public class AnalyzerFunctionalTest {
     final CreateStreamAsSelect createStreamAsSelect = (CreateStreamAsSelect) statements.get(0);
     final Query query = createStreamAsSelect.getQuery();
 
-    final Analyzer analyzer = new Analyzer(avroMetaStore, "");
+    final Analyzer analyzer = new Analyzer(avroMetaStore, "", PULL_LIMIT_CLAUSE_ENABLED);
     final Analysis analysis = analyzer.analyze(query, Optional.of(createStreamAsSelect.getSink()));
 
     assertThat(analysis.getInto(), is(not(Optional.empty())));
     assertThat(analysis.getInto().get().getNewTopic().get().getValueFormat(),
         is(FormatInfo.of(FormatFactory.AVRO.name(),
-            ImmutableMap.of(AvroFormat.FULL_SCHEMA_NAME, "org.ac.s1"))));
+            ImmutableMap.of(ConnectProperties.FULL_SCHEMA_NAME, "org.ac.s1"))));
   }
 
   @Test
@@ -151,7 +166,7 @@ public class AnalyzerFunctionalTest {
         "s0",
         KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name()), SerdeFeatures.of()),
         ValueFormat.of(FormatInfo.of(
-            FormatFactory.AVRO.name(), ImmutableMap.of(AvroFormat.FULL_SCHEMA_NAME, "org.ac.s1")),
+            FormatFactory.AVRO.name(), ImmutableMap.of(ConnectProperties.FULL_SCHEMA_NAME, "org.ac.s1")),
             SerdeFeatures.of())
     );
 
@@ -166,7 +181,8 @@ public class AnalyzerFunctionalTest {
         schema,
         Optional.empty(),
         false,
-        ksqlTopic
+        ksqlTopic,
+        false
     );
 
     newAvroMetaStore.putSource(ksqlStream, false);
@@ -175,7 +191,7 @@ public class AnalyzerFunctionalTest {
     final CreateStreamAsSelect createStreamAsSelect = (CreateStreamAsSelect) statements.get(0);
     final Query query = createStreamAsSelect.getQuery();
 
-    final Analyzer analyzer = new Analyzer(newAvroMetaStore, "");
+    final Analyzer analyzer = new Analyzer(newAvroMetaStore, "", PULL_LIMIT_CLAUSE_ENABLED);
     final Analysis analysis = analyzer.analyze(query, Optional.of(createStreamAsSelect.getSink()));
 
     assertThat(analysis.getInto(), is(not(Optional.empty())));
@@ -191,7 +207,7 @@ public class AnalyzerFunctionalTest {
     final CreateStreamAsSelect createStreamAsSelect = (CreateStreamAsSelect) statements.get(0);
     final Query query = createStreamAsSelect.getQuery();
 
-    final Analyzer analyzer = new Analyzer(avroMetaStore, "");
+    final Analyzer analyzer = new Analyzer(avroMetaStore, "", PULL_LIMIT_CLAUSE_ENABLED);
     final Analysis analysis = analyzer.analyze(query, Optional.of(createStreamAsSelect.getSink()));
 
     assertThat(analysis.getInto(), is(not(Optional.empty())));
@@ -225,7 +241,7 @@ public class AnalyzerFunctionalTest {
 
     final Query query = createStreamAsSelect.getQuery();
 
-    final Analyzer analyzer = new Analyzer(jsonMetaStore, "");
+    final Analyzer analyzer = new Analyzer(jsonMetaStore, "", PULL_LIMIT_CLAUSE_ENABLED);
 
     // When:
     final Exception e = assertThrows(
@@ -248,7 +264,7 @@ public class AnalyzerFunctionalTest {
 
     final Query query = createStreamAsSelect.getQuery();
 
-    final Analyzer analyzer = new Analyzer(jsonMetaStore, "");
+    final Analyzer analyzer = new Analyzer(jsonMetaStore, "", PULL_LIMIT_CLAUSE_ENABLED);
 
     // When:
     final Exception e = assertThrows(
@@ -273,7 +289,7 @@ public class AnalyzerFunctionalTest {
 
     final Query query = createStreamAsSelect.getQuery();
 
-    final Analyzer analyzer = new Analyzer(jsonMetaStore, "");
+    final Analyzer analyzer = new Analyzer(jsonMetaStore, "", PULL_LIMIT_CLAUSE_ENABLED);
 
     // When:
     final Exception e = assertThrows(
@@ -287,6 +303,25 @@ public class AnalyzerFunctionalTest {
   }
 
   @Test
+  public void shouldFailOnTableFunctionInsideCaseFunction() {
+    // Given:
+    final Query query = parseSingle("SELECT CASE WHEN false then EXPLODE(ARRAY[1.2]) END FROM test1;");
+    final Analyzer analyzer = new Analyzer(jsonMetaStore, "", PULL_LIMIT_CLAUSE_ENABLED);
+    when(functionRegistry.isTableFunction(FunctionName.of("EXPLODE"))).thenReturn(true);
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> analyzer.analyze(query, Optional.empty())
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Table functions cannot be used in CASE: "
+            + "(CASE WHEN false THEN EXPLODE(ARRAY[1.2]) END)"));
+  }
+
+  @Test
   public void shouldFailOnJoinWithoutSource() {
     // Given:
     final CreateStreamAsSelect createStreamAsSelect = parseSingle(
@@ -296,7 +331,7 @@ public class AnalyzerFunctionalTest {
 
     final Query query = createStreamAsSelect.getQuery();
 
-    final Analyzer analyzer = new Analyzer(jsonMetaStore, "");
+    final Analyzer analyzer = new Analyzer(jsonMetaStore, "", PULL_LIMIT_CLAUSE_ENABLED);
 
     // When:
     final Exception e = assertThrows(
@@ -321,7 +356,7 @@ public class AnalyzerFunctionalTest {
 
     final Query query = createStreamAsSelect.getQuery();
 
-    final Analyzer analyzer = new Analyzer(jsonMetaStore, "");
+    final Analyzer analyzer = new Analyzer(jsonMetaStore, "", PULL_LIMIT_CLAUSE_ENABLED);
 
     // When:
     final Exception e = assertThrows(
@@ -346,7 +381,7 @@ public class AnalyzerFunctionalTest {
 
     final Query query = createStreamAsSelect.getQuery();
 
-    final Analyzer analyzer = new Analyzer(jsonMetaStore, "");
+    final Analyzer analyzer = new Analyzer(jsonMetaStore, "", PULL_LIMIT_CLAUSE_ENABLED);
 
     // When:
     final Exception e = assertThrows(
@@ -383,13 +418,17 @@ public class AnalyzerFunctionalTest {
         schema,
         Optional.empty(),
         false,
-        topic
+        topic,
+        false
     );
 
     jsonMetaStore.putSource(stream, false);
   }
 
-  private static List<Statement> parse(final String simpleQuery, final MetaStore metaStore) {
+  private static List<Statement> parse(
+      final String simpleQuery,
+      final MetaStore metaStore
+  ) {
     return KsqlParserTestUtil.buildAst(simpleQuery, metaStore)
         .stream()
         .map(PreparedStatement::getStatement)

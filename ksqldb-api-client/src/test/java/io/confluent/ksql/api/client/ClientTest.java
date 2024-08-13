@@ -18,6 +18,7 @@ package io.confluent.ksql.api.client;
 import static io.confluent.ksql.api.client.util.ClientTestUtil.awaitLatch;
 import static io.confluent.ksql.api.client.util.ClientTestUtil.subscribeAndWait;
 import static io.confluent.ksql.rest.Errors.ERROR_CODE_BAD_REQUEST;
+import static io.confluent.ksql.rest.Errors.ERROR_CODE_BAD_STATEMENT;
 import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
@@ -29,6 +30,7 @@ import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThrows;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -37,6 +39,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.api.BaseApiTest;
 import io.confluent.ksql.api.TestQueryPublisher;
+import io.confluent.ksql.api.client.Client.HttpResponse;
 import io.confluent.ksql.api.client.QueryInfo.QueryType;
 import io.confluent.ksql.api.client.exception.KsqlClientException;
 import io.confluent.ksql.api.client.exception.KsqlException;
@@ -50,6 +53,9 @@ import io.confluent.ksql.exception.KafkaResponseGetFailedException;
 import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.parser.exception.ParseFailedException;
 import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.reactive.BasePublisher;
+import io.confluent.ksql.rest.entity.AssertSchemaEntity;
+import io.confluent.ksql.rest.entity.AssertTopicEntity;
 import io.confluent.ksql.rest.entity.CommandId;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
@@ -57,7 +63,6 @@ import io.confluent.ksql.rest.entity.ConnectorDescription;
 import io.confluent.ksql.rest.entity.ConnectorList;
 import io.confluent.ksql.rest.entity.CreateConnectorEntity;
 import io.confluent.ksql.rest.entity.DropConnectorEntity;
-import io.confluent.ksql.rest.entity.ErrorEntity;
 import io.confluent.ksql.rest.entity.FieldInfo;
 import io.confluent.ksql.rest.entity.FieldInfo.FieldType;
 import io.confluent.ksql.rest.entity.FunctionDescriptionList;
@@ -82,6 +87,7 @@ import io.confluent.ksql.rest.entity.SourceInfo;
 import io.confluent.ksql.rest.entity.StreamsList;
 import io.confluent.ksql.rest.entity.TablesList;
 import io.confluent.ksql.rest.entity.TypeList;
+import io.confluent.ksql.rest.entity.WarningEntity;
 import io.confluent.ksql.schema.ksql.types.SqlBaseType;
 import io.confluent.ksql.util.AppInfo;
 import io.confluent.ksql.util.KsqlConstants.KsqlQueryStatus;
@@ -96,14 +102,18 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
-import org.apache.kafka.connect.runtime.rest.entities.ConnectorInfo;
-import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo;
-import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo.ConnectorState;
+import io.confluent.ksql.rest.entity.ConnectorInfo;
+import io.confluent.ksql.rest.entity.ConnectorStateInfo;
+import io.confluent.ksql.rest.entity.ConnectorStateInfo.ConnectorState;
+import org.hamcrest.Description;
+import org.hamcrest.Matcher;
+import org.hamcrest.TypeSafeDiagnosingMatcher;
 import org.junit.Test;
 import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
@@ -132,8 +142,9 @@ public class ClientTest extends BaseApiTest {
   protected static final String EXECUTE_STATEMENT_USAGE_DOC = "The executeStatement() method is only "
       + "for 'CREATE', 'CREATE ... AS SELECT', 'DROP', 'TERMINATE', and 'INSERT INTO ... AS "
       + "SELECT' statements. ";
-  protected static final org.apache.kafka.connect.runtime.rest.entities.ConnectorType SOURCE_TYPE =
-      org.apache.kafka.connect.runtime.rest.entities.ConnectorType.SOURCE;
+  protected static final io.confluent.ksql.rest.entity.ConnectorType SOURCE_TYPE = io.confluent.ksql.rest.entity.ConnectorType.SOURCE;
+
+  protected static final Map<String, String> REQUEST_HEADERS = ImmutableMap.of("h1", "v1", "h2", "v2");
 
   protected Client javaClient;
 
@@ -211,7 +222,7 @@ public class ClientTest extends BaseApiTest {
     // Then
     assertThat(streamedQueryResult.columnNames(), is(DEFAULT_COLUMN_NAMES));
     assertThat(streamedQueryResult.columnTypes(), is(DEFAULT_COLUMN_TYPES));
-    assertThat(streamedQueryResult.queryID(), is(nullValue()));
+    assertThat(streamedQueryResult.queryID(), is(notNullValue()));
 
     shouldReceiveRows(streamedQueryResult, true);
 
@@ -229,7 +240,7 @@ public class ClientTest extends BaseApiTest {
     // Then
     assertThat(streamedQueryResult.columnNames(), is(DEFAULT_COLUMN_NAMES));
     assertThat(streamedQueryResult.columnTypes(), is(DEFAULT_COLUMN_TYPES));
-    assertThat(streamedQueryResult.queryID(), is(nullValue()));
+    assertThat(streamedQueryResult.queryID(), is(notNullValue()));
 
     for (int i = 0; i < DEFAULT_JSON_ROWS.size(); i++) {
       final Row row = streamedQueryResult.poll();
@@ -336,6 +347,7 @@ public class ClientTest extends BaseApiTest {
     // Given
     final StreamedQueryResult streamedQueryResult =
         javaClient.streamQuery(DEFAULT_PUSH_QUERY, DEFAULT_PUSH_QUERY_REQUEST_PROPERTIES).get();
+    waitForQueryPublisherSubscribed();
     sendQueryPublisherError();
     assertThatEventually(streamedQueryResult::isFailed, is(true));
 
@@ -388,7 +400,7 @@ public class ClientTest extends BaseApiTest {
     // Then
     assertThatEventually(subscriber::getError, is(notNullValue()));
     assertThat(subscriber.getError(), instanceOf(KsqlException.class));
-    assertThat(subscriber.getError().getMessage(), containsString("Error in processing query. Check server logs for details."));
+    assertThat(subscriber.getError().getMessage(), containsString("java.lang.RuntimeException: Failure in processing"));
 
     assertThatEventually(streamedQueryResult::isFailed, is(true));
     assertThat(streamedQueryResult.isComplete(), is(false));
@@ -471,7 +483,7 @@ public class ClientTest extends BaseApiTest {
     final BatchedQueryResult batchedQueryResult = javaClient.executeQuery(DEFAULT_PULL_QUERY);
 
     // Then
-    assertThat(batchedQueryResult.queryID().get(), is(nullValue()));
+    assertThat(batchedQueryResult.queryID().get(), is(notNullValue()));
 
     verifyRows(batchedQueryResult.get());
 
@@ -594,7 +606,7 @@ public class ClientTest extends BaseApiTest {
   @Test
   public void shouldHandleErrorResponseFromInsertInto() {
     // Given
-    KsqlApiException exception = new KsqlApiException("Cannot insert into a table", ERROR_CODE_BAD_REQUEST);
+    KsqlApiException exception = new KsqlApiException("Invalid target name", ERROR_CODE_BAD_STATEMENT);
     testEndpoints.setCreateInsertsSubscriberException(exception);
 
     // When
@@ -606,7 +618,7 @@ public class ClientTest extends BaseApiTest {
     // Then
     assertThat(e.getCause(), instanceOf(KsqlClientException.class));
     assertThat(e.getCause().getMessage(), containsString("Received 400 response from server"));
-    assertThat(e.getCause().getMessage(), containsString("Cannot insert into a table"));
+    assertThat(e.getCause().getMessage(), containsString("Invalid target name"));
   }
 
   @Test
@@ -670,7 +682,7 @@ public class ClientTest extends BaseApiTest {
   @Test
   public void shouldHandleErrorResponseFromStreamInserts() {
     // Given
-    KsqlApiException exception = new KsqlApiException("Cannot insert into a table", ERROR_CODE_BAD_REQUEST);
+    KsqlApiException exception = new KsqlApiException("Invalid target name", ERROR_CODE_BAD_STATEMENT);
     testEndpoints.setCreateInsertsSubscriberException(exception);
 
     // When
@@ -682,7 +694,7 @@ public class ClientTest extends BaseApiTest {
     // Then
     assertThat(e.getCause(), instanceOf(KsqlClientException.class));
     assertThat(e.getCause().getMessage(), containsString("Received 400 response from server"));
-    assertThat(e.getCause().getMessage(), containsString("Cannot insert into a table"));
+    assertThat(e.getCause().getMessage(), containsString("Invalid target name"));
   }
 
   @Test
@@ -785,6 +797,24 @@ public class ClientTest extends BaseApiTest {
     assertThat(e.getCause(), instanceOf(KsqlClientException.class));
     assertThat(e.getCause().getMessage(), containsString("Received 500 response from server"));
     assertThat(e.getCause().getMessage(), containsString("something bad"));
+  }
+
+  @Test
+  public void shouldHandleIfNotExistsWarningResponseFromExecuteStatement() throws Exception {
+    // Given
+    KsqlEntity ksqlEntity = new WarningEntity(
+        "CREATE STREAM IF NOT EXISTS ",
+        "Cannot add stream `HIGH_VALUE_STOCK_TRADES`: A stream with the same name already exists."
+    );
+    testEndpoints.setKsqlEndpointResponse(Collections.singletonList(ksqlEntity));
+
+
+    final ExecuteStatementResult result = javaClient.executeStatement("CSAS;").get();
+
+
+    // Then
+    assertThat(result.queryId(),
+        equalTo(Optional.empty()));
   }
 
   @Test
@@ -1021,7 +1051,7 @@ public class ClientTest extends BaseApiTest {
         new QueryDescription(new QueryId("id"), "sql", Optional.empty(),
             Collections.emptyList(), Collections.emptySet(), Collections.emptySet(), "topology",
             "executionPlan", Collections.emptyMap(), Collections.emptyMap(),
-            KsqlQueryType.PERSISTENT, Collections.emptyList(), Collections.emptySet()));
+            KsqlQueryType.PERSISTENT, Collections.emptyList(), Collections.emptySet(), "consumerGroupId"));
     testEndpoints.setKsqlEndpointResponse(Collections.singletonList(entity));
 
     // When
@@ -1164,22 +1194,37 @@ public class ClientTest extends BaseApiTest {
   }
 
   @Test
-  public void shouldFailOnErrorEntityFromExecuteStatement() {
+  public void shouldHandleWarningsForDdlStatements()
+      throws ExecutionException, InterruptedException {
     // Given
-    final ErrorEntity entity = new ErrorEntity("create connector;", "error msg");
+    final WarningEntity entity = new WarningEntity("create stream if not exists;", "Cannot add stream foo: A stream with the same name already exists.");
+    testEndpoints.setKsqlEndpointResponse(Collections.singletonList(entity));
+
+    // When
+    final ExecuteStatementResult result = javaClient.executeStatement("create stream if not exists;").get();
+
+    // Then
+    assertFalse(result.queryId().isPresent());
+  }
+
+  @Test
+  public void shouldRejectWarningsFromNonDdlStatementsViaExecuteStatement() {
+    // Given
+    final WarningEntity entity = new WarningEntity("drop connector if exits;", "Connector does not exist.");
     testEndpoints.setKsqlEndpointResponse(Collections.singletonList(entity));
 
     // When
     final Exception e = assertThrows(
         ExecutionException.class, // thrown from .get() when the future completes exceptionally
-        () -> javaClient.executeStatement("create connector;").get()
+        () -> javaClient.executeStatement("drop connector if exits;").get()
     );
 
     // Then
     assertThat(e.getCause(), instanceOf(KsqlClientException.class));
+    assertThat(e.getCause().getMessage(), containsString(EXECUTE_STATEMENT_REQUEST_ACCEPTED_DOC));
     assertThat(e.getCause().getMessage(), containsString(EXECUTE_STATEMENT_USAGE_DOC));
     assertThat(e.getCause().getMessage(),
-        containsString("Use the createConnector, dropConnector, describeConnector or listConnectors methods instead"));
+        containsString("Use the dropConnector() method instead"));
   }
 
   @Test
@@ -1546,6 +1591,20 @@ public class ClientTest extends BaseApiTest {
   }
 
   @Test
+  public void shouldCreateConnectorIfNotExist() throws Exception {
+    // Given
+    final CreateConnectorEntity entity = new CreateConnectorEntity("create connector;",
+        new ConnectorInfo("name", Collections.emptyMap(), Collections.emptyList(), SOURCE_TYPE));
+    testEndpoints.setKsqlEndpointResponse(Collections.singletonList(entity));
+
+    // When:
+    javaClient.createConnector("name", true, Collections.emptyMap(), true).get();
+
+    // Then:
+    assertThat(testEndpoints.getLastSql(), is("CREATE SOURCE CONNECTOR IF NOT EXISTS name WITH ();"));
+  }
+
+  @Test
   public void shouldDropConnector() throws Exception {
     // Given
     final DropConnectorEntity entity = new DropConnectorEntity("drop connector;", "name");
@@ -1556,6 +1615,19 @@ public class ClientTest extends BaseApiTest {
 
     // Then:
     assertThat(testEndpoints.getLastSql(), is("drop connector name;"));
+  }
+
+  @Test
+  public void shouldDropConnectorIfExists() throws Exception {
+    // Given
+    final DropConnectorEntity entity = new DropConnectorEntity("drop connector;", "name");
+    testEndpoints.setKsqlEndpointResponse(Collections.singletonList(entity));
+
+    // When:
+    javaClient.dropConnector("name", true).get();
+
+    // Then:
+    assertThat(testEndpoints.getLastSql(), is("drop connector if exists name;"));
   }
 
   @Test
@@ -1707,6 +1779,167 @@ public class ClientTest extends BaseApiTest {
     assertThat(testEndpoints.getLastSessionVariables(), is(new JsonObject().put("a", "a")));
   }
 
+  @Test
+  public void clientShouldMakeHttpRequests() throws Exception {
+    HttpResponse response = javaClient.buildRequest("GET", "/info").send().get();
+    assertThat(response.status(), is(200));
+
+    Map<String, Map<String, Object>> info = response.bodyAsMap();
+    Map<String, Object> serverInfo = info.get("KsqlServerInfo");
+    assertThat(serverInfo.get("version"), is(AppInfo.getVersion()));
+    assertThat(serverInfo.get("ksqlServiceId"), is("ksql-service-id"));
+    assertThat(serverInfo.get("kafkaClusterId"), is("kafka-cluster-id"));
+  }
+
+  @Test
+  public void clientShouldReturn404Responses() throws Exception {
+    HttpResponse response = javaClient.buildRequest("GET", "/abc").send().get();
+    assertThat(response.status(), is(404));
+  }
+
+  @Test
+  public void setSessionVariablesWithHttpRequest() throws Exception {
+    javaClient.define("some-var", "var-value");
+    HttpResponse response = javaClient.buildRequest("POST", "/ksql")
+        .payload("ksql", "CREATE STREAM FOO AS CONCAT(A, `wow;`) FROM `BAR`;")
+        .propertiesKey("streamsProperties")
+        .property("auto.offset.reset", "earliest")
+        .send()
+        .get();
+    assertThat(response.status(), is(200));
+    assertThat(testEndpoints.getLastSessionVariables(), is(new JsonObject().put("some-var", "var-value")));
+    assertThat(testEndpoints.getLastProperties(), is(new JsonObject().put("auto.offset.reset", "earliest")));
+  }
+
+  @Test
+  public void shouldSendCustomRequestHeaders() throws Exception {
+    // Given:
+    final CommandStatusEntity entity = new CommandStatusEntity(
+        "CSAS;",
+        new CommandId("STREAM", "FOO", "CREATE"),
+        new CommandStatus(
+            CommandStatus.Status.SUCCESS,
+            "Success"
+        ),
+        0L
+    );
+    testEndpoints.setKsqlEndpointResponse(Collections.singletonList(entity));
+
+    // When:
+    javaClient.executeStatement("CSAS;").get();
+
+    // Then:
+    final List<Entry<String, String>> requestHeaders =
+        testEndpoints.getLastApiSecurityContext().getRequestHeaders();
+    for (final Entry<String, String> header : REQUEST_HEADERS.entrySet()) {
+      assertThat(requestHeaders, hasItems(entry(header)));
+    }
+  }
+
+  @Test
+  public void shouldSendAssertSchemaWithSubjectAndId() throws Exception {
+    // Given
+    final AssertSchemaEntity entity = new AssertSchemaEntity("assert schema;", Optional.of("name"), Optional.of(3), true);
+    testEndpoints.setKsqlEndpointResponse(Collections.singletonList(entity));
+
+    // When:
+    javaClient.assertSchema("name", 3, true).get();
+
+    // Then:
+    assertThat(testEndpoints.getLastSql(), is("assert schema subject 'name' id 3;"));
+  }
+
+  @Test
+  public void shouldSendAssertSchemaWithSubject() throws Exception {
+    // Given
+    final AssertSchemaEntity entity = new AssertSchemaEntity("assert schema;", Optional.of("name"), Optional.empty(), true);
+    testEndpoints.setKsqlEndpointResponse(Collections.singletonList(entity));
+
+    // When:
+    javaClient.assertSchema("name", true).get();
+
+    // Then:
+    assertThat(testEndpoints.getLastSql(), is("assert schema subject 'name';"));
+  }
+
+  @Test
+  public void shouldSendAssertSchemaWithId() throws Exception {
+    // Given
+    final AssertSchemaEntity entity = new AssertSchemaEntity("assert schema;", Optional.empty(), Optional.of(3), true);
+    testEndpoints.setKsqlEndpointResponse(Collections.singletonList(entity));
+
+    // When:
+    javaClient.assertSchema(3, true).get();
+
+    // Then:
+    assertThat(testEndpoints.getLastSql(), is("assert schema id 3;"));
+  }
+
+  @Test
+  public void shouldSendAssertNotExistSchema() throws Exception {
+    // Given
+    final AssertSchemaEntity entity = new AssertSchemaEntity("assert schema;", Optional.of("name"), Optional.empty(), false);
+    testEndpoints.setKsqlEndpointResponse(Collections.singletonList(entity));
+
+    // When:
+    javaClient.assertSchema("name", false).get();
+
+    // Then:
+    assertThat(testEndpoints.getLastSql(), is("assert not exists schema subject 'name';"));
+  }
+
+  @Test
+  public void shouldSendAssertSchemaWithTimeout() throws Exception {
+    // Given
+    final AssertSchemaEntity entity = new AssertSchemaEntity("assert schema;", Optional.empty(), Optional.of(3), true);
+    testEndpoints.setKsqlEndpointResponse(Collections.singletonList(entity));
+
+    // When:
+    javaClient.assertSchema(3, true, Duration.ofSeconds(10)).get();
+
+    // Then:
+    assertThat(testEndpoints.getLastSql(), is("assert schema id 3 timeout 10 seconds;"));
+  }
+
+  @Test
+  public void shouldSendAssertTopic() throws Exception {
+    // Given
+    final AssertTopicEntity entity = new AssertTopicEntity("assert topic;", "name", true);
+    testEndpoints.setKsqlEndpointResponse(Collections.singletonList(entity));
+
+    // When:
+    javaClient.assertTopic("name", true).get();
+
+    // Then:
+    assertThat(testEndpoints.getLastSql(), is("assert topic 'name';"));
+  }
+
+  @Test
+  public void shouldSendAssertTopicWithConfigs() throws Exception {
+    // Given
+    final AssertTopicEntity entity = new AssertTopicEntity("assert topic;", "name", true);
+    testEndpoints.setKsqlEndpointResponse(Collections.singletonList(entity));
+
+    // When:
+    javaClient.assertTopic("name", ImmutableMap.of("foo", 3, "bar", 5),true).get();
+
+    // Then:
+    assertThat(testEndpoints.getLastSql(), is("assert topic 'name' with (foo=3,bar=5);"));
+  }
+
+  @Test
+  public void shouldSendAssertNotExistsTopicWithTimeout() throws Exception {
+    // Given
+    final AssertTopicEntity entity = new AssertTopicEntity("assert topic;", "name", false);
+    testEndpoints.setKsqlEndpointResponse(Collections.singletonList(entity));
+
+    // When:
+    javaClient.assertTopic("name",false, Duration.ofSeconds(10)).get();
+
+    // Then:
+    assertThat(testEndpoints.getLastSql(), is("assert not exists topic 'name' timeout 10 seconds;"));
+  }
+
   protected Client createJavaClient() {
     return Client.create(createJavaClientOptions(), vertx);
   }
@@ -1714,7 +1947,8 @@ public class ClientTest extends BaseApiTest {
   protected ClientOptions createJavaClientOptions() {
     return ClientOptions.create()
         .setHost("localhost")
-        .setPort(server.getListeners().get(0).getPort());
+        .setPort(server.getListeners().get(0).getPort())
+        .setRequestHeaders(REQUEST_HEADERS);
   }
 
   private void verifyPushQueryServerState(final String sql) {
@@ -1739,9 +1973,9 @@ public class ClientTest extends BaseApiTest {
   }
 
   private void sendQueryPublisherError() {
-    final Set<TestQueryPublisher> queryPublishers = testEndpoints.getQueryPublishers();
+    final Set<Publisher<?>> queryPublishers = testEndpoints.getPublishers();
     assertThat(queryPublishers, hasSize(1));
-    final TestQueryPublisher queryPublisher = queryPublishers.stream().findFirst().get();
+    final TestQueryPublisher queryPublisher = (TestQueryPublisher) queryPublishers.stream().findFirst().get();
     queryPublisher.sendError();
   }
 
@@ -1816,6 +2050,9 @@ public class ClientTest extends BaseApiTest {
     assertThat(values.getKsqlObject(8), is(row.getKsqlObject("f_map")));
     assertThat(values.getKsqlObject(9), is(row.getKsqlObject("f_struct")));
     assertThat(values.getValue(10), is(nullValue()));
+    assertThat(values.getValue(11), is(row.getString("f_timestamp")));
+    assertThat(values.getValue(12), is(row.getString("f_date")));
+    assertThat(values.getValue(13), is(row.getString("f_time")));
     assertThat(values.toJsonString(), is((new JsonArray(values.getList())).toString()));
     assertThat(values.toString(), is(values.toJsonString()));
 
@@ -2011,5 +2248,31 @@ public class ClientTest extends BaseApiTest {
       this.sourceDescription = sourceDescription;
       this.warnings = warnings;
     }
+  }
+
+  private static Matcher<? super Entry<String, String>> entry(
+      final Entry<String, String> entry
+  ) {
+    return new TypeSafeDiagnosingMatcher<Entry<String, String>>() {
+      @Override
+      protected boolean matchesSafely(
+          final Entry<String, String> actual,
+          final Description mismatchDescription) {
+        if (!entry.getKey().equals(actual.getKey())) {
+          return false;
+        }
+        if (!entry.getValue().equals(actual.getValue())) {
+          return false;
+        }
+        return true;
+      }
+
+      @Override
+      public void describeTo(final Description description) {
+        description.appendText(String.format(
+            "key: %s. value: %s",
+            entry.getKey(), entry.getValue()));
+      }
+    };
   }
 }

@@ -20,12 +20,14 @@ import static io.netty.handler.codec.http.websocketx.WebSocketCloseStatus.NORMAL
 import static io.netty.handler.codec.http.websocketx.WebSocketCloseStatus.PROTOCOL_ERROR;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import io.confluent.ksql.api.server.MetricsCallbackHolder;
 import io.confluent.ksql.rest.ApiJsonMapper;
 import io.confluent.ksql.rest.util.EntityUtil;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.vertx.core.http.ServerWebSocket;
 import java.io.IOException;
 import java.util.Collection;
+import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,6 +39,8 @@ class WebSocketSubscriber<T> implements Flow.Subscriber<Collection<T>>, AutoClos
   private Flow.Subscription subscription;
   private volatile boolean closed;
   private volatile boolean drainHandlerSet;
+  private Optional<MetricsCallbackHolder> metricsCallbackHolderOptional = Optional.empty();
+  private long startTimeNanos;
 
   WebSocketSubscriber(final ServerWebSocket websocket) {
     this.websocket = websocket;
@@ -46,6 +50,16 @@ class WebSocketSubscriber<T> implements Flow.Subscriber<Collection<T>>, AutoClos
     this.subscription = subscription;
     subscription.request(1);
   }
+
+  public void onSubscribe(final Flow.Subscription subscription,
+                          final MetricsCallbackHolder metricsCallbackHolder,
+                          final long startTimeNanos) {
+    this.subscription = subscription;
+    subscription.request(1);
+    metricsCallbackHolderOptional = Optional.of(metricsCallbackHolder);
+    this.startTimeNanos = startTimeNanos;
+  }
+
 
   @Override
   public void onNext(final Collection<T> rows) {
@@ -76,11 +90,14 @@ class WebSocketSubscriber<T> implements Flow.Subscriber<Collection<T>>, AutoClos
         ? "KSQL exception: " + e.getClass().getSimpleName()
         : e.getMessage();
 
+    metricsCallbackHolderOptional.ifPresent(mc -> mc.reportMetrics(0, 0, 0, startTimeNanos));
     SessionUtil.closeSilently(websocket, INTERNAL_SERVER_ERROR.code(), msg);
   }
 
   @Override
   public void onComplete() {
+    // We don't have the status code , request and response size in bytes
+    metricsCallbackHolderOptional.ifPresent(mc -> mc.reportMetrics(0, 0, 0, startTimeNanos));
     SessionUtil.closeSilently(websocket, NORMAL_CLOSURE.code(), "done");
   }
 

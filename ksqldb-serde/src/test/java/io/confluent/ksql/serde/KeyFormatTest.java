@@ -30,7 +30,7 @@ import static org.mockito.Mockito.mock;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.testing.EqualsTester;
 import com.google.common.testing.NullPointerTester;
-import io.confluent.ksql.serde.avro.AvroFormat;
+import io.confluent.ksql.serde.connect.ConnectProperties;
 import java.time.Duration;
 import java.util.Optional;
 import org.junit.Test;
@@ -53,8 +53,8 @@ public class KeyFormatTest {
     final FormatInfo format1 = FormatInfo.of(AVRO.name());
     final FormatInfo format2 = FormatInfo.of(JSON.name());
 
-    final WindowInfo window1 = WindowInfo.of(SESSION, Optional.empty());
-    final WindowInfo window2 = WindowInfo.of(HOPPING, Optional.of(Duration.ofMillis(1000)));
+    final WindowInfo window1 = WindowInfo.of(SESSION, Optional.empty(), Optional.empty());
+    final WindowInfo window2 = WindowInfo.of(HOPPING, Optional.of(Duration.ofMillis(1000)), Optional.empty());
 
     new EqualsTester()
         .addEqualityGroup(
@@ -86,8 +86,8 @@ public class KeyFormatTest {
   @Test
   public void shouldImplementToString() {
     // Given:
-    final FormatInfo formatInfo = FormatInfo.of(AVRO.name(), ImmutableMap.of(AvroFormat.FULL_SCHEMA_NAME, "something"));
-    final WindowInfo windowInfo = WindowInfo.of(HOPPING, Optional.of(Duration.ofMillis(10101)));
+    final FormatInfo formatInfo = FormatInfo.of(AVRO.name(), ImmutableMap.of(ConnectProperties.FULL_SCHEMA_NAME, "something"));
+    final WindowInfo windowInfo = WindowInfo.of(HOPPING, Optional.of(Duration.ofMillis(10101)), Optional.empty());
 
     final KeyFormat keyFormat = KeyFormat.windowed(formatInfo, SerdeFeatures.of(WRAP_SINGLES), windowInfo);
 
@@ -116,7 +116,7 @@ public class KeyFormatTest {
   @Test
   public void shouldGetFormatInfo() {
     // Given:
-    final FormatInfo format = FormatInfo.of(AVRO.name(), ImmutableMap.of(AvroFormat.FULL_SCHEMA_NAME, "something"));
+    final FormatInfo format = FormatInfo.of(AVRO.name(), ImmutableMap.of(ConnectProperties.FULL_SCHEMA_NAME, "something"));
     final KeyFormat keyFormat = KeyFormat.nonWindowed(format, SerdeFeatures.of());
 
     // When:
@@ -156,7 +156,7 @@ public class KeyFormatTest {
     final KeyFormat keyFormat = KeyFormat.windowed(
         FormatInfo.of(JSON.name()),
         SerdeFeatures.of(),
-        WindowInfo.of(HOPPING, Optional.of(Duration.ofMinutes(4)))
+        WindowInfo.of(HOPPING, Optional.of(Duration.ofMinutes(4)), Optional.empty())
     );
 
     // Then:
@@ -169,13 +169,13 @@ public class KeyFormatTest {
   public void shouldHandleWindowedWithAvroSchemaName() {
     // Given:
     final KeyFormat keyFormat = KeyFormat.windowed(
-        FormatInfo.of(AVRO.name(), ImmutableMap.of(AvroFormat.FULL_SCHEMA_NAME, "something")),
+        FormatInfo.of(AVRO.name(), ImmutableMap.of(ConnectProperties.FULL_SCHEMA_NAME, "something")),
         SerdeFeatures.of(),
-        WindowInfo.of(HOPPING, Optional.of(Duration.ofMinutes(4)))
+        WindowInfo.of(HOPPING, Optional.of(Duration.ofMinutes(4)), Optional.empty())
     );
 
     // Then:
-    assertThat(keyFormat.getFormatInfo(), is(FormatInfo.of(AVRO.name(), ImmutableMap.of(AvroFormat.FULL_SCHEMA_NAME, "something"))));
+    assertThat(keyFormat.getFormatInfo(), is(FormatInfo.of(AVRO.name(), ImmutableMap.of(ConnectProperties.FULL_SCHEMA_NAME, "something"))));
   }
 
   @Test
@@ -184,7 +184,7 @@ public class KeyFormatTest {
     final KeyFormat keyFormat = KeyFormat.windowed(
         FormatInfo.of(DELIMITED.name()),
         SerdeFeatures.of(),
-        WindowInfo.of(SESSION, Optional.empty())
+        WindowInfo.of(SESSION, Optional.empty(), Optional.empty())
     );
 
     // Then:

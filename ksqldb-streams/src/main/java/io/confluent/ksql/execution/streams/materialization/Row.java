@@ -21,6 +21,7 @@ import com.google.common.annotations.VisibleForTesting;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.Window;
 import io.confluent.ksql.execution.streams.materialization.TableRowValidation.Validator;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import java.util.Objects;

@@ -31,10 +31,12 @@ import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.model.SemanticVersion;
 import io.confluent.ksql.query.QueryError;
 import io.confluent.ksql.testing.EffectivelyImmutable;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -42,6 +44,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import org.apache.kafka.clients.CommonClientConfigs;
 import org.apache.kafka.clients.admin.AdminClientConfig;
+import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.config.AbstractConfig;
 import org.apache.kafka.common.config.ConfigDef;
@@ -49,8 +52,10 @@ import org.apache.kafka.common.config.ConfigDef.Importance;
 import org.apache.kafka.common.config.ConfigDef.Type;
 import org.apache.kafka.common.config.ConfigDef.ValidString;
 import org.apache.kafka.common.config.ConfigDef.Validator;
+import org.apache.kafka.common.config.ConfigException;
 import org.apache.kafka.common.config.SslConfigs;
 import org.apache.kafka.common.config.TopicConfig;
+import org.apache.kafka.common.config.internals.ConfluentConfigs;
 import org.apache.kafka.common.utils.AppInfoParser;
 import org.apache.kafka.streams.StreamsConfig;
 import org.slf4j.Logger;
@@ -68,11 +73,26 @@ public class KsqlConfig extends AbstractConfig {
   static final String KSQ_FUNCTIONS_GLOBAL_PROPERTY_PREFIX =
       KSQL_FUNCTIONS_PROPERTY_PREFIX + "_global_.";
 
+  public static final String KSQL_DEPLOYMENT_TYPE_CONFIG =
+      KSQL_CONFIG_PROPERTY_PREFIX + "deployment.type";
+
+  public enum DeploymentType {
+    selfManaged,
+    confluent
+  }
+
+  public static final String KSQL_DEPLOYMENT_TYPE_DOC =
+      "The type of deployment for ksql. Value must be one of "
+              + Arrays.asList(DeploymentType.values());
+
   public static final String METRIC_REPORTER_CLASSES_CONFIG =
       CommonClientConfigs.METRIC_REPORTER_CLASSES_CONFIG;
 
   public static final String METRIC_REPORTER_CLASSES_DOC =
       CommonClientConfigs.METRIC_REPORTER_CLASSES_DOC;
+
+  private static final String TELEMETRY_REPORTER_CLASS =
+          "io.confluent.telemetry.reporter.TelemetryReporter";
 
   private static final String TELEMETRY_PREFIX = "confluent.telemetry";
   private static final Set<String> REPORTER_CONFIGS_PREFIXES =
@@ -86,13 +106,60 @@ public class KsqlConfig extends AbstractConfig {
   public static final String KSQL_INTERNAL_TOPIC_MIN_INSYNC_REPLICAS_PROPERTY =
       "ksql.internal.topic.min.insync.replicas";
 
+  public static final String KSQL_INTERNAL_METRIC_COLLECTORS_CONFIG =
+      "ksql.internal.metric.collectors";
+
+  public static final String KSQL_INTERNAL_METRICS_CONFIG =
+      "ksql.internal.metrics";
+
+  public static final String KSQL_INTERNAL_STREAMS_ERROR_COLLECTOR_CONFIG =
+      "ksql.internal.streams.error.collector";
+
   public static final String KSQL_SCHEMA_REGISTRY_PREFIX = "ksql.schema.registry.";
 
   public static final String SCHEMA_REGISTRY_URL_PROPERTY = "ksql.schema.registry.url";
 
-  public static final String CONNECT_URL_PROPERTY = "ksql.connect.url";
+  public static final String KSQL_CONNECT_PREFIX = "ksql.connect.";
 
-  public static final String CONNECT_WORKER_CONFIG_FILE_PROPERTY = "ksql.connect.worker.config";
+  public static final String CONNECT_URL_PROPERTY = KSQL_CONNECT_PREFIX + "url";
+
+  public static final String CONNECT_WORKER_CONFIG_FILE_PROPERTY =
+      KSQL_CONNECT_PREFIX + "worker.config";
+
+  public static final String CONNECT_BASIC_AUTH_CREDENTIALS_SOURCE_PROPERTY =
+      KSQL_CONNECT_PREFIX + "basic.auth.credentials.source";
+  public static final String BASIC_AUTH_CREDENTIALS_SOURCE_NONE = "NONE";
+  public static final String BASIC_AUTH_CREDENTIALS_SOURCE_FILE = "FILE";
+  private static final ConfigDef.ValidString BASIC_AUTH_CREDENTIALS_SOURCE_VALIDATOR =
+      ConfigDef.ValidString.in(
+          BASIC_AUTH_CREDENTIALS_SOURCE_NONE,
+          BASIC_AUTH_CREDENTIALS_SOURCE_FILE
+      );
+  public static final String BASIC_AUTH_CREDENTIALS_USERNAME = "username";
+  public static final String BASIC_AUTH_CREDENTIALS_PASSWORD = "password";
+
+  public static final String SSL_ENDPOINT_IDENTIFICATION_ALGORITHM_CONFIG =
+      SslConfigs.SSL_ENDPOINT_IDENTIFICATION_ALGORITHM_CONFIG;
+  public static final String SSL_ENDPOINT_IDENTIFICATION_ALGORITHM_HTTPS = "https";
+  public static final String SSL_ENDPOINT_IDENTIFICATION_ALGORITHM_NONE = "none";
+
+  public static final String CONNECT_BASIC_AUTH_CREDENTIALS_FILE_PROPERTY =
+      KSQL_CONNECT_PREFIX + "basic.auth.credentials.file";
+  public static final String CONNECT_BASIC_AUTH_CREDENTIALS_RELOAD_PROPERTY =
+      KSQL_CONNECT_PREFIX + "basic.auth.credentials.reload";
+
+  public static final String CONNECT_REQUEST_TIMEOUT_MS =
+      KSQL_CONNECT_PREFIX + "request.timeout.ms";
+  public static final Long CONNECT_REQUEST_TIMEOUT_DEFAULT = 5_000L;
+  private static final String CONNECT_REQUEST_TIMEOUT_MS_DOC =
+      "Timeout, in milliseconds, used for each of the connection timeout and request timeout "
+          + "for connector requests issued by ksqlDB.";
+
+  public static final String CONNECT_REQUEST_HEADERS_PLUGIN =
+      KSQL_CONNECT_PREFIX + "request.headers.plugin";
+  private static final String CONNECT_REQUEST_HEADERS_PLUGIN_DOC =
+      "Custom extension to allow for more fine-grained control of connector requests made by "
+          + "ksqlDB. Extensions should implement the ConnectRequestHeadersExtension interface.";
 
   public static final String KSQL_ENABLE_UDFS = "ksql.udfs.enabled";
 
@@ -192,7 +259,7 @@ public class KsqlConfig extends AbstractConfig {
   public static final String KSQL_SECURITY_EXTENSION_DOC = "A KSQL security extension class that "
       + "provides authorization to KSQL servers.";
 
-  public static final String KSQL_ENABLE_TOPIC_ACCESS_VALIDATOR = "ksql.access.validator.enable";
+  public static final String KSQL_ENABLE_ACCESS_VALIDATOR = "ksql.access.validator.enable";
   public static final String KSQL_ACCESS_VALIDATOR_ON = "on";
   public static final String KSQL_ACCESS_VALIDATOR_OFF = "off";
   public static final String KSQL_ACCESS_VALIDATOR_AUTO = "auto";
@@ -258,17 +325,43 @@ public class KsqlConfig extends AbstractConfig {
       = "The maximum amount of pull query bandwidth in megabytes allowed over"
       + " a period of one hour. Once the limit is hit, queries will fail immediately";
 
+  public static final String KSQL_QUERY_PUSH_V2_MAX_HOURLY_BANDWIDTH_MEGABYTES_CONFIG
+      = "ksql.query.push.v2.max.hourly.bandwidth.megabytes";
+  public static final Integer KSQL_QUERY_PUSH_V2_MAX_HOURLY_BANDWIDTH_MEGABYTES_DEFAULT
+      = Integer.MAX_VALUE;
+  public static final String KSQL_QUERY_PUSH_V2_MAX_HOURLY_BANDWIDTH_MEGABYTES_DOC
+      = "The maximum amount of v2 push query bandwidth in megabytes allowed over"
+      + " a period of one hour. Once the limit is hit, queries will fail immediately";
+
   public static final String KSQL_QUERY_PULL_THREAD_POOL_SIZE_CONFIG
       = "ksql.query.pull.thread.pool.size";
-  public static final Integer KSQL_QUERY_PULL_THREAD_POOL_SIZE_DEFAULT = 100;
+  public static final Integer KSQL_QUERY_PULL_THREAD_POOL_SIZE_DEFAULT = 50;
   public static final String KSQL_QUERY_PULL_THREAD_POOL_SIZE_DOC =
-      "Size of thread pool used for sending/executing pull queries";
+      "Size of thread pool used for coordinating pull queries";
+
+  public static final String KSQL_QUERY_PULL_ROUTER_THREAD_POOL_SIZE_CONFIG
+      = "ksql.query.pull.router.thread.pool.size";
+  public static final Integer KSQL_QUERY_PULL_ROUTER_THREAD_POOL_SIZE_DEFAULT = 50;
+  public static final String KSQL_QUERY_PULL_ROUTER_THREAD_POOL_SIZE_DOC =
+      "Size of thread pool used for routing pull queries";
 
   public static final String KSQL_QUERY_PULL_TABLE_SCAN_ENABLED
       = "ksql.query.pull.table.scan.enabled";
   public static final String KSQL_QUERY_PULL_TABLE_SCAN_ENABLED_DOC =
-      "Config to enable full table scans for pull queries";
-  public static final boolean KSQL_QUERY_PULL_TABLE_SCAN_ENABLED_DEFAULT = false;
+      "Config to enable pull queries that scan over the data";
+  public static final boolean KSQL_QUERY_PULL_TABLE_SCAN_ENABLED_DEFAULT = true;
+
+  public static final String KSQL_QUERY_STREAM_PULL_QUERY_ENABLED
+      = "ksql.query.pull.stream.enabled";
+  public static final String KSQL_QUERY_STREAM_PULL_QUERY_ENABLED_DOC =
+      "Config to enable pull queries on streams";
+  public static final boolean KSQL_QUERY_STREAM_PULL_QUERY_ENABLED_DEFAULT = true;
+
+  public static final String KSQL_QUERY_PULL_RANGE_SCAN_ENABLED
+      = "ksql.query.pull.range.scan.enabled";
+  public static final String KSQL_QUERY_PULL_RANGE_SCAN_ENABLED_DOC =
+      "Config to enable range scans on table for pull queries";
+  public static final boolean KSQL_QUERY_PULL_RANGE_SCAN_ENABLED_DEFAULT = true;
 
   public static final String KSQL_QUERY_PULL_INTERPRETER_ENABLED
       = "ksql.query.pull.interpreter.enabled";
@@ -278,20 +371,91 @@ public class KsqlConfig extends AbstractConfig {
           + " much faster for short-lived queries.";
   public static final boolean KSQL_QUERY_PULL_INTERPRETER_ENABLED_DEFAULT = true;
 
-  public static final String KSQL_QUERY_PUSH_SCALABLE_ENABLED
-      = "ksql.query.push.scalable.enabled";
-  public static final String KSQL_QUERY_PUSH_SCALABLE_ENABLED_DOC =
-      "Enables whether scalable push queries are enabled. Scalable push queries require no window "
-          + "functions, aggregations, or joins, but may include projections and filters.";
-  public static final boolean KSQL_QUERY_PUSH_SCALABLE_ENABLED_DEFAULT = false;
+  public static final boolean KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED_DEFAULT = false;
 
-  public static final String KSQL_QUERY_PUSH_SCALABLE_INTERPRETER_ENABLED
-      = "ksql.query.push.scalable.interpreter.enabled";
-  public static final String KSQL_QUERY_PUSH_SCALABLE_INTERPRETER_ENABLED_DOC =
+  public static final String KSQL_QUERY_PULL_LIMIT_CLAUSE_ENABLED
+          = "ksql.query.pull.limit.clause.enabled";
+  public static final String KSQL_QUERY_PULL_LIMIT_CLAUSE_ENABLED_DOC
+          = "Enables the use of LIMIT clause in pull queries";
+  public static final boolean KSQL_QUERY_PULL_LIMIT_CLAUSE_ENABLED_DEFAULT = true;
+
+  public static final String KSQL_QUERY_PULL_FORWARDING_TIMEOUT_MS_CONFIG
+      = "ksql.query.pull.forwarding.timeout.ms";
+  public static final String KSQL_QUERY_PULL_FORWARDING_TIMEOUT_MS_DOC
+      = "Pull query forwarding timeout in milliseconds";
+  public static final long KSQL_QUERY_PULL_FORWARDING_TIMEOUT_MS_DEFAULT =
+      20000L;
+
+  public static final String KSQL_QUERY_PUSH_V2_ENABLED
+      = "ksql.query.push.v2.enabled";
+  public static final String KSQL_QUERY_PUSH_V2_ENABLED_DOC =
+      "Enables whether v2 push queries are enabled. The scalable form of push queries require no"
+          + " window functions, aggregations, or joins, but may include projections and filters. If"
+          + " they cannot be utilized, the streams application version will automatically be used"
+          + " instead.";
+  public static final boolean KSQL_QUERY_PUSH_V2_ENABLED_DEFAULT = false;
+
+  public static final String KSQL_QUERY_PUSH_V2_REGISTRY_INSTALLED
+      = "ksql.query.push.v2.registry.installed";
+  public static final String KSQL_QUERY_PUSH_V2_REGISTRY_INSTALLED_DOC =
+      "Enables whether v2 push registry should be installed. This is a requirement of "
+          + "enabling scalable push queries using ksql.query.push.v2.enabled.";
+  public static final boolean KSQL_QUERY_PUSH_V2_REGISTRY_INSTALLED_DEFAULT = false;
+
+  public static final String KSQL_QUERY_PUSH_V2_ALOS_ENABLED
+      = "ksql.query.push.v2.alos.enabled";
+  public static final String KSQL_QUERY_PUSH_V2_ALOS_ENABLED_DOC =
+      "Whether at-least-once semantics are enabled for the scalable form of push queries. "
+          + "This means that a query will replay data if necessary if network or other "
+          + "disruptions cause it to miss any data";
+  public static final boolean KSQL_QUERY_PUSH_V2_ALOS_ENABLED_DEFAULT = true;
+
+  public static final String KSQL_QUERY_PUSH_V2_INTERPRETER_ENABLED
+      = "ksql.query.push.v2.interpreter.enabled";
+  public static final String KSQL_QUERY_PUSH_V2_INTERPRETER_ENABLED_DOC =
       "Enables whether we use the interpreter for expression evaluation for scalable push queries, "
           + "or the default code generator. They should produce the same results, but may have "
           + "different performance characteristics.";
-  public static final boolean KSQL_QUERY_PUSH_SCALABLE_INTERPRETER_ENABLED_DEFAULT = true;
+  public static final boolean KSQL_QUERY_PUSH_V2_INTERPRETER_ENABLED_DEFAULT = true;
+
+  public static final String KSQL_QUERY_PUSH_V2_NEW_LATEST_DELAY_MS
+      = "ksql.query.push.v2.new.latest.delay.ms";
+  public static final String KSQL_QUERY_PUSH_V2_NEW_LATEST_DELAY_DOC =
+      "The delay in ms for a new latest consumer to start processing records."
+          + "If new nodes are added to the cluster, a longer delay makes it less likely that"
+          + "stragglers requests will miss a record and be forced to catchup.";
+  public static final long KSQL_QUERY_PUSH_V2_NEW_LATEST_DELAY_DEFAULT = 5000;
+
+  public static final String KSQL_QUERY_PUSH_V2_LATEST_RESET_AGE_MS
+      = "ksql.query.push.v2.latest.reset.age.ms";
+  public static final String KSQL_QUERY_PUSH_V2_LATEST_RESET_AGE_MS_DOC =
+      "The maximum age in ms of existing committed offsets for latest consumer to"
+          + " adopt those offsets rather than seek to the end.";
+  public static final long KSQL_QUERY_PUSH_V2_LATEST_RESET_AGE_MS_DEFAULT = 30000;
+
+  public static final String KSQL_QUERY_PUSH_V2_CONTINUATION_TOKENS_ENABLED
+      = "ksql.query.push.v2.continuation.tokens.enabled";
+  public static final String KSQL_QUERY_PUSH_V2_CONTINUATION_TOKENS_ENABLED_DOC =
+      "Whether to output continuation tokens to the user.";
+  public static final boolean KSQL_QUERY_PUSH_V2_CONTINUATION_TOKENS_ENABLED_DEFAULT = false;
+
+  public static final String KSQL_QUERY_PUSH_V2_MAX_CATCHUP_CONSUMERS
+      = "ksql.query.push.v2.max.catchup.consumers";
+  public static final String KSQL_QUERY_PUSH_V2_MAX_CATCHUP_CONSUMERS_DOC =
+      "The maximum number of concurrent catchup consumers.";
+  public static final int KSQL_QUERY_PUSH_V2_MAX_CATCHUP_CONSUMERS_DEFAULT = 5;
+
+  public static final String KSQL_QUERY_PUSH_V2_CATCHUP_CONSUMER_MSG_WINDOW
+      = "ksql.query.push.v2.catchup.consumer.msg.window";
+  public static final String KSQL_QUERY_PUSH_V2_CATCHUP_CONSUMER_MSG_WINDOW_DOC =
+      "How close the catchup consumer must be to the latest before it will stop the latest to join"
+          + " with it.";
+  public static final int KSQL_QUERY_PUSH_V2_CATCHUP_CONSUMER_MSG_WINDOW_DEFAULT = 50;
+
+  public static final String KSQL_QUERY_PUSH_V2_METRICS_ENABLED =
+      "ksql.query.push.v2.metrics.enabled";
+  public static final String KSQL_QUERY_PUSH_V2_METRICS_ENABLED_DOC =
+      "Config to enable/disable collecting JMX metrics for push queries v2.";
 
   public static final String KSQL_STRING_CASE_CONFIG_TOGGLE = "ksql.cast.strings.preserve.nulls";
   public static final String KSQL_STRING_CASE_CONFIG_TOGGLE_DOC =
@@ -382,7 +546,7 @@ public class KsqlConfig extends AbstractConfig {
       + "KSQL metastore backup files are located.";
 
   public static final String KSQL_SUPPRESS_ENABLED = "ksql.suppress.enabled";
-  public static final Boolean KSQL_SUPPRESS_ENABLED_DEFAULT = false;
+  public static final Boolean KSQL_SUPPRESS_ENABLED_DEFAULT = true;
   public static final String KSQL_SUPPRESS_ENABLED_DOC =
       "Feature flag for suppression, specifically EMIT FINAL";
 
@@ -392,6 +556,65 @@ public class KsqlConfig extends AbstractConfig {
       "Feature flag for lambdas. Default is true. If true, lambdas are processed normally, "
           + "if false, new lambda queries won't be processed but any existing lambda "
           + "queries are unaffected.";
+
+  public static final String KSQL_HEADERS_COLUMNS_ENABLED =
+      "ksql.headers.columns.enabled";
+  public static final Boolean KSQL_HEADERS_COLUMNS_ENABLED_DEFAULT = true;
+  public static final String KSQL_HEADERS_COLUMNS_ENABLED_DOC =
+      "Feature flag that allows the use of kafka headers columns on streams and tables. "
+          + "If false, the HEADERS and HEADER(<key>) columns constraints won't be allowed "
+          + "in CREATE statements. Current CREATE statements found in the KSQL command topic "
+          + "that contains headers columns will work with the headers functionality to prevent "
+          + "a degraded command topic situation when restarting ksqlDB.";
+
+  public static final String KSQL_CLIENT_IP_PORT_CONFIGURATION_ENABLED =
+      "ksql.client.ip_port.configuration.enabled";
+  private static final Boolean KSQL_CLIENT_IP_PORT_CONFIGURATION_ENABLED_DEFAULT = false;
+  private static final String KSQL_CLIENT_IP_PORT_CONFIGURATION_ENABLED_DOC =
+      "Feature flag that enables configuration of client IP and PORT in internal ksql Kafka Client."
+      + " So that Kafka broker can get client IP and PORT for logging and other purposes";
+
+  public static final String KSQL_JSON_SR_CONVERTER_DESERIALIZER_ENABLED
+      = "ksql.json_sr.converter.deserializer.enabled";
+
+  private static final Boolean KSQL_JSON_SR_CONVERTER_DESERIALIZER_ENABLED_DEFAULT = true;
+
+  private static final String KSQL_JSON_SR_CONVERTER_DESERIALIZER_ENABLED_DOC = ""
+      + "Feature flag that enables the use of the JsonSchemaConverter class for deserializing "
+      + "JSON_SR records. JsonSchemaConverter is required to support `anyOf` JSON_SR types. "
+      + "This flag should be used to disable this feature only when users experience "
+      + "deserialization issues caused by the JsonSchemaConverter. Otherwise, this flag should "
+      + "remain true to take advantage of the new `anyOf` types and other JSON_SR serde fixes.";
+
+  public static final String KSQL_SOURCE_TABLE_MATERIALIZATION_ENABLED =
+      "ksql.source.table.materialization.enabled";
+  private static final Boolean KSQL_SOURCE_TABLE_MATERIALIZATION_ENABLED_DEFAULT = true;
+  private static final String KSQL_SOURCE_TABLE_MATERIALIZATION_ENABLED_DOC =
+      "Feature flag that enables table materialization on source tables. Default is true. "
+          + "If false, CREATE SOURCE [TABLE|STREAM] statements will be rejected. "
+          + "Current CREATE SOURCE TABLE statements found in the KSQL command topic will "
+          + "not be materialized and pull queries won't be allowed on them. However, current "
+          + "CREATE SOURCE [TABLE|STREAM] statements will continue being read-only.";
+
+  public static final String KSQL_SHARED_RUNTIME_ENABLED = "ksql.runtime.feature.shared.enabled";
+  public static final Boolean KSQL_SHARED_RUNTIME_ENABLED_DEFAULT = false;
+  public static final String KSQL_SHARED_RUNTIME_ENABLED_DOC =
+      "Feature flag for sharing streams runtimes. "
+          + "Default is false. If false, persistent queries will use separate "
+          + " runtimes, if true, new queries may share streams instances.";
+
+  public static final String KSQL_NEW_QUERY_PLANNER_ENABLED =
+      "ksql.new.query.planner.enabled";
+  private static final Boolean KSQL_NEW_QUERY_PLANNER_ENABLED_DEFAULT = false;
+  private static final String KSQL_NEW_QUERY_PLANNER_ENABLED_DOC =
+      "Feature flag that enables the new planner for persistent queries. Default is false.";
+
+  public static final String KSQL_SHARED_RUNTIMES_COUNT = "ksql.shared.runtimes.count";
+  public static final Integer KSQL_SHARED_RUNTIMES_COUNT_DEFAULT = 2;
+  public static final String KSQL_SHARED_RUNTIMES_COUNT_DOC =
+      "Controls how many runtimes queries are allocated over initially."
+          + "this is only used when ksql.runtime.feature.shared.enabled is true.";
+
 
   public static final String KSQL_SUPPRESS_BUFFER_SIZE_BYTES = "ksql.suppress.buffer.size.bytes";
   public static final Long KSQL_SUPPRESS_BUFFER_SIZE_BYTES_DEFAULT = -1L;
@@ -444,6 +667,51 @@ public class KsqlConfig extends AbstractConfig {
   public static final boolean KSQL_VARIABLE_SUBSTITUTION_ENABLE_DEFAULT = true;
   public static final String KSQL_VARIABLE_SUBSTITUTION_ENABLE_DOC
       = "Enable variable substitution on SQL statements.";
+
+  public static final String KSQL_QUERY_CLEANUP_SHUTDOWN_TIMEOUT_MS
+      = "ksql.query.cleanup.shutdown.timeout.ms";
+  public static final long KSQL_QUERY_CLEANUP_SHUTDOWN_TIMEOUT_MS_DEFAULT = 30000;
+  public static final String KSQL_QUERY_CLEANUP_SHUTDOWN_TIMEOUT_MS_DOC
+      = "The total time that the query cleanup spends trying to clean things up on shutdown.";
+
+  public static final String KSQL_TRANSIENT_QUERY_CLEANUP_SERVICE_ENABLE
+      = "ksql.transient.query.cleanup.service.enable";
+  public static final boolean KSQL_TRANSIENT_QUERY_CLEANUP_SERVICE_ENABLE_DEFAULT = true;
+  public static final String KSQL_TRANSIENT_QUERY_CLEANUP_SERVICE_ENABLE_DOC
+      = "Enable transient query cleanup service.";
+
+  public static final String KSQL_TRANSIENT_QUERY_CLEANUP_SERVICE_INITIAL_DELAY_SECONDS
+      = "ksql.transient.query.cleanup.service.initial.delay.seconds";
+  public static final Integer KSQL_TRANSIENT_QUERY_CLEANUP_SERVICE_INITIAL_DELAY_SECONDS_DEFAULT
+      = 600;
+  public static final String KSQL_TRANSIENT_QUERY_CLEANUP_SERVICE_INITIAL_DELAY_SECONDS_DOC
+      = "The time to delay the first execution of the transient query cleanup service in seconds.";
+
+  public static final String KSQL_TRANSIENT_QUERY_CLEANUP_SERVICE_PERIOD_SECONDS
+      = "ksql.transient.query.cleanup.service.period.seconds";
+  public static final Integer KSQL_TRANSIENT_QUERY_CLEANUP_SERVICE_PERIOD_SECONDS_DEFAULT
+      = 600;
+  public static final String KSQL_TRANSIENT_QUERY_CLEANUP_SERVICE_PERIOD_SECONDS_DOC
+      = "the period between successive executions of the transient query cleanup service.";
+
+  public static final String KSQL_ENDPOINT_MIGRATE_QUERY_CONFIG
+      = "ksql.endpoint.migrate.query";
+  private static final boolean KSQL_ENDPOINT_MIGRATE_QUERY_DEFAULT = true;
+  private static final String KSQL_ENDPOINT_MIGRATE_QUERY_DOC
+      = "Migrates the /query endpoint to use the same handler as /query-stream.";
+  public static final String KSQL_ASSERT_TOPIC_DEFAULT_TIMEOUT_MS
+      = "ksql.assert.topic.default.timeout.ms";
+  private static final int KSQL_ASSERT_TOPIC_DEFAULT_TIMEOUT_MS_DEFAULT = 1000;
+  private static final String KSQL_ASSERT_TOPIC_DEFAULT_TIMEOUT_MS_DOC
+      = "The default timeout for ASSERT TOPIC statements if no timeout is specified "
+      + "in the statement.";
+  public static final String KSQL_ASSERT_SCHEMA_DEFAULT_TIMEOUT_MS
+      = "ksql.assert.schema.default.timeout.ms";
+  private static final int KSQL_ASSERT_SCHEMA_DEFAULT_TIMEOUT_MS_DEFAULT = 1000;
+  private static final String KSQL_ASSERT_SCHEMA_DEFAULT_TIMEOUT_MS_DOC
+      = "The default timeout for ASSERT SCHEMA statements if no timeout is specified "
+      + "in the statement.";
+
   public static final String KSQL_WEBSOCKET_CONNECTION_MAX_TIMEOUT_MS
       = "ksql.websocket.connection.max.timeout.ms";
   public static final long KSQL_WEBSOCKET_CONNECTION_MAX_TIMEOUT_MS_DEFAULT = 3600000;
@@ -452,6 +720,13 @@ public class KsqlConfig extends AbstractConfig {
       + " connections after a timeout. The timeout will be the lower of the auth token's "
       + "lifespan (if present) and the value of this config. If this config is set to 0, then "
       + "ksqlDB will not close websockets even if the token has an expiration time.";
+
+  public static final String KSQL_FETCH_REMOTE_HOSTS_TIMEOUT_SECONDS
+      = "ksql.fetch.remote.hosts.max.timeout.seconds";
+  public static final long KSQL_FETCH_REMOTE_HOSTS_TIMEOUT_SECONDS_DEFAULT = 10;
+  public static final String KSQL_FETCH_REMOTE_HOSTS_TIMEOUT_SECONDS_DOC
+      = "Configure how long the remote host executor will wait for in seconds "
+      + "when fetching all remote hosts.";
 
   private enum ConfigGeneration {
     LEGACY,
@@ -599,10 +874,32 @@ public class KsqlConfig extends AbstractConfig {
     return generation == ConfigGeneration.CURRENT ? CURRENT_DEF : LEGACY_DEF;
   }
 
+  private static DeploymentType parseDeploymentType(final Object value) {
+    try {
+      return DeploymentType.valueOf(value.toString());
+    } catch (IllegalArgumentException e) {
+      throw new ConfigException(
+          "'" + KSQL_DEPLOYMENT_TYPE_CONFIG + "' must be one of: "
+          + Arrays.asList(DeploymentType.values())
+          + " however we found '" + value + "'"
+      );
+    }
+  }
+
   // CHECKSTYLE_RULES.OFF: MethodLength
   private static ConfigDef buildConfigDef(final ConfigGeneration generation) {
     final ConfigDef configDef = new ConfigDef()
         .define(
+            KSQL_DEPLOYMENT_TYPE_CONFIG,
+            ConfigDef.Type.STRING,
+            DeploymentType.selfManaged.name(),
+            ConfigDef.LambdaValidator.with(
+                (name, value) -> parseDeploymentType(value),
+                () -> Arrays.asList(DeploymentType.values()).toString()
+            ),
+            ConfigDef.Importance.LOW,
+            KSQL_DEPLOYMENT_TYPE_DOC
+        ).define(
             KSQL_SERVICE_ID_CONFIG,
             ConfigDef.Type.STRING,
             KSQL_SERVICE_ID_DEFAULT,
@@ -611,8 +908,7 @@ public class KsqlConfig extends AbstractConfig {
                 + "all implicitly named resources created by this instance in Kafka. "
                 + "By convention, the id should end in a seperator character of some form, e.g. "
                 + "a dash or underscore, as this makes identifiers easier to read."
-        )
-        .define(
+        ).define(
             KSQL_TRANSIENT_QUERY_NAME_PREFIX_CONFIG,
             ConfigDef.Type.STRING,
             KSQL_TRANSIENT_QUERY_NAME_PREFIX_DEFAULT,
@@ -659,6 +955,45 @@ public class KsqlConfig extends AbstractConfig {
                 + "will prevent connect from starting up embedded within KSQL. For more information"
                 + " on configuring connect, see "
                 + "https://docs.confluent.io/current/connect/userguide.html#configuring-workers."
+        ).define(
+            CONNECT_BASIC_AUTH_CREDENTIALS_SOURCE_PROPERTY,
+            ConfigDef.Type.STRING,
+            BASIC_AUTH_CREDENTIALS_SOURCE_NONE,
+            BASIC_AUTH_CREDENTIALS_SOURCE_VALIDATOR,
+            Importance.LOW,
+            "If providing explicit basic auth credentials for ksqlDB to use when sending connector "
+                + "requests, this config specifies how credentials should be loaded. Valid "
+                + "options are 'FILE' in order to specify the username and password in a "
+                + "properties file, or 'NONE' to indicate that custom basic auth should "
+                + "not be used. If 'NONE', ksqlDB will forward the auth header, if present, "
+                + "on the incoming ksql request to Connect."
+        ).define(
+            CONNECT_BASIC_AUTH_CREDENTIALS_FILE_PROPERTY,
+            ConfigDef.Type.STRING,
+            "",
+            Importance.LOW,
+            "If '" + CONNECT_BASIC_AUTH_CREDENTIALS_SOURCE_PROPERTY + "' is set to 'FILE', "
+                + "then this config specifies the path to the credentials file."
+        ).define(
+            CONNECT_BASIC_AUTH_CREDENTIALS_RELOAD_PROPERTY,
+            ConfigDef.Type.BOOLEAN,
+            false,
+            ConfigDef.Importance.LOW,
+            "If true, basic auth credentials for connector auth will automatically reload "
+                + "on file change (creation or modification). File deletion is not monitored and "
+                + "old credentials will continue to be used in this case."
+        ).define(
+            CONNECT_REQUEST_TIMEOUT_MS,
+            Type.LONG,
+            CONNECT_REQUEST_TIMEOUT_DEFAULT,
+            ConfigDef.Importance.LOW,
+            CONNECT_REQUEST_TIMEOUT_MS_DOC
+        ).define(
+            CONNECT_REQUEST_HEADERS_PLUGIN,
+            Type.CLASS,
+            null,
+            ConfigDef.Importance.LOW,
+            CONNECT_REQUEST_HEADERS_PLUGIN_DOC
         ).define(
             KSQL_ENABLE_UDFS,
             ConfigDef.Type.BOOLEAN,
@@ -767,7 +1102,7 @@ public class KsqlConfig extends AbstractConfig {
             ConfigDef.Importance.LOW,
             KSQL_CUSTOM_METRICS_EXTENSION_DOC
         ).define(
-            KSQL_ENABLE_TOPIC_ACCESS_VALIDATOR,
+            KSQL_ENABLE_ACCESS_VALIDATOR,
             Type.STRING,
             KSQL_ACCESS_VALIDATOR_AUTO,
             ValidString.in(
@@ -882,11 +1217,25 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_QUERY_PULL_MAX_HOURLY_BANDWIDTH_MEGABYTES_DOC
         )
         .define(
+            KSQL_QUERY_PUSH_V2_MAX_HOURLY_BANDWIDTH_MEGABYTES_CONFIG,
+        Type.INT,
+            KSQL_QUERY_PUSH_V2_MAX_HOURLY_BANDWIDTH_MEGABYTES_DEFAULT,
+        Importance.HIGH,
+            KSQL_QUERY_PUSH_V2_MAX_HOURLY_BANDWIDTH_MEGABYTES_DOC
+        )
+        .define(
             KSQL_QUERY_PULL_THREAD_POOL_SIZE_CONFIG,
             Type.INT,
             KSQL_QUERY_PULL_THREAD_POOL_SIZE_DEFAULT,
             Importance.LOW,
             KSQL_QUERY_PULL_THREAD_POOL_SIZE_DOC
+        )
+        .define(
+            KSQL_QUERY_PULL_ROUTER_THREAD_POOL_SIZE_CONFIG,
+            Type.INT,
+            KSQL_QUERY_PULL_ROUTER_THREAD_POOL_SIZE_DEFAULT,
+            Importance.LOW,
+            KSQL_QUERY_PULL_ROUTER_THREAD_POOL_SIZE_DOC
         )
         .define(
             KSQL_QUERY_PULL_TABLE_SCAN_ENABLED,
@@ -896,6 +1245,20 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_QUERY_PULL_TABLE_SCAN_ENABLED_DOC
         )
         .define(
+            KSQL_QUERY_STREAM_PULL_QUERY_ENABLED,
+            Type.BOOLEAN,
+            KSQL_QUERY_STREAM_PULL_QUERY_ENABLED_DEFAULT,
+            Importance.LOW,
+            KSQL_QUERY_STREAM_PULL_QUERY_ENABLED_DOC
+        )
+        .define(
+            KSQL_QUERY_PULL_RANGE_SCAN_ENABLED,
+            Type.BOOLEAN,
+            KSQL_QUERY_PULL_RANGE_SCAN_ENABLED_DEFAULT,
+            Importance.LOW,
+            KSQL_QUERY_PULL_RANGE_SCAN_ENABLED_DOC
+        )
+        .define(
             KSQL_QUERY_PULL_INTERPRETER_ENABLED,
             Type.BOOLEAN,
             KSQL_QUERY_PULL_INTERPRETER_ENABLED_DEFAULT,
@@ -903,18 +1266,88 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_QUERY_PULL_INTERPRETER_ENABLED_DOC
         )
         .define(
-            KSQL_QUERY_PUSH_SCALABLE_ENABLED,
+            KSQL_QUERY_PULL_LIMIT_CLAUSE_ENABLED,
             Type.BOOLEAN,
-            KSQL_QUERY_PUSH_SCALABLE_ENABLED_DEFAULT,
+            KSQL_QUERY_PULL_LIMIT_CLAUSE_ENABLED_DEFAULT,
             Importance.LOW,
-            KSQL_QUERY_PUSH_SCALABLE_ENABLED_DOC
+            KSQL_QUERY_PULL_LIMIT_CLAUSE_ENABLED_DOC
         )
         .define(
-            KSQL_QUERY_PUSH_SCALABLE_INTERPRETER_ENABLED,
-            Type.BOOLEAN,
-            KSQL_QUERY_PUSH_SCALABLE_INTERPRETER_ENABLED_DEFAULT,
+            KSQL_QUERY_PULL_FORWARDING_TIMEOUT_MS_CONFIG,
+            Type.LONG,
+            KSQL_QUERY_PULL_FORWARDING_TIMEOUT_MS_DEFAULT,
             Importance.LOW,
-            KSQL_QUERY_PUSH_SCALABLE_INTERPRETER_ENABLED_DOC
+            KSQL_QUERY_PULL_FORWARDING_TIMEOUT_MS_DOC
+        )
+        .define(
+            KSQL_QUERY_PUSH_V2_ENABLED,
+            Type.BOOLEAN,
+            KSQL_QUERY_PUSH_V2_ENABLED_DEFAULT,
+            Importance.LOW,
+            KSQL_QUERY_PUSH_V2_ENABLED_DOC
+        )
+        .define(
+            KSQL_QUERY_PUSH_V2_REGISTRY_INSTALLED,
+            Type.BOOLEAN,
+            KSQL_QUERY_PUSH_V2_REGISTRY_INSTALLED_DEFAULT,
+            Importance.LOW,
+            KSQL_QUERY_PUSH_V2_REGISTRY_INSTALLED_DOC
+        )
+        .define(
+            KSQL_QUERY_PUSH_V2_ALOS_ENABLED,
+            Type.BOOLEAN,
+            KSQL_QUERY_PUSH_V2_ALOS_ENABLED_DEFAULT,
+            Importance.LOW,
+            KSQL_QUERY_PUSH_V2_ALOS_ENABLED_DOC
+        )
+        .define(
+            KSQL_QUERY_PUSH_V2_INTERPRETER_ENABLED,
+            Type.BOOLEAN,
+            KSQL_QUERY_PUSH_V2_INTERPRETER_ENABLED_DEFAULT,
+            Importance.LOW,
+            KSQL_QUERY_PUSH_V2_INTERPRETER_ENABLED_DOC
+        )
+        .define(
+            KSQL_QUERY_PUSH_V2_NEW_LATEST_DELAY_MS,
+            Type.LONG,
+            KSQL_QUERY_PUSH_V2_NEW_LATEST_DELAY_DEFAULT,
+            Importance.LOW,
+            KSQL_QUERY_PUSH_V2_NEW_LATEST_DELAY_DOC
+        )
+        .define(
+            KSQL_QUERY_PUSH_V2_LATEST_RESET_AGE_MS,
+            Type.LONG,
+            KSQL_QUERY_PUSH_V2_LATEST_RESET_AGE_MS_DEFAULT,
+            Importance.LOW,
+            KSQL_QUERY_PUSH_V2_LATEST_RESET_AGE_MS_DOC
+        )
+        .define(
+            KSQL_QUERY_PUSH_V2_CONTINUATION_TOKENS_ENABLED,
+            Type.BOOLEAN,
+            KSQL_QUERY_PUSH_V2_CONTINUATION_TOKENS_ENABLED_DEFAULT,
+            Importance.LOW,
+            KSQL_QUERY_PUSH_V2_CONTINUATION_TOKENS_ENABLED_DOC
+        )
+        .define(
+            KSQL_QUERY_PUSH_V2_MAX_CATCHUP_CONSUMERS,
+            Type.INT,
+            KSQL_QUERY_PUSH_V2_MAX_CATCHUP_CONSUMERS_DEFAULT,
+            Importance.LOW,
+            KSQL_QUERY_PUSH_V2_MAX_CATCHUP_CONSUMERS_DOC
+        )
+        .define(
+            KSQL_QUERY_PUSH_V2_CATCHUP_CONSUMER_MSG_WINDOW,
+            Type.LONG,
+            KSQL_QUERY_PUSH_V2_CATCHUP_CONSUMER_MSG_WINDOW_DEFAULT,
+            Importance.LOW,
+            KSQL_QUERY_PUSH_V2_CATCHUP_CONSUMER_MSG_WINDOW_DOC
+        )
+        .define(
+            KSQL_QUERY_PUSH_V2_METRICS_ENABLED,
+            Type.BOOLEAN,
+            true,
+            Importance.LOW,
+            KSQL_QUERY_PUSH_V2_METRICS_ENABLED_DOC
         )
         .define(
             KSQL_ERROR_CLASSIFIER_REGEX_PREFIX,
@@ -1011,15 +1444,127 @@ public class KsqlConfig extends AbstractConfig {
             Type.BOOLEAN,
             KSQL_LAMBDAS_ENABLED_DEFAULT,
             Importance.LOW,
-            KSQL_LAMBDAS_ENABLED_DOC
-        ).define(
+            KSQL_LAMBDAS_ENABLED_DOC)
+        .define(
+            KSQL_SHARED_RUNTIME_ENABLED,
+            Type.BOOLEAN,
+            KSQL_SHARED_RUNTIME_ENABLED_DEFAULT,
+            Importance.MEDIUM,
+            KSQL_SHARED_RUNTIME_ENABLED_DOC
+        )
+        .define(
+            KSQL_SHARED_RUNTIMES_COUNT,
+            Type.INT,
+            KSQL_SHARED_RUNTIMES_COUNT_DEFAULT,
+            Importance.MEDIUM,
+            KSQL_SHARED_RUNTIMES_COUNT_DOC
+        )
+        .define(
+            KSQL_SOURCE_TABLE_MATERIALIZATION_ENABLED,
+            Type.BOOLEAN,
+            KSQL_SOURCE_TABLE_MATERIALIZATION_ENABLED_DEFAULT,
+            Importance.LOW,
+            KSQL_SOURCE_TABLE_MATERIALIZATION_ENABLED_DOC
+        )
+        .define(
+            KSQL_NEW_QUERY_PLANNER_ENABLED,
+            Type.BOOLEAN,
+            KSQL_NEW_QUERY_PLANNER_ENABLED_DEFAULT,
+            Importance.LOW,
+            KSQL_NEW_QUERY_PLANNER_ENABLED_DOC
+        )
+        .define(
+            KSQL_QUERY_CLEANUP_SHUTDOWN_TIMEOUT_MS,
+            Type.LONG,
+            KSQL_QUERY_CLEANUP_SHUTDOWN_TIMEOUT_MS_DEFAULT,
+            Importance.LOW,
+            KSQL_QUERY_CLEANUP_SHUTDOWN_TIMEOUT_MS_DOC
+        )
+        .define(
+            KSQL_HEADERS_COLUMNS_ENABLED,
+            Type.BOOLEAN,
+            KSQL_HEADERS_COLUMNS_ENABLED_DEFAULT,
+            Importance.LOW,
+            KSQL_HEADERS_COLUMNS_ENABLED_DOC
+        )
+        .define(
+            KSQL_ENDPOINT_MIGRATE_QUERY_CONFIG,
+            Type.BOOLEAN,
+            KSQL_ENDPOINT_MIGRATE_QUERY_DEFAULT,
+            Importance.LOW,
+            KSQL_ENDPOINT_MIGRATE_QUERY_DOC
+        )
+        .define(
+            KSQL_TRANSIENT_QUERY_CLEANUP_SERVICE_ENABLE,
+            Type.BOOLEAN,
+            KSQL_TRANSIENT_QUERY_CLEANUP_SERVICE_ENABLE_DEFAULT,
+            Importance.LOW,
+            KSQL_TRANSIENT_QUERY_CLEANUP_SERVICE_ENABLE_DOC
+        )
+        .define(
+            KSQL_TRANSIENT_QUERY_CLEANUP_SERVICE_INITIAL_DELAY_SECONDS,
+            Type.INT,
+            KSQL_TRANSIENT_QUERY_CLEANUP_SERVICE_INITIAL_DELAY_SECONDS_DEFAULT,
+            Importance.LOW,
+            KSQL_TRANSIENT_QUERY_CLEANUP_SERVICE_INITIAL_DELAY_SECONDS_DOC
+        )
+        .define(
+            KSQL_TRANSIENT_QUERY_CLEANUP_SERVICE_PERIOD_SECONDS,
+            Type.INT,
+            KSQL_TRANSIENT_QUERY_CLEANUP_SERVICE_PERIOD_SECONDS_DEFAULT,
+            Importance.LOW,
+            KSQL_TRANSIENT_QUERY_CLEANUP_SERVICE_PERIOD_SECONDS_DOC
+        )
+        .define(
+            KSQL_ASSERT_TOPIC_DEFAULT_TIMEOUT_MS,
+            Type.INT,
+            KSQL_ASSERT_TOPIC_DEFAULT_TIMEOUT_MS_DEFAULT,
+            Importance.LOW,
+            KSQL_ASSERT_TOPIC_DEFAULT_TIMEOUT_MS_DOC
+        )
+        .define(
+            KSQL_ASSERT_SCHEMA_DEFAULT_TIMEOUT_MS,
+            Type.INT,
+            KSQL_ASSERT_SCHEMA_DEFAULT_TIMEOUT_MS_DEFAULT,
+            Importance.LOW,
+            KSQL_ASSERT_SCHEMA_DEFAULT_TIMEOUT_MS_DOC
+        )
+        .define(
             KSQL_WEBSOCKET_CONNECTION_MAX_TIMEOUT_MS,
             Type.LONG,
             KSQL_WEBSOCKET_CONNECTION_MAX_TIMEOUT_MS_DEFAULT,
             Importance.LOW,
             KSQL_WEBSOCKET_CONNECTION_MAX_TIMEOUT_MS_DOC
         )
-        .withClientSslSupport();
+        .define(
+            KSQL_JSON_SR_CONVERTER_DESERIALIZER_ENABLED,
+            Type.BOOLEAN,
+            KSQL_JSON_SR_CONVERTER_DESERIALIZER_ENABLED_DEFAULT,
+            Importance.LOW,
+            KSQL_JSON_SR_CONVERTER_DESERIALIZER_ENABLED_DOC
+        )
+        .define(
+            KSQL_CLIENT_IP_PORT_CONFIGURATION_ENABLED,
+            Type.BOOLEAN,
+            KSQL_CLIENT_IP_PORT_CONFIGURATION_ENABLED_DEFAULT,
+            Importance.LOW,
+            KSQL_CLIENT_IP_PORT_CONFIGURATION_ENABLED_DOC
+        )
+        .define(
+            KSQL_FETCH_REMOTE_HOSTS_TIMEOUT_SECONDS,
+            Type.LONG,
+            KSQL_FETCH_REMOTE_HOSTS_TIMEOUT_SECONDS_DEFAULT,
+            Importance.LOW,
+            KSQL_FETCH_REMOTE_HOSTS_TIMEOUT_SECONDS_DOC
+        )
+        .withClientSslSupport()
+        .define(
+            ConfluentConfigs.ENABLE_FIPS_CONFIG,
+            Type.BOOLEAN,
+            ConfluentConfigs.ENABLE_FIPS_DEFAULT,
+            Importance.LOW,
+            ConfluentConfigs.ENABLE_FIPS_DOC
+        );
 
     for (final CompatibilityBreakingConfigDef compatibilityBreakingConfigDef
         : COMPATIBLY_BREAKING_CONFIG_DEFS) {
@@ -1032,6 +1577,33 @@ public class KsqlConfig extends AbstractConfig {
     return configDef;
   }
   // CHECKSTYLE_RULES.ON: MethodLength
+
+  public Map<String, Object> originalsWithPrefixOverride(final String prefix) {
+    final Map<String, Object> originals = originals();
+    final Map<String, Object> result = new HashMap<>();
+    // first we iterate over the originals and we add only the entries without the prefix
+    for (Map.Entry<String, ?> entry : originals.entrySet()) {
+      if (!isKeyPrefixed(entry.getKey(), prefix)) {
+        result.put(entry.getKey(), entry.getValue());
+      }
+    }
+    // then we add only prefixed entries with dropped prefix
+    for (Map.Entry<String, ?> entry : originals.entrySet()) {
+      if (isKeyPrefixed(entry.getKey(), prefix)) {
+        result.put(entry.getKey().substring(prefix.length()), entry.getValue());
+      }
+    }
+    // two iterations are necessary to avoid a situation where the unprefixed value
+    // is handled after the prefixed one, because we do not control the order in which
+    // the entries are presented from the originals map
+    return result;
+  }
+
+  private boolean isKeyPrefixed(final String key, final String prefix) {
+    Objects.requireNonNull(key);
+    Objects.requireNonNull(prefix);
+    return key.startsWith(prefix) && key.length() > prefix.length();
+  }
 
   private static final class ConfigValue {
     final ConfigItem configItem;
@@ -1098,6 +1670,7 @@ public class KsqlConfig extends AbstractConfig {
     super(configDef(generation), props);
 
     final Map<String, Object> streamsConfigDefaults = new HashMap<>();
+    streamsConfigDefaults.put(StreamsConfig.InternalConfig.STATE_UPDATER_ENABLED, false);
     streamsConfigDefaults.put(StreamsConfig.COMMIT_INTERVAL_MS_CONFIG, KsqlConstants
         .defaultCommitIntervalMsConfig);
     streamsConfigDefaults.put(
@@ -1121,7 +1694,8 @@ public class KsqlConfig extends AbstractConfig {
             config.name,
             generation == ConfigGeneration.CURRENT
                 ? config.defaultValueCurrent : config.defaultValueLegacy));
-    this.ksqlStreamConfigProps = buildStreamingConfig(streamsConfigDefaults, originals());
+    this.ksqlStreamConfigProps = buildStreamingConfig(streamsConfigDefaults,
+            originalsWithPrefixOverride(KSQL_STREAMS_PREFIX));
   }
 
   private static Set<String> streamTopicConfigNames() {
@@ -1158,6 +1732,17 @@ public class KsqlConfig extends AbstractConfig {
     this.ksqlStreamConfigProps = ksqlStreamConfigProps;
   }
 
+  private void possiblyConfigureConfluentTelemetry(final Map<String, Object> map) {
+    if (KsqlConfig.DeploymentType.confluent.toString()
+            .equals(getString(KSQL_DEPLOYMENT_TYPE_CONFIG))) {
+      final List<String> metricReporters = new ArrayList<>(getList(METRIC_REPORTER_CLASSES_CONFIG));
+      metricReporters.remove(TELEMETRY_REPORTER_CLASS);
+      map.put(METRIC_REPORTER_CLASSES_CONFIG, metricReporters);
+    } else {
+      map.putAll(addConfluentMetricsContextConfigsKafka(Collections.emptyMap()));
+    }
+  }
+
   public Map<String, Object> getKsqlStreamConfigProps(final String applicationId) {
     final Map<String, Object> map = new HashMap<>(getKsqlStreamConfigProps());
     map.put(
@@ -1165,7 +1750,9 @@ public class KsqlConfig extends AbstractConfig {
             + StreamsConfig.APPLICATION_ID_CONFIG,
         applicationId
     );
-    map.putAll(addConfluentMetricsContextConfigsKafka(Collections.emptyMap()));
+
+    // Streams client metrics aren't used in Confluent deployment
+    possiblyConfigureConfluentTelemetry(map);
     return Collections.unmodifiableMap(map);
   }
 
@@ -1184,14 +1771,24 @@ public class KsqlConfig extends AbstractConfig {
   public Map<String, Object> getKsqlAdminClientConfigProps() {
     final Map<String, Object> map = new HashMap<>();
     map.putAll(getConfigsFor(AdminClientConfig.configNames()));
-    map.putAll(addConfluentMetricsContextConfigsKafka(Collections.emptyMap()));
+    // admin client metrics aren't used in Confluent deployment
+    possiblyConfigureConfluentTelemetry(map);
     return Collections.unmodifiableMap(map);
   }
 
   public Map<String, Object> getProducerClientConfigProps() {
     final Map<String, Object> map = new HashMap<>();
     map.putAll(getConfigsFor(ProducerConfig.configNames()));
-    map.putAll(addConfluentMetricsContextConfigsKafka(Collections.emptyMap()));
+    // producer client metrics aren't used in Confluent deployment
+    possiblyConfigureConfluentTelemetry(map);
+    return Collections.unmodifiableMap(map);
+  }
+
+  public Map<String, Object> getConsumerClientConfigProps() {
+    final Map<String, Object> map = new HashMap<>();
+    map.putAll(getConfigsFor(ConsumerConfig.configNames()));
+    // consumer client metrics aren't used in Confluent deployment
+    possiblyConfigureConfluentTelemetry(map);
     return Collections.unmodifiableMap(map);
   }
 
@@ -1199,7 +1796,8 @@ public class KsqlConfig extends AbstractConfig {
       final Map<String,Object> props
   ) {
     final Map<String, Object> updatedProps = new HashMap<>(props);
-    final AppInfoParser.AppInfo appInfo = new AppInfoParser.AppInfo(System.currentTimeMillis());
+    final AppInfoParser.AppInfo appInfo = new AppInfoParser.AppInfo(System.currentTimeMillis(),
+            KsqlConstants.enableLoggingAppInfo);
     updatedProps.putAll(getConfigsForPrefix(REPORTER_CONFIGS_PREFIXES));
     updatedProps.put(MetricCollectors.RESOURCE_LABEL_VERSION, appInfo.getVersion());
     updatedProps.put(MetricCollectors.RESOURCE_LABEL_COMMIT_ID, appInfo.getCommitId());
@@ -1327,6 +1925,18 @@ public class KsqlConfig extends AbstractConfig {
   public Map<String, String> getStringAsMap(final String key) {
     final String value = getString(key).trim();
     return parseStringAsMap(key, value);
+  }
+
+  public static Map<String, String> getStringAsMap(
+      final String key,
+      final Map<String, ?> configMap
+  ) {
+    final String value = (String) configMap.get(key);
+    if (value != null) {
+      return parseStringAsMap(key, value);
+    } else {
+      return Collections.emptyMap();
+    }
   }
 
   public static Map<String, String> parseStringAsMap(final String key, final String value) {

@@ -39,7 +39,7 @@ public class DuplicateColumnException extends KsqlException {
   private static String buildMessage(final Namespace namespace, final Column column) {
     return String.format(
         "Duplicate %s columns found in schema: %s",
-        namespace == Namespace.KEY ? "key" : "value",
+        namespace.name().toLowerCase(),
         column
     );
   }

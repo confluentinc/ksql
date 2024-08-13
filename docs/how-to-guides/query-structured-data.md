@@ -83,7 +83,16 @@ FROM s2
 EMIT CHANGES;
 ```
 
-Your output should resemble the following results. Notice that the column names for the last two columns and `C` and `D` respectively. By default, ksqlDB will give the column the name of the last identifier in the arrow chain. You can override this by aliasing, such as `b->c AS x`. If you drill into nested values that finish with the same identifier name, ksqlDB will force you to provide an alias to avoid ambiguity.
+Starting in ksqlDB 0.27, you can access all fields of a struct by using the `->*` after the column. For instance, this query behaves similar to the previous query by selecting columns `a`, `b`, and all keys withing `b`:
+```sql
+SELECT a,
+       b,
+       b->*
+FROM s2
+EMIT CHANGES;
+```
+
+Your output should resemble the following results. Notice that the column names for the last two columns are `C` and `D` respectively. By default, ksqlDB will give the column the name of the last identifier in the arrow chain. You can override this by aliasing, such as `b->c AS x`. If you drill into nested values that finish with the same identifier name, ksqlDB will force you to provide an alias to avoid ambiguity.
 
 ```
 +------------------------------+------------------------------+------------------------------+------------------------------+
@@ -220,7 +229,7 @@ FROM s4
 EMIT CHANGES;
 ```
 
-This query should return the following results. Notice that index `1` represents the first element of each array. By constrast to many programming languages which represent the first element of an array as `0`, most databases, like ksqlDB, represent it as `1`. If an element is absent, the result is `null`. You can use negative indices to navigate backwards through the array. In this example, `-1` retrieves the last element of each array regardless of its length.
+This query should return the following results. Notice that index `1` represents the first element of each array. By contrast to many programming languages which represent the first element of an array as `0`, most databases, like ksqlDB, represent it as `1`. If an element is absent, the result is `null`. You can use negative indices to navigate backwards through the array. In this example, `-1` retrieves the last element of each array regardless of its length.
 
 ```
 +-------------------+-------------------+-------------------+-------------------+-------------------+-------------------+
@@ -323,7 +332,7 @@ FROM s4
 EMIT CHANGES;
 ```
 
-This query should return the following results. The rules for how each column name are generated based on the data type that is at the tail of each selected element.
+This query should return the following results. The rules for how each column name is generated are based on the data type that is at the tail of each selected element.
 
 ```
 +--------------------------------------------+--------------------------------------------+--------------------------------------------+--------------------------------------------+--------------------------------------------+

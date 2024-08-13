@@ -25,7 +25,12 @@ import io.confluent.ksql.parser.DefaultKsqlParser;
 import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.SqlBaseParser;
+import io.confluent.ksql.parser.SqlBaseParser.CreateConnectorContext;
 import io.confluent.ksql.parser.SqlBaseParser.DefineVariableContext;
+import io.confluent.ksql.parser.SqlBaseParser.DescribeConnectorContext;
+import io.confluent.ksql.parser.SqlBaseParser.DropConnectorContext;
+import io.confluent.ksql.parser.SqlBaseParser.ListConnectorPluginsContext;
+import io.confluent.ksql.parser.SqlBaseParser.ListConnectorsContext;
 import io.confluent.ksql.parser.SqlBaseParser.ListVariablesContext;
 import io.confluent.ksql.parser.SqlBaseParser.PrintTopicContext;
 import io.confluent.ksql.parser.SqlBaseParser.QueryStatementContext;
@@ -37,10 +42,11 @@ import io.confluent.ksql.parser.VariableSubstitutor;
 import io.confluent.ksql.reactive.BaseSubscriber;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.client.KsqlRestClient;
-import io.confluent.ksql.rest.client.KsqlRestClientException;
-import io.confluent.ksql.rest.client.KsqlUnsupportedServerException;
 import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.client.StreamPublisher;
+import io.confluent.ksql.rest.client.exception.KsqlMissingCredentialsException;
+import io.confluent.ksql.rest.client.exception.KsqlRestClientException;
+import io.confluent.ksql.rest.client.exception.KsqlUnsupportedServerException;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
 import io.confluent.ksql.rest.entity.KsqlEntity;
@@ -52,7 +58,9 @@ import io.confluent.ksql.util.AppInfo;
 import io.confluent.ksql.util.ErrorMessageUtil;
 import io.confluent.ksql.util.HandlerMaps;
 import io.confluent.ksql.util.HandlerMaps.ClassHandlerMap2;
+import io.confluent.ksql.util.HandlerMaps.ClassHandlerMapR2;
 import io.confluent.ksql.util.HandlerMaps.Handler2;
+import io.confluent.ksql.util.HandlerMaps.HandlerR2;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlVersion;
 import io.confluent.ksql.util.KsqlVersion.VersionType;
@@ -66,6 +74,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -92,8 +101,28 @@ public class Cli implements KsqlRequestExecutor, Closeable {
   private static final int MAX_RETRIES = 10;
   private static final String UNKNOWN_VERSION = "<unknown>";
   private static final String NO_WARNING = "";
+  private static final int NO_ERROR = 0;
+  private static final int ERROR = -1;
 
   private static final KsqlParser KSQL_PARSER = new DefaultKsqlParser();
+
+  // validators return an Optional<RuntimeException> error message representing the
+  // validation error, if any.
+  @SuppressWarnings("rawtypes")
+  private static final ClassHandlerMapR2<StatementContext, Cli, Void, Optional>
+      STATEMENT_VALIDATORS =
+          HandlerMaps
+              .forClass(StatementContext.class)
+              .withArgTypes(Cli.class, Void.class)
+              .withReturnType(Optional.class)
+              .put(DefineVariableContext.class, Cli::defineVariableFromCtxtSandbox)
+              .put(UndefineVariableContext.class, Cli::undefineVariableFromCtxtSandbox)
+              .put(CreateConnectorContext.class, Cli::validateConnectorRequest)
+              .put(DropConnectorContext.class, Cli::validateConnectorRequest)
+              .put(DescribeConnectorContext.class, Cli::validateConnectorRequest)
+              .put(ListConnectorsContext.class, Cli::validateConnectorRequest)
+              .put(ListConnectorPluginsContext.class, Cli::validateConnectorRequest)
+              .build();
 
   private static final ClassHandlerMap2<StatementContext, Cli, String> STATEMENT_HANDLERS =
       HandlerMaps
@@ -106,6 +135,11 @@ public class Cli implements KsqlRequestExecutor, Closeable {
           .put(DefineVariableContext.class, Cli::defineVariableFromCtxt)
           .put(UndefineVariableContext.class, Cli::undefineVariableFromCtxt)
           .put(ListVariablesContext.class, Cli::listVariablesFromCtxt)
+          .put(CreateConnectorContext.class, Cli::handleConnectorRequest)
+          .put(DropConnectorContext.class, Cli::handleConnectorRequest)
+          .put(DescribeConnectorContext.class, Cli::handleConnectorRequest)
+          .put(ListConnectorsContext.class, Cli::handleConnectorRequest)
+          .put(ListConnectorPluginsContext.class, Cli::handleConnectorRequest)
           .build();
 
   private final Long streamedQueryRowLimit;
@@ -116,6 +150,7 @@ public class Cli implements KsqlRequestExecutor, Closeable {
   private final RemoteServerState remoteServerState;
 
   private final Map<String, String> sessionVariables;
+  private Map<String, String> sandboxedSessionVariables;
 
   public static Cli build(
       final Long streamedQueryRowLimit,
@@ -212,7 +247,8 @@ public class Cli implements KsqlRequestExecutor, Closeable {
   }
 
   // called by '-f' command parameter
-  public void runScript(final String scriptFile) {
+  public int runScript(final String scriptFile) {
+    int errorCode = NO_ERROR;
     RemoteServerSpecificCommand.validateClient(terminal.writer(), restClient);
 
     try {
@@ -230,6 +266,8 @@ public class Cli implements KsqlRequestExecutor, Closeable {
 
       handleLine(content);
     } catch (final Exception exception) {
+      errorCode = ERROR;
+
       LOGGER.error("An error occurred while running a script file. Error = "
           + exception.getMessage(), exception);
 
@@ -238,10 +276,14 @@ public class Cli implements KsqlRequestExecutor, Closeable {
     }
 
     terminal.flush();
+
+    return errorCode;
   }
 
   // called by '-e' command parameter
-  public void runCommand(final String command) {
+  public int runCommand(final String command) {
+    int errorCode = NO_ERROR;
+
     RemoteServerSpecificCommand.validateClient(terminal.writer(), restClient);
     try {
       // Commands executed by the '-e' parameter do not need to execute specific CLI
@@ -250,6 +292,7 @@ public class Cli implements KsqlRequestExecutor, Closeable {
     } catch (final EndOfFileException exception) {
       // Ignore - only used by runInteractively() to exit the CLI
     } catch (final Exception exception) {
+      errorCode = ERROR;
       LOGGER.error("An error occurred while running a command. Error = "
           + exception.getMessage(), exception);
 
@@ -258,9 +301,11 @@ public class Cli implements KsqlRequestExecutor, Closeable {
     }
 
     terminal.flush();
+
+    return errorCode;
   }
 
-  public void runInteractively() {
+  public int runInteractively() {
     displayWelcomeMessage();
     RemoteServerSpecificCommand.validateClient(terminal.writer(), restClient);
     boolean eof = false;
@@ -279,6 +324,8 @@ public class Cli implements KsqlRequestExecutor, Closeable {
       }
       terminal.flush();
     }
+
+    return NO_ERROR;
   }
 
   private void displayWelcomeMessage() {
@@ -416,20 +463,42 @@ public class Cli implements KsqlRequestExecutor, Closeable {
     return KsqlConfig.KSQL_VARIABLE_SUBSTITUTION_ENABLE_DEFAULT;
   }
 
-  private ParsedStatement substituteVariables(final ParsedStatement statement) {
+  private ParsedStatement substituteVariables(
+      final ParsedStatement statement,
+      final boolean isSandbox
+  ) {
     if (isVariableSubstitutionEnabled()) {
-      final String replacedStmt = VariableSubstitutor.substitute(statement, sessionVariables);
+      final String replacedStmt = isSandbox
+          ? VariableSubstitutor.substitute(statement, sandboxedSessionVariables)
+          : VariableSubstitutor.substitute(statement, sessionVariables);
       return KSQL_PARSER.parse(replacedStmt).get(0);
     } else {
       return statement;
     }
   }
 
+  @SuppressWarnings("rawtypes")
   private void handleStatements(final String line) {
     final List<ParsedStatement> statements = KSQL_PARSER.parse(line);
-    final StringBuilder consecutiveStatements = new StringBuilder();
 
-    statements.stream().map(this::substituteVariables).forEach(parsed -> {
+    // validate all before executing any
+    sandboxedSessionVariables = new HashMap<>(sessionVariables);
+    statements.stream().map(stmt -> this.substituteVariables(stmt, true)).forEach(parsed -> {
+      final StatementContext statementContext = parsed.getStatement().statement();
+
+      final HandlerR2<StatementContext, Cli, Void, Optional> validator =
+          STATEMENT_VALIDATORS.get(statementContext.getClass());
+      if (validator != null) {
+        final Optional<?> validationError = validator.handle(this, null, statementContext);
+        validationError.map(o -> (RuntimeException)o).ifPresent(error -> {
+          throw error;
+        });
+      }
+    });
+
+    // execute statements
+    final StringBuilder consecutiveStatements = new StringBuilder();
+    statements.stream().map(stmt -> this.substituteVariables(stmt, false)).forEach(parsed -> {
       final StatementContext statementContext = parsed.getStatement().statement();
       final String statementText = parsed.getUnMaskedStatementText();
 
@@ -472,6 +541,23 @@ public class Cli implements KsqlRequestExecutor, Closeable {
     } else {
       terminal.printErrorMessage(response.getErrorMessage());
     }
+  }
+
+  private <C extends SqlBaseParser.StatementContext>
+      Optional<RuntimeException> validateConnectorRequest(final C context) {
+    if (restClient.getIsCCloudServer() && !restClient.getHasCCloudApiKey()) {
+      return Optional.of(new KsqlMissingCredentialsException("In order to use ksqlDB's connector "
+          + "management capabilities with a Confluent Cloud ksqlDB server, launch the "
+          + "ksqlDB command line with the additional flags '--confluent-api-key' and "
+          + "'--confluent-api-secret' to pass a Confluent Cloud API key."));
+    } else {
+      return Optional.empty();
+    }
+  }
+
+  private <C extends SqlBaseParser.StatementContext>
+      void handleConnectorRequest(final String statement, final C context) {
+    printKsqlResponse(makeKsqlRequest(statement, restClient::makeConnectorRequest));
   }
 
   @SuppressWarnings({"try", "unused"}) // ignored param is required to compile.
@@ -614,6 +700,15 @@ public class Cli implements KsqlRequestExecutor, Closeable {
     sessionVariables.put(variableName, variableValue);
   }
 
+  private Optional<RuntimeException> defineVariableFromCtxtSandbox(
+      final DefineVariableContext context
+  ) {
+    final String variableName = context.variableName().getText();
+    final String variableValue = ParserUtil.unquote(context.variableValue().getText(), "'");
+    sandboxedSessionVariables.put(variableName, variableValue);
+    return Optional.empty();
+  }
+
   @SuppressWarnings("unused")
   private void undefineVariableFromCtxt(
       final String ignored,
@@ -626,6 +721,14 @@ public class Cli implements KsqlRequestExecutor, Closeable {
           .printf("Cannot undefine variable '%s' which was never defined.%n", variableName);
       terminal.flush();
     }
+  }
+
+  private Optional<RuntimeException> undefineVariableFromCtxtSandbox(
+      final UndefineVariableContext context
+  ) {
+    final String variableName = context.variableName().getText();
+    sandboxedSessionVariables.remove(variableName);
+    return Optional.empty();
   }
 
   @SuppressWarnings("unused")
@@ -709,6 +812,11 @@ public class Cli implements KsqlRequestExecutor, Closeable {
 
     @Override
     protected synchronized void handleValue(final StreamedRow row) {
+      if (row.getConsistencyToken().isPresent()) {
+        restClient.getSerializedConsistencyVector().set(
+            row.getConsistencyToken().get().getConsistencyToken());
+        return;
+      }
       if (closed) {
         return;
       }

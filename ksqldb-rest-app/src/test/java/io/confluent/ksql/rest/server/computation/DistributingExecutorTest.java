@@ -19,7 +19,10 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
@@ -31,6 +34,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.config.SessionConfig;
@@ -38,6 +42,7 @@ import io.confluent.ksql.exception.KsqlTopicAuthorizationException;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
+import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.properties.with.CreateSourceProperties;
@@ -56,6 +61,12 @@ import io.confluent.ksql.rest.entity.CommandId.Type;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatus.Status;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
+import io.confluent.ksql.rest.entity.KsqlErrorMessage;
+import io.confluent.ksql.rest.entity.WarningEntity;
+import io.confluent.ksql.rest.server.KsqlRestConfig;
+import io.confluent.ksql.rest.server.execution.StatementExecutorResponse;
+import io.confluent.ksql.rest.server.resources.KsqlRestException;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.security.KsqlAuthorizationValidator;
 import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.services.SandboxedServiceContext;
@@ -64,6 +75,7 @@ import io.confluent.ksql.services.TestServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.statement.Injector;
 import io.confluent.ksql.statement.InjectorChain;
+import io.confluent.ksql.topic.TopicCreateInjector;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlServerException;
@@ -99,8 +111,10 @@ public class DistributingExecutorTest {
       false,
       CreateSourceProperties.from(ImmutableMap.of(
           CommonCreateConfigs.KAFKA_TOPIC_NAME_PROPERTY, new StringLiteral("topic"),
+          CommonCreateConfigs.SOURCE_NUMBER_OF_PARTITIONS, new StringLiteral("1"),
           CommonCreateConfigs.VALUE_FORMAT_PROPERTY, new StringLiteral("json")
-      ))
+      )),
+      false
   );
   private static final ConfiguredStatement<Statement> CONFIGURED_STATEMENT =
       ConfiguredStatement.of(PreparedStatement.of("statement", STATEMENT),
@@ -217,6 +231,62 @@ public class DistributingExecutorTest {
   }
 
   @Test
+  public void shouldPreserveExistingTopicOnTimeout() {
+    doThrow(new TimeoutException()).when(transactionalProducer).initTransactions();
+    checkTopicCreationBehavior(true);
+  }
+
+  @Test
+  public void shouldPreserveExistingTopicWhenFenced() {
+    doThrow(new ProducerFencedException("test")).when(transactionalProducer).beginTransaction();
+    checkTopicCreationBehavior(true);
+  }
+
+  @Test
+  public void shouldDeleteCreatedTopicOnTimeout() {
+    doThrow(new TimeoutException()).when(transactionalProducer).initTransactions();
+    checkTopicCreationBehavior(false);
+  }
+
+  @Test
+  public void shouldDeleteCreatedTopicWhenFenced() {
+    doThrow(new ProducerFencedException("test")).when(transactionalProducer).beginTransaction();
+    checkTopicCreationBehavior(false);
+  }
+
+  private void checkTopicCreationBehavior(boolean preExistingTopic) {
+    String kafkaTopic = ((CreateStream) CONFIGURED_STATEMENT.getPreparedStatement().getStatement())
+            .getProperties().getKafkaTopic();
+    assertFalse(securityContext.getServiceContext().getTopicClient().isTopicExists(kafkaTopic));
+    if (preExistingTopic) {
+      securityContext.getServiceContext().getTopicClient().createTopic(kafkaTopic, 1, (short) 1);
+      assertTrue(securityContext.getServiceContext().getTopicClient().isTopicExists(kafkaTopic));
+    }
+    // add TopicCreateInjector to the distributor (adding it to the common one fails other tests)
+    distributor = new DistributingExecutor(
+            KSQL_CONFIG,
+            queue,
+            DURATION_10_MS,
+            (ec, sc) -> InjectorChain.of(
+                    schemaInjector,
+                    topicInjector,
+                    new TopicCreateInjector(ec, sc)),
+            Optional.of(authorizationValidator),
+            validatedCommandFactory,
+            errorHandler,
+            commandRunnerWarning
+    );
+    // When:
+    assertThrows(Exception.class, () -> distributor.execute(
+            DistributingExecutorTest.CONFIGURED_STATEMENT,
+            executionContext,
+            securityContext));
+    // Then:
+    assertEquals(preExistingTopic,
+            securityContext.getServiceContext().getTopicClient().isTopicExists(kafkaTopic));
+  }
+
+  @Test
   public void shouldReturnCommandStatus() {
     // When:
     final CommandStatusEntity commandStatusEntity =
@@ -225,6 +295,7 @@ public class DistributingExecutorTest {
             executionContext,
             securityContext
         )
+            .getEntity()
             .orElseThrow(null);
 
     // Then:
@@ -407,6 +478,31 @@ public class DistributingExecutorTest {
   }
 
   @Test
+  public void shouldThrowExceptionWhenInsertIntoSourceWithHeaders() {
+    // Given
+    final PreparedStatement<Statement> preparedStatement =
+        PreparedStatement.of("", new InsertInto(SourceName.of("s1"), mock(Query.class)));
+    final ConfiguredStatement<Statement> configured =
+        ConfiguredStatement.of(preparedStatement, SessionConfig.of(KSQL_CONFIG, ImmutableMap.of())
+        );
+    final DataSource dataSource = mock(DataSource.class);
+    final LogicalSchema schema = mock(LogicalSchema.class);
+    doReturn(dataSource).when(metaStore).getSource(SourceName.of("s1"));
+    doReturn(schema).when(dataSource).getSchema();
+    doReturn(ImmutableList.of(ColumnName.of("a"))).when(schema).headers();
+    when(dataSource.getKafkaTopicName()).thenReturn("topic");
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> distributor.execute(configured, executionContext, mock(KsqlSecurityContext.class))
+    );
+
+    // Then:
+    assertThat(e.getMessage(), is("Cannot insert into s1 because it has header columns"));
+  }
+
+  @Test
   public void shouldAbortOnError_ProducerFencedException() {
     // When:
     doThrow(new ProducerFencedException("Error!")).when(transactionalProducer).commitTransaction();
@@ -440,5 +536,70 @@ public class DistributingExecutorTest {
 
     // Then:
     verify(queue).abortCommand(IDGEN.getCommandId(CONFIGURED_STATEMENT.getStatement()));
+  }
+
+  @Test
+  public void shouldNotEnqueueRedundantIfNotExists() {
+    // Given:
+    final PreparedStatement<Statement> preparedStatement =
+        PreparedStatement.of("", new CreateStream(
+            SourceName.of("TEST"),
+            TableElements.of(),
+            false,
+            true,
+            CreateSourceProperties.from(ImmutableMap.of(
+                CommonCreateConfigs.KAFKA_TOPIC_NAME_PROPERTY, new StringLiteral("topic"),
+                CommonCreateConfigs.VALUE_FORMAT_PROPERTY, new StringLiteral("json")
+            )),
+            false
+        ));
+    final ConfiguredStatement<Statement> configured =
+        ConfiguredStatement.of(preparedStatement, SessionConfig.of(KSQL_CONFIG, ImmutableMap.of())
+        );
+    final DataSource dataSource = mock(DataSource.class);
+    doReturn(dataSource).when(metaStore).getSource(SourceName.of("TEST"));
+
+    // When:
+    final StatementExecutorResponse response = distributor.execute(configured, executionContext, securityContext);
+
+    // Then:
+    assertThat("Should be present", response.getEntity().isPresent());
+    assertThat(((WarningEntity) response.getEntity().get()).getMessage(), containsString(""));
+  }
+  
+  @Test
+  public void shouldThrowIfRateLimitHit() {
+    // Given:
+    final DistributingExecutor rateLimitedDistributor = new DistributingExecutor(
+      new KsqlConfig(ImmutableMap.of(KsqlRestConfig.KSQL_COMMAND_TOPIC_RATE_LIMIT_CONFIG, 0.25)),
+      queue,
+      DURATION_10_MS,
+      (ec, sc) -> InjectorChain.of(schemaInjector, topicInjector),
+      Optional.of(authorizationValidator),
+      validatedCommandFactory,
+      errorHandler,
+      commandRunnerWarning
+    );
+    
+    // When:
+    rateLimitedDistributor.execute(CONFIGURED_STATEMENT, executionContext, securityContext);
+
+
+    // Then:
+    boolean exceptionFound = false;
+    try {
+      rateLimitedDistributor.execute(CONFIGURED_STATEMENT, executionContext, securityContext);
+      rateLimitedDistributor.execute(CONFIGURED_STATEMENT, executionContext, securityContext);
+      rateLimitedDistributor.execute(CONFIGURED_STATEMENT, executionContext, securityContext);
+      rateLimitedDistributor.execute(CONFIGURED_STATEMENT, executionContext, securityContext);
+    } catch (Exception e) {
+      assertTrue(e instanceof KsqlRestException);
+      final KsqlRestException restException = (KsqlRestException) e; 
+      assertEquals(restException.getResponse().getStatus(), 429);
+      final KsqlErrorMessage errorMessage = (KsqlErrorMessage) restException.getResponse().getEntity();
+      assertTrue(errorMessage.getMessage().contains("DDL/DML rate is crossing the configured rate limit of statements/second"));
+      exceptionFound = true;
+    }
+    assertTrue(exceptionFound);
   }
 }

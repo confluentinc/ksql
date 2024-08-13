@@ -16,22 +16,27 @@
 package io.confluent.ksql.test.tools;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.test.model.ExpectedExceptionNode;
 import io.confluent.ksql.test.model.PostConditionsNode;
 import io.confluent.ksql.test.model.RecordNode;
 import io.confluent.ksql.test.model.TestCaseNode;
-import io.confluent.ksql.test.model.TestLocation;
 import io.confluent.ksql.test.model.TopicNode;
 import io.confluent.ksql.test.tools.conditions.PostConditions;
+import io.confluent.ksql.tools.test.model.TestLocation;
+import io.confluent.ksql.tools.test.model.Topic;
 import io.confluent.ksql.util.KsqlConfig;
 import java.nio.file.Path;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import org.hamcrest.Matcher;
 
 /**
@@ -52,15 +57,54 @@ public final class TestCaseBuilder {
     }
 
     try {
-      final Stream<Optional<String>> formats = test.formats().isEmpty()
-          ? Stream.of(Optional.empty())
-          : test.formats().stream().map(Optional::of);
+      final List<TestCase> testCases = new LinkedList<>();
 
-      final TestLocation location = testLocator.apply(test.name());
+      final List<Optional<String>> formats = test.formats().isEmpty()
+          ? Collections.singletonList(Optional.empty())
+          : test.formats().stream().map(Optional::of).collect(Collectors.toList());
 
-      return formats
-          .map(format -> createTest(test, originalFileName, location, format))
-          .collect(Collectors.toList());
+      final List<Optional<String>> configs;
+      final Entry<String, Object> overwrite;
+
+      if (test.config().isEmpty()) {
+        configs = Collections.singletonList(Optional.empty());
+        overwrite = null;
+      } else {
+        configs = test.config().stream().map(Optional::of).collect(Collectors.toList());
+
+        overwrite = Iterables.getOnlyElement(
+            test.properties().entrySet().stream()
+                .filter(e -> {
+                  final Object v = e.getValue();
+                  return v instanceof String && "{CONFIG}".equalsIgnoreCase((String) v);
+                })
+                .collect(Collectors.toList()));
+      }
+
+      for (final Optional<String> format : formats) {
+        for (final Optional<String> config : configs) {
+          final TestLocation location = testLocator.apply(test.name());
+
+          final Map<String, Object> updatedProperties = new HashMap<>(test.properties());
+          final Optional<String> cfg;
+          if (config.isPresent()) {
+            updatedProperties.put(overwrite.getKey(), config.get());
+            cfg = Optional.of(overwrite.getKey() + "=" + config.get());
+          } else {
+            cfg = Optional.empty();
+          }
+
+          testCases.add(createTest(
+              new TestCaseNode(test, updatedProperties),
+              originalFileName,
+              location,
+              format,
+              cfg
+          ));
+        }
+      }
+
+      return testCases;
     } catch (final Exception e) {
       throw new AssertionError("Invalid test '" + test.name() + "': " + e.getMessage(), e);
     }
@@ -70,12 +114,14 @@ public final class TestCaseBuilder {
       final TestCaseNode test,
       final Path originalFileName,
       final TestLocation location,
-      final Optional<String> explicitFormat
+      final Optional<String> explicitFormat,
+      final Optional<String> config
   ) {
     final String testName = TestCaseBuilderUtil.buildTestName(
         originalFileName,
         test.name(),
-        explicitFormat
+        explicitFormat,
+        config
     );
 
     try {

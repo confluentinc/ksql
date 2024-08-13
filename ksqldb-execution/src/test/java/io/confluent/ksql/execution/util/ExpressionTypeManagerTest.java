@@ -31,6 +31,7 @@ import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -67,7 +68,9 @@ import io.confluent.ksql.execution.expression.tree.TimeLiteral;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.WhenClause;
 import io.confluent.ksql.execution.testutil.TestExpressions;
+import io.confluent.ksql.function.AggregateFunctionFactory;
 import io.confluent.ksql.function.FunctionRegistry;
+import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.function.KsqlScalarFunction;
 import io.confluent.ksql.function.UdfFactory;
 import io.confluent.ksql.function.types.ArrayType;
@@ -85,16 +88,20 @@ import io.confluent.ksql.schema.Operator;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SqlArgument;
 import io.confluent.ksql.schema.ksql.SystemColumns;
+import io.confluent.ksql.schema.ksql.types.SqlArray;
 import io.confluent.ksql.schema.ksql.types.SqlLambda;
 import io.confluent.ksql.schema.ksql.types.SqlLambdaResolved;
 import io.confluent.ksql.schema.ksql.types.SqlStruct;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.KsqlStatementException;
 import java.nio.ByteBuffer;
 import java.sql.Date;
 import java.sql.Time;
+import java.util.Arrays;
 import java.util.Optional;
+import java.util.function.Function;
 import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Rule;
@@ -114,6 +121,13 @@ public class ExpressionTypeManagerTest {
   private UdfFactory udfFactory;
   @Mock
   private KsqlScalarFunction function;
+
+  @Mock
+  private AggregateFunctionFactory aggregateFactory;
+  @Mock
+  private KsqlAggregateFunction aggregateFunction;
+  @Mock
+  private Function<String, KsqlAggregateFunction<?, ?, ?>> aggCreator;
 
   private ExpressionTypeManager expressionTypeManager;
 
@@ -192,13 +206,16 @@ public class ExpressionTypeManagerTest {
     );
 
     // When:
-    final Exception e = assertThrows(
-        KsqlException.class,
+    final KsqlStatementException e = assertThrows(
+        KsqlStatementException.class,
         () -> expressionTypeManager.getExpressionSqlType(expr)
     );
 
     // Then:
     assertThat(e.getMessage(), containsString(
+        "Cannot compare BIGINT to STRING with GREATER_THAN"
+    ));
+    assertThat(e.getUnloggedMessage(), containsString(
         "Cannot compare COL0 (BIGINT) to COL1 (STRING) with GREATER_THAN"
     ));
   }
@@ -213,13 +230,17 @@ public class ExpressionTypeManagerTest {
     );
 
     // When:
-    final Exception e = assertThrows(
-        KsqlException.class,
+    final KsqlStatementException e = assertThrows(
+        KsqlStatementException.class,
         () -> expressionTypeManager.getExpressionSqlType(expr)
     );
 
     // Then:
     assertThat(e.getMessage(), containsString(
+        "Cannot compare BOOLEAN to BOOLEAN with "
+            + "GREATER_THAN"
+    ));
+    assertThat(e.getUnloggedMessage(), containsString(
         "Cannot compare true (BOOLEAN) to false (BOOLEAN) with "
             + "GREATER_THAN"
     ));
@@ -231,13 +252,18 @@ public class ExpressionTypeManagerTest {
     final Expression expression = new ComparisonExpression(Type.GREATER_THAN, MAPCOL, ADDRESS);
 
     // When:
-    final Exception e = assertThrows(
-        KsqlException.class,
+    final KsqlStatementException e = assertThrows(
+        KsqlStatementException.class,
         () -> expressionTypeManager.getExpressionSqlType(expression)
     );
 
     // Then:
     assertThat(e.getMessage(), containsString(
+        "Cannot compare MAP<BIGINT, DOUBLE>"
+            + " to STRUCT<`NUMBER` BIGINT, `STREET` STRING, `CITY` STRING,"
+            + " `STATE` STRING, `ZIPCODE` BIGINT> with GREATER_THAN."
+    ));
+    assertThat(e.getUnloggedMessage(), containsString(
         "Cannot compare COL5 (MAP<BIGINT, DOUBLE>) to COL6 (STRUCT<`NUMBER` BIGINT, "
             + "`STREET` STRING, `CITY` STRING, `STATE` STRING, `ZIPCODE` BIGINT>) "
             + "with GREATER_THAN"
@@ -250,13 +276,18 @@ public class ExpressionTypeManagerTest {
     final Expression expression = new ComparisonExpression(Type.EQUAL, MAPCOL, ADDRESS);
 
     // When:
-    final Exception e = assertThrows(
-        KsqlException.class,
+    final KsqlStatementException e = assertThrows(
+        KsqlStatementException.class,
         () -> expressionTypeManager.getExpressionSqlType(expression)
     );
 
     // Then:
     assertThat(e.getMessage(), containsString(
+        "Cannot compare MAP<BIGINT, DOUBLE> "
+            + "to STRUCT<`NUMBER` BIGINT, `STREET` STRING, `CITY` STRING,"
+            + " `STATE` STRING, `ZIPCODE` BIGINT> with EQUAL."
+    ));
+    assertThat(e.getUnloggedMessage(), containsString(
         "Cannot compare COL5 (MAP<BIGINT, DOUBLE>) to COL6 "
             + "(STRUCT<`NUMBER` BIGINT, `STREET` STRING, `CITY` STRING, `STATE` STRING, "
             + "`ZIPCODE` BIGINT>) with EQUAL"
@@ -514,14 +545,17 @@ public class ExpressionTypeManagerTest {
                 )));
 
     // When:
-    final Exception e = assertThrows(
-        Exception.class,
+    final KsqlStatementException e = assertThrows(
+        KsqlStatementException.class,
         () -> expressionTypeManager.getExpressionSqlType(expression)
     );
 
     // Then:
-    assertThat(e.getMessage(), Matchers.containsString(
-        "Unsupported arithmetic types. DOUBLE STRING"));
+    assertThat(e.getUnloggedMessage(), Matchers.containsString("Error processing expression: (A + B). Unsupported arithmetic types. DOUBLE STRING" +
+                                                               System.lineSeparator() +
+                                                               "Statement: (A + B)"));
+    assertThat(e.getMessage(), Matchers.is(
+        "Error processing expression."));
   }
 
   @Test
@@ -1163,6 +1197,29 @@ public class ExpressionTypeManagerTest {
     );
   }
 
+  @Test
+  public void shouldEvaluateTypeForMultiParamUdaf() {
+    // Given:
+    givenUdafWithNameAndReturnType("TEST_ETM", SqlTypes.STRING, aggregateFactory, aggregateFunction);
+    final Expression expression = new FunctionCall(
+            FunctionName.of("TEST_ETM"),
+            ImmutableList.of(
+                    COL7,
+                    new UnqualifiedColumnReferenceExp(ColumnName.of("COL4")),
+                    new StringLiteral("hello world")
+            )
+    );
+
+    // When:
+    final SqlType exprType = expressionTypeManager.getExpressionSqlType(expression);
+
+    // Then:
+    assertThat(exprType, is(SqlTypes.STRING));
+    verify(aggregateFactory).getFunction(ImmutableList.of(SqlTypes.INTEGER, SqlArray.of(SqlTypes.DOUBLE), SqlTypes.STRING));
+    verify(aggCreator).apply("hello world");
+    verify(aggregateFunction).returnType();
+  }
+
   private void givenUdfWithNameAndReturnType(final String name, final SqlType returnType) {
     givenUdfWithNameAndReturnType(name, returnType, udfFactory, function);
   }
@@ -1174,6 +1231,20 @@ public class ExpressionTypeManagerTest {
     when(functionRegistry.getUdfFactory(FunctionName.of(name))).thenReturn(factory);
     when(factory.getFunction(anyList())).thenReturn(function);
     when(function.getReturnType(anyList())).thenReturn(returnType);
+    final UdfMetadata metadata = mock(UdfMetadata.class);
+    when(factory.getMetadata()).thenReturn(metadata);
+  }
+
+  private void givenUdafWithNameAndReturnType(
+          final String name, final SqlType returnType, final AggregateFunctionFactory factory,
+          final KsqlAggregateFunction function
+  ) {
+    when(functionRegistry.isAggregate(FunctionName.of(name))).thenReturn(true);
+    when(functionRegistry.getAggregateFactory(FunctionName.of(name))).thenReturn(factory);
+    when(factory.getFunction(eq(Arrays.asList(SqlTypes.INTEGER, SqlArray.of(SqlTypes.DOUBLE), SqlTypes.STRING))))
+            .thenReturn(new AggregateFunctionFactory.FunctionSource(1, (initArgs) -> aggCreator.apply((String) initArgs.arg(0))));
+    when(aggCreator.apply(any())).thenReturn(function);
+    when(function.returnType()).thenReturn(returnType);
     final UdfMetadata metadata = mock(UdfMetadata.class);
     when(factory.getMetadata()).thenReturn(metadata);
   }

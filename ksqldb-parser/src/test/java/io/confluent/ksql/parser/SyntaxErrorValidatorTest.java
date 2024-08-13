@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.parser;
 
+import org.antlr.v4.runtime.ParserRuleContext;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertThrows;
@@ -77,8 +78,7 @@ public class SyntaxErrorValidatorTest {
     );
 
     // Then:
-    assertThat(e.getUnloggedDetails(),
-        containsString("mismatched input 'topic' expecting IDENTIFIER"));
+    assertThat(e.getUnloggedDetails(), containsString("Syntax Error\nExpecting IDENTIFIER"));
     assertThat(e.getMessage(), containsString("line 0:1: Syntax error at line 0:1"));
   }
 
@@ -97,7 +97,7 @@ public class SyntaxErrorValidatorTest {
 
     // Then:
     assertThat(e.getUnloggedDetails(),
-        containsString("mismatched input '1' expecting IDENTIFIER"));
+        containsString("line 0:1: Syntax Error\nExpecting IDENTIFIER"));
     assertThat(e.getMessage(), containsString("line 0:1: Syntax error at line 0:1"));
   }
 
@@ -136,9 +136,13 @@ public class SyntaxErrorValidatorTest {
       final RuleContext context,
       final Token offendingToken
   ) {
-    final RecognitionException exception = mock(RecognitionException.class);
-    when(exception.getCtx()).thenReturn(context);
-    when(exception.getOffendingToken()).thenReturn(offendingToken);
+    final RecognitionException exception =
+        new RecognitionException("message", null, null, (ParserRuleContext) context) {
+          @Override
+          public Token getOffendingToken() {
+            return offendingToken;
+          }
+        };
     return exception;
   }
 

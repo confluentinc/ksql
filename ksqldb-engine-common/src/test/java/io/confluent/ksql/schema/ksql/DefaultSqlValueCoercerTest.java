@@ -160,6 +160,7 @@ public class DefaultSqlValueCoercerTest {
         .put("TrUe", ImmutableMap.<SqlType, Object>builder()
             .put(BOOLEAN, laxOnly(true))
             .put(STRING, "TrUe")
+            .put(BYTES, ByteBuffer.wrap(new byte[] {78, (byte) 181, 30}))
             .build()
         )
         .put("FaLse", ImmutableMap.<SqlType, Object>builder()
@@ -170,11 +171,13 @@ public class DefaultSqlValueCoercerTest {
         .put("YeS", ImmutableMap.<SqlType, Object>builder()
             .put(BOOLEAN, laxOnly(true))
             .put(STRING, "YeS")
+            .put(BYTES, ByteBuffer.wrap(new byte[] {97, (byte) 228}))
             .build()
         )
         .put("nO", ImmutableMap.<SqlType, Object>builder()
             .put(BOOLEAN, laxOnly(false))
             .put(STRING, "nO")
+            .put(BYTES, ByteBuffer.wrap(new byte[] {(byte) 156}))
             .build()
         )
         .put("t", ImmutableMap.<SqlType, Object>builder()
@@ -211,6 +214,7 @@ public class DefaultSqlValueCoercerTest {
             .put(decimal(10, 0), laxOnly(new BigDecimal("2147483647")))
             .put(DOUBLE, laxOnly(2147483647.0D))
             .put(STRING, "2147483647")
+            .put(BYTES, ByteBuffer.wrap(new byte[] {-37,94,59,-29,-51,-6,-29}))
             .build()
         )
         .put(String.valueOf(Integer.MIN_VALUE - 1L), ImmutableMap.<SqlType, Object>builder()
@@ -225,6 +229,8 @@ public class DefaultSqlValueCoercerTest {
             .put(decimal(10, 0), laxOnly(new BigDecimal("2147483648")))
             .put(DOUBLE, laxOnly(2147483648.0D))
             .put(STRING, "2147483648")
+            .put(BYTES, ByteBuffer.wrap(new byte[] {(byte) 219, 94, 59, (byte) 227, (byte) 205,
+                (byte) 250, (byte) 227}))
             .build()
         )
         .put(String.valueOf(Long.MIN_VALUE), ImmutableMap.<SqlType, Object>builder()
@@ -239,6 +245,7 @@ public class DefaultSqlValueCoercerTest {
             .put(decimal(19, 0), laxOnly(new BigDecimal("9223372036854775807")))
             .put(DOUBLE, laxOnly(9223372036854775807.0D))
             .put(STRING, "9223372036854775807")
+            .put(BYTES, ByteBuffer.wrap(new byte[] {-9,109,-73,-33,-67,-76,-33,-81,57,-29,-66,-7,-13,78}))
             .build()
         )
         .put(String.valueOf(new BigDecimal(Long.MIN_VALUE).subtract(ONE)), ImmutableMap
@@ -253,6 +260,9 @@ public class DefaultSqlValueCoercerTest {
                 .put(decimal(19, 0), laxOnly(new BigDecimal("9223372036854775808")))
                 .put(DOUBLE, laxOnly(9223372036854775808.0D))
                 .put(STRING, "9223372036854775808")
+                .put(BYTES, ByteBuffer.wrap(new byte[] {(byte) 247, 109, (byte) 183, (byte) 223,
+                    (byte) 189, (byte) 180, (byte) 223, (byte) 175, 57, (byte) 227, (byte) 190,
+                    (byte) 249, (byte) 243, 79}))
                 .build()
         )
         .put("\t 10 \t", ImmutableMap.<SqlType, Object>builder()
@@ -261,6 +271,7 @@ public class DefaultSqlValueCoercerTest {
             .put(decimal(3, 0), laxOnly(new BigDecimal("10")))
             .put(DOUBLE, laxOnly(10.0D))
             .put(STRING, "\t 10 \t")
+            .put(BYTES, ByteBuffer.wrap(new byte[] {(byte) 215}))
             .build()
         )
         .put("1.344e2", ImmutableMap.<SqlType, Object>builder()
@@ -279,10 +290,12 @@ public class DefaultSqlValueCoercerTest {
         )
         .put("NaN", ImmutableMap.<SqlType, Object>builder()
             .put(STRING, "NaN")
+            .put(BYTES, ByteBuffer.wrap(new byte[] {53, (byte) 163}))
             .build()
         )
         .put("Infinity", ImmutableMap.<SqlType, Object>builder()
             .put(STRING, "Infinity")
+            .put(BYTES, ByteBuffer.wrap(new byte[] {34, 119, (byte) 226, (byte) 158, 43, 114}))
             .build()
         )
         .put("2018-09-01T09:01:15.000", ImmutableMap.<SqlType, Object>builder()
@@ -299,6 +312,11 @@ public class DefaultSqlValueCoercerTest {
             .put(STRING, "2018-09-01")
             .put(DATE, new Date(1535760000000L))
             .put(TIMESTAMP, new Timestamp(1535760000000L))
+            .build()
+        )
+        .put("IQ==", ImmutableMap.<SqlType, Object>builder()
+            .put(STRING, "IQ==")
+            .put(BYTES, ByteBuffer.wrap(new byte[] {33}))
             .build()
         )
         // TIMESTAMP:
@@ -1221,6 +1239,7 @@ public class DefaultSqlValueCoercerTest {
                 .add(SqlBaseType.TIME)
                 .add(SqlBaseType.DATE)
                 .add(SqlBaseType.TIMESTAMP)
+                .add(SqlBaseType.BYTES)
                 .build())
             .put(SqlBaseType.ARRAY, ImmutableSet.<SqlBaseType>builder()
                 .add(SqlBaseType.ARRAY)
@@ -1302,7 +1321,6 @@ public class DefaultSqlValueCoercerTest {
           return false;
         }
         final boolean supported = sqlBaseTypes.contains(to);
-
         if (supported) {
           return true;
         }

@@ -16,16 +16,17 @@
 package io.confluent.ksql.metrics;
 
 import static com.google.common.collect.ImmutableMap.toImmutableMap;
+import static java.util.Collections.singletonList;
 
 import com.google.common.base.Functions;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.common.utils.Time;
 import io.confluent.ksql.util.AppInfo;
 import io.confluent.ksql.util.KsqlConfig;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -38,12 +39,15 @@ import org.apache.kafka.common.metrics.MetricConfig;
 import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.common.metrics.MetricsContext;
 import org.apache.kafka.common.metrics.MetricsReporter;
-import org.apache.kafka.common.utils.SystemTime;
 
 /**
  * Topic based collectors for producer/consumer related statistics that can be mapped on to
  * streams/tables/queries for ksql entities (Stream, Table, Query)
  */
+@SuppressFBWarnings(
+    value = "EI_EXPOSE_REP2",
+    justification = "should be mutable"
+)
 @SuppressWarnings("ClassDataAbstractionCoupling")
 public final class MetricCollectors {
 
@@ -61,51 +65,37 @@ public final class MetricCollectors {
       RESOURCE_LABEL_PREFIX + "kafka.cluster.id";
   private static final String KSQL_JMX_PREFIX = "io.confluent.ksql.metrics";
   private static final String KSQL_RESOURCE_TYPE = "ksql";
-  private static final Time time = new io.confluent.common.utils.SystemTime();
-  private static Map<String, MetricCollector> collectorMap;
-  private static Metrics metrics;
+  private final Time time = new io.confluent.common.utils.SystemTime();
+  private Map<String, MetricCollector> collectorMap;
+  private Metrics metrics;
 
-  static {
-    initialize();
+  public MetricCollectors() {
+    this(
+        new Metrics(
+            new MetricConfig()
+                .samples(100)
+                .timeWindow(
+                    1000,
+                    TimeUnit.MILLISECONDS
+                ),
+            // must be a mutable list to add configured reporters later
+            new LinkedList<>(singletonList(new JmxReporter())),
+            org.apache.kafka.common.utils.Time.SYSTEM,
+            new KafkaMetricsContext(KSQL_JMX_PREFIX)
+        )
+    );
   }
 
-  private MetricCollectors() {
-  }
-
-  // visible for testing.
-  // We need to call this from the MetricCollectorsTest because otherwise tests clobber each
-  // others metric data. We also need it from the KsqlEngineMetricsTest
-  public static void initialize() {
-    final MetricConfig metricConfig = new MetricConfig()
-        .samples(100)
-        .timeWindow(
-            1000,
-            TimeUnit.MILLISECONDS
-        );
-    final List<MetricsReporter> reporters = new ArrayList<>();
-    reporters.add(new JmxReporter());
-    final MetricsContext metricsContext = new KafkaMetricsContext(KSQL_JMX_PREFIX);
-    // Replace all static contents other than Time to ensure they are cleaned for tests that are
-    // not aware of the need to initialize/cleanup this test, in case test processes are reused.
-    // Tests aware of the class clean everything up properly to get the state into a clean state,
-    // a full, fresh instantiation here ensures something like KsqlEngineMetricsTest running after
-    // another test that used MetricsCollector without running cleanUp will behave correctly.
-    metrics = new Metrics(metricConfig, reporters, new SystemTime(), metricsContext);
+  @SuppressFBWarnings(
+      value = "EI_EXPOSE_REP2",
+      justification = "should be mutable"
+  )
+  public MetricCollectors(final Metrics metrics) {
+    this.metrics = metrics;
     collectorMap = new ConcurrentHashMap<>();
   }
 
-  // visible for testing.
-  // needs to be called from the tear down method of MetricCollectorsTest so that the tests don't
-  // clobber each other. We also need to call it from the KsqlEngineMetrics test for the same
-  // reason.
-  public static void cleanUp() {
-    if (metrics != null) {
-      metrics.close();
-    }
-    collectorMap.clear();
-  }
-
-  static String addCollector(final String id, final MetricCollector collector) {
+  String addCollector(final String id, final MetricCollector collector) {
     final StringBuilder builtId = new StringBuilder(id);
     while (collectorMap.containsKey(builtId.toString())) {
       builtId.append("-").append(collectorMap.size());
@@ -116,7 +106,7 @@ public final class MetricCollectors {
     return finalId;
   }
 
-  public static void addConfigurableReporter(
+  public void addConfigurableReporter(
       final KsqlConfig ksqlConfig
   ) {
     final String ksqlServiceId = ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG);
@@ -140,7 +130,7 @@ public final class MetricCollectors {
     }
   }
 
-  public static Map<String, Object> addConfluentMetricsContextConfigs(
+  public Map<String, Object> addConfluentMetricsContextConfigs(
       final String ksqlServiceId,
       final String kafkaClusterId
   ) {
@@ -153,11 +143,11 @@ public final class MetricCollectors {
     return updatedProps;
   }
 
-  static void remove(final String id) {
+  void remove(final String id) {
     collectorMap.remove(id);
   }
 
-  public static Collection<TopicSensors.Stat> getStatsFor(
+  public Collection<TopicSensors.Stat> getStatsFor(
       final String topic, final boolean isError) {
     return getAggregateMetrics(
         collectorMap.values().stream()
@@ -166,13 +156,13 @@ public final class MetricCollectors {
     );
   }
 
-  public static String getAndFormatStatsFor(final String topic, final boolean isError) {
+  public String getAndFormatStatsFor(final String topic, final boolean isError) {
     return format(
         getStatsFor(topic, isError),
         isError ? "last-failed" : "last-message");
   }
 
-  static Collection<TopicSensors.Stat> getAggregateMetrics(
+  Collection<TopicSensors.Stat> getAggregateMetrics(
       final List<TopicSensors.Stat> allStats
   ) {
     return allStats.stream().collect(toImmutableMap(
@@ -195,7 +185,7 @@ public final class MetricCollectors {
     return results.toString();
   }
 
-  public static Collection<Double> currentConsumptionRateByQuery() {
+  public Collection<Double> currentConsumptionRateByQuery() {
     return collectorMap.values()
         .stream()
         .filter(collector -> collector.getGroupId() != null)
@@ -210,40 +200,43 @@ public final class MetricCollectors {
         .values();
   }
 
-  public static double aggregateStat(final String name, final boolean isError) {
+  public double aggregateStat(final String name, final boolean isError) {
     return collectorMap.values().stream()
         .mapToDouble(m -> m.aggregateStat(name, isError))
         .sum();
   }
 
-  public static double currentProductionRate() {
+  public double currentProductionRate() {
     return aggregateStat(ProducerCollector.PRODUCER_MESSAGES_PER_SEC, false);
   }
 
-  public static double currentConsumptionRate() {
+  public double currentConsumptionRate() {
     return aggregateStat(ConsumerCollector.CONSUMER_MESSAGES_PER_SEC, false);
   }
 
-  public static double totalMessageConsumption() {
+  public double totalMessageConsumption() {
     return aggregateStat(ConsumerCollector.CONSUMER_TOTAL_MESSAGES, false);
   }
 
-  public static double totalBytesConsumption() {
+  public double totalBytesConsumption() {
     return aggregateStat(ConsumerCollector.CONSUMER_TOTAL_BYTES, false);
   }
 
-  public static double currentErrorRate() {
+  public double currentErrorRate() {
     return collectorMap.values().stream()
         .mapToDouble(MetricCollector::errorRate)
         .sum();
   }
 
-  @SuppressFBWarnings(value = "MS_EXPOSE_REP", justification = "should be mutable")
-  public static Metrics getMetrics() {
+  @SuppressFBWarnings(
+      value = {"MS_EXPOSE_REP", "EI_EXPOSE_REP"},
+      justification = "should be mutable"
+  )
+  public Metrics getMetrics() {
     return metrics;
   }
 
-  public static Time getTime() {
+  public Time getTime() {
     return time;
   }
 

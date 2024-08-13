@@ -15,8 +15,8 @@
 
 package io.confluent.ksql.rest.server.execution;
 
+import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.config.SessionConfig;
-import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.Statement;
@@ -24,6 +24,7 @@ import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.server.computation.DistributingExecutor;
+import io.confluent.ksql.rest.util.FeatureFlagChecker;
 import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
@@ -40,8 +41,7 @@ import java.util.Optional;
 public class RequestHandler {
 
   private final Map<Class<? extends Statement>, StatementExecutor<?>> customExecutors;
-  private final KsqlEngine ksqlEngine;
-  private final KsqlConfig ksqlConfig;
+  private final KsqlExecutionContext ksqlEngine;
   private final DistributingExecutor distributor;
   private final CommandQueueSync commandQueueSync;
 
@@ -52,18 +52,15 @@ public class RequestHandler {
    *                        statement
    * @param ksqlEngine      the primary KSQL engine - the state of this engine <b>will</b>
    *                        be directly modified by this class
-   * @param ksqlConfig      a configuration
    */
   public RequestHandler(
       final Map<Class<? extends Statement>, StatementExecutor<?>> customExecutors,
       final DistributingExecutor distributor,
-      final KsqlEngine ksqlEngine,
-      final KsqlConfig ksqlConfig,
+      final KsqlExecutionContext ksqlEngine,
       final CommandQueueSync commandQueueSync
   ) {
     this.customExecutors = Objects.requireNonNull(customExecutors, "customExecutors");
     this.ksqlEngine = Objects.requireNonNull(ksqlEngine, "ksqlEngine");
-    this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
     this.distributor = Objects.requireNonNull(distributor, "distributor");
     this.commandQueueSync = Objects.requireNonNull(commandQueueSync, "commandQueueSync");
   }
@@ -76,7 +73,7 @@ public class RequestHandler {
       return (boolean) substitutionEnabled;
     }
 
-    return ksqlConfig.getBoolean(KsqlConfig.KSQL_VARIABLE_SUBSTITUTION_ENABLE);
+    return this.ksqlEngine.getKsqlConfig().getBoolean(KsqlConfig.KSQL_VARIABLE_SUBSTITUTION_ENABLE);
   }
 
   public KsqlEntityList execute(
@@ -92,13 +89,10 @@ public class RequestHandler {
               ? sessionProperties.getSessionVariables()
               : Collections.emptyMap())
       );
-      final ConfiguredStatement<?> configured = ConfiguredStatement.of(prepared,
-          SessionConfig.of(ksqlConfig, sessionProperties.getMutableScopedProperties())
-      );
 
       executeStatement(
           securityContext,
-          configured,
+          prepared,
           sessionProperties,
           entities
       ).ifPresent(entities::add);
@@ -109,25 +103,37 @@ public class RequestHandler {
   @SuppressWarnings("unchecked")
   private <T extends Statement> Optional<KsqlEntity> executeStatement(
       final KsqlSecurityContext securityContext,
-      final ConfiguredStatement<T> configured,
+      final PreparedStatement<T> prepared,
       final SessionProperties sessionProperties,
       final KsqlEntityList entities
   ) {
-    final Class<? extends Statement> statementClass = configured.getStatement().getClass();
+    final Class<? extends Statement> statementClass = prepared.getStatement().getClass();
     
     commandQueueSync.waitFor(new KsqlEntityList(entities), statementClass);
+
+    final ConfiguredStatement<T> configured = ConfiguredStatement.of(prepared,
+        SessionConfig.of(this.ksqlEngine.getKsqlConfig(),
+            sessionProperties.getMutableScopedProperties())
+    );
+
+    FeatureFlagChecker.throwOnDisabledFeatures(configured);
 
     final StatementExecutor<T> executor = (StatementExecutor<T>) customExecutors.getOrDefault(
         statementClass,
         (stmt, props, ctx, svcCtx) -> distributor.execute(stmt, ctx, securityContext)
     );
 
-    return executor.execute(
+
+    final StatementExecutorResponse response = executor.execute(
         configured,
         sessionProperties,
         ksqlEngine,
-        securityContext.getServiceContext()
-    );
-  }
+        securityContext.getServiceContext());
 
+    if (response.isHandled()) {
+      return response.getEntity();
+    } else {
+      return distributor.execute(configured, ksqlEngine, securityContext).getEntity();
+    }
+  }
 }

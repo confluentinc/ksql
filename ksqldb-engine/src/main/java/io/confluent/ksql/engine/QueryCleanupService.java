@@ -20,14 +20,17 @@ import com.google.common.util.concurrent.AbstractExecutionThreadService;
 import com.spun.util.io.FileUtils;
 import io.confluent.ksql.schema.registry.SchemaRegistryUtil;
 import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.util.QueryApplicationId;
 import java.io.File;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingDeque;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * {@code QueryCleanupService} helps cleanup external resources from queries
@@ -41,7 +44,7 @@ import org.apache.log4j.Logger;
 @SuppressWarnings("UnstableApiUsage")
 public class QueryCleanupService extends AbstractExecutionThreadService {
 
-  private static final Logger LOG = Logger.getLogger(QueryCleanupService.class);
+  private static final Logger LOG = LoggerFactory.getLogger(QueryCleanupService.class);
   private static final Runnable SHUTDOWN_SENTINEL = () -> { };
 
   private final BlockingQueue<Runnable> cleanupTasks;
@@ -90,20 +93,39 @@ public class QueryCleanupService extends AbstractExecutionThreadService {
 
   public static class QueryCleanupTask implements Runnable {
     private final String appId;
-    private final boolean isTransient;
+    private final String queryTopicPrefix;
+    private final String altQueryTopicPrefix;
+    //There was a mixup with - and _ for now we check both
+    private final String pathName;
     private final ServiceContext serviceContext;
-    private String stateDir;
 
     public QueryCleanupTask(
         final ServiceContext serviceContext,
         final String appId,
+        final Optional<String> queryId,
         final boolean isTransient,
-        final String stateDir
-    ) {
+        final String stateDir,
+        final String serviceId,
+        final String persistentQueryPrefix) {
       this.serviceContext = Objects.requireNonNull(serviceContext, "serviceContext");
       this.appId = Objects.requireNonNull(appId, "appId");
-      this.isTransient = isTransient;
-      this.stateDir = stateDir;
+      queryTopicPrefix = queryId
+          .map(s -> QueryApplicationId.buildInternalTopicPrefix(
+              serviceId,
+              persistentQueryPrefix) + s)
+          .orElse(appId);
+      altQueryTopicPrefix = queryId
+          .map(s -> QueryApplicationId.buildInternalTopicPrefix(
+              serviceId,
+              persistentQueryPrefix.split("_")[0] + "-") + s)
+          .orElse(appId);
+      //generate the prefix depending on if using named topologies
+      pathName = queryId
+          .map(s -> stateDir + "/" + appId + "/__" + s + "__")
+          .orElse(stateDir + "/" + appId);
+      if (isTransient && queryId.isPresent()) {
+        throw new IllegalArgumentException("Transient Queries can not have named topologies");
+      }
     }
 
     public String getAppId() {
@@ -113,27 +135,38 @@ public class QueryCleanupService extends AbstractExecutionThreadService {
     @Override
     public void run() {
       try {
-        final Path pathName = Paths.get(stateDir + "/" + appId);
+        final Path pathName = Paths.get(this.pathName);
         final File directory = new File(String.valueOf(pathName.normalize()));
         if (directory.exists()) {
           FileUtils.deleteDirectory(directory);
-          LOG.warn(String.format("Deleted local state store for non-existing query %s. "
+          LOG.warn("Deleted local state store for non-existing query {}. "
                   + "This is not expected and was likely due to a "
                   + "race condition when the query was dropped before.",
-              appId));
+              queryTopicPrefix);
         }
       } catch (Exception e) {
-        LOG.error(String.format("Error cleaning up state directory %s.", appId), e);
+        LOG.error("Error cleaning up state directory {}\n. {}", pathName, e);
       }
       tryRun(
-          () -> SchemaRegistryUtil.cleanupInternalTopicSchemas(
-            appId,
-            serviceContext.getSchemaRegistryClient(),
-            isTransient),
+          () -> {
+            LOG.info("Deleting schemas for prefix {}", queryTopicPrefix);
+            SchemaRegistryUtil.cleanupInternalTopicSchemas(
+                queryTopicPrefix,
+                serviceContext.getSchemaRegistryClient());
+          },
           "internal topic schemas"
       );
+      tryRun(
+          () -> {
+            LOG.info("Deleting topics for prefix {}", queryTopicPrefix);
+            serviceContext.getTopicClient().deleteInternalTopics(queryTopicPrefix);
+            serviceContext.getTopicClient().deleteInternalTopics(altQueryTopicPrefix);
 
-      tryRun(() -> serviceContext.getTopicClient().deleteInternalTopics(appId), "internal topics");
+          },
+          "internal topics"
+      );
+
+      LOG.info("Deleting offsets for appId: {}", appId);
       tryRun(
           () -> serviceContext
               .getConsumerGroupClient()
@@ -145,12 +178,8 @@ public class QueryCleanupService extends AbstractExecutionThreadService {
       try {
         runnable.run();
       } catch (final Exception e) {
-        LOG.warn(String.format("Failed to cleanup %s for %s", resource, appId), e);
+        LOG.warn("Failed to cleanup {} for {}", resource, appId, e);
       }
-    }
-
-    public void setStateDir(final String newStateDir) {
-      stateDir = newStateDir;
     }
   }
 

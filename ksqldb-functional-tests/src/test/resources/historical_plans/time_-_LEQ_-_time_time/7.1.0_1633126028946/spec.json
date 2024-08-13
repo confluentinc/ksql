@@ -1,0 +1,213 @@
+{
+  "version" : "7.1.0",
+  "timestamp" : 1633126028946,
+  "path" : "query-validation-tests/time.json",
+  "schemas" : {
+    "CSAS_TEST2_0.TEST2" : {
+      "schema" : "`ID` STRING KEY, `RESULT` BOOLEAN",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "AVRO"
+      }
+    },
+    "CSAS_TEST2_0.KsqlTopic.Source" : {
+      "schema" : "`ID` STRING KEY, `A` TIME, `B` TIME",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "AVRO"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "LEQ - time time",
+    "inputs" : [ {
+      "topic" : "test",
+      "key" : null,
+      "value" : {
+        "A" : 10,
+        "B" : 3
+      }
+    }, {
+      "topic" : "test",
+      "key" : null,
+      "value" : {
+        "A" : 10,
+        "B" : 10
+      }
+    }, {
+      "topic" : "test",
+      "key" : null,
+      "value" : {
+        "A" : 10,
+        "B" : 12
+      }
+    }, {
+      "topic" : "test",
+      "key" : null,
+      "value" : {
+        "A" : null,
+        "B" : 10
+      }
+    }, {
+      "topic" : "test",
+      "key" : null,
+      "value" : {
+        "A" : null,
+        "B" : null
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "TEST2",
+      "key" : null,
+      "value" : {
+        "RESULT" : false
+      }
+    }, {
+      "topic" : "TEST2",
+      "key" : null,
+      "value" : {
+        "RESULT" : true
+      }
+    }, {
+      "topic" : "TEST2",
+      "key" : null,
+      "value" : {
+        "RESULT" : true
+      }
+    }, {
+      "topic" : "TEST2",
+      "key" : null,
+      "value" : {
+        "RESULT" : false
+      }
+    }, {
+      "topic" : "TEST2",
+      "key" : null,
+      "value" : {
+        "RESULT" : false
+      }
+    } ],
+    "topics" : [ {
+      "name" : "TEST2",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "test",
+      "valueSchema" : {
+        "type" : "record",
+        "name" : "KsqlDataSourceSchema",
+        "namespace" : "io.confluent.ksql.avro_schemas",
+        "fields" : [ {
+          "name" : "A",
+          "type" : [ "null", {
+            "type" : "int",
+            "connect.version" : 1,
+            "connect.name" : "org.apache.kafka.connect.data.Time",
+            "logicalType" : "time-millis"
+          } ],
+          "default" : null
+        }, {
+          "name" : "B",
+          "type" : [ "null", {
+            "type" : "int",
+            "connect.version" : 1,
+            "connect.name" : "org.apache.kafka.connect.data.Time",
+            "logicalType" : "time-millis"
+          } ],
+          "default" : null
+        } ],
+        "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
+      },
+      "valueFormat" : "AVRO",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM TEST (ID STRING KEY, a TIME, b TIME) WITH (kafka_topic='test', value_format='AVRO');", "CREATE STREAM TEST2 AS SELECT ID, (a <= b) AS RESULT FROM TEST;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`ID` STRING KEY, `A` TIME, `B` TIME",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "AVRO",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "TEST2",
+        "type" : "STREAM",
+        "schema" : "`ID` STRING KEY, `RESULT` BOOLEAN",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "AVRO",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "test",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "AVRO"
+          },
+          "partitions" : 4,
+          "valueSchema" : {
+            "type" : "record",
+            "name" : "KsqlDataSourceSchema",
+            "namespace" : "io.confluent.ksql.avro_schemas",
+            "fields" : [ {
+              "name" : "A",
+              "type" : [ "null", {
+                "type" : "int",
+                "connect.version" : 1,
+                "connect.name" : "org.apache.kafka.connect.data.Time",
+                "logicalType" : "time-millis"
+              } ],
+              "default" : null
+            }, {
+              "name" : "B",
+              "type" : [ "null", {
+                "type" : "int",
+                "connect.version" : 1,
+                "connect.name" : "org.apache.kafka.connect.data.Time",
+                "logicalType" : "time-millis"
+              } ],
+              "default" : null
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
+          }
+        }, {
+          "name" : "TEST2",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "AVRO"
+          },
+          "partitions" : 4,
+          "valueSchema" : {
+            "type" : "record",
+            "name" : "KsqlDataSourceSchema",
+            "namespace" : "io.confluent.ksql.avro_schemas",
+            "fields" : [ {
+              "name" : "RESULT",
+              "type" : [ "null", "boolean" ],
+              "default" : null
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
+          }
+        } ]
+      }
+    }
+  }
+}

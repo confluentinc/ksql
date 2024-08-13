@@ -1,0 +1,235 @@
+{
+  "version" : "7.1.0",
+  "timestamp" : 1633125925793,
+  "path" : "query-validation-tests/elements.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KafkaTopic_Right.Source" : {
+      "schema" : "`K` STRING KEY, `F1` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA",
+        "windowInfo" : {
+          "type" : "TUMBLING",
+          "size" : 1.000000000
+        }
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_OUTPUT_0.Join.Left" : {
+      "schema" : "`L_K` STRING KEY, `L_F0` INTEGER, `L_ROWTIME` BIGINT, `L_ROWPARTITION` INTEGER, `L_ROWOFFSET` BIGINT, `L_K` STRING, `L_WINDOWSTART` BIGINT, `L_WINDOWEND` BIGINT",
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`L_K` STRING KEY, `TIME` BIGINT, `WSTART` BIGINT, `WEND` BIGINT, `F0` INTEGER, `F1` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA",
+        "windowInfo" : {
+          "type" : "TUMBLING",
+          "size" : 1.000000000
+        }
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_OUTPUT_0.KafkaTopic_Left.Source" : {
+      "schema" : "`K` STRING KEY, `F0` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA",
+        "windowInfo" : {
+          "type" : "TUMBLING",
+          "size" : 1.000000000
+        }
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_OUTPUT_0.Join" : {
+      "schema" : "`L_K` STRING KEY, `L_F0` INTEGER, `L_ROWTIME` BIGINT, `L_ROWPARTITION` INTEGER, `L_ROWOFFSET` BIGINT, `L_K` STRING, `L_WINDOWSTART` BIGINT, `L_WINDOWEND` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA",
+        "windowInfo" : {
+          "type" : "TUMBLING",
+          "size" : 1.000000000
+        }
+      }
+    },
+    "CSAS_OUTPUT_0.Join.Right" : {
+      "schema" : "`R_K` STRING KEY, `R_F1` INTEGER, `R_ROWTIME` BIGINT, `R_ROWPARTITION` INTEGER, `R_ROWOFFSET` BIGINT, `R_K` STRING, `R_WINDOWSTART` BIGINT, `R_WINDOWEND` BIGINT",
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "join leaves aliased system columns in output's value schema",
+    "inputs" : [ {
+      "topic" : "left",
+      "key" : "k",
+      "value" : {
+        "F0" : 4
+      },
+      "timestamp" : 1,
+      "window" : {
+        "start" : 0,
+        "end" : 1000,
+        "type" : "TIME"
+      }
+    }, {
+      "topic" : "right",
+      "key" : "k",
+      "value" : {
+        "F1" : 6
+      },
+      "timestamp" : 2,
+      "window" : {
+        "start" : 0,
+        "end" : 1000,
+        "type" : "TIME"
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : "k",
+      "value" : {
+        "F0" : 4,
+        "F1" : 6,
+        "TIME" : 1,
+        "WSTART" : 0,
+        "WEND" : 1000
+      },
+      "timestamp" : 2,
+      "window" : {
+        "start" : 0,
+        "end" : 1000,
+        "type" : "TIME"
+      }
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "left",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "right",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM LEFT_STREAM (K STRING KEY, F0 INT) WITH (kafka_topic='left', value_format='JSON', window_type='tumbling', window_size='1 second');", "CREATE STREAM RIGHT_STREAM (K STRING KEY, F1 INT) WITH (kafka_topic='right', value_format='JSON', window_type='tumbling', window_size='1 second');", "CREATE STREAM OUTPUT as SELECT l.K, l.ROWTIME AS TIME, l.WINDOWSTART AS WSTART, l.WINDOWEND AS WEND, f0, f1 FROM left_stream l join right_stream r WITHIN 1 seconds ON l.k = r.k;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "LEFT_STREAM",
+        "type" : "STREAM",
+        "schema" : "`K` STRING KEY, `F0` INTEGER",
+        "keyFormat" : {
+          "format" : "KAFKA",
+          "windowType" : "TUMBLING",
+          "windowSize" : 1000
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`L_K` STRING KEY, `TIME` BIGINT, `WSTART` BIGINT, `WEND` BIGINT, `F0` INTEGER, `F1` INTEGER",
+        "keyFormat" : {
+          "format" : "KAFKA",
+          "windowType" : "TUMBLING",
+          "windowSize" : 1000
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "RIGHT_STREAM",
+        "type" : "STREAM",
+        "schema" : "`K` STRING KEY, `F1` INTEGER",
+        "keyFormat" : {
+          "format" : "KAFKA",
+          "windowType" : "TUMBLING",
+          "windowSize" : 1000
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-KSTREAM-JOINTHIS-0000000008-store-changelog",
+          "keyFormat" : {
+            "format" : "KAFKA",
+            "windowInfo" : {
+              "type" : "TUMBLING",
+              "size" : 1.000000000
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          }
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-KSTREAM-JOINOTHER-0000000009-store-changelog",
+          "keyFormat" : {
+            "format" : "KAFKA",
+            "windowInfo" : {
+              "type" : "TUMBLING",
+              "size" : 1.000000000
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          }
+        }, {
+          "name" : "left",
+          "keyFormat" : {
+            "format" : "KAFKA",
+            "windowInfo" : {
+              "type" : "TUMBLING",
+              "size" : 1.000000000
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "format" : "KAFKA",
+            "windowInfo" : {
+              "type" : "TUMBLING",
+              "size" : 1.000000000
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "right",
+          "keyFormat" : {
+            "format" : "KAFKA",
+            "windowInfo" : {
+              "type" : "TUMBLING",
+              "size" : 1.000000000
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

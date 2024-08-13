@@ -1,0 +1,108 @@
+{
+  "version" : "7.1.0",
+  "timestamp" : 1633126017233,
+  "path" : "query-validation-tests/protobuf.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`ASTR` ARRAY<STRING>, `MSTR` MAP<STRING, STRING>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "PROTOBUF"
+      }
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ASTR` ARRAY<STRING>, `MSTR` MAP<STRING, STRING>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "PROTOBUF"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "protobuf containers",
+    "inputs" : [ {
+      "topic" : "input",
+      "key" : null,
+      "value" : {
+        "astr" : [ "1", "2" ],
+        "mstr" : {
+          "1" : "a"
+        }
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : null,
+      "value" : {
+        "ASTR" : [ "1", "2" ],
+        "MSTR" : {
+          "1" : "a"
+        }
+      }
+    } ],
+    "topics" : [ {
+      "name" : "input",
+      "valueSchema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  repeated string ASTR = 1;\n  repeated ConnectDefault2Entry MSTR = 2;\n\n  message ConnectDefault2Entry {\n    string key = 1;\n    string value = 2;\n  }\n}\n",
+      "valueFormat" : "PROTOBUF",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM INPUT (astr ARRAY<STRING>, mstr MAP<STRING, STRING>) WITH (kafka_topic='input', value_format='PROTOBUF');", "CREATE STREAM OUTPUT as SELECT * FROM input;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`ASTR` ARRAY<STRING>, `MSTR` MAP<STRING, STRING>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "PROTOBUF",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`ASTR` ARRAY<STRING>, `MSTR` MAP<STRING, STRING>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "PROTOBUF",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "input",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "PROTOBUF"
+          },
+          "partitions" : 4,
+          "valueSchema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  repeated string ASTR = 1;\n  repeated ConnectDefault2Entry MSTR = 2;\n\n  message ConnectDefault2Entry {\n    string key = 1;\n    string value = 2;\n  }\n}\n"
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "PROTOBUF"
+          },
+          "partitions" : 4,
+          "valueSchema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  repeated string ASTR = 1;\n  repeated ConnectDefault2Entry MSTR = 2;\n\n  message ConnectDefault2Entry {\n    string key = 1;\n    string value = 2;\n  }\n}\n"
+        } ]
+      }
+    }
+  }
+}

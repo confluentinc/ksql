@@ -130,7 +130,7 @@ Example output from {{ site.kcat }} for a DELIMITED topic:
 ^C
 ```
 
-[Check for record processing failures](#check-for-record-processing-failures)
+[Check for message processing failures](#check-for-message-processing-failures)
 for serialization errors. For example, if your query specifies JSON for the
 `VALUE_FORMAT`, and the underlying topic is not formatted as JSON, you'll see
 `JsonParseException` warnings in the ksqlDB Server log. For example:
@@ -142,7 +142,7 @@ for serialization errors. For example, if your query specifies JSON for the
 ```
 
 ksqlDB CLI doesn't connect to ksqlDB Server
----------------------------------------
+-------------------------------------------
 
 The following warning may occur when you start the CLI.
 
@@ -189,8 +189,8 @@ Or if you're running over IPv6:
 listeners=http://[::]:8088
 ```
 
-See [Start the ksqlDB Server](operate-and-deploy/installation/installing.md#start-the-ksqldb-server)
-for more information.
+For more information, see
+[Configuring Listeners of a ksqlDB Cluster](operate-and-deploy/installation/server-config/#configuring-listeners-of-a-ksqldb-cluster).
 
 ### Verify that there are no port conflicts
 

@@ -56,7 +56,7 @@
       "replicas" : 3,
       "numPartitions" : 5
     } ],
-    "statements" : [ "CREATE STREAM TEST (C1 INTEGER) WITH (KAFKA_TOPIC='input', SCHEMA_ID=1, VALUE_FORMAT='AVRO');", "CREATE STREAM S AS SELECT *\nFROM TEST TEST\nEMIT CHANGES;" ],
+    "statements" : [ "CREATE STREAM TEST (C1 INTEGER) WITH (KAFKA_TOPIC='input', VALUE_FORMAT='AVRO');", "CREATE STREAM S AS SELECT *\nFROM TEST TEST\nEMIT CHANGES;" ],
     "post" : {
       "sources" : [ {
         "name" : "S",
@@ -97,7 +97,8 @@
               "name" : "C1",
               "type" : [ "null", "int" ],
               "default" : null
-            } ]
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
           }
         }, {
           "name" : "input",

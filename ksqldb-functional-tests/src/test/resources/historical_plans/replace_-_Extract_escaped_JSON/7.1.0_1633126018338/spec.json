@@ -1,0 +1,94 @@
+{
+  "version" : "7.1.0",
+  "timestamp" : 1633126018338,
+  "path" : "query-validation-tests/replace.json",
+  "schemas" : {
+    "CSAS_JSONIFIED_0.JSONIFIED" : {
+      "schema" : "`KSQL_COL_0` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "KAFKA"
+      }
+    },
+    "CSAS_JSONIFIED_0.KsqlTopic.Source" : {
+      "schema" : "`MESSAGE` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "KAFKA"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "Extract escaped JSON",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : null,
+      "value" : "{\"messageID\": \"ID:plato-46377-1596636746117-4:4:1:1:1\",\"text\": \"{\\\"widget\\\": 10}\"}"
+    } ],
+    "outputs" : [ {
+      "topic" : "JSONIFIED",
+      "key" : null,
+      "value" : "{\"messageID\": \"ID:plato-46377-1596636746117-4:4:1:1:1\",\"text\": {\"widget\": 10}}"
+    } ],
+    "topics" : [ {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "JSONIFIED",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM RAW (message VARCHAR) WITH (kafka_topic='test_topic', value_format='KAFKA');", "CREATE STREAM JSONIFIED AS SELECT REPLACE(REPLACE(REPLACE(message, '\"text\": \"{', '\"text\": {'), '\\\"', '\"'), '\"}', '}') FROM RAW;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "JSONIFIED",
+        "type" : "STREAM",
+        "schema" : "`KSQL_COL_0` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "KAFKA",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "RAW",
+        "type" : "STREAM",
+        "schema" : "`MESSAGE` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "KAFKA",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "KAFKA"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "JSONIFIED",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "KAFKA"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

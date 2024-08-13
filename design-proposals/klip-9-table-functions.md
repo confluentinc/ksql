@@ -1,8 +1,8 @@
 # KLIP 9 - Table functions
 
-**Author**: Tim Fox (GitHub: purplefox)
-**Release Target**: 5.4 
-**Status**: Approved 
+**Author**: Tim Fox (GitHub: purplefox) |
+**Release Target**: 5.4 |
+**Status**: _Merged_ |
 **Discussion**: https://github.com/confluentinc/ksql/issues/527
 
 ## Motivation and background

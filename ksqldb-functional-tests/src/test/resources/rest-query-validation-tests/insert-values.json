@@ -358,6 +358,18 @@
       ]
     },
     {
+      "name": "should insert decimals between zero and one",
+      "statements": [
+        "CREATE STREAM S (ID INT KEY, V0 DECIMAL(12, 2))  WITH (kafka_topic='test_topic',partitions = 1, value_format='JSON');",
+        "INSERT INTO S (ID,V0) VALUES (1,0.05);"
+      ],
+      "inputs": [
+      ],
+      "outputs": [
+        {"topic": "test_topic", "key": 1, "value": {"V0": 0.05}}
+      ]
+    },
+    {
       "name": "should fail on column reference",
       "statements": [
         "CREATE STREAM TEST (K STRING KEY, ID INT) WITH (kafka_topic='test_topic', value_format='JSON');",
@@ -421,6 +433,20 @@
       ]
     },
     {
+      "name": "multi-key insert - AVRO",
+      "statements": [
+        "CREATE STREAM INPUT (COL1 VARCHAR KEY, COL2 INT KEY, COL3 VARCHAR) WITH (kafka_topic='input_topic', VALUE_FORMAT='AVRO', KEY_FORMAT='AVRO', PARTITIONS=1);",
+        "INSERT INTO INPUT (COL1, COL2, COL3) VALUES ('1', 1, '1');",
+        "INSERT INTO INPUT (COL1, COL2, COL3) VALUES ('2', 2, '2');"
+      ],
+      "inputs": [
+      ],
+      "outputs": [
+        {"topic": "input_topic", "key": {"COL1": "1", "COL2": 1}, "value": {"COL3": "1"}},
+        {"topic": "input_topic", "key": {"COL1": "2", "COL2": 2}, "value": {"COL3": "2"}}
+      ]
+    },
+    {
       "name": "AVRO struct key format",
       "statements": [
         "CREATE STREAM TEST (K STRUCT<F1 STRING> KEY, ID INT) WITH (kafka_topic='test_topic', format='AVRO');",
@@ -430,6 +456,312 @@
       ],
       "outputs": [
         {"topic": "test_topic", "timestamp": 1234, "key": {"F1": "key"}, "value": {"ID": 10}}
+      ]
+    },
+    {
+      "name": "PROTOBUF key and value format",
+      "statements": [
+        "CREATE STREAM TEST (K STRING KEY, ID INT) WITH (kafka_topic='test_topic', format='PROTOBUF');",
+        "INSERT INTO TEST (ID, ROWTIME, K) VALUES (10, 1234, 'key');"
+      ],
+      "inputs": [
+      ],
+      "outputs": [
+        {"topic": "test_topic", "timestamp": 1234, "key": {"K": "key"}, "value": {"ID": 10}}
+      ]
+    },
+    {
+      "name": "PROTOBUF array key and value format",
+      "statements": [
+        "CREATE STREAM TEST (K ARRAY<INT> KEY, V ARRAY<INT>) WITH (kafka_topic='test_topic', format='PROTOBUF');",
+        "INSERT INTO TEST (V, ROWTIME, K) VALUES (ARRAY[10, 20], 1234, ARRAY[12, 22]);"
+      ],
+      "inputs": [
+      ],
+      "outputs": [
+        {"topic": "test_topic", "timestamp": 1234, "key": {"K": [12, 22]}, "value": {"V": [10, 20]}}
+      ]
+    },
+    {
+      "name": "multi-key insert - PROTOBUF",
+      "statements": [
+        "CREATE STREAM INPUT (COL1 VARCHAR KEY, COL2 INT KEY, COL3 VARCHAR) WITH (kafka_topic='input_topic', VALUE_FORMAT='PROTOBUF', KEY_FORMAT='PROTOBUF', PARTITIONS=1);",
+        "INSERT INTO INPUT (COL1, COL2, COL3) VALUES ('1', 1, '1');",
+        "INSERT INTO INPUT (COL1, COL2, COL3) VALUES ('2', 2, '2');"
+      ],
+      "inputs": [
+      ],
+      "outputs": [
+        {"topic": "input_topic", "key": {"COL1": "1", "COL2": 1}, "value": {"COL3": "1"}},
+        {"topic": "input_topic", "key": {"COL1": "2", "COL2": 2}, "value": {"COL3": "2"}}
+      ]
+    },
+    {
+      "name": "PROTOBUF struct key and value format",
+      "statements": [
+        "CREATE STREAM TEST (K STRUCT<F1 STRING> KEY, V STRUCT<V1 STRING>) WITH (kafka_topic='test_topic', format='PROTOBUF');",
+        "INSERT INTO TEST (V, ROWTIME, K) VALUES (STRUCT(v1:='value'), 1234, STRUCT(f1:='key'));"
+      ],
+      "inputs": [
+      ],
+      "outputs": [
+        {"topic": "test_topic", "timestamp": 1234, "key": {"K": {"F1": "key"}}, "value": {"V": {"V1":  "value"}}}
+      ]
+    },
+    {
+      "name": "PROTOBUF with schema full name",
+      "statements": [
+        "CREATE STREAM TEST (K STRUCT<F1 STRING> KEY, V STRUCT<V1 STRING>) WITH (kafka_topic='test_topic', format='PROTOBUF', key_schema_full_name='io.test.key', value_schema_full_name='io.test.value');",
+        "INSERT INTO TEST (V, ROWTIME, K) VALUES (STRUCT(v1:='value'), 1234, STRUCT(f1:='key'));"
+      ],
+      "inputs": [
+      ],
+      "outputs": [
+        {"topic": "test_topic", "timestamp": 1234, "key": {"K": {"F1": "key"}}, "value": {"V": {"V1":  "value"}}}
+      ]
+    },
+    {
+      "name": "PROTOBUF with deep schema",
+      "statements": [
+        "CREATE STREAM TEST (K0 STRUCT<ID INT> KEY, V0 STRUCT<id INT>, V1 ARRAY<STRUCT<NAME STRING>>, V2 MAP<STRING, STRUCT<ADDRESS STRING>>) WITH (kafka_topic='test_topic', format='PROTOBUF', value_schema_full_name='io.test.value');",
+        "INSERT INTO TEST (ROWTIME, K0, V0, V1, V2) VALUES (1234, STRUCT(id:=1), STRUCT(id:=1), ARRAY[struct(name:='n1'), STRUCT(name:='n2')], MAP('k0':=STRUCT(address:='addr1')));"
+      ],
+      "inputs": [
+      ],
+      "outputs": [
+        {"topic": "test_topic", "timestamp": 1234, "key": {"K0": {"ID": 1}}, "value": {"V0": {"ID": 1}, "V1": [{"NAME": "n1"}, {"NAME": "n2"}], "V2": {"k0": {"ADDRESS": "addr1"}}}}
+      ]
+    },
+    {
+      "name": "PROTOBUF from multiple schema definitions",
+      "statements": [
+        "CREATE STREAM TEST WITH (kafka_topic='test_topic', format='PROTOBUF', key_schema_full_name='ProtobufKey2', value_schema_full_name='ProtobufValue2');",
+        "INSERT INTO TEST (ROWTIME, K1, C2) VALUES (1234, 'key', 1);"
+      ],
+      "topics": [
+        {
+          "name": "test_topic",
+          "keyFormat": "PROTOBUF",
+          "keySchema": "syntax = \"proto3\"; message ProtobufKey1 {uint32 K1 = 1;} message ProtobufKey2 {string K1 = 1;}",
+          "valueFormat": "PROTOBUF",
+          "valueSchema": "syntax = \"proto3\"; message ProtobufValue1 {float C1 = 1; uint32 C2 = 2;} message ProtobufValue2 {uint32 C2 = 1;}"
+        }
+      ],
+      "inputs": [
+      ],
+      "outputs": [
+        {"topic": "test_topic", "timestamp": 1234, "key": {"K1": "key"}, "value": {"C2":  1}}
+      ]
+    },
+    {
+      "name": "PROTOBUF with schema references with schema id",
+      "statements": [
+        "CREATE STREAM TEST(K1 STRING KEY) WITH (kafka_topic='input', value_format='PROTOBUF', value_schema_id=5);",
+        "INSERT INTO TEST (K1, EVENT) VALUES ('key', STRUCT(TIMESTAMP := 1234));"
+      ],
+      "topics": [
+        {
+          "name": "input",
+          "valueFormat": "PROTOBUF",
+          "valueSchemaId": 5,
+          "valueSchema":"syntax = \"proto3\";\n\nimport \"event.proto\"; \n\nmessage Logistics {\n Event EVENT = 1;\n}",
+          "valueSchemaReferences": [
+            {
+              "name": "event.proto",
+              "format": "PROTOBUF",
+              "schema": "syntax = \"proto3\";\n\nmessage Event {\n int64 TIMESTAMP = 1;\n}"
+            }
+          ]
+        }
+      ],
+      "inputs": [
+      ],
+      "outputs": [
+        { "topic": "input", "key": "key", "value": { "EVENT": { "TIMESTAMP": 1234 } } }
+      ]
+    },
+    {
+      "name": "verify INSERT VALUES fails for ROWPARTITION",
+      "statements": [
+        "CREATE STREAM input (id INT KEY, val STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "INSERT INTO input (id, val, ROWPARTITION) VALUES (1, 'hello', 5);"
+      ],
+      "expectedError": {
+        "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
+        "message": "Inserting into column `ROWPARTITION` is not allowed.",
+        "status": 400
+      }
+    },
+    {
+      "name": "verify INSERT VALUES fails for ROWOFFSET",
+      "statements": [
+        "CREATE STREAM input (id INT KEY, val STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "INSERT INTO input (id, val, ROWOFFSET) VALUES (1, 'hello', 5);"
+      ],
+      "expectedError": {
+        "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
+        "message": "Inserting into column `ROWOFFSET` is not allowed.",
+        "status": 400
+      }
+    },
+    {
+      "name": "AVRO schema containing string, array, and struct with schema id",
+      "statements": [
+        "CREATE STREAM TEST WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='AVRO', VALUE_SCHEMA_ID=102);",
+        "INSERT INTO TEST(`template_id`, `from_`, `to_`, `dynamic_data`) VALUES ('abc', 'info@abc.org', ARRAY[STRUCT(`name`:='ABC', `email`:='abc@abc.com')], STRUCT(`num_votes`:=5, `donor_email`:='abc@abc.com'));"
+      ],
+      "topics": [
+        {
+          "name": "test_topic",
+          "valueFormat": "AVRO",
+          "valueSchemaId": 102,
+          "valueSchema": {"type":"record","name":"Test","fields":[{"name":"template_id","type":"string"},{"name":"from_","type":"string"},{"name":"to_","type":{"type":"array","items":{"type":"record","name":"To","fields":[{"name":"email","type":"string"},{"name":"name","type":"string"}]},"name":"to_"}},{"name":"dynamic_data","type":{"type":"record","name":"DynamicData","fields":[{"name":"num_votes","type":"long"},{"name":"donor_email","type":"string"}]}}]}
+        }
+      ],
+      "inputs": [
+      ],
+      "outputs": [
+        {"topic": "test_topic", "key": null, "value": {"template_id": "abc", "from_": "info@abc.org", "to_": [{"name": "ABC", "email": "abc@abc.com"}], "dynamic_data": {"num_votes": 5, "donor_email": "abc@abc.com"}}}
+      ]
+    },
+    {
+      "name": "AVRO schema containing string and struct with schema id",
+      "statements": [
+        "CREATE STREAM TEST WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='AVRO', VALUE_SCHEMA_ID=102);",
+        "INSERT INTO TEST(ID, STRUCT_DATA) VALUES ('abc', STRUCT(NUM_VOTES:=5, DONOR_EMAIL:='abc@abc.com'));"
+      ],
+      "topics": [
+        {
+          "name": "test_topic",
+          "valueFormat": "AVRO",
+          "valueSchemaId": 102,
+          "valueSchema": {"type":"record","name":"Test","fields":[{"name":"ID","type":"string"},{"name":"STRUCT_DATA","type":{"type":"record","name":"DynamicData","fields":[{"name":"NUM_VOTES","type":"long"},{"name":"DONOR_EMAIL","type":"string"}]}}]}
+        }
+      ],
+      "inputs": [
+      ],
+      "outputs": [
+        {"topic": "test_topic", "key": null, "value": {"ID": "abc", "STRUCT_DATA": {"NUM_VOTES": 5, "DONOR_EMAIL": "abc@abc.com"}}}
+      ]
+    },
+    {
+      "name": "AVRO schema containing string and map with schema id",
+      "statements": [
+        "CREATE STREAM TEST WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='AVRO', VALUE_SCHEMA_ID=102);",
+        "INSERT INTO TEST(ID, MAP_DATA) VALUES ('abc', MAP('NUM_VOTES':=5, 'DONOR_AMT':=50));"
+      ],
+      "topics": [
+        {
+          "name": "test_topic",
+          "valueFormat": "AVRO",
+          "valueSchemaId": 102,
+          "valueSchema": {"type":"record","name":"Test","fields":[{"name":"ID","type":"string"},{"name":"MAP_DATA","type":{"type":"map","values":"long"}}]}
+        }
+      ],
+      "inputs": [
+      ],
+      "outputs": [
+        {"topic": "test_topic", "key": null, "value": {"ID": "abc", "MAP_DATA": {"NUM_VOTES": 5, "DONOR_AMT": 50}}}
+      ]
+    },
+    {
+      "name": "AVRO schema containing string and map of struct with schema id",
+      "statements": [
+        "CREATE STREAM TEST WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='AVRO', VALUE_SCHEMA_ID=102);",
+        "INSERT INTO TEST(ID, MAP_DATA) VALUES ('abc', MAP('KEY1':=STRUCT(NUM_VOTES:=5, DONOR_EMAIL:='abc@abc.com'), 'KEY2':=STRUCT(NUM_VOTES:=6, DONOR_EMAIL:='def@abc.com')));"
+      ],
+      "topics": [
+        {
+          "name": "test_topic",
+          "valueFormat": "AVRO",
+          "valueSchemaId": 102,
+          "valueSchema": {"type":"record","name":"Test","fields":[{"name":"ID","type":"string"},{"name":"MAP_DATA","type":{"type":"map", "values":{"type": "record", "name": "MapOfStruct", "fields": [{"name":"NUM_VOTES","type":"long"},{"name":"DONOR_EMAIL","type":"string"}]}}}]}
+        }
+      ],
+      "inputs": [
+      ],
+      "outputs": [
+        {"topic": "test_topic", "key": null, "value": {"ID": "abc", "MAP_DATA": {"KEY1": {"NUM_VOTES": 5, "DONOR_EMAIL": "abc@abc.com"}, "KEY2": {"NUM_VOTES": 6, "DONOR_EMAIL": "def@abc.com"}}}}
+      ]
+    },
+    {
+      "name": "AVRO schema containing only string field with schema id",
+      "statements": [
+        "CREATE STREAM TEST WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='AVRO', VALUE_SCHEMA_ID=102);",
+        "INSERT INTO TEST(ID, DATA) VALUES ('abc', 5);"
+      ],
+      "topics": [
+        {
+          "name": "test_topic",
+          "valueFormat": "AVRO",
+          "valueSchemaId": 102,
+          "valueSchema": {"type":"record","name":"Test","fields":[{"name":"ID","type":"string"},{"name":"DATA","type":"long"}]}
+        }
+      ],
+      "inputs": [
+      ],
+      "outputs": [
+        {"topic": "test_topic", "key": null, "value": {"ID": "abc", "DATA":  5}}
+      ]
+    },
+    {
+      "name": "AVRO schema containing string and struct with schema id with optional field",
+      "statements": [
+        "CREATE STREAM TEST WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='AVRO', VALUE_SCHEMA_ID=102);",
+        "INSERT INTO TEST(ID, STRUCT_DATA) VALUES ('abc', STRUCT(DONOR_EMAIL:='abc@abc.com'));"
+      ],
+      "topics": [
+        {
+          "name": "test_topic",
+          "valueFormat": "AVRO",
+          "valueSchemaId": 102,
+          "valueSchema": {"type":"record","name":"Test","fields":[{"name":"ID","type":"string"},{"name":"STRUCT_DATA","type":{"type":"record","name":"DynamicData","fields":[{"name":"NUM_VOTES","type":["null","long"]},{"name":"DONOR_EMAIL","type":"string"}]}}]}
+        }
+      ],
+      "inputs": [
+      ],
+      "outputs": [
+        {"topic": "test_topic", "key": null, "value": {"ID": "abc", "STRUCT_DATA": {"NUM_VOTES": null, "DONOR_EMAIL": "abc@abc.com"}}}
+      ]
+    },
+    {
+      "name": "AVRO schema containing string and struct with schema id with default long value",
+      "statements": [
+        "CREATE STREAM TEST WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='AVRO', VALUE_SCHEMA_ID=102);",
+        "INSERT INTO TEST(ID, STRUCT_DATA) VALUES ('abc', STRUCT(DONOR_EMAIL:='abc@abc.com'));"
+      ],
+      "topics": [
+        {
+          "name": "test_topic",
+          "valueFormat": "AVRO",
+          "valueSchemaId": 102,
+          "valueSchema": {"type":"record","name":"Test","fields":[{"name":"ID","type":"string"},{"name":"STRUCT_DATA","type":{"type":"record","name":"DynamicData","fields":[{"name":"NUM_VOTES","type":"long", "default": 10},{"name":"DONOR_EMAIL","type":"string"}]}}]}
+        }
+      ],
+      "inputs": [
+      ],
+      "outputs": [
+        {"topic": "test_topic", "key": null, "value": {"ID": "abc", "STRUCT_DATA": {"NUM_VOTES": 10, "DONOR_EMAIL": "abc@abc.com"}}}
+      ]
+    },
+    {
+      "name": "AVRO schema containing string and struct with schema id and unregistered field",
+      "statements": [
+        "CREATE STREAM TEST WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='AVRO', VALUE_SCHEMA_ID=102);",
+        "INSERT INTO TEST(ID, STRUCT_DATA) VALUES ('abc', STRUCT(DONOR_EMAIL:='abc@abc.com', UNREGISTERED_FIELD:='foo'));"
+      ],
+      "topics": [
+        {
+          "name": "test_topic",
+          "valueFormat": "AVRO",
+          "valueSchemaId": 102,
+          "valueSchema": {"type":"record","name":"Test","fields":[{"name":"ID","type":"string"},{"name":"STRUCT_DATA","type":{"type":"record","name":"DynamicData","fields":[{"name":"NUM_VOTES","type":"long", "default": 10},{"name":"DONOR_EMAIL","type":"string"}]}}]}
+        }
+      ],
+      "inputs": [
+      ],
+      "outputs": [
+        {"topic": "test_topic", "key": null, "value": {"ID": "abc", "STRUCT_DATA": {"NUM_VOTES": 10, "DONOR_EMAIL": "abc@abc.com"}}}
       ]
     }
   ]

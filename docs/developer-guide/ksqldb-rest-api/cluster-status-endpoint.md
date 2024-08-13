@@ -34,7 +34,7 @@ information for each ksqlDB server (represented as `host:port`):
 - **lastStatusUpdateMs** (long): epoch timestamp, in milliseconds, for when the
   last status update was received for this server, by the queried server 
 - **activeStandbyPerQuery** (object): for each query ID, a collection of 
-  active and standy partitions and state stores on this server
+  active and standby partitions and state stores on this server
 - **hostStoreLags** (object): state store lag information. Empty unless
   `ksql.lag.reporting.enable` is set to `true`.
 - **hostStoreLags.stateStoreLags** (object): partition-level lag breakdown

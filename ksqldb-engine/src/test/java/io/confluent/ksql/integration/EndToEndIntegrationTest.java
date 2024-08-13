@@ -22,12 +22,15 @@ import static java.lang.String.format;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.either;
 import static org.hamcrest.Matchers.greaterThan;
+import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.startsWith;
 
 import com.google.common.collect.ImmutableMap;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
+import io.confluent.common.utils.IntegrationTest;
 import io.confluent.kafka.schemaregistry.avro.AvroSchema;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.function.udf.Udf;
@@ -35,7 +38,7 @@ import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.query.BlockingRowQueue;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.serde.Format;
-import io.confluent.ksql.util.KeyValue;
+import io.confluent.ksql.util.KeyValueMetadata;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.PageViewDataProvider;
@@ -44,14 +47,19 @@ import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.TransientQueryMetadata;
 import io.confluent.ksql.util.UserDataProvider;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import kafka.zookeeper.ZooKeeperClientException;
+import org.apache.kafka.clients.admin.ListTopicsResult;
+import org.apache.kafka.clients.admin.TopicListing;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerInterceptor;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -61,7 +69,6 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.Configurable;
 import org.apache.kafka.streams.StreamsConfig;
-import org.apache.kafka.test.IntegrationTest;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
@@ -70,6 +77,8 @@ import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.Timeout;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -78,6 +87,7 @@ import org.slf4j.LoggerFactory;
  * are what we expect. This tests a broad set of KSQL functionality and is a good catch-all.
  */
 @SuppressWarnings("ConstantConditions")
+@RunWith(Parameterized.class)
 @Category({IntegrationTest.class})
 public class EndToEndIntegrationTest {
 
@@ -98,33 +108,23 @@ public class EndToEndIntegrationTest {
 
   private static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.build();
 
+  @SuppressWarnings("deprecation")
+  @Parameterized.Parameters(name = "{0}")
+  public static Collection<Boolean> data() {
+    return Arrays.asList(
+        false, true
+    );
+  }
+
+  @Parameterized.Parameter
+  public boolean sharedRuntimes;
+
   @ClassRule
   public static final RuleChain CLUSTER_WITH_RETRY = RuleChain
       .outerRule(Retry.of(3, ZooKeeperClientException.class, 3, TimeUnit.SECONDS))
       .around(TEST_HARNESS);
 
-  @Rule
-  public final TestKsqlContext ksqlContext = TEST_HARNESS.ksqlContextBuilder()
-      .withAdditionalConfig(
-          StreamsConfig.producerPrefix(ProducerConfig.INTERCEPTOR_CLASSES_CONFIG),
-          DummyProducerInterceptor.class.getName()
-      )
-      .withAdditionalConfig(
-          StreamsConfig.consumerPrefix(ConsumerConfig.INTERCEPTOR_CLASSES_CONFIG),
-          DummyConsumerInterceptor.class.getName()
-      )
-      .withAdditionalConfig(
-          KSQL_FUNCTIONS_PROPERTY_PREFIX + "e2econfigurableudf.some.setting",
-          "foo-bar"
-      )
-      .withAdditionalConfig(
-          KSQL_FUNCTIONS_PROPERTY_PREFIX + "_global_.expected-param",
-          "expected-value"
-      )
-      .withAdditionalConfig(
-          KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY,
-          "http://foo:8080")
-      .build();
+  public TestKsqlContext ksqlContext;
 
   @Rule
   public final Timeout timeout = Timeout.seconds(120);
@@ -132,7 +132,35 @@ public class EndToEndIntegrationTest {
   private final List<QueryMetadata> toClose = new ArrayList<>();
 
   @Before
-  public void before() {
+  public void before() throws Exception {
+    TEST_HARNESS.before();
+    ksqlContext  = TEST_HARNESS.ksqlContextBuilder()
+        .withAdditionalConfig(
+            StreamsConfig.producerPrefix(ProducerConfig.INTERCEPTOR_CLASSES_CONFIG),
+            DummyProducerInterceptor.class.getName()
+        )
+        .withAdditionalConfig(
+            StreamsConfig.consumerPrefix(ConsumerConfig.INTERCEPTOR_CLASSES_CONFIG),
+            DummyConsumerInterceptor.class.getName()
+        )
+        .withAdditionalConfig(
+            KSQL_FUNCTIONS_PROPERTY_PREFIX + "e2econfigurableudf.some.setting",
+            "foo-bar"
+        )
+        .withAdditionalConfig(
+            KSQL_FUNCTIONS_PROPERTY_PREFIX + "_global_.expected-param",
+            "expected-value"
+        )
+        .withAdditionalConfig(
+            KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY,
+            "http://foo:8080")
+        .withAdditionalConfig(
+            KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED,
+            sharedRuntimes)
+        .build();
+
+    ksqlContext.before();
+
     ConfigurableUdf.PASSED_CONFIG = null;
     PRODUCED_COUNT.set(0);
     CONSUMED_COUNT.set(0);
@@ -168,6 +196,9 @@ public class EndToEndIntegrationTest {
   @After
   public void after() {
     toClose.forEach(QueryMetadata::close);
+    ksqlContext.after();
+    TEST_HARNESS.deleteTopics(Arrays.asList(PAGE_VIEW_TOPIC, USERS_TOPIC));
+    TEST_HARNESS.after();
   }
 
   @Test
@@ -211,6 +242,13 @@ public class EndToEndIntegrationTest {
 
     final List<Object> columns = waitForFirstRow(queryMetadata);
 
+    if (sharedRuntimes) {
+      assertThat(TEST_HARNESS.getKafkaCluster().getTopics(),
+          hasItem("_confluent-ksql-default_query-CSAS_CART_EVENT_PRODUCT_1-Join-repartition"));
+    } else {
+      assertThat(TEST_HARNESS.getKafkaCluster().getTopics(),
+          hasItem("_confluent-ksql-default_query_CSAS_CART_EVENT_PRODUCT_1-Join-repartition"));
+    }
     assertThat(CONSUMED_COUNT.get(), greaterThan(0));
     assertThat(PRODUCED_COUNT.get(), greaterThan(0));
     assertThat(columns.get(0).toString(), startsWith("USER_"));
@@ -279,14 +317,14 @@ public class EndToEndIntegrationTest {
     );
 
     // Then:
-    final String valSbuejct = KsqlConstants.getSRSubject(topicName, false);
+    final String valSubject = KsqlConstants.getSRSubject(topicName, false);
     final String keySubject = KsqlConstants.getSRSubject(topicName, true);
 
     TEST_HARNESS.waitForSubjectToBePresent(keySubject);
-    TEST_HARNESS.waitForSubjectToBePresent(valSbuejct);
+    TEST_HARNESS.waitForSubjectToBePresent(valSubject);
 
     assertThat(TEST_HARNESS.getSchema(keySubject), is(new AvroSchema("{\"type\":\"string\"}")));
-    assertThat(TEST_HARNESS.getSchema(valSbuejct), is(new AvroSchema("{\"type\":\"long\"}")));
+    assertThat(TEST_HARNESS.getSchema(valSubject), is(new AvroSchema("{\"type\":\"long\"}")));
   }
 
   @Test
@@ -314,7 +352,6 @@ public class EndToEndIntegrationTest {
       final String... args
   ) {
     final String formatted = format(statement, (Object[])args);
-    log.debug("Sending statement: {}", formatted);
 
     final List<QueryMetadata> queries = ksqlContext.sql(formatted);
 
@@ -331,14 +368,14 @@ public class EndToEndIntegrationTest {
 
   private static List<Object> waitForFirstRow(
       final TransientQueryMetadata queryMetadata
-  ) throws Exception {
+  ) {
     return verifyAvailableRows(queryMetadata, 1).get(0).values();
   }
 
   private static List<GenericRow> verifyAvailableRows(
       final TransientQueryMetadata queryMetadata,
       final int expectedRows
-  ) throws Exception {
+  ) {
     final BlockingRowQueue rowQueue = queryMetadata.getRowQueue();
 
     assertThatEventually(
@@ -349,11 +386,11 @@ public class EndToEndIntegrationTest {
         TimeUnit.SECONDS
     );
 
-    final List<KeyValue<List<?>, GenericRow>> rows = new ArrayList<>();
+    final List<KeyValueMetadata<List<?>, GenericRow>> rows = new ArrayList<>();
     rowQueue.drainTo(rows);
 
     return rows.stream()
-        .map(KeyValue::value)
+        .map(kvm -> kvm.getKeyValue().value())
         .collect(Collectors.toList());
   }
 

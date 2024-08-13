@@ -54,7 +54,8 @@ CREATE STREAM clicks (
     url STRING
   ) WITH (
     kafka_topic='clickstream', 
-    value_format='json'
+    value_format='json',
+    partitions=1
   );
 
 -- users table, with userId primary key. 
@@ -64,8 +65,9 @@ CREATE TABLE users (
     fullName STRING
   ) WITH (
     kafka_topic='users', 
-    value_format='json'
-  );
+    value_format='json',
+    partitions=1
+);
 
 -- join of users table with clicks stream, joining on the table's primary key and the stream's userId column:
 -- join will automatically repartition clicks stream:
@@ -74,7 +76,8 @@ SELECT
   c.url, 
   u.fullName 
 FROM clicks c
-  JOIN users u ON c.userId = u.id;
+  JOIN users u ON c.userId = u.id
+EMIT CHANGES;
 ```
 
 Co-partitioning Requirements
@@ -134,7 +137,8 @@ SELECT
   clicks.url, 
   users.fullName 
 FROM clicks 
-  JOIN users ON CAST(clicks.userId AS BIGINT) = users.id;
+  JOIN users ON CAST(clicks.userId AS BIGINT) = users.id
+EMIT CHANGES;
 ```
 
 Tables created on top of existing Kafka topics, for example those created with
@@ -164,6 +168,10 @@ only if they are also both in the same partition after the repartition.
 Otherwise, Kafka is likely to interleave messages. The use case will determine
 if these ordering guarantees are acceptable.
 
+The PARTITION BY clause moves the columns into the key. If you want them in the
+value also, you must copy them by using the [AS_VALUE](../ksqldb-reference/scalar-functions.md#as_value)
+function.
+
 !!! important
       If the PARTITION BY expression evaluates to NULL, the resulting row is produced to a
       random partition. You may want to use [COALESCE](../ksqldb-reference/scalar-functions.md#coalesce) to wrap
@@ -183,8 +191,7 @@ CREATE STREAM products_rekeyed
 ```
 
 For more information, see
-[How to rekey a stream with a value](https://kafka-tutorials.confluent.io/rekey-a-stream/ksql.html)
-in [Kafka Tutorials](https://kafka-tutorials.confluent.io/).
+[How to rekey a stream with a value](https://developer.confluent.io/tutorials/rekey-a-stream/ksql.html).
 
 ### Records Have the Same Number of Partitions
 
@@ -220,11 +227,11 @@ you don't need to worry about the partitioning strategy.
 
 But if the producer applications for your records have custom
 partitioners specified in
-[configuration](http://kafka.apache.org/documentation/#producerconfigs),
+[configuration](https://kafka.apache.org/documentation/#producerconfigs),
 the same custom partitioner logic must be used for records on both sides
 of the join. The applications that write to the join inputs must have
 the same partitioning strategy, so that records with the same key are
-delivered to same partition number.
+delivered to the same partition.
 
 This means that the input records must be in the same partition on both
 sides of the join. For example, in a stream-table join, if a `userId`
@@ -234,6 +241,10 @@ though both sides are keyed by `userId`.
 
 ksqlDB can't verify whether the partitioning strategies are the same for
 both join inputs, so you must ensure this.
+
+!!! note
+    The right-hand side of foreign-key joins must have the default partitioner,
+    which is `murmur2`, the default Java partitioner.
 
 The
 [DefaultPartitioner class](https://github.com/apache/kafka/blob/trunk/clients/src/main/java/org/apache/kafka/clients/producer/internals/DefaultPartitioner.java)

@@ -27,10 +27,17 @@ public final class KsqlConstants {
   public static final String STREAMS_CHANGELOG_TOPIC_SUFFIX = "-changelog";
   public static final String STREAMS_REPARTITION_TOPIC_SUFFIX = "-repartition";
 
+  public static final String STREAMS_JOIN_REGISTRATION_TOPIC_PATTERN =
+      ".+-KTABLE-FK-JOIN-SUBSCRIPTION-REGISTRATION-\\d+-topic";
+  public static final String STREAMS_JOIN_RESPONSE_TOPIC_PATTERN =
+      ".+-KTABLE-FK-JOIN-SUBSCRIPTION-RESPONSE-\\d+-topic";
+
   private static final String SCHEMA_REGISTRY_KEY_SUFFIX = "-key";
   private static final String SCHEMA_REGISTRY_VALUE_SUFFIX = "-value";
 
   public static final long defaultSinkWindowChangeLogAdditionalRetention = 1000000;
+
+  public static final boolean enableLoggingAppInfo = true;
 
   public static final long defaultCommitIntervalMsConfig = 2000;
   public static final long defaultCacheMaxBytesBufferingConfig = 10000000;
@@ -49,17 +56,25 @@ public final class KsqlConstants {
 
   public enum KsqlQueryType {
     PERSISTENT,
-    PUSH
+    PUSH,
+    PULL
   }
 
   public enum PersistentQueryType {
-    CREATE_AS, INSERT
+    CREATE_SOURCE,
+    CREATE_AS,
+    INSERT
   }
 
+  /**
+   * The ordinal values of the KsqlQueryStatus enum are used as the metrics values.
+   * Please ensure preservation of the current order.
+   */
   public enum KsqlQueryStatus {
     RUNNING,
     ERROR,
     UNRESPONSIVE,
+    PAUSED,
   }
 
   public static KsqlQueryStatus fromStreamsState(final KafkaStreams.State state) {
@@ -79,4 +94,24 @@ public final class KsqlConstants {
   public static final String TIME_PATTERN = "HH:mm:ss.SSS";
   public static final String DATE_PATTERN = "yyyy-MM-dd";
   public static final String DATE_TIME_PATTERN = DATE_PATTERN + "'T'" + TIME_PATTERN;
+
+  /**
+   * The types we consider for metrics purposes. These should only be added to. You can deprecate
+   * a field, but don't delete it or change its meaning
+   */
+  public enum QuerySourceType {
+    NON_WINDOWED,
+    WINDOWED,
+    NON_WINDOWED_STREAM,
+    WINDOWED_STREAM
+  }
+
+  /**
+   * The types we consider for metrics purposes. These should only be added to. You can deprecate
+   * a field, but don't delete it or change its meaning
+   */
+  public enum RoutingNodeType {
+    SOURCE_NODE,
+    REMOTE_NODE
+  }
 }

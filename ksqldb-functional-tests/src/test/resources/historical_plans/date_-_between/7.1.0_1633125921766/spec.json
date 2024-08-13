@@ -1,0 +1,165 @@
+{
+  "version" : "7.1.0",
+  "timestamp" : 1633125921766,
+  "path" : "query-validation-tests/date.json",
+  "schemas" : {
+    "CSAS_TEST2_0.TEST2" : {
+      "schema" : "`ID` STRING KEY, `A` DATE",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "AVRO"
+      }
+    },
+    "CSAS_TEST2_0.KsqlTopic.Source" : {
+      "schema" : "`ID` STRING KEY, `A` DATE",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "AVRO"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "between",
+    "inputs" : [ {
+      "topic" : "test",
+      "key" : null,
+      "value" : {
+        "A" : "1"
+      }
+    }, {
+      "topic" : "test",
+      "key" : null,
+      "value" : {
+        "A" : "6"
+      }
+    }, {
+      "topic" : "test",
+      "key" : null,
+      "value" : {
+        "A" : "12"
+      }
+    }, {
+      "topic" : "test",
+      "key" : null,
+      "value" : {
+        "A" : null
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "TEST2",
+      "key" : null,
+      "value" : {
+        "A" : 6
+      }
+    } ],
+    "topics" : [ {
+      "name" : "TEST2",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "test",
+      "valueSchema" : {
+        "type" : "record",
+        "name" : "KsqlDataSourceSchema",
+        "namespace" : "io.confluent.ksql.avro_schemas",
+        "fields" : [ {
+          "name" : "A",
+          "type" : [ "null", {
+            "type" : "int",
+            "connect.version" : 1,
+            "connect.name" : "org.apache.kafka.connect.data.Date",
+            "logicalType" : "date"
+          } ],
+          "default" : null
+        } ],
+        "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
+      },
+      "valueFormat" : "AVRO",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM TEST (ID STRING KEY, a DATE) WITH (kafka_topic='test', value_format='AVRO');", "CREATE STREAM TEST2 AS SELECT * FROM TEST WHERE a BETWEEN '1970-01-04' AND '1970-01-10';" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`ID` STRING KEY, `A` DATE",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "AVRO",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "TEST2",
+        "type" : "STREAM",
+        "schema" : "`ID` STRING KEY, `A` DATE",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "AVRO",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "test",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "AVRO"
+          },
+          "partitions" : 4,
+          "valueSchema" : {
+            "type" : "record",
+            "name" : "KsqlDataSourceSchema",
+            "namespace" : "io.confluent.ksql.avro_schemas",
+            "fields" : [ {
+              "name" : "A",
+              "type" : [ "null", {
+                "type" : "int",
+                "connect.version" : 1,
+                "connect.name" : "org.apache.kafka.connect.data.Date",
+                "logicalType" : "date"
+              } ],
+              "default" : null
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
+          }
+        }, {
+          "name" : "TEST2",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "AVRO"
+          },
+          "partitions" : 4,
+          "valueSchema" : {
+            "type" : "record",
+            "name" : "KsqlDataSourceSchema",
+            "namespace" : "io.confluent.ksql.avro_schemas",
+            "fields" : [ {
+              "name" : "A",
+              "type" : [ "null", {
+                "type" : "int",
+                "connect.version" : 1,
+                "connect.name" : "org.apache.kafka.connect.data.Date",
+                "logicalType" : "date"
+              } ],
+              "default" : null
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
+          }
+        } ]
+      }
+    }
+  }
+}

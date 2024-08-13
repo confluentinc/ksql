@@ -1,0 +1,128 @@
+{
+  "version" : "7.1.0",
+  "timestamp" : 1633126016226,
+  "path" : "query-validation-tests/partition-by.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`Key` STRING KEY, `Name` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`Key` STRING KEY, `Name` STRING, `Name2` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "should handle quoted key and value",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : "x",
+      "value" : {
+        "Name" : "a"
+      },
+      "timestamp" : 12345
+    }, {
+      "topic" : "test_topic",
+      "key" : "y",
+      "value" : {
+        "Name" : "b"
+      },
+      "timestamp" : 12365
+    }, {
+      "topic" : "test_topic",
+      "key" : "x",
+      "value" : {
+        "Name" : "c"
+      },
+      "timestamp" : 12375
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : "x",
+      "value" : {
+        "Name" : "a",
+        "Name2" : "a"
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "y",
+      "value" : {
+        "Name" : "b",
+        "Name2" : "b"
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "x",
+      "value" : {
+        "Name" : "c",
+        "Name2" : "c"
+      }
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM INPUT (`Key` STRING KEY, `Name` STRING) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE STREAM OUTPUT AS SELECT *, `Name` AS `Name2` FROM INPUT PARTITION BY `Key`;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`Key` STRING KEY, `Name` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`Key` STRING KEY, `Name` STRING, `Name2` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

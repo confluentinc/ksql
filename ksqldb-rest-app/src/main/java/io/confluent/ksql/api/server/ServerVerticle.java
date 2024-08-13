@@ -23,12 +23,13 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.api.auth.ApiSecurityContext;
 import io.confluent.ksql.api.auth.DefaultApiSecurityContext;
 import io.confluent.ksql.api.spi.Endpoints;
-import io.confluent.ksql.internal.PullQueryExecutorMetrics;
 import io.confluent.ksql.rest.entity.ClusterTerminateRequest;
 import io.confluent.ksql.rest.entity.HeartbeatMessage;
 import io.confluent.ksql.rest.entity.KsqlMediaType;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.LagReportingMessage;
+import io.confluent.ksql.rest.server.KsqlRestConfig;
+import io.netty.handler.codec.haproxy.HAProxyProtocolException;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Promise;
 import io.vertx.core.http.HttpHeaders;
@@ -36,7 +37,6 @@ import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServer;
 import io.vertx.core.http.HttpServerOptions;
 import io.vertx.core.http.HttpServerRequest;
-import io.vertx.core.http.ServerWebSocket;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
@@ -68,7 +68,6 @@ public class ServerVerticle extends AbstractVerticle {
   private ConnectionQueryManager connectionQueryManager;
   private HttpServer httpServer;
   private final Optional<Boolean> isInternalListener;
-  private final Optional<PullQueryExecutorMetrics> pullQueryMetrics;
   private final LoggingRateLimiter loggingRateLimiter;
 
   @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
@@ -77,13 +76,11 @@ public class ServerVerticle extends AbstractVerticle {
       final HttpServerOptions httpServerOptions,
       final Server server,
       final Optional<Boolean> isInternalListener,
-      final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
       final LoggingRateLimiter loggingRateLimiter) {
     this.endpoints = Objects.requireNonNull(endpoints);
     this.httpServerOptions = Objects.requireNonNull(httpServerOptions);
     this.server = Objects.requireNonNull(server);
     this.isInternalListener = Objects.requireNonNull(isInternalListener);
-    this.pullQueryMetrics = Objects.requireNonNull(pullQueryMetrics);
     this.loggingRateLimiter = Objects.requireNonNull(loggingRateLimiter);
   }
 
@@ -106,7 +103,7 @@ public class ServerVerticle extends AbstractVerticle {
     if (httpServer == null) {
       stopPromise.complete();
     } else {
-      httpServer.close(stopPromise.future());
+      httpServer.close(ar -> stopPromise.complete());
     }
   }
 
@@ -118,8 +115,11 @@ public class ServerVerticle extends AbstractVerticle {
     final Router router = Router.router(vertx);
 
     router.route().handler(new LoggingHandler(server, loggingRateLimiter));
+    if (server.getConfig().getBoolean(KsqlRestConfig.KSQL_SERVER_SNI_CHECK_ENABLE)) {
+      router.route().handler(new SniHandler());
+    }
 
-    KsqlCorsHandler.setupCorsHandler(server, router);
+    KsqlCorsHandler.setupCorsHandler(server.getConfig(), router);
 
     // /chc endpoints need to be before server state handler but after CORS handler as they
     // need to be usable from browser with cross origin policy
@@ -141,8 +141,14 @@ public class ServerVerticle extends AbstractVerticle {
     router.route(HttpMethod.POST, "/query-stream")
         .produces(DELIMITED_CONTENT_TYPE)
         .produces(JSON_CONTENT_TYPE)
+        .produces(KsqlMediaType.KSQL_V1_JSON.mediaType())
         .handler(BodyHandler.create(false))
-        .handler(new QueryStreamHandler(endpoints, connectionQueryManager, context, server));
+        .handler(new QueryStreamHandler(endpoints, connectionQueryManager, context, server, false));
+    // Add a separate route for KSQL_V1_PROTOBUF. See https://github.com/confluentinc/ksql/pull/9145
+    router.route(HttpMethod.POST, "/query-stream")
+        .produces(KsqlMediaType.KSQL_V1_PROTOBUF.mediaType())
+        .handler(BodyHandler.create(false))
+        .handler(new QueryStreamHandler(endpoints, connectionQueryManager, context, server, false));
     router.route(HttpMethod.POST, "/inserts-stream")
         .produces(DELIMITED_CONTENT_TYPE)
         .produces(JSON_CONTENT_TYPE)
@@ -171,6 +177,17 @@ public class ServerVerticle extends AbstractVerticle {
         .produces(KsqlMediaType.KSQL_V1_JSON.mediaType())
         .produces(JSON_CONTENT_TYPE)
         .handler(this::handleQueryRequest);
+    router.route(HttpMethod.POST, "/query")
+        .handler(BodyHandler.create(false))
+        .produces(DELIMITED_CONTENT_TYPE)
+        .produces(KsqlMediaType.KSQL_V1_JSON.mediaType())
+        .produces(JSON_CONTENT_TYPE)
+        .handler(new QueryStreamHandler(endpoints, connectionQueryManager, context, server, true));
+    // Add a separate route for KSQL_V1_PROTOBUF. See https://github.com/confluentinc/ksql/pull/9145
+    router.route(HttpMethod.POST, "/query")
+        .handler(BodyHandler.create(false))
+        .produces(KsqlMediaType.KSQL_V1_PROTOBUF.mediaType())
+        .handler(new QueryStreamHandler(endpoints, connectionQueryManager, context, server, true));
     router.route(HttpMethod.GET, "/info")
         .produces(KsqlMediaType.KSQL_V1_JSON.mediaType())
         .produces(JSON_CONTENT_TYPE)
@@ -217,7 +234,10 @@ public class ServerVerticle extends AbstractVerticle {
         .produces(KsqlMediaType.KSQL_V1_JSON.mediaType())
         .produces(JSON_CONTENT_TYPE)
         .handler(this::handleIsValidPropertyRequest);
-
+    router.route(HttpMethod.POST, "/test")
+        .handler(BodyHandler.create(false))
+        .produces(KsqlMediaType.KSQL_V1_JSON.mediaType())
+        .handler(this::handleTest);
     return router;
   }
 
@@ -354,10 +374,27 @@ public class ServerVerticle extends AbstractVerticle {
   private void handleWebsocket(final RoutingContext routingContext) {
     final ApiSecurityContext apiSecurityContext =
         DefaultApiSecurityContext.create(routingContext, server);
-    final ServerWebSocket serverWebSocket = routingContext.request().upgrade();
-    endpoints
-        .executeWebsocketStream(serverWebSocket, routingContext.request().params(),
-            server.getWorkerExecutor(), apiSecurityContext, context);
+    routingContext.request().toWebSocket(serverWebSocket -> {
+          if (serverWebSocket.failed()) {
+            routingContext.fail(serverWebSocket.cause());
+          } else {
+            endpoints.executeWebsocketStream(
+                serverWebSocket.result(),
+                routingContext.request().params(),
+                server.getWorkerExecutor(),
+                apiSecurityContext,
+                context);
+          }
+        }
+    );
+  }
+
+  private void handleTest(final RoutingContext routingContext) {
+    handleOldApiRequest(server, routingContext, String.class, Optional.empty(),
+        (test, apiSecurityContext) ->
+            endpoints
+                .executeTest(test, DefaultApiSecurityContext.create(routingContext, server))
+    );
   }
 
   private static void chcHandler(final RoutingContext routingContext) {
@@ -377,6 +414,8 @@ public class ServerVerticle extends AbstractVerticle {
   private static void unhandledExceptionHandler(final Throwable t) {
     if (t instanceof ClosedChannelException) {
       log.debug("Unhandled ClosedChannelException (connection likely closed early)", t);
+    } else if (t instanceof HAProxyProtocolException) {
+      log.error("Failed to decode proxy protocol header", t);
     } else {
       log.error("Unhandled exception", t);
     }
@@ -391,7 +430,7 @@ public class ServerVerticle extends AbstractVerticle {
    * @return If an internal listener is in use and this is an internal request, or
    *         {@code Optional.empty} if an internal listener is not enabled.
    */
-  private static Optional<Boolean> isInternalRequest(final RoutingContext routingContext) {
+  static Optional<Boolean> isInternalRequest(final RoutingContext routingContext) {
     return Optional.ofNullable(routingContext.get(CONTEXT_DATA_IS_INTERNAL));
   }
 }

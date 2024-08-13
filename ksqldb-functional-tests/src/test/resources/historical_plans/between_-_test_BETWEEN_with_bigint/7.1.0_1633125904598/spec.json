@@ -1,0 +1,149 @@
+{
+  "version" : "7.1.0",
+  "timestamp" : 1633125904598,
+  "path" : "query-validation-tests/between.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`ID` STRING KEY, `SOURCE` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ID` STRING KEY, `THING` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "test BETWEEN with bigint",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : "0",
+      "value" : {
+        "source" : null
+      },
+      "timestamp" : 0
+    }, {
+      "topic" : "test_topic",
+      "key" : "1",
+      "value" : {
+        "source" : 1
+      },
+      "timestamp" : 0
+    }, {
+      "topic" : "test_topic",
+      "key" : "2",
+      "value" : {
+        "source" : 2
+      },
+      "timestamp" : 0
+    }, {
+      "topic" : "test_topic",
+      "key" : "3",
+      "value" : {
+        "source" : 3
+      },
+      "timestamp" : 0
+    }, {
+      "topic" : "test_topic",
+      "key" : "4",
+      "value" : {
+        "source" : 4
+      },
+      "timestamp" : 0
+    }, {
+      "topic" : "test_topic",
+      "key" : "5",
+      "value" : {
+        "source" : 5
+      },
+      "timestamp" : 0
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : "2",
+      "value" : {
+        "THING" : 2
+      },
+      "timestamp" : 0
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "3",
+      "value" : {
+        "THING" : 3
+      },
+      "timestamp" : 0
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "4",
+      "value" : {
+        "THING" : 4
+      },
+      "timestamp" : 0
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM TEST (ID STRING KEY, source bigint) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE STREAM OUTPUT AS SELECT ID, source AS THING FROM TEST WHERE source BETWEEN 2 AND 4;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`ID` STRING KEY, `THING` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`ID` STRING KEY, `SOURCE` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

@@ -23,7 +23,6 @@ import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.collect.ImmutableList;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
-import io.confluent.ksql.serde.json.JsonSerdeUtils;
 import io.confluent.ksql.test.serde.SerdeSupplier;
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -33,7 +32,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import org.apache.commons.lang3.ArrayUtils;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serializer;
 
@@ -43,10 +41,15 @@ public class ValueSpecJsonSerdeSupplier implements SerdeSupplier<Object> {
       .enable(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS)
       .setNodeFactory(JsonNodeFactory.withExactBigDecimals(true));
 
-  private final boolean useSchemas;
+  private static final ObjectMapper FLOAT_MAPPER = new ObjectMapper();
 
-  public ValueSpecJsonSerdeSupplier(final boolean useSchemas) {
-    this.useSchemas = useSchemas;
+  private final ObjectMapper mapper;
+
+  public ValueSpecJsonSerdeSupplier(
+      final Map<String, Object> properties
+  ) {
+    mapper = (boolean) (properties.getOrDefault("use.exact.numeric.comparison", true))
+        ? MAPPER : FLOAT_MAPPER;
   }
 
   @Override
@@ -81,14 +84,8 @@ public class ValueSpecJsonSerdeSupplier implements SerdeSupplier<Object> {
       }
       try {
         final Object toSerialize = Converter.toJsonNode(spec);
-        final byte[] bytes = MAPPER.writeValueAsBytes(toSerialize);
-        if (!useSchemas) {
-          return bytes;
-        }
-
-        return ArrayUtils.addAll(
-            new byte[]{/*magic*/ 0x00, /*schemaID*/ 0x00, 0x00, 0x00, 0x01},
-            bytes);
+        final byte[] bytes = mapper.writeValueAsBytes(toSerialize);
+        return bytes;
       } catch (final Exception e) {
         throw new RuntimeException(e);
       }
@@ -110,9 +107,7 @@ public class ValueSpecJsonSerdeSupplier implements SerdeSupplier<Object> {
         return null;
       }
       try {
-        return useSchemas
-            ? JsonSerdeUtils.readJsonSR(data, MAPPER, Object.class)
-            : MAPPER.readValue(data, Object.class);
+        return mapper.readValue(data, Object.class);
       } catch (final Exception e) {
         throw new RuntimeException(e);
       }

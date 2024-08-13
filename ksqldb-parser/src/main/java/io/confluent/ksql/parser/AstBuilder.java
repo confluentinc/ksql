@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.parser;
 
+import static io.confluent.ksql.schema.ksql.SystemColumns.HEADERS_TYPE;
 import static io.confluent.ksql.util.ParserUtil.getIdentifierText;
 import static io.confluent.ksql.util.ParserUtil.getLocation;
 import static io.confluent.ksql.util.ParserUtil.processIntegerNumber;
@@ -69,9 +70,11 @@ import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.SqlBaseParser.AlterOptionContext;
 import io.confluent.ksql.parser.SqlBaseParser.AlterSourceContext;
 import io.confluent.ksql.parser.SqlBaseParser.ArrayConstructorContext;
+import io.confluent.ksql.parser.SqlBaseParser.AssertSchemaContext;
 import io.confluent.ksql.parser.SqlBaseParser.AssertStreamContext;
 import io.confluent.ksql.parser.SqlBaseParser.AssertTableContext;
 import io.confluent.ksql.parser.SqlBaseParser.AssertTombstoneContext;
+import io.confluent.ksql.parser.SqlBaseParser.AssertTopicContext;
 import io.confluent.ksql.parser.SqlBaseParser.AssertValuesContext;
 import io.confluent.ksql.parser.SqlBaseParser.CreateConnectorContext;
 import io.confluent.ksql.parser.SqlBaseParser.DescribeConnectorContext;
@@ -88,7 +91,9 @@ import io.confluent.ksql.parser.SqlBaseParser.LimitClauseContext;
 import io.confluent.ksql.parser.SqlBaseParser.ListConnectorsContext;
 import io.confluent.ksql.parser.SqlBaseParser.ListTypesContext;
 import io.confluent.ksql.parser.SqlBaseParser.NumberContext;
+import io.confluent.ksql.parser.SqlBaseParser.PauseQueryContext;
 import io.confluent.ksql.parser.SqlBaseParser.RegisterTypeContext;
+import io.confluent.ksql.parser.SqlBaseParser.ResumeQueryContext;
 import io.confluent.ksql.parser.SqlBaseParser.RetentionClauseContext;
 import io.confluent.ksql.parser.SqlBaseParser.SourceNameContext;
 import io.confluent.ksql.parser.SqlBaseParser.TablePropertiesContext;
@@ -101,10 +106,14 @@ import io.confluent.ksql.parser.tree.AliasedRelation;
 import io.confluent.ksql.parser.tree.AllColumns;
 import io.confluent.ksql.parser.tree.AlterOption;
 import io.confluent.ksql.parser.tree.AlterSource;
+import io.confluent.ksql.parser.tree.AlterSystemProperty;
+import io.confluent.ksql.parser.tree.AssertSchema;
 import io.confluent.ksql.parser.tree.AssertStatement;
 import io.confluent.ksql.parser.tree.AssertStream;
 import io.confluent.ksql.parser.tree.AssertTombstone;
+import io.confluent.ksql.parser.tree.AssertTopic;
 import io.confluent.ksql.parser.tree.AssertValues;
+import io.confluent.ksql.parser.tree.ColumnConstraints;
 import io.confluent.ksql.parser.tree.CreateConnector;
 import io.confluent.ksql.parser.tree.CreateConnector.Type;
 import io.confluent.ksql.parser.tree.CreateStream;
@@ -139,10 +148,12 @@ import io.confluent.ksql.parser.tree.ListTopics;
 import io.confluent.ksql.parser.tree.ListTypes;
 import io.confluent.ksql.parser.tree.ListVariables;
 import io.confluent.ksql.parser.tree.PartitionBy;
+import io.confluent.ksql.parser.tree.PauseQuery;
 import io.confluent.ksql.parser.tree.PrintTopic;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.RegisterType;
 import io.confluent.ksql.parser.tree.Relation;
+import io.confluent.ksql.parser.tree.ResumeQuery;
 import io.confluent.ksql.parser.tree.Select;
 import io.confluent.ksql.parser.tree.SelectItem;
 import io.confluent.ksql.parser.tree.SetProperty;
@@ -150,9 +161,9 @@ import io.confluent.ksql.parser.tree.ShowColumns;
 import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.Statements;
+import io.confluent.ksql.parser.tree.StructAll;
 import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.parser.tree.TableElement;
-import io.confluent.ksql.parser.tree.TableElement.Namespace;
 import io.confluent.ksql.parser.tree.TableElements;
 import io.confluent.ksql.parser.tree.TerminateQuery;
 import io.confluent.ksql.parser.tree.UndefineVariable;
@@ -162,6 +173,8 @@ import io.confluent.ksql.parser.tree.WithinExpression;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.Operator;
 import io.confluent.ksql.schema.ksql.SqlTypeParser;
+import io.confluent.ksql.schema.ksql.types.SqlType;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.RefinementInfo;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
@@ -287,7 +300,8 @@ public class AstBuilder {
           TableElements.of(elements),
           context.REPLACE() != null,
           context.EXISTS() != null,
-          CreateSourceProperties.from(properties)
+          CreateSourceProperties.from(properties),
+          context.SOURCE() != null
       );
     }
 
@@ -305,7 +319,8 @@ public class AstBuilder {
           TableElements.of(elements),
           context.REPLACE() != null,
           context.EXISTS() != null,
-          CreateSourceProperties.from(properties)
+          CreateSourceProperties.from(properties),
+          context.SOURCE() != null
       );
     }
 
@@ -314,6 +329,8 @@ public class AstBuilder {
       final Map<String, Literal> properties = processTableProperties(context.tableProperties());
 
       final Query query = withinPersistentQuery(() -> visitQuery(context.query()));
+
+      disallowLimitClause(query, "STREAM");
 
       return new CreateStreamAsSelect(
           getLocation(context),
@@ -330,6 +347,8 @@ public class AstBuilder {
       final Map<String, Literal> properties = processTableProperties(context.tableProperties());
 
       final Query query = withinPersistentQuery(() -> visitQuery(context.query()));
+
+      disallowLimitClause(query, "TABLE");
 
       return new CreateTableAsSelect(
           getLocation(context),
@@ -578,18 +597,19 @@ public class AstBuilder {
 
         beforeSize = getSizeAndUnitFromJoinWindowSize(singleWithin.joinWindowSize());
         afterSize = beforeSize;
-        gracePeriod = Optional.empty();
+        gracePeriod = gracePeriodClause(singleWithin.gracePeriodClause());
       } else if (ctx instanceof SqlBaseParser.JoinWindowWithBeforeAndAfterContext) {
         final SqlBaseParser.JoinWindowWithBeforeAndAfterContext beforeAndAfterJoinWindow
             = (SqlBaseParser.JoinWindowWithBeforeAndAfterContext) ctx;
 
         beforeSize = getSizeAndUnitFromJoinWindowSize(beforeAndAfterJoinWindow.joinWindowSize(0));
         afterSize = getSizeAndUnitFromJoinWindowSize(beforeAndAfterJoinWindow.joinWindowSize(1));
-        gracePeriod = Optional.empty();
+        gracePeriod = gracePeriodClause(beforeAndAfterJoinWindow.gracePeriodClause());
       } else {
         throw new RuntimeException("Expecting either a single join window, ie \"WITHIN 10 "
-            + "seconds\", or a join window with " + "before and after specified, ie. "
-            + "\"WITHIN (10 seconds, 20 seconds)\"");
+            + "seconds\" or \"WITHIN 10 seconds GRACE PERIOD 2 seconds\", or a join window with "
+            + "before and after specified, ie. \"WITHIN (10 seconds, 20 seconds)\" or "
+            + "WITHIN (10 seconds, 20 seconds) GRACE PERIOD 5 seconds");
       }
       return new WithinExpression(
           getLocation(ctx),
@@ -745,6 +765,30 @@ public class AstBuilder {
     }
 
     @Override
+    public Node visitPauseQuery(final PauseQueryContext context) {
+      final Optional<NodeLocation> location = getLocation(context);
+
+      return context.ALL() != null
+          ? PauseQuery.all(location)
+          : PauseQuery.query(
+              location,
+              new QueryId(ParserUtil.getIdentifierText(false, context.identifier()))
+          );
+    }
+
+    @Override
+    public Node visitResumeQuery(final ResumeQueryContext context) {
+      final Optional<NodeLocation> location = getLocation(context);
+
+      return context.ALL() != null
+          ? ResumeQuery.all(location)
+          : ResumeQuery.query(
+              location,
+              new QueryId(ParserUtil.getIdentifierText(false, context.identifier()))
+          );
+    }
+
+    @Override
     public Node visitTerminateQuery(final SqlBaseParser.TerminateQueryContext context) {
       final Optional<NodeLocation> location = getLocation(context);
 
@@ -789,6 +833,13 @@ public class AstBuilder {
     }
 
     @Override
+    public Node visitAlterSystemProperty(final SqlBaseParser.AlterSystemPropertyContext context) {
+      final String propertyName = ParserUtil.unquote(context.STRING(0).getText(), "'");
+      final String propertyValue = ParserUtil.unquote(context.STRING(1).getText(), "'");
+      return new AlterSystemProperty(getLocation(context), propertyName, propertyValue);
+    }
+
+    @Override
     public Node visitUnsetProperty(final SqlBaseParser.UnsetPropertyContext context) {
       final String propertyName = ParserUtil.unquote(context.STRING().getText(), "'");
       return new UnsetProperty(getLocation(context), propertyName);
@@ -811,12 +862,7 @@ public class AstBuilder {
     public Node visitPrintTopic(final SqlBaseParser.PrintTopicContext context) {
       final boolean fromBeginning = context.printClause().FROM() != null;
 
-      final String topicName;
-      if (context.STRING() != null) {
-        topicName = ParserUtil.unquote(context.STRING().getText(), "'");
-      } else {
-        topicName = ParserUtil.getIdentifierText(true, context.identifier());
-      }
+      final String topicName = getResourceName(context.resourceName());
 
       final IntervalClauseContext intervalContext = context.printClause().intervalClause();
       final OptionalInt interval = intervalContext == null
@@ -832,6 +878,16 @@ public class AstBuilder {
           interval,
           limit
       );
+    }
+
+    private String getResourceName(
+        final SqlBaseParser.ResourceNameContext context
+    ) {
+      if (context.STRING() != null) {
+        return ParserUtil.unquote(context.STRING().getText(), "'");
+      } else {
+        return ParserUtil.getIdentifierText(true, context.identifier());
+      }
     }
 
     @Override
@@ -878,10 +934,14 @@ public class AstBuilder {
       final SqlBaseParser.JoinTypeContext joinTypeContext = context.joinType();
       if (joinTypeContext instanceof SqlBaseParser.LeftJoinContext) {
         joinType = JoinedSource.Type.LEFT;
+      } else if (joinTypeContext instanceof SqlBaseParser.RightJoinContext) {
+        joinType = JoinedSource.Type.RIGHT;
       } else if (joinTypeContext instanceof SqlBaseParser.OuterJoinContext) {
         joinType = JoinedSource.Type.OUTER;
-      } else {
+      }  else if (joinTypeContext instanceof SqlBaseParser.InnerJoinContext) {
         joinType = JoinedSource.Type.INNER;
+      } else {
+        throw new KsqlException("Invalid join type - " + joinTypeContext.getText());
       }
 
       WithinExpression withinExpression = null;
@@ -1167,6 +1227,12 @@ public class AstBuilder {
     }
 
     @Override
+    public Node visitSelectStructAll(final SqlBaseParser.SelectStructAllContext context) {
+      final Expression baseExpression = (Expression) visit(context.base);
+      return new StructAll(getLocation(context), baseExpression);
+    }
+
+    @Override
     public Node visitColumnReference(final SqlBaseParser.ColumnReferenceContext context) {
       final UnqualifiedColumnReferenceExp column = ColumnReferenceParser.resolve(context);
       if (lambdaArgs.contains(column.toString())) {
@@ -1238,14 +1304,36 @@ public class AstBuilder {
 
     @Override
     public Node visitTableElement(final SqlBaseParser.TableElementContext context) {
+      final io.confluent.ksql.execution.expression.tree.Type type =
+          typeParser.getType(context.type());
+      final ColumnConstraints constraints =
+          ParserUtil.getColumnConstraints(context.columnConstraints());
+      if (constraints.isHeaders()) {
+        throwOnIncorrectHeaderColumnType(type.getSqlType(), constraints.getHeaderKey());
+      }
       return new TableElement(
           getLocation(context),
-          context.KEY() == null
-              ? Namespace.VALUE
-              : context.PRIMARY() == null ? Namespace.KEY : Namespace.PRIMARY_KEY,
           ColumnName.of(ParserUtil.getIdentifierText(context.identifier())),
-          typeParser.getType(context.type())
-      );
+          type,
+          constraints);
+    }
+
+    private void throwOnIncorrectHeaderColumnType(
+        final SqlType type, final Optional<String> headerKey) {
+      if (headerKey.isPresent()) {
+        if (type != SqlTypes.BYTES) {
+          throw new KsqlException(String.format(
+              "Invalid type for HEADER('%s') column: expected BYTES, got %s",
+              headerKey.get(),
+              type)
+          );
+        }
+      } else {
+        if (!type.toString().equals(HEADERS_TYPE.toString())) {
+          throw new KsqlException(
+              "Invalid type for HEADERS column: expected " + HEADERS_TYPE + ", got " + type);
+        }
+      }
     }
 
     @Override
@@ -1354,6 +1442,54 @@ public class AstBuilder {
     }
 
     @Override
+    public Node visitAssertTopic(final AssertTopicContext context) {
+      return new AssertTopic(
+          getLocation(context),
+          getResourceName(context.resourceName()),
+          context.WITH() == null
+              ? ImmutableMap.of()
+              : processTableProperties(context.tableProperties()),
+          context.timeout() == null
+              ? Optional.empty()
+              : Optional.of(getTimeClause(
+                  context.timeout().number(), context.timeout().windowUnit())),
+          context.EXISTS() == null
+      );
+    }
+
+    @Override
+    public Node visitAssertSchema(final AssertSchemaContext context) {
+      if (context.resourceName() == null && context.literal() == null) {
+        throw new KsqlException("ASSERT SCHEMA statements much include a subject name or an id");
+      }
+
+      final Optional<Integer> id;
+      if (context.literal() == null) {
+        id = Optional.empty();
+      } else {
+        final Object value = ((Literal) visit(context.literal())).getValue();
+        if (value instanceof Integer) {
+          id = Optional.of((Integer) value);
+        } else {
+          throw new KsqlException("ID must be an integer");
+        }
+      }
+
+      return new AssertSchema(
+          getLocation(context),
+          context.resourceName() == null
+              ? Optional.empty()
+              : Optional.of(getResourceName(context.resourceName())),
+          id,
+          context.timeout() == null
+              ? Optional.empty()
+              : Optional.of(getTimeClause(
+                  context.timeout().number(), context.timeout().windowUnit())),
+          context.EXISTS() == null
+      );
+    }
+
+    @Override
     public Node visitAssertValues(final AssertValuesContext context) {
       final SourceName targetName = ParserUtil.getSourceName(context.sourceName());
       final Optional<NodeLocation> targetLocation = getLocation(context.sourceName());
@@ -1417,7 +1553,8 @@ public class AstBuilder {
           TableElements.of(elements),
           false,
           false,
-          CreateSourceProperties.from(properties)
+          CreateSourceProperties.from(properties),
+          false
       );
 
       return new AssertStream(getLocation(context), createStream);
@@ -1437,7 +1574,8 @@ public class AstBuilder {
           TableElements.of(elements),
           false,
           false,
-          CreateSourceProperties.from(properties)
+          CreateSourceProperties.from(properties),
+          false
       );
 
       return new AssertTable(getLocation(context), createTable);
@@ -1540,6 +1678,16 @@ public class AstBuilder {
     } catch (final StackOverflowError e) {
       throw new KsqlException("Error processing statement: Statement is too large to parse. "
           + "This may be caused by having too many nested expressions in the statement.");
+    }
+  }
+
+  private static void disallowLimitClause(final Query query, final String streamOrTable)
+          throws KsqlException {
+    if (query.getLimit().isPresent()) {
+      final String errorMessage = String.format(
+              "CREATE %s AS SELECT statements don't support LIMIT clause.",
+              streamOrTable);
+      throw new KsqlException(errorMessage);
     }
   }
 

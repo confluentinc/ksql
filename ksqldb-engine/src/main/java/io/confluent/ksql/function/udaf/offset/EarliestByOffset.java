@@ -16,11 +16,6 @@
 package io.confluent.ksql.function.udaf.offset;
 
 import static io.confluent.ksql.function.udaf.offset.KudafByOffsetUtils.INTERMEDIATE_STRUCT_COMPARATOR;
-import static io.confluent.ksql.function.udaf.offset.KudafByOffsetUtils.STRUCT_BOOLEAN;
-import static io.confluent.ksql.function.udaf.offset.KudafByOffsetUtils.STRUCT_DOUBLE;
-import static io.confluent.ksql.function.udaf.offset.KudafByOffsetUtils.STRUCT_INTEGER;
-import static io.confluent.ksql.function.udaf.offset.KudafByOffsetUtils.STRUCT_LONG;
-import static io.confluent.ksql.function.udaf.offset.KudafByOffsetUtils.STRUCT_STRING;
 import static io.confluent.ksql.function.udaf.offset.KudafByOffsetUtils.VAL_FIELD;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -28,9 +23,14 @@ import io.confluent.ksql.function.KsqlFunctionException;
 import io.confluent.ksql.function.udaf.Udaf;
 import io.confluent.ksql.function.udaf.UdafDescription;
 import io.confluent.ksql.function.udaf.UdafFactory;
+import io.confluent.ksql.schema.ksql.SchemaConverters;
+import io.confluent.ksql.schema.ksql.SqlArgument;
+import io.confluent.ksql.schema.ksql.types.SqlArray;
+import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.util.KsqlConstants;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 import org.apache.kafka.connect.data.Schema;
@@ -49,141 +49,27 @@ public final class EarliestByOffset {
   private EarliestByOffset() {
   }
 
-  static AtomicLong sequence = new AtomicLong();
+  static final AtomicLong sequence = new AtomicLong();
 
-  @UdafFactory(description = "return the earliest value of an integer column",
-      aggregateSchema = "STRUCT<SEQ BIGINT, VAL INT>")
-  public static Udaf<Integer, Struct, Integer> earliestInteger() {
-    return earliestInteger(true);
+  @UdafFactory(description = "return the earliest value of a column")
+  public static <T> Udaf<T, Struct, T> earliest() {
+    return earliest(true);
   }
 
-  @UdafFactory(description = "return the earliest value of an integer column",
-      aggregateSchema = "STRUCT<SEQ BIGINT, VAL INT>")
-  public static Udaf<Integer, Struct, Integer> earliestInteger(final boolean ignoreNulls) {
-    return earliest(STRUCT_INTEGER, ignoreNulls);
+  @UdafFactory(description = "return the earliest value of a column")
+  public static <T> Udaf<T, Struct, T> earliest(final boolean ignoreNulls) {
+    return earliestT(ignoreNulls);
   }
 
-  @UdafFactory(description = "return the earliest N values of an integer column",
-      aggregateSchema = "ARRAY<STRUCT<SEQ BIGINT, VAL INT>>")
-  public static Udaf<Integer, List<Struct>, List<Integer>> earliestIntegers(final int earliestN) {
-    return earliestIntegers(earliestN, true);
+  @UdafFactory(description = "return the earliest N values of a column")
+  public static <T> Udaf<T, List<Struct>, List<T>> earliest(final int earliestN) {
+    return earliest(earliestN, true);
   }
 
-  @UdafFactory(description = "return the earliest N values of an integer column",
-      aggregateSchema = "ARRAY<STRUCT<SEQ BIGINT, VAL INT>>")
-  public static Udaf<Integer, List<Struct>, List<Integer>> earliestIntegers(
-      final int earliestN,
-      final boolean ignoreNulls
-  ) {
-    return earliestN(STRUCT_INTEGER, earliestN, ignoreNulls);
-  }
-
-  @UdafFactory(description = "return the earliest value of an big integer column",
-      aggregateSchema = "STRUCT<SEQ BIGINT, VAL BIGINT>")
-  public static Udaf<Long, Struct, Long> earliestLong() {
-    return earliestLong(true);
-  }
-
-  @UdafFactory(description = "return the earliest value of an big integer column",
-      aggregateSchema = "STRUCT<SEQ BIGINT, VAL BIGINT>")
-  public static Udaf<Long, Struct, Long> earliestLong(final boolean ignoreNulls) {
-    return earliest(STRUCT_LONG, ignoreNulls);
-  }
-
-  @UdafFactory(description = "return the earliest N values of an long column",
-      aggregateSchema = "ARRAY<STRUCT<SEQ BIGINT, VAL BIGINT>>")
-  public static Udaf<Long, List<Struct>, List<Long>> earliestLongs(final int earliestN) {
-    return earliestLongs(earliestN, true);
-  }
-
-  @UdafFactory(description = "return the earliest N values of an long column",
-      aggregateSchema = "ARRAY<STRUCT<SEQ BIGINT, VAL BIGINT>>")
-  public static Udaf<Long, List<Struct>, List<Long>> earliestLongs(
-      final int earliestN,
-      final boolean ignoreNulls
-  ) {
-    return earliestN(STRUCT_LONG, earliestN, ignoreNulls);
-  }
-
-  @UdafFactory(description = "return the earliest value of a double column",
-      aggregateSchema = "STRUCT<SEQ BIGINT, VAL DOUBLE>")
-  public static Udaf<Double, Struct, Double> earliestDouble() {
-    return earliestDouble(true);
-  }
-
-  @UdafFactory(description = "return the earliest value of a double column",
-      aggregateSchema = "STRUCT<SEQ BIGINT, VAL DOUBLE>")
-  public static Udaf<Double, Struct, Double> earliestDouble(final boolean ignoreNulls) {
-    return earliest(STRUCT_DOUBLE, ignoreNulls);
-  }
-
-  @UdafFactory(description = "return the earliest N values of a double column",
-      aggregateSchema = "ARRAY<STRUCT<SEQ BIGINT, VAL DOUBLE>>")
-  public static Udaf<Double, List<Struct>, List<Double>> earliestDoubles(final int earliestN) {
-    return earliestDoubles(earliestN, true);
-  }
-
-  @UdafFactory(description = "return the earliest N values of a double column",
-      aggregateSchema = "ARRAY<STRUCT<SEQ BIGINT, VAL DOUBLE>>")
-  public static Udaf<Double, List<Struct>, List<Double>> earliestDoubles(
-      final int earliestN,
-      final boolean ignoreNulls
-  ) {
-    return earliestN(STRUCT_DOUBLE, earliestN, ignoreNulls);
-  }
-
-  @UdafFactory(description = "return the earliest value of a boolean column",
-      aggregateSchema = "STRUCT<SEQ BIGINT, VAL BOOLEAN>")
-  public static Udaf<Boolean, Struct, Boolean> earliestBoolean() {
-    return earliestBoolean(true);
-  }
-
-  @UdafFactory(description = "return the earliest value of a boolean column",
-      aggregateSchema = "STRUCT<SEQ BIGINT, VAL BOOLEAN>")
-  public static Udaf<Boolean, Struct, Boolean> earliestBoolean(final boolean ignoreNulls) {
-    return earliest(STRUCT_BOOLEAN, ignoreNulls);
-  }
-
-  @UdafFactory(description = "return the earliest N values of a boolean column",
-      aggregateSchema = "ARRAY<STRUCT<SEQ BIGINT, VAL BOOLEAN>>")
-  public static Udaf<Boolean, List<Struct>, List<Boolean>> earliestBooleans(final int earliestN) {
-    return earliestBooleans(earliestN, true);
-  }
-
-  @UdafFactory(description = "return the earliest N values of a boolean column",
-      aggregateSchema = "ARRAY<STRUCT<SEQ BIGINT, VAL BOOLEAN>>")
-  public static Udaf<Boolean, List<Struct>, List<Boolean>> earliestBooleans(
-      final int earliestN,
-      final boolean ignoreNulls
-  ) {
-    return earliestN(STRUCT_BOOLEAN, earliestN, ignoreNulls);
-  }
-
-  @UdafFactory(description = "return the earliest value of a string column",
-      aggregateSchema = "STRUCT<SEQ BIGINT, VAL STRING>")
-  public static Udaf<String, Struct, String> earliestString() {
-    return earliestString(true);
-  }
-
-  @UdafFactory(description = "return the earliest value of a string column",
-      aggregateSchema = "STRUCT<SEQ BIGINT, VAL STRING>")
-  public static Udaf<String, Struct, String> earliestString(final boolean ignoreNulls) {
-    return earliest(STRUCT_STRING, ignoreNulls);
-  }
-
-  @UdafFactory(description = "return the earliest N values of a string column",
-      aggregateSchema = "ARRAY<STRUCT<SEQ BIGINT, VAL STRING>>")
-  public static Udaf<String, List<Struct>, List<String>> earliestStrings(final int earliestN) {
-    return earliestStrings(earliestN, true);
-  }
-
-  @UdafFactory(description = "return the earliest N values of a string column",
-      aggregateSchema = "ARRAY<STRUCT<SEQ BIGINT, VAL STRING>>")
-  public static Udaf<String, List<Struct>, List<String>> earliestStrings(
-      final int earliestN,
-      final boolean ignoreNulls
-  ) {
-    return earliestN(STRUCT_STRING, earliestN, ignoreNulls);
+  @UdafFactory(description = "return the earliest N values of a column")
+  public static <T> Udaf<T, List<Struct>, List<T>> earliest(final int earliestN,
+      final boolean ignoreNulls) {
+    return earliestTN(earliestN, ignoreNulls);
   }
 
   @VisibleForTesting
@@ -196,11 +82,32 @@ public final class EarliestByOffset {
   }
 
   @VisibleForTesting
-  static <T> Udaf<T, Struct, T> earliest(
-      final Schema structSchema,
+  static <T> Udaf<T, Struct, T> earliestT(
       final boolean ignoreNulls
   ) {
     return new Udaf<T, Struct, T>() {
+      Schema structSchema;
+      SqlType aggregateType;
+      SqlType returnType;
+
+      @Override
+      public void initializeTypeArguments(final List<SqlArgument> argTypeList) {
+        returnType = argTypeList.get(0).getSqlTypeOrThrow();
+        final Schema connectType =
+            SchemaConverters.sqlToConnectConverter().toConnectSchema(returnType);
+        structSchema = KudafByOffsetUtils.buildSchema(connectType);
+        aggregateType = SchemaConverters.connectToSqlConverter().toSqlType(structSchema);
+      }
+
+      @Override
+      public Optional<SqlType> getAggregateSqlType() {
+        return Optional.of(aggregateType);
+      }
+
+      @Override
+      public Optional<SqlType> getReturnSqlType() {
+        return Optional.of(returnType);
+      }
 
       @Override
       public Struct initialize() {
@@ -230,7 +137,7 @@ public final class EarliestByOffset {
           return aggOne;
         }
 
-        // When merging we need some way of evaluating the "earliest' one.
+        // When merging we need some way of evaluating the "earliest" one.
         // We do this by keeping track of the sequence of when it was originally processed
         if (INTERMEDIATE_STRUCT_COMPARATOR.compare(aggOne, aggTwo) < 0) {
           return aggOne;
@@ -252,8 +159,7 @@ public final class EarliestByOffset {
   }
 
   @VisibleForTesting
-  static <T> Udaf<T, List<Struct>, List<T>> earliestN(
-      final Schema structSchema,
+  static <T> Udaf<T, List<Struct>, List<T>> earliestTN(
       final int earliestN,
       final boolean ignoreNulls
   ) {
@@ -262,6 +168,31 @@ public final class EarliestByOffset {
     }
 
     return new Udaf<T, List<Struct>, List<T>>() {
+      Schema structSchema;
+      SqlType aggregateType;
+      SqlType returnType;
+
+      @Override
+      public void initializeTypeArguments(final List<SqlArgument> argTypeList) {
+        final SqlType inputType = argTypeList.get(0).getSqlTypeOrThrow();
+        final Schema connectType =
+            SchemaConverters.sqlToConnectConverter().toConnectSchema(inputType);
+        structSchema = KudafByOffsetUtils.buildSchema(connectType);
+        aggregateType =
+            SqlArray.of(SchemaConverters.connectToSqlConverter().toSqlType(structSchema));
+        returnType = SqlArray.of(inputType);
+      }
+
+      @Override
+      public Optional<SqlType> getAggregateSqlType() {
+        return Optional.of(aggregateType);
+      }
+
+      @Override
+      public Optional<SqlType> getReturnSqlType() {
+        return Optional.of(returnType);
+      }
+
       @Override
       public List<Struct> initialize() {
         return new ArrayList<>(earliestN);

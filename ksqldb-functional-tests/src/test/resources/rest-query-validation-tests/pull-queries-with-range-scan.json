@@ -1,0 +1,635 @@
+{
+  "comments": [
+    "Tests covering pull queries with range scan"
+  ],
+  "tests": [
+    {
+      "name": "range scan query must fail with table scan and range scan disable",
+      "statements": [
+        "CREATE TABLE INPUT (ID STRING PRIMARY KEY, V0 STRING, V1 STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE MATVIEW AS SELECT ID, V0, V1 FROM INPUT;",
+        "SELECT ID, V0, V1 FROM MATVIEW WHERE ID <= '10';"
+      ],
+      "properties": {
+        "ksql.query.pull.table.scan.enabled":  false,
+        "ksql.query.pull.range.scan.enabled":  false
+      },
+      "expectedError": {
+        "message": "Query requires table scan to be enabled"
+      }
+    },
+    {
+      "name": "range scan query must succeed with table scan disabled and range scan enabled",
+      "statements": [
+        "CREATE TABLE INPUT (ID STRING PRIMARY KEY, V0 STRING, V1 STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE MATVIEW AS SELECT ID, V0, V1 FROM INPUT;",
+        "SELECT ID, V0, V1 FROM MATVIEW WHERE ID < '12';"
+      ],
+      "properties": {
+        "ksql.query.pull.table.scan.enabled":  false,
+        "ksql.query.pull.range.scan.enabled":  true
+      },
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12345, "key": "10", "value": {"v0": "v10a", "v1": "v10b"}},
+        {"topic": "test_topic", "timestamp": 12355, "key": "11", "value": {"v0": "v11a", "v1": "v11b"}},
+        {"topic": "test_topic", "timestamp": 12365, "key": "12", "value": {"v0": "v12a", "v1": "v12b"}},
+        {"topic": "test_topic", "timestamp": 12375, "key": "13", "value": {"v0": "v13a", "v1": "v13b"}},
+        {"topic": "test_topic", "timestamp": 12385, "key": "14", "value": {"v0": "v14a", "v1": "v14b"}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ID` STRING KEY, `V0` STRING, `V1` STRING"}},
+          {"row":{"columns":["11", "v11a", "v11b"]}},
+          {"row":{"columns":["10", "v10a", "v10b"]}}
+        ]}
+      ]
+    },
+    {
+      "name": "less-equal",
+      "statements": [
+        "CREATE TABLE INPUT (ID STRING PRIMARY KEY, V0 STRING, V1 STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE MATVIEW AS SELECT ID, V0, V1 FROM INPUT;",
+        "SELECT ID, V0, V1 FROM MATVIEW WHERE ID <= '12';"
+      ],
+      "properties": {
+        "ksql.query.pull.table.scan.enabled":  false,
+        "ksql.query.pull.range.scan.enabled":  true
+      },
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12345, "key": "10", "value": {"v0": "v10a", "v1": "v10b"}},
+        {"topic": "test_topic", "timestamp": 12355, "key": "11", "value": {"v0": "v11a", "v1": "v11b"}},
+        {"topic": "test_topic", "timestamp": 12365, "key": "12", "value": {"v0": "v12a", "v1": "v12b"}},
+        {"topic": "test_topic", "timestamp": 12375, "key": "13", "value": {"v0": "v13a", "v1": "v13b"}},
+        {"topic": "test_topic", "timestamp": 12385, "key": "14", "value": {"v0": "v14a", "v1": "v14b"}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ID` STRING KEY, `V0` STRING, `V1` STRING"}},
+          {"row":{"columns":["11", "v11a", "v11b"]}},
+          {"row":{"columns":["10", "v10a", "v10b"]}},
+          {"row":{"columns":["12", "v12a", "v12b"]}}
+        ]}
+      ]
+    },
+    {
+      "name": "greater",
+      "statements": [
+        "CREATE TABLE INPUT (ID STRING PRIMARY KEY, V0 STRING, V1 STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE MATVIEW AS SELECT ID, V0, V1 FROM INPUT;",
+        "SELECT ID, V0, V1 FROM MATVIEW WHERE ID > '12';"
+      ],
+      "properties": {
+        "ksql.query.pull.table.scan.enabled":  false,
+        "ksql.query.pull.range.scan.enabled":  true
+      },
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12345, "key": "10", "value": {"v0": "v10a", "v1": "v10b"}},
+        {"topic": "test_topic", "timestamp": 12355, "key": "11", "value": {"v0": "v11a", "v1": "v11b"}},
+        {"topic": "test_topic", "timestamp": 12365, "key": "12", "value": {"v0": "v12a", "v1": "v12b"}},
+        {"topic": "test_topic", "timestamp": 12375, "key": "13", "value": {"v0": "v13a", "v1": "v13b"}},
+        {"topic": "test_topic", "timestamp": 12385, "key": "14", "value": {"v0": "v14a", "v1": "v14b"}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ID` STRING KEY, `V0` STRING, `V1` STRING"}},
+          {"row":{"columns":["13", "v13a", "v13b"]}},
+          {"row":{"columns":["14", "v14a", "v14b"]}}
+        ]}
+      ]
+    },
+    {
+      "name": "greater-equal",
+      "statements": [
+        "CREATE TABLE INPUT (ID STRING PRIMARY KEY, V0 STRING, V1 STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE MATVIEW AS SELECT ID, V0, V1 FROM INPUT;",
+        "SELECT ID, V0, V1 FROM MATVIEW WHERE ID >= '12';"
+      ],
+      "properties": {
+        "ksql.query.pull.table.scan.enabled":  false,
+        "ksql.query.pull.range.scan.enabled":  true
+      },
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12345, "key": "10", "value": {"v0": "v10a", "v1": "v10b"}},
+        {"topic": "test_topic", "timestamp": 12355, "key": "11", "value": {"v0": "v11a", "v1": "v11b"}},
+        {"topic": "test_topic", "timestamp": 12365, "key": "12", "value": {"v0": "v12a", "v1": "v12b"}},
+        {"topic": "test_topic", "timestamp": 12375, "key": "13", "value": {"v0": "v13a", "v1": "v13b"}},
+        {"topic": "test_topic", "timestamp": 12385, "key": "14", "value": {"v0": "v14a", "v1": "v14b"}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ID` STRING KEY, `V0` STRING, `V1` STRING"}},
+          {"row":{"columns":["12", "v12a", "v12b"]}},
+          {"row":{"columns":["13", "v13a", "v13b"]}},
+          {"row":{"columns":["14", "v14a", "v14b"]}}
+        ]}
+      ]
+    },
+    {
+      "name": "range scan on non-strings should fail if table-scan is disabled",
+      "statements": [
+        "CREATE TABLE INPUT (ID INTEGER PRIMARY KEY, V0 STRING, V1 STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE MATVIEW AS SELECT ID, V0, V1 FROM INPUT;",
+        "SELECT ID, V0, V1 FROM MATVIEW WHERE ID >= 12;"
+      ],
+      "properties": {
+        "ksql.query.pull.table.scan.enabled":  false,
+        "ksql.query.pull.range.scan.enabled":  true
+      },
+      "expectedError": {
+        "message": "Query requires table scan to be enabled"
+      }
+    },
+    {
+      "name": "range scan on non-strings should fall back to table-scan if enabled",
+      "statements": [
+        "CREATE TABLE INPUT (ID INTEGER PRIMARY KEY, V0 STRING, V1 STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE MATVIEW AS SELECT ID, V0, V1 FROM INPUT;",
+        "SELECT ID, V0, V1 FROM MATVIEW WHERE ID >= 12;"
+      ],
+      "properties": {
+        "ksql.query.pull.table.scan.enabled":  true,
+        "ksql.query.pull.range.scan.enabled":  true
+      },
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12345, "key": 10, "value": {"v0": "v10a", "v1": "v10b"}},
+        {"topic": "test_topic", "timestamp": 12355, "key": 11, "value": {"v0": "v11a", "v1": "v11b"}},
+        {"topic": "test_topic", "timestamp": 12365, "key": 12, "value": {"v0": "v12a", "v1": "v12b"}},
+        {"topic": "test_topic", "timestamp": 12375, "key": 13, "value": {"v0": "v13a", "v1": "v13b"}},
+        {"topic": "test_topic", "timestamp": 12385, "key": 14, "value": {"v0": "v14a", "v1": "v14b"}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ID` INTEGER KEY, `V0` STRING, `V1` STRING"}},
+          {"row":{"columns":[13, "v13a", "v13b"]}},
+          {"row":{"columns":[12, "v12a", "v12b"]}},
+          {"row":{"columns":[14, "v14a", "v14b"]}}
+        ]}
+      ]
+    },
+    {
+      "name": "range scan query must fail for multiple range expressions and table scan disabled",
+      "statements": [
+        "CREATE TABLE INPUT (ID STRING PRIMARY KEY, V0 STRING, V1 STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE MATVIEW AS SELECT ID, V0, V1 FROM INPUT;",
+        "SELECT ID, V0, V1 FROM MATVIEW WHERE ID >= '11' AND ID <= '13';"
+      ],
+      "properties": {
+        "ksql.query.pull.table.scan.enabled":  false,
+        "ksql.query.pull.range.scan.enabled":  true
+      },
+      "expectedError": {
+        "message": "A comparison condition on the key column cannot be combined with other comparisons such as an IN predicate"
+      }
+    },
+    {
+      "name": "range scan query must fall back to table scan for multiple range expressions if table scan is enabled",
+      "statements": [
+        "CREATE TABLE INPUT (ID STRING PRIMARY KEY, V0 STRING, V1 STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE MATVIEW AS SELECT ID, V0, V1 FROM INPUT;",
+        "SELECT ID, V0, V1 FROM MATVIEW WHERE ID >= '11' AND ID <= '13';"
+      ],
+      "properties": {
+        "ksql.query.pull.table.scan.enabled":  true,
+        "ksql.query.pull.range.scan.enabled":  true
+      },
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12345, "key": "10", "value": {"v0": "v10a", "v1": "v10b"}},
+        {"topic": "test_topic", "timestamp": 12355, "key": "11", "value": {"v0": "v11a", "v1": "v11b"}},
+        {"topic": "test_topic", "timestamp": 12365, "key": "12", "value": {"v0": "v12a", "v1": "v12b"}},
+        {"topic": "test_topic", "timestamp": 12375, "key": "13", "value": {"v0": "v13a", "v1": "v13b"}},
+        {"topic": "test_topic", "timestamp": 12385, "key": "14", "value": {"v0": "v14a", "v1": "v14b"}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ID` STRING KEY, `V0` STRING, `V1` STRING"}},
+          {"row":{"columns":["11", "v11a", "v11b"]}},
+          {"row":{"columns":["12", "v12a", "v12b"]}},
+          {"row":{"columns":["13", "v13a", "v13b"]}}
+        ]}
+      ]
+    },
+    {
+      "name": "range scan query on non primary key must fail if table scan is disabled",
+      "statements": [
+        "CREATE TABLE INPUT (ID STRING PRIMARY KEY, V0 STRING, V1 STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE MATVIEW AS SELECT ID, V0, V1 FROM INPUT;",
+        "SELECT ID, V0, V1 FROM MATVIEW WHERE V0 >= '13a';"
+      ],
+      "properties": {
+        "ksql.query.pull.table.scan.enabled":  false,
+        "ksql.query.pull.range.scan.enabled":  true
+      },
+      "expectedError": {
+        "message": "WHERE clause missing key column for disjunct"
+      }
+    },
+    {
+      "name": "range scan query on non primary key must succeed if table scan is enabled",
+      "statements": [
+        "CREATE TABLE INPUT (ID STRING PRIMARY KEY, V0 STRING, V1 STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE MATVIEW AS SELECT ID, V0, V1 FROM INPUT;",
+        "SELECT ID, V0, V1 FROM MATVIEW WHERE V0 >= 'v13a';"
+      ],
+      "properties": {
+        "ksql.query.pull.table.scan.enabled":  true,
+        "ksql.query.pull.range.scan.enabled":  false
+      },
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12345, "key": "10", "value": {"v0": "v10a", "v1": "v10b"}},
+        {"topic": "test_topic", "timestamp": 12355, "key": "11", "value": {"v0": "v11a", "v1": "v11b"}},
+        {"topic": "test_topic", "timestamp": 12365, "key": "12", "value": {"v0": "v12a", "v1": "v12b"}},
+        {"topic": "test_topic", "timestamp": 12375, "key": "13", "value": {"v0": "v13a", "v1": "v13b"}},
+        {"topic": "test_topic", "timestamp": 12385, "key": "14", "value": {"v0": "v14a", "v1": "v14b"}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ID` STRING KEY, `V0` STRING, `V1` STRING"}},
+          {"row":{"columns":["13", "v13a", "v13b"]}},
+          {"row":{"columns":["14", "v14a", "v14b"]}}
+        ]}
+      ]
+    },
+    {
+      "name": "less-equal with a single partition",
+      "statements": [
+        "CREATE TABLE INPUT (ID STRING PRIMARY KEY, V0 STRING, V1 STRING) WITH (kafka_topic='test_topic', value_format='JSON', PARTITIONS=1);",
+        "CREATE TABLE MATVIEW AS SELECT ID, V0, V1 FROM INPUT;",
+        "SELECT ID, V0, V1 FROM MATVIEW WHERE ID <= '12';"
+      ],
+      "properties": {
+        "ksql.query.pull.table.scan.enabled":  false,
+        "ksql.query.pull.range.scan.enabled":  true
+      },
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12345, "key": "10", "value": {"v0": "v10a", "v1": "v10b"}},
+        {"topic": "test_topic", "timestamp": 12355, "key": "11", "value": {"v0": "v11a", "v1": "v11b"}},
+        {"topic": "test_topic", "timestamp": 12365, "key": "12", "value": {"v0": "v12a", "v1": "v12b"}},
+        {"topic": "test_topic", "timestamp": 12375, "key": "13", "value": {"v0": "v13a", "v1": "v13b"}},
+        {"topic": "test_topic", "timestamp": 12385, "key": "14", "value": {"v0": "v14a", "v1": "v14b"}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ID` STRING KEY, `V0` STRING, `V1` STRING"}},
+          {"row":{"columns":["10", "v10a", "v10b"]}},
+          {"row":{"columns":["11", "v11a", "v11b"]}},
+          {"row":{"columns":["12", "v12a", "v12b"]}}
+        ]}
+      ]
+    },
+    {
+      "name": "less-equal with a 3 partitions",
+      "statements": [
+        "CREATE TABLE INPUT (ID STRING PRIMARY KEY, V0 STRING, V1 STRING) WITH (kafka_topic='test_topic', value_format='JSON', PARTITIONS=3);",
+        "CREATE TABLE MATVIEW AS SELECT ID, V0, V1 FROM INPUT;",
+        "SELECT ID, V0, V1 FROM MATVIEW WHERE ID <= '12';"
+      ],
+      "properties": {
+        "ksql.query.pull.table.scan.enabled":  false,
+        "ksql.query.pull.range.scan.enabled":  true
+      },
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12345, "key": "10", "value": {"v0": "v10a", "v1": "v10b"}},
+        {"topic": "test_topic", "timestamp": 12355, "key": "11", "value": {"v0": "v11a", "v1": "v11b"}},
+        {"topic": "test_topic", "timestamp": 12365, "key": "12", "value": {"v0": "v12a", "v1": "v12b"}},
+        {"topic": "test_topic", "timestamp": 12375, "key": "13", "value": {"v0": "v13a", "v1": "v13b"}},
+        {"topic": "test_topic", "timestamp": 12385, "key": "14", "value": {"v0": "v14a", "v1": "v14b"}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ID` STRING KEY, `V0` STRING, `V1` STRING"}},
+          {"row":{"columns":["11", "v11a", "v11b"]}},
+          {"row":{"columns":["10", "v10a", "v10b"]}},
+          {"row":{"columns":["12", "v12a", "v12b"]}}
+        ]}
+      ]
+    },
+    {
+      "name": "less-equal with a 4 partitions",
+      "statements": [
+        "CREATE TABLE INPUT (ID STRING PRIMARY KEY, V0 STRING, V1 STRING) WITH (kafka_topic='test_topic', value_format='JSON', PARTITIONS=4);",
+        "CREATE TABLE MATVIEW AS SELECT ID, V0, V1 FROM INPUT;",
+        "SELECT ID, V0, V1 FROM MATVIEW WHERE ID <= '12';"
+      ],
+      "properties": {
+        "ksql.query.pull.table.scan.enabled":  false,
+        "ksql.query.pull.range.scan.enabled":  true
+      },
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12345, "key": "10", "value": {"v0": "v10a", "v1": "v10b"}},
+        {"topic": "test_topic", "timestamp": 12355, "key": "11", "value": {"v0": "v11a", "v1": "v11b"}},
+        {"topic": "test_topic", "timestamp": 12365, "key": "12", "value": {"v0": "v12a", "v1": "v12b"}},
+        {"topic": "test_topic", "timestamp": 12375, "key": "13", "value": {"v0": "v13a", "v1": "v13b"}},
+        {"topic": "test_topic", "timestamp": 12385, "key": "14", "value": {"v0": "v14a", "v1": "v14b"}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ID` STRING KEY, `V0` STRING, `V1` STRING"}},
+          {"row":{"columns":["11", "v11a", "v11b"]}},
+          {"row":{"columns":["10", "v10a", "v10b"]}},
+          {"row":{"columns":["12", "v12a", "v12b"]}}
+        ]}
+      ]
+    },
+    {
+      "name": "range scan query must fall back to table scan for OR disjunctions of range expressions",
+      "statements": [
+        "CREATE TABLE INPUT (ID STRING PRIMARY KEY, V0 STRING, V1 STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE MATVIEW AS SELECT ID, V0, V1 FROM INPUT;",
+        "SELECT ID, V0, V1 FROM MATVIEW WHERE ID <= '11' OR ID >= '13';"
+      ],
+      "properties": {
+        "ksql.query.pull.table.scan.enabled":  false,
+        "ksql.query.pull.range.scan.enabled":  true
+      },
+      "expectedError": {
+        "message": "Query requires table scan to be enabled"
+      }
+    },
+    {
+      "name": "range scan query must for OR disjunctions must succeed if table scan is enabled",
+      "statements": [
+        "CREATE TABLE INPUT (ID STRING PRIMARY KEY, V0 STRING, V1 STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE MATVIEW AS SELECT ID, V0, V1 FROM INPUT;",
+        "SELECT ID, V0, V1 FROM MATVIEW WHERE ID <= '11' OR ID >= '13';"
+      ],
+      "properties": {
+        "ksql.query.pull.table.scan.enabled":  true,
+        "ksql.query.pull.range.scan.enabled":  true
+      },
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12345, "key": "10", "value": {"v0": "v10a", "v1": "v10b"}},
+        {"topic": "test_topic", "timestamp": 12355, "key": "11", "value": {"v0": "v11a", "v1": "v11b"}},
+        {"topic": "test_topic", "timestamp": 12365, "key": "12", "value": {"v0": "v12a", "v1": "v12b"}},
+        {"topic": "test_topic", "timestamp": 12375, "key": "13", "value": {"v0": "v13a", "v1": "v13b"}},
+        {"topic": "test_topic", "timestamp": 12385, "key": "14", "value": {"v0": "v14a", "v1": "v14b"}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ID` STRING KEY, `V0` STRING, `V1` STRING"}},
+          {"row":{"columns":["11", "v11a", "v11b"]}},
+          {"row":{"columns":["10", "v10a", "v10b"]}},
+          {"row":{"columns":["13", "v13a", "v13b"]}},
+          {"row":{"columns":["14", "v14a", "v14b"]}}
+        ]}
+      ]
+    },
+    {
+      "name": "multi-column range must succeed with table scan enabled",
+      "statements": [
+        "CREATE STREAM INPUT (ID1 STRING KEY, ID2 INT) WITH (kafka_topic='test_topic', format='JSON');",
+        "CREATE TABLE AGGREGATE AS SELECT ID1, ID2, COUNT(1) AS COUNT FROM INPUT GROUP BY ID1, ID2;",
+        "SELECT * FROM AGGREGATE WHERE ID1<='11' AND ID2>=10;"
+      ],
+      "properties": {
+        "ksql.query.pull.table.scan.enabled":  true,
+        "ksql.query.pull.range.scan.enabled":  true
+      },
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12345, "key": "11", "value": {"id2": 10}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ID1` STRING KEY, `ID2` INTEGER KEY, `COUNT` BIGINT"}},
+          {"row":{"columns":["11", 10, 1]}}
+        ]}
+      ]
+    },
+    {
+      "name": "multi-column range must fail with table scan disabled",
+      "statements": [
+        "CREATE STREAM INPUT (ID1 STRING KEY, ID2 INT) WITH (kafka_topic='test_topic', format='JSON');",
+        "CREATE TABLE AGGREGATE AS SELECT ID1, ID2, COUNT(1) AS COUNT FROM INPUT GROUP BY ID1, ID2;",
+        "SELECT * FROM AGGREGATE WHERE ID1<='11' AND ID2>=10;"
+      ],
+      "properties": {
+        "ksql.query.pull.table.scan.enabled":  false,
+        "ksql.query.pull.range.scan.enabled":  true
+      },
+      "expectedError": {
+        "message": "Query requires table scan to be enabled"
+      }
+    },
+    {
+      "name": "multi-column equality comparison must succeed with table scan and range scan disabled",
+      "statements": [
+        "CREATE STREAM INPUT (ID1 STRING KEY, ID2 INT) WITH (kafka_topic='test_topic', format='JSON');",
+        "CREATE TABLE AGGREGATE AS SELECT ID1, ID2, COUNT(1) AS COUNT FROM INPUT GROUP BY ID1, ID2;",
+        "SELECT * FROM AGGREGATE WHERE ID1='11' AND ID2=10;"
+      ],
+      "properties": {
+        "ksql.query.pull.table.scan.enabled":  false,
+        "ksql.query.pull.range.scan.enabled":  false
+      },
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12345, "key": "11", "value": {"id2": 10}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ID1` STRING KEY, `ID2` INTEGER KEY, `COUNT` BIGINT"}},
+          {"row":{"columns":["11", 10, 1]}}
+        ]}
+      ]
+    },
+    {
+      "name": "multi-column range disjunction must succeed with table scan enabled",
+      "statements": [
+        "CREATE STREAM INPUT (ID1 STRING KEY, ID2 INT) WITH (kafka_topic='test_topic', format='JSON');",
+        "CREATE TABLE AGGREGATE AS SELECT ID1, ID2, COUNT(1) AS COUNT FROM INPUT GROUP BY ID1, ID2;",
+        "SELECT * FROM AGGREGATE WHERE ID1<='11' OR ID2>=10;"
+      ],
+      "properties": {
+        "ksql.query.pull.table.scan.enabled":  true,
+        "ksql.query.pull.range.scan.enabled":  true
+      },
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12345, "key": "11", "value": {"id2": 10}},
+        {"topic": "test_topic", "timestamp": 12365, "key": "9", "value": {"id2": 12}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ID1` STRING KEY, `ID2` INTEGER KEY, `COUNT` BIGINT"}},
+          {"row":{"columns":["9", 12, 1]}},
+          {"row":{"columns":["11", 10, 1]}}
+        ]}
+      ]
+    },
+    {
+      "name": "multi-column range disjunction must fail with table scan disabled",
+      "statements": [
+        "CREATE STREAM INPUT (ID1 STRING KEY, ID2 INT) WITH (kafka_topic='test_topic', format='JSON');",
+        "CREATE TABLE AGGREGATE AS SELECT ID1, ID2, COUNT(1) AS COUNT FROM INPUT GROUP BY ID1, ID2;",
+        "SELECT * FROM AGGREGATE WHERE ID1<='11' OR ID2>=10;"
+      ],
+      "properties": {
+        "ksql.query.pull.table.scan.enabled":  false,
+        "ksql.query.pull.range.scan.enabled":  true
+      },
+      "expectedError": {
+        "message": "Multi-column sources must specify every key in the WHERE clause"
+      }
+    },
+    {
+      "name": "multi-column range and equality should succeed",
+      "statements": [
+        "CREATE STREAM INPUT (ID1 STRING KEY, ID2 INT) WITH (kafka_topic='test_topic', format='JSON');",
+        "CREATE TABLE AGGREGATE AS SELECT ID1, ID2, COUNT(1) AS COUNT FROM INPUT GROUP BY ID1, ID2;",
+        "SELECT * FROM AGGREGATE WHERE ID1<='11' AND COUNT = 1;"
+      ],
+      "properties": {
+        "ksql.query.pull.table.scan.enabled":  true,
+        "ksql.query.pull.range.scan.enabled":  true
+      },
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12345, "key": "11", "value": {"id2": 10}},
+        {"topic": "test_topic", "timestamp": 12365, "key": "09", "value": {"id2": 12}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ID1` STRING KEY, `ID2` INTEGER KEY, `COUNT` BIGINT"}},
+          {"row":{"columns":["11", 10, 1]}},
+          {"row":{"columns":["09", 12, 1]}}
+        ]}
+      ]
+    },
+    {
+      "name": "range scan query on key and non key must succeed with table scan enabled",
+      "statements": [
+        "CREATE TABLE INPUT (ID STRING PRIMARY KEY, V0 STRING, V1 STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE MATVIEW AS SELECT ID, V0, V1 FROM INPUT;",
+        "SELECT ID, V0, V1 FROM MATVIEW WHERE ID < '12' AND V0 > '10';"
+      ],
+      "properties": {
+        "ksql.query.pull.table.scan.enabled":  true,
+        "ksql.query.pull.range.scan.enabled":  true
+      },
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12345, "key": "10", "value": {"v0": "v10a", "v1": "v10b"}},
+        {"topic": "test_topic", "timestamp": 12355, "key": "11", "value": {"v0": "v11a", "v1": "v11b"}},
+        {"topic": "test_topic", "timestamp": 12365, "key": "12", "value": {"v0": "v12a", "v1": "v12b"}},
+        {"topic": "test_topic", "timestamp": 12375, "key": "13", "value": {"v0": "v13a", "v1": "v13b"}},
+        {"topic": "test_topic", "timestamp": 12385, "key": "14", "value": {"v0": "v14a", "v1": "v14b"}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ID` STRING KEY, `V0` STRING, `V1` STRING"}},
+          {"row":{"columns":["11", "v11a", "v11b"]}},
+          {"row":{"columns":["10", "v10a", "v10b"]}}
+        ]}
+      ]
+    },
+    {
+      "name": "range scan query on key and non key must succeed with table scan disabled but range scan enabled",
+      "statements": [
+        "CREATE TABLE INPUT (ID STRING PRIMARY KEY, V0 STRING, V1 STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE MATVIEW AS SELECT ID, V0, V1 FROM INPUT;",
+        "SELECT ID, V0, V1 FROM MATVIEW WHERE ID < '12' AND V0 > '10';"
+      ],
+      "properties": {
+        "ksql.query.pull.table.scan.enabled":  false,
+        "ksql.query.pull.range.scan.enabled":  true
+      },
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12345, "key": "10", "value": {"v0": "v10a", "v1": "v10b"}},
+        {"topic": "test_topic", "timestamp": 12355, "key": "11", "value": {"v0": "v11a", "v1": "v11b"}},
+        {"topic": "test_topic", "timestamp": 12365, "key": "12", "value": {"v0": "v12a", "v1": "v12b"}},
+        {"topic": "test_topic", "timestamp": 12375, "key": "13", "value": {"v0": "v13a", "v1": "v13b"}},
+        {"topic": "test_topic", "timestamp": 12385, "key": "14", "value": {"v0": "v14a", "v1": "v14b"}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ID` STRING KEY, `V0` STRING, `V1` STRING"}},
+          {"row":{"columns":["11", "v11a", "v11b"]}},
+          {"row":{"columns":["10", "v10a", "v10b"]}}
+        ]}
+      ]
+    },
+    {
+      "name": "windowed range query must succeed with table scan enabled",
+      "statements": [
+        "CREATE STREAM INPUT (ID STRING KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE AGGREGATE AS SELECT ID, COUNT(1) AS COUNT FROM INPUT WINDOW TUMBLING(SIZE 1 SECOND) GROUP BY ID;",
+        "SELECT * FROM AGGREGATE WHERE ID<= '10';"
+      ],
+      "properties": {
+        "ksql.query.pull.table.scan.enabled":  true,
+        "ksql.query.pull.range.scan.enabled":  true
+      },
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12346, "key": "11", "value": {"val": 1}},
+        {"topic": "test_topic", "timestamp": 12345, "key": "10", "value": {"val": 2}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ID` STRING KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `COUNT` BIGINT"}},
+          {"row":{"columns":["10", 12000, 13000, 1]}}
+        ]}
+      ]
+    },
+    {
+      "name": "windowed range query must fail with table scan disabled",
+      "statements": [
+        "CREATE STREAM INPUT (ID STRING KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE AGGREGATE AS SELECT ID, COUNT(1) AS COUNT FROM INPUT WINDOW TUMBLING(SIZE 1 SECOND) GROUP BY ID;",
+        "SELECT * FROM AGGREGATE WHERE ID<= '10';"
+      ],
+      "properties": {
+        "ksql.query.pull.table.scan.enabled":  false,
+        "ksql.query.pull.range.scan.enabled":  true
+      },
+      "expectedError": {
+        "message": "Query requires table scan to be enabled"
+      }
+    },
+    {
+      "name": "multi-column range on single key must fail with table scan disabled",
+      "statements": [
+        "CREATE STREAM INPUT (ID1 STRING KEY, ID2 INT) WITH (kafka_topic='test_topic', format='JSON');",
+        "CREATE TABLE AGGREGATE AS SELECT ID1, ID2, COUNT(1) AS COUNT FROM INPUT GROUP BY ID1, ID2;",
+        "SELECT * FROM AGGREGATE WHERE ID1<='09';"
+      ],
+      "properties": {
+        "ksql.query.pull.table.scan.enabled":  false,
+        "ksql.query.pull.range.scan.enabled":  true
+      },
+      "expectedError": {
+        "message": "Multi-column sources must specify every key in the WHERE clause."
+      }
+    }
+  ]
+}

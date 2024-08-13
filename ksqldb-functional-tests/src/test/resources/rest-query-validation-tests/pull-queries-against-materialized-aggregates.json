@@ -1043,9 +1043,7 @@
         "ksql.query.pull.table.scan.enabled":  false
       },
       "expectedError": {
-        "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
-        "message": "Bound on key columns '[`ID` STRING KEY]' must currently be '='.",
-        "status": 400
+        "message": "A comparison condition on the key column cannot be combined with other comparisons such as an IN predicate"
       }
     },
     {
@@ -1208,19 +1206,6 @@
       "expectedError": {
         "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
         "message": "Error in WHERE expression: Comparison with NULL not supported: INTEGER = NULL\nUse 'IS NULL' or 'IS NOT NULL' instead.\nStatement: (ID = null)",
-        "status": 400
-      }
-    },
-    {
-      "name": "on stream",
-      "statements": [
-        "CREATE STREAM S1 (ID INT KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM S2 AS SELECT * FROM S1;",
-        "SELECT * FROM S2 WHERE ID = 10;"
-      ],
-      "expectedError": {
-        "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
-        "message": "Pull queries are not supported on streams.",
         "status": 400
       }
     },
@@ -2465,9 +2450,7 @@
         "ksql.query.pull.table.scan.enabled":  false
       },
       "expectedError": {
-        "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
-        "message": "Bound on key columns '[`ID` INTEGER KEY]' must currently be '='.",
-        "status": 400
+        "message": "A comparison condition on the key column cannot be combined with other comparisons such as an IN predicate"
       }
     },
     {
@@ -2567,9 +2550,7 @@
         "ksql.query.pull.table.scan.enabled":  false
       },
       "expectedError": {
-        "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
-        "message": "An equality condition on the key column cannot be combined with other comparisons such as an IN predicate",
-        "status": 400
+        "message": "A comparison condition on the key column cannot be combined with other comparisons such as an IN predicate"
       }
     },
     {
@@ -2893,24 +2874,6 @@
           {"row":{"columns":[101, 3]}}
         ]}
       ]
-    },
-    {
-      "name": "should give good error message when querying a stream with multiple input queries",
-      "statements": [
-        "CREATE STREAM tweets_01 (id varchar key, contents varchar) with (kafka_topic='tweets', format='json', partitions=1);",
-        "CREATE STREAM tweets_02 (id varchar key, contents varchar) with (kafka_topic='tweets', format='json', partitions=1);",
-        "CREATE STREAM ALL_TWEETS WITH (KAFKA_TOPIC='ALL_TWEETS', PARTITIONS=1, REPLICAS=1) AS SELECT * FROM tweets_01;",
-        "INSERT INTO ALL_TWEETS SELECT * FROM TWEETS_02;",
-        "SELECT * FROM ALL_TWEETS WHERE ID = '10';"
-      ],
-      "properties": {
-        "ksql.query.pull.table.scan.enabled":  false
-      },
-      "expectedError": {
-        "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
-        "message": "Add EMIT CHANGES if you intended to issue a push query.",
-        "status": 400
-      }
     },
     {
       "name": "lambdas - lambda use in SELECT",

@@ -43,6 +43,7 @@ import io.confluent.ksql.parser.tree.SelectItem;
 import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.Statements;
+import io.confluent.ksql.parser.tree.StructAll;
 import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.parser.tree.TableElements;
@@ -267,6 +268,14 @@ public final class StatementRewriter<C> {
       return node;
     }
 
+    protected AstNode visitStructAll(final StructAll node, final C context) {
+      final Optional<AstNode> result = plugin.apply(node, new Context<>(context, this));
+      if (result.isPresent()) {
+        return result.get();
+      }
+      return node;
+    }
+
     @Override
     protected AstNode visitTable(final Table node, final C context) {
       return node;
@@ -352,9 +361,9 @@ public final class StatementRewriter<C> {
       }
       return new TableElement(
           node.getLocation(),
-          node.getNamespace(),
           node.getName(),
-          (Type) processExpression(node.getType(), context)
+          (Type) processExpression(node.getType(), context),
+          node.getConstraints()
       );
     }
 

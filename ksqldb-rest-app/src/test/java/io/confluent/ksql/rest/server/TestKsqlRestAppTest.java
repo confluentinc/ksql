@@ -15,10 +15,13 @@
 
 package io.confluent.ksql.rest.server;
 
+import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.integration.IntegrationTestHarness;
 import org.junit.ClassRule;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 
+@Category({IntegrationTest.class})
 public final class TestKsqlRestAppTest {
 
   @ClassRule

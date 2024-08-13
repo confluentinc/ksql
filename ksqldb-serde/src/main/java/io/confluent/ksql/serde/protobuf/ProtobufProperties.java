@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 Confluent Inc.
+ * Copyright 2021 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -17,28 +17,68 @@ package io.confluent.ksql.serde.protobuf;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.errorprone.annotations.Immutable;
-import io.confluent.ksql.serde.FormatProperties;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.confluent.ksql.serde.connect.ConnectProperties;
 import java.util.Map;
 
-@Immutable
-public class ProtobufProperties {
+public class ProtobufProperties extends ConnectProperties {
 
   public static final String UNWRAP_PRIMITIVES = "unwrapPrimitives";
   public static final String UNWRAP = "true";
   private static final String WRAP = "false";
 
-  static final ImmutableSet<String> SUPPORTED_PROPERTIES = ImmutableSet.of(UNWRAP_PRIMITIVES);
+  public static final String NULLABLE_REPRESENTATION = "nullableRepresentation";
+  public static final String NULLABLE_AS_OPTIONAL = "optional";
+  public static final String NULLABLE_AS_WRAPPER = "wrapper";
 
-  private final ImmutableMap<String, String> properties;
+  static final ImmutableSet<String> SUPPORTED_PROPERTIES = ImmutableSet.of(
+      FULL_SCHEMA_NAME,
+      SCHEMA_ID,
+      UNWRAP_PRIMITIVES,
+      NULLABLE_REPRESENTATION,
+      SUBJECT_NAME
+  );
+
+  static final ImmutableSet<String> INHERITABLE_PROPERTIES = ImmutableSet.of(
+      FULL_SCHEMA_NAME
+  );
 
   public ProtobufProperties(final Map<String, String> formatProps) {
-    this.properties = ImmutableMap.copyOf(formatProps);
+    super(ProtobufFormat.NAME, formatProps);
+  }
 
-    FormatProperties.validateProperties(ProtobufFormat.NAME, formatProps, SUPPORTED_PROPERTIES);
+  @Override
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP")
+  public ImmutableSet<String> getSupportedProperties() {
+    return SUPPORTED_PROPERTIES;
+  }
+
+  @Override
+  public String getDefaultFullSchemaName() {
+    // Return null to be backward compatible for unset schema name
+    return null;
   }
 
   public boolean getUnwrapPrimitives() {
     return UNWRAP.equalsIgnoreCase(properties.getOrDefault(UNWRAP_PRIMITIVES, WRAP));
+  }
+
+  public boolean isNullableAsOptional() {
+    return NULLABLE_AS_OPTIONAL.equals(getNullableRepresentation());
+  }
+
+  public boolean isNullableAsWrapper() {
+    return NULLABLE_AS_WRAPPER.equals(getNullableRepresentation());
+  }
+
+  private String getNullableRepresentation() {
+    return properties.getOrDefault(NULLABLE_REPRESENTATION, null);
+  }
+
+  public ProtobufProperties withFullSchemaName(final String name) {
+    final ImmutableMap.Builder<String, String> builder = ImmutableMap.builder();
+    builder.putAll(properties);
+    builder.put(FULL_SCHEMA_NAME, name);
+    return new ProtobufProperties(builder.build());
   }
 }

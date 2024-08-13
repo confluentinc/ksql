@@ -1,0 +1,33 @@
+Topologies:
+   Sub-topology: 0
+    Source: KSTREAM-SOURCE-0000000006 (topics: [LEFT])
+      --> KSTREAM-TRANSFORMVALUES-0000000007
+    Source: KSTREAM-SOURCE-0000000001 (topics: [RIGHT])
+      --> KTABLE-SOURCE-0000000002
+    Processor: KSTREAM-TRANSFORMVALUES-0000000007 (stores: [])
+      --> PrependAliasLeft
+      <-- KSTREAM-SOURCE-0000000006
+    Processor: KTABLE-SOURCE-0000000002 (stores: [])
+      --> KTABLE-TRANSFORMVALUES-0000000003
+      <-- KSTREAM-SOURCE-0000000001
+    Processor: PrependAliasLeft (stores: [])
+      --> Join
+      <-- KSTREAM-TRANSFORMVALUES-0000000007
+    Processor: Join (stores: [KafkaTopic_Right-Reduce])
+      --> Project
+      <-- PrependAliasLeft
+    Processor: KTABLE-TRANSFORMVALUES-0000000003 (stores: [KafkaTopic_Right-Reduce])
+      --> KTABLE-TRANSFORMVALUES-0000000004
+      <-- KTABLE-SOURCE-0000000002
+    Processor: KTABLE-TRANSFORMVALUES-0000000004 (stores: [])
+      --> PrependAliasRight
+      <-- KTABLE-TRANSFORMVALUES-0000000003
+    Processor: Project (stores: [])
+      --> KSTREAM-SINK-0000000011
+      <-- Join
+    Sink: KSTREAM-SINK-0000000011 (topic: OUTPUT)
+      <-- Project
+    Processor: PrependAliasRight (stores: [])
+      --> none
+      <-- KTABLE-TRANSFORMVALUES-0000000004
+

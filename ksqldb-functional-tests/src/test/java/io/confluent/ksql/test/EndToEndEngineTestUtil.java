@@ -20,7 +20,6 @@ import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.collect.Maps;
 import io.confluent.connect.avro.AvroData;
-import io.confluent.ksql.parser.exception.ParseFailedException;
 import io.confluent.ksql.test.tools.TestCase;
 import io.confluent.ksql.test.tools.TestExecutionListener;
 import io.confluent.ksql.test.tools.TestExecutor;
@@ -31,8 +30,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
-
-import io.confluent.ksql.util.KsqlStatementException;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericData.Record;
 
@@ -43,14 +40,6 @@ final class EndToEndEngineTestUtil {
   static void shouldBuildAndExecuteQuery(final TestCase testCase) {
     try (final TestExecutor testExecutor = TestExecutor.create(true, Optional.empty())) {
       testExecutor.buildAndExecuteQuery(testCase, TestExecutionListener.noOp());
-    } catch (KsqlStatementException e) {
-      throw new AssertionError(e.getUnloggedMessage()
-          + System.lineSeparator()
-          + "failed test: " + testCase.getName()
-          + System.lineSeparator()
-          + "in " + testCase.getTestLocation(),
-          e
-      );
     } catch (final AssertionError | Exception e) {
       throw new AssertionError(e.getMessage()
           + System.lineSeparator()
@@ -135,8 +124,9 @@ final class EndToEndEngineTestUtil {
         final Map<String, Object> ret = Maps.newHashMap();
         schema.getTypes()
             .forEach(
-                s -> ret.put(s.getName().toUpperCase(), null));
-        ret.put(schema.getTypes().get(pos).getName().toUpperCase(), resolved);
+                s -> ret.put(toUpper ? s.getName().toUpperCase() : s.getName(), null));
+        final String name = schema.getTypes().get(pos).getName();
+        ret.put(toUpper ? name.toUpperCase() : name, resolved);
         return ret;
       default:
         throw new RuntimeException("Test cannot handle data of type: " + schema.getType());
@@ -221,8 +211,10 @@ final class EndToEndEngineTestUtil {
         }
 
         final ObjectNode ret = JsonNodeFactory.instance.objectNode();
-        schema.getTypes().forEach(s -> ret.set(s.getName().toUpperCase(), null));
-        ret.set(schema.getTypes().get(pos).getName().toUpperCase(), resolved);
+        schema.getTypes().forEach(
+            s -> ret.set(toUpper ? s.getName().toUpperCase() : s.getName(), null));
+        final String name = schema.getTypes().get(pos).getName();
+        ret.set(toUpper ? name.toUpperCase() : name, resolved);
         return ret;
       default:
         throw new RuntimeException("Test cannot handle data of type: " + schema.getType());

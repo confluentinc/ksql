@@ -17,15 +17,15 @@ import io.confluent.ksql.serde.avro.AvroFormat;
 import io.confluent.ksql.test.loader.JsonTestLoader;
 import io.confluent.ksql.test.loader.TestFile;
 import io.confluent.ksql.test.model.TestFileContext;
-import io.confluent.ksql.test.model.TestLocation;
 import io.confluent.ksql.test.tools.Record;
 import io.confluent.ksql.test.tools.TestCase;
-import io.confluent.ksql.test.tools.Topic;
 import io.confluent.ksql.test.tools.VersionBounds;
 import io.confluent.ksql.test.tools.conditions.PostConditions;
 import io.confluent.ksql.test.tools.exceptions.InvalidFieldException;
 import io.confluent.ksql.test.tools.exceptions.MissingFieldException;
 import io.confluent.ksql.test.utils.SerdeUtil;
+import io.confluent.ksql.tools.test.model.TestLocation;
+import io.confluent.ksql.tools.test.model.Topic;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -90,7 +90,8 @@ public class SchemaTranslationTest {
           avroToValueSpec(avro, avroSchema, true),
           spec,
           Optional.of(0L),
-          null
+          null,
+          Optional.empty()
       );
 
       list.add(record);
@@ -108,7 +109,8 @@ public class SchemaTranslationTest {
                 r.value(),
                 r.getJsonValue().orElse(null),
                 Optional.of(0L),
-                null
+                null,
+                Optional.empty()
             ))
         .collect(Collectors.toList());
 

@@ -31,6 +31,7 @@ import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.properties.with.CreateSourceProperties;
 import io.confluent.ksql.parser.properties.with.SourcePropertiesUtil;
+import io.confluent.ksql.parser.tree.CreateSource;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.TableElements;
@@ -44,6 +45,7 @@ import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.GenericKeySerDe;
 import io.confluent.ksql.serde.GenericRowSerDe;
 import io.confluent.ksql.serde.KeySerdeFactory;
+import io.confluent.ksql.serde.RefinementInfo;
 import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.SerdeFeaturesFactory;
 import io.confluent.ksql.serde.ValueSerdeFactory;
@@ -92,6 +94,7 @@ public final class CreateSourceFactory {
     this.metaStore = requireNonNull(metaStore);
   }
 
+  // This method is called by CREATE_AS statements
   public CreateStreamCommand createStreamCommand(final KsqlStructuredDataOutputNode outputNode) {
     return new CreateStreamCommand(
         outputNode.getSinkName().get(),
@@ -100,10 +103,12 @@ public final class CreateSourceFactory {
         outputNode.getKsqlTopic().getKafkaTopicName(),
         Formats.from(outputNode.getKsqlTopic()),
         outputNode.getKsqlTopic().getKeyFormat().getWindowInfo(),
-        Optional.of(outputNode.getOrReplace())
+        Optional.of(outputNode.getOrReplace()),
+        Optional.of(false)
     );
   }
 
+  // This method is called by simple CREATE statements
   public CreateStreamCommand createStreamCommand(
       final CreateStream statement,
       final KsqlConfig ksqlConfig
@@ -123,6 +128,8 @@ public final class CreateSourceFactory {
              sourceName.text(), sourceType.toLowerCase()));
     }
 
+    throwIfCreateOrReplaceOnSourceStreamOrTable(statement, dataSource);
+
     return new CreateStreamCommand(
         sourceName,
         schema,
@@ -130,22 +137,41 @@ public final class CreateSourceFactory {
         topicName,
         buildFormats(statement.getName(), schema, props, ksqlConfig),
         getWindowInfo(props),
-        Optional.of(statement.isOrReplace())
+        Optional.of(statement.isOrReplace()),
+        Optional.of(statement.isSource())
     );
   }
 
-  public CreateTableCommand createTableCommand(final KsqlStructuredDataOutputNode outputNode) {
+  // This method is called by CREATE_AS statements
+  public CreateTableCommand createTableCommand(
+      final KsqlStructuredDataOutputNode outputNode,
+      final Optional<RefinementInfo> emitStrategy
+  ) {
+    Optional<WindowInfo> windowInfo =
+        outputNode.getKsqlTopic().getKeyFormat().getWindowInfo();
+
+    if (windowInfo.isPresent() && emitStrategy.isPresent()) {
+      final WindowInfo info = windowInfo.get();
+      windowInfo = Optional.of(WindowInfo.of(
+          info.getType(),
+          info.getSize(),
+          Optional.of(emitStrategy.get().getOutputRefinement())
+      ));
+    }
+
     return new CreateTableCommand(
         outputNode.getSinkName().get(),
         outputNode.getSchema(),
         outputNode.getTimestampColumn(),
         outputNode.getKsqlTopic().getKafkaTopicName(),
         Formats.from(outputNode.getKsqlTopic()),
-        outputNode.getKsqlTopic().getKeyFormat().getWindowInfo(),
-        Optional.of(outputNode.getOrReplace())
+        windowInfo,
+        Optional.of(outputNode.getOrReplace()),
+        Optional.of(false)
     );
   }
 
+  // This method is called by simple CREATE statements
   public CreateTableCommand createTableCommand(
       final CreateTable statement,
       final KsqlConfig ksqlConfig
@@ -178,6 +204,8 @@ public final class CreateSourceFactory {
       );
     }
 
+    throwIfCreateOrReplaceOnSourceStreamOrTable(statement, dataSource);
+
     final Optional<TimestampColumn> timestampColumn =
         buildTimestampColumn(ksqlConfig, props, schema);
 
@@ -188,8 +216,26 @@ public final class CreateSourceFactory {
         topicName,
         buildFormats(statement.getName(), schema, props, ksqlConfig),
         getWindowInfo(props),
-        Optional.of(statement.isOrReplace())
+        Optional.of(statement.isOrReplace()),
+        Optional.of(statement.isSource())
     );
+  }
+
+  private void throwIfCreateOrReplaceOnSourceStreamOrTable(
+      final CreateSource createSource,
+      final DataSource existingSource
+  ) {
+    if (createSource.isOrReplace()) {
+      final String createSourceType = (createSource instanceof CreateStream) ? "stream" : "table";
+
+      if (createSource.isSource() || (existingSource != null && existingSource.isSource())) {
+        throw new KsqlException(
+            String.format("Cannot add %s '%s': CREATE OR REPLACE is not supported on source %s.",
+                createSourceType,
+                createSource.getName().text(),
+                createSourceType + "s"));
+      }
+    }
   }
 
   private Formats buildFormats(
@@ -220,7 +266,9 @@ public final class CreateSourceFactory {
     return formats;
   }
 
-  private static LogicalSchema buildSchema(final TableElements tableElements) {
+  private static LogicalSchema buildSchema(
+      final TableElements tableElements
+  ) {
     if (Iterables.isEmpty(tableElements)) {
       throw new KsqlException("The statement does not define any columns.");
     }
@@ -236,7 +284,8 @@ public final class CreateSourceFactory {
   }
 
   private static Optional<WindowInfo> getWindowInfo(final CreateSourceProperties props) {
-    return props.getWindowType().map(type -> WindowInfo.of(type, props.getWindowSize()));
+    return props.getWindowType()
+        .map(type -> WindowInfo.of(type, props.getWindowSize(), Optional.empty()));
   }
 
   private static String ensureTopicExists(

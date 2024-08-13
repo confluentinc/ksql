@@ -1,0 +1,128 @@
+{
+  "version" : "7.1.0",
+  "timestamp" : 1633125999330,
+  "path" : "query-validation-tests/least.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`ID` BIGINT KEY, `N1` INTEGER, `N2` BIGINT, `N3` DECIMAL(30, 18), `N4` DOUBLE",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ID` BIGINT KEY, `LOWEST` DOUBLE",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "test implicit casting to double",
+    "inputs" : [ {
+      "topic" : "input_topic",
+      "key" : 1,
+      "value" : {
+        "N1" : 1,
+        "N2" : -1000000000000,
+        "N3" : -99999.99999
+      }
+    }, {
+      "topic" : "input_topic",
+      "key" : 2,
+      "value" : {
+        "N1" : 1,
+        "N2" : -1,
+        "N3" : -55555.555555555555555555
+      }
+    }, {
+      "topic" : "input_topic",
+      "key" : 3,
+      "value" : {
+        "N1" : -500000,
+        "N2" : -1,
+        "N3" : -99999.99999
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : 1,
+      "value" : {
+        "LOWEST" : -1000000000000
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : 2,
+      "value" : {
+        "LOWEST" : -55555.555555555555
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : 3,
+      "value" : {
+        "LOWEST" : -500000.0
+      }
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "input_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM INPUT (ID BIGINT KEY, N1 INT, N2 BIGINT, N3 DECIMAL(30,18), N4 DOUBLE) WITH (kafka_topic='input_topic',value_format='json');", "CREATE STREAM OUTPUT AS SELECT ID, LEAST(N1, N2, N3, N4, null) AS LOWEST FROM INPUT;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`ID` BIGINT KEY, `N1` INTEGER, `N2` BIGINT, `N3` DECIMAL(30, 18), `N4` DOUBLE",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`ID` BIGINT KEY, `LOWEST` DOUBLE",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "input_topic",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

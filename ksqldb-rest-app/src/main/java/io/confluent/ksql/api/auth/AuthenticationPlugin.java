@@ -33,6 +33,11 @@ public interface AuthenticationPlugin {
    * Handle authentication for the request. The plugin implementation should not end the response in
    * case of failure. ksqlDB will end the response appropriately in case of failure.
    *
+   * <p>The returned Principal will be wrapped in a
+   * {@link io.confluent.ksql.security.DefaultKsqlPrincipal}, before being passed
+   * to the ksqlDB engine, as the engine operates on
+   * {@link io.confluent.ksql.security.KsqlPrincipal}s rather than raw {@code Principal}s.
+   *
    * @param routingContext The routing context
    * @param workerExecutor The worker executor
    * @return A CompletableFuture representing the result of the authentication containing either
@@ -42,15 +47,15 @@ public interface AuthenticationPlugin {
       WorkerExecutor workerExecutor);
 
   /**
-   * Retrieve the authorization token from the request. This is different from {@code handleAuth}
-   * since we need to expose the authorization token in order to provide forwarded inter-node
+   * Retrieve the authorization header from the request. This is different from {@code handleAuth}
+   * since we need to expose the authorization header in order to provide forwarded inter-node
    * requests the correct credentials.
    *
    * @param routingContext The routing context
-   * @return A String that is the authorization token that we can then use for forwarding
+   * @return A String that is the authorization header that we can then use for forwarding
    *        inter-node requests.
    */
-  default String getAuthToken(final RoutingContext routingContext) {
+  default String getAuthHeader(final RoutingContext routingContext) {
     return routingContext.request().getHeader("Authorization");
   }
 

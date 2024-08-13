@@ -34,6 +34,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -90,16 +91,18 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
   }
 
   @Override
-  public void createTopic(
+  public boolean createTopic(
       final String topic,
       final int numPartitions,
       final short replicationFactor,
       final Map<String, ?> configs,
       final CreateTopicsOptions createOptions
   ) {
+    final Optional<Long> retentionMs = KafkaTopicClient.getRetentionMs(configs);
+
     if (isTopicExists(topic)) {
-      validateTopicProperties(topic, numPartitions, replicationFactor);
-      return;
+      validateTopicProperties(topic, numPartitions, replicationFactor, retentionMs);
+      return false;
     }
 
     final short resolvedReplicationFactor = replicationFactor == TopicProperties.DEFAULT_REPLICAS
@@ -121,6 +124,8 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
               createOptions
           ).all().get(),
           ExecutorUtil.RetryBehaviour.ON_RETRYABLE);
+      return true;
+
     } catch (final InterruptedException e) {
       Thread.currentThread().interrupt();
       throw new KafkaResponseGetFailedException(
@@ -128,9 +133,10 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
 
     } catch (final TopicExistsException e) {
       // if the topic already exists, it is most likely because another node just created it.
-      // ensure that it matches the partition count and replication factor before returning
-      // success
-      validateTopicProperties(topic, numPartitions, replicationFactor);
+      // ensure that it matches the partition count, replication factor, and retention
+      // before returning success
+      validateTopicProperties(topic, numPartitions, replicationFactor, retentionMs);
+      return false;
 
     } catch (final TopicAuthorizationException e) {
       throw new KsqlTopicAuthorizationException(
@@ -171,7 +177,7 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
           () -> adminClient.get().describeTopics(
               ImmutableList.of(topic),
               new DescribeTopicsOptions().includeAuthorizedOperations(true)
-          ).values().get(topic).get(),
+          ).topicNameValues().get(topic).get(),
           RetryBehaviour.ON_RETRYABLE.and(e -> !(e instanceof UnknownTopicOrPartitionException))
       );
       return true;
@@ -205,7 +211,7 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
           () -> adminClient.get().describeTopics(
               topicNames,
               new DescribeTopicsOptions().includeAuthorizedOperations(true)
-          ).all().get(),
+          ).allTopicNames().get(),
           ExecutorUtil.RetryBehaviour.ON_RETRYABLE);
     } catch (final ExecutionException e) {
       throw new KafkaResponseGetFailedException(
@@ -315,21 +321,22 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
   }
 
   @Override
-  public void deleteInternalTopics(final String applicationId) {
+  public void deleteInternalTopics(final String internalTopicPrefix) {
     try {
       final Set<String> topicNames = listTopicNames();
       final List<String> internalTopics = Lists.newArrayList();
       for (final String topicName : topicNames) {
-        if (isInternalTopic(topicName, applicationId)) {
+        if (isInternalTopic(topicName, internalTopicPrefix)) {
           internalTopics.add(topicName);
         }
       }
       if (!internalTopics.isEmpty()) {
+        Collections.sort(internalTopics); // prevents flaky tests
         deleteTopics(internalTopics);
       }
     } catch (final Exception e) {
       LOG.error("Exception while trying to clean up internal topics for application id: {}.",
-          applicationId, e
+          internalTopicPrefix, e
       );
     }
   }
@@ -371,22 +378,33 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
   }
 
   private static boolean isInternalTopic(final String topicName, final String applicationId) {
-    return topicName.startsWith(applicationId + "-")
-        && (topicName.endsWith(KsqlConstants.STREAMS_CHANGELOG_TOPIC_SUFFIX)
-        || topicName.endsWith(KsqlConstants.STREAMS_REPARTITION_TOPIC_SUFFIX));
+    final boolean prefixMatches = topicName.startsWith(applicationId + "-");
+    final boolean suffixMatches = topicName.endsWith(KsqlConstants.STREAMS_CHANGELOG_TOPIC_SUFFIX)
+        || topicName.endsWith(KsqlConstants.STREAMS_REPARTITION_TOPIC_SUFFIX)
+        || topicName.matches(KsqlConstants.STREAMS_JOIN_REGISTRATION_TOPIC_PATTERN)
+        || topicName.matches(KsqlConstants.STREAMS_JOIN_RESPONSE_TOPIC_PATTERN);
+    return prefixMatches && suffixMatches;
   }
 
   private void validateTopicProperties(
       final String topic,
       final int requiredNumPartition,
-      final int requiredNumReplicas
+      final int requiredNumReplicas,
+      final Optional<Long> requiredRetentionMs
   ) {
     final TopicDescription existingTopic = describeTopic(topic);
+    final Map<String, String> existingConfig = getTopicConfig(topic);
     TopicValidationUtil
-        .validateTopicProperties(requiredNumPartition, requiredNumReplicas, existingTopic);
+        .validateTopicProperties(
+            requiredNumPartition,
+            requiredNumReplicas,
+            requiredRetentionMs,
+            existingTopic,
+            existingConfig);
     LOG.debug(
-        "Did not create topic {} with {} partitions and replication-factor {} since it exists",
-        topic, requiredNumPartition, requiredNumReplicas);
+        "Did not create topic {} with {} partitions, replication-factor {}, "
+            + "and retention {} since it exists",
+        topic, requiredNumPartition, requiredNumReplicas, requiredRetentionMs);
   }
 
   private Map<String, String> topicConfig(
@@ -404,6 +422,10 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
           .filter(e -> e.value() != null)
           .filter(e -> includeDefaults || !e.isDefault())
           .collect(Collectors.toMap(ConfigEntry::name, ConfigEntry::value));
+    } catch (final TopicAuthorizationException e) {
+      throw new KsqlTopicAuthorizationException(
+          AclOperation.DESCRIBE_CONFIGS,
+          e.unauthorizedTopics());
     } catch (final Exception e) {
       throw new KafkaResponseGetFailedException(
           "Failed to get config for Kafka Topic " + topicName, e);

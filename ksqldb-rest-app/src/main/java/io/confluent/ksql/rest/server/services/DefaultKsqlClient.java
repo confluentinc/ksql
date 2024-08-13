@@ -30,9 +30,11 @@ import io.confluent.ksql.rest.entity.KsqlHostInfoEntity;
 import io.confluent.ksql.rest.entity.LagReportingMessage;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.services.SimpleKsqlClient;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlHostInfo;
 import io.vertx.core.Vertx;
 import io.vertx.core.net.SocketAddress;
+import io.vertx.core.streams.WriteStream;
 import java.net.URI;
 import java.util.HashMap;
 import java.util.List;
@@ -40,7 +42,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.BiFunction;
-import java.util.function.Consumer;
+import java.util.function.Function;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -51,6 +53,7 @@ final class DefaultKsqlClient implements SimpleKsqlClient {
   private final Optional<String> authHeader;
   private final KsqlClient sharedClient;
   private final boolean ownSharedClient;
+  private final KsqlConfig ksqlConfig;
 
   @VisibleForTesting
   DefaultKsqlClient(final Optional<String> authHeader,
@@ -59,25 +62,29 @@ final class DefaultKsqlClient implements SimpleKsqlClient {
     this(
         authHeader,
         createInternalClient(toClientProps(clientProps), socketAddressFactory, Vertx.vertx()),
-        true
+        true,
+        new KsqlConfig(clientProps)
     );
   }
 
   DefaultKsqlClient(
       final Optional<String> authHeader,
-      final KsqlClient sharedClient
+      final KsqlClient sharedClient,
+      final KsqlConfig ksqlConfig
   ) {
-    this(authHeader, sharedClient, false);
+    this(authHeader, sharedClient, false, ksqlConfig);
   }
 
   DefaultKsqlClient(
       final Optional<String> authHeader,
       final KsqlClient sharedClient,
-      final boolean ownSharedClient
+      final boolean ownSharedClient,
+      final KsqlConfig ksqlConfig
   ) {
     this.authHeader = requireNonNull(authHeader, "authHeader");
     this.sharedClient = requireNonNull(sharedClient, "sharedClient");
     this.ownSharedClient = ownSharedClient;
+    this.ksqlConfig = ksqlConfig;
   }
 
   @Override
@@ -102,7 +109,8 @@ final class DefaultKsqlClient implements SimpleKsqlClient {
 
     final KsqlTarget target = sharedClient
         .target(serverEndPoint)
-        .properties(configOverrides);
+        .properties(configOverrides)
+        .timeout(getQueryTimeout(configOverrides));
 
     final RestResponse<List<StreamedRow>> resp = getTarget(target)
         .postQueryRequest(sql, requestProperties, Optional.empty());
@@ -120,14 +128,18 @@ final class DefaultKsqlClient implements SimpleKsqlClient {
       final String sql,
       final Map<String, ?> configOverrides,
       final Map<String, ?> requestProperties,
-      final Consumer<List<StreamedRow>> rowConsumer
+      final WriteStream<List<StreamedRow>> rowConsumer,
+      final CompletableFuture<Void> shouldCloseConnection,
+      final Function<StreamedRow, StreamedRow> addHostInfo
   ) {
     final KsqlTarget target = sharedClient
         .target(serverEndPoint)
-        .properties(configOverrides);
+        .properties(configOverrides)
+        .timeout(getQueryTimeout(configOverrides));
 
     final RestResponse<Integer> resp = getTarget(target)
-        .postQueryRequest(sql, requestProperties, Optional.empty(), rowConsumer);
+        .postQueryRequest(sql, requestProperties, Optional.empty(), rowConsumer,
+            shouldCloseConnection, addHostInfo);
 
     if (resp.isErroneous()) {
       return RestResponse.erroneous(resp.getStatusCode(), resp.getErrorMessage());
@@ -220,5 +232,12 @@ final class DefaultKsqlClient implements SimpleKsqlClient {
       clientProps.put(entry.getKey(), entry.getValue().toString());
     }
     return clientProps;
+  }
+
+  private long getQueryTimeout(final Map<String, ?> configOverrides) {
+    if (configOverrides.containsKey(KsqlConfig.KSQL_QUERY_PULL_FORWARDING_TIMEOUT_MS_CONFIG)) {
+      return (Long) configOverrides.get(KsqlConfig.KSQL_QUERY_PULL_FORWARDING_TIMEOUT_MS_CONFIG);
+    }
+    return ksqlConfig.getLong(KsqlConfig.KSQL_QUERY_PULL_FORWARDING_TIMEOUT_MS_CONFIG);
   }
 }

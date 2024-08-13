@@ -17,6 +17,7 @@ package io.confluent.ksql.parser;
 
 import static java.util.Objects.requireNonNull;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.google.errorprone.annotations.Immutable;
 import java.util.Optional;
 
@@ -28,6 +29,7 @@ public abstract class Node {
     this.location = requireNonNull(location, "location");
   }
 
+  @JsonIgnore
   public Optional<NodeLocation> getLocation() {
     return location;
   }

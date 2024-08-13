@@ -32,7 +32,8 @@ public final class PrintTopicValidator {
       final ConfiguredStatement<?> statement,
       final SessionProperties sessionProperties,
       final KsqlExecutionContext context,
-      final ServiceContext serviceContext) {
+      final ServiceContext serviceContext
+  ) {
     throw new KsqlRestException(Errors.queryEndpoint(statement.getMaskedStatementText()));
   }
 

@@ -23,11 +23,12 @@ import io.confluent.ksql.rest.entity.LagReportingMessage;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.services.SimpleKsqlClient;
 import io.confluent.ksql.util.KsqlHostInfo;
+import io.vertx.core.streams.WriteStream;
 import java.net.URI;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -79,9 +80,10 @@ public class FaultyKsqlClient implements SimpleKsqlClient {
       final String sql,
       final Map<String, ?> configOverrides,
       final Map<String, ?> requestProperties,
-      final Consumer<List<StreamedRow>> rowConsumer) {
+      final WriteStream<List<StreamedRow>> rowConsumer,
+      final CompletableFuture<Void> shouldCloseConnection, final Function<StreamedRow, StreamedRow> addHostInfo) {
     return getClient().makeQueryRequest(serverEndPoint, sql, configOverrides, requestProperties,
-        rowConsumer);
+        rowConsumer, shouldCloseConnection, Function.identity());
   }
 
   @Override

@@ -17,6 +17,7 @@ package io.confluent.ksql.test.tools;
 
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.core.JsonParser.Feature;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
@@ -40,6 +41,7 @@ public enum TestJsonMapper {
       .registerModule(new StructSerializationModule())
       .registerModule(new KsqlTypesSerializationModule())
       .registerModule(new KsqlTypesDeserializationModule())
+      .enable(Feature.ALLOW_COMMENTS)
       .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
       .enable(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS)
       .enable(JsonGenerator.Feature.WRITE_BIGDECIMAL_AS_PLAIN)

@@ -26,6 +26,7 @@ import com.google.common.collect.ImmutableMap;
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.KsqlConfigTestUtil;
 import io.confluent.ksql.integration.IntegrationTestHarness;
+import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.rest.server.computation.KafkaConfigStore;
 import io.confluent.ksql.rest.util.RocksDBConfigSetterHandler;
@@ -136,6 +137,7 @@ public class StandaloneExecutorFunctionalTest {
         KafkaConfigStore::new,
         activeQuerySupplier -> versionChecker,
         StandaloneExecutor::new,
+        new MetricCollectors(),
         RocksDBConfigSetterHandler::maybeConfigureRocksDBConfigSetter
     );
   }

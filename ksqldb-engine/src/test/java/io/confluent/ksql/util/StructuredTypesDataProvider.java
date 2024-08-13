@@ -32,12 +32,15 @@ import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.connect.ConnectSchemas;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.nio.ByteBuffer;
+import java.sql.Date;
+import java.sql.Time;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
@@ -74,6 +77,10 @@ public class StructuredTypesDataProvider extends TestDataProvider {
           ))
           .build()
       )
+      .valueColumn(ColumnName.of("TIMESTAMP"), SqlTypes.TIMESTAMP)
+      .valueColumn(ColumnName.of("DATE"), SqlTypes.DATE)
+      .valueColumn(ColumnName.of("TIME"), SqlTypes.TIME)
+      .headerColumn(ColumnName.of("HEAD"), Optional.of("h0"))
       .build();
 
   private static final PhysicalSchema PHYSICAL_SCHEMA = PhysicalSchema
@@ -89,22 +96,69 @@ public class StructuredTypesDataProvider extends TestDataProvider {
   private static final Multimap<GenericKey, GenericRow> ROWS = ImmutableListMultimap
       .<GenericKey, GenericRow>builder()
       .put(genericKey(generateStructKey("a")), genericRow("FOO", 1L, new BigDecimal("1.11"), new byte[]{1},
-          Collections.singletonList("a"), Collections.singletonMap("k1", "v1"), generateSimpleStructValue(2), generateComplexStructValue(0)))
+          Collections.singletonList("a"), Collections.singletonMap("k1", "v1"), generateSimpleStructValue(2), generateComplexStructValue(0),
+          new Timestamp(1), new Date(86400000), new Time(0)))
       .put(genericKey(generateStructKey("b")), genericRow("BAR", 2L, new BigDecimal("2.22"), new byte[]{2},
-          Collections.emptyList(), Collections.emptyMap(), generateSimpleStructValue(3), generateComplexStructValue(1)))
+          Collections.emptyList(), Collections.emptyMap(), generateSimpleStructValue(3), generateComplexStructValue(1),
+          new Timestamp(2), new Date(86400000 * 2), new Time(1)))
       .put(genericKey(generateStructKey("c")), genericRow("BAZ", 3L, new BigDecimal("30.33"), new byte[]{3},
-          Collections.singletonList("b"), Collections.emptyMap(), generateSimpleStructValue(null), generateComplexStructValue(2)))
+          Collections.singletonList("b"), Collections.emptyMap(), generateSimpleStructValue(null), generateComplexStructValue(2),
+          new Timestamp(3), new Date(86400000 * 3), new Time(2)))
       .put(genericKey(generateStructKey("d")), genericRow("BUZZ", 4L, new BigDecimal("40.44"), new byte[]{4},
-          ImmutableList.of("c", "d"), Collections.emptyMap(), generateSimpleStructValue(88), generateComplexStructValue(3)))
+          ImmutableList.of("c", "d"), Collections.emptyMap(), generateSimpleStructValue(88), generateComplexStructValue(3),
+          new Timestamp(4), new Date(86400000 * 4), new Time(3)))
       // Additional entries for repeated keys
       .put(genericKey(generateStructKey("c")), genericRow("BAZ", 5L, new BigDecimal("12.0"), new byte[]{15},
-          ImmutableList.of("e"), ImmutableMap.of("k1", "v1", "k2", "v2"), generateSimpleStructValue(0), generateComplexStructValue(4)))
+          ImmutableList.of("e"), ImmutableMap.of("k1", "v1", "k2", "v2"), generateSimpleStructValue(0), generateComplexStructValue(4),
+          new Timestamp(11), new Date(86400000 * 11), new Time(11)))
       .put(genericKey(generateStructKey("d")), genericRow("BUZZ", 6L, new BigDecimal("10.1"), new byte[]{6},
-          ImmutableList.of("f", "g"), Collections.emptyMap(), generateSimpleStructValue(null), generateComplexStructValue(5)))
+          ImmutableList.of("f", "g"), Collections.emptyMap(), generateSimpleStructValue(null), generateComplexStructValue(5),
+          new Timestamp(12), new Date(86400000 * 12), new Time(12)))
+      .build();
+
+  private static final Multimap<GenericKey, GenericRow> ROWS2 = ImmutableListMultimap
+      .<GenericKey, GenericRow>builder()
+      .put(genericKey(generateStructKey("e")), genericRow("FOO", 7L, new BigDecimal("1.11"), new byte[]{1},
+          Collections.singletonList("a"), Collections.singletonMap("k1", "v1"), generateSimpleStructValue(2), generateComplexStructValue(0),
+          new Timestamp(1), new Date(86400000), new Time(0)))
+      .put(genericKey(generateStructKey("f")), genericRow("BAR", 8L, new BigDecimal("2.22"), new byte[]{2},
+          Collections.emptyList(), Collections.emptyMap(), generateSimpleStructValue(3), generateComplexStructValue(1),
+          new Timestamp(2), new Date(86400000 * 2), new Time(1)))
+      .put(genericKey(generateStructKey("g")), genericRow("BAZ", 9L, new BigDecimal("30.33"), new byte[]{3},
+          Collections.singletonList("b"), Collections.emptyMap(), generateSimpleStructValue(null), generateComplexStructValue(2),
+          new Timestamp(3), new Date(86400000 * 3), new Time(2)))
+      .put(genericKey(generateStructKey("h")), genericRow("BUZZ", 10L, new BigDecimal("40.44"), new byte[]{4},
+          ImmutableList.of("c", "d"), Collections.emptyMap(), generateSimpleStructValue(88), generateComplexStructValue(3),
+          new Timestamp(4), new Date(86400000 * 4), new Time(3)))
+      // Additional entries for repeated keys
+      .put(genericKey(generateStructKey("i")), genericRow("BAZ", 11L, new BigDecimal("12.0"), new byte[]{15},
+          ImmutableList.of("e"), ImmutableMap.of("k1", "v1", "k2", "v2"), generateSimpleStructValue(0), generateComplexStructValue(4),
+          new Timestamp(11), new Date(86400000 * 11), new Time(11)))
+      .put(genericKey(generateStructKey("j")), genericRow("BUZZ", 12L, new BigDecimal("10.1"), new byte[]{6},
+          ImmutableList.of("f", "g"), Collections.emptyMap(), generateSimpleStructValue(null), generateComplexStructValue(5),
+          new Timestamp(12), new Date(86400000 * 12), new Time(12)))
       .build();
 
   public StructuredTypesDataProvider() {
-    super("STRUCTURED_TYPES", PHYSICAL_SCHEMA, ROWS);
+    this("STRUCTURED_TYPES");
+  }
+  public StructuredTypesDataProvider(final Batch batch) {
+    super("STRUCTURED_TYPES", PHYSICAL_SCHEMA, batch.rows);
+  }
+
+  public enum Batch {
+    BATCH1(ROWS),
+    BATCH2(ROWS2);
+
+    private final Multimap<GenericKey, GenericRow> rows;
+
+    Batch(final Multimap<GenericKey, GenericRow> rows) {
+      this.rows = rows;
+    }
+  }
+
+  public StructuredTypesDataProvider(final String namePrefix) {
+    super(namePrefix, PHYSICAL_SCHEMA, ROWS);
   }
 
   @SuppressWarnings("unchecked")

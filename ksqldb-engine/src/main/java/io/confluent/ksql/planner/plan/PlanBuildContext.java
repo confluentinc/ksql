@@ -19,9 +19,11 @@ import static java.util.Objects.requireNonNull;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.execution.context.QueryContext;
+import io.confluent.ksql.execution.plan.PlanInfo;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
+import java.util.Optional;
 
 /**
  * Contains all the context required to build an execution plan from a logical plan.
@@ -30,28 +32,29 @@ public final class PlanBuildContext {
   private final KsqlConfig ksqlConfig;
   private final ServiceContext serviceContext;
   private final FunctionRegistry functionRegistry;
+  private final Optional<PlanInfo> planInfo;
 
   public static PlanBuildContext of(
       final KsqlConfig ksqlConfig,
       final ServiceContext serviceContext,
-      final FunctionRegistry functionRegistry
+      final FunctionRegistry functionRegistry,
+      final Optional<PlanInfo> planInfo
   ) {
     return new PlanBuildContext(
-        ksqlConfig,
-        serviceContext,
-        functionRegistry
-    );
+        ksqlConfig, serviceContext, functionRegistry, planInfo);
   }
 
   @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
   private PlanBuildContext(
       final KsqlConfig ksqlConfig,
       final ServiceContext serviceContext,
-      final FunctionRegistry functionRegistry
+      final FunctionRegistry functionRegistry,
+      final Optional<PlanInfo> planInfo
   ) {
     this.ksqlConfig = requireNonNull(ksqlConfig, "ksqlConfig");
     this.serviceContext = requireNonNull(serviceContext, "serviceContext");
     this.functionRegistry = requireNonNull(functionRegistry, "functionRegistry");
+    this.planInfo = requireNonNull(planInfo, "planInfo");
   }
 
   public ServiceContext getServiceContext() {
@@ -67,11 +70,16 @@ public final class PlanBuildContext {
     return functionRegistry;
   }
 
+  public Optional<PlanInfo> getPlanInfo() {
+    return planInfo;
+  }
+
   public PlanBuildContext withKsqlConfig(final KsqlConfig newConfig) {
     return of(
         newConfig,
         serviceContext,
-        functionRegistry
+        functionRegistry,
+        planInfo
     );
   }
 

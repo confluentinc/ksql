@@ -1,0 +1,204 @@
+{
+  "version" : "7.1.0",
+  "timestamp" : 1633125985087,
+  "path" : "query-validation-tests/joins.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KafkaTopic_Right.Source" : {
+      "schema" : "`ID` BIGINT KEY, `TF` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_OUTPUT_0.KafkaTopic_Right.Source.Materialized" : {
+      "schema" : "`ID` BIGINT KEY, `TF` INTEGER, `ROWPARTITION` INTEGER, `ROWOFFSET` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_OUTPUT_0.Join.Left" : {
+      "schema" : "`S_SF` BIGINT KEY, `S_SF` BIGINT, `S_ROWTIME` BIGINT, `S_ROWPARTITION` INTEGER, `S_ROWOFFSET` BIGINT, `S_K` STRING",
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`S_SF` BIGINT KEY, `S_K` STRING, `T_ID` BIGINT, `T_TF` INTEGER, `S_ROWTIME` BIGINT, `T_ROWTIME` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_OUTPUT_0.KafkaTopic_Left.Source" : {
+      "schema" : "`K` STRING KEY, `SF` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_OUTPUT_0.Join" : {
+      "schema" : "`S_SF` BIGINT KEY, `S_SF` BIGINT, `S_ROWTIME` BIGINT, `S_ROWPARTITION` INTEGER, `S_ROWOFFSET` BIGINT, `S_K` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      }
+    },
+    "CSAS_OUTPUT_0.PrependAliasRight" : {
+      "schema" : "`T_ID` BIGINT KEY, `T_TF` INTEGER, `T_ROWTIME` BIGINT, `T_ROWPARTITION` INTEGER, `T_ROWOFFSET` BIGINT, `T_ID` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "on non-STRING value column",
+    "inputs" : [ {
+      "topic" : "table_topic",
+      "key" : 26589,
+      "value" : {
+        "TF" : 1
+      },
+      "timestamp" : 0
+    }, {
+      "topic" : "stream_topic",
+      "key" : "a",
+      "value" : {
+        "SF" : 12589
+      },
+      "timestamp" : 100
+    }, {
+      "topic" : "table_topic",
+      "key" : 12589,
+      "value" : {
+        "TF" : 12
+      },
+      "timestamp" : 200
+    }, {
+      "topic" : "stream_topic",
+      "key" : "b",
+      "value" : {
+        "SF" : 12589
+      },
+      "timestamp" : 300
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : 12589,
+      "value" : {
+        "S_K" : "b",
+        "S_ROWTIME" : 300,
+        "T_ROWTIME" : 200,
+        "T_ID" : 12589,
+        "T_TF" : 12
+      },
+      "timestamp" : 300
+    } ],
+    "topics" : [ {
+      "name" : "table_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "stream_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM INPUT_STREAM (K STRING KEY, SF BIGINT) WITH (kafka_topic='stream_topic', value_format='JSON');", "CREATE TABLE INPUT_TABLE (ID BIGINT PRIMARY KEY, TF INT) WITH (kafka_topic='table_topic', value_format='JSON');", "CREATE STREAM OUTPUT AS SELECT *, S.ROWTIME, T.ROWTIME FROM INPUT_STREAM S JOIN INPUT_TABLE T on S.SF = T.ID;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "INPUT_STREAM",
+        "type" : "STREAM",
+        "schema" : "`K` STRING KEY, `SF` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "INPUT_TABLE",
+        "type" : "TABLE",
+        "schema" : "`ID` BIGINT KEY, `TF` INTEGER",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`S_SF` BIGINT KEY, `S_K` STRING, `T_ID` BIGINT, `T_TF` INTEGER, `S_ROWTIME` BIGINT, `T_ROWTIME` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-KafkaTopic_Right-Reduce-changelog",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          }
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-Join-repartition",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          }
+        }, {
+          "name" : "stream_topic",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "table_topic",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

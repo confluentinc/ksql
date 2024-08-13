@@ -16,9 +16,11 @@
 package io.confluent.ksql.rest.server.execution;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -34,14 +36,18 @@ import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
+import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.DescribeConnector;
+import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.SessionProperties;
+import io.confluent.ksql.rest.entity.ConfigInfos;
 import io.confluent.ksql.rest.entity.ConnectorDescription;
-import io.confluent.ksql.rest.entity.ErrorEntity;
 import io.confluent.ksql.rest.entity.KsqlEntity;
+import io.confluent.ksql.rest.entity.KsqlErrorMessage;
+import io.confluent.ksql.rest.server.resources.KsqlRestException;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlBaseType;
@@ -56,6 +62,7 @@ import io.confluent.ksql.services.ConnectClient;
 import io.confluent.ksql.services.ConnectClient.ConnectResponse;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
+import io.confluent.ksql.util.IdentifierUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Collections;
 import java.util.List;
@@ -63,12 +70,11 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
 import org.apache.hc.core5.http.HttpStatus;
-import org.apache.kafka.connect.runtime.ConnectorConfig;
-import org.apache.kafka.connect.runtime.rest.entities.ConnectorInfo;
-import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo;
-import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo.ConnectorState;
-import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo.TaskState;
-import org.apache.kafka.connect.runtime.rest.entities.ConnectorType;
+import io.confluent.ksql.rest.entity.ConnectorInfo;
+import io.confluent.ksql.rest.entity.ConnectorStateInfo;
+import io.confluent.ksql.rest.entity.ConnectorStateInfo.ConnectorState;
+import io.confluent.ksql.rest.entity.ConnectorStateInfo.TaskState;
+import io.confluent.ksql.rest.entity.ConnectorType;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -94,7 +100,7 @@ public class DescribeConnectorExecutorTest {
 
   private static final ConnectorInfo INFO = new ConnectorInfo(
       "connector",
-      ImmutableMap.of(ConnectorConfig.CONNECTOR_CLASS_CONFIG, CONNECTOR_CLASS),
+      ImmutableMap.of(ConfigInfos.CONNECTOR_CLASS_CONFIG, CONNECTOR_CLASS),
       ImmutableList.of(),
       ConnectorType.SOURCE);
 
@@ -122,7 +128,9 @@ public class DescribeConnectorExecutorTest {
 
   @Before
   public void setUp() {
+    final MetricCollectors metricCollectors = new MetricCollectors();
     when(engine.getMetaStore()).thenReturn(metaStore);
+    when(engine.metricCollectors()).thenReturn(metricCollectors);
     when(serviceContext.getConnectClient()).thenReturn(connectClient);
     when(metaStore.getAllDataSources()).thenReturn(ImmutableMap.of(SourceName.of("source"), source));
     when(source.getKafkaTopicName()).thenReturn(TOPIC);
@@ -169,10 +177,11 @@ public class DescribeConnectorExecutorTest {
 
     // When:
     final Optional<KsqlEntity> entity = executor
-        .execute(describeStatement, mock(SessionProperties.class), engine, serviceContext);
+        .execute(describeStatement, mock(SessionProperties.class), engine, serviceContext).getEntity();
 
     // Then:
     verify(engine).getMetaStore();
+    verify(engine).metricCollectors();
     verify(metaStore).getAllDataSources();
     verify(connectClient).status("connector");
     verify(connectClient).describe("connector");
@@ -198,7 +207,7 @@ public class DescribeConnectorExecutorTest {
 
     // When:
     final Optional<KsqlEntity> entity = executor
-        .execute(describeStatement, mock(SessionProperties.class), engine, serviceContext);
+        .execute(describeStatement, mock(SessionProperties.class), engine, serviceContext).getEntity();
 
     // Then:
     verify(engine).getMetaStore();
@@ -216,36 +225,67 @@ public class DescribeConnectorExecutorTest {
   }
 
   @Test
-  public void shouldErrorIfConnectClientFailsStatus() {
+  public void shouldThrowIfConnectClientFailsStatus() {
     // Given:
     when(connectClient.status(any())).thenReturn(ConnectResponse.failure("error", HttpStatus.SC_INTERNAL_SERVER_ERROR));
 
     // When:
-    final Optional<KsqlEntity> entity = executor
-        .execute(describeStatement, mock(SessionProperties.class), engine, serviceContext);
+    final KsqlRestException e = assertThrows(
+        KsqlRestException.class,
+        () -> executor.execute(describeStatement, mock(SessionProperties.class), engine, serviceContext));
 
     // Then:
     verify(connectClient).status("connector");
-    assertThat("Expected a response", entity.isPresent());
-    assertThat(entity.get(), instanceOf(ErrorEntity.class));
-    assertThat(((ErrorEntity) entity.get()).getErrorMessage(), is("error"));
+
+    assertThat(e.getResponse().getStatus(), is(HttpStatus.SC_INTERNAL_SERVER_ERROR));
+    final KsqlErrorMessage err = (KsqlErrorMessage) e.getResponse().getEntity();
+    assertThat(err.getErrorCode(), is(Errors.toErrorCode(HttpStatus.SC_INTERNAL_SERVER_ERROR)));
+    assertThat(err.getMessage(), containsString("Failed to query connector status: error"));
   }
 
   @Test
-  public void shouldErrorIfConnectClientFailsDescribe() {
+  public void shouldThrowIfConnectClientFailsDescribe() {
     // Given:
     when(connectClient.describe(any())).thenReturn(ConnectResponse.failure("error", HttpStatus.SC_INTERNAL_SERVER_ERROR));
 
     // When:
-    final Optional<KsqlEntity> entity = executor
-        .execute(describeStatement, mock(SessionProperties.class), engine, serviceContext);
+    final KsqlRestException e = assertThrows(
+        KsqlRestException.class,
+        () -> executor.execute(describeStatement, mock(SessionProperties.class), engine, serviceContext));
 
     // Then:
     verify(connectClient).status("connector");
     verify(connectClient).describe("connector");
+
+    assertThat(e.getResponse().getStatus(), is(HttpStatus.SC_INTERNAL_SERVER_ERROR));
+    final KsqlErrorMessage err = (KsqlErrorMessage) e.getResponse().getEntity();
+    assertThat(err.getErrorCode(), is(Errors.toErrorCode(HttpStatus.SC_INTERNAL_SERVER_ERROR)));
+    assertThat(err.getMessage(), containsString("Failed to describe connector: error"));
+  }
+
+  @Test
+  public void shouldNotWarnClientOnMissingTopicsEndpoint() {
+    // Given:
+    when(connectClient.topics(any())).thenReturn(ConnectResponse.failure("not found",
+        HttpStatus.SC_NOT_FOUND));
+
+    // When:
+    final Optional<KsqlEntity> entity = executor
+        .execute(describeStatement, mock(SessionProperties.class), engine, serviceContext)
+        .getEntity();
+
+    // Then:
+    verify(engine).getMetaStore();
+    verify(metaStore).getAllDataSources();
+    verify(connectClient).status("connector");
+    verify(connectClient).describe("connector");
+    verify(connectClient).topics("connector");
     assertThat("Expected a response", entity.isPresent());
-    assertThat(entity.get(), instanceOf(ErrorEntity.class));
-    assertThat(((ErrorEntity) entity.get()).getErrorMessage(), is("error"));
+    assertThat(entity.get(), instanceOf(ConnectorDescription.class));
+
+    final ConnectorDescription description = (ConnectorDescription) entity.get();
+    assertThat(description.getTopics(), empty());
+    assertThat(description.getWarnings(), empty());
   }
 
   @Test
@@ -256,7 +296,7 @@ public class DescribeConnectorExecutorTest {
 
     // When:
     final Optional<KsqlEntity> entity = executor
-        .execute(describeStatement, mock(SessionProperties.class), engine, serviceContext);
+        .execute(describeStatement, mock(SessionProperties.class), engine, serviceContext).getEntity();
 
     // Then:
     verify(connectClient).status("connector");

@@ -1,0 +1,171 @@
+{
+  "version" : "7.1.0",
+  "timestamp" : 1633126029064,
+  "path" : "query-validation-tests/timeadd.json",
+  "schemas" : {
+    "CSAS_TEST2_0.TEST2" : {
+      "schema" : "`ID` INTEGER KEY, `VALUE` TIME",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "AVRO"
+      }
+    },
+    "CSAS_TEST2_0.KsqlTopic.Source" : {
+      "schema" : "`ID` INTEGER KEY, `TIME` TIME",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "AVRO"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "adds negative intervals",
+    "inputs" : [ {
+      "topic" : "test",
+      "key" : 0,
+      "value" : {
+        "time" : 5
+      }
+    }, {
+      "topic" : "test",
+      "key" : 0,
+      "value" : {
+        "time" : 10
+      }
+    }, {
+      "topic" : "test",
+      "key" : 0,
+      "value" : {
+        "time" : 2
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "TEST2",
+      "key" : 0,
+      "value" : {
+        "VALUE" : 0
+      }
+    }, {
+      "topic" : "TEST2",
+      "key" : 0,
+      "value" : {
+        "VALUE" : 5
+      }
+    }, {
+      "topic" : "TEST2",
+      "key" : 0,
+      "value" : {
+        "VALUE" : 86399997
+      }
+    } ],
+    "topics" : [ {
+      "name" : "TEST2",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "test",
+      "valueSchema" : {
+        "type" : "record",
+        "name" : "KsqlDataSourceSchema",
+        "namespace" : "io.confluent.ksql.avro_schemas",
+        "fields" : [ {
+          "name" : "TIME",
+          "type" : [ "null", {
+            "type" : "int",
+            "connect.version" : 1,
+            "connect.name" : "org.apache.kafka.connect.data.Time",
+            "logicalType" : "time-millis"
+          } ],
+          "default" : null
+        } ],
+        "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
+      },
+      "valueFormat" : "AVRO",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM TEST (ID INT KEY, time TIME) WITH (kafka_topic='test', value_format='AVRO');", "CREATE STREAM TEST2 AS SELECT id, timeadd(MILLISECONDS, -5, time) AS VALUE FROM TEST;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`ID` INTEGER KEY, `TIME` TIME",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "AVRO",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "TEST2",
+        "type" : "STREAM",
+        "schema" : "`ID` INTEGER KEY, `VALUE` TIME",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "AVRO",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "test",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "AVRO"
+          },
+          "partitions" : 4,
+          "valueSchema" : {
+            "type" : "record",
+            "name" : "KsqlDataSourceSchema",
+            "namespace" : "io.confluent.ksql.avro_schemas",
+            "fields" : [ {
+              "name" : "TIME",
+              "type" : [ "null", {
+                "type" : "int",
+                "connect.version" : 1,
+                "connect.name" : "org.apache.kafka.connect.data.Time",
+                "logicalType" : "time-millis"
+              } ],
+              "default" : null
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
+          }
+        }, {
+          "name" : "TEST2",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "AVRO"
+          },
+          "partitions" : 4,
+          "valueSchema" : {
+            "type" : "record",
+            "name" : "KsqlDataSourceSchema",
+            "namespace" : "io.confluent.ksql.avro_schemas",
+            "fields" : [ {
+              "name" : "VALUE",
+              "type" : [ "null", {
+                "type" : "int",
+                "connect.version" : 1,
+                "connect.name" : "org.apache.kafka.connect.data.Time",
+                "logicalType" : "time-millis"
+              } ],
+              "default" : null
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
+          }
+        } ]
+      }
+    }
+  }
+}

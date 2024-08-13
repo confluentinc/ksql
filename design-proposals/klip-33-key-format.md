@@ -1,8 +1,8 @@
 # KLIP 33 - Key format
 
 **Author**: @big-andy-coates | 
-**Release Target**: 0.13 | 
-**Status**: Approved | 
+**Release Target**: 0.13.0; 6.1.0 | 
+**Status**: _Merged_ | 
 **Discussion**: https://github.com/confluentinc/ksql/pull/6017
 
 **tl;dr:** ksqlDB currently only supports keys compatible with the `KAFKA` format. This limits the

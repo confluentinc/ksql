@@ -99,7 +99,9 @@ public class FinalProjectNode extends ProjectNode implements VerifiableNode {
         .map(DataSource::getSchema);
   }
 
-  private Pair<LogicalSchema, List<SelectExpression>> build(final MetaStore metaStore) {
+  private Pair<LogicalSchema, List<SelectExpression>> build(
+      final MetaStore metaStore
+  ) {
     final LogicalSchema parentSchema = getSource().getSchema();
     final Optional<LogicalSchema> targetSchema = getTargetSchema(metaStore);
 

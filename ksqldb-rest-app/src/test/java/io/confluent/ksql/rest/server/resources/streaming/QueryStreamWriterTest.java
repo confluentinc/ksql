@@ -19,6 +19,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasItems;
+import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.verify;
@@ -29,12 +30,14 @@ import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.query.BlockingRowQueue;
+import io.confluent.ksql.query.CompletionHandler;
 import io.confluent.ksql.query.LimitHandler;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.ApiJsonMapper;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KeyValue;
+import io.confluent.ksql.util.KeyValueMetadata;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PushQueryMetadata.ResultType;
 import io.confluent.ksql.util.TransientQueryMetadata;
@@ -76,9 +79,12 @@ public class QueryStreamWriterTest {
   private ArgumentCaptor<StreamsUncaughtExceptionHandler> ehCapture;
   @Captor
   private ArgumentCaptor<LimitHandler> limitHandlerCapture;
+  @Captor
+  private ArgumentCaptor<CompletionHandler> completionHandlerCapture;
   private QueryStreamWriter writer;
   private ByteArrayOutputStream out;
   private LimitHandler limitHandler;
+  private CompletionHandler completionHandler;
   private ObjectMapper objectMapper;
 
   @Before
@@ -136,11 +142,45 @@ public class QueryStreamWriterTest {
 
     // Then:
     final List<String> lines = getOutput(out);
-    assertThat(lines, contains(
-        containsString("header"),
-        containsString("Row1"),
-        containsString("Row2"),
-        containsString("Row3")));
+    assertThat(lines, is(Arrays.asList(
+        "[{\"header\":{\"queryId\":\"id\",\"schema\":\"`col1` STRING\"}},",
+        "{\"row\":{\"columns\":[\"Row1\"]}},",
+        "{\"row\":{\"columns\":[\"Row2\"]}},",
+        "{\"row\":{\"columns\":[\"Row3\"]}},",
+        "]"
+    )));
+  }
+
+  @Test
+  public void shouldExitAndDrainIfQueryComplete() {
+    // Given:
+    doAnswer(streamRows("Row1", "Row2", "Row3"))
+        .when(rowQueue).drainTo(any());
+
+    writer = new QueryStreamWriter(
+        queryMetadata,
+        1000,
+        objectMapper,
+        new CompletableFuture<>()
+    );
+
+    out = new ByteArrayOutputStream();
+
+    verify(queryMetadata).setCompletionHandler(completionHandlerCapture.capture());
+    completionHandler = completionHandlerCapture.getValue();
+    completionHandler.complete();
+    // When:
+    writer.write(out);
+
+    // Then:
+    final List<String> lines = getOutput(out);
+    assertThat(lines, is(Arrays.asList(
+        "[{\"header\":{\"queryId\":\"id\",\"schema\":\"`col1` STRING\"}},",
+        "{\"row\":{\"columns\":[\"Row1\"]}},",
+        "{\"row\":{\"columns\":[\"Row2\"]}},",
+        "{\"row\":{\"columns\":[\"Row3\"]}},",
+        "{\"finalMessage\":\"Query Completed\"}]"
+    )));
   }
 
   @Test
@@ -234,11 +274,11 @@ public class QueryStreamWriterTest {
 
   private static Answer<Void> streamRows(final Object... rows) {
     return inv -> {
-      final Collection<KeyValue<List<Object>, GenericRow>> output = inv.getArgument(0);
+      final Collection<KeyValueMetadata<List<Object>, GenericRow>> output = inv.getArgument(0);
 
       Arrays.stream(rows)
           .map(GenericRow::genericRow)
-          .map(value -> KeyValue.keyValue((List<Object>) null, value))
+          .map(value -> new KeyValueMetadata<>(KeyValue.keyValue((List<Object>) null, value)))
           .forEach(output::add);
 
       return null;
@@ -247,7 +287,7 @@ public class QueryStreamWriterTest {
 
   private static Answer<Void> tableRows(final Object... rows) {
     return inv -> {
-      final Collection<KeyValue<List<Object>, GenericRow>> output = inv.getArgument(0);
+      final Collection<KeyValueMetadata<List<Object>, GenericRow>> output = inv.getArgument(0);
 
       for (int i = 0; i < rows.length; i = i + 2) {
         final List<Object> key = ImmutableList.of(rows[i]);
@@ -255,7 +295,7 @@ public class QueryStreamWriterTest {
             ? null
             : GenericRow.genericRow(rows[i + 1]);
 
-        output.add(KeyValue.keyValue(key, value));
+        output.add(new KeyValueMetadata<>(KeyValue.keyValue(key, value)));
       }
 
       return null;
@@ -264,7 +304,7 @@ public class QueryStreamWriterTest {
 
   private static Answer<Void> windowedTableRows(final Object... rows) {
     return inv -> {
-      final Collection<KeyValue<List<Object>, GenericRow>> output = inv.getArgument(0);
+      final Collection<KeyValueMetadata<List<Object>, GenericRow>> output = inv.getArgument(0);
 
       for (int i = 0; i < rows.length; i = i + 2) {
         final List<Object> key = ImmutableList.of(rows[i], 1000, 2000);
@@ -272,7 +312,7 @@ public class QueryStreamWriterTest {
             ? null
             : GenericRow.genericRow(rows[i + 1]);
 
-        output.add(KeyValue.keyValue(key, value));
+        output.add(new KeyValueMetadata<>(KeyValue.keyValue(key, value)));
       }
 
       return null;

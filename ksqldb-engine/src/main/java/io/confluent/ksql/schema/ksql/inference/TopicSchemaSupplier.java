@@ -16,6 +16,7 @@
 package io.confluent.ksql.schema.ksql.inference;
 
 import com.google.common.collect.ImmutableList;
+import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.ksql.schema.ksql.SimpleColumn;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.SerdeFeatures;
@@ -29,36 +30,45 @@ import java.util.Optional;
 public interface TopicSchemaSupplier {
 
   /**
-   * Get the key schema for the supplied {@code topicName}.
+   * Get the key schema for the supplied {@code topicName} or {@code schemaId}.
+   *
+   * <p>
+   * At least one of topicName and schemaId should be provided. If only topicName is provided,
+   * latest schema will be fetched under the subject constructed by topicName.
+   * </p>
    *
    *
    * @param topicName the name of the topic.
-   * @param schemaId  optional schema id to retrieve.
+   * @param schemaId schema id to retrieve.
    * @param expectedFormat the expected format of the schema.
    * @param serdeFeatures serde features associated with the request.
    * @return the schema and id or an error message should the schema not be present or compatible.
    * @throws RuntimeException on communication issues with remote services.
    */
   SchemaResult getKeySchema(
-      String topicName,
+      Optional<String> topicName,
       Optional<Integer> schemaId,
       FormatInfo expectedFormat,
       SerdeFeatures serdeFeatures
   );
 
   /**
-   * Get the value schema for the supplied {@code topicName}.
+   * Get the value schema for the supplied {@code topicName} or {@code schemaId}.
    *
+   * <p>
+   * At least one of topicName and schemaId should be provided. If only topicName is provided,
+   * latest schema will be fetched under the subject constructed by topicName.
+   * </p>
    *
    * @param topicName the name of the topic.
-   * @param schemaId  optional schema id to retrieve.
+   * @param schemaId schema id to retrieve.  *
    * @param expectedFormat the expected format of the schema.
    * @param serdeFeatures serde features associated with the request.
    * @return the schema and id or an error message should the schema not be present or compatible.
    * @throws RuntimeException on communication issues with remote services.
    */
   SchemaResult getValueSchema(
-      String topicName,
+      Optional<String> topicName,
       Optional<Integer> schemaId,
       FormatInfo expectedFormat,
       SerdeFeatures serdeFeatures
@@ -68,20 +78,24 @@ public interface TopicSchemaSupplier {
 
     final int id;
     final List<? extends SimpleColumn> columns;
+    final ParsedSchema rawSchema;
 
     private SchemaAndId(
         final List<? extends SimpleColumn> columns,
+        final ParsedSchema rawSchema,
         final int id
     ) {
       this.id = id;
+      this.rawSchema = rawSchema;
       this.columns = ImmutableList.copyOf(Objects.requireNonNull(columns, "columns"));
     }
 
     static SchemaAndId schemaAndId(
         final List<? extends SimpleColumn> columns,
+        final ParsedSchema rawSchema,
         final int id
     ) {
-      return new SchemaAndId(columns, id);
+      return new SchemaAndId(columns, rawSchema, id);
     }
   }
 

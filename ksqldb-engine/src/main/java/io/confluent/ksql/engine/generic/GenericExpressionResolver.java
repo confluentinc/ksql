@@ -56,8 +56,16 @@ public class GenericExpressionResolver {
   private static final LogicalSchema NO_COLUMNS = LogicalSchema.builder().build();
 
   private static final Supplier<String> IGNORED_MSG = () -> "";
-  private static final ProcessingLogger THROWING_LOGGER = errorMessage -> {
-    throw new KsqlException(((RecordProcessingError) errorMessage).getMessage());
+  private static final ProcessingLogger THROWING_LOGGER = new ProcessingLogger() {
+    @Override
+    public void error(final ErrorMessage errorMessage) {
+      throw new KsqlException(((RecordProcessingError) errorMessage).getMessage());
+    }
+
+    @Override
+    public void close() {
+      // no-op
+    }
   };
 
   private final SqlType fieldType;

@@ -15,17 +15,22 @@
 
 package io.confluent.ksql.errors;
 
+import com.google.common.base.Throwables;
+import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import io.confluent.ksql.metrics.StreamsErrorCollector;
+import io.confluent.ksql.util.KsqlConfig;
 import java.util.Map;
+import java.util.Objects;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.streams.errors.DeserializationExceptionHandler;
 import org.apache.kafka.streams.processor.ProcessorContext;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.log4j.Logger;
 
 public class LogMetricAndContinueExceptionHandler implements DeserializationExceptionHandler {
+
   private static final Logger log
-      = LoggerFactory.getLogger(LogMetricAndContinueExceptionHandler.class);
+      = Logger.getLogger(LogMetricAndContinueExceptionHandler.class);
+  private StreamsErrorCollector streamsErrorCollector;
 
   @Override
   public DeserializationHandlerResponse handle(
@@ -34,18 +39,44 @@ public class LogMetricAndContinueExceptionHandler implements DeserializationExce
       final Exception exception
   ) {
     log.debug(
-        "Exception caught during Deserialization, "
-        + "taskId: {}, topic: {}, partition: {}, offset: {}",
-        context.taskId(), record.topic(), record.partition(), record.offset(),
+        String.format("Exception caught during Deserialization, "
+            + "taskId: %s, topic: %s, partition: %d, offset: %d",
+        context.taskId(), record.topic(), record.partition(), record.offset()),
         exception
     );
 
-    StreamsErrorCollector.recordError(context.applicationId(), record.topic());
+    streamsErrorCollector.recordError(record.topic());
+
+    if (isCausedByAuthorizationError(exception)) {
+      log.info(
+          String.format(
+              "Authorization error when attempting to access the schema during deserialization. "
+              + "taskId: %s, topic: %s, partition: %d, offset: %d",
+          context.taskId(), record.topic(), record.partition(), record.offset()));
+      return DeserializationHandlerResponse.FAIL;
+    }
+
     return DeserializationHandlerResponse.CONTINUE;
+  }
+
+  private boolean isCausedByAuthorizationError(final Throwable throwable) {
+    try {
+      final Throwable error = Throwables.getRootCause(throwable);
+      return (error instanceof RestClientException
+          && ((((RestClientException) error).getStatus() == 401)
+          || ((RestClientException) error).getStatus() == 403));
+    } catch (Throwable t) {
+      return false;
+    }
   }
 
   @Override
   public void configure(final Map<String, ?> configs) {
-    // ignore
+    this.streamsErrorCollector =
+        (StreamsErrorCollector) Objects.requireNonNull(
+            configs.get(
+                KsqlConfig.KSQL_INTERNAL_STREAMS_ERROR_COLLECTOR_CONFIG
+            )
+        );
   }
 }

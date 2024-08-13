@@ -21,6 +21,7 @@ import static org.hamcrest.Matchers.is;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.Column.Namespace;
 import io.confluent.ksql.schema.ksql.types.SqlType;
+import java.util.Optional;
 import org.hamcrest.FeatureMatcher;
 import org.hamcrest.Matcher;
 
@@ -65,6 +66,19 @@ public final class ColumnMatchers {
     );
   }
 
+  public static <T extends Column> Matcher<T> headersColumn(
+      final ColumnName name,
+      final SqlType type,
+      final Optional<String> headerKey
+  ) {
+    return allOf(
+        hasName(name),
+        hasType(type),
+        hasNamespace(Namespace.HEADERS),
+        hasHeaderKey(headerKey)
+    );
+  }
+
   public static <T extends SimpleColumn> Matcher<T> hasName(final ColumnName name) {
     return new FeatureMatcher<T, ColumnName>(
         is(name),
@@ -100,6 +114,19 @@ public final class ColumnMatchers {
       @Override
       protected Namespace featureValueOf(final Column actual) {
         return actual.namespace();
+      }
+    };
+  }
+
+  private static <T extends Column> Matcher<T> hasHeaderKey(final Optional<String> key) {
+    return new FeatureMatcher<T, Optional<String>>(
+        is(key),
+        "column with header key",
+        "header key"
+    ) {
+      @Override
+      protected Optional<String> featureValueOf(final Column actual) {
+        return actual.headerKey();
       }
     };
   }

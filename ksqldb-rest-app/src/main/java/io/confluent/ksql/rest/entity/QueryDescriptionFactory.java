@@ -22,10 +22,8 @@ import io.confluent.ksql.rest.util.EntityUtil;
 import io.confluent.ksql.util.KsqlConstants.KsqlQueryStatus;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
-import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 public final class QueryDescriptionFactory {
@@ -41,8 +39,9 @@ public final class QueryDescriptionFactory {
       final PersistentQueryMetadata persistentQuery = (PersistentQueryMetadata) queryMetadata;
       return create(
           persistentQuery,
-          persistentQuery.getResultTopic().getKeyFormat().getWindowType(),
-          ImmutableSet.of(persistentQuery.getSinkName()),
+          persistentQuery.getResultTopic().map(t -> t.getKeyFormat().getWindowType())
+              .orElse(Optional.empty()),
+          persistentQuery.getSinkName(),
           ksqlHostQueryStatus
       );
     }
@@ -50,7 +49,7 @@ public final class QueryDescriptionFactory {
     return create(
         queryMetadata,
         Optional.empty(),
-        Collections.emptySet(),
+        Optional.empty(),
         ksqlHostQueryStatus
     );
   }
@@ -58,7 +57,7 @@ public final class QueryDescriptionFactory {
   private static QueryDescription create(
       final QueryMetadata queryMetadata,
       final Optional<WindowType> windowType,
-      final Set<SourceName> sinks,
+      final Optional<SourceName> sink,
       final Map<KsqlHostInfoEntity, KsqlQueryStatus> ksqlHostQueryStatus
   ) {
     return new QueryDescription(
@@ -67,14 +66,17 @@ public final class QueryDescriptionFactory {
         windowType,
         EntityUtil.buildSourceSchemaEntity(queryMetadata.getLogicalSchema()),
         queryMetadata.getSourceNames().stream().map(SourceName::text).collect(Collectors.toSet()),
-        sinks.stream().map(SourceName::text).collect(Collectors.toSet()),
+        sink.isPresent()
+            ? ImmutableSet.of(sink.get().text())
+            : ImmutableSet.of(),
         queryMetadata.getTopologyDescription(),
         queryMetadata.getExecutionPlan(),
         queryMetadata.getOverriddenProperties(),
         ksqlHostQueryStatus,
         queryMetadata.getQueryType(),
         queryMetadata.getQueryErrors(),
-        queryMetadata.getTaskMetadata()
+        queryMetadata.getTaskMetadata(),
+        queryMetadata.getQueryApplicationId()
     );
   }
 }

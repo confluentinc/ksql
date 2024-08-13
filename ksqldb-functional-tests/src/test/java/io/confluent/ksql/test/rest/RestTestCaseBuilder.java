@@ -19,11 +19,11 @@ import com.google.common.collect.Iterables;
 import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.test.model.RecordNode;
 import io.confluent.ksql.test.model.TestFileContext;
-import io.confluent.ksql.test.model.TestLocation;
 import io.confluent.ksql.test.model.TopicNode;
 import io.confluent.ksql.test.tools.Record;
 import io.confluent.ksql.test.tools.TestCaseBuilderUtil;
-import io.confluent.ksql.test.tools.Topic;
+import io.confluent.ksql.tools.test.model.TestLocation;
+import io.confluent.ksql.tools.test.model.Topic;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -54,7 +54,7 @@ final class RestTestCaseBuilder {
       final TestLocation location = ctx.getTestLocation(test.name());
 
       return formats
-          .map(format -> createTest(test, format, location));
+          .map(format -> createTest(test, format, Optional.empty(), location));
     } catch (final Exception e) {
       throw new AssertionError("Invalid test '" + test.name() + "': " + e.getMessage(), e);
     }
@@ -63,12 +63,14 @@ final class RestTestCaseBuilder {
   private static RestTestCase createTest(
       final RestTestCaseNode test,
       final Optional<String> explicitFormat,
+      final Optional<String> config,
       final TestLocation location
   ) {
     final String testName = TestCaseBuilderUtil.buildTestName(
         location.getTestPath(),
         test.name(),
-        explicitFormat
+        explicitFormat,
+        config
     );
 
     try {
@@ -102,7 +104,9 @@ final class RestTestCaseBuilder {
           statements,
           test.getResponses(),
           ee,
-          test.getInputConditions()
+          test.getInputConditions(),
+          test.getOutputConditions(),
+          test.isTestPullWithProtoFormat()
       );
     } catch (final Exception e) {
       throw new AssertionError(testName + ": Invalid test. " + e.getMessage(), e);

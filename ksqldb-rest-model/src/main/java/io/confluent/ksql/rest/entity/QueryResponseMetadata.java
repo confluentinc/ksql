@@ -15,8 +15,10 @@
 
 package io.confluent.ksql.rest.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -31,17 +33,24 @@ public class QueryResponseMetadata {
   public final List<String> columnNames;
   public final List<String> columnTypes;
 
+  // Just used to pass data around rather than directly serialized in a response
+  @JsonIgnore
+  public final LogicalSchema schema;
+
   public QueryResponseMetadata(
       final @JsonProperty(value = "queryId") String queryId,
       final @JsonProperty(value = "columnNames") List<String> columnNames,
-      final @JsonProperty(value = "columnTypes") List<String> columnTypes) {
+      final @JsonProperty(value = "columnTypes") List<String> columnTypes,
+      final @JsonProperty(value = "schema") LogicalSchema schema) {
     this.queryId = queryId;
     this.columnNames = Collections.unmodifiableList(Objects.requireNonNull(columnNames));
     this.columnTypes = Collections.unmodifiableList(Objects.requireNonNull(columnTypes));
+    this.schema = schema;
   }
 
-  public QueryResponseMetadata(final List<String> columnNames, final List<String> columnTypes) {
-    this(null, columnNames, columnTypes);
+  public QueryResponseMetadata(final List<String> columnNames, final List<String> columnTypes,
+      final LogicalSchema schema) {
+    this(null, columnNames, columnTypes, schema);
   }
 
 }

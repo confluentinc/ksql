@@ -31,9 +31,8 @@ public final class CreateConfigs {
 
   public static final String WINDOW_TYPE_PROPERTY = "WINDOW_TYPE";
   public static final String WINDOW_SIZE_PROPERTY = "WINDOW_SIZE";
-  public static final String KEY_SCHEMA_ID = "KEY_SCHEMA_ID";
-  public static final String VALUE_SCHEMA_ID = "VALUE_SCHEMA_ID";
   public static final String SOURCE_CONNECTOR = "SOURCE_CONNECTOR";
+  public static final String SOURCED_BY_CONNECTOR_PROPERTY = "SOURCED_BY_CONNECTOR";
 
   private static final ConfigDef CONFIG_DEF = new ConfigDef()
       .define(
@@ -56,18 +55,6 @@ public final class CreateConfigs {
               + "then the property should be used to provide the window size, "
               + "for example: '20 SECONDS'."
       ).define(
-          KEY_SCHEMA_ID,
-          ConfigDef.Type.INT,
-          null,
-          Importance.LOW,
-          "Undocumented feature"
-      ).define(
-          VALUE_SCHEMA_ID,
-          ConfigDef.Type.INT,
-          null,
-          Importance.LOW,
-          "Undocumented feature"
-      ).define(
           SOURCE_CONNECTOR,
           Type.STRING,
           null,
@@ -75,6 +62,12 @@ public final class CreateConfigs {
           "Indicates that this source was created by a connector with the given name. This "
               + "is useful for understanding which sources map to which connectors and will "
               + "be automatically populated for connectors."
+      ).define(
+          SOURCED_BY_CONNECTOR_PROPERTY,
+          Type.STRING,
+          null,
+          Importance.LOW,
+          "Expresses the dataflow between connectors and the topics they source."
       );
 
   static {

@@ -1,0 +1,240 @@
+{
+  "version" : "7.1.0",
+  "timestamp" : 1633126032384,
+  "path" : "query-validation-tests/transform-map.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`ID` BIGINT KEY, `VALUE` MAP<STRING, DECIMAL(4, 2)>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "AVRO"
+      }
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ID` BIGINT KEY, `TRANSFORM` MAP<STRING, DECIMAL(2, 0)>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "AVRO"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "capitalize all keys and round values in transformed map",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : 0,
+      "value" : {
+        "VALUE" : {
+          "test" : 3.21,
+          "hello" : 4.49
+        }
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : 1,
+      "value" : {
+        "VALUE" : {
+          "number" : 10.5,
+          "other" : 1.01
+        }
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : 0,
+      "value" : {
+        "TRANSFORM" : {
+          "TEST" : 3,
+          "HELLO" : 4
+        }
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : 1,
+      "value" : {
+        "TRANSFORM" : {
+          "NUMBER" : 11,
+          "OTHER" : 1
+        }
+      }
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "test_topic",
+      "valueSchema" : {
+        "type" : "record",
+        "name" : "KsqlDataSourceSchema",
+        "namespace" : "io.confluent.ksql.avro_schemas",
+        "fields" : [ {
+          "name" : "VALUE",
+          "type" : [ "null", {
+            "type" : "array",
+            "items" : {
+              "type" : "record",
+              "name" : "KsqlDataSourceSchema_VALUE",
+              "fields" : [ {
+                "name" : "key",
+                "type" : [ "null", "string" ],
+                "default" : null
+              }, {
+                "name" : "value",
+                "type" : [ "null", {
+                  "type" : "bytes",
+                  "scale" : 2,
+                  "precision" : 4,
+                  "connect.version" : 1,
+                  "connect.parameters" : {
+                    "scale" : "2",
+                    "connect.decimal.precision" : "4"
+                  },
+                  "connect.name" : "org.apache.kafka.connect.data.Decimal",
+                  "logicalType" : "decimal"
+                } ],
+                "default" : null
+              } ],
+              "connect.internal.type" : "MapEntry"
+            },
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema_VALUE"
+          } ],
+          "default" : null
+        } ],
+        "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
+      },
+      "valueFormat" : "AVRO",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM TEST (ID BIGINT KEY, VALUE MAP<STRING, DECIMAL(4, 2)>) WITH (kafka_topic='test_topic',value_format='AVRO');", "CREATE STREAM OUTPUT as SELECT ID, TRANSFORM(VALUE, (x,y) => UCASE(x), (x,y) => round(y)) AS transform FROM TEST;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`ID` BIGINT KEY, `TRANSFORM` MAP<STRING, DECIMAL(2, 0)>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "AVRO",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`ID` BIGINT KEY, `VALUE` MAP<STRING, DECIMAL(4, 2)>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "AVRO",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "AVRO"
+          },
+          "partitions" : 4,
+          "valueSchema" : {
+            "type" : "record",
+            "name" : "KsqlDataSourceSchema",
+            "namespace" : "io.confluent.ksql.avro_schemas",
+            "fields" : [ {
+              "name" : "VALUE",
+              "type" : [ "null", {
+                "type" : "array",
+                "items" : {
+                  "type" : "record",
+                  "name" : "KsqlDataSourceSchema_VALUE",
+                  "fields" : [ {
+                    "name" : "key",
+                    "type" : [ "null", "string" ],
+                    "default" : null
+                  }, {
+                    "name" : "value",
+                    "type" : [ "null", {
+                      "type" : "bytes",
+                      "scale" : 2,
+                      "precision" : 4,
+                      "connect.version" : 1,
+                      "connect.parameters" : {
+                        "scale" : "2",
+                        "connect.decimal.precision" : "4"
+                      },
+                      "connect.name" : "org.apache.kafka.connect.data.Decimal",
+                      "logicalType" : "decimal"
+                    } ],
+                    "default" : null
+                  } ],
+                  "connect.internal.type" : "MapEntry"
+                },
+                "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema_VALUE"
+              } ],
+              "default" : null
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
+          }
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "AVRO"
+          },
+          "partitions" : 4,
+          "valueSchema" : {
+            "type" : "record",
+            "name" : "KsqlDataSourceSchema",
+            "namespace" : "io.confluent.ksql.avro_schemas",
+            "fields" : [ {
+              "name" : "TRANSFORM",
+              "type" : [ "null", {
+                "type" : "array",
+                "items" : {
+                  "type" : "record",
+                  "name" : "KsqlDataSourceSchema_TRANSFORM",
+                  "fields" : [ {
+                    "name" : "key",
+                    "type" : [ "null", "string" ],
+                    "default" : null
+                  }, {
+                    "name" : "value",
+                    "type" : [ "null", {
+                      "type" : "bytes",
+                      "scale" : 0,
+                      "precision" : 2,
+                      "connect.version" : 1,
+                      "connect.parameters" : {
+                        "scale" : "0",
+                        "connect.decimal.precision" : "2"
+                      },
+                      "connect.name" : "org.apache.kafka.connect.data.Decimal",
+                      "logicalType" : "decimal"
+                    } ],
+                    "default" : null
+                  } ],
+                  "connect.internal.type" : "MapEntry"
+                },
+                "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema_TRANSFORM"
+              } ],
+              "default" : null
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
+          }
+        } ]
+      }
+    }
+  }
+}

@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.rest.server.resources;
 
-import io.confluent.ksql.api.server.SlidingWindowRateLimiter;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
@@ -27,18 +26,14 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.ListeningScheduledExecutorService;
-import com.google.common.util.concurrent.RateLimiter;
 import io.confluent.ksql.engine.KsqlEngine;
-import io.confluent.ksql.execution.streams.RoutingFilter.RoutingFilterFactory;
-import io.confluent.ksql.physical.pull.HARouting;
-import io.confluent.ksql.physical.scalablepush.PushRouting;
 import io.confluent.ksql.properties.DenyListPropertyValidator;
 import io.confluent.ksql.rest.ApiJsonMapper;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.server.StatementParser;
 import io.confluent.ksql.rest.server.computation.CommandQueue;
-import io.confluent.ksql.rest.util.ConcurrencyLimiter;
+import io.confluent.ksql.rest.server.query.QueryExecutor;
 import io.confluent.ksql.rest.server.resources.streaming.WSQueryEndpoint;
 import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.util.KsqlConfig;
@@ -73,6 +68,8 @@ public class WSQueryEndpointTest {
   @Mock
   private Context context;
   @Mock
+  private QueryExecutor queryExecutor;
+  @Mock
   private ListeningScheduledExecutorService exec;
 
   private WSQueryEndpoint wsQueryEndpoint;
@@ -90,14 +87,7 @@ public class WSQueryEndpointTest {
         Optional.empty(),
         mock(Errors.class),
         denyListPropertyValidator,
-        Optional.empty(),
-        mock(RoutingFilterFactory.class),
-        mock(RateLimiter.class),
-        mock(ConcurrencyLimiter.class),
-        mock(SlidingWindowRateLimiter.class),
-        mock(HARouting.class),
-        Optional.empty(),
-        mock(PushRouting.class)
+        queryExecutor
     );
   }
 
@@ -133,7 +123,7 @@ public class WSQueryEndpointTest {
     executeStreamQuery(buildRequestParams("show streams;", ImmutableMap.of()), Optional.empty());
 
     // Then
-    verify(exec, never()).schedule(any(Runnable.class), anyLong(), any());
+    verify(exec, never()).schedule(any(Runnable.class), anyLong(), any(TimeUnit.class));
   }
 
   private MultiMap buildRequestParams(final String command, final Map<String, Object> streamProps)

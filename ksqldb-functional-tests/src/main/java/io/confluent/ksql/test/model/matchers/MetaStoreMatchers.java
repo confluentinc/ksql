@@ -114,4 +114,18 @@ public final class MetaStoreMatchers {
       }
     };
   }
+
+  public static Matcher<DataSource> isSourceMatches(
+      final Matcher<? super Boolean> matcher
+  ) {
+    return new FeatureMatcher<DataSource, Boolean>(
+        matcher,
+        "source type",
+        "isSource") {
+      @Override
+      protected Boolean featureValueOf(final DataSource actual) {
+        return actual.isSource();
+      }
+    };
+  }
 }

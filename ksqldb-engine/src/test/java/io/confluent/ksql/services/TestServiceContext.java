@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.services;
 
+import static io.confluent.ksql.util.KsqlConfig.CONNECT_REQUEST_TIMEOUT_DEFAULT;
+
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.util.FakeKafkaClientSupplier;
@@ -23,6 +25,7 @@ import java.util.Collections;
 import java.util.Optional;
 import java.util.function.Supplier;
 import org.apache.kafka.clients.admin.Admin;
+import org.apache.kafka.common.security.ssl.DefaultSslEngineFactory;
 import org.apache.kafka.streams.KafkaClientSupplier;
 import org.apache.kafka.streams.processor.internals.DefaultKafkaClientSupplier;
 
@@ -90,7 +93,13 @@ public final class TestServiceContext {
         new FakeKafkaClientSupplier().getAdmin(Collections.emptyMap()),
         topicClient,
         srClientFactory,
-        new DefaultConnectClient("http://localhost:8083", Optional.empty()),
+        new DefaultConnectClient(
+            "http://localhost:8083",
+            Optional.empty(),
+            Collections.emptyMap(),
+            Optional.empty(),
+            false,
+            CONNECT_REQUEST_TIMEOUT_DEFAULT),
         consumerGroupClient
     );
   }
@@ -108,9 +117,8 @@ public final class TestServiceContext {
         adminClient,
         new KafkaTopicClientImpl(() -> adminClient),
         srClientFactory,
-        new DefaultConnectClient(
-            ksqlConfig.getString(KsqlConfig.CONNECT_URL_PROPERTY),
-            Optional.empty()),
+        new DefaultConnectClientFactory(ksqlConfig)
+            .get(Optional.empty(), Collections.emptyList(), Optional.empty()),
         new KafkaConsumerGroupClientImpl(() -> adminClient)
     );
   }
@@ -140,6 +148,7 @@ public final class TestServiceContext {
   ) {
     final DefaultServiceContext serviceContext = new DefaultServiceContext(
         kafkaClientSupplier,
+        () -> adminClient,
         () -> adminClient,
         topicClient,
         srClientFactory,

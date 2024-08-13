@@ -37,8 +37,8 @@ import io.confluent.ksql.test.tools.TestCase;
 import io.confluent.ksql.test.tools.TestCaseBuilderUtil;
 import io.confluent.ksql.test.tools.TestExecutionListener;
 import io.confluent.ksql.test.tools.TestExecutor;
-import io.confluent.ksql.test.tools.TestFunctionRegistry;
-import io.confluent.ksql.test.tools.Topic;
+import io.confluent.ksql.tools.test.TestFunctionRegistry;
+import io.confluent.ksql.tools.test.model.Topic;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import java.io.File;
@@ -162,7 +162,7 @@ public final class TestCasePlanLoader {
 
   /**
    * Create a TestCasePlan for all saved plans for a test case
-   * @param testCase the test case to load saved lans for
+   * @param testCase the test case to load saved plans for
    * @return a list of the loaded plans.
    */
   public static List<TestCasePlan> allForTestCase(final TestCase testCase) {
@@ -225,6 +225,7 @@ public final class TestCasePlanLoader {
     final TestCaseNode testCodeNode = new TestCaseNode(
         simpleTestName,
         Optional.empty(),
+        ImmutableList.of(),
         ImmutableList.of(),
         testCase.getInputRecords().stream().map(RecordNode::from).collect(Collectors.toList()),
         testCase.getOutputRecords().stream().map(RecordNode::from).collect(Collectors.toList()),

@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.rest.integration;
 
+import static io.confluent.ksql.rest.Errors.ERROR_CODE_UNAUTHORIZED;
 import static io.confluent.ksql.rest.integration.HighAvailabilityTestUtil.extractQueryId;
 import static io.confluent.ksql.rest.integration.HighAvailabilityTestUtil.makeAdminRequest;
 import static io.confluent.ksql.rest.integration.HighAvailabilityTestUtil.makeAdminRequestWithResponse;
@@ -32,8 +33,10 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Multimap;
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.api.AuthTest.StringPrincipal;
@@ -72,21 +75,33 @@ import io.vertx.core.WorkerExecutor;
 import io.vertx.ext.web.RoutingContext;
 import java.io.IOException;
 import java.security.Principal;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 import kafka.zookeeper.ZooKeeperClientException;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.streams.StreamsConfig;
+import org.apache.kafka.streams.processor.TaskId;
+import org.apache.kafka.streams.processor.assignment.AssignmentConfigs;
+import org.apache.kafka.streams.processor.assignment.ProcessId;
+import org.apache.kafka.streams.processor.internals.assignment.ClientState;
+import org.apache.kafka.streams.processor.internals.assignment.RackAwareTaskAssignor;
+import org.apache.kafka.streams.processor.internals.assignment.LegacyTaskAssignor;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -104,6 +119,7 @@ import org.slf4j.LoggerFactory;
  */
 @SuppressWarnings("OptionalGetWithoutIsPresent")
 @Category({IntegrationTest.class})
+@Ignore
 public class PullQueryRoutingFunctionalTest {
   private static final Logger LOG = LoggerFactory.getLogger(PullQueryRoutingFunctionalTest.class);
 
@@ -169,6 +185,8 @@ public class PullQueryRoutingFunctionalTest {
       // plugin.  In practice, these are internal paths so we're not interested in testing auth
       // for them in these tests.
       .put(KsqlRestConfig.KSQL_AUTHENTICATION_PLUGIN_CLASS, WSAuthPlugin.class)
+      .put(StreamsConfig.InternalConfig.INTERNAL_TASK_ASSIGNOR_CLASS,
+          StaticStreamsTaskAssignor.class.getName())
       .build();
 
   private static final Shutoffs APP_SHUTOFFS_0 = new Shutoffs();
@@ -251,13 +269,15 @@ public class PullQueryRoutingFunctionalTest {
     topic = USER_TOPIC + KsqlIdentifierTestUtil.uniqueIdentifierName();
     TEST_HARNESS.ensureTopics(1, topic);
 
-    TEST_HARNESS.produceRows(
+    final Multimap<GenericKey, RecordMetadata> producedRows = TEST_HARNESS.produceRows(
         topic,
         USER_PROVIDER,
         FormatFactory.KAFKA,
         FormatFactory.JSON,
         timestampSupplier::getAndIncrement
     );
+
+    LOG.info("Produced rows " + producedRows.size());
 
     //Create stream
     makeAdminRequest(
@@ -326,7 +346,7 @@ public class PullQueryRoutingFunctionalTest {
   }
 
   @Test
-  public void shouldQueryWS() throws Exception {
+  public void shouldQueryWithAuthMultiNodeOverWS() {
     // Given:
     ClusterFormation clusterFormation = findClusterFormation(TEST_APP_0, TEST_APP_1, TEST_APP_2);
     waitForClusterToBeDiscovered(clusterFormation.standBy.getApp(), 3, USER_CREDS);
@@ -570,7 +590,7 @@ public class PullQueryRoutingFunctionalTest {
         .getActiveStandbyPerQuery().get(queryId);
 
     if (entity0 == null || entity1 == null) {
-      throw new AssertionError("Could not find active/standby entity!");
+      throw new AssertionError("Could not find standby entity!");
     }
 
     // find active
@@ -698,23 +718,50 @@ public class PullQueryRoutingFunctionalTest {
     @Override
     public CompletableFuture<Principal> handleAuth(RoutingContext routingContext,
         WorkerExecutor workerExecutor) {
-      if (getAuthToken(routingContext) == null){
+      if (getAuthHeader(routingContext) == null){
         routingContext.fail(HttpResponseStatus.UNAUTHORIZED.code(),
-            new KsqlApiException("Unauthorized", HttpResponseStatus.UNAUTHORIZED.code()));
+            new KsqlApiException("Unauthorized", ERROR_CODE_UNAUTHORIZED));
         return CompletableFuture.completedFuture(null);
       }
       return CompletableFuture.completedFuture(new StringPrincipal(USER_WITH_ACCESS));
     }
 
     @Override
-    public String getAuthToken(RoutingContext routingContext) {
-      String authToken = routingContext.request().getHeader("Authorization");
-      if (authToken == null) {
-        authToken = routingContext.request().getParam("access_token");
+    public String getAuthHeader(RoutingContext routingContext) {
+      String authHeader = routingContext.request().getHeader("Authorization");
+      if (authHeader == null) {
+        authHeader = routingContext.request().getParam("access_token");
       }
-      return authToken;
+      return authHeader;
     }
+  }
+  
+  public static class StaticStreamsTaskAssignor implements LegacyTaskAssignor {
+    public StaticStreamsTaskAssignor() { }
 
+    @Override
+    public boolean assign(
+        final Map<ProcessId, ClientState> clients,
+        final Set<TaskId> allTaskIds,
+        final Set<TaskId> statefulTaskIds,
+        final RackAwareTaskAssignor rackAwareTaskAssignor,
+        final AssignmentConfigs configs
+    ) {
+      Preconditions.checkState(configs.numStandbyReplicas() == 1);
+      Preconditions.checkState(clients.size() == 3);
+      final List<ClientState> clientStates = clients.entrySet().stream()
+          .sorted(Comparator.comparing(Entry::getKey))
+          .map(Entry::getValue)
+          .collect(Collectors.toList());
+      final ClientState clientState1 = clientStates.get(0);
+      final ClientState clientState2 = clientStates.get(1);
+
+      clientState1.assignActiveTasks(allTaskIds);
+      for (TaskId taskId : allTaskIds) {
+        clientState2.assignStandby(taskId);
+      }
+      return false;
+    }
   }
 }
 

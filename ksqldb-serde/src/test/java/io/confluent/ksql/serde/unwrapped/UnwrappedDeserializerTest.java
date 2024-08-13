@@ -38,7 +38,7 @@ public class UnwrappedDeserializerTest {
     deserializer = new UnwrappedDeserializer(inner);
 
     when(inner.deserialize(any(), any())).thenReturn(DESERIALIZED);
-    when(inner.deserialize(any(), any(), any())).thenReturn(DESERIALIZED);
+    when(inner.deserialize(any(), any(), (byte[]) any())).thenReturn(DESERIALIZED);
   }
 
   @Test
@@ -74,7 +74,7 @@ public class UnwrappedDeserializerTest {
   @Test
   public void shouldDeserializeNewStyleNulls() {
     // When:
-    final List<?> result = deserializer.deserialize(TOPIC, HEADERS, null);
+    final List<?> result = deserializer.deserialize(TOPIC, HEADERS, (byte[]) null);
 
     // Then:
     assertThat(result, is(nullValue()));

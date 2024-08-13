@@ -27,10 +27,12 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.same;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableMap;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.rocksdb.KsqlBoundedMemoryRocksDBConfigSetter.LruCacheFactory;
 import io.confluent.ksql.rocksdb.KsqlBoundedMemoryRocksDBConfigSetter.WriteBufferManagerFactory;
 import java.util.Collections;
@@ -45,6 +47,9 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.rocksdb.BlockBasedTableConfig;
 import org.rocksdb.Cache;
+import org.rocksdb.CompactionOptionsUniversal;
+import org.rocksdb.CompactionStyle;
+import org.rocksdb.CompressionType;
 import org.rocksdb.Env;
 import org.rocksdb.LRUCache;
 import org.rocksdb.Options;
@@ -56,13 +61,24 @@ public class KsqlBoundedMemoryRocksDBConfigSetterTest {
   private static final long CACHE_SIZE = 16 * 1024 * 1024 * 1024L;
   private static final long WRITE_BUFFER_SIZE = 8 * 1024 * 1024 * 1024L;
   private static final int NUM_BACKGROUND_THREADS = 4;
+  private static final CompactionStyle COMPACTION_STYLE = CompactionStyle.UNIVERSAL;
+  private static final CompressionType COMPRESSION_TYPE = CompressionType.LZ4_COMPRESSION;
+  private static final int MAX_BACKGROUND_JOBS = 10;
+  private static final boolean ALLOW_TRIVIAL_MOVE = true;
 
-  private static final Map<String, Object> CONFIG_PROPS = new HashMap<>(ImmutableMap.of(
-      "ksql.plugins.rocksdb.cache.size", CACHE_SIZE,
-      "ksql.plugins.rocksdb.write.buffer.size", WRITE_BUFFER_SIZE,
-      "ksql.plugins.rocksdb.write.buffer.cache.use", true,
-      "ksql.plugns.rocksdb.cache.limit.strict", false,
-      "ksql.plugins.rocksdb.num.background.threads", NUM_BACKGROUND_THREADS)
+
+  private static final Map<String, Object> CONFIG_PROPS = new HashMap<>(
+      ImmutableMap.<String, Object> builder()
+      .put("ksql.plugins.rocksdb.cache.size", CACHE_SIZE)
+      .put("ksql.plugins.rocksdb.write.buffer.size", WRITE_BUFFER_SIZE)
+      .put("ksql.plugins.rocksdb.write.buffer.cache.use", true)
+      .put("ksql.plugns.rocksdb.cache.limit.strict", false)
+      .put("ksql.plugins.rocksdb.num.background.threads", NUM_BACKGROUND_THREADS)
+      .put("ksql.plugins.rocksdb.compaction.style", COMPACTION_STYLE.name())
+      .put("ksql.plugins.rocksdb.compression.type", COMPRESSION_TYPE.name())
+      .put("ksql.plugins.rocksdb.max.background.jobs", MAX_BACKGROUND_JOBS)
+      .put("ksql.plugins.rocksdb.compaction.trivial.move", ALLOW_TRIVIAL_MOVE)
+      .build()
   );
 
   @Mock
@@ -85,6 +101,8 @@ public class KsqlBoundedMemoryRocksDBConfigSetterTest {
   private LRUCache writeCache;
   @Mock
   private WriteBufferManager bufferManager;
+  @Mock
+  private CompactionOptionsUniversal compactionOptionsUniversal;
   @Captor
   private ArgumentCaptor<WriteBufferManager> writeBufferManagerCaptor;
   @Captor
@@ -112,6 +130,7 @@ public class KsqlBoundedMemoryRocksDBConfigSetterTest {
         .thenReturn(blockCache)
         .thenReturn(writeCache)
         .thenThrow(new IllegalStateException());
+    when(rocksOptions.compactionOptionsUniversal()).thenReturn(compactionOptionsUniversal);
   }
 
   @Test
@@ -172,11 +191,34 @@ public class KsqlBoundedMemoryRocksDBConfigSetterTest {
     verify(rocksOptions).setWriteBufferManager(bufferManager);
     verify(rocksOptions).setStatsDumpPeriodSec(0);
     verify(rocksOptions).setTableFormatConfig(tableConfig);
+    verify(rocksOptions).setCompactionStyle(COMPACTION_STYLE);
+    verify(rocksOptions).setCompressionType(COMPRESSION_TYPE);
+    verify(rocksOptions).setMaxBackgroundJobs(MAX_BACKGROUND_JOBS);
+    verify(rocksOptions.compactionOptionsUniversal()).setAllowTrivialMove(ALLOW_TRIVIAL_MOVE);
 
     verify(tableConfig).setBlockCache(blockCache);
     verify(tableConfig).setCacheIndexAndFilterBlocks(true);
     verify(tableConfig).setCacheIndexAndFilterBlocksWithHighPriority(true);
     verify(tableConfig).setPinTopLevelIndexAndFilter(true);
+  }
+
+  @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED")
+  @Test
+  public void shouldNotSetTrivialMoveForLevelCompaction() {
+    // Given, When:
+    final Map<String, Object> CONFIG_PROPS = new HashMap<>(
+        ImmutableMap.<String, Object> builder()
+            .put("ksql.plugins.rocksdb.cache.size", CACHE_SIZE)
+            .put("ksql.plugins.rocksdb.compaction.style", CompactionStyle.LEVEL.name())
+            .put("ksql.plugins.rocksdb.compaction.trivial.move", ALLOW_TRIVIAL_MOVE)
+            .build()
+    );
+    KsqlBoundedMemoryRocksDBConfigSetter.configure(
+        CONFIG_PROPS, rocksOptions, cacheFactory, bufferManagerFactory);
+    rocksDBConfig.setConfig("store_name", rocksOptions, Collections.emptyMap());
+
+    // Then:
+    verify(rocksOptions, never()).compactionOptionsUniversal();
   }
 
   @Test

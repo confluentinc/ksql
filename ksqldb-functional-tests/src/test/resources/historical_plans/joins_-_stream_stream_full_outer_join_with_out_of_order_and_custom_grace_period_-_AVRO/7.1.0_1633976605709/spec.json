@@ -1,0 +1,410 @@
+{
+  "version" : "7.1.0",
+  "timestamp" : 1633976605709,
+  "path" : "query-validation-tests/joins.json",
+  "schemas" : {
+    "CSAS_OUTER_JOIN_0.Join" : {
+      "schema" : "`T_ID` BIGINT KEY, `T_L1` STRING, `T_ROWTIME` BIGINT, `T_ROWPARTITION` INTEGER, `T_ROWOFFSET` BIGINT, `T_ID` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      }
+    },
+    "CSAS_OUTER_JOIN_0.Join.Right" : {
+      "schema" : "`TT_ID` BIGINT KEY, `TT_L2` STRING, `TT_ROWTIME` BIGINT, `TT_ROWPARTITION` INTEGER, `TT_ROWOFFSET` BIGINT, `TT_ID` BIGINT",
+      "valueFormat" : {
+        "format" : "AVRO"
+      }
+    },
+    "CSAS_OUTER_JOIN_0.OUTER_JOIN" : {
+      "schema" : "`ID` BIGINT KEY, `T_ID` BIGINT, `TT_ID` BIGINT, `L1` STRING, `L2` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "AVRO"
+      }
+    },
+    "CSAS_OUTER_JOIN_0.KafkaTopic_Right.Source" : {
+      "schema" : "`ID` BIGINT KEY, `L2` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "AVRO"
+      }
+    },
+    "CSAS_OUTER_JOIN_0.Join.Left" : {
+      "schema" : "`T_ID` BIGINT KEY, `T_L1` STRING, `T_ROWTIME` BIGINT, `T_ROWPARTITION` INTEGER, `T_ROWOFFSET` BIGINT, `T_ID` BIGINT",
+      "valueFormat" : {
+        "format" : "AVRO"
+      }
+    },
+    "CSAS_OUTER_JOIN_0.KafkaTopic_Left.Source" : {
+      "schema" : "`ID` BIGINT KEY, `L1` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "AVRO"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "stream stream full outer join with out of order and custom grace period - AVRO",
+    "inputs" : [ {
+      "topic" : "left_topic",
+      "key" : 0,
+      "value" : {
+        "L1" : "A"
+      },
+      "timestamp" : 0
+    }, {
+      "topic" : "right_topic",
+      "key" : 0,
+      "value" : {
+        "L2" : "a"
+      },
+      "timestamp" : 60000
+    }, {
+      "topic" : "right_topic",
+      "key" : 1,
+      "value" : {
+        "L2" : "b"
+      },
+      "timestamp" : 330000
+    }, {
+      "topic" : "right_topic",
+      "key" : 2,
+      "value" : {
+        "L2" : "c"
+      },
+      "timestamp" : 90000
+    }, {
+      "topic" : "left_topic",
+      "key" : 2,
+      "value" : {
+        "L1" : "C"
+      },
+      "timestamp" : 90000
+    }, {
+      "topic" : "right_topic",
+      "key" : 3,
+      "value" : {
+        "L2" : "d"
+      },
+      "timestamp" : 60000
+    }, {
+      "topic" : "left_topic",
+      "key" : 3,
+      "value" : {
+        "L1" : "D"
+      },
+      "timestamp" : 60000
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTER_JOIN",
+      "key" : 0,
+      "value" : {
+        "T_ID" : 0,
+        "TT_ID" : 0,
+        "L1" : "A",
+        "L2" : "a"
+      },
+      "timestamp" : 60000
+    }, {
+      "topic" : "OUTER_JOIN",
+      "key" : 2,
+      "value" : {
+        "T_ID" : null,
+        "TT_ID" : 2,
+        "L1" : null,
+        "L2" : "c"
+      },
+      "timestamp" : 90000
+    }, {
+      "topic" : "OUTER_JOIN",
+      "key" : 2,
+      "value" : {
+        "T_ID" : 2,
+        "TT_ID" : null,
+        "L1" : "C",
+        "L2" : null
+      },
+      "timestamp" : 90000
+    }, {
+      "topic" : "OUTER_JOIN",
+      "key" : 3,
+      "value" : {
+        "T_ID" : null,
+        "TT_ID" : 3,
+        "L1" : null,
+        "L2" : "d"
+      },
+      "timestamp" : 60000
+    }, {
+      "topic" : "OUTER_JOIN",
+      "key" : 3,
+      "value" : {
+        "T_ID" : 3,
+        "TT_ID" : null,
+        "L1" : "D",
+        "L2" : null
+      },
+      "timestamp" : 60000
+    } ],
+    "topics" : [ {
+      "name" : "OUTER_JOIN",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "right_topic",
+      "valueSchema" : {
+        "type" : "record",
+        "name" : "KsqlDataSourceSchema",
+        "namespace" : "io.confluent.ksql.avro_schemas",
+        "fields" : [ {
+          "name" : "L2",
+          "type" : [ "null", "string" ],
+          "default" : null
+        } ],
+        "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
+      },
+      "valueFormat" : "AVRO",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "left_topic",
+      "valueSchema" : {
+        "type" : "record",
+        "name" : "KsqlDataSourceSchema",
+        "namespace" : "io.confluent.ksql.avro_schemas",
+        "fields" : [ {
+          "name" : "L1",
+          "type" : [ "null", "string" ],
+          "default" : null
+        } ],
+        "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
+      },
+      "valueFormat" : "AVRO",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM LEFT_STREAM (ID BIGINT KEY, L1 varchar) WITH (kafka_topic='left_topic', value_format='AVRO');", "CREATE STREAM RIGHT_STREAM (ID BIGINT KEY, L2 varchar) WITH (kafka_topic='right_topic', value_format='AVRO');", "CREATE STREAM OUTER_JOIN as SELECT ROWKEY as ID, t.id, tt.id, l1, l2 FROM LEFT_STREAM t full outer join RIGHT_STREAM tt WITHIN 1 minute GRACE PERIOD 1 minute on t.id = tt.id;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "LEFT_STREAM",
+        "type" : "STREAM",
+        "schema" : "`ID` BIGINT KEY, `L1` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "AVRO",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "OUTER_JOIN",
+        "type" : "STREAM",
+        "schema" : "`ID` BIGINT KEY, `T_ID` BIGINT, `TT_ID` BIGINT, `L1` STRING, `L2` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "AVRO",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "RIGHT_STREAM",
+        "type" : "STREAM",
+        "schema" : "`ID` BIGINT KEY, `L2` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "AVRO",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTER_JOIN_0-KSTREAM-OUTEROTHER-0000000009-store-changelog",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "AVRO"
+          },
+          "valueSchema" : {
+            "type" : "record",
+            "name" : "KsqlDataSourceSchema",
+            "namespace" : "io.confluent.ksql.avro_schemas",
+            "fields" : [ {
+              "name" : "TT_L2",
+              "type" : [ "null", "string" ],
+              "default" : null
+            }, {
+              "name" : "TT_ROWTIME",
+              "type" : [ "null", "long" ],
+              "default" : null
+            }, {
+              "name" : "TT_ROWPARTITION",
+              "type" : [ "null", "int" ],
+              "default" : null
+            }, {
+              "name" : "TT_ROWOFFSET",
+              "type" : [ "null", "long" ],
+              "default" : null
+            }, {
+              "name" : "TT_ID",
+              "type" : [ "null", "long" ],
+              "default" : null
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
+          }
+        }, {
+          "name" : "OUTER_JOIN",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "AVRO"
+          },
+          "partitions" : 4,
+          "valueSchema" : {
+            "type" : "record",
+            "name" : "KsqlDataSourceSchema",
+            "namespace" : "io.confluent.ksql.avro_schemas",
+            "fields" : [ {
+              "name" : "T_ID",
+              "type" : [ "null", "long" ],
+              "default" : null
+            }, {
+              "name" : "TT_ID",
+              "type" : [ "null", "long" ],
+              "default" : null
+            }, {
+              "name" : "L1",
+              "type" : [ "null", "string" ],
+              "default" : null
+            }, {
+              "name" : "L2",
+              "type" : [ "null", "string" ],
+              "default" : null
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
+          }
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTER_JOIN_0-KSTREAM-OUTERTHIS-0000000008-store-changelog",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "AVRO"
+          },
+          "valueSchema" : {
+            "type" : "record",
+            "name" : "KsqlDataSourceSchema",
+            "namespace" : "io.confluent.ksql.avro_schemas",
+            "fields" : [ {
+              "name" : "T_L1",
+              "type" : [ "null", "string" ],
+              "default" : null
+            }, {
+              "name" : "T_ROWTIME",
+              "type" : [ "null", "long" ],
+              "default" : null
+            }, {
+              "name" : "T_ROWPARTITION",
+              "type" : [ "null", "int" ],
+              "default" : null
+            }, {
+              "name" : "T_ROWOFFSET",
+              "type" : [ "null", "long" ],
+              "default" : null
+            }, {
+              "name" : "T_ID",
+              "type" : [ "null", "long" ],
+              "default" : null
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
+          }
+        }, {
+          "name" : "left_topic",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "AVRO"
+          },
+          "partitions" : 4,
+          "valueSchema" : {
+            "type" : "record",
+            "name" : "KsqlDataSourceSchema",
+            "namespace" : "io.confluent.ksql.avro_schemas",
+            "fields" : [ {
+              "name" : "L1",
+              "type" : [ "null", "string" ],
+              "default" : null
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
+          }
+        }, {
+          "name" : "right_topic",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "AVRO"
+          },
+          "partitions" : 4,
+          "valueSchema" : {
+            "type" : "record",
+            "name" : "KsqlDataSourceSchema",
+            "namespace" : "io.confluent.ksql.avro_schemas",
+            "fields" : [ {
+              "name" : "L2",
+              "type" : [ "null", "string" ],
+              "default" : null
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
+          }
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTER_JOIN_0-KSTREAM-OUTERSHARED-0000000008-store-changelog",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "AVRO"
+          },
+          "valueSchema" : {
+            "type" : "record",
+            "name" : "KsqlDataSourceSchema",
+            "namespace" : "io.confluent.ksql.avro_schemas",
+            "fields" : [ {
+              "name" : "TT_L2",
+              "type" : [ "null", "string" ],
+              "default" : null
+            }, {
+              "name" : "TT_ROWTIME",
+              "type" : [ "null", "long" ],
+              "default" : null
+            }, {
+              "name" : "TT_ROWPARTITION",
+              "type" : [ "null", "int" ],
+              "default" : null
+            }, {
+              "name" : "TT_ROWOFFSET",
+              "type" : [ "null", "long" ],
+              "default" : null
+            }, {
+              "name" : "TT_ID",
+              "type" : [ "null", "long" ],
+              "default" : null
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
+          }
+        } ]
+      }
+    }
+  }
+}

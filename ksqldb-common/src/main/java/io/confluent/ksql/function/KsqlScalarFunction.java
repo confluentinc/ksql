@@ -33,7 +33,7 @@ import java.util.stream.Collectors;
 @Immutable
 public final class KsqlScalarFunction extends KsqlFunction {
 
-  static final String INTERNAL_PATH = "internal";
+  public static final String INTERNAL_PATH = "internal";
 
   private final Class<? extends Kudf> kudfClass;
   @EffectivelyImmutable

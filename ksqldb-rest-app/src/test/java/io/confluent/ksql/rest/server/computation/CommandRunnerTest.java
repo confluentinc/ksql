@@ -19,18 +19,16 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.inOrder;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -39,7 +37,6 @@ import static org.mockito.hamcrest.MockitoHamcrest.argThat;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.engine.KsqlEngine;
-import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.entity.CommandId;
 import io.confluent.ksql.rest.entity.CommandId.Action;
@@ -66,6 +63,7 @@ import java.util.function.Supplier;
 import org.apache.kafka.clients.consumer.OffsetOutOfRangeException;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.errors.SerializationException;
+import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.junit.Before;
 import org.junit.Test;
@@ -131,7 +129,6 @@ public class CommandRunnerTest {
 
   @Before
   public void setup() {
-    MetricCollectors.initialize();
     when(statementExecutor.getKsqlEngine()).thenReturn(ksqlEngine);
 
     when(command.getStatement()).thenReturn("something that is not terminate");
@@ -174,7 +171,8 @@ public class CommandRunnerTest {
         incompatibleCommandChecker,
         commandDeserializer,
         errorHandler,
-        commandTopicExists
+        commandTopicExists,
+        new Metrics()
     );
   }
 
@@ -237,6 +235,7 @@ public class CommandRunnerTest {
     inOrder.verify(serverState).setTerminating();
     inOrder.verify(commandStore).wakeup();
     inOrder.verify(clusterTerminator).terminateCluster(anyList());
+    inOrder.verify(serverState).setTerminated();
 
     verify(statementExecutor, never()).handleRestore(any());
   }
@@ -539,6 +538,42 @@ public class CommandRunnerTest {
   }
 
   @Test
+  public void shouldNotCleanUpInDegradedMode() {
+    // Given:
+    when(commandStore.corruptionDetected()).thenReturn(true);
+    givenQueuedCommands(queuedCommand1, queuedCommand2, queuedCommand3);
+    when(ksqlEngine.getPersistentQueries()).thenReturn(ImmutableList.of(queryMetadata1, queryMetadata2, queryMetadata3));
+
+    // When:
+    commandRunner.processPriorCommands(persistentQueryCleanupImpl);
+
+    // Then:
+    final InOrder inOrder = inOrder(statementExecutor);
+    inOrder.verify(statementExecutor).handleRestore(eq(queuedCommand1));
+    inOrder.verify(statementExecutor).handleRestore(eq(queuedCommand2));
+    inOrder.verify(statementExecutor).handleRestore(eq(queuedCommand3));
+    verify(persistentQueryCleanupImpl, never()).cleanupLeakedQueries(any());
+  }
+
+  @Test
+  public void shouldCleanUpInNotDegradedMode() {
+    // Given:
+    when(commandStore.corruptionDetected()).thenReturn(false);
+    givenQueuedCommands(queuedCommand1, queuedCommand2, queuedCommand3);
+    when(ksqlEngine.getPersistentQueries()).thenReturn(ImmutableList.of(queryMetadata1, queryMetadata2, queryMetadata3));
+
+    // When:
+    commandRunner.processPriorCommands(persistentQueryCleanupImpl);
+
+    // Then:
+    final InOrder inOrder = inOrder(statementExecutor);
+    inOrder.verify(statementExecutor).handleRestore(eq(queuedCommand1));
+    inOrder.verify(statementExecutor).handleRestore(eq(queuedCommand2));
+    inOrder.verify(statementExecutor).handleRestore(eq(queuedCommand3));
+    verify(persistentQueryCleanupImpl, atLeastOnce()).cleanupLeakedQueries(any());
+  }
+
+  @Test
   public void shouldNotBlockIndefinitelyPollingForNewCommands() {
     // When:
     commandRunner.fetchAndRunCommands();
@@ -594,6 +629,25 @@ public class CommandRunnerTest {
     final Runnable threadTask = getThreadTask();
     threadTask.run();
 
+    // Then:
+    final InOrder inOrder = inOrder(executor, commandStore);
+    inOrder.verify(commandStore).wakeup();
+    inOrder.verify(executor).awaitTermination(anyLong(), any());
+    inOrder.verify(commandStore).close();
+  }
+  
+  @Test
+  public void shouldCloseEarlyOnTerminate() throws InterruptedException {
+    // Given:
+    when(commandStore.getNewCommands(any())).thenReturn(Collections.singletonList(queuedCommand1));
+    when(queuedCommand1.getAndDeserializeCommand(commandDeserializer)).thenReturn(clusterTerminate);
+
+    // When:
+    commandRunner.start();
+    verify(commandStore, never()).close();
+    final Runnable threadTask = getThreadTask();
+    threadTask.run();
+    
     // Then:
     final InOrder inOrder = inOrder(executor, commandStore);
     inOrder.verify(commandStore).wakeup();

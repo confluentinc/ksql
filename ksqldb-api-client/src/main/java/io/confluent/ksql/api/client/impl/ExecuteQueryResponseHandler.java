@@ -24,10 +24,13 @@ import io.confluent.ksql.rest.entity.QueryResponseMetadata;
 import io.vertx.core.Context;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonArray;
+import io.vertx.core.json.JsonObject;
 import io.vertx.core.parsetools.RecordParser;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.concurrent.atomic.AtomicReference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,15 +43,18 @@ public class ExecuteQueryResponseHandler extends QueryResponseHandler<BatchedQue
   private List<String> columnNames;
   private List<ColumnType> columnTypes;
   private Map<String, Integer> columnNameToIndex;
+  private AtomicReference<String> serializedConsistencyVector;
 
   ExecuteQueryResponseHandler(
       final Context context,
       final RecordParser recordParser,
       final BatchedQueryResult cf,
-      final int maxRows) {
+      final int maxRows,
+      final AtomicReference<String> serializedCV) {
     super(context, recordParser, cf);
     this.maxRows = maxRows;
     this.rows = new ArrayList<>();
+    this.serializedConsistencyVector = Objects.requireNonNull(serializedCV, "serializedCV");
   }
 
   @Override
@@ -61,14 +67,25 @@ public class ExecuteQueryResponseHandler extends QueryResponseHandler<BatchedQue
 
   @Override
   protected void handleRow(final Buffer buff) {
-    final JsonArray values = new JsonArray(buff);
-    if (rows.size() < maxRows) {
-      rows.add(new RowImpl(columnNames, columnTypes, values, columnNameToIndex));
-    } else {
-      throw new KsqlClientException(
-          "Reached max number of rows that may be returned by executeQuery(). "
-              + "Increase the limit via ClientOptions#setExecuteQueryMaxResultRows(). "
-              + "Current limit: " + maxRows);
+    final JsonObject json = buff.toJsonObject();
+
+    if (!json.containsKey("finalMessage")) {
+      if (json.containsKey("row")) {
+        if (rows.size() < maxRows) {
+          rows.add(new RowImpl(
+                  columnNames,
+                  columnTypes,
+                  new JsonArray((List)((Map<?, ?>) json.getMap().get("row")).get("columns")),
+                  columnNameToIndex));
+        } else {
+          throw new KsqlClientException(
+                  "Reached max number of rows that may be returned by executeQuery(). "
+                          + "Increase the limit via ClientOptions#setExecuteQueryMaxResultRows(). "
+                          + "Current limit: " + maxRows);
+        }
+      } else {
+        throw new RuntimeException("Could not decode JSON: " + json);
+      }
     }
   }
 

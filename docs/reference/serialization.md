@@ -33,10 +33,10 @@ ksqlDB supports these serialization formats:
 
 -   [`NONE`](#none) used to indicate the data should not be deserialized.
 -   [`DELIMITED`](#delimited) supports comma separated values.
--   [`JSON`](#json) and [`JSON_SR`](#json) support JSON values, with and within schema registry integration 
+-   [`JSON`](#json) and [`JSON_SR`](#json) support JSON values, with and without schema registry integration
 -   [`AVRO`](#avro) supports AVRO serialized values. 
 -   [`KAFKA`](#kafka) supports primitives serialized using the standard Kafka serializers. 
--   [`PROTOBUF`](#protobuf) supports Protocol Buffers.
+-   [`PROTOBUF`](#protobuf) and [`PROTOBUF_NOSR`](#protobuf) support Protocol Buffers, with and without schema registry integration
 
 With the exception of the `NONE` format, all formats may be used as both key and value formats.
 See individual formats for details.
@@ -146,10 +146,10 @@ This data format supports all SQL
 [data types](/reference/sql/data-types) except `ARRAY`, `MAP` and
 `STRUCT`. 
 
-`TIMESTAMP` typed data is serialized as a `long` value indicating the Unix epoch time in milliseconds.
-`TIME` typed data is serialized as an `int` value indicating the number of milliseconds since the beginning of the day.
-`DATE` typed data is serialized as an `int` value indicating the number of days since the Unix epoch.
-`BYTES` typed data is serialized as a Base64-encoded string value.
+- `TIMESTAMP` typed data is serialized as a `long` value indicating the Unix epoch time in milliseconds.
+- `TIME` typed data is serialized as an `int` value indicating the number of milliseconds since the beginning of the day.
+- `DATE` typed data is serialized as an `int` value indicating the number of days since the Unix epoch.
+- `BYTES` typed data is serialized as a Base64-encoded string value.
 
 ### JSON
 
@@ -300,8 +300,8 @@ ksqlDb deserializes a number as a `DATE` if it corresponds to a `DATE` typed fie
 the stream.
 
 #### Bytes Serialization
-Bytes are serialized as a Base64-encoded string value. For example, the byte array `[61, 62, 63]` is
-serialized as
+Bytes are serialized as a Base64-encoded string value. For example, the byte
+array `[61, 62, 63]` is serialized as:
 
 ```json
 {
@@ -318,12 +318,22 @@ The format is case-insensitive when matching a SQL field name with a
 JSON document's property name. The first case-insensitive match is
 used.
 
+#### Known Limitations
+
+The following keywords aren't supported in the VALUE_SCHEMA_ID field for INSERT
+INTO and CREATE TABLE AS SELECT statements, and if present in your JSON schema
+will cause serialization errors. They are supported in CREATE statements.
+
+- `additionalProperties: false`
+- `enum`
+- `required`
+
 ### Avro
 
 | Feature                      | Supported |
 |------------------------------|-----------|
 | As value format              | Yes       |
-| As key format                | Yes        |
+| As key format                | Yes       |
 | Multi-Column Keys            | Yes       |
 | [Schema Registry required][0]| Yes       |
 | [Schema inference][1]        | Yes       |
@@ -488,8 +498,8 @@ format.
 | As value format              | Yes       |
 | As key format                | Yes       |
 | Multi-Column Keys            | Yes       |
-| [Schema Registry required][0]| Yes       |
-| [Schema inference][1]        | Yes       |
+| [Schema Registry required][0]| `PROTOBUF`: Yes, `PROTOBUF_NOSR`: No |
+| [Schema inference][1]        | `PROTOBUF`: Yes, `PROTOBUF_NOSR`: No |
 | [Single field wrapping][2]   | Yes       |
 | [Single field unwrapping][2] | No        |
 
@@ -506,18 +516,34 @@ have the concept of a `null` value, so the conversion between PROTOBUF and Java
 - **Message field:** the field is not set. Its exact value is language-dependent.
   See the generated code guide for details.
 
+To enable alternative representations for `null` values in protobuf, protobuf-specific properties
+can be passed to `CREATE` statements. For example, the following `CREATE` statement will
+create a protobuf schema that wraps all primitive types into the corresponding standard wrappers 
+(e.g. `google.protobuf.StringValue` for `string`). 
+
+```sql
+CREATE STREAM USERS (ID STRING KEY, i INTEGER, s STRING) WITH (VALUE_FORMAT='PROTOBUF', VALUE_PROTOBUF_NULLABLE_REPRESENTATION='WRAPPER');
+```
+
+This way, `null` can be distinguished from default values. Similarly, when 
+`VALUE_PROTOBUF_NULLABLE_REPRESENTATION` is set to `OPTIONAL`, all fields in protobuf will be
+declared optional, also allowing `null` primitive fields to be distinguished from default values. 
+
+The same property values can be used with the `KEY_PROTOBUF_NULLABLE_REPRESENTATION` property to
+customize the protobuf serialization of the key.
+
 Single field (un)wrapping
 -------------------------
 
 ### (de)serialization of single keys
 
-ksqlDB assumes that any single key is unwrapped, which mean that it's not contained in an outer
+ksqlDB assumes that any single key is unwrapped, which means that it's not contained in an outer
 record or object. Conversely, ksqlDB assumes that any key with multiple columns
-(for example, `CREATE STREAM K1 INT KEY, K2 INT KEY, C1 INT`) _is_ wrapped, which means that it is a record
+(for example, `CREATE STREAM x (K1 INT KEY, K2 INT KEY, C1 INT)`) _is_ wrapped, which means that it is a record
 with each column as a field within the key. 
 
 To declare a single-column key that's wrapped, specify a `STRUCT` type
-with a single column. for example, `K STRUCT<F1 INT> KEY`. See the next two sections 
+with a single column. For example, `K STRUCT<F1 INT> KEY`. See the next two sections 
 on single values for more information about wrapped and unwrapped data.
 
 ### Controlling deserializing of single values
@@ -694,6 +720,39 @@ CREATE STREAM EXPLICIT_SINK WITH(WRAP_SINGLE_VALUE=false) AS SELECT ID FROM S EM
 
 -- results in an error as the value schema is multi-field
 CREATE STREAM BAD_SINK WITH(WRAP_SINGLE_VALUE=true) AS SELECT ID, COST FROM S EMIT CHANGES;
+```
+
+## Defining schemas for {{ site.sr }} 
+
+{{ site.sr }} enables both schema inference and defining schemas explicitly.
+You can use the identifiers for specific schemas in your `CREATE STREAM` and
+`CREATE TABLE` statements with `KEY_SCHEMA_ID` and `VALUE_SCHEMA_ID` properties.
+For more information, see [Schema Inference With ID](/operate-and-deploy/schema-inference-with-id).
+
+Some serialization formats require special syntax. For example, in JSON, the
+following message maps to a `STRUCT<>` with any field that contains an `INT`
+type.
+
+```json
+"metadata": {
+  "type": "object",
+  "additionalProperties": {
+     "type": "int"
+  }
+}
+```
+
+But JSON_SR doesn't support this case. In JSON_SR, the schema must be adapted
+to make it a `MAP<STRING, INT>` by using the `connect.type` config:
+
+```json
+"metadata": {
+  "connect.type": "map",
+  "type": "object",
+  "additionalProperties": {
+     "type": "int"
+  }
+}
 ```
 
 [0]: ../operate-and-deploy/installation/server-config/avro-schema.md

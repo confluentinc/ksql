@@ -34,6 +34,7 @@
       "topicOffsets" : [ ],
       "timeCurrentIdlingStarted" : null
     } ],
+    "consumerGroupId" : "consumerGroupId",
     "state" : "ERROR"
   },
   "warnings" : [ ]

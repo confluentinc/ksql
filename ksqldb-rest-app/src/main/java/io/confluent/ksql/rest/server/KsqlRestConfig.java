@@ -59,6 +59,14 @@ public class KsqlRestConfig extends AbstractConfig {
           + "hostname, and port. For example: http://myhost:8080, https://0.0.0.0:8081";
   protected static final String LISTENERS_DEFAULT = "http://0.0.0.0:8088";
 
+  public static final String PROXY_PROTOCOL_LISTENERS_CONFIG = "listeners.proxy.protocol";
+  protected static final String PROXY_PROTOCOL_LISTENERS_DOC =
+      "List of listeners expecting proxy protocol headers. Must be a subset of the listeners "
+          + "provided in the configuration `" + LISTENERS_CONFIG + "`. "
+          + "http and https are supported. Each listener must include the protocol, "
+          + "hostname, and port. For example: http://myhost:8080, https://0.0.0.0:8081";
+  protected static final String PROXY_PROTOCOL_LISTENERS_DEFAULT = "";
+
   public static final String AUTHENTICATION_SKIP_PATHS_CONFIG = "authentication.skip.paths";
   public static final String AUTHENTICATION_SKIP_PATHS_DOC = "Comma separated list of paths that "
       + "can be "
@@ -107,21 +115,24 @@ public class KsqlRestConfig extends AbstractConfig {
 
   public static final String SSL_KEYSTORE_TYPE_CONFIG = "ssl.keystore.type";
   protected static final String SSL_KEYSTORE_TYPE_DOC =
-      "The type of keystore file. Must be either 'JKS' or 'PKCS12'.";
+      "The type of keystore file. Must be either 'JKS', 'PKCS12' or 'BCFKS'.";
 
   protected static final String SSL_TRUSTSTORE_LOCATION_DEFAULT = "";
   protected static final String SSL_TRUSTSTORE_PASSWORD_DEFAULT = "";
 
   public static final String SSL_TRUSTSTORE_TYPE_CONFIG = "ssl.truststore.type";
   protected static final String SSL_TRUSTSTORE_TYPE_DOC =
-      "The type of trust store file. Must be either 'JKS' or 'PKCS12'.";
+      "The type of trust store file. Must be either 'JKS', 'PKCS12' or 'BCFKS'.";
 
   public static final String SSL_STORE_TYPE_JKS = "JKS";
   public static final String SSL_STORE_TYPE_PKCS12 = "PKCS12";
+  public static final String SSL_STORE_TYPE_BCFKS = "BCFKS";
+
   public static final ConfigDef.ValidString SSL_STORE_TYPE_VALIDATOR =
       ConfigDef.ValidString.in(
           SSL_STORE_TYPE_JKS,
-          SSL_STORE_TYPE_PKCS12
+          SSL_STORE_TYPE_PKCS12,
+          SSL_STORE_TYPE_BCFKS
       );
 
   public static final String SSL_CLIENT_AUTH_CONFIG = "ssl.client.auth";
@@ -163,9 +174,9 @@ public class KsqlRestConfig extends AbstractConfig {
 
   private static final String KSQL_CONFIG_PREFIX = "ksql.";
 
-  private static final String COMMAND_CONSUMER_PREFIX =
+  public static final String COMMAND_CONSUMER_PREFIX =
       KSQL_CONFIG_PREFIX + "server.command.consumer.";
-  private static final String COMMAND_PRODUCER_PREFIX =
+  public static final String COMMAND_PRODUCER_PREFIX =
       KSQL_CONFIG_PREFIX + "server.command.producer.";
 
   public static final String ADVERTISED_LISTENER_CONFIG =
@@ -190,7 +201,7 @@ public class KsqlRestConfig extends AbstractConfig {
           + "internal endpoints, separate from the external client endpoints, and provide a "
           + "layer of security at the network level.";
 
-  static final String STREAMED_QUERY_DISCONNECT_CHECK_MS_CONFIG =
+  public static final String STREAMED_QUERY_DISCONNECT_CHECK_MS_CONFIG =
       "query.stream.disconnect.check";
 
   private static final String STREAMED_QUERY_DISCONNECT_CHECK_MS_DOC =
@@ -214,7 +225,7 @@ public class KsqlRestConfig extends AbstractConfig {
   private static final String KSQL_WEBSOCKETS_NUM_THREADS_DOC =
       "The number of websocket threads to handle query results";
 
-  static final String KSQL_SERVER_PRECONDITIONS =
+  public static final String KSQL_SERVER_PRECONDITIONS =
       KSQL_CONFIG_PREFIX + "server.preconditions";
   private static final String KSQL_SERVER_PRECONDITIONS_DOC =
       "A comma separated list of classes implementing KsqlServerPrecondition. The KSQL server "
@@ -364,6 +375,75 @@ public class KsqlRestConfig extends AbstractConfig {
   public static final String KSQL_LOCAL_COMMANDS_LOCATION_DOC = "Specify the directory where "
       + "KSQL tracks local commands, e.g. transient queries";
 
+  public static final String KSQL_ENDPOINT_LOGGING_LOG_QUERIES_CONFIG
+      = "ksql.endpoint.logging.log.queries";
+  private static final boolean KSQL_ENDPOINT_LOGGING_LOG_QUERIES_DEFAULT = false;
+  private static final String KSQL_ENDPOINT_LOGGING_LOG_QUERIES_DOC
+      = "Whether or not to log the query portion of the URI when logging endpoints. Note that"
+      + " enabling this may log sensitive information.";
+
+  public static final String KSQL_ENDPOINT_LOGGING_IGNORED_PATHS_REGEX_CONFIG
+      = "ksql.endpoint.logging.ignored.paths.regex";
+  public static final String KSQL_ENDPOINT_LOGGING_IGNORED_PATHS_REGEX_DEFAULT = "";
+  public static final String KSQL_ENDPOINT_LOGGING_IGNORED_PATHS_REGEX_DOC =
+      "A regex that allows users to filter out logging from certain endpoints. Without this filter,"
+          + " all endpoints are logged. An example usage of this configuration would be to disable"
+          + " heartbeat logging (e.g. " + KSQL_ENDPOINT_LOGGING_LOG_QUERIES_CONFIG
+          + " =.*heartbeat.* ) which can"
+          + " otherwise be verbose. Note that this works on the entire URI, respecting the "
+          + KSQL_ENDPOINT_LOGGING_LOG_QUERIES_CONFIG + " configuration";
+
+  public static final String KSQL_INTERNAL_HTTP2_MAX_POOL_SIZE_CONFIG
+      = "ksql.internal.http2.max.pool.size";
+  public static final int KSQL_INTERNAL_HTTP2_MAX_POOL_SIZE_DEFAULT = 3000;
+  public static final String KSQL_INTERNAL_HTTP2_MAX_POOL_SIZE_DOC =
+      "The maximum connection pool size used by Vertx for http2 internal connections";
+
+  public static final String KSQL_SERVER_SNI_CHECK_ENABLE =
+      KSQL_CONFIG_PREFIX + "server.sni.check.enable";
+  public static final boolean KSQL_SERVER_SNI_CHECK_ENABLE_DEFAULT = false;
+
+  private static final String KSQL_SERVER_SNI_CHECK_ENABLE_DOC =
+      "Whether or not to check the SNI against the Host header. If the values don't match, "
+          + "returns a 421 mis-directed response. (NOTE: this check should not be enabled if "
+          + "ksqlDB servers have mutual TLS enabled)";
+
+  public static final String KSQL_COMMAND_TOPIC_RATE_LIMIT_CONFIG =
+      KSQL_CONFIG_PREFIX + "server.command.topic.rate.limit";
+  public static final double KSQL_COMMAND_TOPIC_RATE_LIMIT_CONFIG_DEFAULT = Double.MAX_VALUE;
+  private static final String KSQL_COMMAND_TOPIC_RATE_LIMIT_CONFIG_DEFAULT_DOC =
+      "Sets the number of statements that can be executed against the command topic per second";
+
+  public static final String KSQL_PRECONDITION_CHECKER_BACK_OFF_TIME_MS =
+      KSQL_CONFIG_PREFIX + "server.precondition.max.backoff.ms";
+  protected static final String KSQL_PRECONDITION_CHECKER_BACK_OFF_TIME_MS_DOC =
+      "The maximum amount of time to wait before checking the KSQL server preconditions again.";
+
+  public static final String KSQL_COMMAND_TOPIC_MIGRATION_CONFIG =
+      KSQL_CONFIG_PREFIX + "server.command.topic.migration.enabled";
+  public static final String KSQL_COMMAND_TOPIC_MIGRATION_NONE = "NONE";
+  public static final String KSQL_COMMAND_TOPIC_MIGRATION_MIGRATOR = "MIGRATOR";
+  public static final String KSQL_COMMAND_TOPIC_MIGRATION_MIGRATING = "MIGRATING";
+
+  protected static final String KSQL_COMMAND_TOPIC_MIGRATION_DOC =
+      "Whether or not to migrate the command topic to another Kafka cluster. If the command topic "
+          + "doesn't exist on the Kafka the command producer/consumer are reading from or exists, "
+          + "but is empty, the server then checks for the existence of the command topic on the "
+          + "broker that the server is connected to in the bootstrap.servers config. "
+          + "If it exists, it recreates the command topic on the new broker, "
+          + "then issues a new command to the old command topic to mark "
+          + "it as degraded for other servers that may be running in the cluster. "
+          + "One server should be designated as the MIGRATOR server while the "
+          + "rest of the servers should be set as MIGRATING. Servers that are MIGRATING will wait "
+          + "until the main MIGRATOR has completed the migration.";
+
+  public static final ConfigDef.ValidString KSQL_COMMAND_TOPIC_MIGRATION_VALIDATOR =
+      ConfigDef.ValidString.in(
+          KSQL_COMMAND_TOPIC_MIGRATION_NONE,
+          KSQL_COMMAND_TOPIC_MIGRATION_MIGRATOR,
+          KSQL_COMMAND_TOPIC_MIGRATION_MIGRATING
+      );
+
   private static final ConfigDef CONFIG_DEF;
 
   static {
@@ -399,6 +479,12 @@ public class KsqlRestConfig extends AbstractConfig {
             LISTENERS_DEFAULT,
             Importance.HIGH,
             LISTENERS_DOC
+        ).define(
+            PROXY_PROTOCOL_LISTENERS_CONFIG,
+            Type.LIST,
+            PROXY_PROTOCOL_LISTENERS_DEFAULT,
+            Importance.MEDIUM,
+            PROXY_PROTOCOL_LISTENERS_DOC
         ).define(
             ACCESS_CONTROL_ALLOW_ORIGIN_CONFIG,
             Type.STRING,
@@ -693,6 +779,49 @@ public class KsqlRestConfig extends AbstractConfig {
             KSQL_LOCAL_COMMANDS_LOCATION_DEFAULT,
             Importance.LOW,
             KSQL_LOCAL_COMMANDS_LOCATION_DOC
+        ).define(
+            KSQL_ENDPOINT_LOGGING_IGNORED_PATHS_REGEX_CONFIG,
+            Type.STRING,
+            KSQL_ENDPOINT_LOGGING_IGNORED_PATHS_REGEX_DEFAULT,
+            Importance.LOW,
+            KSQL_ENDPOINT_LOGGING_IGNORED_PATHS_REGEX_DOC
+        ).define(
+            KSQL_ENDPOINT_LOGGING_LOG_QUERIES_CONFIG,
+            Type.BOOLEAN,
+            KSQL_ENDPOINT_LOGGING_LOG_QUERIES_DEFAULT,
+            Importance.LOW,
+            KSQL_ENDPOINT_LOGGING_LOG_QUERIES_DOC
+        ).define(
+            KSQL_INTERNAL_HTTP2_MAX_POOL_SIZE_CONFIG,
+            Type.INT,
+            KSQL_INTERNAL_HTTP2_MAX_POOL_SIZE_DEFAULT,
+            Importance.LOW,
+            KSQL_INTERNAL_HTTP2_MAX_POOL_SIZE_DOC
+        ).define(
+            KSQL_SERVER_SNI_CHECK_ENABLE,
+            Type.BOOLEAN,
+            KSQL_SERVER_SNI_CHECK_ENABLE_DEFAULT,
+            Importance.LOW,
+            KSQL_SERVER_SNI_CHECK_ENABLE_DOC
+        ).define(
+            KSQL_COMMAND_TOPIC_RATE_LIMIT_CONFIG,
+            Type.DOUBLE,
+            KSQL_COMMAND_TOPIC_RATE_LIMIT_CONFIG_DEFAULT,
+            Importance.LOW,
+            KSQL_COMMAND_TOPIC_RATE_LIMIT_CONFIG_DEFAULT_DOC
+        ).define(
+            KSQL_PRECONDITION_CHECKER_BACK_OFF_TIME_MS,
+            Type.LONG,
+            5000L,
+            Importance.MEDIUM,
+            KSQL_PRECONDITION_CHECKER_BACK_OFF_TIME_MS_DOC
+        ).define(
+            KSQL_COMMAND_TOPIC_MIGRATION_CONFIG,
+            Type.STRING,
+            KSQL_COMMAND_TOPIC_MIGRATION_NONE,
+            KSQL_COMMAND_TOPIC_MIGRATION_VALIDATOR,
+            Importance.MEDIUM,
+            KSQL_COMMAND_TOPIC_MIGRATION_DOC
         );
   }
 
@@ -706,6 +835,11 @@ public class KsqlRestConfig extends AbstractConfig {
 
     listeners
         .forEach(listener -> ConfigValidators.validUrl().ensureValid(LISTENERS_CONFIG, listener));
+
+    final List<String> proxyProtocolListeners = getList(PROXY_PROTOCOL_LISTENERS_CONFIG);
+    proxyProtocolListeners.forEach(listener ->
+            ConfigValidators.validUrl().ensureValid(PROXY_PROTOCOL_LISTENERS_CONFIG, listener));
+
   }
 
   // Bit of a hack to get around the fact that RestConfig.originals() is private for some reason

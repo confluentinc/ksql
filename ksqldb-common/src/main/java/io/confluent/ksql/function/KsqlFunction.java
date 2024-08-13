@@ -16,7 +16,6 @@
 package io.confluent.ksql.function;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
 import com.google.errorprone.annotations.Immutable;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.function.types.ArrayType;
@@ -70,9 +69,16 @@ public class KsqlFunction implements FunctionSignature {
         throw new IllegalArgumentException(
             "KSQL variadic functions must have at least one parameter");
       }
-      if (!(Iterables.getLast(parameters).type() instanceof ArrayType)) {
+      if (parameterInfo().stream().noneMatch(
+              (info) -> info.type() instanceof ArrayType && info.isVariadic()
+      )) {
         throw new IllegalArgumentException(
-            "KSQL variadic functions must have ARRAY type as their last parameter");
+            "KSQL variadic functions must have ARRAY type as their variadic parameter");
+      }
+      if (parameterInfo().stream().filter(ParameterInfo::isVariadic).count() != 1) {
+        throw new IllegalArgumentException(
+                "KSQL variadic functions must have exactly one variadic argument"
+        );
       }
     }
   }

@@ -22,15 +22,18 @@ import static org.hamcrest.core.IsInstanceOf.instanceOf;
 import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Sets;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.types.SqlPrimitiveType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Collections;
 import java.util.Optional;
+import java.util.Set;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.processor.FailOnInvalidTimestamp;
 import org.apache.kafka.streams.processor.TimestampExtractor;
@@ -96,8 +99,11 @@ public class TimestampExtractionPolicyFactoryTest {
     );
 
     // Then:
+    // split the assertion into two different checks to support the error message differences
+    // between JDK8 and JDK17
+    assertThat(e.getMessage(), containsString("cannot be cast"));
     assertThat(e.getMessage(), containsString(
-        "cannot be cast to org.apache.kafka.streams.processor.TimestampExtractor"));
+        "org.apache.kafka.streams.processor.TimestampExtractor"));
   }
 
   @Test
@@ -161,6 +167,33 @@ public class TimestampExtractionPolicyFactoryTest {
 
     // Then:
     assertThat(result, instanceOf(LongColumnTimestampExtractionPolicy.class));
+    assertThat(result.getTimestampField(),
+        equalTo(ColumnName.of(timestamp.toUpperCase())));
+  }
+
+  @Test
+  public void shouldCreateTimestampPolicyWhenTimestampFieldIsOfTypeTimestamp() {
+    // Given:
+    final String timestamp = "timestamp";
+    final LogicalSchema schema = schemaBuilder2
+        .valueColumn(ColumnName.of(timestamp.toUpperCase()), SqlTypes.TIMESTAMP)
+        .build();
+
+    // When:
+    final TimestampExtractionPolicy result = TimestampExtractionPolicyFactory
+        .create(
+            ksqlConfig,
+            schema,
+            Optional.of(
+                new TimestampColumn(
+                    ColumnName.of(timestamp.toUpperCase()),
+                    Optional.empty()
+                )
+            )
+        );
+
+    // Then:
+    assertThat(result, instanceOf(TimestampColumnTimestampExtractionPolicy.class));
     assertThat(result.getTimestampField(),
         equalTo(ColumnName.of(timestamp.toUpperCase())));
   }
@@ -237,7 +270,7 @@ public class TimestampExtractionPolicyFactoryTest {
   }
 
   @Test
-  public void shouldThorwIfLongTimestampTypeAndFormatIsSupplied() {
+  public void shouldThrowIfLongTimestampTypeAndFormatIsSupplied() {
     // Given:
     final String timestamp = "timestamp";
     final LogicalSchema schema = schemaBuilder2
@@ -261,11 +294,11 @@ public class TimestampExtractionPolicyFactoryTest {
   }
 
   @Test
-  public void shouldThrowIfTimestampFieldTypeIsNotLongOrString() {
+  public void shouldThrowIfTimestampTypeAndFormatIsSupplied() {
     // Given:
-    final String field = "blah";
+    final String timestamp = "timestamp";
     final LogicalSchema schema = schemaBuilder2
-        .valueColumn(ColumnName.of(field.toUpperCase()), SqlTypes.DOUBLE)
+        .valueColumn(ColumnName.of(timestamp.toUpperCase()), SqlTypes.TIMESTAMP)
         .build();
 
     // When:
@@ -276,11 +309,47 @@ public class TimestampExtractionPolicyFactoryTest {
                 schema,
                 Optional.of(
                     new TimestampColumn(
-                        ColumnName.of(field),
-                        Optional.empty()
+                        ColumnName.of(timestamp.toUpperCase()),
+                        Optional.of("b")
                     )
                 )
             )
     );
+  }
+
+  @Test
+  public void shouldThrowIfTimestampFieldTypeIsNotLongOrTimestampOrString() {
+
+    final Set<SqlPrimitiveType> allowedTypes = Sets.newHashSet(
+        SqlTypes.BIGINT,
+        SqlTypes.STRING,
+        SqlTypes.TIMESTAMP);
+
+    for (SqlPrimitiveType sqlType : SqlTypes.ALL) {
+      if (allowedTypes.contains(sqlType)) {
+        continue;
+      }
+
+      // Given:
+      final String field = "blah_" + sqlType.toString();
+      final LogicalSchema schema = schemaBuilder2
+          .valueColumn(ColumnName.of(field.toUpperCase()), sqlType)
+          .build();
+
+      // When:
+      assertThrows(
+          KsqlException.class,
+          () -> TimestampExtractionPolicyFactory
+              .create(ksqlConfig,
+                  schema,
+                  Optional.of(
+                      new TimestampColumn(
+                          ColumnName.of(field),
+                          Optional.empty()
+                      )
+                  )
+              )
+      );
+    }
   }
 }

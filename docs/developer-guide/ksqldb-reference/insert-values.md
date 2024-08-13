@@ -28,7 +28,8 @@ order of the names. Any column not explicitly given a value is set to `null`.
 If a column is given a null value or is not set, it does not act as a tombstone. 
 
 Tombstones are not supported with `INSERT INTO`.
-Pseudo columns, for example `ROWTIME`, may be provided.
+Pseudo columns are supported on a case by case basis. `ROWTIME`, may be provided.
+However, `ROWPARTITION` and `ROWOFFSET` are disallowed. Header columns are also disallowed.
 
 If no columns are specified, a value for every column is expected in the same
 order as the schema, with key columns first.
@@ -63,3 +64,8 @@ INSERT INTO foo (KEY_COL) VALUES ('key');
 
 The values are serialized by using the format(s) specified in the original
 `CREATE` statement.
+
+!!! Tip "See INSERT INTO VALUES in action"
+    - [Detect and analyze SSH attacks](https://developer.confluent.io/tutorials/SSH-attack/confluent.html#execute-ksqldb-code)
+    - [Event-driven microservice](/tutorials/event-driven-microservice/#seed-some-transaction-events)
+    - [Match users for online dating](https://developer.confluent.io/tutorials/online-dating/confluent.html#execute-ksqldb-code)

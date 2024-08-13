@@ -34,11 +34,16 @@ Example
 -------
 
 ```sql
-CREATE SOURCE CONNECTOR `jdbc-connector` WITH(
-    "connector.class"='io.confluent.connect.jdbc.JdbcSourceConnector',
-    "connection.url"='jdbc:postgresql://localhost:5432/my.db',
-    "mode"='bulk',
-    "topic.prefix"='jdbc-',
-    "table.whitelist"='users',
-    "key"='username');
+CREATE SOURCE CONNECTOR `jdbc-connector` WITH (
+    'connector.class'='io.confluent.connect.jdbc.JdbcSourceConnector',
+    'connection.url'='jdbc:postgresql://localhost:5432/my.db',
+    'mode'='bulk',
+    'topic.prefix'='jdbc-',
+    'table.whitelist'='users',
+    'key'='username');
 ```
+
+!!! Tip "See CREATE CONNECTOR in action"
+    - [Materialized cache - Start the Debezium source connector](/tutorials/materialized/#start-the-debezium-connector)
+    - [Streaming ETL pipeline - Start the source connectors](/tutorials/etl#start-the-postgres-and-mongodb-debezium-source-connectors)
+    - [Streaming ETL pipeline- Start the Elasticsearch sink connector](/tutorials/etl/#start-the-elasticsearch-sink-connector)

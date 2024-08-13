@@ -17,6 +17,8 @@ package io.confluent.ksql.test.tools;
 
 import static com.google.common.io.Files.getNameWithoutExtension;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterators;
 import com.google.common.collect.Streams;
 import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.ksql.config.SessionConfig;
@@ -34,6 +36,7 @@ import io.confluent.ksql.parser.properties.with.CreateSourceProperties;
 import io.confluent.ksql.parser.properties.with.SourcePropertiesUtil;
 import io.confluent.ksql.parser.tree.CreateSource;
 import io.confluent.ksql.parser.tree.RegisterType;
+import io.confluent.ksql.parser.tree.TableElements;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
@@ -46,16 +49,15 @@ import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.SerdeFeaturesFactory;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.statement.SourcePropertyInjector;
+import io.confluent.ksql.tools.test.model.Topic;
 import io.confluent.ksql.util.KsqlConfig;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
@@ -73,7 +75,8 @@ public final class TestCaseBuilderUtil {
   public static String buildTestName(
       final Path originalFileName,
       final String testName,
-      final Optional<String> explicitFormat
+      final Optional<String> explicitFormat,
+      final Optional<String> config
   ) {
     final String prefix = filePrefix(originalFileName.toString());
 
@@ -81,7 +84,11 @@ public final class TestCaseBuilderUtil {
         .map(f -> " - " + f)
         .orElse("");
 
-    return prefix + testName + pf;
+    final String pc = config
+        .map(f -> " - " + f)
+        .orElse("");
+
+    return prefix + testName + pf + pc;
   }
 
   public static String extractSimpleTestName(
@@ -116,111 +123,83 @@ public final class TestCaseBuilderUtil {
       final FunctionRegistry functionRegistry,
       final KsqlConfig ksqlConfig
   ) {
-    final Map<String, Topic> allTopics = new HashMap<>();
-
-    // Add all topics from topic nodes to the map:
-    topics.forEach(topic -> allTopics.put(topic.getName(), topic));
+    final Map<String, Topic> topicsByName = new HashMap<>();
+    topics.forEach(topic -> topicsByName.put(topic.getName(), topic));
 
     // Infer topics if not added already:
     final MutableMetaStore metaStore = new MetaStoreImpl(functionRegistry);
     for (String sql : statements) {
-      final Topic topicFromStatement = createTopicFromStatement(sql, metaStore, ksqlConfig);
-      if (topicFromStatement != null) {
-        allTopics.computeIfPresent(topicFromStatement.getName(), (key, topic) -> {
-          final Optional<ParsedSchema> keySchema = Optional.of(topic.getKeySchema())
-                  .filter(Optional::isPresent)
-                  .orElse(topicFromStatement.getKeySchema());
-          final Optional<ParsedSchema> valueSchema = Optional.of(topic.getValueSchema())
-                  .filter(Optional::isPresent)
-                  .orElse(topicFromStatement.getValueSchema());
-          topic = new Topic(topic.getName(), topic.getNumPartitions(), topic.getReplicas(),
-                  keySchema, valueSchema, topic.getKeyFeatures(), topic.getValueFeatures());
+      // Creates the `Topic` object when a schema is declared in the CREATE statement
+      // and updates the `allTopics` with the schema and features found in the statement
+      createTopicFromStatement(sql, metaStore, ksqlConfig).ifPresent(topicFromStatement -> {
+        topicsByName.compute(topicFromStatement.getName(), (key, topic) -> {
+          if (topic == null) {
+            return topicFromStatement;
+          } else {
+            final Optional<ParsedSchema> keySchema = Optional.of(topic.getKeySchema())
+                .filter(Optional::isPresent)
+                .orElse(topicFromStatement.getKeySchema());
 
-          return topic;
+            final Optional<ParsedSchema> valueSchema = Optional.of(topic.getValueSchema())
+                .filter(Optional::isPresent)
+                .orElse(topicFromStatement.getValueSchema());
+
+            topic = new Topic(
+                topic.getName(),
+                topic.getNumPartitions(),
+                topic.getReplicas(),
+
+                // key/value schema ID (if not empty) should be related to the key/value schema
+                // already found in the 'Topic', not in the 'topicFromStatement'
+                topic.getKeySchemaId(),
+                topic.getValueSchemaId(),
+
+                // Use the key/value schema built for the CREATE statement
+                keySchema,
+                valueSchema,
+                topic.getKeySchemaReferences(),
+                topic.getValueSchemaReferences(),
+
+                // Use the serde features built for the CREATE statement
+                topicFromStatement.getKeyFeatures(),
+                topicFromStatement.getValueFeatures());
+
+            return topic;
+          }
         });
-        if (allTopics.containsKey(topicFromStatement.getName())) {
-          // If the topic already exists, just add the key/value serde features
-          final Topic existingTopic = allTopics.get(topicFromStatement.getName());
-          allTopics.put(topicFromStatement.getName(), new Topic(
-              existingTopic.getName(),
-              existingTopic.getNumPartitions(),
-              existingTopic.getReplicas(),
-              existingTopic.getKeySchema(),
-              existingTopic.getValueSchema(),
-              topicFromStatement.getKeyFeatures(),
-              topicFromStatement.getValueFeatures()
-          ));
-        } else {
-          allTopics.put(topicFromStatement.getName(), topicFromStatement);
-        }
-      }
+      });
     }
 
-    // Get topics from inputs and outputs fields:
+    // If the `Topic` information is not found or resolved directly from the statement, then
+    // create a simple `Topic` using the input/outputs topic field
     Streams.concat(inputs.stream(), outputs.stream())
         .map(record -> new Topic(record.getTopicName(), Optional.empty(), Optional.empty()))
-        .forEach(topic -> allTopics.putIfAbsent(topic.getName(), topic));
+        .forEach(topic -> topicsByName.putIfAbsent(topic.getName(), topic));
 
-    return allTopics.values();
+    return topicsByName.values();
   }
 
-  private static Topic createTopicFromStatement(
+  // CHECKSTYLE_RULES.OFF: NPathComplexity
+  private static Optional<Topic> createTopicFromStatement(
       final String sql,
       final MutableMetaStore metaStore,
       final KsqlConfig ksqlConfig
   ) {
+    // CHECKSTYLE_RULES.ON: NPathComplexity
     final KsqlParser parser = new DefaultKsqlParser();
-
-    final Function<ConfiguredStatement<?>, Topic> extractTopic = (ConfiguredStatement<?> stmt) -> {
-      final CreateSource statement = (CreateSource) stmt.getStatement();
-      final CreateSourceProperties props = statement.getProperties();
-
-      final LogicalSchema logicalSchema = statement.getElements().toLogicalSchema();
-
-      final FormatInfo keyFormatInfo = SourcePropertiesUtil.getKeyFormat(
-          props, statement.getName());
-      final Format keyFormat = FormatFactory.fromName(keyFormatInfo.getFormat());
-      final SerdeFeatures keySerdeFeats = buildKeyFeatures(
-          keyFormat, logicalSchema);
-
-      final Optional<ParsedSchema> keySchema =
-          keyFormat.supportsFeature(SerdeFeature.SCHEMA_INFERENCE)
-              ? buildSchema(sql, logicalSchema.key(), keyFormatInfo, keyFormat, keySerdeFeats)
-              : Optional.empty();
-
-      final FormatInfo valFormatInfo = SourcePropertiesUtil.getValueFormat(props);
-      final Format valFormat = FormatFactory.fromName(valFormatInfo.getFormat());
-      final SerdeFeatures valSerdeFeats = buildValueFeatures(
-          ksqlConfig, props, valFormat, logicalSchema);
-
-      final Optional<ParsedSchema> valueSchema =
-          valFormat.supportsFeature(SerdeFeature.SCHEMA_INFERENCE)
-              ? buildSchema(
-                  sql, logicalSchema.value(), valFormatInfo, valFormat, valSerdeFeats)
-              : Optional.empty();
-
-      final int partitions = props.getPartitions()
-          .orElse(Topic.DEFAULT_PARTITIONS);
-
-      final short rf = props.getReplicas()
-          .orElse(Topic.DEFAULT_RF);
-
-      return new Topic(props.getKafkaTopic(), partitions, rf, keySchema, valueSchema,
-          keySerdeFeats, valSerdeFeats);
-    };
 
     try {
       final List<ParsedStatement> parsed = parser.parse(sql);
       if (parsed.size() > 1) {
         throw new IllegalArgumentException("SQL contains more than one statement: " + sql);
-      }
+      } else if (parsed.size() == 1) {
+        final ParsedStatement stmt = parsed.get(0);
 
-      final List<Topic> topics = new ArrayList<>();
-      for (ParsedStatement stmt : parsed) {
         // in order to extract the topics, we may need to also register type statements
         if (stmt.getStatement().statement() instanceof SqlBaseParser.RegisterTypeContext) {
           final PreparedStatement<?> prepare = parser.prepare(stmt, metaStore);
           registerType(prepare, metaStore);
+          return Optional.empty();
         }
 
         if (isCsOrCT(stmt)) {
@@ -230,17 +209,75 @@ public final class TestCaseBuilderUtil {
           final ConfiguredStatement<?> withFormats = new DefaultFormatInjector().inject(configured);
           final ConfiguredStatement<?> withSourceProps =
               new SourcePropertyInjector().inject(withFormats);
-          topics.add(extractTopic.apply(withSourceProps));
+          return createTopicFromCreateSource(sql, ksqlConfig, withSourceProps);
         }
       }
 
-      return topics.isEmpty() ? null : topics.get(0);
+      return Optional.empty();
     } catch (final Exception e) {
       // Statement won't parse: this will be detected/handled later.
       System.out.println("Error parsing statement (which may be expected): " + sql);
       e.printStackTrace(System.out);
-      return null;
+      return Optional.empty();
     }
+  }
+
+  private static Optional<Topic> createTopicFromCreateSource(
+      final String sql,
+      final KsqlConfig ksqlConfig,
+      final ConfiguredStatement<?> stmt
+  ) {
+    final CreateSource statement = (CreateSource) stmt.getStatement();
+    final CreateSourceProperties props = statement.getProperties();
+    final TableElements tableElements = statement.getElements();
+
+    if (Iterators.size(tableElements.iterator()) == 0) {
+      return Optional.empty();
+    }
+
+    final LogicalSchema logicalSchema = tableElements.toLogicalSchema();
+
+    final FormatInfo keyFormatInfo = SourcePropertiesUtil.getKeyFormat(
+        props, statement.getName());
+    final Format keyFormat = FormatFactory.fromName(keyFormatInfo.getFormat());
+    final SerdeFeatures keySerdeFeats = buildKeyFeatures(
+        keyFormat, logicalSchema);
+
+    final Optional<ParsedSchema> keySchema =
+        keyFormat.supportsFeature(SerdeFeature.SCHEMA_INFERENCE)
+            ? buildSchema(sql, logicalSchema.key(), keyFormatInfo, keyFormat, keySerdeFeats)
+            : Optional.empty();
+
+    final FormatInfo valFormatInfo = SourcePropertiesUtil.getValueFormat(props);
+    final Format valFormat = FormatFactory.fromName(valFormatInfo.getFormat());
+    final SerdeFeatures valSerdeFeats = buildValueFeatures(
+        ksqlConfig, props, valFormat, logicalSchema);
+
+    final Optional<ParsedSchema> valueSchema =
+        valFormat.supportsFeature(SerdeFeature.SCHEMA_INFERENCE)
+            ? buildSchema(
+            sql, logicalSchema.value(), valFormatInfo, valFormat, valSerdeFeats)
+            : Optional.empty();
+
+    final int partitions = props.getPartitions()
+        .orElse(Topic.DEFAULT_PARTITIONS);
+
+    final short rf = props.getReplicas()
+        .orElse(Topic.DEFAULT_RF);
+
+    return Optional.of(new Topic(
+        props.getKafkaTopic(),
+        partitions,
+        rf,
+        // key/value schemas IDs do not exist if schema is found on the statement
+        Optional.empty(),
+        Optional.empty(),
+        keySchema,
+        valueSchema,
+        ImmutableList.of(),
+        ImmutableList.of(),
+        keySerdeFeats,
+        valSerdeFeats));
   }
 
   private static Optional<ParsedSchema> buildSchema(

@@ -25,6 +25,8 @@ import io.confluent.ksql.execution.transform.KsqlProcessingContext;
 import io.confluent.ksql.execution.transform.KsqlTransformer;
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import java.util.List;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import org.apache.kafka.streams.kstream.Merger;
 
 public class KudafAggregator<K> implements UdafAggregator<K> {
@@ -64,7 +66,11 @@ public class KudafAggregator<K> implements UdafAggregator<K> {
     // the above statement.
     for (int idx = nonAggColumnCount; idx < columnCount; idx++) {
       final KsqlAggregateFunction<Object, Object, Object> func = aggregateFunctionForColumn(idx);
-      final Object currentValue = rowValue.get(func.getArgIndexInValue());
+      final Object currentValue = getCurrentValue(
+              rowValue,
+              func.getArgIndicesInValue(),
+              func::convertToInput
+      );
       final Object currentAggregate = result.get(idx);
       final Object newAggregate = func.aggregate(currentValue, currentAggregate);
       result.set(idx, newAggregate);
@@ -109,6 +115,15 @@ public class KudafAggregator<K> implements UdafAggregator<K> {
       final int columnIndex
   ) {
     return (KsqlAggregateFunction) aggregateFunctions.get(columnIndex - nonAggColumnCount);
+  }
+
+  private Object getCurrentValue(final GenericRow row, final List<Integer> indices,
+                                 final Function<List<Object>, Object> inputConverter) {
+    return inputConverter.apply(
+            indices.stream()
+                    .map(row::get)
+                    .collect(Collectors.toList())
+    );
   }
 
   private final class ResultTransformer implements KsqlTransformer<K, GenericRow> {

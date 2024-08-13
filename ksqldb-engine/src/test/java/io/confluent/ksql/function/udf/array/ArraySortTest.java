@@ -50,6 +50,20 @@ public class ArraySortTest {
   }
 
   @Test
+  public void shouldReturnNullWithBadSortDirection() {
+    final List<Integer> input = Arrays.asList(1, 3, -2);
+    final List<Integer> output = udf.arraySortWithDirection(input, "ASCDESC");
+    assertThat(output, is(nullValue()));
+  }
+
+  @Test
+  public void shouldReturnNullWithNullSortDirection() {
+    final List<Integer> input = Arrays.asList(1, 3, -2);
+    final List<Integer> output = udf.arraySortWithDirection(input, null);
+    assertThat(output, is(nullValue()));
+  }
+
+  @Test
   public void shouldSortIntsDescending() {
     final List<Integer> input = Arrays.asList(1, 3, -2);
     final List<Integer> output = udf.arraySortWithDirection(input, "DEsc");

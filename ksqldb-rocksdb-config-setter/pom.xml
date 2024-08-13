@@ -22,7 +22,7 @@
     <parent>
         <groupId>io.confluent.ksql</groupId>
         <artifactId>ksqldb-parent</artifactId>
-        <version>7.0.16-0</version>
+        <version>7.8.0-0</version>
     </parent>
 
     <artifactId>ksqldb-rocksdb-config-setter</artifactId>
@@ -33,7 +33,6 @@
             <groupId>org.apache.kafka</groupId>
             <artifactId>kafka-streams</artifactId>
         </dependency>
-
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
@@ -54,10 +53,11 @@
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
         </dependency>
+        <dependency>
+            <groupId>io.confluent.ksql</groupId>
+            <artifactId>ksqldb-common</artifactId>
+        </dependency>
     </dependencies>
-
-
-
     <build>
         <plugins>
             <plugin>

@@ -17,6 +17,7 @@ package io.confluent.ksql.metrics;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.common.utils.Time;
 import io.confluent.ksql.metrics.TopicSensors.SensorMetric;
 import io.confluent.ksql.metrics.TopicSensors.Stat;
@@ -38,36 +39,43 @@ public final class StreamsErrorCollector implements MetricCollector {
   public static final String CONSUMER_FAILED_MESSAGES_PER_SEC
       = "consumer-failed-messages-per-sec";
 
-  private static final Map<String, StreamsErrorCollector> COLLECTORS = Maps.newConcurrentMap();
-
-  private final Map<String, TopicSensors<Object>> topicSensors = Maps.newConcurrentMap();
-  private String id;
+  private final MetricCollectors metricCollectors;
   private final Metrics metrics;
+  private final Map<String, TopicSensors<Object>> topicSensors = Maps.newConcurrentMap();
   private final Time time;
+  private String id;
 
-  private StreamsErrorCollector() {
-    this.metrics = MetricCollectors.getMetrics();
-    this.time = MetricCollectors.getTime();
+  @SuppressFBWarnings(
+      value = "EI_EXPOSE_REP2",
+      justification = "metrics"
+  )
+  public static StreamsErrorCollector create(
+      final String applicationId,
+      final MetricCollectors collectors) {
+
+    final StreamsErrorCollector collector = new StreamsErrorCollector(collectors);
+
+    collector.id = collectors.addCollector(applicationId, collector);
+
+    return collector;
   }
 
-  public void setId(final String id) {
-    this.id = id;
-  }
-
-  private void collect(final String topic) {
-    topicSensors
-        .computeIfAbsent(topic, this::buildSensors)
-        .increment(null, true);
+  @SuppressFBWarnings(
+      value = "EI_EXPOSE_REP2",
+      justification = "metrics"
+  )
+  private StreamsErrorCollector(final MetricCollectors collectors) {
+    this.metricCollectors = collectors;
+    this.metrics = collectors.getMetrics();
+    this.time = collectors.getTime();
   }
 
   private TopicSensors<Object> buildSensors(final String topic) {
     final List<TopicSensors.SensorMetric<Object>> sensors = new ArrayList<>();
-    synchronized (this.metrics) {
-      sensors.add(
-          buildSensor(topic, CONSUMER_FAILED_MESSAGES, new CumulativeSum(), o -> 1.0));
-      sensors.add(
-          buildSensor(topic, CONSUMER_FAILED_MESSAGES_PER_SEC, new Rate(), o -> 1.0));
-    };
+    sensors.add(
+        buildSensor(topic, CONSUMER_FAILED_MESSAGES, new CumulativeSum(), o -> 1.0));
+    sensors.add(
+        buildSensor(topic, CONSUMER_FAILED_MESSAGES_PER_SEC, new Rate(), o -> 1.0));
     return new TopicSensors<>(topic, sensors);
   }
 
@@ -98,8 +106,8 @@ public final class StreamsErrorCollector implements MetricCollector {
     };
   }
 
-  private void cleanup() {
-    MetricCollectors.remove(id);
+  public void cleanup() {
+    metricCollectors.remove(id);
     topicSensors.values().forEach(v -> v.close(metrics));
   }
 
@@ -123,23 +131,9 @@ public final class StreamsErrorCollector implements MetricCollector {
     return MetricUtils.stats(topic, isError, topicSensors.values());
   }
 
-  public static void recordError(final String applicationId, final String topic) {
-    final StreamsErrorCollector errorCollector = COLLECTORS.computeIfAbsent(
-        applicationId,
-        aid -> {
-          final StreamsErrorCollector ec = new StreamsErrorCollector();
-          final String collectorId = MetricCollectors.addCollector(aid, ec);
-          ec.setId(collectorId);
-          return ec;
-        }
-    );
-    errorCollector.collect(topic);
-  }
-
-  public static void notifyApplicationClose(final String applicationId) {
-    final StreamsErrorCollector errorCollector = COLLECTORS.remove(applicationId);
-    if (errorCollector != null) {
-      errorCollector.cleanup();
-    }
+  public void recordError(final String topic) {
+    topicSensors
+        .computeIfAbsent(topic, this::buildSensors)
+        .increment(null, true);
   }
 }

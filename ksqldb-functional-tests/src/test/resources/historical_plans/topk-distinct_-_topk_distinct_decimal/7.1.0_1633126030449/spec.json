@@ -1,0 +1,321 @@
+{
+  "version" : "7.1.0",
+  "timestamp" : 1633126030449,
+  "path" : "query-validation-tests/topk-distinct.json",
+  "schemas" : {
+    "CTAS_S2_0.Aggregate.Aggregate.Materialize" : {
+      "schema" : "`ID` BIGINT KEY, `ID` BIGINT, `VALUE` DECIMAL(2, 1), `KSQL_AGG_VARIABLE_0` ARRAY<DECIMAL(2, 1)>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "AVRO"
+      }
+    },
+    "CTAS_S2_0.Aggregate.Project" : {
+      "schema" : "`ID` BIGINT KEY, `TOPK` ARRAY<DECIMAL(2, 1)>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "AVRO"
+      }
+    },
+    "CTAS_S2_0.KsqlTopic.Source" : {
+      "schema" : "`ID` BIGINT KEY, `NAME` STRING, `VALUE` DECIMAL(2, 1)",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "AVRO"
+      }
+    },
+    "CTAS_S2_0.S2" : {
+      "schema" : "`ID` BIGINT KEY, `TOPK` ARRAY<DECIMAL(2, 1)>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "AVRO"
+      }
+    },
+    "CTAS_S2_0.Aggregate.GroupBy" : {
+      "schema" : "`ID` BIGINT KEY, `ID` BIGINT, `VALUE` DECIMAL(2, 1), `KSQL_INTERNAL_COL_2` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "AVRO"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "topk distinct decimal",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : 0,
+      "value" : {
+        "NAME" : "zero",
+        "VALUE" : "9.8"
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : 0,
+      "value" : {
+        "NAME" : "zero",
+        "VALUE" : "8.9"
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : 0,
+      "value" : {
+        "NAME" : "zero",
+        "VALUE" : null
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : 0,
+      "value" : {
+        "NAME" : "zero",
+        "VALUE" : "7.8"
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : 0,
+      "value" : {
+        "NAME" : "zero",
+        "VALUE" : "6.5"
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : 0,
+      "value" : {
+        "NAME" : "zero",
+        "VALUE" : "9.9"
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "S2",
+      "key" : 0,
+      "value" : {
+        "TOPK" : [ "9.8" ]
+      }
+    }, {
+      "topic" : "S2",
+      "key" : 0,
+      "value" : {
+        "TOPK" : [ "9.8", "8.9" ]
+      }
+    }, {
+      "topic" : "S2",
+      "key" : 0,
+      "value" : {
+        "TOPK" : [ "9.8", "8.9" ]
+      }
+    }, {
+      "topic" : "S2",
+      "key" : 0,
+      "value" : {
+        "TOPK" : [ "9.8", "8.9", "7.8" ]
+      }
+    }, {
+      "topic" : "S2",
+      "key" : 0,
+      "value" : {
+        "TOPK" : [ "9.8", "8.9", "7.8" ]
+      }
+    }, {
+      "topic" : "S2",
+      "key" : 0,
+      "value" : {
+        "TOPK" : [ "9.9", "9.8", "8.9" ]
+      }
+    } ],
+    "topics" : [ {
+      "name" : "test_topic",
+      "valueSchema" : {
+        "type" : "record",
+        "name" : "KsqlDataSourceSchema",
+        "namespace" : "io.confluent.ksql.avro_schemas",
+        "fields" : [ {
+          "name" : "NAME",
+          "type" : [ "null", "string" ],
+          "default" : null
+        }, {
+          "name" : "VALUE",
+          "type" : [ "null", {
+            "type" : "bytes",
+            "scale" : 1,
+            "precision" : 2,
+            "connect.version" : 1,
+            "connect.parameters" : {
+              "scale" : "1",
+              "connect.decimal.precision" : "2"
+            },
+            "connect.name" : "org.apache.kafka.connect.data.Decimal",
+            "logicalType" : "decimal"
+          } ],
+          "default" : null
+        } ],
+        "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
+      },
+      "valueFormat" : "AVRO",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "S2",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM TEST (ID BIGINT KEY, NAME varchar, VALUE decimal(2,1)) WITH (kafka_topic='test_topic', value_format='AVRO');", "CREATE TABLE S2 as SELECT ID, topkdistinct(value, 3) as topk FROM test group by id;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "S2",
+        "type" : "TABLE",
+        "schema" : "`ID` BIGINT KEY, `TOPK` ARRAY<DECIMAL(2, 1)>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "AVRO",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`ID` BIGINT KEY, `NAME` STRING, `VALUE` DECIMAL(2, 1)",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "AVRO",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_S2_0-Aggregate-Aggregate-Materialize-changelog",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "AVRO"
+          },
+          "valueSchema" : {
+            "type" : "record",
+            "name" : "KsqlDataSourceSchema",
+            "namespace" : "io.confluent.ksql.avro_schemas",
+            "fields" : [ {
+              "name" : "ID",
+              "type" : [ "null", "long" ],
+              "default" : null
+            }, {
+              "name" : "VALUE",
+              "type" : [ "null", {
+                "type" : "bytes",
+                "scale" : 1,
+                "precision" : 2,
+                "connect.version" : 1,
+                "connect.parameters" : {
+                  "scale" : "1",
+                  "connect.decimal.precision" : "2"
+                },
+                "connect.name" : "org.apache.kafka.connect.data.Decimal",
+                "logicalType" : "decimal"
+              } ],
+              "default" : null
+            }, {
+              "name" : "KSQL_AGG_VARIABLE_0",
+              "type" : [ "null", {
+                "type" : "array",
+                "items" : [ "null", {
+                  "type" : "bytes",
+                  "scale" : 1,
+                  "precision" : 2,
+                  "connect.version" : 1,
+                  "connect.parameters" : {
+                    "scale" : "1",
+                    "connect.decimal.precision" : "2"
+                  },
+                  "connect.name" : "org.apache.kafka.connect.data.Decimal",
+                  "logicalType" : "decimal"
+                } ]
+              } ],
+              "default" : null
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
+          }
+        }, {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "AVRO"
+          },
+          "partitions" : 4,
+          "valueSchema" : {
+            "type" : "record",
+            "name" : "KsqlDataSourceSchema",
+            "namespace" : "io.confluent.ksql.avro_schemas",
+            "fields" : [ {
+              "name" : "NAME",
+              "type" : [ "null", "string" ],
+              "default" : null
+            }, {
+              "name" : "VALUE",
+              "type" : [ "null", {
+                "type" : "bytes",
+                "scale" : 1,
+                "precision" : 2,
+                "connect.version" : 1,
+                "connect.parameters" : {
+                  "scale" : "1",
+                  "connect.decimal.precision" : "2"
+                },
+                "connect.name" : "org.apache.kafka.connect.data.Decimal",
+                "logicalType" : "decimal"
+              } ],
+              "default" : null
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
+          }
+        }, {
+          "name" : "S2",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "AVRO"
+          },
+          "partitions" : 4,
+          "valueSchema" : {
+            "type" : "record",
+            "name" : "KsqlDataSourceSchema",
+            "namespace" : "io.confluent.ksql.avro_schemas",
+            "fields" : [ {
+              "name" : "TOPK",
+              "type" : [ "null", {
+                "type" : "array",
+                "items" : [ "null", {
+                  "type" : "bytes",
+                  "scale" : 1,
+                  "precision" : 2,
+                  "connect.version" : 1,
+                  "connect.parameters" : {
+                    "scale" : "1",
+                    "connect.decimal.precision" : "2"
+                  },
+                  "connect.name" : "org.apache.kafka.connect.data.Decimal",
+                  "logicalType" : "decimal"
+                } ]
+              } ],
+              "default" : null
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
+          }
+        } ]
+      }
+    }
+  }
+}

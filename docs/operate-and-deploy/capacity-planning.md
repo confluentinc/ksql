@@ -49,16 +49,16 @@ aggregations and joins. An SSD and at least 100 GB is recommended.
 and off-heap state for aggregations, like SUM, COUNT, TOPKDISTINCT, and
 joins. Usage for message processing scales with message throughput,
 while aggregation and join state is a function of topic partition count,
-key space size, and windowing. A good starting point here is 32 GB.
+key space size, and windowing. A good starting point here is 16 GB.
 
 **Network**: ksqlDB relies heavily on {{ site.ak }}, so fast and reliable
-network is important for optimal throughput. A 1 Gbit NIC is a good starting
+networking is important for optimal throughput. A 1 Gbit NIC is a good starting
 point.
 
 General guidelines for a basic ksqlDB server are:
 
 -   4 cores
--   32 GB RAM
+-   16 GB RAM
 -   100 GB SSD
 -   1 Gbit network
 
@@ -87,12 +87,11 @@ Every query started by a `CREATE STREAM AS SELECT` or
 topic. The created topic is configured with the following properties:
 
 -   **Name:** By default, ksqlDB creates the output topic with the same name as
-    the stream or table created by the statement. You can specify a
-    custom name in the `KAFKA_TOPIC` property of the statement's `WITH`
-    clause.
--   **Partitions:** By default ksqlDB creates an output topic with 4
-    partitions. You can specify a custom partition count in the
-    `PARTITIONS` property of the statement's `WITH` clause.
+    the stream or table created by the statement. You can specify a custom name
+    in the `KAFKA_TOPIC` property of the statement's `WITH` clause.
+-   **Partitions:** By default, ksqlDB creates an output topic with the same
+    number of partitions as the input topic. You can specify a custom partition
+    count in the `PARTITIONS` property of the statement's `WITH` clause.
 -   **Replication Factor:** By default, ksqlDB creates the output topic with a
     replication factor of 1. You can specify a custom replication factor
     in the `REPLICAS` property of the statement's `WITH` clause.
@@ -234,7 +233,7 @@ command topics. Command topics have a single partition and default to a
 replication factor of 1.
 
 !!! note
-		Headless mode deployments don't have a command topic.
+		{{ site.ccloud }} and Headless mode deployments don't have a command topic.
 
 #### Consumption and Production
 
@@ -419,6 +418,43 @@ You can fix this situation by using either of these methods:
     which in turn will increase the throughput for the more expensive
     queries.
 
+### Bounding ksqlDB memory usage
+
+ksqlDB consumes memory allocated by the JVM for its heap. Also, ksqlDB directly
+allocates "off-heap" memory using the native allocator. The JVM heap is used for
+all the allocations made in the JVM. RocksDB is the main consumer of off-heap
+memory. ksqlDB uses RocksDB to store state for computing aggregates and joins.
+RocksDB allocates memory for buffering incoming writes, storing its index, and
+caching data for reads.
+
+The memory used by RocksDB can grow without bound as you add more queries and
+process more data, because ksqlDB creates new RocksDB instances to store the
+state for each stateful task in a query. ksqlDB implements a `RocksDBConfigSetter`
+to limit memory across all RocksDB instances. The config setter is named
+`KsqlBoundedMemoryRocksDBConfigSetter`. For more information, see
+[Bounding ksqlDB Memory Usage](https://www.confluent.io/blog/bounding-ksqldb-memory-usage/).
+
+Consider the following recommendations to bound ksqlDB memory usage.
+
+- Run ksqlDB with `KsqlBoundedMemoryRocksDBConfigSetter` to configure a bound
+  on usage across all RocksDB instances. Determining the exact bound depends on
+  your specific system and queries. Reserving 25 percent of available memory
+  for RocksDB is a good starting point.
+
+  To configure ksqlDB with the config setter and have it adhere to a given
+  bound, set the following properties in your ksqlDB server properties file:
+
+  ```properties
+  ksql.streams.rocksdb.config.setter=io.confluent.ksql.rocksdb.KsqlBoundedMemoryRocksDBConfigSetter
+  ksql.plugins.rocksdb.cache.size=<desired memory bound>
+  ksql.plugins.rocksdb.write.buffer.cache.use=true
+  ksql.plugins.rocksdb.num.background.threads=<number of cores>
+  ```
+
+- Run ksqlDB with jemalloc using the `LD_PRELOAD` technique described in
+  [Profiling memory usage](https://www.confluent.io/blog/bounding-ksqldb-memory-usage/#%22profiling-memory-usage),
+  especially if you need to stop and start queries frequently.
+
 ksqlDB Capacity Sizing Examples
 --------------------------------
 
@@ -478,7 +514,7 @@ state store memory. 8 GB are recommended for the Java heap space for
 record processing.
 
 ksqlDB uses the network to consume records from the {{ site.ak }} input topic
-and produce records to the output topic. In this example query 50 MB/s are
+and produce records to the output topic. In this example, 50 MB/s are
 received. If you assume that 90 percent of the page views are meaningful,
 then you would produce 45 MB/s as output.
 

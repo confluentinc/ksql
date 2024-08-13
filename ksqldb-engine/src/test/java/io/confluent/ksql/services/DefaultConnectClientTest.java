@@ -15,10 +15,14 @@
 
 package io.confluent.ksql.services;
 
+import static io.confluent.ksql.util.KsqlConfig.CONNECT_REQUEST_TIMEOUT_DEFAULT;
 import static io.vertx.core.http.HttpHeaders.AUTHORIZATION;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+import static org.mockito.Mockito.when;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tomakehurst.wiremock.client.WireMock;
@@ -28,24 +32,38 @@ import com.github.tomakehurst.wiremock.matching.EqualToPattern;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import io.confluent.ksql.metastore.model.MetaStoreMatchers.OptionalMatchers;
+import io.confluent.ksql.rest.entity.ConfigInfos;
+import io.confluent.ksql.rest.entity.ConfigInfos.ConfigInfo;
+import io.confluent.ksql.rest.entity.ConfigInfos.ConfigValueInfo;
+import io.confluent.ksql.rest.entity.ConnectorInfo;
+import io.confluent.ksql.rest.entity.ConnectorInfo.ConnectorTaskId;
+import io.confluent.ksql.rest.entity.ConnectorStateInfo;
+import io.confluent.ksql.rest.entity.ConnectorStateInfo.ConnectorState;
+import io.confluent.ksql.rest.entity.ConnectorStateInfo.TaskState;
+import io.confluent.ksql.rest.entity.ConnectorType;
+import io.confluent.ksql.rest.entity.SimpleConnectorPluginInfo;
+import io.confluent.ksql.rest.entity.SimpleConnectorPluginInfo.PluginType;
 import io.confluent.ksql.services.ConnectClient.ConnectResponse;
+import io.confluent.ksql.test.util.OptionalMatchers;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSocketFactory;
 import org.apache.http.HttpStatus;
-import org.apache.kafka.connect.runtime.rest.entities.ActiveTopicsInfo;
-import org.apache.kafka.connect.runtime.rest.entities.ConnectorInfo;
-import org.apache.kafka.connect.runtime.rest.entities.ConnectorPluginInfo;
-import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo;
-import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo.ConnectorState;
-import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo.TaskState;
-import org.apache.kafka.connect.runtime.rest.entities.ConnectorType;
-import org.apache.kafka.connect.util.ConnectorTaskId;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnit;
+import org.mockito.junit.MockitoRule;
 
+@RunWith(Parameterized.class)
+@SuppressWarnings("checkstyle:ClassDataAbstractionCoupling")
 public class DefaultConnectClientTest {
 
   private static final ObjectMapper MAPPER = ConnectJsonMapper.INSTANCE.get();
@@ -63,9 +81,9 @@ public class DefaultConnectClientTest {
       ),
       ConnectorType.SOURCE
   );
-  private static final ConnectorPluginInfo SAMPLE_PLUGIN = new ConnectorPluginInfo(
+  private static final SimpleConnectorPluginInfo SAMPLE_PLUGIN = new SimpleConnectorPluginInfo(
       "io.confluent.connect.replicator.ReplicatorSourceConnector",
-      ConnectorType.SOURCE,
+      PluginType.SOURCE,
       "1.0"
   );
   private static final String AUTH_HEADER = "Basic FOOBAR";
@@ -77,25 +95,56 @@ public class DefaultConnectClientTest {
           ImmutableList.of("topicA", "topicB"))
   );
 
+  private static final String CUSTOM_HEADER_NAME = "custom_header";
+  private static final String CUSTOM_HEADER_VALUE = "foo";
+
   @Rule
   public WireMockRule wireMockRule = new WireMockRule(
       WireMockConfiguration.wireMockConfig()
           .dynamicPort()
   );
 
+  @Rule
+  public final MockitoRule mockitoRule = MockitoJUnit.rule();
+
+  @Parameterized.Parameters(name = "{1}")
+  public static Collection<String[]> pathPrefixes() {
+    return ImmutableList.of(new String[]{"", "no path prefix"}, new String[]{"/some/path/prefix", "with path prefix"});
+  }
+
+  @Mock
+  private SSLContext sslContext;
+  @Mock
+  private SSLSocketFactory sslSocketFactory;
+
+  private final String pathPrefix;
+
   private ConnectClient client;
+
+  public DefaultConnectClientTest(final String pathPrefix, final String testName) {
+    this.pathPrefix = pathPrefix;
+  }
 
   @Before
   public void setup() {
-    client = new DefaultConnectClient("http://localhost:" + wireMockRule.port(), Optional.of(AUTH_HEADER));
+    when(sslContext.getSocketFactory()).thenReturn(sslSocketFactory);
+
+    client = new DefaultConnectClient(
+        "http://localhost:" + wireMockRule.port() + pathPrefix,
+        Optional.of(AUTH_HEADER),
+        ImmutableMap.of(CUSTOM_HEADER_NAME, CUSTOM_HEADER_VALUE),
+        Optional.of(sslContext),
+        false,
+        CONNECT_REQUEST_TIMEOUT_DEFAULT);
   }
 
   @Test
   public void testCreate() throws JsonProcessingException {
     // Given:
     WireMock.stubFor(
-        WireMock.post(WireMock.urlEqualTo("/connectors"))
+        WireMock.post(WireMock.urlEqualTo(pathPrefix + "/connectors"))
             .withHeader(AUTHORIZATION.toString(), new EqualToPattern(AUTH_HEADER))
+            .withHeader(CUSTOM_HEADER_NAME, new EqualToPattern(CUSTOM_HEADER_VALUE))
             .willReturn(WireMock.aResponse()
                 .withStatus(HttpStatus.SC_CREATED)
                 .withBody(MAPPER.writeValueAsString(SAMPLE_INFO)))
@@ -111,11 +160,71 @@ public class DefaultConnectClientTest {
   }
 
   @Test
+  public void testValidate() throws JsonProcessingException {
+    // Given:
+    final String plugin = SAMPLE_PLUGIN.getClassName();
+    final String url = String.format(pathPrefix + "/connector-plugins/%s/config/validate", plugin);
+    final ConfigInfos body = new ConfigInfos(
+        plugin,
+        1,
+        ImmutableList.of("Common"),
+        ImmutableList.of(new ConfigInfo(
+            new ConfigValueInfo(
+                "file",
+                ImmutableList.of(
+                    "Missing required configuration \"file\" which has no default value."))
+        )));
+
+    WireMock.stubFor(
+        WireMock.put(WireMock.urlEqualTo(url))
+            .withHeader(AUTHORIZATION.toString(), new EqualToPattern(AUTH_HEADER))
+            .willReturn(WireMock.aResponse()
+                .withStatus(HttpStatus.SC_OK)
+                .withBody(MAPPER.writeValueAsString(body)))
+    );
+
+    // When:
+    final Map<String, String> config = ImmutableMap.of(
+        "connector.class", plugin,
+        "tasks.max", "1",
+        "topics", "test-topic"
+    );
+    final ConnectResponse<ConfigInfos> response = client.validate(plugin, config);
+
+    // Then:
+    assertThat(response.datum(), OptionalMatchers.of(is(body)));
+    assertThat("Expected no error!", !response.error().isPresent());
+  }
+
+  @Test
+  public void testValidateWithError() throws JsonProcessingException {
+    // Given:
+    final String plugin = SAMPLE_PLUGIN.getClassName();
+    final String url = String.format(pathPrefix + "/connector-plugins/%s/config/validate", plugin);
+    WireMock.stubFor(
+        WireMock.put(WireMock.urlEqualTo(url))
+            .withHeader(AUTHORIZATION.toString(), new EqualToPattern(AUTH_HEADER))
+            .willReturn(WireMock.aResponse()
+                .withStatus(HttpStatus.SC_INTERNAL_SERVER_ERROR)
+                .withBody("Oh no!"))
+    );
+
+    // When:
+    final ConnectResponse<ConfigInfos> response =
+        client.validate(plugin, ImmutableMap.of());
+
+    // Then:
+    assertThat("Expected no datum!", !response.datum().isPresent());
+    assertThat(response.error(), OptionalMatchers.of(is("Oh no!")));
+  }
+
+  @Test
   public void testCreateWithError() throws JsonProcessingException {
     // Given:
     WireMock.stubFor(
-        WireMock.post(WireMock.urlEqualTo("/connectors"))
+        WireMock.post(WireMock.urlEqualTo(pathPrefix + "/connectors"))
             .withHeader(AUTHORIZATION.toString(), new EqualToPattern(AUTH_HEADER))
+            .withHeader(CUSTOM_HEADER_NAME, new EqualToPattern(CUSTOM_HEADER_VALUE))
             .willReturn(WireMock.aResponse()
                 .withStatus(HttpStatus.SC_INTERNAL_SERVER_ERROR)
                 .withBody("Oh no!"))
@@ -134,8 +243,9 @@ public class DefaultConnectClientTest {
   public void testList() throws JsonProcessingException {
     // Given:
     WireMock.stubFor(
-        WireMock.get(WireMock.urlEqualTo("/connectors"))
+        WireMock.get(WireMock.urlEqualTo(pathPrefix + "/connectors"))
             .withHeader(AUTHORIZATION.toString(), new EqualToPattern(AUTH_HEADER))
+            .withHeader(CUSTOM_HEADER_NAME, new EqualToPattern(CUSTOM_HEADER_VALUE))
             .willReturn(WireMock.aResponse()
                 .withStatus(HttpStatus.SC_OK)
                 .withBody(MAPPER.writeValueAsString(ImmutableList.of("one", "two"))))
@@ -152,16 +262,19 @@ public class DefaultConnectClientTest {
   @Test
   public void testListPlugins() throws JsonProcessingException {
     // Given:
+
+    MAPPER.writeValueAsString(ImmutableList.of(SAMPLE_PLUGIN));
     WireMock.stubFor(
-        WireMock.get(WireMock.urlEqualTo("/connector-plugins"))
+        WireMock.get(WireMock.urlEqualTo(pathPrefix + "/connector-plugins"))
             .withHeader(AUTHORIZATION.toString(), new EqualToPattern(AUTH_HEADER))
+            .withHeader(CUSTOM_HEADER_NAME, new EqualToPattern(CUSTOM_HEADER_VALUE))
             .willReturn(WireMock.aResponse()
                 .withStatus(HttpStatus.SC_OK)
                 .withBody(MAPPER.writeValueAsString(ImmutableList.of(SAMPLE_PLUGIN))))
     );
 
     // When:
-    final ConnectResponse<List<ConnectorPluginInfo>> response = client.connectorPlugins();
+    final ConnectResponse<List<SimpleConnectorPluginInfo>> response = client.connectorPlugins();
 
     // Then:
     assertThat(response.datum(), OptionalMatchers.of(is(ImmutableList.of(SAMPLE_PLUGIN))));
@@ -172,8 +285,9 @@ public class DefaultConnectClientTest {
   public void testDescribe() throws JsonProcessingException {
     // Given:
     WireMock.stubFor(
-        WireMock.get(WireMock.urlEqualTo("/connectors/foo"))
+        WireMock.get(WireMock.urlEqualTo(pathPrefix + "/connectors/foo"))
             .withHeader(AUTHORIZATION.toString(), new EqualToPattern(AUTH_HEADER))
+            .withHeader(CUSTOM_HEADER_NAME, new EqualToPattern(CUSTOM_HEADER_VALUE))
             .willReturn(WireMock.aResponse()
                 .withStatus(HttpStatus.SC_OK)
                 .withBody(MAPPER.writeValueAsString(SAMPLE_INFO)))
@@ -191,8 +305,9 @@ public class DefaultConnectClientTest {
   public void testStatus() throws JsonProcessingException {
     // Given:
     WireMock.stubFor(
-        WireMock.get(WireMock.urlEqualTo("/connectors/foo/status"))
+        WireMock.get(WireMock.urlEqualTo(pathPrefix + "/connectors/foo/status"))
             .withHeader(AUTHORIZATION.toString(), new EqualToPattern(AUTH_HEADER))
+            .withHeader(CUSTOM_HEADER_NAME, new EqualToPattern(CUSTOM_HEADER_VALUE))
             .willReturn(WireMock.aResponse()
                 .withStatus(HttpStatus.SC_OK)
                 .withBody(MAPPER.writeValueAsString(SAMPLE_STATUS)))
@@ -215,13 +330,34 @@ public class DefaultConnectClientTest {
   }
 
   @Test
-  public void testDelete() throws JsonProcessingException {
+  public void testDeleteWithStatusNoContentResponse() throws JsonProcessingException {
     // Given:
     WireMock.stubFor(
-        WireMock.delete(WireMock.urlEqualTo("/connectors/foo"))
+        WireMock.delete(WireMock.urlEqualTo(pathPrefix + "/connectors/foo"))
             .withHeader(AUTHORIZATION.toString(), new EqualToPattern(AUTH_HEADER))
+            .withHeader(CUSTOM_HEADER_NAME, new EqualToPattern(CUSTOM_HEADER_VALUE))
             .willReturn(WireMock.aResponse()
                 .withStatus(HttpStatus.SC_NO_CONTENT))
+    );
+
+    // When:
+    final ConnectResponse<String> response = client.delete("foo");
+
+    // Then:
+    assertThat(response.datum(), OptionalMatchers.of(is("foo")));
+    assertThat("Expected no error!", !response.error().isPresent());
+  }
+
+  @Test
+  public void testDeleteWithStatusOKResponse() throws JsonProcessingException {
+    // Given:
+    WireMock.stubFor(
+        WireMock.delete(WireMock.urlEqualTo(pathPrefix + "/connectors/foo"))
+            .withHeader(AUTHORIZATION.toString(), new EqualToPattern(AUTH_HEADER))
+            .withHeader(CUSTOM_HEADER_NAME, new EqualToPattern(CUSTOM_HEADER_VALUE))
+            .willReturn(WireMock.aResponse()
+                .withStatus(HttpStatus.SC_OK)
+                .withBody("{\"error\":null}"))
     );
 
     // When:
@@ -236,8 +372,9 @@ public class DefaultConnectClientTest {
   public void testTopics() throws JsonProcessingException {
     // Given:
     WireMock.stubFor(
-        WireMock.get(WireMock.urlEqualTo("/connectors/foo/topics"))
+        WireMock.get(WireMock.urlEqualTo(pathPrefix + "/connectors/foo/topics"))
             .withHeader(AUTHORIZATION.toString(), new EqualToPattern(AUTH_HEADER))
+            .withHeader(CUSTOM_HEADER_NAME, new EqualToPattern(CUSTOM_HEADER_VALUE))
             .willReturn(WireMock.aResponse()
                 .withStatus(HttpStatus.SC_OK)
                 .withBody(MAPPER.writeValueAsString(SAMPLE_TOPICS)))
@@ -259,8 +396,9 @@ public class DefaultConnectClientTest {
   public void testListShouldRetryOnFailure() throws JsonProcessingException {
     // Given:
     WireMock.stubFor(
-        WireMock.get(WireMock.urlEqualTo("/connectors"))
+        WireMock.get(WireMock.urlEqualTo(pathPrefix + "/connectors"))
             .withHeader(AUTHORIZATION.toString(), new EqualToPattern(AUTH_HEADER))
+            .withHeader(CUSTOM_HEADER_NAME, new EqualToPattern(CUSTOM_HEADER_VALUE))
             .willReturn(WireMock.aResponse()
                 .withStatus(HttpStatus.SC_INTERNAL_SERVER_ERROR)
                 .withBody("Encountered an error!"))
@@ -275,6 +413,26 @@ public class DefaultConnectClientTest {
     // Then:
     assertThat(response.datum(), OptionalMatchers.of(is(ImmutableList.of("one", "two"))));
     assertThat("Expected no error!", !response.error().isPresent());
+  }
+
+  public static class ActiveTopicsInfo {
+    private final String connector;
+    private final ImmutableList<String> topics;
+
+    @JsonCreator
+    public ActiveTopicsInfo(String connector, @JsonProperty("topics") Collection<String> topics) {
+      this.connector = connector;
+      this.topics = ImmutableList.copyOf(topics);
+    }
+
+    public String connector() {
+      return this.connector;
+    }
+
+    @JsonProperty
+    public Collection<String> topics() {
+      return this.topics;
+    }
   }
 
 }

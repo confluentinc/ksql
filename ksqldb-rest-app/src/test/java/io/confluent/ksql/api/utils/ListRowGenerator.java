@@ -18,6 +18,7 @@ package io.confluent.ksql.api.utils;
 import com.google.common.collect.ImmutableList;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import java.util.Iterator;
 import java.util.List;
 
@@ -25,12 +26,14 @@ public class ListRowGenerator implements RowGenerator {
 
   private final ImmutableList<String> columnNames;
   private final ImmutableList<String> columnTypes;
+  private final LogicalSchema logicalSchema;
   private final Iterator<GenericRow> iter;
 
   public ListRowGenerator(final List<String> columnNames, final List<String> columnTypes,
-      final List<GenericRow> rows) {
+      final LogicalSchema logicalSchema, final List<GenericRow> rows) {
     this.columnNames = ImmutableList.copyOf(columnNames);
     this.columnTypes = ImmutableList.copyOf(columnTypes);
+    this.logicalSchema = logicalSchema;
     this.iter = rows.iterator();
   }
 
@@ -44,6 +47,11 @@ public class ListRowGenerator implements RowGenerator {
   @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "columnTypes is ImmutableList")
   public List<String> getColumnTypes() {
     return columnTypes;
+  }
+
+  @Override
+  public LogicalSchema getLogicalSchema() {
+    return logicalSchema;
   }
 
   @Override

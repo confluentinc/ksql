@@ -15,8 +15,9 @@
 package io.confluent.ksql.util;
 
 import com.google.common.collect.ImmutableMap;
-import com.google.common.io.BaseEncoding;
+import io.vertx.core.buffer.Buffer;
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -24,6 +25,7 @@ import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
+import javax.xml.bind.DatatypeConverter;
 
 public final class BytesUtils {
   public enum Encoding {
@@ -65,6 +67,20 @@ public final class BytesUtils {
       Encoding.BASE64, v -> base64Decoding(v)
   );
 
+  public static ByteOrder byteOrderType(final String byteOrderStr) {
+    if (byteOrderStr != null
+        && byteOrderStr.equalsIgnoreCase(ByteOrder.BIG_ENDIAN.toString())) {
+      return ByteOrder.BIG_ENDIAN;
+    } else if (byteOrderStr != null
+        && byteOrderStr.equalsIgnoreCase(ByteOrder.LITTLE_ENDIAN.toString())) {
+      return ByteOrder.LITTLE_ENDIAN;
+    } else {
+      throw new KsqlException(String.format(
+          "Byte order must be BIG_ENDIAN or LITTLE_ENDIAN. Unknown byte order '%s'.",
+          byteOrderStr));
+    }
+  }
+
   public static String encode(final byte[] value, final Encoding encoding) {
     final Function<byte[], String> encoder = ENCODERS.get(encoding);
     if (encoder == null) {
@@ -105,6 +121,24 @@ public final class BytesUtils {
 
   public static byte[] getByteArray(final ByteBuffer buffer, final int start, final int end) {
     return Arrays.copyOfRange(getByteArray(buffer), start, end);
+  }
+
+  public static Buffer toJsonMsg(final Buffer responseLine, final boolean stripArray) {
+
+    int start = 0;
+    int end = responseLine.length() - 1;
+    if (stripArray) {
+      if (responseLine.getByte(0) == (byte) '[') {
+        start = 1;
+      }
+      if (responseLine.getByte(end) == (byte) ']') {
+        end -= 1;
+      }
+    }
+    if (end > 0 && responseLine.getByte(end) == (byte) ',') {
+      end -= 1;
+    }
+    return responseLine.slice(start, end + 1);
   }
 
   public static List<byte[]> split(final byte[] b, final byte[] delim) {
@@ -154,6 +188,14 @@ public final class BytesUtils {
     return -1;
   }
 
+  public static void checkBytesSize(final ByteBuffer buffer, final int size) {
+    final int bufferSize = getByteArray(buffer).length;
+    if (bufferSize != size) {
+      throw new KsqlException(
+          String.format("Number of bytes must be equal to %d, but found %d", size, bufferSize));
+    }
+  }
+
   @SuppressWarnings("ParameterName")
   private static boolean arrayEquals(
       final byte[] a,
@@ -179,35 +221,35 @@ public final class BytesUtils {
   }
 
   private static String hexEncoding(final byte[] value) {
-    return BaseEncoding.base16().encode(value);
+    return value == null ? null : DatatypeConverter.printHexBinary(value);
   }
 
   private static byte[] hexDecoding(final String value) {
-    return BaseEncoding.base16().decode(value);
+    return value == null ? null : DatatypeConverter.parseHexBinary(value);
   }
 
   private static String utf8Encoding(final byte[] value) {
-    return new String(value, StandardCharsets.UTF_8);
+    return value == null ? null : new String(value, StandardCharsets.UTF_8);
   }
 
   private static byte[] utf8Decoding(final String value) {
-    return value.getBytes(StandardCharsets.UTF_8);
+    return value == null ? null : value.getBytes(StandardCharsets.UTF_8);
   }
 
   private static String asciiEncoding(final byte[] value) {
-    return new String(value, StandardCharsets.US_ASCII);
+    return value == null ? null : new String(value, StandardCharsets.US_ASCII);
   }
 
   private static byte[] asciiDecoding(final String value) {
-    return value.getBytes(StandardCharsets.US_ASCII);
+    return value == null ? null : value.getBytes(StandardCharsets.US_ASCII);
   }
 
   private static String base64Encoding(final byte[] value) {
     // Use getEncoder() because it does not add \r\n to the base64 string
-    return Base64.getEncoder().encodeToString(value);
+    return value == null ? null : Base64.getEncoder().encodeToString(value);
   }
 
   private static byte[] base64Decoding(final String value) {
-    return Base64.getDecoder().decode(value);
+    return value == null ? null : Base64.getDecoder().decode(value);
   }
 }

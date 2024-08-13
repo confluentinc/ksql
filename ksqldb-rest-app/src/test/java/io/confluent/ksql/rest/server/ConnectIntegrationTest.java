@@ -23,22 +23,30 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.stringContainsInOrder;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertThrows;
 
 import com.google.common.base.Joiner;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterators;
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.integration.IntegrationTestHarness;
 import io.confluent.ksql.integration.Retry;
+import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.entity.ConnectorDescription;
 import io.confluent.ksql.rest.entity.ConnectorList;
+import io.confluent.ksql.rest.entity.ConnectorPluginsList;
+import io.confluent.ksql.rest.entity.CreateConnectorEntity;
 import io.confluent.ksql.rest.entity.DropConnectorEntity;
-import io.confluent.ksql.rest.entity.ErrorEntity;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
+import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.entity.WarningEntity;
+import io.confluent.ksql.rest.server.resources.KsqlRestException;
+import io.confluent.ksql.util.KsqlConfig;
 import java.io.ByteArrayOutputStream;
 import java.io.FileDescriptor;
 import java.io.FileOutputStream;
@@ -55,8 +63,9 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import kafka.zookeeper.ZooKeeperClientException;
+import org.apache.hc.core5.http.HttpStatus;
 import org.apache.kafka.connect.json.JsonConverter;
-import org.apache.kafka.connect.runtime.rest.entities.ConnectorType;
+import io.confluent.ksql.rest.entity.ConnectorType;
 import org.apache.kafka.connect.storage.StringConverter;
 import org.hamcrest.Matchers;
 import org.junit.After;
@@ -81,6 +90,7 @@ public class ConnectIntegrationTest {
   private static final TestKsqlRestApp REST_APP = TestKsqlRestApp
       .builder(TEST_HARNESS::kafkaBootstrapServers)
       .withStaticServiceContext(TEST_HARNESS::getServiceContext)
+      .withProperty(KsqlConfig.KSQL_HEADERS_COLUMNS_ENABLED, true)
       .build();
 
   @ClassRule
@@ -175,11 +185,17 @@ public class ConnectIntegrationTest {
     final AtomicReference<RestResponse<KsqlEntityList>> responseHolder = new AtomicReference<>();
     assertThatEventually(
         () -> {
-          responseHolder
-              .set(ksqlRestClient.makeKsqlRequest("DESCRIBE CONNECTOR `mock-connector`;"));
-          return responseHolder.get().getResponse().get(0);
+          try {
+            responseHolder
+                .set(ksqlRestClient.makeKsqlRequest("DESCRIBE CONNECTOR `mock-connector`;"));
+            return responseHolder.get().getResponse().get(0);
+          } catch (Exception e) {
+            // there is a race condition were create from line 150 may not have gone through.
+            // when this happens, getResponse() above throws an exception. instead, we catch
+            // the exception and return a dummy value to fail the instanceOf() check below.
+            return null;
+          }
         },
-        // there is a race condition were create from line 150 may not have gone through
         instanceOf(ConnectorDescription.class)
     );
     final RestResponse<KsqlEntityList> response = responseHolder.get();
@@ -217,6 +233,38 @@ public class ConnectIntegrationTest {
   }
 
   @Test
+  public void shouldCreateSourceConnector() {
+    // When:
+    String connectorName = "mock-source";
+    RestResponse<KsqlEntityList> response = create(connectorName,
+        ImmutableMap.<String, String> builder()
+        .put("connector.class", "org.apache.kafka.connect.tools.MockSourceConnector")
+        .build(), ConnectorType.SOURCE);
+
+    //Then
+    assertThat(response.isSuccessful(), is(true));
+    assertThat(response.getResponse().size(), is (1));
+    assertThat(response.getResponse().get(0), instanceOf(CreateConnectorEntity.class));
+    assertThat(((CreateConnectorEntity) response.getResponse().get(0)).getInfo().name(), is(connectorName));
+  }
+
+  @Test
+  public void shouldCreateSinkConnector() {
+    // When:
+    String connectorName = "mock-sink";
+    RestResponse<KsqlEntityList> response =
+        create(connectorName, ImmutableMap.<String, String> builder()
+            .put("connector.class", "org.apache.kafka.connect.tools.MockSinkConnector")
+            .put("topics", "BAR")
+            .build(), ConnectorType.SINK);
+
+    //Then
+    assertThat(response.isSuccessful(), is(true));
+    assertThat(response.getResponse().size(), is (1));
+    assertThat(response.getResponse().get(0), instanceOf(CreateConnectorEntity.class));
+    assertThat(((CreateConnectorEntity) response.getResponse().get(0)).getInfo().name(), is(connectorName));
+  }
+  @Test
   public void shouldReturnWarning() {
     // Given:
     create("mock-connector", ImmutableMap.of(
@@ -247,15 +295,15 @@ public class ConnectIntegrationTest {
         .makeKsqlRequest("CREATE SOURCE CONNECTOR `mock-connector` "
             + "WITH(\"connector.class\"='org.apache.kafka.connect.tools.MockSourceConnector');");
 
-    //Then
-    assertThat("expected successful response", response.isSuccessful());
-    assertThat(response.getResponse().get(0), instanceOf(ErrorEntity.class));
-    assertThat(((ErrorEntity) response.getResponse().get(0)).getErrorMessage(),
-        containsString("Connector mock-connector already exists"));
+    //Then:
+    assertThat("expected error response", response.isErroneous());
+    final KsqlErrorMessage err = response.getErrorMessage();
+    assertThat(err.getErrorCode(), is(Errors.toErrorCode(HttpStatus.SC_CONFLICT)));
+    assertThat(err.getMessage(), containsString("Connector mock-connector already exists"));
   }
 
   @Test
-  public void shouldReadTimeTypesFromConnect() {
+  public void shouldReadTimeTypesAndHeadersFromConnect() {
     // Given:
     create("mock-source", ImmutableMap.<String, String> builder()
         .put("connector.class", "org.apache.kafka.connect.tools.VerifiableSourceConnector")
@@ -266,7 +314,7 @@ public class ConnectIntegrationTest {
         .put("topic.creation.default.partitions", "1")
         .build());
 
-    makeKsqlRequest("CREATE STREAM TIMESTAMP_STREAM (PAYLOAD TIMESTAMP) WITH (KAFKA_TOPIC='foo', VALUE_FORMAT='DELIMITED');");
+    makeKsqlRequest("CREATE STREAM TIMESTAMP_STREAM (PAYLOAD TIMESTAMP, H ARRAY<STRUCT<key STRING, value BYTES>> HEADERS) WITH (KAFKA_TOPIC='foo', VALUE_FORMAT='DELIMITED');");
     makeKsqlRequest("CREATE STREAM TIME_STREAM (PAYLOAD TIME) WITH (KAFKA_TOPIC='foo', VALUE_FORMAT='DELIMITED');");
     makeKsqlRequest("CREATE STREAM DATE_STREAM (PAYLOAD DATE) WITH (KAFKA_TOPIC='foo', VALUE_FORMAT='DELIMITED');");
 
@@ -280,6 +328,8 @@ public class ConnectIntegrationTest {
     assertThat("successfully queried TIME_STREAM", queryTime.isSuccessful());
     assertThat("successfully queried DATE_STREAM", queryDate.isSuccessful());
     assertThat(queryTimestamp.getResponse().get(1).getRow().get().getColumns().get(0), is("1970-01-01T00:00:00.000"));
+    assertThat(queryTimestamp.getResponse().get(1).getRow().get().getColumns().get(1), is(
+        ImmutableList.of()));
     assertThat(queryTime.getResponse().get(1).getRow().get().getColumns().get(0), is("00:00"));
     assertThat(queryDate.getResponse().get(1).getRow().get().getColumns().get(0), is("1970-01-01"));
   }
@@ -317,11 +367,23 @@ public class ConnectIntegrationTest {
         stringContainsInOrder(sinkOutputParts), TIMEOUT_NS, TimeUnit.NANOSECONDS);
   }
 
+  @Test
+  public void shouldListConnectorPlugins() {
+    // When:
+    final RestResponse<KsqlEntityList> response = ksqlRestClient.makeKsqlRequest("LIST CONNECTOR PLUGINS;");
+
+    // Then:
+    assertThat(response.isSuccessful(), is(true));
+    assertThat(response.getResponse().get(0), instanceOf(ConnectorPluginsList.class));
+    // Since no plugins have been added, the size of plugins list is 0.
+    assertThat(((ConnectorPluginsList)response.getResponse().get(0)).getConnectorsPlugins().size(), is(0));
+  }
+
   private void create(final String name, final Map<String, String> properties) {
     create(name, properties, ConnectorType.SOURCE);
   }
 
-  private void create(final String name, final Map<String, String> properties, ConnectorType type) {
+  private RestResponse<KsqlEntityList> create(final String name, final Map<String, String> properties, ConnectorType type) {
     connectNames.add(name);
     final String withClause = Joiner.on(",")
         .withKeyValueSeparator("=")
@@ -332,6 +394,7 @@ public class ConnectIntegrationTest {
     final RestResponse<KsqlEntityList> response = ksqlRestClient.makeKsqlRequest(
         "CREATE " + type + " CONNECTOR `" + name + "` WITH(" + withClause + ");");
     LOG.info("Got response from Connect: {}", response);
+    return response;
   }
 
   private void makeKsqlRequest(final String request) {

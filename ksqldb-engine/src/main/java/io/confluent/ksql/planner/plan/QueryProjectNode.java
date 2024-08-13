@@ -27,7 +27,6 @@ import io.confluent.ksql.execution.util.ExpressionTypeManager;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.tree.AllColumns;
 import io.confluent.ksql.parser.tree.SelectItem;
-import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.planner.Projection;
 import io.confluent.ksql.planner.QueryPlannerOptions;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -40,7 +39,6 @@ import io.confluent.ksql.util.KsqlException;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 /**
  * The projection of a Pull query.
@@ -54,7 +52,7 @@ import java.util.stream.Collectors;
  * is created as follows:
  * Check if projection contains system or key columns. If not, the intermediate schema
  * is the input schema. If there are any of these columns, the input schema is extended by copying
- * the key and system columns (rowtime, windwostart and windowend) into the value of the schema.
+ * the key and system columns (rowtime, windowstart and windowend) into the value of the schema.
  *
  * <li>For the output schema, if the projection is SELECT *, add windowstart and windowend to key
  * columns and keep value columns the same as input. If projection is not SELECT *,
@@ -74,7 +72,9 @@ public class QueryProjectNode extends ProjectNode {
   private final boolean isScalablePush;
   private final boolean isSelectStar;
   private final boolean addAdditionalColumnsToIntermediateSchema;
+  private final KsqlConfig ksqlConfig;
 
+  @SuppressFBWarnings("EI_EXPOSE_REP2")
   public QueryProjectNode(
       final PlanNodeId id,
       final PlanNode source,
@@ -87,6 +87,7 @@ public class QueryProjectNode extends ProjectNode {
       final boolean isScalablePush
   ) {
     super(id, source);
+    this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
     this.projection = Projection.of(selectItems);
     this.analysis = Objects.requireNonNull(analysis, "analysis");
     this.queryPlannerOptions = Objects.requireNonNull(queryPlannerOptions, "queryPlannerOptions");
@@ -97,7 +98,7 @@ public class QueryProjectNode extends ProjectNode {
     this.addAdditionalColumnsToIntermediateSchema = shouldAddAdditionalColumnsInSchema();
     this.outputSchema = buildOutputSchema(metaStore);
     this.intermediateSchema = QueryLogicalPlanUtil.buildIntermediateSchema(
-          source.getSchema(),
+          source.getSchema().withoutPseudoAndKeyColsInValue(),
           addAdditionalColumnsToIntermediateSchema,
           isWindowed
       );
@@ -149,7 +150,7 @@ public class QueryProjectNode extends ProjectNode {
 
   /**
    * Builds the output schema of the project node.
-   * The output schema comprises of exactly the columns that appear in the SELECT clause of the
+   * The output schema comprises exactly the columns that appear in the SELECT clause of the
    * query.
    * @param metaStore the metastore
    * @return the project node's output schema
@@ -167,13 +168,7 @@ public class QueryProjectNode extends ProjectNode {
       outputSchema = buildPullQuerySelectStarSchema(
           parentSchema.withoutPseudoAndKeyColsInValue(), isWindowed);
     } else {
-      final List<SelectExpression> projects = projection.selectItems().stream()
-          .map(SingleColumn.class::cast)
-          .map(si -> SelectExpression
-              .of(si.getAlias().orElseThrow(IllegalStateException::new), si.getExpression()))
-          .collect(Collectors.toList());
-
-      outputSchema = selectOutputSchema(metaStore, projects, isWindowed);
+      outputSchema = selectOutputSchema(metaStore, this.selectExpressions, isWindowed);
     }
 
     if (isScalablePush) {
@@ -203,8 +198,12 @@ public class QueryProjectNode extends ProjectNode {
         getSource().getSchema().isKeyColumn(cn)
     );
 
+    final boolean hasHeaderColumns = analysis.getSelectColumnNames().stream().anyMatch(cn ->
+        getSource().getSchema().isHeaderColumn(cn)
+    );
+
     // Select * also requires keys, in case it's not explicitly mentioned
-    return hasSystemColumns || hasKeyColumns || isSelectStar;
+    return hasSystemColumns || hasKeyColumns || hasHeaderColumns || isSelectStar;
   }
 
   private boolean isSelectStar() {
@@ -233,6 +232,7 @@ public class QueryProjectNode extends ProjectNode {
     }
 
     return builder
+        .headerColumns(schema.headers())
         .valueColumns(schema.value())
         .build();
   }

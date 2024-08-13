@@ -19,8 +19,10 @@ import static io.confluent.ksql.parser.ParserMatchers.configured;
 import static io.confluent.ksql.parser.ParserMatchers.preparedStatement;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
@@ -55,6 +57,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
+import io.confluent.ksql.util.KsqlException;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
 import org.hamcrest.TypeSafeMatcher;
@@ -77,6 +80,7 @@ public class RequestHandlerTest {
   @Mock private KsqlEntity entity;
   @Mock private CommandQueueSync sync;
   @Mock private SessionProperties sessionProperties;
+  @Mock private StatementExecutorResponse response;
 
   private MetaStore metaStore;
   private RequestHandler handler;
@@ -88,8 +92,10 @@ public class RequestHandlerTest {
     when(ksqlEngine.prepare(any(), any()))
         .thenAnswer(invocation ->
             KSQL_PARSER.prepare(invocation.getArgument(0), metaStore));
-    when(distributor.execute(any(), any(), any())).thenReturn(Optional.of(entity));
+    when(distributor.execute(any(), any(), any())).thenReturn(response);
+    when(response.getEntity()).thenReturn(Optional.of(entity));
     when(sessionProperties.getMutableScopedProperties()).thenReturn(ImmutableMap.of());
+    when(ksqlEngine.getKsqlConfig()).thenReturn(ksqlConfig);
     doNothing().when(sync).waitFor(any(), any());
 
     securityContext = new KsqlSecurityContext(Optional.empty(), serviceContext);
@@ -119,6 +125,27 @@ public class RequestHandlerTest {
             eq(ksqlEngine),
             eq(serviceContext)
         );
+  }
+
+  @Test
+  public void shouldThrowOnCreateStreamIfFeatureFlagIsDisabled() {
+    // Given
+    final StatementExecutor<CreateStream> customExecutor =
+        givenReturningExecutor(CreateStream.class, mock(KsqlEntity.class));
+    when(ksqlConfig.getBoolean(KsqlConfig.KSQL_HEADERS_COLUMNS_ENABLED)).thenReturn(false);
+    givenRequestHandler(ImmutableMap.of(CreateStream.class, customExecutor));
+
+    // When
+    final List<ParsedStatement> statements =
+        KSQL_PARSER.parse("CREATE STREAM x (c1 ARRAY<STRUCT<`KEY` STRING, `VALUE` BYTES>> HEADERS) "
+            + "WITH (value_format='json', kafka_topic='x');");
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> handler.execute(securityContext, statements, sessionProperties));
+
+    // Then
+    assertThat(e.getMessage(), containsString(
+        "Cannot create Stream because schema with headers columns is disabled."));
   }
 
   @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT")
@@ -170,7 +197,7 @@ public class RequestHandlerTest {
 
     // Then
     assertThat(entities, contains(entity));
-    verify(distributor, times(1))
+    verify(distributor, times(2))
         .execute(argThat(is(configured(
             preparedStatement(instanceOf(CreateStream.class)),
             ImmutableMap.of(),
@@ -196,7 +223,7 @@ public class RequestHandlerTest {
 
     // Then
     assertThat(entities, contains(entity));
-    verify(distributor, times(1))
+    verify(distributor, times(2))
         .execute(
             argThat(is(configured(
                 preparedStatement(instanceOf(CreateStream.class)),
@@ -243,7 +270,6 @@ public class RequestHandlerTest {
         executors,
         distributor,
         ksqlEngine,
-        ksqlConfig,
         sync
     );
   }
@@ -261,7 +287,7 @@ public class RequestHandlerTest {
         eq(ksqlEngine),
         eq(serviceContext)
     ))
-        .thenAnswer(inv -> Optional.ofNullable(returnedEntities[scn.getAndIncrement()]));
+        .thenAnswer(inv -> StatementExecutorResponse.handled(Optional.ofNullable(returnedEntities[scn.getAndIncrement()])));
     return customExecutor;
   }
 

@@ -16,14 +16,21 @@
 package io.confluent.ksql.serde;
 
 import com.google.common.collect.Sets;
+import io.confluent.kafka.schemaregistry.ParsedSchema;
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
+import io.confluent.ksql.serde.connect.ConnectSchemaTranslator;
 import io.confluent.ksql.serde.unwrapped.UnwrappedDeserializer;
 import io.confluent.ksql.serde.unwrapped.UnwrappedSerializer;
+import io.confluent.ksql.util.KsqlException;
+import java.io.IOException;
 import java.sql.Date;
 import java.sql.Time;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serializer;
@@ -161,6 +168,44 @@ public final class SerdeUtils {
     } else {
       throw new IllegalArgumentException(
           "Date type should not have any time fields set to non-zero values.");
+    }
+  }
+
+  public static ParsedSchema getParsedSchemaById(
+      final Supplier<SchemaRegistryClient> srFactory,
+      final int schemaId
+  ) {
+    try {
+      return srFactory.get().getSchemaById(schemaId);
+    } catch (RestClientException | IOException e) {
+      throw new KsqlException("Failed to fetch schema for serialization from Schema Registry "
+          + "using schema id: " + schemaId, e);
+    }
+  }
+
+  public static int getLatestSchemaId(
+      final Supplier<SchemaRegistryClient> srFactory,
+      final String subjectName
+  ) {
+    try {
+      return srFactory.get().getLatestSchemaMetadata(subjectName).getId();
+    } catch (RestClientException | IOException e) {
+      throw new KsqlException("Failed to fetch schema for serialization from Schema Registry "
+          + "using schema subject: " + subjectName, e);
+    }
+  }
+
+  public static Schema getAndTranslateSchemaById(
+      final Supplier<SchemaRegistryClient> srFactory,
+      final int schemaId,
+      final ConnectSchemaTranslator translator
+  ) {
+    try {
+      final ParsedSchema parsedSchema = srFactory.get().getSchemaById(schemaId);
+      return translator.toConnectSchema(parsedSchema);
+    } catch (RestClientException | IOException e) {
+      throw new KsqlException("Failed to fetch schema for serialization from Schema Registry "
+          + "using schema id: " + schemaId, e);
     }
   }
 }

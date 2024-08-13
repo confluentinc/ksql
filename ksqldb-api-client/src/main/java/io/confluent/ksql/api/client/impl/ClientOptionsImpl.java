@@ -15,7 +15,10 @@
 
 package io.confluent.ksql.api.client.impl;
 
+import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.api.client.ClientOptions;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Objects;
 
 public class ClientOptionsImpl implements ClientOptions {
@@ -32,10 +35,15 @@ public class ClientOptionsImpl implements ClientOptions {
   private String keyStorePassword;
   private String keyPassword;
   private String keyAlias;
+  private String storeType;
+  private String securityProviders;
+  private String keyManagerAlgorithm;
+  private String trustManagerAlgorithm;
   private String basicAuthUsername;
   private String basicAuthPassword;
   private int executeQueryMaxResultRows = ClientOptions.DEFAULT_EXECUTE_QUERY_MAX_RESULT_ROWS;
   private int http2MultiplexingLimit = ClientOptions.DEFAULT_HTTP2_MULTIPLEXING_LIMIT;
+  private Map<String, String> requestHeaders;
 
   /**
    * {@code ClientOptions} should be instantiated via {@link ClientOptions#create}, NOT via this
@@ -52,8 +60,11 @@ public class ClientOptionsImpl implements ClientOptions {
       final boolean useBasicAuth,
       final String trustStorePath, final String trustStorePassword,
       final String keyStorePath, final String keyStorePassword, final String keyPassword,
-      final String keyAlias, final String basicAuthUsername, final String basicAuthPassword,
-      final int executeQueryMaxResultRows, final int http2MultiplexingLimit) {
+      final String keyAlias, final String storeType, final String securityProviders,
+      final String keyManagerAlgorithm, final String trustManagerAlgorithm,
+      final String basicAuthUsername, final String basicAuthPassword,
+      final int executeQueryMaxResultRows, final int http2MultiplexingLimit,
+      final Map<String, String> requestHeaders) {
     this.host = Objects.requireNonNull(host);
     this.port = port;
     this.useTls = useTls;
@@ -66,10 +77,15 @@ public class ClientOptionsImpl implements ClientOptions {
     this.keyStorePassword = keyStorePassword;
     this.keyPassword = keyPassword;
     this.keyAlias = keyAlias;
+    this.storeType = storeType;
+    this.securityProviders = securityProviders;
+    this.keyManagerAlgorithm = keyManagerAlgorithm;
+    this.trustManagerAlgorithm = trustManagerAlgorithm;
     this.basicAuthUsername = basicAuthUsername;
     this.basicAuthPassword = basicAuthPassword;
     this.executeQueryMaxResultRows = executeQueryMaxResultRows;
     this.http2MultiplexingLimit = http2MultiplexingLimit;
+    this.requestHeaders = requestHeaders;
   }
 
   @Override
@@ -139,6 +155,30 @@ public class ClientOptionsImpl implements ClientOptions {
   }
 
   @Override
+  public ClientOptions setStoreType(final String storeType) {
+    this.storeType = storeType;
+    return this;
+  }
+
+  @Override
+  public ClientOptions setSecurityProviders(final String securityProviders) {
+    this.securityProviders = securityProviders;
+    return this;
+  }
+
+  @Override
+  public ClientOptions setKeyManagerAlgorithm(final String keyManagerAlgorithm) {
+    this.keyManagerAlgorithm = keyManagerAlgorithm;
+    return this;
+  }
+
+  @Override
+  public ClientOptions setTrustManagerAlgorithm(final String trustManagerAlgorithm) {
+    this.trustManagerAlgorithm = trustManagerAlgorithm;
+    return this;
+  }
+
+  @Override
   public ClientOptions setBasicAuthCredentials(final String username, final String password) {
     this.useBasicAuth = !(username == null || username.isEmpty())
         || !(password == null || password.isEmpty());
@@ -156,6 +196,12 @@ public class ClientOptionsImpl implements ClientOptions {
   @Override
   public ClientOptions setHttp2MultiplexingLimit(final int http2MultiplexingLimit) {
     this.http2MultiplexingLimit = http2MultiplexingLimit;
+    return this;
+  }
+
+  @Override
+  public ClientOptions setRequestHeaders(final Map<String, String> requestHeaders) {
+    this.requestHeaders = requestHeaders == null ? null : ImmutableMap.copyOf(requestHeaders);
     return this;
   }
 
@@ -220,6 +266,26 @@ public class ClientOptionsImpl implements ClientOptions {
   }
 
   @Override
+  public String getStoreType() {
+    return storeType == null ? "JKS" : storeType;
+  }
+
+  @Override
+  public String getSecurityProviders() {
+    return securityProviders == null ? "" : securityProviders;
+  }
+
+  @Override
+  public String getKeyManagerAlgorithm() {
+    return keyManagerAlgorithm == null ? "" : keyManagerAlgorithm;
+  }
+
+  @Override
+  public String getTrustManagerAlgorithm() {
+    return trustManagerAlgorithm == null ? "" : trustManagerAlgorithm;
+  }
+
+  @Override
   public String getBasicAuthUsername() {
     return basicAuthUsername == null ? "" : basicAuthUsername;
   }
@@ -240,15 +306,22 @@ public class ClientOptionsImpl implements ClientOptions {
   }
 
   @Override
+  public Map<String, String> getRequestHeaders() {
+    return requestHeaders == null ? new HashMap<>() : new HashMap<>(requestHeaders);
+  }
+
+  @Override
   public ClientOptions copy() {
     return new ClientOptionsImpl(
         host, port,
         useTls, verifyHost, useAlpn,
         useBasicAuth,
         trustStorePath, trustStorePassword,
-        keyStorePath, keyStorePassword, keyPassword, keyAlias,
+        keyStorePath, keyStorePassword, keyPassword, keyAlias, storeType,
+        securityProviders, keyManagerAlgorithm, trustManagerAlgorithm,
         basicAuthUsername, basicAuthPassword,
-        executeQueryMaxResultRows, http2MultiplexingLimit);
+        executeQueryMaxResultRows, http2MultiplexingLimit,
+        requestHeaders);
   }
 
   // CHECKSTYLE_RULES.OFF: CyclomaticComplexity
@@ -274,16 +347,23 @@ public class ClientOptionsImpl implements ClientOptions {
         && Objects.equals(keyStorePassword, that.keyStorePassword)
         && Objects.equals(keyPassword, that.keyPassword)
         && Objects.equals(keyAlias, that.keyAlias)
+        && Objects.equals(storeType, that.storeType)
+        && Objects.equals(securityProviders, that.securityProviders)
+        && Objects.equals(keyManagerAlgorithm, that.keyManagerAlgorithm)
+        && Objects.equals(trustManagerAlgorithm, that.trustManagerAlgorithm)
         && Objects.equals(basicAuthUsername, that.basicAuthUsername)
         && Objects.equals(basicAuthPassword, that.basicAuthPassword)
-        && http2MultiplexingLimit == that.http2MultiplexingLimit;
+        && http2MultiplexingLimit == that.http2MultiplexingLimit
+        && Objects.equals(requestHeaders, that.requestHeaders);
   }
 
   @Override
   public int hashCode() {
     return Objects.hash(host, port, useTls, verifyHost, useAlpn, trustStorePath,
-        trustStorePassword, keyStorePath, keyStorePassword, keyPassword, keyAlias,
-        basicAuthUsername, basicAuthPassword, executeQueryMaxResultRows, http2MultiplexingLimit);
+        trustStorePassword, keyStorePath, keyStorePassword, keyPassword, keyAlias, storeType,
+        securityProviders, keyManagerAlgorithm, trustManagerAlgorithm,
+        basicAuthUsername, basicAuthPassword, executeQueryMaxResultRows, http2MultiplexingLimit,
+        requestHeaders);
   }
 
   @Override
@@ -300,10 +380,15 @@ public class ClientOptionsImpl implements ClientOptions {
         + ", keyStorePassword='" + keyStorePassword + '\''
         + ", keyPassword='" + keyPassword + '\''
         + ", keyAlias='" + keyAlias + '\''
+        + ", storeType='" + storeType + '\''
+        + ", securityProviders='" + securityProviders + '\''
+        + ", keyManagerAlgorithm='" + keyManagerAlgorithm + '\''
+        + ", trustManagerAlgorithm='" + trustManagerAlgorithm + '\''
         + ", basicAuthUsername='" + basicAuthUsername + '\''
         + ", basicAuthPassword='" + basicAuthPassword + '\''
-        + ", executeQueryMaxResultRows=" + executeQueryMaxResultRows + '\''
+        + ", executeQueryMaxResultRows=" + executeQueryMaxResultRows
         + ", http2MultiplexingLimit=" + http2MultiplexingLimit
+        + ", requestHeaders='" + requestHeaders + '\''
         + '}';
   }
 }

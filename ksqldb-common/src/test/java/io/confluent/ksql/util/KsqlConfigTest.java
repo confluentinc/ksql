@@ -75,6 +75,12 @@ public class KsqlConfigTest {
   }
 
   @Test
+  public void shouldBeAbleToGetSharedRuntimesEnabledValue() {
+    final KsqlConfig ksqlConfig = new KsqlConfig(Collections.singletonMap(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED, true));
+    assertThat(ksqlConfig.getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED), equalTo(true));
+  }
+
+  @Test
   public void shouldNotSetDeserializationExceptionHandlerWhenFailOnDeserializationErrorTrue() {
     final KsqlConfig ksqlConfig = new KsqlConfig(Collections.singletonMap(KsqlConfig.FAIL_ON_DESERIALIZATION_ERROR_CONFIG, true));
     final Object result = ksqlConfig.getKsqlStreamConfigProps().get(StreamsConfig.DEFAULT_DESERIALIZATION_EXCEPTION_HANDLER_CLASS_CONFIG);
@@ -127,6 +133,14 @@ public class KsqlConfigTest {
     assertThat(ksqlConfig.getKsqlStreamConfigProps()
             .get(ConsumerConfig.FETCH_MIN_BYTES_CONFIG),
         is(nullValue()));
+  }
+
+  @Test
+  public void shouldReturnTrueIfKeyExistsInConfigMap() {
+    final KsqlConfig ksqlConfig = new KsqlConfig(Collections.singletonMap(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest"));
+
+    assertThat(ksqlConfig.originals().containsKey(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG), equalTo(true));
+    assertThat(ksqlConfig.originals().containsKey(ConsumerConfig.FETCH_MIN_BYTES_CONFIG), equalTo(false));
   }
 
   @Test
@@ -242,6 +256,21 @@ public class KsqlConfigTest {
     assertThat(ksqlConfig.getKsqlStreamConfigProps().
             get(KsqlConfig.KSQL_STREAMS_PREFIX + StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG),
         is(nullValue()));
+  }
+
+  @Test
+  public void shouldOverrideStreamsConfigProperties() {
+    Map<String, Object> originals = new HashMap<>();
+    originals.put(KsqlConfig.KSQL_STREAMS_PREFIX + SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG,
+            "kafka.jks");
+    originals.put(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG,
+            "https.jks");
+
+    final KsqlConfig ksqlConfig = new KsqlConfig(originals);
+
+    assertThat(ksqlConfig.getKsqlStreamConfigProps().
+            get(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG), equalTo("kafka.jks"));
+
   }
 
   @Test
@@ -574,5 +603,25 @@ public class KsqlConfigTest {
     assertThat(ksqlConfig.getProducerClientConfigProps(), hasEntry(ProducerConfig.ACKS_CONFIG, "all"));
     assertThat(ksqlConfig.getProducerClientConfigProps(), hasEntry(ProducerConfig.CLIENT_ID_CONFIG, null));
     assertThat(ksqlConfig.getProducerClientConfigProps(), not(hasKey("not.a.config")));
+  }
+
+  @Test
+  public void shouldGetClientIPPortConfig() {
+     // Given:
+    final Map<String, Object> configs = new HashMap<>();
+    configs.put("ksql.client.ip_port.configuration.enabled", "true");
+    final Map<String, Object> configs1 = new HashMap<>();
+    configs1.put("ksql.client.ip_port.configuration.enabled", "false");
+    // Default to false
+    final Map<String, Object> configs2 = new HashMap<>();
+
+    final KsqlConfig ksqlConfig = new KsqlConfig(configs);
+    final KsqlConfig ksqlConfig1 = new KsqlConfig(configs1);
+    final KsqlConfig ksqlConfig2 = new KsqlConfig(configs2);
+
+    // When:
+    assertThat(ksqlConfig.getBoolean(KsqlConfig.KSQL_CLIENT_IP_PORT_CONFIGURATION_ENABLED), is(true));
+    assertThat(ksqlConfig1.getBoolean(KsqlConfig.KSQL_CLIENT_IP_PORT_CONFIGURATION_ENABLED), is(false));
+    assertThat(ksqlConfig2.getBoolean(KsqlConfig.KSQL_CLIENT_IP_PORT_CONFIGURATION_ENABLED), is(false));
   }
 }

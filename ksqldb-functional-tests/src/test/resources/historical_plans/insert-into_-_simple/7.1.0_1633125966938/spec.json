@@ -1,0 +1,118 @@
+{
+  "version" : "7.1.0",
+  "timestamp" : 1633125966938,
+  "path" : "query-validation-tests/insert-into.json",
+  "schemas" : {
+    "INSERTQUERY_1.OUTPUT" : {
+      "schema" : "`K` STRING KEY, `DATA` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
+    },
+    "INSERTQUERY_1.KsqlTopic.Source" : {
+      "schema" : "`K` STRING KEY, `DATA` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "simple",
+    "inputs" : [ {
+      "topic" : "insert-source",
+      "key" : "k1",
+      "value" : "v1"
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : "k1",
+      "value" : "v1"
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "stream-source",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "insert-source",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM SOURCE1 (K STRING KEY, data VARCHAR) WITH (kafka_topic='stream-source', value_format='DELIMITED');", "CREATE STREAM SOURCE2 (K STRING KEY, data VARCHAR) WITH (kafka_topic='insert-source', value_format='DELIMITED');", "CREATE STREAM OUTPUT AS SELECT * FROM SOURCE1;", "INSERT INTO OUTPUT SELECT * FROM SOURCE2;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`K` STRING KEY, `DATA` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "DELIMITED",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "SOURCE1",
+        "type" : "STREAM",
+        "schema" : "`K` STRING KEY, `DATA` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "DELIMITED",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "SOURCE2",
+        "type" : "STREAM",
+        "schema" : "`K` STRING KEY, `DATA` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "DELIMITED",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "stream-source",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "DELIMITED"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "DELIMITED"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "insert-source",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "DELIMITED"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

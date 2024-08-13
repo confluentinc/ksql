@@ -17,8 +17,14 @@ package io.confluent.ksql.rest.util;
 
 import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.ReservedInternalTopics;
+import java.util.Map;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicBoolean;
+import org.apache.kafka.common.MetricName;
+import org.apache.kafka.common.metrics.Metrics;
+import org.apache.kafka.common.metrics.Sensor;
+import org.apache.kafka.common.metrics.stats.CumulativeCount;
 
 /**
  * Limits the concurrency of the caller by checking against a limit and if it's exceeded, throwing
@@ -32,17 +38,45 @@ public class ConcurrencyLimiter {
   private final Semaphore semaphore;
   private final int limit;
   private final String operationType;
+  private final Sensor rejectSensor;
 
-  public ConcurrencyLimiter(final int limit, final String operationType) {
+  public ConcurrencyLimiter(
+      final int limit,
+      final String operationType,
+      final Metrics metrics,
+      final Map<String, String> metricsTags) {
+
     this.semaphore = new Semaphore(limit);
     this.limit = limit;
     this.operationType = operationType;
+
+    metrics.addMetric(
+        new MetricName(
+            operationType + "-concurrency-limit-remaining",
+            ReservedInternalTopics.KSQL_INTERNAL_TOPIC_PREFIX + "limits",
+            "The current value of the concurrency limiter",
+            metricsTags
+        ),
+        (metricConfig, l) -> semaphore.availablePermits()
+    );
+
+    this.rejectSensor = metrics.sensor("concurrency-limit-rejects");
+    rejectSensor.add(
+        new MetricName(
+            operationType + "-concurrency-limit-reject-count",
+            ReservedInternalTopics.KSQL_INTERNAL_TOPIC_PREFIX + "limits",
+            "The number of requests rejected by this limiter",
+            metricsTags
+        ),
+        new CumulativeCount()
+    );
   }
 
   public Decrementer increment() {
     if (!semaphore.tryAcquire()) {
+      rejectSensor.record();
       throw new KsqlException(
-          String.format("Host is at concurrency limit for %s. Currently set to %d maximum "
+          String.format("Host is at concurrency limit for %s queries. Currently set to %d maximum "
               + "concurrent operations.", operationType, limit));
     }
     return new Decrementer();

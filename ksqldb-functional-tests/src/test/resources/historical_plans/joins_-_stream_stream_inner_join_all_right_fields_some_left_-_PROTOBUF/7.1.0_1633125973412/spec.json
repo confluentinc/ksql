@@ -1,0 +1,256 @@
+{
+  "version" : "7.1.0",
+  "timestamp" : 1633125973412,
+  "path" : "query-validation-tests/joins.json",
+  "schemas" : {
+    "CSAS_INNER_JOIN_0.INNER_JOIN" : {
+      "schema" : "`TT_ID` BIGINT KEY, `T_ID` BIGINT, `T_F1` STRING, `T_F2` BIGINT, `NAME` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "PROTOBUF"
+      }
+    },
+    "CSAS_INNER_JOIN_0.Join.Left" : {
+      "schema" : "`TT_ID` BIGINT KEY, `TT_NAME` STRING, `TT_VALUE` BIGINT, `TT_ROWTIME` BIGINT, `TT_ROWPARTITION` INTEGER, `TT_ROWOFFSET` BIGINT, `TT_ID` BIGINT",
+      "valueFormat" : {
+        "format" : "PROTOBUF"
+      }
+    },
+    "CSAS_INNER_JOIN_0.KafkaTopic_Right.Source" : {
+      "schema" : "`ID` BIGINT KEY, `F1` STRING, `F2` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "PROTOBUF"
+      }
+    },
+    "CSAS_INNER_JOIN_0.Join" : {
+      "schema" : "`TT_ID` BIGINT KEY, `TT_NAME` STRING, `TT_VALUE` BIGINT, `TT_ROWTIME` BIGINT, `TT_ROWPARTITION` INTEGER, `TT_ROWOFFSET` BIGINT, `TT_ID` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      }
+    },
+    "CSAS_INNER_JOIN_0.KafkaTopic_Left.Source" : {
+      "schema" : "`ID` BIGINT KEY, `NAME` STRING, `VALUE` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "PROTOBUF"
+      }
+    },
+    "CSAS_INNER_JOIN_0.Join.Right" : {
+      "schema" : "`T_ID` BIGINT KEY, `T_F1` STRING, `T_F2` BIGINT, `T_ROWTIME` BIGINT, `T_ROWPARTITION` INTEGER, `T_ROWOFFSET` BIGINT, `T_ID` BIGINT",
+      "valueFormat" : {
+        "format" : "PROTOBUF"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "stream stream inner join all right fields some left - PROTOBUF",
+    "inputs" : [ {
+      "topic" : "left_topic",
+      "key" : 0,
+      "value" : {
+        "NAME" : "zero",
+        "VALUE" : 0
+      },
+      "timestamp" : 0
+    }, {
+      "topic" : "right_topic",
+      "key" : 0,
+      "value" : {
+        "F1" : "blah",
+        "F2" : 50
+      },
+      "timestamp" : 10000
+    }, {
+      "topic" : "left_topic",
+      "key" : 10,
+      "value" : {
+        "NAME" : "100",
+        "VALUE" : 5
+      },
+      "timestamp" : 11000
+    }, {
+      "topic" : "left_topic",
+      "key" : 0,
+      "value" : {
+        "NAME" : "foo",
+        "VALUE" : 100
+      },
+      "timestamp" : 13000
+    }, {
+      "topic" : "right_topic",
+      "key" : 0,
+      "value" : {
+        "F1" : "a",
+        "F2" : 10
+      },
+      "timestamp" : 15000
+    }, {
+      "topic" : "right_topic",
+      "key" : 100,
+      "value" : {
+        "F1" : "newblah",
+        "F2" : 150
+      },
+      "timestamp" : 16000
+    }, {
+      "topic" : "left_topic",
+      "key" : 90,
+      "value" : {
+        "NAME" : "ninety",
+        "VALUE" : 90
+      },
+      "timestamp" : 17000
+    }, {
+      "topic" : "left_topic",
+      "key" : 0,
+      "value" : {
+        "NAME" : "bar",
+        "VALUE" : 99
+      },
+      "timestamp" : 30000
+    } ],
+    "outputs" : [ {
+      "topic" : "INNER_JOIN",
+      "key" : 0,
+      "value" : {
+        "T_ID" : 0,
+        "T_F1" : "blah",
+        "T_F2" : 50,
+        "NAME" : "zero"
+      },
+      "timestamp" : 10000
+    }, {
+      "topic" : "INNER_JOIN",
+      "key" : 0,
+      "value" : {
+        "T_ID" : 0,
+        "T_F1" : "blah",
+        "T_F2" : 50,
+        "NAME" : "foo"
+      },
+      "timestamp" : 13000
+    }, {
+      "topic" : "INNER_JOIN",
+      "key" : 0,
+      "value" : {
+        "T_ID" : 0,
+        "T_F1" : "a",
+        "T_F2" : 10,
+        "NAME" : "foo"
+      },
+      "timestamp" : 15000
+    } ],
+    "topics" : [ {
+      "name" : "right_topic",
+      "valueSchema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  string F1 = 1;\n  int64 F2 = 2;\n}\n",
+      "valueFormat" : "PROTOBUF",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "INNER_JOIN",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "left_topic",
+      "valueSchema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  string NAME = 1;\n  int64 VALUE = 2;\n}\n",
+      "valueFormat" : "PROTOBUF",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM TEST (ID BIGINT KEY, NAME varchar, VALUE bigint) WITH (kafka_topic='left_topic', value_format='PROTOBUF');", "CREATE STREAM TEST_STREAM (ID BIGINT KEY, F1 varchar, F2 bigint) WITH (kafka_topic='right_topic', value_format='PROTOBUF');", "CREATE STREAM INNER_JOIN as SELECT t.*, tt.name, tt.id FROM test tt inner join TEST_STREAM t WITHIN 11 SECONDS ON t.id = tt.id;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "INNER_JOIN",
+        "type" : "STREAM",
+        "schema" : "`TT_ID` BIGINT KEY, `T_ID` BIGINT, `T_F1` STRING, `T_F2` BIGINT, `NAME` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "PROTOBUF",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`ID` BIGINT KEY, `NAME` STRING, `VALUE` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "PROTOBUF",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "TEST_STREAM",
+        "type" : "STREAM",
+        "schema" : "`ID` BIGINT KEY, `F1` STRING, `F2` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "PROTOBUF",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_INNER_JOIN_0-KSTREAM-JOINTHIS-0000000008-store-changelog",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "PROTOBUF"
+          },
+          "valueSchema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  string TT_NAME = 1;\n  int64 TT_VALUE = 2;\n  int64 TT_ROWTIME = 3;\n  int32 TT_ROWPARTITION = 4;\n  int64 TT_ROWOFFSET = 5;\n  int64 TT_ID = 6;\n}\n"
+        }, {
+          "name" : "INNER_JOIN",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "PROTOBUF"
+          },
+          "partitions" : 4,
+          "valueSchema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  int64 T_ID = 1;\n  string T_F1 = 2;\n  int64 T_F2 = 3;\n  string NAME = 4;\n}\n"
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_INNER_JOIN_0-KSTREAM-JOINOTHER-0000000009-store-changelog",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "PROTOBUF"
+          },
+          "valueSchema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  string T_F1 = 1;\n  int64 T_F2 = 2;\n  int64 T_ROWTIME = 3;\n  int32 T_ROWPARTITION = 4;\n  int64 T_ROWOFFSET = 5;\n  int64 T_ID = 6;\n}\n"
+        }, {
+          "name" : "left_topic",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "PROTOBUF"
+          },
+          "partitions" : 4,
+          "valueSchema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  string NAME = 1;\n  int64 VALUE = 2;\n}\n"
+        }, {
+          "name" : "right_topic",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "PROTOBUF"
+          },
+          "partitions" : 4,
+          "valueSchema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  string F1 = 1;\n  int64 F2 = 2;\n}\n"
+        } ]
+      }
+    }
+  }
+}

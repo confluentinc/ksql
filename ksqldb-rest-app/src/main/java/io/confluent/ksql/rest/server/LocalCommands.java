@@ -87,8 +87,8 @@ public class LocalCommands implements Closeable {
 
         markFileAsProcessed(file);
       } catch (Exception e) {
-        LOG.error("Error processing local commands " + file.getAbsolutePath(), e);
-        throw new KsqlServerException("Error processing local commands", e);
+        LOG.error("Error processing local commands " + file.getAbsolutePath()
+                + ". There may be orphaned transient topics or abandoned state stores.", e);
       }
     }
   }
@@ -177,6 +177,7 @@ public class LocalCommands implements Closeable {
         .collect(Collectors.toSet());
     if (queryApplicationIds.size() > 0) {
       ksqlEngine.cleanupOrphanedInternalTopics(serviceContext, queryApplicationIds);
+      ksqlEngine.populateTransientQueryCleanupServiceWithOldCommands(queryApplicationIds);
     }
   }
 

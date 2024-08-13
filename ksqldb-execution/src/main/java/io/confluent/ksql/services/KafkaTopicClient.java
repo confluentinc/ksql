@@ -26,6 +26,7 @@ import org.apache.kafka.clients.admin.CreateTopicsOptions;
 import org.apache.kafka.clients.admin.OffsetSpec;
 import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.common.TopicPartition;
+import org.apache.kafka.common.config.TopicConfig;
 
 /**
  * Note: all methods are synchronous, i.e. they wait for responses from Kafka before returning.
@@ -38,21 +39,21 @@ public interface KafkaTopicClient {
     COMPACT_DELETE
   }
 
-  default void validateCreateTopic(
+  default boolean validateCreateTopic(
       final String topic,
       final int numPartitions,
       final short replicationFactor
   ) {
-    validateCreateTopic(topic, numPartitions, replicationFactor, Collections.emptyMap());
+    return validateCreateTopic(topic, numPartitions, replicationFactor, Collections.emptyMap());
   }
 
-  default void validateCreateTopic(
+  default boolean validateCreateTopic(
       final String topic,
       final int numPartitions,
       final short replicationFactor,
       final Map<String, ?> configs
   ) {
-    createTopic(
+    return createTopic(
         topic,
         numPartitions,
         replicationFactor,
@@ -71,13 +72,15 @@ public interface KafkaTopicClient {
    * @param topic             name of the topic to create
    * @param replicationFactor the rf of the topic.
    * @param numPartitions     the partition count of the topic.
+   *
+   * @return true if the topic was created as a result of this call
    */
-  default void createTopic(
+  default boolean createTopic(
       final String topic,
       final int numPartitions,
       final short replicationFactor
   ) {
-    createTopic(topic, numPartitions, replicationFactor, Collections.emptyMap());
+    return createTopic(topic, numPartitions, replicationFactor, Collections.emptyMap());
   }
 
   /**
@@ -93,13 +96,13 @@ public interface KafkaTopicClient {
    * @param numPartitions     the partition count of the topic.
    * @param configs           any additional topic configs to use
    */
-  default void createTopic(
+  default boolean createTopic(
       final String topic,
       final int numPartitions,
       final short replicationFactor,
       final Map<String, ?> configs
   ) {
-    createTopic(
+    return createTopic(
         topic,
         numPartitions,
         replicationFactor,
@@ -122,8 +125,10 @@ public interface KafkaTopicClient {
    * @param numPartitions     the partition count of the topic.
    * @param configs           any additional topic configs to use
    * @param createOptions     the options to use when creating the new topic
+   *
+   * @return true if the topic was created as a result of this call
    */
-  void createTopic(
+  boolean createTopic(
       String topic,
       int numPartitions,
       short replicationFactor,
@@ -214,4 +219,14 @@ public interface KafkaTopicClient {
   default Map<TopicPartition, Long> listTopicsEndOffsets(Collection<String> topicName) {
     return listTopicsOffsets(topicName, OffsetSpec.latest());
   }
+
+  static Optional<Long> getRetentionMs(Map<String, ?> config) {
+    if (config.containsKey(TopicConfig.RETENTION_MS_CONFIG)) {
+      return Optional.ofNullable(
+          Long.parseLong(String.valueOf(config.get(TopicConfig.RETENTION_MS_CONFIG))));
+    } else {
+      return Optional.empty();
+    }
+  }
+
 }

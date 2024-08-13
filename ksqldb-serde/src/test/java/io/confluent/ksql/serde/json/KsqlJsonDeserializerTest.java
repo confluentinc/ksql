@@ -41,9 +41,8 @@ import com.fasterxml.jackson.databind.ser.std.DateSerializer;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.serde.SerdeUtils;
-import io.confluent.ksql.serde.connect.ConnectSchemaUtil;
+import io.confluent.ksql.serde.connect.ConnectKsqlSchemaTranslator;
 import io.confluent.ksql.util.DecimalUtil;
-import io.confluent.ksql.util.KsqlException;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.nio.ByteBuffer;
@@ -57,7 +56,6 @@ import java.util.Map;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.kafka.common.errors.SerializationException;
-import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Date;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
@@ -103,9 +101,9 @@ public class KsqlJsonDeserializerTest {
           .map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_FLOAT64_SCHEMA)
           .optional()
           .build())
-      .field(TIMEFIELD, ConnectSchemaUtil.OPTIONAL_TIME_SCHEMA)
-      .field(DATEFIELD, ConnectSchemaUtil.OPTIONAL_DATE_SCHEMA)
-      .field(TIMESTAMPFIELD, ConnectSchemaUtil.OPTIONAL_TIMESTAMP_SCHEMA)
+      .field(TIMEFIELD, ConnectKsqlSchemaTranslator.OPTIONAL_TIME_SCHEMA)
+      .field(DATEFIELD, ConnectKsqlSchemaTranslator.OPTIONAL_DATE_SCHEMA)
+      .field(TIMESTAMPFIELD, ConnectKsqlSchemaTranslator.OPTIONAL_TIMESTAMP_SCHEMA)
       .field(BYTESFIELD, Schema.OPTIONAL_BYTES_SCHEMA)
       .build();
 
@@ -146,7 +144,7 @@ public class KsqlJsonDeserializerTest {
   private KsqlJsonDeserializer<Struct> deserializer;
 
   @Before
-  public void before() {
+  public void before() throws Exception {
     expectedOrder = new Struct(ORDER_SCHEMA)
         .put(ORDERTIME, 1511897796092L)
         .put(ORDERID, 1L)
@@ -226,7 +224,7 @@ public class KsqlJsonDeserializerTest {
   public void shouldThrowIfFieldCanNotBeCoerced() {
     // Given:
     final Map<String, Object> value = new HashMap<>(AN_ORDER);
-    value.put("ordertime", true);
+    value.put(ORDERTIME, true);
 
     final byte[] bytes = serializeJson(value);
 
@@ -912,53 +910,6 @@ public class KsqlJsonDeserializerTest {
   }
 
   @Test
-  public void shouldThrowOnMapSchemaWithNonStringKeys() {
-    // Given:
-    final ConnectSchema schema = (ConnectSchema) SchemaBuilder
-        .struct()
-        .field("f0", SchemaBuilder
-            .map(Schema.OPTIONAL_INT32_SCHEMA, Schema.INT32_SCHEMA)
-            .optional()
-            .build())
-        .build();
-
-    // When:
-    final Exception e = assertThrows(
-        KsqlException.class,
-        () -> new KsqlJsonDeserializer<>(schema, false, Struct.class)
-    );
-
-    // Then:
-    assertThat(e.getMessage(), containsString(
-        "JSON only supports MAP types with STRING keys"));
-  }
-
-  @Test
-  public void shouldThrowOnNestedMapSchemaWithNonStringKeys() {
-    // Given:
-    final ConnectSchema schema = (ConnectSchema) SchemaBuilder
-        .struct()
-        .field("f0", SchemaBuilder
-            .struct()
-            .field("f1", SchemaBuilder
-                .map(Schema.OPTIONAL_INT32_SCHEMA, Schema.INT32_SCHEMA)
-                .optional()
-                .build())
-            .build())
-        .build();
-
-    // When:
-    final Exception e = assertThrows(
-        KsqlException.class,
-        () -> new KsqlJsonDeserializer<>(schema, false, Struct.class)
-    );
-
-    // Then:
-    assertThat(e.getMessage(), containsString(
-        "JSON only supports MAP types with STRING keys"));
-  }
-
-  @Test
   public void shouldIncludeTopicNameInException() {
     // Given:
     final KsqlJsonDeserializer<Long> deserializer = 
@@ -1103,7 +1054,11 @@ public class KsqlJsonDeserializerTest {
       final Schema schema, 
       final Class<T> type
   ) {
-    return new KsqlJsonDeserializer<>((ConnectSchema) schema, useSchemas, type);
+    return new KsqlJsonDeserializer<>(
+        schema,
+        useSchemas,
+        type
+    );
   }
 
   private byte[] serializeJson(final Object expected) {

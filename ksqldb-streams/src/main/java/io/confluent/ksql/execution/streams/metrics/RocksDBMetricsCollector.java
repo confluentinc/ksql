@@ -18,7 +18,7 @@ package io.confluent.ksql.execution.streams.metrics;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import io.confluent.ksql.metrics.MetricCollectors;
+import io.confluent.ksql.util.KsqlConfig;
 import java.math.BigInteger;
 import java.time.Instant;
 import java.util.Collection;
@@ -87,20 +87,14 @@ public class RocksDBMetricsCollector implements MetricsReporter {
   private static final Object lock = new Object();
 
   private static Map<String, Collection<AggregatedMetric<?>>> registeredMetrics = null;
-  private final Metrics metrics;
-
-  public RocksDBMetricsCollector() {
-    this(MetricCollectors.getMetrics());
-  }
-
-  @VisibleForTesting
-  RocksDBMetricsCollector(final Metrics metrics) {
-    this.metrics = Objects.requireNonNull(metrics);
-  }
+  private Metrics metrics;
 
   @Override
   public void configure(final Map<String, ?> map) {
     final AbstractConfig config = new AbstractConfig(CONFIG_DEF, map);
+    this.metrics = Objects.requireNonNull(
+        (Metrics) map.get(KsqlConfig.KSQL_INTERNAL_METRICS_CONFIG)
+    );
     configureShared(config, metrics);
   }
 
@@ -263,10 +257,12 @@ public class RocksDBMetricsCollector implements MetricsReporter {
 
     boolean check() {
       final Instant now = clock.get();
-      return last.accumulateAndGet(
+      final Instant previous = last.getAndAccumulate(
           now,
           (l, n) -> n.isAfter(l.plusSeconds(intervalSeconds)) ? n : l
-      ) == now;
+      );
+      // Return true if the call to getAndAccumulate changed the value
+      return last.get().isAfter(previous);
     }
   }
 

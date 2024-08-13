@@ -16,13 +16,18 @@
 package io.confluent.ksql.schema.registry;
 
 import com.google.common.annotations.VisibleForTesting;
+import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.kafka.schemaregistry.client.SchemaMetadata;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
+import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchema;
+import io.confluent.kafka.serializers.protobuf.AbstractKafkaProtobufSerializer;
+import io.confluent.kafka.serializers.subject.DefaultReferenceSubjectNameStrategy;
 import io.confluent.ksql.exception.KsqlSchemaAuthorizationException;
 import io.confluent.ksql.util.ExecutorUtil;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
+import java.io.IOException;
 import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -47,15 +52,12 @@ public final class SchemaRegistryUtil {
 
   public static void cleanupInternalTopicSchemas(
       final String applicationId,
-      final SchemaRegistryClient schemaRegistryClient,
-      final boolean isPermanent
-  ) {
+      final SchemaRegistryClient schemaRegistryClient) {
     getInternalSubjectNames(applicationId, schemaRegistryClient)
         .forEach(subject -> tryDeleteInternalSubject(
             applicationId,
             schemaRegistryClient,
-            subject,
-            isPermanent));
+            subject));
   }
 
   public static Stream<String> getSubjectNames(final SchemaRegistryClient schemaRegistryClient) {
@@ -94,7 +96,6 @@ public final class SchemaRegistryUtil {
     }
   }
 
-
   public static boolean subjectExists(
       final SchemaRegistryClient srClient,
       final String subject
@@ -102,6 +103,46 @@ public final class SchemaRegistryUtil {
     return getLatestSchema(srClient, subject).isPresent();
   }
 
+  public static Optional<Integer> getLatestSchemaId(
+      final SchemaRegistryClient srClient,
+      final String topic,
+      final boolean isKey
+  ) {
+    final String subject = KsqlConstants.getSRSubject(topic, isKey);
+    return getLatestSchema(srClient, subject).map(SchemaMetadata::getId);
+  }
+
+  public static Optional<SchemaAndId> getLatestSchemaAndId(
+      final SchemaRegistryClient srClient,
+      final String topic,
+      final boolean isKey
+  ) {
+    final String subject = KsqlConstants.getSRSubject(topic, isKey);
+
+    return getLatestSchemaId(srClient, topic, isKey)
+        .map(id -> {
+          try {
+            return new SchemaAndId(srClient.getSchemaById(id), id);
+          } catch (final Exception e) {
+            throwOnAuthError(e, subject);
+            throw new KsqlException(
+                "Could not get schema for subject " + subject + " and id " + id, e);
+          }
+        });
+  }
+
+  private static void throwOnAuthError(final Exception e, final String subject) {
+    if (isAuthErrorCode(e)) {
+      final AclOperation deniedOperation = SchemaRegistryUtil.getDeniedOperation(e.getMessage());
+
+      if (deniedOperation != AclOperation.UNKNOWN) {
+        throw new KsqlSchemaAuthorizationException(
+            deniedOperation,
+            subject
+        );
+      }
+    }
+  }
 
   public static Optional<SchemaMetadata> getLatestSchema(
       final SchemaRegistryClient srClient,
@@ -124,16 +165,7 @@ public final class SchemaRegistryUtil {
         return Optional.empty();
       }
 
-      if (isAuthErrorCode(e)) {
-        final AclOperation deniedOperation = SchemaRegistryUtil.getDeniedOperation(e.getMessage());
-
-        if (deniedOperation != AclOperation.UNKNOWN) {
-          throw new KsqlSchemaAuthorizationException(
-              deniedOperation,
-              subject
-          );
-        }
-      }
+      throwOnAuthError(e, subject);
 
       throw new KsqlException("Could not get latest schema for subject " + subject, e);
     }
@@ -215,14 +247,10 @@ public final class SchemaRegistryUtil {
   private static void tryDeleteInternalSubject(
       final String applicationId,
       final SchemaRegistryClient schemaRegistryClient,
-      final String subjectName,
-      final boolean isPermanent
-  ) {
+      final String subjectName) {
     try {
       deleteSubjectWithRetries(schemaRegistryClient, subjectName);
-      if (isPermanent) {
-        hardDeleteSubjectWithRetries(schemaRegistryClient, subjectName);
-      }
+      hardDeleteSubjectWithRetries(schemaRegistryClient, subjectName);
     } catch (final Exception e) {
       LOG.warn("Could not clean up the schema registry for"
           + " query: " + applicationId
@@ -230,5 +258,42 @@ public final class SchemaRegistryUtil {
     }
   }
 
+  public static int registerSchema(
+      final SchemaRegistryClient srClient,
+      final ParsedSchema parsedSchema,
+      final String topic,
+      final String subject,
+      final boolean isKey
+  ) throws KsqlSchemaAuthorizationException, KsqlException {
+    try {
+      if (parsedSchema instanceof ProtobufSchema) {
+        final ProtobufSchema resolved = AbstractKafkaProtobufSerializer.resolveDependencies(
+            srClient,
+            true,
+            false,
+            true,
+            null,
+            new DefaultReferenceSubjectNameStrategy(),
+            topic,
+            isKey,
+            (ProtobufSchema) parsedSchema
+        );
+        return srClient.register(subject, resolved);
+      } else {
+        return srClient.register(subject, parsedSchema);
+      }
+    } catch (IOException | RestClientException e) {
+      if (SchemaRegistryUtil.isAuthErrorCode(e)) {
+        final AclOperation deniedOperation = SchemaRegistryUtil.getDeniedOperation(e.getMessage());
 
+        if (deniedOperation != AclOperation.UNKNOWN) {
+          throw new KsqlSchemaAuthorizationException(
+              deniedOperation,
+              subject);
+        }
+      }
+
+      throw new KsqlException("Could not register schema for topic: " + e.getMessage(), e);
+    }
+  }
 }

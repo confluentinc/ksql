@@ -21,6 +21,7 @@ import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertThrows;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.collect.ImmutableList;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.ApiJsonMapper;
@@ -74,6 +75,18 @@ public class CommandStatusEntityTest {
       + "\"status\":\"SUCCESS\","
       + "\"message\":\"some success message\""
       + "}}";
+  private static final String JSON_ENTITY_WITH_WARNINGS = "{"
+      + "\"@type\":\"currentStatus\","
+      + "\"statementText\":\"sql\","
+      + "\"commandId\":\"topic/1/create\","
+      + "\"commandStatus\":{"
+      + "\"status\":\"SUCCESS\","
+      + "\"message\":\"some success message\","
+      + "\"queryId\":\"CSAS_0\""
+      + "},"
+      + "\"commandSequenceNumber\":2,"
+      + "\"warnings\":[{\"message\":\"Warning 1\"},{\"message\":\"Warning 2\"}]"
+      + "}";
 
   private static final String STATEMENT_TEXT = "sql";
   private static final CommandId COMMAND_ID = CommandId.fromString("topic/1/create");
@@ -92,6 +105,12 @@ public class CommandStatusEntityTest {
       new CommandStatusEntity(STATEMENT_TEXT, COMMAND_ID, COMMAND_STATUS_WITHOUT_QUERY_ID, COMMAND_SEQUENCE_NUMBER);
   private static final CommandStatusEntity ENTITY_WITHOUT_SEQUENCE_NUMBER =
       new CommandStatusEntity(STATEMENT_TEXT, COMMAND_ID, COMMAND_STATUS_WITHOUT_QUERY_ID, null);
+  private static final CommandStatusEntity ENTITY_WITH_WARNINGS =
+      new CommandStatusEntity(STATEMENT_TEXT, COMMAND_ID, COMMAND_STATUS, COMMAND_SEQUENCE_NUMBER,
+          ImmutableList.of(
+              new KsqlWarning("Warning 1"),
+              new KsqlWarning("Warning 2")
+          ));
 
   @Test
   public void shouldSerializeToJson() throws Exception {
@@ -112,6 +131,15 @@ public class CommandStatusEntityTest {
   }
 
   @Test
+  public void shouldSerializeToJsonWithWarnings() throws Exception {
+    // when:
+    final String json = OBJECT_MAPPER.writeValueAsString(ENTITY_WITH_WARNINGS);
+
+    // then:
+    assertThat(json, is(JSON_ENTITY_WITH_WARNINGS));
+  }
+
+  @Test
   public void shouldDeserializeFromJson() throws Exception {
     // When:
     final CommandStatusEntity entity =
@@ -129,6 +157,16 @@ public class CommandStatusEntityTest {
 
     // Then:
     assertThat(entity, is(ENTITY_WITHOUT_QUERY_ID));
+  }
+
+  @Test
+  public void shouldDeserializeFromJsonWithWarnings() throws Exception {
+    // When:
+    final CommandStatusEntity entity =
+        OBJECT_MAPPER.readValue(JSON_ENTITY_WITH_WARNINGS, CommandStatusEntity.class);
+
+    // Then:
+    assertThat(entity, is(ENTITY_WITH_WARNINGS));
   }
 
   @Test

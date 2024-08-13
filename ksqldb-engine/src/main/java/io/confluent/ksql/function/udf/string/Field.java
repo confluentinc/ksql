@@ -38,7 +38,7 @@ public class Field {
       @UdfParameter final String str,
       @UdfParameter final String... args
   ) {
-    if (str == null) {
+    if (str == null || args == null) {
       return 0;
     }
 

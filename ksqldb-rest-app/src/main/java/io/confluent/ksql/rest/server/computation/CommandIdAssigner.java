@@ -19,6 +19,7 @@ import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.parser.DropType;
 import io.confluent.ksql.parser.tree.AlterSource;
+import io.confluent.ksql.parser.tree.AlterSystemProperty;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.CreateTable;
@@ -26,7 +27,9 @@ import io.confluent.ksql.parser.tree.CreateTableAsSelect;
 import io.confluent.ksql.parser.tree.DropStream;
 import io.confluent.ksql.parser.tree.DropTable;
 import io.confluent.ksql.parser.tree.InsertInto;
+import io.confluent.ksql.parser.tree.PauseQuery;
 import io.confluent.ksql.parser.tree.RegisterType;
+import io.confluent.ksql.parser.tree.ResumeQuery;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.TerminateQuery;
 import io.confluent.ksql.query.QueryId;
@@ -35,6 +38,7 @@ import io.confluent.ksql.rest.entity.CommandId.Action;
 import io.confluent.ksql.rest.entity.CommandId.Type;
 import io.confluent.ksql.rest.util.TerminateCluster;
 import java.util.Map;
+import java.util.UUID;
 
 public class CommandIdAssigner {
 
@@ -45,28 +49,34 @@ public class CommandIdAssigner {
   private static final Map<Class<? extends Statement>, CommandIdSupplier> SUPPLIERS =
       ImmutableMap.<Class<? extends Statement>, CommandIdSupplier>builder()
           .put(CreateStream.class,
-            command -> getTopicStreamCommandId((CreateStream) command))
+              command -> getTopicStreamCommandId((CreateStream) command))
           .put(CreateTable.class,
-            command -> getTopicTableCommandId((CreateTable) command))
+              command -> getTopicTableCommandId((CreateTable) command))
           .put(CreateStreamAsSelect.class,
-            command -> getSelectStreamCommandId((CreateStreamAsSelect) command))
+              command -> getSelectStreamCommandId((CreateStreamAsSelect) command))
           .put(CreateTableAsSelect.class,
-            command -> getSelectTableCommandId((CreateTableAsSelect) command))
+              command -> getSelectTableCommandId((CreateTableAsSelect) command))
           .put(RegisterType.class,
               command -> getRegisterTypeCommandId((RegisterType) command))
           .put(DropType.class,
               command -> getDropTypeCommandId((DropType) command))
           .put(InsertInto.class,
-            command -> getInsertIntoCommandId((InsertInto) command))
+              command -> getInsertIntoCommandId((InsertInto) command))
+          .put(PauseQuery.class,
+              command -> getPauseCommandId((PauseQuery) command))
+          .put(ResumeQuery.class,
+              command -> getResumeCommandId((ResumeQuery) command))
           .put(TerminateQuery.class,
-            command -> getTerminateCommandId((TerminateQuery) command))
+              command -> getTerminateCommandId((TerminateQuery) command))
           .put(DropStream.class,
-            command -> getDropStreamCommandId((DropStream) command))
+              command -> getDropStreamCommandId((DropStream) command))
           .put(DropTable.class,
-            command -> getDropTableCommandId((DropTable) command))
+              command -> getDropTableCommandId((DropTable) command))
           .put(TerminateCluster.class,
-            command -> new CommandId(Type.CLUSTER, "TerminateCluster", Action.TERMINATE))
+              command -> getTerminateClusterCommandId())
           .put(AlterSource.class, command -> getAlterSourceCommandId((AlterSource) command))
+          .put(AlterSystemProperty.class, command
+              -> getAlterSystemCommandId((AlterSystemProperty) command))
           .build();
 
   public CommandId getCommandId(final Statement command) {
@@ -110,6 +120,22 @@ public class CommandIdAssigner {
     return new CommandId(CommandId.Type.TYPE, dropType.getTypeName(), Action.DROP);
   }
 
+  private static CommandId getPauseCommandId(final PauseQuery pauseQuery) {
+    return new CommandId(
+        CommandId.Type.PAUSE,
+        pauseQuery.getQueryId().map(QueryId::toString).orElse(PauseQuery.ALL_QUERIES),
+        CommandId.Action.EXECUTE
+    );
+  }
+
+  private static CommandId getResumeCommandId(final ResumeQuery resumeQuery) {
+    return new CommandId(
+        CommandId.Type.RESUME,
+        resumeQuery.getQueryId().map(QueryId::toString).orElse(ResumeQuery.ALL_QUERIES),
+        CommandId.Action.EXECUTE
+    );
+  }
+
   private static CommandId getTerminateCommandId(final TerminateQuery terminateQuery) {
     return new CommandId(
         CommandId.Type.TERMINATE,
@@ -142,6 +168,14 @@ public class CommandIdAssigner {
     );
   }
 
+  private static CommandId getAlterSystemCommandId(final AlterSystemProperty alterSystemProperty) {
+    return new CommandId(
+        Type.CLUSTER,
+        UUID.randomUUID().toString(),
+        Action.ALTER
+    );
+  }
+
   private static CommandId getStreamCommandId(final String streamName) {
     return getSourceCommandId(CommandId.Type.STREAM, streamName);
   }
@@ -152,5 +186,9 @@ public class CommandIdAssigner {
 
   private static CommandId getSourceCommandId(final CommandId.Type type, final String sourceName) {
     return new CommandId(type, sourceName, CommandId.Action.CREATE);
+  }
+
+  public static CommandId getTerminateClusterCommandId() {
+    return new CommandId(Type.CLUSTER, "TerminateCluster", Action.TERMINATE);
   }
 }

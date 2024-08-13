@@ -16,6 +16,7 @@
 package io.confluent.ksql.function.udf.datetime;
 
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.either;
@@ -112,6 +113,26 @@ public class TimestampToStringTest {
 
     // Then:
     assertThat(universalTime, is("2018-08-15 17:10:43 UTC"));
+  }
+
+  @Test
+  public void testReturnNullForNullFormat() {
+    // When:
+    final String result = udf.timestampToString(1534353043000L,
+        null);
+
+    // Then:
+    assertThat(result, is(nullValue()));
+  }
+
+  @Test
+  public void testReturnNullForNullTimeZone() {
+    // When:
+    final String result = udf.timestampToString(1534353043000L,
+        "yyyy-MM-dd HH:mm:ss zz", null);
+
+    // Then:
+    assertThat(result, is(nullValue()));
   }
 
   @Test

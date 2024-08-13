@@ -16,7 +16,9 @@
 package io.confluent.ksql.rest.server;
 
 import com.google.common.annotations.VisibleForTesting;
+import io.confluent.ksql.rest.server.computation.InternalTopicSerdes;
 import io.confluent.ksql.rest.server.resources.CommandTopicCorruptionException;
+import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlServerException;
 import io.confluent.ksql.util.Pair;
@@ -54,24 +56,27 @@ public class CommandTopicBackupImpl implements CommandTopicBackup {
   private List<Pair<byte[], byte[]>> latestReplay;
   private int latestReplayIdx;
   private boolean corruptionDetected;
+  private KafkaTopicClient kafkaTopicClient;
 
   public CommandTopicBackupImpl(
       final String location,
-      final String topicName
+      final String topicName,
+      final KafkaTopicClient kafkaTopicClient
   ) {
-    this(location, topicName, System::currentTimeMillis);
+    this(location, topicName, System::currentTimeMillis, kafkaTopicClient);
   }
 
   @VisibleForTesting
   CommandTopicBackupImpl(
       final String location,
       final String topicName,
-      final Supplier<Long> ticker
+      final Supplier<Long> ticker,
+      final KafkaTopicClient kafkaTopicClient
   ) {
     this.backupLocation = new File(Objects.requireNonNull(location, "location"));
     this.topicName = Objects.requireNonNull(topicName, "topicName");
     this.ticker = Objects.requireNonNull(ticker, "ticker");
-
+    this.kafkaTopicClient = Objects.requireNonNull(kafkaTopicClient, "kafkaTopicClient");
     ensureDirectoryExists(backupLocation);
   }
 
@@ -85,23 +90,27 @@ public class CommandTopicBackupImpl implements CommandTopicBackup {
       LOG.warn("Failed to read the latest backup from {}. Continue with a new file. Error = {}",
           replayFile.getPath(), e.getMessage());
 
-      replayFile = newReplayFile();
+      try {
+        replayFile = newReplayFile();
+      } catch (final IOException ee) {
+        throw new RuntimeException(ee);
+      }
       latestReplay = Collections.emptyList();
     }
 
     latestReplayIdx = 0;
     corruptionDetected = false;
+
+    if (!kafkaTopicClient.isTopicExists(topicName)
+        && latestReplay.size() > 0) {
+      corruptionDetected = true;
+    }
     LOG.info("Command topic will be backup on file: {}", replayFile.getPath());
   }
 
   @Override
   public void close() {
-    try {
-      replayFile.close();
-    } catch (final IOException e) {
-      LOG.warn("Failed closing the backup file {}. Error = {}",
-          replayFile.getPath(), e.getMessage());
-    }
+    replayFile.close();
   }
 
   @VisibleForTesting
@@ -137,6 +146,15 @@ public class CommandTopicBackupImpl implements CommandTopicBackup {
       LOG.warn(String.format("Can't backup a command topic record with a null key/value:"
               + " partition=%d, offset=%d",
           record.partition(), record.offset()));
+    }
+
+    if (Arrays.equals(record.key(), InternalTopicSerdes.serializer().serialize(
+        "",
+        CommandTopicMigrationUtil.MIGRATION_COMMAND_ID)
+    )) {
+      LOG.warn(String.format("Can't backup migration command topic record offset=%d",
+          record.offset()));
+      corruptionDetected = true;
       return;
     }
 
@@ -172,18 +190,25 @@ public class CommandTopicBackupImpl implements CommandTopicBackup {
 
   @VisibleForTesting
   BackupReplayFile openOrCreateReplayFile() {
-    return latestReplayFile()
-        .orElseGet(this::newReplayFile);
+    try {
+      final Optional<BackupReplayFile> backupReplayFile = latestReplayFile();
+      if (backupReplayFile.isPresent()) {
+        return backupReplayFile.get();
+      }
+      return newReplayFile();
+    } catch (final IOException e) {
+      throw new RuntimeException(e);
+    }
   }
 
-  private BackupReplayFile newReplayFile() {
+  private BackupReplayFile newReplayFile() throws IOException {
     return BackupReplayFile.writable(Paths.get(
         backupLocation.getAbsolutePath(),
         String.format("%s%s_%s", PREFIX, topicName, ticker.get())
     ).toFile());
   }
 
-  private Optional<BackupReplayFile> latestReplayFile() {
+  private Optional<BackupReplayFile> latestReplayFile() throws IOException {
     final String prefixFilename = String.format("%s%s_", PREFIX, topicName);
     final File[] files = backupLocation.listFiles(
         (f, name) -> name.toLowerCase().startsWith(prefixFilename));
@@ -208,8 +233,10 @@ public class CommandTopicBackupImpl implements CommandTopicBackup {
       }
     }
 
-    return Optional.ofNullable(latestBakFile)
-        .map(BackupReplayFile::writable);
+    if (latestBakFile != null) {
+      return Optional.of(BackupReplayFile.writable(latestBakFile));
+    }
+    return Optional.empty();
   }
 
   private static void ensureDirectoryExists(final File backupsDir) {

@@ -2,8 +2,6 @@ site_name: ksqlDB Documentation
 site_url: https://docs.ksqldb.io/en/latest/
 site_description: ksqlDB documentation
 site_author: Confluent
-copyright: Copyright &copy; 2020 <a href="https://www.confluent.io/">Confluent</a>.
-
 repo_name: confluentinc/ksql
 repo_url: https://github.com/confluentinc/ksql
 edit_uri: ""
@@ -83,7 +81,9 @@ nav:
       - Logging: operate-and-deploy/logging.md
       - Monitoring: operate-and-deploy/monitoring.md
       - Exactly once semantics: operate-and-deploy/exactly-once-semantics.md
+      - High availability: operate-and-deploy/high-availability.md
       - Schema Registry integration: operate-and-deploy/schema-registry-integration.md
+      - Schema Inference With ID: operate-and-deploy/schema-inference-with-id.md
       - High availability for pull queries: operate-and-deploy/high-availability-pull-queries.md
       - Plan Capacity: operate-and-deploy/capacity-planning.md
       - Performance Guidelines: operate-and-deploy/performance-guidelines.md
@@ -101,6 +101,9 @@ nav:
     - Statements:
       - SQL quick reference: developer-guide/ksqldb-reference/quick-reference.md
       - Statement Index: developer-guide/ksqldb-reference/index.md
+      - ALTER SYSTEM: developer-guide/ksqldb-reference/alter-system.md
+      - ASSERT SCHEMA: developer-guide/ksqldb-reference/assert-schema.md
+      - ASSERT TOPIC: developer-guide/ksqldb-reference/assert-topic.md
       - CREATE CONNECTOR: developer-guide/ksqldb-reference/create-connector.md
       - CREATE STREAM: developer-guide/ksqldb-reference/create-stream.md
       - CREATE TABLE: developer-guide/ksqldb-reference/create-table.md
@@ -118,7 +121,9 @@ nav:
       - EXPLAIN: developer-guide/ksqldb-reference/explain.md
       - INSERT INTO: developer-guide/ksqldb-reference/insert-into.md
       - INSERT VALUES: developer-guide/ksqldb-reference/insert-values.md
+      - PAUSE: developer-guide/ksqldb-reference/pause.md
       - PRINT: developer-guide/ksqldb-reference/print.md
+      - RESUME: developer-guide/ksqldb-reference/resume.md
       - RUN SCRIPT: developer-guide/ksqldb-reference/run-script.md
       - SELECT (Push Query): developer-guide/ksqldb-reference/select-push-query.md
       - SELECT (Pull Query): developer-guide/ksqldb-reference/select-pull-query.md
@@ -126,9 +131,9 @@ nav:
       - SHOW FUNCTIONS: developer-guide/ksqldb-reference/show-functions.md
       - SHOW PROPERTIES: developer-guide/ksqldb-reference/show-properties.md
       - SHOW QUERIES: developer-guide/ksqldb-reference/show-queries.md
-      - SHOW TOPICS: developer-guide/ksqldb-reference/show-topics.md
       - SHOW STREAMS: developer-guide/ksqldb-reference/show-streams.md
       - SHOW TABLES: developer-guide/ksqldb-reference/show-tables.md
+      - SHOW TOPICS: developer-guide/ksqldb-reference/show-topics.md
       - SHOW TYPES: developer-guide/ksqldb-reference/show-types.md
       - SHOW VARIABLES: developer-guide/ksqldb-reference/show-variables.md
       - SPOOL: developer-guide/ksqldb-reference/spool.md
@@ -173,7 +178,7 @@ markdown_extensions:
     - attr_list
     - mdx_gh_links:
         user: confluentinc
-        repo: ksqldb
+        repo: ksql
     - mdx_truly_sane_lists
 
 plugins:
@@ -220,6 +225,16 @@ plugins:
             operate-and-deploy/installation/server-config/config-reference.md: reference/server-configuration.md
 
 extra:
+    social:
+        - icon: fontawesome/brands/github
+          link: https://github.com/confluentinc/ksql
+          name: ksqlDB on GitHub
+        - icon: fontawesome/brands/twitter
+          link: https://twitter.com/ksqlDB
+          name: ksqlDB on Twitter
+        - icon: fontawesome/brands/slack
+          link: https://launchpass.com/confluentcommunity
+          name: ksqldb Slack channel          
     site:
         # Product-related string tokens
         aktm: Apache Kafka®
@@ -249,12 +264,10 @@ extra:
         zk: ZooKeeper
 
         # Build-related string tokens
-        kafkaversion: 2.8
-        ksqldbversion: 0.21.0
-        kstreamsbetatag: 7.0.0-beta210811194853
-        kstreamsbetabuild: 1
-        cprelease: 7.0.0
-        releasepostbranch: 7.0.0-post
+        kafkaversion: 3.5
+        ksqldbversion: 0.30.0
+        cprelease: 7.5.0
+        releasepostbranch: 7.5.0-post
         scalaversion: 2.13
         voluble_version: 0.3.1
         jdbc_connector_version: 10.0.0

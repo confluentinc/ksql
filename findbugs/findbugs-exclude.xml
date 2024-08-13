@@ -38,12 +38,29 @@ For a detailed description of findbugs bug categories, see http://findbugs.sourc
         <Class name="~io.confluent.ksql.version.metrics.KsqlVersionMetrics"/>
     </Match>
 
+    <Match>
+        <Class name="~io.confluent.ksql.execution.streams.SourceBuilderTest"/>
+    </Match>
+
     <!-- false positive in Java 11, see https://github.com/spotbugs/spotbugs/issues/756 -->
     <Match>
         <Bug pattern="RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE"/>
     </Match>
     <Match>
         <Bug pattern="JUA_DONT_ASSERT_INSTANCEOF_IN_TESTS"/>
+    </Match>
+    <!-- false positive in Java 11, see https://github.com/spotbugs/spotbugs/issues/2040 -->
+    <Match>
+        <Bug pattern="THROWS_METHOD_THROWS_RUNTIMEEXCEPTION"/>
+    </Match>
+    <Match>
+        <Bug pattern="THROWS_METHOD_THROWS_CLAUSE_BASIC_EXCEPTION"/>
+    </Match>
+    <Match>
+        <Bug pattern="THROWS_METHOD_THROWS_CLAUSE_THROWABLE"/>
+    </Match>
+    <Match>
+        <Bug pattern="RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT"/>
     </Match>
 
     <!--

@@ -29,6 +29,7 @@ import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression.Type;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
+import io.confluent.ksql.execution.expression.tree.LikePredicate;
 import io.confluent.ksql.execution.expression.tree.Literal;
 import io.confluent.ksql.execution.expression.tree.LogicalBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.LongLiteral;
@@ -41,11 +42,14 @@ import io.confluent.ksql.execution.transform.ExpressionEvaluator;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.planner.QueryPlannerOptions;
+import io.confluent.ksql.planner.plan.KeyConstraint.ConstraintOperator;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.Column.Namespace;
 import io.confluent.ksql.schema.ksql.DefaultSqlValueCoercer;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SystemColumns;
+import io.confluent.ksql.schema.ksql.types.SqlBaseType;
+import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.schema.utils.FormatOptions;
 import io.confluent.ksql.structured.SchemaKStream;
@@ -53,8 +57,8 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.timestamp.PartialStringToTimestampParser;
 import java.time.Instant;
-import java.util.Arrays;
 import java.util.BitSet;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
@@ -62,6 +66,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -240,13 +245,10 @@ public class QueryFilterNode extends SingleSourcePlanNode {
         optionalWindowBounds = Optional.empty();
       }
 
-      if (keyValueExtractor.seenKeys.isEmpty()) {
-        constraintPerDisjunct.add(new NonKeyConstraint());
-      } else {
-        constraintPerDisjunct.add(KeyConstraint.equal(
-            GenericKey.fromList(Arrays.asList(keyValueExtractor.keyContents)),
-            optionalWindowBounds));
-      }
+      final LookupConstraint constraint =
+          keyValueExtractor.getLookupConstraint(optionalWindowBounds);
+      constraintPerDisjunct.add(constraint);
+
     }
     return constraintPerDisjunct.build();
   }
@@ -274,7 +276,8 @@ public class QueryFilterNode extends SingleSourcePlanNode {
     @Override
     public Void process(final Expression node, final Object context) {
       if (!(node instanceof LogicalBinaryExpression)
-          && !(node instanceof ComparisonExpression)) {
+          && !(node instanceof ComparisonExpression)
+              && !(node instanceof LikePredicate)) {
         throw invalidWhereClauseException("Unsupported expression in WHERE clause: " + node, false);
       }
       super.process(node, context);
@@ -306,7 +309,6 @@ public class QueryFilterNode extends SingleSourcePlanNode {
         final Expression other = getNonColumnRefSide(node);
         final HasColumnRef hasColumnRef = new HasColumnRef();
         hasColumnRef.process(other, null);
-
         if (hasColumnRef.hasColumnRef()) {
           setTableScanOrElseThrow(() ->
               invalidWhereClauseException("A comparison must be between a key column and a "
@@ -319,37 +321,43 @@ public class QueryFilterNode extends SingleSourcePlanNode {
                 isWindowed));
         return null;
       }
+      return visitColumnComparisonExpression(column, node);
+    }
 
+    //Check the referred column of the expression
+    private Void visitColumnComparisonExpression(
+            final UnqualifiedColumnReferenceExp column,
+            final ComparisonExpression node
+    ) {
       final ColumnName columnName = column.getColumnName();
       if (columnName.equals(SystemColumns.WINDOWSTART_NAME)
-          || columnName.equals(SystemColumns.WINDOWEND_NAME)) {
+              || columnName.equals(SystemColumns.WINDOWEND_NAME)) {
         final Type type = node.getType();
         if (!VALID_WINDOW_BOUND_COMPARISONS.contains(type)) {
           throw invalidWhereClauseException(
-              "Unsupported " + columnName + " bounds: " + type, true);
+                  "Unsupported " + columnName + " bounds: " + type, true);
         }
         if (!isWindowed) {
           throw invalidWhereClauseException(
-              "Cannot use WINDOWSTART/WINDOWEND on non-windowed source",
-              false);
+                  "Cannot use WINDOWSTART/WINDOWEND on non-windowed source",
+                  false);
         }
         return null;
       } else {
         final Column col = schema.findColumn(columnName)
-            .orElseThrow(() -> invalidWhereClauseException(
-                "Bound on non-existent column " + columnName, isWindowed));
+                .orElseThrow(() -> invalidWhereClauseException(
+                        "Bound on non-existent column " + columnName, isWindowed));
 
         if (col.namespace() == Namespace.KEY) {
-          if (node.getType() != Type.EQUAL) {
+          if (!isKeyQuery(node)) {
             setTableScanOrElseThrow(() ->
                 invalidWhereClauseException("Bound on key columns '"
-                        + getSource().getSchema().key() + "' must currently be '='", isWindowed));
+                    + getSource().getSchema().key() + "' must currently be '='", isWindowed));
           }
-          if (seenKeys.get(col.index())) {
-            setTableScanOrElseThrow(() -> invalidWhereClauseException(
-                "An equality condition on the key column cannot be combined with other comparisons"
-                    + " such as an IN predicate",
-                isWindowed));
+          if (seenKeys.get(col.index()) && !queryPlannerOptions.getTableScansEnabled()) {
+            throw invalidWhereClauseException(
+                    "A comparison condition on the key column cannot be combined with other"
+                            + " comparisons such as an IN predicate", isWindowed);
           }
           seenKeys.set(col.index());
           isKeyedQuery = true;
@@ -357,6 +365,41 @@ public class QueryFilterNode extends SingleSourcePlanNode {
         }
         return null;
       }
+    }
+
+    @Override
+    public Void visitLikePredicate(final LikePredicate node, final Object context) {
+      if (node.getValue() instanceof UnqualifiedColumnReferenceExp) {
+        final UnqualifiedColumnReferenceExp column =
+                (UnqualifiedColumnReferenceExp) node.getValue();
+        final ColumnName columnName = column.getColumnName();
+        final Column col = schema.findColumn(columnName)
+                .orElseThrow(() -> invalidWhereClauseException(
+                        "Like condition on non-existent column " + columnName, isWindowed));
+        if (SqlBaseType.STRING != col.type().baseType()) {
+          throw invalidWhereClauseException("The column type for Like "
+                  + "condition must be VARCHAR. The column type is "
+                  + col.type().baseType().toString(), isWindowed);
+        }
+        final Expression pattern = node.getPattern();
+        if (!(pattern instanceof StringLiteral || pattern instanceof NullLiteral)) {
+          throw invalidWhereClauseException(
+                  "Like condition on non-string pattern " + pattern.getClass().getName(),
+                  isWindowed);
+        }
+      } else {
+        setTableScanOrElseThrow(() -> invalidWhereClauseException("Like condition must be between "
+                + "strings", isWindowed));
+      }
+      return null;
+    }
+
+    private boolean isKeyQuery(final ComparisonExpression node) {
+      if (node.getType() == Type.NOT_EQUAL || node.getType() == Type.IS_DISTINCT_FROM
+          || node.getType() == Type.IS_NOT_DISTINCT_FROM) {
+        return false;
+      }
+      return true;
     }
 
     private void setTableScanOrElseThrow(final Supplier<KsqlException> exceptionSupplier) {
@@ -428,10 +471,12 @@ public class QueryFilterNode extends SingleSourcePlanNode {
   private final class KeyValueExtractor extends TraversalExpressionVisitor<Object> {
     private final BitSet seenKeys;
     private final Object[] keyContents;
+    private HashMap<Integer, ImmutablePair<Type, SqlType>> operators;
 
     KeyValueExtractor() {
       keyContents = new Object[schema.key().size()];
       seenKeys = new BitSet(schema.key().size());
+      operators = new HashMap<>();
     }
 
     @Override
@@ -445,10 +490,58 @@ public class QueryFilterNode extends SingleSourcePlanNode {
       final Optional<Column> col = schema.findColumn(columnName);
       if (col.isPresent() && col.get().namespace() == Namespace.KEY) {
         final Object key = resolveKey(other, col.get(), metaStore, ksqlConfig, node);
-        keyContents[col.get().index()] = key;
-        seenKeys.set(col.get().index());
+        setMostSelectiveConstraint(col.get(), node, key);
       }
       return null;
+    }
+
+    public LookupConstraint getLookupConstraint(final Optional<WindowBounds> windowBounds) {
+      if (seenKeys.isEmpty()) {
+        return new NonKeyConstraint();
+      }
+
+      if (operators.size() > 1) {
+        //if disjunct consist of multiple operations
+        //we set the ground for a keylookup if all ops are of type EQUAL,
+        //otherwise we return nokeyconsraint which leads to a table scan
+        if (operators.values().stream().allMatch(op -> op.getKey().equals(Type.EQUAL))) {
+          return new KeyConstraint(ConstraintOperator.EQUAL,
+            GenericKey.fromArray(keyContents), windowBounds);
+        }
+        return new NonKeyConstraint();
+      }
+
+      //single operator disjunct case
+      final Type operatorType = operators.get(0).getLeft();
+      if (operatorType == Type.EQUAL) {
+        return new KeyConstraint(ConstraintOperator.EQUAL,
+          GenericKey.fromArray(keyContents), windowBounds);
+      } else if (isSupportedType(operators.get(0).getRight())) {
+        if (operatorType == Type.GREATER_THAN) {
+          return new KeyConstraint(ConstraintOperator.GREATER_THAN,
+            GenericKey.fromArray(keyContents), windowBounds);
+        } else if (operatorType == Type.GREATER_THAN_OR_EQUAL) {
+          return new KeyConstraint(ConstraintOperator.GREATER_THAN_OR_EQUAL,
+            GenericKey.fromArray(keyContents), windowBounds);
+        } else if (operatorType == Type.LESS_THAN) {
+          return new KeyConstraint(ConstraintOperator.LESS_THAN,
+            GenericKey.fromArray(keyContents), windowBounds);
+        } else if (operatorType == Type.LESS_THAN_OR_EQUAL) {
+          return new KeyConstraint(ConstraintOperator.LESS_THAN_OR_EQUAL,
+            GenericKey.fromArray(keyContents), windowBounds);
+        }
+      }
+
+      return new NonKeyConstraint();
+    }
+
+    private boolean isSupportedType(final SqlType sqlType) {
+      if (sqlType == SqlTypes.STRING) {
+        return true;
+      } else if (sqlType == SqlTypes.BYTES) {
+        return true;
+      }
+      return false;
     }
 
     private Object resolveKey(
@@ -487,6 +580,35 @@ public class QueryFilterNode extends SingleSourcePlanNode {
                   + keyColumn.toString(
                   FormatOptions.noEscape())))
           .orElse(null);
+    }
+
+    //Pick the most selective constraint from the predicates
+    private void setMostSelectiveConstraint(
+        final Column col,
+        final ComparisonExpression node,
+        final Object key) {
+      final int index = col.index();
+      if (operators.containsKey(index) && operators.get(index).getLeft() == Type.EQUAL) {
+        return;
+      }
+      if (node.getType() == Type.EQUAL) {
+        setConstraint(index, col, node, key);
+        return;
+      }
+      if (!operators.containsKey(index)) {
+        setConstraint(index, col, node, key);
+      }
+    }
+
+    private void setConstraint(
+        final int index,
+        final Column col,
+        final ComparisonExpression node,
+        final Object key
+    ) {
+      keyContents[index] = key;
+      seenKeys.set(index);
+      operators.put(index, new ImmutablePair<>(node.getType(), col.type()));
     }
   }
 
@@ -662,14 +784,17 @@ public class QueryFilterNode extends SingleSourcePlanNode {
             + System.lineSeparator()
             + "Pull queries require a WHERE clause that:"
             + System.lineSeparator()
-            + " - includes a key equality expression, e.g. `SELECT * FROM X WHERE <key-column>=Y;`."
+            + " - includes a key equality expression, "
+            + "e.g. `SELECT * FROM X WHERE <key-column> = Y;`."
             + System.lineSeparator()
             + " - in the case of a multi-column key, is a conjunction of equality expressions "
             + "that cover all key columns."
             + System.lineSeparator()
+            + " - to support range expressions, e.g.,  SELECT * FROM X WHERE <key-column> < Y;`, "
+            + "range scans need to be enabled by setting ksql.query.pull.range.scan.enabled=true"
             + additional
             + System.lineSeparator()
-            + "If more flexible queries are needed, table scans can be enabled by "
+            + "If more flexible queries are needed, , table scans can be enabled by "
             + "setting ksql.query.pull.table.scan.enabled=true."
     );
   }

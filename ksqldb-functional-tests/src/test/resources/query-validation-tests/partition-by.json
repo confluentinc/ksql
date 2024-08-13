@@ -222,7 +222,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "The query used to build `OUTPUT` must include the partitioning expression ABS(INPUT.ID) in its projection."
+        "message": "The query used to build `OUTPUT` must include the partitioning expression ABS(INPUT.ID) in its projection (eg, SELECT ABS(INPUT.ID)...)."
       }
     },
     {
@@ -233,7 +233,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "The query used to build `OUTPUT` must include the partitioning expression INPUT.ID in its projection."
+        "message": "The query used to build `OUTPUT` must include the partitioning expression INPUT.ID in its projection (eg, SELECT INPUT.ID...)."
       }
     },
     {
@@ -248,11 +248,11 @@
         {"topic": "RIGHT", "key": 0, "value": {"Y": -1, "Z": -2}, "timestamp": 12}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": 1, "value": {"L_ROWTIME": 11, "R_ROWTIME": 12, "L_A": 0, "R_X": 0, "R_Y": -1, "L_C": 2, "R_Z": -2}}
+        {"topic": "OUTPUT", "key": 1, "value": {"L_ROWTIME": 11, "L_ROWPARTITION": 0, "L_ROWOFFSET": 0, "R_ROWTIME": 12, "R_ROWPARTITION": 0, "R_ROWOFFSET": 0, "L_A": 0, "R_X": 0, "R_Y": -1, "L_C": 2, "R_Z": -2}}
       ],
       "post": {
         "sources": [
-          {"name": "OUTPUT", "type": "stream", "schema": "L_B INT KEY, L_C INT, L_ROWTIME BIGINT, L_A INT, R_Y INT, R_Z INT, R_ROWTIME BIGINT, R_X INT"}
+          {"name": "OUTPUT", "type": "stream", "schema": "L_B INT KEY, L_C INT, L_ROWTIME BIGINT, L_ROWPARTITION INT, L_ROWOFFSET BIGINT, L_A INT, R_Y INT, R_Z INT, R_ROWTIME BIGINT, R_ROWPARTITION INT, R_ROWOFFSET BIGINT, R_X INT"}
         ]
       }
     },
@@ -268,11 +268,11 @@
         {"topic": "RIGHT", "key": -1, "value": {"Y": 1, "Z": -2}, "timestamp": 12}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": 0, "value": {"L_ROWTIME": 11, "R_ROWTIME": 12, "R_X": -1, "L_B": 1, "R_Y": 1, "L_C": 2, "R_Z": -2}}
+        {"topic": "OUTPUT", "key": 0, "value": {"L_ROWTIME": 11, "L_ROWPARTITION": 0, "L_ROWOFFSET": 0, "R_ROWTIME": 12, "R_ROWPARTITION": 0, "R_ROWOFFSET": 0, "R_X": -1, "L_B": 1, "R_Y": 1, "L_C": 2, "R_Z": -2}}
       ],
       "post": {
         "sources": [
-          {"name": "OUTPUT", "type": "stream", "schema": "L_A INT KEY, L_B INT, L_C INT, L_ROWTIME BIGINT, R_Y INT, R_Z INT, R_ROWTIME BIGINT, R_X INT"}
+          {"name": "OUTPUT", "type": "stream", "schema": "L_A INT KEY, L_B INT, L_C INT, L_ROWTIME BIGINT,L_ROWPARTITION INT, L_ROWOFFSET BIGINT, R_Y INT, R_Z INT, R_ROWTIME BIGINT, R_ROWPARTITION INT, R_ROWOFFSET BIGINT, R_X INT"}
         ]
       }
     },
@@ -397,7 +397,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.parser.exception.ParseFailedException",
-        "message": "mismatched input 'AND' expecting {';'"
+        "message": "Syntax Error"
       }
     },
     {
@@ -927,7 +927,8 @@
                 "fields": [
                   { "name": "F1", "type": [ "null", "int" ], "default": null },
                   { "name": "F2", "type": [ "null", "int" ], "default": null }
-                ]
+                ],
+                "connect.name": "io.confluent.ksql.avro_schemas.OutputKey"
               }
             }
           ]
@@ -963,12 +964,14 @@
                         "fields": [
                           { "name": "F1", "type": [ "null", "int" ], "default": null },
                           { "name": "F2", "type": [ "null", "int" ], "default": null }
-                        ]
+                        ],
+                        "connect.name":"io.confluent.ksql.avro_schemas.OutputKey_F1"
                       }
                     ],
                     "default": null
                   }
-                ]
+                ],
+                "connect.name": "io.confluent.ksql.avro_schemas.OutputKey"
               }
             }
           ]
@@ -997,7 +1000,8 @@
                 "fields": [
                   { "name": "F1", "type": [ "null", "int" ], "default": null },
                   { "name": "F2", "type": [ "null", "int" ], "default": null }
-                ]
+                ],
+                "connect.name": "io.confluent.ksql.avro_schemas.OutputKey"
               }
             }
           ]
@@ -1385,7 +1389,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "The query used to build `OUTPUT` must include the partitioning expressions INPUT.ID and INPUT.AGE in its projection."
+        "message": "The query used to build `OUTPUT` must include the partitioning expressions INPUT.ID and INPUT.AGE in its projection (eg, SELECT INPUT.ID, INPUT.AGE...)."
       }
     },
     {
@@ -1443,6 +1447,101 @@
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
         "message": "PARTITION BY requires at least one expression"
+      }
+    },
+    {
+      "name": "partition by output col should give good error message",
+      "statements": [
+        "CREATE STREAM INPUT (NAME STRING, ID INT, AGE INT) with (kafka_topic='input', format='JSON');",
+        "CREATE STREAM OUTPUT AS select ID, AGE, NAME AS something from INPUT partition by something;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "PARTITION BY column 'SOMETHING' cannot be resolved. 'SOMETHING' must be a column in the source schema since PARTITION BY is applied on the input."
+      }
+    },
+    {
+      "name": "stream with PROTOBUF schema and schema_id",
+      "statements": [
+        "CREATE STREAM SOURCE WITH (kafka_topic='source', format='PROTOBUF', KEY_SCHEMA_ID=100, KEY_SCHEMA_FULL_NAME='ProtobufKey2', VALUE_SCHEMA_ID=101, VALUE_SCHEMA_FULL_NAME='ProtobufValue2');",
+        "CREATE STREAM OUT AS SELECT A, B FROM SOURCE PARTITION BY A;"
+      ],
+      "topics": [
+        {
+          "name": "source",
+          "keyFormat": "PROTOBUF",
+          "keySchemaId": 100,
+          "keySchema": "syntax = \"proto3\"; message ProtobufKey1 {uint32 k1 = 1;} message ProtobufKey2 {string K = 1;}",
+          "valueFormat": "PROTOBUF",
+          "valueSchemaId": 101,
+          "valueSchema": "syntax = \"proto3\"; message ProtobufValue1 {float c1 = 1; uint32 c2 = 2;} message ProtobufValue2 {uint64 A = 1; string B = 2;}"
+        }
+      ],
+      "inputs": [
+        {"topic": "source", "key": {"K": "falcon"}, "value": {"A": 1230, "B": "falcon"}, "timestamp": 0},
+        {"topic": "source", "key": {"K": "giraffe"}, "value": {"A": 4560, "B": "giraffe"}, "timestamp": 0},
+        {"topic": "source", "key": {"K": "turtle"}, "value": {"A": 7890, "B": "turtle"}, "timestamp": 0},
+        {"topic": "source", "key": {"K": "falcon"}, "value": {"A": 1250, "B": "falcon"}, "timestamp": 0}
+      ],
+      "outputs": [
+        {"topic": "OUT", "key": {"A": 1230}, "value": {"B": "falcon"}, "timestamp": 0},
+        {"topic": "OUT", "key": {"A": 4560}, "value": {"B": "giraffe"}, "timestamp": 0},
+        {"topic": "OUT", "key": {"A": 7890}, "value": {"B": "turtle"}, "timestamp": 0},
+        {"topic": "OUT", "key": {"A": 1250}, "value": {"B": "falcon"}, "timestamp": 0}
+      ],
+      "post": {
+        "sources": [
+          {
+            "name": "OUT",
+            "type": "stream",
+            "keyFormat": {"format": "PROTOBUF", "properties": {"unwrapPrimitives": "true"}},
+            "schema": "A BIGINT KEY, B STRING"
+          }
+        ]
+      }
+    },
+    {
+      "name": "stream with AVRO schema and schema id",
+      "statements": [
+        "CREATE STREAM TEST WITH (kafka_topic='test_topic', format='AVRO', KEY_SCHEMA_ID=100, VALUE_SCHEMA_ID=101);",
+        "CREATE STREAM OUTPUT AS SELECT STRUCT(a:=A, b:=B), A FROM TEST PARTITION BY STRUCT(a:=A, b:=B);"
+      ],
+      "topics": [
+        {
+          "name": "test_topic",
+          "keySchema": {"type": "int"},
+          "keySchemaId": 100,
+          "keyFormat": "AVRO",
+          "valueSchema": {"name": "ignored", "type": "record", "fields": [{"name": "A", "type": "int"}, {"name": "B", "type": "int"}]},
+          "valueFormat": "AVRO",
+          "valueSchemaId": 101
+        }
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": {"A": 1, "B": 1}},
+        {"topic": "test_topic", "key": 1, "value": {"A": 2, "B": 1}},
+        {"topic": "test_topic", "key": 2, "value": {"A": 1, "B": 1}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": {"A": 1, "B": 1}, "value": {"A": 1}},
+        {"topic": "OUTPUT", "key": {"A": 2, "B": 1}, "value": {"A": 2}},
+        {"topic": "OUTPUT", "key": {"A": 1, "B": 1}, "value": {"A": 1}}
+      ],
+      "post": {
+        "sources": [
+          {
+            "comment": "unwrap singles is implicitly set on all key formats that support both wrapping and unwrapping, including AVRO",
+            "name" : "OUTPUT",
+            "type" : "STREAM",
+            "schema" : "`KSQL_COL_0` STRUCT<A INTEGER, B INTEGER> KEY, `A` INTEGER",
+            "keyFormat" : {
+              "format" : "AVRO"
+            },
+            "valueFormat" : "AVRO",
+            "keyFeatures" : [ "UNWRAP_SINGLES" ],
+            "valueFeatures" : [ ]
+          }
+        ]
       }
     }
   ]

@@ -16,17 +16,32 @@
 package io.confluent.ksql.logging.processing;
 
 import java.util.Collection;
+import java.util.Map;
 
 public interface ProcessingLoggerFactory {
   /**
-   * Get a processing logger for writing record processing log messages
+   * Get a processing logger for writing record processing log messages.
    * @param name The name of the logger to get.
-   * @return The logger with the given name.
+   * @return The logger with the given name
    */
   ProcessingLogger getLogger(String name);
 
   /**
+   * Get a processing logger for writing record processing log messages.
+   * Additional tags can be associated with the logger.
+   * @param name The name of the logger to get.
+   * @param additionalTags Additional tags to associate with the logger
+   * @return The logger with the given name and tags associated with it.
+   */
+  ProcessingLogger getLogger(String name, Map<String, String> additionalTags);
+
+  /**
    * @return A collection of all loggers that have been created by the factory
    */
-  Collection<String> getLoggers();
+  Collection<ProcessingLogger> getLoggers();
+
+  /**
+   * @return A collection of loggers which have the substring in their names
+   */
+  Collection<ProcessingLogger> getLoggersWithPrefix(String substr);
 }

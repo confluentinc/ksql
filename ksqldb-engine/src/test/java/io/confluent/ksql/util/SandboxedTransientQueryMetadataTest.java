@@ -24,8 +24,6 @@ import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.util.PushQueryMetadata.ResultType;
 import io.confluent.ksql.util.QueryMetadata.Listener;
-import java.util.Map;
-import java.util.Set;
 import org.apache.kafka.streams.Topology;
 import org.junit.Before;
 import org.junit.Test;

@@ -1,0 +1,170 @@
+{
+  "version" : "7.1.0",
+  "timestamp" : 1633125926580,
+  "path" : "query-validation-tests/explode.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`ID` STRING KEY, `MY_ARR` ARRAY<BIGINT>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ID` STRING KEY, `VAL` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "explode array with values",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : "0",
+      "value" : {
+        "MY_ARR" : [ 1, 2 ]
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : "1",
+      "value" : {
+        "MY_ARR" : [ 3, 4 ]
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : "2",
+      "value" : {
+        "MY_ARR" : [ 5 ]
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : "3",
+      "value" : {
+        "MY_ARR" : [ ]
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : "4",
+      "value" : {
+        "MY_ARR" : [ 6 ]
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : "5",
+      "value" : {
+        "MY_ARR" : null
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : "6",
+      "value" : {
+        "MY_ARR" : [ 7 ]
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : "0",
+      "value" : {
+        "VAL" : 1
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "0",
+      "value" : {
+        "VAL" : 2
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "1",
+      "value" : {
+        "VAL" : 3
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "1",
+      "value" : {
+        "VAL" : 4
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "2",
+      "value" : {
+        "VAL" : 5
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "4",
+      "value" : {
+        "VAL" : 6
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "6",
+      "value" : {
+        "VAL" : 7
+      }
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM TEST (ID STRING KEY, MY_ARR ARRAY<BIGINT>) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE STREAM OUTPUT AS SELECT ID, EXPLODE(MY_ARR) VAL FROM TEST;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`ID` STRING KEY, `VAL` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`ID` STRING KEY, `MY_ARR` ARRAY<BIGINT>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

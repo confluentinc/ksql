@@ -1,0 +1,130 @@
+{
+  "version" : "7.2.0",
+  "timestamp" : 1647386359273,
+  "path" : "query-validation-tests/protobuf.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`C1` STRUCT<`VALUE` BOOLEAN>, `C2` STRUCT<`VALUE` INTEGER>, `C3` STRUCT<`VALUE` BIGINT>, `C4` STRUCT<`VALUE` DOUBLE>, `C5` STRUCT<`VALUE` STRING>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "PROTOBUF"
+      }
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`C1` STRUCT<`VALUE` BOOLEAN>, `C2` STRUCT<`VALUE` INTEGER>, `C3` STRUCT<`VALUE` BIGINT>, `C4` STRUCT<`VALUE` DOUBLE>, `C5` STRUCT<`VALUE` STRING>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "PROTOBUF"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "protobuf inference - wrapped primitives",
+    "inputs" : [ {
+      "topic" : "input",
+      "key" : null,
+      "value" : {
+        "c1" : {
+          "value" : true
+        },
+        "c2" : {
+          "value" : 1
+        },
+        "c3" : {
+          "value" : 400000000000
+        },
+        "c4" : {
+          "value" : 1.284765648
+        },
+        "c5" : {
+          "value" : "hello"
+        }
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : null,
+      "value" : {
+        "C1" : {
+          "value" : true
+        },
+        "C2" : {
+          "value" : 1
+        },
+        "C3" : {
+          "value" : 400000000000
+        },
+        "C4" : {
+          "value" : 1.284765648
+        },
+        "C5" : {
+          "value" : "hello"
+        }
+      }
+    } ],
+    "topics" : [ {
+      "name" : "input",
+      "valueSchema" : "syntax = \"proto3\";\n\nimport \"google/protobuf/wrappers.proto\";\n\nmessage ConfluentDefault1 {\n  google.protobuf.BoolValue c1 = 1;\n  google.protobuf.Int32Value c2 = 2;\n  google.protobuf.Int64Value c3 = 3;\n  google.protobuf.DoubleValue c4 = 4;\n  google.protobuf.StringValue c5 = 5;\n}\n",
+      "valueFormat" : "PROTOBUF",
+      "replicas" : 1,
+      "numPartitions" : 1
+    }, {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM INPUT WITH (kafka_topic='input', value_format='PROTOBUF');", "CREATE STREAM OUTPUT AS SELECT * FROM input;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`C1` STRUCT<`VALUE` BOOLEAN>, `C2` STRUCT<`VALUE` INTEGER>, `C3` STRUCT<`VALUE` BIGINT>, `C4` STRUCT<`VALUE` DOUBLE>, `C5` STRUCT<`VALUE` STRING>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "PROTOBUF",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`C1` STRUCT<`VALUE` BOOLEAN>, `C2` STRUCT<`VALUE` INTEGER>, `C3` STRUCT<`VALUE` BIGINT>, `C4` STRUCT<`VALUE` DOUBLE>, `C5` STRUCT<`VALUE` STRING>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "PROTOBUF",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "input",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "PROTOBUF"
+          },
+          "partitions" : 1,
+          "valueSchema" : "syntax = \"proto3\";\n\nmessage ConfluentDefault1 {\n  BoolValue c1 = 1;\n  Int32Value c2 = 2;\n  Int64Value c3 = 3;\n  DoubleValue c4 = 4;\n  StringValue c5 = 5;\n\n  message BoolValue {\n    bool value = 1;\n  }\n  message Int32Value {\n    int32 value = 1;\n  }\n  message Int64Value {\n    int64 value = 1;\n  }\n  message DoubleValue {\n    double value = 1;\n  }\n  message StringValue {\n    string value = 1;\n  }\n}\n"
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "PROTOBUF"
+          },
+          "partitions" : 4,
+          "valueSchema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  ConnectDefault2 C1 = 1;\n  ConnectDefault3 C2 = 2;\n  ConnectDefault4 C3 = 3;\n  ConnectDefault5 C4 = 4;\n  ConnectDefault6 C5 = 5;\n\n  message ConnectDefault2 {\n    bool VALUE = 1;\n  }\n  message ConnectDefault3 {\n    int32 VALUE = 1;\n  }\n  message ConnectDefault4 {\n    int64 VALUE = 1;\n  }\n  message ConnectDefault5 {\n    double VALUE = 1;\n  }\n  message ConnectDefault6 {\n    string VALUE = 1;\n  }\n}\n"
+        } ]
+      }
+    }
+  }
+}

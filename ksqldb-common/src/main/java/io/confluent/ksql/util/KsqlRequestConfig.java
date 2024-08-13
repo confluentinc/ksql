@@ -56,6 +56,19 @@ public class KsqlRequestConfig extends AbstractConfig {
   private static final String KSQL_REQUEST_QUERY_PUSH_SKIP_FORWARDING_DOC =
       "Controls whether a ksql host forwards a push query request to another host";
 
+  public static final String KSQL_REQUEST_QUERY_PUSH_CONTINUATION_TOKEN =
+      "request.ksql.query.push.continuation.token";
+  public static final String KSQL_REQUEST_QUERY_PUSH_CONTINUATION_TOKEN_DEFAULT = "";
+  private static final String KSQL_REQUEST_QUERY_PUSH_CONTINUATION_TOKEN_DOC =
+      "A continuation token that can be provided which will start a push query off right at the "
+          + "point of that the token was provided.";
+
+  public static final String KSQL_REQUEST_QUERY_PUSH_CATCHUP_CONSUMER_GROUP =
+      "request.ksql.query.push.catchup.consumer.group";
+  public static final String KSQL_REQUEST_QUERY_PUSH_CATCHUP_CONSUMER_GROUP_DEFAULT = "";
+  private static final String KSQL_REQUEST_QUERY_PUSH_CATCHUP_CONSUMER_GROUP_DOC =
+      "The consumer group to use with the catchup client";
+
   private static ConfigDef buildConfigDef() {
     final ConfigDef configDef = new ConfigDef()
         .define(
@@ -88,6 +101,18 @@ public class KsqlRequestConfig extends AbstractConfig {
             KSQL_REQUEST_QUERY_PUSH_SKIP_FORWARDING_DEFAULT,
             ConfigDef.Importance.LOW,
             KSQL_REQUEST_QUERY_PUSH_SKIP_FORWARDING_DOC
+        ).define(
+            KSQL_REQUEST_QUERY_PUSH_CONTINUATION_TOKEN,
+            Type.STRING,
+            KSQL_REQUEST_QUERY_PUSH_CONTINUATION_TOKEN_DEFAULT,
+            ConfigDef.Importance.LOW,
+            KSQL_REQUEST_QUERY_PUSH_CONTINUATION_TOKEN_DOC
+        ).define(
+            KSQL_REQUEST_QUERY_PUSH_CATCHUP_CONSUMER_GROUP,
+            Type.STRING,
+            KSQL_REQUEST_QUERY_PUSH_CATCHUP_CONSUMER_GROUP_DEFAULT,
+            ConfigDef.Importance.LOW,
+            KSQL_REQUEST_QUERY_PUSH_CATCHUP_CONSUMER_GROUP_DOC
         );
     return configDef;
   }

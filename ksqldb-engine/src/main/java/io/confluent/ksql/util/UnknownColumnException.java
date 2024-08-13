@@ -24,6 +24,14 @@ public class UnknownColumnException extends InvalidColumnException  {
   }
 
   public UnknownColumnException(final String prefix, final ColumnReferenceExp column) {
-    super(prefix, column, "cannot be resolved.");
+    this(prefix, column, "cannot be resolved.");
+  }
+
+  public UnknownColumnException(
+      final String prefix,
+      final ColumnReferenceExp column,
+      final String message
+  ) {
+    super(prefix, column, message);
   }
 }

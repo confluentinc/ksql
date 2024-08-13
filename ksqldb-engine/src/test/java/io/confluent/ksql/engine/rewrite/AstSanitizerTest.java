@@ -22,6 +22,7 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.execution.expression.tree.ArithmeticBinaryExpression;
@@ -47,14 +48,34 @@ import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.MetaStoreFixture;
 import java.util.List;
 import java.util.Optional;
+import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.junit.MockitoJUnitRunner;
 
+@RunWith(MockitoJUnitRunner.class)
 public class AstSanitizerTest {
 
   private static final MetaStore META_STORE = MetaStoreFixture
       .getNewMetaStore(mock(FunctionRegistry.class));
 
   private static final SourceName TEST1_NAME = SourceName.of("TEST1");
+
+  @Test
+  public void shouldThrowIfInsertIntoSourceWithHeader() {
+    // Given:
+    final Statement stmt = givenQuery("INSERT INTO TEST1 SELECT * FROM TEST0;");
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> AstSanitizer.sanitize(stmt, META_STORE)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Cannot insert into TEST1 because it has header columns"));
+  }
 
   @Test
   public void shouldThrowIfSourceDoesNotExist() {

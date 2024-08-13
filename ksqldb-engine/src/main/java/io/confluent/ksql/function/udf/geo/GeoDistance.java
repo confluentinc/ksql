@@ -43,7 +43,7 @@ public class GeoDistance {
 
   // effective value of Earth radius (note we technically live on a slightly squashed sphere, not
   // a truly round one, so different authorities will quote slightly different values for the 'best'
-  // value to use as effective radius. The difference between the 2 most commonly-quoted values
+  // value to use as effective radius). The difference between the 2 most commonly-quoted values
   // measures out to about 0.1% in most real-world cases, which is within the margin of error of
   // using this kind of great-circle methodology anyway (~0.5%).
   private static final double EARTH_RADIUS_KM = 6371;

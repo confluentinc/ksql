@@ -22,13 +22,40 @@ import io.confluent.ksql.query.QueryId;
  */
 public final class QueryApplicationId {
 
+  public static String PERSISTENT_QUERY_INDICATOR = "query";
+
   private QueryApplicationId() {
+  }
+
+  public static String buildSharedRuntimeId(
+      final KsqlConfig config,
+      final boolean persistent,
+      final int sharedRuntimeIndex
+  ) {
+    final String queryAppId = buildInternalTopicPrefix(config, persistent) + sharedRuntimeIndex;
+    if (persistent) {
+      return queryAppId;
+    } else {
+      return addTimeSuffix(queryAppId);
+    }
   }
 
   public static String build(
       final KsqlConfig config,
       final boolean persistent,
       final QueryId queryId
+  ) {
+    final String queryAppId = buildInternalTopicPrefix(config, persistent) + queryId;
+    if (persistent) {
+      return queryAppId;
+    } else {
+      return addTimeSuffix(queryAppId);
+    }
+  }
+
+  public static String buildInternalTopicPrefix(
+      final KsqlConfig config,
+      final boolean persistent
   ) {
     final String serviceId = config.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG);
 
@@ -38,15 +65,16 @@ public final class QueryApplicationId {
 
     final String queryPrefix = config.getString(configName);
 
-    final String queryAppId = ReservedInternalTopics.KSQL_INTERNAL_TOPIC_PREFIX
+    return buildInternalTopicPrefix(serviceId, queryPrefix);
+  }
+
+  public static String buildInternalTopicPrefix(
+      final String serviceId,
+      final String queryPrefix
+  ) {
+    return ReservedInternalTopics.KSQL_INTERNAL_TOPIC_PREFIX
         + serviceId
-        + queryPrefix
-        + queryId;
-    if (persistent) {
-      return queryAppId;
-    } else {
-      return addTimeSuffix(queryAppId);
-    }
+        + queryPrefix;
   }
 
   private static String addTimeSuffix(final String original) {

@@ -31,7 +31,6 @@ import io.confluent.ksql.rest.entity.QueryStatusCount;
 import io.confluent.ksql.rest.entity.RunningQuery;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
-import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlConstants.KsqlQueryStatus;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.PersistentQueryMetadata;
@@ -50,7 +49,7 @@ public final class ListQueriesExecutor {
   private ListQueriesExecutor() {
   }
 
-  public static Optional<KsqlEntity> execute(
+  public static StatementExecutorResponse execute(
       final ConfiguredStatement<ListQueries> statement,
       final SessionProperties sessionProperties,
       final KsqlExecutionContext executionContext,
@@ -67,7 +66,7 @@ public final class ListQueriesExecutor {
         : executeSimple(statement, executionContext, remoteHostExecutor);
   }
 
-  private static Optional<KsqlEntity> executeSimple(
+  private static StatementExecutorResponse executeSimple(
       final ConfiguredStatement<ListQueries> statement,
       final KsqlExecutionContext executionContext,
       final RemoteHostExecutor remoteHostExecutor
@@ -76,9 +75,9 @@ public final class ListQueriesExecutor {
         getLocalSimple(executionContext),
         remoteHostExecutor.fetchAllRemoteResults()
     );
-    return Optional.of(new Queries(
+    return StatementExecutorResponse.handled(Optional.of(new Queries(
         statement.getMaskedStatementText(),
-        runningQueries.values()));
+        runningQueries.values())));
   }
 
   private static Map<QueryId, RunningQuery> getLocalSimple(
@@ -95,11 +94,15 @@ public final class ListQueriesExecutor {
                 final PersistentQueryMetadata persistentQuery = (PersistentQueryMetadata) q;
                 return new RunningQuery(
                     q.getStatementString(),
-                    ImmutableSet.of(persistentQuery.getSinkName().text()),
-                    ImmutableSet.of(persistentQuery.getResultTopic().getKafkaTopicName()),
+                    persistentQuery.getSinkName().isPresent()
+                        ? ImmutableSet.of(persistentQuery.getSinkName().get().text())
+                        : ImmutableSet.of(),
+                    persistentQuery.getResultTopic().isPresent()
+                        ? ImmutableSet.of(
+                            persistentQuery.getResultTopic().get().getKafkaTopicName())
+                        : ImmutableSet.of(),
                     q.getQueryId(),
-                    QueryStatusCount.fromStreamsStateCounts(
-                        Collections.singletonMap(q.getState(), 1)),
+                    new QueryStatusCount(Collections.singletonMap(q.getQueryStatus(), 1)),
                     q.getQueryType());
               }
 
@@ -108,8 +111,7 @@ public final class ListQueriesExecutor {
                   ImmutableSet.of(),
                   ImmutableSet.of(),
                   q.getQueryId(),
-                  QueryStatusCount.fromStreamsStateCounts(
-                      Collections.singletonMap(q.getState(), 1)),
+                  new QueryStatusCount(Collections.singletonMap(q.getQueryStatus(), 1)),
                   q.getQueryType());
             }
         ));
@@ -154,7 +156,7 @@ public final class ListQueriesExecutor {
     return allResults;
   }
 
-  private static Optional<KsqlEntity> executeExtended(
+  private static StatementExecutorResponse executeExtended(
       final ConfiguredStatement<ListQueries> statement,
       final SessionProperties sessionProperties,
       final KsqlExecutionContext executionContext,
@@ -165,9 +167,9 @@ public final class ListQueriesExecutor {
         remoteHostExecutor.fetchAllRemoteResults()
     );
 
-    return Optional.of(new QueryDescriptionList(
+    return StatementExecutorResponse.handled(Optional.of(new QueryDescriptionList(
         statement.getMaskedStatementText(),
-        queryDescriptions.values()));
+        queryDescriptions.values())));
   }
 
   private static Map<QueryId, QueryDescription> getLocalExtended(
@@ -183,8 +185,7 @@ public final class ListQueriesExecutor {
                 query,
                 Collections.singletonMap(
                     new KsqlHostInfoEntity(sessionProperties.getKsqlHostInfo()),
-                    KsqlConstants.fromStreamsState(
-                        query.getState())
+                    query.getQueryStatus()
                 ))));
   }
 

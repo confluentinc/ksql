@@ -65,15 +65,14 @@ Install the Docker distribution that's compatible with your operating system.
     stack. The default is 2 GB.
 
 - For macOS, use
-  [Docker Desktop for Mac](https://docs.docker.com/docker-for-mac/install/).
+  [Docker Desktop for Mac](https://docs.docker.com/desktop/mac/install/).
   Change the **Memory** setting on the
-  [Resources](https://docs.docker.com/docker-for-mac/#resources) page to 8 GB.
+  [Resources](https://docs.docker.com/desktop/mac/#resources) page to 8 GB.
 - For Windows, use
-  [Docker Desktop for Windows](https://docs.docker.com/docker-for-windows/install/).
-  Change the **Memory** setting on the
-  [Advanced](https://docs.docker.com/docker-for-windows/#advanced) settings
-  page to 8 GB.
-- For Linux, follow the [instructions](https://docs.docker.com/install/)
+  [Docker Desktop for Windows](https://docs.docker.com/desktop/windows/install/).
+  No memory change is necessary when you run Docker on
+  [WSL 2](https://docs.docker.com/desktop/windows/install/#wsl-2-backend).
+- For Linux, follow the [instructions](https://docs.docker.com/engine/install/)
   for your Linux distribution. No memory change is necessary, because Docker
   runs natively and not in a VM.
 
@@ -226,7 +225,7 @@ Run the following command to start the ksqlDB CLI in the running `ksqldb-cli`
 container.
 
 ```bash
-docker exec ksqldb-cli ksql http://primary-ksqldb-server:8088
+docker exec -it ksqldb-cli ksql http://primary-ksqldb-server:8088
 ```
 
 After the ksqlDB CLI starts, your terminal should resemble the following.
@@ -273,7 +272,7 @@ To interact with a CLI container that's defined this way, use the
 `docker exec` command to start the `ksql` process within the container.
 
 ```bash
-docker exec ksqldb-cli ksql http://<ksqldb-server-host>:<ksqldb-port>
+docker exec -it ksqldb-cli ksql http://<ksqldb-server-host>:<ksqldb-port>
 ```
 
 ### Run a ksqlDB CLI container

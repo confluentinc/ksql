@@ -52,6 +52,15 @@ public class DdlCommandExec {
     this.metaStore = Objects.requireNonNull(metaStore, "metaStore");
   }
 
+  public DdlCommandResult execute(
+      final String sql,
+      final DdlCommand ddlCommand,
+      final boolean withQuery,
+      final Set<SourceName> withQuerySources
+  ) {
+    return execute(sql, ddlCommand, withQuery, withQuerySources, false);
+  }
+
   /**
    * execute on metaStore
    */
@@ -59,24 +68,28 @@ public class DdlCommandExec {
       final String sql,
       final DdlCommand ddlCommand,
       final boolean withQuery,
-      final Set<SourceName> withQuerySources
+      final Set<SourceName> withQuerySources,
+      final boolean restoreInProgress
   ) {
-    return new Executor(sql, withQuery, withQuerySources).execute(ddlCommand);
+    return new Executor(sql, withQuery, withQuerySources, restoreInProgress).execute(ddlCommand);
   }
 
   private final class Executor implements io.confluent.ksql.execution.ddl.commands.Executor {
     private final String sql;
     private final boolean withQuery;
     private final Set<SourceName> withQuerySources;
+    private final boolean restoreInProgress;
 
     private Executor(
         final String sql,
         final boolean withQuery,
-        final Set<SourceName> withQuerySources
+        final Set<SourceName> withQuerySources,
+        final boolean restoreInProgress
     ) {
       this.sql = Objects.requireNonNull(sql, "sql");
       this.withQuery = withQuery;
       this.withQuerySources = Objects.requireNonNull(withQuerySources, "withQuerySources");
+      this.restoreInProgress = restoreInProgress;
     }
 
     @Override
@@ -98,7 +111,8 @@ public class DdlCommandExec {
           createStream.getSchema(),
           createStream.getTimestampColumn(),
           withQuery,
-          getKsqlTopic(createStream)
+          getKsqlTopic(createStream),
+          createStream.getIsSource()
       );
 
       metaStore.putSource(ksqlStream, createStream.isOrReplace());
@@ -118,16 +132,24 @@ public class DdlCommandExec {
                     + "already exists.",
                 sourceName, sourceType.toLowerCase()));
       }
+
       final KsqlTable<?> ksqlTable = new KsqlTable<>(
           sql,
           createTable.getSourceName(),
           createTable.getSchema(),
           createTable.getTimestampColumn(),
           withQuery,
-          getKsqlTopic(createTable)
+          getKsqlTopic(createTable),
+          createTable.getIsSource()
       );
       metaStore.putSource(ksqlTable, createTable.isOrReplace());
-      metaStore.addSourceReferences(ksqlTable.getName(), withQuerySources);
+
+      // Source tables only has a query source reference to itself. We don't need to register
+      // this source for source tables.
+      if (!createTable.getIsSource()) {
+        metaStore.addSourceReferences(ksqlTable.getName(), withQuerySources);
+      }
+
       return new DdlCommandResult(true, "Table created");
     }
 
@@ -138,7 +160,7 @@ public class DdlCommandExec {
       if (dataSource == null) {
         return new DdlCommandResult(true, "Source " + sourceName + " does not exist.");
       }
-      metaStore.deleteSource(sourceName);
+      metaStore.deleteSource(sourceName, restoreInProgress);
       return new DdlCommandResult(true,
           "Source " + sourceName + " (topic: " + dataSource.getKafkaTopicName() + ") was dropped.");
     }

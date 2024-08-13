@@ -36,6 +36,7 @@ import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.tree.AllColumns;
 import io.confluent.ksql.parser.tree.SelectItem;
 import io.confluent.ksql.parser.tree.SingleColumn;
+import io.confluent.ksql.parser.tree.StructAll;
 import io.confluent.ksql.planner.QueryPlannerOptions;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SystemColumns;
@@ -55,6 +56,7 @@ public class QueryProjectNodeTest {
 
   private static final PlanNodeId NODE_ID = new PlanNodeId("1");
   private static final ColumnName K = ColumnName.of("K");
+  private static final ColumnName H = ColumnName.of("H");
   private static final ColumnName COL0 = ColumnName.of("COL0");
   private static final ColumnName ALIAS = ColumnName.of("GRACE");
   private static final SourceName SOURCE_NAME = SourceName.of("SOURCE");
@@ -70,6 +72,7 @@ public class QueryProjectNodeTest {
       .valueColumn(COL0, SqlTypes.STRING)
       .valueColumn(ColumnName.of("ROWKEY"), SqlTypes.STRING)
       .valueColumn(K, SqlTypes.STRING)
+      .headerColumn(H, Optional.empty())
       .build();
 
   @Mock
@@ -126,7 +129,8 @@ public class QueryProjectNodeTest {
     );
 
     // Then:
-    final LogicalSchema expectedSchema = INPUT_SCHEMA.withPseudoAndKeyColsInValue(false);
+    final LogicalSchema expectedSchema = QueryLogicalPlanUtil.buildIntermediateSchema(
+        INPUT_SCHEMA, true, false);
     assertThat(expectedSchema, is(projectNode.getIntermediateSchema()));
   }
 
@@ -151,7 +155,8 @@ public class QueryProjectNodeTest {
     );
 
     // Then:
-    final LogicalSchema expectedSchema = INPUT_SCHEMA.withPseudoAndKeyColsInValue(true);
+    final LogicalSchema expectedSchema = QueryLogicalPlanUtil.buildIntermediateSchema(
+        INPUT_SCHEMA, true, true);;
     assertThat(expectedSchema, is(projectNode.getIntermediateSchema()));
   }
 
@@ -160,6 +165,7 @@ public class QueryProjectNodeTest {
     // Given:
     selects = ImmutableList.of(new SingleColumn(COL0_REF, Optional.of(ALIAS)));
     when(keyFormat.isWindowed()).thenReturn(false);
+    when(analysis.getSelectColumnNames()).thenReturn(ImmutableSet.of(ALIAS));
 
     // When:
     final QueryProjectNode projectNode = new QueryProjectNode(
@@ -175,7 +181,8 @@ public class QueryProjectNodeTest {
     );
 
     // Then:
-    assertThat(INPUT_SCHEMA, is(projectNode.getIntermediateSchema()));
+    assertThat(INPUT_SCHEMA.withoutPseudoAndKeyColsInValue(),
+        is(projectNode.getIntermediateSchema()));
   }
 
   @Test
@@ -183,6 +190,7 @@ public class QueryProjectNodeTest {
     // Given:
     selects = ImmutableList.of(new SingleColumn(K_REF, Optional.of(K)));
     when(keyFormat.isWindowed()).thenReturn(false);
+    when(analysis.getSelectColumnNames()).thenReturn(ImmutableSet.of(K));
 
     // When:
     final QueryProjectNode projectNode = new QueryProjectNode(
@@ -219,6 +227,8 @@ public class QueryProjectNodeTest {
         .add(new SingleColumn(windowstartRef, Optional.of(SystemColumns.WINDOWSTART_NAME)))
         .add((new SingleColumn(windowendRef, Optional.of(SystemColumns.WINDOWEND_NAME))))
         .add((new SingleColumn(K_REF, Optional.of(K)))).build();
+    when(analysis.getSelectColumnNames()).thenReturn(
+        ImmutableSet.of(SystemColumns.WINDOWSTART_NAME, SystemColumns.WINDOWEND_NAME, K));
 
     // When:
     final QueryProjectNode projectNode = new QueryProjectNode(
@@ -257,6 +267,8 @@ public class QueryProjectNodeTest {
         .add(new SingleColumn(windowstartRef, Optional.of(SystemColumns.WINDOWSTART_NAME)))
         .add((new SingleColumn(windowendRef, Optional.of(SystemColumns.WINDOWEND_NAME))))
         .add((new SingleColumn(COL0_REF, Optional.of(COL0)))).build();
+    when(analysis.getSelectColumnNames()).thenReturn(
+        ImmutableSet.of(SystemColumns.WINDOWSTART_NAME, SystemColumns.WINDOWEND_NAME, COL0));
 
     // When:
     final QueryProjectNode projectNode = new QueryProjectNode(
@@ -303,12 +315,98 @@ public class QueryProjectNodeTest {
 
     // Then:
     final LogicalSchema expectedSchema = INPUT_SCHEMA;
-    assertThat(expectedSchema.withPseudoAndKeyColsInValue(false),
-        is(projectNode.getIntermediateSchema()));
+    final LogicalSchema expectedIntermediateSchema = QueryLogicalPlanUtil.buildIntermediateSchema(
+        INPUT_SCHEMA, true, false);
+    assertThat(expectedIntermediateSchema, is(projectNode.getIntermediateSchema()));
     assertThat(expectedSchema.withoutPseudoAndKeyColsInValue(), is(projectNode.getSchema()));
     assertThrows(
         IllegalStateException.class,
         projectNode::getCompiledSelectExpressions
     );
   }
+
+  @Test
+  public void shouldSelectEntireStruct() {
+    // Given:
+    final ColumnName structColumn = ColumnName.of("STRUCT_COL");
+
+    final LogicalSchema inputSchema = LogicalSchema.builder()
+        .keyColumn(K, SqlTypes.STRING)
+        .valueColumn(structColumn, SqlTypes.struct()
+            .field("NESTED_FIELD1", SqlTypes.STRING)
+            .field("NESTED_FIELD2", SqlTypes.INTEGER)
+            .build())
+        .build();
+
+    when(source.getSchema()).thenReturn(inputSchema);
+    selects = ImmutableList.of(new SingleColumn(new UnqualifiedColumnReferenceExp(structColumn), Optional.of(structColumn)));
+    when(keyFormat.isWindowed()).thenReturn(false);
+    when(analysis.getSelectColumnNames()).thenReturn(ImmutableSet.of(structColumn));
+
+    // When:
+    final QueryProjectNode projectNode = new QueryProjectNode(
+        NODE_ID,
+        source,
+        selects,
+        metaStore,
+        ksqlConfig,
+        analysis,
+        false,
+        plannerOptions,
+        false
+    );
+
+    // Then:
+    final LogicalSchema expectedSchema = LogicalSchema.builder()
+        .valueColumn(structColumn, SqlTypes.struct()
+            .field("NESTED_FIELD1", SqlTypes.STRING)
+            .field("NESTED_FIELD2", SqlTypes.INTEGER)
+            .build())
+        .build();
+
+    assertThat(expectedSchema, is(projectNode.getSchema()));
+  }
+
+  @Test
+  public void shouldExpandSelectStructStarColumns() {
+    // Given:
+    final ColumnName structColumn = ColumnName.of("STRUCT_COL");
+    final ColumnName nestedField1 = ColumnName.of("NESTED_FIELD1");
+    final ColumnName nestedField2 = ColumnName.of("NESTED_FIELD2");
+
+    final LogicalSchema inputSchema = LogicalSchema.builder()
+        .keyColumn(K, SqlTypes.STRING)
+        .valueColumn(structColumn, SqlTypes.struct()
+            .field("NESTED_FIELD1", SqlTypes.STRING)
+            .field("NESTED_FIELD2", SqlTypes.INTEGER)
+            .build())
+        .build();
+
+    when(source.getSchema()).thenReturn(inputSchema);
+    selects = ImmutableList.of(new StructAll(new UnqualifiedColumnReferenceExp(structColumn)));
+    when(keyFormat.isWindowed()).thenReturn(false);
+    when(analysis.getSelectColumnNames()).thenReturn(ImmutableSet.of(structColumn));
+
+    // When:
+    final QueryProjectNode projectNode = new QueryProjectNode(
+        NODE_ID,
+        source,
+        selects,
+        metaStore,
+        ksqlConfig,
+        analysis,
+        false,
+        plannerOptions,
+        false
+    );
+
+    // Then:
+    final LogicalSchema expectedSchema = LogicalSchema.builder()
+        .valueColumn(ColumnName.of("NESTED_FIELD1"), SqlTypes.STRING)
+        .valueColumn(ColumnName.of("NESTED_FIELD2"), SqlTypes.INTEGER)
+        .build();
+
+    assertThat(expectedSchema, is(projectNode.getSchema()));
+  }
+
 }

@@ -14,30 +14,45 @@
 
 package io.confluent.ksql.rest.server.computation;
 
+import com.google.common.util.concurrent.RateLimiter;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
+import io.confluent.ksql.name.SourceName;
+import io.confluent.ksql.parser.tree.CreateStream;
+import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
+import io.confluent.ksql.parser.tree.CreateTable;
+import io.confluent.ksql.parser.tree.CreateTableAsSelect;
 import io.confluent.ksql.parser.tree.InsertInto;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.entity.CommandId;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
-import io.confluent.ksql.rest.entity.KsqlEntity;
+import io.confluent.ksql.rest.entity.KsqlWarning;
+import io.confluent.ksql.rest.entity.WarningEntity;
+import io.confluent.ksql.rest.server.KsqlRestConfig;
+import io.confluent.ksql.rest.server.execution.StatementExecutorResponse;
+import io.confluent.ksql.rest.server.resources.KsqlRestException;
 import io.confluent.ksql.security.KsqlAuthorizationValidator;
 import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.statement.Injector;
+import io.confluent.ksql.statement.InjectorWithSideEffects;
+import io.confluent.ksql.statement.InjectorWithSideEffects.ConfiguredStatementWithSideEffects;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlServerException;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.ReservedInternalTopics;
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
 import org.apache.kafka.clients.producer.Producer;
@@ -52,7 +67,9 @@ import org.apache.kafka.common.errors.TimeoutException;
  * duration for the command to be executed remotely if configured with a
  * {@code distributedCmdResponseTimeout}.
  */
+// CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public class DistributingExecutor {
+  // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
   private final CommandQueue commandQueue;
   private final Duration distributedCmdResponseTimeout;
   private final BiFunction<KsqlExecutionContext, ServiceContext, Injector> injectorFactory;
@@ -62,6 +79,7 @@ public class DistributingExecutor {
   private final ReservedInternalTopics internalTopics;
   private final Errors errorHandler;
   private final Supplier<String> commandRunnerWarning;
+  private final RateLimiter rateLimiter;
 
   @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
   public DistributingExecutor(
@@ -90,7 +108,49 @@ public class DistributingExecutor {
     this.errorHandler = Objects.requireNonNull(errorHandler, "errorHandler");
     this.commandRunnerWarning =
         Objects.requireNonNull(commandRunnerWarning, "commandRunnerWarning");
+    final KsqlRestConfig restConfig = new KsqlRestConfig(ksqlConfig.originals());
+    this.rateLimiter = 
+      RateLimiter.create(restConfig.getDouble(KsqlRestConfig.KSQL_COMMAND_TOPIC_RATE_LIMIT_CONFIG));
   }
+
+  // CHECKSTYLE_RULES.OFF: CyclomaticComplexity
+  private Optional<StatementExecutorResponse> checkIfNotExistsResponse(
+      final KsqlExecutionContext executionContext,
+      final ConfiguredStatement<?> statement
+  ) {
+    SourceName sourceName = null;
+    String type = "";
+    if (statement.getStatement() instanceof CreateStream
+        && ((CreateStream) statement.getStatement()).isNotExists()) {
+      type = "stream";
+      sourceName = ((CreateStream) statement.getStatement()).getName();
+    } else if (statement.getStatement() instanceof CreateTable
+        && ((CreateTable) statement.getStatement()).isNotExists()) {
+      type = "table";
+      sourceName = ((CreateTable) statement.getStatement()).getName();
+    } else if (statement.getStatement() instanceof CreateTableAsSelect
+        && ((CreateTableAsSelect) statement.getStatement()).isNotExists()) {
+      type = "table";
+      sourceName = ((CreateTableAsSelect) statement.getStatement()).getName();
+    } else if (statement.getStatement() instanceof CreateStreamAsSelect
+        && ((CreateStreamAsSelect) statement.getStatement()).isNotExists()) {
+      type = "stream";
+      sourceName = ((CreateStreamAsSelect) statement.getStatement()).getName();
+    }
+    if (sourceName != null
+        && executionContext.getMetaStore().getSource(sourceName) != null) {
+      return Optional.of(StatementExecutorResponse.handled(Optional.of(
+          new WarningEntity(statement.getMaskedStatementText(),
+              String.format("Cannot add %s %s: A %s with the same name already exists.",
+                  type,
+                  sourceName,
+                  type)
+          ))));
+    } else {
+      return Optional.empty();
+    }
+  }
+
 
   /**
    * The transactional protocol for sending a command to the command topic is to
@@ -102,7 +162,8 @@ public class DistributingExecutor {
    * If a new transactional producer is initialized while the current transaction is incomplete,
    * the old producer will be fenced off and unable to continue with its transaction.
    */
-  public Optional<KsqlEntity> execute(
+  // CHECKSTYLE_RULES.OFF: NPathComplexity
+  public StatementExecutorResponse execute(
       final ConfiguredStatement<? extends Statement> statement,
       final KsqlExecutionContext executionContext,
       final KsqlSecurityContext securityContext
@@ -113,15 +174,42 @@ public class DistributingExecutor {
           + System.lineSeparator()
           + commandRunnerWarningString);
     }
-    final ConfiguredStatement<?> injected = injectorFactory
-        .apply(executionContext, securityContext.getServiceContext())
-        .inject(statement);
+    final InjectorWithSideEffects injector = InjectorWithSideEffects.wrap(
+            injectorFactory.apply(executionContext, securityContext.getServiceContext()));
+    final ConfiguredStatementWithSideEffects<?> injectedWithSideEffects =
+            injector.injectWithSideEffects(statement);
+    try {
+      return executeInjected(
+            injectedWithSideEffects.getStatement(),
+            statement,
+            executionContext,
+            securityContext);
+    } catch (Exception e) {
+      injector.revertSideEffects(injectedWithSideEffects);
+      throw e;
+    }
+  }
 
+  private StatementExecutorResponse executeInjected(
+      final ConfiguredStatement<?> injected,
+      final ConfiguredStatement<? extends Statement> original,
+      final KsqlExecutionContext executionContext,
+      final KsqlSecurityContext securityContext
+  ) {
     if (injected.getStatement() instanceof InsertInto) {
-      throwIfInsertOnReadOnlyTopic(
+      validateInsertIntoQueries(
           executionContext.getMetaStore(),
-          (InsertInto)injected.getStatement()
+          (InsertInto) injected.getStatement()
       );
+    }
+
+    final Optional<StatementExecutorResponse> response = checkIfNotExistsResponse(
+        executionContext,
+        original
+    );
+
+    if (response.isPresent()) {
+      return response.get();
     }
 
     checkAuthorization(injected, securityContext, executionContext);
@@ -138,11 +226,18 @@ public class DistributingExecutor {
           "Could not write the statement into the command topic: " + e.getMessage(),
           String.format(
               "Could not write the statement '%s' into the command topic: " + e.getMessage(),
-              statement.getMaskedStatementText()
+              original.getMaskedStatementText()
           ),
-          statement.getMaskedStatementText(),
+          original.getMaskedStatementText(),
           KsqlStatementException.Problem.OTHER,
           e);
+    }
+
+    if (!rateLimiter.tryAcquire(1, TimeUnit.SECONDS)) {
+      throw new KsqlRestException(
+        Errors.tooManyRequests(
+          "DDL/DML rate is crossing the configured rate limit of statements/second"
+        ));
     }
 
     CommandId commandId = null;
@@ -150,7 +245,7 @@ public class DistributingExecutor {
       transactionalProducer.beginTransaction();
       commandQueue.waitForCommandConsumer();
 
-      commandId = commandIdAssigner.getCommandId(statement.getStatement());
+      commandId = commandIdAssigner.getCommandId(original.getStatement());
       final Command command = validatedCommandFactory.create(
           injected,
           executionContext.createSandbox(executionContext.getServiceContext())
@@ -162,12 +257,13 @@ public class DistributingExecutor {
       final CommandStatus commandStatus = queuedCommandStatus
           .tryWaitForFinalStatus(distributedCmdResponseTimeout);
 
-      return Optional.of(new CommandStatusEntity(
+      return StatementExecutorResponse.handled(Optional.of(new CommandStatusEntity(
           injected.getMaskedStatementText(),
           queuedCommandStatus.getCommandId(),
           commandStatus,
-          queuedCommandStatus.getCommandSequenceNumber()
-      ));
+          queuedCommandStatus.getCommandSequenceNumber(),
+          getDeprecatedWarnings(executionContext.getMetaStore(), injected)
+      )));
     } catch (final ProducerFencedException
         | OutOfOrderSequenceException
         | AuthorizationException e
@@ -181,9 +277,9 @@ public class DistributingExecutor {
           "Could not write the statement into the command topic.",
           String.format(
               "Could not write the statement '%s' into the command topic.",
-              statement.getMaskedStatementText()
+              original.getMaskedStatementText()
           ),
-          statement.getMaskedStatementText(),
+          original.getMaskedStatementText(),
           KsqlStatementException.Problem.OTHER,
           e
       );
@@ -196,15 +292,32 @@ public class DistributingExecutor {
           "Could not write the statement into the command topic.",
           String.format(
               "Could not write the statement '%s' into the command topic.",
-              statement.getMaskedStatementText()
+              original.getMaskedStatementText()
           ),
-          statement.getMaskedStatementText(),
+          original.getMaskedStatementText(),
           KsqlStatementException.Problem.OTHER,
           e
       );
     } finally {
       transactionalProducer.close();
     }
+  }
+
+  /**
+   * @return a list of warning messages for deprecated syntax statements
+   */
+  private List<KsqlWarning> getDeprecatedWarnings(
+      final MetaStore metaStore,
+      final ConfiguredStatement<?> statement
+  ) {
+    final List<KsqlWarning> deprecatedWarnings = new ArrayList<>();
+    final DeprecatedStatementsChecker checker = new DeprecatedStatementsChecker(metaStore);
+
+    checker.checkStatement(statement.getStatement())
+        .ifPresent(deprecations ->
+            deprecatedWarnings.add(new KsqlWarning(deprecations.getNoticeMessage())));
+
+    return deprecatedWarnings;
   }
 
   private void checkAuthorization(
@@ -232,7 +345,7 @@ public class DistributingExecutor {
     }
   }
 
-  private void throwIfInsertOnReadOnlyTopic(
+  private void validateInsertIntoQueries(
       final MetaStore metaStore,
       final InsertInto insertInto
   ) {
@@ -245,6 +358,11 @@ public class DistributingExecutor {
     if (internalTopics.isReadOnly(dataSource.getKafkaTopicName())) {
       throw new KsqlException("Cannot insert into read-only topic: "
           + dataSource.getKafkaTopicName());
+    }
+
+    if (!dataSource.getSchema().headers().isEmpty()) {
+      throw new KsqlException("Cannot insert into " + insertInto.getTarget().text()
+          + " because it has header columns");
     }
   }
 }

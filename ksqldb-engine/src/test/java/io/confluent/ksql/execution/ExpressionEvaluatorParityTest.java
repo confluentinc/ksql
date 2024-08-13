@@ -1,5 +1,6 @@
 package io.confluent.ksql.execution;
 
+import static org.hamcrest.CoreMatchers.anyOf;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
@@ -16,11 +17,11 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.engine.rewrite.ExpressionTreeRewriter;
 import io.confluent.ksql.engine.rewrite.ExpressionTreeRewriter.Context;
 import io.confluent.ksql.execution.codegen.CodeGenRunner;
-import io.confluent.ksql.execution.interpreter.InterpretedExpressionFactory;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.QualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.VisitParentExpressionVisitor;
+import io.confluent.ksql.execution.interpreter.InterpretedExpressionFactory;
 import io.confluent.ksql.execution.transform.ExpressionEvaluator;
 import io.confluent.ksql.function.TestFunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
@@ -35,6 +36,7 @@ import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlParserTestUtil;
+import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.MetaStoreFixture;
 import java.math.BigDecimal;
 import java.nio.ByteBuffer;
@@ -49,6 +51,7 @@ import java.util.concurrent.Callable;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
+import org.hamcrest.CoreMatchers;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -65,6 +68,8 @@ public class ExpressionEvaluatorParityTest {
   private static final String STREAM_NAME = "ORDERS";
   private static final long ORDER_ID = 10;
   private static final long ROW_TIME = 20000;
+  private static final long ROWPARTITION = 5;
+  private static final long ROWOFFSET = 100;
   private static final long ORDER_TIME = 100;
   private static final String ITEM_ID = "item_id_0";
   private static final long ITEM_ITEM_ID = 890;
@@ -109,7 +114,7 @@ public class ExpressionEvaluatorParityTest {
     final Map<String, Double> map = ImmutableMap.of("abc", 6.75d, "def", 9.5d);
     // Note key isn't included first since it's assumed that it's provided as a value
     ordersRow = GenericRow.genericRow(ORDER_ID, ITEM_ID, itemInfo, ORDER_UNITS,
-        doubleArray, map, null, TIMESTAMP, TIME, DATE, BYTES, ROW_TIME, ORDER_TIME);
+        doubleArray, map, null, TIMESTAMP, TIME, DATE, BYTES, ROW_TIME, ROWPARTITION, ROWOFFSET, ORDER_TIME);
   }
 
   @After
@@ -122,22 +127,22 @@ public class ExpressionEvaluatorParityTest {
     assertOrders("ORDERTIME <= 100 AND ITEMID + '-blah' = 'item_id_0-blah'", true);
     assertOrders("ORDERID > 9.5 AND ORDERUNITS < 50.75", true);
     assertOrdersError("ORDERID > ARRAY[0]",
-        compileTime("Cannot compare ORDERID (BIGINT) to ARRAY[0]"),
-        compileTime("Cannot compare ORDERID (BIGINT) to ARRAY[0]"));
+        compileTime("Cannot compare BIGINT to ARRAY<INTEGER>"),
+        compileTime("Cannot compare BIGINT to ARRAY<INTEGER>"));
     assertOrders("ARRAY[0,1] = ARRAY[0,1]", true);
     assertOrders("ARRAYCOL = ARRAY[3.5e0, 5.25e0]", true);
     assertOrders("ARRAYCOL = ARRAY[3.5e0, 7.25e0]", false);
     assertOrders("MAPCOL = MAP('abc' := 6.75e0, 'def' := 9.5e0)", true);
     assertOrders("MAPCOL = MAP('abc' := 6.75e0, 'xyz' := 9.5e0)", false);
     assertOrdersError("ARRAYCOL = MAPCOL",
-        compileTime("Cannot compare ARRAYCOL (ARRAY<DOUBLE>) to MAPCOL (MAP<STRING, DOUBLE>)"),
-        compileTime("Cannot compare ARRAYCOL (ARRAY<DOUBLE>) to MAPCOL (MAP<STRING, DOUBLE>)"));
+        compileTime("Cannot compare ARRAY<DOUBLE> to MAP<STRING, DOUBLE>"),
+        compileTime("Cannot compare ARRAY<DOUBLE> to MAP<STRING, DOUBLE>"));
     assertOrders("TIMESTAMPCOL > DATECOL", true);
     assertOrders("TIMECOL > '03:00:00'", false);
     assertOrders("DATECOL = '1970-01-11'", true);
     assertOrdersError("TIMESTAMPCOL = TIMECOL",
         compileTime("Unexpected comparison to TIME: TIMESTAMP"),
-        compileTime("Cannot compare TIMESTAMPCOL (TIMESTAMP) to TIMECOL (TIME)"));
+        compileTime("Cannot compare TIMESTAMP to TIME"));
     assertOrders("BYTESCOL = BYTESCOL", true);
   }
 
@@ -145,7 +150,7 @@ public class ExpressionEvaluatorParityTest {
   public void shouldDoComparisons_null() throws Exception {
     ordersRow = GenericRow.genericRow(null, null, null, null, null, null, null, null, null);
     assertOrdersError("1 = null",
-        compileTime("Unexpected error generating code for Test. expression:(1 = null)"),
+        compileTime("Unexpected error generating code for Test"),
         compileTime("Invalid expression: Comparison with NULL not supported: INTEGER = NULL"));
     assertOrders("ORDERID = 1", false);
     assertOrders("ITEMID > 'a'", false);
@@ -156,7 +161,8 @@ public class ExpressionEvaluatorParityTest {
     assertOrders("ITEMINFO->NAME", ITEM_NAME);
     assertOrders("ITEMINFO->CATEGORY->NAME", CATEGORY_NAME);
     assertOrders("'a-' + ITEMINFO->CATEGORY->NAME + '-b'", "a-cat-b");
-    assertOrdersError("ADDRESS->STREET + 'foo'", evalLogger(null));
+    // Due to https://github.com/confluentinc/ksql/issues/9136 the next assert cannot be updated.
+    // assertOrders("ADDRESS->STREET + 'foo'", null);
   }
 
   @Test
@@ -183,8 +189,8 @@ public class ExpressionEvaluatorParityTest {
         evalLogger("Rounding necessary"),
         evalLogger("Rounding necessary"));
     assertOrdersError("1 + 'a'",
-        compileTime("Unsupported arithmetic types"),
-        compileTime("Unsupported arithmetic types"));
+        compileTime("Error processing expression"),
+        compileTime("Error processing expression"));
   }
 
   @Test
@@ -192,32 +198,35 @@ public class ExpressionEvaluatorParityTest {
     ordersRow = GenericRow.genericRow(null, null, null, null, null, null, null, null, null);
 
     //The error message coming from the compiler and the interpreter should be the same
-    assertOrdersError("1 + null",  compileTime("Error processing expression: (1 + null). Arithmetic on types INTEGER and null are not supported."),
-        compileTime("Error processing expression: (1 + null). Arithmetic on types INTEGER and null are not supported."));
+    assertOrdersError(
+        "1 + null",
+        compileTime("Error processing expression"),
+        compileTime("Error processing expression")
+    );
 
-    assertOrdersError("'a' + null",  compileTime("Error processing expression: ('a' + null). Arithmetic on types STRING and null are not supported."),
-        compileTime("Error processing expression: ('a' + null). Arithmetic on types STRING and null are not supported."));
+    assertOrdersError("'a' + null",  compileTime("Error processing expression"),
+        compileTime("Error processing expression"));
 
-    assertOrdersError("MAP(1 := 'cat') + null",  compileTime("Error processing expression: (MAP(1:='cat') + null). Arithmetic on types MAP<INTEGER, STRING> and null are not supported."),
-            compileTime("Error processing expression: (MAP(1:='cat') + null). Arithmetic on types MAP<INTEGER, STRING> and null are not supported."));
+    assertOrdersError("MAP(1 := 'cat') + null",  compileTime("Error processing expression"),
+            compileTime("Error processing expression"));
 
-    assertOrdersError("Array[1,2,3] + null",  compileTime("Error processing expression: (ARRAY[1, 2, 3] + null). Arithmetic on types ARRAY<INTEGER> and null are not supported."),
-            compileTime("Error processing expression: (ARRAY[1, 2, 3] + null). Arithmetic on types ARRAY<INTEGER> and null are not supported."));
+    assertOrdersError("Array[1,2,3] + null",  compileTime("Error processing expression"),
+            compileTime("Error processing expression"));
 
-    assertOrdersError("1 - null",  compileTime("Error processing expression: (1 - null). Arithmetic on types INTEGER and null are not supported."),
-            compileTime("Error processing expression: (1 - null). Arithmetic on types INTEGER and null are not supported."));
+    assertOrdersError("1 - null",  compileTime("Error processing expression"),
+            compileTime("Error processing expression"));
 
-    assertOrdersError("1 * null",  compileTime("Error processing expression: (1 * null). Arithmetic on types INTEGER and null are not supported."),
-            compileTime("Error processing expression: (1 * null). Arithmetic on types INTEGER and null are not supported."));
+    assertOrdersError("1 * null",  compileTime("Error processing expression"),
+            compileTime("Error processing expression"));
 
-    assertOrdersError("1 / null",  compileTime("Error processing expression: (1 / null). Arithmetic on types INTEGER and null are not supported."),
-            compileTime("Error processing expression: (1 / null). Arithmetic on types INTEGER and null are not supported."));
+    assertOrdersError("1 / null",  compileTime("Error processing expression"),
+            compileTime("Error processing expression"));
 
-    assertOrdersError("null + null",  compileTime("Error processing expression: (null + null). Arithmetic on types null and null are not supported."),
-            compileTime("Error processing expression: (null + null). Arithmetic on types null and null are not supported."));
+    assertOrdersError("null + null",  compileTime("Error processing expression"),
+            compileTime("Error processing expression"));
 
-    assertOrdersError("null / 0",  compileTime("Error processing expression: (null / 0). Arithmetic on types null and INTEGER are not supported."),
-            compileTime("Error processing expression: (null / 0). Arithmetic on types null and INTEGER are not supported."));
+    assertOrdersError("null / 0",  compileTime("Error processing expression"),
+            compileTime("Error processing expression"));
 
     assertOrdersError("1 + ORDERID",  evalLogger(null));
   }
@@ -421,9 +430,10 @@ public class ExpressionEvaluatorParityTest {
       verify(processingLogger, times(1)).error(errorMessageCaptor.capture());
       RecordProcessingError processingError
           = ((RecordProcessingError) errorMessageCaptor.getValue());
-      if (error.get().getMessage() == null) {
-        assertThat(processingError.getException().get().getMessage(), nullValue());
-      } else {
+      if (error.get().getMessage() != null) {
+        assertThat(
+            "processing error should have exception",
+            processingError.getException().isPresent());
         assertThat(processingError.getException().get().getMessage(),
             containsString(error.get().getMessage()));
       }

@@ -36,11 +36,35 @@ public final class SessionConfig {
    * Create an instance.
    *
    * @param systemConfig the system config the server started up with.
-   * @param overrides the overrides that came as part of the users request.
+   * @param overrides    the overrides that came as part of the users request.
    * @return the session config
    */
   public static SessionConfig of(final KsqlConfig systemConfig, final Map<String, ?> overrides) {
     return new SessionConfig(systemConfig, overrides);
+  }
+
+  /**
+   * Create a new sessionConfig with additional overrides
+   *
+   * @param additionOverrides additional overrides to pass
+   * @return the session config
+   */
+  public SessionConfig copyWith(final Map<String, ?> additionOverrides) {
+    final ImmutableMap<String, Object> newOverrides = ImmutableMap.<String, Object>builder()
+        .putAll(overrides)
+        .putAll(additionOverrides).build();
+
+    return new SessionConfig(systemConfig, newOverrides);
+  }
+
+  /**
+   * Create a new sessionConfig with new overrides
+   *
+   * @param newOverrides additional overrides to pass
+   * @return the session config
+   */
+  public SessionConfig withNewOverrides(final Map<String, ?> newOverrides) {
+    return new SessionConfig(systemConfig, newOverrides);
   }
 
   private SessionConfig(final KsqlConfig systemConfig, final Map<String, ?> overrides) {
@@ -61,7 +85,6 @@ public final class SessionConfig {
    *
    * @param withOverridesApplied flag to indicate if the user supplied overrides should be applied.
    * @return the config.
-   *
    */
   public KsqlConfig getConfig(final boolean withOverridesApplied) {
     return withOverridesApplied

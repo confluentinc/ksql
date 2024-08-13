@@ -17,10 +17,17 @@ package io.confluent.ksql.api.server;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.rest.entity.ConsistencyToken;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
+import io.confluent.ksql.rest.entity.PushContinuationToken;
 import io.confluent.ksql.rest.entity.QueryResponseMetadata;
+import io.confluent.ksql.util.KeyValue;
+import io.confluent.ksql.util.KeyValueMetadata;
 import io.vertx.core.http.HttpServerResponse;
+import java.util.List;
 import java.util.Objects;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Writes the query response stream in delimited format.
@@ -40,6 +47,8 @@ import java.util.Objects;
  * <p>Please consult the API documentation for a full description of the format.
  */
 public class DelimitedQueryStreamResponseWriter implements QueryStreamResponseWriter {
+  private static final Logger LOG
+      = LoggerFactory.getLogger(DelimitedQueryStreamResponseWriter.class);
 
   private final HttpServerResponse response;
 
@@ -55,8 +64,22 @@ public class DelimitedQueryStreamResponseWriter implements QueryStreamResponseWr
   }
 
   @Override
-  public QueryStreamResponseWriter writeRow(final GenericRow row) {
-    response.write(ServerUtils.serializeObject(row.values()).appendString("\n"));
+  public QueryStreamResponseWriter writeRow(
+      final KeyValueMetadata<List<?>, GenericRow> keyValueMetadata
+  ) {
+    final KeyValue<List<?>, GenericRow> keyValue = keyValueMetadata.getKeyValue();
+    if (keyValue.value() == null) {
+      LOG.warn("Dropped tombstone. Not currently supported");
+    } else {
+      response.write(ServerUtils.serializeObject(keyValue.value().values()).appendString("\n"));
+    }
+    return this;
+  }
+
+  @Override
+  public QueryStreamResponseWriter writeContinuationToken(
+      final PushContinuationToken pushContinuationToken) {
+    response.write(ServerUtils.serializeObject(pushContinuationToken).appendString("\n"));
     return this;
   }
 
@@ -65,6 +88,23 @@ public class DelimitedQueryStreamResponseWriter implements QueryStreamResponseWr
     response.write(ServerUtils.serializeObject(error).appendString("\n"));
     return this;
   }
+
+  @Override
+  public QueryStreamResponseWriter writeConsistencyToken(final ConsistencyToken consistencyToken) {
+    response.write(ServerUtils.serializeObject(consistencyToken).appendString("\n"));
+    return this;
+  }
+
+  @Override
+  public QueryStreamResponseWriter writeCompletionMessage() {
+    return this;
+  }
+
+  @Override
+  public QueryStreamResponseWriter writeLimitMessage() {
+    return this;
+  }
+
 
   @Override
   public void end() {

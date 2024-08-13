@@ -19,17 +19,24 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
+    <scm>
+        <connection>scm:git:git://github.com/confluentinc/ksql.git</connection>
+        <developerConnection>scm:git:git@github.com:confluentinc/ksql.git</developerConnection>
+        <url>https://github.com/confluentinc/ksql</url>
+        <tag>HEAD</tag>
+    </scm>
+  
     <parent>
         <groupId>io.confluent</groupId>
         <artifactId>common</artifactId>
-        <version>[7.0.16-0, 7.0.17-0)</version>
+        <version>[7.8.0-0, 7.8.1-0)</version>
     </parent>
 
     <groupId>io.confluent.ksql</groupId>
     <artifactId>ksqldb-parent</artifactId>
     <packaging>pom</packaging>
     <name>ksqldb-parent</name>
-    <version>7.0.16-0</version>
+    <version>7.8.0-0</version>
 
     <licenses>
         <license>
@@ -40,6 +47,7 @@
     </licenses>
 
     <modules>
+        <module>ksqldb-stream-lib</module>
         <module>ksqldb-udf</module>
         <module>ksqldb-common</module>
         <module>ksqldb-udf-quickstart</module>
@@ -67,6 +75,7 @@
         <module>ksqldb-api-reactive-streams-tck</module>
         <module>ksqldb-api-client</module>
         <module>ksqldb-engine-common</module>
+        <module>ksqldb-testing-tool</module>
     </modules>
 
     <repositories>
@@ -103,11 +112,11 @@
         <podam.version>6.0.2.RELEASE</podam.version>
         <airlift.version>0.29</airlift.version>
         <airline.version>2.6.0</airline.version>
-        <antlr.version>4.7.1</antlr.version>
+        <antlr.version>4.9.2</antlr.version>
         <commons-text.version>1.10.0</commons-text.version>
         <csv.version>1.4</csv.version>
         <commons.compress.version>1.26.0</commons.compress.version>
-        <lang3.version>3.3.1</lang3.version>
+        <lang3.version>3.5</lang3.version>
         <retrying.version>2.0.0</retrying.version>
         <inject.version>1</inject.version>
         <janino.version>3.1.10</janino.version>
@@ -119,11 +128,10 @@
         <really.executable.jar.version>1.5.0</really.executable.jar.version>
         <generext.version>1.0.2</generext.version>
         <avro.random.generator.version>0.2.2</avro.random.generator.version>
-        <apache.curator.version>2.9.0</apache.curator.version>
+        <apache.curator.version>5.2.0</apache.curator.version>
         <wiremock.version>2.24.0</wiremock.version>
-        <clearspring-analytics.version>2.9.5</clearspring-analytics.version>
         <icu.version>67.1</icu.version>
-        <vertx.version>3.9.15</vertx.version>
+        <vertx.version>4.4.8</vertx.version>
         <reactive-streams.version>1.0.3</reactive-streams.version>
         <skip.docker.build>true</skip.docker.build>
         <skip.docker.test>true</skip.docker.test>
@@ -131,11 +139,10 @@
         <!-- <compile.warnings-flag>-Werror</compile.warnings-flag> -->
         <!-- Only used to provide login module implementation for tests -->
         <jetty.version>9.4.53.v20231009</jetty.version>
-        <git-commit-id-plugin.version>2.2.6</git-commit-id-plugin.version>
+        <git-commit-id-plugin.version>4.9.10</git-commit-id-plugin.version>
         <apache.io.version>2.11.0</apache.io.version>
-        <io.confluent.ksql.version>7.0.16-0</io.confluent.ksql.version>
+        <io.confluent.ksql.version>7.8.0-0</io.confluent.ksql.version>
         <io.confluent.schema-registry.version>${confluent.version.range}</io.confluent.schema-registry.version>
-        <mockito.version>3.8.0</mockito.version>
         <netty-tcnative-version>2.0.65.Final</netty-tcnative-version>
         <!-- We normally get this from common, but Vertx is built against this -->
         <!-- Note: `netty` depends on `tcnative` and if we bump `netty`
@@ -145,13 +152,25 @@
              to find the correct `tcnative` version. -->
         <netty.version>4.1.108.Final</netty.version>
         <netty-codec-http2-version>4.1.108.Final</netty-codec-http2-version>
-        <jersey-common>2.34</jersey-common>
+        <jersey-common>2.39.1</jersey-common>
+        <multi-threaded-testing.forkCount>3</multi-threaded-testing.forkCount>
+        <kafka.version>${ce.kafka.version}</kafka.version>
     </properties>
 
     <dependencyManagement>
         <dependencies>
             <!-- Cross-submodule dependencies -->
-
+            <dependency>
+                <groupId>org.apache.kafka</groupId>
+                <artifactId>kafka_${kafka.scala.version}</artifactId>
+                <version>${kafka.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>org.slf4j</groupId>
+                        <artifactId>slf4j-log4j12</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
             <dependency>
                 <groupId>org.apache.zookeeper</groupId>
                 <artifactId>zookeeper</artifactId>
@@ -173,11 +192,83 @@
                 <artifactId>kafka-streams</artifactId>
                 <version>${kafka.version}</version>
             </dependency>
-
+            <dependency>
+                <groupId>org.apache.kafka</groupId>
+                <artifactId>kafka-clients</artifactId>
+                <version>${kafka.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>org.slf4j</groupId>
+                        <artifactId>slf4j-log4j12</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.kafka</groupId>
+                <artifactId>connect-api</artifactId>
+                <version>${kafka.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.kafka</groupId>
+                <artifactId>connect-runtime</artifactId>
+                <version>${kafka.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.kafka</groupId>
+                <artifactId>connect-json</artifactId>
+                <version>${kafka.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.kafka</groupId>
+                <artifactId>connect-file</artifactId>
+                <version>${kafka.version}</version>
+            </dependency>
             <dependency>
                 <groupId>org.apache.kafka</groupId>
                 <artifactId>kafka-streams-test-utils</artifactId>
                 <version>${kafka.version}</version>
+            </dependency>
+
+            <!-- Kafka's SSL utilities are used in tests. -->
+            <dependency>
+                <groupId>org.apache.kafka</groupId>
+                <artifactId>kafka_${kafka.scala.version}</artifactId>
+                <version>${kafka.version}</version>
+                <classifier>test</classifier>
+                <scope>test</scope>
+                <exclusions>
+                    <exclusion>
+                        <groupId>org.slf4j</groupId>
+                        <artifactId>slf4j-log4j12</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.kafka</groupId>
+                <artifactId>kafka-clients</artifactId>
+                <version>${kafka.version}</version>
+                <classifier>test</classifier>
+                <scope>test</scope>
+                <exclusions>
+                    <exclusion>
+                        <groupId>org.slf4j</groupId>
+                        <artifactId>slf4j-log4j12</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.kafka</groupId>
+                <artifactId>kafka-server-common</artifactId>
+                <version>${kafka.version}</version>
+                <classifier>test</classifier>
+                <scope>compile</scope>
+            </dependency>
+
+            <dependency>
+                <groupId>io.confluent</groupId>
+                <artifactId>ce-sbk_${kafka.scala.version}</artifactId>
+                <version>${kafka.version}</version>
+                <scope>compile</scope>
             </dependency>
 
             <dependency>
@@ -324,18 +415,18 @@
                 <groupId>org.apache.kafka</groupId>
                 <artifactId>kafka-log4j-appender</artifactId>
                 <version>${kafka.version}</version>
-		<exclusions>
-                    <exclusion>
-                        <groupId>org.slf4j</groupId>
-                        <artifactId>slf4j-log4j12</artifactId>
-                    </exclusion>
-                </exclusions>
             </dependency>
 
             <dependency>
                 <groupId>io.confluent</groupId>
                 <artifactId>common-utils</artifactId>
                 <version>${io.confluent.common.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.confluent</groupId>
+                <artifactId>common-docker</artifactId>
+                <version>${io.confluent.common-docker.version}</version>
             </dependency>
 
             <dependency>
@@ -360,6 +451,12 @@
                 <groupId>io.confluent</groupId>
                 <artifactId>kafka-connect-protobuf-converter</artifactId>
                 <version>${io.confluent.schema-registry.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.confluent</groupId>
+                <artifactId>broker-plugins</artifactId>
+                <version>${kafka.version}</version>
             </dependency>
 
             <!-- End Confluent dependencies -->
@@ -450,6 +547,12 @@
 
             <dependency>
                 <groupId>org.apache.commons</groupId>
+                <artifactId>commons-compress</artifactId>
+                <version>${commons.compress.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.apache.commons</groupId>
                 <artifactId>commons-lang3</artifactId>
                 <version>${lang3.version}</version>
             </dependency>
@@ -464,12 +567,6 @@
                 <groupId>org.apache.commons</groupId>
                 <artifactId>commons-text</artifactId>
                 <version>${commons-text.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>org.apache.commons</groupId>
-                <artifactId>commons-compress</artifactId>
-                <version>${commons.compress.version}</version>
             </dependency>
 
             <dependency>
@@ -488,12 +585,6 @@
                 <groupId>javax.validation</groupId>
                 <artifactId>validation-api</artifactId>
                 <version>${javax-validation.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>com.clearspring.analytics</groupId>
-                <artifactId>stream</artifactId>
-                <version>${clearspring-analytics.version}</version>
             </dependency>
 
             <dependency>
@@ -649,16 +740,20 @@
     </dependencyManagement>
 
     <dependencies>
-        <!-- Every child project uses slf4j/log4j for logging, might as well just include them here automatically -->
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-api</artifactId>
-        </dependency>
 
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-reload4j</artifactId>
-          </dependency>
+        </dependency>
+
+        <dependency>
+            <groupId>io.confluent</groupId>
+            <artifactId>logredactor</artifactId>
+        </dependency>
+            <dependency>
+                <groupId>io.confluent</groupId>
+                <artifactId>broker-plugins</artifactId>
+            </dependency>
     </dependencies>
 
     <build>
@@ -668,9 +763,6 @@
                     <artifactId>maven-assembly-plugin</artifactId>
                     <configuration>
                         <tarLongFileMode>posix</tarLongFileMode>
-                        <descriptors>
-                            <descriptor>src/assembly/package.xml</descriptor>
-                        </descriptors>
                     </configuration>
                 </plugin>
                 <plugin>
@@ -712,12 +804,65 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <configuration>
+                    <rerunFailingTestsCount>3</rerunFailingTestsCount>
                     <systemPropertyVariables>
                         <log4j.configuration>file:${project.basedir}/../ksqldb-test-util/src/main/resources/log4j.properties</log4j.configuration>
+                        <junit.platform.execution.listeners.deactivate>org.apache.kafka.test.ThreadLeakListener</junit.platform.execution.listeners.deactivate>
                     </systemPropertyVariables>
                     <argLine>-verbose:gc -Xloggc:"${project.build.directory}/gc.log"</argLine>
                     <argLine>-Duser.timezone=UTC -Xmx1g -Xms1g</argLine>
+                    <excludedGroups>io.confluent.common.utils.IntegrationTest, IntegrationTest</excludedGroups>
                 </configuration>
+                <version>3.2.5</version>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-failsafe-plugin</artifactId>
+                <configuration>
+                    <!-- we haven't yet fully migrated to JDK9 Jigsaw, but when compiling
+                    with JDKs that are >9 failsafe fails with many NoClassDefFoundErrors
+                    unless we disable this flag.
+
+                    You can also see (https://issues.apache.org/jira/browse/SUREFIRE-1809)
+                    for more details -->
+                    <useModulePath>false</useModulePath>
+                    <groups>io.confluent.common.utils.IntegrationTest, IntegrationTest</groups>
+                    <systemPropertyVariables>
+                        <junit.platform.execution.listeners.deactivate>org.apache.kafka.test.ThreadLeakListener</junit.platform.execution.listeners.deactivate>
+                    </systemPropertyVariables>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>integration-test</id>
+                        <configuration>
+                            <excludes>
+                                <exclude>**/RestQueryTranslationTest*.java</exclude>
+                                <exclude>**/io/confluent/ksql/rest/integration/**/*.java</exclude>
+                            </excludes>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>multi-threaded-testing</id>
+                        <phase>integration-test</phase>
+                        <goals>
+                            <goal>integration-test</goal>
+                        </goals>
+                        <configuration>
+                            <includes>
+                                <include>**/RestQueryTranslationTest*.java</include>
+                                <include>**/io/confluent/ksql/rest/integration/**/*.java</include>
+                            </includes>
+                            <forkCount>${multi-threaded-testing.forkCount}</forkCount>
+                            <reuseForks>false</reuseForks>
+                            <parallel>classes</parallel>
+                            <useUnlimitedThreads>true</useUnlimitedThreads>
+                            <forkedProcessTimeoutInSeconds>3600</forkedProcessTimeoutInSeconds>
+                            <forkedProcessExitTimeoutInSeconds>180</forkedProcessExitTimeoutInSeconds>
+                            <!-- Skip ITs temporarily -->
+                            <skipITs>true</skipITs>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
 
             <plugin>

@@ -18,25 +18,27 @@ package io.confluent.ksql.util;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.plan.ExecutionStep;
+import io.confluent.ksql.execution.scalablepush.ScalablePushRegistry;
 import io.confluent.ksql.execution.streams.materialization.Materialization;
-import io.confluent.ksql.execution.streams.materialization.MaterializationProvider;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.name.SourceName;
-import io.confluent.ksql.physical.scalablepush.ScalablePushRegistry;
+import io.confluent.ksql.query.QueryError;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.query.QuerySchemas;
+import java.util.Collection;
 import java.util.Optional;
+import org.apache.kafka.streams.KafkaStreams.State;
 import org.apache.kafka.streams.errors.StreamsUncaughtExceptionHandler;
 
 public interface PersistentQueryMetadata extends QueryMetadata {
 
-  DataSource.DataSourceType getDataSourceType();
+  Optional<DataSource.DataSourceType> getDataSourceType();
 
-  KsqlTopic getResultTopic();
+  Optional<KsqlTopic> getResultTopic();
 
-  SourceName getSinkName();
+  Optional<SourceName> getSinkName();
 
   QuerySchemas getQuerySchemas();
 
@@ -44,7 +46,7 @@ public interface PersistentQueryMetadata extends QueryMetadata {
 
   ExecutionStep<?> getPhysicalPlan();
 
-  DataSource getSink();
+  Optional<DataSource> getSink();
 
   KsqlConstants.PersistentQueryType getPersistentQueryType();
 
@@ -57,11 +59,53 @@ public interface PersistentQueryMetadata extends QueryMetadata {
 
   void stop();
 
+  void stop(boolean resetOffsets);
+
+  void register();
+
   StreamsUncaughtExceptionHandler.StreamThreadExceptionResponse uncaughtHandler(
       Throwable error
   );
 
-  Optional<MaterializationProvider>  getMaterializationProvider();
-
   Optional<ScalablePushRegistry> getScalablePushRegistry();
+
+  Collection<String> getSourceTopicNames();
+
+  final class QueryListenerWrapper implements Listener {
+    private final Listener listener;
+    private final Optional<ScalablePushRegistry> scalablePushRegistry;
+
+    protected QueryListenerWrapper(final Listener listener,
+                                   final Optional<ScalablePushRegistry> scalablePushRegistry) {
+      this.listener = listener;
+      this.scalablePushRegistry = scalablePushRegistry;
+    }
+
+    @Override
+    public void onError(final QueryMetadata queryMetadata, final QueryError error) {
+      this.listener.onError(queryMetadata, error);
+      scalablePushRegistry.ifPresent(ScalablePushRegistry::onError);
+    }
+
+    @Override
+    public void onStateChange(final QueryMetadata query, final State old, final State newState) {
+      this.listener.onStateChange(query, old, newState);
+    }
+
+    @Override
+    public void onPause(final QueryMetadata queryMetadata) {
+      this.listener.onPause(queryMetadata);
+    }
+
+    @Override
+    public void onResume(final QueryMetadata queryMetadata) {
+      this.listener.onResume(queryMetadata);
+    }
+
+    @Override
+    public void onClose(final QueryMetadata queryMetadata) {
+      this.listener.onClose(queryMetadata);
+      scalablePushRegistry.ifPresent(ScalablePushRegistry::cleanup);
+    }
+  }
 }

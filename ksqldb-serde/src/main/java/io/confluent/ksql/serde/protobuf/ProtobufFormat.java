@@ -20,7 +20,6 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.serde.FormatProperties;
 import io.confluent.ksql.serde.SerdeFeature;
-import io.confluent.ksql.serde.connect.ConnectFormat;
 import io.confluent.ksql.serde.connect.ConnectSchemaTranslator;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Map;
@@ -29,7 +28,7 @@ import java.util.function.Supplier;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.connect.data.ConnectSchema;
 
-public class ProtobufFormat extends ConnectFormat {
+public class ProtobufFormat extends AbstractProtobufFormat {
 
   static final ImmutableSet<SerdeFeature> SUPPORTED_FEATURES = ImmutableSet.of(
       SerdeFeature.SCHEMA_INFERENCE,
@@ -49,9 +48,15 @@ public class ProtobufFormat extends ConnectFormat {
     return SUPPORTED_FEATURES;
   }
 
+
   @Override
   public Set<String> getSupportedProperties() {
     return ProtobufProperties.SUPPORTED_PROPERTIES;
+  }
+
+  @Override
+  public Set<String> getInheritableProperties() {
+    return ProtobufProperties.INHERITABLE_PROPERTIES;
   }
 
   @Override

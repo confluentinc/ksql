@@ -69,25 +69,28 @@ public class KsqlEngineMetrics implements Closeable {
 
   private final KsqlEngine ksqlEngine;
   private final Metrics metrics;
+  private final MetricCollectors metricCollectors;
 
   public KsqlEngineMetrics(
       final String metricGroupPrefix,
       final KsqlEngine ksqlEngine,
       final Map<String, String> customMetricsTags,
-      final Optional<KsqlMetricsExtension> metricsExtension
+      final Optional<KsqlMetricsExtension> metricsExtension,
+      final MetricCollectors metricCollectors
   ) {
     this(
         metricGroupPrefix.isEmpty() ? DEFAULT_METRIC_GROUP_PREFIX : metricGroupPrefix,
         ksqlEngine,
-        MetricCollectors.getMetrics(),
+        metricCollectors,
         customMetricsTags,
         metricsExtension);
   }
 
-  KsqlEngineMetrics(
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
+  public KsqlEngineMetrics(
       final String metricGroupPrefix,
       final KsqlEngine ksqlEngine,
-      final Metrics metrics,
+      final MetricCollectors metricCollectors,
       final Map<String, String> customMetricsTags,
       final Optional<KsqlMetricsExtension> metricsExtension
   ) {
@@ -107,7 +110,8 @@ public class KsqlEngineMetrics implements Closeable {
         .build();
     this.metricsExtension = metricsExtension;
 
-    this.metrics = metrics;
+    this.metrics = metricCollectors.getMetrics();
+    this.metricCollectors = metricCollectors;
 
     configureLivenessIndicator();
     configureNumActiveQueries();
@@ -132,12 +136,12 @@ public class KsqlEngineMetrics implements Closeable {
   }
 
   public void updateMetrics() {
-    recordMessagesConsumed(MetricCollectors.currentConsumptionRate());
-    recordTotalMessagesConsumed(MetricCollectors.totalMessageConsumption());
-    recordTotalBytesConsumed(MetricCollectors.totalBytesConsumption());
-    recordMessagesProduced(MetricCollectors.currentProductionRate());
-    recordMessageConsumptionByQueryStats(MetricCollectors.currentConsumptionRateByQuery());
-    recordErrorRate(MetricCollectors.currentErrorRate());
+    recordMessagesConsumed(metricCollectors.currentConsumptionRate());
+    recordTotalMessagesConsumed(metricCollectors.totalMessageConsumption());
+    recordTotalBytesConsumed(metricCollectors.totalBytesConsumption());
+    recordMessagesProduced(metricCollectors.currentProductionRate());
+    recordMessageConsumptionByQueryStats(metricCollectors.currentConsumptionRateByQuery());
+    recordErrorRate(metricCollectors.currentErrorRate());
   }
 
   @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "should be mutable")
@@ -154,7 +158,7 @@ public class KsqlEngineMetrics implements Closeable {
     final String metricsPrefix
         = metricGroupPrefix.equals(KsqlEngineMetrics.DEFAULT_METRIC_GROUP_PREFIX)
         ? "" : metricGroupPrefix;
-    return new QueryStateMetricsReportingListener(metrics, metricsPrefix);
+    return new QueryStateMetricsReportingListener(metrics, metricsPrefix, newCustomMetricsTags);
   }
 
   private void recordMessageConsumptionByQueryStats(
@@ -345,7 +349,11 @@ public class KsqlEngineMetrics implements Closeable {
     final String description = String.format("Count of queries in %s state.", state.toString());
     final MetricName metricName = metrics.metricName(name, group, description, tags);
     final CountMetric countMetric = new CountMetric(metricName, gauge);
-    metrics.addMetric(metricName, gauge);
+    try {
+      metrics.addMetric(metricName, gauge);
+    } catch (IllegalArgumentException e) {
+      //not duplicate metrics, can be improved
+    }
     countMetrics.add(countMetric);
   }
 

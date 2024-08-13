@@ -21,12 +21,14 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import io.confluent.ksql.physical.scalablepush.PushQueryQueuePopulator;
-import io.confluent.ksql.physical.scalablepush.PushRouting.PushConnectionsHandle;
-import io.confluent.ksql.query.BlockingRowQueue;
+import io.confluent.ksql.internal.ScalablePushQueryMetrics;
+import io.confluent.ksql.execution.scalablepush.PushQueryQueuePopulator;
+import io.confluent.ksql.execution.scalablepush.PushRouting.PushConnectionsHandle;
 import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.query.TransientQueryQueue;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.util.PushQueryMetadata.ResultType;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 import org.junit.Before;
@@ -43,7 +45,7 @@ public class ScalablePushQueryMetadataTest {
   @Mock
   private LogicalSchema logicalSchema;
   @Mock
-  private BlockingRowQueue blockingRowQueue;
+  private TransientQueryQueue transientQueryQueue;
   @Mock
   private PushQueryQueuePopulator populator;
   @Mock
@@ -52,6 +54,8 @@ public class ScalablePushQueryMetadataTest {
   private ArgumentCaptor<Consumer<Throwable>> errorCallbackCaptor;
   @Mock
   private Consumer<Throwable> errorCallback;
+  @Mock
+  private Optional<ScalablePushQueryMetrics> metrics;
 
   private ScalablePushQueryMetadata query;
 
@@ -60,9 +64,14 @@ public class ScalablePushQueryMetadataTest {
     query = new ScalablePushQueryMetadata(
         logicalSchema,
         new QueryId("queryid"),
-        blockingRowQueue,
+        transientQueryQueue,
+        metrics,
         ResultType.STREAM,
-        populator
+        populator,
+        () -> { },
+        null,
+        null,
+        null
     );
   }
 

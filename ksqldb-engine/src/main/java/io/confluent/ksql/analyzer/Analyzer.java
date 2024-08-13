@@ -24,12 +24,15 @@ import io.confluent.ksql.analyzer.Analysis.AliasedDataSource;
 import io.confluent.ksql.analyzer.Analysis.Into;
 import io.confluent.ksql.analyzer.Analysis.JoinInfo;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
+import io.confluent.ksql.execution.expression.formatter.ExpressionFormatter;
+import io.confluent.ksql.execution.expression.tree.BytesLiteral;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression.Type;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.expression.tree.LogicalBinaryExpression;
+import io.confluent.ksql.execution.expression.tree.SearchedCaseExpression;
 import io.confluent.ksql.execution.expression.tree.TraversalExpressionVisitor;
 import io.confluent.ksql.execution.streams.PartitionByParamsFactory;
 import io.confluent.ksql.execution.util.ColumnExtractor;
@@ -55,6 +58,7 @@ import io.confluent.ksql.parser.tree.Select;
 import io.confluent.ksql.parser.tree.SelectItem;
 import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.parser.tree.Sink;
+import io.confluent.ksql.parser.tree.StructAll;
 import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.planner.plan.JoinNode;
@@ -67,7 +71,9 @@ import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.serde.kafka.KafkaFormat;
 import io.confluent.ksql.serde.none.NoneFormat;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.UnknownColumnException;
 import io.confluent.ksql.util.UnknownSourceException;
+import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -97,6 +103,7 @@ class Analyzer {
 
   private final MetaStore metaStore;
   private final String topicPrefix;
+  private final boolean pullLimitClauseEnabled;
 
   /**
    * @param metaStore the metastore to use.
@@ -104,10 +111,13 @@ class Analyzer {
    */
   Analyzer(
       final MetaStore metaStore,
-      final String topicPrefix
+      final String topicPrefix,
+      final boolean pullLimitClauseEnabled
+
   ) {
     this.metaStore = requireNonNull(metaStore, "metaStore");
     this.topicPrefix = requireNonNull(topicPrefix, "topicPrefix");
+    this.pullLimitClauseEnabled = pullLimitClauseEnabled;
   }
 
   /**
@@ -142,7 +152,11 @@ class Analyzer {
     private boolean isGroupBy = false;
 
     Visitor(final Query query, final boolean persistent) {
-      this.analysis = new Analysis(query.getRefinement());
+      this.analysis = new Analysis(
+              query.getRefinement(),
+              pullLimitClauseEnabled
+          );
+
       this.persistent = persistent;
     }
 
@@ -294,10 +308,19 @@ class Analyzer {
           .orElseGet(ImmutableList::of)
           .forEach(expression -> columnValidator.analyzeExpression(expression, "GROUP BY"));
 
-      analysis.getPartitionBy()
-          .map(PartitionBy::getExpressions)
-          .orElseGet(ImmutableList::of)
-          .forEach(expression -> columnValidator.analyzeExpression(expression, "PARTITION BY"));
+      try {
+        analysis.getPartitionBy()
+            .map(PartitionBy::getExpressions)
+            .orElseGet(ImmutableList::of)
+            .forEach(expression -> columnValidator.analyzeExpression(expression, "PARTITION BY"));
+      } catch (final UnknownColumnException e) {
+        throw new UnknownColumnException(
+            e.getPrefix(),
+            e.getColumnExp(),
+            "cannot be resolved. '"
+                + e.getColumnExp() + "' must be a column in the source schema since PARTITION BY"
+                + " is applied on the input.");
+      }
 
       analysis.getHavingExpression()
           .ifPresent(expression -> columnValidator.analyzeExpression(expression, "HAVING"));
@@ -519,6 +542,9 @@ class Analyzer {
         case LEFT:
           joinType = JoinNode.JoinType.LEFT;
           break;
+        case RIGHT:
+          joinType = JoinNode.JoinType.RIGHT;
+          break;
         case OUTER:
           joinType = JoinNode.JoinType.OUTER;
           break;
@@ -563,6 +589,9 @@ class Analyzer {
           validateSelect(column);
           captureReferencedSourceColumns(column.getExpression());
           visitTableFunctions(column.getExpression());
+        } else if (selectItem instanceof StructAll) {
+          final StructAll structAll = (StructAll) selectItem;
+          captureReferencedSourceColumns(structAll.getBaseStruct());
         } else if (!(selectItem instanceof AllColumns)) {
           throw new IllegalArgumentException(
               "Unsupported SelectItem type: " + selectItem.getClass().getName());
@@ -593,29 +622,58 @@ class Analyzer {
     }
 
     private void validateSelect(final SingleColumn column) {
-      final ColumnName columnName = column.getAlias()
-          .orElseThrow(IllegalStateException::new);
 
-      if (persistent) {
-        if (SystemColumns.isSystemColumn(columnName)) {
-          throw new KsqlException("Reserved column name in select: " + columnName + ". "
-              + "Please remove or alias the column.");
-        }
-      }
+      SystemColumns.systemColumnNames()
+          .forEach(col -> checkForReservedToken(column, col));
 
       if (!analysis.getGroupBy().isPresent()) {
-        throwOnUdafs(column.getExpression());
+        addDummyGroupbyForUdafs(column.getExpression());
       }
     }
 
-    private void throwOnUdafs(final Expression expression) {
+    private void checkForReservedToken(
+        final SingleColumn singleColumn,
+        final ColumnName reservedToken
+    ) {
+      final ColumnName alias = singleColumn.getAlias().orElseThrow(IllegalStateException::new);
+      final Expression expression = singleColumn.getExpression();
+
+      if (alias.text().equalsIgnoreCase(reservedToken.text())) {
+
+        //if a column's alias matches a reserved token but not the expression text, it means that
+        //the user has explicitly tried to alias a column as a reserved token, so throw this message
+        if (!expressionMatchesAlias(expression, alias)) {
+          throw new KsqlException("`" + reservedToken.text() + "` "
+              + "is a reserved column name. "
+              + "You cannot use it as an alias for a column.");
+
+        //if an unaliased column matches a reserved token (ie a user issued SELECT ROWTIME FROM x)
+        //we can't allow the query if it is persistent. If it is transient, allow it.
+        } else if (persistent) {
+          throw new KsqlException("Reserved column name in select: "
+              + "`" + reservedToken.text() + "`. "
+              + "Please remove or alias the column.");
+        }
+
+      }
+    }
+
+    private boolean expressionMatchesAlias(final Expression expression, final ColumnName alias) {
+      final String text = expression.toString();
+      final String unqualifiedExpression = text.substring(text.indexOf(".") + 1);
+      return unqualifiedExpression.equalsIgnoreCase(alias.text());
+    }
+
+    private void addDummyGroupbyForUdafs(final Expression expression) {
       new TraversalExpressionVisitor<Void>() {
         @Override
         public Void visitFunctionCall(final FunctionCall functionCall, final Void context) {
           final FunctionName functionName = functionCall.getName();
           if (metaStore.isAggregate(functionName)) {
-            throw new KsqlException("Use of aggregate function "
-                + functionName.text() + " requires a GROUP BY clause.");
+            analysis.addAggregateFunction(functionCall);
+            // Since this is a dummy group by, we don't actually need a correct node location
+            analysis.setGroupBy(new GroupBy(Optional.empty(),
+                ImmutableList.of(new BytesLiteral(ByteBuffer.wrap(new byte[] {1})))));
           }
 
           super.visitFunctionCall(functionCall, context);
@@ -665,6 +723,17 @@ class Analyzer {
     private final class TableFunctionVisitor extends TraversalExpressionVisitor<Void> {
 
       private Optional<FunctionName> tableFunctionName = Optional.empty();
+      private Optional<SearchedCaseExpression> searchedCaseExpression = Optional.empty();
+
+      @Override
+      public Void visitSearchedCaseExpression(
+          final SearchedCaseExpression node,
+          final Void context
+      ) {
+        searchedCaseExpression = Optional.of(node);
+        super.visitSearchedCaseExpression(node, context);
+        return null;
+      }
 
       @Override
       public Void visitFunctionCall(final FunctionCall functionCall, final Void context) {
@@ -681,6 +750,11 @@ class Analyzer {
 
           if (analysis.getGroupBy().isPresent()) {
             throw new KsqlException("Table functions cannot be used with aggregations.");
+          }
+
+          if (searchedCaseExpression.isPresent()) {
+            throw new KsqlException("Table functions cannot be used in CASE: "
+                + ExpressionFormatter.formatExpression(searchedCaseExpression.get()));
           }
 
           analysis.addTableFunction(functionCall);

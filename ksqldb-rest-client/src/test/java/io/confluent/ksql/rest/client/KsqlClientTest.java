@@ -19,6 +19,7 @@ import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.ImmutableList;
@@ -26,6 +27,7 @@ import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.properties.LocalProperties;
 import io.confluent.ksql.reactive.BaseSubscriber;
+import io.confluent.ksql.rest.client.exception.KsqlRestClientException;
 import io.confluent.ksql.rest.entity.ClusterStatusResponse;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatus.Status;
@@ -204,7 +206,7 @@ public class KsqlClientTest {
 
     // Then:
     assertThat(server.getHttpMethod(), is(HttpMethod.GET));
-    assertThat(server.getBody().length(), is(0));
+    assertThat(server.getBody(), nullValue());
     assertThat(server.getPath(), is("/info"));
     assertThat(server.getHeaders().get("Accept"), is("application/json"));
     assertThat(response.get(), is(expectedResponse));
@@ -216,7 +218,7 @@ public class KsqlClientTest {
     // Given:
     Map<String, HealthCheckResponseDetail> map = new HashMap<>();
     map.put("foo", new HealthCheckResponseDetail(true));
-    HealthCheckResponse healthCheckResponse = new HealthCheckResponse(true, map);
+    HealthCheckResponse healthCheckResponse = new HealthCheckResponse(true, map, Optional.empty());
     server.setResponseObject(healthCheckResponse);
 
     // When:
@@ -225,7 +227,7 @@ public class KsqlClientTest {
 
     // Then:
     assertThat(server.getHttpMethod(), is(HttpMethod.GET));
-    assertThat(server.getBody().length(), is(0));
+    assertThat(server.getBody(), nullValue());
     assertThat(server.getPath(), is("/healthcheck"));
     assertThat(server.getHeaders().get("Accept"), is("application/json"));
     assertThat(response.get(), is(healthCheckResponse));
@@ -244,7 +246,7 @@ public class KsqlClientTest {
 
     // Then:
     assertThat(server.getHttpMethod(), is(HttpMethod.GET));
-    assertThat(server.getBody().length(), is(0));
+    assertThat(server.getBody(), nullValue());
     // Yikes - this is camel case!
     assertThat(server.getPath(), is("/clusterStatus"));
     assertThat(server.getHeaders().get("Accept"), is("application/json"));
@@ -264,7 +266,7 @@ public class KsqlClientTest {
 
     // Then:
     assertThat(server.getHttpMethod(), is(HttpMethod.GET));
-    assertThat(server.getBody().length(), is(0));
+    assertThat(server.getBody(), nullValue());
     assertThat(server.getPath(), is("/status"));
     assertThat(server.getHeaders().get("Accept"), is("application/json"));
     assertThat(response.get(), is(commandStatuses));
@@ -283,7 +285,7 @@ public class KsqlClientTest {
 
     // Then:
     assertThat(server.getHttpMethod(), is(HttpMethod.GET));
-    assertThat(server.getBody().length(), is(0));
+    assertThat(server.getBody(), nullValue());
     assertThat(server.getPath(), is("/status/foo"));
     assertThat(server.getHeaders().get("Accept"), is("application/json"));
     assertThat(response.get(), is(commandStatus));
@@ -348,7 +350,7 @@ public class KsqlClientTest {
     // When:
     KsqlTarget target = ksqlClient.target(serverUri);
     RestResponse<StreamPublisher<StreamedRow>> response = target
-        .postQueryRequestStreamed(sql, Optional.of(321L));
+        .postQueryRequestStreamed(sql, Collections.emptyMap(), Optional.of(321L));
 
     // Then:
     assertThat(server.getHttpMethod(), is(HttpMethod.POST));
@@ -373,7 +375,7 @@ public class KsqlClientTest {
     // When:
     KsqlTarget target = ksqlClient.target(serverUri);
     RestResponse<StreamPublisher<StreamedRow>> response = target
-        .postQueryRequestStreamed(sql, Optional.of(321L));
+        .postQueryRequestStreamed(sql, Collections.emptyMap(), Optional.of(321L));
 
     // Then:
     assertThat(server.getHttpMethod(), is(HttpMethod.POST));
@@ -396,7 +398,7 @@ public class KsqlClientTest {
     // When:
     KsqlTarget target = ksqlClient.target(serverUri);
     RestResponse<StreamPublisher<StreamedRow>> response = target
-        .postQueryRequestStreamed(sql, Optional.of(321L));
+        .postQueryRequestStreamed(sql, Collections.emptyMap(), Optional.of(321L));
 
     // Then:
     assertThat(getKsqlRequest(), is(new KsqlRequest(sql, properties, Collections.emptyMap(), 321L)));
@@ -537,7 +539,7 @@ public class KsqlClientTest {
     );
 
     // Then:
-    assertThat(e.getMessage(), containsString(
+    assertThat(e.getCause().getMessage(), containsString(
         "java.io.IOException: Keystore was tampered with, or password was incorrect"
     ));
   }
@@ -558,7 +560,7 @@ public class KsqlClientTest {
     );
 
     // Then:
-    assertThat(e.getMessage(), containsString(
+    assertThat(e.getCause().getMessage(), containsString(
         "java.io.IOException: Keystore was tampered with, or password was incorrect"
     ));
   }
@@ -786,6 +788,7 @@ public class KsqlClientTest {
     props.putAll(ClientTrustStore.trustStoreProps());
     props.put(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG, password);
     createClient(props);
+    ksqlClient.target(serverUri).getServerInfo().get();
   }
 
   private void startServerWithTls() throws Exception {

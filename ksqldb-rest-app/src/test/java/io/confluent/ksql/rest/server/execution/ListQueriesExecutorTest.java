@@ -31,8 +31,8 @@ import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.SessionProperties;
-import io.confluent.ksql.rest.client.KsqlRestClientException;
 import io.confluent.ksql.rest.client.RestResponse;
+import io.confluent.ksql.rest.client.exception.KsqlRestClientException;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.KsqlHostInfoEntity;
@@ -51,6 +51,7 @@ import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.SimpleKsqlClient;
 import io.confluent.ksql.statement.ConfiguredStatement;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlConstants.KsqlQueryStatus;
 import io.confluent.ksql.util.PersistentQueryMetadata;
@@ -63,6 +64,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.StreamsMetadata;
@@ -106,7 +108,10 @@ public class ListQueriesExecutorTest {
   private Queries remoteQueries;
   @Mock
   private QueryDescriptionList remoteQueryDescriptionList;
-  
+  @Mock
+  private KsqlEngine mockKsqlEngine;
+  @Mock 
+  private KsqlConfig ksqlConfig;
   private QueryStatusCount queryStatusCount;
 
   @Before
@@ -121,6 +126,8 @@ public class ListQueriesExecutorTest {
     when(ksqlClient.makeKsqlRequest(any(), any(), any())).thenReturn(response);
     when(response.isErroneous()).thenReturn(false);
     when(serviceContext.getKsqlClient()).thenReturn(ksqlClient);
+    when(mockKsqlEngine.getKsqlConfig()).thenReturn(ksqlConfig);
+    when(ksqlConfig.getLong(KsqlConfig.KSQL_FETCH_REMOTE_HOSTS_TIMEOUT_SECONDS)).thenReturn(KsqlConfig.KSQL_FETCH_REMOTE_HOSTS_TIMEOUT_SECONDS_DEFAULT);
   }
 
   @Test
@@ -131,7 +138,7 @@ public class ListQueriesExecutorTest {
         mock(SessionProperties.class),
         engine.getEngine(),
         engine.getServiceContext()
-    ).orElseThrow(IllegalStateException::new);
+    ).getEntity().orElseThrow(IllegalStateException::new);
 
     assertThat(queries.getQueries(), is(empty()));
   }
@@ -142,17 +149,17 @@ public class ListQueriesExecutorTest {
     final ConfiguredStatement<?> showQueries = engine.configure("SHOW QUERIES;");
     final PersistentQueryMetadata metadata = givenPersistentQuery("id", RUNNING_QUERY_STATE);
 
-    final KsqlEngine engine = mock(KsqlEngine.class);
-    when(engine.getAllLiveQueries()).thenReturn(ImmutableList.of(metadata));
+    
+    when(mockKsqlEngine.getAllLiveQueries()).thenReturn(ImmutableList.of(metadata));
     queryStatusCount.updateStatusCount(RUNNING_QUERY_STATE, 1);
 
     // When
     final Queries queries = (Queries) CustomExecutors.LIST_QUERIES.execute(
         showQueries,
         sessionProperties,
-        engine,
+        mockKsqlEngine,
         this.engine.getServiceContext()
-    ).orElseThrow(IllegalStateException::new);
+    ).getEntity().orElseThrow(IllegalStateException::new);
 
     assertThat(queries.getQueries(), containsInAnyOrder(persistentQueryMetadataToRunningQuery(metadata, queryStatusCount)));
   }
@@ -165,13 +172,13 @@ public class ListQueriesExecutorTest {
     final PersistentQueryMetadata localMetadata = givenPersistentQuery("id", RUNNING_QUERY_STATE);
     final PersistentQueryMetadata remoteMetadata = givenPersistentQuery("id", ERROR_QUERY_STATE);
 
-    final KsqlEngine engine = mock(KsqlEngine.class);
-    when(engine.getAllLiveQueries()).thenReturn(ImmutableList.of(localMetadata));
-    when(engine.getPersistentQueries()).thenReturn(ImmutableList.of(localMetadata));
     
+    when(mockKsqlEngine.getAllLiveQueries()).thenReturn(ImmutableList.of(localMetadata));
+    when(mockKsqlEngine.getPersistentQueries()).thenReturn(ImmutableList.of(localMetadata));
+
     final List<RunningQuery> remoteRunningQueries = Collections.singletonList(persistentQueryMetadataToRunningQuery(
         remoteMetadata,
-        QueryStatusCount.fromStreamsStateCounts(Collections.singletonMap(ERROR_QUERY_STATE, 1))));
+            new QueryStatusCount(Collections.singletonMap(KsqlQueryStatus.ERROR, 1))));
 
 
     when(remoteQueries.getQueries()).thenReturn(remoteRunningQueries);
@@ -185,9 +192,9 @@ public class ListQueriesExecutorTest {
     final Queries queries = (Queries) CustomExecutors.LIST_QUERIES.execute(
         showQueries,
         sessionProperties,
-        engine,
+        mockKsqlEngine,
         serviceContext
-    ).orElseThrow(IllegalStateException::new);
+    ).getEntity().orElseThrow(IllegalStateException::new);
 
     // Then
     assertThat(queries.getQueries(), containsInAnyOrder(persistentQueryMetadataToRunningQuery(localMetadata, queryStatusCount)));
@@ -201,13 +208,13 @@ public class ListQueriesExecutorTest {
     final PersistentQueryMetadata localMetadata = givenPersistentQuery("id", RUNNING_QUERY_STATE);
     final PersistentQueryMetadata remoteMetadata = givenPersistentQuery("different Id", RUNNING_QUERY_STATE);
 
-    final KsqlEngine engine = mock(KsqlEngine.class);
-    when(engine.getAllLiveQueries()).thenReturn(ImmutableList.of(localMetadata));
-    when(engine.getPersistentQueries()).thenReturn(ImmutableList.of(localMetadata));
+    
+    when(mockKsqlEngine.getAllLiveQueries()).thenReturn(ImmutableList.of(localMetadata));
+    when(mockKsqlEngine.getPersistentQueries()).thenReturn(ImmutableList.of(localMetadata));
     
     final List<RunningQuery> remoteRunningQueries = Collections.singletonList(persistentQueryMetadataToRunningQuery(
         remoteMetadata,
-        QueryStatusCount.fromStreamsStateCounts(Collections.singletonMap(RUNNING_QUERY_STATE, 1))));
+            new QueryStatusCount(Collections.singletonMap(KsqlQueryStatus.RUNNING, 1))));
     when(remoteQueries.getQueries()).thenReturn(remoteRunningQueries);
     when(ksqlEntityList.get(anyInt())).thenReturn(remoteQueries);
     when(response.getResponse()).thenReturn(ksqlEntityList);
@@ -218,9 +225,9 @@ public class ListQueriesExecutorTest {
     final Queries queries = (Queries) CustomExecutors.LIST_QUERIES.execute(
         showQueries,
         sessionProperties,
-        engine,
+        mockKsqlEngine,
         serviceContext
-    ).orElseThrow(IllegalStateException::new);
+    ).getEntity().orElseThrow(IllegalStateException::new);
     
     // Then
     assertThat(queries.getQueries(),
@@ -236,9 +243,9 @@ public class ListQueriesExecutorTest {
     final ConfiguredStatement<?> showQueries = engine.configure("SHOW QUERIES;");
     final PersistentQueryMetadata metadata = givenPersistentQuery("id", RUNNING_QUERY_STATE);
 
-    final KsqlEngine engine = mock(KsqlEngine.class);
-    when(engine.getAllLiveQueries()).thenReturn(ImmutableList.of(metadata));
-    when(engine.getPersistentQueries()).thenReturn(ImmutableList.of(metadata));
+    
+    when(mockKsqlEngine.getAllLiveQueries()).thenReturn(ImmutableList.of(metadata));
+    when(mockKsqlEngine.getPersistentQueries()).thenReturn(ImmutableList.of(metadata));
 
     when(ksqlClient.makeKsqlRequest(any(), any(), any())).thenThrow(new KsqlRestClientException("error"));
     when(serviceContext.getKsqlClient()).thenReturn(ksqlClient);
@@ -249,9 +256,9 @@ public class ListQueriesExecutorTest {
     final Queries queries = (Queries) CustomExecutors.LIST_QUERIES.execute(
         showQueries,
         sessionProperties,
-        engine,
+        mockKsqlEngine,
         serviceContext
-    ).orElseThrow(IllegalStateException::new);
+    ).getEntity().orElseThrow(IllegalStateException::new);
 
     // Then
     assertThat(queries.getQueries(), containsInAnyOrder(persistentQueryMetadataToRunningQuery(metadata, queryStatusCount)));
@@ -264,9 +271,9 @@ public class ListQueriesExecutorTest {
     final ConfiguredStatement<?> showQueries = engine.configure("SHOW QUERIES;");
     final PersistentQueryMetadata metadata = givenPersistentQuery("id", RUNNING_QUERY_STATE);
 
-    final KsqlEngine engine = mock(KsqlEngine.class);
-    when(engine.getAllLiveQueries()).thenReturn(ImmutableList.of(metadata));
-    when(engine.getPersistentQueries()).thenReturn(ImmutableList.of(metadata));
+    
+    when(mockKsqlEngine.getAllLiveQueries()).thenReturn(ImmutableList.of(metadata));
+    when(mockKsqlEngine.getPersistentQueries()).thenReturn(ImmutableList.of(metadata));
 
     when(response.isErroneous()).thenReturn(true);
     when(response.getErrorMessage()).thenReturn(new KsqlErrorMessage(10000, "error"));
@@ -277,9 +284,9 @@ public class ListQueriesExecutorTest {
     final Queries queries = (Queries) CustomExecutors.LIST_QUERIES.execute(
         showQueries,
         sessionProperties,
-        engine,
+        mockKsqlEngine,
         serviceContext
-    ).orElseThrow(IllegalStateException::new);
+    ).getEntity().orElseThrow(IllegalStateException::new);
 
     // Then
     assertThat(queries.getQueries(), containsInAnyOrder(persistentQueryMetadataToRunningQuery(metadata, queryStatusCount)));
@@ -291,16 +298,16 @@ public class ListQueriesExecutorTest {
     final ConfiguredStatement<?> showQueries = engine.configure("SHOW QUERIES EXTENDED;");
     final PersistentQueryMetadata metadata = givenPersistentQuery("id", KafkaStreams.State.CREATED);
 
-    final KsqlEngine engine = mock(KsqlEngine.class);
-    when(engine.getAllLiveQueries()).thenReturn(ImmutableList.of(metadata));
+    
+    when(mockKsqlEngine.getAllLiveQueries()).thenReturn(ImmutableList.of(metadata));
 
     // When
     final QueryDescriptionList queries = (QueryDescriptionList) CustomExecutors.LIST_QUERIES.execute(
         showQueries,
         sessionProperties,
-        engine,
+        mockKsqlEngine,
         this.engine.getServiceContext()
-    ).orElseThrow(IllegalStateException::new);
+    ).getEntity().orElseThrow(IllegalStateException::new);
 
     // Then
     assertThat(queries.getQueryDescriptions(), containsInAnyOrder(
@@ -318,9 +325,9 @@ public class ListQueriesExecutorTest {
     final PersistentQueryMetadata localMetadata = givenPersistentQuery("id", RUNNING_QUERY_STATE, Collections.singleton(localTaskMetadata));
     final PersistentQueryMetadata remoteMetadata = givenPersistentQuery("id", ERROR_QUERY_STATE, Collections.singleton(remoteTaskMetadata));
 
-    final KsqlEngine engine = mock(KsqlEngine.class);
-    when(engine.getAllLiveQueries()).thenReturn(ImmutableList.of(localMetadata));
-    when(engine.getPersistentQueries()).thenReturn(ImmutableList.of(localMetadata));
+    
+    when(mockKsqlEngine.getAllLiveQueries()).thenReturn(ImmutableList.of(localMetadata));
+    when(mockKsqlEngine.getPersistentQueries()).thenReturn(ImmutableList.of(localMetadata));
 
     final List<QueryDescription> remoteQueryDescriptions = Collections.singletonList(
         QueryDescriptionFactory.forQueryMetadata(
@@ -339,9 +346,9 @@ public class ListQueriesExecutorTest {
     final QueryDescriptionList queries = (QueryDescriptionList) CustomExecutors.LIST_QUERIES.execute(
         showQueries,
         sessionProperties,
-        engine,
+        mockKsqlEngine,
         serviceContext
-    ).orElseThrow(IllegalStateException::new);
+    ).getEntity().orElseThrow(IllegalStateException::new);
 
     // Then
     final QueryDescription mergedQueryDescription = QueryDescriptionFactory.forQueryMetadata(localMetadata, mergedMap);
@@ -358,9 +365,9 @@ public class ListQueriesExecutorTest {
     final PersistentQueryMetadata localMetadata = givenPersistentQuery("id", RUNNING_QUERY_STATE);
     final PersistentQueryMetadata remoteMetadata = givenPersistentQuery("different id", ERROR_QUERY_STATE);
 
-    final KsqlEngine engine = mock(KsqlEngine.class);
-    when(engine.getAllLiveQueries()).thenReturn(ImmutableList.of(localMetadata));
-    when(engine.getPersistentQueries()).thenReturn(ImmutableList.of(localMetadata));
+    
+    when(mockKsqlEngine.getAllLiveQueries()).thenReturn(ImmutableList.of(localMetadata));
+    when(mockKsqlEngine.getPersistentQueries()).thenReturn(ImmutableList.of(localMetadata));
 
     final Map<KsqlHostInfoEntity, KsqlQueryStatus> remoteMap = Collections.singletonMap(REMOTE_KSQL_HOST_INFO_ENTITY, KsqlQueryStatus.RUNNING);
     final List<QueryDescription> remoteQueryDescriptions = Collections.singletonList(
@@ -376,9 +383,9 @@ public class ListQueriesExecutorTest {
     final QueryDescriptionList queries = (QueryDescriptionList) CustomExecutors.LIST_QUERIES.execute(
         showQueries,
         sessionProperties,
-        engine,
+        mockKsqlEngine,
         serviceContext
-    ).orElseThrow(IllegalStateException::new);
+    ).getEntity().orElseThrow(IllegalStateException::new);
 
     // Then
     assertThat(queries.getQueryDescriptions(),
@@ -394,9 +401,9 @@ public class ListQueriesExecutorTest {
     final ConfiguredStatement<?> showQueries = engine.configure("SHOW QUERIES EXTENDED;");
     final PersistentQueryMetadata metadata = givenPersistentQuery("id", RUNNING_QUERY_STATE);
 
-    final KsqlEngine engine = mock(KsqlEngine.class);
-    when(engine.getAllLiveQueries()).thenReturn(ImmutableList.of(metadata));
-    when(engine.getPersistentQueries()).thenReturn(ImmutableList.of(metadata));
+    
+    when(mockKsqlEngine.getAllLiveQueries()).thenReturn(ImmutableList.of(metadata));
+    when(mockKsqlEngine.getPersistentQueries()).thenReturn(ImmutableList.of(metadata));
 
     when(ksqlClient.makeKsqlRequest(any(), any(), any())).thenThrow(new KsqlRestClientException("error"));
     when(serviceContext.getKsqlClient()).thenReturn(ksqlClient);
@@ -410,9 +417,9 @@ public class ListQueriesExecutorTest {
     final QueryDescriptionList queries = (QueryDescriptionList) CustomExecutors.LIST_QUERIES.execute(
         showQueries,
         sessionProperties,
-        engine,
+        mockKsqlEngine,
         serviceContext
-    ).orElseThrow(IllegalStateException::new);
+    ).getEntity().orElseThrow(IllegalStateException::new);
 
     // Then
     assertThat(queries.getQueryDescriptions(),
@@ -426,9 +433,9 @@ public class ListQueriesExecutorTest {
     final ConfiguredStatement<?> showQueries = engine.configure("SHOW QUERIES EXTENDED;");
     final PersistentQueryMetadata metadata = givenPersistentQuery("id", RUNNING_QUERY_STATE);
 
-    final KsqlEngine engine = mock(KsqlEngine.class);
-    when(engine.getAllLiveQueries()).thenReturn(ImmutableList.of(metadata));
-    when(engine.getPersistentQueries()).thenReturn(ImmutableList.of(metadata));
+    
+    when(mockKsqlEngine.getAllLiveQueries()).thenReturn(ImmutableList.of(metadata));
+    when(mockKsqlEngine.getPersistentQueries()).thenReturn(ImmutableList.of(metadata));
 
     when(response.isErroneous()).thenReturn(true);
     when(response.getErrorMessage()).thenReturn(new KsqlErrorMessage(10000, "error"));
@@ -441,9 +448,9 @@ public class ListQueriesExecutorTest {
     final QueryDescriptionList queries = (QueryDescriptionList) CustomExecutors.LIST_QUERIES.execute(
         showQueries,
         sessionProperties,
-        engine,
+        mockKsqlEngine,
         serviceContext
-    ).orElseThrow(IllegalStateException::new);
+    ).getEntity().orElseThrow(IllegalStateException::new);
 
     // Then
     assertThat(queries.getQueryDescriptions(),
@@ -465,13 +472,14 @@ public class ListQueriesExecutorTest {
     final PersistentQueryMetadata metadata = mock(PersistentQueryMetadata.class);
     mockQuery(id, state, metadata);
     when(metadata.getQueryType()).thenReturn(KsqlConstants.KsqlQueryType.PERSISTENT);
-    when(metadata.getSinkName()).thenReturn(SourceName.of(id));
+    when(metadata.getSinkName()).thenReturn(Optional.of(SourceName.of(id)));
     final KsqlTopic sinkTopic = mock(KsqlTopic.class);
     when(sinkTopic.getKeyFormat()).thenReturn(
         KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name()), SerdeFeatures.of()));
     when(sinkTopic.getKafkaTopicName()).thenReturn(id);
-    when(metadata.getResultTopic()).thenReturn(sinkTopic);
+    when(metadata.getResultTopic()).thenReturn(Optional.of(sinkTopic));
     when(metadata.getTaskMetadata()).thenReturn(tasksMetadata);
+    when(metadata.getQueryStatus()).thenReturn(KsqlConstants.fromStreamsState(state));
 
     return metadata;
   }
@@ -499,6 +507,7 @@ public class ListQueriesExecutorTest {
     when(metadata.getState()).thenReturn(state);
     when(metadata.getTopologyDescription()).thenReturn("topology");
     when(metadata.getExecutionPlan()).thenReturn("plan");
+    when(metadata.getQueryApplicationId()).thenReturn("consumer-group-id");
 
     final StreamsMetadata localStreamsMetadata = mock(StreamsMetadata.class);
     when(localStreamsMetadata.hostInfo()).thenReturn(LOCAL_HOST);
@@ -507,7 +516,7 @@ public class ListQueriesExecutorTest {
     final List<StreamsMetadata> streamsData = new ArrayList<>();
     streamsData.add(localStreamsMetadata);
     streamsData.add(remoteStreamsMetadata);
-    when(metadata.getAllMetadata()).thenReturn(streamsData);
+    when(metadata.getAllStreamsHostMetadata()).thenReturn(streamsData);
   }
 
   public static RunningQuery persistentQueryMetadataToRunningQuery(
@@ -516,8 +525,12 @@ public class ListQueriesExecutorTest {
   ) {
     return new RunningQuery(
         md.getStatementString(),
-        ImmutableSet.of(md.getSinkName().text()),
-        ImmutableSet.of(md.getResultTopic().getKafkaTopicName()),
+        md.getSinkName().isPresent()
+            ? ImmutableSet.of(md.getSinkName().get().text())
+            : ImmutableSet.of(),
+        md.getResultTopic().isPresent()
+            ? ImmutableSet.of(md.getResultTopic().get().getKafkaTopicName())
+            : ImmutableSet.of(),
         md.getQueryId(),
         queryStatusCount,
         md.getQueryType());

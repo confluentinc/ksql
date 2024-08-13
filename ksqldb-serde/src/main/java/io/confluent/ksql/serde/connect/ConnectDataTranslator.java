@@ -16,6 +16,7 @@
 package io.confluent.ksql.serde.connect;
 
 import io.confluent.ksql.serde.SerdeUtils;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -52,6 +53,10 @@ public class ConnectDataTranslator implements DataTranslator {
     }
 
     return toKsqlValue(schema, connectSchema, connectData, "");
+  }
+
+  public Schema getSchema() {
+    return schema;
   }
 
   public Object toConnectRow(final Object ksqlData) {
@@ -200,16 +205,16 @@ public class ConnectDataTranslator implements DataTranslator {
     final Object convertedValue = maybeConvertLogicalType(connectSchema, connectValue);
     switch (schema.type()) {
       case INT64:
-        if (schema.name() == Timestamp.LOGICAL_NAME) {
+        if (Timestamp.LOGICAL_NAME.equals(schema.name())) {
           return new java.sql.Timestamp(((Number) convertedValue).longValue());
         } else {
           return ((Number) convertedValue).longValue();
         }
       case INT32:
         final int intVal = ((Number) convertedValue).intValue();
-        if (schema.name() == Time.LOGICAL_NAME) {
+        if (Time.LOGICAL_NAME.equals(schema.name())) {
           return new java.sql.Time(intVal);
-        } else if (schema.name() == Date.LOGICAL_NAME) {
+        } else if (Date.LOGICAL_NAME.equals(schema.name())) {
           return SerdeUtils.getDateFromEpochDays(intVal);
         } else {
           return intVal;
@@ -228,6 +233,12 @@ public class ConnectDataTranslator implements DataTranslator {
       case STRING:
         // use String.valueOf to convert various int types and Boolean to string
         return String.valueOf(convertedValue);
+      case BYTES:
+        if (convertedValue instanceof byte[]) {
+          return ByteBuffer.wrap((byte[]) convertedValue);
+        }
+
+        return convertedValue;
       default:
         return convertedValue;
     }

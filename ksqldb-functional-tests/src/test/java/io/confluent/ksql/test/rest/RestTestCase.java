@@ -19,12 +19,13 @@ import static io.confluent.ksql.test.utils.ImmutableCollections.immutableCopyOf;
 import static java.util.Objects.requireNonNull;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.rest.client.RestResponse;
-import io.confluent.ksql.test.model.TestLocation;
 import io.confluent.ksql.test.rest.model.Response;
 import io.confluent.ksql.test.tools.Record;
-import io.confluent.ksql.test.tools.Test;
-import io.confluent.ksql.test.tools.Topic;
+import io.confluent.ksql.tools.test.model.Test;
+import io.confluent.ksql.tools.test.model.TestLocation;
+import io.confluent.ksql.tools.test.model.Topic;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -32,11 +33,11 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 import org.hamcrest.Matcher;
 
-class RestTestCase implements Test {
+public class RestTestCase implements Test {
 
   private final TestLocation location;
   private final String name;
-  private final Map<String, Object> properties;
+  private final ImmutableMap<String, Object> properties;
   private final ImmutableList<Topic> topics;
   private final ImmutableList<Record> inputRecords;
   private final ImmutableList<Record> outputRecords;
@@ -44,6 +45,8 @@ class RestTestCase implements Test {
   private final ImmutableList<Response> responses;
   private final Optional<Matcher<RestResponse<?>>> expectedError;
   private final Optional<InputConditions> inputConditions;
+  private final Optional<OutputConditions> outputConditions;
+  private final boolean testPullWithProtoFormat;
 
   RestTestCase(
       final TestLocation location,
@@ -55,7 +58,9 @@ class RestTestCase implements Test {
       final Collection<String> statements,
       final Collection<Response> responses,
       final Optional<Matcher<RestResponse<?>>> expectedError,
-      final Optional<InputConditions> inputConditions
+      final Optional<InputConditions> inputConditions,
+      final Optional<OutputConditions> outputConditions,
+      final boolean testPullWithProtoFormat
   ) {
     this.name = requireNonNull(name, "name");
     this.location = requireNonNull(location, "testPath");
@@ -67,6 +72,8 @@ class RestTestCase implements Test {
     this.responses = immutableCopyOf(requireNonNull(responses, "responses"));
     this.expectedError = requireNonNull(expectedError, "expectedError");
     this.inputConditions = requireNonNull(inputConditions, "inputConditions");
+    this.outputConditions = requireNonNull(outputConditions, "outputConditions");
+    this.testPullWithProtoFormat = testPullWithProtoFormat;
   }
 
   @Override
@@ -119,5 +126,13 @@ class RestTestCase implements Test {
 
   public Optional<InputConditions> getInputConditions() {
     return inputConditions;
+  }
+
+  public Optional<OutputConditions> getOutputConditions() {
+    return outputConditions;
+  }
+
+  public boolean isTestPullWithProtoFormat() {
+    return testPullWithProtoFormat;
   }
 }

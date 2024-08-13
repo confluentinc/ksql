@@ -113,7 +113,8 @@ public class TopicCreateInjectorTest {
         SCHEMA,
         Optional.empty(),
         false,
-        sourceTopic
+        sourceTopic,
+        false
     );
     metaStore.putSource(source, false);
 
@@ -129,16 +130,17 @@ public class TopicCreateInjectorTest {
         SCHEMA,
         Optional.empty(),
         false,
-        joinTopic
+        joinTopic,
+        false
     );
     metaStore.putSource(joinSource, false);
 
     when(topicClient.describeTopic("source")).thenReturn(sourceDescription);
     when(topicClient.isTopicExists("source")).thenReturn(true);
     when(builder.withName(any())).thenReturn(builder);
-    when(builder.withWithClause(any(), any(), any())).thenReturn(builder);
-    when(builder.withSource(any())).thenReturn(builder);
-    when(builder.build()).thenReturn(new TopicProperties("name", 1, (short) 1));
+    when(builder.withWithClause(any(), any(), any(), any())).thenReturn(builder);
+    when(builder.withSource(any(), any())).thenReturn(builder);
+    when(builder.build()).thenReturn(new TopicProperties("name", 1, (short) 1, (long) 100));
   }
 
   @Test
@@ -223,14 +225,15 @@ public class TopicCreateInjectorTest {
     verify(builder).withWithClause(
         props.getKafkaTopic(),
         props.getPartitions(),
-        props.getReplicas()
+        props.getReplicas(),
+        props.getRetentionInMillis()
     );
   }
 
   @Test
   public void shouldPassThroughWithClauseToBuilderForCreate() {
     // Given:
-    givenStatement("CREATE STREAM x (FOO VARCHAR) WITH(value_format='avro', kafka_topic='topic', partitions=2);");
+    givenStatement("CREATE STREAM x (FOO VARCHAR) WITH(value_format='avro', kafka_topic='topic', partitions=2, retention_ms=5000);");
 
     final CreateSourceProperties props = ((CreateSource) statement.getStatement())
         .getProperties();
@@ -243,8 +246,10 @@ public class TopicCreateInjectorTest {
     verify(builder).withWithClause(
         Optional.of(props.getKafkaTopic()),
         props.getPartitions(),
-        props.getReplicas()
+        props.getReplicas(),
+        props.getRetentionInMillis()
     );
+
   }
 
   @Test
@@ -256,7 +261,7 @@ public class TopicCreateInjectorTest {
     injector.inject(statement, builder);
 
     // Then:
-    verify(builder, never()).withSource(any());
+    verify(builder, never()).withSource(any(), any());
   }
 
   @Test
@@ -268,7 +273,7 @@ public class TopicCreateInjectorTest {
     injector.inject(statement, builder);
 
     // Then:
-    verify(builder).withSource(argThat(supplierThatGets(sourceDescription)));
+    verify(builder).withSource(argThat(supplierThatGets(sourceDescription)), any(Supplier.class));
   }
 
   @Test
@@ -280,7 +285,7 @@ public class TopicCreateInjectorTest {
     injector.inject(statement, builder);
 
     // Then:
-    verify(builder).withSource(argThat(supplierThatGets(sourceDescription)));
+    verify(builder).withSource(argThat(supplierThatGets(sourceDescription)), any(Supplier.class));
   }
 
   @Test
@@ -293,7 +298,7 @@ public class TopicCreateInjectorTest {
     injector.inject(statement, builder);
 
     // Then:
-    verify(builder).withSource(argThat(supplierThatGets(sourceDescription)));
+    verify(builder).withSource(argThat(supplierThatGets(sourceDescription)), any(Supplier.class));
   }
 
   @SuppressWarnings("unchecked")
@@ -302,7 +307,7 @@ public class TopicCreateInjectorTest {
     // Given:
     givenStatement("CREATE STREAM x WITH (kafka_topic='topic') AS SELECT * FROM SOURCE;");
 
-    when(builder.build()).thenReturn(new TopicProperties("expectedName", 10, (short) 10));
+    when(builder.build()).thenReturn(new TopicProperties("expectedName", 10, (short) 10, (long) 5000));
 
     // When:
     final ConfiguredStatement<CreateAsSelect> result =
@@ -313,6 +318,7 @@ public class TopicCreateInjectorTest {
     assertThat(props.getKafkaTopic(), is(Optional.of("expectedName")));
     assertThat(props.getPartitions(), is(Optional.of(10)));
     assertThat(props.getReplicas(), is(Optional.of((short) 10)));
+    assertThat(props.getRetentionInMillis(), is(Optional.of((long) 5000)));
   }
 
   @Test
@@ -326,7 +332,7 @@ public class TopicCreateInjectorTest {
     // Then:
     assertThat(result.getMaskedStatementText(),
         equalTo(
-            "CREATE STREAM X WITH (KAFKA_TOPIC='name', PARTITIONS=1, REPLICAS=1) AS SELECT *"
+            "CREATE STREAM X WITH (CLEANUP_POLICY='delete', KAFKA_TOPIC='name', PARTITIONS=1, REPLICAS=1, RETENTION_MS=100) AS SELECT *"
                 + "\nFROM SOURCE SOURCE\n"
                 + "EMIT CHANGES;"));
   }
@@ -335,7 +341,7 @@ public class TopicCreateInjectorTest {
   public void shouldCreateMissingTopic() {
     // Given:
     givenStatement("CREATE STREAM x WITH (kafka_topic='topic') AS SELECT * FROM SOURCE;");
-    when(builder.build()).thenReturn(new TopicProperties("expectedName", 10, (short) 10));
+    when(builder.build()).thenReturn(new TopicProperties("expectedName", 10, (short) 10, (long) 100));
 
     // When:
     injector.inject(statement, builder);
@@ -345,14 +351,16 @@ public class TopicCreateInjectorTest {
         "expectedName",
         10,
         (short) 10,
-        ImmutableMap.of(TopicConfig.CLEANUP_POLICY_CONFIG, TopicConfig.CLEANUP_POLICY_DELETE));
+        ImmutableMap.of(
+            TopicConfig.CLEANUP_POLICY_CONFIG, TopicConfig.CLEANUP_POLICY_DELETE,
+            TopicConfig.RETENTION_MS_CONFIG, 100L));
   }
 
   @Test
   public void shouldCreateMissingTopicForCreate() {
     // Given:
     givenStatement("CREATE STREAM x WITH (kafka_topic='topic') AS SELECT * FROM SOURCE;");
-    when(builder.build()).thenReturn(new TopicProperties("expectedName", 10, (short) 10));
+    when(builder.build()).thenReturn(new TopicProperties("expectedName", 10, (short) 10, (long) 100));
 
     // When:
     injector.inject(statement, builder);
@@ -362,7 +370,9 @@ public class TopicCreateInjectorTest {
         "expectedName",
         10,
         (short) 10,
-        ImmutableMap.of(TopicConfig.CLEANUP_POLICY_CONFIG, TopicConfig.CLEANUP_POLICY_DELETE));
+        ImmutableMap.of(
+            TopicConfig.CLEANUP_POLICY_CONFIG, TopicConfig.CLEANUP_POLICY_DELETE,
+            TopicConfig.RETENTION_MS_CONFIG, 100L));
   }
 
   @Test
@@ -370,7 +380,7 @@ public class TopicCreateInjectorTest {
     // Given:
     givenStatement("CREATE TABLE x WITH (kafka_topic='topic') "
         + "AS SELECT * FROM SOURCE;");
-    when(builder.build()).thenReturn(new TopicProperties("expectedName", 10, (short) 10));
+    when(builder.build()).thenReturn(new TopicProperties("expectedName", 10, (short) 10, (long) 100));
 
     // When:
     injector.inject(statement, builder);
@@ -387,7 +397,7 @@ public class TopicCreateInjectorTest {
   public void shouldCreateMissingTopicWithCompactCleanupPolicyForCreateTable() {
     // Given:
     givenStatement("CREATE TABLE foo (FOO VARCHAR) WITH (value_format='avro', kafka_topic='topic', partitions=1);");
-    when(builder.build()).thenReturn(new TopicProperties("topic", 10, (short) 10));
+    when(builder.build()).thenReturn(new TopicProperties("topic", 10, (short) 10, (long) 5000));
 
     // When:
     injector.inject(statement, builder);
@@ -405,7 +415,7 @@ public class TopicCreateInjectorTest {
     // Given:
     givenStatement("CREATE TABLE x WITH (kafka_topic='topic') "
         + "AS SELECT * FROM SOURCE WINDOW TUMBLING (SIZE 10 SECONDS);");
-    when(builder.build()).thenReturn(new TopicProperties("expectedName", 10, (short) 10));
+    when(builder.build()).thenReturn(new TopicProperties("expectedName", 10, (short) 10, (long) 7000));
 
     // When:
     injector.inject(statement, builder);
@@ -416,7 +426,8 @@ public class TopicCreateInjectorTest {
         10,
         (short) 10,
         ImmutableMap.of(TopicConfig.CLEANUP_POLICY_CONFIG,
-            TopicConfig.CLEANUP_POLICY_COMPACT + "," + TopicConfig.CLEANUP_POLICY_DELETE));
+            TopicConfig.CLEANUP_POLICY_COMPACT + "," + TopicConfig.CLEANUP_POLICY_DELETE,
+            TopicConfig.RETENTION_MS_CONFIG, 7000L));
   }
 
   @Test
@@ -424,7 +435,7 @@ public class TopicCreateInjectorTest {
     // Given:
     givenStatement("CREATE TABLE x WITH (kafka_topic='topic') "
         + "AS SELECT * FROM SOURCE WINDOW TUMBLING (SIZE 10 SECONDS, RETENTION 4 DAYS);");
-    when(builder.build()).thenReturn(new TopicProperties("expectedName", 10, (short) 10));
+    when(builder.build()).thenReturn(new TopicProperties("expectedName", 10, (short) 10, (long) 6000));
 
     // When:
     injector.inject(statement, builder);
@@ -440,6 +451,81 @@ public class TopicCreateInjectorTest {
             TopicConfig.RETENTION_MS_CONFIG,
             Duration.ofDays(4).toMillis()
         ));
+  }
+
+  @Test
+  public void shouldCreateMissingTopicWithLargerRetentionForWindowedTables() {
+    // Given:
+    givenStatement("CREATE TABLE x WITH (kafka_topic='topic', partitions=2, replicas=1, format='avro', retention_ms=432000000) "
+        + "AS SELECT * FROM SOURCE WINDOW TUMBLING (SIZE 10 SECONDS, RETENTION 4 DAYS);");
+    when(builder.build()).thenReturn(new TopicProperties("topic", 2, (short) 1, (long) 432000000));
+
+    // When:
+    injector.inject(statement, builder);
+
+    // Then:
+    verify(topicClient).createTopic(
+        "topic",
+        2,
+        (short) 1,
+        ImmutableMap.of(
+            TopicConfig.CLEANUP_POLICY_CONFIG,
+            TopicConfig.CLEANUP_POLICY_COMPACT + "," + TopicConfig.CLEANUP_POLICY_DELETE,
+            TopicConfig.RETENTION_MS_CONFIG,
+            Duration.ofDays(5).toMillis()
+        ));
+  }
+
+  @Test
+  public void shouldHaveCleanupPolicyCompactCtas() {
+    // Given:
+    givenStatement("CREATE TABLE x AS SELECT * FROM SOURCE;");
+
+    // When:
+    final CreateAsSelect ctas = ((CreateAsSelect) injector.inject(statement, builder).getStatement());
+
+    // Then:
+    final CreateSourceAsProperties props = ctas.getProperties();
+    assertThat(props.getCleanupPolicy(), is(Optional.of(TopicConfig.CLEANUP_POLICY_COMPACT)));
+  }
+
+  @Test
+  public void shouldHaveCleanupPolicyDeleteCsas() {
+    // Given:
+    givenStatement("CREATE STREAM x AS SELECT * FROM SOURCE;");
+
+    // When:
+    final CreateAsSelect csas = ((CreateAsSelect) injector.inject(statement, builder).getStatement());
+
+    // Then:
+    final CreateSourceAsProperties props = csas.getProperties();
+    assertThat(props.getCleanupPolicy(), is(Optional.of(TopicConfig.CLEANUP_POLICY_DELETE)));
+  }
+
+  @Test
+  public void shouldHaveCleanupPolicyDeleteCreateStream() {
+    // Given:
+    givenStatement("CREATE STREAM x (FOO VARCHAR) WITH (kafka_topic='foo', partitions=1);");
+
+    // When:
+    final CreateSource createSource = ((CreateSource) injector.inject(statement, builder).getStatement());
+
+    // Then:
+    final CreateSourceProperties props = createSource.getProperties();
+    assertThat(props.getCleanupPolicy(), is(Optional.of(TopicConfig.CLEANUP_POLICY_DELETE)));
+  }
+
+  @Test
+  public void shouldHaveCleanupPolicyCompactCreateTable() {
+    // Given:
+    givenStatement("CREATE TABLE foo (FOO VARCHAR) WITH (kafka_topic='topic', partitions=1);");
+
+    // When:
+    final CreateSource createSource = ((CreateSource) injector.inject(statement, builder).getStatement());
+
+    // Then:
+    final CreateSourceProperties props = createSource.getProperties();
+    assertThat(props.getCleanupPolicy(), is(Optional.of(TopicConfig.CLEANUP_POLICY_COMPACT)));
   }
 
   @Test
@@ -459,7 +545,119 @@ public class TopicCreateInjectorTest {
         + "stream/table please re-run the statement providing the required 'PARTITIONS' "
         + "configuration in the WITH clause (and optionally 'REPLICAS'). For example: "
         + "CREATE STREAM FOO (FOO STRING) "
-        + "WITH (KAFKA_TOPIC='doesntexist', PARTITIONS=2, REPLICAS=1, VALUE_FORMAT='avro');"));
+        + "WITH (KAFKA_TOPIC='doesntexist', PARTITIONS=2, VALUE_FORMAT='avro');"));
+  }
+
+  @Test
+  public void shouldThrowIfRetentionConfigPresentInCreateTable() {
+    // Given:
+    givenStatement("CREATE TABLE foo_bar (FOO STRING PRIMARY KEY, BAR STRING) WITH (kafka_topic='doesntexist', partitions=2, format='avro', retention_ms=30000);");
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> injector.inject(statement, builder)
+    );
+
+    // Then:
+    assertThat(
+        e.getMessage(),
+        containsString("Invalid config variable in the WITH clause: RETENTION_MS."
+            + " Non-windowed tables do not support retention."));
+  }
+
+  @Test
+  public void shouldThrowIfRetentionConfigPresentInCreateTableAs() {
+    // Given:
+    givenStatement("CREATE TABLE foo_bar WITH (kafka_topic='doesntexist', partitions=2, format='avro', retention_ms=30000) AS SELECT * FROM SOURCE;");
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> injector.inject(statement, builder)
+    );
+
+    // Then:
+    assertThat(
+        e.getMessage(),
+        containsString("Invalid config variable in the WITH clause: RETENTION_MS."
+            + " Non-windowed tables do not support retention."));
+  }
+
+  @Test
+  public void shouldThrowIfCleanupPolicyPresentInCreateTable() {
+    // Given:
+    givenStatement("CREATE TABLE foo_bar (FOO STRING PRIMARY KEY, BAR STRING) WITH (kafka_topic='foo', partitions=1, cleanup_policy='whatever');");
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> injector.inject(statement, builder)
+    );
+
+    // Then:
+    assertThat(
+        e.getMessage(),
+        containsString("Invalid config variable in the WITH clause: CLEANUP_POLICY.\n"
+            + "The CLEANUP_POLICY config is automatically inferred based on the type of source (STREAM or TABLE).\n"
+            + "Users can't set the CLEANUP_POLICY config manually."));
+  }
+
+  @Test
+  public void shouldThrowIfCleanupPolicyConfigPresentInCreateTableAs() {
+    // Given:
+    givenStatement("CREATE TABLE foo_bar WITH (kafka_topic='foo', partitions=1, cleanup_policy='whatever') AS SELECT * FROM SOURCE;");
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> injector.inject(statement, builder)
+    );
+
+    // Then:
+    assertThat(
+        e.getMessage(),
+        containsString("Invalid config variable in the WITH clause: CLEANUP_POLICY.\n"
+            + "The CLEANUP_POLICY config is automatically inferred based on the type of source (STREAM or TABLE).\n"
+            + "Users can't set the CLEANUP_POLICY config manually."));
+  }
+
+  @Test
+  public void shouldThrowIfCleanupPolicyConfigPresentInCreateStream() {
+    // Given:
+    givenStatement("CREATE STREAM x (FOO VARCHAR) WITH (kafka_topic='foo', partitions=1, cleanup_policy='whatever');");
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> injector.inject(statement, builder)
+    );
+
+    // Then:
+    assertThat(
+        e.getMessage(),
+        containsString("Invalid config variable in the WITH clause: CLEANUP_POLICY.\n"
+            + "The CLEANUP_POLICY config is automatically inferred based on the type of source (STREAM or TABLE).\n"
+            + "Users can't set the CLEANUP_POLICY config manually."));
+  }
+
+  @Test
+  public void shouldThrowIfCleanupPolicyConfigPresentInCreateStreamAs() {
+    // Given:
+    givenStatement("CREATE STREAM x WITH (kafka_topic='topic', partitions=1, cleanup_policy='whatever') AS SELECT * FROM SOURCE;");
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> injector.inject(statement, builder)
+    );
+
+    // Then:
+    assertThat(
+        e.getMessage(),
+        containsString("Invalid config variable in the WITH clause: CLEANUP_POLICY.\n"
+            + "The CLEANUP_POLICY config is automatically inferred based on the type of source (STREAM or TABLE).\n"
+            + "Users can't set the CLEANUP_POLICY config manually."));
   }
 
   private ConfiguredStatement<?> givenStatement(final String sql) {

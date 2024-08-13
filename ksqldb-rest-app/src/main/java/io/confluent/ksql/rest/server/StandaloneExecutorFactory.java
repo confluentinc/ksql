@@ -55,7 +55,8 @@ public final class StandaloneExecutorFactory {
   public static StandaloneExecutor create(
       final Map<String, String> properties,
       final String queriesFile,
-      final String installDir
+      final String installDir,
+      final MetricCollectors metricCollectors
   ) {
     final KsqlConfig tempConfig = new KsqlConfig(properties);
     
@@ -68,7 +69,7 @@ public final class StandaloneExecutorFactory {
     final String ksqlServerId = tempConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG);
     final Map<String, Object> updatedProperties = tempConfig.originals();
     updatedProperties.putAll(
-        MetricCollectors.addConfluentMetricsContextConfigs(ksqlServerId, kafkaClusterId));
+        metricCollectors.addConfluentMetricsContextConfigs(ksqlServerId, kafkaClusterId));
 
     final Consumer<KsqlConfig> rocksDBConfigSetterHandler =
         RocksDBConfigSetterHandler::maybeConfigureRocksDBConfigSetter;
@@ -81,6 +82,7 @@ public final class StandaloneExecutorFactory {
         KafkaConfigStore::new,
         KsqlVersionCheckerAgent::new,
         StandaloneExecutor::new,
+        metricCollectors,
         rocksDBConfigSetterHandler
     );
   }
@@ -98,6 +100,7 @@ public final class StandaloneExecutorFactory {
         boolean failOnNoQueries,
         VersionCheckerAgent versionChecker,
         BiFunction<KsqlExecutionContext, ServiceContext, Injector> injectorFactory,
+        MetricCollectors metricCollectors,
         Consumer<KsqlConfig> rocksDBConfigSetterHandler
     );
   }
@@ -111,6 +114,7 @@ public final class StandaloneExecutorFactory {
       final BiFunction<String, KsqlConfig, ConfigStore> configStoreFactory,
       final Function<Supplier<Boolean>, VersionCheckerAgent> versionCheckerFactory,
       final StandaloneExecutorConstructor constructor,
+      final MetricCollectors metricCollectors,
       final Consumer<KsqlConfig> rocksDBConfigSetterHandler
   ) {
     final KsqlConfig baseConfig = new KsqlConfig(properties);
@@ -129,7 +133,11 @@ public final class StandaloneExecutorFactory {
     final ProcessingLogConfig processingLogConfig
         = new ProcessingLogConfig(properties);
     final ProcessingLogContext processingLogContext
-        = ProcessingLogContext.create(processingLogConfig);
+        = ProcessingLogContext.create(
+            processingLogConfig,
+        metricCollectors.getMetrics(),
+        ksqlConfig.getStringAsMap(KsqlConfig.KSQL_CUSTOM_METRICS_TAGS)
+    );
 
     final MutableFunctionRegistry functionRegistry = new InternalFunctionRegistry();
 
@@ -140,10 +148,13 @@ public final class StandaloneExecutorFactory {
         ServiceInfo.create(ksqlConfig),
         new SequentialQueryIdGenerator(),
         ksqlConfig,
-        Collections.emptyList());
+        Collections.emptyList(),
+        metricCollectors
+        );
 
     final UserFunctionLoader udfLoader =
-        UserFunctionLoader.newInstance(ksqlConfig, functionRegistry, installDir);
+        UserFunctionLoader.newInstance(ksqlConfig, functionRegistry, installDir,
+            metricCollectors.getMetrics());
 
     final VersionCheckerAgent versionChecker = versionCheckerFactory
         .apply(ksqlEngine::hasActiveQueries);
@@ -158,6 +169,7 @@ public final class StandaloneExecutorFactory {
         true,
         versionChecker,
         Injectors.NO_TOPIC_DELETE,
+        metricCollectors,
         rocksDBConfigSetterHandler
     );
   }

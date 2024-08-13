@@ -27,6 +27,7 @@ import io.confluent.ksql.util.KsqlConstants;
 import java.sql.Time;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeFormatterBuilder;
 import java.time.temporal.ChronoField;
 import java.time.temporal.TemporalAccessor;
 import java.util.Arrays;
@@ -46,7 +47,10 @@ public class ParseTime {
   private final LoadingCache<String, DateTimeFormatter> formatters =
       CacheBuilder.newBuilder()
           .maximumSize(1000)
-          .build(CacheLoader.from(DateTimeFormatter::ofPattern));
+          .build(CacheLoader.from(pattern -> new DateTimeFormatterBuilder()
+              .parseCaseInsensitive()
+              .appendPattern(pattern)
+              .toFormatter()));
 
   @Udf(description = "Converts a string representation of a time in the given format"
       + " into the TIME value.")
@@ -56,11 +60,14 @@ public class ParseTime {
       @UdfParameter(
           description = "The format pattern should be in the format expected by"
               + " java.time.format.DateTimeFormatter.") final String formatPattern) {
+    if (formattedTime == null | formatPattern == null) {
+      return null;
+    }
     try {
       final TemporalAccessor ta = formatters.get(formatPattern).parse(formattedTime);
       final Optional<ChronoField> dateField = Arrays.stream(ChronoField.values())
-          .filter(field -> field.isDateBased())
-          .filter(field -> ta.isSupported(field))
+          .filter(ChronoField::isDateBased)
+          .filter(ta::isSupported)
           .findFirst();
 
       if (dateField.isPresent()) {

@@ -126,7 +126,7 @@ public final class ListSourceExecutor {
     );
   }
 
-  public static Optional<KsqlEntity> streams(
+  public static StatementExecutorResponse streams(
       final ConfiguredStatement<ListStreams> statement,
       final SessionProperties sessionProperties,
       final KsqlExecutionContext executionContext,
@@ -136,24 +136,24 @@ public final class ListSourceExecutor {
 
     final ListStreams listStreams = statement.getStatement();
     if (listStreams.getShowExtended()) {
-      return sourceDescriptionList(
+      return StatementExecutorResponse.handled(sourceDescriptionList(
           statement,
           sessionProperties,
           executionContext,
           serviceContext,
           ksqlStreams,
           listStreams.getShowExtended()
-      );
+      ));
     }
 
-    return Optional.of(new StreamsList(
+    return StatementExecutorResponse.handled(Optional.of(new StreamsList(
         statement.getMaskedStatementText(),
         ksqlStreams.stream()
             .map(ListSourceExecutor::sourceSteam)
-            .collect(Collectors.toList())));
+            .collect(Collectors.toList()))));
   }
 
-  public static Optional<KsqlEntity> tables(
+  public static StatementExecutorResponse tables(
       final ConfiguredStatement<ListTables> statement,
       final SessionProperties sessionProperties,
       final KsqlExecutionContext executionContext,
@@ -163,23 +163,23 @@ public final class ListSourceExecutor {
 
     final ListTables listTables = statement.getStatement();
     if (listTables.getShowExtended()) {
-      return sourceDescriptionList(
+      return StatementExecutorResponse.handled(sourceDescriptionList(
           statement,
           sessionProperties,
           executionContext,
           serviceContext,
           ksqlTables,
           listTables.getShowExtended()
-      );
+      ));
     }
-    return Optional.of(new TablesList(
+    return StatementExecutorResponse.handled(Optional.of(new TablesList(
         statement.getMaskedStatementText(),
         ksqlTables.stream()
             .map(ListSourceExecutor::sourceTable)
-            .collect(Collectors.toList())));
+            .collect(Collectors.toList()))));
   }
 
-  public static Optional<KsqlEntity> describeStreams(
+  public static StatementExecutorResponse describeStreams(
       final ConfiguredStatement<DescribeStreams> statement,
       final SessionProperties sessionProperties,
       final KsqlExecutionContext executionContext,
@@ -188,16 +188,16 @@ public final class ListSourceExecutor {
     final List<KsqlStream<?>> ksqlStreams = getSpecificStreams(executionContext);
 
     final DescribeStreams describeStreams = statement.getStatement();
-    return sourceDescriptionList(
+    return StatementExecutorResponse.handled(sourceDescriptionList(
         statement,
         sessionProperties,
         executionContext,
         serviceContext,
         ksqlStreams,
-        describeStreams.getShowExtended());
+        describeStreams.getShowExtended()));
   }
 
-  public static Optional<KsqlEntity> describeTables(
+  public static StatementExecutorResponse describeTables(
       final ConfiguredStatement<DescribeTables> statement,
       final SessionProperties sessionProperties,
       final KsqlExecutionContext executionContext,
@@ -206,16 +206,16 @@ public final class ListSourceExecutor {
     final List<KsqlTable<?>> ksqlTables = getSpecificTables(executionContext);
 
     final DescribeTables describeTables = statement.getStatement();
-    return sourceDescriptionList(
+    return StatementExecutorResponse.handled(sourceDescriptionList(
         statement,
         sessionProperties,
         executionContext,
         serviceContext,
         ksqlTables,
-        describeTables.getShowExtended());
+        describeTables.getShowExtended()));
   }
 
-  public static Optional<KsqlEntity> columns(
+  public static StatementExecutorResponse columns(
       final ConfiguredStatement<ShowColumns> statement,
       final SessionProperties sessionProperties,
       final KsqlExecutionContext executionContext,
@@ -232,13 +232,11 @@ public final class ListSourceExecutor {
         sessionProperties,
         ImmutableList.of()
     );
-    return Optional.of(
+    return StatementExecutorResponse.handled(Optional.of(
         new SourceDescriptionEntity(
             statement.getMaskedStatementText(),
             descriptionWithWarnings.description,
-            descriptionWithWarnings.warnings
-        )
-    );
+            descriptionWithWarnings.warnings)));
   }
 
   private static List<KsqlTable<?>> getSpecificTables(
@@ -265,7 +263,7 @@ public final class ListSourceExecutor {
 
   private static SourceDescriptionWithWarnings describeSource(
       final KsqlConfig ksqlConfig,
-      final KsqlExecutionContext ksqlEngine,
+      final KsqlExecutionContext ksqlExecutionContext,
       final ServiceContext serviceContext,
       final SourceName name,
       final boolean extended,
@@ -274,18 +272,20 @@ public final class ListSourceExecutor {
       final Collection<SourceDescription> remoteSourceDescriptions
 
   ) {
-    final DataSource dataSource = ksqlEngine.getMetaStore().getSource(name);
+    final DataSource dataSource = ksqlExecutionContext.getMetaStore().getSource(name);
     if (dataSource == null) {
       throw new KsqlStatementException(String.format(
-          "Could not find STREAM/TABLE '%s' in the Metastore",
+          "Could not find STREAM/TABLE '%s' in the Metastore"
+              + ksqlExecutionContext.getMetaStore().checkAlternatives(
+                  name, Optional.empty()),
           name.text()
       ), statement.getMaskedStatementText());
     }
 
-    final List<RunningQuery> readQueries = getQueries(ksqlEngine,
+    final List<RunningQuery> readQueries = getQueries(ksqlExecutionContext,
         q -> q.getSourceNames().contains(dataSource.getName()));
-    final List<RunningQuery> writeQueries = getQueries(ksqlEngine,
-        q -> q.getSinkName().equals(dataSource.getName()));
+    final List<RunningQuery> writeQueries = getQueries(ksqlExecutionContext,
+        q -> q.getSinkName().equals(Optional.of(dataSource.getName())));
 
     Optional<TopicDescription> topicDescription =
         Optional.empty();
@@ -297,7 +297,7 @@ public final class ListSourceExecutor {
       topicDescription = Optional.of(
           serviceContext.getTopicClient().describeTopic(dataSource.getKafkaTopicName())
       );
-      sourceConstraints = getSourceConstraints(name, ksqlEngine.getMetaStore());
+      sourceConstraints = getSourceConstraints(name, ksqlExecutionContext.getMetaStore());
     } catch (final KafkaException | KafkaResponseGetFailedException e) {
       warnings.add(new KsqlWarning("Error from Kafka: " + e.getMessage()));
     }
@@ -318,8 +318,8 @@ public final class ListSourceExecutor {
               sourceConstraints,
               remoteSourceDescriptions.stream().flatMap(sd -> sd.getClusterStatistics().stream()),
               remoteSourceDescriptions.stream().flatMap(sd -> sd.getClusterErrorStats().stream()),
-              sessionProperties.getKsqlHostInfo()
-
+              sessionProperties.getKsqlHostInfo(),
+              ksqlExecutionContext.metricCollectors()
           )
       );
     }
@@ -336,7 +336,8 @@ public final class ListSourceExecutor {
             sourceConstraints,
             java.util.stream.Stream.empty(),
             java.util.stream.Stream.empty(),
-            sessionProperties.getKsqlHostInfo()
+            sessionProperties.getKsqlHostInfo(),
+            ksqlExecutionContext.metricCollectors()
         )
     );
   }
@@ -433,11 +434,14 @@ public final class ListSourceExecutor {
         .filter(predicate)
         .map(q -> new RunningQuery(
             q.getStatementString(),
-            ImmutableSet.of(q.getSinkName().text()),
-            ImmutableSet.of(q.getResultTopic().getKafkaTopicName()),
+            q.getSinkName().isPresent()
+                ? ImmutableSet.of(q.getSinkName().get().text())
+                : ImmutableSet.of(),
+            q.getResultTopic().isPresent()
+                ? ImmutableSet.of(q.getResultTopic().get().getKafkaTopicName())
+                : ImmutableSet.of(),
             q.getQueryId(),
-            QueryStatusCount.fromStreamsStateCounts(
-                Collections.singletonMap(q.getState(), 1)),
+            new QueryStatusCount(Collections.singletonMap(q.getQueryStatus(), 1)),
             KsqlConstants.KsqlQueryType.PERSISTENT)).collect(Collectors.toList());
   }
 

@@ -79,7 +79,8 @@ public final class KsMaterializationFactory {
       final Optional<WindowInfo> windowInfo,
       final Map<String, ?> streamsProperties,
       final KsqlConfig ksqlConfig,
-      final String applicationId
+      final String applicationId,
+      final String queryId
   ) {
     final Object appServer = streamsProperties.get(StreamsConfig.APPLICATION_SERVER_CONFIG);
     if (appServer == null) {
@@ -94,14 +95,16 @@ public final class KsMaterializationFactory {
         topology,
         keySerializer,
         localHost,
-        applicationId
+        ksqlConfig.getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED),
+        queryId
     );
 
     final KsStateStore stateStore = storeFactory.create(
         stateStoreName,
         kafkaStreams,
         schema,
-        ksqlConfig
+        ksqlConfig,
+        queryId
     );
 
     final KsMaterialization materialization = materializationFactory.create(
@@ -134,7 +137,8 @@ public final class KsMaterializationFactory {
         Topology topology,
         Serializer<GenericKey> keySerializer,
         URL localHost,
-        String applicationId
+        boolean sharedRuntimesEnabled,
+        String queryId
     );
   }
 
@@ -144,7 +148,8 @@ public final class KsMaterializationFactory {
         String stateStoreName,
         KafkaStreams kafkaStreams,
         LogicalSchema schema,
-        KsqlConfig ksqlConfig
+        KsqlConfig ksqlConfig,
+        String queryId
     );
   }
 

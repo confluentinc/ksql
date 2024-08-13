@@ -15,11 +15,11 @@
 
 package io.confluent.ksql.function;
 
+import static io.confluent.ksql.function.UserFunctionLoaderTestUtil.loadAllUserFunctions;
 import static io.confluent.ksql.name.FunctionName.of;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasSize;
@@ -39,9 +39,9 @@ import io.confluent.ksql.function.udf.Kudf;
 import io.confluent.ksql.function.udf.UdfMetadata;
 import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.schema.ksql.SqlArgument;
+import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlException;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -248,6 +248,7 @@ public class InternalFunctionRegistryTest {
 
   @Test
   public void shouldKnowIfFunctionIsAggregate() {
+    loadAllUserFunctions(functionRegistry);
     assertFalse(functionRegistry.isAggregate(FunctionName.of("lcase")));
     assertTrue(functionRegistry.isAggregate(FunctionName.of("topk")));
   }
@@ -255,9 +256,8 @@ public class InternalFunctionRegistryTest {
   @Test
   public void shouldAddAggregateFunction() {
     functionRegistry.addAggregateFunctionFactory(createAggregateFunctionFactory());
-    assertThat(functionRegistry.getAggregateFunction(FunctionName.of("my_aggregate"),
-        SqlTypes.INTEGER,
-        AggregateFunctionInitArguments.EMPTY_ARGS), not(nullValue()));
+    assertThat(functionRegistry.getAggregateFactory(FunctionName.of("my_aggregate")),
+            not(nullValue()));
   }
 
   @Test
@@ -340,20 +340,6 @@ public class InternalFunctionRegistryTest {
   }
 
   @Test
-  public void shouldHaveBuiltInUDAFRegistered() {
-    final Collection<String> builtInUDAF = Arrays.asList(
-        "COUNT", "SUM", "MAX", "MIN", "TOPK", "TOPKDISTINCT"
-    );
-
-    final Collection<String> names = Collections2.transform(functionRegistry.listAggregateFunctions(),
-        AggregateFunctionFactory::getName);
-
-    assertThat("More or less UDAF are registered in the InternalFunctionRegistry",
-        names, containsInAnyOrder(builtInUDAF.toArray()));
-
-  }
-
-  @Test
   public void shouldNotAllowModificationViaListFunctions() {
     // Given:
     functionRegistry.ensureFunctionFactory(udfFactory);
@@ -369,6 +355,8 @@ public class InternalFunctionRegistryTest {
 
   @Test
   public void shouldKnowIfFunctionIsPresent() {
+    loadAllUserFunctions(functionRegistry);
+
     // Given:
     when(udafFactory.getName()).thenReturn(UDF_NAME);
     functionRegistry.addAggregateFunctionFactory(udafFactory);
@@ -385,10 +373,10 @@ public class InternalFunctionRegistryTest {
 
   private AggregateFunctionFactory createAggregateFunctionFactory() {
     return new AggregateFunctionFactory("my_aggregate") {
+
       @Override
-      public KsqlAggregateFunction createAggregateFunction(final List<SqlArgument> argTypeList,
-                                                           final AggregateFunctionInitArguments initArgs) {
-        return mockAggFun;
+      public FunctionSource getFunction(List<SqlType> argTypeList) {
+        return new FunctionSource(0, (initArgs) -> mockAggFun);
       }
 
       @Override

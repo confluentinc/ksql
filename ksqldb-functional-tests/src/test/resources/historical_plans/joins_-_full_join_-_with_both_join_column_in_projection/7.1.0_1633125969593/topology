@@ -1,0 +1,39 @@
+Topologies:
+   Sub-topology: 0
+    Source: KSTREAM-SOURCE-0000000000 (topics: [LEFT])
+      --> KSTREAM-TRANSFORMVALUES-0000000001
+    Source: KSTREAM-SOURCE-0000000003 (topics: [RIGHT])
+      --> KSTREAM-TRANSFORMVALUES-0000000004
+    Processor: KSTREAM-TRANSFORMVALUES-0000000001 (stores: [])
+      --> PrependAliasLeft
+      <-- KSTREAM-SOURCE-0000000000
+    Processor: KSTREAM-TRANSFORMVALUES-0000000004 (stores: [])
+      --> PrependAliasRight
+      <-- KSTREAM-SOURCE-0000000003
+    Processor: PrependAliasLeft (stores: [])
+      --> Join-this-windowed
+      <-- KSTREAM-TRANSFORMVALUES-0000000001
+    Processor: PrependAliasRight (stores: [])
+      --> Join-other-windowed
+      <-- KSTREAM-TRANSFORMVALUES-0000000004
+    Processor: Join-other-windowed (stores: [KSTREAM-OUTEROTHER-0000000009-store])
+      --> Join-outer-other-join
+      <-- PrependAliasRight
+    Processor: Join-this-windowed (stores: [KSTREAM-OUTERTHIS-0000000008-store])
+      --> Join-outer-this-join
+      <-- PrependAliasLeft
+    Processor: Join-outer-other-join (stores: [KSTREAM-OUTERTHIS-0000000008-store])
+      --> Join-merge
+      <-- Join-other-windowed
+    Processor: Join-outer-this-join (stores: [KSTREAM-OUTEROTHER-0000000009-store])
+      --> Join-merge
+      <-- Join-this-windowed
+    Processor: Join-merge (stores: [])
+      --> Project
+      <-- Join-outer-this-join, Join-outer-other-join
+    Processor: Project (stores: [])
+      --> KSTREAM-SINK-0000000012
+      <-- Join-merge
+    Sink: KSTREAM-SINK-0000000012 (topic: OUTPUT)
+      <-- Project
+

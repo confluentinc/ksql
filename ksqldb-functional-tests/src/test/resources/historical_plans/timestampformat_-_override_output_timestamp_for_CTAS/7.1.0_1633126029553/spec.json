@@ -1,0 +1,149 @@
+{
+  "version" : "7.1.0",
+  "timestamp" : 1633126029553,
+  "path" : "query-validation-tests/timestampformat.json",
+  "schemas" : {
+    "CTAS_TS_0.KsqlTopic.Source.Materialized" : {
+      "schema" : "`K` STRING KEY, `ID` BIGINT, `ROWPARTITION` INTEGER, `ROWOFFSET` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CTAS_TS_0.Project" : {
+      "schema" : "`K` STRING KEY, `SINK_TS` BIGINT, `ID` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CTAS_TS_0.TS" : {
+      "schema" : "`K` STRING KEY, `SINK_TS` BIGINT, `ID` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CTAS_TS_0.KsqlTopic.Source" : {
+      "schema" : "`K` STRING KEY, `ID` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "override output timestamp for CTAS",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : "a",
+      "value" : {
+        "ID" : 1
+      },
+      "timestamp" : 1526075913000
+    }, {
+      "topic" : "test_topic",
+      "key" : "a",
+      "value" : {
+        "ID" : -2
+      },
+      "timestamp" : 1526075913000
+    }, {
+      "topic" : "test_topic",
+      "key" : "a",
+      "value" : {
+        "ID" : 3
+      },
+      "timestamp" : 1589234313000
+    } ],
+    "outputs" : [ {
+      "topic" : "TS",
+      "key" : "a",
+      "value" : {
+        "SINK_TS" : 1,
+        "ID" : 1
+      },
+      "timestamp" : 1
+    }, {
+      "topic" : "TS",
+      "key" : "a",
+      "value" : {
+        "SINK_TS" : 3,
+        "ID" : 3
+      },
+      "timestamp" : 3
+    } ],
+    "topics" : [ {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "TS",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE TABLE TEST (K STRING PRIMARY KEY, ID bigint) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE TABLE TS WITH (timestamp='sink_ts') AS SELECT K, id as sink_ts, id FROM test;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "TEST",
+        "type" : "TABLE",
+        "schema" : "`K` STRING KEY, `ID` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "TS",
+        "type" : "TABLE",
+        "schema" : "`K` STRING KEY, `SINK_TS` BIGINT, `ID` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "TS",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_TS_0-KsqlTopic-Reduce-changelog",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          }
+        } ]
+      }
+    }
+  }
+}

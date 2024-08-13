@@ -15,36 +15,40 @@
 
 package io.confluent.ksql.serde.avro;
 
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.errorprone.annotations.Immutable;
-import io.confluent.ksql.serde.FormatProperties;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.confluent.ksql.serde.connect.ConnectProperties;
 import java.util.Map;
 
 /**
  * Properties that can be set on the Avro format.
  */
 @Immutable
-class AvroProperties {
+public class AvroProperties extends ConnectProperties {
 
   static final String AVRO_SCHEMA_NAMESPACE = "io.confluent.ksql.avro_schemas";
   static final String AVRO_SCHEMA_NAME = "KsqlDataSourceSchema";
   static final String DEFAULT_AVRO_SCHEMA_FULL_NAME =
       AVRO_SCHEMA_NAMESPACE + "." + AVRO_SCHEMA_NAME;
 
-  static final String FULL_SCHEMA_NAME = "fullSchemaName";
-  static final ImmutableSet<String> SUPPORTED_PROPERTIES = ImmutableSet.of(FULL_SCHEMA_NAME);
+  static final ImmutableSet<String> SUPPORTED_PROPERTIES = ImmutableSet.of(
+      FULL_SCHEMA_NAME,
+      SCHEMA_ID
+  );
 
-  private final ImmutableMap<String, String> properties;
-
-  AvroProperties(final Map<String, String> formatProps) {
-    this.properties = ImmutableMap.copyOf(formatProps);
-
-    FormatProperties.validateProperties(AvroFormat.NAME, formatProps, SUPPORTED_PROPERTIES);
+  public AvroProperties(final Map<String, String> formatProps) {
+    super(AvroFormat.NAME, formatProps);
   }
 
-  String getFullSchemaName() {
-    return properties
-        .getOrDefault(FULL_SCHEMA_NAME, DEFAULT_AVRO_SCHEMA_FULL_NAME);
+  @Override
+  protected String getDefaultFullSchemaName() {
+    return DEFAULT_AVRO_SCHEMA_FULL_NAME;
+  }
+
+  @Override
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP")
+  public ImmutableSet<String> getSupportedProperties() {
+    return SUPPORTED_PROPERTIES;
   }
 }

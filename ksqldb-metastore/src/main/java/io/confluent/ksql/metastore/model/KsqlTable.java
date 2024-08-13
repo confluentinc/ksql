@@ -24,14 +24,14 @@ import java.util.Optional;
 
 @Immutable
 public class KsqlTable<K> extends StructuredDataSource<K> {
-
   public KsqlTable(
       final String sqlExpression,
       final SourceName datasourceName,
       final LogicalSchema schema,
       final Optional<TimestampColumn> timestampExtractionPolicy,
       final boolean isKsqlSink,
-      final KsqlTopic ksqlTopic
+      final KsqlTopic ksqlTopic,
+      final boolean isSourceTable
   ) {
     super(
         sqlExpression,
@@ -40,7 +40,8 @@ public class KsqlTable<K> extends StructuredDataSource<K> {
         timestampExtractionPolicy,
         DataSourceType.KTABLE,
         isKsqlSink,
-        ksqlTopic
+        ksqlTopic,
+        isSourceTable
     );
   }
 
@@ -52,7 +53,8 @@ public class KsqlTable<K> extends StructuredDataSource<K> {
         schema,
         getTimestampColumn(),
         isCasTarget(),
-        getKsqlTopic()
+        getKsqlTopic(),
+        isSource()
     );
   }
 }

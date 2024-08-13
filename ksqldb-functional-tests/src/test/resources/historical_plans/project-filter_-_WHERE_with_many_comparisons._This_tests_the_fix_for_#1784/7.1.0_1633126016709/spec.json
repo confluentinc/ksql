@@ -1,0 +1,101 @@
+{
+  "version" : "7.1.0",
+  "timestamp" : 1633126016709,
+  "path" : "query-validation-tests/project-filter.json",
+  "schemas" : {
+    "CSAS_EVENTSTEST_0.KsqlTopic.Source" : {
+      "schema" : "`K` STRING KEY, `ID` INTEGER, `FIELD0` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_EVENTSTEST_0.EVENTSTEST" : {
+      "schema" : "`K` STRING KEY, `ID` INTEGER, `FIELD1` STRING, `FIELD0` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "WHERE with many comparisons. This tests the fix for #1784",
+    "inputs" : [ {
+      "topic" : "events",
+      "key" : "0",
+      "value" : {
+        "id" : 1,
+        "field0" : "0x10"
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "EVENTSTEST",
+      "key" : "0",
+      "value" : {
+        "ID" : 1,
+        "FIELD1" : "x_0",
+        "FIELD0" : "0x10"
+      }
+    } ],
+    "topics" : [ {
+      "name" : "EVENTSTEST",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "events",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM events (K STRING KEY, id int, field0 varchar) WITH (KAFKA_TOPIC='events', VALUE_FORMAT='json');", "CREATE STREAM eventstest AS SELECT K, id, 'x_0' AS field1, field0 FROM events WHERE ((id=1 OR id=2 OR id=3 OR id=4) AND (field0='0x10' OR field0='0x11' OR field0='0x12' OR field0='0x13' OR field0='0x14' OR field0='0x15' OR field0='0x16' OR field0='0x17' OR field0='0x18' OR field0='0x19' OR field0='0x1A' OR field0='0x1B' OR field0='0x1C' OR field0='0x1D' OR field0='0x1E' OR field0='0x1F' OR field0='0x20' OR field0='0x21' OR field0='0x22' OR field0='0x23' OR field0='0x24' OR field0='0x25' OR field0='0x26' OR field0='0x27' OR field0='0x28' OR field0='0x29' OR field0='0x2A' OR field0='0x2B' OR field0='0x2C' OR field0='0x2D' OR field0='0x2E' OR field0='0x2F' OR field0='0x30' OR field0='0x31' OR field0='0x32' OR field0='0x33' OR field0='0x34' OR field0='0x35' OR field0='0x36' OR field0='0x37' OR field0='0x38' OR field0='0x39' OR field0='0x3A' OR field0='0x3B' OR field0='0x3C' OR field0='0x3D' OR field0='0x3E' OR field0='0x3F'));" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "EVENTS",
+        "type" : "STREAM",
+        "schema" : "`K` STRING KEY, `ID` INTEGER, `FIELD0` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "EVENTSTEST",
+        "type" : "STREAM",
+        "schema" : "`K` STRING KEY, `ID` INTEGER, `FIELD1` STRING, `FIELD0` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "events",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "EVENTSTEST",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

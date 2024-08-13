@@ -17,20 +17,24 @@ package io.confluent.ksql.util;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.lessThan;
+import static org.hamcrest.Matchers.lessThanOrEqualTo;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import com.google.common.base.Ticker;
 import com.google.common.collect.ImmutableSet;
+import io.confluent.ksql.logging.processing.MeteredProcessingLoggerFactory;
+import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.logging.query.QueryLogger;
+import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.KafkaStreamsBuilder;
@@ -43,8 +47,15 @@ import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlConstants.KsqlQueryType;
 import java.time.Duration;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
+
+import org.apache.kafka.common.metrics.Metrics;
+import org.apache.kafka.common.metrics.Sensor;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KafkaStreams.State;
 import org.apache.kafka.streams.Topology;
@@ -62,8 +73,8 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class QueryMetadataTest {
 
-  private static long RETRY_BACKOFF_INITIAL_MS = 1;
-  private static long RETRY_BACKOFF_MAX_MS = 10;
+  private static final long RETRY_BACKOFF_INITIAL_MS = 1;
+  private static final long RETRY_BACKOFF_MAX_MS = 10;
   private static final String QUERY_APPLICATION_ID = "Query1";
   private static final QueryId QUERY_ID = new QueryId("queryId");
   private static final LogicalSchema SOME_SCHEMA = LogicalSchema.builder()
@@ -88,6 +99,8 @@ public class QueryMetadataTest {
   private ArgumentCaptor<KafkaStreams.StateListener> streamsListenerCaptor;
   @Mock
   private Ticker ticker;
+  @Mock
+  private MeteredProcessingLoggerFactory loggerFactory;
 
   private QueryMetadataImpl query;
 
@@ -113,7 +126,8 @@ public class QueryMetadataTest {
         10,
         0L,
         0L,
-        listener
+        listener,
+        loggerFactory
     ){
     };
     query.initialize();
@@ -222,6 +236,36 @@ public class QueryMetadataTest {
   }
 
   @Test
+  public void shouldNotifyQueryStateListenerWithRecursiveClassification() {
+    final Exception e = new Exception();
+
+    // Given:
+    when(classifier.classify(eq(e))).thenReturn(Type.USER);
+
+    // When:
+    query.uncaughtHandler(new Exception("oops", e));
+
+    // Then:
+    verify(listener).onError(same(query), argThat(q -> q.getType().equals(Type.USER)));
+  }
+
+  @Test
+  public void shouldNotifyQueryStateListenerWithSelfReferencingException() {
+    final Exception e = new Exception() {
+      @Override
+      public synchronized Throwable getCause() {
+        return this;
+      }
+    };
+
+    // When:
+    query.uncaughtHandler(new Exception("oops", e));
+
+    // Then:
+    verify(listener).onError(same(query), argThat(q -> q.getType().equals(Type.UNKNOWN)));
+  }
+
+  @Test
   public void shouldNotifyQueryStateListenerOnErrorEvenIfClassifierFails() {
     // Given:
     final RuntimeException thrown = new RuntimeException("bar");
@@ -266,7 +310,7 @@ public class QueryMetadataTest {
     );
 
     // Then:
-    assertThat(retryEvent.getNumRetries(), is(0));
+    assertThat(retryEvent.getNumRetries("thread-name"), is(0));
     assertThat(retryEvent.nextRestartTimeMs(), is(now + RETRY_BACKOFF_INITIAL_MS));
   }
 
@@ -284,11 +328,15 @@ public class QueryMetadataTest {
             ticker
     );
 
-    retryEvent.backOff();
+    retryEvent.backOff("thread-name");
+    retryEvent.backOff("thread-name");
+    retryEvent.backOff("thread-name-2");
+    final int numBackOff = 3;
 
     // Then:
-    assertThat(retryEvent.getNumRetries(), is(1));
-    assertThat(retryEvent.nextRestartTimeMs(), is(now + RETRY_BACKOFF_INITIAL_MS * 2));
+    assertThat(retryEvent.getNumRetries("thread-name"), is(2));
+    assertThat(retryEvent.getNumRetries("thread-name-2"), is(1));
+    assertThat(retryEvent.nextRestartTimeMs(), is(now + (RETRY_BACKOFF_INITIAL_MS * (int)(Math.pow(2, numBackOff)))));
   }
 
   @Test
@@ -304,12 +352,16 @@ public class QueryMetadataTest {
             RETRY_BACKOFF_MAX_MS,
             ticker
     );
-    retryEvent.backOff();
-    retryEvent.backOff();
+    retryEvent.backOff("thread-name");
+    retryEvent.backOff("thread-name");
+    retryEvent.backOff("thread-name");
+    retryEvent.backOff("thread-name");
+    retryEvent.backOff("thread-name");
+    retryEvent.backOff("thread-name");
 
     // Then:
-    assertThat(retryEvent.getNumRetries(), is(2));
-    assertThat(retryEvent.nextRestartTimeMs(), lessThan(now + RETRY_BACKOFF_MAX_MS));
+    assertThat(retryEvent.getNumRetries("thread-name"), is(6));
+    assertThat(retryEvent.nextRestartTimeMs(), lessThanOrEqualTo(now + RETRY_BACKOFF_MAX_MS));
   }
 
   @Test
@@ -322,4 +374,18 @@ public class QueryMetadataTest {
     assertThat(queue.toImmutableList().size(), is(0));
   }
 
+  @Test
+  public void shouldCloseProcessingLoggers() {
+    // Given:
+    final ProcessingLogger processingLogger1 = mock(ProcessingLogger.class);
+    final ProcessingLogger processingLogger2 = mock(ProcessingLogger.class);
+    when(loggerFactory.getLoggersWithPrefix(QUERY_ID.toString())).thenReturn(Arrays.asList(processingLogger1, processingLogger2));
+
+    // When:
+    query.close();
+
+    // Then:
+    verify(processingLogger1).close();
+    verify(processingLogger2).close();
+  }
 }

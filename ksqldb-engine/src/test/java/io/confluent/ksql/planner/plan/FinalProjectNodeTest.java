@@ -28,16 +28,20 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.analyzer.Analysis;
+import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
+import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
+import io.confluent.ksql.parser.tree.StructAll;
 import io.confluent.ksql.parser.tree.SelectItem;
 import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.planner.Projection;
 import io.confluent.ksql.planner.RequiredColumns;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.types.SqlStruct;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlException;
 import java.util.List;
@@ -55,6 +59,9 @@ public class FinalProjectNodeTest {
   private static final SourceName SOURCE_NAME = SourceName.of("Bob");
   private static final ColumnName K = ColumnName.of("K");
   private static final ColumnName COL0 = ColumnName.of("COL0");
+  private static final ColumnName STRUCT_COL1 = ColumnName.of("STRUCT_COL1");
+  private static final ColumnName STRUCT_F1 = ColumnName.of("F1");
+  private static final ColumnName STRUCT_F2 = ColumnName.of("F2");
   private static final ColumnName ALIAS = ColumnName.of("GRACE");
   private static final ColumnName ALIAS2 = ColumnName.of("PETER");
 
@@ -63,6 +70,9 @@ public class FinalProjectNodeTest {
 
   private static final UnqualifiedColumnReferenceExp COL0_REF =
       new UnqualifiedColumnReferenceExp(COL0);
+
+  private static final UnqualifiedColumnReferenceExp STRUCT_COL1_REF =
+      new UnqualifiedColumnReferenceExp(STRUCT_COL1);
 
   @Mock
   private PlanNode source;
@@ -83,6 +93,13 @@ public class FinalProjectNodeTest {
         .valueColumn(COL0, SqlTypes.STRING)
         .valueColumn(ColumnName.of("ROWKEY"), SqlTypes.STRING)
         .valueColumn(K, SqlTypes.STRING)
+        .valueColumn(STRUCT_COL1, SqlStruct.builder()
+            .field(STRUCT_F1.text(), SqlTypes.STRING)
+            .field(STRUCT_F2.text(), SqlStruct.builder()
+                .field("F2_1", SqlTypes.INTEGER)
+                .field("F2_2", SqlTypes.DOUBLE)
+                .build())
+            .build())
         .build());
 
     selects = ImmutableList.of(new SingleColumn(COL0_REF, Optional.of(ALIAS)));
@@ -92,7 +109,8 @@ public class FinalProjectNodeTest {
         source,
         selects,
         Optional.of(into),
-        metaStore);
+        metaStore
+    );
   }
 
   @Test
@@ -102,6 +120,74 @@ public class FinalProjectNodeTest {
 
     // Then:
     verify(source).validateKeyPresent(SOURCE_NAME, Projection.of(selects));
+  }
+
+  @Test
+  public void shouldNotThrowOnSelectStructStarInProjection() {
+    // Given:
+    clearInvocations(source);
+
+    // select struct_col1->*
+    selects = ImmutableList.of(new StructAll(STRUCT_COL1_REF));
+
+    // When:
+    new FinalProjectNode(
+        NODE_ID,
+        source,
+        selects,
+        Optional.of(into),
+        metaStore
+    );
+
+    // Then:
+    verify(source).resolveSelect(0, STRUCT_COL1_REF);
+  }
+
+  @Test
+  public void shouldNotThrowOnSelectStructStarFromNestedStructInProjection() {
+    final Expression dereferenceExp = new DereferenceExpression(
+        Optional.empty(),
+        STRUCT_COL1_REF,
+        STRUCT_F2.text()
+    );
+
+    // Given:
+    clearInvocations(source);
+
+    // select struct_col1->f2->*
+    selects = ImmutableList.of(new StructAll(dereferenceExp));
+
+    // When:
+    new FinalProjectNode(
+        NODE_ID,
+        source,
+        selects,
+        Optional.of(into),
+        metaStore
+    );
+
+    // Then:
+    verify(source).resolveSelect(0, dereferenceExp);
+  }
+
+  @Test
+  public void shouldNotThrowOnSelectStructReferenceInProjection() {
+    // Given:
+    clearInvocations(source);
+
+    selects = ImmutableList.of(new SingleColumn(STRUCT_COL1_REF, Optional.of(STRUCT_COL1)));
+
+    // When:
+    new FinalProjectNode(
+        NODE_ID,
+        source,
+        selects,
+        Optional.of(into),
+        metaStore
+    );
+
+    // Then:
+    verify(source).validateColumns(RequiredColumns.builder().add(STRUCT_COL1_REF).build());
   }
 
   @Test
@@ -120,7 +206,8 @@ public class FinalProjectNodeTest {
         source,
         selects,
         Optional.of(into),
-        metaStore);
+        metaStore
+    );
 
     // Then:
     verify(source).validateColumns(RequiredColumns.builder().add(syntheticKeyRef).build());
@@ -146,7 +233,8 @@ public class FinalProjectNodeTest {
             source,
             selects,
             Optional.of(into),
-            metaStore)
+            metaStore
+        )
     );
 
     // Then:

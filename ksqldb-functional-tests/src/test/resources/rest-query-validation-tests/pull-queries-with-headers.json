@@ -1,0 +1,131 @@
+{
+  "comments": [
+    "Tests covering Pull queries with headers"
+  ],
+  "tests": [
+    {
+      "name": "select * against materialized table with headers",
+      "statements": [
+        "CREATE TABLE INPUT (ID STRING PRIMARY KEY, GRADE STRING, RANK INT, HEAD BYTES HEADER('abc')) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE INPUT_QUERYABLE AS SELECT * FROM INPUT;",
+        "SELECT * FROM INPUT_QUERYABLE;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12346, "key": "11", "value": {"GRADE": "A", "RANK": 1}, "headers": [{"KEY": "abc", "VALUE": "IQ=="}]},
+        {"topic": "test_topic", "timestamp": 12345, "key": "10", "value": {"GRADE": "B", "RANK": 2}, "headers": [{"KEY": "abc", "VALUE": "IQ=="}]}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ID` STRING KEY, `GRADE` STRING, `RANK` INTEGER, `HEAD` BYTES"}},
+          {"row":{"columns":["11", "A", 1, "IQ=="]}},
+          {"row":{"columns":["10", "B", 2, "IQ=="]}}
+        ]}
+      ]
+    },
+    {
+      "name": "pull query on stream with headers",
+      "properties": {
+        "ksql.query.pull.stream.enabled": true
+      },
+      "statements": [
+        "CREATE STREAM S1 (MYKEY INT KEY, MYVALUE INT, MYHEADERS ARRAY<STRUCT<key STRING, value BYTES>> HEADERS) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "SELECT * FROM S1;"
+      ],
+      "topics": [
+        {"name": "test_topic", "partitions": 1}
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12365, "key": 10, "value": {"myvalue": 1}, "headers": []},
+        {"topic": "test_topic", "timestamp": 12366, "key": 11, "value": {"myvalue": 2}, "headers": [{"KEY": "abc", "VALUE": "IQ=="}]}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`MYKEY` INTEGER, `MYVALUE` INTEGER, `MYHEADERS` ARRAY<STRUCT<`KEY` STRING, `VALUE` BYTES>>"}},
+          {"row":{"columns":[10, 1, []]}},
+          {"row":{"columns":[11, 2, [{"KEY": "abc", "VALUE": "IQ=="}]]}},
+          {"finalMessage":"Query Completed"}
+        ]}
+      ]
+    },
+    {
+      "name": "hopping windowed single key lookup without window bounds - with headers",
+      "statements": [
+        "CREATE STREAM INPUT (ID STRING KEY, IGNORED INT, h BYTES HEADER('abc')) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE AGGREGATE AS SELECT ID, LATEST_BY_OFFSET(h) AS LATEST_HEAD FROM INPUT WINDOW HOPPING(SIZE 4 SECOND, ADVANCE BY 1 SECONDS) GROUP BY ID;",
+        "SELECT ID, WINDOWSTART, WINDOWEND, ROWTIME, LATEST_HEAD FROM AGGREGATE WHERE ID='10';"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 10345, "key": "11", "value": {}},
+        {"topic": "test_topic", "timestamp": 10345, "key": "10", "value": {}, "headers": [{"KEY": "abc", "VALUE": "IQ=="}]},
+        {"topic": "test_topic", "timestamp": 13345, "key": "10", "value": {}, "headers": [{"KEY": "abc", "VALUE": "Iw=="}]}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ID` STRING KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `ROWTIME` BIGINT, `LATEST_HEAD` BYTES"}},
+          {"row":{"columns":["10",7000,11000,10345,"IQ=="]}},
+          {"row":{"columns":["10",8000,12000,10345,"IQ=="]}},
+          {"row":{"columns":["10",9000,13000,10345,"IQ=="]}},
+          {"row":{"columns":["10",10000,14000,13345,"Iw=="]}},
+          {"row":{"columns":["10",11000,15000,13345,"Iw=="]}},
+          {"row":{"columns":["10",12000,16000,13345,"Iw=="]}},
+          {"row":{"columns":["10",13000,17000,13345,"Iw=="]}}
+        ]}
+      ]
+    },
+    {
+      "name": "table table inner join with headers",
+      "format": ["AVRO"],
+      "statements": [
+        "CREATE TABLE TEST (ID BIGINT PRIMARY KEY, NAME varchar, H BYTES HEADER('abc')) WITH (kafka_topic='l_topic', value_format='{FORMAT}');",
+        "CREATE TABLE TEST_TABLE (ID BIGINT PRIMARY KEY, F1 varchar, F2 bigint) WITH (kafka_topic='r_topic', value_format='{FORMAT}');",
+        "CREATE TABLE INNER_JOIN as SELECT t.id, name, h, f1, f2 FROM test t join TEST_TABLE tt on t.id = tt.id;",
+        "SELECT * FROM INNER_JOIN;"
+      ],
+      "inputs": [
+        {"topic": "l_topic", "key": 0, "value": {"NAME": "zero"}, "timestamp": 0, "headers": [{"KEY": "abc", "VALUE": "IQ=="}]},
+        {"topic": "r_topic", "key": 0, "value": {"F1": "blah", "F2": 50}, "timestamp": 10000},
+        {"topic": "l_topic", "key": 10, "value": {"NAME": "100"}, "timestamp": 11000, "headers": [{"KEY": "abc", "VALUE": "IQ=="}]},
+        {"topic": "l_topic", "key": 0, "value": {"NAME": "foo"}, "timestamp": 13000, "headers": [{"KEY": "abc", "VALUE": "IQ=="}]},
+        {"topic": "r_topic", "key": 0, "value": {"F1": "a", "F2": 10}, "timestamp": 15000},
+        {"topic": "r_topic", "key": 15, "value": {"F1": "c", "F2": 20}, "timestamp": 15500},
+        {"topic": "l_topic", "key": 0, "value": {"NAME": "bar"}, "timestamp": 16000, "headers": [{"KEY": "abc", "VALUE": "IQ=="}]},
+        {"topic": "l_topic", "key": 90, "value": {"NAME": "ninety"}, "timestamp": 17000, "headers": [{"KEY": "abc", "VALUE": "IQ=="}]}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`T_ID` BIGINT KEY, `NAME` STRING, `H` BYTES, `F1` STRING, `F2` BIGINT"}},
+          {"row":{"columns":[0,"bar","IQ==","a",10]}}
+        ]}
+      ]
+    },
+    {
+      "name": "select * against CST table with headers",
+      "statements": [
+        "CREATE SOURCE TABLE INPUT (K INT PRIMARY KEY, text STRING, header BYTES HEADER('abc')) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
+        "SELECT * FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12345, "key": 1, "value": "a1", "headers": [{"KEY": "abc", "VALUE": "IQ=="}]},
+        {"topic": "test_topic", "timestamp": 12345, "key": 2, "value": "a2", "headers": [{"KEY": "abc", "VALUE": "Iw=="}]},
+        {"topic": "test_topic", "timestamp": 12345, "key": 3, "value": "a3", "headers": []}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`K` INTEGER KEY, `HEADER` BYTES HEADER('abc'), `TEXT` STRING"}},
+          {"row":{"columns":[1,"a1","IQ=="]}},
+          {"row":{"columns":[2,"a2","Iw=="]}},
+          {"row":{"columns":[3,"a3",null]}}
+        ]}
+      ]
+    }
+  ]
+}

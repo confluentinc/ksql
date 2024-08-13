@@ -1,0 +1,110 @@
+{
+  "version" : "7.1.0",
+  "timestamp" : 1633126017170,
+  "path" : "query-validation-tests/protobuf.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`K` STRING KEY, `I` INTEGER, `L` BIGINT, `D` DOUBLE, `B` BOOLEAN, `S` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "PROTOBUF"
+      }
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`K` STRING KEY, `I` INTEGER, `L` BIGINT, `D` DOUBLE, `B` BOOLEAN, `S` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "PROTOBUF"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "protobuf primitives",
+    "inputs" : [ {
+      "topic" : "input",
+      "key" : null,
+      "value" : {
+        "i" : 1,
+        "l" : 1,
+        "d" : 1.2,
+        "b" : true,
+        "s" : "foo"
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : null,
+      "value" : {
+        "I" : 1,
+        "L" : 1,
+        "D" : 1.2,
+        "B" : true,
+        "S" : "foo"
+      }
+    } ],
+    "topics" : [ {
+      "name" : "input",
+      "valueSchema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  int32 I = 1;\n  int64 L = 2;\n  double D = 3;\n  bool B = 4;\n  string S = 5;\n}\n",
+      "valueFormat" : "PROTOBUF",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM INPUT (K STRING KEY, i INTEGER, l BIGINT, d DOUBLE, b BOOLEAN, s STRING) WITH (kafka_topic='input', value_format='PROTOBUF');", "CREATE STREAM OUTPUT as SELECT * FROM input;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`K` STRING KEY, `I` INTEGER, `L` BIGINT, `D` DOUBLE, `B` BOOLEAN, `S` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "PROTOBUF",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`K` STRING KEY, `I` INTEGER, `L` BIGINT, `D` DOUBLE, `B` BOOLEAN, `S` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "PROTOBUF",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "input",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "PROTOBUF"
+          },
+          "partitions" : 4,
+          "valueSchema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  int32 I = 1;\n  int64 L = 2;\n  double D = 3;\n  bool B = 4;\n  string S = 5;\n}\n"
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "PROTOBUF"
+          },
+          "partitions" : 4,
+          "valueSchema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  int32 I = 1;\n  int64 L = 2;\n  double D = 3;\n  bool B = 4;\n  string S = 5;\n}\n"
+        } ]
+      }
+    }
+  }
+}

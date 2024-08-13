@@ -366,7 +366,7 @@ public final class KsqlTarget {
           return;
         }
         final ReadStream<Buffer> readStream;
-        if (resp.request().connection().isSsl()) {
+        if (resp != null && resp.request().connection().isSsl()) {
           readStream = new BufferCopyStream(resp);
         } else {
           readStream = resp;

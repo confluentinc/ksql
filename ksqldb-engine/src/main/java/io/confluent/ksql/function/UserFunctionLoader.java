@@ -154,9 +154,9 @@ public class UserFunctionLoader {
         ? Optional.of(metricsRegistry)
         : empty();
 
-    if (config.getBoolean(KsqlConfig.KSQL_UDF_SECURITY_MANAGER_ENABLED)) {
-      System.setSecurityManager(ExtensionSecurityManager.INSTANCE);
-    }
+    //    if (config.getBoolean(KsqlConfig.KSQL_UDF_SECURITY_MANAGER_ENABLED)) {
+    //      System.setSecurityManager(ExtensionSecurityManager.INSTANCE);
+    //    }
     return new UserFunctionLoader(
         metaStore,
         pluginDir,

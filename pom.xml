@@ -859,8 +859,6 @@
                             <useUnlimitedThreads>true</useUnlimitedThreads>
                             <forkedProcessTimeoutInSeconds>3600</forkedProcessTimeoutInSeconds>
                             <forkedProcessExitTimeoutInSeconds>180</forkedProcessExitTimeoutInSeconds>
-                            <!-- Skip ITs temporarily -->
-                            <skipITs>true</skipITs>
                         </configuration>
                     </execution>
                 </executions>

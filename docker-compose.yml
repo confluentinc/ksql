@@ -9,7 +9,7 @@
 # or a 1 node cluster run:
 # > docker-compose up --scale additional-ksqldb-server=0
 #
-# The default is one `primary-ksqldb-server` and one `additional-ksqdb-server`. The only
+# The default is one `primary-ksqldb-server` and one `additional-ksqldb-server`. The only
 # difference is that the primary node has a well-known port exposed so clients can connect, where
 # as the additional nodes use auto-port assignment so that ports don't clash.
 #

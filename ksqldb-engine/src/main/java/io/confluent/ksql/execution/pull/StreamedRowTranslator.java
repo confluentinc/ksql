@@ -102,8 +102,4 @@ public class StreamedRowTranslator implements Function<List<StreamedRow>, List<P
               actual, sourceHost .map(KsqlHostInfoEntity::getHost).orElse("unknown"), expected));
     }
   }
-
-
-
-
 }

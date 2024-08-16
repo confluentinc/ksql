@@ -251,7 +251,7 @@ public class CorsTest extends BaseApiTest {
         MultiMap.caseInsensitiveMultiMap().add("origin", origin)
             .add(ACCESS_CONTROL_REQUEST_METHOD_HEADER, "POST"));
 
-    assertThat(response.statusCode(), is(200));
+    assertThat(response.statusCode(), is(204));
     assertThat(response.getHeader(ACCESS_CONTROL_ALLOW_ORIGIN_HEADER),
         is(origin));
     assertThat(response.getHeader(ACCESS_CONTROL_ALLOW_CREDENTIALS_HEADER), is("true"));

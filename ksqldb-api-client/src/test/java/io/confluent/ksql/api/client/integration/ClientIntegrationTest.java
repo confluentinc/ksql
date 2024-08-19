@@ -133,6 +133,7 @@ import org.apache.kafka.common.header.internals.RecordHeader;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.json.JsonConverter;
 import org.apache.kafka.connect.storage.StringConverter;
+import org.apache.kafka.connect.tools.MockSourceConnector;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.test.TestUtils;
 import org.hamcrest.Description;
@@ -217,7 +218,7 @@ public class ClientIntegrationTest {
       + "SELECT' statements. ";
 
   private static final String TEST_CONNECTOR = "TEST_CONNECTOR";
-  private static final String MOCK_SOURCE_CLASS = "org.apache.kafka.connect.tools.MockSourceConnector";
+  private static final String MOCK_SOURCE_CLASS = MockSourceConnector.class.getName();
   private static final ConnectorType SOURCE_TYPE = new ConnectorTypeImpl("SOURCE");
 
   private static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.build();

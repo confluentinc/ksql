@@ -30,12 +30,15 @@ import io.confluent.ksql.execution.streams.materialization.MaterializationExcept
 import io.confluent.ksql.execution.streams.materialization.ks.NotUpToBoundException;
 import io.confluent.ksql.internal.PullQueryExecutorMetrics;
 import io.confluent.ksql.parser.tree.Query;
-import io.confluent.ksql.query.PullQueryWriteStream;
+import io.confluent.ksql.query.PullQueryQueue;
+import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.client.RestResponse;
-import io.confluent.ksql.rest.entity.KsqlHostInfoEntity;
 import io.confluent.ksql.rest.entity.StreamedRow;
+import io.confluent.ksql.rest.entity.StreamedRow.Header;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
+import io.confluent.ksql.util.ConsistencyOffsetVector;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlRequestConfig;
@@ -51,7 +54,10 @@ import java.util.concurrent.ExecutorCompletionService;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import java.util.function.Function;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.BiFunction;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -65,11 +71,24 @@ public final class HARouting implements AutoCloseable {
   private final ExecutorService routerExecutorService;
   private final RoutingFilterFactory routingFilterFactory;
   private final Optional<PullQueryExecutorMetrics> pullQueryMetrics;
+  private final RouteQuery routeQuery;
 
   public HARouting(
       final RoutingFilterFactory routingFilterFactory,
       final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
       final KsqlConfig ksqlConfig
+  ) {
+    this(routingFilterFactory, pullQueryMetrics, ksqlConfig,
+         HARouting::executeOrRouteQuery);
+  }
+
+
+  @VisibleForTesting
+  HARouting(
+      final RoutingFilterFactory routingFilterFactory,
+      final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
+      final KsqlConfig ksqlConfig,
+      final RouteQuery routeQuery
   ) {
     this.routingFilterFactory =
         Objects.requireNonNull(routingFilterFactory, "routingFilterFactory");
@@ -80,6 +99,7 @@ public final class HARouting implements AutoCloseable {
         ksqlConfig.getInt(KsqlConfig.KSQL_QUERY_PULL_ROUTER_THREAD_POOL_SIZE_CONFIG),
         new ThreadFactoryBuilder().setNameFormat("pull-query-router-%d").build());
     this.pullQueryMetrics = Objects.requireNonNull(pullQueryMetrics, "pullQueryMetrics");
+    this.routeQuery = Objects.requireNonNull(routeQuery);
   }
 
   @Override
@@ -93,8 +113,11 @@ public final class HARouting implements AutoCloseable {
       final PullPhysicalPlan pullPhysicalPlan,
       final ConfiguredStatement<Query> statement,
       final RoutingOptions routingOptions,
-      final PullQueryWriteStream pullQueryQueue,
-      final CompletableFuture<Void> shouldCancelRequests
+      final LogicalSchema outputSchema,
+      final QueryId queryId,
+      final PullQueryQueue pullQueryQueue,
+      final CompletableFuture<Void> shouldCancelRequests,
+      final Optional<ConsistencyOffsetVector> consistencyOffsetVector
   ) {
     final List<KsqlPartitionLocation> allLocations = pullPhysicalPlan.getMaterialization().locator()
         .locate(
@@ -133,8 +156,8 @@ public final class HARouting implements AutoCloseable {
     final CompletableFuture<Void> completableFuture = new CompletableFuture<>();
     coordinatorExecutorService.submit(() -> {
       try {
-        executeRounds(serviceContext, pullPhysicalPlan, statement, routingOptions,
-            locations, pullQueryQueue, shouldCancelRequests);
+        executeRounds(serviceContext, pullPhysicalPlan, statement, routingOptions, outputSchema,
+            queryId, locations, pullQueryQueue, shouldCancelRequests, consistencyOffsetVector);
         completableFuture.complete(null);
       } catch (Throwable t) {
         completableFuture.completeExceptionally(t);
@@ -149,9 +172,12 @@ public final class HARouting implements AutoCloseable {
       final PullPhysicalPlan pullPhysicalPlan,
       final ConfiguredStatement<Query> statement,
       final RoutingOptions routingOptions,
+      final LogicalSchema outputSchema,
+      final QueryId queryId,
       final List<KsqlPartitionLocation> locations,
-      final PullQueryWriteStream pullQueryQueue,
-      final CompletableFuture<Void> shouldCancelRequests
+      final PullQueryQueue pullQueryQueue,
+      final CompletableFuture<Void> shouldCancelRequests,
+      final Optional<ConsistencyOffsetVector> consistencyOffsetVector
   ) throws InterruptedException {
     final ExecutorCompletionService<PartitionFetchResult> completionService =
         new ExecutorCompletionService<>(routerExecutorService);
@@ -164,10 +190,10 @@ public final class HARouting implements AutoCloseable {
       pullQueryMetrics.ifPresent(queryExecutorMetrics ->
           queryExecutorMetrics.recordPartitionFetchRequest(1));
       completionService.submit(
-          () -> executeOrRouteQuery(
+          () -> routeQuery.routeQuery(
           node, partition, statement, serviceContext, routingOptions,
-          pullQueryMetrics, pullPhysicalPlan, pullQueryQueue,
-          shouldCancelRequests)
+          pullQueryMetrics, pullPhysicalPlan, outputSchema, queryId, pullQueryQueue,
+          shouldCancelRequests, consistencyOffsetVector)
       );
     }
 
@@ -184,10 +210,10 @@ public final class HARouting implements AutoCloseable {
           pullQueryMetrics.ifPresent(queryExecutorMetrics ->
               queryExecutorMetrics.recordResubmissionRequest(1));
           completionService.submit(
-              () -> executeOrRouteQuery(
+              () -> routeQuery.routeQuery(
               node, nextRoundPartition, statement, serviceContext, routingOptions,
-              pullQueryMetrics, pullPhysicalPlan, pullQueryQueue,
-              shouldCancelRequests)
+              pullQueryMetrics, pullPhysicalPlan, outputSchema, queryId, pullQueryQueue,
+              shouldCancelRequests, consistencyOffsetVector)
           );
         } else {
           Preconditions.checkState(fetchResult.getResult() == RoutingResult.SUCCESS);
@@ -227,6 +253,25 @@ public final class HARouting implements AutoCloseable {
 
   @SuppressWarnings("ParameterNumber")
   @VisibleForTesting
+  interface RouteQuery {
+    PartitionFetchResult routeQuery(
+        KsqlNode node,
+        KsqlPartitionLocation location,
+        ConfiguredStatement<Query> statement,
+        ServiceContext serviceContext,
+        RoutingOptions routingOptions,
+        Optional<PullQueryExecutorMetrics> pullQueryMetrics,
+        PullPhysicalPlan pullPhysicalPlan,
+        LogicalSchema outputSchema,
+        QueryId queryId,
+        PullQueryQueue pullQueryQueue,
+        CompletableFuture<Void> shouldCancelRequests,
+        Optional<ConsistencyOffsetVector> consistencyOffsetVector
+    );
+  }
+
+  @SuppressWarnings("ParameterNumber")
+  @VisibleForTesting
   static PartitionFetchResult executeOrRouteQuery(
       final KsqlNode node,
       final KsqlPartitionLocation location,
@@ -235,20 +280,23 @@ public final class HARouting implements AutoCloseable {
       final RoutingOptions routingOptions,
       final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
       final PullPhysicalPlan pullPhysicalPlan,
-      final PullQueryWriteStream pullQueryQueue,
-      final CompletableFuture<Void> shouldCancelRequests
+      final LogicalSchema outputSchema,
+      final QueryId queryId,
+      final PullQueryQueue pullQueryQueue,
+      final CompletableFuture<Void> shouldCancelRequests,
+      final Optional<ConsistencyOffsetVector> consistencyOffsetVector
   ) {
-    final Function<StreamedRow, StreamedRow> addHostInfo
-        = sr -> sr.withSourceHost(routingOptions.getIsDebugRequest() ? toKsqlHostInfo(node) : null);
+    final BiFunction<List<?>, LogicalSchema, PullQueryRow> rowFactory = (rawRow, schema) ->
+        new PullQueryRow(rawRow, schema, Optional.ofNullable(
+            routingOptions.getIsDebugRequest() ? node : null), Optional.empty());
     if (node.isLocal()) {
       try {
-        LOG.debug("Query {} partition {} executed locally at host {} at timestamp {}.",
-            pullPhysicalPlan.getQueryId(), location.getPartition(),
-            node.location(), System.currentTimeMillis());
+        LOG.debug("Query {} executed locally at host {} at timestamp {}.",
+            statement.getMaskedStatementText(), node.location(), System.currentTimeMillis());
         pullQueryMetrics
           .ifPresent(queryExecutorMetrics -> queryExecutorMetrics.recordLocalRequests(1));
         synchronized (pullPhysicalPlan) {
-          pullPhysicalPlan.execute(ImmutableList.of(location), pullQueryQueue, addHostInfo);
+          pullPhysicalPlan.execute(ImmutableList.of(location), pullQueryQueue, rowFactory);
           return new PartitionFetchResult(
               RoutingResult.SUCCESS, location, Optional.empty());
         }
@@ -266,13 +314,12 @@ public final class HARouting implements AutoCloseable {
       }
     } else {
       try {
-        LOG.debug("Query {} partition {} routed to host {} at timestamp {}.",
-            pullPhysicalPlan.getQueryId(), location.getPartition(),
-            node.location(), System.currentTimeMillis());
+        LOG.debug("Query {} routed to host {} at timestamp {}.",
+            statement.getMaskedStatementText(), node.location(), System.currentTimeMillis());
         pullQueryMetrics
           .ifPresent(queryExecutorMetrics -> queryExecutorMetrics.recordRemoteRequests(1));
         forwardTo(node, ImmutableList.of(location), statement, serviceContext, pullQueryQueue,
-            shouldCancelRequests, addHostInfo);
+            rowFactory, outputSchema, shouldCancelRequests, consistencyOffsetVector);
         return new PartitionFetchResult(
             RoutingResult.SUCCESS, location, Optional.empty());
       } catch (StandbyFallbackException e) {
@@ -289,21 +336,17 @@ public final class HARouting implements AutoCloseable {
     }
   }
 
-  /**
-   * Converts the KsqlNode to KsqlHostInfoEntity
-   */
-  private static KsqlHostInfoEntity toKsqlHostInfo(final KsqlNode node) {
-    return new KsqlHostInfoEntity(node.location().getHost(), node.location().getPort());
-  }
-
   private static void forwardTo(
       final KsqlNode owner,
       final List<KsqlPartitionLocation> locations,
       final ConfiguredStatement<Query> statement,
       final ServiceContext serviceContext,
-      final PullQueryWriteStream pullQueryQueue,
+      final PullQueryQueue pullQueryQueue,
+      final BiFunction<List<?>, LogicalSchema, PullQueryRow> rowFactory,
+      final LogicalSchema outputSchema,
       final CompletableFuture<Void> shouldCancelRequests,
-      final Function<StreamedRow, StreamedRow> addHostInfo) {
+      final Optional<ConsistencyOffsetVector> consistencyOffsetVector
+  ) {
 
     // Specify the partitions we specifically want to read.  This will prevent reading unintended
     // standby data when we are reading active for example.
@@ -326,9 +369,9 @@ public final class HARouting implements AutoCloseable {
               statement.getUnMaskedStatementText(),
               statement.getSessionConfig().getOverrides(),
               requestProperties,
-              pullQueryQueue,
-              shouldCancelRequests,
-              addHostInfo
+              streamedRowsHandler(
+                   owner, pullQueryQueue, rowFactory, outputSchema, consistencyOffsetVector),
+              shouldCancelRequests
           );
     } catch (Exception e) {
       // If the exception was caused by closing the connection, we consider this intentional and
@@ -376,6 +419,87 @@ public final class HARouting implements AutoCloseable {
     }
     return null;
   }
+
+  private static Consumer<List<StreamedRow>> streamedRowsHandler(
+      final KsqlNode owner,
+      final PullQueryQueue pullQueryQueue,
+      final BiFunction<List<?>, LogicalSchema, PullQueryRow> rowFactory,
+      final LogicalSchema outputSchema,
+      final Optional<ConsistencyOffsetVector> consistencyOffsetVector
+  ) {
+    final AtomicInteger processedRows = new AtomicInteger(0);
+    final AtomicReference<Header> header = new AtomicReference<>();
+    return streamedRows -> {
+      try {
+        if (streamedRows == null || streamedRows.isEmpty()) {
+          return;
+        }
+        final List<PullQueryRow> rows = new ArrayList<>();
+
+        // If this is the first row overall, skip the header
+        final int previousProcessedRows = processedRows.getAndAdd(streamedRows.size());
+        for (int i = 0; i < streamedRows.size(); i++) {
+          final StreamedRow row = streamedRows.get(i);
+          if (i == 0 && previousProcessedRows == 0) {
+            final Optional<Header> optionalHeader = row.getHeader();
+            optionalHeader.ifPresent(h -> validateSchema(outputSchema, h.getSchema(), owner));
+            optionalHeader.ifPresent(header::set);
+            continue;
+          }
+
+          if (row.getErrorMessage().isPresent()) {
+            // If we receive an error that's not a network error, we let that bubble up.
+            throw new KsqlException(row.getErrorMessage().get().getMessage());
+          }
+
+          if (!row.getRow().isPresent()) {
+            parseNonDataRows(row, i, consistencyOffsetVector);
+            continue;
+          }
+
+          final List<?> r = row.getRow().get().getColumns();
+          Preconditions.checkNotNull(header.get());
+          rows.add(rowFactory.apply(r, header.get().getSchema()));
+        }
+
+        if (!pullQueryQueue.acceptRows(rows)) {
+          LOG.error("Failed to queue all rows");
+        }
+      } catch (Exception e) {
+        throw new KsqlException(e.getMessage(), e);
+      }
+    };
+  }
+
+  private static void parseNonDataRows(
+      final StreamedRow row,
+      final int i,
+      final Optional<ConsistencyOffsetVector> consistencyOffsetVector
+  ) {
+    if (row.getConsistencyToken().isPresent()) {
+      if (consistencyOffsetVector.isPresent()) {
+        final String token = row.getConsistencyToken().get().getConsistencyToken();
+        final ConsistencyOffsetVector received = ConsistencyOffsetVector.deserialize(token);
+        consistencyOffsetVector.get().merge(received);
+      }
+    } else if (!row.getFinalMessage().isPresent()) {
+      throw new KsqlException("Missing row data on row " + i + " of chunk");
+    }
+  }
+
+  private static void validateSchema(
+      final LogicalSchema expectedSchema,
+      final LogicalSchema forwardedSchema,
+      final KsqlNode forwardedNode
+  ) {
+    if (!forwardedSchema.equals(expectedSchema)) {
+      throw new KsqlException(String.format(
+          "Schemas %s from host %s differs from schema %s",
+          forwardedSchema, forwardedNode, expectedSchema));
+    }
+  }
+
+
 
   private enum RoutingResult {
     SUCCESS,

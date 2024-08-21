@@ -52,7 +52,6 @@ import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.http.HttpClientResponse;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpVersion;
-import io.vertx.core.http.RequestOptions;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.net.JksOptions;
@@ -605,45 +604,26 @@ public class ClientImpl implements Client {
       final Handler<HttpClientResponse> responseHandler,
       final boolean endRequest,
       final HttpMethod method) {
-
-    final RequestOptions options = new RequestOptions();
-    options.setMethod(method);
-    options.setServer(serverSocketAddress);
-    options.setPort(clientOptions.getPort());
-    options.setHost(clientOptions.getHost());
-    options.setURI(path);
-
-    httpClient.request(options, ar -> {
-      if (ar.failed()) {
-        cf.completeExceptionally(ar.cause());
+    HttpClientRequest request = httpClient.request(method,
+        serverSocketAddress, clientOptions.getPort(), clientOptions.getHost(),
+        path,
+        responseHandler)
+        .exceptionHandler(cf::completeExceptionally);
+    request = configureUserAgent(request);
+    if (clientOptions.isUseBasicAuth()) {
+      request = configureBasicAuth(request);
+    }
+    if (clientOptions.getRequestHeaders() != null) {
+      for (final Entry<String, String> entry : clientOptions.getRequestHeaders().entrySet()) {
+        request.putHeader(entry.getKey(), entry.getValue());
       }
-
-      HttpClientRequest request = ar.result();
-      request.response(response -> {
-        if (response.failed()) {
-          cf.completeExceptionally(response.cause());
-        }
-
-        responseHandler.handle(response.result());
-      });
-      request.exceptionHandler(cf::completeExceptionally);
-
-      request = configureUserAgent(request);
-      if (clientOptions.isUseBasicAuth()) {
-        request = configureBasicAuth(request);
-      }
-      if (clientOptions.getRequestHeaders() != null) {
-        for (final Entry<String, String> entry : clientOptions.getRequestHeaders().entrySet()) {
-          request.putHeader(entry.getKey(), entry.getValue());
-        }
-      }
-      if (endRequest) {
-        request.end(requestBody);
-      } else {
-        final HttpClientRequest finalRequest = request;
-        finalRequest.sendHead(version -> finalRequest.writeCustomFrame(0, 0, requestBody));
-      }
-    });
+    }
+    if (endRequest) {
+      request.end(requestBody);
+    } else {
+      final HttpClientRequest finalRequest = request;
+      finalRequest.sendHead(version -> finalRequest.writeCustomFrame(0, 0, requestBody));
+    }
   }
 
   private HttpClientRequest configureBasicAuth(final HttpClientRequest request) {

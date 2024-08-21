@@ -67,11 +67,10 @@ public class JsonInsertsStreamResponseWriter implements InsertsStreamResponseWri
   public void end() {
     LOG.debug("({}) Ending response for insert stream. Data written: {}", uuid, dataWritten);
     if (!dataWritten) {
-      response.write("[]");
+      response.write("[]").end();
     } else {
-      response.write("]");
+      response.write("]").end();
     }
-    response.end();
   }
 
   private void writeBuffer(final Buffer buffer) {

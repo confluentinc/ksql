@@ -24,7 +24,6 @@ import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.anyShort;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -61,7 +60,6 @@ import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.version.metrics.VersionCheckerAgent;
-import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
 import java.util.Collections;
 import java.util.LinkedList;
@@ -156,10 +154,6 @@ public class KsqlRestApplicationTest {
   @SuppressWarnings({"unchecked", "rawtypes"})
   @Before
   public void setUp() {
-    doAnswer(a -> {
-      ((Handler<Void>) a.getArgument(0)).handle(null);
-      return null;
-    }).when(vertx).close(any());
     when(processingLogConfig.getBoolean(ProcessingLogConfig.STREAM_AUTO_CREATE))
         .thenReturn(true);
     when(processingLogConfig.getString(ProcessingLogConfig.STREAM_NAME))

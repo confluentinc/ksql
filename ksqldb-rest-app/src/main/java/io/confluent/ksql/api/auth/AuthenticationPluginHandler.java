@@ -31,7 +31,6 @@ import io.vertx.core.Handler;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.auth.AuthProvider;
 import io.vertx.ext.auth.User;
-import io.vertx.ext.auth.authorization.Authorization;
 import io.vertx.ext.web.RoutingContext;
 import java.security.Principal;
 import java.util.HashSet;
@@ -65,7 +64,7 @@ public class AuthenticationPluginHandler implements Handler<RoutingContext> {
 
   @Override
   public void handle(final RoutingContext routingContext) {
-    if (unauthedPathsPattern.matcher(routingContext.normalizedPath()).matches()) {
+    if (unauthedPathsPattern.matcher(routingContext.normalisedPath()).matches()) {
       routingContext.next();
       return;
     } else if (isAuthenticatedAsSystemUser(routingContext)) {
@@ -112,19 +111,6 @@ public class AuthenticationPluginHandler implements Handler<RoutingContext> {
       this.principal = new DefaultKsqlPrincipal(principal);
     }
 
-    @Override
-    public JsonObject attributes() {
-      throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public User isAuthorized(
-        final Authorization authority,
-        final Handler<AsyncResult<Boolean>> resultHandler
-    ) {
-      throw new UnsupportedOperationException();
-    }
-
     @SuppressWarnings("deprecation")
     @Override
     public User isAuthorized(final String s, final Handler<AsyncResult<Boolean>> handler) {
@@ -145,11 +131,6 @@ public class AuthenticationPluginHandler implements Handler<RoutingContext> {
     @SuppressWarnings("deprecation")
     @Override
     public void setAuthProvider(final AuthProvider authProvider) {
-      throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public User merge(final User other) {
       throw new UnsupportedOperationException();
     }
 

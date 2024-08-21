@@ -38,7 +38,6 @@ import io.confluent.ksql.execution.pull.PullPhysicalPlan;
 import io.confluent.ksql.execution.pull.PullPhysicalPlanBuilder;
 import io.confluent.ksql.execution.pull.PullQueryQueuePopulator;
 import io.confluent.ksql.execution.pull.PullQueryResult;
-import io.confluent.ksql.execution.pull.StreamedRowTranslator;
 import io.confluent.ksql.execution.scalablepush.PushPhysicalPlan;
 import io.confluent.ksql.execution.scalablepush.PushPhysicalPlanBuilder;
 import io.confluent.ksql.execution.scalablepush.PushPhysicalPlanCreator;
@@ -89,7 +88,7 @@ import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.planner.plan.PlanNodeId;
 import io.confluent.ksql.planner.plan.VerifiableNode;
-import io.confluent.ksql.query.PullQueryWriteStream;
+import io.confluent.ksql.query.PullQueryQueue;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.query.QueryRegistry;
 import io.confluent.ksql.query.TransientQueryQueue;
@@ -285,24 +284,15 @@ final class EngineExecutor {
       );
       final PullPhysicalPlan physicalPlan = plan;
 
-      final PullQueryWriteStream pullQueryQueue = new PullQueryWriteStream(
-          analysis.getLimitClause(),
-          new StreamedRowTranslator(physicalPlan.getOutputSchema(), consistencyOffsetVector));
-
+      final PullQueryQueue pullQueryQueue = new PullQueryQueue(analysis.getLimitClause());
       final PullQueryQueuePopulator populator = () -> routing.handlePullQuery(
           serviceContext,
-          physicalPlan,
-          statement,
-          routingOptions,
-          pullQueryQueue,
-          shouldCancelRequests
-      );
-
+          physicalPlan, statement, routingOptions, physicalPlan.getOutputSchema(),
+          physicalPlan.getQueryId(), pullQueryQueue, shouldCancelRequests, consistencyOffsetVector);
       final PullQueryResult result = new PullQueryResult(physicalPlan.getOutputSchema(), populator,
           physicalPlan.getQueryId(), pullQueryQueue, pullQueryMetrics, physicalPlan.getSourceType(),
           physicalPlan.getPlanType(), routingNodeType, physicalPlan::getRowsReadFromDataSource,
           shouldCancelRequests, consistencyOffsetVector);
-
       if (startImmediately) {
         result.start();
       }

@@ -145,7 +145,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -569,13 +568,7 @@ public final class KsqlRestApplication implements Executable {
     }
 
     if (vertx != null) {
-      try {
-        final CountDownLatch latch = new CountDownLatch(1);
-        vertx.close(ar -> latch.countDown());
-        latch.await();
-      } catch (InterruptedException e) {
-        log.error("Exception while closing vertx", e);
-      }
+      vertx.close();
     }
 
     if (oldApiWebsocketExecutor != null) {

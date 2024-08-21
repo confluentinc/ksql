@@ -21,7 +21,7 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.api.server.QueryHandle;
 import io.confluent.ksql.api.spi.QueryPublisher;
 import io.confluent.ksql.query.BlockingRowQueue;
-import io.confluent.ksql.query.PullQueryWriteStream;
+import io.confluent.ksql.query.PullQueryQueue;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.reactive.BasePublisher;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -29,7 +29,6 @@ import io.confluent.ksql.util.KeyValueMetadata;
 import io.confluent.ksql.util.PushQueryMetadata.ResultType;
 import io.confluent.ksql.util.VertxUtils;
 import io.vertx.core.Context;
-import io.vertx.core.Future;
 import io.vertx.core.WorkerExecutor;
 import java.util.List;
 import java.util.Objects;
@@ -86,7 +85,7 @@ public class BlockingQueryPublisher extends BasePublisher<KeyValueMetadata<List<
     this.queue.setLimitHandler(() -> {
       if (isPullQuery) {
         queryHandle.getConsistencyOffsetVector().ifPresent(
-            ((PullQueryWriteStream) queue)::putConsistencyVector);
+            ((PullQueryQueue) queue)::putConsistencyVector);
         maybeSend();
       }
       complete = true;
@@ -104,7 +103,7 @@ public class BlockingQueryPublisher extends BasePublisher<KeyValueMetadata<List<
     this.queue.setCompletionHandler(() -> {
       if (isPullQuery) {
         queryHandle.getConsistencyOffsetVector().ifPresent(
-            ((PullQueryWriteStream) queue)::putConsistencyVector);
+            ((PullQueryQueue) queue)::putConsistencyVector);
         maybeSend();
       }
       complete = true;
@@ -134,14 +133,14 @@ public class BlockingQueryPublisher extends BasePublisher<KeyValueMetadata<List<
     return logicalSchema;
   }
 
-  public Future<Void> close() {
+  public void close() {
     if (closed) {
-      return Future.succeededFuture();
+      return;
     }
     closed = true;
     // Run async as it can block
     executeOnWorker(queryHandle::stop);
-    return super.close();
+    super.close();
   }
 
   @Override

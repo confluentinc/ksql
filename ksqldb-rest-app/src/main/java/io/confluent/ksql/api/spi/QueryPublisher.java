@@ -20,7 +20,6 @@ import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.util.KeyValueMetadata;
 import io.confluent.ksql.util.PushQueryMetadata.ResultType;
-import io.vertx.core.Future;
 import java.util.List;
 import java.util.Optional;
 import org.reactivestreams.Publisher;
@@ -50,7 +49,7 @@ public interface QueryPublisher extends Publisher<KeyValueMetadata<List<?>, Gene
   /**
    * Close the publisher
    */
-  Future<Void> close();
+  void close();
 
   /**
    * @return true if pull query

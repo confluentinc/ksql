@@ -291,8 +291,8 @@ public class PushRouting implements AutoCloseable {
       final String thisHostName
   ) {
     if (node.isLocal()) {
-      LOG.info("Query with id {} executed locally at host {} at timestamp {}.",
-          pushPhysicalPlanManager.getQueryId(), node.location(),
+      LOG.info("Query {} id {} executed locally at host {} at timestamp {}.",
+          statement.getMaskedStatementText(), pushPhysicalPlanManager.getQueryId(), node.location(),
           System.currentTimeMillis());
       scalablePushQueryMetrics
           .ifPresent(metrics -> metrics.recordLocalRequests(1));

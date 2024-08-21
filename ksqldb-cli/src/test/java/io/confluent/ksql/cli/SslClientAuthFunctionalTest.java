@@ -19,7 +19,6 @@ import static io.confluent.ksql.serde.FormatFactory.JSON;
 import static io.confluent.ksql.serde.FormatFactory.KAFKA;
 import static io.netty.handler.codec.http.HttpResponseStatus.OK;
 import static java.util.Collections.emptyMap;
-import static org.hamcrest.CoreMatchers.anyOf;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
@@ -45,8 +44,6 @@ import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import javax.net.ssl.SSLHandshakeException;
-
-import io.netty.handler.codec.http.websocketx.WebSocketHandshakeException;
 import kafka.zookeeper.ZooKeeperClientException;
 import org.apache.kafka.common.config.SslConfigs;
 import org.junit.Before;
@@ -115,10 +112,7 @@ public class SslClientAuthFunctionalTest {
 
     // Then:
     assertThat(e.getCause(), (is(instanceOf(ExecutionException.class))));
-    // Make this compatible with both java 8 and 11.
-    assertThat(e.getCause(), anyOf(
-            hasCause(hasCause(is(instanceOf(SSLHandshakeException.class)))),
-            hasCause(is(instanceOf(SSLHandshakeException.class)))));
+    assertThat(e.getCause(), (hasCause(is(instanceOf(SSLHandshakeException.class)))));
   }
 
   @Test
@@ -139,16 +133,10 @@ public class SslClientAuthFunctionalTest {
     givenClientConfiguredWithoutCertificate();
 
     // When:
-    final Exception e = assertThrows(
-            Exception.class,
-            () -> WebsocketUtils.makeWsRequest(JSON_KSQL_REQUEST, clientProps, REST_APP)
+    assertThrows(
+        SSLHandshakeException.class,
+        () -> WebsocketUtils.makeWsRequest(JSON_KSQL_REQUEST, clientProps, REST_APP)
     );
-    assertThat(e, anyOf(is(instanceOf(RuntimeException.class)),
-            is(instanceOf(SSLHandshakeException.class))));
-    if (e instanceof RuntimeException) {
-      assertThat(e.getCause(), is(instanceOf(ExecutionException.class)));
-      assertThat(e.getCause(), hasCause(instanceOf(WebSocketHandshakeException.class)));
-    }
   }
 
   @Test

@@ -46,10 +46,16 @@ There is likely a similar option available for other IDEs.
 
 ### Building and running ksqlDB locally
 
-To build and run ksqlDB locally, run the following commands:
+To build ksqlDB locally, run the following commands:
 
 ```shell
 $ ./mvnw clean package -DskipTests
+```
+
+To run ksqldb locally, you can start the ksqlDB server and CLI with the following commands. Ensure you have dependent
+services like Kafka and Schema Registry running before starting ksqlDB.
+
+```shell
 $ ./bin/ksql-server-start -daemon config/ksql-server.properties
 $ ./bin/ksql
 ```

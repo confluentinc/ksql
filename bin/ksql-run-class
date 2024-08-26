@@ -184,7 +184,6 @@ OPTIONS+=($KSQL_GC_LOG_OPTS)
 OPTIONS+=($KSQL_JAVA_DEBUG_OPTS)
 
 echo "Debug Options: $KSQL_JAVA_DEBUG_OPTS"
-# echo "Complete Options: ${OPTIONS[@]}"
 
 # Launch mode
 if [ "x$DAEMON_MODE" = "xtrue" ]; then

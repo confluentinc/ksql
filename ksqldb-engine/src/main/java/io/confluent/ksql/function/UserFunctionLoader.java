@@ -127,6 +127,8 @@ public class UserFunctionLoader {
       for (ClassInfo udtf : scan.getClassesWithAnnotation(UdtfDescription.class.getName())) {
         udtfLoader.loadUdtfFromClass(udtf.loadClass(), pathLoadedFrom);
       }
+    } catch (Exception e) {
+      LOGGER.error("Failed to scan classes", e);
     }
   }
 

@@ -130,8 +130,8 @@ public class UserFunctionLoader {
         udtfLoader.loadUdtfFromClass(udtf.loadClass(), pathLoadedFrom);
       }
       LOGGER.info("Classpath until now is " + scan.getClasspath());
-      LOGGER.info("Classes with annotations are " +
-          scan.getClassesWithAnnotation(UdafDescription.class.getName()).toString());
+      LOGGER.info("Classes with annotations are "
+          + scan.getClassesWithAnnotation(UdafDescription.class.getName()).toString());
     } catch (Exception e) {
       LOGGER.error("Failed to scan classes", e);
     }

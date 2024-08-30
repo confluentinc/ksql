@@ -114,6 +114,8 @@ public class UserFunctionLoader {
         .enableAnnotationInfo()
         .ignoreParentClassLoaders()
         .filterClasspathElements(ksqlEngineFilter(loader))
+        .removeTemporaryFilesAfterScan()
+        .enableClassInfo()
         .scan()
     ) {
       for (ClassInfo udf : scan.getClassesWithAnnotation(UdfDescription.class.getName())) {
@@ -127,6 +129,10 @@ public class UserFunctionLoader {
       for (ClassInfo udtf : scan.getClassesWithAnnotation(UdtfDescription.class.getName())) {
         udtfLoader.loadUdtfFromClass(udtf.loadClass(), pathLoadedFrom);
       }
+      LOGGER.info("Classpath until now is " + scan.getClasspath());
+      LOGGER.info("Classes with annotations are " + scan.getClassesWithAnnotation(UdafDescription.class.getName()).toString());
+    } catch (Exception e) {
+      LOGGER.error("Failed to scan classes", e);
     }
   }
 

@@ -26,6 +26,9 @@ import io.confluent.ksql.schema.ksql.SqlArgument;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.ParserKeywordValidatorUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -37,6 +40,7 @@ import javax.annotation.concurrent.ThreadSafe;
 @ThreadSafe
 public class InternalFunctionRegistry implements MutableFunctionRegistry {
 
+  private static final Logger LOGGER = LoggerFactory.getLogger(InternalFunctionRegistry.class);
   private final Map<String, UdfFactory> udfs = new HashMap<>();
   private final Map<String, AggregateFunctionFactory> udafs = new HashMap<>();
   private final Map<String, TableFunctionFactory> udtfs = new HashMap<>();
@@ -109,6 +113,9 @@ public class InternalFunctionRegistry implements MutableFunctionRegistry {
     if (udtfs.containsKey(functionName.text().toUpperCase())) {
       return true;
     }
+    LOGGER.info("Known udfs are:-" + udfs.keySet());
+    LOGGER.info("Known udafs are:-" + udafs.keySet());
+    LOGGER.info("Known udtfs are:-" + udtfs.keySet());
     return false;
   }
 

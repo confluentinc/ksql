@@ -653,11 +653,6 @@
             </dependency>
             <!-- classgraph needs to be pinned to 4.8.59 as the latest versions have a
             regression which breaks the Integration Tests. -->
-            <dependency>
-                <groupId>io.github.classgraph</groupId>
-                <artifactId>classgraph</artifactId>
-                <version>4.8.138</version>
-            </dependency>
         </dependencies>
     </dependencyManagement>
 

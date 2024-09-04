@@ -41,7 +41,7 @@ blocks:
         - name: Test
           commands:
             - . ci-tools ci-update-version
-            - mvn -Dsurefire.rerunFailingTestsCount=3 -Dmaven.gitcommitid.nativegit=true -U -Dmaven.wagon.http.retryHandler.count=10 --batch-mode --no-transfer-progress clean install
+            - mvn -DfailIfNoTests=false verify
             - cache store maven-$SEMAPHORE_GIT_BRANCH ~/.m2/repository
       epilogue:
         always:

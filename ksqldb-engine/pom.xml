@@ -35,6 +35,12 @@
         </dependency>
 
         <dependency>
+            <groupId>io.github.classgraph</groupId>
+            <artifactId>classgraph</artifactId>
+            <version>4.8.175</version>
+        </dependency>
+
+        <dependency>
             <groupId>io.confluent.ksql</groupId>
             <artifactId>ksqldb-execution</artifactId>
             <version>${io.confluent.ksql.version}</version>

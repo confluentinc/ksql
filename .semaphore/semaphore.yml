@@ -41,7 +41,7 @@ blocks:
         - name: Test
           commands:
             - . ci-tools ci-update-version
-            - mvn -pl ksqldb-rest-app -Dtest=StandaloneExecutorFunctionalTest#shouldConfigureKsqlBoundedMemoryRocksDBConfigSetter -Dit.test=StandaloneExecutorFunctionalTest#shouldConfigureKsqlBoundedMemoryRocksDBConfigSetter -DfailIfNoTests=false verify
+            - mvn -Dtest=StandaloneExecutorFunctionalTest#shouldConfigureKsqlBoundedMemoryRocksDBConfigSetter -Dit.test=StandaloneExecutorFunctionalTest#shouldConfigureKsqlBoundedMemoryRocksDBConfigSetter -DfailIfNoTests=false verify
             - cache store maven-$SEMAPHORE_GIT_BRANCH ~/.m2/repository
       epilogue:
         always:

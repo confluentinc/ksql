@@ -19,6 +19,6 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>io.confluent</groupId>
     <artifactId>build-tools</artifactId>
-    <version>6.2.15</version>
+    <version>6.2.15-cp1</version>
     <name>Build Tools</name>
 </project>

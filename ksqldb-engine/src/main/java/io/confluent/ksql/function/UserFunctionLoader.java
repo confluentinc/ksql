@@ -116,6 +116,7 @@ public class UserFunctionLoader {
         .filterClasspathElements(ksqlEngineFilter(loader))
         .removeTemporaryFilesAfterScan()
         .enableClassInfo()
+        .enableRealtimeLogging()
         .scan()
     ) {
       for (ClassInfo udf : scan.getClassesWithAnnotation(UdfDescription.class.getName())) {

@@ -79,6 +79,7 @@ public class UserFunctionLoader {
 
   public void load() {
     // load functions packaged as part of ksql first
+    LOGGER.info("{} is the parent class loader", parentClassLoader.toString());
     loadFunctions(parentClassLoader, empty());
     if (loadCustomerUdfs) {
       try {
@@ -103,6 +104,7 @@ public class UserFunctionLoader {
 
   @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
   private void loadFunctions(final ClassLoader loader, final Optional<Path> path) {
+    LOGGER.info("{} is the path loaded from", path.toString());
     final String pathLoadedFrom = path.map(Path::toString).orElse(KsqlScalarFunction.INTERNAL_PATH);
 
     final ClassGraph classGraph = new ClassGraph();
@@ -114,9 +116,6 @@ public class UserFunctionLoader {
         .enableAnnotationInfo()
         .ignoreParentClassLoaders()
         .filterClasspathElements(ksqlEngineFilter(loader))
-        .removeTemporaryFilesAfterScan()
-        .enableClassInfo()
-        .enableRealtimeLogging()
         .scan()
     ) {
       for (ClassInfo udf : scan.getClassesWithAnnotation(UdfDescription.class.getName())) {

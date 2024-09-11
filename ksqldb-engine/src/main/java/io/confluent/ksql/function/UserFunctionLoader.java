@@ -22,7 +22,6 @@ import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.function.udtf.UdtfDescription;
 import io.confluent.ksql.metastore.TypeRegistry;
 import io.confluent.ksql.schema.ksql.SqlTypeParser;
-import io.confluent.ksql.security.ExtensionSecurityManager;
 import io.confluent.ksql.util.KsqlConfig;
 import io.github.classgraph.ClassGraph;
 import io.github.classgraph.ClassInfo;
@@ -79,6 +78,7 @@ public class UserFunctionLoader {
 
   public void load() {
     // load functions packaged as part of ksql first
+    LOGGER.info("{} is the parent class loader", parentClassLoader.toString());
     loadFunctions(parentClassLoader, empty());
     if (loadCustomerUdfs) {
       try {
@@ -103,12 +103,15 @@ public class UserFunctionLoader {
 
   @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
   private void loadFunctions(final ClassLoader loader, final Optional<Path> path) {
+    LOGGER.info("{} is the path loaded from", path.toString());
     final String pathLoadedFrom = path.map(Path::toString).orElse(KsqlScalarFunction.INTERNAL_PATH);
 
     final ClassGraph classGraph = new ClassGraph();
     if (loader != parentClassLoader) {
       classGraph.overrideClassLoaders(loader);
     }
+    LOGGER.info("{} is the parent class loader", parentClassLoader.toString());
+    LOGGER.info("{} is the loader", loader.toString());
 
     try (ScanResult scan = classGraph
         .enableAnnotationInfo()
@@ -127,6 +130,11 @@ public class UserFunctionLoader {
       for (ClassInfo udtf : scan.getClassesWithAnnotation(UdtfDescription.class.getName())) {
         udtfLoader.loadUdtfFromClass(udtf.loadClass(), pathLoadedFrom);
       }
+      LOGGER.info("Classpath until now is " + scan.getClasspath());
+      LOGGER.info("Classes with annotations are "
+          + scan.getClassesWithAnnotation(UdafDescription.class.getName()).toString());
+    } catch (Exception e) {
+      LOGGER.error("Failed to scan classes", e);
     }
   }
 
@@ -154,9 +162,9 @@ public class UserFunctionLoader {
         ? Optional.of(metricsRegistry)
         : empty();
 
-    if (config.getBoolean(KsqlConfig.KSQL_UDF_SECURITY_MANAGER_ENABLED)) {
-      System.setSecurityManager(ExtensionSecurityManager.INSTANCE);
-    }
+    LOGGER.info("Current Thread is {}", Thread.currentThread().getName());
+    LOGGER.info("Current Thread ID is {}", Thread.currentThread().getId());
+    LOGGER.info("Current Thread Context Class Loader is {}", Thread.currentThread().getContextClassLoader().toString());
     return new UserFunctionLoader(
         metaStore,
         pluginDir,

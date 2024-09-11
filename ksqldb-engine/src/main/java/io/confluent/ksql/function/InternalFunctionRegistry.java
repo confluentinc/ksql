@@ -33,10 +33,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import javax.annotation.concurrent.ThreadSafe;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @ThreadSafe
 public class InternalFunctionRegistry implements MutableFunctionRegistry {
 
+  private static final Logger LOGGER = LoggerFactory.getLogger(InternalFunctionRegistry.class);
   private final Map<String, UdfFactory> udfs = new HashMap<>();
   private final Map<String, AggregateFunctionFactory> udafs = new HashMap<>();
   private final Map<String, TableFunctionFactory> udtfs = new HashMap<>();

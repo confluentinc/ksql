@@ -168,7 +168,8 @@ public class UserFunctionLoader {
     }
     LOGGER.info("Current Thread is {}", Thread.currentThread().getName());
     LOGGER.info("Current Thread ID is {}", Thread.currentThread().getId());
-    LOGGER.info("Current Thread Context Class Loader is {}", Thread.currentThread().getContextClassLoader().toString());
+    LOGGER.info("Current Thread Context Class Loader is {}",
+        Thread.currentThread().getContextClassLoader().toString());
     return new UserFunctionLoader(
         metaStore,
         pluginDir,

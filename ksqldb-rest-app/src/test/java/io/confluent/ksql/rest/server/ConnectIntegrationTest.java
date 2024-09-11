@@ -75,7 +75,7 @@ import org.slf4j.LoggerFactory;
 
 @Ignore
 @Category({IntegrationTest.class})
-public class ConnectIntegrationTest {
+public abstract class ConnectIntegrationTest {
 
   private static final Logger LOG = LoggerFactory.getLogger(ConnectIntegrationTest.class);
   private static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.build();

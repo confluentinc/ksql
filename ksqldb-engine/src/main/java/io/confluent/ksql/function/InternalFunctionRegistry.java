@@ -14,7 +14,6 @@
  */
 
 package io.confluent.ksql.function;
-
 import io.confluent.ksql.function.udaf.count.CountAggFunctionFactory;
 import io.confluent.ksql.function.udaf.max.MaxAggFunctionFactory;
 import io.confluent.ksql.function.udaf.min.MinAggFunctionFactory;
@@ -26,6 +25,8 @@ import io.confluent.ksql.schema.ksql.SqlArgument;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.ParserKeywordValidatorUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -37,6 +38,7 @@ import javax.annotation.concurrent.ThreadSafe;
 @ThreadSafe
 public class InternalFunctionRegistry implements MutableFunctionRegistry {
 
+  private static final Logger LOGGER = LoggerFactory.getLogger(InternalFunctionRegistry.class);
   private final Map<String, UdfFactory> udfs = new HashMap<>();
   private final Map<String, AggregateFunctionFactory> udafs = new HashMap<>();
   private final Map<String, TableFunctionFactory> udtfs = new HashMap<>();

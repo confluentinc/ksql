@@ -26,8 +26,6 @@ import io.confluent.ksql.schema.ksql.SqlArgument;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.ParserKeywordValidatorUtil;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -35,6 +33,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import javax.annotation.concurrent.ThreadSafe;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @ThreadSafe
 public class InternalFunctionRegistry implements MutableFunctionRegistry {

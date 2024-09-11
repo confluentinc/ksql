@@ -173,7 +173,7 @@ public class UserFunctionLoader {
     return new UserFunctionLoader(
         metaStore,
         pluginDir,
-        Thread.currentThread().getContextClassLoader(),
+        UserFunctionLoader.class.getClassLoader(),
         new Blacklist(new File(pluginDir, "resource-blacklist.txt")),
         metrics,
         loadCustomerUdfs

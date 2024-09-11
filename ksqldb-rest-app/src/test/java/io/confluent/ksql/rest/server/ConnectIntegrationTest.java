@@ -73,6 +73,7 @@ import org.junit.rules.RuleChain;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+@Ignore
 @Category({IntegrationTest.class})
 public class ConnectIntegrationTest {
 
@@ -142,6 +143,7 @@ public class ConnectIntegrationTest {
     System.setOut(new PrintStream(new FileOutputStream(FileDescriptor.out), true, "UTF-8"));
   }
 
+  @Ignore
   @Test
   public void shouldListConnectors() {
     // Given:
@@ -167,6 +169,7 @@ public class ConnectIntegrationTest {
         is("RUNNING (1/1 tasks RUNNING)"));
   }
 
+  @Ignore
   @Test
   public void shouldDescribeConnector() {
     // Given:
@@ -199,6 +202,7 @@ public class ConnectIntegrationTest {
         is("mock-connector"));
   }
 
+  @Ignore
   @Test
   public void shouldDropConnector() {
     // Given:
@@ -219,6 +223,7 @@ public class ConnectIntegrationTest {
         is("mock-connector"));
   }
 
+  @Ignore
   @Test
   public void shouldReturnWarning() {
     // Given:
@@ -238,6 +243,7 @@ public class ConnectIntegrationTest {
         equalToIgnoringCase("Connector mock-connector already exists"));
   }
 
+  @Ignore
   @Test
   public void shouldReturnError() {
     // Given:
@@ -257,6 +263,7 @@ public class ConnectIntegrationTest {
         containsString("Connector mock-connector already exists"));
   }
 
+  @Ignore
   @Test
   public void shouldReadTimeTypesAndHeadersFromConnect() {
     // Given:

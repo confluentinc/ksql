@@ -40,6 +40,7 @@ import io.confluent.ksql.rest.entity.ErrorEntity;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.entity.WarningEntity;
+import io.confluent.ksql.rest.integration.RestIntegrationTestUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import java.io.ByteArrayOutputStream;
 import java.io.FileDescriptor;
@@ -116,6 +117,9 @@ public class ConnectIntegrationTest {
   @AfterClass
   public static void tearDownClass() {
     CONNECT.shutdown();
+    REST_APP.getPersistentQueries().forEach(
+        str -> RestIntegrationTestUtil.makeKsqlRequest(REST_APP, "TERMINATE " + str + ";"));
+    REST_APP.stop();
   }
 
   private KsqlRestClient ksqlRestClient;

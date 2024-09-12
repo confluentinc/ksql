@@ -200,6 +200,7 @@ public class MigrationsTest {
   public static void classTearDown() {
     CONNECT.shutdown();
     REST_APP.getPersistentQueries().forEach(str -> makeKsqlRequest("TERMINATE " + str + ";"));
+    REST_APP.stop();
   }
 
   @Before

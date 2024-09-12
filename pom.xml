@@ -656,7 +656,7 @@
             <dependency>
                 <groupId>io.github.classgraph</groupId>
                 <artifactId>classgraph</artifactId>
-                <version>4.8.59</version>
+                <version>4.8.75</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

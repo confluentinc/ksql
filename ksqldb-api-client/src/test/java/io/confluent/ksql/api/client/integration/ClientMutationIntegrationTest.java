@@ -232,6 +232,7 @@ public class ClientMutationIntegrationTest {
     cleanupConnectors();
     CONNECT.shutdown();
     REST_APP.getPersistentQueries().forEach(str -> makeKsqlRequest("TERMINATE " + str + ";"));
+    REST_APP.stop();
   }
 
   private Vertx vertx;

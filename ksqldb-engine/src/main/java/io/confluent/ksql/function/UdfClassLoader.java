@@ -44,11 +44,13 @@ public final class UdfClassLoader extends URLClassLoader {
   @Override
   protected Class<?> loadClass(final String name, final boolean resolve)
       throws ClassNotFoundException {
+    logger.info("Loading class:- {}", name);
     if (blacklist.test(name)) {
       throw new ClassNotFoundException("The requested class is not permitted to be used from a "
           + "udf. Class " + name);
     }
     Class<?> clazz = findLoadedClass(name);
+    logger.info("Found clazz:- {}", clazz);
     if (clazz == null) {
       try {
         if (shouldLoadFromChild(name)) {
@@ -66,6 +68,7 @@ public final class UdfClassLoader extends URLClassLoader {
     if (resolve) {
       resolveClass(clazz);
     }
+    logger.info("Final clazz value:- {}", clazz);
     return clazz;
   }
 

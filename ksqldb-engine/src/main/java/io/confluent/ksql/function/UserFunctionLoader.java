@@ -105,6 +105,9 @@ public class UserFunctionLoader {
   private void loadFunctions(final ClassLoader loader, final Optional<Path> path) {
     final String pathLoadedFrom = path.map(Path::toString).orElse(KsqlScalarFunction.INTERNAL_PATH);
 
+    final ClassLoader currentClassLoader = Thread.currentThread().getContextClassLoader();
+    Thread.currentThread().setContextClassLoader(UserFunctionLoader.class.getClassLoader());
+
     final ClassGraph classGraph = new ClassGraph();
     if (loader != parentClassLoader) {
       classGraph.overrideClassLoaders(loader);
@@ -128,6 +131,8 @@ public class UserFunctionLoader {
         udtfLoader.loadUdtfFromClass(udtf.loadClass(), pathLoadedFrom);
       }
     }
+
+    Thread.currentThread().setContextClassLoader(currentClassLoader);
   }
 
   private ClassGraph.ClasspathElementFilter ksqlEngineFilter(final ClassLoader loader) {

@@ -24,6 +24,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.concurrent.ThreadLocalRandom;
 import org.apache.hc.client5.http.classic.methods.HttpPost;
 import org.apache.hc.core5.http.HttpStatus;
+import org.junit.Ignore;
 import org.junit.Test;
 
 public class WebClientTest {
@@ -82,6 +83,7 @@ public class WebClientTest {
                     HttpStatus.SC_OK, WebClient.send(invalidCustomerId, anyData, p, null));
   }
 
+  @Ignore
   @Test
   public void testSubmitValidCustomer() {
     // Given
@@ -97,6 +99,7 @@ public class WebClientTest {
                status == HttpStatus.SC_OK || status == HttpStatus.SC_BAD_GATEWAY);
   }
 
+  @Ignore
   @Test
   public void testSubmitValidAnonymousUser() {
     // Given

@@ -40,6 +40,11 @@ import io.confluent.ksql.api.client.TableInfo;
 import io.confluent.ksql.api.client.TopicInfo;
 import io.confluent.ksql.api.client.exception.KsqlClientException;
 import io.confluent.ksql.rest.entity.KsqlMediaType;
+import io.confluent.ksql.security.AuthType;
+import io.confluent.ksql.security.Credentials;
+import io.confluent.ksql.security.CredentialsFactory;
+import io.confluent.ksql.security.KsqlClientConfig;
+import io.confluent.ksql.security.oauth.IdpConfig;
 import io.confluent.ksql.util.AppInfo;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlRequestConfig;
@@ -62,9 +67,7 @@ import io.vertx.core.net.JksOptions;
 import io.vertx.core.net.KeyStoreOptions;
 import io.vertx.core.net.SocketAddress;
 import io.vertx.core.parsetools.RecordParser;
-import java.nio.charset.Charset;
 import java.time.Duration;
-import java.util.Base64;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -77,10 +80,13 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.reactivestreams.Publisher;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public class ClientImpl implements Client {
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
+  protected static final Logger log = LoggerFactory.getLogger(ClientImpl.class);
 
   private static final String QUERY_STREAM_ENDPOINT = "/query-stream";
   private static final String INSERTS_ENDPOINT = "/inserts-stream";
@@ -93,7 +99,7 @@ public class ClientImpl implements Client {
   private final Vertx vertx;
   private final HttpClient httpClient;
   private final SocketAddress serverSocketAddress;
-  private final String basicAuthHeader;
+  private final String authHeader;
   private final boolean ownedVertx;
   private final Map<String, Object> sessionVariables;
   private final Map<String, Object> requestProperties;
@@ -123,7 +129,7 @@ public class ClientImpl implements Client {
     this.vertx = vertx;
     this.ownedVertx = ownedVertx;
     this.httpClient = createHttpClient(vertx, clientOptions);
-    this.basicAuthHeader = createBasicAuthHeader(clientOptions);
+    this.authHeader = createAuthHeader(clientOptions);
     this.serverSocketAddress =
         SocketAddress.inetSocketAddress(clientOptions.getPort(), clientOptions.getHost());
     this.sessionVariables = new HashMap<>();
@@ -755,8 +761,8 @@ public class ClientImpl implements Client {
       request.exceptionHandler(cf::completeExceptionally);
 
       request = configureUserAgent(request);
-      if (clientOptions.isUseBasicAuth()) {
-        request = configureBasicAuth(request);
+      if (clientOptions.getAuthType() != AuthType.NONE) {
+        request = configureAuth(request);
       }
       if (path.equals(QUERY_STREAM_ENDPOINT)) {
         request = configureAcceptTypeToLatestMediaType(request);
@@ -775,8 +781,8 @@ public class ClientImpl implements Client {
     });
   }
 
-  private HttpClientRequest configureBasicAuth(final HttpClientRequest request) {
-    return request.putHeader(AUTHORIZATION.toString(), basicAuthHeader);
+  private HttpClientRequest configureAuth(final HttpClientRequest request) {
+    return request.putHeader(AUTHORIZATION.toString(), authHeader);
   }
 
   private HttpClientRequest configureAcceptTypeToLatestMediaType(final HttpClientRequest request) {
@@ -953,17 +959,56 @@ public class ClientImpl implements Client {
     return vertx.createHttpClient(options);
   }
 
-  private static String createBasicAuthHeader(final ClientOptions clientOptions) {
-    if (!clientOptions.isUseBasicAuth()) {
-      return "";
+  private static String createAuthHeader(final ClientOptions clientOptions) {
+    final Map<String, Object> props = new HashMap<>();
+
+    if (clientOptions.getAuthType() == AuthType.BASIC) {
+      log.debug("Configuring basic auth for user = {}", clientOptions.getBasicAuthUsername());
+      props.put(KsqlClientConfig.KSQL_BASIC_AUTH_USERNAME, clientOptions.getBasicAuthUsername());
+      props.put(KsqlClientConfig.KSQL_BASIC_AUTH_PASSWORD, clientOptions.getBasicAuthPassword());
     }
 
-    final String creds = clientOptions.getBasicAuthUsername()
-        + ":"
-        + clientOptions.getBasicAuthPassword();
-    final String base64creds =
-        Base64.getEncoder().encodeToString(creds.getBytes(Charset.defaultCharset()));
-    return "Basic " + base64creds;
+    if (clientOptions.getAuthType() == AuthType.OAUTHBEARER) {
+      final IdpConfig idpConfig = clientOptions.getIdpConfig();
+      log.debug("Configuring bearer auth for clientId = {}",
+          idpConfig.getIdpClientId());
+      props.put(KsqlClientConfig.BEARER_AUTH_TOKEN_ENDPOINT_URL,
+          idpConfig.getIdpTokenEndpointUrl());
+      props.put(KsqlClientConfig.BEARER_AUTH_CLIENT_ID,
+          idpConfig.getIdpClientId());
+      props.put(KsqlClientConfig.BEARER_AUTH_CLIENT_SECRET,
+          idpConfig.getIdpClientSecret());
+      props.put(KsqlClientConfig.BEARER_AUTH_SCOPE,
+          idpConfig.getIdpScope());
+      props.put(KsqlClientConfig.BEARER_AUTH_SCOPE_CLAIM_NAME,
+          idpConfig.getIdpScopeClaimName());
+      props.put(KsqlClientConfig.BEARER_AUTH_SUB_CLAIM_NAME,
+          idpConfig.getIdpSubClaimName());
+      props.put(KsqlClientConfig.BEARER_AUTH_CACHE_EXPIRY_BUFFER_SECONDS,
+          idpConfig.getIdpCacheExpiryBufferSeconds());
+    }
+
+    if (clientOptions.isUseTls()) {
+      props.put(KsqlClientConfig.SSL_TRUSTSTORE_LOCATION, clientOptions.getTrustStore());
+      props.put(KsqlClientConfig.SSL_TRUSTSTORE_PASSWORD, clientOptions.getKeyStore());
+      props.put(KsqlClientConfig.SSL_KEYSTORE_LOCATION, clientOptions.getKeyStore());
+      props.put(KsqlClientConfig.SSL_KEYSTORE_PASSWORD, clientOptions.getKeyStorePassword());
+      props.put(KsqlClientConfig.SSL_KEY_PASSWORD, clientOptions.getKeyPassword());
+      props.put(KsqlClientConfig.SSL_KEY_ALIAS, clientOptions.getKeyAlias());
+      props.put(KsqlClientConfig.SSL_ALPN, clientOptions.isUseAlpn());
+      props.put(KsqlClientConfig.SSL_VERIFY_HOST, clientOptions.isVerifyHost());
+    }
+
+    final Credentials credentials = CredentialsFactory
+        .createCredentials(clientOptions.getAuthType());
+
+    if (credentials != null) {
+      credentials.configure(props);
+      return credentials.getAuthHeader();
+    }
+
+    log.debug("No authentication method provided for Ksql Client");
+    return "";
   }
 
   @Override

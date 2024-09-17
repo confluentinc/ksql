@@ -56,6 +56,7 @@ package io.confluent.ksql.rest.integration;
   import io.confluent.ksql.integration.Retry;
   import io.confluent.ksql.rest.ApiJsonMapper;
   import io.confluent.ksql.rest.client.KsqlTargetUtil;
+  import io.confluent.ksql.security.BasicCredentials;
   import io.confluent.ksql.rest.entity.AssertSchemaEntity;
   import io.confluent.ksql.rest.entity.AssertTopicEntity;
   import io.confluent.ksql.rest.entity.CommandId;
@@ -1625,7 +1626,7 @@ public class RestApiTest {
         sql,
         Optional.of(mediaType),
         Optional.of(contentType),
-        Optional.of(SUPER_USER),
+        Optional.of(BasicCredentials.of(SUPER_USER.username, SUPER_USER.password)),
         overrides,
         requestProperties
     );
@@ -1643,7 +1644,7 @@ public class RestApiTest {
         sql,
         Optional.of(mediaType),
         Optional.of(contentType),
-        Optional.of(SUPER_USER),
+        Optional.of(BasicCredentials.of(SUPER_USER.username, SUPER_USER.password)),
         overrides,
         chunkConsumer
     );

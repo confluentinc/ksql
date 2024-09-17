@@ -32,7 +32,7 @@ import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.integration.IntegrationTestHarness;
 import io.confluent.ksql.integration.Retry;
 import io.confluent.ksql.name.ColumnName;
-import io.confluent.ksql.rest.client.BasicCredentials;
+import io.confluent.ksql.security.Credentials;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlHostInfoEntity;
 import io.confluent.ksql.rest.entity.StreamedRow;
@@ -89,7 +89,7 @@ public class PullQueryLimitHARoutingTest {
     private String queryId;
     private String topic;
 
-    private static final Optional<BasicCredentials> USER_CREDS = Optional.empty();
+    private static final Optional<Credentials> USER_CREDS = Optional.empty();
 
     private static final PhysicalSchema AGGREGATE_SCHEMA = PhysicalSchema.from(
             LogicalSchema.builder()
@@ -344,7 +344,7 @@ public class PullQueryLimitHARoutingTest {
         final TestKsqlRestApp target,
         final String sql,
         final Map<String, ?> properties,
-        final Optional<BasicCredentials> userCreds
+        final Optional<Credentials> userCreds
     ) {
         return makePullQueryRequest(target, sql, properties, userCreds)
             .stream().distinct().collect(Collectors.toList());

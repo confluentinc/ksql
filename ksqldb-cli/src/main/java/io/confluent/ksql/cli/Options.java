@@ -26,7 +26,8 @@ import com.github.rvesse.airline.help.Help;
 import com.github.rvesse.airline.parser.errors.ParseException;
 import io.confluent.ksql.cli.console.OutputFormat;
 import io.confluent.ksql.parser.VariableParser;
-import io.confluent.ksql.rest.client.BasicCredentials;
+import io.confluent.ksql.security.BasicCredentials;
+import io.confluent.ksql.security.Credentials;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
@@ -221,7 +222,15 @@ public class Options {
     this.password = password;
   }
 
-  public Optional<BasicCredentials> getUserNameAndPassword() {
+  public String getUserName() {
+    return userName;
+  }
+
+  public String getPassword() {
+    return password;
+  }
+
+  public Optional<Credentials> getUserNameAndPassword() {
     if (userName.isEmpty() != password.isEmpty()) {
       throw new ConfigException(
           "You must specify both a username and a password. If you don't want to use an "

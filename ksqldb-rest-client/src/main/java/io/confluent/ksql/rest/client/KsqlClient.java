@@ -22,6 +22,7 @@ import io.confluent.ksql.parser.json.KsqlTypesDeserializationModule;
 import io.confluent.ksql.properties.LocalProperties;
 import io.confluent.ksql.rest.ApiJsonMapper;
 import io.confluent.ksql.rest.client.exception.KsqlRestClientException;
+import io.confluent.ksql.security.Credentials;
 import io.confluent.ksql.util.VertxSslOptionsFactory;
 import io.vertx.core.Vertx;
 import io.vertx.core.VertxException;
@@ -32,8 +33,6 @@ import io.vertx.core.http.RequestOptions;
 import io.vertx.core.net.JksOptions;
 import io.vertx.core.net.SocketAddress;
 import java.net.URI;
-import java.nio.charset.StandardCharsets;
-import java.util.Base64;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
@@ -56,7 +55,7 @@ public final class KsqlClient implements AutoCloseable {
   private final Optional<HttpClient> httpNonTlsClientHttp2;
   private final Optional<HttpClient> httpTlsClientHttp2;
   private final LocalProperties localProperties;
-  private final Optional<String> basicAuthHeader;
+  private final Optional<String> authHeader;
   private final BiFunction<Integer, String, SocketAddress> socketAddressFactory;
   private final boolean ownedVertx;
 
@@ -70,14 +69,13 @@ public final class KsqlClient implements AutoCloseable {
    */
   public KsqlClient(
       final Map<String, String> clientProps,
-      final Optional<BasicCredentials> credentials,
+      final Optional<Credentials> credentials,
       final LocalProperties localProperties,
       final HttpClientOptions httpClientOptions,
       final Optional<HttpClientOptions> httpClientOptionsHttp2
   ) {
     this.vertx = Vertx.vertx();
-    this.basicAuthHeader = createBasicAuthHeader(
-        Objects.requireNonNull(credentials, "credentials"));
+    this.authHeader = credentials.map(Credentials::getAuthHeader);
     this.localProperties = Objects.requireNonNull(localProperties, "localProperties");
     this.socketAddressFactory = SocketAddress::inetSocketAddress;
     this.httpNonTlsClient = createHttpClient(vertx, clientProps, httpClientOptions, false);
@@ -102,7 +100,7 @@ public final class KsqlClient implements AutoCloseable {
    */
   @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
   public KsqlClient(
-      final Optional<BasicCredentials> credentials,
+      final Optional<Credentials> credentials,
       final LocalProperties localProperties,
       final Function<Boolean, HttpClientOptions> httpClientOptionsFactory,
       final Function<Boolean, HttpClientOptions> httpClientOptionsFactory2,
@@ -110,8 +108,7 @@ public final class KsqlClient implements AutoCloseable {
       final Vertx vertx
   ) {
     this.vertx = vertx;
-    this.basicAuthHeader = createBasicAuthHeader(
-        Objects.requireNonNull(credentials, "credentials"));
+    this.authHeader = credentials.map(Credentials::getAuthHeader);
     this.localProperties = Objects.requireNonNull(localProperties, "localProperties");
     this.socketAddressFactory = Objects.requireNonNull(
         socketAddressFactory, "socketAddressFactory");
@@ -133,7 +130,7 @@ public final class KsqlClient implements AutoCloseable {
     final HttpClient client = isUriTls ? httpTlsClient : httpNonTlsClient;
     return new KsqlTarget(client,
         socketAddressFactory.apply(server.getPort(), server.getHost()), localProperties,
-        basicAuthHeader, server.getHost(), additionalHeaders, RequestOptions.DEFAULT_TIMEOUT);
+        authHeader, server.getHost(), additionalHeaders, RequestOptions.DEFAULT_TIMEOUT);
   }
 
   public KsqlTarget targetHttp2(final URI server) {
@@ -142,7 +139,7 @@ public final class KsqlClient implements AutoCloseable {
         () -> new IllegalStateException("Must provide http2 options to use targetHttp2"));
     return new KsqlTarget(client,
         socketAddressFactory.apply(server.getPort(), server.getHost()), localProperties,
-        basicAuthHeader, server.getHost(), Collections.emptyMap(), RequestOptions.DEFAULT_TIMEOUT);
+        authHeader, server.getHost(), Collections.emptyMap(), RequestOptions.DEFAULT_TIMEOUT);
   }
 
   @VisibleForTesting
@@ -164,14 +161,6 @@ public final class KsqlClient implements AutoCloseable {
     if (vertx != null && ownedVertx) {
       vertx.close();
     }
-  }
-
-  private static Optional<String> createBasicAuthHeader(
-      final Optional<BasicCredentials> credentials) {
-    return credentials.map(basicCredentials -> "Basic " + Base64.getEncoder()
-        .encodeToString((basicCredentials.username()
-            + ":" + basicCredentials.password()).getBytes(StandardCharsets.UTF_8))
-    );
   }
 
   private static HttpClient createHttpClient(final Vertx vertx,

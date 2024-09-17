@@ -28,6 +28,8 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.properties.LocalProperties;
 import io.confluent.ksql.reactive.BaseSubscriber;
 import io.confluent.ksql.rest.client.exception.KsqlRestClientException;
+import io.confluent.ksql.security.BasicCredentials;
+import io.confluent.ksql.security.Credentials;
 import io.confluent.ksql.rest.entity.ClusterStatusResponse;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatus.Status;
@@ -836,7 +838,7 @@ public class KsqlClientTest {
     return expectedResponse;
   }
 
-  private void createClient(Optional<BasicCredentials> credentials) {
+  private void createClient(Optional<Credentials> credentials) {
     ksqlClient = new KsqlClient(new HashMap<>(), credentials,
         new LocalProperties(properties),
         new HttpClientOptions().setVerifyHost(false),

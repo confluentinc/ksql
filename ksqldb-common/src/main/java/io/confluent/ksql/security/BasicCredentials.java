@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.security;
 
-import com.google.errorprone.annotations.Immutable;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.HashMap;

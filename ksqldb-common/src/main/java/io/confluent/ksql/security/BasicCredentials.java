@@ -23,7 +23,6 @@ import java.util.Map;
 import java.util.Objects;
 import org.apache.kafka.common.config.ConfigException;
 
-@Immutable
 public final class BasicCredentials implements Credentials {
 
   private String username;

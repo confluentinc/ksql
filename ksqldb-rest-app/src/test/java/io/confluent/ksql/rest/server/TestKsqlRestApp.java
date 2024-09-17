@@ -26,9 +26,10 @@ import io.confluent.ksql.function.UserFunctionLoader;
 import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.properties.PropertiesUtil;
 import io.confluent.ksql.query.QueryId;
-import io.confluent.ksql.rest.client.BasicCredentials;
+import io.confluent.ksql.security.BasicCredentials;
 import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.rest.client.RestResponse;
+import io.confluent.ksql.security.Credentials;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
@@ -50,7 +51,6 @@ import io.confluent.ksql.services.ServiceContextFactory;
 import io.confluent.ksql.services.SimpleKsqlClient;
 import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
 import io.confluent.ksql.test.util.KsqlTestFolder;
-import io.confluent.ksql.util.Identifiers;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants.KsqlQueryType;
 import io.confluent.ksql.util.ReservedInternalTopics;
@@ -109,7 +109,7 @@ public class TestKsqlRestApp extends ExternalResource {
   protected final Supplier<String> bootstrapServers;
   protected final Supplier<ServiceContext> serviceContext;
   protected final List<URL> listeners = new ArrayList<>();
-  protected final Optional<BasicCredentials> credentials;
+  protected final Optional<Credentials> credentials;
   protected Optional<URL> internalListener;
   protected KsqlExecutionContext ksqlEngine;
   protected KsqlRestConfig ksqlRestConfig;
@@ -126,7 +126,7 @@ public class TestKsqlRestApp extends ExternalResource {
       final Supplier<String> bootstrapServers,
       final Map<String, Object> additionalProps,
       final Supplier<ServiceContext> serviceContext,
-      final Optional<BasicCredentials> credentials,
+      final Optional<Credentials> credentials,
       final InternalSimpleKsqlClientFactory internalSimpleKsqlClientFactory
   ) {
     this.baseConfig = buildBaseConfig(additionalProps);
@@ -200,7 +200,7 @@ public class TestKsqlRestApp extends ExternalResource {
     );
   }
 
-  public KsqlRestClient buildKsqlClient(final Optional<BasicCredentials> credentials) {
+  public KsqlRestClient buildKsqlClient(final Optional<Credentials> credentials) {
     return KsqlRestClient.create(
         getHttpListener().toString(),
         ImmutableMap.of(),
@@ -220,7 +220,7 @@ public class TestKsqlRestApp extends ExternalResource {
     );
   }
 
-  public KsqlRestClient buildInternalKsqlClient(final Optional<BasicCredentials> credentials) {
+  public KsqlRestClient buildInternalKsqlClient(final Optional<Credentials> credentials) {
     return KsqlRestClient.create(
         getHttpInternalListener().toString(),
         ImmutableMap.of(),
@@ -258,7 +258,7 @@ public class TestKsqlRestApp extends ExternalResource {
     closePersistentQueries(Optional.empty());
   }
 
-  public void closePersistentQueries(final Optional<BasicCredentials> credentials) {
+  public void closePersistentQueries(final Optional<Credentials> credentials) {
     try (final KsqlRestClient client = buildKsqlClient(credentials)) {
       // Filter source tables queries because they cannot be terminated manually
       final Set<String> queriesToTerminate = getPersistentQueries(client).stream()
@@ -276,7 +276,7 @@ public class TestKsqlRestApp extends ExternalResource {
   }
 
   public void dropSourcesExcept(
-      final Optional<BasicCredentials> credential,
+      final Optional<Credentials> credential,
       final String... exceptSources
   ) {
     try (final KsqlRestClient client = buildKsqlClient(credential)) {
@@ -640,7 +640,7 @@ public class TestKsqlRestApp extends ExternalResource {
 
     private Supplier<ServiceContext> serviceContext;
 
-    private Optional<BasicCredentials> credentials = Optional.empty();
+    private Optional<Credentials> credentials = Optional.empty();
 
     private InternalSimpleKsqlClientFactory internalSimpleKsqlClientFactory;
 

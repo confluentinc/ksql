@@ -334,6 +334,9 @@ public class ClientOptionsImpl implements ClientOptions {
 
   @Override
   public ClientOptions copy() {
+    if (idpConfig != null) {
+      idpConfig = idpConfig.copy();
+    }
     return new ClientOptionsImpl(
         host, port,
         useTls, verifyHost, useAlpn,
@@ -342,7 +345,7 @@ public class ClientOptionsImpl implements ClientOptions {
         securityProviders, keyManagerAlgorithm, trustManagerAlgorithm,
         basicAuthUsername, basicAuthPassword,
         executeQueryMaxResultRows, http2MultiplexingLimit,
-        requestHeaders, idpConfig.copy(), authType);
+        requestHeaders, idpConfig, authType);
   }
 
   // CHECKSTYLE_RULES.OFF: CyclomaticComplexity

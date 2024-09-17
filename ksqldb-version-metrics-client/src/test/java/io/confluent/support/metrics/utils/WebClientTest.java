@@ -94,7 +94,8 @@ public class WebClientTest {
     int status = WebClient.send(validCustomerId, anyData, p, null);
     // if we are not connected to the internet this test should still pass
     assertTrue("customerId=" + validCustomerId,
-               status == HttpStatus.SC_OK || status == HttpStatus.SC_BAD_GATEWAY);
+        status == HttpStatus.SC_OK || status == HttpStatus.SC_BAD_GATEWAY
+            || status == HttpStatus.SC_SERVICE_UNAVAILABLE);
   }
 
   @Test
@@ -109,7 +110,8 @@ public class WebClientTest {
     int status = WebClient.send(validCustomerId, anyData, p, null);
     // if we are not connected to the internet this test should still pass
     assertTrue("customerId=" + validCustomerId,
-               status == HttpStatus.SC_OK || status == HttpStatus.SC_BAD_GATEWAY);
+        status == HttpStatus.SC_OK || status == HttpStatus.SC_BAD_GATEWAY
+            || status == HttpStatus.SC_SERVICE_UNAVAILABLE);
   }
 
 }

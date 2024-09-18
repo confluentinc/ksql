@@ -241,7 +241,6 @@ public class ServerVerticle extends AbstractVerticle {
     return router;
   }
 
-
   private void handleKsqlRequest(final RoutingContext routingContext) {
     handleOldApiRequest(server, routingContext, KsqlRequest.class, Optional.empty(),
         (ksqlRequest, apiSecurityContext) ->

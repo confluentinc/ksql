@@ -23,7 +23,8 @@ import com.google.errorprone.annotations.Immutable;
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.integration.IntegrationTestHarness;
 import io.confluent.ksql.integration.Retry;
-import io.confluent.ksql.rest.client.BasicCredentials;
+import io.confluent.ksql.security.BasicCredentials;
+import io.confluent.ksql.security.Credentials;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlHostInfoEntity;
 import io.confluent.ksql.rest.entity.Queries;
@@ -229,7 +230,7 @@ public class ShowQueriesMultiNodeFunctionalTest {
     }
   }
 
-  private static Optional<BasicCredentials> validCreds() {
+  private static Optional<Credentials> validCreds() {
     return Optional.of(BasicCredentials.of(
         USER_WITH_ACCESS,
         USER_WITH_ACCESS_PWD

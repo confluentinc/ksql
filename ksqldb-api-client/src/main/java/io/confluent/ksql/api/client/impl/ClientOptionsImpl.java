@@ -334,7 +334,7 @@ public class ClientOptionsImpl implements ClientOptions {
 
   @Override
   public ClientOptions copy() {
-    final IdpConfig idpConfigCopy = idpConfig;
+    IdpConfig idpConfigCopy = idpConfig;
     if (idpConfigCopy != null) {
       idpConfigCopy = idpConfig.copy();
     }

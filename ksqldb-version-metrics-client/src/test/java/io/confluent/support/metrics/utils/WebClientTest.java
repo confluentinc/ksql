@@ -24,6 +24,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.concurrent.ThreadLocalRandom;
 import org.apache.hc.client5.http.classic.methods.HttpPost;
 import org.apache.hc.core5.http.HttpStatus;
+import org.junit.Ignore;
 import org.junit.Test;
 
 public class WebClientTest {

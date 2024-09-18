@@ -18,6 +18,8 @@ package io.confluent.ksql.api.client.impl;
 import com.google.common.testing.EqualsTester;
 import io.confluent.ksql.api.client.ClientOptions;
 import java.util.Collections;
+
+import io.confluent.ksql.security.oauth.IdpConfig;
 import org.junit.Test;
 
 public class ClientOptionsImplTest {
@@ -60,6 +62,17 @@ public class ClientOptionsImplTest {
         )
         .addEqualityGroup(
             ClientOptions.create().setBasicAuthCredentials("user", "pass")
+        )
+        .addEqualityGroup(
+            ClientOptions.create().setIdpConfig(new IdpConfig.Builder()
+                .withTokenEndpointUrl("http://localhost:8080")
+                .withClientId("user")
+                .withClientSecret("pass")
+                .withScope("all")
+                .withScopeClaimName("newScope")
+                .withSubClaimName("newSub")
+                .withCacheExpiryBufferSeconds((short) 500)
+                .build())
         )
         .addEqualityGroup(
             ClientOptions.create().setExecuteQueryMaxResultRows(10)

@@ -17,6 +17,9 @@ package io.confluent.ksql.api.client.impl;
 
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.api.client.ClientOptions;
+import io.confluent.ksql.api.client.exception.KsqlClientException;
+import io.confluent.ksql.security.AuthType;
+import io.confluent.ksql.security.oauth.IdpConfig;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -28,7 +31,7 @@ public class ClientOptionsImpl implements ClientOptions {
   private boolean useTls = false;
   private boolean verifyHost = true;
   private boolean useAlpn = false;
-  private boolean useBasicAuth = false;
+  private AuthType authType = AuthType.NONE;
   private String trustStorePath;
   private String trustStorePassword;
   private String keyStorePath;
@@ -44,6 +47,7 @@ public class ClientOptionsImpl implements ClientOptions {
   private int executeQueryMaxResultRows = ClientOptions.DEFAULT_EXECUTE_QUERY_MAX_RESULT_ROWS;
   private int http2MultiplexingLimit = ClientOptions.DEFAULT_HTTP2_MULTIPLEXING_LIMIT;
   private Map<String, String> requestHeaders;
+  private IdpConfig idpConfig;
 
   /**
    * {@code ClientOptions} should be instantiated via {@link ClientOptions#create}, NOT via this
@@ -57,20 +61,19 @@ public class ClientOptionsImpl implements ClientOptions {
       // CHECKSTYLE_RULES.ON: ParameterNumberCheck
       final String host, final int port,
       final boolean useTls, final boolean verifyHost, final boolean useAlpn,
-      final boolean useBasicAuth,
       final String trustStorePath, final String trustStorePassword,
       final String keyStorePath, final String keyStorePassword, final String keyPassword,
       final String keyAlias, final String storeType, final String securityProviders,
       final String keyManagerAlgorithm, final String trustManagerAlgorithm,
       final String basicAuthUsername, final String basicAuthPassword,
       final int executeQueryMaxResultRows, final int http2MultiplexingLimit,
-      final Map<String, String> requestHeaders) {
+      final Map<String, String> requestHeaders, final IdpConfig idpConfig,
+      final AuthType authType) {
     this.host = Objects.requireNonNull(host);
     this.port = port;
     this.useTls = useTls;
     this.verifyHost = verifyHost;
     this.useAlpn = useAlpn;
-    this.useBasicAuth = useBasicAuth;
     this.trustStorePath = trustStorePath;
     this.trustStorePassword = trustStorePassword;
     this.keyStorePath = keyStorePath;
@@ -86,6 +89,8 @@ public class ClientOptionsImpl implements ClientOptions {
     this.executeQueryMaxResultRows = executeQueryMaxResultRows;
     this.http2MultiplexingLimit = http2MultiplexingLimit;
     this.requestHeaders = requestHeaders;
+    this.idpConfig = idpConfig;
+    this.authType = authType;
   }
 
   @Override
@@ -180,8 +185,10 @@ public class ClientOptionsImpl implements ClientOptions {
 
   @Override
   public ClientOptions setBasicAuthCredentials(final String username, final String password) {
-    this.useBasicAuth = !(username == null || username.isEmpty())
-        || !(password == null || password.isEmpty());
+    if (authType == AuthType.OAUTHBEARER) {
+      throw new KsqlClientException("Already configured with bearer auth. Cannot set basic auth.");
+    }
+    this.authType = AuthType.BASIC;
     this.basicAuthUsername = username;
     this.basicAuthPassword = password;
     return this;
@@ -202,6 +209,16 @@ public class ClientOptionsImpl implements ClientOptions {
   @Override
   public ClientOptions setRequestHeaders(final Map<String, String> requestHeaders) {
     this.requestHeaders = requestHeaders == null ? null : ImmutableMap.copyOf(requestHeaders);
+    return this;
+  }
+
+  @Override
+  public ClientOptions setIdpConfig(final IdpConfig idpConfig) {
+    if (authType == AuthType.BASIC) {
+      throw new KsqlClientException("Already configured with basic auth. Cannot set bearer auth.");
+    }
+    this.authType = AuthType.OAUTHBEARER;
+    this.idpConfig = idpConfig;
     return this;
   }
 
@@ -231,8 +248,8 @@ public class ClientOptionsImpl implements ClientOptions {
   }
 
   @Override
-  public boolean isUseBasicAuth() {
-    return useBasicAuth;
+  public AuthType getAuthType() {
+    return authType;
   }
 
   @Override
@@ -296,6 +313,11 @@ public class ClientOptionsImpl implements ClientOptions {
   }
 
   @Override
+  public IdpConfig getIdpConfig() {
+    return idpConfig;
+  }
+
+  @Override
   public int getExecuteQueryMaxResultRows() {
     return executeQueryMaxResultRows;
   }
@@ -312,16 +334,19 @@ public class ClientOptionsImpl implements ClientOptions {
 
   @Override
   public ClientOptions copy() {
+    final IdpConfig idpConfigCopy = idpConfig;
+    if (idpConfigCopy != null) {
+      idpConfigCopy = idpConfig.copy();
+    }
     return new ClientOptionsImpl(
         host, port,
         useTls, verifyHost, useAlpn,
-        useBasicAuth,
         trustStorePath, trustStorePassword,
         keyStorePath, keyStorePassword, keyPassword, keyAlias, storeType,
         securityProviders, keyManagerAlgorithm, trustManagerAlgorithm,
         basicAuthUsername, basicAuthPassword,
         executeQueryMaxResultRows, http2MultiplexingLimit,
-        requestHeaders);
+        requestHeaders, idpConfigCopy, authType);
   }
 
   // CHECKSTYLE_RULES.OFF: CyclomaticComplexity
@@ -354,16 +379,19 @@ public class ClientOptionsImpl implements ClientOptions {
         && Objects.equals(basicAuthUsername, that.basicAuthUsername)
         && Objects.equals(basicAuthPassword, that.basicAuthPassword)
         && http2MultiplexingLimit == that.http2MultiplexingLimit
-        && Objects.equals(requestHeaders, that.requestHeaders);
+        && Objects.equals(requestHeaders, that.requestHeaders)
+        && Objects.equals(idpConfig, that.idpConfig);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(host, port, useTls, verifyHost, useAlpn, trustStorePath,
+    return Objects.hash(host, port, useTls,
+        verifyHost, useAlpn, trustStorePath,
         trustStorePassword, keyStorePath, keyStorePassword, keyPassword, keyAlias, storeType,
         securityProviders, keyManagerAlgorithm, trustManagerAlgorithm,
-        basicAuthUsername, basicAuthPassword, executeQueryMaxResultRows, http2MultiplexingLimit,
-        requestHeaders);
+        basicAuthUsername, basicAuthPassword,
+        executeQueryMaxResultRows, http2MultiplexingLimit,
+        requestHeaders, idpConfig);
   }
 
   @Override
@@ -389,6 +417,7 @@ public class ClientOptionsImpl implements ClientOptions {
         + ", executeQueryMaxResultRows=" + executeQueryMaxResultRows
         + ", http2MultiplexingLimit=" + http2MultiplexingLimit
         + ", requestHeaders='" + requestHeaders + '\''
+        + ", idpConfig='" + idpConfig + '\''
         + '}';
   }
 }

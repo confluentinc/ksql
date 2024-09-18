@@ -31,7 +31,8 @@ import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.integration.IntegrationTestHarness;
 import io.confluent.ksql.integration.Retry;
 import io.confluent.ksql.name.ColumnName;
-import io.confluent.ksql.rest.client.BasicCredentials;
+import io.confluent.ksql.security.BasicCredentials;
+import io.confluent.ksql.security.Credentials;
 import io.confluent.ksql.rest.entity.KsqlHostInfoEntity;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
@@ -488,7 +489,7 @@ public class PullQueryFunctionalTest {
     );
   }
 
-  private static Optional<BasicCredentials> validCreds() {
+  private static Optional<Credentials> validCreds() {
     return Optional.of(BasicCredentials.of(
         USER_WITH_ACCESS,
         USER_WITH_ACCESS_PWD

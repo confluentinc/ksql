@@ -16,6 +16,8 @@
 package io.confluent.ksql.api.client;
 
 import io.confluent.ksql.api.client.impl.ClientOptionsImpl;
+import io.confluent.ksql.security.AuthType;
+import io.confluent.ksql.security.oauth.IdpConfig;
 import java.util.Map;
 
 /**
@@ -195,6 +197,13 @@ public interface ClientOptions {
   ClientOptions setRequestHeaders(Map<String, String> requestHeaders);
 
   /**
+   * Sets the IDP config required for this client to secure an OAuthBearerToken.
+   *
+   * @return a reference to this
+   */
+  ClientOptions setIdpConfig(IdpConfig idpConfig);
+
+  /**
    * Returns the host name of the ksqlDB server to connect to.
    *
    * @return host name
@@ -230,11 +239,11 @@ public interface ClientOptions {
   boolean isUseAlpn();
 
   /**
-   * Returns whether HTTP basic authentication will be used when connecting to the ksqlDB server.
+   * Returns the authentication mechanism that will be used when connecting to the ksqlDB server.
    *
-   * @return whether basic authentication will be used
+   * @return authentication mechanism
    */
-  boolean isUseBasicAuth();
+  AuthType getAuthType();
 
   /**
    * Returns the trust store path.
@@ -319,6 +328,13 @@ public interface ClientOptions {
    * @return password
    */
   String getBasicAuthPassword();
+
+  /**
+   * Returns the IDP configuration used in the client, if applicable.
+   *
+   * @return idpConfig
+   */
+  IdpConfig getIdpConfig();
 
   /**
    * Returns the maximum number of rows that may be returned in a {@link BatchedQueryResult}.

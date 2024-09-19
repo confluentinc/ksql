@@ -24,6 +24,8 @@ import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.api.client.ClientOptions;
 import java.util.Collections;
 import java.util.Map;
+
+import io.confluent.ksql.api.client.exception.KsqlClientException;
 import org.junit.Test;
 
 public class MigrationsUtilTest {
@@ -35,8 +37,8 @@ public class MigrationsUtilTest {
   public void shouldCreateNonTlsClientOptions() {
     // Given:
     final ClientOptions clientOptions = createClientOptions(NON_TLS_URL, "user",
-        "pass", "http://localhost:8080", "user", "pass",
-        "all", "", "", null ,
+        "pass", "", "", "",
+        "", "", "", null ,
         null, "", null,
         null, "", "foo", false, true, null);
 
@@ -61,8 +63,8 @@ public class MigrationsUtilTest {
     // Given:
     final Map<String, String> requestHeaders = ImmutableMap.of("h1", "v1", "h2", "v2");
     final ClientOptions clientOptions = createClientOptions(TLS_URL, "user",
-        "pass", "http://localhost:8080", "user", "pass", "all",
-        "newScope", "newSub", (short) 600,
+        "pass", "", "", "", "",
+        "", "", null,
         "abc", null, null,
         null, null, null, true, true, requestHeaders);
 
@@ -111,5 +113,14 @@ public class MigrationsUtilTest {
     assertThat(clientOptions.isUseAlpn(), is(true));
     assertThat(clientOptions.isVerifyHost(), is(true));
     assertThat(clientOptions.getRequestHeaders(), is(Collections.emptyMap()));
+  }
+
+  @Test
+  public void testCannotConfigureBothBasicAndBearerAuth() {
+    assertThrows(KsqlClientException.class, () -> createClientOptions(TLS_URL, "user",
+        "pass", "http://localhost:8080", "user", "pass", "all",
+        "newScope", "newSub", (short) 600,
+        "abc", null, null,
+        null, null, null, true, true, null));
   }
 }

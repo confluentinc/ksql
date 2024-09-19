@@ -25,6 +25,7 @@ import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.integration.IntegrationTestHarness;
 import io.confluent.ksql.integration.Retry;
 import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.security.BasicCredentials;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
@@ -224,7 +225,7 @@ public class PullQueryMetricsWSFunctionalTest {
         "SELECT COUNT, USERID from " + AGG_TABLE + " WHERE USERID='" + AN_AGG_KEY + "';",
         Optional.of(MediaType.APPLICATION_JSON),
         Optional.of(MediaType.APPLICATION_JSON),
-        Optional.of(SUPER_USER),
+        Optional.of(BasicCredentials.of(SUPER_USER.username, SUPER_USER.password)),
         Optional.empty(),
         Optional.empty()
     );
@@ -234,7 +235,7 @@ public class PullQueryMetricsWSFunctionalTest {
         "SELECT * from " + PAGE_VIEW_STREAM + " WHERE PAGEID='" + A_STREAM_KEY + "';",
         Optional.of(MediaType.APPLICATION_JSON),
         Optional.of(MediaType.APPLICATION_JSON),
-        Optional.of(SUPER_USER),
+        Optional.of(BasicCredentials.of(SUPER_USER.username, SUPER_USER.password)),
         Optional.empty(),
         Optional.empty()
     );

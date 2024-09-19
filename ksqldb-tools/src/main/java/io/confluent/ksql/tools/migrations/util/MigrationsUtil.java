@@ -19,6 +19,7 @@ import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.api.client.Client;
 import io.confluent.ksql.api.client.ClientOptions;
 import io.confluent.ksql.properties.PropertiesUtil;
+import io.confluent.ksql.security.oauth.IdpConfig;
 import io.confluent.ksql.tools.migrations.MigrationConfig;
 import io.confluent.ksql.tools.migrations.MigrationException;
 import io.confluent.ksql.util.KsqlException;
@@ -44,6 +45,13 @@ public final class MigrationsUtil {
         config.getString(MigrationConfig.KSQL_SERVER_URL),
         config.getString(MigrationConfig.KSQL_BASIC_AUTH_USERNAME),
         config.getPassword(MigrationConfig.KSQL_BASIC_AUTH_PASSWORD).value(),
+        config.getString(MigrationConfig.BEARER_AUTH_ISSUER_ENDPOINT_URL),
+        config.getString(MigrationConfig.BEARER_AUTH_CLIENT_ID),
+        config.getPassword(MigrationConfig.BEARER_AUTH_CLIENT_SECRET).value(),
+        config.getString(MigrationConfig.BEARER_AUTH_SCOPE),
+        config.getString(MigrationConfig.BEARER_AUTH_SCOPE_CLAIM_NAME),
+        config.getString(MigrationConfig.BEARER_AUTH_SUB_CLAIM_NAME),
+        config.getShort(MigrationConfig.BEARER_AUTH_CACHE_EXPIRY_BUFFER_SECONDS),
         config.getString(MigrationConfig.SSL_TRUSTSTORE_LOCATION),
         config.getPassword(MigrationConfig.SSL_TRUSTSTORE_PASSWORD).value(),
         config.getString(MigrationConfig.SSL_KEYSTORE_LOCATION),
@@ -62,6 +70,13 @@ public final class MigrationsUtil {
       final String ksqlServerUrl,
       final String username,
       final String password,
+      final String idpTokenEndpointUrl,
+      final String idpClientId,
+      final String idpClientSecret,
+      final String idpScope,
+      final String idpScopeClaimName,
+      final String idpSubClaimName,
+      final Short idpCacheExpiryBufferSeconds,
       final String sslTrustStoreLocation,
       final String sslTrustStorePassword,
       final String sslKeystoreLocation,
@@ -73,17 +88,28 @@ public final class MigrationsUtil {
       final Map<String, String> requestHeaders
   ) {
     return Client.create(createClientOptions(ksqlServerUrl, username, password,
+        idpTokenEndpointUrl, idpClientId, idpClientSecret,
+        idpScope, idpScopeClaimName, idpSubClaimName, idpCacheExpiryBufferSeconds,
         sslTrustStoreLocation, sslTrustStorePassword, sslKeystoreLocation, sslKeystorePassword,
         sslKeyPassword, sslKeyAlias, sslAlpn, sslVerifyHost, requestHeaders));
   }
 
   @VisibleForTesting
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
+  @SuppressWarnings(value = {"NPathComplexity", "CyclomaticComplexity",
+      "BooleanExpressionComplexity"})
   static ClientOptions createClientOptions(
       // CHECKSTYLE_RULES.ON: ParameterNumberCheck
       final String ksqlServerUrl,
       final String username,
       final String password,
+      final String idpTokenEndpointUrl,
+      final String idpClientId,
+      final String idpClientSecret,
+      final String idpScope,
+      final String idpScopeClaimName,
+      final String idpSubClaimName,
+      final Short idpCacheExpiryBufferSeconds,
       final String sslTrustStoreLocation,
       final String sslTrustStorePassword,
       final String sslKeystoreLocation,
@@ -109,6 +135,21 @@ public final class MigrationsUtil {
     if (!(username == null || username.isEmpty())
         || !(password == null || password.isEmpty())) {
       options.setBasicAuthCredentials(username, password);
+    }
+
+    if (!(idpTokenEndpointUrl == null || idpTokenEndpointUrl.isEmpty())
+        || !(idpClientId == null || idpClientId.isEmpty())
+        || !(idpClientSecret == null || idpClientSecret.isEmpty())) {
+      final IdpConfig idpConfig = new IdpConfig.Builder()
+          .withTokenEndpointUrl(idpTokenEndpointUrl)
+          .withClientId(idpClientId)
+          .withClientSecret(idpClientSecret)
+          .withScope(idpScope)
+          .withScopeClaimName(idpScopeClaimName)
+          .withSubClaimName(idpSubClaimName)
+          .withCacheExpiryBufferSeconds(idpCacheExpiryBufferSeconds)
+          .build();
+      options.setIdpConfig(idpConfig);
     }
 
     final boolean useTls = ksqlServerUrl.trim().toLowerCase().startsWith("https://");

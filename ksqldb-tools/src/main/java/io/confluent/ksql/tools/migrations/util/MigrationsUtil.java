@@ -19,7 +19,6 @@ import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.api.client.Client;
 import io.confluent.ksql.api.client.ClientOptions;
 import io.confluent.ksql.properties.PropertiesUtil;
-import io.confluent.ksql.security.AuthType;
 import io.confluent.ksql.security.oauth.IdpConfig;
 import io.confluent.ksql.tools.migrations.MigrationConfig;
 import io.confluent.ksql.tools.migrations.MigrationException;
@@ -97,7 +96,8 @@ public final class MigrationsUtil {
 
   @VisibleForTesting
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
-  @SuppressWarnings(value = {"NPathComplexity", "CyclomaticComplexity"})
+  @SuppressWarnings(value = {"NPathComplexity", "CyclomaticComplexity",
+      "BooleanExpressionComplexity"})
   static ClientOptions createClientOptions(
       // CHECKSTYLE_RULES.ON: ParameterNumberCheck
       final String ksqlServerUrl,
@@ -137,8 +137,9 @@ public final class MigrationsUtil {
       options.setBasicAuthCredentials(username, password);
     }
 
-    // If basic auth hasn't been configured
-    if (options.getAuthType() != AuthType.BASIC) {
+    if (!(idpTokenEndpointUrl == null || idpTokenEndpointUrl.isEmpty())
+        || !(idpClientId == null || idpClientId.isEmpty())
+        || !(idpClientSecret == null || idpClientSecret.isEmpty())) {
       final IdpConfig idpConfig = new IdpConfig.Builder()
           .withTokenEndpointUrl(idpTokenEndpointUrl)
           .withClientId(idpClientId)

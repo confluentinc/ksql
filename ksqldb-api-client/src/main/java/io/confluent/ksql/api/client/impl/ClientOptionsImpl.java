@@ -186,7 +186,7 @@ public class ClientOptionsImpl implements ClientOptions {
   @Override
   public ClientOptions setBasicAuthCredentials(final String username, final String password) {
     if (authType == AuthType.OAUTHBEARER) {
-      throw new KsqlClientException("Already configured with bearer auth. Cannot set basic auth.");
+      throw new KsqlClientException("Cannot configure basic and bearer auth simultaneously.");
     }
     this.authType = AuthType.BASIC;
     this.basicAuthUsername = username;
@@ -215,7 +215,7 @@ public class ClientOptionsImpl implements ClientOptions {
   @Override
   public ClientOptions setIdpConfig(final IdpConfig idpConfig) {
     if (authType == AuthType.BASIC) {
-      throw new KsqlClientException("Already configured with basic auth. Cannot set bearer auth.");
+      throw new KsqlClientException("Cannot configure basic and bearer auth simultaneously.");
     }
     this.authType = AuthType.OAUTHBEARER;
     this.idpConfig = idpConfig;

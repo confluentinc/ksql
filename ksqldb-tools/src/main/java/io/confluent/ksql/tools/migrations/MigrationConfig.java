@@ -26,6 +26,7 @@ import org.apache.kafka.common.config.AbstractConfig;
 import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.common.config.ConfigDef.Importance;
 import org.apache.kafka.common.config.ConfigDef.Type;
+import org.apache.kafka.common.config.SaslConfigs;
 
 public final class MigrationConfig extends AbstractConfig {
 
@@ -33,6 +34,23 @@ public final class MigrationConfig extends AbstractConfig {
 
   public static final String KSQL_BASIC_AUTH_USERNAME = "ksql.auth.basic.username";
   public static final String KSQL_BASIC_AUTH_PASSWORD = "ksql.auth.basic.password";
+
+  //OAuth AUTHORIZATION SERVER related configs
+  public static final String BEARER_AUTH_ISSUER_ENDPOINT_URL = "bearer.auth.issuer.endpoint.url";
+  public static final String BEARER_AUTH_CLIENT_ID = "bearer.auth.client.id";
+  public static final String BEARER_AUTH_CLIENT_SECRET = "bearer.auth.client.secret";
+  public static final String BEARER_AUTH_SCOPE = "bearer.auth.scope";
+  public static final String BEARER_AUTH_SCOPE_CLAIM_NAME = "bearer.auth.scope.claim.name";
+  public static final String BEARER_AUTH_SCOPE_CLAIM_NAME_DEFAULT =
+      SaslConfigs.DEFAULT_SASL_OAUTHBEARER_SCOPE_CLAIM_NAME;
+  public static final String BEARER_AUTH_SUB_CLAIM_NAME = "bearer.auth.sub.claim.name";
+  public static final String BEARER_AUTH_SUB_CLAIM_NAME_DEFAULT =
+      SaslConfigs.DEFAULT_SASL_OAUTHBEARER_SUB_CLAIM_NAME;
+
+  //OAuth config related to token cache
+  public static final String BEARER_AUTH_CACHE_EXPIRY_BUFFER_SECONDS =
+      "bearer.auth.cache.expiry.buffer.seconds";
+  public static final short BEARER_AUTH_CACHE_EXPIRY_BUFFER_SECONDS_DEFAULT = 300;
 
   public static final String SSL_TRUSTSTORE_LOCATION = "ssl.truststore.location";
   public static final String SSL_TRUSTSTORE_PASSWORD = "ssl.truststore.password";
@@ -64,6 +82,7 @@ public final class MigrationConfig extends AbstractConfig {
     return new MigrationConfig(configsMap, getServiceId(configsMap));
   }
 
+  @SuppressWarnings(value = "MethodLength")
   private MigrationConfig(final Map<String, String> configs, final String id) {
     super(new ConfigDef()
         .define(
@@ -84,6 +103,48 @@ public final class MigrationConfig extends AbstractConfig {
             "",
             Importance.MEDIUM,
             "The password for the KSQL server"
+        ).define(
+            BEARER_AUTH_ISSUER_ENDPOINT_URL,
+            Type.STRING,
+            "",
+            Importance.MEDIUM,
+            "The issuer endpoint URL for the IDP Authorization server"
+        ).define(
+            BEARER_AUTH_CLIENT_ID,
+            Type.STRING,
+            "",
+            Importance.MEDIUM,
+            "The client ID for the IDP Authorization server"
+        ).define(
+            BEARER_AUTH_CLIENT_SECRET,
+            Type.PASSWORD,
+            "",
+            Importance.MEDIUM,
+            "The client secret for the IDP Authorization server"
+        ).define(
+            BEARER_AUTH_SCOPE,
+            Type.STRING,
+            "",
+            Importance.MEDIUM,
+            "The scope for the IDP Authorization server"
+        ).define(
+            BEARER_AUTH_SCOPE_CLAIM_NAME,
+            Type.STRING,
+            BEARER_AUTH_SCOPE_CLAIM_NAME_DEFAULT,
+            Importance.MEDIUM,
+            "The scope claim name for the IDP Authorization server"
+        ).define(
+            BEARER_AUTH_SUB_CLAIM_NAME,
+            Type.STRING,
+            BEARER_AUTH_SUB_CLAIM_NAME_DEFAULT,
+            Importance.MEDIUM,
+            "The sub claim name for the IDP Authorization server"
+        ).define(
+            BEARER_AUTH_CACHE_EXPIRY_BUFFER_SECONDS,
+            Type.SHORT,
+            BEARER_AUTH_CACHE_EXPIRY_BUFFER_SECONDS_DEFAULT,
+            ConfigDef.Importance.MEDIUM,
+            "The expiry buffer for token cache"
         ).define(
             SSL_TRUSTSTORE_LOCATION,
             Type.STRING,
@@ -184,6 +245,24 @@ public final class MigrationConfig extends AbstractConfig {
         ), configs, false);
   }
 
+  private static Short getBearerAuthCacheExpiryBufferSeconds(final Map<String, ?> configs) {
+    return configs != null && configs.containsKey(BEARER_AUTH_CACHE_EXPIRY_BUFFER_SECONDS)
+        ? (Short) configs.get(BEARER_AUTH_CACHE_EXPIRY_BUFFER_SECONDS)
+        : BEARER_AUTH_CACHE_EXPIRY_BUFFER_SECONDS_DEFAULT;
+  }
+
+  private static String getBearerAuthScopeClaimName(final Map<String, ?> configs) {
+    return configs != null && configs.containsKey(BEARER_AUTH_SCOPE_CLAIM_NAME)
+        ? (String) configs.get(BEARER_AUTH_SCOPE_CLAIM_NAME)
+        : BEARER_AUTH_SCOPE_CLAIM_NAME_DEFAULT;
+  }
+
+  private static String getBearerAuthSubClaimName(final Map<String, ?> configs) {
+    return configs != null && configs.containsKey(BEARER_AUTH_SUB_CLAIM_NAME)
+        ? (String) configs.get(BEARER_AUTH_SUB_CLAIM_NAME)
+        : BEARER_AUTH_SUB_CLAIM_NAME_DEFAULT;
+  }
+
   private static String getServiceId(final Map<String, String> configs) throws MigrationException {
     final String ksqlServerUrl = configs.get(KSQL_SERVER_URL);
     if (ksqlServerUrl == null) {
@@ -194,6 +273,13 @@ public final class MigrationConfig extends AbstractConfig {
         ksqlServerUrl,
         configs.get(KSQL_BASIC_AUTH_USERNAME),
         configs.get(KSQL_BASIC_AUTH_PASSWORD),
+        configs.get(BEARER_AUTH_ISSUER_ENDPOINT_URL),
+        configs.get(BEARER_AUTH_CLIENT_ID),
+        configs.get(BEARER_AUTH_CLIENT_SECRET),
+        configs.get(BEARER_AUTH_SCOPE),
+        getBearerAuthScopeClaimName(configs),
+        getBearerAuthSubClaimName(configs),
+        getBearerAuthCacheExpiryBufferSeconds(configs),
         configs.get(SSL_TRUSTSTORE_LOCATION),
         configs.get(SSL_TRUSTSTORE_PASSWORD),
         configs.get(SSL_KEYSTORE_LOCATION),

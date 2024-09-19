@@ -24,9 +24,10 @@ import static io.vertx.core.http.HttpVersion.HTTP_1_1;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.net.UrlEscapers;
 import io.confluent.ksql.rest.ApiJsonMapper;
-import io.confluent.ksql.rest.client.BasicCredentials;
+import io.confluent.ksql.security.BasicCredentials;
 import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.rest.client.RestResponse;
+import io.confluent.ksql.security.Credentials;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatus.Status;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
@@ -44,7 +45,6 @@ import io.confluent.ksql.rest.entity.ServerInfo;
 import io.confluent.ksql.rest.entity.ServerMetadata;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
-import io.confluent.ksql.test.util.secure.Credentials;
 import io.confluent.ksql.util.KsqlRequestConfig;
 import io.confluent.ksql.util.TestDataProvider;
 import io.confluent.ksql.util.VertxCompletableFuture;
@@ -65,7 +65,6 @@ import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.client.WebClientOptions;
 import io.vertx.ext.web.codec.BodyCodec;
 import java.net.URI;
-import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Base64;
@@ -111,7 +110,7 @@ public final class RestIntegrationTestUtil {
   static List<KsqlEntity> makeKsqlRequest(
       final TestKsqlRestApp restApp,
       final String sql,
-      final Optional<BasicCredentials> userCreds
+      final Optional<Credentials> userCreds
   ) {
     try (final KsqlRestClient restClient = restApp.buildKsqlClient(userCreds)) {
 
@@ -194,7 +193,7 @@ public final class RestIntegrationTestUtil {
   public static List<StreamedRow> makeQueryRequest(
       final TestKsqlRestApp restApp,
       final String sql,
-      final Optional<BasicCredentials> userCreds
+      final Optional<Credentials> userCreds
   ) {
     return makeQueryRequest(restApp, sql, userCreds, null,
         ImmutableMap.of(KsqlRequestConfig.KSQL_DEBUG_REQUEST, true));
@@ -203,7 +202,7 @@ public final class RestIntegrationTestUtil {
   static List<StreamedRow> makeQueryRequest(
       final TestKsqlRestApp restApp,
       final String sql,
-      final Optional<BasicCredentials> userCreds,
+      final Optional<Credentials> userCreds,
       final Map<String, ?> properties,
       final Map<String, Object> requestProperties
   ) {
@@ -221,7 +220,7 @@ public final class RestIntegrationTestUtil {
   static KsqlErrorMessage makeQueryRequestWithError(
       final TestKsqlRestApp restApp,
       final String sql,
-      final Optional<BasicCredentials> userCreds,
+      final Optional<Credentials> userCreds,
       final Map<String, ?> properties
   ) {
     try (final KsqlRestClient restClient = restApp.buildKsqlClient(userCreds)) {
@@ -467,7 +466,7 @@ public final class RestIntegrationTestUtil {
   public static void createStream(
       final TestKsqlRestApp restApp,
       final TestDataProvider dataProvider,
-      final Optional<BasicCredentials> userCreds
+      final Optional<Credentials> userCreds
   ) {
     createSource(restApp, dataProvider, false,false, userCreds);
   }
@@ -492,7 +491,7 @@ public final class RestIntegrationTestUtil {
       final TestDataProvider dataProvider,
       final boolean isSource,
       final boolean table,
-      final Optional<BasicCredentials> userCreds
+      final Optional<Credentials> userCreds
   ) {
     makeKsqlRequest(
         restApp,
@@ -570,7 +569,7 @@ public final class RestIntegrationTestUtil {
 
       final String uri = baseUri.toString() + "/ws/query?request="
           + buildStreamingRequest(sql, overrides, requestProperties)
-          + "&access_token=" + buildBasicAuthHeader(credentials.get());
+          + "&access_token=" + credentials.get().getAuthHeader();
 
       final MultiMap headers = MultiMap.caseInsensitiveMultiMap();
 
@@ -625,7 +624,7 @@ public final class RestIntegrationTestUtil {
     final MultiMap headers = MultiMap.caseInsensitiveMultiMap();
 
     credentials.ifPresent(
-        creds -> headers.add(AUTHORIZATION.toString(), "Basic " + buildBasicAuthHeader(creds)));
+        creds -> headers.add(AUTHORIZATION.toString(), creds.getAuthHeader()));
 
     mediaType.ifPresent(mt -> headers.add(ACCEPT.toString(), mt));
     contentType.ifPresent(ct -> headers.add(CONTENT_TYPE.toString(), ct));
@@ -656,11 +655,6 @@ public final class RestIntegrationTestUtil {
     });
 
     return completableFuture;
-  }
-
-  private static String buildBasicAuthHeader(final Credentials credentials) {
-    final String creds = credentials.username + ":" + credentials.password;
-    return Base64.getEncoder().encodeToString(creds.getBytes(Charset.defaultCharset()));
   }
 
   private static String buildStreamingRequest(

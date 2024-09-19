@@ -45,7 +45,8 @@ import io.confluent.ksql.api.server.KsqlApiException;
 import io.confluent.ksql.integration.IntegrationTestHarness;
 import io.confluent.ksql.integration.Retry;
 import io.confluent.ksql.name.ColumnName;
-import io.confluent.ksql.rest.client.BasicCredentials;
+import io.confluent.ksql.security.BasicCredentials;
+import io.confluent.ksql.security.Credentials;
 import io.confluent.ksql.rest.entity.ActiveStandbyEntity;
 import io.confluent.ksql.rest.entity.ClusterStatusResponse;
 import io.confluent.ksql.rest.entity.KsqlEntity;
@@ -67,7 +68,6 @@ import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.test.util.KsqlIdentifierTestUtil;
 import io.confluent.ksql.test.util.KsqlTestFolder;
 import io.confluent.ksql.test.util.TestBasicJaasConfig;
-import io.confluent.ksql.test.util.secure.Credentials;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.UserDataProvider;
 import io.netty.handler.codec.http.HttpResponseStatus;
@@ -81,7 +81,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
-import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
@@ -157,8 +156,8 @@ public class PullQueryRoutingFunctionalTest {
   private static final String KSQL_RESOURCE = "ksql-user";
   private static final String USER_WITH_ACCESS = "harry";
   private static final String USER_WITH_ACCESS_PWD = "changeme";
-  private static final Optional<BasicCredentials> USER_CREDS
-      = Optional.of(BasicCredentials.of(USER_WITH_ACCESS, USER_WITH_ACCESS_PWD));
+  private static final Optional<Credentials> USER_CREDS =
+      Optional.of(BasicCredentials.of(USER_WITH_ACCESS, USER_WITH_ACCESS_PWD));
 
   @ClassRule
   public static final TestBasicJaasConfig JAAS_CONFIG = TestBasicJaasConfig
@@ -366,7 +365,7 @@ public class PullQueryRoutingFunctionalTest {
         USER_CREDS);
 
 
-    final Credentials credentials =  new Credentials(USER_WITH_ACCESS, USER_WITH_ACCESS_PWD);
+    final Credentials credentials =  BasicCredentials.of(USER_WITH_ACCESS, USER_WITH_ACCESS_PWD);
     // When:
     List<String> rows_0 =
         makePullQueryWsRequest(clusterFormation.router.getApp().getWsListener(), sql, "", "", credentials, Optional.empty(), Optional.empty());

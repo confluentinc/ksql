@@ -140,6 +140,8 @@ public class MigrationsTest {
 
   private static ConnectExecutable CONNECT;
 
+  private static ClassLoader initClassLoader;
+
   @BeforeClass
   public static void setUpClass() throws Exception {
 
@@ -192,6 +194,7 @@ public class MigrationsTest {
         .build()
     );
 
+    initClassLoader = Thread.currentThread().getContextClassLoader();
     CONNECT = ConnectExecutable.of(connectFilePath);
     CONNECT.startAsync();
   }
@@ -200,6 +203,7 @@ public class MigrationsTest {
   public static void classTearDown() {
     CONNECT.shutdown();
     REST_APP.getPersistentQueries().forEach(str -> makeKsqlRequest("TERMINATE " + str + ";"));
+    Thread.currentThread().setContextClassLoader(initClassLoader);
   }
 
   @Before

@@ -93,6 +93,7 @@ public class ConnectIntegrationTest {
       .around(REST_APP);
 
   private static ConnectExecutable CONNECT;
+  private static ClassLoader initClassLoader;
 
   @BeforeClass
   public static void setUpClass() {
@@ -110,12 +111,14 @@ public class ConnectIntegrationTest {
         .put("value.converter.schemas.enable", "false")
         .build()
     );
+    initClassLoader = Thread.currentThread().getContextClassLoader();
     CONNECT.startAsync();
   }
 
   @AfterClass
   public static void tearDownClass() {
     CONNECT.shutdown();
+    Thread.currentThread().setContextClassLoader(initClassLoader);
   }
 
   private KsqlRestClient ksqlRestClient;

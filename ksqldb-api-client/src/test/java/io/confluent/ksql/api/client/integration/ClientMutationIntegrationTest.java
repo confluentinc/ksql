@@ -171,6 +171,7 @@ public class ClientMutationIntegrationTest {
       .around(REST_APP);
 
   private static ConnectExecutable CONNECT;
+  private static ClassLoader initClassLoader;
 
   @BeforeClass
   public static void setUpClass() throws Exception {
@@ -214,6 +215,7 @@ public class ClientMutationIntegrationTest {
         .build()
     );
 
+    initClassLoader = Thread.currentThread().getContextClassLoader();
     CONNECT = ConnectExecutable.of(connectFilePath);
     CONNECT.startAsync();
   }
@@ -232,6 +234,7 @@ public class ClientMutationIntegrationTest {
     cleanupConnectors();
     CONNECT.shutdown();
     REST_APP.getPersistentQueries().forEach(str -> makeKsqlRequest("TERMINATE " + str + ";"));
+    Thread.currentThread().setContextClassLoader(initClassLoader);
   }
 
   private Vertx vertx;

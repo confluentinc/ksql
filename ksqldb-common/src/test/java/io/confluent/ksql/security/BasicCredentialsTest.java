@@ -63,7 +63,8 @@ public class BasicCredentialsTest {
   @Test
   public void testGetBasicAuthHeader() {
     BasicCredentials credentials = BasicCredentials.of("user", "pass");
-    String expectedAuthHeader = "Basic " + Base64.getEncoder().encodeToString("user:pass".getBytes(StandardCharsets.UTF_8));
+    String expectedAuthHeader = "Basic "
+        + Base64.getEncoder().encodeToString("user:pass".getBytes(StandardCharsets.UTF_8));
 
     assertEquals(expectedAuthHeader, credentials.getAuthHeader());
   }

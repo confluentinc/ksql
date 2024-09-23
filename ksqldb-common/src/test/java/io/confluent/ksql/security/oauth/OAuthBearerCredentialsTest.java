@@ -43,25 +43,25 @@ public class OAuthBearerCredentialsTest {
 
   OAuthBearerCredentials credentials = new OAuthBearerCredentials();
 
-  private Map<String, String> CONFIG_MAP;
+  private Map<String, String> configMap;
 
   @Before
-  public void InitializeConfigMap() {
-    CONFIG_MAP = new HashMap<>();
-    CONFIG_MAP.put(KsqlClientConfig.BEARER_AUTH_SCOPE, "test-scope");
-    CONFIG_MAP.put(KsqlClientConfig.BEARER_AUTH_CLIENT_SECRET, "my-secret");
-    CONFIG_MAP.put(KsqlClientConfig.BEARER_AUTH_CLIENT_ID, "my-id");
-    CONFIG_MAP.put(KsqlClientConfig.BEARER_AUTH_TOKEN_ENDPOINT_URL, "https://okta.com");
+  public void initializeConfigMap() {
+    configMap = new HashMap<>();
+    configMap.put(KsqlClientConfig.BEARER_AUTH_SCOPE, "test-scope");
+    configMap.put(KsqlClientConfig.BEARER_AUTH_CLIENT_SECRET, "my-secret");
+    configMap.put(KsqlClientConfig.BEARER_AUTH_CLIENT_ID, "my-id");
+    configMap.put(KsqlClientConfig.BEARER_AUTH_TOKEN_ENDPOINT_URL, "https://okta.com");
   }
 
   @Test
   public void testValidation() {
-    Map<String, String> CONFIG = new HashMap<>();
-    assertThrows(ConfigException.class, () -> credentials.configure(CONFIG));
+    Map<String, String> config = new HashMap<>();
+    assertThrows(ConfigException.class, () -> credentials.configure(config));
   }
 
   @Test
-  public void TestGetBearerToken() {
+  public void shouldGetBearerToken() {
     when(tokenRetriever.getToken()).thenReturn("expectedToken");
 
     credentials.init(tokenRetriever);
@@ -71,11 +71,11 @@ public class OAuthBearerCredentialsTest {
   }
 
   @Test
-  public void TestConfigureInsufficientConfigs() {
+  public void shouldGetExceptionWhenConfiguredInsufficientConfigs() {
     List<String> optionalConfigs = Arrays.asList(KsqlClientConfig.BEARER_AUTH_SCOPE,
         KsqlClientConfig.BEARER_AUTH_SCOPE_CLAIM_NAME,
         KsqlClientConfig.BEARER_AUTH_SUB_CLAIM_NAME);
-    for (String missingKey : CONFIG_MAP.keySet()) {
+    for (String missingKey : configMap.keySet()) {
       // ignoring optional keys
       if (optionalConfigs.contains(missingKey)) {
         continue;
@@ -94,20 +94,20 @@ public class OAuthBearerCredentialsTest {
   @Test
   public void testClientSslConfigurations() {
 
-    Map<String, String> CONFIG_WITH_SSL = new HashMap<>(CONFIG_MAP);
-    CONFIG_WITH_SSL.put("ssl.truststore.location", "truststore.jks");
-    CONFIG_WITH_SSL.put("ssl.truststore.password", "password");
+    Map<String, String> configsWithSsl = new HashMap<>(configMap);
+    configsWithSsl.put("ssl.truststore.location", "truststore.jks");
+    configsWithSsl.put("ssl.truststore.password", "password");
 
     // SSL configurations should get loaded if present in configuration
     Assert.assertThrows("Message", KafkaException.class,
         () -> {
-          credentials.configure(CONFIG_WITH_SSL);
+          credentials.configure(configsWithSsl);
         });
 
   }
 
   private Map<String, Object> getInsufficientConfigs(String missingConfig) {
-    Map<String, Object> insufficientConfigs = new HashMap<>(CONFIG_MAP);
+    Map<String, Object> insufficientConfigs = new HashMap<>(configMap);
     insufficientConfigs.remove(missingConfig);
     return insufficientConfigs;
   }

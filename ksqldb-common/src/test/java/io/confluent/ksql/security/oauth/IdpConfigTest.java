@@ -93,7 +93,8 @@ public class IdpConfigTest {
     assertEquals(originalConfig.getIdpScope(), copiedConfig.getIdpScope());
     assertEquals(originalConfig.getIdpScopeClaimName(), copiedConfig.getIdpScopeClaimName());
     assertEquals(originalConfig.getIdpSubClaimName(), copiedConfig.getIdpSubClaimName());
-    assertEquals(originalConfig.getIdpCacheExpiryBufferSeconds(), copiedConfig.getIdpCacheExpiryBufferSeconds());
+    assertEquals(originalConfig.getIdpCacheExpiryBufferSeconds(),
+        copiedConfig.getIdpCacheExpiryBufferSeconds());
 
     // Confirm the two objects are not the same instance.
     assertNotSame(originalConfig, copiedConfig);

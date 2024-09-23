@@ -46,7 +46,8 @@ public class MigrationsUtilTest {
     assertThat(clientOptions.isUseTls(), is(false));
     assertThat(clientOptions.getBasicAuthUsername(), is("user"));
     assertThat(clientOptions.getBasicAuthPassword(), is("pass"));
-    assertThrows(NullPointerException.class, () -> clientOptions.getIdpConfig().getIdpTokenEndpointUrl());
+    assertThrows(NullPointerException.class,
+        () -> clientOptions.getIdpConfig().getIdpTokenEndpointUrl());
     assertThat(clientOptions.getTrustStore(), is(""));
     assertThat(clientOptions.getTrustStorePassword(), is(""));
     assertThat(clientOptions.getKeyStore(), is(""));
@@ -72,7 +73,8 @@ public class MigrationsUtilTest {
     assertThat(clientOptions.isUseTls(), is(true));
     assertThat(clientOptions.getBasicAuthUsername(), is("user"));
     assertThat(clientOptions.getBasicAuthPassword(), is("pass"));
-    assertThrows(NullPointerException.class, () -> clientOptions.getIdpConfig().getIdpTokenEndpointUrl());
+    assertThrows(NullPointerException.class,
+        () -> clientOptions.getIdpConfig().getIdpTokenEndpointUrl());
     assertThat(clientOptions.getTrustStore(), is("abc"));
     assertThat(clientOptions.getTrustStorePassword(), is(""));
     assertThat(clientOptions.getKeyStore(), is(""));

@@ -26,13 +26,15 @@ public class CredentialsFactoryTest {
   @Test
   public void testCreateBasicCredentials() {
     Credentials credentials = CredentialsFactory.createCredentials(AuthType.BASIC);
-    assertInstanceOf(BasicCredentials.class, credentials, "Should return an instance of BasicCredentials");
+    assertInstanceOf(BasicCredentials.class, credentials,
+        "Should return an instance of BasicCredentials");
   }
 
   @Test
   public void testCreateOAuthBearerCredentials() {
     Credentials credentials = CredentialsFactory.createCredentials(AuthType.OAUTHBEARER);
-    assertInstanceOf(OAuthBearerCredentials.class, credentials, "Should return an instance of OAuthBearerCredentials");
+    assertInstanceOf(OAuthBearerCredentials.class, credentials,
+        "Should return an instance of OAuthBearerCredentials");
   }
 
   @Test

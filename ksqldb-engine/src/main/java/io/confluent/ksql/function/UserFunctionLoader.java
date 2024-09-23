@@ -106,9 +106,7 @@ public class UserFunctionLoader {
     final String pathLoadedFrom = path.map(Path::toString).orElse(KsqlScalarFunction.INTERNAL_PATH);
 
     final ClassGraph classGraph = new ClassGraph();
-    if (loader != parentClassLoader) {
-      classGraph.overrideClassLoaders(loader);
-    }
+    classGraph.overrideClassLoaders(loader);
 
     try (ScanResult scan = classGraph
         .enableAnnotationInfo()
@@ -160,7 +158,7 @@ public class UserFunctionLoader {
     return new UserFunctionLoader(
         metaStore,
         pluginDir,
-        Thread.currentThread().getContextClassLoader(),
+        UserFunctionLoader.class.getClassLoader(),
         new Blacklist(new File(pluginDir, "resource-blacklist.txt")),
         metrics,
         loadCustomerUdfs

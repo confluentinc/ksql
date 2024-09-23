@@ -27,8 +27,6 @@ import io.confluent.ksql.util.VertxCompletableFuture;
 import io.vertx.core.WorkerExecutor;
 import io.vertx.ext.web.RoutingContext;
 import org.json.JSONObject;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.nio.charset.StandardCharsets;
 import java.security.Principal;
@@ -41,10 +39,8 @@ import java.util.concurrent.CompletableFuture;
 import static io.confluent.ksql.rest.Errors.ERROR_CODE_UNAUTHORIZED;
 
 public class ClientOAuthTest extends ClientTest {
-  protected static final Logger log = LoggerFactory.getLogger(ClientOAuthTest.class);
-
   private static final String APP1_DEVELOPER = "app1-developer";
-  private final AuthenticationPlugin AUTHENTICATION_PLUGIN = new OAuthPlugin();
+  private final AuthenticationPlugin authenticationPlugin = new OAuthPlugin();
   private static final IdentityProviderService idp = new IdentityProviderService();
 
   @Override
@@ -66,7 +62,7 @@ public class ClientOAuthTest extends ClientTest {
   @Override
   protected void createServer(KsqlRestConfig serverConfig) {
     server = new Server(vertx, serverConfig, testEndpoints,
-        new KsqlDefaultSecurityExtension(), Optional.of(AUTHENTICATION_PLUGIN),
+        new KsqlDefaultSecurityExtension(), Optional.of(authenticationPlugin),
         serverState, Optional.empty());
 
     try {
@@ -77,20 +73,20 @@ public class ClientOAuthTest extends ClientTest {
     }
   }
 
-  public class OAuthPlugin implements AuthenticationPlugin {
-    public OAuthPlugin() {}
-
+  public static class OAuthPlugin implements AuthenticationPlugin {
     @Override
     public void configure(Map<String, ?> map) {
     }
 
     @Override
-    public CompletableFuture<Principal> handleAuth(RoutingContext routingContext, WorkerExecutor workerExecutor) {
+    public CompletableFuture<Principal> handleAuth(RoutingContext routingContext,
+                                                   WorkerExecutor workerExecutor) {
       // Simulating a server side login and returning a principal completable future
 
       final VertxCompletableFuture<Principal> vcf = new VertxCompletableFuture<>();
 
-      // get sub claim out of the jwt. Since, this is a unit test, let's not worry about signature stuff.
+      // get sub-claim out of the jwt. Since, this is a unit test,
+      // let's not worry about signature stuff.
       String authHeader = getAuthHeader(routingContext);
       String jwt = authHeader.substring("Bearer ".length());
       String[] parts = jwt.split("\\.");

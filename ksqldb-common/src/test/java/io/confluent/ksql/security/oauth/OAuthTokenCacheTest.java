@@ -30,60 +30,60 @@ import static org.junit.Assert.assertTrue;
 public class OAuthTokenCacheTest {
 
   private final short cacheExpiryBufferSeconds = 1;
-  private final OAuthTokenCache oAuthTokenCache = new OAuthTokenCache(cacheExpiryBufferSeconds);
+  private final OAuthTokenCache oauthTokenCache = new OAuthTokenCache(cacheExpiryBufferSeconds);
 
   private final String tokenString1 = "token1";
 
 
   @Test
-  public void TestSetCurrentToken() {
+  public void shouldSetCurrentToken() {
     OAuthBearerToken token1 = new BasicOAuthBearerToken(tokenString1,
         Collections.emptySet(),
         100L,
         "random",
         0L);
 
-    oAuthTokenCache.setCurrentToken(token1);
-    assertEquals(tokenString1, oAuthTokenCache.getCurrentToken().value());
+    oauthTokenCache.setCurrentToken(token1);
+    assertEquals(tokenString1, oauthTokenCache.getCurrentToken().value());
   }
 
   @Test
-  public void TestIsExpiredWithNull() {
-    oAuthTokenCache.setCurrentToken(null);
-    assertTrue(oAuthTokenCache.isTokenExpired());
+  public void shouldGetExpiredTokenIsWithNull() {
+    oauthTokenCache.setCurrentToken(null);
+    assertTrue(oauthTokenCache.isTokenExpired());
   }
 
   @Test
-  public void TestIsExpiredWithValidCache() throws InterruptedException {
+  public void shouldGetExpiredWithValidCache() throws InterruptedException {
     long lifespan = 2L;
     OAuthBearerToken token1 = new BasicOAuthBearerToken(tokenString1,
         Collections.emptySet(),
         Instant.now().plusSeconds(lifespan).toEpochMilli(),
         "random",
         Instant.now().toEpochMilli());
-    oAuthTokenCache.setCurrentToken(token1);
-    assertFalse(oAuthTokenCache.isTokenExpired());
+    oauthTokenCache.setCurrentToken(token1);
+    assertFalse(oauthTokenCache.isTokenExpired());
     Thread.sleep(10);
-    assertFalse(oAuthTokenCache.isTokenExpired());
+    assertFalse(oauthTokenCache.isTokenExpired());
   }
 
   @Test
-  public void TestIsExpiredWithExpiredCache() throws InterruptedException {
+  public void shouldGetExpiredWithExpiredCache() throws InterruptedException {
     long lifespanSeconds = 2L;
     OAuthBearerToken token1 = new BasicOAuthBearerToken(tokenString1,
         Collections.emptySet(),
         Instant.now().plusSeconds(lifespanSeconds).toEpochMilli(),
         "random",
         Instant.now().toEpochMilli());
-    oAuthTokenCache.setCurrentToken(token1);
+    oauthTokenCache.setCurrentToken(token1);
     //sleeping till cache get expired
     Thread.sleep(
         (long) Math.floor(1000 * lifespanSeconds * OAuthTokenCache.CACHE_EXPIRY_THRESHOLD));
-   assertTrue(oAuthTokenCache.isTokenExpired());
+    assertTrue(oauthTokenCache.isTokenExpired());
   }
 
   @Test
-  public void TestCalculateTokenExpiryTime() {
+  public void shouldCalculateTokenExpiryTime() {
     //already expired token
     long tokenStartTimeMs = Instant.now().plusSeconds(-3).toEpochMilli();
     long tokenExpiryTimeMs = Instant.now().plusSeconds(-1).toEpochMilli();
@@ -93,11 +93,11 @@ public class OAuthTokenCacheTest {
         "random",
         tokenStartTimeMs);
 
-    assertEquals(tokenExpiryTimeMs, oAuthTokenCache.calculateTokenExpiryTime(token1));
+    assertEquals(tokenExpiryTimeMs, oauthTokenCache.calculateTokenExpiryTime(token1));
 
     //cache expiry time before requested cacheExpiryBufferSeconds seconds
     short cacheExpiryBufferSeconds = 5;
-    OAuthTokenCache oAuthTokenCache = new OAuthTokenCache(cacheExpiryBufferSeconds);
+    final OAuthTokenCache oauthTokenCache = new OAuthTokenCache(cacheExpiryBufferSeconds);
     long lifetimeSeconds = 60L;
     tokenStartTimeMs = Instant.now().toEpochMilli();
     tokenExpiryTimeMs = Instant.now().plusSeconds(lifetimeSeconds).toEpochMilli();
@@ -106,11 +106,10 @@ public class OAuthTokenCacheTest {
         tokenExpiryTimeMs,
         "random",
         tokenStartTimeMs);
-
-    long expectedCacheExpiryTimeMs = tokenStartTimeMs +
-        (long) (OAuthTokenCache.CACHE_EXPIRY_THRESHOLD * (tokenExpiryTimeMs - tokenStartTimeMs));
+    long expectedCacheExpiryTimeMs = tokenStartTimeMs
+        + (long) (OAuthTokenCache.CACHE_EXPIRY_THRESHOLD * (tokenExpiryTimeMs - tokenStartTimeMs));
     assertEquals(expectedCacheExpiryTimeMs,
-        oAuthTokenCache.calculateTokenExpiryTime(token1));
+        oauthTokenCache.calculateTokenExpiryTime(token1));
 
     //cache expiry should honor cacheExpiryBufferSeconds seconds
     lifetimeSeconds = 20L;
@@ -122,9 +121,10 @@ public class OAuthTokenCacheTest {
         "random",
         tokenStartTimeMs);
 
-    expectedCacheExpiryTimeMs = tokenExpiryTimeMs - TimeUnit.MILLISECONDS.convert(cacheExpiryBufferSeconds, TimeUnit.SECONDS);
+    expectedCacheExpiryTimeMs = tokenExpiryTimeMs
+        - TimeUnit.MILLISECONDS.convert(cacheExpiryBufferSeconds, TimeUnit.SECONDS);
     assertEquals(expectedCacheExpiryTimeMs,
-        oAuthTokenCache.calculateTokenExpiryTime(token1));
+        oauthTokenCache.calculateTokenExpiryTime(token1));
 
   }
 

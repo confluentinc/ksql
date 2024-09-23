@@ -22,14 +22,17 @@ import dasniko.testcontainers.keycloak.KeycloakContainer;
 public class IdentityProviderService {
 
   // Json file containing keycloak realm config.
-  // Keycloak testcontainer is initialized with this config containing clients for tests requiring client credentials flow.
+  // Keycloak testcontainer is initialized with this config
+  // containing clients for tests requiring client credentials flow.
   private static final String DEFAULT_REALM_CONFIG_PATH = "/IntegrationTestsRealm.json";
 
   private static final String ISSUER_FORMAT = "/realms/IntegrationTestsRealm";
 
-  private static final String JWKS_ENDPOINT_FORMAT = "/realms/IntegrationTestsRealm/protocol/openid-connect/certs";
+  private static final String JWKS_ENDPOINT_FORMAT =
+      "/realms/IntegrationTestsRealm/protocol/openid-connect/certs";
 
-  private static final String TOKEN_ENDPOINT_FORMAT = "/realms/IntegrationTestsRealm/protocol/openid-connect/token";
+  private static final String TOKEN_ENDPOINT_FORMAT =
+      "/realms/IntegrationTestsRealm/protocol/openid-connect/token";
 
   private final KeycloakContainer keycloak;
 
@@ -45,6 +48,7 @@ public class IdentityProviderService {
   public void start() {
     this.keycloak.start();
   }
+
   public String getJwksEndpoint() {
     return this.keycloak.getAuthServerUrl() + JWKS_ENDPOINT_FORMAT;
   }

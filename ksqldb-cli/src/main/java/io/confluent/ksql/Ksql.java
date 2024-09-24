@@ -20,8 +20,12 @@ import io.confluent.ksql.cli.Cli;
 import io.confluent.ksql.cli.Options;
 import io.confluent.ksql.cli.console.OutputFormat;
 import io.confluent.ksql.properties.PropertiesUtil;
-import io.confluent.ksql.rest.client.BasicCredentials;
 import io.confluent.ksql.rest.client.KsqlRestClient;
+import io.confluent.ksql.security.AuthType;
+import io.confluent.ksql.security.BasicCredentials;
+import io.confluent.ksql.security.Credentials;
+import io.confluent.ksql.security.CredentialsFactory;
+import io.confluent.ksql.security.KsqlClientConfig;
 import io.confluent.ksql.util.ErrorMessageUtil;
 import io.confluent.ksql.util.KsqlException;
 import java.io.Console;
@@ -143,11 +147,27 @@ public final class Ksql {
     final Map<String, String> localProps = stripClientSideProperties(configProps);
     final Map<String, String> clientProps = PropertiesUtil.applyOverrides(configProps, systemProps);
     final String server = options.getServer();
-    final Optional<BasicCredentials> creds = options.getUserNameAndPassword();
+    final Optional<Credentials> creds = getCredentials(configProps);
     final Optional<BasicCredentials> ccloudApiKey = options.getCCloudApiKey();
 
     return clientBuilder.build(
         server, localProps, clientProps, creds, ccloudApiKey);
+  }
+
+  private Optional<Credentials> getCredentials(final Map<String, String> configProps) {
+    // Credentials are only configured if username and password is provided
+    // through ksqldb-cli flags -u and -p
+    AuthType authType = AuthType.NONE;
+    if (options.requiresPassword()) {
+      authType = AuthType.BASIC;
+      configProps.put(KsqlClientConfig.KSQL_BASIC_AUTH_USERNAME, options.getUserName());
+      configProps.put(KsqlClientConfig.KSQL_BASIC_AUTH_PASSWORD, options.getPassword());
+    }
+    final Credentials credentials = CredentialsFactory.createCredentials(authType);
+    if (credentials != null) {
+      credentials.configure(configProps);
+    }
+    return Optional.ofNullable(credentials);
   }
 
   private static Map<String, String> stripClientSideProperties(final Map<String, String> props) {
@@ -163,7 +183,7 @@ public final class Ksql {
         String serverAddress,
         Map<String, ?> localProperties,
         Map<String, String> clientProps,
-        Optional<BasicCredentials> creds,
+        Optional<Credentials> creds,
         Optional<BasicCredentials> ccloudApiKey
     );
   }

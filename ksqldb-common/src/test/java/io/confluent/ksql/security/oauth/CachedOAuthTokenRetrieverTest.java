@@ -55,7 +55,7 @@ public class CachedOAuthTokenRetrieverTest {
   @InjectMocks
   CachedOAuthTokenRetriever cachedOAuthTokenRetriever;
 
-  private final String tokenString1 = "token1";
+  private static final String tokenString1 = "token1";
   private OAuthBearerToken token1;
 
   @Test

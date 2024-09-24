@@ -29,10 +29,10 @@ import static org.junit.Assert.assertTrue;
 
 public class OAuthTokenCacheTest {
 
-  private final short cacheExpiryBufferSeconds = 1;
+  private static final short cacheExpiryBufferSeconds = 1;
   private final OAuthTokenCache oauthTokenCache = new OAuthTokenCache(cacheExpiryBufferSeconds);
 
-  private final String tokenString1 = "token1";
+  private static final String tokenString1 = "token1";
 
 
   @Test

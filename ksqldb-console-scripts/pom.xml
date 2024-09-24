@@ -22,7 +22,7 @@ xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
     <parent>
         <groupId>io.confluent.ksql</groupId>
         <artifactId>ksqldb-parent</artifactId>
-        <version>7.6.3-0</version>
+        <version>7.6.3-70</version>
     </parent>
 
     <groupId>io.confluent.ksql</groupId>

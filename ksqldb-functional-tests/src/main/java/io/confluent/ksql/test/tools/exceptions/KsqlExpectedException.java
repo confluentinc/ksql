@@ -31,6 +31,7 @@ import org.hamcrest.TypeSafeMatcher;
 @SuppressFBWarnings("NM_CLASS_NOT_EXCEPTION")
 public class KsqlExpectedException {
   public final List<Matcher<?>> matchers = new ArrayList<>();
+  private Matcher<Throwable> expectedCause;
 
   public static KsqlExpectedException none() {
     return new KsqlExpectedException();
@@ -50,6 +51,10 @@ public class KsqlExpectedException {
 
   public void expectMessage(final Matcher<String> matcher) {
     matchers.add(UnloggedMessageMatcher.hasMessage(matcher));
+  }
+
+  public void expectCause(final Matcher<Throwable> causeMatcher) {
+    this.expectedCause = causeMatcher;
   }
 
   public static class UnloggedMessageMatcher<T extends Throwable> extends TypeSafeMatcher<T> {
@@ -92,6 +97,21 @@ public class KsqlExpectedException {
 
   @SuppressWarnings("unchecked")
   public Matcher<Throwable> build() {
-    return allOf((List)new ArrayList<>(matchers));
+    List<Matcher<?>> allMatchers = new ArrayList<>(matchers);
+    if (expectedCause != null) {
+      allMatchers.add(new TypeSafeMatcher<Throwable>() {
+        @Override
+        protected boolean matchesSafely(Throwable item) {
+          return expectedCause.matches(item.getCause());
+        }
+
+        @Override
+        public void describeTo(Description description) {
+          description.appendText("exception with cause ");
+          expectedCause.describeTo(description);
+        }
+      });
+    }
+    return allOf((List) allMatchers);
   }
 }

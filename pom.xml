@@ -819,6 +819,9 @@
                     <dotGitDirectory>${project.basedir}/.git</dotGitDirectory>
                     <generateGitPropertiesFile>true</generateGitPropertiesFile>
                     <generateGitPropertiesFilename>${project.build.outputDirectory}/git.properties</generateGitPropertiesFilename>
+                    <includeOnlyProperties>
+                        <includeOnlyProperty>git.commit.id</includeOnlyProperty>
+                    </includeOnlyProperties>
                 </configuration>
             </plugin>
             <plugin>

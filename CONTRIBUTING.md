@@ -181,11 +181,11 @@ You can set up IntelliJ for CheckStyle. First install the CheckStyle IDEA plugin
        URL: https://raw.githubusercontent.com/confluentinc/common/master/build-tools/src/main/resources/checkstyle/checkstyle.xml
        Ignore invalid certs: true
 
-    - (Optional) Make the new configuration active.
+    - Make the new configuration active.
 
     - Highlight the newly added 'Confluent Checks' and click the edit button (pencil icon).
 
-    - Set properties to match the `checkstyle/checkstyle.properties` file in the repo.
+    - [!IMP] Set properties to match the `checkstyle/checkstyle.properties` file in the repo.
 
 'Confluent Checks' will now be available in the CheckStyle tool window in the IDE and will auto-highlight issues in the code editor.
 

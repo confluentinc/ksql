@@ -28,6 +28,9 @@ import org.hamcrest.Factory;
 import org.hamcrest.Matcher;
 import org.hamcrest.TypeSafeMatcher;
 
+/**
+ * Helper class for testing exceptions.
+ */
 @SuppressFBWarnings("NM_CLASS_NOT_EXCEPTION")
 public class KsqlExpectedException {
   public final List<Matcher<?>> matchers = new ArrayList<>();
@@ -57,6 +60,10 @@ public class KsqlExpectedException {
     this.expectedCause = causeMatcher;
   }
 
+  /**
+   * Matcher that matches the message of a {@link KsqlStatementException} or its unlogged message.
+   * @param <T> the type of the exception
+   */
   public static class UnloggedMessageMatcher<T extends Throwable> extends TypeSafeMatcher<T> {
     private final Matcher<String> matcher;
 
@@ -97,16 +104,16 @@ public class KsqlExpectedException {
 
   @SuppressWarnings("unchecked")
   public Matcher<Throwable> build() {
-    List<Matcher<?>> allMatchers = new ArrayList<>(matchers);
+    final List<Matcher<?>> allMatchers = new ArrayList<>(matchers);
     if (expectedCause != null) {
       allMatchers.add(new TypeSafeMatcher<Throwable>() {
         @Override
-        protected boolean matchesSafely(Throwable item) {
+        protected boolean matchesSafely(final Throwable item) {
           return expectedCause.matches(item.getCause());
         }
 
         @Override
-        public void describeTo(Description description) {
+        public void describeTo(final Description description) {
           description.appendText("exception with cause ");
           expectedCause.describeTo(description);
         }

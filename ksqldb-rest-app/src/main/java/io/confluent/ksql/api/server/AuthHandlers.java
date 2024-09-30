@@ -55,28 +55,52 @@ public final class AuthHandlers {
     final Optional<SystemAuthenticationHandler> systemAuthenticationHandler
         = getSystemAuthenticationHandler(server, isInternalListener);
 
-    systemAuthenticationHandler.ifPresent(handler -> router.route().handler(handler));
+    systemAuthenticationHandler.ifPresent(handler -> registerAuthHandler(router, handler));
 
     if (jaas.isPresent() || authenticationPlugin.isPresent()) {
-      router.route().handler(rc -> selectHandler(rc, jaas.isPresent(), pluginHandler.isPresent()));
+      registerAuthHandler(
+          router,
+          rc -> selectHandler(rc, jaas.isPresent(), pluginHandler.isPresent()));
 
       // set up using JAAS
-      jaas.ifPresent(h -> router.route().handler(wrappedHandler(h, Provider.JAAS)));
-      router.route().handler(wrappedHandler(
-          new RoleBasedAuthZHandler(
+      jaas.ifPresent(h -> registerAuthHandler(router, wrappedHandler(h, Provider.JAAS)));
+
+      registerAuthHandler(
+          router,
+          wrappedHandler(new RoleBasedAuthZHandler(
               server.getConfig().getList(KsqlRestConfig.AUTHENTICATION_ROLES_CONFIG)),
-          Provider.JAAS));
+              Provider.JAAS));
 
       // set up using PLUGIN
-      pluginHandler.ifPresent(h -> router.route().handler(wrappedHandler(h, Provider.PLUGIN)));
+      pluginHandler.ifPresent(h -> registerAuthHandler(router, wrappedHandler(h, Provider.PLUGIN)));
 
-      router.route().handler(AuthHandlers::pauseHandler);
       // For authorization use auth provider configured via security extension (if any)
       securityExtension.getAuthorizationProvider()
-          .ifPresent(ksqlAuthorizationProvider -> router.route()
-              .handler(new KsqlAuthorizationProviderHandler(server, ksqlAuthorizationProvider)));
+          .ifPresent(ksqlAuthorizationProvider ->
+              registerAuthHandler(
+                  router,
+                  new KsqlAuthorizationProviderHandler(server, ksqlAuthorizationProvider)));
+
+      // since we're done with all the authorization plugins, we can resume the
+      // request context
       router.route().handler(AuthHandlers::resumeHandler);
     }
+  }
+
+  /**
+   * some handlers run code asynchronously from the event loop, which must be run while the
+   * request is paused (see https://vertx.io/docs/vertx-web/java/#_request_body_handling).
+   *
+   * <p>the calls to #pauseHandler are defensive in case an underlying handler calls resume
+   * on the context without our knowledge (which is what the default BasicAuthHandler in
+   * vertx-web does as of version 4.x)
+   */
+  private static void registerAuthHandler(
+      final Router router,
+      final Handler<RoutingContext> routingContext
+  ) {
+    router.route().handler(AuthHandlers::pauseHandler);
+    router.route().handler(routingContext);
   }
 
   private static Handler<RoutingContext> wrappedHandler(

@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.test.model;
 
+import static org.hamcrest.Matchers.instanceOf;
+
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.confluent.ksql.test.tools.exceptions.InvalidFieldException;
 import io.confluent.ksql.test.tools.exceptions.KsqlExpectedException;
@@ -26,13 +28,16 @@ public final class ExpectedExceptionNode {
 
   private final Optional<String> type;
   private final Optional<String> message;
+  private final Optional<String> cause;
 
   ExpectedExceptionNode(
       @JsonProperty("type") final String type,
-      @JsonProperty("message") final String message
+      @JsonProperty("message") final String message,
+      @JsonProperty("cause") final String cause
   ) {
     this.type = Optional.ofNullable(type);
     this.message = Optional.ofNullable(message);
+    this.cause = Optional.ofNullable(cause);
 
     if (!this.type.isPresent() && !this.message.isPresent()) {
       throw new MissingFieldException("expectedException.type or expectedException.message");
@@ -47,6 +52,7 @@ public final class ExpectedExceptionNode {
         .ifPresent(expectedException::expect);
 
     message.ifPresent(expectedException::expectMessage);
+    cause.ifPresent(c -> expectedException.expectCause(instanceOf(parseThrowable(c))));
     return expectedException.build();
   }
 

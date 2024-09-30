@@ -25,7 +25,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import io.confluent.ksql.api.auth.JaasAuthProvider.JaasUser;
 import io.confluent.ksql.api.auth.JaasAuthProvider.LoginContextSupplier;
 import io.confluent.ksql.api.server.Server;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
@@ -39,7 +38,6 @@ import java.security.Principal;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.concurrent.CountDownLatch;
 import java.util.stream.Stream;
 import javax.security.auth.Subject;
 import org.eclipse.jetty.jaas.JAASLoginService;
@@ -81,6 +79,7 @@ public class JaasAuthProviderTest {
   private Subject subject;
 
   private JaasAuthProvider authProvider;
+  private RoleBasedAuthZHandler allowedRoles;
 
   @Before
   public void setUp() throws Exception {
@@ -89,14 +88,13 @@ public class JaasAuthProviderTest {
     callbackHandler.setCredential(PASSWORD);
 
     handleAsyncExecution();
-    when(config.getString(KsqlRestConfig.AUTHENTICATION_REALM_CONFIG)).thenReturn(REALM);
     when(authInfo.getString("username")).thenReturn(USERNAME);
     when(authInfo.getString("password")).thenReturn(PASSWORD);
     when(loginContextSupplier.get()).thenReturn(loginService);
     when(loginService.login(eq(USERNAME), eq(PASSWORD), any())).thenReturn(userIdentity);
     when(userIdentity.getSubject()).thenReturn(subject);
 
-    authProvider = new JaasAuthProvider(server, config, loginContextSupplier);
+    authProvider = new JaasAuthProvider(server, REALM, loginContextSupplier);
   }
 
   @Test
@@ -202,10 +200,8 @@ public class JaasAuthProviderTest {
   }
 
   private void givenAllowedRoles(final String... roles) {
-    when(config.getList(KsqlRestConfig.AUTHENTICATION_ROLES_CONFIG))
-        .thenReturn(Arrays.asList(roles));
-
-    authProvider = new JaasAuthProvider(server, config, loginContextSupplier);
+    authProvider = new JaasAuthProvider(server, REALM, loginContextSupplier);
+    allowedRoles = new RoleBasedAuthZHandler(Arrays.asList(roles));
   }
 
   private void givenUserRoles(final String... roles) {
@@ -229,19 +225,16 @@ public class JaasAuthProviderTest {
     final AsyncResult<User> result = userCaptor.getValue();
     assertThat(result.succeeded(), is(true));
 
-    assertThat(result.result(), instanceOf(JaasUser.class));
-    final JaasUser user = (JaasUser) result.result();
+    assertThat(result.result(), instanceOf(ApiUser.class));
+    final ApiUser user = (ApiUser) result.result();
 
     assertThat(user.getPrincipal(), instanceOf(JaasPrincipal.class));
     final JaasPrincipal apiPrincipal = (JaasPrincipal) user.getPrincipal();
     assertThat(apiPrincipal.getName(), is(USERNAME));
 
-    final CountDownLatch latch = new CountDownLatch(1);
-    user.doIsPermitted("some permission", ar -> {
-      assertThat(ar.result(), is(isAuthorized));
-      latch.countDown();
-    });
-    latch.await();
+    assertThat(
+        "Expected " + (isAuthorized ? "authorized" : "unauthorized"),
+        allowedRoles.getDelegate().match(user) == isAuthorized);
   }
 
   private void verifyLoginFailure(final String expectedMsg) {

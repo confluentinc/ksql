@@ -17,6 +17,7 @@ package io.confluent.ksql.rest.client;
 
 import io.confluent.ksql.reactive.BufferedPublisher;
 import io.vertx.core.Context;
+import io.vertx.core.Future;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpClientResponse;
 import io.vertx.core.parsetools.RecordParser;
@@ -75,7 +76,7 @@ public class StreamPublisher<T> extends BufferedPublisher<T> {
     response.request().connection().closeHandler(v ->  complete());
   }
 
-  public void close() {
-    response.request().connection().close();
+  public Future<Void> close() {
+    return response.request().connection().close();
   }
 }

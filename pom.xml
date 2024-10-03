@@ -149,8 +149,8 @@
              Please check top level `pom.xml` at https://github.com/netty/netty
              for the netty version we bump to (ie, corresponding git tag),
              to find the correct `tcnative` version. -->
-        <netty.version>4.1.108.Final</netty.version>
-        <netty-codec-http2-version>4.1.108.Final</netty-codec-http2-version>
+        <netty.version>4.1.113.Final</netty.version>
+        <netty-codec-http2-version>4.1.113.Final</netty-codec-http2-version>
         <jersey-common>2.34</jersey-common>
     </properties>
 

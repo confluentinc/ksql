@@ -27,6 +27,7 @@ import com.google.common.testing.EqualsTester;
 import io.confluent.ksql.api.client.Client;
 import io.confluent.ksql.api.client.ClientOptions;
 import io.confluent.ksql.rest.entity.KsqlMediaType;
+import io.confluent.ksql.security.KsqlClientConfig;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
@@ -35,6 +36,8 @@ import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.http.RequestOptions;
 import java.util.HashMap;
+import java.util.Map;
+
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -103,4 +106,64 @@ public class ClientImplTest {
             is(true));
   }
 
+  @Test
+  public void shouldSetSslConfigs() {
+    ClientOptions clientOptions = ClientOptions.create()
+        .setUseTls(true)
+        .setTrustStore("    ")
+        .setTrustStorePassword("  ")
+        .setKeyStore("    ")
+        .setKeyStorePassword(" ")
+        .setKeyPassword("   ")
+        .setKeyAlias("    ");
+    Map<String, Object> props = ClientImpl.getSslConfigs(clientOptions);
+    assertThat(props.containsKey(KsqlClientConfig.SSL_TRUSTSTORE_LOCATION), is(false));
+    assertThat(props.containsKey(KsqlClientConfig.SSL_TRUSTSTORE_PASSWORD), is(false));
+    assertThat(props.containsKey(KsqlClientConfig.SSL_KEYSTORE_LOCATION), is(false));
+    assertThat(props.containsKey(KsqlClientConfig.SSL_KEYSTORE_PASSWORD), is(false));
+    assertThat(props.containsKey(KsqlClientConfig.SSL_KEY_PASSWORD), is(false));
+    assertThat(props.containsKey(KsqlClientConfig.SSL_KEY_ALIAS), is(false));
+    assertThat(props.get(KsqlClientConfig.SSL_ALPN), is(false));
+    assertThat(props.get(KsqlClientConfig.SSL_VERIFY_HOST), is(true));
+    assertThat(props.size(), is(2));
+
+    clientOptions = ClientOptions.create()
+        .setUseTls(true)
+        .setTrustStore("abc")
+        .setTrustStorePassword("  abc  ")
+        .setKeyStore("   abc   ")
+        .setKeyStorePassword("abc")
+        .setKeyPassword("abc")
+        .setKeyAlias("  abc  ");
+    props = ClientImpl.getSslConfigs(clientOptions);
+    assertThat(props.get(KsqlClientConfig.SSL_TRUSTSTORE_LOCATION), is("abc"));
+    assertThat(props.get(KsqlClientConfig.SSL_TRUSTSTORE_PASSWORD), is("  abc  "));
+    assertThat(props.get(KsqlClientConfig.SSL_KEYSTORE_LOCATION), is("   abc   "));
+    assertThat(props.get(KsqlClientConfig.SSL_KEYSTORE_PASSWORD), is("abc"));
+    assertThat(props.get(KsqlClientConfig.SSL_KEY_PASSWORD), is("abc"));
+    assertThat(props.get(KsqlClientConfig.SSL_KEY_ALIAS), is("  abc  "));
+    assertThat(props.get(KsqlClientConfig.SSL_ALPN), is(false));
+    assertThat(props.get(KsqlClientConfig.SSL_VERIFY_HOST), is(true));
+    assertThat(props.size(), is(8));
+
+    clientOptions = ClientOptions.create()
+        .setUseTls(true)
+        .setTrustStore(null)
+        .setTrustStorePassword(null)
+        .setKeyStore(null)
+        .setKeyStorePassword(null)
+        .setKeyPassword(null)
+        .setKeyAlias(null)
+        .setVerifyHost(false);
+    props = ClientImpl.getSslConfigs(clientOptions);
+    assertThat(props.containsKey(KsqlClientConfig.SSL_TRUSTSTORE_LOCATION), is(false));
+    assertThat(props.containsKey(KsqlClientConfig.SSL_TRUSTSTORE_PASSWORD), is(false));
+    assertThat(props.containsKey(KsqlClientConfig.SSL_KEYSTORE_LOCATION), is(false));
+    assertThat(props.containsKey(KsqlClientConfig.SSL_KEYSTORE_PASSWORD), is(false));
+    assertThat(props.containsKey(KsqlClientConfig.SSL_KEY_PASSWORD), is(false));
+    assertThat(props.containsKey(KsqlClientConfig.SSL_KEY_ALIAS), is(false));
+    assertThat(props.get(KsqlClientConfig.SSL_ALPN), is(false));
+    assertThat(props.get(KsqlClientConfig.SSL_VERIFY_HOST), is(false));
+    assertThat(props.size(), is(2));
+  }
 }

@@ -959,7 +959,36 @@ public class ClientImpl implements Client {
     return vertx.createHttpClient(options);
   }
 
-  private static String createAuthHeader(final ClientOptions clientOptions) {
+  private static boolean isNullOrEmpty(final String candidate) {
+    return candidate == null || candidate.trim().isEmpty();
+  }
+
+  static Map<String, Object> getSslConfigs(final ClientOptions clientOptions) {
+    final Map<String, Object> props = new HashMap<>();
+    if (!isNullOrEmpty(clientOptions.getTrustStore())) {
+      props.put(KsqlClientConfig.SSL_TRUSTSTORE_LOCATION, clientOptions.getTrustStore());
+    }
+    if (!isNullOrEmpty(clientOptions.getTrustStorePassword())) {
+      props.put(KsqlClientConfig.SSL_TRUSTSTORE_PASSWORD, clientOptions.getTrustStorePassword());
+    }
+    if (!isNullOrEmpty(clientOptions.getKeyStore())) {
+      props.put(KsqlClientConfig.SSL_KEYSTORE_LOCATION, clientOptions.getKeyStore());
+    }
+    if (!isNullOrEmpty(clientOptions.getKeyStorePassword())) {
+      props.put(KsqlClientConfig.SSL_KEYSTORE_PASSWORD, clientOptions.getKeyStorePassword());
+    }
+    if (!isNullOrEmpty(clientOptions.getKeyPassword())) {
+      props.put(KsqlClientConfig.SSL_KEY_PASSWORD, clientOptions.getKeyPassword());
+    }
+    if (!isNullOrEmpty(clientOptions.getKeyAlias())) {
+      props.put(KsqlClientConfig.SSL_KEY_ALIAS, clientOptions.getKeyAlias());
+    }
+    props.put(KsqlClientConfig.SSL_ALPN, clientOptions.isUseAlpn());
+    props.put(KsqlClientConfig.SSL_VERIFY_HOST, clientOptions.isVerifyHost());
+    return props;
+  }
+
+  public static String createAuthHeader(final ClientOptions clientOptions) {
     final Map<String, Object> props = new HashMap<>();
 
     if (clientOptions.getAuthType() == AuthType.BASIC) {
@@ -989,14 +1018,7 @@ public class ClientImpl implements Client {
     }
 
     if (clientOptions.isUseTls()) {
-      props.put(KsqlClientConfig.SSL_TRUSTSTORE_LOCATION, clientOptions.getTrustStore());
-      props.put(KsqlClientConfig.SSL_TRUSTSTORE_PASSWORD, clientOptions.getKeyStore());
-      props.put(KsqlClientConfig.SSL_KEYSTORE_LOCATION, clientOptions.getKeyStore());
-      props.put(KsqlClientConfig.SSL_KEYSTORE_PASSWORD, clientOptions.getKeyStorePassword());
-      props.put(KsqlClientConfig.SSL_KEY_PASSWORD, clientOptions.getKeyPassword());
-      props.put(KsqlClientConfig.SSL_KEY_ALIAS, clientOptions.getKeyAlias());
-      props.put(KsqlClientConfig.SSL_ALPN, clientOptions.isUseAlpn());
-      props.put(KsqlClientConfig.SSL_VERIFY_HOST, clientOptions.isVerifyHost());
+      props.putAll(getSslConfigs(clientOptions));
     }
 
     final Credentials credentials = CredentialsFactory

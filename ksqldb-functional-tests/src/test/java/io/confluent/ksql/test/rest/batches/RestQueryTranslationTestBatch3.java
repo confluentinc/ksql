@@ -17,7 +17,7 @@ import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
 @Category({IntegrationTest.class})
-public class RestQueryTranslationTestBatch2 extends RestQueryTranslationTest {
+public class RestQueryTranslationTestBatch3 extends RestQueryTranslationTest{
 
   private static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.build();
   private static final TestKsqlRestApp REST_APP = createTestApp(TEST_HARNESS);
@@ -25,14 +25,14 @@ public class RestQueryTranslationTestBatch2 extends RestQueryTranslationTest {
   public static final RuleChain CHAIN = createRuleChain(TEST_HARNESS, REST_APP);
   private static final AtomicReference<ThreadSnapshot> STARTING_THREADS = new AtomicReference<>();
 
-  public RestQueryTranslationTestBatch2(String name,
-      RestTestCase testCase) {
+  public RestQueryTranslationTestBatch3(String name,
+                                        RestTestCase testCase) {
     super(name, testCase, REST_APP, TEST_HARNESS, STARTING_THREADS);
   }
 
   @Parameterized.Parameters(name = "{0}")
   public static Collection<Object[]> data() {
-    return data(4, 2);
+    return data(4, 3);
   }
 
   @Test

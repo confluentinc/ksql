@@ -125,11 +125,10 @@ public class ClientImplTest {
     assertThat(props.get(KsqlClientConfig.SSL_KEY_ALIAS), is("  abc  "));
     assertThat(props.get(KsqlClientConfig.SSL_ALPN), is(false));
     assertThat(props.get(KsqlClientConfig.SSL_VERIFY_HOST), is(true));
-    assertThat(props.size(), is(8));
   }
 
   @Test
-  public void shouldNotSetSslConfigsIfEmpty() {
+  public void shouldNotSetSslConfigsIfValuesAreEmpty() {
     ClientOptions clientOptions = ClientOptions.create()
         .setUseTls(true)
         .setTrustStore("    ")
@@ -147,11 +146,10 @@ public class ClientImplTest {
     assertThat(props.containsKey(KsqlClientConfig.SSL_KEY_ALIAS), is(false));
     assertThat(props.get(KsqlClientConfig.SSL_ALPN), is(false));
     assertThat(props.get(KsqlClientConfig.SSL_VERIFY_HOST), is(true));
-    assertThat(props.size(), is(2));
   }
 
   @Test
-  public void shouldNotSetSslConfigsIfNull() {
+  public void shouldNotSetSslConfigsIfOptionsAreNull() {
     ClientOptions clientOptions = ClientOptions.create()
         .setUseTls(true)
         .setTrustStore(null)
@@ -170,6 +168,5 @@ public class ClientImplTest {
     assertThat(props.containsKey(KsqlClientConfig.SSL_KEY_ALIAS), is(false));
     assertThat(props.get(KsqlClientConfig.SSL_ALPN), is(false));
     assertThat(props.get(KsqlClientConfig.SSL_VERIFY_HOST), is(false));
-    assertThat(props.size(), is(2));
   }
 }

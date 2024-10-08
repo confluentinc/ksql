@@ -81,7 +81,7 @@ public final class BasicCredentials implements Credentials {
     final String password = (String) configs.get(KsqlClientConfig.KSQL_BASIC_AUTH_PASSWORD);
 
     if ((username == null || username.isEmpty()) || (password == null || password.isEmpty())) {
-      throw new ConfigException("Cannot configure BasicCredential without "
+      throw new ConfigException("Cannot configure BasicCredentials without "
           + "proper username or password");
     }
   }

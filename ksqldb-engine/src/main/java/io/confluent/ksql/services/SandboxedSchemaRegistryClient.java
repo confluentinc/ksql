@@ -119,6 +119,14 @@ final class SandboxedSchemaRegistryClient {
       return -1; // swallow
     }
 
+    @Override
+    public RegisterSchemaResponse registerWithResponse(
+        final String subject,
+        final ParsedSchema schema,
+        final boolean normalize) throws IOException, RestClientException {
+      return sandboxCacheClient.registerWithResponse(subject, schema, normalize);
+    }
+
     @Deprecated
     @Override
     public Schema getById(final int id) {

@@ -81,7 +81,7 @@ public final class KsqlClientConfig extends AbstractConfig {
             "The client ID for the IDP Authorization server"
         ).define(
             BEARER_AUTH_CLIENT_SECRET,
-            ConfigDef.Type.STRING,
+            ConfigDef.Type.PASSWORD,
             "",
             ConfigDef.Importance.MEDIUM,
             "The client secret for the IDP Authorization server"

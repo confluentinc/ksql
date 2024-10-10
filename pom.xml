@@ -837,6 +837,10 @@
                             <excludes>
                                 <exclude>**/RestQueryTranslationTest*.java</exclude>
                                 <exclude>**/io/confluent/ksql/rest/integration/**/*.java</exclude>
+                                <exclude>**/io/confluent/ksql/rest/server/**/*.java</exclude>
+                                <exclude>**/io/confluent/ksql/api/integration/**/*.java</exclude>
+                                <exclude>**/io/confluent/ksql/api/client/integration/**/*.java</exclude>
+                                <exclude>**/io/confluent/ksql/cli/**/*.java</exclude>
                             </excludes>
                         </configuration>
                     </execution>
@@ -850,6 +854,10 @@
                             <includes>
                                 <include>**/RestQueryTranslationTest*.java</include>
                                 <include>**/io/confluent/ksql/rest/integration/**/*.java</include>
+                                <include>**/io/confluent/ksql/rest/server/**/*.java</include>
+                                <include>**/io/confluent/ksql/api/integration/**/*.java</include>
+                                <include>**/io/confluent/ksql/api/client/integration/**/*.java</include>
+                                <include>**/io/confluent/ksql/cli/**/*.java</include>
                             </includes>
                             <forkCount>${multi-threaded-testing.forkCount}</forkCount>
                             <reuseForks>false</reuseForks>

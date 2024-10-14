@@ -139,7 +139,8 @@
         <!-- Only used to provide login module implementation for tests -->
         <jetty.version>9.4.53.v20231009</jetty.version>
         <git-commit-id-plugin.version>4.9.10</git-commit-id-plugin.version>
-        <apache.io.version>2.11.0</apache.io.version>
+        <apache.io.version>2.14.0</apache.io.version>
+        <io.confluent.ksql.version>7.1.15-0</io.confluent.ksql.version>
         <io.confluent.ksql.version>7.2.13-0</io.confluent.ksql.version>
         <io.confluent.schema-registry.version>${confluent.version.range}</io.confluent.schema-registry.version>
         <netty-tcnative-version>2.0.65.Final</netty-tcnative-version>

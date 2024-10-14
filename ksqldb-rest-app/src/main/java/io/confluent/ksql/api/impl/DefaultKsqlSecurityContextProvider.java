@@ -26,6 +26,8 @@ import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.security.KsqlSecurityExtension;
 import io.confluent.ksql.services.ConnectClientFactory;
 import io.confluent.ksql.util.KsqlConfig;
+import java.util.List;
+import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.function.Supplier;
 
@@ -62,6 +64,7 @@ public class DefaultKsqlSecurityContextProvider implements KsqlSecurityContextPr
 
     final Optional<KsqlPrincipal> principal = apiSecurityContext.getPrincipal();
     final Optional<String> authHeader = apiSecurityContext.getAuthToken();
+    final List<Entry<String, String>> requestHeaders = apiSecurityContext.getRequestHeaders();
 
     // A user context is not necessary if a user context provider is not present or the user
     // principal is missing. If a failed authentication attempt results in a missing principle,
@@ -77,8 +80,14 @@ public class DefaultKsqlSecurityContextProvider implements KsqlSecurityContextPr
     if (!requiresUserContext) {
       return new KsqlSecurityContext(
           principal,
-          defaultServiceContextFactory.create(ksqlConfig, authHeader, schemaRegistryClientFactory,
-              connectClientFactory, sharedClient, principal)
+          defaultServiceContextFactory.create(
+              ksqlConfig,
+              authHeader,
+              schemaRegistryClientFactory,
+              connectClientFactory,
+              sharedClient,
+              requestHeaders,
+              principal)
       );
     }
 
@@ -92,6 +101,7 @@ public class DefaultKsqlSecurityContextProvider implements KsqlSecurityContextPr
                 provider.getSchemaRegistryClientFactory(principal.get()),
                 connectClientFactory,
                 sharedClient,
+                requestHeaders,
                 principal)))
         .get();
   }

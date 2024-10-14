@@ -18,6 +18,7 @@ package io.confluent.ksql.rest.server.computation;
 import static org.apache.kafka.streams.StreamsConfig.PROCESSING_GUARANTEE_CONFIG;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.config.ConfigItem;
 import io.confluent.ksql.config.KsqlConfigResolver;
@@ -37,6 +38,7 @@ import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlServerException;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
+import io.confluent.ksql.util.PersistentQueryMetadataImpl;
 import io.confluent.ksql.util.QueryMetadata;
 import java.util.Collection;
 import java.util.Objects;
@@ -213,11 +215,22 @@ public final class ValidatedCommandFactory {
   ) {
     final KsqlPlan plan = context.plan(serviceContext, statement);
 
-    final ConfiguredKsqlPlan configuredPlan = ConfiguredKsqlPlan
+    ConfiguredKsqlPlan configuredPlan = ConfiguredKsqlPlan
         .of(plan, statement.getSessionConfig());
 
-    context.execute(serviceContext, configuredPlan);
-
+    final KsqlExecutionContext.ExecuteResult result = context
+        .execute(serviceContext, configuredPlan);
+    if (result.getQuery().isPresent()
+        && result.getQuery().get() instanceof PersistentQueryMetadataImpl
+        && configuredPlan.getConfig()
+          .getConfig(false)
+          .getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)) {
+      configuredPlan = ConfiguredKsqlPlan.of(
+          plan,
+          statement.getSessionConfig()
+              .copyWith(ImmutableMap.of(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED, false))
+      );
+    }
     return Command.of(configuredPlan);
   }
 }

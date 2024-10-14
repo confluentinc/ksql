@@ -21,6 +21,9 @@ import io.confluent.ksql.rest.entity.InsertError;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpServerResponse;
 import java.util.Objects;
+import java.util.UUID;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Writes the inserts response stream in JSON format.
@@ -36,12 +39,16 @@ import java.util.Objects;
  */
 public class JsonInsertsStreamResponseWriter implements InsertsStreamResponseWriter {
 
+  private static final Logger LOG = LoggerFactory.getLogger(JsonInsertsStreamResponseWriter.class);
+
   protected final HttpServerResponse response;
+  private final UUID uuid;
   private boolean dataWritten;
 
   @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
-  public JsonInsertsStreamResponseWriter(final HttpServerResponse response) {
+  public JsonInsertsStreamResponseWriter(final HttpServerResponse response, final UUID uuid) {
     this.response = Objects.requireNonNull(response);
+    this.uuid = uuid;
   }
 
   @Override
@@ -58,11 +65,13 @@ public class JsonInsertsStreamResponseWriter implements InsertsStreamResponseWri
 
   @Override
   public void end() {
+    LOG.debug("({}) Ending response for insert stream. Data written: {}", uuid, dataWritten);
     if (!dataWritten) {
-      response.write("[]").end();
+      response.write("[]");
     } else {
-      response.write("]").end();
+      response.write("]");
     }
+    response.end();
   }
 
   private void writeBuffer(final Buffer buffer) {

@@ -15,8 +15,11 @@
 
 package io.confluent.ksql.schema.ksql.inference;
 
+import static io.confluent.ksql.properties.with.CommonCreateConfigs.KEY_SCHEMA_ID;
+import static io.confluent.ksql.properties.with.CommonCreateConfigs.VALUE_SCHEMA_ID;
 import static io.confluent.ksql.util.KsqlConstants.getSRSubject;
 
+import com.google.common.collect.ImmutableMap;
 import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.KsqlExecutionContext;
@@ -49,6 +52,7 @@ import io.confluent.ksql.util.KsqlSchemaRegistryNotConfiguredException;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.Pair;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 public class SchemaRegisterInjector implements Injector {
@@ -83,7 +87,26 @@ public class SchemaRegisterInjector implements Injector {
           statement.getMaskedStatementText(),
           e.getCause());
     }
-    return statement;
+    // Remove schema id from SessionConfig
+    return stripSchemaIdConfig(statement);
+  }
+
+  private <T extends Statement> ConfiguredStatement<T> stripSchemaIdConfig(
+      final ConfiguredStatement<T> statement) {
+    final Map<String, ?> overrides = statement.getSessionConfig().getOverrides();
+    if (!overrides.containsKey(KEY_SCHEMA_ID) && !overrides.containsKey(VALUE_SCHEMA_ID)) {
+      return statement;
+    }
+    final ImmutableMap<String, ?> newOverrides = overrides
+        .entrySet()
+        .stream()
+        .filter(e -> !e.getKey().equals(KEY_SCHEMA_ID) && !e.getKey().equals(VALUE_SCHEMA_ID))
+        .collect(ImmutableMap.toImmutableMap(Map.Entry::getKey, Map.Entry::getValue));
+
+    return ConfiguredStatement.of(
+        statement.getPreparedStatement(),
+        statement.getSessionConfig().withNewOverrides(newOverrides)
+    );
   }
 
   private void registerForCreateSource(final ConfiguredStatement<? extends CreateSource> cs) {
@@ -112,7 +135,7 @@ public class SchemaRegisterInjector implements Injector {
     );
 
     final SchemaAndId rawKeySchema = (SchemaAndId) cs.getSessionConfig().getOverrides()
-        .get(CommonCreateConfigs.KEY_SCHEMA_ID);
+        .get(KEY_SCHEMA_ID);
     final SchemaAndId rawValueSchema = (SchemaAndId) cs.getSessionConfig().getOverrides()
         .get(CommonCreateConfigs.VALUE_SCHEMA_ID);
 
@@ -140,7 +163,7 @@ public class SchemaRegisterInjector implements Injector {
     } catch (KsqlException e) {
       if (e.getMessage().contains("does not support the following configs: [schemaId]")) {
         final String idMsg =
-            isKey ? CommonCreateConfigs.KEY_SCHEMA_ID : CommonCreateConfigs.VALUE_SCHEMA_ID;
+            isKey ? KEY_SCHEMA_ID : CommonCreateConfigs.VALUE_SCHEMA_ID;
         throw new KsqlStatementException(
             idMsg + " is provided but format " + formatInfo.getFormat()
                 + " doesn't support registering in Schema Registry",
@@ -176,7 +199,7 @@ public class SchemaRegisterInjector implements Injector {
     }
 
     final SchemaAndId rawKeySchema = (SchemaAndId) cas.getSessionConfig().getOverrides()
-        .get(CommonCreateConfigs.KEY_SCHEMA_ID);
+        .get(KEY_SCHEMA_ID);
     final SchemaAndId rawValueSchema = (SchemaAndId) cas.getSessionConfig().getOverrides()
         .get(CommonCreateConfigs.VALUE_SCHEMA_ID);
 
@@ -272,7 +295,7 @@ public class SchemaRegisterInjector implements Injector {
       final boolean isKey
   ) {
     final String schemaIdPropStr =
-        isKey ? CommonCreateConfigs.KEY_SCHEMA_ID : CommonCreateConfigs.VALUE_SCHEMA_ID;
+        isKey ? KEY_SCHEMA_ID : CommonCreateConfigs.VALUE_SCHEMA_ID;
     final Format format = FormatFactory.of(formatInfo);
     if (!canRegister(format, config, topic)) {
       throw new KsqlStatementException(schemaIdPropStr + " is provided but format "
@@ -311,7 +334,7 @@ public class SchemaRegisterInjector implements Injector {
     // will return fixed id when register is called.
     if (!isSandbox && id != schemaAndId.id) {
       final String schemaIdPropStr =
-          isKey ? CommonCreateConfigs.KEY_SCHEMA_ID : CommonCreateConfigs.VALUE_SCHEMA_ID;
+          isKey ? KEY_SCHEMA_ID : CommonCreateConfigs.VALUE_SCHEMA_ID;
       throw new KsqlStatementException(
           "Schema id registered is "
               + id

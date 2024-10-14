@@ -19,7 +19,10 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.util.KeyValueMetadata;
+import io.confluent.ksql.util.PushQueryMetadata.ResultType;
+import io.vertx.core.Future;
 import java.util.List;
+import java.util.Optional;
 import org.reactivestreams.Publisher;
 
 /**
@@ -47,7 +50,7 @@ public interface QueryPublisher extends Publisher<KeyValueMetadata<List<?>, Gene
   /**
    * Close the publisher
    */
-  void close();
+  Future<Void> close();
 
   /**
    * @return true if pull query
@@ -68,4 +71,6 @@ public interface QueryPublisher extends Publisher<KeyValueMetadata<List<?>, Gene
    * If the query was completed by hitting the limit.
    */
   boolean hitLimit();
+
+  Optional<ResultType> getResultType();
 }

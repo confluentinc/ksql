@@ -24,6 +24,7 @@ import io.confluent.ksql.api.server.MetricsCallbackHolder;
 import io.confluent.ksql.api.spi.Endpoints;
 import io.confluent.ksql.api.spi.QueryPublisher;
 import io.confluent.ksql.api.utils.RowGenerator;
+import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.reactive.BufferedPublisher;
 import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.entity.ClusterTerminateRequest;
@@ -68,6 +69,7 @@ public class TestEndpoints implements Endpoints {
   private RuntimeException createInsertsSubscriberException;
   private RuntimeException executeKsqlRequestException;
   private ApiSecurityContext lastApiSecurityContext;
+  private int queryCount = 0;
 
   @Override
   public synchronized CompletableFuture<QueryPublisher> createQueryPublisher(
@@ -95,9 +97,11 @@ public class TestEndpoints implements Endpoints {
           rowGeneratorFactory.get(),
           rowsBeforePublisherError,
           push,
-          limit);
+          limit,
+          new QueryId("queryId" + (queryCount > 0 ? queryCount : "")));
       queryPublishers.add(queryPublisher);
       completableFuture.complete(queryPublisher);
+      queryCount++;
     }
     return completableFuture;
   }

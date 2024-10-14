@@ -61,7 +61,7 @@
       }
     },
     {
-      "name": "Should fail if all result key columns are missing for inner join",
+      "name": "Should fail if all result key columns are missing for left join",
       "statements": [
         "CREATE TABLE left_table (l_id_1 BIGINT PRIMARY KEY, l_id_2 BIGINT PRIMARY KEY, f1 VARCHAR, foreign_key BIGINT) WITH (kafka_topic='left_topic', format='JSON');",
         "CREATE TABLE right_table (r_id BIGINT PRIMARY KEY, f2 BIGINT) WITH (kafka_topic='right_topic', format='JSON');",
@@ -148,6 +148,18 @@
         "sources": [
           {"name": "OUTPUT", "type": "table", "schema": "L_ID BIGINT KEY, R_ID BIGINT, NAME STRING, F1 STRING"}
         ]
+      }
+    },
+    {
+      "name": "Should fail on a FK right join",
+      "statements": [
+        "CREATE TABLE left_table (l_id BIGINT PRIMARY KEY, name VARCHAR, foreign_key BIGINT) WITH (kafka_topic='left_topic', value_format='JSON');",
+        "CREATE TABLE right_table (r_id BIGINT PRIMARY KEY, f1 VARCHAR, f2 BIGINT) WITH (kafka_topic='right_topic', value_format='JSON');",
+        "CREATE TABLE output AS SELECT l_id, r_id, name, f1 FROM left_table RIGHT JOIN right_table ON foreign_key = r_id;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "RIGHT OUTER JOIN on a foreign key is not supported"
       }
     },
     {

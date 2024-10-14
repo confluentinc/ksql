@@ -63,7 +63,10 @@ public class NewMigrationCommandTest {
       "\n" +
       "# ksqlDB server authentication configs:\n" +
       "# ksql.auth.basic.username=\n" +
-      "# ksql.auth.basic.password=\n";
+      "# ksql.auth.basic.password=\n" +
+      "\n" +
+      "# Migrations directory configs:\n" +
+      "# ksql.migrations.dir.override=\n";
 
   @Rule
   public TemporaryFolder folder = KsqlTestFolder.temporaryFolder();

@@ -73,8 +73,8 @@ characters.
 To make it possible to use any character in an identifier, you can enclose it
 in backticks (``` ` ```) when you declare and use it. A _backticked identifier_
 is useful when you don't control the data, so it might have special characters,
-or even keywords. When you use backticked identifers, ksqlDB  captures the case 
-exactly, and any future references to the identifer become case-sensitive. For
+or even keywords. When you use backticked identifiers, ksqlDB  captures the case 
+exactly, and any future references to the identifier become case-sensitive. For
 example, if you declare the following stream:
 
 ```sql
@@ -139,7 +139,7 @@ Here are some examples of valid numeric constants:
 
 ### Boolean constants
 
-A boolean constant is represented as either the identifer `true` or `false`.
+A boolean constant is represented as either the identifier `true` or `false`.
 Boolean constants are not case-sensitive, meaning `true` evaluates to the same
 value as `TRUE`.
 
@@ -170,7 +170,7 @@ purpose.
 
 ## Comments
 
-A comment is a string beginning with twos dashes. It includes all of the
+A comment is a string beginning with two dashes. It includes all of the
 content from the dashes to the end of the line:
 
 ```sql

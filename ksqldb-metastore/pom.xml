@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  ~ Copyright 2018 Con fluent Inc.
+  ~ Copyright 2018 Confluent Inc.
   ~
   ~ Licensed under the Confluent Community License (the "License"); you may not use
   ~ this file except in compliance with the License.  You may obtain a copy of the
@@ -22,7 +22,7 @@
     <parent>
         <groupId>io.confluent.ksql</groupId>
         <artifactId>ksqldb-parent</artifactId>
-        <version>7.1.15-0</version>
+        <version>7.2.13-0</version>
     </parent>
 
     <artifactId>ksqldb-metastore</artifactId>

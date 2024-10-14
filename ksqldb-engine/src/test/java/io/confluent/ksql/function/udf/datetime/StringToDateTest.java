@@ -16,6 +16,7 @@
 package io.confluent.ksql.function.udf.datetime;
 
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertThrows;
@@ -114,5 +115,27 @@ public class StringToDateTest {
         });
   }
 
+  @Test
+  public void shouldThrowOnNullDate() {
+    // When:
+    final Exception e = assertThrows(
+        KsqlFunctionException.class,
+        () -> udf.stringToDate(null, "yyyy-MM-dd")
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Failed to parse date 'null' with formatter"));
+  }
+
+  @Test
+  public void shouldThrowOnNullDateFormat() {
+    final Exception e = assertThrows(
+        KsqlFunctionException.class,
+        () -> udf.stringToDate("2021-12-01", null)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Failed to parse date '2021-12-01' with formatter 'null'"));
+  }
 
 }

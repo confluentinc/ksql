@@ -40,12 +40,27 @@ public class StreamQueryResponseHandler
   private Map<String, Integer> columnNameToIndex;
   private boolean paused;
   private AtomicReference<String> serializedConsistencyVector;
+  private AtomicReference<String> continuationToken;
+  private String sql;
+  private Map<String, Object> properties;
+  private ClientImpl client;
 
-  StreamQueryResponseHandler(final Context context, final RecordParser recordParser,
+  StreamQueryResponseHandler(
+      final Context context,
+      final RecordParser recordParser,
       final CompletableFuture<StreamedQueryResult> cf,
-      final AtomicReference<String> serializedCV) {
+      final AtomicReference<String> serializedCV,
+      final AtomicReference<String> continuationToken,
+      final String sql,
+      final Map<String, Object> properties,
+      final ClientImpl client
+  ) {
     super(context, recordParser, cf);
     this.serializedConsistencyVector = Objects.requireNonNull(serializedCV, "serializedCV");
+    this.continuationToken = Objects.requireNonNull(continuationToken, "continuationToken");
+    this.sql = Objects.requireNonNull(sql, "sql");
+    this.properties = Objects.requireNonNull(properties, "properties");
+    this.client = Objects.requireNonNull(client, "client");
   }
 
   @Override
@@ -54,12 +69,17 @@ public class StreamQueryResponseHandler
         context,
         queryResponseMetadata.queryId,
         queryResponseMetadata.columnNames,
-        RowUtil.columnTypesFromStrings(queryResponseMetadata.columnTypes)
+        RowUtil.columnTypesFromStrings(queryResponseMetadata.columnTypes),
+        continuationToken,
+        sql,
+        properties,
+        client
     );
     this.columnNameToIndex = RowUtil.valueToIndexMap(queryResponseMetadata.columnNames);
     cf.complete(queryResult);
   }
 
+  @SuppressWarnings("checkstyle:CyclomaticComplexity")
   @Override
   protected void handleRow(final Buffer buff) {
     if (queryResult == null) {
@@ -88,7 +108,15 @@ public class StreamQueryResponseHandler
         LOG.info("Response contains consistency vector " + jsonObject);
         serializedConsistencyVector.set((String) ((JsonObject) json).getMap().get(
             "consistencyToken"));
-      } else {
+      }
+      if (jsonObject.getMap() != null && jsonObject.getMap().containsKey("continuationToken")) {
+        LOG.info("Response contains continuation token " + jsonObject);
+        continuationToken.set((String) ((JsonObject) json).getMap().get(
+                "continuationToken"));
+      }
+      if (!(jsonObject.getMap() != null && jsonObject.getMap().containsKey("consistencyToken"))
+          && !(jsonObject.getMap() != null && jsonObject.getMap().containsKey("continuationToken"))
+      ) {
         queryResult.handleError(new KsqlException(
             jsonObject.getString("message")
         ));

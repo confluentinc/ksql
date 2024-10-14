@@ -243,7 +243,7 @@ INSERT INTO customers (id, name, age) VALUES ('2', 'bill', 51);
 
 ### Configure MongoDB for Debezium
 
-Now that Postgres is setup, you can configure MongoDB. Start by logging into the container:
+Now that Postgres is set up, you can configure MongoDB. Start by logging into the container:
 
 ```
 docker exec -it mongo /bin/bash

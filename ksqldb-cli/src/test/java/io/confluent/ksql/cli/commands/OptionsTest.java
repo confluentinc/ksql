@@ -24,6 +24,7 @@ import static org.junit.Assert.assertThrows;
 
 import io.confluent.ksql.cli.Options;
 import io.confluent.ksql.rest.client.BasicCredentials;
+import java.util.Arrays;
 import java.util.Optional;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kafka.common.config.ConfigException;
@@ -145,6 +146,55 @@ public class OptionsTest {
   }
 
   @Test
+  public void shouldThrowConfigExceptionIfOnlyApiKeyIsProvided() {
+    // Given:
+    final Options options = parse("--confluent-api-key", "api_key");
+
+    // When:
+    final Exception e = assertThrows(
+        ConfigException.class,
+        () -> options.getCCloudApiKey()
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("You must specify both an API key and the associated secret"));
+  }
+
+  @Test
+  public void shouldThrowConfigExceptionIfOnlyApiSecretIsProvided() {
+    // Given:
+    final Options options = parse("http://foobar", "--confluent-api-secret", "api_secret");
+
+    // When:
+    final Exception e = assertThrows(
+        ConfigException.class,
+        () -> options.getCCloudApiKey()
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("You must specify both an API key and the associated secret"));
+  }
+
+  @Test
+  public void shouldReturnApiKeySecretPairWhenBothProvided() {
+    // When:
+    final Options options = parse("http://foobar", "--confluent-api-key", "api_key", "--confluent-api-secret", "api_secret");
+
+    // Then:
+    assertThat(options.getCCloudApiKey(),
+        is(Optional.of(BasicCredentials.of("api_key", "api_secret"))));
+  }
+
+  @Test
+  public void shouldReturnEmptyOptionWhenApiKeyNotPresent() {
+    // When:
+    final Options options = parse();
+
+    // Then:
+    assertThat(options.getCCloudApiKey(), is(Optional.empty()));
+  }
+
+  @Test
   public void shouldDefineVariables() {
     // When:
     final Options options = parse("-d", "env=qa", "-d", "size=1", "--define", "prod=true");
@@ -155,6 +205,7 @@ public class OptionsTest {
     assertThat(options.getVariables(), hasEntry("size", "1"));
     assertThat(options.getVariables(), hasEntry("prod", "true"));
   }
+
 
   private static Options parse(final String... args) {
     try {

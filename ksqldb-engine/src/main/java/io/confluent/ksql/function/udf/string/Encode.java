@@ -36,7 +36,7 @@ import org.apache.commons.codec.binary.Hex;
         + "hex, utf8, ascii and base64. Throws exception if provided encodings are not supported.")
 public class Encode {
 
-  private static ImmutableMap<String, Encoder> ENCODER_MAP =
+  private static final ImmutableMap<String, Encoder> ENCODER_MAP =
       new ImmutableMap.Builder<String, Encoder>()
       .put("hexascii", new HexToAscii())
       .put("hexutf8", new HexToUtf8())
@@ -230,7 +230,7 @@ public class Encode {
 
       //add an extra "0" to the front if there are odd number of digits
       return hexLen % 2 != 0 ? "0" + hexString.substring(2) : hexString.substring(2);
-    } else if (hexString.matches("(x|X)\'.*\'")) {
+    } else if (hexString.matches("([xX])'.*'")) {
       //matches with things like "x''", "X''", "x'....'" and "X'....'"
       return hexString.substring(2, hexLen - 1);
     } else {

@@ -357,6 +357,39 @@ public class KsqlParserTest {
   }
 
   @Test
+  public void testSimpleRightJoin() {
+    final String
+        queryStr =
+        "SELECT t1.col1, t2.col1, t2.col4, col5, t2.col2 FROM test1 t1 RIGHT JOIN test2 t2 ON "
+            + "t1.col1 = t2.col1;";
+    final Statement statement = KsqlParserTestUtil.buildSingleAst(queryStr, metaStore).getStatement();
+    assertThat(statement, is(instanceOf(Query.class)));
+    final Query query = (Query) statement;
+    assertThat(query.getFrom(), is(instanceOf(Join.class)));
+    final Join join = (Join) query.getFrom();
+    assertThat(Iterables.getOnlyElement(join.getRights()).getType().toString(), is("RIGHT"));
+    assertThat(((AliasedRelation) join.getLeft()).getAlias(), is(SourceName.of("T1")));
+    assertThat(((AliasedRelation) Iterables.getOnlyElement(join.getRights()).getRelation()).getAlias(), is(SourceName.of("T2")));
+  }
+
+  @Test
+  public void testRightJoinWithFilter() {
+    final String
+        queryStr =
+        "SELECT t1.col1, t2.col1, t2.col4, t2.col2 FROM test1 t1 RIGHT JOIN test2 t2 ON t1.col1 = "
+            + "t2.col1 WHERE t2.col2 = 'test';";
+    final Statement statement = KsqlParserTestUtil.buildSingleAst(queryStr, metaStore).getStatement();
+    assertThat(statement, is(instanceOf(Query.class)));
+    final Query query = (Query) statement;
+    assertThat(query.getFrom(), is(instanceOf(Join.class)));
+    final Join join = (Join) query.getFrom();
+    assertThat(Iterables.getOnlyElement(join.getRights()).getType().toString(), is("RIGHT"));
+    assertThat(((AliasedRelation) join.getLeft()).getAlias(), is(SourceName.of("T1")));
+    assertThat(((AliasedRelation) Iterables.getOnlyElement(join.getRights()).getRelation()).getAlias(), is(SourceName.of("T2")));
+    assertThat(query.getWhere().get().toString(), is("(T2.COL2 = 'test')"));
+  }
+
+  @Test
   public void testSelectAll() {
     // When:
     final Query query = KsqlParserTestUtil.<Query>buildSingleAst(

@@ -69,7 +69,7 @@ import org.apache.kafka.clients.consumer.ConsumerConfig;
 public class JoinNode extends PlanNode implements JoiningNode {
 
   public enum JoinType {
-    INNER, LEFT, OUTER;
+    INNER, LEFT, RIGHT, OUTER;
 
     @Override
     public String toString() {
@@ -78,6 +78,8 @@ public class JoinNode extends PlanNode implements JoiningNode {
           return "[INNER] JOIN";
         case LEFT:
           return "LEFT [OUTER] JOIN";
+        case RIGHT:
+          return "RIGHT [OUTER] JOIN";
         case OUTER:
           return "[FULL] OUTER JOIN";
         default:
@@ -438,6 +440,15 @@ public class JoinNode extends PlanNode implements JoiningNode {
               JoiningNode.getValueFormatForSource(joinNode.right).getFormatInfo(),
               contextStacker
           );
+        case RIGHT:
+          return leftStream.rightJoin(
+              rightStream,
+              joinNode.getKeyColumnName(),
+              joinNode.withinExpression.get(),
+              JoiningNode.getValueFormatForSource(joinNode.left).getFormatInfo(),
+              JoiningNode.getValueFormatForSource(joinNode.right).getFormatInfo(),
+              contextStacker
+          );
         case OUTER:
           return leftStream.outerJoin(
               rightStream,
@@ -545,6 +556,16 @@ public class JoinNode extends PlanNode implements JoiningNode {
             );
           } else {
             return leftTable.leftJoin(
+                rightTable,
+                joinNode.getKeyColumnName(),
+                contextStacker
+            );
+          }
+        case RIGHT:
+          if (joinKey.isForeignKey()) {
+            throw new KsqlException("RIGHT OUTER JOIN on a foreign key is not supported");
+          } else {
+            return leftTable.rightJoin(
                 rightTable,
                 joinNode.getKeyColumnName(),
                 contextStacker

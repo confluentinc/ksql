@@ -25,18 +25,18 @@
         <url>https://github.com/confluentinc/ksql</url>
         <tag>HEAD</tag>
     </scm>
-
+  
     <parent>
         <groupId>io.confluent</groupId>
         <artifactId>common</artifactId>
-        <version>[7.1.15-0, 7.1.16-0)</version>
+        <version>[7.2.13-0, 7.2.14-0)</version>
     </parent>
 
     <groupId>io.confluent.ksql</groupId>
     <artifactId>ksqldb-parent</artifactId>
     <packaging>pom</packaging>
     <name>ksqldb-parent</name>
-    <version>7.1.15-0</version>
+    <version>7.2.13-0</version>
 
     <licenses>
         <license>
@@ -126,11 +126,11 @@
         <really.executable.jar.version>1.5.0</really.executable.jar.version>
         <generext.version>1.0.2</generext.version>
         <avro.random.generator.version>0.2.2</avro.random.generator.version>
-        <apache.curator.version>2.9.0</apache.curator.version>
+        <apache.curator.version>5.2.0</apache.curator.version>
         <wiremock.version>2.24.0</wiremock.version>
         <clearspring-analytics.version>2.9.5</clearspring-analytics.version>
         <icu.version>67.1</icu.version>
-        <vertx.version>3.9.15</vertx.version>
+        <vertx.version>4.4.8</vertx.version>
         <reactive-streams.version>1.0.3</reactive-streams.version>
         <skip.docker.build>true</skip.docker.build>
         <skip.docker.test>true</skip.docker.test>
@@ -141,8 +141,8 @@
         <git-commit-id-plugin.version>4.9.10</git-commit-id-plugin.version>
         <apache.io.version>2.14.0</apache.io.version>
         <io.confluent.ksql.version>7.1.15-0</io.confluent.ksql.version>
+        <io.confluent.ksql.version>7.2.13-0</io.confluent.ksql.version>
         <io.confluent.schema-registry.version>${confluent.version.range}</io.confluent.schema-registry.version>
-        <mockito.version>3.8.0</mockito.version>
         <netty-tcnative-version>2.0.65.Final</netty-tcnative-version>
         <!-- We normally get this from common, but Vertx is built against this -->
         <!-- Note: `netty` depends on `tcnative` and if we bump `netty`
@@ -331,18 +331,18 @@
                 <groupId>org.apache.kafka</groupId>
                 <artifactId>kafka-log4j-appender</artifactId>
                 <version>${kafka.version}</version>
-                <exclusions>
-                    <exclusion>
-                        <groupId>org.slf4j</groupId>
-                        <artifactId>slf4j-log4j12</artifactId>
-                    </exclusion>
-                </exclusions>
             </dependency>
 
             <dependency>
                 <groupId>io.confluent</groupId>
                 <artifactId>common-utils</artifactId>
                 <version>${io.confluent.common.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.confluent</groupId>
+                <artifactId>common-docker</artifactId>
+                <version>${io.confluent.common-docker.version}</version>
             </dependency>
 
             <dependency>
@@ -477,12 +477,6 @@
                 <groupId>org.apache.commons</groupId>
                 <artifactId>commons-text</artifactId>
                 <version>${commons-text.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>org.apache.commons</groupId>
-                <artifactId>commons-compress</artifactId>
-                <version>${commons.compress.version}</version>
             </dependency>
 
             <dependency>
@@ -651,32 +645,21 @@
                 <version>${wiremock.version}</version>
                 <scope>test</scope>
             </dependency>
-            <!-- classgraph needs to be pinned to 4.8.59 as the latest versions have a
-            regression which breaks the Integration Tests. -->
-            <dependency>
-                <groupId>io.github.classgraph</groupId>
-                <artifactId>classgraph</artifactId>
-                <version>4.8.175</version>
-            </dependency>
         </dependencies>
     </dependencyManagement>
 
     <dependencies>
-        <!-- Every child project uses slf4j/log4j for logging, might as well just include them here automatically -->
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-api</artifactId>
-        </dependency>
 
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-reload4j</artifactId>
-          </dependency>
+        </dependency>
 
         <dependency>
             <groupId>io.confluent</groupId>
             <artifactId>logredactor</artifactId>
         </dependency>
+
     </dependencies>
 
     <build>
@@ -686,9 +669,6 @@
                     <artifactId>maven-assembly-plugin</artifactId>
                     <configuration>
                         <tarLongFileMode>posix</tarLongFileMode>
-                        <descriptors>
-                            <descriptor>src/assembly/package.xml</descriptor>
-                        </descriptors>
                     </configuration>
                 </plugin>
                 <plugin>
@@ -735,6 +715,19 @@
                     </systemPropertyVariables>
                     <argLine>-verbose:gc -Xloggc:"${project.build.directory}/gc.log"</argLine>
                     <argLine>-Duser.timezone=UTC -Xmx1g -Xms1g</argLine>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-failsafe-plugin</artifactId>
+                <configuration>
+                    <!-- we haven't yet fully migrated to JDK9 Jigsaw, but when compiling
+                    with JDKs that are >9 failsafe fails with many NoClassDefFoundErrors
+                    unless we disable this flag.
+
+                    You can also see (https://issues.apache.org/jira/browse/SUREFIRE-1809)
+                    for more details -->
+                    <useModulePath>false</useModulePath>
                 </configuration>
             </plugin>
 

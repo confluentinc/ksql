@@ -26,12 +26,12 @@ import io.confluent.ksql.api.server.KsqlApiException;
 import io.confluent.ksql.api.server.Server;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.security.DefaultKsqlPrincipal;
-import io.confluent.ksql.security.KsqlPrincipal;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.auth.AuthProvider;
 import io.vertx.ext.auth.User;
+import io.vertx.ext.auth.authorization.Authorization;
 import io.vertx.ext.web.RoutingContext;
 import java.security.Principal;
 import java.util.HashSet;
@@ -65,7 +65,7 @@ public class AuthenticationPluginHandler implements Handler<RoutingContext> {
 
   @Override
   public void handle(final RoutingContext routingContext) {
-    if (unauthedPathsPattern.matcher(routingContext.normalisedPath()).matches()) {
+    if (unauthedPathsPattern.matcher(routingContext.normalizedPath()).matches()) {
       routingContext.next();
       return;
     } else if (isAuthenticatedAsSystemUser(routingContext)) {
@@ -105,11 +105,24 @@ public class AuthenticationPluginHandler implements Handler<RoutingContext> {
 
   private static class AuthPluginUser implements ApiUser {
 
-    private final KsqlPrincipal principal;
+    private final DefaultKsqlPrincipal principal;
 
     AuthPluginUser(final Principal principal) {
       Objects.requireNonNull(principal);
       this.principal = new DefaultKsqlPrincipal(principal);
+    }
+
+    @Override
+    public JsonObject attributes() {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public User isAuthorized(
+        final Authorization authority,
+        final Handler<AsyncResult<Boolean>> resultHandler
+    ) {
+      throw new UnsupportedOperationException();
     }
 
     @SuppressWarnings("deprecation")
@@ -136,7 +149,12 @@ public class AuthenticationPluginHandler implements Handler<RoutingContext> {
     }
 
     @Override
-    public KsqlPrincipal getPrincipal() {
+    public User merge(final User other) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public DefaultKsqlPrincipal getPrincipal() {
       return principal;
     }
   }

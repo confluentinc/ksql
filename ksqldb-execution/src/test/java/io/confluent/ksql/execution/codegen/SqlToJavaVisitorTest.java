@@ -283,11 +283,23 @@ public class SqlToJavaVisitorTest {
     final String javaExpression = sqlToJavaVisitor.process(expression);
 
     // Then:
-    assertThat(javaExpression, is(
-        "((String) CONCAT_0.evaluate("
-            + "((String) SUBSTRING_1.evaluate(COL1, 1, 3)), "
-            + "((String) CONCAT_2.evaluate(\"-\","
-            + " ((String) SUBSTRING_3.evaluate(COL1, 4, 5))))))"));
+    final String expected = "((String) CONCAT_0.evaluate( (new Supplier<Object>() "
+        + "{@Override public Object get() { try {  return ((String) "
+        + "SUBSTRING_1.evaluate(COL1, 1, 3)); } catch (Exception e) {  "
+        + "logger.error(RecordProcessingError.recordProcessingError(    "
+        + "\"Error processing SUBSTRING\",    e instanceof InvocationTargetException? "
+        + "e.getCause() : e,    row));  return defaultValue; }}}).get(),  (new Supplier<Object>() "
+        + "{@Override public Object get() { try {  return ((String) CONCAT_2.evaluate(\"-\",  "
+        + "(new Supplier<Object>() {@Override public Object get() { try {  return ((String) "
+        + "SUBSTRING_3.evaluate(COL1, 4, 5)); } catch (Exception e) {  "
+        + "logger.error(RecordProcessingError.recordProcessingError(    "
+        + "\"Error processing SUBSTRING\",    e instanceof InvocationTargetException? "
+        + "e.getCause() : e,    row));  return defaultValue; }}}).get())); } catch (Exception e) "
+        + "{  logger.error(RecordProcessingError.recordProcessingError(    "
+        + "\"Error processing CONCAT\",    e instanceof InvocationTargetException? "
+        + "e.getCause() : e,    row));  return defaultValue; }}}).get()))";
+
+    assertThat(javaExpression, is(expected));
   }
 
   @Test

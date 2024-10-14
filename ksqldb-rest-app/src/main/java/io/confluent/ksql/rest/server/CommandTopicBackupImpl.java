@@ -89,7 +89,11 @@ public class CommandTopicBackupImpl implements CommandTopicBackup {
       LOG.warn("Failed to read the latest backup from {}. Continue with a new file. Error = {}",
           replayFile.getPath(), e.getMessage());
 
-      replayFile = newReplayFile();
+      try {
+        replayFile = newReplayFile();
+      } catch (final IOException ee) {
+        throw new RuntimeException(ee);
+      }
       latestReplay = Collections.emptyList();
     }
 
@@ -105,12 +109,7 @@ public class CommandTopicBackupImpl implements CommandTopicBackup {
 
   @Override
   public void close() {
-    try {
-      replayFile.close();
-    } catch (final IOException e) {
-      LOG.warn("Failed closing the backup file {}. Error = {}",
-          replayFile.getPath(), e.getMessage());
-    }
+    replayFile.close();
   }
 
   @VisibleForTesting
@@ -181,18 +180,25 @@ public class CommandTopicBackupImpl implements CommandTopicBackup {
 
   @VisibleForTesting
   BackupReplayFile openOrCreateReplayFile() {
-    return latestReplayFile()
-        .orElseGet(this::newReplayFile);
+    try {
+      final Optional<BackupReplayFile> backupReplayFile = latestReplayFile();
+      if (backupReplayFile.isPresent()) {
+        return backupReplayFile.get();
+      }
+      return newReplayFile();
+    } catch (final IOException e) {
+      throw new RuntimeException(e);
+    }
   }
 
-  private BackupReplayFile newReplayFile() {
+  private BackupReplayFile newReplayFile() throws IOException {
     return BackupReplayFile.writable(Paths.get(
         backupLocation.getAbsolutePath(),
         String.format("%s%s_%s", PREFIX, topicName, ticker.get())
     ).toFile());
   }
 
-  private Optional<BackupReplayFile> latestReplayFile() {
+  private Optional<BackupReplayFile> latestReplayFile() throws IOException {
     final String prefixFilename = String.format("%s%s_", PREFIX, topicName);
     final File[] files = backupLocation.listFiles(
         (f, name) -> name.toLowerCase().startsWith(prefixFilename));
@@ -217,8 +223,10 @@ public class CommandTopicBackupImpl implements CommandTopicBackup {
       }
     }
 
-    return Optional.ofNullable(latestBakFile)
-        .map(BackupReplayFile::writable);
+    if (latestBakFile != null) {
+      return Optional.of(BackupReplayFile.writable(latestBakFile));
+    }
+    return Optional.empty();
   }
 
   private static void ensureDirectoryExists(final File backupsDir) {

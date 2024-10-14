@@ -21,9 +21,14 @@ import io.confluent.ksql.rest.entity.ConsistencyToken;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.PushContinuationToken;
 import io.confluent.ksql.rest.entity.QueryResponseMetadata;
+import io.confluent.ksql.util.KeyValue;
+import io.confluent.ksql.util.KeyValueMetadata;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpServerResponse;
+import java.util.List;
 import java.util.Objects;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Writes the query response stream in JSON format.
@@ -45,6 +50,9 @@ import java.util.Objects;
  */
 public class JsonQueryStreamResponseWriter implements QueryStreamResponseWriter {
 
+  private static final Logger LOG
+      = LoggerFactory.getLogger(JsonQueryStreamResponseWriter.class);
+
   private final HttpServerResponse response;
 
   @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
@@ -61,8 +69,15 @@ public class JsonQueryStreamResponseWriter implements QueryStreamResponseWriter 
   }
 
   @Override
-  public QueryStreamResponseWriter writeRow(final GenericRow row) {
-    writeBuffer(ServerUtils.serializeObject(row.values()));
+  public QueryStreamResponseWriter writeRow(
+      final KeyValueMetadata<List<?>, GenericRow> keyValueMetadata
+  ) {
+    final KeyValue<List<?>, GenericRow> keyValue = keyValueMetadata.getKeyValue();
+    if (keyValue.value() == null) {
+      LOG.warn("Dropped tombstone. Not currently supported");
+    } else {
+      writeBuffer(ServerUtils.serializeObject(keyValue.value().values()));
+    }
     return this;
   }
 
@@ -86,7 +101,7 @@ public class JsonQueryStreamResponseWriter implements QueryStreamResponseWriter 
   }
 
   @Override
-  public QueryStreamResponseWriter writeCompletionMessage(final String completionMessage) {
+  public QueryStreamResponseWriter writeCompletionMessage() {
     return this;
   }
 
@@ -103,6 +118,7 @@ public class JsonQueryStreamResponseWriter implements QueryStreamResponseWriter 
 
   @Override
   public void end() {
-    response.write("]").end();
+    response.write("]");
+    response.end();
   }
 }

@@ -5,10 +5,12 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThrows;
 
+import com.google.common.base.Functions;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.parser.json.KsqlTypesDeserializationModule;
 import io.confluent.ksql.rest.ApiJsonMapper;
+import io.confluent.ksql.rest.client.exception.KsqlRestClientException;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.schema.ksql.Column;
@@ -18,7 +20,6 @@ import io.vertx.core.buffer.Buffer;
 import java.math.BigDecimal;
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicReference;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -104,7 +105,7 @@ public class KsqlTargetUtilTest {
     final List<StreamedRow> rows =  KsqlTargetUtil.toRows(Buffer.buffer(
         "[{\"header\":{\"queryId\":\"query_id_10\",\"schema\":\"`col1` STRING\"}},\n"
         + "{\"row\":{\"columns\":[\"Row1\"]}},\n"
-        + "{\"row\":{\"columns\":[\"Row2\"]}},\n"));
+        + "{\"row\":{\"columns\":[\"Row2\"]}},\n"), Functions.identity());
 
     // Then:
     assertThat(rows.size(), is(3));
@@ -132,7 +133,7 @@ public class KsqlTargetUtilTest {
         () -> KsqlTargetUtil.toRows(Buffer.buffer(
             "[{\"header\":{\"queryId\":\"query_id_10\",\"schema\":\"`col1` STRING\"}},\n"
                 + "{\"row\":{\"columns\"\n"
-                + "{\"row\":{\"columns\":[\"Row2\"]}},\n"))
+                + "{\"row\":{\"columns\":[\"Row2\"]}},\n"), Functions.identity())
     );
 
     // Then:

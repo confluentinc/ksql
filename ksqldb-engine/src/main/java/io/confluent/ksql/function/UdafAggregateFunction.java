@@ -18,6 +18,7 @@ package io.confluent.ksql.function;
 import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.function.udaf.Udaf;
 import io.confluent.ksql.schema.ksql.types.SqlType;
+import io.confluent.ksql.security.ExtensionSecurityManager;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -30,10 +31,10 @@ import org.apache.kafka.streams.kstream.Merger;
 
 public class UdafAggregateFunction<I, A, O> extends BaseAggregateFunction<I, A, O> {
 
-  protected Optional<Sensor> aggregateSensor;
-  protected Optional<Sensor> mapSensor;
-  protected Optional<Sensor> mergeSensor;
-  protected Udaf<I, A, O> udaf;
+  protected final Optional<Sensor> aggregateSensor;
+  protected final Optional<Sensor> mapSensor;
+  protected final Optional<Sensor> mergeSensor;
+  protected final Udaf<I, A, O> udaf;
 
   protected UdafAggregateFunction(
       final String functionName,
@@ -106,9 +107,12 @@ public class UdafAggregateFunction<I, A, O> extends BaseAggregateFunction<I, A, 
   private static <T> T timed(final Optional<Sensor> maybeSensor, final Supplier<T> task) {
     final long start = Time.SYSTEM.nanoseconds();
     try {
+      // Since the timed() function wraps the calls to Udafs, we use it to protect the calls.
+      ExtensionSecurityManager.INSTANCE.pushInUdf();
       return task.get();
     } finally {
       maybeSensor.ifPresent(sensor -> sensor.record(Time.SYSTEM.nanoseconds() - start));
+      ExtensionSecurityManager.INSTANCE.popOutUdf();
     }
   }
 }

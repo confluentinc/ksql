@@ -106,7 +106,9 @@ public class UserFunctionLoader {
     final String pathLoadedFrom = path.map(Path::toString).orElse(KsqlScalarFunction.INTERNAL_PATH);
 
     final ClassGraph classGraph = new ClassGraph();
-    classGraph.overrideClassLoaders(loader);
+    if (loader != parentClassLoader) {
+      classGraph.overrideClassLoaders(loader);
+    }
 
     try (ScanResult scan = classGraph
         .enableAnnotationInfo()
@@ -132,7 +134,8 @@ public class UserFunctionLoader {
     // if we are loading from the parent classloader then restrict the name space to only
     // jars/dirs containing "ksql-engine". This is so we don't end up scanning every jar
     //return name -> parentClassLoader != loader || name.contains("ksqldb-engine");
-    return name -> true;
+    return name -> parentClassLoader != loader || name.contains("ksqldb-rest-app")
+        || name.contains("ksqldb-engine");
   }
 
   public static UserFunctionLoader newInstance(
@@ -158,7 +161,7 @@ public class UserFunctionLoader {
     return new UserFunctionLoader(
         metaStore,
         pluginDir,
-        UserFunctionLoader.class.getClassLoader(),
+        Thread.currentThread().getContextClassLoader(),
         new Blacklist(new File(pluginDir, "resource-blacklist.txt")),
         metrics,
         loadCustomerUdfs

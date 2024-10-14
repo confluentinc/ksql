@@ -20,6 +20,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
+import static org.mockito.AdditionalMatchers.and;
 import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -115,8 +116,14 @@ public class ConnectExecutorTest {
             serviceContext);
 
     // Then:
+    verify(connectClient).validate(eq("FileStreamSource"),
+        (Map<String, String>) and(
+            argThat(hasEntry("connector.class", "FileStreamSource")),
+            argThat(hasEntry("name", "foo"))));
     verify(connectClient).create(eq("foo"),
-        (Map<String, String>) argThat(hasEntry("connector.class", "FileStreamSource")));
+        (Map<String, String>) and(
+            argThat(hasEntry("connector.class", "FileStreamSource")),
+            argThat(hasEntry("name", "foo"))));
   }
 
   @Test

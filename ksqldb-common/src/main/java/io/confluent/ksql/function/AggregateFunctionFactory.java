@@ -44,6 +44,13 @@ public abstract class AggregateFunctionFactory {
       .add(ImmutableList.of(ParamTypes.DECIMAL))
       .build();
 
+  protected static final ImmutableList<List<ParamType>> NUMERICAL_TIME = ImmutableList
+      .<List<ParamType>>builder().addAll(NUMERICAL_ARGS)
+      .add(ImmutableList.of(ParamTypes.DATE))
+      .add(ImmutableList.of(ParamTypes.TIME))
+      .add(ImmutableList.of(ParamTypes.TIMESTAMP))
+      .build();
+
   public AggregateFunctionFactory(final String functionName) {
     this(new UdfMetadata(
         functionName,

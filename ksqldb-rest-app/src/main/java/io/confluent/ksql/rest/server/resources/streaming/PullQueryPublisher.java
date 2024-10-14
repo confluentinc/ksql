@@ -22,7 +22,7 @@ import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.ListeningScheduledExecutorService;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.api.server.MetricsCallbackHolder;
-import io.confluent.ksql.physical.pull.PullQueryResult;
+import io.confluent.ksql.execution.pull.PullQueryResult;
 import io.confluent.ksql.rest.entity.ConsistencyToken;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.server.resources.streaming.Flow.Subscriber;
@@ -101,11 +101,6 @@ class PullQueryPublisher implements Flow.Publisher<Collection<StreamedRow>> {
             .map(kv -> {
               if (kv.getRowMetadata().isPresent()
                   && kv.getRowMetadata().get().getConsistencyOffsetVector().isPresent()) {
-                LOG.info("Publisher adding consistency vector to response list "
-                             + kv.getRowMetadata().get().getConsistencyOffsetVector().get());
-                LOG.info(
-                    "Serialized consistency vector "
-                        + kv.getRowMetadata().get().getConsistencyOffsetVector().get().serialize());
                 return StreamedRow.consistencyToken(new ConsistencyToken(
                     kv.getRowMetadata().get().getConsistencyOffsetVector().get().serialize()));
               } else {

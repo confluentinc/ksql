@@ -112,6 +112,7 @@ public final class KsqlTestingTool {
         "KSQL_Test",
         Optional.empty(),
         null,
+        null,
         (inputFile == null) ? null : inputRecordNodes.getInputRecords(),
         outRecordNodes.getOutputRecords(),
         Collections.emptyList(),

@@ -19,7 +19,9 @@ import static java.util.Collections.emptyMap;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertThrows;
@@ -178,6 +180,40 @@ public class PropertiesUtilTest {
     assertThat(result.keySet(), containsInAnyOrder("keep.this", "keep that"));
     assertThat(result.get("keep.this"), is("v0"));
     assertThat(result.get("keep that"), is("v1"));
+  }
+
+  @Test
+  public void shouldCoerceTypes() {
+    // given/when:
+    final Map<String, Object> coerced = PropertiesUtil.coerceTypes(ImmutableMap.of(
+        "ksql.internal.topic.replicas", 3L,
+        "cache.max.bytes.buffering", "0"
+    ), false);
+
+    // then:
+    assertThat(coerced.get("ksql.internal.topic.replicas"), instanceOf(Short.class));
+    assertThat(coerced.get("ksql.internal.topic.replicas"), equalTo((short) 3));
+    assertThat(coerced.get("cache.max.bytes.buffering"), instanceOf(Long.class));
+    assertThat(coerced.get("cache.max.bytes.buffering"), equalTo(0L));
+  }
+
+  @Test
+  public void shouldThrowOnUnkownPropertyFromCoerceTypes() {
+    // given/when:
+    assertThrows(
+        PropertyNotFoundException.class,
+        () -> PropertiesUtil.coerceTypes(ImmutableMap.of("foo", "bar"), false)
+    );
+  }
+
+  @Test
+  public void shouldNotThrowOnUnkownPropertyFromCoerceTypesWithIgnore() {
+    // given/when
+    final Map<String, Object> coerced
+        = PropertiesUtil.coerceTypes(ImmutableMap.of("foo", "bar"), true);
+
+    // then:
+    assertThat(coerced.get("foo"), is("bar"));
   }
 
   private void givenPropsFileContains(final String contents) {

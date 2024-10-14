@@ -20,7 +20,9 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.isA;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
@@ -59,8 +61,11 @@ import io.confluent.ksql.rest.entity.CommandId.Type;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatus.Status;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
+import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.WarningEntity;
+import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.server.execution.StatementExecutorResponse;
+import io.confluent.ksql.rest.server.resources.KsqlRestException;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.security.KsqlAuthorizationValidator;
 import io.confluent.ksql.security.KsqlSecurityContext;
@@ -502,5 +507,41 @@ public class DistributingExecutorTest {
     // Then:
     assertThat("Should be present", response.getEntity().isPresent());
     assertThat(((WarningEntity) response.getEntity().get()).getMessage(), containsString(""));
+  }
+  
+  @Test
+  public void shouldThrowIfRateLimitHit() {
+    // Given:
+    final DistributingExecutor rateLimitedDistributor = new DistributingExecutor(
+      new KsqlConfig(ImmutableMap.of(KsqlRestConfig.KSQL_COMMAND_TOPIC_RATE_LIMIT_CONFIG, 0.25)),
+      queue,
+      DURATION_10_MS,
+      (ec, sc) -> InjectorChain.of(schemaInjector, topicInjector),
+      Optional.of(authorizationValidator),
+      validatedCommandFactory,
+      errorHandler,
+      commandRunnerWarning
+    );
+    
+    // When:
+    rateLimitedDistributor.execute(CONFIGURED_STATEMENT, executionContext, securityContext);
+
+
+    // Then:
+    boolean exceptionFound = false;
+    try {
+      rateLimitedDistributor.execute(CONFIGURED_STATEMENT, executionContext, securityContext);
+      rateLimitedDistributor.execute(CONFIGURED_STATEMENT, executionContext, securityContext);
+      rateLimitedDistributor.execute(CONFIGURED_STATEMENT, executionContext, securityContext);
+      rateLimitedDistributor.execute(CONFIGURED_STATEMENT, executionContext, securityContext);
+    } catch (Exception e) {
+      assertTrue(e instanceof KsqlRestException);
+      final KsqlRestException restException = (KsqlRestException) e; 
+      assertEquals(restException.getResponse().getStatus(), 429);
+      final KsqlErrorMessage errorMessage = (KsqlErrorMessage) restException.getResponse().getEntity();
+      assertTrue(errorMessage.getMessage().contains("DDL/DML rate is crossing the configured rate limit of statements/second"));
+      exceptionFound = true;
+    }
+    assertTrue(exceptionFound);
   }
 }

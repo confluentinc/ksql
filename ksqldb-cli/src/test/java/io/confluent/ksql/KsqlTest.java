@@ -72,7 +72,7 @@ public class KsqlTest {
     ksql = new Ksql(options, systemProps, clientBuilder, cliBuilder);
 
     when(options.getOutputFormat()).thenReturn(OutputFormat.TABULAR);
-    when(clientBuilder.build(any(), any(), any(), any())).thenReturn(client);
+    when(clientBuilder.build(any(), any(), any(), any(), any())).thenReturn(client);
     when(cliBuilder.build(any(), any(), any(), any())).thenReturn(cli);
   }
 
@@ -134,7 +134,7 @@ public class KsqlTest {
     ksql.run();
 
     // Then:
-    verify(clientBuilder).build(eq("in a galaxy far far away"), any(), any(), any());
+    verify(clientBuilder).build(eq("in a galaxy far far away"), any(), any(), any(), any());
   }
 
   @Test
@@ -152,7 +152,7 @@ public class KsqlTest {
     verify(clientBuilder).build(any(), any(), eq(ImmutableMap.of(
         "ssl.truststore.location", "some/path",
         "ssl.truststore.password", "letmein"
-    )), any());
+    )), any(), any());
   }
 
   @Test
@@ -175,7 +175,7 @@ public class KsqlTest {
     verify(clientBuilder).build(any(), any(), eq(ImmutableMap.of(
         "ssl.truststore.location", "some/path",
         "ssl.truststore.password", "letmein"
-    )), any());
+    )), any(), any());
   }
 
   @Test
@@ -191,7 +191,7 @@ public class KsqlTest {
     ksql.run();
 
     // Then:
-    verify(clientBuilder).build(any(), eq(ImmutableMap.of("some.other.setting", "value")), any(), any());
+    verify(clientBuilder).build(any(), eq(ImmutableMap.of("some.other.setting", "value")), any(), any(), any());
   }
 
   private void givenConfigFile(final String content) throws Exception {

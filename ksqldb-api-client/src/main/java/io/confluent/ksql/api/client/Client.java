@@ -251,6 +251,22 @@ public interface Client extends Closeable {
       String connectorName, boolean isSource, Map<String, Object> properties);
 
   /**
+   * Creates a connector.
+   *
+   * <p>If a non-200 response is received from the server, the {@code CompletableFuture} will be
+   * failed.
+   *
+   * @param connectorName name of the connector
+   * @param isSource true if the connector is a source connector, false if it is a sink connector
+   * @param properties connector properties
+   * @param ifNotExists is ifNotExists is set to true, then the command won't fail if a connector
+   *                    with the same name already exists
+   * @return result of connector creation
+   */
+  CompletableFuture<Void> createConnector(
+      String connectorName, boolean isSource, Map<String, Object> properties, boolean ifNotExists);
+
+  /**
    * Drops a connector.
    *
    * <p>If a non-200 response is received from the server, the {@code CompletableFuture} will be
@@ -260,6 +276,19 @@ public interface Client extends Closeable {
    * @return a future that completes once the server response is received
    */
   CompletableFuture<Void> dropConnector(String connectorName);
+
+  /**
+   * Drops a connector.
+   *
+   * <p>If a non-200 response is received from the server, the {@code CompletableFuture} will be
+   * failed.
+   *
+   * @param connectorName name of the connector to drop
+   * @param ifExists ifExists is set to true, then the statement won't fail if the connector
+   *                 does not exist
+   * @return a future that completes once the server response is received
+   */
+  CompletableFuture<Void> dropConnector(String connectorName, boolean ifExists);
 
   /**
    * Returns a list of connectors.

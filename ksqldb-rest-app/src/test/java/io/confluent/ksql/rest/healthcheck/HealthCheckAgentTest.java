@@ -79,7 +79,7 @@ public class HealthCheckAgentTest {
   @Mock
   private ServiceContext serviceContext;
   @Mock
-  private Admin adminClient;
+  private Admin internalAdminClient;
   @Mock
   private CommandRunner commandRunner;
   @Mock
@@ -95,7 +95,6 @@ public class HealthCheckAgentTest {
         .thenReturn(ImmutableList.of(SERVER_ADDRESS));
     when(successfulResponse.isSuccessful()).thenReturn(true);
     when(unSuccessfulResponse.isSuccessful()).thenReturn(false);
-    when(serviceContext.getAdminClient()).thenReturn(adminClient);
 
     final DescribeTopicsResult topicsResult = mock(DescribeTopicsResult.class);
     givenDescribeTopicsReturns(topicsResult);
@@ -107,7 +106,7 @@ public class HealthCheckAgentTest {
         "default_"
     ));
 
-    healthCheckAgent = new HealthCheckAgent(ksqlClient, restConfig, serviceContext, ksqlConfig, commandRunner);
+    healthCheckAgent = new HealthCheckAgent(ksqlClient, restConfig, serviceContext, ksqlConfig, commandRunner, internalAdminClient);
   }
 
   @Test
@@ -205,16 +204,16 @@ public class HealthCheckAgentTest {
   // isolate suppressed calls to their own methods
   @SuppressWarnings("unchecked")
   private void givenDescribeTopicsReturns(final DescribeTopicsResult topicsResult) {
-    when(adminClient.describeTopics(any(Collection.class), any())).thenReturn(topicsResult);
+    when(internalAdminClient.describeTopics(any(Collection.class), any())).thenReturn(topicsResult);
   }
 
   @SuppressWarnings("unchecked")
   private void givenDescribeTopicsThrows(final Class<? extends Throwable> clazz) {
-    doThrow(clazz).when(adminClient).describeTopics(any(Collection.class), any());
+    doThrow(clazz).when(internalAdminClient).describeTopics(any(Collection.class), any());
   }
 
   @SuppressWarnings("unchecked")
   private void givenDescribeTopicsThrows(final Throwable t) {
-    doThrow(t).when(adminClient).describeTopics(any(Collection.class), any());
+    doThrow(t).when(internalAdminClient).describeTopics(any(Collection.class), any());
   }
 }

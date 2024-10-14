@@ -58,13 +58,11 @@ import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.PrintTopic;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Statement;
-import io.confluent.ksql.physical.pull.PullQueryResult;
 import io.confluent.ksql.properties.DenyListPropertyValidator;
 import io.confluent.ksql.query.BlockingRowQueue;
 import io.confluent.ksql.query.CompletionHandler;
 import io.confluent.ksql.query.KafkaStreamsBuilder;
 import io.confluent.ksql.query.LimitHandler;
-import io.confluent.ksql.query.PullQueryQueue;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.ApiJsonMapper;
 import io.confluent.ksql.rest.EndpointResponse;
@@ -149,7 +147,8 @@ public class StreamedQueryResourceTest {
   private static final KsqlConfig VALID_CONFIG = new KsqlConfig(ImmutableMap.of(
       StreamsConfig.APPLICATION_SERVER_CONFIG, "something:1",
       CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG, "anything:2",
-      KsqlConfig.KSQL_QUERY_STREAM_PULL_QUERY_ENABLED, true
+      KsqlConfig.KSQL_QUERY_STREAM_PULL_QUERY_ENABLED, true,
+      KsqlConfig.KSQL_ENDPOINT_MIGRATE_QUERY_CONFIG, false
   ));
   private static final Long closeTimeout = KsqlConfig.KSQL_SHUTDOWN_TIMEOUT_MS_DEFAULT;
 
@@ -188,10 +187,6 @@ public class StreamedQueryResourceTest {
   private KsqlConfig ksqlConfig;
   @Mock
   private KsqlRestConfig ksqlRestConfig;
-  @Mock
-  private PullQueryResult pullQueryResult;
-  @Mock
-  private PullQueryQueue pullQueryQueue;
   @Captor
   private ArgumentCaptor<Exception> exception;
   @Mock
@@ -224,7 +219,6 @@ public class StreamedQueryResourceTest {
     when(queryExecutor.handleStatement(any(), any(), any(), any(), any(), any(), any(),
         anyBoolean()))
         .thenReturn(queryMetadataHolder);
-    when(pullQueryResult.getPullQueryQueue()).thenReturn(pullQueryQueue);
 
     securityContext = new KsqlSecurityContext(Optional.empty(), serviceContext);
 
@@ -406,7 +400,6 @@ public class StreamedQueryResourceTest {
     testResource.configure(new KsqlConfig(ImmutableMap.of(
         StreamsConfig.APPLICATION_SERVER_CONFIG, "something:1"
     )));
-    when(queryMetadataHolder.getPullQueryResult()).thenReturn(Optional.of(pullQueryResult));
 
     // When:
     testResource.streamQuery(

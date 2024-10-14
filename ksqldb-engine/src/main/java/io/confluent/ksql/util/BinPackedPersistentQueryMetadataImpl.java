@@ -25,12 +25,12 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.plan.ExecutionStep;
+import io.confluent.ksql.execution.scalablepush.ScalablePushRegistry;
 import io.confluent.ksql.execution.streams.materialization.Materialization;
 import io.confluent.ksql.execution.streams.materialization.MaterializationProvider;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.name.SourceName;
-import io.confluent.ksql.physical.scalablepush.ScalablePushRegistry;
 import io.confluent.ksql.query.MaterializationProviderBuilderFactory;
 import io.confluent.ksql.query.QueryError;
 import io.confluent.ksql.query.QueryId;
@@ -140,26 +140,25 @@ public class BinPackedPersistentQueryMetadataImpl implements PersistentQueryMeta
     this.scalablePushRegistry = requireNonNull(scalablePushRegistry, "scalablePushRegistry");
   }
 
-
   // for creating sandbox instances
-  protected BinPackedPersistentQueryMetadataImpl(
+  public BinPackedPersistentQueryMetadataImpl(
           final BinPackedPersistentQueryMetadataImpl original,
           final QueryMetadata.Listener listener
   ) {
-    this.persistentQueryType = original.persistentQueryType;
+    this.persistentQueryType = original.getPersistentQueryType();
     this.statementString = original.statementString;
     this.executionPlan = original.executionPlan;
     this.applicationId = original.applicationId;
     this.topology = original.topology;
     this.sharedKafkaStreamsRuntime = original.sharedKafkaStreamsRuntime;
-    this.sinkDataSource = original.sinkDataSource;
+    this.sinkDataSource = original.getSink();
     this.schemas = original.schemas;
     this.overriddenProperties =
-            ImmutableMap.copyOf(original.overriddenProperties);
-    this.sourceNames = original.sourceNames;
-    this.queryId = original.queryId;
+            ImmutableMap.copyOf(original.getOverriddenProperties());
+    this.sourceNames = original.getSourceNames();
+    this.queryId = original.getQueryId();
     this.processingLogger = original.processingLogger;
-    this.physicalPlan = original.physicalPlan;
+    this.physicalPlan = original.getPhysicalPlan();
     this.resultSchema = original.resultSchema;
     this.materializationProviderBuilder = original.materializationProviderBuilder;
     this.listener = requireNonNull(listener, "listener");
@@ -223,12 +222,11 @@ public class BinPackedPersistentQueryMetadataImpl implements PersistentQueryMeta
 
   @Override
   public void stop() {
-    sharedKafkaStreamsRuntime.stop(queryId, true);
-    scalablePushRegistry.ifPresent(ScalablePushRegistry::close);
+    stop(false);
   }
 
-  public void stop(final boolean resetOffsets) {
-    sharedKafkaStreamsRuntime.stop(queryId, false);
+  public void stop(final boolean isCreateOrReplace) {
+    sharedKafkaStreamsRuntime.stop(queryId, isCreateOrReplace);
     scalablePushRegistry.ifPresent(ScalablePushRegistry::close);
   }
 
@@ -252,7 +250,7 @@ public class BinPackedPersistentQueryMetadataImpl implements PersistentQueryMeta
 
   @Override
   public Set<StreamsTaskMetadata> getTaskMetadata() {
-    return sharedKafkaStreamsRuntime.getTaskMetadata();
+    return sharedKafkaStreamsRuntime.getAllTaskMetadataForQuery(queryId);
   }
 
   @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "overriddenProperties is immutable")
@@ -303,13 +301,14 @@ public class BinPackedPersistentQueryMetadataImpl implements PersistentQueryMeta
 
   @Override
   public Map<String, Map<Integer, LagInfo>> getAllLocalStorePartitionLags() {
-    return sharedKafkaStreamsRuntime.allLocalStorePartitionLags(queryId);
+    return sharedKafkaStreamsRuntime.getAllLocalStorePartitionLagsForQuery(queryId);
   }
 
   @Override
-  public Collection<StreamsMetadata> getAllMetadata() {
+  public Collection<StreamsMetadata> getAllStreamsHostMetadata() {
     try {
-      return ImmutableList.copyOf(sharedKafkaStreamsRuntime.allMetadata());
+      return ImmutableList.copyOf(
+          sharedKafkaStreamsRuntime.getAllStreamsClientsMetadataForQuery(queryId));
     } catch (IllegalStateException e) {
       LOG.error(e.getMessage());
     }
@@ -383,7 +382,7 @@ public class BinPackedPersistentQueryMetadataImpl implements PersistentQueryMeta
 
   @Override
   public void close() {
-    sharedKafkaStreamsRuntime.stop(queryId, true);
+    sharedKafkaStreamsRuntime.stop(queryId, false);
     scalablePushRegistry.ifPresent(ScalablePushRegistry::close);
     listener.onClose(this);
   }
@@ -391,13 +390,16 @@ public class BinPackedPersistentQueryMetadataImpl implements PersistentQueryMeta
   @Override
   public void start() {
     if (!everStarted) {
-      sharedKafkaStreamsRuntime.register(
-          this,
-          queryId
-      );
       sharedKafkaStreamsRuntime.start(queryId);
     }
     everStarted = true;
+  }
+
+  @Override
+  public void register() {
+    sharedKafkaStreamsRuntime.register(
+        this
+    );
   }
 
   Listener getListener() {

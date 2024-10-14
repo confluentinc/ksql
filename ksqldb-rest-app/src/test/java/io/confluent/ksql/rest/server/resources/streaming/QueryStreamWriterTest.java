@@ -179,7 +179,7 @@ public class QueryStreamWriterTest {
         "{\"row\":{\"columns\":[\"Row1\"]}},",
         "{\"row\":{\"columns\":[\"Row2\"]}},",
         "{\"row\":{\"columns\":[\"Row3\"]}},",
-        "]"
+        "{\"finalMessage\":\"Query Completed\"}]"
     )));
   }
 

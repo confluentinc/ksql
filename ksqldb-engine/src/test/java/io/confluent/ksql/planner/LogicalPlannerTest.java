@@ -148,6 +148,52 @@ public class LogicalPlannerTest {
   }
 
   @Test
+  public void testSimpleRightJoinLogicalPlan() {
+    final String simpleQuery = "SELECT t1.col1, t2.col1, t1.col4, t2.col2 FROM test1 t1 RIGHT JOIN test2 t2 ON t1.col0 = t2.col0 EMIT CHANGES;";
+    final PlanNode logicalPlan = buildLogicalPlan(simpleQuery);
+
+    assertThat(logicalPlan.getSources().get(0), instanceOf(ProjectNode.class));
+    assertThat(logicalPlan.getSources().get(0).getSources().get(0), instanceOf(JoinNode.class));
+    final PlanNode leftSource =
+        logicalPlan.getSources().get(0).getSources().get(0).getSources().get(0);
+    assertThat(leftSource, instanceOf(ProjectNode.class));
+    assertThat(leftSource.getSources().get(0), instanceOf(PreJoinRepartitionNode.class));
+    final PlanNode rightSource =
+        logicalPlan.getSources().get(0).getSources().get(0).getSources().get(1);
+    assertThat(rightSource, instanceOf(ProjectNode.class));
+    assertThat(rightSource.getSources().get(0), instanceOf(PreJoinRepartitionNode.class));
+
+    assertThat(logicalPlan.getSchema().value().size(), equalTo(4));
+  }
+
+  @Test
+  public void testSimpleRightJoinFilterLogicalPlan() {
+    final String
+        simpleQuery =
+        "SELECT t1.col1, t2.col1, col5, t2.col4, t2.col2 FROM test1 t1 RIGHT JOIN test2 t2 ON "
+            + "t1.col0 = t2.col0 WHERE t1.col3 > 10.8 AND t2.col2 = 'foo' EMIT CHANGES;";
+    final PlanNode logicalPlan = buildLogicalPlan(simpleQuery);
+
+    assertThat(logicalPlan.getSources().get(0), instanceOf(ProjectNode.class));
+    final ProjectNode projectNode = (ProjectNode) logicalPlan.getSources().get(0);
+
+    assertThat(projectNode.getSchema().value().size(), equalTo(5));
+
+    assertThat(projectNode.getSources().get(0), instanceOf(FilterNode.class));
+    final FilterNode filterNode = (FilterNode) projectNode.getSources().get(0);
+    assertThat(filterNode.getPredicate().toString(), equalTo("((T1_COL3 > 10.8) AND (T2_COL2 = 'foo'))"));
+
+    assertThat(filterNode.getSources().get(0), instanceOf(JoinNode.class));
+    final JoinNode joinNode = (JoinNode) filterNode.getSources().get(0);
+    final PlanNode leftSource = joinNode.getSources().get(0);
+    assertThat(leftSource, instanceOf(ProjectNode.class));
+    assertThat(leftSource.getSources().get(0), instanceOf(PreJoinRepartitionNode.class));
+    final PlanNode rightSource = joinNode.getSources().get(0);
+    assertThat(rightSource, instanceOf(ProjectNode.class));
+    assertThat(rightSource.getSources().get(0), instanceOf(PreJoinRepartitionNode.class));
+  }
+
+  @Test
   public void testSuppressLogicalPlan() {
     final String simpleQuery = "SELECT col1,COUNT(*) as COUNT FROM test2 WINDOW TUMBLING (SIZE 2 MILLISECONDS, GRACE PERIOD 1 MILLISECONDS) GROUP BY col1 EMIT FINAL;";
     final PlanNode logicalPlan = buildLogicalPlan(simpleQuery);

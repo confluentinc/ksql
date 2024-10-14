@@ -16,6 +16,7 @@
 package io.confluent.ksql.api.server;
 
 import io.confluent.ksql.util.KsqlException;
+import java.util.Optional;
 
 /**
  * Represents an error due to user error that can be propagated to the user. Do not use this for
@@ -24,13 +25,25 @@ import io.confluent.ksql.util.KsqlException;
 public class KsqlApiException extends KsqlException {
 
   private final int errorCode;
+  private final Optional<String> statement;
 
   public KsqlApiException(final String message, final int errorCode) {
     super(message);
     this.errorCode = errorCode;
+    this.statement = Optional.empty();
+  }
+
+  public KsqlApiException(final String message, final int errorCode, final String statement) {
+    super(message);
+    this.errorCode = errorCode;
+    this.statement = Optional.of(statement);
   }
 
   public int getErrorCode() {
     return errorCode;
+  }
+
+  public Optional<String> getStatement() {
+    return statement;
   }
 }

@@ -252,23 +252,7 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
       final ColumnName keyColName,
       final Stacker contextStacker
   ) {
-    throwOnJoinKeyFormatsMismatch(schemaKTable);
-
-    final TableTableJoin<K> step = ExecutionStepFactory.tableTableJoin(
-        contextStacker,
-        JoinType.INNER,
-        keyColName,
-        sourceTableStep,
-        schemaKTable.getSourceTableStep()
-    );
-
-    return new SchemaKTable<>(
-        step,
-        resolveSchema(step, schemaKTable),
-        keyFormat,
-        ksqlConfig,
-        functionRegistry
-    );
+    return join(schemaKTable, keyColName, contextStacker, JoinType.INNER);
   }
 
   public SchemaKTable<K> leftJoin(
@@ -276,23 +260,15 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
       final ColumnName keyColName,
       final Stacker contextStacker
   ) {
-    throwOnJoinKeyFormatsMismatch(schemaKTable);
+    return join(schemaKTable, keyColName, contextStacker, JoinType.LEFT);
+  }
 
-    final TableTableJoin<K> step = ExecutionStepFactory.tableTableJoin(
-        contextStacker,
-        JoinType.LEFT,
-        keyColName,
-        sourceTableStep,
-        schemaKTable.getSourceTableStep()
-    );
-
-    return new SchemaKTable<>(
-        step,
-        resolveSchema(step, schemaKTable),
-        keyFormat,
-        ksqlConfig,
-        functionRegistry
-    );
+  public SchemaKTable<K> rightJoin(
+      final SchemaKTable<K> schemaKTable,
+      final ColumnName keyColName,
+      final Stacker contextStacker
+  ) {
+    return join(schemaKTable, keyColName, contextStacker, JoinType.RIGHT);
   }
 
   public SchemaKTable<K> outerJoin(
@@ -300,23 +276,7 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
       final ColumnName keyColName,
       final QueryContext.Stacker contextStacker
   ) {
-    throwOnJoinKeyFormatsMismatch(schemaKTable);
-
-    final TableTableJoin<K> step = ExecutionStepFactory.tableTableJoin(
-        contextStacker,
-        JoinType.OUTER,
-        keyColName,
-        sourceTableStep,
-        schemaKTable.getSourceTableStep()
-    );
-
-    return new SchemaKTable<>(
-        step,
-        resolveSchema(step, schemaKTable),
-        keyFormat,
-        ksqlConfig,
-        functionRegistry
-    );
+    return join(schemaKTable, keyColName, contextStacker, JoinType.OUTER);
   }
 
   public <KRightT> SchemaKTable<K> foreignKeyInnerJoin(
@@ -326,24 +286,13 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
       final Stacker contextStacker,
       final FormatInfo valueFormatInfo
   ) {
-    final ForeignKeyTableTableJoin<K, KRightT> step =
-        ExecutionStepFactory.foreignKeyTableTableJoin(
-            contextStacker,
-            JoinType.INNER,
-            leftJoinColumnName,
-            InternalFormats.of(keyFormat, valueFormatInfo),
-            sourceTableStep,
-            schemaKTable.getSourceTableStep(),
-            leftJoinExpression
-        );
-
-    return new SchemaKTable<>(
-        step,
-        resolveSchema(step, schemaKTable),
-        keyFormat,
-        ksqlConfig,
-        functionRegistry
-    );
+    return foreignKeyJoin(
+        schemaKTable,
+        leftJoinColumnName,
+        leftJoinExpression,
+        contextStacker,
+        valueFormatInfo,
+        JoinType.INNER);
   }
 
   public <KRightT> SchemaKTable<K> foreignKeyLeftJoin(
@@ -353,24 +302,13 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
       final Stacker contextStacker,
       final FormatInfo valueFormatInfo
   ) {
-    final ForeignKeyTableTableJoin<K, KRightT> step =
-        ExecutionStepFactory.foreignKeyTableTableJoin(
-            contextStacker,
-            JoinType.LEFT,
-            leftJoinColumnName,
-            InternalFormats.of(keyFormat, valueFormatInfo),
-            sourceTableStep,
-            schemaKTable.getSourceTableStep(),
-            leftJoinExpression
-        );
-
-    return new SchemaKTable<>(
-        step,
-        resolveSchema(step, schemaKTable),
-        keyFormat,
-        ksqlConfig,
-        functionRegistry
-    );
+    return foreignKeyJoin(
+        schemaKTable,
+        leftJoinColumnName,
+        leftJoinExpression,
+        contextStacker,
+        valueFormatInfo,
+        JoinType.LEFT);
   }
 
   public SchemaKTable<K> suppress(
@@ -388,6 +326,59 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
     return new SchemaKTable<>(
         step,
         resolveSchema(step),
+        keyFormat,
+        ksqlConfig,
+        functionRegistry
+    );
+  }
+
+  private SchemaKTable<K> join(
+      final SchemaKTable<K> schemaKTable,
+      final ColumnName keyColName,
+      final Stacker contextStacker,
+      final JoinType joinType
+  ) {
+    throwOnJoinKeyFormatsMismatch(schemaKTable);
+
+    final TableTableJoin<K> step = ExecutionStepFactory.tableTableJoin(
+        contextStacker,
+        joinType,
+        keyColName,
+        sourceTableStep,
+        schemaKTable.getSourceTableStep()
+    );
+
+    return new SchemaKTable<>(
+        step,
+        resolveSchema(step, schemaKTable),
+        keyFormat,
+        ksqlConfig,
+        functionRegistry
+    );
+  }
+
+  private  <KRightT> SchemaKTable<K> foreignKeyJoin(
+      final SchemaKTable<KRightT> schemaKTable,
+      final Optional<ColumnName> leftJoinColumnName,
+      final Optional<Expression> leftJoinExpression,
+      final Stacker contextStacker,
+      final FormatInfo valueFormatInfo,
+      final JoinType joinType
+  ) {
+    final ForeignKeyTableTableJoin<K, KRightT> step =
+        ExecutionStepFactory.foreignKeyTableTableJoin(
+            contextStacker,
+            joinType,
+            leftJoinColumnName,
+            InternalFormats.of(keyFormat, valueFormatInfo),
+            sourceTableStep,
+            schemaKTable.getSourceTableStep(),
+            leftJoinExpression
+        );
+
+    return new SchemaKTable<>(
+        step,
+        resolveSchema(step, schemaKTable),
         keyFormat,
         ksqlConfig,
         functionRegistry

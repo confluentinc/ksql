@@ -38,6 +38,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.clients.admin.DescribeTopicsOptions;
 import org.apache.kafka.common.errors.UnknownTopicOrPartitionException;
 import org.slf4j.Logger;
@@ -58,22 +59,23 @@ public class HealthCheckAgent {
 
   private final SimpleKsqlClient ksqlClient;
   private final URI serverEndpoint;
-  private final ServiceContext serviceContext;
   private final KsqlConfig ksqlConfig;
   private final CommandRunner commandRunner;
+  private final Admin adminClient;
 
   public HealthCheckAgent(
       final SimpleKsqlClient ksqlClient,
       final KsqlRestConfig restConfig,
       final ServiceContext serviceContext,
       final KsqlConfig ksqlConfig,
-      final CommandRunner commandRunner
+      final CommandRunner commandRunner,
+      final Admin adminClient
   ) {
     this.ksqlClient = Objects.requireNonNull(ksqlClient, "ksqlClient");
     this.serverEndpoint = ServerUtil.getServerAddress(restConfig);
-    this.serviceContext = Objects.requireNonNull(serviceContext, "serviceContext");
     this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
     this.commandRunner = Objects.requireNonNull(commandRunner, "commandRunner");
+    this.adminClient = Objects.requireNonNull(adminClient, "adminClient");
   }
 
   public HealthCheckResponse checkHealth() {
@@ -141,8 +143,7 @@ public class HealthCheckAgent {
 
       try {
         log.info("Checking ksql's ability to contact broker");
-        healthCheckAgent.serviceContext
-            .getAdminClient()
+        healthCheckAgent.adminClient
             .describeTopics(Collections.singletonList(commandTopic),
                 new DescribeTopicsOptions().timeoutMs(DESCRIBE_TOPICS_TIMEOUT_MS))
             .all()

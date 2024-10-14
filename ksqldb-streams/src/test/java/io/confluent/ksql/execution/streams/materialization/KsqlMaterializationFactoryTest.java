@@ -67,7 +67,7 @@ public class KsqlMaterializationFactoryTest {
   @Mock
   private ProcessingLogContext processingLogContext;
   @Mock
-  private Materialization materialization;
+  private StreamsMaterialization materialization;
   @Mock
   private MaterializationInfo info;
   @Mock

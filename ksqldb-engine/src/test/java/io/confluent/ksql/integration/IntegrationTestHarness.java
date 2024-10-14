@@ -67,6 +67,7 @@ import java.util.function.Supplier;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.RecordMetadata;
+import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.header.Header;
 import org.apache.kafka.common.serialization.ByteArrayDeserializer;
 import org.apache.kafka.common.serialization.Deserializer;
@@ -546,6 +547,41 @@ public final class IntegrationTestHarness extends ExternalResource {
         valueDeserializer
     )) {
       consumer.subscribe(Collections.singleton(topic));
+
+      final List<ConsumerRecord<K, GenericRow>> consumerRecords = ConsumerTestUtil
+          .verifyAvailableRecords(consumer, hasUniqueRecords(expected));
+
+      return toUniqueRecords(consumerRecords);
+    }
+  }
+
+  public Map<GenericKey, GenericRow> verifyAvailableUniqueRows(
+      final List<TopicPartition> topicPartitions,
+      final int expectedCount,
+      final Format keyFormat,
+      final Format valueFormat,
+      final PhysicalSchema schema
+  ) {
+    final Matcher<Map<? extends GenericKey, ? extends GenericRow>> expected =
+        mapHasSize(is(expectedCount));
+    final Deserializer<GenericKey> keyDeserializer = getKeyDeserializer(keyFormat, schema);
+    final Deserializer<GenericRow> valueDeserializer = getValueDeserializer(valueFormat, schema);
+
+    return verifyAvailableUniqueRows(topicPartitions, expected, keyDeserializer, valueDeserializer);
+  }
+
+  public <K> Map<K, GenericRow> verifyAvailableUniqueRows(
+      final List<TopicPartition> topicPartitions,
+      final Matcher<Map<? extends K, ? extends GenericRow>> expected,
+      final Deserializer<K> keyDeserializer,
+      final Deserializer<GenericRow> valueDeserializer
+  ) {
+    try (KafkaConsumer<K, GenericRow> consumer = new KafkaConsumer<>(
+        kafkaCluster.consumerConfig(),
+        keyDeserializer,
+        valueDeserializer
+    )) {
+      consumer.assign(topicPartitions);
 
       final List<ConsumerRecord<K, GenericRow>> consumerRecords = ConsumerTestUtil
           .verifyAvailableRecords(consumer, hasUniqueRecords(expected));

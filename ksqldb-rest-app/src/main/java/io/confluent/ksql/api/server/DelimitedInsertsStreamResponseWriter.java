@@ -22,6 +22,9 @@ import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.json.JsonObject;
 import java.util.Objects;
+import java.util.UUID;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Writes the inserts response stream in delimited format.
@@ -37,14 +40,18 @@ import java.util.Objects;
  */
 public class DelimitedInsertsStreamResponseWriter implements InsertsStreamResponseWriter {
 
+  private static final Logger LOG = LoggerFactory.getLogger(
+      DelimitedInsertsStreamResponseWriter.class);
   private static final Buffer ACK_RESPONSE_LINE = new JsonObject().put("status", "ok").toBuffer()
       .appendString("\n");
 
   private final HttpServerResponse response;
+  private final UUID uuid;
 
   @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
-  public DelimitedInsertsStreamResponseWriter(final HttpServerResponse response) {
+  public DelimitedInsertsStreamResponseWriter(final HttpServerResponse response, final UUID uuid) {
     this.response = Objects.requireNonNull(response);
+    this.uuid = uuid;
   }
 
   @Override
@@ -61,6 +68,7 @@ public class DelimitedInsertsStreamResponseWriter implements InsertsStreamRespon
 
   @Override
   public void end() {
+    LOG.debug("({}) Ending response for insert stream", uuid);
     response.end();
   }
 }

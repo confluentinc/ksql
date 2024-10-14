@@ -32,7 +32,7 @@ public class DoubleMaxKudafTest {
 
   @Test
   public void shouldFindCorrectMax() {
-    final DoubleMaxKudaf doubleMaxKudaf = getDoubleMaxKudaf();
+    final MaxKudaf<Double> doubleMaxKudaf = getMaxComparableKudaf();
     final double[] values = new double[]{3.0, 5.0, 8.0, 2.2, 3.5, 4.6, 5.0};
     Double currentMax = null;
     for (final double i: values) {
@@ -43,7 +43,7 @@ public class DoubleMaxKudafTest {
 
   @Test
   public void shouldHandleNull() {
-    final DoubleMaxKudaf doubleMaxKudaf = getDoubleMaxKudaf();
+    final MaxKudaf<Double> doubleMaxKudaf = getMaxComparableKudaf();
     final double[] values = new double[]{3.0, 5.0, 8.0, 2.2, 3.5, 4.6, 5.0};
     Double currentMax = null;
 
@@ -63,7 +63,7 @@ public class DoubleMaxKudafTest {
   }
   @Test
   public void shouldFindCorrectMaxForMerge() {
-    final DoubleMaxKudaf doubleMaxKudaf = getDoubleMaxKudaf();
+    final MaxKudaf doubleMaxKudaf = getMaxComparableKudaf();
     final Merger<GenericKey, Double> merger = doubleMaxKudaf.getMerger();
     final Double mergeResult1 = merger.apply(null, 10.0, 12.0);
     assertThat(mergeResult1, equalTo(12.0));
@@ -74,12 +74,12 @@ public class DoubleMaxKudafTest {
 
   }
 
-  private DoubleMaxKudaf getDoubleMaxKudaf() {
+  private MaxKudaf getMaxComparableKudaf() {
     final KsqlAggregateFunction aggregateFunction = new MaxAggFunctionFactory()
         .createAggregateFunction(Collections.singletonList(SqlArgument.of(SqlTypes.DOUBLE)),
             AggregateFunctionInitArguments.EMPTY_ARGS);
-    assertThat(aggregateFunction, instanceOf(DoubleMaxKudaf.class));
-    return  (DoubleMaxKudaf) aggregateFunction;
+    assertThat(aggregateFunction, instanceOf(MaxKudaf.class));
+    return  (MaxKudaf) aggregateFunction;
   }
 
 }

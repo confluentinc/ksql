@@ -33,4 +33,4 @@ removal from brokers may take some time to complete.
     minutes to ensure that the topic was deleted.
 
 If the IF EXISTS clause is present, the statement doesn't fail if the
-table doesn't exist.
+stream doesn't exist.

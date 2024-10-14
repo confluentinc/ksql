@@ -23,7 +23,7 @@
     <parent>
         <groupId>io.confluent.ksql</groupId>
         <artifactId>ksqldb-parent</artifactId>
-        <version>7.1.15-0</version>
+        <version>7.2.13-0</version>
     </parent>
 
     <artifactId>ksqldb-rest-app</artifactId>
@@ -94,6 +94,7 @@
         <dependency>
             <groupId>org.apache.kafka</groupId>
             <artifactId>kafka-log4j-appender</artifactId>
+            <version>${kafka.version}</version>
         </dependency>
 
         <dependency>

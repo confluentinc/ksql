@@ -16,6 +16,7 @@
 package io.confluent.ksql.function.udf.datetime;
 
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertNull;
@@ -55,6 +56,24 @@ public class FormatTimeTest {
 
     // Then:
     assertThat(e.getMessage(), is("Failed to format time 00:01:05 with formatter 'yyyy HHmmss': Unsupported field: YearOfEra"));
+  }
+
+  @Test
+  public void shouldReturnNullOnNullTime() {
+    // When:
+    final String result = udf.formatTime(null, "HHmmss");
+
+    // Then:
+    assertThat(result, is(nullValue()));
+  }
+
+  @Test
+  public void shouldReturnNullOnNullFormat() {
+    // When:
+    final String result = udf.formatTime(new Time(65000), null);
+
+    // Then:
+    assertThat(result, is(nullValue()));
   }
 
   @Test

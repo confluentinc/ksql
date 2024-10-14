@@ -37,7 +37,7 @@ Response JSON Object:
 
 - **header** (object): Information about the result.
     - **header.queryId**: (string): the unique id of the query. This can be useful when debugging. 
-    For example, when looking in the logs or processing log for errors or issues.
+    For example, when looking in the logs or the ksql processing log for errors or issues.
     - **header.schema**: (string): the list of columns being returned. This defines the schema for 
     the data returned later in **row.columns**.  
 - **row** (object): A single row being returned. This will be null if an error is being returned.
@@ -59,7 +59,7 @@ Response JSON Object:
 ### Example curl command
 
 ```bash
-curl --http1.1
+curl --http1.1 \
      -X "POST" "http://<ksqldb-host-name>:8088/query" \
      -H "Accept: application/vnd.ksql.v1+json" \
      -d $'{

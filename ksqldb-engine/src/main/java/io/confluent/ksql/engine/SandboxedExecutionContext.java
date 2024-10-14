@@ -19,6 +19,10 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.analyzer.ImmutableAnalysis;
+import io.confluent.ksql.execution.pull.HARouting;
+import io.confluent.ksql.execution.pull.PullQueryResult;
+import io.confluent.ksql.execution.scalablepush.PushRouting;
+import io.confluent.ksql.execution.scalablepush.PushRoutingOptions;
 import io.confluent.ksql.execution.streams.RoutingOptions;
 import io.confluent.ksql.internal.PullQueryExecutorMetrics;
 import io.confluent.ksql.internal.ScalablePushQueryMetrics;
@@ -30,10 +34,6 @@ import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.Query;
-import io.confluent.ksql.physical.pull.HARouting;
-import io.confluent.ksql.physical.pull.PullQueryResult;
-import io.confluent.ksql.physical.scalablepush.PushRouting;
-import io.confluent.ksql.physical.scalablepush.PushRoutingOptions;
 import io.confluent.ksql.planner.QueryPlannerOptions;
 import io.confluent.ksql.planner.plan.ConfiguredKsqlPlan;
 import io.confluent.ksql.query.QueryId;
@@ -160,21 +160,26 @@ final class SandboxedExecutionContext implements KsqlExecutionContext {
   @Override
   public ExecuteResult execute(
       final ServiceContext serviceContext,
-      final ConfiguredKsqlPlan ksqlPlan
+      final ConfiguredKsqlPlan ksqlPlan,
+      final boolean restoreInProgress
   ) {
-    final ExecuteResult result = EngineExecutor.create(
-        engineContext,
-        serviceContext,
-        ksqlPlan.getConfig()
-    ).execute(ksqlPlan.getPlan());
+    try {
+      final ExecuteResult result = EngineExecutor.create(
+          engineContext,
+          serviceContext,
+          ksqlPlan.getConfig()
+      ).execute(ksqlPlan.getPlan(), restoreInProgress);
 
-    // Having a streams running in a sandboxed environment is not necessary
-    if (!getKsqlConfig().getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)) {
-      result.getQuery().map(QueryMetadata::getKafkaStreams).ifPresent(streams -> streams.close());
-    } else {
-      engineContext.getQueryRegistry().closeRuntimes();
+      // Having a streams running in a sandboxed environment is not necessary
+      if (!getKsqlConfig().getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)) {
+        result.getQuery().map(QueryMetadata::getKafkaStreams).ifPresent(streams -> streams.close());
+      }
+      return result;
+    } finally {
+      if (getKsqlConfig().getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)) {
+        engineContext.getQueryRegistry().closeRuntimes();
+      }
     }
-    return result;
   }
 
   @Override

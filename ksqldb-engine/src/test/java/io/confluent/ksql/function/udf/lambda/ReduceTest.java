@@ -33,6 +33,8 @@ import java.util.function.BiFunction;
 import org.junit.Before;
 import org.junit.Test;
 
+// Suppress at class level due to https://github.com/spotbugs/spotbugs/issues/724
+@SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT")
 public class ReduceTest {
 
   private Reduce udf;
@@ -91,7 +93,6 @@ public class ReduceTest {
   }
 
   @Test
-  @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT")
   public void shouldNotSkipNullValuesWhenReducing() {
     assertThrows(
         NullPointerException.class,
@@ -110,6 +111,19 @@ public class ReduceTest {
         () -> udf.reduceMap(map1, 3, triFunction1())
     );
   }
+
+  @Test
+  public void shouldReturnNullForNullFunctions () {
+    BiFunction<String, Integer, String> nullBiFunction = null;
+    TriFunction<Integer, Integer, Integer, Integer> nullTriFunction = null;
+
+    assertThat(udf.reduceArray(ImmutableList.of(2, 3, 4, 4, 1000), "", nullBiFunction), is(nullValue()));
+    final Map<Integer, Integer> map1 = new HashMap<>();
+    map1.put(4, 3);
+    map1.put(6, 2);
+    assertThat(udf.reduceMap(map1, 42, nullTriFunction), is(nullValue()));
+  }
+
 
   private TriFunction<Integer, Integer, Integer, Integer> triFunction1() {
     return (x,y,z) -> x + y + z;

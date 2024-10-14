@@ -1,0 +1,270 @@
+{
+  "version" : "7.2.0",
+  "timestamp" : 1648245523602,
+  "path" : "query-validation-tests/simple-struct.json",
+  "schemas" : {
+    "CSAS_S5_0.S5" : {
+      "schema" : "`K` STRING KEY, `ITEMID` BIGINT, `CNAME` STRING, `STATE_LENGTH` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "PROTOBUF",
+        "properties" : {
+          "unwrapPrimitives" : "true"
+        }
+      }
+    },
+    "CSAS_S5_0.KsqlTopic.Source" : {
+      "schema" : "`K` STRING KEY, `ORDERTIME` BIGINT, `ORDERID` BIGINT, `ITEMID` STRUCT<`ITEMID` BIGINT, `NAME` STRING, `CATEGORY` STRUCT<`ID` BIGINT, `NAME` STRING>>, `ORDERUNITS` DOUBLE, `ARRAYCOL` ARRAY<DOUBLE>, `MAPCOL` MAP<STRING, DOUBLE>, `ADDRESS` STRUCT<`NUMBER` BIGINT, `STREET` STRING, `CITY` STRING, `STATE` STRING, `ZIPCODE` BIGINT>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "PROTOBUF",
+        "properties" : {
+          "unwrapPrimitives" : "true"
+        }
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "simple struct select filter 4 - PROTOBUF",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : "0",
+      "value" : {
+        "ORDERID" : 1,
+        "ITEMID" : {
+          "ITEMID" : 6,
+          "CATEGORY" : {
+            "ID" : 2,
+            "NAME" : "Food"
+          },
+          "NAME" : "Item_6"
+        },
+        "ORDERTIME" : 1528224275715,
+        "MAPCOL" : {
+          "key3" : 3.8688222734507915,
+          "key2" : 5.878674158377773,
+          "key1" : 2.706938954083115
+        },
+        "ORDERUNITS" : 2,
+        "ADDRESS" : {
+          "CITY" : "CITY_0",
+          "STATE" : "STATE_1",
+          "STREET" : "STREET_4",
+          "NUMBER" : 376,
+          "ZIPCODE" : 621
+        },
+        "ARRAYCOL" : [ 6.27276558443913, 8.720822816653817, 4.904955205015469, 0.28466518164817933, 5.276269704236784 ]
+      },
+      "timestamp" : 0
+    }, {
+      "topic" : "test_topic",
+      "key" : "100",
+      "value" : {
+        "ORDERID" : 2,
+        "ITEMID" : {
+          "ITEMID" : 6,
+          "CATEGORY" : {
+            "ID" : 2,
+            "NAME" : "Produce"
+          },
+          "NAME" : "Item_6"
+        },
+        "ORDERTIME" : 1528224280668,
+        "MAPCOL" : {
+          "key3" : 0.08025583241041634,
+          "key2" : 7.886688738692968,
+          "key1" : 7.997268326700826
+        },
+        "ORDERUNITS" : 4,
+        "ADDRESS" : {
+          "CITY" : "CITY_3",
+          "STATE" : "STATE_6",
+          "STREET" : "STREET_5",
+          "NUMBER" : 29,
+          "ZIPCODE" : 46
+        },
+        "ARRAYCOL" : [ 5.028181423106411, 4.223556791057725, 7.503771637501132, 1.8346470572995977, 8.628168574256188 ]
+      },
+      "timestamp" : 0
+    }, {
+      "topic" : "test_topic",
+      "key" : "101",
+      "value" : {
+        "ORDERID" : 3,
+        "ITEMID" : {
+          "ITEMID" : 6,
+          "CATEGORY" : {
+            "ID" : 2,
+            "NAME" : "Produce"
+          },
+          "NAME" : "Item_6"
+        },
+        "ORDERTIME" : 1528224281566,
+        "MAPCOL" : {
+          "key3" : 8.232202829012866,
+          "key2" : 4.76749034853443,
+          "key1" : 3.908548556676262
+        },
+        "ORDERUNITS" : 6,
+        "ADDRESS" : {
+          "CITY" : "CITY_9",
+          "STATE" : "STATE_9",
+          "STREET" : "STREET_3",
+          "NUMBER" : 219,
+          "ZIPCODE" : 287
+        },
+        "ARRAYCOL" : [ 9.404053021473551, 2.005832055529364, 0.16252060679229574, 8.030440873506674, 2.6822009490877683 ]
+      },
+      "timestamp" : 0
+    }, {
+      "topic" : "test_topic",
+      "key" : "101",
+      "value" : {
+        "ORDERID" : 4,
+        "ITEMID" : {
+          "ITEMID" : 2,
+          "CATEGORY" : {
+            "ID" : 1,
+            "NAME" : "Food"
+          },
+          "NAME" : "Item_2"
+        },
+        "ORDERTIME" : 1528224285603,
+        "MAPCOL" : {
+          "key3" : 8.58507015716884,
+          "key2" : 8.690191464522353,
+          "key1" : 3.966253991851106
+        },
+        "ORDERUNITS" : 3,
+        "ADDRESS" : {
+          "CITY" : "CITY_3",
+          "STATE" : "STATE_5",
+          "STREET" : "STREET_8",
+          "NUMBER" : 380,
+          "ZIPCODE" : 866
+        },
+        "ARRAYCOL" : [ 9.887072401304447, 5.217021497196517, 5.604857288119519, 4.628527278923561, 6.367135367927281 ]
+      },
+      "timestamp" : 0
+    }, {
+      "topic" : "test_topic",
+      "key" : "101",
+      "value" : {
+        "ORDERID" : 5,
+        "ITEMID" : {
+          "ITEMID" : 5,
+          "CATEGORY" : {
+            "ID" : 1,
+            "NAME" : "Produce"
+          },
+          "NAME" : "Item_5"
+        },
+        "ORDERTIME" : 1528224286568,
+        "MAPCOL" : {
+          "key3" : 4.9160189684727,
+          "key2" : 1.3876747586974092,
+          "key1" : 6.688854425726891
+        },
+        "ORDERUNITS" : 5,
+        "ADDRESS" : {
+          "CITY" : "CITY_6",
+          "STATE" : "STATE_3",
+          "STREET" : "STREET_8",
+          "NUMBER" : 294,
+          "ZIPCODE" : 724
+        },
+        "ARRAYCOL" : [ 1.6856668854084866, 3.4970511301361484, 9.143163282671962, 2.196065628133206, 4.343961390870502 ]
+      },
+      "timestamp" : 0
+    } ],
+    "outputs" : [ {
+      "topic" : "S5",
+      "key" : "0",
+      "value" : {
+        "ITEMID" : 60,
+        "STATE_LENGTH" : 7,
+        "CNAME" : "Food_HELLO"
+      },
+      "timestamp" : 0
+    }, {
+      "topic" : "S5",
+      "key" : "101",
+      "value" : {
+        "ITEMID" : 60,
+        "STATE_LENGTH" : 7,
+        "CNAME" : "Produce_HELLO"
+      },
+      "timestamp" : 0
+    } ],
+    "topics" : [ {
+      "name" : "S5",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "test_topic",
+      "valueSchema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  int64 ORDERTIME = 1;\n  int64 ORDERID = 2;\n  ConnectDefault2 ITEMID = 3;\n  double ORDERUNITS = 4;\n  repeated double ARRAYCOL = 5;\n  repeated ConnectDefault4Entry MAPCOL = 6;\n  ConnectDefault5 ADDRESS = 7;\n\n  message ConnectDefault2 {\n    int64 ITEMID = 1;\n    string NAME = 2;\n    ConnectDefault3 CATEGORY = 3;\n  \n    message ConnectDefault3 {\n      int64 ID = 1;\n      string NAME = 2;\n    }\n  }\n  message ConnectDefault4Entry {\n    string key = 1;\n    double value = 2;\n  }\n  message ConnectDefault5 {\n    int64 NUMBER = 1;\n    string STREET = 2;\n    string CITY = 3;\n    string STATE = 4;\n    int64 ZIPCODE = 5;\n  }\n}\n",
+      "valueFormat" : "PROTOBUF",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM orders (K STRING KEY, ordertime bigint, orderid bigint, itemid STRUCT< ITEMID BIGINT, NAME VARCHAR, CATEGORY STRUCT< ID BIGINT, NAME VARCHAR>>, ORDERUNITS double, ARRAYCOL array<double>, MAPCOL map<varchar, double>, address STRUCT < number bigint, street varchar, city varchar, state varchar, zipcode bigint>) WITH (kafka_topic='test_topic', value_format='PROTOBUF');", "CREATE STREAM S5 as SELECT K, itemid->itemid * 10 as itemid, concat(itemid->category->name, '_HELLO') as cname, len(address->state) as state_length FROM orders WHERE address->state LIKE '%1' OR address->state LIKE '%9';" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "ORDERS",
+        "type" : "STREAM",
+        "schema" : "`K` STRING KEY, `ORDERTIME` BIGINT, `ORDERID` BIGINT, `ITEMID` STRUCT<`ITEMID` BIGINT, `NAME` STRING, `CATEGORY` STRUCT<`ID` BIGINT, `NAME` STRING>>, `ORDERUNITS` DOUBLE, `ARRAYCOL` ARRAY<DOUBLE>, `MAPCOL` MAP<STRING, DOUBLE>, `ADDRESS` STRUCT<`NUMBER` BIGINT, `STREET` STRING, `CITY` STRING, `STATE` STRING, `ZIPCODE` BIGINT>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "PROTOBUF",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "S5",
+        "type" : "STREAM",
+        "schema" : "`K` STRING KEY, `ITEMID` BIGINT, `CNAME` STRING, `STATE_LENGTH` INTEGER",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "PROTOBUF",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "PROTOBUF",
+            "properties" : {
+              "unwrapPrimitives" : "true"
+            }
+          },
+          "partitions" : 4,
+          "valueSchema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  int64 ORDERTIME = 1;\n  int64 ORDERID = 2;\n  ConnectDefault2 ITEMID = 3;\n  double ORDERUNITS = 4;\n  repeated double ARRAYCOL = 5;\n  repeated ConnectDefault4Entry MAPCOL = 6;\n  ConnectDefault5 ADDRESS = 7;\n\n  message ConnectDefault2 {\n    int64 ITEMID = 1;\n    string NAME = 2;\n    ConnectDefault3 CATEGORY = 3;\n  \n    message ConnectDefault3 {\n      int64 ID = 1;\n      string NAME = 2;\n    }\n  }\n  message ConnectDefault4Entry {\n    string key = 1;\n    double value = 2;\n  }\n  message ConnectDefault5 {\n    int64 NUMBER = 1;\n    string STREET = 2;\n    string CITY = 3;\n    string STATE = 4;\n    int64 ZIPCODE = 5;\n  }\n}\n"
+        }, {
+          "name" : "S5",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "PROTOBUF",
+            "properties" : {
+              "unwrapPrimitives" : "true"
+            }
+          },
+          "partitions" : 4,
+          "valueSchema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  int64 ITEMID = 1;\n  string CNAME = 2;\n  int32 STATE_LENGTH = 3;\n}\n"
+        } ]
+      }
+    }
+  }
+}

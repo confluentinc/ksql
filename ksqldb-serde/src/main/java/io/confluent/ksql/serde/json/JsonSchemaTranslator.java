@@ -19,6 +19,7 @@ import io.confluent.connect.json.JsonSchemaData;
 import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.kafka.schemaregistry.json.JsonSchema;
 import io.confluent.ksql.serde.connect.ConnectSchemaTranslator;
+import java.util.Map;
 import org.apache.kafka.connect.data.Schema;
 
 /**
@@ -27,6 +28,10 @@ import org.apache.kafka.connect.data.Schema;
 class JsonSchemaTranslator implements ConnectSchemaTranslator {
 
   private final JsonSchemaData jsonData = new JsonSchemaData();
+
+  @Override
+  public void configure(final Map<String, ?> configs) {
+  }
 
   @Override
   public String name() {

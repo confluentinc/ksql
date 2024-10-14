@@ -259,6 +259,21 @@ public class KsqlConfigTest {
   }
 
   @Test
+  public void shouldOverrideStreamsConfigProperties() {
+    Map<String, Object> originals = new HashMap<>();
+    originals.put(KsqlConfig.KSQL_STREAMS_PREFIX + SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG,
+            "kafka.jks");
+    originals.put(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG,
+            "https.jks");
+
+    final KsqlConfig ksqlConfig = new KsqlConfig(originals);
+
+    assertThat(ksqlConfig.getKsqlStreamConfigProps().
+            get(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG), equalTo("kafka.jks"));
+
+  }
+
+  @Test
   public void shouldSetMonitoringInterceptorConfigProperties() {
     final KsqlConfig ksqlConfig = new KsqlConfig(Collections.singletonMap(
         "confluent.monitoring.interceptor.topic", "foo"));

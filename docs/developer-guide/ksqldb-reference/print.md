@@ -36,11 +36,12 @@ Example
 -------
 
 The following statement shows how to print all of the records in a topic named
-`_confluent-ksql-default__command_topic`, (the default name for the topic ksqlDB stores your submitted command in).
+`rider-locations`, created by `CREATE STREAM riderLocations (profileId VARCHAR, latitude DOUBLE, longitude DOUBLE)
+WITH (kafka_topic='rider-locations', value_format='json', partitions=1);`.
 Note, the topic name has been quoted as it contains the invalid dash character.
 
 ```sql
-PRINT '_confluent-ksql-default__command_topic' FROM BEGINNING;
+PRINT 'rider-locations' FROM BEGINNING;
 ```
 
 ksqlDB attempts to determine the format of the data in the topic and outputs what it thinks are
@@ -52,19 +53,19 @@ the key and value formats at the top of the output.
    because they both occupy eight bytes. Short strings can also be mistaken for serialized numbers.
    Where it appears different records are using different formats ksqlDB will state the format is `MIXED`.
 
-Your output should resemble:
+The output should resemble:
 
 ```
-    Key format: JSON or SESSION(KAFKA_STRING) or HOPPING(KAFKA_STRING) or TUMBLING(KAFKA_STRING) or KAFKA_STRING
+    Key format: JSON or KAFKA_STRING
     Value format: JSON or KAFKA_STRING
-    rowtime: 12/21/18 23:58:42 PM PSD, key: stream/CLICKSTREAM/create, value: {statement":"CREATE STREAM clickstream (_time bigint,time varchar, ip varchar, request varchar, status int, userid int, bytes bigint, agent varchar) with (kafka_topic = 'clickstream', value_format = 'json');","streamsProperties":{}}
-    rowtime: 12/21/18 23:58:42 PM PSD, key: table/EVENTS_PER_MIN/create, value: {"statement":"create table events_per_min as select userid, count(*) as events from clickstream window  TUMBLING (size 10 second) group by userid EMIT CHANGES;","streamsProperties":{}}
+    rowtime: 2022/03/18 15:53:22.989 Z, key: 18, value: {"ordertime":1497014222380,"orderid":18,"itemid":"Item_184","address":{"city":"Mountain View","state":"CA","zipcode":94041}}, partition: 0
+    rowtime: 2022/03/18 15:53:27.192 Z, key: 18, value: {"ordertime":1497014222380,"orderid":18,"itemid":"Item_184","address":{"city":"Mountain View","state":"CA","zipcode":94041}}, partition: 0
     ^CTopic printing ceased
 ```
 
 The key format for this topic is `KAFKA_STRING`. However, the `PRINT` command does not know this and
 has attempted to determine the format of the key by inspecting the data. It has determined that the
-format may be `KAFKA_STRING`, but it could also be `JSON` or a windowed `KAFKA_STRING`.
+format may be `KAFKA_STRING`, but it could also be `JSON`.
 
 The value format for this topic is `JSON`. However, the `PRINT` command has also determined it could
 be `KAFKA_STRING`. This is because `JSON` is serialized as text. Hence you could choose to deserialize

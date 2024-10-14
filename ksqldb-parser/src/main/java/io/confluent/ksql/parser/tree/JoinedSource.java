@@ -94,7 +94,7 @@ public class JoinedSource extends Relation {
   }
 
   public enum Type {
-    INNER("INNER"), LEFT("LEFT OUTER"), OUTER("FULL OUTER");
+    INNER("INNER"), LEFT("LEFT OUTER"), RIGHT("RIGHT OUTER"), OUTER("FULL OUTER");
 
     private final String formattedText;
 

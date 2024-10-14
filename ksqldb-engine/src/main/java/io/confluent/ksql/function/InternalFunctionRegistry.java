@@ -106,10 +106,7 @@ public class InternalFunctionRegistry implements MutableFunctionRegistry {
     if (udafs.containsKey(functionName.text().toUpperCase())) {
       return true;
     }
-    if (udtfs.containsKey(functionName.text().toUpperCase())) {
-      return true;
-    }
-    return false;
+    return udtfs.containsKey(functionName.text().toUpperCase());
   }
 
   @Override

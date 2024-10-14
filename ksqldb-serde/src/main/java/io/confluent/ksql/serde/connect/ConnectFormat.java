@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.serde.connect;
 
+import com.google.common.collect.ImmutableList;
+import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
@@ -258,5 +260,14 @@ public abstract class ConnectFormat implements Format {
   @Override
   public boolean supportsKeyType(final SqlType type) {
     return true;
+  }
+
+  @Override
+  public List<String> schemaFullNames(final ParsedSchema schema) {
+    if (schema.name() == null) {
+      return ImmutableList.of();
+    }
+
+    return ImmutableList.of(schema.name());
   }
 }

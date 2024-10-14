@@ -63,12 +63,6 @@ public class KsqlRequestConfig extends AbstractConfig {
       "A continuation token that can be provided which will start a push query off right at the "
           + "point of that the token was provided.";
 
-  public static final String KSQL_REQUEST_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR =
-      "request.ksql.query.pull.consistency.token";
-  public static final String KSQL_REQUEST_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_DEFAULT = "";
-  private static final String KSQL_REQUEST_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR__DOC =
-      "Indicates the offsets of the last read.";
-
   public static final String KSQL_REQUEST_QUERY_PUSH_CATCHUP_CONSUMER_GROUP =
       "request.ksql.query.push.catchup.consumer.group";
   public static final String KSQL_REQUEST_QUERY_PUSH_CATCHUP_CONSUMER_GROUP_DEFAULT = "";
@@ -113,12 +107,6 @@ public class KsqlRequestConfig extends AbstractConfig {
             KSQL_REQUEST_QUERY_PUSH_CONTINUATION_TOKEN_DEFAULT,
             ConfigDef.Importance.LOW,
             KSQL_REQUEST_QUERY_PUSH_CONTINUATION_TOKEN_DOC
-        ).define(
-            KSQL_REQUEST_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR,
-            Type.STRING,
-            KSQL_REQUEST_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_DEFAULT,
-            ConfigDef.Importance.LOW,
-            KSQL_REQUEST_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR__DOC
         ).define(
             KSQL_REQUEST_QUERY_PUSH_CATCHUP_CONSUMER_GROUP,
             Type.STRING,

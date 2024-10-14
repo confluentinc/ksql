@@ -25,7 +25,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
-import static org.hamcrest.Matchers.nullValue;
 
 import io.confluent.ksql.api.utils.InsertsResponse;
 import io.confluent.ksql.api.utils.QueryResponse;
@@ -35,19 +34,14 @@ import io.confluent.ksql.parser.exception.ParseFailedException;
 import io.confluent.ksql.rest.entity.PushQueryId;
 import io.confluent.ksql.util.AppInfo;
 import io.confluent.ksql.util.VertxCompletableFuture;
-import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
-import io.vertx.core.http.HttpVersion;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
-import io.vertx.ext.web.client.HttpRequest;
 import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.WebClient;
-import io.vertx.ext.web.client.WebClientOptions;
 import io.vertx.ext.web.codec.BodyCodec;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -335,7 +329,7 @@ public class ApiTest extends BaseApiTest {
     assertThat(response.statusMessage(), is("OK"));
     QueryResponse queryResponse = new QueryResponse(response.bodyAsString());
     assertThat(queryResponse.rows, hasSize(DEFAULT_JSON_ROWS.size() - 1));
-    validateError(ERROR_CODE_SERVER_ERROR, "Error in processing query. Check server logs for details.", queryResponse.error);
+    validateError(ERROR_CODE_SERVER_ERROR, "java.lang.RuntimeException: Failure in processing", queryResponse.error);
     assertThat(testEndpoints.getQueryPublishers(), hasSize(1));
     assertThatEventually(() -> server.getQueryIDs().isEmpty(), is(true));
   }
@@ -802,7 +796,7 @@ public class ApiTest extends BaseApiTest {
     // Then
     HttpResponse<Buffer> response = requestFuture.get();
     JsonArray jsonArray = new JsonArray(response.body());
-    assertThat(jsonArray.size(), is(DEFAULT_JSON_ROWS.size()));
+    assertThat(jsonArray.size(), is(DEFAULT_INSERT_ROWS.size()));
     for (int i = 0; i < jsonArray.size(); i++) {
       final JsonObject ackLine = new JsonObject().put("status", "ok").put("seq", i);
       assertThat(jsonArray.getJsonObject(i), is(ackLine));
@@ -895,7 +889,7 @@ public class ApiTest extends BaseApiTest {
 
   private static List<JsonObject> generateInsertRows() {
     List<JsonObject> rows = new ArrayList<>();
-    for (int i = 0; i < 10; i++) {
+    for (int i = 0; i < 3; i++) {
       JsonObject row = new JsonObject()
           .put("f_str", "foo" + i)
           .put("f_int", i)

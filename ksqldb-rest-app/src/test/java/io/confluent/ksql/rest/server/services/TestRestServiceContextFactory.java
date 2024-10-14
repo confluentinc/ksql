@@ -1,5 +1,7 @@
 package io.confluent.ksql.rest.server.services;
 
+import static io.confluent.ksql.util.KsqlConfig.CONNECT_REQUEST_TIMEOUT_DEFAULT;
+
 import io.confluent.ksql.rest.client.KsqlClient;
 import io.confluent.ksql.rest.server.services.RestServiceContextFactory.DefaultServiceContextFactory;
 import io.confluent.ksql.rest.server.services.RestServiceContextFactory.UserServiceContextFactory;
@@ -22,8 +24,8 @@ public class TestRestServiceContextFactory {
   public static DefaultServiceContextFactory createDefault(
       final InternalSimpleKsqlClientFactory ksqlClientFactory
   ) {
-    return (ksqlConfig, authHeader, srClientFactory,
-            connectClientFactory, sharedClient, userPrincipal) -> {
+    return (ksqlConfig, authHeader, srClientFactory, connectClientFactory,
+            sharedClient, requestHeaders, userPrincipal) -> {
       return createUser(ksqlClientFactory).create(
           ksqlConfig,
           authHeader,
@@ -31,6 +33,7 @@ public class TestRestServiceContextFactory {
           srClientFactory,
           connectClientFactory,
           sharedClient,
+          requestHeaders,
           userPrincipal
       );
     };
@@ -39,8 +42,8 @@ public class TestRestServiceContextFactory {
   public static UserServiceContextFactory createUser(
     final InternalSimpleKsqlClientFactory ksqlClientFactory
   ) {
-    return (ksqlConfig, authHeader, kafkaClientSupplier,
-            srClientFactory, connectClientFactory, sharedClient, userPrincipal) -> {
+    return (ksqlConfig, authHeader, kafkaClientSupplier, srClientFactory,
+            connectClientFactory, sharedClient, requestHeaders, userPrincipal) -> {
       return ServiceContextFactory.create(
           ksqlConfig,
           kafkaClientSupplier,
@@ -50,7 +53,8 @@ public class TestRestServiceContextFactory {
               authHeader,
               Collections.emptyMap(),
               Optional.empty(),
-              false),
+              false,
+              CONNECT_REQUEST_TIMEOUT_DEFAULT),
           () -> ksqlClientFactory.create(authHeader, sharedClient)
       );
     };

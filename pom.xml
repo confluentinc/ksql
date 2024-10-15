@@ -155,7 +155,8 @@
         <jersey-common>2.39.1</jersey-common>
         <multi-threaded-testing.forkCount>3</multi-threaded-testing.forkCount>
         <kafka.version>${ce.kafka.version}</kafka.version>
-        <cc.role.definitions.version>0.29.0</cc.role.definitions.version>
+        <cc.role.definitions.version>0.27.0</cc.role.definitions.version>
+        <commons-io.version>2.15.1</commons-io.version>
     </properties>
 
     <dependencyManagement>

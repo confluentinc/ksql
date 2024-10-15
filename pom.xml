@@ -155,6 +155,7 @@
         <jersey-common>2.39.1</jersey-common>
         <multi-threaded-testing.forkCount>3</multi-threaded-testing.forkCount>
         <kafka.version>${ce.kafka.version}</kafka.version>
+        <cc.role.definitions.version>0.27.0</cc.role.definitions.version>
     </properties>
 
     <dependencyManagement>
@@ -463,6 +464,17 @@
                 <groupId>io.confluent</groupId>
                 <artifactId>broker-plugins</artifactId>
                 <version>${kafka.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>io.confluent</groupId>
+                        <artifactId>cc-role-definitions</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+            <dependency>
+                <groupId>io.confluent</groupId>
+                <artifactId>cc-role-definitions</artifactId>
+                <version>${cc.role.definitions.version}</version>
             </dependency>
 
             <!-- End Confluent dependencies -->
@@ -749,10 +761,16 @@
             <groupId>io.confluent</groupId>
             <artifactId>logredactor</artifactId>
         </dependency>
-            <dependency>
-                <groupId>io.confluent</groupId>
-                <artifactId>broker-plugins</artifactId>
-            </dependency>
+        <dependency>
+            <groupId>io.confluent</groupId>
+            <artifactId>broker-plugins</artifactId>
+            <exclusions>
+                <exclusion>
+                    <groupId>io.confluent</groupId>
+                    <artifactId>cc-role-definitions</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
     </dependencies>
 
     <build>

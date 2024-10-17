@@ -22,7 +22,6 @@ import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.function.udtf.UdtfDescription;
 import io.confluent.ksql.metastore.TypeRegistry;
 import io.confluent.ksql.schema.ksql.SqlTypeParser;
-import io.confluent.ksql.security.ExtensionSecurityManager;
 import io.confluent.ksql.util.KsqlConfig;
 import io.github.classgraph.ClassGraph;
 import io.github.classgraph.ClassInfo;
@@ -154,9 +153,9 @@ public class UserFunctionLoader {
         ? Optional.of(metricsRegistry)
         : empty();
 
-    if (config.getBoolean(KsqlConfig.KSQL_UDF_SECURITY_MANAGER_ENABLED)) {
-      System.setSecurityManager(ExtensionSecurityManager.INSTANCE);
-    }
+    //    if (config.getBoolean(KsqlConfig.KSQL_UDF_SECURITY_MANAGER_ENABLED)) {
+    //      System.setSecurityManager(ExtensionSecurityManager.INSTANCE);
+    //    }
     return new UserFunctionLoader(
         metaStore,
         pluginDir,

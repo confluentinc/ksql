@@ -465,6 +465,7 @@
                 <groupId>io.confluent</groupId>
                 <artifactId>broker-plugins</artifactId>
                 <version>${kafka.version}</version>
+                <!-- This is a runtime dependency and is not required by ksqldb -->
                 <exclusions>
                     <exclusion>
                         <groupId>io.confluent</groupId>
@@ -472,12 +473,6 @@
                     </exclusion>
                 </exclusions>
             </dependency>
-            <dependency>
-                <groupId>io.confluent</groupId>
-                <artifactId>cc-role-definitions</artifactId>
-                <version>${cc.role.definitions.version}</version>
-            </dependency>
-
             <!-- End Confluent dependencies -->
 
             <dependency>

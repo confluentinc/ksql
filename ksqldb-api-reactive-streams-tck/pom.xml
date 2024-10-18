@@ -22,7 +22,7 @@
     <parent>
         <groupId>io.confluent.ksql</groupId>
         <artifactId>ksqldb-parent</artifactId>
-        <version>7.5.7-0</version>
+        <version>7.5.7-30</version>
     </parent>
 
     <artifactId>ksqldb-api-reactive-streams-tck</artifactId>

@@ -68,8 +68,10 @@ public class WindowingIntTest {
 
   private static final StringDeserializer STRING_DESERIALIZER = new StringDeserializer();
 
+  private static final long DEFAULT_WINDOW_SIZE = Long.MAX_VALUE;
+
   private static final TimeWindowedDeserializer<String> TIME_WINDOWED_DESERIALIZER =
-      new TimeWindowedDeserializer<>(STRING_DESERIALIZER);
+      new TimeWindowedDeserializer<>(STRING_DESERIALIZER, DEFAULT_WINDOW_SIZE);
 
   private static final SessionWindowedDeserializer<String> SESSION_WINDOWED_DESERIALIZER =
       new SessionWindowedDeserializer<>(STRING_DESERIALIZER);

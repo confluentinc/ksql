@@ -463,6 +463,12 @@
                 <groupId>io.confluent</groupId>
                 <artifactId>broker-plugins</artifactId>
                 <version>${kafka.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>io.confluent</groupId>
+                        <artifactId>cc-role-definitions</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
 
             <!-- End Confluent dependencies -->
@@ -749,10 +755,16 @@
             <groupId>io.confluent</groupId>
             <artifactId>logredactor</artifactId>
         </dependency>
-            <dependency>
-                <groupId>io.confluent</groupId>
-                <artifactId>broker-plugins</artifactId>
-            </dependency>
+        <dependency>
+            <groupId>io.confluent</groupId>
+            <artifactId>broker-plugins</artifactId>
+            <exclusions>
+                <exclusion>
+                    <groupId>io.confluent</groupId>
+                    <artifactId>cc-role-definitions</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
     </dependencies>
 
     <build>

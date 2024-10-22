@@ -126,7 +126,8 @@
       "expectedException": {
         "type": "org.apache.kafka.streams.errors.StreamsException",
         "message": "Exception caught in process",
-        "cause": "io.confluent.ksql.function.KsqlFunctionException"
+        "cause": "io.confluent.ksql.function.KsqlFunctionException",
+        "causeMessage": "Numeric field overflow"
       }
     },
     {
@@ -170,7 +171,8 @@
       "expectedException": {
         "type": "org.apache.kafka.streams.errors.StreamsException",
         "message": "Exception caught in process",
-        "cause": "io.confluent.ksql.function.KsqlFunctionException"
+        "cause": "io.confluent.ksql.function.KsqlFunctionException",
+        "causeMessage": "Numeric field overflow"
       }
     },
     {

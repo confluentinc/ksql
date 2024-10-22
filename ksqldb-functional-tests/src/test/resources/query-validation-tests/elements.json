@@ -1329,7 +1329,8 @@
       "expectedException": {
         "type": "org.apache.kafka.streams.errors.StreamsException",
         "message": "Exception caught in process",
-        "cause": "org.apache.kafka.streams.errors.StreamsException"
+        "cause": "org.apache.kafka.streams.errors.StreamsException",
+        "causeMessage": "Unable to serialize record"
       }
     },
     {

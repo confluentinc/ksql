@@ -132,7 +132,8 @@ public class KsqlExpectedException {
       allMatchers.add(new TypeSafeMatcher<Throwable>() {
         @Override
         protected boolean matchesSafely(final Throwable item) {
-          return item.getCause() != null && expectedCauseMessage.matches(item.getCause().getMessage());
+          return item.getCause() != null
+              && expectedCauseMessage.matches(item.getCause().getMessage());
         }
 
         @Override

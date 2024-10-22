@@ -1328,7 +1328,8 @@
       "outputs": [{"topic": "OUTPUT", "key": 42, "value": {"c1": 4}}],
       "expectedException": {
         "type": "org.apache.kafka.streams.errors.StreamsException",
-        "message": "Unable to serialize record. ProducerRecord(topic=[OUTPUT], partition=[null], timestamp=[0]"
+        "message": "Exception caught in process",
+        "cause": "org.apache.kafka.streams.errors.StreamsException"
       }
     },
     {

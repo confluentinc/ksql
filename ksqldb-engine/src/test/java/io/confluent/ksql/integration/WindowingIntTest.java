@@ -68,10 +68,10 @@ public class WindowingIntTest {
 
   private static final StringDeserializer STRING_DESERIALIZER = new StringDeserializer();
 
-  private static final long DEFAULT_WINDOW_SIZE = Long.MAX_VALUE;
+  private static final long TEN_SECONDS_WINDOW = Duration.ofSeconds(10).toMillis();
 
   private static final TimeWindowedDeserializer<String> TIME_WINDOWED_DESERIALIZER =
-      new TimeWindowedDeserializer<>(STRING_DESERIALIZER, DEFAULT_WINDOW_SIZE);
+      new TimeWindowedDeserializer<>(STRING_DESERIALIZER, TEN_SECONDS_WINDOW);
 
   private static final SessionWindowedDeserializer<String> SESSION_WINDOWED_DESERIALIZER =
       new SessionWindowedDeserializer<>(STRING_DESERIALIZER);
@@ -153,7 +153,7 @@ public class WindowingIntTest {
         + "WHERE ITEMID = 'ITEM_1' GROUP BY ITEMID;");
 
     final Map<Windowed<String>, GenericRow> expected = ImmutableMap.of(
-        new Windowed<>("ITEM_1", new TimeWindow(tenSecWindowStartMs, Long.MAX_VALUE)),
+        new Windowed<>("ITEM_1", new TimeWindow(tenSecWindowStartMs, tenSecWindowStartMs + TEN_SECONDS_WINDOW)),
         genericRow(2L, 20.0, 100.0)
     );
 
@@ -174,9 +174,9 @@ public class WindowingIntTest {
     final long secondWindowStart = firstWindowStart + TimeUnit.SECONDS.toMillis(5);
 
     final Map<Windowed<String>, GenericRow> expected = ImmutableMap.of(
-        new Windowed<>("ITEM_1", new TimeWindow(firstWindowStart, Long.MAX_VALUE)),
+        new Windowed<>("ITEM_1", new TimeWindow(firstWindowStart, firstWindowStart + TEN_SECONDS_WINDOW)),
         genericRow(2L, 20.0, 200.0),
-        new Windowed<>("ITEM_1", new TimeWindow(secondWindowStart, Long.MAX_VALUE)),
+        new Windowed<>("ITEM_1", new TimeWindow(secondWindowStart, secondWindowStart + TEN_SECONDS_WINDOW)),
         genericRow(2L, 20.0, 200.0)
     );
 

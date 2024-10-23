@@ -29,18 +29,25 @@ public final class ExpectedExceptionNode {
   private final Optional<String> type;
   private final Optional<String> message;
   private final Optional<String> cause;
+  private final Optional<String> causeMessage;
 
   ExpectedExceptionNode(
       @JsonProperty("type") final String type,
       @JsonProperty("message") final String message,
-      @JsonProperty("cause") final String cause
+      @JsonProperty("cause") final String cause,
+      @JsonProperty("causeMessage") final String causeMessage
   ) {
     this.type = Optional.ofNullable(type);
     this.message = Optional.ofNullable(message);
     this.cause = Optional.ofNullable(cause);
+    this.causeMessage = Optional.ofNullable(causeMessage);
 
     if (!this.type.isPresent() && !this.message.isPresent()) {
       throw new MissingFieldException("expectedException.type or expectedException.message");
+    }
+
+    if (this.causeMessage.isPresent() && !this.cause.isPresent()) {
+      throw new MissingFieldException("expectedException.cause");
     }
   }
 
@@ -53,6 +60,7 @@ public final class ExpectedExceptionNode {
 
     message.ifPresent(expectedException::expectMessage);
     cause.ifPresent(c -> expectedException.expectCause(instanceOf(parseThrowable(c))));
+    causeMessage.ifPresent(expectedException::expectCauseMessage);
     return expectedException.build();
   }
 

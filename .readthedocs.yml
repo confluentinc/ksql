@@ -23,13 +23,3 @@ build:
 python:
  install:
    - requirements: docs/requirements.txt
-
-# Add redirects to content on docs.confluent
-
-redirects:
-  - type: page
-    from_url: 'https://docs.ksqldb.io/en/latest/how-to-guides/convert-changelog-to-table/'
-    to_url: 'https://docs.confluent.io/platform/current/ksqldb/overview.html'
-  - type: page
-    from_url: 'https://docs.ksqldb.io/en/latest/how-to-guides/test-an-app/'
-    to_url: 'https://docs.confluent.io/platform/current/ksqldb/overview.html'

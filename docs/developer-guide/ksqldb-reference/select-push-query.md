@@ -6,6 +6,10 @@ description: Syntax for the SELECT statement in ksqlDB for push queries
 keywords: ksqlDB, select, push query
 ---
 
+<script type="text/javascript">
+        window.location = 'https://docs.confluent.io/platform/current/ksqldb/developer-guide/ksqldb-reference/select-push-query.html';
+</script>
+
 ## Synopsis
 
 ```sql

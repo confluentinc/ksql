@@ -6,6 +6,10 @@ description: Learn how to install ksqlDB on-premises
 keywords: ksql, install, docker, docker-compose, container, docker image, on-prem
 ---
 
+<script type="text/javascript">
+        window.location = 'https://docs.confluent.io/platform/current/ksqldb/operate-and-deploy/installation/installing.html';
+</script>
+
 ksqlDB and Docker containers
 ----------------------------
 

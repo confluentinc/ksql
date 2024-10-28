@@ -5,6 +5,10 @@ tagline: ksqlDB Capacity Planning
 description: Estimate of the computing resources required to run your ksqlDB queries.
 ---
 
+<script type="text/javascript">
+        window.location = 'https://docs.confluent.io/platform/current/ksqldb/operate-and-deploy/capacity-planning.html';
+</script>
+
 ksqlDB is a simple and powerful tool for building streaming applications
 on top of {{ site.aktm }}. This guide helps you plan for provisioning
 your ksqlDB deployment and answers these questions:

@@ -6,6 +6,10 @@ description: Learn how to tune your ksqlDb application's performance to achieve 
 keywords: performance, state store, persistent query, partition
 ---
 
+<script type="text/javascript">
+        window.location = 'https://docs.confluent.io/platform/current/ksqldb/operate-and-deploy/performance-guidelines.html';
+</script>
+
 One of the principal benefits of using ksqlDB for stream processing is that it
 enables you to define your workload declaratively. All ksqlDB stream processing
 logic is defined using SQL statements, which are internally transformed into

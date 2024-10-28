@@ -6,6 +6,10 @@ description: Details about SQL commands and statements in ksqlDB
 keywords: ksqldb, sql, keyword, identifier, constant, operator
 ---
 
+<script type="text/javascript">
+        window.location = 'https://docs.confluent.io/platform/current/ksqldb/reference/sql/syntax/lexical-structure.html';
+</script>
+
 SQL is a domain-specific language for managing and manipulating data. It’s
 used primarily to work with structured data, where the types and relationships
 across entities are well-defined. Originally adopted for relational databases,

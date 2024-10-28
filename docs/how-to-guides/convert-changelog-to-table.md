@@ -6,6 +6,10 @@ description: Use ksqlDB to create a view of a changelog that reflects only the l
 keywords: changelog, table, materialize
 ---
 
+<script type="text/javascript">
+        window.location = 'https://docs.confluent.io/platform/current/ksqldb/how-to-guides/convert-changelog-to-table.html';
+</script>
+
 # How to convert a changelog to a table
 
 ## Context

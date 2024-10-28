@@ -6,6 +6,10 @@ description: Learn to program ksqlDB to create streaming applications.
 keywords: ksqldb, api, reference, function, operator, metadata, connector, query
 ---
 
+<script type="text/javascript">
+        window.location = 'https://docs.confluent.io/platform/current/ksqldb/developer-guide/ksqldb-reference/index.html';
+</script>
+
 ## SQL Quick Reference
 
 - [SQL Quick Reference](quick-reference.md)

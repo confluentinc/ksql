@@ -6,6 +6,10 @@ description: Syntax for the SHOW STREAMS statement in ksqlDB
 keywords: ksqlDB, list, stream
 ---
 
+<script type="text/javascript">
+        window.location = 'https://docs.confluent.io/platform/current/ksqldb/developer-guide/ksqldb-reference/show-tables.html';
+</script>
+
 SHOW TABLES
 ===========
 

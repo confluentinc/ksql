@@ -6,6 +6,10 @@ description: Learn about ksqlDB, the database for creating stream processing app
 keywords: ksqldb
 ---
 
+<script type="text/javascript">
+        window.location = 'https://docs.confluent.io/platform/current/ksqldb/overview.html';
+</script>
+
 [ksqlDB](https://ksqldb.io/) is a database purpose-built
 for stream processing applications on top of {{ site.aktm }}.
 

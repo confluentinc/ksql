@@ -6,6 +6,10 @@ description: Settings for security ksqlDB
 keywords: ksqldb, confguration, security, acl, ssl, sasl, keystore, truststore
 ---
 
+<script type="text/javascript">
+        window.location = 'https://docs.confluent.io/platform/current/ksqldb/operate-and-deploy/installation/security.html';
+</script>
+
 ksqlDB supports several combinations of encryption and authentication on its
 client-facing and internal endpoints. ksqlDB also supports many of the security
 features of the other services it communicates with, like {{ site.aktm }} and

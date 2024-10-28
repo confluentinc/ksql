@@ -6,6 +6,10 @@ description: Understanding implicit and explicit type conversion.
 keywords: ksqldb, coercion, cast, types, type conversion
 ---
 
+<script type="text/javascript">
+        window.location = 'https://docs.confluent.io/platform/current/ksqldb/developer-guide/ksqldb-reference/type-coercion.html';
+</script>
+
 ksqlDB supports both implicit and explicit conversion between [SQL types](/reference/sql/data-types).
 Explicit conversion is supported by using the [`CAST` function](scalar-functions.md#cast), which
 supports a superset of the conversions that ksqlDB performs using implicit type

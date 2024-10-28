@@ -6,6 +6,10 @@ description: Assert the existence of a topic.
 keywords: ksqlDB, assert, topic
 ---
 
+<script type="text/javascript">
+        window.location = 'https://docs.confluent.io/platform/current/ksqldb/developer-guide/ksqldb-reference/assert-topic.html';
+</script>
+
 ## Synopsis
 
 ```sql

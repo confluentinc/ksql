@@ -5,6 +5,10 @@ tagline: When things don't behave as expected
 description: Check this list to troubleshoot ksqlDB issues
 ---
 
+<script type="text/javascript">
+        window.location = 'https://docs.confluent.io/platform/current/ksqldb/troubleshoot-ksql.html';
+</script>
+
 This guide contains troubleshooting information for many ksqlDB issues.
 
 SELECT query does not stop

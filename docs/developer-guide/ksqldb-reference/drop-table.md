@@ -6,6 +6,10 @@ description: Syntax for the DROP TABLE statement in ksqlDB
 keywords: ksqlDB, table, delete
 ---
 
+<script type="text/javascript">
+        window.location = 'https://docs.confluent.io/platform/current/ksqldb/developer-guide/ksqldb-reference/drop-table.html';
+</script>
+
 DROP TABLE
 ==========
 

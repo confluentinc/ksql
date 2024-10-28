@@ -6,6 +6,10 @@ description: Learn about processing events by using ksqlDB collections.
 keywords: ksqldb, collection, query
 ---
 
+<script type="text/javascript">
+        window.location = 'https://docs.confluent.io/platform/current/ksqldb/concepts/stream-processing.html';
+</script>
+
 ![Illustration of stream processing, showing input and output streams](../img/ksqldb-stream-processing-io.png)
 
 Creating a collection with an enforced schema over a new or existing

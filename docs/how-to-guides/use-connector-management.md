@@ -6,6 +6,10 @@ description: Use SQL syntax to create connectors in your ksqlDB application
 keywords: connector
 ---
 
+<script type="text/javascript">
+        window.location = 'https://docs.confluent.io/platform/current/ksqldb/how-to-guides/use-connector-management.html';
+</script>
+
 # How to use connector management
 
 ## Context

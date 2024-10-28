@@ -5,6 +5,10 @@ tagline: KSQL versus ksqlDB
 description: Key differences between KSQL and ksqlDB.
 ---
 
+<script type="text/javascript">
+        window.location = 'https://docs.confluent.io/platform/current/ksqldb/operate-and-deploy/ksql-vs-ksqldb.html';
+</script>
+
 !!! note
     For the purposes of this topic, "ksqlDB" refers to ksqlDB 0.6.0 and beyond,
     and "KSQL" refers to all previous releases of KSQL (5.3 and lower).

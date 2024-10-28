@@ -6,6 +6,10 @@ description: Extend ksqlDB to apply custom logic in your queries
 keywords: function, scalar, tabular, aggregation
 ---
 
+<script type="text/javascript">
+        window.location = 'https://docs.confluent.io/platform/current/ksqldb/how-to-guides/create-a-user-defined-function.html';
+</script>
+
 # How to create a user-defined function
 
 ## Context

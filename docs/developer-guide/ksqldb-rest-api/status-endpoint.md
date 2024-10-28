@@ -6,6 +6,10 @@ description: The `/status` resource returns the current state of statement execu
 keywords: ksqlDB, status, create, drop, terminate
 ---
 
+<script type="text/javascript">
+        window.location = 'https://docs.confluent.io/platform/current/ksqldb/developer-guide/ksqldb-rest-api/status-endpoint.html';
+</script>
+
 CREATE, DROP, and TERMINATE statements return an object that indicates
 the current state of statement execution. A statement can be in one of
 the following states:

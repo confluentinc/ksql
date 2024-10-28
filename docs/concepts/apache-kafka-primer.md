@@ -6,6 +6,10 @@ description: Learn the minimum number of Kafka concepts to use ksqlDB effectivel
 keywords: ksqldb, kafka
 ---
 
+<script type="text/javascript">
+        window.location = 'https://docs.confluent.io/platform/current/ksqldb/concepts/apache-kafka-primer.html';
+</script>
+
 ksqlDB is a database built specifically for stream processing on {{ site.aktm }}.
 Although it's designed to give you a higher-level set of primitives than
 {{ site.ak }} has, it's inevitable that all of {{ site.ak }}'s concepts can't be, and

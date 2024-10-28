@@ -6,6 +6,10 @@ description: Syntax for the INSERT VALUES statement in ksqlDB
 keywords: ksqlDB, insert value
 ---
 
+<script type="text/javascript">
+        window.location = 'https://docs.confluent.io/platform/current/ksqldb/developer-guide/ksqldb-reference/insert-values.html';
+</script>
+
 INSERT VALUES
 =============
 

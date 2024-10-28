@@ -6,6 +6,10 @@ description: Use ksqlDB to create an event-driven microservice that identifies s
 keywords: microservice
 ---
 
+<script type="text/javascript">
+        window.location = 'https://docs.confluent.io/platform/current/ksqldb/tutorials/event-driven-microservice.html';
+</script>
+
 # Event-driven microservice
 
 ## What is it?

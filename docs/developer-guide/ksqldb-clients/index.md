@@ -6,6 +6,10 @@ description: Send requests to ksqlDB with language-specific clients.
 keywords: ksqlDB, client
 ---
 
+<script type="text/javascript">
+        window.location = 'https://docs.confluent.io/platform/current/ksqldb/developer-guide/ksqldb/developer-guide/java-client/java-client.html';
+</script>
+
 The following official clients are available for use with ksqlDB:
 
 - [Java client](java-client.md)

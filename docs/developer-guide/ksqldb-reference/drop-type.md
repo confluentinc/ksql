@@ -6,6 +6,10 @@ description: Syntax for the DROP TYPE statement in ksqlDB
 keywords: ksqlDB, drop, type, alias, struct
 ---
 
+<script type="text/javascript">
+        window.location = 'https://docs.confluent.io/platform/current/ksqldb/developer-guide/ksqldb-reference/drop-type.html';
+</script>
+
 DROP TYPE
 =========
 

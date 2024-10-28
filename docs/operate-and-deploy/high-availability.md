@@ -5,6 +5,10 @@ tagline: Configure ksqlDB for high availability
 description: Learn about configuration settings for highly available ksqlDB queries 
 ---
 
+<script type="text/javascript">
+        window.location = 'https://docs.confluent.io/platform/current/ksqldb/operate-and-deploy/high-availability.html';
+</script>
+
 # High availability
 
 When you run pull queries, it’s often the case that you need your data to

@@ -6,6 +6,10 @@ description: The `/ksql/terminate` resource terminates the cluster and cleans up
 keywords: ksqlDB, terminate
 ---
 
+<script type="text/javascript">
+        window.location = 'https://docs.confluent.io/platform/current/ksqldb/developer-guide/ksqldb-rest-api/terminate-endpoint.html';
+</script>
+
 If you don't need your ksqlDB cluster anymore, you can terminate the
 cluster and clean up the resources using this endpoint. To terminate a
 ksqlDB cluster, first shut down all of the servers, except one. Then, send

@@ -6,6 +6,10 @@ description: Syntax for the INSERT INTO statement in ksqlDB
 keywords: ksqlDB, insert
 ---
 
+<script type="text/javascript">
+        window.location = 'https://docs.confluent.io/platform/current/ksqldb/developer-guide/ksqldb-reference/insert-into.html';
+</script>
+
 INSERT INTO
 ===========
 

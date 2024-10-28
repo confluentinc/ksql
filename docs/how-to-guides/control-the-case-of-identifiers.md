@@ -6,6 +6,10 @@ description: Use backticks to control the casing of ksqlDB stream name and colum
 keywords: case, identifier
 ---
 
+<script type="text/javascript">
+        window.location = 'https://docs.confluent.io/platform/current/ksqldb/how-to-guides/control-the-case-of-identifiers.html';
+</script>
+
 # How to control the case of identifiers
 
 ## Context

@@ -6,6 +6,10 @@ description: Quick reference for SQL statements and queries in ksqlDB
 keywords: ksqldb, sql, syntax, query, stream, table
 ---
 
+<script type="text/javascript">
+        window.location = 'https://docs.confluent.io/platform/current/ksqldb/developer-guide/ksqldb-reference/quick-reference.html';
+</script>
+
 For detailed descriptions of ksqlDB SQL statements and keywords, see the 
 [ksqlDB API reference](../../ksqldb-reference).
 

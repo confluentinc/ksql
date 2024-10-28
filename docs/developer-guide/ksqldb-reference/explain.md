@@ -6,6 +6,10 @@ description: Syntax for the EXPLAIN statement in ksqlDB
 keywords: ksqlDB, execution plan, expression, query, statement
 ---
 
+<script type="text/javascript">
+        window.location = 'https://docs.confluent.io/platform/current/ksqldb/developer-guide/ksqldb-reference/explain.html';
+</script>
+
 EXPLAIN
 =======
 

@@ -6,6 +6,10 @@ description: Enable metrics monitoring on ksqlDB Server
 keywords: metrics, monitor, jmx
 ---
 
+<script type="text/javascript">
+        window.location = 'https://docs.confluent.io/platform/current/ksqldb/operate-and-deploy/monitoring.html';
+</script>
+
 # Monitoring
 
 ## Context

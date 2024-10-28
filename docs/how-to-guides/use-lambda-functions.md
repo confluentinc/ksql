@@ -5,6 +5,11 @@ tagline: Transform columns of structured data without user-defined functions.
 description: ksqlDB can compose existing functions to create new expressions over structured data
 keywords: function, lambda, aggregation, user-defined function, ksqlDB  
 ---
+
+<script type="text/javascript">
+        window.location = 'https://docs.confluent.io/platform/current/ksqldb/how-to-guides/use-lambda-functions.html';
+</script>
+
 # Use lambda functions
 
 ## Context

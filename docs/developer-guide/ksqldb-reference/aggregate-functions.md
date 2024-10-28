@@ -6,6 +6,10 @@ description: Aggregate functions to use in SQL statements and queries
 keywords: ksqlDB, SQL, function, aggregate
 ---
 
+<script type="text/javascript">
+        window.location = 'https://docs.confluent.io/platform/current/ksqldb/developer-guide/ksqldb-reference/aggregate-functions.html';
+</script>
+
 !!! Important
     In an aggregation function, providing a `*` character or an empty argument
     list causes the function to return only the ROWTIME column. For example,
@@ -23,6 +27,10 @@ Returns the average value for `col1`.
     - [Build a dynamic pricing strategy](https://developer.confluent.io/tutorials/dynamic-pricing/confluent.html#execute-ksqldb-code)
 
 ---
+
+<script type="text/javascript">
+        window.location = 'https://docs.confluent.io/platform/current/ksqldb/developer-guide/ksqldb-reference/aggregate-functions.html#collect_list';
+</script>
 
 ## **`COLLECT_LIST`**
 

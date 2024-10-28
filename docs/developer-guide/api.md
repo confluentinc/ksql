@@ -5,6 +5,10 @@ tagline: Run queries over HTTP
 description: Learn how to communicate with ksqlDB by using HTTP
 ---
 
+<script type="text/javascript">
+        window.location = 'https://docs.confluent.io/platform/current/ksqldb/developer-guide/ksqldb-rest-api/rest-api-reference.html';
+</script>
+
 - [Execute a statement (/ksql endpoint)](ksqldb-rest-api/ksql-endpoint.md)
 - [Run a query (/query endpoint)](ksqldb-rest-api/query-endpoint.md)
 - [Run push and pull queries (/query-stream endpoint)](ksqldb-rest-api/streaming-endpoint.md)

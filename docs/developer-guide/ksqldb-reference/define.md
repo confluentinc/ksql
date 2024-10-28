@@ -6,6 +6,10 @@ description: Syntax for the DEFINE statement in ksqlDB
 keywords: variable, substitution, define
 ---
 
+<script type="text/javascript">
+        window.location = 'https://docs.confluent.io/platform/current/ksqldb/developer-guide/ksqldb-reference/define.html';
+</script>
+
 # DEFINE
 
 ## Synopsis

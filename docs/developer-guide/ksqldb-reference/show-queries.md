@@ -6,6 +6,10 @@ description: Syntax for the SHOW QUERIES statement in ksqlDB
 keywords: ksqlDB, list, query
 ---
 
+<script type="text/javascript">
+        window.location = 'https://docs.confluent.io/platform/current/ksqldb/developer-guide/ksqldb-reference/show-queries.html';
+</script>
+
 SHOW QUERIES
 ============
 

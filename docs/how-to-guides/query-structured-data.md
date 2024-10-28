@@ -6,6 +6,10 @@ description: Read the inner contents of structs, maps, and arrays in ksqlDB quer
 keywords: query, structured data, struct, array, map
 ---
 
+<script type="text/javascript">
+        window.location = 'https://docs.confluent.io/platform/current/ksqldb/how-to-guides/query-structured-data.html';
+</script>
+
 # How to query structured data
 
 ## Context

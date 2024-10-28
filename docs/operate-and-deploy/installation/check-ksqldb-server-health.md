@@ -6,6 +6,10 @@ description: Tips for ensuring that ksqlDB Server is well and healthy
 keywords: ksqldb, diagnostics, troubleshooting, health, jmx
 ---
 
+<script type="text/javascript">
+        window.location = 'https://docs.confluent.io/platform/current/ksqldb/operate-and-deploy/installation/check-ksqldb-server-health.html';
+</script>
+
 Check a ksqlDB Server from the ksqlDB CLI
 -----------------------------------------
 

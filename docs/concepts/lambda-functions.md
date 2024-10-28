@@ -4,6 +4,10 @@ title: Lambda Functions
 keywords: ksqldb, function, udf, lambda
 ---
 
+<script type="text/javascript">
+        window.location = 'https://docs.confluent.io/platform/current/ksqldb/concepts/lambda-functions.html';
+</script>
+
 # Lambda Functions
 
 Use lambda functions, or "lambdas" for short, to express simple inline functions that can be applied to input values in various ways.

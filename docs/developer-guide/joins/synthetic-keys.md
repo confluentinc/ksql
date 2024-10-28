@@ -6,6 +6,10 @@ description: Learn which joins result in synthetic key columns and how to work w
 keywords: ksqldb, join, key, rowkey
 ---
 
+<script type="text/javascript">
+        window.location = 'https://docs.confluent.io/platform/current/ksqldb/developer-guide/joins/synthetic-keys.html';
+</script>
+
 Some joins have a synthetic key column in their result. This is a column that does not come from any
 source. Here's an example to help explain what synthetic key columns are and why they are required:
 

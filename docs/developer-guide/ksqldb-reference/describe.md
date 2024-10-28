@@ -6,6 +6,10 @@ description: Syntax for the DESCRIBE statement in ksqlDB
 keywords: ksqlDB, describe stream, describe table, describe streams, describe tables, metadata
 ---
 
+<script type="text/javascript">
+        window.location = 'https://docs.confluent.io/platform/current/ksqldb/developer-guide/ksqldb-reference/describe.html';
+</script>
+
 DESCRIBE
 ========
 

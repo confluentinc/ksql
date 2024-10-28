@@ -6,6 +6,10 @@ description: Register a stream on a Kafka topic to enable SQL joins and aggregat
 keywords: ksqlDB, create, stream
 ---
 
+<script type="text/javascript">
+        window.location = 'https://docs.confluent.io/platform/current/ksqldb/developer-guide/ksqldb-reference/create-stream.html';
+</script>
+
 ## Synopsis
 
 ```sql

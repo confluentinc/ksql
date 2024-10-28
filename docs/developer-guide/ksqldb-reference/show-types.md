@@ -6,6 +6,10 @@ description: Syntax for the SHOW TYPES statement in ksqlDB
 keywords: ksqlDB, show, list, type, alias, struct
 ---
 
+<script type="text/javascript">
+        window.location = 'https://docs.confluent.io/platform/current/ksqldb/developer-guide/ksqldb-reference/show-types.html';
+</script>
+
 SHOW TYPES
 ==========
 

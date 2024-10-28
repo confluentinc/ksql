@@ -6,6 +6,10 @@ description: Tables listing all valid keywords and operators in ksqlDB SQL
 keywords: ksqldb, sql, keyword, operators
 ---
 
+<script type="text/javascript">
+        window.location = 'https://docs.confluent.io/platform/current/ksqldb/reference/sql/keywords-and-operators.html';
+</script>
+
 ## Keywords
 
 The following table shows all keywords in the language.

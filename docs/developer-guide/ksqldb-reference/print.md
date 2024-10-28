@@ -6,6 +6,10 @@ description: Syntax for the PRINT statement in ksqlDB
 keywords: ksqlDB, print, topic
 ---
 
+<script type="text/javascript">
+        window.location = 'https://docs.confluent.io/platform/current/ksqldb/developer-guide/ksqldb-reference/print.html';
+</script>
+
 PRINT 
 =====
 

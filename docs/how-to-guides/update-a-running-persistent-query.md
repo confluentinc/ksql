@@ -6,6 +6,10 @@ description: Change a running ksqlDB query and start processing rows where the o
 keywords: persistent query, upgrade
 ---
 
+<script type="text/javascript">
+        window.location = 'https://docs.confluent.io/platform/current/ksqldb/how-to-guides/update-a-running-persistent-query.html';
+</script>
+
 # How to update a running persistent query
 
 ## Context

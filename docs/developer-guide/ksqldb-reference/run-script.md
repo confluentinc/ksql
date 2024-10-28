@@ -6,6 +6,10 @@ description: Syntax for the RUN SCRIPT statement in ksqlDB
 keywords: ksqlDB, query, end, stop
 ---
 
+<script type="text/javascript">
+        window.location = 'https://docs.confluent.io/platform/current/ksqldb/developer-guide/ksqldb-reference/run-script.html';
+</script>
+
 RUN SCRIPT
 ==========
 

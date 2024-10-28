@@ -5,6 +5,10 @@ tagline: Detailed settings reference
 description: Learn about the configuration settings you can use to set up ksqlDB
 ---
 
+<script type="text/javascript">
+        window.location = 'https://docs.confluent.io/platform/current/ksqldb/operate-and-deploy/installation/server-config.html';
+</script>
+
 - [Configure Security for ksqlDB](security.md)
 - [ksqlDB Configuration Parameter Reference](/reference/server-configuration)
 - [Configure ksqlDB for Avro, Protobuf, and JSON schemas](avro-schema.md)

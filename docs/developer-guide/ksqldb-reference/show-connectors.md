@@ -6,6 +6,10 @@ description: Syntax for the SHOW CONNECTORS statement in ksqlDB
 keywords: ksqlDB, show, list, connector, connect
 ---
 
+<script type="text/javascript">
+        window.location = 'https://docs.confluent.io/platform/current/ksqldb/developer-guide/ksqldb-reference/show-connectors.html';
+</script>
+
 SHOW CONNECTORS
 ===============
 

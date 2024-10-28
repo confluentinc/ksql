@@ -6,6 +6,10 @@ description: Assert the existence of a schema.
 keywords: ksqlDB, assert, schema
 ---
 
+<script type="text/javascript">
+        window.location = 'https://docs.confluent.io/platform/current/ksqldb/developer-guide/ksqldb-reference/assert-schema.html';
+</script>
+
 ## Synopsis
 
 ```sql

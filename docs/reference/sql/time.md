@@ -6,6 +6,10 @@ description: Use built-in formats for time-based operations, like windowing, in 
 keywords: time, datetime, timestamp, format, window
 ---
 
+<script type="text/javascript">
+        window.location = 'https://docs.confluent.io/platform/current/ksqldb/reference/sql/time.html';
+</script>
+
 ### Time units
 
 The following list shows valid time units for the `SIZE`, `ADVANCE BY`,

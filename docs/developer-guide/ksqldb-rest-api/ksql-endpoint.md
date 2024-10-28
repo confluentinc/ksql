@@ -6,6 +6,10 @@ description: Use the `/ksql` resource to run a sequence of ksqlDB statements
 keywords: ksqldb
 ---
 
+<script type="text/javascript">
+        window.location = 'https://docs.confluent.io/platform/current/ksqldb/developer-guide/ksqldb-rest-api/ksql-endpoint.html';
+</script>
+
 The `/ksql` resource runs a sequence of SQL statements. All statements,
 except those starting with SELECT and PRINT, can be run on this endpoint. To run
 SELECT and PRINT statements use the `/query` endpoint.

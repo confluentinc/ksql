@@ -6,6 +6,10 @@ description: Lists changes to the ksqlDB codebase
 keywords: ksqldb, changelog
 ---
 
+<script type="text/javascript">
+        window.location = 'https://docs.confluent.io/platform/current/ksqldb/operate-and-deploy/changelog.html';
+</script>
+
 Version 0.29.0
 --------------
 

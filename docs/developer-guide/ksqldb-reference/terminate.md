@@ -6,6 +6,10 @@ description: Syntax for the TERMINATE statement in ksqlDB
 keywords: ksqlDB, query, end, stop
 ---
 
+<script type="text/javascript">
+        window.location = 'https://docs.confluent.io/platform/current/ksqldb/developer-guide/ksqldb-reference/terminate.html';
+</script>
+
 TERMINATE
 =========
 

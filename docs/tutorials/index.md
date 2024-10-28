@@ -6,6 +6,10 @@ description: Learn how to create ksqlDB applications
 keywords: ksqldb, query, application, quickstart, tutorial, walkthrough, how to
 ---
 
+<script type="text/javascript">
+        window.location = 'https://docs.confluent.io/platform/current/ksqldb/tutorials/index.html';
+</script>
+
 Get up and running by trying these end-to-end examples of specific use cases.
 
 <div class="cards">

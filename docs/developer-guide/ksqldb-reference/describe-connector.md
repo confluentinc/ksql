@@ -6,6 +6,10 @@ description: Syntax for the DESCRIBE CONNECTOR statement in ksqlDB
 keywords: ksqlDB, describe, connector, connect
 ---
 
+<script type="text/javascript">
+        window.location = 'https://docs.confluent.io/platform/current/ksqldb/developer-guide/ksqldb-reference/describe-connector.html';
+</script>
+
 DESCRIBE CONNECTOR
 ==================
 

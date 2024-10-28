@@ -6,6 +6,10 @@ description: Contribute a new ksqlDB client for your favorite language.
 keywords: ksqlDB, client
 ---
 
+<script type="text/javascript">
+        window.location = 'https://docs.confluent.io/platform/current/ksqldb/developer-guide/java-client/java-client.html';
+</script>
+
 If you're interested in using ksqlDB from a programming language we don't yet support, we've created
 this guide to make it easy to add your own [ksqlDB client](index.md).
 If you'd like to contribute your client to the main ksqlDB project, see [below](#contributing-your-client-to-the-main-ksqldb-repository). 

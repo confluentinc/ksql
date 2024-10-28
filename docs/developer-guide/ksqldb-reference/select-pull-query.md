@@ -6,6 +6,10 @@ description: Syntax for the SELECT statement in ksqlDB for pull queries
 keywords: ksqlDB, select, pull query
 ---
 
+<script type="text/javascript">
+        window.location = 'https://docs.confluent.io/platform/current/ksqldb/developer-guide/ksqldb-reference/select-pull-query.html';
+</script>
+
 ## Synopsis
 
 ```sql

@@ -5,6 +5,11 @@ tagline: JMX metrics for monitoring ksqlDB
 description: ksqlDB has many JMX metrics to monitor what its servers are doing 
 keywords: metrics, jmx, monitor
 ---
+
+<script type="text/javascript">
+        window.location = 'https://docs.confluent.io/platform/current/ksqldb/reference/metrics.html';
+</script>
+
 # Metrics
 
 ksqlDB emits a variety of JMX metrics to help you understand and

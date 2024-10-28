@@ -6,6 +6,10 @@ description: Learn about ksqlDB under the hood.
 keywords: ksqldb, architecture, collection, query, schema, window, view
 ---
 
+<script type="text/javascript">
+        window.location = 'https://docs.confluent.io/platform/current/ksqldb/concepts/index.html';
+</script>
+
 Learn the core concepts that ksqlDB is built around.
 
 <div class="cards">

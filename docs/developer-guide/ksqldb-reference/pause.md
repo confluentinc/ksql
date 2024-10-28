@@ -6,6 +6,10 @@ description: Syntax for the PAUSE statement in ksqlDB
 keywords: ksqlDB, query, pause
 ---
 
+<script type="text/javascript">
+        window.location = 'https://docs.confluent.io/platform/current/ksqldb/developer-guide/ksqldb-reference/pause.html';
+</script>
+
 PAUSE
 =========
 

@@ -6,6 +6,10 @@ description: Learn how to use variables in SQL statements
 keywords: variable, substitution, define
 ---
 
+<script type="text/javascript">
+        window.location = 'https://docs.confluent.io/platform/current/ksqldb/how-to-guides/substitute-variables.html';
+</script>
+
 ## Context
 
 You have a set of SQL statements, and you want to vary the exact content depending on where you use them. To do that, ksqlDB supports *variables* so that you can supply different values.

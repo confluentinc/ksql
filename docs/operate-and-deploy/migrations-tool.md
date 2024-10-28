@@ -5,6 +5,10 @@ tagline: Manage ksqlDB Metadata Schemas
 description: Manage your ksqlDB metadata schemas including streams, tables, and queries.
 ---
 
+<script type="text/javascript">
+        window.location = 'https://docs.confluent.io/platform/current/ksqldb/operate-and-deploy/migrations-tool.html';
+</script>
+
 Use the `ksql-migrations` tool to manage metadata schemas for your ksqlDB clusters
 by applying statements from *migration files* to your ksqlDB clusters.
 This enables you to keep your SQL statements for creating streams, tables, and queries

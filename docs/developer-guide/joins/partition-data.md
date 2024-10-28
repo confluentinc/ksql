@@ -6,6 +6,10 @@ description: Learn how to partition topics correctly to enable join queries.
 keywords: ksqldb, join, partition, key, schema 
 ---
 
+<script type="text/javascript">
+        window.location = 'https://docs.confluent.io/platform/current/ksqldb/developer-guide/joins/partition-data.html';
+</script>
+
 When you use ksqlDB to join streaming data, you must ensure that your
 streams and tables are *co-partitioned*, which means that input records
 on both sides of the join have the same configuration settings for

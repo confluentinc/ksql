@@ -5,6 +5,10 @@ tagline: ksqlDB High Availability Pull Queries
 description: Configure high availability pull queries in ksqlDB
 ---
 
+<script type="text/javascript">
+        window.location = 'https://docs.confluent.io/platform/current/ksqldb/operate-and-deploy/high-availability-pull-queries.html';
+</script>
+
 ## High Availability configuration reference
 
 The following list shows the required configs for using high availability (HA).

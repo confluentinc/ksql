@@ -6,6 +6,10 @@ description: Use ksqlDB to create a streaming ETL pipeline that ingests and join
 keywords: etl, streaming data pipeline, join
 ---
 
+<script type="text/javascript">
+        window.location = 'https://docs.confluent.io/platform/current/ksqldb/tutorials/etl.html';
+</script>
+
 # Streaming ETL pipeline
 
 ## What is it?

@@ -6,6 +6,9 @@ description: Learn about aggregation and materialized views in ksqlDB.
 keywords: ksqldb, query, select, aggregate, materialized view, changelog, redo log, table
 ---
 
+<script type="text/javascript">
+        window.location = 'https://docs.confluent.io/platform/current/ksqldb/concepts/materialized-views.html';
+</script>
 In any database, one of the main purposes of a table is to enable efficient
 queries over the data. ksqlDB stores events immutably in {{ site.aktm }} by
 using a simple key/value model. But how can queries be made efficient under

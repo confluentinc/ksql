@@ -6,6 +6,10 @@ description: Learn about at-least-once, exactly-once semantics in ksqlDB
 keywords: ksqldb, processing, eos, at-least-once, exactly-once
 ---
 
+<script type="text/javascript">
+        window.location = 'https://docs.confluent.io/platform/current/ksqldb/operate-and-deploy/processing-guarantees.html';
+</script>
+
 ksqlDB supports *at-least-once* and *exactly-once* processing guarantees.
 
 At-least-once semantics

@@ -6,6 +6,10 @@ description: Get DEBUG and INFO output from ksqlDB Server
 keywords: log, logging, appender
 ---
 
+<script type="text/javascript">
+        window.location = 'https://docs.confluent.io/platform/current/ksqldb/operate-and-deploy/logging.html';
+</script>
+
 # Logging
 
 To get `DEBUG` or `INFO` output from ksqlDB Server, configure a {{ site.ak }}

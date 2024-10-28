@@ -6,6 +6,10 @@ description: Reference material for all aspects of using ksqlDB.
 keywords: ksqldb, sql, syntax, query, api
 ---
 
+<script type="text/javascript">
+        window.location = 'https://docs.confluent.io/platform/current/ksqldb/reference/index.html';
+</script>
+
 Look up critical information quickly as you use the project.
 
 <div class="cards">

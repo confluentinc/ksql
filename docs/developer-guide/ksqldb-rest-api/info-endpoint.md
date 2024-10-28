@@ -6,6 +6,10 @@ description: The `/info` resource gives you the status of a ksqlDB server
 keywords: ksqldb, server, status, info, terminate
 ---
 
+<script type="text/javascript">
+        window.location = 'https://docs.confluent.io/platform/current/ksqldb/developer-guide/ksqldb-rest-api/info-endpoint.html';
+</script>
+
 The `/info` resource gives you information about the status of a ksqlDB
 Server, which can be useful for health checks and troubleshooting. You
 can use the `curl` command to query the `/info` endpoint:

@@ -6,6 +6,10 @@ description: Syntax for the SHOW FUNCTIONS statement in ksqlDB
 keywords: ksqlDB, function
 ---
 
+<script type="text/javascript">
+        window.location = 'https://docs.confluent.io/platform/current/ksqldb/developer-guide/ksqldb-reference/show-functions.html';
+</script>
+
 SHOW FUNCTIONS
 ==============
 

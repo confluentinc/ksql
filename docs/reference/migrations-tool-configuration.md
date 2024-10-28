@@ -5,6 +5,10 @@ tagline: Configure the ksqlDB Migrations Tool
 description: Parameters for Configuring the ksqlDB Migrations Tool
 ---
 
+<script type="text/javascript">
+        window.location = 'https://docs.confluent.io/platform/current/ksqldb/reference/migrations-tool-configuration.html';
+</script>
+
 The [`ksql-migrations` tool](../operate-and-deploy/migrations-tool.md) 
 enables you to manage metadata schemas for your ksqlDB clusters by applying 
 statements saved in local *migration files* to your ksqlDB clusters. 

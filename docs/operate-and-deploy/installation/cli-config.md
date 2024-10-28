@@ -6,6 +6,10 @@ description: Learn how to connect the ksqlDB CLI to a ksqlDB Server cluster
 keywords: ksqldb, cli, console, terminal
 ---
 
+<script type="text/javascript">
+        window.location = 'https://docs.confluent.io/platform/current/ksqldb/operate-and-deploy/installation/cli-config.html';
+</script>
+
 You can connect the ksqlDB CLI to one ksqlDB server per cluster.
 
 !!! important

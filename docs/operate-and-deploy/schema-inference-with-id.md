@@ -6,6 +6,10 @@ description: ksqlDB integrates with Confluent Schema Registry to read and write 
 keywords: ksqlDB, serialization, schema, schema registry, json, avro, delimited, KEY_SCHEMA_ID, VALUE_SCHEMA_ID
 ---
 
+<script type="text/javascript">
+        window.location = 'https://docs.confluent.io/platform/current/ksqldb/operate-and-deploy/schema-inference-with-id.html';
+</script>
+
 For supported [serialization formats](/reference/serialization), ksqlDB can use 
 [schema inference](/operate-and-deploy/schema-registry-integration)
 to retrieve (read) and register (write) schemas as needed. If you specify a

@@ -6,6 +6,10 @@ description: Test your SQL statements in ksqlDB without the need for a full Kafk
 keywords: testing, qa, quality assurance, test runner
 ---
 
+<script type="text/javascript">
+        window.location = 'https://docs.confluent.io/platform/current/ksqldb/how-to-guides/test-an-app.html';
+</script>
+
 # How to test an application
 
 !!! important

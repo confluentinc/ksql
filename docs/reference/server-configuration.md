@@ -6,6 +6,10 @@ description: Parameters for Configuring ksqlDB Server
 keywords: ksqldb, configure, server, setup, install
 ---
 
+<script type="text/javascript">
+        window.location = 'https://docs.confluent.io/platform/current/ksqldb/reference/server-configuration.html';
+</script>
+
 # Server configuration
 
 These configuration parameters control the general behavior of ksqlDB server.

@@ -6,6 +6,10 @@ description: Overview of data types in ksqlDB
 keywords: ksqldb, sql, syntax, data type
 ---
 
+<script type="text/javascript">
+        window.location = 'https://docs.confluent.io/platform/current/ksqldb/reference/sql/data-types.html';
+</script>
+
 ## Boolean types
 
 | name      | description                          | backing Java type

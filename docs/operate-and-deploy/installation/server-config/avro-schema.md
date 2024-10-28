@@ -6,6 +6,10 @@ description: Learn how integrate ksqlDB with Confluent Schema Registry
 keywords: ksqldb, schema, avro, protobuf, json, json_sr
 ---
 
+<script type="text/javascript">
+        window.location = 'https://docs.confluent.io/platform/current/ksqldb/operate-and-deploy/installation/avro-schema.html';
+</script>
+
 For supported [serialization formats](/reference/serialization),
 ksqlDB can integrate with [Confluent Schema Registry](https://docs.confluent.io/current/schema-registry/index.html).
 ksqlDB automatically retrieves (reads) and registers (writes) schemas as needed,

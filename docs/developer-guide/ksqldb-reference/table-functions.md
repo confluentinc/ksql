@@ -6,6 +6,10 @@ description: Learn how to use table function in a SELECT clause
 keywords: ksqldb, SQL, table, function, select
 ---
 
+<script type="text/javascript">
+        window.location = 'https://docs.confluent.io/platform/current/ksqldb/developer-guide/ksqldb-reference/table-functions.html';
+</script>
+
 ## Synopsis
 
 A table function is a function that returns a set of zero or more rows.
@@ -134,6 +138,7 @@ The `CUBE_EXPLODE` function produces the following output:
 ```
 
 ---
+
 
 ### **`EXPLODE`**
 

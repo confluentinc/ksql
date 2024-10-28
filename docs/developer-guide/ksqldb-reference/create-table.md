@@ -6,6 +6,10 @@ description: Register a table on a Kafka topic to enable SQL joins and aggregati
 keywords: ksqlDB, create, table
 ---
 
+<script type="text/javascript">
+        window.location = 'https://docs.confluent.io/platform/current/ksqldb/developer-guide/ksqldb-reference/create-table.html';
+</script>
+
 ## Synopsis
 
 ```sql

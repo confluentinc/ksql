@@ -6,6 +6,10 @@ description: Extend ksqlDB's suite of built-in functions using Java hooks
 keywords: function, aggregation, table 
 ---
 
+<script type="text/javascript">
+        window.location = 'https://docs.confluent.io/platform/current/ksqldb/reference/user-defined-functions.html';
+</script>
+
 [User-defined functions](/concepts/functions) enable you to extend ksqlDB's
 suite of built-in functions using Java hooks. This section is a reference for
 how they work. Use [the how-to guide](/how-to-guides/create-a-user-defined-function)

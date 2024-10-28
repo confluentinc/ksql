@@ -5,6 +5,10 @@ tagline: Merge event streams in real time
 description: Learn how to use ksqlDB to merge streams of events in real time.
 ---
 
+<script type="text/javascript">
+        window.location = 'https://docs.confluent.io/platform/current/ksqldb/developer-guide/joins/join-streams-and-tables.html';
+</script>
+
 You can use ksqlDB to merge streams of events in real time by using the JOIN
 statement, which has a SQL join syntax. A ksqlDB join and a relational
 database join are similar in that they both combine data from two or more sources

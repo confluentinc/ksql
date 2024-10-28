@@ -6,6 +6,10 @@ description: Syntax for the SPOOL statement in ksqlDB
 keywords: ksqlDB, command, file
 ---
 
+<script type="text/javascript">
+        window.location = 'https://docs.confluent.io/platform/current/ksqldb/developer-guide/ksqldb-reference/spool.html';
+</script>
+
 SPOOL
 =====
 

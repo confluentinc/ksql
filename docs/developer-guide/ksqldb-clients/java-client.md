@@ -6,6 +6,10 @@ description: Send requests to ksqlDB from your Java app
 keywords: ksqlDB, java, client
 ---
 
+<script type="text/javascript">
+        window.location = 'https://docs.confluent.io/platform/current/ksqldb/developer-guide/java-client/java-client.html';
+</script>
+
 ksqlDB ships with a lightweight Java client that enables sending requests easily to a ksqlDB server
 from within your Java application, as an alternative to using the [REST API](../api.md).
 The client supports pull and push queries; inserting new rows of data into existing ksqlDB streams;

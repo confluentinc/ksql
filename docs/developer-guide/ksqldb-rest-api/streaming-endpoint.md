@@ -6,6 +6,10 @@ description: The HTTP Streaming API lets you execute pull or push queries and st
 keywords: ksqlDB, query, insert, select
 ---
 
+<script type="text/javascript">
+        window.location = 'https://docs.confluent.io/platform/current/ksqldb/developer-guide/ksqldb-rest-api/streaming-endpoint.html';
+</script>
+
 !!! note
 
     - These endpoints are used by the ksqlDB Java client. If you are using Java you might want

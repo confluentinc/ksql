@@ -6,6 +6,10 @@ description: Learn about events and stream processing in ksqlDB.
 keywords: ksqldb, event, stream
 ---
 
+<script type="text/javascript">
+        window.location = 'https://docs.confluent.io/platform/current/ksqldb/concepts/events.html';
+</script>
+
 What is an event?
 -----------------
 

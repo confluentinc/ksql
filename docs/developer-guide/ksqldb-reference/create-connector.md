@@ -6,6 +6,10 @@ description: Syntax for the CREATE CONNECTOR statement in ksqlDB
 keywords: ksqlDB, create, connector, connect
 ---
 
+<script type="text/javascript">
+        window.location = 'https://docs.confluent.io/platform/current/ksqldb/developer-guide/ksqldb-reference/create-connector.html';
+</script>
+
 CREATE CONNECTOR
 ================
 

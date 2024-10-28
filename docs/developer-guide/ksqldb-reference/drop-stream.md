@@ -6,6 +6,10 @@ description: Syntax for the DROP STREAM statement in ksqlDB
 keywords: ksqlDB, stream, delete
 ---
 
+<script type="text/javascript">
+        window.location = 'https://docs.confluent.io/platform/current/ksqldb/developer-guide/ksqldb-reference/drop-stream.html';
+</script>
+
 DROP STREAM
 ===========
 

@@ -56,6 +56,7 @@ public final class ConnectExecutable implements Executable {
   public void startAsync() {
     try {
       connect = connectDistributed.startConnect(workerProps);
+      Thread.currentThread().setContextClassLoader(this.getClass().getClassLoader());
     } catch (final ConnectException e) {
       if (e.getCause() instanceof IOException && e.getCause().getCause() instanceof BindException) {
         LOG.warn("Cannot start a local connect instance because connect is running locally!", e);

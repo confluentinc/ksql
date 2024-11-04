@@ -1,0 +1,117 @@
+# Docker compose for bringing up a local ksqlDB cluster and dependencies.
+#
+# By default, the cluster has two ksqlDB servers. You can scale the number of ksqlDB nodes in the
+# cluster by using the docker `--scale` command line arg.
+#
+# e.g. for a 4 node cluster run:
+# > docker-compose up --scale additional-ksqldb-server=3
+#
+# or a 1 node cluster run:
+# > docker-compose up --scale additional-ksqldb-server=0
+#
+# The default is one `primary-ksqldb-server` and one `additional-ksqdb-server`. The only
+# difference is that the primary node has a well-known port exposed so clients can connect, where
+# as the additional nodes use auto-port assignment so that ports don't clash.
+#
+# If you wish to run with locally built ksqlDB docker images then:
+#
+# 1. Follow the steps in https://github.com/confluentinc/ksql/blob/master/ksqldb-docker/README.md
+# to build a ksqlDB docker image with local changes.
+#
+# 2. Update .env file to use your local images by setting KSQL_IMAGE_BASE=placeholder/ and KSQL_VERSION=local.build.
+
+---
+services:
+  zookeeper:
+    image: confluentinc/cp-zookeeper:${CP_VERSION}
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 32181
+      ZOOKEEPER_TICK_TIME: 2000
+
+  kafka:
+    image: confluentinc/cp-enterprise-kafka:${CP_VERSION}
+    ports:
+      - "29092:29092"
+    depends_on:
+      - zookeeper
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:32181
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 100
+
+  schema-registry:
+    image: confluentinc/cp-schema-registry:${CP_VERSION}
+    ports:
+      - "8081:8081"
+    depends_on:
+      - zookeeper
+      - kafka
+    environment:
+      SCHEMA_REGISTRY_HOST_NAME: schema-registry
+      SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: PLAINTEXT://kafka:9092
+
+
+#  primary-ksqldb-server:
+#    image: placeholder/confluentinc/ksqldb-docker:local.build
+#    hostname: primary-ksqldb-server
+#    container_name: primary-ksqldb-server
+#    depends_on:
+#      - kafka
+#      - schema-registry
+#    ports:
+#      - "8088:8088"
+#      - "5005:5005"
+#    volumes:
+#      - "./confluentinc-kafka-connect-datagen-0.6.5:/usr/share/kafka/plugins"
+#    environment:
+#      KSQL_DEBUG: "true"
+#      KSQL_JAVA_DEBUG_OPTS: '-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005'
+#      KSQL_LISTENERS: http://0.0.0.0:8088
+#      KSQL_BOOTSTRAP_SERVERS: kafka:9092
+#      KSQL_KSQL_SCHEMA_REGISTRY_URL: http://schema-registry:8081
+#      KSQL_KSQL_LOGGING_PROCESSING_STREAM_AUTO_CREATE: "true"
+#      KSQL_KSQL_LOGGING_PROCESSING_TOPIC_AUTO_CREATE: "true"
+#      KSQL_CONNECT_GROUP_ID: "ksql-connect-cluster"
+#      KSQL_CONNECT_BOOTSTRAP_SERVERS: "kafka:9092"
+#      KSQL_CONNECT_KEY_CONVERTER: "org.apache.kafka.connect.storage.StringConverter"
+#      KSQL_CONNECT_VALUE_CONVERTER: "io.confluent.connect.avro.AvroConverter"
+#      KSQL_CONNECT_KEY_CONVERTER_SCHEMA_REGISTRY_URL: "http://schema-registry:8081"
+#      KSQL_CONNECT_VALUE_CONVERTER_SCHEMA_REGISTRY_URL: "http://schema-registry:8081"
+#      KSQL_CONNECT_VALUE_CONVERTER_SCHEMAS_ENABLE: "false"
+#      KSQL_CONNECT_CONFIG_STORAGE_TOPIC: "ksql-connect-configs"
+#      KSQL_CONNECT_OFFSET_STORAGE_TOPIC: "ksql-connect-offsets"
+#      KSQL_CONNECT_STATUS_STORAGE_TOPIC: "ksql-connect-statuses"
+#      KSQL_CONNECT_CONFIG_STORAGE_REPLICATION_FACTOR: 1
+#      KSQL_CONNECT_OFFSET_STORAGE_REPLICATION_FACTOR: 1
+#      KSQL_CONNECT_STATUS_STORAGE_REPLICATION_FACTOR: 1
+#      KSQL_CONNECT_PLUGIN_PATH: "/usr/share/kafka/plugins"
+#      KSQL_KSQL_QUERY_INTERPRETED: "true"
+
+  #  additional-ksqldb-server:
+#    image: ${KSQL_IMAGE_BASE}confluentinc/ksqldb-server:${KSQL_VERSION}
+#    hostname: additional-ksqldb-server
+#    depends_on:
+#      - primary-ksqldb-server
+#    ports:
+#      - "8090"
+#    environment:
+#      KSQL_LISTENERS: http://0.0.0.0:8090
+#      KSQL_BOOTSTRAP_SERVERS: kafka:9092
+#      KSQL_KSQL_SCHEMA_REGISTRY_URL: http://schema-registry:8081
+
+  # Access the cli by running:
+  # > docker-compose exec ksqldb-cli  ksql http://primary-ksqldb-server:8088
+#  ksqldb-cli:
+#    image: placeholder/confluentinc/ksqldb-docker:local.build
+#    container_name: ksqldb-cli
+#    depends_on:
+#      - primary-ksqldb-server
+#    entrypoint: /bin/sh
+#    tty: true
+

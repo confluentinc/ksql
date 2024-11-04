@@ -1,88 +1,116 @@
-site_name: ksqlDB
+site_name: ksqlDB Documentation
 site_url: https://docs.ksqldb.io/en/latest/
 site_description: ksqlDB documentation
 site_author: Confluent
-copyright: Copyright &copy; 2020 <a href="https://www.confluent.io/">Confluent</a>.
-
 repo_name: confluentinc/ksql
 repo_url: https://github.com/confluentinc/ksql
 edit_uri: ""
 docs_dir: docs
 
 theme:
-    name: material    
+    name: material
     favicon: img/favicon.ico # should match asset for main ksqldb.io site
     logo: img/logo.png # should match asset for main ksqldb.io site
+    custom_dir: docs/overrides
     features:
-      - tabs
+      - navigation.tabs
 
 extra_css:
   - stylesheets/extra.css
+  - https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.10.2/css/all.min.css
 
 extra_javascript:
-  - js/extra.js
+  # - js/extra.js
   - js/analytics.js
 
 nav:
-  - Overview: index.md
-  - Getting started: quickstart.md # links to Derek's quickstart at ksqldb.io
+  - Getting started:
+    - Synopsis: index.md
+    - Troubleshooting: troubleshoot-ksqldb.md
+    - Frequently asked questions: faq.md
   - Concepts:
-    - Concepts: concepts/index.md
+    - Synopsis: concepts/index.md
     - Events: concepts/events.md
-    - Collections:
-      - Collections Overview: concepts/collections/index.md
-      - Streams: concepts/collections/streams.md
-      - Tables: concepts/collections/tables.md
-      - Inserting events: concepts/collections/inserting-events.md
     - Stream Processing: concepts/stream-processing.md
     - Materialized Views: concepts/materialized-views.md
-    - Queries:
-      - Queries Overview: concepts/queries/index.md
-      - Push Queries: concepts/queries/push.md
-      - Pull Queries: concepts/queries/pull.md
-    - Schemas: concepts/schemas.md
-    - Connectors: concepts/connectors.md
-    - Functions: concepts/functions.md
+    - Streams: concepts/streams.md
+    - Tables: concepts/tables.md
+    - Queries: concepts/queries.md
     - Joins:
       - Join Index: developer-guide/joins/index.md
       - Joining collections: developer-guide/joins/join-streams-and-tables.md
       - Partitioning requirements: developer-guide/joins/partition-data.md
       - Synthetic key columns: developer-guide/joins/synthetic-keys.md
-    - Architecture: concepts/ksqldb-architecture.md
     - Time and Windows: concepts/time-and-windows-in-ksqldb-queries.md
-    - Serialization: developer-guide/serialization.md
-    - Processing Guarantees: concepts/processing-guarantees.md
-    - Relationship to Kafka Streams: concepts/ksqldb-and-kafka-streams.md
-  - Developer Guide:
-    - Develop ksqlDB Applications: developer-guide/index.md
-    - Develop with ksqlDB clients: developer-guide/ksqldb-clients/index.md
-    - Create a Stream: developer-guide/create-a-stream.md
-    - Create a Table: developer-guide/create-a-table.md
-    - Aggregate Streaming Events: developer-guide/aggregate-streaming-data.md
-    - Transform a Stream: developer-guide/transform-a-stream-with-ksqldb.md
-    - Example Queries: tutorials/examples.md
-    - Test and Debug:
-      - Test and Debug Index: developer-guide/test-and-debug/index.md
-      - Test harness: developer-guide/test-and-debug/ksqldb-testing-tool.md
-      - Generate test data: developer-guide/test-and-debug/generate-custom-test-data.md
-      - Processing log: developer-guide/test-and-debug/processing-log.md
+    - User-defined functions: concepts/functions.md
+    - Connectors: concepts/connectors.md
+    - Lambda Functions: concepts/lambda-functions.md
+    - Apache Kafka primer: concepts/apache-kafka-primer.md
   - How-to guides:
       - Synopsis: how-to-guides/index.md
       - Query structured data: how-to-guides/query-structured-data.md
       - Convert a changelog to a table: how-to-guides/convert-changelog-to-table.md
-      - Use a custom timestamp column: how-to-guides/use-a-custom-timestamp-column.md
+      - Update a running persistent query: how-to-guides/update-a-running-persistent-query.md
       - Use connector management: how-to-guides/use-connector-management.md
       - Create a user-defined function: how-to-guides/create-a-user-defined-function.md
+      - Control the case of identifiers: how-to-guides/control-the-case-of-identifiers.md
+      - Use a custom timestamp column: how-to-guides/use-a-custom-timestamp-column.md
+      - Test an application: how-to-guides/test-an-app.md
+      - Substitute variables: how-to-guides/substitute-variables.md
+      - Transforming columns with structured data: how-to-guides/use-lambda-functions.md
+  - Tutorials:
+      - Synopsis: tutorials/index.md
+      - Materialized cache: tutorials/materialized.md
+      - Streaming ETL pipeline: tutorials/etl.md
+      - Event-driven microservice: tutorials/event-driven-microservice.md
+  - Operate and Deploy:
+      - Operations Index: operate-and-deploy/index.md
+      - How it works: operate-and-deploy/how-it-works.md
+      - Deploy:
+          - Install ksqlDB: operate-and-deploy/installation/index.md
+          - Configure ksqlDB CLI: operate-and-deploy/installation/cli-config.md
+          - Configure ksqlDB with Docker: operate-and-deploy/installation/install-ksqldb-with-docker.md
+          - Install ksqlDB by using Docker: operate-and-deploy/installation/installing.md
+          - Check the Health of a ksqlDB Server: operate-and-deploy/installation/check-ksqldb-server-health.md
+          - Server Configuration:
+              - Configure ksqlDB Server: operate-and-deploy/installation/server-config/index.md
+              - Configure ksqlDB for Avro, Protobuf, and JSON schemas: operate-and-deploy/installation/server-config/avro-schema.md
+              - Configure Security for ksqlDB: operate-and-deploy/installation/server-config/security.md
+          - Upgrade ksqlDB: operate-and-deploy/installation/upgrading.md
+      - Manage metadata schemas: operate-and-deploy/migrations-tool.md
+      - Logging: operate-and-deploy/logging.md
+      - Monitoring: operate-and-deploy/monitoring.md
+      - Exactly once semantics: operate-and-deploy/exactly-once-semantics.md
+      - High availability: operate-and-deploy/high-availability.md
+      - Schema Registry integration: operate-and-deploy/schema-registry-integration.md
+      - Schema Inference With ID: operate-and-deploy/schema-inference-with-id.md
+      - High availability for pull queries: operate-and-deploy/high-availability-pull-queries.md
+      - Plan Capacity: operate-and-deploy/capacity-planning.md
+      - Performance Guidelines: operate-and-deploy/performance-guidelines.md
+      - KSQL and ksqlDB: operate-and-deploy/ksql-vs-ksqldb.md
+      - Changelog: operate-and-deploy/changelog.md
   - Reference:
-    - Syntax Reference: developer-guide/syntax-reference.md
+    - Synopsis: reference/index.md
+    - The SQL language:
+        - SQL syntax:
+          - Lexical structure: reference/sql/syntax/lexical-structure.md
+        - Data definition: reference/sql/data-definition.md
+        - Data types: reference/sql/data-types.md
+        - Time operations: reference/sql/time.md
+        - Appendix: reference/sql/appendix.md
     - Statements:
+      - SQL quick reference: developer-guide/ksqldb-reference/quick-reference.md
       - Statement Index: developer-guide/ksqldb-reference/index.md
+      - ALTER SYSTEM: developer-guide/ksqldb-reference/alter-system.md
+      - ASSERT SCHEMA: developer-guide/ksqldb-reference/assert-schema.md
+      - ASSERT TOPIC: developer-guide/ksqldb-reference/assert-topic.md
       - CREATE CONNECTOR: developer-guide/ksqldb-reference/create-connector.md
       - CREATE STREAM: developer-guide/ksqldb-reference/create-stream.md
       - CREATE TABLE: developer-guide/ksqldb-reference/create-table.md
       - CREATE STREAM AS SELECT: developer-guide/ksqldb-reference/create-stream-as-select.md
       - CREATE TABLE AS SELECT: developer-guide/ksqldb-reference/create-table-as-select.md
       - CREATE TYPE: developer-guide/ksqldb-reference/create-type.md
+      - DEFINE: developer-guide/ksqldb-reference/define.md
       - DESCRIBE: developer-guide/ksqldb-reference/describe.md
       - DESCRIBE CONNECTOR: developer-guide/ksqldb-reference/describe-connector.md
       - DESCRIBE FUNCTION: developer-guide/ksqldb-reference/describe-function.md
@@ -93,7 +121,9 @@ nav:
       - EXPLAIN: developer-guide/ksqldb-reference/explain.md
       - INSERT INTO: developer-guide/ksqldb-reference/insert-into.md
       - INSERT VALUES: developer-guide/ksqldb-reference/insert-values.md
+      - PAUSE: developer-guide/ksqldb-reference/pause.md
       - PRINT: developer-guide/ksqldb-reference/print.md
+      - RESUME: developer-guide/ksqldb-reference/resume.md
       - RUN SCRIPT: developer-guide/ksqldb-reference/run-script.md
       - SELECT (Push Query): developer-guide/ksqldb-reference/select-push-query.md
       - SELECT (Pull Query): developer-guide/ksqldb-reference/select-pull-query.md
@@ -101,67 +131,55 @@ nav:
       - SHOW FUNCTIONS: developer-guide/ksqldb-reference/show-functions.md
       - SHOW PROPERTIES: developer-guide/ksqldb-reference/show-properties.md
       - SHOW QUERIES: developer-guide/ksqldb-reference/show-queries.md
-      - SHOW TOPICS: developer-guide/ksqldb-reference/show-topics.md
       - SHOW STREAMS: developer-guide/ksqldb-reference/show-streams.md
       - SHOW TABLES: developer-guide/ksqldb-reference/show-tables.md
+      - SHOW TOPICS: developer-guide/ksqldb-reference/show-topics.md
       - SHOW TYPES: developer-guide/ksqldb-reference/show-types.md
+      - SHOW VARIABLES: developer-guide/ksqldb-reference/show-variables.md
       - SPOOL: developer-guide/ksqldb-reference/spool.md
       - TERMINATE: developer-guide/ksqldb-reference/terminate.md
+      - Type Coercion: developer-guide/ksqldb-reference/type-coercion.md
+      - UNDEFINE: developer-guide/ksqldb-reference/undefine.md
     - Operators: developer-guide/ksqldb-reference/operators.md
     - Functions:
       - Functions Index: developer-guide/ksqldb-reference/functions.md
       - Scalar functions: developer-guide/ksqldb-reference/scalar-functions.md
       - Aggregation functions: developer-guide/ksqldb-reference/aggregate-functions.md
       - Table Functions: developer-guide/ksqldb-reference/table-functions.md
+    - Server configuration: reference/server-configuration.md
+    - Metrics: reference/metrics.md
     - REST API:
       - REST API Index: developer-guide/api.md # old reference topic, rename file to index.md
-      - Introspect query status: developer-guide/ksqldb-rest-api/status-endpoint.md
-      - Introspect server status: developer-guide/ksqldb-rest-api/info-endpoint.md
       - Execute a statement: developer-guide/ksqldb-rest-api/ksql-endpoint.md
       - Run a query: developer-guide/ksqldb-rest-api/query-endpoint.md
       - Run push and pull queries: developer-guide/ksqldb-rest-api/streaming-endpoint.md
+      - Introspect query status: developer-guide/ksqldb-rest-api/status-endpoint.md
+      - Introspect server status: developer-guide/ksqldb-rest-api/info-endpoint.md
+      - Introspect cluster status: developer-guide/ksqldb-rest-api/cluster-status-endpoint.md
       - Terminate a cluster: developer-guide/ksqldb-rest-api/terminate-endpoint.md
+      - Get the validity of a property: developer-guide/ksqldb-rest-api/is_valid_property-endpoint.md
     - Clients:
+      - Synopsis: developer-guide/ksqldb-clients/index.md
       - Java Client: developer-guide/ksqldb-clients/java-client.md
-  - Operate and Deploy:
-      - Operations Index: operate-and-deploy/index.md
-      - Deploy:
-          - Install ksqlDB: operate-and-deploy/installation/index.md
-          - Configure ksqlDB CLI: operate-and-deploy/installation/cli-config.md
-          - Configure ksqlDB with Docker: operate-and-deploy/installation/install-ksqldb-with-docker.md
-          - Install ksqlDB by using Docker: operate-and-deploy/installation/installing.md
-          - Check the Health of a ksqlDB Server: operate-and-deploy/installation/check-ksqldb-server-health.md
-          - Server Configuration:
-              - Configure ksqlDB Server: operate-and-deploy/installation/server-config/index.md
-              - Configure ksqlDB for Avro, Protobuf, and JSON schemas: operate-and-deploy/installation/server-config/avro-schema.md
-              - Configuration Parameter Reference: operate-and-deploy/installation/server-config/config-reference.md
-              - Configure Security for ksqlDB: operate-and-deploy/installation/server-config/security.md
-          - Upgrade ksqlDB: operate-and-deploy/installation/upgrading.md
-      - Plan Capacity: operate-and-deploy/capacity-planning.md
-      - KSQL and ksqlDB: operate-and-deploy/ksql-vs-ksqldb.md
-      - Changelog: operate-and-deploy/changelog.md
-  - Tutorials:
-      - Tutorials and Examples: tutorials/index.md
-      - Materialized view/cache: tutorials/materialized.md
-      - Streaming ETL pipeline: tutorials/etl.md
-      - Event-driven microservice: tutorials/event-driven-microservice.md
-      - Examples: tutorials/examples.md
-      - ksqlDB with Embedded Connect: tutorials/embedded-connect.md
-      - Integrate with PostgreSQL: tutorials/connect-integration.md
-  - Troubleshooting: troubleshoot-ksqldb.md
-  - Frequently Asked Questions: faq.md
+      - Contribute a new client: developer-guide/ksqldb-clients/contributing.md
+    - Processing log: reference/processing-log.md
+    - Serialization: reference/serialization.md
+    - User-defined functions: reference/user-defined-functions.md
+    - Migrations tool configuration: reference/migrations-tool-configuration.md
+
 markdown_extensions:
     - toc:
         permalink: true
     - admonition
-    - codehilite:
-        guess_lang: false
+    - pymdownx.highlight:
         linenums: true
+    - pymdownx.superfences
     - def_list
     - attr_list
     - mdx_gh_links:
         user: confluentinc
-        repo: ksqldb
+        repo: ksql
+    - mdx_truly_sane_lists
 
 plugins:
     - search
@@ -169,9 +187,54 @@ plugins:
     - macros
     - redirects:
         redirect_maps:
+            quickstart.md: https://ksqldb.io/quickstart.html
+
+            overview/apache-kafka-primer.md: concepts/apache-kafka-primer.md
+
+            concepts/collections/index.md: reference/sql/data-definition.md
+            concepts/collections/streams.md: concepts/streams.md
+            concepts/collections/tables.md: concepts/tables.md
+            concepts/collections/inserting-events.md: developer-guide/ksqldb-reference/insert-values.md
+            concepts/schemas.md: operate-and-deploy/schema-registry-integration.md
+            concepts/queries/push.md: concepts/queries.md
+            concepts/queries/pull.md: concepts/queries.md
+            concepts/processing-guarantees.md: operate-and-deploy/exactly-once-semantics.md
+            concepts/ksqldb-architecture.md: operate-and-deploy/how-it-works.md
+            concepts/ksqldb-and-kafka-streams.md: operate-and-deploy/how-it-works.md
+            concepts/upgrades.md: how-to-guides/update-a-running-persistent-query.md
+            concepts/performance-guidelines.md: operate-and-deploy/performance-guidelines.md
+
+            tutorials/examples.md: how-to-guides/index.md
+            tutorials/embedded-connect.md: how-to-guides/use-connector-management.md
+            tutorials/connect-integration.md: how-to-guides/use-connector-management.md
+
+            developer-guide/create-a-stream.md: concepts/streams.md
+            developer-guide/create-a-table.md: concepts/tables.md
+            developer-guide/transform-a-stream-with-ksqldb.md: https://ksqldb.io/quickstart.html
+            developer-guide/aggregate-streaming-data.md: concepts/materialized-views.md
+            developer-guide/test-and-debug/generate-custom-test-data.md: https://github.com/confluentinc/kafka-connect-datagen
+            developer-guide/test-and-debug/ksqldb-testing-tool.md: how-to-guides/test-an-app.md
+            developer-guide/test-and-debug/processing-log.md: reference/processing-log.md
+            developer-guide/variable-substitution.md: how-to-guides/substitute-variables.md
             developer-guide/implement-a-udf.md: how-to-guides/create-a-user-defined-function.md
+            developer-guide/serialization.md: reference/serialization.md
+            developer-guide/syntax-reference.md: reference/index.md
+            developer-guide/ksqldb-rest-api.md: developer-guide/api.md
+            developer-guide/index.md: reference/index.md
+
+            operate-and-deploy/installation/server-config/config-reference.md: reference/server-configuration.md
 
 extra:
+    social:
+        - icon: fontawesome/brands/github
+          link: https://github.com/confluentinc/ksql
+          name: ksqlDB on GitHub
+        - icon: fontawesome/brands/twitter
+          link: https://twitter.com/ksqlDB
+          name: ksqlDB on Twitter
+        - icon: fontawesome/brands/slack
+          link: https://launchpass.com/confluentcommunity
+          name: ksqldb Slack channel          
     site:
         # Product-related string tokens
         aktm: Apache Kafka®
@@ -201,11 +264,10 @@ extra:
         zk: ZooKeeper
 
         # Build-related string tokens
-        kafkaversion: 2.5
-        kafkarelease: 5.5.0-ccs
-        ksqldbversion: 0.10.0
-        release: 0.10.0
-        cprelease: 5.5.0
-        releasepostbranch: 5.5.0-post
-        scalaversion: 2.12
-        version: 5.5
+        kafkaversion: 3.4
+        ksqldbversion: 0.29.0
+        cprelease: 7.4.0
+        releasepostbranch: 7.4.0-post
+        scalaversion: 2.13
+        voluble_version: 0.3.1
+        jdbc_connector_version: 10.0.0

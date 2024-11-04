@@ -6,6 +6,10 @@ description: Quick lessons that help you work with common ksqlDB functionality.
 keywords: pattern, satructured data, changelog, connector, query, function, identifier, timestamp, variable
 ---
 
+<script type="text/javascript">
+        window.location = 'https://docs.confluent.io/platform/current/ksqldb/how-to-guides/index.html';
+</script>
+
 Follow compact lessons that help you work with common ksqlDB functionality.
 
 <div class="cards">

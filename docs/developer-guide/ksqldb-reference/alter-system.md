@@ -6,6 +6,10 @@ description: Syntax for the ALTER SYSTEM statement in ksqlDB
 keywords: ksqlDB, system, config, properties
 ---
 
+<script type="text/javascript">
+        window.location = 'https://docs.confluent.io/platform/current/ksqldb/developer-guide/ksqldb-reference/alter-system.html';
+</script>
+
 ALTER SYSTEM
 ==========
 

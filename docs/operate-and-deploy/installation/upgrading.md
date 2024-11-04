@@ -6,6 +6,10 @@ description: Learn how to upgrade your on-premises ksqlDB deployments.
 keywords: ksqldb, install, upgrade
 ---
 
+<script type="text/javascript">
+        window.location = 'https://docs.confluent.io/platform/current/ksqldb/operate-and-deploy/installation/upgrading.html';
+</script>
+
 ## About backward compatibility
 
 Most releases of ksqlDB are backward compatible. But backward compatibility comes at a cost:

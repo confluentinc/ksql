@@ -5,6 +5,10 @@ tagline: Debug your SQL statements in ksqlDB
 description: Learn how to debug your ksqlDB applications by using the processing log
 ---
 
+<script type="text/javascript">
+        window.location = 'https://docs.confluent.io/platform/current/ksqldb/reference/processing-log.html';
+</script>
+
 # Processing log
 
 ksqlDB emits a log of record processing events, named the "processing log",

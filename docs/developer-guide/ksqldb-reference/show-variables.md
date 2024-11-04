@@ -6,6 +6,10 @@ description: Syntax for the SHOW VARIABLES statement in ksqlDB
 keywords: variable, substitution, define
 ---
 
+<script type="text/javascript">
+        window.location = 'https://docs.confluent.io/platform/current/ksqldb/developer-guide/ksqldb-reference/show-variables.html';
+</script>
+
 # SHOW VARIABLES
 
 ## Synopsis

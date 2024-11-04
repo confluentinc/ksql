@@ -6,6 +6,10 @@ description: Syntax for the CREATE TYPE statement in ksqlDB
 keywords: ksqlDB, create, type, alias, struct
 ---
 
+<script type="text/javascript">
+        window.location = 'https://docs.confluent.io/platform/current/ksqldb/developer-guide/ksqldb-reference/create-type.html';
+</script>
+
 CREATE TYPE
 ===========
 

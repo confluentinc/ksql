@@ -6,6 +6,10 @@ description: The `/query` resource lets you stream the output records of a `SELE
 keywords: ksqlDB, query, select
 ---
 
+<script type="text/javascript">
+        window.location = 'https://docs.confluent.io/platform/current/ksqldb/developer-guide/ksqldb-rest-api/query-endpoint.html';
+</script>
+
 The `/query` resource lets you stream the output records of a `SELECT`
 statement via a chunked transfer encoding. The response is streamed back
 until the `LIMIT` specified in the statement is reached, or the client

@@ -6,6 +6,10 @@ description: Use the timestamp attribute within events to do time-related proces
 keywords: timestamp, event time
 ---
 
+<script type="text/javascript">
+        window.location = 'https://docs.confluent.io/platform/current/ksqldb/how-to-guides/use-a-custom-timestamp-column.html';
+</script>
+
 # How to use a custom timestamp column
 
 ## Context

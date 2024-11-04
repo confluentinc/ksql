@@ -6,6 +6,10 @@ description: Syntax for the DESCRIBE FUNCTION statement in ksqlDB
 keywords: ksqlDB, describe, function, metadata
 ---
 
+<script type="text/javascript">
+        window.location = 'https://docs.confluent.io/platform/current/ksqldb/developer-guide/ksqldb-reference/describe-function.html';
+</script>
+
 DESCRIBE FUNCTION
 =================
 

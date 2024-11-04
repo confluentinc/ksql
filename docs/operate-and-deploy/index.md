@@ -6,6 +6,10 @@ description: Learn how to operate ksqlDB.
 keywords: ksqldb, operate, administer, deploy, docker, install
 ---
 
+<script type="text/javascript">
+        window.location = 'https://docs.confluent.io/platform/current/ksqldb/operate-and-deploy/index.html';
+</script>
+
 KSQL versus ksqlDB
 --------------------
 

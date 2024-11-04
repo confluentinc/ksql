@@ -5,6 +5,10 @@ tagline: FAQ for ksqlDB
 description: Common issues and gotchas when you use ksqlDB
 ---
 
+<script type="text/javascript">
+        window.location = 'https://docs.confluent.io/platform/current/ksqldb/faq.html';
+</script>
+
 What are the benefits of ksqlDB?
 --------------------------------
 

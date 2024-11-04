@@ -6,6 +6,10 @@ description: Operators to use in ksqlDB statements and queries
 keywords: ksqlDB, operator
 ---
 
+<script type="text/javascript">
+        window.location = 'https://docs.confluent.io/platform/current/ksqldb/developer-guide/ksqldb-reference/operators.html';
+</script>
+
 Expression Syntax
 =================
 

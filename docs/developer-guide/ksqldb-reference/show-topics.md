@@ -6,6 +6,10 @@ description: Syntax for the SHOW TOPICS statement in ksqlDB
 keywords: ksqlDB, list, topic
 ---
 
+<script type="text/javascript">
+        window.location = 'https://docs.confluent.io/platform/current/ksqldb/developer-guide/ksqldb-reference/show-topics.html';
+</script>
+
 SHOW TOPICS
 ===========
 

@@ -6,6 +6,10 @@ description: Learn how to work with time windows in ksqlDB statements
 keywords: ksqldb, timestamp, window 
 ---
 
+<script type="text/javascript">
+        window.location = 'https://docs.confluent.io/platform/current/ksqldb/concepts/time-and-windows-in-ksqldb-queries.html';
+</script>
+
 !!! important
       This page refers to timestamps as a field in records. For information
       on the TIMESTAMP data type, see [Timestamp types](../reference/sql/data-types.md).

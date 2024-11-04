@@ -6,6 +6,10 @@ description: Syntax for the DROP CONNECTOR statement in ksqlDB
 keywords: ksqlDB, drop, connector, connect
 ---
 
+<script type="text/javascript">
+        window.location = 'https://docs.confluent.io/platform/current/ksqldb/developer-guide/ksqldb-reference/drop-connector.html';
+</script>
+
 DROP CONNECTOR
 ==============
 

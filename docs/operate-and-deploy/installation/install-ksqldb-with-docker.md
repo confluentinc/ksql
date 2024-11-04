@@ -6,6 +6,10 @@ description: Learn how to install ksqlDB in various configurations by using Dock
 keywords: ksqldb, docker, container, install, configure, production
 ---
 
+<script type="text/javascript">
+        window.location = 'https://docs.confluent.io/platform/current/ksqldb/operate-and-deploy/installation/install-ksqldb-with-docker.html';
+</script>
+
 You can deploy ksqlDB by using Docker containers. Confluent maintains images at
 [Docker Hub](https://hub.docker.com/u/confluentinc) for
 [ksqlDB Server](https://hub.docker.com/r/confluentinc/ksqldb-server/) and the

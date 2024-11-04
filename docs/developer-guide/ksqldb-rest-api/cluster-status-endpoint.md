@@ -6,6 +6,10 @@ description: The `/clusterStatus` resource gives you the status of all servers i
 keywords: ksqldb, server, status, cluster
 ---
 
+<script type="text/javascript">
+        window.location = 'https://docs.confluent.io/platform/current/ksqldb/developer-guide/ksqldb-rest-api/cluster-status-endpoint.html';
+</script>
+
 The `/clusterStatus` resource gives you information about the status of all
 ksqlDB servers in a ksqlDB cluster, which can be useful for troubleshooting. 
 Enable this endpoint by setting [`ksql.heartbeat.enable`](../../reference/server-configuration.md#ksqlheartbeatenable) 

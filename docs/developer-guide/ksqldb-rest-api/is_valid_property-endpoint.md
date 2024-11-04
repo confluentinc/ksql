@@ -6,6 +6,10 @@ description: The `/is_valid_property` resource tells you whether a property is p
 keywords: ksqldb, server, is_valid_property
 ---
 
+<script type="text/javascript">
+        window.location = 'https://docs.confluent.io/platform/current/ksqldb/developer-guide/ksqldb-rest-api/is_valid_property-endpoint.html';
+</script>
+
 The `/is_valid_property` resource tells you whether a property is prohibited from setting. You
 can use the `curl` command to query the `/is_valid_property` endpoint:
 

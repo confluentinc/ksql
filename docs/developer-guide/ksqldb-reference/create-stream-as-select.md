@@ -6,6 +6,10 @@ description: Register a stream on a SQL query result to enable operations like j
 keywords: ksqlDB, create, stream, push query
 ---
 
+<script type="text/javascript">
+        window.location = 'https://docs.confluent.io/platform/current/ksqldb/developer-guide/ksqldb-reference/create-stream-as-select.html';
+</script>
+
 ## Synopsis
 
 ```sql

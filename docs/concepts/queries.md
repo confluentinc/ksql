@@ -6,6 +6,10 @@ description: Learn how to query streaming data in ksqlDB
 keywords: query, persistent, push, pull
 ---
 
+<script type="text/javascript">
+        window.location = 'https://docs.confluent.io/platform/current/ksqldb/concepts/queries.html';
+</script>
+
 There are three kinds of queries in ksqlDB: persistent, push, and pull.
 Each gives you different ways to work with rows of events.
 

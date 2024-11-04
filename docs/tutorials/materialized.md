@@ -6,6 +6,10 @@ description: Use ksqlDB to create and query a set of materialized views about ph
 keywords: materialized view, cache, changelog
 ---
 
+<script type="text/javascript">
+        window.location = 'https://docs.confluent.io/platform/current/ksqldb/tutorials/materialized-view.html';
+</script>
+
 # Materialized cache
 
 ## What is it?

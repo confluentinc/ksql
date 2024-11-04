@@ -6,6 +6,10 @@ description: ksqlDB lets you add new functions using Java hooks
 keywords: function, user-defined function, aggregation, table  
 ---
 
+<script type="text/javascript">
+        window.location = 'https://docs.confluent.io/platform/current/ksqldb/concepts/functions.html';
+</script>
+
 # User-defined functions
 
 ksqlDB comes with a broad range of built-in functions out of the box.

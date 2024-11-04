@@ -6,6 +6,10 @@ description: Register a table on a SQL query result to enable operations like jo
 keywords: ksqlDB, create, table, push query
 ---
 
+<script type="text/javascript">
+        window.location = 'https://docs.confluent.io/platform/current/ksqldb/developer-guide/ksqldb-reference/create-table-as-select.html';
+</script>
+
 ## Synopsis
 
 ```sql

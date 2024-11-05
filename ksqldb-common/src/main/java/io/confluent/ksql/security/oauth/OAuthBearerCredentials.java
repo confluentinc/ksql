@@ -109,7 +109,7 @@ public class OAuthBearerCredentials implements Credentials {
 
     return new HttpAccessTokenRetriever(clientId, clientSecret, scope, socketFactory,
         tokenEndpointUrl.toString(), retryBackoffMs, retryBackoffMaxMs,
-        loginConnectTimeoutMs, loginReadTimeoutMs, false);
+        loginConnectTimeoutMs, loginReadTimeoutMs);
   }
 
   private AccessTokenValidator getAccessTokenValidator(final Map<String, ?> configs) {

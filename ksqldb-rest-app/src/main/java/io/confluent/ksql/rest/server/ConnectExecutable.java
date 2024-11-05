@@ -54,6 +54,8 @@ public final class ConnectExecutable implements Executable {
 
   @Override
   public void startAsync() {
+    final Thread currentThread = Thread.currentThread();
+    final ClassLoader currentClassLoader = currentThread.getContextClassLoader();
     try {
       connect = connectDistributed.startConnect(workerProps);
     } catch (final ConnectException e) {
@@ -62,6 +64,8 @@ public final class ConnectExecutable implements Executable {
       } else {
         throw e;
       }
+    } finally {
+      currentThread.setContextClassLoader(currentClassLoader);
     }
   }
 

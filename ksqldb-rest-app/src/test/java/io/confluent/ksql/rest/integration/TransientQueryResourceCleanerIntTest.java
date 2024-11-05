@@ -75,11 +75,10 @@ public class TransientQueryResourceCleanerIntTest {
     private static final String USER_TABLE = USER_DATA_PROVIDER.sourceName();
 
     // Persistent Topics:
-    // _confluent-command, // This topic is created by ce-kafka for LicenseStore
     // _confluent-ksql-default__command_topic,
     // PAGEVIEW_TOPIC,
     // USER_TOPIC
-    private static final int numPersistentTopics = 4;
+    private static final int numPersistentTopics = 3;
 
     // Transient Topics:
     // _confluent-ksql-default_transient_transient_PV_[0-9]\d*_[0-9]\d*-KafkaTopic_Right-Reduce-changelog

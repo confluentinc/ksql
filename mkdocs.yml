@@ -1,71 +1,71 @@
-site_name: ksqlDB Documentation
+site_name: ksqlDB
 site_url: https://docs.ksqldb.io/en/latest/
 site_description: ksqlDB documentation
 site_author: Confluent
+copyright: Copyright &copy; 2020 <a href="https://www.confluent.io/">Confluent</a>.
+
 repo_name: confluentinc/ksql
 repo_url: https://github.com/confluentinc/ksql
 edit_uri: ""
 docs_dir: docs
 
 theme:
-    name: material
+    name: material    
     favicon: img/favicon.ico # should match asset for main ksqldb.io site
     logo: img/logo.png # should match asset for main ksqldb.io site
-    custom_dir: docs/overrides
     features:
-      - navigation.tabs
+      - tabs
 
 extra_css:
   - stylesheets/extra.css
-  - https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.10.2/css/all.min.css
 
 extra_javascript:
-  # - js/extra.js
+  - js/extra.js
   - js/analytics.js
 
 nav:
   - Overview: index.md
   - Getting started: quickstart.md # links to Derek's quickstart at ksqldb.io
   - Concepts:
-      - Concepts: concepts/index.md
-      - Events: concepts/events.md
-      - Collections:
-          - Collections Overview: concepts/collections/index.md
-          - Streams: concepts/collections/streams.md
-          - Tables: concepts/collections/tables.md
-          - Inserting events: concepts/collections/inserting-events.md
-      - Stream Processing: concepts/stream-processing.md
-      - Materialized Views: concepts/materialized-views.md
-      - Queries:
-          - Queries Overview: concepts/queries/index.md
-          - Push Queries: concepts/queries/push.md
-          - Pull Queries: concepts/queries/pull.md
-      - Schemas: concepts/schemas.md
-      - Connectors: concepts/connectors.md
-      - Functions: concepts/functions.md
-      - Joins:
-          - Join Index: developer-guide/joins/index.md
-          - Joining collections: developer-guide/joins/join-streams-and-tables.md
-          - Partitioning requirements: developer-guide/joins/partition-data.md
-          - Synthetic key columns: developer-guide/joins/synthetic-keys.md
-      - Architecture: concepts/ksqldb-architecture.md
-      - Time and Windows: concepts/time-and-windows-in-ksqldb-queries.md
-      - Serialization: developer-guide/serialization.md
-      - Processing Guarantees: concepts/processing-guarantees.md
-      - Relationship to Kafka Streams: concepts/ksqldb-and-kafka-streams.md
+    - Concepts: concepts/index.md
+    - Events: concepts/events.md
+    - Collections:
+      - Collections Overview: concepts/collections/index.md
+      - Streams: concepts/collections/streams.md
+      - Tables: concepts/collections/tables.md
+      - Inserting events: concepts/collections/inserting-events.md
+    - Stream Processing: concepts/stream-processing.md
+    - Materialized Views: concepts/materialized-views.md
+    - Queries:
+      - Queries Overview: concepts/queries/index.md
+      - Push Queries: concepts/queries/push.md
+      - Pull Queries: concepts/queries/pull.md
+    - Schemas: concepts/schemas.md
+    - Connectors: concepts/connectors.md
+    - Functions: concepts/functions.md
+    - Joins:
+      - Join Index: developer-guide/joins/index.md
+      - Joining collections: developer-guide/joins/join-streams-and-tables.md
+      - Partitioning requirements: developer-guide/joins/partition-data.md
+      - Synthetic key columns: developer-guide/joins/synthetic-keys.md
+    - Architecture: concepts/ksqldb-architecture.md
+    - Time and Windows: concepts/time-and-windows-in-ksqldb-queries.md
+    - Serialization: developer-guide/serialization.md
+    - Processing Guarantees: concepts/processing-guarantees.md
+    - Relationship to Kafka Streams: concepts/ksqldb-and-kafka-streams.md
   - Developer Guide:
-      - Develop ksqlDB Applications: developer-guide/index.md
-      - Develop with ksqlDB clients: developer-guide/ksqldb-clients/index.md
-      - Create a Stream: developer-guide/create-a-stream.md
-      - Create a Table: developer-guide/create-a-table.md
-      - Aggregate Streaming Events: developer-guide/aggregate-streaming-data.md
-      - Transform a Stream: developer-guide/transform-a-stream-with-ksqldb.md
-      - Example Queries: tutorials/examples.md
-      - Test and Debug:
-          - Test and Debug Index: developer-guide/test-and-debug/index.md
-          - Test harness: developer-guide/test-and-debug/ksqldb-testing-tool.md
-          - Generate test data: developer-guide/test-and-debug/generate-custom-test-data.md
-          - Processing log: developer-guide/test-and-debug/processing-log.md
+    - Develop ksqlDB Applications: developer-guide/index.md
+    - Develop with ksqlDB clients: developer-guide/ksqldb-clients/index.md
+    - Create a Stream: developer-guide/create-a-stream.md
+    - Create a Table: developer-guide/create-a-table.md
+    - Aggregate Streaming Events: developer-guide/aggregate-streaming-data.md
+    - Transform a Stream: developer-guide/transform-a-stream-with-ksqldb.md
+    - Example Queries: tutorials/examples.md
+    - Test and Debug:
+      - Test and Debug Index: developer-guide/test-and-debug/index.md
+      - Test harness: developer-guide/test-and-debug/ksqldb-testing-tool.md
+      - Generate test data: developer-guide/test-and-debug/generate-custom-test-data.md
+      - Processing log: developer-guide/test-and-debug/processing-log.md
   - How-to guides:
       - Synopsis: how-to-guides/index.md
       - Query structured data: how-to-guides/query-structured-data.md
@@ -74,55 +74,55 @@ nav:
       - Use connector management: how-to-guides/use-connector-management.md
       - Create a user-defined function: how-to-guides/create-a-user-defined-function.md
   - Reference:
-      - Syntax Reference: developer-guide/syntax-reference.md
-      - Statements:
-          - Statement Index: developer-guide/ksqldb-reference/index.md
-          - CREATE CONNECTOR: developer-guide/ksqldb-reference/create-connector.md
-          - CREATE STREAM: developer-guide/ksqldb-reference/create-stream.md
-          - CREATE TABLE: developer-guide/ksqldb-reference/create-table.md
-          - CREATE STREAM AS SELECT: developer-guide/ksqldb-reference/create-stream-as-select.md
-          - CREATE TABLE AS SELECT: developer-guide/ksqldb-reference/create-table-as-select.md
-          - CREATE TYPE: developer-guide/ksqldb-reference/create-type.md
-          - DESCRIBE: developer-guide/ksqldb-reference/describe.md
-          - DESCRIBE CONNECTOR: developer-guide/ksqldb-reference/describe-connector.md
-          - DESCRIBE FUNCTION: developer-guide/ksqldb-reference/describe-function.md
-          - DROP CONNECTOR: developer-guide/ksqldb-reference/drop-connector.md
-          - DROP STREAM: developer-guide/ksqldb-reference/drop-stream.md
-          - DROP TABLE: developer-guide/ksqldb-reference/drop-table.md
-          - DROP TYPE: developer-guide/ksqldb-reference/drop-type.md
-          - EXPLAIN: developer-guide/ksqldb-reference/explain.md
-          - INSERT INTO: developer-guide/ksqldb-reference/insert-into.md
-          - INSERT VALUES: developer-guide/ksqldb-reference/insert-values.md
-          - PRINT: developer-guide/ksqldb-reference/print.md
-          - RUN SCRIPT: developer-guide/ksqldb-reference/run-script.md
-          - SELECT (Push Query): developer-guide/ksqldb-reference/select-push-query.md
-          - SELECT (Pull Query): developer-guide/ksqldb-reference/select-pull-query.md
-          - SHOW CONNECTORS: developer-guide/ksqldb-reference/show-connectors.md
-          - SHOW FUNCTIONS: developer-guide/ksqldb-reference/show-functions.md
-          - SHOW PROPERTIES: developer-guide/ksqldb-reference/show-properties.md
-          - SHOW QUERIES: developer-guide/ksqldb-reference/show-queries.md
-          - SHOW TOPICS: developer-guide/ksqldb-reference/show-topics.md
-          - SHOW STREAMS: developer-guide/ksqldb-reference/show-streams.md
-          - SHOW TABLES: developer-guide/ksqldb-reference/show-tables.md
-          - SHOW TYPES: developer-guide/ksqldb-reference/show-types.md
-          - SPOOL: developer-guide/ksqldb-reference/spool.md
-          - TERMINATE: developer-guide/ksqldb-reference/terminate.md
-      - Operators: developer-guide/ksqldb-reference/operators.md
-      - Functions:
-          - Functions Index: developer-guide/ksqldb-reference/functions.md
-          - Scalar functions: developer-guide/ksqldb-reference/scalar-functions.md
-          - Aggregation functions: developer-guide/ksqldb-reference/aggregate-functions.md
-          - Table Functions: developer-guide/ksqldb-reference/table-functions.md
-      - REST API:
-          - REST API Index: developer-guide/api.md # old reference topic, rename file to index.md
-          - Introspect query status: developer-guide/ksqldb-rest-api/status-endpoint.md
-          - Introspect server status: developer-guide/ksqldb-rest-api/info-endpoint.md
-          - Execute a statement: developer-guide/ksqldb-rest-api/ksql-endpoint.md
-          - Run a query: developer-guide/ksqldb-rest-api/query-endpoint.md
-          - Run push and pull queries: developer-guide/ksqldb-rest-api/streaming-endpoint.md
-          - Terminate a cluster: developer-guide/ksqldb-rest-api/terminate-endpoint.md
-      - Clients:
-          - Java Client: developer-guide/ksqldb-clients/java-client.md
+    - Syntax Reference: developer-guide/syntax-reference.md
+    - Statements:
+      - Statement Index: developer-guide/ksqldb-reference/index.md
+      - CREATE CONNECTOR: developer-guide/ksqldb-reference/create-connector.md
+      - CREATE STREAM: developer-guide/ksqldb-reference/create-stream.md
+      - CREATE TABLE: developer-guide/ksqldb-reference/create-table.md
+      - CREATE STREAM AS SELECT: developer-guide/ksqldb-reference/create-stream-as-select.md
+      - CREATE TABLE AS SELECT: developer-guide/ksqldb-reference/create-table-as-select.md
+      - CREATE TYPE: developer-guide/ksqldb-reference/create-type.md
+      - DESCRIBE: developer-guide/ksqldb-reference/describe.md
+      - DESCRIBE CONNECTOR: developer-guide/ksqldb-reference/describe-connector.md
+      - DESCRIBE FUNCTION: developer-guide/ksqldb-reference/describe-function.md
+      - DROP CONNECTOR: developer-guide/ksqldb-reference/drop-connector.md
+      - DROP STREAM: developer-guide/ksqldb-reference/drop-stream.md
+      - DROP TABLE: developer-guide/ksqldb-reference/drop-table.md
+      - DROP TYPE: developer-guide/ksqldb-reference/drop-type.md
+      - EXPLAIN: developer-guide/ksqldb-reference/explain.md
+      - INSERT INTO: developer-guide/ksqldb-reference/insert-into.md
+      - INSERT VALUES: developer-guide/ksqldb-reference/insert-values.md
+      - PRINT: developer-guide/ksqldb-reference/print.md
+      - RUN SCRIPT: developer-guide/ksqldb-reference/run-script.md
+      - SELECT (Push Query): developer-guide/ksqldb-reference/select-push-query.md
+      - SELECT (Pull Query): developer-guide/ksqldb-reference/select-pull-query.md
+      - SHOW CONNECTORS: developer-guide/ksqldb-reference/show-connectors.md
+      - SHOW FUNCTIONS: developer-guide/ksqldb-reference/show-functions.md
+      - SHOW PROPERTIES: developer-guide/ksqldb-reference/show-properties.md
+      - SHOW QUERIES: developer-guide/ksqldb-reference/show-queries.md
+      - SHOW TOPICS: developer-guide/ksqldb-reference/show-topics.md
+      - SHOW STREAMS: developer-guide/ksqldb-reference/show-streams.md
+      - SHOW TABLES: developer-guide/ksqldb-reference/show-tables.md
+      - SHOW TYPES: developer-guide/ksqldb-reference/show-types.md
+      - SPOOL: developer-guide/ksqldb-reference/spool.md
+      - TERMINATE: developer-guide/ksqldb-reference/terminate.md
+    - Operators: developer-guide/ksqldb-reference/operators.md
+    - Functions:
+      - Functions Index: developer-guide/ksqldb-reference/functions.md
+      - Scalar functions: developer-guide/ksqldb-reference/scalar-functions.md
+      - Aggregation functions: developer-guide/ksqldb-reference/aggregate-functions.md
+      - Table Functions: developer-guide/ksqldb-reference/table-functions.md
+    - REST API:
+      - REST API Index: developer-guide/api.md # old reference topic, rename file to index.md
+      - Introspect query status: developer-guide/ksqldb-rest-api/status-endpoint.md
+      - Introspect server status: developer-guide/ksqldb-rest-api/info-endpoint.md
+      - Execute a statement: developer-guide/ksqldb-rest-api/ksql-endpoint.md
+      - Run a query: developer-guide/ksqldb-rest-api/query-endpoint.md
+      - Run push and pull queries: developer-guide/ksqldb-rest-api/streaming-endpoint.md
+      - Terminate a cluster: developer-guide/ksqldb-rest-api/terminate-endpoint.md
+    - Clients:
+      - Java Client: developer-guide/ksqldb-clients/java-client.md
   - Operate and Deploy:
       - Operations Index: operate-and-deploy/index.md
       - Deploy:
@@ -154,15 +154,14 @@ markdown_extensions:
     - toc:
         permalink: true
     - admonition
-    - pymdownx.highlight:
+    - codehilite:
+        guess_lang: false
         linenums: true
-    - pymdownx.superfences
     - def_list
     - attr_list
     - mdx_gh_links:
         user: confluentinc
-        repo: ksql
-    - mdx_truly_sane_lists
+        repo: ksqldb
 
 plugins:
     - search

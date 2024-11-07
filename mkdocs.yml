@@ -14,11 +14,12 @@ theme:
     name: material
     favicon: img/favicon.ico # should match asset for main ksqldb.io site
     logo: img/logo.png # should match asset for main ksqldb.io site
-    feature: 
+    custom_dir: docs/overrides
+    feature:
       tabs: true
 
 extra_css:
-  - stylesheets/extra.css
+  - https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.10.2/css/all.min.css
 
 nav:
   - Overview: index.md

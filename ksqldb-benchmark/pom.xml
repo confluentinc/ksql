@@ -108,9 +108,9 @@ questions.
           </compilerArgs>
           <showWarnings>true</showWarnings>
           <showDeprecation>true</showDeprecation>
-          <compilerVersion>1.8</compilerVersion>
-          <source>1.8</source>
-          <target>1.8</target>
+          <compilerVersion>17</compilerVersion>
+          <source>17</source>
+          <target>17</target>
         </configuration>
       </plugin>
       <plugin>

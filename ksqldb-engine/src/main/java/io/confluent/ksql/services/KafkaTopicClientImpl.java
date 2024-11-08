@@ -79,6 +79,7 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
   private static final String DELETE_TOPIC_ENABLE = "delete.topic.enable";
 
   private final Supplier<Admin> adminClient;
+
   /**
    * Construct a topic client from an existing admin client. Note, the admin client is shared
    * between all methods of this class, i.e the admin client is created only once and then reused.

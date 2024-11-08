@@ -273,9 +273,9 @@ public final class StreamAggregateBuilder {
       Duration windowSize = window.getSize().toDuration();
       Duration advanceBy = window.getAdvanceBy().toDuration();
       TimeWindows windows = window.getGracePeriod()
-                .map(grace -> TimeWindows.ofSizeAndGrace(windowSize, grace.toDuration())
-                        .advanceBy(advanceBy))
-                .orElse(TimeWindows.ofSizeWithNoGrace(windowSize).advanceBy(advanceBy));
+          .map(grace -> TimeWindows.ofSizeAndGrace(windowSize, grace.toDuration())
+                .advanceBy(advanceBy))
+          .orElse(TimeWindows.ofSizeWithNoGrace(windowSize).advanceBy(advanceBy));
 
       TimeWindowedKStream<GenericKey, GenericRow> timeWindowedKStream =
           groupedStream.windowedBy(windows);
@@ -302,9 +302,9 @@ public final class StreamAggregateBuilder {
         final Void ctx) {
       Duration windowDuration = window.getGap().toDuration();
       SessionWindows windows = window.getGracePeriod()
-              .map(grace ->
-                      SessionWindows.ofInactivityGapAndGrace(windowDuration, grace.toDuration()))
-              .orElse(SessionWindows.ofInactivityGapWithNoGrace(windowDuration));
+          .map(grace ->
+                  SessionWindows.ofInactivityGapAndGrace(windowDuration, grace.toDuration()))
+          .orElse(SessionWindows.ofInactivityGapWithNoGrace(windowDuration));
 
       SessionWindowedKStream<GenericKey, GenericRow> sessionWindowedKStream =
           groupedStream.windowedBy(windows);
@@ -332,8 +332,8 @@ public final class StreamAggregateBuilder {
         final Void ctx) {
       Duration windowSize = window.getSize().toDuration();
       TimeWindows windows = window.getGracePeriod()
-              .map(grace -> TimeWindows.ofSizeAndGrace(windowSize, grace.toDuration()))
-              .orElse(TimeWindows.ofSizeWithNoGrace(windowSize));
+          .map(grace -> TimeWindows.ofSizeAndGrace(windowSize, grace.toDuration()))
+          .orElse(TimeWindows.ofSizeWithNoGrace(windowSize));
 
       TimeWindowedKStream<GenericKey, GenericRow> timeWindowedKStream =
           groupedStream.windowedBy(windows);

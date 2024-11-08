@@ -82,7 +82,7 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
 
   /**
    * Construct a topic client from an existing admin client. Note, the admin client is shared
-   * between all methods of this class, i.e the admin client is created only once and then reused.
+   * between all methods of this class, i.e. the admin client is created only once and then reused.
    *
    * @param sharedAdminClient the admin client .
    */
@@ -182,9 +182,11 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
       );
       return true;
     } catch (final TopicAuthorizationException e) {
+      LOG.error("Failed to check if exists for topic: {}", topic, e);
       throw new KsqlTopicAuthorizationException(
           AclOperation.DESCRIBE, Collections.singleton(topic));
     } catch (final Exception e) {
+      LOG.error("Failed to check if exists for topic: {}", topic, e);
       if (Throwables.getRootCause(e) instanceof UnknownTopicOrPartitionException) {
         return false;
       }
@@ -200,6 +202,7 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
           () -> adminClient.get().listTopics().names().get(),
           ExecutorUtil.RetryBehaviour.ON_RETRYABLE);
     } catch (final Exception e) {
+      LOG.error("Failed to list Kafka Topic names", e);
       throw new KafkaResponseGetFailedException("Failed to retrieve Kafka Topic names", e);
     }
   }

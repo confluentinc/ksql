@@ -41,6 +41,7 @@ import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.parser.OutputRefinement;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
+import java.time.Duration;
 import java.util.List;
 import java.util.Objects;
 import org.apache.kafka.common.serialization.Serde;
@@ -269,12 +270,12 @@ public final class StreamAggregateBuilder {
     public KTable<Windowed<GenericKey>, GenericRow> visitHoppingWindowExpression(
         final HoppingWindowExpression window,
         final Void ctx) {
-      TimeWindows windows = TimeWindows
-          .of(window.getSize().toDuration())
-          .advanceBy(window.getAdvanceBy().toDuration());
-      windows = window.getGracePeriod().map(WindowTimeClause::toDuration)
-          .map(windows::grace)
-          .orElse(windows);
+      final Duration windowSize = window.getSize().toDuration();
+      final Duration advanceBy = window.getAdvanceBy().toDuration();
+      final TimeWindows windows = window.getGracePeriod()
+          .map(grace -> TimeWindows.ofSizeAndGrace(windowSize, grace.toDuration())
+                .advanceBy(advanceBy))
+          .orElse(TimeWindows.ofSizeWithNoGrace(windowSize).advanceBy(advanceBy));
 
       TimeWindowedKStream<GenericKey, GenericRow> timeWindowedKStream =
           groupedStream.windowedBy(windows);
@@ -299,10 +300,11 @@ public final class StreamAggregateBuilder {
     public KTable<Windowed<GenericKey>, GenericRow> visitSessionWindowExpression(
         final SessionWindowExpression window,
         final Void ctx) {
-      SessionWindows windows = SessionWindows.with(window.getGap().toDuration());
-      windows = window.getGracePeriod().map(WindowTimeClause::toDuration)
-          .map(windows::grace)
-          .orElse(windows);
+      final Duration windowDuration = window.getGap().toDuration();
+      final SessionWindows windows = window.getGracePeriod()
+          .map(grace ->
+                  SessionWindows.ofInactivityGapAndGrace(windowDuration, grace.toDuration()))
+          .orElse(SessionWindows.ofInactivityGapWithNoGrace(windowDuration));
 
       SessionWindowedKStream<GenericKey, GenericRow> sessionWindowedKStream =
           groupedStream.windowedBy(windows);
@@ -328,10 +330,10 @@ public final class StreamAggregateBuilder {
     public KTable<Windowed<GenericKey>, GenericRow> visitTumblingWindowExpression(
         final TumblingWindowExpression window,
         final Void ctx) {
-      TimeWindows windows = TimeWindows.of(window.getSize().toDuration());
-      windows = window.getGracePeriod().map(WindowTimeClause::toDuration)
-          .map(windows::grace)
-          .orElse(windows);
+      final Duration windowSize = window.getSize().toDuration();
+      final TimeWindows windows = window.getGracePeriod()
+          .map(grace -> TimeWindows.ofSizeAndGrace(windowSize, grace.toDuration()))
+          .orElse(TimeWindows.ofSizeWithNoGrace(windowSize));
 
       TimeWindowedKStream<GenericKey, GenericRow> timeWindowedKStream =
           groupedStream.windowedBy(windows);

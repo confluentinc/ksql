@@ -221,7 +221,7 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
       throw new KsqlTopicAuthorizationException(
           AclOperation.DESCRIBE, topicNames);
     } catch (final Exception e) {
-      LOG.error("Failed to Describe Kafka Topic(s): {}", topicNames, e);
+      LOG.error("Error while trying to describe topics: {}", topicNames, e);
       throw new KafkaResponseGetFailedException(
           "Failed to Describe Kafka Topic(s): " + topicNames, e);
     }

@@ -41,7 +41,6 @@ import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.parser.OutputRefinement;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
-
 import java.time.Duration;
 import java.util.List;
 import java.util.Objects;
@@ -271,9 +270,9 @@ public final class StreamAggregateBuilder {
     public KTable<Windowed<GenericKey>, GenericRow> visitHoppingWindowExpression(
         final HoppingWindowExpression window,
         final Void ctx) {
-        Duration windowSize = window.getSize().toDuration();
-        Duration advanceBy = window.getAdvanceBy().toDuration();
-        TimeWindows windows = window.getGracePeriod()
+      Duration windowSize = window.getSize().toDuration();
+      Duration advanceBy = window.getAdvanceBy().toDuration();
+      TimeWindows windows = window.getGracePeriod()
                 .map(grace -> TimeWindows.ofSizeAndGrace(windowSize, grace.toDuration())
                         .advanceBy(advanceBy))
                 .orElse(TimeWindows.ofSizeWithNoGrace(windowSize).advanceBy(advanceBy));
@@ -303,7 +302,8 @@ public final class StreamAggregateBuilder {
         final Void ctx) {
       Duration windowDuration = window.getGap().toDuration();
       SessionWindows windows = window.getGracePeriod()
-              .map(grace -> SessionWindows.ofInactivityGapAndGrace(windowDuration, grace.toDuration()))
+              .map(grace ->
+                      SessionWindows.ofInactivityGapAndGrace(windowDuration, grace.toDuration()))
               .orElse(SessionWindows.ofInactivityGapWithNoGrace(windowDuration));
 
       SessionWindowedKStream<GenericKey, GenericRow> sessionWindowedKStream =

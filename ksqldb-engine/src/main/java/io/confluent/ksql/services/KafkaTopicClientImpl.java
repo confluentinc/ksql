@@ -73,7 +73,7 @@ import org.slf4j.LoggerFactory;
 public class KafkaTopicClientImpl implements KafkaTopicClient {
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
-  private static final Logger LOG = LoggerFactory.getLogger(KafkaTopicClient.class);
+  private static final Logger LOG = LoggerFactory.getLogger(KafkaTopicClientImpl.class);
 
   private static final String DEFAULT_REPLICATION_PROP = "default.replication.factor";
   private static final String DELETE_TOPIC_ENABLE = "delete.topic.enable";
@@ -214,12 +214,15 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
           ).allTopicNames().get(),
           ExecutorUtil.RetryBehaviour.ON_RETRYABLE);
     } catch (final ExecutionException e) {
+      LOG.error("Failed to Describe Kafka Topic(s): {}", topicNames, e);
       throw new KafkaResponseGetFailedException(
           "Failed to Describe Kafka Topic(s): " + topicNames, e.getCause());
     } catch (final TopicAuthorizationException e) {
+      LOG.error("Topic authorization failed for topics: {}", topicNames, e);
       throw new KsqlTopicAuthorizationException(
           AclOperation.DESCRIBE, topicNames);
     } catch (final Exception e) {
+      LOG.error("Error while trying to describe topics: {}", topicNames, e);
       throw new KafkaResponseGetFailedException(
           "Failed to Describe Kafka Topic(s): " + topicNames, e);
     }

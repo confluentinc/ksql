@@ -270,9 +270,9 @@ public final class StreamAggregateBuilder {
     public KTable<Windowed<GenericKey>, GenericRow> visitHoppingWindowExpression(
         final HoppingWindowExpression window,
         final Void ctx) {
-      Duration windowSize = window.getSize().toDuration();
-      Duration advanceBy = window.getAdvanceBy().toDuration();
-      TimeWindows windows = window.getGracePeriod()
+      final Duration windowSize = window.getSize().toDuration();
+      final Duration advanceBy = window.getAdvanceBy().toDuration();
+      final TimeWindows windows = window.getGracePeriod()
           .map(grace -> TimeWindows.ofSizeAndGrace(windowSize, grace.toDuration())
                 .advanceBy(advanceBy))
           .orElse(TimeWindows.ofSizeWithNoGrace(windowSize).advanceBy(advanceBy));
@@ -300,8 +300,8 @@ public final class StreamAggregateBuilder {
     public KTable<Windowed<GenericKey>, GenericRow> visitSessionWindowExpression(
         final SessionWindowExpression window,
         final Void ctx) {
-      Duration windowDuration = window.getGap().toDuration();
-      SessionWindows windows = window.getGracePeriod()
+      final Duration windowDuration = window.getGap().toDuration();
+      final SessionWindows windows = window.getGracePeriod()
           .map(grace ->
                   SessionWindows.ofInactivityGapAndGrace(windowDuration, grace.toDuration()))
           .orElse(SessionWindows.ofInactivityGapWithNoGrace(windowDuration));
@@ -330,8 +330,8 @@ public final class StreamAggregateBuilder {
     public KTable<Windowed<GenericKey>, GenericRow> visitTumblingWindowExpression(
         final TumblingWindowExpression window,
         final Void ctx) {
-      Duration windowSize = window.getSize().toDuration();
-      TimeWindows windows = window.getGracePeriod()
+      final Duration windowSize = window.getSize().toDuration();
+      final TimeWindows windows = window.getGracePeriod()
           .map(grace -> TimeWindows.ofSizeAndGrace(windowSize, grace.toDuration()))
           .orElse(TimeWindows.ofSizeWithNoGrace(windowSize));
 

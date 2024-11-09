@@ -29,14 +29,14 @@
     <parent>
         <groupId>io.confluent</groupId>
         <artifactId>common</artifactId>
-        <version>[7.9.0-0, 7.9.1-0)</version>
+        <version>7.9.0-624</version>
     </parent>
 
     <groupId>io.confluent.ksql</groupId>
     <artifactId>ksqldb-parent</artifactId>
     <packaging>pom</packaging>
     <name>ksqldb-parent</name>
-    <version>7.9.0-0</version>
+    <version>7.9.0-158</version>
 
     <licenses>
         <license>
@@ -141,8 +141,8 @@
         <jetty.version>9.4.53.v20231009</jetty.version>
         <git-commit-id-plugin.version>4.9.10</git-commit-id-plugin.version>
         <apache.io.version>2.11.0</apache.io.version>
-        <io.confluent.ksql.version>7.9.0-0</io.confluent.ksql.version>
-        <io.confluent.schema-registry.version>${confluent.version.range}</io.confluent.schema-registry.version>
+        <io.confluent.ksql.version>7.9.0-158</io.confluent.ksql.version>
+        <io.confluent.schema-registry.version>7.9.0-314</io.confluent.schema-registry.version>
         <netty-tcnative-version>2.0.65.Final</netty-tcnative-version>
         <!-- We normally get this from common, but Vertx is built against this -->
         <!-- Note: `netty` depends on `tcnative` and if we bump `netty`

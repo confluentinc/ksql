@@ -308,14 +308,14 @@ public final class StreamAggregateBuilder {
     public KTable<Windowed<GenericKey>, GenericRow> visitSessionWindowExpression(
         final SessionWindowExpression window,
         final Void ctx) {
-      final Duration windowDuration = window.getGap().toDuration();
+      final Duration windowSize = window.getGap().toDuration();
       final Duration defaultGrace =
-              Duration.ofMillis(Math.max(DEFAULT_24_HR_GRACE_PERIOD - windowDuration.toMillis(), 0));
+              Duration.ofMillis(Math.max(DEFAULT_24_HR_GRACE_PERIOD - windowSize.toMillis(), 0));
       final Duration grace = window.getGracePeriod()
               .map(WindowTimeClause::toDuration)
               .orElse(defaultGrace);
       final SessionWindows windows =
-              SessionWindows.ofInactivityGapAndGrace(windowDuration, grace);
+              SessionWindows.ofInactivityGapAndGrace(windowSize, grace);
       SessionWindowedKStream<GenericKey, GenericRow> sessionWindowedKStream =
           groupedStream.windowedBy(windows);
 

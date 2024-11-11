@@ -276,11 +276,9 @@ public final class StreamAggregateBuilder {
         final Void ctx) {
       final Duration windowSize = window.getSize().toDuration();
       final Duration advanceBy = window.getAdvanceBy().toDuration();
-      final Duration defaultGrace =
-              Duration.ofMillis(Math.max(DEFAULT_24_HR_GRACE_PERIOD - windowSize.toMillis(), 0));
       final Duration grace = window.getGracePeriod()
               .map(WindowTimeClause::toDuration)
-              .orElse(defaultGrace);
+              .orElse(defaultGrace(windowSize));
 
       final TimeWindows windows =
               TimeWindows.ofSizeAndGrace(windowSize, grace).advanceBy(advanceBy);
@@ -309,11 +307,9 @@ public final class StreamAggregateBuilder {
         final SessionWindowExpression window,
         final Void ctx) {
       final Duration windowSize = window.getGap().toDuration();
-      final Duration defaultGrace =
-              Duration.ofMillis(Math.max(DEFAULT_24_HR_GRACE_PERIOD - windowSize.toMillis(), 0));
       final Duration grace = window.getGracePeriod()
               .map(WindowTimeClause::toDuration)
-              .orElse(defaultGrace);
+              .orElse(defaultGrace(windowSize));
       final SessionWindows windows =
               SessionWindows.ofInactivityGapAndGrace(windowSize, grace);
       SessionWindowedKStream<GenericKey, GenericRow> sessionWindowedKStream =
@@ -341,11 +337,9 @@ public final class StreamAggregateBuilder {
         final TumblingWindowExpression window,
         final Void ctx) {
       final Duration windowSize = window.getSize().toDuration();
-      final Duration defaultGrace =
-              Duration.ofMillis(Math.max(DEFAULT_24_HR_GRACE_PERIOD - windowSize.toMillis(), 0));
       final Duration grace = window.getGracePeriod()
               .map(WindowTimeClause::toDuration)
-              .orElse(defaultGrace);
+              .orElse(defaultGrace(windowSize));
       TimeWindows windows = TimeWindows.ofSizeAndGrace(windowSize, grace);
 
       TimeWindowedKStream<GenericKey, GenericRow> timeWindowedKStream =
@@ -364,6 +358,10 @@ public final class StreamAggregateBuilder {
                   StreamsUtil.buildOpName(queryContext),
                   window.getRetention().map(WindowTimeClause::toDuration))
           );
+    }
+
+    private Duration defaultGrace(Duration windowSize) {
+      return Duration.ofMillis(Math.max(DEFAULT_24_HR_GRACE_PERIOD - windowSize.toMillis(), 0));
     }
   }
 

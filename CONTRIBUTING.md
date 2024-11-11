@@ -144,10 +144,10 @@ See the [KLIP Readme](design-proposals/README.md) for more info.
 Code changes are submitted via a pull request (PR). When submitting a PR use the following guidelines:
 
 * Follow the style guide below
-* Add/update documentation appropriately for the change you are making. For more information, see the [docs readme](docs/readme.md).
-* Non-trivial changes should include unit tests covering the new functionality and potentially [function tests](ksql-engine/src/test/resources/query-validation-tests/README.md).
-* All SQL syntax changes and enhancements should come with appropriate [function tests](ksql-engine/src/test/resources/query-validation-tests/README.md).
-* Bug fixes should include a unit test or integration test potentially [function tests](ksql-engine/src/test/resources/query-validation-tests/README.md) proving the issue is fixed.
+* Add/update documentation appropriately for the change you are making. For more information, see the [docs readme](docs/README.md).
+* Non-trivial changes should include unit tests covering the new functionality and potentially [function tests](ksqldb-functional-tests/README.md).
+* All SQL syntax changes and enhancements should come with appropriate [function tests](ksqldb-functional-tests/README.md).
+* Bug fixes should include a unit test or integration test potentially [function tests](ksqldb-functional-tests/README.md) proving the issue is fixed.
 * Try to keep pull requests short and submit separate ones for unrelated features.
 * Keep formatting changes in separate commits to make code reviews easier and distinguish them from actual code changes.
 
@@ -195,7 +195,7 @@ commit messages should be of the form:
 
     [optional footer]
 
-where the `type` is one of the following, and determines whether or not the commit will appear in 
+where the `type` is one of the following, and determines whether the commit will appear in 
 the auto-generated changelog for releases. Commit types that do appear in changelogs are:
  * "fix": for bug fixes
  * "feat": for new features
@@ -243,12 +243,12 @@ Breaking changes must be called out in commit messages, PR descriptions, and upg
  * [Upgrade notes][https://github.com/confluentinc/ksql/blob/master/docs/installation/upgrading.rst]
    should also be updated as part of the same PR.
 
-##### Commitlint
+##### CommitLint
 
-This project has [commitlint][https://github.com/conventional-changelog/commitlint] configured
+This project has [commitlint](https://github.com/conventional-changelog/commitlint) configured
 to ensure that commit messages are of the expected format.
 To enable commitlint, simply run `npm install` from the root directory of the ksqlDB repo
-(after [installing `npm`][https://www.npmjs.com/get-npm].)
+(after [installing npm](https://docs.npmjs.com/downloading-and-installing-node-js-and-npm).)
 Once enabled, commitlint will reject commits with improperly formatted commit messages.
 
 ### GitHub Workflow

@@ -62,7 +62,11 @@ import org.apache.kafka.streams.state.KeyValueStore;
 // Can be fixed after GRACE is mandatory
 @SuppressWarnings("deprecation")
 public final class StreamAggregateBuilder {
+
+  private static final long DEFAULT_24_HR_GRACE_PERIOD = 24 * 60 * 60 * 1000L;
+
   private StreamAggregateBuilder() {
+    super();
   }
 
   public static KTableHolder<GenericKey> build(
@@ -272,10 +276,14 @@ public final class StreamAggregateBuilder {
         final Void ctx) {
       final Duration windowSize = window.getSize().toDuration();
       final Duration advanceBy = window.getAdvanceBy().toDuration();
-      final TimeWindows windows = window.getGracePeriod()
-          .map(grace -> TimeWindows.ofSizeAndGrace(windowSize, grace.toDuration())
-                .advanceBy(advanceBy))
-          .orElse(TimeWindows.ofSizeWithNoGrace(windowSize).advanceBy(advanceBy));
+      final Duration defaultGrace =
+              Duration.ofMillis(Math.max(DEFAULT_24_HR_GRACE_PERIOD - windowSize.toMillis(), 0));
+      final Duration grace = window.getGracePeriod()
+              .map(WindowTimeClause::toDuration)
+              .orElse(defaultGrace);
+
+      final TimeWindows windows =
+              TimeWindows.ofSizeAndGrace(windowSize, grace).advanceBy(advanceBy);
 
       TimeWindowedKStream<GenericKey, GenericRow> timeWindowedKStream =
           groupedStream.windowedBy(windows);
@@ -301,11 +309,13 @@ public final class StreamAggregateBuilder {
         final SessionWindowExpression window,
         final Void ctx) {
       final Duration windowDuration = window.getGap().toDuration();
-      final SessionWindows windows = window.getGracePeriod()
-          .map(grace ->
-                  SessionWindows.ofInactivityGapAndGrace(windowDuration, grace.toDuration()))
-          .orElse(SessionWindows.ofInactivityGapWithNoGrace(windowDuration));
-
+      final Duration defaultGrace =
+              Duration.ofMillis(Math.max(DEFAULT_24_HR_GRACE_PERIOD - windowDuration.toMillis(), 0));
+      final Duration grace = window.getGracePeriod()
+              .map(WindowTimeClause::toDuration)
+              .orElse(defaultGrace);
+      final SessionWindows windows =
+              SessionWindows.ofInactivityGapAndGrace(windowDuration, grace);
       SessionWindowedKStream<GenericKey, GenericRow> sessionWindowedKStream =
           groupedStream.windowedBy(windows);
 
@@ -331,9 +341,12 @@ public final class StreamAggregateBuilder {
         final TumblingWindowExpression window,
         final Void ctx) {
       final Duration windowSize = window.getSize().toDuration();
-      final TimeWindows windows = window.getGracePeriod()
-          .map(grace -> TimeWindows.ofSizeAndGrace(windowSize, grace.toDuration()))
-          .orElse(TimeWindows.ofSizeWithNoGrace(windowSize));
+      final Duration defaultGrace =
+              Duration.ofMillis(Math.max(DEFAULT_24_HR_GRACE_PERIOD - windowSize.toMillis(), 0));
+      final Duration grace = window.getGracePeriod()
+              .map(WindowTimeClause::toDuration)
+              .orElse(defaultGrace);
+      TimeWindows windows = TimeWindows.ofSizeAndGrace(windowSize, grace);
 
       TimeWindowedKStream<GenericKey, GenericRow> timeWindowedKStream =
           groupedStream.windowedBy(windows);

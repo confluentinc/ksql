@@ -340,7 +340,7 @@ public final class StreamAggregateBuilder {
       final Duration grace = window.getGracePeriod()
               .map(WindowTimeClause::toDuration)
               .orElse(defaultGrace(windowSize));
-      TimeWindows windows = TimeWindows.ofSizeAndGrace(windowSize, grace);
+      final TimeWindows windows = TimeWindows.ofSizeAndGrace(windowSize, grace);
 
       TimeWindowedKStream<GenericKey, GenericRow> timeWindowedKStream =
           groupedStream.windowedBy(windows);

@@ -360,7 +360,7 @@ public final class StreamAggregateBuilder {
           );
     }
 
-    private Duration defaultGrace(Duration windowSize) {
+    private Duration defaultGrace(final Duration windowSize) {
       return Duration.ofMillis(Math.max(DEFAULT_24_HR_GRACE_PERIOD - windowSize.toMillis(), 0));
     }
   }

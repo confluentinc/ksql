@@ -172,7 +172,7 @@ markdown_extensions:
     - attr_list
     - mdx_gh_links:
         user: confluentinc
-        repo: ksqldb
+        repo: ksql
     - mdx_truly_sane_lists
 
 plugins:

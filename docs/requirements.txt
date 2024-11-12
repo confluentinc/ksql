@@ -12,4 +12,3 @@ Pygments==2.15
 pymdown-extensions==10.0
 python-dateutil==2.8.2
 testresources==2.0.1
-

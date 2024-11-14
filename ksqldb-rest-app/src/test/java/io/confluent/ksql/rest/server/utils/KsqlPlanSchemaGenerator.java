@@ -90,52 +90,6 @@ public final class KsqlPlanSchemaGenerator {
         )
         .jsonSuppliers(Collections.emptyMap())
         .build();
-
-//    final JsonSchemaConfig vanilla = JsonSchemaConfig.create(
-//        false, // autoGenerateTitleForProperties
-//        null, // defaultArrayFormat
-//        false, // useOneOfForOption
-//        false, // useOneOfForNullables
-//        false, // usePropertyOrdering
-//        false, // hidePolymorphismTypeProperty
-//        false, // disableWarnings
-//        false, // useMinLengthForNotNull
-//        false, // useTypeIdForDefinitionName
-//        Collections.emptyMap(), // customType2FormatMapping
-//        false, // useMultipleEditorSelectViaProperty
-//        Collections.emptySet(), // uniqueItemClasses
-//        Collections.emptyMap(), // classTypeReMapping
-//        Collections.emptyMap() // jsonSuppliers
-//    );
-//    return JsonSchemaConfig.create(
-//        vanilla.autoGenerateTitleForProperties,
-//        vanilla.defaultArrayFormat,
-//        false,
-//        false,
-//        vanilla.usePropertyOrdering,
-//        vanilla.hidePolymorphismTypeProperty,
-//        false,
-//        vanilla.useMinLengthForNotNull,
-//        vanilla.useTypeIdForDefinitionName,
-//        Collections.emptyMap(),
-//        vanilla.useMultipleEditorSelectViaProperty,
-//        Collections.emptySet(),
-//        // the schema generator doesn't play nice with custom serializers, so we add a
-//        // config to remap the custom-serialized types to their underlying primitive
-//        new ImmutableMap.Builder<Class<?>, Class<?>>()
-//            .put(LogicalSchema.class, String.class)
-//            .put(SqlType.class, String.class)
-//            .put(SelectExpression.class, String.class)
-//            .put(Expression.class, String.class)
-//            .put(FunctionCall.class, String.class)
-//            .put(KsqlWindowExpression.class, String.class)
-//            .put(Duration.class, Long.class)
-//            .build(),
-//        Collections.emptyMap(),
-//        null,
-//        true,
-//        null
-//    );
   }
 
   private static JsonNode generate(final Class<?> clazz) throws JsonMappingException {

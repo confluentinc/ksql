@@ -93,6 +93,7 @@ import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.processor.TaskId;
 import org.apache.kafka.streams.processor.internals.assignment.AssignorConfiguration.AssignmentConfigs;
 import org.apache.kafka.streams.processor.internals.assignment.ClientState;
+import org.apache.kafka.streams.processor.internals.assignment.RackAwareTaskAssignor;
 import org.apache.kafka.streams.processor.internals.assignment.TaskAssignor;
 import org.junit.After;
 import org.junit.Assert;
@@ -742,6 +743,7 @@ public class PullQueryRoutingFunctionalTest {
         final Map<UUID, ClientState> clients,
         final Set<TaskId> allTaskIds,
         final Set<TaskId> statefulTaskIds,
+        final RackAwareTaskAssignor rackAwareTaskAssignor,
         final AssignmentConfigs configs
     ) {
       Preconditions.checkState(configs.numStandbyReplicas == 1);

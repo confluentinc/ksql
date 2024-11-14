@@ -209,8 +209,8 @@ public class InteractiveStatementExecutor {
       );
       executeStatement(statement, commandId, commandStatusFuture);
     } catch (final KsqlException exception) {
-      log.error("Failed to handle: " + command, exception);
-      
+      log.error("Failed to handle command with ID: " + commandId, exception);
+
       final CommandStatus errorStatus = new CommandStatus(
           CommandStatus.Status.ERROR,
           ExceptionUtil.stackTraceToString(exception)

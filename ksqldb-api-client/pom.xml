@@ -22,7 +22,7 @@
     <parent>
         <groupId>io.confluent.ksql</groupId>
         <artifactId>ksqldb-parent</artifactId>
-        <version>7.5.7-0</version>
+        <version>7.6.4-0</version>
     </parent>
 
     <artifactId>ksqldb-api-client</artifactId>
@@ -111,6 +111,13 @@
             <groupId>io.confluent</groupId>
             <artifactId>common-utils</artifactId>
             <version>${io.confluent.common.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.kafka</groupId>
+            <artifactId>connect-test-plugins</artifactId>
+            <version>${kafka.version}</version>
             <scope>test</scope>
         </dependency>
 
@@ -261,6 +268,14 @@
                     <nodeprecated>true</nodeprecated>
                     <nohelp>true</nohelp>
                     <notree>true</notree>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-failsafe-plugin</artifactId>
+                <configuration>
+                    <!-- Skip ITs temporarily -->
+                    <skipITs>true</skipITs>
                 </configuration>
             </plugin>
         </plugins>

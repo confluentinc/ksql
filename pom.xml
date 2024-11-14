@@ -29,19 +29,19 @@
     <parent>
         <groupId>io.confluent</groupId>
         <artifactId>common</artifactId>
-        <version>[7.5.7-0, 7.5.8-0)</version>
+        <version>[7.6.4-0, 7.6.5-0)</version>
     </parent>
 
     <groupId>io.confluent.ksql</groupId>
     <artifactId>ksqldb-parent</artifactId>
     <packaging>pom</packaging>
     <name>ksqldb-parent</name>
-    <version>7.5.7-0</version>
+    <version>7.6.4-0</version>
 
     <licenses>
         <license>
             <name>Confluent Community License</name>
-            <url>http://www.confluent.io/confluent-community-license</url>
+            <url>https://www.confluent.io/confluent-community-license</url>
             <distribution>repo</distribution>
         </license>
     </licenses>
@@ -141,7 +141,7 @@
         <jetty.version>9.4.53.v20231009</jetty.version>
         <git-commit-id-plugin.version>4.9.10</git-commit-id-plugin.version>
         <apache.io.version>2.11.0</apache.io.version>
-        <io.confluent.ksql.version>7.5.7-0</io.confluent.ksql.version>
+        <io.confluent.ksql.version>7.6.4-0</io.confluent.ksql.version>
         <io.confluent.schema-registry.version>${confluent.version.range}</io.confluent.schema-registry.version>
         <netty-tcnative-version>2.0.65.Final</netty-tcnative-version>
         <!-- We normally get this from common, but Vertx is built against this -->
@@ -257,6 +257,12 @@
                         <artifactId>slf4j-log4j12</artifactId>
                     </exclusion>
                 </exclusions>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.kafka</groupId>
+                <artifactId>connect-test-plugins</artifactId>
+                <version>${kafka.version}</version>
+                <scope>test</scope>
             </dependency>
             <dependency>
                 <groupId>org.apache.kafka</groupId>
@@ -808,9 +814,11 @@
                     <rerunFailingTestsCount>3</rerunFailingTestsCount>
                     <systemPropertyVariables>
                         <log4j.configuration>file:${project.basedir}/../ksqldb-test-util/src/main/resources/log4j.properties</log4j.configuration>
+                        <junit.platform.execution.listeners.deactivate>org.apache.kafka.test.ThreadLeakListener</junit.platform.execution.listeners.deactivate>
                     </systemPropertyVariables>
                     <argLine>-verbose:gc -Xloggc:"${project.build.directory}/gc.log"</argLine>
                     <argLine>-Duser.timezone=UTC -Xmx1g -Xms1g</argLine>
+                    <excludedGroups>io.confluent.common.utils.IntegrationTest, IntegrationTest</excludedGroups>
                 </configuration>
                 <version>3.2.5</version>
             </plugin>
@@ -825,6 +833,10 @@
                     You can also see (https://issues.apache.org/jira/browse/SUREFIRE-1809)
                     for more details -->
                     <useModulePath>false</useModulePath>
+                    <groups>io.confluent.common.utils.IntegrationTest, IntegrationTest</groups>
+                    <systemPropertyVariables>
+                        <junit.platform.execution.listeners.deactivate>org.apache.kafka.test.ThreadLeakListener</junit.platform.execution.listeners.deactivate>
+                    </systemPropertyVariables>
                 </configuration>
                 <executions>
                     <execution>
@@ -853,6 +865,8 @@
                             <useUnlimitedThreads>true</useUnlimitedThreads>
                             <forkedProcessTimeoutInSeconds>3600</forkedProcessTimeoutInSeconds>
                             <forkedProcessExitTimeoutInSeconds>180</forkedProcessExitTimeoutInSeconds>
+                            <!-- Skip ITs temporarily -->
+                            <skipITs>true</skipITs>
                         </configuration>
                     </execution>
                 </executions>

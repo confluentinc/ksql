@@ -22,15 +22,20 @@
     <parent>
         <groupId>io.confluent.ksql</groupId>
         <artifactId>ksqldb-parent</artifactId>
-        <version>7.5.7-0</version>
+        <version>7.6.4-0</version>
     </parent>
 
     <artifactId>ksqldb-udf</artifactId>
-    <version>7.5.7-0</version>
+    <version>7.6.4-0</version>
 
     <dependencies>
-        <!-- Required for running tests -->
+        <dependency>
+            <groupId>io.confluent</groupId>
+            <artifactId>kafka-connect-json-schema-converter</artifactId>
+            <version>${io.confluent.schema-registry.version}</version>
+        </dependency>
 
+        <!-- Required for running tests -->
         <dependency>
             <groupId>io.confluent.ksql</groupId>
             <artifactId>ksqldb-test-util</artifactId>

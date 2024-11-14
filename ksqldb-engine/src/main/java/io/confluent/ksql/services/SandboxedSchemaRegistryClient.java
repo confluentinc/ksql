@@ -82,6 +82,23 @@ final class SandboxedSchemaRegistryClient {
     }
 
     @Override
+    public RegisterSchemaResponse registerWithResponse(
+        final String subject, final ParsedSchema schema, final boolean normalize)
+        throws IOException, RestClientException {
+      return sandboxCacheClient.registerWithResponse(subject, schema, normalize);
+    }
+
+    @Override
+    public RegisterSchemaResponse registerWithResponse(
+            final String subject,
+            final ParsedSchema schema,
+            final boolean normalize,
+            final boolean propagateSchemaTags) throws RestClientException {
+      return sandboxCacheClient.registerWithResponse(
+              subject, schema, normalize, propagateSchemaTags);
+    }
+
+    @Override
     public int register(final String subject, final ParsedSchema parsedSchema)
         throws RestClientException, IOException {
       return sandboxCacheClient.register(subject, parsedSchema);
@@ -100,13 +117,6 @@ final class SandboxedSchemaRegistryClient {
         final int version,
         final int id) {
       return -1; // swallow
-    }
-
-    @Override
-    public RegisterSchemaResponse registerWithResponse(
-        final String subject, final ParsedSchema schema, final boolean normalize)
-        throws IOException, RestClientException {
-      return sandboxCacheClient.registerWithResponse(subject, schema, normalize);
     }
 
     @Deprecated

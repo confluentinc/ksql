@@ -28,9 +28,11 @@ import io.confluent.ksql.util.KeyValueMetadata;
 import io.confluent.ksql.util.KsqlHostInfo;
 import io.confluent.ksql.util.RowMetadata;
 import io.vertx.core.AsyncResult;
+import io.vertx.core.Context;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.Promise;
+import io.vertx.core.Vertx;
 import io.vertx.core.impl.ConcurrentHashSet;
 import io.vertx.core.impl.future.SucceededFuture;
 import io.vertx.core.streams.WriteStream;
@@ -97,12 +99,6 @@ public class PullQueryWriteStream implements WriteStream<List<StreamedRow>>, Blo
   ) {
     this.queryLimit = queryLimit;
     this.translator = translator;
-
-    // register a drainHandler that will wake up anyone waiting on hasCapacity
-    drainHandler.add(ignored -> {
-      monitor.enter();
-      monitor.leave();
-    });
   }
 
   private static final class HandledRow {
@@ -211,6 +207,10 @@ public class PullQueryWriteStream implements WriteStream<List<StreamedRow>>, Blo
     if (monitor.enterIf(atHalfCapacity)) {
       try {
         drainHandler.forEach(h -> h.handle(null));
+        // Users of this WriteStream, in particular vert.x's PipeImpl re-register the drain handler
+        // every time the WriteStream is full, so we can clear the drain handler collection after
+        // we have called it.
+        drainHandler.clear();
       } finally {
         monitor.leave();
       }
@@ -273,7 +273,12 @@ public class PullQueryWriteStream implements WriteStream<List<StreamedRow>>, Blo
 
   @Override
   public PullQueryWriteStream drainHandler(final Handler<Void> handler) {
-    drainHandler.add(handler);
+    // Make sure to run the drain handler in the context that registers the drain handler
+    // (that is, the pipe that is pushing data into this write stream), and not from the thread
+    // that is consuming data from the write queue. This will avoid data races inside the
+    // ReadStream.
+    final Context context = Vertx.currentContext();
+    drainHandler.add(v -> context.runOnContext(handler));
     return this;
   }
 

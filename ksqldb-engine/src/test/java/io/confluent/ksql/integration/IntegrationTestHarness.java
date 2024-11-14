@@ -738,6 +738,7 @@ public final class IntegrationTestHarness extends ExternalResource {
     }
   }
 
+  @Override
   protected void before() throws Exception {
     kafkaCluster.start();
   }

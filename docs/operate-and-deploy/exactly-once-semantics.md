@@ -57,7 +57,7 @@ Use the SET command to enable exactly-once for the subsequent
 query:
 
 ```sql
-SET 'processing.guarantee' = 'exactly_once';
+SET 'processing.guarantee' = 'exactly_once_v2';
 ```
 
 For more information, see

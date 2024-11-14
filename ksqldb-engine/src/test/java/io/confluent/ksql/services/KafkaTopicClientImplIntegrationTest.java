@@ -25,6 +25,8 @@ import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.ImmutableMap;
+
+import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.exception.KafkaResponseGetFailedException;
 import io.confluent.ksql.integration.Retry;
 import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
@@ -40,7 +42,6 @@ import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.AdminClientConfig;
 import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.common.config.TopicConfig;
-import org.apache.kafka.test.IntegrationTest;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;

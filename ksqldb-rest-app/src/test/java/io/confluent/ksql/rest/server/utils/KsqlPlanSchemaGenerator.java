@@ -40,7 +40,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -92,7 +91,7 @@ public final class KsqlPlanSchemaGenerator {
         )
         .jsonSuppliers(Collections.emptyMap())
         .subclassesResolver(null)
-        .failOnUnknownProperties(true)
+        .failOnUnknownProperties(false)
         .javaxValidationGroups(Collections.emptyList())
         .build();
   }

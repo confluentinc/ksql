@@ -16,6 +16,7 @@
 package io.confluent.ksql.rest.server.utils;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
@@ -25,6 +26,7 @@ import com.google.common.base.Charsets;
 import com.google.common.collect.ImmutableMap;
 import com.kjetland.jackson.jsonSchema.JsonSchemaConfig;
 import com.kjetland.jackson.jsonSchema.JsonSchemaGenerator;
+import com.kjetland.jackson.jsonSchema.SubclassesResolver;
 import io.confluent.ksql.engine.KsqlPlan;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
@@ -38,40 +40,47 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.Optional;
+
 
 public final class KsqlPlanSchemaGenerator {
 
   private static final ObjectMapper MAPPER = PlanJsonMapper.INSTANCE.get();
 
-  private static final Map<Class<?>, JsonNode> POLYMORPHIC_TYPES = ImmutableMap.of(
-      ExecutionStep.class, definitionForPolymorphicType(ExecutionStep.class)
-  );
+  private static final Map<Class<?>, JsonNode> POLYMORPHIC_TYPES;
+
+  static {
+    try {
+      POLYMORPHIC_TYPES = ImmutableMap.of(
+          ExecutionStep.class, definitionForPolymorphicType(ExecutionStep.class)
+      );
+    } catch (final JsonMappingException e) {
+      throw new RuntimeException(e);
+    }
+  }
 
   private KsqlPlanSchemaGenerator() {
   }
 
   private static JsonSchemaConfig configure() {
-    final JsonSchemaConfig vanilla = JsonSchemaConfig.vanillaJsonSchemaDraft4();
-    return JsonSchemaConfig.create(
-        vanilla.autoGenerateTitleForProperties(),
-        Optional.empty(),
-        false,
-        false,
-        vanilla.usePropertyOrdering(),
-        vanilla.hidePolymorphismTypeProperty(),
-        vanilla.disableWarnings(),
-        vanilla.useMinLengthForNotNull(),
-        vanilla.useTypeIdForDefinitionName(),
-        Collections.emptyMap(),
-        vanilla.useMultipleEditorSelectViaProperty(),
-        Collections.emptySet(),
-        // the schema generator doesn't play nice with custom serializers, so we add a
-        // config to remap the custom-serialized types to their underlying primitive
-        new ImmutableMap.Builder<Class<?>, Class<?>>()
+    return JsonSchemaConfig.builder()
+        .autoGenerateTitleForProperties(false)
+        .defaultArrayFormat(null)
+        .useOneOfForOption(false)
+        .useOneOfForNullables(false)
+        .usePropertyOrdering(false)
+        .hidePolymorphismTypeProperty(false)
+        .useMinLengthForNotNull(false)
+        .useTypeIdForDefinitionName(false)
+        .customType2FormatMapping(Collections.emptyMap())
+        .useMultipleEditorSelectViaProperty(false)
+        .uniqueItemClasses(new HashSet<>())
+        .classTypeReMapping(
+            new ImmutableMap.Builder<Class<?>, Class<?>>()
             .put(LogicalSchema.class, String.class)
             .put(SqlType.class, String.class)
             .put(SelectExpression.class, String.class)
@@ -79,20 +88,22 @@ public final class KsqlPlanSchemaGenerator {
             .put(FunctionCall.class, String.class)
             .put(KsqlWindowExpression.class, String.class)
             .put(Duration.class, Long.class)
-            .build(),
-        Collections.emptyMap(),
-        null,
-        true,
-        null
-    );
+            .build()
+        )
+        .jsonSuppliers(Collections.emptyMap())
+        .subclassesResolver(null)
+        .failOnUnknownProperties(true)
+        .javaxValidationGroups(Collections.emptyList())
+        .build();
   }
 
-  private static JsonNode generate(final Class<?> clazz) {
+  private static JsonNode generate(final Class<?> clazz) throws JsonMappingException {
     final JsonSchemaGenerator generator = new JsonSchemaGenerator(MAPPER, configure());
     return generator.generateJsonSchema(clazz);
   }
 
-  private static JsonNode definitionForPolymorphicType(final Class<?> clazz) {
+  private static JsonNode definitionForPolymorphicType(final Class<?> clazz)
+      throws JsonMappingException {
     final JsonNode generated = generate(clazz);
     return new ObjectNode(JsonNodeFactory.instance).set(
         "oneOf", generated.get("oneOf")
@@ -139,7 +150,7 @@ public final class KsqlPlanSchemaGenerator {
     return schema;
   }
 
-  public static JsonNode generate() {
+  public static JsonNode generate() throws JsonMappingException {
     final JsonSchemaGenerator generator = new JsonSchemaGenerator(MAPPER, configure());
     return rewriteWithPolymorphicAsDefinition(generator.generateJsonSchema(KsqlPlan.class));
   }

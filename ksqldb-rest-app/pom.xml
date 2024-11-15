@@ -23,7 +23,7 @@
     <parent>
         <groupId>io.confluent.ksql</groupId>
         <artifactId>ksqldb-parent</artifactId>
-        <version>8.0.0-0</version>
+        <version>7.6.4-0</version>
     </parent>
 
     <artifactId>ksqldb-rest-app</artifactId>
@@ -208,10 +208,6 @@
             <version>1.0.39</version>
             <scope>test</scope>
             <exclusions>
-                <exclusion>
-                    <groupId>one.duckling</groupId>
-                    <artifactId>mbknor-jackson-jsonschema-java8</artifactId>
-                </exclusion>
                 <exclusion>
                     <groupId>org.jetbrains.kotlin</groupId>
                     <artifactId>kotlin-stdlib</artifactId>

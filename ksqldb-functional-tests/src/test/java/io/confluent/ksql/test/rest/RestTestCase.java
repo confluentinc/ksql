@@ -94,10 +94,12 @@ public class RestTestCase implements Test {
     return statements;
   }
 
+  @SuppressWarnings("EI_EXPOSE_REP")
   public ImmutableList<Record> getInputRecords() {
     return inputRecords;
   }
 
+  @SuppressWarnings("EI_EXPOSE_REP")
   public ImmutableList<Record> getOutputRecords() {
     return outputRecords;
   }
@@ -120,6 +122,7 @@ public class RestTestCase implements Test {
     return expectedError;
   }
 
+  @SuppressWarnings("EI_EXPOSE_REP")
   public Map<String, Object> getProperties() {
     return properties;
   }

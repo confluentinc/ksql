@@ -24,9 +24,10 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import com.google.common.base.Charsets;
 import com.google.common.collect.ImmutableMap;
-import com.kjetland.jackson.jsonSchema.JsonSchemaDraft;
 import com.kjetland.jackson.jsonSchema.JsonSchemaConfig;
+import com.kjetland.jackson.jsonSchema.JsonSchemaDraft;
 import com.kjetland.jackson.jsonSchema.JsonSchemaGenerator;
+import com.kjetland.jackson.jsonSchema.SubclassesResolver;
 import io.confluent.ksql.engine.KsqlPlan;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
@@ -66,6 +67,11 @@ public final class KsqlPlanSchemaGenerator {
   }
 
   private static JsonSchemaConfig configure() {
+    final SubclassesResolver subclassesResolver = new SubclassesResolver(
+        Collections.emptyList(),
+        Collections.emptyList()
+    );
+
     return JsonSchemaConfig.builder()
         .autoGenerateTitleForProperties(false)
         .defaultArrayFormat(null)
@@ -92,6 +98,7 @@ public final class KsqlPlanSchemaGenerator {
         .jsonSuppliers(Collections.emptyMap())
         .jsonSchemaDraft(JsonSchemaDraft.DRAFT_04)
         .failOnUnknownProperties(true)
+        .subclassesResolver(subclassesResolver)
         .build();
   }
 

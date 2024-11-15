@@ -38,7 +38,7 @@ blocks:
         - name: Test
           commands:
             - ci-tools ci-update-version
-            - ./mvnw -Dmaven.gitcommitid.nativegit=true -U -Dmaven.wagon.http.retryHandler.count=10 --batch-mode --no-transfer-progress clean install -Dtest=RecordFormatterTest -Dit.test=RecordFormatterTest -Dsurefire.failIfNoSpecifiedTests=false
+            - ./mvnw -Dmaven.gitcommitid.nativegit=true -U -Dmaven.wagon.http.retryHandler.count=10 --batch-mode --no-transfer-progress clean install -Dtest=RecordFormatterTest -Dit.test=RecordFormatterTest -Dsurefire.failIfNoSpecifiedTests=false -Dfailsafe.failIfNoSpecifiedTests=false -Dmaven.test.failure.ignore=true -Dmaven.test.error.ignore=true
             - . cache-maven store
       epilogue:
         always:

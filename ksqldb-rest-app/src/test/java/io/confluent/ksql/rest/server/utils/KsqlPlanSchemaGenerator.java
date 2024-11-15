@@ -90,7 +90,6 @@ public final class KsqlPlanSchemaGenerator {
             .build()
         )
         .jsonSuppliers(Collections.emptyMap())
-        .subclassesResolver(new SubclassesResolver())
         .failOnUnknownProperties(false)
         .javaxValidationGroups(Collections.emptyList())
         .build();

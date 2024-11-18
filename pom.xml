@@ -143,7 +143,7 @@
         <io.confluent.ksql.version>7.1.15-0</io.confluent.ksql.version>
         <io.confluent.schema-registry.version>${confluent.version.range}</io.confluent.schema-registry.version>
         <mockito.version>3.8.0</mockito.version>
-        <netty-tcnative-version>2.0.70.Final</netty-tcnative-version>
+        <netty-tcnative-version>2.0.69.Final</netty-tcnative-version>
         <!-- We normally get this from common, but Vertx is built against this -->
         <!-- Note: `netty` depends on `tcnative` and if we bump `netty`
              we might need to bump `tcnative`, too.

@@ -1,0 +1,25 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="RecordFormatterTest" type="JUnit" factoryName="JUnit" nameIsGenerated="true">
+    <module name="ksqldb-rest-app" />
+    <extension name="coverage">
+      <pattern>
+        <option name="PATTERN" value="io.confluent.ksql.rest.server.resources.streaming.*" />
+        <option name="ENABLED" value="true" />
+      </pattern>
+    </extension>
+    <option name="ALTERNATIVE_JRE_PATH_ENABLED" value="true" />
+    <option name="ALTERNATIVE_JRE_PATH" value="temurin-17" />
+    <option name="PACKAGE_NAME" value="io.confluent.ksql.rest.server.resources.streaming" />
+    <option name="MAIN_CLASS_NAME" value="io.confluent.ksql.rest.server.resources.streaming.RecordFormatterTest" />
+    <option name="METHOD_NAME" value="" />
+    <option name="TEST_OBJECT" value="class" />
+    <option name="VM_PARAMETERS" value="-ea -Xmx512m -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=logs/classgraph/heapdump.hprof -XX:+PrintCommandLineFlags" />
+    <envs>
+      <env name="LOG_LEVEL" value="DEBUG" />
+      <env name="DEBUG" value="1" />
+    </envs>
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>

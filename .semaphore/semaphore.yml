@@ -38,7 +38,7 @@ blocks:
         - name: Test
           commands:
             - ci-tools ci-update-version
-            - ./mvnw Dlog4j.configuration=file:/path/to/log4j.properties -Dmaven.gitcommitid.nativegit=true -U -Dmaven.wagon.http.retryHandler.count=10 --batch-mode --no-transfer-progress clean install
+            - ./mvnw -Dmaven.gitcommitid.nativegit=true -U -Dmaven.wagon.http.retryHandler.count=10 --batch-mode --no-transfer-progress clean install
             - . cache-maven store
       epilogue:
         always:

@@ -68,7 +68,7 @@ public final class KsqlPlanSchemaGenerator {
 
   private static JsonSchemaConfig configure() {
     final SubclassesResolver subclassesResolver = new SubclassesResolver(
-        Collections.singletonList("io.confluent.ksql.rest.server.utils"),
+        Collections.emptyList(),
         Collections.emptyList()
     );
 

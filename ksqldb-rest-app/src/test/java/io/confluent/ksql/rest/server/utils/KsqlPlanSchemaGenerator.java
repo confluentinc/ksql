@@ -26,6 +26,7 @@ import com.google.common.base.Charsets;
 import com.google.common.collect.ImmutableMap;
 import com.kjetland.jackson.jsonSchema.JsonSchemaConfig;
 import com.kjetland.jackson.jsonSchema.JsonSchemaGenerator;
+import com.kjetland.jackson.jsonSchema.SubclassesResolver;
 import io.confluent.ksql.engine.KsqlPlan;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
@@ -35,10 +36,12 @@ import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.execution.windows.KsqlWindowExpression;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlType;
+import io.github.classgraph.ClassGraph;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -89,6 +92,13 @@ public final class KsqlPlanSchemaGenerator {
             .build()
         )
         .jsonSuppliers(Collections.emptyMap())
+        .subclassesResolver(new SubclassesResolver(
+            Arrays.asList(
+                "io.confluent.ksql.rest.entity",
+                "io.confluent.ksql.serde"
+            ),
+            Collections.emptyList()
+        ))
         .build();
   }
 

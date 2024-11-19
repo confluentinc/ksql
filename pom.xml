@@ -142,15 +142,15 @@
         <apache.io.version>2.14.0</apache.io.version>
         <io.confluent.ksql.version>7.2.13-0</io.confluent.ksql.version>
         <io.confluent.schema-registry.version>${confluent.version.range}</io.confluent.schema-registry.version>
-        <netty-tcnative-version>2.0.65.Final</netty-tcnative-version>
+        <netty-tcnative-version>2.0.69.Final</netty-tcnative-version>
         <!-- We normally get this from common, but Vertx is built against this -->
         <!-- Note: `netty` depends on `tcnative` and if we bump `netty`
              we might need to bump `tcnative`, too.
              Please check top level `pom.xml` at https://github.com/netty/netty
              for the netty version we bump to (ie, corresponding git tag),
              to find the correct `tcnative` version. -->
-        <netty.version>4.1.113.Final</netty.version>
-        <netty-codec-http2-version>4.1.113.Final</netty-codec-http2-version>
+        <netty.version>4.1.115.Final</netty.version>
+        <netty-codec-http2-version>4.1.115.Final</netty-codec-http2-version>
         <jersey-common>2.34</jersey-common>
     </properties>
 

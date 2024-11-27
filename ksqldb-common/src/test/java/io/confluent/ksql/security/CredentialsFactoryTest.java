@@ -20,6 +20,7 @@ import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
 import io.confluent.ksql.security.oauth.OAuthBearerCredentials;
+import io.confluent.ksql.security.oauth.StaticTokenCredentials;
 import org.junit.Test;
 
 public class CredentialsFactoryTest {
@@ -35,6 +36,13 @@ public class CredentialsFactoryTest {
     Credentials credentials = CredentialsFactory.createCredentials(AuthType.OAUTHBEARER);
     assertInstanceOf(OAuthBearerCredentials.class, credentials,
         "Should return an instance of OAuthBearerCredentials");
+  }
+
+  @Test
+  public void testCreateStaticTokenCredentials() {
+    Credentials credentials = CredentialsFactory.createCredentials(AuthType.STATIC_TOKEN);
+    assertInstanceOf(StaticTokenCredentials.class, credentials,
+        "Should return an instance of StaticTokenCredentials");
   }
 
   @Test

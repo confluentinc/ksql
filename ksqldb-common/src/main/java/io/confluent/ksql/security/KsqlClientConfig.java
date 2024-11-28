@@ -25,6 +25,9 @@ public final class KsqlClientConfig extends AbstractConfig {
   public static final String KSQL_BASIC_AUTH_USERNAME = "ksql.auth.basic.username";
   public static final String KSQL_BASIC_AUTH_PASSWORD = "ksql.auth.basic.password";
 
+  // S
+  public static final String BEARER_AUTH_TOKEN_CONFIG = "bearer.auth.token";
+
   //OAuth AUTHORIZATION SERVER related configs
   public static final String BEARER_AUTH_TOKEN_ENDPOINT_URL = "bearer.auth.issuer.endpoint.url";
   public static final String BEARER_AUTH_CLIENT_ID = "bearer.auth.client.id";
@@ -67,6 +70,12 @@ public final class KsqlClientConfig extends AbstractConfig {
             "",
             ConfigDef.Importance.MEDIUM,
             "The password for the KSQL server"
+        ).define(
+            BEARER_AUTH_TOKEN_CONFIG,
+            ConfigDef.Type.PASSWORD,
+            "",
+            ConfigDef.Importance.MEDIUM,
+            "The static bearer token for the IDP Authorization server"
         ).define(
         BEARER_AUTH_TOKEN_ENDPOINT_URL,
             ConfigDef.Type.STRING,

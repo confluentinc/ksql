@@ -22,7 +22,7 @@
     <parent>
         <groupId>io.confluent.ksql</groupId>
         <artifactId>ksqldb-parent</artifactId>
-        <version>7.3.11-0</version>
+        <version>7.3.11-103</version>
     </parent>
 
     <artifactId>ksqldb-rocksdb-config-setter</artifactId>

@@ -21,7 +21,7 @@
   <parent>
     <groupId>io.confluent.ksql</groupId>
     <artifactId>ksqldb-parent</artifactId>
-    <version>7.5.7-0</version>
+    <version>7.5.7-77</version>
   </parent>
 
   <artifactId>ksqldb-engine-common</artifactId>

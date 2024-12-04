@@ -173,6 +173,7 @@ public class KsqlRestApplicationTest {
 
     when(ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG)).thenReturn("ksql-id");
     when(ksqlConfig.getKsqlStreamConfigProps()).thenReturn(ImmutableMap.of("state.dir", "/tmp/cat"));
+    when(ksqlConfig.getString(KsqlConfig.KSQL_UDF_SECURITY_MANAGER_ENABLED)).thenReturn("false");
 
     when(response.getStatus()).thenReturn(200);
     when(response.getEntity()).thenReturn(new KsqlEntityList(

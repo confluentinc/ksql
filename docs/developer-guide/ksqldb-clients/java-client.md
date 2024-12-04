@@ -68,14 +68,14 @@ Start by creating a `pom.xml` for your Java application:
         <repository>
             <id>ksqlDB</id>
             <name>ksqlDB</name>
-            <url>https://ksqldb-maven.s3.amazonaws.com/maven/</url>
+            <url>https://ksqldb-mvns.s3.amazonaws.com/maven/</url>
         </repository>
     </repositories>
 
     <pluginRepositories>
         <pluginRepository>
             <id>ksqlDB</id>
-            <url>https://ksqldb-maven.s3.amazonaws.com/maven/</url>
+            <url>https://ksqldb-mvns.s3.amazonaws.com/maven/</url>
         </pluginRepository>
     </pluginRepositories>
 

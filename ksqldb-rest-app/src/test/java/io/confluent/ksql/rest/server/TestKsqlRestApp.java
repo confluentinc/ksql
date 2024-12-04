@@ -614,6 +614,7 @@ public class TestKsqlRestApp extends ExternalResource {
     configMap.put(KsqlConfig.KSQL_STREAMS_PREFIX + "cache.max.bytes.buffering", 0);
     configMap.put(KsqlConfig.KSQL_STREAMS_PREFIX + "auto.offset.reset", "earliest");
     configMap.put(KsqlConfig.KSQL_ENABLE_UDFS, false);
+    configMap.put(KsqlConfig.KSQL_UDF_SECURITY_MANAGER_ENABLED, false);
     configMap.put(KsqlRestConfig.KSQL_HEARTBEAT_ENABLE_CONFIG, false);
     configMap.put(KsqlConfig.KSQL_QUERY_CLEANUP_SHUTDOWN_TIMEOUT_MS, 500L);
     configMap.put(KsqlRestConfig.DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_CONFIG, 15000L);

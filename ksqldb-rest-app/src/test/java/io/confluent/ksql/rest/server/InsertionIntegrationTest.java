@@ -54,8 +54,6 @@ public class InsertionIntegrationTest {
   private  static final String STRUCT_BASE_STREAM = "base_stream";
   private  static final String FOLLOWER_STREAM = "follower_stream";
 
-
-
   private  static final String EVOLVING_STREAM = "evolving_stream";
 
   private static final TestKsqlRestApp REST_APP = TestKsqlRestApp
@@ -63,6 +61,7 @@ public class InsertionIntegrationTest {
       .withStaticServiceContext(TEST_HARNESS::getServiceContext)
       .withProperty(KsqlConfig.KSQL_HEADERS_COLUMNS_ENABLED, true)
       .withProperty(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY,"http://foo:8080")
+      .withProperty(KsqlConfig.KSQL_UDF_SECURITY_MANAGER_ENABLED, false)
       .build();
 
   @ClassRule

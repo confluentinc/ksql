@@ -988,7 +988,7 @@ public class KsqlAvroSerializerTest {
     );
 
     final GenericArray<?> actual = deserialize(bytes);
-    assertEquals(is(expected), actual);
+    assertEquals(expected, is(actual));
   }
 
   @Test

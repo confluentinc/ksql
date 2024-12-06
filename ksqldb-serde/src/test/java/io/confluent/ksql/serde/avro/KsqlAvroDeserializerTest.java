@@ -890,7 +890,7 @@ public class KsqlAvroDeserializerTest {
       final Object result = deserializer.deserialize(SOME_TOPIC, bytes);
 
       // Then:
-      assertEquals(expected, is(result));
+      assertEquals(expected, result);
     });
   }
 

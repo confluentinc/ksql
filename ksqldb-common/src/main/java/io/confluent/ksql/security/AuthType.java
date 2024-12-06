@@ -18,5 +18,6 @@ package io.confluent.ksql.security;
 public enum AuthType {
   BASIC,
   OAUTHBEARER,
+  STATIC_TOKEN,
   NONE
 }

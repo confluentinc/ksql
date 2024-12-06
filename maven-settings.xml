@@ -14,13 +14,13 @@
         <repository>
           <id>confluent-other</id>
           <name>Confluent</name>
-          <url>https://ksqldb-maven.s3.amazonaws.com/maven/</url>
+          <url>https://ksqldb-mvns.s3.amazonaws.com/maven/</url>
         </repository>
         <!-- needed for HTML API doc generation post-release only -->
         <repository>
           <id>ksqldb-staging</id>
           <name>ksqlDB staging</name>
-          <url>https://staging-ksqldb-maven.s3.amazonaws.com/maven/</url>
+          <url>https://stag-ksqldb-mvns.s3.amazonaws.com/maven/</url>
         </repository>
       </repositories>
 
@@ -28,7 +28,7 @@
         <pluginRepository>
           <id>confluent-other</id>
           <name>Confluent Plugin Repository</name>
-          <url>https://ksqldb-maven.s3.amazonaws.com/maven/</url>
+          <url>https://ksqldb-mvns.s3.amazonaws.com/maven/</url>
           <layout>default</layout>
           <snapshots>
             <enabled>true</enabled>
@@ -41,7 +41,7 @@
         <pluginRepository>
           <id>confluent-staging</id>
           <name>Confluent Staging Plugin Repository</name>
-          <url>https://staging-ksqldb-maven.s3.amazonaws.com/maven/</url>
+          <url>https://stag-ksqldb-mvns.s3.amazonaws.com/maven/</url>
           <layout>default</layout>
           <snapshots>
             <enabled>true</enabled>

@@ -17,8 +17,11 @@ package io.confluent.ksql.util;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -30,6 +33,10 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeoutException;
+import org.apache.kafka.common.KafkaFuture;
+import org.apache.kafka.streams.KafkaStreams.State;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.errors.StreamsException;
 import org.apache.kafka.streams.errors.StreamsUncaughtExceptionHandler;
@@ -37,6 +44,7 @@ import org.apache.kafka.streams.processor.TaskId;
 import org.apache.kafka.streams.processor.internals.namedtopology.AddNamedTopologyResult;
 import org.apache.kafka.streams.processor.internals.namedtopology.KafkaStreamsNamedTopologyWrapper;
 import org.apache.kafka.streams.processor.internals.namedtopology.NamedTopology;
+import org.apache.kafka.streams.processor.internals.namedtopology.RemoveNamedTopologyResult;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -62,6 +70,10 @@ public class SharedKafkaStreamsRuntimeImplTest {
     private NamedTopology namedTopology;
     @Mock
     private AddNamedTopologyResult addNamedTopologyResult;
+    @Mock
+    RemoveNamedTopologyResult mockResult;
+    @Mock
+    KafkaFuture<Void> mockFuture;
 
     private final QueryId queryId = new QueryId("query-1");
     private final QueryId queryId2= new QueryId("query-2");
@@ -247,5 +259,26 @@ public class SharedKafkaStreamsRuntimeImplTest {
         verify(binPackedPersistentQueryMetadata, never()).start();
         verify(kafkaStreamsNamedTopologyWrapper, never())
             .addNamedTopology(binPackedPersistentQueryMetadata2.getTopologyCopy(sharedKafkaStreamsRuntimeImpl));
+    }
+
+    @Test
+    public void shouldRetryOnKafkaStreamsTimeoutException() throws InterruptedException, ExecutionException, TimeoutException {
+        //Given:
+        sharedKafkaStreamsRuntimeImpl.register(binPackedPersistentQueryMetadata2);
+        when(kafkaStreamsNamedTopologyWrapper.getTopologyByName(any())).thenReturn(Optional.of(namedTopology));
+        when(kafkaStreamsNamedTopologyWrapper.state()).thenReturn(State.RUNNING);
+        when(kafkaStreamsNamedTopologyWrapper.removeNamedTopology(queryId2.toString(), false)).thenReturn(mockResult);
+        when(mockResult.all()).thenReturn(mockFuture);
+        when(mockFuture.get(anyLong(), any())).thenThrow(new TimeoutException());
+
+        //When:
+        final Exception e = assertThrows(
+            IllegalStateException.class,
+            () ->  sharedKafkaStreamsRuntimeImpl.stop(queryId2, false)
+        );
+
+        //Then:
+        verify(kafkaStreamsNamedTopologyWrapper, times(3))
+            .removeNamedTopology(queryId2.toString(), false);
     }
 }

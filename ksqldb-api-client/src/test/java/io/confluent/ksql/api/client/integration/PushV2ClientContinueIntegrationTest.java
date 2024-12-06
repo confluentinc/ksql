@@ -54,6 +54,7 @@ import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.integration.RestIntegrationTestUtil;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
+import io.confluent.ksql.rest.server.utils.TestUtils;
 import io.confluent.ksql.schema.ksql.SqlTimeTypes;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatFactory;
@@ -87,9 +88,11 @@ import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
+import org.junit.rules.Timeout;
 import org.reactivestreams.Publisher;
 
 @Category({IntegrationTest.class})
@@ -123,6 +126,7 @@ public class PushV2ClientContinueIntegrationTest {
   // in the worker pool without blocking the event loop.
   private static final int EVENT_LOOP_POOL_SIZE = 1;
   private static final int WORKER_POOL_SIZE = 10;
+  private static final int PORT = TestUtils.findFreeLocalPort();
 
   private static final TestKsqlRestApp REST_APP = TestKsqlRestApp
       .builder(TEST_HARNESS::kafkaBootstrapServers)
@@ -131,7 +135,7 @@ public class PushV2ClientContinueIntegrationTest {
       .withProperty("ksql.verticle.instances", EVENT_LOOP_POOL_SIZE)
       .withProperty("ksql.worker.pool.size", WORKER_POOL_SIZE)
       .withProperty(KsqlConfig.KSQL_HEADERS_COLUMNS_ENABLED, true)
-      .withProperty(KsqlRestConfig.LISTENERS_CONFIG, "http://localhost:8088")
+      .withProperty(KsqlRestConfig.LISTENERS_CONFIG, "http://localhost:" + PORT)
       .withProperty(KsqlConfig.KSQL_QUERY_PUSH_V2_NEW_LATEST_DELAY_MS, 0L)
       .withProperty(KSQL_QUERY_PUSH_V2_ENABLED, true)
       .withProperty(KSQL_QUERY_PUSH_V2_REGISTRY_INSTALLED, true)
@@ -158,6 +162,9 @@ public class PushV2ClientContinueIntegrationTest {
   public static void classTearDown() {
     REST_APP.getPersistentQueries().forEach(str -> makeKsqlRequest("TERMINATE " + str + ";"));
   }
+
+  @Rule
+  public final Timeout timeout = Timeout.seconds(120);
 
   private Vertx vertx;
   private Client client;

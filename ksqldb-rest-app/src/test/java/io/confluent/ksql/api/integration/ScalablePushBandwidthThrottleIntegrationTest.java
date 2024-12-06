@@ -76,8 +76,6 @@ public class ScalablePushBandwidthThrottleIntegrationTest {
   private static final TestKsqlRestApp REST_APP = TestKsqlRestApp
       .builder(TEST_HARNESS::kafkaBootstrapServers)
       .withEnabledKsqlClient()
-      .withProperty(KsqlRestConfig.LISTENERS_CONFIG, "http://localhost:8088")
-      .withProperty(KsqlRestConfig.ADVERTISED_LISTENER_CONFIG, "http://localhost:8088")
       .withProperty(KSQL_QUERY_PUSH_V2_ENABLED , true)
       .withProperty(KSQL_QUERY_PUSH_V2_MAX_HOURLY_BANDWIDTH_MEGABYTES_CONFIG , 1)
       .withProperty(KsqlConfig.KSQL_QUERY_PUSH_V2_NEW_LATEST_DELAY_MS, 0L)

@@ -87,11 +87,14 @@ public class ConnectIntegrationTest {
   private static final Logger LOG = LoggerFactory.getLogger(ConnectIntegrationTest.class);
   private static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.build();
   private  static final long TIMEOUT_NS = 120000000000L;
+  private static final int CONNECT_PORT
+      = io.confluent.ksql.rest.server.utils.TestUtils.findFreeLocalPort();
 
   private static final TestKsqlRestApp REST_APP = TestKsqlRestApp
       .builder(TEST_HARNESS::kafkaBootstrapServers)
       .withStaticServiceContext(TEST_HARNESS::getServiceContext)
       .withProperty(KsqlConfig.KSQL_HEADERS_COLUMNS_ENABLED, true)
+      .withProperty(KsqlConfig.CONNECT_URL_PROPERTY, "http://localhost:" + CONNECT_PORT)
       .build();
 
   @ClassRule
@@ -116,6 +119,7 @@ public class ConnectIntegrationTest {
         .put("status.storage.replication.factor", "1")
         .put("config.storage.replication.factor", "1")
         .put("value.converter.schemas.enable", "false")
+        .put("listeners", "http://localhost:" + CONNECT_PORT)
         .build()
     );
     CONNECT.startAsync();

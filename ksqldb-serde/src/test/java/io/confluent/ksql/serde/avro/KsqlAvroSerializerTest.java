@@ -987,8 +987,7 @@ public class KsqlAvroSerializerTest {
         MAP_VALUE_ORDER_AVRO_SCHEMA
     );
 
-    final GenericArray<?> actual = deserialize(bytes);
-    assertEquals(expected, actual);
+    assertEquals(deserialize(bytes), expected);
   }
 
   @Test

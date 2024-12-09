@@ -120,6 +120,7 @@ public class StandaloneExecutorFunctionalTest {
         .putAll(KsqlConfigTestUtil.baseTestConfig())
         .put(CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG, TEST_HARNESS.kafkaBootstrapServers())
         .put(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY, "http://foo:8080")
+        .put(KsqlConfig.KSQL_UDF_SECURITY_MANAGER_ENABLED, "false")
         .putAll(additionalProperties)
         .build();
 

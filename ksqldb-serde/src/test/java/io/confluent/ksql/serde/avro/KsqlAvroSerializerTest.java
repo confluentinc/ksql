@@ -986,8 +986,8 @@ public class KsqlAvroSerializerTest {
         ImmutableMap.of(new Utf8("k"), avroOrder),
         MAP_VALUE_ORDER_AVRO_SCHEMA
     );
-
-    assertEquals(deserialize(bytes), expected);
+    final GenericArray<?> actual = deserialize(bytes);
+    assertEquals(expected.toArray(), actual.toArray());
   }
 
   @Test

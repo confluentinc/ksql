@@ -25,7 +25,10 @@ public final class KsqlClientConfig extends AbstractConfig {
   public static final String KSQL_BASIC_AUTH_USERNAME = "ksql.auth.basic.username";
   public static final String KSQL_BASIC_AUTH_PASSWORD = "ksql.auth.basic.password";
 
-  //OAuth AUTHORIZATION SERVER related configs
+  // Static token related configs
+  public static final String BEARER_AUTH_TOKEN_CONFIG = "bearer.auth.token";
+
+  // OAuth AUTHORIZATION SERVER related configs
   public static final String BEARER_AUTH_TOKEN_ENDPOINT_URL = "bearer.auth.issuer.endpoint.url";
   public static final String BEARER_AUTH_CLIENT_ID = "bearer.auth.client.id";
   public static final String BEARER_AUTH_CLIENT_SECRET = "bearer.auth.client.secret";
@@ -37,7 +40,7 @@ public final class KsqlClientConfig extends AbstractConfig {
   public static final String BEARER_AUTH_SUB_CLAIM_NAME_DEFAULT =
       SaslConfigs.DEFAULT_SASL_OAUTHBEARER_SUB_CLAIM_NAME;
 
-  //OAuth config related to token cache
+  // OAuth config related to token cache
   public static final String BEARER_AUTH_CACHE_EXPIRY_BUFFER_SECONDS =
       "bearer.auth.cache.expiry.buffer.seconds";
   public static final short BEARER_AUTH_CACHE_EXPIRY_BUFFER_SECONDS_DEFAULT = 300;
@@ -67,6 +70,12 @@ public final class KsqlClientConfig extends AbstractConfig {
             "",
             ConfigDef.Importance.MEDIUM,
             "The password for the KSQL server"
+        ).define(
+            BEARER_AUTH_TOKEN_CONFIG,
+            ConfigDef.Type.PASSWORD,
+            "",
+            ConfigDef.Importance.MEDIUM,
+            "The static bearer token for the IDP Authorization server"
         ).define(
         BEARER_AUTH_TOKEN_ENDPOINT_URL,
             ConfigDef.Type.STRING,

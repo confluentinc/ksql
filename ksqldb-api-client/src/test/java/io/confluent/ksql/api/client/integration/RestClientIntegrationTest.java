@@ -120,6 +120,7 @@ public class RestClientIntegrationTest {
       .withProperty("ksql.verticle.instances", EVENT_LOOP_POOL_SIZE)
       .withProperty("ksql.worker.pool.size", WORKER_POOL_SIZE)
       .withProperty(KsqlConfig.KSQL_HEADERS_COLUMNS_ENABLED, true)
+      .withProperty(KsqlConfig.KSQL_UDF_SECURITY_MANAGER_ENABLED, false)
       .build();
 
   @ClassRule

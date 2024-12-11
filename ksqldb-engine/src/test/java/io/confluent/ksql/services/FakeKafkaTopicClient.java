@@ -173,6 +173,9 @@ public class FakeKafkaTopicClient implements KafkaTopicClient {
   }
 
   @Override
+  public void setRetryOnUnknownTopic(boolean retry) {}
+
+  @Override
   public Map<String, String> getTopicConfig(final String topicName) {
     return Collections.emptyMap();
   }

@@ -162,6 +162,8 @@ public interface KafkaTopicClient {
     return describeTopics(ImmutableList.of(topicName)).get(topicName);
   }
 
+  void setRetryOnUnknownTopic(boolean retry);
+
   /**
    * Call to get the config of a topic.
    *

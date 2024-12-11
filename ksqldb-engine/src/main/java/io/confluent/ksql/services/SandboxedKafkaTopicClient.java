@@ -62,7 +62,6 @@ final class SandboxedKafkaTopicClient {
         .forward("isTopicExists", methodParams(String.class), sandbox)
         .forward("describeTopic", methodParams(String.class), sandbox)
         .forward("setRetryOnUnknownTopic", methodParams(boolean.class), sandbox)
-        .forward("getTopicConfig", methodParams(String.class), sandbox)
         .forward("describeTopics", methodParams(Collection.class), sandbox)
         .forward("deleteTopics", methodParams(Collection.class), sandbox)
         .forward("listTopicsStartOffsets", methodParams(Collection.class), sandbox)

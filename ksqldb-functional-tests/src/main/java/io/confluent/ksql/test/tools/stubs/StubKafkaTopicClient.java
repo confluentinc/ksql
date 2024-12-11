@@ -156,6 +156,9 @@ public class StubKafkaTopicClient implements KafkaTopicClient {
   }
 
   @Override
+  public void setRetryOnUnknownTopic(final boolean retry) {}
+
+  @Override
   public Map<String, String> getTopicConfig(final String topicName) {
     return Collections.emptyMap();
   }

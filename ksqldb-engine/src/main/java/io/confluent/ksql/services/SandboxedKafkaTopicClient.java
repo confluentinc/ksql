@@ -61,6 +61,7 @@ final class SandboxedKafkaTopicClient {
             methodParams(String.class, int.class, short.class, Map.class), sandbox)
         .forward("isTopicExists", methodParams(String.class), sandbox)
         .forward("describeTopic", methodParams(String.class), sandbox)
+        .forward("setRetryOnUnknownTopic", methodParams(boolean.class), sandbox)
         .forward("describeTopics", methodParams(Collection.class), sandbox)
         .forward("deleteTopics", methodParams(Collection.class), sandbox)
         .forward("listTopicsStartOffsets", methodParams(Collection.class), sandbox)
@@ -151,6 +152,8 @@ final class SandboxedKafkaTopicClient {
   public TopicDescription describeTopic(final String topicName) {
     return describeTopics(ImmutableList.of(topicName)).get(topicName);
   }
+
+  public void setRetryOnUnknownTopic(final boolean retry){}
 
   private Map<String, TopicDescription> describeTopics(final Collection<String> topicNames) {
     final Map<String, TopicDescription> descriptions = topicNames.stream()

@@ -151,6 +151,8 @@ public interface KafkaTopicClient {
    */
   Map<String, TopicDescription> describeTopics(Collection<String> topicNames);
 
+  Map<String, TopicDescription> describeTopics(Collection<String> topicNames, Boolean isRetryable);
+
   /**
    * Call to get a one topic's description.
    *
@@ -160,6 +162,10 @@ public interface KafkaTopicClient {
    */
   default TopicDescription describeTopic(final String topicName) {
     return describeTopics(ImmutableList.of(topicName)).get(topicName);
+  }
+
+  default TopicDescription describeTopic(final String topicName, Boolean isRetryable) {
+    return describeTopics(ImmutableList.of(topicName), isRetryable).get(topicName);
   }
 
   /**

@@ -220,6 +220,27 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
   }
 
   @Override
+  public Map<String, TopicDescription> describeTopics(Collection<String> topicNames, Boolean isRetryable) {
+    if (isRetryable) return describeTopics(topicNames);
+
+    try {
+      return adminClient.get().describeTopics(
+                      topicNames,
+                      new DescribeTopicsOptions().includeAuthorizedOperations(true)
+              ).allTopicNames().get();
+    } catch (final ExecutionException e) {
+      throw new KafkaResponseGetFailedException(
+              "Failed to Describe Kafka Topic(s): " + topicNames, e.getCause());
+    } catch (final TopicAuthorizationException e) {
+      throw new KsqlTopicAuthorizationException(
+              AclOperation.DESCRIBE, topicNames);
+    } catch (final Exception e) {
+      throw new KafkaResponseGetFailedException(
+              "Failed to Describe Kafka Topic(s): " + topicNames, e);
+    }
+  }
+
+  @Override
   public Map<String, String> getTopicConfig(final String topicName) {
     return topicConfig(topicName, true);
   }

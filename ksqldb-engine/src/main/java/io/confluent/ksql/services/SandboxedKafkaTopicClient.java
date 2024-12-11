@@ -61,7 +61,9 @@ final class SandboxedKafkaTopicClient {
             methodParams(String.class, int.class, short.class, Map.class), sandbox)
         .forward("isTopicExists", methodParams(String.class), sandbox)
         .forward("describeTopic", methodParams(String.class), sandbox)
+        .forward("describeTopic", methodParams(String.class, Boolean.class), sandbox)
         .forward("describeTopics", methodParams(Collection.class), sandbox)
+        .forward("describeTopics", methodParams(Collection.class, Boolean.class), sandbox)
         .forward("deleteTopics", methodParams(Collection.class), sandbox)
         .forward("listTopicsStartOffsets", methodParams(Collection.class), sandbox)
         .forward("listTopicsEndOffsets", methodParams(Collection.class), sandbox)
@@ -152,6 +154,10 @@ final class SandboxedKafkaTopicClient {
     return describeTopics(ImmutableList.of(topicName)).get(topicName);
   }
 
+  public TopicDescription describeTopic(final String topicName, Boolean isRetryable) {
+    return describeTopics(ImmutableList.of(topicName), isRetryable).get(topicName);
+  }
+
   private Map<String, TopicDescription> describeTopics(final Collection<String> topicNames) {
     final Map<String, TopicDescription> descriptions = topicNames.stream()
         .map(createdTopics::get)
@@ -165,6 +171,24 @@ final class SandboxedKafkaTopicClient {
     }
 
     final Map<String, TopicDescription> fromKafka = delegate.describeTopics(remaining);
+
+    descriptions.putAll(fromKafka);
+    return descriptions;
+  }
+
+  private Map<String, TopicDescription> describeTopics(final Collection<String> topicNames, Boolean isRetryable) {
+    final Map<String, TopicDescription> descriptions = topicNames.stream()
+            .map(createdTopics::get)
+            .filter(Objects::nonNull)
+            .collect(Collectors.toMap(TopicDescription::name, Function.identity()));
+
+    final HashSet<String> remaining = new HashSet<>(topicNames);
+    remaining.removeAll(descriptions.keySet());
+    if (remaining.isEmpty()) {
+      return descriptions;
+    }
+
+    final Map<String, TopicDescription> fromKafka = delegate.describeTopics(remaining, isRetryable);
 
     descriptions.putAll(fromKafka);
     return descriptions;

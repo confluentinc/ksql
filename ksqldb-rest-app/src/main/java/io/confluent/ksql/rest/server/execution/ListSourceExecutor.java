@@ -292,6 +292,7 @@ public final class ListSourceExecutor {
 
     final List<KsqlWarning> warnings = new LinkedList<>();
     try {
+      serviceContext.getTopicClient().setRetryOnUnknownTopic(false);
       topicDescription = Optional.of(
           serviceContext.getTopicClient().describeTopic(dataSource.getKafkaTopicName())
       );

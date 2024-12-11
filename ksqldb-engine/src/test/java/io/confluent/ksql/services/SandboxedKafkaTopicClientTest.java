@@ -87,6 +87,7 @@ public class SandboxedKafkaTopicClientTest {
           .ignore("createTopic", String.class, int.class, short.class, Map.class)
           .ignore("isTopicExists", String.class)
           .ignore("describeTopic", String.class)
+          .ignore("setRetryOnUnknownTopic", boolean.class)
           .ignore("describeTopics", Collection.class)
           .ignore("deleteTopics", Collection.class)
           .ignore("listTopicsStartOffsets", Collection.class)

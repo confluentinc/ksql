@@ -76,6 +76,8 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
 
   private static final String DEFAULT_REPLICATION_PROP = "default.replication.factor";
   private static final String DELETE_TOPIC_ENABLE = "delete.topic.enable";
+  private static final ThreadLocal<Boolean> RETRY_ON_UNKNOWN_TOPIC =
+          ThreadLocal.withInitial(() -> true);
 
   private final Supplier<Admin> adminClient;
 
@@ -87,6 +89,11 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
    */
   public KafkaTopicClientImpl(final Supplier<Admin> sharedAdminClient) {
     this.adminClient = Objects.requireNonNull(sharedAdminClient, "sharedAdminClient");
+  }
+
+  @Override
+  public void setRetryOnUnknownTopic(final boolean retry) {
+    RETRY_ON_UNKNOWN_TOPIC.set(retry);
   }
 
   @Override
@@ -206,7 +213,11 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
               topicNames,
               new DescribeTopicsOptions().includeAuthorizedOperations(true)
           ).all().get(),
-          ExecutorUtil.RetryBehaviour.ON_RETRYABLE);
+          RETRY_ON_UNKNOWN_TOPIC.get()
+              ? ExecutorUtil.RetryBehaviour.ON_RETRYABLE
+              : ExecutorUtil.RetryBehaviour.ON_RETRYABLE.and(
+                      e -> !(e instanceof UnknownTopicOrPartitionException))
+      );
     } catch (final ExecutionException e) {
       throw new KafkaResponseGetFailedException(
           "Failed to Describe Kafka Topic(s): " + topicNames, e.getCause());
@@ -214,6 +225,9 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
       throw new KsqlTopicAuthorizationException(
           AclOperation.DESCRIBE, topicNames);
     } catch (final Exception e) {
+      if (Throwables.getRootCause(e) instanceof UnknownTopicOrPartitionException) {
+        LOG.error("Failed to describe topic(s): {} due to Missing Topic(s)", topicNames, e);
+      }
       throw new KafkaResponseGetFailedException(
           "Failed to Describe Kafka Topic(s): " + topicNames, e);
     }

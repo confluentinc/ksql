@@ -146,7 +146,8 @@ public class StubKafkaTopicClient implements KafkaTopicClient {
   }
 
   @Override
-  public Map<String, TopicDescription> describeTopics(Collection<String> topicNames, Boolean isRetryable) {
+  public Map<String, TopicDescription> describeTopics(final Collection<String> topicNames,
+                                                      final Boolean isRetryable) {
     return describeTopics(topicNames);
   }
 

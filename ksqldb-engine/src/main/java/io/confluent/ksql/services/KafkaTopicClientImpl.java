@@ -220,8 +220,11 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
   }
 
   @Override
-  public Map<String, TopicDescription> describeTopics(Collection<String> topicNames, Boolean isRetryable) {
-    if (isRetryable) return describeTopics(topicNames);
+  public Map<String, TopicDescription> describeTopics(final Collection<String> topicNames,
+                                                      final Boolean isRetryable) {
+    if (isRetryable) {
+      return describeTopics(topicNames);
+    }
 
     try {
       return adminClient.get().describeTopics(

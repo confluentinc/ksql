@@ -154,7 +154,7 @@ final class SandboxedKafkaTopicClient {
     return describeTopics(ImmutableList.of(topicName)).get(topicName);
   }
 
-  public TopicDescription describeTopic(final String topicName, Boolean isRetryable) {
+  public TopicDescription describeTopic(final String topicName, final Boolean isRetryable) {
     return describeTopics(ImmutableList.of(topicName), isRetryable).get(topicName);
   }
 
@@ -176,7 +176,8 @@ final class SandboxedKafkaTopicClient {
     return descriptions;
   }
 
-  private Map<String, TopicDescription> describeTopics(final Collection<String> topicNames, Boolean isRetryable) {
+  private Map<String, TopicDescription> describeTopics(final Collection<String> topicNames,
+                                                       final Boolean isRetryable) {
     final Map<String, TopicDescription> descriptions = topicNames.stream()
             .map(createdTopics::get)
             .filter(Objects::nonNull)

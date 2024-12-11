@@ -21,7 +21,6 @@ import static io.confluent.ksql.internal.MetricsTagUtils.KSQL_TOPIC_TAG;
 import static io.confluent.ksql.internal.MetricsTagUtils.SHARED_RUNTIME_THREAD_PATTERN;
 import static io.confluent.ksql.internal.MetricsTagUtils.UNSHARED_RUNTIME_THREAD_PATTERN;
 import static java.util.Objects.requireNonNull;
-import static org.apache.kafka.common.utils.Utils.mkSet;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
@@ -52,7 +51,7 @@ public class ThroughputMetricsReporter implements MetricsReporter {
   private static final String RECORDS_PRODUCED = "records-produced-total";
   private static final String BYTES_PRODUCED = "bytes-produced-total";
   private static final Set<String> THROUGHPUT_METRIC_NAMES =
-      mkSet(RECORDS_CONSUMED, BYTES_CONSUMED, RECORDS_PRODUCED, BYTES_PRODUCED);
+      Set.of(RECORDS_CONSUMED, BYTES_CONSUMED, RECORDS_PRODUCED, BYTES_PRODUCED);
 
   private static final Map<String, Map<String, Map<MetricName, ThroughputTotalMetric>>> metrics =
       new HashMap<>();

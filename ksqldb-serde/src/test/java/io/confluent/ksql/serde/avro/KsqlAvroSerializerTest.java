@@ -771,7 +771,7 @@ public class KsqlAvroSerializerTest {
     final byte[] bytes = serializer.serialize(SOME_TOPIC, value);
 
     // Then:
-    assertEquals(ImmutableList.of(avroOrder), deserialize(bytes));
+    assertThat(deserialize(bytes), is((List<GenericRecord>) ImmutableList.of(avroOrder)));
   }
 
   @Test
@@ -987,7 +987,7 @@ public class KsqlAvroSerializerTest {
         MAP_VALUE_ORDER_AVRO_SCHEMA
     );
     final GenericArray<?> actual = deserialize(bytes);
-    assertEquals(expected.toArray(), actual.toArray());
+    assertThat(actual, is(expected));
   }
 
   @Test

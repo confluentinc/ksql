@@ -34,6 +34,11 @@ for project in ksqldb-engine ksqldb-examples ksqldb-rest-app ksqldb-cli ksqldb-f
     done
 done
 
+SECURITY_PLUGIN_DIR="/Users/hrishabhgupta/Desktop/dev/confluent-security-plugins"
+# add target dir in the root of the security plugin dir
+KSQL_CLASSPATH="$KSQL_CLASSPATH:$SECURITY_PLUGIN_DIR/target/*"
+KSQL_CLASSPATH="$KSQL_CLASSPATH:/Users/hrishabhgupta/Desktop/dev/confluent-security-plugins/package-ksql-security-plugin/target/package-ksql-security-plugin-7.9.0-0-package/share/java/confluent-security/ksql/*"
+
 # Production jars - each one is prepended so they will appear in reverse order.  KSQL jars take precedence over other stuff passed in via CLASSPATH env var
 for library in "confluent-common" "confluent-telemetry" "ksqldb-examples" "rest-utils" "ksqldb-engine" "ksqldb-rest-app" "ksqldb-cli" "ksqldb-functional-tests" "ksqldb" "monitoring-interceptors" "confluent-security/ksql" "ksqldb-tools"; do
   DIR="$base_dir/share/java/$library"
@@ -185,6 +190,7 @@ OPTIONS+=($KSQL_JAVA_DEBUG_OPTS)
 
 echo "Debug Options: $KSQL_JAVA_DEBUG_OPTS"
 
+echo $KSQL_CLASSPATH
 # Launch mode
 if [ "x$DAEMON_MODE" = "xtrue" ]; then
   DAEMON_STDOUT_FILE="$LOG_DIR/ksql.out"

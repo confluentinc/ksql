@@ -157,9 +157,10 @@ public class FakeKafkaTopicClient implements KafkaTopicClient {
   }
 
   @Override
-  public Map<String, TopicDescription> describeTopics(final Collection<String> topicNames) {
+  public Map<String, TopicDescription> describeTopics(Collection<String> topicNames,
+                                                      Boolean skipRetriesOnFailure) {
     return topicNames.stream()
-        .collect(Collectors.toMap(Function.identity(), this::describeTopic));
+            .collect(Collectors.toMap(Function.identity(), this::describeTopic));
   }
 
   @Override

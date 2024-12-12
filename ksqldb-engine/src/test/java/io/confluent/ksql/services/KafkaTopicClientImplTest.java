@@ -830,6 +830,23 @@ public class KafkaTopicClientImplTest {
   }
 
   @Test
+  public void shouldNotRetryDescribeTopicsExistsAnyException() {
+    // When
+    when(adminClient.describeTopics(anyCollection(), any()))
+            .thenAnswer(describeTopicsResult(new UnknownTopicOrPartitionException("meh")));
+    final String topicName = "foobar";
+    final Exception e = assertThrows(
+            KafkaResponseGetFailedException.class,
+            () -> kafkaTopicClient.describeTopic(topicName, true)
+    );
+
+    // Then
+    verify(adminClient, times(1)).describeTopics(anyCollection(), any());
+    assertThat(e.getMessage(),
+            containsString("Failed to Describe Kafka Topic(s): [foobar]"));
+  }
+
+  @Test
   public void shouldThrowIsTopicExistsOnAuthorizationException() {
     // Given
     when(adminClient.describeTopics(eq(ImmutableList.of("foobar")), any()))

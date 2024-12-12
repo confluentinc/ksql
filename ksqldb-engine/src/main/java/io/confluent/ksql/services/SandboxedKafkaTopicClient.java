@@ -30,6 +30,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -61,7 +62,9 @@ final class SandboxedKafkaTopicClient {
             methodParams(String.class, int.class, short.class, Map.class), sandbox)
         .forward("isTopicExists", methodParams(String.class), sandbox)
         .forward("describeTopic", methodParams(String.class), sandbox)
+        .forward("describeTopic", methodParams(String.class, Boolean.class), sandbox)
         .forward("describeTopics", methodParams(Collection.class), sandbox)
+        .forward("describeTopics", methodParams(Collection.class, Boolean.class), sandbox)
         .forward("deleteTopics", methodParams(Collection.class), sandbox)
         .forward("listTopicsStartOffsets", methodParams(Collection.class), sandbox)
         .forward("listTopicsEndOffsets", methodParams(Collection.class), sandbox)
@@ -152,21 +155,33 @@ final class SandboxedKafkaTopicClient {
     return describeTopics(ImmutableList.of(topicName)).get(topicName);
   }
 
-  private Map<String, TopicDescription> describeTopics(final Collection<String> topicNames) {
-    final Map<String, TopicDescription> descriptions = topicNames.stream()
-        .map(createdTopics::get)
-        .filter(Objects::nonNull)
-        .collect(Collectors.toMap(TopicDescription::name, Function.identity()));
+  public TopicDescription describeTopic(final String topicName,
+                                        final Boolean skipRetriesOnFailure) {
+    return describeTopics(ImmutableList.of(topicName), skipRetriesOnFailure).get(topicName);
+  }
 
-    final HashSet<String> remaining = new HashSet<>(topicNames);
-    remaining.removeAll(descriptions.keySet());
-    if (remaining.isEmpty()) {
+  private Map<String, TopicDescription> describeTopics(final Collection<String> topicNames) {
+    return describeTopics(topicNames, false);
+  }
+
+  private Map<String, TopicDescription> describeTopics(final Collection<String> topicNames,
+                                                       final Boolean skipRetriesOnFailure) {
+    final Map<String, TopicDescription> descriptions = topicNames.stream()
+            .map(createdTopics::get)
+            .filter(Objects::nonNull)
+            .collect(Collectors.toMap(TopicDescription::name, Function.identity()));
+
+    final Set<String> topicsToFetch = new HashSet<>(topicNames);
+    topicsToFetch.removeAll(descriptions.keySet());
+    if (topicsToFetch.isEmpty()) {
       return descriptions;
     }
 
-    final Map<String, TopicDescription> fromKafka = delegate.describeTopics(remaining);
+    final Map<String, TopicDescription> remainingTopicDescriptionMap = skipRetriesOnFailure
+            ? delegate.describeTopics(topicsToFetch, true)
+            : delegate.describeTopics(topicsToFetch);
 
-    descriptions.putAll(fromKafka);
+    descriptions.putAll(remainingTopicDescriptionMap);
     return descriptions;
   }
 

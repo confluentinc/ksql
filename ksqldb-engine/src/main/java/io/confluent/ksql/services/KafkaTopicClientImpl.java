@@ -199,23 +199,31 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
   }
 
   @Override
-  public Map<String, TopicDescription> describeTopics(final Collection<String> topicNames) {
+  public Map<String, TopicDescription> describeTopics(final Collection<String> topicNames,
+                                                      final Boolean skipRetriesOnFailure) {
     try {
-      return ExecutorUtil.executeWithRetries(
-          () -> adminClient.get().describeTopics(
-              topicNames,
-              new DescribeTopicsOptions().includeAuthorizedOperations(true)
-          ).all().get(),
-          ExecutorUtil.RetryBehaviour.ON_RETRYABLE);
+      if (skipRetriesOnFailure) {
+        return adminClient.get().describeTopics(
+                topicNames,
+                new DescribeTopicsOptions().includeAuthorizedOperations(true)
+        ).allTopicNames().get();
+      } else {
+        return ExecutorUtil.executeWithRetries(
+                () -> adminClient.get().describeTopics(
+                        topicNames,
+                        new DescribeTopicsOptions().includeAuthorizedOperations(true)
+                ).all().get(),
+                ExecutorUtil.RetryBehaviour.ON_RETRYABLE);
+      }
     } catch (final ExecutionException e) {
       throw new KafkaResponseGetFailedException(
-          "Failed to Describe Kafka Topic(s): " + topicNames, e.getCause());
+              "Failed to Describe Kafka Topic(s): " + topicNames, e.getCause());
     } catch (final TopicAuthorizationException e) {
       throw new KsqlTopicAuthorizationException(
-          AclOperation.DESCRIBE, topicNames);
+              AclOperation.DESCRIBE, topicNames);
     } catch (final Exception e) {
       throw new KafkaResponseGetFailedException(
-          "Failed to Describe Kafka Topic(s): " + topicNames, e);
+              "Failed to Describe Kafka Topic(s): " + topicNames, e);
     }
   }
 

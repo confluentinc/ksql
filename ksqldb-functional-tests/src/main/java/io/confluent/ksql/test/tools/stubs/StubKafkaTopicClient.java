@@ -140,15 +140,10 @@ public class StubKafkaTopicClient implements KafkaTopicClient {
   }
 
   @Override
-  public Map<String, TopicDescription> describeTopics(final Collection<String> topicNames) {
+  public Map<String, TopicDescription> describeTopics(final Collection<String> topicNames,
+                                                      final Boolean skipRetriesOnFailure) {
     return topicNames.stream()
         .collect(Collectors.toMap(Function.identity(), this::describeTopic));
-  }
-
-  @Override
-  public Map<String, TopicDescription> describeTopics(final Collection<String> topicNames,
-                                                      final Boolean isRetryable) {
-    return describeTopics(topicNames);
   }
 
   @Override

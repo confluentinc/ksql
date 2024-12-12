@@ -149,9 +149,20 @@ public interface KafkaTopicClient {
    * @return map of topic name to description.
    * @throws KafkaTopicExistsException if any of the topic do not exist.
    */
-  Map<String, TopicDescription> describeTopics(Collection<String> topicNames);
+  default Map<String, TopicDescription> describeTopics(Collection<String> topicNames) {
+    return describeTopics(topicNames, false);
+  }
 
-  Map<String, TopicDescription> describeTopics(Collection<String> topicNames, Boolean isRetryable);
+  /**
+   * Call to get one or more topic's description, considering if we want to skip retries on failure.
+   *
+   * @param topicNames topicNames to describe
+   * @param skipRetriesOnFailure  whether to skip retries on failure
+   * @return  map of topic name to description.
+   * @throws KafkaTopicExistsException if any of the topic do not exist.
+   */
+  Map<String, TopicDescription> describeTopics(Collection<String> topicNames,
+                                               Boolean skipRetriesOnFailure);
 
   /**
    * Call to get a one topic's description.
@@ -164,8 +175,16 @@ public interface KafkaTopicClient {
     return describeTopics(ImmutableList.of(topicName)).get(topicName);
   }
 
-  default TopicDescription describeTopic(final String topicName, Boolean isRetryable) {
-    return describeTopics(ImmutableList.of(topicName), isRetryable).get(topicName);
+  /**
+   * Call to get one topic's description, considering if we want to skip retries on failure.
+   *
+   * @param topicName topicName to describe
+   * @param skipRetriesOnFailure whether to skip retries on failure
+   * @return  the description if the topic
+   * @throws KafkaTopicExistsException if the topic does not exist.
+   */
+  default TopicDescription describeTopic(final String topicName, Boolean skipRetriesOnFailure) {
+    return describeTopics(ImmutableList.of(topicName), skipRetriesOnFailure).get(topicName);
   }
 
   /**

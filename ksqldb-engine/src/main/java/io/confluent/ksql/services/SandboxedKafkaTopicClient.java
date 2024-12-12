@@ -30,6 +30,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -154,44 +155,33 @@ final class SandboxedKafkaTopicClient {
     return describeTopics(ImmutableList.of(topicName)).get(topicName);
   }
 
-  public TopicDescription describeTopic(final String topicName, final Boolean isRetryable) {
-    return describeTopics(ImmutableList.of(topicName), isRetryable).get(topicName);
+  public TopicDescription describeTopic(final String topicName,
+                                        final Boolean skipRetriesOnFailure) {
+    return describeTopics(ImmutableList.of(topicName), skipRetriesOnFailure).get(topicName);
   }
 
   private Map<String, TopicDescription> describeTopics(final Collection<String> topicNames) {
-    final Map<String, TopicDescription> descriptions = topicNames.stream()
-        .map(createdTopics::get)
-        .filter(Objects::nonNull)
-        .collect(Collectors.toMap(TopicDescription::name, Function.identity()));
-
-    final HashSet<String> remaining = new HashSet<>(topicNames);
-    remaining.removeAll(descriptions.keySet());
-    if (remaining.isEmpty()) {
-      return descriptions;
-    }
-
-    final Map<String, TopicDescription> fromKafka = delegate.describeTopics(remaining);
-
-    descriptions.putAll(fromKafka);
-    return descriptions;
+    return describeTopics(topicNames, false);
   }
 
   private Map<String, TopicDescription> describeTopics(final Collection<String> topicNames,
-                                                       final Boolean isRetryable) {
+                                                       final Boolean skipRetriesOnFailure) {
     final Map<String, TopicDescription> descriptions = topicNames.stream()
             .map(createdTopics::get)
             .filter(Objects::nonNull)
             .collect(Collectors.toMap(TopicDescription::name, Function.identity()));
 
-    final HashSet<String> remaining = new HashSet<>(topicNames);
-    remaining.removeAll(descriptions.keySet());
-    if (remaining.isEmpty()) {
+    final Set<String> topicsToFetch = new HashSet<>(topicNames);
+    topicsToFetch.removeAll(descriptions.keySet());
+    if (topicsToFetch.isEmpty()) {
       return descriptions;
     }
 
-    final Map<String, TopicDescription> fromKafka = delegate.describeTopics(remaining, isRetryable);
+    final Map<String, TopicDescription> remainingTopicDescriptionMap = skipRetriesOnFailure
+            ? delegate.describeTopics(topicsToFetch, true)
+            : delegate.describeTopics(topicsToFetch);
 
-    descriptions.putAll(fromKafka);
+    descriptions.putAll(remainingTopicDescriptionMap);
     return descriptions;
   }
 

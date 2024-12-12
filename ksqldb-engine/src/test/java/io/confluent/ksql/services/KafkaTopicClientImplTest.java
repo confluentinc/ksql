@@ -834,9 +834,10 @@ public class KafkaTopicClientImplTest {
     // When
     when(adminClient.describeTopics(anyCollection(), any()))
             .thenAnswer(describeTopicsResult(new UnknownTopicOrPartitionException("meh")));
+    final String topicName = "foobar";
     final Exception e = assertThrows(
             KafkaResponseGetFailedException.class,
-            () -> kafkaTopicClient.describeTopic("foobar", false)
+            () -> kafkaTopicClient.describeTopic(topicName, true)
     );
 
     // Then

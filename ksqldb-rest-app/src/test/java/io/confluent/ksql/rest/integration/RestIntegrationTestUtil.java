@@ -568,7 +568,7 @@ public final class RestIntegrationTestUtil {
     try {
       httpClient = vertx.createHttpClient();
 
-      final String uri = URLEncoder.encode(baseUri.toString() + "/ws/query?request="
+      final String uri = baseUri.toString() + "/ws/query?request="
           + buildStreamingRequest(sql, overrides, requestProperties)
           + "&access_token=" + credentials.get().getAuthHeader().replace(" ", "%20");
 

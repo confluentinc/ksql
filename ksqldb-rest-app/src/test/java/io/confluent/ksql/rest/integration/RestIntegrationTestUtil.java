@@ -65,6 +65,7 @@ import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.client.WebClientOptions;
 import io.vertx.ext.web.codec.BodyCodec;
 import java.net.URI;
+import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Base64;
@@ -567,9 +568,9 @@ public final class RestIntegrationTestUtil {
     try {
       httpClient = vertx.createHttpClient();
 
-      final String uri = baseUri.toString() + "/ws/query?request="
+      final String uri = URLEncoder.encode(baseUri.toString() + "/ws/query?request="
           + buildStreamingRequest(sql, overrides, requestProperties)
-          + "&access_token=" + credentials.get().getAuthHeader();
+          + "&access_token=" + credentials.get().getAuthHeader(), StandardCharsets.UTF_8);
 
       final MultiMap headers = MultiMap.caseInsensitiveMultiMap();
 

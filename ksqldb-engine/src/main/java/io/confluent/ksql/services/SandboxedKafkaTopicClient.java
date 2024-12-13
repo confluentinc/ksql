@@ -167,9 +167,9 @@ final class SandboxedKafkaTopicClient {
   private Map<String, TopicDescription> describeTopics(final Collection<String> topicNames,
                                                        final Boolean skipRetriesOnFailure) {
     final Map<String, TopicDescription> descriptions = topicNames.stream()
-            .map(createdTopics::get)
-            .filter(Objects::nonNull)
-            .collect(Collectors.toMap(TopicDescription::name, Function.identity()));
+        .map(createdTopics::get)
+        .filter(Objects::nonNull)
+        .collect(Collectors.toMap(TopicDescription::name, Function.identity()));
 
     final Set<String> topicsToFetch = new HashSet<>(topicNames);
     topicsToFetch.removeAll(descriptions.keySet());
@@ -177,9 +177,8 @@ final class SandboxedKafkaTopicClient {
       return descriptions;
     }
 
-    final Map<String, TopicDescription> remainingTopicDescriptionMap = skipRetriesOnFailure
-            ? delegate.describeTopics(topicsToFetch, true)
-            : delegate.describeTopics(topicsToFetch);
+    final Map<String, TopicDescription> remainingTopicDescriptionMap =
+                delegate.describeTopics(topicsToFetch, skipRetriesOnFailure);
 
     descriptions.putAll(remainingTopicDescriptionMap);
     return descriptions;

@@ -217,13 +217,13 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
       }
     } catch (final ExecutionException e) {
       throw new KafkaResponseGetFailedException(
-              "Failed to Describe Kafka Topic(s): " + topicNames, e.getCause());
+          "Failed to Describe Kafka Topic(s): " + topicNames, e.getCause());
     } catch (final TopicAuthorizationException e) {
       throw new KsqlTopicAuthorizationException(
-              AclOperation.DESCRIBE, topicNames);
+          AclOperation.DESCRIBE, topicNames);
     } catch (final Exception e) {
       throw new KafkaResponseGetFailedException(
-              "Failed to Describe Kafka Topic(s): " + topicNames, e);
+          "Failed to Describe Kafka Topic(s): " + topicNames, e);
     }
   }
 

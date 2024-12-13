@@ -843,7 +843,7 @@ public class KafkaTopicClientImplTest {
     // Then
     verify(adminClient, times(1)).describeTopics(anyCollection(), any());
     assertThat(e.getMessage(),
-            containsString("Failed to Describe Kafka Topic(s): [foobar]"));
+            containsString("Failed to Describe Kafka Topic(s): [" + topicName + "]"));
   }
 
   @Test

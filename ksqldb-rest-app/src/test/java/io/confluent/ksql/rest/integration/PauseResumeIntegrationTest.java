@@ -264,7 +264,7 @@ public class PauseResumeIntegrationTest {
   private String getFirstKsqlDbQueryState() {
     final MetricName key = REST_APP.getEngine().metricCollectors().getMetrics().metrics().keySet()
             .stream()
-            .filter(metricName -> metricName.name().contains("ksql-query-status"))
+            .filter(metricName -> "ksql-query-status".equals(metricName.name()))
             .findFirst().get();
     final KafkaMetric metric = REST_APP.getEngine().metricCollectors().getMetrics().metric(key);
     return (String) metric.metricValue();

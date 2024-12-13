@@ -420,7 +420,7 @@ public class SandboxedKafkaTopicClientTest {
         final int numReplicas
     ) {
       when(delegate.isTopicExists(topic)).thenReturn(true);
-      when(delegate.describeTopics(Collections.singleton(topic)))
+      when(delegate.describeTopics(Collections.singleton(topic), false))
           .thenReturn(Collections.singletonMap(
               topic,
               new TopicDescription(topic, false, topicPartitions(numPartitions, numReplicas))));

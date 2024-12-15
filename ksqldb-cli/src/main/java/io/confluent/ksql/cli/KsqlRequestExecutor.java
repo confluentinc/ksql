@@ -22,5 +22,5 @@ public interface KsqlRequestExecutor {
    *
    * @param body the request body.
    */
-  void makeKsqlRequest(String body);
+  int makeKsqlRequest(String body);
 }

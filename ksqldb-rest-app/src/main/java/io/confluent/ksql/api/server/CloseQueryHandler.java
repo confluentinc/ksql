@@ -39,7 +39,6 @@ public class CloseQueryHandler implements Handler<RoutingContext> {
 
   @Override
   public void handle(final RoutingContext routingContext) {
-
     final Optional<CloseQueryArgs> closeQueryArgs = ServerUtils
         .deserialiseObject(routingContext.getBody(), routingContext, CloseQueryArgs.class);
     if (!closeQueryArgs.isPresent()) {
@@ -55,7 +54,8 @@ public class CloseQueryHandler implements Handler<RoutingContext> {
                   ERROR_CODE_BAD_REQUEST));
       return;
     }
-    query.get().close();
+    // We may be using a different context to the one that created the query
+    query.get().close(false);
     routingContext.response().end();
   }
 }

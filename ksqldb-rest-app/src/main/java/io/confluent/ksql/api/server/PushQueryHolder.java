@@ -17,6 +17,7 @@ package io.confluent.ksql.api.server;
 
 import io.confluent.ksql.api.spi.QueryPublisher;
 import io.confluent.ksql.rest.entity.PushQueryId;
+
 import java.util.Objects;
 import java.util.UUID;
 import java.util.function.Consumer;
@@ -45,9 +46,14 @@ public class PushQueryHolder {
   }
 
   public void close() {
+    this.close(true);
+  }
+  public void close(Boolean isOriginalContext) {
     server.removeQuery(id);
     queryPublisher.close();
-    closeHandler.accept(this);
+    if (isOriginalContext) {
+      closeHandler.accept(this);
+    }
   }
 
   public PushQueryId getId() {

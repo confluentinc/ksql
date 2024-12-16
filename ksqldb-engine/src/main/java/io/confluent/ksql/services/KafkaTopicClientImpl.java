@@ -216,6 +216,11 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
                 ExecutorUtil.RetryBehaviour.ON_RETRYABLE);
       }
     } catch (final ExecutionException e) {
+      if (Throwables.getRootCause(e) instanceof UnknownTopicOrPartitionException) {
+        throw new KafkaResponseGetFailedException(
+                "Failed to Describe due to UnknownTopicOrPartitionException "
+                        + "for Kafka Topic(s): " + topicNames, e);
+      }
       throw new KafkaResponseGetFailedException(
           "Failed to Describe Kafka Topic(s): " + topicNames, e.getCause());
     } catch (final TopicAuthorizationException e) {

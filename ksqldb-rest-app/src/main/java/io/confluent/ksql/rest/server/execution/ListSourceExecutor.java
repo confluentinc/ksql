@@ -68,6 +68,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import org.apache.kafka.clients.admin.TopicDescription;
@@ -75,10 +76,13 @@ import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.KafkaException;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.TopicPartitionInfo;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public final class ListSourceExecutor {
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
+  private static final Logger LOG = LoggerFactory.getLogger(ListSourceExecutor.class);
 
   private ListSourceExecutor() {
   }
@@ -117,6 +121,23 @@ public final class ListSourceExecutor {
             )
         )
         .collect(Collectors.toList());
+
+    final AtomicInteger unknownTopicOrPartitionExceptionCount = new AtomicInteger(0);
+    descriptions.forEach(description -> {
+      if (!description.warnings.isEmpty()) {
+        final String topicName = description.description.getTopic();
+        final String streamName = description.description.getName();
+        description.warnings.forEach(warning -> {
+          LOG.warn("Warning for Stream: {} - {}", streamName, warning.getMessage());
+          if (warning.getMessage().contains("UnknownTopicOrPartitionException")) {
+            unknownTopicOrPartitionExceptionCount.incrementAndGet();
+          }
+        });
+      }
+    });
+    LOG.info("Count of warnings with UnknownTopicOrPartitionException: {}",
+            unknownTopicOrPartitionExceptionCount.get());
+
     return Optional.of(
         new SourceDescriptionList(
             statement.getMaskedStatementText(),

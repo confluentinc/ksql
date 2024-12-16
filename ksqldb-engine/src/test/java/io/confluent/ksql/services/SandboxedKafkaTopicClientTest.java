@@ -87,7 +87,9 @@ public class SandboxedKafkaTopicClientTest {
           .ignore("createTopic", String.class, int.class, short.class, Map.class)
           .ignore("isTopicExists", String.class)
           .ignore("describeTopic", String.class)
+          .ignore("describeTopic", String.class, Boolean.class)
           .ignore("describeTopics", Collection.class)
+          .ignore("describeTopics", Collection.class, Boolean.class)
           .ignore("deleteTopics", Collection.class)
           .ignore("listTopicsStartOffsets", Collection.class)
           .ignore("listTopicsEndOffsets", Collection.class)
@@ -418,7 +420,7 @@ public class SandboxedKafkaTopicClientTest {
         final int numReplicas
     ) {
       when(delegate.isTopicExists(topic)).thenReturn(true);
-      when(delegate.describeTopics(Collections.singleton(topic)))
+      when(delegate.describeTopics(Collections.singleton(topic), false))
           .thenReturn(Collections.singletonMap(
               topic,
               new TopicDescription(topic, false, topicPartitions(numPartitions, numReplicas))));

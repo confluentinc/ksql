@@ -1,0 +1,8 @@
+[ {
+  "@type" : "assert_schema",
+  "statementText" : "statement",
+  "subject" : "abc",
+  "id" : 55,
+  "exists" : false,
+  "warnings" : [ ]
+} ]

@@ -30,13 +30,12 @@ final class QueryLogicalPlanUtil {
   static LogicalSchema buildIntermediateSchema(
       final LogicalSchema schema,
       final boolean addAdditionalColumnsToIntermediateSchema,
-      final boolean isWindowed,
-      final boolean rowpartitionRowoffsetEnabled
+      final boolean isWindowed
   ) {
     if (!addAdditionalColumnsToIntermediateSchema) {
       return schema;
     } else {
-      return schema.withPseudoAndKeyColsInValue(isWindowed, rowpartitionRowoffsetEnabled, true);
+      return schema.withPseudoAndKeyColsInValue(isWindowed, true);
     }
   }
 }

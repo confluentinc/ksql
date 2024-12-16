@@ -45,6 +45,7 @@ import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.GenericKeySerDe;
 import io.confluent.ksql.serde.GenericRowSerDe;
 import io.confluent.ksql.serde.KeySerdeFactory;
+import io.confluent.ksql.serde.RefinementInfo;
 import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.SerdeFeaturesFactory;
 import io.confluent.ksql.serde.ValueSerdeFactory;
@@ -115,7 +116,7 @@ public final class CreateSourceFactory {
     final SourceName sourceName = statement.getName();
     final CreateSourceProperties props = statement.getProperties();
     final String topicName = ensureTopicExists(props, serviceContext);
-    final LogicalSchema schema = buildSchema(statement.getElements(), ksqlConfig);
+    final LogicalSchema schema = buildSchema(statement.getElements());
     final Optional<TimestampColumn> timestampColumn =
         buildTimestampColumn(ksqlConfig, props, schema);
     final DataSource dataSource = metaStore.getSource(sourceName);
@@ -142,14 +143,29 @@ public final class CreateSourceFactory {
   }
 
   // This method is called by CREATE_AS statements
-  public CreateTableCommand createTableCommand(final KsqlStructuredDataOutputNode outputNode) {
+  public CreateTableCommand createTableCommand(
+      final KsqlStructuredDataOutputNode outputNode,
+      final Optional<RefinementInfo> emitStrategy
+  ) {
+    Optional<WindowInfo> windowInfo =
+        outputNode.getKsqlTopic().getKeyFormat().getWindowInfo();
+
+    if (windowInfo.isPresent() && emitStrategy.isPresent()) {
+      final WindowInfo info = windowInfo.get();
+      windowInfo = Optional.of(WindowInfo.of(
+          info.getType(),
+          info.getSize(),
+          Optional.of(emitStrategy.get().getOutputRefinement())
+      ));
+    }
+
     return new CreateTableCommand(
         outputNode.getSinkName().get(),
         outputNode.getSchema(),
         outputNode.getTimestampColumn(),
         outputNode.getKsqlTopic().getKafkaTopicName(),
         Formats.from(outputNode.getKsqlTopic()),
-        outputNode.getKsqlTopic().getKeyFormat().getWindowInfo(),
+        windowInfo,
         Optional.of(outputNode.getOrReplace()),
         Optional.of(false)
     );
@@ -163,7 +179,7 @@ public final class CreateSourceFactory {
     final SourceName sourceName = statement.getName();
     final CreateSourceProperties props = statement.getProperties();
     final String topicName = ensureTopicExists(props, serviceContext);
-    final LogicalSchema schema = buildSchema(statement.getElements(), ksqlConfig);
+    final LogicalSchema schema = buildSchema(statement.getElements());
     final DataSource dataSource = metaStore.getSource(sourceName);
 
     if (dataSource != null && !statement.isOrReplace() && !statement.isNotExists()) {
@@ -251,15 +267,14 @@ public final class CreateSourceFactory {
   }
 
   private static LogicalSchema buildSchema(
-      final TableElements tableElements,
-      final KsqlConfig ksqlConfig
+      final TableElements tableElements
   ) {
     if (Iterables.isEmpty(tableElements)) {
       throw new KsqlException("The statement does not define any columns.");
     }
 
     tableElements.forEach(e -> {
-      if (SystemColumns.isSystemColumn(e.getName(), ksqlConfig)) {
+      if (SystemColumns.isSystemColumn(e.getName())) {
         throw new KsqlException("'" + e.getName().text() + "' is a reserved column name. "
             + "You cannot use it as a name for a column.");
       }
@@ -269,7 +284,8 @@ public final class CreateSourceFactory {
   }
 
   private static Optional<WindowInfo> getWindowInfo(final CreateSourceProperties props) {
-    return props.getWindowType().map(type -> WindowInfo.of(type, props.getWindowSize()));
+    return props.getWindowType()
+        .map(type -> WindowInfo.of(type, props.getWindowSize(), Optional.empty()));
   }
 
   private static String ensureTopicExists(

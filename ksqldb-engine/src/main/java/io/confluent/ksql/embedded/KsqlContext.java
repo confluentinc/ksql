@@ -26,6 +26,7 @@ import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.function.MutableFunctionRegistry;
 import io.confluent.ksql.function.UserFunctionLoader;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
+import io.confluent.ksql.logging.query.QueryLogger;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
@@ -54,6 +55,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.stream.Collectors;
@@ -163,7 +165,7 @@ public class KsqlContext implements AutoCloseable {
       if (queryMetadata instanceof PersistentQueryMetadata) {
         queryMetadata.start();
       } else {
-        LOG.warn("Ignoring statemenst: {}", sql);
+        QueryLogger.warn("Ignoring statement", sql);
         LOG.warn("Only CREATE statements can run in KSQL embedded mode.");
       }
     }
@@ -183,6 +185,10 @@ public class KsqlContext implements AutoCloseable {
     return ksqlEngine.getPersistentQueries();
   }
 
+  public Optional<PersistentQueryMetadata> getPersistentQuery(final QueryId queryId) {
+    return ksqlEngine.getPersistentQuery(queryId);
+  }
+
   public void close() {
     ksqlEngine.close();
     serviceContext.close();
@@ -194,6 +200,16 @@ public class KsqlContext implements AutoCloseable {
       t.close();
       ksqlEngine.removeQueryFromAssignor(t);
     });
+  }
+
+  @VisibleForTesting
+  public void pauseQuery(final QueryId queryId) {
+    ksqlEngine.getPersistentQuery(queryId).ifPresent(QueryMetadata::pause);
+  }
+
+  @VisibleForTesting
+  public void resumeQuery(final QueryId queryId) {
+    ksqlEngine.getPersistentQuery(queryId).ifPresent(QueryMetadata::resume);
   }
 
   private static ExecuteResult execute(

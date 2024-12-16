@@ -139,11 +139,20 @@ io.confluent.ksql.metrics:type=ksql-queries
 
 ### Attributes
 
+**ksqlDB query status**
+
+`ksql-query-status`
+
+The current ksqlDB status of the given query.   
+The metric `query-status` shows the {{ site.kstreams }} application state.  
+The `PAUSE` / `RESUME` commands do not impact the {{ site.kstreams }} state, so this new metric shows when a query is paused.
+
 **Query status**
 
 `query-status`
 
-The current status of the given query.
+The current {{ site.kstreams }} status of the given query.  
+The `ksql-query-status` metric has been added to show the ksqlDB query status.
 
 **Error status**
 

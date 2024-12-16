@@ -22,6 +22,7 @@ import static org.apache.hc.core5.http.HttpHeaders.TRANSFER_ENCODING;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.api.auth.DefaultApiSecurityContext;
+import io.confluent.ksql.api.server.JsonStreamedRowResponseWriter.RowFormat;
 import io.confluent.ksql.api.spi.Endpoints;
 import io.confluent.ksql.api.spi.QueryPublisher;
 import io.confluent.ksql.api.util.ApiServerUtils;
@@ -125,11 +126,29 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
         || (contentType == null && !queryCompatibilityMode)) {
       // Default
       return new DelimitedQueryStreamResponseWriter(routingContext.response());
+    } else if (KsqlMediaType.KSQL_V1_PROTOBUF.mediaType().equals(contentType)) {
+      return new JsonStreamedRowResponseWriter(
+              routingContext.response(),
+              queryPublisher,
+              completionMessage,
+              limitMessage,
+              Clock.systemUTC(),
+              bufferOutput,
+              context,
+              RowFormat.PROTOBUF
+      );
     } else if (KsqlMediaType.KSQL_V1_JSON.mediaType().equals(contentType)
         || ((contentType == null || JSON_CONTENT_TYPE.equals(contentType)
         && queryCompatibilityMode))) {
-      return new JsonStreamedRowResponseWriter(routingContext.response(), queryPublisher,
-          completionMessage, limitMessage, Clock.systemUTC(), bufferOutput, context);
+      return new JsonStreamedRowResponseWriter(
+              routingContext.response(),
+              queryPublisher,
+              completionMessage,
+              limitMessage,
+              Clock.systemUTC(),
+              bufferOutput,
+              context,
+              RowFormat.JSON);
     } else {
       return new JsonQueryStreamResponseWriter(routingContext.response());
     }

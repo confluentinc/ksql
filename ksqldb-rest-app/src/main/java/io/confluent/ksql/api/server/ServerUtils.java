@@ -19,14 +19,17 @@ import static io.confluent.ksql.rest.Errors.ERROR_CODE_BAD_REQUEST;
 import static io.confluent.ksql.rest.Errors.ERROR_CODE_BAD_STATEMENT;
 import static io.confluent.ksql.rest.Errors.ERROR_CODE_HTTP2_ONLY;
 import static io.confluent.ksql.rest.Errors.ERROR_CODE_SERVER_ERROR;
+import static io.confluent.ksql.rest.Errors.ERROR_CODE_TOO_MANY_REQUESTS;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
+import static io.netty.handler.codec.http.HttpResponseStatus.TOO_MANY_REQUESTS;
 
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.exc.MismatchedInputException;
 import io.confluent.ksql.rest.ApiJsonMapper;
+import io.confluent.ksql.util.KsqlRateLimitException;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpVersion;
@@ -122,6 +125,10 @@ public final class ServerUtils {
                 ((KsqlStatementException) actual).getSqlStatement()
             )
         );
+        return null;
+      } else if (actual instanceof KsqlRateLimitException) {
+        routingContext.fail(TOO_MANY_REQUESTS.code(),
+            new KsqlApiException(actual.getMessage(), ERROR_CODE_TOO_MANY_REQUESTS));
         return null;
       } else if (actual instanceof KsqlApiException) {
         routingContext.fail(BAD_REQUEST.code(), actual);

@@ -19,14 +19,11 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
 
-import io.confluent.ksql.GenericKey;
-import io.confluent.ksql.function.AggregateFunctionInitArguments;
-import io.confluent.ksql.function.KsqlAggregateFunction;
+import io.confluent.ksql.function.udaf.Udaf;
 import io.confluent.ksql.schema.ksql.SqlArgument;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.sql.Time;
 import java.util.Collections;
-import org.apache.kafka.streams.kstream.Merger;
 import org.junit.Test;
 
 public class TimeMaxKudafTest {
@@ -67,23 +64,21 @@ public class TimeMaxKudafTest {
 
   @Test
   public void shouldFindCorrectMaxForMerge() {
-    final MaxKudaf timeMaxKudaf = getMaxComparableKudaf();
-    final Merger<GenericKey, Time> merger = timeMaxKudaf.getMerger();
-    final Time mergeResult1 = merger.apply(null, new Time(10), new Time(12));
+    final MaxKudaf<Time> timeMaxKudaf = getMaxComparableKudaf();
+    final Time mergeResult1 = timeMaxKudaf.merge(new Time(10), new Time(12));
     assertThat(mergeResult1, equalTo(new Time(12)));
-    final Time mergeResult2 = merger.apply(null, new Time(10), new Time(-12));
+    final Time mergeResult2 = timeMaxKudaf.merge(new Time(10), new Time(-12));
     assertThat(mergeResult2, equalTo(new Time(10)));
-    final Time mergeResult3 = merger.apply(null, new Time(-10), new Time(0));
+    final Time mergeResult3 = timeMaxKudaf.merge(new Time(-10), new Time(0));
     assertThat(mergeResult3, equalTo(new Time(0)));
-
   }
 
-  private MaxKudaf getMaxComparableKudaf() {
-    final KsqlAggregateFunction aggregateFunction = new MaxAggFunctionFactory()
-        .createAggregateFunction(Collections.singletonList(SqlArgument.of(SqlTypes.TIME)),
-            AggregateFunctionInitArguments.EMPTY_ARGS);
+  private MaxKudaf<Time> getMaxComparableKudaf() {
+    final Udaf<Time, Time, Time> aggregateFunction = MaxKudaf.createMaxTime();
+    aggregateFunction.initializeTypeArguments(
+            Collections.singletonList(SqlArgument.of(SqlTypes.TIME))
+    );
     assertThat(aggregateFunction, instanceOf(MaxKudaf.class));
-    return  (MaxKudaf) aggregateFunction;
+    return  (MaxKudaf<Time>) aggregateFunction;
   }
-
 }

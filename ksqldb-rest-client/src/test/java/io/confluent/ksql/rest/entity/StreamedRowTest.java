@@ -63,6 +63,31 @@ public class StreamedRowTest {
   }
 
   @Test
+  public void shouldRoundTripPullProtoHeader() throws Exception {
+    final String protoSchema =
+            "syntax = \"proto3\";\n" +
+            "\n" +
+            "message ConnectDefault1 {\n" +
+            "  int64 ID = 1;\n" +
+            "  string VAL = 2;\n" +
+            "}\n";
+    final StreamedRow row = StreamedRow.headerProtobuf(QUERY_ID, PULL_SCHEMA, protoSchema);
+
+    final String expectedJson = "{\"header\":" +
+            "{\"queryId\":\"theQueryId\"," +
+            "\"schema\":\"`ID` BIGINT KEY, `VAL` STRING\"," +
+            "\"protoSchema\":\"syntax = \\\"proto3\\\";\\n" +
+            "\\n" +
+            "message ConnectDefault1 {\\n" +
+            "  int64 ID = 1;\\n" +
+            "  string VAL = 2;\\n" +
+            "}\\n" +
+            "\"}}";
+
+    testRoundTrip(row, expectedJson);
+  }
+
+  @Test
   public void shouldRoundTripPushHeader() throws Exception {
     final StreamedRow row = StreamedRow.header(
         QUERY_ID,

@@ -25,6 +25,8 @@ import io.confluent.ksql.config.KsqlConfigResolver;
 import io.confluent.ksql.engine.KsqlPlan;
 import io.confluent.ksql.execution.json.PlanJsonMapper;
 import io.confluent.ksql.parser.tree.AlterSystemProperty;
+import io.confluent.ksql.parser.tree.PauseQuery;
+import io.confluent.ksql.parser.tree.ResumeQuery;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.TerminateQuery;
 import io.confluent.ksql.planner.plan.ConfiguredKsqlPlan;
@@ -119,6 +121,14 @@ public final class ValidatedCommandFactory {
       return Command.of(statement);
     }
 
+    if (statement.getStatement() instanceof PauseQuery) {
+      return createForPauseQuery(statement, context);
+    }
+
+    if (statement.getStatement() instanceof ResumeQuery) {
+      return createForResumeQuery(statement, context);
+    }
+
     if (statement.getStatement() instanceof TerminateQuery) {
       return createForTerminateQuery(statement, context);
     }
@@ -175,6 +185,66 @@ public final class ValidatedCommandFactory {
                         propertyName, propertyValue, propertyName, propertyName, propertyName));
     }
 
+    return Command.of(statement);
+  }
+
+  private static Command createForPauseQuery(
+      final ConfiguredStatement<? extends Statement> statement,
+      final KsqlExecutionContext context
+  ) {
+    final PauseQuery pauseQuery = (PauseQuery) statement.getStatement();
+    final Optional<QueryId> queryId = pauseQuery.getQueryId();
+
+    if (!queryId.isPresent()) {
+      context.getPersistentQueries().forEach(PersistentQueryMetadata::pause);
+      return Command.of(statement);
+    } else if (queryId.get().toString().toLowerCase()
+        .contains(KsqlConfig.KSQL_TRANSIENT_QUERY_NAME_PREFIX_DEFAULT)) {
+      return Command.of(statement);
+    }
+
+    final PersistentQueryMetadata queryMetadata = context.getPersistentQuery(queryId.get())
+        .orElseThrow(() -> new KsqlStatementException(
+            "Unknown queryId: " + queryId.get(),
+            statement.getMaskedStatementText()));
+
+    if (queryMetadata.getPersistentQueryType() == KsqlConstants.PersistentQueryType.CREATE_SOURCE) {
+      throw new KsqlStatementException(
+          String.format("Cannot pause query '%s' because it is linked to a source table.",
+              queryId.get()), statement.getMaskedStatementText());
+    }
+
+    queryMetadata.pause();
+    return Command.of(statement);
+  }
+
+  private static Command createForResumeQuery(
+      final ConfiguredStatement<? extends Statement> statement,
+      final KsqlExecutionContext context
+  ) {
+    final ResumeQuery resumeQuery = (ResumeQuery) statement.getStatement();
+    final Optional<QueryId> queryId = resumeQuery.getQueryId();
+
+    if (!queryId.isPresent()) {
+      context.getPersistentQueries().forEach(PersistentQueryMetadata::resume);
+      return Command.of(statement);
+    } else if (queryId.get().toString().toLowerCase()
+        .contains(KsqlConfig.KSQL_TRANSIENT_QUERY_NAME_PREFIX_DEFAULT)) {
+      return Command.of(statement);
+    }
+
+    final PersistentQueryMetadata queryMetadata = context.getPersistentQuery(queryId.get())
+        .orElseThrow(() -> new KsqlStatementException(
+            "Unknown queryId: " + queryId.get(),
+            statement.getMaskedStatementText()));
+
+    if (queryMetadata.getPersistentQueryType() == KsqlConstants.PersistentQueryType.CREATE_SOURCE) {
+      throw new KsqlStatementException(
+          String.format("Cannot resume query '%s' because it is linked to a source table.",
+              queryId.get()), statement.getMaskedStatementText());
+    }
+
+    queryMetadata.resume();
     return Command.of(statement);
   }
 

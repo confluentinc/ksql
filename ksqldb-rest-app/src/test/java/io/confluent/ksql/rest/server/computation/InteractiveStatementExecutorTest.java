@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.rest.server.computation;
 
+import static io.confluent.ksql.function.UserFunctionLoaderTestUtil.loadAllUserFunctions;
 import static java.util.Collections.emptyMap;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -42,6 +43,7 @@ import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.KsqlEngineTestUtil;
 import io.confluent.ksql.engine.KsqlPlan;
 import io.confluent.ksql.function.InternalFunctionRegistry;
+import io.confluent.ksql.function.MutableFunctionRegistry;
 import io.confluent.ksql.integration.Retry;
 import io.confluent.ksql.internal.KsqlEngineMetrics;
 import io.confluent.ksql.metastore.MetaStoreImpl;
@@ -146,9 +148,13 @@ public class InteractiveStatementExecutorTest {
     serviceContext = TestServiceContext.create(fakeKafkaTopicClient);
     final SpecificQueryIdGenerator hybridQueryIdGenerator = new SpecificQueryIdGenerator();
     final MetricCollectors metricCollectors = new MetricCollectors();
+
+    MutableFunctionRegistry functionRegistry = new InternalFunctionRegistry();
+    loadAllUserFunctions(functionRegistry);
+
     ksqlEngine = KsqlEngineTestUtil.createKsqlEngine(
         serviceContext,
-        new MetaStoreImpl(new InternalFunctionRegistry()),
+        new MetaStoreImpl(functionRegistry),
         (engine) -> new KsqlEngineMetrics("", engine, Collections.emptyMap(), Optional.empty(),
             metricCollectors
         ),
@@ -156,6 +162,7 @@ public class InteractiveStatementExecutorTest {
         ksqlConfig,
         metricCollectors
     );
+    when(mockEngine.getKsqlConfig()).thenReturn(ksqlConfig);
 
     statementParser = new StatementParser(ksqlEngine);
     statementExecutor = new InteractiveStatementExecutor(
@@ -172,9 +179,6 @@ public class InteractiveStatementExecutorTest {
         mockQueryIdGenerator,
         commandDeserializer
     );
-
-    statementExecutor.configure(ksqlConfig);
-    statementExecutorWithMocks.configure(ksqlConfig);
 
     plannedCommand = new Command(
         CREATE_STREAM_FOO_STATEMENT,
@@ -197,15 +201,6 @@ public class InteractiveStatementExecutorTest {
       .outerRule(Retry.of(3, ZooKeeperClientException.class, 3, TimeUnit.SECONDS))
       .around(CLUSTER);
 
-  @Test(expected = IllegalArgumentException.class)
-  public void shouldThrowOnConfigureIfAppServerNotSet() {
-    // Given:
-    final KsqlConfig configNoAppServer = new KsqlConfig(ImmutableMap.of());
-
-    // When:
-    statementExecutorWithMocks.configure(configNoAppServer);
-  }
-
   @Test(expected = IllegalStateException.class)
   public void shouldThrowOnHandleStatementIfNotConfigured() {
     // Given:
@@ -216,6 +211,9 @@ public class InteractiveStatementExecutorTest {
         mockQueryIdGenerator,
         commandDeserializer
     );
+    final Map<String, Object> withoutAppServer = ksqlConfig.originals();
+    withoutAppServer.remove(StreamsConfig.APPLICATION_SERVER_CONFIG);
+    when(mockEngine.getKsqlConfig()).thenReturn(new KsqlConfig(withoutAppServer));
 
     // When:
     statementExecutor.handleStatement(queuedCommand);
@@ -231,6 +229,9 @@ public class InteractiveStatementExecutorTest {
         mockQueryIdGenerator,
         commandDeserializer
     );
+    final Map<String, Object> withoutAppServer = ksqlConfig.originals();
+    withoutAppServer.remove(StreamsConfig.APPLICATION_SERVER_CONFIG);
+    when(mockEngine.getKsqlConfig()).thenReturn(new KsqlConfig(withoutAppServer));
 
     // When:
     statementExecutor.handleRestore(queuedCommand);
@@ -448,10 +449,10 @@ public class InteractiveStatementExecutorTest {
         ImmutableMap.of(StreamsConfig.APPLICATION_SERVER_CONFIG, "appid"));
     final KsqlConfig mergedConfig = mock(KsqlConfig.class);
     when(mockConfig.overrideBreakingConfigsWithOriginalValues(any())).thenReturn(mergedConfig);
+    when(mockEngine.getKsqlConfig()).thenReturn(mockConfig);
     givenMockPlannedQuery();
 
     // When:
-    statementExecutorWithMocks.configure(mockConfig);
     handleStatement(statementExecutorWithMocks, plannedCommand, COMMAND_ID, Optional.empty(), 0L);
 
     // Then:

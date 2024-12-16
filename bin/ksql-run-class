@@ -86,7 +86,7 @@ fi
 
 # JVM performance options
 if [ -z "$KSQL_JVM_PERFORMANCE_OPTS" ]; then
-  KSQL_JVM_PERFORMANCE_OPTS="-server -XX:+UseConcMarkSweepGC -XX:+CMSClassUnloadingEnabled -XX:+CMSScavengeBeforeRemark -XX:+ExplicitGCInvokesConcurrent -XX:NewRatio=1 -Djava.awt.headless=true"
+  KSQL_JVM_PERFORMANCE_OPTS="-server -XX:+UseG1GC -XX:+ExplicitGCInvokesConcurrent -XX:NewRatio=1 -Djava.awt.headless=true"
 fi
 
 if [ $# -lt 1 ];

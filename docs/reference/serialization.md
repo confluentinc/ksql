@@ -33,10 +33,10 @@ ksqlDB supports these serialization formats:
 
 -   [`NONE`](#none) used to indicate the data should not be deserialized.
 -   [`DELIMITED`](#delimited) supports comma separated values.
--   [`JSON`](#json) and [`JSON_SR`](#json) support JSON values, with and within schema registry integration 
+-   [`JSON`](#json) and [`JSON_SR`](#json) support JSON values, with and without schema registry integration
 -   [`AVRO`](#avro) supports AVRO serialized values. 
 -   [`KAFKA`](#kafka) supports primitives serialized using the standard Kafka serializers. 
--   [`PROTOBUF`](#protobuf) supports Protocol Buffers.
+-   [`PROTOBUF`](#protobuf) and [`PROTOBUF_NOSR`](#protobuf) support Protocol Buffers, with and without schema registry integration
 
 With the exception of the `NONE` format, all formats may be used as both key and value formats.
 See individual formats for details.
@@ -323,7 +323,7 @@ used.
 | Feature                      | Supported |
 |------------------------------|-----------|
 | As value format              | Yes       |
-| As key format                | Yes        |
+| As key format                | Yes       |
 | Multi-Column Keys            | Yes       |
 | [Schema Registry required][0]| Yes       |
 | [Schema inference][1]        | Yes       |
@@ -488,8 +488,8 @@ format.
 | As value format              | Yes       |
 | As key format                | Yes       |
 | Multi-Column Keys            | Yes       |
-| [Schema Registry required][0]| Yes       |
-| [Schema inference][1]        | Yes       |
+| [Schema Registry required][0]| `PROTOBUF`: Yes, `PROTOBUF_NOSR`: No |
+| [Schema inference][1]        | `PROTOBUF`: Yes, `PROTOBUF_NOSR`: No |
 | [Single field wrapping][2]   | Yes       |
 | [Single field unwrapping][2] | No        |
 
@@ -694,6 +694,39 @@ CREATE STREAM EXPLICIT_SINK WITH(WRAP_SINGLE_VALUE=false) AS SELECT ID FROM S EM
 
 -- results in an error as the value schema is multi-field
 CREATE STREAM BAD_SINK WITH(WRAP_SINGLE_VALUE=true) AS SELECT ID, COST FROM S EMIT CHANGES;
+```
+
+## Defining schemas for {{ site.sr }} 
+
+{{ site.sr }} enables both schema inference and defining schemas explicitly.
+You can use the identifiers for specific schemas in your `CREATE STREAM` and
+`CREATE TABLE` statements with `KEY_SCHEMA_ID` and `VALUE_SCHEMA_ID` properties.
+For more information, see [Schema Inference With ID](/operate-and-deploy/schema-inference-with-id).
+
+Some serialization formats require special syntax. For example, in JSON, the
+following message maps to a `STRUCT<>` with any field that contains an `INT`
+type.
+
+```json
+"metadata": {
+  "type": "object",
+  "additionalProperties": {
+     "type": "int"
+  }
+}
+```
+
+But JSON_SR doesn't support this case. In JSON_SR, the schema must be adapted
+to make it a `MAP<STRING, INT>` by using the `connect.type` config:
+
+```json
+"metadata": {
+  "connect.type": "map",
+  "type": "object",
+  "additionalProperties": {
+     "type": "int"
+  }
+}
 ```
 
 [0]: ../operate-and-deploy/installation/server-config/avro-schema.md

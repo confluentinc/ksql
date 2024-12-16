@@ -16,30 +16,41 @@
 package io.confluent.ksql.rest.server;
 
 import com.google.common.annotations.VisibleForTesting;
+import io.confluent.ksql.function.FunctionRegistry;
+import io.confluent.ksql.function.InternalFunctionRegistry;
+import io.confluent.ksql.function.MutableFunctionRegistry;
+import io.confluent.ksql.function.UserFunctionLoader;
 import io.confluent.ksql.logging.query.QueryLogger;
 import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.properties.PropertiesUtil;
+import io.confluent.ksql.rest.server.state.ServerState;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlServerException;
 import java.io.File;
 import java.io.IOException;
+import java.time.Instant;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executor;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Supplier;
 import org.apache.kafka.streams.StreamsConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+// CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public class KsqlServerMain {
+  // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
   private static final Logger log = LoggerFactory.getLogger(KsqlServerMain.class);
 
   private final Executor shutdownHandler;
-  private final Executable executable;
+  private final Executable preconditionChecker;
+  private final Supplier<Executable> executable;
 
   public static void main(final String[] args) {
     try {
@@ -48,10 +59,12 @@ public class KsqlServerMain {
         return;
       }
 
-      final Map<String, String> properties = PropertiesUtil.applyOverrides(
-          PropertiesUtil.loadProperties(serverOptions.getPropertiesFile()),
-          System.getProperties()
-      );
+      final Supplier<Map<String, String>> propertiesLoader =
+          () -> PropertiesUtil.applyOverrides(
+            PropertiesUtil.loadProperties(serverOptions.getPropertiesFile()),
+            System.getProperties()
+          );
+      final Map<String, String> properties = propertiesLoader.get();
 
       final String installDir = properties.getOrDefault("ksql.server.install.dir", "");
       final KsqlConfig ksqlConfig = new KsqlConfig(properties);
@@ -60,10 +73,23 @@ public class KsqlServerMain {
 
       final Optional<String> queriesFile = serverOptions.getQueriesFile(properties);
       final MetricCollectors metricCollectors = new MetricCollectors();
-      final Executable executable = createExecutable(
-          properties, queriesFile, installDir, ksqlConfig, metricCollectors);
+      final ServerState serverState = new ServerState();
+      // we make sure to load functions at server startup to ensure that we can quickly start
+      // the main ksql server once the precondition checker passes. Function loading can take a
+      // long time (10s of seconds) and we don't want to run without a server in the interim.
+      final FunctionRegistry functionRegistry = loadFunctions(propertiesLoader, metricCollectors);
+      final Executable preconditionChecker = new PreconditionChecker(propertiesLoader, serverState);
+      final Supplier<Executable> executableFactory = () -> createExecutable(
+          propertiesLoader,
+          serverState,
+          queriesFile,
+          installDir,
+          metricCollectors,
+          functionRegistry
+      );
       new KsqlServerMain(
-          executable,
+          preconditionChecker,
+          executableFactory,
           r -> Runtime.getRuntime().addShutdownHook(new Thread(r))
       ).tryStartApp();
     } catch (final Exception e) {
@@ -72,16 +98,49 @@ public class KsqlServerMain {
     }
   }
 
-  KsqlServerMain(final Executable executable, final Executor shutdownHandler) {
-    this.executable = Objects.requireNonNull(executable, "executable");
+  KsqlServerMain(
+      final Executable preconditionChecker,
+      final Supplier<Executable> executableFactory,
+      final Executor shutdownHandler) {
+    this.preconditionChecker = Objects.requireNonNull(preconditionChecker, "preconditionChecker");
+    this.executable = Objects.requireNonNull(executableFactory, "executableFactory");
     this.shutdownHandler = Objects.requireNonNull(shutdownHandler, "shutdownHandler");
   }
 
   void tryStartApp() throws Exception {
+    final boolean shutdown = runExecutable(preconditionChecker);
+    if (shutdown) {
+      return;
+    }
+    runExecutable(executable.get());
+  }
+
+  private static FunctionRegistry loadFunctions(
+      final Supplier<Map<String, String>> propertiesLoader,
+      final MetricCollectors metricCollectors
+  ) {
+    final Map<String, String> properties = propertiesLoader.get();
+    final KsqlRestConfig restConfig = new KsqlRestConfig(properties);
+    final String ksqlInstallDir = restConfig.getString(KsqlRestConfig.INSTALL_DIR_CONFIG);
+    final KsqlConfig ksqlConfig = new KsqlConfig(restConfig.getKsqlConfigProperties());
+
+    final MutableFunctionRegistry functionRegistry = new InternalFunctionRegistry();
+    UserFunctionLoader.newInstance(
+        ksqlConfig,
+        functionRegistry,
+        ksqlInstallDir,
+        metricCollectors.getMetrics()
+    ).load();
+    return functionRegistry;
+  }
+
+  boolean runExecutable(final Executable executable) throws Exception {
     final CountDownLatch latch = new CountDownLatch(1);
+    final AtomicBoolean notified = new AtomicBoolean(false);
     shutdownHandler.execute(() -> {
       executable.notifyTerminated();
       try {
+        notified.set(true);
         latch.await();
       } catch (final InterruptedException e) {
         throw new RuntimeException(e);
@@ -103,6 +162,7 @@ public class KsqlServerMain {
     } finally {
       latch.countDown();
     }
+    return notified.get();
   }
 
   private static void validateConfig(final KsqlConfig config) {
@@ -142,12 +202,16 @@ public class KsqlServerMain {
 
   @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
   private static Executable createExecutable(
-      final Map<String, String> properties,
+      final Supplier<Map<String, String>> propertiesLoader,
+      final ServerState serverState,
       final Optional<String> queriesFile,
       final String installDir,
-      final KsqlConfig ksqlConfig,
-      final MetricCollectors metricCollectors
-  ) throws IOException {
+      final MetricCollectors metricCollectors,
+      final FunctionRegistry functionRegistry
+  ) {
+    final Map<String, String> properties = propertiesLoader.get();
+    final KsqlConfig ksqlConfig = new KsqlConfig(properties);
+
     if (queriesFile.isPresent()) {
       return StandaloneExecutorFactory.create(
           properties,
@@ -158,8 +222,13 @@ public class KsqlServerMain {
     }
 
     final KsqlRestConfig restConfig = new KsqlRestConfig(properties);
-    final Executable restApp = KsqlRestApplication
-        .buildApplication(restConfig, metricCollectors);
+    final Executable restApp = KsqlRestApplication.buildApplication(
+        restConfig,
+        serverState,
+        metricCollectors,
+        functionRegistry,
+        Instant.now()
+    );
 
     final String connectConfigFile =
         ksqlConfig.getString(KsqlConfig.CONNECT_WORKER_CONFIG_FILE_PROPERTY);
@@ -167,8 +236,12 @@ public class KsqlServerMain {
       return restApp;
     }
 
-    final Executable connect = ConnectExecutable.of(connectConfigFile);
-    return MultiExecutable.of(connect, restApp);
+    try {
+      final Executable connect = ConnectExecutable.of(connectConfigFile);
+      return MultiExecutable.of(connect, restApp);
+    } catch (final IOException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   @VisibleForTesting

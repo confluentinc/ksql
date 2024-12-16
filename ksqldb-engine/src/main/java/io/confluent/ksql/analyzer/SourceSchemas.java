@@ -35,13 +35,10 @@ import java.util.stream.Collectors;
 public final class SourceSchemas {
 
   private final ImmutableMap<SourceName, LogicalSchema> sourceSchemas;
-  private final boolean rowpartitionRowoffsetEnabled;
 
   SourceSchemas(
-      final Map<SourceName, LogicalSchema> sourceSchemas,
-      final boolean rowpartitionRowoffsetEnabled) {
+      final Map<SourceName, LogicalSchema> sourceSchemas) {
     this.sourceSchemas = ImmutableMap.copyOf(requireNonNull(sourceSchemas, "sourceSchemas"));
-    this.rowpartitionRowoffsetEnabled = rowpartitionRowoffsetEnabled;
 
     // This will fail
     if (sourceSchemas.isEmpty()) {
@@ -100,8 +97,7 @@ public final class SourceSchemas {
     if (!source.isPresent()) {
       return sourceSchemas.values().stream()
           .anyMatch(schema ->
-              SystemColumns.isPseudoColumn(column, rowpartitionRowoffsetEnabled)
-                  || schema.isKeyColumn(column));
+              SystemColumns.isPseudoColumn(column) || schema.isKeyColumn(column));
     }
 
     final SourceName sourceName = source.get();
@@ -110,7 +106,6 @@ public final class SourceSchemas {
       throw new IllegalArgumentException("Unknown source: " + sourceName);
     }
 
-    return sourceSchema.isKeyColumn(column)
-        || SystemColumns.isPseudoColumn(column, rowpartitionRowoffsetEnabled);
+    return sourceSchema.isKeyColumn(column) || SystemColumns.isPseudoColumn(column);
   }
 }

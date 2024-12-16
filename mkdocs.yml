@@ -156,6 +156,8 @@ nav:
     - Clients:
       - Synopsis: developer-guide/ksqldb-clients/index.md
       - Java Client: developer-guide/ksqldb-clients/java-client.md
+      - Python Client: developer-guide/ksqldb-clients/python-client.md
+      - .NET Client: developer-guide/ksqldb-clients/dotnet-client.md
       - Contribute a new client: developer-guide/ksqldb-clients/contributing.md
     - Processing log: reference/processing-log.md
     - Serialization: reference/serialization.md
@@ -173,7 +175,7 @@ markdown_extensions:
     - attr_list
     - mdx_gh_links:
         user: confluentinc
-        repo: ksqldb
+        repo: ksql
     - mdx_truly_sane_lists
 
 plugins:
@@ -260,7 +262,7 @@ extra:
 
         # Build-related string tokens
         kafkaversion: 3.2
-        ksqldbversion: 0.26.0
+        ksqldbversion: 0.27.0
         cprelease: 7.2.0
         releasepostbranch: 7.2.0-post
         scalaversion: 2.13

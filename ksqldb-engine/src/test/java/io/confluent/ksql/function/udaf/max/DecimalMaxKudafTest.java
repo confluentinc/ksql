@@ -20,16 +20,12 @@ import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
-import io.confluent.ksql.GenericKey;
-import io.confluent.ksql.function.AggregateFunctionInitArguments;
-import io.confluent.ksql.function.KsqlAggregateFunction;
+import io.confluent.ksql.function.udaf.Udaf;
 import io.confluent.ksql.schema.ksql.SqlArgument;
 import io.confluent.ksql.schema.ksql.types.SqlDecimal;
 import java.math.BigDecimal;
 import java.math.MathContext;
 import java.util.Collections;
-
-import org.apache.kafka.streams.kstream.Merger;
 import org.junit.Test;
 
 public class DecimalMaxKudafTest {
@@ -68,23 +64,30 @@ public class DecimalMaxKudafTest {
 
   @Test
   public void shouldFindCorrectMaxForMerge() {
-    final MaxKudaf decimalMaxKudaf = getMaxComparableKudaf(3);
-    final Merger<GenericKey, BigDecimal> merger = decimalMaxKudaf.getMerger();
-    final BigDecimal mergeResult1 = merger.apply(null, new BigDecimal(10.0), new BigDecimal(12.0));
+    final MaxKudaf<BigDecimal> decimalMaxKudaf = getMaxComparableKudaf(3);
+    final BigDecimal mergeResult1 = decimalMaxKudaf.merge(
+            new BigDecimal(10.0),
+            new BigDecimal(12.0)
+    );
     assertThat(mergeResult1, equalTo(new BigDecimal(12.0, new MathContext(3))));
-    final BigDecimal mergeResult2 = merger.apply(null, new BigDecimal(10.0), new BigDecimal(-12.0));
+    final BigDecimal mergeResult2 = decimalMaxKudaf.merge(
+            new BigDecimal(10.0),
+            new BigDecimal(-12.0)
+    );
     assertThat(mergeResult2, equalTo(new BigDecimal(10.0, new MathContext(3))));
-    final BigDecimal mergeResult3 = merger.apply(null, new BigDecimal(-10.0), new BigDecimal(0.0));
+    final BigDecimal mergeResult3 = decimalMaxKudaf.merge(
+            new BigDecimal(-10.0),
+            new BigDecimal(0.0)
+    );
     assertThat(mergeResult3, equalTo(new BigDecimal(0.0, new MathContext(3))));
   }
 
-
-  private MaxKudaf getMaxComparableKudaf(final int precision) {
-    final KsqlAggregateFunction aggregateFunction = new MaxAggFunctionFactory()
-        .createAggregateFunction(Collections.singletonList(SqlArgument.of(SqlDecimal.of(precision, 1)))
-            , AggregateFunctionInitArguments.EMPTY_ARGS);
+  private MaxKudaf<BigDecimal> getMaxComparableKudaf(final int precision) {
+    final Udaf<BigDecimal, BigDecimal, BigDecimal> aggregateFunction = MaxKudaf.createMaxDecimal();
+    aggregateFunction.initializeTypeArguments(
+            Collections.singletonList(SqlArgument.of(SqlDecimal.of(precision, 1)))
+    );
     assertThat(aggregateFunction, instanceOf(MaxKudaf.class));
-    return  (MaxKudaf) aggregateFunction;
+    return  (MaxKudaf<BigDecimal>) aggregateFunction;
   }
-
 }

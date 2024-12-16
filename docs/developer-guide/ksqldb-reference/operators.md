@@ -120,6 +120,12 @@ dereference operator (`->`) to access its fields:
 SELECT USERID, ADDRESS->STREET, ADDRESS->HOUSE_NUM FROM USERS EMIT CHANGES;
 ```
 
+Access all STRUCT fields by using a `*` in the derefence operator:
+
+```sql
+SELECT USERID, ADDRESS->* FROM USERS EMIT CHANGES;
+```
+
 Combine `->` with `.` when using aliases:
 
 ```sql

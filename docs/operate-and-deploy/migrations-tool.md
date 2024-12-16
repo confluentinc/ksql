@@ -49,8 +49,10 @@ types of ksqlDB statements:
 * `DROP TYPE`
 * `SET <property>`
 * `UNSET <property>`
-* `DEFINE <variable>` - available if both `ksql-migrations` and the server are version 0.18 or newer
+* `DEFINE <variable>` - available if both `ksql-migrations` and the server are version 0.18 or newer.
 * `UNDEFINE <variable>` - available if both `ksql-migrations` and the server are version 0.18 or newer.
+* `ASSERT SCHEMA` - available if both `ksql-migrations` and the server are version 0.27 or newer.
+* `ASSERT TOPIC` - available if both `ksql-migrations` and the server are version 0.27 or newer.
 
 Any properties or variables set using the `SET`, `UNSET`, `DEFINE` and `UNDEFINE` are applied in the 
 current migration file only. They do not carry over to the next migration file, even if multiple
@@ -553,7 +555,7 @@ INSERT INTO MIGRATION_EVENTS (
     '2',
     '2',
     'Add users',
-    'ERROR'
+    'ERROR',
     '1bdb2489db5d969dc2f2bc918407f2d6',
     '1615441337127',
     '1615441337408',
@@ -581,7 +583,7 @@ INSERT INTO MIGRATION_EVENTS (
     'CURRENT',
     '2',
     'Add users',
-    'ERROR'
+    'ERROR',
     '1bdb2489db5d969dc2f2bc918407f2d6',
     '1615441337127',
     '1615441337408',

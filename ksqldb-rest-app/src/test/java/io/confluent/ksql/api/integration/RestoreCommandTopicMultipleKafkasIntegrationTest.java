@@ -15,28 +15,23 @@
 
 package io.confluent.ksql.api.integration;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.integration.IntegrationTestHarness;
 import io.confluent.ksql.integration.Retry;
 import io.confluent.ksql.rest.DefaultErrorMessages;
-import io.confluent.ksql.rest.entity.CommandId;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlWarning;
 import io.confluent.ksql.rest.entity.SourceInfo;
 import io.confluent.ksql.rest.entity.StreamsList;
 import io.confluent.ksql.rest.integration.RestIntegrationTestUtil;
-import io.confluent.ksql.rest.server.BackupReplayFile;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
-import io.confluent.ksql.rest.server.computation.Command;
-import io.confluent.ksql.rest.server.computation.InternalTopicSerdes;
 import io.confluent.ksql.rest.server.restore.KsqlRestoreCommandTopic;
 import io.confluent.ksql.test.util.KsqlTestFolder;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.MockSystemExit;
 import io.confluent.ksql.util.ReservedInternalTopics;
 import kafka.zookeeper.ZooKeeperClientException;
-import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.streams.StreamsConfig;
 import org.junit.After;
 import org.junit.Before;
@@ -160,12 +155,14 @@ public class RestoreCommandTopicMultipleKafkasIntegrationTest {
     assertThatEventually("Degraded State", this::isDegradedState, is(true));
 
     // Restore the command topic
-    KsqlRestoreCommandTopic.main(
+    KsqlRestoreCommandTopic.mainInternal(
         new String[]{
             "--yes",
             "--config-file", propertiesFile.toString(),
             backupFile.toString()
-        });
+        },
+        new MockSystemExit()
+    );
 
     // Re-load the command topic
     REST_APP.stop();

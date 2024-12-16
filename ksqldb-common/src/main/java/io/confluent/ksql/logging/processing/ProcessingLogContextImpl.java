@@ -16,16 +16,23 @@
 package io.confluent.ksql.logging.processing;
 
 import io.confluent.common.logging.StructuredLoggerFactory;
+import java.util.Map;
+import org.apache.kafka.common.metrics.Metrics;
 
 public final class ProcessingLogContextImpl implements ProcessingLogContext {
   private final ProcessingLogConfig config;
   private final ProcessingLoggerFactory loggerFactory;
 
-  ProcessingLogContextImpl(final ProcessingLogConfig config) {
+  ProcessingLogContextImpl(
+      final ProcessingLogConfig config,
+      final Metrics metrics,
+      final Map<String, String> metricsTags) {
     this.config = config;
-    this.loggerFactory = new ProcessingLoggerFactoryImpl(
+    this.loggerFactory = new MeteredProcessingLoggerFactory(
         config,
-        new StructuredLoggerFactory(ProcessingLogConstants.PREFIX)
+        new StructuredLoggerFactory(ProcessingLogConstants.PREFIX),
+        metrics,
+        metricsTags
     );
   }
 

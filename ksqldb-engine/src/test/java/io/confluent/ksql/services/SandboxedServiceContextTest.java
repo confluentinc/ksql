@@ -19,6 +19,8 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.sameInstance;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -104,6 +106,8 @@ public final class SandboxedServiceContextTest {
     @Mock
     private SchemaRegistryClient delegateSrClient;
     @Mock
+    private ConnectClient delegateConnectClient;
+    @Mock
     private KafkaConsumerGroupClient delegateConsumerGroupClient;
     private SandboxedServiceContext sandboxedServiceContext;
 
@@ -112,6 +116,7 @@ public final class SandboxedServiceContextTest {
       when(delegate.getTopicClient()).thenReturn(delegateTopicClient);
       when(delegate.getSchemaRegistryClient()).thenReturn(delegateSrClient);
       when(delegate.getConsumerGroupClient()).thenReturn(delegateConsumerGroupClient);
+      when(delegate.getConnectClient()).thenReturn(delegateConnectClient);
 
       sandboxedServiceContext = SandboxedServiceContext.create(delegate);
     }
@@ -178,6 +183,18 @@ public final class SandboxedServiceContextTest {
 
       // Then:
       assertThat("Expected proxy class", Proxy.isProxyClass(client.getClass()));
+    }
+
+    @Test
+    public void shouldNotCreateConnectDelegateUnlessCalled() {
+      // Then: no delegate connect client called on create()
+      verify(delegate, never()).getConnectClient();
+
+      // When:
+      sandboxedServiceContext.getConnectClient();
+
+      // Then: now the delegate connect client should have been called
+      verify(delegate, times(1)).getConnectClient();
     }
 
     @Test

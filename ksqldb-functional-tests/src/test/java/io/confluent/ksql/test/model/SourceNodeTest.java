@@ -117,7 +117,7 @@ public class SourceNodeTest {
     when(topic.getKeyFormat()).thenReturn(KeyFormat.windowed(
         FormatInfo.of("AVRO", ImmutableMap.of("some", "prop")),
         SerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES),
-        WindowInfo.of(WindowType.HOPPING, Optional.of(Duration.ofMillis(10)))
+        WindowInfo.of(WindowType.HOPPING, Optional.of(Duration.ofMillis(10)), Optional.empty())
     ));
     when(topic.getValueFormat()).thenReturn(ValueFormat.of(
         FormatInfo.of("DELIMITED", ImmutableMap.of("some1", "prop1")),

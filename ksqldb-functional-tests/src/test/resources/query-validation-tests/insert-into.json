@@ -174,6 +174,42 @@
       ]
     },
     {
+      "name": "convert formats: JSON to PROTOBUF_NOSR",
+      "statements": [
+        "CREATE STREAM SOURCE (K STRING KEY, A bigint, B varchar) WITH (kafka_topic='source', value_format='JSON');",
+        "CREATE STREAM SINK (K STRING KEY, A bigint, B varchar) WITH (kafka_topic='sink', value_format='PROTOBUF_NOSR');",
+        "INSERT INTO SINK SELECT * FROM SOURCE;"
+      ],
+      "inputs": [
+        {"topic": "source", "key": "0", "value": {"A": 123, "B": "falcon"}, "timestamp": 0},
+        {"topic": "source", "key": "0", "value": {"A": 456, "B": "giraffe"}, "timestamp": 0},
+        {"topic": "source", "key": "0", "value": {"A": 789, "B": "turtle"}, "timestamp": 0}
+      ],
+      "outputs": [
+        {"topic": "sink", "key": "0", "value": {"A": 123, "B": "falcon"}, "timestamp": 0},
+        {"topic": "sink", "key": "0", "value": {"A": 456, "B": "giraffe"}, "timestamp": 0},
+        {"topic": "sink", "key": "0", "value": {"A": 789, "B": "turtle"}, "timestamp": 0}
+      ]
+    },
+    {
+      "name": "convert formats: PROTOBUF_NOSR to JSON",
+      "statements": [
+        "CREATE STREAM SOURCE (K STRING KEY, A bigint, B varchar) WITH (kafka_topic='source', value_format='PROTOBUF_NOSR');",
+        "CREATE STREAM SINK (K STRING KEY, A bigint, B varchar) WITH (kafka_topic='sink', value_format='JSON');",
+        "INSERT INTO SINK SELECT * FROM SOURCE;"
+      ],
+      "inputs": [
+        {"topic": "source", "key": "0", "value": {"A": 123, "B": "falcon"}, "timestamp": 0},
+        {"topic": "source", "key": "0", "value": {"A": 456, "B": "giraffe"}, "timestamp": 0},
+        {"topic": "source", "key": "0", "value": {"A": 789, "B": "turtle"}, "timestamp": 0}
+      ],
+      "outputs": [
+        {"topic": "sink", "key": "0", "value": {"A": 123, "B": "falcon"}, "timestamp": 0},
+        {"topic": "sink", "key": "0", "value": {"A": 456, "B": "giraffe"}, "timestamp": 0},
+        {"topic": "sink", "key": "0", "value": {"A": 789, "B": "turtle"}, "timestamp": 0}
+      ]
+    },
+    {
       "name": "INSERT INTO stream with SCHEMA_ID and SCHEMA_FULL_NAME",
       "statements": [
         "CREATE STREAM SOURCE WITH (kafka_topic='source', format='PROTOBUF', KEY_SCHEMA_ID=1, KEY_SCHEMA_FULL_NAME='ProtobufKey2', VALUE_SCHEMA_ID=2, VALUE_SCHEMA_FULL_NAME='ProtobufValue2');",

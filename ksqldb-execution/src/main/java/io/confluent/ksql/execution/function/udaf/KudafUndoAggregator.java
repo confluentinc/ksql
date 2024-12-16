@@ -22,6 +22,8 @@ import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.function.TableAggregationFunction;
 import java.util.List;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import org.apache.kafka.streams.kstream.Aggregator;
 
 public class KudafUndoAggregator implements Aggregator<GenericKey, GenericRow, GenericRow> {
@@ -63,11 +65,24 @@ public class KudafUndoAggregator implements Aggregator<GenericKey, GenericRow, G
 
     for (int idx = nonAggColumnCount; idx < columnCount; idx++) {
       final TableAggregationFunction function = aggregateFunctions.get(idx - nonAggColumnCount);
-      final Object argument = rowValue.get(function.getArgIndexInValue());
+      final Object argument = getCurrentValue(
+              rowValue,
+              function.getArgIndicesInValue(),
+              function::convertToInput
+      );
       final Object previous = result.get(idx);
       result.set(idx, function.undo(argument, previous));
     }
 
     return result;
+  }
+
+  private Object getCurrentValue(final GenericRow row, final List<Integer> indices,
+                                 final Function<List<Object>, Object> inputConverter) {
+    return inputConverter.apply(
+            indices.stream()
+                    .map(row::get)
+                    .collect(Collectors.toList())
+    );
   }
 }

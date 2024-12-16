@@ -63,7 +63,7 @@ public class DefaultKsqlSecurityContextProvider implements KsqlSecurityContextPr
   public KsqlSecurityContext provide(final ApiSecurityContext apiSecurityContext) {
 
     final Optional<KsqlPrincipal> principal = apiSecurityContext.getPrincipal();
-    final Optional<String> authHeader = apiSecurityContext.getAuthToken();
+    final Optional<String> authHeader = apiSecurityContext.getAuthHeader();
     final List<Entry<String, String>> requestHeaders = apiSecurityContext.getRequestHeaders();
 
     // A user context is not necessary if a user context provider is not present or the user

@@ -153,6 +153,7 @@ public final class RecordNode {
     }
   }
 
+  @SuppressWarnings("unchecked")
   private Object coerceRecord(
       final Object record,
       final ParsedSchema schema,
@@ -177,7 +178,7 @@ public final class RecordNode {
         return record;
     }
 
-    columns.stream().forEach(c -> coerceColumn(recordMap, c));
+    columns.forEach(c -> coerceColumn(recordMap, c));
     return recordMap;
   }
 

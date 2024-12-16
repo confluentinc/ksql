@@ -18,7 +18,6 @@ package io.confluent.ksql.engine;
 import static io.confluent.ksql.util.QueryApplicationId.buildSharedRuntimeId;
 
 import com.google.common.collect.ImmutableMap;
-import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.util.BinPackedPersistentQueryMetadataImpl;
 import io.confluent.ksql.util.KsqlConfig;
@@ -34,28 +33,28 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class RuntimeAssignor {
-  private final Map<String, Collection<SourceName>> runtimesToSources;
+  private final Map<String, Collection<String>> runtimesToSourceTopics;
   private final Map<QueryId, String> idToRuntime;
   private final Logger log = LoggerFactory.getLogger(RuntimeAssignor.class);
   private final int numDefaultRuntimes;
 
   public RuntimeAssignor(final KsqlConfig config) {
-    runtimesToSources = new HashMap<>();
+    runtimesToSourceTopics = new HashMap<>();
     idToRuntime = new HashMap<>();
     numDefaultRuntimes = config.getInt(KsqlConfig.KSQL_SHARED_RUNTIMES_COUNT);
     for (int i = 0; i < numDefaultRuntimes; i++) {
       final String runtime = buildSharedRuntimeId(config, true, i);
-      runtimesToSources.put(runtime, new HashSet<>());
+      runtimesToSourceTopics.put(runtime, new HashSet<>());
     }
   }
 
   private RuntimeAssignor(final RuntimeAssignor other) {
     numDefaultRuntimes = other.numDefaultRuntimes;
-    this.runtimesToSources = new HashMap<>();
+    this.runtimesToSourceTopics = new HashMap<>();
     this.idToRuntime = new HashMap<>(other.idToRuntime);
-    for (Map.Entry<String, Collection<SourceName>> runtime
-        : other.runtimesToSources.entrySet()) {
-      this.runtimesToSources.put(runtime.getKey(), new HashSet<>(runtime.getValue()));
+    for (Map.Entry<String, Collection<String>> runtime
+        : other.runtimesToSourceTopics.entrySet()) {
+      this.runtimesToSourceTopics.put(runtime.getKey(), new HashSet<>(runtime.getValue()));
     }
   }
 
@@ -64,14 +63,14 @@ public class RuntimeAssignor {
   }
 
   public String getRuntimeAndMaybeAddRuntime(final QueryId queryId,
-                                             final Collection<SourceName> sources,
+                                             final Collection<String> sourceTopics,
                                              final KsqlConfig config) {
     if (idToRuntime.containsKey(queryId)) {
       return idToRuntime.get(queryId);
     }
-    final List<String> possibleRuntimes = runtimesToSources.entrySet()
+    final List<String> possibleRuntimes = runtimesToSourceTopics.entrySet()
         .stream()
-        .filter(t -> t.getValue().stream().noneMatch(sources::contains))
+        .filter(t -> t.getValue().stream().noneMatch(sourceTopics::contains))
         .map(Map.Entry::getKey)
         .collect(Collectors.toList());
     final String runtime;
@@ -80,7 +79,7 @@ public class RuntimeAssignor {
     } else {
       runtime = possibleRuntimes.get(Math.abs(queryId.hashCode() % possibleRuntimes.size()));
     }
-    runtimesToSources.get(runtime).addAll(sources);
+    runtimesToSourceTopics.get(runtime).addAll(sourceTopics);
     idToRuntime.put(queryId, runtime);
     log.info("Assigning query {} to runtime {}", queryId, runtime);
     return runtime;
@@ -96,12 +95,12 @@ public class RuntimeAssignor {
         log.warn("Dropping an unassigned query {}, this should"
             + " only possible with Gen 1 queries", queryMetadata);
       }
-      runtimesToSources.get(queryMetadata.getQueryApplicationId())
-          .removeAll(queryMetadata.getSourceNames());
+      runtimesToSourceTopics.get(queryMetadata.getQueryApplicationId())
+          .removeAll(queryMetadata.getSourceTopicNames());
       idToRuntime.remove(queryMetadata.getQueryId());
-      if (runtimesToSources.get(queryMetadata.getQueryApplicationId()).isEmpty()
-          && runtimesToSources.size() > numDefaultRuntimes) {
-        runtimesToSources.remove(queryMetadata.getQueryApplicationId());
+      if (runtimesToSourceTopics.get(queryMetadata.getQueryApplicationId()).isEmpty()
+          && runtimesToSourceTopics.size() > numDefaultRuntimes) {
+        runtimesToSourceTopics.remove(queryMetadata.getQueryApplicationId());
         log.info("Removing runtime {} form selection of possible runtimes",
             queryMetadata.getQueryApplicationId());
       }
@@ -110,8 +109,8 @@ public class RuntimeAssignor {
 
 
   private String makeNewRuntime(final KsqlConfig config) {
-    final String runtime = buildSharedRuntimeId(config, true, runtimesToSources.size());
-    runtimesToSources.put(runtime, new HashSet<>());
+    final String runtime = buildSharedRuntimeId(config, true, runtimesToSourceTopics.size());
+    runtimesToSourceTopics.put(runtime, new HashSet<>());
     return runtime;
   }
 
@@ -119,11 +118,11 @@ public class RuntimeAssignor {
     final Set<QueryId> gen1Queries = new HashSet<>();
     for (PersistentQueryMetadata queryMetadata: queries) {
       if (queryMetadata instanceof BinPackedPersistentQueryMetadataImpl) {
-        if (!runtimesToSources.containsKey(queryMetadata.getQueryApplicationId())) {
-          runtimesToSources.put(queryMetadata.getQueryApplicationId(), new HashSet<>());
+        if (!runtimesToSourceTopics.containsKey(queryMetadata.getQueryApplicationId())) {
+          runtimesToSourceTopics.put(queryMetadata.getQueryApplicationId(), new HashSet<>());
         }
-        runtimesToSources.get(queryMetadata.getQueryApplicationId())
-            .addAll(queryMetadata.getSourceNames());
+        runtimesToSourceTopics.get(queryMetadata.getQueryApplicationId())
+            .addAll(queryMetadata.getSourceTopicNames());
         idToRuntime.put(queryMetadata.getQueryId(), queryMetadata.getQueryApplicationId());
       } else {
         gen1Queries.add(queryMetadata.getQueryId());
@@ -149,8 +148,8 @@ public class RuntimeAssignor {
     }
   }
 
-  public Map<String, Collection<SourceName>> getRuntimesToSources() {
-    return ImmutableMap.copyOf(runtimesToSources);
+  public Map<String, Collection<String>> getRuntimesToSourceTopics() {
+    return ImmutableMap.copyOf(runtimesToSourceTopics);
   }
 
   public Map<QueryId, String> getIdToRuntime() {

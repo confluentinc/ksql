@@ -19,6 +19,7 @@ import static org.easymock.EasyMock.capture;
 import static org.easymock.EasyMock.expectLastCall;
 import static org.easymock.EasyMock.newCapture;
 import static org.easymock.EasyMock.replay;
+import static org.easymock.EasyMock.reportMatcher;
 import static org.easymock.EasyMock.verify;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
@@ -39,6 +40,7 @@ import org.easymock.Capture;
 import org.easymock.EasyMockRunner;
 import org.easymock.Mock;
 import org.easymock.MockType;
+import org.easymock.internal.matchers.Captures;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -50,13 +52,15 @@ public class KsqlServerMainTest {
   @Mock(MockType.NICE)
   private Executable executable;
   @Mock(MockType.NICE)
+  private Executable precondition;
+  @Mock(MockType.NICE)
   private Executor shutdownHandler;
 
   private final File mockStreamsStateDir = mock(File.class);
 
   @Before
   public void setUp() {
-    main = new KsqlServerMain(executable, shutdownHandler);
+    main = new KsqlServerMain(precondition, () -> executable, shutdownHandler);
     when(mockStreamsStateDir.exists()).thenReturn(true);
     when(mockStreamsStateDir.mkdirs()).thenReturn(true);
     when(mockStreamsStateDir.isDirectory()).thenReturn(true);
@@ -106,9 +110,10 @@ public class KsqlServerMainTest {
     // Given:
     final Capture<Runnable> captureShutdownHandler = newCapture();
     shutdownHandler.execute(capture(captureShutdownHandler));
-    executable.notifyTerminated();
     expectLastCall();
-    replay(shutdownHandler, executable);
+    precondition.notifyTerminated();
+    expectLastCall();
+    replay(shutdownHandler, precondition);
     main.tryStartApp();
     final Runnable handler = captureShutdownHandler.getValue();
 
@@ -116,7 +121,7 @@ public class KsqlServerMainTest {
     handler.run();
 
     // Then:
-    verify(executable);
+    verify(precondition);
   }
 
   @Test

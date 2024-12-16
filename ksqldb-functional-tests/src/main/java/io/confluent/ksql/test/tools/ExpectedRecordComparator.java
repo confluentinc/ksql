@@ -24,7 +24,9 @@ import com.fasterxml.jackson.databind.node.TextNode;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.test.model.TestHeader;
 import java.math.BigDecimal;
+import java.nio.ByteBuffer;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -180,6 +182,10 @@ public final class ExpectedRecordComparator {
     }
     if (actualValue instanceof BigDecimal) {
       return new BigDecimal(expected.asText()).equals(actualValue);
+    }
+    if (actualValue instanceof ByteBuffer) {
+      return expected.asText().equals(
+          Base64.getEncoder().encodeToString(((ByteBuffer) actualValue).array()));
     }
     return false;
   }

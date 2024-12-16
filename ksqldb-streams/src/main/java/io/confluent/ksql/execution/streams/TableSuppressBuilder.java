@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Confluent Inc.
+ * Copyright 2022 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -21,13 +21,13 @@ import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.plan.ExecutionKeyFactory;
 import io.confluent.ksql.execution.plan.KTableHolder;
 import io.confluent.ksql.execution.plan.TableSuppress;
+import io.confluent.ksql.execution.runtime.MaterializedFactory;
 import io.confluent.ksql.execution.runtime.RuntimeBuildContext;
-import io.confluent.ksql.execution.streams.transform.KsTransformer;
+import io.confluent.ksql.execution.streams.transform.KsValueTransformer;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.util.KsqlConfig;
-import java.util.function.BiFunction;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.utils.Bytes;
 import org.apache.kafka.streams.kstream.KTable;
@@ -55,7 +55,7 @@ public final class TableSuppressBuilder {
         buildContext,
         executionKeyFactory,
         PhysicalSchema::from,
-        Materialized::with
+        buildContext.getMaterializedFactory()
     );
   }
 
@@ -67,7 +67,7 @@ public final class TableSuppressBuilder {
       final RuntimeBuildContext buildContext,
       final ExecutionKeyFactory<K> executionKeyFactory,
       final PhysicalSchemaFactory physicalSchemaFactory,
-      final BiFunction<Serde<K>, Serde<GenericRow>, Materialized> materializedFactory
+      final MaterializedFactory materializedFactory
   ) {
     final PhysicalSchema physicalSchema = physicalSchemaFactory.create(
         table.getSchema(),
@@ -89,7 +89,7 @@ public final class TableSuppressBuilder {
         queryContext
     );
     final Materialized<K, GenericRow, KeyValueStore<Bytes, byte[]>> materialized =
-        materializedFactory.apply(
+        materializedFactory.create(
             keySerde,
             valueSerde
         );
@@ -110,7 +110,7 @@ public final class TableSuppressBuilder {
     with the correct key and val serdes is passed on when we call suppress
      */
     final KTable<K, GenericRow> suppressed = table.getTable().transformValues(
-        (() -> new KsTransformer<>((k, v, ctx) -> v)),
+        (() -> new KsValueTransformer<>((k, v, ctx) -> v)),
         materialized
     ).suppress(
         (Suppressed<? super K>) Suppressed

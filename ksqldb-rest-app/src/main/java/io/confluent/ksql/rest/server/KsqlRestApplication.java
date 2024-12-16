@@ -39,9 +39,7 @@ import io.confluent.ksql.execution.scalablepush.PushRouting;
 import io.confluent.ksql.execution.streams.RoutingFilter;
 import io.confluent.ksql.execution.streams.RoutingFilter.RoutingFilterFactory;
 import io.confluent.ksql.execution.streams.RoutingFilters;
-import io.confluent.ksql.function.InternalFunctionRegistry;
-import io.confluent.ksql.function.MutableFunctionRegistry;
-import io.confluent.ksql.function.UserFunctionLoader;
+import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.internal.JmxDataPointsReporter;
 import io.confluent.ksql.internal.LeakedResourcesMetrics;
 import io.confluent.ksql.internal.PullQueryExecutorMetrics;
@@ -60,7 +58,6 @@ import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.client.KsqlClient;
 import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
-import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.SourceInfo;
 import io.confluent.ksql.rest.entity.StreamsList;
 import io.confluent.ksql.rest.server.HeartbeatAgent.Builder;
@@ -69,13 +66,10 @@ import io.confluent.ksql.rest.server.computation.CommandRunner;
 import io.confluent.ksql.rest.server.computation.CommandStore;
 import io.confluent.ksql.rest.server.computation.InteractiveStatementExecutor;
 import io.confluent.ksql.rest.server.computation.InternalTopicSerdes;
-import io.confluent.ksql.rest.server.execution.ConnectServerErrors;
-import io.confluent.ksql.rest.server.execution.DefaultConnectServerErrors;
 import io.confluent.ksql.rest.server.query.QueryExecutor;
 import io.confluent.ksql.rest.server.resources.ClusterStatusResource;
 import io.confluent.ksql.rest.server.resources.HealthCheckResource;
 import io.confluent.ksql.rest.server.resources.HeartbeatResource;
-import io.confluent.ksql.rest.server.resources.KsqlConfigurable;
 import io.confluent.ksql.rest.server.resources.KsqlResource;
 import io.confluent.ksql.rest.server.resources.LagReportingResource;
 import io.confluent.ksql.rest.server.resources.ServerInfoResource;
@@ -113,11 +107,11 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.SimpleKsqlClient;
 import io.confluent.ksql.util.AppInfo;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlConfigurable;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlServerException;
 import io.confluent.ksql.util.ReservedInternalTopics;
-import io.confluent.ksql.util.RetryUtil;
 import io.confluent.ksql.util.WelcomeMsgUtils;
 import io.confluent.ksql.utilization.PersistentQuerySaturationMetrics;
 import io.confluent.ksql.version.metrics.KsqlVersionCheckerAgent;
@@ -137,6 +131,7 @@ import java.net.URI;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -153,7 +148,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.function.Function;
-import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
@@ -190,7 +184,6 @@ public final class KsqlRestApplication implements Executable {
   private final Optional<AuthenticationPlugin> authenticationPlugin;
   private final ServerState serverState;
   private final ProcessingLogContext processingLogContext;
-  private final List<KsqlServerPrecondition> preconditions;
   private final List<KsqlConfigurable> configurables;
   private final Consumer<KsqlConfig> rocksDBConfigSetterHandler;
   private final Optional<HeartbeatAgent> heartbeatAgent;
@@ -213,6 +206,8 @@ public final class KsqlRestApplication implements Executable {
   private final Optional<ScalablePushQueryMetrics> scalablePushQueryMetrics;
   private final Optional<LocalCommands> localCommands;
   private KafkaTopicClient internalTopicClient;
+  private final Instant ksqlRestAppStartTime;
+  private final KsqlRestApplicationMetrics restApplicationMetrics;
 
   // The startup thread that can be interrupted if necessary during shutdown.  This should only
   // happen if startup hangs.
@@ -241,7 +236,6 @@ public final class KsqlRestApplication implements Executable {
       final Optional<AuthenticationPlugin> authenticationPlugin,
       final ServerState serverState,
       final ProcessingLogContext processingLogContext,
-      final List<KsqlServerPrecondition> preconditions,
       final List<KsqlConfigurable> configurables,
       final Consumer<KsqlConfig> rocksDBConfigSetterHandler,
       final Optional<HeartbeatAgent> heartbeatAgent,
@@ -254,7 +248,8 @@ public final class KsqlRestApplication implements Executable {
       final QueryExecutor queryExecutor,
       final MetricCollectors metricCollectors,
       final KafkaTopicClient internalTopicClient,
-      final Admin internalAdmin
+      final Admin internalAdmin,
+      final Instant ksqlRestAppStartTime
   ) {
     log.debug("Creating instance of ksqlDB API server");
     this.serviceContext = requireNonNull(serviceContext, "serviceContext");
@@ -268,7 +263,6 @@ public final class KsqlRestApplication implements Executable {
     this.commandStore = requireNonNull(commandStore, "commandStore");
     this.serverState = requireNonNull(serverState, "serverState");
     this.processingLogContext = requireNonNull(processingLogContext, "processingLogContext");
-    this.preconditions = requireNonNull(preconditions, "preconditions");
     this.versionCheckerAgent = requireNonNull(versionCheckerAgent, "versionCheckerAgent");
     this.ksqlSecurityContextProvider = requireNonNull(ksqlSecurityContextProvider,
         "ksqlSecurityContextProvider");
@@ -309,6 +303,8 @@ public final class KsqlRestApplication implements Executable {
     this.localCommands = requireNonNull(localCommands, "localCommands");
     this.queryExecutor = requireNonNull(queryExecutor, "queryExecutor");
     this.internalTopicClient = requireNonNull(internalTopicClient, "internalTopicClient");
+    this.ksqlRestAppStartTime = requireNonNull(ksqlRestAppStartTime, "ksqlRestAppStartTime");
+    this.restApplicationMetrics = new KsqlRestApplicationMetrics(metricCollectors.getMetrics());
   }
 
   @Override
@@ -394,7 +390,6 @@ public final class KsqlRestApplication implements Executable {
 
   @VisibleForTesting
   void startKsql(final KsqlConfig ksqlConfigWithPort) {
-    waitForPreconditions();
     cleanupOldState();
     initialize(ksqlConfigWithPort);
   }
@@ -415,43 +410,6 @@ public final class KsqlRestApplication implements Executable {
 
     private AbortApplicationStartException(final String message) {
       super(message);
-    }
-  }
-
-  private void checkPreconditions() {
-    for (final KsqlServerPrecondition precondition : preconditions) {
-      final Optional<KsqlErrorMessage> error = precondition.checkPrecondition(
-          restConfig,
-          serviceContext,
-          internalTopicClient
-      );
-      if (error.isPresent()) {
-        serverState.setInitializingReason(error.get());
-        throw new KsqlFailedPrecondition(error.get().toString());
-      }
-    }
-  }
-
-  private void waitForPreconditions() {
-    final List<Predicate<Exception>> predicates = ImmutableList.of(
-        e -> !(e instanceof KsqlFailedPrecondition)
-    );
-    try {
-      RetryUtil.retryWithBackoff(
-          Integer.MAX_VALUE,
-          1000,
-          30000,
-          this::checkPreconditions,
-          terminatedFuture::isDone,
-          predicates
-      );
-    } catch (KsqlFailedPrecondition e) {
-      log.error("Failed to meet preconditions. Exiting...", e);
-    }
-
-    if (terminatedFuture.isDone()) {
-      throw new AbortApplicationStartException(
-          "Shutting down application during waitForPreconditions");
     }
   }
 
@@ -503,6 +461,9 @@ public final class KsqlRestApplication implements Executable {
     }
 
     serverState.setReady();
+
+    restApplicationMetrics.recordServerStartLatency(
+        Duration.between(ksqlRestAppStartTime, Instant.now()));
   }
 
   @Override
@@ -637,7 +598,11 @@ public final class KsqlRestApplication implements Executable {
 
   public static KsqlRestApplication buildApplication(
       final KsqlRestConfig restConfig,
-      final MetricCollectors metricCollectors) {
+      final ServerState serverState,
+      final MetricCollectors metricCollectors,
+      final FunctionRegistry functionRegistry,
+      final Instant ksqlRestAppStartTime
+  ) {
 
     final Map<String, Object> updatedRestProps = restConfig.getOriginals();
     final KsqlConfig ksqlConfig = new KsqlConfig(restConfig.getKsqlConfigProperties());
@@ -679,6 +644,7 @@ public final class KsqlRestApplication implements Executable {
     return buildApplication(
         "",
         updatedRestConfig,
+        serverState,
         KsqlVersionCheckerAgent::new,
         Integer.MAX_VALUE,
         serviceContext,
@@ -688,7 +654,9 @@ public final class KsqlRestApplication implements Executable {
         sharedClient,
         RestServiceContextFactory::create,
         RestServiceContextFactory::create,
-        metricCollectors
+        metricCollectors,
+        functionRegistry,
+        ksqlRestAppStartTime
     );
   }
 
@@ -697,6 +665,7 @@ public final class KsqlRestApplication implements Executable {
   static KsqlRestApplication buildApplication(
       final String metricsPrefix,
       final KsqlRestConfig restConfig,
+      final ServerState serverState,
       final Function<Supplier<Boolean>, VersionCheckerAgent> versionCheckerFactory,
       final int maxStatementRetries,
       final ServiceContext serviceContext,
@@ -706,17 +675,18 @@ public final class KsqlRestApplication implements Executable {
       final KsqlClient sharedClient,
       final DefaultServiceContextFactory defaultServiceContextFactory,
       final UserServiceContextFactory userServiceContextFactory,
-      final MetricCollectors metricCollectors) {
-    final String ksqlInstallDir = restConfig.getString(KsqlRestConfig.INSTALL_DIR_CONFIG);
-
+      final MetricCollectors metricCollectors,
+      final FunctionRegistry functionRegistry,
+      final Instant ksqlRestAppStartTime) {
     final KsqlConfig ksqlConfig = new KsqlConfig(restConfig.getKsqlConfigProperties());
 
     final ProcessingLogConfig processingLogConfig
         = new ProcessingLogConfig(restConfig.getOriginals());
-    final ProcessingLogContext processingLogContext
-        = ProcessingLogContext.create(processingLogConfig);
-
-    final MutableFunctionRegistry functionRegistry = new InternalFunctionRegistry();
+    final ProcessingLogContext processingLogContext = ProcessingLogContext.create(
+        processingLogConfig,
+        metricCollectors.getMetrics(),
+        ksqlConfig.getStringAsMap(KsqlConfig.KSQL_CUSTOM_METRICS_TAGS)
+    );
 
     if (restConfig.getBoolean(KsqlRestConfig.KSQL_SERVER_ENABLE_UNCAUGHT_EXCEPTION_HANDLER)) {
       Thread.setDefaultUncaughtExceptionHandler(
@@ -801,13 +771,6 @@ public final class KsqlRestApplication implements Executable {
             TimeUnit.SECONDS
     );
 
-    UserFunctionLoader.newInstance(
-        ksqlConfig,
-        functionRegistry,
-        ksqlInstallDir,
-        metricCollectors.getMetrics()
-    ).load();
-
     final String commandTopicName = ReservedInternalTopics.commandTopic(ksqlConfig);
 
     final Admin internalAdmin = createCommandTopicAdminClient(restConfig, ksqlConfig);
@@ -830,8 +793,6 @@ public final class KsqlRestApplication implements Executable {
     final StatusResource statusResource = new StatusResource(statementExecutor);
     final VersionCheckerAgent versionChecker
         = versionCheckerFactory.apply(ksqlEngine::hasActiveQueries);
-
-    final ServerState serverState = new ServerState();
 
     final KsqlSecurityExtension securityExtension = loadSecurityExtension(ksqlConfig);
 
@@ -856,8 +817,6 @@ public final class KsqlRestApplication implements Executable {
         KsqlRestConfig.KSQL_SERVER_ERROR_MESSAGES,
         ErrorMessages.class
     ));
-
-    final ConnectServerErrors connectErrorHandler = loadConnectErrorHandler(ksqlConfig);
 
     final Optional<LagReportingAgent> lagReportingAgent =
         initializeLagReportingAgent(restConfig, ksqlEngine, serviceContext);
@@ -977,19 +936,12 @@ public final class KsqlRestApplication implements Executable {
         versionChecker::updateLastRequestTime,
         authorizationValidator,
         errorHandler,
-        connectErrorHandler,
         denyListPropertyValidator
-    );
-
-    final List<KsqlServerPrecondition> preconditions = restConfig.getConfiguredInstances(
-        KsqlRestConfig.KSQL_SERVER_PRECONDITIONS,
-        KsqlServerPrecondition.class
     );
 
     final List<KsqlConfigurable> configurables = ImmutableList.of(
         ksqlResource,
-        streamedQueryResource,
-        statementExecutor
+        ksqlEngine
     );
 
     final Consumer<KsqlConfig> rocksDBConfigSetterHandler =
@@ -1011,7 +963,6 @@ public final class KsqlRestApplication implements Executable {
         securityHandlerPlugin,
         serverState,
         processingLogContext,
-        preconditions,
         configurables,
         rocksDBConfigSetterHandler,
         heartbeatAgent,
@@ -1024,7 +975,8 @@ public final class KsqlRestApplication implements Executable {
         queryExecutor,
         metricCollectors,
         internalTopicClient,
-        internalAdmin
+        internalAdmin,
+        ksqlRestAppStartTime
     );
   }
 
@@ -1142,15 +1094,6 @@ public final class KsqlRestApplication implements Executable {
         securityHandlerPlugin.configure(ksqlRestConfig.originals())
     );
     return authenticationPlugin;
-  }
-
-  private static ConnectServerErrors loadConnectErrorHandler(
-      final KsqlConfig ksqlConfig) {
-    return Optional.ofNullable(
-        ksqlConfig.getConfiguredInstance(
-            KsqlConfig.KSQL_CONNECT_SERVER_ERROR_HANDLER,
-            ConnectServerErrors.class
-        )).orElse(new DefaultConnectServerErrors());
   }
 
   private void displayWelcomeMessage() {

@@ -221,6 +221,74 @@
         {"topic": "S2", "key": 0,"value": {"MIN": 1}},
         {"topic": "S2", "key": 0,"value": {"MIN": 1}}
       ]
+    },
+    {
+      "name": "min string group by",
+      "versions": {
+        "min": "7.3.0"
+      },
+      "statements": [
+        "CREATE STREAM TEST (ID BIGINT KEY, VALUE STRING) WITH (kafka_topic='test_topic',value_format='AVRO');",
+        "CREATE TABLE S2 as SELECT ID, min(value) as value FROM test group by id;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 1,"value": {"value":  null}},
+        {"topic": "test_topic", "key": 0,"value": {"value":  null}},
+        {"topic": "test_topic", "key": 0,"value": {"value": "B"}},
+        {"topic": "test_topic", "key": 0,"value": {"value": "A"}},
+        {"topic": "test_topic", "key": 0,"value": {"value":  null}},
+        {"topic": "test_topic", "key": 100,"value": {"value": "E"}},
+        {"topic": "test_topic", "key": 100,"value": {"value": "C"}},
+        {"topic": "test_topic", "key": 100,"value": {"value": "G"}},
+        {"topic": "test_topic", "key": 0,"value": {"value": "F"}},
+        {"topic": "test_topic", "key": 0,"value": {"value": "D"}}
+      ],
+      "outputs": [
+        {"topic": "S2", "key": 1,"value": {"VALUE":  null}},
+        {"topic": "S2", "key": 0,"value": {"VALUE":  null}},
+        {"topic": "S2", "key": 0,"value": {"VALUE": "B"}},
+        {"topic": "S2", "key": 0,"value": {"VALUE": "A"}},
+        {"topic": "S2", "key": 0,"value": {"VALUE": "A"}},
+        {"topic": "S2", "key": 100,"value": {"VALUE": "E"}},
+        {"topic": "S2", "key": 100,"value": {"VALUE": "C"}},
+        {"topic": "S2", "key": 100,"value": {"VALUE": "C"}},
+        {"topic": "S2", "key": 0,"value": {"VALUE": "A"}},
+        {"topic": "S2", "key": 0,"value": {"VALUE": "A"}}
+      ]
+    },
+    {
+      "name": "min bytes group by",
+      "versions": {
+        "min": "7.3.0"
+      },
+      "statements": [
+        "CREATE STREAM TEST (ID BIGINT KEY, VALUE BYTES) WITH (kafka_topic='test_topic',value_format='AVRO');",
+        "CREATE TABLE S2 as SELECT ID, min(value) as value FROM test group by id;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 1,"value": {"value":  null}},
+        {"topic": "test_topic", "key": 0,"value": {"value":  null}},
+        {"topic": "test_topic", "key": 0,"value": {"value": "Qg=="}},
+        {"topic": "test_topic", "key": 0,"value": {"value": "QQ=="}},
+        {"topic": "test_topic", "key": 0,"value": {"value":  null}},
+        {"topic": "test_topic", "key": 100,"value": {"value": "RQ=="}},
+        {"topic": "test_topic", "key": 100,"value": {"value": "Qw=="}},
+        {"topic": "test_topic", "key": 100,"value": {"value": "Rw=="}},
+        {"topic": "test_topic", "key": 0,"value": {"value": "Rg=="}},
+        {"topic": "test_topic", "key": 0,"value": {"value": "RA=="}}
+      ],
+      "outputs": [
+        {"topic": "S2", "key": 1,"value": {"VALUE":  null}},
+        {"topic": "S2", "key": 0,"value": {"VALUE":  null}},
+        {"topic": "S2", "key": 0,"value": {"VALUE": "Qg=="}},
+        {"topic": "S2", "key": 0,"value": {"VALUE": "QQ=="}},
+        {"topic": "S2", "key": 0,"value": {"VALUE": "QQ=="}},
+        {"topic": "S2", "key": 100,"value": {"VALUE": "RQ=="}},
+        {"topic": "S2", "key": 100,"value": {"VALUE": "Qw=="}},
+        {"topic": "S2", "key": 100,"value": {"VALUE": "Qw=="}},
+        {"topic": "S2", "key": 0,"value": {"VALUE": "QQ=="}},
+        {"topic": "S2", "key": 0,"value": {"VALUE": "QQ=="}}
+      ]
     }
   ]
 }

@@ -37,7 +37,7 @@ This is the guts of our improvement proposal process:
 
 The progression of statuses should be: Proposal, Discussion, Approved, Merged
 
-Next KLIP number: **63**
+Next KLIP number: **64**
 
 | KLIP                                                                                                                             |  Status  | Community Release | CP Release | Discussion PR                                                |
 |----------------------------------------------------------------------------------------------------------------------------------|:--------:|:-----------------:|:----------:|--------------------------------------------------------------|
@@ -101,5 +101,7 @@ Next KLIP number: **63**
 | KLIP-58: [`LIMIT` clause for Pull Queries](https://github.com/confluentinc/ksql/pull/8298)                                       | Approved |      0.24.0       |            | [Discussion](https://github.com/confluentinc/ksql/pull/8298) |
 | [KLIP-59: JSON functions](klip-59-json-functions.md)                                                                             | Approved |                   |            | [Discussion](https://github.com/confluentinc/ksql/pull/8550) | 
 | [KLIP-60: Support input topics with multiple message types](klip-60-multiple-message-types.md)                                                                             | Proposal |                   |            |  | 
-| [KLIP-61: Bootstrapped TABLE subscriptions](klip-61-bootstrapped-subscriptions.md)                                                     | Proposal |                   |            |  | 
+| [KLIP-61: Bootstrapped TABLE subscriptions](klip-61-bootstrapped-table-subscriptions.md)                                                     | Proposal |                   |            |  | 
 | [KLIP-62: ksqlDB Ruby Client](klip-62-ksqldb-ruby-client.md)                                                     | Proposal |                   |            | [Discussion](https://github.com/confluentinc/ksql/pull/8865) | 
+| [KLIP-63: PAUSE and RESUME for persistent queries](klip-63-pause-resume-persistent-queries.md)                                                     | Proposal |                   |            | 	| 
+| [KLIP-66: Multiple parameter UDAFs](klip-66-multi-param-udafs.md)                                                     | Proposal |                   |            | [Discussion](https://github.com/confluentinc/ksql/pull/9173)| 

@@ -44,6 +44,10 @@ public final class GrammaticalJoiner {
     return new GrammaticalJoiner(", ", " and ");
   }
 
+  public static GrammaticalJoiner comma() {
+    return new GrammaticalJoiner(", ", ", ");
+  }
+
   private GrammaticalJoiner(final String separator, final String lastSeparator) {
     this.separator = requireNonNull(separator, "separator");
     this.lastSeparator = requireNonNull(lastSeparator, "lastSeparator");

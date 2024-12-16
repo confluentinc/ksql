@@ -165,7 +165,7 @@ public class KsMaterializationFactoryTest {
   public void shouldBuildMaterializationWithCorrectParams() {
     // Given:
     final Optional<WindowInfo> windowInfo =
-        Optional.of(WindowInfo.of(WindowType.SESSION, Optional.empty()));
+        Optional.of(WindowInfo.of(WindowType.SESSION, Optional.empty(), Optional.empty()));
 
     // When:
     factory.create(STORE_NAME, kafkaStreams, topology, SCHEMA, keySerializer, windowInfo,

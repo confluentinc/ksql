@@ -46,7 +46,7 @@ public final class CollectListUdaf {
     // just to make the checkstyle happy
   }
 
-  @UdafFactory(description = "collect values of a Bigint field into a single Array")
+  @UdafFactory(description = "collect values of a field into a single Array")
   public static <T> TableUdaf<T, List<T>, List<T>> createCollectListT() {
     return new Collect<>();
   }

@@ -151,7 +151,7 @@ public class LogicRewriterTest {
 
   private Expression getWhereExpression(final String table, String expression) {
     final Query statement = (Query) KsqlParserTestUtil
-        .buildSingleAst("SELECT * FROM " + table + " WHERE " + expression + ";", metaStore, true)
+        .buildSingleAst("SELECT * FROM " + table + " WHERE " + expression + ";", metaStore)
         .getStatement();
 
     assertThat(statement.getWhere().isPresent(), is(true));

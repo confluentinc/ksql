@@ -151,6 +151,10 @@
         },
         "size" : {
           "type" : "integer"
+        },
+        "emitStrategy" : {
+          "type" : "string",
+          "enum" : [ "CHANGES", "FINAL" ]
         }
       },
       "required" : [ "type" ]
@@ -478,6 +482,12 @@
           "$ref" : "#/definitions/ExecutionStep"
         },
         "keyColumnNames" : {
+          "type" : "array",
+          "items" : {
+            "type" : "string"
+          }
+        },
+        "selectedKeys" : {
           "type" : "array",
           "items" : {
             "type" : "string"

@@ -24,7 +24,7 @@ public interface ApiSecurityContext {
 
   Optional<KsqlPrincipal> getPrincipal();
 
-  Optional<String> getAuthToken();
+  Optional<String> getAuthHeader();
 
   List<Entry<String, String>> getRequestHeaders();
 }

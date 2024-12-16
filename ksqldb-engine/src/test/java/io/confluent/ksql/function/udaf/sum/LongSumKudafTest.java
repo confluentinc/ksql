@@ -15,25 +15,12 @@
 
 package io.confluent.ksql.function.udaf.sum;
 
-import static org.hamcrest.CoreMatchers.instanceOf;
-import static org.hamcrest.MatcherAssert.assertThat;
-
-import io.confluent.ksql.function.AggregateFunctionInitArguments;
-import io.confluent.ksql.function.KsqlAggregateFunction;
-import io.confluent.ksql.schema.ksql.SqlArgument;
-import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import java.util.Collections;
-
 public class LongSumKudafTest extends BaseSumKudafTest<Long, LongSumKudaf> {
   protected TGenerator<Long> getNumberGenerator() {
     return Long::valueOf;
   }
 
   protected LongSumKudaf getSumKudaf() {
-    final KsqlAggregateFunction aggregateFunction = new SumAggFunctionFactory()
-        .createAggregateFunction(Collections.singletonList(SqlArgument.of(SqlTypes.BIGINT)),
-            AggregateFunctionInitArguments.EMPTY_ARGS);
-    assertThat(aggregateFunction, instanceOf(LongSumKudaf.class));
-    return  (LongSumKudaf) aggregateFunction;
+    return  (LongSumKudaf) SumKudaf.createSumLong();
   }
 }

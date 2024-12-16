@@ -212,7 +212,7 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
                 () -> adminClient.get().describeTopics(
                         topicNames,
                         new DescribeTopicsOptions().includeAuthorizedOperations(true)
-                ).all().get(),
+                ).allTopicNames().get(),
                 ExecutorUtil.RetryBehaviour.ON_RETRYABLE);
       }
     } catch (final ExecutionException e) {

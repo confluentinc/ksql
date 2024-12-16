@@ -962,7 +962,7 @@ public class KafkaTopicClientImplTest {
 
       final DescribeTopicsResult describeTopicsResult = mock(DescribeTopicsResult.class);
       when(describeTopicsResult.values()).thenReturn(describe );
-      when(describeTopicsResult.all()).thenReturn(KafkaFuture.completedFuture(result));
+      when(describeTopicsResult.allTopicNames()).thenReturn(KafkaFuture.completedFuture(result));
       return describeTopicsResult;
     };
   }
@@ -981,7 +981,7 @@ public class KafkaTopicClientImplTest {
       when(describeTopicsResult.values()).thenReturn(map);
 
       final KafkaFuture<Map<String, TopicDescription>> f = failedFuture(e);
-      when(describeTopicsResult.all()).thenReturn(f);
+      when(describeTopicsResult.allTopicNames()).thenReturn(f);
       return describeTopicsResult;
     };
   }

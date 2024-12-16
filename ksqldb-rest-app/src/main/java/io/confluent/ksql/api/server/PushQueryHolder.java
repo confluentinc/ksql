@@ -48,6 +48,12 @@ public class PushQueryHolder {
   public void close() {
     this.close(true);
   }
+
+  /**
+   * Close the query.
+   *
+   * @param isOriginalContext whether the context is the original context that created the query
+   */
   public void close(Boolean isOriginalContext) {
     server.removeQuery(id);
     queryPublisher.close();

@@ -52,7 +52,7 @@
         "features" : [ "UNWRAP_SINGLES" ],
         "windowInfo" : {
           "type" : "TUMBLING",
-          "size" : 1.000000000
+          "size" : 1.0
         }
       },
       "valueFormat" : {
@@ -245,7 +245,7 @@
             "features" : [ "UNWRAP_SINGLES" ],
             "windowInfo" : {
               "type" : "TUMBLING",
-              "size" : 1.000000000
+              "size" : 1.0
             }
           },
           "valueFormat" : {
@@ -263,7 +263,8 @@
               "name" : "F2",
               "type" : [ "null", "int" ],
               "default" : null
-            } ]
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.InputKey"
           },
           "valueSchema" : {
             "type" : "record",
@@ -282,14 +283,16 @@
                   "name" : "F2",
                   "type" : [ "null", "int" ],
                   "default" : null
-                } ]
+                } ],
+                "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema_ID"
               } ],
               "default" : null
             }, {
               "name" : "KSQL_AGG_VARIABLE_0",
               "type" : [ "null", "long" ],
               "default" : null
-            } ]
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
           }
         }, {
           "name" : "OUTPUT",
@@ -301,7 +304,7 @@
             "features" : [ "UNWRAP_SINGLES" ],
             "windowInfo" : {
               "type" : "TUMBLING",
-              "size" : 1.000000000
+              "size" : 1.0
             }
           },
           "valueFormat" : {
@@ -320,7 +323,8 @@
               "name" : "F2",
               "type" : [ "null", "int" ],
               "default" : null
-            } ]
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.OutputKey"
           },
           "valueSchema" : {
             "type" : "record",
@@ -330,7 +334,8 @@
               "name" : "COUNT",
               "type" : [ "null", "long" ],
               "default" : null
-            } ]
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
           }
         } ]
       }

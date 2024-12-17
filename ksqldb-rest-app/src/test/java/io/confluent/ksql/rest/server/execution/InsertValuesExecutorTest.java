@@ -145,6 +145,13 @@ public class InsertValuesExecutorTest {
       + "\"fields\":["
       + "{\"name\":\"k0\",\"type\":[\"null\",\"string\"],\"default\":null}]}";
 
+  private static final String AVRO_RAW_ONE_KEY_SCHEMA_WITH_CUSTOM_METADATA =
+      "{\"type\":\"record\","
+          + "\"name\":\"MyRecord\","
+          + "\"namespace\":\"io.xyz.records\","
+          + "\"fields\":["
+          + "{\"name\":\"k0\",\"type\":[\"null\",\"string\"],\"default\":null}]}";
+
   private static final LogicalSchema SCHEMA_WITH_MUTI_KEYS = LogicalSchema.builder()
       .keyColumn(K0, SqlTypes.STRING)
       .keyColumn(K1, SqlTypes.STRING)
@@ -1111,6 +1118,99 @@ public class InsertValuesExecutorTest {
   }
 
   @Test
+  public void shouldNotAllowInsertOnMultipleKeySchemaDefinitionsWithDifferentOrder() throws Exception {
+    final String protoMultiSchema = "syntax = \"proto3\";\n"
+        + "package io.proto;\n"
+        + "\n"
+        + "message SingleKey {\n"
+        + "  string k0 = 1;\n"
+        + "}\n"
+        + "message MultiKeys {\n"
+        + "  string k1 = 1;\n"
+        + "  string k0 = 2;\n"
+        + "}\n";
+
+    // Given:
+    when(srClient.getLatestSchemaMetadata(Mockito.any()))
+        .thenReturn(new SchemaMetadata(1, 1, protoMultiSchema));
+    when(srClient.getSchemaById(1))
+        .thenReturn(new ProtobufSchema(protoMultiSchema));
+    givenDataSourceWithSchema(
+        TOPIC_NAME,
+        SCHEMA_WITH_MUTI_KEYS,
+        SerdeFeatures.of(SerdeFeature.SCHEMA_INFERENCE),
+        SerdeFeatures.of(),
+        FormatInfo.of(FormatFactory.PROTOBUF.name(), ImmutableMap.of(
+            AvroProperties.FULL_SCHEMA_NAME,"io.proto.MultiKeys",
+            AvroProperties.SCHEMA_ID, "1"
+        )),
+        FormatInfo.of(FormatFactory.JSON.name()),
+        false,
+        false);
+
+    final ConfiguredStatement<InsertValues> statement = givenInsertValues(
+        ImmutableList.of(K1, K0, COL0, COL1),
+        ImmutableList.of(
+            new StringLiteral("K1"),
+            new StringLiteral("K0"),
+            new StringLiteral("V0"),
+            new LongLiteral(21))
+    );
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> executor.execute(statement, mock(SessionProperties.class), engine, serviceContext)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("ksqlDB generated schema would overwrite existing key schema"));
+    assertThat(e.getMessage(), containsString("Existing Schema: [`K1` STRING, `K0` STRING]"));
+    assertThat(e.getMessage(), containsString("ksqlDB Generated: [`k0` STRING KEY, `k1` STRING KEY]"));
+  }
+
+  @Test
+  public void shouldNotAllowInsertWhenSchemaMetadataIsNull() throws Exception {
+    // Given:
+    when(srClient.getLatestSchemaMetadata(Mockito.any()))
+        .thenReturn(null);
+    givenDataSourceWithSchema(
+        TOPIC_NAME,
+        SCHEMA_WITH_MUTI_KEYS,
+        SerdeFeatures.of(SerdeFeature.SCHEMA_INFERENCE),
+        SerdeFeatures.of(),
+        FormatInfo.of(FormatFactory.PROTOBUF.name(), ImmutableMap.of(
+            AvroProperties.FULL_SCHEMA_NAME,"io.proto.MultiKeys",
+            AvroProperties.SCHEMA_ID, "1"
+        )),
+        FormatInfo.of(FormatFactory.JSON.name()),
+        false,
+        false);
+
+    final ConfiguredStatement<InsertValues> statement = givenInsertValues(
+        ImmutableList.of(K1, K0, COL0, COL1),
+        ImmutableList.of(
+            new StringLiteral("K1"),
+            new StringLiteral("K0"),
+            new StringLiteral("V0"),
+            new LongLiteral(21))
+    );
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> executor.execute(statement, mock(SessionProperties.class), engine, serviceContext)
+    );
+
+    // Then:
+    assertThat(
+        e.getMessage(),
+        containsString("Failed to insert values into 'TOPIC'. Failed to fetch key schema (topic-key). " +
+            "Please check if schema exists in Schema Registry and/or check connection with Schema Registry.")
+    );
+  }
+
+  @Test
   public void shouldIgnoreConnectNameComparingKeySchema() throws Exception {
     // Given:
     when(srClient.getLatestSchemaMetadata(Mockito.any()))
@@ -1179,6 +1279,39 @@ public class InsertValuesExecutorTest {
   }
 
   @Test
+  public void shouldSupportInsertIntoWithSchemaInferenceMatchAndCustomMetadata() throws Exception {
+    // Given:
+    when(srClient.getLatestSchemaMetadata(Mockito.any()))
+        .thenReturn(new SchemaMetadata(1, 1, ""));
+    when(srClient.getSchemaById(1))
+        .thenReturn(new AvroSchema(AVRO_RAW_ONE_KEY_SCHEMA_WITH_CUSTOM_METADATA));
+    givenDataSourceWithSchema(
+        TOPIC_NAME,
+        SCHEMA,
+        SerdeFeatures.of(SerdeFeature.SCHEMA_INFERENCE, SerdeFeature.WRAP_SINGLES),
+        SerdeFeatures.of(),
+        FormatInfo.of(FormatFactory.AVRO.name()),
+        FormatInfo.of(FormatFactory.AVRO.name()),
+        false,
+        false);
+
+    final ConfiguredStatement<InsertValues> statement = givenInsertValues(
+        ImmutableList.of(K0, COL0),
+        ImmutableList.of(
+            new StringLiteral("foo"),
+            new StringLiteral("bar"))
+    );
+
+    // When:
+    executor.execute(statement, mock(SessionProperties.class), engine, serviceContext);
+
+    // Then:
+    verify(keySerializer).serialize(TOPIC_NAME, genericKey("foo"));
+    verify(valueSerializer).serialize(TOPIC_NAME, genericRow("bar", null));
+    verify(producer).send(new ProducerRecord<>(TOPIC_NAME, null, 1L, KEY, VALUE));
+  }
+
+  @Test
   public void shouldThrowOnSchemaInferenceMismatchForKey() throws Exception {
     // Given:
     when(srClient.getLatestSchemaMetadata(Mockito.any()))
@@ -1210,8 +1343,8 @@ public class InsertValuesExecutorTest {
 
     // Then:
     assertThat(e.getMessage(), containsString("ksqlDB generated schema would overwrite existing key schema"));
-    assertThat(e.getMessage(), containsString("Existing Schema: " + RAW_SCHEMA));
-    assertThat(e.getMessage(), containsString("ksqlDB Generated: {\"type\":"));
+    assertThat(e.getMessage(), containsString("Existing Schema: [`K0` STRING, `K1` STRING]"));
+    assertThat(e.getMessage(), containsString("ksqlDB Generated: [`k0` STRING KEY]"));
   }
 
   @Test

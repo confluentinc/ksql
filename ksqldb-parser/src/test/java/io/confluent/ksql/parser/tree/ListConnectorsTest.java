@@ -16,7 +16,6 @@
 package io.confluent.ksql.parser.tree;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.*;
 
 import com.google.common.testing.EqualsTester;
 import io.confluent.ksql.parser.NodeLocation;

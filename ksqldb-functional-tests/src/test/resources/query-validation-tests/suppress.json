@@ -86,7 +86,6 @@
         {"topic": "input_topic", "key": "k1", "value": {"COL1": "v1"},"timestamp": 5}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": "k1", "value": {"COUNT": 4},"window": {"start": 0, "end": 2, "type": "time"},"timestamp": 1},
         {"topic": "OUTPUT", "key": "k1", "value": {"COUNT": 1},"window": {"start": 2, "end": 4, "type": "time"},"timestamp": 2}
       ]
     },
@@ -109,7 +108,6 @@
         {"topic": "input_topic", "key": "k1", "value": {"COL1": "v1"},"timestamp": 0}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": "k1", "value": {"COUNT": 4},"window": {"start": 0, "end": 2, "type": "time"},"timestamp": 1},
         {"topic": "OUTPUT", "key": "k1", "value": {"COUNT": 1},"window": {"start": 2, "end": 4, "type": "time"},"timestamp": 2}
       ]
     },
@@ -130,7 +128,6 @@
         {"topic": "input_topic", "key": "k1", "value": {"COL1": "v1"},"timestamp": 5}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": "k1", "value": {"COUNT": 1},"window": {"start": 0, "end": 2, "type": "time"},"timestamp": 1},
         {"topic": "OUTPUT", "key": "k1", "value": {"COUNT": 1},"window": {"start": 2, "end": 4, "type": "time"},"timestamp": 2}
       ]
     },
@@ -152,7 +149,6 @@
         {"topic": "input_topic", "key": "k1","value": {"COL1": "v1"},"timestamp": 5}
       ],
       "outputs": [
-        {"topic": "OUTPUT","key": "k1", "value": {"COUNT": 1},"window": {"start": 0, "end": 2, "type": "time"},"timestamp": 0}
       ]
     },
     {
@@ -173,7 +169,6 @@
         {"topic": "input_topic", "key": "k1", "value": {"COL1": "v1"},"timestamp": 5}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": "k1", "value": {"COUNT": 4},"window": {"start": 0, "end": 2, "type": "time"},"timestamp": 1},
         {"topic": "OUTPUT", "key": "k1", "value": {"COUNT": 1},"window": {"start": 2, "end": 4, "type": "time"},"timestamp": 2}
       ]
     },
@@ -198,10 +193,6 @@
         {"topic": "input_topic", "key": "k1", "value": {"COL1": "v1"},"timestamp": 30}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": "k1", "value": {"COUNT": 4},"window": {"start": 0, "end": 2, "type": "time"},"timestamp": 1},
-        {"topic": "OUTPUT", "key": "k1", "value": {"COUNT": 2},"window": {"start": 2, "end": 4, "type": "time"},"timestamp": 3},
-        {"topic": "OUTPUT", "key": "k1", "value": {"COUNT": 1},"window": {"start": 10, "end": 12, "type": "time"},"timestamp": 10}
-
       ]
     },
     {
@@ -249,7 +240,6 @@
       ],
       "outputs": [
         {"topic": "OUTPUT", "key": "k1", "value": {"COUNT": 4},"window": {"start": 0, "end": 5, "type": "time"}, "timestamp": 2},
-        {"topic": "OUTPUT", "key": "k1", "value": {"COUNT": 3},"window": {"start": 2, "end": 7, "type": "time"},"timestamp": 6},
         {"topic": "OUTPUT", "key": "k1", "value": {"COUNT": 2},"window": {"start": 4, "end": 9, "type": "time"},"timestamp": 6}
       ]
     },
@@ -274,8 +264,6 @@
 
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": "k1", "value": {"COUNT": 2},"window": {"start": 0, "end": 2, "type": "time"},"timestamp": 1},
-        {"topic": "OUTPUT", "key": "k2", "value": {"COUNT": 2},"window": {"start": 0, "end": 2, "type": "time"},"timestamp": 1},
         {"topic": "OUTPUT", "key": "k1", "value": {"COUNT": 1},"window": {"start": 2, "end": 4, "type": "time"},"timestamp": 2}
       ]
     },
@@ -332,7 +320,6 @@
         {"topic": "input_topic", "key": "k1", "value": {"COL1": 1},"timestamp": 5}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": "k1", "value": {"COUNT": 1},"window": {"start": 0, "end": 2, "type": "time"},"timestamp": 0},
         {"topic": "OUTPUT", "key": "k1", "value": {"COUNT": 1},"window": {"start": 2, "end": 4, "type": "time"},"timestamp": 2}
       ]
     },

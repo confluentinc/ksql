@@ -198,7 +198,8 @@
               "name" : "B",
               "type" : [ "null", "int" ],
               "default" : null
-            } ]
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.OutputKey"
           }
         } ]
       }

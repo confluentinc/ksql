@@ -331,7 +331,8 @@
               "name" : "T_ID",
               "type" : [ "null", "long" ],
               "default" : null
-            } ]
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
           }
         }, {
           "name" : "left_topic",
@@ -394,7 +395,8 @@
               "name" : "TT_F2",
               "type" : [ "null", "long" ],
               "default" : null
-            } ]
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
           }
         }, {
           "name" : "right_topic",
@@ -456,7 +458,8 @@
               "name" : "TT_ID",
               "type" : [ "null", "long" ],
               "default" : null
-            } ]
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
           }
         } ],
         "blackList" : ".*-repartition"

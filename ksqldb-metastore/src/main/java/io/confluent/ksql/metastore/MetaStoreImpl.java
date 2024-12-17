@@ -22,6 +22,7 @@ import io.confluent.ksql.function.KsqlTableFunction;
 import io.confluent.ksql.function.TableFunctionFactory;
 import io.confluent.ksql.function.UdfFactory;
 import io.confluent.ksql.metastore.model.DataSource;
+import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.SqlArgument;
@@ -30,6 +31,7 @@ import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlReferentialIntegrityException;
 import io.vertx.core.impl.ConcurrentHashSet;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -199,6 +201,69 @@ public final class MetaStoreImpl implements MutableMetaStore {
       // add all references to the source
       dataSources.get(sourceName).references.addAll(sourceReferences);
     }
+  }
+
+  @Override
+  public String checkAlternatives(
+      final SourceName sourceName, final Optional<DataSourceType> sourceType) {
+    final StringBuilder hint = new StringBuilder();
+    final List<DataSource> matchedSources = getAllDataSources()
+        .values()
+        .stream()
+        .filter(dataSource -> {
+          final boolean nameMatches = dataSource
+              .getName()
+              .text()
+              .equalsIgnoreCase(sourceName.text());
+          final boolean sourceTypeMatches = sourceType
+              .map(st -> st.equals(dataSource.getDataSourceType()))
+              .orElse(true);
+          return nameMatches && sourceTypeMatches;
+        })
+        .sorted(Comparator.comparing(x -> x.getName().text()))
+        .collect(Collectors.toList());
+
+    if (matchedSources.size() > 0) {
+      hint.append("\nDid you mean ");
+      if (matchedSources.size() > 1) {
+        final int n = matchedSources.size();
+        for (int i = 0; i < n; i++) {
+          final String dataSourceType = matchedSources.get(i).getDataSourceType().getKsqlType();
+          final String sourceNameText = matchedSources.get(i).getName().text();
+          final String punctuation;
+          if (i < n - 2) {
+            punctuation = ", ";
+          } else if (i == n - 2) { // the item before the last item of the list
+            if (i == 0) { // when the list contains only two matched sources
+              punctuation = " or ";
+            } else {
+              punctuation = ", or ";
+            }
+          } else { // the last item of the list
+            punctuation = "? ";
+          }
+          hint.append(
+              String.format("\"%s\" (%s)%s", sourceNameText, dataSourceType, punctuation)
+          );
+        }
+        hint.append("Hint: wrap the source name in double quotes to make it case-sensitive.");
+      } else {
+        // contains at least one small letter
+        final String sourceNameText = matchedSources.get(0).getName().text();
+        if (sourceNameText.chars().anyMatch(Character::isLowerCase)) {
+          hint.append(
+              String.format("\"%s\"? Hint: wrap the source name in double quotes "
+                  + "to make it case-sensitive.", sourceNameText));
+        } else { // contains only capital letters
+          hint.append(
+              String.format("%s? Hint: try removing double quotes from the source name.",
+                  sourceNameText)
+          );
+        }
+      }
+    }
+
+    return hint.toString();
   }
 
   Set<SourceName> getSourceReferences(final SourceName sourceName) {

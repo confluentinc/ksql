@@ -85,6 +85,7 @@ public class RestoreCommandTopicIntegrationTest {
   public static final TemporaryFolder TMP_FOLDER = KsqlTestFolder.temporaryFolder();
 
   private static File BACKUP_LOCATION;
+  private static File STATE_DIR;
   private static TestKsqlRestApp REST_APP;
   private String commandTopic;
   private Path backupFile;
@@ -93,12 +94,13 @@ public class RestoreCommandTopicIntegrationTest {
   @BeforeClass
   public static void classSetUp() throws IOException {
     BACKUP_LOCATION = TMP_FOLDER.newFolder();
+    STATE_DIR = TMP_FOLDER.newFolder();
 
     REST_APP = TestKsqlRestApp
         .builder(TEST_HARNESS::kafkaBootstrapServers)
         .withProperty(KSQL_STREAMS_PREFIX + StreamsConfig.NUM_STREAM_THREADS_CONFIG, 1)
         .withProperty(KSQL_METASTORE_BACKUP_LOCATION, BACKUP_LOCATION.getPath())
-        .withProperty(StreamsConfig.STATE_DIR_CONFIG, "/tmp/cat/")
+        .withProperty(StreamsConfig.STATE_DIR_CONFIG, STATE_DIR.getAbsolutePath())
         .build();
   }
 
@@ -221,24 +223,136 @@ public class RestoreCommandTopicIntegrationTest {
     assertThat("Server should not be in degraded state", isDegradedState(), is(false));
   }
 
+  @Test
+  public void shouldSkipIncompatibleCommandsWithExecutionPlan() throws Exception {
+    // Given
+    TEST_HARNESS.ensureTopics("topic3", "topic4");
+
+    makeKsqlRequest("CREATE STREAM TOPIC3 (ID INT) "
+        + "WITH (KAFKA_TOPIC='topic3', VALUE_FORMAT='JSON');");
+    makeKsqlRequest("CREATE STREAM TOPIC4 (ID INT) "
+        + "WITH (KAFKA_TOPIC='topic4', VALUE_FORMAT='JSON');");
+    makeKsqlRequest("CREATE STREAM stream3 AS SELECT * FROM topic3;");
+
+
+
+    final CommandId commandId = new CommandId("TOPIC", "entity", "CREATE");
+    final String command = "{\"statement\":\"CREATE STREAM \"," 
+        + "\"streamsProperties\":{},"
+        + "\"originalProperties\":{},"
+        + "\"plan\":{"
+        + "\"@type\":\"ksqlPlanV1\","
+        + "\"statementText\":\"CREATE STREAM \","
+        + "\"ddlCommand\":{},"
+        + "\"queryPlan\":{"
+        + "\"sources\":[\"RIDERLOCATIONSFILTERED\"],"
+        + "\"sink\":\"0_29_0_STREAM\","
+        + "\"physicalPlan\":{"
+        + "\"@type\":\"streamSinkV1\","
+        + "\"properties\":{\"queryContext\":\"0_29_0_STREAM\"},"
+        + "\"source\":{"
+        + "\"@type\":\"streamSelectV1\","
+        + "\"properties\":{\"queryContext\":\"Project\"},"
+        + "\"source\":{},"
+        + "\"keyColumnNames\":[],"
+        + "\"selectedKeys\":null,"
+        + "\"selectExpressions\":[\"PROFILEID AS PROFILEID\",\"LATITUDE AS LATITUDE\",\"LONGITUDE AS LONGITUDE\"]},"
+        + "\"formats\":{},"
+        + "\"topicName\":\"0_29_0_STREAM\",\"timestampColumn\":null},"
+        + "\"queryId\":\"CSAS_0_29_0_STREAM_5\","
+        + "\"runtimeId\":null}},"
+        + "\"version\":"
+        + Command.VERSION + 1
+        + "}";
+
+    writeStringToBackupFile(commandId, command, backupFile);
+
+    // Delete the command topic again and restore with skip flag
+    TEST_HARNESS.deleteTopics(Collections.singletonList(commandTopic));
+    REST_APP.stop();
+    KsqlRestoreCommandTopic.mainInternal(
+        new String[]{
+            "--yes",
+            "-s",
+            "--config-file", propertiesFile.toString(),
+            backupFile.toString()
+        },
+        mockSystem
+    );
+
+    // Re-load the command topic
+    REST_APP.start();
+    final List<String> streamsNames = showStreams();
+    assertThat("Should have 3 things", streamsNames.size(), is(3));
+    assertThat("Should have TOPIC3", streamsNames.contains("TOPIC3"), is(true));
+    assertThat("Should have TOPIC4", streamsNames.contains("TOPIC4"), is(true));
+    assertThat("Should have STREAM3", streamsNames.contains("STREAM3"), is(true));
+    assertThat("Server should not be in degraded state", isDegradedState(), is(false));
+  }
+
+  @Test
+  public void shouldHandleIncompatibleCommandsWithNoQueryPlan() throws Exception {
+    // Given
+    TEST_HARNESS.ensureTopics("topic3", "topic4");
+
+    makeKsqlRequest("CREATE STREAM TOPIC3 (ID INT) "
+        + "WITH (KAFKA_TOPIC='topic3', VALUE_FORMAT='JSON');");
+    makeKsqlRequest("CREATE STREAM TOPIC4 (ID INT) "
+        + "WITH (KAFKA_TOPIC='topic4', VALUE_FORMAT='JSON');");
+    makeKsqlRequest("CREATE STREAM stream3 AS SELECT * FROM topic3;");
+
+    final CommandId commandId = new CommandId("TOPIC", "entity", "CREATE");
+    final String command = "{\"statement\":\"CREATE STREAM \","
+        + "\"streamsProperties\":{},"
+        + "\"originalProperties\":{},"
+        + "\"plan\":{"
+        + "\"@type\":\"ksqlPlanV1\","
+        + "\"statementText\":\"CREATE STREAM \","
+        + "\"ddlCommand\":{},"
+        + "\"queryPlan\": null},"
+        + "\"version\":"
+        + Command.VERSION + 1
+        + "}";
+
+    writeStringToBackupFile(commandId, command, backupFile);
+
+    // Delete the command topic again and restore with skip flag
+    TEST_HARNESS.deleteTopics(Collections.singletonList(commandTopic));
+    REST_APP.stop();
+    KsqlRestoreCommandTopic.mainInternal(
+        new String[]{
+            "--yes",
+            "-s",
+            "--config-file", propertiesFile.toString(),
+            backupFile.toString()
+        },
+        mockSystem
+    );
+
+    // Re-load the command topic
+    REST_APP.start();
+    final List<String> streamsNames = showStreams();
+    assertThat("Should have 3 things", streamsNames.size(), is(3));
+    assertThat("Should have TOPIC3", streamsNames.contains("TOPIC3"), is(true));
+    assertThat("Should have TOPIC4", streamsNames.contains("TOPIC4"), is(true));
+    assertThat("Should have STREAM3", streamsNames.contains("STREAM3"), is(true));
+    assertThat("Server should not be in degraded state", isDegradedState(), is(false));
+  }
+
   @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_BAD_PRACTICE")
   @Test
   public void shouldCleanUpLeftoverStateStores() throws InterruptedException {
     // Given:
-    File tempDir = new File("/tmp/cat/");
-    if (!tempDir.exists()){
-      tempDir.mkdirs();
-    }
-    File fakeStateStore = new File(tempDir.getAbsolutePath() + "/fakeStateStore");
+    File fakeStateStore = new File(STATE_DIR.getAbsolutePath() + "/fakeStateStore");
     if (!fakeStateStore.exists()){
       fakeStateStore.mkdirs();
     }
     makeKsqlRequest("CREATE STREAM new_stream (ID INT, price int) "
             + "WITH (KAFKA_TOPIC='temp_top', partitions=3, VALUE_FORMAT='JSON');");
     makeKsqlRequest("CREATE TABLE new_stream_3 AS SELECT id, sum(price) FROM new_stream group by ID;");
-    File realStateStore = new File(tempDir.getAbsolutePath() + "/_confluent-ksql-default_query_CTAS_NEW_STREAM_3_1");
+    File realStateStore = new File(STATE_DIR.getAbsolutePath() + "/_confluent-ksql-default_query_CTAS_NEW_STREAM_3_1");
 
-    assertTrue(tempDir.exists());
+    assertTrue(STATE_DIR.exists());
     assertTrue(fakeStateStore.exists());
     assertTrue(realStateStore.exists());
 
@@ -286,6 +400,20 @@ public class RestoreCommandTopicIntegrationTest {
             0L,
             InternalTopicSerdes.serializer().serialize("", commandId),
             InternalTopicSerdes.serializer().serialize("", command))
+        );
+  }
+  private static void writeStringToBackupFile(
+      final CommandId commandId,
+      final String command,
+      final Path backUpFileLocation
+  ) throws IOException {
+    BackupReplayFile.writable(new File(String.valueOf(backUpFileLocation)))
+        .write(new ConsumerRecord<>(
+            "",
+            0,
+            0L,
+            InternalTopicSerdes.serializer().serialize("", commandId),
+            command.getBytes(StandardCharsets.UTF_8))
         );
   }
 }

@@ -37,7 +37,7 @@ public class TestHeader implements Header {
       @JsonProperty("VALUE") final byte[] value
   ) {
     this.key = requireNonNull(key, "key");
-    this.value = requireNonNull(value, "value");
+    this.value = value == null ? null : Arrays.copyOf(value, value.length);
   }
 
   @Override
@@ -47,7 +47,7 @@ public class TestHeader implements Header {
 
   @Override
   public byte[] value() {
-    return Arrays.copyOf(value, value.length);
+    return value == null ? null : Arrays.copyOf(value, value.length);
   }
 
   @Override

@@ -18,6 +18,7 @@ package io.confluent.ksql.services;
 import static org.apache.kafka.common.config.TopicConfig.CLEANUP_POLICY_COMPACT;
 import static org.apache.kafka.common.config.TopicConfig.CLEANUP_POLICY_CONFIG;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
 import io.confluent.ksql.topic.TopicProperties;
 import java.util.Collection;
@@ -26,6 +27,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -37,6 +39,7 @@ import org.apache.kafka.common.Node;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.TopicPartitionInfo;
 import org.apache.kafka.common.acl.AclOperation;
+import org.apache.kafka.common.config.TopicConfig;
 import org.apache.kafka.common.errors.UnknownTopicOrPartitionException;
 
 /**
@@ -103,12 +106,15 @@ public class FakeKafkaTopicClient implements KafkaTopicClient {
   }
 
   private final Map<String, FakeTopic> topicMap = new HashMap<>();
+  private final Map<String, Map<String, ?>> topicMapConfig = new HashMap<>();
   private final Map<String, FakeTopic> createdTopics = new HashMap<>();
+  private final Map<String, Map<String, ?>> createdTopicsConfig = new HashMap<>();
 
   public void preconditionTopicExists(
       final String topic
   ) {
-    preconditionTopicExists(topic, 1, 1, Collections.emptyMap());
+    Map<String, ?> configs = ImmutableMap.of(TopicConfig.RETENTION_MS_CONFIG, 604800000L);
+    preconditionTopicExists(topic, 1, 1, configs);
   }
 
   public void preconditionTopicExists(
@@ -116,7 +122,9 @@ public class FakeKafkaTopicClient implements KafkaTopicClient {
       final int numPartitions,
       final int replicationFactor,
       final Map<String, ?> configs) {
-    topicMap.put(topic, createFakeTopic(topic, numPartitions, replicationFactor, configs));
+    final FakeTopic info = createFakeTopic(topic, numPartitions, replicationFactor, configs);
+    topicMap.put(topic, info);
+    topicMapConfig.put(topic, configs);
   }
 
   @Override
@@ -133,13 +141,14 @@ public class FakeKafkaTopicClient implements KafkaTopicClient {
 
     final FakeTopic existing = topicMap.get(topic);
     if (existing != null) {
-      validateTopicProperties(numPartitions, replicas, existing);
+      validateTopicProperties(numPartitions, replicas, existing, configs, getTopicConfig(topic));
       return;
     }
 
     final FakeTopic info = createFakeTopic(topic, numPartitions, replicas, configs);
     topicMap.put(topic, info);
     createdTopics.put(topic, info);
+    createdTopicsConfig.put(topic, configs);
   }
 
   public Map<String, FakeTopic> createdTopics() {
@@ -175,7 +184,7 @@ public class FakeKafkaTopicClient implements KafkaTopicClient {
 
   @Override
   public Map<String, String> getTopicConfig(final String topicName) {
-    return Collections.emptyMap();
+    return (Map<String, String>) createdTopicsConfig.getOrDefault(topicName, topicMapConfig.get(topicName));
   }
 
   @Override
@@ -222,13 +231,20 @@ public class FakeKafkaTopicClient implements KafkaTopicClient {
   private static void validateTopicProperties(
       final int requiredNumPartition,
       final int requiredNumReplicas,
-      final FakeTopic existing
+      final FakeTopic existing,
+      final Map<String, ?> config,
+      final Map<String, ?> existingConfig
   ) {
+    final Optional<Long> requiredRetentionMs = KafkaTopicClient.getRetentionMs(config);
+    final Optional<Long> actualRetentionMs = KafkaTopicClient.getRetentionMs(existingConfig);
     TopicValidationUtil.validateTopicProperties(
         existing.topicName,
         requiredNumPartition,
         requiredNumReplicas,
+        requiredRetentionMs,
         existing.numPartitions,
-        existing.replicationFactor);
+        existing.replicationFactor,
+        actualRetentionMs);
   }
+
 }

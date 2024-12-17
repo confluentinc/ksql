@@ -15,9 +15,12 @@
 
 package io.confluent.ksql.api.server;
 
+import static io.confluent.ksql.api.server.ServerUtils.convertCommaSeparatedWilcardsToRegex;
 import static io.confluent.ksql.rest.Errors.ERROR_CODE_UNAUTHORIZED;
 import static io.netty.handler.codec.http.HttpResponseStatus.UNAUTHORIZED;
 
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.api.auth.AuthenticationPlugin;
 import io.confluent.ksql.api.auth.AuthenticationPluginHandler;
 import io.confluent.ksql.api.auth.JaasAuthProvider;
@@ -32,14 +35,22 @@ import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.BasicAuthHandler;
 import java.net.URI;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Optional;
+import java.util.Set;
+import java.util.function.Predicate;
+import java.util.regex.Pattern;
 
 public final class AuthHandlers {
 
+  private static final Set<String> KSQL_AUTHENTICATION_SKIP_PATHS = ImmutableSet
+          .of("/v1/metadata", "/v1/metadata/id", "/healthcheck");
+
   private static final String PROVIDER_KEY = "provider";
 
-  private enum Provider {
-    SYSTEM, JAAS, PLUGIN
+  enum Provider {
+    SYSTEM, JAAS, PLUGIN, SKIP
   }
 
   private AuthHandlers() {
@@ -58,28 +69,36 @@ public final class AuthHandlers {
     systemAuthenticationHandler.ifPresent(handler -> registerAuthHandler(router, handler));
 
     if (jaas.isPresent() || authenticationPlugin.isPresent()) {
+      final List<String> skipPaths = server.getConfig()
+              .getList(KsqlRestConfig.AUTHENTICATION_SKIP_PATHS_CONFIG);
+      final Pattern skipPathPattern = getAuthenticationSkipPathPattern(skipPaths);
+
       registerAuthHandler(
           router,
-          rc -> selectHandler(rc, jaas.isPresent(), pluginHandler.isPresent()));
+          rc -> selectHandler(rc, skipPathPattern, jaas.isPresent(), pluginHandler.isPresent()));
 
       // set up using JAAS
-      jaas.ifPresent(h -> registerAuthHandler(router, wrappedHandler(h, Provider.JAAS)));
+      jaas.ifPresent(h -> registerAuthHandler(router, selectiveHandler(h, Provider.JAAS::equals)));
 
       registerAuthHandler(
           router,
-          wrappedHandler(new RoleBasedAuthZHandler(
+          selectiveHandler(new RoleBasedAuthZHandler(
               server.getConfig().getList(KsqlRestConfig.AUTHENTICATION_ROLES_CONFIG)),
-              Provider.JAAS));
+              Provider.JAAS::equals));
 
       // set up using PLUGIN
-      pluginHandler.ifPresent(h -> registerAuthHandler(router, wrappedHandler(h, Provider.PLUGIN)));
+      pluginHandler.ifPresent(h -> registerAuthHandler(router,
+              selectiveHandler(h, Provider.PLUGIN::equals)));
 
       // For authorization use auth provider configured via security extension (if any)
       securityExtension.getAuthorizationProvider()
           .ifPresent(ksqlAuthorizationProvider ->
               registerAuthHandler(
                   router,
-                  new KsqlAuthorizationProviderHandler(server, ksqlAuthorizationProvider)));
+                  selectiveHandler(
+                          new KsqlAuthorizationProviderHandler(server, ksqlAuthorizationProvider),
+                          provider -> provider == Provider.JAAS || provider == Provider.PLUGIN
+                  )));
 
       // since we're done with all the authorization plugins, we can resume the
       // request context
@@ -103,12 +122,12 @@ public final class AuthHandlers {
     router.route().handler(routingContext);
   }
 
-  private static Handler<RoutingContext> wrappedHandler(
+  private static Handler<RoutingContext> selectiveHandler(
       final Handler<RoutingContext> handler,
-      final Provider provider
+      final Predicate<Provider> providerTest
   ) {
     return rc -> {
-      if (rc.data().get(PROVIDER_KEY) != provider) {
+      if (!providerTest.test((Provider)rc.data().get(PROVIDER_KEY))) {
         rc.next();
       } else {
         handler.handle(rc);
@@ -117,14 +136,22 @@ public final class AuthHandlers {
   }
 
   /**
-   * In order of preference, we see if the user is the system user, then we check for
-   * JAAS configurations, and finally we check to see if there's a plugin we can use
+   * In order of preference, we see if the path is supposed to be skipped, then, if the user is the
+   * system user, then we check for JAAS configurations, and finally we check to see if there's a
+   * plugin we can use.
    */
-  private static void selectHandler(
+  @VisibleForTesting
+  static void selectHandler(
       final RoutingContext context,
+      final Pattern skipPathsPattern,
       final boolean jaasAvailable,
       final boolean pluginAvailable
   ) {
+    if (skipPathsPattern.matcher(context.normalizedPath()).matches()) {
+      context.data().put(PROVIDER_KEY, Provider.SKIP);
+      context.next();
+      return;
+    }
     if (SystemAuthenticationHandler.isAuthenticatedAsSystemUser(context)) {
       context.data().put(PROVIDER_KEY, Provider.SYSTEM);
       context.next();
@@ -206,6 +233,18 @@ public final class AuthHandlers {
     // Un-pause body handling as async auth provider calls have completed by this point
     routingContext.request().resume();
     routingContext.next();
+  }
+
+  // default visibility for testing
+  static Pattern getAuthenticationSkipPathPattern(final List<String> skipPaths) {
+    // We add in all the hardcoded paths that don't require authentication/authorization
+    final Set<String> unauthenticatedPaths = new HashSet<>(KSQL_AUTHENTICATION_SKIP_PATHS);
+    // And then we add anything from the property authentication.skip.paths
+    // This preserves the behaviour from the previous Jetty based implementation
+    unauthenticatedPaths.addAll(skipPaths);
+    final String paths = String.join(",", unauthenticatedPaths);
+    final String converted = convertCommaSeparatedWilcardsToRegex(paths);
+    return Pattern.compile(converted);
   }
 
 }

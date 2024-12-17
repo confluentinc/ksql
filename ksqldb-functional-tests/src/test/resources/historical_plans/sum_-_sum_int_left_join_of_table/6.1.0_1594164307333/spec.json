@@ -254,7 +254,8 @@
               "name" : "TOTAL",
               "type" : [ "null", "int" ],
               "default" : null
-            } ]
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
           }
         }, {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-GroupBy-repartition",
@@ -276,7 +277,8 @@
               "name" : "T2_TOTAL",
               "type" : [ "null", "int" ],
               "default" : null
-            } ]
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
           }
         }, {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog",
@@ -302,7 +304,8 @@
               "name" : "KSQL_AGG_VARIABLE_0",
               "type" : [ "null", "int" ],
               "default" : null
-            } ]
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
           }
         }, {
           "name" : "OUTPUT",
@@ -321,7 +324,8 @@
               "name" : "SUM",
               "type" : [ "null", "int" ],
               "default" : null
-            } ]
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
           }
         }, {
           "name" : "T2",
@@ -359,7 +363,8 @@
               "name" : "TOTAL",
               "type" : [ "null", "int" ],
               "default" : null
-            } ]
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
           }
         } ]
       }

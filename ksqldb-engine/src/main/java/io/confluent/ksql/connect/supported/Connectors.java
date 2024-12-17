@@ -17,6 +17,7 @@ package io.confluent.ksql.connect.supported;
 
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.connect.Connector;
+import io.confluent.ksql.rest.entity.ConnectorInfo;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Map;
@@ -24,7 +25,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import org.apache.kafka.connect.runtime.rest.entities.ConnectorInfo;
 
 public enum Connectors implements SupportedConnector {
 

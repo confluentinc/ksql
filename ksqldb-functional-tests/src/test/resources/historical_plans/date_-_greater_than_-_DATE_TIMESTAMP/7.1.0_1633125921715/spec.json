@@ -229,7 +229,8 @@
               "name" : "RESULT",
               "type" : [ "null", "boolean" ],
               "default" : null
-            } ]
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
           }
         } ]
       }

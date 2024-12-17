@@ -57,6 +57,7 @@ import java.util.OptionalInt;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
+import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscriber;
 
 public class QueryStreamRunner extends BasePerfRunner {
@@ -103,7 +104,7 @@ public class QueryStreamRunner extends BasePerfRunner {
     private final Set<QueryStreamPublisher> publishers = new HashSet<>();
 
     @Override
-    public synchronized CompletableFuture<QueryPublisher> createQueryPublisher(final String sql,
+    public synchronized CompletableFuture<Publisher<?>> createQueryPublisher(final String sql,
         final Map<String, Object> properties,
         final Map<String, Object> sessionVariables,
         final Map<String, Object> requestProperties,
@@ -219,6 +220,12 @@ public class QueryStreamRunner extends BasePerfRunner {
     public void executeWebsocketStream(ServerWebSocket webSocket, MultiMap requstParams,
         WorkerExecutor workerExecutor, ApiSecurityContext apiSecurityContext, Context context) {
 
+    }
+
+    @Override
+    public CompletableFuture<EndpointResponse> executeTest(String test,
+        ApiSecurityContext apiSecurityContext) {
+      return null;
     }
 
     synchronized void closePublishers() {

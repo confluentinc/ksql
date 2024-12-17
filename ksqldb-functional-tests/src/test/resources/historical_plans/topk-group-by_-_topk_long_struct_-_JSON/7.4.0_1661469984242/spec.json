@@ -1,0 +1,227 @@
+{
+  "version" : "7.4.0",
+  "timestamp" : 1661469984242,
+  "path" : "query-validation-tests/topk-group-by.json",
+  "schemas" : {
+    "CTAS_S2_0.Aggregate.Aggregate.Materialize" : {
+      "schema" : "`ID` BIGINT KEY, `ID` BIGINT, `VALUE` BIGINT, `NAME` STRING, `KSQL_AGG_VARIABLE_0` ARRAY<STRUCT<`sort_col` BIGINT, `col0` STRING>>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CTAS_S2_0.Aggregate.Project" : {
+      "schema" : "`ID` BIGINT KEY, `TOPK` ARRAY<STRUCT<`sort_col` BIGINT, `col0` STRING>>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CTAS_S2_0.KsqlTopic.Source" : {
+      "schema" : "`ID` BIGINT KEY, `NAME` STRING, `VALUE` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CTAS_S2_0.S2" : {
+      "schema" : "`ID` BIGINT KEY, `TOPK` ARRAY<STRUCT<`sort_col` BIGINT, `col0` STRING>>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CTAS_S2_0.Aggregate.GroupBy" : {
+      "schema" : "`ID` BIGINT KEY, `ID` BIGINT, `VALUE` BIGINT, `NAME` STRING, `KSQL_INTERNAL_COL_3` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "topk long struct - JSON",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : 0,
+      "value" : {
+        "NAME" : "zero",
+        "key" : 0,
+        "value" : 2147483648
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : 0,
+      "value" : {
+        "NAME" : "one",
+        "key" : 0,
+        "value" : 100
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : 0,
+      "value" : {
+        "NAME" : "two",
+        "key" : 0,
+        "value" : 99
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : 0,
+      "value" : {
+        "NAME" : "three",
+        "key" : 0,
+        "value" : null
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : 0,
+      "value" : {
+        "NAME" : null,
+        "key" : 0,
+        "value" : 100
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "S2",
+      "key" : 0,
+      "value" : {
+        "TOPK" : [ {
+          "sort_col" : 2147483648,
+          "col0" : "zero"
+        } ]
+      }
+    }, {
+      "topic" : "S2",
+      "key" : 0,
+      "value" : {
+        "TOPK" : [ {
+          "sort_col" : 2147483648,
+          "col0" : "zero"
+        }, {
+          "sort_col" : 100,
+          "col0" : "one"
+        } ]
+      }
+    }, {
+      "topic" : "S2",
+      "key" : 0,
+      "value" : {
+        "TOPK" : [ {
+          "sort_col" : 2147483648,
+          "col0" : "zero"
+        }, {
+          "sort_col" : 100,
+          "col0" : "one"
+        }, {
+          "sort_col" : 99,
+          "col0" : "two"
+        } ]
+      }
+    }, {
+      "topic" : "S2",
+      "key" : 0,
+      "value" : {
+        "TOPK" : [ {
+          "sort_col" : 2147483648,
+          "col0" : "zero"
+        }, {
+          "sort_col" : 100,
+          "col0" : "one"
+        }, {
+          "sort_col" : 99,
+          "col0" : "two"
+        } ]
+      }
+    }, {
+      "topic" : "S2",
+      "key" : 0,
+      "value" : {
+        "TOPK" : [ {
+          "sort_col" : 2147483648,
+          "col0" : "zero"
+        }, {
+          "sort_col" : 100,
+          "col0" : "one"
+        }, {
+          "sort_col" : 100,
+          "col0" : null
+        } ]
+      }
+    } ],
+    "topics" : [ {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "S2",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM TEST (ID BIGINT KEY, NAME varchar, VALUE bigint) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE TABLE S2 as SELECT ID, topk(value, name, 3) as topk FROM test group by id;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "S2",
+        "type" : "TABLE",
+        "schema" : "`ID` BIGINT KEY, `TOPK` ARRAY<STRUCT<`sort_col` BIGINT, `col0` STRING>>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`ID` BIGINT KEY, `NAME` STRING, `VALUE` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_S2_0-Aggregate-Aggregate-Materialize-changelog",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          }
+        }, {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "S2",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

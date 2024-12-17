@@ -343,10 +343,12 @@
                           "default" : null
                         } ],
                         "connect.internal.type" : "MapEntry"
-                      }
+                      },
+                      "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema_F0_M"
                     } ],
                     "default" : null
-                  } ]
+                  } ],
+                  "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema_F0"
                 } ]
               } ],
               "default" : null
@@ -380,15 +382,18 @@
                             "default" : null
                           } ],
                           "connect.internal.type" : "MapEntry"
-                        }
+                        },
+                        "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema_KSQL_AGG_VARIABLE_0_M"
                       } ],
                       "default" : null
-                    } ]
+                    } ],
+                    "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema_KSQL_AGG_VARIABLE_0"
                   } ]
                 } ]
               } ],
               "default" : null
-            } ]
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
           }
         }, {
           "name" : "OUTPUT",
@@ -433,15 +438,18 @@
                             "default" : null
                           } ],
                           "connect.internal.type" : "MapEntry"
-                        }
+                        },
+                        "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema_COLLECTED_M"
                       } ],
                       "default" : null
-                    } ]
+                    } ],
+                    "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema_COLLECTED"
                   } ]
                 } ]
               } ],
               "default" : null
-            } ]
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
           }
         } ]
       }

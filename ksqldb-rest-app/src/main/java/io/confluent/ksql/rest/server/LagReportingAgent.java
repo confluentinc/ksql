@@ -204,6 +204,15 @@ public final class LagReportingAgent implements HostStatusListener {
 
     @Override
     protected void runOneIteration() {
+      // Don't let this service fail.  Just keep sending lags
+      try {
+        sendLagsToAliveHosts();
+      } catch (Throwable t) {
+        LOG.error("Failed to send lags", t);
+      }
+    }
+
+    protected void sendLagsToAliveHosts() {
       final List<PersistentQueryMetadata> currentQueries = engine.getPersistentQueries();
       if (currentQueries.isEmpty()) {
         return;
@@ -214,7 +223,7 @@ public final class LagReportingAgent implements HostStatusListener {
           .map(qm -> Pair.of(qm, qm.getAllLocalStorePartitionLags()))
           .map(pair -> pair.getRight().entrySet().stream()
               .collect(Collectors.toMap(
-                  e -> QueryStateStoreId.of(pair.getLeft().getQueryApplicationId(), e.getKey()),
+                  e -> QueryStateStoreId.of(pair.getLeft().getQueryId().toString(), e.getKey()),
                   Entry::getValue)))
           .flatMap(map -> map.entrySet().stream())
           .collect(Collectors.toMap(Entry::getKey, Entry::getValue));

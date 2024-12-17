@@ -82,6 +82,90 @@
         {"topic": "OUTPUT", "key": "1", "value": "1"},
         {"topic": "OUTPUT", "key": "1", "value": "3"}
       ]
+    },
+    {
+      "name": "PROTOBUF schema and schema id",
+      "statements": [
+        "CREATE TABLE TEST WITH (kafka_topic='test_topic', format='PROTOBUF', KEY_SCHEMA_ID=101, KEY_SCHEMA_FULL_NAME='ProtobufKey2', VALUE_SCHEMA_ID=102, VALUE_SCHEMA_FULL_NAME='ProtobufValue2');",
+        "CREATE TABLE T1 as SELECT K, NAME, VALUE FROM test;"
+      ],
+      "topics": [
+        {
+          "name": "test_topic",
+          "keyFormat": "PROTOBUF",
+          "keySchemaId": 101,
+          "keySchema": "syntax = \"proto3\"; message ProtobufKey1 {uint32 k1 = 1;} message ProtobufKey2 {string K = 1;}",
+          "valueFormat": "PROTOBUF",
+          "valueSchemaId": 102,
+          "valueSchema": "syntax = \"proto3\"; message ProtobufValue1 {float c1 = 1; uint32 c2 = 2;} message ProtobufValue2 {uint64 ID = 1; string NAME = 2; uint32 VALUE = 3;}"
+        }
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": {"K":"1"}, "value": {"ID":1, "NAME":"one", "VALUE": 100}, "timestamp":  10},
+        {"topic": "test_topic", "key": {"K":"1"}, "value": {"ID":2, "NAME":"two", "VALUE": 200}, "timestamp":  20},
+        {"topic": "test_topic", "key": {"K":"1"}, "value": {"ID":3, "NAME":"three", "VALUE": 300}, "timestamp":  30}
+      ],
+      "outputs": [
+        {"topic": "T1", "key": {"K":"1"}, "value": {"NAME":"one", "VALUE":100}},
+        {"topic": "T1", "key": {"K":"1"}, "value": {"NAME":"two", "VALUE":200}},
+        {"topic": "T1", "key": {"K":"1"}, "value": {"NAME":"three", "VALUE":300}}
+      ]
+    },
+    {
+      "name": "AVRO schema and schema id",
+      "statements": [
+        "CREATE TABLE TEST WITH (kafka_topic='test_topic', format='AVRO', KEY_SCHEMA_ID=101, VALUE_SCHEMA_ID=102);",
+        "CREATE TABLE T1 as SELECT ROWKEY, NAME, VALUE FROM test;"
+      ],
+      "topics": [
+        {
+          "name": "test_topic",
+          "keyFormat": "AVRO",
+          "keySchemaId": 101,
+          "keySchema": {"name": "TestKeySchema", "namespace": "com.test", "type": "string"},
+          "valueFormat": "AVRO",
+          "valueSchemaId": 102,
+          "valueSchema": {"name":"TestValueSchema", "namespace":"com.test", "type":"record", "fields": [{"name": "ID", "type": "long"}, {"name": "NAME", "type": "string"}, {"name": "VALUE", "type": "int"}]}
+        }
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": "1", "value": {"ID":1, "NAME":"one", "VALUE": 100}, "timestamp":  10},
+        {"topic": "test_topic", "key": "1", "value": {"ID":2, "NAME":"two", "VALUE": 200}, "timestamp":  20},
+        {"topic": "test_topic", "key": "1", "value": {"ID":3, "NAME":"three", "VALUE": 300}, "timestamp":  30}
+      ],
+      "outputs": [
+        {"topic": "T1", "key": "1", "value": {"NAME":"one", "VALUE":100}},
+        {"topic": "T1", "key": "1", "value": {"NAME":"two", "VALUE":200}},
+        {"topic": "T1", "key": "1", "value": {"NAME":"three", "VALUE":300}}
+      ]
+    },
+    {
+      "name": "JSON_SR schema and schema id",
+      "statements": [
+        "CREATE TABLE TEST WITH (kafka_topic='test_topic', format='JSON_SR', KEY_SCHEMA_ID=101, VALUE_SCHEMA_ID=102);",
+        "CREATE TABLE T1 as SELECT ROWKEY, NAME, VALUE FROM test;"
+      ],
+      "topics": [
+        {
+          "name": "test_topic",
+          "keyFormat": "JSON_SR",
+          "keySchemaId": 101,
+          "keySchema": {"type": "string"},
+          "valueFormat": "JSON_SR",
+          "valueSchemaId": 102,
+          "valueSchema": {"type":"object", "properties": {"ID": {"type": "number"}, "NAME": {"type": "string"}, "VALUE": {"type": "integer"}}}
+        }
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": "1", "value": {"ID":1, "NAME":"one", "VALUE": 100}, "timestamp":  10},
+        {"topic": "test_topic", "key": "1", "value": {"ID":2, "NAME":"two", "VALUE": 200}, "timestamp":  20},
+        {"topic": "test_topic", "key": "1", "value": {"ID":3, "NAME":"three", "VALUE": 300}, "timestamp":  30}
+      ],
+      "outputs": [
+        {"topic": "T1", "key": "1", "value": {"NAME":"one", "VALUE":100}},
+        {"topic": "T1", "key": "1", "value": {"NAME":"two", "VALUE":200}},
+        {"topic": "T1", "key": "1", "value": {"NAME":"three", "VALUE":300}}
+      ]
     }
   ]
 }

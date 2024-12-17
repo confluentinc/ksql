@@ -221,35 +221,35 @@ public final class BytesUtils {
   }
 
   private static String hexEncoding(final byte[] value) {
-    return DatatypeConverter.printHexBinary(value);
+    return value == null ? null : DatatypeConverter.printHexBinary(value);
   }
 
   private static byte[] hexDecoding(final String value) {
-    return DatatypeConverter.parseHexBinary(value);
+    return value == null ? null : DatatypeConverter.parseHexBinary(value);
   }
 
   private static String utf8Encoding(final byte[] value) {
-    return new String(value, StandardCharsets.UTF_8);
+    return value == null ? null : new String(value, StandardCharsets.UTF_8);
   }
 
   private static byte[] utf8Decoding(final String value) {
-    return value.getBytes(StandardCharsets.UTF_8);
+    return value == null ? null : value.getBytes(StandardCharsets.UTF_8);
   }
 
   private static String asciiEncoding(final byte[] value) {
-    return new String(value, StandardCharsets.US_ASCII);
+    return value == null ? null : new String(value, StandardCharsets.US_ASCII);
   }
 
   private static byte[] asciiDecoding(final String value) {
-    return value.getBytes(StandardCharsets.US_ASCII);
+    return value == null ? null : value.getBytes(StandardCharsets.US_ASCII);
   }
 
   private static String base64Encoding(final byte[] value) {
     // Use getEncoder() because it does not add \r\n to the base64 string
-    return Base64.getEncoder().encodeToString(value);
+    return value == null ? null : Base64.getEncoder().encodeToString(value);
   }
 
   private static byte[] base64Decoding(final String value) {
-    return Base64.getDecoder().decode(value);
+    return value == null ? null : Base64.getDecoder().decode(value);
   }
 }

@@ -189,6 +189,15 @@ table.
 You can't use the `KEY_FORMAT` property with the `FORMAT` property in the
 same `CREATE STREAM AS SELECT` statement.
 
+### KEY_PROTOBUF_NULLABLE_REPRESENTATION
+
+In the default configuration, primitive fields in protobuf do not distinguish `null` from the
+default values (such as zero, empty string). To enable the use of a protobuf schema that can make
+this distinction, set `KEY_PROTOBUF_NULLABLE_REPRESENTATION` to either `OPTIONAL` or `WRAPPER`.
+The schema will be used to serialize keys for the stream created by this `CREATE` statement.
+For more details, see the corresponding section in the
+[Serialization Formats](/reference/serialization#protobuf) documentation.
+
 ### KEY_SCHEMA_ID
 
 The schema ID of the key schema in {{ site.sr }}.
@@ -220,6 +229,19 @@ is used.
 
 In join queries, the `REPLICAS` value is taken from the left-most stream or
 table.
+
+### RETENTION_MS
+
+The retention specified in milliseconds in the backing topic.
+
+If `RETENTION_MS` isn't set, the retention of the input stream is
+used.
+
+In join queries, the `RETENTION_MS` value is taken from the left-most stream or
+table.
+
+You can't change the retention on an existing stream. To change the
+retention, you must drop the stream and create it again.
 
 ### TIMESTAMP
 
@@ -283,6 +305,15 @@ table.
 
 You can't use the `VALUE_FORMAT` property with the `FORMAT` property in the
 same `CREATE STREAM AS SELECT` statement.
+
+### VALUE_PROTOBUF_NULLABLE_REPRESENTATION
+
+In the default configuration, primitive fields in protobuf do not distinguish `null` from the
+default values (such as zero, empty string). To enable the use of a protobuf schema that can make
+this distinction, set `VALUE_PROTOBUF_NULLABLE_REPRESENTATION` to either `OPTIONAL` or `WRAPPER`.
+The schema will be used to serialize values for the stream created by this `CREATE` statement.
+For more details, see the corresponding section in the
+[Serialization Formats](/reference/serialization#protobuf) documentation.
 
 ### VALUE_SCHEMA_ID
 

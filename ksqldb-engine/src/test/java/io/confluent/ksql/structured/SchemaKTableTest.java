@@ -112,6 +112,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @SuppressWarnings("unchecked")
@@ -213,6 +214,8 @@ public class SchemaKTableTest {
             mock(ConsumedFactory.class)
         )
     );
+
+    when(internalFormats.copyWithoutProperty(Mockito.anyString())).thenReturn(internalFormats);
   }
 
   private ExecutionStep buildSourceStep(final LogicalSchema schema, final KTable kTable) {

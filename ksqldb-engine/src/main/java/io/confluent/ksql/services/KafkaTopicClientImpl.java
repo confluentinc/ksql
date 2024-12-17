@@ -34,6 +34,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -97,8 +98,10 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
       final Map<String, ?> configs,
       final CreateTopicsOptions createOptions
   ) {
+    final Optional<Long> retentionMs = KafkaTopicClient.getRetentionMs(configs);
+
     if (isTopicExists(topic)) {
-      validateTopicProperties(topic, numPartitions, replicationFactor);
+      validateTopicProperties(topic, numPartitions, replicationFactor, retentionMs);
       return;
     }
 
@@ -128,9 +131,9 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
 
     } catch (final TopicExistsException e) {
       // if the topic already exists, it is most likely because another node just created it.
-      // ensure that it matches the partition count and replication factor before returning
-      // success
-      validateTopicProperties(topic, numPartitions, replicationFactor);
+      // ensure that it matches the partition count, replication factor, and retention
+      // before returning success
+      validateTopicProperties(topic, numPartitions, replicationFactor, retentionMs);
 
     } catch (final TopicAuthorizationException e) {
       throw new KsqlTopicAuthorizationException(
@@ -391,14 +394,22 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
   private void validateTopicProperties(
       final String topic,
       final int requiredNumPartition,
-      final int requiredNumReplicas
+      final int requiredNumReplicas,
+      final Optional<Long> requiredRetentionMs
   ) {
     final TopicDescription existingTopic = describeTopic(topic);
+    final Map<String, String> existingConfig = getTopicConfig(topic);
     TopicValidationUtil
-        .validateTopicProperties(requiredNumPartition, requiredNumReplicas, existingTopic);
+        .validateTopicProperties(
+            requiredNumPartition,
+            requiredNumReplicas,
+            requiredRetentionMs,
+            existingTopic,
+            existingConfig);
     LOG.debug(
-        "Did not create topic {} with {} partitions and replication-factor {} since it exists",
-        topic, requiredNumPartition, requiredNumReplicas);
+        "Did not create topic {} with {} partitions, replication-factor {}, "
+            + "and retention {} since it exists",
+        topic, requiredNumPartition, requiredNumReplicas, requiredRetentionMs);
   }
 
   private Map<String, String> topicConfig(
@@ -416,6 +427,10 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
           .filter(e -> e.value() != null)
           .filter(e -> includeDefaults || !e.isDefault())
           .collect(Collectors.toMap(ConfigEntry::name, ConfigEntry::value));
+    } catch (final TopicAuthorizationException e) {
+      throw new KsqlTopicAuthorizationException(
+          AclOperation.DESCRIBE_CONFIGS,
+          e.unauthorizedTopics());
     } catch (final Exception e) {
       throw new KafkaResponseGetFailedException(
           "Failed to get config for Kafka Topic " + topicName, e);

@@ -1328,7 +1328,7 @@
       "outputs": [{"topic": "OUTPUT", "key": 42, "value": {"c1": 4}}],
       "expectedException": {
         "type": "org.apache.kafka.streams.errors.StreamsException",
-        "message": "Error serializing message to topic: OUTPUT. Missing default value for required Avro field: [c2]."
+        "message": "Error serializing message to topic: OUTPUT. Missing default value for required Avro field: [c2]. This field appears in Avro schema in Schema Registry\nHint: You probably forgot to add VALUE_SCHEMA_ID when creating the source."
       }
     },
     {

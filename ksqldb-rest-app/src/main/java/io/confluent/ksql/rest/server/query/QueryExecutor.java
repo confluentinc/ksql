@@ -140,6 +140,7 @@ public class QueryExecutor {
     }
   }
 
+
   private QueryMetadataHolder handleQuery(final ServiceContext serviceContext,
       final PreparedStatement<Query> statement,
       final Optional<Boolean> isInternalRequest,

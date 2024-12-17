@@ -384,6 +384,7 @@ public class ApiSqlValueCoercerTest {
 
   @Test
   public void shouldCoerceToBytes() {
+    assertThat(coercer.coerce("IQ==", SqlTypes.BYTES), is(Result.of(ByteBuffer.wrap(new byte[] {33}))));
     assertThat(coercer.coerce(ByteBuffer.wrap(new byte[] {123}), SqlTypes.BYTES), is(Result.of(ByteBuffer.wrap(new byte[] {123}))));
   }
 
@@ -393,7 +394,7 @@ public class ApiSqlValueCoercerTest {
     assertThat(coercer.coerce(1, SqlTypes.BYTES), is(Result.failure()));
     assertThat(coercer.coerce(1L, SqlTypes.BYTES), is(Result.failure()));
     assertThat(coercer.coerce(1.0d, SqlTypes.BYTES), is(Result.failure()));
-    assertThat(coercer.coerce("aaa", SqlTypes.BYTES), is(Result.failure()));
+    assertThat(coercer.coerce("yee haw", SqlTypes.BYTES), is(Result.failure()));
     assertThat(coercer.coerce(new Time(1000L), SqlTypes.BYTES), is(Result.failure()));
     assertThat(coercer.coerce(new Date(3213), SqlTypes.BYTES), is(Result.failure()));
     assertThat(coercer.coerce(new Timestamp(1000L), SqlTypes.BYTES), is(Result.failure()));
@@ -669,6 +670,9 @@ public class ApiSqlValueCoercerTest {
     }
     if (baseType == SqlBaseType.STRING && toType == SqlBaseType.DATE) {
       return "2005-04-05";
+    }
+    if (baseType == SqlBaseType.STRING && toType == SqlBaseType.BYTES) {
+      return "IQ==";
     }
     return instance;
   }

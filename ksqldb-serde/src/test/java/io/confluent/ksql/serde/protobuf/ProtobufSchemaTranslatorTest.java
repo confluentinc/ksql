@@ -29,6 +29,13 @@ import org.junit.Test;
 
 public class ProtobufSchemaTranslatorTest {
 
+  private static Schema CONNECT_SCHEMA_WITH_NULLABLE_PRIMITIVES =
+      new SchemaBuilder(Type.STRUCT)
+          .field("optional_int32", Schema.OPTIONAL_INT32_SCHEMA)
+          .field("optional_boolean", Schema.OPTIONAL_BOOLEAN_SCHEMA)
+          .field("optional_string", Schema.OPTIONAL_STRING_SCHEMA)
+          .build();
+
   private static final ProtobufSchema SCHEMA_WITH_WRAPPED_PRIMITIVES =
       new ProtobufSchema("syntax = \"proto3\"; import 'google/protobuf/wrappers.proto'; message ConfluentDefault1 {google.protobuf.BoolValue c1 = 1; google.protobuf.Int32Value c2 = 2; google.protobuf.Int64Value c3 = 3; google.protobuf.DoubleValue c4 = 4; google.protobuf.StringValue c5 = 5;}");
 
@@ -139,6 +146,63 @@ public class ProtobufSchemaTranslatorTest {
     assertThat(schema.field("c5").schema().field("value").schema().type(), is(Type.STRING));
   }
 
+
+  @Test
+  public void shouldApplyNullableAsOptional() {
+    // Given:
+    givenNullableAsOptional();
+
+    // When:
+    final ParsedSchema schema = schemaTranslator.fromConnectSchema(CONNECT_SCHEMA_WITH_NULLABLE_PRIMITIVES);
+
+    // Then:
+    assertThat(schema.canonicalString(), is("syntax = \"proto3\";\n"
+        + "\n"
+        + "message ConnectDefault1 {\n"
+        + "  optional int32 optional_int32 = 1 [deprecated = false];\n"
+        + "  optional bool optional_boolean = 2 [deprecated = false];\n"
+        + "  optional string optional_string = 3 [deprecated = false];\n"
+        + "}\n"));
+  }
+
+  @Test
+  public void shouldApplyNullableAsWrapper() {
+    // Given:
+    givenNullableAsWrapper();
+
+    // When:
+    final ParsedSchema schema = schemaTranslator.fromConnectSchema(CONNECT_SCHEMA_WITH_NULLABLE_PRIMITIVES);
+
+    // Then:
+    assertThat(schema.canonicalString(), is("syntax = \"proto3\";\n"
+        + "\n"
+        + "import \"google/protobuf/wrappers.proto\";\n"
+        + "\n"
+        + "message ConnectDefault1 {\n"
+        + "  google.protobuf.Int32Value optional_int32 = 1;\n"
+        + "  google.protobuf.BoolValue optional_boolean = 2;\n"
+        + "  google.protobuf.StringValue optional_string = 3;\n"
+        + "}\n"));
+  }
+
+  @Test
+  public void shouldUsePlainPrimitivesIfNoNullableRepresentationIsSet() {
+    // Given:
+    givenNoNullableRepresentation();
+
+    // When:
+    final ParsedSchema schema = schemaTranslator.fromConnectSchema(CONNECT_SCHEMA_WITH_NULLABLE_PRIMITIVES);
+
+    // Then:
+    assertThat(schema.canonicalString(), is("syntax = \"proto3\";\n"
+        + "\n"
+        + "message ConnectDefault1 {\n"
+        + "  int32 optional_int32 = 1;\n"
+        + "  bool optional_boolean = 2;\n"
+        + "  string optional_string = 3;\n"
+        + "}\n"));
+  }
+
   @Test
   public void shouldReturnParsedSchemaWithDefaultFullSchemaName() {
     // Given:
@@ -243,6 +307,22 @@ public class ProtobufSchemaTranslatorTest {
   }
 
   private void givenWrapPrimitives() {
+    schemaTranslator = new ProtobufSchemaTranslator(new ProtobufProperties(ImmutableMap.of()));
+  }
+
+  private void givenNullableAsOptional() {
+    schemaTranslator = new ProtobufSchemaTranslator(new ProtobufProperties(ImmutableMap.of(
+        ProtobufProperties.NULLABLE_REPRESENTATION, ProtobufProperties.NULLABLE_AS_OPTIONAL
+    )));
+  }
+
+  private void givenNullableAsWrapper() {
+    schemaTranslator = new ProtobufSchemaTranslator(new ProtobufProperties(ImmutableMap.of(
+        ProtobufProperties.NULLABLE_REPRESENTATION, ProtobufProperties.NULLABLE_AS_WRAPPER
+    )));
+  }
+
+  private void givenNoNullableRepresentation() {
     schemaTranslator = new ProtobufSchemaTranslator(new ProtobufProperties(ImmutableMap.of()));
   }
 

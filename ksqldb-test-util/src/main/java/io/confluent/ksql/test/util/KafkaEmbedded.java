@@ -141,7 +141,7 @@ class KafkaEmbedded {
     try {
       Files.delete(Paths.get(logDir()));
     } catch (final IOException e) {
-      log.error("Failed to delete log dir {}", logDir());
+      log.error("Failed to delete log dir {}", logDir(), e);
     }
     log.debug("Shutdown of embedded Kafka broker at {} completed (with ZK ensemble at {}) ...",
         brokerList(), zookeeperConnect());

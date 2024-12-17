@@ -17,6 +17,7 @@ package io.confluent.ksql.api;
 
 import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.startsWith;
 
@@ -51,6 +52,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
@@ -61,6 +63,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.rules.Timeout;
+import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -131,22 +134,6 @@ public class BaseApiTest {
     createServer(serverConfig);
     this.client = createClient();
     setDefaultRowGenerator();
-
-    testEndpoints.getQueryPublishers().forEach(
-        publisher -> {
-          final long timeout = System.currentTimeMillis() + 30_000L;
-          while (publisher.getSubscriber() == null) {
-            try {
-              Thread.sleep(100L);
-            } catch (InterruptedException swallow) {
-            }
-
-            if (System.currentTimeMillis() > timeout) {
-              throw new RuntimeException("Test setup failed; no subscriber registered.");
-            }
-          }
-        }
-    );
   }
 
   @After
@@ -280,6 +267,27 @@ public class BaseApiTest {
       final String uri,
       final Consumer<HttpRequest<Buffer>> requestSender) {
     requestSender.accept(client.post(uri));
+  }
+
+  protected void waitForQueryPublisherSubscribed() {
+      final Set<Publisher<?>> queryPublishers = testEndpoints.getPublishers();
+      assertThat(queryPublishers, hasSize(1));
+      queryPublishers.forEach(
+          publisher -> {
+            TestQueryPublisher queryPublisher = (TestQueryPublisher) publisher;
+              final long timeout = System.currentTimeMillis() + 30_000L;
+              while ( queryPublisher.getSubscriber() == null) {
+                  try {
+                      Thread.sleep(100L);
+                  } catch (InterruptedException swallow) {
+                  }
+
+                  if (System.currentTimeMillis() > timeout) {
+                      throw new RuntimeException("Subscribers not registered.");
+                  }
+              }
+          }
+      );
   }
 
   protected static void validateError(final int errorCode, final String message,

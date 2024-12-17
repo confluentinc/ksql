@@ -16,6 +16,7 @@
 package io.confluent.ksql.test.tools;
 
 import io.confluent.ksql.test.model.KsqlVersion;
+import io.confluent.ksql.tools.test.model.Test;
 
 public interface VersionedTest extends Test {
 

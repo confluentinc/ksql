@@ -46,6 +46,7 @@ import io.confluent.ksql.test.util.KsqlIdentifierTestUtil;
 import io.confluent.ksql.test.util.KsqlTestFolder;
 import io.confluent.ksql.test.util.TestBasicJaasConfig;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlRequestConfig;
 import io.confluent.ksql.util.UserDataProvider;
 import io.vertx.core.net.SocketAddress;
 import java.io.IOException;

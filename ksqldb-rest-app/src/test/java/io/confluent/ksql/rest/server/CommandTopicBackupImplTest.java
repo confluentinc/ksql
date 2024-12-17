@@ -22,6 +22,7 @@ import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import io.confluent.ksql.rest.server.computation.InternalTopicSerdes;
 import io.confluent.ksql.rest.server.resources.CommandTopicCorruptionException;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.test.util.KsqlTestFolder;
@@ -191,6 +192,22 @@ public class CommandTopicBackupImplTest {
     final ConsumerRecord<byte[], byte[]> record = mock(ConsumerRecord.class);
     when(record.key()).thenReturn(new byte[]{});
     when(record.value()).thenReturn(null);
+
+    // When
+    commandTopicBackup.writeRecord(record);
+
+    // Then
+    final List<Pair<byte[], byte[]>> commands = commandTopicBackup.getReplayFile().readRecords();
+    assertThat(commands.size(), is(0));
+  }
+
+  @Test
+  public void shouldNotWriteMigrationCommandToBackup() throws IOException {
+    // Given
+    commandTopicBackup.initialize();
+    final ConsumerRecord<byte[], byte[]> record = mock(ConsumerRecord.class);
+    when(record.key()).thenReturn(InternalTopicSerdes.serializer().serialize("", CommandTopicMigrationUtil.MIGRATION_COMMAND_ID));
+    when(record.value()).thenReturn(new byte[]{});
 
     // When
     commandTopicBackup.writeRecord(record);

@@ -1,0 +1,290 @@
+{
+  "version" : "7.4.0",
+  "timestamp" : 1663178481178,
+  "path" : "query-validation-tests/table.json",
+  "schemas" : {
+    "CTAS_T1_0.KsqlTopic.Source" : {
+      "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `NAME` STRING, `VALUE` INTEGER",
+      "keyFormat" : {
+        "format" : "AVRO",
+        "properties" : {
+          "fullSchemaName" : "io.confluent.ksql.avro_schemas.TestKey",
+          "schemaId" : "101"
+        },
+        "features" : [ "UNWRAP_SINGLES" ]
+      },
+      "valueFormat" : {
+        "format" : "AVRO",
+        "properties" : {
+          "fullSchemaName" : "com.test.TestValueSchema",
+          "schemaId" : "102"
+        }
+      }
+    },
+    "CTAS_T1_0.Project" : {
+      "schema" : "`ROWKEY` STRING KEY, `NAME` STRING, `VALUE` INTEGER",
+      "keyFormat" : {
+        "format" : "AVRO",
+        "properties" : {
+          "fullSchemaName" : "io.confluent.ksql.avro_schemas.TestKey"
+        },
+        "features" : [ "UNWRAP_SINGLES" ]
+      },
+      "valueFormat" : {
+        "format" : "AVRO",
+        "properties" : {
+          "fullSchemaName" : "com.test.TestValueSchema"
+        }
+      }
+    },
+    "CTAS_T1_0.T1" : {
+      "schema" : "`ROWKEY` STRING KEY, `NAME` STRING, `VALUE` INTEGER",
+      "keyFormat" : {
+        "format" : "AVRO",
+        "properties" : {
+          "fullSchemaName" : "io.confluent.ksql.avro_schemas.T1Key"
+        },
+        "features" : [ "UNWRAP_SINGLES" ]
+      },
+      "valueFormat" : {
+        "format" : "AVRO"
+      }
+    },
+    "CTAS_T1_0.KsqlTopic.Source.Materialized" : {
+      "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `NAME` STRING, `VALUE` INTEGER, `ROWPARTITION` INTEGER, `ROWOFFSET` BIGINT",
+      "keyFormat" : {
+        "format" : "AVRO",
+        "properties" : {
+          "fullSchemaName" : "io.confluent.ksql.avro_schemas.TestKey"
+        },
+        "features" : [ "UNWRAP_SINGLES" ]
+      },
+      "valueFormat" : {
+        "format" : "AVRO",
+        "properties" : {
+          "fullSchemaName" : "com.test.TestValueSchema"
+        }
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "AVRO schema and schema id",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : "1",
+      "value" : {
+        "ID" : 1,
+        "NAME" : "one",
+        "VALUE" : 100
+      },
+      "timestamp" : 10
+    }, {
+      "topic" : "test_topic",
+      "key" : "1",
+      "value" : {
+        "ID" : 2,
+        "NAME" : "two",
+        "VALUE" : 200
+      },
+      "timestamp" : 20
+    }, {
+      "topic" : "test_topic",
+      "key" : "1",
+      "value" : {
+        "ID" : 3,
+        "NAME" : "three",
+        "VALUE" : 300
+      },
+      "timestamp" : 30
+    } ],
+    "outputs" : [ {
+      "topic" : "T1",
+      "key" : "1",
+      "value" : {
+        "NAME" : "one",
+        "VALUE" : 100
+      }
+    }, {
+      "topic" : "T1",
+      "key" : "1",
+      "value" : {
+        "NAME" : "two",
+        "VALUE" : 200
+      }
+    }, {
+      "topic" : "T1",
+      "key" : "1",
+      "value" : {
+        "NAME" : "three",
+        "VALUE" : 300
+      }
+    } ],
+    "topics" : [ {
+      "name" : "test_topic",
+      "keySchemaId" : 101,
+      "valueSchemaId" : 102,
+      "keySchema" : "string",
+      "valueSchema" : {
+        "type" : "record",
+        "name" : "TestValueSchema",
+        "namespace" : "com.test",
+        "fields" : [ {
+          "name" : "ID",
+          "type" : "long"
+        }, {
+          "name" : "NAME",
+          "type" : "string"
+        }, {
+          "name" : "VALUE",
+          "type" : "int"
+        } ]
+      },
+      "keyFormat" : "AVRO",
+      "valueFormat" : "AVRO",
+      "replicas" : 1,
+      "numPartitions" : 1
+    }, {
+      "name" : "T1",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE TABLE TEST WITH (kafka_topic='test_topic', format='AVRO', KEY_SCHEMA_ID=101, VALUE_SCHEMA_ID=102);", "CREATE TABLE T1 as SELECT ROWKEY, NAME, VALUE FROM test;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "T1",
+        "type" : "TABLE",
+        "schema" : "`ROWKEY` STRING KEY, `NAME` STRING, `VALUE` INTEGER",
+        "keyFormat" : {
+          "format" : "AVRO"
+        },
+        "valueFormat" : "AVRO",
+        "keyFeatures" : [ "UNWRAP_SINGLES" ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "TEST",
+        "type" : "TABLE",
+        "schema" : "`ROWKEY` STRING KEY, `ID` BIGINT, `NAME` STRING, `VALUE` INTEGER",
+        "keyFormat" : {
+          "format" : "AVRO"
+        },
+        "valueFormat" : "AVRO",
+        "keyFeatures" : [ "UNWRAP_SINGLES" ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "T1",
+          "keyFormat" : {
+            "format" : "AVRO",
+            "properties" : {
+              "fullSchemaName" : "io.confluent.ksql.avro_schemas.T1Key"
+            },
+            "features" : [ "UNWRAP_SINGLES" ]
+          },
+          "valueFormat" : {
+            "format" : "AVRO"
+          },
+          "partitions" : 4,
+          "keySchema" : "string",
+          "valueSchema" : {
+            "type" : "record",
+            "name" : "KsqlDataSourceSchema",
+            "namespace" : "io.confluent.ksql.avro_schemas",
+            "fields" : [ {
+              "name" : "NAME",
+              "type" : [ "null", "string" ],
+              "default" : null
+            }, {
+              "name" : "VALUE",
+              "type" : [ "null", "int" ],
+              "default" : null
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
+          }
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_T1_0-KsqlTopic-Reduce-changelog",
+          "keyFormat" : {
+            "format" : "AVRO",
+            "properties" : {
+              "fullSchemaName" : "io.confluent.ksql.avro_schemas.TestKey"
+            },
+            "features" : [ "UNWRAP_SINGLES" ]
+          },
+          "valueFormat" : {
+            "format" : "AVRO",
+            "properties" : {
+              "fullSchemaName" : "com.test.TestValueSchema"
+            }
+          },
+          "keySchema" : "string",
+          "valueSchema" : {
+            "type" : "record",
+            "name" : "TestValueSchema",
+            "namespace" : "com.test",
+            "fields" : [ {
+              "name" : "ID",
+              "type" : [ "null", "long" ],
+              "default" : null
+            }, {
+              "name" : "NAME",
+              "type" : [ "null", "string" ],
+              "default" : null
+            }, {
+              "name" : "VALUE",
+              "type" : [ "null", "int" ],
+              "default" : null
+            }, {
+              "name" : "ROWPARTITION",
+              "type" : [ "null", "int" ],
+              "default" : null
+            }, {
+              "name" : "ROWOFFSET",
+              "type" : [ "null", "long" ],
+              "default" : null
+            } ],
+            "connect.name" : "com.test.TestValueSchema"
+          }
+        }, {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "format" : "AVRO",
+            "properties" : {
+              "fullSchemaName" : "io.confluent.ksql.avro_schemas.TestKey",
+              "schemaId" : "101"
+            },
+            "features" : [ "UNWRAP_SINGLES" ]
+          },
+          "valueFormat" : {
+            "format" : "AVRO",
+            "properties" : {
+              "fullSchemaName" : "com.test.TestValueSchema",
+              "schemaId" : "102"
+            }
+          },
+          "partitions" : 1,
+          "keySchemaId" : 101,
+          "valueSchemaId" : 102,
+          "keySchema" : "string",
+          "valueSchema" : {
+            "type" : "record",
+            "name" : "TestValueSchema",
+            "namespace" : "com.test",
+            "fields" : [ {
+              "name" : "ID",
+              "type" : "long"
+            }, {
+              "name" : "NAME",
+              "type" : "string"
+            }, {
+              "name" : "VALUE",
+              "type" : "int"
+            } ],
+            "connect.name" : "com.test.TestValueSchema"
+          }
+        } ]
+      }
+    }
+  }
+}

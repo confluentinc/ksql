@@ -28,11 +28,15 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.topic.TopicProperties.Builder;
 import io.confluent.ksql.util.KsqlException;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 import java.util.function.Supplier;
 import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.common.Node;
 import org.apache.kafka.common.TopicPartitionInfo;
+import org.apache.kafka.common.config.TopicConfig;
 import org.junit.Test;
 
 public class TopicPropertiesTest {
@@ -41,36 +45,88 @@ public class TopicPropertiesTest {
   public void shouldPreferWithClauseToSourceReplicas() {
     // When:
     final TopicProperties properties = new TopicProperties.Builder()
-        .withWithClause(Optional.of("name"), Optional.empty(), Optional.of((short) 3))
+        .withWithClause(Optional.of("name"), Optional.empty(), Optional.of((short) 3), Optional.of((long) 100))
         .withSource(() -> new TopicDescription(
             "",
             false,
             ImmutableList.of(
                 new TopicPartitionInfo(
-                    0, new Node(0, "", 0), ImmutableList.of(new Node(0, "", 0)), ImmutableList.of()))))
+                    0, new Node(0, "", 0), ImmutableList.of(new Node(0, "", 0)), ImmutableList.of()))),
+            () -> Collections.emptyMap())
         .build();
 
     // Then:
     assertThat(properties.getReplicas(), is((short) 3));
     assertThat(properties.getPartitions(), is(1));
+    assertThat(properties.getRetentionInMillis(), is((long) 100));
   }
 
   @Test
   public void shouldPreferWithClauseToSourcePartitions() {
     // When:
     final TopicProperties properties = new TopicProperties.Builder()
-        .withWithClause(Optional.of("name"), Optional.of(3), Optional.empty())
+        .withWithClause(Optional.of("name"), Optional.of(3), Optional.empty(), Optional.of((long) 100))
         .withSource(() -> new TopicDescription(
             "",
             false,
             ImmutableList.of(
                 new TopicPartitionInfo(
-                    0, new Node(0, "", 0), ImmutableList.of(new Node(0, "", 0)), ImmutableList.of()))))
+                    0, new Node(0, "", 0), ImmutableList.of(new Node(0, "", 0)), ImmutableList.of()))),
+            () -> Collections.emptyMap())
         .build();
 
     // Then:
     assertThat(properties.getReplicas(), is((short) 1));
     assertThat(properties.getPartitions(), is(3));
+    assertThat(properties.getRetentionInMillis(), is((long) 100));
+  }
+
+  @Test
+  public void shouldPreferWithClauseToSourceRetention() {
+    // When:
+    final TopicProperties properties = new TopicProperties.Builder()
+        .withWithClause(Optional.of("name"), Optional.of(3), Optional.empty(), Optional.of((long) 100))
+        .withSource(() -> new TopicDescription(
+                "",
+                false,
+                ImmutableList.of(
+                    new TopicPartitionInfo(
+                        0, new Node(0, "", 0), ImmutableList.of(new Node(0, "", 0)), ImmutableList.of()))),
+            () -> {
+                Map<String, String> configsMap = new HashMap<>();
+                configsMap.put(TopicConfig.RETENTION_MS_CONFIG, "5000");
+                return configsMap;
+            })
+        .build();
+
+    // Then:
+    assertThat(properties.getReplicas(), is((short) 1));
+    assertThat(properties.getPartitions(), is(3));
+    assertThat(properties.getRetentionInMillis(), is((long) 100));
+  }
+
+  @Test
+  public void shouldPreferSourceRetentionToWithClause() {
+    // When:
+    final TopicProperties properties = new TopicProperties.Builder()
+        .withWithClause(Optional.of("name"), Optional.of(3), Optional.empty(), Optional.empty())
+        .withSource(() -> new TopicDescription(
+                "",
+                false,
+                ImmutableList.of(
+                    new TopicPartitionInfo(
+                        0, new Node(0, "", 0), ImmutableList.of(new Node(0, "", 0)), ImmutableList.of()))),
+            () -> {
+              Map<String, String> configsMap = new HashMap<>();
+              configsMap.put(TopicConfig.RETENTION_MS_CONFIG, "5000");
+              return configsMap;
+            })
+        .build();
+
+    // Then:
+    assertThat(properties.getReplicas(), is((short) 1));
+    assertThat(properties.getPartitions(), is(3));
+    assertThat(properties.getRetentionInMillis(), is((long) 5000));
   }
 
   @Test
@@ -80,7 +136,8 @@ public class TopicPropertiesTest {
         .withWithClause(
             Optional.of("name"),
             Optional.of(1),
-            Optional.empty()
+            Optional.empty(),
+            Optional.of((long) 100)
         )
         .build();
 
@@ -96,7 +153,8 @@ public class TopicPropertiesTest {
         .withWithClause(
             Optional.of("name"),
             Optional.of(1),
-            Optional.empty()
+            Optional.empty(),
+            Optional.of((long) 100)
         )
         .build();
 
@@ -109,7 +167,7 @@ public class TopicPropertiesTest {
     // When:
     final TopicProperties properties = new TopicProperties.Builder()
         .withName("name")
-        .withWithClause(Optional.empty(), Optional.of(1), Optional.empty())
+        .withWithClause(Optional.empty(), Optional.of(1), Optional.empty(), Optional.of((long) 100))
         .build();
 
     // Then:
@@ -151,7 +209,7 @@ public class TopicPropertiesTest {
         KsqlException.class,
         () -> new TopicProperties.Builder()
             .withName("name")
-            .withWithClause(empty(), empty(), of((short) 1))
+            .withWithClause(empty(), empty(), of((short) 1), of((long) 100))
             .build()
     );
 
@@ -165,7 +223,7 @@ public class TopicPropertiesTest {
     // When:
     final TopicProperties properties = new Builder()
         .withName("name")
-        .withWithClause(Optional.empty(), Optional.of(1), Optional.empty())
+        .withWithClause(Optional.empty(), Optional.of(1), Optional.empty(), Optional.of((long) 100))
         .build();
 
     // Then:
@@ -179,16 +237,18 @@ public class TopicPropertiesTest {
         .withWithClause(
             Optional.of("name"),
             Optional.of(1),
-            Optional.of((short) 1)
+            Optional.of((short) 1),
+            Optional.of((long) 100)
         )
-        .withSource(() -> {
-          throw new RuntimeException();
-        })
+        .withSource(
+            () -> {throw new RuntimeException();},
+            () -> Collections.emptyMap())
         .build();
 
     // Then:
     assertThat(properties.getPartitions(), equalTo(1));
     assertThat(properties.getReplicas(), equalTo((short) 1));
+    assertThat(properties.getRetentionInMillis(), equalTo((long) 100));
   }
 
   @SuppressWarnings("unchecked")
@@ -212,11 +272,12 @@ public class TopicPropertiesTest {
     // When:
     final TopicProperties properties = new TopicProperties.Builder()
         .withName("name")
-        .withSource(source)
+        .withSource(source, () -> Collections.emptyMap())
         .build();
 
     // Then:
     assertThat(properties.getPartitions(), equalTo(1));
     assertThat(properties.getReplicas(), equalTo((short) 1));
+    assertThat(properties.getRetentionInMillis(), equalTo((long) 604800000));
   }
 }

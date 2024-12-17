@@ -22,6 +22,7 @@ import static org.apache.hc.core5.http.HttpHeaders.TRANSFER_ENCODING;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.api.auth.DefaultApiSecurityContext;
+import io.confluent.ksql.api.impl.BlockingPrintPublisher;
 import io.confluent.ksql.api.server.JsonStreamedRowResponseWriter.RowFormat;
 import io.confluent.ksql.api.spi.Endpoints;
 import io.confluent.ksql.api.spi.QueryPublisher;
@@ -97,21 +98,29 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
     final Optional<Boolean> internalRequest = ServerVerticle.isInternalRequest(routingContext);
     final MetricsCallbackHolder metricsCallbackHolder = new MetricsCallbackHolder();
     final long startTimeNanos = Time.SYSTEM.nanoseconds();
+
     endpoints.createQueryPublisher(
-        request.sql, request.configOverrides, request.sessionProperties,
-        request.requestProperties,
-        context, server.getWorkerExecutor(),
-        DefaultApiSecurityContext.create(routingContext, server), metricsCallbackHolder,
-        internalRequest)
-        .thenAccept(queryPublisher -> {
-          handleQueryPublisher(
-              routingContext,
-              queryPublisher,
-              metricsCallbackHolder,
-              startTimeNanos);
+            request.sql, request.configOverrides, request.sessionProperties,
+            request.requestProperties,
+            context, server.getWorkerExecutor(),
+            DefaultApiSecurityContext.create(routingContext, server), metricsCallbackHolder,
+            internalRequest)
+        .thenAccept(publisher -> {
+          if (publisher instanceof BlockingPrintPublisher) {
+            handlePrintPublisher(
+                routingContext,
+                (BlockingPrintPublisher) publisher);
+          } else {
+            handleQueryPublisher(
+                routingContext,
+                (QueryPublisher) publisher,
+                metricsCallbackHolder,
+                startTimeNanos);
+          }
         })
         .exceptionally(t ->
             ServerUtils.handleEndpointException(t, routingContext, "Failed to execute query"));
+
   }
 
   private QueryStreamResponseWriter getQueryStreamResponseWriter(
@@ -128,27 +137,27 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
       return new DelimitedQueryStreamResponseWriter(routingContext.response());
     } else if (KsqlMediaType.KSQL_V1_PROTOBUF.mediaType().equals(contentType)) {
       return new JsonStreamedRowResponseWriter(
-              routingContext.response(),
-              queryPublisher,
-              completionMessage,
-              limitMessage,
-              Clock.systemUTC(),
-              bufferOutput,
-              context,
-              RowFormat.PROTOBUF
+          routingContext.response(),
+          queryPublisher,
+          completionMessage,
+          limitMessage,
+          Clock.systemUTC(),
+          bufferOutput,
+          context,
+          RowFormat.PROTOBUF
       );
     } else if (KsqlMediaType.KSQL_V1_JSON.mediaType().equals(contentType)
         || ((contentType == null || JSON_CONTENT_TYPE.equals(contentType)
         && queryCompatibilityMode))) {
       return new JsonStreamedRowResponseWriter(
-              routingContext.response(),
-              queryPublisher,
-              completionMessage,
-              limitMessage,
-              Clock.systemUTC(),
-              bufferOutput,
-              context,
-              RowFormat.JSON);
+          routingContext.response(),
+          queryPublisher,
+          completionMessage,
+          limitMessage,
+          Clock.systemUTC(),
+          bufferOutput,
+          context,
+          RowFormat.JSON);
     } else {
       return new JsonQueryStreamResponseWriter(routingContext.response());
     }
@@ -224,7 +233,7 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
             routingContext.response().bytesWritten(),
             startTimeNanos);
       });
-    }  else if (queryPublisher.isScalablePushQuery()) {
+    } else if (queryPublisher.isScalablePushQuery()) {
       metadata = new QueryResponseMetadata(
           queryPublisher.queryId().toString(),
           queryPublisher.getColumnNames(),
@@ -281,6 +290,48 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
     queryPublisher.subscribe(querySubscriber);
   }
 
+  private void handlePrintPublisher(
+      final RoutingContext routingContext,
+      final BlockingPrintPublisher printPublisher
+  ) {
+    final String contentType = routingContext.getAcceptableContentType();
+    if (!(DELIMITED_CONTENT_TYPE.equals(contentType)
+        || (contentType == null && !queryCompatibilityMode))) {
+      // We currently only support delimited format for print topic
+      // So we send 406 not acceptable back
+      routingContext.response().setStatusCode(406).end();
+    }
+
+    // The end handler can be called twice if the connection is closed by the client.  The
+    // call to response.end() resulting from queryPublisher.close() may result in a second
+    // call to the end handler, which will mess up metrics, so we ensure that this called just
+    // once by keeping track of the calls.
+    final AtomicBoolean endedResponse = new AtomicBoolean(false);
+    // When response is complete, publisher should be closed
+    routingContext.response().endHandler(v ->
+        endhandler(
+            printPublisher,
+            endedResponse
+        ));
+
+    final PrintSubscriber printSubscriber = new PrintSubscriber(
+        context,
+        routingContext.response()
+    );
+
+    printPublisher.subscribe(printSubscriber);
+  }
+
+  private void endhandler(
+      final BlockingPrintPublisher printPublisher, final AtomicBoolean endedResponse) {
+    if (endedResponse.getAndSet(true)) {
+      log.warn("Connection already closed so just returning");
+      return;
+    }
+
+    printPublisher.close();
+  }
+
   private LogicalSchema preparePushProjectionSchema(final LogicalSchema schema) {
     final Builder projectionSchema = LogicalSchema.builder();
     schema.value().forEach(projectionSchema::valueColumn);
@@ -288,6 +339,7 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
   }
 
   private static class CommonRequest {
+
     final String sql;
     final Map<String, Object> configOverrides;
     final Map<String, Object> sessionProperties;

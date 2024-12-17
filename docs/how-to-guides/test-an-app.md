@@ -8,160 +8,163 @@ keywords: testing, qa, quality assurance, test runner
 
 # How to test an application
 
+!!! important
+    ksqlDB 0.30 ships with a new sql-based testing tool (`run-ksql-test`). For documentation on the old test runner,
+    switch to an older version of this page.
+
 ## Context
 
-You have an application of ksqlDB statements, and you want to automatically test whether they behave correctly when given a set of inputs. ksqlDB exposes a *test runner* command line tool to do just that. It runs quickly and doesn't require a running {{ site.aktm }} or ksqlDB cluster.
+ksqlDB ships with a command line tool to test KSQL statements automatically.
+It doesn't require an active {{ site.aktm }} or ksqlDB cluster.
 
 ## In action
 
 ```bash
-ksql-test-runner -s statements.sql -i input.json -o output.json
+run-ksql-test --test-directory path/to/tests --temp-folder path/to/temp/folder
 ```
 
 ## Usage
 
-To test a set of SQL statements, you provide three files, one file
-containing the SQL statements and two JSON files containing the input
-records and the expected output records.
+To test a set of KSQL statements, provide a folder containing the sql test files and another folder
+that the testing tool will use to store temporary files.
 
 ```
 NAME
-        ksql-test-runner - The KSQL testing tool
+        run-ksql-test - The KSQL SQL testing tool
 
 SYNOPSIS
-        ksql-test-runner [ {--extension-dir | -e} <extensionDir> ]
-                [ {--input-file | -i} <inputFile> ]
-                {--output-file | -o} <outputFile>
-                {--sql-file | -s} <statementsFile>
+        run-ksql-test {--temp-folder | -tf} <tempFolder>
+                      {--test-directory | -td} <testDirectory>
 
 OPTIONS
-        --extension-dir <extensionDir>, -e <extensionDir>
-            A directory containing extensions.
+        --temp-folder <tempFolder>, -tf <tempFolder>
+            A folder to store temporary files
 
             This option may occur a maximum of 1 times
 
 
-        --input-file <inputFile>, -i <inputFile>
-            A JSON file containing the input records.
-
-            This option may occur a maximum of 1 times
-
-
-        --output-file <outputFile>, -o <outputFile>
-            A JSON file containing the expected output records.
-
-            This option may occur a maximum of 1 times
-
-
-        --sql-file <statementsFile>, -s <statementsFile>
-            A SQL file containing KSQL statements to be tested.
+        --test-directory <testDirectory>, -td <testDirectory>
+            A directory containing SQL files to test.
 
             This option may occur a maximum of 1 times
 ```
 
-## Test file structure
+## File structure
 
-### Statements File
+Here is a sample test file:
 
-The statements file contains the SQL statements to test. The following
-are the supported statements in the testing tool:
+```sql
+--@test: Passing test
+
+CREATE STREAM s (id INT KEY, foo INT) WITH (kafka_topic='s', value_format='JSON');
+CREATE TABLE t (id INT PRIMARY KEY, bar INT) WITH (kafka_topic='t', value_format='JSON');
+
+CREATE STREAM j AS SELECT s.id, s.foo, t.bar FROM s JOIN t ON s.id = t.id;
+
+INSERT INTO t (rowtime, id, bar) VALUES (1, 1, 1);
+INSERT INTO s (rowtime, id, foo) VALUES (1, 1, 2);
+
+ASSERT VALUES j (rowtime, s_id, foo, bar) VALUES (1, 1, 2, 1);
+
+--@test: Failing test
+--@expected.error: io.confluent.ksql.util.KsqlException
+--@expected.message: (The following columns are changed, missing or reordered: [`COL2` INTEGER])
+
+SET 'ksql.create.or.replace.enabled' = 'true';
+
+CREATE STREAM a (id INT KEY, col1 INT, col2 INT) WITH (kafka_topic='a', value_format='JSON');
+CREATE STREAM b AS SELECT id, col1, col2 FROM a;
+
+INSERT INTO a (id, col1) VALUES (3, 5);
+
+ASSERT VALUES b (id, col1) VALUES (3, 5);
+
+CREATE OR REPLACE STREAM b AS SELECT id, col1 FROM a;
+```
+
+A test file contains one or more tests separated by the `--@test` directive.
+Each test consists of comments containing directives and sql stataments.
+
+### Directives
+
+There are three directives available:
+
+* `--@test: name of test`. Required in every test.
+* `--@expected.error: error class`. Checks that the test throws an error of the
+provided type. 
+* `--@expected.message: error message`. Checks that the test throws an error with a
+message containing the provided message. 
+
+### Statements
+
+`run-ksql-test` runs each statement in a test sequentially until an error is thrown or the end of
+the test is reached.
+
+The following are the supported KSQL statements in `run-ksql-test`:
 
 - `CREATE STREAM`
 - `CREATE TABLE`
 - `CREATE STREAM AS SELECT`
 - `CREATE TABLE AS SELECT`
+- `ALTER STREAM`
+- `ALTER TABLE`
+- `DROP STREAM`
+- `DROP TABLE`
+- `SET`
+- `UNSET`
 - `INSERT INTO`
+- `INSERT VALUES`
 
-Here is a sample statements file for the testing tool:
+There are also four test only statements for verifying data.
 
-```sql
-CREATE STREAM orders (ORDERID INT KEY, ORDERUNITS double) WITH (kafka_topic='test_topic', value_format='JSON');
-CREATE STREAM S1 AS SELECT ORDERID, ORDERUNITS, CASE WHEN orderunits < 2.0 THEN 'small' WHEN orderunits < 4.0 THEN 'medium' ELSE 'large' END AS case_result FROM orders EMIT CHANGES;
+
+#### ASSERT STREAM
+
+```
+ASSERT STREAM sourceName (tableElements)? (WITH tableProperties)?
 ```
 
-### Input File
+Asserts the existence of a stream with the given elements and properties.
 
-The input file is a JSON file with one array field named `inputs`.
-Each element in the array is the representation of input records.
+#### ASSERT TABLE
 
-The input records array can't be empty. A record should have a topic, a
-key, a value, and a timestamp. The following is a sample input file for
-the previous test:
-
-```json
-{
-  "inputs": [
-    {"topic": "test_topic", "timestamp": 0, "key": 0, "value": {"ORDERUNITS": 2.0}},
-    {"topic": "test_topic", "timestamp": 0, "key": 100, "value": {"ORDERUNITS": 4.0}},
-    {"topic": "test_topic", "timestamp": 0, "key": 101, "value": {"ORDERUNITS": 6.0 }},
-    {"topic": "test_topic", "timestamp": 0, "key": 101, "value": {"ORDERUNITS": 3.0}},
-    {"topic": "test_topic", "timestamp": 0, "key": 101, "value": {"ORDERUNITS": 1.0}}
-  ]
-}
+```
+ASSERT TABLE sourceName (tableElements)? (WITH tableProperties)?
 ```
 
-### Output File
+Asserts the existence of a table with the given elements and properties.
 
-The output file is a JSON file with an array field named `outputs`.
-Similar to the input file, each element in the array is the
-representation of the expected output records.
+#### ASSERT VALUES
 
-The output records array can't be empty. An expected output record should
-have a topic, a key, a value, and a timestamp. The following is a sample
-expected output file for the previous test:
-
-```json
-{
-  "outputs": [
-    {"topic": "S1", "timestamp": 0, "key": 0, "value": {"ORDERUNITS": 2.0, "CASE_RESULT": "medium"}},
-    {"topic": "S1", "timestamp": 0, "key": 100, "value": {"ORDERUNITS": 4.0, "CASE_RESULT": "large"}},
-    {"topic": "S1", "timestamp": 0, "key": 101, "value": {"ORDERUNITS": 6.0, "CASE_RESULT": "large"}},
-    {"topic": "S1", "timestamp": 0, "key": 101, "value": {"ORDERUNITS": 3.0, "CASE_RESULT": "medium"}},
-    {"topic": "S1", "timestamp": 0, "key": 101, "value": {"ORDERUNITS": 1.0, "CASE_RESULT": "small"}}
-  ]
-}
+```
+ASSERT VALUES sourceName (columns)? VALUES values
 ```
 
-In the input and output files you can have records with windowed keys.
-Such records can be generated by windowed aggregations in ksqlDB. To
-specify a window for a record you can add a `window` field to the
-record. A window field has three fields:
+Asserts that a row with the given values is in a source.
 
--   **start:** the start time for the window.
--   **end:** the end time for the window.
--   **type:** the type of the window. A window type can be `time` or
-    `session`.
+#### ASSERT TOMBSTONES
 
-The following is an example expected output file with records that have
-a window field:
-
-```json
-{
-   "outputs": [
-     {"topic": "S2", "timestamp": 0, "key": 0, "window": {"start": 0, "end": 30000, "type": "time"}, "value": "0,0"},
-     {"topic": "S2", "timestamp": 10000, "key": 0, "window": {"start": 0, "end": 30000, "type": "time"}, "value": "0,5"},
-     {"topic": "S2", "timestamp": 30000, "key": 100, "window": {"start": 30000, "end": 60000, "type": "time"}, "value": "100,100"},
-     {"topic": "S2", "timestamp": 45000, "key": 100, "window": {"start": 30000, "end": 60000, "type": "time"}, "value": "100,100"}
-   ]
-}
+```
+ASSERT NULL VALUES sourceName (columns)? KEY values
 ```
 
-Currently, in the input files you can have only records with session
-window types.
+Asserts that a tombstone is in a source.
 
-### Running the testing tool
+### Running tests
 
-The testing tool indicates the success or failure of a test by
+`run-ksql-test` indicates the success or failure of a test by
 printing the corresponding record. The following is the result of a
 successful test:
 
 ```bash
-ksql-test-runner -s statements.sql -i input.json -o output.json
+run-ksql-test -td /path/to/test/directory -tf /path/to/temp/folder
 ```
 
 Your output should resemble:
 
 ```
+>>> Test passed!
+>>> Test passed!
 >>> Test passed!
 ```
 
@@ -172,85 +175,22 @@ If a test fails, the testing tool will indicate the failure along with
 the cause. Here is an example of the output for a failing test:
 
 ```
-  >>>>> Test failed: Topic 'S1', message 4: Expected <101, {"ORDERUNITS":18.0,"CASE_RESULT":"small"}> with timestamp=0 but was <101, {ORDERUNITS=1.0, CASE_RESULT=small}> with timestamp=0
+>>>>> Test failed: Test failure for assert `ASSERT VALUES B (ID, COL1, COL2) VALUES (1, 1, 0)` (Line: 18, Col: 15):
+Expected record does not match actual.
++--------------+--------------+--------------+--------------+--------------+
+|.             |ROWTIME       |ID            |COL1          |COL2          |
++--------------+--------------+--------------+--------------+--------------+
+|EXPECTED      |1             |1665202365011 |1             |0             |
+|ACTUAL        |1             |1665202365003 |1             |1             |
+
+file:///path/to/failing/test/file.sql:18
 ```
 
-## Query execution
-
-To use the ksqlDB testing tool effectively, you need to understand the
-query execution logic in the testing tool. Although the final results
-should be deterministic, the intermediate results in SQL queries
-({{ site.ak }} Apps) may vary based on several factors, such as order of
-reading input or config properties like the producer buffer size. In
-order to make the composition of output for the test cases simpler, the
-ksqlDB testing tool executes queries in a predictable way. Consider the
-following guidance when you prepare the output for your tests.
-
-### Input consumption
-
-Before processing the next input record, the testing tool processes
-input records for each query one-by-one and writes the generated
-record(s) for each input record into the result topic. This means that
-queries running in the testing tool have the same behavior as when
-`cache.max.bytes.buffering = 0`. This is especially important in
-aggregate queries, where you may not see some of the intermediate results
-in real executions because of buffering, but when the testing tool executes,
-every possible intermediate result is created.
+The tool will return an exit code of `1` if any test fails and `0` if all tests pass.
 
 ### Kafka cluster
 
-The ksqlDB testing tool doesn't use a real Kafka cluster. Instead, it simulates
-the behavior of a cluster with a single broker for the SQL queries. This
+`run-ksql-test` doesn't use a real Kafka cluster. Instead, it simulates
+the behavior of a cluster with a single broker for the KSQL queries. This
 means that the testing tool ignores configuration settings for the input
 and output topics, like the number of partitions or replicas.
-
-### Processing order
-
-The testing tool processes the statements in the order that you provide
-them. So, for a given statement, only the statements before it can
-potentially affect its results. This behavior differs from a ksqlDB
-cluster, where statements that are submitted later can affect the output
-of a query. For example, consider the following set of statements:
-
-```sql
-CREATE STREAM orders (ORDERUNITS double) WITH (kafka_topic='test_topic', value_format='JSON');
-INSERT INTO orders VALUES(10.0);
-INSERT INTO orders VALUES(15.0);
-INSERT INTO orders VALUES(20.0);
-CREATE STREAM S1 AS SELECT ORDERUNITS, CASE WHEN orderunits < 2.0 THEN 'small' WHEN orderunits < 4.0 THEN 'medium' ELSE 'large' END AS case_result FROM orders EMIT CHANGES;
-INSERT INTO orders VALUES(25.0);
-INSERT INTO orders VALUES(30.0);
-```
-
-If you run these statements in a real ksqlDB cluster, you see one
-result generated for each `INSERT INTO` statement, and you have five
-records in the output. On the other hand, if you run the previous
-statements in the testing tool, only the `INSERT INTO` statements before
-the CSAS query generate results, and the testing tool doesn't run the
-query for the records generated by the `INSERT INTO` statements after the
-CSAS statement.
-
-Note: Be aware of the order in which the input data for a query is
-processed. For a given query, the testing tool first processes the input
-records provided in the input file. After fully processing these messages,
-the testing tool inspects the source topics for the query in the simulated
-Kafka cluster and processes any messages in these topics. For `JOIN` queries
-that have more than one source topic, the testing tool first processes the
-left-side topic and then processes the right-side topic.
-
-## Generate an input file from an existing topic
-
-You can use [`kafkacat`](https://github.com/edenhill/kafkacat) and
-[`jq`](https://stedolan.github.io/jq/) in combination to create an input file
-based on data already in a Kafka topic:
-
-```bash
-kafkacat -b broker:29092 -t my_topic -C -e -J | \
-  jq --slurp '{inputs:[.[]|{topic:.topic,timestamp: .ts, key: .key, value: .payload|fromjson}]}' \
-  > input.json
-```
-
-Replace `broker:29092` with your broker host and port, and `my_topic` with the
-name of your topic. You can limit how many messages are written to the file by
-adding a `-c` flag to the `kafkacat` statement—for example, `-c42` would write
-the first 42 messages from the topic.

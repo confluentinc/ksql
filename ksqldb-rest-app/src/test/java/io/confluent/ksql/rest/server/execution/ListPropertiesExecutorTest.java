@@ -26,12 +26,10 @@ import static org.hamcrest.Matchers.not;
 import static org.mockito.Mockito.mock;
 
 import com.google.common.collect.ImmutableMap;
-import io.confluent.ksql.parser.tree.ListProperties;
 import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.rest.entity.PropertiesList;
 import io.confluent.ksql.rest.entity.PropertiesList.Property;
 import io.confluent.ksql.rest.server.TemporaryEngine;
-import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.test.util.KsqlTestFolder;
 import io.confluent.ksql.util.KsqlConfig;
 import java.io.File;
@@ -53,10 +51,6 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class ListPropertiesExecutorTest {
 
-  private static final CustomExecutors CUSTOM_EXECUTORS = new CustomExecutors(
-      new DefaultConnectServerErrors()
-  );
-
   @Rule
   public final TemporaryEngine engine = new TemporaryEngine();
 
@@ -73,8 +67,8 @@ public class ListPropertiesExecutorTest {
   @Test
   public void shouldContainAllowField() {
     // When:
-    final PropertiesList properties = (PropertiesList) CUSTOM_EXECUTORS.listProperties().execute(
-        (ConfiguredStatement<ListProperties>) engine.configure("LIST PROPERTIES;"),
+    final PropertiesList properties = (PropertiesList) CustomExecutors.LIST_PROPERTIES.execute(
+        engine.configure("LIST PROPERTIES;"),
         mock(SessionProperties.class),
         engine.getEngine(),
         engine.getServiceContext()
@@ -88,8 +82,8 @@ public class ListPropertiesExecutorTest {
   @Test
   public void shouldContainLevelField() {
     // When:
-    final PropertiesList properties = (PropertiesList) CUSTOM_EXECUTORS.listProperties().execute(
-        (ConfiguredStatement<ListProperties>) engine.configure("LIST PROPERTIES;"),
+    final PropertiesList properties = (PropertiesList) CustomExecutors.LIST_PROPERTIES.execute(
+        engine.configure("LIST PROPERTIES;"),
         mock(SessionProperties.class),
         engine.getEngine(),
         engine.getServiceContext()
@@ -97,14 +91,14 @@ public class ListPropertiesExecutorTest {
 
     // Then:
     assertThat(toMap(properties).get(KsqlConfig.KSQL_EXT_DIR).getLevel(), equalTo("SERVER"));
-    assertThat(toMap(properties).get(KsqlConfig.KSQL_QUERY_ERROR_MAX_QUEUE_SIZE).getLevel(), equalTo("QUERY"));
+    assertThat(toMap(properties).get(KsqlConfig.KSQL_STRING_CASE_CONFIG_TOGGLE).getLevel(), equalTo("QUERY"));
   }
 
   @Test
   public void shouldListProperties() {
     // When:
-    final PropertiesList properties = (PropertiesList) CUSTOM_EXECUTORS.listProperties().execute(
-        (ConfiguredStatement<ListProperties>) engine.configure("LIST PROPERTIES;"),
+    final PropertiesList properties = (PropertiesList) CustomExecutors.LIST_PROPERTIES.execute(
+        engine.configure("LIST PROPERTIES;"),
         mock(SessionProperties.class),
         engine.getEngine(),
         engine.getServiceContext()
@@ -120,8 +114,8 @@ public class ListPropertiesExecutorTest {
   @Test
   public void shouldListPropertiesWithOverrides() {
     // When:
-    final PropertiesList properties = (PropertiesList) CUSTOM_EXECUTORS.listProperties().execute(
-        (ConfiguredStatement<ListProperties>) engine.configure("LIST PROPERTIES;")
+    final PropertiesList properties = (PropertiesList) CustomExecutors.LIST_PROPERTIES.execute(
+        engine.configure("LIST PROPERTIES;")
             .withConfigOverrides(ImmutableMap.of("ksql.streams.auto.offset.reset", "latest")),
         mock(SessionProperties.class),
         engine.getEngine(),
@@ -138,8 +132,8 @@ public class ListPropertiesExecutorTest {
   @Test
   public void shouldNotListSslProperties() {
     // When:
-    final PropertiesList properties = (PropertiesList) CUSTOM_EXECUTORS.listProperties().execute(
-        (ConfiguredStatement<ListProperties>) engine.configure("LIST PROPERTIES;"),
+    final PropertiesList properties = (PropertiesList) CustomExecutors.LIST_PROPERTIES.execute(
+        engine.configure("LIST PROPERTIES;"),
         mock(SessionProperties.class),
         engine.getEngine(),
         engine.getServiceContext()
@@ -154,8 +148,8 @@ public class ListPropertiesExecutorTest {
   @Test
   public void shouldListUnresolvedStreamsTopicProperties() {
     // When:
-    final PropertiesList properties = (PropertiesList) CUSTOM_EXECUTORS.listProperties().execute(
-        (ConfiguredStatement<ListProperties>) engine.configure("LIST PROPERTIES;")
+    final PropertiesList properties = (PropertiesList) CustomExecutors.LIST_PROPERTIES.execute(
+        engine.configure("LIST PROPERTIES;")
             .withConfig(new KsqlConfig(ImmutableMap.of(
                 "ksql.streams.topic.min.insync.replicas", "2"))),
         mock(SessionProperties.class),
@@ -184,8 +178,8 @@ public class ListPropertiesExecutorTest {
     );
 
     // When:
-    final PropertiesList properties = (PropertiesList) CUSTOM_EXECUTORS.listProperties().execute(
-        (ConfiguredStatement<ListProperties>) engine.configure("LIST PROPERTIES;")
+    final PropertiesList properties = (PropertiesList) CustomExecutors.LIST_PROPERTIES.execute(
+        engine.configure("LIST PROPERTIES;")
             .withConfig(new KsqlConfig(ImmutableMap.of(
                 "ksql.connect.worker.config", connectPropsFile))),
         mock(SessionProperties.class),

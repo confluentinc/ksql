@@ -25,6 +25,7 @@ import io.confluent.ksql.analyzer.Analysis.Into;
 import io.confluent.ksql.analyzer.Analysis.JoinInfo;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.expression.formatter.ExpressionFormatter;
+import io.confluent.ksql.execution.expression.tree.BytesLiteral;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression.Type;
@@ -57,6 +58,7 @@ import io.confluent.ksql.parser.tree.Select;
 import io.confluent.ksql.parser.tree.SelectItem;
 import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.parser.tree.Sink;
+import io.confluent.ksql.parser.tree.StructAll;
 import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.planner.plan.JoinNode;
@@ -71,6 +73,7 @@ import io.confluent.ksql.serde.none.NoneFormat;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.UnknownColumnException;
 import io.confluent.ksql.util.UnknownSourceException;
+import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -100,25 +103,20 @@ class Analyzer {
 
   private final MetaStore metaStore;
   private final String topicPrefix;
-  private final boolean rowpartitionRowoffsetEnabled;
   private final boolean pullLimitClauseEnabled;
 
   /**
    * @param metaStore the metastore to use.
    * @param topicPrefix the prefix to use for topic names where an explicit name is not specified.
-   * @param rowpartitionRowoffsetEnabled whether KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED
-   *                                     is true
    */
   Analyzer(
       final MetaStore metaStore,
       final String topicPrefix,
-      final boolean rowpartitionRowoffsetEnabled,
       final boolean pullLimitClauseEnabled
 
   ) {
     this.metaStore = requireNonNull(metaStore, "metaStore");
     this.topicPrefix = requireNonNull(topicPrefix, "topicPrefix");
-    this.rowpartitionRowoffsetEnabled = rowpartitionRowoffsetEnabled;
     this.pullLimitClauseEnabled = pullLimitClauseEnabled;
   }
 
@@ -156,8 +154,8 @@ class Analyzer {
     Visitor(final Query query, final boolean persistent) {
       this.analysis = new Analysis(
               query.getRefinement(),
-              rowpartitionRowoffsetEnabled,
-              pullLimitClauseEnabled);
+              pullLimitClauseEnabled
+          );
 
       this.persistent = persistent;
     }
@@ -591,6 +589,9 @@ class Analyzer {
           validateSelect(column);
           captureReferencedSourceColumns(column.getExpression());
           visitTableFunctions(column.getExpression());
+        } else if (selectItem instanceof StructAll) {
+          final StructAll structAll = (StructAll) selectItem;
+          captureReferencedSourceColumns(structAll.getBaseStruct());
         } else if (!(selectItem instanceof AllColumns)) {
           throw new IllegalArgumentException(
               "Unsupported SelectItem type: " + selectItem.getClass().getName());
@@ -622,14 +623,11 @@ class Analyzer {
 
     private void validateSelect(final SingleColumn column) {
 
-      final int pseudoColumnVersion = SystemColumns
-          .getPseudoColumnVersionFromConfig(rowpartitionRowoffsetEnabled);
-
-      SystemColumns.systemColumnNames(pseudoColumnVersion)
+      SystemColumns.systemColumnNames()
           .forEach(col -> checkForReservedToken(column, col));
 
       if (!analysis.getGroupBy().isPresent()) {
-        throwOnUdafs(column.getExpression());
+        addDummyGroupbyForUdafs(column.getExpression());
       }
     }
 
@@ -666,14 +664,16 @@ class Analyzer {
       return unqualifiedExpression.equalsIgnoreCase(alias.text());
     }
 
-    private void throwOnUdafs(final Expression expression) {
+    private void addDummyGroupbyForUdafs(final Expression expression) {
       new TraversalExpressionVisitor<Void>() {
         @Override
         public Void visitFunctionCall(final FunctionCall functionCall, final Void context) {
           final FunctionName functionName = functionCall.getName();
           if (metaStore.isAggregate(functionName)) {
-            throw new KsqlException("Use of aggregate function "
-                + functionName.text() + " requires a GROUP BY clause.");
+            analysis.addAggregateFunction(functionCall);
+            // Since this is a dummy group by, we don't actually need a correct node location
+            analysis.setGroupBy(new GroupBy(Optional.empty(),
+                ImmutableList.of(new BytesLiteral(ByteBuffer.wrap(new byte[] {1})))));
           }
 
           super.visitFunctionCall(functionCall, context);

@@ -68,6 +68,7 @@ public final class KsqlConstants {
     RUNNING,
     ERROR,
     UNRESPONSIVE,
+    PAUSED,
   }
 
   public static KsqlQueryStatus fromStreamsState(final KafkaStreams.State state) {

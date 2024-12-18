@@ -25,6 +25,7 @@ import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.parsetools.RecordParser;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
@@ -85,44 +86,43 @@ public class StreamQueryResponseHandler
     if (queryResult == null) {
       throw new IllegalStateException("handleRow called before metadata processed");
     }
-    final Object json = buff.toJson();
+
     final Row row;
-    if (json instanceof JsonArray) {
-      row = new RowImpl(
-          queryResult.columnNames(),
-          queryResult.columnTypes(),
-          (JsonArray) json,
-          columnNameToIndex
-      );
-      final boolean full = queryResult.accept(row);
-      if (full && !paused) {
-        recordParser.pause();
-        queryResult.drainHandler(this::publisherReceptive);
-        paused = true;
+    final JsonObject jsonObject = buff.toJsonObject();
+
+    if (!jsonObject.containsKey("finalMessage")) {
+      if (jsonObject.containsKey("row")) {
+        row = new RowImpl(
+            queryResult.columnNames(),
+            queryResult.columnTypes(),
+            new JsonArray((List)((Map<?, ?>) jsonObject.getMap().get("row")).get("columns")),
+            columnNameToIndex
+        );
+        final boolean full = queryResult.accept(row);
+        if (full && !paused) {
+          recordParser.pause();
+          queryResult.drainHandler(this::publisherReceptive);
+          paused = true;
+        }
+      } else if (jsonObject.getMap() != null) {
+        if (jsonObject.getMap().containsKey("consistencyToken")) {
+          LOG.info("Response contains consistency vector " + jsonObject);
+          serializedConsistencyVector.set((String) jsonObject.getMap().get("consistencyToken"));
+        }
+        if (jsonObject.getMap().containsKey("continuationToken")) {
+          LOG.info("Response contains continuation token " + jsonObject);
+          continuationToken.set(
+                  (String) ((Map<?, ?>) jsonObject.getMap()
+                          .get("continuationToken"))
+                          .get("continuationToken"));
+        }
+        if (jsonObject.getMap().containsKey("errorMessage")) {
+          queryResult.handleError(new KsqlException(
+                  (String) ((Map<?, ?>) jsonObject.getMap().get("errorMessage")).get("message")));
+        }
+      } else {
+        throw new RuntimeException("Could not decode JSON: " + jsonObject);
       }
-    } else if (json instanceof JsonObject) {
-      final JsonObject jsonObject = (JsonObject) json;
-      // This is the serialized consistency vector
-      // Don't add it to the publisher's buffer since the user should not see it
-      if (jsonObject.getMap() != null && jsonObject.getMap().containsKey("consistencyToken")) {
-        LOG.info("Response contains consistency vector " + jsonObject);
-        serializedConsistencyVector.set((String) ((JsonObject) json).getMap().get(
-            "consistencyToken"));
-      }
-      if (jsonObject.getMap() != null && jsonObject.getMap().containsKey("continuationToken")) {
-        LOG.info("Response contains continuation token " + jsonObject);
-        continuationToken.set((String) ((JsonObject) json).getMap().get(
-                "continuationToken"));
-      }
-      if (!(jsonObject.getMap() != null && jsonObject.getMap().containsKey("consistencyToken"))
-          && !(jsonObject.getMap() != null && jsonObject.getMap().containsKey("continuationToken"))
-      ) {
-        queryResult.handleError(new KsqlException(
-            jsonObject.getString("message")
-        ));
-      }
-    } else {
-      throw new RuntimeException("Could not decode JSON: " + json);
     }
   }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Confluent Inc.
+ * Copyright 2022 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -42,6 +42,7 @@ import io.confluent.ksql.execution.streams.metrics.RocksDBMetricsCollector;
 import io.confluent.ksql.execution.util.KeyUtil;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.internal.StorageUtilizationMetricsReporter;
+import io.confluent.ksql.internal.ThroughputMetricsReporter;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.metastore.model.DataSource;
@@ -61,6 +62,7 @@ import io.confluent.ksql.util.BinPackedPersistentQueryMetadataImpl;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.MetricsTagsUtil;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.PersistentQueryMetadataImpl;
 import io.confluent.ksql.util.PushQueryMetadata.ResultType;
@@ -74,6 +76,7 @@ import io.confluent.ksql.util.SharedKafkaStreamsRuntimeImpl;
 import io.confluent.ksql.util.TransientQueryMetadata;
 import io.vertx.core.impl.ConcurrentHashSet;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -224,7 +227,8 @@ final class QueryBuilder {
         resultType,
         ksqlConfig.getLong(KsqlConfig.KSQL_QUERY_RETRY_BACKOFF_INITIAL_MS),
         ksqlConfig.getLong(KsqlConfig.KSQL_QUERY_RETRY_BACKOFF_MAX_MS),
-        listener
+        listener,
+        processingLogContext.getLoggerFactory()
     );
   }
 
@@ -371,7 +375,8 @@ final class QueryBuilder {
         ksqlConfig.getLong(KsqlConfig.KSQL_QUERY_RETRY_BACKOFF_INITIAL_MS),
         ksqlConfig.getLong(KsqlConfig.KSQL_QUERY_RETRY_BACKOFF_MAX_MS),
         listener,
-        scalablePushRegistry
+        scalablePushRegistry,
+        processingLogContext.getLoggerFactory()
     );
 
   }
@@ -437,23 +442,14 @@ final class QueryBuilder {
             );
 
     final RuntimeBuildContext runtimeBuildContext = buildContext(
-            applicationId,
-            queryId,
-            namedTopologyBuilder
+        applicationId,
+        queryId,
+        namedTopologyBuilder
     );
     final Object result = buildQueryImplementation(physicalPlan, runtimeBuildContext);
     final NamedTopology topology = namedTopologyBuilder.build();
 
-    final Optional<MaterializationProviderBuilderFactory.MaterializationProviderBuilder>
-            materializationProviderBuilder = getMaterializationInfo(result).map(info ->
-            materializationProviderBuilderFactory.materializationProviderBuilder(
-                    info,
-                    querySchema,
-                    keyFormat,
-                    queryOverrides,
-                    applicationId,
-                    queryId.toString()
-            ));
+    final Optional<MaterializationInfo> materializationInfo = getMaterializationInfo(result);
 
     final Optional<ScalablePushRegistry> scalablePushRegistry = applyScalablePushProcessor(
         querySchema.logicalSchema(),
@@ -479,12 +475,12 @@ final class QueryBuilder {
             runtimeBuildContext.getSchemas(),
             config.getOverrides(),
             queryId,
-            materializationProviderBuilder,
+            materializationInfo,
+            materializationProviderBuilderFactory,
             physicalPlan,
             getUncaughtExceptionProcessingLogger(queryId),
             sinkDataSource,
             listener,
-            queryOverrides,
             scalablePushRegistry,
             (streamsRuntime) -> getNamedTopology(
                 streamsRuntime,
@@ -492,7 +488,9 @@ final class QueryBuilder {
                 applicationId,
                 queryOverrides,
                 physicalPlan
-            )
+            ),
+            keyFormat,
+            processingLogContext.getLoggerFactory()
     );
     if (real) {
       return binPackedPersistentQueryMetadata;
@@ -535,12 +533,18 @@ final class QueryBuilder {
     newStreamsProperties.put(StreamsConfig.APPLICATION_ID_CONFIG, applicationId);
 
     // get logger
-    final ProcessingLogger logger;
+    final String id;
     if (queryId.isPresent()) {
-      logger = processingLogContext.getLoggerFactory().getLogger(queryId.get().toString());
+      id = queryId.get().toString();
     } else {
-      logger = processingLogContext.getLoggerFactory().getLogger(applicationId);
+      id = applicationId;
     }
+
+    final ProcessingLogger logger =
+        processingLogContext
+            .getLoggerFactory()
+            .getLogger(id, MetricsTagsUtil.getMetricsTagsWithQueryId(id, Collections.emptyMap()));
+
     newStreamsProperties.put(
         ProductionExceptionHandlerUtil.KSQL_PRODUCTION_ERROR_LOGGER,
         logger);
@@ -565,12 +569,21 @@ final class QueryBuilder {
         StreamsConfig.METRIC_REPORTER_CLASSES_CONFIG,
         StorageUtilizationMetricsReporter.class.getName()
     );
+    updateListProperty(
+        newStreamsProperties,
+        StreamsConfig.METRIC_REPORTER_CLASSES_CONFIG,
+        ThroughputMetricsReporter.class.getName()
+    );
+
+    final String type = queryId.isPresent() && queryId.get().toString().contains("transient")
+        ? queryId.get().toString()
+        : "query";
 
     if (config.getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)) {
       newStreamsProperties.put(StreamsConfig.InternalConfig.TOPIC_PREFIX_ALTERNATIVE,
           ReservedInternalTopics.KSQL_INTERNAL_TOPIC_PREFIX
               + config.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG)
-              + "query");
+              + type);
     }
 
     // Passing shared state into managed components
@@ -641,18 +654,25 @@ final class QueryBuilder {
       final String applicationId
   ) {
     final QueryErrorClassifier userErrorClassifiers = new MissingTopicClassifier(applicationId)
-        .and(new AuthorizationClassifier(applicationId));
+        .and(new AuthorizationClassifier(applicationId))
+        .and(new KsqlFunctionClassifier(applicationId))
+        .and(new MissingSubjectClassifier(applicationId))
+        .and(new SchemaAuthorizationClassifier(applicationId))
+        .and(new KsqlSerializationClassifier(applicationId));
     return buildConfiguredClassifiers(ksqlConfig, applicationId)
         .map(userErrorClassifiers::and)
         .orElse(userErrorClassifiers);
   }
 
-  private ProcessingLogger getUncaughtExceptionProcessingLogger(final QueryId queryId) {
+  private ProcessingLogger getUncaughtExceptionProcessingLogger(
+      final QueryId queryId
+  ) {
     final QueryContext.Stacker stacker = new QueryContext.Stacker()
         .push(KSQL_THREAD_EXCEPTION_UNCAUGHT_LOGGER);
 
     return processingLogContext.getLoggerFactory().getLogger(
-        QueryLoggerUtil.queryLoggerName(queryId, stacker.getQueryContext()));
+        QueryLoggerUtil.queryLoggerName(queryId, stacker.getQueryContext()),
+        MetricsTagsUtil.getMetricsTagsWithQueryId(queryId.toString(), Collections.emptyMap()));
   }
 
   private static TransientQueryQueue buildTransientQueryQueue(
@@ -694,9 +714,10 @@ final class QueryBuilder {
   }
 
   private RuntimeBuildContext buildContext(
-          final String applicationId,
-          final QueryId queryId,
-          final StreamsBuilder streamsBuilder) {
+      final String applicationId,
+      final QueryId queryId,
+      final StreamsBuilder streamsBuilder
+  ) {
     return RuntimeBuildContext.of(
         streamsBuilder,
         config.getConfig(true),

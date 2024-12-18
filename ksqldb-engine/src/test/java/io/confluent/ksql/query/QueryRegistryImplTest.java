@@ -36,7 +36,6 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.BinPackedPersistentQueryMetadataImpl;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
-import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.PersistentQueryMetadataImpl;
 import io.confluent.ksql.util.QueryMetadata;
@@ -90,8 +89,6 @@ public class QueryRegistryImplTest {
   private ServiceContext serviceContext;
   @Mock
   private MetaStore metaStore;
-  @Mock
-  private DataSource source;
   @Captor
   private ArgumentCaptor<QueryMetadata.Listener> queryListenerCaptor;
   @SuppressWarnings("Unused")
@@ -100,7 +97,6 @@ public class QueryRegistryImplTest {
 
   private QueryRegistryImpl registry;
 
-  @SuppressWarnings("deprecation")
   @Parameterized.Parameters(name = "{0}")
   public static Collection<Boolean> data() {
     return Arrays.asList(
@@ -281,7 +277,6 @@ public class QueryRegistryImplTest {
       assertThat(e.getMessage(), containsString("commit.interval.ms"));
     }
     givenCreate(registry, "q1", "source", Optional.of("sink1"), CREATE_AS);
-
   }
 
   @Test
@@ -557,10 +552,10 @@ public class QueryRegistryImplTest {
   }
 
   private DataSource toSource(final String name) {
-    final DataSource source = Mockito.mock(DataSource.class);
-    return source;
+    return Mockito.mock(DataSource.class);
   }
 
+  @SuppressWarnings({"rawtypes", "unchecked"})
   private PersistentQueryMetadata givenCreate(
       final QueryRegistry registry,
       final String id,
@@ -592,9 +587,7 @@ public class QueryRegistryImplTest {
       Field sharedRuntime = BinPackedPersistentQueryMetadataImpl.class.getDeclaredField("sharedKafkaStreamsRuntime");
       sharedRuntime.setAccessible(true);
       sharedRuntime.set(newQuery, runtime);
-    } catch (NoSuchFieldException e) {
-      e.printStackTrace();
-    } catch (IllegalAccessException e) {
+    } catch (final NoSuchFieldException | IllegalAccessException e) {
       e.printStackTrace();
     }
 
@@ -659,7 +652,7 @@ public class QueryRegistryImplTest {
     return query;
   }
 
-  private TransientQueryMetadata givenStreamPull(
+  private void givenStreamPull(
       final QueryRegistry registry,
       final String id
   ) {
@@ -686,6 +679,5 @@ public class QueryRegistryImplTest {
         false,
         ImmutableMap.<TopicPartition, Long> builder().build()
     );
-    return query;
   }
 }

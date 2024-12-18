@@ -108,6 +108,7 @@ public class Cli implements KsqlRequestExecutor, Closeable {
 
   // validators return an Optional<RuntimeException> error message representing the
   // validation error, if any.
+  @SuppressWarnings("rawtypes")
   private static final ClassHandlerMapR2<StatementContext, Cli, Void, Optional>
       STATEMENT_VALIDATORS =
           HandlerMaps
@@ -476,6 +477,7 @@ public class Cli implements KsqlRequestExecutor, Closeable {
     }
   }
 
+  @SuppressWarnings("rawtypes")
   private void handleStatements(final String line) {
     final List<ParsedStatement> statements = KSQL_PARSER.parse(line);
 

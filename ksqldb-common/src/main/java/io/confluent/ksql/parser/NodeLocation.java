@@ -30,6 +30,22 @@ public final class NodeLocation {
     this.charPositionInLine = charPositionInLine;
   }
 
+  /**
+   * @return the line number within the statement where the {@link Node} begins.
+   *     Note: the line numbers start from 1 (and not 0).
+   */
+  public int getStartLineNumber() {
+    return getLineNumber();
+  }
+
+  /**
+   * @return the column number within the statement where the {@link Node} begins.
+   *     Note: the column numbers start from 1 (and not 0)
+   */
+  public int getStartColumnNumber() {
+    return getColumnNumber();
+  }
+
   public int getLineNumber() {
     return line;
   }

@@ -19,7 +19,7 @@ The following table shows all keywords in the language.
 | `AND`          | logical "and" operator                  | `WHERE userid<>'User_1' AND userid<>'User_2'`                        |
 | `ARRAY`        | one-indexed array of elements           | `SELECT ARRAY[1, 2] FROM s1 EMIT CHANGES;`                           |
 | `AS`           | alias a column, expression, or type     |                                                                      |
-| `ASSERT`       | assert value, stream, table, tombstone  | `ASSERT NULL VALUES sourceName (columns)? KEY values;`               |
+| `ASSERT`       | assert value, stream, table, tombstone, topic, schema  | `ASSERT NULL VALUES sourceName (columns)? KEY values;`|
 | `BEGINNING`    | print from start of topic               | `PRINT <topic-name> FROM BEGINNING;`                                 |
 | `BETWEEN`      | constrain a value to a range            | `SELECT event FROM events WHERE event_id BETWEEN 10 AND 20 …`        |
 | `BY`           | specify expression                      | `GROUP BY regionid`, `ADVANCE BY 10 SECONDS`, `PARTITION BY userid`  |
@@ -97,6 +97,7 @@ The following table shows all keywords in the language.
 | `RIGHT`        | specify `RIGHT JOIN`                    | `CREATE TABLE t AS SELECT * FROM l RIGHT JOIN r ON l.ID = r.ID;`     |
 | `RUN SCRIPT`   | execute queries from a file             | `RUN SCRIPT <path-to-query-file>;`                                   |
 | `SAMPLE`       | number of messages to skip in `PRINT`   | `PRINT <topic-name> SAMPLE 5;`                                       |
+| `SCHEMA`       | specify a schema                        | `ASSERT SCHEMA SUBJECT 'foo-value' ID 5;`                            |
 | `SECOND`       | time unit of one sec for a window       | `WINDOW TUMBLING (SIZE 1 SECOND, RETENTION 1 DAY)`                   |
 | `SECONDS`      | time unit of secs for a window          | `WINDOW TUMBLING (SIZE 30 SECONDS, RETENTION 1 DAY)`                 |
 | `SELECT`       | query a stream or table                 | `SELECT * FROM metrics EMIT CHANGES;`                                |
@@ -114,10 +115,11 @@ The following table shows all keywords in the language.
 | `TERMINATE`    | end a persistent query                  | `TERMINATE query_id;`                                                |
 | `THEN`         | return expression in a CASE block       | `CASE WHEN units<2 THEN 'sm' WHEN units<4 THEN 'med' ELSE 'large' …` |
 | `TIME`         | time data type                          |                                                                      |
+| `TIMEOUT`      | specify the amount of time to wait for an assertion to succeed | `ASSERT SCHEMA ID 4 TIMEOUT 10 SECONDS;`      |
 | `TIMESTAMP`    | timestamp data type                     |                                                                      |
 | `TIMESTAMP`    | specify a timestamp column              | `CREATE STREAM pageviews WITH (TIMESTAMP='viewtime', …`              |
-| `TOPIC`        | specify {{site.ak}} topic to delete     | `DROP TABLE <table-name> DELETE TOPIC;`                              |
-| `TOPICS`       | list all streams                        | `LIST TOPICS;` or `SHOW TOPICS;`                                     |
+| `TOPIC`        | specify a {{site.ak}} topic             | `DROP TABLE <table-name> DELETE TOPIC;`                              |
+| `TOPICS`       | list all topics                         | `LIST TOPICS;` or `SHOW TOPICS;`                                     |
 | `TRUE`         | Boolean value of true                   |                                                                      |
 | `TUMBLING`     | specify a tumbling window               | `WINDOW TUMBLING (SIZE 5 SECONDS)`                                   |
 | `TYPE`         | alias a complex type declaration        | `CREATE TYPE <type_name> AS <type>;`                                 |

@@ -23,6 +23,7 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.stringContainsInOrder;
+import static org.junit.Assert.assertThrows;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
@@ -31,15 +32,17 @@ import com.google.common.collect.Iterators;
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.integration.IntegrationTestHarness;
 import io.confluent.ksql.integration.Retry;
+import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.entity.ConnectorDescription;
 import io.confluent.ksql.rest.entity.ConnectorList;
 import io.confluent.ksql.rest.entity.DropConnectorEntity;
-import io.confluent.ksql.rest.entity.ErrorEntity;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
+import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.entity.WarningEntity;
+import io.confluent.ksql.rest.server.resources.KsqlRestException;
 import io.confluent.ksql.util.KsqlConfig;
 import java.io.ByteArrayOutputStream;
 import java.io.FileDescriptor;
@@ -57,6 +60,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import kafka.zookeeper.ZooKeeperClientException;
+import org.apache.hc.core5.http.HttpStatus;
 import org.apache.kafka.connect.json.JsonConverter;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorType;
 import org.apache.kafka.connect.storage.StringConverter;
@@ -250,11 +254,11 @@ public class ConnectIntegrationTest {
         .makeKsqlRequest("CREATE SOURCE CONNECTOR `mock-connector` "
             + "WITH(\"connector.class\"='org.apache.kafka.connect.tools.MockSourceConnector');");
 
-    //Then
-    assertThat("expected successful response", response.isSuccessful());
-    assertThat(response.getResponse().get(0), instanceOf(ErrorEntity.class));
-    assertThat(((ErrorEntity) response.getResponse().get(0)).getErrorMessage(),
-        containsString("Connector mock-connector already exists"));
+    //Then:
+    assertThat("expected error response", response.isErroneous());
+    final KsqlErrorMessage err = response.getErrorMessage();
+    assertThat(err.getErrorCode(), is(Errors.toErrorCode(HttpStatus.SC_CONFLICT)));
+    assertThat(err.getMessage(), containsString("Connector mock-connector already exists"));
   }
 
   @Test

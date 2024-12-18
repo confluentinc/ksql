@@ -41,6 +41,7 @@ import io.confluent.ksql.query.QueryRegistry;
 import io.confluent.ksql.query.QueryRegistryImpl;
 import io.confluent.ksql.query.QueryValidator;
 import io.confluent.ksql.query.id.QueryIdGenerator;
+import io.confluent.ksql.serde.RefinementInfo;
 import io.confluent.ksql.services.SandboxedServiceContext;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.BinPackedPersistentQueryMetadataImpl;
@@ -132,7 +133,7 @@ final class EngineContext {
     this.runtimeAssignor.rebuildAssignment(queryRegistry.getPersistentQueries().values());
     return new EngineContext(
         SandboxedServiceContext.create(serviceContext),
-        processingLogContext,
+        ProcessingLogContext.create(),
         metaStore.copy(),
         queryIdGenerator.createSandbox(),
         new DefaultKsqlParser(),
@@ -175,6 +176,10 @@ final class EngineContext {
     return ksqlConfig;
   }
 
+  synchronized void configure(final KsqlConfig config) {
+    this.ksqlConfig = config;
+  }
+
   synchronized void alterSystemProperty(final Map<String, String> overrides) {
     this.ksqlConfig = this.ksqlConfig.cloneWithPropertyOverwrite(overrides);
   }
@@ -198,8 +203,7 @@ final class EngineContext {
           AstSanitizer.sanitize(
               preparedStatement.getStatement(),
               metaStore,
-              ksqlConfig.getBoolean(KsqlConfig.KSQL_LAMBDAS_ENABLED),
-              ksqlConfig.getBoolean(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED)
+              ksqlConfig.getBoolean(KsqlConfig.KSQL_LAMBDAS_ENABLED)
           ));
     } catch (final KsqlStatementException e) {
       throw e;
@@ -233,8 +237,11 @@ final class EngineContext {
     );
   }
 
-  DdlCommand createDdlCommand(final KsqlStructuredDataOutputNode outputNode) {
-    return ddlCommandFactory.create(outputNode);
+  DdlCommand createDdlCommand(
+      final KsqlStructuredDataOutputNode outputNode,
+      final Optional<RefinementInfo> emitStrategy
+  ) {
+    return ddlCommandFactory.create(outputNode, emitStrategy);
   }
 
   String executeDdl(

@@ -20,7 +20,6 @@ import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.collect.Maps;
 import io.confluent.connect.avro.AvroData;
-import io.confluent.ksql.parser.exception.ParseFailedException;
 import io.confluent.ksql.test.tools.TestCase;
 import io.confluent.ksql.test.tools.TestExecutionListener;
 import io.confluent.ksql.test.tools.TestExecutor;
@@ -31,8 +30,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
-
-import io.confluent.ksql.util.KsqlStatementException;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericData.Record;
 
@@ -43,14 +40,6 @@ final class EndToEndEngineTestUtil {
   static void shouldBuildAndExecuteQuery(final TestCase testCase) {
     try (final TestExecutor testExecutor = TestExecutor.create(true, Optional.empty())) {
       testExecutor.buildAndExecuteQuery(testCase, TestExecutionListener.noOp());
-    } catch (KsqlStatementException e) {
-      throw new AssertionError(e.getUnloggedMessage()
-          + System.lineSeparator()
-          + "failed test: " + testCase.getName()
-          + System.lineSeparator()
-          + "in " + testCase.getTestLocation(),
-          e
-      );
     } catch (final AssertionError | Exception e) {
       throw new AssertionError(e.getMessage()
           + System.lineSeparator()

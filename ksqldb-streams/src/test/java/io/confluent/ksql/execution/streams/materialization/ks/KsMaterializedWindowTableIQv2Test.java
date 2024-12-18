@@ -114,10 +114,6 @@ public class KsMaterializedWindowTableIQv2Test {
   private WindowStoreIterator<ValueAndTimestamp<GenericRow>> fetchIterator;
   @Mock
   private KeyValueIterator<Windowed<GenericKey>, ValueAndTimestamp<GenericRow>> keyValueIterator;
-  @Mock
-  private QueryResult<WindowStoreIterator<ValueAndTimestamp<GenericRow>>> fetchResult;
-  @Mock
-  private QueryResult<KeyValueIterator<Windowed<GenericKey>, ValueAndTimestamp<GenericRow>>> keyValueResult;
 
   private KsMaterializedWindowTableIQv2 table;
   @Captor
@@ -158,11 +154,12 @@ public class KsMaterializedWindowTableIQv2Test {
   }
 
   @Test
+  @SuppressWarnings("unchecked")
   public void shouldThrowIfQueryFails() {
     // Given:
-    final StateQueryResult partitionResult = new StateQueryResult();
+    final StateQueryResult<?> partitionResult = new StateQueryResult<>();
     partitionResult.addResult(PARTITION, QueryResult.forFailure(FailureReason.STORE_EXCEPTION, "Boom"));
-    when(kafkaStreams.query(any())).thenReturn(partitionResult);
+    when(kafkaStreams.query(any(StateQueryRequest.class))).thenReturn(partitionResult);
 
     // When:
     final Exception e = assertThrows(
@@ -194,11 +191,12 @@ public class KsMaterializedWindowTableIQv2Test {
   }
 
   @Test
+  @SuppressWarnings("unchecked")
   public void shouldThrowIfQueryFails_fethAll() {
     // Given:
-    final StateQueryResult partitionResult = new StateQueryResult();
+    final StateQueryResult<?> partitionResult = new StateQueryResult<>();
     partitionResult.addResult(PARTITION, QueryResult.forFailure(FailureReason.STORE_EXCEPTION, "Boom"));
-    when(kafkaStreams.query(any())).thenReturn(partitionResult);
+    when(kafkaStreams.query(any(StateQueryRequest.class))).thenReturn(partitionResult);
 
     // When:
     final Exception e = assertThrows(
@@ -231,6 +229,7 @@ public class KsMaterializedWindowTableIQv2Test {
   }
 
   @Test
+  @SuppressWarnings("unchecked")
   public void shouldReturnValuesForClosedStartBounds() {
     // Given:
     final Range<Instant> start = Range.closed(
@@ -238,11 +237,11 @@ public class KsMaterializedWindowTableIQv2Test {
       NOW.plusSeconds(10)
     );
 
-    final StateQueryResult partitionResult = new StateQueryResult();
-    final QueryResult result = QueryResult.forResult(fetchIterator);
+    final StateQueryResult<WindowStoreIterator<ValueAndTimestamp<GenericRow>>> partitionResult = new StateQueryResult<>();
+    final QueryResult<WindowStoreIterator<ValueAndTimestamp<GenericRow>>> result = QueryResult.forResult(fetchIterator);
     result.setPosition(POSITION);
     partitionResult.addResult(PARTITION, result);
-    when(kafkaStreams.query(any())).thenReturn(partitionResult);
+    when(kafkaStreams.query(any(StateQueryRequest.class))).thenReturn(partitionResult);
     when(fetchIterator.hasNext()).thenReturn(true, true, false);
 
     when(fetchIterator.next())
@@ -274,6 +273,7 @@ public class KsMaterializedWindowTableIQv2Test {
   }
 
   @Test
+  @SuppressWarnings("unchecked")
   public void shouldReturnValuesForClosedStartBounds_fetchAll() {
     // Given:
     final Range<Instant> start = Range.closed(
@@ -281,11 +281,11 @@ public class KsMaterializedWindowTableIQv2Test {
       NOW.plusSeconds(10)
     );
 
-    final StateQueryResult partitionResult = new StateQueryResult();
-    final QueryResult queryResult = QueryResult.forResult(keyValueIterator);
+    final StateQueryResult<KeyValueIterator<Windowed<GenericKey>, ValueAndTimestamp<GenericRow>>> partitionResult = new StateQueryResult<>();
+    final QueryResult<KeyValueIterator<Windowed<GenericKey>, ValueAndTimestamp<GenericRow>>> queryResult = QueryResult.forResult(keyValueIterator);
     queryResult.setPosition(POSITION);
     partitionResult.addResult(PARTITION, queryResult);
-    when(kafkaStreams.query(any())).thenReturn(partitionResult);
+    when(kafkaStreams.query(any(StateQueryRequest.class))).thenReturn(partitionResult);
     when(keyValueIterator.hasNext()).thenReturn(true, true, false);
 
     when(keyValueIterator.next())
@@ -324,13 +324,14 @@ public class KsMaterializedWindowTableIQv2Test {
   }
 
   @Test
+  @SuppressWarnings("unchecked")
   public void shouldCloseIterator() {
     // When:
-    final StateQueryResult partitionResult = new StateQueryResult();
-    final QueryResult result = QueryResult.forResult(fetchIterator);
+    final StateQueryResult<WindowStoreIterator<ValueAndTimestamp<GenericRow>>> partitionResult = new StateQueryResult<>();
+    final QueryResult<WindowStoreIterator<ValueAndTimestamp<GenericRow>>> result = QueryResult.forResult(fetchIterator);
     result.setPosition(POSITION);
     partitionResult.addResult(PARTITION, result);
-    when(kafkaStreams.query(any())).thenReturn(partitionResult);
+    when(kafkaStreams.query(any(StateQueryRequest.class))).thenReturn(partitionResult);
     when(fetchIterator.hasNext()).thenReturn(false);
 
     table.get(A_KEY, PARTITION, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS);
@@ -340,13 +341,14 @@ public class KsMaterializedWindowTableIQv2Test {
   }
 
   @Test
+  @SuppressWarnings("unchecked")
   public void shouldCloseIterator_fetchAll() {
     // When:
-    final StateQueryResult partitionResult = new StateQueryResult();
-    final QueryResult queryResult = QueryResult.forResult(keyValueIterator);
+    final StateQueryResult<KeyValueIterator<Windowed<GenericKey>, ValueAndTimestamp<GenericRow>>> partitionResult = new StateQueryResult<>();
+    final QueryResult<KeyValueIterator<Windowed<GenericKey>, ValueAndTimestamp<GenericRow>>> queryResult = QueryResult.forResult(keyValueIterator);
     queryResult.setPosition(POSITION);
     partitionResult.addResult(PARTITION, queryResult);
-    when(kafkaStreams.query(any())).thenReturn(partitionResult);
+    when(kafkaStreams.query(any(StateQueryRequest.class))).thenReturn(partitionResult);
     when(keyValueIterator.hasNext()).thenReturn(false);
 
     Streams.stream((table.get(PARTITION, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS)
@@ -358,13 +360,14 @@ public class KsMaterializedWindowTableIQv2Test {
   }
 
   @Test
+  @SuppressWarnings("unchecked")
   public void shouldReturnEmptyIfKeyNotPresent() {
     // When:
-    final StateQueryResult partitionResult = new StateQueryResult();
-    final QueryResult result = QueryResult.forResult(fetchIterator);
+    final StateQueryResult<WindowStoreIterator<ValueAndTimestamp<GenericRow>>> partitionResult = new StateQueryResult<>();
+    final QueryResult<WindowStoreIterator<ValueAndTimestamp<GenericRow>>> result = QueryResult.forResult(fetchIterator);
     result.setPosition(POSITION);
     partitionResult.addResult(PARTITION, result);
-    when(kafkaStreams.query(any())).thenReturn(partitionResult);
+    when(kafkaStreams.query(any(StateQueryRequest.class))).thenReturn(partitionResult);
     when(fetchIterator.hasNext()).thenReturn(false);
 
     final Iterator<WindowedRow> rowIterator = table.get(
@@ -375,13 +378,14 @@ public class KsMaterializedWindowTableIQv2Test {
   }
 
   @Test
+  @SuppressWarnings("unchecked")
   public void shouldReturnEmptyIfKeyNotPresent_fetchAll() {
     // When:
-    final StateQueryResult partitionResult = new StateQueryResult();
-    final QueryResult queryResult = QueryResult.forResult(keyValueIterator);
+    final StateQueryResult<KeyValueIterator<Windowed<GenericKey>, ValueAndTimestamp<GenericRow>>> partitionResult = new StateQueryResult<>();
+    final QueryResult<KeyValueIterator<Windowed<GenericKey>, ValueAndTimestamp<GenericRow>>> queryResult = QueryResult.forResult(keyValueIterator);
     queryResult.setPosition(POSITION);
     partitionResult.addResult(PARTITION, queryResult);
-    when(kafkaStreams.query(any())).thenReturn(partitionResult);
+    when(kafkaStreams.query(any(StateQueryRequest.class))).thenReturn(partitionResult);
     when(keyValueIterator.hasNext()).thenReturn(false);
 
     final Iterator<WindowedRow> rowIterator = table.get(
@@ -393,6 +397,7 @@ public class KsMaterializedWindowTableIQv2Test {
 
 
   @Test
+  @SuppressWarnings("unchecked")
   public void shouldReturnValuesForClosedEndBounds() {
     // Given:
     final Range<Instant> end = Range.closed(
@@ -405,11 +410,12 @@ public class KsMaterializedWindowTableIQv2Test {
       end.lowerEndpoint().minus(WINDOW_SIZE)
     );
 
-    final StateQueryResult partitionResult = new StateQueryResult();
-    final QueryResult queryResult = QueryResult.forResult(fetchIterator);
+    final StateQueryResult<WindowStoreIterator<ValueAndTimestamp<GenericRow>>> partitionResult =
+        new StateQueryResult<>();
+    final QueryResult<WindowStoreIterator<ValueAndTimestamp<GenericRow>>> queryResult = QueryResult.forResult(fetchIterator);
     queryResult.setPosition(POSITION);
     partitionResult.addResult(PARTITION, queryResult);
-    when(kafkaStreams.query(any())).thenReturn(partitionResult);
+    when(kafkaStreams.query(any(StateQueryRequest.class))).thenReturn(partitionResult);
 
     when(fetchIterator.hasNext())
       .thenReturn(true)
@@ -448,6 +454,7 @@ public class KsMaterializedWindowTableIQv2Test {
   }
 
   @Test
+  @SuppressWarnings("unchecked")
   public void shouldReturnValuesForClosedEndBounds_fetchAll() {
     // Given:
     final Range<Instant> end = Range.closed(
@@ -460,11 +467,11 @@ public class KsMaterializedWindowTableIQv2Test {
       end.lowerEndpoint().minus(WINDOW_SIZE)
     );
 
-    final StateQueryResult partitionResult = new StateQueryResult();
-    final QueryResult queryResult = QueryResult.forResult(keyValueIterator);
+    final StateQueryResult<KeyValueIterator<Windowed<GenericKey>, ValueAndTimestamp<GenericRow>>> partitionResult = new StateQueryResult<>();
+    final QueryResult<KeyValueIterator<Windowed<GenericKey>, ValueAndTimestamp<GenericRow>>> queryResult = QueryResult.forResult(keyValueIterator);
     queryResult.setPosition(POSITION);
     partitionResult.addResult(PARTITION, queryResult);
-    when(kafkaStreams.query(any())).thenReturn(partitionResult);
+    when(kafkaStreams.query(any(StateQueryRequest.class))).thenReturn(partitionResult);
 
     when(keyValueIterator.hasNext())
       .thenReturn(true, true, false);
@@ -505,6 +512,7 @@ public class KsMaterializedWindowTableIQv2Test {
   }
 
   @Test
+  @SuppressWarnings("unchecked")
   public void shouldReturnValuesForOpenStartBounds() {
     // Given:
     final Range<Instant> start = Range.open(
@@ -512,11 +520,12 @@ public class KsMaterializedWindowTableIQv2Test {
       NOW.plusSeconds(10)
     );
 
-    final StateQueryResult partitionResult = new StateQueryResult();
-    final QueryResult queryResult = QueryResult.forResult(fetchIterator);
+    final StateQueryResult<WindowStoreIterator<ValueAndTimestamp<GenericRow>>> partitionResult =
+        new StateQueryResult<>();
+    final QueryResult<WindowStoreIterator<ValueAndTimestamp<GenericRow>>> queryResult = QueryResult.forResult(fetchIterator);
     queryResult.setPosition(POSITION);
     partitionResult.addResult(PARTITION, queryResult);
-    when(kafkaStreams.query(any())).thenReturn(partitionResult);
+    when(kafkaStreams.query(any(StateQueryRequest.class))).thenReturn(partitionResult);
 
     when(fetchIterator.hasNext())
       .thenReturn(true)
@@ -550,6 +559,7 @@ public class KsMaterializedWindowTableIQv2Test {
   }
 
   @Test
+  @SuppressWarnings("unchecked")
   public void shouldReturnValuesForOpenStartBounds_fetchAll() {
     // Given:
     final Range<Instant> start = Range.open(
@@ -557,11 +567,11 @@ public class KsMaterializedWindowTableIQv2Test {
       NOW.plusSeconds(10)
     );
 
-    final StateQueryResult partitionResult = new StateQueryResult();
-    final QueryResult queryResult = QueryResult.forResult(keyValueIterator);
+    final StateQueryResult<KeyValueIterator<Windowed<GenericKey>, ValueAndTimestamp<GenericRow>>> partitionResult = new StateQueryResult<>();
+    final QueryResult<KeyValueIterator<Windowed<GenericKey>, ValueAndTimestamp<GenericRow>>> queryResult = QueryResult.forResult(keyValueIterator);
     queryResult.setPosition(POSITION);
     partitionResult.addResult(PARTITION, queryResult);
-    when(kafkaStreams.query(any())).thenReturn(partitionResult);
+    when(kafkaStreams.query(any(StateQueryRequest.class))).thenReturn(partitionResult);
 
     when(keyValueIterator.hasNext())
       .thenReturn(true, true, true, false);
@@ -598,6 +608,7 @@ public class KsMaterializedWindowTableIQv2Test {
   }
 
   @Test
+  @SuppressWarnings("unchecked")
   public void shouldReturnValuesForOpenEndBounds() {
     // Given:
     final Range<Instant> end = Range.open(
@@ -610,11 +621,12 @@ public class KsMaterializedWindowTableIQv2Test {
       end.upperEndpoint().minus(WINDOW_SIZE)
     );
 
-    final StateQueryResult partitionResult = new StateQueryResult();
-    final QueryResult queryResult = QueryResult.forResult(fetchIterator);
+    final StateQueryResult<WindowStoreIterator<ValueAndTimestamp<GenericRow>>> partitionResult =
+        new StateQueryResult<>();
+    final QueryResult<WindowStoreIterator<ValueAndTimestamp<GenericRow>>> queryResult = QueryResult.forResult(fetchIterator);
     queryResult.setPosition(POSITION);
     partitionResult.addResult(PARTITION, queryResult);
-    when(kafkaStreams.query(any())).thenReturn(partitionResult);
+    when(kafkaStreams.query(any(StateQueryRequest.class))).thenReturn(partitionResult);
 
     when(fetchIterator.hasNext())
       .thenReturn(true)
@@ -650,6 +662,7 @@ public class KsMaterializedWindowTableIQv2Test {
   }
 
   @Test
+  @SuppressWarnings("unchecked")
   public void shouldReturnValuesForOpenEndBounds_fetchAll() {
     // Given:
     final Range<Instant> end = Range.open(
@@ -662,11 +675,11 @@ public class KsMaterializedWindowTableIQv2Test {
       end.upperEndpoint().minus(WINDOW_SIZE)
     );
 
-    final StateQueryResult partitionResult = new StateQueryResult();
-    final QueryResult queryResult = QueryResult.forResult(keyValueIterator);
+    final StateQueryResult<KeyValueIterator<Windowed<GenericKey>, ValueAndTimestamp<GenericRow>>> partitionResult = new StateQueryResult<>();
+    final QueryResult<KeyValueIterator<Windowed<GenericKey>, ValueAndTimestamp<GenericRow>>> queryResult = QueryResult.forResult(keyValueIterator);
     queryResult.setPosition(POSITION);
     partitionResult.addResult(PARTITION, queryResult);
-    when(kafkaStreams.query(any())).thenReturn(partitionResult);
+    when(kafkaStreams.query(any(StateQueryRequest.class))).thenReturn(partitionResult);
 
     when(keyValueIterator.hasNext())
       .thenReturn(true, true, true, false);
@@ -703,6 +716,7 @@ public class KsMaterializedWindowTableIQv2Test {
   }
 
   @Test
+  @SuppressWarnings("unchecked")
   public void shouldMaintainResultOrder() {
     // Given:
     when(fetchIterator.hasNext())
@@ -713,11 +727,12 @@ public class KsMaterializedWindowTableIQv2Test {
 
     final Instant start = WINDOW_START_BOUNDS.lowerEndpoint();
 
-    final StateQueryResult partitionResult = new StateQueryResult();
-    final QueryResult result = QueryResult.forResult(fetchIterator);
+    final StateQueryResult<WindowStoreIterator<ValueAndTimestamp<GenericRow>>> partitionResult =
+        new StateQueryResult<>();
+    final QueryResult<WindowStoreIterator<ValueAndTimestamp<GenericRow>>> result = QueryResult.forResult(fetchIterator);
     result.setPosition(POSITION);
     partitionResult.addResult(PARTITION, result);
-    when(kafkaStreams.query(any())).thenReturn(partitionResult);
+    when(kafkaStreams.query(any(StateQueryRequest.class))).thenReturn(partitionResult);
 
     when(fetchIterator.next())
       .thenReturn(new KeyValue<>(start.toEpochMilli(), VALUE_1))
@@ -755,38 +770,41 @@ public class KsMaterializedWindowTableIQv2Test {
   }
 
   @Test
+  @SuppressWarnings("unchecked")
   public void shouldSupportRangeAll() {
     // When:
-    final StateQueryResult partitionResult = new StateQueryResult();
-    final QueryResult result = QueryResult.forResult(fetchIterator);
+    final StateQueryResult<WindowStoreIterator<ValueAndTimestamp<GenericRow>>> partitionResult =
+        new StateQueryResult<>();
+    final QueryResult<WindowStoreIterator<ValueAndTimestamp<GenericRow>>> result = QueryResult.forResult(fetchIterator);
     result.setPosition(POSITION);
     partitionResult.addResult(PARTITION, result);
-    when(kafkaStreams.query(any())).thenReturn(partitionResult);
+    when(kafkaStreams.query(any(StateQueryRequest.class))).thenReturn(partitionResult);
 
     table.get(A_KEY, PARTITION, Range.all(), Range.all());
 
     // Then:
     verify(kafkaStreams).query(queryTypeCaptor.capture());
-    StateQueryRequest request = queryTypeCaptor.getValue();
+    StateQueryRequest<?> request = queryTypeCaptor.getValue();
     assertThat(request.getQuery(), instanceOf(WindowKeyQuery.class));
-    WindowKeyQuery keyQuery = (WindowKeyQuery)request.getQuery();
+    WindowKeyQuery<GenericKey,GenericRow> keyQuery = (WindowKeyQuery<GenericKey,GenericRow>) request.getQuery();
     assertThat(keyQuery.getKey(), is(A_KEY));
   }
 
   @Test
+  @SuppressWarnings("unchecked")
   public void shouldSupportRangeAll_fetchAll() {
     // When:
-    final StateQueryResult partitionResult = new StateQueryResult();
-    final QueryResult queryResult = QueryResult.forResult(keyValueIterator);
+    final StateQueryResult<KeyValueIterator<Windowed<GenericKey>, ValueAndTimestamp<GenericRow>>> partitionResult = new StateQueryResult<>();
+    final QueryResult<KeyValueIterator<Windowed<GenericKey>, ValueAndTimestamp<GenericRow>>> queryResult = QueryResult.forResult(keyValueIterator);
     queryResult.setPosition(POSITION);
     partitionResult.addResult(PARTITION, queryResult);
-    when(kafkaStreams.query(any())).thenReturn(partitionResult);
+    when(kafkaStreams.query(any(StateQueryRequest.class))).thenReturn(partitionResult);
 
     table.get(PARTITION, Range.all(), Range.all());
 
     // Then:
     verify(kafkaStreams).query(queryTypeCaptor.capture());
-    StateQueryRequest request = queryTypeCaptor.getValue();
+    StateQueryRequest<?> request = queryTypeCaptor.getValue();
     assertThat(request.getQuery(), instanceOf(WindowRangeQuery.class));
   }
 

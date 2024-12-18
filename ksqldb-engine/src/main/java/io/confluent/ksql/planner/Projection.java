@@ -25,6 +25,7 @@ import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.tree.AllColumns;
 import io.confluent.ksql.parser.tree.SelectItem;
 import io.confluent.ksql.parser.tree.SingleColumn;
+import io.confluent.ksql.parser.tree.StructAll;
 import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
@@ -42,6 +43,7 @@ public final class Projection {
   private final ImmutableList<? extends SelectItem> selectItems;
   private final ImmutableSet<SourceName> includeAllSources;
   private final ImmutableSet<Expression> singles;
+  private final ImmutableSet<Expression> structsAll;
 
   public static Projection of(final Collection<? extends SelectItem> selectItems) {
     return new Projection(selectItems);
@@ -66,6 +68,12 @@ public final class Projection {
         .filter(Projection::isSingleColumn)
         .map(SingleColumn.class::cast)
         .map(SingleColumn::getExpression)
+        .collect(Collectors.toSet()));
+
+    this.structsAll = ImmutableSet.copyOf(selects.stream()
+        .filter(Projection::isStructAll)
+        .map(StructAll.class::cast)
+        .map(StructAll::getBaseStruct)
         .collect(Collectors.toSet()));
   }
 
@@ -118,7 +126,7 @@ public final class Projection {
       }
     }
 
-    return singles.contains(expression);
+    return singles.contains(expression) || structsAll.contains(expression);
   }
 
   @Override
@@ -144,6 +152,10 @@ public final class Projection {
       return false;
     }
 
+    if (si instanceof StructAll) {
+      return false;
+    }
+
     if (si instanceof AllColumns) {
       return true;
     }
@@ -152,6 +164,10 @@ public final class Projection {
   }
 
   private static boolean isSingleColumn(final SelectItem si) {
-    return !isAllColumn(si);
+    return !isAllColumn(si) && !isStructAll(si);
+  }
+
+  private static boolean isStructAll(final SelectItem si) {
+    return (si instanceof StructAll);
   }
 }

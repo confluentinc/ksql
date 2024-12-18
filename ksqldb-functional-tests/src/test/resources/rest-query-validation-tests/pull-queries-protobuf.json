@@ -1,0 +1,293 @@
+{
+  "comments": [
+    "Tests covering Pull queries of materialized using CST tables"
+  ],
+  "tests": [
+  {
+    "name": "transform a map with array values",
+    "testPullWithProtoFormat": true,
+    "statements": [
+      "CREATE TABLE TEST (ID BIGINT PRIMARY KEY, VALUE MAP<STRING, ARRAY<INT>>) WITH (kafka_topic='test_topic', value_format='AVRO');",
+      "CREATE TABLE MAT_TABLE AS SELECT ID, VALUE FROM TEST;",
+      "SELECT ID, TRANSFORM(TRANSFORM(VALUE, (x,y) => x, (x,y) => FIlTER(y, z => z < 5)), (x,y) => UCASE(x) , (k,v) => ARRAY_MAX(v)) as FILTERED_TRANSFORMED from MAT_TABLE;"
+    ],
+    "inputs": [
+      {"topic": "test_topic", "key": 0, "value": {"value":  {"a": [2,null,5,4], "b": [-1,-2]}}},
+      {"topic": "test_topic", "key": 1, "value": {"value":  {"c": [null,null,-1], "t": [3, 1]}}},
+      {"topic": "test_topic", "key": 2, "value": {"value":  {"d": [4], "q": [0, 0]}}}
+    ],
+    "responses": [
+      {"admin": {"@type": "currentStatus"}},
+      {"admin": {"@type": "currentStatus"}},
+      {"query": [
+        {"header":{"schema":"`ID` BIGINT KEY, `FILTERED_TRANSFORMED` MAP<STRING, INTEGER>"}},
+        {"row":{"columns":[1, {"C": -1, "T":  3}]}},
+        {"row":{"columns":[2, {"D": 4, "Q": 0}]}},
+        {"row":{"columns":[0, {"A": 4, "B": -1}]}}
+      ]},
+      {"queryProto": [
+        {"header":{"protoSchema":"syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  int64 ID = 1;\n  repeated ConnectDefault2Entry FILTERED_TRANSFORMED = 2;\n\n  message ConnectDefault2Entry {\n    string key = 1;\n    int32 value = 2;\n  }\n}\n"}},
+        {"row": "ID: 1\nFILTERED_TRANSFORMED {\n  key: \"C\"\n  value: -1\n}\nFILTERED_TRANSFORMED {\n  key: \"T\"\n  value: 3\n}\n"},
+        {"row": "ID: 2\nFILTERED_TRANSFORMED {\n  key: \"Q\"\n}\nFILTERED_TRANSFORMED {\n  key: \"D\"\n  value: 4\n}\n"},
+        {"row": "FILTERED_TRANSFORMED {\n  key: \"A\"\n  value: 4\n}\nFILTERED_TRANSFORMED {\n  key: \"B\"\n  value: -1\n}\n"}
+      ]}
+    ]
+  },
+  {
+    "name": "windowed - select star and ROWTIME",
+    "testPullWithProtoFormat": true,
+    "statements": [
+      "CREATE STREAM INPUT (ID STRING KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+      "CREATE TABLE AGGREGATE AS SELECT ID, COUNT(1) AS COUNT FROM INPUT WINDOW TUMBLING(SIZE 1 SECOND) GROUP BY ID;",
+      "SELECT ID, WINDOWSTART, WINDOWEND, COUNT, ROWTIME FROM AGGREGATE WHERE ID='10';",
+      "SELECT ID, WINDOWSTART, WINDOWEND, COUNT, ROWTIME FROM AGGREGATE WHERE ID='missing';"
+    ],
+    "inputs": [
+      {"topic": "test_topic", "timestamp": 12346, "key": "11", "value": {"val": 1}},
+      {"topic": "test_topic", "timestamp": 12345, "key": "10", "value": {"val": 2}}
+    ],
+    "responses": [
+      {"admin": {"@type": "currentStatus"}},
+      {"admin": {"@type": "currentStatus"}},
+      {"query": [
+        {"header":{"schema":"`ID` STRING KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `COUNT` BIGINT, `ROWTIME` BIGINT"}},
+        {"row":{"columns":["10", 12000, 13000, 1, 12345]}}
+      ]},
+      {"query": [
+        {"header":{"schema":"`ID` STRING KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `COUNT` BIGINT, `ROWTIME` BIGINT"}}
+      ]},
+      {"queryProto": [
+        {"header":{"protoSchema":"syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  string ID = 1;\n  int64 WINDOWSTART = 2;\n  int64 WINDOWEND = 3;\n  int64 COUNT = 4;\n  int64 ROWTIME = 5;\n}\n"}},
+        {"row": "ID: \"10\"\nWINDOWSTART: 12000\nWINDOWEND: 13000\nCOUNT: 1\nROWTIME: 12345\n"}
+      ]},
+      {"queryProto": [
+        {"header":{"protoSchema":"syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  string ID = 1;\n  int64 WINDOWSTART = 2;\n  int64 WINDOWEND = 3;\n  int64 COUNT = 4;\n  int64 ROWTIME = 5;\n}\n"}}
+      ]}
+    ]
+  },
+  {
+    "name": "pull query on stream with headers",
+    "testPullWithProtoFormat": true,
+    "properties": {
+      "ksql.query.pull.stream.enabled": true
+    },
+    "statements": [
+      "CREATE STREAM S1 (MYKEY INT KEY, MYVALUE INT, MYHEADERS ARRAY<STRUCT<key STRING, value BYTES>> HEADERS) WITH (kafka_topic='test_topic', value_format='JSON');",
+      "SELECT * FROM S1;"
+    ],
+    "topics": [
+      {"name": "test_topic", "partitions": 1}
+    ],
+    "inputs": [
+      {"topic": "test_topic", "timestamp": 12365, "key": 10, "value": {"myvalue": 1}, "headers": []},
+      {"topic": "test_topic", "timestamp": 12366, "key": 11, "value": {"myvalue": 2}, "headers": [{"KEY": "abc", "VALUE": "IQ=="}]}
+    ],
+    "responses": [
+      {"admin": {"@type": "currentStatus"}},
+      {"query": [
+        {"header":{"schema":"`MYKEY` INTEGER, `MYVALUE` INTEGER, `MYHEADERS` ARRAY<STRUCT<`KEY` STRING, `VALUE` BYTES>>"}},
+        {"row":{"columns":[10, 1, []]}},
+        {"row":{"columns":[11, 2, [{"KEY": "abc", "VALUE": "IQ=="}]]}},
+        {"finalMessage":"Query Completed"}
+      ]},
+      {"queryProto": [
+        {"header":{"protoSchema":"syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  int32 MYKEY = 1;\n  int32 MYVALUE = 2;\n  repeated ConnectDefault2 MYHEADERS = 3;\n\n  message ConnectDefault2 {\n    string KEY = 1;\n    bytes VALUE = 2;\n  }\n}\n"}},
+        {"row": "MYKEY: 10\nMYVALUE: 1\n"},
+        {"row": "MYKEY: 11\nMYVALUE: 2\nMYHEADERS {\n  KEY: \"abc\"\n  VALUE: \"!\"\n}\n"},
+        {"finalMessage":"Query Completed"}
+      ]}
+    ]
+  },
+  {
+    "name": "select * against materialized table with headers",
+    "testPullWithProtoFormat": true,
+    "statements": [
+      "CREATE TABLE INPUT (ID STRING PRIMARY KEY, GRADE STRING, RANK INT, HEAD BYTES HEADER('abc')) WITH (kafka_topic='test_topic', value_format='JSON');",
+      "CREATE TABLE INPUT_QUERYABLE AS SELECT * FROM INPUT;",
+      "SELECT * FROM INPUT_QUERYABLE;"
+    ],
+    "inputs": [
+      {"topic": "test_topic", "timestamp": 12346, "key": "11", "value": {"GRADE": "A", "RANK": 1}, "headers": [{"KEY": "abc", "VALUE": "IQ=="}]},
+      {"topic": "test_topic", "timestamp": 12345, "key": "10", "value": {"GRADE": "B", "RANK": 2}, "headers": [{"KEY": "abc", "VALUE": "IQ=="}]}
+    ],
+    "responses": [
+      {"admin": {"@type": "currentStatus"}},
+      {"admin": {"@type": "currentStatus"}},
+      {"query": [
+        {"header":{"schema":"`ID` STRING KEY, `GRADE` STRING, `RANK` INTEGER, `HEAD` BYTES"}},
+        {"row":{"columns":["11", "A", 1, "IQ=="]}},
+        {"row":{"columns":["10", "B", 2, "IQ=="]}}
+      ]},
+      {"queryProto": [
+        {"header":{"protoSchema":"syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  string ID = 1;\n  string GRADE = 2;\n  int32 RANK = 3;\n  bytes HEAD = 4;\n}\n"}},
+        {"row": "ID: \"11\"\nGRADE: \"A\"\nRANK: 1\nHEAD: \"!\"\n"},
+        {"row": "ID: \"10\"\nGRADE: \"B\"\nRANK: 2\nHEAD: \"!\"\n"}
+      ]}
+    ]
+  },
+  {
+      "name": "on stream",
+      "testPullWithProtoFormat": true,
+      "format": ["JSON"],
+      "statements": [
+        "CREATE STREAM riderLocations (profileId VARCHAR, latitude DOUBLE, longitude DOUBLE) WITH (kafka_topic='test_topic', value_format='{FORMAT}');",
+        "SELECT * FROM riderLocations LIMIT 2;",
+        "SELECT * FROM riderLocations LIMIT 0;",
+        "SELECT * FROM riderLocations LIMIT 5;"
+      ],
+      "topics": [
+        {"name": "test_topic", "partitions": 1} // to get a stable ordering
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 1000001, "value": {"profileId": "which", "latitude": 37.7877, "longitude": -122.4205}},
+        {"topic": "test_topic", "timestamp": 1000002, "value": {"profileId": "there", "latitude": 37.3903, "longitude": -122.0643}},
+        {"topic": "test_topic", "timestamp": 1000003, "value": {"profileId": "their", "latitude": 37.3952, "longitude": -122.0813}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`PROFILEID` STRING, `LATITUDE` DOUBLE, `LONGITUDE` DOUBLE"}},
+          {"row": {"columns": ["which", 37.7877, -122.4205]}},
+          {"row": {"columns": ["there", 37.3903, -122.0643]}},
+          {"finalMessage":"Limit Reached"}
+        ]},
+        {"query": [
+          {"header":{"schema":"`PROFILEID` STRING, `LATITUDE` DOUBLE, `LONGITUDE` DOUBLE"}},
+          {"finalMessage":"Limit Reached"}
+        ]},
+        {"query": [
+          {"header":{"schema":"`PROFILEID` STRING, `LATITUDE` DOUBLE, `LONGITUDE` DOUBLE"}},
+          {"row":{"columns":["which",37.7877,-122.4205]}},
+          {"row":{"columns":["there",37.3903,-122.0643]}},
+          {"row":{"columns":["their",37.3952,-122.0813]}},
+          {"finalMessage":"Query Completed"}
+        ]},
+        {"queryProto": [
+          {"header":{"protoSchema":"syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  string PROFILEID = 1;\n  double LATITUDE = 2;\n  double LONGITUDE = 3;\n}\n"}},
+          {"row": "PROFILEID: \"which\"\nLATITUDE: 37.7877\nLONGITUDE: -122.4205\n"},
+          {"row": "PROFILEID: \"there\"\nLATITUDE: 37.3903\nLONGITUDE: -122.0643\n"},
+          {"finalMessage":"Limit Reached"}
+        ]},
+        {"queryProto": [
+          {"header":{"protoSchema":"syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  string PROFILEID = 1;\n  double LATITUDE = 2;\n  double LONGITUDE = 3;\n}\n"}},
+          {"finalMessage":"Limit Reached"}
+        ]},
+        {"queryProto": [
+          {"header":{"protoSchema":"syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  string PROFILEID = 1;\n  double LATITUDE = 2;\n  double LONGITUDE = 3;\n}\n"}},
+          {"row": "PROFILEID: \"which\"\nLATITUDE: 37.7877\nLONGITUDE: -122.4205\n"},
+          {"row": "PROFILEID: \"there\"\nLATITUDE: 37.3903\nLONGITUDE: -122.0643\n"},
+          {"row": "PROFILEID: \"their\"\nLATITUDE: 37.3952\nLONGITUDE: -122.0813\n"},
+          {"finalMessage":"Query Completed"}
+        ]}
+      ]
+    },
+    {
+      "name": "empty response on empty stream",
+      "testPullWithProtoFormat": true,
+      "statements": [
+        "CREATE STREAM S1 (MYKEY INT KEY, MYVALUE INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "SELECT * FROM S1;"
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`MYKEY` INTEGER, `MYVALUE` INTEGER"}},
+          {"finalMessage":"Query Completed"}
+        ]},
+        {"queryProto": [
+          {"header":{"protoSchema":"syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  int32 MYKEY = 1;\n  int32 MYVALUE = 2;\n}\n"}},
+          {"finalMessage":"Query Completed"}
+        ]}
+      ]
+    },
+    {
+      "name": "select * against CST table",
+      "testPullWithProtoFormat": true,
+      "statements": [
+        "CREATE SOURCE TABLE INPUT (K INT PRIMARY KEY, text STRING) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
+        "SELECT * FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12345, "key": 1, "value": "a1"},
+        {"topic": "test_topic", "timestamp": 12345, "key": 2, "value": "a2"},
+        {"topic": "test_topic", "timestamp": 12345, "key": 3, "value": "a3"}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`K` INTEGER KEY, `TEXT` STRING"}},
+          {"row":{"columns":[1,"a1"]}},
+          {"row":{"columns":[2,"a2"]}},
+          {"row":{"columns":[3,"a3"]}}
+        ]},
+        {"queryProto": [
+          {"header":{"protoSchema":"syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  int32 K = 1;\n  string TEXT = 2;\n}\n"}},
+          {"row": "K: 1\nTEXT: \"a1\"\n"},
+          {"row": "K: 2\nTEXT: \"a2\"\n"},
+          {"row": "K: 3\nTEXT: \"a3\"\n"}
+        ]}
+      ]
+    },
+    {
+      "name": "select * against CST table and filter by key",
+      "testPullWithProtoFormat": true,
+      "statements": [
+        "CREATE SOURCE TABLE INPUT (K INT PRIMARY KEY, text STRING) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
+        "SELECT * FROM INPUT WHERE K=2;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12345, "key": 1, "value": "a1"},
+        {"topic": "test_topic", "timestamp": 12345, "key": 2, "value": "a2"},
+        {"topic": "test_topic", "timestamp": 12345, "key": 3, "value": "a3"}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`K` INTEGER KEY, `TEXT` STRING"}},
+          {"row":{"columns":[2,"a2"]}}
+        ]},
+        {"queryProto": [
+          {"header":{"protoSchema":"syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  int32 K = 1;\n  string TEXT = 2;\n}\n"}},
+          {"row": "K: 2\nTEXT: \"a2\"\n"}
+        ]}
+      ]
+    },
+    {
+      "name": "select with projection table scan and key lookup",
+      "testPullWithProtoFormat": true,
+      "statements": [
+        "CREATE SOURCE TABLE INPUT (K INT PRIMARY KEY, text STRING) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
+        "SELECT K, TEXT FROM INPUT;",
+        "SELECT K, TEXT FROM INPUT WHERE K=2;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12345, "key": 1, "value": "a1"},
+        {"topic": "test_topic", "timestamp": 12345, "key": 2, "value": "a2"},
+        {"topic": "test_topic", "timestamp": 12345, "key": 3, "value": "a3"}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`K` INTEGER KEY, `TEXT` STRING"}},
+          {"row":{"columns":[1,"a1"]}},
+          {"row":{"columns":[2,"a2"]}},
+          {"row":{"columns":[3,"a3"]}}
+        ]},
+        {"query": [
+          {"header":{"schema":"`K` INTEGER KEY, `TEXT` STRING"}},
+          {"row":{"columns":[2,"a2"]}}
+        ]},
+        {"queryProto": [
+          {"header":{"protoSchema":"syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  int32 K = 1;\n  string TEXT = 2;\n}\n"}},
+          {"row": "K: 1\nTEXT: \"a1\"\n"},
+          {"row": "K: 2\nTEXT: \"a2\"\n"},
+          {"row": "K: 3\nTEXT: \"a3\"\n"}
+        ]},
+        {"queryProto": [
+          {"header":{"protoSchema":"syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  int32 K = 1;\n  string TEXT = 2;\n}\n"}},
+          {"row": "K: 2\nTEXT: \"a2\"\n"}
+        ]}
+      ]
+    }
+  ]
+}

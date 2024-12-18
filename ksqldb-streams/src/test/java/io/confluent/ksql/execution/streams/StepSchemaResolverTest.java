@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 Confluent Inc.
+ * Copyright 2022 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -57,6 +57,7 @@ import io.confluent.ksql.execution.plan.WindowedStreamSource;
 import io.confluent.ksql.execution.plan.WindowedTableSource;
 import io.confluent.ksql.execution.windows.TumblingWindowExpression;
 import io.confluent.ksql.execution.windows.WindowTimeClause;
+import io.confluent.ksql.function.AggregateFunctionFactory;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.function.KsqlTableFunction;
@@ -125,7 +126,7 @@ public class StepSchemaResolverTest {
   @Test
   public void shouldResolveSchemaForStreamAggregate() {
     // Given:
-    givenAggregateFunction("SUM", SqlTypes.BIGINT);
+    givenAggregateFunction("SUM");
     final StreamAggregate step = new StreamAggregate(
         PROPERTIES,
         groupedStreamSource,
@@ -150,7 +151,7 @@ public class StepSchemaResolverTest {
   @Test
   public void shouldResolveSchemaForStreamWindowedAggregate() {
     // Given:
-    givenAggregateFunction("COUNT", SqlTypes.BIGINT);
+    givenAggregateFunction("COUNT");
     final StreamWindowedAggregate step = new StreamWindowedAggregate(
         PROPERTIES,
         groupedStreamSource,
@@ -182,6 +183,7 @@ public class StepSchemaResolverTest {
         PROPERTIES,
         streamSource,
         ImmutableList.of(ColumnName.of("NEW_KEY")),
+        Optional.empty(),
         ImmutableList.of(
             add("JUICE", "ORANGE", "APPLE"),
             ref("PLANTAIN", "BANANA"),
@@ -209,6 +211,7 @@ public class StepSchemaResolverTest {
         PROPERTIES,
         streamSource,
         ImmutableList.of(),
+        Optional.empty(),
         ImmutableList.of(
             add("JUICE", "ORANGE", "APPLE"),
             ref("PLANTAIN", "BANANA"),
@@ -356,7 +359,7 @@ public class StepSchemaResolverTest {
         PROPERTIES,
         "foo",
         formats,
-        WindowInfo.of(WindowType.TUMBLING, Optional.of(Duration.ofMillis(123))),
+        WindowInfo.of(WindowType.TUMBLING, Optional.of(Duration.ofMillis(123)), Optional.empty()),
         Optional.empty(),
         SCHEMA,
         OptionalInt.of(SystemColumns.CURRENT_PSEUDOCOLUMN_VERSION_NUMBER)
@@ -372,7 +375,7 @@ public class StepSchemaResolverTest {
   @Test
   public void shouldResolveSchemaForTableAggregate() {
     // Given:
-    givenAggregateFunction("SUM", SqlTypes.BIGINT);
+    givenAggregateFunction("SUM");
     final TableAggregate step = new TableAggregate(
         PROPERTIES,
         groupedTableSource,
@@ -601,13 +604,15 @@ public class StepSchemaResolverTest {
     when(tableFunction.getReturnType(any())).thenReturn(returnType);
   }
 
-  @SuppressWarnings({"unchecked", "rawtypes"})
-  private void givenAggregateFunction(final String name, final SqlType returnType) {
+  @SuppressWarnings({"rawtypes"})
+  private void givenAggregateFunction(final String name) {
+    final AggregateFunctionFactory factory = mock(AggregateFunctionFactory.class);
     final KsqlAggregateFunction aggregateFunction = mock(KsqlAggregateFunction.class);
-    when(functionRegistry.getAggregateFunction(eq(FunctionName.of(name)), any(), any()))
-        .thenReturn(aggregateFunction);
+    when(functionRegistry.getAggregateFactory(eq(FunctionName.of(name))))
+        .thenReturn(factory);
+    when(factory.getFunction(any())).thenReturn(new AggregateFunctionFactory.FunctionSource(0, (initArgs) -> aggregateFunction));
     when(aggregateFunction.getAggregateType()).thenReturn(SqlTypes.INTEGER);
-    when(aggregateFunction.returnType()).thenReturn(returnType);
+    when(aggregateFunction.returnType()).thenReturn(SqlTypes.BIGINT);
     when(aggregateFunction.getInitialValueSupplier()).thenReturn(mock(Supplier.class));
   }
 

@@ -20,6 +20,7 @@ import io.confluent.ksql.rest.server.restore.KsqlRestoreCommandTopic;
 import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
 import io.confluent.ksql.test.util.KsqlTestFolder;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.MockSystemExit;
 import io.confluent.ksql.util.ReservedInternalTopics;
 import java.io.File;
 import java.io.IOException;
@@ -130,12 +131,14 @@ public class QuickDegradeAndRestoreCommandTopicIntegrationTest {
     assertThatEventually("Topic Deleted", this::isCommandTopicDeleted, is(true));
     assertThatEventually("Degraded State", this::isDegradedState, is(true));
     REST_APP.stop();
-    KsqlRestoreCommandTopic.main(
+    KsqlRestoreCommandTopic.mainInternal(
         new String[]{
             "--yes",
             "--config-file", propertiesFile.toString(),
             backupFile.toString()
-        });
+        },
+        new MockSystemExit()
+    );
 
     // Re-load the command topic
     REST_APP.start();

@@ -245,3 +245,15 @@ CREATE STREAM foo (id INT KEY, col1 INT) WITH (kafka_topic='foo', value_format='
 CREATE STREAM bar AS SELECT * FROM foo;
 
 ASSERT STREAM bar (id INT KEY, col1 INT) WITH (kafka_topic='BAR', value_format='JSON', wrap_single_value=false);
+
+----------------------------------------------------------------------------------------------------
+--@test: assert contents of a DDL source
+----------------------------------------------------------------------------------------------------
+CREATE STREAM foo (id INT KEY, col1 INT) WITH (kafka_topic='foo', value_format='JSON');
+
+INSERT INTO foo (rowtime, id, col1) VALUES (1, 2, 1);
+INSERT INTO foo (rowtime, id, col1) VALUES (1, 1, 1);
+INSERT INTO foo (rowtime, id, col1) VALUES (1, 3, 1);
+ASSERT VALUES foo (rowtime, id, col1) VALUES (1, 2, 1);
+ASSERT VALUES foo (rowtime, id, col1) VALUES (1, 1, 1);
+ASSERT VALUES foo (rowtime, id, col1) VALUES (1, 3, 1);

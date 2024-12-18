@@ -185,7 +185,7 @@ public class QueryLoggerTest {
     final QueryLoggerMessage message = (QueryLoggerMessage) event.getMessage();
     assertThat(message.getMessage(), is("a message"));
     assertThat(message.getQuery(), is("list STREAMS;\n" +
-        "null;\n" + // list tables isn't implemented in the anonymizer before 7.3
+        "list TABLES;\n" +
         "SELECT column1, column2 FROM source1;\n" +
         "list QUERIES;"));
   }

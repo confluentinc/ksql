@@ -4,10 +4,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.ArgumentMatchers.same;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -224,7 +221,7 @@ public class QueryBuilderTest {
         .thenReturn(Optional.of(ksMaterialization));
     when(ksqlMaterializationFactory.create(any(), any(), any(), any())).thenReturn(materialization);
     when(processingLogContext.getLoggerFactory()).thenReturn(processingLoggerFactory);
-    when(processingLoggerFactory.getLogger(any())).thenReturn(processingLogger);
+    when(processingLoggerFactory.getLogger(any(), anyMap())).thenReturn(processingLogger);
     when(ksqlConfig.getKsqlStreamConfigProps(anyString())).thenReturn(Collections.emptyMap());
     when(ksqlConfig.getString(KsqlConfig.KSQL_CUSTOM_METRICS_TAGS)).thenReturn("");
     when(ksqlConfig.getString(KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG))
@@ -296,8 +293,9 @@ public class QueryBuilderTest {
     final ProcessingLogger uncaughtProcessingLogger = mock(ProcessingLogger.class);
     when(processingLoggerFactory.getLogger(
         QueryLoggerUtil.queryLoggerName(QUERY_ID, new QueryContext.Stacker()
-            .push("ksql.logger.thread.exception.uncaught").getQueryContext())
-    )).thenReturn(uncaughtProcessingLogger);
+            .push("ksql.logger.thread.exception.uncaught").getQueryContext()),
+        Collections.singletonMap("query-id", QUERY_ID.toString()))
+    ).thenReturn(uncaughtProcessingLogger);
 
     // When:
     final PersistentQueryMetadata queryMetadata = buildPersistentQuery(
@@ -331,8 +329,9 @@ public class QueryBuilderTest {
     final ProcessingLogger uncaughtProcessingLogger = mock(ProcessingLogger.class);
     when(processingLoggerFactory.getLogger(
         QueryLoggerUtil.queryLoggerName(QUERY_ID, new QueryContext.Stacker()
-            .push("ksql.logger.thread.exception.uncaught").getQueryContext())
-    )).thenReturn(uncaughtProcessingLogger);
+            .push("ksql.logger.thread.exception.uncaught").getQueryContext()),
+        Collections.singletonMap("query-id", QUERY_ID.toString()))
+    ).thenReturn(uncaughtProcessingLogger);
 
     // When:
     final PersistentQueryMetadata queryMetadata = buildPersistentQuery(
@@ -678,7 +677,7 @@ public class QueryBuilderTest {
   @Test
   public void shouldConfigureProducerErrorHandler() {
     final ProcessingLogger logger = mock(ProcessingLogger.class);
-    when(processingLoggerFactory.getLogger(QUERY_ID.toString())).thenReturn(logger);
+    when(processingLoggerFactory.getLogger(QUERY_ID.toString(), Collections.singletonMap("query-id", QUERY_ID.toString()))).thenReturn(logger);
 
     // When:
     buildPersistentQuery(
@@ -794,7 +793,7 @@ public class QueryBuilderTest {
           queryListener,
           ArrayList::new,
           runtimeAssignor.getRuntimeAndMaybeAddRuntime(queryId,
-              sources.stream().map(DataSource::getName).collect(Collectors.toSet()),
+              sources.stream().map(s -> s.getName().toString()).collect(Collectors.toSet()),
               config.getConfig(true)),
           new MetricCollectors()
       );

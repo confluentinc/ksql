@@ -19,14 +19,11 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
 
-import io.confluent.ksql.GenericKey;
-import io.confluent.ksql.function.AggregateFunctionInitArguments;
-import io.confluent.ksql.function.KsqlAggregateFunction;
+import io.confluent.ksql.function.udaf.Udaf;
 import io.confluent.ksql.schema.ksql.SqlArgument;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.sql.Time;
 import java.util.Collections;
-import org.apache.kafka.streams.kstream.Merger;
 import org.junit.Test;
 
 public class TimeMinKudafTest {
@@ -67,23 +64,21 @@ public class TimeMinKudafTest {
 
   @Test
   public void shouldFindCorrectMinForMerge() {
-    final MinKudaf timeMinKudaf = getTimeMinKudaf();
-    final Merger<GenericKey, Time> merger = timeMinKudaf.getMerger();
-    final Time mergeResult1 = merger.apply(null, new Time(10), new Time(12));
+    final MinKudaf<Time> timeMinKudaf = getTimeMinKudaf();
+    final Time mergeResult1 = timeMinKudaf.merge(new Time(10), new Time(12));
     assertThat(mergeResult1, equalTo(new Time(10L)));
-    final Time mergeResult2 = merger.apply(null, new Time(10), new Time(-12L));
+    final Time mergeResult2 = timeMinKudaf.merge(new Time(10), new Time(-12L));
     assertThat(mergeResult2, equalTo(new Time(-12L)));
-    final Time mergeResult3 = merger.apply(null, new Time(-10), new Time(0));
+    final Time mergeResult3 = timeMinKudaf.merge(new Time(-10), new Time(0));
     assertThat(mergeResult3, equalTo(new Time(-10)));
-
   }
 
-
-  private MinKudaf getTimeMinKudaf() {
-    final KsqlAggregateFunction aggregateFunction = new MinAggFunctionFactory()
-        .createAggregateFunction(Collections.singletonList(SqlArgument.of(SqlTypes.TIME)),
-            AggregateFunctionInitArguments.EMPTY_ARGS);
+  private MinKudaf<Time> getTimeMinKudaf() {
+    final Udaf<Time, Time, Time> aggregateFunction = MinKudaf.createMinTime();
+    aggregateFunction.initializeTypeArguments(
+            Collections.singletonList(SqlArgument.of(SqlTypes.TIME))
+    );
     assertThat(aggregateFunction, instanceOf(MinKudaf.class));
-    return (MinKudaf) aggregateFunction;
+    return (MinKudaf<Time>) aggregateFunction;
   }
 }

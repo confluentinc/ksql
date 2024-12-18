@@ -104,7 +104,6 @@ public class RestQueryTranslationTest {
       .withProperty(KsqlConfig.KSQL_QUERY_PUSH_V2_REGISTRY_INSTALLED, true)
       .withProperty(KsqlConfig.KSQL_QUERY_PUSH_V2_ENABLED, true)
       .withProperty(KsqlConfig.KSQL_QUERY_PUSH_V2_NEW_LATEST_DELAY_MS, 0L)
-      .withProperty(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED, true)
       .withProperty(KsqlConfig.KSQL_HEADERS_COLUMNS_ENABLED, true)
       .withStaticServiceContext(TEST_HARNESS::getServiceContext)
       .build();
@@ -119,11 +118,9 @@ public class RestQueryTranslationTest {
 
   @Parameterized.Parameters(name = "{0}")
   public static Collection<Object[]> data() {
-    final String testRegex = System.getProperty("ksql.rqtt.regex");
 
     return JsonTestLoader.of(TEST_DIR, RqttTestFile.class)
         .load()
-        .filter(testCase -> testRegex == null || testCase.getName().matches(testRegex))
         .map(testCase -> new Object[]{testCase.getName(), testCase})
         .collect(Collectors.toCollection(ArrayList::new));
   }

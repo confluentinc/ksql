@@ -349,7 +349,7 @@
           "name": "input_topic",
           "keySchema": {"oneOf":[{"type":"null"},{"type":"boolean","connect.type":"boolean"}]},
           "keyFormat": "JSON_SR",
-          "valueSchema": {"type":"object","properties":{"COL1":{"connect.index":0,"oneOf":[{"type":"null"},{"type":"integer","connect.type":"int32"}]}}},
+          "valueSchema": {"type":"object","properties":{"FOO":{"connect.index":0,"oneOf":[{"type":"null"},{"type":"integer","connect.type":"int32"}]}}},
           "valueFormat": "JSON_SR"
         }
       ],
@@ -401,7 +401,7 @@
           "name": "input_topic",
           "keySchema": {"oneOf":[{"type":"null"},{"type":"integer","connect.type":"int32"}]},
           "keyFormat": "JSON_SR",
-          "valueSchema": {"type":"object","properties":{"COL1":{"connect.index":0,"oneOf":[{"type":"null"},{"type":"integer","connect.type":"int32"}]}}},
+          "valueSchema": {"type":"object","properties":{"FOO":{"connect.index":0,"oneOf":[{"type":"null"},{"type":"integer","connect.type":"int32"}]}}},
           "valueFormat": "JSON_SR"
         }
       ],
@@ -453,7 +453,7 @@
           "name": "input_topic",
           "keySchema": {"oneOf":[{"type":"null"},{"type":"integer","connect.type":"int64"}]},
           "keyFormat": "JSON_SR",
-          "valueSchema": {"type":"object","properties":{"COL1":{"connect.index":0,"oneOf":[{"type":"null"},{"type":"integer","connect.type":"int32"}]}}},
+          "valueSchema": {"type":"object","properties":{"FOO":{"connect.index":0,"oneOf":[{"type":"null"},{"type":"integer","connect.type":"int32"}]}}},
           "valueFormat": "JSON_SR"
         }
       ],
@@ -503,7 +503,7 @@
           "name": "input_topic",
           "keySchema": {"oneOf":[{"type":"null"},{"type":"number","connect.type":"float64"}]},
           "keyFormat": "JSON_SR",
-          "valueSchema": {"type":"object","properties":{"COL1":{"connect.index":0,"oneOf":[{"type":"null"},{"type":"integer","connect.type":"int32"}]}}},
+          "valueSchema": {"type":"object","properties":{"FOO":{"connect.index":0,"oneOf":[{"type":"null"},{"type":"integer","connect.type":"int32"}]}}},
           "valueFormat": "JSON_SR"
         }
       ],
@@ -553,7 +553,7 @@
           "name": "input_topic",
           "keySchema": {"oneOf":[{"type":"null"},{"type":"string","connect.type":"string"}]},
           "keyFormat": "JSON_SR",
-          "valueSchema": {"type":"object","properties":{"COL1":{"connect.index":0,"oneOf":[{"type":"null"},{"type":"integer","connect.type":"int32"}]}}},
+          "valueSchema": {"type":"object","properties":{"FOO":{"connect.index":0,"oneOf":[{"type":"null"},{"type":"integer","connect.type":"int32"}]}}},
           "valueFormat": "JSON_SR"
         }
       ],
@@ -617,7 +617,7 @@
             ]
           },
           "keyFormat": "JSON_SR",
-          "valueSchema": {"type":"object","properties":{"COL1":{"connect.index":0,"oneOf":[{"type":"null"},{"type":"integer","connect.type":"int32"}]}}},
+          "valueSchema": {"type":"object","properties":{"FOO":{"connect.index":0,"oneOf":[{"type":"null"},{"type":"integer","connect.type":"int32"}]}}},
           "valueFormat": "JSON_SR"
         }
       ],
@@ -669,7 +669,7 @@
           "name": "input_topic",
           "keySchema": {"oneOf":[{"type":"null"},{"type":"array","items":{"oneOf":[{"type":"null"},{"type":"string"}]}}]},
           "keyFormat": "JSON_SR",
-          "valueSchema": {"type":"object","properties":{"COL1":{"connect.index":0,"oneOf":[{"type":"null"},{"type":"integer","connect.type":"int32"}]}}},
+          "valueSchema": {"type":"object","properties":{"FOO":{"connect.index":0,"oneOf":[{"type":"null"},{"type":"integer","connect.type":"int32"}]}}},
           "valueFormat": "JSON_SR"
         }
       ],
@@ -761,7 +761,7 @@
           "name": "input_topic",
           "keySchema": {"type":"object","properties":{"F1":{"connect.index":0,"oneOf":[{"type":"null"},{"type":"string","connect.type":"string"}]}}},
           "keyFormat": "JSON_SR",
-          "valueSchema": {"type":"object","properties":{"COL1":{"connect.index":0,"oneOf":[{"type":"null"},{"type":"integer","connect.type":"int32"}]}}},
+          "valueSchema": {"type":"object","properties":{"FOO":{"connect.index":0,"oneOf":[{"type":"null"},{"type":"integer","connect.type":"int32"}]}}},
           "valueFormat": "JSON_SR"
         }
       ],

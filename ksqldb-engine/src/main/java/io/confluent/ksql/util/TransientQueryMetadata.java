@@ -16,6 +16,7 @@
 package io.confluent.ksql.util;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.confluent.ksql.logging.processing.ProcessingLoggerFactory;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.BlockingRowQueue;
 import io.confluent.ksql.query.CompletionHandler;
@@ -58,7 +59,8 @@ public class TransientQueryMetadata extends QueryMetadataImpl implements PushQue
       final ResultType resultType,
       final long retryBackoffInitialMs,
       final long retryBackoffMaxMs,
-      final Listener listener
+      final Listener listener,
+      final ProcessingLoggerFactory loggerFactory
   ) {
     // CHECKSTYLE_RULES.ON: ParameterNumberCheck
     super(
@@ -77,7 +79,8 @@ public class TransientQueryMetadata extends QueryMetadataImpl implements PushQue
         maxQueryErrorsQueueSize,
         retryBackoffInitialMs,
         retryBackoffMaxMs,
-        listener
+        listener,
+        loggerFactory
     );
     this.rowQueue = Objects.requireNonNull(rowQueue, "rowQueue");
     this.resultType = Objects.requireNonNull(resultType, "resultType");
@@ -137,6 +140,7 @@ public class TransientQueryMetadata extends QueryMetadataImpl implements PushQue
   public void setCompletionHandler(final CompletionHandler completionHandler) {
     rowQueue.setCompletionHandler(completionHandler);
   }
+
 
   @Override
   public void close() {

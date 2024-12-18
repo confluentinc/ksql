@@ -16,6 +16,7 @@
 package io.confluent.ksql.serde.connect;
 
 import io.confluent.ksql.serde.SerdeUtils;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -232,6 +233,12 @@ public class ConnectDataTranslator implements DataTranslator {
       case STRING:
         // use String.valueOf to convert various int types and Boolean to string
         return String.valueOf(convertedValue);
+      case BYTES:
+        if (convertedValue instanceof byte[]) {
+          return ByteBuffer.wrap((byte[]) convertedValue);
+        }
+
+        return convertedValue;
       default:
         return convertedValue;
     }

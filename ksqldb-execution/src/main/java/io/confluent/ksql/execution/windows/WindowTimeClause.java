@@ -17,6 +17,8 @@ package io.confluent.ksql.execution.windows;
 
 import static java.util.Objects.requireNonNull;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.errorprone.annotations.Immutable;
 import java.time.Duration;
 import java.util.Objects;
@@ -31,6 +33,14 @@ public class WindowTimeClause {
   private final long value;
 
   private final TimeUnit unit;
+
+  @JsonCreator
+  public static WindowTimeClause of(
+      @JsonProperty(value = "value", required = true) final long value,
+      @JsonProperty(value = "timeUnit", required = true) final String timeUnit
+  ) {
+    return new WindowTimeClause(value, TimeUnit.valueOf(timeUnit));
+  }
 
   public WindowTimeClause(final long value, final TimeUnit unit) {
     this.value = value;

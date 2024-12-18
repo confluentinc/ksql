@@ -15,27 +15,11 @@
 
 package io.confluent.ksql.function.udaf.sum;
 
-import io.confluent.ksql.GenericKey;
-import io.confluent.ksql.execution.function.TableAggregationFunction;
-import io.confluent.ksql.function.BaseAggregateFunction;
-import io.confluent.ksql.function.ParameterInfo;
-import io.confluent.ksql.function.types.ParamTypes;
-import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import java.util.Collections;
-import java.util.function.Function;
-import org.apache.kafka.streams.kstream.Merger;
+public class DoubleSumKudaf extends SumKudaf<Double> {
 
-public class DoubleSumKudaf
-    extends BaseAggregateFunction<Double, Double, Double>
-    implements TableAggregationFunction<Double, Double, Double> {
-
-  DoubleSumKudaf(final String functionName, final int argIndexInValue) {
-    super(functionName,
-          argIndexInValue, () -> 0.0,
-          SqlTypes.DOUBLE,
-          SqlTypes.DOUBLE,
-          Collections.singletonList(new ParameterInfo("val", ParamTypes.DOUBLE, "", false)),
-          "Computes the sum for a key.");
+  @Override
+  public Double initialize() {
+    return 0.0;
   }
 
   @Override
@@ -47,21 +31,21 @@ public class DoubleSumKudaf
   }
 
   @Override
+  public Double merge(final Double aggOne, final Double aggTwo) {
+    return aggOne + aggTwo;
+  }
+
+  @Override
+  public Double map(final Double agg) {
+    return agg;
+  }
+
+  @Override
   public Double undo(final Double valueToUndo, final Double aggregateValue) {
     if (valueToUndo == null) {
       return aggregateValue;
     }
     return aggregateValue - valueToUndo;
   }
-
-  @Override
-  public Merger<GenericKey, Double> getMerger() {
-    return (aggKey, aggOne, aggTwo) -> aggOne + aggTwo;
-  }
-
-  @Override
-  public Function<Double, Double> getResultMapper() {
-    return Function.identity();
-  }
-
+  
 }

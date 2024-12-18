@@ -19,14 +19,11 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
 
-import io.confluent.ksql.GenericKey;
-import io.confluent.ksql.function.AggregateFunctionInitArguments;
-import io.confluent.ksql.function.KsqlAggregateFunction;
+import io.confluent.ksql.function.udaf.Udaf;
 import io.confluent.ksql.schema.ksql.SqlArgument;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import java.util.Collections;
 import java.sql.Date;
-import org.apache.kafka.streams.kstream.Merger;
+import java.util.Collections;
 import org.junit.Test;
 
 public class DateMinKudafTest {
@@ -67,23 +64,21 @@ public class DateMinKudafTest {
 
   @Test
   public void shouldFindCorrectMinForMerge() {
-    final MinKudaf dateMinKudaf = getDateMinKudaf();
-    final Merger<GenericKey, Date> merger = dateMinKudaf.getMerger();
-    final Date mergeResult1 = merger.apply(null, new Date(10), new Date(12));
+    final MinKudaf<Date> dateMinKudaf = getDateMinKudaf();
+    final Date mergeResult1 = dateMinKudaf.merge(new Date(10), new Date(12));
     assertThat(mergeResult1, equalTo(new Date(10L)));
-    final Date mergeResult2 = merger.apply(null, new Date(10), new Date(-12L));
+    final Date mergeResult2 = dateMinKudaf.merge(new Date(10), new Date(-12L));
     assertThat(mergeResult2, equalTo(new Date(-12L)));
-    final Date mergeResult3 = merger.apply(null, new Date(-10), new Date(0));
+    final Date mergeResult3 = dateMinKudaf.merge(new Date(-10), new Date(0));
     assertThat(mergeResult3, equalTo(new Date(-10)));
-
   }
 
-
-  private MinKudaf getDateMinKudaf() {
-    final KsqlAggregateFunction aggregateFunction = new MinAggFunctionFactory()
-        .createAggregateFunction(Collections.singletonList(SqlArgument.of(SqlTypes.DATE)),
-            AggregateFunctionInitArguments.EMPTY_ARGS);
+  private MinKudaf<Date> getDateMinKudaf() {
+    final Udaf<Date, Date, Date> aggregateFunction = MinKudaf.createMinDate();
+    aggregateFunction.initializeTypeArguments(
+            Collections.singletonList(SqlArgument.of(SqlTypes.DATE))
+    );
     assertThat(aggregateFunction, instanceOf(MinKudaf.class));
-    return  (MinKudaf) aggregateFunction;
+    return  (MinKudaf<Date>) aggregateFunction;
   }
 }

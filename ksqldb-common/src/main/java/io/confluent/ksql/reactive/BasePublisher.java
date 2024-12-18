@@ -126,7 +126,7 @@ public abstract class BasePublisher<T> implements Publisher<T> {
     return demand;
   }
 
-  protected Subscriber<? super T> getSubscriber() {
+  public Subscriber<? super T> getSubscriber() {
     return subscriber;
   }
 

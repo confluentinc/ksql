@@ -35,6 +35,7 @@ package io.confluent.ksql.rest.integration;
   import static org.apache.kafka.common.resource.ResourceType.TOPIC;
   import static org.apache.kafka.common.resource.ResourceType.TRANSACTIONAL_ID;
   import static org.hamcrest.MatcherAssert.assertThat;
+  import static org.hamcrest.Matchers.containsString;
   import static org.hamcrest.Matchers.endsWith;
   import static org.hamcrest.Matchers.equalTo;
   import static org.hamcrest.Matchers.hasSize;
@@ -44,13 +45,19 @@ package io.confluent.ksql.rest.integration;
   import static org.junit.Assert.fail;
 
   import com.fasterxml.jackson.core.type.TypeReference;
+  import com.google.common.base.Functions;
   import com.google.common.collect.ImmutableList;
   import com.google.common.collect.ImmutableMap;
+  import com.google.protobuf.DynamicMessage;
   import io.confluent.common.utils.IntegrationTest;
+  import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchema;
   import io.confluent.ksql.api.utils.QueryResponse;
   import io.confluent.ksql.integration.IntegrationTestHarness;
   import io.confluent.ksql.integration.Retry;
   import io.confluent.ksql.rest.ApiJsonMapper;
+  import io.confluent.ksql.rest.client.KsqlTargetUtil;
+  import io.confluent.ksql.rest.entity.AssertSchemaEntity;
+  import io.confluent.ksql.rest.entity.AssertTopicEntity;
   import io.confluent.ksql.rest.entity.CommandId;
   import io.confluent.ksql.rest.entity.CommandId.Action;
   import io.confluent.ksql.rest.entity.CommandId.Type;
@@ -66,8 +73,10 @@ package io.confluent.ksql.rest.integration;
   import io.confluent.ksql.rest.entity.ServerClusterId;
   import io.confluent.ksql.rest.entity.ServerInfo;
   import io.confluent.ksql.rest.entity.ServerMetadata;
+  import io.confluent.ksql.rest.entity.StreamedRow;
   import io.confluent.ksql.rest.server.TestKsqlRestApp;
   import io.confluent.ksql.serde.FormatFactory;
+  import io.confluent.ksql.serde.protobuf.ProtobufNoSRConverter;
   import io.confluent.ksql.services.ServiceContext;
   import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
   import io.confluent.ksql.test.util.secure.ClientTrustStore;
@@ -84,6 +93,7 @@ package io.confluent.ksql.rest.integration;
   import io.vertx.core.http.HttpMethod;
   import io.vertx.core.http.HttpVersion;
   import io.vertx.ext.web.client.HttpResponse;
+  import java.time.Instant;
   import java.util.ArrayList;
   import java.util.Arrays;
   import java.util.Collections;
@@ -189,6 +199,16 @@ public class RestApiTest {
               )
               .withAcl(
                   NORMAL_USER,
+                  resource(TOPIC, "Z"),
+                  ops(ALL)
+              )
+              .withAcl(
+                  NORMAL_USER,
+                  resource(TOPIC, "ABC"),
+                  ops(ALL)
+              )
+              .withAcl(
+                  NORMAL_USER,
                   resource(TOPIC, AGG_TABLE),
                   ops(ALL)
               )
@@ -225,6 +245,8 @@ public class RestApiTest {
       .withProperty(KsqlConfig.KSQL_QUERY_PUSH_V2_ENABLED, true)
       .withProperty(KsqlConfig.KSQL_QUERY_PUSH_V2_NEW_LATEST_DELAY_MS, 0L)
       .withProperty(KsqlConfig.KSQL_QUERY_STREAM_PULL_QUERY_ENABLED, true)
+      .withStaticServiceContext(TEST_HARNESS::getServiceContext)
+      .withProperty(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY, "http://foo:8080")
       .build();
 
   @ClassRule
@@ -878,7 +900,7 @@ public class RestApiTest {
     assertThat(messages.get(1), is("{\"row\":{\"columns\":[1,\"USER_1\"]}}]"));
   }
 
-    @Test
+  @Test
   public void shouldExecutePullQueryOverHttp2QueryStream() {
       QueryStreamArgs queryStreamArgs = new QueryStreamArgs(
           "SELECT COUNT, USERID from " + AGG_TABLE + " WHERE USERID='" + AN_AGG_KEY + "';",
@@ -898,6 +920,289 @@ public class RestApiTest {
         }
       }, is(1));
       assertThat(queryResponse[0].rows.get(0).getList(), is(ImmutableList.of(1, "USER_1")));
+  }
+
+  @Test
+  public void shouldExecutePullQueryAllEndpointsDefaultMIME() {
+    // Given:
+    final String acceptableContentType = "*/*";
+    ImmutableList<String> endpoints = ImmutableList.of("/query-stream", "/query");
+    final String query = String.format("SELECT COUNT, USERID from %s;", AGG_TABLE);
+    Object requestBody;
+
+    final String expectedResponse
+        = "{\"queryId\":\"XYZ\",\"columnNames\":[\"COUNT\",\"USERID\"],\"columnTypes\":[\"BIGINT\",\"STRING\"]}\n" +
+        "[1,\"USER_0\"]\n" +
+        "[1,\"USER_1\"]\n" +
+        "[2,\"USER_2\"]\n" +
+        "[2,\"USER_3\"]\n" +
+        "[1,\"USER_4\"]\n";
+
+    final HttpResponse[] resp = new HttpResponse[1];
+    for (final String endpoint: endpoints) {
+      if (endpoint.equals("/query-stream")) {
+        requestBody = new QueryStreamArgs(
+            query, Collections.emptyMap(), Collections.emptyMap(), Collections.emptyMap());
+      } else if (endpoint.equals("/query")) {
+        requestBody = new KsqlRequest(
+            query, ImmutableMap.of(), Collections.emptyMap(), Collections.emptyMap(), null);
+      } else {
+        fail("Unknown endpoint " + endpoint);
+        return;
+      }
+
+      // When:
+      for (HttpVersion httpVersion: HttpVersion.values()) {
+        Object finalRequestBody = requestBody;
+        assertThatEventually(() -> {
+          try {
+            resp[0] = RestIntegrationTestUtil.rawRestRequest(REST_APP,
+                httpVersion, POST,
+                endpoint, finalRequestBody, acceptableContentType,
+                Optional.empty(), Optional.empty());
+            return resp[0].bodyAsString().replaceFirst("queryId\":\"[^\"]*\"", "queryId\":\"XYZ\"");
+          } catch (Throwable t) {
+            return "Wrong response";
+          }
+        }
+        // Then:
+        , equalTo(expectedResponse));
+      }
+    }
+  }
+
+  @Test
+  public void shouldExecutePullQueryAllEndpointsProto() {
+    // Given:
+    final String acceptableContentType = KsqlMediaType.KSQL_V1_PROTOBUF.mediaType();
+    ImmutableList<String> endpoints = ImmutableList.of("/query-stream", "/query");
+    final String query = String.format("SELECT COUNT, USERID from %s;", AGG_TABLE);
+    Object requestBody;
+
+    final String expectedResponse
+            = "[{\"header\":{\"queryId\":\"XYZ\"," +
+            "\"schema\":\"`COUNT` BIGINT, `USERID` STRING KEY\"," +
+            "\"protoSchema\":" +
+            "\"syntax = \\\"proto3\\\";\\n" +
+            "\\n" +
+            "message ConnectDefault1 {\\n" +
+            "  int64 COUNT = 1;\\n" +
+            "  string USERID = 2;\\n" +
+            "}\\n" +
+            "\"}},\n" +
+            "{\"row\":{\"protobufBytes\":\"CAESBlVTRVJfMA==\"}},\n" +
+            "{\"row\":{\"protobufBytes\":\"CAESBlVTRVJfMQ==\"}},\n" +
+            "{\"row\":{\"protobufBytes\":\"CAISBlVTRVJfMg==\"}},\n" +
+            "{\"row\":{\"protobufBytes\":\"CAISBlVTRVJfMw==\"}},\n" +
+            "{\"row\":{\"protobufBytes\":\"CAESBlVTRVJfNA==\"}}]";
+
+    final HttpResponse[] resp = new HttpResponse[1];
+    for (final String endpoint: endpoints) {
+      if (endpoint.equals("/query-stream")) {
+        requestBody = new QueryStreamArgs(
+            query, Collections.emptyMap(), Collections.emptyMap(), Collections.emptyMap());
+      } else if (endpoint.equals("/query")) {
+        requestBody = new KsqlRequest(
+            query, ImmutableMap.of(), Collections.emptyMap(), Collections.emptyMap(), null);
+      } else {
+        fail("Unknown endpoint " + endpoint);
+        return;
+      }
+      for (HttpVersion httpVersion: HttpVersion.values()) {
+        Object finalRequestBody = requestBody;
+        assertThatEventually(() -> {
+          try {
+            // When:
+            resp[0] = RestIntegrationTestUtil.rawRestRequest(REST_APP,
+                httpVersion, POST,
+                endpoint, finalRequestBody, acceptableContentType,
+                Optional.empty(), Optional.empty());
+            int respSize = parseRawRestQueryResponse(resp[0].body().toString()).size();
+            return respSize;
+          } catch (Throwable t) {
+            return Integer.MAX_VALUE;
+          }
+        } // Then:
+        , is(6));
+
+        assertThat(
+            resp[0].bodyAsString().replaceFirst("queryId\":\"[^\"]*\"", "queryId\":\"XYZ\""),
+            equalTo(expectedResponse));
+      }
+    }
+  }
+
+  @Test
+  public void shouldExecutePullQueryAllEndpointsProtoRoundTrip() {
+    // Given:
+    final String acceptableContentType = KsqlMediaType.KSQL_V1_PROTOBUF.mediaType();
+    ImmutableList<String> endpoints = ImmutableList.of("/query-stream", "/query");
+    final String query = String.format("SELECT * from %s;", AGG_TABLE);
+    Object requestBody;
+
+    final List<String> expectedResponses = ImmutableList.of(
+        "USERID: \"USER_0\"\nCOUNT: 1\n",
+        "USERID: \"USER_1\"\nCOUNT: 1\n",
+        "USERID: \"USER_2\"\nCOUNT: 2\n",
+        "USERID: \"USER_3\"\nCOUNT: 2\n",
+        "USERID: \"USER_4\"\nCOUNT: 1\n");
+
+    final HttpResponse[] resp = new HttpResponse[1];
+    for (final String endpoint: endpoints) {
+      if (endpoint.equals("/query-stream")) {
+        requestBody = new QueryStreamArgs(
+            query, Collections.emptyMap(), Collections.emptyMap(), Collections.emptyMap());
+      } else if (endpoint.equals("/query")) {
+        requestBody = new KsqlRequest(
+            query, ImmutableMap.of(), Collections.emptyMap(), Collections.emptyMap(), null);
+      } else {
+        fail("Unknown endpoint " + endpoint);
+        return;
+      }
+      for (HttpVersion httpVersion: HttpVersion.values()) {
+        Object finalRequestBody = requestBody;
+        assertThatEventually(() -> {
+          try {
+            // When:
+            resp[0] = RestIntegrationTestUtil.rawRestRequest(REST_APP,
+                httpVersion, POST,
+                endpoint, finalRequestBody, acceptableContentType,
+                Optional.empty(), Optional.empty());
+            int respSize = parseRawRestQueryResponse(resp[0].body().toString()).size();
+            return respSize;
+          } catch (Throwable t) {
+            return Integer.MAX_VALUE;
+          }
+        }
+        // Then:
+        , is(6));
+
+        List<StreamedRow> rows = KsqlTargetUtil.toRows(resp[0].bodyAsBuffer(), Functions.identity());
+        ProtobufSchema protobufSchema = new ProtobufSchema(
+            rows.get(0)
+                .getHeader()
+                .flatMap(StreamedRow.Header::getProtoSchema)
+                .get());
+
+        ProtobufNoSRConverter.Deserializer deserializer = new ProtobufNoSRConverter.Deserializer();
+
+        // When:
+        for (int i = 1; i < rows.size(); i++) {
+          DynamicMessage row = (DynamicMessage) deserializer.deserialize(
+              rows.get(i)
+                  .getRow()
+                  .flatMap(StreamedRow.DataRow::getProtobufBytes)
+                  .get(),
+              protobufSchema);
+          // Then:
+          assertThat(row.toString(), is(expectedResponses.get(i - 1)));
+        }
+      }
+    }
+  }
+
+  @Test
+  public void shouldExecutePushQueryAllEndpointsDefaultMIME() {
+    // Given:
+    ImmutableList<String> endpoints = ImmutableList.of("/query-stream", "/query");
+    final String query = String.format("SELECT COUNT, USERID from %s EMIT CHANGES LIMIT %d;", AGG_TABLE, LIMIT);
+    Object requestBody;
+
+    final String expectedResponse
+        = "{\"queryId\":\"XYZ\",\"columnNames\":[\"COUNT\",\"USERID\"],\"columnTypes\":[\"BIGINT\",\"STRING\"]}\n" +
+        "[1,\"USER_1\"]\n" +
+        "[1,\"USER_2\"]\n";
+
+    final HttpResponse[] resp = new HttpResponse[1];
+    for (final String endpoint: endpoints) {
+      if (endpoint.equals("/query-stream")) {
+        requestBody = new QueryStreamArgs(
+            query, Collections.emptyMap(), Collections.emptyMap(), Collections.emptyMap());
+      } else if (endpoint.equals("/query")) {
+        requestBody = new KsqlRequest(
+            query, ImmutableMap.of(), Collections.emptyMap(), Collections.emptyMap(), null);
+      } else {
+        fail("Unknown endpoint " + endpoint);
+        return;
+      }
+      for (HttpVersion httpVersion: HttpVersion.values()) {
+        Object finalRequestBody = requestBody;
+        assertThatEventually(() -> {
+          try {
+            // When:
+            resp[0] = RestIntegrationTestUtil.rawRestRequest(REST_APP,
+                httpVersion, POST,
+                endpoint, finalRequestBody, "*/*",
+                Optional.empty(), Optional.empty());
+            return resp[0].bodyAsString().replaceFirst("queryId\":\"[^\"]*\"", "queryId\":\"XYZ\"");
+          } catch (Throwable t) {
+            return "Wrong response";
+          }
+        }
+        // Then:
+        , equalTo(expectedResponse));
+      }
+    }
+  }
+
+  @Test
+  public void shouldExecutePushQueryAllEndpointsProto() {
+    // Given:
+    ImmutableList<String> endpoints = ImmutableList.of("/query-stream", "/query");
+    final String query = String.format("SELECT COUNT, USERID from %s EMIT CHANGES LIMIT %d;", AGG_TABLE, LIMIT);
+    Object requestBody;
+
+    final String expectedResponse
+        = "[{\"header\":{\"queryId\":\"XYZ\"," +
+        "\"schema\":\"`COUNT` BIGINT, `USERID` STRING\"," +
+        "\"protoSchema\":" +
+        "\"syntax = \\\"proto3\\\";\\n" +
+        "\\n" +
+        "message ConnectDefault1 {\\n" +
+        "  int64 COUNT = 1;\\n" +
+        "  string USERID = 2;\\n" +
+        "}\\n" +
+        "\"}},\n" +
+        "{\"row\":{\"protobufBytes\":\"CAESBlVTRVJfMQ==\"}},\n" +
+        "{\"row\":{\"protobufBytes\":\"CAESBlVTRVJfMg==\"}},\n" +
+        "{\"finalMessage\":\"Limit Reached\"}]";
+
+    final HttpResponse[] resp = new HttpResponse[1];
+    for (final String endpoint: endpoints) {
+      if (endpoint.equals("/query-stream")) {
+        requestBody = new QueryStreamArgs(
+            query, Collections.emptyMap(), Collections.emptyMap(), Collections.emptyMap());
+      } else if (endpoint.equals("/query")) {
+        requestBody = new KsqlRequest(
+            query, ImmutableMap.of(), Collections.emptyMap(), Collections.emptyMap(), null);
+      } else {
+        fail("Unknown endpoint " + endpoint);
+        return;
+      }
+      for (HttpVersion httpVersion: HttpVersion.values()) {
+        Object finalRequestBody = requestBody;
+        assertThatEventually(() -> {
+          try {
+            // When:
+            resp[0] = RestIntegrationTestUtil.rawRestRequest(REST_APP,
+                httpVersion, POST,
+                endpoint, finalRequestBody, KsqlMediaType.KSQL_V1_PROTOBUF.mediaType(),
+                Optional.empty(), Optional.empty());
+            int respSize = parseRawRestQueryResponse(resp[0].body().toString()).size();
+            return respSize;
+          } catch (Throwable t) {
+            return Integer.MAX_VALUE;
+          }
+        }
+        // Then:
+        , is(HEADER + LIMIT + FOOTER));
+
+        // Then:
+        assertThat(
+            resp[0].bodyAsString().replaceFirst("queryId\":\"[^\"]*\"", "queryId\":\"XYZ\""),
+            equalTo(expectedResponse));
+      }
+    }
   }
 
   @Test
@@ -1037,6 +1342,182 @@ public class RestApiTest {
         .filter(q -> q.contains("WHERE (PAGEVIEW_KSTREAM.USERID = 'USER_1')"))
         .collect(Collectors.toList());
     assertThat(query.size(), is(1));
+  }
+
+  @Test
+  public void shouldAssertTopicExists() {
+    // When:
+    List<KsqlEntity> response = makeKsqlRequest("ASSERT TOPIC " + PAGE_VIEW_TOPIC + " WITH (PARTITIONS=1) TIMEOUT 2 SECONDS;");
+
+    // Then:
+    assertThat(response.size(), is(1));
+    assertThat(((AssertTopicEntity) response.get(0)).getTopicName(), is(PAGE_VIEW_TOPIC));
+    assertThat(((AssertTopicEntity) response.get(0)).getExists(), is(true));
+  }
+
+  @Test
+  public void shouldFailToAssertNonExistantTopic() {
+    assertThatEventually(() -> {
+      try {
+        makeKsqlRequest("ASSERT TOPIC X WITH (PARTITIONS=1) TIMEOUT 1 SECONDS;");
+        return "Should have thrown 'Topic does not exist' error.";
+      } catch (final Throwable t) {
+        return t.getMessage();
+      }
+    }, containsString("Topic X does not exist"));
+  }
+
+  @Test
+  public void shouldFailToAssertTopicWithWrongConfigs() {
+    assertThatEventually(() -> {
+      try {
+        makeKsqlRequest("ASSERT TOPIC " + PAGE_VIEW_TOPIC + " WITH (PARTITIONS='apples', REPLICAS=100, FAKE_CONFIG='Hello!') TIMEOUT 2 SECONDS;");
+        return "Should have thrown config mismatch error";
+      } catch (final Throwable t) {
+        return t.getMessage();
+      }
+    }, containsString(
+        "Mismatched configuration for topic PAGEVIEW_TOPIC: For config partitions, expected apples got 1\n"
+            + "Mismatched configuration for topic PAGEVIEW_TOPIC: For config replicas, expected 100 got 1\n"
+            + "Cannot assert unknown topic property: FAKE_CONFIG"));
+  }
+
+  @Test
+  public void shouldStopScriptOnFailedAssert() {
+    // When:
+    assertThatEventually(() -> {
+      try {
+        makeKsqlRequest("ASSERT TOPIC X TIMEOUT 2 SECONDS; CREATE STREAM Z AS SELECT * FROM " + PAGE_VIEW_STREAM + ";");
+        return "Should have thrown 'Topic does not exist' error.";
+      } catch (final Throwable t) {
+        return t.getMessage();
+      }
+    }, containsString("Topic X does not exist"));
+
+    // Then:
+    final List<String> query = ((Queries) makeKsqlRequest("SHOW QUERIES;").get(0))
+        .getQueries().stream().map(RunningQuery::getQueryString)
+        .filter(q -> q.contains("Z AS SELECT *')"))
+        .collect(Collectors.toList());
+    assertThat(query.size(), is(0));
+  }
+
+  @Test
+  public void shouldAssertTopicDoesNotExists() {
+    // When:
+    List<KsqlEntity> response = makeKsqlRequest("ASSERT NOT EXISTS TOPIC X WITH (PARTITIONS=1) TIMEOUT 2 SECONDS;");
+
+    // Then:
+    assertThat(response.size(), is(1));
+    assertThat(((AssertTopicEntity) response.get(0)).getTopicName(), is("X"));
+    assertThat(((AssertTopicEntity) response.get(0)).getExists(), is(false));
+  }
+
+  @Test
+  public void shouldFailToAssertTopicDoesntExist() {
+    assertThatEventually(() -> {
+      try {
+        makeKsqlRequest("ASSERT NOT EXISTS TOPIC " + PAGE_VIEW_TOPIC + " WITH (PARTITIONS=1) TIMEOUT 1 SECONDS;");
+        return "Should have thrown 'Topioc exists' error.";
+      } catch (final Throwable t) {
+        return t.getMessage();
+      }
+    }, containsString("Topic PAGEVIEW_TOPIC exists"));
+  }
+
+  @Test
+  public void shouldTimeoutTheCorrectAmountOfTime() {
+    final long start = Instant.now().getEpochSecond();
+    assertThatEventually(() -> {
+      try {
+        makeKsqlRequest("ASSERT TOPIC X WITH (PARTITIONS=1) TIMEOUT 3 SECONDS;");
+        return "Should have thrown 'Topic does not exist' error.";
+      } catch (final Throwable t) {
+        return t.getMessage();
+      }
+    }, containsString("Topic X does not exist"));
+    final long end = Instant.now().getEpochSecond();
+
+    assertThat(end - start >= 3, is(true));
+  }
+
+  @Test
+  public void shouldTimeoutTheDefaultAmountOfTime() {
+    final long start = Instant.now().getEpochSecond();
+    assertThatEventually(() -> {
+      try {
+        makeKsqlRequest("ASSERT TOPIC X WITH (PARTITIONS=1);");
+        return "Should have thrown 'Topic does not exist' error.";
+      } catch (final Throwable t) {
+        return t.getMessage();
+      }
+    }, containsString("Topic X does not exist"));
+    final long end = Instant.now().getEpochSecond();
+
+    assertThat(end - start >= 1, is(true));
+    assertThat(end - start <= 2, is(true));
+  }
+
+  @Test
+  public void shouldFailToAssertTopicWithNoAcls() {
+    assertThatEventually(() -> {
+      try {
+        makeKsqlRequest("ASSERT TOPIC ACLESS WITH (PARTITIONS=1);");
+        return "Should have thrown an error.";
+      } catch (final Throwable t) {
+        return t.getMessage();
+      }
+    }, containsString("Cannot check topic existence: Authorization denied to Describe on topic(s): [ACLESS]"));
+  }
+
+  @Test
+  public void shouldAssertSchemaExists() {
+    // When:
+    makeKsqlRequest("CREATE STREAM ABC (COL INT) WITH (KAFKA_TOPIC='ABC', PARTITIONS=1, VALUE_FORMAT='AVRO');");
+    List<KsqlEntity> response = makeKsqlRequest("ASSERT SCHEMA SUBJECT `ABC-value`;");
+
+    // Then:
+    assertThat(response.size(), is(1));
+    assertThat(((AssertSchemaEntity) response.get(0)).getSubject(), is(Optional.of("ABC-value")));
+    assertThat(((AssertSchemaEntity) response.get(0)).getId(), is(Optional.empty()));
+    assertThat(((AssertSchemaEntity) response.get(0)).getExists(), is(true));
+  }
+
+  @Test
+  public void shouldFailToAssertNonExistantSchema() {
+    assertThatEventually(() -> {
+      try {
+        makeKsqlRequest("ASSERT SCHEMA SUBJECT blahblah TIMEOUT 2 SECONDS;");
+        return "Should have thrown 'Schema does not exist' error.";
+      } catch (final Throwable t) {
+        return t.getMessage();
+      }
+    }, containsString("Schema with subject name blahblah does not exist"));
+  }
+
+  @Test
+  public void shouldAssertSchemaDoesNotExists() {
+    // When:
+    List<KsqlEntity> response = makeKsqlRequest("ASSERT NOT EXISTS SCHEMA SUBJECT blahblah ID 4;");
+
+    // Then:
+    assertThat(response.size(), is(1));
+    assertThat(((AssertSchemaEntity) response.get(0)).getSubject(), is(Optional.of("blahblah")));
+    assertThat(((AssertSchemaEntity) response.get(0)).getId(), is(Optional.of(4)));
+    assertThat(((AssertSchemaEntity) response.get(0)).getExists(), is(false));
+  }
+
+  @Test
+  public void shouldFailToAssertSchemaDoesntExist() {
+    // Then:
+    assertThatEventually(() -> {
+      try {
+        makeKsqlRequest("ASSERT NOT EXISTS SCHEMA SUBJECT `ABC-value` ID 1;");
+        return "Should have thrown 'schema exists' error.";
+      } catch (final Throwable t) {
+        return t.getMessage();
+      }
+    }, containsString("Schema with subject name ABC-value id 1 exists"));
   }
 
   private boolean topicExists(final String topicName) {

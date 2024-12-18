@@ -16,11 +16,11 @@
 package io.confluent.ksql.api.impl;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.api.server.MetricsCallbackHolder;
 import io.confluent.ksql.api.server.QueryHandle;
 import io.confluent.ksql.api.spi.QueryPublisher;
 import io.confluent.ksql.config.SessionConfig;
-import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.execution.pull.PullQueryResult;
 import io.confluent.ksql.internal.PullQueryExecutorMetrics;
 import io.confluent.ksql.name.ColumnName;
@@ -57,7 +57,7 @@ import java.util.stream.Collectors;
 public class QueryEndpoint {
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
-  private final KsqlEngine ksqlEngine;
+  private final KsqlExecutionContext ksqlEngine;
   private final KsqlConfig ksqlConfig;
   private final Optional<PullQueryExecutorMetrics> pullQueryMetrics;
   private final QueryExecutor queryExecutor;
@@ -66,7 +66,7 @@ public class QueryEndpoint {
   @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
   public QueryEndpoint(
       // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
-      final KsqlEngine ksqlEngine,
+      final KsqlExecutionContext ksqlEngine,
       final KsqlConfig ksqlConfig,
       final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
       final QueryExecutor queryExecutor

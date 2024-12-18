@@ -17,8 +17,13 @@ package io.confluent.ksql.api.server;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableMap;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.confluent.connect.protobuf.ProtobufData;
+import io.confluent.connect.protobuf.ProtobufDataConfig;
+import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchema;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.api.spi.QueryPublisher;
 import io.confluent.ksql.query.QueryId;
@@ -30,6 +35,10 @@ import io.confluent.ksql.rest.entity.PushContinuationToken;
 import io.confluent.ksql.rest.entity.QueryResponseMetadata;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.server.resources.streaming.TombstoneFactory;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.serde.connect.ConnectSchemas;
+import io.confluent.ksql.serde.connect.KsqlConnectSerializer;
+import io.confluent.ksql.serde.protobuf.ProtobufNoSRSerdeFactory;
 import io.confluent.ksql.util.KeyValue;
 import io.confluent.ksql.util.KeyValueMetadata;
 import io.confluent.ksql.util.KsqlHostInfo;
@@ -40,6 +49,9 @@ import java.nio.charset.StandardCharsets;
 import java.time.Clock;
 import java.util.List;
 import java.util.Optional;
+import org.apache.kafka.connect.data.ConnectSchema;
+import org.apache.kafka.connect.data.Field;
+import org.apache.kafka.connect.data.Struct;
 
 public class JsonStreamedRowResponseWriter implements QueryStreamResponseWriter {
 
@@ -56,6 +68,7 @@ public class JsonStreamedRowResponseWriter implements QueryStreamResponseWriter 
   // output a final message.
   private final boolean bufferOutput;
   private final Context context;
+  private final RowFormat rowFormat;
   private final WriterState writerState;
   private StreamedRow lastRow;
   private long timerId = -1;
@@ -69,7 +82,8 @@ public class JsonStreamedRowResponseWriter implements QueryStreamResponseWriter 
       final Optional<String> limitMessage,
       final Clock clock,
       final boolean bufferOutput,
-      final Context context
+      final Context context,
+      final RowFormat rowFormat
   ) {
     this.response = response;
     this.tombstoneFactory = queryPublisher.getResultType().map(
@@ -83,12 +97,12 @@ public class JsonStreamedRowResponseWriter implements QueryStreamResponseWriter 
     Preconditions.checkState(bufferOutput || limitMessage.isPresent()
             || completionMessage.isPresent(),
         "If buffering isn't used, a limit/completion message must be set");
+    this.rowFormat = rowFormat;
   }
 
   @Override
   public QueryStreamResponseWriter writeMetadata(final QueryResponseMetadata metaData) {
-    final StreamedRow streamedRow
-        = StreamedRow.header(new QueryId(metaData.queryId), metaData.schema);
+    final StreamedRow streamedRow = rowFormat.metadataRow(metaData);
     final Buffer buff = Buffer.buffer().appendByte((byte) '[');
     if (bufferOutput) {
       writeBuffer(buff, true);
@@ -112,14 +126,8 @@ public class JsonStreamedRowResponseWriter implements QueryStreamResponseWriter 
       Preconditions.checkState(tombstoneFactory.isPresent(),
           "Should only have null values for query types that support them");
       streamedRow = StreamedRow.tombstone(tombstoneFactory.get().createRow(keyValue));
-    } else if (keyValueMetadata.getRowMetadata().isPresent()
-        && keyValueMetadata.getRowMetadata().get().getSourceNode().isPresent()) {
-      streamedRow = StreamedRow.pullRow(keyValue.value(),
-          toKsqlHostInfoEntity(keyValueMetadata.getRowMetadata().get().getSourceNode()));
     } else {
-      // Technically, this codepath is for both push and pull, but where there's no additional
-      // metadata, as there sometimes is with a pull query.
-      streamedRow = StreamedRow.pushRow(keyValue.value());
+      streamedRow = rowFormat.dataRow(keyValueMetadata);
     }
     maybeCacheRowAndWriteLast(streamedRow);
     return this;
@@ -176,6 +184,72 @@ public class JsonStreamedRowResponseWriter implements QueryStreamResponseWriter 
       response.write(writerState.getStringToFlush());
     }
     response.end();
+  }
+
+  public enum RowFormat {
+    PROTOBUF {
+      private transient ConnectSchema connectSchema;
+      private transient KsqlConnectSerializer<Struct> serializer;
+      @Override
+      public StreamedRow metadataRow(final QueryResponseMetadata metaData) {
+        final LogicalSchema schema = metaData.schema;
+        final String queryId = metaData.queryId;
+
+        connectSchema = ConnectSchemas.columnsToConnectSchema(schema.columns());
+        serializer = new ProtobufNoSRSerdeFactory(ImmutableMap.of())
+                .createSerializer(connectSchema, Struct.class, false);
+        return StreamedRow.headerProtobuf(
+                new QueryId(queryId), schema, logicalToProtoSchema(schema));
+      }
+
+      @Override
+      public StreamedRow dataRow(final KeyValueMetadata<List<?>, GenericRow> keyValueMetadata) {
+        final KeyValue<List<?>, GenericRow> keyValue = keyValueMetadata.getKeyValue();
+        final Struct ksqlRecord = new Struct(connectSchema);
+        int i = 0;
+        for (Field field : connectSchema.fields()) {
+          ksqlRecord.put(
+                  field,
+                  keyValue.value().get(i));
+          i += 1;
+        }
+        final byte[] protoMessage = serializer.serialize("", ksqlRecord);
+        return StreamedRow.pullRowProtobuf(protoMessage);
+      }
+    },
+    JSON {
+      @Override
+      public StreamedRow metadataRow(final QueryResponseMetadata metaData) {
+        return StreamedRow.header(new QueryId(metaData.queryId), metaData.schema);
+      }
+
+      @Override
+      public StreamedRow dataRow(final KeyValueMetadata<List<?>, GenericRow> keyValueMetadata) {
+        final KeyValue<List<?>, GenericRow> keyValue = keyValueMetadata.getKeyValue();
+        if (keyValueMetadata.getRowMetadata().isPresent()
+                && keyValueMetadata.getRowMetadata().get().getSourceNode().isPresent()) {
+          return StreamedRow.pullRow(keyValue.value(),
+                  toKsqlHostInfoEntity(keyValueMetadata.getRowMetadata().get().getSourceNode()));
+        } else {
+          // Technically, this codepath is for both push and pull, but where there's no additional
+          // metadata, as there sometimes is with a pull query.
+          return StreamedRow.pushRow(keyValue.value());
+        }
+      }
+    };
+
+    public abstract StreamedRow metadataRow(QueryResponseMetadata metaData);
+
+    public abstract StreamedRow dataRow(KeyValueMetadata<List<?>, GenericRow> keyValueMetadata);
+  }
+
+  @VisibleForTesting
+  static String logicalToProtoSchema(final LogicalSchema schema) {
+    final ConnectSchema connectSchema = ConnectSchemas.columnsToConnectSchema(schema.columns());
+
+    final ProtobufSchema protobufSchema = new ProtobufData(
+            new ProtobufDataConfig(ImmutableMap.of())).fromConnectSchema(connectSchema);
+    return protobufSchema.canonicalString();
   }
 
   // This does the writing of the rows and possibly caches the current row, writing the last cached

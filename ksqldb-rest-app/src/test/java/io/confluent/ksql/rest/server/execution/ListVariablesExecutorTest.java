@@ -20,7 +20,6 @@ import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import io.confluent.ksql.parser.tree.ListVariables;
 import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.VariablesList;
@@ -38,8 +37,6 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class ListVariablesExecutorTest {
   private SessionProperties sessionProperties;
-  private static final CustomExecutors CUSTOM_EXECUTORS = new CustomExecutors(
-      new DefaultConnectServerErrors());
 
   @Before
   public void setup() {
@@ -48,10 +45,10 @@ public class ListVariablesExecutorTest {
   }
 
   private Optional<KsqlEntity> executeListVariables(final String sql) {
-    final ConfiguredStatement<ListVariables> configuredStatement = mock(ConfiguredStatement.class);
+    final ConfiguredStatement<?> configuredStatement = mock(ConfiguredStatement.class);
     when(configuredStatement.getMaskedStatementText()).thenReturn(sql);
 
-    return CUSTOM_EXECUTORS.listVariables().execute(
+    return CustomExecutors.LIST_VARIABLES.execute(
         configuredStatement,
         sessionProperties,
         null,

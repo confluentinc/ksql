@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.properties;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMap.Builder;
 import com.google.common.collect.ImmutableSet;
@@ -76,9 +77,24 @@ public final class PropertiesUtil {
    * @return an immutable map of the loaded properties.
    */
   public static Map<String, String> loadProperties(final File propertiesFile) {
-    final Map<String, String> properties = loadPropsFromFile(propertiesFile);
+    return loadProperties(ImmutableList.of(propertiesFile));
+  }
+
+  /**
+   * Load a list of property files. Properties are loaded from the first entry
+   * in the list to the last, meaning that any properties specified in later
+   * files take precedence.
+   *
+   * @param propertiesFiles the property files to load.
+   * @return an immutable map of the loaded properties.
+   */
+  public static Map<String, String> loadProperties(final List<File> propertiesFiles) {
+    final Map<String, String> properties = new HashMap<>();
+    for (final File propertiesFile : propertiesFiles) {
+      properties.putAll(loadPropsFromFile(propertiesFile));
+    }
     throwOnBlackListedProperties(properties);
-    return properties;
+    return ImmutableMap.copyOf(properties);
   }
 
   /**

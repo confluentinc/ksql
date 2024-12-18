@@ -28,7 +28,7 @@ import java.util.Map;
 import java.util.function.Function;
 import org.slf4j.Logger;
 
-class LoggingRateLimiter {
+public class LoggingRateLimiter {
   // Print "You hit a rate limit" every 5 seconds
   private static final double LIMIT_HIT_LOG_RATE = 0.2;
 

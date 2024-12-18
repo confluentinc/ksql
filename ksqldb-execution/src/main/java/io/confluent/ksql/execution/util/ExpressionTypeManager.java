@@ -60,6 +60,7 @@ import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp
 import io.confluent.ksql.execution.expression.tree.WhenClause;
 import io.confluent.ksql.execution.function.UdafUtil;
 import io.confluent.ksql.execution.util.FunctionArgumentsUtil.FunctionTypeInfo;
+import io.confluent.ksql.function.AggregateFunctionFactory;
 import io.confluent.ksql.function.AggregateFunctionInitArguments;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlAggregateFunction;
@@ -77,8 +78,8 @@ import io.confluent.ksql.schema.ksql.types.SqlStruct.Field;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.DecimalUtil;
-import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.VisitorUtil;
 import java.util.Collections;
 import java.util.List;
@@ -167,8 +168,12 @@ public class ExpressionTypeManager {
       try {
         resultType = node.getOperator().resultType(leftType, rightType);
       } catch (KsqlException e) {
-        throw new KsqlException(String.format(
-                "Error processing expression: %s. %s", node.toString(), e.getMessage()), e);
+        throw new KsqlStatementException(
+            "Error processing expression.",
+            String.format("Error processing expression: %s. %s", node, e.getMessage()),
+            Objects.toString(node),
+            e
+        );
       }
 
       context.setSqlType(resultType);
@@ -233,10 +238,15 @@ public class ExpressionTypeManager {
       final SqlType rightSchema = context.getSqlType();
 
       if (!ComparisonUtil.isValidComparison(leftSchema, node.getType(), rightSchema)) {
-        throw new KsqlException("Cannot compare "
-            + node.getLeft().toString() + " (" + leftSchema.toString() + ") to "
-            + node.getRight().toString() + " (" + rightSchema.toString() + ") "
-            + "with " + node.getType() + ".");
+        throw new KsqlStatementException(
+            "Cannot compare " + leftSchema + " to " + rightSchema + " "
+            + "with " + node.getType() + ".",
+            "Cannot compare "
+            + node.getLeft().toString() + " (" + leftSchema + ") to "
+            + node.getRight().toString() + " (" + rightSchema + ") "
+            + "with " + node.getType() + ".",
+            node.toString()
+        );
       }
       context.setSqlType(SqlTypes.BOOLEAN);
       return null;
@@ -529,21 +539,30 @@ public class ExpressionTypeManager {
     ) {
       // CHECKSTYLE_RULES.ON: CyclomaticComplexity
       if (functionRegistry.isAggregate(node.getName())) {
-        final SqlType schema = node.getArguments().isEmpty()
-            ? FunctionRegistry.DEFAULT_FUNCTION_ARG_SCHEMA
-            : getExpressionSqlType(
-                node.getArguments().get(0),
-                context.getLambdaSqlTypeMapping());
+        final List<Expression> args = node.getArguments();
+        List<SqlType> schema = args.stream().map(
+                (arg) -> getExpressionSqlType(arg, context.getLambdaSqlTypeMapping())
+        ).collect(Collectors.toList());
 
-        // use an empty KsqlConfig here because the expression type
-        // of an aggregate function does not depend on the configuration
-        final AggregateFunctionInitArguments args =
-            UdafUtil.createAggregateFunctionInitArgs(0, node, KsqlConfig.empty());
+        if (schema.isEmpty()) {
+          schema = Collections.singletonList(FunctionRegistry.DEFAULT_FUNCTION_ARG_SCHEMA);
+        }
 
-        final KsqlAggregateFunction<?,?,?> aggFunc = functionRegistry
-            .getAggregateFunction(node.getName(), schema, args);
+        final AggregateFunctionFactory factory = functionRegistry
+            .getAggregateFactory(node.getName());
 
-        context.setSqlType(aggFunc.returnType());
+        final AggregateFunctionFactory.FunctionSource initArgsAndCreator =
+                factory.getFunction(schema);
+        final int numInitArgs = initArgsAndCreator.initArgs;
+
+        final AggregateFunctionInitArguments initArgs = UdafUtil.createAggregateFunctionInitArgs(
+                numInitArgs,
+                node
+        );
+        final KsqlAggregateFunction<?, ?, ?> function = initArgsAndCreator.source
+                .apply(initArgs);
+
+        context.setSqlType(function.returnType());
         return null;
       }
 

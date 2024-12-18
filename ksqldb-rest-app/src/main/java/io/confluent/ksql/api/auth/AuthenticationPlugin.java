@@ -47,15 +47,15 @@ public interface AuthenticationPlugin {
       WorkerExecutor workerExecutor);
 
   /**
-   * Retrieve the authorization token from the request. This is different from {@code handleAuth}
-   * since we need to expose the authorization token in order to provide forwarded inter-node
+   * Retrieve the authorization header from the request. This is different from {@code handleAuth}
+   * since we need to expose the authorization header in order to provide forwarded inter-node
    * requests the correct credentials.
    *
    * @param routingContext The routing context
-   * @return A String that is the authorization token that we can then use for forwarding
+   * @return A String that is the authorization header that we can then use for forwarding
    *        inter-node requests.
    */
-  default String getAuthToken(final RoutingContext routingContext) {
+  default String getAuthHeader(final RoutingContext routingContext) {
     return routingContext.request().getHeader("Authorization");
   }
 

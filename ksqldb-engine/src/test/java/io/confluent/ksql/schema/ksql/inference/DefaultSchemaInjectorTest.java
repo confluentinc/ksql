@@ -105,8 +105,16 @@ public class DefaultSchemaInjectorTest {
   private static final ColumnConstraints PRIMARY_KEY_CONSTRAINT =
       new ColumnConstraints.Builder().primaryKey().build();
 
+  private static final ColumnConstraints HEADER_CONSTRAINT =
+      new ColumnConstraints.Builder().header("header").build();
+
   private static final TableElements SOME_KEY_ELEMENTS_STREAM = TableElements.of(
       new TableElement(ColumnName.of("bob"), new Type(SqlTypes.STRING), KEY_CONSTRAINT));
+  private static final TableElements HEADER_ELEMENTS = TableElements.of(
+      new TableElement(ColumnName.of("head"), new Type(SqlTypes.BYTES), HEADER_CONSTRAINT));
+  private static final TableElements HEADER_AND_VALUE = TableElements.of(
+      new TableElement(ColumnName.of("head"), new Type(SqlTypes.BYTES), HEADER_CONSTRAINT),
+      new TableElement(ColumnName.of("bob"), new Type(SqlTypes.STRING)));
   private static final TableElements SOME_KEY_ELEMENTS_TABLE = TableElements.of(
       new TableElement(ColumnName.of("bob"), new Type(SqlTypes.STRING), PRIMARY_KEY_CONSTRAINT));
   private static final TableElements SOME_VALUE_ELEMENTS = TableElements.of(
@@ -567,6 +575,106 @@ public class DefaultSchemaInjectorTest {
             + "`key` STRING PRIMARY KEY, "
             + "`bob` STRING) "
             + "WITH (KAFKA_TOPIC='some-topic', KEY_FORMAT='avro', VALUE_FORMAT='delimited');"
+    ));
+  }
+
+  @Test
+  public void shouldInjectKeyAndValuesForCs() {
+    // Given:
+    givenKeyAndValueInferenceSupported();
+    when(cs.getElements()).thenReturn(HEADER_ELEMENTS);
+
+    // When:
+    final ConfiguredStatement<CreateStream> result = injector.inject(csStatement);
+
+    // Then:
+    assertThat(result.getStatement().getElements(),
+        is(combineElements(HEADER_ELEMENTS, INFERRED_KSQL_KEY_SCHEMA_STREAM, INFERRED_KSQL_VALUE_SCHEMA)));
+    assertThat(result.getMaskedStatementText(), is(
+        "CREATE STREAM `cs` ("
+            + "`head` BYTES HEADER('header'), "
+            + "`key` STRING KEY, "
+            + "`intField` INTEGER, "
+            + "`bigIntField` BIGINT, "
+            + "`doubleField` DOUBLE, "
+            + "`stringField` STRING, "
+            + "`booleanField` BOOLEAN, "
+            + "`arrayField` ARRAY<INTEGER>, "
+            + "`mapField` MAP<STRING, BIGINT>, "
+            + "`structField` STRUCT<`s0` BIGINT>, "
+            + "`decimalField` DECIMAL(4, 2)) "
+            + "WITH (KAFKA_TOPIC='some-topic', KEY_FORMAT='protobuf', VALUE_FORMAT='avro');"
+    ));
+  }
+
+  @Test
+  public void shouldInjectKeyAndValuesForCt() {
+    // Given:
+    givenKeyAndValueInferenceSupported();
+    when(ct.getElements()).thenReturn(HEADER_ELEMENTS);
+
+    // When:
+    final ConfiguredStatement<CreateTable> result = injector.inject(ctStatement);
+
+    // Then:
+    assertThat(result.getStatement().getElements(),
+        is(combineElements(HEADER_ELEMENTS, INFERRED_KSQL_KEY_SCHEMA_TABLE, INFERRED_KSQL_VALUE_SCHEMA)));
+    assertThat(result.getMaskedStatementText(), is(
+        "CREATE TABLE `ct` ("
+            + "`head` BYTES HEADER('header'), "
+            + "`key` STRING PRIMARY KEY, "
+            + "`intField` INTEGER, "
+            + "`bigIntField` BIGINT, "
+            + "`doubleField` DOUBLE, "
+            + "`stringField` STRING, "
+            + "`booleanField` BOOLEAN, "
+            + "`arrayField` ARRAY<INTEGER>, "
+            + "`mapField` MAP<STRING, BIGINT>, "
+            + "`structField` STRUCT<`s0` BIGINT>, "
+            + "`decimalField` DECIMAL(4, 2)) "
+            + "WITH (KAFKA_TOPIC='some-topic', KEY_FORMAT='protobuf', VALUE_FORMAT='avro');"
+    ));
+  }
+
+  @Test
+  public void shouldInjectValuesAndMaintainKeysAndHeadersForCs() {
+    // Given:
+    givenKeyAndValueInferenceSupported();
+    when(cs.getElements()).thenReturn(HEADER_AND_VALUE);
+
+    // When:
+    final ConfiguredStatement<CreateStream> result = injector.inject(csStatement);
+
+    // Then:
+    assertThat(result.getStatement().getElements(),
+        is(combineElements(HEADER_ELEMENTS, INFERRED_KSQL_KEY_SCHEMA_STREAM, SOME_VALUE_ELEMENTS)));
+    assertThat(result.getMaskedStatementText(), is(
+        "CREATE STREAM `cs` ("
+            + "`head` BYTES HEADER('header'), "
+            + "`key` STRING KEY, "
+            + "`bob` STRING) "
+            + "WITH (KAFKA_TOPIC='some-topic', KEY_FORMAT='protobuf', VALUE_FORMAT='avro');"
+    ));
+  }
+
+  @Test
+  public void shouldInjectValuesAndMaintainKeysAndHeadersForCt() {
+    // Given:
+    givenKeyAndValueInferenceSupported();
+    when(ct.getElements()).thenReturn(HEADER_AND_VALUE);
+
+    // When:
+    final ConfiguredStatement<CreateTable> result = injector.inject(ctStatement);
+
+    // Then:
+    assertThat(result.getStatement().getElements(),
+        is(combineElements(HEADER_ELEMENTS, INFERRED_KSQL_KEY_SCHEMA_TABLE, SOME_VALUE_ELEMENTS)));
+    assertThat(result.getMaskedStatementText(), is(
+        "CREATE TABLE `ct` ("
+            + "`head` BYTES HEADER('header'), "
+            + "`key` STRING PRIMARY KEY, "
+            + "`bob` STRING) "
+            + "WITH (KAFKA_TOPIC='some-topic', KEY_FORMAT='protobuf', VALUE_FORMAT='avro');"
     ));
   }
 
@@ -1221,6 +1329,19 @@ public class DefaultSchemaInjectorTest {
   ) {
     return TableElements.of(
         Stream.concat(keyElems.stream(), valueElems.stream())
+            .collect(Collectors.toList())
+    );
+  }
+
+  private static TableElements combineElements(
+      final TableElements headerElems,
+      final TableElements keyElems,
+      final TableElements valueElems
+  ) {
+    Stream.of(headerElems.stream(), keyElems.stream(), valueElems.stream()).flatMap(s -> s);
+    return TableElements.of(
+        Stream.of(headerElems.stream(), keyElems.stream(), valueElems.stream())
+            .flatMap(s -> s)
             .collect(Collectors.toList())
     );
   }

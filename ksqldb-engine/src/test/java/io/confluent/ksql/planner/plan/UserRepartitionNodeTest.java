@@ -35,7 +35,6 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.ValueFormat;
-import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.util.List;
 import java.util.Optional;
@@ -82,14 +81,11 @@ public class UserRepartitionNodeTest {
   private KsqlTopic topic;
   @Mock
   private ValueFormat valueFormat;
-  @Mock
-  private KsqlConfig ksqlConfig;
 
   private UserRepartitionNode repartitionNode;
 
   @Before
   public void setUp() {
-    when(ksqlConfig.getBoolean(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED)).thenReturn(true);
     when(parent.getNodeOutputType()).thenReturn(DataSourceType.KSTREAM);
     when(parent.getSourceName()).thenReturn(Optional.of(SOURCE_NAME));
     when(parent.getSourceNodes()).thenReturn(Stream.of(sourceNode));
@@ -102,8 +98,7 @@ public class UserRepartitionNodeTest {
         parent,
         SCHEMA,
         ImmutableList.of(originalPartitionBy),
-        ImmutableList.of(rewrittenPartitionBy),
-        ksqlConfig
+        ImmutableList.of(rewrittenPartitionBy)
     );
   }
 
@@ -149,7 +144,7 @@ public class UserRepartitionNodeTest {
 
     // Then:
     assertThat(e.getMessage(), containsString("The query used to build `S1` "
-        + "must include the partitioning expression T.ID in its projection."));
+        + "must include the partitioning expression T.ID in its projection (eg, SELECT T.ID..."));
   }
 
   @Test

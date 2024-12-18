@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.api.client.impl;
 
+import static io.netty.handler.codec.http.HttpHeaderNames.ACCEPT;
 import static io.netty.handler.codec.http.HttpHeaderNames.USER_AGENT;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
@@ -25,6 +26,7 @@ import static org.mockito.Mockito.when;
 import com.google.common.testing.EqualsTester;
 import io.confluent.ksql.api.client.Client;
 import io.confluent.ksql.api.client.ClientOptions;
+import io.confluent.ksql.rest.entity.KsqlMediaType;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
@@ -66,7 +68,7 @@ public class ClientImplTest {
   }
 
   @Test
-  public void shouldSetUserAgent() {
+  public void shouldSetUserAgentAndAcceptHeaders() {
     // Given
     Vertx vertx = Mockito.mock(Vertx.class);
     HttpClient httpClient = Mockito.mock(HttpClient.class);
@@ -91,10 +93,14 @@ public class ClientImplTest {
     // Then
     Client client = Client.create(OPTIONS_1, vertx);
     client.streamQuery("SELECT * from STREAM1 EMIT CHANGES;");
-    assertThat(headers.size(), is(1));
+    assertThat(headers.size(), is(2));
     assertThat(headers.containsKey(USER_AGENT.toString()), is(true));
-    assertThat(headers.get(USER_AGENT.toString()).matches("ksqlDB Java Client v\\d\\.\\d\\.\\d.*"),
+    assertThat(headers.get(USER_AGENT.toString()).matches("ksqlDB Java Client v(\\d|[1-9]\\d+)\\.(\\d|[1-9]\\d+)\\.(\\d|[1-9]\\d+).*"),
         is(true));
+
+    assertThat(headers.containsKey(ACCEPT.toString()), is(true));
+    assertThat(headers.get(ACCEPT.toString()).equals(KsqlMediaType.LATEST_FORMAT.mediaType()),
+            is(true));
   }
 
 }

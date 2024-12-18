@@ -91,7 +91,7 @@ public class SchemaKStreamTest {
   private final KeyFormat keyFormat = KeyFormat
       .nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name()), SerdeFeatures.of());
   private final KeyFormat windowedKeyFormat = KeyFormat
-      .windowed(FormatInfo.of(FormatFactory.KAFKA.name()), SerdeFeatures.of(), WindowInfo.of(WindowType.SESSION, Optional.empty()));
+      .windowed(FormatInfo.of(FormatFactory.KAFKA.name()), SerdeFeatures.of(), WindowInfo.of(WindowType.SESSION, Optional.empty(), Optional.empty()));
   private final ValueFormat valueFormat = ValueFormat.of(FormatInfo.of(FormatFactory.JSON.name()),
       SerdeFeatures.of());
   private final QueryContext.Stacker queryContext
@@ -623,7 +623,7 @@ public class SchemaKStreamTest {
     when(topic.getKeyFormat()).thenReturn(KeyFormat.windowed(
         keyFormat.getFormatInfo(),
         SerdeFeatures.of(),
-        WindowInfo.of(WindowType.SESSION, Optional.empty())
+        WindowInfo.of(WindowType.SESSION, Optional.empty(), Optional.empty())
     ));
 
     // When:

@@ -21,6 +21,7 @@ import io.confluent.connect.avro.AvroConverter;
 import io.confluent.connect.avro.AvroDataConfig;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.serializers.AbstractKafkaSchemaSerDeConfig;
+import io.confluent.ksql.serde.SerdeFactory;
 import io.confluent.ksql.serde.SerdeUtils;
 import io.confluent.ksql.serde.connect.ConnectDataTranslator;
 import io.confluent.ksql.serde.connect.DataTranslator;
@@ -37,12 +38,11 @@ import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.common.serialization.Serializer;
-import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Schema;
 
 @Immutable
 @SuppressWarnings("checkstyle:ClassDataAbstractionCoupling")
-class KsqlAvroSerdeFactory {
+class KsqlAvroSerdeFactory implements SerdeFactory {
 
   private final String fullSchemaName;
   private final AvroProperties properties;
@@ -60,8 +60,9 @@ class KsqlAvroSerdeFactory {
     this(new AvroProperties(properties));
   }
 
-  <T> Serde<T> createSerde(
-      final ConnectSchema schema,
+  @Override
+  public <T> Serde<T> createSerde(
+      final Schema schema,
       final KsqlConfig ksqlConfig,
       final Supplier<SchemaRegistryClient> srFactory,
       final Class<T> targetType,
@@ -101,7 +102,7 @@ class KsqlAvroSerdeFactory {
   }
 
   private <T> Supplier<Serializer<T>> createConnectSerializer(
-      final ConnectSchema schema,
+      final Schema schema,
       final KsqlConfig ksqlConfig,
       final Supplier<SchemaRegistryClient> srFactory,
       final Class<T> targetType,
@@ -127,7 +128,7 @@ class KsqlAvroSerdeFactory {
   }
 
   private <T> Supplier<Deserializer<T>> createConnectDeserializer(
-      final ConnectSchema schema,
+      final Schema schema,
       final KsqlConfig ksqlConfig,
       final Supplier<SchemaRegistryClient> srFactory,
       final Class<T> targetType,

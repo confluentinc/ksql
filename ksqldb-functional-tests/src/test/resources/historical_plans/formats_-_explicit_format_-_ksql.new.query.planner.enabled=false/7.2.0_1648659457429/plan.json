@@ -133,6 +133,7 @@
     "ksql.query.push.v2.catchup.consumer.msg.window" : "50",
     "ksql.runtime.feature.shared.enabled" : "false",
     "ksql.udf.collect.metrics" : "false",
+    "ksql.new.query.planner.enabled" : "false",
     "ksql.connect.request.headers.plugin" : null,
     "ksql.security.extension.class" : null,
     "ksql.transient.prefix" : "transient_",

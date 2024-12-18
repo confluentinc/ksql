@@ -73,8 +73,8 @@ final class DdlDmlResponseHandlers {
   }
 
   private static boolean isIfNotExistsWarning(final JsonObject ksqlEntity) {
-    return ksqlEntity.getString("statementText") != null
-        && ksqlEntity.getString("statementText").contains("IF NOT EXISTS")
+    return ksqlEntity.getString("message") != null
+        && ksqlEntity.getString("message").startsWith("Cannot add")
         && ksqlEntity.getString("@type") != null
         && ksqlEntity.getString("@type").equals("warning_entity");
   }

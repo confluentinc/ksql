@@ -107,7 +107,7 @@ public class DeprecatedStatementsChecker {
   private boolean isStream(final Relation relation) {
     // DataSourceExtractor must be initialized everytime we need to extract data from a node
     // because it changes its internal state to keep all sources found
-    final DataSourceExtractor dataSourceExtractor = new DataSourceExtractor(metaStore, false);
+    final DataSourceExtractor dataSourceExtractor = new DataSourceExtractor(metaStore);
 
     // The relation object should have only one joined source, but the extract sources method
     // returns a list. This loop checks all returned values are a Stream just to prevent throwing

@@ -33,6 +33,7 @@ import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.OutputRefinement;
 import io.confluent.ksql.parser.tree.AliasedRelation;
 import io.confluent.ksql.parser.tree.Query;
+import io.confluent.ksql.parser.tree.Select;
 import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.execution.pull.HARouting;
 import io.confluent.ksql.execution.pull.PullPhysicalPlan.PullPhysicalPlanType;
@@ -145,6 +146,7 @@ public class QueryExecutorTest {
     when(ksqlConfig.getBoolean(KsqlConfig.KSQL_PULL_QUERIES_ENABLE_CONFIG)).thenReturn(true);
     when(ksqlRestConfig.getInt(KsqlRestConfig.MAX_PUSH_QUERIES)).thenReturn(Integer.MAX_VALUE);
     when(ksqlEngine.analyzeQueryWithNoOutputTopic(any(), any(), any())).thenReturn(mockAnalysis);
+    when(ksqlEngine.getKsqlConfig()).thenReturn(ksqlConfig);
     when(mockAnalysis.getFrom()).thenReturn(mockAliasedDataSource);
     when(mockAliasedDataSource.getDataSource()).thenReturn(mockDataSource);
     when(mockDataSource.getDataSourceType()).thenReturn(DataSourceType.KSTREAM);
@@ -186,6 +188,7 @@ public class QueryExecutorTest {
         ImmutableSet.of(new QueryId("a")));
     when(pushQueryQuery.getRefinement())
         .thenReturn(Optional.of(RefinementInfo.of(OutputRefinement.CHANGES)));
+    when(pushQueryQuery.getSelect()).thenReturn(new Select(Collections.emptyList()));
     pullQuery = PreparedStatement.of(PULL_QUERY_STRING, pullQueryQuery);
     pushQuery = PreparedStatement.of(PUSH_QUERY_STRING, pushQueryQuery);
     queryExecutor = new QueryExecutor(ksqlEngine, ksqlRestConfig, ksqlConfig,
@@ -210,7 +213,7 @@ public class QueryExecutorTest {
     when(mockDataSource.getDataSourceType()).thenReturn(dataSourceType);
 
     // When:
-    final Exception e = assertThrows(
+    final KsqlStatementException e = assertThrows(
         KsqlStatementException.class,
         () -> queryExecutor.handleStatement(serviceContext, ImmutableMap.of(), ImmutableMap.of(),
             pullQuery, Optional.empty(), metricsCallbackHolder, context, false)
@@ -219,9 +222,17 @@ public class QueryExecutorTest {
     // Then:
     final String errorMsg =
         "Pull queries are disabled. See https://cnfl.io/queries for more info.\n"
+            + "Add EMIT CHANGES if you intended to issue a push query.\n"
+            + "Please set ksql.pull.queries.enable=true to enable this feature.\n"
+            + "\n"
+            + "Statement: SELECT * FROM test_stream WHERE ROWKEY='null';";
+    assertThat(e.getUnloggedMessage(), is(errorMsg));
+    final String sanitizedErrorMsg =
+        "Pull queries are disabled. See https://cnfl.io/queries for more info.\n"
         + "Add EMIT CHANGES if you intended to issue a push query.\n"
         + "Please set ksql.pull.queries.enable=true to enable this feature.\n";
-    assertThat(e.getMessage(), is(errorMsg));
+    assertThat(e.getMessage(), is(sanitizedErrorMsg));
+    assertThat(e.getSqlStatement(), is("SELECT * FROM test_stream WHERE ROWKEY='null';"));
   }
 
   @Test

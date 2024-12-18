@@ -19,6 +19,7 @@ import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
@@ -50,6 +51,7 @@ public enum ApiJsonMapper {
       .registerModule(new StructSerializationModule())
       .registerModule(new KsqlTypesSerializationModule())
       .registerModule(new GuavaModule())
+      .disable(SerializationFeature.FAIL_ON_EMPTY_BEANS)
       .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
       .disable(DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES)
       .enable(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS)

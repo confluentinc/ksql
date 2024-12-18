@@ -24,6 +24,7 @@ import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.serializers.AbstractKafkaSchemaSerDeConfig;
 import io.confluent.ksql.schema.connect.SchemaWalker;
+import io.confluent.ksql.serde.SerdeFactory;
 import io.confluent.ksql.serde.SerdeUtils;
 import io.confluent.ksql.serde.connect.ConnectDataTranslator;
 import io.confluent.ksql.serde.connect.DataTranslator;
@@ -41,12 +42,11 @@ import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.common.serialization.Serializer;
-import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Schema.Type;
 
 @SuppressWarnings("checkstyle:ClassDataAbstractionCoupling")
-final class ProtobufSerdeFactory {
+final class ProtobufSerdeFactory implements SerdeFactory {
 
   private final ProtobufProperties properties;
   private final Optional<String> fullSchemaName;
@@ -107,8 +107,9 @@ final class ProtobufSerdeFactory {
     }
   }
 
-  <T> Serde<T> createSerde(
-      final ConnectSchema schema,
+  @Override
+  public <T> Serde<T> createSerde(
+      final Schema schema,
       final KsqlConfig ksqlConfig,
       final Supplier<SchemaRegistryClient> srFactory,
       final Class<T> targetType,
@@ -165,7 +166,7 @@ final class ProtobufSerdeFactory {
   }
 
   private <T> KsqlConnectSerializer<T> createSerializer(
-      final ConnectSchema schema,
+      final Schema schema,
       final KsqlConfig ksqlConfig,
       final Supplier<SchemaRegistryClient> srFactory,
       final Class<T> targetType,
@@ -188,7 +189,7 @@ final class ProtobufSerdeFactory {
   }
 
   private <T> KsqlConnectDeserializer<T> createDeserializer(
-      final ConnectSchema schema,
+      final Schema schema,
       final KsqlConfig ksqlConfig,
       final Supplier<SchemaRegistryClient> srFactory,
       final Class<T> targetType,

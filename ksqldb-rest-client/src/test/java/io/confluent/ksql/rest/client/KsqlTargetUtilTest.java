@@ -139,4 +139,95 @@ public class KsqlTargetUtilTest {
     // Then:
     assertThat(e.getMessage(), is(("Failed to deserialise object")));
   }
+
+  @Test
+  public void shouldParseHeaderProto() {
+    // When:
+    final List<StreamedRow> rows = KsqlTargetUtil.toRows(Buffer.buffer("[{\"header\":{\"queryId\":\"queryId\"," +
+            "\"schema\":\"`A` INTEGER KEY, `B` DOUBLE, `C` ARRAY<STRING>\"," +
+            "\"protoSchema\":" +
+            "\"syntax = \\\"proto3\\\";\\n" +
+            "\\n" +
+            "message ConnectDefault1 {\\n" +
+            "  int32 A = 1;\\n" +
+            "  double B = 2;\\n" +
+            "  repeated string C = 3;\\n" +
+            "}\\n" +
+            "\"}}]"), Functions.identity());
+
+    StreamedRow row = rows.get(0);
+
+    // Then:
+    assertThat(row.getHeader().isPresent(), is(true));
+    assertThat(row.getHeader().get().getQueryId().toString(), is("queryId"));
+
+    assertThat(row.getHeader().get().getSchema().toString(), is("`A` INTEGER KEY, `B` DOUBLE, `C` ARRAY<STRING>"));
+    assertThat(row.getHeader().get().getProtoSchema().get(), is("syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  int32 A = 1;\n  double B = 2;\n  repeated string C = 3;\n}\n"));
+  }
+
+  @Test
+  public void toRowsProto() {
+    // When:
+    final List<StreamedRow> rows =  KsqlTargetUtil.toRows(Buffer.buffer("[{\"header\":{\"queryId\":\"queryId\"," +
+            "\"schema\":\"`A` INTEGER KEY, `B` DOUBLE, `C` ARRAY<STRING>\"," +
+            "\"protoSchema\":" +
+            "\"syntax = \\\"proto3\\\";\\n" +
+            "\\n" +
+            "message ConnectDefault1 {\\n" +
+            "  int32 A = 1;\\n" +
+            "  double B = 2;\\n" +
+            "  repeated string C = 3;\\n" +
+            "}\\n" +
+            "\"}},\n" +
+            "{\"row\":{\"protobufBytes\":\"CHsRAAAAAABAbUAaBWhlbGxv\"}},\n" +
+            "{\"row\":{\"protobufBytes\":\"CMgDEQAAAAAAqIhAGgNieWU=\"}},\n" +
+            "{\"finalMessage\":\"limit hit!\"}]"), Functions.identity());
+
+    // Then:
+    assertThat(rows.size(), is(4));
+    final StreamedRow row = rows.get(0);
+    assertThat(row.getHeader().isPresent(), is(true));
+    assertThat(row.getHeader().get().getQueryId().toString(), is("queryId"));
+    assertThat(row.getHeader().get().getSchema().toString(), is("`A` INTEGER KEY, `B` DOUBLE, `C` ARRAY<STRING>"));
+    assertThat(row.getHeader().get().getProtoSchema().get(), is("syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  int32 A = 1;\n  double B = 2;\n  repeated string C = 3;\n}\n"));
+
+    final StreamedRow row2 = rows.get(1);
+    assertThat(row2.getRow().isPresent(), is(true));
+    assertThat(row2.getRow().get().getProtobufBytes().isPresent(), is(true));
+    assertThat(row2.getRow().get().toString(), is("{\"protobufBytes\":\"CHsRAAAAAABAbUAaBWhlbGxv\"}"));
+
+    final StreamedRow row3 = rows.get(2);
+    assertThat(row3.getRow().isPresent(), is(true));
+    assertThat(row3.getRow().get().getProtobufBytes().isPresent(), is(true));
+    assertThat(row3.getRow().get().toString(), is("{\"protobufBytes\":\"CMgDEQAAAAAAqIhAGgNieWU=\"}"));
+
+    final StreamedRow row4 = rows.get(3);
+    assertThat(row4.getRow().isPresent(), is(false));
+    assertThat(row4.getFinalMessage().isPresent(), is(true));
+    assertThat(row4.getFinalMessage().get(), is("limit hit!"));
+  }
+
+  @Test
+  public void toRows_errorParsingNotAtEndProto() {
+    // When:
+    final Exception e = assertThrows(
+            KsqlRestClientException.class,
+            () -> KsqlTargetUtil.toRows(Buffer.buffer("[{\"header\":{\"queryId\":\"queryId\"," +
+                    "\"schema\":\"`A` INTEGER KEY, `B` DOUBLE, `C` ARRAY<STRING>\"," +
+                    "\"protoSchema\":" +
+                    "\"syntax = \\\"proto3\\\";\\n" +
+                    "\\n" +
+                    "message ConnectDefault1 {\\n" +
+                    "  int32 A = 1;\\n" +
+                    "  double B = 2;\\n" +
+                    "  repeated string C = 3;\\n" +
+                    "}\\n" +
+                    "\"}},\n" +
+                    "{\"row\":{\"protobufBytes\":\"CHsRAAAAAABAbUAaBWhlbGxv\"}},\n" +
+                    "{\"row\":{\"protobufBytes\":\"CMgDEQAA"), Functions.identity())
+    );
+
+    // Then:
+    assertThat(e.getMessage(), is(("Failed to deserialise object")));
+  }
 }

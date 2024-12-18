@@ -23,6 +23,7 @@ import static org.mockito.Mockito.when;
 
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.streams.materialization.MaterializationProvider;
+import io.confluent.ksql.logging.processing.MeteredProcessingLoggerFactory;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.query.KafkaStreamsBuilder;
@@ -86,6 +87,8 @@ public class SandboxedPersistentQueryMetadataImplTest {
   private Listener listener;
   @Mock
   private Listener sandboxListener;
+  @Mock
+  private MeteredProcessingLoggerFactory processingLoggerFactory;
 
   private SandboxedPersistentQueryMetadataImpl sandbox;
 
@@ -119,7 +122,8 @@ public class SandboxedPersistentQueryMetadataImplTest {
         0L,
         0L,
         listener,
-        Optional.empty()
+        Optional.empty(),
+        processingLoggerFactory
     );
 
     query.initialize();

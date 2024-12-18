@@ -76,6 +76,7 @@ import org.apache.hc.core5.http.HttpStatus;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
+import org.apache.kafka.common.KafkaException;
 import org.apache.kafka.common.acl.AclOperation;
 import org.apache.kafka.common.errors.ClusterAuthorizationException;
 import org.apache.kafka.common.errors.TopicAuthorizationException;
@@ -183,20 +184,24 @@ public class InsertValuesExecutor {
       // missing. In this case, we include additional context to help the user
       // distinguish this type of failure from other permissions exceptions
       // such as the ones thrown above when TopicAuthorizationException is caught.
-      final Exception rootCause = new KsqlTopicAuthorizationException(
-          AclOperation.WRITE,
-          Collections.singletonList(dataSource.getKafkaTopicName()),
-          // Ideally we would forward e.getMessage() instead of the hard-coded
-          // message below, but until this error message is improved on the Kafka
-          // side, e.getMessage() is not helpful. (Today it is just "Cluster
-          // authorization failed.")
-          "The producer is not authorized to do idempotent sends. "
-              + "Check that you have write permissions to the specified topic, "
-              + "and disable idempotent sends by setting 'enable.idempotent=false' "
-              + " if necessary."
+      throw new KsqlException(
+          createInsertFailedExceptionMessage(insertValues),
+          createClusterAuthorizationExceptionRootCause(dataSource)
       );
-
-      throw new KsqlException(createInsertFailedExceptionMessage(insertValues), rootCause);
+    } catch (final KafkaException e) {
+      if (e.getCause() != null && e.getCause() instanceof ClusterAuthorizationException) {
+        // The error message thrown when an idempotent producer is missing permissions
+        // is (nondeterministically) inconsistent: it is either a raw ClusterAuthorizationException,
+        // as checked for above, or a ClusterAuthorizationException wrapped inside a KafkaException.
+        // ksqlDB handles these two the same way, accordingly.
+        // See https://issues.apache.org/jira/browse/KAFKA-14138 for more.
+        throw new KsqlException(
+            createInsertFailedExceptionMessage(insertValues),
+            createClusterAuthorizationExceptionRootCause(dataSource)
+        );
+      } else {
+        throw new KsqlException(createInsertFailedExceptionMessage(insertValues), e);
+      }
     } catch (final Exception e) {
       throw new KsqlException(createInsertFailedExceptionMessage(insertValues), e);
     }
@@ -303,6 +308,22 @@ public class InsertValuesExecutor {
     }
   }
 
+  private static Exception createClusterAuthorizationExceptionRootCause(
+      final DataSource dataSource) {
+    return new KsqlTopicAuthorizationException(
+        AclOperation.WRITE,
+        Collections.singletonList(dataSource.getKafkaTopicName()),
+        // Ideally we would forward the message from the ClusterAuthorizationException
+        // instead of the hard-coded message below, but until this error message
+        // is improved on the Kafka side, e.getMessage() is not helpful.
+        // (Today it is just "Cluster authorization failed.")
+        "The producer is not authorized to do idempotent sends. "
+            + "Check that you have write permissions to the specified topic, "
+            + "and disable idempotent sends by setting 'enable.idempotent=false' "
+            + " if necessary."
+    );
+  }
+
   private byte[] serializeKey(
       final GenericKey keyValue,
       final DataSource dataSource,
@@ -323,30 +344,30 @@ public class InsertValuesExecutor {
         true
     );
 
-    final Serde<GenericKey> keySerde = keySerdeFactory.create(
+    try (Serde<GenericKey> keySerde = keySerdeFactory.create(
         formatInfo,
         physicalSchema.keySchema(),
         config,
         serviceContext.getSchemaRegistryClientFactory(),
         "",
         NoopProcessingLogContext.INSTANCE,
-        Optional.empty()
-    );
-
-    final String topicName = dataSource.getKafkaTopicName();
-    try {
-      return keySerde
-          .serializer()
-          .serialize(topicName, keyValue);
-    } catch (final Exception e) {
-      maybeThrowSchemaRegistryAuthError(
-          FormatFactory.fromName(dataSource.getKsqlTopic().getKeyFormat().getFormat()),
-          topicName,
-          true,
-          AclOperation.WRITE,
-          e);
-      LOG.error("Could not serialize key.", e);
-      throw new KsqlException("Could not serialize key", e);
+        Optional.empty())
+    ) {
+      final String topicName = dataSource.getKafkaTopicName();
+      try {
+        return keySerde
+            .serializer()
+            .serialize(topicName, keyValue);
+      } catch (final Exception e) {
+        maybeThrowSchemaRegistryAuthError(
+            FormatFactory.fromName(dataSource.getKsqlTopic().getKeyFormat().getFormat()),
+            topicName,
+            true,
+            AclOperation.WRITE,
+            e);
+        LOG.error("Could not serialize key.", e);
+        throw new KsqlException("Could not serialize key", e);
+      }
     }
   }
 
@@ -456,29 +477,29 @@ public class InsertValuesExecutor {
         false
     );
 
-    final Serde<GenericRow> valueSerde = valueSerdeFactory.create(
+    try (Serde<GenericRow> valueSerde = valueSerdeFactory.create(
         formatInfo,
         physicalSchema.valueSchema(),
         config,
         serviceContext.getSchemaRegistryClientFactory(),
         "",
         NoopProcessingLogContext.INSTANCE,
-        Optional.empty()
-    );
+        Optional.empty())
+    ) {
+      final String topicName = dataSource.getKafkaTopicName();
 
-    final String topicName = dataSource.getKafkaTopicName();
-
-    try {
-      return valueSerde.serializer().serialize(topicName, row);
-    } catch (final Exception e) {
-      maybeThrowSchemaRegistryAuthError(
-          FormatFactory.fromName(dataSource.getKsqlTopic().getValueFormat().getFormat()),
-          topicName,
-          false,
-          AclOperation.WRITE,
-          e);
-      LOG.error("Could not serialize value.", e);
-      throw new KsqlException("Could not serialize value" + e.getMessage(), e);
+      try {
+        return valueSerde.serializer().serialize(topicName, row);
+      } catch (final Exception e) {
+        maybeThrowSchemaRegistryAuthError(
+            FormatFactory.fromName(dataSource.getKsqlTopic().getValueFormat().getFormat()),
+            topicName,
+            false,
+            AclOperation.WRITE,
+            e);
+        LOG.error("Could not serialize value.", e);
+        throw new KsqlException("Could not serialize value" + e.getMessage(), e);
+      }
     }
   }
 
@@ -513,7 +534,7 @@ public class InsertValuesExecutor {
 
       // Add SUBJECT_NAME only on supported SR formats
       if (supportedProperties.contains(ConnectProperties.SUBJECT_NAME)) {
-        final ImmutableMap.Builder propertiesBuilder = ImmutableMap.builder();
+        final ImmutableMap.Builder<String, String> propertiesBuilder = ImmutableMap.builder();
         propertiesBuilder.putAll(formatInfo.getProperties());
 
         propertiesBuilder.put(ConnectProperties.SUBJECT_NAME,

@@ -22,11 +22,8 @@ import static org.hamcrest.Matchers.hasKey;
 import static org.hamcrest.Matchers.not;
 import static org.mockito.Mockito.mock;
 
-import io.confluent.ksql.parser.tree.SetProperty;
-import io.confluent.ksql.parser.tree.UnsetProperty;
 import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.rest.server.TemporaryEngine;
-import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlHostInfo;
 import java.net.URL;
 import java.util.Collections;
@@ -41,9 +38,6 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class PropertyExecutorTest {
 
-  private static final CustomExecutors CUSTOM_EXECUTORS = new CustomExecutors(
-      new DefaultConnectServerErrors());
-
   @Rule public final TemporaryEngine engine = new TemporaryEngine();
 
   @Test
@@ -54,9 +48,8 @@ public class PropertyExecutorTest {
     final Map<String, Object> properties = sessionProperties.getMutableScopedProperties();
 
     // When:
-    CUSTOM_EXECUTORS.setProperty().execute(
-        (ConfiguredStatement<SetProperty>) engine.configure(
-            "SET '" + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG + "' = 'none';"),
+    CustomExecutors.SET_PROPERTY.execute(
+        engine.configure("SET '" + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG + "' = 'none';"),
         sessionProperties,
         engine.getEngine(),
         engine.getServiceContext()
@@ -79,9 +72,8 @@ public class PropertyExecutorTest {
     final Map<String, Object> properties = sessionProperties.getMutableScopedProperties();
 
     // When:
-    CUSTOM_EXECUTORS.unsetProperty().execute(
-        (ConfiguredStatement<UnsetProperty>) engine.configure(
-            "UNSET '" + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG + "';"),
+    CustomExecutors.UNSET_PROPERTY.execute(
+        engine.configure("UNSET '" + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG + "';"),
         sessionProperties,
         engine.getEngine(),
         engine.getServiceContext()

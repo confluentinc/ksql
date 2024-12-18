@@ -55,14 +55,26 @@ public final class GenericRowSerDe implements ValueSerdeFactory {
   private static final int ADDITIONAL_CAPACITY = 4;
 
   private final GenericSerdeFactory innerFactory;
+  private final Optional<String> queryId;
 
   public GenericRowSerDe() {
-    this(new GenericSerdeFactory());
+    this(new GenericSerdeFactory(), Optional.empty());
+  }
+
+  public GenericRowSerDe(final String queryId) {
+    this(
+        new GenericSerdeFactory(),
+        Optional.of(queryId)
+    );
   }
 
   @VisibleForTesting
-  GenericRowSerDe(final GenericSerdeFactory innerFactory) {
+  GenericRowSerDe(
+      final GenericSerdeFactory innerFactory,
+      final Optional<String> queryId
+  ) {
     this.innerFactory = Objects.requireNonNull(innerFactory, "innerFactory");
+    this.queryId = queryId;
   }
 
   public static Serde<GenericRow> from(
@@ -98,8 +110,11 @@ public final class GenericRowSerDe implements ValueSerdeFactory {
 
     final Serde<GenericRow> genericRowSerde = toGenericRowSerde(formatSerde, schema);
 
-    final Serde<GenericRow> loggingSerde = innerFactory
-        .wrapInLoggingSerde(genericRowSerde, loggerNamePrefix, processingLogContext);
+    final Serde<GenericRow> loggingSerde = innerFactory.wrapInLoggingSerde(
+        genericRowSerde,
+        loggerNamePrefix,
+        processingLogContext,
+        queryId);
 
     final Serde<GenericRow> serde = tracker
         .map(callback -> innerFactory.wrapInTrackingSerde(loggingSerde, callback))

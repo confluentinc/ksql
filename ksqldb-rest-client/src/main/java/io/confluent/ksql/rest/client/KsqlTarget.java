@@ -30,6 +30,7 @@ import io.confluent.ksql.rest.entity.HeartbeatMessage;
 import io.confluent.ksql.rest.entity.HeartbeatResponse;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlHostInfoEntity;
+import io.confluent.ksql.rest.entity.KsqlMediaType;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.LagReportingMessage;
 import io.confluent.ksql.rest.entity.LagReportingResponse;
@@ -224,6 +225,19 @@ public final class KsqlTarget {
         KsqlTarget::toRows);
   }
 
+  public RestResponse<List<StreamedRow>> postQueryStreamRequestProto(
+          final String ksql,
+          final Map<String, Object> requestProperties
+  ) {
+    final QueryStreamArgs queryStreamArgs = new QueryStreamArgs(ksql, localProperties.toMap(),
+            Collections.emptyMap(), requestProperties);
+    return executeRequestSync(HttpMethod.POST,
+            QUERY_STREAM_PATH,
+            queryStreamArgs,
+            KsqlTarget::toRowsFromProto,
+            Optional.of(KsqlMediaType.KSQL_V1_PROTOBUF.mediaType()));
+  }
+
   public RestResponse<StreamPublisher<StreamedRow>> postQueryRequestStreamed(
       final String sql,
       final Map<String, ?> requestProperties,
@@ -264,7 +278,11 @@ public final class KsqlTarget {
   }
 
   private <T> RestResponse<T> get(final String path, final Class<T> type) {
-    return executeRequestSync(HttpMethod.GET, path, null, r -> deserialize(r.getBody(), type));
+    return executeRequestSync(HttpMethod.GET,
+            path,
+            null,
+            r -> deserialize(r.getBody(), type),
+            Optional.empty());
   }
 
   private <T> RestResponse<T> post(
@@ -272,7 +290,7 @@ public final class KsqlTarget {
       final Object jsonEntity,
       final Function<ResponseWithBody, T> mapper
   ) {
-    return executeRequestSync(HttpMethod.POST, path, jsonEntity, mapper);
+    return executeRequestSync(HttpMethod.POST, path, jsonEntity, mapper, Optional.empty());
   }
 
   private <R, T> RestResponse<R> post(
@@ -303,9 +321,10 @@ public final class KsqlTarget {
       final HttpMethod httpMethod,
       final String path,
       final Object requestBody,
-      final Function<ResponseWithBody, T> mapper
+      final Function<ResponseWithBody, T> mapper,
+      final Optional<String> mediaType
   ) {
-    return executeSync(httpMethod, path, Optional.empty(), requestBody, mapper, (resp, vcf) -> {
+    return executeSync(httpMethod, path, mediaType, requestBody, mapper, (resp, vcf) -> {
       resp.bodyHandler(buff -> vcf.complete(new ResponseWithBody(resp, buff)));
     });
   }
@@ -492,6 +511,10 @@ public final class KsqlTarget {
   }
 
   private static List<StreamedRow> toRows(final ResponseWithBody resp) {
+    return KsqlTargetUtil.toRows(resp.getBody(), Functions.identity());
+  }
+
+  private static List<StreamedRow> toRowsFromProto(final ResponseWithBody resp) {
     return KsqlTargetUtil.toRows(resp.getBody(), Functions.identity());
   }
 }

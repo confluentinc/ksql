@@ -19,7 +19,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThrows;
-import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.GenericKey;
@@ -43,13 +42,10 @@ import io.confluent.ksql.util.KsqlException;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoJUnitRunner;
-import org.mockito.junit.MockitoRule;
 
 @RunWith(MockitoJUnitRunner.class)
 public class GenericRecordFactoryTest {
@@ -369,7 +365,6 @@ public class GenericRecordFactoryTest {
         .valueColumn(COL0, SqlTypes.STRING)
         .build();
     final Expression exp = new StringLiteral("a");
-    when(ksqlConfig.getBoolean(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED)).thenReturn(true);
 
     // When:
     final KsqlException e = assertThrows(KsqlException.class, () -> recordFactory.build(
@@ -389,7 +384,6 @@ public class GenericRecordFactoryTest {
         .valueColumn(COL0, SqlTypes.STRING)
         .build();
     final Expression exp = new StringLiteral("a");
-    when(ksqlConfig.getBoolean(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED)).thenReturn(true);
 
     // When:
     final KsqlException e = assertThrows(KsqlException.class, () -> recordFactory.build(

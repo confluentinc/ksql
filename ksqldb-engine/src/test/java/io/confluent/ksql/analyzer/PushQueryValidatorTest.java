@@ -62,7 +62,6 @@ public class PushQueryValidatorTest {
 
   @Before
   public void setUp() {
-    when(analysis.getRowpartitionRowoffsetEnabled()).thenReturn(true);
     when(source.getSchema()).thenReturn(logicalSchema);
     when(logicalSchema.value()).thenReturn(ImmutableList.of(column));
     when(column.name()).thenReturn(ColumnName.of("some_user_column"));

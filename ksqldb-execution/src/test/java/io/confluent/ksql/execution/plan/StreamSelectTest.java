@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Confluent Inc.
+ * Copyright 2022 Confluent Inc.
  *
  * Licensed under the Confluent Community License; you may not use this file
  * except in compliance with the License.  You may obtain a copy of the License at
@@ -20,6 +20,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.testing.EqualsTester;
 import io.confluent.ksql.name.ColumnName;
 import java.util.List;
+import java.util.Optional;
 import org.apache.kafka.connect.data.Struct;
 import org.junit.Before;
 import org.junit.Test;
@@ -42,6 +43,8 @@ public class StreamSelectTest {
 
   private List<ColumnName> keys1;
   private List<ColumnName> keys2;
+  private Optional<List<ColumnName>> selectedKeys1;
+  private Optional<List<ColumnName>> selectedKeys2;
   private List<SelectExpression> selects1;
   private List<SelectExpression> selects2;
 
@@ -49,6 +52,8 @@ public class StreamSelectTest {
   public void setup() {
     keys1 = ImmutableList.of(mock(ColumnName.class));
     keys2 = ImmutableList.of(mock(ColumnName.class));
+    selectedKeys1 = Optional.of(ImmutableList.of(mock(ColumnName.class)));
+    selectedKeys2 = Optional.of(ImmutableList.of(mock(ColumnName.class)));
     selects1 = ImmutableList.of(mock(SelectExpression.class));
     selects2 = ImmutableList.of(mock(SelectExpression.class));
   }
@@ -57,13 +62,15 @@ public class StreamSelectTest {
   public void shouldImplementEquals() {
     new EqualsTester()
         .addEqualityGroup(
-            new StreamSelect<>(properties1, source1, keys1, selects1),
-            new StreamSelect<>(properties1, source1, keys1, selects1)
+            new StreamSelect<>(properties1, source1, keys1, selectedKeys1, selects1),
+            new StreamSelect<>(properties1, source1, keys1, selectedKeys1, selects1)
         )
-        .addEqualityGroup(new StreamSelect<>(properties2, source1, keys1, selects1))
-        .addEqualityGroup(new StreamSelect<>(properties1, source2, keys1, selects1))
-        .addEqualityGroup(new StreamSelect<>(properties1, source1, keys2, selects1))
-        .addEqualityGroup(new StreamSelect<>(properties1, source1, keys1, selects2))
+        .addEqualityGroup(new StreamSelect<>(properties2, source1, keys1, selectedKeys1, selects1))
+        .addEqualityGroup(new StreamSelect<>(properties1, source2, keys1, selectedKeys1, selects1))
+        .addEqualityGroup(new StreamSelect<>(properties1, source1, keys2, selectedKeys1, selects1))
+        .addEqualityGroup(new StreamSelect<>(properties1, source1, keys1, selectedKeys2, selects1))
+        .addEqualityGroup(new StreamSelect<>(properties1, source1, keys1, Optional.empty(), selects1))
+        .addEqualityGroup(new StreamSelect<>(properties1, source1, keys1, selectedKeys1, selects2))
         .testEquals();
   }
 }

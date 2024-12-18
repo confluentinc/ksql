@@ -67,7 +67,7 @@ public abstract class SharedKafkaStreamsRuntime {
 
   public abstract void close();
 
-  public abstract void stop(QueryId queryId, boolean isCreateOrReplace);
+  public abstract void stop(QueryId queryId, boolean resetOffsets);
 
   public abstract void start(QueryId queryId);
 

@@ -58,6 +58,7 @@ import io.confluent.ksql.util.ScalablePushQueryMetadata;
 import io.confluent.ksql.util.StreamPullQueryMetadata;
 import io.confluent.ksql.util.TransientQueryMetadata;
 import io.vertx.core.Context;
+import java.time.Duration;
 import java.util.Collections;
 import java.util.Optional;
 import java.util.function.BiConsumer;
@@ -194,7 +195,8 @@ public class QueryExecutorTest {
     queryExecutor = new QueryExecutor(ksqlEngine, ksqlRestConfig, ksqlConfig,
         Optional.of(pullQueryExecutorMetrics), Optional.of(scalablePushQueryMetrics), rateLimiter,
         concurrencyLimiter, pullBandRateLimiter, scalablePushBandRateLimiter,
-        haRouting, pushRouting, Optional.of(localCommands));
+        haRouting, pushRouting,
+        Optional.of(localCommands));
   }
 
   @Test
@@ -229,8 +231,8 @@ public class QueryExecutorTest {
     assertThat(e.getUnloggedMessage(), is(errorMsg));
     final String sanitizedErrorMsg =
         "Pull queries are disabled. See https://cnfl.io/queries for more info.\n"
-        + "Add EMIT CHANGES if you intended to issue a push query.\n"
-        + "Please set ksql.pull.queries.enable=true to enable this feature.\n";
+            + "Add EMIT CHANGES if you intended to issue a push query.\n"
+            + "Please set ksql.pull.queries.enable=true to enable this feature.\n";
     assertThat(e.getMessage(), is(sanitizedErrorMsg));
     assertThat(e.getSqlStatement(), is("SELECT * FROM test_stream WHERE ROWKEY='null';"));
   }

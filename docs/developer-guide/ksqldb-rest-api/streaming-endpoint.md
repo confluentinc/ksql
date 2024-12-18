@@ -113,7 +113,37 @@ contain newlines.
 }
 
 ```
- 
+
+### Running print statements
+
+The `/query-stream` endpoint also
+supports [print statements](https://docs.ksqldb.io/en/latest/developer-guide/ksqldb-reference/print/).
+
+Similar to pull and push queries, the request method is a POST and the request body is a JSON object
+UTF-8 encoded as text, containing the arguments for the
+operation. Newlines have been added here for the sake of clarity, but the actual JSON must not
+contain
+unescaped newlines.
+
+```
+{
+"sql": "print `my-topic-123` limit 3;", <----- the SQL of the query to execute
+}
+
+```
+
+The endpoint **only supports `application/vnd.ksqlapi.delimited.v1` as a content type for the print statement**. If
+you specify another content type in the `Accept` header, you'll receive **406 Not
+Acceptable**.
+
+In the case of a successful query, you should see records from the requested topic delimited by newlines.
+
+```
+rowtime: 2022/12/02 17:22:02.556 Z, key: 18, value: {\"ordertime\":1497014222380,\"orderid\":18,\"itemid\":\"Item_184\",\"address\":{\"city\":\"Mountain View\",\"state\":\"CA\",\"zipcode\":94041}}, partition: 0
+rowtime: 2022/12/02 17:22:04.556 Z, key: 19, value: {\"ordertime\":1497014224380,\"orderid\":19,\"itemid\":\"Item_185\",\"address\":{\"city\":\"Mountain View\",\"state\":\"CA\",\"zipcode\":94041}}, partition: 0
+rowtime: 2022/12/02 17:22:08.556 Z, key: 20, value: {\"ordertime\":1497014228380,\"orderid\":20,\"itemid\":\"Item_185\",\"address\":{\"city\":\"Mountain View\",\"state\":\"CA\",\"zipcode\":94041}}, partition: 0
+```
+
 ### Inserting rows into an existing stream
 
 This endpoint allows you to insert rows into an existing ksqlDB stream. The stream must have

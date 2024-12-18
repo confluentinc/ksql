@@ -99,19 +99,7 @@
       },
       "timestamp" : 5
     } ],
-    "outputs" : [ {
-      "topic" : "OUTPUT",
-      "key" : "k1",
-      "value" : {
-        "COUNT" : 1
-      },
-      "timestamp" : 0,
-      "window" : {
-        "start" : 0,
-        "end" : 2,
-        "type" : "TIME"
-      }
-    } ],
+    "outputs" : [ ],
     "topics" : [ {
       "name" : "OUTPUT",
       "replicas" : 1,

@@ -418,6 +418,22 @@ Returns the hyperbolic tangent of `col1`. `col1` is in radians. Use the [RADIANS
 
 ---
 
+### **`TRUNC`**
+
+```sql title="Since: 0.29.0"
+TRUNC(col1)
+TRUNC(col1, scale)
+```
+
+Truncates (rounds toward zero) a value to the number of decimal places specified by `scale`.
+
+If `scale` is negative, the value is truncated to the left of the decimal point. For example, 
+`TRUNC(12345.67, -3)` returns `12000`.
+
+If the number of decimal places is not provided, it defaults to zero.
+
+---
+
 ## **Collections**
 
 ### **`ARRAY`**
@@ -1152,7 +1168,24 @@ JSON_RECORDS('123') => NULL
 JSON_RECORDS(NULL) => NULL
 JSON_RECORDS('abc') => NULL
 ```
+### `JSON_ITEMS`
 
+```sql title="Since: 0.28.0"
+JSON_ITEMS(json_string) => Array<String>
+```
+
+Given a string with JSON array, converts it to a ksqlDB array of JSON strings. 
+
+Returns `NULL` if the string can't be interpreted as a JSON array, for example, 
+when the string is `NULL` or it does not contain valid JSON, or the JSON value is not an array.
+
+```sql title="Examples"
+JSON_ITEMS('[{\"type\": \"A\", \"ts\": \"2022-01-27\"}, {\"type\": \"B\", \"ts\": \"2022-05-18\"}]') => ["{\"type\": \"A\", \"ts\": \"2022-01-27\"}", "{\"type\": \"B\", \"ts\": \"2022-05-18\"}"]
+JSON_ITEMS('[]') => []
+JSON_ITEMS('[1, 2, 3]') => ["1","2","3"]
+JSON_ITEMS(NULL) => NULL
+JSON_ITEMS('abc') => NULL
+```
 ### `TO_JSON_STRING`
 
 ```sql title="Since: 0.24.0"
@@ -1574,11 +1607,14 @@ Converts a string to uppercase.
 
 ```sql title="Since: 0.10.0"
 UUID()
+UUID(bytes)
 ```
 Creates a Universally Unique Identifier (UUID) generated according to RFC 4122.
 
 A call to UUID() returns a value conforming to UUID version 4, sometimes called
 "random UUID", as described in RFC 4122.
+
+A call to UUID(bytes) returns a value conforming to UUID.
 
 The value is a 128-bit number represented as a string of five hexadecimal numbers,
 _aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee_, for example, `237e9877-e79b-12d4-a765-321741963000`.

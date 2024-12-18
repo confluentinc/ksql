@@ -330,7 +330,7 @@ public class ApiTest extends BaseApiTest {
     QueryResponse queryResponse = new QueryResponse(response.bodyAsString());
     assertThat(queryResponse.rows, hasSize(DEFAULT_JSON_ROWS.size() - 1));
     validateError(ERROR_CODE_SERVER_ERROR, "java.lang.RuntimeException: Failure in processing", queryResponse.error);
-    assertThat(testEndpoints.getQueryPublishers(), hasSize(1));
+    assertThat(testEndpoints.getPublishers(), hasSize(1));
     assertThatEventually(() -> server.getQueryIDs().isEmpty(), is(true));
   }
 
@@ -393,7 +393,7 @@ public class ApiTest extends BaseApiTest {
     String queryId = queryResponse.responseObject.getString("queryId");
     assertThat(server.getQueryIDs().contains(new PushQueryId(queryId)), is(true));
     assertThat(server.getQueryIDs(), hasSize(1));
-    assertThat(testEndpoints.getQueryPublishers(), hasSize(1));
+    assertThat(testEndpoints.getPublishers(), hasSize(1));
 
     // Now send another request to close the query
     JsonObject closeQueryRequestBody = new JsonObject().put("queryId", queryId);

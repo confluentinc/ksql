@@ -32,6 +32,8 @@ public final class CommonCreateConfigs {
   public static final String KAFKA_TOPIC_NAME_PROPERTY = "KAFKA_TOPIC";
   public static final String SOURCE_NUMBER_OF_PARTITIONS = "PARTITIONS";
   public static final String SOURCE_NUMBER_OF_REPLICAS = "REPLICAS";
+  public static final String SOURCE_TOPIC_RETENTION_IN_MS = "RETENTION_MS";
+  public static final String SOURCE_TOPIC_CLEANUP_POLICY = "CLEANUP_POLICY";
 
   // Timestamp Props:
   public static final String TIMESTAMP_NAME_PROPERTY = "TIMESTAMP";
@@ -45,6 +47,15 @@ public final class CommonCreateConfigs {
   public static final String KEY_FORMAT_PROPERTY = "KEY_FORMAT";
   public static final String FORMAT_PROPERTY = "FORMAT";
   public static final String WRAP_SINGLE_VALUE = "WRAP_SINGLE_VALUE";
+  public static final String KEY_PROTOBUF_NULLABLE_REPRESENTATION =
+      "KEY_PROTOBUF_NULLABLE_REPRESENTATION";
+  public static final String VALUE_PROTOBUF_NULLABLE_REPRESENTATION =
+      "VALUE_PROTOBUF_NULLABLE_REPRESENTATION";
+
+  public enum ProtobufNullableConfigValues {
+    OPTIONAL,
+    WRAPPER
+  }
 
   public static final String VALUE_DELIMITER_PROPERTY = "VALUE_DELIMITER";
   public static final String KEY_DELIMITER_PROPERTY = "KEY_DELIMITER";
@@ -53,6 +64,7 @@ public final class CommonCreateConfigs {
   public static final String KEY_SCHEMA_ID = "KEY_SCHEMA_ID";
   public static final String VALUE_SCHEMA_ID = "VALUE_SCHEMA_ID";
 
+  @SuppressWarnings("checkstyle:MethodLength")
   public static void addToConfigDef(
       final ConfigDef configDef,
       final boolean topicNameRequired
@@ -85,6 +97,14 @@ public final class CommonCreateConfigs {
                 + "' is set, then the default "
                 + "Kafka cluster configuration for replicas will be used for creating a new "
                 + "topic."
+        )
+        .define(
+            SOURCE_TOPIC_RETENTION_IN_MS,
+            ConfigDef.Type.LONG,
+            null,
+            Importance.MEDIUM,
+            "The retention in milliseconds in the backing topic. If this property is"
+                + "not set then the default value of 7 days will be used for creating a new topic."
         )
         .define(
             VALUE_FORMAT_PROPERTY,
@@ -122,6 +142,32 @@ public final class CommonCreateConfigs {
                 + "only a single field.  If set to true, KSQL expects the field to have been "
                 + "serialized as a named field within a record. If set to false, KSQL expects the "
                 + "field to have been serialized as an anonymous value."
+        )
+        .define(
+            KEY_PROTOBUF_NULLABLE_REPRESENTATION,
+            ConfigDef.Type.STRING,
+            null,
+            ConfigValidators.enumValues(ProtobufNullableConfigValues.class),
+            Importance.LOW,
+            "If supplied, protobuf schema generation will use fields that distinguish "
+                + "null from default values for primitive values. The value `"
+                + ProtobufNullableConfigValues.OPTIONAL.name()
+                + "` will enable using the `optional` on all fields, whereas `"
+                + ProtobufNullableConfigValues.WRAPPER.name()
+                + "` will use wrappers for all primitive value fields, including strings."
+        )
+        .define(
+            VALUE_PROTOBUF_NULLABLE_REPRESENTATION,
+            ConfigDef.Type.STRING,
+            null,
+            ConfigValidators.enumValues(ProtobufNullableConfigValues.class),
+            Importance.LOW,
+            "If supplied, protobuf schema generation will use fields that distinguish "
+                + "null from default values for primitive values. The value `"
+                + ProtobufNullableConfigValues.OPTIONAL.name()
+                + "` will enable using the `optional` on all fields, whereas `"
+                + ProtobufNullableConfigValues.WRAPPER.name()
+                + "` will use wrappers for all primitive value fields, including strings."
         )
         .define(
             VALUE_AVRO_SCHEMA_FULL_NAME,
@@ -188,7 +234,20 @@ public final class CommonCreateConfigs {
             ConfigDef.Type.INT,
             null,
             Importance.LOW,
-            "Undocumented feature");
+            "Undocumented feature"
+        ).define(
+            SOURCE_TOPIC_CLEANUP_POLICY,
+            ConfigDef.Type.STRING,
+            null,
+            Importance.LOW,
+            "This config designates the retention policy to use on log segments. "
+                + "The \"delete\" policy (which is the default) will discard old segments "
+                + "when their retention time or size limit has been reached. The \"compact\" "
+                + "policy will enable <a href=\"#compaction\">log compaction</a>, which retains "
+                + "the latest value for each key. It is also possible to specify both policies "
+                + "in a comma-separated list (e.g. \"delete,compact\"). In this case, old segments "
+                + "will be discarded per the retention time and size configuration, while retained "
+                + "segments will be compacted.");
   }
 
   public static void validateKeyValueFormats(final Map<String, Object> configs) {

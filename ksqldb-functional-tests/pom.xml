@@ -21,7 +21,7 @@
   <parent>
     <groupId>io.confluent.ksql</groupId>
     <artifactId>ksqldb-parent</artifactId>
-    <version>7.3.12-0</version>
+    <version>7.4.9-0</version>
   </parent>
   <modelVersion>4.0.0</modelVersion>
 
@@ -140,6 +140,12 @@
     </dependency>
 
     <dependency>
+      <groupId>io.confluent.ksql</groupId>
+      <artifactId>ksqldb-testing-tool</artifactId>
+      <version>${io.confluent.ksql.version}</version>
+    </dependency>
+
+    <dependency>
       <groupId>io.confluent.avro</groupId>
       <artifactId>avro-random-generator</artifactId>
       <version>${avro.random.generator.version}</version>
@@ -154,11 +160,6 @@
     <dependency>
       <groupId>com.google.protobuf</groupId>
       <artifactId>protobuf-java-util</artifactId>
-    </dependency>
-
-    <dependency>
-      <groupId>commons-io</groupId>
-      <artifactId>commons-io</artifactId>
     </dependency>
 
   </dependencies>

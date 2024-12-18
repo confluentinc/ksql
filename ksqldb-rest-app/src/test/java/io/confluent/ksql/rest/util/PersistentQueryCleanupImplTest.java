@@ -138,7 +138,7 @@ public class PersistentQueryCleanupImplTest {
   private void awaitCleanupComplete() {
     // add a task to the end of the queue to make sure that
     // we've finished processing everything up until this point
-    cleanup.getQueryCleanupService().addCleanupTask(new QueryCleanupService.QueryCleanupTask(context, "", Optional.empty(), false, "", KsqlConfig.KSQL_SERVICE_ID_DEFAULT, "") {
+    cleanup.getQueryCleanupService().addCleanupTask(new QueryCleanupService.QueryCleanupTask(context, "", Optional.empty(), false,"", KsqlConfig.KSQL_SERVICE_ID_DEFAULT, "") {
       @Override
       public void run() {
         // do nothing

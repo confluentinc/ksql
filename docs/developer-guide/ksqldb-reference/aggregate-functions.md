@@ -81,6 +81,20 @@ originally processed.
 
 ---
 
+## **`CORRELATION`**
+
+```sql title="Applies to: stream, table<br>Since: 0.29.0"
+CORRELATION(x, y)
+```
+
+Returns the Pearson correlation coefficient between columns `x` and `y`. If either value in `x` or `y` is `NULL` for a particular row, that row is ignored.
+
+If all rows contain `NULL` for `x` or `y`, or if there is only one non-null row, `NaN` is returned. When there are only two non-null rows, either `1.0` or `-1.0` is returned, depending on the sign of the slope of the line that would be drawn between the two points.
+
+If all the values in one column are equal, `NaN` is returned.
+
+---
+
 ## **`COUNT`**
 
 ```sql title="Applies to: stream, table<br>"
@@ -267,10 +281,17 @@ Rows that have `col1` set to `NULL` are ignored.
 ## **`TOPK`**
 
 ```sql title="Applies to: stream<br>"
-TOPK(col1, k)
+TOPK(col1, otherCols..., k)
 ```
 
 Returns the Top *K* values for the given column and window.
+
+If only `col1` is provided, an array of values for that column is
+returned. If `otherCols` are provided, a list of `STRUCT`s is returned. Each
+`STRUCT` has a field named `sort_col` that contains value of `col1` in the 
+associated record. `otherCols` are in fields named `col0`, `col1`, `col2`, 
+etc., in the order they were provided. `otherCols` do not all have to
+be of the same type.
 
 Rows that have `col1` set to `NULL` are ignored.
 

@@ -123,7 +123,7 @@ public class SandboxedSharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRu
   }
 
   @Override
-  public void stop(final QueryId queryId, final boolean isCreateOrReplace) {
+  public void stop(final QueryId queryId, final boolean resetOffsets) {
   }
 
   public TimeBoundedQueue getNewQueryErrorQueue() {

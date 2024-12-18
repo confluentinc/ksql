@@ -519,10 +519,12 @@
                       "name" : "NAME",
                       "type" : [ "null", "string" ],
                       "default" : null
-                    } ]
+                    } ],
+                    "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema_ITEMID_CATEGORY"
                   } ],
                   "default" : null
-                } ]
+                } ],
+                "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema_ITEMID"
               } ],
               "default" : null
             }, {
@@ -553,7 +555,8 @@
                     "default" : null
                   } ],
                   "connect.internal.type" : "MapEntry"
-                }
+                },
+                "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema_MAPCOL"
               } ],
               "default" : null
             }, {
@@ -581,10 +584,12 @@
                   "name" : "ZIPCODE",
                   "type" : [ "null", "long" ],
                   "default" : null
-                } ]
+                } ],
+                "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema_ADDRESS"
               } ],
               "default" : null
-            } ]
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
           }
         }, {
           "name" : "test_topic",

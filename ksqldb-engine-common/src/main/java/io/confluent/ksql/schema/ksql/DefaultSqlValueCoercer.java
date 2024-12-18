@@ -41,9 +41,12 @@ import io.confluent.ksql.schema.ksql.types.SqlStruct.Builder;
 import io.confluent.ksql.schema.ksql.types.SqlStruct.Field;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
+import io.confluent.ksql.util.BytesUtils;
+import io.confluent.ksql.util.BytesUtils.Encoding;
 import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlException;
 import java.math.BigDecimal;
+import java.nio.ByteBuffer;
 import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
@@ -305,6 +308,8 @@ public enum DefaultSqlValueCoercer implements SqlValueCoercer {
             .put(key(STRING, TIMESTAMP), parser((v, t) -> SqlTimeTypes.parseTimestamp(v)))
             .put(key(STRING, TIME), parser((v, t) -> SqlTimeTypes.parseTime(v)))
             .put(key(STRING, DATE), parser((v, t) -> SqlTimeTypes.parseDate(v)))
+            .put(key(STRING, BYTES), parser((v, t) ->
+                ByteBuffer.wrap(BytesUtils.decode(v, Encoding.BASE64))))
             // ARRAY:
             .put(key(ARRAY, ARRAY), coercer(
                 DefaultSqlValueCoercer::canCoerceToArray,

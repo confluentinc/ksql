@@ -15,13 +15,20 @@
 
 package io.confluent.ksql.rest.server.execution;
 
+import static io.confluent.ksql.rest.entity.ConnectorStateInfo.RUNNING;
+
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.parser.tree.ListConnectors;
 import io.confluent.ksql.parser.tree.ListConnectors.Scope;
 import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.SessionProperties;
+import io.confluent.ksql.rest.entity.ConfigInfos;
+import io.confluent.ksql.rest.entity.ConnectorInfo;
 import io.confluent.ksql.rest.entity.ConnectorList;
+import io.confluent.ksql.rest.entity.ConnectorStateInfo;
+import io.confluent.ksql.rest.entity.ConnectorStateInfo.AbstractState;
+import io.confluent.ksql.rest.entity.ConnectorType;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.KsqlWarning;
 import io.confluent.ksql.rest.entity.SimpleConnectorInfo;
@@ -33,12 +40,6 @@ import io.confluent.ksql.statement.ConfiguredStatement;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import org.apache.kafka.connect.runtime.AbstractStatus.State;
-import org.apache.kafka.connect.runtime.ConnectorConfig;
-import org.apache.kafka.connect.runtime.rest.entities.ConnectorInfo;
-import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo;
-import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo.AbstractState;
-import org.apache.kafka.connect.runtime.rest.entities.ConnectorType;
 
 public final class ListConnectorsExecutor {
 
@@ -118,20 +119,20 @@ public final class ListConnectorsExecutor {
     return new SimpleConnectorInfo(
         name,
         info.type(),
-        info.config().get(ConnectorConfig.CONNECTOR_CLASS_CONFIG),
+        info.config().get(ConfigInfos.CONNECTOR_CLASS_CONFIG),
         summarizeState(status.datum().get())
     );
   }
 
   private static String summarizeState(final ConnectorStateInfo connectorState) {
-    if (!connectorState.connector().state().equals(State.RUNNING.name())) {
+    if (!connectorState.connector().state().equals(RUNNING)) {
       return connectorState.connector().state();
     }
 
     final long numRunningTasks = connectorState.tasks()
         .stream()
         .map(AbstractState::state)
-        .filter(State.RUNNING.name()::equals)
+        .filter(RUNNING::equals)
         .count();
 
     final String status = connectorState.tasks().size() > 0 && numRunningTasks == 0

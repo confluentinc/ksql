@@ -171,7 +171,6 @@ public class KsLocatorTest {
         topology,
         keySerializer,
         LOCAL_HOST_URL,
-        APPLICATION_ID,
         false,
         "queryId"
     );
@@ -303,7 +302,7 @@ public class KsLocatorTest {
   public void shouldUseNamedTopologyWhenSharedRuntimeIsEnabledForStreamsMetadataForStore() {
     // Given:
     final KsLocator locator = new KsLocator(STORE_NAME, kafkaStreamsNamedTopologyWrapper, topology,
-        keySerializer, LOCAL_HOST_URL, APPLICATION_ID, true, "queryId");
+        keySerializer, LOCAL_HOST_URL, true, "queryId");
 
     // When:
     locator.getStreamsMetadata();
@@ -316,7 +315,7 @@ public class KsLocatorTest {
   public void shouldUseNamedTopologyWhenSharedRuntimeIsEnabledForQueryMetadataForKey() {
     // Given:
     final KsLocator locator = new KsLocator(STORE_NAME, kafkaStreamsNamedTopologyWrapper, topology,
-        keySerializer, LOCAL_HOST_URL, APPLICATION_ID, true, "queryId");
+        keySerializer, LOCAL_HOST_URL, true, "queryId");
 
     // When:
     locator.getKeyQueryMetadata(KEY);

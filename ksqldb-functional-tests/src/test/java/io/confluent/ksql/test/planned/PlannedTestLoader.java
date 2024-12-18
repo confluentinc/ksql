@@ -18,8 +18,8 @@ package io.confluent.ksql.test.planned;
 import static java.util.Objects.requireNonNull;
 
 import com.google.common.annotations.VisibleForTesting;
-import io.confluent.ksql.test.loader.TestLoader;
 import io.confluent.ksql.test.tools.TestCase;
+import io.confluent.ksql.tools.test.TestLoader;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.function.Predicate;

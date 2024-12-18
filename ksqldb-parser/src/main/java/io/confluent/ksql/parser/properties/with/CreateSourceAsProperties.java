@@ -21,10 +21,12 @@ import com.google.common.collect.ImmutableSet;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
 import io.confluent.ksql.execution.expression.tree.Literal;
+import io.confluent.ksql.execution.expression.tree.LongLiteral;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.parser.ColumnReferenceParser;
 import io.confluent.ksql.properties.with.CommonCreateConfigs;
+import io.confluent.ksql.properties.with.CommonCreateConfigs.ProtobufNullableConfigValues;
 import io.confluent.ksql.properties.with.CreateAsConfigs;
 import io.confluent.ksql.serde.SerdeFeature;
 import io.confluent.ksql.serde.SerdeFeatures;
@@ -32,6 +34,7 @@ import io.confluent.ksql.serde.avro.AvroFormat;
 import io.confluent.ksql.serde.connect.ConnectProperties;
 import io.confluent.ksql.serde.delimited.DelimitedFormat;
 import io.confluent.ksql.serde.protobuf.ProtobufFormat;
+import io.confluent.ksql.serde.protobuf.ProtobufNoSRFormat;
 import io.confluent.ksql.serde.protobuf.ProtobufProperties;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Map;
@@ -86,6 +89,14 @@ public final class CreateSourceAsProperties {
 
   public Optional<Short> getReplicas() {
     return Optional.ofNullable(props.getShort(CommonCreateConfigs.SOURCE_NUMBER_OF_REPLICAS));
+  }
+
+  public Optional<Long> getRetentionInMillis() {
+    return Optional.ofNullable(props.getLong(CommonCreateConfigs.SOURCE_TOPIC_RETENTION_IN_MS));
+  }
+
+  public Optional<String> getCleanupPolicy() {
+    return Optional.ofNullable(props.getString(CommonCreateConfigs.SOURCE_TOPIC_CLEANUP_POLICY));
   }
 
   public Optional<ColumnName> getTimestampColumnName() {
@@ -145,6 +156,9 @@ public final class CreateSourceAsProperties {
       builder.put(ProtobufProperties.UNWRAP_PRIMITIVES, ProtobufProperties.UNWRAP);
     }
 
+    handleNullableProtobufProperty(keyFormat, builder,
+        CommonCreateConfigs.KEY_PROTOBUF_NULLABLE_REPRESENTATION);
+
     final Optional<Integer> keySchemaId = getKeySchemaId();
     keySchemaId.ifPresent(id -> builder.put(ConnectProperties.SCHEMA_ID, String.valueOf(id)));
 
@@ -171,11 +185,47 @@ public final class CreateSourceAsProperties {
       builder.put(ProtobufProperties.UNWRAP_PRIMITIVES, ProtobufProperties.UNWRAP);
     }
 
+    handleNullableProtobufProperty(valueFormat, builder,
+        CommonCreateConfigs.VALUE_PROTOBUF_NULLABLE_REPRESENTATION);
+
     final Optional<Integer> valueSchemaId = getValueSchemaId();
     valueSchemaId.ifPresent(id ->
         builder.put(ConnectProperties.SCHEMA_ID, String.valueOf(id)));
 
     return builder.build();
+  }
+
+  private void handleNullableProtobufProperty(final String valueFormat,
+      final Builder<String, String> builder, final String propertyName) {
+    if (ProtobufFormat.NAME.equalsIgnoreCase(valueFormat)
+        || ProtobufNoSRFormat.NAME.equalsIgnoreCase(valueFormat)) {
+
+      final String nullableRep = props.getString(propertyName);
+      if (nullableRep != null) {
+        switch (ProtobufNullableConfigValues.valueOf(nullableRep)) {
+          case WRAPPER:
+            builder.put(ProtobufProperties.NULLABLE_REPRESENTATION,
+                ProtobufProperties.NULLABLE_AS_WRAPPER);
+            break;
+          case OPTIONAL:
+            builder.put(ProtobufProperties.NULLABLE_REPRESENTATION,
+                ProtobufProperties.NULLABLE_AS_OPTIONAL);
+            break;
+          default:
+            throw new RuntimeException(String.format(
+                "Unexpected nullable representation %s. This indicates an implementation error.",
+                nullableRep));
+        }
+      }
+
+    } else {
+      // Reject protobuf options for non-protobuf formats
+      if (props.getString(propertyName) != null) {
+        throw new KsqlException(
+            String.format("Property %s can only be enabled with protobuf format",
+                propertyName));
+      }
+    }
   }
 
   public CreateSourceAsProperties withKeyValueSchemaName(
@@ -202,12 +252,14 @@ public final class CreateSourceAsProperties {
   public CreateSourceAsProperties withTopic(
       final String name,
       final int partitions,
-      final short replicas
+      final short replicas,
+      final long retentionMs
   ) {
     final Map<String, Literal> originals = props.copyOfOriginalLiterals();
     originals.put(CommonCreateConfigs.KAFKA_TOPIC_NAME_PROPERTY, new StringLiteral(name));
     originals.put(CommonCreateConfigs.SOURCE_NUMBER_OF_PARTITIONS, new IntegerLiteral(partitions));
     originals.put(CommonCreateConfigs.SOURCE_NUMBER_OF_REPLICAS, new IntegerLiteral(replicas));
+    originals.put(CommonCreateConfigs.SOURCE_TOPIC_RETENTION_IN_MS, new LongLiteral(retentionMs));
 
     return new CreateSourceAsProperties(originals, unwrapProtobufPrimitives);
   }
@@ -216,6 +268,15 @@ public final class CreateSourceAsProperties {
       final boolean unwrapProtobufPrimitives
   ) {
     return new CreateSourceAsProperties(props.copyOfOriginalLiterals(), unwrapProtobufPrimitives);
+  }
+
+  public CreateSourceAsProperties withCleanupPolicy(final String cleanupPolicy) {
+    final Map<String, Literal> originals = props.copyOfOriginalLiterals();
+    originals.put(
+        CommonCreateConfigs.SOURCE_TOPIC_CLEANUP_POLICY,
+        new StringLiteral(cleanupPolicy));
+
+    return new CreateSourceAsProperties(originals, unwrapProtobufPrimitives);
   }
 
   @Override

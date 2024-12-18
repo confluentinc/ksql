@@ -112,6 +112,7 @@ import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlServerException;
 import io.confluent.ksql.util.ReservedInternalTopics;
+import io.confluent.ksql.util.RetryUtil;
 import io.confluent.ksql.util.WelcomeMsgUtils;
 import io.confluent.ksql.utilization.PersistentQuerySaturationMetrics;
 import io.confluent.ksql.version.metrics.KsqlVersionCheckerAgent;
@@ -152,6 +153,8 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kafka.clients.admin.Admin;
+import org.apache.kafka.common.TopicPartition;
+import org.apache.kafka.common.errors.WakeupException;
 import org.apache.kafka.common.utils.Time;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.processor.internals.DefaultKafkaClientSupplier;
@@ -1030,12 +1033,12 @@ public final class KsqlRestApplication implements Executable {
       final KsqlConfig configWithApplicationServer,
       final Optional<HeartbeatAgent> heartbeatAgent,
       final Optional<LagReportingAgent> lagReportingAgent) {
-    return (routingOptions, hosts, active, applicationQueryId, storeName, partition) -> {
+    return (routingOptions, hosts, active, queryId, storeName, partition) -> {
       final ImmutableList.Builder<RoutingFilter> filterBuilder = ImmutableList.builder();
 
       // If the lookup is for a forwarded request, apply only MaxLagFilter for localhost
       if (routingOptions.getIsSkipForwardRequest()) {
-        MaximumLagFilter.create(lagReportingAgent, routingOptions, hosts, applicationQueryId,
+        MaximumLagFilter.create(lagReportingAgent, routingOptions, hosts, queryId,
                                 storeName, partition)
             .map(filterBuilder::add);
       } else {
@@ -1044,7 +1047,7 @@ public final class KsqlRestApplication implements Executable {
           filterBuilder.add(new ActiveHostFilter(active));
         }
         filterBuilder.add(new LivenessFilter(heartbeatAgent));
-        MaximumLagFilter.create(lagReportingAgent, routingOptions, hosts, applicationQueryId,
+        MaximumLagFilter.create(lagReportingAgent, routingOptions, hosts, queryId,
                                 storeName, partition)
             .map(filterBuilder::add);
       }
@@ -1055,6 +1058,49 @@ public final class KsqlRestApplication implements Executable {
   private void registerCommandTopic() {
 
     final String commandTopic = commandStore.getCommandTopicName();
+
+    // migration code
+    if (checkMigrationConditions(commandTopic)) {
+      log.warn("Migrating command topic from the service context Kafka to the command "
+          + "producer/consumer Kafka for ksql with id {}.",
+          ksqlConfigNoPort.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG));
+      KsqlInternalTopicUtils.ensureTopic(
+          commandTopic,
+          ksqlConfigNoPort,
+          internalTopicClient
+      );
+      try {
+        CommandTopicMigrationUtil.commandTopicMigration(commandTopic, restConfig, ksqlConfigNoPort);
+      } catch (final Exception e) {
+        log.warn("Failed to migrate command topic from the service context Kafka to the command "
+                + "producer/consumer Kafka for ksql with id {}.",
+            ksqlConfigNoPort.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG), e);
+        throw e;
+      }
+
+    } else if (restConfig.getString(KsqlRestConfig.KSQL_COMMAND_TOPIC_MIGRATION_CONFIG)
+        .equals(KsqlRestConfig.KSQL_COMMAND_TOPIC_MIGRATION_MIGRATING)) {
+      RetryUtil.retryWithBackoff(
+          Integer.MAX_VALUE,
+          10000,
+          10000,
+          () -> {
+            if (!internalTopicClient.isTopicExists(commandTopic)) {
+              throw new RuntimeException("command topic migration still in process, "
+                  + "no new command topic on command producer/consumer Kafka.");
+            } else {
+              final Map<TopicPartition, Long> commandTopicEndOffset =
+                  internalTopicClient.listTopicsEndOffsets(Collections.singletonList(commandTopic));
+
+              if (commandTopicEndOffset.get(new TopicPartition(commandTopic, 0)) == 0L) {
+                throw new RuntimeException("command topic migration still in process, "
+                    + "empty command topic on command producer/consumer Kafka.");
+              }
+            }
+          },
+          WakeupException.class
+      );
+    }
 
     if (CommandTopicBackupUtil.commandTopicMissingWithValidBackup(
         commandTopic,
@@ -1070,6 +1116,24 @@ public final class KsqlRestApplication implements Executable {
         ksqlConfigNoPort,
         internalTopicClient
     );
+  }
+
+  // only migrate command topic if the server is designated as the migrator
+  private boolean checkMigrationConditions(final String commandTopic) {
+    final boolean emptyCommandTopic;
+    if (internalTopicClient.isTopicExists(commandTopic)) {
+      final Map<TopicPartition, Long> commandTopicEndOffset =
+          internalTopicClient.listTopicsEndOffsets(Collections.singletonList(commandTopic));
+
+      emptyCommandTopic = commandTopicEndOffset.get(new TopicPartition(commandTopic, 0)) == 0L;
+    } else {
+      emptyCommandTopic = true;
+    }
+
+    return emptyCommandTopic
+        && serviceContext.getTopicClient().isTopicExists(commandTopic)
+        && restConfig.getString(KsqlRestConfig.KSQL_COMMAND_TOPIC_MIGRATION_CONFIG)
+            .equals(KsqlRestConfig.KSQL_COMMAND_TOPIC_MIGRATION_MIGRATOR);
   }
 
   private static KsqlSecurityExtension loadSecurityExtension(final KsqlConfig ksqlConfig) {

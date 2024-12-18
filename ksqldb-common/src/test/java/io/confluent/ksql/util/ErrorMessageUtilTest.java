@@ -96,6 +96,18 @@ public class ErrorMessageUtilTest {
            + "Caused by: Something went wrong")
     );
   }
+  @Test
+  public void shouldRemoveSubMessages() {
+    final Throwable cause = new TestException("Sub-message2");
+    final Throwable subLevel1 = new TestException("This is Sub-message1", cause);
+    final Throwable e = new TestException("The Main Message that Contains Sub-message1 and Sub-message2", subLevel1);
+
+    assertThat(
+        buildErrorMessage(e),
+        is("The Main Message that Contains Sub-message1 and Sub-message2" + System.lineSeparator()
+            + "Caused by: This is Sub-message1")
+    );
+  }
 
   @Test
   public void shouldHandleRecursiveExceptions() {

@@ -16,7 +16,7 @@
 package io.confluent.ksql.test.loader;
 
 import io.confluent.ksql.test.model.TestFileContext;
-import io.confluent.ksql.test.tools.Test;
+import io.confluent.ksql.tools.test.model.Test;
 import java.util.stream.Stream;
 
 public interface TestFile<TestTypeT extends Test> {

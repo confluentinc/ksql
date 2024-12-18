@@ -38,7 +38,7 @@
       "key" : 1,
       "value" : {
         "VALUE" : {
-          "number" : 10.50,
+          "number" : 10.5,
           "other" : 1.01
         }
       }
@@ -213,15 +213,23 @@
                       "type" : "bytes",
                       "scale" : 0,
                       "precision" : 2,
+                      "connect.version" : 1,
+                      "connect.parameters" : {
+                        "scale" : "0",
+                        "connect.decimal.precision" : "2"
+                      },
+                      "connect.name" : "org.apache.kafka.connect.data.Decimal",
                       "logicalType" : "decimal"
                     } ],
                     "default" : null
                   } ],
                   "connect.internal.type" : "MapEntry"
-                }
+                },
+                "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema_TRANSFORM"
               } ],
               "default" : null
-            } ]
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
           }
         } ]
       }

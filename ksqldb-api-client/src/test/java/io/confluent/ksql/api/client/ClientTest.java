@@ -53,6 +53,7 @@ import io.confluent.ksql.exception.KafkaResponseGetFailedException;
 import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.parser.exception.ParseFailedException;
 import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.reactive.BasePublisher;
 import io.confluent.ksql.rest.entity.AssertSchemaEntity;
 import io.confluent.ksql.rest.entity.AssertTopicEntity;
 import io.confluent.ksql.rest.entity.CommandId;
@@ -107,9 +108,9 @@ import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
-import org.apache.kafka.connect.runtime.rest.entities.ConnectorInfo;
-import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo;
-import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo.ConnectorState;
+import io.confluent.ksql.rest.entity.ConnectorInfo;
+import io.confluent.ksql.rest.entity.ConnectorStateInfo;
+import io.confluent.ksql.rest.entity.ConnectorStateInfo.ConnectorState;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
 import org.hamcrest.TypeSafeDiagnosingMatcher;
@@ -141,8 +142,7 @@ public class ClientTest extends BaseApiTest {
   protected static final String EXECUTE_STATEMENT_USAGE_DOC = "The executeStatement() method is only "
       + "for 'CREATE', 'CREATE ... AS SELECT', 'DROP', 'TERMINATE', and 'INSERT INTO ... AS "
       + "SELECT' statements. ";
-  protected static final org.apache.kafka.connect.runtime.rest.entities.ConnectorType SOURCE_TYPE =
-      org.apache.kafka.connect.runtime.rest.entities.ConnectorType.SOURCE;
+  protected static final io.confluent.ksql.rest.entity.ConnectorType SOURCE_TYPE = io.confluent.ksql.rest.entity.ConnectorType.SOURCE;
 
   protected static final Map<String, String> REQUEST_HEADERS = ImmutableMap.of("h1", "v1", "h2", "v2");
 
@@ -347,6 +347,7 @@ public class ClientTest extends BaseApiTest {
     // Given
     final StreamedQueryResult streamedQueryResult =
         javaClient.streamQuery(DEFAULT_PUSH_QUERY, DEFAULT_PUSH_QUERY_REQUEST_PROPERTIES).get();
+    waitForQueryPublisherSubscribed();
     sendQueryPublisherError();
     assertThatEventually(streamedQueryResult::isFailed, is(true));
 
@@ -1972,9 +1973,9 @@ public class ClientTest extends BaseApiTest {
   }
 
   private void sendQueryPublisherError() {
-    final Set<TestQueryPublisher> queryPublishers = testEndpoints.getQueryPublishers();
+    final Set<Publisher<?>> queryPublishers = testEndpoints.getPublishers();
     assertThat(queryPublishers, hasSize(1));
-    final TestQueryPublisher queryPublisher = queryPublishers.stream().findFirst().get();
+    final TestQueryPublisher queryPublisher = (TestQueryPublisher) queryPublishers.stream().findFirst().get();
     queryPublisher.sendError();
   }
 

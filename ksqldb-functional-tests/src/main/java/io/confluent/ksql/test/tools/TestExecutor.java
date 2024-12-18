@@ -59,13 +59,16 @@ import io.confluent.ksql.test.model.SourceNode;
 import io.confluent.ksql.test.model.TestHeader;
 import io.confluent.ksql.test.model.WindowData;
 import io.confluent.ksql.test.tools.TopicInfoCache.TopicInfo;
-import io.confluent.ksql.test.tools.stubs.StubKafkaClientSupplier;
-import io.confluent.ksql.test.tools.stubs.StubKafkaConsumerGroupClient;
 import io.confluent.ksql.test.tools.stubs.StubKafkaService;
-import io.confluent.ksql.test.tools.stubs.StubKafkaTopicClient;
 import io.confluent.ksql.test.utils.TestUtils;
+import io.confluent.ksql.tools.test.TestFunctionRegistry;
+import io.confluent.ksql.tools.test.model.Topic;
+import io.confluent.ksql.tools.test.stubs.StubKafkaClientSupplier;
+import io.confluent.ksql.tools.test.stubs.StubKafkaConsumerGroupClient;
+import io.confluent.ksql.tools.test.stubs.StubKafkaTopicClient;
 import io.confluent.ksql.util.BytesUtils;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlServerException;
 import java.io.Closeable;
@@ -159,18 +162,23 @@ public class TestExecutor implements Closeable {
     this.topicInfoCache = new TopicInfoCache(ksqlEngine, serviceContext.getSchemaRegistryClient());
   }
 
+  // CHECKSTYLE_RULES.OFF: CyclomaticComplexity
   public void buildAndExecuteQuery(
       final TestCase testCase,
       final TestExecutionListener listener
   )  {
+    // CHECKSTYLE_RULES.ON: CyclomaticComplexity
     topicInfoCache.clear();
 
     final KsqlConfig ksqlConfig = testCase.applyPersistedProperties(new KsqlConfig(config));
 
+    List<TopologyTestDriverContainer> topologyTestDrivers = null;
     try {
       System.setProperty(RuntimeBuildContext.KSQL_TEST_TRACK_SERDE_TOPICS, "true");
 
-      final List<TopologyTestDriverContainer> topologyTestDrivers = topologyBuilder
+      maybeRegisterTopicSchemas(testCase.getTopics());
+
+      topologyTestDrivers = topologyBuilder
           .buildStreamsTopologyTestDrivers(
               testCase,
               serviceContext,
@@ -242,6 +250,8 @@ public class TestExecutor implements Closeable {
                 ti.getKeyFormat(),
                 ti.getValueFormat(),
                 partitions,
+                Optional.ofNullable(topic).flatMap(Topic::getKeySchemaId),
+                Optional.ofNullable(topic).flatMap(Topic::getValueSchemaId),
                 fromSchemaMetadata(keyMetadata),
                 fromSchemaMetadata(valueMetadata)
             );
@@ -267,6 +277,38 @@ public class TestExecutor implements Closeable {
       assertThat(e, isThrowable(expectedExceptionMatcher.get()));
     } finally {
       System.clearProperty(RuntimeBuildContext.KSQL_TEST_TRACK_SERDE_TOPICS);
+      if (topologyTestDrivers != null) {
+        for (final TopologyTestDriverContainer topologyTestDriverContainer : topologyTestDrivers) {
+          topologyTestDriverContainer.close();
+        }
+      }
+    }
+  }
+
+  private void maybeRegisterTopicSchemas(final Collection<Topic> topics) {
+    final SchemaRegistryClient schemaRegistryClient = serviceContext.getSchemaRegistryClient();
+    final int firstVersion = 1;
+
+    for (final Topic topic : topics) {
+      try {
+        if (topic.getKeySchemaId().isPresent() && topic.getKeySchema().isPresent()) {
+          schemaRegistryClient.register(
+              KsqlConstants.getSRSubject(topic.getName(), true),
+              topic.getKeySchema().get(),
+              firstVersion /* QTT does not support subjects versions yet */,
+              topic.getKeySchemaId().get());
+        }
+
+        if (topic.getValueSchemaId().isPresent() && topic.getValueSchema().isPresent()) {
+          schemaRegistryClient.register(
+              KsqlConstants.getSRSubject(topic.getName(), false),
+              topic.getValueSchema().get(),
+              firstVersion /* QTT does not support subjects versions yet */,
+              topic.getValueSchemaId().get());
+        }
+      } catch (final Exception e) {
+        throw new KsqlException(e);
+      }
     }
   }
 

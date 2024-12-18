@@ -52,14 +52,11 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import kafka.zookeeper.ZooKeeperClientException;
-import org.apache.kafka.clients.admin.ListTopicsResult;
-import org.apache.kafka.clients.admin.TopicListing;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerInterceptor;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -126,8 +123,10 @@ public class EndToEndIntegrationTest {
 
   public TestKsqlContext ksqlContext;
 
+  // Make sure Test Timeout is greater than shutdownTimeout
   @Rule
-  public final Timeout timeout = Timeout.seconds(120);
+  public final Timeout timeout = Timeout.seconds(
+      KsqlConfig.KSQL_SHUTDOWN_TIMEOUT_MS_DEFAULT + 1_000);
 
   private final List<QueryMetadata> toClose = new ArrayList<>();
 

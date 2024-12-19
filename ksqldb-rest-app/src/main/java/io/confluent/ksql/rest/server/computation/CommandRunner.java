@@ -262,6 +262,17 @@ public class CommandRunner implements Closeable {
       final List<QueuedCommand> compatibleCommands = checkForIncompatibleCommands(restoreCommands);
 
       LOG.info("Restoring previous state from {} commands.", compatibleCommands.size());
+      if (compatibleCommands.size() > 100000) {
+        LOG.warn("Command topic size exceeded 100000 commands.");
+      } else if (compatibleCommands.size() > 80000) {
+        LOG.warn("Command topic size exceeded 80000 commands.");
+      } else if (compatibleCommands.size() > 60000) {
+        LOG.warn("Command topic size exceeded 60000 commands.");
+      } else if (compatibleCommands.size() > 40000) {
+        LOG.warn("Command topic size exceeded 40000 commands.");
+      } else if (compatibleCommands.size() > 20000) {
+        LOG.warn("Command topic size exceeded 20000 commands.");
+      }
 
       final Optional<QueuedCommand> terminateCmd =
           findTerminateCommand(compatibleCommands, commandDeserializer);

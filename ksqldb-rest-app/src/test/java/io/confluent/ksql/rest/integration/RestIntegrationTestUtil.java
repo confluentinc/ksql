@@ -570,7 +570,7 @@ public final class RestIntegrationTestUtil {
 
       final String uri = baseUri.toString() + "/ws/query?request="
           + buildStreamingRequest(sql, overrides, requestProperties)
-          + "&access_token=" + credentials.get().getAuthHeader().replace(" ", "");
+          + "&access_token=" + credentials.get().getAuthHeader();
 
       final MultiMap headers = MultiMap.caseInsensitiveMultiMap();
 

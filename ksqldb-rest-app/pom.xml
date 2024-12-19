@@ -197,8 +197,8 @@
         </dependency>
 
         <dependency>
-            <!-- one.ducking is a fork of com.kjetland -->
-            <!-- schema-registry is dependent on one.duckling:mbknor-jackson-jsonschema-java8 -->
+            <!-- io.yokota is a fork of com.kjetland -->
+            <!-- schema-registry is dependent on io.yokota:mbknor-jackson-jsonschema-java8 -->
             <!-- hence all the downstream projects had to use that one only -->
             <groupId>io.yokota</groupId>
             <artifactId>mbknor-jackson-jsonschema-java8</artifactId>

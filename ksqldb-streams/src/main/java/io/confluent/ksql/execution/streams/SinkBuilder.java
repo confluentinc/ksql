@@ -73,14 +73,11 @@ public final class SinkBuilder {
         queryContext
     );
 
-    final Optional<TimestampProcessorSupplier<K>> tsTransformer = timestampTransformer(
-        buildContext,
-        queryContext,
-        schema,
-        timestampColumn
-    );
+    final Optional<TimestampProcessorSupplier<K>> tsProcessorSupplier
+        = createTimeStampProcessorSupplier(
+            buildContext, queryContext, schema, timestampColumn);
 
-    final KStream<K, GenericRow> transformed = tsTransformer
+    final KStream<K, GenericRow> transformed = tsProcessorSupplier
         .map(t -> stream.process(t, Named.as(TIMESTAMP_TRANSFORM_NAME
             + StreamsUtil.buildOpName(queryContext))))
         .orElse(stream);
@@ -88,7 +85,7 @@ public final class SinkBuilder {
     transformed.to(topicName, Produced.with(keySerde, valueSerde));
   }
 
-  private static  <K> Optional<TimestampProcessorSupplier<K>> timestampTransformer(
+  private static  <K> Optional<TimestampProcessorSupplier<K>> createTimeStampProcessorSupplier(
       final RuntimeBuildContext buildContext,
       final QueryContext queryContext,
       final LogicalSchema sourceSchema,

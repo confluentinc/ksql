@@ -32,6 +32,7 @@ import io.confluent.ksql.execution.runtime.RuntimeBuildContext;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.ExecutionKeyFactory;
+import io.confluent.ksql.execution.streams.SinkBuilder.TimestampProcessorSupplier;
 import io.confluent.ksql.execution.streams.timestamp.KsqlTimestampExtractor;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
@@ -312,6 +313,6 @@ public class SinkBuilderTest {
       final KsqlTimestampExtractor timestampExtractor,
       final ProcessingLogger processingLogger
   ) {
-    return new SinkBuilder.TransformTimestamp<Struct>(timestampExtractor, processingLogger).get();
+    return new TimestampProcessorSupplier<Struct>(timestampExtractor, processingLogger).get();
   }
 }

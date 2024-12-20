@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.rest.server.execution;
 
+import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
@@ -75,10 +76,14 @@ import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.KafkaException;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.TopicPartitionInfo;
+import org.apache.kafka.common.errors.UnknownTopicOrPartitionException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public final class ListSourceExecutor {
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
+  private static final Logger LOG = LoggerFactory.getLogger(ListSourceExecutor.class);
 
   private ListSourceExecutor() {
   }
@@ -299,6 +304,10 @@ public final class ListSourceExecutor {
       );
       sourceConstraints = getSourceConstraints(name, ksqlExecutionContext.getMetaStore());
     } catch (final KafkaException | KafkaResponseGetFailedException e) {
+      if (Throwables.getRootCause(e) instanceof UnknownTopicOrPartitionException) {
+        LOG.warn("Failed to Describe due to UnknownTopicOrPartitionException for {} "
+                + "with topic name {}", name.text(), dataSource.getKafkaTopicName());
+      }
       warnings.add(new KsqlWarning("Error from Kafka: " + e.getMessage()));
     }
 

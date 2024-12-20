@@ -304,10 +304,8 @@ public final class ListSourceExecutor {
       );
       sourceConstraints = getSourceConstraints(name, ksqlExecutionContext.getMetaStore());
     } catch (final KafkaException | KafkaResponseGetFailedException e) {
-      if (Throwables.getRootCause(e) instanceof UnknownTopicOrPartitionException) {
-        LOG.warn("Failed to Describe due to UnknownTopicOrPartitionException for {} "
-                + "with topic name {}", name.text(), dataSource.getKafkaTopicName());
-      }
+      LOG.warn("Failed to Describe. [Error={}, Topic={}, Source={}]",
+              Throwables.getRootCause(e), dataSource.getKafkaTopicName(), name.text());
       warnings.add(new KsqlWarning("Error from Kafka: " + e.getMessage()));
     }
 

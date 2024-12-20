@@ -273,7 +273,8 @@ public class CommandRunner implements Closeable {
 
       LOG.info("Restoring previous state from {} commands.", compatibleCommands.size());
       if (compatibleCommands.size() > COMMAND_TOPIC_THRESHOLD_LIMIT) {
-        LOG.warn("Command topic size exceeded {} commands.", COMMAND_TOPIC_THRESHOLD_LIMIT);
+        LOG.warn("Command topic size exceeded. [commands={}, threshold={}]",
+                compatibleCommands.size(), COMMAND_TOPIC_THRESHOLD_LIMIT);
       }
 
       final Optional<QueuedCommand> terminateCmd =

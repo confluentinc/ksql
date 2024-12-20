@@ -19,15 +19,15 @@ import static java.util.Objects.requireNonNull;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.execution.process.KsqlProcessor;
 import io.confluent.ksql.execution.transform.ExpressionEvaluator;
-import io.confluent.ksql.execution.transform.KsqlProcessingContext;
-import io.confluent.ksql.execution.transform.KsqlTransformer;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.utils.FormatOptions;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Supplier;
+import org.apache.kafka.streams.processor.api.ProcessorContext;
 
 public class SelectValueMapper<K> {
 
@@ -41,7 +41,7 @@ public class SelectValueMapper<K> {
     return selects;
   }
 
-  public KsqlTransformer<K, GenericRow> getTransformer(
+  public KsqlProcessor<K, GenericRow> getTransformer(
       final ProcessingLogger processingLogger
   ) {
     return new SelectMapper<>(selects, processingLogger);
@@ -88,7 +88,7 @@ public class SelectValueMapper<K> {
     }
   }
 
-  private static final class SelectMapper<K> implements KsqlTransformer<K, GenericRow> {
+  private static final class SelectMapper<K> implements KsqlProcessor<K, GenericRow> {
 
     private final ImmutableList<SelectInfo> selects;
     private final ProcessingLogger processingLogger;
@@ -102,10 +102,10 @@ public class SelectValueMapper<K> {
     }
 
     @Override
-    public GenericRow transform(
+    public GenericRow process(
         final K readOnlyKey,
         final GenericRow value,
-        final KsqlProcessingContext ctx
+        final ProcessorContext<K, GenericRow> ctx
     ) {
       if (value == null) {
         return null;

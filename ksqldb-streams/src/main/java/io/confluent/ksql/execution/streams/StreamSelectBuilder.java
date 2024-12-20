@@ -38,13 +38,13 @@ public final class StreamSelectBuilder {
   }
 
   public static <K> KStreamHolder<K> build(
-      final KStreamHolder<K> stream,
+      final KStreamHolder<K> streamHolder,
       final StreamSelect<K> step,
       final RuntimeBuildContext buildContext
   ) {
     final QueryContext queryContext = step.getProperties().getQueryContext();
 
-    final LogicalSchema sourceSchema = stream.getSchema();
+    final LogicalSchema sourceSchema = streamHolder.getSchema();
     final Optional<ImmutableList<ColumnName>> selectedKeys = step.getSelectedKeys();
 
     final Selection<K> selection = Selection.of(
@@ -78,8 +78,8 @@ public final class StreamSelectBuilder {
     if (selectedKeys.isPresent() && !selectedKeys.get().containsAll(
         sourceSchema.key().stream().map(Column::name).collect(ImmutableList.toImmutableList())
     )) {
-      return stream.withStream(
-          stream.getStream().transform(
+      return streamHolder.withStream(
+          streamHolder.getStream().transform(
             () -> new KsTransformer<>(
                 (readOnlyKey, value, ctx) -> {
                   if (keyIndices.isEmpty()) {
@@ -106,8 +106,8 @@ public final class StreamSelectBuilder {
           selection.getSchema()
       );
     } else {
-      return stream.withStream(
-          stream.getStream().transformValues(
+      return streamHolder.withStream(
+          streamHolder.getStream().transformValues(
               () -> new KsValueTransformer<>(selectMapper.getTransformer(logger)),
               selectName
           ),

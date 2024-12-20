@@ -16,6 +16,7 @@ package io.confluent.ksql.util;
 
 import com.google.common.collect.ImmutableMap;
 import io.vertx.core.buffer.Buffer;
+import jakarta.xml.bind.DatatypeConverter;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
@@ -25,7 +26,6 @@ import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
-import javax.xml.bind.DatatypeConverter;
 
 public final class BytesUtils {
   public enum Encoding {

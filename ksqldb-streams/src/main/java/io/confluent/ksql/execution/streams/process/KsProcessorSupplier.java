@@ -16,7 +16,7 @@
 package io.confluent.ksql.execution.streams.process;
 
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.execution.process.KsqlProcessor;
+import io.confluent.ksql.execution.transform.KsqlTransformer;
 import org.apache.kafka.streams.processor.api.Processor;
 import org.apache.kafka.streams.processor.api.ProcessorSupplier;
 
@@ -26,8 +26,8 @@ public class KsProcessorSupplier<KInT, KOutT>
   private final KsProcessor<KInT, KOutT> processor;
 
   public KsProcessorSupplier(
-      final KsqlProcessor<KInT, KOutT> keyDelegate,
-      final KsqlProcessor<KInT, GenericRow> valueDelegate) {
+      final KsqlTransformer<KInT, KOutT> keyDelegate,
+      final KsqlTransformer<KInT, GenericRow> valueDelegate) {
     this.processor = new KsProcessor<>(keyDelegate, valueDelegate);
   }
 

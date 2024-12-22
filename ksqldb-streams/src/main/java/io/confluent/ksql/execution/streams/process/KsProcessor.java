@@ -18,25 +18,28 @@ package io.confluent.ksql.execution.streams.process;
 import static java.util.Objects.requireNonNull;
 
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.execution.process.KsqlProcessor;
+import io.confluent.ksql.execution.transform.KsqlProcessingContext;
+import io.confluent.ksql.execution.transform.KsqlTransformer;
 import org.apache.kafka.streams.processor.api.Processor;
 import org.apache.kafka.streams.processor.api.ProcessorContext;
 import org.apache.kafka.streams.processor.api.Record;
 
 public class KsProcessor<KInT, KOutT> implements Processor<KInT, GenericRow, KOutT, GenericRow> {
-  private ProcessorContext<KOutT, GenericRow> context;
-  private final KsqlProcessor<KInT, KOutT> keyDelegate;
-  private final KsqlProcessor<KInT, GenericRow> valueDelegate;
+  private KsqlProcessingContext context;
+  private ProcessorContext<KOutT, GenericRow> apiProcessorContext;
+  private final KsqlTransformer<KInT, KOutT> keyDelegate;
+  private final KsqlTransformer<KInT, GenericRow> valueDelegate;
 
-  public KsProcessor(final KsqlProcessor<KInT, KOutT> keyDelegate,
-      final KsqlProcessor<KInT, GenericRow> valueDelegate) {
+  public KsProcessor(final KsqlTransformer<KInT, KOutT> keyDelegate,
+      final KsqlTransformer<KInT, GenericRow> valueDelegate) {
     this.keyDelegate = requireNonNull(keyDelegate, "keyDelegate");
     this.valueDelegate = requireNonNull(valueDelegate, "valueDelegate");
   }
 
   @Override
-  public void init(final ProcessorContext<KOutT, GenericRow> context) {
-    this.context = context;
+  public void init(final ProcessorContext<KOutT, GenericRow> apiProcessContext) {
+    this.context = new KsStreamProcessingContext<>(apiProcessContext);
+    this.apiProcessorContext = apiProcessContext;
   }
 
   @Override
@@ -44,11 +47,11 @@ public class KsProcessor<KInT, KOutT> implements Processor<KInT, GenericRow, KOu
     final KInT key = record.key();
     final GenericRow value = record.value();
     final Record<KOutT, GenericRow> newRecord = new Record<>(
-        keyDelegate.process(key, value, context),
-        valueDelegate.process(key, value, context),
+        keyDelegate.transform(key, value, context),
+        valueDelegate.transform(key, value, context),
         record.timestamp()
     );
-    context.forward(newRecord);
+    apiProcessorContext.forward(newRecord);
   }
 
   @Override

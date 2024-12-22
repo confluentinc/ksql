@@ -31,13 +31,13 @@ import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.codegen.CompiledExpression;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
-import io.confluent.ksql.execution.process.KsqlProcessor;
+import io.confluent.ksql.execution.transform.KsqlProcessingContext;
+import io.confluent.ksql.execution.transform.KsqlTransformer;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.name.ColumnName;
 import java.util.List;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
-import org.apache.kafka.streams.processor.api.ProcessorContext;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -63,9 +63,9 @@ public class SelectValueMapperTest {
   @Mock
   private ProcessingLogger processingLogger;
   @Mock
-  private ProcessorContext<Object, GenericRow> ctx;
+  private KsqlProcessingContext ctx;
 
-  private KsqlProcessor<Object, GenericRow> processor;
+  private KsqlTransformer<Object, GenericRow> transformer;
 
   @Before
   public void setup() {
@@ -81,14 +81,14 @@ public class SelectValueMapperTest {
         )
     );
 
-    processor = selectValueMapper.getTransformer(processingLogger);
+    transformer = selectValueMapper.getTransformer(processingLogger);
   }
 
   @SuppressWarnings("unchecked")
   @Test
   public void shouldInvokeEvaluatorsWithCorrectParams() {
     // When:
-    processor.process(KEY, VALUE, ctx);
+    transformer.transform(KEY, VALUE, ctx);
 
     // Then:
     final ArgumentCaptor<Supplier<String>> errorMsgCaptor = ArgumentCaptor.forClass(Supplier.class);
@@ -115,7 +115,7 @@ public class SelectValueMapperTest {
     when(col2.evaluate(any(), any(), any(), any())).thenReturn(300);
 
     // When:
-    final GenericRow result = processor.process(KEY, VALUE, ctx);
+    final GenericRow result = transformer.transform(KEY, VALUE, ctx);
 
     // Then:
     assertThat(result, equalTo(genericRow(100, 200, 300)));
@@ -124,7 +124,7 @@ public class SelectValueMapperTest {
   @Test
   public void shouldHandleNullRows() {
     // When:
-    final GenericRow result = processor.process(KEY, null, ctx);
+    final GenericRow result = transformer.transform(KEY, null, ctx);
 
     // Then:
     assertThat(result, is(nullValue()));

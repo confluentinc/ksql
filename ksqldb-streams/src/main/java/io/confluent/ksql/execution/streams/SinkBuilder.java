@@ -125,7 +125,7 @@ public final class SinkBuilder {
     @Override
     public Processor<K, GenericRow, K, GenericRow> get() {
       return new Processor<K, GenericRow, K, GenericRow>() {
-        private ProcessorContext processorContext;
+        private ProcessorContext<K, GenericRow> processorContext;
 
         @Override
         public void init(final ProcessorContext<K, GenericRow> processorContext) {

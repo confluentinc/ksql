@@ -25,11 +25,11 @@ class Callbacks:
         return self.leaf == 'cc-docker-ksql'
 
     def maven_build_args(self):
-        build_args = ["-DskipTests", "-DskipIntegrationTests", "-DversionFilter=true", "-U", "-Dspotbugs.skip", "-Dcheckstyle.skip"]
+        build_args = ["-DversionFilter=true", "-U", "-Dspotbugs.skip", "-Dcheckstyle.skip"]
         return build_args
 
     def maven_deploy_args(self):
-        deploy_args = ["-DskipTests", "-DskipIntegrationTests", "-DversionFilter=true", "-U"]
+        deploy_args = ["-DversionFilter=true", "-U"]
         return deploy_args
 
     def maven_docker_build(self):
@@ -47,7 +47,6 @@ class Callbacks:
         return mvn_docker_args
 
     def after_publish(self, version: str) -> bool:
-        v_version = "v" + version
         try:
 
             # is a final version build

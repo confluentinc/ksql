@@ -18,14 +18,11 @@ package io.confluent.ksql.execution.streams.process;
 import io.confluent.ksql.execution.transform.KsqlProcessingContext;
 import org.apache.kafka.streams.processor.api.ProcessingContext;
 import org.apache.kafka.streams.processor.api.Processor;
-import org.apache.kafka.streams.processor.api.ProcessorContext;
 
 /**
- * this implements the KsqlProcessingContext interface using {@link ProcessorContext} from
+ * this implements the KsqlProcessingContext interface using {@link ProcessingContext} from
  * {@link Processor} Api.
  *
- * @param <KForwardT> type of the output key
- * @param <VForwardT> type of the output value
  */
 public class KsStreamProcessingContext implements KsqlProcessingContext {
 

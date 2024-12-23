@@ -220,12 +220,13 @@ public class SinkBuilderTest {
         getTransformer(timestampExtractor, processingLogger);
     transformer.init(processorContext);
     final Record<Struct, GenericRow> record = new Record<>(
-        key, null, streamTime);
+        key, null, 0);
     transformer.process(record);
 
     // Then
+    final Record<Struct, GenericRow> outputRecord = new Record<>(key, null, streamTime);
     verify(timestampExtractor, never()).extract(key, null);
-    verify(processorContext).forward(eq(record));
+    verify(processorContext).forward(eq(outputRecord));
     verifyNoMoreInteractions(processingLogger);
   }
 

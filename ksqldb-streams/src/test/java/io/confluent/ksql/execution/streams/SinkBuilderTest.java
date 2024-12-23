@@ -196,14 +196,15 @@ public class SinkBuilderTest {
     final Processor<Struct, GenericRow, Struct, GenericRow> transformer =
         getTransformer(timestampExtractor, processingLogger);
     transformer.init(processorContext);
-    final Record<Struct, GenericRow> record
-        = new Record<>(key, row, processorContext.currentStreamTimeMs());
-    transformer.process(record);
+    final Record<Struct, GenericRow> inputRecord
+        = new Record<>(key, row, 0);
+    transformer.process(inputRecord);
 
     // Then
+    final Record<Struct, GenericRow> outputRecord = new Record<>(key, row, timestampColumnValue);
     verify(timestampExtractor).extract(key, row);
     verify(processorContext, Mockito.times(1))
-        .forward(eq(record));
+        .forward(eq(outputRecord));
     verifyNoMoreInteractions(processingLogger);
   }
 
@@ -237,20 +238,20 @@ public class SinkBuilderTest {
     when(timestampExtractor.extract(any(), any())).thenReturn(timestampColumnValue);
     doThrow(KsqlException.class)
         .when(processorContext)
-        .forward(argThat(record -> record instanceof Record), anyString());
+        .forward(argThat(record -> record instanceof Record));
 
     // When
     final Processor<Struct, GenericRow, Struct, GenericRow> transformer =
         getTransformer(timestampExtractor, processingLogger);
     transformer.init(processorContext);
-    final Record<Struct, GenericRow> record = new Record<>(
-        key, row, processorContext.currentStreamTimeMs());
-    transformer.process(record);
+    final Record<Struct, GenericRow> inputRecord = new Record<>(key, row, 0);
+    transformer.process(inputRecord);
 
     // Then
+    final Record<Struct, GenericRow> outputRecord = new Record<>(key, row, timestampColumnValue);
     verify(timestampExtractor).extract(key, row);
     verify(processorContext, Mockito.times(1))
-        .forward(eq(record), anyString());
+        .forward(eq(outputRecord));
     verify(processingLogger, Mockito.times(1)).error(any());
   }
 
@@ -265,7 +266,7 @@ public class SinkBuilderTest {
     final Processor<Struct, GenericRow, Struct, GenericRow> transformer =
         getTransformer(timestampExtractor, processingLogger);
     transformer.init(processorContext);
-    transformer.process(new Record<>(key, row, processorContext.currentStreamTimeMs()));
+    transformer.process(new Record<>(key, row, 0));
 
     // Then
     verify(timestampExtractor).extract(key, row);

@@ -124,7 +124,7 @@ public final class SinkBuilder {
 
     @Override
     public Processor<K, GenericRow, K, GenericRow> get() {
-      return new Processor<K, GenericRow, K, GenericRow>() {
+      return new Processor<>() {
         private ProcessorContext<K, GenericRow> processorContext;
 
         @Override
@@ -144,8 +144,8 @@ public final class SinkBuilder {
             processorContext.forward(record.withTimestamp(timestamp));
           } catch (final Exception e) {
             processingLogger.error(RecordProcessingError
-                    .recordProcessingError("Error writing row with extracted timestamp: "
-                        + e.getMessage(), e, record.value())
+                .recordProcessingError("Error writing row with extracted timestamp: "
+                    + e.getMessage(), e, record.value())
             );
           }
         }

@@ -38,7 +38,7 @@ public class KsProcessor<KInT, KOutT> implements Processor<KInT, GenericRow, KOu
 
   @Override
   public void init(final ProcessorContext<KOutT, GenericRow> apiProcessContext) {
-    this.context = new KsStreamProcessingContext<>(apiProcessContext);
+    this.context = new KsStreamProcessingContext(apiProcessContext);
     this.apiProcessorContext = apiProcessContext;
   }
 

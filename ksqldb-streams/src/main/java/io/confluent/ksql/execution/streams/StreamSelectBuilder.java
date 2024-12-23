@@ -33,6 +33,7 @@ import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import java.util.Optional;
 import org.apache.kafka.streams.kstream.Named;
+import org.apache.kafka.streams.processor.api.FixedKeyProcessorSupplier;
 import org.apache.kafka.streams.processor.api.ProcessorSupplier;
 
 public final class StreamSelectBuilder {
@@ -106,10 +107,10 @@ public final class StreamSelectBuilder {
           selection.getSchema()
       );
     } else {
-      final ProcessorSupplier<K, GenericRow, K, GenericRow> supplier
+      final FixedKeyProcessorSupplier<K, GenericRow, GenericRow> supplier
           = new KsValueProcessorSupplier<>(selectMapper.getTransformer(logger));
       return streamHolder.withStream(
-          streamHolder.getStream().process(supplier),
+          streamHolder.getStream().processValues(supplier, selectName),
           selection.getSchema()
       );
     }

@@ -20,9 +20,10 @@ import static java.util.Objects.requireNonNull;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.transform.KsqlProcessingContext;
 import io.confluent.ksql.execution.transform.KsqlTransformer;
+import org.apache.kafka.streams.processor.api.FixedKeyProcessor;
+import org.apache.kafka.streams.processor.api.FixedKeyProcessorContext;
+import org.apache.kafka.streams.processor.api.FixedKeyRecord;
 import org.apache.kafka.streams.processor.api.Processor;
-import org.apache.kafka.streams.processor.api.ProcessorContext;
-import org.apache.kafka.streams.processor.api.Record;
 
 /**
  * A Kafka-streams value processor
@@ -33,9 +34,9 @@ import org.apache.kafka.streams.processor.api.Record;
  * @param <K> the type of the key
  * @param <R> the return type
  */
-public class KsValueProcessor<K, R> implements Processor<K, GenericRow, K, R> {
+public class KsValueProcessor<K, R> implements FixedKeyProcessor<K, GenericRow, R> {
   private final KsqlTransformer<K, R> delegate;
-  private ProcessorContext<K, R> apiContext;
+  private FixedKeyProcessorContext<K, R> apiContext;
   private KsqlProcessingContext context;
 
   public KsValueProcessor(final KsqlTransformer<K, R> delegate) {
@@ -44,13 +45,13 @@ public class KsValueProcessor<K, R> implements Processor<K, GenericRow, K, R> {
   }
 
   @Override
-  public void init(final ProcessorContext<K, R> context) {
+  public void init(final FixedKeyProcessorContext<K, R> context) {
     this.apiContext = context;
-    this.context = new KsStreamProcessingContext<>(context);
+    this.context = new KsStreamProcessingContext(context);
   }
 
   @Override
-  public void process(final Record<K, GenericRow> record) {
+  public void process(final FixedKeyRecord<K, GenericRow> record) {
     final K key = record.key();
     final GenericRow value = record.value();
     final R result = delegate.transform(
@@ -58,6 +59,6 @@ public class KsValueProcessor<K, R> implements Processor<K, GenericRow, K, R> {
         value,
         context
     );
-    apiContext.forward(new Record<>(key, result, record.timestamp()));
+    apiContext.forward(record.withValue(result));
   }
 }

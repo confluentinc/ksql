@@ -19,8 +19,8 @@ import static java.util.Objects.requireNonNull;
 
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.transform.KsqlTransformer;
-import org.apache.kafka.streams.processor.api.Processor;
-import org.apache.kafka.streams.processor.api.ProcessorSupplier;
+import org.apache.kafka.streams.processor.api.FixedKeyProcessor;
+import org.apache.kafka.streams.processor.api.FixedKeyProcessorSupplier;
 
 /**
  * Supplies {@link KsValueProcessor} instances for processing values in a Kafka Streams pipeline.
@@ -29,7 +29,7 @@ import org.apache.kafka.streams.processor.api.ProcessorSupplier;
  * @param <R> the return type
  */
 public class KsValueProcessorSupplier<K, R>
-    implements ProcessorSupplier<K, GenericRow, K, R> {
+    implements FixedKeyProcessorSupplier<K, GenericRow, R> {
 
   private final KsqlTransformer<K, R> delegate;
 
@@ -38,7 +38,7 @@ public class KsValueProcessorSupplier<K, R>
   }
 
   @Override
-  public Processor<K, GenericRow, K, R> get() {
+  public FixedKeyProcessor<K, GenericRow, R> get() {
     return new KsValueProcessor<>(delegate);
   }
 }

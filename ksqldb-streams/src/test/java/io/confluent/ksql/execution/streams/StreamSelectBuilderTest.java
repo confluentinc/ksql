@@ -52,6 +52,7 @@ import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.Named;
 import org.apache.kafka.streams.kstream.NamedTestAccessor;
 import org.apache.kafka.streams.kstream.ValueTransformerWithKeySupplier;
+import org.apache.kafka.streams.processor.api.FixedKeyProcessorSupplier;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -118,7 +119,7 @@ public class StreamSelectBuilderTest {
     when(buildContext.getProcessingLogger(any())).thenReturn(processingLogger);
     when(buildContext.getKsqlConfig()).thenReturn(ksqlConfig);
     when(sourceKStream
-        .transformValues(any(ValueTransformerWithKeySupplier.class), any(Named.class)))
+        .processValues(any(FixedKeyProcessorSupplier.class), any(Named.class)))
         .thenReturn(resultKStream);
     final KStreamHolder<Struct> sourceStream
         = new KStreamHolder<>(sourceKStream, SCHEMA, executionKeyFactory);
@@ -154,8 +155,8 @@ public class StreamSelectBuilderTest {
     step.build(planBuilder, planInfo);
 
     // Then:
-    verify(sourceKStream).transformValues(
-        any(ValueTransformerWithKeySupplier.class),
+    verify(sourceKStream).processValues(
+        any(FixedKeyProcessorSupplier.class),
         nameCaptor.capture()
     );
 

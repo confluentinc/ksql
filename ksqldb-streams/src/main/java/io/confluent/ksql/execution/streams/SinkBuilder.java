@@ -77,12 +77,12 @@ public final class SinkBuilder {
         = createTimeStampProcessorSupplier(
             buildContext, queryContext, schema, timestampColumn);
 
-    final KStream<K, GenericRow> transformed = tsProcessorSupplier
+    final KStream<K, GenericRow> processedStream = tsProcessorSupplier
         .map(t -> stream.process(t, Named.as(TIMESTAMP_TRANSFORM_NAME
             + StreamsUtil.buildOpName(queryContext))))
         .orElse(stream);
 
-    transformed.to(topicName, Produced.with(keySerde, valueSerde));
+    processedStream.to(topicName, Produced.with(keySerde, valueSerde));
   }
 
   private static  <K> Optional<TimestampProcessorSupplier<K>> createTimeStampProcessorSupplier(

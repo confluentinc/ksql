@@ -23,16 +23,18 @@ import org.apache.kafka.streams.processor.api.ProcessorSupplier;
 public class KsProcessorSupplier<KInT, KOutT>
     implements ProcessorSupplier<KInT, GenericRow, KOutT, GenericRow> {
 
-  private final KsProcessor<KInT, KOutT> processor;
+  KsqlTransformer<KInT, KOutT> keyDelegate;
+  KsqlTransformer<KInT, GenericRow> valueDelegate;
 
   public KsProcessorSupplier(
       final KsqlTransformer<KInT, KOutT> keyDelegate,
       final KsqlTransformer<KInT, GenericRow> valueDelegate) {
-    this.processor = new KsProcessor<>(keyDelegate, valueDelegate);
+    this.keyDelegate = keyDelegate;
+    this.valueDelegate = valueDelegate;
   }
 
   @Override
   public Processor<KInT, GenericRow, KOutT, GenericRow> get() {
-    return processor;
+    return new KsProcessor<>(keyDelegate, valueDelegate);
   }
 }

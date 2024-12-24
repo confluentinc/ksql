@@ -52,7 +52,4 @@ public class KsProcessor<KInT, KOutT> implements Processor<KInT, GenericRow, KOu
     );
     processorContext.forward(newRecord);
   }
-
-  @Override
-  public void close() { }
 }

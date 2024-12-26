@@ -26,6 +26,7 @@ import org.apache.kafka.streams.processor.api.Record;
 
 public class KsProcessor<KInT, KOutT> implements Processor<KInT, GenericRow, KOutT, GenericRow> {
   private ProcessorContext<KOutT, GenericRow> processorContext;
+  private KsqlProcessingContext ksqlProcessingContext;
   private final KsqlTransformer<KInT, KOutT> keyDelegate;
   private final KsqlTransformer<KInT, GenericRow> valueDelegate;
 
@@ -38,16 +39,16 @@ public class KsProcessor<KInT, KOutT> implements Processor<KInT, GenericRow, KOu
   @Override
   public void init(final ProcessorContext<KOutT, GenericRow> processContext) {
     this.processorContext = processContext;
+    this.ksqlProcessingContext = new KsStreamProcessingContext(processorContext);
   }
 
   @Override
   public void process(final Record<KInT, GenericRow> record) {
     final KInT key = record.key();
     final GenericRow value = record.value();
-    final KsqlProcessingContext context = new KsStreamProcessingContext(processorContext);
     final Record<KOutT, GenericRow> newRecord = new Record<>(
-        keyDelegate.transform(key, value, context),
-        valueDelegate.transform(key, value, context),
+        keyDelegate.transform(key, value, ksqlProcessingContext),
+        valueDelegate.transform(key, value, ksqlProcessingContext),
         record.timestamp()
     );
     processorContext.forward(newRecord);

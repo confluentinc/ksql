@@ -34,20 +34,20 @@ import org.apache.kafka.streams.processor.api.Processor;
  * @param <K> the type of the key
  * @param <R> the return type
  */
-public class KsValueProcessor<K, R> implements FixedKeyProcessor<K, GenericRow, R> {
+public class KsFixedKeyProcessor<K, R> implements FixedKeyProcessor<K, GenericRow, R> {
   private final KsqlTransformer<K, R> delegate;
-  private FixedKeyProcessorContext<K, R> apiContext;
-  private KsqlProcessingContext context;
+  private FixedKeyProcessorContext<K, R> processorContext;
+  private KsqlProcessingContext ksqlProcessingContext;
 
-  public KsValueProcessor(final KsqlTransformer<K, R> delegate) {
+  public KsFixedKeyProcessor(final KsqlTransformer<K, R> delegate) {
     this.delegate = requireNonNull(delegate, "delegate");
-    this.apiContext = null;
+    this.processorContext = null;
   }
 
   @Override
   public void init(final FixedKeyProcessorContext<K, R> context) {
-    this.apiContext = context;
-    this.context = new KsStreamProcessingContext(context);
+    this.processorContext = context;
+    this.ksqlProcessingContext = new KsStreamProcessingContext(context);
   }
 
   @Override
@@ -57,8 +57,8 @@ public class KsValueProcessor<K, R> implements FixedKeyProcessor<K, GenericRow, 
     final R result = delegate.transform(
         key,
         value,
-        context
+        ksqlProcessingContext
     );
-    apiContext.forward(record.withValue(result));
+    processorContext.forward(record.withValue(result));
   }
 }

@@ -22,8 +22,8 @@ import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.plan.KStreamHolder;
 import io.confluent.ksql.execution.plan.StreamSelect;
 import io.confluent.ksql.execution.runtime.RuntimeBuildContext;
-import io.confluent.ksql.execution.streams.transform.KsTransformer;
-import io.confluent.ksql.execution.streams.transform.KsValueTransformer;
+import io.confluent.ksql.execution.streams.process.KsProcessor;
+import io.confluent.ksql.execution.streams.process.KsFixedKeyProcessor;
 import io.confluent.ksql.execution.transform.select.SelectValueMapper;
 import io.confluent.ksql.execution.transform.select.Selection;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
@@ -33,18 +33,19 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import java.util.Optional;
 import org.apache.kafka.streams.kstream.Named;
 
+
 public final class StreamSelectBuilder {
   private StreamSelectBuilder() {
   }
 
   public static <K> KStreamHolder<K> build(
-      final KStreamHolder<K> stream,
+      final KStreamHolder<K> streamHolder,
       final StreamSelect<K> step,
       final RuntimeBuildContext buildContext
   ) {
     final QueryContext queryContext = step.getProperties().getQueryContext();
 
-    final LogicalSchema sourceSchema = stream.getSchema();
+    final LogicalSchema sourceSchema = streamHolder.getSchema();
     final Optional<ImmutableList<ColumnName>> selectedKeys = step.getSelectedKeys();
 
     final Selection<K> selection = Selection.of(
@@ -78,39 +79,33 @@ public final class StreamSelectBuilder {
     if (selectedKeys.isPresent() && !selectedKeys.get().containsAll(
         sourceSchema.key().stream().map(Column::name).collect(ImmutableList.toImmutableList())
     )) {
-      return stream.withStream(
-          stream.getStream().transform(
-            () -> new KsTransformer<>(
-                (readOnlyKey, value, ctx) -> {
-                  if (keyIndices.isEmpty()) {
-                    return null;
+      return streamHolder.withStream(
+          streamHolder.getStream().process(() -> new KsProcessor<>(
+              (readOnlyKey, value, ctx) -> {
+                if (keyIndices.isEmpty()) {
+                  return null;
+                }
+
+                if (readOnlyKey instanceof GenericKey) {
+                  final GenericKey keys = (GenericKey) readOnlyKey;
+                  final Builder resultKeys = GenericKey.builder(keyIndices.size());
+
+                  for (final int keyIndex : keyIndices) {
+                    resultKeys.append(keys.get(keyIndex));
                   }
 
-                  if (readOnlyKey instanceof GenericKey) {
-                    final GenericKey keys = (GenericKey) readOnlyKey;
-                    final Builder resultKeys = GenericKey.builder(keyIndices.size());
-
-                    for (final int keyIndex : keyIndices) {
-                      resultKeys.append(keys.get(keyIndex));
-                    }
-
-                    return (K) resultKeys.build();
-                  } else {
-                    throw new UnsupportedOperationException();
-                  }
-                },
-                selectMapper.getTransformer(logger)
-            ),
-            selectName
-          ),
+                  return (K) resultKeys.build();
+                } else {
+                  throw new UnsupportedOperationException();
+                }
+              },
+              selectMapper.getTransformer(logger)), selectName),
           selection.getSchema()
       );
     } else {
-      return stream.withStream(
-          stream.getStream().transformValues(
-              () -> new KsValueTransformer<>(selectMapper.getTransformer(logger)),
-              selectName
-          ),
+      return streamHolder.withStream(
+          streamHolder.getStream().processValues(
+              () -> new KsFixedKeyProcessor<>(selectMapper.getTransformer(logger)), selectName),
           selection.getSchema()
       );
     }

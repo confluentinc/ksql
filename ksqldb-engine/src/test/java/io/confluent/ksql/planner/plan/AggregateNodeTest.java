@@ -40,9 +40,9 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Streams;
 import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.execution.runtime.RuntimeBuildContext;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.context.QueryLoggerUtil;
+import io.confluent.ksql.execution.runtime.RuntimeBuildContext;
 import io.confluent.ksql.execution.streams.KSPlanBuilder;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.function.MutableFunctionRegistry;
@@ -83,6 +83,8 @@ import org.apache.kafka.streams.kstream.ValueMapperWithKey;
 import org.apache.kafka.streams.kstream.ValueTransformerWithKey;
 import org.apache.kafka.streams.kstream.ValueTransformerWithKeySupplier;
 import org.apache.kafka.streams.processor.ProcessorContext;
+import org.apache.kafka.streams.processor.api.FixedKeyProcessorSupplier;
+import org.apache.kafka.streams.processor.api.ProcessorSupplier;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -425,7 +427,11 @@ public class AggregateNodeTest {
 
       private final Map<ValueMapper, FakeKStream> mapValues = new IdentityHashMap<>();
       private final Map<ValueMapperWithKey, FakeKStream> mapValuesWithKey = new IdentityHashMap<>();
-      private final Map<ValueTransformerWithKeySupplier, FakeKStream> transformValues = new IdentityHashMap<>();
+      private final Map<ValueTransformerWithKeySupplier, FakeKStream> transformValues
+          = new IdentityHashMap<>();
+      // delegate processValues
+      private final Map<FixedKeyProcessorSupplier, FakeKStream> processValues
+          = new IdentityHashMap<>();
       private final Map<Predicate, FakeKStream> filter = new IdentityHashMap<>();
       private final Map<Grouped, FakeKGroupedStream> groupByKey = new IdentityHashMap<>();
 
@@ -436,7 +442,14 @@ public class AggregateNodeTest {
             .forward("transformValues",
                 methodParams(ValueTransformerWithKeySupplier.class, String[].class), this)
             .forward("transformValues",
-                methodParams(ValueTransformerWithKeySupplier.class, Named.class, String[].class), this)
+                methodParams(ValueTransformerWithKeySupplier.class, Named.class, String[].class),
+                this)
+            .forward("processValues",
+                methodParams(FixedKeyProcessorSupplier.class, Named.class, String[].class),
+                this)
+//            .forward("process",
+//                methodParams(ProcessorSupplier.class, Named.class, String[].class),
+//                this)
             .forward("filter", methodParams(Predicate.class), this)
             .forward("groupByKey", methodParams(Grouped.class), this)
             .forward("groupBy", methodParams(KeyValueMapper.class, Grouped.class), this)
@@ -475,6 +488,16 @@ public class AggregateNodeTest {
       ) {
         final FakeKStream stream = new FakeKStream();
         transformValues.put(valueTransformerSupplier, stream);
+        return stream.createProxy();
+      }
+
+      private KStream processValues(
+          final FixedKeyProcessorSupplier processorSupplier,
+          final Named named,
+          final String... stateStoreNames
+      ) {
+        final FakeKStream stream = new FakeKStream();
+        processValues.put(processorSupplier, stream);
         return stream.createProxy();
       }
 

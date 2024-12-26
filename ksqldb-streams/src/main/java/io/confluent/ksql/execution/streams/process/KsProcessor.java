@@ -44,12 +44,16 @@ public class KsProcessor<KInT, KOutT> implements Processor<KInT, GenericRow, KOu
 
   @Override
   public void process(final Record<KInT, GenericRow> record) {
+    if (ksqlProcessingContext == null) {
+      throw new IllegalStateException("Not initialized");
+    }
     final KInT key = record.key();
     final GenericRow value = record.value();
     final Record<KOutT, GenericRow> newRecord = new Record<>(
         keyDelegate.transform(key, value, ksqlProcessingContext),
         valueDelegate.transform(key, value, ksqlProcessingContext),
-        record.timestamp()
+        record.timestamp(), // keep original timestamp
+        record.headers() // keep original headers
     );
     processorContext.forward(newRecord);
   }

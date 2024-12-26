@@ -52,6 +52,9 @@ public class KsFixedKeyProcessor<K, R> implements FixedKeyProcessor<K, GenericRo
 
   @Override
   public void process(final FixedKeyRecord<K, GenericRow> record) {
+    if (ksqlProcessingContext == null) {
+      throw new IllegalStateException("Not initialized");
+    }
     final K key = record.key();
     final GenericRow value = record.value();
     final R result = delegate.transform(

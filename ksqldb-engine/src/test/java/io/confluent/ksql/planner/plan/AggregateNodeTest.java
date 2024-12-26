@@ -167,7 +167,10 @@ public class AggregateNodeTest {
     final ValueTransformerWithKey preAggSelectMapper = valueTransformers.get(1).get();
     preAggSelectMapper.init(ctx);
     final GenericRow result = (GenericRow) preAggSelectMapper
-        .transform(null, genericRow("1", "2", 3.0D, null, null, "headers", "rowtime", "rowpartition", "rowoffset", 0L));
+        .transform(null,
+            genericRow("1", "2", 3.0D, null, null,
+                "headers", "rowtime", "rowpartition", "rowoffset", 0L));
+    // [ null | '2' | null | null | null ] instead of 0L, "1", "2", 3.0
     assertThat("should select col0, col1, col2, col3", result.values(),
         contains(0L, "1", "2", 3.0));
   }
@@ -230,15 +233,23 @@ public class AggregateNodeTest {
         builder.build(), "Aggregate-GroupBy-repartition-source");
     final List<String> successors = node.successors().stream().map(TopologyDescription.Node::name).collect(Collectors.toList());
     assertThat(node.predecessors(), equalTo(Collections.emptySet()));
-    assertThat(successors, equalTo(Collections.singletonList("KSTREAM-AGGREGATE-0000000005")));
+    assertThat(successors, equalTo(Collections.singletonList("KSTREAM-AGGREGATE-0000000004")));
     assertThat(node.topicSet(), containsInAnyOrder("Aggregate-GroupBy-repartition"));
   }
 
+  /**
+   * Processor Api is used for the aggregate step, so the topology will look like:
+   * Source (0000) ->
+   *  Transform (0001) ->
+   *    Filter ->
+   *      Process (0002) ->  // Combined some transforms into process
+   *        Aggregate (0003)   // Number reduced as compared to transformer
+   */
   @Test
   public void shouldHaveKsqlNameForAggregationStateStore() {
     build();
     final TopologyDescription.Processor node = (TopologyDescription.Processor) getNodeByName(
-        builder.build(), "KSTREAM-AGGREGATE-0000000004");
+        builder.build(), "KSTREAM-AGGREGATE-0000000003");
     assertThat(node.stores(), hasItem(equalTo("Aggregate-Aggregate-Materialize")));
   }
 

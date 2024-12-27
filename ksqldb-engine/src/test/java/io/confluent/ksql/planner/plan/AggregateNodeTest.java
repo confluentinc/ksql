@@ -45,7 +45,6 @@ import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.context.QueryLoggerUtil;
 import io.confluent.ksql.execution.runtime.RuntimeBuildContext;
 import io.confluent.ksql.execution.streams.KSPlanBuilder;
-import io.confluent.ksql.execution.streams.process.KsProcessor;
 import io.confluent.ksql.execution.streams.transform.KsValueTransformer;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.function.MutableFunctionRegistry;
@@ -255,7 +254,7 @@ public class AggregateNodeTest {
   }
 
   @Test
-  public void shouldHaveSourceNodeForSecondSubtopolgyWithKsqlNameForRepartition() {
+  public void shouldHaveSourceNodeForSecondSubTopologyWithKsqlNameForRepartition() {
     // When:
     buildRequireRekey();
 

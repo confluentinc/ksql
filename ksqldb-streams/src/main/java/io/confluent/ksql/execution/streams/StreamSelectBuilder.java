@@ -24,6 +24,7 @@ import io.confluent.ksql.execution.plan.StreamSelect;
 import io.confluent.ksql.execution.runtime.RuntimeBuildContext;
 import io.confluent.ksql.execution.streams.process.KsFixedKeyProcessor;
 import io.confluent.ksql.execution.streams.process.KsProcessor;
+import io.confluent.ksql.execution.streams.transform.KsValueTransformer;
 import io.confluent.ksql.execution.transform.select.SelectValueMapper;
 import io.confluent.ksql.execution.transform.select.Selection;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
@@ -104,8 +105,8 @@ public final class StreamSelectBuilder {
       );
     } else {
       return streamHolder.withStream(
-          streamHolder.getStream().processValues(
-              () -> new KsFixedKeyProcessor<>(selectMapper.getTransformer(logger)), selectName),
+          streamHolder.getStream().transformValues(
+              () -> new KsValueTransformer<>(selectMapper.getTransformer(logger)), selectName),
           selection.getSchema()
       );
     }

@@ -37,7 +37,6 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Streams;
 import io.confluent.ksql.GenericKey;
@@ -46,6 +45,8 @@ import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.context.QueryLoggerUtil;
 import io.confluent.ksql.execution.runtime.RuntimeBuildContext;
 import io.confluent.ksql.execution.streams.KSPlanBuilder;
+import io.confluent.ksql.execution.streams.process.KsProcessor;
+import io.confluent.ksql.execution.streams.transform.KsValueTransformer;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.function.MutableFunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
@@ -65,6 +66,7 @@ import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.kafka.common.serialization.Serde;
@@ -85,11 +87,12 @@ import org.apache.kafka.streams.kstream.ValueMapperWithKey;
 import org.apache.kafka.streams.kstream.ValueTransformerWithKey;
 import org.apache.kafka.streams.kstream.ValueTransformerWithKeySupplier;
 import org.apache.kafka.streams.processor.ProcessorContext;
-import org.apache.kafka.streams.processor.api.Processor;
+import org.apache.kafka.streams.processor.api.FixedKeyProcessor;
+import org.apache.kafka.streams.processor.api.FixedKeyProcessorSupplier;
+import org.apache.kafka.streams.processor.api.FixedKeyRecord;
 import org.apache.kafka.streams.processor.api.ProcessorSupplier;
 import org.apache.kafka.streams.processor.api.Record;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
@@ -114,6 +117,8 @@ public class AggregateNodeTest {
   private ProcessorContext ctx;
   @Mock
   private org.apache.kafka.streams.processor.api.ProcessorContext processorContext;
+  @Mock
+  private org.apache.kafka.streams.processor.api.FixedKeyProcessorContext fixedKeyProcessorContext;
   @Mock
   private ProcessingLogger processLogger;
   @Captor
@@ -147,6 +152,17 @@ public class AggregateNodeTest {
     assertThat(sourceNode.topicSet(), equalTo(ImmutableSet.of("test1")));
   }
 
+  /**
+   * Aggregation requires 3 node/operator in the topology:
+   *  1. Source node (SourceBuilderUtils.AddKeyAndPseudoColumns(KeyGenerator: SourceBuilderV1)
+   *  2. Pre-Agg Select Mapper - Picks the columns needed for grouping and aggregate functions
+   *    (StreamSelectBuilder with SelectValueMapper)
+   *  3. Post-Agg Select Mapper - Projects the output columns
+   *    (TableSelectBuilder with SelectValueMapper)
+   *  This test checks:
+   *  1. the pre-agg inclusion (hence >= 2).
+   *  2. the pre-agg supplier working correctly.
+   */
   @Test
   @SuppressWarnings("unchecked") // For generic type casting
   public void shouldUseConsistentOrderInPreAggSelectMapper() {
@@ -156,26 +172,43 @@ public class AggregateNodeTest {
 
     // When:
     buildQuery("SELECT col0, col1, col2, sum(col3), count(col3) FROM test1 "
-        + "GROUP BY col0,col1,col2 EMIT CHANGES;");
+        + "GROUP BY col0,col1,col2 EMIT CHANGES;"); // should select col0, col1, col2, col3;
 
     // Then:
-    final List<ValueTransformerWithKeySupplier> valueTransformers = mocker
-        .collectValueTransformerWithKeySuppliers();
+    final List<Supplier> processorSuppliers = mocker
+        .collectProcessorSuppliers();
 
-    assertThat("invalid test", valueTransformers, hasSize(greaterThanOrEqualTo(2)));
-    System.out.println("Size: " + valueTransformers.size());
-    final ValueTransformerWithKey preAggSelectMapper = valueTransformers.get(1).get();
-    preAggSelectMapper.init(ctx);
-    final GenericRow result = (GenericRow) preAggSelectMapper
-        .transform(null,
-            genericRow("1", "2", 3.0D, null, null,
-                "headers", "rowtime", "rowpartition", "rowoffset", 0L));
-    // [ null | '2' | null | null | null ] instead of 0L, "1", "2", 3.0
-    assertThat("should select col0, col1, col2, col3", result.values(),
-        contains(0L, "1", "2", 3.0));
+    assertThat("invalid test", processorSuppliers, hasSize(greaterThanOrEqualTo(2)));
+    // pre-agg processor
+    final FixedKeyProcessor preAggProcessor = (FixedKeyProcessor) processorSuppliers.get(1).get();
+    preAggProcessor.init(fixedKeyProcessorContext);
+    final FixedKeyRecord record = mock(FixedKeyRecord.class);
+    when(record.value())
+        .thenReturn(genericRow("1", "2", 3.0D, null, null,
+            "headers", "rowtime", "rowpartition", "rowoffset", 0L));
+    // mock withValue to return new mock with new value
+    when(record.withValue(any())).thenAnswer(inv -> {
+      final GenericRow row = inv.getArgument(0);
+      final FixedKeyRecord newRecord = mock(FixedKeyRecord.class);
+      when(newRecord.value()).thenReturn(row);
+      return newRecord;
+    });
+    preAggProcessor.process(record);
+    verify(fixedKeyProcessorContext).forward(argThat(
+        r -> {
+          assertThat("should select col0, col1, col2, col3",
+              ((GenericRow) r.value()).values(), contains(0L, "1", "2", 3.0));
+          return true;
+        }
+        ));
   }
 
-  @Ignore
+  /**
+   * refer to {@link #shouldUseConsistentOrderInPreAggSelectMapper()} for details.
+   * This test checks
+   * 1. the post-agg inclusion (hence >= 2)
+   * 2. the post-agg supplier working correctly.
+   */
   @SuppressWarnings("unchecked")
   @Test
   public void shouldUseConsistentOrderInPostAggSelectMapper() {
@@ -185,19 +218,21 @@ public class AggregateNodeTest {
 
     // When:
     buildQuery("SELECT col0, sum(col3), count(col3), max(col3) FROM test1 "
-        + "GROUP BY col0 EMIT CHANGES;");
+        + "GROUP BY col0 EMIT CHANGES;"); // pre-agg: col0, col3; post-agg: col0, agg1, agg2, agg3
 
     // Then:
-    final List<ValueTransformerWithKeySupplier> valueSuppliers = mocker
-        .collectValueTransformerWithKeySuppliers();
-    final List<ProcessorSupplier> processorSuppliers = mocker.collectProcessorSuppliers();
+    final List<Supplier> suppliers = mocker
+        .collectProcessorSuppliers();
 
     assertThat("invalid test",
-        valueSuppliers.size() + processorSuppliers.size(), greaterThanOrEqualTo(3));
-    final ValueTransformerWithKey postAggSelect = valueSuppliers.get(1).get();
-    postAggSelect.init(ctx);
-    final GenericRow result = (GenericRow) postAggSelect
-        .transform(null, genericRow(0L, "-1", 2.0D, 3L, 4.0D));
+        suppliers.size(), greaterThanOrEqualTo(3));
+    // Filter suppliers to get ValueTransformerWithKeySupplier
+    final KsValueTransformer<Long, GenericRow> postAggTransformer
+        = (KsValueTransformer<Long, GenericRow>) suppliers.get(2).get();
+    postAggTransformer.init(ctx);
+    final GenericRow result =
+        postAggTransformer.transform(null,
+            genericRow(0L, "-1", 2.0D, 3L, 4.0D));
     assertThat("should select col0, agg1, agg2 agg3", result.values(), contains(0L, 2.0, 3L, 4.0));
   }
 
@@ -233,7 +268,7 @@ public class AggregateNodeTest {
         builder.build(), "Aggregate-GroupBy-repartition-source");
     final List<String> successors = node.successors().stream().map(TopologyDescription.Node::name).collect(Collectors.toList());
     assertThat(node.predecessors(), equalTo(Collections.emptySet()));
-    assertThat(successors, equalTo(Collections.singletonList("KSTREAM-AGGREGATE-0000000005")));
+    assertThat(successors, equalTo(Collections.singletonList("KSTREAM-AGGREGATE-0000000004")));
     assertThat(node.topicSet(), containsInAnyOrder("Aggregate-GroupBy-repartition"));
   }
 
@@ -249,7 +284,7 @@ public class AggregateNodeTest {
   public void shouldHaveKsqlNameForAggregationStateStore() {
     build();
     final TopologyDescription.Processor node = (TopologyDescription.Processor) getNodeByName(
-        builder.build(), "KSTREAM-AGGREGATE-0000000004");
+        builder.build(), "KSTREAM-AGGREGATE-0000000003");
     assertThat(node.stores(), hasItem(equalTo("Aggregate-Aggregate-Materialize")));
   }
 
@@ -433,11 +468,11 @@ public class AggregateNodeTest {
           )).collect(Collectors.toList());
     }
 
-    List<ValueTransformerWithKeySupplier> collectValueTransformerWithKeySuppliers() {
+    List<Supplier> collectProcessorSuppliers() {
       return sources.values().stream()
           .flatMap(stream -> Streams.concat(Stream.of(stream), stream.stream()))
           .flatMap(stream -> Streams.concat(
-              stream.transformValues.keySet().stream(),
+              stream.supplierStreamsMap.keySet().stream(), // supplier keys
               stream.groupStreams()
                   .flatMap(FakeKGroupedStream::tables)
                   .flatMap(FakeKTable::tables)
@@ -445,21 +480,13 @@ public class AggregateNodeTest {
           )).collect(Collectors.toList());
     }
 
-    List<ProcessorSupplier> collectProcessorSuppliers() {
-      return sources.values().stream()
-          .flatMap(stream -> Streams.concat(Stream.of(stream), stream.stream()))
-          .flatMap(stream -> Streams.concat(
-              stream.process.keySet().stream()
-          )).collect(Collectors.toList());
-    }
-
     private static final class FakeKStream {
 
+      // Maps to hold the calling of the functions
       private final Map<ValueMapper, FakeKStream> mapValues = new IdentityHashMap<>();
       private final Map<ValueMapperWithKey, FakeKStream> mapValuesWithKey = new IdentityHashMap<>();
-      private final Map<ValueTransformerWithKeySupplier, FakeKStream> transformValues
+      private final Map<Supplier, FakeKStream> supplierStreamsMap
           = new IdentityHashMap<>();
-      private final Map<ProcessorSupplier, FakeKStream> process = new IdentityHashMap<>();
       private final Map<Predicate, FakeKStream> filter = new IdentityHashMap<>();
       private final Map<Grouped, FakeKGroupedStream> groupByKey = new IdentityHashMap<>();
 
@@ -480,6 +507,10 @@ public class AggregateNodeTest {
                 methodParams(ProcessorSupplier.class, String[].class), this)
             .forward("process",
                 methodParams(ProcessorSupplier.class, Named.class, String[].class), this)
+            .forward("processValues",
+                methodParams(FixedKeyProcessorSupplier.class, String[].class), this)
+            .forward("processValues",
+                methodParams(FixedKeyProcessorSupplier.class, Named.class, String[].class), this)
             .forward("filter", methodParams(Predicate.class), this)
             .forward("groupByKey", methodParams(Grouped.class), this)
             .forward("groupBy", methodParams(KeyValueMapper.class, Grouped.class), this)
@@ -520,7 +551,7 @@ public class AggregateNodeTest {
           final String... stateStoreNames
       ) {
         final FakeKStream stream = new FakeKStream();
-        transformValues.put(valueTransformerSupplier, stream);
+        supplierStreamsMap.put(valueTransformerSupplier, stream);
         return stream.createProxy();
       }
 
@@ -531,7 +562,7 @@ public class AggregateNodeTest {
           final String... stateStoreNames
       ) {
         final FakeKStream stream = new FakeKStream();
-        transformValues.put(valueTransformerSupplier, stream);
+        supplierStreamsMap.put(valueTransformerSupplier, stream);
         return stream.createProxy();
       }
 
@@ -541,7 +572,7 @@ public class AggregateNodeTest {
           final String... stateStoreNames
       ) {
         final FakeKStream stream = new FakeKStream();
-        process.put(processorSupplier, stream);
+        supplierStreamsMap.put(processorSupplier, stream);
         return stream.createProxy();
       }
 
@@ -552,7 +583,28 @@ public class AggregateNodeTest {
           final String... stateStoreNames
       ) {
         final FakeKStream stream = new FakeKStream();
-        process.put(processorSupplier, stream);
+        supplierStreamsMap.put(processorSupplier, stream);
+        return stream.createProxy();
+      }
+
+      @SuppressWarnings("unused")
+      private KStream processValues(
+          final FixedKeyProcessorSupplier supplier,
+          final String... stateStoreNames
+      ) {
+        final FakeKStream stream = new FakeKStream();
+        supplierStreamsMap.put(supplier, stream);
+        return stream.createProxy();
+      }
+
+      @SuppressWarnings("unused")
+      private KStream processValues(
+          final FixedKeyProcessorSupplier supplier,
+          final Named named,
+          final String... stateStoreNames
+      ) {
+        final FakeKStream stream = new FakeKStream();
+        supplierStreamsMap.put(supplier, stream);
         return stream.createProxy();
       }
 
@@ -582,14 +634,14 @@ public class AggregateNodeTest {
             mapValues.values().stream(),
             mapValuesWithKey.values().stream(),
             filter.values().stream(),
-            transformValues.values().stream(),
+            supplierStreamsMap.values().stream(),
             mapValues.values().stream()
         );
         final Stream<FakeKStream> grandChildren = Streams.concat(
             mapValues.values().stream(),
             mapValuesWithKey.values().stream(),
             filter.values().stream(),
-            transformValues.values().stream(),
+            supplierStreamsMap.values().stream(),
             mapValues.values().stream()
         ).flatMap(FakeKStream::stream);
 

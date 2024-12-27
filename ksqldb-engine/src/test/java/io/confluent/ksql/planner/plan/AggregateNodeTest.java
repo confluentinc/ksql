@@ -84,14 +84,12 @@ import org.apache.kafka.streams.kstream.Named;
 import org.apache.kafka.streams.kstream.Predicate;
 import org.apache.kafka.streams.kstream.ValueMapper;
 import org.apache.kafka.streams.kstream.ValueMapperWithKey;
-import org.apache.kafka.streams.kstream.ValueTransformerWithKey;
 import org.apache.kafka.streams.kstream.ValueTransformerWithKeySupplier;
 import org.apache.kafka.streams.processor.ProcessorContext;
 import org.apache.kafka.streams.processor.api.FixedKeyProcessor;
 import org.apache.kafka.streams.processor.api.FixedKeyProcessorSupplier;
 import org.apache.kafka.streams.processor.api.FixedKeyRecord;
 import org.apache.kafka.streams.processor.api.ProcessorSupplier;
-import org.apache.kafka.streams.processor.api.Record;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -115,8 +113,6 @@ public class AggregateNodeTest {
   private Serde<GenericKey> keySerde;
   @Mock
   private ProcessorContext ctx;
-  @Mock
-  private org.apache.kafka.streams.processor.api.ProcessorContext processorContext;
   @Mock
   private org.apache.kafka.streams.processor.api.FixedKeyProcessorContext fixedKeyProcessorContext;
   @Mock

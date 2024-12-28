@@ -18,6 +18,7 @@ package io.confluent.ksql.execution.streams;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericKey.Builder;
+import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.plan.KStreamHolder;
 import io.confluent.ksql.execution.plan.StreamSelect;
@@ -30,8 +31,13 @@ import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.util.KsqlException;
+import java.lang.reflect.Field;
 import java.util.Optional;
+import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.Named;
+import org.apache.kafka.streams.kstream.internals.AbstractStream;
+import org.apache.kafka.streams.kstream.internals.InternalStreamsBuilder;
 
 
 public final class StreamSelectBuilder {
@@ -76,35 +82,49 @@ public final class StreamSelectBuilder {
     final Named selectName =
         Named.as(StreamsUtil.buildOpName(queryContext));
 
+    // Due to a KS backward incompatibility, we need to burn an index number for the operation.
+    // The old `transform[Values]()` used one more index compared to the new `api.process[Values]()`
+    final KStream<K, GenericRow> stream = streamHolder.getStream();
+    try {
+      final Field internalStreamsBuilderField = AbstractStream.class.getDeclaredField("builder");
+      internalStreamsBuilderField.setAccessible(true);
+
+      final InternalStreamsBuilder internalStreamsBuilder =
+              (InternalStreamsBuilder) internalStreamsBuilderField.get(stream);
+      internalStreamsBuilder.newProcessorName(""); // burn one index number
+    } catch (final NoSuchFieldException | IllegalAccessException fatal) {
+      throw new KsqlException("Internal error.", fatal);
+    }
+
     if (selectedKeys.isPresent() && !selectedKeys.get().containsAll(
         sourceSchema.key().stream().map(Column::name).collect(ImmutableList.toImmutableList())
     )) {
       return streamHolder.withStream(
-          streamHolder.getStream().process(() -> new KsProcessor<>(
-              (readOnlyKey, value, ctx) -> {
-                if (keyIndices.isEmpty()) {
-                  return null;
+          stream.process(() -> new KsProcessor<>(
+            (readOnlyKey, value, ctx) -> {
+              if (keyIndices.isEmpty()) {
+                return null;
+              }
+
+              if (readOnlyKey instanceof GenericKey) {
+                final GenericKey keys = (GenericKey) readOnlyKey;
+                final Builder resultKeys = GenericKey.builder(keyIndices.size());
+
+                for (final int keyIndex : keyIndices) {
+                  resultKeys.append(keys.get(keyIndex));
                 }
 
-                if (readOnlyKey instanceof GenericKey) {
-                  final GenericKey keys = (GenericKey) readOnlyKey;
-                  final Builder resultKeys = GenericKey.builder(keyIndices.size());
-
-                  for (final int keyIndex : keyIndices) {
-                    resultKeys.append(keys.get(keyIndex));
-                  }
-
-                  return (K) resultKeys.build();
-                } else {
-                  throw new UnsupportedOperationException();
-                }
-              },
-              selectMapper.getTransformer(logger)), selectName),
-          selection.getSchema()
+                return (K) resultKeys.build();
+              } else {
+                throw new UnsupportedOperationException();
+              }
+            },
+            selectMapper.getTransformer(logger)), selectName),
+        selection.getSchema()
       );
     } else {
       return streamHolder.withStream(
-          streamHolder.getStream().processValues(
+          stream.processValues(
               () -> new KsFixedKeyProcessor<>(
                   selectMapper.getTransformer(logger)), selectName),
           selection.getSchema()

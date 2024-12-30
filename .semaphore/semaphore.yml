@@ -28,7 +28,7 @@ global_job_config:
       - . cache-maven restore
 
 blocks:
-  - name: Test
+  - name: Build
     dependencies: []
     run:
       # don't run the tests on non-functional changes...
@@ -38,17 +38,39 @@ blocks:
         - name: Test
           commands:
             - ci-tools ci-update-version
-            - ./mvnw -Dmaven.gitcommitid.nativegit=true -U -Dmaven.wagon.http.retryHandler.count=10 --batch-mode --no-transfer-progress clean install
+            - ./mvnw -Dmaven.gitcommitid.nativegit=true -U -Dmaven.wagon.http.retryHandler.count=10 --batch-mode --no-transfer-progress clean install -DskipTests
+            - . cache-maven store
+  - name: Unit Test
+    dependencies: ["Build"]
+    task:
+      jobs:
+        - name: Unit Tests
+          commands:
+            - ./mvnw test -Dgroups='!IntegrationTest' -DtestOutputDirectory=target/unit-tests
             - . cache-maven store
       epilogue:
         always:
           commands:
             - . publish-test-results
-            - artifact push workflow target/test-results
+            - artifact push workflow target/unit-tests
+            - artifact push workflow target
+  - name: Integration Test
+    dependencies: ["Build"]
+    task:
+      jobs:
+        - name: Integration Tests
+          commands:
+            - ./mvnw test -Dgroups='IntegrationTest' -DtestOutputDirectory=target/integration-tests
+            - . cache-maven store
+      epilogue:
+        always:
+          commands:
+            - . publish-test-results
+            - artifact push workflow target/integration-tests
             - artifact push workflow target
 
   - name: Release
-    dependencies: ["Test"]
+    dependencies: ["Unit Tests", "Integration Tests"]
     run:
       when: "branch = 'master' or branch =~ '[0-9]+\\.[0-9]+\\.x'"
     task:

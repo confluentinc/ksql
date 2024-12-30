@@ -35,12 +35,12 @@ blocks:
       when: "change_in('/', {exclude: ['/.deployed-versions/', '.github/']})"
     task:
       jobs:
-        - name: Test
+        - name: Build
           commands:
             - ci-tools ci-update-version
             - ./mvnw -Dmaven.gitcommitid.nativegit=true -U -Dmaven.wagon.http.retryHandler.count=10 --batch-mode --no-transfer-progress clean install -DskipTests
             - . cache-maven store
-  - name: Unit Test
+  - name: Unit Tests
     dependencies: ["Build"]
     task:
       jobs:
@@ -54,7 +54,7 @@ blocks:
             - . publish-test-results
             - artifact push workflow target/unit-tests
             - artifact push workflow target
-  - name: Integration Test
+  - name: Integration Tests
     dependencies: ["Build"]
     task:
       jobs:

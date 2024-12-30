@@ -31,13 +31,9 @@ import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.util.KsqlException;
-import java.lang.reflect.Field;
 import java.util.Optional;
 import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.Named;
-import org.apache.kafka.streams.kstream.internals.AbstractStream;
-import org.apache.kafka.streams.kstream.internals.InternalStreamsBuilder;
 
 
 public final class StreamSelectBuilder {

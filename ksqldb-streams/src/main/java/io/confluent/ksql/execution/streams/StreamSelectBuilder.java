@@ -81,44 +81,33 @@ public final class StreamSelectBuilder {
 
     final Named selectName =
         Named.as(StreamsUtil.buildOpName(queryContext));
-
     // Due to a KS backward incompatibility, we need to burn an index number for the operation.
     // The old `transform[Values]()` used one more index compared to the new `api.process[Values]()`
     final KStream<K, GenericRow> stream = streamHolder.getStream();
-    try {
-      final Field internalStreamsBuilderField = AbstractStream.class.getDeclaredField("builder");
-      internalStreamsBuilderField.setAccessible(true);
-
-      final InternalStreamsBuilder internalStreamsBuilder =
-              (InternalStreamsBuilder) internalStreamsBuilderField.get(stream);
-      internalStreamsBuilder.newProcessorName(""); // burn one index number
-    } catch (final NoSuchFieldException | IllegalAccessException fatal) {
-      throw new KsqlException("Internal error.", fatal);
-    }
-
+    stream.peek((k, v) -> { });
     if (selectedKeys.isPresent() && !selectedKeys.get().containsAll(
         sourceSchema.key().stream().map(Column::name).collect(ImmutableList.toImmutableList())
     )) {
       return streamHolder.withStream(
           stream.process(() -> new KsProcessor<>(
-            (readOnlyKey, value, ctx) -> {
-              if (keyIndices.isEmpty()) {
-                return null;
-              }
-
-              if (readOnlyKey instanceof GenericKey) {
-                final GenericKey keys = (GenericKey) readOnlyKey;
-                final Builder resultKeys = GenericKey.builder(keyIndices.size());
-
-                for (final int keyIndex : keyIndices) {
-                  resultKeys.append(keys.get(keyIndex));
+              (readOnlyKey, value, ctx) -> {
+                if (keyIndices.isEmpty()) {
+                  return null;
                 }
 
-                return (K) resultKeys.build();
-              } else {
-                throw new UnsupportedOperationException();
-              }
-            },
+                if (readOnlyKey instanceof GenericKey) {
+                  final GenericKey keys = (GenericKey) readOnlyKey;
+                  final Builder resultKeys = GenericKey.builder(keyIndices.size());
+
+                  for (final int keyIndex : keyIndices) {
+                    resultKeys.append(keys.get(keyIndex));
+                  }
+
+                  return (K) resultKeys.build();
+                } else {
+                  throw new UnsupportedOperationException();
+                }
+              },
             selectMapper.getTransformer(logger)), selectName),
         selection.getSchema()
       );

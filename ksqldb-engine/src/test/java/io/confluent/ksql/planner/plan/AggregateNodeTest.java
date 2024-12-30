@@ -72,6 +72,7 @@ import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.TopologyDescription;
 import org.apache.kafka.streams.kstream.Aggregator;
+import org.apache.kafka.streams.kstream.ForeachAction;
 import org.apache.kafka.streams.kstream.Grouped;
 import org.apache.kafka.streams.kstream.Initializer;
 import org.apache.kafka.streams.kstream.KGroupedStream;
@@ -263,7 +264,7 @@ public class AggregateNodeTest {
         builder.build(), "Aggregate-GroupBy-repartition-source");
     final List<String> successors = node.successors().stream().map(TopologyDescription.Node::name).collect(Collectors.toList());
     assertThat(node.predecessors(), equalTo(Collections.emptySet()));
-    assertThat(successors, equalTo(Collections.singletonList("KSTREAM-AGGREGATE-0000000004")));
+    assertThat(successors, equalTo(Collections.singletonList("KSTREAM-AGGREGATE-0000000005")));
     assertThat(node.topicSet(), containsInAnyOrder("Aggregate-GroupBy-repartition"));
   }
 
@@ -279,7 +280,7 @@ public class AggregateNodeTest {
   public void shouldHaveKsqlNameForAggregationStateStore() {
     build();
     final TopologyDescription.Processor node = (TopologyDescription.Processor) getNodeByName(
-        builder.build(), "KSTREAM-AGGREGATE-0000000003");
+        builder.build(), "KSTREAM-AGGREGATE-0000000004");
     assertThat(node.stores(), hasItem(equalTo("Aggregate-Aggregate-Materialize")));
   }
 
@@ -509,6 +510,7 @@ public class AggregateNodeTest {
             .forward("filter", methodParams(Predicate.class), this)
             .forward("groupByKey", methodParams(Grouped.class), this)
             .forward("groupBy", methodParams(KeyValueMapper.class, Grouped.class), this)
+            .forward("peek", methodParams(ForeachAction.class), this)
             .build();
       }
 
@@ -601,6 +603,11 @@ public class AggregateNodeTest {
         final FakeKStream stream = new FakeKStream();
         supplierStreamsMap.put(supplier, stream);
         return stream.createProxy();
+      }
+
+      @SuppressWarnings("unused") // Invoked via reflection.
+      private KStream peek(final ForeachAction action) {
+        return new FakeKStream().createProxy();
       }
 
       @SuppressWarnings("unused") // Invoked via reflection.

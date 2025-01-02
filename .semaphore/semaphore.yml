@@ -46,7 +46,7 @@ blocks:
       jobs:
         - name: Unit Tests
           commands:
-            - ./mvnw test -Dgroups='!IntegrationTest' -DtestOutputDirectory=target/unit-tests
+            - ./mvnw test -Dgroups='!io.confluent.common.utils.IntegrationTest' -DtestOutputDirectory=target/unit-tests
             - . cache-maven store
       epilogue:
         always:
@@ -60,7 +60,7 @@ blocks:
       jobs:
         - name: Integration Tests
           commands:
-            - ./mvnw test -Dgroups='IntegrationTest' -DtestOutputDirectory=target/integration-tests
+            - ./mvnw test -Dgroups='io.confluent.common.utils.IntegrationTest' -DtestOutputDirectory=target/integration-tests
             - . cache-maven store
       epilogue:
         always:

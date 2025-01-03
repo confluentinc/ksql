@@ -16,6 +16,7 @@
 package io.confluent.ksql.security;
 
 import io.confluent.ksql.security.oauth.OAuthBearerCredentials;
+import io.confluent.ksql.security.oauth.StaticTokenCredentials;
 
 @SuppressWarnings("checkstyle:HideUtilityClassConstructor")
 public class CredentialsFactory {
@@ -25,6 +26,8 @@ public class CredentialsFactory {
         return new BasicCredentials();
       case OAUTHBEARER:
         return new OAuthBearerCredentials();
+      case STATIC_TOKEN:
+        return new StaticTokenCredentials();
       default:
         return null;
     }

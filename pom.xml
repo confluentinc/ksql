@@ -418,12 +418,6 @@
             </dependency>
 
             <dependency>
-                <groupId>org.apache.kafka</groupId>
-                <artifactId>kafka-log4j-appender</artifactId>
-                <version>${kafka.version}</version>
-            </dependency>
-
-            <dependency>
                 <groupId>io.confluent</groupId>
                 <artifactId>common-utils</artifactId>
                 <version>${io.confluent.common.version}</version>
@@ -857,8 +851,6 @@
                             <useUnlimitedThreads>true</useUnlimitedThreads>
                             <forkedProcessTimeoutInSeconds>3600</forkedProcessTimeoutInSeconds>
                             <forkedProcessExitTimeoutInSeconds>180</forkedProcessExitTimeoutInSeconds>
-                            <!-- Skip ITs temporarily -->
-                            <skipITs>true</skipITs>
                         </configuration>
                     </execution>
                 </executions>

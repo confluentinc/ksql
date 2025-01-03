@@ -295,7 +295,7 @@ public final class ListSourceExecutor {
     final List<KsqlWarning> warnings = new LinkedList<>();
     try {
       topicDescription = Optional.of(
-          serviceContext.getTopicClient().describeTopic(dataSource.getKafkaTopicName())
+          serviceContext.getTopicClient().describeTopic(dataSource.getKafkaTopicName(), true)
       );
       sourceConstraints = getSourceConstraints(name, ksqlExecutionContext.getMetaStore());
     } catch (final KafkaException | KafkaResponseGetFailedException e) {

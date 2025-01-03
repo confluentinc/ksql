@@ -1253,6 +1253,7 @@ public class RecordFormatterTest {
     private static Serializer<Object> jsonSrSerializer() {
       final Map<String, String> props = new HashMap<>();
       props.put("schema.registry.url", "localhost:9092");
+      props.put("json.schema.scan.packages", "io.confluent.ksql.serde.json");
 
       return new KafkaJsonSchemaSerializer<>(new MockSchemaRegistryClient(), props);
     }

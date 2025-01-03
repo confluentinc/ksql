@@ -23,6 +23,8 @@ import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.common.TopicPartition;
+import org.apache.kafka.common.metrics.KafkaMetric;
+import org.apache.kafka.common.metrics.Measurable;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.runners.Enclosed;
@@ -48,6 +50,12 @@ public final class SandboxedConsumerTest {
           .ignore("wakeup")
           .ignore("groupMetadata")
           .setDefault(TopicPartition.class, new TopicPartition("t", 1))
+          .setDefault(KafkaMetric.class, new KafkaMetric(
+              null,
+              null,
+              (Measurable) (config, now) -> 0,
+              null,
+              null))
           .build();
     }
 

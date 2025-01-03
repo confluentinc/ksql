@@ -55,15 +55,15 @@ import org.apache.kafka.streams.state.KeyValueStore;
 /**
  * <p>
  * This is the V2 version of SourceBuilder, which is used to build TableSource{V2} steps.
- * The reason this was neccessary was due to a change in state store schema required for the
- * addition of ROWPARTITION and ROWOFFSET pseudocolumns(see
+ * The reason this was necessary was due to a change in state store schema required for the
+ * addition of ROWPARTITION and ROWOFFSET pseudo columns(see
  * https://github.com/confluentinc/ksql/pull/7990 and
  * https://github.com/confluentinc/ksql/pull/8072).
  * </p>
  *
  * <p>
  * If we want to support joins on windowed tables in the future while supporting these new
- * pseudocolumns, it will be neccessary to bump the version of WindowedTableSource and include
+ * pseudo columns, it will be neccessary to bump the version of WindowedTableSource and include
  * similar logic. However, this was decided against doing in the short-term, as we currently do not
  * truly support joins on windowed tables (see https://github.com/confluentinc/ksql/issues/805)
  * </p>
@@ -103,7 +103,7 @@ final class SourceBuilder extends SourceBuilderBase {
     final KTable<K, GenericRow> maybeMaterialized;
 
     if (forceMaterialization) {
-      // besides materializing necessary pseudocolumns, we also materialize to prevent the
+      // besides materializing necessary pseudo columns, we also materialize to prevent the
       // source-changelog optimization in kafka streams - we don't want this optimization to
       // be enabled because we cannot require symmetric serialization between
       // producer and KSQL (see https://issues.apache.org/jira/browse/KAFKA-10179

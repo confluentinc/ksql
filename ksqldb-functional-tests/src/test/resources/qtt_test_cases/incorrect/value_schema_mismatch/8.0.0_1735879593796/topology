@@ -6,10 +6,13 @@ Topologies:
       --> WhereFilter
       <-- KSTREAM-SOURCE-0000000000
     Processor: WhereFilter (stores: [])
-      --> Project
+      --> KSTREAM-PEEK-0000000003, Project
       <-- KSTREAM-TRANSFORMVALUES-0000000001
     Processor: Project (stores: [])
       --> KSTREAM-SINK-0000000004
+      <-- WhereFilter
+    Processor: KSTREAM-PEEK-0000000003 (stores: [])
+      --> none
       <-- WhereFilter
     Sink: KSTREAM-SINK-0000000004 (topic: S1)
       <-- Project

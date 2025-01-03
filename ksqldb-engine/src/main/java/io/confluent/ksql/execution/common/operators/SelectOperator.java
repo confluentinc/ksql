@@ -21,7 +21,6 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.common.QueryRow;
 import io.confluent.ksql.execution.common.QueryRowImpl;
 import io.confluent.ksql.execution.streams.SqlPredicateFactory;
-import io.confluent.ksql.execution.streams.materialization.PullProcessingContext;
 import io.confluent.ksql.execution.transform.KsqlTransformer;
 import io.confluent.ksql.execution.transform.sqlpredicate.SqlPredicate;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
@@ -86,8 +85,8 @@ public class SelectOperator extends AbstractPhysicalOperator implements UnaryPhy
         queryRow, logicalNode.getAddAdditionalColumnsToIntermediateSchema());
     return transformer.transform(
         queryRow.key(),
-        intermediate,
-        new PullProcessingContext(queryRow.rowTime()))
+        intermediate
+        )
         .map(r -> QueryRowImpl.of(
             logicalNode.getIntermediateSchema(),
             queryRow.key(),

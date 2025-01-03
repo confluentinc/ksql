@@ -20,7 +20,6 @@ import static java.util.Objects.requireNonNull;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.transform.ExpressionEvaluator;
-import io.confluent.ksql.execution.transform.KsqlProcessingContext;
 import io.confluent.ksql.execution.transform.KsqlTransformer;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.name.ColumnName;
@@ -104,8 +103,7 @@ public class SelectValueMapper<K> {
     @Override
     public GenericRow transform(
         final K readOnlyKey,
-        final GenericRow value,
-        final KsqlProcessingContext ctx
+        final GenericRow value
     ) {
       if (value == null) {
         return null;

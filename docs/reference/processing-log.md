@@ -307,7 +307,7 @@ To log to Kafka, set up a Kafka appender and a special layout for
 formatting the log entries as JSON:
 
 ```properties
-log4j.appender.kafka_appender=org.apache.kafka.log4jappender.KafkaLog4jAppender
+log4j.appender.kafka_appender=org.apache.logging.log4j.core.appender.mom.kafka.KafkaAppender
 log4j.appender.kafka_appender.layout=io.confluent.common.logging.log4j.StructuredJsonLayout
 log4j.appender.kafka_appender.BrokerList=<list of kafka brokers>
 log4j.appender.kafka_appender.Topic=<kafka topic>

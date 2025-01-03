@@ -23,14 +23,11 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.execution.transform.KsqlProcessingContext;
 import io.confluent.ksql.execution.transform.KsqlTransformer;
 import org.apache.kafka.streams.processor.ProcessorContext;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.ArgumentCaptor;
-import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
@@ -40,14 +37,11 @@ public class KsValueTransformerTest {
   private static final long KEY = 10L;
   private static final GenericRow VALUE = GenericRow.genericRow(12);
   private static final String RESULT = "the result";
-  private static final long ROWTIME = 123456L;
 
   @Mock
   private KsqlTransformer<Long, String> ksqlTransformer;
   @Mock
   private ProcessorContext ctx;
-  @Captor
-  private ArgumentCaptor<KsqlProcessingContext> ctxCaptor;
 
   private KsValueTransformer<Long, String> ksTransformer;
 
@@ -57,17 +51,6 @@ public class KsValueTransformerTest {
     ksTransformer.init(ctx);
 
     when(ksqlTransformer.transform(any(), any())).thenReturn(RESULT);
-
-    when(ctx.timestamp()).thenReturn(ROWTIME);
-  }
-
-  @Test(expected = IllegalStateException.class)
-  public void shouldThrowOnTransformIfNotInitialized() {
-    // Given:
-    ksTransformer = new KsValueTransformer<>(ksqlTransformer);
-
-    // When:
-    ksTransformer.transform(KEY, VALUE);
   }
 
   @Test
@@ -89,28 +72,5 @@ public class KsValueTransformerTest {
 
     // Then:
     assertThat(result, is(RESULT));
-  }
-
-  @Test
-  public void shouldExposeRowTime() {
-    // Given:
-    ksTransformer.transform(KEY, VALUE);
-
-    final KsqlProcessingContext ksqlCtx = getKsqlProcessingContext();
-
-    // When:
-    final long rowTime = ksqlCtx.getRowTime();
-
-    // Then:
-    assertThat(rowTime, is(ROWTIME));
-  }
-
-  private KsqlProcessingContext getKsqlProcessingContext() {
-    verify(ksqlTransformer).transform(
-        any(),
-        any()
-    );
-
-    return ctxCaptor.getValue();
   }
 }

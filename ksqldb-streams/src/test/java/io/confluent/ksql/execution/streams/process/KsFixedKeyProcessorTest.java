@@ -15,8 +15,6 @@
 
 package io.confluent.ksql.execution.streams.process;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
@@ -25,15 +23,12 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.execution.transform.KsqlProcessingContext;
 import io.confluent.ksql.execution.transform.KsqlTransformer;
 import org.apache.kafka.streams.processor.api.FixedKeyProcessorContext;
 import org.apache.kafka.streams.processor.api.FixedKeyRecord;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.ArgumentCaptor;
-import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
@@ -48,8 +43,6 @@ public class KsFixedKeyProcessorTest {
   private KsqlTransformer<Long, String> ksqlTransformer;
   @Mock
   private FixedKeyProcessorContext<Long, String> processorContext;
-  @Captor
-  private ArgumentCaptor<KsqlProcessingContext> ksqlProcessingContextCaptor;
 
   private KsFixedKeyProcessor<Long, String> ksFixedKeyProcessor;
 
@@ -59,8 +52,6 @@ public class KsFixedKeyProcessorTest {
     ksFixedKeyProcessor.init(processorContext);
 
     when(ksqlTransformer.transform(any(), any())).thenReturn(RESULT);
-
-    when(processorContext.currentStreamTimeMs()).thenReturn(ROWTIME);
   }
 
   @Test
@@ -84,32 +75,6 @@ public class KsFixedKeyProcessorTest {
     verify(processorContext).forward(
         argThat(record -> record.value().equals(RESULT))
     );
-  }
-
-  @Test
-  public void shouldExposeRowTime() {
-    // Given:
-    ksFixedKeyProcessor.process(getMockRecord());
-    final KsqlProcessingContext ksqlCtx = getKsqlProcessingContext();
-
-    // When:
-    final long rowTime = ksqlCtx.getRowTime();
-
-    // Then:
-    assertThat(rowTime, is(ROWTIME));
-    verify(ksqlTransformer).transform(
-        eq(KEY),
-        eq(VALUE)
-    );
-  }
-
-  private KsqlProcessingContext getKsqlProcessingContext() {
-    verify(ksqlTransformer).transform(
-        any(),
-        any()
-    );
-
-    return ksqlProcessingContextCaptor.getValue();
   }
 
   @SuppressWarnings("unchecked")

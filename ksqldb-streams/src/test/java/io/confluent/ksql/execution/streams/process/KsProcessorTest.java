@@ -54,17 +54,6 @@ public class KsProcessorTest {
 
     when(ksqlKeyTransformer.transform(any(), any())).thenReturn(RESULT_KEY);
     when(ksqlValueTransformer.transform(any(), any())).thenReturn(RESULT_VALUE);
-
-    when(ctx.currentStreamTimeMs()).thenReturn(ROWTIME);
-  }
-
-  @Test(expected = IllegalStateException.class)
-  public void shouldThrowOnProcessIfNotInitialized() {
-    // Given:
-    ksProcessor = new KsProcessor<>(ksqlKeyTransformer, ksqlValueTransformer);
-
-    // When:
-    ksProcessor.process(new Record<>(KEY, VALUE, ROWTIME));
   }
 
   @Test

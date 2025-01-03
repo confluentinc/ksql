@@ -27,6 +27,7 @@ import io.confluent.ksql.function.KsqlFunctionException;
 import io.confluent.ksql.util.KsqlException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.TimeZone;
 import java.util.stream.IntStream;
 import org.junit.Before;
 import org.junit.Test;
@@ -34,9 +35,11 @@ import org.junit.Test;
 public class TimestampToStringTest {
 
   private TimestampToString udf;
+  private static final String UserTimeZone = "America/Los_Angeles";
 
   @Before
   public void setUp() {
+    System.setProperty("user.timezone", UserTimeZone);
     udf = new TimestampToString();
   }
 
@@ -216,10 +219,16 @@ public class TimestampToStringTest {
         });
   }
 
+  /**
+   * This test is to ensure that the UDF behaves like SimpleDateFormat.
+   * Note: if the LocalTimeZone and UTC difference contains 30min (e.g. IST is +0530),
+   * then tests containing 'X' will fail as it will convert 0530 to 05.
+   */
   @Test
   public void shouldBehaveLikeSimpleDateFormat() {
     assertLikeSimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
     assertLikeSimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSSX");
+    assertLikeSimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSSXX");
     assertLikeSimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS X");
     assertLikeSimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS z");
     assertLikeSimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS Z");
@@ -233,6 +242,7 @@ public class TimestampToStringTest {
     assertLikeSimpleDateFormat("yyyy-MM-dd HH:mm:ss X");
     assertLikeSimpleDateFormat("yyyy-MM-dd HH:mm");
     assertLikeSimpleDateFormat("yyyy-MM-dd HH:mm X");
+    assertLikeSimpleDateFormat("yyyy-MM-dd HH:mm XX");
     assertLikeSimpleDateFormat("yyyy-MM-dd HH");
     assertLikeSimpleDateFormat("yyyy-MM-dd HH X");
     assertLikeSimpleDateFormat("yyyy-MM-dd");
@@ -245,8 +255,10 @@ public class TimestampToStringTest {
     assertLikeSimpleDateFormat("mm");
   }
 
-  private void assertLikeSimpleDateFormat(final String format) {
-    final String expected = new SimpleDateFormat(format).format(1538361611123L);
+  private static void assertLikeSimpleDateFormat(final String format) {
+    final SimpleDateFormat sdf = new SimpleDateFormat(format);
+    sdf.setTimeZone(TimeZone.getTimeZone(UserTimeZone));
+    final String expected = sdf.format(1538361611123L);
     final Object result = new TimestampToString()
         .timestampToString(1538361611123L, format);
     assertThat(result, is(expected));

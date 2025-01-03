@@ -15,24 +15,18 @@
 
 package io.confluent.ksql.execution.streams.process;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.execution.transform.KsqlProcessingContext;
 import io.confluent.ksql.execution.transform.KsqlTransformer;
 import org.apache.kafka.streams.processor.api.ProcessorContext;
 import org.apache.kafka.streams.processor.api.Record;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.ArgumentCaptor;
-import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
@@ -50,8 +44,6 @@ public class KsProcessorTest {
   private KsqlTransformer<Long, GenericRow> ksqlValueTransformer;
   @Mock
   private ProcessorContext<String, GenericRow> ctx;
-  @Captor
-  private ArgumentCaptor<KsqlProcessingContext> ctxCaptor;
 
   private KsProcessor<Long, String> ksProcessor;
 
@@ -60,8 +52,8 @@ public class KsProcessorTest {
     ksProcessor = new KsProcessor<>(ksqlKeyTransformer, ksqlValueTransformer);
     ksProcessor.init(ctx);
 
-    when(ksqlKeyTransformer.transform(any(), any(), any())).thenReturn(RESULT_KEY);
-    when(ksqlValueTransformer.transform(any(), any(), any())).thenReturn(RESULT_VALUE);
+    when(ksqlKeyTransformer.transform(any(), any())).thenReturn(RESULT_KEY);
+    when(ksqlValueTransformer.transform(any(), any())).thenReturn(RESULT_VALUE);
 
     when(ctx.currentStreamTimeMs()).thenReturn(ROWTIME);
   }
@@ -84,13 +76,11 @@ public class KsProcessorTest {
     // Then:
     verify(ksqlKeyTransformer).transform(
         eq(KEY),
-        eq(VALUE),
-        any()
+        eq(VALUE)
     );
     verify(ksqlValueTransformer).transform(
         eq(KEY),
-        eq(VALUE),
-        any()
+        eq(VALUE)
     );
   }
 
@@ -103,40 +93,5 @@ public class KsProcessorTest {
     // Then:
     final Record<String, GenericRow> result = new Record<>(RESULT_KEY, RESULT_VALUE, ROWTIME);
     verify(ctx).forward(result);
-  }
-
-  @Test
-  public void shouldExposeRowTime() {
-    // Given:
-    final Record<Long, GenericRow> inputRecord = new Record<>(KEY, VALUE, 123L);
-    ksProcessor.process(inputRecord);
-
-    final KsqlProcessingContext ksqlCtx = getKsqlProcessingContext();
-
-    // When:
-    final long rowTime = ksqlCtx.getRowTime();
-
-    // Then:
-    assertThat(rowTime, is(ROWTIME));
-    verify(ksqlKeyTransformer).transform(
-        eq(KEY),
-        eq(VALUE),
-        argThat(ctx -> ctx.getRowTime() == ROWTIME)
-    );
-    verify(ksqlValueTransformer).transform(
-        eq(KEY),
-        eq(VALUE),
-        argThat(ctx -> ctx.getRowTime() == ROWTIME)
-    );
-  }
-
-  private KsqlProcessingContext getKsqlProcessingContext() {
-    verify(ksqlKeyTransformer).transform(
-        any(),
-        any(),
-        ctxCaptor.capture()
-    );
-
-    return ctxCaptor.getValue();
   }
 }

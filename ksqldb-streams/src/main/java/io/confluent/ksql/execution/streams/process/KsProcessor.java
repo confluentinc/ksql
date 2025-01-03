@@ -18,7 +18,6 @@ package io.confluent.ksql.execution.streams.process;
 import static java.util.Objects.requireNonNull;
 
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.execution.transform.KsqlProcessingContext;
 import io.confluent.ksql.execution.transform.KsqlTransformer;
 import org.apache.kafka.streams.processor.api.Processor;
 import org.apache.kafka.streams.processor.api.ProcessorContext;
@@ -26,7 +25,6 @@ import org.apache.kafka.streams.processor.api.Record;
 
 public class KsProcessor<KInT, KOutT> implements Processor<KInT, GenericRow, KOutT, GenericRow> {
   private ProcessorContext<KOutT, GenericRow> processorContext;
-  private KsqlProcessingContext ksqlProcessingContext;
   private final KsqlTransformer<KInT, KOutT> keyDelegate;
   private final KsqlTransformer<KInT, GenericRow> valueDelegate;
 
@@ -39,19 +37,15 @@ public class KsProcessor<KInT, KOutT> implements Processor<KInT, GenericRow, KOu
   @Override
   public void init(final ProcessorContext<KOutT, GenericRow> processContext) {
     this.processorContext = processContext;
-    this.ksqlProcessingContext = new KsStreamProcessingContext(processorContext);
   }
 
   @Override
   public void process(final Record<KInT, GenericRow> record) {
-    if (ksqlProcessingContext == null) {
-      throw new IllegalStateException("Not initialized");
-    }
     final KInT key = record.key();
     final GenericRow value = record.value();
     final Record<KOutT, GenericRow> newRecord = new Record<>(
-        keyDelegate.transform(key, value, ksqlProcessingContext),
-        valueDelegate.transform(key, value, ksqlProcessingContext),
+        keyDelegate.transform(key, value),
+        valueDelegate.transform(key, value),
         record.timestamp(), // keep original timestamp
         record.headers() // keep original headers
     );

@@ -18,7 +18,6 @@ package io.confluent.ksql.execution.streams.process;
 import static java.util.Objects.requireNonNull;
 
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.execution.transform.KsqlProcessingContext;
 import io.confluent.ksql.execution.transform.KsqlTransformer;
 import org.apache.kafka.streams.processor.api.FixedKeyProcessor;
 import org.apache.kafka.streams.processor.api.FixedKeyProcessorContext;
@@ -37,7 +36,6 @@ import org.apache.kafka.streams.processor.api.Processor;
 public class KsFixedKeyProcessor<K, R> implements FixedKeyProcessor<K, GenericRow, R> {
   private final KsqlTransformer<K, R> delegate;
   private FixedKeyProcessorContext<K, R> processorContext;
-  private KsqlProcessingContext ksqlProcessingContext;
 
   public KsFixedKeyProcessor(final KsqlTransformer<K, R> delegate) {
     this.delegate = requireNonNull(delegate, "delegate");
@@ -47,20 +45,15 @@ public class KsFixedKeyProcessor<K, R> implements FixedKeyProcessor<K, GenericRo
   @Override
   public void init(final FixedKeyProcessorContext<K, R> context) {
     this.processorContext = context;
-    this.ksqlProcessingContext = new KsStreamProcessingContext(context);
   }
 
   @Override
   public void process(final FixedKeyRecord<K, GenericRow> record) {
-    if (ksqlProcessingContext == null) {
-      throw new IllegalStateException("Not initialized");
-    }
     final K key = record.key();
     final GenericRow value = record.value();
     final R result = delegate.transform(
         key,
-        value,
-        ksqlProcessingContext
+        value
     );
     processorContext.forward(record.withValue(result));
   }

@@ -133,7 +133,7 @@ public class TableFilterBuilderTest {
     when(sourceStep.build(any(), eq(planInfo))).thenReturn(
         KTableHolder.materialized(sourceKTable, schema, executionKeyFactory, materializationBuilder))
     ;
-    when(preTransformer.transform(any(), any(), any())).thenReturn(Optional.empty());
+    when(preTransformer.transform(any(), any())).thenReturn(Optional.empty());
     planBuilder = new KSPlanBuilder(
         buildContext,
         predicateFactory,
@@ -199,21 +199,21 @@ public class TableFilterBuilderTest {
         .getValue()
         .apply(processingLogger);
 
-    when(preTransformer.transform(any(), any(), any())).thenReturn(Optional.empty());
+    when(preTransformer.transform(any(), any())).thenReturn(Optional.empty());
 
     // When:
-    Optional<GenericRow> result = predicate.transform(key, value, ctx);
+    Optional<GenericRow> result = predicate.transform(key, value);
 
     // Then:
-    verify(preTransformer).transform(key, value, ctx);
+    verify(preTransformer).transform(key, value);
     assertThat(result, is(Optional.empty()));
 
     // Given:
-    when(preTransformer.transform(any(), any(), any()))
+    when(preTransformer.transform(any(), any()))
         .thenAnswer(inv -> Optional.of(inv.getArgument(1)));
 
     // When:
-    result = predicate.transform(key, value, ctx);
+    result = predicate.transform(key, value);
 
     // Then:
     assertThat(result, is(Optional.of(value)));

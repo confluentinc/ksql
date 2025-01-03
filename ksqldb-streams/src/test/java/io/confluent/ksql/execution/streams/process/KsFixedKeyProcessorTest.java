@@ -58,18 +58,9 @@ public class KsFixedKeyProcessorTest {
     ksFixedKeyProcessor = new KsFixedKeyProcessor<>(ksqlTransformer);
     ksFixedKeyProcessor.init(processorContext);
 
-    when(ksqlTransformer.transform(any(), any(), any())).thenReturn(RESULT);
+    when(ksqlTransformer.transform(any(), any())).thenReturn(RESULT);
 
     when(processorContext.currentStreamTimeMs()).thenReturn(ROWTIME);
-  }
-
-  @Test(expected = IllegalStateException.class)
-  public void shouldThrowOnProcessIfContextNotInitialized() {
-    // Given:
-    ksFixedKeyProcessor = new KsFixedKeyProcessor<>(ksqlTransformer);
-
-    // When:
-    ksFixedKeyProcessor.process(getMockRecord());
   }
 
   @Test
@@ -80,8 +71,7 @@ public class KsFixedKeyProcessorTest {
     // Then:
     verify(ksqlTransformer).transform(
         eq(KEY),
-        eq(VALUE),
-        any()
+        eq(VALUE)
     );
   }
 
@@ -109,16 +99,14 @@ public class KsFixedKeyProcessorTest {
     assertThat(rowTime, is(ROWTIME));
     verify(ksqlTransformer).transform(
         eq(KEY),
-        eq(VALUE),
-        argThat(ctx -> ctx.getRowTime() == ROWTIME)
+        eq(VALUE)
     );
   }
 
   private KsqlProcessingContext getKsqlProcessingContext() {
     verify(ksqlTransformer).transform(
         any(),
-        any(),
-        ksqlProcessingContextCaptor.capture()
+        any()
     );
 
     return ksqlProcessingContextCaptor.getValue();

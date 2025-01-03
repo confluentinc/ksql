@@ -86,7 +86,7 @@ public final class StreamSelectBuilder {
     )) {
       return streamHolder.withStream(
           stream.process(() -> new KsProcessor<>(
-              (readOnlyKey, value, ctx) -> {
+              (readOnlyKey, value) -> {
                 if (keyIndices.isEmpty()) {
                   return null;
                 }

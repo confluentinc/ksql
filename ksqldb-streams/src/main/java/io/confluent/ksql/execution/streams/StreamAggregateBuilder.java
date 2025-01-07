@@ -29,7 +29,6 @@ import io.confluent.ksql.execution.plan.StreamWindowedAggregate;
 import io.confluent.ksql.execution.runtime.MaterializedFactory;
 import io.confluent.ksql.execution.runtime.RuntimeBuildContext;
 import io.confluent.ksql.execution.streams.transform.KsValueTransformer;
-import io.confluent.ksql.execution.transform.KsqlProcessingContext;
 import io.confluent.ksql.execution.transform.KsqlTransformer;
 import io.confluent.ksql.execution.windows.HoppingWindowExpression;
 import io.confluent.ksql.execution.windows.KsqlWindowExpression;
@@ -371,8 +370,7 @@ public final class StreamAggregateBuilder {
     @Override
     public GenericRow transform(
         final Windowed<GenericKey> readOnlyKey,
-        final GenericRow value,
-        final KsqlProcessingContext ctx
+        final GenericRow value
     ) {
       if (value == null) {
         return null;

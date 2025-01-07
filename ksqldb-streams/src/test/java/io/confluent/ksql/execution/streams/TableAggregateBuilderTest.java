@@ -297,9 +297,9 @@ public class TableAggregateBuilderTest {
     final GenericRow value = mock(GenericRow.class);
 
     // When:
-    mapper.transform(key, value, ctx);
+    mapper.transform(key, value);
 
     // Then:
-    verify(resultMapper).transform(key, value, ctx);
+    verify(resultMapper).transform(key, value);
   }
 }

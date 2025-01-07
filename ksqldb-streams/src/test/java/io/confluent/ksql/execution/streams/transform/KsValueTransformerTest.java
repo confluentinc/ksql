@@ -56,7 +56,7 @@ public class KsValueTransformerTest {
     ksTransformer = new KsValueTransformer<>(ksqlTransformer);
     ksTransformer.init(ctx);
 
-    when(ksqlTransformer.transform(any(), any(), any())).thenReturn(RESULT);
+    when(ksqlTransformer.transform(any(), any())).thenReturn(RESULT);
 
     when(ctx.timestamp()).thenReturn(ROWTIME);
   }
@@ -78,8 +78,7 @@ public class KsValueTransformerTest {
     // Then:
     verify(ksqlTransformer).transform(
         eq(KEY),
-        eq(VALUE),
-        any()
+        eq(VALUE)
     );
   }
 
@@ -109,8 +108,7 @@ public class KsValueTransformerTest {
   private KsqlProcessingContext getKsqlProcessingContext() {
     verify(ksqlTransformer).transform(
         any(),
-        any(),
-        ctxCaptor.capture()
+        any()
     );
 
     return ctxCaptor.getValue();

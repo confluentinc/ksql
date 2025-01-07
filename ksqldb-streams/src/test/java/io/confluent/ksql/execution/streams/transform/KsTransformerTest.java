@@ -60,8 +60,8 @@ public class KsTransformerTest {
     ksTransformer = new KsTransformer<>(ksqlKeyTransformer, ksqlValueTransformer);
     ksTransformer.init(ctx);
 
-    when(ksqlKeyTransformer.transform(any(), any(), any())).thenReturn(RESULT_KEY);
-    when(ksqlValueTransformer.transform(any(), any(), any())).thenReturn(RESULT_VALUE);
+    when(ksqlKeyTransformer.transform(any(), any())).thenReturn(RESULT_KEY);
+    when(ksqlValueTransformer.transform(any(), any())).thenReturn(RESULT_VALUE);
 
     when(ctx.timestamp()).thenReturn(ROWTIME);
   }
@@ -83,13 +83,11 @@ public class KsTransformerTest {
     // Then:
     verify(ksqlKeyTransformer).transform(
         eq(KEY),
-        eq(VALUE),
-        any()
+        eq(VALUE)
     );
     verify(ksqlValueTransformer).transform(
         eq(KEY),
-        eq(VALUE),
-        any()
+        eq(VALUE)
     );
   }
 
@@ -119,8 +117,7 @@ public class KsTransformerTest {
   private KsqlProcessingContext getKsqlProcessingContext() {
     verify(ksqlKeyTransformer).transform(
         any(),
-        any(),
-        ctxCaptor.capture()
+        any()
     );
 
     return ctxCaptor.getValue();

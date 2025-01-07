@@ -60,6 +60,7 @@ public class KsqlBareOutputNodeTest {
 
   private static final String FILTER_NODE = "WhereFilter";
   private static final String FILTER_MAPVALUES_NODE = "Project";
+  private static final String PEEK_NODE = "KSTREAM-PEEK-0000000003";
   private static final String SIMPLE_SELECT_WITH_FILTER
       = "SELECT col0, col2, col3 FROM test1 WHERE col0 > 100 EMIT CHANGES;";
 
@@ -126,7 +127,7 @@ public class KsqlBareOutputNodeTest {
     final TopologyDescription.Processor node
         = (TopologyDescription.Processor) getNodeByName(FILTER_NODE);
     verifyProcessorNode(node, Collections.singletonList(TRANSFORM_NODE),
-        Arrays.asList("KSTREAM-PEEK-0000000003", FILTER_MAPVALUES_NODE));
+        Arrays.asList(PEEK_NODE, FILTER_MAPVALUES_NODE));
   }
 
   @Test

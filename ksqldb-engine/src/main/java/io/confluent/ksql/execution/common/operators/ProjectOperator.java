@@ -106,8 +106,7 @@ public class ProjectOperator extends AbstractPhysicalOperator implements UnaryPh
 
     final GenericRow mapped = transformer.transform(
         row.key(),
-        intermediate
-    );
+        intermediate);
     validateProjection(mapped, logicalNode.getSchema());
 
     return QueryRowImpl.of(logicalNode.getSchema(),

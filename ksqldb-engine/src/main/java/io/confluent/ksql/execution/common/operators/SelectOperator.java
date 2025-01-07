@@ -83,10 +83,7 @@ public class SelectOperator extends AbstractPhysicalOperator implements UnaryPhy
   private Optional<QueryRow> transformRow(final QueryRow queryRow) {
     final GenericRow intermediate = PhysicalOperatorUtil.getIntermediateRow(
         queryRow, logicalNode.getAddAdditionalColumnsToIntermediateSchema());
-    return transformer.transform(
-        queryRow.key(),
-        intermediate
-        )
+    return transformer.transform(queryRow.key(), intermediate)
         .map(r -> QueryRowImpl.of(
             logicalNode.getIntermediateSchema(),
             queryRow.key(),

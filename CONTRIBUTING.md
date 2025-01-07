@@ -46,10 +46,16 @@ There is likely a similar option available for other IDEs.
 
 ### Building and running ksqlDB locally
 
-To build and run ksqlDB locally, run the following commands:
+To build ksqlDB locally, run the following commands:
 
 ```shell
 $ ./mvnw clean package -DskipTests
+```
+
+To run ksqldb locally, you can start the ksqlDB server and CLI with the following commands. Ensure you have dependent
+services like Kafka and Schema Registry running before starting ksqlDB.
+
+```shell
 $ ./bin/ksql-server-start -daemon config/ksql-server.properties
 $ ./bin/ksql
 ```
@@ -175,11 +181,11 @@ You can set up IntelliJ for CheckStyle. First install the CheckStyle IDEA plugin
        URL: https://raw.githubusercontent.com/confluentinc/common/master/build-tools/src/main/resources/checkstyle/checkstyle.xml
        Ignore invalid certs: true
 
-    - (Optional) Make the new configuration active.
+    - Make the new configuration active.
 
     - Highlight the newly added 'Confluent Checks' and click the edit button (pencil icon).
 
-    - Set properties to match the `checkstyle/checkstyle.properties` file in the repo.
+    - [!IMP] Set properties to match the `checkstyle/checkstyle.properties` file in the repo.
 
 'Confluent Checks' will now be available in the CheckStyle tool window in the IDE and will auto-highlight issues in the code editor.
 

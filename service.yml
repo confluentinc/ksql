@@ -13,6 +13,10 @@ semaphore:
   extra_build_args: "-Dmaven.gitcommitid.nativegit=true"
   maven_build_goals: "clean install"
   run_merge_check: false
+  pr_ci_gating:
+    enable: true
+    project_name: ksqldb
+  status_level: block
 git:
   enable: true
 code_artifact:

@@ -24,10 +24,8 @@ import static io.vertx.core.http.HttpVersion.HTTP_1_1;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.net.UrlEscapers;
 import io.confluent.ksql.rest.ApiJsonMapper;
-import io.confluent.ksql.security.BasicCredentials;
 import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.rest.client.RestResponse;
-import io.confluent.ksql.security.Credentials;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatus.Status;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
@@ -45,6 +43,8 @@ import io.confluent.ksql.rest.entity.ServerInfo;
 import io.confluent.ksql.rest.entity.ServerMetadata;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
+import io.confluent.ksql.security.BasicCredentials;
+import io.confluent.ksql.security.Credentials;
 import io.confluent.ksql.util.KsqlRequestConfig;
 import io.confluent.ksql.util.TestDataProvider;
 import io.confluent.ksql.util.VertxCompletableFuture;
@@ -569,7 +569,7 @@ public final class RestIntegrationTestUtil {
 
       final String uri = baseUri.toString() + "/ws/query?request="
           + buildStreamingRequest(sql, overrides, requestProperties)
-          + "&access_token=" + credentials.get().getAuthHeader();
+          + "&access_token=" + credentials.get().getAuthHeader().replace(" ", "%20");
 
       final MultiMap headers = MultiMap.caseInsensitiveMultiMap();
 

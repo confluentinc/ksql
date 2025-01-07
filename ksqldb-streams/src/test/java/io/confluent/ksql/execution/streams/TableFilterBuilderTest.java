@@ -24,18 +24,18 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.execution.runtime.RuntimeBuildContext;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.materialization.MaterializationInfo;
 import io.confluent.ksql.execution.materialization.MaterializationInfo.TransformFactory;
+import io.confluent.ksql.execution.plan.ExecutionKeyFactory;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.ExecutionStepPropertiesV1;
-import io.confluent.ksql.execution.plan.PlanInfo;
 import io.confluent.ksql.execution.plan.KTableHolder;
-import io.confluent.ksql.execution.plan.ExecutionKeyFactory;
 import io.confluent.ksql.execution.plan.PlanBuilder;
+import io.confluent.ksql.execution.plan.PlanInfo;
 import io.confluent.ksql.execution.plan.TableFilter;
+import io.confluent.ksql.execution.runtime.RuntimeBuildContext;
 import io.confluent.ksql.execution.transform.KsqlProcessingContext;
 import io.confluent.ksql.execution.transform.KsqlTransformer;
 import io.confluent.ksql.execution.transform.sqlpredicate.SqlPredicate;
@@ -131,7 +131,8 @@ public class TableFilterBuilderTest {
     final ExecutionStepPropertiesV1 properties = new ExecutionStepPropertiesV1(queryContext);
     step = new TableFilter<>(properties, sourceStep, filterExpression);
     when(sourceStep.build(any(), eq(planInfo))).thenReturn(
-        KTableHolder.materialized(sourceKTable, schema, executionKeyFactory, materializationBuilder))
+        KTableHolder.materialized(sourceKTable, schema, executionKeyFactory,
+            materializationBuilder))
     ;
     when(preTransformer.transform(any(), any())).thenReturn(Optional.empty());
     planBuilder = new KSPlanBuilder(

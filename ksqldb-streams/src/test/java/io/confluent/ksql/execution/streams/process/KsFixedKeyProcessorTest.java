@@ -13,18 +13,19 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.execution.streams.transform;
+package io.confluent.ksql.execution.streams.process;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.transform.KsqlTransformer;
-import org.apache.kafka.streams.processor.ProcessorContext;
+import org.apache.kafka.streams.processor.api.FixedKeyProcessorContext;
+import org.apache.kafka.streams.processor.api.FixedKeyRecord;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -32,23 +33,23 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
-public class KsValueTransformerTest {
-
+public class KsFixedKeyProcessorTest {
   private static final long KEY = 10L;
   private static final GenericRow VALUE = GenericRow.genericRow(12);
   private static final String RESULT = "the result";
+  private static final long ROWTIME = 123456L;
 
   @Mock
   private KsqlTransformer<Long, String> ksqlTransformer;
   @Mock
-  private ProcessorContext ctx;
+  private FixedKeyProcessorContext<Long, String> processorContext;
 
-  private KsValueTransformer<Long, String> ksTransformer;
+  private KsFixedKeyProcessor<Long, String> ksFixedKeyProcessor;
 
   @Before
   public void setUp() {
-    ksTransformer = new KsValueTransformer<>(ksqlTransformer);
-    ksTransformer.init(ctx);
+    ksFixedKeyProcessor = new KsFixedKeyProcessor<>(ksqlTransformer);
+    ksFixedKeyProcessor.init(processorContext);
 
     when(ksqlTransformer.transform(any(), any())).thenReturn(RESULT);
   }
@@ -56,7 +57,7 @@ public class KsValueTransformerTest {
   @Test
   public void shouldInvokeInnerTransformer() {
     // When:
-    ksTransformer.transform(KEY, VALUE);
+    ksFixedKeyProcessor.process(getMockRecord());
 
     // Then:
     verify(ksqlTransformer).transform(
@@ -68,9 +69,27 @@ public class KsValueTransformerTest {
   @Test
   public void shouldReturnValueFromInnerTransformer() {
     // When:
-    final String result = ksTransformer.transform(KEY, VALUE);
+    ksFixedKeyProcessor.process(getMockRecord());
 
     // Then:
-    assertThat(result, is(RESULT));
+    verify(processorContext).forward(
+        argThat(record -> record.value().equals(RESULT))
+    );
+  }
+
+  @SuppressWarnings("unchecked")
+  private static FixedKeyRecord<Long, GenericRow> getMockRecord() {
+    final FixedKeyRecord<Long, GenericRow> mockRecord = mock(FixedKeyRecord.class);
+    when(mockRecord.key()).thenReturn(KEY);
+    when(mockRecord.value()).thenReturn(VALUE);
+    // withValue should return new record with the same key and new value
+    when(mockRecord.withValue(any())).thenAnswer(invocation -> {
+      // It should match with RESULT type
+      final String newValue = invocation.getArgument(0);
+      final FixedKeyRecord<Long, String> newRecord = mock(FixedKeyRecord.class);
+      when(newRecord.value()).thenReturn(newValue);
+      return newRecord;
+    });
+    return mockRecord;
   }
 }

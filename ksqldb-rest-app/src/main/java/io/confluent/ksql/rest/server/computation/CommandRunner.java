@@ -68,6 +68,7 @@ public class CommandRunner implements Closeable {
   private static final int MAX_STATEMENT_RETRY_MS = 5 * 1000;
   private static final Duration NEW_CMDS_TIMEOUT = Duration.ofMillis(MAX_STATEMENT_RETRY_MS);
   private static final int SHUTDOWN_TIMEOUT_MS = 3 * MAX_STATEMENT_RETRY_MS;
+  private static final int COMMAND_TOPIC_THRESHOLD_LIMIT = 10000;
 
   private final InteractiveStatementExecutor statementExecutor;
   private final CommandQueue commandStore;
@@ -271,6 +272,10 @@ public class CommandRunner implements Closeable {
       final List<QueuedCommand> compatibleCommands = checkForIncompatibleCommands(restoreCommands);
 
       LOG.info("Restoring previous state from {} commands.", compatibleCommands.size());
+      if (compatibleCommands.size() > COMMAND_TOPIC_THRESHOLD_LIMIT) {
+        LOG.warn("Command topic size exceeded. [commands={}, threshold={}]",
+                compatibleCommands.size(), COMMAND_TOPIC_THRESHOLD_LIMIT);
+      }
 
       final Optional<QueuedCommand> terminateCmd =
           findTerminateCommand(compatibleCommands, commandDeserializer);

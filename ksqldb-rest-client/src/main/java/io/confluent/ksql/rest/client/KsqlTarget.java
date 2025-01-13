@@ -64,6 +64,7 @@ import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -117,7 +118,7 @@ public final class KsqlTarget {
     this.host = host;
     this.additionalHeaders = requireNonNull(additionalHeaders, "additionalHeaders");
     this.timeout = timeout;
-    this.subPath = subPath;
+    this.subPath = StringUtils.removeEnd(subPath, "/");
   }
 
   public KsqlTarget authorizationHeader(final String authHeader) {

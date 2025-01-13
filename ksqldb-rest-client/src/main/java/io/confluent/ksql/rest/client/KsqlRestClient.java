@@ -386,7 +386,12 @@ public final class KsqlRestClient implements Closeable {
     try {
       final URL url = new URL(serverAddress);
       if (url.getPort() == -1) {
-        return new URL(serverAddress.concat(":") + url.getDefaultPort()).toURI();
+        return new URL(
+          url.getProtocol(),
+          url.getHost(),
+          url.getDefaultPort(),
+          url.getPath() + (url.getQuery() != null ? "?" + url.getQuery() : "")
+        ).toURI();
       }
       return url.toURI();
     } catch (final Exception e) {

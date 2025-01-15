@@ -99,7 +99,7 @@
 
         <dependency>
             <groupId>io.confluent</groupId>
-            <artifactId>confluent-log4j-extensions</artifactId>
+            <artifactId>confluent-log4j2-extensions</artifactId>
             <version>${io.confluent.common.version}</version>
         </dependency>
 

@@ -21,7 +21,6 @@ import static io.confluent.ksql.schema.ksql.SystemColumns.ROWPARTITION_ROWOFFSET
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThrows;
@@ -1222,14 +1221,14 @@ public class SourceBuilderV1Test {
     return mockPlanInfo;
   }
 
-  private static FixedKeyRecord getMockFixedRecord(final Object key,
+  private FixedKeyRecord getMockFixedRecord(final Object key,
       final GenericRow value) {
     final FixedKeyRecord record = mock(FixedKeyRecord.class);
     when(record.value())
         .thenReturn(value);
     when(record.key()).thenReturn(key);
     when(record.timestamp()).thenReturn(A_ROWTIME);
-    when(record.headers()).thenReturn(new RecordHeaders());
+    when(record.headers()).thenReturn(HEADERS);
     // mock withValue to return new mock with new value
     when(record.withValue(any())).thenAnswer(inv -> {
       final GenericRow row = inv.getArgument(0);
@@ -1247,7 +1246,7 @@ public class SourceBuilderV1Test {
       final GenericRow expectedRow
   ) {
     when(fixedKeyProcessorContext.recordMetadata()).thenReturn(
-        Optional.of(new MockRecordMetadata(TOPIC_NAME, 0, 0))
+        Optional.of(new MockRecordMetadata(TOPIC_NAME, A_ROWPARTITION, A_ROWOFFSET))
     );
 
     // When:

@@ -634,12 +634,12 @@ public class SourceBuilderV1Test {
     final FixedKeyProcessor<GenericKey, GenericRow, GenericRow> processor =
         getProcessorFromStreamSource(streamSource);
 
-    // When:
-    processor.process(getMockFixedRecord(KEY, row));
-
-    // Then:
-    // todo
-    // assertThat(withTimestamp, equalTo(GenericRow.genericRow("baz", 123, HEADER_DATA, A_ROWTIME, A_KEY)));
+    assertFixedKeyProcessorContextForwardsValue(
+        processor,
+        KEY,
+        row,
+        GenericRow.genericRow("baz", 123, HEADER_DATA, A_ROWTIME, A_KEY)
+    );
   }
 
   @Test
@@ -743,16 +743,16 @@ public class SourceBuilderV1Test {
   public void shouldHandleMultiKeyFieldLegacy() {
     // Given:
     givenMultiColumnSourceStream(LEGACY_PSEUDOCOLUMN_VERSION_NUMBER);
-    final FixedKeyProcessor<GenericKey, GenericRow, GenericRow> transformer =
+    final FixedKeyProcessor<GenericKey, GenericRow, GenericRow> processor =
         getProcessorFromStreamSource(streamSource);
 
     final GenericKey key = GenericKey.genericKey(1d, 2d);
 
     assertFixedKeyProcessorContextForwardsValue(
-        transformer,
+        processor,
         key,
         row,
-        GenericRow.genericRow("baz", 123, HEADER_DATA, A_ROWTIME, 1d, 2d)
+        GenericRow.genericRow("baz", 123, HEADER_A, HEADER_B, null, A_ROWTIME, 1d, 2d)
     );
   }
 
@@ -788,7 +788,7 @@ public class SourceBuilderV1Test {
         processor,
         key,
         row,
-        GenericRow.genericRow("baz", 123, HEADER_DATA, A_ROWTIME, null, 2d)
+        GenericRow.genericRow("baz", 123, HEADER_A, HEADER_B, null, A_ROWTIME, null, 2d)
     );
   }
 
@@ -824,7 +824,7 @@ public class SourceBuilderV1Test {
         processor,
         key,
         row,
-        GenericRow.genericRow("baz", 123, HEADER_DATA, A_ROWTIME, null)
+        GenericRow.genericRow("baz", 123, HEADER_A, HEADER_B, null, A_ROWTIME, null, null)
     );
   }
 
@@ -894,13 +894,12 @@ public class SourceBuilderV1Test {
         new TimeWindow(A_WINDOW_START, A_WINDOW_END)
     );
 
-    // When:
-    processor.process(getMockFixedRecord(key, row));
-
-    // Then:
-    // todo
-    // assertThat(withTimestamp, equalTo(GenericRow.genericRow(
-    //  "baz", 123, HEADER_DATA, A_ROWTIME, A_KEY, A_WINDOW_START, A_WINDOW_END)));
+    assertFixedKeyProcessorContextForwardsValue(
+        processor,
+        key,
+        row,
+        GenericRow.genericRow("baz", 123, HEADER_DATA, A_ROWTIME, A_KEY, A_WINDOW_START, A_WINDOW_END)
+    );
   }
 
   @Test
@@ -920,17 +919,8 @@ public class SourceBuilderV1Test {
         key,
         row,
         GenericRow.genericRow(
-            "baz",
-            123,
-            HEADER_A,
-            HEADER_B,
-            null,
-            A_ROWTIME,
-            A_ROWPARTITION,
-            A_ROWOFFSET,
-            A_KEY,
-            A_WINDOW_START,
-            A_WINDOW_END)
+            "baz", 123, HEADER_DATA, A_ROWTIME, A_ROWPARTITION,
+            A_ROWOFFSET, A_KEY, A_WINDOW_START, A_WINDOW_END)
     );
   }
 
@@ -994,9 +984,7 @@ public class SourceBuilderV1Test {
         GenericRow.genericRow(
             "baz",
             123,
-            HEADER_A,
-            HEADER_B,
-            null,
+            HEADER_DATA,
             A_ROWTIME,
             A_ROWPARTITION,
             A_ROWOFFSET,

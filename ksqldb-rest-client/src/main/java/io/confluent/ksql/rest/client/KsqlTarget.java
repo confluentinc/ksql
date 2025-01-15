@@ -64,6 +64,7 @@ import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -90,6 +91,7 @@ public final class KsqlTarget {
   private final String host;
   private final Map<String, String> additionalHeaders;
   private final long timeout;
+  private final String subPath;
 
   /**
    * Create a KsqlTarget containing all of the connection information required to make a request
@@ -106,7 +108,8 @@ public final class KsqlTarget {
       final Optional<String> authHeader,
       final String host,
       final Map<String, String> additionalHeaders,
-      final long timeout
+      final long timeout,
+      final String subPath
   ) {
     this.httpClient = requireNonNull(httpClient, "httpClient");
     this.socketAddress = requireNonNull(socketAddress, "socketAddress");
@@ -115,23 +118,24 @@ public final class KsqlTarget {
     this.host = host;
     this.additionalHeaders = requireNonNull(additionalHeaders, "additionalHeaders");
     this.timeout = timeout;
+    this.subPath = StringUtils.removeEnd(subPath, "/");
   }
 
   public KsqlTarget authorizationHeader(final String authHeader) {
     return new KsqlTarget(httpClient, socketAddress, localProperties,
-        Optional.of(authHeader), host, additionalHeaders, timeout);
+        Optional.of(authHeader), host, additionalHeaders, timeout, subPath);
   }
 
   public KsqlTarget properties(final Map<String, ?> properties) {
     return new KsqlTarget(httpClient, socketAddress,
         new LocalProperties(properties),
-        authHeader, host, additionalHeaders, timeout);
+        authHeader, host, additionalHeaders, timeout, subPath);
   }
 
   public KsqlTarget timeout(final long timeout) {
     return new KsqlTarget(httpClient, socketAddress,
         localProperties,
-        authHeader, host, additionalHeaders, timeout);
+        authHeader, host, additionalHeaders, timeout, subPath);
   }
 
   public RestResponse<ServerInfo> getServerInfo() {
@@ -503,7 +507,7 @@ public final class KsqlTarget {
     options.setServer(socketAddress);
     options.setPort(socketAddress.port());
     options.setHost(host);
-    options.setURI(path);
+    options.setURI(subPath + path);
     options.setTimeout(timeout);
 
     httpClient.request(options, ar -> {

@@ -51,7 +51,6 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.security.auth.login.Configuration;
-import kafka.security.authorizer.AclAuthorizer;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.AdminClientConfig;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
@@ -80,6 +79,7 @@ import org.apache.kafka.common.security.plain.PlainLoginModule;
 import org.apache.kafka.common.serialization.ByteArrayDeserializer;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serializer;
+import org.apache.kafka.metadata.authorizer.StandardAuthorizer;
 import org.apache.kafka.test.TestUtils;
 import org.hamcrest.Matcher;
 import org.junit.rules.ExternalResource;
@@ -721,9 +721,8 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
     private final Map<AclKey, Set<AclOperation>> acls = new HashMap<>();
 
     Builder() {
-      brokerConfig.put(AUTHORIZER_CLASS_NAME_CONFIG, AclAuthorizer.class.getName());
-      brokerConfig.put(AclAuthorizer.AllowEveryoneIfNoAclIsFoundProp(),
-          true);
+      brokerConfig.put(AUTHORIZER_CLASS_NAME_CONFIG, StandardAuthorizer.class.getName());
+      brokerConfig.put("allow.everyone.if.no.acl.found", true);
       brokerConfig.put(LISTENERS_PROP, "PLAINTEXT://:0");
       brokerConfig.put(AUTO_CREATE_TOPICS_ENABLE_PROP, true);
     }
@@ -761,8 +760,8 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
     }
 
     public Builder withAclsEnabled(final String... superUsers) {
-      brokerConfig.remove(AclAuthorizer.AllowEveryoneIfNoAclIsFoundProp());
-      brokerConfig.put(AclAuthorizer.SuperUsersProp(),
+      brokerConfig.remove("allow.everyone.if.no.acl.found");
+      brokerConfig.put("super.users",
           Stream.concat(Arrays.stream(superUsers), Stream.of("broker"))
               .map(s -> "User:" + s)
               .collect(Collectors.joining(";")));

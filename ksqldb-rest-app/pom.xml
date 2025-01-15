@@ -23,7 +23,7 @@
     <parent>
         <groupId>io.confluent.ksql</groupId>
         <artifactId>ksqldb-parent</artifactId>
-        <version>7.1.15-0</version>
+        <version>7.1.16-0</version>
     </parent>
 
     <artifactId>ksqldb-rest-app</artifactId>
@@ -175,9 +175,12 @@
         </dependency>
 
         <dependency>
-            <groupId>com.kjetland</groupId>
-            <artifactId>mbknor-jackson-jsonschema_${kafka.scala.version}</artifactId>
-            <version>1.0.39</version>
+            <!-- io.yokota is a fork of com.kjetland -->
+            <!-- schema-registry is dependent on io.yokota:mbknor-jackson-jsonschema-java8 -->
+            <!-- hence all the downstream projects had to use that one only -->
+            <groupId>io.yokota</groupId>
+            <artifactId>mbknor-jackson-jsonschema-java8</artifactId>
+            <version>1.0.39.2</version>
             <scope>test</scope>
             <exclusions>
                 <exclusion>

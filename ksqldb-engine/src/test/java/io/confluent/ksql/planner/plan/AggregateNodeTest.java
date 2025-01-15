@@ -87,6 +87,7 @@ import org.apache.kafka.streams.kstream.ValueMapperWithKey;
 import org.apache.kafka.streams.kstream.ValueTransformerWithKeySupplier;
 import org.apache.kafka.streams.processor.ProcessorContext;
 import org.apache.kafka.streams.processor.api.FixedKeyProcessor;
+import org.apache.kafka.streams.processor.api.FixedKeyProcessorContext;
 import org.apache.kafka.streams.processor.api.FixedKeyProcessorSupplier;
 import org.apache.kafka.streams.processor.api.FixedKeyRecord;
 import org.apache.kafka.streams.processor.api.ProcessorSupplier;
@@ -114,7 +115,7 @@ public class AggregateNodeTest {
   @Mock
   private ProcessorContext ctx;
   @Mock
-  private org.apache.kafka.streams.processor.api.FixedKeyProcessorContext fixedKeyProcessorContext;
+  private FixedKeyProcessorContext fixedKeyProcessorContext;
   @Mock
   private ProcessingLogger processLogger;
   @Captor

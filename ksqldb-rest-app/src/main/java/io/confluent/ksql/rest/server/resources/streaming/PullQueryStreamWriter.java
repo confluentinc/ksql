@@ -19,15 +19,13 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.Lists;
 import io.confluent.ksql.api.server.StreamingOutput;
-import io.confluent.ksql.execution.streams.materialization.Locator.KsqlNode;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.physical.pull.PullQueryResult;
 import io.confluent.ksql.physical.pull.PullQueryRow;
-import io.confluent.ksql.query.PullQueryQueue;
+import io.confluent.ksql.query.PullQueryWriteStream;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.entity.ConsistencyToken;
-import io.confluent.ksql.rest.entity.KsqlHostInfoEntity;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlStatementException;
@@ -37,7 +35,6 @@ import java.nio.charset.StandardCharsets;
 import java.time.Clock;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -53,7 +50,7 @@ public class PullQueryStreamWriter implements StreamingOutput {
   private static final long MAX_FLUSH_MS = 1000;
 
   private final long disconnectCheckInterval;
-  private final PullQueryQueue pullQueryQueue;
+  private final PullQueryWriteStream pullQueryQueue;
   private final Clock clock;
   private final PullQueryResult result;
   private final ObjectMapper objectMapper;
@@ -67,7 +64,7 @@ public class PullQueryStreamWriter implements StreamingOutput {
       final PullQueryResult result,
       final long disconnectCheckInterval,
       final ObjectMapper objectMapper,
-      final PullQueryQueue pullQueryQueue,
+      final PullQueryWriteStream pullQueryQueue,
       final Clock clock,
       final CompletableFuture<Void> connectionClosedFuture,
       final PreparedStatement<Query> statement
@@ -198,7 +195,7 @@ public class PullQueryStreamWriter implements StreamingOutput {
       streamedRow = StreamedRow.consistencyToken(new ConsistencyToken(
           row.getConsistencyOffsetVector().get().serialize()));
     } else {
-      streamedRow = StreamedRow.pullRow(row.getGenericRow(), toKsqlHostInfo(row.getSourceNode()));
+      streamedRow = StreamedRow.pullRow(row.getGenericRow(), row.getSourceNode());
     }
     writerState.append(writeValueAsString(streamedRow));
     if (hasAnotherRow) {
@@ -285,7 +282,7 @@ public class PullQueryStreamWriter implements StreamingOutput {
   }
 
   private void interruptWriterThread() {
-    pullQueryQueue.putSentinelRow(QueueWrapper.END_ROW);
+    pullQueryQueue.end();
   }
 
   /**
@@ -301,13 +298,6 @@ public class PullQueryStreamWriter implements StreamingOutput {
     }
   }
 
-  /**
-   * Converts the KsqlNode to KsqlHostInfoEntity
-   */
-  private static Optional<KsqlHostInfoEntity> toKsqlHostInfo(final Optional<KsqlNode> ksqlNode) {
-    return ksqlNode.map(
-        node -> new KsqlHostInfoEntity(node.location().getHost(), node.location().getPort()));
-  }
 
   /**
    * State that's kept for the buffered response and the last flush time.
@@ -350,13 +340,13 @@ public class PullQueryStreamWriter implements StreamingOutput {
    */
   static final class QueueWrapper {
     public static final PullQueryRow END_ROW = new PullQueryRow(null, null, null, null);
-    private final PullQueryQueue pullQueryQueue;
+    private final PullQueryWriteStream pullQueryQueue;
     private final long disconnectCheckInterval;
     // We always keep a reference to the head of the queue so that we know if there's another
     // row in the result in order to produce proper JSON.
     private PullQueryRow head = null;
 
-    QueueWrapper(final PullQueryQueue pullQueryQueue, final long disconnectCheckInterval) {
+    QueueWrapper(final PullQueryWriteStream pullQueryQueue, final long disconnectCheckInterval) {
       this.pullQueryQueue = pullQueryQueue;
       this.disconnectCheckInterval = disconnectCheckInterval;
     }

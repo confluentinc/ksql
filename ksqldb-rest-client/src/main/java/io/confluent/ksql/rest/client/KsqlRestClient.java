@@ -390,7 +390,7 @@ public final class KsqlRestClient implements Closeable {
           url.getProtocol(),
           url.getHost(),
           url.getDefaultPort(),
-          url.getPath() + (url.getQuery() != null ? "?" + url.getQuery() : "")
+          url.getFile())
         ).toURI();
       }
       return url.toURI();

@@ -40,7 +40,7 @@ import io.confluent.ksql.execution.plan.WindowedStreamSource;
 import io.confluent.ksql.execution.plan.WindowedTableSource;
 import io.confluent.ksql.execution.runtime.MaterializedFactory;
 import io.confluent.ksql.execution.runtime.RuntimeBuildContext;
-import io.confluent.ksql.execution.streams.SourceBuilderUtils.AddKeyAndPseudoColumns.AddKeyAndPseudoColumnsProcessor;
+import io.confluent.ksql.execution.streams.SourceBuilderUtils.AddKeyAndPseudoColumnsProcessor;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.serde.StaticTopicSerde;

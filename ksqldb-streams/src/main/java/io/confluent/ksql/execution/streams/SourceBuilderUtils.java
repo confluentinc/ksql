@@ -406,75 +406,75 @@ final class SourceBuilderUtils {
         }
       };
     }
+  }
 
-    /**
-     * Note: It is duplicate code of AddKeyAndPseudoColumn's transformer
-     * @param <K> the key type
-     */
-    static class AddKeyAndPseudoColumnsProcessor<K>
-        implements FixedKeyProcessor<K, GenericRow, GenericRow> {
+  /**
+   * Note: It is duplicate code of AddKeyAndPseudoColumn's transformer
+   * @param <K> the key type
+   */
+  static class AddKeyAndPseudoColumnsProcessor<K>
+      implements FixedKeyProcessor<K, GenericRow, GenericRow> {
 
-      private final Function<K, Collection<?>> keyGenerator;
-      private final int pseudoColumnVersion;
-      private final List<Column> headerColumns;
-      private FixedKeyProcessorContext<K, GenericRow> processorContext;
+    private final Function<K, Collection<?>> keyGenerator;
+    private final int pseudoColumnVersion;
+    private final List<Column> headerColumns;
+    private FixedKeyProcessorContext<K, GenericRow> processorContext;
 
-      AddKeyAndPseudoColumnsProcessor(
-          final Function<K, Collection<?>> keyGenerator,
-          final int pseudoColumnVersion,
-          final List<Column> headerColumns
-      ) {
-        this.keyGenerator = requireNonNull(keyGenerator, "keyGenerator");
-        this.pseudoColumnVersion = pseudoColumnVersion;
-        this.headerColumns = headerColumns;
+    AddKeyAndPseudoColumnsProcessor(
+        final Function<K, Collection<?>> keyGenerator,
+        final int pseudoColumnVersion,
+        final List<Column> headerColumns
+    ) {
+      this.keyGenerator = requireNonNull(keyGenerator, "keyGenerator");
+      this.pseudoColumnVersion = pseudoColumnVersion;
+      this.headerColumns = headerColumns;
+    }
+
+    @Override
+    public void init(final FixedKeyProcessorContext<K, GenericRow> processorContext) {
+      this.processorContext = requireNonNull(processorContext, "processorContext");
+    }
+
+    @Override
+    public void process(final FixedKeyRecord<K, GenericRow> record) {
+      final K key = record.key();
+      final GenericRow row = record.value();
+
+      if (row == null) {
+        processorContext.forward(record);
+        return;
       }
 
-      @Override
-      public void init(final FixedKeyProcessorContext<K, GenericRow> processorContext) {
-        this.processorContext = requireNonNull(processorContext, "processorContext");
+      final Collection<?> keyColumns = keyGenerator.apply(key);
+
+      final int numPseudoColumns = SystemColumns
+          .pseudoColumnNames(pseudoColumnVersion).size();
+
+      row.ensureAdditionalCapacity(numPseudoColumns + keyColumns.size() + headerColumns.size());
+
+      for (final Column col : headerColumns) {
+        if (col.headerKey().isPresent()) {
+          row.append(extractHeader(record.headers(), col.headerKey().get()));
+        } else {
+          row.append(createHeaderData(record.headers()));
+        }
       }
 
-      @Override
-      public void process(final FixedKeyRecord<K, GenericRow> record) {
-        final K key = record.key();
-        final GenericRow row = record.value();
-
-        if (row == null) {
-          processorContext.forward(record);
-          return;
-        }
-
-        final Collection<?> keyColumns = keyGenerator.apply(key);
-
-        final int numPseudoColumns = SystemColumns
-            .pseudoColumnNames(pseudoColumnVersion).size();
-
-        row.ensureAdditionalCapacity(numPseudoColumns + keyColumns.size() + headerColumns.size());
-
-        for (final Column col : headerColumns) {
-          if (col.headerKey().isPresent()) {
-            row.append(extractHeader(record.headers(), col.headerKey().get()));
-          } else {
-            row.append(createHeaderData(record.headers()));
-          }
-        }
-
-        if (pseudoColumnVersion >= SystemColumns.ROWTIME_PSEUDOCOLUMN_VERSION) {
-          final long timestamp = record.timestamp();
-          row.append(timestamp);
-        }
-
-        if (pseudoColumnVersion >= SystemColumns.ROWPARTITION_ROWOFFSET_PSEUDOCOLUMN_VERSION) {
-          final RecordMetadata recordMetadata = processorContext.recordMetadata().get();
-          final int partition = recordMetadata.partition();
-          final long offset = recordMetadata.offset();
-          row.append(partition);
-          row.append(offset);
-        }
-
-        row.appendAll(keyColumns);
-        processorContext.forward(record.withValue(row));
+      if (pseudoColumnVersion >= SystemColumns.ROWTIME_PSEUDOCOLUMN_VERSION) {
+        final long timestamp = record.timestamp();
+        row.append(timestamp);
       }
+
+      if (pseudoColumnVersion >= SystemColumns.ROWPARTITION_ROWOFFSET_PSEUDOCOLUMN_VERSION) {
+        final RecordMetadata recordMetadata = processorContext.recordMetadata().get();
+        final int partition = recordMetadata.partition();
+        final long offset = recordMetadata.offset();
+        row.append(partition);
+        row.append(offset);
+      }
+
+      row.appendAll(keyColumns);
+      processorContext.forward(record.withValue(row));
     }
   }
 }

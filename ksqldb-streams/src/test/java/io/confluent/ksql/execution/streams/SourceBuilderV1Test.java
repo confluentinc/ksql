@@ -90,6 +90,7 @@ import org.apache.kafka.streams.kstream.Consumed;
 import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.KTable;
 import org.apache.kafka.streams.kstream.Materialized;
+import org.apache.kafka.streams.kstream.Named;
 import org.apache.kafka.streams.kstream.ValueMapper;
 import org.apache.kafka.streams.kstream.ValueTransformerWithKey;
 import org.apache.kafka.streams.kstream.ValueTransformerWithKeySupplier;
@@ -271,6 +272,7 @@ public class SourceBuilderV1Test {
     when(kTable.mapValues(any(ValueMapper.class))).thenReturn(kTable);
     when(kTable.mapValues(any(ValueMapper.class), any(Materialized.class))).thenReturn(kTable);
     when(kStream.processValues(any(FixedKeyProcessorSupplier.class))).thenReturn(kStream);
+    when(kStream.processValues(any(FixedKeyProcessorSupplier.class), any(Named.class))).thenReturn(kStream);
     when(kTable.transformValues(any(ValueTransformerWithKeySupplier.class))).thenReturn(kTable);
     when(buildContext.buildKeySerde(any(), any(), any())).thenReturn(keySerde);
     when(buildContext.buildValueSerde(any(), any(), any())).thenReturn(valueSerde);
@@ -309,7 +311,7 @@ public class SourceBuilderV1Test {
     final InOrder validator = inOrder(streamsBuilder, kStream);
     validator.verify(streamsBuilder).stream(TOPIC_NAME, consumed);
     validator.verify(kStream, never()).mapValues(any(ValueMapper.class));
-    validator.verify(kStream).processValues(any(FixedKeyProcessorSupplier.class));
+    validator.verify(kStream).processValues(any(FixedKeyProcessorSupplier.class), any(Named.class));
     verify(consumedFactory).create(keySerde, valueSerde);
     verify(consumed).withTimestampExtractor(any());
     verify(consumed).withOffsetResetPolicy(any());
@@ -1092,7 +1094,8 @@ public class SourceBuilderV1Test {
       final SourceStep<?> streamSource
   ) {
     streamSource.build(planBuilder, planInfo);
-    verify(kStream).processValues(fixedKeyProcessorSupplierArgumentCaptor.capture());
+    verify(kStream).processValues(fixedKeyProcessorSupplierArgumentCaptor.capture(),
+        any(Named.class));
     final FixedKeyProcessor<K, GenericRow, GenericRow> processor =
         (FixedKeyProcessor<K, GenericRow, GenericRow>) fixedKeyProcessorSupplierArgumentCaptor.getValue().get();
     processor.init(fixedKeyProcessorContext);

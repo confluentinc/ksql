@@ -60,7 +60,6 @@ import io.confluent.ksql.testutils.AnalysisTestUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.LimitedProxyBuilder;
 import io.confluent.ksql.util.MetaStoreFixture;
-import java.lang.reflect.Array;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;

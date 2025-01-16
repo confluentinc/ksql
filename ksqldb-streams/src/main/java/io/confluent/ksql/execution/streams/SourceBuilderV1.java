@@ -301,8 +301,7 @@ final class SourceBuilderV1 extends SourceBuilderBase {
         .stream(streamSource.getTopicName(), consumed);
 
     final int pseudoColumnVersion = streamSource.getPseudoColumnVersion();
-    return stream
-        .processValues(() -> new AddKeyAndPseudoColumnsProcessor<>(
+    return stream.processValues(() -> new AddKeyAndPseudoColumnsProcessor<>(
             keyGenerator, pseudoColumnVersion, streamSource.getSourceSchema().headers()));
   }
 

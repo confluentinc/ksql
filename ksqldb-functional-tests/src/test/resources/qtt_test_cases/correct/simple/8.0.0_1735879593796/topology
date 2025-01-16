@@ -1,19 +1,16 @@
 Topologies:
    Sub-topology: 0
     Source: KSTREAM-SOURCE-0000000000 (topics: [test_topic])
-      --> KSTREAM-PEEK-0000000001, KSTREAM-TRANSFORMVALUES-0000000001
-    Processor: KSTREAM-TRANSFORMVALUES-0000000001 (stores: [])
+      --> KSTREAM-PROCESSVALUES-0000000001
+    Processor: KSTREAM-PROCESSVALUES-0000000001 (stores: [])
       --> WhereFilter
       <-- KSTREAM-SOURCE-0000000000
     Processor: WhereFilter (stores: [])
       --> KSTREAM-PEEK-0000000003, Project
-      <-- KSTREAM-TRANSFORMVALUES-0000000001
+      <-- KSTREAM-PROCESSVALUES-0000000001
     Processor: Project (stores: [])
       --> KSTREAM-SINK-0000000004
       <-- WhereFilter
-    Processor: KSTREAM-PEEK-0000000001 (stores: [])
-      --> none
-      <-- KSTREAM-SOURCE-0000000000
     Processor: KSTREAM-PEEK-0000000003 (stores: [])
       --> none
       <-- WhereFilter

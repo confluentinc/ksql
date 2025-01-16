@@ -311,7 +311,7 @@ public class SourceBuilderV1Test {
     final InOrder validator = inOrder(streamsBuilder, kStream);
     validator.verify(streamsBuilder).stream(TOPIC_NAME, consumed);
     validator.verify(kStream, never()).mapValues(any(ValueMapper.class));
-    validator.verify(kStream).processValues(any(FixedKeyProcessorSupplier.class), any(Named.class));
+    validator.verify(kStream).processValues(any(FixedKeyProcessorSupplier.class));
     verify(consumedFactory).create(keySerde, valueSerde);
     verify(consumed).withTimestampExtractor(any());
     verify(consumed).withOffsetResetPolicy(any());
@@ -1094,8 +1094,7 @@ public class SourceBuilderV1Test {
       final SourceStep<?> streamSource
   ) {
     streamSource.build(planBuilder, planInfo);
-    verify(kStream).processValues(fixedKeyProcessorSupplierArgumentCaptor.capture(),
-        any(Named.class));
+    verify(kStream).processValues(fixedKeyProcessorSupplierArgumentCaptor.capture());
     final FixedKeyProcessor<K, GenericRow, GenericRow> processor =
         (FixedKeyProcessor<K, GenericRow, GenericRow>) fixedKeyProcessorSupplierArgumentCaptor.getValue().get();
     processor.init(fixedKeyProcessorContext);

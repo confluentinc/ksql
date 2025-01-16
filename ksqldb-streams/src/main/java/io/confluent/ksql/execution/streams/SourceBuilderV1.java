@@ -302,10 +302,9 @@ final class SourceBuilderV1 extends SourceBuilderBase {
         .stream(streamSource.getTopicName(), consumed);
 
     final int pseudoColumnVersion = streamSource.getPseudoColumnVersion();
-    stream.peek((k, v) -> { });
+    // stream.peek((k, v) -> { });
     return stream.processValues(() -> new AddKeyAndPseudoColumnsProcessor<>(
-            keyGenerator, pseudoColumnVersion, streamSource.getSourceSchema().headers()),
-        Named.as("KSTREAM-TRANSFORMVALUES-0000000001"));
+            keyGenerator, pseudoColumnVersion, streamSource.getSourceSchema().headers()));
   }
 
   private static Function<GenericKey, Collection<?>> nonWindowedKeyGenerator(

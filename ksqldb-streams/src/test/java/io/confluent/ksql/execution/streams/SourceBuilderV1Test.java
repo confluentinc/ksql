@@ -26,6 +26,7 @@ import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
@@ -89,6 +90,7 @@ import org.apache.kafka.streams.kstream.Consumed;
 import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.KTable;
 import org.apache.kafka.streams.kstream.Materialized;
+import org.apache.kafka.streams.kstream.Named;
 import org.apache.kafka.streams.kstream.ValueMapper;
 import org.apache.kafka.streams.kstream.ValueTransformerWithKey;
 import org.apache.kafka.streams.kstream.ValueTransformerWithKeySupplier;
@@ -97,6 +99,11 @@ import org.apache.kafka.streams.kstream.internals.SessionWindow;
 import org.apache.kafka.streams.kstream.internals.TimeWindow;
 import org.apache.kafka.streams.processor.ProcessorContext;
 import org.apache.kafka.streams.processor.TimestampExtractor;
+import org.apache.kafka.streams.processor.api.FixedKeyProcessor;
+import org.apache.kafka.streams.processor.api.FixedKeyProcessorContext;
+import org.apache.kafka.streams.processor.api.FixedKeyProcessorSupplier;
+import org.apache.kafka.streams.processor.api.FixedKeyRecord;
+import org.apache.kafka.streams.processor.api.RecordMetadata;
 import org.apache.kafka.streams.state.KeyValueStore;
 import org.junit.Before;
 import org.junit.Rule;
@@ -213,6 +220,8 @@ public class SourceBuilderV1Test {
   @Mock
   private ProcessorContext processorCtx;
   @Mock
+  private FixedKeyProcessorContext fixedKeyProcessorContext;
+  @Mock
   private ConsumedFactory consumedFactory;
   @Mock
   private StreamsFactories streamsFactories;
@@ -234,6 +243,8 @@ public class SourceBuilderV1Test {
   private PlanInfo planInfo;
   @Captor
   private ArgumentCaptor<ValueTransformerWithKeySupplier<?, GenericRow, GenericRow>> transformSupplierCaptor;
+  @Captor
+  private ArgumentCaptor<FixedKeyProcessorSupplier<?, GenericRow, GenericRow>> fixedKeyProcessorSupplierArgumentCaptor;
   @Captor
   private ArgumentCaptor<TimestampExtractor> timestampExtractorCaptor;
   @Captor
@@ -260,7 +271,8 @@ public class SourceBuilderV1Test {
     when(streamsBuilder.table(anyString(), any(Consumed.class))).thenReturn(kTable);
     when(kTable.mapValues(any(ValueMapper.class))).thenReturn(kTable);
     when(kTable.mapValues(any(ValueMapper.class), any(Materialized.class))).thenReturn(kTable);
-    when(kStream.transformValues(any(ValueTransformerWithKeySupplier.class))).thenReturn(kStream);
+    when(kStream.processValues(any(FixedKeyProcessorSupplier.class))).thenReturn(kStream);
+    when(kStream.processValues(any(FixedKeyProcessorSupplier.class), any(Named.class))).thenReturn(kStream);
     when(kTable.transformValues(any(ValueTransformerWithKeySupplier.class))).thenReturn(kTable);
     when(buildContext.buildKeySerde(any(), any(), any())).thenReturn(keySerde);
     when(buildContext.buildValueSerde(any(), any(), any())).thenReturn(valueSerde);
@@ -299,7 +311,7 @@ public class SourceBuilderV1Test {
     final InOrder validator = inOrder(streamsBuilder, kStream);
     validator.verify(streamsBuilder).stream(TOPIC_NAME, consumed);
     validator.verify(kStream, never()).mapValues(any(ValueMapper.class));
-    validator.verify(kStream).transformValues(any(ValueTransformerWithKeySupplier.class));
+    validator.verify(kStream).processValues(any(FixedKeyProcessorSupplier.class), any(Named.class));
     verify(consumedFactory).create(keySerde, valueSerde);
     verify(consumed).withTimestampExtractor(any());
     verify(consumed).withOffsetResetPolicy(any());
@@ -621,28 +633,31 @@ public class SourceBuilderV1Test {
   public void shouldAddRowTimeAndRowKeyColumnsToLegacyNonWindowedStream() {
     // Given:
     givenUnwindowedSourceStream(LEGACY_PSEUDOCOLUMN_VERSION_NUMBER);
-    final ValueTransformerWithKey<GenericKey, GenericRow, GenericRow> transformer =
-        getTransformerFromStreamSource(streamSource);
+    final FixedKeyProcessor<GenericKey, GenericRow, GenericRow> processor =
+        getProcessorFromStreamSource(streamSource);
 
-    // When:
-    final GenericRow withTimestamp = transformer.transform(KEY, row);
-
-    // Then:
-    assertThat(withTimestamp, equalTo(GenericRow.genericRow("baz", 123, HEADER_DATA, A_ROWTIME, A_KEY)));
+    assertFixedKeyProcessorContextForwardsValue(
+        processor,
+        KEY,
+        row,
+        GenericRow.genericRow("baz", 123, HEADER_DATA, A_ROWTIME, A_KEY)
+    );
   }
 
   @Test
   public void shouldAddRowPartitionAndOffsetColumnsToNonWindowedStream() {
     // Given:
     givenUnwindowedSourceStream();
-    final ValueTransformerWithKey<GenericKey, GenericRow, GenericRow> transformer =
-        getTransformerFromStreamSource(streamSource);
+    final FixedKeyProcessor<GenericKey, GenericRow, GenericRow> processor =
+        getProcessorFromStreamSource(streamSource);
 
-    // When:
-    final GenericRow withTimestamp = transformer.transform(KEY, row);
-
-    // Then:
-    assertThat(withTimestamp, equalTo(GenericRow.genericRow("baz", 123, HEADER_DATA, A_ROWTIME, A_ROWPARTITION, A_ROWOFFSET, A_KEY)));
+    assertFixedKeyProcessorContextForwardsValue(
+        processor,
+        KEY,
+        row,
+        GenericRow.genericRow(
+            "baz", 123, HEADER_DATA, A_ROWTIME, A_ROWPARTITION, A_ROWOFFSET, A_KEY)
+    );
   }
 
   @Test
@@ -663,238 +678,252 @@ public class SourceBuilderV1Test {
   public void shouldHandleNullKeyLegacy() {
     // Given:
     givenUnwindowedSourceStream(LEGACY_PSEUDOCOLUMN_VERSION_NUMBER);
-    final ValueTransformerWithKey<GenericKey, GenericRow, GenericRow> transformer =
-        getTransformerFromStreamSource(streamSource);
+    final FixedKeyProcessor<GenericKey, GenericRow, GenericRow> processor =
+        getProcessorFromStreamSource(streamSource);
 
     final GenericKey nullKey = null;
-
-    // When:
-    final GenericRow withTimestamp = transformer.transform(nullKey, row);
-
-    // Then:
-    assertThat(withTimestamp, equalTo(GenericRow.genericRow("baz", 123, HEADER_DATA, A_ROWTIME, null)));
+    assertFixedKeyProcessorContextForwardsValue(
+        processor,
+        nullKey,
+        row,
+        GenericRow.genericRow("baz", 123, HEADER_DATA, A_ROWTIME, null)
+    );
   }
 
   @Test
   public void shouldHandleNullKey() {
     // Given:
     givenUnwindowedSourceStream();
-    final ValueTransformerWithKey<GenericKey, GenericRow, GenericRow> transformer =
-        getTransformerFromStreamSource(streamSource);
+    final FixedKeyProcessor<GenericKey, GenericRow, GenericRow> processor =
+        getProcessorFromStreamSource(streamSource);
 
-    final GenericKey nullKey = null;
-
-    // When:
-    final GenericRow withTimestamp = transformer.transform(nullKey, row);
-
-    // Then:
-    assertThat(withTimestamp, equalTo(GenericRow.genericRow(
-        "baz", 123, HEADER_DATA, A_ROWTIME, A_ROWPARTITION, A_ROWOFFSET, null)));
+    assertFixedKeyProcessorContextForwardsValue(
+        processor,
+        null,
+        row,
+        GenericRow.genericRow(
+            "baz", 123, HEADER_DATA, A_ROWTIME, A_ROWPARTITION, A_ROWOFFSET, null)
+    );
   }
 
   @Test
   public void shouldHandleEmptyKeyLegacy() {
     // Given:
     givenUnwindowedSourceStream(LEGACY_PSEUDOCOLUMN_VERSION_NUMBER);
-    final ValueTransformerWithKey<GenericKey, GenericRow, GenericRow> transformer =
-        getTransformerFromStreamSource(streamSource);
+    final FixedKeyProcessor<GenericKey, GenericRow, GenericRow> processor =
+        getProcessorFromStreamSource(streamSource);
 
     final GenericKey nullKey = GenericKey.genericKey((Object) null);
 
-    // When:
-    final GenericRow withTimestamp = transformer.transform(nullKey, row);
-
-    // Then:
-    assertThat(withTimestamp, equalTo(GenericRow.genericRow("baz", 123, HEADER_DATA, A_ROWTIME, null)));
+    assertFixedKeyProcessorContextForwardsValue(
+        processor,
+        nullKey,
+        row,
+        GenericRow.genericRow("baz", 123, HEADER_DATA, A_ROWTIME, null)
+    );
   }
 
   @Test
   public void shouldHandleEmptyKey() {
     // Given:
     givenUnwindowedSourceStream();
-    final ValueTransformerWithKey<GenericKey, GenericRow, GenericRow> transformer =
-        getTransformerFromStreamSource(streamSource);
+    final FixedKeyProcessor<GenericKey, GenericRow, GenericRow> processor =
+        getProcessorFromStreamSource(streamSource);
 
     final GenericKey nullKey = GenericKey.genericKey((Object) null);
 
-    // When:
-    final GenericRow withTimestamp = transformer.transform(nullKey, row);
-
-    // Then:
-    assertThat(withTimestamp, equalTo(GenericRow.genericRow(
-        "baz", 123, HEADER_DATA, A_ROWTIME, A_ROWPARTITION, A_ROWOFFSET, null)));
+    assertFixedKeyProcessorContextForwardsValue(
+        processor,
+        nullKey,
+        row,
+        GenericRow.genericRow(
+            "baz", 123, HEADER_DATA, A_ROWTIME, A_ROWPARTITION, A_ROWOFFSET, null)
+    );
   }
 
   @Test
   public void shouldHandleMultiKeyFieldLegacy() {
     // Given:
     givenMultiColumnSourceStream(LEGACY_PSEUDOCOLUMN_VERSION_NUMBER);
-    final ValueTransformerWithKey<GenericKey, GenericRow, GenericRow> transformer =
-        getTransformerFromStreamSource(streamSource);
+    final FixedKeyProcessor<GenericKey, GenericRow, GenericRow> processor =
+        getProcessorFromStreamSource(streamSource);
 
     final GenericKey key = GenericKey.genericKey(1d, 2d);
 
-    // When:
-    final GenericRow withTimestamp = transformer.transform(key, row);
-
-    // Then:
-    assertThat(withTimestamp, equalTo(GenericRow.genericRow("baz", 123, HEADER_A, HEADER_B, null, A_ROWTIME, 1d, 2d)));
+    assertFixedKeyProcessorContextForwardsValue(
+        processor,
+        key,
+        row,
+        GenericRow.genericRow("baz", 123, HEADER_A, HEADER_B, null, A_ROWTIME, 1d, 2d)
+    );
   }
 
   @Test
   public void shouldHandleMultiKeyField() {
     // Given:
     givenMultiColumnSourceStream();
-    final ValueTransformerWithKey<GenericKey, GenericRow, GenericRow> transformer =
-        getTransformerFromStreamSource(streamSource);
+    final FixedKeyProcessor<GenericKey, GenericRow, GenericRow> processor =
+        getProcessorFromStreamSource(streamSource);
 
     final GenericKey key = GenericKey.genericKey(1d, 2d);
 
-    // When:
-    final GenericRow withTimestamp = transformer.transform(key, row);
-
-    // Then:
-    assertThat(withTimestamp, equalTo(GenericRow.genericRow(
-        "baz", 123, HEADER_A, HEADER_B, null, A_ROWTIME, A_ROWPARTITION, A_ROWOFFSET, 1d, 2d)));
+    assertFixedKeyProcessorContextForwardsValue(
+        processor,
+        key,
+        row,
+        GenericRow.genericRow(
+            "baz", 123, HEADER_A, HEADER_B, null,
+            A_ROWTIME, A_ROWPARTITION, A_ROWOFFSET, 1d, 2d)
+    );
   }
 
   @Test
   public void shouldHandleMultiKeyFieldWithNullColLegacy() {
     // Given:
     givenMultiColumnSourceStream(LEGACY_PSEUDOCOLUMN_VERSION_NUMBER);
-    final ValueTransformerWithKey<GenericKey, GenericRow, GenericRow> transformer =
-        getTransformerFromStreamSource(streamSource);
+    final FixedKeyProcessor<GenericKey, GenericRow, GenericRow> processor =
+        getProcessorFromStreamSource(streamSource);
 
     final GenericKey key = GenericKey.genericKey(null, 2d);
 
-    // When:
-    final GenericRow withTimestamp = transformer.transform(key, row);
-
-    // Then:
-    assertThat(withTimestamp, equalTo(GenericRow.genericRow("baz", 123, HEADER_A, HEADER_B, null, A_ROWTIME, null, 2d)));
+    assertFixedKeyProcessorContextForwardsValue(
+        processor,
+        key,
+        row,
+        GenericRow.genericRow("baz", 123, HEADER_A, HEADER_B, null, A_ROWTIME, null, 2d)
+    );
   }
 
   @Test
   public void shouldHandleMultiKeyFieldWithNullCol() {
     // Given:
     givenMultiColumnSourceStream();
-    final ValueTransformerWithKey<GenericKey, GenericRow, GenericRow> transformer =
-        getTransformerFromStreamSource(streamSource);
+    final FixedKeyProcessor<GenericKey, GenericRow, GenericRow> processor =
+        getProcessorFromStreamSource(streamSource);
 
     final GenericKey key = GenericKey.genericKey(null, 2d);
 
-    // When:
-    final GenericRow withTimestamp = transformer.transform(key, row);
-
-    // Then:
-    assertThat(withTimestamp, equalTo(GenericRow.genericRow(
-        "baz", 123, HEADER_A, HEADER_B, null, A_ROWTIME, A_ROWPARTITION, A_ROWOFFSET, null, 2d)));
+    assertFixedKeyProcessorContextForwardsValue(
+        processor,
+        key,
+        row,
+        GenericRow.genericRow(
+            "baz", 123, HEADER_A, HEADER_B, null,
+            A_ROWTIME, A_ROWPARTITION, A_ROWOFFSET, null, 2d)
+    );
   }
 
   @Test
   public void shouldHandleMultiKeyFieldEmptyGenericKeyLegacy() {
     // Given:
     givenMultiColumnSourceStream(LEGACY_PSEUDOCOLUMN_VERSION_NUMBER);
-    final ValueTransformerWithKey<GenericKey, GenericRow, GenericRow> transformer =
-        getTransformerFromStreamSource(streamSource);
+    final FixedKeyProcessor<GenericKey, GenericRow, GenericRow> processor =
+        getProcessorFromStreamSource(streamSource);
 
     final GenericKey key = GenericKey.genericKey(null, null);
 
-    // When:
-    final GenericRow withTimestamp = transformer.transform(key, row);
-
-    // Then:
-    assertThat(withTimestamp, equalTo(GenericRow.genericRow("baz", 123, HEADER_A, HEADER_B, null, A_ROWTIME, null, null)));
+    assertFixedKeyProcessorContextForwardsValue(
+        processor,
+        key,
+        row,
+        GenericRow.genericRow("baz", 123, HEADER_A, HEADER_B, null, A_ROWTIME, null, null)
+    );
   }
 
   @Test
   public void shouldHandleMultiKeyFieldEmptyGenericKey() {
     // Given:
     givenMultiColumnSourceStream();
-    final ValueTransformerWithKey<GenericKey, GenericRow, GenericRow> transformer =
-        getTransformerFromStreamSource(streamSource);
+    final FixedKeyProcessor<GenericKey, GenericRow, GenericRow> processor =
+        getProcessorFromStreamSource(streamSource);
 
     final GenericKey key = GenericKey.genericKey(null, null);
 
-    // When:
-    final GenericRow withTimestamp = transformer.transform(key, row);
-
-    // Then:
-    assertThat(withTimestamp, equalTo(GenericRow.genericRow(
-        "baz", 123, HEADER_A, HEADER_B, null, A_ROWTIME, A_ROWPARTITION, A_ROWOFFSET, null, null)));
+    assertFixedKeyProcessorContextForwardsValue(
+        processor,
+        key,
+        row,
+        GenericRow.genericRow(
+            "baz", 123, HEADER_A, HEADER_B, null,
+            A_ROWTIME, A_ROWPARTITION, A_ROWOFFSET, null, null)
+    );
   }
 
   @Test
   public void shouldHandleMultiKeyFieldEntirelyNullLegacy() {
     // Given:
     givenMultiColumnSourceStream(LEGACY_PSEUDOCOLUMN_VERSION_NUMBER);
-    final ValueTransformerWithKey<GenericKey, GenericRow, GenericRow> transformer =
-        getTransformerFromStreamSource(streamSource);
+    final FixedKeyProcessor<GenericKey, GenericRow, GenericRow> transformer =
+        getProcessorFromStreamSource(streamSource);
 
     final GenericKey key = null;
 
-    // When:
-    final GenericRow withTimestamp = transformer.transform(key, row);
-
-    // Then:
-    assertThat(withTimestamp, equalTo(GenericRow.genericRow("baz", 123, HEADER_A, HEADER_B, null, A_ROWTIME, null, null)));
+    assertFixedKeyProcessorContextForwardsValue(
+        transformer,
+        key,
+        row,
+        GenericRow.genericRow("baz", 123,
+            HEADER_A, HEADER_B, null, A_ROWTIME, null, null));
   }
 
   @Test
   public void shouldHandleMultiKeyFieldEntirelyNull() {
     // Given:
     givenMultiColumnSourceStream();
-    final ValueTransformerWithKey<GenericKey, GenericRow, GenericRow> transformer =
-        getTransformerFromStreamSource(streamSource);
+    final FixedKeyProcessor<GenericKey, GenericRow, GenericRow> transformer =
+        getProcessorFromStreamSource(streamSource);
 
     final GenericKey key = null;
 
-    // When:
-    final GenericRow withTimestamp = transformer.transform(key, row);
-
-    // Then:
-    assertThat(withTimestamp, equalTo(GenericRow.genericRow(
-        "baz", 123, HEADER_A, HEADER_B, null, A_ROWTIME, A_ROWPARTITION, A_ROWOFFSET, null, null)));
+    assertFixedKeyProcessorContextForwardsValue(
+        transformer,
+        key,
+        row,
+        GenericRow.genericRow(
+            "baz", 123, HEADER_A, HEADER_B, null,
+            A_ROWTIME, A_ROWPARTITION, A_ROWOFFSET, null, null));
   }
 
   @Test
   public void shouldAddRowTimeAndTimeWindowedRowKeyColumnsToLegacyStream() {
     // Given:
     givenWindowedSourceStream(LEGACY_PSEUDOCOLUMN_VERSION_NUMBER);
-    final ValueTransformerWithKey<Windowed<GenericKey>, GenericRow, GenericRow> transformer =
-        getTransformerFromStreamSource(windowedStreamSource);
+    final FixedKeyProcessor<Windowed<GenericKey>, GenericRow, GenericRow> processor =
+        getProcessorFromStreamSource(windowedStreamSource);
 
     final Windowed<GenericKey> key = new Windowed<>(
         KEY,
         new TimeWindow(A_WINDOW_START, A_WINDOW_END)
     );
 
-    // When:
-    final GenericRow withTimestamp = transformer.transform(key, row);
-
-    // Then:
-    assertThat(withTimestamp, equalTo(GenericRow.genericRow(
-        "baz", 123, HEADER_DATA, A_ROWTIME, A_KEY, A_WINDOW_START, A_WINDOW_END)));
+    assertFixedKeyProcessorContextForwardsValue(
+        processor,
+        key,
+        row,
+        GenericRow.genericRow("baz", 123, HEADER_DATA, A_ROWTIME, A_KEY, A_WINDOW_START, A_WINDOW_END)
+    );
   }
 
   @Test
   public void shouldAddPseudoColumnsAndTimeWindowedRowKeyColumnsToStream() {
     // Given:
     givenWindowedSourceStream();
-    final ValueTransformerWithKey<Windowed<GenericKey>, GenericRow, GenericRow> transformer =
-        getTransformerFromStreamSource(windowedStreamSource);
+    final FixedKeyProcessor<Windowed<GenericKey>, GenericRow, GenericRow> processor =
+        getProcessorFromStreamSource(windowedStreamSource);
 
     final Windowed<GenericKey> key = new Windowed<>(
         KEY,
         new TimeWindow(A_WINDOW_START, A_WINDOW_END)
     );
 
-    // When:
-    final GenericRow withTimestamp = transformer.transform(key, row);
-
-    // Then:
-    assertThat(withTimestamp, equalTo(GenericRow.genericRow(
-        "baz", 123, HEADER_DATA, A_ROWTIME, A_ROWPARTITION, A_ROWOFFSET, A_KEY, A_WINDOW_START, A_WINDOW_END)));
+    assertFixedKeyProcessorContextForwardsValue(
+        processor,
+        key,
+        row,
+        GenericRow.genericRow(
+            "baz", 123, HEADER_DATA, A_ROWTIME, A_ROWPARTITION,
+            A_ROWOFFSET, A_KEY, A_WINDOW_START, A_WINDOW_END)
+    );
   }
 
   @Test
@@ -921,41 +950,50 @@ public class SourceBuilderV1Test {
   public void shouldAddRowTimeAndSessionWindowedRowKeyColumnsToStreamLegacy() {
     // Given:
     givenWindowedSourceStream(LEGACY_PSEUDOCOLUMN_VERSION_NUMBER);
-    final ValueTransformerWithKey<Windowed<GenericKey>, GenericRow, GenericRow> transformer =
-        getTransformerFromStreamSource(windowedStreamSource);
+    final FixedKeyProcessor<Windowed<GenericKey>, GenericRow, GenericRow> processor =
+        getProcessorFromStreamSource(windowedStreamSource);
 
     final Windowed<GenericKey> key = new Windowed<>(
         KEY,
         new SessionWindow(A_WINDOW_START, A_WINDOW_END)
     );
 
-    // When:
-    final GenericRow withTimestamp = transformer.transform(key, row);
-
-    // Then:
-    assertThat(withTimestamp,
-        equalTo(GenericRow.genericRow("baz", 123, HEADER_DATA, A_ROWTIME, A_KEY, A_WINDOW_START, A_WINDOW_END)));
+    assertFixedKeyProcessorContextForwardsValue(
+        processor,
+        key,
+        row,
+        GenericRow.genericRow("baz", 123, HEADER_DATA, A_ROWTIME,
+            A_KEY, A_WINDOW_START, A_WINDOW_END)
+    );
   }
 
   @Test
   public void shouldAddPseudoColumnsAndSessionWindowedRowKeyColumnsToStream() {
     // Given:
     givenWindowedSourceStream();
-    final ValueTransformerWithKey<Windowed<GenericKey>, GenericRow, GenericRow> transformer =
-        getTransformerFromStreamSource(windowedStreamSource);
+    final FixedKeyProcessor<Windowed<GenericKey>, GenericRow, GenericRow> processor =
+        getProcessorFromStreamSource(windowedStreamSource);
 
     final Windowed<GenericKey> key = new Windowed<>(
         KEY,
         new SessionWindow(A_WINDOW_START, A_WINDOW_END)
     );
 
-    // When:
-    final GenericRow withTimestamp = transformer.transform(key, row);
-
-    // Then:
-    assertThat(withTimestamp,
-        equalTo(GenericRow.genericRow(
-            "baz", 123, HEADER_DATA, A_ROWTIME, A_ROWPARTITION, A_ROWOFFSET, A_KEY, A_WINDOW_START, A_WINDOW_END)));
+    assertFixedKeyProcessorContextForwardsValue(
+        processor,
+        key,
+        row,
+        GenericRow.genericRow(
+            "baz",
+            123,
+            HEADER_DATA,
+            A_ROWTIME,
+            A_ROWPARTITION,
+            A_ROWOFFSET,
+            A_KEY,
+            A_WINDOW_START,
+            A_WINDOW_END)
+    );
   }
 
   @Test
@@ -1052,15 +1090,16 @@ public class SourceBuilderV1Test {
   }
 
   @SuppressWarnings("unchecked")
-  private <K> ValueTransformerWithKey<K, GenericRow, GenericRow> getTransformerFromStreamSource(
+  private <K> FixedKeyProcessor<K, GenericRow, GenericRow> getProcessorFromStreamSource(
       final SourceStep<?> streamSource
   ) {
     streamSource.build(planBuilder, planInfo);
-    verify(kStream).transformValues(transformSupplierCaptor.capture());
-    final ValueTransformerWithKey<K, GenericRow, GenericRow> transformer =
-        (ValueTransformerWithKey<K, GenericRow, GenericRow>) transformSupplierCaptor.getValue().get();
-    transformer.init(processorCtx);
-    return transformer;
+    verify(kStream).processValues(fixedKeyProcessorSupplierArgumentCaptor.capture(),
+        any(Named.class));
+    final FixedKeyProcessor<K, GenericRow, GenericRow> processor =
+        (FixedKeyProcessor<K, GenericRow, GenericRow>) fixedKeyProcessorSupplierArgumentCaptor.getValue().get();
+    processor.init(fixedKeyProcessorContext);
+    return processor;
   }
 
   @SuppressWarnings("unchecked")
@@ -1171,5 +1210,75 @@ public class SourceBuilderV1Test {
     final PlanInfo mockPlanInfo = mock(PlanInfo.class);
     when(mockPlanInfo.isRepartitionedInPlan(sourceStep)).thenReturn(true);
     return mockPlanInfo;
+  }
+
+  private FixedKeyRecord getMockFixedRecord(final Object key,
+      final GenericRow value) {
+    final FixedKeyRecord record = mock(FixedKeyRecord.class);
+    when(record.value())
+        .thenReturn(value);
+    when(record.key()).thenReturn(key);
+    when(record.timestamp()).thenReturn(A_ROWTIME);
+    when(record.headers()).thenReturn(HEADERS);
+    // mock withValue to return new mock with new value
+    when(record.withValue(any())).thenAnswer(inv -> {
+      final GenericRow row = inv.getArgument(0);
+      final FixedKeyRecord newRecord = mock(FixedKeyRecord.class);
+      when(newRecord.value()).thenReturn(row);
+      return newRecord;
+    });
+    return record;
+  }
+
+  private void assertFixedKeyProcessorContextForwardsValue(
+      final FixedKeyProcessor processor,
+      final Object key,
+      final GenericRow value,
+      final GenericRow expectedRow
+  ) {
+    when(fixedKeyProcessorContext.recordMetadata()).thenReturn(
+        Optional.of(new MockRecordMetadata(TOPIC_NAME, A_ROWPARTITION, A_ROWOFFSET))
+    );
+
+    // When:
+    processor.process(getMockFixedRecord(key, value));
+
+    // Then:
+    verify(fixedKeyProcessorContext).forward(argThat(
+        r -> {
+          assertThat(r.value(), instanceOf(GenericRow.class));
+          final GenericRow genericRow = (GenericRow) r.value();
+          assertThat(genericRow, equalTo(expectedRow));
+          return true;
+        })
+    );
+  }
+
+  private class MockRecordMetadata implements RecordMetadata {
+
+    private final String topic;
+    private final int partition;
+    private final long offset;
+
+    MockRecordMetadata(final String topic, final int partition, final long offset) {
+      this.topic = topic;
+      this.partition = partition;
+      this.offset = offset;
+    }
+
+    @Override
+    public String topic() {
+      return topic;
+    }
+
+    @Override
+    public int partition() {
+      return partition;
+    }
+
+    @Override
+    public long offset() {
+      return offset;
+    }
   }
 }

@@ -60,6 +60,7 @@ import io.confluent.ksql.testutils.AnalysisTestUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.LimitedProxyBuilder;
 import io.confluent.ksql.util.MetaStoreFixture;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.IdentityHashMap;
@@ -145,7 +146,8 @@ public class AggregateNodeTest {
         .collect(Collectors.toList());
 
     assertThat(sourceNode.predecessors(), equalTo(Collections.emptySet()));
-    assertThat(successors, equalTo(Collections.singletonList(TRANSFORM_NODE)));
+    assertThat(successors, equalTo(Arrays.asList("KSTREAM-PEEK-0000000001",
+        TRANSFORM_NODE)));
     assertThat(sourceNode.topicSet(), equalTo(ImmutableSet.of("test1")));
   }
 
@@ -494,11 +496,6 @@ public class AggregateNodeTest {
                 this)
             .forward("mapValues", methodParams(ValueMapperWithKey.class), this)
             .forward("mapValues", methodParams(ValueMapperWithKey.class, Named.class),
-                this)
-            .forward("transformValues",
-                methodParams(ValueTransformerWithKeySupplier.class, String[].class), this)
-            .forward("transformValues",
-                methodParams(ValueTransformerWithKeySupplier.class, Named.class, String[].class),
                 this)
             .forward("process",
                 methodParams(ProcessorSupplier.class, String[].class), this)

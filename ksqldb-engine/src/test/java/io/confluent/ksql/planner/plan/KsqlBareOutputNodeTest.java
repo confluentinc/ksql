@@ -110,7 +110,7 @@ public class KsqlBareOutputNodeTest {
     final List<String> successors = node.successors().stream().map(TopologyDescription.Node::name)
         .collect(Collectors.toList());
     assertThat(node.predecessors(), equalTo(Collections.emptySet()));
-    assertThat(successors, equalTo(Collections.singletonList(TRANSFORM_NODE)));
+    assertThat(successors, equalTo(Arrays.asList("KSTREAM-PEEK-0000000001", TRANSFORM_NODE)));
     assertThat(node.topicSet(), equalTo(ImmutableSet.of("test1")));
   }
 

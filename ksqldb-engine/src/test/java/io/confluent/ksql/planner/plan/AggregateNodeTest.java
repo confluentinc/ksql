@@ -17,8 +17,8 @@ package io.confluent.ksql.planner.plan;
 
 import static io.confluent.ksql.GenericRow.genericRow;
 import static io.confluent.ksql.function.UserFunctionLoaderTestUtil.loadAllUserFunctions;
+import static io.confluent.ksql.planner.plan.PlanTestUtil.PROCESS_NODE;
 import static io.confluent.ksql.planner.plan.PlanTestUtil.SOURCE_NODE;
-import static io.confluent.ksql.planner.plan.PlanTestUtil.TRANSFORM_NODE;
 import static io.confluent.ksql.planner.plan.PlanTestUtil.getNodeByName;
 import static io.confluent.ksql.util.LimitedProxyBuilder.methodParams;
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -146,8 +146,7 @@ public class AggregateNodeTest {
         .collect(Collectors.toList());
 
     assertThat(sourceNode.predecessors(), equalTo(Collections.emptySet()));
-    assertThat(successors, equalTo(Arrays.asList("KSTREAM-PEEK-0000000001",
-        TRANSFORM_NODE)));
+    assertThat(successors, equalTo(List.of(PROCESS_NODE)));
     assertThat(sourceNode.topicSet(), equalTo(ImmutableSet.of("test1")));
   }
 

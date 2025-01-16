@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.planner.plan;
 
+import static io.confluent.ksql.planner.plan.PlanTestUtil.PROCESS_NODE;
 import static io.confluent.ksql.planner.plan.PlanTestUtil.SOURCE_NODE;
 import static io.confluent.ksql.planner.plan.PlanTestUtil.TRANSFORM_NODE;
 import static io.confluent.ksql.planner.plan.PlanTestUtil.verifyProcessorNode;
@@ -110,14 +111,14 @@ public class KsqlBareOutputNodeTest {
     final List<String> successors = node.successors().stream().map(TopologyDescription.Node::name)
         .collect(Collectors.toList());
     assertThat(node.predecessors(), equalTo(Collections.emptySet()));
-    assertThat(successors, equalTo(Arrays.asList("KSTREAM-PEEK-0000000001", TRANSFORM_NODE)));
+    assertThat(successors, equalTo(List.of(PROCESS_NODE)));
     assertThat(node.topicSet(), equalTo(ImmutableSet.of("test1")));
   }
 
   @Test
   public void shouldBuildTransformNode() {
     final TopologyDescription.Processor node
-        = (TopologyDescription.Processor) getNodeByName(TRANSFORM_NODE);
+        = (TopologyDescription.Processor) getNodeByName(PROCESS_NODE);
     verifyProcessorNode(node, Collections.singletonList(SOURCE_NODE),
         Collections.singletonList(FILTER_NODE));
   }
@@ -126,7 +127,7 @@ public class KsqlBareOutputNodeTest {
   public void shouldBuildFilterNode() {
     final TopologyDescription.Processor node
         = (TopologyDescription.Processor) getNodeByName(FILTER_NODE);
-    verifyProcessorNode(node, Collections.singletonList(TRANSFORM_NODE),
+    verifyProcessorNode(node, Collections.singletonList(PROCESS_NODE),
         Arrays.asList(PEEK_NODE, FILTER_MAPVALUES_NODE));
   }
 

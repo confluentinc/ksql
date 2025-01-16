@@ -17,7 +17,6 @@ package io.confluent.ksql.planner.plan;
 
 import static io.confluent.ksql.planner.plan.PlanTestUtil.PROCESS_NODE;
 import static io.confluent.ksql.planner.plan.PlanTestUtil.SOURCE_NODE;
-import static io.confluent.ksql.planner.plan.PlanTestUtil.TRANSFORM_NODE;
 import static io.confluent.ksql.planner.plan.PlanTestUtil.verifyProcessorNode;
 import static io.confluent.ksql.schema.ksql.ColumnMatchers.valueColumn;
 import static org.hamcrest.CoreMatchers.equalTo;

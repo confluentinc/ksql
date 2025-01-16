@@ -495,11 +495,6 @@ public class AggregateNodeTest {
             .forward("mapValues", methodParams(ValueMapperWithKey.class), this)
             .forward("mapValues", methodParams(ValueMapperWithKey.class, Named.class),
                 this)
-            .forward("transformValues",
-                methodParams(ValueTransformerWithKeySupplier.class, String[].class), this)
-            .forward("transformValues",
-                methodParams(ValueTransformerWithKeySupplier.class, Named.class, String[].class),
-                this)
             .forward("process",
                 methodParams(ProcessorSupplier.class, String[].class), this)
             .forward("process",

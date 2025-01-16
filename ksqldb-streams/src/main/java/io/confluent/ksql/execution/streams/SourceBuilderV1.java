@@ -56,6 +56,7 @@ import org.apache.kafka.streams.kstream.Consumed;
 import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.KTable;
 import org.apache.kafka.streams.kstream.Materialized;
+import org.apache.kafka.streams.kstream.Named;
 import org.apache.kafka.streams.kstream.Windowed;
 import org.apache.kafka.streams.state.KeyValueStore;
 
@@ -301,8 +302,10 @@ final class SourceBuilderV1 extends SourceBuilderBase {
         .stream(streamSource.getTopicName(), consumed);
 
     final int pseudoColumnVersion = streamSource.getPseudoColumnVersion();
+    stream.peek((k, v) -> { });
     return stream.processValues(() -> new AddKeyAndPseudoColumnsProcessor<>(
-            keyGenerator, pseudoColumnVersion, streamSource.getSourceSchema().headers()));
+            keyGenerator, pseudoColumnVersion, streamSource.getSourceSchema().headers()),
+        Named.as("KSTREAM-TRANSFORMVALUES-0000000001"));
   }
 
   private static Function<GenericKey, Collection<?>> nonWindowedKeyGenerator(

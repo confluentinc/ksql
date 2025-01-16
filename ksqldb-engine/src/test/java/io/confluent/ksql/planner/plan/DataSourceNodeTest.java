@@ -62,6 +62,7 @@ import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.structured.SchemaKTable;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -210,7 +211,8 @@ public class DataSourceNodeTest {
     final TopologyDescription.Source node = (TopologyDescription.Source) getNodeByName(realBuilder.build(), PlanTestUtil.SOURCE_NODE);
     final List<String> successors = node.successors().stream().map(TopologyDescription.Node::name).collect(Collectors.toList());
     assertThat(node.predecessors(), equalTo(Collections.emptySet()));
-    assertThat(successors, equalTo(Collections.singletonList(PlanTestUtil.TRANSFORM_NODE)));
+    assertThat(successors, equalTo(Arrays.asList(PlanTestUtil.PEEK_NODE,
+        PlanTestUtil.TRANSFORM_NODE)));
     assertThat(node.topicSet(), equalTo(ImmutableSet.of("topic")));
   }
 

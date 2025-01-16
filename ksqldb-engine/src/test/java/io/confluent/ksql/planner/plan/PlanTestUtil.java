@@ -29,6 +29,7 @@ import org.apache.kafka.streams.TopologyDescription.Node;
 
 final class PlanTestUtil {
 
+  static final String PEEK_NODE = "KSTREAM-PEEK-0000000001";
   static final String TRANSFORM_NODE = "KSTREAM-TRANSFORMVALUES-0000000001";
   static final String SOURCE_NODE = "KSTREAM-SOURCE-0000000000";
   static final String SOURCE_NODE_FORCE_CHANGELOG = "KSTREAM-SOURCE-0000000001";

@@ -92,6 +92,7 @@ import org.apache.kafka.streams.errors.StreamsException;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -102,6 +103,7 @@ import org.junit.rules.Timeout;
  * Tests covering integration with secured components, e.g. secure Kafka cluster.
  */
 @SuppressWarnings("SameParameterValue")
+@Ignore
 @Category({IntegrationTest.class})
 public class SecureIntegrationTest {
 

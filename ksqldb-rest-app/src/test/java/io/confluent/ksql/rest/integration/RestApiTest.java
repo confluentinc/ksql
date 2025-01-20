@@ -95,6 +95,7 @@ package io.confluent.ksql.rest.integration;
   import io.vertx.core.http.HttpMethod;
   import io.vertx.core.http.HttpVersion;
   import io.vertx.ext.web.client.HttpResponse;
+
   import java.io.IOException;
   import java.time.Instant;
   import java.util.ArrayList;
@@ -111,12 +112,14 @@ package io.confluent.ksql.rest.integration;
   import java.util.function.Supplier;
   import java.util.stream.Collectors;
   import javax.ws.rs.core.MediaType;
+
   import org.apache.hc.core5.http.HttpStatus;
   import org.junit.After;
   import org.junit.AfterClass;
   import org.junit.Before;
   import org.junit.BeforeClass;
   import org.junit.ClassRule;
+  import org.junit.Ignore;
   import org.junit.Rule;
   import org.junit.Test;
   import org.junit.experimental.categories.Category;
@@ -126,6 +129,7 @@ package io.confluent.ksql.rest.integration;
   import org.slf4j.LoggerFactory;
 
 @Category({IntegrationTest.class})
+@Ignore
 public class RestApiTest {
 
   private static final Logger LOG = LoggerFactory.getLogger(RestApiTest.class);

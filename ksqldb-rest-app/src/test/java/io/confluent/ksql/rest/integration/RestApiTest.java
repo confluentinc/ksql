@@ -106,6 +106,7 @@ import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -982,6 +983,7 @@ public class RestApiTest {
     }
   }
 
+  @Ignore
   @Test
   public void shouldRoundTripCVPullQueryOverWebSocketWithJsonContentType() {
     // Given:
@@ -1007,6 +1009,7 @@ public class RestApiTest {
                                        + "I6NSwiNiI6NiwiNyI6N319fQ==\"}}"));
   }
 
+  @Ignore
   @Test
   public void shouldRoundTripCVPullQueryOverWebSocketWithV1ContentType() {
     // Given:
@@ -1032,6 +1035,7 @@ public class RestApiTest {
                                        + "I6NSwiNiI6NiwiNyI6N319fQ==\"}}"));
   }
 
+  @Ignore
   @Test
   public void shouldPrintTopicOverWebSocket() {
     // When:

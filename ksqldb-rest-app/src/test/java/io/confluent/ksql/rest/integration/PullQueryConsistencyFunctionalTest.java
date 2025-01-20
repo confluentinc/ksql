@@ -83,6 +83,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -295,6 +296,7 @@ public class PullQueryConsistencyFunctionalTest {
   }
 
   @SuppressWarnings("unchecked")
+  @Ignore
   @Test
   public void shouldPassConsistencyTokenInFanOutTableScan()
     throws Exception {

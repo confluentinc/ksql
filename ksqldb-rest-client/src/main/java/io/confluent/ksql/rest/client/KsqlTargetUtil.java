@@ -35,6 +35,7 @@ import io.confluent.ksql.util.Pair;
 import io.vertx.core.buffer.Buffer;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public final class KsqlTargetUtil {
@@ -44,7 +45,10 @@ public final class KsqlTargetUtil {
   }
 
   // This is meant to parse partial chunk responses as well as full pull query responses.
-  public static List<StreamedRow> toRows(final Buffer buff) {
+  public static List<StreamedRow> toRows(
+      final Buffer buff,
+      final Function<StreamedRow, StreamedRow> addHostInfo
+  ) {
 
     final List<StreamedRow> rows = new ArrayList<>();
     int begin = 0;
@@ -57,7 +61,7 @@ public final class KsqlTargetUtil {
           final Buffer tidied = StreamPublisher.toJsonMsg(sliced, true);
           if (tidied.length() > 0) {
             final StreamedRow row = deserialize(tidied, StreamedRow.class);
-            rows.add(row);
+            rows.add(addHostInfo.apply(row));
           }
         }
 

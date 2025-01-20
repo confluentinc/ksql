@@ -85,6 +85,7 @@ public final class KsqlTarget {
   private final LocalProperties localProperties;
   private final Optional<String> authHeader;
   private final String host;
+  private final String subPath;
 
   /**
    * Create a KsqlTarget containing all of the connection information required to make a request
@@ -93,30 +94,33 @@ public final class KsqlTarget {
    * @param localProperties Properties sent with ksql requests
    * @param authHeader Optional auth headers
    * @param host The hostname to use for the request, used to set the host header of the request
+   * @param subPath Optional path that can be provided with server name
    */
   KsqlTarget(
       final HttpClient httpClient,
       final SocketAddress socketAddress,
       final LocalProperties localProperties,
       final Optional<String> authHeader,
-      final String host
+      final String host,
+      final String subPath
   ) {
     this.httpClient = requireNonNull(httpClient, "httpClient");
     this.socketAddress = requireNonNull(socketAddress, "socketAddress");
     this.localProperties = requireNonNull(localProperties, "localProperties");
     this.authHeader = requireNonNull(authHeader, "authHeader");
     this.host = host;
+    this.subPath = subPath.replaceAll("/\\z", "");
   }
 
   public KsqlTarget authorizationHeader(final String authHeader) {
     return new KsqlTarget(httpClient, socketAddress, localProperties,
-        Optional.of(authHeader), host);
+        Optional.of(authHeader), host, subPath);
   }
 
   public KsqlTarget properties(final Map<String, ?> properties) {
     return new KsqlTarget(httpClient, socketAddress,
         new LocalProperties(properties),
-        authHeader, host);
+        authHeader, host, subPath);
   }
 
   public RestResponse<ServerInfo> getServerInfo() {
@@ -451,7 +455,7 @@ public final class KsqlTarget {
     options.setServer(socketAddress);
     options.setPort(socketAddress.port());
     options.setHost(host);
-    options.setURI(path);
+    options.setURI(subPath + path);
 
     httpClient.request(options, ar -> {
       if (ar.failed()) {

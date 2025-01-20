@@ -53,6 +53,7 @@ public class KsqlTargetTest {
 
   private static final String HOST = "host";
   private static final String QUERY = "SELECT * from RATINGS_TABLE;";
+  private static final String SUB_PATH = "";
 
   @Mock
   private HttpClient httpClient;
@@ -147,7 +148,7 @@ public class KsqlTargetTest {
 
   @Test
   public void shouldPostQueryRequest_chunkHandler() {
-    ksqlTarget = new KsqlTarget(httpClient, socketAddress, localProperties, authHeader, HOST, Collections.emptyMap());
+    ksqlTarget = new KsqlTarget(httpClient, socketAddress, localProperties, authHeader, HOST, SUB_PATH, Collections.emptyMap());
     executor.submit(this::expectPostQueryRequestChunkHandler);
     assertThatEventually(requestStarted::get, is(true));
 
@@ -162,7 +163,7 @@ public class KsqlTargetTest {
 
   @Test
   public void shouldPostQueryRequest_chunkHandler_exception() {
-    ksqlTarget = new KsqlTarget(httpClient, socketAddress, localProperties, authHeader, HOST, Collections.emptyMap());
+    ksqlTarget = new KsqlTarget(httpClient, socketAddress, localProperties, authHeader, HOST, SUB_PATH, Collections.emptyMap());
     executor.submit(this::expectPostQueryRequestChunkHandler);
 
     assertThatEventually(requestStarted::get, is(true));
@@ -176,7 +177,7 @@ public class KsqlTargetTest {
 
   @Test
   public void shouldPostQueryRequest_chunkHandler_closeEarly() {
-    ksqlTarget = new KsqlTarget(httpClient, socketAddress, localProperties, authHeader, HOST, Collections.emptyMap());
+    ksqlTarget = new KsqlTarget(httpClient, socketAddress, localProperties, authHeader, HOST, SUB_PATH, Collections.emptyMap());
     executor.submit(this::expectPostQueryRequestChunkHandler);
 
     assertThatEventually(requestStarted::get, is(true));
@@ -193,7 +194,7 @@ public class KsqlTargetTest {
   @Test
   public void shouldPostQueryRequest_chunkHandler_closeEarlyWithError() {
     doThrow(new RuntimeException("Error!")).when(httpConnection).close();
-    ksqlTarget = new KsqlTarget(httpClient, socketAddress, localProperties, authHeader, HOST, Collections.emptyMap());
+    ksqlTarget = new KsqlTarget(httpClient, socketAddress, localProperties, authHeader, HOST, SUB_PATH, Collections.emptyMap());
     executor.submit(this::expectPostQueryRequestChunkHandler);
 
     assertThatEventually(requestStarted::get, is(true));
@@ -209,7 +210,7 @@ public class KsqlTargetTest {
 
   @Test
   public void shouldPostQueryRequest_chunkHandler_closeAfterFinish() {
-    ksqlTarget = new KsqlTarget(httpClient, socketAddress, localProperties, authHeader, HOST, Collections.emptyMap());
+    ksqlTarget = new KsqlTarget(httpClient, socketAddress, localProperties, authHeader, HOST, SUB_PATH, Collections.emptyMap());
     executor.submit(this::expectPostQueryRequestChunkHandler);
 
     assertThatEventually(requestStarted::get, is(true));
@@ -226,7 +227,7 @@ public class KsqlTargetTest {
 
   @Test
   public void shouldPostQueryRequest_chunkHandler_partialMessage() {
-    ksqlTarget = new KsqlTarget(httpClient, socketAddress, localProperties, authHeader, HOST, Collections.emptyMap());
+    ksqlTarget = new KsqlTarget(httpClient, socketAddress, localProperties, authHeader, HOST, SUB_PATH, Collections.emptyMap());
     executor.submit(this::expectPostQueryRequestChunkHandler);
 
     assertThatEventually(requestStarted::get, is(true));
@@ -246,7 +247,7 @@ public class KsqlTargetTest {
   public void shouldSendAdditionalHeadersWithKsqlRequest() {
     // Given:
     final Map<String, String> additionalHeaders = ImmutableMap.of("h1", "v1", "h2", "v2");
-    ksqlTarget = new KsqlTarget(httpClient, socketAddress, localProperties, authHeader, HOST, additionalHeaders);
+    ksqlTarget = new KsqlTarget(httpClient, socketAddress, localProperties, authHeader, HOST, SUB_PATH, additionalHeaders);
 
     // When:
     executor.submit(() -> {

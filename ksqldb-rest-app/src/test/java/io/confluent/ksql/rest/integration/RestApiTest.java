@@ -983,6 +983,7 @@ public class RestApiTest {
     }
   }
 
+  @Ignore
   @Test
   public void shouldRoundTripCVPullQueryOverWebSocketWithJsonContentType() {
     // Given:

@@ -37,6 +37,7 @@ import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.fail;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
@@ -72,6 +73,7 @@ import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.integration.IntegrationTestHarness;
 import io.confluent.ksql.integration.Retry;
 import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.rest.ApiJsonMapper;
 import io.confluent.ksql.rest.entity.ConnectorList;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.integration.RestIntegrationTestUtil;
@@ -87,9 +89,11 @@ import io.confluent.ksql.serde.SerdeFeature;
 import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.util.AppInfo;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.StructuredTypesDataProvider;
 import io.confluent.ksql.util.TestDataProvider;
 import io.vertx.core.Vertx;
+import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import java.io.FileOutputStream;
@@ -1222,7 +1226,7 @@ public class ClientIntegrationTest {
       }
 
       // Add header column
-      expectedRow.add(new byte[] {23});
+      addObjectToKsqlArray(expectedRow, new byte[] {23});
 
       expectedRows.add(expectedRow);
     }
@@ -1242,8 +1246,30 @@ public class ClientIntegrationTest {
       array.add(SqlTimeTypes.formatDate((Date) value));
     } else if (value instanceof Time) {
       array.add(SqlTimeTypes.formatTime((Time) value));
+    } else if (value instanceof byte[]) {
+      array.add(serializeVertX3CompatibleByte((byte[]) value));
     } else {
       array.add(value);
+    }
+  }
+
+  /**
+   * VertX 4 changed to serialize using Base64 without padding but our server
+   * still encodes the data with padding - this uses the same serializer that
+   * the server uses to serialize the data into a string. Note that this issue
+   * only affects tests because the test uses string comparison to compare the
+   * bytes (it's schemaless, so the byte[] comes back as a string from the server).
+   *
+   * @see <a href=https://github.com/eclipse-vertx/vert.x/pull/3197>vertx#3197</a>
+   */
+  private static String serializeVertX3CompatibleByte(final byte[] bytes) {
+    try {
+      // writeValueAsString by default adds quotes to both sides to make it valid
+      // JSON
+      final String escaped = ApiJsonMapper.INSTANCE.get().writeValueAsString(bytes);
+      return escaped.substring(1, escaped.length() - 1);
+    } catch (JsonProcessingException e) {
+      throw new KsqlException(e);
     }
   }
 

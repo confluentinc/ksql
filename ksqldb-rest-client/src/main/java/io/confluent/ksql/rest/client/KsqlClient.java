@@ -132,7 +132,7 @@ public final class KsqlClient implements AutoCloseable {
     final HttpClient client = isUriTls ? httpTlsClient : httpNonTlsClient;
     return new KsqlTarget(client,
         socketAddressFactory.apply(server.getPort(), server.getHost()), localProperties,
-        basicAuthHeader, server.getHost(), additionalHeaders);
+        basicAuthHeader, server.getHost(), server.getPath(), additionalHeaders);
   }
 
   public KsqlTarget targetHttp2(final URI server) {
@@ -141,7 +141,7 @@ public final class KsqlClient implements AutoCloseable {
         () -> new IllegalStateException("Must provide http2 options to use targetHttp2"));
     return new KsqlTarget(client,
         socketAddressFactory.apply(server.getPort(), server.getHost()), localProperties,
-        basicAuthHeader, server.getHost(), Collections.emptyMap());
+        basicAuthHeader, server.getHost(), server.getPath(), Collections.emptyMap());
   }
 
   @VisibleForTesting

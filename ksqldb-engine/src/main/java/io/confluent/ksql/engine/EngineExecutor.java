@@ -277,7 +277,8 @@ final class EngineExecutor {
           statement,
           routingOptions,
           pullQueryQueue,
-          shouldCancelRequests
+          shouldCancelRequests,
+          consistencyOffsetVector
       );
 
       final PullQueryResult result = new PullQueryResult(physicalPlan.getOutputSchema(), populator,

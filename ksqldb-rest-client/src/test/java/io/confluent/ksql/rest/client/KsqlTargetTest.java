@@ -184,7 +184,7 @@ public class KsqlTargetTest {
   public void shouldPostQueryRequest_chunkHandler_nonOkStatusCode() {
     when(httpClientResponse.statusCode()).thenReturn(BAD_REQUEST.code());
     ksqlTarget = new KsqlTarget(httpClient, socketAddress, localProperties, authHeader, HOST,
-        Collections.emptyMap(), RequestOptions.DEFAULT_TIMEOUT);
+        SUB_PATH, Collections.emptyMap(), RequestOptions.DEFAULT_TIMEOUT);
     executor.submit(this::expectPostQueryRequestChunkHandler);
 
     assertThatEventually(requestStarted::get, is(true));

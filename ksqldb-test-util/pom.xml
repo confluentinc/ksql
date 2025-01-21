@@ -55,11 +55,11 @@
       <scope>compile</scope>
     </dependency>
 
-    <dependency>
-      <groupId>io.confluent</groupId>
-      <artifactId>ce-sbk_${kafka.scala.version}</artifactId>
-      <scope>compile</scope>
-    </dependency>
+<!--    <dependency>-->
+<!--      <groupId>io.confluent</groupId>-->
+<!--      <artifactId>ce-sbk_${kafka.scala.version}</artifactId>-->
+<!--      <scope>compile</scope>-->
+<!--    </dependency>-->
 
     <dependency>
       <groupId>org.apache.kafka</groupId>
@@ -126,6 +126,12 @@
     <dependency>
       <groupId>com.google.guava</groupId>
       <artifactId>guava-testlib</artifactId>
+      <scope>compile</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.kafka</groupId>
+      <artifactId>kafka-test-common</artifactId>
+      <version>8.0.0-356-ccs</version>
       <scope>compile</scope>
     </dependency>
 

@@ -22,6 +22,7 @@ import static org.hamcrest.Matchers.is;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Maps;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -35,10 +36,6 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
-import kafka.cluster.EndPoint;
-import kafka.server.KafkaConfig;
-import kafka.server.KafkaServer;
-import kafka.utils.TestUtils;
 import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.AdminClientConfig;
@@ -51,12 +48,13 @@ import org.apache.kafka.clients.admin.OffsetSpec;
 import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.IsolationLevel;
+import org.apache.kafka.common.KafkaException;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.security.auth.SecurityProtocol;
-import org.apache.kafka.common.utils.Time;
+import org.apache.kafka.common.test.KafkaClusterTestKit;
+import org.apache.kafka.common.test.TestKitNodes;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import scala.collection.Iterator;
 
 /**
  * Runs an in-memory, "embedded" instance of a Kafka broker, which listens at `127.0.0.1:9092` by
@@ -76,7 +74,7 @@ class KafkaEmbedded {
   private static final String LOG_DIR_PROP = "log.dir";
 
   private final Properties config;
-  private final KafkaServer kafka;
+  private final KafkaClusterTestKit cluster;
 
   /**
    * Creates and starts an embedded Kafka broker.
@@ -88,13 +86,29 @@ class KafkaEmbedded {
   KafkaEmbedded(final Properties config) {
     this.config = Objects.requireNonNull(config, "config");
 
-    final KafkaConfig kafkaConfig = new KafkaConfig(this.config, true);
-    log.debug("Starting embedded Kafka broker (with log.dirs={} and ZK ensemble at {}) ...",
-        logDir(), zookeeperConnect());
+    log.debug("Starting embedded Kafka broker (with log.dirs={}) ...", logDir());
 
-    kafka = TestUtils.createServer(kafkaConfig, Time.SYSTEM);
-    log.debug("Startup of embedded Kafka broker at {} completed (with ZK ensemble at {}) ...",
-        brokerList(), zookeeperConnect());
+    try {
+      final KafkaClusterTestKit.Builder clusterBuilder = new KafkaClusterTestKit.Builder(
+              new TestKitNodes.Builder()
+                      .setCombined(true)
+                      .setNumBrokerNodes(1)
+                      .setPerServerProperties(Map.of(0,
+                              Maps.newHashMap(Maps.fromProperties(config))))
+                      .setNumControllerNodes(1)
+                      .build()
+      );
+
+      cluster = clusterBuilder.build();
+      //cluster.nonFatalFaultHandler().setIgnore(true);
+
+      cluster.format();
+      cluster.startup();
+      cluster.waitForReadyBrokers();
+    } catch (final Exception e) {
+      throw new KafkaException("Failed to create test Kafka cluster", e);
+    }
+    log.debug("Startup of embedded Kafka broker at {} completed ...", brokerList());
   }
 
   /**
@@ -106,9 +120,7 @@ class KafkaEmbedded {
    * @return the broker list
    */
   String brokerList() {
-    final EndPoint endPoint = kafka.advertisedListeners().head();
-    final String hostname = endPoint.host() == null ? "" : endPoint.host();
-    return hostname + ":" + endPoint.port();
+    return cluster.bootstrapServers();
   }
 
   /**
@@ -120,15 +132,6 @@ class KafkaEmbedded {
    * @return the broker list
    */
   String brokerList(final SecurityProtocol securityProtocol) {
-    final Iterator<EndPoint> it = kafka.advertisedListeners().iterator();
-    while (it.hasNext()) {
-      final EndPoint endPoint = it.next();
-      if (endPoint.securityProtocol() == securityProtocol) {
-        final String hostname = endPoint.host() == null ? "" : endPoint.host();
-        return hostname + ":" + endPoint.port();
-      }
-    }
-
     throw new RuntimeException("No listener with protocol " + securityProtocol);
   }
 
@@ -136,18 +139,20 @@ class KafkaEmbedded {
    * Stop the broker.
    */
   void stop() {
-    log.debug("Shutting down embedded Kafka broker at {} (with ZK ensemble at {}) ...",
-        brokerList(), zookeeperConnect());
-    kafka.shutdown();
-    kafka.awaitShutdown();
-    log.debug("Deleting logs.dir at {} ...", logDir());
+    log.debug("Shutting down embedded Kafka broker at {} ...", brokerList());
     try {
-      Files.delete(Paths.get(logDir()));
-    } catch (final IOException e) {
-      log.error("Failed to delete log dir {}", logDir(), e);
+      cluster.close();
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    } finally {
+      log.debug("Deleting logs.dir at {} ...", logDir());
+      try {
+        Files.delete(Paths.get(logDir()));
+      } catch (final IOException e) {
+        log.error("Failed to delete log dir {}", logDir(), e);
+      }
+      log.debug("Shutdown of embedded Kafka broker at {} completed ...", brokerList());
     }
-    log.debug("Shutdown of embedded Kafka broker at {} completed (with ZK ensemble at {}) ...",
-        brokerList(), zookeeperConnect());
   }
 
   /**
@@ -345,10 +350,6 @@ class KafkaEmbedded {
     } catch (final Exception e) {
       throw new RuntimeException("Failed to get topic names", e);
     }
-  }
-
-  private String zookeeperConnect() {
-    return config.getProperty(ZK_CONNECT_PROP);
   }
 
   private String logDir() {

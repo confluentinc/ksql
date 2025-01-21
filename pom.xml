@@ -154,7 +154,6 @@
         <netty-codec-http2-version>4.1.115.Final</netty-codec-http2-version>
         <jersey-common>2.39.1</jersey-common>
         <multi-threaded-testing.forkCount>3</multi-threaded-testing.forkCount>
-        <kafka.version>${ce.kafka.version}</kafka.version>
     </properties>
 
     <dependencyManagement>
@@ -269,13 +268,20 @@
                 <classifier>test</classifier>
                 <scope>compile</scope>
             </dependency>
-
             <dependency>
-                <groupId>io.confluent</groupId>
-                <artifactId>ce-sbk_${kafka.scala.version}</artifactId>
+                <groupId>org.apache.kafka</groupId>
+                <artifactId>kafka-test-common</artifactId>
                 <version>${kafka.version}</version>
-                <scope>compile</scope>
+<!--                <version>[8.0.0-0-ccs, 8.0.1-0-ccs)</version>-->
+                <scope>test</scope>
             </dependency>
+
+<!--            <dependency>-->
+<!--                <groupId>io.confluent</groupId>-->
+<!--                <artifactId>ce-sbk_${kafka.scala.version}</artifactId>-->
+<!--                <version>${kafka.version}</version>-->
+<!--                <scope>compile</scope>-->
+<!--            </dependency>-->
 
             <dependency>
                 <groupId>io.confluent.ksql</groupId>
@@ -453,11 +459,11 @@
                 <version>${io.confluent.schema-registry.version}</version>
             </dependency>
 
-            <dependency>
-                <groupId>io.confluent</groupId>
-                <artifactId>broker-plugins</artifactId>
-                <version>${kafka.version}</version>
-            </dependency>
+<!--            <dependency>-->
+<!--                <groupId>io.confluent</groupId>-->
+<!--                <artifactId>broker-plugins</artifactId>-->
+<!--                <version>${kafka.version}</version>-->
+<!--            </dependency>-->
 
             <!-- End Confluent dependencies -->
 
@@ -743,10 +749,18 @@
             <groupId>io.confluent</groupId>
             <artifactId>logredactor</artifactId>
         </dependency>
-            <dependency>
-                <groupId>io.confluent</groupId>
-                <artifactId>broker-plugins</artifactId>
-            </dependency>
+
+<!--        <dependency>-->
+<!--            <groupId>io.confluent</groupId>-->
+<!--            <artifactId>broker-plugins</artifactId>-->
+<!--        </dependency>-->
+
+        <dependency>
+            <groupId>org.apache.kafka</groupId>
+            <artifactId>kafka-test-common</artifactId>
+            <version>${kafka.version}</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>
@@ -762,6 +776,21 @@
                     <groupId>org.codehaus.mojo</groupId>
                     <artifactId>exec-maven-plugin</artifactId>
                     <version>${exec-maven-plugin.version}</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.cyclonedx</groupId>
+                    <artifactId>cyclonedx-maven-plugin</artifactId>
+                    <configuration>
+                        <skipAttach>true</skipAttach>
+                        <skip>true</skip>
+                    </configuration>
+                </plugin>
+                <plugin>
+                    <groupId>com.github.spotbugs</groupId>
+                    <artifactId>spotbugs-maven-plugin</artifactId>
+                    <configuration>
+                        <skip>true</skip>
+                    </configuration>
                 </plugin>
             </plugins>
         </pluginManagement>

@@ -296,7 +296,6 @@ public class PullQueryConsistencyFunctionalTest {
   }
 
   @SuppressWarnings("unchecked")
-  @Ignore
   @Test
   public void shouldPassConsistencyTokenInFanOutTableScan()
     throws Exception {

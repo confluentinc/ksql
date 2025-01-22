@@ -68,4 +68,10 @@ public class RowMetadata {
     sb.append('}');
     return sb.toString();
   }
+
+  public static RowMetadata of(
+          final ConsistencyOffsetVector consistencyOffsetVector
+  ) {
+    return new RowMetadata(Optional.empty(), Optional.of(consistencyOffsetVector));
+  }
 }

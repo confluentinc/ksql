@@ -41,7 +41,9 @@ public class StreamQueryResponseHandler
   private boolean paused;
   private AtomicReference<String> serializedConsistencyVector;
 
-  StreamQueryResponseHandler(final Context context, final RecordParser recordParser,
+  StreamQueryResponseHandler(
+      final Context context,
+      final RecordParser recordParser,
       final CompletableFuture<StreamedQueryResult> cf,
       final AtomicReference<String> serializedCV) {
     super(context, recordParser, cf);

@@ -248,6 +248,18 @@ public final class StreamedRow {
     return finalMessage.isPresent() || errorMessage.isPresent();
   }
 
+  public StreamedRow withSourceHost(final KsqlHostInfoEntity sourceHost) {
+    return new StreamedRow(
+        this.header,
+        this.row,
+        this.errorMessage,
+        this.finalMessage,
+        Optional.ofNullable(sourceHost),
+        this.continuationToken,
+        this.consistencyToken
+    );
+  }
+
   @Override
   public boolean equals(final Object o) {
     if (this == o) {

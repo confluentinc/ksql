@@ -301,7 +301,7 @@ public class PullQueryWriteStream implements WriteStream<List<StreamedRow>>, Blo
   // -------------------- WRITE STREAM METHODS -------------------------
 
   public void putConsistencyVector(final ConsistencyOffsetVector offsetVector) {
-    PullQueryRow row = new PullQueryRow(null, null, Optional.empty(), Optional.of(offsetVector));
+    final PullQueryRow row = new PullQueryRow(null, null, Optional.empty(), Optional.of(offsetVector));
     final Promise<Void> promise = Promise.promise();
     monitor.enter();
     try {

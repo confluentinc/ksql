@@ -203,6 +203,7 @@ public class ConsistencyOffsetVectorFunctionalTest {
     assertThatEventually(streamedQueryResult::isComplete, is(true));
     assertThatEventually(() -> ((ClientImpl)client).getSerializedConsistencyVector(),
                          is(notNullValue()));
+    System.out.println("LENGTH = " + ((ClientImpl)client).getSerializedConsistencyVector().length());
     final String serializedCV = ((ClientImpl)client).getSerializedConsistencyVector();
     verifyConsistencyVector(serializedCV);
   }
@@ -235,6 +236,7 @@ public class ConsistencyOffsetVectorFunctionalTest {
     final List<StreamedRow> rows = getElementsFromPublisher(4, response.getResponse());
 
     // Then
+    System.out.println("IN TEST. ROWS = " + rows);
     assertThat(rows, hasSize(3));
     assertThat(rows.get(2).getConsistencyToken().get(), not(Optional.empty()));
     final String serialized = rows.get(2).getConsistencyToken().get().getConsistencyToken();

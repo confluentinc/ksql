@@ -64,6 +64,7 @@ import io.confluent.ksql.physical.pull.PullPhysicalPlan;
 import io.confluent.ksql.physical.pull.PullPhysicalPlanBuilder;
 import io.confluent.ksql.physical.pull.PullQueryQueuePopulator;
 import io.confluent.ksql.physical.pull.PullQueryResult;
+import io.confluent.ksql.physical.pull.StreamedRowTranslator;
 import io.confluent.ksql.physical.scalablepush.PushPhysicalPlan;
 import io.confluent.ksql.physical.scalablepush.PushPhysicalPlanBuilder;
 import io.confluent.ksql.physical.scalablepush.PushPhysicalPlanCreator;
@@ -80,7 +81,7 @@ import io.confluent.ksql.planner.plan.KsqlBareOutputNode;
 import io.confluent.ksql.planner.plan.KsqlStructuredDataOutputNode;
 import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.planner.plan.PlanNode;
-import io.confluent.ksql.query.PullQueryQueue;
+import io.confluent.ksql.query.PullQueryWriteStream;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.query.QueryRegistry;
 import io.confluent.ksql.query.TransientQueryQueue;
@@ -266,15 +267,25 @@ final class EngineExecutor {
       );
       final PullPhysicalPlan physicalPlan = plan;
 
-      final PullQueryQueue pullQueryQueue = new PullQueryQueue(analysis.getLimitClause());
+      final PullQueryWriteStream pullQueryQueue = new PullQueryWriteStream(
+          analysis.getLimitClause(),
+          new StreamedRowTranslator(physicalPlan.getOutputSchema(), consistencyOffsetVector));
+
       final PullQueryQueuePopulator populator = () -> routing.handlePullQuery(
           serviceContext,
-          physicalPlan, statement, routingOptions, physicalPlan.getOutputSchema(),
-          physicalPlan.getQueryId(), pullQueryQueue, shouldCancelRequests, consistencyOffsetVector);
+          physicalPlan,
+          statement,
+          routingOptions,
+          pullQueryQueue,
+          shouldCancelRequests,
+          consistencyOffsetVector
+      );
+
       final PullQueryResult result = new PullQueryResult(physicalPlan.getOutputSchema(), populator,
           physicalPlan.getQueryId(), pullQueryQueue, pullQueryMetrics, physicalPlan.getSourceType(),
           physicalPlan.getPlanType(), routingNodeType, physicalPlan::getRowsReadFromDataSource,
           shouldCancelRequests, consistencyOffsetVector);
+
       if (startImmediately) {
         result.start();
       }

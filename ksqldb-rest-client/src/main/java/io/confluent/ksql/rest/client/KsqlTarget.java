@@ -19,6 +19,7 @@ import static io.confluent.ksql.rest.client.KsqlClientUtil.deserialize;
 import static io.confluent.ksql.rest.client.KsqlClientUtil.serialize;
 import static java.util.Objects.requireNonNull;
 
+import com.google.common.base.Functions;
 import io.confluent.ksql.properties.LocalProperties;
 import io.confluent.ksql.rest.entity.ClusterStatusResponse;
 import io.confluent.ksql.rest.entity.CommandStatus;
@@ -44,8 +45,10 @@ import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.http.HttpClientResponse;
 import io.vertx.core.http.HttpMethod;
+import io.vertx.core.http.RequestOptions;
 import io.vertx.core.net.SocketAddress;
 import io.vertx.core.parsetools.RecordParser;
+import io.vertx.core.streams.WriteStream;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -55,7 +58,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
-import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -192,8 +194,9 @@ public final class KsqlTarget {
       final String ksql,
       final Map<String, ?> requestProperties,
       final Optional<Long> previousCommandSeqNum,
-      final Consumer<List<StreamedRow>> rowConsumer,
-      final CompletableFuture<Void> shouldCloseConnection
+      final WriteStream<List<StreamedRow>> rowConsumer,
+      final CompletableFuture<Void> shouldCloseConnection,
+      final Function<StreamedRow, StreamedRow> addHostInfo
   ) {
     final AtomicInteger rowCount = new AtomicInteger(0);
     return post(
@@ -201,7 +204,7 @@ public final class KsqlTarget {
         createKsqlRequest(ksql, requestProperties, previousCommandSeqNum),
         rowCount::get,
         rows -> {
-          final List<StreamedRow> streamedRows = KsqlTargetUtil.toRows(rows);
+          final List<StreamedRow> streamedRows = KsqlTargetUtil.toRows(rows, addHostInfo);
           rowCount.addAndGet(streamedRows.size());
           return streamedRows;
         },
@@ -278,7 +281,7 @@ public final class KsqlTarget {
       final Supplier<R> responseSupplier,
       final Function<Buffer, T> mapper,
       final String delimiter,
-      final Consumer<T> chunkHandler,
+      final WriteStream<T> chunkHandler,
       final CompletableFuture<Void> shouldCloseConnection
   ) {
     return executeRequestSync(HttpMethod.POST, path, jsonEntity, responseSupplier, mapper,
@@ -314,7 +317,7 @@ public final class KsqlTarget {
       final Supplier<R> responseSupplier,
       final Function<Buffer, T> chunkMapper,
       final String delimiter,
-      final Consumer<T> chunkHandler,
+      final WriteStream<T> chunkHandler,
       final CompletableFuture<Void> shouldCloseConnection
   ) {
     return executeSync(httpMethod, path, Optional.empty(), requestBody,
@@ -322,25 +325,22 @@ public final class KsqlTarget {
         (resp, vcf) -> {
         final RecordParser recordParser = RecordParser.newDelimited(delimiter, resp);
         final AtomicBoolean end = new AtomicBoolean(false);
+
+        final WriteStream<Buffer> ws = new BufferMapWriteStream<>(chunkMapper, chunkHandler);
         recordParser.exceptionHandler(vcf::completeExceptionally);
-        recordParser.handler(buff -> {
-          try {
-            chunkHandler.accept(chunkMapper.apply(buff));
-          } catch (Throwable t) {
-            log.error("Error while handling chunk", t);
-            vcf.completeExceptionally(t);
-          }
-        });
-        recordParser.endHandler(v -> {
-          try {
-            end.set(true);
-            chunkHandler.accept(null);
+        // don't end the stream on successful queries as the write stream is potentially
+        // reused by multiple read streams
+        recordParser.pipe().endOnSuccess(false).to(ws, ar -> {
+          end.set(true);
+          if (ar.succeeded()) {
             vcf.complete(new ResponseWithBody(resp, Buffer.buffer()));
-          } catch (Throwable t) {
-            log.error("Error while handling end", t);
-            vcf.completeExceptionally(t);
+          }
+          if (ar.failed()) {
+            log.error("Error while handling response.", ar.cause());
+            vcf.completeExceptionally(ar.cause());
           }
         });
+
         // Closing after the end handle was called resulted in errors about the connection being
         // closed, so we even turn this on the context so there's no race.
         final Context context = Vertx.currentContext();
@@ -450,29 +450,47 @@ public final class KsqlTarget {
   ) {
     final VertxCompletableFuture<ResponseWithBody> vcf = new VertxCompletableFuture<>();
 
-    final HttpClientRequest httpClientRequest = httpClient.request(httpMethod,
-        socketAddress, socketAddress.port(), host,
-        subPath + path,
-        resp -> responseHandler.accept(resp, vcf))
-        .exceptionHandler(vcf::completeExceptionally);
+    final RequestOptions options = new RequestOptions();
+    options.setMethod(httpMethod);
+    options.setServer(socketAddress);
+    options.setPort(socketAddress.port());
+    options.setHost(host);
+    options.setURI(subPath + path);
 
-    if (mediaType.isPresent()) {
-      httpClientRequest.putHeader("Accept", mediaType.get());
-    } else {
-      httpClientRequest.putHeader("Accept", "application/json");
-    }
-    authHeader.ifPresent(v -> httpClientRequest.putHeader("Authorization", v));
+    httpClient.request(options, ar -> {
+      if (ar.failed()) {
+        vcf.completeExceptionally(ar.cause());
+        return;
+      }
 
-    if (requestBody != null) {
-      httpClientRequest.end(serialize(requestBody));
-    } else {
-      httpClientRequest.end();
-    }
+      final HttpClientRequest httpClientRequest = ar.result();
+      httpClientRequest.response(response -> {
+        if (response.failed()) {
+          vcf.completeExceptionally(response.cause());
+        }
+
+        responseHandler.accept(response.result(), vcf);
+      });
+      httpClientRequest.exceptionHandler(vcf::completeExceptionally);
+
+      if (mediaType.isPresent()) {
+        httpClientRequest.putHeader("Accept", mediaType.get());
+      } else {
+        httpClientRequest.putHeader("Accept", "application/json");
+      }
+      authHeader.ifPresent(v -> httpClientRequest.putHeader("Authorization", v));
+
+      if (requestBody != null) {
+        httpClientRequest.end(serialize(requestBody));
+      } else {
+        httpClientRequest.end();
+      }
+    });
 
     return vcf;
   }
 
   private static List<StreamedRow> toRows(final ResponseWithBody resp) {
-    return KsqlTargetUtil.toRows(resp.getBody());
+    return KsqlTargetUtil.toRows(resp.getBody(), Functions.identity());
   }
 }

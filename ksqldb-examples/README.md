@@ -8,4 +8,4 @@ Documentation for using `ksql-datagen`: https://docs.confluent.io/current/ksql/d
 
 # Examples
 
-Examples using `ksql-datagen` and other ways to generate test data to Kafka: https://docs.confluent.io/current/tutorials/index.html#demos
+Examples using `ksql-datagen` and other ways to generate test data to Kafka: https://docs.confluent.io/current/ksql/docs/tutorials/index.html#demos

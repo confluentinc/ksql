@@ -115,6 +115,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 
+@SuppressWarnings("checkstyle:ClassDataAbstractionCoupling")
 public class SourceBuilderV1Test {
 
   private static final ColumnName K0 = ColumnName.of("k0");
@@ -168,32 +169,32 @@ public class SourceBuilderV1Test {
   private static final int A_ROWPARTITION = 789;
   private static final long A_ROWOFFSET = 123;
 
-  private final SerdeFeatures KEY_FEATURES = SerdeFeatures.of();
-  private final SerdeFeatures VALUE_FEATURES = SerdeFeatures.of();
-  private final PhysicalSchema PHYSICAL_SCHEMA = PhysicalSchema
-      .from(SOURCE_SCHEMA, KEY_FEATURES, VALUE_FEATURES);
+  private final SerdeFeatures keyFeatures = SerdeFeatures.of();
+  private final SerdeFeatures valueFeatures = SerdeFeatures.of();
+  private final PhysicalSchema physicalSchema = PhysicalSchema
+      .from(SOURCE_SCHEMA, keyFeatures, valueFeatures);
   private static final String TOPIC_NAME = "topic";
-  private final Headers HEADERS = new RecordHeaders(ImmutableList.of(
+  private final Headers headers = new RecordHeaders(ImmutableList.of(
       new RecordHeader("a", new byte[] {20}),
       new RecordHeader("b", new byte[] {25}))
   );
-  private final ByteBuffer HEADER_A = ByteBuffer.wrap(new byte[] {20});
-  private final ByteBuffer HEADER_B = ByteBuffer.wrap(new byte[] {25});
-  private final List<Struct> HEADER_DATA = ImmutableList.of(
+  private final ByteBuffer headerA = ByteBuffer.wrap(new byte[] {20});
+  private final ByteBuffer headerB = ByteBuffer.wrap(new byte[] {25});
+  private final List<Struct> headerData = ImmutableList.of(
       new Struct(SchemaBuilder.struct()
           .field("KEY", Schema.OPTIONAL_STRING_SCHEMA)
           .field("VALUE", Schema.OPTIONAL_BYTES_SCHEMA)
           .optional()
           .build())
           .put("KEY", "a")
-          .put("VALUE", HEADER_A),
+          .put("VALUE", headerA),
       new Struct(SchemaBuilder.struct()
           .field("KEY", Schema.OPTIONAL_STRING_SCHEMA)
           .field("VALUE", Schema.OPTIONAL_BYTES_SCHEMA)
           .optional()
           .build())
           .put("KEY", "b")
-          .put("VALUE", HEADER_B)
+          .put("VALUE", headerB)
   );
 
   private final QueryContext ctx = new Stacker().push("base").push("source").getQueryContext();
@@ -202,9 +203,9 @@ public class SourceBuilderV1Test {
   @Mock
   private StreamsBuilder streamsBuilder;
   @Mock
-  private KStream kStream;
+  private KStream kstream;
   @Mock
-  private KTable kTable;
+  private KTable ktable;
   @Mock
   private FormatInfo keyFormatInfo;
   @Mock
@@ -242,9 +243,11 @@ public class SourceBuilderV1Test {
   @Mock
   private PlanInfo planInfo;
   @Captor
-  private ArgumentCaptor<ValueTransformerWithKeySupplier<?, GenericRow, GenericRow>> transformSupplierCaptor;
+  private ArgumentCaptor<ValueTransformerWithKeySupplier<?, GenericRow, GenericRow>>
+      transformSupplierCaptor;
   @Captor
-  private ArgumentCaptor<FixedKeyProcessorSupplier<?, GenericRow, GenericRow>> fixedKeyProcessorSupplierArgumentCaptor;
+  private ArgumentCaptor<FixedKeyProcessorSupplier<?, GenericRow, GenericRow>>
+      fixedKeyProcessorSupplierArgumentCaptor;
   @Captor
   private ArgumentCaptor<TimestampExtractor> timestampExtractorCaptor;
   @Captor
@@ -266,14 +269,15 @@ public class SourceBuilderV1Test {
     when(buildContext.getApplicationId()).thenReturn("appid");
     when(buildContext.getStreamsBuilder()).thenReturn(streamsBuilder);
     when(buildContext.getProcessingLogger(any())).thenReturn(processingLogger);
-    when(streamsBuilder.stream(anyString(), any(Consumed.class))).thenReturn(kStream);
-    when(streamsBuilder.table(anyString(), any(), any())).thenReturn(kTable);
-    when(streamsBuilder.table(anyString(), any(Consumed.class))).thenReturn(kTable);
-    when(kTable.mapValues(any(ValueMapper.class))).thenReturn(kTable);
-    when(kTable.mapValues(any(ValueMapper.class), any(Materialized.class))).thenReturn(kTable);
-    when(kStream.processValues(any(FixedKeyProcessorSupplier.class))).thenReturn(kStream);
-    when(kStream.processValues(any(FixedKeyProcessorSupplier.class), any(Named.class))).thenReturn(kStream);
-    when(kTable.transformValues(any(ValueTransformerWithKeySupplier.class))).thenReturn(kTable);
+    when(streamsBuilder.stream(anyString(), any(Consumed.class))).thenReturn(kstream);
+    when(streamsBuilder.table(anyString(), any(), any())).thenReturn(ktable);
+    when(streamsBuilder.table(anyString(), any(Consumed.class))).thenReturn(ktable);
+    when(ktable.mapValues(any(ValueMapper.class))).thenReturn(ktable);
+    when(ktable.mapValues(any(ValueMapper.class), any(Materialized.class))).thenReturn(ktable);
+    when(kstream.processValues(any(FixedKeyProcessorSupplier.class))).thenReturn(kstream);
+    when(kstream.processValues(any(FixedKeyProcessorSupplier.class), any(Named.class))).thenReturn(
+        kstream);
+    when(ktable.transformValues(any(ValueTransformerWithKeySupplier.class))).thenReturn(ktable);
     when(buildContext.buildKeySerde(any(), any(), any())).thenReturn(keySerde);
     when(buildContext.buildValueSerde(any(), any(), any())).thenReturn(valueSerde);
     when(buildContext.getServiceContext()).thenReturn(serviceContext);
@@ -281,7 +285,7 @@ public class SourceBuilderV1Test {
     when(processorCtx.timestamp()).thenReturn(A_ROWTIME);
     when(processorCtx.partition()).thenReturn(A_ROWPARTITION);
     when(processorCtx.offset()).thenReturn(A_ROWOFFSET);
-    when(processorCtx.headers()).thenReturn(HEADERS);
+    when(processorCtx.headers()).thenReturn(headers);
     when(serviceContext.getSchemaRegistryClient()).thenReturn(srClient);
     when(streamsFactories.getConsumedFactory()).thenReturn(consumedFactory);
     when(streamsFactories.getMaterializedFactory()).thenReturn(materializationFactory);
@@ -307,11 +311,11 @@ public class SourceBuilderV1Test {
     final KStreamHolder<?> builtKstream = streamSource.build(planBuilder, planInfo);
 
     // Then:
-    assertThat(builtKstream.getStream(), is(kStream));
-    final InOrder validator = inOrder(streamsBuilder, kStream);
+    assertThat(builtKstream.getStream(), is(kstream));
+    final InOrder validator = inOrder(streamsBuilder, kstream);
     validator.verify(streamsBuilder).stream(TOPIC_NAME, consumed);
-    validator.verify(kStream, never()).mapValues(any(ValueMapper.class));
-    validator.verify(kStream).processValues(any(FixedKeyProcessorSupplier.class));
+    validator.verify(kstream, never()).mapValues(any(ValueMapper.class));
+    validator.verify(kstream).processValues(any(FixedKeyProcessorSupplier.class));
     verify(consumedFactory).create(keySerde, valueSerde);
     verify(consumed).withTimestampExtractor(any());
     verify(consumed).withOffsetResetPolicy(any());
@@ -383,11 +387,11 @@ public class SourceBuilderV1Test {
     final KTableHolder<GenericKey> builtKTable = tableSourceV1.build(planBuilder, planInfo);
 
     // Then:
-    assertThat(builtKTable.getTable(), is(kTable));
-    final InOrder validator = inOrder(streamsBuilder, kTable);
+    assertThat(builtKTable.getTable(), is(ktable));
+    final InOrder validator = inOrder(streamsBuilder, ktable);
     validator.verify(streamsBuilder).table(eq(TOPIC_NAME), eq(consumed));
-    validator.verify(kTable).mapValues(any(ValueMapper.class), any(Materialized.class));
-    validator.verify(kTable).transformValues(any(ValueTransformerWithKeySupplier.class));
+    validator.verify(ktable).mapValues(any(ValueMapper.class), any(Materialized.class));
+    validator.verify(ktable).transformValues(any(ValueTransformerWithKeySupplier.class));
     verify(consumedFactory).create(keySerde, valueSerde);
     verify(consumed).withTimestampExtractor(any());
     verify(consumed).withOffsetResetPolicy(AutoOffsetReset.EARLIEST);
@@ -404,12 +408,12 @@ public class SourceBuilderV1Test {
     final KTableHolder<GenericKey> builtKTable = tableSourceV1.build(planBuilder, planInfo);
 
     // Then:
-    assertThat(builtKTable.getTable(), is(kTable));
-    final InOrder validator = inOrder(streamsBuilder, kTable);
+    assertThat(builtKTable.getTable(), is(ktable));
+    final InOrder validator = inOrder(streamsBuilder, ktable);
     validator.verify(streamsBuilder).table(eq(TOPIC_NAME), eq(consumed), any());
-    validator.verify(kTable, never()).mapValues(any(ValueMapper.class));
-    validator.verify(kTable, never()).mapValues(any(ValueMapper.class), any(Materialized.class));
-    validator.verify(kTable).transformValues(any(ValueTransformerWithKeySupplier.class));
+    validator.verify(ktable, never()).mapValues(any(ValueMapper.class));
+    validator.verify(ktable, never()).mapValues(any(ValueMapper.class), any(Materialized.class));
+    validator.verify(ktable).transformValues(any(ValueTransformerWithKeySupplier.class));
     verify(consumedFactory).create(keySerde, valueSerde);
     verify(consumed).withTimestampExtractor(any());
     verify(consumed).withOffsetResetPolicy(AutoOffsetReset.EARLIEST);
@@ -430,15 +434,15 @@ public class SourceBuilderV1Test {
     final KTableHolder<GenericKey> builtKTable = tableSourceV1.build(planBuilder, planInfo);
 
     // Then:
-    assertThat(builtKTable.getTable(), is(kTable));
-    final InOrder validator = inOrder(streamsBuilder, kTable);
+    assertThat(builtKTable.getTable(), is(ktable));
+    final InOrder validator = inOrder(streamsBuilder, ktable);
     validator.verify(streamsBuilder).table(eq(TOPIC_NAME), eq(consumed));
-    validator.verify(kTable).transformValues(any(ValueTransformerWithKeySupplier.class));
+    validator.verify(ktable).transformValues(any(ValueTransformerWithKeySupplier.class));
     verify(consumedFactory).create(keySerde, valueSerde);
     verify(consumed).withTimestampExtractor(any());
     verify(consumed).withOffsetResetPolicy(AutoOffsetReset.EARLIEST);
 
-    verify(kTable, never()).mapValues(any(ValueMapper.class), any(Materialized.class));
+    verify(ktable, never()).mapValues(any(ValueMapper.class), any(Materialized.class));
   }
 
   @Test
@@ -560,7 +564,7 @@ public class SourceBuilderV1Test {
     streamSource.build(planBuilder, planInfo);
 
     // Then:
-    verify(buildContext).buildValueSerde(valueFormatInfo, PHYSICAL_SCHEMA, ctx);
+    verify(buildContext).buildValueSerde(valueFormatInfo, physicalSchema, ctx);
   }
 
   @Test
@@ -575,7 +579,7 @@ public class SourceBuilderV1Test {
     verify(buildContext).buildKeySerde(
         keyFormatInfo,
         windowInfo,
-        PhysicalSchema.from(SOURCE_SCHEMA, KEY_FEATURES, VALUE_FEATURES),
+        PhysicalSchema.from(SOURCE_SCHEMA, keyFeatures, valueFeatures),
         ctx
     );
   }
@@ -598,7 +602,8 @@ public class SourceBuilderV1Test {
     givenWindowedSourceTable();
 
     // When:
-    final KTableHolder<Windowed<GenericKey>> builtKTable = windowedTableSource.build(planBuilder, planInfo);
+    final KTableHolder<Windowed<GenericKey>> builtKTable
+        = windowedTableSource.build(planBuilder, planInfo);
 
     // Then:
     assertThat(builtKTable.getSchema(), is(WINDOWED_SCHEMA_WITH_V1_PSEUDOCOLUMNS));
@@ -640,7 +645,7 @@ public class SourceBuilderV1Test {
         processor,
         KEY,
         row,
-        GenericRow.genericRow("baz", 123, HEADER_DATA, A_ROWTIME, A_KEY)
+        GenericRow.genericRow("baz", 123, headerData, A_ROWTIME, A_KEY)
     );
   }
 
@@ -656,7 +661,7 @@ public class SourceBuilderV1Test {
         KEY,
         row,
         GenericRow.genericRow(
-            "baz", 123, HEADER_DATA, A_ROWTIME, A_ROWPARTITION, A_ROWOFFSET, A_KEY)
+            "baz", 123, headerData, A_ROWTIME, A_ROWPARTITION, A_ROWOFFSET, A_KEY)
     );
   }
 
@@ -671,7 +676,8 @@ public class SourceBuilderV1Test {
     final GenericRow withTimestamp = transformer.transform(KEY, row);
 
     // Then:
-    assertThat(withTimestamp, equalTo(GenericRow.genericRow("baz", 123, HEADER_DATA, A_ROWTIME, A_KEY)));
+    assertThat(withTimestamp,
+        equalTo(GenericRow.genericRow("baz", 123, headerData, A_ROWTIME, A_KEY)));
   }
 
   @Test
@@ -686,7 +692,7 @@ public class SourceBuilderV1Test {
         processor,
         nullKey,
         row,
-        GenericRow.genericRow("baz", 123, HEADER_DATA, A_ROWTIME, null)
+        GenericRow.genericRow("baz", 123, headerData, A_ROWTIME, null)
     );
   }
 
@@ -702,7 +708,7 @@ public class SourceBuilderV1Test {
         null,
         row,
         GenericRow.genericRow(
-            "baz", 123, HEADER_DATA, A_ROWTIME, A_ROWPARTITION, A_ROWOFFSET, null)
+            "baz", 123, headerData, A_ROWTIME, A_ROWPARTITION, A_ROWOFFSET, null)
     );
   }
 
@@ -719,7 +725,7 @@ public class SourceBuilderV1Test {
         processor,
         nullKey,
         row,
-        GenericRow.genericRow("baz", 123, HEADER_DATA, A_ROWTIME, null)
+        GenericRow.genericRow("baz", 123, headerData, A_ROWTIME, null)
     );
   }
 
@@ -737,7 +743,7 @@ public class SourceBuilderV1Test {
         nullKey,
         row,
         GenericRow.genericRow(
-            "baz", 123, HEADER_DATA, A_ROWTIME, A_ROWPARTITION, A_ROWOFFSET, null)
+            "baz", 123, headerData, A_ROWTIME, A_ROWPARTITION, A_ROWOFFSET, null)
     );
   }
 
@@ -754,7 +760,7 @@ public class SourceBuilderV1Test {
         processor,
         key,
         row,
-        GenericRow.genericRow("baz", 123, HEADER_A, HEADER_B, null, A_ROWTIME, 1d, 2d)
+        GenericRow.genericRow("baz", 123, headerA, headerB, null, A_ROWTIME, 1d, 2d)
     );
   }
 
@@ -772,7 +778,7 @@ public class SourceBuilderV1Test {
         key,
         row,
         GenericRow.genericRow(
-            "baz", 123, HEADER_A, HEADER_B, null,
+            "baz", 123, headerA, headerB, null,
             A_ROWTIME, A_ROWPARTITION, A_ROWOFFSET, 1d, 2d)
     );
   }
@@ -790,7 +796,7 @@ public class SourceBuilderV1Test {
         processor,
         key,
         row,
-        GenericRow.genericRow("baz", 123, HEADER_A, HEADER_B, null, A_ROWTIME, null, 2d)
+        GenericRow.genericRow("baz", 123, headerA, headerB, null, A_ROWTIME, null, 2d)
     );
   }
 
@@ -808,7 +814,7 @@ public class SourceBuilderV1Test {
         key,
         row,
         GenericRow.genericRow(
-            "baz", 123, HEADER_A, HEADER_B, null,
+            "baz", 123, headerA, headerB, null,
             A_ROWTIME, A_ROWPARTITION, A_ROWOFFSET, null, 2d)
     );
   }
@@ -826,7 +832,7 @@ public class SourceBuilderV1Test {
         processor,
         key,
         row,
-        GenericRow.genericRow("baz", 123, HEADER_A, HEADER_B, null, A_ROWTIME, null, null)
+        GenericRow.genericRow("baz", 123, headerA, headerB, null, A_ROWTIME, null, null)
     );
   }
 
@@ -844,7 +850,7 @@ public class SourceBuilderV1Test {
         key,
         row,
         GenericRow.genericRow(
-            "baz", 123, HEADER_A, HEADER_B, null,
+            "baz", 123, headerA, headerB, null,
             A_ROWTIME, A_ROWPARTITION, A_ROWOFFSET, null, null)
     );
   }
@@ -863,7 +869,7 @@ public class SourceBuilderV1Test {
         key,
         row,
         GenericRow.genericRow("baz", 123,
-            HEADER_A, HEADER_B, null, A_ROWTIME, null, null));
+            headerA, headerB, null, A_ROWTIME, null, null));
   }
 
   @Test
@@ -880,7 +886,7 @@ public class SourceBuilderV1Test {
         key,
         row,
         GenericRow.genericRow(
-            "baz", 123, HEADER_A, HEADER_B, null,
+            "baz", 123, headerA, headerB, null,
             A_ROWTIME, A_ROWPARTITION, A_ROWOFFSET, null, null));
   }
 
@@ -900,7 +906,8 @@ public class SourceBuilderV1Test {
         processor,
         key,
         row,
-        GenericRow.genericRow("baz", 123, HEADER_DATA, A_ROWTIME, A_KEY, A_WINDOW_START, A_WINDOW_END)
+        GenericRow.genericRow(
+            "baz", 123, headerData, A_ROWTIME, A_KEY, A_WINDOW_START, A_WINDOW_END)
     );
   }
 
@@ -921,7 +928,7 @@ public class SourceBuilderV1Test {
         key,
         row,
         GenericRow.genericRow(
-            "baz", 123, HEADER_DATA, A_ROWTIME, A_ROWPARTITION,
+            "baz", 123, headerData, A_ROWTIME, A_ROWPARTITION,
             A_ROWOFFSET, A_KEY, A_WINDOW_START, A_WINDOW_END)
     );
   }
@@ -943,7 +950,8 @@ public class SourceBuilderV1Test {
 
     // Then:
     assertThat(withTimestamp,
-        is(GenericRow.genericRow("baz", 123, HEADER_DATA, A_ROWTIME, A_KEY, A_WINDOW_START, A_WINDOW_END)));
+        is(GenericRow.genericRow(
+            "baz", 123, headerData, A_ROWTIME, A_KEY, A_WINDOW_START, A_WINDOW_END)));
   }
 
   @Test
@@ -962,7 +970,7 @@ public class SourceBuilderV1Test {
         processor,
         key,
         row,
-        GenericRow.genericRow("baz", 123, HEADER_DATA, A_ROWTIME,
+        GenericRow.genericRow("baz", 123, headerData, A_ROWTIME,
             A_KEY, A_WINDOW_START, A_WINDOW_END)
     );
   }
@@ -986,7 +994,7 @@ public class SourceBuilderV1Test {
         GenericRow.genericRow(
             "baz",
             123,
-            HEADER_DATA,
+            headerData,
             A_ROWTIME,
             A_ROWPARTITION,
             A_ROWOFFSET,
@@ -1013,7 +1021,8 @@ public class SourceBuilderV1Test {
 
     // Then:
     assertThat(withTimestamp,
-        equalTo(GenericRow.genericRow("baz", 123, HEADER_DATA, A_ROWTIME, A_KEY, A_WINDOW_START, A_WINDOW_END)));
+        equalTo(GenericRow.genericRow(
+            "baz", 123, headerData, A_ROWTIME, A_KEY, A_WINDOW_START, A_WINDOW_END)));
   }
 
   @Test
@@ -1028,7 +1037,7 @@ public class SourceBuilderV1Test {
     verify(buildContext).buildKeySerde(
         keyFormatInfo,
         windowInfo,
-        PhysicalSchema.from(SOURCE_SCHEMA, KEY_FEATURES, VALUE_FEATURES),
+        PhysicalSchema.from(SOURCE_SCHEMA, keyFeatures, valueFeatures),
         ctx
     );
   }
@@ -1044,7 +1053,7 @@ public class SourceBuilderV1Test {
     // Then:
     verify(buildContext).buildKeySerde(
         keyFormatInfo,
-        PhysicalSchema.from(SOURCE_SCHEMA, KEY_FEATURES, VALUE_FEATURES),
+        PhysicalSchema.from(SOURCE_SCHEMA, keyFeatures, valueFeatures),
         ctx
     );
   }
@@ -1059,8 +1068,8 @@ public class SourceBuilderV1Test {
 
     // Then:
     reset(buildContext);
-    stream.getExecutionKeyFactory().buildKeySerde(keyFormatInfo, PHYSICAL_SCHEMA, ctx);
-    verify(buildContext).buildKeySerde(keyFormatInfo, PHYSICAL_SCHEMA, ctx);
+    stream.getExecutionKeyFactory().buildKeySerde(keyFormatInfo, physicalSchema, ctx);
+    verify(buildContext).buildKeySerde(keyFormatInfo, physicalSchema, ctx);
   }
 
   @Test
@@ -1073,8 +1082,8 @@ public class SourceBuilderV1Test {
 
     // Then:
     reset(buildContext);
-    stream.getExecutionKeyFactory().buildKeySerde(keyFormatInfo, PHYSICAL_SCHEMA, ctx);
-    verify(buildContext).buildKeySerde(keyFormatInfo, windowInfo, PHYSICAL_SCHEMA, ctx);
+    stream.getExecutionKeyFactory().buildKeySerde(keyFormatInfo, physicalSchema, ctx);
+    verify(buildContext).buildKeySerde(keyFormatInfo, windowInfo, physicalSchema, ctx);
   }
 
   @Test
@@ -1094,9 +1103,10 @@ public class SourceBuilderV1Test {
       final SourceStep<?> streamSource
   ) {
     streamSource.build(planBuilder, planInfo);
-    verify(kStream).processValues(fixedKeyProcessorSupplierArgumentCaptor.capture());
+    verify(kstream).processValues(fixedKeyProcessorSupplierArgumentCaptor.capture());
     final FixedKeyProcessor<K, GenericRow, GenericRow> processor =
-        (FixedKeyProcessor<K, GenericRow, GenericRow>) fixedKeyProcessorSupplierArgumentCaptor.getValue().get();
+        (FixedKeyProcessor<K, GenericRow, GenericRow>) fixedKeyProcessorSupplierArgumentCaptor
+            .getValue().get();
     processor.init(fixedKeyProcessorContext);
     return processor;
   }
@@ -1106,9 +1116,10 @@ public class SourceBuilderV1Test {
       final SourceStep<?> streamSource
   ) {
     streamSource.build(planBuilder, planInfo);
-    verify(kTable).transformValues(transformSupplierCaptor.capture());
+    verify(ktable).transformValues(transformSupplierCaptor.capture());
     final ValueTransformerWithKey<K, GenericRow, GenericRow> transformer =
-        (ValueTransformerWithKey<K, GenericRow, GenericRow>) transformSupplierCaptor.getValue().get();
+        (ValueTransformerWithKey<K, GenericRow, GenericRow>) transformSupplierCaptor
+            .getValue().get();
     transformer.init(processorCtx);
     return transformer;
   }
@@ -1119,7 +1130,7 @@ public class SourceBuilderV1Test {
     windowedStreamSource = new WindowedStreamSource(
         new ExecutionStepPropertiesV1(ctx),
         TOPIC_NAME,
-        Formats.of(keyFormatInfo, valueFormatInfo, KEY_FEATURES, VALUE_FEATURES),
+        Formats.of(keyFormatInfo, valueFormatInfo, keyFeatures, valueFeatures),
         windowInfo,
         TIMESTAMP_COLUMN,
         SOURCE_SCHEMA,
@@ -1137,7 +1148,7 @@ public class SourceBuilderV1Test {
     streamSource = new StreamSource(
         new ExecutionStepPropertiesV1(ctx),
         TOPIC_NAME,
-        Formats.of(keyFormatInfo, valueFormatInfo, KEY_FEATURES, VALUE_FEATURES),
+        Formats.of(keyFormatInfo, valueFormatInfo, keyFeatures, valueFeatures),
         TIMESTAMP_COLUMN,
         SOURCE_SCHEMA,
         OptionalInt.of(pseudoColumnVersion)
@@ -1154,7 +1165,7 @@ public class SourceBuilderV1Test {
     streamSource = new StreamSource(
         new ExecutionStepPropertiesV1(ctx),
         TOPIC_NAME,
-        Formats.of(keyFormatInfo, valueFormatInfo, KEY_FEATURES, VALUE_FEATURES),
+        Formats.of(keyFormatInfo, valueFormatInfo, keyFeatures, valueFeatures),
         TIMESTAMP_COLUMN,
         MULTI_COL_SOURCE_SCHEMA,
         OptionalInt.of(pseudoColumnVersion)
@@ -1172,7 +1183,7 @@ public class SourceBuilderV1Test {
     windowedTableSource = new WindowedTableSource(
         new ExecutionStepPropertiesV1(ctx),
         TOPIC_NAME,
-        Formats.of(keyFormatInfo, valueFormatInfo, KEY_FEATURES, VALUE_FEATURES),
+        Formats.of(keyFormatInfo, valueFormatInfo, keyFeatures, valueFeatures),
         windowInfo,
         TIMESTAMP_COLUMN,
         SOURCE_SCHEMA,
@@ -1191,7 +1202,7 @@ public class SourceBuilderV1Test {
     tableSourceV1 = new TableSourceV1(
         new ExecutionStepPropertiesV1(ctx),
         TOPIC_NAME,
-        Formats.of(keyFormatInfo, valueFormatInfo, KEY_FEATURES, VALUE_FEATURES),
+        Formats.of(keyFormatInfo, valueFormatInfo, keyFeatures, valueFeatures),
         TIMESTAMP_COLUMN,
         SOURCE_SCHEMA,
         Optional.of(forceChangelog),
@@ -1218,7 +1229,7 @@ public class SourceBuilderV1Test {
         .thenReturn(value);
     when(record.key()).thenReturn(key);
     when(record.timestamp()).thenReturn(A_ROWTIME);
-    when(record.headers()).thenReturn(HEADERS);
+    when(record.headers()).thenReturn(headers);
     // mock withValue to return new mock with new value
     when(record.withValue(any())).thenAnswer(inv -> {
       final GenericRow row = inv.getArgument(0);
@@ -1253,7 +1264,7 @@ public class SourceBuilderV1Test {
     );
   }
 
-  private class MockRecordMetadata implements RecordMetadata {
+  private static class MockRecordMetadata implements RecordMetadata {
 
     private final String topic;
     private final int partition;

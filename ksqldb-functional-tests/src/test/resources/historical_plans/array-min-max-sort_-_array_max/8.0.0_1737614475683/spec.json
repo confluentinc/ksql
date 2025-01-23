@@ -1,0 +1,152 @@
+{
+  "version" : "8.0.0",
+  "timestamp" : 1737614475683,
+  "path" : "query-validation-tests/array-min-max-sort.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`ID` STRING KEY, `BOOL_ARRAY` ARRAY<BOOLEAN>, `INT_ARRAY` ARRAY<INTEGER>, `BIGINT_ARRAY` ARRAY<BIGINT>, `DOUBLE_ARRAY` ARRAY<DOUBLE>, `STRING_ARRAY` ARRAY<STRING>, `DECIMAL_ARRAY` ARRAY<DECIMAL(2, 1)>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ID` STRING KEY, `BOOL_MAX` BOOLEAN, `INT_MAX` INTEGER, `BIGINT_MAX` BIGINT, `DOUBLE_MAX` DOUBLE, `STRING_MAX` STRING, `DECIMAL_MAX` DECIMAL(2, 1)",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "array_max",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : "r1",
+      "value" : {
+        "bool_array" : [ false, true, false ],
+        "int_array" : [ 0, 0, 1, 0, -1 ],
+        "bigint_array" : [ 234, -123, 345 ],
+        "double_array" : [ 0.0, 0.1, -12345.678, 0.2, 0.3 ],
+        "string_array" : [ "foo", "bar" ],
+        "decimal_array" : [ 1.0, 1.1, 1.2, -0.2, 1.9, 9.0, -9.9, 1.5 ]
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : "r2",
+      "value" : {
+        "bool_array" : [ null, false, true ],
+        "int_array" : [ 0, null, 1, 0, -1 ],
+        "bigint_array" : [ null, -123, 345 ],
+        "double_array" : [ 0.0, 0.1, -12345.678, null, 0.3 ],
+        "string_array" : [ "foo", "fo", "Food", null, "F", "food" ],
+        "decimal_array" : [ 1.0, 1.1, 1.2, -0.2, null, 9.0 ]
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : "r3",
+      "value" : {
+        "bool_array" : [ ],
+        "int_array" : [ ],
+        "bigint_array" : [ ],
+        "double_array" : [ ],
+        "string_array" : [ ],
+        "decimal_array" : [ ]
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : "r1",
+      "value" : {
+        "BOOL_MAX" : true,
+        "INT_MAX" : 1,
+        "BIGINT_MAX" : 345,
+        "DOUBLE_MAX" : 0.3,
+        "STRING_MAX" : "foo",
+        "DECIMAL_MAX" : 9.0
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "r2",
+      "value" : {
+        "BOOL_MAX" : true,
+        "INT_MAX" : 1,
+        "BIGINT_MAX" : 345,
+        "DOUBLE_MAX" : 0.3,
+        "STRING_MAX" : "food",
+        "DECIMAL_MAX" : 9.0
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "r3",
+      "value" : {
+        "BOOL_MAX" : null,
+        "INT_MAX" : null,
+        "BIGINT_MAX" : null,
+        "DOUBLE_MAX" : null,
+        "STRING_MAX" : null,
+        "DECIMAL_MAX" : null
+      }
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM INPUT (ID STRING KEY, bool_array ARRAY<BOOLEAN>, int_array ARRAY<INT>, bigint_array ARRAY<BIGINT>, double_array ARRAY<DOUBLE>, string_array ARRAY<STRING>, decimal_array ARRAY<DECIMAL(2,1)>) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE STREAM OUTPUT AS SELECT ID, array_max(bool_array) as bool_max, array_max(int_array) as int_max, array_max(bigint_array) as bigint_max, array_max(double_array) as double_max, array_max(string_array) as string_max, array_max(decimal_array) as decimal_max FROM INPUT;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`ID` STRING KEY, `BOOL_ARRAY` ARRAY<BOOLEAN>, `INT_ARRAY` ARRAY<INTEGER>, `BIGINT_ARRAY` ARRAY<BIGINT>, `DOUBLE_ARRAY` ARRAY<DOUBLE>, `STRING_ARRAY` ARRAY<STRING>, `DECIMAL_ARRAY` ARRAY<DECIMAL(2, 1)>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`ID` STRING KEY, `BOOL_MAX` BOOLEAN, `INT_MAX` INTEGER, `BIGINT_MAX` BIGINT, `DOUBLE_MAX` DOUBLE, `STRING_MAX` STRING, `DECIMAL_MAX` DECIMAL(2, 1)",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

@@ -1,0 +1,314 @@
+{
+  "version" : "8.0.0",
+  "timestamp" : 1737616362344,
+  "path" : "query-validation-tests/math.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`K` STRING KEY, `IY` INTEGER, `IX` INTEGER, `LY` BIGINT, `LX` BIGINT, `DY` DOUBLE, `DX` DOUBLE",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`K` STRING KEY, `I` DOUBLE, `L` DOUBLE, `D` DOUBLE",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "atan2",
+    "inputs" : [ {
+      "topic" : "input",
+      "key" : null,
+      "value" : {
+        "iy" : null,
+        "ix" : null,
+        "ly" : null,
+        "lx" : null,
+        "dy" : null,
+        "dx" : null
+      }
+    }, {
+      "topic" : "input",
+      "key" : null,
+      "value" : {
+        "iy" : null,
+        "ix" : 1,
+        "ly" : null,
+        "lx" : 1,
+        "dy" : null,
+        "dx" : 0.45
+      }
+    }, {
+      "topic" : "input",
+      "key" : null,
+      "value" : {
+        "iy" : 1,
+        "ix" : null,
+        "ly" : 1,
+        "lx" : null,
+        "dy" : 0.45,
+        "dx" : null
+      }
+    }, {
+      "topic" : "input",
+      "key" : null,
+      "value" : {
+        "iy" : -2,
+        "ix" : -3,
+        "ly" : -2,
+        "lx" : -2,
+        "dy" : -1.1,
+        "dx" : -0.24
+      }
+    }, {
+      "topic" : "input",
+      "key" : null,
+      "value" : {
+        "iy" : -2,
+        "ix" : 3,
+        "ly" : -2,
+        "lx" : 2,
+        "dy" : -1.1,
+        "dx" : 0.24
+      }
+    }, {
+      "topic" : "input",
+      "key" : null,
+      "value" : {
+        "iy" : -2,
+        "ix" : 0,
+        "ly" : -2,
+        "lx" : 0,
+        "dy" : -1.1,
+        "dx" : 0.0
+      }
+    }, {
+      "topic" : "input",
+      "key" : null,
+      "value" : {
+        "iy" : 2,
+        "ix" : -3,
+        "ly" : 2,
+        "lx" : -2,
+        "dy" : 1.1,
+        "dx" : -0.24
+      }
+    }, {
+      "topic" : "input",
+      "key" : null,
+      "value" : {
+        "iy" : 2,
+        "ix" : 3,
+        "ly" : 2,
+        "lx" : 2,
+        "dy" : 1.1,
+        "dx" : 0.24
+      }
+    }, {
+      "topic" : "input",
+      "key" : null,
+      "value" : {
+        "iy" : 2,
+        "ix" : 0,
+        "ly" : 2,
+        "lx" : 0,
+        "dy" : 1.1,
+        "dx" : 0.0
+      }
+    }, {
+      "topic" : "input",
+      "key" : null,
+      "value" : {
+        "iy" : 0,
+        "ix" : -3,
+        "ly" : 0,
+        "lx" : -2,
+        "dy" : 0,
+        "dx" : -0.24
+      }
+    }, {
+      "topic" : "input",
+      "key" : null,
+      "value" : {
+        "iy" : 0,
+        "ix" : 3,
+        "ly" : 0,
+        "lx" : 2,
+        "dy" : 0,
+        "dx" : 0.24
+      }
+    }, {
+      "topic" : "input",
+      "key" : null,
+      "value" : {
+        "iy" : 0,
+        "ix" : 0,
+        "ly" : 0,
+        "lx" : 0,
+        "dy" : 0,
+        "dx" : 0
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : null,
+      "value" : {
+        "I" : null,
+        "L" : null,
+        "D" : null
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : null,
+      "value" : {
+        "I" : null,
+        "L" : null,
+        "D" : null
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : null,
+      "value" : {
+        "I" : null,
+        "L" : null,
+        "D" : null
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : null,
+      "value" : {
+        "I" : -2.5535900500422,
+        "L" : -2.3561944901923,
+        "D" : -1.7856117271966
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : null,
+      "value" : {
+        "I" : -0.5880026035476,
+        "L" : -0.7853981633974,
+        "D" : -1.3559809263932
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : null,
+      "value" : {
+        "I" : -1.5707963267949,
+        "L" : -1.5707963267949,
+        "D" : -1.5707963267949
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : null,
+      "value" : {
+        "I" : 2.5535900500422,
+        "L" : 2.3561944901923,
+        "D" : 1.7856117271966
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : null,
+      "value" : {
+        "I" : 0.5880026035476,
+        "L" : 0.7853981633974,
+        "D" : 1.3559809263932
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : null,
+      "value" : {
+        "I" : 1.5707963267949,
+        "L" : 1.5707963267949,
+        "D" : 1.5707963267949
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : null,
+      "value" : {
+        "I" : 3.1415926535898,
+        "L" : 3.1415926535898,
+        "D" : 3.1415926535898
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : null,
+      "value" : {
+        "I" : 0.0,
+        "L" : 0.0,
+        "D" : 0.0
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : null,
+      "value" : {
+        "I" : 0.0,
+        "L" : 0.0,
+        "D" : 0.0
+      }
+    } ],
+    "topics" : [ {
+      "name" : "input",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM INPUT (K STRING KEY, iy INT, ix INT, ly BIGINT, lx BIGINT, dy DOUBLE, dx DOUBLE) WITH (kafka_topic='input', value_format='JSON');", "CREATE STREAM OUTPUT AS SELECT K, round(atan2(iy, ix), 13) i, round(atan2(ly, lx), 13) l, round(atan2(dy, dx), 13) d FROM INPUT;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`K` STRING KEY, `IY` INTEGER, `IX` INTEGER, `LY` BIGINT, `LX` BIGINT, `DY` DOUBLE, `DX` DOUBLE",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`K` STRING KEY, `I` DOUBLE, `L` DOUBLE, `D` DOUBLE",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "input",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

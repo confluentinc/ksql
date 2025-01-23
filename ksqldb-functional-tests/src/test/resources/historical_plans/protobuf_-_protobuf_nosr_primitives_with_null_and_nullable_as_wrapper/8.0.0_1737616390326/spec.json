@@ -1,0 +1,138 @@
+{
+  "version" : "8.0.0",
+  "timestamp" : 1737616390326,
+  "path" : "query-validation-tests/protobuf.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`K` STRING KEY, `I` INTEGER, `L` BIGINT, `D` DOUBLE, `B` BOOLEAN, `S` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "PROTOBUF_NOSR",
+        "properties" : {
+          "nullableRepresentation" : "wrapper"
+        }
+      }
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`K` STRING KEY, `I` INTEGER, `L` BIGINT, `D` DOUBLE, `B` BOOLEAN, `S` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "PROTOBUF_NOSR",
+        "properties" : {
+          "nullableRepresentation" : "wrapper"
+        }
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "protobuf_nosr primitives with null and nullable as wrapper",
+    "inputs" : [ {
+      "topic" : "input",
+      "key" : null,
+      "value" : {
+        "i" : null,
+        "l" : 0,
+        "d" : null,
+        "b" : false,
+        "s" : null
+      }
+    }, {
+      "topic" : "input",
+      "key" : null,
+      "value" : {
+        "i" : 0,
+        "l" : null,
+        "d" : 0.0,
+        "b" : null,
+        "s" : ""
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : null,
+      "value" : {
+        "i" : null,
+        "l" : 0,
+        "d" : null,
+        "b" : false,
+        "s" : null
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : null,
+      "value" : {
+        "i" : 0,
+        "l" : null,
+        "d" : 0.0,
+        "b" : null,
+        "s" : ""
+      }
+    } ],
+    "topics" : [ {
+      "name" : "input",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM INPUT (K STRING KEY, i INTEGER, l BIGINT, d DOUBLE, b BOOLEAN, s STRING) WITH (kafka_topic='input', value_format='PROTOBUF_NOSR', value_protobuf_nullable_representation='WRAPPER');", "CREATE STREAM OUTPUT WITH (value_format='PROTOBUF_NOSR', value_protobuf_nullable_representation='WRAPPER') as SELECT * FROM input;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`K` STRING KEY, `I` INTEGER, `L` BIGINT, `D` DOUBLE, `B` BOOLEAN, `S` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "PROTOBUF_NOSR",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`K` STRING KEY, `I` INTEGER, `L` BIGINT, `D` DOUBLE, `B` BOOLEAN, `S` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "PROTOBUF_NOSR",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "input",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "PROTOBUF_NOSR",
+            "properties" : {
+              "nullableRepresentation" : "wrapper"
+            }
+          },
+          "partitions" : 4
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "PROTOBUF_NOSR",
+            "properties" : {
+              "nullableRepresentation" : "wrapper"
+            }
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

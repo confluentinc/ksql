@@ -1,0 +1,151 @@
+{
+  "version" : "8.0.0",
+  "timestamp" : 1737614510735,
+  "path" : "query-validation-tests/datestring.json",
+  "schemas" : {
+    "CSAS_DATE_STREAM_0.KsqlTopic.Source" : {
+      "schema" : "`ID` BIGINT KEY, `START_DATE` INTEGER, `DATE_FORMAT` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_DATE_STREAM_0.DATE_STREAM" : {
+      "schema" : "`ID` BIGINT KEY, `CUSTOM_FORMATTED_START_DATE` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "date to string",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : 1,
+      "value" : {
+        "START_DATE" : 17662,
+        "DATE_FORMAT" : "yyyy-MM-dd"
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : 2,
+      "value" : {
+        "START_DATE" : 18027,
+        "DATE_FORMAT" : "dd/MM/yyyy"
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : 3,
+      "value" : {
+        "START_DATE" : 18993,
+        "DATE_FORMAT" : "dd-MMM-yyyy"
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : 4,
+      "value" : {
+        "START_DATE" : 0,
+        "DATE_FORMAT" : "dd-MM-yyyy"
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : 5,
+      "value" : {
+        "START_DATE" : -1,
+        "DATE_FORMAT" : "dd-MM-yyyy'Sophia'"
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "DATE_STREAM",
+      "key" : 1,
+      "value" : {
+        "CUSTOM_FORMATTED_START_DATE" : "2018-05-11"
+      }
+    }, {
+      "topic" : "DATE_STREAM",
+      "key" : 2,
+      "value" : {
+        "CUSTOM_FORMATTED_START_DATE" : "11/05/2019"
+      }
+    }, {
+      "topic" : "DATE_STREAM",
+      "key" : 3,
+      "value" : {
+        "CUSTOM_FORMATTED_START_DATE" : "01-Jan-2022"
+      }
+    }, {
+      "topic" : "DATE_STREAM",
+      "key" : 4,
+      "value" : {
+        "CUSTOM_FORMATTED_START_DATE" : "01-01-1970"
+      }
+    }, {
+      "topic" : "DATE_STREAM",
+      "key" : 5,
+      "value" : {
+        "CUSTOM_FORMATTED_START_DATE" : "31-12-1969Sophia"
+      }
+    } ],
+    "topics" : [ {
+      "name" : "DATE_STREAM",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM TEST (ID bigint KEY, START_DATE int, DATE_FORMAT varchar) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE STREAM DATE_STREAM AS select ID, datetostring(START_DATE, DATE_FORMAT) as CUSTOM_FORMATTED_START_DATE from test;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "DATE_STREAM",
+        "type" : "STREAM",
+        "schema" : "`ID` BIGINT KEY, `CUSTOM_FORMATTED_START_DATE` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`ID` BIGINT KEY, `START_DATE` INTEGER, `DATE_FORMAT` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "DATE_STREAM",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

@@ -1,0 +1,101 @@
+{
+  "version" : "8.0.0",
+  "timestamp" : 1737616553999,
+  "path" : "query-validation-tests/udf-implicit-cast.json",
+  "schemas" : {
+    "CSAS_DISTANCE_STREAM_0.DISTANCE_STREAM" : {
+      "schema" : "`K` STRING KEY, `ID` BIGINT, `CALCULATED_DISTANCE` DOUBLE",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_DISTANCE_STREAM_0.KsqlTopic.Source" : {
+      "schema" : "`K` STRING KEY, `ID` BIGINT, `LAT1` DOUBLE, `LON1` DOUBLE",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "decimal literal -> double",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : null,
+      "value" : {
+        "ID" : 1,
+        "LAT1" : 37.4439,
+        "LON1" : -122.1663
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "DISTANCE_STREAM",
+      "key" : null,
+      "value" : {
+        "ID" : 1,
+        "CALCULATED_DISTANCE" : 8682.459061368269
+      }
+    } ],
+    "topics" : [ {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "DISTANCE_STREAM",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM TEST (K STRING KEY, ID bigint, LAT1 double, LON1 double) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE STREAM DISTANCE_STREAM AS select K, ID, geo_distance(LAT1, LON1, 51.0, 0) as CALCULATED_DISTANCE from test;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "DISTANCE_STREAM",
+        "type" : "STREAM",
+        "schema" : "`K` STRING KEY, `ID` BIGINT, `CALCULATED_DISTANCE` DOUBLE",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`K` STRING KEY, `ID` BIGINT, `LAT1` DOUBLE, `LON1` DOUBLE",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "DISTANCE_STREAM",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

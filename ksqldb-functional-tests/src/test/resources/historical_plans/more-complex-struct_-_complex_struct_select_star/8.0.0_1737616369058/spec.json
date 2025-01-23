@@ -1,0 +1,426 @@
+{
+  "version" : "8.0.0",
+  "timestamp" : 1737616369058,
+  "path" : "query-validation-tests/more-complex-struct.json",
+  "schemas" : {
+    "CSAS_S1_0.KsqlTopic.Source" : {
+      "schema" : "`ID` STRING KEY, `NESTED_STRUCT_FIELD` STRUCT<`SL1_STRUCT` STRUCT<`SL2_STRUCT` STRUCT<`SL3_STRUCT` STRUCT<`SL4_STRING` STRING, `SL4_INT` INTEGER, `SL4_DOUBLE_ARRAY` ARRAY<DOUBLE>>, `SL3_DOUBLE_ARRAY` ARRAY<DOUBLE>, `SL3_STRING` STRING>, `SL2_STRUCT_MAP` MAP<STRING, STRUCT<`SL2_3_STRING` STRING, `SL2_3_DOUBLE` DOUBLE>>, `SL2_DOUBLE` DOUBLE, `SL2_BOOLEAN` BOOLEAN>, `SL1_STRING` STRING, `SL1_STRUCT_ARRAY` ARRAY<STRUCT<`SL1_2_STRING` STRING, `SL1_2_DOUBLE` DOUBLE>>>, `COL1` BIGINT, `COL2` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_S1_0.S1" : {
+      "schema" : "`ID` STRING KEY, `NESTED_STRUCT_FIELD` STRUCT<`SL1_STRUCT` STRUCT<`SL2_STRUCT` STRUCT<`SL3_STRUCT` STRUCT<`SL4_STRING` STRING, `SL4_INT` INTEGER, `SL4_DOUBLE_ARRAY` ARRAY<DOUBLE>>, `SL3_DOUBLE_ARRAY` ARRAY<DOUBLE>, `SL3_STRING` STRING>, `SL2_STRUCT_MAP` MAP<STRING, STRUCT<`SL2_3_STRING` STRING, `SL2_3_DOUBLE` DOUBLE>>, `SL2_DOUBLE` DOUBLE, `SL2_BOOLEAN` BOOLEAN>, `SL1_STRING` STRING, `SL1_STRUCT_ARRAY` ARRAY<STRUCT<`SL1_2_STRING` STRING, `SL1_2_DOUBLE` DOUBLE>>>, `COL1` BIGINT, `COL2` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "complex struct select star",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : "0",
+      "value" : {
+        "NESTED_STRUCT_FIELD" : {
+          "SL1_STRUCT" : {
+            "SL2_STRUCT" : {
+              "SL3_STRUCT" : {
+                "SL4_STRING" : "SL4_68",
+                "SL4_INT" : 99,
+                "SL4_DOUBLE_ARRAY" : [ 44.00196898385005, 20.811629846775816, 18.106233954153627 ]
+              },
+              "SL3_DOUBLE_ARRAY" : [ 31.29018346053053, 87.19637274214466, 70.00366916161433 ],
+              "SL3_STRING" : "SL3_94"
+            },
+            "SL2_STRUCT_MAP" : {
+              "mapkey" : {
+                "SL2_3_STRING" : "SL2_3_32",
+                "SL2_3_DOUBLE" : 62.714783363909
+              }
+            },
+            "SL2_DOUBLE" : 96.18972237459049,
+            "SL2_BOOLEAN" : true
+          },
+          "SL1_STRING" : "SL1__14",
+          "SL1_STRUCT_ARRAY" : [ {
+            "SL1_2_STRING" : "SL1_2_93",
+            "SL1_2_DOUBLE" : 68.75388222481254
+          } ]
+        },
+        "COL1" : 15,
+        "COL2" : "COL_2_89"
+      },
+      "timestamp" : 0
+    }, {
+      "topic" : "test_topic",
+      "key" : "100",
+      "value" : {
+        "NESTED_STRUCT_FIELD" : {
+          "SL1_STRUCT" : {
+            "SL2_STRUCT" : {
+              "SL3_STRUCT" : {
+                "SL4_STRING" : "SL4_67",
+                "SL4_INT" : 65,
+                "SL4_DOUBLE_ARRAY" : [ 14.483946419811055, 48.09062881637733, 65.07562628320905 ]
+              },
+              "SL3_DOUBLE_ARRAY" : [ 79.77170455118497, 58.32487381412906, 44.62474921754443 ],
+              "SL3_STRING" : "SL3_16"
+            },
+            "SL2_STRUCT_MAP" : {
+              "mapkey" : {
+                "SL2_3_STRING" : "SL2_3_60",
+                "SL2_3_DOUBLE" : 17.481981844681428
+              }
+            },
+            "SL2_DOUBLE" : 38.56446292115307,
+            "SL2_BOOLEAN" : true
+          },
+          "SL1_STRING" : "SL1__5",
+          "SL1_STRUCT_ARRAY" : [ {
+            "SL1_2_STRING" : "SL1_2_84",
+            "SL1_2_DOUBLE" : 2.7452530984616863
+          } ]
+        },
+        "COL1" : 33,
+        "COL2" : "COL_2_71"
+      },
+      "timestamp" : 0
+    }, {
+      "topic" : "test_topic",
+      "key" : "101",
+      "value" : {
+        "NESTED_STRUCT_FIELD" : {
+          "SL1_STRUCT" : {
+            "SL2_STRUCT" : {
+              "SL3_STRUCT" : {
+                "SL4_STRING" : "SL4_62",
+                "SL4_INT" : 24,
+                "SL4_DOUBLE_ARRAY" : [ 25.385083987245714, 86.69430464168514, 17.705377157838733 ]
+              },
+              "SL3_DOUBLE_ARRAY" : [ 11.462799206287599, 22.25028946567773, 37.91865972134348 ],
+              "SL3_STRING" : "SL3_28"
+            },
+            "SL2_STRUCT_MAP" : {
+              "mapkey" : {
+                "SL2_3_STRING" : "SL2_3_68",
+                "SL2_3_DOUBLE" : 39.07228201310673
+              }
+            },
+            "SL2_DOUBLE" : 11.351522815259596,
+            "SL2_BOOLEAN" : false
+          },
+          "SL1_STRING" : "SL1__83",
+          "SL1_STRUCT_ARRAY" : [ {
+            "SL1_2_STRING" : "SL1_2_26",
+            "SL1_2_DOUBLE" : 66.57997281940021
+          } ]
+        },
+        "COL1" : 90,
+        "COL2" : "COL_2_16"
+      },
+      "timestamp" : 0
+    }, {
+      "topic" : "test_topic",
+      "key" : "101",
+      "value" : {
+        "NESTED_STRUCT_FIELD" : {
+          "SL1_STRUCT" : {
+            "SL2_STRUCT" : {
+              "SL3_STRUCT" : {
+                "SL4_STRING" : "SL4_97",
+                "SL4_INT" : 11,
+                "SL4_DOUBLE_ARRAY" : [ 74.68834760950283, 73.40355939056849, 72.15630069159221 ]
+              },
+              "SL3_DOUBLE_ARRAY" : [ 34.87744199424706, 25.01352551484607, 91.63503640195493 ],
+              "SL3_STRING" : "SL3_71"
+            },
+            "SL2_STRUCT_MAP" : {
+              "mapkey" : {
+                "SL2_3_STRING" : "SL2_3_95",
+                "SL2_3_DOUBLE" : 51.92447078198864
+              }
+            },
+            "SL2_DOUBLE" : 0.11465812883906246,
+            "SL2_BOOLEAN" : false
+          },
+          "SL1_STRING" : "SL1__23",
+          "SL1_STRUCT_ARRAY" : [ {
+            "SL1_2_STRING" : "SL1_2_72",
+            "SL1_2_DOUBLE" : 53.01321515988708
+          } ]
+        },
+        "COL1" : 40,
+        "COL2" : "COL_2_22"
+      },
+      "timestamp" : 0
+    }, {
+      "topic" : "test_topic",
+      "key" : "101",
+      "value" : {
+        "NESTED_STRUCT_FIELD" : {
+          "SL1_STRUCT" : {
+            "SL2_STRUCT" : {
+              "SL3_STRUCT" : {
+                "SL4_STRING" : "SL4_69",
+                "SL4_INT" : 85,
+                "SL4_DOUBLE_ARRAY" : [ 32.27711275538546, 3.7338613605496174, 52.41743778835066 ]
+              },
+              "SL3_DOUBLE_ARRAY" : [ 55.50255503073278, 28.859912265882194, 10.593691218168388 ],
+              "SL3_STRING" : "SL3_92"
+            },
+            "SL2_STRUCT_MAP" : {
+              "mapkey" : {
+                "SL2_3_STRING" : "SL2_3_1",
+                "SL2_3_DOUBLE" : 85.05450978718197
+              }
+            },
+            "SL2_DOUBLE" : 50.22811739780598,
+            "SL2_BOOLEAN" : false
+          },
+          "SL1_STRING" : "SL1__90",
+          "SL1_STRUCT_ARRAY" : [ {
+            "SL1_2_STRING" : "SL1_2_15",
+            "SL1_2_DOUBLE" : 30.043760830369948
+          } ]
+        },
+        "COL1" : 4,
+        "COL2" : "COL_2_99"
+      },
+      "timestamp" : 0
+    } ],
+    "outputs" : [ {
+      "topic" : "S1",
+      "key" : "0",
+      "value" : {
+        "NESTED_STRUCT_FIELD" : {
+          "SL1_STRUCT" : {
+            "SL2_STRUCT" : {
+              "SL3_STRUCT" : {
+                "SL4_STRING" : "SL4_68",
+                "SL4_INT" : 99,
+                "SL4_DOUBLE_ARRAY" : [ 44.00196898385005, 20.811629846775816, 18.106233954153627 ]
+              },
+              "SL3_DOUBLE_ARRAY" : [ 31.29018346053053, 87.19637274214466, 70.00366916161433 ],
+              "SL3_STRING" : "SL3_94"
+            },
+            "SL2_STRUCT_MAP" : {
+              "mapkey" : {
+                "SL2_3_STRING" : "SL2_3_32",
+                "SL2_3_DOUBLE" : 62.714783363909
+              }
+            },
+            "SL2_DOUBLE" : 96.18972237459049,
+            "SL2_BOOLEAN" : true
+          },
+          "SL1_STRING" : "SL1__14",
+          "SL1_STRUCT_ARRAY" : [ {
+            "SL1_2_STRING" : "SL1_2_93",
+            "SL1_2_DOUBLE" : 68.75388222481254
+          } ]
+        },
+        "COL1" : 15,
+        "COL2" : "COL_2_89"
+      },
+      "timestamp" : 0
+    }, {
+      "topic" : "S1",
+      "key" : "100",
+      "value" : {
+        "NESTED_STRUCT_FIELD" : {
+          "SL1_STRUCT" : {
+            "SL2_STRUCT" : {
+              "SL3_STRUCT" : {
+                "SL4_STRING" : "SL4_67",
+                "SL4_INT" : 65,
+                "SL4_DOUBLE_ARRAY" : [ 14.483946419811055, 48.09062881637733, 65.07562628320905 ]
+              },
+              "SL3_DOUBLE_ARRAY" : [ 79.77170455118497, 58.32487381412906, 44.62474921754443 ],
+              "SL3_STRING" : "SL3_16"
+            },
+            "SL2_STRUCT_MAP" : {
+              "mapkey" : {
+                "SL2_3_STRING" : "SL2_3_60",
+                "SL2_3_DOUBLE" : 17.481981844681428
+              }
+            },
+            "SL2_DOUBLE" : 38.56446292115307,
+            "SL2_BOOLEAN" : true
+          },
+          "SL1_STRING" : "SL1__5",
+          "SL1_STRUCT_ARRAY" : [ {
+            "SL1_2_STRING" : "SL1_2_84",
+            "SL1_2_DOUBLE" : 2.7452530984616863
+          } ]
+        },
+        "COL1" : 33,
+        "COL2" : "COL_2_71"
+      },
+      "timestamp" : 0
+    }, {
+      "topic" : "S1",
+      "key" : "101",
+      "value" : {
+        "NESTED_STRUCT_FIELD" : {
+          "SL1_STRUCT" : {
+            "SL2_STRUCT" : {
+              "SL3_STRUCT" : {
+                "SL4_STRING" : "SL4_62",
+                "SL4_INT" : 24,
+                "SL4_DOUBLE_ARRAY" : [ 25.385083987245714, 86.69430464168514, 17.705377157838733 ]
+              },
+              "SL3_DOUBLE_ARRAY" : [ 11.462799206287599, 22.25028946567773, 37.91865972134348 ],
+              "SL3_STRING" : "SL3_28"
+            },
+            "SL2_STRUCT_MAP" : {
+              "mapkey" : {
+                "SL2_3_STRING" : "SL2_3_68",
+                "SL2_3_DOUBLE" : 39.07228201310673
+              }
+            },
+            "SL2_DOUBLE" : 11.351522815259596,
+            "SL2_BOOLEAN" : false
+          },
+          "SL1_STRING" : "SL1__83",
+          "SL1_STRUCT_ARRAY" : [ {
+            "SL1_2_STRING" : "SL1_2_26",
+            "SL1_2_DOUBLE" : 66.57997281940021
+          } ]
+        },
+        "COL1" : 90,
+        "COL2" : "COL_2_16"
+      },
+      "timestamp" : 0
+    }, {
+      "topic" : "S1",
+      "key" : "101",
+      "value" : {
+        "NESTED_STRUCT_FIELD" : {
+          "SL1_STRUCT" : {
+            "SL2_STRUCT" : {
+              "SL3_STRUCT" : {
+                "SL4_STRING" : "SL4_97",
+                "SL4_INT" : 11,
+                "SL4_DOUBLE_ARRAY" : [ 74.68834760950283, 73.40355939056849, 72.15630069159221 ]
+              },
+              "SL3_DOUBLE_ARRAY" : [ 34.87744199424706, 25.01352551484607, 91.63503640195493 ],
+              "SL3_STRING" : "SL3_71"
+            },
+            "SL2_STRUCT_MAP" : {
+              "mapkey" : {
+                "SL2_3_STRING" : "SL2_3_95",
+                "SL2_3_DOUBLE" : 51.92447078198864
+              }
+            },
+            "SL2_DOUBLE" : 0.11465812883906246,
+            "SL2_BOOLEAN" : false
+          },
+          "SL1_STRING" : "SL1__23",
+          "SL1_STRUCT_ARRAY" : [ {
+            "SL1_2_STRING" : "SL1_2_72",
+            "SL1_2_DOUBLE" : 53.01321515988708
+          } ]
+        },
+        "COL1" : 40,
+        "COL2" : "COL_2_22"
+      },
+      "timestamp" : 0
+    }, {
+      "topic" : "S1",
+      "key" : "101",
+      "value" : {
+        "NESTED_STRUCT_FIELD" : {
+          "SL1_STRUCT" : {
+            "SL2_STRUCT" : {
+              "SL3_STRUCT" : {
+                "SL4_STRING" : "SL4_69",
+                "SL4_INT" : 85,
+                "SL4_DOUBLE_ARRAY" : [ 32.27711275538546, 3.7338613605496174, 52.41743778835066 ]
+              },
+              "SL3_DOUBLE_ARRAY" : [ 55.50255503073278, 28.859912265882194, 10.593691218168388 ],
+              "SL3_STRING" : "SL3_92"
+            },
+            "SL2_STRUCT_MAP" : {
+              "mapkey" : {
+                "SL2_3_STRING" : "SL2_3_1",
+                "SL2_3_DOUBLE" : 85.05450978718197
+              }
+            },
+            "SL2_DOUBLE" : 50.22811739780598,
+            "SL2_BOOLEAN" : false
+          },
+          "SL1_STRING" : "SL1__90",
+          "SL1_STRUCT_ARRAY" : [ {
+            "SL1_2_STRING" : "SL1_2_15",
+            "SL1_2_DOUBLE" : 30.043760830369948
+          } ]
+        },
+        "COL1" : 4,
+        "COL2" : "COL_2_99"
+      },
+      "timestamp" : 0
+    } ],
+    "topics" : [ {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "S1",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM foo (ID STRING KEY, NESTED_STRUCT_FIELD STRUCT <SL1_STRUCT  STRUCT< SL2_STRUCT STRUCT<SL3_STRUCT STRUCT< SL4_STRING VARCHAR, SL4_INT INT, SL4_DOUBLE_ARRAY ARRAY<DOUBLE>>, SL3_DOUBLE_ARRAY ARRAY<DOUBLE>, SL3_STRING VARCHAR>, SL2_STRUCT_MAP MAP<VARCHAR, STRUCT<SL2_3_STRING VARCHAR, SL2_3_DOUBLE DOUBLE>>, SL2_DOUBLE DOUBLE, SL2_BOOLEAN BOOLEAN >, SL1_STRING VARCHAR, SL1_STRUCT_ARRAY ARRAY<STRUCT<SL1_2_STRING VARCHAR, SL1_2_DOUBLE DOUBLE>> > , COL1 BIGINT, COL2 VARCHAR) WITH (kafka_topic='test_topic', value_format='json');", "CREATE STREAM s1 AS SELECT * FROM foo;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "FOO",
+        "type" : "STREAM",
+        "schema" : "`ID` STRING KEY, `NESTED_STRUCT_FIELD` STRUCT<`SL1_STRUCT` STRUCT<`SL2_STRUCT` STRUCT<`SL3_STRUCT` STRUCT<`SL4_STRING` STRING, `SL4_INT` INTEGER, `SL4_DOUBLE_ARRAY` ARRAY<DOUBLE>>, `SL3_DOUBLE_ARRAY` ARRAY<DOUBLE>, `SL3_STRING` STRING>, `SL2_STRUCT_MAP` MAP<STRING, STRUCT<`SL2_3_STRING` STRING, `SL2_3_DOUBLE` DOUBLE>>, `SL2_DOUBLE` DOUBLE, `SL2_BOOLEAN` BOOLEAN>, `SL1_STRING` STRING, `SL1_STRUCT_ARRAY` ARRAY<STRUCT<`SL1_2_STRING` STRING, `SL1_2_DOUBLE` DOUBLE>>>, `COL1` BIGINT, `COL2` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "S1",
+        "type" : "STREAM",
+        "schema" : "`ID` STRING KEY, `NESTED_STRUCT_FIELD` STRUCT<`SL1_STRUCT` STRUCT<`SL2_STRUCT` STRUCT<`SL3_STRUCT` STRUCT<`SL4_STRING` STRING, `SL4_INT` INTEGER, `SL4_DOUBLE_ARRAY` ARRAY<DOUBLE>>, `SL3_DOUBLE_ARRAY` ARRAY<DOUBLE>, `SL3_STRING` STRING>, `SL2_STRUCT_MAP` MAP<STRING, STRUCT<`SL2_3_STRING` STRING, `SL2_3_DOUBLE` DOUBLE>>, `SL2_DOUBLE` DOUBLE, `SL2_BOOLEAN` BOOLEAN>, `SL1_STRING` STRING, `SL1_STRUCT_ARRAY` ARRAY<STRUCT<`SL1_2_STRING` STRING, `SL1_2_DOUBLE` DOUBLE>>>, `COL1` BIGINT, `COL2` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "S1",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

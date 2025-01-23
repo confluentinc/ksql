@@ -1,0 +1,279 @@
+{
+  "version" : "8.0.0",
+  "timestamp" : 1737614563860,
+  "path" : "query-validation-tests/group-by.json",
+  "schemas" : {
+    "CTAS_OUT_0.Aggregate.Project" : {
+      "schema" : "`K` STRING KEY, `COUNT` BIGINT",
+      "keyFormat" : {
+        "format" : "PROTOBUF",
+        "properties" : {
+          "fullSchemaName" : "ProtobufKey2",
+          "unwrapPrimitives" : "true"
+        }
+      },
+      "valueFormat" : {
+        "format" : "PROTOBUF",
+        "properties" : {
+          "fullSchemaName" : "ProtobufValue2",
+          "unwrapPrimitives" : "true"
+        }
+      }
+    },
+    "CTAS_OUT_0.OUT" : {
+      "schema" : "`K` STRING KEY, `COUNT` BIGINT",
+      "keyFormat" : {
+        "format" : "PROTOBUF",
+        "properties" : {
+          "fullSchemaName" : "ProtobufKey2",
+          "unwrapPrimitives" : "true"
+        }
+      },
+      "valueFormat" : {
+        "format" : "PROTOBUF",
+        "properties" : {
+          "fullSchemaName" : "ProtobufValue2",
+          "unwrapPrimitives" : "true"
+        }
+      }
+    },
+    "CTAS_OUT_0.Aggregate.GroupBy" : {
+      "schema" : "`K` STRING KEY, `K` STRING, `ROWTIME` BIGINT",
+      "keyFormat" : {
+        "format" : "PROTOBUF",
+        "properties" : {
+          "fullSchemaName" : "ProtobufKey2",
+          "unwrapPrimitives" : "true"
+        }
+      },
+      "valueFormat" : {
+        "format" : "PROTOBUF",
+        "properties" : {
+          "fullSchemaName" : "ProtobufValue2",
+          "unwrapPrimitives" : "true"
+        }
+      }
+    },
+    "CTAS_OUT_0.Aggregate.Aggregate.Materialize" : {
+      "schema" : "`K` STRING KEY, `K` STRING, `ROWTIME` BIGINT, `KSQL_AGG_VARIABLE_0` BIGINT",
+      "keyFormat" : {
+        "format" : "PROTOBUF",
+        "properties" : {
+          "fullSchemaName" : "ProtobufKey2",
+          "unwrapPrimitives" : "true"
+        }
+      },
+      "valueFormat" : {
+        "format" : "PROTOBUF",
+        "properties" : {
+          "fullSchemaName" : "ProtobufValue2",
+          "unwrapPrimitives" : "true"
+        }
+      }
+    },
+    "CTAS_OUT_0.KsqlTopic.Source" : {
+      "schema" : "`K` STRING KEY, `A` BIGINT, `B` STRING",
+      "keyFormat" : {
+        "format" : "PROTOBUF",
+        "properties" : {
+          "fullSchemaName" : "ProtobufKey2",
+          "unwrapPrimitives" : "true",
+          "schemaId" : "100"
+        }
+      },
+      "valueFormat" : {
+        "format" : "PROTOBUF",
+        "properties" : {
+          "fullSchemaName" : "ProtobufValue2",
+          "unwrapPrimitives" : "true",
+          "schemaId" : "101"
+        }
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "PROTOBUF schema and schema_id",
+    "inputs" : [ {
+      "topic" : "source",
+      "key" : {
+        "K" : "falcon"
+      },
+      "value" : {
+        "A" : 1230,
+        "B" : "falcon"
+      },
+      "timestamp" : 0
+    }, {
+      "topic" : "source",
+      "key" : {
+        "K" : "giraffe"
+      },
+      "value" : {
+        "A" : 4560,
+        "B" : "giraffe"
+      },
+      "timestamp" : 0
+    }, {
+      "topic" : "source",
+      "key" : {
+        "K" : "turtle"
+      },
+      "value" : {
+        "A" : 7890,
+        "B" : "turtle"
+      },
+      "timestamp" : 0
+    }, {
+      "topic" : "source",
+      "key" : {
+        "K" : "falcon"
+      },
+      "value" : {
+        "A" : 1250,
+        "B" : "falcon"
+      },
+      "timestamp" : 0
+    } ],
+    "outputs" : [ {
+      "topic" : "OUT",
+      "key" : {
+        "K" : "falcon"
+      },
+      "value" : {
+        "COUNT" : 1
+      },
+      "timestamp" : 0
+    }, {
+      "topic" : "OUT",
+      "key" : {
+        "K" : "giraffe"
+      },
+      "value" : {
+        "COUNT" : 1
+      },
+      "timestamp" : 0
+    }, {
+      "topic" : "OUT",
+      "key" : {
+        "K" : "turtle"
+      },
+      "value" : {
+        "COUNT" : 1
+      },
+      "timestamp" : 0
+    }, {
+      "topic" : "OUT",
+      "key" : {
+        "K" : "falcon"
+      },
+      "value" : {
+        "COUNT" : 2
+      },
+      "timestamp" : 0
+    } ],
+    "topics" : [ {
+      "name" : "source",
+      "keySchemaId" : 100,
+      "valueSchemaId" : 101,
+      "keySchema" : "syntax = \"proto3\";\n\nmessage ProtobufKey1 {\n  uint32 k1 = 1;\n}\nmessage ProtobufKey2 {\n  string K = 1;\n}\n",
+      "valueSchema" : "syntax = \"proto3\";\n\nmessage ProtobufValue1 {\n  float c1 = 1;\n  uint32 c2 = 2;\n}\nmessage ProtobufValue2 {\n  uint64 A = 1;\n  string B = 2;\n}\n",
+      "keyFormat" : "PROTOBUF",
+      "valueFormat" : "PROTOBUF",
+      "replicas" : 1,
+      "numPartitions" : 1
+    }, {
+      "name" : "OUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM SOURCE WITH (kafka_topic='source', format='PROTOBUF', KEY_SCHEMA_ID=100, KEY_SCHEMA_FULL_NAME='ProtobufKey2', VALUE_SCHEMA_ID=101, VALUE_SCHEMA_FULL_NAME='ProtobufValue2');", "CREATE TABLE OUT AS SELECT K, COUNT(*) AS COUNT FROM SOURCE GROUP BY K;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "OUT",
+        "type" : "TABLE",
+        "schema" : "`K` STRING KEY, `COUNT` BIGINT",
+        "keyFormat" : {
+          "format" : "PROTOBUF"
+        },
+        "valueFormat" : "PROTOBUF",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "SOURCE",
+        "type" : "STREAM",
+        "schema" : "`K` STRING KEY, `A` BIGINT, `B` STRING",
+        "keyFormat" : {
+          "format" : "PROTOBUF"
+        },
+        "valueFormat" : "PROTOBUF",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "source",
+          "keyFormat" : {
+            "format" : "PROTOBUF",
+            "properties" : {
+              "fullSchemaName" : "ProtobufKey2",
+              "unwrapPrimitives" : "true",
+              "schemaId" : "100"
+            }
+          },
+          "valueFormat" : {
+            "format" : "PROTOBUF",
+            "properties" : {
+              "fullSchemaName" : "ProtobufValue2",
+              "unwrapPrimitives" : "true",
+              "schemaId" : "101"
+            }
+          },
+          "partitions" : 1,
+          "keySchemaId" : 100,
+          "valueSchemaId" : 101,
+          "keySchema" : "syntax = \"proto3\";\n\nmessage ProtobufKey2 {\n  string K = 1;\n}\n",
+          "valueSchema" : "syntax = \"proto3\";\n\nmessage ProtobufValue2 {\n  uint64 A = 1;\n  string B = 2;\n}\n"
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUT_0-Aggregate-Aggregate-Materialize-changelog",
+          "keyFormat" : {
+            "format" : "PROTOBUF",
+            "properties" : {
+              "fullSchemaName" : "ProtobufKey2",
+              "unwrapPrimitives" : "true"
+            }
+          },
+          "valueFormat" : {
+            "format" : "PROTOBUF",
+            "properties" : {
+              "fullSchemaName" : "ProtobufValue2",
+              "unwrapPrimitives" : "true"
+            }
+          },
+          "keySchema" : "syntax = \"proto3\";\n\nmessage ProtobufKey2 {\n  string K = 1;\n}\n",
+          "valueSchema" : "syntax = \"proto3\";\n\nmessage ProtobufValue2 {\n  string K = 1;\n  int64 ROWTIME = 2;\n  int64 KSQL_AGG_VARIABLE_0 = 3;\n}\n"
+        }, {
+          "name" : "OUT",
+          "keyFormat" : {
+            "format" : "PROTOBUF",
+            "properties" : {
+              "fullSchemaName" : "ProtobufKey2",
+              "unwrapPrimitives" : "true"
+            }
+          },
+          "valueFormat" : {
+            "format" : "PROTOBUF",
+            "properties" : {
+              "fullSchemaName" : "ProtobufValue2",
+              "unwrapPrimitives" : "true"
+            }
+          },
+          "partitions" : 4,
+          "keySchema" : "syntax = \"proto3\";\n\nmessage ProtobufKey2 {\n  string K = 1;\n}\n",
+          "valueSchema" : "syntax = \"proto3\";\n\nmessage ProtobufValue2 {\n  int64 COUNT = 1;\n}\n"
+        } ]
+      }
+    }
+  }
+}

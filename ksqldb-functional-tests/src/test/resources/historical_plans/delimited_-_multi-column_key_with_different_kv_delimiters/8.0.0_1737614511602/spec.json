@@ -1,0 +1,115 @@
+{
+  "version" : "8.0.0",
+  "timestamp" : 1737614511602,
+  "path" : "query-validation-tests/delimited.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`K1` STRING KEY, `K2` STRING KEY, `V` INTEGER, `V2` INTEGER",
+      "keyFormat" : {
+        "format" : "DELIMITED",
+        "properties" : {
+          "delimiter" : ";"
+        }
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED",
+        "properties" : {
+          "delimiter" : "-"
+        }
+      }
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`K1` STRING KEY, `K2` STRING KEY, `V` INTEGER, `V2` INTEGER",
+      "keyFormat" : {
+        "format" : "JSON"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED",
+        "properties" : {
+          "delimiter" : "-"
+        }
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "multi-column key with different kv delimiters",
+    "inputs" : [ {
+      "topic" : "input_topic",
+      "key" : "foo,bar;baz",
+      "value" : "0-1"
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : {
+        "K1" : "foo,bar",
+        "K2" : "baz"
+      },
+      "value" : "0-1"
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "input_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM INPUT (K1 STRING KEY, K2 STRING KEY, V INT, V2 INT) WITH (kafka_topic='input_topic', format='DELIMITED', key_delimiter=';', value_delimiter='-');", "CREATE STREAM OUTPUT WITH (key_format='JSON') AS SELECT * FROM INPUT;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`K1` STRING KEY, `K2` STRING KEY, `V` INTEGER, `V2` INTEGER",
+        "keyFormat" : {
+          "format" : "DELIMITED"
+        },
+        "valueFormat" : "DELIMITED",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`K1` STRING KEY, `K2` STRING KEY, `V` INTEGER, `V2` INTEGER",
+        "keyFormat" : {
+          "format" : "JSON"
+        },
+        "valueFormat" : "DELIMITED",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "input_topic",
+          "keyFormat" : {
+            "format" : "DELIMITED",
+            "properties" : {
+              "delimiter" : ";"
+            }
+          },
+          "valueFormat" : {
+            "format" : "DELIMITED",
+            "properties" : {
+              "delimiter" : "-"
+            }
+          },
+          "partitions" : 4
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "format" : "JSON"
+          },
+          "valueFormat" : {
+            "format" : "DELIMITED",
+            "properties" : {
+              "delimiter" : "-"
+            }
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

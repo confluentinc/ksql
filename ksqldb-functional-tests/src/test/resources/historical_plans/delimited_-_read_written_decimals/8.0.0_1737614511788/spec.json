@@ -1,0 +1,146 @@
+{
+  "version" : "8.0.0",
+  "timestamp" : 1737614511788,
+  "path" : "query-validation-tests/delimited.json",
+  "schemas" : {
+    "CSAS_OUTPUT_1.OUTPUT" : {
+      "schema" : "`ID` STRING KEY, `V` DECIMAL(33, 16)",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
+    },
+    "CSAS_OUTPUT_1.KsqlTopic.Source" : {
+      "schema" : "`ID` STRING KEY, `V` DECIMAL(33, 16)",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "read written decimals",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : null,
+      "value" : "12345678987654321.2345678987654321"
+    }, {
+      "topic" : "test_topic",
+      "key" : null,
+      "value" : ".12"
+    }, {
+      "topic" : "test_topic",
+      "key" : null,
+      "value" : "-12345.12"
+    }, {
+      "topic" : "test_topic",
+      "key" : null,
+      "value" : "\"-12345.12\""
+    }, {
+      "topic" : "test_topic",
+      "key" : null,
+      "value" : "0"
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : null,
+      "value" : "12345678987654321.2345678987654321"
+    }, {
+      "topic" : "OUTPUT",
+      "key" : null,
+      "value" : "0.1200000000000000"
+    }, {
+      "topic" : "OUTPUT",
+      "key" : null,
+      "value" : "\"-12345.1200000000000000\""
+    }, {
+      "topic" : "OUTPUT",
+      "key" : null,
+      "value" : "\"-12345.1200000000000000\""
+    }, {
+      "topic" : "OUTPUT",
+      "key" : null,
+      "value" : "0.0000000000000000"
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM INPUT (ID STRING KEY, v DECIMAL(33, 16)) WITH (kafka_topic='test_topic', value_format='DELIMITED');", "CREATE STREAM INTERMEDIATE AS SELECT * FROM INPUT;", "CREATE STREAM OUTPUT AS SELECT * FROM INTERMEDIATE;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`ID` STRING KEY, `V` DECIMAL(33, 16)",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "DELIMITED",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "INTERMEDIATE",
+        "type" : "STREAM",
+        "schema" : "`ID` STRING KEY, `V` DECIMAL(33, 16)",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "DELIMITED",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`ID` STRING KEY, `V` DECIMAL(33, 16)",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "DELIMITED",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "DELIMITED"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "DELIMITED"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "INTERMEDIATE",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "DELIMITED"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

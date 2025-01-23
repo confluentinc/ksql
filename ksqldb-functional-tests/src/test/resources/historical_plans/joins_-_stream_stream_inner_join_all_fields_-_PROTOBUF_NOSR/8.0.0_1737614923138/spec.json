@@ -1,0 +1,236 @@
+{
+  "version" : "8.0.0",
+  "timestamp" : 1737614923138,
+  "path" : "query-validation-tests/joins.json",
+  "schemas" : {
+    "CSAS_INNER_JOIN_0.INNER_JOIN" : {
+      "schema" : "`TT_ID` BIGINT KEY, `TT_NAME` STRING, `T_ID` BIGINT, `T_F1` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "PROTOBUF_NOSR"
+      }
+    },
+    "CSAS_INNER_JOIN_0.KafkaTopic_Right.Source" : {
+      "schema" : "`ID` BIGINT KEY, `F1` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "PROTOBUF_NOSR"
+      }
+    },
+    "CSAS_INNER_JOIN_0.Join.Left" : {
+      "schema" : "`TT_ID` BIGINT KEY, `TT_NAME` STRING, `TT_ROWTIME` BIGINT, `TT_ROWPARTITION` INTEGER, `TT_ROWOFFSET` BIGINT, `TT_ID` BIGINT",
+      "valueFormat" : {
+        "format" : "PROTOBUF_NOSR"
+      }
+    },
+    "CSAS_INNER_JOIN_0.Join" : {
+      "schema" : "`TT_ID` BIGINT KEY, `TT_NAME` STRING, `TT_ROWTIME` BIGINT, `TT_ROWPARTITION` INTEGER, `TT_ROWOFFSET` BIGINT, `TT_ID` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      }
+    },
+    "CSAS_INNER_JOIN_0.KafkaTopic_Left.Source" : {
+      "schema" : "`ID` BIGINT KEY, `NAME` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "PROTOBUF_NOSR"
+      }
+    },
+    "CSAS_INNER_JOIN_0.Join.Right" : {
+      "schema" : "`T_ID` BIGINT KEY, `T_F1` STRING, `T_ROWTIME` BIGINT, `T_ROWPARTITION` INTEGER, `T_ROWOFFSET` BIGINT, `T_ID` BIGINT",
+      "valueFormat" : {
+        "format" : "PROTOBUF_NOSR"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "stream stream inner join all fields - PROTOBUF_NOSR",
+    "inputs" : [ {
+      "topic" : "left_topic",
+      "key" : 0,
+      "value" : {
+        "NAME" : "zero"
+      },
+      "timestamp" : 0
+    }, {
+      "topic" : "right_topic",
+      "key" : 0,
+      "value" : {
+        "F1" : "blah"
+      },
+      "timestamp" : 10000
+    }, {
+      "topic" : "left_topic",
+      "key" : 10,
+      "value" : {
+        "NAME" : "100"
+      },
+      "timestamp" : 11000
+    }, {
+      "topic" : "left_topic",
+      "key" : 0,
+      "value" : {
+        "NAME" : "foo"
+      },
+      "timestamp" : 13000
+    }, {
+      "topic" : "right_topic",
+      "key" : 0,
+      "value" : {
+        "F1" : "a"
+      },
+      "timestamp" : 15000
+    }, {
+      "topic" : "right_topic",
+      "key" : 100,
+      "value" : {
+        "F1" : "newblah"
+      },
+      "timestamp" : 16000
+    }, {
+      "topic" : "left_topic",
+      "key" : 90,
+      "value" : {
+        "NAME" : "ninety"
+      },
+      "timestamp" : 17000
+    }, {
+      "topic" : "left_topic",
+      "key" : 0,
+      "value" : {
+        "NAME" : "bar"
+      },
+      "timestamp" : 30000
+    } ],
+    "outputs" : [ {
+      "topic" : "INNER_JOIN",
+      "key" : 0,
+      "value" : {
+        "T_ID" : 0,
+        "T_F1" : "blah",
+        "TT_NAME" : "zero"
+      },
+      "timestamp" : 10000
+    }, {
+      "topic" : "INNER_JOIN",
+      "key" : 0,
+      "value" : {
+        "T_ID" : 0,
+        "T_F1" : "blah",
+        "TT_NAME" : "foo"
+      },
+      "timestamp" : 13000
+    }, {
+      "topic" : "INNER_JOIN",
+      "key" : 0,
+      "value" : {
+        "T_ID" : 0,
+        "T_F1" : "a",
+        "TT_NAME" : "foo"
+      },
+      "timestamp" : 15000
+    } ],
+    "topics" : [ {
+      "name" : "right_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "INNER_JOIN",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "left_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM TEST (ID BIGINT KEY, NAME varchar) WITH (kafka_topic='left_topic', value_format='PROTOBUF_NOSR');", "CREATE STREAM TEST_STREAM (ID BIGINT KEY, F1 varchar) WITH (kafka_topic='right_topic', value_format='PROTOBUF_NOSR');", "CREATE STREAM INNER_JOIN as SELECT * FROM test tt inner join TEST_STREAM t WITHIN 11 SECONDS ON t.id = tt.id;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "INNER_JOIN",
+        "type" : "STREAM",
+        "schema" : "`TT_ID` BIGINT KEY, `TT_NAME` STRING, `T_ID` BIGINT, `T_F1` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "PROTOBUF_NOSR",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`ID` BIGINT KEY, `NAME` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "PROTOBUF_NOSR",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "TEST_STREAM",
+        "type" : "STREAM",
+        "schema" : "`ID` BIGINT KEY, `F1` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "PROTOBUF_NOSR",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_INNER_JOIN_0-KSTREAM-JOINTHIS-0000000008-store-changelog",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "PROTOBUF_NOSR"
+          }
+        }, {
+          "name" : "INNER_JOIN",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "PROTOBUF_NOSR"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_INNER_JOIN_0-KSTREAM-JOINOTHER-0000000009-store-changelog",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "PROTOBUF_NOSR"
+          }
+        }, {
+          "name" : "left_topic",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "PROTOBUF_NOSR"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "right_topic",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "PROTOBUF_NOSR"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

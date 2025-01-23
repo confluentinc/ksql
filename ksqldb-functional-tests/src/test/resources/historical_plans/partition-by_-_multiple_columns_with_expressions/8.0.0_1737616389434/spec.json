@@ -1,0 +1,149 @@
+{
+  "version" : "8.0.0",
+  "timestamp" : 1737616389434,
+  "path" : "query-validation-tests/partition-by.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`AGE` INTEGER KEY, `NAME` STRING, `ID` INTEGER",
+      "keyFormat" : {
+        "format" : "JSON",
+        "features" : [ "UNWRAP_SINGLES" ]
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`KSQL_COL_0` INTEGER KEY, `KSQL_COL_1` INTEGER KEY, `K3` INTEGER KEY, `AGE` INTEGER, `NAME` STRING",
+      "keyFormat" : {
+        "format" : "JSON"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "multiple columns with expressions",
+    "inputs" : [ {
+      "topic" : "input",
+      "key" : null,
+      "value" : {
+        "NAME" : "bob",
+        "ID" : 10
+      }
+    }, {
+      "topic" : "input",
+      "key" : 30,
+      "value" : {
+        "NAME" : "bob",
+        "ID" : null
+      }
+    }, {
+      "topic" : "input",
+      "key" : 30,
+      "value" : null
+    }, {
+      "topic" : "input",
+      "key" : null,
+      "value" : null
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : {
+        "KSQL_COL_0" : 10,
+        "KSQL_COL_1" : 1,
+        "K3" : null
+      },
+      "value" : {
+        "AGE" : null,
+        "NAME" : "bob"
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : {
+        "KSQL_COL_0" : null,
+        "KSQL_COL_1" : 1,
+        "K3" : 32
+      },
+      "value" : {
+        "AGE" : 30,
+        "NAME" : "bob"
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : {
+        "KSQL_COL_0" : null,
+        "KSQL_COL_1" : 1,
+        "K3" : 32
+      },
+      "value" : null
+    }, {
+      "topic" : "OUTPUT",
+      "key" : {
+        "KSQL_COL_0" : null,
+        "KSQL_COL_1" : 1,
+        "K3" : null
+      },
+      "value" : null
+    } ],
+    "topics" : [ {
+      "name" : "input",
+      "replicas" : 1,
+      "keySerdeFeatures" : [ "UNWRAP_SINGLES" ],
+      "numPartitions" : 4
+    }, {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM INPUT (AGE INT KEY, NAME STRING, ID INT) with (kafka_topic='input', format='JSON');", "CREATE STREAM OUTPUT AS select ABS(ID), 1, AGE + 2 AS K3, AGE, NAME from INPUT partition by ABS(ID), 1, AGE + 2;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`AGE` INTEGER KEY, `NAME` STRING, `ID` INTEGER",
+        "keyFormat" : {
+          "format" : "JSON"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ "UNWRAP_SINGLES" ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`KSQL_COL_0` INTEGER KEY, `KSQL_COL_1` INTEGER KEY, `K3` INTEGER KEY, `AGE` INTEGER, `NAME` STRING",
+        "keyFormat" : {
+          "format" : "JSON"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "input",
+          "keyFormat" : {
+            "format" : "JSON",
+            "features" : [ "UNWRAP_SINGLES" ]
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "format" : "JSON"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

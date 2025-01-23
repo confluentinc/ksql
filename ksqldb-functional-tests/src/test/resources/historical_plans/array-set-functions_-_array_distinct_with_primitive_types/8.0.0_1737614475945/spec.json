@@ -1,0 +1,174 @@
+{
+  "version" : "8.0.0",
+  "timestamp" : 1737614475945,
+  "path" : "query-validation-tests/array-set-functions.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`ID` STRING KEY, `BOOLS` ARRAY<BOOLEAN>, `INTS` ARRAY<INTEGER>, `BIGINTS` ARRAY<BIGINT>, `DOUBLES` ARRAY<DOUBLE>, `STRINGS` ARRAY<STRING>, `DECIMALS` ARRAY<DECIMAL(2, 1)>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ID` STRING KEY, `BOOLS_DIST` ARRAY<BOOLEAN>, `INTS_DIST` ARRAY<INTEGER>, `BIGINTS_DIST` ARRAY<BIGINT>, `DOUBLES_DIST` ARRAY<DOUBLE>, `STRINGS_DIST` ARRAY<STRING>, `DECIMALS_DIST` ARRAY<DECIMAL(2, 1)>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "array_distinct with primitive types",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : "r1",
+      "value" : {
+        "bools" : [ false, true, false ],
+        "ints" : [ 0, 0, 1, 0, -1 ],
+        "bigints" : [ 345, -123, 345 ],
+        "doubles" : [ 0.0, 0.2, -12345.678, 0.2 ],
+        "strings" : [ "foo", "bar", "foo" ],
+        "decimals" : [ 1.0, -0.2, 1.0, -9.9 ]
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : "r2",
+      "value" : {
+        "bools" : [ null, false, true ],
+        "ints" : [ 0, null, 1, 0, -1 ],
+        "bigints" : [ null, -123 ],
+        "doubles" : [ 0.3, -12345.678, null, 0.3 ],
+        "strings" : [ "foo", "Food", null, "food" ],
+        "decimals" : [ 1.0, 1.1, 1.1, -0.2, null, 1.0 ]
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : "r3",
+      "value" : {
+        "bools" : [ ],
+        "ints" : [ ],
+        "bigints" : [ ],
+        "doubles" : [ ],
+        "strings" : [ ],
+        "decimals" : [ ]
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : "r4",
+      "value" : {
+        "bools" : null,
+        "ints" : null,
+        "bigints" : null,
+        "doubles" : null,
+        "strings" : null,
+        "decimals" : null
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : "r1",
+      "value" : {
+        "BOOLS_DIST" : [ false, true ],
+        "INTS_DIST" : [ 0, 1, -1 ],
+        "BIGINTS_DIST" : [ 345, -123 ],
+        "DOUBLES_DIST" : [ 0.0, 0.2, -12345.678 ],
+        "STRINGS_DIST" : [ "foo", "bar" ],
+        "DECIMALS_DIST" : [ 1.0, -0.2, -9.9 ]
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "r2",
+      "value" : {
+        "BOOLS_DIST" : [ null, false, true ],
+        "INTS_DIST" : [ 0, null, 1, -1 ],
+        "BIGINTS_DIST" : [ null, -123 ],
+        "DOUBLES_DIST" : [ 0.3, -12345.678, null ],
+        "STRINGS_DIST" : [ "foo", "Food", null, "food" ],
+        "DECIMALS_DIST" : [ 1.0, 1.1, -0.2, null ]
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "r3",
+      "value" : {
+        "BOOLS_DIST" : [ ],
+        "INTS_DIST" : [ ],
+        "BIGINTS_DIST" : [ ],
+        "DOUBLES_DIST" : [ ],
+        "STRINGS_DIST" : [ ],
+        "DECIMALS_DIST" : [ ]
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "r4",
+      "value" : {
+        "BOOLS_DIST" : null,
+        "INTS_DIST" : null,
+        "BIGINTS_DIST" : null,
+        "DOUBLES_DIST" : null,
+        "STRINGS_DIST" : null,
+        "DECIMALS_DIST" : null
+      }
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM INPUT (id STRING KEY, bools ARRAY<BOOLEAN>, ints ARRAY<INT>, bigints ARRAY<BIGINT>, doubles ARRAY<DOUBLE>, strings ARRAY<STRING>, decimals ARRAY<DECIMAL(2,1)>) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE STREAM OUTPUT AS SELECT id, array_distinct(bools) as bools_dist, array_distinct(ints) as ints_dist, array_distinct(bigints) as bigints_dist, array_distinct(doubles) as doubles_dist, array_distinct(strings) as strings_dist, array_distinct(decimals) as decimals_dist FROM INPUT;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`ID` STRING KEY, `BOOLS` ARRAY<BOOLEAN>, `INTS` ARRAY<INTEGER>, `BIGINTS` ARRAY<BIGINT>, `DOUBLES` ARRAY<DOUBLE>, `STRINGS` ARRAY<STRING>, `DECIMALS` ARRAY<DECIMAL(2, 1)>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`ID` STRING KEY, `BOOLS_DIST` ARRAY<BOOLEAN>, `INTS_DIST` ARRAY<INTEGER>, `BIGINTS_DIST` ARRAY<BIGINT>, `DOUBLES_DIST` ARRAY<DOUBLE>, `STRINGS_DIST` ARRAY<STRING>, `DECIMALS_DIST` ARRAY<DECIMAL(2, 1)>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

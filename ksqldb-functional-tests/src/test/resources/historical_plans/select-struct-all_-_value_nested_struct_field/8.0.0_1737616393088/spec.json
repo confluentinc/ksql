@@ -1,0 +1,174 @@
+{
+  "version" : "8.0.0",
+  "timestamp" : 1737616393088,
+  "path" : "query-validation-tests/select-struct-all.json",
+  "schemas" : {
+    "CSAS_OUTPUT_3_2.OUTPUT_3" : {
+      "schema" : "`A` STRUCT<`B` STRUCT<`F1` INTEGER, `F2` STRING>>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_OUTPUT_3_2.KsqlTopic.Source" : {
+      "schema" : "`V1` STRUCT<`A` STRUCT<`B` STRUCT<`F1` INTEGER, `F2` STRING>>>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "value nested struct field",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : null,
+      "value" : {
+        "V1" : {
+          "a" : {
+            "b" : {
+              "f1" : 1,
+              "f2" : "2"
+            }
+          }
+        }
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT_1",
+      "key" : null,
+      "value" : {
+        "F1" : 1,
+        "F2" : "2"
+      }
+    }, {
+      "topic" : "OUTPUT_2",
+      "key" : null,
+      "value" : {
+        "B" : {
+          "F1" : 1,
+          "F2" : "2"
+        }
+      }
+    }, {
+      "topic" : "OUTPUT_3",
+      "key" : null,
+      "value" : {
+        "A" : {
+          "B" : {
+            "F1" : 1,
+            "F2" : "2"
+          }
+        }
+      }
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT_2",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "OUTPUT_3",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "OUTPUT_1",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM INPUT (v1 STRUCT<a STRUCT<b STRUCT<f1 INT, f2 STRING>>>) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE STREAM OUTPUT_1 AS SELECT v1->a->b->* FROM INPUT;", "CREATE STREAM OUTPUT_2 AS SELECT v1->a->* FROM INPUT;", "CREATE STREAM OUTPUT_3 AS SELECT v1->* FROM INPUT;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`V1` STRUCT<`A` STRUCT<`B` STRUCT<`F1` INTEGER, `F2` STRING>>>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "OUTPUT_1",
+        "type" : "STREAM",
+        "schema" : "`F1` INTEGER, `F2` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "OUTPUT_2",
+        "type" : "STREAM",
+        "schema" : "`B` STRUCT<`F1` INTEGER, `F2` STRING>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "OUTPUT_3",
+        "type" : "STREAM",
+        "schema" : "`A` STRUCT<`B` STRUCT<`F1` INTEGER, `F2` STRING>>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "OUTPUT_1",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "OUTPUT_2",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "OUTPUT_3",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

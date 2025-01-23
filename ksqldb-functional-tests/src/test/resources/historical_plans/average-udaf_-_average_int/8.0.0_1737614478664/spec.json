@@ -1,0 +1,205 @@
+{
+  "version" : "8.0.0",
+  "timestamp" : 1737614478664,
+  "path" : "query-validation-tests/average-udaf.json",
+  "schemas" : {
+    "CTAS_OUTPUT_0.Aggregate.GroupBy" : {
+      "schema" : "`ID` STRING KEY, `ID` STRING, `VALUE` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CTAS_OUTPUT_0.Aggregate.Project" : {
+      "schema" : "`ID` STRING KEY, `AVG` DOUBLE",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CTAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`ID` STRING KEY, `VALUE` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CTAS_OUTPUT_0.Aggregate.Aggregate.Materialize" : {
+      "schema" : "`ID` STRING KEY, `ID` STRING, `VALUE` INTEGER, `KSQL_AGG_VARIABLE_0` STRUCT<`SUM` INTEGER, `COUNT` BIGINT>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CTAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ID` STRING KEY, `AVG` DOUBLE",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "average int",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : "alice",
+      "value" : {
+        "value" : 1
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : "bob",
+      "value" : {
+        "value" : 2
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : "alice",
+      "value" : {
+        "value" : 2
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : "alice",
+      "value" : {
+        "value" : 2
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : "bob",
+      "value" : {
+        "value" : 2
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : "bob",
+      "value" : {
+        "value" : 0
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : "alice",
+      "value" : {
+        "value" : null
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : "alice",
+      "value" : {
+        "AVG" : 1.0
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "bob",
+      "value" : {
+        "AVG" : 2.0
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "alice",
+      "value" : {
+        "AVG" : 1.5
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "alice",
+      "value" : {
+        "AVG" : 1.6666666666666667
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "bob",
+      "value" : {
+        "AVG" : 2.0
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "bob",
+      "value" : {
+        "AVG" : 1.3333333333333333
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "alice",
+      "value" : {
+        "AVG" : 1.6666666666666667
+      }
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM INPUT (ID STRING KEY, VALUE integer) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE TABLE OUTPUT AS SELECT ID, avg(value) AS avg FROM INPUT group by ID;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`ID` STRING KEY, `VALUE` INTEGER",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "OUTPUT",
+        "type" : "TABLE",
+        "schema" : "`ID` STRING KEY, `AVG` DOUBLE",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          }
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

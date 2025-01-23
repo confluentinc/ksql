@@ -1,0 +1,134 @@
+{
+  "version" : "8.0.0",
+  "timestamp" : 1737616406612,
+  "path" : "query-validation-tests/timestampformat.json",
+  "schemas" : {
+    "CSAS_TS_0.TS" : {
+      "schema" : "`K` STRING KEY, `ID` BIGINT, `ETS` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_TS_0.KsqlTopic.Source" : {
+      "schema" : "`K` STRING KEY, `ID` BIGINT, `EVENT_TIMESTAMP` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "timestamp format",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : null,
+      "value" : {
+        "ID" : 1,
+        "event_timestamp" : "2018-05-11T21:58:33Z"
+      },
+      "timestamp" : 10
+    }, {
+      "topic" : "test_topic",
+      "key" : null,
+      "value" : {
+        "ID" : 1,
+        "event_timestamp" : "2019-05-11T21:58:33Z"
+      },
+      "timestamp" : 10
+    }, {
+      "topic" : "test_topic",
+      "key" : null,
+      "value" : {
+        "ID" : 1,
+        "event_timestamp" : "2020-05-11T21:58:33Z"
+      },
+      "timestamp" : 10
+    } ],
+    "outputs" : [ {
+      "topic" : "TS",
+      "key" : null,
+      "value" : {
+        "ID" : 1,
+        "ETS" : 1526075913000
+      },
+      "timestamp" : 1526075913000
+    }, {
+      "topic" : "TS",
+      "key" : null,
+      "value" : {
+        "ID" : 1,
+        "ETS" : 1557611913000
+      },
+      "timestamp" : 1557611913000
+    }, {
+      "topic" : "TS",
+      "key" : null,
+      "value" : {
+        "ID" : 1,
+        "ETS" : 1589234313000
+      },
+      "timestamp" : 1589234313000
+    } ],
+    "topics" : [ {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "TS",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM TEST (K STRING KEY, ID bigint, event_timestamp VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON', timestamp='event_timestamp', timestamp_format='yyyy-MM-dd''T''HH:mm:ssX');", "CREATE STREAM TS AS select K, id, stringtotimestamp(event_timestamp, 'yyyy-MM-dd''T''HH:mm:ssX') as ets from test;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`K` STRING KEY, `ID` BIGINT, `EVENT_TIMESTAMP` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "TS",
+        "type" : "STREAM",
+        "schema" : "`K` STRING KEY, `ID` BIGINT, `ETS` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "TS",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

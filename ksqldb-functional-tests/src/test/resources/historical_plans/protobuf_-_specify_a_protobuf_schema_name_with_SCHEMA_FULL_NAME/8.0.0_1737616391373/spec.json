@@ -1,0 +1,148 @@
+{
+  "version" : "8.0.0",
+  "timestamp" : 1737616391373,
+  "path" : "query-validation-tests/protobuf.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`K1` BIGINT KEY, `C1` DOUBLE, `C2` BIGINT",
+      "keyFormat" : {
+        "format" : "PROTOBUF",
+        "properties" : {
+          "fullSchemaName" : "ProtobufKey1",
+          "unwrapPrimitives" : "true"
+        }
+      },
+      "valueFormat" : {
+        "format" : "PROTOBUF",
+        "properties" : {
+          "fullSchemaName" : "ProtobufValue1",
+          "unwrapPrimitives" : "true"
+        }
+      }
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`K1` BIGINT KEY, `C1` DOUBLE, `C2` BIGINT",
+      "keyFormat" : {
+        "format" : "PROTOBUF",
+        "properties" : {
+          "fullSchemaName" : "ProtobufKey2",
+          "unwrapPrimitives" : "true"
+        }
+      },
+      "valueFormat" : {
+        "format" : "PROTOBUF",
+        "properties" : {
+          "fullSchemaName" : "ProtobufValue2",
+          "unwrapPrimitives" : "true"
+        }
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "specify a protobuf schema name with SCHEMA_FULL_NAME",
+    "inputs" : [ {
+      "topic" : "input",
+      "key" : {
+        "k1" : 10
+      },
+      "value" : {
+        "c1" : 1.1234,
+        "c2" : 100
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : {
+        "K1" : 10
+      },
+      "value" : {
+        "C1" : 1.1233999729156494,
+        "C2" : 100
+      }
+    } ],
+    "topics" : [ {
+      "name" : "input",
+      "keySchema" : "syntax = \"proto3\";\n\nmessage ProtobufKey1 {\n  uint32 k1 = 1;\n}\n",
+      "valueSchema" : "syntax = \"proto3\";\n\nmessage ProtobufValue1 {\n  float c1 = 1;\n  uint32 c2 = 2;\n}\n",
+      "keyFormat" : "PROTOBUF",
+      "valueFormat" : "PROTOBUF",
+      "replicas" : 1,
+      "numPartitions" : 1
+    }, {
+      "name" : "OUTPUT",
+      "keySchema" : "syntax = \"proto3\";\n\nmessage ProtobufKey2 {\n  uint32 k1 = 1;\n}\n",
+      "valueSchema" : "syntax = \"proto3\";\n\nmessage ProtobufValue2 {\n  float c1 = 1;\n  uint32 c2 = 2;\n}\n",
+      "keyFormat" : "PROTOBUF",
+      "valueFormat" : "PROTOBUF",
+      "replicas" : 1,
+      "numPartitions" : 1
+    } ],
+    "statements" : [ "CREATE STREAM INPUT WITH (kafka_topic='input', format='PROTOBUF', KEY_SCHEMA_FULL_NAME='ProtobufKey1', VALUE_SCHEMA_FULL_NAME='ProtobufValue1');", "CREATE STREAM OUTPUT WITH (format='PROTOBUF', KEY_SCHEMA_FULL_NAME='ProtobufKey2', VALUE_SCHEMA_FULL_NAME='ProtobufValue2') AS SELECT * FROM input;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`K1` BIGINT KEY, `C1` DOUBLE, `C2` BIGINT",
+        "keyFormat" : {
+          "format" : "PROTOBUF"
+        },
+        "valueFormat" : "PROTOBUF",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`K1` BIGINT KEY, `C1` DOUBLE, `C2` BIGINT",
+        "keyFormat" : {
+          "format" : "PROTOBUF"
+        },
+        "valueFormat" : "PROTOBUF",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "input",
+          "keyFormat" : {
+            "format" : "PROTOBUF",
+            "properties" : {
+              "fullSchemaName" : "ProtobufKey1",
+              "unwrapPrimitives" : "true"
+            }
+          },
+          "valueFormat" : {
+            "format" : "PROTOBUF",
+            "properties" : {
+              "fullSchemaName" : "ProtobufValue1",
+              "unwrapPrimitives" : "true"
+            }
+          },
+          "partitions" : 1,
+          "keySchema" : "syntax = \"proto3\";\n\nmessage ProtobufKey1 {\n  uint32 k1 = 1;\n}\n",
+          "valueSchema" : "syntax = \"proto3\";\n\nmessage ProtobufValue1 {\n  float c1 = 1;\n  uint32 c2 = 2;\n}\n"
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "format" : "PROTOBUF",
+            "properties" : {
+              "fullSchemaName" : "ProtobufKey2",
+              "unwrapPrimitives" : "true"
+            }
+          },
+          "valueFormat" : {
+            "format" : "PROTOBUF",
+            "properties" : {
+              "fullSchemaName" : "ProtobufValue2",
+              "unwrapPrimitives" : "true"
+            }
+          },
+          "partitions" : 4,
+          "keySchema" : "syntax = \"proto3\";\n\nmessage ProtobufKey2 {\n  int64 K1 = 1;\n}\n",
+          "valueSchema" : "syntax = \"proto3\";\n\nmessage ProtobufValue2 {\n  double C1 = 1;\n  int64 C2 = 2;\n}\n"
+        } ]
+      }
+    }
+  }
+}

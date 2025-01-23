@@ -1,0 +1,102 @@
+{
+  "version" : "8.0.0",
+  "timestamp" : 1737614482148,
+  "path" : "query-validation-tests/binary-arithmetic.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`COL0` INTEGER KEY, `COL1` BIGINT, `COL2` DOUBLE",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`COL0` INTEGER KEY, `KSQL_COL_0` BIGINT, `KSQL_COL_1` DOUBLE, `KSQL_COL_2` BIGINT, `KSQL_COL_3` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "in projection",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : 6,
+      "value" : {
+        "col1" : 25,
+        "col2" : 3.21
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : 6,
+      "value" : {
+        "KSQL_COL_0" : 31,
+        "KSQL_COL_1" : 13.21,
+        "KSQL_COL_2" : 625,
+        "KSQL_COL_3" : 50
+      }
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM INPUT (col0 INT KEY, col1 BIGINT, col2 DOUBLE) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE STREAM OUTPUT AS SELECT col0, col0+col1, col2+10, col1*25, 12*4+2 FROM INPUT;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`COL0` INTEGER KEY, `COL1` BIGINT, `COL2` DOUBLE",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`COL0` INTEGER KEY, `KSQL_COL_0` BIGINT, `KSQL_COL_1` DOUBLE, `KSQL_COL_2` BIGINT, `KSQL_COL_3` INTEGER",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

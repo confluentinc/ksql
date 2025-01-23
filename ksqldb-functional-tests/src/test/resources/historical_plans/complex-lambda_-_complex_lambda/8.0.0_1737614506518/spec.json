@@ -1,0 +1,149 @@
+{
+  "version" : "8.0.0",
+  "timestamp" : 1737614506518,
+  "path" : "query-validation-tests/complex-lambda.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`ID` STRING KEY, `MAPPING` MAP<STRING, ARRAY<INTEGER>>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ID` STRING KEY, `OUTPUT` MAP<STRING, INTEGER>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "complex lambda",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : "one",
+      "value" : {
+        "MAPPING" : {
+          "a" : [ 2, 4, 5 ],
+          "bcd" : [ -5, 7 ]
+        }
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : "two",
+      "value" : {
+        "MAPPING" : {
+          "hello" : [ 200, 4, 5 ],
+          "hey" : [ 14, -3, -15, 3 ],
+          "wow" : [ 2, 3, 4 ]
+        }
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : "three",
+      "value" : {
+        "MAPPING" : {
+          "a" : null,
+          "bcdefg" : [ -15, 72 ]
+        }
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : "four",
+      "value" : {
+        "MAPPING" : null
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : "one",
+      "value" : {
+        "OUTPUT" : {
+          "abcd" : 8
+        }
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "two",
+      "value" : {
+        "OUTPUT" : {
+          "hey" : -4,
+          "w" : 36
+        }
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "three",
+      "value" : {
+        "OUTPUT" : { }
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "four",
+      "value" : {
+        "OUTPUT" : null
+      }
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM test (ID STRING KEY, MAPPING MAP<STRING, ARRAY<INTEGER>>) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE STREAM OUTPUT AS SELECT ID, TRANSFORM(FILTER(MAPPING, (a, b) => LEN(a) > 2 AND REDUCE(b, 0, (c, d) => c+d) < 20), (X,Y) => LPAD(x, REDUCE(Y, 2, (s, k) => ABS(ABS(k)-s)), 'a'), (X,Y) => REDUCE(ARRAY_UNION(Y, TRANSFORM(Y, z => z*3)), 0, (e, f) => e+f)) AS OUTPUT FROM test;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`ID` STRING KEY, `OUTPUT` MAP<STRING, INTEGER>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`ID` STRING KEY, `MAPPING` MAP<STRING, ARRAY<INTEGER>>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

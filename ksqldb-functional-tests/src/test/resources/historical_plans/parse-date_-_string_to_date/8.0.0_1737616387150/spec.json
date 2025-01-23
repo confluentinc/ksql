@@ -1,0 +1,134 @@
+{
+  "version" : "8.0.0",
+  "timestamp" : 1737616387150,
+  "path" : "query-validation-tests/parse-date.json",
+  "schemas" : {
+    "CSAS_TS_0.TS" : {
+      "schema" : "`K` STRING KEY, `ID` BIGINT, `TS` DATE",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
+    },
+    "CSAS_TS_0.KsqlTopic.Source" : {
+      "schema" : "`K` STRING KEY, `ID` BIGINT, `NAME` STRING, `DATE` STRING, `FORMAT` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "string to date",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : "0",
+      "value" : "0,zero,2018-05-11Lit,yyyy-MM-dd'Lit'"
+    }, {
+      "topic" : "test_topic",
+      "key" : "1",
+      "value" : "1,zero,11/05/2019,dd/MM/yyyy"
+    }, {
+      "topic" : "test_topic",
+      "key" : "2",
+      "value" : "2,zero,01-Jan-2022,dd-MMM-yyyy"
+    }, {
+      "topic" : "test_topic",
+      "key" : "3",
+      "value" : "3,yyy,01-01-1970,dd-MM-yyyy"
+    }, {
+      "topic" : "test_topic",
+      "key" : "4",
+      "value" : "4,yyy,01-JAN-2022,dd-MMM-yyyy"
+    }, {
+      "topic" : "test_topic",
+      "key" : "4",
+      "value" : "4,yyy,JAN-2022,MMM-yyyy"
+    } ],
+    "outputs" : [ {
+      "topic" : "TS",
+      "key" : "0",
+      "value" : "0,17662"
+    }, {
+      "topic" : "TS",
+      "key" : "1",
+      "value" : "1,18027"
+    }, {
+      "topic" : "TS",
+      "key" : "2",
+      "value" : "2,18993"
+    }, {
+      "topic" : "TS",
+      "key" : "3",
+      "value" : "3,0"
+    }, {
+      "topic" : "TS",
+      "key" : "4",
+      "value" : "4,18993"
+    }, {
+      "topic" : "TS",
+      "key" : "4",
+      "value" : "4,18993"
+    } ],
+    "topics" : [ {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "TS",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM TEST (K STRING KEY, ID bigint, NAME varchar, date varchar, format varchar) WITH (kafka_topic='test_topic', value_format='DELIMITED');", "CREATE STREAM TS AS select K, id, parse_date(date, format) as ts from test;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`K` STRING KEY, `ID` BIGINT, `NAME` STRING, `DATE` STRING, `FORMAT` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "DELIMITED",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "TS",
+        "type" : "STREAM",
+        "schema" : "`K` STRING KEY, `ID` BIGINT, `TS` DATE",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "DELIMITED",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "DELIMITED"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "TS",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "DELIMITED"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

@@ -1,0 +1,110 @@
+{
+  "version" : "8.0.0",
+  "timestamp" : 1737614517721,
+  "path" : "query-validation-tests/extract-json-field.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`K` STRING KEY, `JSON` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "KAFKA"
+      }
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`K` STRING KEY, `COL1` STRING, `COL2` STRING, `COL3` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "array bounds",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : null,
+      "value" : "{\"array\": [1, 2, 3]}"
+    }, {
+      "topic" : "test_topic",
+      "key" : null,
+      "value" : "{\"array\": [1.23450]}"
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : null,
+      "value" : {
+        "COL1" : null,
+        "COL2" : "1",
+        "COL3" : "2"
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : null,
+      "value" : {
+        "COL1" : null,
+        "COL2" : "1.23450",
+        "COL3" : null
+      }
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM INPUT (K STRING KEY, json STRING) WITH (kafka_topic='test_topic', value_format='KAFKA');", "CREATE STREAM OUTPUT WITH(value_format='JSON') AS SELECT K, EXTRACTJSONFIELD(json, '$.array[-1]') AS Col1, EXTRACTJSONFIELD(json, '$.array[0]') AS Col2, EXTRACTJSONFIELD(json, '$.array[1]') AS Col3 FROM INPUT;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`K` STRING KEY, `JSON` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "KAFKA",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`K` STRING KEY, `COL1` STRING, `COL2` STRING, `COL3` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "KAFKA"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

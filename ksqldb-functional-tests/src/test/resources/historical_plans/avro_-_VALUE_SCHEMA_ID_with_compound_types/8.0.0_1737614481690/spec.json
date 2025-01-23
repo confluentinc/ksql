@@ -1,0 +1,344 @@
+{
+  "version" : "8.0.0",
+  "timestamp" : 1737614481690,
+  "path" : "query-validation-tests/avro.json",
+  "schemas" : {
+    "CSAS_MODEL_TXS_EVENT_1.KsqlTopic.Source" : {
+      "schema" : "`id` STRING KEY, `transaction` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_MODEL_TXS_EVENT_1.MODEL_TXS_EVENT" : {
+      "schema" : "`id` STRING KEY, `eventID` STRING, `transaction` STRUCT<`num_shares` INTEGER, `amount` INTEGER, `customer` STRUCT<`first_name` STRING, `last_name` STRING, `email` STRING>>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "AVRO",
+        "properties" : {
+          "fullSchemaName" : "com.acme.namespace.Transaction",
+          "schemaId" : "102"
+        }
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "VALUE_SCHEMA_ID with compound types",
+    "inputs" : [ {
+      "topic" : "transaction",
+      "key" : null,
+      "value" : {
+        "id" : "1",
+        "transaction" : {
+          "num_shares" : 50000,
+          "amount" : 50044568,
+          "txn_ts" : "2020-11-18 02:31:43",
+          "customer" : {
+            "first_name" : "Jill",
+            "last_name" : "Smith",
+            "id" : 1234567,
+            "email" : "jsmith@foo.com"
+          },
+          "company" : {
+            "name" : "ACME Corp",
+            "ticker" : "ACMC",
+            "id" : "ACME837275222752952",
+            "address" : "Anytown USA, 333333"
+          }
+        }
+      }
+    }, {
+      "topic" : "transaction",
+      "key" : null,
+      "value" : {
+        "id" : "2",
+        "transaction" : {
+          "num_shares" : 30000,
+          "amount" : 5004,
+          "txn_ts" : "2020-11-18 02:35:43",
+          "customer" : {
+            "first_name" : "Art",
+            "last_name" : "Vandeley",
+            "id" : 8976612,
+            "email" : "avendleay@foo.com"
+          },
+          "company" : {
+            "name" : "Imports Corp",
+            "ticker" : "IMPC",
+            "id" : "IMPC88875222752952",
+            "address" : "Anytown USA, 333333"
+          }
+        }
+      }
+    }, {
+      "topic" : "transaction",
+      "key" : null,
+      "value" : {
+        "id" : "3",
+        "transaction" : {
+          "num_shares" : 3000000,
+          "amount" : 50045,
+          "txn_ts" : "2020-11-18 02:36:43",
+          "customer" : {
+            "first_name" : "John",
+            "last_name" : "England",
+            "id" : 456321,
+            "email" : "je@foo.com"
+          },
+          "company" : {
+            "name" : "Hechinger",
+            "ticker" : "HECH",
+            "id" : "HECH8333785222752952",
+            "address" : "Anytown USA, 333333"
+          }
+        }
+      }
+    }, {
+      "topic" : "transaction",
+      "key" : null,
+      "value" : {
+        "id" : "4",
+        "transaction" : {
+          "num_shares" : 10000,
+          "amount" : 80044,
+          "txn_ts" : "2020-11-18 02:37:43",
+          "customer" : {
+            "first_name" : "Fred",
+            "last_name" : "Pym",
+            "id" : 333567,
+            "email" : "fjone@foo.com"
+          },
+          "company" : {
+            "name" : "PymTech",
+            "ticker" : "PYMT",
+            "id" : "PYME837275222714197419202020",
+            "address" : "Anytown USA, 333333"
+          }
+        }
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "model-transaction",
+      "key" : "1",
+      "value" : {
+        "eventID" : "1",
+        "transaction" : {
+          "amount" : 50044568,
+          "num_shares" : 50000,
+          "customer" : {
+            "last_name" : "Smith",
+            "first_name" : "Jill",
+            "email" : "jsmith@foo.com"
+          }
+        }
+      }
+    }, {
+      "topic" : "model-transaction",
+      "key" : "2",
+      "value" : {
+        "eventID" : "2",
+        "transaction" : {
+          "amount" : 5004,
+          "num_shares" : 30000,
+          "customer" : {
+            "last_name" : "Vandeley",
+            "first_name" : "Art",
+            "email" : "avendleay@foo.com"
+          }
+        }
+      }
+    }, {
+      "topic" : "model-transaction",
+      "key" : "3",
+      "value" : {
+        "eventID" : "3",
+        "transaction" : {
+          "amount" : 50045,
+          "num_shares" : 3000000,
+          "customer" : {
+            "last_name" : "England",
+            "first_name" : "John",
+            "email" : "je@foo.com"
+          }
+        }
+      }
+    }, {
+      "topic" : "model-transaction",
+      "key" : "4",
+      "value" : {
+        "eventID" : "4",
+        "transaction" : {
+          "amount" : 80044,
+          "num_shares" : 10000,
+          "customer" : {
+            "last_name" : "Pym",
+            "first_name" : "Fred",
+            "email" : "fjone@foo.com"
+          }
+        }
+      }
+    } ],
+    "topics" : [ {
+      "name" : "model-transaction",
+      "valueSchemaId" : 102,
+      "valueSchema" : {
+        "type" : "record",
+        "name" : "Transaction",
+        "namespace" : "com.acme.namespace",
+        "fields" : [ {
+          "name" : "eventID",
+          "type" : "string"
+        }, {
+          "name" : "transaction",
+          "type" : {
+            "type" : "record",
+            "name" : "transaction",
+            "fields" : [ {
+              "name" : "num_shares",
+              "type" : "int"
+            }, {
+              "name" : "amount",
+              "type" : "int"
+            }, {
+              "name" : "customer",
+              "type" : {
+                "type" : "record",
+                "name" : "customer",
+                "fields" : [ {
+                  "name" : "first_name",
+                  "type" : "string"
+                }, {
+                  "name" : "last_name",
+                  "type" : "string"
+                }, {
+                  "name" : "email",
+                  "type" : "string"
+                } ]
+              }
+            } ]
+          }
+        } ]
+      },
+      "valueFormat" : "AVRO",
+      "replicas" : 1,
+      "numPartitions" : 1
+    }, {
+      "name" : "transaction",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM TXS (`id` VARCHAR, `transaction` VARCHAR) WITH (KAFKA_TOPIC='transaction', VALUE_FORMAT='JSON', KEY_FORMAT='KAFKA');", "CREATE STREAM TXS_REKEY WITH (KAFKA_TOPIC='transaction-rekey', VALUE_FORMAT='JSON', KEY_FORMAT='KAFKA') AS SELECT `id`, `transaction` FROM TXS PARTITION BY `id`;", "CREATE STREAM MODEL_TXS_EVENT WITH  (KAFKA_TOPIC='model-transaction', KEY_FORMAT='KAFKA', VALUE_FORMAT='AVRO', VALUE_SCHEMA_ID=102) AS SELECT `id`, as_value(txs.`id`) AS `eventID`, STRUCT(`num_shares` := CAST(EXTRACTJSONFIELD(txs.`transaction`, '$.num_shares') AS INT), `amount` := CAST(EXTRACTJSONFIELD(txs.`transaction`, '$.amount') AS INT), `customer` := STRUCT(`first_name`:= EXTRACTJSONFIELD(txs.`transaction`, '$.customer.first_name'), `last_name`:= EXTRACTJSONFIELD(txs.`transaction`, '$.customer.last_name'), `email`:= EXTRACTJSONFIELD(txs.`transaction`, '$.customer.email'))) AS `transaction` FROM TXS_REKEY txs;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "MODEL_TXS_EVENT",
+        "type" : "STREAM",
+        "schema" : "`id` STRING KEY, `eventID` STRING, `transaction` STRUCT<`num_shares` INTEGER, `amount` INTEGER, `customer` STRUCT<`first_name` STRING, `last_name` STRING, `email` STRING>>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "AVRO",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "TXS",
+        "type" : "STREAM",
+        "schema" : "`id` STRING, `transaction` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "TXS_REKEY",
+        "type" : "STREAM",
+        "schema" : "`id` STRING KEY, `transaction` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "transaction-rekey",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "model-transaction",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "AVRO",
+            "properties" : {
+              "fullSchemaName" : "com.acme.namespace.Transaction",
+              "schemaId" : "102"
+            }
+          },
+          "partitions" : 4,
+          "valueSchema" : {
+            "type" : "record",
+            "name" : "Transaction",
+            "namespace" : "com.acme.namespace",
+            "fields" : [ {
+              "name" : "eventID",
+              "type" : "string"
+            }, {
+              "name" : "transaction",
+              "type" : {
+                "type" : "record",
+                "name" : "transaction",
+                "fields" : [ {
+                  "name" : "num_shares",
+                  "type" : "int"
+                }, {
+                  "name" : "amount",
+                  "type" : "int"
+                }, {
+                  "name" : "customer",
+                  "type" : {
+                    "type" : "record",
+                    "name" : "customer",
+                    "fields" : [ {
+                      "name" : "first_name",
+                      "type" : "string"
+                    }, {
+                      "name" : "last_name",
+                      "type" : "string"
+                    }, {
+                      "name" : "email",
+                      "type" : "string"
+                    } ]
+                  }
+                } ]
+              }
+            } ]
+          }
+        }, {
+          "name" : "transaction",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

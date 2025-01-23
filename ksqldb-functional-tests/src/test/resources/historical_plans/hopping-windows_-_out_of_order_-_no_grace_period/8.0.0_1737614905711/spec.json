@@ -1,0 +1,323 @@
+{
+  "version" : "8.0.0",
+  "timestamp" : 1737614905711,
+  "path" : "query-validation-tests/hopping-windows.json",
+  "schemas" : {
+    "CTAS_S2_0.Aggregate.Aggregate.Materialize" : {
+      "schema" : "`ID` BIGINT KEY, `ID` BIGINT, `VALUE` BIGINT, `KSQL_AGG_VARIABLE_0` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
+    },
+    "CTAS_S2_0.Aggregate.Project" : {
+      "schema" : "`ID` BIGINT KEY, `KSQL_COL_0` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
+    },
+    "CTAS_S2_0.KsqlTopic.Source" : {
+      "schema" : "`ID` BIGINT KEY, `VALUE` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
+    },
+    "CTAS_S2_0.S2" : {
+      "schema" : "`ID` BIGINT KEY, `KSQL_COL_0` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA",
+        "windowInfo" : {
+          "type" : "HOPPING",
+          "size" : 30.000000000,
+          "emitStrategy" : "CHANGES"
+        }
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
+    },
+    "CTAS_S2_0.Aggregate.GroupBy" : {
+      "schema" : "`ID` BIGINT KEY, `ID` BIGINT, `VALUE` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "out of order - no grace period",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : 0,
+      "value" : "0",
+      "timestamp" : 0
+    }, {
+      "topic" : "test_topic",
+      "key" : 0,
+      "value" : "1",
+      "timestamp" : 89999
+    }, {
+      "topic" : "test_topic",
+      "key" : 0,
+      "value" : "5",
+      "timestamp" : 10009
+    }, {
+      "topic" : "test_topic",
+      "key" : 0,
+      "value" : "0",
+      "timestamp" : 90000
+    }, {
+      "topic" : "test_topic",
+      "key" : 0,
+      "value" : "6",
+      "timestamp" : 10010
+    }, {
+      "topic" : "test_topic",
+      "key" : 1,
+      "value" : "100",
+      "timestamp" : 10009
+    }, {
+      "topic" : "test_topic",
+      "key" : 1,
+      "value" : "101",
+      "timestamp" : 30000
+    }, {
+      "topic" : "test_topic",
+      "key" : 1,
+      "value" : "200",
+      "timestamp" : 86412022
+    }, {
+      "topic" : "test_topic",
+      "key" : 1,
+      "value" : "200",
+      "timestamp" : 60000
+    } ],
+    "outputs" : [ {
+      "topic" : "S2",
+      "key" : 0,
+      "value" : "0",
+      "timestamp" : 0,
+      "window" : {
+        "start" : 0,
+        "end" : 30000,
+        "type" : "TIME"
+      }
+    }, {
+      "topic" : "S2",
+      "key" : 0,
+      "value" : "1",
+      "timestamp" : 89999,
+      "window" : {
+        "start" : 60000,
+        "end" : 90000,
+        "type" : "TIME"
+      }
+    }, {
+      "topic" : "S2",
+      "key" : 0,
+      "value" : "1",
+      "timestamp" : 89999,
+      "window" : {
+        "start" : 75000,
+        "end" : 105000,
+        "type" : "TIME"
+      }
+    }, {
+      "topic" : "S2",
+      "key" : 0,
+      "value" : "5",
+      "timestamp" : 10009,
+      "window" : {
+        "start" : 0,
+        "end" : 30000,
+        "type" : "TIME"
+      }
+    }, {
+      "topic" : "S2",
+      "key" : 0,
+      "value" : "1",
+      "timestamp" : 90000,
+      "window" : {
+        "start" : 75000,
+        "end" : 105000,
+        "type" : "TIME"
+      }
+    }, {
+      "topic" : "S2",
+      "key" : 0,
+      "value" : "0",
+      "timestamp" : 90000,
+      "window" : {
+        "start" : 90000,
+        "end" : 120000,
+        "type" : "TIME"
+      }
+    }, {
+      "topic" : "S2",
+      "key" : 0,
+      "value" : "6",
+      "timestamp" : 10010,
+      "window" : {
+        "start" : 0,
+        "end" : 30000,
+        "type" : "TIME"
+      }
+    }, {
+      "topic" : "S2",
+      "key" : 1,
+      "value" : "100",
+      "timestamp" : 10009,
+      "window" : {
+        "start" : 0,
+        "end" : 30000,
+        "type" : "TIME"
+      }
+    }, {
+      "topic" : "S2",
+      "key" : 1,
+      "value" : "101",
+      "timestamp" : 30000,
+      "window" : {
+        "start" : 15000,
+        "end" : 45000,
+        "type" : "TIME"
+      }
+    }, {
+      "topic" : "S2",
+      "key" : 1,
+      "value" : "101",
+      "timestamp" : 30000,
+      "window" : {
+        "start" : 30000,
+        "end" : 60000,
+        "type" : "TIME"
+      }
+    }, {
+      "topic" : "S2",
+      "key" : 1,
+      "value" : "200",
+      "timestamp" : 86412022,
+      "window" : {
+        "start" : 86385000,
+        "end" : 86415000,
+        "type" : "TIME"
+      }
+    }, {
+      "topic" : "S2",
+      "key" : 1,
+      "value" : "200",
+      "timestamp" : 86412022,
+      "window" : {
+        "start" : 86400000,
+        "end" : 86430000,
+        "type" : "TIME"
+      }
+    }, {
+      "topic" : "S2",
+      "key" : 1,
+      "value" : "200",
+      "timestamp" : 60000,
+      "window" : {
+        "start" : 45000,
+        "end" : 75000,
+        "type" : "TIME"
+      }
+    }, {
+      "topic" : "S2",
+      "key" : 1,
+      "value" : "200",
+      "timestamp" : 60000,
+      "window" : {
+        "start" : 60000,
+        "end" : 90000,
+        "type" : "TIME"
+      }
+    } ],
+    "topics" : [ {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "S2",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM TEST (ID BIGINT KEY, VALUE bigint) WITH (kafka_topic='test_topic', value_format='DELIMITED');", "CREATE TABLE S2 as SELECT ID, max(value) FROM test WINDOW HOPPING (SIZE 30 SECONDS, ADVANCE BY 15 SECONDS) group by id;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "S2",
+        "type" : "TABLE",
+        "schema" : "`ID` BIGINT KEY, `KSQL_COL_0` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA",
+          "windowType" : "HOPPING",
+          "windowSize" : 30000
+        },
+        "valueFormat" : "DELIMITED",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`ID` BIGINT KEY, `VALUE` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "DELIMITED",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_S2_0-Aggregate-Aggregate-Materialize-changelog",
+          "keyFormat" : {
+            "format" : "KAFKA",
+            "windowInfo" : {
+              "type" : "HOPPING",
+              "size" : 30.000000000,
+              "emitStrategy" : "CHANGES"
+            }
+          },
+          "valueFormat" : {
+            "format" : "DELIMITED"
+          }
+        }, {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "DELIMITED"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "S2",
+          "keyFormat" : {
+            "format" : "KAFKA",
+            "windowInfo" : {
+              "type" : "HOPPING",
+              "size" : 30.000000000,
+              "emitStrategy" : "CHANGES"
+            }
+          },
+          "valueFormat" : {
+            "format" : "DELIMITED"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

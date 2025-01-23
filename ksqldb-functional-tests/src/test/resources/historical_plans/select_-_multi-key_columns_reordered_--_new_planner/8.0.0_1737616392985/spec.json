@@ -1,0 +1,107 @@
+{
+  "version" : "8.0.0",
+  "timestamp" : 1737616392985,
+  "path" : "query-validation-tests/select.json",
+  "schemas" : {
+    "query-id.OUTPUT" : {
+      "schema" : "`ID` INTEGER KEY, `AGE` INTEGER KEY, `NAME` STRING",
+      "keyFormat" : {
+        "format" : "JSON"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "query-id.SOURCE" : {
+      "schema" : "`ID` INTEGER KEY, `AGE` INTEGER KEY, `NAME` STRING",
+      "keyFormat" : {
+        "format" : "JSON"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "multi-key columns reordered -- new planner",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : {
+        "id" : 1,
+        "age" : 20
+      },
+      "value" : {
+        "name" : "a"
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : {
+        "AGE" : 20,
+        "ID" : 1
+      },
+      "value" : {
+        "NAME" : "a"
+      }
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM input (id INT KEY, age INT KEY, name STRING) WITH (kafka_topic='test_topic', format='JSON');", "CREATE STREAM output AS SELECT age, id, name FROM input;" ],
+    "properties" : {
+      "ksql.new.query.planner.enabled" : "true"
+    },
+    "post" : {
+      "sources" : [ {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`ID` INTEGER KEY, `AGE` INTEGER KEY, `NAME` STRING",
+        "keyFormat" : {
+          "format" : "JSON"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`AGE` INTEGER KEY, `ID` INTEGER KEY, `NAME` STRING",
+        "keyFormat" : {
+          "format" : "JSON"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "format" : "JSON"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "format" : "JSON"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

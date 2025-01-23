@@ -1,0 +1,208 @@
+{
+  "version" : "8.0.0",
+  "timestamp" : 1737616392247,
+  "path" : "query-validation-tests/row-offset-and-partition.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KafkaTopic_Right.Source" : {
+      "schema" : "`ID` INTEGER KEY, `BAR` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_OUTPUT_0.Join.Left" : {
+      "schema" : "`A_ROWPARTITION` INTEGER KEY, `A_FOO` STRING, `A_ROWTIME` BIGINT, `A_ROWPARTITION` INTEGER, `A_ROWOFFSET` BIGINT, `A_ID` INTEGER",
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_OUTPUT_0.KafkaTopic_Left.Source" : {
+      "schema" : "`ID` INTEGER KEY, `FOO` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`RPA` INTEGER KEY, `FOO` STRING, `BAR` STRING, `RPB` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_OUTPUT_0.Join" : {
+      "schema" : "`A_ROWPARTITION` INTEGER KEY, `A_FOO` STRING, `A_ROWTIME` BIGINT, `A_ROWPARTITION` INTEGER, `A_ROWOFFSET` BIGINT, `A_ID` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      }
+    },
+    "CSAS_OUTPUT_0.Join.Right" : {
+      "schema" : "`B_ROWPARTITION` INTEGER KEY, `B_BAR` STRING, `B_ROWTIME` BIGINT, `B_ROWPARTITION` INTEGER, `B_ROWOFFSET` BIGINT, `B_ID` INTEGER",
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "join on ROWPARTITION",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : 0,
+      "value" : {
+        "foo" : "a"
+      },
+      "timestamp" : 5
+    }, {
+      "topic" : "test_topic",
+      "key" : 0,
+      "value" : {
+        "foo" : "b"
+      },
+      "timestamp" : 6
+    }, {
+      "topic" : "test_topic_2",
+      "key" : 0,
+      "value" : {
+        "bar" : "c"
+      },
+      "timestamp" : 7
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : 0,
+      "value" : {
+        "foo" : "a",
+        "bar" : "c",
+        "rpb" : 0
+      },
+      "timestamp" : 7
+    }, {
+      "topic" : "OUTPUT",
+      "key" : 0,
+      "value" : {
+        "foo" : "b",
+        "bar" : "c",
+        "rpb" : 0
+      },
+      "timestamp" : 7
+    } ],
+    "topics" : [ {
+      "name" : "test_topic_2",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM a (id INT KEY, foo STRING) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE STREAM b (id INT KEY, bar STRING) WITH (kafka_topic='test_topic_2', value_format='JSON');", "CREATE STREAM output AS SELECT foo, bar, a.ROWPARTITION AS rpa, b.ROWPARTITION as rpb FROM a JOIN b WITHIN 5 SECONDS ON a.ROWPARTITION = b.ROWPARTITION;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "A",
+        "type" : "STREAM",
+        "schema" : "`ID` INTEGER KEY, `FOO` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "B",
+        "type" : "STREAM",
+        "schema" : "`ID` INTEGER KEY, `BAR` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`RPA` INTEGER KEY, `FOO` STRING, `BAR` STRING, `RPB` INTEGER",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-Join-left-repartition",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          }
+        }, {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-Join-right-repartition",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          }
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-KSTREAM-JOINTHIS-0000000016-store-changelog",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          }
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-KSTREAM-JOINOTHER-0000000017-store-changelog",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          }
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "test_topic_2",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

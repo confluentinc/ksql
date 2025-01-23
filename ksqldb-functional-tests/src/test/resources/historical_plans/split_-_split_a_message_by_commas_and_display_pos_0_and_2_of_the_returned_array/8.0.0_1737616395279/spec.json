@@ -1,0 +1,158 @@
+{
+  "version" : "8.0.0",
+  "timestamp" : 1737616395279,
+  "path" : "query-validation-tests/split.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`K` STRING KEY, `MESSAGE` STRING, `B` BYTES",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`K` STRING KEY, `S1` STRING, `S2` STRING, `B1` BYTES, `B2` BYTES",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "split a message by commas and display pos 0 and 2 of the returned array",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : "1",
+      "value" : {
+        "message" : "a,b,c",
+        "b" : "YSxiLGM="
+      },
+      "timestamp" : 0
+    }, {
+      "topic" : "test_topic",
+      "key" : "2",
+      "value" : {
+        "message" : ",A,",
+        "b" : "LEEs"
+      },
+      "timestamp" : 0
+    }, {
+      "topic" : "test_topic",
+      "key" : "3",
+      "value" : {
+        "message" : "A,,A",
+        "b" : "QSwsQQ=="
+      },
+      "timestamp" : 0
+    }, {
+      "topic" : "test_topic",
+      "key" : "4",
+      "value" : {
+        "message" : "1,2,3,4,5",
+        "b" : "MSwyLDMsNCw1"
+      },
+      "timestamp" : 0
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : "1",
+      "value" : {
+        "S1" : "a",
+        "S2" : "c",
+        "B1" : "YQ==",
+        "B2" : "Yw=="
+      },
+      "timestamp" : 0
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "2",
+      "value" : {
+        "S1" : "",
+        "S2" : "",
+        "B1" : "",
+        "B2" : ""
+      },
+      "timestamp" : 0
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "3",
+      "value" : {
+        "S1" : "A",
+        "S2" : "A",
+        "B1" : "QQ==",
+        "B2" : "QQ=="
+      },
+      "timestamp" : 0
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "4",
+      "value" : {
+        "S1" : "1",
+        "S2" : "3",
+        "B1" : "MQ==",
+        "B2" : "Mw=="
+      },
+      "timestamp" : 0
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM TEST (K STRING KEY, message VARCHAR, b BYTES) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE STREAM OUTPUT AS SELECT K, SPLIT(message, ',')[1] as s1, SPLIT(message, ',')[3] as s2, SPLIT(b, TO_BYTES(',', 'utf8'))[1] as b1, SPLIT(b, TO_BYTES(',', 'utf8'))[3] as b2 FROM TEST;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`K` STRING KEY, `S1` STRING, `S2` STRING, `B1` BYTES, `B2` BYTES",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`K` STRING KEY, `MESSAGE` STRING, `B` BYTES",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

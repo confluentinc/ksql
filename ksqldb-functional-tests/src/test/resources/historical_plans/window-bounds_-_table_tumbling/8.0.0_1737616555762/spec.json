@@ -1,0 +1,243 @@
+{
+  "version" : "8.0.0",
+  "timestamp" : 1737616555762,
+  "path" : "query-validation-tests/window-bounds.json",
+  "schemas" : {
+    "CTAS_S2_0.Aggregate.Aggregate.Materialize" : {
+      "schema" : "`ID` BIGINT KEY, `ID` BIGINT, `KSQL_AGG_VARIABLE_0` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
+    },
+    "CTAS_S2_0.Aggregate.Project" : {
+      "schema" : "`ID` BIGINT KEY, `WSTART` BIGINT, `WEND` BIGINT, `COUNT` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
+    },
+    "CTAS_S2_0.KsqlTopic.Source" : {
+      "schema" : "`ID` BIGINT KEY, `IGNORED` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
+    },
+    "CTAS_S2_0.S2" : {
+      "schema" : "`ID` BIGINT KEY, `WSTART` BIGINT, `WEND` BIGINT, `COUNT` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA",
+        "windowInfo" : {
+          "type" : "TUMBLING",
+          "size" : 30.000000000,
+          "emitStrategy" : "CHANGES"
+        }
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
+    },
+    "CTAS_S2_0.Aggregate.GroupBy" : {
+      "schema" : "`ID` BIGINT KEY, `ID` BIGINT, `KSQL_INTERNAL_COL_1` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "table tumbling",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : 0,
+      "value" : "0",
+      "timestamp" : 0
+    }, {
+      "topic" : "test_topic",
+      "key" : 0,
+      "value" : "0",
+      "timestamp" : 10000
+    }, {
+      "topic" : "test_topic",
+      "key" : 100,
+      "value" : "100",
+      "timestamp" : 30000
+    }, {
+      "topic" : "test_topic",
+      "key" : 100,
+      "value" : "100",
+      "timestamp" : 45000
+    }, {
+      "topic" : "test_topic",
+      "key" : 100,
+      "value" : "100",
+      "timestamp" : 50000
+    }, {
+      "topic" : "test_topic",
+      "key" : 0,
+      "value" : "0",
+      "timestamp" : 35000
+    }, {
+      "topic" : "test_topic",
+      "key" : 0,
+      "value" : "0",
+      "timestamp" : 70000
+    } ],
+    "outputs" : [ {
+      "topic" : "S2",
+      "key" : 0,
+      "value" : "0,30000,1",
+      "timestamp" : 0,
+      "window" : {
+        "start" : 0,
+        "end" : 30000,
+        "type" : "TIME"
+      }
+    }, {
+      "topic" : "S2",
+      "key" : 0,
+      "value" : "0,30000,2",
+      "timestamp" : 10000,
+      "window" : {
+        "start" : 0,
+        "end" : 30000,
+        "type" : "TIME"
+      }
+    }, {
+      "topic" : "S2",
+      "key" : 100,
+      "value" : "30000,60000,1",
+      "timestamp" : 30000,
+      "window" : {
+        "start" : 30000,
+        "end" : 60000,
+        "type" : "TIME"
+      }
+    }, {
+      "topic" : "S2",
+      "key" : 100,
+      "value" : "30000,60000,2",
+      "timestamp" : 45000,
+      "window" : {
+        "start" : 30000,
+        "end" : 60000,
+        "type" : "TIME"
+      }
+    }, {
+      "topic" : "S2",
+      "key" : 100,
+      "value" : "30000,60000,3",
+      "timestamp" : 50000,
+      "window" : {
+        "start" : 30000,
+        "end" : 60000,
+        "type" : "TIME"
+      }
+    }, {
+      "topic" : "S2",
+      "key" : 0,
+      "value" : "30000,60000,1",
+      "timestamp" : 35000,
+      "window" : {
+        "start" : 30000,
+        "end" : 60000,
+        "type" : "TIME"
+      }
+    }, {
+      "topic" : "S2",
+      "key" : 0,
+      "value" : "60000,90000,1",
+      "timestamp" : 70000,
+      "window" : {
+        "start" : 60000,
+        "end" : 90000,
+        "type" : "TIME"
+      }
+    } ],
+    "topics" : [ {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "S2",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM TEST (ID BIGINT KEY, IGNORED STRING) WITH (kafka_topic='test_topic', value_format='DELIMITED');", "CREATE TABLE S2 as SELECT ID, WindowStart as wstart, WindowEnd as wend, COUNT(1) AS Count FROM test WINDOW TUMBLING (SIZE 30 SECONDS) group by id;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "S2",
+        "type" : "TABLE",
+        "schema" : "`ID` BIGINT KEY, `WSTART` BIGINT, `WEND` BIGINT, `COUNT` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA",
+          "windowType" : "TUMBLING",
+          "windowSize" : 30000
+        },
+        "valueFormat" : "DELIMITED",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`ID` BIGINT KEY, `IGNORED` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "DELIMITED",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_S2_0-Aggregate-Aggregate-Materialize-changelog",
+          "keyFormat" : {
+            "format" : "KAFKA",
+            "windowInfo" : {
+              "type" : "TUMBLING",
+              "size" : 30.000000000,
+              "emitStrategy" : "CHANGES"
+            }
+          },
+          "valueFormat" : {
+            "format" : "DELIMITED"
+          }
+        }, {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "DELIMITED"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "S2",
+          "keyFormat" : {
+            "format" : "KAFKA",
+            "windowInfo" : {
+              "type" : "TUMBLING",
+              "size" : 30.000000000,
+              "emitStrategy" : "CHANGES"
+            }
+          },
+          "valueFormat" : {
+            "format" : "DELIMITED"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

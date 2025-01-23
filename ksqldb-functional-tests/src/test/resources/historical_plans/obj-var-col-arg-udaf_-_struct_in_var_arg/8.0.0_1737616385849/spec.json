@@ -1,0 +1,338 @@
+{
+  "version" : "8.0.0",
+  "timestamp" : 1737616385849,
+  "path" : "query-validation-tests/obj-var-col-arg-udaf.json",
+  "schemas" : {
+    "CTAS_OUTPUT_0.Aggregate.GroupBy" : {
+      "schema" : "`ID` BIGINT KEY, `ID` BIGINT, `FIRST` INTEGER, `SECOND` BIGINT, `THIRD` BOOLEAN, `FOURTH` DOUBLE, `FIFTH` INTEGER, `SIXTH` STRUCT<`A` INTEGER, `B` STRING>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CTAS_OUTPUT_0.Aggregate.Project" : {
+      "schema" : "`ID` BIGINT KEY, `RESULT` ARRAY<INTEGER>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CTAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`ID` BIGINT KEY, `FIRST` INTEGER, `SECOND` BIGINT, `THIRD` BOOLEAN, `FOURTH` DOUBLE, `FIFTH` INTEGER, `SIXTH` STRUCT<`A` INTEGER, `B` STRING>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CTAS_OUTPUT_0.Aggregate.Aggregate.Materialize" : {
+      "schema" : "`ID` BIGINT KEY, `ID` BIGINT, `FIRST` INTEGER, `SECOND` BIGINT, `THIRD` BOOLEAN, `FOURTH` DOUBLE, `FIFTH` INTEGER, `SIXTH` STRUCT<`A` INTEGER, `B` STRING>, `KSQL_AGG_VARIABLE_0` ARRAY<INTEGER>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CTAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ID` BIGINT KEY, `RESULT` ARRAY<INTEGER>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "struct in var arg",
+    "inputs" : [ {
+      "topic" : "input_topic",
+      "key" : 0,
+      "value" : {
+        "FIRST" : 6,
+        "SECOND" : 5,
+        "THIRD" : true,
+        "FOURTH" : 3.2,
+        "FIFTH" : 7,
+        "SIXTH" : {
+          "a" : 3,
+          "b" : "hello"
+        }
+      }
+    }, {
+      "topic" : "input_topic",
+      "key" : 100,
+      "value" : {
+        "FIRST" : 2,
+        "SECOND" : 1,
+        "THIRD" : false,
+        "FOURTH" : 1.44,
+        "FIFTH" : 8,
+        "SIXTH" : {
+          "a" : 8,
+          "b" : "world"
+        }
+      }
+    }, {
+      "topic" : "input_topic",
+      "key" : 0,
+      "value" : {
+        "FIRST" : null,
+        "SECOND" : 5,
+        "THIRD" : true,
+        "FOURTH" : 12.34,
+        "FIFTH" : 1,
+        "SIXTH" : {
+          "a" : 7,
+          "b" : "test"
+        }
+      }
+    }, {
+      "topic" : "input_topic",
+      "key" : 100,
+      "value" : {
+        "FIRST" : 5,
+        "SECOND" : 3,
+        "THIRD" : null,
+        "FOURTH" : 0.9,
+        "FIFTH" : 2,
+        "SIXTH" : {
+          "a" : 1,
+          "b" : null
+        }
+      }
+    }, {
+      "topic" : "input_topic",
+      "key" : 0,
+      "value" : {
+        "FIRST" : 5,
+        "SECOND" : null,
+        "THIRD" : true,
+        "FOURTH" : 1.2,
+        "FIFTH" : 6,
+        "SIXTH" : {
+          "a" : 5,
+          "b" : "aggregate"
+        }
+      }
+    }, {
+      "topic" : "input_topic",
+      "key" : 100,
+      "value" : {
+        "FIRST" : 3,
+        "SECOND" : 7,
+        "THIRD" : false,
+        "FOURTH" : null,
+        "FIFTH" : 8,
+        "SIXTH" : {
+          "a" : 10,
+          "b" : "function"
+        }
+      }
+    }, {
+      "topic" : "input_topic",
+      "key" : 100,
+      "value" : {
+        "FIRST" : 2,
+        "SECOND" : 2,
+        "THIRD" : true,
+        "FOURTH" : 9.8,
+        "FIFTH" : null,
+        "SIXTH" : {
+          "a" : 8,
+          "b" : "ksql"
+        }
+      }
+    }, {
+      "topic" : "input_topic",
+      "key" : 0,
+      "value" : {
+        "FIRST" : 21,
+        "SECOND" : 10,
+        "THIRD" : null,
+        "FOURTH" : 5.0,
+        "FIFTH" : 2,
+        "SIXTH" : {
+          "a" : null,
+          "b" : "qtt"
+        }
+      }
+    }, {
+      "topic" : "input_topic",
+      "key" : 100,
+      "value" : {
+        "FIRST" : null,
+        "SECOND" : 20,
+        "THIRD" : true,
+        "FOURTH" : null,
+        "FIFTH" : 3,
+        "SIXTH" : {
+          "a" : 2,
+          "b" : "variadic"
+        }
+      }
+    }, {
+      "topic" : "input_topic",
+      "key" : 100,
+      "value" : {
+        "FIRST" : 3,
+        "SECOND" : 2,
+        "THIRD" : false,
+        "FOURTH" : 4.3,
+        "FIFTH" : 4,
+        "SIXTH" : {
+          "a" : 0,
+          "b" : "object"
+        }
+      }
+    }, {
+      "topic" : "input_topic",
+      "key" : 100,
+      "value" : {
+        "FIRST" : 6,
+        "SECOND" : 1,
+        "THIRD" : false,
+        "FOURTH" : 4.9,
+        "FIFTH" : 10,
+        "SIXTH" : null
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : 0,
+      "value" : {
+        "RESULT" : [ 6 ]
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : 100,
+      "value" : {
+        "RESULT" : [ 2 ]
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : 0,
+      "value" : {
+        "RESULT" : [ 6 ]
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : 100,
+      "value" : {
+        "RESULT" : [ 2 ]
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : 0,
+      "value" : {
+        "RESULT" : [ 6 ]
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : 100,
+      "value" : {
+        "RESULT" : [ 2 ]
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : 100,
+      "value" : {
+        "RESULT" : [ 2 ]
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : 0,
+      "value" : {
+        "RESULT" : [ 6 ]
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : 100,
+      "value" : {
+        "RESULT" : [ 2 ]
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : 100,
+      "value" : {
+        "RESULT" : [ 2, 3 ]
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : 100,
+      "value" : {
+        "RESULT" : [ 2, 3 ]
+      }
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "input_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM INPUT (ID BIGINT KEY, FIRST integer, SECOND bigint, THIRD boolean, FOURTH double, FIFTH integer, SIXTH struct<a int, b varchar>) WITH (kafka_topic='input_topic', value_format='JSON');", "CREATE TABLE OUTPUT as SELECT id, OBJ_COL_ARG(FIRST, SECOND, THIRD, FOURTH, FIFTH, SIXTH) as RESULT FROM INPUT group by id;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`ID` BIGINT KEY, `FIRST` INTEGER, `SECOND` BIGINT, `THIRD` BOOLEAN, `FOURTH` DOUBLE, `FIFTH` INTEGER, `SIXTH` STRUCT<`A` INTEGER, `B` STRING>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "OUTPUT",
+        "type" : "TABLE",
+        "schema" : "`ID` BIGINT KEY, `RESULT` ARRAY<INTEGER>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "input_topic",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          }
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

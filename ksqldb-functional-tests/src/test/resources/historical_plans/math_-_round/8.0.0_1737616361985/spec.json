@@ -1,0 +1,320 @@
+{
+  "version" : "8.0.0",
+  "timestamp" : 1737616361985,
+  "path" : "query-validation-tests/math.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`K` STRING KEY, `V` DOUBLE",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`K` STRING KEY, `R0` BIGINT, `R00` DOUBLE, `R1` DOUBLE, `R2` DOUBLE, `R10` DOUBLE, `1R` DOUBLE, `2R` DOUBLE",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "round",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : null,
+      "value" : {
+        "v" : 1.2
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : null,
+      "value" : {
+        "v" : 1.7
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : null,
+      "value" : {
+        "v" : 1.5
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : null,
+      "value" : {
+        "v" : 3
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : null,
+      "value" : {
+        "v" : 1.234567
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : null,
+      "value" : {
+        "v" : 0
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : null,
+      "value" : {
+        "v" : 111
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : null,
+      "value" : {
+        "v" : null
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : null,
+      "value" : {
+        "v" : -1.1
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : null,
+      "value" : {
+        "v" : -1.5
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : null,
+      "value" : {
+        "v" : -1.7
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : null,
+      "value" : {
+        "v" : 12345.678
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : null,
+      "value" : {
+        "v" : -12345.678
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : null,
+      "value" : {
+        "R0" : 1,
+        "R00" : 1.0,
+        "R1" : 1.2,
+        "R2" : 1.2,
+        "R10" : 1.2,
+        "1R" : 0.0,
+        "2R" : 0.0
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : null,
+      "value" : {
+        "R0" : 2,
+        "R00" : 2.0,
+        "R1" : 1.7,
+        "R2" : 1.7,
+        "R10" : 1.7,
+        "1R" : 0.0,
+        "2R" : 0.0
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : null,
+      "value" : {
+        "R0" : 2,
+        "R00" : 2.0,
+        "R1" : 1.5,
+        "R2" : 1.5,
+        "R10" : 1.5,
+        "1R" : 0.0,
+        "2R" : 0.0
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : null,
+      "value" : {
+        "R0" : 3,
+        "R00" : 3.0,
+        "R1" : 3.0,
+        "R2" : 3.0,
+        "R10" : 3.0,
+        "1R" : 0.0,
+        "2R" : 0.0
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : null,
+      "value" : {
+        "R0" : 1,
+        "R00" : 1.0,
+        "R1" : 1.2,
+        "R2" : 1.23,
+        "R10" : 1.234567,
+        "1R" : 0.0,
+        "2R" : 0.0
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : null,
+      "value" : {
+        "R0" : 0,
+        "R00" : 0.0,
+        "R1" : 0.0,
+        "R2" : 0.0,
+        "R10" : 0.0,
+        "1R" : 0.0,
+        "2R" : 0.0
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : null,
+      "value" : {
+        "R0" : 111,
+        "R00" : 111.0,
+        "R1" : 111.0,
+        "R2" : 111.0,
+        "R10" : 111.0,
+        "1R" : 110.0,
+        "2R" : 100.0
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : null,
+      "value" : {
+        "R0" : null,
+        "R00" : null,
+        "R1" : null,
+        "R2" : null,
+        "R10" : null,
+        "1R" : null,
+        "2R" : null
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : null,
+      "value" : {
+        "R0" : -1,
+        "R00" : -1.0,
+        "R1" : -1.1,
+        "R2" : -1.1,
+        "R10" : -1.1,
+        "1R" : 0.0,
+        "2R" : 0.0
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : null,
+      "value" : {
+        "R0" : -1,
+        "R00" : -1.0,
+        "R1" : -1.5,
+        "R2" : -1.5,
+        "R10" : -1.5,
+        "1R" : 0.0,
+        "2R" : 0.0
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : null,
+      "value" : {
+        "R0" : -2,
+        "R00" : -2.0,
+        "R1" : -1.7,
+        "R2" : -1.7,
+        "R10" : -1.7,
+        "1R" : 0.0,
+        "2R" : 0.0
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : null,
+      "value" : {
+        "R0" : 12346,
+        "R00" : 12346.0,
+        "R1" : 12345.7,
+        "R2" : 12345.68,
+        "R10" : 12345.678,
+        "1R" : 12350.0,
+        "2R" : 12300.0
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : null,
+      "value" : {
+        "R0" : -12346,
+        "R00" : -12346.0,
+        "R1" : -12345.7,
+        "R2" : -12345.68,
+        "R10" : -12345.678,
+        "1R" : -12350.0,
+        "2R" : -12300.0
+      }
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM test (K STRING KEY, v DOUBLE) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE STREAM OUTPUT AS SELECT K, ROUND(v) as R0, ROUND(v, 0) as R00, ROUND(v, 1) as R1, ROUND(v, 2) as R2, ROUND(v, 10) as R10, ROUND(v , -1) as 1R , ROUND(v , -2) as 2R  FROM test;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`K` STRING KEY, `R0` BIGINT, `R00` DOUBLE, `R1` DOUBLE, `R2` DOUBLE, `R10` DOUBLE, `1R` DOUBLE, `2R` DOUBLE",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`K` STRING KEY, `V` DOUBLE",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

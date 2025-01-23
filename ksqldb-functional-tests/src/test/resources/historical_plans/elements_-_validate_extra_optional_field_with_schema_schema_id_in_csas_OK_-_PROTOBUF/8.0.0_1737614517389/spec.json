@@ -1,0 +1,150 @@
+{
+  "version" : "8.0.0",
+  "timestamp" : 1737614517389,
+  "path" : "query-validation-tests/elements.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`id` INTEGER KEY, `c1` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "AVRO"
+      }
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`id` INTEGER KEY, `c1` INTEGER",
+      "keyFormat" : {
+        "format" : "PROTOBUF",
+        "properties" : {
+          "fullSchemaName" : "ConnectDefault1",
+          "unwrapPrimitives" : "true",
+          "schemaId" : "2"
+        }
+      },
+      "valueFormat" : {
+        "format" : "PROTOBUF",
+        "properties" : {
+          "fullSchemaName" : "ConnectDefault1",
+          "unwrapPrimitives" : "true",
+          "schemaId" : "3"
+        }
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "validate extra optional field with schema schema id in csas OK - PROTOBUF",
+    "inputs" : [ {
+      "topic" : "input",
+      "key" : 42,
+      "value" : {
+        "c1" : 4
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : {
+        "id" : 42
+      },
+      "value" : {
+        "c1" : 4,
+        "c2" : ""
+      }
+    } ],
+    "topics" : [ {
+      "name" : "input",
+      "valueSchema" : {
+        "type" : "record",
+        "name" : "KsqlDataSourceSchema",
+        "namespace" : "io.confluent.ksql.avro_schemas",
+        "fields" : [ {
+          "name" : "c1",
+          "type" : [ "null", "int" ],
+          "default" : null
+        } ],
+        "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
+      },
+      "valueFormat" : "AVRO",
+      "replicas" : 1,
+      "numPartitions" : 1
+    }, {
+      "name" : "OUTPUT",
+      "keySchema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  int32 id = 1;\n}\n",
+      "valueSchema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  int32 c1 = 1;\n  string c2 = 2;\n}\n",
+      "keyFormat" : "PROTOBUF",
+      "valueFormat" : "PROTOBUF",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM INPUT (`id` INT KEY, `c1` INT) WITH (kafka_topic='input', value_format='avro', partitions=1);", "CREATE STREAM OUTPUT WITH(key_schema_id=2, key_format='protobuf', value_format='protobuf', value_schema_id=3, PARTITIONS = 4) as SELECT * FROM input;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`id` INTEGER KEY, `c1` INTEGER",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "AVRO",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`id` INTEGER KEY, `c1` INTEGER",
+        "keyFormat" : {
+          "format" : "PROTOBUF"
+        },
+        "valueFormat" : "PROTOBUF",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "input",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "AVRO"
+          },
+          "partitions" : 1,
+          "valueSchema" : {
+            "type" : "record",
+            "name" : "KsqlDataSourceSchema",
+            "namespace" : "io.confluent.ksql.avro_schemas",
+            "fields" : [ {
+              "name" : "c1",
+              "type" : [ "null", "int" ],
+              "default" : null
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
+          }
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "format" : "PROTOBUF",
+            "properties" : {
+              "fullSchemaName" : "ConnectDefault1",
+              "unwrapPrimitives" : "true",
+              "schemaId" : "2"
+            }
+          },
+          "valueFormat" : {
+            "format" : "PROTOBUF",
+            "properties" : {
+              "fullSchemaName" : "ConnectDefault1",
+              "unwrapPrimitives" : "true",
+              "schemaId" : "3"
+            }
+          },
+          "partitions" : 4,
+          "keySchema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  int32 id = 1;\n}\n",
+          "valueSchema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  int32 c1 = 1;\n  string c2 = 2;\n}\n"
+        } ]
+      }
+    }
+  }
+}

@@ -1,0 +1,214 @@
+{
+  "version" : "8.0.0",
+  "timestamp" : 1737616401889,
+  "path" : "query-validation-tests/suppress.json",
+  "schemas" : {
+    "CTAS_OUTPUT_0.Aggregate.GroupBy" : {
+      "schema" : "`ID` STRING KEY, `ID` STRING, `ROWTIME` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CTAS_OUTPUT_0.Aggregate.Project" : {
+      "schema" : "`ID` STRING KEY, `COUNT` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CTAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`ID` STRING KEY, `COL1` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CTAS_OUTPUT_0.Aggregate.Aggregate.Materialize" : {
+      "schema" : "`ID` STRING KEY, `ID` STRING, `ROWTIME` BIGINT, `KSQL_AGG_VARIABLE_0` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CTAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ID` STRING KEY, `COUNT` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA",
+        "windowInfo" : {
+          "type" : "HOPPING",
+          "size" : 0.005000000,
+          "emitStrategy" : "FINAL"
+        }
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "should support final results for hopping windows",
+    "inputs" : [ {
+      "topic" : "input_topic",
+      "key" : "k1",
+      "value" : {
+        "COL1" : "v1"
+      },
+      "timestamp" : 0
+    }, {
+      "topic" : "input_topic",
+      "key" : "k1",
+      "value" : {
+        "COL1" : "v1"
+      },
+      "timestamp" : 1
+    }, {
+      "topic" : "input_topic",
+      "key" : "k1",
+      "value" : {
+        "COL1" : "v1"
+      },
+      "timestamp" : 2
+    }, {
+      "topic" : "input_topic",
+      "key" : "k1",
+      "value" : {
+        "COL1" : "v1"
+      },
+      "timestamp" : 1
+    }, {
+      "topic" : "input_topic",
+      "key" : "k1",
+      "value" : {
+        "COL1" : "v1"
+      },
+      "timestamp" : 6
+    }, {
+      "topic" : "input_topic",
+      "key" : "k1",
+      "value" : {
+        "COL1" : "v1"
+      },
+      "timestamp" : 5
+    }, {
+      "topic" : "input_topic",
+      "key" : "k1",
+      "value" : {
+        "COL1" : "v1"
+      },
+      "timestamp" : 10
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : "k1",
+      "value" : {
+        "COUNT" : 4
+      },
+      "timestamp" : 2,
+      "window" : {
+        "start" : 0,
+        "end" : 5,
+        "type" : "TIME"
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "k1",
+      "value" : {
+        "COUNT" : 2
+      },
+      "timestamp" : 6,
+      "window" : {
+        "start" : 4,
+        "end" : 9,
+        "type" : "TIME"
+      }
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "input_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM INPUT (ID STRING KEY, COL1 STRING) WITH (kafka_topic='input_topic',value_format='JSON');", "CREATE TABLE OUTPUT AS SELECT ID, COUNT(*) as COUNT FROM INPUT WINDOW HOPPING (SIZE 5 MILLISECONDS,ADVANCE BY 2 MILLISECONDS, GRACE PERIOD 1 MILLISECONDS) GROUP BY ID EMIT FINAL;" ],
+    "properties" : {
+      "ksql.streams.__emit.interval.ms.kstreams.windowed.aggregation__" : 0
+    },
+    "post" : {
+      "sources" : [ {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`ID` STRING KEY, `COL1` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "OUTPUT",
+        "type" : "TABLE",
+        "schema" : "`ID` STRING KEY, `COUNT` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA",
+          "windowType" : "HOPPING",
+          "windowSize" : 5
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "input_topic",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog",
+          "keyFormat" : {
+            "format" : "KAFKA",
+            "windowInfo" : {
+              "type" : "HOPPING",
+              "size" : 0.005000000,
+              "emitStrategy" : "CHANGES"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          }
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "format" : "KAFKA",
+            "windowInfo" : {
+              "type" : "HOPPING",
+              "size" : 0.005000000,
+              "emitStrategy" : "FINAL"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

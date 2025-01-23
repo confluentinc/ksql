@@ -1,0 +1,137 @@
+{
+  "version" : "8.0.0",
+  "timestamp" : 1737614537668,
+  "path" : "query-validation-tests/format-time.json",
+  "schemas" : {
+    "CSAS_TIME_STREAM_0.KsqlTopic.Source" : {
+      "schema" : "`ID` BIGINT KEY, `START_TIME` TIME, `DATE_FORMAT` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_TIME_STREAM_0.TIME_STREAM" : {
+      "schema" : "`ID` BIGINT KEY, `CUSTOM_FORMATTED_START_TIME` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "time to string",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : 1,
+      "value" : {
+        "START_TIME" : 65000,
+        "DATE_FORMAT" : "HH_mm_ss_SSS"
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : 2,
+      "value" : {
+        "START_TIME" : 1234567,
+        "DATE_FORMAT" : "HHmmss'AAAAA'"
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : 3,
+      "value" : {
+        "START_TIME" : 0,
+        "DATE_FORMAT" : "HH:mm:ss"
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : 5,
+      "value" : {
+        "DATE_FORMAT" : "HH:mm:ss"
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "TIME_STREAM",
+      "key" : 1,
+      "value" : {
+        "CUSTOM_FORMATTED_START_TIME" : "00_01_05_000"
+      }
+    }, {
+      "topic" : "TIME_STREAM",
+      "key" : 2,
+      "value" : {
+        "CUSTOM_FORMATTED_START_TIME" : "002034AAAAA"
+      }
+    }, {
+      "topic" : "TIME_STREAM",
+      "key" : 3,
+      "value" : {
+        "CUSTOM_FORMATTED_START_TIME" : "00:00:00"
+      }
+    }, {
+      "topic" : "TIME_STREAM",
+      "key" : 5,
+      "value" : {
+        "CUSTOM_FORMATTED_START_TIME" : null
+      }
+    } ],
+    "topics" : [ {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "TIME_STREAM",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM TEST (ID bigint KEY, START_TIME time, DATE_FORMAT varchar) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE STREAM TIME_STREAM AS select ID, format_time(START_TIME, DATE_FORMAT) as CUSTOM_FORMATTED_START_TIME from test;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`ID` BIGINT KEY, `START_TIME` TIME, `DATE_FORMAT` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "TIME_STREAM",
+        "type" : "STREAM",
+        "schema" : "`ID` BIGINT KEY, `CUSTOM_FORMATTED_START_TIME` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "TIME_STREAM",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

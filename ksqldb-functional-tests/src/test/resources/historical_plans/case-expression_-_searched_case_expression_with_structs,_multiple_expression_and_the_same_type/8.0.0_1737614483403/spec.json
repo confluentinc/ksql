@@ -1,0 +1,176 @@
+{
+  "version" : "8.0.0",
+  "timestamp" : 1737614483403,
+  "path" : "query-validation-tests/case-expression.json",
+  "schemas" : {
+    "CSAS_S1_0.KsqlTopic.Source" : {
+      "schema" : "`ID` STRING KEY, `ADDRESS` STRUCT<`CITY` STRING, `STATE` STRING>, `ITEMID` STRUCT<`NAME` STRING>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_S1_0.S1" : {
+      "schema" : "`ID` STRING KEY, `CASE_RESAULT` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "searched case expression with structs, multiple expression and the same type",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : null,
+      "value" : {
+        "ITEMID" : {
+          "NAME" : "Food"
+        },
+        "ADDRESS" : {
+          "CITY" : "CITY_0",
+          "STATE" : "STATE_1"
+        }
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : null,
+      "value" : {
+        "ITEMID" : {
+          "NAME" : "Produce"
+        },
+        "ADDRESS" : {
+          "CITY" : "CITY_3",
+          "STATE" : "STATE_6"
+        }
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : null,
+      "value" : {
+        "ITEMID" : {
+          "NAME" : "Produce"
+        },
+        "ADDRESS" : {
+          "CITY" : "CITY_9",
+          "STATE" : "STATE_9"
+        }
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : null,
+      "value" : {
+        "ITEMID" : {
+          "NAME" : "Food"
+        },
+        "ADDRESS" : {
+          "CITY" : "CITY_3",
+          "STATE" : "STATE_5"
+        }
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : null,
+      "value" : {
+        "ITEMID" : {
+          "NAME" : "Produce"
+        },
+        "ADDRESS" : {
+          "CITY" : "CITY_6",
+          "STATE" : "STATE_3"
+        }
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "S1",
+      "key" : null,
+      "value" : {
+        "CASE_RESAULT" : "Food"
+      }
+    }, {
+      "topic" : "S1",
+      "key" : null,
+      "value" : {
+        "CASE_RESAULT" : "default"
+      }
+    }, {
+      "topic" : "S1",
+      "key" : null,
+      "value" : {
+        "CASE_RESAULT" : "default"
+      }
+    }, {
+      "topic" : "S1",
+      "key" : null,
+      "value" : {
+        "CASE_RESAULT" : "default"
+      }
+    }, {
+      "topic" : "S1",
+      "key" : null,
+      "value" : {
+        "CASE_RESAULT" : "CITY_6"
+      }
+    } ],
+    "topics" : [ {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "S1",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM orders (ID STRING KEY, address STRUCT <city varchar, state varchar>, itemid STRUCT<NAME VARCHAR>) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE STREAM S1 AS SELECT ID, CASE WHEN ADDRESS->STATE = 'STATE_1' THEN ITEMID->NAME WHEN ADDRESS->STATE = 'STATE_3' THEN ADDRESS->CITY ELSE 'default' END AS case_resault FROM orders;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "ORDERS",
+        "type" : "STREAM",
+        "schema" : "`ID` STRING KEY, `ADDRESS` STRUCT<`CITY` STRING, `STATE` STRING>, `ITEMID` STRUCT<`NAME` STRING>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "S1",
+        "type" : "STREAM",
+        "schema" : "`ID` STRING KEY, `CASE_RESAULT` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "S1",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

@@ -1,0 +1,148 @@
+{
+  "version" : "8.0.0",
+  "timestamp" : 1737614964199,
+  "path" : "query-validation-tests/json_sr.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`FOO` ARRAY<STRING>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON_SR",
+        "features" : [ "UNWRAP_SINGLES" ]
+      }
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`FOO` ARRAY<STRING>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON_SR"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "deserialize anonymous array - value - with coercion",
+    "inputs" : [ {
+      "topic" : "input_topic",
+      "key" : null,
+      "value" : [ 1, 2, 3 ]
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : null,
+      "value" : {
+        "FOO" : [ "1", "2", "3" ]
+      }
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "input_topic",
+      "valueSchema" : {
+        "oneOf" : [ {
+          "type" : "null"
+        }, {
+          "type" : "array",
+          "items" : {
+            "oneOf" : [ {
+              "type" : "null"
+            }, {
+              "type" : "string"
+            } ]
+          }
+        } ]
+      },
+      "valueFormat" : "JSON",
+      "replicas" : 1,
+      "valueSerdeFeatures" : [ "UNWRAP_SINGLES" ],
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM INPUT (foo ARRAY<STRING>) WITH (WRAP_SINGLE_VALUE=false, kafka_topic='input_topic', value_format='JSON_SR');", "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`FOO` ARRAY<STRING>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON_SR",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ "UNWRAP_SINGLES" ],
+        "isSource" : false
+      }, {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`FOO` ARRAY<STRING>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON_SR",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "input_topic",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON_SR",
+            "features" : [ "UNWRAP_SINGLES" ]
+          },
+          "partitions" : 4,
+          "valueSchema" : {
+            "oneOf" : [ {
+              "type" : "null"
+            }, {
+              "type" : "array",
+              "items" : {
+                "oneOf" : [ {
+                  "type" : "null"
+                }, {
+                  "type" : "string"
+                } ]
+              }
+            } ]
+          }
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON_SR"
+          },
+          "partitions" : 4,
+          "valueSchema" : {
+            "type" : "object",
+            "properties" : {
+              "FOO" : {
+                "connect.index" : 0,
+                "oneOf" : [ {
+                  "type" : "null"
+                }, {
+                  "type" : "array",
+                  "items" : {
+                    "oneOf" : [ {
+                      "type" : "null"
+                    }, {
+                      "type" : "string"
+                    } ]
+                  }
+                } ]
+              }
+            }
+          }
+        } ]
+      }
+    }
+  }
+}

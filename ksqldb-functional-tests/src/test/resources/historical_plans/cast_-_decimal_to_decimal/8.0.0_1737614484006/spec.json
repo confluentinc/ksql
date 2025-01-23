@@ -1,0 +1,110 @@
+{
+  "version" : "8.0.0",
+  "timestamp" : 1737614484006,
+  "path" : "query-validation-tests/cast.json",
+  "schemas" : {
+    "CSAS_OUT_0.KsqlTopic.Source" : {
+      "schema" : "`ID` STRING KEY, `FOO` DECIMAL(4, 2)",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
+    },
+    "CSAS_OUT_0.OUT" : {
+      "schema" : "`ID` STRING KEY, `KSQL_COL_0` DECIMAL(5, 3)",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "decimal to decimal",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : null,
+      "value" : "10.12"
+    }, {
+      "topic" : "test_topic",
+      "key" : null,
+      "value" : "01.00"
+    }, {
+      "topic" : "test_topic",
+      "key" : null,
+      "value" : "00.00"
+    } ],
+    "outputs" : [ {
+      "topic" : "OUT",
+      "key" : null,
+      "value" : "10.120"
+    }, {
+      "topic" : "OUT",
+      "key" : null,
+      "value" : "1.000"
+    }, {
+      "topic" : "OUT",
+      "key" : null,
+      "value" : "0.000"
+    } ],
+    "topics" : [ {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "OUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM TEST (ID STRING KEY, foo DECIMAL(4,2)) WITH (kafka_topic='test_topic', value_format='DELIMITED');", "CREATE STREAM OUT AS SELECT ID, cast(foo AS DECIMAL(5,3)) FROM TEST;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "OUT",
+        "type" : "STREAM",
+        "schema" : "`ID` STRING KEY, `KSQL_COL_0` DECIMAL(5, 3)",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "DELIMITED",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`ID` STRING KEY, `FOO` DECIMAL(4, 2)",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "DELIMITED",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "DELIMITED"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "OUT",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "DELIMITED"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

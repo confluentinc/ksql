@@ -1,0 +1,166 @@
+{
+  "version" : "8.0.0",
+  "timestamp" : 1737614480963,
+  "path" : "query-validation-tests/avro.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`EXPECTED` INTEGER, `C1` BYTES, `C2` BYTES",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "AVRO"
+      }
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`EXPECTED` INTEGER, `C1` BYTES, `C2` BYTES",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "AVRO"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "should not filter out bytes",
+    "inputs" : [ {
+      "topic" : "input",
+      "key" : null,
+      "value" : {
+        "expected" : 1,
+        "c1" : null,
+        "c2" : null,
+        "c3" : null
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : null,
+      "value" : {
+        "EXPECTED" : 1,
+        "c1" : null,
+        "c2" : null
+      }
+    } ],
+    "topics" : [ {
+      "name" : "input",
+      "valueSchema" : {
+        "type" : "record",
+        "name" : "blah",
+        "fields" : [ {
+          "name" : "expected",
+          "type" : "int"
+        }, {
+          "name" : "c1",
+          "type" : [ "null", "bytes" ]
+        }, {
+          "name" : "c2",
+          "type" : [ "null", {
+            "type" : "fixed",
+            "name" : "md5",
+            "size" : 16
+          } ]
+        } ]
+      },
+      "valueFormat" : "AVRO",
+      "replicas" : 1,
+      "numPartitions" : 1
+    }, {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM INPUT WITH (kafka_topic='input', value_format='AvRo');", "CREATE STREAM OUTPUT AS SELECT * FROM input;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`EXPECTED` INTEGER, `C1` BYTES, `C2` BYTES",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "AVRO",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`EXPECTED` INTEGER, `C1` BYTES, `C2` BYTES",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "AVRO",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "input",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "AVRO"
+          },
+          "partitions" : 1,
+          "valueSchema" : {
+            "type" : "record",
+            "name" : "blah",
+            "fields" : [ {
+              "name" : "expected",
+              "type" : "int"
+            }, {
+              "name" : "c1",
+              "type" : [ "null", "bytes" ],
+              "default" : null
+            }, {
+              "name" : "c2",
+              "type" : [ "null", {
+                "type" : "fixed",
+                "name" : "md5",
+                "size" : 16,
+                "connect.parameters" : {
+                  "connect.fixed.size" : "16"
+                },
+                "connect.name" : "md5"
+              } ],
+              "default" : null
+            } ],
+            "connect.name" : "blah"
+          }
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "AVRO"
+          },
+          "partitions" : 4,
+          "valueSchema" : {
+            "type" : "record",
+            "name" : "KsqlDataSourceSchema",
+            "namespace" : "io.confluent.ksql.avro_schemas",
+            "fields" : [ {
+              "name" : "EXPECTED",
+              "type" : [ "null", "int" ],
+              "default" : null
+            }, {
+              "name" : "C1",
+              "type" : [ "null", "bytes" ],
+              "default" : null
+            }, {
+              "name" : "C2",
+              "type" : [ "null", "bytes" ],
+              "default" : null
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
+          }
+        } ]
+      }
+    }
+  }
+}

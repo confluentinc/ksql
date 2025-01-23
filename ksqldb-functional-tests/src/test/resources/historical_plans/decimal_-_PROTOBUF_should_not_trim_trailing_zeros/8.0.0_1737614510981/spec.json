@@ -1,0 +1,126 @@
+{
+  "version" : "8.0.0",
+  "timestamp" : 1737614510981,
+  "path" : "query-validation-tests/decimal.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`ID` STRING KEY, `DEC` DECIMAL(6, 4)",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "PROTOBUF",
+        "properties" : {
+          "unwrapPrimitives" : "true"
+        }
+      }
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ID` STRING KEY, `DEC` DECIMAL(6, 4)",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "PROTOBUF",
+        "properties" : {
+          "unwrapPrimitives" : "true"
+        }
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "PROTOBUF should not trim trailing zeros",
+    "inputs" : [ {
+      "topic" : "test",
+      "key" : null,
+      "value" : {
+        "DEC" : 10.0
+      }
+    }, {
+      "topic" : "test",
+      "key" : null,
+      "value" : {
+        "DEC" : 1.0000
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : null,
+      "value" : {
+        "DEC" : 10.0000
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : null,
+      "value" : {
+        "DEC" : 1.0000
+      }
+    } ],
+    "topics" : [ {
+      "name" : "test",
+      "valueSchema" : "syntax = \"proto3\";\n\nimport \"confluent/type/decimal.proto\";\n\nmessage ConnectDefault1 {\n  confluent.type.Decimal DEC = 1 [(confluent.field_meta) = {\n    params: [\n      {\n        value: \"6\",\n        key: \"precision\"\n      },\n      {\n        value: \"4\",\n        key: \"scale\"\n      }\n    ]\n  }];\n}\n",
+      "valueFormat" : "PROTOBUF",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM INPUT (ID STRING KEY, dec DECIMAL(6,4)) WITH (kafka_topic='test', value_format='PROTOBUF');", "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`ID` STRING KEY, `DEC` DECIMAL(6, 4)",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "PROTOBUF",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`ID` STRING KEY, `DEC` DECIMAL(6, 4)",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "PROTOBUF",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "test",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "PROTOBUF",
+            "properties" : {
+              "unwrapPrimitives" : "true"
+            }
+          },
+          "partitions" : 4,
+          "valueSchema" : "syntax = \"proto3\";\n\nimport \"confluent/type/decimal.proto\";\n\nmessage ConnectDefault1 {\n  confluent.type.Decimal DEC = 1 [(confluent.field_meta) = {\n    params: [\n      {\n        value: \"6\",\n        key: \"precision\"\n      },\n      {\n        value: \"4\",\n        key: \"scale\"\n      }\n    ]\n  }];\n}\n"
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "PROTOBUF",
+            "properties" : {
+              "unwrapPrimitives" : "true"
+            }
+          },
+          "partitions" : 4,
+          "valueSchema" : "syntax = \"proto3\";\n\nimport \"confluent/type/decimal.proto\";\n\nmessage ConnectDefault1 {\n  confluent.type.Decimal DEC = 1 [(confluent.field_meta) = {\n    params: [\n      {\n        value: \"6\",\n        key: \"precision\"\n      },\n      {\n        value: \"4\",\n        key: \"scale\"\n      }\n    ]\n  }];\n}\n"
+        } ]
+      }
+    }
+  }
+}

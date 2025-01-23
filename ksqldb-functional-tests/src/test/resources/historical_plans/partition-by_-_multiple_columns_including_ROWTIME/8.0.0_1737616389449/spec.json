@@ -1,0 +1,136 @@
+{
+  "version" : "8.0.0",
+  "timestamp" : 1737616389449,
+  "path" : "query-validation-tests/partition-by.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`K` STRING KEY, `ID` BIGINT",
+      "keyFormat" : {
+        "format" : "JSON",
+        "features" : [ "UNWRAP_SINGLES" ]
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ID` BIGINT KEY, `ROWTIME` BIGINT KEY, `K` STRING",
+      "keyFormat" : {
+        "format" : "JSON"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "multiple columns including ROWTIME",
+    "inputs" : [ {
+      "topic" : "input",
+      "key" : null,
+      "value" : {
+        "ID" : 22
+      },
+      "timestamp" : 10
+    }, {
+      "topic" : "input",
+      "key" : null,
+      "value" : {
+        "ID" : null
+      },
+      "timestamp" : 11
+    }, {
+      "topic" : "input",
+      "key" : null,
+      "value" : null,
+      "timestamp" : 12
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : {
+        "ID" : 22,
+        "ROWTIME" : 10
+      },
+      "value" : {
+        "K" : null
+      },
+      "timestamp" : 10
+    }, {
+      "topic" : "OUTPUT",
+      "key" : {
+        "ID" : null,
+        "ROWTIME" : 11
+      },
+      "value" : {
+        "K" : null
+      },
+      "timestamp" : 11
+    }, {
+      "topic" : "OUTPUT",
+      "key" : {
+        "ID" : null,
+        "ROWTIME" : null
+      },
+      "value" : null,
+      "timestamp" : 12
+    } ],
+    "topics" : [ {
+      "name" : "input",
+      "replicas" : 1,
+      "keySerdeFeatures" : [ "UNWRAP_SINGLES" ],
+      "numPartitions" : 4
+    }, {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM INPUT (K STRING KEY, ID bigint) with (kafka_topic='input', format='JSON');", "CREATE STREAM OUTPUT AS select * from INPUT partition by ID, ROWTIME;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`K` STRING KEY, `ID` BIGINT",
+        "keyFormat" : {
+          "format" : "JSON"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ "UNWRAP_SINGLES" ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`ID` BIGINT KEY, `ROWTIME` BIGINT KEY, `K` STRING",
+        "keyFormat" : {
+          "format" : "JSON"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "input",
+          "keyFormat" : {
+            "format" : "JSON",
+            "features" : [ "UNWRAP_SINGLES" ]
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "format" : "JSON"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

@@ -1,0 +1,129 @@
+{
+  "version" : "8.0.0",
+  "timestamp" : 1737616391434,
+  "path" : "query-validation-tests/protobuf.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`event` STRUCT<`timestamp` BIGINT>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "PROTOBUF",
+        "properties" : {
+          "fullSchemaName" : "Logistics",
+          "unwrapPrimitives" : "true",
+          "schemaId" : "1"
+        }
+      }
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`event` STRUCT<`timestamp` BIGINT>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "PROTOBUF",
+        "properties" : {
+          "fullSchemaName" : "Logistics",
+          "unwrapPrimitives" : "true"
+        }
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "specify a protobuf schema with external references",
+    "inputs" : [ {
+      "topic" : "input",
+      "key" : null,
+      "value" : {
+        "event" : {
+          "timestamp" : 1
+        }
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : null,
+      "value" : {
+        "event" : {
+          "timestamp" : 1
+        }
+      }
+    } ],
+    "topics" : [ {
+      "name" : "input",
+      "valueSchema" : "syntax = \"proto3\";\n\nimport \"event.proto\";\n\nmessage Logistics {\n  Event event = 1;\n}\n",
+      "valueSchemaReferences" : [ {
+        "name" : "event.proto",
+        "format" : "PROTOBUF",
+        "schema" : "syntax = \"proto3\";\n\nmessage Event {\n  int64 timestamp = 1;\n}\n"
+      } ],
+      "valueFormat" : "PROTOBUF",
+      "replicas" : 1,
+      "numPartitions" : 1
+    }, {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM INPUT WITH (kafka_topic='input', value_format='PROTOBUF', value_schema_id=1);", "CREATE STREAM OUTPUT as SELECT * from INPUT;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`event` STRUCT<`timestamp` BIGINT>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "PROTOBUF",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`event` STRUCT<`timestamp` BIGINT>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "PROTOBUF",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "input",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "PROTOBUF",
+            "properties" : {
+              "fullSchemaName" : "Logistics",
+              "unwrapPrimitives" : "true",
+              "schemaId" : "1"
+            }
+          },
+          "partitions" : 1,
+          "valueSchema" : "syntax = \"proto3\";\n\nmessage Logistics {\n  Event event = 1;\n\n  message Event {\n    int64 timestamp = 1;\n  }\n}\n"
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "PROTOBUF",
+            "properties" : {
+              "fullSchemaName" : "Logistics",
+              "unwrapPrimitives" : "true"
+            }
+          },
+          "partitions" : 4,
+          "valueSchema" : "syntax = \"proto3\";\n\nmessage Logistics {\n  ConnectDefault1 event = 1;\n\n  message ConnectDefault1 {\n    int64 timestamp = 1;\n  }\n}\n"
+        } ]
+      }
+    }
+  }
+}

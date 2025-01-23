@@ -1,0 +1,188 @@
+{
+  "version" : "8.0.0",
+  "timestamp" : 1737614483484,
+  "path" : "query-validation-tests/case-expression.json",
+  "schemas" : {
+    "CTAS_RUSSELL_3K_HOURLY_0.RUSSELL_3K_HOURLY" : {
+      "schema" : "`TICKERID` STRING KEY, `TRADECOUNT` BIGINT, `TRADEVOLUMN` INTEGER, `MINBUYPRICE` INTEGER, `MAXBUYPRICE` INTEGER, `MINSELLPRICE` INTEGER, `MAXSELLPRICE` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA",
+        "windowInfo" : {
+          "type" : "TUMBLING",
+          "size" : 3600.000000000,
+          "emitStrategy" : "CHANGES"
+        }
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CTAS_RUSSELL_3K_HOURLY_0.Aggregate.GroupBy" : {
+      "schema" : "`TICKERID` STRING KEY, `TICKERID` STRING, `ROWTIME` BIGINT, `QUANTITY` INTEGER, `BUY` BOOLEAN, `PRICE` INTEGER, `KSQL_INTERNAL_COL_5` INTEGER, `KSQL_INTERNAL_COL_6` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CTAS_RUSSELL_3K_HOURLY_0.KsqlTopic.Source" : {
+      "schema" : "`TICKERID` STRING KEY, `QUANTITY` INTEGER, `PRICE` INTEGER, `BUY` BOOLEAN",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CTAS_RUSSELL_3K_HOURLY_0.Aggregate.Project" : {
+      "schema" : "`TICKERID` STRING KEY, `TRADECOUNT` BIGINT, `TRADEVOLUMN` INTEGER, `MINBUYPRICE` INTEGER, `MAXBUYPRICE` INTEGER, `MINSELLPRICE` INTEGER, `MAXSELLPRICE` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CTAS_RUSSELL_3K_HOURLY_0.Aggregate.Aggregate.Materialize" : {
+      "schema" : "`TICKERID` STRING KEY, `TICKERID` STRING, `ROWTIME` BIGINT, `QUANTITY` INTEGER, `BUY` BOOLEAN, `PRICE` INTEGER, `KSQL_AGG_VARIABLE_0` BIGINT, `KSQL_AGG_VARIABLE_1` INTEGER, `KSQL_AGG_VARIABLE_2` INTEGER, `KSQL_AGG_VARIABLE_3` INTEGER, `KSQL_AGG_VARIABLE_4` INTEGER, `KSQL_AGG_VARIABLE_5` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "as param to UDAF",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : "AEIS",
+      "value" : {
+        "userId" : "bob67",
+        "quantity" : 76,
+        "price" : 120125102,
+        "buy" : true
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : "AEIS",
+      "value" : {
+        "userId" : "bob67",
+        "quantity" : 10,
+        "price" : 100125102,
+        "buy" : false
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "RUSSELL_3K_HOURLY",
+      "key" : "AEIS",
+      "value" : {
+        "TRADECOUNT" : 1,
+        "TRADEVOLUMN" : 76,
+        "MINBUYPRICE" : 120125102,
+        "MAXBUYPRICE" : 120125102,
+        "MINSELLPRICE" : null,
+        "MAXSELLPRICE" : null
+      },
+      "window" : {
+        "start" : 0,
+        "end" : 3600000,
+        "type" : "TIME"
+      }
+    }, {
+      "topic" : "RUSSELL_3K_HOURLY",
+      "key" : "AEIS",
+      "value" : {
+        "TRADECOUNT" : 2,
+        "TRADEVOLUMN" : 86,
+        "MINBUYPRICE" : 120125102,
+        "MAXBUYPRICE" : 120125102,
+        "MINSELLPRICE" : 100125102,
+        "MAXSELLPRICE" : 100125102
+      },
+      "window" : {
+        "start" : 0,
+        "end" : 3600000,
+        "type" : "TIME"
+      }
+    } ],
+    "topics" : [ {
+      "name" : "RUSSELL_3K_HOURLY",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM russell_3k_trades (tickerId VARCHAR KEY, quantity INT, price INT, buy BOOLEAN) WITH (kafka_topic='test_topic',value_format='json');", "CREATE TABLE russell_3k_hourly AS SELECT tickerId, count(*) as tradeCount, sum(quantity) as tradeVolumn, min(CASE WHEN buy THEN price ELSE null END) as minBuyPrice, max(CASE WHEN buy THEN price ELSE null END) as maxBuyPrice, min(CASE WHEN buy THEN null ELSE price END) as minSellPrice, max(CASE WHEN buy THEN null ELSE price END) as maxSellPrice FROM russell_3k_trades WINDOW TUMBLING (SIZE 1 HOUR) GROUP BY tickerId;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "RUSSELL_3K_HOURLY",
+        "type" : "TABLE",
+        "schema" : "`TICKERID` STRING KEY, `TRADECOUNT` BIGINT, `TRADEVOLUMN` INTEGER, `MINBUYPRICE` INTEGER, `MAXBUYPRICE` INTEGER, `MINSELLPRICE` INTEGER, `MAXSELLPRICE` INTEGER",
+        "keyFormat" : {
+          "format" : "KAFKA",
+          "windowType" : "TUMBLING",
+          "windowSize" : 3600000
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "RUSSELL_3K_TRADES",
+        "type" : "STREAM",
+        "schema" : "`TICKERID` STRING KEY, `QUANTITY` INTEGER, `PRICE` INTEGER, `BUY` BOOLEAN",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_RUSSELL_3K_HOURLY_0-Aggregate-Aggregate-Materialize-changelog",
+          "keyFormat" : {
+            "format" : "KAFKA",
+            "windowInfo" : {
+              "type" : "TUMBLING",
+              "size" : 3600.000000000,
+              "emitStrategy" : "CHANGES"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          }
+        }, {
+          "name" : "RUSSELL_3K_HOURLY",
+          "keyFormat" : {
+            "format" : "KAFKA",
+            "windowInfo" : {
+              "type" : "TUMBLING",
+              "size" : 3600.000000000,
+              "emitStrategy" : "CHANGES"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

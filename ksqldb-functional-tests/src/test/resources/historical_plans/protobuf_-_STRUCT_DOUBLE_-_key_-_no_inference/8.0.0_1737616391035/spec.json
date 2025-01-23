@@ -1,0 +1,158 @@
+{
+  "version" : "8.0.0",
+  "timestamp" : 1737616391035,
+  "path" : "query-validation-tests/protobuf.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`F1` DOUBLE KEY, `FOO` INTEGER",
+      "keyFormat" : {
+        "format" : "PROTOBUF",
+        "properties" : {
+          "unwrapPrimitives" : "true"
+        }
+      },
+      "valueFormat" : {
+        "format" : "PROTOBUF",
+        "properties" : {
+          "unwrapPrimitives" : "true"
+        }
+      }
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`F1` DOUBLE KEY, `FOO` INTEGER",
+      "keyFormat" : {
+        "format" : "PROTOBUF",
+        "properties" : {
+          "unwrapPrimitives" : "true"
+        }
+      },
+      "valueFormat" : {
+        "format" : "PROTOBUF",
+        "properties" : {
+          "unwrapPrimitives" : "true"
+        }
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "STRUCT DOUBLE - key - no inference",
+    "inputs" : [ {
+      "topic" : "input_topic",
+      "key" : {
+        "F1" : 1.1
+      },
+      "value" : {
+        "FOO" : 10
+      }
+    }, {
+      "topic" : "input_topic",
+      "key" : {
+        "F1" : null
+      },
+      "value" : {
+        "FOO" : 10
+      }
+    }, {
+      "topic" : "input_topic",
+      "key" : null,
+      "value" : null
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : {
+        "F1" : 1.1
+      },
+      "value" : {
+        "FOO" : 10
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : {
+        "F1" : 0
+      },
+      "value" : {
+        "FOO" : 10
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : null,
+      "value" : null
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "input_topic",
+      "keySchema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  double F1 = 1;\n}\n",
+      "valueSchema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  int32 FOO = 1;\n}\n",
+      "keyFormat" : "PROTOBUF",
+      "valueFormat" : "PROTOBUF",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM INPUT (F1 DOUBLE KEY, foo INT) WITH (kafka_topic='input_topic', format='PROTOBUF');", "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`F1` DOUBLE KEY, `FOO` INTEGER",
+        "keyFormat" : {
+          "format" : "PROTOBUF"
+        },
+        "valueFormat" : "PROTOBUF",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`F1` DOUBLE KEY, `FOO` INTEGER",
+        "keyFormat" : {
+          "format" : "PROTOBUF"
+        },
+        "valueFormat" : "PROTOBUF",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "input_topic",
+          "keyFormat" : {
+            "format" : "PROTOBUF",
+            "properties" : {
+              "unwrapPrimitives" : "true"
+            }
+          },
+          "valueFormat" : {
+            "format" : "PROTOBUF",
+            "properties" : {
+              "unwrapPrimitives" : "true"
+            }
+          },
+          "partitions" : 4,
+          "keySchema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  double F1 = 1;\n}\n",
+          "valueSchema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  int32 FOO = 1;\n}\n"
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "format" : "PROTOBUF",
+            "properties" : {
+              "unwrapPrimitives" : "true"
+            }
+          },
+          "valueFormat" : {
+            "format" : "PROTOBUF",
+            "properties" : {
+              "unwrapPrimitives" : "true"
+            }
+          },
+          "partitions" : 4,
+          "keySchema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  double F1 = 1;\n}\n",
+          "valueSchema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  int32 FOO = 1;\n}\n"
+        } ]
+      }
+    }
+  }
+}

@@ -1,0 +1,130 @@
+{
+  "version" : "8.0.0",
+  "timestamp" : 1737616391919,
+  "path" : "query-validation-tests/reduce-map.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`ID` STRING KEY, `MAP` MAP<STRING, INTEGER>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ID` STRING KEY, `REDUCE` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "apply reduce lambda function to map",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : "zero",
+      "value" : {
+        "map" : {
+          "123" : 3,
+          "12" : 7,
+          "1234" : 2
+        }
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : "one",
+      "value" : {
+        "map" : {
+          "1" : 1,
+          "ttttt" : null,
+          "" : 3
+        }
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : "two",
+      "value" : {
+        "map" : null
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : "zero",
+      "value" : {
+        "REDUCE" : -8
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "one",
+      "value" : {
+        "REDUCE" : null
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "two",
+      "value" : {
+        "REDUCE" : 0
+      }
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM test (ID STRING KEY, map MAP<STRING, INTEGER>) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE STREAM OUTPUT AS SELECT ID, REDUCE(map, 0, (s, k, v) => CASE WHEN LEN(k) > 3 THEN  s + v ELSE s - v END) AS reduce FROM test;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`ID` STRING KEY, `REDUCE` INTEGER",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`ID` STRING KEY, `MAP` MAP<STRING, INTEGER>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

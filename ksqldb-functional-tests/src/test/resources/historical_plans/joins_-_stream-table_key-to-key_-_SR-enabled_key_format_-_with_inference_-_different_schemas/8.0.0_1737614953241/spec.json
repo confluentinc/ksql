@@ -1,0 +1,271 @@
+{
+  "version" : "8.0.0",
+  "timestamp" : 1737614953241,
+  "path" : "query-validation-tests/joins.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KafkaTopic_Right.Source" : {
+      "schema" : "`ROWKEY` INTEGER KEY, `VAL` STRING",
+      "keyFormat" : {
+        "format" : "JSON_SR",
+        "features" : [ "UNWRAP_SINGLES" ]
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_OUTPUT_0.KafkaTopic_Right.Source.Materialized" : {
+      "schema" : "`ROWKEY` INTEGER KEY, `VAL` STRING, `ROWPARTITION` INTEGER, `ROWOFFSET` BIGINT",
+      "keyFormat" : {
+        "format" : "JSON_SR",
+        "features" : [ "UNWRAP_SINGLES" ]
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_OUTPUT_0.Join.Left" : {
+      "schema" : "`S_ROWKEY` INTEGER KEY, `S_FOO` INTEGER, `S_ROWTIME` BIGINT, `S_ROWPARTITION` INTEGER, `S_ROWOFFSET` BIGINT, `S_ROWKEY` INTEGER",
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_OUTPUT_0.RightSourceKeyed.Materialize" : {
+      "schema" : "`ROWKEY` INTEGER KEY, `VAL` STRING, `ROWTIME` BIGINT, `ROWPARTITION` INTEGER, `ROWOFFSET` BIGINT, `ROWKEY` INTEGER",
+      "keyFormat" : {
+        "format" : "JSON_SR",
+        "features" : [ "UNWRAP_SINGLES" ]
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_OUTPUT_0.KafkaTopic_Left.Source" : {
+      "schema" : "`ROWKEY` INTEGER KEY, `FOO` INTEGER",
+      "keyFormat" : {
+        "format" : "JSON_SR",
+        "features" : [ "UNWRAP_SINGLES" ]
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`S_ROWKEY` INTEGER KEY, `VAL` STRING",
+      "keyFormat" : {
+        "format" : "JSON_SR",
+        "features" : [ "UNWRAP_SINGLES" ]
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_OUTPUT_0.Join" : {
+      "schema" : "`S_ROWKEY` INTEGER KEY, `S_FOO` INTEGER, `S_ROWTIME` BIGINT, `S_ROWPARTITION` INTEGER, `S_ROWOFFSET` BIGINT, `S_ROWKEY` INTEGER",
+      "keyFormat" : {
+        "format" : "JSON_SR",
+        "features" : [ "UNWRAP_SINGLES" ]
+      }
+    },
+    "CSAS_OUTPUT_0.PrependAliasRight" : {
+      "schema" : "`T_ROWKEY` INTEGER KEY, `T_VAL` STRING, `T_ROWTIME` BIGINT, `T_ROWPARTITION` INTEGER, `T_ROWOFFSET` BIGINT, `T_ROWKEY` INTEGER",
+      "keyFormat" : {
+        "format" : "JSON_SR",
+        "features" : [ "UNWRAP_SINGLES" ]
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "stream-table key-to-key - SR-enabled key format - with inference - different schemas",
+    "inputs" : [ {
+      "topic" : "t",
+      "key" : 10,
+      "value" : {
+        "VAL" : "hello"
+      }
+    }, {
+      "topic" : "s",
+      "key" : 10,
+      "value" : {
+        "foo" : 22
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : 10,
+      "value" : {
+        "VAL" : "hello"
+      }
+    } ],
+    "topics" : [ {
+      "name" : "s",
+      "keySchema" : {
+        "oneOf" : [ {
+          "type" : "null"
+        }, {
+          "type" : "integer",
+          "connect.type" : "int32"
+        } ]
+      },
+      "keyFormat" : "JSON",
+      "replicas" : 1,
+      "numPartitions" : 1
+    }, {
+      "name" : "t",
+      "keySchema" : {
+        "type" : "integer",
+        "connect.type" : "int32"
+      },
+      "keyFormat" : "JSON",
+      "replicas" : 1,
+      "numPartitions" : 1
+    }, {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE TABLE T (VAL STRING) WITH (kafka_topic='t', key_format='JSON_SR', value_format='JSON');", "CREATE STREAM S (FOO INT) WITH (kafka_topic='s', key_format='JSON_SR', value_format='JSON');", "CREATE STREAM OUTPUT AS SELECT S.ROWKEY, VAL FROM S JOIN T ON S.ROWKEY = T.ROWKEY;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`S_ROWKEY` INTEGER KEY, `VAL` STRING",
+        "keyFormat" : {
+          "format" : "JSON_SR"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ "UNWRAP_SINGLES" ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "S",
+        "type" : "STREAM",
+        "schema" : "`ROWKEY` INTEGER KEY, `FOO` INTEGER",
+        "keyFormat" : {
+          "format" : "JSON_SR"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ "UNWRAP_SINGLES" ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "T",
+        "type" : "TABLE",
+        "schema" : "`ROWKEY` INTEGER KEY, `VAL` STRING",
+        "keyFormat" : {
+          "format" : "JSON_SR"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ "UNWRAP_SINGLES" ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "t",
+          "keyFormat" : {
+            "format" : "JSON_SR",
+            "features" : [ "UNWRAP_SINGLES" ]
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 1,
+          "keySchema" : {
+            "type" : "integer",
+            "connect.type" : "int32"
+          }
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-RightSourceKeyed-SelectKey-repartition",
+          "keyFormat" : {
+            "format" : "JSON_SR",
+            "features" : [ "UNWRAP_SINGLES" ]
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "keySchema" : {
+            "oneOf" : [ {
+              "type" : "null"
+            }, {
+              "type" : "integer",
+              "connect.type" : "int32"
+            } ]
+          }
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-Join-repartition",
+          "keyFormat" : {
+            "format" : "JSON_SR",
+            "features" : [ "UNWRAP_SINGLES" ]
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "keySchema" : {
+            "oneOf" : [ {
+              "type" : "null"
+            }, {
+              "type" : "integer",
+              "connect.type" : "int32"
+            } ]
+          }
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "format" : "JSON_SR",
+            "features" : [ "UNWRAP_SINGLES" ]
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4,
+          "keySchema" : {
+            "oneOf" : [ {
+              "type" : "null"
+            }, {
+              "type" : "integer",
+              "connect.type" : "int32"
+            } ]
+          }
+        }, {
+          "name" : "s",
+          "keyFormat" : {
+            "format" : "JSON_SR",
+            "features" : [ "UNWRAP_SINGLES" ]
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 1,
+          "keySchema" : {
+            "oneOf" : [ {
+              "type" : "null"
+            }, {
+              "type" : "integer",
+              "connect.type" : "int32"
+            } ]
+          }
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-RightSourceKeyed-Materialize-changelog",
+          "keyFormat" : {
+            "format" : "JSON_SR",
+            "features" : [ "UNWRAP_SINGLES" ]
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "keySchema" : {
+            "oneOf" : [ {
+              "type" : "null"
+            }, {
+              "type" : "integer",
+              "connect.type" : "int32"
+            } ]
+          }
+        } ]
+      }
+    }
+  }
+}

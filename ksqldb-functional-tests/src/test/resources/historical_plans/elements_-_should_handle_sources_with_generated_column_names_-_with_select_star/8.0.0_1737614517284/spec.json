@@ -1,0 +1,103 @@
+{
+  "version" : "8.0.0",
+  "timestamp" : 1737614517284,
+  "path" : "query-validation-tests/elements.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`KSQL_COL_3` INTEGER KEY, `KSQL_COL_2` INTEGER, `KSQL_COL_4` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`KSQL_COL_3` INTEGER KEY, `KSQL_COL_0` INTEGER, `KSQL_COL_1` INTEGER, `KSQL_COL_5` INTEGER, `KSQL_COL_2` INTEGER, `KSQL_COL_4` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "should handle sources with generated column names - with select star",
+    "inputs" : [ {
+      "topic" : "input",
+      "key" : 1,
+      "value" : {
+        "KSQL_COL_2" : 2,
+        "KSQL_COL_4" : 4
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : 1,
+      "value" : {
+        "KSQL_COL_2" : 2,
+        "KSQL_COL_4" : 4,
+        "KSQL_COL_0" : 2,
+        "KSQL_COL_1" : 2,
+        "KSQL_COL_5" : 2
+      }
+    } ],
+    "topics" : [ {
+      "name" : "input",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM INPUT (KSQL_COL_3 INT KEY, KSQL_COL_2 INT, KSQL_COL_4 INT) WITH (kafka_topic='input', value_format='JSON');", "CREATE STREAM OUTPUT as SELECT ABS(KSQL_COL_2), ABS(KSQL_COL_2), ABS(KSQL_COL_2), * FROM INPUT;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`KSQL_COL_3` INTEGER KEY, `KSQL_COL_2` INTEGER, `KSQL_COL_4` INTEGER",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`KSQL_COL_3` INTEGER KEY, `KSQL_COL_0` INTEGER, `KSQL_COL_1` INTEGER, `KSQL_COL_5` INTEGER, `KSQL_COL_2` INTEGER, `KSQL_COL_4` INTEGER",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "input",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

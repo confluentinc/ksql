@@ -1264,7 +1264,7 @@ public class SourceBuilderV1Test {
     );
   }
 
-  private static class MockRecordMetadata implements RecordMetadata {
+  private static final class MockRecordMetadata implements RecordMetadata {
 
     private final String topic;
     private final int partition;

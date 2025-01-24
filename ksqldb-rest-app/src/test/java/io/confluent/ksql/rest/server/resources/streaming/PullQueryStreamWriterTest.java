@@ -19,7 +19,7 @@ import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.physical.pull.PullQueryResult;
 import io.confluent.ksql.physical.pull.PullQueryRow;
-import io.confluent.ksql.query.PullQueryQueue;
+import io.confluent.ksql.query.PullQueryWriteStream;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.ApiJsonMapper;
 import io.confluent.ksql.rest.entity.StreamedRow;
@@ -69,7 +69,7 @@ public class PullQueryStreamWriterTest {
   @Mock
   private PullQueryResult pullQueryResult;
   @Mock
-  private PullQueryQueue pullQueryQueue;
+  private PullQueryWriteStream pullQueryQueue;
   @Mock
   private Clock clock;
   @Mock
@@ -137,7 +137,7 @@ public class PullQueryStreamWriterTest {
 
     // Then:
     assertThat(writer.isClosed(), is (true));
-    verify(pullQueryQueue).putSentinelRow(END_ROW);
+    verify(pullQueryQueue).end();
     final List<String> lines = getOutput(out);
     assertThat(lines, contains(
         containsString("header")
@@ -156,7 +156,7 @@ public class PullQueryStreamWriterTest {
 
     // Then:
     assertThat(writer.isClosed(), is (true));
-    verify(pullQueryQueue).putSentinelRow(END_ROW);
+    verify(pullQueryQueue).end();
     final List<String> lines = getOutput(out);
     assertThat(lines, contains(
         containsString("header"),
@@ -178,7 +178,7 @@ public class PullQueryStreamWriterTest {
 
     // Then:
     assertThat(writer.isClosed(), is (true));
-    verify(pullQueryQueue).putSentinelRow(END_ROW);
+    verify(pullQueryQueue).end();
     final List<String> lines = getOutput(out);
     assertThat(lines, hasItems(
         containsString("header"),
@@ -203,7 +203,7 @@ public class PullQueryStreamWriterTest {
 
     // Then:
     assertThat(writer.isClosed(), is (true));
-    verify(pullQueryQueue).putSentinelRow(END_ROW);
+    verify(pullQueryQueue).end();
     final List<String> lines = getOutput(out);
     assertThat(lines, contains(
         containsString("header"),
@@ -227,7 +227,7 @@ public class PullQueryStreamWriterTest {
 
     // Then:
     assertThat(writer.isClosed(), is (true));
-    verify(pullQueryQueue).putSentinelRow(END_ROW);
+    verify(pullQueryQueue).end();
     final List<String> lines = getOutput(out);
     assertThat(lines, contains(
         containsString("header"),
@@ -254,7 +254,7 @@ public class PullQueryStreamWriterTest {
 
     // Then:
     assertThat(writer.isClosed(), is (true));
-    verify(pullQueryQueue).putSentinelRow(END_ROW);
+    verify(pullQueryQueue).end();
     final List<String> lines = getOutput(out);
     assertThat(lines, contains(
         containsString("header"),

@@ -1,0 +1,128 @@
+{
+  "version" : "8.0.0",
+  "timestamp" : 1737614969258,
+  "path" : "query-validation-tests/len.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`ID` BIGINT KEY, `S` STRING, `B` BYTES",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ID` BIGINT KEY, `S` INTEGER, `B` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "length of a string - JSON",
+    "inputs" : [ {
+      "topic" : "input_topic",
+      "key" : 1,
+      "value" : {
+        "S" : "ABC",
+        "B" : "YWJj"
+      }
+    }, {
+      "topic" : "input_topic",
+      "key" : 2,
+      "value" : {
+        "S" : "",
+        "B" : ""
+      }
+    }, {
+      "topic" : "input_topic",
+      "key" : 3,
+      "value" : {
+        "S" : null,
+        "B" : null
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : 1,
+      "value" : {
+        "S" : 3,
+        "B" : 3
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : 2,
+      "value" : {
+        "S" : 0,
+        "B" : 0
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : 3,
+      "value" : {
+        "S" : null,
+        "B" : null
+      }
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "input_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM INPUT (ID BIGINT KEY, S STRING, B BYTES) WITH (kafka_topic='input_topic',value_format='JSON');", "CREATE STREAM OUTPUT AS SELECT ID, LEN(S) AS S, LEN(B) AS B FROM INPUT;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`ID` BIGINT KEY, `S` STRING, `B` BYTES",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`ID` BIGINT KEY, `S` INTEGER, `B` INTEGER",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "input_topic",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

@@ -1,0 +1,170 @@
+{
+  "version" : "8.0.0",
+  "timestamp" : 1737614475176,
+  "path" : "query-validation-tests/array.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`ID` STRING KEY, `F0` INTEGER, `F1` INTEGER, `F2` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ID` STRING KEY, `KSQL_COL_0` ARRAY<INTEGER>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "GENERATE_SERIES with step",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : "1",
+      "value" : {
+        "F0" : 0,
+        "F1" : 3,
+        "F2" : 1
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : "1",
+      "value" : {
+        "F0" : -2,
+        "F1" : 1,
+        "F2" : 2
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : "1",
+      "value" : {
+        "F0" : 0,
+        "F1" : 9,
+        "F2" : 3
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : "1",
+      "value" : {
+        "F0" : 3,
+        "F1" : 0,
+        "F2" : -1
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : "1",
+      "value" : {
+        "F0" : 1,
+        "F1" : -2,
+        "F2" : -2
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : "1",
+      "value" : {
+        "F0" : 9,
+        "F1" : 0,
+        "F2" : -3
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : "1",
+      "value" : {
+        "KSQL_COL_0" : [ 0, 1, 2, 3 ]
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "1",
+      "value" : {
+        "KSQL_COL_0" : [ -2, 0 ]
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "1",
+      "value" : {
+        "KSQL_COL_0" : [ 0, 3, 6, 9 ]
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "1",
+      "value" : {
+        "KSQL_COL_0" : [ 3, 2, 1, 0 ]
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "1",
+      "value" : {
+        "KSQL_COL_0" : [ 1, -1 ]
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "1",
+      "value" : {
+        "KSQL_COL_0" : [ 9, 6, 3, 0 ]
+      }
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM TEST (ID STRING KEY, F0 INT, F1 INT, F2 INT) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE STREAM OUTPUT AS SELECT ID, GENERATE_SERIES(F0, F1, F2) FROM TEST;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`ID` STRING KEY, `KSQL_COL_0` ARRAY<INTEGER>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`ID` STRING KEY, `F0` INTEGER, `F1` INTEGER, `F2` INTEGER",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

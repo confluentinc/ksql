@@ -1,0 +1,146 @@
+{
+  "version" : "8.0.0",
+  "timestamp" : 1737614506593,
+  "path" : "query-validation-tests/concat.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`ID` BIGINT KEY, `S1` BYTES, `C1` BYTES, `C2` BYTES, `C3` BYTES",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ID` BIGINT KEY, `COMBINED` BYTES",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "concat_ws - bytes - JSON",
+    "inputs" : [ {
+      "topic" : "input_topic",
+      "key" : 1,
+      "value" : {
+        "S1" : "YQ==",
+        "C1" : "Yg==",
+        "C2" : "eWVz",
+        "C3" : "bm8="
+      }
+    }, {
+      "topic" : "input_topic",
+      "key" : 2,
+      "value" : {
+        "S1" : "YQ==",
+        "C1" : "Yg==",
+        "C2" : "",
+        "C3" : "bm8="
+      }
+    }, {
+      "topic" : "input_topic",
+      "key" : 3,
+      "value" : {
+        "S1" : "YQ==",
+        "C1" : null,
+        "C2" : null,
+        "C3" : null
+      }
+    }, {
+      "topic" : "input_topic",
+      "key" : 4,
+      "value" : {
+        "S1" : null,
+        "C1" : "Yg==",
+        "C2" : "eWVz",
+        "C3" : "bm8="
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : 1,
+      "value" : {
+        "COMBINED" : "YmF5ZXNhbm8="
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : 2,
+      "value" : {
+        "COMBINED" : "YmFhbm8="
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : 3,
+      "value" : {
+        "COMBINED" : ""
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : 4,
+      "value" : {
+        "COMBINED" : null
+      }
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "input_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM INPUT (ID BIGINT KEY, S1 BYTES, C1 BYTES, C2 BYTES, C3 BYTES) WITH (kafka_topic='input_topic',value_format='JSON');", "CREATE STREAM OUTPUT AS SELECT ID, CONCAT_WS(S1, C1, C2, NULL, C3) AS COMBINED FROM INPUT;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`ID` BIGINT KEY, `S1` BYTES, `C1` BYTES, `C2` BYTES, `C3` BYTES",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`ID` BIGINT KEY, `COMBINED` BYTES",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "input_topic",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

@@ -1,0 +1,106 @@
+{
+  "version" : "8.0.0",
+  "timestamp" : 1737616389893,
+  "path" : "query-validation-tests/project-filter.json",
+  "schemas" : {
+    "CSAS_S3_0.KsqlTopic.Source" : {
+      "schema" : "`K` STRING KEY, `ID` BIGINT, `THING` MAP<STRING, STRING>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_S3_0.S3" : {
+      "schema" : "`K` STRING KEY, `ID` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "Null row filter",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : "0",
+      "value" : {
+        "id" : 1,
+        "thing" : {
+          "other" : 11,
+          "status" : false
+        }
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : "0",
+      "value" : null
+    } ],
+    "outputs" : [ {
+      "topic" : "S3",
+      "key" : "0",
+      "value" : {
+        "ID" : 1
+      }
+    } ],
+    "topics" : [ {
+      "name" : "S3",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM TEST (K STRING KEY, ID bigint, THING MAP<VARCHAR, VARCHAR>) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE STREAM S3 as SELECT K, ID FROM TEST WHERE THING['status']='false';" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "S3",
+        "type" : "STREAM",
+        "schema" : "`K` STRING KEY, `ID` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`K` STRING KEY, `ID` BIGINT, `THING` MAP<STRING, STRING>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "S3",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

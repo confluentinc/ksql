@@ -1,0 +1,131 @@
+{
+  "version" : "8.0.0",
+  "timestamp" : 1737614515712,
+  "path" : "query-validation-tests/elements.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`ID` INTEGER KEY, `C1` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON_SR"
+      }
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ID` INTEGER KEY, `C1` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON_SR"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "validate without value elements OK - custom key name",
+    "inputs" : [ {
+      "topic" : "input",
+      "key" : 42,
+      "value" : {
+        "c1" : 4
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : 42,
+      "value" : {
+        "C1" : 4
+      }
+    } ],
+    "topics" : [ {
+      "name" : "input",
+      "valueSchema" : {
+        "type" : "object",
+        "properties" : {
+          "c1" : {
+            "type" : "integer"
+          }
+        }
+      },
+      "valueFormat" : "JSON",
+      "replicas" : 1,
+      "numPartitions" : 1
+    }, {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 1
+    } ],
+    "statements" : [ "CREATE STREAM INPUT (id int key) WITH (kafka_topic='input', value_format='JSON_SR');", "CREATE STREAM OUTPUT AS SELECT * FROM input;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`ID` INTEGER KEY, `C1` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON_SR",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`ID` INTEGER KEY, `C1` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON_SR",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "input",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON_SR"
+          },
+          "partitions" : 1,
+          "valueSchema" : {
+            "type" : "object",
+            "properties" : {
+              "c1" : {
+                "type" : "integer",
+                "connect.index" : 0,
+                "connect.type" : "int64"
+              }
+            }
+          }
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON_SR"
+          },
+          "partitions" : 4,
+          "valueSchema" : {
+            "type" : "object",
+            "properties" : {
+              "C1" : {
+                "connect.index" : 0,
+                "oneOf" : [ {
+                  "type" : "null"
+                }, {
+                  "type" : "integer",
+                  "connect.type" : "int64"
+                } ]
+              }
+            }
+          }
+        } ]
+      }
+    }
+  }
+}

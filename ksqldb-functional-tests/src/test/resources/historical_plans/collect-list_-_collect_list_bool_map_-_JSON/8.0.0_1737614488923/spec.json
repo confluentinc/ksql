@@ -1,0 +1,169 @@
+{
+  "version" : "8.0.0",
+  "timestamp" : 1737614488923,
+  "path" : "query-validation-tests/collect-list.json",
+  "schemas" : {
+    "CTAS_S2_0.Aggregate.Aggregate.Materialize" : {
+      "schema" : "`ID` BIGINT KEY, `ID` BIGINT, `VALUE` MAP<STRING, BOOLEAN>, `KSQL_AGG_VARIABLE_0` ARRAY<BOOLEAN>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CTAS_S2_0.Aggregate.Project" : {
+      "schema" : "`ID` BIGINT KEY, `COLLECTED` ARRAY<BOOLEAN>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CTAS_S2_0.KsqlTopic.Source" : {
+      "schema" : "`ID` BIGINT KEY, `NAME` STRING, `VALUE` MAP<STRING, BOOLEAN>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CTAS_S2_0.S2" : {
+      "schema" : "`ID` BIGINT KEY, `COLLECTED` ARRAY<BOOLEAN>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CTAS_S2_0.Aggregate.GroupBy" : {
+      "schema" : "`ID` BIGINT KEY, `ID` BIGINT, `VALUE` MAP<STRING, BOOLEAN>, `KSQL_INTERNAL_COL_2` BOOLEAN",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "collect_list bool map - JSON",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : 0,
+      "value" : {
+        "name" : "zero",
+        "value" : {
+          "key1" : true,
+          "key2" : false
+        }
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : 0,
+      "value" : {
+        "name" : "zero",
+        "value" : {
+          "key1" : false,
+          "key2" : true
+        }
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : 0,
+      "value" : {
+        "name" : "zero",
+        "value" : {
+          "key1" : true,
+          "key2" : true
+        }
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "S2",
+      "key" : 0,
+      "value" : {
+        "COLLECTED" : [ true ]
+      }
+    }, {
+      "topic" : "S2",
+      "key" : 0,
+      "value" : {
+        "COLLECTED" : [ true, false ]
+      }
+    }, {
+      "topic" : "S2",
+      "key" : 0,
+      "value" : {
+        "COLLECTED" : [ true, false, true ]
+      }
+    } ],
+    "topics" : [ {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "S2",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM TEST (ID BIGINT KEY, NAME varchar, VALUE map<varchar, boolean>) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE TABLE S2 as SELECT ID, collect_list(value['key1']) AS collected FROM test group by id;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "S2",
+        "type" : "TABLE",
+        "schema" : "`ID` BIGINT KEY, `COLLECTED` ARRAY<BOOLEAN>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`ID` BIGINT KEY, `NAME` STRING, `VALUE` MAP<STRING, BOOLEAN>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_S2_0-Aggregate-Aggregate-Materialize-changelog",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          }
+        }, {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "S2",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

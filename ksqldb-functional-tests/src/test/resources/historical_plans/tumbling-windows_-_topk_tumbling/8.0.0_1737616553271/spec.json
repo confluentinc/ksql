@@ -1,0 +1,218 @@
+{
+  "version" : "8.0.0",
+  "timestamp" : 1737616553271,
+  "path" : "query-validation-tests/tumbling-windows.json",
+  "schemas" : {
+    "CTAS_S2_0.Aggregate.Aggregate.Materialize" : {
+      "schema" : "`ID` BIGINT KEY, `ID` BIGINT, `VALUE` DOUBLE, `KSQL_AGG_VARIABLE_0` ARRAY<DOUBLE>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CTAS_S2_0.Aggregate.Project" : {
+      "schema" : "`ID` BIGINT KEY, `TOPK` ARRAY<DOUBLE>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CTAS_S2_0.KsqlTopic.Source" : {
+      "schema" : "`ID` BIGINT KEY, `NAME` STRING, `VALUE` DOUBLE",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CTAS_S2_0.S2" : {
+      "schema" : "`ID` BIGINT KEY, `TOPK` ARRAY<DOUBLE>",
+      "keyFormat" : {
+        "format" : "KAFKA",
+        "windowInfo" : {
+          "type" : "TUMBLING",
+          "size" : 30.000000000,
+          "emitStrategy" : "CHANGES"
+        }
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CTAS_S2_0.Aggregate.GroupBy" : {
+      "schema" : "`ID` BIGINT KEY, `ID` BIGINT, `VALUE` DOUBLE, `KSQL_INTERNAL_COL_2` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "topk tumbling",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : 0,
+      "value" : {
+        "name" : "zero",
+        "value" : 0
+      },
+      "timestamp" : 0
+    }, {
+      "topic" : "test_topic",
+      "key" : 0,
+      "value" : {
+        "name" : "zero",
+        "value" : 100
+      },
+      "timestamp" : 0
+    }, {
+      "topic" : "test_topic",
+      "key" : 0,
+      "value" : {
+        "name" : "zero",
+        "value" : 10
+      },
+      "timestamp" : 0
+    }, {
+      "topic" : "test_topic",
+      "key" : 0,
+      "value" : {
+        "name" : "zero",
+        "value" : 50
+      },
+      "timestamp" : 30000
+    } ],
+    "outputs" : [ {
+      "topic" : "S2",
+      "key" : 0,
+      "value" : {
+        "TOPK" : [ 0.0 ]
+      },
+      "timestamp" : 0,
+      "window" : {
+        "start" : 0,
+        "end" : 30000,
+        "type" : "TIME"
+      }
+    }, {
+      "topic" : "S2",
+      "key" : 0,
+      "value" : {
+        "TOPK" : [ 100.0, 0.0 ]
+      },
+      "timestamp" : 0,
+      "window" : {
+        "start" : 0,
+        "end" : 30000,
+        "type" : "TIME"
+      }
+    }, {
+      "topic" : "S2",
+      "key" : 0,
+      "value" : {
+        "TOPK" : [ 100.0, 10.0 ]
+      },
+      "timestamp" : 0,
+      "window" : {
+        "start" : 0,
+        "end" : 30000,
+        "type" : "TIME"
+      }
+    }, {
+      "topic" : "S2",
+      "key" : 0,
+      "value" : {
+        "TOPK" : [ 50.0 ]
+      },
+      "timestamp" : 30000,
+      "window" : {
+        "start" : 30000,
+        "end" : 60000,
+        "type" : "TIME"
+      }
+    } ],
+    "topics" : [ {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "S2",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM TEST (ID BIGINT KEY, NAME varchar, VALUE double) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE TABLE S2 as SELECT ID, topk(value, 2) as topk FROM test WINDOW TUMBLING (SIZE 30 SECONDS) group by id;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "S2",
+        "type" : "TABLE",
+        "schema" : "`ID` BIGINT KEY, `TOPK` ARRAY<DOUBLE>",
+        "keyFormat" : {
+          "format" : "KAFKA",
+          "windowType" : "TUMBLING",
+          "windowSize" : 30000
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`ID` BIGINT KEY, `NAME` STRING, `VALUE` DOUBLE",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_S2_0-Aggregate-Aggregate-Materialize-changelog",
+          "keyFormat" : {
+            "format" : "KAFKA",
+            "windowInfo" : {
+              "type" : "TUMBLING",
+              "size" : 30.000000000,
+              "emitStrategy" : "CHANGES"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          }
+        }, {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "S2",
+          "keyFormat" : {
+            "format" : "KAFKA",
+            "windowInfo" : {
+              "type" : "TUMBLING",
+              "size" : 30.000000000,
+              "emitStrategy" : "CHANGES"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

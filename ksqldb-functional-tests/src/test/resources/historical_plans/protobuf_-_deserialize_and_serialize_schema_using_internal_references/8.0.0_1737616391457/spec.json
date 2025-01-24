@@ -1,0 +1,159 @@
+{
+  "version" : "8.0.0",
+  "timestamp" : 1737616391457,
+  "path" : "query-validation-tests/protobuf.json",
+  "schemas" : {
+    "CSAS_OUTPUT_1.OUTPUT" : {
+      "schema" : "`EVENT` STRUCT<`TIMESTAMP` BIGINT>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "PROTOBUF",
+        "properties" : {
+          "unwrapPrimitives" : "true"
+        }
+      }
+    },
+    "CSAS_OUTPUT_1.KsqlTopic.Source" : {
+      "schema" : "`EVENT` STRUCT<`TIMESTAMP` BIGINT>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "PROTOBUF",
+        "properties" : {
+          "unwrapPrimitives" : "true"
+        }
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "deserialize and serialize schema using internal references",
+    "inputs" : [ {
+      "topic" : "input",
+      "key" : null,
+      "value" : {
+        "event" : {
+          "timestamp" : 1
+        }
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "INTERMEDIATE",
+      "key" : null,
+      "value" : {
+        "event" : {
+          "timestamp" : 1
+        }
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : null,
+      "value" : {
+        "event" : {
+          "timestamp" : 1
+        }
+      }
+    } ],
+    "topics" : [ {
+      "name" : "input",
+      "valueSchema" : "syntax = \"proto3\";\n\nimport \"event.proto\";\n\nmessage Logistics {\n  Event event = 1;\n}\n",
+      "valueSchemaReferences" : [ {
+        "name" : "event.proto",
+        "format" : "PROTOBUF",
+        "schema" : "syntax = \"proto3\";\n\nmessage Event {\n  int64 timestamp = 1;\n}\n"
+      } ],
+      "valueFormat" : "PROTOBUF",
+      "replicas" : 1,
+      "numPartitions" : 1
+    }, {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "INTERMEDIATE",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM INPUT WITH (kafka_topic='input', value_format='PROTOBUF');", "CREATE STREAM INTERMEDIATE as SELECT * from INPUT;", "CREATE STREAM OUTPUT as SELECT * from INTERMEDIATE;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`EVENT` STRUCT<`TIMESTAMP` BIGINT>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "PROTOBUF",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "INTERMEDIATE",
+        "type" : "STREAM",
+        "schema" : "`EVENT` STRUCT<`TIMESTAMP` BIGINT>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "PROTOBUF",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`EVENT` STRUCT<`TIMESTAMP` BIGINT>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "PROTOBUF",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "input",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "PROTOBUF",
+            "properties" : {
+              "unwrapPrimitives" : "true"
+            }
+          },
+          "partitions" : 1,
+          "valueSchema" : "syntax = \"proto3\";\n\nmessage Logistics {\n  Event event = 1;\n\n  message Event {\n    int64 timestamp = 1;\n  }\n}\n"
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "PROTOBUF",
+            "properties" : {
+              "unwrapPrimitives" : "true"
+            }
+          },
+          "partitions" : 4,
+          "valueSchema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  ConnectDefault2 EVENT = 1;\n\n  message ConnectDefault2 {\n    int64 TIMESTAMP = 1;\n  }\n}\n"
+        }, {
+          "name" : "INTERMEDIATE",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "PROTOBUF",
+            "properties" : {
+              "unwrapPrimitives" : "true"
+            }
+          },
+          "partitions" : 4,
+          "valueSchema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  ConnectDefault2 EVENT = 1;\n\n  message ConnectDefault2 {\n    int64 TIMESTAMP = 1;\n  }\n}\n"
+        } ]
+      }
+    }
+  }
+}

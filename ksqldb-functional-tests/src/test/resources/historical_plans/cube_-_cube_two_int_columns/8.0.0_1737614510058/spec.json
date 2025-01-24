@@ -1,0 +1,136 @@
+{
+  "version" : "8.0.0",
+  "timestamp" : 1737614510058,
+  "path" : "query-validation-tests/cube.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`ID` STRING KEY, `COL1` INTEGER, `COL2` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ID` STRING KEY, `VAL` ARRAY<INTEGER>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "cube two int columns",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : "0",
+      "value" : {
+        "col1" : 1,
+        "col2" : 2
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : "1",
+      "value" : {
+        "col1" : 1,
+        "col2" : null
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : "0",
+      "value" : {
+        "VAL" : [ null, null ]
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "0",
+      "value" : {
+        "VAL" : [ null, 2 ]
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "0",
+      "value" : {
+        "VAL" : [ 1, null ]
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "0",
+      "value" : {
+        "VAL" : [ 1, 2 ]
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "1",
+      "value" : {
+        "VAL" : [ null, null ]
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "1",
+      "value" : {
+        "VAL" : [ 1, null ]
+      }
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM TEST (ID STRING KEY, col1 INT, col2 INT) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE STREAM OUTPUT AS SELECT ID, cube_explode(array[col1, col2]) VAL FROM TEST;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`ID` STRING KEY, `VAL` ARRAY<INTEGER>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`ID` STRING KEY, `COL1` INTEGER, `COL2` INTEGER",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

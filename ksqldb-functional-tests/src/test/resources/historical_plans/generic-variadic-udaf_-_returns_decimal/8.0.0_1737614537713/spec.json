@@ -1,0 +1,297 @@
+{
+  "version" : "8.0.0",
+  "timestamp" : 1737614537713,
+  "path" : "query-validation-tests/generic-variadic-udaf.json",
+  "schemas" : {
+    "CTAS_OUTPUT_0.Aggregate.GroupBy" : {
+      "schema" : "`ID` BIGINT KEY, `ID` BIGINT, `FIRST` DECIMAL(5, 1), `SECOND` INTEGER, `THIRD` DOUBLE, `FOURTH` DOUBLE, `FIFTH` DOUBLE",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CTAS_OUTPUT_0.Aggregate.Project" : {
+      "schema" : "`ID` BIGINT KEY, `RESULT` ARRAY<DECIMAL(5, 1)>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CTAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`ID` BIGINT KEY, `FIRST` DECIMAL(5, 1), `SECOND` INTEGER, `THIRD` DOUBLE, `FOURTH` DOUBLE, `FIFTH` DOUBLE",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CTAS_OUTPUT_0.Aggregate.Aggregate.Materialize" : {
+      "schema" : "`ID` BIGINT KEY, `ID` BIGINT, `FIRST` DECIMAL(5, 1), `SECOND` INTEGER, `THIRD` DOUBLE, `FOURTH` DOUBLE, `FIFTH` DOUBLE, `KSQL_AGG_VARIABLE_0` ARRAY<DECIMAL(5, 1)>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CTAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ID` BIGINT KEY, `RESULT` ARRAY<DECIMAL(5, 1)>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "returns decimal",
+    "inputs" : [ {
+      "topic" : "input_topic",
+      "key" : 0,
+      "value" : {
+        "FIRST" : 6.1,
+        "SECOND" : 5,
+        "THIRD" : 100.4,
+        "FOURTH" : 3.2,
+        "FIFTH" : 7.0
+      }
+    }, {
+      "topic" : "input_topic",
+      "key" : 100,
+      "value" : {
+        "FIRST" : 2.3,
+        "SECOND" : 1,
+        "THIRD" : 1.2,
+        "FOURTH" : 1.44,
+        "FIFTH" : 8.9
+      }
+    }, {
+      "topic" : "input_topic",
+      "key" : 0,
+      "value" : {
+        "FIRST" : null,
+        "SECOND" : 5,
+        "THIRD" : 1.6,
+        "FOURTH" : 12.34,
+        "FIFTH" : 1.1
+      }
+    }, {
+      "topic" : "input_topic",
+      "key" : 100,
+      "value" : {
+        "FIRST" : 5.7,
+        "SECOND" : 3,
+        "THIRD" : 9.1,
+        "FOURTH" : 0.9,
+        "FIFTH" : 2.5
+      }
+    }, {
+      "topic" : "input_topic",
+      "key" : 0,
+      "value" : {
+        "FIRST" : 5.1,
+        "SECOND" : null,
+        "THIRD" : 14.1,
+        "FOURTH" : 1.2,
+        "FIFTH" : 6.7
+      }
+    }, {
+      "topic" : "input_topic",
+      "key" : 100,
+      "value" : {
+        "FIRST" : 3.9,
+        "SECOND" : 7,
+        "THIRD" : 7.6,
+        "FOURTH" : null,
+        "FIFTH" : 8.1
+      }
+    }, {
+      "topic" : "input_topic",
+      "key" : 100,
+      "value" : {
+        "FIRST" : 2.2,
+        "SECOND" : 2,
+        "THIRD" : 9.0,
+        "FOURTH" : 9.8,
+        "FIFTH" : null
+      }
+    }, {
+      "topic" : "input_topic",
+      "key" : 0,
+      "value" : {
+        "FIRST" : 21.8,
+        "SECOND" : 10,
+        "THIRD" : null,
+        "FOURTH" : 5.0,
+        "FIFTH" : 2.3
+      }
+    }, {
+      "topic" : "input_topic",
+      "key" : 100,
+      "value" : {
+        "FIRST" : null,
+        "SECOND" : 20,
+        "THIRD" : 3.8,
+        "FOURTH" : null,
+        "FIFTH" : 3.3
+      }
+    }, {
+      "topic" : "input_topic",
+      "key" : 100,
+      "value" : {
+        "FIRST" : 3.2,
+        "SECOND" : 2,
+        "THIRD" : 9.6,
+        "FOURTH" : 4.3,
+        "FIFTH" : 4.7
+      }
+    }, {
+      "topic" : "input_topic",
+      "key" : 100,
+      "value" : {
+        "FIRST" : 6.3,
+        "SECOND" : 1,
+        "THIRD" : 10.0,
+        "FOURTH" : 4.9,
+        "FIFTH" : 10.4
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : 0,
+      "value" : {
+        "RESULT" : [ 6.1 ]
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : 100,
+      "value" : {
+        "RESULT" : [ 2.3 ]
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : 0,
+      "value" : {
+        "RESULT" : [ 6.1 ]
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : 100,
+      "value" : {
+        "RESULT" : [ 2.3, 5.7 ]
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : 0,
+      "value" : {
+        "RESULT" : [ 6.1 ]
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : 100,
+      "value" : {
+        "RESULT" : [ 2.3, 5.7 ]
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : 100,
+      "value" : {
+        "RESULT" : [ 2.3, 5.7 ]
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : 0,
+      "value" : {
+        "RESULT" : [ 6.1 ]
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : 100,
+      "value" : {
+        "RESULT" : [ 2.3, 5.7 ]
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : 100,
+      "value" : {
+        "RESULT" : [ 2.3, 5.7, 3.2 ]
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : 100,
+      "value" : {
+        "RESULT" : [ 2.3, 5.7, 3.2, 6.3 ]
+      }
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "input_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM INPUT (ID BIGINT KEY, FIRST decimal(5, 1), SECOND integer, THIRD double, FOURTH double, FIFTH double) WITH (kafka_topic='input_topic', value_format='JSON');", "CREATE TABLE OUTPUT as SELECT id, GENERIC_VAR_ARG(FIRST, SECOND, THIRD, FOURTH, FIFTH) as RESULT FROM INPUT group by id;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`ID` BIGINT KEY, `FIRST` DECIMAL(5, 1), `SECOND` INTEGER, `THIRD` DOUBLE, `FOURTH` DOUBLE, `FIFTH` DOUBLE",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "OUTPUT",
+        "type" : "TABLE",
+        "schema" : "`ID` BIGINT KEY, `RESULT` ARRAY<DECIMAL(5, 1)>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "input_topic",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          }
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

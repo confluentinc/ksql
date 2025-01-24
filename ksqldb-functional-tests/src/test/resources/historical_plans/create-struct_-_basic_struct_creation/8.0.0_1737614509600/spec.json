@@ -1,0 +1,103 @@
+{
+  "version" : "8.0.0",
+  "timestamp" : 1737614509600,
+  "path" : "query-validation-tests/create-struct.json",
+  "schemas" : {
+    "CSAS_BIG_STRUCT_0.KsqlTopic.Source" : {
+      "schema" : "`ID` STRING KEY, `COL1` STRING, `COL2` ARRAY<STRING>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_BIG_STRUCT_0.BIG_STRUCT" : {
+      "schema" : "`ID` STRING KEY, `S` STRUCT<`F1` STRING, `F2` ARRAY<STRING>, `F3` STRING>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "basic struct creation",
+    "inputs" : [ {
+      "topic" : "test",
+      "key" : null,
+      "value" : {
+        "col1" : "foo",
+        "col2" : [ "bar" ]
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "BIG_STRUCT",
+      "key" : null,
+      "value" : {
+        "S" : {
+          "F1" : "foo",
+          "F2" : [ "bar" ],
+          "F3" : "oo"
+        }
+      }
+    } ],
+    "topics" : [ {
+      "name" : "test",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "BIG_STRUCT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM INPUT (ID STRING KEY, col1 VARCHAR, col2 ARRAY<VARCHAR>) WITH (kafka_topic='test', value_format='JSON');", "CREATE STREAM BIG_STRUCT AS SELECT ID, STRUCT(F1 := COL1, F2 := COL2, F3 := SUBSTRING(col1, 2)) AS s FROM INPUT;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "BIG_STRUCT",
+        "type" : "STREAM",
+        "schema" : "`ID` STRING KEY, `S` STRUCT<`F1` STRING, `F2` ARRAY<STRING>, `F3` STRING>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`ID` STRING KEY, `COL1` STRING, `COL2` ARRAY<STRING>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "test",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "BIG_STRUCT",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

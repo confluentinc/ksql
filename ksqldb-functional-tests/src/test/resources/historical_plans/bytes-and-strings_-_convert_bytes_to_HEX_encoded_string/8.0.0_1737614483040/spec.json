@@ -1,0 +1,110 @@
+{
+  "version" : "8.0.0",
+  "timestamp" : 1737614483040,
+  "path" : "query-validation-tests/bytes-and-strings.json",
+  "schemas" : {
+    "CSAS_TS_0.TS" : {
+      "schema" : "`HEX` STRING, `B1` BYTES, `S1` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
+    },
+    "CSAS_TS_0.KsqlTopic.Source" : {
+      "schema" : "`S` STRING, `B` BYTES",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "convert bytes to HEX encoded string",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : null,
+      "value" : "21,IQ=="
+    }, {
+      "topic" : "test_topic",
+      "key" : null,
+      "value" : "23,Iw=="
+    }, {
+      "topic" : "test_topic",
+      "key" : null,
+      "value" : "1aB2,GrI="
+    } ],
+    "outputs" : [ {
+      "topic" : "TS",
+      "key" : null,
+      "value" : "21,IQ==,21"
+    }, {
+      "topic" : "TS",
+      "key" : null,
+      "value" : "23,Iw==,23"
+    }, {
+      "topic" : "TS",
+      "key" : null,
+      "value" : "1AB2,GrI=,1AB2"
+    } ],
+    "topics" : [ {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "TS",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM TEST (s STRING, b BYTES) WITH (kafka_topic='test_topic', value_format='DELIMITED');", "CREATE STREAM TS AS select FROM_BYTES(b, 'hex') AS hex, TO_BYTES(FROM_BYTES(b, 'hex'), 'hex') AS b1, FROM_BYTES(TO_BYTES(s, 'hex'), 'hex') AS s1 from test;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`S` STRING, `B` BYTES",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "DELIMITED",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "TS",
+        "type" : "STREAM",
+        "schema" : "`HEX` STRING, `B1` BYTES, `S1` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "DELIMITED",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "DELIMITED"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "TS",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "DELIMITED"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

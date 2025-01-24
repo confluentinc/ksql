@@ -1,0 +1,198 @@
+{
+  "version" : "8.0.0",
+  "timestamp" : 1737614517752,
+  "path" : "query-validation-tests/filter.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`ID` BIGINT KEY, `VALUE` ARRAY<DECIMAL(4, 2)>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "AVRO"
+      }
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ID` BIGINT KEY, `LAMBDA` ARRAY<DECIMAL(4, 2)>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "AVRO"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "apply lambda filter with udf to array",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : 0,
+      "value" : {
+        "VALUE" : [ 9.22, 9.56, 10.63, 7.32 ]
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : 1,
+      "value" : {
+        "VALUE" : [ 10.55, null, 10.45 ]
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : 2,
+      "value" : {
+        "VALUE" : null
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : 0,
+      "value" : {
+        "LAMBDA" : [ 9.56, 10.63 ]
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : 1,
+      "value" : {
+        "LAMBDA" : [ 10.55, 10.45 ]
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : 2,
+      "value" : {
+        "LAMBDA" : null
+      }
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "test_topic",
+      "valueSchema" : {
+        "type" : "record",
+        "name" : "KsqlDataSourceSchema",
+        "namespace" : "io.confluent.ksql.avro_schemas",
+        "fields" : [ {
+          "name" : "VALUE",
+          "type" : [ "null", {
+            "type" : "array",
+            "items" : [ "null", {
+              "type" : "bytes",
+              "scale" : 2,
+              "precision" : 4,
+              "connect.version" : 1,
+              "connect.parameters" : {
+                "scale" : "2",
+                "connect.decimal.precision" : "4"
+              },
+              "connect.name" : "org.apache.kafka.connect.data.Decimal",
+              "logicalType" : "decimal"
+            } ]
+          } ],
+          "default" : null
+        } ],
+        "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
+      },
+      "valueFormat" : "AVRO",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM TEST (ID BIGINT KEY, VALUE ARRAY<DECIMAL(4,2)>) WITH (kafka_topic='test_topic',value_format='AVRO');", "CREATE STREAM OUTPUT as SELECT ID, filter(VALUE, x => round(x) >= 10) AS LAMBDA FROM TEST;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`ID` BIGINT KEY, `LAMBDA` ARRAY<DECIMAL(4, 2)>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "AVRO",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`ID` BIGINT KEY, `VALUE` ARRAY<DECIMAL(4, 2)>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "AVRO",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "AVRO"
+          },
+          "partitions" : 4,
+          "valueSchema" : {
+            "type" : "record",
+            "name" : "KsqlDataSourceSchema",
+            "namespace" : "io.confluent.ksql.avro_schemas",
+            "fields" : [ {
+              "name" : "VALUE",
+              "type" : [ "null", {
+                "type" : "array",
+                "items" : [ "null", {
+                  "type" : "bytes",
+                  "scale" : 2,
+                  "precision" : 4,
+                  "connect.version" : 1,
+                  "connect.parameters" : {
+                    "scale" : "2",
+                    "connect.decimal.precision" : "4"
+                  },
+                  "connect.name" : "org.apache.kafka.connect.data.Decimal",
+                  "logicalType" : "decimal"
+                } ]
+              } ],
+              "default" : null
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
+          }
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "AVRO"
+          },
+          "partitions" : 4,
+          "valueSchema" : {
+            "type" : "record",
+            "name" : "KsqlDataSourceSchema",
+            "namespace" : "io.confluent.ksql.avro_schemas",
+            "fields" : [ {
+              "name" : "LAMBDA",
+              "type" : [ "null", {
+                "type" : "array",
+                "items" : [ "null", {
+                  "type" : "bytes",
+                  "scale" : 2,
+                  "precision" : 4,
+                  "connect.version" : 1,
+                  "connect.parameters" : {
+                    "scale" : "2",
+                    "connect.decimal.precision" : "4"
+                  },
+                  "connect.name" : "org.apache.kafka.connect.data.Decimal",
+                  "logicalType" : "decimal"
+                } ]
+              } ],
+              "default" : null
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
+          }
+        } ]
+      }
+    }
+  }
+}

@@ -1,0 +1,118 @@
+{
+  "version" : "8.0.0",
+  "timestamp" : 1737616404042,
+  "path" : "query-validation-tests/table-functions.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`K` STRING KEY, `SHOULDTHROW` BOOLEAN",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`K` STRING KEY, `SHOULDTHROW` BOOLEAN, `KSQL_COL_0` BOOLEAN",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "should handle UDTFs that throw",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : "a",
+      "value" : {
+        "shouldThrow" : false
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : "b",
+      "value" : {
+        "shouldThrow" : true
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : "c",
+      "value" : {
+        "shouldThrow" : false
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : "a",
+      "value" : {
+        "SHOULDTHROW" : false,
+        "KSQL_COL_0" : false
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "c",
+      "value" : {
+        "SHOULDTHROW" : false,
+        "KSQL_COL_0" : false
+      }
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM TEST (K STRING KEY, shouldThrow BOOLEAN) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE STREAM OUTPUT AS SELECT K, shouldThrow, throwing_udtf(shouldThrow) FROM TEST;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`K` STRING KEY, `SHOULDTHROW` BOOLEAN, `KSQL_COL_0` BOOLEAN",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`K` STRING KEY, `SHOULDTHROW` BOOLEAN",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

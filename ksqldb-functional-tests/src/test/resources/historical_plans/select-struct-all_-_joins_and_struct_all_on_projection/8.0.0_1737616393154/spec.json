@@ -1,0 +1,191 @@
+{
+  "version" : "8.0.0",
+  "timestamp" : 1737616393154,
+  "path" : "query-validation-tests/select-struct-all.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KafkaTopic_Right.Source" : {
+      "schema" : "`K1` INTEGER KEY, `V1` STRUCT<`A` INTEGER, `B` INTEGER>",
+      "keyFormat" : {
+        "format" : "JSON",
+        "features" : [ "UNWRAP_SINGLES" ]
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_OUTPUT_0.Join.Left" : {
+      "schema" : "`I1_K1` INTEGER KEY, `I1_V1` STRUCT<`A` INTEGER, `B` INTEGER>, `I1_ROWTIME` BIGINT, `I1_ROWPARTITION` INTEGER, `I1_ROWOFFSET` BIGINT, `I1_K1` INTEGER",
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_OUTPUT_0.KafkaTopic_Left.Source" : {
+      "schema" : "`K1` INTEGER KEY, `V1` STRUCT<`A` INTEGER, `B` INTEGER>",
+      "keyFormat" : {
+        "format" : "JSON",
+        "features" : [ "UNWRAP_SINGLES" ]
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`I1_K1` INTEGER KEY, `A` INTEGER, `B` INTEGER, `I2_A` INTEGER, `I2_B` INTEGER",
+      "keyFormat" : {
+        "format" : "JSON",
+        "features" : [ "UNWRAP_SINGLES" ]
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_OUTPUT_0.Join" : {
+      "schema" : "`I1_K1` INTEGER KEY, `I1_V1` STRUCT<`A` INTEGER, `B` INTEGER>, `I1_ROWTIME` BIGINT, `I1_ROWPARTITION` INTEGER, `I1_ROWOFFSET` BIGINT, `I1_K1` INTEGER",
+      "keyFormat" : {
+        "format" : "JSON",
+        "features" : [ "UNWRAP_SINGLES" ]
+      }
+    },
+    "CSAS_OUTPUT_0.Join.Right" : {
+      "schema" : "`I2_K1` INTEGER KEY, `I2_V1` STRUCT<`A` INTEGER, `B` INTEGER>, `I2_ROWTIME` BIGINT, `I2_ROWPARTITION` INTEGER, `I2_ROWOFFSET` BIGINT, `I2_K1` INTEGER",
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "joins and struct all on projection",
+    "inputs" : [ {
+      "topic" : "test_topic_1",
+      "key" : 1,
+      "value" : {
+        "V1" : {
+          "a" : 10,
+          "b" : 11
+        }
+      }
+    }, {
+      "topic" : "test_topic_2",
+      "key" : 1,
+      "value" : {
+        "V1" : {
+          "a" : 20,
+          "b" : 21
+        }
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : 1,
+      "value" : {
+        "A" : 10,
+        "B" : 11,
+        "I2_A" : 20,
+        "I2_B" : 21
+      }
+    } ],
+    "topics" : [ {
+      "name" : "test_topic_2",
+      "replicas" : 1,
+      "keySerdeFeatures" : [ "UNWRAP_SINGLES" ],
+      "numPartitions" : 4
+    }, {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "test_topic_1",
+      "replicas" : 1,
+      "keySerdeFeatures" : [ "UNWRAP_SINGLES" ],
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM INPUT_1 (k1 INT KEY, v1 STRUCT<a INT, b INT>) WITH (kafka_topic='test_topic_1', format='JSON');", "CREATE STREAM INPUT_2 (k1 INT KEY, v1 STRUCT<a INT, b INT>) WITH (kafka_topic='test_topic_2', format='JSON');", "CREATE STREAM OUTPUT AS SELECT I1.k1, I1.v1->*, I2.v1->a AS I2_A, I2.v1->b AS I2_B FROM INPUT_1 I1 JOIN INPUT_2 I2 WITHIN (1 SECOND, 100 SECONDS) ON I1.k1 = I2.k1;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "INPUT_1",
+        "type" : "STREAM",
+        "schema" : "`K1` INTEGER KEY, `V1` STRUCT<`A` INTEGER, `B` INTEGER>",
+        "keyFormat" : {
+          "format" : "JSON"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ "UNWRAP_SINGLES" ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "INPUT_2",
+        "type" : "STREAM",
+        "schema" : "`K1` INTEGER KEY, `V1` STRUCT<`A` INTEGER, `B` INTEGER>",
+        "keyFormat" : {
+          "format" : "JSON"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ "UNWRAP_SINGLES" ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`I1_K1` INTEGER KEY, `A` INTEGER, `B` INTEGER, `I2_A` INTEGER, `I2_B` INTEGER",
+        "keyFormat" : {
+          "format" : "JSON"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ "UNWRAP_SINGLES" ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-KSTREAM-JOINTHIS-0000000008-store-changelog",
+          "keyFormat" : {
+            "format" : "JSON",
+            "features" : [ "UNWRAP_SINGLES" ]
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          }
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-KSTREAM-JOINOTHER-0000000009-store-changelog",
+          "keyFormat" : {
+            "format" : "JSON",
+            "features" : [ "UNWRAP_SINGLES" ]
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          }
+        }, {
+          "name" : "test_topic_1",
+          "keyFormat" : {
+            "format" : "JSON",
+            "features" : [ "UNWRAP_SINGLES" ]
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "format" : "JSON",
+            "features" : [ "UNWRAP_SINGLES" ]
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "test_topic_2",
+          "keyFormat" : {
+            "format" : "JSON",
+            "features" : [ "UNWRAP_SINGLES" ]
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

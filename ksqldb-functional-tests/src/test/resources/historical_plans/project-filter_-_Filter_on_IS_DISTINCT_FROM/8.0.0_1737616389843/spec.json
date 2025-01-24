@@ -1,0 +1,126 @@
+{
+  "version" : "8.0.0",
+  "timestamp" : 1737616389843,
+  "path" : "query-validation-tests/project-filter.json",
+  "schemas" : {
+    "CSAS_S1_0.KsqlTopic.Source" : {
+      "schema" : "`K` STRING KEY, `C1` BIGINT, `C2` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
+    },
+    "CSAS_S1_0.S1" : {
+      "schema" : "`K` STRING KEY, `C1` BIGINT, `C2` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "Filter on IS DISTINCT FROM",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : null,
+      "value" : "0,0"
+    }, {
+      "topic" : "test_topic",
+      "key" : null,
+      "value" : "0,1"
+    }, {
+      "topic" : "test_topic",
+      "key" : null,
+      "value" : "1,0"
+    }, {
+      "topic" : "test_topic",
+      "key" : null,
+      "value" : "0,"
+    }, {
+      "topic" : "test_topic",
+      "key" : null,
+      "value" : ",0"
+    }, {
+      "topic" : "test_topic",
+      "key" : null,
+      "value" : ","
+    } ],
+    "outputs" : [ {
+      "topic" : "S1",
+      "key" : null,
+      "value" : "0,1"
+    }, {
+      "topic" : "S1",
+      "key" : null,
+      "value" : "1,0"
+    }, {
+      "topic" : "S1",
+      "key" : null,
+      "value" : "0,"
+    }, {
+      "topic" : "S1",
+      "key" : null,
+      "value" : ",0"
+    } ],
+    "topics" : [ {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "S1",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM TEST (K STRING KEY, C1 BIGINT, C2 INTEGER) WITH (KAFKA_TOPIC='test_topic', value_format='DELIMITED');", "CREATE STREAM S1 AS SELECT * FROM TEST WHERE C1 IS DISTINCT FROM c2;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "S1",
+        "type" : "STREAM",
+        "schema" : "`K` STRING KEY, `C1` BIGINT, `C2` INTEGER",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "DELIMITED",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`K` STRING KEY, `C1` BIGINT, `C2` INTEGER",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "DELIMITED",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "S1",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "DELIMITED"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "DELIMITED"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

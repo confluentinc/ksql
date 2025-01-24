@@ -1,0 +1,94 @@
+{
+  "version" : "8.0.0",
+  "timestamp" : 1737614483171,
+  "path" : "query-validation-tests/bytes-and-strings.json",
+  "schemas" : {
+    "CSAS_TS_0.TS" : {
+      "schema" : "`A` INTEGER, `B` BIGINT, `C` DOUBLE",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
+    },
+    "CSAS_TS_0.KsqlTopic.Source" : {
+      "schema" : "`A` BYTES, `B` BYTES, `C` BYTES",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "convert bytes to INT, BIGINT, and DOUBLE using BIG ENDIAN",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : null,
+      "value" : "AAAH5Q==,AAAAASoF8gA=,QICm/ZvJ9YI="
+    } ],
+    "outputs" : [ {
+      "topic" : "TS",
+      "key" : null,
+      "value" : "2021,5000000000,532.8738323"
+    } ],
+    "topics" : [ {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "TS",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM TEST (a BYTES, b BYTES, c BYTES) WITH (kafka_topic='test_topic', value_format='DELIMITED');", "CREATE STREAM TS AS select INT_FROM_BYTES(a) as a, BIGINT_FROM_BYTES(b) as b, DOUBLE_FROM_BYTES(c) AS c from test;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`A` BYTES, `B` BYTES, `C` BYTES",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "DELIMITED",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "TS",
+        "type" : "STREAM",
+        "schema" : "`A` INTEGER, `B` BIGINT, `C` DOUBLE",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "DELIMITED",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "DELIMITED"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "TS",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "DELIMITED"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

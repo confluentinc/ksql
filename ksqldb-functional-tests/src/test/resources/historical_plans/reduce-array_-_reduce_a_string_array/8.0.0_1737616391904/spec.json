@@ -1,0 +1,122 @@
+{
+  "version" : "8.0.0",
+  "timestamp" : 1737616391904,
+  "path" : "query-validation-tests/reduce-array.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`ID` STRING KEY, `NUMBERS` ARRAY<STRING>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ID` STRING KEY, `REDUCE` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "reduce a string array",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : "one",
+      "value" : {
+        "numbers" : [ "blah", "blah", "blaaah" ]
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : "two",
+      "value" : {
+        "numbers" : [ "to be or", null ]
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : "three",
+      "value" : {
+        "numbers" : null
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : "one",
+      "value" : {
+        "REDUCE" : "blahblahblaaah"
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "two",
+      "value" : {
+        "REDUCE" : "to be or"
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "three",
+      "value" : {
+        "REDUCE" : ""
+      }
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM test (ID STRING KEY, numbers ARRAY<STRING>) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE STREAM OUTPUT AS SELECT ID, REDUCE(numbers, '', (state, x) => concat(state, x)) AS reduce FROM test;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`ID` STRING KEY, `REDUCE` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`ID` STRING KEY, `NUMBERS` ARRAY<STRING>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

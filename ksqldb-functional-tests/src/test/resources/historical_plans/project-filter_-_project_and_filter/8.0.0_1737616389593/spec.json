@@ -1,0 +1,102 @@
+{
+  "version" : "8.0.0",
+  "timestamp" : 1737616389593,
+  "path" : "query-validation-tests/project-filter.json",
+  "schemas" : {
+    "CSAS_S1_0.KsqlTopic.Source" : {
+      "schema" : "`K` STRING KEY, `ID` BIGINT, `NAME` STRING, `VALUE` DOUBLE",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
+    },
+    "CSAS_S1_0.S1" : {
+      "schema" : "`K` STRING KEY, `NAME` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "project and filter",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : "0",
+      "value" : "0,zero,0.0"
+    }, {
+      "topic" : "test_topic",
+      "key" : "100",
+      "value" : "100,100,0.0"
+    }, {
+      "topic" : "test_topic",
+      "key" : "101",
+      "value" : "101,101,0.0"
+    } ],
+    "outputs" : [ {
+      "topic" : "S1",
+      "key" : "101",
+      "value" : "101"
+    } ],
+    "topics" : [ {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "S1",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM TEST (K STRING KEY, ID bigint, NAME varchar, VALUE double) WITH (kafka_topic='test_topic', value_format='DELIMITED');", "CREATE STREAM S1 as SELECT K, name FROM test where id > 100;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "S1",
+        "type" : "STREAM",
+        "schema" : "`K` STRING KEY, `NAME` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "DELIMITED",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`K` STRING KEY, `ID` BIGINT, `NAME` STRING, `VALUE` DOUBLE",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "DELIMITED",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "S1",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "DELIMITED"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "DELIMITED"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

@@ -1,0 +1,257 @@
+{
+  "version" : "8.0.0",
+  "timestamp" : 1737614517813,
+  "path" : "query-validation-tests/filter.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`ID` BIGINT KEY, `VALUE` MAP<STRING, ARRAY<INTEGER>>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "AVRO"
+      }
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ID` BIGINT KEY, `LAMBDA` MAP<STRING, ARRAY<INTEGER>>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "AVRO"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "filter a nested map",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : 7,
+      "value" : {
+        "value" : {
+          "yes" : [ 2, 14, 25 ],
+          "no" : [ -4, 35 ]
+        }
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : 8,
+      "value" : {
+        "value" : {
+          "sure" : [ 234, 245, 23 ],
+          "leah" : [ -4, 35 ]
+        }
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : 9,
+      "value" : {
+        "value" : {
+          "nope" : [ -45, 14, 25 ],
+          "stvn" : [ -4, 35 ]
+        }
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : 10,
+      "value" : {
+        "value" : {
+          "okey" : [ ]
+        }
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : 11,
+      "value" : {
+        "value" : null
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : 7,
+      "value" : {
+        "LAMBDA" : {
+          "yes" : [ 2, 14, 25 ]
+        }
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : 8,
+      "value" : {
+        "LAMBDA" : {
+          "leah" : [ -4, 35 ]
+        }
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : 9,
+      "value" : {
+        "LAMBDA" : {
+          "nope" : [ -45, 14, 25 ]
+        }
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : 10,
+      "value" : {
+        "LAMBDA" : { }
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : 11,
+      "value" : {
+        "LAMBDA" : null
+      }
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "test_topic",
+      "valueSchema" : {
+        "type" : "record",
+        "name" : "KsqlDataSourceSchema",
+        "namespace" : "io.confluent.ksql.avro_schemas",
+        "fields" : [ {
+          "name" : "VALUE",
+          "type" : [ "null", {
+            "type" : "array",
+            "items" : {
+              "type" : "record",
+              "name" : "KsqlDataSourceSchema_VALUE",
+              "fields" : [ {
+                "name" : "key",
+                "type" : [ "null", "string" ],
+                "default" : null
+              }, {
+                "name" : "value",
+                "type" : [ "null", {
+                  "type" : "array",
+                  "items" : [ "null", "int" ]
+                } ],
+                "default" : null
+              } ],
+              "connect.internal.type" : "MapEntry"
+            },
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema_VALUE"
+          } ],
+          "default" : null
+        } ],
+        "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
+      },
+      "valueFormat" : "AVRO",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM TEST (ID BIGINT KEY, VALUE MAP<STRING, ARRAY<INTEGER>>) WITH (kafka_topic='test_topic', value_format='AVRO');", "CREATE STREAM OUTPUT as SELECT ID, filter(VALUE, (x,y) => instr(x, 'e') > 0 AND ARRAY_MIN(y) < 12) as LAMBDA from TEST emit changes;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`ID` BIGINT KEY, `LAMBDA` MAP<STRING, ARRAY<INTEGER>>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "AVRO",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`ID` BIGINT KEY, `VALUE` MAP<STRING, ARRAY<INTEGER>>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "AVRO",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "AVRO"
+          },
+          "partitions" : 4,
+          "valueSchema" : {
+            "type" : "record",
+            "name" : "KsqlDataSourceSchema",
+            "namespace" : "io.confluent.ksql.avro_schemas",
+            "fields" : [ {
+              "name" : "VALUE",
+              "type" : [ "null", {
+                "type" : "array",
+                "items" : {
+                  "type" : "record",
+                  "name" : "KsqlDataSourceSchema_VALUE",
+                  "fields" : [ {
+                    "name" : "key",
+                    "type" : [ "null", "string" ],
+                    "default" : null
+                  }, {
+                    "name" : "value",
+                    "type" : [ "null", {
+                      "type" : "array",
+                      "items" : [ "null", "int" ]
+                    } ],
+                    "default" : null
+                  } ],
+                  "connect.internal.type" : "MapEntry"
+                },
+                "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema_VALUE"
+              } ],
+              "default" : null
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
+          }
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "AVRO"
+          },
+          "partitions" : 4,
+          "valueSchema" : {
+            "type" : "record",
+            "name" : "KsqlDataSourceSchema",
+            "namespace" : "io.confluent.ksql.avro_schemas",
+            "fields" : [ {
+              "name" : "LAMBDA",
+              "type" : [ "null", {
+                "type" : "array",
+                "items" : {
+                  "type" : "record",
+                  "name" : "KsqlDataSourceSchema_LAMBDA",
+                  "fields" : [ {
+                    "name" : "key",
+                    "type" : [ "null", "string" ],
+                    "default" : null
+                  }, {
+                    "name" : "value",
+                    "type" : [ "null", {
+                      "type" : "array",
+                      "items" : [ "null", "int" ]
+                    } ],
+                    "default" : null
+                  } ],
+                  "connect.internal.type" : "MapEntry"
+                },
+                "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema_LAMBDA"
+              } ],
+              "default" : null
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
+          }
+        } ]
+      }
+    }
+  }
+}

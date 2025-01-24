@@ -1,0 +1,237 @@
+{
+  "version" : "8.0.0",
+  "timestamp" : 1737614544230,
+  "path" : "query-validation-tests/group-by.json",
+  "schemas" : {
+    "CTAS_OUTPUT_0.Aggregate.GroupBy" : {
+      "schema" : "`F1` INTEGER KEY, `TOWN` STRING KEY, `KSQL_COL_0` INTEGER KEY, `ADDRESS` STRUCT<`STREET` STRING, `TOWN` STRING>, `F1` INTEGER, `F2` INTEGER, `ROWTIME` BIGINT",
+      "keyFormat" : {
+        "format" : "JSON"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CTAS_OUTPUT_0.Aggregate.Project" : {
+      "schema" : "`F1` INTEGER KEY, `TOWN` STRING KEY, `KSQL_COL_2` INTEGER KEY, `KSQL_COL_0` INTEGER, `KSQL_COL_1` BIGINT",
+      "keyFormat" : {
+        "format" : "JSON"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CTAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`F1` INTEGER KEY, `F2` INTEGER, `ADDRESS` STRUCT<`STREET` STRING, `TOWN` STRING>",
+      "keyFormat" : {
+        "format" : "JSON",
+        "features" : [ "UNWRAP_SINGLES" ]
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CTAS_OUTPUT_0.Aggregate.Aggregate.Materialize" : {
+      "schema" : "`F1` INTEGER KEY, `TOWN` STRING KEY, `KSQL_COL_0` INTEGER KEY, `ADDRESS` STRUCT<`STREET` STRING, `TOWN` STRING>, `F1` INTEGER, `F2` INTEGER, `ROWTIME` BIGINT, `KSQL_AGG_VARIABLE_0` BIGINT",
+      "keyFormat" : {
+        "format" : "JSON"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CTAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`F1` INTEGER KEY, `TOWN` STRING KEY, `KSQL_COL_2` INTEGER KEY, `KSQL_COL_0` INTEGER, `KSQL_COL_1` BIGINT",
+      "keyFormat" : {
+        "format" : "JSON"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "multiple expressions with struct field and other expression",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : 1,
+      "value" : {
+        "f2" : "2",
+        "ADDRESS" : {
+          "STREET" : "1st Street",
+          "Town" : "Oxford"
+        }
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : 2,
+      "value" : {
+        "f2" : "4",
+        "ADDRESS" : {
+          "STREET" : "1st Street",
+          "Town" : "London"
+        }
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : 1,
+      "value" : {
+        "f2" : "2",
+        "ADDRESS" : {
+          "STREET" : "1st Street",
+          "Town" : "Oxford"
+        }
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : 2,
+      "value" : {
+        "f2" : "4",
+        "ADDRESS" : {
+          "STREET" : "1st Street",
+          "Town" : "London"
+        }
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : 2,
+      "value" : {
+        "f2" : "1",
+        "ADDRESS" : {
+          "STREET" : "1st Street",
+          "Town" : "Oxford"
+        }
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : {
+        "F1" : 1,
+        "TOWN" : "Oxford",
+        "KSQL_COL_2" : 4
+      },
+      "value" : {
+        "KSQL_COL_0" : 5,
+        "KSQL_COL_1" : 1
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : {
+        "F1" : 2,
+        "TOWN" : "London",
+        "KSQL_COL_2" : 8
+      },
+      "value" : {
+        "KSQL_COL_0" : 10,
+        "KSQL_COL_1" : 1
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : {
+        "F1" : 1,
+        "TOWN" : "Oxford",
+        "KSQL_COL_2" : 4
+      },
+      "value" : {
+        "KSQL_COL_0" : 5,
+        "KSQL_COL_1" : 2
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : {
+        "F1" : 2,
+        "TOWN" : "London",
+        "KSQL_COL_2" : 8
+      },
+      "value" : {
+        "KSQL_COL_0" : 10,
+        "KSQL_COL_1" : 2
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : {
+        "F1" : 2,
+        "TOWN" : "Oxford",
+        "KSQL_COL_2" : 2
+      },
+      "value" : {
+        "KSQL_COL_0" : 4,
+        "KSQL_COL_1" : 1
+      }
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "keySerdeFeatures" : [ "UNWRAP_SINGLES" ],
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM TEST (f1 INT KEY, f2 INT, address STRUCT<street STRING, town STRING>) WITH (kafka_topic='test_topic', format='JSON');", "CREATE TABLE OUTPUT AS SELECT address->town, f1, 2*f2+f1, COUNT(*), 2*f2 FROM TEST GROUP BY f1, address->town, 2*f2;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "OUTPUT",
+        "type" : "TABLE",
+        "schema" : "`F1` INTEGER KEY, `TOWN` STRING KEY, `KSQL_COL_2` INTEGER KEY, `KSQL_COL_0` INTEGER, `KSQL_COL_1` BIGINT",
+        "keyFormat" : {
+          "format" : "JSON"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`F1` INTEGER KEY, `F2` INTEGER, `ADDRESS` STRUCT<`STREET` STRING, `TOWN` STRING>",
+        "keyFormat" : {
+          "format" : "JSON"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ "UNWRAP_SINGLES" ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "format" : "JSON",
+            "features" : [ "UNWRAP_SINGLES" ]
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-GroupBy-repartition",
+          "keyFormat" : {
+            "format" : "JSON"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          }
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog",
+          "keyFormat" : {
+            "format" : "JSON"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          }
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "format" : "JSON"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

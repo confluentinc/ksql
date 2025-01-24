@@ -1,0 +1,355 @@
+{
+  "version" : "8.0.0",
+  "timestamp" : 1737614538843,
+  "path" : "query-validation-tests/generic-variadic-udaf.json",
+  "schemas" : {
+    "CTAS_OUTPUT_0.Aggregate.GroupBy" : {
+      "schema" : "`ID` BIGINT KEY, `ID` BIGINT, `FIRST` DOUBLE, `SECOND` INTEGER, `THIRD` MAP<STRING, DOUBLE>, `FOURTH` MAP<STRING, DOUBLE>, `FIFTH` MAP<STRING, DOUBLE>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CTAS_OUTPUT_0.Aggregate.Project" : {
+      "schema" : "`ID` BIGINT KEY, `RESULT` ARRAY<DOUBLE>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CTAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`ID` BIGINT KEY, `FIRST` DOUBLE, `SECOND` INTEGER, `THIRD` MAP<STRING, DOUBLE>, `FOURTH` MAP<STRING, DOUBLE>, `FIFTH` MAP<STRING, DOUBLE>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CTAS_OUTPUT_0.Aggregate.Aggregate.Materialize" : {
+      "schema" : "`ID` BIGINT KEY, `ID` BIGINT, `FIRST` DOUBLE, `SECOND` INTEGER, `THIRD` MAP<STRING, DOUBLE>, `FOURTH` MAP<STRING, DOUBLE>, `FIFTH` MAP<STRING, DOUBLE>, `KSQL_AGG_VARIABLE_0` ARRAY<DOUBLE>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CTAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ID` BIGINT KEY, `RESULT` ARRAY<DOUBLE>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "variadic map",
+    "inputs" : [ {
+      "topic" : "input_topic",
+      "key" : 0,
+      "value" : {
+        "FIRST" : 6.1,
+        "SECOND" : 5,
+        "THIRD" : {
+          "one" : 100.4
+        },
+        "FOURTH" : {
+          "one" : 3.2
+        },
+        "FIFTH" : {
+          "one" : 7.0
+        }
+      }
+    }, {
+      "topic" : "input_topic",
+      "key" : 100,
+      "value" : {
+        "FIRST" : 2.3,
+        "SECOND" : 1,
+        "THIRD" : {
+          "one" : 1.2
+        },
+        "FOURTH" : {
+          "one" : 1.4
+        },
+        "FIFTH" : {
+          "one" : 8.9
+        }
+      }
+    }, {
+      "topic" : "input_topic",
+      "key" : 0,
+      "value" : {
+        "FIRST" : null,
+        "SECOND" : 5,
+        "THIRD" : {
+          "one" : 1.6
+        },
+        "FOURTH" : {
+          "one" : 12.3
+        },
+        "FIFTH" : {
+          "one" : 1.1
+        }
+      }
+    }, {
+      "topic" : "input_topic",
+      "key" : 100,
+      "value" : {
+        "FIRST" : 5.7,
+        "SECOND" : 3,
+        "THIRD" : {
+          "one" : 9.1
+        },
+        "FOURTH" : {
+          "one" : 0.9
+        },
+        "FIFTH" : {
+          "one" : 2.5
+        }
+      }
+    }, {
+      "topic" : "input_topic",
+      "key" : 0,
+      "value" : {
+        "FIRST" : 5.1,
+        "SECOND" : null,
+        "THIRD" : {
+          "one" : 14.1
+        },
+        "FOURTH" : {
+          "one" : 1.2
+        },
+        "FIFTH" : {
+          "one" : 6.7
+        }
+      }
+    }, {
+      "topic" : "input_topic",
+      "key" : 100,
+      "value" : {
+        "FIRST" : 3.9,
+        "SECOND" : 7,
+        "THIRD" : {
+          "one" : 7.6
+        },
+        "FOURTH" : null,
+        "FIFTH" : {
+          "one" : 8.1
+        }
+      }
+    }, {
+      "topic" : "input_topic",
+      "key" : 100,
+      "value" : {
+        "FIRST" : 2.2,
+        "SECOND" : 2,
+        "THIRD" : {
+          "one" : 9.0
+        },
+        "FOURTH" : {
+          "one" : 9.8
+        },
+        "FIFTH" : null
+      }
+    }, {
+      "topic" : "input_topic",
+      "key" : 0,
+      "value" : {
+        "FIRST" : 21.8,
+        "SECOND" : 10,
+        "THIRD" : null,
+        "FOURTH" : {
+          "one" : 5.0
+        },
+        "FIFTH" : {
+          "one" : 2.3
+        }
+      }
+    }, {
+      "topic" : "input_topic",
+      "key" : 100,
+      "value" : {
+        "FIRST" : null,
+        "SECOND" : 20,
+        "THIRD" : {
+          "one" : 3.8
+        },
+        "FOURTH" : null,
+        "FIFTH" : {
+          "one" : 3.3
+        }
+      }
+    }, {
+      "topic" : "input_topic",
+      "key" : 100,
+      "value" : {
+        "FIRST" : 3.2,
+        "SECOND" : 2,
+        "THIRD" : {
+          "one" : 9.6
+        },
+        "FOURTH" : {
+          "one" : 4.3
+        },
+        "FIFTH" : {
+          "one" : 4.7
+        }
+      }
+    }, {
+      "topic" : "input_topic",
+      "key" : 100,
+      "value" : {
+        "FIRST" : 6.3,
+        "SECOND" : 1,
+        "THIRD" : {
+          "one" : 10.0
+        },
+        "FOURTH" : {
+          "one" : 4.9
+        },
+        "FIFTH" : {
+          "one" : 10.4
+        }
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : 0,
+      "value" : {
+        "RESULT" : [ 6.1 ]
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : 100,
+      "value" : {
+        "RESULT" : [ 2.3 ]
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : 0,
+      "value" : {
+        "RESULT" : [ 6.1 ]
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : 100,
+      "value" : {
+        "RESULT" : [ 2.3, 5.7 ]
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : 0,
+      "value" : {
+        "RESULT" : [ 6.1 ]
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : 100,
+      "value" : {
+        "RESULT" : [ 2.3, 5.7 ]
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : 100,
+      "value" : {
+        "RESULT" : [ 2.3, 5.7 ]
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : 0,
+      "value" : {
+        "RESULT" : [ 6.1 ]
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : 100,
+      "value" : {
+        "RESULT" : [ 2.3, 5.7 ]
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : 100,
+      "value" : {
+        "RESULT" : [ 2.3, 5.7, 3.2 ]
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : 100,
+      "value" : {
+        "RESULT" : [ 2.3, 5.7, 3.2, 6.3 ]
+      }
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "input_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM INPUT (ID BIGINT KEY, FIRST double, SECOND integer, THIRD map<string, double>, FOURTH map<string, double>, FIFTH map<string, double>) WITH (kafka_topic='input_topic', value_format='JSON');", "CREATE TABLE OUTPUT as SELECT id, GENERIC_VAR_ARG(FIRST, SECOND, THIRD, FOURTH, FIFTH) as RESULT FROM INPUT group by id;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`ID` BIGINT KEY, `FIRST` DOUBLE, `SECOND` INTEGER, `THIRD` MAP<STRING, DOUBLE>, `FOURTH` MAP<STRING, DOUBLE>, `FIFTH` MAP<STRING, DOUBLE>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "OUTPUT",
+        "type" : "TABLE",
+        "schema" : "`ID` BIGINT KEY, `RESULT` ARRAY<DOUBLE>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "input_topic",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          }
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

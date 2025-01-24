@@ -1,0 +1,196 @@
+{
+  "version" : "8.0.0",
+  "timestamp" : 1737614964306,
+  "path" : "query-validation-tests/json_sr.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`FOO` ARRAY<BIGINT>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON_SR"
+      }
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`FOO` ARRAY<BIGINT>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON_SR",
+        "features" : [ "WRAP_SINGLES" ]
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "serialize nested array - value",
+    "inputs" : [ {
+      "topic" : "input_topic",
+      "key" : null,
+      "value" : {
+        "FOO" : [ 12, 34, 999 ]
+      }
+    }, {
+      "topic" : "input_topic",
+      "key" : null,
+      "value" : {
+        "FOO" : [ 12, 34, null ]
+      }
+    }, {
+      "topic" : "input_topic",
+      "key" : null,
+      "value" : {
+        "FOO" : null
+      }
+    }, {
+      "topic" : "input_topic",
+      "key" : null,
+      "value" : null
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : null,
+      "value" : {
+        "FOO" : [ 12, 34, 999 ]
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : null,
+      "value" : {
+        "FOO" : [ 12, 34, null ]
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : null,
+      "value" : {
+        "FOO" : null
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : null,
+      "value" : null
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "input_topic",
+      "valueSchema" : {
+        "type" : "object",
+        "properties" : {
+          "FOO" : {
+            "connect.index" : 0,
+            "oneOf" : [ {
+              "type" : "null"
+            }, {
+              "type" : "array",
+              "items" : {
+                "oneOf" : [ {
+                  "type" : "null"
+                }, {
+                  "type" : "integer",
+                  "connect.type" : "int64"
+                } ]
+              }
+            } ]
+          }
+        }
+      },
+      "valueFormat" : "JSON",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM INPUT (foo ARRAY<BIGINT>) WITH (kafka_topic='input_topic', value_format='JSON_SR');", "CREATE STREAM OUTPUT WITH (WRAP_SINGLE_VALUE=true) AS SELECT * FROM INPUT;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`FOO` ARRAY<BIGINT>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON_SR",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`FOO` ARRAY<BIGINT>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON_SR",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ "WRAP_SINGLES" ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "input_topic",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON_SR"
+          },
+          "partitions" : 4,
+          "valueSchema" : {
+            "type" : "object",
+            "properties" : {
+              "FOO" : {
+                "connect.index" : 0,
+                "oneOf" : [ {
+                  "type" : "null"
+                }, {
+                  "type" : "array",
+                  "items" : {
+                    "oneOf" : [ {
+                      "type" : "null"
+                    }, {
+                      "type" : "integer",
+                      "connect.type" : "int64"
+                    } ]
+                  }
+                } ]
+              }
+            }
+          }
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON_SR",
+            "features" : [ "WRAP_SINGLES" ]
+          },
+          "partitions" : 4,
+          "valueSchema" : {
+            "type" : "object",
+            "properties" : {
+              "FOO" : {
+                "connect.index" : 0,
+                "oneOf" : [ {
+                  "type" : "null"
+                }, {
+                  "type" : "array",
+                  "items" : {
+                    "oneOf" : [ {
+                      "type" : "null"
+                    }, {
+                      "type" : "integer",
+                      "connect.type" : "int64"
+                    } ]
+                  }
+                } ]
+              }
+            }
+          }
+        } ]
+      }
+    }
+  }
+}

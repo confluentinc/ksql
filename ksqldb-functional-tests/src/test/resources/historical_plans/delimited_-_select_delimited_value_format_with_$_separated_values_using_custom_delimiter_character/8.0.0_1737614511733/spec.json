@@ -1,0 +1,138 @@
+{
+  "version" : "8.0.0",
+  "timestamp" : 1737614511733,
+  "path" : "query-validation-tests/delimited.json",
+  "schemas" : {
+    "CSAS_S2_0.S2" : {
+      "schema" : "`K` STRING KEY, `ID` BIGINT, `NAME` STRING, `VALUE` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED",
+        "properties" : {
+          "delimiter" : "$"
+        }
+      }
+    },
+    "CSAS_S2_0.KsqlTopic.Source" : {
+      "schema" : "`K` STRING KEY, `ID` BIGINT, `NAME` STRING, `VALUE` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED",
+        "properties" : {
+          "delimiter" : "|"
+        }
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "select delimited value_format with $ separated values using custom delimiter character",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : "0",
+      "value" : "0|zero|0",
+      "timestamp" : 0
+    }, {
+      "topic" : "test_topic",
+      "key" : "0",
+      "value" : "0|100|100",
+      "timestamp" : 0
+    }, {
+      "topic" : "test_topic",
+      "key" : "100",
+      "value" : "100|100|500",
+      "timestamp" : 0
+    }, {
+      "topic" : "test_topic",
+      "key" : "100",
+      "value" : "100|100|100",
+      "timestamp" : 0
+    } ],
+    "outputs" : [ {
+      "topic" : "S2",
+      "key" : "0",
+      "value" : "0$zero$0",
+      "timestamp" : 0
+    }, {
+      "topic" : "S2",
+      "key" : "0",
+      "value" : "0$100$100",
+      "timestamp" : 0
+    }, {
+      "topic" : "S2",
+      "key" : "100",
+      "value" : "100$100$500",
+      "timestamp" : 0
+    }, {
+      "topic" : "S2",
+      "key" : "100",
+      "value" : "100$100$100",
+      "timestamp" : 0
+    } ],
+    "topics" : [ {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "S2",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM TEST (K STRING KEY, ID bigint, NAME varchar, VALUE integer) WITH (kafka_topic='test_topic', value_format='DELIMITED', value_delimiter='|');", "CREATE STREAM S2 WITH(value_delimiter='$') AS SELECT * FROM test;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "S2",
+        "type" : "STREAM",
+        "schema" : "`K` STRING KEY, `ID` BIGINT, `NAME` STRING, `VALUE` INTEGER",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "DELIMITED",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`K` STRING KEY, `ID` BIGINT, `NAME` STRING, `VALUE` INTEGER",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "DELIMITED",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "DELIMITED",
+            "properties" : {
+              "delimiter" : "|"
+            }
+          },
+          "partitions" : 4
+        }, {
+          "name" : "S2",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "DELIMITED",
+            "properties" : {
+              "delimiter" : "$"
+            }
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

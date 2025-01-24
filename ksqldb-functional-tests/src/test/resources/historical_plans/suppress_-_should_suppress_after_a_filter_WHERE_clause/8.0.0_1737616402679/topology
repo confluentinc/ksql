@@ -1,0 +1,34 @@
+Topologies:
+   Sub-topology: 0
+    Source: KSTREAM-SOURCE-0000000000 (topics: [input_topic])
+      --> KSTREAM-PROCESSVALUES-0000000001
+    Processor: KSTREAM-PROCESSVALUES-0000000001 (stores: [])
+      --> WhereFilter
+      <-- KSTREAM-SOURCE-0000000000
+    Processor: WhereFilter (stores: [])
+      --> Aggregate-Prepare, KSTREAM-PEEK-0000000003
+      <-- KSTREAM-PROCESSVALUES-0000000001
+    Processor: Aggregate-Prepare (stores: [])
+      --> KSTREAM-AGGREGATE-0000000004
+      <-- WhereFilter
+    Processor: KSTREAM-AGGREGATE-0000000004 (stores: [Aggregate-Aggregate-Materialize])
+      --> Aggregate-Aggregate-ToOutputSchema
+      <-- Aggregate-Prepare
+    Processor: Aggregate-Aggregate-ToOutputSchema (stores: [])
+      --> Aggregate-Aggregate-WindowSelect
+      <-- KSTREAM-AGGREGATE-0000000004
+    Processor: Aggregate-Aggregate-WindowSelect (stores: [])
+      --> Aggregate-Project
+      <-- Aggregate-Aggregate-ToOutputSchema
+    Processor: Aggregate-Project (stores: [])
+      --> KTABLE-TOSTREAM-0000000008
+      <-- Aggregate-Aggregate-WindowSelect
+    Processor: KTABLE-TOSTREAM-0000000008 (stores: [])
+      --> KSTREAM-SINK-0000000009
+      <-- Aggregate-Project
+    Processor: KSTREAM-PEEK-0000000003 (stores: [])
+      --> none
+      <-- WhereFilter
+    Sink: KSTREAM-SINK-0000000009 (topic: OUTPUT)
+      <-- KTABLE-TOSTREAM-0000000008
+

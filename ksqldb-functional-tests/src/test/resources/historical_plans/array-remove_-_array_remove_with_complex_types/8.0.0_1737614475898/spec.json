@@ -1,0 +1,179 @@
+{
+  "version" : "8.0.0",
+  "timestamp" : 1737614475898,
+  "path" : "query-validation-tests/array-remove.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`ID` STRING KEY, `LISTS` ARRAY<ARRAY<STRING>>, `BAD_LIST` ARRAY<STRING>, `MAPS` ARRAY<MAP<STRING, INTEGER>>, `BAD_MAP` MAP<STRING, INTEGER>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ID` STRING KEY, `LISTS` ARRAY<ARRAY<STRING>>, `MAPS` ARRAY<MAP<STRING, INTEGER>>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "array_remove with complex types",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : "r1",
+      "value" : {
+        "lists" : [ [ "foo", "bar", "foo" ], [ "foo", "bar", "foo" ], [ "foo" ] ],
+        "bad_list" : [ "foo", "bar", "foo" ],
+        "maps" : [ {
+          "apple" : 1,
+          "banana" : 2
+        }, {
+          "apple" : 3,
+          "banana" : 4
+        }, {
+          "apple" : 1,
+          "banana" : 2
+        } ],
+        "bad_map" : {
+          "apple" : 1,
+          "banana" : 2
+        }
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : "r2",
+      "value" : {
+        "lists" : [ null, [ "foo" ], [ "foo", "bar" ] ],
+        "bad_list" : [ "foo" ],
+        "maps" : [ {
+          "apple" : 1,
+          "banana" : 2
+        }, {
+          "apple" : 3,
+          "banana" : 4
+        }, null ],
+        "bad_map" : {
+          "apple" : 1,
+          "banana" : 2
+        }
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : "r3",
+      "value" : {
+        "lists" : [ ],
+        "bad_list" : [ "foo" ],
+        "maps" : [ ]
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : "r4",
+      "value" : {
+        "lists" : null,
+        "bad_list" : [ "foo" ],
+        "maps" : null,
+        "bad_map" : {
+          "apple" : 1,
+          "banana" : 2
+        }
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : "r1",
+      "value" : {
+        "LISTS" : [ [ "foo" ] ],
+        "MAPS" : [ {
+          "apple" : 3,
+          "banana" : 4
+        } ]
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "r2",
+      "value" : {
+        "LISTS" : [ null, [ "foo", "bar" ] ],
+        "MAPS" : [ {
+          "apple" : 3,
+          "banana" : 4
+        }, null ]
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "r3",
+      "value" : {
+        "LISTS" : [ ],
+        "MAPS" : [ ]
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "r4",
+      "value" : {
+        "LISTS" : null,
+        "MAPS" : null
+      }
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM INPUT (id STRING KEY, lists ARRAY<ARRAY<STRING>>, bad_list ARRAY<STRING>, maps ARRAY<MAP<STRING,INT>>, bad_map MAP<STRING, INT>) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE STREAM OUTPUT AS SELECT id, array_remove(lists, bad_list) as lists, array_remove(maps, bad_map) as maps FROM INPUT;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`ID` STRING KEY, `LISTS` ARRAY<ARRAY<STRING>>, `BAD_LIST` ARRAY<STRING>, `MAPS` ARRAY<MAP<STRING, INTEGER>>, `BAD_MAP` MAP<STRING, INTEGER>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`ID` STRING KEY, `LISTS` ARRAY<ARRAY<STRING>>, `MAPS` ARRAY<MAP<STRING, INTEGER>>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

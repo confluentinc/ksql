@@ -1,0 +1,236 @@
+{
+  "version" : "8.0.0",
+  "timestamp" : 1737616395320,
+  "path" : "query-validation-tests/split-to-map.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`ID` STRING KEY, `INPUT` STRING, `ENTRYDELIM` STRING, `KVDELIM` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ID` STRING KEY, `RESULT` MAP<STRING, STRING>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "split_to_map",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : "r1",
+      "value" : {
+        "input" : "apple:green/banana:yellow/cherry:red",
+        "entryDelim" : "/",
+        "kvDelim" : ":"
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : "r2",
+      "value" : {
+        "input" : "apple:green/banana:yellow/cherry:red",
+        "entryDelim" : "&&",
+        "kvDelim" : ":"
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : "r3",
+      "value" : {
+        "input" : "apple:green//banana:yellow//cherry:red/",
+        "entryDelim" : "/",
+        "kvDelim" : ":"
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : "r4",
+      "value" : {
+        "input" : "apple:green/banana:yellow/cherry:red",
+        "entryDelim" : "/",
+        "kvDelim" : "="
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : "r5",
+      "value" : {
+        "input" : "apple:green/banana:yellow/cherry:red",
+        "entryDelim" : "",
+        "kvDelim" : ":"
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : "r6",
+      "value" : {
+        "input" : "apple:green/banana:yellow/cherry:red",
+        "entryDelim" : "/",
+        "kvDelim" : ""
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : "r7",
+      "value" : {
+        "input" : "apple:green/banana:yellow/cherry:red",
+        "entryDelim" : null,
+        "kvDelim" : ":"
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : "r8",
+      "value" : {
+        "input" : "apple:green/banana:yellow/cherry:red",
+        "entryDelim" : "/",
+        "kvDelim" : null
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : "r9",
+      "value" : {
+        "input" : "",
+        "entryDelim" : "/",
+        "kvDelim" : ":"
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : "r10",
+      "value" : {
+        "input" : null,
+        "entryDelim" : "/",
+        "kvDelim" : ":"
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : "r1",
+      "value" : {
+        "RESULT" : {
+          "apple" : "green",
+          "banana" : "yellow",
+          "cherry" : "red"
+        }
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "r2",
+      "value" : {
+        "RESULT" : {
+          "apple" : "green/banana"
+        }
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "r3",
+      "value" : {
+        "RESULT" : {
+          "apple" : "green",
+          "banana" : "yellow",
+          "cherry" : "red"
+        }
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "r4",
+      "value" : {
+        "RESULT" : { }
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "r5",
+      "value" : {
+        "RESULT" : null
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "r6",
+      "value" : {
+        "RESULT" : null
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "r7",
+      "value" : {
+        "RESULT" : null
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "r8",
+      "value" : {
+        "RESULT" : null
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "r9",
+      "value" : {
+        "RESULT" : { }
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "r10",
+      "value" : {
+        "RESULT" : null
+      }
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM INPUT (id STRING KEY, input STRING, entryDelim STRING, kvDelim STRING) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE STREAM OUTPUT AS SELECT id, split_to_map(input, entryDelim, kvDelim) as result FROM INPUT;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`ID` STRING KEY, `INPUT` STRING, `ENTRYDELIM` STRING, `KVDELIM` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`ID` STRING KEY, `RESULT` MAP<STRING, STRING>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

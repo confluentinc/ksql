@@ -1,0 +1,131 @@
+{
+  "version" : "8.0.0",
+  "timestamp" : 1737614540456,
+  "path" : "query-validation-tests/greatest.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`ID` BIGINT KEY, `S1` TIME, `S2` TIME, `S3` TIME, `S4` TIME",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ID` BIGINT KEY, `HIGHEST` TIME",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "test greatest with times",
+    "inputs" : [ {
+      "topic" : "input_topic",
+      "key" : 1,
+      "value" : {
+        "S1" : 33359999,
+        "S2" : 23361230,
+        "S3" : 10,
+        "S4" : null
+      }
+    }, {
+      "topic" : "input_topic",
+      "key" : 2,
+      "value" : {
+        "S1" : null,
+        "S2" : null,
+        "S3" : null,
+        "S4" : null
+      }
+    }, {
+      "topic" : "input_topic",
+      "key" : 3,
+      "value" : {
+        "S1" : 32560000,
+        "S2" : 33370000,
+        "S3" : 33360001,
+        "S4" : null
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : 1,
+      "value" : {
+        "HIGHEST" : 33360000
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : 2,
+      "value" : {
+        "HIGHEST" : 33360000
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : 3,
+      "value" : {
+        "HIGHEST" : 33370000
+      }
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "input_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM INPUT (ID BIGINT KEY, S1 TIME, S2 TIME, S3 TIME, S4 TIME) WITH (kafka_topic='input_topic',value_format='json');", "CREATE STREAM OUTPUT AS SELECT ID, GREATEST(S1, S2, S3, S4, null, null, '09:16:00') AS HIGHEST FROM INPUT;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`ID` BIGINT KEY, `S1` TIME, `S2` TIME, `S3` TIME, `S4` TIME",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`ID` BIGINT KEY, `HIGHEST` TIME",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "input_topic",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

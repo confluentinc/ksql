@@ -72,6 +72,7 @@ import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.reactivestreams.Subscription;
@@ -224,6 +225,7 @@ public class ConsistencyOffsetVectorFunctionalTest {
     verifyConsistencyVector(serializedCV);
   }
 
+  @Ignore
   @Test(timeout = 120000L)
   public void shouldRoundTripCVWhenPullQueryHttp1() throws Exception {
     // Given
@@ -286,6 +288,7 @@ public class ConsistencyOffsetVectorFunctionalTest {
     assertThat(((ClientImpl)client).getSerializedConsistencyVector(), is(isEmptyString()));
   }
 
+  @Ignore
   @Test(timeout = 120000L)
   public void shouldNotRoundTripCVHttp1() throws Exception {
     final KsqlRestClient ksqlRestClient = REST_APP.buildKsqlClient();

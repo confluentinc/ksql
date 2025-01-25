@@ -17,7 +17,7 @@ package io.confluent.ksql.physical.pull;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.execution.streams.materialization.Locator.KsqlNode;
+import io.confluent.ksql.rest.entity.KsqlHostInfoEntity;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.util.ConsistencyOffsetVector;
 import java.util.Collections;
@@ -28,14 +28,14 @@ public class PullQueryRow {
 
   private final List<?> row;
   private final LogicalSchema schema;
-  private final Optional<KsqlNode> sourceNode;
+  private final Optional<KsqlHostInfoEntity> sourceNode;
   private final Optional<ConsistencyOffsetVector> consistencyOffsetVector;
 
   @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
   public PullQueryRow(
       final List<?> row,
       final LogicalSchema schema,
-      final Optional<KsqlNode> sourceNode,
+      final Optional<KsqlHostInfoEntity> sourceNode,
       final Optional<ConsistencyOffsetVector> consistencyOffsetVector
   ) {
     this.row = row;
@@ -52,7 +52,7 @@ public class PullQueryRow {
     return schema;
   }
 
-  public Optional<KsqlNode> getSourceNode() {
+  public Optional<KsqlHostInfoEntity> getSourceNode() {
     return sourceNode;
   }
 

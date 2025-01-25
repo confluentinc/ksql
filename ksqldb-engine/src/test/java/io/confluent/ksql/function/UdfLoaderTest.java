@@ -117,10 +117,9 @@ public class UdfLoaderTest {
   @Rule
   public TemporaryFolder tempFolder = KsqlTestFolder.temporaryFolder();
 
-  @SuppressFBWarnings("ST_WRITE_TO_STATIC_FROM_INSTANCE_METHOD")
   @Before
   public void before() {
-    PASSED_CONFIG = null;
+    UdfConfigCapturer.getInstance().reset();
   }
 
   @Test
@@ -984,11 +983,12 @@ public class UdfLoaderTest {
     udf.newInstance(ksqlConfig);
 
     // Then:
-    assertThat(PASSED_CONFIG, is(notNullValue()));
-    assertThat(PASSED_CONFIG.keySet(), not(hasItem(KsqlConfig.KSQL_SERVICE_ID_CONFIG)));
-    assertThat(PASSED_CONFIG.get(KSQL_FUNCTIONS_PROPERTY_PREFIX + "configurableudf.some.setting"),
+    final Map<String, ?> capturedConfig = UdfConfigCapturer.getInstance().capturedConfig;
+    assertThat(capturedConfig, is(notNullValue()));
+    assertThat(capturedConfig.keySet(), not(hasItem(KsqlConfig.KSQL_SERVICE_ID_CONFIG)));
+    assertThat(capturedConfig.get(KSQL_FUNCTIONS_PROPERTY_PREFIX + "configurableudf.some.setting"),
         is("foo-bar"));
-    assertThat(PASSED_CONFIG.get(KSQL_FUNCTIONS_PROPERTY_PREFIX + "_global_.expected-param"),
+    assertThat(capturedConfig.get(KSQL_FUNCTIONS_PROPERTY_PREFIX + "_global_.expected-param"),
         is("expected-value"));
   }
 
@@ -1786,7 +1786,28 @@ public class UdfLoaderTest {
     }
   }
 
-  private static Map<String, ?> PASSED_CONFIG = null;
+  public static final class UdfConfigCapturer {
+    private static final UdfConfigCapturer INSTANCE = new UdfConfigCapturer();
+    private Map<String, ?> capturedConfig;
+
+    private UdfConfigCapturer() {}
+
+    public static UdfConfigCapturer getInstance() {
+      return INSTANCE;
+    }
+
+    public synchronized void setCapturedConfig(final Map<String, ?> config) {
+      this.capturedConfig = config;
+    }
+
+    public synchronized Map<String, ?> getCapturedConfig() {
+      return this.capturedConfig;
+    }
+
+    public synchronized void reset() {
+      this.capturedConfig = null;
+    }
+  }
 
   @SuppressWarnings({"unused", "MethodMayBeStatic"}) // Invoked via reflection in test.
   @UdfDescription(
@@ -1795,7 +1816,7 @@ public class UdfLoaderTest {
   public static class ConfigurableUdf implements Configurable {
     @Override
     public void configure(final Map<String, ?> map) {
-      PASSED_CONFIG = map;
+      UdfConfigCapturer.getInstance().setCapturedConfig(map);
     }
 
     @Udf

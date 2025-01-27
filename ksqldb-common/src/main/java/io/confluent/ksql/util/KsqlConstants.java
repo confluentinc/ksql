@@ -52,6 +52,9 @@ public final class KsqlConstants {
   public static final String KSQL_QUERY_PLAN_TYPE_TAG = "query_plan_type";
   public static final String KSQL_QUERY_ROUTING_TYPE_TAG = "query_routing_type";
 
+  public static final String FIPS_VALIDATOR
+          = "io.confluent.ksql.security.KsqlFipsResourceExtension";
+
   public enum KsqlQueryType {
     PERSISTENT,
     PUSH,

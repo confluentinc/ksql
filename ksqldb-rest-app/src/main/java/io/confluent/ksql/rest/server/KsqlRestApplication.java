@@ -60,6 +60,9 @@ import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.SourceInfo;
 import io.confluent.ksql.rest.entity.StreamsList;
+import io.confluent.ksql.rest.extensions.KsqlResourceContext;
+import io.confluent.ksql.rest.extensions.KsqlResourceContextImpl;
+import io.confluent.ksql.rest.extensions.KsqlResourceExtension;
 import io.confluent.ksql.rest.server.HeartbeatAgent.Builder;
 import io.confluent.ksql.rest.server.computation.Command;
 import io.confluent.ksql.rest.server.computation.CommandRunner;
@@ -123,8 +126,10 @@ import io.vertx.core.VertxOptions;
 import io.vertx.core.net.SocketAddress;
 import io.vertx.ext.dropwizard.DropwizardMetricsOptions;
 import io.vertx.ext.dropwizard.Match;
+
 import java.io.Console;
 import java.io.File;
+import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.net.MalformedURLException;
@@ -211,6 +216,7 @@ public final class KsqlRestApplication implements Executable {
   private KafkaTopicClient internalTopicClient;
   private final Instant ksqlRestAppStartTime;
   private final KsqlRestApplicationMetrics restApplicationMetrics;
+  private final List<KsqlResourceExtension> ksqlResourceExtensions;
 
   // The startup thread that can be interrupted if necessary during shutdown.  This should only
   // happen if startup hangs.
@@ -279,7 +285,8 @@ public final class KsqlRestApplication implements Executable {
     this.vertx = requireNonNull(vertx, "vertx");
     this.denyListPropertyValidator =
         requireNonNull(denyListPropertyValidator, "denyListPropertyValidator");
-
+    this.ksqlResourceExtensions = new KsqlRestConfig(ksqlConfigNoPort.originals())
+              .getKsqlResourceExtensions();
     this.serverInfoResource =
         new ServerInfoResource(serviceContext, ksqlConfigNoPort, commandRunner);
     if (heartbeatAgent.isPresent()) {
@@ -313,6 +320,24 @@ public final class KsqlRestApplication implements Executable {
   @Override
   public void startAsync() {
     log.debug("Starting the ksqlDB API server");
+
+    KsqlResourceContext ksqlResourceContext
+            = new KsqlResourceContextImpl(ksqlConfigNoPort, restConfig);
+
+    boolean isFipsValidatorConfigured = false;
+    for (KsqlResourceExtension resourceExtension : ksqlResourceExtensions) {
+      resourceExtension.register(ksqlResourceContext);
+      if (KsqlConstants.FIPS_VALIDATOR
+              .equals(resourceExtension.getClass().getCanonicalName())) {
+          isFipsValidatorConfigured = true;
+      }
+    }
+    if (ksqlConfigNoPort.enableFips() && !isFipsValidatorConfigured) {
+      throw new KsqlException("Error enabling the FIPS resource extension: `enable.fips` is set to true but the "
+              + "`ksql.resource.extension.class` config is either not configured or does not contain \""
+              + KsqlConstants.FIPS_VALIDATOR + "\"");
+    }
+
     this.serverMetadataResource = ServerMetadataResource.create(serviceContext, ksqlConfigNoPort);
     final StatementParser statementParser = new StatementParser(ksqlEngine);
     final Optional<KsqlAuthorizationValidator> authorizationValidator =
@@ -509,6 +534,14 @@ public final class KsqlRestApplication implements Executable {
       }
     });
 
+    ksqlResourceExtensions.forEach(resourceExtension -> {
+        try {
+          resourceExtension.close();
+        } catch (IOException e) {
+          log.error("Exception while closing resource extension", e);
+        }
+    });
+
     try {
       ksqlEngine.close();
     } catch (final Exception e) {
@@ -612,9 +645,9 @@ public final class KsqlRestApplication implements Executable {
       final FunctionRegistry functionRegistry,
       final Instant ksqlRestAppStartTime
   ) {
-
     final Map<String, Object> updatedRestProps = restConfig.getOriginals();
     final KsqlConfig ksqlConfig = new KsqlConfig(restConfig.getKsqlConfigProperties());
+
     final Vertx vertx = Vertx.vertx(
         new VertxOptions()
             .setMaxWorkerExecuteTimeUnit(TimeUnit.MILLISECONDS)

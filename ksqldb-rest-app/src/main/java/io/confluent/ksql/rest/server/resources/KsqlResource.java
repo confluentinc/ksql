@@ -457,7 +457,7 @@ public class KsqlResource implements KsqlConfigurable {
       final Supplier<String> commandRunnerWarning
   ) {
     final String commandRunnerIssueString = commandRunnerWarning.get();
-    if (!commandRunnerIssueString.equals("")) {
+    if (!commandRunnerIssueString.isEmpty()) {
       for (final KsqlEntity entity: entityList) {
         entity.updateWarnings(Collections.singletonList(
             new KsqlWarning(commandRunnerIssueString)));

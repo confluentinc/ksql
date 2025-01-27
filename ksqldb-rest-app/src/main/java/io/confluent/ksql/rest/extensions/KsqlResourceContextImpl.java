@@ -23,7 +23,9 @@ public class KsqlResourceContextImpl implements KsqlResourceContext {
   private final KsqlConfig ksqlConfig;
   private final KsqlRestConfig ksqlRestConfig;
 
-  public KsqlResourceContextImpl(KsqlConfig ksqlConfig, KsqlRestConfig restConfig) {
+  public KsqlResourceContextImpl(
+          final KsqlConfig ksqlConfig,
+          final KsqlRestConfig restConfig) {
     this.ksqlConfig = ksqlConfig;
     this.ksqlRestConfig = restConfig;
   }

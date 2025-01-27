@@ -24,8 +24,6 @@ import io.confluent.ksql.function.UserFunctionLoader;
 import io.confluent.ksql.logging.query.QueryLogger;
 import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.properties.PropertiesUtil;
-import io.confluent.ksql.rest.extensions.KsqlResourceContext;
-import io.confluent.ksql.rest.extensions.KsqlResourceContextImpl;
 import io.confluent.ksql.rest.server.state.ServerState;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.util.KsqlConfig;

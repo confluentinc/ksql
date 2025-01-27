@@ -1792,6 +1792,10 @@ public class KsqlConfig extends AbstractConfig {
     return Collections.unmodifiableMap(map);
   }
 
+  public boolean enableFips() {
+    return getBoolean(ConfluentConfigs.ENABLE_FIPS_CONFIG);
+  }
+
   public Map<String, Object> addConfluentMetricsContextConfigsKafka(
       final Map<String,Object> props
   ) {

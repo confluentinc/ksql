@@ -27,7 +27,7 @@ public final class MetricsTagsUtil {
       final String queryId,
       final Map<String, String> tags
   ) {
-    if (queryId.equals("")) {
+    if (queryId.isEmpty()) {
       return tags;
     }
     return addMetricTagToMap("query-id", queryId, tags);

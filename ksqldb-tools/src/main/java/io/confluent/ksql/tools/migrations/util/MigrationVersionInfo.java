@@ -121,7 +121,7 @@ public final class MigrationVersionInfo {
   }
 
   private static String formatTimestamp(final String epochTime) {
-    if (epochTime.equals("") || epochTime.equals(EMPTY_MIGRATION_TIMESTAMP)) {
+    if (epochTime.isEmpty() || epochTime.equals(EMPTY_MIGRATION_TIMESTAMP)) {
       return epochTime;
     }
 

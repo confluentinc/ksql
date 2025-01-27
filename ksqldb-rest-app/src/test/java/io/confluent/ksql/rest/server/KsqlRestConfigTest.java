@@ -24,19 +24,24 @@ import static org.apache.kafka.streams.StreamsConfig.BOOTSTRAP_SERVERS_CONFIG;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.rest.extensions.KsqlResourceExtension;
+import io.confluent.ksql.rest.server.extensions.DummyResourceExtension;
 import io.confluent.ksql.util.KsqlConfig;
 import io.vertx.core.http.ClientAuth;
 import java.net.InetAddress;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.UnknownHostException;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
@@ -90,6 +95,45 @@ public class KsqlRestConfigTest {
         ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest",
         KsqlConfig.KSQL_SERVICE_ID_CONFIG, "test"))
     );
+  }
+
+  @Test
+  public void shouldGetConfiguredKsqlResourceExtensions() {
+    // Given:
+    final KsqlRestConfig config = new KsqlRestConfig(ImmutableMap.<String, Object>builder()
+            .putAll(MIN_VALID_CONFIGS)
+            .put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")
+            .put(KsqlConfig.KSQL_SERVICE_ID_CONFIG, "test")
+            .put(KsqlRestConfig.KSQL_RESOURCE_EXTENSION,
+                    "io.confluent.ksql.rest.server.extensions.DummyResourceExtension")
+            .build()
+    );
+
+    // When:
+    final List<KsqlResourceExtension> ksqlResourceExtensions
+            = config.getKsqlResourceExtensions();
+
+    // Then:
+    assertEquals(1, ksqlResourceExtensions.size());
+    assertTrue(ksqlResourceExtensions.get(0) instanceof DummyResourceExtension);
+  }
+
+  @Test
+  public void shouldGetEmptyKsqlResourceExtensionsIfNotConfigured() {
+    // Given:
+    final KsqlRestConfig config = new KsqlRestConfig(ImmutableMap.<String, Object>builder()
+            .putAll(MIN_VALID_CONFIGS)
+            .put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")
+            .put(KsqlConfig.KSQL_SERVICE_ID_CONFIG, "test")
+            .build()
+    );
+
+    // When:
+    final List<KsqlResourceExtension> ksqlResourceExtensions
+            = config.getKsqlResourceExtensions();
+
+    // Then:
+    assertTrue(ksqlResourceExtensions.isEmpty());
   }
 
   // Just a sanity check to make sure that, although they contain identical mappings, successive maps returned by calls

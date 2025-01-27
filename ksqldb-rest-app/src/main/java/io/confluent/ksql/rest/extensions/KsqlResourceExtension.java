@@ -16,7 +16,6 @@
 package io.confluent.ksql.rest.extensions;
 
 import io.confluent.ksql.util.KsqlException;
-
 import java.io.Closeable;
 
 public interface KsqlResourceExtension extends Closeable {

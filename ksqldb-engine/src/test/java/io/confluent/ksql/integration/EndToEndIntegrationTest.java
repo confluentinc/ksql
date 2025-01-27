@@ -12,6 +12,7 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
+
 package io.confluent.ksql.integration;
 
 import static io.confluent.ksql.serde.FormatFactory.JSON;
@@ -29,7 +30,6 @@ import static org.hamcrest.Matchers.startsWith;
 
 import com.google.common.collect.ImmutableMap;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.kafka.schemaregistry.avro.AvroSchema;
 import io.confluent.ksql.GenericRow;
@@ -52,14 +52,11 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import kafka.zookeeper.ZooKeeperClientException;
-import org.apache.kafka.clients.admin.ListTopicsResult;
-import org.apache.kafka.clients.admin.TopicListing;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerInterceptor;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -83,8 +80,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * This test emulates the end to end flow in the quick start guide and ensures that the outputs at each stage
- * are what we expect. This tests a broad set of KSQL functionality and is a good catch-all.
+ * This test emulates the end to end flow in the quick start guide and ensures that the outputs
+ * at each stage are what we expect. This tests a broad set of KSQL functionality and is a
+ * good catch-all.
  */
 @SuppressWarnings("ConstantConditions")
 @RunWith(Parameterized.class)
@@ -108,7 +106,7 @@ public class EndToEndIntegrationTest {
 
   private static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.build();
 
-  @SuppressWarnings("deprecation")
+
   @Parameterized.Parameters(name = "{0}")
   public static Collection<Boolean> data() {
     return Arrays.asList(
@@ -161,7 +159,7 @@ public class EndToEndIntegrationTest {
 
     ksqlContext.before();
 
-    ConfigurableUdf.PASSED_CONFIG = null;
+    UdfConfigCapturer.getInstance().reset();
     PRODUCED_COUNT.set(0);
     CONSUMED_COUNT.set(0);
     toClose.clear();
@@ -203,7 +201,8 @@ public class EndToEndIntegrationTest {
 
   @Test
   public void shouldSelectAllFromUsers() throws Exception {
-    final TransientQueryMetadata queryMetadata = executeStatement("SELECT * from %s EMIT CHANGES;", USER_TABLE);
+    final TransientQueryMetadata queryMetadata = executeStatement(
+        "SELECT * from %s EMIT CHANGES;", USER_TABLE);
 
     final Set<String> expectedUsers = USER_DATA_PROVIDER.data().keySet().stream()
         .map(s -> (String) s.get(0))
@@ -266,7 +265,8 @@ public class EndToEndIntegrationTest {
         PAGE_VIEW_STREAM));
 
     TEST_HARNESS.produceRows(
-        PAGE_VIEW_TOPIC, PAGE_VIEW_DATA_PROVIDER, KEY_FORMAT, VALUE_FORMAT, System::currentTimeMillis);
+        PAGE_VIEW_TOPIC, PAGE_VIEW_DATA_PROVIDER, KEY_FORMAT, VALUE_FORMAT,
+        System::currentTimeMillis);
 
     TEST_HARNESS.waitForSubjectToBePresent(KsqlConstants.getSRSubject(topicName, true));
     TEST_HARNESS.waitForSubjectToBePresent(KsqlConstants.getSRSubject(topicName, false));
@@ -299,8 +299,10 @@ public class EndToEndIntegrationTest {
     TEST_HARNESS.waitForSubjectToBePresent(KsqlConstants.getSRSubject(topicName, false));
     TEST_HARNESS.waitForSubjectToBePresent(KsqlConstants.getSRSubject(topicName, true));
 
-    assertThat(TEST_HARNESS.getSchema(KsqlConstants.getSRSubject(topicName, true)), is(new AvroSchema("{\"type\":\"int\"}")));
-    assertThat(TEST_HARNESS.getSchema(KsqlConstants.getSRSubject(topicName, false)), is(new AvroSchema("{\"type\":\"int\"}")));
+    assertThat(TEST_HARNESS.getSchema(KsqlConstants.getSRSubject(topicName, true)),
+        is(new AvroSchema("{\"type\":\"int\"}")));
+    assertThat(TEST_HARNESS.getSchema(KsqlConstants.getSRSubject(topicName, false)),
+        is(new AvroSchema("{\"type\":\"int\"}")));
   }
 
   @Test
@@ -336,7 +338,7 @@ public class EndToEndIntegrationTest {
     // Then:
     final List<GenericRow> rows = verifyAvailableRows(queryMetadata, 5);
 
-    assertThat(ConfigurableUdf.PASSED_CONFIG, is(ImmutableMap.of(
+    assertThat(UdfConfigCapturer.getInstance().getCapturedConfig(), is(ImmutableMap.of(
         KSQL_FUNCTIONS_PROPERTY_PREFIX + "e2econfigurableudf.some.setting",
         "foo-bar",
         KSQL_FUNCTIONS_PROPERTY_PREFIX + "_global_.expected-param",
@@ -357,7 +359,7 @@ public class EndToEndIntegrationTest {
 
     final List<QueryMetadata> newQueries = queries.stream()
         .filter(q -> !(q instanceof PersistentQueryMetadata))
-        .collect(Collectors.toList());
+        .toList();
 
     newQueries.forEach(QueryMetadata::start);
 
@@ -430,17 +432,38 @@ public class EndToEndIntegrationTest {
     }
   }
 
+  public static final class UdfConfigCapturer {
+    private static final UdfConfigCapturer INSTANCE = new UdfConfigCapturer();
+    private Map<String, ?> capturedConfig;
+
+    private UdfConfigCapturer() {}
+
+    public static UdfConfigCapturer getInstance() {
+      return INSTANCE;
+    }
+
+    public synchronized void setCapturedConfig(final Map<String, ?> config) {
+      this.capturedConfig = config;
+    }
+
+    public synchronized Map<String, ?> getCapturedConfig() {
+      return this.capturedConfig;
+    }
+
+    public synchronized void reset() {
+      this.capturedConfig = null;
+    }
+  }
+
   @SuppressWarnings({"unused", "MethodMayBeStatic"}) // Invoked via reflection in test.
   @UdfDescription(
       name = "E2EConfigurableUdf",
       description = "A test-only UDF for testing udfs work end-to-end and configure() is called")
   public static class ConfigurableUdf implements Configurable {
-    private static Map<String, ?> PASSED_CONFIG = null;
 
-    @SuppressFBWarnings("ST_WRITE_TO_STATIC_FROM_INSTANCE_METHOD")
     @Override
     public void configure(final Map<String, ?> map) {
-      PASSED_CONFIG = map;
+      UdfConfigCapturer.getInstance().setCapturedConfig(map);
     }
 
     @Udf

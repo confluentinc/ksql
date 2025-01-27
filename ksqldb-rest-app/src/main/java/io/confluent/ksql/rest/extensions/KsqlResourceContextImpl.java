@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.rest.extensions;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.util.KsqlConfig;
 
@@ -31,11 +32,13 @@ public class KsqlResourceContextImpl implements KsqlResourceContext {
   }
 
   @Override
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP")
   public KsqlConfig ksqlConfig() {
     return ksqlConfig;
   }
 
   @Override
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP")
   public KsqlRestConfig ksqlRestConfig() {
     return ksqlRestConfig;
   }

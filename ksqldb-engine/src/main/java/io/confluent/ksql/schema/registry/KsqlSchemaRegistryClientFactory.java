@@ -115,7 +115,7 @@ public class KsqlSchemaRegistryClientFactory {
   }
 
   public SchemaRegistryClient get() {
-    if (schemaRegistryUrl.equals("")) {
+    if (schemaRegistryUrl.isEmpty()) {
       return new DefaultSchemaRegistryClient();
     }
   

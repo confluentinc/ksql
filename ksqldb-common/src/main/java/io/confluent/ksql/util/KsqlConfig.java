@@ -1944,7 +1944,7 @@ public class KsqlConfig extends AbstractConfig {
 
   public static Map<String, String> parseStringAsMap(final String key, final String value) {
     try {
-      return value.equals("")
+      return value.isEmpty()
           ? Collections.emptyMap()
           : Splitter.on(",").trimResults().withKeyValueSeparator(":").split(value);
     } catch (final IllegalArgumentException e) {

@@ -126,7 +126,6 @@ import io.vertx.core.VertxOptions;
 import io.vertx.core.net.SocketAddress;
 import io.vertx.ext.dropwizard.DropwizardMetricsOptions;
 import io.vertx.ext.dropwizard.Match;
-
 import java.io.Console;
 import java.io.File;
 import java.io.IOException;
@@ -321,7 +320,7 @@ public final class KsqlRestApplication implements Executable {
   public void startAsync() {
     log.debug("Starting the ksqlDB API server");
 
-    KsqlResourceContext ksqlResourceContext
+    final KsqlResourceContext ksqlResourceContext
             = new KsqlResourceContextImpl(ksqlConfigNoPort, restConfig);
 
     boolean isFipsValidatorConfigured = false;
@@ -329,13 +328,13 @@ public final class KsqlRestApplication implements Executable {
       resourceExtension.register(ksqlResourceContext);
       if (KsqlConstants.FIPS_VALIDATOR
               .equals(resourceExtension.getClass().getCanonicalName())) {
-          isFipsValidatorConfigured = true;
+        isFipsValidatorConfigured = true;
       }
     }
     if (ksqlConfigNoPort.enableFips() && !isFipsValidatorConfigured) {
-      throw new KsqlException("Error enabling the FIPS resource extension: `enable.fips` is set to true but the "
-              + "`ksql.resource.extension.class` config is either not configured or does not contain \""
-              + KsqlConstants.FIPS_VALIDATOR + "\"");
+      throw new KsqlException("Error enabling the FIPS resource extension: `enable.fips` is set"
+              + " to true but the `ksql.resource.extension.class` config is either not configured"
+              + " or does not contain \"" + KsqlConstants.FIPS_VALIDATOR + "\"");
     }
 
     this.serverMetadataResource = ServerMetadataResource.create(serviceContext, ksqlConfigNoPort);
@@ -535,11 +534,11 @@ public final class KsqlRestApplication implements Executable {
     });
 
     ksqlResourceExtensions.forEach(resourceExtension -> {
-        try {
-          resourceExtension.close();
-        } catch (IOException e) {
-          log.error("Exception while closing resource extension", e);
-        }
+      try {
+        resourceExtension.close();
+      } catch (IOException e) {
+        log.error("Exception while closing resource extension", e);
+      }
     });
 
     try {

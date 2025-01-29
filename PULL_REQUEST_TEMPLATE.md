@@ -7,4 +7,3 @@ _Describe the testing strategy. Unit and integration tests are expected for any 
 ### Reviewer checklist
 - [ ] Ensure docs are updated if necessary. (eg. if a user visible feature is being added or changed).
 - [ ] Ensure relevant issues are linked (description should include text like "Fixes #<issue number>")
-

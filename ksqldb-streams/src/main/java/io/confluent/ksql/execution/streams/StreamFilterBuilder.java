@@ -19,6 +19,7 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.plan.KStreamHolder;
 import io.confluent.ksql.execution.plan.StreamFilter;
 import io.confluent.ksql.execution.runtime.RuntimeBuildContext;
+import io.confluent.ksql.execution.streams.process.KsFlatValueProcessor;
 import io.confluent.ksql.execution.streams.transform.KsValueTransformer;
 import io.confluent.ksql.execution.transform.KsqlTransformer;
 import io.confluent.ksql.execution.transform.sqlpredicate.SqlPredicate;
@@ -58,8 +59,8 @@ public final class StreamFilterBuilder {
         .getProcessingLogger(step.getProperties().getQueryContext());
 
     final KStream<K, GenericRow> filtered = stream.getStream()
-        .flatTransformValues(
-            () -> toFlatMapTransformer(predicate.getTransformer(processingLogger)),
+        .processValues(
+            () -> KsFlatValueProcessor.of(predicate.getTransformer(processingLogger)),
             Named.as(StreamsUtil.buildOpName(step.getProperties().getQueryContext()))
         );
 

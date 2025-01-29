@@ -438,14 +438,17 @@ public class EndToEndIntegrationTest {
 
     private UdfConfigCapturer() {}
 
+    @SuppressFBWarnings(value = "MS_EXPOSE_REP")
     public static UdfConfigCapturer getInstance() {
       return INSTANCE;
     }
 
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
     public synchronized void setCapturedConfig(final Map<String, ?> config) {
       this.capturedConfig = config;
     }
 
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP")
     public synchronized Map<String, ?> getCapturedConfig() {
       return this.capturedConfig;
     }

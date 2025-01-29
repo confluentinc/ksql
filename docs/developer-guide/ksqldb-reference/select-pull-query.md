@@ -61,10 +61,24 @@ Table scans can also be enabled by default by setting a server configuration pro
 -   References to subsets of columns from a multi-column key.
 -   Complex expressions without direct column references using UDFs and function calls (e.g. `instr(NAME_COL, 'hello') > 0`).
 
-!!! note
-	Table scan based queries are just the next incremental step for ksqlDB pull queries. 
-	In future releases, we will continue pushing the envelope of new query capabilities and 
-	greater performance and efficiency.
+Session-windowed tables can't be table-scanned, and only key-lookup queries
+are possible against them.
+
+!!! important
+    ksqlDB may experience a deadlock if you run multiple pull queries concurrently.
+
+    If you experience hanging pull queries, the following mitigations may help.
+
+    - Rewrite your persistent queries or add a new persistent query to enable
+      efficient pull queries, ideally key lookups, but at least short-range scans,
+      or decrease state store size.
+    - Rewrite your table scans as individual key lookups.
+    - Continue issuing table scans, but issue fewer of them at once.
+    - Adjust your pull query load to avoid sharp spikes in the pull query
+      request rate all at once.
+    - Implement timeouts from your client so that if pull queries take too
+      long to run, your client terminates the connection to free up resources
+      and unblock other queries.
 
 ## Examples
 

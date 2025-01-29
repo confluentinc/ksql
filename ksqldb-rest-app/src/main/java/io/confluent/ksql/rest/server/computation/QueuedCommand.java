@@ -55,13 +55,11 @@ public class QueuedCommand {
     this.offset = Objects.requireNonNull(offset, "offset");
   }
 
-  @VisibleForTesting
-  byte[] getCommandId() {
+  public byte[] getCommandId() {
     return Arrays.copyOf(commandId, commandId.length);
   }
 
-  @VisibleForTesting
-  byte[] getCommand() {
+  public byte[] getCommand() {
     return  Arrays.copyOf(command, command.length);
   }
 

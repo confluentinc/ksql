@@ -31,6 +31,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
+import org.apache.kafka.common.MetricName;
+import org.apache.kafka.common.metrics.Gauge;
 import org.apache.kafka.common.metrics.MeasurableStat;
 import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.common.metrics.Sensor;
@@ -56,8 +59,6 @@ public class PullQueryExecutorMetrics implements Closeable {
   private final List<Sensor> sensors;
   private final Sensor localRequestsSensor;
   private final Sensor remoteRequestsSensor;
-  private final Sensor partitionFetchSensor;
-  private final Sensor resubmissionRequestsSensor;
   private final Sensor latencySensor;
   private final Map<MetricsKey, Sensor> latencySensorMap;
   private final Sensor requestRateSensor;
@@ -79,6 +80,10 @@ public class PullQueryExecutorMetrics implements Closeable {
   private final String ksqlServicePrefix;
   private final Time time;
 
+  private Supplier<Integer> coordinatorThreadPoolSupplier;
+  private Supplier<Integer> routerThreadPoolSupplier;
+
+
   @SuppressFBWarnings(value = "EI_EXPOSE_REP2", justification = "metrics")
   public PullQueryExecutorMetrics(
       final String ksqlServiceId,
@@ -94,14 +99,11 @@ public class PullQueryExecutorMetrics implements Closeable {
     final Map<String, String> metricsTags = new HashMap<>(customMetricsTags);
     metricsTags.put(KsqlConstants.KSQL_SERVICE_ID_METRICS_TAG, ksqlServiceId);
     this.customMetricsTags = ImmutableMap.copyOf(metricsTags);
-
     this.time = Objects.requireNonNull(time, "time");
     this.metrics = metrics;
     this.sensors = new ArrayList<>();
     this.localRequestsSensor = configureLocalRequestsSensor();
     this.remoteRequestsSensor = configureRemoteRequestsSensor();
-    this.partitionFetchSensor = configurePartitionFetchSensor();
-    this.resubmissionRequestsSensor = configureResubmissionRequestsSensor();
     this.latencySensor = configureLatencySensor();
     this.latencySensorMap = configureLatencySensorMap();
     this.requestRateSensor = configureRateSensor();
@@ -116,11 +118,20 @@ public class PullQueryExecutorMetrics implements Closeable {
     this.responseCode5XX = configureStatusCodeSensor("5XX");
     this.rowsReturnedSensorMap = configureRowsReturnedSensorMap();
     this.rowsProcessedSensorMap = configureRowsProcessedSensorMap();
+    configureThreadPoolMetrics();
   }
 
   @Override
   public void close() {
     sensors.forEach(sensor -> metrics.removeSensor(sensor.name()));
+  }
+
+  public void registerCoordinatorThreadPoolSupplier(final Supplier<Integer> supplier) {
+    coordinatorThreadPoolSupplier = supplier;
+  }
+
+  public void registerRouterThreadPoolSupplier(final Supplier<Integer> supplier) {
+    routerThreadPoolSupplier = supplier;
   }
 
   public void recordLocalRequests(final double value) {
@@ -129,67 +140,6 @@ public class PullQueryExecutorMetrics implements Closeable {
 
   public void recordRemoteRequests(final double value) {
     this.remoteRequestsSensor.record(value);
-  }
-
-  public void recordPartitionFetchRequest(final double value) {
-    this.partitionFetchSensor.record(value);
-  }
-
-  public void recordResubmissionRequest(final double value) {
-    this.partitionFetchSensor.record(value);
-    this.resubmissionRequestsSensor.record(value);
-  }
-
-  private Sensor configurePartitionFetchSensor() {
-    final Sensor sensor = metrics.sensor(
-        PULL_QUERY_METRIC_GROUP + "-" + PULL_REQUESTS + "-partition-fetch");
-
-    addSensor(
-         sensor,
-        PULL_REQUESTS + "-partition-fetch-count",
-        ksqlServicePrefix + PULL_QUERY_METRIC_GROUP,
-        "Count of total partition fetch pull query requests",
-         customMetricsTags,
-         new CumulativeCount()
-    );
-
-    addSensor(
-         sensor,
-        PULL_REQUESTS + "-partition-fetch-rate",
-        ksqlServicePrefix + PULL_QUERY_METRIC_GROUP,
-        "Rate of total partition fetch pull query requests",
-         customMetricsTags,
-         new Rate()
-    );
-
-    sensors.add(sensor);
-    return sensor;
-  }
-
-  private Sensor configureResubmissionRequestsSensor() {
-    final Sensor sensor = metrics.sensor(
-        PULL_QUERY_METRIC_GROUP + "-" + PULL_REQUESTS + "-partition-fetch-resubmission");
-
-    addSensor(
-         sensor,
-        PULL_REQUESTS + "-partition-fetch-resubmission-count",
-        ksqlServicePrefix + PULL_QUERY_METRIC_GROUP,
-        "Count of resubmission partition fetch pull query requests",
-         customMetricsTags,
-         new CumulativeCount()
-    );
-
-    addSensor(
-         sensor,
-        PULL_REQUESTS + "-partition-fetch-resubmission-rate",
-        ksqlServicePrefix + PULL_QUERY_METRIC_GROUP,
-        "Rate of resubmission partition fetch pull query requests",
-         customMetricsTags,
-         new Rate()
-    );
-
-    sensors.add(sensor);
-    return sensor;
   }
 
   public void recordLatency(
@@ -548,6 +498,26 @@ public class PullQueryExecutorMetrics implements Closeable {
       addRequestMetricsToSensor(sensor, ksqlServicePrefix, PULL_REQUESTS + "-detailed",
           tags, " - " + variantName);
     });
+  }
+
+  public void configureThreadPoolMetrics() {
+    final MetricName coordinatorThreadsAvailable = metrics.metricName(
+        PULL_REQUESTS + "-coordinator-thread-pool-free-size",
+        ksqlServicePrefix + PULL_QUERY_METRIC_GROUP,
+        "Number of available threads in the coordinator pool",
+        customMetricsTags
+    );
+    metrics.addMetric(coordinatorThreadsAvailable,
+                      (Gauge<Integer>) (config, now) -> coordinatorThreadPoolSupplier.get());
+
+    final MetricName routerThreadsAvailable = metrics.metricName(
+        PULL_REQUESTS + "-router-thread-pool-free-size",
+        ksqlServicePrefix + PULL_QUERY_METRIC_GROUP,
+        "Number of available threads in the router pool",
+        customMetricsTags
+    );
+    metrics.addMetric(routerThreadsAvailable,
+                      (Gauge<Integer>) (config, now) -> routerThreadPoolSupplier.get());
   }
 
   private void addRequestMetricsToSensor(

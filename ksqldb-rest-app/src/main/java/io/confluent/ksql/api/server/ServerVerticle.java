@@ -29,6 +29,7 @@ import io.confluent.ksql.rest.entity.KsqlMediaType;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.LagReportingMessage;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
+import io.netty.handler.codec.haproxy.HAProxyProtocolException;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Promise;
 import io.vertx.core.http.HttpHeaders;
@@ -413,6 +414,8 @@ public class ServerVerticle extends AbstractVerticle {
   private static void unhandledExceptionHandler(final Throwable t) {
     if (t instanceof ClosedChannelException) {
       log.debug("Unhandled ClosedChannelException (connection likely closed early)", t);
+    } else if (t instanceof HAProxyProtocolException) {
+      log.error("Failed to decode proxy protocol header", t);
     } else {
       log.error("Unhandled exception", t);
     }

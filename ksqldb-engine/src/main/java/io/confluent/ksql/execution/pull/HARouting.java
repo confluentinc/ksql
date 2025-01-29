@@ -27,7 +27,6 @@ import io.confluent.ksql.execution.streams.RoutingOptions;
 import io.confluent.ksql.execution.streams.materialization.Locator.KsqlNode;
 import io.confluent.ksql.execution.streams.materialization.Locator.KsqlPartitionLocation;
 import io.confluent.ksql.execution.streams.materialization.MaterializationException;
-import io.confluent.ksql.execution.streams.materialization.ks.NotUpToBoundException;
 import io.confluent.ksql.internal.PullQueryExecutorMetrics;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.query.PullQueryWriteStream;
@@ -41,16 +40,17 @@ import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlRequestConfig;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutorCompletionService;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
@@ -65,6 +65,9 @@ public final class HARouting implements AutoCloseable {
   private final ExecutorService routerExecutorService;
   private final RoutingFilterFactory routingFilterFactory;
   private final Optional<PullQueryExecutorMetrics> pullQueryMetrics;
+  private final KsqlConfig ksqlConfig;
+  private final int coordinatorPoolSize;
+  private final int routerPoolSize;
 
   public HARouting(
       final RoutingFilterFactory routingFilterFactory,
@@ -73,13 +76,23 @@ public final class HARouting implements AutoCloseable {
   ) {
     this.routingFilterFactory =
         Objects.requireNonNull(routingFilterFactory, "routingFilterFactory");
+    this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
+    this.coordinatorPoolSize = ksqlConfig.getInt(
+        KsqlConfig.KSQL_QUERY_PULL_THREAD_POOL_SIZE_CONFIG);
+    this.routerPoolSize = ksqlConfig.getInt(
+        KsqlConfig.KSQL_QUERY_PULL_ROUTER_THREAD_POOL_SIZE_CONFIG);
     this.coordinatorExecutorService = Executors.newFixedThreadPool(
-        ksqlConfig.getInt(KsqlConfig.KSQL_QUERY_PULL_THREAD_POOL_SIZE_CONFIG),
+        coordinatorPoolSize,
         new ThreadFactoryBuilder().setNameFormat("pull-query-coordinator-%d").build());
     this.routerExecutorService = Executors.newFixedThreadPool(
-        ksqlConfig.getInt(KsqlConfig.KSQL_QUERY_PULL_ROUTER_THREAD_POOL_SIZE_CONFIG),
+        routerPoolSize,
         new ThreadFactoryBuilder().setNameFormat("pull-query-router-%d").build());
     this.pullQueryMetrics = Objects.requireNonNull(pullQueryMetrics, "pullQueryMetrics");
+    this.pullQueryMetrics.ifPresent(pm -> pm.registerCoordinatorThreadPoolSupplier(
+        () -> coordinatorPoolSize
+            - ((ThreadPoolExecutor) coordinatorExecutorService).getActiveCount()));
+    this.pullQueryMetrics.ifPresent(pm -> pm.registerRouterThreadPoolSupplier(
+        () -> routerPoolSize - ((ThreadPoolExecutor) routerExecutorService).getActiveCount()));
   }
 
   @Override
@@ -140,7 +153,6 @@ public final class HARouting implements AutoCloseable {
         completableFuture.completeExceptionally(t);
       }
     });
-
     return completableFuture;
   }
 
@@ -152,84 +164,112 @@ public final class HARouting implements AutoCloseable {
       final List<KsqlPartitionLocation> locations,
       final PullQueryWriteStream pullQueryQueue,
       final CompletableFuture<Void> shouldCancelRequests
-  ) throws InterruptedException {
-    final ExecutorCompletionService<PartitionFetchResult> completionService =
-        new ExecutorCompletionService<>(routerExecutorService);
-    final int totalPartitions = locations.size();
-    int processedPartitions = 0;
-    final Map<Integer, List<Exception>> exceptionsPerPartition = new HashMap<>();
+  ) {
+    // The remaining partition locations to retrieve without error
+    List<KsqlPartitionLocation> remainingLocations = ImmutableList.copyOf(locations);
+    final Map<KsqlNode, List<Exception>> exceptionsPerNode = new HashMap<>();
 
-    for (final KsqlPartitionLocation partition : locations) {
-      final KsqlNode node = getNodeForRound(partition, routingOptions);
-      pullQueryMetrics.ifPresent(queryExecutorMetrics ->
-          queryExecutorMetrics.recordPartitionFetchRequest(1));
-      completionService.submit(
-          () -> executeOrRouteQuery(
-          node, partition, statement, serviceContext, routingOptions,
-          pullQueryMetrics, pullPhysicalPlan, pullQueryQueue,
-          shouldCancelRequests)
-      );
-    }
+    // For each round, each set of partition location objects is grouped by host, and all
+    // keys associated with that host are batched together. For any requests that fail,
+    // the partition location objects will be added to remainingLocations, and the next round
+    // will attempt to fetch them from the next node in their prioritized list.
+    // For example, locations might be:
+    // [ Partition 0 <Host 1, Host 2>,
+    //   Partition 1 <Host 2, Host 1>,
+    //   Partition 2 <Host 1, Host 2> ]
+    // In Round 0, fetch from Host 1: [Partition 0, Partition 2], from Host 2: [Partition 1]
+    // If everything succeeds, we're done.  If Host 1 failed, then we'd have a Round 1:
+    // In Round 1, fetch from Host 2: [Partition 0, Partition 2].
+    try {
+      for (int round = 0; ; round++) {
+        // Group all partition location objects by their nth round node
+        final Map<KsqlNode, List<KsqlPartitionLocation>> groupedByHost
+            = groupByHost(statement, remainingLocations, round);
 
-    while (processedPartitions < totalPartitions) {
-      final Future<PartitionFetchResult> future = completionService.take();
-      try {
-        final PartitionFetchResult fetchResult = future.get();
-        if (fetchResult.isError()) {
-          exceptionsPerPartition.computeIfAbsent(
-              fetchResult.location.getPartition(), v -> new ArrayList<>())
-              .add(fetchResult.exception.get());
-          final KsqlPartitionLocation nextRoundPartition = nextNode(fetchResult.getLocation());
-          final KsqlNode node = getNodeForRound(nextRoundPartition, routingOptions);
-          pullQueryMetrics.ifPresent(queryExecutorMetrics ->
-              queryExecutorMetrics.recordResubmissionRequest(1));
-          completionService.submit(
+        // Make requests to each host, specifying the partitions we're interested in from
+        // this host.
+        final Map<KsqlNode, Future<NodeFetchResult>> futures = new LinkedHashMap<>();
+        for (Map.Entry<KsqlNode, List<KsqlPartitionLocation>> entry : groupedByHost.entrySet()) {
+          final KsqlNode node = entry.getKey();
+          futures.put(node, routerExecutorService.submit(
               () -> executeOrRouteQuery(
-              node, nextRoundPartition, statement, serviceContext, routingOptions,
-              pullQueryMetrics, pullPhysicalPlan, pullQueryQueue,
-              shouldCancelRequests)
-          );
-        } else {
-          Preconditions.checkState(fetchResult.getResult() == RoutingResult.SUCCESS);
-          processedPartitions++;
+                  node, entry.getValue(), statement, serviceContext, routingOptions,
+                  pullQueryMetrics, pullPhysicalPlan, pullQueryQueue,
+                  shouldCancelRequests)
+          ));
         }
-      } catch (final Exception e) {
-        final MaterializationException exception =
-            new MaterializationException(
-                "Unable to execute pull query: " + e.getMessage());
-        for (Entry<Integer, List<Exception>> entry: exceptionsPerPartition.entrySet()) {
-          for (Exception excp: entry.getValue()) {
-            exception.addSuppressed(excp);
+
+        // Go through all of the results of the requests, either aggregating rows or adding
+        // the locations to the nextRoundRemaining list.
+        final ImmutableList.Builder<KsqlPartitionLocation> nextRoundRemaining
+            = ImmutableList.builder();
+
+        for (Map.Entry<KsqlNode, Future<NodeFetchResult>> entry : futures.entrySet()) {
+          final Future<NodeFetchResult> future = entry.getValue();
+          final KsqlNode node = entry.getKey();
+          final NodeFetchResult routingResult  = future.get();
+          if (routingResult.isError()) {
+            nextRoundRemaining.addAll(groupedByHost.get(node));
+            exceptionsPerNode.computeIfAbsent(
+                    routingResult.node, v -> new ArrayList<>())
+                .add(routingResult.exception.get());
+          } else {
+            Preconditions.checkState(routingResult.getResult() == RoutingResult.SUCCESS);
           }
         }
-        throw exception;
+        remainingLocations = nextRoundRemaining.build();
+
+        // If there are no partition locations remaining, then we're done.
+        if (remainingLocations.size() == 0) {
+          pullQueryQueue.close();
+          return;
+        }
       }
+    } catch (final Exception e) {
+      final MaterializationException exception =
+          new MaterializationException(
+              "Unable to execute pull query: " + e.getMessage());
+      for (Entry<KsqlNode, List<Exception>> entry : exceptionsPerNode.entrySet()) {
+        for (Exception excp : entry.getValue()) {
+          exception.addSuppressed(excp);
+        }
+      }
+      throw exception;
+    } finally {
+      pullQueryQueue.close();
     }
-    pullQueryQueue.close();
   }
 
-  private KsqlPartitionLocation nextNode(final KsqlPartitionLocation partition) {
-    return partition.removeHeadHost();
-  }
-
-  private KsqlNode getNodeForRound(
-      final KsqlPartitionLocation location,
-      final RoutingOptions routingOptions) {
-    if (location.getNodes().isEmpty()) {
-      if (routingOptions.getIsSkipForwardRequest()) {
-        throw new MaterializationException("Unable to execute pull query.");
-      } else {
+  /**
+   * Groups all of the partition locations by the round-th entry in their prioritized list of host
+   * nodes.
+   *
+   * @param statement the statement from which this request came
+   * @param locations the list of partition locations to parse
+   * @param round which round this is
+   * @return A map of node to list of partition locations
+   */
+  private static Map<KsqlNode, List<KsqlPartitionLocation>> groupByHost(
+      final ConfiguredStatement<Query> statement,
+      final List<KsqlPartitionLocation> locations,
+      final int round) {
+    final Map<KsqlNode, List<KsqlPartitionLocation>> groupedByHost = new LinkedHashMap<>();
+    for (KsqlPartitionLocation location : locations) {
+      // If one of the partitions required is out of nodes, then we cannot continue.
+      if (round >= location.getNodes().size()) {
         throw new MaterializationException("Exhausted standby hosts to try.");
       }
+      final KsqlNode nextHost = location.getNodes().get(round);
+      groupedByHost.computeIfAbsent(nextHost, h -> new ArrayList<>()).add(location);
     }
-    return location.getNodes().get(0);
+    return groupedByHost;
   }
 
   @SuppressWarnings("ParameterNumber")
   @VisibleForTesting
-  static PartitionFetchResult executeOrRouteQuery(
+  static NodeFetchResult executeOrRouteQuery(
       final KsqlNode node,
-      final KsqlPartitionLocation location,
+      final List<KsqlPartitionLocation> locations,
       final ConfiguredStatement<Query> statement,
       final ServiceContext serviceContext,
       final RoutingOptions routingOptions,
@@ -242,21 +282,18 @@ public final class HARouting implements AutoCloseable {
         = sr -> sr.withSourceHost(routingOptions.getIsDebugRequest() ? toKsqlHostInfo(node) : null);
     if (node.isLocal()) {
       try {
-        LOG.debug("Query {} partition {} executed locally at host {} at timestamp {}.",
-            pullPhysicalPlan.getQueryId(), location.getPartition(),
+        LOG.debug("Query {} partitions {} executed locally at host {} at timestamp {}.",
+            pullPhysicalPlan.getQueryId(), locations,
             node.location(), System.currentTimeMillis());
         pullQueryMetrics
           .ifPresent(queryExecutorMetrics -> queryExecutorMetrics.recordLocalRequests(1));
-        synchronized (pullPhysicalPlan) {
-          pullPhysicalPlan.execute(ImmutableList.of(location), pullQueryQueue, addHostInfo);
-          return new PartitionFetchResult(
-              RoutingResult.SUCCESS, location, Optional.empty());
-        }
-      } catch (StandbyFallbackException | NotUpToBoundException e) {
+        pullPhysicalPlan.execute(locations, pullQueryQueue, addHostInfo);
+        return new NodeFetchResult(RoutingResult.SUCCESS, node, Optional.empty());
+
+      } catch (StandbyFallbackException e) {
         LOG.warn("Error executing query locally at node {}. Falling back to standby state which "
             + "may return stale results. Cause {}", node, e.getMessage());
-        return new PartitionFetchResult(
-            RoutingResult.STANDBY_FALLBACK, location, Optional.of(e));
+        return new NodeFetchResult(RoutingResult.STANDBY_FALLBACK, node, Optional.of(e));
       } catch (Exception e) {
         throw new KsqlException(
           String.format("Error executing query locally at node %s: %s", node.location(),
@@ -266,20 +303,23 @@ public final class HARouting implements AutoCloseable {
       }
     } else {
       try {
-        LOG.debug("Query {} partition {} routed to host {} at timestamp {}.",
-            pullPhysicalPlan.getQueryId(), location.getPartition(),
+        if (routingOptions.getIsSkipForwardRequest()) {
+          throw new MaterializationException(
+              "Unable to execute pull query: the request has already been forwarded and failed. "
+                  + "Cannot forward again.");
+        }
+        LOG.debug("Query {} partitions {} routed to host {} at timestamp {}.",
+            pullPhysicalPlan.getQueryId(), locations,
             node.location(), System.currentTimeMillis());
         pullQueryMetrics
           .ifPresent(queryExecutorMetrics -> queryExecutorMetrics.recordRemoteRequests(1));
-        forwardTo(node, ImmutableList.of(location), statement, serviceContext, pullQueryQueue,
+        forwardTo(node, locations, statement, serviceContext, pullQueryQueue,
             shouldCancelRequests, addHostInfo);
-        return new PartitionFetchResult(
-            RoutingResult.SUCCESS, location, Optional.empty());
+        return new NodeFetchResult(RoutingResult.SUCCESS, node, Optional.empty());
       } catch (StandbyFallbackException e) {
         LOG.warn("Error forwarding query to node {}. Falling back to standby state which may "
             + "return stale results", node.location(), e.getCause());
-        return new PartitionFetchResult(
-            RoutingResult.STANDBY_FALLBACK, location, Optional.of(e));
+        return new NodeFetchResult(RoutingResult.STANDBY_FALLBACK, node, Optional.of(e));
       } catch (Exception e) {
         throw new KsqlException(
           String.format("Error forwarding query to node %s: %s", node.location(), e.getMessage()),
@@ -382,19 +422,19 @@ public final class HARouting implements AutoCloseable {
     STANDBY_FALLBACK
   }
 
-  private static class PartitionFetchResult {
+  private static class NodeFetchResult {
 
     private final RoutingResult routingResult;
-    private final KsqlPartitionLocation location;
+    private final KsqlNode node;
     private final Optional<Exception> exception;
 
-    PartitionFetchResult(
+    NodeFetchResult(
         final RoutingResult routingResult,
-        final KsqlPartitionLocation location,
+        final KsqlNode node,
         final Optional<Exception> exception
     ) {
       this.routingResult = routingResult;
-      this.location = location;
+      this.node = node;
       this.exception = exception;
     }
 
@@ -406,8 +446,8 @@ public final class HARouting implements AutoCloseable {
       return routingResult;
     }
 
-    public KsqlPartitionLocation getLocation() {
-      return location;
+    public KsqlNode getNode() {
+      return node;
     }
 
     public Optional<Exception> getException() {

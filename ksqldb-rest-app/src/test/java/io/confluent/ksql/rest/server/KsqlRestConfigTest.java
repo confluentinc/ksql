@@ -19,6 +19,7 @@ package io.confluent.ksql.rest.server;
 import static io.confluent.ksql.rest.server.KsqlRestConfig.ADVERTISED_LISTENER_CONFIG;
 import static io.confluent.ksql.rest.server.KsqlRestConfig.INTERNAL_LISTENER_CONFIG;
 import static io.confluent.ksql.rest.server.KsqlRestConfig.LISTENERS_CONFIG;
+import static io.confluent.ksql.rest.server.KsqlRestConfig.PROXY_PROTOCOL_LISTENERS_CONFIG;
 import static org.apache.kafka.streams.StreamsConfig.BOOTSTRAP_SERVERS_CONFIG;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
@@ -128,6 +129,25 @@ public class KsqlRestConfigTest {
     assertThat(e.getMessage(), containsString(
         "Invalid value INVALID for configuration "
             + LISTENERS_CONFIG
+            + ": Not valid URL: no protocol: INVALID"));
+  }
+
+  @Test
+  public void shouldThrowIfAnyProxyProtocolListenerIsInvalidUrl() {
+    // When:
+    final Exception e = assertThrows(
+        ConfigException.class,
+        () -> new KsqlRestConfig(ImmutableMap.<String, Object>builder()
+            .put(BOOTSTRAP_SERVERS_CONFIG, "localhost:9092")
+            .put(PROXY_PROTOCOL_LISTENERS_CONFIG, "http://localhost:9875,INVALID")
+            .build()
+        )
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Invalid value INVALID for configuration "
+            + PROXY_PROTOCOL_LISTENERS_CONFIG
             + ": Not valid URL: no protocol: INVALID"));
   }
 

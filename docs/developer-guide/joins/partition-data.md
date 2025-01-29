@@ -242,6 +242,10 @@ though both sides are keyed by `userId`.
 ksqlDB can't verify whether the partitioning strategies are the same for
 both join inputs, so you must ensure this.
 
+!!! note
+    The right-hand side of foreign-key joins must have the default partitioner,
+    which is `murmur2`, the default Java partitioner.
+
 The
 [DefaultPartitioner class](https://github.com/apache/kafka/blob/trunk/clients/src/main/java/org/apache/kafka/clients/producer/internals/DefaultPartitioner.java)
 implements the following partitioning strategy:

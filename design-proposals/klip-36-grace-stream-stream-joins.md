@@ -1,9 +1,9 @@
 # KLIP 36 - GRACE period for stream-stream joins
 
 **Author**: agavra | 
-**Release Target**: 0.14 | 
-**Status**: In Discussion | 
-**Discussion**: TBD
+**Release Target**: 0.23.1; 7.1.0 | 
+**Status**: _Merged_ | 
+**Discussion**: https://github.com/confluentinc/ksql/pull/6175
 
 **tl;dr:** _Support controlling the GRACE period for a stream-stream join to improve disk space
 utilization for small windows_

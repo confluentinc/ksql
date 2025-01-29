@@ -680,9 +680,10 @@ public class TestKsqlRestApp extends ExternalResource {
     }
 
     public Builder withNetworkDisruptorInternalKsqlClient(NetworkState networkState) {
-      internalSimpleKsqlClientFactory = (authHeader, ksqlClient) ->
+      internalSimpleKsqlClientFactory = (authHeader, additionalProps, ksqlClient) ->
           new NetworkDisruptorClient(
-              TestDefaultKsqlClientFactory.instance(authHeader, ksqlClient), networkState);
+              TestDefaultKsqlClientFactory.instance(authHeader, additionalProps, ksqlClient),
+              networkState);
       return this;
     }
 

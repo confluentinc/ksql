@@ -1,8 +1,8 @@
 # KLIP 24 - KEY column semantics in queries
 
 **Author**: @big-andy-coates |
-**Release Target**: 0.10.0 |
-**Status**: In Discussion |
+**Release Target**: 0.10.0; 6.0.0 |
+**Status**: _Merged_ |
 **Discussion**: [Github PR](https://github.com/confluentinc/ksql/pull/5115)
 
 **tl;dr:** Persistent queries do not allow the key column in the projection as key columns are

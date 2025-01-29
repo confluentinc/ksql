@@ -1,8 +1,8 @@
 # KLIP 50 - Partition and Offset in ksqlDB
 
 **Author**: Victoria Xia (@vcrfxia) | 
-**Release Target**: 0.23.0 | 
-**Status**: _In Discussion_ | 
+**Release Target**: 0.23.1; 7.1.0 | 
+**Status**: _Merged_ | 
 **Discussion**: https://github.com/confluentinc/ksql/pull/7505
 
 **tl;dr:** _To aid in development and debugging of ksqlDB applications, ksqlDB should

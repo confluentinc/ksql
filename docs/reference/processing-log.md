@@ -51,6 +51,11 @@ Execution plan
 Internally, the log uses Log4J to write entries, so you can configure it
 just like you configure the normal ksqlDB log.
 
+!!! important
+    ksqlDB logs only error messages and doesn't use the log level from the
+    log4.properties file, which means that you can't change the log level of
+    the processing log.
+
 - For local deployments, edit the
 [log4j.properties](https://github.com/confluentinc/ksql/blob/master/config/log4j.properties)
 config file to assign Log4J properties.
@@ -89,6 +94,37 @@ environment:
     KSQL_KSQL_LOGGING_PROCESSING_TOPIC_AUTO_CREATE: "true"
     KSQL_KSQL_LOGGING_PROCESSING_STREAM_AUTO_CREATE: "true"
 ```
+
+If the cluster in the BROKERLIST is secured, additional Log4j configurations
+are required. These don't have corresponding Docker variables, so a custom
+Log4j file is required.
+
+In addition to the standard configuration properties for topic name and broker
+list for the `KafkaLog4jAppender`, here's a list of additional settings that
+you can provide optionally to authenticate with a secure {{ site.ak }} cluster.
+
+- `log4j.appender.kafka_appender.SecurityProtocol`
+- `log4j.appender.kafka_appender.SslTrustStoreLocation`
+- `log4j.appender.kafka_appender.SslTrustStorePassword`
+- `log4j.appender.kafka_appender.SslKeystoreType`
+- `log4j.appender.kafka_appender.SslKeystoreLocation`
+- `log4j.appender.kafka_appender.SslKeystorePassword`
+- `log4j.appender.kafka_appender.SaslKerberosServiceName`
+- `log4j.appender.kafka_appender.SaslMechanism`
+- `log4j.appender.kafka_appender.ClientJaasConfigPath`
+- `log4j.appender.kafka_appender.ClientJaasConf`
+- `log4j.appender.kafka_appender.Kerb5ConfPath`
+
+Only properties that are relevant to your {{ site.ak }} cluster's security
+configuration need to be specified. For an example of configuring the processing
+log to produce to a {{ site.ak }} cluster secured with mTLS, see the example in
+[cp-demo](https://github.com/confluentinc/cp-demo/blob/master/scripts/helper/log4j-secure.properties).
+
+!!! note
+
+    The `KafkaLog4jAppender` doesn't provide the option of specifying SASL
+    login callback handlers, so SASL/OAUTHBEARER authentication, whichtypically
+    requires a login callback handler, is not a valid option.
 
 For more information, see
 [Create a log4J configuration](https://developer.confluent.io/tutorials/handling-deserialization-errors/ksql.html#create-a-log4j-configuration)

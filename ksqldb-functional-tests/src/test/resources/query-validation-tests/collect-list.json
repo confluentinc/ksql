@@ -305,10 +305,8 @@
       ],
       "outputs": [
         {"topic": "S2", "key": 0, "value": {"COLLECTED": [0]}},
-        {"topic": "S2", "key": 0, "value": {"COLLECTED": []}},
         {"topic": "S2", "key": 0, "value": {"COLLECTED": [100]}},
         {"topic": "S2", "key": 100, "value": {"COLLECTED": [500]}},
-        {"topic": "S2", "key": 100, "value": {"COLLECTED": []}},
         {"topic": "S2", "key": 100, "value": {"COLLECTED": [100]}}
       ]
     },
@@ -327,10 +325,8 @@
       ],
       "outputs": [
         {"topic": "S2", "key": 0, "value": {"COLLECTED": [2147483648]}},
-        {"topic": "S2", "key": 0, "value": {"COLLECTED": []}},
         {"topic": "S2", "key": 0, "value": {"COLLECTED": [100]}},
         {"topic": "S2", "key": 100, "value": {"COLLECTED": [500]}},
-        {"topic": "S2", "key": 100, "value": {"COLLECTED": []}},
         {"topic": "S2", "key": 100, "value": {"COLLECTED": [100]}}
       ]
     },
@@ -349,10 +345,8 @@
       ],
       "outputs": [
         {"topic": "S2", "key": 0,"value": {"COLLECTED": [5.4]}},
-        {"topic": "S2", "key": 0,"value": {"COLLECTED": []}},
         {"topic": "S2", "key": 0,"value": {"COLLECTED": [100.1]}},
         {"topic": "S2", "key": 100,"value": {"COLLECTED": [500.9]}},
-        {"topic": "S2", "key": 100,"value": {"COLLECTED": []}},
         {"topic": "S2", "key": 100,"value": {"COLLECTED": [300.8]}}
       ]
     },
@@ -373,11 +367,8 @@
       "outputs": [
         {"topic": "S2", "key": 0,"value": {"COLLECTED": ["foo"]}},
         {"topic": "S2", "key": 100,"value": {"COLLECTED": ["baz"]}},
-        {"topic": "S2", "key": 0,"value": {"COLLECTED": []}},
         {"topic": "S2", "key": 0,"value": {"COLLECTED": ["bar"]}},
-        {"topic": "S2", "key": 100,"value": {"COLLECTED": []}},
         {"topic": "S2", "key": 100,"value": {"COLLECTED": ["baz"]}},
-        {"topic": "S2", "key": 100,"value": {"COLLECTED": []}},
         {"topic": "S2", "key": 100,"value": {"COLLECTED": ["foo"]}}
       ]
     },
@@ -395,9 +386,7 @@
       ],
       "outputs": [
         {"topic": "S2", "key": 0,"value": {"COLLECTED":[true]}},
-        {"topic": "S2", "key": 0,"value": {"COLLECTED":[]}},
         {"topic": "S2", "key": 0,"value": {"COLLECTED":[false]}},
-        {"topic": "S2", "key": 0,"value": {"COLLECTED":[]}},
         {"topic": "S2", "key": 0,"value": {"COLLECTED":[true]}}
       ]
     },
@@ -415,9 +404,7 @@
       ],
       "outputs": [
         {"topic": "S2", "key": 0, "value": {"COLLECTED":[10]}},
-        {"topic": "S2", "key": 0, "value": {"COLLECTED":[]}},
         {"topic": "S2", "key": 0, "value": {"COLLECTED":[20]}},
-        {"topic": "S2", "key": 0, "value": {"COLLECTED":[]}},
         {"topic": "S2", "key": 0, "value": {"COLLECTED":[30]}}
       ]
     },
@@ -435,9 +422,7 @@
       ],
       "outputs": [
         {"topic": "S2", "key": 0, "value": {"COLLECTED":[10]}},
-        {"topic": "S2", "key": 0, "value": {"COLLECTED":[]}},
         {"topic": "S2", "key": 0, "value": {"COLLECTED":[20]}},
-        {"topic": "S2", "key": 0, "value": {"COLLECTED":[]}},
         {"topic": "S2", "key": 0, "value": {"COLLECTED":[30]}}
       ]
     },
@@ -455,9 +440,7 @@
       ],
       "outputs": [
         {"topic": "S2", "key": 0, "value": {"COLLECTED":[10]}},
-        {"topic": "S2", "key": 0, "value": {"COLLECTED":[]}},
         {"topic": "S2", "key": 0, "value": {"COLLECTED":[20]}},
-        {"topic": "S2", "key": 0, "value": {"COLLECTED":[]}},
         {"topic": "S2", "key": 0, "value": {"COLLECTED":[30]}}
       ]
     },
@@ -474,7 +457,6 @@
       ],
       "outputs": [
         {"topic": "S2", "key": 0, "value": {"COLLECTED":["YQ=="]}},
-        {"topic": "S2", "key": 0, "value": {"COLLECTED":[]}},
         {"topic": "S2", "key": 0, "value": {"COLLECTED":["Yg=="]}}
       ]
     },

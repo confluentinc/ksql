@@ -32,7 +32,7 @@ public class RestQueryTranslationTestBatch2 extends RestQueryTranslationTest {
 
   @Parameterized.Parameters(name = "{0}")
   public static Collection<Object[]> data() {
-    return data(3, 2);
+    return data(4, 2);
   }
 
   @Test

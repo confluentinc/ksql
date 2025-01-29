@@ -1170,7 +1170,7 @@ JSON_RECORDS('abc') => NULL
 ```
 ### `JSON_ITEMS`
 
-```sql title="Since: 0.28.0"
+```sql title="Since: 0.29.0"
 JSON_ITEMS(json_string) => Array<String>
 ```
 
@@ -1389,6 +1389,17 @@ MASK_RIGHT("My Test $123", 4) => "My Test -nnn"
 
 ---
 
+### **`MD5`**
+
+```sql title="Since: 0.29.0"
+MD5('hash me')
+MD5(col1)
+```
+
+Returns the hex-encoded MD5 hash of the given `STRING`.
+
+---
+
 ### **`REPLACE`**
 
 ```sql title="Since: 0.6.0"
@@ -1434,7 +1445,7 @@ You can specify a capturing group number to return that specific group. If a
 number isn't specified, the entire substring is returned by default.
 
 ```sql title="Example"
-REGEXP_EXTRACT("(\\w+) (\\w+)", "hello there nice day", 2) => ["there", "day"]
+REGEXP_EXTRACT_ALL("(\\w+) (\\w+)", "hello there nice day", 2) => ["there", "day"]
 ```
 
 ---
@@ -1577,6 +1588,21 @@ The following list shows the supported encoding types.
 - `utf8`
 - `ascii`
 - `base64`
+
+The following example query shows how to convert a MongoDB ID in column 0
+from hexadecimal to a BIGINT to a datetime string.
+
+```sql
+select from_unixtime(cast(int_from_bytes(to_bytes(substring('628b30f00000000000000000', 0, 8),'hex')) as bigint) * 1000) from s1;
+```
+
+The output resembles:
+
+```json
+{
+  "KSQL_COL_0": "2022-05-23T07:00:00.000"
+}
+```
 
 ---
 
@@ -1943,6 +1969,10 @@ for example:
 - "America/Los_Angeles"
 - "PDT"
 - "Europe/London"
+
+The timestamp format permits up to 9 digits in the millisecond field, for
+example, `yyyy-MM-dd HH:mm:ss.SSSSSSSSS`. If you provide more than 9 digits,
+the function fails to parse the timestamp.
 
 ---
 

@@ -360,6 +360,13 @@ public class KsqlConfig extends AbstractConfig {
           = "Enables the use of LIMIT clause in pull queries";
   public static final boolean KSQL_QUERY_PULL_LIMIT_CLAUSE_ENABLED_DEFAULT = true;
 
+  public static final String KSQL_QUERY_PULL_FORWARDING_TIMEOUT_MS_CONFIG
+      = "ksql.query.pull.forwarding.timeout.ms";
+  public static final String KSQL_QUERY_PULL_FORWARDING_TIMEOUT_MS_DOC
+      = "Pull query forwarding timeout in milliseconds";
+  public static final long KSQL_QUERY_PULL_FORWARDING_TIMEOUT_MS_DEFAULT =
+      20000L;
+
   public static final String KSQL_QUERY_PUSH_V2_ENABLED
       = "ksql.query.push.v2.enabled";
   public static final String KSQL_QUERY_PUSH_V2_ENABLED_DOC =
@@ -541,6 +548,13 @@ public class KsqlConfig extends AbstractConfig {
           + "that contains headers columns will work with the headers functionality to prevent "
           + "a degraded command topic situation when restarting ksqlDB.";
 
+  public static final String KSQL_CLIENT_IP_PORT_CONFIGURATION_ENABLED =
+      "ksql.client.ip_port.configuration.enabled";
+  private static final Boolean KSQL_CLIENT_IP_PORT_CONFIGURATION_ENABLED_DEFAULT = false;
+  private static final String KSQL_CLIENT_IP_PORT_CONFIGURATION_ENABLED_DOC =
+      "Feature flag that enables configuration of client IP and PORT in internal ksql Kafka Client."
+      + " So that Kafka broker can get client IP and PORT for logging and other purposes";
+
   public static final String KSQL_JSON_SR_CONVERTER_DESERIALIZER_ENABLED
       = "ksql.json_sr.converter.deserializer.enabled";
 
@@ -687,6 +701,13 @@ public class KsqlConfig extends AbstractConfig {
       + " connections after a timeout. The timeout will be the lower of the auth token's "
       + "lifespan (if present) and the value of this config. If this config is set to 0, then "
       + "ksqlDB will not close websockets even if the token has an expiration time.";
+
+  public static final String KSQL_FETCH_REMOTE_HOSTS_TIMEOUT_SECONDS
+      = "ksql.fetch.remote.hosts.max.timeout.seconds";
+  public static final long KSQL_FETCH_REMOTE_HOSTS_TIMEOUT_SECONDS_DEFAULT = 10;
+  public static final String KSQL_FETCH_REMOTE_HOSTS_TIMEOUT_SECONDS_DOC
+      = "Configure how long the remote host executor will wait for in seconds "
+      + "when fetching all remote hosts.";
 
   private enum ConfigGeneration {
     LEGACY,
@@ -1212,6 +1233,13 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_QUERY_PULL_LIMIT_CLAUSE_ENABLED_DOC
         )
         .define(
+            KSQL_QUERY_PULL_FORWARDING_TIMEOUT_MS_CONFIG,
+            Type.LONG,
+            KSQL_QUERY_PULL_FORWARDING_TIMEOUT_MS_DEFAULT,
+            Importance.LOW,
+            KSQL_QUERY_PULL_FORWARDING_TIMEOUT_MS_DOC
+        )
+        .define(
             KSQL_QUERY_PUSH_V2_ENABLED,
             Type.BOOLEAN,
             KSQL_QUERY_PUSH_V2_ENABLED_DEFAULT,
@@ -1474,6 +1502,20 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_JSON_SR_CONVERTER_DESERIALIZER_ENABLED_DEFAULT,
             Importance.LOW,
             KSQL_JSON_SR_CONVERTER_DESERIALIZER_ENABLED_DOC
+        )
+        .define(
+            KSQL_CLIENT_IP_PORT_CONFIGURATION_ENABLED,
+            Type.BOOLEAN,
+            KSQL_CLIENT_IP_PORT_CONFIGURATION_ENABLED_DEFAULT,
+            Importance.LOW,
+            KSQL_CLIENT_IP_PORT_CONFIGURATION_ENABLED_DOC
+        )
+        .define(
+            KSQL_FETCH_REMOTE_HOSTS_TIMEOUT_SECONDS,
+            Type.LONG,
+            KSQL_FETCH_REMOTE_HOSTS_TIMEOUT_SECONDS_DEFAULT,
+            Importance.LOW,
+            KSQL_FETCH_REMOTE_HOSTS_TIMEOUT_SECONDS_DOC
         )
         .withClientSslSupport();
 

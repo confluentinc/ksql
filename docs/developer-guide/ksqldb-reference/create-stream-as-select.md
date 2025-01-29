@@ -172,8 +172,9 @@ You can't use the `FORMAT` property with the `KEY_FORMAT` or
 
 The name of the {{ site.ak }} topic that backs the stream.
 
-If `KAFKA_TOPIC` isn't set, the name of the stream in upper case is used
-as the topic name. 
+If `KAFKA_TOPIC` isn't set, the topic name is set to the `ksql.service.id`
+server setting concatenated with the stream name, with all characters
+capitalized. In {{ site.ccloud }}, the service ID is the ksqlDB cluster ID.
 
 ### KEY_FORMAT
 
@@ -197,6 +198,12 @@ this distinction, set `KEY_PROTOBUF_NULLABLE_REPRESENTATION` to either `OPTIONAL
 The schema will be used to serialize keys for the stream created by this `CREATE` statement.
 For more details, see the corresponding section in the
 [Serialization Formats](/reference/serialization#protobuf) documentation.
+
+### KEY_SCHEMA_FULL_NAME
+
+The full name of the key schema in {{ site.sr }}.
+
+The schema is used for schema inference and data serialization.
 
 ### KEY_SCHEMA_ID
 
@@ -232,16 +239,28 @@ table.
 
 ### RETENTION_MS
 
+!!! note
+    Available starting in version `0.28.3-RC7`.
+
 The retention specified in milliseconds in the backing topic.
 
-If `RETENTION_MS` isn't set, the retention of the input stream is
-used.
+If `RETENTION_MS` isn't set, the retention of the input stream is used.
+But in the case of inheritance, the CREATE STREAM declaration is not the source
+of the `RETENTION_MS` value.
 
-In join queries, the `RETENTION_MS` value is taken from the left-most stream or
-table.
+In join queries, the `RETENTION_MS` value is taken from the left-most stream.
 
 You can't change the retention on an existing stream. To change the
-retention, you must drop the stream and create it again.
+retention, you have these options:
+
+- Drop the stream and the topic it's registered on with the DROP STREAM and
+  DELETE TOPIC statements, and create them again.
+- Drop the stream with the DROP STREAM statement, update the topic with
+  `retention.ms=<new-value>` and register the stream again with
+  `CREATE STREAM WITH (RETENTION_MS=<new-value>)`.
+- For a stream that was created with `CREATE STREAM WITH (RETENTION_MS=<old-value>)`,
+  update the topic with `retention.ms=<new-value>`, and update the stream with the
+  `CREATE OR REPLACE STREAM WITH (RETENTION_MS=<new-value>)` statement.
 
 ### TIMESTAMP
 
@@ -283,6 +302,12 @@ with successive single quotes, `''`, for example: `'yyyy-MM-dd''T''HH:mm:ssX'`.
 
 For more information, see [Timestamp formats](/reference/sql/time/#timestamp-formats).
 
+### VALUE_AVRO_SCHEMA_FULL_NAME
+
+The full name of the value AVRO schema in {{ site.sr }}.
+
+The schema is used for schema inference and data serialization. 
+
 ### VALUE_DELIMITER
 
 Set the delimiter string to use when `VALUE_FORMAT` is set to `DELIMITED`.
@@ -315,10 +340,19 @@ The schema will be used to serialize values for the stream created by this `CREA
 For more details, see the corresponding section in the
 [Serialization Formats](/reference/serialization#protobuf) documentation.
 
+### VALUE_SCHEMA_FULL_NAME
+
+The full name of the value schema in {{ site.sr }}.
+
+The schema is used for schema inference and data serialization. 
+
 ### VALUE_SCHEMA_ID
 
-The schema ID of the value schema in {{ site.sr }}. The schema is used for
-schema inference and data serialization. For more information, see
+The schema ID of the value schema in {{ site.sr }}.
+
+The schema is used for schema inference and data serialization.
+
+For more information, see
 [Schema Inference With Schema ID](/operate-and-deploy/schema-inference-with-id).
 
 ### WRAP_SINGLE_VALUE

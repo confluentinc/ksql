@@ -232,8 +232,7 @@ public class KsqlAvroSerializerTest {
           + "{\"name\":\"key\",\"type\":[\"null\",\"string\"],\"default\":null},"
           + "{\"name\":\"value\",\"type\":[\"null\",\"int\"],\"default\":null}],"
           + "\"connect.internal.type\":\"MapEntry\"},"
-          + "\"connect.name\":\"io.confluent.ksql.avro_schemas.KsqlDataSourceSchema\""
-          + "}");
+          + "\"connect.name\":\"io.confluent.ksql.avro_schemas.KsqlDataSourceSchema\"}");
 
   private static final org.apache.avro.Schema DECIMAL_SCHEMA =
       parseAvroSchema(

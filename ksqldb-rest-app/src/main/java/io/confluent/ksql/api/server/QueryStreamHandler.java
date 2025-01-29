@@ -56,6 +56,7 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
 
   static final String DELIMITED_CONTENT_TYPE = "application/vnd.ksqlapi.delimited.v1";
   static final String JSON_CONTENT_TYPE = "application/json";
+  static final String CONTENT_TYPE = "content-type";
 
   private final Endpoints endpoints;
   private final ConnectionQueryManager connectionQueryManager;
@@ -134,8 +135,11 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
     if (DELIMITED_CONTENT_TYPE.equals(contentType)
         || (contentType == null && !queryCompatibilityMode)) {
       // Default
+      routingContext.response().putHeader(CONTENT_TYPE, DELIMITED_CONTENT_TYPE);
       return new DelimitedQueryStreamResponseWriter(routingContext.response());
     } else if (KsqlMediaType.KSQL_V1_PROTOBUF.mediaType().equals(contentType)) {
+      routingContext.response().putHeader(
+          CONTENT_TYPE, KsqlMediaType.KSQL_V1_PROTOBUF.mediaType());
       return new JsonStreamedRowResponseWriter(
           routingContext.response(),
           queryPublisher,
@@ -149,6 +153,8 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
     } else if (KsqlMediaType.KSQL_V1_JSON.mediaType().equals(contentType)
         || ((contentType == null || JSON_CONTENT_TYPE.equals(contentType)
         && queryCompatibilityMode))) {
+      routingContext.response().putHeader(
+          CONTENT_TYPE, KsqlMediaType.KSQL_V1_JSON.mediaType());
       return new JsonStreamedRowResponseWriter(
           routingContext.response(),
           queryPublisher,
@@ -159,6 +165,7 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
           context,
           RowFormat.JSON);
     } else {
+      routingContext.response().putHeader(CONTENT_TYPE, JSON_CONTENT_TYPE);
       return new JsonQueryStreamResponseWriter(routingContext.response());
     }
   }

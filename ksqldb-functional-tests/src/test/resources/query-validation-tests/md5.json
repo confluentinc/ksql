@@ -1,0 +1,32 @@
+{
+  "comments": [
+    "Tests covering the use of the MD5() function."
+  ],
+  "tests": [
+    {
+      "name": "md5 to hex string",
+      "statements": [
+        "CREATE STREAM INPUT (ID STRING KEY, STR STRING) WITH (kafka_topic='test_topic', format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT ID, MD5(STR) AS MD5 FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": "r1", "value": {"str": "r1"}},
+        {"topic": "test_topic", "key": "r2", "value": {"str": "r2"}},
+        {"topic": "test_topic", "key": "r3", "value": {"str": "r3"}},
+        {"topic": "test_topic", "key": "r3", "value": {"str": null}},
+        {"topic": "test_topic", "key": "r3", "value": {"str": ""}},
+        {"topic": "test_topic", "key": "r3", "value": {"str": " "}},
+        {"topic": "test_topic", "key": "r3", "value": {"str": "  "}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "r1", "value": {"MD5": "7c92cf1eee8d99cc85f8355a3d6e4b86"}},
+        {"topic": "OUTPUT", "key": "r2", "value": {"MD5": "d279186428a75016b17e4df5ea43d080"}},
+        {"topic": "OUTPUT", "key": "r3", "value": {"MD5": "9d3e622df914d8de7f747b7b8b143c52"}},
+        {"topic": "OUTPUT", "key": "r3", "value": {"MD5": null}},
+        {"topic": "OUTPUT", "key": "r3", "value": {"MD5": "d41d8cd98f00b204e9800998ecf8427e"}},
+        {"topic": "OUTPUT", "key": "r3", "value": {"MD5": "7215ee9c7d9dc229d2921a40e899ec5f"}},
+        {"topic": "OUTPUT", "key": "r3", "value": {"MD5": "23b58def11b45727d3351702515f86af"}}
+      ]
+    }
+  ]
+}

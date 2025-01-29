@@ -63,8 +63,11 @@ public class AuthenticationPluginHandler implements Handler<RoutingContext> {
         routingContext.next();
       }
     }).exceptionally(t -> {
-      // An internal error occurred
-      routingContext.fail(t);
+      // Avoid calling context.fail() twice
+      if (!routingContext.failed()) {
+        // An internal error occurred
+        routingContext.fail(t);
+      }
       return null;
     });
   }

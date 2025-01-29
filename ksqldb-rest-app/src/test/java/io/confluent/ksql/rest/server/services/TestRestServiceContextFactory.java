@@ -10,15 +10,18 @@ import io.confluent.ksql.services.ServiceContextFactory;
 import io.confluent.ksql.services.SimpleKsqlClient;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Collections;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
 import org.apache.kafka.common.security.ssl.DefaultSslEngineFactory;
 import org.apache.kafka.streams.processor.internals.DefaultKafkaClientSupplier;
 
 public class TestRestServiceContextFactory {
 
   public interface InternalSimpleKsqlClientFactory {
-    SimpleKsqlClient create(Optional<String> authHeader, KsqlClient ksqlClient);
+    SimpleKsqlClient create(Optional<String> authHeader, Map<String, Object> clientProps,
+        KsqlClient ksqlClient);
   }
 
   public static DefaultServiceContextFactory createDefault(
@@ -55,7 +58,8 @@ public class TestRestServiceContextFactory {
               Optional.empty(),
               false,
               CONNECT_REQUEST_TIMEOUT_DEFAULT),
-          () -> ksqlClientFactory.create(authHeader, sharedClient)
+          () -> ksqlClientFactory.create(authHeader, ksqlConfig.originals(), sharedClient),
+          userPrincipal
       );
     };
 

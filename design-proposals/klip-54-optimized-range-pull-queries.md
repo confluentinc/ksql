@@ -1,8 +1,8 @@
 # KLIP 54 - Optimized Range Pull Queries 
 
 **Author**: Patrick Stuedi (@pstuedi) | 
-**Release Target**: 0.22 | 
-**Status**: _In Discussion_ | 
+**Release Target**: 0.22.0; 7.1.0 | 
+**Status**: _Merged_ | 
 **Discussion**: https://github.com/confluentinc/ksql/pull/7993
 
 **tl;dr:** For range pull queries on tables, use the range interface provided by the state store for retrieving records instead of doing a table scan.

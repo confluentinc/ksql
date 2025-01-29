@@ -213,6 +213,9 @@ Some important points to notice:
   ksqlDB server was started with. You will see how this value is
   populated later in the guide.
 
+- The `value` field with the case-insensitive name of the parameter is required
+  if the UDF jar wasn't compiled with the `-parameters` javac argument.
+
 !!! warning
     External parameters aren't yet supported for tabular functions.
 

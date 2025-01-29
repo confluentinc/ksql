@@ -138,10 +138,16 @@ public final class SinkBuilder {
         @Override
         public KeyValue<K, GenericRow> transform(final K key, final GenericRow row) {
           try {
+            final long timestamp;
+            if (row == null) {
+              timestamp = processorContext.currentStreamTimeMs();
+            } else {
+              timestamp = timestampExtractor.extract(key, row);
+            }
             processorContext.forward(
                 key,
                 row,
-                To.all().withTimestamp(timestampExtractor.extract(key, row))
+                To.all().withTimestamp(timestamp)
             );
           } catch (final Exception e) {
             processingLogger.error(RecordProcessingError

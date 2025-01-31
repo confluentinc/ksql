@@ -37,7 +37,6 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.Executor;
 import org.apache.kafka.clients.CommonClientConfigs;
-import org.apache.kafka.common.config.internals.ConfluentConfigs;
 import org.apache.kafka.common.security.auth.SecurityProtocol;
 import org.easymock.Capture;
 import org.easymock.EasyMockRunner;
@@ -270,7 +269,7 @@ public class KsqlServerMainTest {
   public void shouldFailOnInvalidCipherSuitesList() {
     // Given:
     final KsqlConfig config = configWith(ImmutableMap.of(
-        ConfluentConfigs.ENABLE_FIPS_CONFIG, true
+        KsqlConfig.KSQL_ENABLE_FIPS, true
     ));
     final String wrongCipherSuite = "TLS_RSA_WITH_NULL_MD5";
     final KsqlRestConfig restConfig = new KsqlRestConfig(ImmutableMap.<String, Object>builder()
@@ -295,7 +294,7 @@ public class KsqlServerMainTest {
   public void shouldFailOnInvalidEnabledProtocols() {
     // Given:
     final KsqlConfig config = configWith(ImmutableMap.of(
-        ConfluentConfigs.ENABLE_FIPS_CONFIG, true
+        KsqlConfig.KSQL_ENABLE_FIPS, true
     ));
     final String wrongEnabledProtocols = "TLSv1.0";
     final KsqlRestConfig restConfig = new KsqlRestConfig(ImmutableMap.<String, Object>builder()
@@ -322,7 +321,7 @@ public class KsqlServerMainTest {
   public void shouldFailOnNullBrokerSecurityProtocol() {
     // Given:
     final KsqlConfig config = configWith(ImmutableMap.of(
-        ConfluentConfigs.ENABLE_FIPS_CONFIG, true
+        KsqlConfig.KSQL_ENABLE_FIPS, true
     ));
     final KsqlRestConfig restConfig = new KsqlRestConfig(ImmutableMap.<String, Object>builder()
         .put(KsqlRestConfig.SSL_CIPHER_SUITES_CONFIG,
@@ -347,7 +346,7 @@ public class KsqlServerMainTest {
   public void shouldFailOnInvalidBrokerSecurityProtocol() {
     // Given:
     final KsqlConfig config = configWith(ImmutableMap.of(
-        ConfluentConfigs.ENABLE_FIPS_CONFIG, true,
+        KsqlConfig.KSQL_ENABLE_FIPS, true,
         CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, SecurityProtocol.SASL_PLAINTEXT.name
     ));
     final KsqlRestConfig restConfig = new KsqlRestConfig(ImmutableMap.<String, Object>builder()
@@ -373,7 +372,7 @@ public class KsqlServerMainTest {
   public void shouldFailOnNullSSLEndpointIdentificationAlgorithm() {
     // Given:
     final KsqlConfig config = configWith(ImmutableMap.of(
-        ConfluentConfigs.ENABLE_FIPS_CONFIG, true,
+        KsqlConfig.KSQL_ENABLE_FIPS, true,
         CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, SecurityProtocol.SASL_SSL.name
     ));
     final KsqlRestConfig restConfig = new KsqlRestConfig(ImmutableMap.<String, Object>builder()
@@ -399,7 +398,7 @@ public class KsqlServerMainTest {
   public void shouldFailOnInvalidSSLEndpointIdentificationAlgorithm() {
     // Given:
     final KsqlConfig config = configWith(ImmutableMap.of(
-        ConfluentConfigs.ENABLE_FIPS_CONFIG, true,
+        KsqlConfig.KSQL_ENABLE_FIPS, true,
         CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, SecurityProtocol.SASL_SSL.name
     ));
     final KsqlRestConfig restConfig = new KsqlRestConfig(ImmutableMap.<String, Object>builder()
@@ -426,7 +425,7 @@ public class KsqlServerMainTest {
   public void shouldFailOnNullSRUrl() {
     // Given:
     final KsqlConfig config = configWith(ImmutableMap.of(
-        ConfluentConfigs.ENABLE_FIPS_CONFIG, true,
+        KsqlConfig.KSQL_ENABLE_FIPS, true,
         CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, SecurityProtocol.SASL_SSL.name
     ));
     final KsqlRestConfig restConfig = new KsqlRestConfig(ImmutableMap.<String, Object>builder()
@@ -454,7 +453,7 @@ public class KsqlServerMainTest {
   public void shouldFailOnInvalidSRUrl() {
     // Given:
     final KsqlConfig config = configWith(ImmutableMap.of(
-        ConfluentConfigs.ENABLE_FIPS_CONFIG, true,
+        KsqlConfig.KSQL_ENABLE_FIPS, true,
         CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, SecurityProtocol.SASL_SSL.name
     ));
     final KsqlRestConfig restConfig = new KsqlRestConfig(ImmutableMap.<String, Object>builder()
@@ -483,7 +482,7 @@ public class KsqlServerMainTest {
   public void shouldFailOnInvalidListenerProtocols() {
     // Given:
     final KsqlConfig config = configWith(ImmutableMap.of(
-        ConfluentConfigs.ENABLE_FIPS_CONFIG, true,
+        KsqlConfig.KSQL_ENABLE_FIPS, true,
         CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, SecurityProtocol.SASL_SSL.name
     ));
     final KsqlRestConfig restConfig = new KsqlRestConfig(ImmutableMap.<String, Object>builder()
@@ -512,7 +511,7 @@ public class KsqlServerMainTest {
   public void shouldFailOnInvalidProxyListenerProtocols() {
     // Given:
     final KsqlConfig config = configWith(ImmutableMap.of(
-        ConfluentConfigs.ENABLE_FIPS_CONFIG, true,
+        KsqlConfig.KSQL_ENABLE_FIPS, true,
         CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, SecurityProtocol.SASL_SSL.name
     ));
     final KsqlRestConfig restConfig = new KsqlRestConfig(ImmutableMap.<String, Object>builder()
@@ -545,7 +544,7 @@ public class KsqlServerMainTest {
   public void shouldFailOnInvalidInternalListenerProtocols() {
     // Given:
     final KsqlConfig config = configWith(ImmutableMap.of(
-        ConfluentConfigs.ENABLE_FIPS_CONFIG, true,
+        KsqlConfig.KSQL_ENABLE_FIPS, true,
         CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, SecurityProtocol.SASL_SSL.name
     ));
     final KsqlRestConfig restConfig = new KsqlRestConfig(ImmutableMap.<String, Object>builder()
@@ -577,7 +576,7 @@ public class KsqlServerMainTest {
   public void shouldFailOnInvalidAdvertisedListenerProtocols() {
     // Given:
     final KsqlConfig config = configWith(ImmutableMap.of(
-        ConfluentConfigs.ENABLE_FIPS_CONFIG, true,
+        KsqlConfig.KSQL_ENABLE_FIPS, true,
         CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, SecurityProtocol.SASL_SSL.name
     ));
     final KsqlRestConfig restConfig = new KsqlRestConfig(ImmutableMap.<String, Object>builder()

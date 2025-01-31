@@ -106,7 +106,7 @@ public abstract class BaseCommand implements Runnable {
   }
 
   protected boolean validateConfigFilePresent() {
-    if (getConfigFile() == null || getConfigFile().trim().equals("")) {
+    if (getConfigFile() == null || getConfigFile().trim().isEmpty()) {
       getLogger().error("Migrations config file required but not specified. "
           + "Specify with {} (or, equivalently, {}).",
           CONFIG_FILE_OPTION, CONFIG_FILE_OPTION_SHORT);

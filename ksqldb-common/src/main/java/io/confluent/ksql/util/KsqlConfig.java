@@ -730,9 +730,9 @@ public class KsqlConfig extends AbstractConfig {
   public static final String KSQL_ENABLE_FIPS = "enable.fips";
   public static final String KSQL_ENABLE_FIPS_DEFAULT = "false";
   public static final String KSQL_ENABLE_FIPS_DOC
-          = "Enable FIPS mode on the server. If FIPS mode is enabled, " +
-          "broker listener security protocols, TLS versions and cipher " +
-          "suites will be validated based on FIPS compliance requirement.";
+          = "Enable FIPS mode on the server. If FIPS mode is enabled, "
+          + "broker listener security protocols, TLS versions and cipher "
+          + "suites will be validated based on FIPS compliance requirement.";
 
   private enum ConfigGeneration {
     LEGACY,

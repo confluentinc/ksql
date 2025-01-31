@@ -104,7 +104,7 @@ public class KsqlRestConfigTest {
             .putAll(MIN_VALID_CONFIGS)
             .put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")
             .put(KsqlConfig.KSQL_SERVICE_ID_CONFIG, "test")
-            .put(KsqlRestConfig.KSQL_RESOURCE_EXTENSION,
+            .put(KsqlRestConfig.KSQL_RESOURCE_EXTENSIONS,
                     "io.confluent.ksql.rest.server.extensions.DummyResourceExtension")
             .build()
     );

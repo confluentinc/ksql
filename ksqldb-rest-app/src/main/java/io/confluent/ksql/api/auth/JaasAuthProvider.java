@@ -32,17 +32,17 @@ import io.vertx.ext.auth.authorization.RoleBasedAuthorization;
 import io.vertx.ext.auth.authorization.impl.AuthorizationsImpl;
 import java.util.Objects;
 import java.util.Optional;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.eclipse.jetty.jaas.JAASLoginService;
 import org.eclipse.jetty.server.UserIdentity;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Authentication provider that checks credentials specified in the JAAS config.
  */
 public class JaasAuthProvider implements AuthProvider {
 
-  private static final Logger LOG = LoggerFactory.getLogger(JaasAuthProvider.class);
+  private static final Logger LOG = LogManager.getLogger(JaasAuthProvider.class);
 
   private final Server server;
   private final String contextName;

@@ -52,7 +52,7 @@
             <scope>runtime</scope>
             <unpackOptions>
                 <excludes>
-                    <exclude>log4j.properties</exclude>
+                    <exclude>log4j2.yaml</exclude>
                 </excludes>
             </unpackOptions>
         </dependencySet>

@@ -1,0 +1,105 @@
+Configuration:
+  status: WARN
+  Appenders:
+    RollingFile:
+      - name: main
+        fileName: ${ksql.log.dir}/ksql.log
+        filePattern: ${ksql.log.dir}/ksql-%d{yyyy-MM-dd}.log.gz
+        PatternLayout:
+          pattern: "[%d] %p %m (%c:%L)%n"
+        Policies:
+          SizeBasedTriggeringPolicy:
+            size: 10MB
+        DefaultRolloverStrategy:
+          max: 5
+
+      - name: streams
+        fileName: ${ksql.log.dir}/ksql-streams.log
+        filePattern: ${ksql.log.dir}/ksql-streams-%d{yyyy-MM-dd}.log.gz
+        PatternLayout:
+          pattern: "[%d] %p %m (%c:%L)%n"
+        Policies:
+          SizeBasedTriggeringPolicy:
+            size: 10MB
+        DefaultRolloverStrategy:
+          max: 5
+
+      - name: kafka
+        fileName: ${ksql.log.dir}/ksql-kafka.log
+        filePattern: ${ksql.log.dir}/ksql-kafka-%d{yyyy-MM-dd}.log.gz
+        PatternLayout:
+          pattern: "[%d] %p %m (%c:%L)%n"
+        Policies:
+          SizeBasedTriggeringPolicy:
+            size: 10MB
+        DefaultRolloverStrategy:
+          max: 5
+
+    Kafka:
+      name: kafka_appender
+      topic: default_ksql_processing_log
+      syncSend: true
+      JsonLayout:
+        complete: false
+        compact: true
+      Property:
+        - name: bootstrap.servers
+          value: localhost:29092
+
+  Loggers:
+    Root:
+      level: info
+      AppenderRef:
+        - ref: main
+
+    Logger:
+      - name: org.reflections
+        level: error
+        additivity: false
+        AppenderRef:
+          - ref: main
+
+      - name: processing
+        level: info
+        additivity: false
+        AppenderRef:
+          - ref: kafka_appender
+
+      - name: org.apache.kafka.streams
+        level: info
+        additivity: false
+        AppenderRef:
+          - ref: streams
+
+      - name: org.apache.kafka.clients
+        level: info
+        additivity: false
+        AppenderRef:
+          - ref: clients
+
+      - name: org.apache.kafka.connect
+        level: info
+        additivity: false
+        AppenderRef:
+          - ref: connect
+
+      - name: kafka
+        level: warn
+        additivity: false
+        AppenderRef:
+          - ref: kafka
+
+      - name: org.apache.zookeeper
+        level: warn
+        additivity: false
+        AppenderRef:
+          - ref: kafka
+
+      - name: org.I0Itec.zkclient
+        level: warn
+        additivity: false
+        AppenderRef:
+          - ref: kafka
+
+      - name: io.confluent.rest-utils.requests
+        level: warn

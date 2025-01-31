@@ -90,12 +90,12 @@ import org.apache.kafka.clients.producer.RecordMetadata;
 import org.hamcrest.Matcher;
 import org.hamcrest.StringDescription;
 import org.json.JSONObject;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class RestTestExecutor implements Closeable {
 
-  private static final Logger LOG = LoggerFactory.getLogger(RestTestExecutor.class);
+  private static final Logger LOG = LogManager.getLogger(RestTestExecutor.class);
 
   private static final String STATEMENT_MACRO = "\\{STATEMENT}";
   private static final Duration MAX_QUERY_RUNNING_CHECK = Duration.ofSeconds(45);

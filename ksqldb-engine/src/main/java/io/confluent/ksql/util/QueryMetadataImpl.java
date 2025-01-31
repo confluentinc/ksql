@@ -54,11 +54,11 @@ import org.apache.kafka.streams.StreamsMetadata;
 import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.errors.StreamsException;
 import org.apache.kafka.streams.errors.StreamsUncaughtExceptionHandler;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class QueryMetadataImpl implements QueryMetadata {
-  private static final Logger LOG = LoggerFactory.getLogger(QueryMetadataImpl.class);
+  private static final Logger LOG = LogManager.getLogger(QueryMetadataImpl.class);
   private final AtomicBoolean isPaused = new AtomicBoolean(false);
   private final String statementString;
   private final String executionPlan;

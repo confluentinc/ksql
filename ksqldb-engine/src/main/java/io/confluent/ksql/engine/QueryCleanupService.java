@@ -29,8 +29,8 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingDeque;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * {@code QueryCleanupService} helps cleanup external resources from queries
@@ -44,7 +44,7 @@ import org.slf4j.LoggerFactory;
 @SuppressWarnings("UnstableApiUsage")
 public class QueryCleanupService extends AbstractExecutionThreadService {
 
-  private static final Logger LOG = LoggerFactory.getLogger(QueryCleanupService.class);
+  private static final Logger LOG = LogManager.getLogger(QueryCleanupService.class);
   private static final Runnable SHUTDOWN_SENTINEL = () -> { };
 
   private final BlockingQueue<Runnable> cleanupTasks;

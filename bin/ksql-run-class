@@ -46,12 +46,12 @@ done
 if [ -z "$KSQL_LOG4J_OPTS" ]; then
   # Test for files from dev -> packages so this will work as expected in dev if you have packages
   # installed
-  if [ -e "$base_dir/config/log4j.properties" ]; then # Dev environment
-    KSQL_LOG4J_OPTS="-Dlog4j.configuration=file:$base_dir/config/log4j.properties"
-  elif [ -e "$base_dir/etc/ksqldb/log4j.properties" ]; then # Simple zip file layout
-    KSQL_LOG4J_OPTS="-Dlog4j.configuration=file:$base_dir/etc/ksqldb/log4j.properties"
-  elif [ -e "/etc/ksqldb/log4j.properties" ]; then # Normal install layout
-    KSQL_LOG4J_OPTS="-Dlog4j.configuration=file:/etc/ksqldb/log4j.properties"
+  if [ -e "$base_dir/config/log4j2.yaml" ]; then # Dev environment
+    KSQL_LOG4J_OPTS="-Dlog4j2.configuration=file:$base_dir/config/log4j2.yaml"
+  elif [ -e "$base_dir/etc/ksqldb/log4j2.yaml" ]; then # Simple zip file layout
+    KSQL_LOG4J_OPTS="-Dlog4j2.configuration=file:$base_dir/etc/ksqldb/log4j2.yaml"
+  elif [ -e "/etc/ksqldb/log4j2.yaml" ]; then # Normal install layout
+    KSQL_LOG4J_OPTS="-Dlog4j2.configuration=file:/etc/ksqldb/log4j2.yaml"
   fi
 fi
 

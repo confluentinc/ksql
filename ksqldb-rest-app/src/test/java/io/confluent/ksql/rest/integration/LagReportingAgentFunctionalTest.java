@@ -37,12 +37,12 @@ import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TemporaryFolder;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 @Category({IntegrationTest.class})
 public class LagReportingAgentFunctionalTest {
-  private static final Logger LOG = LoggerFactory.getLogger(LagReportingAgentFunctionalTest.class);
+  private static final Logger LOG = LogManager.getLogger(LagReportingAgentFunctionalTest.class);
   private static final TemporaryFolder TMP = KsqlTestFolder.temporaryFolder();
 
   static {

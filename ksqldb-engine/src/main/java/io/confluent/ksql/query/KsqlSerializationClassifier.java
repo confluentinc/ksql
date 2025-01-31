@@ -21,8 +21,8 @@ import io.confluent.ksql.util.ReservedInternalTopics;
 import java.util.Objects;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.kafka.streams.errors.StreamsException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * {@code KsqlSerializationClassifier} classifies serialization exceptions caused due to schema
@@ -31,7 +31,7 @@ import org.slf4j.LoggerFactory;
  */
 public class KsqlSerializationClassifier implements QueryErrorClassifier {
 
-  private static final Logger LOG = LoggerFactory.getLogger(KsqlSerializationClassifier.class);
+  private static final Logger LOG = LogManager.getLogger(KsqlSerializationClassifier.class);
 
   private final String queryId;
 

@@ -13,7 +13,7 @@ appender for the server logs. Assign the following configuration settings in
 the ksqlDB Server config file.
 
 ```properties
-log4j.appender.kafka_appender=org.apache.kafka.log4jappender.KafkaLog4jAppender
+log4j.appender.kafka_appender=org.apache.logging.log4j.core.appender.mom.kafka.KafkaAppender
 log4j.appender.kafka_appender.layout=io.confluent.common.logging.log4j.StructuredJsonLayout
 log4j.appender.kafka_appender.BrokerList=localhost:9092
 log4j.appender.kafka_appender.Topic=KSQL_LOG

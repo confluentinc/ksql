@@ -21,11 +21,11 @@ import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public final class ReservedInternalTopics {
-  private static final Logger LOG = LoggerFactory.getLogger(ReservedInternalTopics.class);
+  private static final Logger LOG = LogManager.getLogger(ReservedInternalTopics.class);
 
   // These constant should not be part of KsqlConfig.SYSTEM_INTERNAL_TOPICS_CONFIG because they're
   // not configurable.

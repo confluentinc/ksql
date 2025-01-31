@@ -169,7 +169,7 @@ public class DistributingExecutor {
       final KsqlSecurityContext securityContext
   ) {
     final String commandRunnerWarningString = commandRunnerWarning.get();
-    if (!commandRunnerWarningString.equals("")) {
+    if (!commandRunnerWarningString.isEmpty()) {
       throw new KsqlServerException("Failed to handle Ksql Statement."
           + System.lineSeparator()
           + commandRunnerWarningString);

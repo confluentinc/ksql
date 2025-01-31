@@ -37,7 +37,6 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.Executor;
 import org.apache.kafka.clients.CommonClientConfigs;
-import org.apache.kafka.common.config.internals.ConfluentConfigs;
 import org.apache.kafka.common.security.auth.SecurityProtocol;
 import org.easymock.Capture;
 import org.easymock.EasyMockRunner;

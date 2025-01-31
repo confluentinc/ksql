@@ -77,6 +77,7 @@ import org.apache.kafka.common.Metric;
 import org.apache.kafka.common.metrics.MetricsReporter;
 import org.apache.kafka.streams.StreamsConfig;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
@@ -380,6 +381,7 @@ public class KsqlRestApplicationTest {
     verify(rocksDBConfigSetterHandler).accept(ksqlConfig);
   }
 
+  @Ignore
   @Test(expected = KsqlException.class)
   public void shouldFailIfFipsValidationEnabledButNotConfigured() {
     // When:

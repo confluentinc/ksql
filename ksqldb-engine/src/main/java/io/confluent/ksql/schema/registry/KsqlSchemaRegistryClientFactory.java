@@ -29,7 +29,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
 import javax.net.ssl.SSLContext;
-import org.apache.kafka.common.config.internals.ConfluentConfigs;
 import org.apache.kafka.common.security.auth.SslEngineFactory;
 import org.apache.kafka.common.security.ssl.DefaultSslEngineFactory;
 import org.apache.kafka.common.utils.SecurityUtils;

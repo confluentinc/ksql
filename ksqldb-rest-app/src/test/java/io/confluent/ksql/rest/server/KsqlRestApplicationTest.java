@@ -60,6 +60,7 @@ import io.confluent.ksql.security.KsqlSecurityExtension;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.version.metrics.VersionCheckerAgent;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
@@ -377,6 +378,16 @@ public class KsqlRestApplicationTest {
 
     // Then:
     verify(rocksDBConfigSetterHandler).accept(ksqlConfig);
+  }
+
+  @Test(expected = KsqlException.class)
+  public void shouldFailIfFipsValidationEnabledButNotConfigured() {
+    // When:
+    when(ksqlConfig.enableFips()).thenReturn(true);
+    app.startKsql(ksqlConfig);
+
+    // Then:
+    // KsqlException
   }
 
   @Test

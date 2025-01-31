@@ -445,11 +445,12 @@ public class KsqlRestConfig extends AbstractConfig {
           KSQL_COMMAND_TOPIC_MIGRATION_MIGRATING
       );
 
-  public static final String KSQL_RESOURCE_EXTENSION =
+  public static final String KSQL_RESOURCE_EXTENSIONS =
           "ksql.resource.extension.class";
   private static final String KSQL_RESOURCE_EXTENSION_DEFAULT = "";
   private static final String KSQL_RESOURCE_EXTENSION_DOC =
-          "A list of KsqlResourceExtension implementations to register with ksqlDB server.";
+          "A list of KsqlResourceExtension implementations "
+                  + "to be registered with the ksqlDB server.";
 
   private static final ConfigDef CONFIG_DEF;
 
@@ -625,7 +626,7 @@ public class KsqlRestConfig extends AbstractConfig {
             Importance.HIGH,
             INTERNAL_LISTENER_DOC
         ).define(
-            KSQL_RESOURCE_EXTENSION,
+            KSQL_RESOURCE_EXTENSIONS,
             Type.LIST,
             KSQL_RESOURCE_EXTENSION_DEFAULT,
             Importance.MEDIUM,
@@ -1079,10 +1080,10 @@ public class KsqlRestConfig extends AbstractConfig {
   }
 
   public List<KsqlResourceExtension> getKsqlResourceExtensions() {
-    if (getString(KSQL_RESOURCE_EXTENSION).isEmpty()) {
+    if (getString(KSQL_RESOURCE_EXTENSIONS).isEmpty()) {
       return Collections.emptyList();
     }
-    return getConfiguredInstances(KSQL_RESOURCE_EXTENSION, KsqlResourceExtension.class);
+    return getConfiguredInstances(KSQL_RESOURCE_EXTENSIONS, KsqlResourceExtension.class);
   }
 
   /**

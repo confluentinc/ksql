@@ -24,6 +24,7 @@ public class KsqlResourceContextImpl implements KsqlResourceContext {
   private final KsqlConfig ksqlConfig;
   private final KsqlRestConfig ksqlRestConfig;
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
   public KsqlResourceContextImpl(
           final KsqlConfig ksqlConfig,
           final KsqlRestConfig restConfig) {

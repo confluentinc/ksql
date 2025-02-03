@@ -19,8 +19,6 @@ import static java.util.Objects.requireNonNull;
 
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.transform.KsqlTransformer;
-import java.util.Collections;
-import java.util.Optional;
 import org.apache.kafka.streams.processor.api.FixedKeyProcessor;
 import org.apache.kafka.streams.processor.api.FixedKeyProcessorContext;
 import org.apache.kafka.streams.processor.api.FixedKeyRecord;
@@ -70,15 +68,5 @@ public class KsFlatValueProcessor<K, R> implements FixedKeyProcessor<K, GenericR
     }
 
     result.forEach(r -> processorContext.forward(record.withValue(r)));
-  }
-
-  public static <K> KsFlatValueProcessor<K, GenericRow> of(
-      final KsqlTransformer<K, Optional<GenericRow>> delegate) {
-    return new KsFlatValueProcessor<>(
-        (k, v) -> {
-          final Optional<GenericRow> transformedValue = delegate.transform(k, v);
-          return Collections.singleton(
-              transformedValue.map(Collections::singletonList).orElse(null));
-        });
   }
 }

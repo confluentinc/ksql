@@ -22,14 +22,13 @@ import java.util.Collections;
 import java.util.Optional;
 
 /**
- * A transformer that can return multiple records for each input record. It is helpful to flatten
- * the output of a transformer using a single record transformer.
+ * A transformer that wraps another transformer and flattens the result.
  * @param <K> the type of the key
  */
-public class MultiRecordTransformer<K, R> implements KsqlTransformer<K, Iterable<R>> {
+public class KsqlFlatTransformer<K, R> implements KsqlTransformer<K, Iterable<R>> {
   private final KsqlTransformer<K, Optional<R>> delegate;
 
-  public MultiRecordTransformer(final KsqlTransformer<K, Optional<R>> delegate) {
+  public KsqlFlatTransformer(final KsqlTransformer<K, Optional<R>> delegate) {
     this.delegate = requireNonNull(delegate, "delegate");
   }
 

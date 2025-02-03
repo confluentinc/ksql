@@ -55,7 +55,6 @@ import org.apache.kafka.common.config.ConfigDef.Validator;
 import org.apache.kafka.common.config.ConfigException;
 import org.apache.kafka.common.config.SslConfigs;
 import org.apache.kafka.common.config.TopicConfig;
-import org.apache.kafka.common.config.internals.ConfluentConfigs;
 import org.apache.kafka.common.utils.AppInfoParser;
 import org.apache.kafka.streams.StreamsConfig;
 import org.slf4j.Logger;
@@ -727,6 +726,13 @@ public class KsqlConfig extends AbstractConfig {
   public static final String KSQL_FETCH_REMOTE_HOSTS_TIMEOUT_SECONDS_DOC
       = "Configure how long the remote host executor will wait for in seconds "
       + "when fetching all remote hosts.";
+
+  public static final String KSQL_ENABLE_FIPS = "enable.fips";
+  public static final String KSQL_ENABLE_FIPS_DEFAULT = "false";
+  public static final String KSQL_ENABLE_FIPS_DOC
+          = "Enable FIPS mode on the server. If FIPS mode is enabled, "
+          + "broker listener security protocols, TLS versions and cipher "
+          + "suites will be validated based on FIPS compliance requirement.";
 
   private enum ConfigGeneration {
     LEGACY,
@@ -1559,11 +1565,11 @@ public class KsqlConfig extends AbstractConfig {
         )
         .withClientSslSupport()
         .define(
-            ConfluentConfigs.ENABLE_FIPS_CONFIG,
+            KSQL_ENABLE_FIPS,
             Type.BOOLEAN,
-            ConfluentConfigs.ENABLE_FIPS_DEFAULT,
+            KSQL_ENABLE_FIPS_DEFAULT,
             Importance.LOW,
-            ConfluentConfigs.ENABLE_FIPS_DOC
+            KSQL_ENABLE_FIPS_DOC
         );
 
     for (final CompatibilityBreakingConfigDef compatibilityBreakingConfigDef
@@ -1792,6 +1798,10 @@ public class KsqlConfig extends AbstractConfig {
     return Collections.unmodifiableMap(map);
   }
 
+  public boolean enableFips() {
+    return getBoolean(KSQL_ENABLE_FIPS);
+  }
+
   public Map<String, Object> addConfluentMetricsContextConfigsKafka(
       final Map<String,Object> props
   ) {
@@ -1940,7 +1950,7 @@ public class KsqlConfig extends AbstractConfig {
 
   public static Map<String, String> parseStringAsMap(final String key, final String value) {
     try {
-      return value.equals("")
+      return value.isEmpty()
           ? Collections.emptyMap()
           : Splitter.on(",").trimResults().withKeyValueSeparator(":").split(value);
     } catch (final IllegalArgumentException e) {

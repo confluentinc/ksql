@@ -53,7 +53,6 @@ public class KsFlatValueProcessor<K, R> implements FixedKeyProcessor<K, GenericR
     final K key = record.key();
     final GenericRow value = record.value();
     if (value == null) {
-      processorContext.forward(record.withValue(null));
       return;
     }
 

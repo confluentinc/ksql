@@ -12,13 +12,17 @@
 
 package io.confluent.ksql.logging.query;
 
-import io.confluent.common.logging.log4j.StructuredJsonLayout;
 import io.confluent.ksql.engine.rewrite.QueryAnonymizer;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.QueryGuid;
 import java.util.List;
-import org.apache.log4j.ConsoleAppender;
-import org.apache.log4j.spi.LoggingEvent;
+
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.core.LogEvent;
+import org.apache.logging.log4j.core.appender.ConsoleAppender;
+import org.apache.logging.log4j.core.layout.PatternLayout;
+import org.apache.logging.log4j.core.Layout;
+import org.apache.logging.log4j.core.config.Configurator;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -37,7 +41,7 @@ import static org.mockito.Mockito.when;
 @RunWith(MockitoJUnitRunner.class)
 public class QueryLoggerTest {
   @Mock public KsqlConfig config;
-  private final TestAppender testAppender = new TestAppender();
+  private final TestAppender testAppender = new TestAppender("TestAppender", null);
 
   private final QueryAnonymizer anonymizer = new QueryAnonymizer();
 
@@ -46,11 +50,15 @@ public class QueryLoggerTest {
     when(config.getBoolean(KsqlConfig.KSQL_QUERYANONYMIZER_ENABLED)).thenReturn(true);
     when(config.getString(KsqlConfig.KSQL_QUERYANONYMIZER_CLUSTER_NAMESPACE))
         .thenReturn("cathouse.org.meowcluster");
-    testAppender.setName("TestAppender");
-    final ConsoleAppender consoleAppender = new ConsoleAppender(new StructuredJsonLayout());
-    consoleAppender.setName("console");
-    QueryLogger.getLogger().addAppender(consoleAppender);
+    final Layout<?> layout = PatternLayout.newBuilder().withPattern("%d [%t] %-5level: %msg%n%throwable").build();
+    ConsoleAppender consoleAppender = ConsoleAppender.newBuilder()
+        .setName("console")
+        .setLayout(layout)
+        .build();
+    consoleAppender.start();
 
+    QueryLogger.addAppender(consoleAppender);
+    testAppender.start();
     QueryLogger.addAppender(testAppender);
     QueryLogger.configure(config);
   }
@@ -84,7 +92,7 @@ public class QueryLoggerTest {
     QueryLogger.error(message, query);
     QueryLogger.info(message, query);
     QueryLogger.warn(message, query);
-    final List<LoggingEvent> events = testAppender.getLog();
+    final List<LogEvent> events = testAppender.getLog();
     events
         .forEach(
             (e) -> {
@@ -107,7 +115,7 @@ public class QueryLoggerTest {
     QueryLogger.error(message, query);
     QueryLogger.info(message, query);
     QueryLogger.warn(message, query);
-    final List<LoggingEvent> events = testAppender.getLog();
+    final List<LogEvent> events = testAppender.getLog();
     events
         .forEach(
             (e) -> {
@@ -178,10 +186,11 @@ public class QueryLoggerTest {
   @Test
   public void shouldAnonymizeMultipleStatements() {
     QueryLogger.configure(config);
+    Configurator.setLevel(QueryLogger.class.getName(), Level.INFO);
     QueryLogger.info("a message", "list streams; list tables; select a, b from mytable; list queries;");
-    final List<LoggingEvent> events = testAppender.getLog();
+    final List<LogEvent> events = testAppender.getLog();
     assertThat(events, hasSize(1));
-    final LoggingEvent event = events.get(0);
+    final LogEvent event = events.get(0);
     final QueryLoggerMessage message = (QueryLoggerMessage) event.getMessage();
     assertThat(message.getMessage(), is("a message"));
     assertThat(message.getQuery(), is("list STREAMS;\n" +

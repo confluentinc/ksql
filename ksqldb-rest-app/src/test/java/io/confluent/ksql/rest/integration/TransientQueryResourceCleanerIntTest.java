@@ -48,7 +48,9 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import kafka.zookeeper.ZooKeeperClientException;
 import org.apache.kafka.streams.StreamsConfig;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.core.LoggerContext;
+import org.apache.logging.log4j.core.config.Configuration;
 import org.codehaus.plexus.util.FileUtils;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -118,15 +120,18 @@ public class TransientQueryResourceCleanerIntTest {
     private Runnable backgroundTask;
 
     private TestAppender appender;
-    private Logger logger;
 
     private AtomicBoolean requestCompleted = new AtomicBoolean(false);
 
     @Before
     public void setUp() throws IOException, InterruptedException {
-        appender = new TestAppender();
-        logger = Logger.getRootLogger();
-        logger.addAppender(appender);
+        final TestAppender appender = new TestAppender("TestAppender", null);
+        LoggerContext context = (LoggerContext) LogManager.getContext(false);
+        Configuration config = context.getConfiguration();
+        appender.start();
+        config.addAppender(appender);
+        config.getLoggerConfig(LogManager.ROOT_LOGGER_NAME).addAppender(appender, null, null);
+        context.updateLoggers();
         if (FileUtils.fileExists(stateDir)) {
             FileUtils.cleanDirectory(stateDir);
         }

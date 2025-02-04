@@ -27,16 +27,23 @@ public final class PlannedTestGenerator {
   private PlannedTestGenerator() {
   }
 
-  public static void generatePlans(final Stream<TestCase> testCases) {
+  public static void generatePlans(final Stream<TestCase> testCases,
+      final boolean validateResults) {
     testCases
         .filter(PlannedTestUtils::isPlannedTestCase)
-        .forEach(PlannedTestGenerator::maybeGenerateTestCase);
+        .forEach((t) -> maybeGenerateTestCase(t, validateResults));
   }
 
-  private static void maybeGenerateTestCase(final TestCase testCase) {
+  private static void maybeGenerateTestCase(
+      final TestCase testCase,
+      final boolean validateTestsForCurrentSetup) {
     final Optional<TestCasePlan> latest = TestCasePlanLoader.latestForTestCase(testCase);
-    final TestCasePlan current = TestCasePlanLoader.currentForTestCase(testCase);
-    if (PlannedTestUtils.isSamePlan(latest, current)) {
+    final TestCasePlan current = TestCasePlanLoader.currentForTestCase(testCase,
+        validateTestsForCurrentSetup);
+    final boolean isSamePlan = latest.isPresent() && PlannedTestUtils.isSamePlan(latest, current);
+    final boolean isSameTopology = latest.isPresent() && latest.get().getTopology().strip()
+        .equals(current.getTopology().strip());
+    if (isSamePlan && isSameTopology) {
       return;
     }
     TestCasePlanWriter.writeTestCasePlan(current);

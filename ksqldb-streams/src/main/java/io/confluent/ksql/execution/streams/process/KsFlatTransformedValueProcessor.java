@@ -22,23 +22,19 @@ import io.confluent.ksql.execution.transform.KsqlTransformer;
 import org.apache.kafka.streams.processor.api.FixedKeyProcessor;
 import org.apache.kafka.streams.processor.api.FixedKeyProcessorContext;
 import org.apache.kafka.streams.processor.api.FixedKeyRecord;
-import org.apache.kafka.streams.processor.api.Processor;
 
 /**
- * A Kafka-streams value processor
- *
- * <p>Maps an implementation agnostic {@link KsqlTransformer} to an implementation specific {@link
- * Processor}.
+ * A Kafka-streams value processor that flattens the transformed value.
  *
  * @param <K> the type of the key
  * @param <R> the return type
  */
-public class KsFlatValueProcessor<K, R> implements FixedKeyProcessor<K, GenericRow, R> {
+public class KsFlatTransformedValueProcessor<K, R> implements FixedKeyProcessor<K, GenericRow, R> {
 
   private final KsqlTransformer<K, Iterable<R>> delegate;
   private FixedKeyProcessorContext<K, R> processorContext;
 
-  public KsFlatValueProcessor(final KsqlTransformer<K, Iterable<R>> delegate) {
+  public KsFlatTransformedValueProcessor(final KsqlTransformer<K, Iterable<R>> delegate) {
     this.delegate = requireNonNull(delegate, "delegate");
     this.processorContext = null;
   }
@@ -62,7 +58,6 @@ public class KsFlatValueProcessor<K, R> implements FixedKeyProcessor<K, GenericR
     );
 
     if (result == null) {
-      processorContext.forward(record.withValue(null));
       return;
     }
 

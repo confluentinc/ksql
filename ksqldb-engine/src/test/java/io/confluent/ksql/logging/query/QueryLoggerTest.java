@@ -17,10 +17,12 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.QueryGuid;
 import java.util.List;
 
+import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.core.LogEvent;
 import org.apache.logging.log4j.core.appender.ConsoleAppender;
 import org.apache.logging.log4j.core.layout.PatternLayout;
 import org.apache.logging.log4j.core.Layout;
+import org.apache.logging.log4j.core.config.Configurator;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -184,6 +186,7 @@ public class QueryLoggerTest {
   @Test
   public void shouldAnonymizeMultipleStatements() {
     QueryLogger.configure(config);
+    Configurator.setLevel(QueryLogger.class.getName(), Level.INFO);
     QueryLogger.info("a message", "list streams; list tables; select a, b from mytable; list queries;");
     final List<LogEvent> events = testAppender.getLog();
     assertThat(events, hasSize(1));

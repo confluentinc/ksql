@@ -2,7 +2,7 @@ Configuration:
   status: WARN
   Appenders:
     RollingFile:
-      name: defaultFile
+      name: io.confluent.ksql.util.TimestampLogFileAppender
       fileName: ${ksql.log.dir}/ksql-cli/cli-%timestamp.log
       filePattern: ${ksql.log.dir}/ksql-cli/cli-%d{yyyy-MM-dd}-%i.log.gz
       PatternLayout:
@@ -13,7 +13,7 @@ Configuration:
         SizeBasedTriggeringPolicy:
           size: 10MB
       DefaultRolloverStrategy:
-        max: 5
+        max: 5 # other files will be cleaned up.
   Loggers:
     Root:
       level: WARN

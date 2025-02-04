@@ -96,6 +96,5 @@ public class MetricAppender extends AbstractAppender {
     } else if (event.getLevel() == Level.ERROR) {
       errors.record();
     }
-    System.out.println("Custom log message: " + event.getMessage().getFormattedMessage());
   }
 }

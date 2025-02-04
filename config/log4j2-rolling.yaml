@@ -4,7 +4,7 @@ Configuration:
     RollingFile:
       - name: main
         fileName: ${ksql.log.dir}/ksql.log
-        filePattern: ${ksql.log.dir}/ksql-%d{yyyy-MM-dd}.log.gz
+        filePattern: ${ksql.log.dir}/ksql-%i.log
         PatternLayout:
           pattern: "[%d] %p %m (%c:%L)%n"
         Policies:
@@ -15,7 +15,7 @@ Configuration:
 
       - name: streams
         fileName: ${ksql.log.dir}/ksql-streams.log
-        filePattern: ${ksql.log.dir}/ksql-streams-%d{yyyy-MM-dd}.log.gz
+        filePattern: ${ksql.log.dir}/ksql-streams-%i.log
         PatternLayout:
           pattern: "[%d] %p %m (%c:%L)%n"
         Policies:
@@ -26,7 +26,7 @@ Configuration:
 
       - name: kafka
         fileName: ${ksql.log.dir}/ksql-kafka.log
-        filePattern: ${ksql.log.dir}/ksql-kafka-%d{yyyy-MM-dd}.log.gz
+        filePattern: ${ksql.log.dir}/ksql-kafka-%i.log
         PatternLayout:
           pattern: "[%d] %p %m (%c:%L)%n"
         Policies:
@@ -39,6 +39,7 @@ Configuration:
       name: kafka_appender
       topic: default_ksql_processing_log
       syncSend: true
+      ignoreExceptions: false
       JsonLayout:
         complete: false
         compact: true
@@ -60,7 +61,7 @@ Configuration:
           - ref: main
 
       - name: processing
-        level: info
+        level: warn
         additivity: false
         AppenderRef:
           - ref: kafka_appender

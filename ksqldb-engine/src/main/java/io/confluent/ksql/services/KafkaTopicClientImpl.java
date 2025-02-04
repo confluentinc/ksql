@@ -61,7 +61,6 @@ import org.apache.kafka.common.errors.TopicAuthorizationException;
 import org.apache.kafka.common.errors.TopicDeletionDisabledException;
 import org.apache.kafka.common.errors.TopicExistsException;
 import org.apache.kafka.common.errors.UnknownTopicOrPartitionException;
-import org.apache.kafka.common.errors.UnsupportedVersionException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -238,6 +237,8 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
     return topicConfig(topicName, true);
   }
 
+  // Kafka 2.3.0 and later supports incrementalAlterConfigs. Previous versions are no longer
+  // supported by KSQL.
   @Override
   public boolean addTopicConfig(final String topicName, final Map<String, ?> overrides) {
     final ConfigResource resource = new ConfigResource(ConfigResource.Type.TOPIC, topicName);
@@ -266,8 +267,6 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
           ExecutorUtil.RetryBehaviour.ON_RETRYABLE);
 
       return true;
-    } catch (final UnsupportedVersionException e) {
-      return addTopicConfigLegacy(topicName, stringConfigs);
     } catch (final Exception e) {
       throw new KafkaResponseGetFailedException(
           "Failed to set config for Kafka Topic " + topicName, e);
@@ -440,8 +439,6 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
     }
   }
 
-  // 'alterConfigs' deprecated, but new `incrementalAlterConfigs` only available on Kafka v2.3+
-  // So we need to continue to support older brokers until our min requirements reaches v2.3
   @SuppressWarnings({"deprecation", "RedundantSuppression"})
   private boolean addTopicConfigLegacy(
       final String topicName,
@@ -459,9 +456,15 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
 
       final Map<ConfigResource, Config> request =
           Collections.singletonMap(resource, new Config(entries));
+      final Map<ConfigResource, Collection<AlterConfigOp>> alterOps = Collections.singletonMap(
+          resource,
+          entries.stream()
+              .map(entry -> new AlterConfigOp(entry, AlterConfigOp.OpType.SET))
+              .collect(Collectors.toList())
+      );
 
       ExecutorUtil.executeWithRetries(
-          () -> adminClient.get().alterConfigs(request).all().get(),
+          () -> adminClient.get().incrementalAlterConfigs(alterOps).all().get(),
           ExecutorUtil.RetryBehaviour.ON_RETRYABLE);
 
       return true;

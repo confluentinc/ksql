@@ -281,7 +281,7 @@ public class AggregateNodeTest {
   public void shouldHaveKsqlNameForAggregationStateStore() {
     build();
     final TopologyDescription.Processor node = (TopologyDescription.Processor) getNodeByName(
-        builder.build(), "KSTREAM-AGGREGATE-0000000003");
+        builder.build(), "KSTREAM-AGGREGATE-0000000004");
     assertThat(node.stores(), hasItem(equalTo("Aggregate-Aggregate-Materialize")));
   }
 

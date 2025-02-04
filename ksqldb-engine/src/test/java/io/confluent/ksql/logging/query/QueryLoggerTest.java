@@ -56,7 +56,7 @@ public class QueryLoggerTest {
     consoleAppender.start();
 
     QueryLogger.addAppender(consoleAppender);
-
+    testAppender.start();
     QueryLogger.addAppender(testAppender);
     QueryLogger.configure(config);
   }

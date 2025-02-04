@@ -39,7 +39,14 @@ public class PlannedTestGeneratorTest {
   @Test
   public void manuallyGeneratePlans() {
     PlannedTestGenerator.generatePlans(QueryTranslationTest.findTestCases()
-        .filter(PlannedTestUtils::isNotExcluded));
+        .filter(PlannedTestUtils::isIncluded), true);
+  }
+
+  @Ignore("Comment me out to regenerate the historic plans")
+  @Test
+  public void manuallyGeneratePlansSkipCurrentTestValidation() {
+    PlannedTestGenerator.generatePlans(QueryTranslationTest.findTestCases()
+        .filter(PlannedTestUtils::isIncluded), false);
   }
 
   @Test

@@ -29,7 +29,7 @@ public class PlannedTestGeneratorTest {
    * Run this test to generate new query plans for the {@link QueryTranslationTest} test cases.
    *
    * <p>NB: You'll need to temporarily comment out the {@code @Ignore} annotation to run the test,
-   * but make sure you put it back afterwards!
+   * but make sure you put it back afterward!
    *
    * <p>Ensure only the test plans you expected have changed, then check the new query plans in
    * with your change. Otherwise, {@link PlannedTestsUpToDateTest} fill fail if there are missing
@@ -42,7 +42,7 @@ public class PlannedTestGeneratorTest {
         .filter(PlannedTestUtils::isIncluded), true);
   }
 
-  @Ignore("Comment me out to regenerate the historic plans")
+  @Ignore("Comment me out to regenerate the historic plans without validation")
   @Test
   public void manuallyGeneratePlansSkipCurrentTestValidation() {
     PlannedTestGenerator.generatePlans(QueryTranslationTest.findTestCases()

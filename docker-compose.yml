@@ -93,4 +93,3 @@ services:
       - primary-ksqldb-server
     entrypoint: /bin/sh
     tty: true
-

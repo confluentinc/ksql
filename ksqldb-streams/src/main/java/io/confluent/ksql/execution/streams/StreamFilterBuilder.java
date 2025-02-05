@@ -52,6 +52,7 @@ public final class StreamFilterBuilder {
 
     final ProcessingLogger processingLogger = buildContext
         .getProcessingLogger(step.getProperties().getQueryContext());
+
     final KStream<K, GenericRow> stream = streamHolder.getStream();
     // Preserve processor naming sequence by adding a no-op peek operation.
     stream.peek((k, v) -> { });

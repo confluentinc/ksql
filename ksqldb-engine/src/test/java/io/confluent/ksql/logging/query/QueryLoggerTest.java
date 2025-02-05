@@ -186,7 +186,6 @@ public class QueryLoggerTest {
   @Test
   public void shouldAnonymizeMultipleStatements() {
     QueryLogger.configure(config);
-    Configurator.setLevel(QueryLogger.class.getName(), Level.INFO);
     QueryLogger.info("a message", "list streams; list tables; select a, b from mytable; list queries;");
     final List<LogEvent> events = testAppender.getLog();
     assertThat(events, hasSize(1));

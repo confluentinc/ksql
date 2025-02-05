@@ -14,7 +14,7 @@ fi
 
  : "${KSQL_LOG4J_OPTS:=""}"
 if [ -z "$KSQL_LOG4J_OPTS" ] && [ -e "$KSQL_CONFIG_DIR/log4j-sql-test.yaml" ]; then
-  export KSQL_LOG4J_OPTS="-Dlog4j2.configuration=file:$KSQL_CONFIG_DIR/log4j-sql-test.yaml"
+  export KSQL_LOG4J_OPTS="-Dlog4j2.configurationFile=file:$KSQL_CONFIG_DIR/log4j-sql-test.yaml"
 fi
 
  exec "$base_dir"/bin/ksql-run-class io.confluent.ksql.tools.test.SqlTestingTool "$@"

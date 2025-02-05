@@ -67,11 +67,11 @@ import java.util.Set;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.tuple.ImmutablePair;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class QueryFilterNode extends SingleSourcePlanNode {
-  private static final Logger LOG = LoggerFactory.getLogger(QueryFilterNode.class);
+  private static final Logger LOG = LogManager.getLogger(QueryFilterNode.class);
 
   private static final Set<Type> VALID_WINDOW_BOUND_COMPARISONS = ImmutableSet.of(
       Type.EQUAL,

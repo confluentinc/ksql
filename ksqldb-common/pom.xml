@@ -106,6 +106,14 @@
         <version>${io.confluent.ksql.version}</version>
       </dependency>
 
+        <dependency>
+            <groupId>org.bouncycastle</groupId>
+            <artifactId>bctls-fips</artifactId>
+            <version>${bouncycastle.tls-fips.version}</version>
+            <scope>provided</scope>
+        </dependency>
+
+
         <!-- Required for running tests -->
 
         <dependency>

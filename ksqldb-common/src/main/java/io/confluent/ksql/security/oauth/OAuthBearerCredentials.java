@@ -18,6 +18,7 @@ package io.confluent.ksql.security.oauth;
 import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.security.Credentials;
 import io.confluent.ksql.security.KsqlClientConfig;
+import io.confluent.ksql.security.ssl.HostSslSocketFactory;
 import java.net.URL;
 import java.util.Map;
 import javax.net.ssl.SSLSocketFactory;
@@ -104,7 +105,8 @@ public class OAuthBearerCredentials implements Credentials {
         KsqlClientConfig.BEARER_AUTH_TOKEN_ENDPOINT_URL);
 
     if (jaasOptionsUtils.shouldCreateSSLSocketFactory(tokenEndpointUrl)) {
-      socketFactory = jaasOptionsUtils.createSSLSocketFactory();
+      socketFactory = new HostSslSocketFactory(jaasOptionsUtils.createSSLSocketFactory(),
+              tokenEndpointUrl.getHost());
     }
 
     return new HttpAccessTokenRetriever(clientId, clientSecret, scope, socketFactory,

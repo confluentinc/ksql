@@ -38,14 +38,14 @@ public final class StreamFilterBuilder {
   }
 
   static <K> KStreamHolder<K> build(
-      final KStreamHolder<K> stream,
+      final KStreamHolder<K> streamHolder,
       final StreamFilter<K> step,
       final RuntimeBuildContext buildContext,
       final SqlPredicateFactory predicateFactory
   ) {
     final SqlPredicate predicate = predicateFactory.create(
         step.getFilterExpression(),
-        stream.getSchema(),
+        streamHolder.getSchema(),
         buildContext.getKsqlConfig(),
         buildContext.getFunctionRegistry()
     );
@@ -53,16 +53,19 @@ public final class StreamFilterBuilder {
     final ProcessingLogger processingLogger = buildContext
         .getProcessingLogger(step.getProperties().getQueryContext());
 
-    final KStream<K, GenericRow> filtered = stream.getStream()
+    final KStream<K, GenericRow> stream = streamHolder.getStream();
+    // Preserve processor naming sequence by adding a no-op peek operation.
+    stream.peek((k, v) -> { });
+    final KStream<K, GenericRow> filtered = stream
         .processValues(
             () -> new KsFlatTransformedValueProcessor<>(
                 new KsqlFlatTransformer<>(predicate.getTransformer(processingLogger))),
             Named.as(StreamsUtil.buildOpName(step.getProperties().getQueryContext()))
         );
 
-    return stream.withStream(
+    return streamHolder.withStream(
         filtered,
-        stream.getSchema()
+        streamHolder.getSchema()
     );
   }
 }

@@ -60,7 +60,7 @@ public class KsqlBareOutputNodeTest {
 
   private static final String FILTER_NODE = "WhereFilter";
   private static final String FILTER_MAPVALUES_NODE = "Project";
-  private static final String PEEK_NODE = "KSTREAM-PEEK-0000000002";
+  private static final String PEEK_NODE = "KSTREAM-PEEK-0000000003";
   private static final String SIMPLE_SELECT_WITH_FILTER
       = "SELECT col0, col2, col3 FROM test1 WHERE col0 > 100 EMIT CHANGES;";
 

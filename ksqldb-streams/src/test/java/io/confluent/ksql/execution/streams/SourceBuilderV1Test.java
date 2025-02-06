@@ -84,8 +84,8 @@ import org.apache.kafka.common.utils.Bytes;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
+import org.apache.kafka.streams.AutoOffsetReset;
 import org.apache.kafka.streams.StreamsBuilder;
-import org.apache.kafka.streams.Topology.AutoOffsetReset;
 import org.apache.kafka.streams.kstream.Consumed;
 import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.KTable;
@@ -318,7 +318,7 @@ public class SourceBuilderV1Test {
     validator.verify(kstream).processValues(any(FixedKeyProcessorSupplier.class));
     verify(consumedFactory).create(keySerde, valueSerde);
     verify(consumed).withTimestampExtractor(any());
-    verify(consumed).withOffsetResetPolicy(any());
+    verify(consumed).withOffsetResetPolicy(any(AutoOffsetReset.class));
   }
 
   @Test
@@ -1213,7 +1213,7 @@ public class SourceBuilderV1Test {
   private <K> void givenConsumed(final Consumed<K, GenericRow> consumed, final Serde<K> keySerde) {
     when(consumedFactory.create(keySerde, valueSerde)).thenReturn(consumed);
     when(consumed.withTimestampExtractor(any())).thenReturn(consumed);
-    when(consumed.withOffsetResetPolicy(any())).thenReturn(consumed);
+    when(consumed.withOffsetResetPolicy(any(AutoOffsetReset.class))).thenReturn(consumed);
   }
 
   private static PlanInfo givenDownstreamRepartition(final ExecutionStep<?> sourceStep) {

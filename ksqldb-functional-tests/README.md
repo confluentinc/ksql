@@ -134,20 +134,20 @@ For example:
 
 Each test case can have the following attributes:
 
-|    Attribute     | Description |
-|------------------|:------------|
-| name             | (Required) The name of the test case as will be displayed in IDEs and Logs. This would be the function name in a JUnit test |
-| description      | (Optional) A description of what the test case is testing. Not used or displayed anywhere |
-| versions         | (Optional) A object describing the min and/or max version of KSQL the test is valid for. (See below for more info) |
-| format           | (Optional) An array of multiple different formats to run the test case as, e.g. AVRO, JSON, DELIMITED. (See below for more info) |
-| config           | (Optional) An array of multiple different config values for a single property to run the test case as (See below for more info) |
-| statements       | (Required) The list of statements to execute as this test case |
-| properties       | (Optional) A map of property name to value. Can contain any valid Ksql config. The config is passed to the engine when executing the statements in the test case. One property may have value `{CONFIG}` to re-run the test with different config values (cf `config` attribute) |
-| topics           | (Optional) An array of the topics this test case needs. Allows more information about the topic to be supplied, e.g. an existing Avro schema (See below for more info) |
-| inputs           | (Required if `expectedException` not supplied and statements do not include `INSERT INTO` statements) The set of input messages to be produced to Kafka topic(s), (See below for more info) |
-| outputs          | (Required if `expectedException` not supplied) The set of output messages expected in the output topic(s), (See below for more info) |
-| expectedException| (Required in `inputs` and `outputs` not supplied) The exception that should be thrown when executing the supplied statements, (See below for more info) |
-| post             | (Optional) Defines post conditions that must exist after the statements have run, (See below for more info) |
+| Attribute         | Description                                                                                                                                                                                                                                                                      |
+|-------------------|:---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| name              | (Required) The name of the test case as will be displayed in IDEs and Logs. This would be the function name in a JUnit test                                                                                                                                                      |
+| description       | (Optional) A description of what the test case is testing. Not used or displayed anywhere                                                                                                                                                                                        |
+| versions          | (Optional) A object describing the min and/or max version of KSQL the test is valid for. (See below for more info)                                                                                                                                                               |
+| format            | (Optional) An array of multiple different formats to run the test case as, e.g. AVRO, JSON, DELIMITED. (See below for more info)                                                                                                                                                 |
+| config            | (Optional) An array of multiple different config values for a single property to run the test case as (See below for more info)                                                                                                                                                  |
+| statements        | (Required) The list of statements to execute as this test case                                                                                                                                                                                                                   |
+| properties        | (Optional) A map of property name to value. Can contain any valid Ksql config. The config is passed to the engine when executing the statements in the test case. One property may have value `{CONFIG}` to re-run the test with different config values (cf `config` attribute) |
+| topics            | (Optional) An array of the topics this test case needs. Allows more information about the topic to be supplied, e.g. an existing Avro schema (See below for more info)                                                                                                           |
+| inputs            | (Required if `expectedException` not supplied and statements do not include `INSERT INTO` statements) The set of input messages to be produced to Kafka topic(s), (See below for more info)                                                                                      |
+| outputs           | (Required if `expectedException` not supplied) The set of output messages expected in the output topic(s), (See below for more info)                                                                                                                                             |
+| expectedException | (Required in `inputs` and `outputs` not supplied) The exception that should be thrown when executing the supplied statements, (See below for more info)                                                                                                                          |
+| post              | (Optional) Defines post conditions that must exist after the statements have run, (See below for more info)                                                                                                                                                                      |
 
 ### Versions
 A test can can optionally supply the bounds on Ksql version that the test is valid for.
@@ -175,8 +175,8 @@ For example:
 }]
 ```
 
-| Attribute | Description |
-|-----------|:------------|
+| Attribute | Description                                    |
+|-----------|:-----------------------------------------------|
 | min       | (Optional) lower bound on version, (inclusive) |
 | max       | (Optional) upper bound on version, (inclusive) |
 
@@ -229,7 +229,7 @@ For example:
 
 ### Statements
 You can specify multiple statements per test case, i.e. to set up the various streams needed
-for joins etc, but currently only the final topology will be verified. This should be enough
+for joins etc., but currently only the final topology will be verified. This should be enough
 for most tests as we can simulate the outputs from previous stages into the final stage. If we
 take a modular approach to testing we can still verify that it all works correctly, i.e. if we
 verify the output of a select or aggregate is correct, then we can use simulated output to feed
@@ -243,23 +243,23 @@ A test case can optionally supply an array of topics that should exist and addit
 It is not necessary to add entries for topics required by the test case unless any of the following attributes need to be controlled:
 (Tests will create input and output topics as required).
 
-| Attribute | Description |
-|-----------|:------------|
-| name      | (Required) the name of the topic |
+| Attribute | Description                                                                                                             |
+|-----------|:------------------------------------------------------------------------------------------------------------------------|
+| name      | (Required) the name of the topic                                                                                        |
 | format    | (Required) the serialization format of records within the topic, e.g. `AVRO`, or `{FORMAT}` if using `format` property. |
-| schema    | (Optional) the schema, registered in the schema store, of the topic. If not supplied, no schema is registered |
+| schema    | (Optional) the schema, registered in the schema store, of the topic. If not supplied, no schema is registered           |
 
 ### Inputs & Outputs
 Each input and output row defines a message either produced to, or expected from, Kafka.
 They can define the following attributes:
 
-| Attribute | Description |
-|-----------|:------------|
-| topic     | (Required) the name of the topic |
-| key       | (Optional for streams, Required for tables) the key of the message. If absent the key will be set to `null` |
-| value     | (Required) the value of the message |
+| Attribute | Description                                                                                                                                                         |
+|-----------|:--------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| topic     | (Required) the name of the topic                                                                                                                                    |
+| key       | (Optional for streams, Required for tables) the key of the message. If absent the key will be set to `null`                                                         |
+| value     | (Required) the value of the message                                                                                                                                 |
 | timestamp | (Optional) the timestamp of the message. If not supplied it will be set using the system clock if it was from an `INSERT INTO VALUES` statement, and 0 otherwise.\* |
-| window    | (Optional) the window information for the message. (See below for more info) |
+| window    | (Optional) the window information for the message. (See below for more info)                                                                                        |
 
 \* If the timestamp was set using the system clock, it will not verify the timestamp against outputs with no defined timestamp.
 
@@ -274,10 +274,10 @@ An example windowed message:
 
 The window information can define the following attributes:
 
-| Attribute | Description |
-|-----------|:------------|
-| start     | (Required) the start of the window in milliseconds |
-| end       | (Session only) the end of the window in milliseconds |
+| Attribute | Description                                                                    |
+|-----------|:-------------------------------------------------------------------------------|
+| start     | (Required) the start of the window in milliseconds                             |
+| end       | (Session only) the end of the window in milliseconds                           |
 | type      | (Required) the window type. Must be one of `hopping`, `tumbling`, or `session` |
 
 ### Expected Exception
@@ -294,9 +294,9 @@ A test can define an expected exception in the same way as a JUnit test, e.g.
 
 The expected exception can define the following attributes:
 
-| Attribute | Description |
-|-----------|:------------|
-| type      | (Optional) The fully qualifid class name of the _exact_ exception |
+| Attribute | Description                                                                                                              |
+|-----------|:-------------------------------------------------------------------------------------------------------------------------|
+| type      | (Optional) The fully qualified class name of the _exact_ exception                                                       |
 | message   | (Optional) The full text of the message within the exception, i.e. the error message that would be displayed to the user |
 
 ### Post Conditions
@@ -325,10 +325,10 @@ A test can define a set of post conditions that must be met for the test to pass
 
 Post conditions current support the following checks:
 
-| Attribute | Description |
-|-----------|:------------|
+| Attribute | Description                                                                                                                                       |
+|-----------|:--------------------------------------------------------------------------------------------------------------------------------------------------|
 | sources   | (Optional) A list of sources that must exist in the metastore after the statements have executed. This list does not need to define every source. |
-| topics    | (Optional) Topic post conditions |
+| topics    | (Optional) Topic post conditions                                                                                                                  |
 
 #### Sources
 A post condition can define the list of sources that must exist in the metastore. A source might be:
@@ -347,15 +347,15 @@ A post condition can define the list of sources that must exist in the metastore
 
 Each source can define the following attributes:
 
-| Attribute    | Description |
-|--------------|:------------|
-| name         | (Required) The name of the source. |
-| type         | (Required) Specifies if the source is a STREAM or TABLE. |
-| schema       | (Optional) Specifies the SQL schema for the source. |
-| keyFormat    | (Optional) Key serialization format for the source. |
-| valueFormat  | (Optional) Value serialization format for the source. |
-| keyFeatures  | (Optional) List of expected key serde features for the source. |
-| valueFeatures| (Optional) List of expected value serde features for the source. |
+| Attribute     | Description                                                      |
+|---------------|:-----------------------------------------------------------------|
+| name          | (Required) The name of the source.                               |
+| type          | (Required) Specifies if the source is a STREAM or TABLE.         |
+| schema        | (Optional) Specifies the SQL schema for the source.              |
+| keyFormat     | (Optional) Key serialization format for the source.              |
+| valueFormat   | (Optional) Value serialization format for the source.            |
+| keyFeatures   | (Optional) List of expected key serde features for the source.   |
+| valueFeatures | (Optional) List of expected value serde features for the source. |
 
 #### Topics
 
@@ -377,10 +377,10 @@ A post condition can define a check against the set of topics the case creates
 
 The topics object can define the following attributes:
 
-| Attribute   | Description |
-|-------------|:------------|
-| blacklist   | Regex defining a blacklist of topic names that should not be created. |
-| topics      | A list of topics that should be created. |
+| Attribute | Description                                                           |
+|-----------|:----------------------------------------------------------------------|
+| blacklist | Regex defining a blacklist of topic names that should not be created. |
+| topics    | A list of topics that should be created.                              |
 
 ##### Topic
 
@@ -395,9 +395,9 @@ The topics object can define the following attributes:
 
 The topic object can define the following attributes:
 
-| Attribute   | Description |
-|-------------|:------------|
-| name        | The name of the topic. |
-| keyFormat   | The key serialization format. |
-| valueFormat | The value serialization format. |
+| Attribute   | Description                          |
+|-------------|:-------------------------------------|
+| name        | The name of the topic.               |
+| keyFormat   | The key serialization format.        |
+| valueFormat | The value serialization format.      |
 | partitions  | (Optional) The number of partitions. |

@@ -1,0 +1,56 @@
+Topologies:
+   Sub-topology: 0
+    Source: KSTREAM-SOURCE-0000000012 (topics: [left])
+      --> KSTREAM-PROCESSVALUES-0000000013
+    Processor: KSTREAM-PROCESSVALUES-0000000013 (stores: [])
+      --> PrependAliasL_Left, KSTREAM-PEEK-0000000014
+      <-- KSTREAM-SOURCE-0000000012
+    Processor: PrependAliasL_Left (stores: [])
+      --> L_Join
+      <-- KSTREAM-PROCESSVALUES-0000000013
+    Source: KSTREAM-SOURCE-0000000001 (topics: [right2])
+      --> KTABLE-SOURCE-0000000002
+    Source: KSTREAM-SOURCE-0000000007 (topics: [right])
+      --> KTABLE-SOURCE-0000000008
+    Processor: L_Join (stores: [KafkaTopic_L_Right-Reduce])
+      --> Join
+      <-- PrependAliasL_Left
+    Processor: Join (stores: [KafkaTopic_Right-Reduce])
+      --> KSTREAM-PEEK-0000000017, Project
+      <-- L_Join
+    Processor: KTABLE-SOURCE-0000000002 (stores: [])
+      --> KTABLE-TRANSFORMVALUES-0000000003
+      <-- KSTREAM-SOURCE-0000000001
+    Processor: KTABLE-SOURCE-0000000008 (stores: [])
+      --> KTABLE-TRANSFORMVALUES-0000000009
+      <-- KSTREAM-SOURCE-0000000007
+    Processor: KTABLE-TRANSFORMVALUES-0000000003 (stores: [KafkaTopic_Right-Reduce])
+      --> KTABLE-TRANSFORMVALUES-0000000004
+      <-- KTABLE-SOURCE-0000000002
+    Processor: KTABLE-TRANSFORMVALUES-0000000009 (stores: [KafkaTopic_L_Right-Reduce])
+      --> KTABLE-TRANSFORMVALUES-0000000010
+      <-- KTABLE-SOURCE-0000000008
+    Processor: KTABLE-TRANSFORMVALUES-0000000004 (stores: [])
+      --> PrependAliasRight
+      <-- KTABLE-TRANSFORMVALUES-0000000003
+    Processor: KTABLE-TRANSFORMVALUES-0000000010 (stores: [])
+      --> PrependAliasL_Right
+      <-- KTABLE-TRANSFORMVALUES-0000000009
+    Processor: Project (stores: [])
+      --> KSTREAM-SINK-0000000018
+      <-- Join
+    Processor: KSTREAM-PEEK-0000000014 (stores: [])
+      --> none
+      <-- KSTREAM-PROCESSVALUES-0000000013
+    Processor: KSTREAM-PEEK-0000000017 (stores: [])
+      --> none
+      <-- Join
+    Sink: KSTREAM-SINK-0000000018 (topic: OUTPUT)
+      <-- Project
+    Processor: PrependAliasL_Right (stores: [])
+      --> none
+      <-- KTABLE-TRANSFORMVALUES-0000000010
+    Processor: PrependAliasRight (stores: [])
+      --> none
+      <-- KTABLE-TRANSFORMVALUES-0000000004
+

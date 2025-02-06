@@ -318,7 +318,7 @@ public class SourceBuilderV1Test {
     validator.verify(kstream).processValues(any(FixedKeyProcessorSupplier.class));
     verify(consumedFactory).create(keySerde, valueSerde);
     verify(consumed).withTimestampExtractor(any());
-    verify(consumed).withOffsetResetPolicy(any());
+    verify(consumed).withOffsetResetPolicy(any(AutoOffsetReset.class));
   }
 
   @Test
@@ -1213,7 +1213,7 @@ public class SourceBuilderV1Test {
   private <K> void givenConsumed(final Consumed<K, GenericRow> consumed, final Serde<K> keySerde) {
     when(consumedFactory.create(keySerde, valueSerde)).thenReturn(consumed);
     when(consumed.withTimestampExtractor(any())).thenReturn(consumed);
-    when(consumed.withOffsetResetPolicy(any())).thenReturn(consumed);
+    when(consumed.withOffsetResetPolicy(any(AutoOffsetReset.class))).thenReturn(consumed);
   }
 
   private static PlanInfo givenDownstreamRepartition(final ExecutionStep<?> sourceStep) {

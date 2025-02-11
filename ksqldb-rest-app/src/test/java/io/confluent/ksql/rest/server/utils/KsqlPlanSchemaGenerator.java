@@ -25,6 +25,7 @@ import com.google.common.base.Charsets;
 import com.google.common.collect.ImmutableMap;
 import com.kjetland.jackson.jsonSchema.JsonSchemaConfig;
 import com.kjetland.jackson.jsonSchema.JsonSchemaGenerator;
+import com.kjetland.jackson.jsonSchema.SubclassesResolver;
 import io.confluent.ksql.engine.KsqlPlan;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
@@ -55,36 +56,38 @@ public final class KsqlPlanSchemaGenerator {
   }
 
   private static JsonSchemaConfig configure() {
-    final JsonSchemaConfig vanilla = JsonSchemaConfig.vanillaJsonSchemaDraft4();
-    return JsonSchemaConfig.create(
-        vanilla.autoGenerateTitleForProperties(),
-        Optional.empty(),
-        false,
-        false,
-        vanilla.usePropertyOrdering(),
-        vanilla.hidePolymorphismTypeProperty(),
-        vanilla.disableWarnings(),
-        vanilla.useMinLengthForNotNull(),
-        vanilla.useTypeIdForDefinitionName(),
-        Collections.emptyMap(),
-        vanilla.useMultipleEditorSelectViaProperty(),
-        Collections.emptySet(),
-        // the schema generator doesn't play nice with custom serializers, so we add a
-        // config to remap the custom-serialized types to their underlying primitive
+    return JsonSchemaConfig.builder()
+      .autoGenerateTitleForProperties(false)
+      .defaultArrayFormat(null)
+      .useOneOfForOption(false)
+      .useOneOfForNullables(false)
+      .usePropertyOrdering(false)
+      .hidePolymorphismTypeProperty(false)
+      .useMinLengthForNotNull(false)
+      .useTypeIdForDefinitionName(false)
+      .customType2FormatMapping(Collections.emptyMap())
+      .useMultipleEditorSelectViaProperty(false)
+      .uniqueItemClasses(new HashSet<>())
+      .classTypeReMapping(
         new ImmutableMap.Builder<Class<?>, Class<?>>()
-            .put(LogicalSchema.class, String.class)
-            .put(SqlType.class, String.class)
-            .put(SelectExpression.class, String.class)
-            .put(Expression.class, String.class)
-            .put(FunctionCall.class, String.class)
-            .put(KsqlWindowExpression.class, String.class)
-            .put(Duration.class, Long.class)
-            .build(),
-        Collections.emptyMap(),
-        null,
-        true,
-        null
-    );
+          .put(LogicalSchema.class, String.class)
+          .put(SqlType.class, String.class)
+          .put(SelectExpression.class, String.class)
+          .put(Expression.class, String.class)
+          .put(FunctionCall.class, String.class)
+          .put(KsqlWindowExpression.class, String.class)
+          .put(Duration.class, Long.class)
+          .build()
+      )
+      .jsonSuppliers(Collections.emptyMap())
+      .subclassesResolver(new SubclassesResolver(
+        Arrays.asList(
+          "io.confluent.ksql.rest.entity",
+          "io.confluent.ksql.serde"
+        ),
+        Collections.emptyList()
+      ))
+      .build();
   }
 
   private static JsonNode generate(final Class<?> clazz) {

@@ -17,9 +17,13 @@ package io.confluent.ksql.execution.windows;
 
 import static java.util.Objects.requireNonNull;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.parser.NodeLocation;
+import io.confluent.ksql.parser.OutputRefinement;
 import io.confluent.ksql.serde.WindowInfo;
 import java.util.Objects;
 import java.util.Optional;
@@ -30,15 +34,36 @@ public class HoppingWindowExpression extends KsqlWindowExpression {
   private final WindowTimeClause size;
   private final WindowTimeClause advanceBy;
 
+  @JsonCreator
+  public static HoppingWindowExpression of(
+      @JsonProperty(value = "size", required = true) final WindowTimeClause size,
+      @JsonProperty(value = "advanceBy", required = true) final WindowTimeClause advanceBy,
+      @JsonProperty(value = "retention") final WindowTimeClause retention,
+      @JsonProperty(value = "gracePeriod") final WindowTimeClause gracePeriod,
+      @JsonProperty(value = "emitStrategy") final OutputRefinement emitStrategy
+  ) {
+    return new HoppingWindowExpression(
+        Optional.empty(),
+        size,
+        advanceBy,
+        Optional.ofNullable(retention),
+        Optional.ofNullable(gracePeriod),
+        Optional.ofNullable(emitStrategy)
+    );
+  }
+
   public HoppingWindowExpression(
       final WindowTimeClause size,
       final WindowTimeClause advanceBy
   ) {
-    this(Optional.empty(),
-         size,
-         advanceBy,
-         Optional.empty(),
-         Optional.empty());
+    this(
+        Optional.empty(),
+        size,
+        advanceBy,
+        Optional.empty(),
+        Optional.empty(),
+        Optional.empty()
+    );
   }
 
   public HoppingWindowExpression(
@@ -48,17 +73,30 @@ public class HoppingWindowExpression extends KsqlWindowExpression {
       final Optional<WindowTimeClause> retention,
       final Optional<WindowTimeClause> gracePeriod
   ) {
-    super(location, retention, gracePeriod);
+    this(location, size, advanceBy, retention, gracePeriod, Optional.empty());
+  }
+
+  public HoppingWindowExpression(
+      final Optional<NodeLocation> location,
+      final WindowTimeClause size,
+      final WindowTimeClause advanceBy,
+      final Optional<WindowTimeClause> retention,
+      final Optional<WindowTimeClause> gracePeriod,
+      final Optional<OutputRefinement> emitStrategy
+  ) {
+    super(location, retention, gracePeriod, emitStrategy);
     this.size = requireNonNull(size, "size");
     this.advanceBy = requireNonNull(advanceBy, "advanceBy");
   }
 
+  @JsonIgnore
   @Override
   public WindowInfo getWindowInfo() {
-    return WindowInfo.of(
-        WindowType.HOPPING,
-        Optional.of(size.toDuration())
-    );
+    return WindowInfo.of(WindowType.HOPPING, Optional.of(size.toDuration()), emitStrategy);
+  }
+
+  public WindowType getWindowType() {
+    return WindowType.HOPPING;
   }
 
   public WindowTimeClause getSize() {

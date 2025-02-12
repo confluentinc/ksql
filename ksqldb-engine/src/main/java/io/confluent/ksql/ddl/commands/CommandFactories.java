@@ -35,11 +35,13 @@ import io.confluent.ksql.parser.tree.DropStream;
 import io.confluent.ksql.parser.tree.DropTable;
 import io.confluent.ksql.parser.tree.RegisterType;
 import io.confluent.ksql.planner.plan.KsqlStructuredDataOutputNode;
+import io.confluent.ksql.serde.RefinementInfo;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.HandlerMaps;
 import io.confluent.ksql.util.HandlerMaps.ClassHandlerMapR2;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Objects;
+import java.util.Optional;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public class CommandFactories implements DdlCommandFactory {
@@ -114,11 +116,14 @@ public class CommandFactories implements DdlCommandFactory {
   }
 
   @Override
-  public DdlCommand create(final KsqlStructuredDataOutputNode outputNode) {
+  public DdlCommand create(
+      final KsqlStructuredDataOutputNode outputNode,
+      final Optional<RefinementInfo> emitStrategy
+  ) {
     if (outputNode.getNodeOutputType() == DataSource.DataSourceType.KSTREAM) {
       return createSourceFactory.createStreamCommand(outputNode);
     } else {
-      return createSourceFactory.createTableCommand(outputNode);
+      return createSourceFactory.createTableCommand(outputNode, emitStrategy);
     }
   }
 

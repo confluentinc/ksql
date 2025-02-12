@@ -124,6 +124,7 @@ public final class TestUdaf {
       }
 
       @Override
+      @SuppressWarnings("unchecked")
       public void initializeTypeArguments(List<SqlArgument> argTypeList) {
         type = argTypeList.get(0).getSqlTypeOrThrow();
         if (type == SqlTypes.DOUBLE) {

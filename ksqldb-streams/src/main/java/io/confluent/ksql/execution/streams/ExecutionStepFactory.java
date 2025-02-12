@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 Confluent Inc.
+ * Copyright 2022 Confluent Inc.
  *
  * Licensed under the Confluent Community License; you may not use this file
  * except in compliance with the License.  You may obtain a copy of the License at
@@ -225,6 +225,7 @@ public final class ExecutionStepFactory {
       final QueryContext.Stacker stacker,
       final ExecutionStep<KStreamHolder<K>> source,
       final List<ColumnName> keyColumnNames,
+      final Optional<List<ColumnName>> selectedKeys,
       final List<SelectExpression> selectExpressions
   ) {
     final ExecutionStepPropertiesV1 properties = new ExecutionStepPropertiesV1(
@@ -234,6 +235,7 @@ public final class ExecutionStepFactory {
         properties,
         source,
         keyColumnNames,
+        selectedKeys,
         selectExpressions
     );
   }

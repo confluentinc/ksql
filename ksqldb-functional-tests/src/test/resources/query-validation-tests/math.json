@@ -256,6 +256,451 @@
           }
         ]
       }
+    },
+    {
+      "name": "acos regular cases",
+      "statements": [
+        "CREATE STREAM INPUT (K STRING KEY, i INT, l BIGINT, d DOUBLE) WITH (kafka_topic='input', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT k, round(acos(i), 13) i, round(acos(l), 13) l, round(acos(d), 13) d FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input", "value": {"i": -1, "l": -1, "d": -0.43}},
+        {"topic": "input", "value": {"i": 0, "l": 0, "d": 0.0}},
+        {"topic": "input", "value": {"i": 1, "l": 1, "d": 0.43}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"I": 3.1415926535898, "L": 3.1415926535898, "D": 2.0152891037307}},
+        {"topic": "OUTPUT", "value": {"I": 1.5707963267949, "L": 1.5707963267949, "D": 1.5707963267949}},
+        {"topic": "OUTPUT", "value": {"I": 0.0, "L": 0.0, "D": 1.1263035498591}}
+      ]
+    },
+    {
+      "name": "acos edge cases",
+      "statements": [
+        "CREATE STREAM INPUT (K STRING KEY, i INT, l BIGINT, d DOUBLE) WITH (kafka_topic='input', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT k, acos(i) i, acos(l) l, acos(d) d FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input", "value": {"i": null, "l": null, "d": null}},
+        {"topic": "input", "value": {"i": -2, "l": -6, "d": -1.1}},
+        {"topic": "input", "value": {"i": 2, "l": 6, "d": 1.1}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"I": null, "L": null, "D": null}},
+        {"topic": "OUTPUT", "value": {"I": "NaN", "L": "NaN", "D": "NaN"}},
+        {"topic": "OUTPUT", "value": {"I": "NaN", "L": "NaN", "D": "NaN"}}
+      ]
+    },
+    {
+      "name": "asin regular cases",
+      "statements": [
+        "CREATE STREAM INPUT (K STRING KEY, i INT, l BIGINT, d DOUBLE) WITH (kafka_topic='input', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT k, round(asin(i), 13) i, round(asin(l), 13) l, round(asin(d), 13) d FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input", "value": {"i": -1, "l": -1, "d": -0.43}},
+        {"topic": "input", "value": {"i": 0, "l": 0, "d": 0.0}},
+        {"topic": "input", "value": {"i": 1, "l": 1, "d": 0.43}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"I": -1.5707963267949, "L": -1.5707963267949, "D": -0.4444927769358}},
+        {"topic": "OUTPUT", "value": {"I": 0.0, "L": 0.0, "D": 0.0}},
+        {"topic": "OUTPUT", "value": {"I": 1.5707963267949, "L": 1.5707963267949, "D": 0.4444927769358}}
+      ]
+    },
+    {
+      "name": "asin edge cases",
+      "statements": [
+        "CREATE STREAM INPUT (K STRING KEY, i INT, l BIGINT, d DOUBLE) WITH (kafka_topic='input', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT k, asin(i) i, asin(l) l, asin(d) d FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input", "value": {"i": null, "l": null, "d": null}},
+        {"topic": "input", "value": {"i": -2, "l": -6, "d": -1.1}},
+        {"topic": "input", "value": {"i": 2, "l": 6, "d": 1.1}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"I": null, "L": null, "D": null}},
+        {"topic": "OUTPUT", "value": {"I": "NaN", "L": "NaN", "D": "NaN"}},
+        {"topic": "OUTPUT", "value": {"I": "NaN", "L": "NaN", "D": "NaN"}}
+      ]
+    },
+    {
+      "name": "atan",
+      "statements": [
+        "CREATE STREAM INPUT (K STRING KEY, i INT, l BIGINT, d DOUBLE) WITH (kafka_topic='input', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT K, round(atan(i), 13) i, round(atan(l), 13) l, round(atan(d), 13) d FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input", "value": {"i": null, "l": null, "d": null}},
+        {"topic": "input", "value": {"i": -2, "l": -6, "d": -1.1}},
+        {"topic": "input", "value": {"i": -1, "l": -1, "d": -0.43}},
+        {"topic": "input", "value": {"i": 0, "l": 0, "d": 0.0}},
+        {"topic": "input", "value": {"i": 1, "l": 1, "d": 0.43}},
+        {"topic": "input", "value": {"i": 2, "l": 6, "d": 1.1}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"I": null, "L": null, "D": null}},
+        {"topic": "OUTPUT", "value": {"I": -1.1071487177941, "L": -1.4056476493803, "D": -0.8329812666744}},
+        {"topic": "OUTPUT", "value": {"I": -0.7853981633974, "L": -0.7853981633974, "D": -0.4060980583176}},
+        {"topic": "OUTPUT", "value": {"I": 0.0, "L": 0.0, "D": 0.0}},
+        {"topic": "OUTPUT", "value": {"I": 0.7853981633974, "L": 0.7853981633974, "D": 0.4060980583176}},
+        {"topic": "OUTPUT", "value": {"I": 1.1071487177941, "L": 1.4056476493803, "D": 0.8329812666744}}
+      ]
+    },
+    {
+      "name": "atan2",
+      "statements": [
+        "CREATE STREAM INPUT (K STRING KEY, iy INT, ix INT, ly BIGINT, lx BIGINT, dy DOUBLE, dx DOUBLE) WITH (kafka_topic='input', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT K, round(atan2(iy, ix), 13) i, round(atan2(ly, lx), 13) l, round(atan2(dy, dx), 13) d FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input", "value": {"iy": null, "ix": null, "ly": null, "lx": null, "dy": null, "dx": null}},
+        {"topic": "input", "value": {"iy": null, "ix": 1, "ly": null, "lx": 1, "dy": null, "dx": 0.45}},
+        {"topic": "input", "value": {"iy": 1, "ix": null, "ly": 1, "lx": null, "dy": 0.45, "dx": null}},
+        {"topic": "input", "value": {"iy": -2, "ix": -3, "ly": -2, "lx": -2, "dy": -1.1, "dx": -0.24}},
+        {"topic": "input", "value": {"iy": -2, "ix": 3, "ly": -2, "lx": 2, "dy": -1.1, "dx": 0.24}},
+        {"topic": "input", "value": {"iy": -2, "ix": 0, "ly": -2, "lx": 0, "dy": -1.1, "dx": 0.0}},
+        {"topic": "input", "value": {"iy": 2, "ix": -3, "ly": 2, "lx": -2, "dy": 1.1, "dx": -0.24}},
+        {"topic": "input", "value": {"iy": 2, "ix": 3, "ly": 2, "lx": 2, "dy": 1.1, "dx": 0.24}},
+        {"topic": "input", "value": {"iy": 2, "ix": 0, "ly": 2, "lx": 0, "dy": 1.1, "dx": 0.0}},
+        {"topic": "input", "value": {"iy": 0, "ix": -3, "ly": 0, "lx": -2, "dy": 0, "dx": -0.24}},
+        {"topic": "input", "value": {"iy": 0, "ix": 3, "ly": 0, "lx": 2, "dy": 0, "dx": 0.24}},
+        {"topic": "input", "value": {"iy": 0, "ix": 0, "ly": 0, "lx": 0, "dy": 0, "dx": 0}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"I": null, "L": null, "D": null}},
+        {"topic": "OUTPUT", "value": {"I": null, "L": null, "D": null}},
+        {"topic": "OUTPUT", "value": {"I": null, "L": null, "D": null}},
+        {"topic": "OUTPUT", "value": {"I": -2.5535900500422, "L": -2.3561944901923, "D": -1.7856117271966}},
+        {"topic": "OUTPUT", "value": {"I": -0.5880026035476, "L": -0.7853981633974, "D": -1.3559809263932}},
+        {"topic": "OUTPUT", "value": {"I": -1.5707963267949, "L": -1.5707963267949, "D": -1.5707963267949}},
+        {"topic": "OUTPUT", "value": {"I": 2.5535900500422, "L": 2.3561944901923, "D": 1.7856117271966}},
+        {"topic": "OUTPUT", "value": {"I": 0.5880026035476, "L": 0.7853981633974, "D": 1.3559809263932}},
+        {"topic": "OUTPUT", "value": {"I": 1.5707963267949, "L": 1.5707963267949, "D": 1.5707963267949}},
+        {"topic": "OUTPUT", "value": {"I": 3.1415926535898, "L": 3.1415926535898, "D": 3.1415926535898}},
+        {"topic": "OUTPUT", "value": {"I": 0.0, "L": 0.0, "D": 0.0}},
+        {"topic": "OUTPUT", "value": {"I": 0.0, "L": 0.0, "D": 0.0}}
+      ]
+    },
+    {
+      "name": "cos",
+      "statements": [
+        "CREATE STREAM INPUT (K STRING KEY, i INT, l BIGINT, d DOUBLE) WITH (kafka_topic='input', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT K, round(cos(i), 13) i, round(cos(l), 13) l, round(cos(d), 13) d FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input", "value": {"i": null, "l": null, "d": null}},
+        {"topic": "input", "value": {"i": -7, "l": -7, "d": -9.1}},
+        {"topic": "input", "value": {"i": -6, "l": -6, "d": -0.43}},
+        {"topic": "input", "value": {"i": 0, "l": 0, "d": 0.0}},
+        {"topic": "input", "value": {"i": 6, "l": 6, "d": 0.43}},
+        {"topic": "input", "value": {"i": 7, "l": 7, "d": 9.1}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"I": null, "L": null, "D": null}},
+        {"topic": "OUTPUT", "value": {"I": 0.7539022543433, "L": 0.7539022543433, "D": -0.9477216021311}},
+        {"topic": "OUTPUT", "value": {"I": 0.9601702866504, "L": 0.9601702866504, "D": 0.9089657496749}},
+        {"topic": "OUTPUT", "value": {"I": 1.0, "L": 1.0, "D": 1.0}},
+        {"topic": "OUTPUT", "value": {"I": 0.9601702866504, "L": 0.9601702866504, "D": 0.9089657496749}},
+        {"topic": "OUTPUT", "value": {"I": 0.7539022543433, "L": 0.7539022543433, "D": -0.9477216021311}}
+      ]
+    },
+    {
+      "name": "sin",
+      "statements": [
+        "CREATE STREAM INPUT (K STRING KEY, i INT, l BIGINT, d DOUBLE) WITH (kafka_topic='input', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT K, round(sin(i), 13) i, round(sin(l), 13) l, round(sin(d), 13) d FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input", "value": {"i": null, "l": null, "d": null}},
+        {"topic": "input", "value": {"i": -7, "l": -7, "d": -9.1}},
+        {"topic": "input", "value": {"i": -6, "l": -6, "d": -0.43}},
+        {"topic": "input", "value": {"i": 0, "l": 0, "d": 0.0}},
+        {"topic": "input", "value": {"i": 6, "l": 6, "d": 0.43}},
+        {"topic": "input", "value": {"i": 7, "l": 7, "d": 9.1}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"I": null, "L": null, "D": null}},
+        {"topic": "OUTPUT", "value": {"I": -0.6569865987188, "L": -0.6569865987188, "D": -0.3190983623494}},
+        {"topic": "OUTPUT", "value": {"I": 0.2794154981989, "L": 0.2794154981989, "D": -0.4168708024292}},
+        {"topic": "OUTPUT", "value": {"I": 0.0, "L": 0.0, "D": 0.0}},
+        {"topic": "OUTPUT", "value": {"I": -0.2794154981989, "L": -0.2794154981989, "D": 0.4168708024292}},
+        {"topic": "OUTPUT", "value": {"I": 0.6569865987188, "L": 0.6569865987188, "D": 0.3190983623494}}
+      ]
+    },
+    {
+      "name": "tan",
+      "statements": [
+        "CREATE STREAM INPUT (K STRING KEY, i INT, l BIGINT, d DOUBLE) WITH (kafka_topic='input', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT K, round(tan(i), 13) i, round(tan(l), 13) l, round(tan(d), 13) d FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input", "value": {"i": null, "l": null, "d": null}},
+        {"topic": "input", "value": {"i": -7, "l": -7, "d": -9.1}},
+        {"topic": "input", "value": {"i": -6, "l": -6, "d": -0.43}},
+        {"topic": "input", "value": {"i": 0, "l": 0, "d": 0.0}},
+        {"topic": "input", "value": {"i": 6, "l": 6, "d": 0.43}},
+        {"topic": "input", "value": {"i": 7, "l": 7, "d": 9.1}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"I": null, "L": null, "D": null}},
+        {"topic": "OUTPUT", "value": {"I": -0.8714479827243, "L": -0.8714479827243, "D": 0.3367005264329}},
+        {"topic": "OUTPUT", "value": {"I": 0.2910061913847, "L": 0.2910061913847, "D": -0.4586210234856}},
+        {"topic": "OUTPUT", "value": {"I": 0.0, "L": 0.0, "D": 0.0}},
+        {"topic": "OUTPUT", "value": {"I": -0.2910061913847, "L": -0.2910061913847, "D": 0.4586210234856}},
+        {"topic": "OUTPUT", "value": {"I": 0.8714479827243, "L": 0.8714479827243, "D": -0.3367005264329}}
+      ]
+    },
+    {
+      "name": "cot regular cases",
+      "statements": [
+        "CREATE STREAM INPUT (K STRING KEY, i INT, l BIGINT, d DOUBLE) WITH (kafka_topic='input_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT K, round(cot(i), 13) i, round(cot(l), 13) l, round(cot(d), 13) d FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": {"I": -7, "L": -7, "D": -9.1}},
+        {"topic": "input_topic", "value": {"I": -6, "L": -6, "D": -0.43}},
+        {"topic": "input_topic", "value": {"I": 6, "L": 6, "D": 0.43}},
+        {"topic": "input_topic", "value": {"I": 7, "L": 7, "D": 9.1}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"I": -1.1475154224051, "L": -1.1475154224051, "D": 2.9699983263892}},
+        {"topic": "OUTPUT", "value": {"I": 3.4363530041801, "L": 3.4363530041801, "D": -2.1804495406685}},
+        {"topic": "OUTPUT", "value": {"I": -3.4363530041801, "L": -3.4363530041801, "D": 2.1804495406685}},
+        {"topic": "OUTPUT", "value": {"I": 1.1475154224051, "L": 1.1475154224051, "D": -2.9699983263892}}
+      ]
+    },
+    {
+      "name": "cot edge cases",
+      "statements": [
+        "CREATE STREAM INPUT (K STRING KEY, i INT, l BIGINT, d DOUBLE) WITH (kafka_topic='input_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT K, cot(i) i, cot(l) l, cot(d) d FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": {"I": null, "L": null, "D": null}},
+        {"topic": "input_topic", "value": {"I": 0, "L": 0, "D": 0}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"I": null, "L": null, "D": null}},
+        {"topic": "OUTPUT", "value": {"I": "Infinity", "L": "Infinity", "D": "Infinity"}}
+      ]
+    },
+    {
+      "name": "cosh",
+      "statements": [
+        "CREATE STREAM INPUT (K STRING KEY, i INT, l BIGINT, d DOUBLE) WITH (kafka_topic='input', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT K, round(cosh(i), 13) i, round(cosh(l), 13) l, round(cosh(d), 13) d FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input", "value": {"i": null, "l": null, "d": null}},
+        {"topic": "input", "value": {"i": -7, "l": -7, "d": -9.1}},
+        {"topic": "input", "value": {"i": -6, "l": -6, "d": -0.43}},
+        {"topic": "input", "value": {"i": 0, "l": 0, "d": 0.0}},
+        {"topic": "input", "value": {"i": 6, "l": 6, "d": 0.43}},
+        {"topic": "input", "value": {"i": 7, "l": 7, "d": 9.1}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"I": null, "L": null, "D": null}},
+        {"topic": "OUTPUT", "value": {"I": 548.317035155212, "L": 548.317035155212, "D": 4477.646407574158}},
+        {"topic": "OUTPUT", "value": {"I": 201.7156361224559, "L": 201.7156361224559, "D": 1.0938833091358}},
+        {"topic": "OUTPUT", "value": {"I": 1.0, "L": 1.0, "D": 1.0}},
+        {"topic": "OUTPUT", "value": {"I": 201.7156361224559, "L": 201.7156361224559, "D": 1.0938833091358}},
+        {"topic": "OUTPUT", "value": {"I": 548.317035155212, "L": 548.317035155212, "D": 4477.646407574158}}
+      ]
+    },
+    {
+      "name": "sinh",
+      "statements": [
+        "CREATE STREAM INPUT (K STRING KEY, i INT, l BIGINT, d DOUBLE) WITH (kafka_topic='input', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT K, round(sinh(i), 13) i, round(sinh(l), 13) l, round(sinh(d), 13) d FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input", "value": {"i": null, "l": null, "d": null}},
+        {"topic": "input", "value": {"i": -7, "l": -7, "d": -9.1}},
+        {"topic": "input", "value": {"i": -6, "l": -6, "d": -0.43}},
+        {"topic": "input", "value": {"i": 0, "l": 0, "d": 0.0}},
+        {"topic": "input", "value": {"i": 6, "l": 6, "d": 0.43}},
+        {"topic": "input", "value": {"i": 7, "l": 7, "d": 9.1}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"I": null, "L": null, "D": null}},
+        {"topic": "OUTPUT", "value": {"I": -548.3161232732465, "L": -548.3161232732465, "D": -4477.64629590835}},
+        {"topic": "OUTPUT", "value": {"I": -201.7131573702792, "L": -201.7131573702792, "D": -0.4433742144125}},
+        {"topic": "OUTPUT", "value": {"I": 0.0, "L": 0.0, "D": 0.0}},
+        {"topic": "OUTPUT", "value": {"I": 201.7131573702792, "L": 201.7131573702792, "D": 0.4433742144125}},
+        {"topic": "OUTPUT", "value": {"I": 548.3161232732465, "L": 548.3161232732465, "D": 4477.64629590835}}
+      ]
+    },
+    {
+      "name": "tanh",
+      "statements": [
+        "CREATE STREAM INPUT (K STRING KEY, i INT, l BIGINT, d DOUBLE) WITH (kafka_topic='input', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT K, round(tanh(i), 13) i, round(tanh(l), 13) l, round(tanh(d), 13) d FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input", "value": {"i": null, "l": null, "d": null}},
+        {"topic": "input", "value": {"i": -7, "l": -7, "d": -9.1}},
+        {"topic": "input", "value": {"i": -6, "l": -6, "d": -0.43}},
+        {"topic": "input", "value": {"i": 0, "l": 0, "d": 0.0}},
+        {"topic": "input", "value": {"i": 6, "l": 6, "d": 0.43}},
+        {"topic": "input", "value": {"i": 7, "l": 7, "d": 9.1}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"I": null, "L": null, "D": null}},
+        {"topic": "OUTPUT", "value": {"I": -0.9999983369439, "L": -0.9999983369439, "D": -0.9999999750615}},
+        {"topic": "OUTPUT", "value": {"I": -0.9999877116508, "L": -0.9999877116508, "D": -0.4053213086895}},
+        {"topic": "OUTPUT", "value": {"I": 0.0, "L": 0.0, "D": 0.0}},
+        {"topic": "OUTPUT", "value": {"I": 0.9999877116508, "L": 0.9999877116508, "D": 0.4053213086895}},
+        {"topic": "OUTPUT", "value": {"I": 0.9999983369439, "L": 0.9999983369439, "D": 0.9999999750615}}
+      ]
+    },
+    {
+      "name": "degrees",
+      "statements": [
+        "CREATE STREAM INPUT (K STRING KEY, i INT, l BIGINT, d DOUBLE) WITH (kafka_topic='input', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT K, round(degrees(i), 12) i, round(degrees(l), 12) l, round(degrees(d), 12) d FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input", "value": {"i": null, "l": null, "d": null}},
+        {"topic": "input", "value": {"i": -2, "l": -2, "d": -1.2345}},
+        {"topic": "input", "value": {"i": 0, "l": 0, "d": 0.0}},
+        {"topic": "input", "value": {"i": 2, "l": 2, "d": 1.2345}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"I": null, "L": null, "D": null}},
+        {"topic": "OUTPUT", "value": {"I": -114.591559026165, "L": -114.591559026165, "D": -70.7316398089}},
+        {"topic": "OUTPUT", "value": {"I": 0.0, "L": 0.0, "D": 0.0}},
+        {"topic": "OUTPUT", "value": {"I": 114.591559026165, "L": 114.591559026165, "D": 70.7316398089}}
+      ]
+    },
+    {
+      "name": "radians",
+      "statements": [
+        "CREATE STREAM INPUT (K STRING KEY, i INT, l BIGINT, d DOUBLE) WITH (kafka_topic='input', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT K, round(radians(i), 13) i, round(radians(l), 13) l, round(radians(d), 13) d FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input", "value": {"i": null, "l": null, "d": null}},
+        {"topic": "input", "value": {"i": -114, "l": -114, "d": -70.73163980890013}},
+        {"topic": "input", "value": {"i": 0, "l": 0, "d": 0.0}},
+        {"topic": "input", "value": {"i": 114, "l": 114, "d": 70.73163980890013}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"I": null, "L": null, "D": null}},
+        {"topic": "OUTPUT", "value": {"I": -1.9896753472735, "L": -1.9896753472735, "D": -1.2345}},
+        {"topic": "OUTPUT", "value": {"I": 0.0, "L": 0.0, "D": 0.0}},
+        {"topic": "OUTPUT", "value": {"I": 1.9896753472735, "L": 1.9896753472735, "D": 1.2345}}
+      ]
+    },
+    {
+      "name": "pi",
+      "statements": [
+        "CREATE STREAM INPUT (IGNORED INT) WITH (kafka_topic='input', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT pi() AS VAL FROM INPUT;"
+      ],
+      "inputs": [{"topic": "input", "value": {}}],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"val": 3.141592653589793}}
+      ]
+    },
+    {
+      "name": "cbrt",
+      "statements": [
+        "CREATE STREAM INPUT (K STRING KEY, i INT, l BIGINT, d DOUBLE) WITH (kafka_topic='input', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT K, cbrt(i) i, cbrt(l) l, cbrt(d) d FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input", "value": {"i": null, "l": null, "d": null}},
+        {"topic": "input", "value": {"i": -8, "l": -3, "d": -1.0}},
+        {"topic": "input", "value": {"i": 0, "l": 0, "d": 0.0}},
+        {"topic": "input", "value": {"i": 8, "l": 3, "d": 1.0}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"I": null, "L": null, "D": null}},
+        {"topic": "OUTPUT", "value": {"I": -2.0, "L": -1.4422495703074083, "D": -1.0}},
+        {"topic": "OUTPUT", "value": {"I": 0.0, "L": 0.0, "D": 0.0}},
+        {"topic": "OUTPUT", "value": {"I": 2.0, "L": 1.4422495703074083, "D": 1.0}}
+      ]
+    },
+    {
+      "name": "power",
+      "statements": [
+        "CREATE STREAM INPUT (K STRING KEY, ib INT, ie INT, lb BIGINT, le BIGINT, db DOUBLE, de DOUBLE) WITH (kafka_topic='input', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT K, power(ib, ie) i, power(lb, le) l, power(db, de) d FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input", "value": {"ib": null, "ie": 13, "lb": null, "le": 13, "db": null, "de":  13.0}},
+        {"topic": "input", "value": {"ib": 13, "ie": null, "lb": 13, "le": null, "db": 13.0, "de":  null}},
+        {"topic": "input", "value": {"ib": 15, "ie": -1, "lb": 15, "le": -1, "db": 15.0, "de":  -1.0}},
+        {"topic": "input", "value": {"ib": 15, "ie": 0, "lb": 15, "le": 0, "db": 15.0, "de":  0.0}},
+        {"topic": "input", "value": {"ib": 0, "ie": 0, "lb": 0, "le": 0, "db": 0.0, "de":  0.0}},
+        {"topic": "input", "value": {"ib": 15, "ie": 13, "lb": 15, "le": 13, "db": 15.0, "de":  13.0}},
+        {"topic": "input", "value": {"ib": -15, "ie": 2, "lb": -15, "le": 2, "db": -15.0, "de":  2.0}},
+        {"topic": "input", "value": {"ib": 0, "ie": 2, "lb": 0, "le": 2, "db": 0.0, "de":  2.0}},
+        {"topic": "input", "value": {"ib": 1, "ie": 2, "lb": 1, "le": 2, "db": 1.0, "de":  2.0}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"I": null, "L": null, "D": null}},
+        {"topic": "OUTPUT", "value": {"I": null, "L": null, "D": null}},
+        {"topic": "OUTPUT", "value": {"I": 0.06666666666666667, "L": 0.06666666666666667, "D": 0.06666666666666667}},
+        {"topic": "OUTPUT", "value": {"I": 1.0, "L": 1.0, "D": 1.0}},
+        {"topic": "OUTPUT", "value": {"I": 1.0, "L": 1.0, "D": 1.0}},
+        {"topic": "OUTPUT", "value": {"I": 1.946195068359375E15, "L": 1.946195068359375E15, "D": 1.946195068359375E15}},
+        {"topic": "OUTPUT", "value": {"I": 225.0, "L": 225.0, "D": 225.0}},
+        {"topic": "OUTPUT", "value": {"I": 0.0, "L": 0.0, "D": 0.0}},
+        {"topic": "OUTPUT", "value": {"I": 1.0, "L": 1.0, "D": 1.0}}
+      ]
+    },
+    {
+      "name": "log-base-10",
+      "statements": [
+        "CREATE STREAM INPUT (K STRING KEY, i INT, l BIGINT, d DOUBLE) WITH (kafka_topic='input', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT K, log(i) i, log(l) l, log(d) d FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input", "value": {"i": null, "l": null, "d": null}},
+        {"topic": "input", "value": {"i": -13, "l": -13, "d": -13.0}},
+        {"topic": "input", "value": {"i": 0, "l": 0, "d": 0.0}},
+        {"topic": "input", "value": {"i": 1, "l": 1, "d": 1.0}},
+        {"topic": "input", "value": {"i": 13, "l": 13, "d": 13.0}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"I": null, "L": null, "D": null}},
+        {"topic": "OUTPUT", "value": {"I": "NaN", "L": "NaN", "D": "NaN"}},
+        {"topic": "OUTPUT", "value": {"I": "-Infinity", "L": "-Infinity", "D": "-Infinity"}},
+        {"topic": "OUTPUT", "value": {"I": 0.0, "L": 0.0, "D": 0.0}},
+        {"topic": "OUTPUT", "value": {"I": 2.5649493574615367, "L": 2.5649493574615367, "D": 2.5649493574615367}}
+      ]
+    },
+    {
+      "name": "log-custom-base",
+      "statements": [
+        "CREATE STREAM INPUT (K STRING KEY, ib INT, iv INT, lb BIGINT, lv BIGINT, db DOUBLE, dv DOUBLE) WITH (kafka_topic='input', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT K, log(ib, iv) i, log(lb, lv) l, log(db, dv) d FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input", "value": {"ib": null, "iv": 13, "lb": null, "lv": 13, "db": null, "dv":  13.0}},
+        {"topic": "input", "value": {"ib": 13, "iv": null, "lb": 13, "lv": null, "db": 13.0, "dv":  null}},
+        {"topic": "input", "value": {"ib": 15, "iv": 13, "lb": 15, "lv": 13, "db": 15.0, "dv":  13.0}},
+        {"topic": "input", "value": {"ib": 15, "iv": 1, "lb": 15, "lv": 1, "db": 15.0, "dv":  1.0}},
+        {"topic": "input", "value": {"ib": 15, "iv": 0, "lb": 15, "lv": 0, "db": 15.0, "dv":  0.0}},
+        {"topic": "input", "value": {"ib": 15, "iv": -13, "lb": 15, "lv": -13, "db": 15.0, "dv":  -13.0}},
+        {"topic": "input", "value": {"ib": -15, "iv": 13, "lb": -15, "lv": 13, "db": -15.0, "dv":  13.0}},
+        {"topic": "input", "value": {"ib": 0, "iv": 13, "lb": 0, "lv": 13, "db": 0.0, "dv":  13.0}},
+        {"topic": "input", "value": {"ib": 1, "iv": 13, "lb": 1, "lv": 13, "db": 1.0, "dv":  13.0}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"I": null, "L": null, "D": null}},
+        {"topic": "OUTPUT", "value": {"I": null, "L": null, "D": null}},
+        {"topic": "OUTPUT", "value": {"I": 0.9471572411831843, "L": 0.9471572411831843, "D": 0.9471572411831843}},
+        {"topic": "OUTPUT", "value": {"I": 0.0, "L": 0.0, "D": 0.0}},
+        {"topic": "OUTPUT", "value": {"I": "-Infinity", "L": "-Infinity", "D": "-Infinity"}},
+        {"topic": "OUTPUT", "value": {"I": "NaN", "L": "NaN", "D": "NaN"}},
+        {"topic": "OUTPUT", "value": {"I": "NaN", "L": "NaN", "D": "NaN"}},
+        {"topic": "OUTPUT", "value": {"I": "NaN", "L": "NaN", "D": "NaN"}},
+        {"topic": "OUTPUT", "value": {"I": "NaN", "L": "NaN", "D": "NaN"}}
+      ]
     }
   ]
 }

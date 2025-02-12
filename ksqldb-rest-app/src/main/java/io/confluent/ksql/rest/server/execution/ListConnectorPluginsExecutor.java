@@ -17,9 +17,13 @@ package io.confluent.ksql.rest.server.execution;
 
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.parser.tree.ListConnectorPlugins;
+import io.confluent.ksql.rest.EndpointResponse;
+import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.rest.entity.ConnectorPluginsList;
+import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.SimpleConnectorPluginInfo;
+import io.confluent.ksql.rest.server.resources.KsqlRestException;
 import io.confluent.ksql.services.ConnectClient.ConnectResponse;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
@@ -31,14 +35,11 @@ import org.apache.kafka.connect.runtime.rest.entities.ConnectorType;
 import org.apache.kafka.connect.runtime.rest.entities.PluginInfo;
 
 public final class ListConnectorPluginsExecutor {
-  private final ConnectServerErrors connectErrorHandler;
-
-  ListConnectorPluginsExecutor(final ConnectServerErrors connectErrorHandler) {
-    this.connectErrorHandler = connectErrorHandler;
+  private ListConnectorPluginsExecutor() {
   }
 
   @SuppressWarnings("OptionalGetWithoutIsPresent")
-  public StatementExecutorResponse execute(
+  public static StatementExecutorResponse execute(
       final ConfiguredStatement<ListConnectorPlugins> configuredStatement,
       final SessionProperties sessionProperties,
       final KsqlExecutionContext ksqlExecutionContext,
@@ -47,8 +48,12 @@ public final class ListConnectorPluginsExecutor {
     final ConnectResponse<List<PluginInfo>> plugins =
         serviceContext.getConnectClient().connectorPlugins();
     if (plugins.error().isPresent()) {
-      return StatementExecutorResponse.handled(connectErrorHandler.handle(
-          configuredStatement, plugins));
+      final String errorMsg = "Failed to list connector plugins: " + plugins.error().get();
+      throw new KsqlRestException(EndpointResponse.create()
+          .status(plugins.httpCode())
+          .entity(new KsqlErrorMessage(Errors.toErrorCode(plugins.httpCode()), errorMsg))
+          .build()
+      );
     }
 
     final List<SimpleConnectorPluginInfo> pluginInfos = new ArrayList<>();

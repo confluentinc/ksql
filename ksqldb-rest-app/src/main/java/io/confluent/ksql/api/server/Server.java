@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Confluent Inc.
+ * Copyright 2022 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -21,8 +21,8 @@ import com.google.common.collect.ImmutableList;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.api.auth.AuthenticationPlugin;
 import io.confluent.ksql.api.spi.Endpoints;
+import io.confluent.ksql.api.util.ApiServerUtils;
 import io.confluent.ksql.internal.PullQueryExecutorMetrics;
-import io.confluent.ksql.properties.PropertiesUtil;
 import io.confluent.ksql.rest.entity.PushQueryId;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.server.state.ServerState;
@@ -30,7 +30,6 @@ import io.confluent.ksql.security.KsqlSecurityExtension;
 import io.confluent.ksql.util.FileWatcher;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.VertxCompletableFuture;
-import io.confluent.ksql.util.VertxSslOptionsFactory;
 import io.netty.handler.ssl.OpenSsl;
 import io.vertx.core.Vertx;
 import io.vertx.core.WorkerExecutor;
@@ -38,8 +37,6 @@ import io.vertx.core.http.ClientAuth;
 import io.vertx.core.http.HttpConnection;
 import io.vertx.core.http.HttpServerOptions;
 import io.vertx.core.impl.ConcurrentHashSet;
-import io.vertx.core.net.JksOptions;
-import io.vertx.core.net.PfxOptions;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.file.Path;
@@ -54,7 +51,6 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
-import org.apache.kafka.common.config.ConfigException;
 import org.apache.kafka.common.config.SslConfigs;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -118,7 +114,7 @@ public class Server {
     final LoggingRateLimiter loggingRateLimiter = new LoggingRateLimiter(config);
     configureTlsCertReload(config);
 
-    final List<URI> listenUris = parseListeners(config);
+    final List<URI> listenUris = ApiServerUtils.parseListeners(config);
     final Optional<URI> internalListenUri = parseInternalListener(config, listenUris);
     final List<URI> allListenUris = new ArrayList<>(listenUris);
     internalListenUri.ifPresent(allListenUris::add);
@@ -311,89 +307,9 @@ public class Server {
           : ksqlRestConfig.getClientAuth();
 
       final String alias = ksqlRestConfig.getString(ksConfigName);
-      setTlsOptions(ksqlRestConfig, options, alias, clientAuth);
+      ApiServerUtils.setTlsOptions(ksqlRestConfig, options, alias, clientAuth);
     }
     return options;
-  }
-
-  private static void setTlsOptions(
-      final KsqlRestConfig ksqlRestConfig,
-      final HttpServerOptions options,
-      final String keyStoreAlias,
-      final ClientAuth clientAuth
-  ) {
-    options.setUseAlpn(true).setSsl(true);
-    if (ksqlRestConfig.getBoolean(KsqlRestConfig.KSQL_SERVER_SNI_CHECK_ENABLE)) {
-      options.setSni(true);
-    }
-
-    configureTlsKeyStore(ksqlRestConfig, options, keyStoreAlias);
-    configureTlsTrustStore(ksqlRestConfig, options);
-
-    final List<String> enabledProtocols =
-        ksqlRestConfig.getList(KsqlRestConfig.SSL_ENABLED_PROTOCOLS_CONFIG);
-    if (!enabledProtocols.isEmpty()) {
-      options.setEnabledSecureTransportProtocols(new HashSet<>(enabledProtocols));
-    }
-
-    final List<String> cipherSuites =
-        ksqlRestConfig.getList(KsqlRestConfig.SSL_CIPHER_SUITES_CONFIG);
-    if (!cipherSuites.isEmpty()) {
-      // Vert.x does not yet support a method for setting cipher suites, so we use the following
-      // workaround instead. See https://github.com/eclipse-vertx/vert.x/issues/1507.
-      final Set<String> enabledCipherSuites = options.getEnabledCipherSuites();
-      enabledCipherSuites.clear();
-      enabledCipherSuites.addAll(cipherSuites);
-    }
-
-    options.setClientAuth(clientAuth);
-  }
-
-  private static void configureTlsKeyStore(
-      final KsqlRestConfig ksqlRestConfig,
-      final HttpServerOptions httpServerOptions,
-      final String keyStoreAlias
-  ) {
-    final Map<String, String> props = PropertiesUtil.toMapStrings(ksqlRestConfig.originals());
-    final String keyStoreType = ksqlRestConfig.getString(KsqlRestConfig.SSL_KEYSTORE_TYPE_CONFIG);
-
-    if (keyStoreType.equals(KsqlRestConfig.SSL_STORE_TYPE_JKS)) {
-      final Optional<JksOptions> keyStoreOptions =
-          VertxSslOptionsFactory.buildJksKeyStoreOptions(props, Optional.ofNullable(keyStoreAlias));
-
-      keyStoreOptions.ifPresent(options -> httpServerOptions.setKeyStoreOptions(options));
-    } else if (keyStoreType.equals(KsqlRestConfig.SSL_STORE_TYPE_PKCS12)) {
-      final Optional<PfxOptions> keyStoreOptions =
-          VertxSslOptionsFactory.getPfxKeyStoreOptions(props);
-
-      keyStoreOptions.ifPresent(options -> httpServerOptions.setPfxKeyCertOptions(options));
-    }
-  }
-
-  private static void configureTlsTrustStore(
-      final KsqlRestConfig ksqlRestConfig,
-      final HttpServerOptions httpServerOptions
-  ) {
-    final Map<String, String> props = PropertiesUtil.toMapStrings(ksqlRestConfig.originals());
-    final String trustStoreType =
-        ksqlRestConfig.getString(KsqlRestConfig.SSL_TRUSTSTORE_TYPE_CONFIG);
-
-    if (trustStoreType.equals(KsqlRestConfig.SSL_STORE_TYPE_JKS)) {
-      final Optional<JksOptions> trustStoreOptions =
-          VertxSslOptionsFactory.getJksTrustStoreOptions(props);
-
-      trustStoreOptions.ifPresent(options -> httpServerOptions.setTrustOptions(options));
-    } else if (trustStoreType.equals(KsqlRestConfig.SSL_STORE_TYPE_PKCS12)) {
-      final Optional<PfxOptions> trustStoreOptions =
-          VertxSslOptionsFactory.getPfxTrustStoreOptions(props);
-
-      trustStoreOptions.ifPresent(options -> httpServerOptions.setTrustOptions(options));
-    }
-  }
-
-  private static List<URI> parseListeners(final KsqlRestConfig config) {
-    final List<String> sListeners = config.getList(KsqlRestConfig.LISTENERS_CONFIG);
-    return parseListenerStrings(config, sListeners);
   }
 
   private static Optional<URI> parseInternalListener(
@@ -403,38 +319,12 @@ public class Server {
     if (config.getString(KsqlRestConfig.INTERNAL_LISTENER_CONFIG) == null) {
       return Optional.empty();
     }
-    final URI uri = parseListenerStrings(config,
+    final URI uri = ApiServerUtils.parseListenerStrings(config,
         ImmutableList.of(config.getString(KsqlRestConfig.INTERNAL_LISTENER_CONFIG))).get(0);
     if (listenUris.contains(uri)) {
       return Optional.empty();
     } else {
       return Optional.of(uri);
     }
-  }
-
-  private static List<URI> parseListenerStrings(
-      final KsqlRestConfig config,
-      final List<String> stringListeners) {
-    final List<URI> listeners = new ArrayList<>();
-    for (String listenerName : stringListeners) {
-      try {
-        final URI uri = new URI(listenerName);
-        final String scheme = uri.getScheme();
-        if (!"http".equalsIgnoreCase(scheme) && !"https".equalsIgnoreCase(scheme)) {
-          throw new ConfigException("Invalid URI scheme should be http or https: " + listenerName);
-        }
-        if ("https".equalsIgnoreCase(scheme)) {
-          final String keyStoreLocation = config
-              .getString(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG);
-          if (keyStoreLocation == null || keyStoreLocation.isEmpty()) {
-            throw new ConfigException("https listener specified but no keystore provided");
-          }
-        }
-        listeners.add(uri);
-      } catch (URISyntaxException e) {
-        throw new ConfigException("Invalid listener URI: " + listenerName);
-      }
-    }
-    return listeners;
   }
 }

@@ -17,29 +17,34 @@ package io.confluent.ksql;
 
 import com.google.common.collect.ImmutableMap;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
 import io.confluent.ksql.util.KsqlConfig;
+
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.Supplier;
+
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.test.TestUtils;
 
 public final class KsqlConfigTestUtil {
 
-  private static final ImmutableMap<String, Object> BASE_CONFIG = ImmutableMap.of(
-      "commit.interval.ms", 0,
-      "cache.max.bytes.buffering", 0,
-      "auto.offset.reset", "earliest",
-      StreamsConfig.STATE_DIR_CONFIG, TestUtils.tempDirectory().getPath()
-  );
+  private static final Supplier<ImmutableMap<String, Object>> BASE_CONFIG_SUPPLIER =
+      () -> ImmutableMap.of(
+          "commit.interval.ms", 0,
+          "cache.max.bytes.buffering", 0,
+          "auto.offset.reset", "earliest",
+          StreamsConfig.STATE_DIR_CONFIG, TestUtils.tempDirectory().getPath()
+      );
 
   private KsqlConfigTestUtil() {}
 
   @SuppressFBWarnings(value = "MS_EXPOSE_REP", justification = "BASE_CONFIG is ImmutableMap")
   public static Map<String, Object> baseTestConfig() {
-    return BASE_CONFIG;
+    return BASE_CONFIG_SUPPLIER.get();
   }
 
   public static KsqlConfig create(final EmbeddedSingleNodeKafkaCluster kafkaCluster) {
@@ -67,7 +72,7 @@ public final class KsqlConfigTestUtil {
       final String kafkaBootstrapServers,
       final Map<String, Object> additionalConfig
   ) {
-    final Map<String, Object> config = new HashMap<>(BASE_CONFIG);
+    final Map<String, Object> config = new HashMap<>(BASE_CONFIG_SUPPLIER.get());
     config.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaBootstrapServers);
     config.putAll(additionalConfig);
     return new KsqlConfig(config);

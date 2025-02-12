@@ -18,6 +18,7 @@ package io.confluent.ksql.rest.server.restore;
 import static java.util.Objects.requireNonNull;
 
 import com.google.common.annotations.VisibleForTesting;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.properties.PropertiesUtil;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.DefaultErrorMessages;
@@ -30,11 +31,13 @@ import io.confluent.ksql.rest.server.resources.IncompatibleKsqlCommandVersionExc
 import io.confluent.ksql.rest.util.KsqlInternalTopicUtils;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.KafkaTopicClientImpl;
+import io.confluent.ksql.util.JavaSystemExit;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.QueryApplicationId;
 import io.confluent.ksql.util.ReservedInternalTopics;
+import io.confluent.ksql.util.SystemExit;
 import java.io.Console;
 import java.io.File;
 import java.io.IOException;
@@ -59,6 +62,7 @@ import org.apache.kafka.common.errors.ProducerFencedException;
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.errors.TimeoutException;
 import org.apache.kafka.common.serialization.ByteArraySerializer;
+import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.common.utils.Time;
 import org.apache.kafka.streams.StreamsConfig;
@@ -84,8 +88,11 @@ public class KsqlRestoreCommandTopic {
       final RestoreOptions restoreOptions,
       final KsqlConfig ksqlConfig
   ) throws IOException {
-    final BackupReplayFile commandTopicBackupFile = BackupReplayFile.readOnly(file);
-    List<Pair<byte[], byte[]>> records = commandTopicBackupFile.readRecords();
+
+    List<Pair<byte[], byte[]>> records;
+    try (BackupReplayFile commandTopicBackupFile = BackupReplayFile.readOnly(file)) {
+      records = commandTopicBackupFile.readRecords();
+    }
 
     records = checkValidCommands(
         records,
@@ -119,9 +126,10 @@ public class KsqlRestoreCommandTopic {
     for (final Pair<byte[], byte[]> record : records) {
       n++;
 
-      try {
-        InternalTopicSerdes.deserializer(CommandId.class)
-            .deserialize(null, record.getLeft());
+      try (Deserializer<CommandId> deserializer =
+          InternalTopicSerdes.deserializer(CommandId.class)
+      ) {
+        deserializer.deserialize(null, record.getLeft());
       } catch (final Exception e) {
         throw new KsqlException(String.format(
             "Invalid CommandId string (line %d): %s (%s)",
@@ -129,9 +137,10 @@ public class KsqlRestoreCommandTopic {
         ));
       }
 
-      try {
-        InternalTopicSerdes.deserializer(Command.class)
-            .deserialize(null, record.getRight());
+      try (Deserializer<Command> deserializer =
+          InternalTopicSerdes.deserializer(Command.class)
+      ) {
+        deserializer.deserialize(null, record.getRight());
       } catch (final SerializationException | IncompatibleKsqlCommandVersionException e) {
         if (skipIncompatibleCommands) {
           incompatibleCommands.add(record.getRight());
@@ -153,10 +162,10 @@ public class KsqlRestoreCommandTopic {
     }
 
     if (skipIncompatibleCommands) {
-      System.out.println(
-          String.format(
-              "%s incompatible command(s) skipped from backup file.",
-              numFilteredCommands));
+      System.out.printf(
+          "%s incompatible command(s) skipped from backup file.%n",
+          numFilteredCommands
+      );
       incompatibleCommands.forEach(command -> maybeCleanUpQuery(command, ksqlConfig));
     }
     return filteredRecords;
@@ -193,16 +202,24 @@ public class KsqlRestoreCommandTopic {
     final Console console = System.console();
     final String decision = console.readLine();
 
-    return "yes".equals(decision.toLowerCase());
+    return "yes".equalsIgnoreCase(decision);
   }
 
   /**
    * Main command to restore the KSQL command topic.
    */
   public static void main(final String[] args) throws Exception {
+    mainInternal(args, new JavaSystemExit());
+  }
+
+  @SuppressFBWarnings(value = "NP_NULL_ON_SOME_PATH")
+  public static void mainInternal(
+      final String[] args,
+      final SystemExit systemExit
+  ) throws Exception {
     final RestoreOptions restoreOptions = RestoreOptions.parse(args);
     if (restoreOptions == null) {
-      System.exit(1);
+      systemExit.exit(1);
     }
 
     final File configFile = restoreOptions.getConfigFile();
@@ -213,7 +230,7 @@ public class KsqlRestoreCommandTopic {
       checkFileExists(backupFile);
     } catch (final Exception e) {
       System.err.println(e.getMessage());
-      System.exit(2);
+      systemExit.exit(2);
     }
 
     final KsqlConfig serverConfig = loadServerConfig(configFile);
@@ -221,7 +238,7 @@ public class KsqlRestoreCommandTopic {
 
     // Stop and ask the user to type 'yes' to continue to warn users about the restore process
     if (!restoreOptions.isAutomaticYes() && !promptQuestion()) {
-      System.exit(0);
+      systemExit.exit(0);
     }
 
     System.out.println("Loading backup file ...");
@@ -231,13 +248,15 @@ public class KsqlRestoreCommandTopic {
     try {
       backupCommands = loadBackup(backupFile, restoreOptions, serverConfig);
     } catch (final Exception e) {
-      System.err.println(String.format(
-          "Failed loading backup file.%nError = %s", e.getMessage()));
-      System.exit(1);
+      System.err.printf("Failed loading backup file.%nError = %s%n", e.getMessage());
+      systemExit.exit(1);
     }
 
-    System.out.println(String.format(
-        "Backup (%d records) loaded in memory in %s ms.", backupCommands.size(), currentTimer()));
+    System.out.printf(
+        "Backup (%d records) loaded in memory in %s ms.%n",
+        backupCommands.size(),
+        currentTimer()
+    );
     System.out.println();
 
     System.out.println("Restoring command topic ...");
@@ -246,13 +265,11 @@ public class KsqlRestoreCommandTopic {
     try {
       restoreMetadata.restore(backupCommands);
     } catch (final Exception e) {
-      System.err.println(String.format(
-          "Failed restoring command topic.%nError = %s", e.getMessage()));
-      System.exit(1);
+      System.err.printf("Failed restoring command topic.%nError = %s%n", e.getMessage());
+      systemExit.exit(1);
     }
 
-    System.out.println(String.format(
-        "Restore process completed in %d ms.", currentTimer()));
+    System.out.printf("Restore process completed in %d ms.%n", currentTimer());
     System.out.println();
 
     System.out.println("You need to restart the ksqlDB server to re-load the command topic.");
@@ -393,6 +410,7 @@ public class KsqlRestoreCommandTopic {
     }
   }
 
+  @SuppressWarnings("unchecked")
   private static void maybeCleanUpQuery(final byte[] command, final KsqlConfig ksqlConfig) {
     boolean queryIdFound = false;
     final Map<String, Object> streamsProperties =
@@ -400,7 +418,7 @@ public class KsqlRestoreCommandTopic {
     boolean sharedRuntimeQuery = false;
     String queryId = "";
     final JSONObject jsonObject = new JSONObject(new String(command, StandardCharsets.UTF_8));
-    if (hasKey(jsonObject, "plan")) {
+    if (hasKey(jsonObject, "plan") && !jsonObject.isNull("plan")) {
       final JSONObject plan = jsonObject.getJSONObject("plan");
       if (hasKey(plan, "queryPlan")) {
         final JSONObject queryPlan = plan.getJSONObject("queryPlan");
@@ -438,12 +456,12 @@ public class KsqlRestoreCommandTopic {
             Time.SYSTEM,
             true,
             ksqlConfig.getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)).clean();
-        System.out.println(
-            String.format(
-                "Cleaned up internal state store and internal topics for query %s",
-                topicPrefix));
+        System.out.printf(
+            "Cleaned up internal state store and internal topics for query %s%n",
+            topicPrefix
+        );
       } catch (final Exception e) {
-        System.out.println(String.format("Failed to clean up query %s ", topicPrefix));
+        System.out.printf("Failed to clean up query %s %n", topicPrefix);
       }
     }
   }

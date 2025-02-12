@@ -28,6 +28,7 @@ import static org.mockito.Mockito.when;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.streams.materialization.MaterializationProvider;
+import io.confluent.ksql.logging.processing.MeteredProcessingLoggerFactory;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.execution.scalablepush.ScalablePushRegistry;
@@ -94,6 +95,8 @@ public class PersistentQueryMetadataTest {
   private Listener listener;
   @Mock
   private ScalablePushRegistry scalablePushRegistry;
+  @Mock
+  private MeteredProcessingLoggerFactory processingLoggerFactory;
 
   private PersistentQueryMetadata query;
 
@@ -128,7 +131,8 @@ public class PersistentQueryMetadataTest {
         0L,
         0L,
         listener,
-        Optional.of(scalablePushRegistry)
+        Optional.of(scalablePushRegistry),
+        processingLoggerFactory
     );
 
     query.initialize();
@@ -160,7 +164,8 @@ public class PersistentQueryMetadataTest {
         0L,
         0L,
         listener,
-        Optional.empty()
+        Optional.empty(),
+        processingLoggerFactory
     );
 
     // When/Then
@@ -193,7 +198,8 @@ public class PersistentQueryMetadataTest {
         0L,
         0L,
         listener,
-        Optional.empty()
+        Optional.empty(),
+        processingLoggerFactory
     );
 
     // When/Then
@@ -208,7 +214,7 @@ public class PersistentQueryMetadataTest {
 
     // Then:
     final InOrder inOrder = inOrder(kafkaStreams);
-    inOrder.verify(kafkaStreams).close(any());
+    inOrder.verify(kafkaStreams).close(any(java.time.Duration.class));
     inOrder.verify(kafkaStreams).state();
     inOrder.verifyNoMoreInteractions();
   }

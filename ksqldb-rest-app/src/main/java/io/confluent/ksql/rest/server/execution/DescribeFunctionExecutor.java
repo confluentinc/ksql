@@ -84,9 +84,9 @@ public final class DescribeFunctionExecutor {
 
     final ImmutableList.Builder<FunctionInfo> listBuilder = ImmutableList.builder();
 
-    aggregateFactory.eachFunction(func -> listBuilder.add(
+    aggregateFactory.eachFunction((func, description) -> listBuilder.add(
         getFunctionInfo(
-            func.parameterInfo(), func.declaredReturnType(), func.getDescription(), false)));
+            func.parameterInfo(), func.declaredReturnType(), description, false)));
 
     return createFunctionDescriptionList(
         statementText, aggregateFactory.getMetadata(), listBuilder.build(), FunctionType.AGGREGATE);

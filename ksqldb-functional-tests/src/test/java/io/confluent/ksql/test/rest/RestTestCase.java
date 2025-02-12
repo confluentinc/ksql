@@ -45,6 +45,7 @@ class RestTestCase implements Test {
   private final Optional<Matcher<RestResponse<?>>> expectedError;
   private final Optional<InputConditions> inputConditions;
   private final Optional<OutputConditions> outputConditions;
+  private final boolean testPullWithProtoFormat;
 
   RestTestCase(
       final TestLocation location,
@@ -57,7 +58,8 @@ class RestTestCase implements Test {
       final Collection<Response> responses,
       final Optional<Matcher<RestResponse<?>>> expectedError,
       final Optional<InputConditions> inputConditions,
-      final Optional<OutputConditions> outputConditions
+      final Optional<OutputConditions> outputConditions,
+      final boolean testPullWithProtoFormat
   ) {
     this.name = requireNonNull(name, "name");
     this.location = requireNonNull(location, "testPath");
@@ -70,6 +72,7 @@ class RestTestCase implements Test {
     this.expectedError = requireNonNull(expectedError, "expectedError");
     this.inputConditions = requireNonNull(inputConditions, "inputConditions");
     this.outputConditions = requireNonNull(outputConditions, "outputConditions");
+    this.testPullWithProtoFormat = testPullWithProtoFormat;
   }
 
   @Override
@@ -129,5 +132,9 @@ class RestTestCase implements Test {
 
   public Optional<OutputConditions> getOutputConditions() {
     return outputConditions;
+  }
+
+  public boolean isTestPullWithProtoFormat() {
+    return testPullWithProtoFormat;
   }
 }

@@ -133,9 +133,8 @@ public class QueryFilterNode extends SingleSourcePlanNode {
     // Compiling expression into byte code/interpreting the expression
     this.addAdditionalColumnsToIntermediateSchema = shouldAddAdditionalColumnsInSchema();
     this.intermediateSchema = QueryLogicalPlanUtil.buildIntermediateSchema(
-        source.getSchema().withoutPseudoAndKeyColsInValue(ksqlConfig),
-        addAdditionalColumnsToIntermediateSchema, isWindowed,
-        ksqlConfig.getBoolean(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED));
+        source.getSchema().withoutPseudoAndKeyColsInValue(),
+        addAdditionalColumnsToIntermediateSchema, isWindowed);
     compiledWhereClause = getExpressionEvaluator(
         rewrittenPredicate, intermediateSchema, metaStore, ksqlConfig, queryPlannerOptions);
   }
@@ -458,7 +457,7 @@ public class QueryFilterNode extends SingleSourcePlanNode {
       final Optional<Column> col = schema.findColumn(node.getColumnName());
       if (col.isPresent() && col.get().namespace() == Namespace.KEY) {
         keyColumns.add(node);
-      } else if (SystemColumns.isSystemColumn(node.getColumnName(), ksqlConfig)) {
+      } else if (SystemColumns.isSystemColumn(node.getColumnName())) {
         systemColumns.add(node);
       }
       return null;

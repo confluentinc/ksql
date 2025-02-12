@@ -34,6 +34,7 @@ import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
+import io.confluent.ksql.parser.OutputRefinement;
 import io.confluent.ksql.planner.plan.AggregateNode;
 import io.confluent.ksql.planner.plan.DataSourceNode;
 import io.confluent.ksql.planner.plan.FilterNode;
@@ -44,7 +45,6 @@ import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.planner.plan.PreJoinRepartitionNode;
 import io.confluent.ksql.planner.plan.ProjectNode;
 import io.confluent.ksql.planner.plan.QueryLimitNode;
-import io.confluent.ksql.planner.plan.SuppressNode;
 import io.confluent.ksql.planner.plan.UserRepartitionNode;
 import io.confluent.ksql.testutils.AnalysisTestUtil;
 import io.confluent.ksql.util.KsqlConfig;
@@ -65,9 +65,7 @@ public class LogicalPlannerTest {
   public void init() {
     metaStore = MetaStoreFixture.getNewMetaStore(TestFunctionRegistry.INSTANCE.get());
     ksqlConfig = new KsqlConfig(ImmutableMap.of(KsqlConfig.KSQL_SUPPRESS_ENABLED, true));
-
   }
-
 
   @Test
   public void shouldCreatePlanWithTableAsSource() {
@@ -198,11 +196,13 @@ public class LogicalPlannerTest {
     final String simpleQuery = "SELECT col1,COUNT(*) as COUNT FROM test2 WINDOW TUMBLING (SIZE 2 MILLISECONDS, GRACE PERIOD 1 MILLISECONDS) GROUP BY col1 EMIT FINAL;";
     final PlanNode logicalPlan = buildLogicalPlan(simpleQuery);
 
-    assertThat(logicalPlan.getSources().get(0), instanceOf(SuppressNode.class));
-    assertThat(logicalPlan.getSources().get(0).getSources().get(0), instanceOf(AggregateNode.class));
-    assertThat(logicalPlan.getSources().get(0).getSources().get(0).getSources().get(0), instanceOf(DataSourceNode.class));
+    assertThat(logicalPlan.getSources().get(0), instanceOf(AggregateNode.class));
+    assertThat(logicalPlan.getSources().get(0).getSources().get(0), instanceOf(DataSourceNode.class));
     assertThat(logicalPlan.getSchema().value().size(), equalTo( 2));
-    Assert.assertNotNull(((SuppressNode) logicalPlan.getSources().get(0)).getRefinementInfo());
+    assertThat(
+        ((AggregateNode) logicalPlan.getSources().get(0)).getWindowExpression().get().getKsqlWindowExpression().getEmitStrategy().get(),
+        equalTo(OutputRefinement.FINAL)
+    );
   }
 
   private static SelectExpression selectCol(final String column, final String alias) {

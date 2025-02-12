@@ -60,7 +60,23 @@
         {"topic": "TEST2", "value": {"DATE": 10}},
         {"topic": "TEST2", "value": {"DATE": -10}}
       ]
-    },{
+    },
+    {
+      "name": "PROTOBUF_NOSR in/out",
+      "statements": [
+        "CREATE STREAM TEST (ID STRING KEY, date DATE) WITH (kafka_topic='test', value_format='PROTOBUF_NOSR');",
+        "CREATE STREAM TEST2 AS SELECT * FROM TEST;"
+      ],
+      "inputs": [
+        {"topic": "test", "value": {"date": 10}},
+        {"topic": "test", "value": {"date": -10}}
+      ],
+      "outputs": [
+        {"topic": "TEST2", "value": {"DATE": 10}},
+        {"topic": "TEST2", "value": {"DATE": -10}}
+      ]
+    },
+    {
       "name": "casting - date to string",
       "statements": [
         "CREATE STREAM TEST (ID STRING KEY, date DATE) WITH (kafka_topic='test', value_format='AVRO');",

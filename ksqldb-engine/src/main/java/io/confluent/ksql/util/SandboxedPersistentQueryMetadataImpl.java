@@ -35,6 +35,16 @@ public final class SandboxedPersistentQueryMetadataImpl extends PersistentQueryM
   }
 
   @Override
+  public void pause() {
+    // no-op
+  }
+
+  @Override
+  public void resume() {
+    // no-op
+  }
+
+  @Override
   public void close() {
     getListener().onClose(this);
   }

@@ -19,14 +19,11 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
 
-import io.confluent.ksql.GenericKey;
-import io.confluent.ksql.function.AggregateFunctionInitArguments;
-import io.confluent.ksql.function.KsqlAggregateFunction;
+import io.confluent.ksql.function.udaf.Udaf;
 import io.confluent.ksql.schema.ksql.SqlArgument;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.sql.Timestamp;
 import java.util.Collections;
-import org.apache.kafka.streams.kstream.Merger;
 import org.junit.Test;
 
 public class TimestampMaxKudafTest {
@@ -34,8 +31,9 @@ public class TimestampMaxKudafTest {
   @Test
   public void shouldFindCorrectMax() {
     final MaxKudaf<Timestamp> tsMaxKudaf = getTimestampMaxKudaf();
-    final Timestamp[] values = new Timestamp[]{new Timestamp(3), new Timestamp(5), new Timestamp(8),
-        new Timestamp(2), new Timestamp(3), new Timestamp(4), new Timestamp(5)};
+    final Timestamp[] values = new Timestamp[]{new Timestamp(3), new Timestamp(5),
+      new Timestamp(8), new Timestamp(2), new Timestamp(3), new Timestamp(4),
+      new Timestamp(5)};
     Timestamp currentMax = null;
     for (final Timestamp i: values) {
       currentMax = tsMaxKudaf.aggregate(i, currentMax);
@@ -46,8 +44,9 @@ public class TimestampMaxKudafTest {
   @Test
   public void shouldHandleNull() {
     final MaxKudaf<Timestamp> tsMaxKudaf = getTimestampMaxKudaf();
-    final Timestamp[] values = new Timestamp[]{new Timestamp(3), new Timestamp(5), new Timestamp(8), new Timestamp(2),
-        new Timestamp(3), new Timestamp(4), new Timestamp(5)};
+    final Timestamp[] values = new Timestamp[]{new Timestamp(3), new Timestamp(5),
+      new Timestamp(8), new Timestamp(2), new Timestamp(3), new Timestamp(4),
+      new Timestamp(5)};
     Timestamp currentMax = null;
 
     // null before any aggregation
@@ -67,23 +66,21 @@ public class TimestampMaxKudafTest {
 
   @Test
   public void shouldFindCorrectMaxForMerge() {
-    final MaxKudaf tsMaxKudaf = getTimestampMaxKudaf();
-    final Merger<GenericKey, Timestamp> merger = tsMaxKudaf.getMerger();
-    final Timestamp mergeResult1 = merger.apply(null, new Timestamp(10), new Timestamp(12));
+    final MaxKudaf<Timestamp> tsMaxKudaf = getTimestampMaxKudaf();
+    final Timestamp mergeResult1 = tsMaxKudaf.merge(new Timestamp(10), new Timestamp(12));
     assertThat(mergeResult1, equalTo(new Timestamp(12)));
-    final Timestamp mergeResult2 = merger.apply(null, new Timestamp(10), new Timestamp(-12));
+    final Timestamp mergeResult2 = tsMaxKudaf.merge(new Timestamp(10), new Timestamp(-12));
     assertThat(mergeResult2, equalTo(new Timestamp(10)));
-    final Timestamp mergeResult3 = merger.apply(null, new Timestamp(-10), new Timestamp(0));
+    final Timestamp mergeResult3 = tsMaxKudaf.merge(new Timestamp(-10), new Timestamp(0));
     assertThat(mergeResult3, equalTo(new Timestamp(0)));
-
   }
 
-  private MaxKudaf getTimestampMaxKudaf() {
-    final KsqlAggregateFunction aggregateFunction = new MaxAggFunctionFactory()
-        .createAggregateFunction(Collections.singletonList(SqlArgument.of(SqlTypes.TIMESTAMP)),
-            AggregateFunctionInitArguments.EMPTY_ARGS);
+  private MaxKudaf<Timestamp> getTimestampMaxKudaf() {
+    final Udaf<Timestamp, Timestamp, Timestamp> aggregateFunction = MaxKudaf.createMaxTimestamp();
+    aggregateFunction.initializeTypeArguments(
+            Collections.singletonList(SqlArgument.of(SqlTypes.TIMESTAMP))
+    );
     assertThat(aggregateFunction, instanceOf(MaxKudaf.class));
-    return  (MaxKudaf) aggregateFunction;
+    return  (MaxKudaf<Timestamp>) aggregateFunction;
   }
-
 }

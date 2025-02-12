@@ -1,0 +1,257 @@
+{
+  "version" : "7.3.0",
+  "timestamp" : 1655843732887,
+  "path" : "query-validation-tests/math.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`K` STRING KEY, `IB` INTEGER, `IV` INTEGER, `LB` BIGINT, `LV` BIGINT, `DB` DOUBLE, `DV` DOUBLE",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`K` STRING KEY, `I` DOUBLE, `L` DOUBLE, `D` DOUBLE",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "log-custom-base",
+    "inputs" : [ {
+      "topic" : "input",
+      "key" : null,
+      "value" : {
+        "ib" : null,
+        "iv" : 13,
+        "lb" : null,
+        "lv" : 13,
+        "db" : null,
+        "dv" : 13.0
+      }
+    }, {
+      "topic" : "input",
+      "key" : null,
+      "value" : {
+        "ib" : 13,
+        "iv" : null,
+        "lb" : 13,
+        "lv" : null,
+        "db" : 13.0,
+        "dv" : null
+      }
+    }, {
+      "topic" : "input",
+      "key" : null,
+      "value" : {
+        "ib" : 15,
+        "iv" : 13,
+        "lb" : 15,
+        "lv" : 13,
+        "db" : 15.0,
+        "dv" : 13.0
+      }
+    }, {
+      "topic" : "input",
+      "key" : null,
+      "value" : {
+        "ib" : 15,
+        "iv" : 1,
+        "lb" : 15,
+        "lv" : 1,
+        "db" : 15.0,
+        "dv" : 1.0
+      }
+    }, {
+      "topic" : "input",
+      "key" : null,
+      "value" : {
+        "ib" : 15,
+        "iv" : 0,
+        "lb" : 15,
+        "lv" : 0,
+        "db" : 15.0,
+        "dv" : 0.0
+      }
+    }, {
+      "topic" : "input",
+      "key" : null,
+      "value" : {
+        "ib" : 15,
+        "iv" : -13,
+        "lb" : 15,
+        "lv" : -13,
+        "db" : 15.0,
+        "dv" : -13.0
+      }
+    }, {
+      "topic" : "input",
+      "key" : null,
+      "value" : {
+        "ib" : -15,
+        "iv" : 13,
+        "lb" : -15,
+        "lv" : 13,
+        "db" : -15.0,
+        "dv" : 13.0
+      }
+    }, {
+      "topic" : "input",
+      "key" : null,
+      "value" : {
+        "ib" : 0,
+        "iv" : 13,
+        "lb" : 0,
+        "lv" : 13,
+        "db" : 0.0,
+        "dv" : 13.0
+      }
+    }, {
+      "topic" : "input",
+      "key" : null,
+      "value" : {
+        "ib" : 1,
+        "iv" : 13,
+        "lb" : 1,
+        "lv" : 13,
+        "db" : 1.0,
+        "dv" : 13.0
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : null,
+      "value" : {
+        "I" : null,
+        "L" : null,
+        "D" : null
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : null,
+      "value" : {
+        "I" : null,
+        "L" : null,
+        "D" : null
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : null,
+      "value" : {
+        "I" : 0.9471572411831843,
+        "L" : 0.9471572411831843,
+        "D" : 0.9471572411831843
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : null,
+      "value" : {
+        "I" : 0.0,
+        "L" : 0.0,
+        "D" : 0.0
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : null,
+      "value" : {
+        "I" : "-Infinity",
+        "L" : "-Infinity",
+        "D" : "-Infinity"
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : null,
+      "value" : {
+        "I" : "NaN",
+        "L" : "NaN",
+        "D" : "NaN"
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : null,
+      "value" : {
+        "I" : "NaN",
+        "L" : "NaN",
+        "D" : "NaN"
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : null,
+      "value" : {
+        "I" : "NaN",
+        "L" : "NaN",
+        "D" : "NaN"
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : null,
+      "value" : {
+        "I" : "NaN",
+        "L" : "NaN",
+        "D" : "NaN"
+      }
+    } ],
+    "topics" : [ {
+      "name" : "input",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM INPUT (K STRING KEY, ib INT, iv INT, lb BIGINT, lv BIGINT, db DOUBLE, dv DOUBLE) WITH (kafka_topic='input', value_format='JSON');", "CREATE STREAM OUTPUT AS SELECT K, log(ib, iv) i, log(lb, lv) l, log(db, dv) d FROM INPUT;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`K` STRING KEY, `IB` INTEGER, `IV` INTEGER, `LB` BIGINT, `LV` BIGINT, `DB` DOUBLE, `DV` DOUBLE",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`K` STRING KEY, `I` DOUBLE, `L` DOUBLE, `D` DOUBLE",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "input",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

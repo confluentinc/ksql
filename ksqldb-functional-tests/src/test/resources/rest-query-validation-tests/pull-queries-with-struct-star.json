@@ -1,0 +1,70 @@
+{
+  "comments": [
+    "Tests covering pull queries with struct column"
+  ],
+  "tests": [
+    {
+      "name": "select entire struct column",
+      "statements": [
+        "CREATE TABLE INPUT (ID STRING PRIMARY KEY, STRUCT_COL STRUCT<NESTED_FIELD1 STRING, NESTED_FIELD2 INTEGER>) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE MATVIEW AS SELECT ID, STRUCT_COL FROM INPUT;",
+        "SELECT ID, STRUCT_COL FROM MATVIEW;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12345, "key": "1", "value": {"struct_col": {"nested_field1": "value1", "nested_field2": 100}}},
+        {"topic": "test_topic", "timestamp": 12355, "key": "2", "value": {"struct_col": {"nested_field1": "value2", "nested_field2": 200}}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header": {"schema": "`ID` STRING KEY, `STRUCT_COL` STRUCT<`NESTED_FIELD1` STRING, `NESTED_FIELD2` INTEGER>"}},
+          {"row": {"columns": ["1", {"NESTED_FIELD1": "value1", "NESTED_FIELD2": 100}]}},
+          {"row": {"columns": ["2", {"NESTED_FIELD1": "value2", "NESTED_FIELD2": 200}]}}
+        ]}
+      ]
+    },
+    {
+      "name": "select all fields within struct column (struct_col->*)",
+      "statements": [
+        "CREATE TABLE INPUT (ID STRING PRIMARY KEY, STRUCT_COL STRUCT<A STRING, B INTEGER>) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE MATVIEW AS SELECT ID, STRUCT_COL FROM INPUT;",
+        "SELECT ID, STRUCT_COL->* FROM MATVIEW;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12345, "key": "1", "value": {"struct_col": {"a": "value1", "b": 100}}},
+        {"topic": "test_topic", "timestamp": 12355, "key": "2", "value": {"struct_col": {"a": "value2", "b": 200}}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header": {"schema": "`ID` STRING KEY, `A` STRING, `B` INTEGER"}},
+          {"row": {"columns": ["1", "value1", 100]}},
+          {"row": {"columns": ["2", "value2", 200]}}
+        ]}
+      ]
+    },
+    {
+      "name": "select all fields within struct column within struct column (struct_col->a->b)",
+      "statements": [
+        "CREATE TABLE INPUT (ID STRING PRIMARY KEY, STRUCT_COL STRUCT<A STRUCT<B STRING, C INTEGER>>) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE MATVIEW AS SELECT ID, STRUCT_COL->A->B, STRUCT_COL->A->C FROM INPUT;",
+        "SELECT ID, B, C FROM MATVIEW;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12345, "key": "1", "value": {"struct_col": {"a": {"b": "value1", "c": 100}}}},
+        {"topic": "test_topic", "timestamp": 12355, "key": "2", "value": {"struct_col": {"a": {"b": "value2", "c": 200}}}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header": {"schema": "`ID` STRING KEY, `B` STRING, `C` INTEGER"}},
+          {"row": {"columns": ["1", "value1", 100]}},
+          {"row": {"columns": ["2", "value2", 200]}}
+        ]}
+      ]
+    }
+  ]
+}

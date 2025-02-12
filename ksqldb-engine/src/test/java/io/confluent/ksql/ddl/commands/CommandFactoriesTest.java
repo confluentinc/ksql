@@ -139,7 +139,7 @@ public class CommandFactoriesTest {
     when(topicClient.isTopicExists(any())).thenReturn(true);
     when(createSourceFactory.createStreamCommand(any(), any()))
         .thenReturn(createStreamCommand);
-    when(createSourceFactory.createTableCommand(any(), any()))
+    when(createSourceFactory.createTableCommand(any(CreateTable.class), any()))
         .thenReturn(createTableCommand);
     when(dropSourceFactory.create(any(DropStream.class))).thenReturn(dropSourceCommand);
     when(dropSourceFactory.create(any(DropTable.class))).thenReturn(dropSourceCommand);

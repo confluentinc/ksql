@@ -18,13 +18,19 @@ package io.confluent.ksql.function;
 import com.google.common.collect.ImmutableList;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.function.types.ParamType;
+import io.confluent.ksql.function.udaf.VariadicArgs;
 import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.security.ExtensionSecurityManager;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.Pair;
+import io.confluent.ksql.util.Quadruple;
+import io.confluent.ksql.util.Quintuple;
+import io.confluent.ksql.util.Triple;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.apache.kafka.connect.data.Struct;
@@ -35,26 +41,32 @@ public abstract class BaseAggregateFunction<I, A, O> implements KsqlAggregateFun
    * For instance, in the example SELECT key, SUM(ROWTIME), aggregation will be done on a row
    * with two columns (key, ROWTIME) and the `argIndexInValue` will be 1.
    **/
-  private final int argIndexInValue;
+  private final ImmutableList<Integer> argIndicesInValue;
   private final Supplier<A> initialValueSupplier;
   private final SqlType aggregateSchema;
   private final SqlType outputSchema;
   private final ImmutableList<ParameterInfo> params;
   private final ImmutableList<ParamType> paramTypes;
+  private final Function<List<Object>, Object> inputConverter;
 
   protected final String functionName;
   private final String description;
+  private final int numColArgs;
+  private final boolean isVariadic;
 
   public BaseAggregateFunction(
       final String functionName,
-      final int argIndexInValue,
+      final List<Integer> argIndicesInValue,
       final Supplier<A> initialValueSupplier,
       final SqlType aggregateType,
       final SqlType outputType,
       final List<ParameterInfo> parameters,
-      final String description
+      final String description,
+      final int numColArgs
   ) {
-    this.argIndexInValue = argIndexInValue;
+    this.argIndicesInValue = ImmutableList.copyOf(
+            Objects.requireNonNull(argIndicesInValue, "argIndicesInValue")
+    );
     this.initialValueSupplier = () -> {
       ExtensionSecurityManager.INSTANCE.pushInUdf();
       try {
@@ -74,6 +86,9 @@ public abstract class BaseAggregateFunction<I, A, O> implements KsqlAggregateFun
     this.paramTypes = ImmutableList.copyOf(
         parameters.stream().map(ParameterInfo::type).collect(Collectors.toList())
     );
+    this.numColArgs = numColArgs;
+    this.isVariadic = parameters.stream().anyMatch(ParameterInfo::isVariadic);
+    this.inputConverter = determineInputConverter();
     this.functionName = Objects.requireNonNull(functionName, "functionName");
     this.description = Objects.requireNonNull(description, "description");
   }
@@ -86,8 +101,9 @@ public abstract class BaseAggregateFunction<I, A, O> implements KsqlAggregateFun
     return initialValueSupplier;
   }
 
-  public int getArgIndexInValue() {
-    return argIndexInValue;
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "argIndicesInValue is ImmutableList")
+  public List<Integer> getArgIndicesInValue() {
+    return argIndicesInValue;
   }
 
   public SqlType getAggregateType() {
@@ -116,7 +132,62 @@ public abstract class BaseAggregateFunction<I, A, O> implements KsqlAggregateFun
   }
 
   @Override
+  public boolean isVariadic() {
+    return isVariadic;
+  }
+
+  @Override
+  public Object convertToInput(final List<Object> arguments) {
+    return inputConverter.apply(arguments);
+  }
+
+  @Override
   public String getDescription() {
     return description;
+  }
+
+  private Function<List<Object>, Object> determineInputConverter() {
+    final int lastColArgIndex = numColArgs - 1;
+    final boolean isColArgVariadic = params.get(lastColArgIndex).isVariadic();
+    final Function<List<Object>, Object> getLastObject;
+    if (isColArgVariadic) {
+      getLastObject = (items) -> new VariadicArgs<>(items.subList(lastColArgIndex, items.size()));
+    } else {
+      getLastObject = (items) -> items.get(lastColArgIndex);
+    }
+
+    switch (numColArgs) {
+      case 1:
+        return getLastObject;
+      case 2:
+        return (objects) -> Pair.of(
+                objects.get(0),
+                getLastObject.apply(objects)
+        );
+      case 3:
+        return (objects) -> Triple.of(
+                objects.get(0),
+                objects.get(1),
+                getLastObject.apply(objects)
+        );
+      case 4:
+        return (objects) -> Quadruple.of(
+                objects.get(0),
+                objects.get(1),
+                objects.get(2),
+                getLastObject.apply(objects)
+        );
+      case 5:
+        return (objects) -> Quintuple.of(
+                objects.get(0),
+                objects.get(1),
+                objects.get(2),
+                objects.get(3),
+                getLastObject.apply(objects)
+        );
+      default:
+        throw new KsqlException("Unsupported number of aggregation function parameters: "
+                + numColArgs);
+    }
   }
 }

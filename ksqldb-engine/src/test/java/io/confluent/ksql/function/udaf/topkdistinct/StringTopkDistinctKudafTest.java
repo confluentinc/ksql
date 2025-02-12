@@ -54,7 +54,7 @@ public class StringTopkDistinctKudafTest {
     final List<String> array1 = ImmutableList.of("50", "45", "25");
     final List<String> array2 = ImmutableList.of("60", "50", "48");
 
-    assertThat("Invalid results.", stringTopkDistinctKudaf.getMerger().apply(null, array1, array2), equalTo(
+    assertThat("Invalid results.", stringTopkDistinctKudaf.merge(array1, array2), equalTo(
         ImmutableList.of("60", "50", "48")));
   }
 
@@ -63,7 +63,7 @@ public class StringTopkDistinctKudafTest {
     final List<String> array1 = ImmutableList.of("50", "45");
     final List<String> array2 = ImmutableList.of("60");
 
-    assertThat("Invalid results.", stringTopkDistinctKudaf.getMerger().apply(null, array1, array2), equalTo(
+    assertThat("Invalid results.", stringTopkDistinctKudaf.merge(array1, array2), equalTo(
         ImmutableList.of("60", "50", "45")));
   }
 
@@ -72,7 +72,7 @@ public class StringTopkDistinctKudafTest {
     final List<String> array1 = ImmutableList.of("50", "45");
     final List<String> array2 = ImmutableList.of("60", "50");
 
-    assertThat("Invalid results.", stringTopkDistinctKudaf.getMerger().apply(null, array1, array2), equalTo(
+    assertThat("Invalid results.", stringTopkDistinctKudaf.merge(array1, array2), equalTo(
         ImmutableList.of("60", "50", "45")));
   }
 
@@ -81,7 +81,7 @@ public class StringTopkDistinctKudafTest {
     final List<String> array1 = ImmutableList.of("60");
     final List<String> array2 = ImmutableList.of("60");
 
-    assertThat("Invalid results.", stringTopkDistinctKudaf.getMerger().apply(null, array1, array2), equalTo(
+    assertThat("Invalid results.", stringTopkDistinctKudaf.merge(array1, array2), equalTo(
         ImmutableList.of("60")));
   }
 }

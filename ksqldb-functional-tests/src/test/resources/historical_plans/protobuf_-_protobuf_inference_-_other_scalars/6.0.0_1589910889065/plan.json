@@ -1,7 +1,7 @@
 {
   "plan" : [ {
     "@type" : "ksqlPlanV1",
-    "statementText" : "CREATE STREAM INPUT (C1 DOUBLE, C2 BIGINT, C3 BIGINT, C4 INTEGER, C5 BIGINT) WITH (KAFKA_TOPIC='input', SCHEMA_ID=1, VALUE_FORMAT='PROTOBUF');",
+    "statementText" : "CREATE STREAM INPUT (C1 DOUBLE, C2 BIGINT, C3 BIGINT, C4 INTEGER, C5 BIGINT) WITH (KAFKA_TOPIC='input', VALUE_FORMAT='PROTOBUF');",
     "ddlCommand" : {
       "@type" : "createStreamV1",
       "sourceName" : "INPUT",

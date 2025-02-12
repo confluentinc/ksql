@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.rest.integration;
 
+import static io.confluent.ksql.rest.Errors.ERROR_CODE_UNAUTHORIZED;
 import static io.confluent.ksql.rest.integration.HighAvailabilityTestUtil.extractQueryId;
 import static io.confluent.ksql.rest.integration.HighAvailabilityTestUtil.makeAdminRequest;
 import static io.confluent.ksql.rest.integration.HighAvailabilityTestUtil.makeAdminRequestWithResponse;
@@ -343,7 +344,7 @@ public class PullQueryRoutingFunctionalTest {
   }
 
   @Test
-  public void shouldQueryWS() throws Exception {
+  public void shouldQueryWithAuthMultiNodeOverWS() {
     // Given:
     ClusterFormation clusterFormation = findClusterFormation(TEST_APP_0, TEST_APP_1, TEST_APP_2);
     waitForClusterToBeDiscovered(clusterFormation.standBy.getApp(), 3, USER_CREDS);
@@ -373,7 +374,7 @@ public class PullQueryRoutingFunctionalTest {
     assertThat(rows_0, hasSize(HEADER + 2));
   }
 
-
+  @Test
   public void shouldQueryActiveWhenActiveAliveStandbyDeadQueryIssuedToRouter() {
     // Given:
     ClusterFormation clusterFormation = findClusterFormation(TEST_APP_0, TEST_APP_1, TEST_APP_2);
@@ -715,24 +716,24 @@ public class PullQueryRoutingFunctionalTest {
     @Override
     public CompletableFuture<Principal> handleAuth(RoutingContext routingContext,
         WorkerExecutor workerExecutor) {
-      if (getAuthToken(routingContext) == null) {
+      if (getAuthHeader(routingContext) == null){
         routingContext.fail(HttpResponseStatus.UNAUTHORIZED.code(),
-            new KsqlApiException("Unauthorized", HttpResponseStatus.UNAUTHORIZED.code()));
+            new KsqlApiException("Unauthorized", ERROR_CODE_UNAUTHORIZED));
         return CompletableFuture.completedFuture(null);
       }
       return CompletableFuture.completedFuture(new StringPrincipal(USER_WITH_ACCESS));
     }
 
     @Override
-    public String getAuthToken(RoutingContext routingContext) {
-      String authToken = routingContext.request().getHeader("Authorization");
-      if (authToken == null) {
-        authToken = routingContext.request().getParam("access_token");
+    public String getAuthHeader(RoutingContext routingContext) {
+      String authHeader = routingContext.request().getHeader("Authorization");
+      if (authHeader == null) {
+        authHeader = routingContext.request().getParam("access_token");
       }
-      return authToken;
+      return authHeader;
     }
   }
-
+  
   public static class StaticStreamsTaskAssignor implements TaskAssignor {
     public StaticStreamsTaskAssignor() { }
 

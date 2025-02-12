@@ -212,6 +212,9 @@ By convention, the `ksql.service.id` property should end with a
 separator character of some form, for example a dash or underscore, as
 this makes the topic name easier to read.
 
+!!! note
+	In {{ site.ccloud }}, the Command Topic is managed by Confluent and not visible in the {{ site.ak }} cluster. Previous versions of ksqlDB in {{ site.ccloud }} created a Command Topic in user-owned {{ site.ak }} clusters, but this isn't the case for newly created ksqlDB clusters.
+
 ### Headless Deployment
 
 When you deploy a ksqlDB Server in headless mode, the REST

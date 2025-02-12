@@ -24,6 +24,7 @@ import io.confluent.ksql.execution.windows.TumblingWindowExpression;
 import io.confluent.ksql.execution.windows.WindowTimeClause;
 import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.parser.NodeLocation;
+import io.confluent.ksql.parser.OutputRefinement;
 import io.confluent.ksql.serde.WindowInfo;
 import java.time.Duration;
 import java.util.Optional;
@@ -37,14 +38,21 @@ public class TumblingWindowExpressionTest {
   @Test
   public void shouldReturnWindowInfo() {
     assertThat(new TumblingWindowExpression(new WindowTimeClause(11, SECONDS)).getWindowInfo(),
-        is(WindowInfo.of(WindowType.TUMBLING, Optional.of(Duration.ofSeconds(11)))));
+        is(WindowInfo.of(
+            WindowType.TUMBLING,
+            Optional.of(Duration.ofSeconds(11)),
+            Optional.empty())));
     assertThat(new TumblingWindowExpression(
             Optional.empty(),
             new WindowTimeClause(20, SECONDS),
             Optional.of(new WindowTimeClause(20, SECONDS)),
-            Optional.of(new WindowTimeClause(10, SECONDS))
+            Optional.of(new WindowTimeClause(10, SECONDS)),
+            Optional.of(OutputRefinement.CHANGES)
         ).getWindowInfo(),
-        is(WindowInfo.of(WindowType.TUMBLING, Optional.of(Duration.ofSeconds(20)))));
+        is(WindowInfo.of(
+            WindowType.TUMBLING,
+            Optional.of(Duration.ofSeconds(20)),
+            Optional.of(OutputRefinement.CHANGES))));
   }
 
   @Test

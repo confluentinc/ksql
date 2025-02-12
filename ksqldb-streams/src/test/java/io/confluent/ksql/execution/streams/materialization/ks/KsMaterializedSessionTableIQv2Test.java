@@ -52,6 +52,7 @@ import org.apache.kafka.streams.kstream.internals.SessionWindow;
 import org.apache.kafka.streams.query.FailureReason;
 import org.apache.kafka.streams.query.Position;
 import org.apache.kafka.streams.query.QueryResult;
+import org.apache.kafka.streams.query.StateQueryRequest;
 import org.apache.kafka.streams.query.StateQueryResult;
 import org.apache.kafka.streams.state.KeyValueIterator;
 import org.junit.Before;
@@ -102,16 +103,19 @@ public class KsMaterializedSessionTableIQv2Test {
   private int sessionIdx;
 
   @Before
+  @SuppressWarnings("unchecked")
   public void setUp() {
     table = new KsMaterializedSessionTableIQv2(stateStore);
 
     when(stateStore.getKafkaStreams()).thenReturn(kafkaStreams);
     when(stateStore.schema()).thenReturn(SCHEMA);
-    final StateQueryResult result = new StateQueryResult();
-    final QueryResult queryResult = QueryResult.forResult(fetchIterator);
+    final StateQueryResult<KeyValueIterator<Windowed<GenericKey>, GenericRow>> result =
+        new StateQueryResult<>();
+    final QueryResult<KeyValueIterator<Windowed<GenericKey>, GenericRow>> queryResult =
+        QueryResult.forResult(fetchIterator);
     queryResult.setPosition(POSITION);
     result.addResult(PARTITION, queryResult);
-    when(kafkaStreams.query(any())).thenReturn(result);
+    when(kafkaStreams.query(any(StateQueryRequest.class))).thenReturn(result);
 
     sessions.clear();
     sessionIdx = 0;
@@ -147,11 +151,12 @@ public class KsMaterializedSessionTableIQv2Test {
   }
 
   @Test
+  @SuppressWarnings("unchecked")
   public void shouldThrowIfQueryFails() {
     // Given:
-    final StateQueryResult partitionResult = new StateQueryResult();
+    final StateQueryResult<?> partitionResult = new StateQueryResult<>();
     partitionResult.addResult(PARTITION, QueryResult.forFailure(FailureReason.STORE_EXCEPTION, "Boom"));
-    when(kafkaStreams.query(any())).thenReturn(partitionResult);
+    when(kafkaStreams.query(any(StateQueryRequest.class))).thenReturn(partitionResult);
 
     // When:
     final Exception e = assertThrows(

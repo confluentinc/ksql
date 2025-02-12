@@ -22,16 +22,22 @@ import io.confluent.ksql.query.QueryError;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.QueryMetadata;
-import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import org.apache.kafka.common.MetricName;
 import org.apache.kafka.common.metrics.Gauge;
+import org.apache.kafka.common.metrics.MetricConfig;
 import org.apache.kafka.common.metrics.Metrics;
+import org.apache.kafka.common.metrics.stats.CumulativeSum;
 import org.apache.kafka.streams.KafkaStreams.State;
 
 public class QueryStateMetricsReportingListener implements QueryEventListener {
+  public static final String QUERY_RESTART_METRIC_NAME = "query-restart-total";
+  public static final String QUERY_RESTART_METRIC_DESCRIPTION =
+      "The total number of times that a query thread has failed and then been restarted.";
 
   public static final Ticker CURRENT_TIME_MILLIS_TICKER = new Ticker() {
     @Override
@@ -42,12 +48,18 @@ public class QueryStateMetricsReportingListener implements QueryEventListener {
 
   private final Metrics metrics;
   private final String metricsPrefix;
+  private final Map<String, String> metricsTags;
   private final ConcurrentMap<QueryId, PerQueryListener> perQuery = new ConcurrentHashMap<>();
 
-  QueryStateMetricsReportingListener(final Metrics metrics, final String metricsPrefix) {
+  QueryStateMetricsReportingListener(
+      final Metrics metrics,
+      final String metricsPrefix,
+      final Map<String, String> metricsTags
+  ) {
     this.metrics = Objects.requireNonNull(metrics, "metrics");
     this.metricsPrefix
         = Objects.requireNonNull(metricsPrefix, "metricGroupPrefix");
+    this.metricsTags = Objects.requireNonNull(metricsTags);
   }
 
   @Override
@@ -60,7 +72,12 @@ public class QueryStateMetricsReportingListener implements QueryEventListener {
     }
     perQuery.put(
         queryMetadata.getQueryId(),
-        new PerQueryListener(metrics, metricsPrefix, queryMetadata.getQueryId().toString())
+        new PerQueryListener(
+            metrics,
+            metricsPrefix,
+            queryMetadata.getQueryId().toString(),
+            metricsTags
+        )
     );
   }
 
@@ -71,6 +88,15 @@ public class QueryStateMetricsReportingListener implements QueryEventListener {
     final PerQueryListener listener = perQuery.get(query.getQueryId());
     if (listener != null) {
       listener.onChange(before, after);
+      listener.setKsqlQueryState(query.getQueryStatus().toString());
+    }
+  }
+
+  @Override
+  public void onKsqlStateChange(final QueryMetadata query) {
+    final PerQueryListener listener = perQuery.get(query.getQueryId());
+    if (listener != null) {
+      listener.setKsqlQueryState(query.getQueryStatus().toString());
     }
   }
 
@@ -81,6 +107,7 @@ public class QueryStateMetricsReportingListener implements QueryEventListener {
     final PerQueryListener listener = perQuery.get(query.getQueryId());
     if (listener != null) {
       listener.onError(error);
+      listener.setKsqlQueryState(query.getQueryStatus().toString());
     }
   }
 
@@ -96,24 +123,30 @@ public class QueryStateMetricsReportingListener implements QueryEventListener {
     private final Metrics metrics;
     private final MetricName stateMetricName;
     private final MetricName errorMetricName;
+    private final MetricName queryRestartMetricName;
+    private final MetricName ksqlQueryStatusMetricName;
+    private final CumulativeSum queryRestartSum;
     private final Ticker ticker;
 
     private volatile String state = "-";
+    private volatile String ksqlQueryState = "-";
     private volatile String error = NO_ERROR;
 
     PerQueryListener(
         final Metrics metrics,
         final String groupPrefix,
-        final String queryId
+        final String queryId,
+        final Map<String, String> metricsTags
     ) {
-      this(metrics, groupPrefix, queryId, CURRENT_TIME_MILLIS_TICKER);
+      this(metrics, groupPrefix, queryId, CURRENT_TIME_MILLIS_TICKER, metricsTags);
     }
 
     PerQueryListener(
         final Metrics metrics,
         final String groupPrefix,
         final String queryId,
-        final Ticker ticker
+        final Ticker ticker,
+        final Map<String, String> metricsTags
     ) {
       Objects.requireNonNull(groupPrefix, "groupPrefix");
       Objects.requireNonNull(queryId, "queryId");
@@ -124,20 +157,44 @@ public class QueryStateMetricsReportingListener implements QueryEventListener {
 
       final String tag = "_confluent-ksql-" + groupPrefix + type + queryId;
 
+      final Map<String, String> tagsForStateAndError = new HashMap<>(metricsTags);
+      tagsForStateAndError.put("status", tag);
       this.stateMetricName = metrics.metricName(
           "query-status",
           groupPrefix + "ksql-queries",
-          "The current status of the given query.",
-          Collections.singletonMap("status", tag));
+          "The current Kafka Streams status of the given query.",
+          tagsForStateAndError
+      );
 
       errorMetricName = metrics.metricName(
           "error-status",
           groupPrefix + "ksql-queries",
           "The current error status of the given query, if the state is in ERROR state",
-          Collections.singletonMap("status", tag)
+          tagsForStateAndError
       );
+
+      final Map<String, String> restartTags = new HashMap<>(tagsForStateAndError);
+      restartTags.put("query-id", queryId);
+      queryRestartMetricName = metrics.metricName(
+          QUERY_RESTART_METRIC_NAME,
+          groupPrefix + "ksql-queries",
+          QUERY_RESTART_METRIC_DESCRIPTION,
+          restartTags
+      );
+
+      ksqlQueryStatusMetricName = metrics.metricName(
+              "ksql-query-status",
+              groupPrefix + "ksql-queries",
+              "The current ksqlDB status of the given query.",
+              tagsForStateAndError
+      );
+
+      this.queryRestartSum = new CumulativeSum();
       this.metrics.addMetric(stateMetricName, (Gauge<String>) (config, now) -> state);
       this.metrics.addMetric(errorMetricName, (Gauge<String>) (config, now) -> error);
+      this.metrics.addMetric(queryRestartMetricName, queryRestartSum);
+      this.metrics.addMetric(ksqlQueryStatusMetricName,
+              (Gauge<String>) (config, now) -> ksqlQueryState);
     }
 
     public void onChange(final State newState, final State oldState) {
@@ -148,13 +205,20 @@ public class QueryStateMetricsReportingListener implements QueryEventListener {
       }
     }
 
+    public void setKsqlQueryState(final String ksqlQueryState) {
+      this.ksqlQueryState = ksqlQueryState;
+    }
+
     public void onError(final QueryError observedError) {
       error = observedError.getType().name();
+      queryRestartSum.record(new MetricConfig(), 1, System.currentTimeMillis());
     }
 
     public void onDeregister() {
       metrics.removeMetric(stateMetricName);
       metrics.removeMetric(errorMetricName);
+      metrics.removeMetric(queryRestartMetricName);
+      metrics.removeMetric(ksqlQueryStatusMetricName);
     }
   }
 }

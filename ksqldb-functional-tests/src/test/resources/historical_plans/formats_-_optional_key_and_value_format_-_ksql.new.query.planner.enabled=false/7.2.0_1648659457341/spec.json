@@ -49,7 +49,8 @@
     } ],
     "statements" : [ "CREATE STREAM INPUT (K STRING KEY, foo INT) WITH (kafka_topic='input_topic');", "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;" ],
     "properties" : {
-      "ksql.persistence.default.format.value" : "JSON"
+      "ksql.persistence.default.format.value" : "JSON",
+      "ksql.new.query.planner.enabled" : "false"
     },
     "post" : {
       "sources" : [ {

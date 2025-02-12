@@ -302,21 +302,17 @@ public class KsqlServerEndpoints implements Endpoints {
       final WorkerExecutor workerExecutor,
       final ApiSecurityContext apiSecurityContext,
       final Context context) {
-
     executeOnWorker(() -> {
       final KsqlSecurityContext ksqlSecurityContext = ksqlSecurityContextProvider
           .provide(apiSecurityContext);
       try {
-        final String authToken = apiSecurityContext.getAuthToken().isPresent()
-            ? apiSecurityContext.getAuthToken().get()
-            : requestParams.get("access_token");
         wsQueryEndpoint.executeStreamQuery(
             webSocket,
             requestParams,
             ksqlSecurityContext,
             context,
             new AuthenticationUtil(Clock.systemUTC())
-                .getTokenTimeout(authToken, ksqlConfig, authTokenProvider)
+                .getTokenTimeout(apiSecurityContext.getAuthHeader(), ksqlConfig, authTokenProvider)
         );
       } finally {
         ksqlSecurityContext.getServiceContext().close();

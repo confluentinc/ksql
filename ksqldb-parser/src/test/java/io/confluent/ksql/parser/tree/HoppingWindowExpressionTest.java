@@ -106,6 +106,6 @@ public class HoppingWindowExpressionTest {
             new WindowTimeClause(10, SECONDS),
             new WindowTimeClause(20, MINUTES)
         ).getWindowInfo(),
-        is(WindowInfo.of(WindowType.HOPPING, Optional.of(Duration.ofSeconds(10)))));
+        is(WindowInfo.of(WindowType.HOPPING, Optional.of(Duration.ofSeconds(10)), Optional.empty())));
   }
 }

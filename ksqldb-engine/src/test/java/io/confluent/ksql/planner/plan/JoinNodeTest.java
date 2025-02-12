@@ -127,15 +127,15 @@ public class JoinNodeTest {
   }
 
   private static final LogicalSchema LEFT_NODE_SCHEMA = prependAlias(
-      LEFT_ALIAS, LEFT_SOURCE_SCHEMA.withPseudoAndKeyColsInValue(false, ksqlConfig)
+      LEFT_ALIAS, LEFT_SOURCE_SCHEMA.withPseudoAndKeyColsInValue(false)
   );
 
   private static final LogicalSchema RIGHT_NODE_SCHEMA = prependAlias(
-      RIGHT_ALIAS, RIGHT_SOURCE_SCHEMA.withPseudoAndKeyColsInValue(false, ksqlConfig)
+      RIGHT_ALIAS, RIGHT_SOURCE_SCHEMA.withPseudoAndKeyColsInValue(false)
   );
 
   private static final LogicalSchema RIGHT2_NODE_SCHEMA = prependAlias(
-      RIGHT2_ALIAS, RIGHT2_SOURCE_SCHEMA.withPseudoAndKeyColsInValue(false, ksqlConfig)
+      RIGHT2_ALIAS, RIGHT2_SOURCE_SCHEMA.withPseudoAndKeyColsInValue(false)
   );
 
   private static final ValueFormat VALUE_FORMAT = ValueFormat
@@ -911,7 +911,7 @@ public class JoinNodeTest {
   @Test
   public void shouldThrowIfProjectionDoesNotIncludeAnyJoinColumns() {
     // Given:
-    final JoinNode joinNode = new JoinNode(nodeId, LEFT, joinKey,      true, left, right,
+    final JoinNode joinNode = new JoinNode(nodeId, LEFT, joinKey, true, left, right,
         empty(),"KAFKA");
 
     when(joinKey.getAllViableKeys(any()))
@@ -929,7 +929,7 @@ public class JoinNodeTest {
     // Then:
     assertThat(e.getMessage(), containsString("The query used to build `sink` "
         + "must include the join expressions expression1, expression1 or expression2 "
-        + "in its projection."));
+        + "in its projection (eg, SELECT expression1..."));
   }
 
   @SuppressWarnings({"unchecked", "rawtypes"})

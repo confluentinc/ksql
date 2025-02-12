@@ -198,6 +198,30 @@
         "type": "io.confluent.ksql.util.KsqlException",
         "message": "Invalid type for HEADER('key') column: expected BYTES, got INTEGER"
       }
+    },
+    {
+      "name": "Can infer key and value schemas",
+      "statements": [
+        "CREATE STREAM SOURCE1 (H ARRAY<STRUCT<key STRING, value BYTES>> HEADERS) WITH (kafka_topic='stream-source', value_format='avro', key_format='avro');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM SOURCE1;"
+      ],
+      "topics": [
+        {
+          "name": "stream-source",
+          "keySchema": {"type": "string"},
+          "keyFormat": "AVRO",
+          "valueSchema": {"type": "record", "name": "most_recent_value_schema_at_SR", "fields": [{"name": "v", "type": ["null", "int"]}]},
+          "valueFormat": "AVRO"
+        }
+      ],
+      "inputs": [
+        {"topic": "stream-source", "key": "k1", "value": {"v": 40000}, "headers": []},
+        {"topic": "stream-source", "key": "k2", "value": {"v": 40000}, "headers": [{"KEY": "abc", "VALUE": "IQ=="}]}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "k1", "value": {"V": 40000, "H": []}, "headers": []},
+        {"topic": "OUTPUT", "key": "k2", "value": {"V": 40000, "H": [{"KEY": "abc", "VALUE": "IQ=="}]}, "headers": [{"KEY": "abc", "VALUE": "IQ=="}]}
+      ]
     }
   ]
 }

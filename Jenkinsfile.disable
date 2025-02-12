@@ -5,7 +5,7 @@ def channel = "${env.BRANCH_NAME}".contains('master') ? '#ksqldb-quality-oncall'
 common {
     nodeLabel = 'docker-debian-jdk11'
     slackChannel = channel
-    timeoutHours = 4
+    timeoutHours = 6
     upstreamProjects = 'confluentinc/schema-registry'
     extraDeployArgs = '-Ddocker.skip=true'
     dockerPush = false

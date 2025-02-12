@@ -17,10 +17,9 @@ package io.confluent.ksql.rest.server.resources.streaming;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.annotations.VisibleForTesting;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.api.server.MetricsCallbackHolder;
 import io.confluent.ksql.api.server.NextHandlerOutput;
-import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.execution.pull.PullQueryResult;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.PrintTopic;
@@ -35,7 +34,6 @@ import io.confluent.ksql.rest.server.StatementParser;
 import io.confluent.ksql.rest.server.computation.CommandQueue;
 import io.confluent.ksql.rest.server.query.QueryExecutor;
 import io.confluent.ksql.rest.server.query.QueryMetadataHolder;
-import io.confluent.ksql.rest.server.resources.KsqlConfigurable;
 import io.confluent.ksql.rest.server.resources.KsqlRestException;
 import io.confluent.ksql.rest.util.CommandStoreUtil;
 import io.confluent.ksql.security.KsqlAuthorizationValidator;
@@ -62,13 +60,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @SuppressWarnings({"ClassDataAbstractionCoupling"})
-public class StreamedQueryResource implements KsqlConfigurable {
+public class StreamedQueryResource {
 
   private static final Logger log = LoggerFactory.getLogger(StreamedQueryResource.class);
 
   private static final ObjectMapper OBJECT_MAPPER = ApiJsonMapper.INSTANCE.get();
 
-  private final KsqlEngine ksqlEngine;
+  private final KsqlExecutionContext ksqlEngine;
   private final StatementParser statementParser;
   private final CommandQueue commandQueue;
   private final Duration disconnectCheckInterval;
@@ -79,12 +77,11 @@ public class StreamedQueryResource implements KsqlConfigurable {
   private final DenyListPropertyValidator denyListPropertyValidator;
   private final QueryExecutor queryExecutor;
 
-  private KsqlConfig ksqlConfig;
   private KsqlRestConfig ksqlRestConfig;
 
   @SuppressWarnings("checkstyle:ParameterNumber")
   public StreamedQueryResource(
-      final KsqlEngine ksqlEngine,
+      final KsqlExecutionContext ksqlEngine,
       final KsqlRestConfig ksqlRestConfig,
       final CommandQueue commandQueue,
       final Duration disconnectCheckInterval,
@@ -114,7 +111,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
   StreamedQueryResource(
       // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
-      final KsqlEngine ksqlEngine,
+      final KsqlExecutionContext ksqlEngine,
       final KsqlRestConfig ksqlRestConfig,
       final StatementParser statementParser,
       final CommandQueue commandQueue,
@@ -143,16 +140,6 @@ public class StreamedQueryResource implements KsqlConfigurable {
     this.queryExecutor = queryExecutor;
   }
 
-  @Override
-  @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
-  public void configure(final KsqlConfig config) {
-    if (!config.getKsqlStreamConfigProps().containsKey(StreamsConfig.APPLICATION_SERVER_CONFIG)) {
-      throw new IllegalArgumentException("Need KS application server set");
-    }
-
-    ksqlConfig = config;
-  }
-
   public EndpointResponse streamQuery(
       final KsqlSecurityContext securityContext,
       final KsqlRequest request,
@@ -173,12 +160,6 @@ public class StreamedQueryResource implements KsqlConfigurable {
         isInternalRequest, metricsCallbackHolder, context);
   }
 
-  private void throwIfNotConfigured() {
-    if (ksqlConfig == null) {
-      throw new KsqlRestException(Errors.notReady());
-    }
-  }
-
   private PreparedStatement<?> parseStatement(final KsqlRequest request) {
     final String ksql = request.getUnmaskedKsql();
     if (ksql.trim().isEmpty()) {
@@ -189,6 +170,13 @@ public class StreamedQueryResource implements KsqlConfigurable {
       return statementParser.parseSingleStatement(ksql);
     } catch (final IllegalArgumentException | KsqlException e) {
       throw new KsqlRestException(Errors.badStatement(e, ksql));
+    }
+  }
+
+  private void throwIfNotConfigured() {
+    if (!ksqlEngine.getKsqlConfig().getKsqlStreamConfigProps()
+        .containsKey(StreamsConfig.APPLICATION_SERVER_CONFIG)) {
+      throw new KsqlRestException(Errors.notReady());
     }
   }
 
@@ -320,7 +308,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
     }
 
     final Map<String, Object> propertiesWithOverrides =
-        new HashMap<>(ksqlConfig.getKsqlStreamConfigProps());
+        new HashMap<>(ksqlEngine.getKsqlConfig().getKsqlStreamConfigProps());
     propertiesWithOverrides.putAll(streamProperties);
 
     final TopicStreamWriter topicStreamWriter = TopicStreamWriter.create(
@@ -348,6 +336,6 @@ public class StreamedQueryResource implements KsqlConfigurable {
     if (overrides.containsKey(KsqlConfig.KSQL_ENDPOINT_MIGRATE_QUERY_CONFIG)) {
       return (Boolean) overrides.get(KsqlConfig.KSQL_ENDPOINT_MIGRATE_QUERY_CONFIG);
     }
-    return ksqlConfig.getBoolean(KsqlConfig.KSQL_ENDPOINT_MIGRATE_QUERY_CONFIG);
+    return ksqlEngine.getKsqlConfig().getBoolean(KsqlConfig.KSQL_ENDPOINT_MIGRATE_QUERY_CONFIG);
   }
 }

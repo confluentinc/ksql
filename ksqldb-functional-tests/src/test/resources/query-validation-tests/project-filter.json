@@ -461,7 +461,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "The query used to build `OUTPUT` must include the key column ID in its projection."
+        "message": "The query used to build `OUTPUT` must include the key column ID in its projection (eg, SELECT ID...)."
       }
     },
     {
@@ -472,7 +472,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "The query used to build `OUTPUT` must include the key columns ID and ID2 in its projection."
+        "message": "The query used to build `OUTPUT` must include the key columns ID and ID2 in its projection (eg, SELECT ID, ID2...)."
       }
     },
     {
@@ -483,7 +483,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "The query used to build `OUTPUT` must include the key column ID in its projection."
+        "message": "The query used to build `OUTPUT` must include the key column ID in its projection (eg, SELECT ID...)."
       }
     },
     {

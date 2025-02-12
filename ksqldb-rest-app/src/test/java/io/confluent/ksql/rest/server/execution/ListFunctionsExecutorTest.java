@@ -20,13 +20,11 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.Mockito.mock;
 
 import io.confluent.ksql.function.FunctionCategory;
-import io.confluent.ksql.parser.tree.ListFunctions;
 import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.rest.entity.FunctionNameList;
 import io.confluent.ksql.rest.entity.FunctionType;
 import io.confluent.ksql.rest.entity.SimpleFunctionInfo;
 import io.confluent.ksql.rest.server.TemporaryEngine;
-import io.confluent.ksql.statement.ConfiguredStatement;
 import java.util.Collection;
 import org.junit.Rule;
 import org.junit.Test;
@@ -36,17 +34,14 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class ListFunctionsExecutorTest {
 
-  private static final CustomExecutors CUSTOM_EXECUTORS = new CustomExecutors(
-      new DefaultConnectServerErrors());
-
   @Rule public final TemporaryEngine engine = new TemporaryEngine();
 
   @Test
   public void shouldListFunctions() {
 
     // When:
-    final FunctionNameList functionList = (FunctionNameList) CUSTOM_EXECUTORS.listFunctions().execute(
-        (ConfiguredStatement<ListFunctions>) engine.configure("LIST FUNCTIONS;"),
+    final FunctionNameList functionList = (FunctionNameList) CustomExecutors.LIST_FUNCTIONS.execute(
+        engine.configure("LIST FUNCTIONS;"),
         mock(SessionProperties.class),
         engine.getEngine(),
         engine.getServiceContext()

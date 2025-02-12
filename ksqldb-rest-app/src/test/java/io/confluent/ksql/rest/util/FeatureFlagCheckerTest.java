@@ -70,7 +70,7 @@ public class FeatureFlagCheckerTest {
         )),
         false
     );
-    final ConfiguredStatement configuredStatement = configured(config, createStream);
+    final ConfiguredStatement<?> configuredStatement = configured(config, createStream);
 
     // When
     final Exception e = assertThrows(
@@ -104,13 +104,14 @@ public class FeatureFlagCheckerTest {
         )),
         false
     );
-    final ConfiguredStatement configuredStatement = configured(config, createStream);
+    final ConfiguredStatement<?> configuredStatement = configured(config, createStream);
 
     // When/Then
     FeatureFlagChecker.throwOnDisabledFeatures(configuredStatement);
   }
 
-  private ConfiguredStatement configured(final KsqlConfig config, final Statement statement) {
+  @SuppressWarnings("rawtypes")
+  private ConfiguredStatement<?> configured(final KsqlConfig config, final Statement statement) {
     final ConfiguredStatement mockConfigured = mock(ConfiguredStatement.class);
 
     when(mockConfigured.getStatement())

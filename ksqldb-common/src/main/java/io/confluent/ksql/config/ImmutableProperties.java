@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Confluent Inc.
+ * Copyright 2022 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -36,7 +36,7 @@ public final class ImmutableProperties {
       .add(KsqlConfig.KSQL_READONLY_TOPICS_CONFIG)
       .add(KsqlConfig.KSQL_SOURCE_TABLE_MATERIALIZATION_ENABLED)
       .add(KsqlConfig.KSQL_HEADERS_COLUMNS_ENABLED)
-      .add(KsqlConfig.KSQL_NEW_QUERY_PLANNER_ENABLED)
+      //.add(KsqlConfig.KSQL_NEW_QUERY_PLANNER_ENABLED) -- to-do: protect in release
       .addAll(KsqlConfig.SSL_CONFIG_NAMES)
       .build();
 

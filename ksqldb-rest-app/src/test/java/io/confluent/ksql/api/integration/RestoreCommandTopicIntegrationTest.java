@@ -42,6 +42,7 @@ import io.confluent.ksql.rest.server.computation.InternalTopicSerdes;
 import io.confluent.ksql.rest.server.restore.KsqlRestoreCommandTopic;
 import io.confluent.ksql.test.util.KsqlTestFolder;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.MockSystemExit;
 import io.confluent.ksql.util.ReservedInternalTopics;
 import java.io.File;
 import java.io.IOException;
@@ -72,6 +73,7 @@ import org.junit.rules.TemporaryFolder;
  */
 @Category({IntegrationTest.class})
 public class RestoreCommandTopicIntegrationTest {
+  private static final MockSystemExit mockSystem = new MockSystemExit();
   private static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.build();
 
   @ClassRule
@@ -153,12 +155,14 @@ public class RestoreCommandTopicIntegrationTest {
     assertThatEventually("Degraded State", this::isDegradedState, is(true));
 
     // Restore the command topic
-    KsqlRestoreCommandTopic.main(
+    KsqlRestoreCommandTopic.mainInternal(
         new String[]{
             "--yes",
             "--config-file", propertiesFile.toString(),
             backupFile.toString()
-        });
+        },
+        mockSystem
+    );
 
     // Re-load the command topic
     REST_APP.stop();
@@ -198,13 +202,15 @@ public class RestoreCommandTopicIntegrationTest {
     // Delete the command topic again and restore with skip flag
     TEST_HARNESS.deleteTopics(Collections.singletonList(commandTopic));
     REST_APP.stop();
-    KsqlRestoreCommandTopic.main(
+    KsqlRestoreCommandTopic.mainInternal(
         new String[]{
             "--yes",
             "-s",
             "--config-file", propertiesFile.toString(),
             backupFile.toString()
-        });
+        },
+        mockSystem
+    );
 
     // Re-load the command topic
     REST_APP.start();

@@ -1068,16 +1068,17 @@ public class CliTest {
   @Test
   public void shouldDescribeAggregateFunction() {
     final String expectedSummary =
-            "Name        : TOPK\n" +
-                "Author      : Confluent\n" +
-                "Type        : AGGREGATE\n" +
-            "Jar         : internal\n" +
-            "Variations  : \n";
+            "Name        : TOPK\n"
+            + "Author      : Confluent\n"
+            + "Overview    : Computes the top k values for a column, per key.\n"
+            + "Type        : AGGREGATE\n"
+            + "Jar         : internal\n"
+            + "Variations  : \n";
 
     final String expectedVariant =
-        "\tVariation   : TOPK(val INT)\n"
+        "\tVariation   : TOPK(val1 INT, k INT)\n"
         + "\tReturns     : ARRAY<INT>\n"
-        + "\tDescription : Calculates the TopK value for a column, per key.";
+        + "\tDescription : Calculates the top k values for an integer column, per key.";
 
     localCli.handleLine("describe function topk;");
 

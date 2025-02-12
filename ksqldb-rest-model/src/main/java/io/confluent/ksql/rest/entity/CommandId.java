@@ -34,6 +34,8 @@ public class CommandId {
     STREAM,
     TABLE,
     CLUSTER,
+    PAUSE,
+    RESUME,
     TERMINATE,
     TYPE
   }

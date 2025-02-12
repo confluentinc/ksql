@@ -100,8 +100,8 @@ and a scale of _0_.
 | name     | description                              | backing Java type
 |----------|------------------------------------------|------------------
 | `array`  | sequence of values of a single type      | [Java native array](https://docs.oracle.com/javase/specs/jls/se11/html/jls-10.html)
-| `struct` | map of string keys to values of any type | [`org.apache.kafka.connect.data.Struct`](https://kafka.apache.org/27/javadoc/index.html?org/apache/kafka/connect/data/Struct.html)
-| `map`    | map of varying typed keys and values     | [`java.util.map`](https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/util/Map.html)
+| `struct` | a strongly typed structured data type    | [`org.apache.kafka.connect.data.Struct`](https://kafka.apache.org/27/javadoc/index.html?org/apache/kafka/connect/data/Struct.html)
+| `map`    | a mapping of keys to values              | [`java.util.map`](https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/util/Map.html)
 
 
 ### Array
@@ -151,7 +151,8 @@ typed structured data. A struct is an ordered collection of named fields
 that have a specific type. The field types can be any valid SQL type.
 
 Access the fields of a struct by using the `->` operator. For example,
-`SOME_STRUCT->ID` retrieves the value of the struct's `ID` field. For
+`SOME_STRUCT->ID` retrieves the value of the struct's `ID` field; 
+and `SOME_STRUCT->*` retrieves the values of all fields of `SOME_STRUCT`. For
 more information, see [Operators](/developer-guide/ksqldb-reference/operators).
 
 You can define structs within a `CREATE TABLE` or `CREATE STREAM`

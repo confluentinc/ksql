@@ -86,7 +86,7 @@ public final class LatestByOffset {
   @VisibleForTesting
   static <T> Udaf<T, Struct, T> latestT(
       final boolean ignoreNulls,
-      final Comparator comparator
+      final Comparator<Struct> comparator
   ) {
     return new Udaf<T, Struct, T>() {
       Schema structSchema;
@@ -149,7 +149,7 @@ public final class LatestByOffset {
   static <T> Udaf<T, List<Struct>, List<T>> latestTN(
       final int latestN,
       final boolean ignoreNulls,
-      final Comparator comparator
+      final Comparator<Struct> comparator
   ) {
     if (latestN <= 0) {
       throw new KsqlFunctionException("latestN must be 1 or greater");

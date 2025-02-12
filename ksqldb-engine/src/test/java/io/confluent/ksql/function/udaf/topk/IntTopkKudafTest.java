@@ -20,8 +20,7 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.google.common.collect.ImmutableList;
-import io.confluent.ksql.function.AggregateFunctionInitArguments;
-import io.confluent.ksql.function.KsqlAggregateFunction;
+import io.confluent.ksql.function.udaf.Udaf;
 import io.confluent.ksql.schema.ksql.SqlArgument;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.util.ArrayList;
@@ -37,18 +36,12 @@ import org.junit.Test;
 public class IntTopkKudafTest {
 
   private final List<Integer> valuesArray = ImmutableList.of(10, 30, 45, 10, 50, 60, 20, 60, 80, 35, 25);
-  private KsqlAggregateFunction<Integer, List<Integer>, List<Integer>> topkKudaf;
+  private Udaf<Integer, List<Integer>, List<Integer>> topkKudaf;
 
-  private AggregateFunctionInitArguments createArgs(final int k) {
-    return new AggregateFunctionInitArguments(0, k);
-  }
-
-  @SuppressWarnings("unchecked")
   @Before
   public void setup() {
-    topkKudaf = new TopKAggregateFunctionFactory()
-        .createAggregateFunction(Collections.singletonList(SqlArgument.of(SqlTypes.INTEGER)),
-            createArgs(3));
+    topkKudaf = TopkKudaf.createTopKInt(3);
+    topkKudaf.initializeTypeArguments(Collections.singletonList(SqlArgument.of(SqlTypes.INTEGER)));
   }
 
   @Test
@@ -74,7 +67,7 @@ public class IntTopkKudafTest {
     final List<Integer> array1 = ImmutableList.of(50, 45, 25);
     final List<Integer> array2 = ImmutableList.of(60, 55, 48);
 
-    assertThat("Invalid results.", topkKudaf.getMerger().apply(null, array1, array2),
+    assertThat("Invalid results.", topkKudaf.merge(array1, array2),
         equalTo(ImmutableList.of(60, 55, 50)));
   }
 
@@ -83,7 +76,7 @@ public class IntTopkKudafTest {
     final List<Integer> array1 = ImmutableList.of(50, 45);
     final List<Integer> array2 = ImmutableList.of(60);
 
-    assertThat("Invalid results.", topkKudaf.getMerger().apply(null, array1, array2),
+    assertThat("Invalid results.", topkKudaf.merge(array1, array2),
         equalTo(ImmutableList.of(60, 50, 45)));
   }
 
@@ -92,7 +85,7 @@ public class IntTopkKudafTest {
     final List<Integer> array1 = ImmutableList.of(50);
     final List<Integer> array2 = ImmutableList.of(60);
 
-    assertThat("Invalid results.", topkKudaf.getMerger().apply(null, array1, array2),
+    assertThat("Invalid results.", topkKudaf.merge(array1, array2),
         equalTo(ImmutableList.of(60, 50)));
   }
 
@@ -104,20 +97,17 @@ public class IntTopkKudafTest {
     assertThat(agg2, equalTo(ImmutableList.of(100, 1)));
   }
 
-  @SuppressWarnings("unchecked")
   @Test
   public void shouldWorkWithLargeValuesOfKay() {
     // Given:
     final int topKSize = 300;
-    topkKudaf = new TopKAggregateFunctionFactory()
-        .createAggregateFunction(Collections.singletonList(SqlArgument.of(SqlTypes.INTEGER)),
-            createArgs(topKSize));
+    topkKudaf = createUdaf(topKSize);
     final List<Integer> initialAggregate = IntStream.range(0, topKSize)
             .boxed().sorted(Comparator.reverseOrder()).collect(Collectors.toList());
 
     // When:
     final List<Integer> result = topkKudaf.aggregate(10, initialAggregate);
-    final List<Integer> combined = topkKudaf.getMerger().apply(null, result, initialAggregate);
+    final List<Integer> combined = topkKudaf.merge(result, initialAggregate);
 
     // Then:
     assertThat(combined.get(0), is(299));
@@ -125,13 +115,10 @@ public class IntTopkKudafTest {
     assertThat(combined.get(2), is(298));
   }
 
-  @SuppressWarnings("unchecked")
   @Test
   public void shouldBeThreadSafe() {
     // Given:
-    topkKudaf = new TopKAggregateFunctionFactory()
-        .createAggregateFunction(Collections.singletonList(SqlArgument.of(SqlTypes.INTEGER)),
-            createArgs(12));
+    topkKudaf = createUdaf(12);
 
     final List<Integer> values = ImmutableList.of(10, 30, 45, 10, 50, 60, 20, 70, 80, 35, 25);
 
@@ -146,21 +133,18 @@ public class IntTopkKudafTest {
           }
           return aggregate;
         })
-        .reduce((agg1, agg2) -> topkKudaf.getMerger().apply(null, agg1, agg2))
+        .reduce((agg1, agg2) -> topkKudaf.merge(agg1, agg2))
         .orElse(new ArrayList<>());
 
     // Then:
     assertThat(result, is(ImmutableList.of(83, 82, 81, 80, 73, 72, 71, 70, 63, 62, 61, 60)));
   }
 
-  @SuppressWarnings("unchecked")
   //@Test
   public void testAggregatePerformance() {
     final int iterations = 1_000_000_000;
     final int topX = 10;
-    topkKudaf = new TopKAggregateFunctionFactory()
-        .createAggregateFunction(Collections.singletonList(SqlArgument.of(SqlTypes.INTEGER)),
-            createArgs(topX));
+    topkKudaf = createUdaf(topX);
     final List<Integer> aggregate = new ArrayList<>();
     final long start = System.currentTimeMillis();
 
@@ -172,14 +156,11 @@ public class IntTopkKudafTest {
     System.out.println(took + "ms, " + ((double)took)/iterations);
   }
 
-  @SuppressWarnings("unchecked")
   //@Test
   public void testMergePerformance() {
     final int iterations = 1_000_000_000;
     final int topX = 10;
-    topkKudaf = new TopKAggregateFunctionFactory()
-        .createAggregateFunction(Collections.singletonList(SqlArgument.of(SqlTypes.INTEGER)),
-            createArgs(topX));
+    topkKudaf = createUdaf(topX);
 
     final List<Integer> aggregate1 = IntStream.range(0, topX)
         .mapToObj(v -> v % 2 == 0 ? v + 1 : v)
@@ -190,10 +171,16 @@ public class IntTopkKudafTest {
     final long start = System.currentTimeMillis();
 
     for(int i = 0; i != iterations; ++i) {
-      topkKudaf.getMerger().apply(null, aggregate1, aggregate2);
+      topkKudaf.merge(aggregate1, aggregate2);
     }
 
     final long took = System.currentTimeMillis() - start;
     System.out.println(took + "ms, " + ((double)took)/iterations);
+  }
+
+  private Udaf<Integer, List<Integer>, List<Integer>> createUdaf(final int k) {
+    Udaf<Integer, List<Integer>, List<Integer>> udaf = TopkKudaf.createTopKInt(k);
+    udaf.initializeTypeArguments(Collections.singletonList(SqlArgument.of(SqlTypes.INTEGER)));
+    return udaf;
   }
 }

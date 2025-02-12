@@ -16,7 +16,7 @@
 package io.confluent.ksql.rest.server.computation;
 
 import com.google.common.annotations.VisibleForTesting;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
 import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.engine.KsqlEngine;
@@ -27,6 +27,8 @@ import io.confluent.ksql.parser.tree.AlterSystemProperty;
 import io.confluent.ksql.parser.tree.CreateAsSelect;
 import io.confluent.ksql.parser.tree.ExecutableDdlStatement;
 import io.confluent.ksql.parser.tree.InsertInto;
+import io.confluent.ksql.parser.tree.PauseQuery;
+import io.confluent.ksql.parser.tree.ResumeQuery;
 import io.confluent.ksql.parser.tree.TerminateQuery;
 import io.confluent.ksql.planner.plan.ConfiguredKsqlPlan;
 import io.confluent.ksql.query.QueryId;
@@ -34,7 +36,6 @@ import io.confluent.ksql.query.id.SpecificQueryIdGenerator;
 import io.confluent.ksql.rest.entity.CommandId;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.server.StatementParser;
-import io.confluent.ksql.rest.server.resources.KsqlConfigurable;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
@@ -54,17 +55,16 @@ import org.slf4j.LoggerFactory;
  * Handles the actual execution (or delegation to KSQL core) of all distributed statements, as well
  * as tracking their statuses as things move along.
  */
-public class InteractiveStatementExecutor implements KsqlConfigurable {
+public class InteractiveStatementExecutor {
 
   private static final Logger log = LoggerFactory.getLogger(InteractiveStatementExecutor.class);
 
   private final ServiceContext serviceContext;
-  private final KsqlEngine ksqlEngine;
+  private final KsqlExecutionContext ksqlEngine;
   private final StatementParser statementParser;
   private final SpecificQueryIdGenerator queryIdGenerator;
   private final Map<CommandId, CommandStatus> statusStore;
   private final Deserializer<Command> commandDeserializer;
-  private KsqlConfig ksqlConfig;
 
   private enum Mode {
     RESTORE,
@@ -101,17 +101,7 @@ public class InteractiveStatementExecutor implements KsqlConfigurable {
     this.statusStore = new ConcurrentHashMap<>();
   }
 
-  @Override
-  @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
-  public void configure(final KsqlConfig config) {
-    if (!config.getKsqlStreamConfigProps().containsKey(StreamsConfig.APPLICATION_SERVER_CONFIG)) {
-      throw new IllegalArgumentException("Need KS application server set");
-    }
-
-    ksqlConfig = config;
-  }
-
-  KsqlEngine getKsqlEngine() {
+  KsqlExecutionContext getKsqlEngine() {
     return ksqlEngine;
   }
 
@@ -164,12 +154,6 @@ public class InteractiveStatementExecutor implements KsqlConfigurable {
     return Optional.ofNullable(statusStore.get(statementId));
   }
 
-  private void throwIfNotConfigured() {
-    if (ksqlConfig == null) {
-      throw new IllegalStateException("No initialized");
-    }
-  }
-
   private void putStatus(final CommandId commandId,
                         final Optional<CommandStatusFuture> commandStatusFuture,
                         final CommandStatus status) {
@@ -182,6 +166,13 @@ public class InteractiveStatementExecutor implements KsqlConfigurable {
                              final CommandStatus status) {
     statusStore.put(commandId, status);
     commandStatusFuture.ifPresent(s -> s.setFinalStatus(status));
+  }
+
+  private void throwIfNotConfigured() {
+    if (!ksqlEngine.getKsqlConfig().getKsqlStreamConfigProps()
+        .containsKey(StreamsConfig.APPLICATION_SERVER_CONFIG)) {
+      throw new IllegalStateException("No initialized");
+    }
   }
 
   /**
@@ -276,7 +267,23 @@ public class InteractiveStatementExecutor implements KsqlConfigurable {
       final CommandId commandId,
       final Optional<CommandStatusFuture> commandStatusFuture
   ) {
-    if (statement.getStatement() instanceof TerminateQuery) {
+    if (statement.getStatement() instanceof PauseQuery) {
+      pauseQuery((PreparedStatement<PauseQuery>) statement);
+
+      final String successMessage = "Query paused.";
+      final CommandStatus successStatus =
+          new CommandStatus(CommandStatus.Status.SUCCESS, successMessage, Optional.empty());
+
+      putFinalStatus(commandId, commandStatusFuture, successStatus);
+    } else     if (statement.getStatement() instanceof ResumeQuery) {
+      resumeQuery((PreparedStatement<ResumeQuery>) statement);
+
+      final String successMessage = "Query resumed.";
+      final CommandStatus successStatus =
+          new CommandStatus(CommandStatus.Status.SUCCESS, successMessage, Optional.empty());
+
+      putFinalStatus(commandId, commandStatusFuture, successStatus);
+    } else if (statement.getStatement() instanceof TerminateQuery) {
       terminateQuery((PreparedStatement<TerminateQuery>) statement);
 
       final String successMessage = "Query terminated.";
@@ -313,7 +320,32 @@ public class InteractiveStatementExecutor implements KsqlConfigurable {
   }
 
   private KsqlConfig buildMergedConfig(final Command command) {
-    return ksqlConfig.overrideBreakingConfigsWithOriginalValues(command.getOriginalProperties());
+    return ksqlEngine.getKsqlConfig()
+        .overrideBreakingConfigsWithOriginalValues(command.getOriginalProperties());
+  }
+
+  private void pauseQuery(final PreparedStatement<PauseQuery> pauseQuery) {
+    final Optional<QueryId> queryId = pauseQuery.getStatement().getQueryId();
+
+    if (!queryId.isPresent()) {
+      ksqlEngine.getPersistentQueries().forEach(PersistentQueryMetadata::pause);
+      return;
+    }
+
+    final Optional<PersistentQueryMetadata> query = ksqlEngine.getPersistentQuery(queryId.get());
+    query.ifPresent(PersistentQueryMetadata::pause);
+  }
+
+  private void resumeQuery(final PreparedStatement<ResumeQuery> resumeQuery) {
+    final Optional<QueryId> queryId = resumeQuery.getStatement().getQueryId();
+
+    if (!queryId.isPresent()) {
+      ksqlEngine.getPersistentQueries().forEach(PersistentQueryMetadata::resume);
+      return;
+    }
+
+    final Optional<PersistentQueryMetadata> query = ksqlEngine.getPersistentQuery(queryId.get());
+    query.ifPresent(PersistentQueryMetadata::resume);
   }
 
   private void terminateQuery(final PreparedStatement<TerminateQuery> terminateQuery) {

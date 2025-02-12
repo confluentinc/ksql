@@ -17,9 +17,7 @@ package io.confluent.ksql.metastore;
 
 import com.google.common.collect.Iterables;
 import io.confluent.ksql.function.AggregateFunctionFactory;
-import io.confluent.ksql.function.AggregateFunctionInitArguments;
 import io.confluent.ksql.function.FunctionRegistry;
-import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.function.KsqlTableFunction;
 import io.confluent.ksql.function.TableFunctionFactory;
 import io.confluent.ksql.function.UdfFactory;
@@ -259,14 +257,6 @@ public final class MetaStoreImpl implements MutableMetaStore {
 
   public boolean isPresent(final FunctionName functionName) {
     return functionRegistry.isPresent(functionName);
-  }
-
-  public KsqlAggregateFunction<?, ?, ?> getAggregateFunction(
-      final FunctionName functionName,
-      final SqlType argumentType,
-      final AggregateFunctionInitArguments initArgs
-  ) {
-    return functionRegistry.getAggregateFunction(functionName, argumentType, initArgs);
   }
 
   public KsqlTableFunction getTableFunction(

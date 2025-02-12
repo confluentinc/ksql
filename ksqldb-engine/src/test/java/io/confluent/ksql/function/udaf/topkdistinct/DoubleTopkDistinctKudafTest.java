@@ -54,7 +54,7 @@ public class DoubleTopkDistinctKudafTest {
     final List<Double> array1 = ImmutableList.of(50.0, 45.0, 25.0);
     final List<Double> array2 = ImmutableList.of(60.0, 50.0, 48.0);
 
-    assertThat("Invalid results.", doubleTopkDistinctKudaf.getMerger().apply(null, array1, array2), equalTo(
+    assertThat("Invalid results.", doubleTopkDistinctKudaf.merge(array1, array2), equalTo(
         ImmutableList.of(60.0, 50.0, 48.0)));
   }
 
@@ -63,7 +63,7 @@ public class DoubleTopkDistinctKudafTest {
     final List<Double> array1 = ImmutableList.of(50.0, 45.0);
     final List<Double> array2 = ImmutableList.of(60.0);
 
-    assertThat("Invalid results.", doubleTopkDistinctKudaf.getMerger().apply(null, array1, array2), equalTo(
+    assertThat("Invalid results.", doubleTopkDistinctKudaf.merge(array1, array2), equalTo(
         ImmutableList.of(60.0, 50.0, 45.0)));
   }
 
@@ -72,7 +72,7 @@ public class DoubleTopkDistinctKudafTest {
     final List<Double> array1 = ImmutableList.of(50.0, 45.0);
     final List<Double> array2 = ImmutableList.of(60.0, 50.0);
 
-    assertThat("Invalid results.", doubleTopkDistinctKudaf.getMerger().apply(null, array1, array2), equalTo(
+    assertThat("Invalid results.", doubleTopkDistinctKudaf.merge(array1, array2), equalTo(
         ImmutableList.of(60.0, 50.0, 45.0)));
   }
 
@@ -81,7 +81,7 @@ public class DoubleTopkDistinctKudafTest {
     final List<Double> array1 = ImmutableList.of(60.0);
     final List<Double> array2 = ImmutableList.of(60.0);
 
-    assertThat("Invalid results.", doubleTopkDistinctKudaf.getMerger().apply(null, array1, array2), equalTo(
+    assertThat("Invalid results.", doubleTopkDistinctKudaf.merge(array1, array2), equalTo(
         ImmutableList.of(60.0)));
   }
 }

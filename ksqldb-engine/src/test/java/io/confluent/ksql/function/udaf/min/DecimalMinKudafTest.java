@@ -20,16 +20,12 @@ import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
-import io.confluent.ksql.GenericKey;
-import io.confluent.ksql.function.AggregateFunctionInitArguments;
-import io.confluent.ksql.function.KsqlAggregateFunction;
+import io.confluent.ksql.function.udaf.Udaf;
 import io.confluent.ksql.schema.ksql.SqlArgument;
 import io.confluent.ksql.schema.ksql.types.SqlDecimal;
 import java.math.BigDecimal;
 import java.math.MathContext;
 import java.util.Collections;
-
-import org.apache.kafka.streams.kstream.Merger;
 import org.junit.Test;
 
 public class DecimalMinKudafTest {
@@ -68,23 +64,30 @@ public class DecimalMinKudafTest {
 
   @Test
   public void shouldFindCorrectMinForMerge() {
-    final MinKudaf decimalMinKudaf = getDecimalMinKudaf(3);
-    final Merger<GenericKey, BigDecimal> merger = decimalMinKudaf.getMerger();
-    final BigDecimal mergeResult1 = merger.apply(null, new BigDecimal(10.0), new BigDecimal(12.0));
+    final MinKudaf<BigDecimal> decimalMinKudaf = getDecimalMinKudaf(3);
+    final BigDecimal mergeResult1 = decimalMinKudaf.merge(
+            new BigDecimal(10.0),
+            new BigDecimal(12.0)
+    );
     assertThat(mergeResult1, equalTo(new BigDecimal(10.0, new MathContext(3))));
-    final BigDecimal mergeResult2 = merger.apply(null, new BigDecimal(10.0), new BigDecimal(-12.0));
+    final BigDecimal mergeResult2 = decimalMinKudaf.merge(
+            new BigDecimal(10.0),
+            new BigDecimal(-12.0)
+    );
     assertThat(mergeResult2, equalTo(new BigDecimal(-12.0, new MathContext(3))));
-    final BigDecimal mergeResult3 = merger.apply(null, new BigDecimal(-10.0), new BigDecimal(0.0));
+    final BigDecimal mergeResult3 = decimalMinKudaf.merge(
+            new BigDecimal(-10.0),
+            new BigDecimal(0.0)
+    );
     assertThat(mergeResult3, equalTo(new BigDecimal(-10.0, new MathContext(3))));
   }
 
-
-  private MinKudaf getDecimalMinKudaf(final int precision) {
-    final KsqlAggregateFunction aggregateFunction = new MinAggFunctionFactory()
-        .createAggregateFunction(Collections.singletonList(SqlArgument.of(SqlDecimal.of(precision, 1))),
-            AggregateFunctionInitArguments.EMPTY_ARGS);
+  private MinKudaf<BigDecimal> getDecimalMinKudaf(final int precision) {
+    final Udaf<BigDecimal, BigDecimal, BigDecimal> aggregateFunction = MinKudaf.createMinDecimal();
+    aggregateFunction.initializeTypeArguments(
+            Collections.singletonList(SqlArgument.of(SqlDecimal.of(precision, 1)))
+    );
     assertThat(aggregateFunction, instanceOf(MinKudaf.class));
-    return  (MinKudaf) aggregateFunction;
+    return  (MinKudaf<BigDecimal>) aggregateFunction;
   }
-
 }

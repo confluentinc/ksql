@@ -40,6 +40,7 @@ public class ProtobufSRSchemaDataTranslator extends ConnectSRSchemaDataTranslato
     return compatibleWithSchema(ksqlData, getSchema());
   }
 
+  @SuppressWarnings("unchecked")
   private Object compatibleWithSchema(final Object object, final Schema schema) {
     if (object == null) {
       return object;
@@ -47,8 +48,8 @@ public class ProtobufSRSchemaDataTranslator extends ConnectSRSchemaDataTranslato
 
     switch (schema.type()) {
       case ARRAY:
-        final List<Object> ksqlArray = new ArrayList<>(((List) object).size());
-        ((List) object).forEach(
+        final List<Object> ksqlArray = new ArrayList<>(((List<Object>) object).size());
+        ((List<Object>) object).forEach(
             e -> ksqlArray.add(compatibleWithSchema(e, schema.valueSchema())));
         return ksqlArray;
       case MAP:

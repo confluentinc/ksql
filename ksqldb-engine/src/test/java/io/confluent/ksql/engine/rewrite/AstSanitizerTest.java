@@ -69,7 +69,7 @@ public class AstSanitizerTest {
     // When:
     final Exception e = assertThrows(
         KsqlException.class,
-        () -> AstSanitizer.sanitize(stmt, META_STORE, true)
+        () -> AstSanitizer.sanitize(stmt, META_STORE)
     );
 
     // Then:
@@ -85,7 +85,7 @@ public class AstSanitizerTest {
     // When:
     final Exception e = assertThrows(
         KsqlException.class,
-        () -> AstSanitizer.sanitize(stmt, META_STORE, true)
+        () -> AstSanitizer.sanitize(stmt, META_STORE)
     );
 
     // Then:
@@ -102,7 +102,7 @@ public class AstSanitizerTest {
     // When:
     final Exception e = assertThrows(
         KsqlException.class,
-        () -> AstSanitizer.sanitize(stmt, META_STORE, true)
+        () -> AstSanitizer.sanitize(stmt, META_STORE)
     );
 
     // Then:
@@ -119,7 +119,7 @@ public class AstSanitizerTest {
     // When:
     final Exception e = assertThrows(
         KsqlException.class,
-        () -> AstSanitizer.sanitize(stmt, META_STORE, true)
+        () -> AstSanitizer.sanitize(stmt, META_STORE)
     );
 
     // Then:
@@ -135,7 +135,7 @@ public class AstSanitizerTest {
     // When:
     final Exception e = assertThrows(
         KsqlException.class,
-        () -> AstSanitizer.sanitize(stmt, META_STORE, true)
+        () -> AstSanitizer.sanitize(stmt, META_STORE)
     );
 
     // Then:
@@ -152,7 +152,7 @@ public class AstSanitizerTest {
     // When:
     final Exception e = assertThrows(
         KsqlException.class,
-        () -> AstSanitizer.sanitize(stmt, META_STORE, true)
+        () -> AstSanitizer.sanitize(stmt, META_STORE)
     );
 
     // Then:
@@ -169,7 +169,7 @@ public class AstSanitizerTest {
     // When:
     final Exception e = assertThrows(
         KsqlException.class,
-        () -> AstSanitizer.sanitize(stmt, META_STORE, true)
+        () -> AstSanitizer.sanitize(stmt, META_STORE)
     );
 
     // Then:
@@ -186,7 +186,7 @@ public class AstSanitizerTest {
     // When:
     final Exception e = assertThrows(
         UnsupportedOperationException.class,
-        () -> AstSanitizer.sanitize(stmt, META_STORE, false, true)
+        () -> AstSanitizer.sanitize(stmt, META_STORE, false)
     );
 
     // Then:
@@ -200,7 +200,7 @@ public class AstSanitizerTest {
     final Statement stmt = givenQuery("SELECT COL0 FROM TEST1;");
 
     // When:
-    final Query result = (Query) AstSanitizer.sanitize(stmt, META_STORE, true);
+    final Query result = (Query) AstSanitizer.sanitize(stmt, META_STORE);
 
     // Then:
     assertThat(result.getSelect(), is(new Select(ImmutableList.of(
@@ -216,7 +216,7 @@ public class AstSanitizerTest {
         "SELECT COL5 FROM TEST1 JOIN TEST2 ON TEST1.COL0=TEST2.COL0;");
 
     // When:
-    final Query result = (Query) AstSanitizer.sanitize(stmt, META_STORE, true);
+    final Query result = (Query) AstSanitizer.sanitize(stmt, META_STORE);
 
     // Then:
     assertThat(result.getSelect(), is(new Select(ImmutableList.of(
@@ -232,7 +232,7 @@ public class AstSanitizerTest {
         "SELECT COL5 FROM TEST2 JOIN TEST1 ON TEST2.COL0=TEST1.COL0;");
 
     // When:
-    final Query result = (Query) AstSanitizer.sanitize(stmt, META_STORE, true);
+    final Query result = (Query) AstSanitizer.sanitize(stmt, META_STORE);
 
     // Then:
     assertThat(result.getSelect(), is(new Select(ImmutableList.of(
@@ -248,7 +248,7 @@ public class AstSanitizerTest {
         "SELECT TRANSFORM_ARRAY(Col4, X => X + 5, (X,Y) => Y + 5) FROM TEST1;");
 
     // When:
-    final Query result = (Query) AstSanitizer.sanitize(stmt, META_STORE, true);
+    final Query result = (Query) AstSanitizer.sanitize(stmt, META_STORE);
 
     // Then:
     assertThat(result.getSelect(), is(new Select(ImmutableList.of(
@@ -284,7 +284,7 @@ public class AstSanitizerTest {
         "SELECT TRANSFORM_ARRAY(Col4, (X,Y,Z) => TRANSFORM_MAP(Col4, Q => 4, H => 5), (X,Y,Z) => 0) FROM TEST1;");
 
     // When:
-    final Query result = (Query) AstSanitizer.sanitize(stmt, META_STORE, true);
+    final Query result = (Query) AstSanitizer.sanitize(stmt, META_STORE);
 
     // Then:
     assertThat(result.getSelect(), is(new Select(ImmutableList.of(
@@ -328,7 +328,7 @@ public class AstSanitizerTest {
 
     final Exception e = assertThrows(
         KsqlException.class,
-        () -> AstSanitizer.sanitize(stmt, META_STORE, true)
+        () -> AstSanitizer.sanitize(stmt, META_STORE)
     );
 
     // Then:
@@ -347,11 +347,11 @@ public class AstSanitizerTest {
 
     final Exception e1 = assertThrows(
         KsqlException.class,
-        () -> AstSanitizer.sanitize(stmt1, META_STORE, true)
+        () -> AstSanitizer.sanitize(stmt1, META_STORE)
     );
     final Exception e2 = assertThrows(
         KsqlException.class,
-        () -> AstSanitizer.sanitize(stmt2, META_STORE, true)
+        () -> AstSanitizer.sanitize(stmt2, META_STORE)
     );
 
     // Then:
@@ -370,7 +370,7 @@ public class AstSanitizerTest {
     // When:
     final Exception e = assertThrows(
         KsqlException.class,
-        () -> AstSanitizer.sanitize(stmt, META_STORE, true)
+        () -> AstSanitizer.sanitize(stmt, META_STORE)
     );
 
     // Then:
@@ -384,7 +384,7 @@ public class AstSanitizerTest {
     final Statement stmt = givenQuery("SELECT TEST1.COL0 FROM TEST1;");
 
     // When:
-    final Query result = (Query) AstSanitizer.sanitize(stmt, META_STORE, true);
+    final Query result = (Query) AstSanitizer.sanitize(stmt, META_STORE);
 
     // Then:
     assertThat(result.getSelect(), is(new Select(ImmutableList.of(
@@ -399,7 +399,7 @@ public class AstSanitizerTest {
     final Statement stmt = givenQuery("SELECT T.COL0 FROM TEST2 T;");
 
     // When:
-    final Query result = (Query) AstSanitizer.sanitize(stmt, META_STORE, true);
+    final Query result = (Query) AstSanitizer.sanitize(stmt, META_STORE);
 
     // Then:
     assertThat(result.getSelect(), is(new Select(ImmutableList.of(
@@ -414,7 +414,7 @@ public class AstSanitizerTest {
     final Statement stmt = givenQuery("SELECT COL0 FROM TEST1;");
 
     // When:
-    final Query result = (Query) AstSanitizer.sanitize(stmt, META_STORE, true);
+    final Query result = (Query) AstSanitizer.sanitize(stmt, META_STORE);
 
     // Then:
     final SingleColumn col = (SingleColumn) result.getSelect().getSelectItems().get(0);
@@ -428,7 +428,7 @@ public class AstSanitizerTest {
         "SELECT TEST1.COL0 FROM TEST1 JOIN TEST2 ON TEST1.COL0=TEST2.COL0;");
 
     // When:
-    final Query result = (Query) AstSanitizer.sanitize(stmt, META_STORE, true);
+    final Query result = (Query) AstSanitizer.sanitize(stmt, META_STORE);
 
     // Then:
     final SingleColumn col = (SingleColumn) result.getSelect().getSelectItems().get(0);
@@ -441,7 +441,7 @@ public class AstSanitizerTest {
     final Statement stmt = givenQuery("SELECT ADDRESS->NUMBER FROM ORDERS;");
 
     // When:
-    final Query result = (Query) AstSanitizer.sanitize(stmt, META_STORE, true);
+    final Query result = (Query) AstSanitizer.sanitize(stmt, META_STORE);
 
     // Then:
     final SingleColumn col = (SingleColumn) result.getSelect().getSelectItems().get(0);
@@ -454,7 +454,7 @@ public class AstSanitizerTest {
     final Statement stmt = givenQuery("SELECT 1 + 2 FROM ORDERS;");
 
     // When:
-    final Query result = (Query) AstSanitizer.sanitize(stmt, META_STORE, true);
+    final Query result = (Query) AstSanitizer.sanitize(stmt, META_STORE);
 
     // Then:
     final SingleColumn col = (SingleColumn) result.getSelect().getSelectItems().get(0);
@@ -467,7 +467,7 @@ public class AstSanitizerTest {
     final Statement stmt = givenQuery("SELECT COL1 AS BOB FROM TEST1;");
 
     // When:
-    final Query result = (Query) AstSanitizer.sanitize(stmt, META_STORE, true);
+    final Query result = (Query) AstSanitizer.sanitize(stmt, META_STORE);
 
     // Then:
     assertThat(result.getSelect(), is(new Select(ImmutableList.of(

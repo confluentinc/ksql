@@ -131,6 +131,22 @@ public class BaseApiTest {
     createServer(serverConfig);
     this.client = createClient();
     setDefaultRowGenerator();
+
+    testEndpoints.getQueryPublishers().forEach(
+        publisher -> {
+          final long timeout = System.currentTimeMillis() + 30_000L;
+          while (publisher.getSubscriber() == null) {
+            try {
+              Thread.sleep(100L);
+            } catch (InterruptedException swallow) {
+            }
+
+            if (System.currentTimeMillis() > timeout) {
+              throw new RuntimeException("Test setup failed; no subscriber registered.");
+            }
+          }
+        }
+    );
   }
 
   @After

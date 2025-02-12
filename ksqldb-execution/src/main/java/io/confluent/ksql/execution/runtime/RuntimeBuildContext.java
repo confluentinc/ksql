@@ -40,6 +40,8 @@ import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.serde.tracked.TrackedCallback;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.MetricsTagsUtil;
+import java.util.Collections;
 import java.util.Optional;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.streams.StreamsBuilder;
@@ -86,8 +88,8 @@ public final class RuntimeBuildContext {
         functionRegistry,
         applicationId,
         queryId,
-        new GenericKeySerDe(),
-        new GenericRowSerDe()
+        new GenericKeySerDe(queryId.toString()),
+        new GenericRowSerDe(queryId.toString())
     );
   }
 
@@ -117,7 +119,9 @@ public final class RuntimeBuildContext {
   public ProcessingLogger getProcessingLogger(final QueryContext queryContext) {
     return processingLogContext
         .getLoggerFactory()
-        .getLogger(QueryLoggerUtil.queryLoggerName(queryId, queryContext));
+        .getLogger(
+            QueryLoggerUtil.queryLoggerName(queryId, queryContext),
+            MetricsTagsUtil.getMetricsTagsWithQueryId(queryId.toString(), Collections.emptyMap()));
   }
 
   public ServiceContext getServiceContext() {
@@ -225,5 +229,9 @@ public final class RuntimeBuildContext {
     return Optional.of(
         (topicName, key) -> schemas.trackSerdeOp(topicName, key, loggerNamePrefix)
     );
+  }
+
+  public MaterializedFactory getMaterializedFactory() {
+    return new MaterializedFactory();
   }
 }

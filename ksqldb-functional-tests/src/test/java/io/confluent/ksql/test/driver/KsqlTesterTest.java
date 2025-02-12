@@ -33,9 +33,11 @@ import io.confluent.ksql.logging.processing.NoopProcessingLogContext;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metrics.MetricCollectors;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.AssertTable;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
+import io.confluent.ksql.parser.tree.AlterSource;
 import io.confluent.ksql.parser.tree.AssertStatement;
 import io.confluent.ksql.parser.tree.AssertStream;
 import io.confluent.ksql.parser.tree.AssertTombstone;
@@ -84,6 +86,7 @@ import java.util.stream.Collectors;
 import org.apache.commons.io.FileUtils;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.Serde;
+import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.TopologyTestDriver;
@@ -251,6 +254,16 @@ public class KsqlTesterTest {
 
     // is DDL statement
     if (!result.getQuery().isPresent()) {
+      final SourceName name = injected.getStatement() instanceof CreateSource
+          ? ((CreateSource) injected.getStatement()).getName()
+          : ((AlterSource) injected.getStatement()).getName();
+      final DataSource input = engine.getMetaStore().getSource(name);
+      final TopicInfo inputTopic = new TopicInfo(
+          input.getKafkaTopicName(),
+          keySerde(input),
+          valueSerde(input)
+      );
+      driverPipeline.addDdlTopic(inputTopic);
       return;
     }
 

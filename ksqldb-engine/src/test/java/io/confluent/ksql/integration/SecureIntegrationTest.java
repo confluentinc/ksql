@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.integration;
 
+import static io.confluent.ksql.function.UserFunctionLoaderTestUtil.loadAllUserFunctions;
 import static io.confluent.ksql.serde.FormatFactory.JSON;
 import static io.confluent.ksql.serde.FormatFactory.KAFKA;
 import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
@@ -47,6 +48,7 @@ import io.confluent.ksql.ServiceInfo;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.KsqlEngineTestUtil;
 import io.confluent.ksql.function.InternalFunctionRegistry;
+import io.confluent.ksql.function.MutableFunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.query.QueryError;
@@ -452,10 +454,14 @@ public class SecureIntegrationTest {
   private void givenTestSetupWithConfig(final Map<String, Object> ksqlConfigs) {
     ksqlConfig = new KsqlConfig(ksqlConfigs);
     serviceContext = ServiceContextFactory.create(ksqlConfig, DisabledKsqlClient::instance);
+
+    MutableFunctionRegistry functionRegistry = new InternalFunctionRegistry();
+    loadAllUserFunctions(functionRegistry);
+
     ksqlEngine = new KsqlEngine(
         serviceContext,
         ProcessingLogContext.create(),
-        new InternalFunctionRegistry(),
+        functionRegistry,
         ServiceInfo.create(ksqlConfig),
         new SequentialQueryIdGenerator(),
         ksqlConfig,

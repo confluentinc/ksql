@@ -81,7 +81,6 @@ public class PullQueryValidatorTest {
 
   @Before
   public void setUp() {
-    when(analysis.getRowpartitionRowoffsetEnabled()).thenReturn(true);
     when(analysis.getAllDataSources()).thenReturn(ImmutableList.of(aliasedDataSource));
     when(aliasedDataSource.getDataSource()).thenReturn(dataSource);
     when(dataSource.getSchema()).thenReturn(logicalSchema);

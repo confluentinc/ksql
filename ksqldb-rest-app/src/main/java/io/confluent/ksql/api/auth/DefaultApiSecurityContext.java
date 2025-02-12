@@ -40,8 +40,9 @@ public final class DefaultApiSecurityContext implements ApiSecurityContext {
 
     String authToken = routingContext.request().getHeader("Authorization");
     if (server.getAuthenticationPlugin().isPresent()) {
-      authToken = server.getAuthenticationPlugin().get().getAuthToken(routingContext);
+      authToken = server.getAuthenticationPlugin().get().getAuthHeader(routingContext);
     }
+
     final List<Entry<String, String>> requestHeaders = routingContext.request().headers().entries();
     final String ipAddress = routingContext.request().remoteAddress().host();
     return new DefaultApiSecurityContext(
@@ -67,7 +68,7 @@ public final class DefaultApiSecurityContext implements ApiSecurityContext {
   }
 
   @Override
-  public Optional<String> getAuthToken() {
+  public Optional<String> getAuthHeader() {
     return authToken;
   }
 

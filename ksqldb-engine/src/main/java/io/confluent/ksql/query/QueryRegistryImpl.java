@@ -19,6 +19,8 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import io.confluent.ksql.config.ConfigItem;
+import io.confluent.ksql.config.KsqlConfigResolver;
 import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.engine.QueryEventListener;
 import io.confluent.ksql.execution.plan.ExecutionStep;
@@ -323,7 +325,13 @@ public class QueryRegistryImpl implements QueryRegistry {
 
   private static void throwOnNonQueryLevelConfigs(final Map<String, Object> overriddenProperties) {
     final String nonQueryLevelConfigs = overriddenProperties.keySet().stream()
-        .filter(s -> !PropertiesList.QueryLevelPropertyList.contains(s))
+        .filter(s -> {
+          final KsqlConfigResolver resolver = new KsqlConfigResolver();
+          final Optional<ConfigItem> resolvedItem = resolver.resolve(s, false);
+          return resolvedItem.map(configItem ->
+              !PropertiesList.QueryLevelProperties
+                  .contains(configItem.getPropertyName())).orElse(true);
+        })
         .distinct()
         .collect(Collectors.joining(","));
 
@@ -573,6 +581,16 @@ public class QueryRegistryImpl implements QueryRegistry {
     public void onStateChange(
         final QueryMetadata queryMetadata, final State before, final State after) {
       eventListeners.forEach(l -> l.onStateChange(queryMetadata, before, after));
+    }
+
+    @Override
+    public void onPause(final QueryMetadata queryMetadata) {
+      eventListeners.forEach(l -> l.onKsqlStateChange(queryMetadata));
+    }
+
+    @Override
+    public void onResume(final QueryMetadata queryMetadata) {
+      eventListeners.forEach(l -> l.onKsqlStateChange(queryMetadata));
     }
 
     @Override

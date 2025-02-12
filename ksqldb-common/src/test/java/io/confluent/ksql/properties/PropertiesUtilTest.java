@@ -26,10 +26,12 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertThrows;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.test.util.KsqlTestFolder;
 import io.confluent.ksql.util.KsqlException;
 import java.io.File;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.Map;
@@ -67,6 +69,28 @@ public class PropertiesUtilTest {
     // Then:
     assertThat(result.get("some.prop"), is("some value"));
     assertThat(result.get("some.other.prop"), is("124"));
+  }
+
+  @Test
+  public void shouldLoadPropsFromMultipleFiles() throws IOException {
+    // Given:
+    givenPropsFileContains(
+        "# Comment" + System.lineSeparator()
+            + "some.prop=some value" + System.lineSeparator()
+            + "some.other.prop=124" + System.lineSeparator()
+    );
+    File other = TMP.newFile();
+    givenPropsFileContains(other, "some.prop=other value" + System.lineSeparator() + "a=b");
+
+    // When:
+    final Map<String, String> result = PropertiesUtil.loadProperties(
+        ImmutableList.of(propsFile, other)
+    );
+
+    // Then:
+    assertThat(result.get("some.prop"), is("other value"));
+    assertThat(result.get("some.other.prop"), is("124"));
+    assertThat(result.get("a"), is("b"));
   }
 
   @Test
@@ -217,6 +241,10 @@ public class PropertiesUtilTest {
   }
 
   private void givenPropsFileContains(final String contents) {
+    givenPropsFileContains(propsFile, contents);
+  }
+
+  private void givenPropsFileContains(final File propsFile, final String contents) {
     try {
       Files.write(propsFile.toPath(), contents.getBytes(StandardCharsets.UTF_8));
     } catch (final Exception e) {

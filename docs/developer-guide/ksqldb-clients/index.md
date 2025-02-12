@@ -9,6 +9,8 @@ keywords: ksqlDB, client
 The following official clients are available for use with ksqlDB:
 
 - [Java client](java-client.md)
+- [Python client](python-client.md)
+- [.NET client](dotnet-client.md)
 
 The following unofficial clients are also available. These are contributed and
 maintained by community members:

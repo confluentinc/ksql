@@ -60,14 +60,17 @@ import io.confluent.ksql.parser.tree.ListStreams;
 import io.confluent.ksql.parser.tree.ListTables;
 import io.confluent.ksql.parser.tree.ListVariables;
 import io.confluent.ksql.parser.tree.PartitionBy;
+import io.confluent.ksql.parser.tree.PauseQuery;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.RegisterType;
 import io.confluent.ksql.parser.tree.Relation;
+import io.confluent.ksql.parser.tree.ResumeQuery;
 import io.confluent.ksql.parser.tree.Select;
 import io.confluent.ksql.parser.tree.SelectItem;
 import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.ShowColumns;
 import io.confluent.ksql.parser.tree.SingleColumn;
+import io.confluent.ksql.parser.tree.StructAll;
 import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.parser.tree.TableElements;
@@ -77,6 +80,7 @@ import io.confluent.ksql.parser.tree.UnsetProperty;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.utils.FormatOptions;
 import io.confluent.ksql.util.IdentifierUtil;
+import io.confluent.ksql.util.KsqlConstants;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -207,6 +211,12 @@ public final class SqlFormatter {
 
       builder.append("*");
 
+      return null;
+    }
+
+    @Override
+    protected Void visitStructAll(final StructAll node, final Integer context) {
+      builder.append(node.getBaseStruct() + KsqlConstants.STRUCT_FIELD_REF + "*");
       return null;
     }
 
@@ -413,6 +423,20 @@ public final class SqlFormatter {
     @Override
     protected Void visitDropTable(final DropTable node, final Integer context) {
       visitDrop(node, "TABLE");
+      return null;
+    }
+
+    @Override
+    protected Void visitPauseQuery(final PauseQuery node, final Integer context) {
+      builder.append("PAUSE ");
+      builder.append(node.getQueryId().map(QueryId::toString).orElse(PauseQuery.ALL_QUERIES));
+      return null;
+    }
+
+    @Override
+    protected Void visitResumeQuery(final ResumeQuery node, final Integer context) {
+      builder.append("RESUME ");
+      builder.append(node.getQueryId().map(QueryId::toString).orElse(ResumeQuery.ALL_QUERIES));
       return null;
     }
 

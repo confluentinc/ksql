@@ -27,7 +27,6 @@ import io.confluent.ksql.execution.util.ExpressionTypeManager;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.tree.AllColumns;
 import io.confluent.ksql.parser.tree.SelectItem;
-import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.planner.Projection;
 import io.confluent.ksql.planner.QueryPlannerOptions;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -40,7 +39,6 @@ import io.confluent.ksql.util.KsqlException;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 /**
  * The projection of a Pull query.
@@ -54,7 +52,7 @@ import java.util.stream.Collectors;
  * is created as follows:
  * Check if projection contains system or key columns. If not, the intermediate schema
  * is the input schema. If there are any of these columns, the input schema is extended by copying
- * the key and system columns (rowtime, windwostart and windowend) into the value of the schema.
+ * the key and system columns (rowtime, windowstart and windowend) into the value of the schema.
  *
  * <li>For the output schema, if the projection is SELECT *, add windowstart and windowend to key
  * columns and keep value columns the same as input. If projection is not SELECT *,
@@ -102,8 +100,7 @@ public class QueryProjectNode extends ProjectNode {
     this.intermediateSchema = QueryLogicalPlanUtil.buildIntermediateSchema(
           source.getSchema().withoutPseudoAndKeyColsInValue(),
           addAdditionalColumnsToIntermediateSchema,
-          isWindowed,
-          ksqlConfig.getBoolean(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED)
+          isWindowed
       );
     this.compiledSelectExpressions = isSelectStar
         ? ImmutableList.of()
@@ -153,7 +150,7 @@ public class QueryProjectNode extends ProjectNode {
 
   /**
    * Builds the output schema of the project node.
-   * The output schema comprises of exactly the columns that appear in the SELECT clause of the
+   * The output schema comprises exactly the columns that appear in the SELECT clause of the
    * query.
    * @param metaStore the metastore
    * @return the project node's output schema
@@ -169,15 +166,9 @@ public class QueryProjectNode extends ProjectNode {
 
     if (isSelectStar()) {
       outputSchema = buildPullQuerySelectStarSchema(
-          parentSchema.withoutPseudoAndKeyColsInValue(ksqlConfig), isWindowed);
+          parentSchema.withoutPseudoAndKeyColsInValue(), isWindowed);
     } else {
-      final List<SelectExpression> projects = projection.selectItems().stream()
-          .map(SingleColumn.class::cast)
-          .map(si -> SelectExpression
-              .of(si.getAlias().orElseThrow(IllegalStateException::new), si.getExpression()))
-          .collect(Collectors.toList());
-
-      outputSchema = selectOutputSchema(metaStore, projects, isWindowed);
+      outputSchema = selectOutputSchema(metaStore, this.selectExpressions, isWindowed);
     }
 
     if (isScalablePush) {
@@ -200,7 +191,7 @@ public class QueryProjectNode extends ProjectNode {
   private boolean shouldAddAdditionalColumnsInSchema() {
 
     final boolean hasSystemColumns = analysis.getSelectColumnNames().stream().anyMatch(
-        columnName -> SystemColumns.isSystemColumn(columnName, ksqlConfig)
+        columnName -> SystemColumns.isSystemColumn(columnName)
     );
 
     final boolean hasKeyColumns = analysis.getSelectColumnNames().stream().anyMatch(cn ->
@@ -256,7 +247,7 @@ public class QueryProjectNode extends ProjectNode {
 
     // Copy meta & key columns into the value schema as SelectValueMapper expects it:
     final LogicalSchema schema = parentSchema
-        .withPseudoAndKeyColsInValue(isWindowed, ksqlConfig);
+        .withPseudoAndKeyColsInValue(isWindowed);
 
     final ExpressionTypeManager expressionTypeManager =
         new ExpressionTypeManager(schema, metaStore);

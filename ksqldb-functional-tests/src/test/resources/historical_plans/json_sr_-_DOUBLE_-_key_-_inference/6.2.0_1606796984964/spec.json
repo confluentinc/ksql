@@ -69,7 +69,7 @@
       "valueSchema" : {
         "type" : "object",
         "properties" : {
-          "COL1" : {
+          "FOO" : {
             "connect.index" : 0,
             "oneOf" : [ {
               "type" : "null"
@@ -130,7 +130,7 @@
           "valueSchema" : {
             "type" : "object",
             "properties" : {
-              "COL1" : {
+              "FOO" : {
                 "connect.index" : 0,
                 "oneOf" : [ {
                   "type" : "null"

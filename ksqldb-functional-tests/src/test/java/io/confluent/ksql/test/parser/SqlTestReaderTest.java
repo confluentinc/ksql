@@ -181,7 +181,8 @@ public class SqlTestReaderTest {
     final ParsingException parsingException = assertThrows(ParsingException.class, reader::next);
 
     // Then:
-    assertThat(parsingException.getUnloggedDetails(), containsString("line 1:8: no viable alternative at input 'CREATE foo'"));
+    assertThat(parsingException.getMessage(), is("line 1:8: Syntax error at line 1:8"));
+    assertThat(parsingException.getUnloggedDetails(), is("line 1:8: no viable alternative at input 'CREATE foo'"));
   }
 
   @Test

@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.execution.streams;
 
+import io.confluent.ksql.execution.runtime.MaterializedFactory;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Objects;
 import org.apache.kafka.streams.kstream.Consumed;
@@ -31,7 +32,7 @@ public class StreamsFactories {
     return new StreamsFactories(
         GroupedFactory.create(),
         JoinedFactory.create(),
-        MaterializedFactory.create(),
+        new MaterializedFactory(),
         StreamJoinedFactory.create(),
         Consumed::with
     );

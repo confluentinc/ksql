@@ -25,6 +25,7 @@ import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.SerdeUtils;
 import io.confluent.ksql.serde.voids.KsqlVoidSerde;
 import io.confluent.ksql.util.KsqlException;
+import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -41,7 +42,8 @@ public final class KafkaSerdeFactory {
       Integer.class, Serdes.Integer(),
       Long.class, Serdes.Long(),
       Double.class, Serdes.Double(),
-      String.class, Serdes.String()
+      String.class, Serdes.String(),
+      ByteBuffer.class, Serdes.ByteBuffer()
   );
 
   private KafkaSerdeFactory() {

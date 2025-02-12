@@ -16,17 +16,17 @@
 package io.confluent.ksql.rest.server;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import io.confluent.ksql.engine.KsqlEngine;
+import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.Statement;
 import java.util.List;
 
 public class StatementParser {
-  private final KsqlEngine ksqlEngine;
+  private final KsqlExecutionContext ksqlEngine;
 
   @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
-  public StatementParser(final KsqlEngine ksqlEngine) {
+  public StatementParser(final KsqlExecutionContext ksqlEngine) {
     this.ksqlEngine = ksqlEngine;
   }
 

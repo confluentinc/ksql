@@ -33,7 +33,6 @@ import io.confluent.ksql.rest.entity.QueryStreamArgs;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KeyValueMetadata;
-import io.confluent.ksql.util.PushQueryMetadata;
 import io.vertx.core.Context;
 import io.vertx.core.Handler;
 import io.vertx.core.MultiMap;

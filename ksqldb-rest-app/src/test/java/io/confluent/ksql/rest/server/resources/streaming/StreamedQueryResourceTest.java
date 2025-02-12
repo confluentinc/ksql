@@ -53,6 +53,7 @@ import io.confluent.ksql.api.server.StreamingOutput;
 import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.exception.KsqlTopicAuthorizationException;
+import io.confluent.ksql.logging.processing.MeteredProcessingLoggerFactory;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.PrintTopic;
@@ -197,6 +198,8 @@ public class StreamedQueryResourceTest {
   private QueryExecutor queryExecutor;
   @Mock
   private QueryMetadataHolder queryMetadataHolder;
+  @Mock
+  private MeteredProcessingLoggerFactory loggerFactory;
 
   private StreamedQueryResource testResource;
   private PreparedStatement<Statement> invalid;
@@ -219,6 +222,10 @@ public class StreamedQueryResourceTest {
     when(queryExecutor.handleStatement(any(), any(), any(), any(), any(), any(), any(),
         anyBoolean()))
         .thenReturn(queryMetadataHolder);
+    when(mockKsqlEngine.getKsqlConfig()).thenReturn(ksqlConfig);
+    when(ksqlConfig.getKsqlStreamConfigProps()).thenReturn(ImmutableMap.of(
+        StreamsConfig.APPLICATION_SERVER_CONFIG, "a-server"
+    ));
 
     securityContext = new KsqlSecurityContext(Optional.empty(), serviceContext);
 
@@ -235,8 +242,6 @@ public class StreamedQueryResourceTest {
         denyListPropertyValidator,
         queryExecutor
     );
-
-    testResource.configure(VALID_CONFIG);
   }
 
   @Test
@@ -266,15 +271,6 @@ public class StreamedQueryResourceTest {
         "SELECT * FROM test_table;"))));
   }
 
-  @Test(expected = IllegalArgumentException.class)
-  public void shouldThrowOnConfigureIfAppServerNotSet() {
-    // Given:
-    final KsqlConfig configNoAppServer = new KsqlConfig(ImmutableMap.of());
-
-    // When:
-    testResource.configure(configNoAppServer);
-  }
-
   @Test
   public void shouldThrowOnHandleStatementIfNotConfigured() {
     // Given:
@@ -291,6 +287,7 @@ public class StreamedQueryResourceTest {
         denyListPropertyValidator,
         queryExecutor
     );
+    when(mockKsqlEngine.getKsqlConfig()).thenReturn(KsqlConfig.empty());
 
     // When:
     final KsqlRestException e = assertThrows(
@@ -397,7 +394,7 @@ public class StreamedQueryResourceTest {
   @Test
   public void shouldNotCreateExternalClientsForPullQuery() {
     // Given:
-    testResource.configure(new KsqlConfig(ImmutableMap.of(
+    when(mockKsqlEngine.getKsqlConfig()).thenReturn(new KsqlConfig(ImmutableMap.of(
         StreamsConfig.APPLICATION_SERVER_CONFIG, "something:1"
     )));
 
@@ -465,7 +462,7 @@ public class StreamedQueryResourceTest {
     ));
     props.put(KsqlConfig.KSQL_PROPERTIES_OVERRIDES_DENYLIST,
         StreamsConfig.NUM_STREAM_THREADS_CONFIG);
-    testResource.configure(new KsqlConfig(props));
+    when(mockKsqlEngine.getKsqlConfig()).thenReturn(new KsqlConfig(props));
     final Map<String, Object> overrides =
         ImmutableMap.of(StreamsConfig.NUM_STREAM_THREADS_CONFIG, 1);
     doThrow(new KsqlException("deny override")).when(denyListPropertyValidator)
@@ -536,7 +533,7 @@ public class StreamedQueryResourceTest {
     final KafkaStreamsBuilder kafkaStreamsBuilder = mock(KafkaStreamsBuilder.class);
     when(kafkaStreamsBuilder.build(any(), any())).thenReturn(mockKafkaStreams);
     MutableBoolean closed = new MutableBoolean(false);
-    when(mockKafkaStreams.close(any())).thenAnswer(i -> {
+    when(mockKafkaStreams.close(any(java.time.Duration.class))).thenAnswer(i -> {
       closed.setValue(true);
       return true;
     });
@@ -561,7 +558,8 @@ public class StreamedQueryResourceTest {
             ResultType.STREAM,
             0L,
             0L,
-            listener
+            listener,
+            loggerFactory
         );
     transientQueryMetadata.initialize();
 

@@ -15,9 +15,9 @@
 
 package io.confluent.ksql.rest.healthcheck;
 
+import static io.confluent.ksql.rest.healthcheck.HealthCheckAgent.COMMAND_RUNNER_CHECK_NAME;
 import static io.confluent.ksql.rest.healthcheck.HealthCheckAgent.KAFKA_CHECK_NAME;
 import static io.confluent.ksql.rest.healthcheck.HealthCheckAgent.METASTORE_CHECK_NAME;
-import static io.confluent.ksql.rest.healthcheck.HealthCheckAgent.COMMAND_RUNNER_CHECK_NAME;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.fail;
@@ -36,9 +36,8 @@ import io.confluent.ksql.exception.KsqlTopicAuthorizationException;
 import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.entity.HealthCheckResponse;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
-import io.confluent.ksql.rest.server.computation.CommandRunner;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
-import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.rest.server.computation.CommandRunner;
 import io.confluent.ksql.services.SimpleKsqlClient;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlRequestConfig;
@@ -77,8 +76,6 @@ public class HealthCheckAgentTest {
   @Mock
   private KsqlRestConfig restConfig;
   @Mock
-  private ServiceContext serviceContext;
-  @Mock
   private Admin internalAdminClient;
   @Mock
   private CommandRunner commandRunner;
@@ -98,7 +95,7 @@ public class HealthCheckAgentTest {
 
     final DescribeTopicsResult topicsResult = mock(DescribeTopicsResult.class);
     givenDescribeTopicsReturns(topicsResult);
-    when(topicsResult.all()).thenReturn(KafkaFuture.completedFuture(Collections.emptyMap()));
+    when(topicsResult.allTopicNames()).thenReturn(KafkaFuture.completedFuture(Collections.emptyMap()));
     when(commandRunner.checkCommandRunnerStatus()).thenReturn(CommandRunner.CommandRunnerStatus.RUNNING);
 
     final KsqlConfig ksqlConfig = new KsqlConfig(ImmutableMap.of(
@@ -106,7 +103,7 @@ public class HealthCheckAgentTest {
         "default_"
     ));
 
-    healthCheckAgent = new HealthCheckAgent(ksqlClient, restConfig, serviceContext, ksqlConfig, commandRunner, internalAdminClient);
+    healthCheckAgent = new HealthCheckAgent(ksqlClient, restConfig, ksqlConfig, commandRunner, internalAdminClient);
   }
 
   @Test

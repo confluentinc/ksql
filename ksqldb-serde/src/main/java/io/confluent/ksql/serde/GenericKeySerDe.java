@@ -47,14 +47,26 @@ import org.apache.kafka.streams.kstream.WindowedSerdes.TimeWindowedSerde;
 public final class GenericKeySerDe implements KeySerdeFactory {
 
   private final GenericSerdeFactory innerFactory;
+  private Optional<String> queryId;
 
   public GenericKeySerDe() {
-    this(new GenericSerdeFactory());
+    this(new GenericSerdeFactory(), Optional.empty());
+  }
+
+  public GenericKeySerDe(final String queryId) {
+    this(
+        new GenericSerdeFactory(),
+        Optional.of(queryId)
+    );
   }
 
   @VisibleForTesting
-  GenericKeySerDe(final GenericSerdeFactory innerFactory) {
+  GenericKeySerDe(
+      final GenericSerdeFactory innerFactory,
+      final Optional<String> queryId
+  ) {
     this.innerFactory = Objects.requireNonNull(innerFactory, "innerFactory");
+    this.queryId = queryId;
   }
 
   @Override
@@ -121,8 +133,11 @@ public final class GenericKeySerDe implements KeySerdeFactory {
 
     final Serde<GenericKey> genericKeySerde = toGenericKeySerde(formatSerde, schema);
 
-    final Serde<GenericKey> loggingSerde = innerFactory
-        .wrapInLoggingSerde(genericKeySerde, loggerNamePrefix, processingLogContext);
+    final Serde<GenericKey> loggingSerde = innerFactory.wrapInLoggingSerde(
+        genericKeySerde,
+        loggerNamePrefix,
+        processingLogContext,
+        queryId);
 
     final Serde<GenericKey> serde = tracker
         .map(callback -> innerFactory.wrapInTrackingSerde(loggingSerde, callback))

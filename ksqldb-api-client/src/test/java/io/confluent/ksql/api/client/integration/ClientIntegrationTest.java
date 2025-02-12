@@ -34,6 +34,7 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.Matchers.startsWith;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.fail;
 
@@ -831,6 +832,34 @@ public class ClientIntegrationTest {
     assertThat(e.getCause().getMessage(), containsString("Received 400 response from server"));
     assertThat(e.getCause().getMessage(), containsString("Stream NONEXISTENT does not exist"));
     assertThat(e.getCause().getMessage(), containsString("Error code: 40001"));
+  }
+
+  @Test
+  public void shouldHandleWarningResponseFromExecuteStatement()
+      throws ExecutionException, InterruptedException {
+    // Given:
+    client.executeStatement("create table if not exists tasks (taskId varchar primary key) with (kafka_topic='tasks', value_format='json', partitions=1);").get();
+
+    // When:
+    final ExecuteStatementResult result =
+        client.executeStatement("create table if not exists tasks (taskId varchar primary key) with (kafka_topic='tasks', value_format='json', partitions=1);").get();
+
+    // Then
+    assertFalse(result.queryId().isPresent());
+  }
+
+  @Test
+  public void shouldRejectWarningsFromConnectorRequestsInExecuteStatement() throws Exception {
+    // When
+    final Exception e = assertThrows(
+        ExecutionException.class, // thrown from .get() when the future completes exceptionally
+        () -> client.executeStatement("DROP CONNECTOR IF EXISTS foo;").get()
+    );
+
+    // Then
+    assertThat(e.getCause(), instanceOf(KsqlClientException.class));
+    assertThat(e.getCause().getMessage(), containsString("The ksqlDB server accepted the statement issued via executeStatement(), but the response received is of an unexpected format."));
+    assertThat(e.getCause().getMessage(), containsString("Use the dropConnector() method instead."));
   }
 
   @Test

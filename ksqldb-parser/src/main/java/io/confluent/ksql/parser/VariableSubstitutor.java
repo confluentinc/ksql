@@ -110,6 +110,17 @@ public final class VariableSubstitutor {
     }
 
     @Override
+    public Void visitResourceName(final SqlBaseParser.ResourceNameContext context) {
+      if (context.STRING() != null) {
+        final String text = unquote(context.STRING().getText(), "'");
+        lookupVariables(text);
+      } else {
+        visit(context.identifier());
+      }
+      return null;
+    }
+
+    @Override
     public Void visitStringLiteral(final SqlBaseParser.StringLiteralContext context) {
       final String text = unquote(context.getText(), "\'");
       lookupVariables(text);
@@ -144,6 +155,19 @@ public final class VariableSubstitutor {
 
       throwIfInvalidIdentifier(variableValue, getLocation(context));
       sanitizedValueMap.putIfAbsent(variableName, variableValue);
+      return null;
+    }
+
+    @Override
+    public Void visitSetProperty(final SqlBaseParser.SetPropertyContext context) {
+      lookupVariables(context.STRING(0).getText());
+      lookupVariables(context.STRING(1).getText());
+      return null;
+    }
+
+    @Override
+    public Void visitUnsetProperty(final SqlBaseParser.UnsetPropertyContext context) {
+      lookupVariables(context.STRING().getText());
       return null;
     }
 

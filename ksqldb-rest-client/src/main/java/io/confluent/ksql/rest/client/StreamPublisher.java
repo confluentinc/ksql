@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.rest.client;
 
+import static io.confluent.ksql.util.BytesUtils.toJsonMsg;
+
 import io.confluent.ksql.reactive.BufferedPublisher;
 import io.vertx.core.Context;
 import io.vertx.core.Future;
@@ -28,24 +30,6 @@ public class StreamPublisher<T> extends BufferedPublisher<T> {
 
   private final HttpClientResponse response;
   private boolean drainHandlerSet;
-
-  public static Buffer toJsonMsg(final Buffer responseLine, final boolean stripArray) {
-
-    int start = 0;
-    int end = responseLine.length() - 1;
-    if (stripArray) {
-      if (responseLine.getByte(0) == (byte) '[') {
-        start = 1;
-      }
-      if (responseLine.getByte(end) == (byte) ']') {
-        end -= 1;
-      }
-    }
-    if (end > 0 && responseLine.getByte(end) == (byte) ',') {
-      end -= 1;
-    }
-    return responseLine.slice(start, end + 1);
-  }
 
   StreamPublisher(final Context context, final HttpClientResponse response,
       final Function<Buffer, T> mapper,

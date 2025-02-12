@@ -1113,7 +1113,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Line: 2, Col: 35: SELECT column 'UNKNOWN' cannot be resolved."
+        "message": "SELECT column 'UNKNOWN' cannot be resolved."
       }
     },
     {
@@ -1125,7 +1125,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Line: 3, Col: 38: SELECT column 'UNKNOWN' cannot be resolved."
+        "message": "SELECT column 'UNKNOWN' cannot be resolved"
       }
     },
     {
@@ -1454,7 +1454,7 @@
         }
       ],
       "inputs": [{"topic": "input", "key": {"id": 42}, "value": {"c1": 4}}],
-      "outputs": [{"topic": "OUTPUT", "key": {"id": 42}, "value": {"c1": 4}}],
+      "outputs": [{"topic": "OUTPUT", "key": {"id": 42}, "value": {"c1": 4, "c2":  null}}],
       "post": {
         "sources": [
           {"name": "OUTPUT", "type": "stream", "schema": "`ROWKEY` struct<`id` BIGINT> KEY, `c1` BIGINT"}

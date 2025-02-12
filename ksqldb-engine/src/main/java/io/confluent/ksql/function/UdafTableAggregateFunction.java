@@ -29,16 +29,17 @@ public class UdafTableAggregateFunction<I, A, O>
 
   public UdafTableAggregateFunction(
       final String functionName,
-      final int udafIndex,
+      final List<Integer> udafIndices,
       final Udaf<I, A, O> udaf,
       final SqlType aggregateType,
       final SqlType outputType,
       final List<ParameterInfo> parameters,
       final String description,
       final Optional<Metrics> metrics,
-      final String method) {
-    super(functionName, udafIndex, udaf, aggregateType, outputType, parameters, description,
-        metrics, method);
+      final String method,
+      final int numColArgs) {
+    super(functionName, udafIndices, udaf, aggregateType, outputType, parameters, description,
+        metrics, method, numColArgs);
   }
 
   @Override

@@ -67,9 +67,12 @@ public final class JsonTestLoader<T extends Test> implements TestLoader<T> {
         ? loadTestPathsFromDirectory()
         : getTestPathsFromWhiteList(whiteList);
 
+    final String testRegex = System.getProperty("ksql.functional.test.regex");
+
     final List<T> testCases = testPaths
         .stream()
         .flatMap(testPath -> buildTests(testPath, testFileType))
+        .filter(testCase -> testRegex == null || testCase.getName().matches(testRegex))
         .collect(Collectors.toList());
 
     throwOnDuplicateNames(testCases);

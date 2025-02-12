@@ -40,8 +40,6 @@ public final class QueryValidatorUtil {
    */
   static void validateNoUserColumnsWithSameNameAsPseudoColumns(final Analysis analysis) {
 
-    final boolean rowpartitionRowoffsetEnabled = analysis.getRowpartitionRowoffsetEnabled();
-
     final String disallowedNames = analysis.getAllDataSources()
         .stream()
         .map(AliasedDataSource::getDataSource)
@@ -49,7 +47,7 @@ public final class QueryValidatorUtil {
         .map(LogicalSchema::value)
         .flatMap(Collection::stream)
         .map(Column::name)
-        .filter(name -> SystemColumns.isPseudoColumn(name, rowpartitionRowoffsetEnabled))
+        .filter(name -> SystemColumns.isPseudoColumn(name))
         .map(ColumnName::toString)
         .collect(Collectors.joining(", "));
 

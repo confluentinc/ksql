@@ -234,6 +234,7 @@ public class CommandRunnerTest {
     inOrder.verify(serverState).setTerminating();
     inOrder.verify(commandStore).wakeup();
     inOrder.verify(clusterTerminator).terminateCluster(anyList());
+    inOrder.verify(serverState).setTerminated();
 
     verify(statementExecutor, never()).handleRestore(any());
   }

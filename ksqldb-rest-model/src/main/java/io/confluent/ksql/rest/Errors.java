@@ -17,6 +17,7 @@ package io.confluent.ksql.rest;
 
 import static io.netty.handler.codec.http.HttpHeaderNames.RETRY_AFTER;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
+import static io.netty.handler.codec.http.HttpResponseStatus.EXPECTATION_FAILED;
 import static io.netty.handler.codec.http.HttpResponseStatus.FORBIDDEN;
 import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
 import static io.netty.handler.codec.http.HttpResponseStatus.MISDIRECTED_REQUEST;
@@ -70,10 +71,15 @@ public final class Errors {
   public static final int ERROR_CODE_SERVER_SHUTTING_DOWN =
       toErrorCode(SERVICE_UNAVAILABLE.code()) + 3;
 
+  public static final int ERROR_CODE_SERVER_SHUT_DOWN =
+      toErrorCode(SERVICE_UNAVAILABLE.code()) + 4;
+
   public static final int ERROR_CODE_SERVER_ERROR =
       toErrorCode(INTERNAL_SERVER_ERROR.code());
   
   public static final int ERROR_CODE_TOO_MANY_REQUESTS = toErrorCode(TOO_MANY_REQUESTS.code());
+
+  public static final int ERROR_CODE_ASSERTION_FAILED = toErrorCode(EXPECTATION_FAILED.code());
 
   private final ErrorMessages errorMessages;
 
@@ -204,6 +210,15 @@ public final class Errors {
         .build();
   }
 
+  public static EndpointResponse serverShutDown() {
+    return EndpointResponse.create()
+        .status(SERVICE_UNAVAILABLE.code())
+        .entity(new KsqlErrorMessage(
+            ERROR_CODE_SERVER_SHUT_DOWN,
+            "The server is shut down"))
+        .build();
+  }
+
   public static EndpointResponse serverNotReady(final KsqlErrorMessage error) {
     return EndpointResponse.create()
         .status(SERVICE_UNAVAILABLE.code())
@@ -216,6 +231,13 @@ public final class Errors {
       .status(TOO_MANY_REQUESTS.code())
       .entity(new KsqlErrorMessage(ERROR_CODE_TOO_MANY_REQUESTS, msg))
       .build();
+  }
+
+  public static EndpointResponse assertionFailedError(final String errorMsg) {
+    return EndpointResponse.create()
+        .status(EXPECTATION_FAILED.code())
+        .entity(new KsqlErrorMessage(ERROR_CODE_ASSERTION_FAILED, errorMsg))
+        .build();
   }
 
   public Errors(final ErrorMessages errorMessages) {

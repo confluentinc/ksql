@@ -133,7 +133,8 @@ class UdafTypes {
       final String msg
   ) {
     if (type.equals(Struct.class) && schema.isEmpty()) {
-      throw new KsqlException("Must specify '" + msg + "' for STRUCT parameter in @UdafFactory.");
+      throw new KsqlException("Must specify '" + msg + "' for STRUCT parameter in @UdafFactory or"
+          + " implement getAggregateSqlType()/getReturnSqlType().");
     }
   }
 

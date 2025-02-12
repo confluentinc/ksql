@@ -1,0 +1,30 @@
+{
+  "comments": [
+    "Tests covering the use of the JSON_KEYS function."
+  ],
+  "tests": [
+    {
+      "name": "extract keys from a json object",
+      "statements": [
+        "CREATE STREAM test (K STRING KEY, colors_obj STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT K, JSON_KEYS(colors_obj) AS COLORS FROM test WHERE JSON_KEYS(colors_obj) IS NOT NULL;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": "1", "value": {"colors_obj": "{\"Red\": 3, \"Green\": 5}"}, "timestamp": 0},
+        {"topic": "test_topic", "key": "1", "value": {"colors_obj": "{\"Black\": 2}"}, "timestamp": 0},
+        {"topic": "test_topic", "key": "1", "value": {"colors_obj": "{\"Pink\": 1, \"Yellow\": 3}"}, "timestamp": 0},
+        {"topic": "test_topic", "key": "1", "value": {"colors_obj": "{\"White\": 7, \"Pink\": 8}"}, "timestamp": 0},
+        {"topic": "test_topic", "key": "1", "value": {"colors_obj": "{}"}, "timestamp": 0},
+        {"topic": "test_topic", "key": "1", "value": {"colors_obj": null, "timestamp": 0}},
+        {"topic": "test_topic", "key": "1", "value": {"colors_obj": "", "timestamp": 0}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "1", "value": {"COLORS": ["Red", "Green"]}, "timestamp": 0},
+        {"topic": "OUTPUT", "key": "1", "value": {"COLORS": ["Black"]}, "timestamp": 0},
+        {"topic": "OUTPUT", "key": "1", "value": {"COLORS": ["Pink", "Yellow"]}, "timestamp": 0},
+        {"topic": "OUTPUT", "key": "1", "value": {"COLORS": ["White", "Pink"]}, "timestamp": 0},
+        {"topic": "OUTPUT", "key": "1", "value": {"COLORS": []}, "timestamp": 0}
+      ]
+    }
+  ]
+}

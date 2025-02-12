@@ -40,6 +40,7 @@ import io.confluent.ksql.rest.entity.LagReportingMessage;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.util.KeyValue;
 import io.confluent.ksql.util.KeyValueMetadata;
+import io.confluent.ksql.util.PushQueryMetadata.ResultType;
 import io.confluent.ksql.util.VertxCompletableFuture;
 import io.vertx.core.Context;
 import io.vertx.core.MultiMap;
@@ -280,6 +281,11 @@ public class PullQueryRunner extends BasePerfRunner {
     @Override
     public boolean hitLimit() {
       return false;
+    }
+
+    @Override
+    public Optional<ResultType> getResultType() {
+      return Optional.empty();
     }
   }
 }

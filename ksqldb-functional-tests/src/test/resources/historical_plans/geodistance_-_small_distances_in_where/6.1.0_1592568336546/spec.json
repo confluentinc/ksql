@@ -24,6 +24,9 @@
   },
   "testCase" : {
     "name" : "small distances in where",
+    "properties": {
+      "use.exact.numeric.comparison": false
+    },
     "inputs" : [ {
       "topic" : "test_topic",
       "key" : null,

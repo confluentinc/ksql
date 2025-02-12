@@ -35,7 +35,7 @@ public class Chr {
     if (!Character.isValidCodePoint(decimalCode)) {
       return null;
     }
-    final char[] resultChars = Character.toChars(decimalCode.intValue());
+    final char[] resultChars = Character.toChars(decimalCode);
     return String.valueOf(resultChars);
   }
 

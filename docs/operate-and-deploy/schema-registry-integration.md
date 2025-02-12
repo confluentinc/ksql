@@ -248,3 +248,131 @@ in the [Stream Processing Cookbook](https://www.confluent.io/product/ksql/stream
 
 You can convert between different key formats in an analogous manner by specifying the
 `KEY_FORMAT` property instead of `VALUE_FORMAT`.
+
+### Schema Inference Details
+The schema in {{ site.sr }} is a "physical schema", and the schema in ksqlDB is
+a "logical schema". The physical schema, not the logical schema, is registered
+under the subject `<topic-name>-key` or `<topic-name>-value` if a corresponding key schema or value
+schema is inferred.
+
+#### Schema inference schema requirements
+
+If `WRAP_SINGLE_VALUE` is set to `true` in the SQL statement, the physical
+schema is expected to be a `struct` type, and the field names are used as data
+source column names. Field types are inferred from corresponding column data
+types.
+
+- In `AVRO`, the `struct` type corresponds with the `record` type.
+- In `PROTOBUF` the `struct` type corresponds with the `message` type.
+- In `JSON_SR`, the `struct` type corresponds with the `object` type.
+
+!!! note
+    In the following examples, the `AVRO` schema string in {{ site.sr }}
+    is a single-line raw string without newline characters (`\n`). The
+    strings are shown as human-readable text for convenience.
+
+For example, the following a physical schema is in `AVRO` format and is
+registered with {{ site.sr }} under subject `pageviews-value`:
+
+```json
+{
+  "schema": {
+    "type": "record",
+    "name": "PageViewValueSchema",
+    "namespace": "io.confluent.ksql.avro_schemas",
+    "fields": [
+      {
+        "name": "page_name",
+        "type": "string",
+        "default": "abc"
+      },
+      {
+        "name": "ts",
+        "type": "int",
+        "default": 123
+      }
+    ]
+  }
+}
+```
+
+The following `CREATE` statement defines a stream on the `pageviews` topic
+and the value schema will be inferred from {{ site.sr }}.
+
+```sql hl_lines="7"
+CREATE STREAM pageviews (
+    pageId INT KEY
+  ) WITH (
+    KAFKA_TOPIC='pageviews-avro-topic',
+    KEY_FORMAT='KAFKA',
+    VALUE_FORMAT='AVRO',
+    PARTITIONS=1
+  );
+```
+
+The following output from the `describe pageviews` command shows the inferred
+logical schema for the `pageviews` stream:
+
+```
+ksql> describe pageviews;
+
+Name                 : PAGEVIEWS
+ Field     | Type
+------------------------------------
+ PAGEID    | INTEGER          (key)
+ PAGE_NAME | VARCHAR(STRING)
+ TS        | INTEGER
+------------------------------------
+```
+
+!!! important
+    - ksqlDB ignores unsupported types in the physical schema and continues
+    translating supported types to the logical schema. You should verify that
+    the logical schema is translated as expected.
+    - During schema translation from a physical schema to a logical schema,
+    `struct` type field names are used as column names in the logical schema.
+    Field names are translated to uppercase, in contrast with schema
+    inference with a schema id, which _does not_ translate field names to
+    uppercase.
+
+If `WRAP_SINGLE_VALUE` is `false` in the statement, and if the key schema is
+inferred, `ROWKEY` is used as the key's column name.
+
+If value schema is inferred, `ROWVAL` is used as the value's column name. The physical
+schema is used as the column data type.
+
+For example, the following physical schema is `AVRO` and is defined in {{ site.sr }} under
+subject name `pageview_count-value`:
+
+```json
+{"schema": "int"}
+```
+
+The following `CREATE` statement defines a table on the `pageview-count` topic
+and the value schema will be inferred from {{ site.sr }}:
+
+```sql hl_lines="7"
+CREATE TABLE pageview_count (
+    pageId INT PRIMARY KEY
+  ) WITH (
+    KAFKA_TOPIC='pageview-count',
+    KEY_FORMAT='KAFKA',
+    VALUE_FORMAT='AVRO',
+    WRAP_SINGLE_VALUE=false,
+    PARTITIONS=1
+  );
+```
+
+The inferred logical schema for the `pageview_count` table is:
+
+```
+Name                 : PAGEVIEW_COUNT
+ Field  | Type
+-----------------------------------------
+ PAGEID | INTEGER          (primary key)
+ ROWVAL | INTEGER
+-----------------------------------------
+```
+
+For more information about `WRAP_SINGLE_VALUE`, see
+[Single Field (un)wrapping](/reference/serialization/#single-field-unwrapping).

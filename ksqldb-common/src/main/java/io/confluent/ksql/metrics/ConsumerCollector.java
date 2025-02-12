@@ -59,8 +59,6 @@ public class ConsumerCollector implements MetricCollector, ConsumerInterceptor<O
   private String groupId;
   private Time time;
 
-
-
   public void configure(final Map<String, ?> map) {
     String id = (String) map.get(ConsumerConfig.GROUP_ID_CONFIG);
     if (id != null) {
@@ -69,17 +67,26 @@ public class ConsumerCollector implements MetricCollector, ConsumerInterceptor<O
     if (id == null) {
       id = (String) map.get(ConsumerConfig.CLIENT_ID_CONFIG);
     }
+
+    final KsqlConfig config = new KsqlConfig(map);
+    final Map<String, String> metricsTags =
+        config.getStringAsMap(KsqlConfig.KSQL_CUSTOM_METRICS_TAGS);
+
     final MetricCollectors collectors = (MetricCollectors) Objects.requireNonNull(
         map.get(KsqlConfig.KSQL_INTERNAL_METRIC_COLLECTORS_CONFIG));
-    configure(id, collectors);
+    configure(id, collectors, metricsTags);
   }
 
-  void configure(final String id, final MetricCollectors metricCollectors) {
+  void configure(
+      final String id,
+      final MetricCollectors metricCollectors,
+      final Map<String, String> metricsTags
+  ) {
     this.metrics = metricCollectors.getMetrics();
     this.id = metricCollectors.addCollector(id, this);
     this.time = metricCollectors.getTime();
     this.metricsCollectors = metricCollectors;
-    totalBytesSum = configureTotalBytesSum(metricCollectors.getMetrics());
+    totalBytesSum = configureTotalBytesSum(metricCollectors.getMetrics(), metricsTags);
   }
 
   @Override
@@ -201,14 +208,18 @@ public class ConsumerCollector implements MetricCollector, ConsumerInterceptor<O
     return getClass().getSimpleName() + " id:" + this.id + " " + topicSensors.keySet();
   }
 
-  private static Sensor configureTotalBytesSum(final Metrics metrics) {
+  private static Sensor configureTotalBytesSum(
+      final Metrics metrics,
+      final Map<String, String> metricsTags
+  ) {
     final String description = "The total number of bytes consumed across all consumers";
     final Sensor sensor = metrics.sensor(CONSUMER_ALL_TOTAL_BYTES_SUM);
     sensor.add(
         metrics.metricName(
             CONSUMER_ALL_TOTAL_BYTES_SUM,
             CONSUMER_COLLECTOR_METRICS_GROUP_NAME,
-            description),
+            description,
+            metricsTags),
         new CumulativeSum());
     return sensor;
   }

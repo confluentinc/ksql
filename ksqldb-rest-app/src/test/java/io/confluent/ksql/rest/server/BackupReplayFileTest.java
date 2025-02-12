@@ -17,22 +17,35 @@ package io.confluent.ksql.rest.server;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.Mockito.doCallRealMethod;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.confluent.ksql.rest.server.BackupReplayFile.Filesystem;
 import io.confluent.ksql.test.util.KsqlTestFolder;
 import io.confluent.ksql.util.Pair;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.util.LinkedList;
 import java.util.List;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.Mockito;
+import org.mockito.Spy;
+import org.mockito.invocation.Invocation;
+import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -45,11 +58,16 @@ public class BackupReplayFileTest {
 
   private BackupReplayFile replayFile;
   private File internalReplayFile;
+  @Mock
+  private Filesystem filesystem;
 
   @Before
   public void setup() throws IOException {
     internalReplayFile = backupLocation.newFile(REPLAY_FILE_NAME);
-    replayFile = BackupReplayFile.writable(internalReplayFile);
+    replayFile = new BackupReplayFile(internalReplayFile, true, filesystem);
+    when(filesystem.outputStream(any(File.class), anyBoolean())).thenAnswer(
+        i -> new FileOutputStream((File) i.getArgument(0), i.getArgument(1))
+    );
   }
 
   @Test
@@ -69,6 +87,65 @@ public class BackupReplayFileTest {
 
     // When
     replayFile.write(record);
+
+    // Then
+    final List<String> commands = Files.readAllLines(internalReplayFile.toPath());
+    assertThat(commands.size(), is(1));
+    assertThat(commands.get(0), is(
+        "\"stream/stream1/create\"" + KEY_VALUE_SEPARATOR
+            + "{\"statement\":\"CREATE STREAM stream1 (id INT) WITH (kafka_topic='stream1')\""
+            + ",\"streamsProperties\":{},\"originalProperties\":{},\"plan\":null}"
+    ));
+  }
+
+  @Test
+  public void shouldWriteMultipleRecords() throws IOException {
+    // Given
+    final ConsumerRecord<byte[], byte[]> record1= newStreamRecord("stream1");
+    final ConsumerRecord<byte[], byte[]> record2 = newStreamRecord("stream2");
+
+    // When
+    replayFile.write(record1);
+    replayFile.write(record2);
+
+    // Then
+    final List<String> commands = Files.readAllLines(internalReplayFile.toPath());
+    assertThat(commands.size(), is(2));
+    assertThat(commands.get(0), is(
+        "\"stream/stream1/create\"" + KEY_VALUE_SEPARATOR
+            + "{\"statement\":\"CREATE STREAM stream1 (id INT) WITH (kafka_topic='stream1')\""
+            + ",\"streamsProperties\":{},\"originalProperties\":{},\"plan\":null}"
+    ));
+    assertThat(commands.get(1), is(
+        "\"stream/stream2/create\"" + KEY_VALUE_SEPARATOR
+            + "{\"statement\":\"CREATE STREAM stream2 (id INT) WITH (kafka_topic='stream2')\""
+            + ",\"streamsProperties\":{},\"originalProperties\":{},\"plan\":null}"
+    ));
+  }
+
+  @SuppressFBWarnings("OBL_UNSATISFIED_OBLIGATION_EXCEPTION_EDGE")
+  private static FileOutputStream mockOutputStream(InvocationOnMock i) throws IOException {
+    final FileOutputStream stream
+        = new FileOutputStream((File) i.getArgument(0), i.getArgument(1));
+    final FileOutputStream spy = Mockito.spy(stream);
+    doCallRealMethod().doThrow(new IOException("")).when(spy).write(any(byte[].class));
+    return spy;
+  }
+
+  @Test
+  public void shouldPreserveBackupOnWriteFailure() throws IOException {
+    // Given
+    final ConsumerRecord<byte[], byte[]> record = newStreamRecord("stream1");
+    replayFile.write(record);
+    when(filesystem.outputStream(any(), anyBoolean()))
+        .thenAnswer(BackupReplayFileTest::mockOutputStream);
+
+    // When/Then:
+    try {
+      replayFile.write(record);
+      Assert.fail("should throw IO exception");
+    } catch (final IOException e) {
+    }
 
     // Then
     final List<String> commands = Files.readAllLines(internalReplayFile.toPath());

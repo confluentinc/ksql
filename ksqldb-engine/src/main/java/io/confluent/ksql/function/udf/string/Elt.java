@@ -38,6 +38,9 @@ public class Elt {
       @UdfParameter(description = "the nth element to extract") final int n,
       @UdfParameter(description = "the strings of which to extract the nth") final String... args
   ) {
+    if (args == null) {
+      return null;
+    }
     if (n < 1 || n > args.length) {
       return null;
     }

@@ -21,8 +21,8 @@ import java.util.Map;
 import java.util.Optional;
 import org.apache.kafka.connect.runtime.rest.entities.ConfigInfos;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorInfo;
-import org.apache.kafka.connect.runtime.rest.entities.ConnectorPluginInfo;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo;
+import org.apache.kafka.connect.runtime.rest.entities.PluginInfo;
 
 /**
  * An interface defining the common operations to communicate with
@@ -42,7 +42,7 @@ public interface ConnectClient {
    *
    * @return a list of connector plugins
    */
-  ConnectResponse<List<ConnectorPluginInfo>> connectorPlugins();
+  ConnectResponse<List<PluginInfo>> connectorPlugins();
 
   /**
    * Gets the configuration for a specified connector.

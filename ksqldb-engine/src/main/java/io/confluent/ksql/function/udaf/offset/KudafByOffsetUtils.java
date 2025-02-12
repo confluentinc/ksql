@@ -103,6 +103,13 @@ final class KudafByOffsetUtils {
         return INTERMEDIATE_STRUCT_COMPARATOR.compare(struct1, struct2);
       };
 
+  static Schema buildSchema(final Schema schema) {
+    return SchemaBuilder.struct().optional()
+        .field(SEQ_FIELD, Schema.OPTIONAL_INT64_SCHEMA)
+        .field(VAL_FIELD, schema)
+        .build();
+  }
+
   static <T> Struct createStruct(final Schema schema, final long sequence, final T val) {
     final Struct struct = new Struct(schema);
     struct.put(SEQ_FIELD, sequence);

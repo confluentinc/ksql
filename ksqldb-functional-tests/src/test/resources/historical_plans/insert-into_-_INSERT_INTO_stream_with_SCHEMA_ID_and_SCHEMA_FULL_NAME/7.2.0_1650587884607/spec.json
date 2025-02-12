@@ -1,0 +1,194 @@
+{
+  "version" : "7.2.0",
+  "timestamp" : 1650587884607,
+  "path" : "query-validation-tests/insert-into.json",
+  "schemas" : {
+    "INSERTQUERY_0.KsqlTopic.Source" : {
+      "schema" : "`K` STRING KEY, `A` BIGINT, `B` STRING",
+      "keyFormat" : {
+        "format" : "PROTOBUF",
+        "properties" : {
+          "fullSchemaName" : "ProtobufKey2",
+          "unwrapPrimitives" : "true",
+          "schemaId" : "1"
+        }
+      },
+      "valueFormat" : {
+        "format" : "PROTOBUF",
+        "properties" : {
+          "fullSchemaName" : "ProtobufValue2",
+          "unwrapPrimitives" : "true",
+          "schemaId" : "2"
+        }
+      }
+    },
+    "INSERTQUERY_0.SINK" : {
+      "schema" : "`K` STRING KEY, `A` BIGINT, `B` STRING",
+      "keyFormat" : {
+        "format" : "PROTOBUF",
+        "properties" : {
+          "fullSchemaName" : "ProtobufKey2",
+          "unwrapPrimitives" : "true"
+        }
+      },
+      "valueFormat" : {
+        "format" : "PROTOBUF",
+        "properties" : {
+          "fullSchemaName" : "ProtobufValue2",
+          "unwrapPrimitives" : "true"
+        }
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "INSERT INTO stream with SCHEMA_ID and SCHEMA_FULL_NAME",
+    "inputs" : [ {
+      "topic" : "source",
+      "key" : {
+        "K" : "0"
+      },
+      "value" : {
+        "A" : 123,
+        "B" : "falcon"
+      },
+      "timestamp" : 0
+    }, {
+      "topic" : "source",
+      "key" : {
+        "K" : "0"
+      },
+      "value" : {
+        "A" : 456,
+        "B" : "giraffe"
+      },
+      "timestamp" : 0
+    }, {
+      "topic" : "source",
+      "key" : {
+        "K" : "0"
+      },
+      "value" : {
+        "A" : 789,
+        "B" : "turtle"
+      },
+      "timestamp" : 0
+    } ],
+    "outputs" : [ {
+      "topic" : "sink",
+      "key" : {
+        "K" : "0"
+      },
+      "value" : {
+        "A" : 123,
+        "B" : "falcon"
+      },
+      "timestamp" : 0
+    }, {
+      "topic" : "sink",
+      "key" : {
+        "K" : "0"
+      },
+      "value" : {
+        "A" : 456,
+        "B" : "giraffe"
+      },
+      "timestamp" : 0
+    }, {
+      "topic" : "sink",
+      "key" : {
+        "K" : "0"
+      },
+      "value" : {
+        "A" : 789,
+        "B" : "turtle"
+      },
+      "timestamp" : 0
+    } ],
+    "topics" : [ {
+      "name" : "sink",
+      "keySchema" : "syntax = \"proto3\";\n\nmessage ProtobufKey1 {\n  uint32 k1 = 1;\n}\nmessage ProtobufKey2 {\n  string K = 1;\n}\n",
+      "valueSchema" : "syntax = \"proto3\";\n\nmessage ProtobufValue1 {\n  float c1 = 1;\n  uint32 c2 = 2;\n}\nmessage ProtobufValue2 {\n  uint64 A = 1;\n  string B = 2;\n}\n",
+      "keyFormat" : "PROTOBUF",
+      "valueFormat" : "PROTOBUF",
+      "replicas" : 1,
+      "numPartitions" : 1
+    }, {
+      "name" : "source",
+      "keySchema" : "syntax = \"proto3\";\n\nmessage ProtobufKey1 {\n  uint32 k1 = 1;\n}\nmessage ProtobufKey2 {\n  string K = 1;\n}\n",
+      "valueSchema" : "syntax = \"proto3\";\n\nmessage ProtobufValue1 {\n  float c1 = 1;\n  uint32 c2 = 2;\n}\nmessage ProtobufValue2 {\n  uint64 A = 1;\n  string B = 2;\n}\n",
+      "keyFormat" : "PROTOBUF",
+      "valueFormat" : "PROTOBUF",
+      "replicas" : 1,
+      "numPartitions" : 1
+    } ],
+    "statements" : [ "CREATE STREAM SOURCE WITH (kafka_topic='source', format='PROTOBUF', KEY_SCHEMA_ID=1, KEY_SCHEMA_FULL_NAME='ProtobufKey2', VALUE_SCHEMA_ID=2, VALUE_SCHEMA_FULL_NAME='ProtobufValue2');", "CREATE STREAM SINK WITH (kafka_topic='sink', format='PROTOBUF', KEY_SCHEMA_FULL_NAME='ProtobufKey2', VALUE_SCHEMA_FULL_NAME='ProtobufValue2');", "INSERT INTO SINK SELECT * FROM SOURCE;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "SINK",
+        "type" : "STREAM",
+        "schema" : "`K` STRING KEY, `A` BIGINT, `B` STRING",
+        "keyFormat" : {
+          "format" : "PROTOBUF"
+        },
+        "valueFormat" : "PROTOBUF",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "SOURCE",
+        "type" : "STREAM",
+        "schema" : "`K` STRING KEY, `A` BIGINT, `B` STRING",
+        "keyFormat" : {
+          "format" : "PROTOBUF"
+        },
+        "valueFormat" : "PROTOBUF",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "source",
+          "keyFormat" : {
+            "format" : "PROTOBUF",
+            "properties" : {
+              "fullSchemaName" : "ProtobufKey2",
+              "unwrapPrimitives" : "true",
+              "schemaId" : "1"
+            }
+          },
+          "valueFormat" : {
+            "format" : "PROTOBUF",
+            "properties" : {
+              "fullSchemaName" : "ProtobufValue2",
+              "unwrapPrimitives" : "true",
+              "schemaId" : "2"
+            }
+          },
+          "partitions" : 1,
+          "keySchema" : "syntax = \"proto3\";\n\nmessage ProtobufKey2 {\n  string K = 1;\n}\n",
+          "valueSchema" : "syntax = \"proto3\";\n\nmessage ProtobufValue2 {\n  uint64 A = 1;\n  string B = 2;\n}\n"
+        }, {
+          "name" : "sink",
+          "keyFormat" : {
+            "format" : "PROTOBUF",
+            "properties" : {
+              "fullSchemaName" : "ProtobufKey2",
+              "unwrapPrimitives" : "true"
+            }
+          },
+          "valueFormat" : {
+            "format" : "PROTOBUF",
+            "properties" : {
+              "fullSchemaName" : "ProtobufValue2",
+              "unwrapPrimitives" : "true"
+            }
+          },
+          "partitions" : 4,
+          "keySchema" : "syntax = \"proto3\";\n\nmessage ProtobufKey2 {\n  string K = 1;\n}\n",
+          "valueSchema" : "syntax = \"proto3\";\n\nmessage ProtobufValue2 {\n  int64 A = 1;\n  string B = 2;\n}\n"
+        } ]
+      }
+    }
+  }
+}

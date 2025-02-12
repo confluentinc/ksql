@@ -28,6 +28,7 @@ import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.name.SourceName;
+import io.confluent.ksql.rest.entity.PropertiesList;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.services.ServiceContext;
@@ -59,8 +60,12 @@ import java.util.stream.Collectors;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.streams.KafkaStreams.State;
 import org.apache.kafka.streams.StreamsBuilder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class QueryRegistryImpl implements QueryRegistry {
+  private final Logger log = LoggerFactory.getLogger(QueryRegistryImpl.class);
+
   private static final BiPredicate<SourceName, PersistentQueryMetadata> FILTER_QUERIES_WITH_SINK =
       (sourceName, query) -> query.getSinkName().equals(Optional.of(sourceName));
 
@@ -268,9 +273,16 @@ public class QueryRegistryImpl implements QueryRegistry {
 
     final PersistentQueryMetadata query;
 
-    if (sharedRuntimeId.isPresent()) {
+    final PersistentQueryMetadata oldQuery = persistentQueries.get(queryId);
+
+    if (sharedRuntimeId.isPresent()
+        && ksqlConfig.getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)
+        && (oldQuery == null
+        || oldQuery instanceof BinPackedPersistentQueryMetadataImpl)) {
       if (sandbox) {
+        throwOnNonQueryLevelConfigs(config.getOverrides());
         streams.addAll(sourceStreams.stream()
+            .filter(t -> t.getApplicationId().equals(sharedRuntimeId.get()))
             .map(SandboxedSharedKafkaStreamsRuntimeImpl::new)
             .collect(Collectors.toList()));
       }
@@ -288,6 +300,7 @@ public class QueryRegistryImpl implements QueryRegistry {
           sharedRuntimeId.get(),
           metricCollectors
       );
+      query.register();
     } else {
       query = queryBuilder.buildPersistentQueryInDedicatedRuntime(
           ksqlConfig,
@@ -306,6 +319,21 @@ public class QueryRegistryImpl implements QueryRegistry {
     }
     registerPersistentQuery(serviceContext, metaStore, query);
     return query;
+  }
+
+  private static void throwOnNonQueryLevelConfigs(final Map<String, Object> overriddenProperties) {
+    final String nonQueryLevelConfigs = overriddenProperties.keySet().stream()
+        .filter(s -> !PropertiesList.QueryLevelPropertyList.contains(s))
+        .distinct()
+        .collect(Collectors.joining(","));
+
+    if (!nonQueryLevelConfigs.isEmpty()) {
+      throw new IllegalArgumentException(String.format("When shared runtimes are enabled, the"
+              + " configs %s can only be set for the entire cluster and all queries currently"
+              + " running in it, and not configurable for individual queries."
+              + " Please use ALTER SYSTEM to change these config for all queries.",
+          nonQueryLevelConfigs));
+    }
   }
 
   @Override
@@ -420,7 +448,9 @@ public class QueryRegistryImpl implements QueryRegistry {
 
       // don't close the old query so that we don't delete the changelog
       // topics and the state store, instead use QueryMetadata#stop
-      oldQuery.stop(false);
+      log.info("Detected that query {} already exists so will replace it."
+          + "First will stop without resetting offsets", oldQuery.getQueryId());
+      oldQuery.stop(true);
       unregisterQuery(oldQuery);
     }
 
@@ -470,6 +500,13 @@ public class QueryRegistryImpl implements QueryRegistry {
       final PersistentQueryMetadata persistentQuery = (PersistentQueryMetadata) query;
       final QueryId queryId = persistentQuery.getQueryId();
       persistentQueries.remove(queryId);
+
+      final Set<SharedKafkaStreamsRuntime> toClose = streams
+          .stream()
+          .filter(s -> s.getCollocatedQueries().isEmpty())
+          .collect(Collectors.toSet());
+      streams.removeAll(toClose);
+      toClose.forEach(SharedKafkaStreamsRuntime::close);
 
       switch (persistentQuery.getPersistentQueryType()) {
         case CREATE_SOURCE:

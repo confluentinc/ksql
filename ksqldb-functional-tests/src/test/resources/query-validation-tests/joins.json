@@ -509,7 +509,7 @@
       "statements": [
         "CREATE STREAM S_LEFT (ID BIGINT KEY, NAME varchar) WITH (kafka_topic='left_topic', value_format='KAFKA');",
         "CREATE STREAM S_RIGHT (ID BIGINT KEY, NAME varchar) WITH (kafka_topic='right_topic', value_format='KAFKA');",
-        "CREATE STREAM OUTPUT WITH(value_format='delimited') as SELECT * FROM s_left join s_right WITHIN 1 second ON s_left.id = s_right.id;"
+        "CREATE STREAM OUTPUT WITH(value_format='delimited') as SELECT * FROM s_left LEFT JOIN s_right WITHIN 1 second ON s_left.id = s_right.id;"
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
@@ -648,7 +648,237 @@
         ]
       }
     },
-     {
+    {
+      "name": "stream stream right join",
+      "format": ["AVRO", "JSON"],
+      "statements": [
+        "CREATE STREAM TEST (id BIGINT KEY, name VARCHAR, value BIGINT) WITH (kafka_topic='left_topic', value_format='{FORMAT}');",
+        "CREATE STREAM TEST_STREAM (id BIGINT KEY, f1 VARCHAR, f2 BIGINT) WITH (kafka_topic='right_topic', value_format='{FORMAT}');",
+        "CREATE STREAM OUTPUT as SELECT t.id, name, value, f1, f2 FROM test t RIGHT JOIN TEST_STREAM tt WITHIN 11 seconds ON t.id = tt.id;"
+      ],
+      "inputs": [
+        {"topic": "left_topic", "key": 0, "value": {"NAME": "zero", "VALUE": 0}, "timestamp": 0},
+        {"topic": "right_topic", "key": 0, "value": {"F1": "blah", "F2": 50}, "timestamp": 10000},
+        {"topic": "left_topic", "key": 10, "value": {"NAME": "100", "VALUE": 5}, "timestamp": 11000},
+        {"topic": "left_topic", "key": 0, "value": {"NAME": "foo", "VALUE": 100}, "timestamp": 13000},
+        {"topic": "right_topic", "key": 0, "value": {"F1": "a", "F2": 10}, "timestamp": 15000},
+        {"topic": "right_topic", "key": 100, "value": {"F1": "newblah", "F2": 150}, "timestamp": 16000},
+        {"topic": "left_topic", "key": 90, "value": {"NAME": "ninety", "VALUE": 90}, "timestamp": 17000},
+        {"topic": "left_topic", "key": 0, "value": {"NAME": "bar", "VALUE": 99}, "timestamp": 30000}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 0, "value": {"NAME": "zero", "VALUE": 0, "F1": "blah", "F2": 50}, "timestamp": 10000},
+        {"topic": "OUTPUT", "key": 0, "value": {"NAME": "foo", "VALUE": 100, "F1": "blah", "F2": 50}, "timestamp": 13000},
+        {"topic": "OUTPUT", "key": 0, "value": {"NAME": "foo", "VALUE": 100, "F1": "a", "F2": 10}, "timestamp": 15000},
+        {"topic": "OUTPUT", "key": 100, "value": {"NAME": null, "VALUE": null, "F1": "newblah", "F2": 150}, "timestamp": 16000}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "T_ID BIGINT KEY, NAME STRING, VALUE BIGINT, F1 STRING, F2 BIGINT"}
+        ],
+        "topics": {
+          "blacklist": ".*-repartition"
+        }
+      }
+    },
+    {
+      "name": "stream stream right join all fields",
+      "statements": [
+        "CREATE STREAM TEST (ID BIGINT KEY, NAME varchar, VALUE bigint) WITH (kafka_topic='left_topic', value_format='DELIMITED');",
+        "CREATE STREAM TEST_STREAM (ID BIGINT KEY, F1 varchar, F2 bigint) WITH (kafka_topic='right_topic', value_format='DELIMITED');",
+        "CREATE STREAM OUTPUT as SELECT * FROM test t RIGHT JOIN TEST_STREAM tt WITHIN 11 seconds ON t.id = tt.id;"
+      ],
+      "inputs": [
+        {"topic": "left_topic", "key": 0, "value": "zero,0", "timestamp": 0},
+        {"topic": "right_topic", "key": 0, "value": "blah,50", "timestamp": 10000},
+        {"topic": "left_topic", "key": 10, "value": "100,5", "timestamp": 11000},
+        {"topic": "left_topic", "key": 0, "value": "foo,100", "timestamp": 13000},
+        {"topic": "right_topic", "key": 0, "value": "a,10", "timestamp": 15000},
+        {"topic": "right_topic", "key": 100, "value": "newblah,150", "timestamp": 16000},
+        {"topic": "left_topic", "key": 90, "value": "ninety,90", "timestamp": 17000},
+        {"topic": "left_topic", "key": 0, "value": "bar,99", "timestamp": 30000}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 0, "value": "zero,0,0,blah,50", "timestamp": 10000},
+        {"topic": "OUTPUT", "key": 0, "value": "foo,100,0,blah,50", "timestamp": 13000},
+        {"topic": "OUTPUT", "key": 0, "value": "foo,100,0,a,10", "timestamp": 15000},
+        {"topic": "OUTPUT", "key": 100, "value": ",,100,newblah,150", "timestamp": 16000}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "T_ID BIGINT KEY, T_NAME STRING, T_VALUE BIGINT, TT_ID BIGINT, TT_F1 STRING, TT_F2 BIGINT"}
+        ],
+        "topics": {
+          "blacklist": ".*-repartition"
+        }
+      }
+    },
+    {
+      "name": "stream stream right join - PROTOBUF",
+      "format": ["PROTOBUF"],
+      "statements": [
+        "CREATE STREAM TEST (id BIGINT KEY, name VARCHAR, value BIGINT) WITH (kafka_topic='left_topic', value_format='{FORMAT}');",
+        "CREATE STREAM TEST_STREAM (id BIGINT KEY, f1 VARCHAR, f2 BIGINT) WITH (kafka_topic='right_topic', value_format='{FORMAT}');",
+        "CREATE STREAM OUTPUT as SELECT t.id, name, value, f1, f2 FROM test t RIGHT JOIN TEST_STREAM tt WITHIN 11 seconds ON t.id = tt.id;"
+      ],
+      "inputs": [
+        {"topic": "left_topic", "key": 0, "value": {"NAME": "zero", "VALUE": 0}, "timestamp": 0},
+        {"topic": "right_topic", "key": 0, "value": {"F1": "blah", "F2": 50}, "timestamp": 10000},
+        {"topic": "left_topic", "key": 10, "value": {"NAME": "100", "VALUE": 5}, "timestamp": 11000},
+        {"topic": "left_topic", "key": 0, "value": {"NAME": "foo", "VALUE": 100}, "timestamp": 13000},
+        {"topic": "right_topic", "key": 0, "value": {"F1": "a", "F2": 10}, "timestamp": 15000},
+        {"topic": "right_topic", "key": 100, "value": {"F1": "newblah", "F2": 150}, "timestamp": 16000},
+        {"topic": "left_topic", "key": 90, "value": {"NAME": "ninety", "VALUE": 90}, "timestamp": 17000},
+        {"topic": "left_topic", "key": 0, "value": {"NAME": "bar", "VALUE": 99}, "timestamp": 30000}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 0, "value": {"NAME": "zero", "VALUE": 0, "F1": "blah", "F2": 50}, "timestamp": 10000},
+        {"topic": "OUTPUT", "key": 0, "value": {"NAME": "foo", "VALUE": 100, "F1": "blah", "F2": 50}, "timestamp": 13000},
+        {"topic": "OUTPUT", "key": 0, "value": {"NAME": "foo", "VALUE": 100, "F1": "a", "F2": 10}, "timestamp": 15000},
+        {"topic": "OUTPUT", "key": 100, "value": {"NAME": "", "VALUE": 0, "F1": "newblah", "F2": 150}, "timestamp": 16000}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "T_ID BIGINT KEY, NAME STRING, VALUE BIGINT, F1 STRING, F2 BIGINT"}
+        ],
+        "topics": {
+          "blacklist": ".*-repartition"
+        }
+      }
+    },
+    {
+      "name": "stream stream right join - KAFKA",
+      "statements": [
+        "CREATE STREAM S_LEFT (ID BIGINT KEY, NAME varchar) WITH (kafka_topic='left_topic', value_format='KAFKA');",
+        "CREATE STREAM S_RIGHT (ID BIGINT KEY, NAME varchar) WITH (kafka_topic='right_topic', value_format='KAFKA');",
+        "CREATE STREAM OUTPUT WITH(value_format='delimited') as SELECT * FROM s_left RIGHT JOIN s_right WITHIN 1 second ON s_left.id = s_right.id;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Source(s) S_LEFT, S_RIGHT are using the 'KAFKA' value format. This format does not yet support JOIN."
+      }
+    },
+    {
+      "name": "stream stream right join with key in projection - rekey",
+      "format": ["AVRO", "JSON"],
+      "statements": [
+        "CREATE STREAM TEST (K STRING KEY, ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='left_topic', value_format='{FORMAT}');",
+        "CREATE STREAM TEST_STREAM (K STRING KEY, ID bigint, F1 varchar, F2 bigint) WITH (kafka_topic='right_topic', value_format='{FORMAT}');",
+        "CREATE STREAM OUTPUT as SELECT t.id, t.k, name, value, f1, f2 FROM test t RIGHT JOIN test_stream tt WITHIN 11 seconds ON t.id = tt.id;"
+      ],
+      "inputs": [
+        {"topic": "left_topic", "key": "foo", "value": {"ID": 0, "NAME": "zero", "VALUE": 0}, "timestamp": 0},
+        {"topic": "right_topic", "key": "foo", "value": {"ID": 0, "F1": "blah", "F2": 50}, "timestamp": 10000},
+        {"topic": "left_topic", "key": "foo", "value": {"ID": 10, "NAME": "100", "VALUE": 5}, "timestamp": 11000},
+        {"topic": "left_topic", "key": "foo", "value": {"ID": 0, "NAME": "foo", "VALUE": 100}, "timestamp": 13000},
+        {"topic": "right_topic", "key": "foo", "value": {"ID": 0, "F1": "a", "F2": 10}, "timestamp": 15000},
+        {"topic": "right_topic", "key": "foo", "value": {"ID": 100, "F1": "newblah", "F2": 150}, "timestamp": 16000},
+        {"topic": "left_topic", "key": "foo", "value": {"ID": 90, "NAME": "ninety", "VALUE": 90}, "timestamp": 17000},
+        {"topic": "left_topic", "key": "foo", "value": {"ID": 0, "NAME": "bar", "VALUE": 99}, "timestamp": 30000}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 0, "value": {"T_K": "foo", "NAME": "zero", "VALUE": 0, "F1": "blah", "F2": 50}, "timestamp": 10000},
+        {"topic": "OUTPUT", "key": 0, "value": {"T_K": "foo", "NAME": "foo", "VALUE": 100, "F1": "blah", "F2": 50}, "timestamp": 13000},
+        {"topic": "OUTPUT", "key": 0, "value": {"T_K": "foo", "NAME": "foo", "VALUE": 100, "F1": "a", "F2": 10}, "timestamp": 15000},
+        {"topic": "OUTPUT", "key": 100, "value": {"T_K": null, "NAME": null, "VALUE": null, "F1": "newblah", "F2": 150}, "timestamp": 16000}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "T_ID BIGINT KEY, T_K STRING, NAME STRING, VALUE BIGINT, F1 STRING, F2 BIGINT"}
+        ]
+      }
+    },
+    {
+      "name": "stream stream right join with key in projection - rekey",
+      "format": ["PROTOBUF"],
+      "statements": [
+        "CREATE STREAM TEST (K STRING KEY, ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='left_topic', value_format='{FORMAT}');",
+        "CREATE STREAM TEST_STREAM (K STRING KEY, ID bigint, F1 varchar, F2 bigint) WITH (kafka_topic='right_topic', value_format='{FORMAT}');",
+        "CREATE STREAM OUTPUT as SELECT t.id, t.k, name, value, f1, f2 FROM test t RIGHT JOIN test_stream tt WITHIN 11 seconds ON t.id = tt.id;"
+      ],
+      "inputs": [
+        {"topic": "left_topic", "key": "foo", "value": {"ID": 0, "NAME": "zero", "VALUE": 0}, "timestamp": 0},
+        {"topic": "right_topic", "key": "foo", "value": {"ID": 0, "F1": "blah", "F2": 50}, "timestamp": 10000},
+        {"topic": "left_topic", "key": "foo", "value": {"ID": 10, "NAME": "100", "VALUE": 5}, "timestamp": 11000},
+        {"topic": "left_topic", "key": "foo", "value": {"ID": 0, "NAME": "foo", "VALUE": 100}, "timestamp": 13000},
+        {"topic": "right_topic", "key": "foo", "value": {"ID": 0, "F1": "a", "F2": 10}, "timestamp": 15000},
+        {"topic": "right_topic", "key": "foo", "value": {"ID": 100, "F1": "newblah", "F2": 150}, "timestamp": 16000},
+        {"topic": "left_topic", "key": "foo", "value": {"ID": 90, "NAME": "ninety", "VALUE": 90}, "timestamp": 17000},
+        {"topic": "left_topic", "key": "foo", "value": {"ID": 0, "NAME": "bar", "VALUE": 99}, "timestamp": 30000}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 0, "value": {"T_K": "foo", "NAME": "zero", "VALUE": 0, "F1": "blah", "F2": 50}, "timestamp": 10000},
+        {"topic": "OUTPUT", "key": 0, "value": {"T_K": "foo", "NAME": "foo", "VALUE": 100, "F1": "blah", "F2": 50}, "timestamp": 13000},
+        {"topic": "OUTPUT", "key": 0, "value": {"T_K": "foo", "NAME": "foo", "VALUE": 100, "F1": "a", "F2": 10}, "timestamp": 15000},
+        {"topic": "OUTPUT", "key": 100, "value": {"T_K": "", "NAME": "", "VALUE": 0, "F1": "newblah", "F2": 150}, "timestamp": 16000}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "T_ID BIGINT KEY, T_K STRING, NAME STRING, VALUE BIGINT, F1 STRING, F2 BIGINT"}
+        ]
+      }
+    },
+    {
+      "name": "stream stream right join - rekey",
+      "format": ["AVRO", "JSON"],
+      "statements": [
+        "CREATE STREAM TEST (K STRING KEY, ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='left_topic', value_format='{FORMAT}');",
+        "CREATE STREAM TEST_STREAM (K STRING KEY, ID bigint, F1 varchar, F2 bigint) WITH (kafka_topic='right_topic', value_format='{FORMAT}');",
+        "CREATE STREAM OUTPUT as SELECT t.id, name, value, f1, f2 FROM test t RIGHT JOIN test_stream tt WITHIN 11 seconds ON t.id = tt.id;"
+      ],
+      "inputs": [
+        {"topic": "left_topic", "value": {"ID": 0, "NAME": "zero", "VALUE": 0}, "timestamp": 0},
+        {"topic": "right_topic", "value": {"ID": 0, "F1": "blah", "F2": 50}, "timestamp": 10000},
+        {"topic": "left_topic", "value": {"ID": 10, "NAME": "100", "VALUE": 5}, "timestamp": 11000},
+        {"topic": "left_topic", "value": {"ID": 0, "NAME": "foo", "VALUE": 100}, "timestamp": 13000},
+        {"topic": "right_topic", "value": {"ID": 0, "F1": "a", "F2": 10}, "timestamp": 15000},
+        {"topic": "right_topic", "value": {"ID": 100, "F1": "newblah", "F2": 150}, "timestamp": 16000},
+        {"topic": "left_topic", "value": {"ID": 90, "NAME": "ninety", "VALUE": 90}, "timestamp": 17000},
+        {"topic": "left_topic", "value": {"ID": 0, "NAME": "bar", "VALUE": 99}, "timestamp": 30000}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 0, "value": {"NAME": "zero", "VALUE": 0, "F1": "blah", "F2": 50}, "timestamp": 10000},
+        {"topic": "OUTPUT", "key": 0, "value": {"NAME": "foo", "VALUE": 100, "F1": "blah", "F2": 50}, "timestamp": 13000},
+        {"topic": "OUTPUT", "key": 0, "value": {"NAME": "foo", "VALUE": 100, "F1": "a", "F2": 10}, "timestamp": 15000},
+        {"topic": "OUTPUT", "key": 100, "value": {"NAME": null, "VALUE": null, "F1": "newblah", "F2": 150}, "timestamp": 16000}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "T_ID BIGINT KEY, NAME STRING, VALUE BIGINT, F1 STRING, F2 BIGINT"}
+        ]
+      }
+    },
+    {
+      "name": "stream stream right join - rekey",
+      "format": ["PROTOBUF"],
+      "statements": [
+        "CREATE STREAM TEST (K STRING KEY, ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='left_topic', value_format='{FORMAT}');",
+        "CREATE STREAM TEST_STREAM (K STRING KEY, ID bigint, F1 varchar, F2 bigint) WITH (kafka_topic='right_topic', value_format='{FORMAT}');",
+        "CREATE STREAM OUTPUT as SELECT t.id, name, value, f1, f2 FROM test t RIGHT JOIN test_stream tt WITHIN 11 seconds ON t.id = tt.id;"
+      ],
+      "inputs": [
+        {"topic": "left_topic", "value": {"ID": 0, "NAME": "zero", "VALUE": 0}, "timestamp": 0},
+        {"topic": "right_topic", "value": {"ID": 0, "F1": "blah", "F2": 50}, "timestamp": 10000},
+        {"topic": "left_topic", "value": {"ID": 10, "NAME": "100", "VALUE": 5}, "timestamp": 11000},
+        {"topic": "left_topic", "value": {"ID": 0, "NAME": "foo", "VALUE": 100}, "timestamp": 13000},
+        {"topic": "right_topic", "value": {"ID": 0, "F1": "a", "F2": 10}, "timestamp": 15000},
+        {"topic": "right_topic", "value": {"ID": 100, "F1": "newblah", "F2": 150}, "timestamp": 16000},
+        {"topic": "left_topic", "value": {"ID": 90, "NAME": "ninety", "VALUE": 90}, "timestamp": 17000},
+        {"topic": "left_topic", "value": {"ID": 0, "NAME": "bar", "VALUE": 99}, "timestamp": 30000}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 0, "value": {"NAME": "zero", "VALUE": 0, "F1": "blah", "F2": 50}, "timestamp": 10000},
+        {"topic": "OUTPUT", "key": 0, "value": {"NAME": "foo", "VALUE": 100, "F1": "blah", "F2": 50}, "timestamp": 13000},
+        {"topic": "OUTPUT", "key": 0, "value": {"NAME": "foo", "VALUE": 100, "F1": "a", "F2": 10}, "timestamp": 15000},
+        {"topic": "OUTPUT", "key": 100, "value": {"NAME": "", "VALUE": 0, "F1": "newblah", "F2": 150}, "timestamp": 16000}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "T_ID BIGINT KEY, NAME STRING, VALUE BIGINT, F1 STRING, F2 BIGINT"}
+        ]
+      }
+    },
+    {
       "name": "stream stream inner join",
       "format": ["AVRO", "JSON", "PROTOBUF"],
       "statements": [
@@ -859,8 +1089,8 @@
       "name": "stream stream inner join with out of order and custom grace period",
       "format": ["AVRO", "JSON", "PROTOBUF"],
       "statements": [
-        "CREATE STREAM LEFT_STREAM (ID BIGINT KEY, L1 varchar) WITH (kafka_topic='left_topic', value_format='{FORMAT}');",
-        "CREATE STREAM RIGHT_STREAM (ID BIGINT KEY, L2 varchar) WITH (kafka_topic='right_topic', value_format='{FORMAT}');",
+        "CREATE STREAM LEFT_STREAM (id BIGINT KEY, l1 VARCHAR) WITH (kafka_topic='left_topic', value_format='{FORMAT}');",
+        "CREATE STREAM RIGHT_STREAM (id BIGINT KEY, l2 VARCHAR) WITH (kafka_topic='right_topic', value_format='{FORMAT}');",
         "CREATE STREAM INNER_JOIN as SELECT t.id, l1, l2 FROM LEFT_STREAM t join RIGHT_STREAM tt WITHIN 1 minute GRACE PERIOD 1 minute on t.id = tt.id;"
       ],
       "inputs": [
@@ -881,8 +1111,8 @@
       "name": "stream stream left join with out of order and custom grace period",
       "format": ["AVRO", "JSON"],
       "statements": [
-        "CREATE STREAM LEFT_STREAM (ID BIGINT KEY, L1 varchar) WITH (kafka_topic='left_topic', value_format='{FORMAT}');",
-        "CREATE STREAM RIGHT_STREAM (ID BIGINT KEY, L2 varchar) WITH (kafka_topic='right_topic', value_format='{FORMAT}');",
+        "CREATE STREAM LEFT_STREAM (id BIGINT KEY, l1 VARCHAR) WITH (kafka_topic='left_topic', value_format='{FORMAT}');",
+        "CREATE STREAM RIGHT_STREAM (id BIGINT KEY, l2 VARCHAR) WITH (kafka_topic='right_topic', value_format='{FORMAT}');",
         "CREATE STREAM LEFT_JOIN as SELECT t.id, l1, l2 FROM LEFT_STREAM t left join RIGHT_STREAM tt WITHIN 1 minute GRACE PERIOD 1 minute on t.id = tt.id;"
       ],
       "inputs": [
@@ -902,11 +1132,35 @@
       ]
     },
     {
+      "name": "stream stream right join with out of order and custom grace period",
+      "format": ["AVRO", "JSON"],
+      "statements": [
+        "CREATE STREAM LEFT_STREAM (id BIGINT KEY, l1 VARCHAR) WITH (kafka_topic='left_topic', value_format='{FORMAT}');",
+        "CREATE STREAM RIGHT_STREAM (id BIGINT KEY, l2 VARCHAR) WITH (kafka_topic='right_topic', value_format='{FORMAT}');",
+        "CREATE STREAM RIGHT_JOIN as SELECT t.id, l1, l2 FROM LEFT_STREAM t RIGHT JOIN RIGHT_STREAM tt WITHIN 1 minute GRACE PERIOD 1 minute on t.id = tt.id;"
+      ],
+      "inputs": [
+        {"topic": "left_topic", "key": 0, "value": {"L1": "A"}, "timestamp": 0},
+        {"topic": "right_topic", "key": 0, "value": {"L2": "a"}, "timestamp": 60000},
+        {"topic": "left_topic", "key": 1, "value": {"L1": "B"}, "timestamp": 330000},
+        {"topic": "left_topic", "key": 2, "value": {"L1": "C"}, "timestamp": 90000},
+        {"topic": "right_topic", "key": 2, "value": {"L2": "c"}, "timestamp": 90000},
+        {"topic": "right_topic", "key": 3, "value": {"L2": "d"}, "timestamp": 60000},
+        {"topic": "left_topic", "key": 3, "value": {"L1": "D"}, "timestamp": 90000}
+      ],
+      "outputs": [
+        {"topic": "RIGHT_JOIN", "key": 0, "value": {"L1": "A", "L2": "a"}, "timestamp": 60000},
+        {"topic": "RIGHT_JOIN", "key": 2, "value": {"L1": "C", "L2": "c"}, "timestamp": 90000},
+        {"topic": "RIGHT_JOIN", "key": 3, "value": {"L1": null, "L2": "d"}, "timestamp": 60000},
+        {"topic": "RIGHT_JOIN", "key": 3, "value": {"L1": "D", "L2": "d"}, "timestamp": 90000}
+      ]
+    },
+    {
       "name": "stream stream full outer join with out of order and custom grace period",
       "format": ["AVRO", "JSON"],
       "statements": [
-        "CREATE STREAM LEFT_STREAM (ID BIGINT KEY, L1 varchar) WITH (kafka_topic='left_topic', value_format='{FORMAT}');",
-        "CREATE STREAM RIGHT_STREAM (ID BIGINT KEY, L2 varchar) WITH (kafka_topic='right_topic', value_format='{FORMAT}');",
+        "CREATE STREAM LEFT_STREAM (id BIGINT KEY, l1 VARCHAR) WITH (kafka_topic='left_topic', value_format='{FORMAT}');",
+        "CREATE STREAM RIGHT_STREAM (id BIGINT KEY, l2 VARCHAR) WITH (kafka_topic='right_topic', value_format='{FORMAT}');",
         "CREATE STREAM OUTER_JOIN as SELECT ROWKEY as ID, t.id, tt.id, l1, l2 FROM LEFT_STREAM t full outer join RIGHT_STREAM tt WITHIN 1 minute GRACE PERIOD 1 minute on t.id = tt.id;"
       ],
       "inputs": [
@@ -1005,8 +1259,8 @@
       "name": "table table left join",
       "format": ["AVRO", "JSON"],
       "statements": [
-        "CREATE TABLE TEST (ID BIGINT PRIMARY KEY, NAME varchar, VALUE bigint) WITH (kafka_topic='left_topic', value_format='{FORMAT}');",
-        "CREATE TABLE TEST_TABLE (ID BIGINT PRIMARY KEY, F1 varchar, F2 bigint) WITH (kafka_topic='right_topic', value_format='{FORMAT}');",
+        "CREATE TABLE TEST (id BIGINT PRIMARY KEY, name VARCHAR, value BIGINT) WITH (kafka_topic='left_topic', value_format='{FORMAT}');",
+        "CREATE TABLE TEST_TABLE (id BIGINT PRIMARY KEY, f1 VARCHAR, f2 BIGINT) WITH (kafka_topic='right_topic', value_format='{FORMAT}');",
         "CREATE TABLE OUTPUT as SELECT t.id, name, value, f1, f2 FROM test t left join TEST_TABLE tt on t.id = tt.id;"
       ],
       "inputs": [
@@ -1039,8 +1293,8 @@
     {
       "name": "table table left join - PROTOBUF",
       "statements": [
-        "CREATE TABLE TEST (ID BIGINT PRIMARY KEY, NAME varchar, VALUE bigint) WITH (kafka_topic='left_topic', value_format='PROTOBUF');",
-        "CREATE TABLE TEST_TABLE (ID BIGINT PRIMARY KEY, F1 varchar, F2 bigint) WITH (kafka_topic='right_topic', value_format='PROTOBUF');",
+        "CREATE TABLE TEST (id BIGINT PRIMARY KEY, name VARCHAR, value BIGINT) WITH (kafka_topic='left_topic', value_format='PROTOBUF');",
+        "CREATE TABLE TEST_TABLE (id BIGINT PRIMARY KEY, f1 VARCHAR, f2 BIGINT) WITH (kafka_topic='right_topic', value_format='PROTOBUF');",
         "CREATE TABLE OUTPUT as SELECT t.id, name, value, f1, f2 FROM test t left join TEST_TABLE tt on t.id = tt.id;"
       ],
       "inputs": [
@@ -1071,11 +1325,109 @@
       }
     },
     {
+      "name": "table table right join",
+      "format": ["AVRO", "JSON"],
+      "statements": [
+        "CREATE TABLE TEST (id BIGINT PRIMARY KEY, name VARCHAR, value BIGINT) WITH (kafka_topic='left_topic', value_format='{FORMAT}');",
+        "CREATE TABLE TEST_TABLE (id BIGINT PRIMARY KEY, f1 VARCHAR, f2 BIGINT) WITH (kafka_topic='right_topic', value_format='{FORMAT}');",
+        "CREATE TABLE OUTPUT AS SELECT t.id, name, value, f1, f2 FROM test t RIGHT JOIN test_table tt ON t.id = tt.id;"
+      ],
+      "inputs": [
+        {"topic": "left_topic", "key": 0, "value": {"NAME": "zero", "VALUE": 0}, "timestamp": 0},
+        {"topic": "right_topic", "key": 0, "value": {"F1": "blah", "F2": 50}, "timestamp": 10000},
+        {"topic": "left_topic", "key": 10, "value": {"NAME": "100", "VALUE": 5}, "timestamp": 11000},
+        {"topic": "left_topic", "key": 0, "value": {"NAME": "foo", "VALUE": 100}, "timestamp": 13000},
+        {"topic": "right_topic", "key": 0, "value": {"F1": "a", "F2": 10}, "timestamp": 15000},
+        {"topic": "left_topic", "key": 0, "value": {"NAME": "bar", "VALUE": 99}, "timestamp": 16000},
+        {"topic": "left_topic", "key": 90, "value": {"NAME": "ninety", "VALUE": 90}, "timestamp": 17000},
+        {"topic": "right_topic", "key": 7, "value": {"F1": "b", "F2": 20}, "timestamp": 18000}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 0, "value": {"NAME": "zero", "VALUE": 0, "F1": "blah", "F2": 50}, "timestamp": 10000},
+        {"topic": "OUTPUT", "key": 0, "value": {"NAME": "foo", "VALUE": 100, "F1": "blah", "F2": 50}, "timestamp": 13000},
+        {"topic": "OUTPUT", "key": 0, "value": {"NAME": "foo", "VALUE": 100, "F1": "a", "F2": 10}, "timestamp": 15000},
+        {"topic": "OUTPUT", "key": 0, "value": {"NAME": "bar", "VALUE": 99, "F1": "a", "F2": 10}, "timestamp": 16000},
+        {"topic": "OUTPUT", "key": 7, "value": {"NAME": null, "VALUE": null, "F1": "b", "F2": 20}, "timestamp": 18000}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "table", "schema": "`T_ID` BIGINT KEY, `NAME` STRING, `VALUE` BIGINT, `F1` STRING, `F2` BIGINT"}
+        ],
+        "topics": {
+          "blacklist": ".*-repartition"
+        }
+      }
+    },
+    {
+      "name": "table table right join - PROTOBUF",
+      "statements": [
+        "CREATE TABLE TEST (id BIGINT PRIMARY KEY, name VARCHAR, value BIGINT) WITH (kafka_topic='left_topic', value_format='PROTOBUF');",
+        "CREATE TABLE TEST_TABLE (id BIGINT PRIMARY KEY, f1 VARCHAR, f2 BIGINT) WITH (kafka_topic='right_topic', value_format='PROTOBUF');",
+        "CREATE TABLE OUTPUT AS SELECT t.id, name, value, f1, f2 FROM test t RIGHT JOIN test_table tt ON t.id = tt.id;"
+      ],
+      "inputs": [
+        {"topic": "left_topic", "key": 0, "value": {"NAME": "zero", "VALUE": 0}, "timestamp": 0},
+        {"topic": "right_topic", "key": 0, "value": {"F1": "blah", "F2": 50}, "timestamp": 10000},
+        {"topic": "left_topic", "key": 10, "value": {"NAME": "100", "VALUE": 5}, "timestamp": 11000},
+        {"topic": "left_topic", "key": 0, "value": {"NAME": "foo", "VALUE": 100}, "timestamp": 13000},
+        {"topic": "right_topic", "key": 0, "value": {"F1": "a", "F2": 10}, "timestamp": 15000},
+        {"topic": "left_topic", "key": 0, "value": {"NAME": "bar", "VALUE": 99}, "timestamp": 16000},
+        {"topic": "left_topic", "key": 90, "value": {"NAME": "ninety", "VALUE": 90}, "timestamp": 17000},
+        {"topic": "right_topic", "key": 7, "value": {"F1": "b", "F2": 20}, "timestamp": 18000}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 0, "value": {"NAME": "zero", "VALUE": 0, "F1": "blah", "F2": 50}, "timestamp": 10000},
+        {"topic": "OUTPUT", "key": 0, "value": {"NAME": "foo", "VALUE": 100, "F1": "blah", "F2": 50}, "timestamp": 13000},
+        {"topic": "OUTPUT", "key": 0, "value": {"NAME": "foo", "VALUE": 100, "F1": "a", "F2": 10}, "timestamp": 15000},
+        {"topic": "OUTPUT", "key": 0, "value": {"NAME": "bar", "VALUE": 99, "F1": "a", "F2": 10}, "timestamp": 16000},
+        {"topic": "OUTPUT", "key": 7, "value": {"NAME": "", "VALUE": 0, "F1": "b", "F2": 20}, "timestamp": 18000}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "table", "schema": "`T_ID` BIGINT KEY, `NAME` STRING, `VALUE` BIGINT, `F1` STRING, `F2` BIGINT"}
+        ],
+        "topics": {
+          "blacklist": ".*-repartition"
+        }
+      }
+    },
+    {
+      "name": "table table right join all fields",
+      "statements": [
+        "CREATE TABLE TEST (id BIGINT PRIMARY KEY, name VARCHAR, value BIGINT) WITH (kafka_topic='left_topic', value_format='DELIMITED');",
+        "CREATE TABLE TEST_TABLE (id BIGINT PRIMARY KEY, f1 VARCHAR, f2 BIGINT) WITH (kafka_topic='right_topic', value_format='DELIMITED');",
+        "CREATE TABLE OUTPUT AS SELECT * FROM test t RIGHT JOIN test_table tt ON t.id = tt.id;"
+      ],
+      "inputs": [
+        {"topic": "left_topic", "key": 0, "value": "zero,0", "timestamp": 0},
+        {"topic": "right_topic", "key": 0, "value": "blah,50", "timestamp": 10000},
+        {"topic": "left_topic", "key": 10, "value": "100,5", "timestamp": 11000},
+        {"topic": "left_topic", "key": 0, "value": "foo,100", "timestamp": 13000},
+        {"topic": "right_topic", "key": 0, "value": "a,10", "timestamp": 15000},
+        {"topic": "right_topic", "key": 100, "value": "newblah,150", "timestamp": 16000},
+        {"topic": "left_topic", "key": 90, "value": "ninety,90", "timestamp": 17000}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 0, "value": "zero,0,0,blah,50", "timestamp": 10000},
+        {"topic": "OUTPUT", "key": 0, "value": "foo,100,0,blah,50", "timestamp": 13000},
+        {"topic": "OUTPUT", "key": 0, "value": "foo,100,0,a,10", "timestamp": 15000},
+        {"topic": "OUTPUT", "key": 100, "value": ",,100,newblah,150", "timestamp": 16000}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "table", "schema": "T_ID BIGINT KEY, T_NAME STRING, T_VALUE BIGINT, TT_ID BIGINT, TT_F1 STRING, TT_F2 BIGINT"}
+        ],
+        "topics": {
+          "blacklist": ".*-repartition"
+        }
+      }
+    },
+    {
       "name": "table table inner join",
       "format": ["AVRO", "JSON", "PROTOBUF"],
       "statements": [
-        "CREATE TABLE TEST (ID BIGINT PRIMARY KEY, NAME varchar, VALUE bigint) WITH (kafka_topic='left_topic', value_format='{FORMAT}');",
-        "CREATE TABLE TEST_TABLE (ID BIGINT PRIMARY KEY, F1 varchar, F2 bigint) WITH (kafka_topic='right_topic', value_format='{FORMAT}');",
+        "CREATE TABLE TEST (id BIGINT PRIMARY KEY, name VARCHAR, value BIGINT) WITH (kafka_topic='left_topic', value_format='{FORMAT}');",
+        "CREATE TABLE TEST_TABLE (id BIGINT PRIMARY KEY, f1 VARCHAR, f2 BIGINT) WITH (kafka_topic='right_topic', value_format='{FORMAT}');",
         "CREATE TABLE INNER_JOIN as SELECT t.id, name, value, f1, f2 FROM test t join TEST_TABLE tt on t.id = tt.id;"
       ],
       "inputs": [
@@ -1107,8 +1459,8 @@
       "name": "table table outer join",
       "format": ["AVRO", "JSON"],
       "statements": [
-        "CREATE TABLE TEST (ID BIGINT PRIMARY KEY, NAME varchar, VALUE bigint) WITH (kafka_topic='left_topic', value_format='{FORMAT}');",
-        "CREATE TABLE TEST_TABLE (ID BIGINT PRIMARY KEY, F1 varchar, F2 bigint) WITH (kafka_topic='right_topic', value_format='{FORMAT}');",
+        "CREATE TABLE TEST (id BIGINT PRIMARY KEY, name VARCHAR, value BIGINT) WITH (kafka_topic='left_topic', value_format='{FORMAT}');",
+        "CREATE TABLE TEST_TABLE (id BIGINT PRIMARY KEY, f1 VARCHAR, f2 BIGINT) WITH (kafka_topic='right_topic', value_format='{FORMAT}');",
         "CREATE TABLE OUTER_JOIN as SELECT ROWKEY AS ID, name, value, f1, f2 FROM test t FULL OUTER join TEST_TABLE tt on t.id = tt.id;"
       ],
       "inputs": [
@@ -1141,8 +1493,8 @@
     {
       "name": "table table outer join - PROTOBUF",
       "statements": [
-        "CREATE TABLE TEST (ID BIGINT PRIMARY KEY, NAME varchar, VALUE bigint) WITH (kafka_topic='left_topic', value_format='PROTOBUF');",
-        "CREATE TABLE TEST_TABLE (ID BIGINT PRIMARY KEY, F1 varchar, F2 bigint) WITH (kafka_topic='right_topic', value_format='PROTOBUF');",
+        "CREATE TABLE TEST (id BIGINT PRIMARY KEY, name VARCHAR, value BIGINT) WITH (kafka_topic='left_topic', value_format='PROTOBUF');",
+        "CREATE TABLE TEST_TABLE (id BIGINT PRIMARY KEY, f1 VARCHAR, f2 BIGINT) WITH (kafka_topic='right_topic', value_format='PROTOBUF');",
         "CREATE TABLE OUTER_JOIN as SELECT ROWKEY AS ID, t.id, tt.id, name, value, f1, f2 FROM test t FULL OUTER join TEST_TABLE tt on t.id = tt.id;"
       ],
       "inputs": [
@@ -1177,7 +1529,7 @@
       "format": ["AVRO", "JSON"],
       "statements": [
         "CREATE STREAM TEST (ID BIGINT KEY, NAME varchar, VALUE bigint) WITH (kafka_topic='test_topic', value_format='{FORMAT}');",
-        "CREATE TABLE TEST_TABLE (ID BIGINT PRIMARY KEY, F1 varchar, F2 bigint) WITH (kafka_topic='test_table', value_format='{FORMAT}');",
+        "CREATE TABLE TEST_TABLE (id BIGINT PRIMARY KEY, f1 VARCHAR, f2 BIGINT) WITH (kafka_topic='test_table', value_format='{FORMAT}');",
         "CREATE STREAM LEFT_JOIN as SELECT t.id, name, value, f1, f2 FROM test t left join test_table tt on t.id = tt.id;"
       ],
       "inputs": [
@@ -1208,7 +1560,7 @@
       "name": "stream table left join - PROTOBUF",
       "statements": [
         "CREATE STREAM TEST (ID BIGINT KEY, NAME varchar, VALUE bigint) WITH (kafka_topic='test_topic', value_format='PROTOBUF');",
-        "CREATE TABLE TEST_TABLE (ID BIGINT PRIMARY KEY, F1 varchar, F2 bigint) WITH (kafka_topic='test_table', value_format='PROTOBUF');",
+        "CREATE TABLE TEST_TABLE (id BIGINT PRIMARY KEY, f1 VARCHAR, f2 BIGINT) WITH (kafka_topic='test_table', value_format='PROTOBUF');",
         "CREATE STREAM LEFT_JOIN as SELECT t.id, name, value, f1, f2 FROM test t left join test_table tt on t.id = tt.id;"
       ],
       "inputs": [
@@ -1240,7 +1592,7 @@
       "format": ["AVRO", "JSON", "PROTOBUF"],
       "statements": [
         "CREATE STREAM TEST (ID BIGINT KEY, NAME varchar, VALUE bigint) WITH (kafka_topic='test_topic', value_format='{FORMAT}');",
-        "CREATE TABLE TEST_TABLE (ID BIGINT PRIMARY KEY, F1 varchar, F2 bigint) WITH (kafka_topic='test_table', value_format='{FORMAT}');",
+        "CREATE TABLE TEST_TABLE (id BIGINT PRIMARY KEY, f1 VARCHAR, f2 BIGINT) WITH (kafka_topic='test_table', value_format='{FORMAT}');",
         "CREATE STREAM INNER_JOIN as SELECT t.id, name, value, f1, f2 FROM test t join test_table tt on t.id = tt.id;"
       ],
       "inputs": [
@@ -1270,8 +1622,8 @@
       "name": "table join pipeline",
       "format": ["JSON"],
       "statements": [
-        "CREATE TABLE TEST (ID BIGINT PRIMARY KEY, NAME varchar, VALUE bigint) WITH (kafka_topic='left_topic', value_format='{FORMAT}');",
-        "CREATE TABLE TEST_TABLE (ID BIGINT PRIMARY KEY, F1 varchar, F2 bigint) WITH (kafka_topic='right_topic', value_format='{FORMAT}');",
+        "CREATE TABLE TEST (id BIGINT PRIMARY KEY, name VARCHAR, value BIGINT) WITH (kafka_topic='left_topic', value_format='{FORMAT}');",
+        "CREATE TABLE TEST_TABLE (id BIGINT PRIMARY KEY, f1 VARCHAR, f2 BIGINT) WITH (kafka_topic='right_topic', value_format='{FORMAT}');",
         "CREATE TABLE TEST_TABLE_2 (ID BIGINT PRIMARY KEY, F3 varchar) WITH (kafka_topic='right_topic_2', value_format='{FORMAT}');",
         "CREATE TABLE INNER_JOIN WITH (PARTITIONS=4) as SELECT t.id AS ID, name, value, f1, f2 FROM test t join TEST_TABLE tt on t.id = tt.id;",
         "CREATE TABLE INNER_JOIN_2 AS SELECT tt.id, name, f1, f3 FROM inner_join tt join TEST_TABLE_2 t ON t.id = tt.id;"
@@ -1297,8 +1649,8 @@
     {
       "name": "table table join with where clause",
       "statements": [
-        "CREATE TABLE TEST (ID BIGINT PRIMARY KEY, NAME varchar, VALUE bigint) WITH (kafka_topic='left_topic', value_format='JSON');",
-        "CREATE TABLE TEST_TABLE (ID BIGINT PRIMARY KEY, F1 varchar, F2 bigint) WITH (kafka_topic='right_topic', value_format='JSON');",
+        "CREATE TABLE TEST (id BIGINT PRIMARY KEY, name VARCHAR, value BIGINT) WITH (kafka_topic='left_topic', value_format='JSON');",
+        "CREATE TABLE TEST_TABLE (id BIGINT PRIMARY KEY, f1 VARCHAR, f2 BIGINT) WITH (kafka_topic='right_topic', value_format='JSON');",
         "CREATE TABLE OUTPUT as SELECT t.id, name, tt.f1, f2 FROM test t JOIN test_table tt ON t.id = tt.id WHERE t.value > 10 AND tt.f2 > 5;"
       ],
       "inputs": [
@@ -1542,6 +1894,30 @@
       }
     },
     {
+      "name": "stream stream right join - invalid join field - contains literal",
+      "statements": [
+        "CREATE STREAM TEST1 (ID BIGINT KEY, NAME STRING) WITH (kafka_topic='left_topic', value_format='JSON');",
+        "CREATE STREAM TEST2 (ID BIGINT KEY, NAME STRING) WITH (kafka_topic='right_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT as SELECT * FROM test1 t RIGHT JOIN test2 tt ON t.id = 0;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Invalid comparison expression '0' in join '(T.ID = 0)'. Each side of the join comparision must contain references from exactly one source."
+      }
+    },
+    {
+      "name": "stream stream right join - invalid join field on lhs- contains literal",
+      "statements": [
+        "CREATE STREAM TEST1 (ID BIGINT KEY, NAME STRING) WITH (kafka_topic='left_topic', value_format='JSON');",
+        "CREATE STREAM TEST2 (ID BIGINT KEY, NAME STRING) WITH (kafka_topic='right_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT as SELECT * FROM test1 t RIGHT JOIN test2 tt ON 0 = t.id;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Invalid comparison expression '0' in join '(0 = T.ID)'. Each side of the join comparision must contain references from exactly one source."
+      }
+    },
+    {
       "name": "stream stream join - contains function",
       "statements": [
         "CREATE STREAM TEST1 (K STRING KEY, ID varchar) WITH (kafka_topic='left_topic', value_format='JSON');",
@@ -1708,7 +2084,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "JOIN ON column 'T.IID' cannot be resolved."
+        "message": "Line: 3, Col: 69: JOIN ON column 'T.IID' cannot be resolved."
       }
     },
     {
@@ -1720,7 +2096,31 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "JOIN ON column 'TT.IID' cannot be resolved."
+        "message": "Line: 3, Col: 75: JOIN ON column 'TT.IID' cannot be resolved."
+      }
+    },
+    {
+      "name": "stream stream right join - invalid left join expression - field does not exist",
+      "statements": [
+        "CREATE STREAM TEST1 (ID INT KEY, IGNORED STRING) WITH (kafka_topic='left_topic', value_format='JSON');",
+        "CREATE STREAM TEST2 (ID INT KEY, IGNORED STRING) WITH (kafka_topic='right_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT as SELECT * FROM test1 t RIGHT JOIN test2 tt ON t.iid = tt.id;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Line: 3, Col: 70: JOIN ON column 'T.IID' cannot be resolved."
+      }
+    },
+    {
+      "name": "stream stream right join - invalid right join expression - field does not exist",
+      "statements": [
+        "CREATE STREAM TEST1 (ID INT KEY, IGNORED STRING) WITH (kafka_topic='left_topic', value_format='JSON');",
+        "CREATE STREAM TEST2 (ID INT KEY, IGNORED STRING) WITH (kafka_topic='right_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT as SELECT * FROM test1 t RIGHT JOIN test2 tt ON t.id = tt.iid;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Line: 3, Col: 77: JOIN ON column 'TT.IID' cannot be resolved."
       }
     },
     {

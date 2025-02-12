@@ -94,6 +94,7 @@ The following table shows all keywords in the language.
 | `QUERIES`      | list all queries                        | `LIST QUERIES;` or `SHOW QUERIES;`                                   |
 | `REPLACE`      | string replace                          | `REPLACE(col1, 'foo', 'bar')`                                        |
 | `RETENTION`    | time to retain past windows             | `WINDOW TUMBLING (SIZE 30 SECONDS, RETENTION 1000 DAYS)`             |
+| `RIGHT`        | specify `RIGHT JOIN`                    | `CREATE TABLE t AS SELECT * FROM l RIGHT JOIN r ON l.ID = r.ID;`     |
 | `RUN SCRIPT`   | execute queries from a file             | `RUN SCRIPT <path-to-query-file>;`                                   |
 | `SAMPLE`       | number of messages to skip in `PRINT`   | `PRINT <topic-name> SAMPLE 5;`                                       |
 | `SECOND`       | time unit of one sec for a window       | `WINDOW TUMBLING (SIZE 1 SECOND, RETENTION 1 DAY)`                   |

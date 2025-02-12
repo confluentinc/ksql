@@ -1,7 +1,7 @@
 # KLIP 57 - Reading Kafka headers in ksqlDB
 **Author**: Zara Lim (@jzaralim) | 
-**Release Target**: 0.25 | 
-**Status**: _In Discussion_ | 
+**Release Target**: 0.24 | 
+**Status**: _Merged_ | 
 **Discussion**: https://github.com/confluentinc/ksql/pull/8293
 
 **tl;dr:** _Expose Kafka header data in ksqlDB. Currently, headers are the only metadata in a Kafka record that is invisible to users._

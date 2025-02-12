@@ -14,6 +14,7 @@
 
 package io.confluent.ksql.rest.server.computation;
 
+import com.google.common.util.concurrent.RateLimiter;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.metastore.MetaStore;
@@ -31,7 +32,9 @@ import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
 import io.confluent.ksql.rest.entity.KsqlWarning;
 import io.confluent.ksql.rest.entity.WarningEntity;
+import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.server.execution.StatementExecutorResponse;
+import io.confluent.ksql.rest.server.resources.KsqlRestException;
 import io.confluent.ksql.security.KsqlAuthorizationValidator;
 import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.services.ServiceContext;
@@ -47,6 +50,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
 import org.apache.kafka.clients.producer.Producer;
@@ -61,7 +65,9 @@ import org.apache.kafka.common.errors.TimeoutException;
  * duration for the command to be executed remotely if configured with a
  * {@code distributedCmdResponseTimeout}.
  */
+// CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public class DistributingExecutor {
+  // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
   private final CommandQueue commandQueue;
   private final Duration distributedCmdResponseTimeout;
   private final BiFunction<KsqlExecutionContext, ServiceContext, Injector> injectorFactory;
@@ -71,6 +77,7 @@ public class DistributingExecutor {
   private final ReservedInternalTopics internalTopics;
   private final Errors errorHandler;
   private final Supplier<String> commandRunnerWarning;
+  private final RateLimiter rateLimiter;
 
   @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
   public DistributingExecutor(
@@ -99,6 +106,9 @@ public class DistributingExecutor {
     this.errorHandler = Objects.requireNonNull(errorHandler, "errorHandler");
     this.commandRunnerWarning =
         Objects.requireNonNull(commandRunnerWarning, "commandRunnerWarning");
+    final KsqlRestConfig restConfig = new KsqlRestConfig(ksqlConfig.originals());
+    this.rateLimiter = 
+      RateLimiter.create(restConfig.getDouble(KsqlRestConfig.KSQL_COMMAND_TOPIC_RATE_LIMIT_CONFIG));
   }
 
   // CHECKSTYLE_RULES.OFF: CyclomaticComplexity
@@ -203,6 +213,13 @@ public class DistributingExecutor {
           e);
     }
 
+    if (!rateLimiter.tryAcquire(1, TimeUnit.SECONDS)) {
+      throw new KsqlRestException(
+        Errors.tooManyRequests(
+          "DDL/DML rate is crossing the configured rate limit of statements/second"
+        ));
+    }
+    
     CommandId commandId = null;
     try {
       transactionalProducer.beginTransaction();

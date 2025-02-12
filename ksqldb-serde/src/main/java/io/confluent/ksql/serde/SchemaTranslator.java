@@ -19,6 +19,7 @@ import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.schema.ksql.SimpleColumn;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Type for converting between ksqlDB and Schema Registry schema types.
@@ -34,6 +35,12 @@ public interface SchemaTranslator {
    * @return the name of this Format
    */
   String name();
+
+  /**
+   * Configure the schema translator
+   * @param configs Configs to configure
+   */
+  void configure(Map<String, ?> configs);
 
   /**
    * Converts the {@link ParsedSchema} returned by Confluent Schema Registry into a list of column

@@ -15,7 +15,7 @@
 
 package io.confluent.ksql.rest.server.resources.streaming;
 
-import io.confluent.ksql.physical.scalablepush.PushRoutingOptions;
+import io.confluent.ksql.execution.scalablepush.PushRoutingOptions;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlRequestConfig;
 import java.util.Map;
@@ -92,6 +92,6 @@ public class PushQueryConfigRoutingOptions implements PushRoutingOptions {
     if (configOverrides.containsKey(KsqlConfig.KSQL_QUERY_PUSH_V2_ALOS_ENABLED)) {
       return (Boolean) configOverrides.get(KsqlConfig.KSQL_QUERY_PUSH_V2_ALOS_ENABLED);
     }
-    return KsqlConfig.KSQL_QUERY_PUSH_V2_ALOS_ENABLED_DEFAULT;
+    return ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PUSH_V2_ALOS_ENABLED);
   }
 }

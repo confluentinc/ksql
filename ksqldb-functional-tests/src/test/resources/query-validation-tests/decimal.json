@@ -519,6 +519,21 @@
         {"topic": "TEST2", "value": {"RESULT": false}},
         {"topic": "TEST2", "value": {"RESULT": false}}
       ]
+    },
+    {
+      "name": "decimal between -1 and 1",
+      "statements": [
+        "CREATE STREAM TEST (ID STRING KEY, dec DECIMAL(4,2)) WITH (kafka_topic='test', value_format='DELIMITED');",
+        "CREATE STREAM TEST2 AS SELECT * FROM TEST WHERE dec < 0.08 AND dec > -0.08;"
+      ],
+      "inputs": [
+        {"topic": "test", "value": "0.05"},
+        {"topic": "test", "value": "0.55"},
+        {"topic": "test", "value": "-0.5"}
+      ],
+      "outputs": [
+        {"topic": "TEST2", "value": "0.05"}
+      ]
     }
   ]
 }

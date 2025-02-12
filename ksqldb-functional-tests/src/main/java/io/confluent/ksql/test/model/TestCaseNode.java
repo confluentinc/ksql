@@ -40,6 +40,7 @@ public class TestCaseNode {
   private final String name;
   private final VersionBoundsNode versionBounds;
   private final List<String> formats;
+  private final List<String> config;
   private final List<RecordNode> inputs;
   private final List<RecordNode> outputs;
   private final List<TopicNode> topics;
@@ -50,10 +51,26 @@ public class TestCaseNode {
   private final boolean enabled;
 
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
+  public TestCaseNode(final TestCaseNode testCaseNode, final Map<String, Object> properties) {
+    this.name = testCaseNode.name;
+    this.versionBounds = testCaseNode.versionBounds;
+    this.formats = testCaseNode.formats;
+    this.config = testCaseNode.config;
+    this.inputs = testCaseNode.inputs;
+    this.outputs = testCaseNode.outputs;
+    this.topics = testCaseNode.topics;
+    this.statements = testCaseNode.statements;
+    this.properties = immutableCopyOf(properties);
+    this.expectedException = testCaseNode.expectedException;
+    this.postConditions = testCaseNode.postConditions;
+    this.enabled = testCaseNode.enabled;
+  }
+
   public TestCaseNode(
       @JsonProperty("name") final String name,
       @JsonProperty("versions") final Optional<VersionBoundsNode> versionBounds,
       @JsonProperty("format") final List<String> formats,
+      @JsonProperty("config") final List<String> config,
       @JsonProperty("inputs") final List<RecordNode> inputs,
       @JsonProperty("outputs") final List<RecordNode> outputs,
       @JsonProperty("topics") final List<TopicNode> topics,
@@ -66,6 +83,7 @@ public class TestCaseNode {
     // CHECKSTYLE_RULES.ON: ParameterNumberCheck
     this.name = name == null ? "" : name;
     this.formats = immutableCopyOf(formats);
+    this.config = immutableCopyOf(config);
     this.versionBounds = requireNonNull(versionBounds).orElse(VersionBoundsNode.allVersions());
     this.statements = immutableCopyOf(statements);
     this.inputs = immutableCopyOf(inputs);
@@ -98,6 +116,12 @@ public class TestCaseNode {
   @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "formats is ImmutableList")
   public List<String> formats() {
     return formats;
+  }
+
+  @JsonIgnore
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "configs is ImmutableList")
+  public List<String> config() {
+    return config;
   }
 
   @JsonProperty("statements")

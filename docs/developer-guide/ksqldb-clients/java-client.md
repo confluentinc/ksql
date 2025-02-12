@@ -68,14 +68,14 @@ Start by creating a `pom.xml` for your Java application:
         <repository>
             <id>ksqlDB</id>
             <name>ksqlDB</name>
-            <url>https://ksqldb-maven.s3.amazonaws.com/maven/</url>
+            <url>https://ksqldb-mvns.s3.amazonaws.com/maven/</url>
         </repository>
     </repositories>
 
     <pluginRepositories>
         <pluginRepository>
             <id>ksqlDB</id>
-            <url>https://ksqldb-maven.s3.amazonaws.com/maven/</url>
+            <url>https://ksqldb-mvns.s3.amazonaws.com/maven/</url>
         </pluginRepository>
     </pluginRepositories>
 
@@ -731,12 +731,12 @@ Map<String, String> connectorProperties = ImmutableMap.of(
   "table.whitelist", "users",
   "key", "username"
 );
-client.createConnector("jdbc-connector", true, connectorProperties).get();
+client.createConnector("jdbc-connector", true, connectorProperties, false).get();
 ```
 
 Drop a connector:
 ```java
-client.dropConnector("jdbc-connector").get();
+client.dropConnector("jdbc-connector", true).get();
 ```
 
 List connectors:
@@ -1042,7 +1042,7 @@ ClientOptions options = ClientOptions.create()
 
 Get the API key and endpoint URL from your {{ site.ccloud }} cluster.
 
-- For the the API key, see 
+- For the API key, see 
   [Create an API key for Confluent Cloud ksqlDB](https://docs.confluent.io/cloud/current/cp-component/ksqldb-ccloud-cli.html#create-an-api-key-for-ccloud-ksql-cloud-through-the-ccloud-cli).
 - For the endpoint, run the `ccloud ksql app list` command. For more information,
   see [Access a ksqlDB application in Confluent Cloud with an API key](https://docs.confluent.io/cloud/current/cp-component/ksqldb-ccloud-cli.html#access-a-ksql-cloud-application-in-ccloud-with-an-api-key).

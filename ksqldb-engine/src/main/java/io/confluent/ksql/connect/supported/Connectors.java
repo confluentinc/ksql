@@ -25,7 +25,6 @@ import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorInfo;
-import org.apache.kafka.connect.storage.StringConverter;
 
 public enum Connectors implements SupportedConnector {
 
@@ -58,15 +57,9 @@ public enum Connectors implements SupportedConnector {
 
   public static Map<String, String> resolve(final Map<String, String> configs) {
     final SupportedConnector connector = CONNECTORS.get(configs.get(CONNECTOR_CLASS));
-    final Map<String, String> resolvedConfigs = new HashMap<>(
+    return new HashMap<>(
         connector == null ? configs : connector.resolveConfigs(configs)
     );
-
-    // at the moment, KSQL only supports String keys - when we
-    // support non-string keys we should remove this line
-    // (see: https://github.com/confluentinc/ksql/issues/3534)
-    resolvedConfigs.putIfAbsent("key.converter", StringConverter.class.getName());
-    return resolvedConfigs;
   }
 
   @Override

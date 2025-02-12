@@ -22,6 +22,7 @@ import static java.lang.String.format;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.either;
 import static org.hamcrest.Matchers.greaterThan;
+import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.startsWith;
@@ -110,7 +111,7 @@ public class EndToEndIntegrationTest {
   @Parameterized.Parameters(name = "{0}")
   public static Collection<Boolean> data() {
     return Arrays.asList(
-        false
+        false, true
     );
   }
 
@@ -240,6 +241,13 @@ public class EndToEndIntegrationTest {
 
     final List<Object> columns = waitForFirstRow(queryMetadata);
 
+    if (sharedRuntimes) {
+      assertThat(TEST_HARNESS.getKafkaCluster().getTopics(),
+          hasItem("_confluent-ksql-default_query-CSAS_CART_EVENT_PRODUCT_1-Join-repartition"));
+    } else {
+      assertThat(TEST_HARNESS.getKafkaCluster().getTopics(),
+          hasItem("_confluent-ksql-default_query_CSAS_CART_EVENT_PRODUCT_1-Join-repartition"));
+    }
     assertThat(CONSUMED_COUNT.get(), greaterThan(0));
     assertThat(PRODUCED_COUNT.get(), greaterThan(0));
     assertThat(columns.get(0).toString(), startsWith("USER_"));
@@ -343,7 +351,6 @@ public class EndToEndIntegrationTest {
       final String... args
   ) {
     final String formatted = format(statement, (Object[])args);
-    log.debug("Sending statement: {}", formatted);
 
     final List<QueryMetadata> queries = ksqlContext.sql(formatted);
 
@@ -360,14 +367,14 @@ public class EndToEndIntegrationTest {
 
   private static List<Object> waitForFirstRow(
       final TransientQueryMetadata queryMetadata
-  ) throws Exception {
+  ) {
     return verifyAvailableRows(queryMetadata, 1).get(0).values();
   }
 
   private static List<GenericRow> verifyAvailableRows(
       final TransientQueryMetadata queryMetadata,
       final int expectedRows
-  ) throws Exception {
+  ) {
     final BlockingRowQueue rowQueue = queryMetadata.getRowQueue();
 
     assertThatEventually(

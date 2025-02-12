@@ -73,7 +73,8 @@ public final class TestCaseBuilderUtil {
   public static String buildTestName(
       final Path originalFileName,
       final String testName,
-      final Optional<String> explicitFormat
+      final Optional<String> explicitFormat,
+      final Optional<String> config
   ) {
     final String prefix = filePrefix(originalFileName.toString());
 
@@ -81,7 +82,11 @@ public final class TestCaseBuilderUtil {
         .map(f -> " - " + f)
         .orElse("");
 
-    return prefix + testName + pf;
+    final String pc = config
+        .map(f -> " - " + f)
+        .orElse("");
+
+    return prefix + testName + pf + pc;
   }
 
   public static String extractSimpleTestName(

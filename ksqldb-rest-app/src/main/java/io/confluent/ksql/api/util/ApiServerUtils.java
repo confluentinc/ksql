@@ -17,11 +17,8 @@ package io.confluent.ksql.api.util;
 
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.util.QueryMask;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public final class ApiServerUtils {
-  private static final Logger LOG = LoggerFactory.getLogger(ApiServerUtils.class);
 
   private ApiServerUtils() {
   }

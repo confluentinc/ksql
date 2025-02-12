@@ -18,6 +18,7 @@ package io.confluent.ksql.tools.migrations.commands;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.inOrder;
@@ -83,7 +84,9 @@ public class ApplyMigrationCommandTest {
       + "insert into foo ( a ) values ( 'efgh' );"
       + "INSERT INTO `FOO` ( `A` ) values ( 'ijkl' );";
   private static final String CREATE_CONNECTOR = "CREATE SINK CONNECTOR woof WITH ('meow'='woof');";
+  private static final String CREATE_CONNECTOR_IF_NOT_EXISTS = "CREATE SINK CONNECTOR IF NOT EXISTS woof WITH ('meow'='woof');";
   private static final String DROP_CONNECTOR = "DROP CONNECTOR WOOF;";
+  private static final String DROP_CONNECTOR_IF_EXISTS = "DROP CONNECTOR IF EXISTS WOOF;";
   private static final Map<String, Object> CONNECTOR_PROPERTIES = ImmutableMap.of("meow", "woof");
   private static final String SET_COMMANDS = COMMAND
       + "SET 'auto.offset.reset' = 'earliest';"
@@ -150,8 +153,10 @@ public class ApplyMigrationCommandTest {
     when(ksqlClient.describeSource(MIGRATIONS_STREAM)).thenReturn(sourceDescriptionCf);
     when(ksqlClient.describeSource(MIGRATIONS_TABLE)).thenReturn(sourceDescriptionCf);
     when(ksqlClient.describeSource("`FOO`")).thenReturn(fooDescriptionCf);
-    when(ksqlClient.createConnector("`WOOF`", false, CONNECTOR_PROPERTIES)).thenReturn(voidCf);
-    when(ksqlClient.dropConnector("WOOF")).thenReturn(voidCf);
+    when(ksqlClient.createConnector("`WOOF`", false, CONNECTOR_PROPERTIES, false)).thenReturn(voidCf);
+    when(ksqlClient.createConnector("`WOOF`", false, CONNECTOR_PROPERTIES, true)).thenReturn(voidCf);
+    when(ksqlClient.dropConnector("WOOF", false)).thenReturn(voidCf);
+    when(ksqlClient.dropConnector("WOOF", true)).thenReturn(voidCf);
     when(sourceDescriptionCf.get()).thenReturn(sourceDescription);
     when(statementResultCf.get()).thenReturn(statementResult);
     when(fooDescriptionCf.get()).thenReturn(fooDescription);
@@ -171,7 +176,7 @@ public class ApplyMigrationCommandTest {
     when(versionQueryResult.get()).thenReturn(ImmutableList.of());
 
     // When:
-    final int result = command.command(config, cfg -> ksqlClient, migrationsDir, Clock.fixed(
+    final int result = command.command(config, (cfg, headers) -> ksqlClient, migrationsDir, Clock.fixed(
         Instant.ofEpochMilli(1000), ZoneId.systemDefault()));
 
     // Then:
@@ -192,7 +197,7 @@ public class ApplyMigrationCommandTest {
     when(versionQueryResult.get()).thenReturn(ImmutableList.of());
 
     // When:
-    final int result = command.command(config, cfg -> ksqlClient, migrationsDir, Clock.fixed(
+    final int result = command.command(config, (cfg, headers) -> ksqlClient, migrationsDir, Clock.fixed(
         Instant.ofEpochMilli(1000), ZoneId.systemDefault()));
 
     // Then:
@@ -225,7 +230,7 @@ public class ApplyMigrationCommandTest {
     );
 
     // When:
-    final int result = command.command(config, cfg -> ksqlClient, migrationsDir, Clock.fixed(
+    final int result = command.command(config, (cfg, headers) -> ksqlClient, migrationsDir, Clock.fixed(
         Instant.ofEpochMilli(1000), ZoneId.systemDefault()));
 
     // Then:
@@ -260,7 +265,7 @@ public class ApplyMigrationCommandTest {
     givenAppliedMigration(1, NAME, MigrationState.MIGRATED);
 
     // When:
-    final int result = command.command(config, cfg -> ksqlClient, migrationsDir, Clock.fixed(
+    final int result = command.command(config, (cfg, headers) -> ksqlClient, migrationsDir, Clock.fixed(
         Instant.ofEpochMilli(1000), ZoneId.systemDefault()));
 
     // Then:
@@ -289,7 +294,7 @@ public class ApplyMigrationCommandTest {
     givenAppliedMigration(1, NAME, MigrationState.MIGRATED);
 
     // When:
-    final int result = command.command(config, cfg -> ksqlClient, migrationsDir, Clock.fixed(
+    final int result = command.command(config, (cfg, headers) -> ksqlClient, migrationsDir, Clock.fixed(
         Instant.ofEpochMilli(1000), ZoneId.systemDefault()));
 
     // Then:
@@ -313,7 +318,7 @@ public class ApplyMigrationCommandTest {
     givenAppliedMigration(1, NAME, MigrationState.MIGRATED);
 
     // When:
-    final int result = command.command(config, cfg -> ksqlClient, migrationsDir, Clock.fixed(
+    final int result = command.command(config, (cfg, headers) -> ksqlClient, migrationsDir, Clock.fixed(
         Instant.ofEpochMilli(1000), ZoneId.systemDefault()));
 
     // Then:
@@ -333,7 +338,7 @@ public class ApplyMigrationCommandTest {
     when(versionQueryResult.get()).thenReturn(ImmutableList.of());
 
     // When:
-    final int result = command.command(config, cfg -> ksqlClient, migrationsDir, Clock.fixed(
+    final int result = command.command(config, (cfg, headers) -> ksqlClient, migrationsDir, Clock.fixed(
         Instant.ofEpochMilli(1000), ZoneId.systemDefault()));
 
     // Then:
@@ -350,7 +355,7 @@ public class ApplyMigrationCommandTest {
     givenAppliedMigration(1, NAME, MigrationState.MIGRATED);
 
     // When:
-    final int result = command.command(config, cfg -> ksqlClient, migrationsDir, Clock.fixed(
+    final int result = command.command(config, (cfg, headers) -> ksqlClient, migrationsDir, Clock.fixed(
         Instant.ofEpochMilli(1000), ZoneId.systemDefault()));
 
     // Then:
@@ -371,7 +376,7 @@ public class ApplyMigrationCommandTest {
     givenAppliedMigration(1, NAME, MigrationState.MIGRATED);
 
     // When:
-    final int result = command.command(config, cfg -> ksqlClient, migrationsDir, Clock.fixed(
+    final int result = command.command(config, (cfg, headers) -> ksqlClient, migrationsDir, Clock.fixed(
         Instant.ofEpochMilli(1000), ZoneId.systemDefault()));
 
     // Then:
@@ -392,7 +397,7 @@ public class ApplyMigrationCommandTest {
     givenAppliedMigration(1, NAME, MigrationState.MIGRATED);
 
     // When:
-    final int result = command.command(config, cfg -> ksqlClient, migrationsDir, Clock.fixed(
+    final int result = command.command(config, (cfg, headers) -> ksqlClient, migrationsDir, Clock.fixed(
         Instant.ofEpochMilli(1000), ZoneId.systemDefault()));
 
     // Then:
@@ -416,7 +421,7 @@ public class ApplyMigrationCommandTest {
     givenAppliedMigration(1, NAME, MigrationState.MIGRATED);
 
     // When:
-    final int result = command.command(config, cfg -> ksqlClient, migrationsDir, Clock.fixed(
+    final int result = command.command(config, (cfg, headers) -> ksqlClient, migrationsDir, Clock.fixed(
         Instant.ofEpochMilli(1000), ZoneId.systemDefault()));
 
     // Then:
@@ -438,7 +443,7 @@ public class ApplyMigrationCommandTest {
     givenAppliedMigration(1, NAME, MigrationState.MIGRATED);
 
     // When:
-    final int result = command.command(config, cfg -> ksqlClient, migrationsDir, Clock.fixed(
+    final int result = command.command(config, (cfg, headers) -> ksqlClient, migrationsDir, Clock.fixed(
         Instant.ofEpochMilli(1000), ZoneId.systemDefault()));
 
     // Then:
@@ -459,7 +464,7 @@ public class ApplyMigrationCommandTest {
     givenAppliedMigration(1, NAME, MigrationState.RUNNING);
 
     // When:
-    final int result = command.command(config, cfg -> ksqlClient, migrationsDir, Clock.fixed(
+    final int result = command.command(config, (cfg, headers) -> ksqlClient, migrationsDir, Clock.fixed(
         Instant.ofEpochMilli(1000), ZoneId.systemDefault()));
 
     // Then:
@@ -479,7 +484,7 @@ public class ApplyMigrationCommandTest {
     when(statementResultCf.get()).thenThrow(new ExecutionException("sql rejected", new RuntimeException()));
 
     // When:
-    final int result = command.command(config, cfg -> ksqlClient, migrationsDir, Clock.fixed(
+    final int result = command.command(config, (cfg, headers) -> ksqlClient, migrationsDir, Clock.fixed(
         Instant.ofEpochMilli(1000), ZoneId.systemDefault()));
 
     // Then:
@@ -502,7 +507,7 @@ public class ApplyMigrationCommandTest {
     givenAppliedMigration(1, NAME, MigrationState.MIGRATED);
 
     // When:
-    final int result = command.command(config, cfg -> ksqlClient, migrationsDir, Clock.fixed(
+    final int result = command.command(config, (cfg, headers) -> ksqlClient, migrationsDir, Clock.fixed(
         Instant.ofEpochMilli(1000), ZoneId.systemDefault()));
 
     // Then:
@@ -523,7 +528,7 @@ public class ApplyMigrationCommandTest {
     assertThat(new File(migrationsDir + "/foo.sql").createNewFile(), is(true));
 
     // When:
-    final int result = command.command(config, cfg -> ksqlClient, migrationsDir, Clock.fixed(
+    final int result = command.command(config, (cfg, headers) -> ksqlClient, migrationsDir, Clock.fixed(
         Instant.ofEpochMilli(1000), ZoneId.systemDefault()));
 
     // Then:
@@ -544,7 +549,7 @@ public class ApplyMigrationCommandTest {
         .thenThrow(new ExecutionException("Source not found", new RuntimeException()));
 
     // When:
-    final int result = command.command(config, cfg -> ksqlClient, migrationsDir, Clock.fixed(
+    final int result = command.command(config, (cfg, headers) -> ksqlClient, migrationsDir, Clock.fixed(
         Instant.ofEpochMilli(1000), ZoneId.systemDefault()));
 
     // Then:
@@ -561,7 +566,7 @@ public class ApplyMigrationCommandTest {
     when(versionQueryResult.get()).thenReturn(ImmutableList.of());
 
     // When:
-    final int result = command.command(config, cfg -> ksqlClient, migrationsDir, Clock.fixed(
+    final int result = command.command(config, (cfg, headers) -> ksqlClient, migrationsDir, Clock.fixed(
         Instant.ofEpochMilli(1000), ZoneId.systemDefault()));
 
     // Then:
@@ -582,7 +587,7 @@ public class ApplyMigrationCommandTest {
     givenAppliedMigration(1, NAME, MigrationState.MIGRATED);
 
     // When:
-    final int result = command.command(config, cfg -> ksqlClient, migrationsDir, Clock.fixed(
+    final int result = command.command(config, (cfg, headers) -> ksqlClient, migrationsDir, Clock.fixed(
         Instant.ofEpochMilli(1000), ZoneId.systemDefault()));
 
     // Then:
@@ -608,14 +613,36 @@ public class ApplyMigrationCommandTest {
     givenAppliedMigration(1, NAME, MigrationState.MIGRATED);
 
     // When:
-    final int result = command.command(config, cfg -> ksqlClient, migrationsDir, Clock.fixed(
+    final int result = command.command(config, (cfg, headers) -> ksqlClient, migrationsDir, Clock.fixed(
         Instant.ofEpochMilli(1000), ZoneId.systemDefault()));
 
     // Then:
     assertThat(result, is(0));
     final InOrder inOrder = inOrder(ksqlClient);
     verifyMigratedVersion(inOrder, 3, "1", MigrationState.MIGRATED,
-        () -> inOrder.verify(ksqlClient).createConnector("`WOOF`", false, CONNECTOR_PROPERTIES));
+        () -> inOrder.verify(ksqlClient).createConnector("`WOOF`", false, CONNECTOR_PROPERTIES, false));
+    inOrder.verify(ksqlClient).close();
+    inOrder.verifyNoMoreInteractions();
+  }
+
+  @Test
+  public void shouldApplyCreateConnectorIfNotExistsStatement() throws Exception {
+    // Given:
+    command = PARSER.parse("-v", "3");
+    createMigrationFile(1, NAME, migrationsDir, COMMAND);
+    createMigrationFile(3, NAME, migrationsDir,CREATE_CONNECTOR_IF_NOT_EXISTS );
+    givenCurrentMigrationVersion("1");
+    givenAppliedMigration(1, NAME, MigrationState.MIGRATED);
+
+    // When:
+    final int result = command.command(config, (cfg, headers) -> ksqlClient, migrationsDir, Clock.fixed(
+        Instant.ofEpochMilli(1000), ZoneId.systemDefault()));
+
+    // Then:
+    assertThat(result, is(0));
+    final InOrder inOrder = inOrder(ksqlClient);
+    verifyMigratedVersion(inOrder, 3, "1", MigrationState.MIGRATED,
+        () -> inOrder.verify(ksqlClient).createConnector("`WOOF`", false, CONNECTOR_PROPERTIES, true));
     inOrder.verify(ksqlClient).close();
     inOrder.verifyNoMoreInteractions();
   }
@@ -630,14 +657,36 @@ public class ApplyMigrationCommandTest {
     givenAppliedMigration(1, NAME, MigrationState.MIGRATED);
 
     // When:
-    final int result = command.command(config, cfg -> ksqlClient, migrationsDir, Clock.fixed(
+    final int result = command.command(config, (cfg, headers) -> ksqlClient, migrationsDir, Clock.fixed(
         Instant.ofEpochMilli(1000), ZoneId.systemDefault()));
 
     // Then:
     assertThat(result, is(0));
     final InOrder inOrder = inOrder(ksqlClient);
     verifyMigratedVersion(inOrder, 3, "1", MigrationState.MIGRATED,
-        () -> inOrder.verify(ksqlClient).dropConnector("WOOF"));
+        () -> inOrder.verify(ksqlClient).dropConnector("WOOF", false));
+    inOrder.verify(ksqlClient).close();
+    inOrder.verifyNoMoreInteractions();
+  }
+
+  @Test
+  public void shouldApplyDropConnectorIfExistsStatement() throws Exception {
+    // Given:
+    command = PARSER.parse("-v", "3");
+    createMigrationFile(1, NAME, migrationsDir, COMMAND);
+    createMigrationFile(3, NAME, migrationsDir, DROP_CONNECTOR_IF_EXISTS);
+    givenCurrentMigrationVersion("1");
+    givenAppliedMigration(1, NAME, MigrationState.MIGRATED);
+
+    // When:
+    final int result = command.command(config, (cfg, headers) -> ksqlClient, migrationsDir, Clock.fixed(
+        Instant.ofEpochMilli(1000), ZoneId.systemDefault()));
+
+    // Then:
+    assertThat(result, is(0));
+    final InOrder inOrder = inOrder(ksqlClient);
+    verifyMigratedVersion(inOrder, 3, "1", MigrationState.MIGRATED,
+        () -> inOrder.verify(ksqlClient).dropConnector("WOOF", true));
     inOrder.verify(ksqlClient).close();
     inOrder.verifyNoMoreInteractions();
   }
@@ -651,7 +700,7 @@ public class ApplyMigrationCommandTest {
     givenCurrentMigrationVersion("1");
 
     // When:
-    final int result = command.command(config, cfg -> ksqlClient, migrationsDir, Clock.fixed(
+    final int result = command.command(config, (cfg, headers) -> ksqlClient, migrationsDir, Clock.fixed(
         Instant.ofEpochMilli(1000), ZoneId.systemDefault()));
 
     // Then:

@@ -143,7 +143,7 @@ tables, and persistent queries, the client interface should accept a SQL stateme
 to the server endpoint directly.
 
 The server response will contain a command ID, command sequence number, and status information.
-These pieces of information are typically do not inform actions of ksqlDB users and do not need to be
+These pieces of information typically do not inform actions of ksqlDB users and do not need to be
 exposed as part of the client interface as a result.
 
 Note that the `/ksql` server endpoint accepts not only DDL/DML requests as described here, but also

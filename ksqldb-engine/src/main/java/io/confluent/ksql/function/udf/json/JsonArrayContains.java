@@ -53,7 +53,7 @@ public class JsonArrayContains {
   private static final JsonFactory PARSER_FACTORY = new JsonFactoryBuilder()
       .disable(CANONICALIZE_FIELD_NAMES)
       .build()
-      .setCodec(UdfJsonMapper.INSTANCE.get());
+      .setCodec(UdfJsonMapper.INSTANCE);
 
   private static final EnumMap<JsonToken, Predicate<Object>> TOKEN_COMPAT;
 
@@ -88,7 +88,8 @@ public class JsonArrayContains {
 
         parser.skipChildren();
         if (TOKEN_COMPAT.getOrDefault(token, foo -> false).test(val)) {
-          if (token == VALUE_NULL || Objects.equals(parser.readValueAs(val.getClass()), val)) {
+          if (token == VALUE_NULL
+              || (val != null && Objects.equals(parser.readValueAs(val.getClass()), val))) {
             return true;
           }
         }

@@ -6,7 +6,7 @@ description: The `/status` resource returns the current state of statement execu
 keywords: ksqlDB, status, create, drop, terminate
 ---
 
-CREATE, DROP, and TERMINATE statements returns an object that indicates
+CREATE, DROP, and TERMINATE statements return an object that indicates
 the current state of statement execution. A statement can be in one of
 the following states:
 

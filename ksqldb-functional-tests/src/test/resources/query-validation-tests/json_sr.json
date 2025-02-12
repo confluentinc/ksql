@@ -146,6 +146,32 @@
       }
     },
     {
+      "enabled": false,
+      "comment": "disabled until fix in for https://github.com/confluentinc/ksql/issues/8861",
+      "name": "deserialize map nested in map - value",
+      "statements": [
+        "CREATE STREAM INPUT (foo MAP<STRING, MAP<STRING,INT>>) WITH (WRAP_SINGLE_VALUE=true, kafka_topic='input_topic', value_format='JSON_SR');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": {"FOO": {"Nested": {"a": 1, "b": 2, "c": 3}}}},
+        {"topic": "input_topic", "value": {"FOO": {"Nested": {"a": 1, "b": 2, "c": null}}}},
+        {"topic": "input_topic", "value": {"FOO": null}},
+        {"topic": "input_topic", "value": null}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"FOO": {"Nested": {"a": 1, "b": 2, "c": 3}}}},
+        {"topic": "OUTPUT", "value": {"FOO": {"Nested": {"a": 1, "b": 2, "c": null}}}},
+        {"topic": "OUTPUT", "value": {"FOO": null}},
+        {"topic": "OUTPUT", "value": null}
+      ],
+      "post": {
+        "sources": [
+          {"name": "INPUT", "type": "stream", "schema": "FOO MAP<STRING, INT>"}
+        ]
+      }
+    },
+    {
       "name": "serialize anonymous primitive - value",
       "statements": [
         "CREATE STREAM INPUT (K STRING KEY, foo BOOLEAN) WITH (kafka_topic='input_topic', value_format='JSON_SR');",

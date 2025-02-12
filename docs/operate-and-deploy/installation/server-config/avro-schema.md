@@ -11,7 +11,7 @@ ksqlDB can integrate with [Confluent Schema Registry](https://docs.confluent.io/
 ksqlDB automatically retrieves (reads) and registers (writes) schemas as needed,
 which spares you from defining columns and data types  manually in `CREATE`
 statements and from manual interaction with {{ site.sr }}. For more information,
-see [Schema Inference](/operate-and-deploy/schema-registry-integration#schema-inference).
+see [Schema Inference](/operate-and-deploy/schema-registry-integration/#schema-inference).
 
 Configure ksqlDB for Avro, Protobuf, and JSON
 =============================================
@@ -19,7 +19,7 @@ Configure ksqlDB for Avro, Protobuf, and JSON
 You must configure the REST endpoint of {{ site.sr }} by setting
 `ksql.schema.registry.url` in the ksqlDB Server configuration file
 (`<path-to-confluent>/etc/ksqldb/ksql-server.properties`). For more
-information, see [Installation Instructions](../installing.md#installation-instructions).
+information, see [Configure ksqlDB for Secured Confluent Schema Registry](/operate-and-deploy/installation/server-config/security/#configure-ksqldb-for-secured-confluent-schema-registry).
 {{ site.sr }} is [included by default](https://docs.confluent.io/current/quickstart/index.html) with
 {{ site.cp }}.
 

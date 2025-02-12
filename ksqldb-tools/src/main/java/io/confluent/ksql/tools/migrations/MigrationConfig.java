@@ -53,6 +53,8 @@ public final class MigrationConfig extends AbstractConfig {
   public static final String KSQL_MIGRATIONS_TOPIC_REPLICAS = "ksql.migrations.topic.replicas";
   public static final int KSQL_MIGRATIONS_TOPIC_REPLICAS_DEFAULT = 1;
 
+  public static final String KSQL_MIGRATIONS_DIR_OVERRIDE = "ksql.migrations.dir.override";
+
   public static final MigrationConfig DEFAULT_CONFIG =
       new MigrationConfig(Collections.emptyMap(), "ksql-service-id");
 
@@ -167,6 +169,18 @@ public final class MigrationConfig extends AbstractConfig {
             Importance.MEDIUM,
             "The number of replicas for the migration stream topic. It defaults to "
                 + KSQL_MIGRATIONS_TOPIC_REPLICAS_DEFAULT
+        ).define(
+            KSQL_MIGRATIONS_DIR_OVERRIDE,
+            Type.STRING,
+            "",
+            Importance.MEDIUM,
+            "An optional config that allows users to specify the path to the directory "
+                + "containing migrations files to be applied. If empty, the migrations directory "
+                + "will be inferred as relative to the migrations configuration file "
+                + "passed when using the ksql-migrations tool. Specifically, the migrations "
+                + "directory will be inferred as a directory with name 'migrations' contained in "
+                + "the same directory as the migrations configuration file. This is the "
+                + "default file structure created by the 'ksql-migrations new-project' command."
         ), configs, false);
   }
 
@@ -187,7 +201,8 @@ public final class MigrationConfig extends AbstractConfig {
         configs.get(SSL_KEY_PASSWORD),
         configs.get(SSL_KEY_ALIAS),
         configs.getOrDefault(SSL_ALPN, "false").equalsIgnoreCase("true"),
-        configs.getOrDefault(SSL_VERIFY_HOST, "true").equalsIgnoreCase("true")
+        configs.getOrDefault(SSL_VERIFY_HOST, "true").equalsIgnoreCase("true"),
+        null
     );
     final String serviceId;
     try {

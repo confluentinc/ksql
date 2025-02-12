@@ -35,7 +35,7 @@ public class CollectSetUdafTest {
 
   @Test
   public void shouldCollectDistinctInts() {
-    final Udaf<Integer, List<Integer>, List<Integer>> udaf = CollectSetUdaf.createCollectSetInt();
+    final Udaf<Integer, List<Integer>, List<Integer>> udaf = CollectSetUdaf.createCollectSetT();
     final Integer[] values = new Integer[] {3, 4, 5, 3};
     List<Integer> runningList = udaf.initialize();
     for (final Integer i : values) {
@@ -46,7 +46,7 @@ public class CollectSetUdafTest {
 
   @Test
   public void shouldCollectDistinctTimestamps() {
-    final Udaf<Timestamp, List<Timestamp>, List<Timestamp>> udaf = CollectSetUdaf.createCollectSetTimestamp();
+    final Udaf<Timestamp, List<Timestamp>, List<Timestamp>> udaf = CollectSetUdaf.createCollectSetT();
     final Timestamp[] values = new Timestamp[] {new Timestamp(1), new Timestamp(2)};
     List<Timestamp> runningList = udaf.initialize();
     for (final Timestamp i : values) {
@@ -57,7 +57,7 @@ public class CollectSetUdafTest {
 
   @Test
   public void shouldCollectDistinctTimes() {
-    final Udaf<Time, List<Time>, List<Time>> udaf = CollectSetUdaf.createCollectSetTime();
+    final Udaf<Time, List<Time>, List<Time>> udaf = CollectSetUdaf.createCollectSetT();
     final Time[] values = new Time[] {new Time(1), new Time(2)};
     List<Time> runningList = udaf.initialize();
     for (final Time i : values) {
@@ -68,7 +68,7 @@ public class CollectSetUdafTest {
 
   @Test
   public void shouldCollectDistinctDates() {
-    final Udaf<Date, List<Date>, List<Date>> udaf = CollectSetUdaf.createCollectSetDate();
+    final Udaf<Date, List<Date>, List<Date>> udaf = CollectSetUdaf.createCollectSetT();
     final Date[] values = new Date[] {new Date(1), new Date(2)};
     List<Date> runningList = udaf.initialize();
     for (final Date i : values) {
@@ -79,7 +79,7 @@ public class CollectSetUdafTest {
 
   @Test
   public void shouldCollectDistinctBytes() {
-    final Udaf<ByteBuffer, List<ByteBuffer>, List<ByteBuffer>> udaf = CollectSetUdaf.createCollectSetBytes();
+    final Udaf<ByteBuffer, List<ByteBuffer>, List<ByteBuffer>> udaf = CollectSetUdaf.createCollectSetT();
     final ByteBuffer[] values = new ByteBuffer[] {ByteBuffer.wrap(new byte[] {1}), ByteBuffer.wrap(new byte[] {2})};
     List<ByteBuffer> runningList = udaf.initialize();
     for (final ByteBuffer i : values) {
@@ -90,7 +90,7 @@ public class CollectSetUdafTest {
 
   @Test
   public void shouldMergeDistinctIntsIncludingNulls() {
-    final Udaf<Integer, List<Integer>, List<Integer>> udaf = CollectSetUdaf.createCollectSetInt();
+    final Udaf<Integer, List<Integer>, List<Integer>> udaf = CollectSetUdaf.createCollectSetT();
 
     List<Integer> lhs = udaf.initialize();
     final Integer[] lhsValues = new Integer[] {1, 2, null, 3};
@@ -112,7 +112,7 @@ public class CollectSetUdafTest {
 
   @Test
   public void shouldRespectSizeLimit() {
-    final Udaf<Integer, List<Integer>, List<Integer>> udaf = CollectSetUdaf.createCollectSetInt();
+    final Udaf<Integer, List<Integer>, List<Integer>> udaf = CollectSetUdaf.createCollectSetT();
     ((Configurable) udaf).configure(ImmutableMap.of(CollectSetUdaf.LIMIT_CONFIG, 1000));
     List<Integer> runningList = udaf.initialize();
     for (int i = 1; i < 2500; i++) {
@@ -126,7 +126,7 @@ public class CollectSetUdafTest {
 
   @Test
   public void shouldRespectSizeLimitString() {
-    final Udaf<Integer, List<Integer>, List<Integer>> udaf = CollectSetUdaf.createCollectSetInt();
+    final Udaf<Integer, List<Integer>, List<Integer>> udaf = CollectSetUdaf.createCollectSetT();
     ((Configurable) udaf).configure(ImmutableMap.of(CollectSetUdaf.LIMIT_CONFIG, "1000"));
     List<Integer> runningList = udaf.initialize();
     for (int i = 1; i < 2500; i++) {
@@ -140,7 +140,7 @@ public class CollectSetUdafTest {
 
   @Test
   public void shouldIgnoreNegativeLimit() {
-    final Udaf<Integer, List<Integer>, List<Integer>> udaf = CollectSetUdaf.createCollectSetInt();
+    final Udaf<Integer, List<Integer>, List<Integer>> udaf = CollectSetUdaf.createCollectSetT();
     ((Configurable) udaf).configure(ImmutableMap.of(CollectSetUdaf.LIMIT_CONFIG, -1));
 
     List<Integer> runningList = udaf.initialize();

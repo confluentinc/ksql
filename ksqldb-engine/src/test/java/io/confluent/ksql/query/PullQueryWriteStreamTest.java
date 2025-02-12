@@ -20,7 +20,7 @@ import static org.hamcrest.Matchers.*;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.physical.pull.StreamedRowTranslator;
+import io.confluent.ksql.execution.pull.StreamedRowTranslator;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.util.KeyValueMetadata;

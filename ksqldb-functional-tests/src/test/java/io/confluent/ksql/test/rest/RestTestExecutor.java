@@ -41,7 +41,6 @@ import io.confluent.ksql.rest.entity.KsqlStatementErrorMessage;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.integration.QueryStreamSubscriber;
 import io.confluent.ksql.services.ServiceContext;
-import io.confluent.ksql.test.model.TestHeader;
 import io.confluent.ksql.test.rest.model.Response;
 import io.confluent.ksql.test.tools.ExpectedRecordComparator;
 import io.confluent.ksql.test.tools.Record;
@@ -99,9 +98,10 @@ public class RestTestExecutor implements Closeable {
   private static final Logger LOG = LoggerFactory.getLogger(RestTestExecutor.class);
 
   private static final String STATEMENT_MACRO = "\\{STATEMENT}";
-  private static final Duration MAX_QUERY_RUNNING_CHECK = Duration.ofSeconds(30);
-  private static final Duration MAX_STATIC_WARM_UP = Duration.ofSeconds(30);
-  private static final Duration MAX_TOPIC_NAME_LOOKUP = Duration.ofSeconds(30);
+  private static final Duration MAX_QUERY_RUNNING_CHECK = Duration.ofSeconds(45);
+  private static final Duration MAX_STATIC_WARM_UP = Duration.ofSeconds(45);
+  private static final Duration MAX_TOPIC_NAME_LOOKUP = Duration.ofSeconds(45);
+  private static final Duration MAX_TRANSIENT_QUERY_COMPLETION_TIME = Duration.ofSeconds(10);
   private static final String MATCH_OPERATOR_DELIMITER = "|";
   private static final String QUERY_KEY = "query";
   private static final String ROW_KEY = "row";
@@ -124,6 +124,7 @@ public class RestTestExecutor implements Closeable {
         url.toString(),
         ImmutableMap.of(),
         ImmutableMap.of(),
+        Optional.empty(),
         Optional.empty()
     );
     this.kafkaCluster = requireNonNull(kafkaCluster, "kafkaCluster");
@@ -160,11 +161,11 @@ public class RestTestExecutor implements Closeable {
           && testCase.getInputConditions().get().getWaitForActivePushQuery();
       final Optional<InputConditionsParameters> postInputConditionRunnable;
       if (!waitForActivePushQueryToProduceInput) {
-        produceInputs(testCase.getInputsByTopic());
+        produceInputs(testCase);
         postInputConditionRunnable = Optional.empty();
       } else {
         postInputConditionRunnable = Optional.of(new InputConditionsParameters(
-            this::waitForActivePushQuery, () -> produceInputs(testCase.getInputsByTopic())));
+            this::waitForActivePushQuery, () -> produceInputs(testCase)));
       }
 
       if (!testCase.expectedError().isPresent()
@@ -187,6 +188,10 @@ public class RestTestExecutor implements Closeable {
       final boolean verifyOrder = testCase.getOutputConditions().isPresent()
         && testCase.getOutputConditions().get().getVerifyOrder();
       verifyResponses(responses, testCase.getExpectedResponses(), testCase.getStatements(), verifyOrder);
+
+      // Give a few seconds for the transient queries to complete, otherwise, we'll go into teardown
+      // and leave the queries stuck.
+      waitForTransientQueriesToComplete();
 
     } finally {
       testCase.getProperties().keySet().forEach(restClient::unsetProperty);
@@ -243,16 +248,16 @@ public class RestTestExecutor implements Closeable {
     });
   }
 
-  private void produceInputs(final Map<String, List<Record>> inputs) {
-    inputs.forEach((topicName, records) -> {
+  private void produceInputs(final RestTestCase testCase) {
+    testCase.getInputsByTopic().forEach((topicName, records) -> {
 
       final TopicInfo topicInfo = topicInfoCache.get(topicName)
           .orElseThrow(() -> new KsqlException("No information found for topic: " + topicName));
 
       try (KafkaProducer<Object, Object> producer = new KafkaProducer<>(
           kafkaCluster.producerConfig(),
-          topicInfo.getKeySerializer(),
-          topicInfo.getValueSerializer()
+          topicInfo.getKeySerializer(testCase.getProperties()),
+          topicInfo.getValueSerializer(testCase.getProperties())
       )) {
         final List<Future<RecordMetadata>> futures = records.stream()
             .map(record -> new ProducerRecord<>(
@@ -444,8 +449,8 @@ public class RestTestExecutor implements Closeable {
           .verifyAvailableRecords(
               topicName,
               records.size(),
-              topicInfo.getKeyDeserializer(),
-              topicInfo.getValueDeserializer()
+              topicInfo.getKeyDeserializer(testCase.getProperties()),
+              topicInfo.getValueDeserializer(testCase.getProperties())
           );
 
       for (int idx = 0; idx < records.size(); idx++) {
@@ -611,6 +616,7 @@ public class RestTestExecutor implements Closeable {
       boolean notReady = false;
       for (PersistentQueryMetadata persistentQueryMetadata : engine.getPersistentQueries()) {
         if (persistentQueryMetadata.getState() != State.RUNNING) {
+          LOG.info("Not all persistent queries are running yet");
           notReady = true;
         }
       }
@@ -618,6 +624,7 @@ public class RestTestExecutor implements Closeable {
         threadYield();
       } else {
         allRunning = true;
+        LOG.info("All persistent queries are now running");
         break;
       }
     }
@@ -664,6 +671,7 @@ public class RestTestExecutor implements Closeable {
       if (expectedNames.size() == expectedTopics) {
         foundTopics = true;
         topics.addAll(expectedNames);
+        LOG.info("All expected topics have now been found");
         break;
       }
     }
@@ -734,6 +742,28 @@ public class RestTestExecutor implements Closeable {
     }
     LOG.info("Timed out waiting for correct response");
     throw new AssertionError("Timed out while trying to wait for offsets");
+  }
+
+  private void waitForTransientQueriesToComplete() {
+    // Wait for the transient queries to complete
+    final long queryRunningThreshold = System.currentTimeMillis()
+        + MAX_TRANSIENT_QUERY_COMPLETION_TIME.toMillis();
+    while (System.currentTimeMillis() < queryRunningThreshold) {
+      boolean notReady = false;
+      // The query is only unregistered after it has been cleaned up.
+      for (QueryMetadata queryMetadata : engine.getAllLiveQueries()) {
+        if (queryMetadata instanceof TransientQueryMetadata) {
+          notReady = true;
+        }
+      }
+
+      if (notReady) {
+        threadYield();
+      } else {
+        LOG.info("All transient queries have been completed");
+        break;
+      }
+    }
   }
 
   private Set<String> getSourceTopics(

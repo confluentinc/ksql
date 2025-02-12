@@ -15,12 +15,16 @@
 
 package io.confluent.ksql.function;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.function.types.ParamType;
 import io.confluent.ksql.function.udaf.TableUdaf;
 import io.confluent.ksql.function.udaf.Udaf;
 import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
+import io.confluent.ksql.schema.ksql.SqlArgument;
 import io.confluent.ksql.schema.ksql.SqlTypeParser;
+import io.confluent.ksql.schema.ksql.types.SqlType;
+import io.confluent.ksql.security.ExtensionSecurityManager;
 import io.confluent.ksql.util.KsqlException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
@@ -38,13 +42,15 @@ class UdafFactoryInvoker implements FunctionSignature {
   private static final Logger LOG = LoggerFactory.getLogger(UdafFactoryInvoker.class);
 
   private final FunctionName functionName;
-  private final ParamType aggregateArgType;
-  private final ParamType aggregateReturnType;
   private final Optional<Metrics> metrics;
   private final List<ParamType> paramTypes;
   private final List<ParameterInfo> params;
   private final Method method;
   private final String description;
+  private final UdafTypes types;
+  private final String aggregateSchema;
+  private final String outputSchema;
+  private ParamType aggregateReturnType;
 
   UdafFactoryInvoker(
       final Method method,
@@ -67,10 +73,10 @@ class UdafFactoryInvoker implements FunctionSignature {
     if (!Modifier.isStatic(method.getModifiers())) {
       throw new KsqlException("UDAF factory methods must be static " + method);
     }
-    final UdafTypes types = new UdafTypes(method, functionName, typeParser);
+    this.types = new UdafTypes(method, functionName, typeParser);
     this.functionName = Objects.requireNonNull(functionName);
-    this.aggregateArgType = Objects.requireNonNull(types.getAggregateSchema(aggregateSchema));
-    this.aggregateReturnType = Objects.requireNonNull(types.getOutputSchema(outputSchema));
+    this.aggregateSchema = aggregateSchema; // This can be null if the annotation is not used.
+    this.outputSchema = outputSchema;       // This can be null if the annotation is not used.
     this.metrics = Objects.requireNonNull(metrics);
     this.params = types.getInputSchema(Objects.requireNonNull(inputSchema));
     this.paramTypes = params.stream().map(ParameterInfo::type).collect(Collectors.toList());
@@ -78,15 +84,28 @@ class UdafFactoryInvoker implements FunctionSignature {
     this.description = Objects.requireNonNull(description);
   }
 
+  @SuppressFBWarnings({"EXS_EXCEPTION_SOFTENING_NO_CONSTRAINTS", "REC_CATCH_EXCEPTION"})
   @SuppressWarnings("unchecked")
-  KsqlAggregateFunction createFunction(final AggregateFunctionInitArguments initArgs) {
+  KsqlAggregateFunction createFunction(final AggregateFunctionInitArguments initArgs,
+      final List<SqlArgument> argTypeList) {
     final Object[] factoryArgs = initArgs.args().toArray();
     try {
+      ExtensionSecurityManager.INSTANCE.pushInUdf();
       final Udaf udaf = (Udaf)method.invoke(null, factoryArgs);
-
+      udaf.initializeTypeArguments(argTypeList);
       if (udaf instanceof Configurable) {
         ((Configurable) udaf).configure(initArgs.config());
       }
+
+      final SqlType aggregateSqlType = (SqlType) udaf.getAggregateSqlType()
+          .orElseGet(() -> SchemaConverters.functionToSqlConverter()
+              .toSqlType(types.getAggregateSchema(aggregateSchema)));
+      final SqlType returnSqlType = (SqlType) udaf.getReturnSqlType()
+          .orElseGet(() ->
+              SchemaConverters.functionToSqlConverter()
+                  .toSqlType(types.getOutputSchema(outputSchema)));
+      this.aggregateReturnType =
+          SchemaConverters.sqlToFunctionConverter().toFunctionType(returnSqlType);
 
       final KsqlAggregateFunction function;
       if (TableUdaf.class.isAssignableFrom(method.getReturnType())) {
@@ -94,8 +113,8 @@ class UdafFactoryInvoker implements FunctionSignature {
             functionName.text(),
             initArgs.udafIndex(),
             udaf,
-            SchemaConverters.functionToSqlConverter().toSqlType(aggregateArgType),
-            SchemaConverters.functionToSqlConverter().toSqlType(aggregateReturnType),
+            aggregateSqlType,
+            returnSqlType,
             params,
             description,
             metrics,
@@ -105,8 +124,8 @@ class UdafFactoryInvoker implements FunctionSignature {
             functionName.text(),
             initArgs.udafIndex(),
             udaf,
-            SchemaConverters.functionToSqlConverter().toSqlType(aggregateArgType),
-            SchemaConverters.functionToSqlConverter().toSqlType(aggregateReturnType),
+            aggregateSqlType,
+            returnSqlType,
             params,
             description,
             metrics,
@@ -116,6 +135,8 @@ class UdafFactoryInvoker implements FunctionSignature {
     } catch (final Exception e) {
       LOG.error("Failed to invoke UDAF factory method", e);
       throw new KsqlException("Failed to invoke UDAF factory method", e);
+    } finally {
+      ExtensionSecurityManager.INSTANCE.popOutUdf();
     }
   }
 

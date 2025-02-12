@@ -15,14 +15,17 @@
 
 package io.confluent.ksql.query;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.Monitor;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.physical.pull.PullQueryRow;
-import io.confluent.ksql.physical.pull.StreamedRowTranslator;
+import io.confluent.ksql.execution.pull.PullQueryRow;
+import io.confluent.ksql.execution.pull.StreamedRowTranslator;
+import io.confluent.ksql.rest.entity.ConsistencyToken;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.util.ConsistencyOffsetVector;
 import io.confluent.ksql.util.KeyValue;
 import io.confluent.ksql.util.KeyValueMetadata;
+import io.confluent.ksql.util.KsqlHostInfo;
 import io.confluent.ksql.util.RowMetadata;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
@@ -34,7 +37,6 @@ import io.vertx.core.streams.WriteStream;
 import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.List;
-import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Queue;
 import java.util.concurrent.TimeUnit;
@@ -168,14 +170,12 @@ public class PullQueryWriteStream implements WriteStream<List<StreamedRow>>, Blo
       return new KeyValueMetadata<>(RowMetadata.of(row.getConsistencyOffsetVector().get()));
     }
 
-    //return new KeyValueMetadata<>(
-    //    KeyValue.keyValue(null, row.getGenericRow()),
-    //    row.getSourceNode()
-    //        .map(sn -> new KsqlHostInfo(sn.getHost(), sn.getPort()))
-    //        .map(RowMetadata::of)
-    //);
-
-    return new KeyValueMetadata<>(KeyValue.keyValue(null, row.getGenericRow()));
+    return new KeyValueMetadata<>(
+        KeyValue.keyValue(null, row.getGenericRow()),
+        row.getSourceNode()
+            .map(sn -> new KsqlHostInfo(sn.getHost(), sn.getPort()))
+            .map(RowMetadata::of)
+    );
   }
 
   public PullQueryRow pollRow(
@@ -301,16 +301,9 @@ public class PullQueryWriteStream implements WriteStream<List<StreamedRow>>, Blo
   // -------------------- WRITE STREAM METHODS -------------------------
 
   public void putConsistencyVector(final ConsistencyOffsetVector offsetVector) {
-    final PullQueryRow row = new PullQueryRow(null, null,
-            Optional.empty(), Optional.of(offsetVector));
-    final Promise<Void> promise = Promise.promise();
-    monitor.enter();
-    try {
-      queue.offer(new HandledRow(row, promise));
-      queueCallback.run();
-    } finally {
-      monitor.leave();
-    }
+    write(ImmutableList.of(
+        StreamedRow.consistencyToken(new ConsistencyToken(offsetVector.serialize()))
+    ));
   }
 
   @Override

@@ -171,7 +171,31 @@ public final class SerdeUtils {
     }
   }
 
-  public static Schema getAndTranslateSchema(
+  public static ParsedSchema getParsedSchemaById(
+      final Supplier<SchemaRegistryClient> srFactory,
+      final int schemaId
+  ) {
+    try {
+      return srFactory.get().getSchemaById(schemaId);
+    } catch (RestClientException | IOException e) {
+      throw new KsqlException("Failed to fetch schema for serialization from Schema Registry "
+          + "using schema id: " + schemaId, e);
+    }
+  }
+
+  public static int getLatestSchemaId(
+      final Supplier<SchemaRegistryClient> srFactory,
+      final String subjectName
+  ) {
+    try {
+      return srFactory.get().getLatestSchemaMetadata(subjectName).getId();
+    } catch (RestClientException | IOException e) {
+      throw new KsqlException("Failed to fetch schema for serialization from Schema Registry "
+          + "using schema subject: " + subjectName, e);
+    }
+  }
+
+  public static Schema getAndTranslateSchemaById(
       final Supplier<SchemaRegistryClient> srFactory,
       final int schemaId,
       final ConnectSchemaTranslator translator

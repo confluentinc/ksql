@@ -544,6 +544,9 @@ class Analyzer {
         case LEFT:
           joinType = JoinNode.JoinType.LEFT;
           break;
+        case RIGHT:
+          joinType = JoinNode.JoinType.RIGHT;
+          break;
         case OUTER:
           joinType = JoinNode.JoinType.OUTER;
           break;

@@ -118,7 +118,9 @@ public final class ServerUtils {
             BAD_REQUEST.code(),
             new KsqlApiException(
                 ((KsqlStatementException) actual).getUnloggedMessage(),
-                ERROR_CODE_BAD_STATEMENT)
+                ERROR_CODE_BAD_STATEMENT,
+                ((KsqlStatementException) actual).getSqlStatement()
+            )
         );
         return null;
       } else if (actual instanceof KsqlApiException) {

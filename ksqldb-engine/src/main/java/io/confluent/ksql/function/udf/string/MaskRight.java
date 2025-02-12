@@ -70,7 +70,7 @@ public class MaskRight {
     }
     final StringBuilder output = new StringBuilder(input.length());
     final int charsToKeep = Math.max(0, input.length() - numChars);
-    output.append(input.substring(0, charsToKeep));
+    output.append(input, 0, charsToKeep);
     output.append(masker.mask(input.substring(charsToKeep)));
     return output.toString();
   }

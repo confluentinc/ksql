@@ -36,6 +36,15 @@ public class GreatestTest {
   }
 
   @Test
+  public void shouldHandleNullArrays(){
+    assertThat(udf.greatest((Integer) null, null), is(nullValue()));
+    assertThat(udf.greatest((Double) null, null), is(nullValue()));
+    assertThat(udf.greatest((Long) null, null), is(nullValue()));
+    assertThat(udf.greatest((BigDecimal) null, null), is(nullValue()));
+    assertThat(udf.greatest((String) null, null), is(nullValue()));
+  }
+
+  @Test
   public void shouldHandleSomeNullColumns(){
     assertThat(udf.greatest(null, 27, null, 39, -49, -11, 68, 32, null, 101), is(101));
     assertThat(udf.greatest(null, null, 39D, -49.01, -11.98, 68.1, .32, null, 101D), is(101D));

@@ -19,6 +19,7 @@ import io.confluent.ksql.function.FunctionCategory;
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.function.udf.UdfParameter;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
@@ -50,14 +51,12 @@ public class SplitToMap {
     }
 
     final Iterable<String> entries = Splitter.on(entryDelimiter).omitEmptyStrings().split(input);
-    final Map<String, String> output = StreamSupport.stream(entries.spliterator(), false)
+    return StreamSupport.stream(entries.spliterator(), false)
         .filter(e -> e.contains(kvDelimiter))
         .map(kv -> Splitter.on(kvDelimiter).split(kv).iterator())
         .collect(Collectors.toMap(
-            kvIter -> kvIter.next(), 
-            kvIter -> kvIter.next(),
+            Iterator::next,
+            Iterator::next,
             (v1, v2) -> v2));
-
-    return output;
   }
 }

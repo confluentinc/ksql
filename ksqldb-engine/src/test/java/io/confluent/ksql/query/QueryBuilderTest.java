@@ -82,9 +82,10 @@ import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.kstream.KStream;
+import org.apache.kafka.streams.processor.internals.namedtopology.AddNamedTopologyResult;
 import org.apache.kafka.streams.processor.internals.namedtopology.KafkaStreamsNamedTopologyWrapper;
 import org.apache.kafka.streams.processor.internals.namedtopology.NamedTopology;
-import org.apache.kafka.streams.processor.internals.namedtopology.NamedTopologyStreamsBuilder;
+import org.apache.kafka.streams.processor.internals.namedtopology.NamedTopologyBuilder;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -161,7 +162,7 @@ public class QueryBuilderTest {
   @Mock
   private StreamsBuilder streamsBuilder;
   @Mock
-  private NamedTopologyStreamsBuilder namedTopologyBuilder;
+  private NamedTopologyBuilder namedTopologyBuilder;
   @Mock
   private FunctionRegistry functionRegistry;
   @Mock
@@ -193,6 +194,8 @@ public class QueryBuilderTest {
   @Captor
   private ArgumentCaptor<Map<String, Object>> propertyCaptor;
   @Mock
+  private AddNamedTopologyResult addNamedTopologyResult;
+  @Mock
   private KafkaFuture<Void> future;
   private RuntimeAssignor runtimeAssignor;
 
@@ -210,6 +213,8 @@ public class QueryBuilderTest {
     when(ksqlTopic.getValueFormat()).thenReturn(VALUE_FORMAT);
     when(kafkaStreamsBuilder.build(any(), any())).thenReturn(kafkaStreams);
     when(kafkaStreamsBuilder.buildNamedTopologyWrapper(any())).thenReturn(kafkaStreamsNamedTopologyWrapper);
+    when(kafkaStreamsNamedTopologyWrapper.newNamedTopologyBuilder(any(), any())).thenReturn(namedTopologyBuilder);
+    when(kafkaStreamsNamedTopologyWrapper.addNamedTopology(any())).thenReturn(addNamedTopologyResult);
     when(tableHolder.getMaterializationBuilder()).thenReturn(Optional.of(materializationBuilder));
     when(materializationBuilder.build()).thenReturn(materializationInfo);
     when(materializationInfo.getStateStoreSchema()).thenReturn(aggregationSchema);
@@ -221,6 +226,7 @@ public class QueryBuilderTest {
     when(processingLogContext.getLoggerFactory()).thenReturn(processingLoggerFactory);
     when(processingLoggerFactory.getLogger(any())).thenReturn(processingLogger);
     when(ksqlConfig.getKsqlStreamConfigProps(anyString())).thenReturn(Collections.emptyMap());
+    when(ksqlConfig.getString(KsqlConfig.KSQL_CUSTOM_METRICS_TAGS)).thenReturn("");
     when(ksqlConfig.getString(KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG))
         .thenReturn(PERSISTENT_PREFIX);
     when(ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG)).thenReturn(SERVICE_ID);
@@ -370,6 +376,8 @@ public class QueryBuilderTest {
 
   @Test
   public void shouldStartCreateSourceQueryWithMaterializationProvider() {
+    when(ksqlConfig.getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)).thenReturn(true);
+
     // Given:
     final DataSource source = givenSource("foo");
     when(source.getSchema()).thenReturn(SINK_SCHEMA);
@@ -381,6 +389,7 @@ public class QueryBuilderTest {
         Optional.empty()
     );
     queryMetadata.initialize();
+    queryMetadata.register();
     queryMetadata.start();
 
     // When:
@@ -638,6 +647,35 @@ public class QueryBuilderTest {
   }
 
   @Test
+  public void shouldMakePersistentQueriesWithSameSources() {
+    when(ksqlConfig.getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)).thenReturn(true);
+
+    // When:
+    buildPersistentQuery(SOURCES, KsqlConstants.PersistentQueryType.CREATE_AS, QUERY_ID);
+    buildPersistentQuery(SOURCES, KsqlConstants.PersistentQueryType.CREATE_AS, QUERY_ID_2);
+
+    assertThat("chose same source", sharedKafkaStreamsRuntimes.size() > 1);
+  }
+
+  @Test
+  public void shouldMakePersistentQueriesWithDifferentSources() {
+    when(ksqlConfig.getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)).thenReturn(true);
+
+    // When:
+    PersistentQueryMetadata queryMetadata = buildPersistentQuery(
+        SOURCES,
+        KsqlConstants.PersistentQueryType.CREATE_AS,
+        QUERY_ID);
+
+    PersistentQueryMetadata queryMetadata2 = buildPersistentQuery(
+            ImmutableSet.of(givenSource("food"), givenSource("bard")),
+        KsqlConstants.PersistentQueryType.CREATE_AS,
+        QUERY_ID);
+    assertThat("did not chose the same runtime", queryMetadata.getKafkaStreams().equals(queryMetadata2.getKafkaStreams()));
+
+  }
+
+  @Test
   public void shouldConfigureProducerErrorHandler() {
     final ProcessingLogger logger = mock(ProcessingLogger.class);
     when(processingLoggerFactory.getLogger(QUERY_ID.toString())).thenReturn(logger);
@@ -654,6 +692,25 @@ public class QueryBuilderTest {
     assertThat(
         streamsProps.get(ProductionExceptionHandlerUtil.KSQL_PRODUCTION_ERROR_LOGGER),
         is(logger));
+  }
+
+  @Test
+  public void shouldConfigureCustomMetricsTags() {
+    // Given:
+    when(ksqlConfig.getString(KsqlConfig.KSQL_CUSTOM_METRICS_TAGS)).thenReturn("custom-tag:custom-tag-value");
+
+    // When:
+    buildPersistentQuery(
+        SOURCES,
+        KsqlConstants.PersistentQueryType.CREATE_AS,
+        QUERY_ID
+    ).initialize();
+
+    // Then:
+    final Map<String, Object> streamsProps = capturedStreamsProperties();
+    assertThat(
+        streamsProps.get(KsqlConfig.KSQL_CUSTOM_METRICS_TAGS),
+        is("custom-tag:custom-tag-value"));
   }
 
   public static class DummyConsumerInterceptor implements ConsumerInterceptor {
@@ -748,7 +805,7 @@ public class QueryBuilderTest {
           STATEMENT_TEXT,
           queryId,
           sink,
-          sources,
+          SOURCES,
           physicalPlan,
           SUMMARY,
           queryListener,

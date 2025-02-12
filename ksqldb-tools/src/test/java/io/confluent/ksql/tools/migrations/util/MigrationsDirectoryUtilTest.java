@@ -17,8 +17,10 @@ package io.confluent.ksql.tools.migrations.util;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+import static org.mockito.Mockito.when;
 
 import io.confluent.ksql.test.util.KsqlTestFolder;
+import io.confluent.ksql.tools.migrations.MigrationConfig;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.PrintWriter;
@@ -30,17 +32,28 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
 
+@RunWith(MockitoJUnitRunner.class)
 public class MigrationsDirectoryUtilTest {
+
+  private static final String CUSTOM_DIR = "/path/to/custom/dir";
 
   @Rule
   public TemporaryFolder folder = KsqlTestFolder.temporaryFolder();
 
+  @Mock
+  private MigrationConfig config;
+
   private String testDir;
+  private String migrationsConfigPath;
 
   @Before
   public void setUp() {
     testDir = folder.getRoot().getPath();
+    migrationsConfigPath = Paths.get(testDir, MigrationsDirectoryUtil.MIGRATIONS_CONFIG_FILE).toString();
   }
 
   @Test
@@ -54,6 +67,25 @@ public class MigrationsDirectoryUtilTest {
 
     // Then:
     assertThat(hash, is("4d93d51945b88325c213640ef59fc50b"));
+  }
+
+  @Test
+  public void shouldDefaultMigrationsDirBasedOnConfigPath() {
+    // Given:
+    when(config.getString(MigrationConfig.KSQL_MIGRATIONS_DIR_OVERRIDE)).thenReturn("");
+
+    // When / Then:
+    assertThat(MigrationsDirectoryUtil.getMigrationsDir(migrationsConfigPath, config),
+        is(Paths.get(testDir, MigrationsDirectoryUtil.MIGRATIONS_DIR).toString()));
+  }
+
+  @Test
+  public void shouldOverrideMigrationsDirFromConfig() {
+    // Given:
+    when(config.getString(MigrationConfig.KSQL_MIGRATIONS_DIR_OVERRIDE)).thenReturn(CUSTOM_DIR);
+
+    // When / Then:
+    assertThat(MigrationsDirectoryUtil.getMigrationsDir(migrationsConfigPath, config), is(CUSTOM_DIR));
   }
 
   private void givenFileWithContents(final String filename, final String contents) throws Exception {

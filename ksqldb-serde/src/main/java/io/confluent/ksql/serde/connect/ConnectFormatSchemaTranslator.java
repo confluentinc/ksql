@@ -60,6 +60,11 @@ class ConnectFormatSchemaTranslator implements SchemaTranslator {
   }
 
   @Override
+  public void configure(final Map<String, ?> configs) {
+    connectSrTranslator.configure(configs);
+  }
+
+  @Override
   public List<SimpleColumn> toColumns(
       final ParsedSchema schema,
       final SerdeFeatures serdeFeatures,

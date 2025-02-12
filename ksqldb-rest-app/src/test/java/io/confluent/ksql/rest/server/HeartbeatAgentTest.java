@@ -33,10 +33,8 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.HostStatus;
 import io.confluent.ksql.util.KsqlHostInfo;
 import io.confluent.ksql.util.PersistentQueryMetadata;
-import java.util.List;
 import java.util.Map;
 import org.apache.kafka.streams.StreamsMetadata;
-import org.apache.kafka.streams.state.HostInfo;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -62,19 +60,13 @@ public class HeartbeatAgentTest {
   private HostStatusListener hostStatusListener;
 
   private HeartbeatAgent heartbeatAgent;
-  private HostInfo localHostInfo;
-  private HostInfo remoteHostInfo;
   private KsqlHostInfo localHost;
   private KsqlHostInfo remoteHost;
-  private List<StreamsMetadata> allMetadata0;
-  private List<StreamsMetadata> allMetadata1;
   private Map<KsqlHostInfo, HostStatus> hostsStatus;
   private static final String LOCALHOST_URL = "http://localhost:8088";
 
   @Before
   public void setUp() {
-    localHostInfo = new HostInfo("localhost", 8088);
-    remoteHostInfo = new HostInfo("localhost", 8089);
     localHost = new KsqlHostInfo("localhost", 8088);
     remoteHost = new KsqlHostInfo("localhost", 8089);
 
@@ -88,8 +80,6 @@ public class HeartbeatAgentTest {
     hostsStatus = ImmutableMap
         .of(localHost, new HostStatus(true, 0L),
             remoteHost, new HostStatus(true, 0L));
-    allMetadata0 = ImmutableList.of(streamsMetadata0);
-    allMetadata1 = ImmutableList.of(streamsMetadata1);
   }
 
   @Test
@@ -97,12 +87,6 @@ public class HeartbeatAgentTest {
     // Given:
     heartbeatAgent.setHostsStatus(hostsStatus);
     when(ksqlEngine.getPersistentQueries()).thenReturn(ImmutableList.of(query0, query1));
-
-    when(query0.getAllMetadata()).thenReturn(allMetadata0);
-    when(streamsMetadata0.hostInfo()).thenReturn(localHostInfo);
-
-    when(query1.getAllMetadata()).thenReturn(allMetadata1);
-    when(streamsMetadata1.hostInfo()).thenReturn(remoteHostInfo);
 
     DiscoverClusterService discoverService = heartbeatAgent.new DiscoverClusterService();
 

@@ -21,6 +21,7 @@ import static java.util.Objects.requireNonNull;
 
 import com.google.common.base.Functions;
 import io.confluent.ksql.properties.LocalProperties;
+import io.confluent.ksql.rest.client.exception.KsqlRestClientException;
 import io.confluent.ksql.rest.entity.ClusterStatusResponse;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatuses;
@@ -86,6 +87,7 @@ public final class KsqlTarget {
   private final Optional<String> authHeader;
   private final String host;
   private final String subPath;
+  private final Map<String, String> additionalHeaders;
 
   /**
    * Create a KsqlTarget containing all of the connection information required to make a request
@@ -102,7 +104,8 @@ public final class KsqlTarget {
       final LocalProperties localProperties,
       final Optional<String> authHeader,
       final String host,
-      final String subPath
+      final String subPath,
+      final Map<String, String> additionalHeaders
   ) {
     this.httpClient = requireNonNull(httpClient, "httpClient");
     this.socketAddress = requireNonNull(socketAddress, "socketAddress");
@@ -110,17 +113,18 @@ public final class KsqlTarget {
     this.authHeader = requireNonNull(authHeader, "authHeader");
     this.host = host;
     this.subPath = subPath.replaceAll("/\\z", "");
+    this.additionalHeaders = requireNonNull(additionalHeaders, "additionalHeaders");
   }
 
   public KsqlTarget authorizationHeader(final String authHeader) {
     return new KsqlTarget(httpClient, socketAddress, localProperties,
-        Optional.of(authHeader), host, subPath);
+        Optional.of(authHeader), host, subPath, additionalHeaders);
   }
 
   public KsqlTarget properties(final Map<String, ?> properties) {
     return new KsqlTarget(httpClient, socketAddress,
         new LocalProperties(properties),
-        authHeader, host, subPath);
+        authHeader, host, subPath, additionalHeaders);
   }
 
   public RestResponse<ServerInfo> getServerInfo() {
@@ -479,6 +483,7 @@ public final class KsqlTarget {
         httpClientRequest.putHeader("Accept", "application/json");
       }
       authHeader.ifPresent(v -> httpClientRequest.putHeader("Authorization", v));
+      additionalHeaders.forEach(httpClientRequest::putHeader);
 
       if (requestBody != null) {
         httpClientRequest.end(serialize(requestBody));

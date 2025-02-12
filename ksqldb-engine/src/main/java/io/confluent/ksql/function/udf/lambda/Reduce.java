@@ -53,7 +53,7 @@ public class Reduce {
       @UdfParameter(description = "The initial state.") final S initialState,
       @UdfParameter(description = "The reduce function.") final BiFunction<S, T, S> biFunction
   ) {
-    if (initialState == null) {
+    if (initialState == null || biFunction == null) {
       return null;
     }
 
@@ -79,7 +79,7 @@ public class Reduce {
       @UdfParameter(description = "The initial state.") final S initialState,
       @UdfParameter(description = "The reduce function.") final TriFunction<S, K, V, S> triFunction
   ) {
-    if (initialState == null) {
+    if (initialState == null || triFunction == null) {
       return null;
     }
 

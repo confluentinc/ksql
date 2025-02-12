@@ -15,7 +15,7 @@
 
 package io.confluent.ksql.rest.server.query;
 
-import io.confluent.ksql.physical.pull.PullQueryResult;
+import io.confluent.ksql.execution.pull.PullQueryResult;
 import io.confluent.ksql.util.PushQueryMetadata;
 import io.confluent.ksql.util.ScalablePushQueryMetadata;
 import io.confluent.ksql.util.StreamPullQueryMetadata;

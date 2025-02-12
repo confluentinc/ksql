@@ -67,7 +67,7 @@ public final class ListSumUdaf {
       }
 
       private double sumList(final List<Double> list) {
-        return sum(list, initialize(), (a,b) -> a + b);
+        return sum(list, initialize(), Double::sum);
       }
     };
   }
@@ -108,7 +108,7 @@ public final class ListSumUdaf {
       }
 
       private int sumList(final List<Integer> list) {
-        return sum(list, initialize(), (a,b) -> a + b);
+        return sum(list, initialize(), Integer::sum);
       }
     };
   }
@@ -149,7 +149,7 @@ public final class ListSumUdaf {
       }
 
       private long sumList(final List<Long> list) {
-        return sum(list, initialize(), (a,b) -> a + b);
+        return sum(list, initialize(), Long::sum);
       }
     };
   }

@@ -43,6 +43,7 @@ import org.apache.kafka.streams.KafkaStreams.State;
 import org.apache.kafka.streams.StoreQueryParameters;
 import org.apache.kafka.streams.errors.InvalidStateStoreException;
 import org.apache.kafka.streams.processor.internals.namedtopology.KafkaStreamsNamedTopologyWrapper;
+import org.apache.kafka.streams.processor.internals.namedtopology.NamedTopologyStoreQueryParameters;
 import org.apache.kafka.streams.state.QueryableStoreType;
 import org.apache.kafka.streams.state.QueryableStoreTypes;
 import org.apache.kafka.streams.state.ReadOnlySessionStore;
@@ -50,10 +51,14 @@ import org.apache.kafka.streams.state.ReadOnlyWindowStore;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
 import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
+
+import java.util.List;
 
 @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT")
 @RunWith(MockitoJUnitRunner.class)
@@ -72,6 +77,9 @@ public class KsStateStoreTest {
   @Mock
   private KsqlConfig ksqlConfig;
 
+  @Captor
+  ArgumentCaptor<StoreQueryParameters> storeQueryParamCaptor;
+
   private KsStateStore store;
 
   @Before
@@ -88,6 +96,23 @@ public class KsStateStoreTest {
         .setDefault(LogicalSchema.class, SCHEMA)
         .setDefault(KsqlConfig.class, ksqlConfig)
         .testConstructors(KsStateStore.class, Visibility.PACKAGE);
+  }
+
+  @Test
+  public void shouldUseNamedTopologyWhenSharedRuntimeIsEnabled() {
+    // Given:
+    final QueryableStoreType<ReadOnlySessionStore<String, Long>> storeType =
+        QueryableStoreTypes.sessionStore();
+    final KsStateStore store =
+        new KsStateStore(STORE_NAME, kafkaStreamsNamedTopologyWrapper, SCHEMA, ksqlConfig, "queryId");
+
+    // When:
+    store.store(storeType, 0);
+
+    // Then:
+    verify(kafkaStreamsNamedTopologyWrapper).store(storeQueryParamCaptor.capture());
+    List<StoreQueryParameters> keys = storeQueryParamCaptor.getAllValues();
+    assertThat(keys.get(0), instanceOf(NamedTopologyStoreQueryParameters.class));
   }
 
   @Test

@@ -49,7 +49,8 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
-@RunWith(MockitoJUnitRunner.class)
+// some tests here make sure a mocked exception isn't thrown
+@RunWith(MockitoJUnitRunner.Silent.class)
 public class LocalCommandsTest {
   private static final String QUERY_APP_ID1 = "appId1";
   private static final String QUERY_APP_ID2 = "appId2";

@@ -69,6 +69,9 @@ public class ParseTimestamp {
       @UdfParameter(
           description =  " timeZone is a java.util.TimeZone ID format, for example: \"UTC\","
               + " \"America/Los_Angeles\", \"PST\", \"Europe/London\"") final String timeZone) {
+    if (formattedTimestamp == null || formatPattern == null || timeZone == null) {
+      return null;
+    }
     try {
       final StringToTimestampParser timestampParser = parsers.get(formatPattern);
       final ZoneId zoneId = ZoneId.of(timeZone);

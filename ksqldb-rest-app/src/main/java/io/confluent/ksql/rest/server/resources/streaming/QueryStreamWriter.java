@@ -79,7 +79,8 @@ class QueryStreamWriter implements StreamingOutput {
     this.queryMetadata.setLimitHandler(() -> limitReached = true);
     this.queryMetadata.setCompletionHandler(() -> complete = true);
     this.queryMetadata.setUncaughtExceptionHandler(new StreamsExceptionHandler());
-    this.tombstoneFactory = TombstoneFactory.create(queryMetadata);
+    this.tombstoneFactory = TombstoneFactory.create(
+        queryMetadata.getLogicalSchema(), queryMetadata.getResultType());
     connectionClosedFuture.thenAccept(v -> connectionClosed = true);
     if (emptyStream) {
       // if we're writing an empty stream, it's already complete,
@@ -124,6 +125,8 @@ class QueryStreamWriter implements StreamingOutput {
 
       if (limitReached) {
         objectMapper.writeValue(out, StreamedRow.finalMessage("Limit Reached"));
+      } else if (complete) {
+        objectMapper.writeValue(out, StreamedRow.finalMessage("Query Completed"));
       }
 
       out.write("]\n".getBytes(StandardCharsets.UTF_8));

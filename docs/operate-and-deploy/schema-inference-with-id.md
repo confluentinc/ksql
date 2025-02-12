@@ -7,14 +7,14 @@ keywords: ksqlDB, serialization, schema, schema registry, json, avro, delimited,
 ---
 
 For supported [serialization formats](/reference/serialization), ksqlDB can use 
-[schema inference](/operate-and-deploy/schema-registry-integration.md)
+[schema inference](/operate-and-deploy/schema-registry-integration)
 to retrieve (read) and register (write) schemas as needed. If you specify a
 `KEY_SCHEMA_ID` or `VALUE_SCHEMA_ID` explicitly in the `CREATE` statements,
 ksqlDB retrieves and registers the schema specified by the ID from {{ site.sr }},
 and it also serializes data using exactly the same schema referred to by the ID.
 This can spare you from defining columns and data types manually and also make
 sure the data are serialized by the specified physical schema, which can be
-consumed in downstream systems. Before using chema inference with explicit IDs
+consumed in downstream systems. Before using schema inference with explicit IDs
 in ksqlDB, make sure that the {{ site.sr }} is up and running and ksqlDB is
 [configured to use it](../operate-and-deploy/installation/server-config/avro-schema.md).
 
@@ -50,7 +50,7 @@ don't supply one, the stream is created without a key column.
 ### Create a new stream or table
 
 When `KEY_SCHEMA_ID` or `VALUE_SCHEMA_ID` is used in statements to create
-stream or table, the schema fetched from {{ site.sr }} is used to infer data
+a stream or table, the schema fetched from {{ site.sr }} is used to infer data
 source's columns and serialize output data. See
 [Schema inference and data serialization](#schema-inference-and-data-serialization)
 for details about how columns are inferred and data are serialized.
@@ -223,9 +223,9 @@ Name                 : PAGEVIEWS
 ```
 
 If `WRAP_SINGLE_VALUE` is `false` in the statement, and if `KEY_SCHEMA_ID` is
-set, `ROWKEY` is used as key column name.
+set, `ROWKEY` is used as the key's column name.
 
-If `VALUE_SCHEMA_ID` is set, `ROWVAL` is used as value column name. The physical
+If `VALUE_SCHEMA_ID` is set, `ROWVAL` is used as the value's column name. The physical
 schema is used as the column data type.
 
 For example, the following physical schema is `AVRO` and is defined in {{ site.sr }}
@@ -278,13 +278,13 @@ which are explained in the following section.
       the logical schema is translated as expected.
     - During schema translation from a physical schema to a logical schema,
       `struct` type field names are used as column names in the logical schema.
-      Field names _are not_ translated to upper case, in contrast with schema
+      Field names _are not_ translated to uppercase, in contrast with schema
       inference without a schema id, which _does_ translate field names to
-      upper case.
+      uppercase.
 
 #### Schema Compatibility Check for Derived View
 
-You can use schema IDs when creating a materialized views, but instead of
+You can use schema IDs when creating a materialized view, but instead of
 inferring the logical schema for the view, the schema is used to check
 compatibility against the query's projection and serialized output data.
 For compatibility checks, the inferred logical schema must be a superset of
@@ -375,7 +375,7 @@ schema that's used in other cases. Because ksqlDB's logical schema accepts
 `null` values but the physical schema may not, serialization can fail even if
 the inserted value is valid for the logical schema.
 
-The following example show a physical schema that's defined in {{ site.sr }}
+The following example shows a physical schema that's defined in {{ site.sr }}
 with ID `1`. No default values are specified for the `page_name` and `ts`
 fields. 
 
@@ -444,3 +444,7 @@ default values in the specified physical schema.
     properly, either by making physical schema fields optional or by using the
     [IFNULL](/developer-guide/ksqldb-reference/scalar-functions/#ifnull)
     function to ensure that `null` is never inserted.
+
+!!! important
+    If `key_schema_id` is used in table creation with windowed aggregation, the serialized key value
+    also contain window information in addition to original key value.

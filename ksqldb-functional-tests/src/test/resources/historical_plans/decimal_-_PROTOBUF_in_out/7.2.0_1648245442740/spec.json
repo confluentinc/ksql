@@ -1,0 +1,114 @@
+{
+  "version" : "7.2.0",
+  "timestamp" : 1648245442740,
+  "path" : "query-validation-tests/decimal.json",
+  "schemas" : {
+    "CSAS_TEST2_0.TEST2" : {
+      "schema" : "`ID` STRING KEY, `DEC` DECIMAL(21, 19)",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "PROTOBUF",
+        "properties" : {
+          "unwrapPrimitives" : "true"
+        }
+      }
+    },
+    "CSAS_TEST2_0.KsqlTopic.Source" : {
+      "schema" : "`ID` STRING KEY, `DEC` DECIMAL(21, 19)",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "PROTOBUF",
+        "properties" : {
+          "unwrapPrimitives" : "true"
+        }
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "PROTOBUF in/out",
+    "inputs" : [ {
+      "topic" : "test",
+      "key" : null,
+      "value" : {
+        "DEC" : 10.1234512345123451234
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "TEST2",
+      "key" : null,
+      "value" : {
+        "DEC" : 10.1234512345123451234
+      }
+    } ],
+    "topics" : [ {
+      "name" : "TEST2",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "test",
+      "valueSchema" : "syntax = \"proto3\";\n\nimport \"confluent/type/decimal.proto\";\n\nmessage ConnectDefault1 {\n  confluent.type.Decimal DEC = 1 [(confluent.field_meta) = {\n    params: [\n      {\n        value: \"21\",\n        key: \"precision\"\n      },\n      {\n        value: \"19\",\n        key: \"scale\"\n      }\n    ]\n  }];\n}\n",
+      "valueFormat" : "PROTOBUF",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM TEST (ID STRING KEY, dec DECIMAL(21,19)) WITH (kafka_topic='test', value_format='PROTOBUF');", "CREATE STREAM TEST2 AS SELECT * FROM TEST;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`ID` STRING KEY, `DEC` DECIMAL(21, 19)",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "PROTOBUF",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "TEST2",
+        "type" : "STREAM",
+        "schema" : "`ID` STRING KEY, `DEC` DECIMAL(21, 19)",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "PROTOBUF",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "test",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "PROTOBUF",
+            "properties" : {
+              "unwrapPrimitives" : "true"
+            }
+          },
+          "partitions" : 4,
+          "valueSchema" : "syntax = \"proto3\";\n\nimport \"confluent/type/decimal.proto\";\n\nmessage ConnectDefault1 {\n  confluent.type.Decimal DEC = 1 [(confluent.field_meta) = {\n    params: [\n      {\n        value: \"21\",\n        key: \"precision\"\n      },\n      {\n        value: \"19\",\n        key: \"scale\"\n      }\n    ]\n  }];\n}\n"
+        }, {
+          "name" : "TEST2",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "PROTOBUF",
+            "properties" : {
+              "unwrapPrimitives" : "true"
+            }
+          },
+          "partitions" : 4,
+          "valueSchema" : "syntax = \"proto3\";\n\nimport \"confluent/type/decimal.proto\";\n\nmessage ConnectDefault1 {\n  confluent.type.Decimal DEC = 1 [(confluent.field_meta) = {\n    params: [\n      {\n        value: \"21\",\n        key: \"precision\"\n      },\n      {\n        value: \"19\",\n        key: \"scale\"\n      }\n    ]\n  }];\n}\n"
+        } ]
+      }
+    }
+  }
+}

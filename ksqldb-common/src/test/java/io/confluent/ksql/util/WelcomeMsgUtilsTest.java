@@ -20,20 +20,19 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
-import org.easymock.EasyMock;
-import org.easymock.EasyMockRunner;
-import org.easymock.Mock;
-import org.easymock.MockType;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.Mockito;
+import org.mockito.junit.MockitoJUnitRunner;
 
-@RunWith(EasyMockRunner.class)
+@RunWith(MockitoJUnitRunner.class)
 public class WelcomeMsgUtilsTest {
 
   private StringWriter stringWriter;
   private PrintWriter realPrintWriter;
-  @Mock(MockType.NICE)
+  @Mock
   private PrintWriter mockPrintWriter;
 
   @Before
@@ -61,7 +60,7 @@ public class WelcomeMsgUtilsTest {
         + "                  =        for stream processing apps       =\n"
         + "                  ===========================================\n"
         + "\n"
-        + "Copyright 2017-2021 Confluent Inc.\n"
+        + "Copyright 2017-2022 Confluent Inc.\n"
         + "\n")
     );
   }
@@ -72,34 +71,24 @@ public class WelcomeMsgUtilsTest {
     WelcomeMsgUtils.displayWelcomeMessage(35, realPrintWriter);
 
     // Then:
-    assertThat(stringWriter.toString(), is("ksqlDB, Copyright 2017-2021 Confluent Inc.\n\n"));
+    assertThat(stringWriter.toString(), is("ksqlDB, Copyright 2017-2022 Confluent Inc.\n\n"));
   }
 
   @Test
   public void shouldFlushWriterWhenOutputtingLongMessage() {
-    // Given:
-    mockPrintWriter.flush();
-    EasyMock.expectLastCall();
-    EasyMock.replay(mockPrintWriter);
-
     // When:
     WelcomeMsgUtils.displayWelcomeMessage(80, mockPrintWriter);
 
     // Then:
-    EasyMock.verify(mockPrintWriter);
+    Mockito.verify(mockPrintWriter).flush();
   }
 
   @Test
   public void shouldFlushWriterWhenOutputtingShortMessage() {
-    // Given:
-    mockPrintWriter.flush();
-    EasyMock.expectLastCall();
-    EasyMock.replay(mockPrintWriter);
-
     // When:
     WelcomeMsgUtils.displayWelcomeMessage(10, mockPrintWriter);
 
     // Then:
-    EasyMock.verify(mockPrintWriter);
+    Mockito.verify(mockPrintWriter).flush();
   }
 }

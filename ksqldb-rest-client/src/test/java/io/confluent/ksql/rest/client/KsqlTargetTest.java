@@ -10,6 +10,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableMap;
@@ -27,7 +28,9 @@ import io.vertx.core.http.HttpConnection;
 import io.vertx.core.http.RequestOptions;
 import io.vertx.core.net.SocketAddress;
 import io.vertx.core.streams.WriteStream;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -85,7 +88,7 @@ public class KsqlTargetTest {
   private AtomicReference<Throwable> error = new AtomicReference<>();
 
   @Before
-  public void setUp() throws Exception {
+  public void setUp() {
     vertx = Vertx.vertx();
     closeConnection = new CompletableFuture<>();
     executor = Executors.newSingleThreadExecutor();
@@ -106,6 +109,8 @@ public class KsqlTargetTest {
 
     when(httpClientResponse.handler(handlerCaptor.capture()))
         .thenReturn(httpClientResponse);
+    when(httpClientResponse.bodyHandler(handlerCaptor.capture()))
+        .thenReturn(httpClientResponse);
     when(httpClientResponse.endHandler(endCaptor.capture()))
         .thenReturn(httpClientResponse);
     when(httpClientResponse.statusCode()).thenReturn(OK.code());
@@ -114,6 +119,8 @@ public class KsqlTargetTest {
         .thenReturn(httpClientRequest);
     when(httpClientRequest.connection())
         .thenReturn(httpConnection);
+
+    error.set(null);
   }
 
   @After
@@ -141,7 +148,7 @@ public class KsqlTargetTest {
 
   @Test
   public void shouldPostQueryRequest_chunkHandler() {
-    ksqlTarget = new KsqlTarget(httpClient, socketAddress, localProperties, authHeader, HOST, SUB_PATH);
+    ksqlTarget = new KsqlTarget(httpClient, socketAddress, localProperties, authHeader, HOST, SUB_PATH, Collections.emptyMap());
     executor.submit(this::expectPostQueryRequestChunkHandler);
     assertThatEventually(requestStarted::get, is(true));
 
@@ -156,7 +163,7 @@ public class KsqlTargetTest {
 
   @Test
   public void shouldPostQueryRequest_chunkHandler_exception() {
-    ksqlTarget = new KsqlTarget(httpClient, socketAddress, localProperties, authHeader, HOST, SUB_PATH);
+    ksqlTarget = new KsqlTarget(httpClient, socketAddress, localProperties, authHeader, HOST, SUB_PATH, Collections.emptyMap());
     executor.submit(this::expectPostQueryRequestChunkHandler);
 
     assertThatEventually(requestStarted::get, is(true));
@@ -170,7 +177,7 @@ public class KsqlTargetTest {
 
   @Test
   public void shouldPostQueryRequest_chunkHandler_closeEarly() {
-    ksqlTarget = new KsqlTarget(httpClient, socketAddress, localProperties, authHeader, HOST, SUB_PATH);
+    ksqlTarget = new KsqlTarget(httpClient, socketAddress, localProperties, authHeader, HOST, SUB_PATH, Collections.emptyMap());
     executor.submit(this::expectPostQueryRequestChunkHandler);
 
     assertThatEventually(requestStarted::get, is(true));
@@ -187,7 +194,7 @@ public class KsqlTargetTest {
   @Test
   public void shouldPostQueryRequest_chunkHandler_closeEarlyWithError() {
     doThrow(new RuntimeException("Error!")).when(httpConnection).close();
-    ksqlTarget = new KsqlTarget(httpClient, socketAddress, localProperties, authHeader, HOST, SUB_PATH);
+    ksqlTarget = new KsqlTarget(httpClient, socketAddress, localProperties, authHeader, HOST, SUB_PATH, Collections.emptyMap());
     executor.submit(this::expectPostQueryRequestChunkHandler);
 
     assertThatEventually(requestStarted::get, is(true));
@@ -203,7 +210,7 @@ public class KsqlTargetTest {
 
   @Test
   public void shouldPostQueryRequest_chunkHandler_closeAfterFinish() {
-    ksqlTarget = new KsqlTarget(httpClient, socketAddress, localProperties, authHeader, HOST, SUB_PATH);
+    ksqlTarget = new KsqlTarget(httpClient, socketAddress, localProperties, authHeader, HOST, SUB_PATH, Collections.emptyMap());
     executor.submit(this::expectPostQueryRequestChunkHandler);
 
     assertThatEventually(requestStarted::get, is(true));
@@ -220,7 +227,7 @@ public class KsqlTargetTest {
 
   @Test
   public void shouldPostQueryRequest_chunkHandler_partialMessage() {
-    ksqlTarget = new KsqlTarget(httpClient, socketAddress, localProperties, authHeader, HOST, SUB_PATH);
+    ksqlTarget = new KsqlTarget(httpClient, socketAddress, localProperties, authHeader, HOST, SUB_PATH, Collections.emptyMap());
     executor.submit(this::expectPostQueryRequestChunkHandler);
 
     assertThatEventually(requestStarted::get, is(true));
@@ -234,5 +241,27 @@ public class KsqlTargetTest {
     assertThatEventually(response::get, notNullValue());
     assertThat(response.get().getResponse(), is (2));
     assertThat(rows.size(), is (2));
+  }
+
+  @Test
+  public void shouldSendAdditionalHeadersWithKsqlRequest() {
+    // Given:
+    final Map<String, String> additionalHeaders = ImmutableMap.of("h1", "v1", "h2", "v2");
+    ksqlTarget = new KsqlTarget(httpClient, socketAddress, localProperties, authHeader, HOST, SUB_PATH, additionalHeaders);
+
+    // When:
+    executor.submit(() -> {
+      try {
+        ksqlTarget.postKsqlRequest("some ksql;", Collections.emptyMap(), Optional.empty());
+      } catch (Exception e) {
+        // ignore response error since this test is just testing headers on the outgoing request
+      }
+    });
+    assertThatEventually(requestStarted::get, is(true));
+    handlerCaptor.getValue().handle(Buffer.buffer());
+
+    // Then:
+    verify(httpClientRequest).putHeader("h1", "v1");
+    verify(httpClientRequest).putHeader("h2", "v2");
   }
 }

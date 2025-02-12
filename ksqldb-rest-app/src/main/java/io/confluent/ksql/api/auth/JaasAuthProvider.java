@@ -17,6 +17,7 @@ package io.confluent.ksql.api.auth;
 
 import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.api.server.Server;
+import io.confluent.ksql.security.DefaultKsqlPrincipal;
 import io.confluent.ksql.security.KsqlPrincipal;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
@@ -54,17 +55,17 @@ public class JaasAuthProvider implements AuthProvider {
   }
 
   public JaasAuthProvider(
-          final Server server,
-          final String contextName
+      final Server server,
+      final String contextName
   ) {
     this(server, contextName, JAASLoginService::new);
   }
 
   @VisibleForTesting
   JaasAuthProvider(
-          final Server server,
-          final String contextName,
-          final LoginContextSupplier loginContextSupplier
+      final Server server,
+      final String contextName,
+      final LoginContextSupplier loginContextSupplier
   ) {
     this.server = Objects.requireNonNull(server, "server");
     this.contextName = Objects.requireNonNull(contextName, "contextName");
@@ -73,8 +74,8 @@ public class JaasAuthProvider implements AuthProvider {
 
   @Override
   public void authenticate(
-          final JsonObject authInfo,
-          final Handler<AsyncResult<User>> resultHandler
+      final JsonObject authInfo,
+      final Handler<AsyncResult<User>> resultHandler
   ) {
     final String username = authInfo.getString("username");
     if (username == null) {
@@ -89,17 +90,17 @@ public class JaasAuthProvider implements AuthProvider {
     }
 
     server.getWorkerExecutor().executeBlocking(
-            promisedUser -> getUser(contextName, username, password, promisedUser),
-            false,
-            resultHandler
+        promisedUser -> getUser(contextName, username, password, promisedUser),
+        false,
+        resultHandler
     );
   }
 
   private void getUser(
-          final String contextName,
-          final String username,
-          final String password,
-          final Promise<User> promisedUser
+      final String contextName,
+      final String username,
+      final String password,
+      final Promise<User> promisedUser
   ) {
     final JAASLoginService login = loginContext.get();
     login.setCallbackHandlerClass(BasicCallbackHandler.class.getName());
@@ -121,17 +122,16 @@ public class JaasAuthProvider implements AuthProvider {
     }
 
     // if the subject from the login context is already a KsqlPrincipal, use the subject
-    // directly rather than creating a new one
+    // (wrapped inside another DefaultKsqlPrincipal) rather than creating a new one
     final Optional<KsqlPrincipal> ksqlPrincipal = user.getSubject().getPrincipals().stream()
-            .filter(KsqlPrincipal.class::isInstance)
-            .map(KsqlPrincipal.class::cast)
-            .findFirst();
+        .filter(KsqlPrincipal.class::isInstance)
+        .map(KsqlPrincipal.class::cast)
+        .findFirst();
 
     final Authorizations authorizations = new AuthorizationsImpl();
     user.getSubject()
-            .getPrincipals()
-            .forEach(p -> authorizations.add("default",
-                    RoleBasedAuthorization.create(p.getName())));
+        .getPrincipals()
+        .forEach(p -> authorizations.add("default", RoleBasedAuthorization.create(p.getName())));
 
     promisedUser.complete(new ApiUser() {
 
@@ -141,14 +141,21 @@ public class JaasAuthProvider implements AuthProvider {
       }
 
       @Override
+      public DefaultKsqlPrincipal getPrincipal() {
+        return ksqlPrincipal
+            .map(DefaultKsqlPrincipal::new)
+            .orElseGet(() -> new JaasPrincipal(username, password));
+      }
+
+      @Override
       public JsonObject attributes() {
         throw new UnsupportedOperationException();
       }
 
       @Override
       public User isAuthorized(
-              final Authorization authority,
-              final Handler<AsyncResult<Boolean>> resultHandler
+          final Authorization authority,
+          final Handler<AsyncResult<Boolean>> resultHandler
       ) {
         throw new UnsupportedOperationException();
       }
@@ -161,12 +168,6 @@ public class JaasAuthProvider implements AuthProvider {
       @Override
       public void setAuthProvider(final AuthProvider authProvider) {
         throw new UnsupportedOperationException();
-      }
-
-      @Override
-      public KsqlPrincipal getPrincipal() {
-        return ksqlPrincipal
-                .orElseGet(() -> new JaasPrincipal(username, password));
       }
 
       @Override

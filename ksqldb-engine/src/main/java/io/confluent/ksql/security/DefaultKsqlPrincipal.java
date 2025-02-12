@@ -28,9 +28,15 @@ import java.util.Objects;
 public class DefaultKsqlPrincipal implements KsqlPrincipal {
 
   private final Principal principal;
+  private final String ipAddress;
 
   public DefaultKsqlPrincipal(final Principal principal) {
+    this(principal, "");
+  }
+
+  protected DefaultKsqlPrincipal(final Principal principal, final String ipAddress) {
     this.principal = Objects.requireNonNull(principal, "principal");
+    this.ipAddress = Objects.requireNonNull(ipAddress, "ipAddress");
   }
 
   @Override
@@ -53,5 +59,18 @@ public class DefaultKsqlPrincipal implements KsqlPrincipal {
    */
   public Principal getOriginalPrincipal() {
     return principal;
+  }
+
+  @Override
+  public String getIpAddress() {
+    return ipAddress;
+  }
+
+  /**
+   * IP address is populated from the request context, and subsequently passed
+   * throughout the engine.
+   */
+  public DefaultKsqlPrincipal withIpAddress(final String ipAddress) {
+    return new DefaultKsqlPrincipal(principal, ipAddress);
   }
 }

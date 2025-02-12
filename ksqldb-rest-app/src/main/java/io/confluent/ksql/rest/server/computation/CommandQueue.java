@@ -54,7 +54,7 @@ public interface CommandQueue extends Closeable {
    * <p>The method blocks until either there is data to return or the
    * supplied {@code timeout} expires.
    *
-   * <p>If between invocations to this method, {@link #getRestoreCommands()} is
+   * <p>If between invocations to this method, {@link #getRestoreCommands(RestoreCommandsCompactor)} is
    * invoked, this command will begin where the results of that call ended.
    *
    * @param timeout the max time to wait for new commands.
@@ -70,7 +70,7 @@ public interface CommandQueue extends Closeable {
    * @return the entire command list history
    * @apiNote this method may block
    */
-  List<QueuedCommand> getRestoreCommands();
+  List<QueuedCommand> getRestoreCommands(RestoreCommandsCompactor compactor);
 
   /**
    * @param seqNum  the required minimum sequence number to wait for

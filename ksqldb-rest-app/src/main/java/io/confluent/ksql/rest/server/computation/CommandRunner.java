@@ -73,7 +73,7 @@ public class CommandRunner implements Closeable {
   private final InteractiveStatementExecutor statementExecutor;
   private final CommandQueue commandStore;
   private final ExecutorService executor;
-  private final Function<List<QueuedCommand>, List<QueuedCommand>> compactor;
+  private final RestoreCommandsCompactor compactor;
   private volatile boolean closed = false;
   private final int maxRetries;
   private final ClusterTerminator clusterTerminator;
@@ -171,7 +171,7 @@ public class CommandRunner implements Closeable {
         commandRunnerHealthTimeout,
         metricsGroupPrefix,
         Clock.systemUTC(),
-        RestoreCommandsCompactor::compact,
+        new RestoreCommandsCompactor(),
         queuedCommand -> {
           queuedCommand.getAndDeserializeCommandId();
           queuedCommand.getAndDeserializeCommand(commandDeserializer);
@@ -196,7 +196,7 @@ public class CommandRunner implements Closeable {
       final Duration commandRunnerHealthTimeout,
       final String metricsGroupPrefix,
       final Clock clock,
-      final Function<List<QueuedCommand>, List<QueuedCommand>> compactor,
+      final RestoreCommandsCompactor compactor,
       final Consumer<QueuedCommand> incompatibleCommandChecker,
       final Deserializer<Command> commandDeserializer,
       final Errors errorHandler,
@@ -268,7 +268,7 @@ public class CommandRunner implements Closeable {
    */
   public void processPriorCommands(final PersistentQueryCleanupImpl queryCleanup) {
     try {
-      final List<QueuedCommand> restoreCommands = commandStore.getRestoreCommands();
+      final List<QueuedCommand> restoreCommands = commandStore.getRestoreCommands(compactor);
       final List<QueuedCommand> compatibleCommands = checkForIncompatibleCommands(restoreCommands);
 
       LOG.info("Restoring previous state from {} commands.", compatibleCommands.size());
@@ -285,9 +285,7 @@ public class CommandRunner implements Closeable {
         return;
       }
 
-      final List<QueuedCommand> compacted = compactor.apply(compatibleCommands);
-
-      compacted.forEach(
+      compatibleCommands.forEach(
           command -> {
             currentCommandRef.set(new Pair<>(command, clock.instant()));
             RetryUtil.retryWithBackoff(

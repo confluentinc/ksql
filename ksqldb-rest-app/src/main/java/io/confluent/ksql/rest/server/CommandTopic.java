@@ -17,6 +17,7 @@ package io.confluent.ksql.rest.server;
 
 import com.google.common.collect.Lists;
 import io.confluent.ksql.rest.server.computation.QueuedCommand;
+import io.confluent.ksql.rest.server.computation.RestoreCommandsCompactor;
 import io.confluent.ksql.rest.server.resources.CommandTopicCorruptionException;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -100,7 +101,9 @@ public class CommandTopic {
     return records;
   }
 
-  public List<QueuedCommand> getRestoreCommands(final Duration duration) {
+  public List<QueuedCommand> getRestoreCommands(
+          final Duration duration,
+          final RestoreCommandsCompactor compactor) {
     if (commandTopicBackup.commandTopicCorruption()) {
       log.warn("Corruption detected. "
           + "Use backup to restore command topic.");
@@ -109,16 +112,18 @@ public class CommandTopic {
     return getAllCommandsInCommandTopic(
         commandConsumer,
         commandTopicPartition,
+        compactor,
         Optional.of(commandTopicBackup),
         duration
     );
   }
 
   public static List<QueuedCommand> getAllCommandsInCommandTopic(
-      final Consumer<byte[], byte[]> commandConsumer,
-      final TopicPartition topicPartition,
-      final Optional<CommandTopicBackup> backup,
-      final Duration duration
+          final Consumer<byte[], byte[]> commandConsumer,
+          final TopicPartition topicPartition,
+          final RestoreCommandsCompactor compactor,
+          final Optional<CommandTopicBackup> backup,
+          final Duration duration
   ) {
     final List<QueuedCommand> commands = Lists.newArrayList();
     final long endOffset = getEndOffsetFromTopicPartition(commandConsumer, topicPartition);
@@ -144,7 +149,7 @@ public class CommandTopic {
         if (record.value() == null) {
           continue;
         }
-        commands.add(
+        compactor.apply(
             new QueuedCommand(
                 record.key(),
                 record.value(),
@@ -152,7 +157,7 @@ public class CommandTopic {
                 record.offset()));
       }
     }
-    return commands;
+    return compactor.compact();
   }
 
   public long getCommandTopicConsumerPosition() {

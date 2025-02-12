@@ -270,8 +270,9 @@ public class CommandStore implements CommandQueue, Closeable {
   }
 
   @Override
-  public List<QueuedCommand> getRestoreCommands() {
-    return commandTopic.getRestoreCommands(POLLING_TIMEOUT_FOR_COMMAND_TOPIC);
+  public List<QueuedCommand> getRestoreCommands(
+          final RestoreCommandsCompactor compactor) {
+    return commandTopic.getRestoreCommands(POLLING_TIMEOUT_FOR_COMMAND_TOPIC, compactor);
   }
 
   @Override

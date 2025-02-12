@@ -57,6 +57,10 @@ public class CommandTopicBackupImpl implements CommandTopicBackup {
   private int latestReplayIdx;
   private boolean corruptionDetected;
   private KafkaTopicClient kafkaTopicClient;
+  private final String prefixFilename;
+  private final byte[] MIGRATION_COMMAND_ID_SERIALIZED =
+          InternalTopicSerdes.serializer().serialize("",
+                  CommandTopicMigrationUtil.MIGRATION_COMMAND_ID);
 
   public CommandTopicBackupImpl(
       final String location,
@@ -78,6 +82,7 @@ public class CommandTopicBackupImpl implements CommandTopicBackup {
     this.ticker = Objects.requireNonNull(ticker, "ticker");
     this.kafkaTopicClient = Objects.requireNonNull(kafkaTopicClient, "kafkaTopicClient");
     ensureDirectoryExists(backupLocation);
+    this.prefixFilename = String.format("%s%s_", PREFIX, this.topicName);
   }
 
   @Override
@@ -143,17 +148,12 @@ public class CommandTopicBackupImpl implements CommandTopicBackup {
     }
 
     if (record.key() == null || record.value() == null) {
-      LOG.warn(String.format("Can't backup a command topic record with a null key/value:"
-              + " partition=%d, offset=%d",
-          record.partition(), record.offset()));
+      LOG.warn("Can't backup a command topic record with a null key/value:"
+              + " partition={}, offset={}", record.partition(), record.offset());
     }
 
-    if (Arrays.equals(record.key(), InternalTopicSerdes.serializer().serialize(
-        "",
-        CommandTopicMigrationUtil.MIGRATION_COMMAND_ID)
-    )) {
-      LOG.warn(String.format("Can't backup migration command topic record offset=%d",
-          record.offset()));
+    if (Arrays.equals(record.key(), MIGRATION_COMMAND_ID_SERIALIZED)) {
+      LOG.warn("Can't backup migration command topic record offset={}", record.offset());
       corruptionDetected = true;
       return;
     }
@@ -168,7 +168,7 @@ public class CommandTopicBackupImpl implements CommandTopicBackup {
             "Failed to write record due to out of sync command topic and backup file. "
                 + String.format("partition=%d, offset=%d", record.partition(), record.offset()));
       }
-    } else if (latestReplay.size() > 0) {
+    } else if (!latestReplay.isEmpty()) {
       // clear latest replay from memory
       latestReplay.clear();
     }
@@ -209,7 +209,6 @@ public class CommandTopicBackupImpl implements CommandTopicBackup {
   }
 
   private Optional<BackupReplayFile> latestReplayFile() throws IOException {
-    final String prefixFilename = String.format("%s%s_", PREFIX, topicName);
     final File[] files = backupLocation.listFiles(
         (f, name) -> name.toLowerCase().startsWith(prefixFilename));
 

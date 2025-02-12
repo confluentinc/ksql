@@ -29,6 +29,7 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.rest.server.computation.QueuedCommand;
+import io.confluent.ksql.rest.server.computation.RestoreCommandsCompactor;
 import io.confluent.ksql.rest.server.resources.CommandTopicCorruptionException;
 import java.nio.charset.Charset;
 import java.time.Duration;
@@ -64,6 +65,8 @@ public class CommandTopicTest {
   private CommandTopicBackup commandTopicBackup;
   @Mock
   private TopicPartition topicPartition;
+
+  private RestoreCommandsCompactor compactor = new RestoreCommandsCompactor();
 
   private final byte[] commandId1 = "commandId1".getBytes(Charset.defaultCharset());
   private final byte[] command1 = "command1".getBytes(Charset.defaultCharset());
@@ -136,7 +139,7 @@ public class CommandTopicTest {
 
     // When:
     final List<QueuedCommand> queuedCommandList = commandTopic
-        .getRestoreCommands(Duration.ofMillis(1));
+        .getRestoreCommands(Duration.ofMillis(1), compactor);
 
     // Then:
     verify(commandConsumer).seekToBeginning(topicPartitionsCaptor.capture());
@@ -161,7 +164,7 @@ public class CommandTopicTest {
 
     // When:
     final List<QueuedCommand> queuedCommandList = commandTopic
-        .getRestoreCommands(Duration.ofMillis(1));
+        .getRestoreCommands(Duration.ofMillis(1), compactor);
 
     // Then:
     verify(commandConsumer).seekToBeginning(topicPartitionsCaptor.capture());
@@ -187,7 +190,7 @@ public class CommandTopicTest {
 
     // When:
     final List<QueuedCommand> queuedCommandList = commandTopic
-        .getRestoreCommands(Duration.ofMillis(1));
+        .getRestoreCommands(Duration.ofMillis(1), compactor);
 
     // Then:
     verify(commandConsumer).seekToBeginning(topicPartitionsCaptor.capture());
@@ -212,7 +215,7 @@ public class CommandTopicTest {
 
     // When:
     final List<QueuedCommand> queuedCommandList = commandTopic
-        .getRestoreCommands(Duration.ofMillis(1));
+        .getRestoreCommands(Duration.ofMillis(1), compactor);
 
     // Then:
     assertThat(queuedCommandList, equalTo(ImmutableList.of(
@@ -235,7 +238,7 @@ public class CommandTopicTest {
 
     // When:
     final List<QueuedCommand> queuedCommandList = commandTopic
-        .getRestoreCommands(Duration.ofMillis(1));
+        .getRestoreCommands(Duration.ofMillis(1), compactor);
 
     // Then:
     assertThat(queuedCommandList, equalTo(ImmutableList.of(
@@ -260,7 +263,7 @@ public class CommandTopicTest {
 
     // When:
     final List<QueuedCommand> recordList = commandTopic
-        .getRestoreCommands(Duration.ofMillis(1));
+        .getRestoreCommands(Duration.ofMillis(1), compactor);
 
     // Then:
     assertThat(recordList, equalTo(ImmutableList.of(
@@ -295,7 +298,7 @@ public class CommandTopicTest {
     when(commandConsumer.position(TOPIC_PARTITION)).thenReturn(0L, 3L);
 
     // When:
-    final List<QueuedCommand> commands = commandTopic.getRestoreCommands(Duration.ofMillis(10));
+    final List<QueuedCommand> commands = commandTopic.getRestoreCommands(Duration.ofMillis(10), compactor);
 
     // Then:
     assertThat(commands, equalTo(Arrays.asList(
@@ -332,7 +335,7 @@ public class CommandTopicTest {
     when(commandConsumer.position(TOPIC_PARTITION)).thenReturn(0L, 2L);
 
     // When
-    commandTopic.getRestoreCommands(Duration.ofHours(1));
+    commandTopic.getRestoreCommands(Duration.ofHours(1), compactor);
 
     // Then
     final InOrder inOrder = Mockito.inOrder(commandTopicBackup);

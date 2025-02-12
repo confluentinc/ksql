@@ -16,6 +16,7 @@
 package io.confluent.ksql.rest.server.utils;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
@@ -39,18 +40,27 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.Optional;
 
 public final class KsqlPlanSchemaGenerator {
 
   private static final ObjectMapper MAPPER = PlanJsonMapper.INSTANCE.get();
 
-  private static final Map<Class<?>, JsonNode> POLYMORPHIC_TYPES = ImmutableMap.of(
-      ExecutionStep.class, definitionForPolymorphicType(ExecutionStep.class)
-  );
+  private static final Map<Class<?>, JsonNode> POLYMORPHIC_TYPES;
+
+  static {
+    try {
+      POLYMORPHIC_TYPES = ImmutableMap.of(
+          ExecutionStep.class, definitionForPolymorphicType(ExecutionStep.class)
+      );
+    } catch (final JsonMappingException e) {
+      throw new RuntimeException(e);
+    }
+  }
 
   private KsqlPlanSchemaGenerator() {
   }
@@ -90,12 +100,13 @@ public final class KsqlPlanSchemaGenerator {
       .build();
   }
 
-  private static JsonNode generate(final Class<?> clazz) {
+  private static JsonNode generate(final Class<?> clazz) throws JsonMappingException {
     final JsonSchemaGenerator generator = new JsonSchemaGenerator(MAPPER, configure());
     return generator.generateJsonSchema(clazz);
   }
 
-  private static JsonNode definitionForPolymorphicType(final Class<?> clazz) {
+  private static JsonNode definitionForPolymorphicType(final Class<?> clazz)
+      throws JsonMappingException {
     final JsonNode generated = generate(clazz);
     return new ObjectNode(JsonNodeFactory.instance).set(
         "oneOf", generated.get("oneOf")
@@ -142,7 +153,7 @@ public final class KsqlPlanSchemaGenerator {
     return schema;
   }
 
-  public static JsonNode generate() {
+  public static JsonNode generate() throws JsonMappingException {
     final JsonSchemaGenerator generator = new JsonSchemaGenerator(MAPPER, configure());
     return rewriteWithPolymorphicAsDefinition(generator.generateJsonSchema(KsqlPlan.class));
   }

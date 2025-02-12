@@ -178,7 +178,7 @@ public class RecoveryTest {
     }
 
     @Override
-    public List<QueuedCommand> getRestoreCommands() {
+    public List<QueuedCommand> getRestoreCommands(RestoreCommandsCompactor compactor) {
       final List<QueuedCommand> restoreCommands = ImmutableList.copyOf(commandLog);
       this.offset = commandLog.size();
       return restoreCommands;

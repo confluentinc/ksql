@@ -21,8 +21,10 @@ import java.util.Arrays;
 import java.util.Objects;
 import java.util.Optional;
 import org.apache.kafka.common.serialization.Deserializer;
+import org.apache.kafka.common.serialization.Serializer;
 
 public class QueuedCommand {
+  private static final Serializer<Object> serializer = InternalTopicSerdes.serializer();
   private final byte[] commandId;
   private final byte[] command;
   private final Optional<CommandStatusFuture> status;
@@ -36,8 +38,8 @@ public class QueuedCommand {
       final Long offset
   ) {
     this(
-        InternalTopicSerdes.serializer().serialize("", commandId),
-        InternalTopicSerdes.serializer().serialize("", command),
+        serializer.serialize("", commandId),
+        serializer.serialize("", command),
         status,
         offset
     );

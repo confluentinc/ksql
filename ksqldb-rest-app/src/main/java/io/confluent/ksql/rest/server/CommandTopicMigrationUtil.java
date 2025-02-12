@@ -16,10 +16,7 @@
 package io.confluent.ksql.rest.server;
 
 import io.confluent.ksql.rest.entity.CommandId;
-import io.confluent.ksql.rest.server.computation.Command;
-import io.confluent.ksql.rest.server.computation.CommandStore;
-import io.confluent.ksql.rest.server.computation.InternalTopicSerdes;
-import io.confluent.ksql.rest.server.computation.QueuedCommand;
+import io.confluent.ksql.rest.server.computation.*;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.util.ArrayList;
@@ -91,6 +88,7 @@ public final class CommandTopicMigrationUtil {
     final List<QueuedCommand> commands = CommandTopic.getAllCommandsInCommandTopic(
         oldBrokerConsumer,
         topicPartition,
+        new RestoreCommandsCompactor(),
         Optional.empty(),
         CommandStore.POLLING_TIMEOUT_FOR_COMMAND_TOPIC
     );

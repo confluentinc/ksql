@@ -167,7 +167,7 @@ public class CommandRunnerTest {
         Duration.ofMillis(COMMAND_RUNNER_HEALTH_TIMEOUT),
         "",
         clock,
-        compactor,
+        null,
         incompatibleCommandChecker,
         commandDeserializer,
         errorHandler,
@@ -701,7 +701,7 @@ public class CommandRunnerTest {
   }
 
   private void givenQueuedCommands(final QueuedCommand... cmds) {
-    when(commandStore.getRestoreCommands()).thenReturn(Arrays.asList(cmds));
+    when(commandStore.getRestoreCommands(any())).thenReturn(Arrays.asList(cmds));
     when(commandStore.getNewCommands(any())).thenReturn(Arrays.asList(cmds));
   }
 

@@ -23,6 +23,7 @@ import io.confluent.ksql.logging.query.QueryLogger;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.tree.TerminateQuery;
 import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.rest.entity.CommandId;
 import io.confluent.ksql.rest.entity.CommandId.Type;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -32,6 +33,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import javax.annotation.Nullable;
+import org.apache.kafka.common.serialization.Serializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,9 +42,17 @@ import org.slf4j.LoggerFactory;
  */
 public final class RestoreCommandsCompactor {
   private static final Logger LOG = LoggerFactory.getLogger(RestoreCommandsCompactor.class);
+  private static final Serializer<Object> serializer = InternalTopicSerdes.serializer();
 
-  private RestoreCommandsCompactor() {
-  }
+  private final Map<QueryId, CompactedNode> latestNodeWithId = new HashMap<>();
+  private final Map<SourceName, QueryId> latestCreateAsWithId = new HashMap<>();
+
+  // This is a temporary list that helps to detect invalid CREATE_AS statements with
+  // IF NOT EXISTS in the restore process.
+  // Know bug https://github.com/confluentinc/ksql/issues/8173
+  private final Set<SourceName> createAsIfNotExistsBugDetection = new HashSet<>();
+
+  private CompactedNode current = null;
 
   /**
    * Compact the list of commands to restore. A command should be compacted if it
@@ -52,40 +62,50 @@ public final class RestoreCommandsCompactor {
    * <p>This compaction stops unnecessary creation of Streams topologies on a server restart.
    * Building such topologies is relatively slow and best avoided.
    *
-   * @param restoreCommands the list of commands to compact.
-   * @return the compacted list of commands.
+   * @param restoreCommand the command to compact.
    */
-  static List<QueuedCommand> compact(final List<QueuedCommand> restoreCommands) {
-    final Map<QueryId, CompactedNode> latestNodeWithId = new HashMap<>();
-    final Map<SourceName, QueryId> latestCreateAsWithId = new HashMap<>();
-    CompactedNode current = null;
+  public void apply(final QueuedCommand restoreCommand) {
+    // Whenever a new command is processed, we check if a previous command with
+    // the same queryID exists - in which case, we mark that command as "shouldSkip"
+    // and it will not be included in the output
+    current = CompactedNode.maybeAppend(current, restoreCommand,
+        latestNodeWithId, latestCreateAsWithId, createAsIfNotExistsBugDetection);
+  }
 
-    // This is a temporary list that helps to detect invalid CREATE_AS statements with
-    // IF NOT EXISTS in the restore process.
-    // Know bug https://github.com/confluentinc/ksql/issues/8173
-    final Set<SourceName> createAsIfNotExistsBugDetection = new HashSet<>();
-
-    for (final QueuedCommand cmd : restoreCommands) {
-      // Whenever a new command is processed, we check if a previous command with
-      // the same queryID exists - in which case, we mark that command as "shouldSkip"
-      // and it will not be included in the output
-      current = CompactedNode.maybeAppend(current, cmd,
-          latestNodeWithId, latestCreateAsWithId, createAsIfNotExistsBugDetection);
-    }
-
+  public List<QueuedCommand> getList() {
     final List<QueuedCommand> compacted = new LinkedList<>();
     while (current != null) {
       // traverse backwards and add each next node to the start of the list
-      compact(current).ifPresent(cmd -> compacted.add(0, cmd));
+      getList(current).ifPresent(cmd -> compacted.add(0, cmd));
       current = current.prev;
     }
-
     return compacted;
+  }
+
+  public void compact() {
+    while (current != null && current.shouldSkip) {
+      current = current.prev;
+    }
+    if (current == null) {
+      return;
+    }
+
+    CompactedNode next = current;
+    CompactedNode temp = next.prev;
+    while (temp != null) {
+      // traverse backwards and add each next node to the start of the list
+      if (temp.shouldSkip) {
+        next.prev = temp.prev;
+      } else {
+        next = temp;
+      }
+      temp = temp.prev;
+    }
   }
 
   private static final class CompactedNode {
 
-    final CompactedNode prev;
+    CompactedNode prev;
     final QueuedCommand queued;
     final Command command;
 
@@ -103,11 +123,12 @@ public final class RestoreCommandsCompactor {
       );
 
       final Optional<KsqlPlan> plan = command.getPlan();
-      final Optional<DdlCommand> ddlCommand = plan.flatMap(p -> p.getDdlCommand());
+      final Optional<DdlCommand> ddlCommand = plan.flatMap(KsqlPlan::getDdlCommand);
 
-      if (queued.getAndDeserializeCommandId().getType() == Type.TERMINATE) {
-        final QueryId queryId = new QueryId(queued.getAndDeserializeCommandId().getEntity());
-        if (queryId.toString().equals(TerminateQuery.ALL_QUERIES)) {
+      CommandId commandId = queued.getAndDeserializeCommandId();
+      if (commandId.getType() == Type.TERMINATE) {
+        final QueryId queryId = new QueryId(commandId.getEntity());
+        if (TerminateQuery.ALL_QUERIES.equals(queryId.toString())) {
           latestNodeWithId.values().forEach(node -> node.shouldSkip = true);
         } else {
           markShouldSkip(queryId, latestNodeWithId);
@@ -211,7 +232,7 @@ public final class RestoreCommandsCompactor {
     }
   }
 
-  private static Optional<QueuedCommand> compact(final CompactedNode node) {
+  private static Optional<QueuedCommand> getList(final CompactedNode node) {
     final Command command = node.command;
     if (!node.shouldSkip) {
       return Optional.of(node.queued);
@@ -231,8 +252,8 @@ public final class RestoreCommandsCompactor {
     );
 
     return Optional.of(new QueuedCommand(
-        InternalTopicSerdes.serializer().serialize("", node.queued.getAndDeserializeCommandId()),
-        InternalTopicSerdes.serializer().serialize("", newCommand),
+        serializer.serialize("", node.queued.getAndDeserializeCommandId()),
+        serializer.serialize("", newCommand),
         node.queued.getStatus(),
         node.queued.getOffset()
     ));

@@ -152,7 +152,11 @@ public class TransientQueryResourceCleanerIntTest {
 
     @After
     public void tearDown() {
-
+        LoggerContext context = (LoggerContext) LogManager.getContext(false);
+        Configuration config = context.getConfiguration();
+        config.getLoggerConfig(LogManager.ROOT_LOGGER_NAME).removeAppender(appender.getName());
+        appender.stop();
+        context.updateLoggers();
         service.shutdownNow();
     }
 
@@ -234,7 +238,7 @@ public class TransientQueryResourceCleanerIntTest {
                 is(0L));
 
         final Set<String> logMessages = appender.getLog()
-                .stream().map(log -> log.getMessage().toString())
+                .stream().map(log -> log.getMessage().getFormattedMessage())
                 .collect(Collectors.toSet());
 
         assertTrue(
@@ -286,7 +290,7 @@ public class TransientQueryResourceCleanerIntTest {
                 is(0));
 
         final Set<String> logMessages = appender.getLog()
-                .stream().map(log -> log.getMessage().toString())
+                .stream().map(log -> log.getMessage().getFormattedMessage())
                 .collect(Collectors.toSet());
 
         assertTrue(
@@ -329,7 +333,7 @@ public class TransientQueryResourceCleanerIntTest {
         );
 
         final Set<String> logMessages = appender.getLog()
-                .stream().map(log -> log.getMessage().toString())
+                .stream().map(log -> log.getMessage().getFormattedMessage())
                 .collect(Collectors.toSet());
 
         assertFalse(
@@ -362,7 +366,7 @@ public class TransientQueryResourceCleanerIntTest {
         assertTrue(Objects.requireNonNull(stateFolder.list())[0].contains(transientQueryId));
 
         final Set<String> logMessages = appender.getLog()
-                .stream().map(log -> log.getMessage().toString())
+                .stream().map(log -> log.getMessage().getFormattedMessage())
                 .collect(Collectors.toSet());
 
         assertFalse(

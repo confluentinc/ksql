@@ -161,4 +161,12 @@ public final class QueryLogger {
   public static void error(final String message, final String query, final Throwable t) {
     log(Level.ERROR, message, query, t);
   }
+
+  public static void close(final Appender appender) {
+    LoggerContext context = (LoggerContext) LogManager.getContext(false);
+    Configuration config = context.getConfiguration();
+    config.getLoggerConfig(LogManager.ROOT_LOGGER_NAME).removeAppender(appender.getName());
+    appender.stop();
+    context.updateLoggers();
+  }
 }

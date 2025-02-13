@@ -34,8 +34,8 @@ import com.clearspring.analytics.util.Varint;
 import org.apache.commons.lang3.RandomStringUtils;
 
 import org.junit.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
@@ -44,7 +44,7 @@ import static org.junit.Assert.assertTrue;
 
 
 public class TestHyperLogLogPlus {
-    private static final Logger log = LoggerFactory.getLogger(TestHyperLogLogPlus.class);
+    private static final Logger log = LogManager.getLogger(TestHyperLogLogPlus.class);
 
     @Test
     public void testEquals() {

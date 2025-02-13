@@ -47,9 +47,13 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import org.apache.log4j.AppenderSkeleton;
-import org.apache.log4j.Logger;
-import org.apache.log4j.spi.LoggingEvent;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.core.Appender;
+import org.apache.logging.log4j.core.LogEvent;
+import org.apache.logging.log4j.core.config.Configurator;
+import org.apache.logging.log4j.core.LoggerContext;
+import org.apache.logging.log4j.core.config.Configuration;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -87,9 +91,9 @@ public class MigrationInfoCommandTest {
   private ServerInfo serverInfo;
 
   @Mock
-  private AppenderSkeleton logAppender;
+  private Appender logAppender;
   @Captor
-  private ArgumentCaptor<LoggingEvent> logCaptor;
+  private ArgumentCaptor<LogEvent> logCaptor;
 
   private String migrationsDir;
   private MigrationInfoCommand command;
@@ -108,12 +112,18 @@ public class MigrationInfoCommandTest {
     migrationsDir = folder.getRoot().getPath();
     command = PARSER.parse();
 
-    Logger.getRootLogger().addAppender(logAppender);
+    LoggerContext context = (LoggerContext) LogManager.getContext(false);
+    Configuration config = context.getConfiguration();
+    config.addAppender(logAppender);
+    Configurator.reconfigure();
   }
 
   @After
   public void tearDown() {
-    Logger.getRootLogger().removeAppender(logAppender);
+    LoggerContext context = (LoggerContext) LogManager.getContext(false);
+    Configuration config = context.getConfiguration();
+    config.getRootLogger().removeAppender(logAppender.getName());
+    Configurator.reconfigure();
   }
 
   @Test
@@ -131,9 +141,9 @@ public class MigrationInfoCommandTest {
     // Then:
     assertThat(result, is(0));
 
-    verify(logAppender, atLeastOnce()).doAppend(logCaptor.capture());
+    verify(logAppender, atLeastOnce()).append(logCaptor.capture());
     final List<String> logMessages = logCaptor.getAllValues().stream()
-        .map(LoggingEvent::getRenderedMessage)
+        .map(event -> event.getMessage().getFormattedMessage())
         .collect(Collectors.toList());
     assertThat(logMessages, hasItem(containsString("Current migration version: 3")));
     assertThat(logMessages, hasItem(containsString(
@@ -157,9 +167,9 @@ public class MigrationInfoCommandTest {
     // Then:
     assertThat(result, is(0));
 
-    verify(logAppender, atLeastOnce()).doAppend(logCaptor.capture());
+    verify(logAppender, atLeastOnce()).append(logCaptor.capture());
     final List<String> logMessages = logCaptor.getAllValues().stream()
-        .map(LoggingEvent::getRenderedMessage)
+        .map(event -> event.getMessage().getFormattedMessage())
         .collect(Collectors.toList());
     assertThat(logMessages, hasItem(containsString("Current migration version: <none>")));
     assertThat(logMessages, hasItem(containsString("No migrations files found")));

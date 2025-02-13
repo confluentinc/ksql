@@ -26,11 +26,11 @@ import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.processor.internals.namedtopology.NamedTopology;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class SandboxedSharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRuntime {
-  private final Logger log = LoggerFactory.getLogger(SandboxedSharedKafkaStreamsRuntimeImpl.class);
+  private final Logger log = LogManager.getLogger(SandboxedSharedKafkaStreamsRuntimeImpl.class);
 
   public SandboxedSharedKafkaStreamsRuntimeImpl(
       final SharedKafkaStreamsRuntime sharedRuntime

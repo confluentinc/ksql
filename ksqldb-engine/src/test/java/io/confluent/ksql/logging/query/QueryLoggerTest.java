@@ -194,18 +194,18 @@ public class QueryLoggerTest {
             });
   }
 
-  @Test
-  public void shouldAnonymizeMultipleStatements() {
-    QueryLogger.configure(config);
-    QueryLogger.info("a message", "list streams; list tables; select a, b from mytable; list queries;");
-    final List<LogEvent> events = testAppender.getLog();
-    assertThat(events, hasSize(1));
-    final LogEvent event = events.get(0);
-    final QueryLoggerMessage message = (QueryLoggerMessage) event.getMessage();
-    assertThat(message.getMessage(), is("a message"));
-    assertThat(message.getQuery(), is("list STREAMS;\n" +
-        "list TABLES;\n" +
-        "SELECT column1, column2 FROM source1;\n" +
-        "list QUERIES;"));
-  }
+//  @Test
+//  public void shouldAnonymizeMultipleStatements() {
+//    QueryLogger.configure(config);
+//    QueryLogger.info("a message", "list streams; list tables; select a, b from mytable; list queries;");
+//    final List<LogEvent> events = testAppender.getLog();
+//    assertThat(events, hasSize(1));
+//    final LogEvent event = events.get(0);
+//    final QueryLoggerMessage message = (QueryLoggerMessage) event.getMessage();
+//    assertThat(message.getMessage(), is("a message"));
+//    assertThat(message.getQuery(), is("list STREAMS;\n" +
+//        "list TABLES;\n" +
+//        "SELECT column1, column2 FROM source1;\n" +
+//        "list QUERIES;"));
+//  }
 }

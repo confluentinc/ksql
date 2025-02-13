@@ -79,9 +79,12 @@ import io.confluent.ksql.rest.entity.ConnectorType;
 import org.apache.kafka.connect.storage.StringConverter;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.test.TestUtils;
-import org.apache.log4j.AppenderSkeleton;
-import org.apache.log4j.Logger;
-import org.apache.log4j.spi.LoggingEvent;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.core.Appender;
+import org.apache.logging.log4j.core.LogEvent;
+import org.apache.logging.log4j.core.LoggerContext;
+import org.apache.logging.log4j.core.config.Configuration;
+import org.apache.logging.log4j.core.config.Configurator;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
 import org.hamcrest.TypeSafeDiagnosingMatcher;
@@ -152,9 +155,9 @@ public class MigrationsTest {
   private static ConnectExecutable CONNECT;
 
   @Mock
-  private AppenderSkeleton logAppender;
+  private Appender logAppender;
   @Captor
-  private ArgumentCaptor<LoggingEvent> logCaptor;
+  private ArgumentCaptor<LogEvent> logCaptor;
 
   private final boolean withMigrationsDirOverride;
 
@@ -325,7 +328,10 @@ public class MigrationsTest {
 
   private void shouldDisplayInfo() {
     // Given:
-    Logger.getRootLogger().addAppender(logAppender);
+    LoggerContext context = (LoggerContext) LogManager.getContext(false);
+    Configuration config = context.getConfiguration();
+    config.getRootLogger().addAppender(logAppender, null, null);
+    Configurator.reconfigure();
 
     try {
       // When:
@@ -334,9 +340,9 @@ public class MigrationsTest {
       // Then:
       assertThat(infoStatus, is(0));
 
-      verify(logAppender, atLeastOnce()).doAppend(logCaptor.capture());
+      verify(logAppender, atLeastOnce()).append(logCaptor.capture());
       final List<String> logMessages = logCaptor.getAllValues().stream()
-          .map(LoggingEvent::getRenderedMessage)
+          .map(event -> event.getMessage().getFormattedMessage())
           .collect(Collectors.toList());
       assertThat(logMessages, hasItem(containsString("Current migration version: 2")));
       assertThat(logMessages, hasItem(matchesRegex("-+\n" +
@@ -347,7 +353,8 @@ public class MigrationsTest {
           "-+\n"
       )));
     } finally {
-      Logger.getRootLogger().removeAppender(logAppender);
+      config.getRootLogger().removeAppender(logAppender.getName());
+      Configurator.reconfigure();
     }
   }
 

@@ -23,15 +23,15 @@ import io.confluent.ksql.util.SystemExit;
 import java.util.Optional;
 import java.util.concurrent.CountDownLatch;
 import org.apache.kafka.streams.processor.internals.StreamThread;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 
 public class KsqlUncaughtExceptionHandler implements Thread.UncaughtExceptionHandler {
   private final Runnable flusher;
   private final Optional<CountDownLatch> countDownLatch;
 
-  private static final Logger log = LoggerFactory.getLogger(KsqlServerMain.class);
+  private static final Logger log = LogManager.getLogger(KsqlServerMain.class);
 
   public KsqlUncaughtExceptionHandler(final Runnable flusher) {
     this(flusher, Optional.empty());

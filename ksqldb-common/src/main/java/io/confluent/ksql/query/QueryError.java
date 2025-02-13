@@ -56,6 +56,8 @@ public final class QueryError {
 
   /**
    * Specifies the type of error.
+   * The ordinal values of the Type enum are used as the metrics values.
+   * Please ensure preservation of the current order.
    */
   public enum Type {
     /**

@@ -49,7 +49,7 @@ aggregations and joins. An SSD and at least 100 GB is recommended.
 and off-heap state for aggregations, like SUM, COUNT, TOPKDISTINCT, and
 joins. Usage for message processing scales with message throughput,
 while aggregation and join state is a function of topic partition count,
-key space size, and windowing. A good starting point here is 32 GB.
+key space size, and windowing. A good starting point here is 16 GB.
 
 **Network**: ksqlDB relies heavily on {{ site.ak }}, so fast and reliable
 networking is important for optimal throughput. A 1 Gbit NIC is a good starting
@@ -58,7 +58,7 @@ point.
 General guidelines for a basic ksqlDB server are:
 
 -   4 cores
--   32 GB RAM
+-   16 GB RAM
 -   100 GB SSD
 -   1 Gbit network
 

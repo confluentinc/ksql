@@ -92,12 +92,20 @@ public class CommandRunner implements Closeable {
   private boolean commandTopicDeleted;
   private Status state = new Status(CommandRunnerStatus.RUNNING, CommandRunnerDegradedReason.NONE);
 
+  /**
+   * The ordinal values of the CommandRunnerStatus enum are used as the metrics values.
+   * Please ensure preservation of the current order.
+   */
   public enum CommandRunnerStatus {
     RUNNING,
     ERROR,
     DEGRADED
   }
 
+  /**
+   * The ordinal values of the CommandRunnerDegradedReason enum are used as the metrics values.
+   * Please ensure preservation of the current order.
+   */
   public enum CommandRunnerDegradedReason {
     NONE(errors -> ""),
     CORRUPTED(Errors::commandRunnerDegradedCorruptedErrorMessage),

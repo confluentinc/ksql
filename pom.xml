@@ -29,14 +29,14 @@
     <parent>
         <groupId>io.confluent</groupId>
         <artifactId>common</artifactId>
-        <version>[7.6.5-0, 7.6.6-0)</version>
+        <version>[7.7.3-0, 7.7.4-0)</version>
     </parent>
 
     <groupId>io.confluent.ksql</groupId>
     <artifactId>ksqldb-parent</artifactId>
     <packaging>pom</packaging>
     <name>ksqldb-parent</name>
-    <version>7.6.5-0</version>
+    <version>7.7.3-0</version>
 
     <licenses>
         <license>
@@ -47,6 +47,7 @@
     </licenses>
 
     <modules>
+        <module>ksqldb-stream-lib</module>
         <module>ksqldb-udf</module>
         <module>ksqldb-common</module>
         <module>ksqldb-udf-quickstart</module>
@@ -129,7 +130,6 @@
         <avro.random.generator.version>0.2.2</avro.random.generator.version>
         <apache.curator.version>5.2.0</apache.curator.version>
         <wiremock.version>2.24.0</wiremock.version>
-        <clearspring-analytics.version>2.9.5</clearspring-analytics.version>
         <icu.version>67.1</icu.version>
         <vertx.version>4.4.8</vertx.version>
         <reactive-streams.version>1.0.3</reactive-streams.version>
@@ -139,7 +139,7 @@
         <!-- <compile.warnings-flag>-Werror</compile.warnings-flag> -->
         <git-commit-id-plugin.version>4.9.10</git-commit-id-plugin.version>
         <apache.io.version>2.11.0</apache.io.version>
-        <io.confluent.ksql.version>7.6.5-0</io.confluent.ksql.version>
+        <io.confluent.ksql.version>7.7.3-0</io.confluent.ksql.version>
         <io.confluent.schema-registry.version>${confluent.version.range}</io.confluent.schema-registry.version>
         <netty-tcnative-version>2.0.70.Final</netty-tcnative-version>
         <!-- We normally get this from common, but Vertx is built against this -->
@@ -150,8 +150,6 @@
              to find the correct `tcnative` version. -->
         <netty.version>4.1.118.Final</netty.version>
         <netty-codec-http2-version>4.1.118.Final</netty-codec-http2-version>
-        <!-- Override jackson version so that shading doesn't fail -->
-        <jackson.version>2.14.2</jackson.version>
         <jersey-common>2.39.1</jersey-common>
         <multi-threaded-testing.forkCount>3</multi-threaded-testing.forkCount>
         <kafka.version>${ce.kafka.version}</kafka.version>
@@ -591,12 +589,6 @@
                 <groupId>javax.validation</groupId>
                 <artifactId>validation-api</artifactId>
                 <version>${javax-validation.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>com.clearspring.analytics</groupId>
-                <artifactId>stream</artifactId>
-                <version>${clearspring-analytics.version}</version>
             </dependency>
 
             <dependency>

@@ -283,22 +283,18 @@ public class KsqlServerMain {
 
   private static void validateSrUrl(
       final FipsValidator fipsValidator, final KsqlRestConfig restConfig) {
-    if (!restConfig.originals()
+    if (restConfig.originals()
         .containsKey(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY)) {
-      final String errorMsg = "The Ksql schema registry url property "
-          + "('ksql.schema.registry.url') is not specified.";
-      log.error(errorMsg);
-      throw new SecurityException(errorMsg);
-    }
-    try {
-      fipsValidator.validateRestProtocol(determineProtocol(
-          restConfig.originals().get(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY).toString()));
-    } catch (final Exception e) {
-      final String errorMsg = e.getMessage()
-          + "\nInvalid rest protocol for "
-          + KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY;
-      log.error(errorMsg);
-      throw new SecurityException(errorMsg);
+      try {
+        fipsValidator.validateRestProtocol(determineProtocol(
+            restConfig.originals().get(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY).toString()));
+      } catch (final Exception e) {
+        final String errorMsg = e.getMessage()
+            + "\nInvalid rest protocol for "
+            + KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY;
+        log.error(errorMsg);
+        throw new SecurityException(errorMsg);
+      }
     }
   }
 

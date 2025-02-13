@@ -22,7 +22,7 @@
     <parent>
         <groupId>io.confluent.ksql</groupId>
         <artifactId>ksqldb-parent</artifactId>
-        <version>7.6.5-0</version>
+        <version>7.7.3-0</version>
     </parent>
 
     <artifactId>ksqldb-serde</artifactId>
@@ -43,7 +43,6 @@
         <dependency>
             <groupId>io.confluent</groupId>
             <artifactId>kafka-schema-registry-client</artifactId>
-            <version>${io.confluent.schema-registry.version}</version>
         </dependency>
 
         <dependency>
@@ -55,13 +54,11 @@
         <dependency>
             <groupId>io.confluent</groupId>
             <artifactId>kafka-connect-avro-converter</artifactId>
-            <version>${io.confluent.schema-registry.version}</version>
         </dependency>
 
         <dependency>
             <groupId>io.confluent</groupId>
             <artifactId>kafka-protobuf-provider</artifactId>
-            <version>${io.confluent.schema-registry.version}</version>
         </dependency>
 
         <dependency>

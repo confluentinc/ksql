@@ -48,7 +48,9 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import kafka.zookeeper.ZooKeeperClientException;
 import org.apache.kafka.streams.StreamsConfig;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.core.LoggerContext;
+import org.apache.logging.log4j.core.config.Configuration;
 import org.codehaus.plexus.util.FileUtils;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -118,15 +120,18 @@ public class TransientQueryResourceCleanerIntTest {
     private Runnable backgroundTask;
 
     private TestAppender appender;
-    private Logger logger;
 
     private AtomicBoolean requestCompleted = new AtomicBoolean(false);
 
     @Before
     public void setUp() throws IOException, InterruptedException {
-        appender = new TestAppender();
-        logger = Logger.getRootLogger();
-        logger.addAppender(appender);
+        appender = new TestAppender("TestAppender", null);
+        LoggerContext context = (LoggerContext) LogManager.getContext(false);
+        Configuration config = context.getConfiguration();
+        appender.start();
+        config.addAppender(appender);
+        config.getLoggerConfig(LogManager.ROOT_LOGGER_NAME).addAppender(appender, null, null);
+        context.updateLoggers();
         if (FileUtils.fileExists(stateDir)) {
             FileUtils.cleanDirectory(stateDir);
         }
@@ -147,7 +152,11 @@ public class TransientQueryResourceCleanerIntTest {
 
     @After
     public void tearDown() {
-
+        LoggerContext context = (LoggerContext) LogManager.getContext(false);
+        Configuration config = context.getConfiguration();
+        config.getLoggerConfig(LogManager.ROOT_LOGGER_NAME).removeAppender(appender.getName());
+        appender.stop();
+        context.updateLoggers();
         service.shutdownNow();
     }
 
@@ -229,7 +238,7 @@ public class TransientQueryResourceCleanerIntTest {
                 is(0L));
 
         final Set<String> logMessages = appender.getLog()
-                .stream().map(log -> log.getMessage().toString())
+                .stream().map(log -> log.getMessage().getFormattedMessage())
                 .collect(Collectors.toSet());
 
         assertTrue(
@@ -281,7 +290,7 @@ public class TransientQueryResourceCleanerIntTest {
                 is(0));
 
         final Set<String> logMessages = appender.getLog()
-                .stream().map(log -> log.getMessage().toString())
+                .stream().map(log -> log.getMessage().getFormattedMessage())
                 .collect(Collectors.toSet());
 
         assertTrue(
@@ -324,7 +333,7 @@ public class TransientQueryResourceCleanerIntTest {
         );
 
         final Set<String> logMessages = appender.getLog()
-                .stream().map(log -> log.getMessage().toString())
+                .stream().map(log -> log.getMessage().getFormattedMessage())
                 .collect(Collectors.toSet());
 
         assertFalse(
@@ -357,7 +366,7 @@ public class TransientQueryResourceCleanerIntTest {
         assertTrue(Objects.requireNonNull(stateFolder.list())[0].contains(transientQueryId));
 
         final Set<String> logMessages = appender.getLog()
-                .stream().map(log -> log.getMessage().toString())
+                .stream().map(log -> log.getMessage().getFormattedMessage())
                 .collect(Collectors.toSet());
 
         assertFalse(

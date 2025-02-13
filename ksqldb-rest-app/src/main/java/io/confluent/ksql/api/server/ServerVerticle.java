@@ -46,8 +46,8 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import javax.ws.rs.core.MediaType;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * The server deploys multiple server verticles. This is where the HTTP2 requests are handled. The
@@ -57,7 +57,7 @@ import org.slf4j.LoggerFactory;
 public class ServerVerticle extends AbstractVerticle {
 
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
-  private static final Logger log = LoggerFactory.getLogger(ServerVerticle.class);
+  private static final Logger log = LogManager.getLogger(ServerVerticle.class);
 
   private static final String JSON_CONTENT_TYPE = "application/json";
   private static final String DELIMITED_CONTENT_TYPE = "application/vnd.ksqlapi.delimited.v1";

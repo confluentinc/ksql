@@ -20,6 +20,7 @@ import static java.util.Collections.unmodifiableList;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
@@ -53,13 +54,13 @@ import org.apache.kafka.clients.admin.ConfigEntry;
 import org.apache.kafka.clients.admin.DescribeClusterResult;
 import org.apache.kafka.clients.admin.DescribeConfigsResult;
 import org.apache.kafka.clients.admin.TopicDescription;
-import org.apache.kafka.common.KafkaFuture;
 import org.apache.kafka.common.Node;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.TopicPartitionInfo;
 import org.apache.kafka.common.acl.AclOperation;
 import org.apache.kafka.common.config.ConfigResource;
 import org.apache.kafka.common.config.ConfigResource.Type;
+import org.apache.kafka.common.config.TopicConfig;
 import org.apache.kafka.common.errors.TopicAuthorizationException;
 import org.apache.kafka.common.internals.KafkaFutureImpl;
 import org.junit.Before;
@@ -87,6 +88,7 @@ public class SandboxedKafkaTopicClientTest {
           .ignore("createTopic", String.class, int.class, short.class, Map.class)
           .ignore("isTopicExists", String.class)
           .ignore("describeTopic", String.class)
+          .ignore("getTopicConfig", String.class)
           .ignore("describeTopic", String.class, Boolean.class)
           .ignore("describeTopics", Collection.class)
           .ignore("describeTopics", Collection.class, Boolean.class)
@@ -126,7 +128,9 @@ public class SandboxedKafkaTopicClientTest {
     private Admin mockedAdmin;
 
     private KafkaTopicClient sandboxedClient;
-    private final Map<String, ?> configs = ImmutableMap.of("some config", 1);
+    private final Map<String, ?> configs = ImmutableMap.of(
+        "some config", 1,
+        TopicConfig.RETENTION_MS_CONFIG, 8640000000L);
 
     @Before
     public void setUp() {
@@ -152,6 +156,8 @@ public class SandboxedKafkaTopicClientTest {
 
       // Then:
       assertThat(sandboxedClient.isTopicExists("some topic"), is(true));
+      assertThat(sandboxedClient.getTopicConfig("some topic").entrySet(),
+          equalTo(toStringConfigs(configs).entrySet()));
     }
 
     @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT")
@@ -302,7 +308,7 @@ public class SandboxedKafkaTopicClientTest {
 
       // Then:
       assertThat(e.getMessage(), containsString("A Kafka topic with the name 'some topic' already "
-          + "exists, with different partition/replica configuration than required"));
+          + "exists, with different partition/replica/retention configuration than required"));
     }
 
     @Test
@@ -318,7 +324,25 @@ public class SandboxedKafkaTopicClientTest {
 
       // Then:
       assertThat(e.getMessage(), containsString("A Kafka topic with the name 'some topic' already "
-          + "exists, with different partition/replica configuration than required"));
+          + "exists, with different partition/replica/retention configuration than required"));
+    }
+
+    @Test
+    public void shouldThrowOnCreateIfTopicPreviouslyCreatedInScopeWithDifferentRetentionMs() {
+      // Given:
+      sandboxedClient.createTopic("some topic", 2, (short) 3, configs);
+
+      // When:
+      final Map<String, ?> newConfigs = ImmutableMap.of(
+          TopicConfig.RETENTION_MS_CONFIG, 5000L);
+      final KafkaTopicExistsException e = assertThrows(
+          KafkaTopicExistsException.class,
+          () -> sandboxedClient.createTopic("some topic", 2, (short) 3, newConfigs)
+      );
+
+      // Then:
+      assertThat(e.getMessage(), containsString("A Kafka topic with the name 'some topic' already "
+          + "exists, with different partition/replica/retention configuration than required"));
     }
 
     @Test
@@ -334,7 +358,7 @@ public class SandboxedKafkaTopicClientTest {
 
       // Then:
       assertThat(e.getMessage(), containsString("A Kafka topic with the name 'some topic' already "
-          + "exists, with different partition/replica configuration than required"));
+          + "exists, with different partition/replica/retention configuration than required"));
     }
 
     @Test
@@ -350,7 +374,25 @@ public class SandboxedKafkaTopicClientTest {
 
       // Then:
       assertThat(e.getMessage(), containsString("A Kafka topic with the name 'some topic' already "
-          + "exists, with different partition/replica configuration than required"));
+          + "exists, with different partition/replica/retention configuration than required"));
+    }
+
+    @Test
+    public void shouldThrowOnCreateIfTopicAlreadyExistsWithDifferentRetentionMs() {
+      // Given:
+      givenTopicExists("some topic", 2, 1);
+
+      // When:
+      final Map<String, ?> newConfigs = ImmutableMap.of(
+          TopicConfig.RETENTION_MS_CONFIG, 5000L);
+      final KafkaTopicExistsException e = assertThrows(
+          KafkaTopicExistsException.class,
+          () -> sandboxedClient.createTopic("some topic", 2, (short) 1, newConfigs)
+      );
+
+      // Then:
+      assertThat(e.getMessage(), containsString("A Kafka topic with the name 'some topic' already "
+          + "exists, with different partition/replica/retention configuration than required"));
     }
 
     @Test
@@ -424,6 +466,7 @@ public class SandboxedKafkaTopicClientTest {
           .thenReturn(Collections.singletonMap(
               topic,
               new TopicDescription(topic, false, topicPartitions(numPartitions, numReplicas))));
+      when(delegate.getTopicConfig(topic)).thenReturn((Map<String, String>) configs);
     }
 
     private static List<TopicPartitionInfo> topicPartitions(
@@ -440,6 +483,11 @@ public class SandboxedKafkaTopicClientTest {
           .forEach(builder::add);
 
       return builder.build();
+    }
+
+    private static Map<String, String> toStringConfigs(final Map<String, ?> configs) {
+      return configs.entrySet().stream()
+          .collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().toString()));
     }
   }
 }

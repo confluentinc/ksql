@@ -879,6 +879,13 @@ Sets the maximum number of concurrent pull queries. This limit is enforced per h
 After hitting the limit, the host will fail pull query requests until it determines that it's no longer
 at the limit.
 
+## `ksql.suppress.enabled`
+
+**Per query:** yes
+
+Enable the EMIT FINAL output refinement in a SELECT statement to suppress
+intermediate results on a windowed aggregation. The default is `true`.
+
 ## `ksql.idle.connection.timeout.seconds`
 
 **Per query:** no

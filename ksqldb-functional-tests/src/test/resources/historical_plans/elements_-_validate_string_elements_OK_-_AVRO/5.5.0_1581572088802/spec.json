@@ -120,7 +120,8 @@
               "name" : "V0",
               "type" : [ "null", "string" ],
               "default" : null
-            } ]
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
           }
         } ]
       }

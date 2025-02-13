@@ -46,10 +46,14 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.OrderDataProvider;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+
+import io.confluent.ksql.util.QueryMetadata;
 import kafka.zookeeper.ZooKeeperClientException;
 import org.apache.kafka.clients.producer.RecordMetadata;
+import org.junit.After;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -157,13 +161,14 @@ public class UdfIntTest {
     );
 
     // When:
-    ksqlContext.sql(queryString);
+    List<QueryMetadata> metadataList = ksqlContext.sql(queryString);
 
     // Then:
     final Map<GenericKey, GenericRow> results = consumeOutputMessages();
 
     assertThat(results, is(ImmutableMap.of(genericKey("ORDER_6"),
         genericRow("ITEM_8", 800.0, 1110.0, 12.0, true))));
+    metadataList.forEach(q -> q.close());
   }
 
   @Test
@@ -184,13 +189,14 @@ public class UdfIntTest {
     );
 
     // When:
-    ksqlContext.sql(queryString);
+    List<QueryMetadata> metadataList = ksqlContext.sql(queryString);
 
     // Then:
     final Map<GenericKey, GenericRow> results = consumeOutputMessages();
 
     assertThat(results, is(ImmutableMap.of(genericKey("ORDER_6"),
         genericRow(80, "true", 8.0, "80.0"))));
+    metadataList.forEach(q -> q.close());
   }
 
   @Test
@@ -209,7 +215,7 @@ public class UdfIntTest {
         intermediateStream, testData.sourceStreamName, resultStreamName, intermediateStream);
 
     // When:
-    ksqlContext.sql(queryString);
+    List<QueryMetadata> metadataList = ksqlContext.sql(queryString);
 
     // Then:
     final Map<GenericKey, GenericRow> results = consumeOutputMessages();
@@ -218,6 +224,7 @@ public class UdfIntTest {
 
     assertThat(results, equalTo(ImmutableMap.of(genericKey("ORDER_6"),
         genericRow(ts, ts + 10000, ts + 100, "ITEM_8"))));
+    metadataList.forEach(q -> q.close());
   }
 
   @Test
@@ -231,13 +238,14 @@ public class UdfIntTest {
     );
 
     // When:
-    ksqlContext.sql(queryString);
+    List<QueryMetadata> metadataList = ksqlContext.sql(queryString);
 
     // Then:
     final Map<GenericKey, GenericRow> results = consumeOutputMessages();
 
     assertThat(results, equalTo(Collections.singletonMap(genericKey("ITEM_1"),
         genericRow("home cinema"))));
+    metadataList.forEach(q -> q.close());
   }
 
   private void createSourceStream() {

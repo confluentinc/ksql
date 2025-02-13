@@ -26,6 +26,8 @@ import io.confluent.ksql.integration.IntegrationTestHarness;
 import io.confluent.ksql.integration.Retry;
 import io.confluent.ksql.rest.entity.HealthCheckResponse;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
+import io.confluent.ksql.rest.server.state.ServerState.State;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import kafka.zookeeper.ZooKeeperClientException;
 import org.junit.ClassRule;
@@ -59,5 +61,6 @@ public class HealthCheckResourceFunctionalTest {
     assertThat(response.getDetails().get(KAFKA_CHECK_NAME).getIsHealthy(), is(true));
     assertThat(response.getDetails().get(METASTORE_CHECK_NAME).getIsHealthy(), is(true));
     assertThat(response.getDetails().get(COMMAND_RUNNER_CHECK_NAME).getIsHealthy(), is(true));
+    assertThat(response.getServerState(), is(Optional.of(State.READY.toString())));
   }
 }

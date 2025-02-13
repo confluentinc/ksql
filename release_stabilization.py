@@ -3,8 +3,8 @@ import subprocess
 import shlex
 from collections import OrderedDict
 
-DOCKER_INTERNAL_REGISTRY = "confluent-docker-internal.jfrog.io/"
-DOCKER_REGISTRY = "confluent-docker.jfrog.io/"
+DOCKER_INTERNAL_REGISTRY = "519856050701.dkr.ecr.us-west-2.amazonaws.com/docker/prod/"
+DOCKER_REGISTRY = "519856050701.dkr.ecr.us-west-2.amazonaws.com/docker/prod/"
 CC_SPEC_KSQL_BRANCH = "master"
 CCLOUD_DOCKER_REPO = 'confluentinc/cc-ksql'
 CCLOUD_DOCKER_HOTFIX_REPO = 'confluentinc/cc-ksql-hotfix'

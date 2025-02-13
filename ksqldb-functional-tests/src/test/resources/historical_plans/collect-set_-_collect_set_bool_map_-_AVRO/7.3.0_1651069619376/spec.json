@@ -202,7 +202,8 @@
                     "default" : null
                   } ],
                   "connect.internal.type" : "MapEntry"
-                }
+                },
+                "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema_VALUE"
               } ],
               "default" : null
             }, {
@@ -212,7 +213,8 @@
                 "items" : [ "null", "boolean" ]
               } ],
               "default" : null
-            } ]
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
           }
         }, {
           "name" : "test_topic",
@@ -275,7 +277,8 @@
                 "items" : [ "null", "boolean" ]
               } ],
               "default" : null
-            } ]
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
           }
         } ]
       }

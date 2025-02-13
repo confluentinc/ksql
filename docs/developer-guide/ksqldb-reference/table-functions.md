@@ -15,6 +15,9 @@ Table functions are analogous to the `FlatMap` operation commonly found in
 functional programming or stream processing frameworks such as
 {{ site.kstreams }}.
 
+!!! important
+    Table functions are supported only on stream sources. 
+
 Table functions are used in the SELECT clause of a query. They cause the query
 to output potentially more than one row for each input value.
 

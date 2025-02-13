@@ -177,6 +177,8 @@ public final class PostConditionsNode {
     private final KeyFormat keyFormat;
     private final ValueFormat valueFormat;
     private final OptionalInt partitions;
+    final Optional<Integer> keySchemaId;
+    final Optional<Integer> valueSchemaId;
     private final JsonNode keySchema;
     private final JsonNode valueSchema;
 
@@ -185,6 +187,8 @@ public final class PostConditionsNode {
         @JsonProperty(value = "keyFormat", required = true) final KeyFormat keyFormat,
         @JsonProperty(value = "valueFormat", required = true) final ValueFormat valueFormat,
         @JsonProperty(value = "partitions") final OptionalInt partitions,
+        @JsonProperty(value = "keySchemaId") final Optional<Integer> keySchemaId,
+        @JsonProperty(value = "valueSchemaId") final Optional<Integer> valueSchemaId,
         @JsonProperty(value = "keySchema") final JsonNode keySchema,
         @JsonProperty(value = "valueSchema") final JsonNode valueSchema
     ) {
@@ -192,6 +196,8 @@ public final class PostConditionsNode {
       this.keyFormat = requireNonNull(keyFormat, "KeyFormat");
       this.valueFormat = requireNonNull(valueFormat, "valueFormat");
       this.partitions = requireNonNull(partitions, "partitions");
+      this.keySchemaId = requireNonNull(keySchemaId, "keySchemaId");
+      this.valueSchemaId = requireNonNull(valueSchemaId, "valueSchemaId");
       this.keySchema = keySchema;
       this.valueSchema = valueSchema;
 
@@ -230,6 +236,8 @@ public final class PostConditionsNode {
               && Objects.equals(keyFormat, that.keyFormat)
               && Objects.equals(valueFormat, that.valueFormat)
               && (!partitions.isPresent() || partitions.equals(that.partitions))
+              && Objects.equals(keySchemaId, that.keySchemaId)
+              && Objects.equals(valueSchemaId, that.valueSchemaId)
               && (keySchema == null || keySchema instanceof NullNode
               || keySchema.equals(that.keySchema))
               && (valueSchema == null || valueSchema instanceof NullNode
@@ -256,6 +264,14 @@ public final class PostConditionsNode {
       return partitions;
     }
 
+    public Optional<Integer> getKeySchemaId() {
+      return keySchemaId;
+    }
+
+    public Optional<Integer> getValueSchemaId() {
+      return valueSchemaId;
+    }
+
     @JsonInclude(Include.NON_NULL)
     public JsonNode getKeySchema() {
       return keySchema instanceof NullNode ? null : keySchema;
@@ -266,8 +282,11 @@ public final class PostConditionsNode {
       return valueSchema instanceof NullNode ? null : valueSchema;
     }
 
+    // CHECKSTYLE_RULES.OFF: CyclomaticComplexity
     @Override
     public boolean equals(final Object o) {
+      // CHECKSTYLE_RULES.ON: CyclomaticComplexity
+
       if (this == o) {
         return true;
       }
@@ -279,13 +298,16 @@ public final class PostConditionsNode {
           && Objects.equals(keyFormat, that.keyFormat)
           && Objects.equals(valueFormat, that.valueFormat)
           && Objects.equals(partitions, that.partitions)
+          && Objects.equals(keySchemaId, that.keySchemaId)
+          && Objects.equals(valueSchemaId, that.valueSchemaId)
           && Objects.equals(keySchema, that.keySchema)
           && Objects.equals(valueSchema, that.valueSchema);
     }
 
     @Override
     public int hashCode() {
-      return Objects.hash(name, keyFormat, valueFormat, partitions, keySchema, valueSchema);
+      return Objects.hash(name, keyFormat, valueFormat, partitions,
+          keySchemaId, valueSchemaId, keySchema, valueSchema);
     }
 
     @Override

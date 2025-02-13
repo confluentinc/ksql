@@ -27,10 +27,15 @@ public class ProtobufProperties extends ConnectProperties {
   public static final String UNWRAP = "true";
   private static final String WRAP = "false";
 
+  public static final String NULLABLE_REPRESENTATION = "nullableRepresentation";
+  public static final String NULLABLE_AS_OPTIONAL = "optional";
+  public static final String NULLABLE_AS_WRAPPER = "wrapper";
+
   static final ImmutableSet<String> SUPPORTED_PROPERTIES = ImmutableSet.of(
       FULL_SCHEMA_NAME,
       SCHEMA_ID,
       UNWRAP_PRIMITIVES,
+      NULLABLE_REPRESENTATION,
       SUBJECT_NAME
   );
 
@@ -56,6 +61,18 @@ public class ProtobufProperties extends ConnectProperties {
 
   public boolean getUnwrapPrimitives() {
     return UNWRAP.equalsIgnoreCase(properties.getOrDefault(UNWRAP_PRIMITIVES, WRAP));
+  }
+
+  public boolean isNullableAsOptional() {
+    return NULLABLE_AS_OPTIONAL.equals(getNullableRepresentation());
+  }
+
+  public boolean isNullableAsWrapper() {
+    return NULLABLE_AS_WRAPPER.equals(getNullableRepresentation());
+  }
+
+  private String getNullableRepresentation() {
+    return properties.getOrDefault(NULLABLE_REPRESENTATION, null);
   }
 
   public ProtobufProperties withFullSchemaName(final String name) {

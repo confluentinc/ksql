@@ -3,14 +3,11 @@ package io.confluent.ksql.serde.json;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
-import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.kafka.schemaregistry.ParsedSchema;
+import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.serde.connect.ConnectKsqlSchemaTranslator;
 import io.confluent.ksql.util.KsqlConfig;
@@ -85,8 +82,8 @@ public class KsqlJsonSchemaDeserializerTest {
   public void before() throws Exception {
     schema = (new JsonSchemaTranslator()).fromConnectSchema(ORDER_SCHEMA.schema());
 
-    schemaRegistryClient = mock(SchemaRegistryClient.class);
-    when(schemaRegistryClient.getSchemaBySubjectAndId(anyString(), anyInt())).thenReturn(schema);
+    schemaRegistryClient = new MockSchemaRegistryClient();
+    schemaRegistryClient.register(SOME_TOPIC, schema);
 
     final KsqlJsonSerdeFactory jsonSerdeFactory =
         new KsqlJsonSerdeFactory(new JsonSchemaProperties(ImmutableMap.of()));

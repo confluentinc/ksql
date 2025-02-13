@@ -29,21 +29,21 @@
       "key" : null,
       "value" : {
         "A" : 10.01,
-        "B" : 5.10
+        "B" : 5.1
       }
     }, {
       "topic" : "test",
       "key" : null,
       "value" : {
         "A" : 10.01,
-        "B" : -5.00
+        "B" : -5.0
       }
     }, {
       "topic" : "test",
       "key" : null,
       "value" : {
         "A" : 10.01,
-        "B" : 0.00
+        "B" : 0.0
       }
     } ],
     "outputs" : [ {
@@ -203,10 +203,17 @@
                 "type" : "bytes",
                 "scale" : 2,
                 "precision" : 5,
+                "connect.version" : 1,
+                "connect.parameters" : {
+                  "scale" : "2",
+                  "connect.decimal.precision" : "5"
+                },
+                "connect.name" : "org.apache.kafka.connect.data.Decimal",
                 "logicalType" : "decimal"
               } ],
               "default" : null
-            } ]
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
           }
         } ]
       }

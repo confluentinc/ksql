@@ -163,6 +163,11 @@
             "type" : "bytes",
             "scale" : 2,
             "precision" : 64,
+            "connect.parameters" : {
+              "scale" : "2",
+              "connect.decimal.precision" : "64"
+            },
+            "connect.name" : "org.apache.kafka.connect.data.Decimal",
             "logicalType" : "decimal"
           },
           "valueSchema" : {
@@ -173,7 +178,8 @@
               "name" : "FOO",
               "type" : [ "null", "int" ],
               "default" : null
-            } ]
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
           }
         } ]
       }

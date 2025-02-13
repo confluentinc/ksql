@@ -551,10 +551,6 @@ public class QueryRegistryImplTest {
     return queryListenerCaptor.getValue();
   }
 
-  private DataSource toSource(final String name) {
-    return Mockito.mock(DataSource.class);
-  }
-
   @SuppressWarnings({"rawtypes", "unchecked"})
   private PersistentQueryMetadata givenCreate(
       final QueryRegistry registry,
@@ -582,11 +578,15 @@ public class QueryRegistryImplTest {
     when(newQuery.getPersistentQueryType()).thenReturn(persistentQueryType);
     when(newQuery.getPhysicalPlan()).thenReturn(physicalPlan);
     final SharedKafkaStreamsRuntime runtime = mock(SharedKafkaStreamsRuntimeImpl.class);
-
+    DataSource dataSource = mock(DataSource.class);
+    when(dataSource.getName()).thenReturn(SourceName.of(source));
     try {
       Field sharedRuntime = BinPackedPersistentQueryMetadataImpl.class.getDeclaredField("sharedKafkaStreamsRuntime");
       sharedRuntime.setAccessible(true);
       sharedRuntime.set(newQuery, runtime);
+      Field sourc = BinPackedPersistentQueryMetadataImpl.class.getDeclaredField("sources");
+      sourc.setAccessible(true);
+      sourc.set(newQuery, ImmutableSet.of(dataSource));
     } catch (final NoSuchFieldException | IllegalAccessException e) {
       e.printStackTrace();
     }
@@ -615,7 +615,7 @@ public class QueryRegistryImplTest {
         "sql",
         queryId,
         Optional.of(sinkSource),
-        ImmutableSet.of(toSource(source)),
+        ImmutableSet.of(dataSource),
         mock(ExecutionStep.class),
         "plan-summary",
         persistentQueryType,

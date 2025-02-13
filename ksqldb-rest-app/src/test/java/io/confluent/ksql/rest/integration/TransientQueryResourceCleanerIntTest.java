@@ -15,6 +15,14 @@
 
 package io.confluent.ksql.rest.integration;
 
+import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
+import static java.lang.String.format;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.integration.IntegrationTestHarness;
 import io.confluent.ksql.integration.Retry;
@@ -55,14 +63,6 @@ import org.junit.rules.Timeout;
 import org.junit.runner.RunWith;
 import org.mockito.junit.MockitoJUnitRunner;
 
-import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
-import static java.lang.String.format;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-
 @Category({IntegrationTest.class})
 @RunWith(MockitoJUnitRunner.class)
 public class TransientQueryResourceCleanerIntTest {
@@ -89,8 +89,7 @@ public class TransientQueryResourceCleanerIntTest {
     private static final TestKsqlRestApp REST_APP_0 = TestKsqlRestApp
             .builder(TEST_HARNESS::kafkaBootstrapServers)
             .withStaticServiceContext(TEST_HARNESS::getServiceContext)
-            .withProperty(KsqlRestConfig.LISTENERS_CONFIG, "http://localhost:8088")
-            .withProperty(KsqlRestConfig.ADVERTISED_LISTENER_CONFIG, "http://localhost:8088")
+            .withProperty(KsqlRestConfig.LISTENERS_CONFIG, "http://localhost:0")
 
             // configure initial delay for the cleanup service to be low for testing purpose
             .withProperty(KsqlConfig.KSQL_TRANSIENT_QUERY_CLEANUP_SERVICE_INITIAL_DELAY_SECONDS, 10)
@@ -127,7 +126,6 @@ public class TransientQueryResourceCleanerIntTest {
         appender = new TestAppender();
         logger = Logger.getRootLogger();
         logger.addAppender(appender);
-
         if (FileUtils.fileExists(stateDir)) {
             FileUtils.cleanDirectory(stateDir);
         }
@@ -329,8 +327,11 @@ public class TransientQueryResourceCleanerIntTest {
                 .collect(Collectors.toSet());
 
         assertFalse(
-                logMessages.contains(
-                        String.format("Cleaning up %d leaked topics: %s", transientTopics.size(), transientTopics)));
+            logMessages.toString(),
+            logMessages.contains(
+                String.format("Cleaning up %d leaked topics: %s", transientTopics.size(), transientTopics)
+            )
+        );
     }
 
     @Test

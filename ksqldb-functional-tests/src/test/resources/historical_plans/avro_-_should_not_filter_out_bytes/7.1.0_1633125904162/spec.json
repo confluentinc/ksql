@@ -156,7 +156,8 @@
               "name" : "C2",
               "type" : [ "null", "bytes" ],
               "default" : null
-            } ]
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
           }
         } ]
       }

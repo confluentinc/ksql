@@ -18,7 +18,7 @@ CREATE [OR REPLACE] TABLE table_name
   [ WHERE condition ]
   [ GROUP BY grouping_expression ]
   [ HAVING having_expression ]
-  [ EMIT CHANGES ];
+  [ EMIT output_refinement ];
 ```
 
 ## Description
@@ -165,6 +165,15 @@ table.
 You can't use the `KEY_FORMAT` property with the `FORMAT` property in the
 same `CREATE TABLE AS SELECT` statement.
 
+### KEY_PROTOBUF_NULLABLE_REPRESENTATION
+
+In the default configuration, primitive fields in protobuf do not distinguish `null` from the
+default values (such as zero, empty string). To enable the use of a protobuf schema that can make
+this distinction, set `KEY_PROTOBUF_NULLABLE_REPRESENTATION` to either `OPTIONAL` or `WRAPPER`.
+The schema will be used to serialize keys for the table created by this `CREATE` statement.
+For more details, see the corresponding section in the
+[Serialization Formats](/reference/serialization#protobuf) documentation.
+
 ### KEY_SCHEMA_ID
 
 The schema ID of the key schema in {{ site.sr }}.
@@ -196,6 +205,33 @@ is used.
 
 In join queries, the `REPLICAS` value is taken from the left-most stream or
 table.
+
+### RETENTION_MS
+
+The retention specified in milliseconds in the backing topic.
+
+If `RETENTION_MS` isn't set, the retention of the input stream is
+used.
+
+In join queries, the `RETENTION_MS` value is taken from the left-most stream or
+table.
+
+You can't change the retention on an existing windowed table. To change the
+retention, you must drop the stream and create it again.
+
+This setting is only accepted while creating windowed tables.
+Additionally, the larger of `RETENTION_MS` and `RETENTION` is used while
+creating the backing topic if it doesn't exist.
+
+For example, to retain the computed windowed aggregation results for a week,
+you might run the following query with `retention_ms` = 604800000 and `retention` = 2 days:
+```sql
+CREATE TABLE pageviews_per_region 
+WITH (kafka_topic='pageviews-per-region', format='avro', partitions=3, retention_ms=604800000)
+AS SELECT regionid, count(*) FROM s1 
+WINDOW TUMBLING (SIZE 10 SECONDS, RETENTION 2 DAYS)
+GROUP BY regionid;
+```
 
 ### TIMESTAMP
 
@@ -257,6 +293,15 @@ If the default is also not set, the statement is rejected as invalid.
 
 You can't use the `VALUE_FORMAT` property with the `FORMAT` property in the
 same `CREATE TABLE AS SELECT` statement.
+
+### VALUE_PROTOBUF_NULLABLE_REPRESENTATION
+
+In the default configuration, primitive fields in protobuf do not distinguish `null` from the
+default values (such as zero, empty string). To enable the use of a protobuf schema that can make
+this distinction, set `VALUE_PROTOBUF_NULLABLE_REPRESENTATION` to either `OPTIONAL` or `WRAPPER`.
+The schema will be used to serialize values for the table created by this `CREATE` statement.
+For more details, see the corresponding section in the
+[Serialization Formats](/reference/serialization#protobuf) documentation.
 
 ### VALUE_SCHEMA_ID
 

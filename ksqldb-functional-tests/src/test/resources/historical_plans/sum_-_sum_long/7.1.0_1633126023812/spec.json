@@ -172,7 +172,8 @@
               "name" : "KSQL_AGG_VARIABLE_0",
               "type" : [ "null", "long" ],
               "default" : null
-            } ]
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
           }
         }, {
           "name" : "test_topic",
@@ -211,7 +212,8 @@
               "name" : "SUM",
               "type" : [ "null", "long" ],
               "default" : null
-            } ]
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
           }
         } ]
       }

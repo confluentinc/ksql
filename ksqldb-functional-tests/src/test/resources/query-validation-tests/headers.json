@@ -11,11 +11,13 @@
       ],
       "inputs": [
         {"topic": "stream-source", "key": "k1", "value": {"v": 40000}, "headers": []},
-        {"topic": "stream-source", "key": "k2", "value": {"v": 40000}, "headers": [{"KEY": "abc", "VALUE": "IQ=="}]}
+        {"topic": "stream-source", "key": "k2", "value": {"v": 40000}, "headers": [{"KEY": "abc", "VALUE": "IQ=="}]},
+        {"topic": "stream-source", "key": "k2", "value": {"v": 40000}, "headers": [{"KEY": "abc", "VALUE": null}]}
       ],
       "outputs": [
         {"topic": "OUTPUT", "key": "k1", "value": {"V": 40000, "H": []}, "headers": []},
-        {"topic": "OUTPUT", "key": "k2", "value": {"V": 40000, "H": [{"KEY": "abc", "VALUE": "IQ=="}]}, "headers": [{"KEY": "abc", "VALUE": "IQ=="}]}
+        {"topic": "OUTPUT", "key": "k2", "value": {"V": 40000, "H": [{"KEY": "abc", "VALUE": "IQ=="}]}, "headers": [{"KEY": "abc", "VALUE": "IQ=="}]},
+        {"topic": "OUTPUT", "key": "k2", "value": {"V": 40000, "H": [{"KEY": "abc", "VALUE": null}]}, "headers": [{"KEY": "abc", "VALUE": null}]}
       ]
     },
     {
@@ -42,12 +44,14 @@
       "inputs": [
         {"topic": "stream-source", "key": "k1", "value": {"v": 40000}, "headers": []},
         {"topic": "stream-source", "key": "k2", "value": {"v": 40000}, "headers": [{"KEY": "abc", "VALUE": "IQ=="}]},
-        {"topic": "stream-source", "key": "k3", "value": {"v": 40000}, "headers": [{"KEY": "abc", "VALUE": "Gg=="}, {"KEY": "abc", "VALUE": "IQ=="}, {"KEY": "def", "VALUE": "Iw=="}]}
+        {"topic": "stream-source", "key": "k3", "value": {"v": 40000}, "headers": [{"KEY": "abc", "VALUE": "Gg=="}, {"KEY": "abc", "VALUE": "IQ=="}, {"KEY": "def", "VALUE": "Iw=="}]},
+        {"topic": "stream-source", "key": "k2", "value": {"v": 40000}, "headers": [{"KEY": "abc", "VALUE": null}]}
       ],
       "outputs": [
         {"topic": "OUTPUT", "key": "k1", "value": {"H1": null, "H2": null}, "headers": []},
         {"topic": "OUTPUT", "key": "k2", "value": {"H1": "IQ==", "H2": null}, "headers": [{"KEY": "abc", "VALUE": "IQ=="}]},
-        {"topic": "OUTPUT", "key": "k3", "value": {"H1": "IQ==", "H2": "Iw=="}, "headers": [{"KEY": "abc", "VALUE": "Gg=="}, {"KEY": "abc", "VALUE": "IQ=="}, {"KEY": "def", "VALUE": "Iw=="}]}
+        {"topic": "OUTPUT", "key": "k3", "value": {"H1": "IQ==", "H2": "Iw=="}, "headers": [{"KEY": "abc", "VALUE": "Gg=="}, {"KEY": "abc", "VALUE": "IQ=="}, {"KEY": "def", "VALUE": "Iw=="}]},
+        {"topic": "OUTPUT", "key": "k2", "value": {"H1": null, "H2": null}, "headers": [{"KEY": "abc", "VALUE": null}]}
       ]
     },
     {

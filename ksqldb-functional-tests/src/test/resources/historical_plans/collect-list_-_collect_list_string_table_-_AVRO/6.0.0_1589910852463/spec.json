@@ -194,7 +194,8 @@
                 "items" : [ "null", "string" ]
               } ],
               "default" : null
-            } ]
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
           }
         }, {
           "name" : "test_topic",
@@ -236,7 +237,8 @@
               "name" : "VALUE",
               "type" : [ "null", "string" ],
               "default" : null
-            } ]
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
           }
         }, {
           "name" : "S2",
@@ -258,7 +260,8 @@
                 "items" : [ "null", "string" ]
               } ],
               "default" : null
-            } ]
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
           }
         } ]
       }

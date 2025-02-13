@@ -75,7 +75,7 @@ import java.util.stream.Stream;
 import kafka.zookeeper.ZooKeeperClientException;
 import org.apache.kafka.common.config.SslConfigs;
 import org.apache.kafka.connect.json.JsonConverter;
-import org.apache.kafka.connect.runtime.rest.entities.ConnectorType;
+import io.confluent.ksql.rest.entity.ConnectorType;
 import org.apache.kafka.connect.storage.StringConverter;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.test.TestUtils;

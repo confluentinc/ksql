@@ -91,7 +91,7 @@ public final class MaximumLagFilter implements RoutingFilter {
    * @param lagReportingAgent The optional lag reporting agent.
    * @param routingOptions The routing options
    * @param hosts The set of all hosts that have the store, including actives and standbys
-   * @param applicationQueryId The query id of the persistent query that materialized the table
+   * @param queryId The query id of the persistent query that materialized the table
    * @param storeName The state store name of the materialized table
    * @param partition The partition of the topic
    * @return a new FreshnessFilter, unless lag reporting is disabled.
@@ -100,14 +100,14 @@ public final class MaximumLagFilter implements RoutingFilter {
       final Optional<LagReportingAgent> lagReportingAgent,
       final RoutingOptions routingOptions,
       final List<KsqlHostInfo> hosts,
-      final String applicationQueryId,
+      final String queryId,
       final String storeName,
       final int partition
   ) {
     if (!lagReportingAgent.isPresent()) {
       return Optional.empty();
     }
-    final QueryStateStoreId queryStateStoreId = QueryStateStoreId.of(applicationQueryId, storeName);
+    final QueryStateStoreId queryStateStoreId = QueryStateStoreId.of(queryId, storeName);
     final ImmutableMap<KsqlHostInfo, Optional<LagInfoEntity>> lagByHost = hosts.stream()
         .collect(ImmutableMap.toImmutableMap(
             Function.identity(),

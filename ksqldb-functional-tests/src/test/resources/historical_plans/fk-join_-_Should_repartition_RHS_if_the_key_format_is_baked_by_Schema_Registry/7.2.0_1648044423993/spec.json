@@ -357,7 +357,8 @@
                   "name" : "VAL",
                   "type" : [ "null", "long" ],
                   "default" : null
-                } ]
+                } ],
+                "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema_R_ID"
               } ],
               "default" : null
             }, {
@@ -368,7 +369,8 @@
               "name" : "F1",
               "type" : [ "null", "int" ],
               "default" : null
-            } ]
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
           }
         }, {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-RightSourceKeyed-Materialize-changelog",
@@ -390,7 +392,8 @@
               "name" : "VAL",
               "type" : [ "null", "long" ],
               "default" : null
-            } ]
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.LeftTableKey"
           },
           "valueSchema" : {
             "type" : "record",
@@ -421,10 +424,12 @@
                   "name" : "VAL",
                   "type" : [ "null", "long" ],
                   "default" : null
-                } ]
+                } ],
+                "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema_R_ID"
               } ],
               "default" : null
-            } ]
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
           }
         }, {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-RightSourceKeyed-SelectKey-repartition",
@@ -446,7 +451,8 @@
               "name" : "VAL",
               "type" : [ "null", "long" ],
               "default" : null
-            } ]
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.LeftTableKey"
           },
           "valueSchema" : {
             "type" : "record",
@@ -477,10 +483,12 @@
                   "name" : "VAL",
                   "type" : [ "null", "long" ],
                   "default" : null
-                } ]
+                } ],
+                "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema_R_ID"
               } ],
               "default" : null
-            } ]
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
           }
         }, {
           "name" : "left_topic",
@@ -550,7 +558,8 @@
                   "name" : "VAL",
                   "type" : [ "null", "long" ],
                   "default" : null
-                } ]
+                } ],
+                "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema_FOREIGN_KEY"
               } ],
               "default" : null
             }, {
@@ -561,7 +570,8 @@
               "name" : "ROWOFFSET",
               "type" : [ "null", "long" ],
               "default" : null
-            } ]
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
           }
         }, {
           "name" : "OUTPUT",
@@ -590,7 +600,8 @@
                   "name" : "VAL",
                   "type" : [ "null", "long" ],
                   "default" : null
-                } ]
+                } ],
+                "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema_R_ID"
               } ],
               "default" : null
             }, {
@@ -601,7 +612,8 @@
               "name" : "F1",
               "type" : [ "null", "int" ],
               "default" : null
-            } ]
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
           }
         }, {
           "name" : "right_topic",

@@ -18,6 +18,7 @@ package io.confluent.ksql.topic;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Suppliers;
 import io.confluent.ksql.util.KsqlException;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Supplier;
@@ -25,6 +26,7 @@ import java.util.stream.Stream;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kafka.clients.admin.TopicDescription;
+import org.apache.kafka.common.config.TopicConfig;
 
 /**
  * A container for all properties required for creating/validating
@@ -33,23 +35,25 @@ import org.apache.kafka.clients.admin.TopicDescription;
 public final class TopicProperties {
 
   public static final short DEFAULT_REPLICAS = -1;
-
   private static final String INVALID_TOPIC_NAME = ":INVALID:";
   private static final int INVALID_PARTITIONS = -1;
+  private static final long DEFAULT_RETENTION_IN_MS = 604800000L; // 7 days
 
   private final String topicName;
   private final Integer partitions;
   private final Short replicas;
+  private final Long retentionMs;
 
   @VisibleForTesting
   TopicProperties(
       final String topicName,
       final Integer partitions,
-      final Short replicas
-  ) {
+      final Short replicas,
+      final Long retentionMs) {
     this.topicName = topicName;
     this.partitions = partitions;
     this.replicas = replicas;
+    this.retentionMs = retentionMs;
   }
 
   @Override
@@ -57,6 +61,7 @@ public final class TopicProperties {
     return "TopicProperties{" + "topicName='" + getTopicName() + '\''
         + ", partitions=" + getPartitions()
         + ", replicas=" + getReplicas()
+        + ", retentionMs=" + getRetentionInMillis()
         + '}';
   }
 
@@ -70,6 +75,10 @@ public final class TopicProperties {
 
   public short getReplicas() {
     return replicas == null ? DEFAULT_REPLICAS : replicas;
+  }
+
+  public long getRetentionInMillis() {
+    return retentionMs == null ? DEFAULT_RETENTION_IN_MS : retentionMs;
   }
 
   /**
@@ -92,10 +101,10 @@ public final class TopicProperties {
   public static final class Builder {
 
     private String name;
-    private TopicProperties fromWithClause = new TopicProperties(null, null, null);
-    private final TopicProperties fromOverrides = new TopicProperties(null, null, null);
-    private final TopicProperties fromKsqlConfig = new TopicProperties(null, null, null);
-    private Supplier<TopicProperties> fromSource = () -> new TopicProperties(null, null, null);
+    private TopicProperties fromWithClause = new TopicProperties(null, null, null, null);
+    private final TopicProperties fromOverrides = new TopicProperties(null, null, null, null);
+    private final TopicProperties fromKsqlConfig = new TopicProperties(null, null, null, null);
+    private Supplier<TopicProperties> fromSource = () -> new TopicProperties(null, null, null,null);
 
     Builder withName(final String name) {
       this.name = name;
@@ -105,23 +114,31 @@ public final class TopicProperties {
     Builder withWithClause(
         final Optional<String> name,
         final Optional<Integer> partitionCount,
-        final Optional<Short> replicationFactor
+        final Optional<Short> replicationFactor,
+        final Optional<Long> retentionMs
     ) {
       fromWithClause = new TopicProperties(
           name.orElse(null),
           partitionCount.orElse(null),
-          replicationFactor.orElse(null)
-      );
+          replicationFactor.orElse(null),
+          retentionMs.orElse(null));
       return this;
     }
 
-    Builder withSource(final Supplier<TopicDescription> descriptionSupplier) {
+    Builder withSource(final Supplier<TopicDescription> descriptionSupplier,
+        final Supplier<Map<String, String>> configsSupplier) {
       fromSource = Suppliers.memoize(() -> {
         final TopicDescription description = descriptionSupplier.get();
         final Integer partitions = description.partitions().size();
         final Short replicas = (short) description.partitions().get(0).replicas().size();
 
-        return new TopicProperties(null, partitions, replicas);
+        final Map<String, String> configs = configsSupplier.get();
+        final Long retentionMs = Long.parseLong(
+            String.valueOf(configs.getOrDefault(
+                TopicConfig.RETENTION_MS_CONFIG, String.valueOf(DEFAULT_RETENTION_IN_MS)))
+        );
+
+        return new TopicProperties(null, partitions, replicas, retentionMs);
       });
       return this;
     }
@@ -154,7 +171,15 @@ public final class TopicProperties {
           .findFirst()
           .orElseGet(() -> fromSource.get().replicas);
 
-      return new TopicProperties(name, partitions, replicas);
+      final Long retentionMs = Stream.of(
+          fromWithClause.retentionMs,
+          fromOverrides.retentionMs,
+          fromKsqlConfig.retentionMs)
+          .filter(Objects::nonNull)
+          .findFirst()
+          .orElseGet(() -> fromSource.get().retentionMs);
+
+      return new TopicProperties(name, partitions, replicas, retentionMs);
     }
   }
 }

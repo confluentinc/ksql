@@ -17,6 +17,7 @@ package io.confluent.ksql.topic;
 import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.SqlFormatter;
 import io.confluent.ksql.parser.properties.with.CreateSourceAsProperties;
 import io.confluent.ksql.parser.properties.with.CreateSourceProperties;
@@ -50,6 +51,16 @@ import org.apache.kafka.common.config.TopicConfig;
  * @see TopicProperties.Builder
  */
 public class TopicCreateInjector implements Injector {
+
+  private static final String CLEANUP_POLICY_PRESENT_EXCEPTION =
+      String.format(
+          "Invalid config variable in the WITH clause: %s.%n"
+              + "The %s config is automatically inferred based "
+              + "on the type of source (STREAM or TABLE).%n"
+              + "Users can't set the %s config manually.",
+          CommonCreateConfigs.SOURCE_TOPIC_CLEANUP_POLICY,
+          CommonCreateConfigs.SOURCE_TOPIC_CLEANUP_POLICY,
+          CommonCreateConfigs.SOURCE_TOPIC_CLEANUP_POLICY);
 
   private final KafkaTopicClient topicClient;
   private final MetaStore metaStore;
@@ -103,10 +114,20 @@ public class TopicCreateInjector implements Injector {
     final CreateSource createSource = statement.getStatement();
     final CreateSourceProperties properties = createSource.getProperties();
 
+    if (properties.getCleanupPolicy().isPresent()) {
+      throw new KsqlException(CLEANUP_POLICY_PRESENT_EXCEPTION);
+    }
+
+    final String topicCleanUpPolicy = createSource instanceof CreateTable
+        ? TopicConfig.CLEANUP_POLICY_COMPACT : TopicConfig.CLEANUP_POLICY_DELETE;
+
     final String topicName = properties.getKafkaTopic();
 
     if (topicClient.isTopicExists(topicName)) {
-      topicPropertiesBuilder.withSource(() -> topicClient.describeTopic(topicName));
+      topicPropertiesBuilder
+          .withSource(
+              () -> topicClient.describeTopic(topicName),
+              () -> topicClient.getTopicConfig(topicName));
     } else if (!properties.getPartitions().isPresent()) {
       final CreateSource example = createSource.copyWith(
           createSource.getElements(),
@@ -119,19 +140,19 @@ public class TopicCreateInjector implements Injector {
               + "For example: " + SqlFormatter.formatSql(example));
     }
 
+    throwIfRetentionPresentForTable(topicCleanUpPolicy, properties.getRetentionInMillis());
+
     topicPropertiesBuilder
         .withName(topicName)
         .withWithClause(
             Optional.of(properties.getKafkaTopic()),
             properties.getPartitions(),
-            properties.getReplicas());
-
-    final String topicCleanUpPolicy = createSource instanceof CreateTable
-        ? TopicConfig.CLEANUP_POLICY_COMPACT : TopicConfig.CLEANUP_POLICY_DELETE;
+            properties.getReplicas(),
+            properties.getRetentionInMillis());
 
     createTopic(topicPropertiesBuilder, topicCleanUpPolicy);
 
-    return statement;
+    return buildConfiguredStatement(statement, properties.withCleanupPolicy(topicCleanUpPolicy));
   }
 
   @SuppressWarnings("unchecked")
@@ -145,17 +166,24 @@ public class TopicCreateInjector implements Injector {
     final T createAsSelect = statement.getStatement();
     final CreateSourceAsProperties properties = createAsSelect.getProperties();
 
+    if (properties.getCleanupPolicy().isPresent()) {
+      throw new KsqlException(CLEANUP_POLICY_PRESENT_EXCEPTION);
+    }
+
     final SourceTopicsExtractor extractor = new SourceTopicsExtractor(metaStore);
     extractor.process(statement.getStatement().getQuery(), null);
     final String sourceTopicName = extractor.getPrimarySourceTopic().getKafkaTopicName();
 
     topicPropertiesBuilder
         .withName(prefix + createAsSelect.getName().text())
-        .withSource(() -> topicClient.describeTopic(sourceTopicName))
+        .withSource(
+            () -> topicClient.describeTopic(sourceTopicName),
+            () -> topicClient.getTopicConfig(sourceTopicName))
         .withWithClause(
             properties.getKafkaTopic(),
             properties.getPartitions(),
-            properties.getReplicas());
+            properties.getReplicas(),
+            properties.getRetentionInMillis());
 
     final String topicCleanUpPolicy;
     final Map<String, Object> additionalTopicConfigs = new HashMap<>();
@@ -176,18 +204,32 @@ public class TopicCreateInjector implements Injector {
       }
     }
 
+    throwIfRetentionPresentForTable(topicCleanUpPolicy, properties.getRetentionInMillis());
+
     final TopicProperties info
         = createTopic(topicPropertiesBuilder, topicCleanUpPolicy, additionalTopicConfigs);
 
-    final T withTopic = (T) createAsSelect.copyWith(properties.withTopic(
+    final CreateSourceAsProperties injectedProperties = properties.withTopic(
         info.getTopicName(),
         info.getPartitions(),
-        info.getReplicas()
-    ));
+        info.getReplicas(),
+        (Long) additionalTopicConfigs
+            .getOrDefault(TopicConfig.RETENTION_MS_CONFIG, info.getRetentionInMillis()))
+        .withCleanupPolicy(topicCleanUpPolicy);
 
-    final String withTopicText = SqlFormatter.formatSql(withTopic) + ";";
+    return buildConfiguredStatement(statement, injectedProperties);
+  }
 
-    return statement.withStatement(withTopicText, withTopic);
+  private void throwIfRetentionPresentForTable(
+      final String topicCleanUpPolicy,
+      final Optional<Long> retentionInMillis
+  ) {
+    if (topicCleanUpPolicy.equals(TopicConfig.CLEANUP_POLICY_COMPACT)
+        && retentionInMillis.isPresent()) {
+      throw new KsqlException(
+          "Invalid config variable in the WITH clause: RETENTION_MS."
+          + " Non-windowed tables do not support retention.");
+    }
   }
 
   private TopicProperties createTopic(
@@ -206,10 +248,67 @@ public class TopicCreateInjector implements Injector {
 
     final Map<String, Object> config = new HashMap<>();
     config.put(TopicConfig.CLEANUP_POLICY_CONFIG, topicCleanUpPolicy);
+
+    // Set the retention.ms as max(RETENTION_MS, RETENTION)
+    if (additionalTopicConfigs.containsKey(TopicConfig.RETENTION_MS_CONFIG)) {
+      config.put(
+          TopicConfig.RETENTION_MS_CONFIG,
+          Math.max(
+              info.getRetentionInMillis(),
+              (Long) additionalTopicConfigs.get(TopicConfig.RETENTION_MS_CONFIG))
+      );
+      additionalTopicConfigs.remove(TopicConfig.RETENTION_MS_CONFIG);
+    } else {
+      config.put(TopicConfig.RETENTION_MS_CONFIG, info.getRetentionInMillis());
+    }
+
     config.putAll(additionalTopicConfigs);
+
+    // Note: The retention.ms config has no effect if cleanup.policy=compact
+    // config is set for topics that are backed by tables
+    if (topicCleanUpPolicy.equals(TopicConfig.CLEANUP_POLICY_COMPACT)) {
+      config.remove(TopicConfig.RETENTION_MS_CONFIG);
+    }
 
     topicClient.createTopic(info.getTopicName(), info.getPartitions(), info.getReplicas(), config);
 
     return info;
+  }
+
+  private static ConfiguredStatement<CreateSource> buildConfiguredStatement(
+      final ConfiguredStatement<? extends CreateSource> original,
+      final CreateSourceProperties injectedProps
+  ) {
+    final CreateSource statement = original.getStatement();
+
+    final CreateSource withProps = statement.copyWith(
+        original.getStatement().getElements(),
+        injectedProps
+    );
+
+    final KsqlParser.PreparedStatement<CreateSource> prepared = buildPreparedStatement(withProps);
+    return ConfiguredStatement.of(prepared, original.getSessionConfig());
+  }
+
+  private static ConfiguredStatement<CreateAsSelect> buildConfiguredStatement(
+      final ConfiguredStatement<? extends CreateAsSelect> original,
+      final CreateSourceAsProperties injectedProps
+  ) {
+    final CreateAsSelect statement = original.getStatement();
+
+    final CreateAsSelect withProps = statement.copyWith(injectedProps);
+
+    final KsqlParser.PreparedStatement<CreateAsSelect> prepared = buildPreparedStatement(withProps);
+    return ConfiguredStatement.of(prepared, original.getSessionConfig());
+  }
+
+  private static <T extends Statement> KsqlParser.PreparedStatement<T> buildPreparedStatement(
+      final T stmt
+  ) {
+    String formattedSql = SqlFormatter.formatSql(stmt);
+    if (!formattedSql.endsWith(";")) {
+      formattedSql = formattedSql + ";";
+    }
+    return KsqlParser.PreparedStatement.of(formattedSql, stmt);
   }
 }

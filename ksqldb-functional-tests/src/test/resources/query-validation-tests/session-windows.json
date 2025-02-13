@@ -61,8 +61,7 @@
       "outputs": [
         {"topic": "S2", "key": 0,"value": "0", "timestamp": 0, "window": {"start": 0, "end": 0, "type": "session"}},
         {"topic": "S2", "key": 0,"value": "1", "timestamp": 100010, "window": {"start": 100010, "end": 100010, "type": "session"}},
-        {"topic": "S2", "key": 0,"value": null, "timestamp": 0, "window": {"start": 0, "end": 0, "type": "session"}},
-        {"topic": "S2", "key": 0,"value": "6", "timestamp": 10010, "window": {"start": 0, "end": 10010, "type": "session"}},
+        {"topic": "S2", "key": 0,"value": "6", "timestamp": 10010, "window": {"start": 10010, "end": 10010, "type": "session"}},
         {"topic": "S2", "key": 1,"value": "101", "timestamp": 10010, "window": {"start": 10010, "end": 10010, "type": "session"}},
         {"topic": "S2", "key": 1,"value": "200", "timestamp": 86412022, "window": {"start": 86412022, "end": 86412022, "type": "session"}}
       ]

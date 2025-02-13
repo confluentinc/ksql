@@ -55,7 +55,7 @@
       "value" : {
         "I" : 0,
         "L" : 0,
-        "D" : 0.00,
+        "D" : 0.0,
         "S" : "0.00"
       }
     }, {
@@ -73,7 +73,7 @@
       "value" : {
         "I" : 10,
         "L" : 10,
-        "D" : 10.00,
+        "D" : 10.0,
         "S" : "10.00"
       }
     }, {
@@ -204,7 +204,8 @@
               "name" : "S",
               "type" : [ "null", "string" ],
               "default" : null
-            } ]
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
           }
         } ]
       }

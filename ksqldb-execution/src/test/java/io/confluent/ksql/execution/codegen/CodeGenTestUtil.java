@@ -2,13 +2,9 @@ package io.confluent.ksql.execution.codegen;
 
 import static java.util.Objects.requireNonNull;
 
-import com.google.common.collect.ImmutableList;
-import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.logging.processing.ProcessingLogger;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Collections;
-import java.util.List;
-import org.apache.commons.lang3.ArrayUtils;
+import java.util.Map;
 import org.codehaus.commons.compiler.IExpressionEvaluator;
 
 public final class CodeGenTestUtil {
@@ -22,36 +18,16 @@ public final class CodeGenTestUtil {
     return cookAndEval(
         javaCode,
         resultType,
-        ImmutableList.of(),
-        ImmutableList.of(),
-        ImmutableList.of()
+        Collections.emptyMap()
     );
   }
 
   public static Object cookAndEval(
       final String javaCode,
       final Class<?> resultType,
-      final String argName,
-      final Class<?> argType,
-      final Object arg
+      final Map<String, Object> args
   ) {
-    return cookAndEval(
-      javaCode,
-      resultType,
-        ImmutableList.of(argName),
-        ImmutableList.of(argType),
-        Collections.singletonList(arg)
-    );
-  }
-
-  public static Object cookAndEval(
-      final String javaCode,
-      final Class<?> resultType,
-      final List<String> argNames,
-      final List<Class<?>> argTypes,
-      final List<Object> args
-  ) {
-    final Evaluator evaluator = CodeGenTestUtil.cookCode(javaCode, resultType, argNames, argTypes);
+    final Evaluator evaluator = CodeGenTestUtil.cookCode(javaCode, resultType);
     return evaluator.evaluate(args);
   }
 
@@ -59,40 +35,10 @@ public final class CodeGenTestUtil {
       final String javaCode,
       final Class<?> resultType
   ) {
-    return cookCode(
-        javaCode,
-        resultType,
-        ImmutableList.of(),
-        ImmutableList.of()
-    );
-  }
-
-  public static Evaluator cookCode(
-      final String javaCode,
-      final Class<?> resultType,
-      final String argName,
-      final Class<?> argType
-  ) {
-    return cookCode(
-        javaCode,
-        resultType,
-        ImmutableList.of(argName),
-        ImmutableList.of(argType)
-    );
-  }
-
-  public static Evaluator cookCode(
-      final String javaCode,
-      final Class<?> resultType,
-      final List<String> argNames,
-      final List<Class<?>> argTypes
-  ) {
     try {
       final IExpressionEvaluator ee = CodeGenRunner.cook(
           javaCode,
-          resultType,
-          argNames.toArray(new String[0]),
-          argTypes.toArray(new Class<?>[0])
+          resultType
       );
 
       return new Evaluator(ee, javaCode);
@@ -116,11 +62,15 @@ public final class CodeGenTestUtil {
       this.javaCode = requireNonNull(javaCode, "javaCode");
     }
 
-    public Object evaluate(final Object arg) {
-      return evaluate(Collections.singletonList(arg));
+    public Object evaluate() {
+      return evaluate(Collections.emptyMap());
     }
 
-    public Object evaluate(final List<?> args) {
+    public Object evaluate(final String argName, final Object argValue) {
+      return evaluate(Collections.singletonMap(argName, argValue));
+    }
+
+    public Object evaluate(final Map<String, Object> args) {
       try {
         return rawEvaluate(args);
       } catch (final Exception e) {
@@ -133,13 +83,13 @@ public final class CodeGenTestUtil {
       }
     }
 
-    public Object rawEvaluate(final Object arg) throws Exception {
-      return rawEvaluate(Collections.singletonList(arg));
+    public Object rawEvaluate(final String argName, final Object argValue) throws Exception {
+      return rawEvaluate(Collections.singletonMap(argName, argValue));
     }
 
-    public Object rawEvaluate(final List<?> args) throws Exception {
+    public Object rawEvaluate(final Map<String, Object> args) throws Exception {
       try {
-        return ee.evaluate(ArrayUtils.addAll(args == null ? new Object[]{null} : args.toArray(), null, null, null));
+        return ee.evaluate(new Object[]{args, null, null, null});
       } catch (final InvocationTargetException e) {
         throw e.getTargetException() instanceof Exception
             ? (Exception) e.getTargetException()

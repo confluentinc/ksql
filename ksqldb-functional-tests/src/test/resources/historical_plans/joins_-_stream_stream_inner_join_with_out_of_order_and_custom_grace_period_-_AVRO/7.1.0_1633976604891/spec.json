@@ -109,14 +109,6 @@
         "L2" : "a"
       },
       "timestamp" : 60000
-    }, {
-      "topic" : "INNER_JOIN",
-      "key" : 2,
-      "value" : {
-        "L1" : "C",
-        "L2" : "c"
-      },
-      "timestamp" : 90000
     } ],
     "topics" : [ {
       "name" : "right_topic",
@@ -224,7 +216,8 @@
               "name" : "T_ID",
               "type" : [ "null", "long" ],
               "default" : null
-            } ]
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
           }
         }, {
           "name" : "INNER_JOIN",
@@ -247,7 +240,8 @@
               "name" : "L2",
               "type" : [ "null", "string" ],
               "default" : null
-            } ]
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
           }
         }, {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_INNER_JOIN_0-KSTREAM-JOINOTHER-0000000009-store-changelog",
@@ -281,7 +275,8 @@
               "name" : "TT_ID",
               "type" : [ "null", "long" ],
               "default" : null
-            } ]
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
           }
         }, {
           "name" : "left_topic",

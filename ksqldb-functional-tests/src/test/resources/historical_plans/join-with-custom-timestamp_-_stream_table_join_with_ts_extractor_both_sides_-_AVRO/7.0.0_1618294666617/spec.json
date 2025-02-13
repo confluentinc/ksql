@@ -264,7 +264,8 @@
               "name" : "F2",
               "type" : [ "null", "string" ],
               "default" : null
-            } ]
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
           }
         }, {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_S1_JOIN_T1_0-KafkaTopic_Right-Reduce-changelog",
@@ -290,7 +291,8 @@
               "name" : "RTS",
               "type" : [ "null", "long" ],
               "default" : null
-            } ]
+            } ],
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
           }
         }, {
           "name" : "t1",

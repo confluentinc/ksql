@@ -47,6 +47,7 @@ import io.confluent.ksql.planner.plan.PlanBuildContext;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
+import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.InternalFormats;
 import io.confluent.ksql.serde.KeyFormat;
@@ -60,6 +61,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -126,8 +128,10 @@ public class SchemaKSourceFactoryTest {
 
     when(keyFormat.getFormatInfo()).thenReturn(keyFormatInfo);
     when(keyFormat.getFeatures()).thenReturn(SerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES));
+    when(keyFormatInfo.copyWithoutProperty(Mockito.anyString())).thenReturn(keyFormatInfo);
     when(valueFormat.getFormatInfo()).thenReturn(valueFormatInfo);
     when(valueFormat.getFeatures()).thenReturn(SerdeFeatures.of(SerdeFeature.WRAP_SINGLES));
+    when(valueFormatInfo.copyWithoutProperty(Mockito.anyString())).thenReturn(valueFormatInfo);
   }
 
   @Test

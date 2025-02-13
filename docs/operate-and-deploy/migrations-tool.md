@@ -37,6 +37,8 @@ types of ksqlDB statements:
 * `CREATE TABLE ... AS SELECT`
 * `CREATE OR REPLACE`
 * `INSERT INTO ... AS SELECT`
+* `PAUSE <queryID>`
+* `RESUME <queryID>`
 * `TERMINATE <queryID>`
 * `DROP STREAM`
 * `DROP TABLE`

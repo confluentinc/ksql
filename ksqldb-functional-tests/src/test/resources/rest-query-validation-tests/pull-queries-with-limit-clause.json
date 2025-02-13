@@ -482,7 +482,7 @@
         "SELECT * FROM riderLocations LIMIT heh;"
       ],
       "expectedError": {
-        "message": "line 1:36: mismatched input 'heh' expecting {'-', INTEGER_VALUE, DECIMAL_VALUE, FLOATING_POINT_VALUE}"
+        "message": "line 1:36: Syntax Error"
       }
     },
     {

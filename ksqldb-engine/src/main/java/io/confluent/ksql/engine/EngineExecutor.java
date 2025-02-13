@@ -114,7 +114,6 @@ import io.confluent.ksql.util.PlanSummary;
 import io.confluent.ksql.util.PushOffsetRange;
 import io.confluent.ksql.util.PushQueryMetadata;
 import io.confluent.ksql.util.PushQueryMetadata.ResultType;
-import io.confluent.ksql.util.QueryMask;
 import io.confluent.ksql.util.ScalablePushQueryMetadata;
 import io.confluent.ksql.util.TransientQueryMetadata;
 import io.vertx.core.Context;
@@ -176,11 +175,10 @@ final class EngineExecutor {
   }
 
   ExecuteResult execute(final KsqlPlan plan, final boolean restoreInProgress) {
-    final String maskedStatement = QueryMask.getMaskedStatement(plan.getStatementText());
     if (!plan.getQueryPlan().isPresent()) {
       final String ddlResult = plan
           .getDdlCommand()
-          .map(ddl -> executeDdl(ddl, maskedStatement, false, Collections.emptySet(),
+          .map(ddl -> executeDdl(ddl, plan.getStatementText(), false, Collections.emptySet(),
               restoreInProgress))
           .orElseThrow(
               () -> new IllegalStateException(
@@ -206,7 +204,7 @@ final class EngineExecutor {
     }
 
     final Optional<String> ddlResult = plan.getDdlCommand().map(ddl ->
-        executeDdl(ddl, maskedStatement, true, queryPlan.getSources(),
+        executeDdl(ddl, plan.getStatementText(), true, queryPlan.getSources(),
             restoreInProgress));
 
     // Return if the source to create already exists.
@@ -231,7 +229,7 @@ final class EngineExecutor {
 
     return ExecuteResult.of(executePersistentQuery(
         queryPlan,
-        maskedStatement,
+        plan.getStatementText(),
         persistentQueryType)
     );
   }

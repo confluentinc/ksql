@@ -192,6 +192,15 @@ If the default is also not set, the statement is rejected as invalid.
 You can't use the `KEY_FORMAT` property with the `FORMAT` property in the
 same `CREATE STREAM` statement.
 
+### KEY_PROTOBUF_NULLABLE_REPRESENTATION
+
+In the default configuration, primitive fields in protobuf do not distinguish `null` from the
+default values (such as zero, empty string). To enable the use of a protobuf schema that can make
+this distinction, set `KEY_PROTOBUF_NULLABLE_REPRESENTATION` to either `OPTIONAL` or `WRAPPER`.
+The schema will be used to serialize keys for the stream created by this `CREATE` statement.
+For more details, see the corresponding section in the
+[Serialization Formats](/reference/serialization#protobuf) documentation.
+
 ### KEY_SCHEMA_ID
 
 The schema ID of the key schema in {{ site.sr }}.
@@ -215,6 +224,15 @@ partition count, you must drop the stream and create it again.
 The number of replicas in the backing topic. If this property isn't set, but
 `PARTITIONS` is set, the default {{ site.ak }} cluster configuration for replicas
 is used for creating a new topic.
+
+### RETENTION_MS
+
+The retention specified in milliseconds in the backing topic. You must set this
+property if you create a stream without an existing topic, and the statement
+fails if the topic doesn't exist.
+
+You can't change the retention on an existing stream. To change the
+retention, you must drop the stream and create it again.
 
 ### TIMESTAMP
 
@@ -264,6 +282,15 @@ If the default is also not set, the statement is rejected as invalid.
 
 You can't use the `VALUE_FORMAT` property with the `FORMAT` property in the
 same CREATE STREAM statement.
+
+### VALUE_PROTOBUF_NULLABLE_REPRESENTATION
+
+In the default configuration, primitive fields in protobuf do not distinguish `null` from the
+default values (such as zero, empty string). To enable the use of a protobuf schema that can make
+this distinction, set `VALUE_PROTOBUF_NULLABLE_REPRESENTATION` to either `OPTIONAL` or `WRAPPER`.
+The schema will be used to serialize values for the stream created by this `CREATE` statement.
+For more details, see the corresponding section in the
+[Serialization Formats](/reference/serialization#protobuf) documentation.
 
 ### VALUE_SCHEMA_ID
 

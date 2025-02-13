@@ -44,7 +44,9 @@ public class PostConditionsNodeTest {
     final PostTopicsNode topics = new PostTopicsNode(
         Optional.of(".*repartition"),
         Optional.of(ImmutableList.of(
-            new PostTopicNode("t1", KEY_FORMAT, VALUE_FORMAT, PARTITION_COUNT, JsonNodeFactory.instance.textNode("a"), JsonNodeFactory.instance.textNode("b"))
+            new PostTopicNode("t1", KEY_FORMAT, VALUE_FORMAT, PARTITION_COUNT,
+                Optional.of(1), Optional.of(2),
+                JsonNodeFactory.instance.textNode("a"), JsonNodeFactory.instance.textNode("b"))
         ))
     );
 

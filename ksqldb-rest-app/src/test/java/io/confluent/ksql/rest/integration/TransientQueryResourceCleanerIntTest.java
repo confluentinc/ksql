@@ -125,7 +125,7 @@ public class TransientQueryResourceCleanerIntTest {
 
     @Before
     public void setUp() throws IOException, InterruptedException {
-        final TestAppender appender = new TestAppender("TestAppender", null);
+        appender = new TestAppender("TestAppender", null);
         LoggerContext context = (LoggerContext) LogManager.getContext(false);
         Configuration config = context.getConfiguration();
         appender.start();

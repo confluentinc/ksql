@@ -35,4 +35,27 @@ public class TestAppender extends AbstractAppender {
     public List<LogEvent> getLog() {
         return new ArrayList<>(log);
     }
+
+    public static Builder newBuilder() {
+        return new Builder();
+    }
+
+    public static class Builder {
+        private String name;
+        private Layout<?> layout;
+
+        public Builder setName(String name) {
+            this.name = name;
+            return this;
+        }
+
+        public Builder setLayout(Layout<?> layout) {
+            this.layout = layout;
+            return this;
+        }
+
+        public TestAppender build() {
+            return new TestAppender(name, layout);
+        }
+    }
 }

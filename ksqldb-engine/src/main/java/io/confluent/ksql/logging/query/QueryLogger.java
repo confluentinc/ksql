@@ -25,6 +25,7 @@ import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.core.Appender;
 import org.apache.logging.log4j.core.LoggerContext;
 import org.apache.logging.log4j.core.config.Configuration;
+import org.apache.logging.log4j.core.config.LoggerConfig;
 
 
 public final class QueryLogger {
@@ -46,7 +47,10 @@ public final class QueryLogger {
   public static void addAppender(final Appender appender) {
     final LoggerContext context = (LoggerContext) LogManager.getContext(false);
     final Configuration config = context.getConfiguration();
-    config.getRootLogger().addAppender(appender, null, null);
+    appender.start();
+    config.addAppender(appender);
+    final LoggerConfig loggerConfig = config.getLoggerConfig(logger.getName());
+    loggerConfig.addAppender(appender, null, null);
     context.updateLoggers();
   }
 

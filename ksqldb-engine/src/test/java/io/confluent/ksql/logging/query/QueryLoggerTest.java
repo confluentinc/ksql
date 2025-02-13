@@ -18,8 +18,12 @@ import io.confluent.ksql.util.QueryGuid;
 import java.util.List;
 
 import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.core.LogEvent;
+import org.apache.logging.log4j.core.LoggerContext;
 import org.apache.logging.log4j.core.appender.ConsoleAppender;
+import org.apache.logging.log4j.core.config.Configuration;
+import org.apache.logging.log4j.core.config.LoggerConfig;
 import org.apache.logging.log4j.core.layout.PatternLayout;
 import org.apache.logging.log4j.core.Layout;
 import org.apache.logging.log4j.core.config.Configurator;
@@ -41,12 +45,16 @@ import static org.mockito.Mockito.when;
 @RunWith(MockitoJUnitRunner.class)
 public class QueryLoggerTest {
   @Mock public KsqlConfig config;
-  private final TestAppender testAppender = new TestAppender("TestAppender", null);
 
   private final QueryAnonymizer anonymizer = new QueryAnonymizer();
+  private TestAppender testAppender;
 
   @Before
   public void setUp() throws Exception {
+    testAppender = TestAppender.newBuilder()
+        .setName("TestAppender")
+        .setLayout(null)
+        .build();
     when(config.getBoolean(KsqlConfig.KSQL_QUERYANONYMIZER_ENABLED)).thenReturn(true);
     when(config.getString(KsqlConfig.KSQL_QUERYANONYMIZER_CLUSTER_NAMESPACE))
         .thenReturn("cathouse.org.meowcluster");
@@ -55,12 +63,15 @@ public class QueryLoggerTest {
         .setName("console")
         .setLayout(layout)
         .build();
-    consoleAppender.start();
 
-    QueryLogger.addAppender(consoleAppender);
-    testAppender.start();
     QueryLogger.addAppender(testAppender);
+    QueryLogger.addAppender(consoleAppender);
     QueryLogger.configure(config);
+    final LoggerContext context = (LoggerContext) LogManager.getContext(false);
+    final Configuration config = context.getConfiguration();
+    final LoggerConfig loggerConfig = config.getLoggerConfig(QueryLogger.getLogger().getName());
+    loggerConfig.setLevel(Level.ALL);
+    context.updateLoggers();
   }
 
   @Test

@@ -1,4 +1,8 @@
 Configuration:
+  Properties:
+    Property:
+      - name: ksql.log.dir
+        value: ${sys:ksql.log.dir}
   status: WARN
   Appenders:
     RollingFile:

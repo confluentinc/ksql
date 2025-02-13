@@ -152,8 +152,8 @@ public class TransientQueryResourceCleanerIntTest {
 
     @After
     public void tearDown() {
-        LoggerContext context = (LoggerContext) LogManager.getContext(false);
-        Configuration config = context.getConfiguration();
+        final LoggerContext context = (LoggerContext) LogManager.getContext(false);
+        final Configuration config = context.getConfiguration();
         config.getLoggerConfig(LogManager.ROOT_LOGGER_NAME).removeAppender(appender.getName());
         appender.stop();
         context.updateLoggers();

@@ -24,6 +24,7 @@ import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.configdef.ConfigValidators;
 import io.confluent.ksql.rest.DefaultErrorMessages;
 import io.confluent.ksql.rest.ErrorMessages;
+import io.confluent.ksql.rest.extensions.KsqlResourceExtension;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlServerException;
@@ -444,6 +445,13 @@ public class KsqlRestConfig extends AbstractConfig {
           KSQL_COMMAND_TOPIC_MIGRATION_MIGRATING
       );
 
+  public static final String KSQL_RESOURCE_EXTENSIONS =
+          "ksql.resource.extension.class";
+  private static final String KSQL_RESOURCE_EXTENSION_DEFAULT = "";
+  private static final String KSQL_RESOURCE_EXTENSION_DOC =
+          "A list of KsqlResourceExtension implementations "
+                  + "to be registered with the ksqlDB server.";
+
   private static final ConfigDef CONFIG_DEF;
 
   static {
@@ -617,6 +625,12 @@ public class KsqlRestConfig extends AbstractConfig {
             ConfigValidators.nullsAllowed(ConfigValidators.validUrl()),
             Importance.HIGH,
             INTERNAL_LISTENER_DOC
+        ).define(
+            KSQL_RESOURCE_EXTENSIONS,
+            Type.LIST,
+            KSQL_RESOURCE_EXTENSION_DEFAULT,
+            Importance.MEDIUM,
+            KSQL_RESOURCE_EXTENSION_DOC
         ).define(
             STREAMED_QUERY_DISCONNECT_CHECK_MS_CONFIG,
             Type.LONG,
@@ -1063,6 +1077,10 @@ public class KsqlRestConfig extends AbstractConfig {
 
   public ClientAuth getClientAuthInternal() {
     return getClientAuth(getString(KSQL_INTERNAL_SSL_CLIENT_AUTHENTICATION_CONFIG));
+  }
+
+  public List<KsqlResourceExtension> getKsqlResourceExtensions() {
+    return getConfiguredInstances(KSQL_RESOURCE_EXTENSIONS, KsqlResourceExtension.class);
   }
 
   /**

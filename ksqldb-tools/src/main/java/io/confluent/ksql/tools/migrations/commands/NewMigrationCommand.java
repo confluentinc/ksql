@@ -58,7 +58,7 @@ public class NewMigrationCommand extends BaseCommand {
 
   @Override
   protected int command() {
-    if (getConfigFile() != null && !getConfigFile().equals("")) {
+    if (getConfigFile() != null && !getConfigFile().isEmpty()) {
       LOGGER.error("This command does not expect a config file to be passed. "
           + "Rather, this command will create one as part of preparing the migrations directory.");
       return 1;

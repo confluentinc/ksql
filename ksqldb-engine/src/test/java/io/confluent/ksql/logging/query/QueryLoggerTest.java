@@ -77,7 +77,11 @@ public class QueryLoggerTest {
 
   @After
   public void tearDown() {
-    QueryLogger.close(testAppender);
+    final LoggerContext context = (LoggerContext) LogManager.getContext(false);
+    final Configuration config = context.getConfiguration();
+    config.getLoggerConfig(QueryLogger.getLogger().getName()).removeAppender(testAppender.getName());
+    testAppender.stop();
+    context.updateLoggers();
   }
 
   @Test

@@ -165,7 +165,7 @@ public final class QueryLogger {
   public static void close(final Appender appender) {
     final LoggerContext context = (LoggerContext) LogManager.getContext(false);
     final Configuration config = context.getConfiguration();
-    config.getLoggerConfig(LogManager.ROOT_LOGGER_NAME).removeAppender(appender.getName());
+    config.getLoggerConfig(logger.getName()).removeAppender(appender.getName());
     appender.stop();
     context.updateLoggers();
   }

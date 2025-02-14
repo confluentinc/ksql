@@ -29,6 +29,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import com.github.rvesse.airline.Cli;
 import com.google.common.collect.ImmutableList;
@@ -84,7 +85,7 @@ import org.apache.logging.log4j.core.Appender;
 import org.apache.logging.log4j.core.LogEvent;
 import org.apache.logging.log4j.core.LoggerContext;
 import org.apache.logging.log4j.core.config.Configuration;
-import org.apache.logging.log4j.core.config.Configurator;
+import org.apache.logging.log4j.core.config.LoggerConfig;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
 import org.hamcrest.TypeSafeDiagnosingMatcher;
@@ -231,6 +232,8 @@ public class MigrationsTest {
 
   @Before
   public void setUp() throws Exception {
+    when(logAppender.getName()).thenReturn("logAppender");
+    when(logAppender.isStarted()).thenReturn(true);
     if (withMigrationsDirOverride) {
       migrationsDir = Paths.get(testDir, "my/custom/migrations_dir").toString();
       assertThat(new File(migrationsDir).mkdirs(), is(true));
@@ -330,8 +333,10 @@ public class MigrationsTest {
     // Given:
     LoggerContext context = (LoggerContext) LogManager.getContext(false);
     Configuration config = context.getConfiguration();
-    config.getRootLogger().addAppender(logAppender, null, null);
-    Configurator.reconfigure();
+    config.addAppender(logAppender);
+    final LoggerConfig rootLogger = config.getRootLogger();
+    rootLogger.addAppender(logAppender, null, null);
+    context.updateLoggers();
 
     try {
       // When:
@@ -354,7 +359,7 @@ public class MigrationsTest {
       )));
     } finally {
       config.getRootLogger().removeAppender(logAppender.getName());
-      Configurator.reconfigure();
+      context.updateLoggers();
     }
   }
 

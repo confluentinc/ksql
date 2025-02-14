@@ -51,9 +51,9 @@ import java.util.stream.Stream;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.core.Appender;
 import org.apache.logging.log4j.core.LogEvent;
-import org.apache.logging.log4j.core.config.Configurator;
 import org.apache.logging.log4j.core.LoggerContext;
 import org.apache.logging.log4j.core.config.Configuration;
+import org.apache.logging.log4j.core.config.LoggerConfig;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -108,6 +108,8 @@ public class MigrationInfoCommandTest {
     when(sourceDescriptionCf.get()).thenReturn(sourceDescription);
     when(serverInfoCf.get()).thenReturn(serverInfo);
     when(serverInfo.getServerVersion()).thenReturn("v0.14.0");
+    when(logAppender.getName()).thenReturn("logAppender");
+    when(logAppender.isStarted()).thenReturn(true);
 
     migrationsDir = folder.getRoot().getPath();
     command = PARSER.parse();
@@ -115,7 +117,9 @@ public class MigrationInfoCommandTest {
     LoggerContext context = (LoggerContext) LogManager.getContext(false);
     Configuration config = context.getConfiguration();
     config.addAppender(logAppender);
-    Configurator.reconfigure();
+    final LoggerConfig rootLogger = config.getRootLogger();
+    rootLogger.addAppender(logAppender, null, null);
+    context.updateLoggers();
   }
 
   @After
@@ -123,7 +127,7 @@ public class MigrationInfoCommandTest {
     LoggerContext context = (LoggerContext) LogManager.getContext(false);
     Configuration config = context.getConfiguration();
     config.getRootLogger().removeAppender(logAppender.getName());
-    Configurator.reconfigure();
+    context.updateLoggers();
   }
 
   @Test

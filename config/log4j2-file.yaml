@@ -5,19 +5,14 @@ Configuration:
         value: ${sys:ksql.log.dir}
   status: WARN
   Appenders:
-    RollingFile:
-      name: io.confluent.ksql.util.TimestampLogFileAppender
+    TimestampLogFileAppender:
+      type: io.confluent.ksql.util.TimestampLogFileAppender
+      name: defaultFile
       fileName: ${ksql.log.dir}/ksql-cli/cli-%timestamp.log
-      filePattern: ${ksql.log.dir}/ksql-cli/cli-%d{yyyy-MM-dd}-%i.log.gz
+      filePattern: ${ksql.log.dir}/ksql-cli/cli-%d{yyyy-MM-dd}-%i.log
       PatternLayout:
         pattern: "[%d] %p %m (%c:%L)%n"
-      Policies:
-        TimeBasedTriggeringPolicy:
-          interval: 1
-        SizeBasedTriggeringPolicy:
-          size: 10MB
-      DefaultRolloverStrategy:
-        max: 5 # other files will be cleaned up.
+      ImmediateFlush: true
   Loggers:
     Root:
       level: WARN

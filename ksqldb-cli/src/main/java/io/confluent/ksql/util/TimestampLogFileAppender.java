@@ -22,6 +22,7 @@ import org.apache.logging.log4j.core.Layout;
 import org.apache.logging.log4j.core.LogEvent;
 import org.apache.logging.log4j.core.appender.AbstractAppender;
 import org.apache.logging.log4j.core.appender.RollingFileAppender;
+import org.apache.logging.log4j.core.appender.rolling.NoOpTriggeringPolicy;
 import org.apache.logging.log4j.core.config.plugins.Plugin;
 import org.apache.logging.log4j.core.config.plugins.PluginAttribute;
 import org.apache.logging.log4j.core.config.plugins.PluginElement;
@@ -34,7 +35,7 @@ import org.apache.logging.log4j.core.config.plugins.validation.constraints.Requi
     printObject = true)
 public class TimestampLogFileAppender extends AbstractAppender {
 
-  private final RollingFileAppender rollingFileAppender;
+  private static RollingFileAppender rollingFileAppender;
 
   protected TimestampLogFileAppender(final String name,
                                      final Layout<?> layout,
@@ -42,7 +43,6 @@ public class TimestampLogFileAppender extends AbstractAppender {
                                      final boolean ignoreExceptions,
                                      final RollingFileAppender rollingFileAppender) {
     super(name, filter, layout, ignoreExceptions);
-    this.rollingFileAppender = rollingFileAppender;
   }
 
   @PluginFactory
@@ -51,6 +51,8 @@ public class TimestampLogFileAppender extends AbstractAppender {
       @PluginAttribute("fileName") final String fileName,
       @PluginElement("Layout") final Layout<?> layout,
       @PluginElement("Filter") final Filter filter,
+      @PluginAttribute("filePattern") final String filePattern,
+      @PluginAttribute("ImmediateFlush") final boolean immediateFlush,
       @PluginAttribute("ignoreExceptions") final boolean ignoreExceptions) {
 
     String updatedFileName = fileName;
@@ -60,14 +62,17 @@ public class TimestampLogFileAppender extends AbstractAppender {
       updatedFileName = updatedFileName.replaceAll("%timestamp", format.format(d));
     }
 
-    final RollingFileAppender rollingFileAppender = RollingFileAppender.newBuilder()
+    rollingFileAppender = RollingFileAppender.newBuilder()
         .withFileName(updatedFileName)
         .withName(name)
+        .withFilePattern(filePattern)
         .withIgnoreExceptions(ignoreExceptions)
         .withBufferedIo(true)
         .withBufferSize(8192)
         .withLayout(layout)
         .withFilter(filter)
+        .withImmediateFlush(immediateFlush)
+        .withPolicy(new NoOpTriggeringPolicy())
         .build();
 
     return new TimestampLogFileAppender(name,

@@ -43,8 +43,8 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.kafka.common.utils.Time;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * Handles requests to the query-stream endpoint
@@ -52,7 +52,7 @@ import org.slf4j.LoggerFactory;
 @SuppressWarnings({"ClassDataAbstractionCoupling"})
 public class QueryStreamHandler implements Handler<RoutingContext> {
 
-  private static final Logger log = LoggerFactory.getLogger(QueryStreamHandler.class);
+  private static final Logger log = LogManager.getLogger(QueryStreamHandler.class);
 
   static final String DELIMITED_CONTENT_TYPE = "application/vnd.ksqlapi.delimited.v1";
   static final String JSON_CONTENT_TYPE = "application/json";

@@ -17,17 +17,17 @@ package io.confluent.ksql.logging.processing;
 
 import static java.util.Objects.requireNonNull;
 
-import io.confluent.common.logging.StructuredLogger;
 import org.apache.kafka.connect.data.SchemaAndValue;
+import org.apache.logging.log4j.Logger;
 
 public class ProcessingLoggerImpl implements ProcessingLogger {
 
-  private final StructuredLogger inner;
+  private final Logger inner;
   private final ProcessingLogConfig config;
 
-  public ProcessingLoggerImpl(final ProcessingLogConfig config, final StructuredLogger inner) {
+  public ProcessingLoggerImpl(final ProcessingLogConfig config, final Logger innerLogger) {
     this.config = requireNonNull(config, "config");
-    this.inner = requireNonNull(inner, "inner");
+    this.inner = requireNonNull(innerLogger, "inner");
   }
 
   @Override

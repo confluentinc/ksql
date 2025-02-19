@@ -38,12 +38,12 @@ import org.apache.kafka.streams.errors.StreamsUncaughtExceptionHandler;
 import org.apache.kafka.streams.processor.TaskId;
 import org.apache.kafka.streams.processor.internals.namedtopology.KafkaStreamsNamedTopologyWrapper;
 import org.apache.kafka.streams.processor.internals.namedtopology.NamedTopology;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class SharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRuntime {
 
-  private final Logger log = LoggerFactory.getLogger(SharedKafkaStreamsRuntimeImpl.class);
+  private final Logger log = LogManager.getLogger(SharedKafkaStreamsRuntimeImpl.class);
 
   private final long shutdownTimeout;
   private final QueryErrorClassifier errorClassifier;

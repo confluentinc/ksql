@@ -23,12 +23,12 @@ import java.nio.ByteBuffer;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 class RegisterSchemaCallback implements StaticTopicSerde.Callback {
 
-  private static final Logger LOG = LoggerFactory.getLogger(RegisterSchemaCallback.class);
+  private static final Logger LOG = LogManager.getLogger(RegisterSchemaCallback.class);
   private final SchemaRegistryClient srClient;
   private final Set<SchemaRegisterEvent> failedAttempts = new HashSet<>();
 

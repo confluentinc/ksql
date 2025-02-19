@@ -52,7 +52,7 @@ public class MeteredProcessingLoggerFactory implements ProcessingLoggerFactory {
     this(
         config,
         metrics,
-        (cfg, log) -> new ProcessingLoggerImpl(cfg),
+        ProcessingLoggerImpl::new,
         metricObject -> (processingLogger, sensor) ->
             new MeteredProcessingLogger(processingLogger, metricObject, sensor),
         metricsTags

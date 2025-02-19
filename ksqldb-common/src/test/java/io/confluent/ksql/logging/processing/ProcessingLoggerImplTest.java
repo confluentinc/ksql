@@ -55,7 +55,7 @@ public class ProcessingLoggerImplTest {
   public void setup() {
     when(errorMsg.get(any())).thenReturn(msg);
     when(msg.schema()).thenReturn(ProcessingLogMessageSchema.PROCESSING_LOG_SCHEMA);
-    processingLogger = new ProcessingLoggerImpl(processingLogConfig);
+    processingLogger = new ProcessingLoggerImpl(processingLogConfig, innerLogger);
   }
 
   @Test
@@ -97,6 +97,6 @@ public class ProcessingLoggerImplTest {
 
   private SchemaAndValue verifyErrorMessage() {
     verify(innerLogger).error(msgCaptor.capture());
-    return msgCaptor.getValue().get();
+    return (SchemaAndValue) msgCaptor.getValue();
   }
 }

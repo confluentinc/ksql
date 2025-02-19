@@ -17,9 +17,8 @@ package io.confluent.ksql.logging.processing;
 
 import org.apache.logging.log4j.Logger;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.is;
-import static org.mockito.ArgumentMatchers.any;
+import static org.hamcrest.Matchers.*;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -64,7 +63,7 @@ public class MeteredProcessingLoggerFactoryTest {
   @Before
   public void setup() {
     metricCollectors = new MetricCollectors();
-    when(loggerFactory.apply(config, innerLogger)).thenReturn(logger);
+    when(loggerFactory.apply(eq(config), any())).thenReturn(logger);
     when(loggerWithMetricsFactory.apply(any())).thenReturn(loggerWithMetricsFactoryHelper);
     when(loggerWithMetricsFactoryHelper.apply(any(), any())).thenReturn(loggerWithMetrics);
     factory = new MeteredProcessingLoggerFactory(config, metricCollectors.getMetrics(), loggerFactory, loggerWithMetricsFactory, customMetricsTags);
@@ -84,7 +83,7 @@ public class MeteredProcessingLoggerFactoryTest {
 
     // Then:
     assertThat(testLogger, is(this.loggerWithMetrics));
-    verify(loggerFactory).apply(config, innerLogger);
+    verify(loggerFactory).apply(eq(config), any());
     verify(loggerWithMetricsFactory).apply(metricCollectors.getMetrics());
     verify(loggerWithMetricsFactoryHelper).apply(logger, sensor);
 
@@ -106,7 +105,7 @@ public class MeteredProcessingLoggerFactoryTest {
 
     // Then:
     assertThat(testLogger, is(this.loggerWithMetrics));
-    verify(loggerFactory).apply(config, innerLogger);
+    verify(loggerFactory).apply(eq(config), any());
     verify(loggerWithMetricsFactory).apply(metricCollectors.getMetrics());
     verify(loggerWithMetricsFactoryHelper).apply(logger, sensor);
 
@@ -123,7 +122,7 @@ public class MeteredProcessingLoggerFactoryTest {
     final Sensor sensor = metricCollectors.getMetrics().getSensor("boo.far");
 
     // Then:
-    verify(loggerFactory, times(1)).apply(config, innerLogger);
+    verify(loggerFactory, times(1)).apply(eq(config), any());
     verify(loggerWithMetricsFactory, times(1)).apply(metricCollectors.getMetrics());
     verify(loggerWithMetricsFactoryHelper, times(1)).apply(logger, sensor);
   }

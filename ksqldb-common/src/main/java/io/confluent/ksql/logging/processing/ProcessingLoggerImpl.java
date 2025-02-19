@@ -18,22 +18,21 @@ package io.confluent.ksql.logging.processing;
 import static java.util.Objects.requireNonNull;
 
 import org.apache.kafka.connect.data.SchemaAndValue;
-import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 public class ProcessingLoggerImpl implements ProcessingLogger {
 
-  private static final Logger logger = LogManager.getLogger(ProcessingLoggerImpl.class);
+  private final Logger inner;
   private final ProcessingLogConfig config;
 
-  public ProcessingLoggerImpl(final ProcessingLogConfig config) {
+  public ProcessingLoggerImpl(final ProcessingLogConfig config, final Logger innerLogger) {
     this.config = requireNonNull(config, "config");
+    this.inner = requireNonNull(innerLogger, "inner");
   }
 
   @Override
   public void error(final ErrorMessage msg) {
-    final SchemaAndValue schemaAndValue = throwIfNotRightSchema(msg.get(config));
-    logger.error(schemaAndValue);
+    inner.error(() -> throwIfNotRightSchema(msg.get(config)));
   }
 
   @Override

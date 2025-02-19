@@ -57,7 +57,7 @@ just like you configure the normal ksqlDB log.
     the processing log.
 
 - For local deployments, edit the
-[log4j.properties](https://github.com/confluentinc/ksql/blob/master/config/log4j.properties)
+[log4j2.yaml](https://github.com/confluentinc/ksql/blob/master/config/log4j2.yaml)
 config file to assign Log4J properties.
 - For Docker deployments, set the corresponding environment variables. For more
   information, see
@@ -157,7 +157,7 @@ as shown in the previous example, to ensure that processing log events are not
 forwarded to appenders configured for the other ksqlDB loggers.
 
 You can disable the log completely by setting the level to `OFF` in the
-[log4j.properties](https://github.com/confluentinc/ksql/blob/master/config/log4j.properties)
+[log4j2.yaml](https://github.com/confluentinc/ksql/blob/master/config/log4j2.yaml)
 file:
 
 ```properties
@@ -307,7 +307,7 @@ To log to Kafka, set up a Kafka appender and a special layout for
 formatting the log entries as JSON:
 
 ```properties
-log4j.appender.kafka_appender=org.apache.kafka.log4jappender.KafkaLog4jAppender
+log4j.appender.kafka_appender=org.apache.logging.log4j.core.appender.mom.kafka.KafkaAppender
 log4j.appender.kafka_appender.layout=io.confluent.common.logging.log4j.StructuredJsonLayout
 log4j.appender.kafka_appender.BrokerList=<list of kafka brokers>
 log4j.appender.kafka_appender.Topic=<kafka topic>

@@ -30,11 +30,11 @@ import io.confluent.ksql.parser.tree.WithinExpression;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class DeprecatedStatementsChecker {
-  private static final Logger LOG = LoggerFactory.getLogger(DeprecatedStatementsChecker.class);
+  private static final Logger LOG = LogManager.getLogger(DeprecatedStatementsChecker.class);
 
   public enum Deprecations {
     DEPRECATED_STREAM_STREAM_JOIN_WITH_NO_GRACE(

@@ -79,8 +79,8 @@ import org.junit.rules.RuleChain;
 import org.junit.rules.Timeout;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * This test emulates the end to end flow in the quick start guide and ensures that the outputs at each stage
@@ -91,7 +91,7 @@ import org.slf4j.LoggerFactory;
 @Category({IntegrationTest.class})
 public class EndToEndIntegrationTest {
 
-  private static final Logger log = LoggerFactory.getLogger(EndToEndIntegrationTest.class);
+  private static final Logger log = LogManager.getLogger(EndToEndIntegrationTest.class);
 
   private static final String PAGE_VIEW_TOPIC = "pageviews";
   private static final String USERS_TOPIC = "users";

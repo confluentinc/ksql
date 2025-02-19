@@ -54,8 +54,8 @@ import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.serialization.ByteArrayDeserializer;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serializer;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * Wrapper class for the command topic. Used for reading from the topic (either all messages from
@@ -65,7 +65,7 @@ import org.slf4j.LoggerFactory;
 public class CommandStore implements CommandQueue, Closeable {
 
   public static final Duration POLLING_TIMEOUT_FOR_COMMAND_TOPIC = Duration.ofMillis(5000);
-  private static final Logger LOG = LoggerFactory.getLogger(CommandStore.class);
+  private static final Logger LOG = LogManager.getLogger(CommandStore.class);
   private static final int COMMAND_TOPIC_PARTITION = 0;
 
   private final CommandTopic commandTopic;

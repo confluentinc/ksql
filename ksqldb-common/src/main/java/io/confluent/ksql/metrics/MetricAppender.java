@@ -16,6 +16,7 @@
 package io.confluent.ksql.metrics;
 
 import com.google.common.collect.ImmutableList;
+import java.io.Serializable;
 import java.util.concurrent.TimeUnit;
 import org.apache.kafka.common.metrics.JmxReporter;
 import org.apache.kafka.common.metrics.KafkaMetricsContext;
@@ -23,16 +24,22 @@ import org.apache.kafka.common.metrics.MetricConfig;
 import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.common.metrics.Sensor;
 import org.apache.kafka.common.metrics.stats.Rate;
-import org.apache.log4j.AppenderSkeleton;
-import org.apache.log4j.Level;
-import org.apache.log4j.spi.LoggingEvent;
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.core.Filter;
+import org.apache.logging.log4j.core.Layout;
+import org.apache.logging.log4j.core.LogEvent;
+import org.apache.logging.log4j.core.appender.AbstractAppender;
+import org.apache.logging.log4j.core.config.plugins.Plugin;
+import org.apache.logging.log4j.core.config.plugins.PluginAttribute;
+import org.apache.logging.log4j.core.config.plugins.PluginElement;
+import org.apache.logging.log4j.core.config.plugins.PluginFactory;
 
 /**
  * {@code MetricAppender} publishes JMX metrics around the number of messages that
  * are sent to any logger configured to use this appender.
  */
-public class MetricAppender extends AppenderSkeleton {
-
+@Plugin(name = "MetricAppender", category = "Core", elementType = "appender", printObject = true)
+public class MetricAppender extends AbstractAppender {
   private static final String KSQL_LOGGING_JMX_PREFIX = "io.confluent.ksql.metrics.logging";
   private static final String KSQL_LOGGING_METRIC_GROUP = "ksql-logging";
 
@@ -41,14 +48,17 @@ public class MetricAppender extends AppenderSkeleton {
   private final Sensor warns;
   private final Sensor infos;
 
-  public MetricAppender() {
+  protected MetricAppender(final String name,
+                           final Filter filter,
+                           final Layout<? extends Serializable> layout,
+                           final boolean ignoreExceptions) {
+    super(name, filter, layout, ignoreExceptions);
     metrics = new Metrics(
         new MetricConfig().samples(100).timeWindow(1, TimeUnit.SECONDS),
         ImmutableList.of(new JmxReporter()),
         org.apache.kafka.common.utils.Time.SYSTEM,
         new KafkaMetricsContext(KSQL_LOGGING_JMX_PREFIX)
     );
-
     errors = metrics.sensor(KSQL_LOGGING_METRIC_GROUP + "-error-rate");
     errors.add(
         metrics.metricName("errors", KSQL_LOGGING_METRIC_GROUP, "number of error logs per second"),
@@ -68,8 +78,17 @@ public class MetricAppender extends AppenderSkeleton {
     );
   }
 
+  @PluginFactory
+  public static MetricAppender createAppender(
+      @PluginAttribute("name") final String name,
+      @PluginElement("Layout") final Layout<? extends Serializable> layout,
+      @PluginElement("Filter") final Filter filter,
+      @PluginAttribute("ignoreExceptions") final boolean ignoreExceptions) {
+    return new MetricAppender(name, filter, layout, ignoreExceptions);
+  }
+
   @Override
-  protected void append(final LoggingEvent event) {
+  public void append(final LogEvent event) {
     if (event.getLevel() == Level.INFO) {
       infos.record();
     }  else if (event.getLevel() == Level.WARN) {
@@ -78,15 +97,4 @@ public class MetricAppender extends AppenderSkeleton {
       errors.record();
     }
   }
-
-  @Override
-  public void close() {
-    metrics.close();
-  }
-
-  @Override
-  public boolean requiresLayout() {
-    return false;
-  }
-
 }

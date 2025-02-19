@@ -36,13 +36,13 @@ import javax.annotation.Nonnull;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.utils.Bytes;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 @SuppressWarnings("UnstableApiUsage")
 public class PrintPublisher implements Flow.Publisher<Collection<String>> {
 
-  private static final Logger log = LoggerFactory.getLogger(PrintPublisher.class);
+  private static final Logger log = LogManager.getLogger(PrintPublisher.class);
 
   private final ListeningScheduledExecutorService exec;
   private final ServiceContext serviceContext;

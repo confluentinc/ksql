@@ -31,8 +31,8 @@ import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.common.metrics.Sensor;
 import org.apache.kafka.common.metrics.stats.CumulativeCount;
 import org.apache.kafka.common.utils.Time;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * SlidingWindowRateLimiter keeps a log of timestamps and the size for each response returned by
@@ -46,7 +46,7 @@ import org.slf4j.LoggerFactory;
 
 public class SlidingWindowRateLimiter {
 
-  private static final Logger LOG = LoggerFactory.getLogger(SlidingWindowRateLimiter.class);
+  private static final Logger LOG = LogManager.getLogger(SlidingWindowRateLimiter.class);
   private static long NUM_BYTES_IN_ONE_MEGABYTE = 1 * 1024 * 1024;
 
   /**

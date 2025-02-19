@@ -31,11 +31,11 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class PullQueryResult {
-  private static final Logger LOG = LoggerFactory.getLogger(PullQueryResult.class);
+  private static final Logger LOG = LogManager.getLogger(PullQueryResult.class);
 
   private final LogicalSchema schema;
   private final PullQueryQueuePopulator populator;

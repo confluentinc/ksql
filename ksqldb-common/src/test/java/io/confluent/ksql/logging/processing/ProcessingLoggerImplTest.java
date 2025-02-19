@@ -22,7 +22,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import io.confluent.common.logging.StructuredLogger;
+import org.apache.logging.log4j.Logger;
 import io.confluent.ksql.logging.processing.ProcessingLogger.ErrorMessage;
 import java.util.function.Supplier;
 import org.apache.kafka.connect.data.Schema;
@@ -38,7 +38,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class ProcessingLoggerImplTest {
 
   @Mock
-  private StructuredLogger innerLogger;
+  private Logger innerLogger;
   @Mock
   private ProcessingLogConfig processingLogConfig;
   @Mock
@@ -83,20 +83,15 @@ public class ProcessingLoggerImplTest {
     // Given:
     when(msg.schema()).thenReturn(Schema.OPTIONAL_STRING_SCHEMA);
 
-    processingLogger.error(errorMsg);
-
-    verify(innerLogger).error(msgCaptor.capture());
-    final Supplier<SchemaAndValue> supplier = msgCaptor.getValue();
-
-    // When:
     assertThrows(
         RuntimeException.class,
-        supplier::get
+        () -> processingLogger.error(errorMsg)
     );
+
   }
 
   private SchemaAndValue verifyErrorMessage() {
     verify(innerLogger).error(msgCaptor.capture());
-    return msgCaptor.getValue().get();
+    return (SchemaAndValue) msgCaptor.getValue();
   }
 }

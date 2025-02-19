@@ -1,0 +1,18 @@
+Configuration:
+  status: WARN
+  Appenders:
+    Console:
+      name: stdout
+      target: SYSTEM_OUT
+      PatternLayout:
+        pattern: "[%d] %p %m (%c:%L)%n"
+  Loggers:
+    Root:
+      level: WARN
+      AppenderRef:
+        - ref: stdout
+    Logger:
+      - name: io.confluent.ksql
+        level: DEBUG
+      - name: io.confluent.ksql.integration
+        level: DEBUG

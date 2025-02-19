@@ -81,11 +81,11 @@ import org.apache.kafka.common.serialization.ByteArrayDeserializer;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.test.TestUtils;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.hamcrest.Matcher;
 import org.junit.rules.ExternalResource;
 import org.junit.rules.TemporaryFolder;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 
 /**
@@ -96,7 +96,7 @@ import org.slf4j.LoggerFactory;
 public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
-  private static final Logger log = LoggerFactory.getLogger(EmbeddedSingleNodeKafkaCluster.class);
+  private static final Logger log = LogManager.getLogger(EmbeddedSingleNodeKafkaCluster.class);
   private static final Duration PRODUCE_TIMEOUT = Duration.ofSeconds(30);
   private static final ServerKeyStore SERVER_KEY_STORE = new ServerKeyStore();
 

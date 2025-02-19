@@ -1,0 +1,19 @@
+Configuration:
+  status: WARN
+  Appenders:
+    Console:
+      name: console
+      target: SYSTEM_OUT
+      PatternLayout:
+        pattern: "[%t] %-5p %c %x - %m%n"
+  Loggers:
+    Root:
+      level: OFF
+      AppenderRef:
+        - ref: console
+    Logger:
+      - name: io.confluent.ksql.tools.migrations
+        level: INFO
+        additivity: false
+        AppenderRef:
+          - ref: console

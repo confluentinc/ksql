@@ -44,8 +44,8 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import org.apache.kafka.streams.state.HostInfo;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * The heartbeat mechanism consists of three periodic tasks running at configurable time intervals:
@@ -71,7 +71,7 @@ public final class HeartbeatAgent {
   private static final int CHECK_HEARTBEAT_DELAY_MS = 1000;
   private static final int SEND_HEARTBEAT_DELAY_MS = 100;
   private static final int DISCOVER_CLUSTER_DELAY_MS = 50;
-  private static final Logger LOG = LoggerFactory.getLogger(HeartbeatAgent.class);
+  private static final Logger LOG = LogManager.getLogger(HeartbeatAgent.class);
 
   private final KsqlEngine engine;
   private final ServiceContext serviceContext;

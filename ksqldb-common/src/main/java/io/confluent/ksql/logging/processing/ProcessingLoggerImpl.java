@@ -25,14 +25,14 @@ public class ProcessingLoggerImpl implements ProcessingLogger {
   private final Logger inner;
   private final ProcessingLogConfig config;
 
-  public ProcessingLoggerImpl(final ProcessingLogConfig config, final Logger innerLogger) {
+  public ProcessingLoggerImpl(final ProcessingLogConfig config, final Logger inner) {
     this.config = requireNonNull(config, "config");
-    this.inner = requireNonNull(innerLogger, "inner");
+    this.inner = requireNonNull(inner, "inner");
   }
 
   @Override
   public void error(final ErrorMessage msg) {
-    inner.error(() -> throwIfNotRightSchema(msg.get(config)));
+    inner.error(throwIfNotRightSchema(msg.get(config)));
   }
 
   @Override

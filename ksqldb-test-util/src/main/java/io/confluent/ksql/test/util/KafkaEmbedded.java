@@ -22,20 +22,15 @@ import static org.hamcrest.Matchers.is;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Objects;
-import java.util.Properties;
 import java.util.Set;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
-import kafka.server.KafkaConfig;
 import kafka.testkit.KafkaClusterTestKit;
 import kafka.testkit.TestKitNodes;
 import org.apache.kafka.clients.admin.Admin;
@@ -59,18 +54,12 @@ import org.slf4j.LoggerFactory;
 /**
  * Runs an in-memory, "embedded" instance of a Kafka broker, which listens at `127.0.0.1:9092` by
  * default.
- *
- * <p>Requires a running ZooKeeper instance to connect to.  By default, it expects a ZooKeeper
- * instance running at `127.0.0.1:2181`.  You can specify a different ZooKeeper instance by setting
- * the `zookeeper.connect` parameter in the broker's configuration.
  */
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 class KafkaEmbedded {
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
   private static final Logger log = LoggerFactory.getLogger(KafkaEmbedded.class);
-
-  private final Properties config;
   private final KafkaClusterTestKit cluster;
 
   /**
@@ -80,19 +69,18 @@ class KafkaEmbedded {
    *               the broker should use.  Note that you cannot change some settings such as
    *               `log.dirs`.
    */
-  KafkaEmbedded(final Properties config) {
-    this.config = Objects.requireNonNull(config, "config");
+  KafkaEmbedded(final Map<String, String> config) {
+    log.debug("Starting embedded Kafka broker");
 
-    final KafkaConfig kafkaConfig = new KafkaConfig(this.config, true);
-    log.debug("Starting embedded Kafka broker (with log.dirs={} and ZK ensemble at {}) ...",
-        logDir(), zookeeperConnect());
+    final Map<Integer, Map<String,String>> brokerConfigs = new HashMap<>();
+    brokerConfigs.put(0, config);
 
     try {
       final KafkaClusterTestKit.Builder clusterBuilder = new KafkaClusterTestKit.Builder(
               new TestKitNodes.Builder()
                       .setCombined(true)
                       .setNumBrokerNodes(1)
-                      //.setPerServerProperties(Map.of(0, brokerConfig))
+                      .setPerServerProperties(brokerConfigs)
                       .setNumControllerNodes(1)
                       .build()
       );
@@ -106,8 +94,7 @@ class KafkaEmbedded {
     } catch (final Exception e) {
       throw new KafkaException("Failed to create test Kafka cluster", e);
     }
-    log.debug("Startup of embedded Kafka broker at {} completed (with ZK ensemble at {}) ...",
-        brokerList(), zookeeperConnect());
+    log.debug("Startup of embedded Kafka broker at {} completed  ...", brokerList());
   }
 
   /**
@@ -119,7 +106,7 @@ class KafkaEmbedded {
    * @return the broker list
    */
   String brokerList() {
-    return "cluster.";
+    return cluster.bootstrapServers();
   }
 
   /**
@@ -138,21 +125,13 @@ class KafkaEmbedded {
    * Stop the broker.
    */
   void stop() {
-    log.debug("Shutting down embedded Kafka broker at {} (with ZK ensemble at {}) ...",
-        brokerList(), zookeeperConnect());
+    log.debug("Shutting down embedded Kafka broker at {} ...", brokerList());
     try {
       cluster.close();
     } catch (Exception e) {
       throw new RuntimeException(e);
-    } finally {
-      log.debug("Deleting logs.dir at {} ...", logDir());
-      try {
-        Files.delete(Paths.get(logDir()));
-      } catch (final IOException e) {
-        log.error("Failed to delete log dir {}", logDir(), e);
-      }
-      log.debug("Shutdown of embedded Kafka broker at {} completed ...", brokerList());
     }
+    log.debug("Shutdown of embedded Kafka broker at {} completed ...", brokerList());
   }
 
   /**
@@ -252,7 +231,7 @@ class KafkaEmbedded {
       };
 
       assertThatEventually(
-          "topics not all prresent after timeout",
+          "topics not all present after timeout",
           remaining,
           is(required)
       );
@@ -350,14 +329,6 @@ class KafkaEmbedded {
     } catch (final Exception e) {
       throw new RuntimeException("Failed to get topic names", e);
     }
-  }
-
-  private String zookeeperConnect() {
-    return config.getProperty(ZK_CONNECT_PROP);
-  }
-
-  private String logDir() {
-    return config.getProperty(LOG_DIR_PROP);
   }
 
   private AdminClient adminClient() {

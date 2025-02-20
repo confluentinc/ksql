@@ -27,7 +27,6 @@ import io.confluent.ksql.test.util.secure.Credentials;
 import io.confluent.ksql.test.util.secure.SecureKafkaHelper;
 import io.confluent.ksql.test.util.secure.ServerKeyStore;
 import java.io.File;
-import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.time.Duration;
@@ -41,7 +40,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
-import java.util.Properties;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
@@ -101,12 +99,8 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
 
   public static final String JAAS_KAFKA_PROPS_NAME = "KafkaServer";
 
-  private static final String ZK_URL_PROP = "authorizer.zookeeper.url";
   private static final String LOG_CLEANER_ENABLE_PROP = "log.cleaner.enable";
 
-  private static final String ZK_CONNECT_PROP = "zookeeper.connect";
-  private static final String ZK_CONNECTION_TIMEOUT_MS_PROP = "zookeeper.connection.timeout.ms";
-  private static final String ZK_SESSION_TIMEOUT_MS_PROP = "zookeeper.session.timeout.ms";
   private static final String LOG_DIR_PROP = "log.dir";
   private static final String NUM_PARTITIONS_PROP = "num.partitions";
   private static final String OFFSETS_TOPIC_REPLICATION_FACTOR = "offsets.topic.replication.factor";
@@ -128,7 +122,6 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
   public static final String DELETE_TOPIC_ENABLE_CONFIG = "delete.topic.enable";
   public static final String CONTROLLED_SHUTDOWN_ENABLE_CONFIG = "controlled.shutdown.enable";
   public static final String MESSAGE_MAX_BYTES_CONFIG = "message.max.bytes";
-  public static final String AUTHORIZER_CLASS_NAME_CONFIG = "authorizer.class.name";
   public static final String SASL_ENABLED_MECHANISMS_CONFIG = "sasl.enabled.mechanisms";
   public static final String SASL_MECHANISM_INTER_BROKER_PROTOCOL_CONFIG =
           "sasl.mechanism.inter.broker.protocol";
@@ -141,19 +134,13 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
   private static final List<Credentials> ALL_VALID_USERS =
       ImmutableList.of(VALID_USER1, VALID_USER2);
 
-  static final Duration ZK_SESSION_TIMEOUT = Duration.ofSeconds(30);
-  // Jenkins builds can take ages to create the ZK log, so the initial connect can be slow, hence:
-  static final Duration ZK_CONNECT_TIMEOUT = Duration.ofSeconds(60);
-
   private final String jassConfigFile;
   private final String previousJassConfig;
-  private final Map<String, Object> customBrokerConfig;
-  private final Map<String, Object> customClientConfig;
+  private final Map<String, String> customBrokerConfig;
+  private final Map<String, String> customClientConfig;
   private final TemporaryFolder tmpFolder = KsqlTestFolder.temporaryFolder();
   private final List<AclBinding> addedAcls = new ArrayList<>();
   private final Map<AclKey, Set<AclOperation>> initialAcls;
-
-  private ZooKeeperEmbedded zookeeper;
   private KafkaEmbedded broker;
 
   /**
@@ -163,8 +150,8 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
    * @param initialAcls a set of ACLs to set when the cluster starts.
    */
   private EmbeddedSingleNodeKafkaCluster(
-      final Map<String, Object> customBrokerConfig,
-      final Map<String, Object> customClientConfig,
+      final Map<String, String> customBrokerConfig,
+      final Map<String, String> customClientConfig,
       final String additionalJaasConfig,
       final Map<AclKey, Set<AclOperation>> initialAcls
   ) {
@@ -187,7 +174,6 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
     tmpFolder.create();
 
     installJaasConfig();
-    zookeeper = new ZooKeeperEmbedded();
     broker = new KafkaEmbedded(buildBrokerConfig(tmpFolder.newFolder().getAbsolutePath()));
 
     initialAcls.forEach((key, ops) ->
@@ -210,14 +196,6 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
   public void stop() {
     if (broker != null) {
       broker.stop();
-    }
-
-    try {
-      if (zookeeper != null) {
-        zookeeper.stop();
-      }
-    } catch (final IOException e) {
-      throw new RuntimeException(e);
     }
 
     resetJaasConfig();
@@ -284,17 +262,6 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
     config.put(ProducerConfig.ACKS_CONFIG, "all");
     config.put(ProducerConfig.DELIVERY_TIMEOUT_MS_CONFIG, 60_000);
     return config;
-  }
-
-  /**
-   * This cluster's ZK connection string aka `zookeeper.connect` in `hostnameOrIp:port` format.
-   * Example: `127.0.0.1:2181`.
-   *
-   * <p>You can use this to e.g. tell Kafka consumers how to connect to this cluster.
-   */
-  @SuppressWarnings("WeakerAccess") // Part of public API
-  public String zookeeperConnect() {
-    return zookeeper.connectString();
   }
 
   /**
@@ -598,47 +565,39 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
   /**
    * Build config designed to keep the tests as stable as possible
    */
-  private Properties buildBrokerConfig(final String logDir) {
-    final Properties config = new Properties();
-    config.putAll(customBrokerConfig);
+  private Map<String, String> buildBrokerConfig(final String logDir) {
+    final Map<String, String> config = new HashMap<>(customBrokerConfig);
     // Only single node, so broker id always:
-    config.put(BROKER_ID_CONFIG, 0);
+    config.put(BROKER_ID_CONFIG, "0");
     // Set the log dir for the node:
     config.put(LOG_DIR_PROP, logDir);
-    // Need to know where ZK is:
-    config.put(ZK_CONNECT_PROP, zookeeper.connectString());
-    config.put(ZK_URL_PROP, zookeeper.connectString());
     // Default to small number of partitions for auto-created topics:
-    config.put(NUM_PARTITIONS_PROP, 1);
+    config.put(NUM_PARTITIONS_PROP, "1");
     // Allow tests to delete topics:
-    config.put(DELETE_TOPIC_ENABLE_CONFIG, true);
+    config.put(DELETE_TOPIC_ENABLE_CONFIG, "true");
     // Do not clean logs from under the tests or waste resources doing so:
-    config.put(LOG_CLEANER_ENABLE_PROP, false);
+    config.put(LOG_CLEANER_ENABLE_PROP, "false");
     // Only single node, so only single RF on offset topic partitions:
-    config.put(OFFSETS_TOPIC_REPLICATION_FACTOR, (short) 1);
+    config.put(OFFSETS_TOPIC_REPLICATION_FACTOR, "1");
     // Tests do not need large numbers of offset topic partitions:
     config.put(OFFSETS_TOPIC_PARTITIONS_PROP, "1");
     // Shutdown quick:
-    config.put(CONTROLLED_SHUTDOWN_ENABLE_CONFIG, false);
-    // Set ZK connect timeout high enough to give ZK time to build log file on build server:
-    config.put(ZK_CONNECTION_TIMEOUT_MS_PROP, (int) ZK_CONNECT_TIMEOUT.toMillis());
-    // Set ZK session timeout high enough that slow build servers don't hit it:
-    config.put(ZK_SESSION_TIMEOUT_MS_PROP, (int) ZK_SESSION_TIMEOUT.toMillis());
+    config.put(CONTROLLED_SHUTDOWN_ENABLE_CONFIG, "false");
     // Explicitly set to be less that the default 30 second timeout of KSQL functional tests
-    config.put(CONTROLLER_SOCKET_TIMEOUT_MS_PROP, 20_000);
+    config.put(CONTROLLER_SOCKET_TIMEOUT_MS_PROP, "20000");
     // Streams runs multiple consumers, so let's give them all a chance to join.
     // (Tests run quicker and with a more stable consumer group):
-    config.put(GROUP_INITIAL_REBALANCE_DELAY_MS_PROP, 100);
+    config.put(GROUP_INITIAL_REBALANCE_DELAY_MS_PROP, "100");
     // Stop people writing silly data in tests:
-    config.put(MESSAGE_MAX_BYTES_CONFIG, 100_000);
+    config.put(MESSAGE_MAX_BYTES_CONFIG, "100000");
     // Stop logs being deleted due to retention limits:
-    config.put(LOG_RETENTION_TIME_MILLIS_PROP, -1);
+    config.put(LOG_RETENTION_TIME_MILLIS_PROP, "-1");
     // Stop logs marked for deletion from being deleted
-    config.put(LOG_DELETE_DELAY_MS_PROP, Long.MAX_VALUE);
+    config.put(LOG_DELETE_DELAY_MS_PROP, String.valueOf(Long.MAX_VALUE));
     // Set to 1 because only 1 broker
-    config.put(TRANSACTIONS_TOPIC_REPLICATION_FACTOR_PROP, (short) 1);
+    config.put(TRANSACTIONS_TOPIC_REPLICATION_FACTOR_PROP, "1");
     // Set to 1 because only 1 broker
-    config.put(TRANSACTIONS_TOPIC_MIN_ISR_PROP, 1);
+    config.put(TRANSACTIONS_TOPIC_MIN_ISR_PROP, "1");
 
     return config;
   }
@@ -714,8 +673,8 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
 
   public static final class Builder {
 
-    private final Map<String, Object> brokerConfig = new HashMap<>();
-    private final Map<String, Object> clientConfig = new HashMap<>();
+    private final Map<String, String> brokerConfig = new HashMap<>();
+    private final Map<String, String> clientConfig = new HashMap<>();
     private final StringBuilder additionalJaasConfig = new StringBuilder();
     private final Map<AclKey, Set<AclOperation>> acls = new HashMap<>();
     private static final String ALLOW_EVERYONE_IF_NO_ACL_PROP  = "allow.everyone.if.no.acl.found";
@@ -725,13 +684,13 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
       //     "org.apache.kafka.metadata.authorizer.StandardAuthorizer");
       // brokerConfig.put(ALLOW_EVERYONE_IF_NO_ACL_PROP, true);
       brokerConfig.put(LISTENERS_PROP, "PLAINTEXT://:0");
-      brokerConfig.put(AUTO_CREATE_TOPICS_ENABLE_PROP, true);
+      brokerConfig.put(AUTO_CREATE_TOPICS_ENABLE_PROP, "true");
     }
 
     public Builder withoutAutoCreateTopics() {
       // Create topics explicitly when needed to avoid a race which
       // automatically recreates deleted topic:
-      brokerConfig.put(AUTO_CREATE_TOPICS_ENABLE_PROP, false);
+      brokerConfig.put(AUTO_CREATE_TOPICS_ENABLE_PROP, "false");
       return this;
     }
 

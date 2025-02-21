@@ -44,9 +44,10 @@ Configuration:
       topic: default_ksql_processing_log
       syncSend: true
       ignoreExceptions: false
-      JsonLayout:
-        complete: false
-        compact: true
+      StructuredJsonLayout:
+        Property:
+          - name: schemas.enable
+            value: false
       Property:
         - name: bootstrap.servers
           value: localhost:29092

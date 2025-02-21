@@ -140,7 +140,11 @@ public class MeteredProcessingLoggerFactory implements ProcessingLoggerFactory {
   }
 
   private ProcessingLogger getProcessLogger(final String name) {
-    final Logger logger = LogManager.getLogger(name);
+    final String loggerName = String.join(
+        ProcessingLogConstants.DELIMITER,
+        ProcessingLogConstants.PREFIX,
+        name);
+    final Logger logger = LogManager.getLogger(loggerName);
     return loggerFactory.apply(config, logger);
   }
 }

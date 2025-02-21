@@ -32,7 +32,7 @@ public class ProcessingLoggerImpl implements ProcessingLogger {
 
   @Override
   public void error(final ErrorMessage msg) {
-    inner.error(throwIfNotRightSchema(msg.get(config)));
+    inner.error(new SerializableSchemaAndValue(throwIfNotRightSchema(msg.get(config))));
   }
 
   @Override

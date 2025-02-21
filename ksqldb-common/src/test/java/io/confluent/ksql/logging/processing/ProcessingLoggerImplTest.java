@@ -46,8 +46,8 @@ public class ProcessingLoggerImplTest {
   @Mock
   private ErrorMessage errorMsg;
   @SuppressWarnings("unchecked")
-  private final ArgumentCaptor<Supplier<SchemaAndValue>> msgCaptor
-      = ArgumentCaptor.forClass(Supplier.class);
+  private final ArgumentCaptor<SerializableSchemaAndValue> msgCaptor
+      = ArgumentCaptor.forClass(SerializableSchemaAndValue.class);
 
   private ProcessingLogger processingLogger;
 
@@ -92,6 +92,6 @@ public class ProcessingLoggerImplTest {
 
   private SchemaAndValue verifyErrorMessage() {
     verify(innerLogger).error(msgCaptor.capture());
-    return (SchemaAndValue) msgCaptor.getValue();
+    return msgCaptor.getValue().getMessage();
   }
 }

@@ -1,0 +1,5 @@
+Configuration:
+  status: WARN
+  Loggers:
+    Root:
+      level: OFF

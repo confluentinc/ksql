@@ -47,12 +47,12 @@ import org.apache.kafka.common.metrics.KafkaMetric;
 import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.common.metrics.MetricsContext;
 import org.apache.kafka.common.metrics.MetricsReporter;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class StorageUtilizationMetricsReporter implements MetricsReporter {
   private static final Logger LOGGER
-      = LoggerFactory.getLogger(StorageUtilizationMetricsReporter.class);
+      = LogManager.getLogger(StorageUtilizationMetricsReporter.class);
   private static final String METRIC_GROUP = "ksqldb_utilization";
   private static final String TASK_STORAGE_USED_BYTES = "task_storage_used_bytes";
 

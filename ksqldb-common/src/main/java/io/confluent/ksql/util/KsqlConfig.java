@@ -1029,10 +1029,12 @@ public class KsqlConfig extends AbstractConfig {
         ).define(
             KSQL_UDF_SECURITY_MANAGER_ENABLED,
             ConfigDef.Type.BOOLEAN,
-            true,
+            // SecurityManager is deprecated from java 21 onwards.
+            false,
             ConfigDef.Importance.LOW,
-            "Enable the security manager for UDFs. Default is true and will stop UDFs from"
-               + " calling System.exit or executing processes"
+            "Enable the security manager to stop UDFs from calling System.exit " +
+                    "or executing processes. Default is false as it is deprecated in java 21. " +
+                    "This can be enabled only for java versions less than 21."
         ).define(
             KSQL_INSERT_INTO_VALUES_ENABLED,
             Type.BOOLEAN,

@@ -41,17 +41,18 @@ public final class MigrationsUtil {
 
   public static Client getKsqlClient(final MigrationConfig config, final String headersFile)
       throws MigrationException {
+//    config.getString(MigrationConfig.BEARER_AUTH_ISSUER_ENDPOINT_URL),
+//            config.getString(MigrationConfig.BEARER_AUTH_CLIENT_ID),
+//            config.getPassword(MigrationConfig.BEARER_AUTH_CLIENT_SECRET).value(),
+//            config.getString(MigrationConfig.BEARER_AUTH_SCOPE),
+//            config.getString(MigrationConfig.BEARER_AUTH_SCOPE_CLAIM_NAME),
+//            config.getString(MigrationConfig.BEARER_AUTH_SUB_CLAIM_NAME),
+//            config.getShort(MigrationConfig.BEARER_AUTH_CACHE_EXPIRY_BUFFER_SECONDS),
+      IdpConfig idpConfig
     return getKsqlClient(
         config.getString(MigrationConfig.KSQL_SERVER_URL),
         config.getString(MigrationConfig.KSQL_BASIC_AUTH_USERNAME),
         config.getPassword(MigrationConfig.KSQL_BASIC_AUTH_PASSWORD).value(),
-        config.getString(MigrationConfig.BEARER_AUTH_ISSUER_ENDPOINT_URL),
-        config.getString(MigrationConfig.BEARER_AUTH_CLIENT_ID),
-        config.getPassword(MigrationConfig.BEARER_AUTH_CLIENT_SECRET).value(),
-        config.getString(MigrationConfig.BEARER_AUTH_SCOPE),
-        config.getString(MigrationConfig.BEARER_AUTH_SCOPE_CLAIM_NAME),
-        config.getString(MigrationConfig.BEARER_AUTH_SUB_CLAIM_NAME),
-        config.getShort(MigrationConfig.BEARER_AUTH_CACHE_EXPIRY_BUFFER_SECONDS),
         config.getString(MigrationConfig.SSL_TRUSTSTORE_LOCATION),
         config.getPassword(MigrationConfig.SSL_TRUSTSTORE_PASSWORD).value(),
         config.getString(MigrationConfig.SSL_KEYSTORE_LOCATION),
@@ -103,13 +104,7 @@ public final class MigrationsUtil {
       final String ksqlServerUrl,
       final String username,
       final String password,
-      final String idpTokenEndpointUrl,
-      final String idpClientId,
-      final String idpClientSecret,
-      final String idpScope,
-      final String idpScopeClaimName,
-      final String idpSubClaimName,
-      final Short idpCacheExpiryBufferSeconds,
+      final IdpConfig idpConfig,
       final String sslTrustStoreLocation,
       final String sslTrustStorePassword,
       final String sslKeystoreLocation,
@@ -149,7 +144,14 @@ public final class MigrationsUtil {
           .withSubClaimName(idpSubClaimName)
           .withCacheExpiryBufferSeconds(idpCacheExpiryBufferSeconds)
           .build();
+
+
       options.setIdpConfig(idpConfig);
+    }
+
+    if (customIdpConfig !=null){
+      final IdpConfig idpConfig =
+
     }
 
     final boolean useTls = ksqlServerUrl.trim().toLowerCase().startsWith("https://");

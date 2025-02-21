@@ -57,6 +57,8 @@ public final class KsqlClientConfig extends AbstractConfig {
   public static final String SSL_ALPN = "ssl.alpn";
   public static final String SSL_VERIFY_HOST = "ssl.verify.host";
 
+  public static final String CUSTOM_TOKEN_CREDENTIALS_CLASS = "custom.token.credentials.class";
+
   private KsqlClientConfig(final Map<String, String> configs) {
     super(new ConfigDef().define(
             KSQL_BASIC_AUTH_USERNAME,

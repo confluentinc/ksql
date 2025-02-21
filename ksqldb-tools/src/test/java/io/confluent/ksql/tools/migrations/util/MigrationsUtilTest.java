@@ -23,9 +23,11 @@ import static org.junit.Assert.assertThrows;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.api.client.ClientOptions;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 
 import io.confluent.ksql.api.client.exception.KsqlClientException;
+import io.confluent.ksql.tools.migrations.MigrationConfig;
 import org.junit.Test;
 
 public class MigrationsUtilTest {
@@ -125,4 +127,5 @@ public class MigrationsUtilTest {
         "abc", null, null,
         null, null, null, true, true, null));
   }
+
 }

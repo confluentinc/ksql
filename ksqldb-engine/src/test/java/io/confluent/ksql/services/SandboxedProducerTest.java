@@ -49,6 +49,8 @@ public final class SandboxedProducerTest {
           .ignore("close")
           .ignoreUnchecked("close", long.class, TimeUnit.class)
           .ignore("close", Duration.class)
+          .ignore("registerMetricForSubscription", KafkaMetric.class)
+          .ignore("unregisterMetricFromSubscription", KafkaMetric.class)
           .setDefault(KafkaMetric.class, new KafkaMetric(
               null,
               null,

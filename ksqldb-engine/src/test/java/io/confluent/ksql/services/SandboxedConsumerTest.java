@@ -49,6 +49,8 @@ public final class SandboxedConsumerTest {
           .ignoreUnchecked("close", long.class, TimeUnit.class)
           .ignore("wakeup")
           .ignore("groupMetadata")
+          .ignore("registerMetricForSubscription", KafkaMetric.class)
+          .ignore("unregisterMetricFromSubscription", KafkaMetric.class)
           .setDefault(TopicPartition.class, new TopicPartition("t", 1))
           .setDefault(KafkaMetric.class, new KafkaMetric(
               null,

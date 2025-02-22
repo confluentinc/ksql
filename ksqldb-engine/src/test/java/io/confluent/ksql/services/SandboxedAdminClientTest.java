@@ -47,6 +47,8 @@ public final class SandboxedAdminClientTest {
           .ignore("close")
           .ignore("close", Duration.class)
           .ignoreUnchecked("close", long.class, TimeUnit.class)
+          .ignore("registerMetricForSubscription", KafkaMetric.class)
+          .ignore("unregisterMetricFromSubscription", KafkaMetric.class)
           .setDefault(ElectLeadersOptions.class, new ElectLeadersOptions())
           .setDefault(Optional.class, Optional.empty())
           .setDefault(KafkaMetric.class, new KafkaMetric(

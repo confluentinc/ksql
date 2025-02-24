@@ -19,6 +19,7 @@ import io.confluent.ksql.security.Credentials;
 import io.confluent.ksql.security.KsqlClientConfig;
 import java.util.Map;
 import org.apache.kafka.common.config.ConfigException;
+
 public class CustomTokenCredentials implements Credentials {
 
   private Credentials customTokenCredentials;

@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Confluent Inc.
+ * Copyright 2025 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -15,8 +15,8 @@
 
 package io.confluent.ksql.security.oauth;
 
+import io.confluent.ksql.security.AuthType;
 import io.confluent.ksql.security.KsqlClientConfig;
-
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -31,26 +31,49 @@ public final class ClientSecretIdpConfig implements IdpConfig {
   private Short idpCacheExpiryBufferSeconds = 300;
 
   @Override
+  public AuthType getAuthType() {
+    return AuthType.OAUTHBEARER;
+  }
+
+  @Override
+  public String getAuthenticationMethod() {
+    return "CLIENT_SECRET";
+  }
+
+  @Override
   public Map<String, Object> getIdpConfigs() {
-    Map<String, Object> mp = new HashMap<>();
+    final Map<String, Object> mp = new HashMap<>();
     mp.put(KsqlClientConfig.BEARER_AUTH_TOKEN_ENDPOINT_URL, idpTokenEndpointUrl);
     mp.put(KsqlClientConfig.BEARER_AUTH_CLIENT_ID, idpClientId);
     mp.put(KsqlClientConfig.BEARER_AUTH_CLIENT_SECRET, idpClientSecret);
     mp.put(KsqlClientConfig.BEARER_AUTH_SCOPE, idpScope);
     mp.put(KsqlClientConfig.BEARER_AUTH_SCOPE_CLAIM_NAME, idpScopeClaimName);
     mp.put(KsqlClientConfig.BEARER_AUTH_SUB_CLAIM_NAME, idpSubClaimName);
+    mp.put(KsqlClientConfig.BEARER_AUTH_CACHE_EXPIRY_BUFFER_SECONDS, idpCacheExpiryBufferSeconds);
+
 
     return mp;
   }
 
   @Override
-  public void configure(Map<String, ?> configs) {
-    this.idpTokenEndpointUrl = (String) configs.get(KsqlClientConfig.BEARER_AUTH_TOKEN_ENDPOINT_URL);
-    this.idpClientId = (String) configs.get(KsqlClientConfig.BEARER_AUTH_CLIENT_ID);
-    this.idpClientSecret = (String) configs.get(KsqlClientConfig.BEARER_AUTH_CLIENT_SECRET);
+  public void configure(final Map<String, ?> configs) {
+    this.idpTokenEndpointUrl =
+            (String) configs.get(KsqlClientConfig.BEARER_AUTH_TOKEN_ENDPOINT_URL);
+    this.idpClientId =
+            (String) configs.get(KsqlClientConfig.BEARER_AUTH_CLIENT_ID);
+    this.idpClientSecret =
+            (String) configs.get(KsqlClientConfig.BEARER_AUTH_CLIENT_SECRET);
     this.idpScope = (String) configs.get(KsqlClientConfig.BEARER_AUTH_SCOPE);
-    this.idpScopeClaimName = (String) configs.get(KsqlClientConfig.BEARER_AUTH_SCOPE_CLAIM_NAME);
-    this.idpSubClaimName = (String) configs.get(KsqlClientConfig.BEARER_AUTH_SUB_CLAIM_NAME);
+    if (configs.get(KsqlClientConfig.BEARER_AUTH_SCOPE_CLAIM_NAME) != null) {
+      this.idpScopeClaimName = (String) configs.get(KsqlClientConfig.BEARER_AUTH_SCOPE_CLAIM_NAME);
+    }
+    if (configs.get(KsqlClientConfig.BEARER_AUTH_SUB_CLAIM_NAME) != null) {
+      this.idpSubClaimName = (String) configs.get(KsqlClientConfig.BEARER_AUTH_SUB_CLAIM_NAME);
+    }
+    if (configs.get(KsqlClientConfig.BEARER_AUTH_CACHE_EXPIRY_BUFFER_SECONDS) != null) {
+      this.idpCacheExpiryBufferSeconds =
+              (Short) configs.get(KsqlClientConfig.BEARER_AUTH_CACHE_EXPIRY_BUFFER_SECONDS);
+    }
   }
 
   // Static builder class
@@ -94,7 +117,7 @@ public final class ClientSecretIdpConfig implements IdpConfig {
       return this;
     }
 
-    public IdpConfig build() {
+    public ClientSecretIdpConfig build() {
       return config;
     }
   }
@@ -127,7 +150,7 @@ public final class ClientSecretIdpConfig implements IdpConfig {
     return idpCacheExpiryBufferSeconds;
   }
 
-  public IdpConfig copy() {
+  public ClientSecretIdpConfig copy() {
     return new Builder()
         .withTokenEndpointUrl(idpTokenEndpointUrl)
         .withClientId(idpClientId)
@@ -144,17 +167,17 @@ public final class ClientSecretIdpConfig implements IdpConfig {
     if (this == o) {
       return true;
     }
-    if (!(o instanceof ClientSecretIdpConfig)) {
+    if (!(o instanceof ClientSecretIdpConfig clientSecretIdpConfig)) {
       return false;
     }
-    final IdpConfig ClientSecretIdpConfig = (ClientSecretIdpConfig) o;
-    return Objects.equals(idpTokenEndpointUrl, ClientSecretIdpConfig.idpTokenEndpointUrl)
-        && Objects.equals(idpClientId, ClientSecretIdpConfig.idpClientId)
-        && Objects.equals(idpClientSecret, ClientSecretIdpConfig.idpClientSecret)
-        && Objects.equals(idpScope, ClientSecretIdpConfig.idpScope)
-        && Objects.equals(idpScopeClaimName, ClientSecretIdpConfig.idpScopeClaimName)
-        && Objects.equals(idpSubClaimName, ClientSecretIdpConfig.idpSubClaimName)
-        && Objects.equals(idpCacheExpiryBufferSeconds, ClientSecretIdpConfig.idpCacheExpiryBufferSeconds);
+    return Objects.equals(idpTokenEndpointUrl, clientSecretIdpConfig.idpTokenEndpointUrl)
+        && Objects.equals(idpClientId, clientSecretIdpConfig.idpClientId)
+        && Objects.equals(idpClientSecret, clientSecretIdpConfig.idpClientSecret)
+        && Objects.equals(idpScope, clientSecretIdpConfig.idpScope)
+        && Objects.equals(idpScopeClaimName, clientSecretIdpConfig.idpScopeClaimName)
+        && Objects.equals(idpSubClaimName, clientSecretIdpConfig.idpSubClaimName)
+        && Objects.equals(idpCacheExpiryBufferSeconds,
+            clientSecretIdpConfig.idpCacheExpiryBufferSeconds);
   }
 
   @Override

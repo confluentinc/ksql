@@ -246,6 +246,12 @@ public interface ClientOptions {
   AuthType getAuthType();
 
   /**
+   * Sets the authentication mechanism that will be used when connecting to the ksqlDB server.
+   *
+   */
+  void setAuthType(AuthType authtype);
+
+  /**
    * Returns the trust store path.
    *
    * @return trust store path

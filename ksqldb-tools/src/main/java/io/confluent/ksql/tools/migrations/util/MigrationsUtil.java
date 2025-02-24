@@ -20,6 +20,7 @@ import io.confluent.ksql.api.client.Client;
 import io.confluent.ksql.api.client.ClientOptions;
 import io.confluent.ksql.properties.PropertiesUtil;
 import io.confluent.ksql.security.oauth.IdpConfig;
+import io.confluent.ksql.security.oauth.IdpConfigFactory;
 import io.confluent.ksql.tools.migrations.MigrationConfig;
 import io.confluent.ksql.tools.migrations.MigrationException;
 import io.confluent.ksql.util.KsqlException;
@@ -41,18 +42,12 @@ public final class MigrationsUtil {
 
   public static Client getKsqlClient(final MigrationConfig config, final String headersFile)
       throws MigrationException {
-//    config.getString(MigrationConfig.BEARER_AUTH_ISSUER_ENDPOINT_URL),
-//            config.getString(MigrationConfig.BEARER_AUTH_CLIENT_ID),
-//            config.getPassword(MigrationConfig.BEARER_AUTH_CLIENT_SECRET).value(),
-//            config.getString(MigrationConfig.BEARER_AUTH_SCOPE),
-//            config.getString(MigrationConfig.BEARER_AUTH_SCOPE_CLAIM_NAME),
-//            config.getString(MigrationConfig.BEARER_AUTH_SUB_CLAIM_NAME),
-//            config.getShort(MigrationConfig.BEARER_AUTH_CACHE_EXPIRY_BUFFER_SECONDS),
-      IdpConfig idpConfig
+    final IdpConfig idpConfig = IdpConfigFactory.getIdpConfig(config.originals());
     return getKsqlClient(
         config.getString(MigrationConfig.KSQL_SERVER_URL),
         config.getString(MigrationConfig.KSQL_BASIC_AUTH_USERNAME),
         config.getPassword(MigrationConfig.KSQL_BASIC_AUTH_PASSWORD).value(),
+        idpConfig,
         config.getString(MigrationConfig.SSL_TRUSTSTORE_LOCATION),
         config.getPassword(MigrationConfig.SSL_TRUSTSTORE_PASSWORD).value(),
         config.getString(MigrationConfig.SSL_KEYSTORE_LOCATION),
@@ -71,13 +66,7 @@ public final class MigrationsUtil {
       final String ksqlServerUrl,
       final String username,
       final String password,
-      final String idpTokenEndpointUrl,
-      final String idpClientId,
-      final String idpClientSecret,
-      final String idpScope,
-      final String idpScopeClaimName,
-      final String idpSubClaimName,
-      final Short idpCacheExpiryBufferSeconds,
+      final IdpConfig idpConfig,
       final String sslTrustStoreLocation,
       final String sslTrustStorePassword,
       final String sslKeystoreLocation,
@@ -88,9 +77,7 @@ public final class MigrationsUtil {
       final boolean sslVerifyHost,
       final Map<String, String> requestHeaders
   ) {
-    return Client.create(createClientOptions(ksqlServerUrl, username, password,
-        idpTokenEndpointUrl, idpClientId, idpClientSecret,
-        idpScope, idpScopeClaimName, idpSubClaimName, idpCacheExpiryBufferSeconds,
+    return Client.create(createClientOptions(ksqlServerUrl, username, password, idpConfig,
         sslTrustStoreLocation, sslTrustStorePassword, sslKeystoreLocation, sslKeystorePassword,
         sslKeyPassword, sslKeyAlias, sslAlpn, sslVerifyHost, requestHeaders));
   }
@@ -132,26 +119,8 @@ public final class MigrationsUtil {
       options.setBasicAuthCredentials(username, password);
     }
 
-    if (!(idpTokenEndpointUrl == null || idpTokenEndpointUrl.isEmpty())
-        || !(idpClientId == null || idpClientId.isEmpty())
-        || !(idpClientSecret == null || idpClientSecret.isEmpty())) {
-      final IdpConfig idpConfig = new IdpConfig.Builder()
-          .withTokenEndpointUrl(idpTokenEndpointUrl)
-          .withClientId(idpClientId)
-          .withClientSecret(idpClientSecret)
-          .withScope(idpScope)
-          .withScopeClaimName(idpScopeClaimName)
-          .withSubClaimName(idpSubClaimName)
-          .withCacheExpiryBufferSeconds(idpCacheExpiryBufferSeconds)
-          .build();
-
-
+    if (idpConfig != null) {
       options.setIdpConfig(idpConfig);
-    }
-
-    if (customIdpConfig !=null){
-      final IdpConfig idpConfig =
-
     }
 
     final boolean useTls = ksqlServerUrl.trim().toLowerCase().startsWith("https://");

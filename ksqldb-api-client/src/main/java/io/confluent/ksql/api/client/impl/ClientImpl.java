@@ -1001,12 +1001,14 @@ public class ClientImpl implements Client {
     }
 
     if (clientOptions.getAuthType() == AuthType.OAUTHBEARER) {
-      IdpConfig idpConfig = clientOptions.getIdpConfig();
+      final IdpConfig idpConfig = clientOptions.getIdpConfig();
       if (idpConfig instanceof ClientSecretIdpConfig) {
-        final ClientSecretIdpConfig clientSecretIdpConfig = (ClientSecretIdpConfig) clientOptions.getIdpConfig();
+        final ClientSecretIdpConfig clientSecretIdpConfig =
+                (ClientSecretIdpConfig) clientOptions.getIdpConfig();
         log.debug("Configuring bearer auth for clientId = {}",
                 clientSecretIdpConfig.getIdpClientId());
       }
+      clientOptions.setAuthType(idpConfig.getAuthType());
       props.putAll(idpConfig.getIdpConfigs());
     }
 

@@ -59,6 +59,8 @@ public final class KsqlClientConfig extends AbstractConfig {
 
   public static final String CUSTOM_TOKEN_CREDENTIALS_CLASS = "custom.token.credentials.class";
 
+  public static final String BEARER_AUTHENTICATION_METHOD = "bearer.auth.method";
+
   private KsqlClientConfig(final Map<String, String> configs) {
     super(new ConfigDef().define(
             KSQL_BASIC_AUTH_USERNAME,

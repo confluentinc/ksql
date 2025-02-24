@@ -149,7 +149,7 @@
              for the netty version we bump to (ie, corresponding git tag),
              to find the correct `tcnative` version. -->
         <netty.version>4.1.118.Final</netty.version>
-        <netty-codec-http2-version>4.1.118Final</netty-codec-http2-version>
+        <netty-codec-http2-version>4.1.118.Final</netty-codec-http2-version>
         <jersey-common>2.39.1</jersey-common>
         <multi-threaded-testing.forkCount>3</multi-threaded-testing.forkCount>
         <kafka.version>${ce.kafka.version}</kafka.version>

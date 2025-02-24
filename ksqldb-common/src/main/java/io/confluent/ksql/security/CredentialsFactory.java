@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.security;
 
+import io.confluent.ksql.security.oauth.CustomTokenCredentials;
 import io.confluent.ksql.security.oauth.OAuthBearerCredentials;
 import io.confluent.ksql.security.oauth.StaticTokenCredentials;
 
@@ -28,6 +29,8 @@ public class CredentialsFactory {
         return new OAuthBearerCredentials();
       case STATIC_TOKEN:
         return new StaticTokenCredentials();
+      case CUSTOM:
+        return new CustomTokenCredentials();
       default:
         return null;
     }

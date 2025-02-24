@@ -24,6 +24,8 @@ import java.util.concurrent.TimeUnit;
 import org.apache.kafka.clients.producer.Callback;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.common.metrics.KafkaMetric;
+import org.apache.kafka.common.metrics.Measurable;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.runners.Enclosed;
@@ -47,6 +49,14 @@ public final class SandboxedProducerTest {
           .ignore("close")
           .ignoreUnchecked("close", long.class, TimeUnit.class)
           .ignore("close", Duration.class)
+          .ignore("registerMetricForSubscription", KafkaMetric.class)
+          .ignore("unregisterMetricFromSubscription", KafkaMetric.class)
+          .setDefault(KafkaMetric.class, new KafkaMetric(
+              null,
+              null,
+              (Measurable) (config, now) -> 0,
+              null,
+              null))
           .build();
     }
 

@@ -15,8 +15,6 @@
 
 package io.confluent.ksql.logging.processing;
 
-import io.confluent.common.logging.StructuredLogger;
-import io.confluent.common.logging.StructuredLoggerFactory;
 import io.confluent.ksql.util.MetricsTagsUtil;
 import java.util.Collection;
 import java.util.Collections;
@@ -29,6 +27,8 @@ import org.apache.kafka.common.MetricName;
 import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.common.metrics.Sensor;
 import org.apache.kafka.common.metrics.stats.CumulativeSum;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class MeteredProcessingLoggerFactory implements ProcessingLoggerFactory {
   public static final String PROCESSING_LOG_ERROR_METRIC_NAME = "processing-error-total";
@@ -37,23 +37,20 @@ public class MeteredProcessingLoggerFactory implements ProcessingLoggerFactory {
       "The total number of errors emitted by the processing log.";
 
   private final ProcessingLogConfig config;
-  private final StructuredLoggerFactory innerFactory;
   private final Metrics metrics;
   private final Map<String, String> metricsTags;
-  private final BiFunction<ProcessingLogConfig, StructuredLogger, ProcessingLogger> loggerFactory;
+  private final BiFunction<ProcessingLogConfig, Logger, ProcessingLogger> loggerFactory;
   private final Function<Metrics, BiFunction<ProcessingLogger, Sensor, ProcessingLogger>>
       loggerWithMetricsFactory;
   private final Map<String, ProcessingLogger> processingLoggers;
 
   MeteredProcessingLoggerFactory(
       final ProcessingLogConfig config,
-      final StructuredLoggerFactory innerFactory,
       final Metrics metrics,
       final Map<String, String> metricsTags
   ) {
     this(
         config,
-        innerFactory,
         metrics,
         ProcessingLoggerImpl::new,
         metricObject -> (processingLogger, sensor) ->
@@ -64,15 +61,13 @@ public class MeteredProcessingLoggerFactory implements ProcessingLoggerFactory {
 
   MeteredProcessingLoggerFactory(
       final ProcessingLogConfig config,
-      final StructuredLoggerFactory innerFactory,
       final Metrics metrics,
-      final BiFunction<ProcessingLogConfig, StructuredLogger, ProcessingLogger> loggerFactory,
+      final BiFunction<ProcessingLogConfig, Logger, ProcessingLogger> loggerFactory,
       final Function<Metrics, BiFunction<ProcessingLogger, Sensor, ProcessingLogger>>
           loggerWithMetricsFactory,
       final Map<String, String> metricsTags
   ) {
     this.config = config;
-    this.innerFactory = innerFactory;
     this.metrics = metrics;
     this.loggerFactory = loggerFactory;
     this.loggerWithMetricsFactory = loggerWithMetricsFactory;
@@ -145,6 +140,11 @@ public class MeteredProcessingLoggerFactory implements ProcessingLoggerFactory {
   }
 
   private ProcessingLogger getProcessLogger(final String name) {
-    return loggerFactory.apply(config, innerFactory.getLogger(name));
+    final String loggerName = String.join(
+        ProcessingLogConstants.DELIMITER,
+        ProcessingLogConstants.PREFIX,
+        name);
+    final Logger logger = LogManager.getLogger(loggerName);
+    return loggerFactory.apply(config, logger);
   }
 }

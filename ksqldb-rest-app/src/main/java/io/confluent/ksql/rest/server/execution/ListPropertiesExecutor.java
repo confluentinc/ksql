@@ -38,12 +38,12 @@ import org.apache.kafka.common.config.ConfigDef.Type;
 import org.apache.kafka.common.config.ConfigException;
 import org.apache.kafka.common.utils.Utils;
 import org.apache.kafka.connect.runtime.distributed.DistributedConfig;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public final class ListPropertiesExecutor {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(ListPropertiesExecutor.class);
+  private static final Logger LOGGER = LogManager.getLogger(ListPropertiesExecutor.class);
 
   private ListPropertiesExecutor() {
   }

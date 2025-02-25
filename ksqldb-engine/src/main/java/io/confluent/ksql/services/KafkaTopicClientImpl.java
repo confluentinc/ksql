@@ -61,8 +61,9 @@ import org.apache.kafka.common.errors.TopicAuthorizationException;
 import org.apache.kafka.common.errors.TopicDeletionDisabledException;
 import org.apache.kafka.common.errors.TopicExistsException;
 import org.apache.kafka.common.errors.UnknownTopicOrPartitionException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.kafka.common.errors.UnsupportedVersionException;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * Note: all calls make cross machine calls and are synchronous.
@@ -72,7 +73,7 @@ import org.slf4j.LoggerFactory;
 public class KafkaTopicClientImpl implements KafkaTopicClient {
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
-  private static final Logger LOG = LoggerFactory.getLogger(KafkaTopicClient.class);
+  private static final Logger LOG = LogManager.getLogger(KafkaTopicClient.class);
 
   private static final String DEFAULT_REPLICATION_PROP = "default.replication.factor";
   private static final String DELETE_TOPIC_ENABLE = "delete.topic.enable";

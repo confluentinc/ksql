@@ -18,8 +18,8 @@ package io.confluent.ksql.test.util;
 import java.io.IOException;
 import java.net.BindException;
 import org.apache.curator.test.TestingServer;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * Runs an in-memory, "embedded" instance of a ZooKeeper server.
@@ -29,7 +29,7 @@ import org.slf4j.LoggerFactory;
  */
 class ZooKeeperEmbedded {
 
-  private static final Logger log = LoggerFactory.getLogger(ZooKeeperEmbedded.class);
+  private static final Logger log = LogManager.getLogger(ZooKeeperEmbedded.class);
 
   private final TestingServer server;
 

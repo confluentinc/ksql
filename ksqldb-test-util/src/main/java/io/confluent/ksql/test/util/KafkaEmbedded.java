@@ -54,8 +54,8 @@ import org.apache.kafka.common.IsolationLevel;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.security.auth.SecurityProtocol;
 import org.apache.kafka.common.utils.Time;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import scala.collection.Iterator;
 
 /**
@@ -70,7 +70,7 @@ import scala.collection.Iterator;
 class KafkaEmbedded {
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
-  private static final Logger log = LoggerFactory.getLogger(KafkaEmbedded.class);
+  private static final Logger log = LogManager.getLogger(KafkaEmbedded.class);
 
   private static final String ZK_CONNECT_PROP = "zookeeper.connect";
   private static final String LOG_DIR_PROP = "log.dir";

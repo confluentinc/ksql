@@ -71,28 +71,22 @@ Restart the ksqlDB Server for your configuration changes to take effect.
 The following example shows how to configure the processing log to emit all
 events at ERROR level or higher to an appender that writes to `stdout`:
 
-```properties
-log4j.appender.stdout=org.apache.log4j.ConsoleAppender
-log4j.appender.stdout.layout=org.apache.log4j.PatternLayout
-log4j.appender.stdout.layout.ConversionPattern=[%d] %p %m (%c:%L)%n
-log4j.logger.processing=ERROR, stdout
-log4j.additivity.processing=false
-```
-
-If you're using a Docker deployment, set the following environment variables
-in your docker-compose.yml:
-
-```properties
-environment:
-    # --- ksqlDB Server log config ---
-    KSQL_LOG4J_ROOT_LOGLEVEL: "ERROR"
-    KSQL_LOG4J_LOGGERS: "org.apache.kafka.connect.runtime.rest=WARN,org.reflections=ERROR"
-    # --- ksqlDB processing log config ---
-    KSQL_LOG4J_PROCESSING_LOG_BROKERLIST: kafka:29092
-    KSQL_LOG4J_PROCESSING_LOG_TOPIC: <ksql-processing-log-topic-name>
-    KSQL_KSQL_LOGGING_PROCESSING_TOPIC_NAME: <ksql-processing-log-topic-name>
-    KSQL_KSQL_LOGGING_PROCESSING_TOPIC_AUTO_CREATE: "true"
-    KSQL_KSQL_LOGGING_PROCESSING_STREAM_AUTO_CREATE: "true"
+```yaml
+Configuration:
+  status: WARN
+  Appenders:
+    Console:
+      name: stdout
+      target: SYSTEM_OUT
+      PatternLayout:
+        pattern: "[%d] %p %m (%c:%L)%n"
+  Loggers:
+    Logger:
+      - name: processing
+        level: error
+        additivity: false
+        AppenderRef:
+          - ref: stdout
 ```
 
 If the cluster in the BROKERLIST is secured, additional Log4j configurations
@@ -160,8 +154,10 @@ You can disable the log completely by setting the level to `OFF` in the
 [log4j2.yaml](https://github.com/confluentinc/ksql/blob/master/config/log4j2.yaml)
 file:
 
-```properties
-log4j.logger.processing=OFF
+```yaml
+    Logger:
+      - name: processing
+        level: off
 ```
 
 !!! note
@@ -306,12 +302,24 @@ topic automatically.
 To log to Kafka, set up a Kafka appender and a special layout for
 formatting the log entries as JSON:
 
-```properties
-log4j.appender.kafka_appender=org.apache.logging.log4j.core.appender.mom.kafka.KafkaAppender
-log4j.appender.kafka_appender.layout=io.confluent.common.logging.log4j.StructuredJsonLayout
-log4j.appender.kafka_appender.BrokerList=<list of kafka brokers>
-log4j.appender.kafka_appender.Topic=<kafka topic>
-log4j.logger.processing=ERROR, kafka_appender
+```yaml
+Configuration:
+  Appenders:
+    Kafka:
+      name: kafka_appender
+      topic: <kafka topic>
+      brokers: <list of kafka brokers>
+      StructuredJsonLayout:
+        Property:
+          - name: schemas.enable
+            value: false
+  Loggers:
+    Logger:
+      - name: processing
+        level: error
+        additivity: false
+        AppenderRef:
+          - ref: kafka_appender
 ```
 
 The `list of kafka brokers` setting is a comma-separated list of brokers

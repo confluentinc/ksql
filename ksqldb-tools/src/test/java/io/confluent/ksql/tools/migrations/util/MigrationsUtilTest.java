@@ -132,14 +132,14 @@ public class MigrationsUtilTest {
 
   @Test
   public void testCannotConfigureBothBasicAndBearerAuth() {
-    Map<String, String> configs = new HashMap<>();
+    Map<String, Object> configs = new HashMap<>();
     configs.put(MigrationConfig.BEARER_AUTH_ISSUER_ENDPOINT_URL, "http://localhost:8080");
     configs.put(MigrationConfig.BEARER_AUTH_CLIENT_ID, "user");
     configs.put(MigrationConfig.BEARER_AUTH_CLIENT_SECRET, "pass");
     configs.put(MigrationConfig.BEARER_AUTH_SCOPE, "all");
     configs.put(MigrationConfig.BEARER_AUTH_SCOPE_CLAIM_NAME, "newScope");
     configs.put(MigrationConfig.BEARER_AUTH_SUB_CLAIM_NAME, "newSub");
-    configs.put(MigrationConfig.BEARER_AUTH_CACHE_EXPIRY_BUFFER_SECONDS, "600");
+    configs.put(MigrationConfig.BEARER_AUTH_CACHE_EXPIRY_BUFFER_SECONDS, (short) 600);
     IdpConfig idpConfig = IdpConfigFactory.getIdpConfig(configs);
     assertThrows(KsqlClientException.class, () -> createClientOptions(TLS_URL, "user",
         "pass", idpConfig,

@@ -20,12 +20,12 @@ import org.apache.kafka.streams.KafkaStreams.State;
 import org.apache.kafka.streams.TopologyDescription;
 import org.apache.kafka.streams.TopologyDescription.Source;
 import org.apache.kafka.streams.TopologyDescription.Subtopology;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class IntegrationTestUtil {
 
-  private static final Logger LOG = LoggerFactory.getLogger(IntegrationTestUtil.class);
+  private static final Logger LOG = LogManager.getLogger(IntegrationTestUtil.class);
   private static final Duration MAX_QUERY_RUNNING_CHECK = Duration.ofSeconds(45);
   private static final Duration MAX_STATIC_WARM_UP = Duration.ofSeconds(45);
   private static final Duration MAX_TOPIC_NAME_LOOKUP = Duration.ofSeconds(45);

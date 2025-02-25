@@ -83,13 +83,13 @@ import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TemporaryFolder;
 import org.junit.rules.Timeout;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 @Category({IntegrationTest.class})
 public class PullQuerySingleNodeFunctionalTest {
 
-  private static final Logger LOG = LoggerFactory.getLogger(PullQuerySingleNodeFunctionalTest.class);
+  private static final Logger LOG = LogManager.getLogger(PullQuerySingleNodeFunctionalTest.class);
 
   private static final Pattern QUERY_ID_PATTERN = Pattern.compile("query with ID (\\S+)");
   private static final String USER_TOPIC = "user_topic_";

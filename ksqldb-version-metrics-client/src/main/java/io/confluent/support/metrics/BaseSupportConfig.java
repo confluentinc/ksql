@@ -20,15 +20,15 @@ import java.util.Locale;
 import java.util.Properties;
 import java.util.regex.Pattern;
 import org.apache.kafka.common.config.ConfigException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * Configuration for the Confluent Support options.
  */
 public abstract class BaseSupportConfig {
 
-  private static final Logger log = LoggerFactory
+  private static final Logger log = LogManager
       .getLogger(io.confluent.support.metrics.BaseSupportConfig.class);
 
   static final String CONFLUENT_PHONE_HOME_ENDPOINT_BASE_SECURE =

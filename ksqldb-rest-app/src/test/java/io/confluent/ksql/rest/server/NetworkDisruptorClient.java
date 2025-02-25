@@ -17,12 +17,12 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class NetworkDisruptorClient implements SimpleKsqlClient {
 
-  private static final Logger LOG = LoggerFactory.getLogger(NetworkDisruptorClient.class);
+  private static final Logger LOG = LogManager.getLogger(NetworkDisruptorClient.class);
 
   private final SimpleKsqlClient workingClient;
   private final NetworkState networkState;

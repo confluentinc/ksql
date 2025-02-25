@@ -24,7 +24,6 @@ import static org.mockito.Mockito.when;
 
 import org.apache.logging.log4j.Logger;
 import io.confluent.ksql.logging.processing.ProcessingLogger.ErrorMessage;
-import java.util.function.Supplier;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaAndValue;
 import org.junit.Before;

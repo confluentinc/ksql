@@ -50,7 +50,7 @@ Configuration:
             value: false
       Property:
         - name: bootstrap.servers
-          value: localhost:29092
+          value: localhost:9092
 
   Loggers:
     Root:

@@ -41,11 +41,11 @@ import org.apache.kafka.common.metrics.MetricsContext;
 import org.apache.kafka.common.metrics.MetricsReporter;
 import org.apache.kafka.common.metrics.stats.CumulativeSum;
 import org.apache.kafka.streams.processor.internals.metrics.StreamsMetricsImpl;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class ThroughputMetricsReporter implements MetricsReporter {
-  private static final Logger LOGGER = LoggerFactory.getLogger(ThroughputMetricsReporter.class);
+  private static final Logger LOGGER = LogManager.getLogger(ThroughputMetricsReporter.class);
   private static final String THROUGHPUT_METRICS_GROUP = "ksql-query-throughput-metrics";
   private static final String RECORDS_CONSUMED = "records-consumed-total";
   private static final String BYTES_CONSUMED = "bytes-consumed-total";

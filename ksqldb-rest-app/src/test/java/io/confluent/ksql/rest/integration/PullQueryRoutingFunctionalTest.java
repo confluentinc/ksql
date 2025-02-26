@@ -107,8 +107,8 @@ import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TemporaryFolder;
 import org.junit.rules.Timeout;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * Test to ensure pull queries route across multiple KSQL nodes correctly.
@@ -120,7 +120,7 @@ import org.slf4j.LoggerFactory;
 @Category({IntegrationTest.class})
 @Ignore
 public class PullQueryRoutingFunctionalTest {
-  private static final Logger LOG = LoggerFactory.getLogger(PullQueryRoutingFunctionalTest.class);
+  private static final Logger LOG = LogManager.getLogger(PullQueryRoutingFunctionalTest.class);
 
   private static final String USER_TOPIC = "user_topic_";
   private static final String USERS_STREAM = "users";

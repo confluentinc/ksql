@@ -22,5 +22,7 @@ import org.apache.kafka.common.config.ConfigException;
 public interface Credentials extends Configurable {
   String getAuthHeader();
 
-  void validateConfigs(Map<String, ?> configs) throws ConfigException;
+  default void validateConfigs(Map<String, ?> configs) throws ConfigException {
+
+  }
 }

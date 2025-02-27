@@ -20,7 +20,7 @@ import static org.junit.Assert.assertNotSame;
 
 import org.junit.Test;
 
-public class IdpConfigTest {
+public class ClientSecretIdpConfigTest {
 
   @Test
   public void testBuilder() {
@@ -32,7 +32,7 @@ public class IdpConfigTest {
     final String subClaimName = "user";
     final Short cacheExpiryBufferSeconds = 600;
 
-    IdpConfig config = new IdpConfig.Builder()
+    ClientSecretIdpConfig config = new ClientSecretIdpConfig.Builder()
         .withTokenEndpointUrl(url)
         .withClientId(clientId)
         .withClientSecret(clientSecret)
@@ -57,7 +57,7 @@ public class IdpConfigTest {
     final String clientId = "client-123";
     final String clientSecret = "secret-456";
 
-    IdpConfig config = new IdpConfig.Builder()
+    ClientSecretIdpConfig config = new ClientSecretIdpConfig.Builder()
         .withTokenEndpointUrl(url)
         .withClientId(clientId)
         .withClientSecret(clientSecret)
@@ -74,7 +74,7 @@ public class IdpConfigTest {
 
   @Test
   public void testCopy() {
-    IdpConfig originalConfig = new IdpConfig.Builder()
+    ClientSecretIdpConfig originalConfig = new ClientSecretIdpConfig.Builder()
         .withTokenEndpointUrl("https://idp.example.com/token")
         .withClientId("client-123")
         .withClientSecret("secret-456")
@@ -84,7 +84,7 @@ public class IdpConfigTest {
         .withCacheExpiryBufferSeconds((short) 600)
         .build();
 
-    IdpConfig copiedConfig = originalConfig.copy();
+    ClientSecretIdpConfig copiedConfig = originalConfig.copy();
 
     // Confirm that all fields are equal between the original and the copy.
     assertEquals(originalConfig.getIdpTokenEndpointUrl(), copiedConfig.getIdpTokenEndpointUrl());

@@ -22,6 +22,7 @@ import io.confluent.ksql.api.server.KsqlApiException;
 import io.confluent.ksql.api.server.Server;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.security.KsqlDefaultSecurityExtension;
+import io.confluent.ksql.security.oauth.ClientSecretIdpConfig;
 import io.confluent.ksql.security.oauth.IdpConfig;
 import io.confluent.ksql.util.VertxCompletableFuture;
 import io.vertx.core.WorkerExecutor;
@@ -52,7 +53,7 @@ public class ClientOAuthTest extends ClientTest {
   @Override
   protected ClientOptions createJavaClientOptions() {
     return super.createJavaClientOptions()
-        .setIdpConfig(new IdpConfig.Builder()
+        .setIdpConfig(new ClientSecretIdpConfig.Builder()
             .withTokenEndpointUrl(idp.getTokenEndpoint())
             .withClientId(APP1_DEVELOPER)
             .withClientSecret(APP1_DEVELOPER)

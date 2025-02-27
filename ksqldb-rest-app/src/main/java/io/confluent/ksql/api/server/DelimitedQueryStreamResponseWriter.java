@@ -26,8 +26,8 @@ import io.confluent.ksql.util.KeyValueMetadata;
 import io.vertx.core.http.HttpServerResponse;
 import java.util.List;
 import java.util.Objects;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * Writes the query response stream in delimited format.
@@ -48,7 +48,7 @@ import org.slf4j.LoggerFactory;
  */
 public class DelimitedQueryStreamResponseWriter implements QueryStreamResponseWriter {
   private static final Logger LOG
-      = LoggerFactory.getLogger(DelimitedQueryStreamResponseWriter.class);
+      = LogManager.getLogger(DelimitedQueryStreamResponseWriter.class);
 
   private final HttpServerResponse response;
 

@@ -58,12 +58,12 @@ import org.apache.kafka.common.config.TopicConfig;
 import org.apache.kafka.common.config.internals.ConfluentConfigs;
 import org.apache.kafka.common.utils.AppInfoParser;
 import org.apache.kafka.streams.StreamsConfig;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 @EffectivelyImmutable
 public class KsqlConfig extends AbstractConfig {
-  private static final Logger LOG = LoggerFactory.getLogger(KsqlConfig.class);
+  private static final Logger LOG = LogManager.getLogger(KsqlConfig.class);
 
   public static final String KSQL_CONFIG_PROPERTY_PREFIX = "ksql.";
 

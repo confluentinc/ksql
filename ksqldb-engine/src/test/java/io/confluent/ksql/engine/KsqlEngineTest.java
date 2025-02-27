@@ -120,13 +120,13 @@ import org.junit.rules.Timeout;
 import org.junit.runner.RunWith;
 import org.mockito.Spy;
 import org.mockito.junit.MockitoJUnitRunner;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 @SuppressWarnings({"OptionalGetWithoutIsPresent", "SameParameterValue"})
 @RunWith(MockitoJUnitRunner.class)
 public class KsqlEngineTest {
-  private static final Logger log = LoggerFactory.getLogger(KsqlEngineTest.class);
+  private static final Logger log = LogManager.getLogger(KsqlEngineTest.class);
   private static final MutableFunctionRegistry functionRegistry = new InternalFunctionRegistry();
 
   private KsqlConfig ksqlConfig;

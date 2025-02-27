@@ -35,8 +35,8 @@ import io.confluent.ksql.tools.migrations.util.MigrationsUtil;
 import io.confluent.ksql.util.KsqlException;
 import java.util.NoSuchElementException;
 import java.util.function.Function;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 @Command(
     name = "validate",
@@ -52,7 +52,7 @@ import org.slf4j.LoggerFactory;
 )
 public class ValidateMigrationsCommand extends BaseCommand {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(ValidateMigrationsCommand.class);
+  private static final Logger LOGGER = LogManager.getLogger(ValidateMigrationsCommand.class);
 
   @Override
   protected int command() {

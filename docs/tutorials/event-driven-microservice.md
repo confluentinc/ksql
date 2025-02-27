@@ -447,7 +447,7 @@ Create the directory structure for the rest of the project:
 mkdir -p src/main/java/io/ksqldb/tutorial src/main/resources src/main/avro
 ```
 
-To ensure that your microservice logs output to the console, create the following file at `src/main/resources/log4j.properties`:
+To ensure that your microservice logs output to the console, create the following file at `src/main/resources/log4j2.yaml`:
 
 ```
 # Root logger option

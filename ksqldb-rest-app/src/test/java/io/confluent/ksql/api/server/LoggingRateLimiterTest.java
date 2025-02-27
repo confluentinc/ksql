@@ -14,13 +14,15 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.RateLimiter;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
+
+import java.util.Optional;
 import java.util.function.Function;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
-import org.slf4j.Logger;
+import org.apache.logging.log4j.Logger;
 
 @RunWith(MockitoJUnitRunner.class)
 public class LoggingRateLimiterTest {
@@ -64,7 +66,7 @@ public class LoggingRateLimiterTest {
 
     // Then:
     verify(rateLimiter).tryAcquire();
-    verify(logger, never()).info(any());
+    verify(logger, never()).info(Optional.ofNullable(any()));
   }
 
   @Test
@@ -108,6 +110,6 @@ public class LoggingRateLimiterTest {
 
     // Then:
     verify(rateLimiter, never()).tryAcquire();
-    verify(logger, never()).info(any());
+    verify(logger, never()).info(Optional.ofNullable(any()));
   }
 }

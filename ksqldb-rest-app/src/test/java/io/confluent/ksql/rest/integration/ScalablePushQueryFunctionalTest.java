@@ -74,12 +74,12 @@ import org.junit.rules.RuleChain;
 import org.junit.rules.TemporaryFolder;
 import org.junit.rules.TestName;
 import org.junit.rules.Timeout;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 @Category({IntegrationTest.class})
 public class ScalablePushQueryFunctionalTest {
-  private static final Logger LOG = LoggerFactory.getLogger(ScalablePushQueryFunctionalTest.class);
+  private static final Logger LOG = LogManager.getLogger(ScalablePushQueryFunctionalTest.class);
 
   private static final String PAGE_VIEW_CSAS = "PAGE_VIEW_CSAS";
 

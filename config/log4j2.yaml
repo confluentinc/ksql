@@ -1,0 +1,74 @@
+Configuration:
+  status: WARN
+  Appenders:
+    Console:
+      - name: stdout
+        PatternLayout:
+          pattern: "[%d] %p %m (%c:%L)%n"
+
+      - name: streams
+        PatternLayout:
+          pattern: "[%d] %p %m (%c:%L)%n"
+
+      - name: clients
+        PatternLayout:
+          pattern: "[%d] %p %m (%c:%L)%n"
+
+      - name: connect
+        PatternLayout:
+          pattern: "[%d] %p %m (%c:%L)%n"
+
+  Loggers:
+    Root:
+      level: info
+      AppenderRef:
+        - ref: stdout
+
+    Logger:
+      - name: org.reflections
+        level: error
+        additivity: false
+        AppenderRef:
+          - ref: stdout
+
+      - name: org.apache.kafka.streams
+        level: info
+        additivity: false
+        AppenderRef:
+          - ref: streams
+
+      - name: org.apache.kafka.clients
+        level: info
+        additivity: false
+        AppenderRef:
+          - ref: clients
+
+      - name: org.apache.kafka.connect
+        level: info
+        additivity: false
+        AppenderRef:
+          - ref: connect
+
+      - name: kafka
+        level: warn
+        additivity: false
+        AppenderRef:
+          - ref: stdout
+
+      - name: org.apache.zookeeper
+        level: warn
+        additivity: false
+        AppenderRef:
+          - ref: stdout
+
+      - name: org.apache.kafka
+        level: warn
+        additivity: false
+        AppenderRef:
+          - ref: stdout
+
+      - name: org.I0Itec.zkclient
+        level: warn
+        additivity: false
+        AppenderRef:
+          - ref: stdout

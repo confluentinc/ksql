@@ -44,6 +44,7 @@ import io.confluent.ksql.security.AuthType;
 import io.confluent.ksql.security.Credentials;
 import io.confluent.ksql.security.CredentialsFactory;
 import io.confluent.ksql.security.KsqlClientConfig;
+import io.confluent.ksql.security.oauth.ClientSecretIdpConfig;
 import io.confluent.ksql.security.oauth.IdpConfig;
 import io.confluent.ksql.util.AppInfo;
 import io.confluent.ksql.util.KsqlConfig;
@@ -992,6 +993,7 @@ public class ClientImpl implements Client {
 
   public static String createAuthHeader(final ClientOptions clientOptions) {
     final Map<String, Object> props = new HashMap<>();
+    AuthType authType = clientOptions.getAuthType();
 
     if (clientOptions.getAuthType() == AuthType.BASIC) {
       log.debug("Configuring basic auth for user = {}", clientOptions.getBasicAuthUsername());
@@ -1001,22 +1003,14 @@ public class ClientImpl implements Client {
 
     if (clientOptions.getAuthType() == AuthType.OAUTHBEARER) {
       final IdpConfig idpConfig = clientOptions.getIdpConfig();
-      log.debug("Configuring bearer auth for clientId = {}",
-          idpConfig.getIdpClientId());
-      props.put(KsqlClientConfig.BEARER_AUTH_TOKEN_ENDPOINT_URL,
-          idpConfig.getIdpTokenEndpointUrl());
-      props.put(KsqlClientConfig.BEARER_AUTH_CLIENT_ID,
-          idpConfig.getIdpClientId());
-      props.put(KsqlClientConfig.BEARER_AUTH_CLIENT_SECRET,
-          idpConfig.getIdpClientSecret());
-      props.put(KsqlClientConfig.BEARER_AUTH_SCOPE,
-          idpConfig.getIdpScope());
-      props.put(KsqlClientConfig.BEARER_AUTH_SCOPE_CLAIM_NAME,
-          idpConfig.getIdpScopeClaimName());
-      props.put(KsqlClientConfig.BEARER_AUTH_SUB_CLAIM_NAME,
-          idpConfig.getIdpSubClaimName());
-      props.put(KsqlClientConfig.BEARER_AUTH_CACHE_EXPIRY_BUFFER_SECONDS,
-          idpConfig.getIdpCacheExpiryBufferSeconds());
+      if (idpConfig instanceof ClientSecretIdpConfig) {
+        final ClientSecretIdpConfig clientSecretIdpConfig =
+                (ClientSecretIdpConfig) clientOptions.getIdpConfig();
+        log.debug("Configuring bearer auth for clientId = {}",
+                clientSecretIdpConfig.getIdpClientId());
+      }
+      authType = idpConfig.getAuthType();
+      props.putAll(idpConfig.toIdpCredentialsConfig());
     }
 
     if (clientOptions.isUseTls()) {
@@ -1024,7 +1018,7 @@ public class ClientImpl implements Client {
     }
 
     final Credentials credentials = CredentialsFactory
-        .createCredentials(clientOptions.getAuthType());
+        .createCredentials(authType);
 
     if (credentials != null) {
       credentials.configure(props);

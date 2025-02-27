@@ -57,6 +57,17 @@ public final class KsqlClientConfig extends AbstractConfig {
   public static final String SSL_ALPN = "ssl.alpn";
   public static final String SSL_VERIFY_HOST = "ssl.verify.host";
 
+  public static final String CUSTOM_TOKEN_CREDENTIALS_CLASS = "custom.token.credentials.class";
+
+  public static final String CUSTOM_TOKEN_CREDENTIALS_CLASS_DOC = "The class name of the custom "
+      + "token credentials. The class must implement the "
+      + "io.confluent.ksql.security.Credentials interface.";
+
+  public static final String BEARER_AUTHENTICATION_METHOD = "bearer.auth.method";
+
+  public static final String BEARER_AUTHENTICATION_METHOD_DOC = "The mechanism used to identify"
+          + "the implementation of io.confluent.ksql.security.oauth.IdpConfig";
+
   private KsqlClientConfig(final Map<String, String> configs) {
     super(new ConfigDef().define(
             KSQL_BASIC_AUTH_USERNAME,

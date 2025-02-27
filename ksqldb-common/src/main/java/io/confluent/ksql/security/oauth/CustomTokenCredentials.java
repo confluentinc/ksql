@@ -37,13 +37,13 @@ public class CustomTokenCredentials implements Credentials {
                 (Credentials) Class.forName(className)
                         .getDeclaredConstructor()
                         .newInstance();
+      this.customTokenCredentials.configure(configs);
     } catch (Exception e) {
       throw new ConfigException(String.format(
                 "Unable to instantiate an object of class %s, failed with exception: ",
               KsqlClientConfig.CUSTOM_TOKEN_CREDENTIALS_CLASS
         ) + e.getMessage());
     }
-    this.customTokenCredentials.configure(configs);
   }
 
   @Override

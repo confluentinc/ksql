@@ -25,7 +25,7 @@ public interface IdpConfig extends Configurable {
 
   String getAuthenticationMethod();
 
-  Map<String, Object> getIdpConfigs();
+  Map<String, Object> toIdpCredentialsConfig();
 
   IdpConfig copy();
 

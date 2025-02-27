@@ -52,7 +52,7 @@ public class MigrationsUtilTest {
     assertThat(clientOptions.getBasicAuthUsername(), is("user"));
     assertThat(clientOptions.getBasicAuthPassword(), is("pass"));
     assertThrows(NullPointerException.class,
-        () -> clientOptions.getIdpConfig().getIdpConfigs());
+        () -> clientOptions.getIdpConfig().toIdpCredentialsConfig());
     assertThat(clientOptions.getTrustStore(), is(""));
     assertThat(clientOptions.getTrustStorePassword(), is(""));
     assertThat(clientOptions.getKeyStore(), is(""));
@@ -79,7 +79,7 @@ public class MigrationsUtilTest {
     assertThat(clientOptions.getBasicAuthUsername(), is("user"));
     assertThat(clientOptions.getBasicAuthPassword(), is("pass"));
     assertThrows(NullPointerException.class,
-        () -> clientOptions.getIdpConfig().getIdpConfigs());
+        () -> clientOptions.getIdpConfig().toIdpCredentialsConfig());
     assertThat(clientOptions.getTrustStore(), is("abc"));
     assertThat(clientOptions.getTrustStorePassword(), is(""));
     assertThat(clientOptions.getKeyStore(), is(""));
@@ -108,17 +108,18 @@ public class MigrationsUtilTest {
         "abc", null, null,
         null, null, null, true, true, null);
 
+    ClientSecretIdpConfig clientSecretIdpConfig = (ClientSecretIdpConfig) clientOptions.getIdpConfig();
     // Then:
     assertThat(clientOptions.isUseTls(), is(true));
     assertThat(clientOptions.getBasicAuthUsername(), is(""));
     assertThat(clientOptions.getBasicAuthPassword(), is(""));
-    assertThat(((ClientSecretIdpConfig)clientOptions.getIdpConfig()).getIdpTokenEndpointUrl(), is("http://localhost:8080"));
-    assertThat(((ClientSecretIdpConfig)clientOptions.getIdpConfig()).getIdpClientId(), is("user"));
-    assertThat(((ClientSecretIdpConfig)clientOptions.getIdpConfig()).getIdpClientSecret(), is("pass"));
-    assertThat(((ClientSecretIdpConfig)clientOptions.getIdpConfig()).getIdpScope(), is("all"));
-    assertThat(((ClientSecretIdpConfig)clientOptions.getIdpConfig()).getIdpScopeClaimName(), is("newScope"));
-    assertThat(((ClientSecretIdpConfig)clientOptions.getIdpConfig()).getIdpSubClaimName(), is("newSub"));
-    assertThat(((ClientSecretIdpConfig)clientOptions.getIdpConfig()).getIdpCacheExpiryBufferSeconds(), is((short) 600));
+    assertThat(clientSecretIdpConfig.getIdpTokenEndpointUrl(), is("http://localhost:8080"));
+    assertThat(clientSecretIdpConfig.getIdpClientId(), is("user"));
+    assertThat(clientSecretIdpConfig.getIdpClientSecret(), is("pass"));
+    assertThat(clientSecretIdpConfig.getIdpScope(), is("all"));
+    assertThat(clientSecretIdpConfig.getIdpScopeClaimName(), is("newScope"));
+    assertThat(clientSecretIdpConfig.getIdpSubClaimName(), is("newSub"));
+    assertThat(clientSecretIdpConfig.getIdpCacheExpiryBufferSeconds(), is((short) 600));
     assertThat(clientOptions.getTrustStore(), is("abc"));
     assertThat(clientOptions.getTrustStorePassword(), is(""));
     assertThat(clientOptions.getKeyStore(), is(""));

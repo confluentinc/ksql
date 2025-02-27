@@ -18,6 +18,7 @@ package io.confluent.ksql.security.oauth;
 import io.confluent.ksql.security.KsqlClientConfig;
 import java.util.Map;
 import java.util.ServiceLoader;
+import org.apache.kafka.common.config.ConfigException;
 
 @SuppressWarnings({"checkstyle:CyclomaticComplexity", "BooleanExpressionComplexity"})
 public final class IdpConfigFactory {
@@ -28,21 +29,17 @@ public final class IdpConfigFactory {
           final Map<String, ?> configs) {
 
 
-    final String bearerAuthMechanism =
+    final String bearerAuthMethod =
             (String) configs.get(KsqlClientConfig.BEARER_AUTHENTICATION_METHOD);
 
-    if (bearerAuthMechanism == null || bearerAuthMechanism.isEmpty()) {
+    if (bearerAuthMethod == null || bearerAuthMethod.isEmpty()) {
       final ClientSecretIdpConfig clientSecretIdpConfig = new ClientSecretIdpConfig();
-      clientSecretIdpConfig.configure(configs);
-      if (!(clientSecretIdpConfig.getIdpTokenEndpointUrl() == null
-              || clientSecretIdpConfig.getIdpTokenEndpointUrl().isEmpty())
-              || !(clientSecretIdpConfig.getIdpClientId() == null
-              || clientSecretIdpConfig.getIdpClientId().isEmpty())
-              || !(clientSecretIdpConfig.getIdpClientSecret() == null
-              || clientSecretIdpConfig.getIdpClientSecret().isEmpty())) {
+      try {
+        clientSecretIdpConfig.configure(configs);
         return clientSecretIdpConfig;
+      } catch (ConfigException e) {
+        return null;
       }
-      return null;
     }
 
     final ServiceLoader<IdpConfig> serviceLoader = ServiceLoader.load(
@@ -51,7 +48,7 @@ public final class IdpConfigFactory {
     );
 
     for (IdpConfig idpConfig : serviceLoader) {
-      if (idpConfig.getAuthenticationMethod().equals(bearerAuthMechanism)) {
+      if (idpConfig.getAuthenticationMethod().equals(bearerAuthMethod)) {
         idpConfig.configure(configs);
         return idpConfig;
       }

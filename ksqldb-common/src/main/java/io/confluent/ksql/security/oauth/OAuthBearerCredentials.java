@@ -78,7 +78,6 @@ public class OAuthBearerCredentials implements Credentials {
     }
   }
 
-
   public String retrieveToken() {
     return tokenRetriever.getToken();
   }

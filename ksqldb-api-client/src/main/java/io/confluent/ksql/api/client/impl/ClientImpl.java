@@ -993,6 +993,7 @@ public class ClientImpl implements Client {
 
   public static String createAuthHeader(final ClientOptions clientOptions) {
     final Map<String, Object> props = new HashMap<>();
+    AuthType authType = clientOptions.getAuthType();
 
     if (clientOptions.getAuthType() == AuthType.BASIC) {
       log.debug("Configuring basic auth for user = {}", clientOptions.getBasicAuthUsername());
@@ -1008,8 +1009,8 @@ public class ClientImpl implements Client {
         log.debug("Configuring bearer auth for clientId = {}",
                 clientSecretIdpConfig.getIdpClientId());
       }
-      clientOptions.setAuthType(idpConfig.getAuthType());
-      props.putAll(idpConfig.getIdpConfigs());
+      authType = idpConfig.getAuthType();
+      props.putAll(idpConfig.toIdpCredentialsConfig());
     }
 
     if (clientOptions.isUseTls()) {
@@ -1017,7 +1018,7 @@ public class ClientImpl implements Client {
     }
 
     final Credentials credentials = CredentialsFactory
-        .createCredentials(clientOptions.getAuthType());
+        .createCredentials(authType);
 
     if (credentials != null) {
       credentials.configure(props);

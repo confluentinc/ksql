@@ -20,6 +20,7 @@ import io.confluent.ksql.security.KsqlClientConfig;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import org.apache.kafka.common.config.ConfigException;
 
 public final class ClientSecretIdpConfig implements IdpConfig {
   private String idpTokenEndpointUrl = "";
@@ -41,18 +42,17 @@ public final class ClientSecretIdpConfig implements IdpConfig {
   }
 
   @Override
-  public Map<String, Object> getIdpConfigs() {
-    final Map<String, Object> mp = new HashMap<>();
-    mp.put(KsqlClientConfig.BEARER_AUTH_TOKEN_ENDPOINT_URL, idpTokenEndpointUrl);
-    mp.put(KsqlClientConfig.BEARER_AUTH_CLIENT_ID, idpClientId);
-    mp.put(KsqlClientConfig.BEARER_AUTH_CLIENT_SECRET, idpClientSecret);
-    mp.put(KsqlClientConfig.BEARER_AUTH_SCOPE, idpScope);
-    mp.put(KsqlClientConfig.BEARER_AUTH_SCOPE_CLAIM_NAME, idpScopeClaimName);
-    mp.put(KsqlClientConfig.BEARER_AUTH_SUB_CLAIM_NAME, idpSubClaimName);
-    mp.put(KsqlClientConfig.BEARER_AUTH_CACHE_EXPIRY_BUFFER_SECONDS, idpCacheExpiryBufferSeconds);
-
-
-    return mp;
+  public Map<String, Object> toIdpCredentialsConfig() {
+    final Map<String, Object> idpCredentialsConfig = new HashMap<>();
+    idpCredentialsConfig.put(KsqlClientConfig.BEARER_AUTH_TOKEN_ENDPOINT_URL, idpTokenEndpointUrl);
+    idpCredentialsConfig.put(KsqlClientConfig.BEARER_AUTH_CLIENT_ID, idpClientId);
+    idpCredentialsConfig.put(KsqlClientConfig.BEARER_AUTH_CLIENT_SECRET, idpClientSecret);
+    idpCredentialsConfig.put(KsqlClientConfig.BEARER_AUTH_SCOPE, idpScope);
+    idpCredentialsConfig.put(KsqlClientConfig.BEARER_AUTH_SCOPE_CLAIM_NAME, idpScopeClaimName);
+    idpCredentialsConfig.put(KsqlClientConfig.BEARER_AUTH_SUB_CLAIM_NAME, idpSubClaimName);
+    idpCredentialsConfig.put(
+            KsqlClientConfig.BEARER_AUTH_CACHE_EXPIRY_BUFFER_SECONDS, idpCacheExpiryBufferSeconds);
+    return idpCredentialsConfig;
   }
 
   @Override
@@ -74,6 +74,26 @@ public final class ClientSecretIdpConfig implements IdpConfig {
       this.idpCacheExpiryBufferSeconds =
               (Short) configs.get(KsqlClientConfig.BEARER_AUTH_CACHE_EXPIRY_BUFFER_SECONDS);
     }
+    validate();
+  }
+
+  private void validate() throws ConfigException {
+    if (isNullOrEmpty(idpTokenEndpointUrl)) {
+      throw new ConfigException(
+      "Cannot configure OAuthbearer client credentials without token endpoint url");
+    }
+    if (isNullOrEmpty(idpClientId)) {
+      throw new ConfigException(
+      "Cannot configure OAuthbearer client credentials without client ID");
+    }
+    if (isNullOrEmpty(idpClientSecret)) {
+      throw new ConfigException(
+      "Cannot configure OAuthbearer client credentials without client Secret");
+    }
+  }
+
+  private boolean isNullOrEmpty(final String value) {
+    return value == null || value.isEmpty();
   }
 
   // Static builder class

@@ -223,11 +223,6 @@ public class ClientOptionsImpl implements ClientOptions {
   }
 
   @Override
-  public void setAuthType(final AuthType authtype) {
-    this.authType = authtype;
-  }
-
-  @Override
   public String getHost() {
     return host == null ? "" : host;
   }

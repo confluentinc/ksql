@@ -89,6 +89,22 @@ Configuration:
           - ref: stdout
 ```
 
+If you're using a Docker deployment, set the following environment variables
+in your docker-compose.yml:
+
+```properties
+environment:
+# --- ksqlDB Server log config ---
+KSQL_LOG4J_ROOT_LOGLEVEL: "ERROR"
+KSQL_LOG4J_LOGGERS: "org.apache.kafka.connect.runtime.rest=WARN,org.reflections=ERROR"
+# --- ksqlDB processing log config ---
+KSQL_LOG4J_PROCESSING_LOG_BROKERLIST: kafka:29092
+KSQL_LOG4J_PROCESSING_LOG_TOPIC: <ksql-processing-log-topic-name>
+KSQL_KSQL_LOGGING_PROCESSING_TOPIC_NAME: <ksql-processing-log-topic-name>
+KSQL_KSQL_LOGGING_PROCESSING_TOPIC_AUTO_CREATE: "true"
+KSQL_KSQL_LOGGING_PROCESSING_STREAM_AUTO_CREATE: "true"
+```
+
 If the cluster in the BROKERLIST is secured, additional Log4j configurations
 are required. These don't have corresponding Docker variables, so a custom
 Log4j file is required.

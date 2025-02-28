@@ -59,11 +59,10 @@ public class JsonInsertsStreamResponseWriter implements InsertsStreamResponseWri
   @Override
   public void end() {
     if (!dataWritten) {
-      response.write("[]");
+      response.write("[]").end();
     } else {
-      response.write("]");
+      response.write("]").end();
     }
-    response.end();
   }
 
   private void writeBuffer(final Buffer buffer) {

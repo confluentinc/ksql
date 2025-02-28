@@ -36,6 +36,7 @@ import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServer;
 import io.vertx.core.http.HttpServerOptions;
 import io.vertx.core.http.HttpServerRequest;
+import io.vertx.core.http.ServerWebSocket;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
@@ -105,7 +106,7 @@ public class ServerVerticle extends AbstractVerticle {
     if (httpServer == null) {
       stopPromise.complete();
     } else {
-      httpServer.close(ar -> stopPromise.complete());
+      httpServer.close(stopPromise.future());
     }
   }
 
@@ -354,19 +355,10 @@ public class ServerVerticle extends AbstractVerticle {
   private void handleWebsocket(final RoutingContext routingContext) {
     final ApiSecurityContext apiSecurityContext =
         DefaultApiSecurityContext.create(routingContext, server);
-    routingContext.request().toWebSocket(serverWebSocket -> {
-          if (serverWebSocket.failed()) {
-            routingContext.fail(serverWebSocket.cause());
-          } else {
-            endpoints.executeWebsocketStream(
-                serverWebSocket.result(),
-                routingContext.request().params(),
-                server.getWorkerExecutor(),
-                apiSecurityContext,
-                context);
-          }
-        }
-    );
+    final ServerWebSocket serverWebSocket = routingContext.request().upgrade();
+    endpoints
+        .executeWebsocketStream(serverWebSocket, routingContext.request().params(),
+            server.getWorkerExecutor(), apiSecurityContext, context);
   }
 
   private static void chcHandler(final RoutingContext routingContext) {

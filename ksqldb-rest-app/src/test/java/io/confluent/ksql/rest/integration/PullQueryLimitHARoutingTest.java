@@ -62,7 +62,6 @@ import org.apache.kafka.streams.StreamsConfig;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -230,7 +229,6 @@ public class PullQueryLimitHARoutingTest {
         APP_SHUTOFFS_2.reset();
     }
 
-    @Ignore
     @Test
     public void shouldReturnLimitRowsMultiHostSetupTable() {
         // Given:

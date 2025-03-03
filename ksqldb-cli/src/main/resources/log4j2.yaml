@@ -1,5 +1,4 @@
 Configuration:
-  status: WARN
   Appenders:
     TimestampLogFileAppender:
       name: defaultFile

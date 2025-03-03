@@ -41,7 +41,6 @@ import io.confluent.ksql.rest.entity.LagReportingMessage;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.util.ConsistencyOffsetVector;
 import io.vertx.core.Context;
-import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
 import io.vertx.core.WorkerExecutor;
 import io.vertx.core.http.ServerWebSocket;
@@ -297,15 +296,13 @@ public class QueryStreamRunner extends BasePerfRunner {
       super.setQueryHandle(queryHandle, isPullQuery, isScalablePushQuery);
     }
 
-    @Override
-    public Future<Void> close() {
+    public void close() {
       closed = true;
       try {
         thread.join();
       } catch (InterruptedException ignore) {
         // Ignore
       }
-      return Future.succeededFuture();
     }
 
     public void run() {

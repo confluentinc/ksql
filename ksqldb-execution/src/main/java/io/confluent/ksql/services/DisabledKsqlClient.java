@@ -22,12 +22,11 @@ import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.LagReportingMessage;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.util.KsqlHostInfo;
-import io.vertx.core.streams.WriteStream;
 import java.net.URI;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-import java.util.function.Function;
+import java.util.function.Consumer;
 
 /**
  * A KSQL client implementation for use when communication with other nodes is not supported.
@@ -65,9 +64,9 @@ public final class DisabledKsqlClient implements SimpleKsqlClient {
       final String sql,
       final Map<String, ?> configOverrides,
       final Map<String, ?> requestProperties,
-      final WriteStream<List<StreamedRow>> rowConsumer,
-      final CompletableFuture<Void> shouldCloseConnection,
-      final Function<StreamedRow, StreamedRow> addHostInfo) {
+      final Consumer<List<StreamedRow>> rowConsumer,
+      final CompletableFuture<Void> shouldCloseConnection
+  ) {
     throw new UnsupportedOperationException("KSQL client is disabled");
   }
 

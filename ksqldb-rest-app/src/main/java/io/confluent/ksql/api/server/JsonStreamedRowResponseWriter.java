@@ -96,7 +96,7 @@ public class JsonStreamedRowResponseWriter implements QueryStreamResponseWriter 
 
   @Override
   public void end() {
-    response.end("]");
+    response.write("]").end();
   }
 
   private void writeBuffer(final Buffer buffer) {

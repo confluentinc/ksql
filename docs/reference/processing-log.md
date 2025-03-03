@@ -53,7 +53,7 @@ just like you configure the normal ksqlDB log.
 
 !!! important
     ksqlDB logs only error messages and doesn't use the log level from the
-    log4.properties file, which means that you can't change the log level of
+    log4j2.yaml file, which means that you can't change the log level of
     the processing log.
 
 - For local deployments, edit the

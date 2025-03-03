@@ -34,13 +34,13 @@ import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.Timeout;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 @Category({IntegrationTest.class})
 public class DependentStatementsIntegrationTest {
 
-  private static final Logger log = LoggerFactory.getLogger(DependentStatementsIntegrationTest.class);
+  private static final Logger log = LogManager.getLogger(DependentStatementsIntegrationTest.class);
 
   private static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.build();
 

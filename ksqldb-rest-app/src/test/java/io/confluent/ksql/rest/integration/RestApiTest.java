@@ -125,14 +125,14 @@ package io.confluent.ksql.rest.integration;
   import org.junit.experimental.categories.Category;
   import org.junit.rules.RuleChain;
   import org.junit.rules.Timeout;
-  import org.slf4j.Logger;
-  import org.slf4j.LoggerFactory;
+  import org.apache.logging.log4j.LogManager;
+  import org.apache.logging.log4j.Logger;
 
 @Category({IntegrationTest.class})
 @Ignore
 public class RestApiTest {
 
-  private static final Logger LOG = LoggerFactory.getLogger(RestApiTest.class);
+  private static final Logger LOG = LogManager.getLogger(RestApiTest.class);
 
   private static final int HEADER = 1;  // <-- some responses include a header as the first message.
   private static final int FOOTER = 1;  // <-- some responses include a footer as the last message.

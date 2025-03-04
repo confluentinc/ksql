@@ -42,11 +42,11 @@ import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.clients.admin.DescribeTopicsOptions;
 import org.apache.kafka.common.errors.UnknownTopicOrPartitionException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class HealthCheckAgent {
-  private static final Logger log = LoggerFactory.getLogger(HealthCheckAgent.class);
+  private static final Logger log = LogManager.getLogger(HealthCheckAgent.class);
 
   public static final String METASTORE_CHECK_NAME = "metastore";
   public static final String KAFKA_CHECK_NAME = "kafka";

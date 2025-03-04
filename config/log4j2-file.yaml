@@ -1,0 +1,19 @@
+Configuration:
+  Properties:
+    Property:
+      - name: ksql.log.dir
+        value: ${sys:ksql.log.dir}
+  Appenders:
+    TimestampLogFileAppender:
+      type: io.confluent.ksql.util.TimestampLogFileAppender
+      name: defaultFile
+      fileName: ${ksql.log.dir}/ksql-cli/cli-%timestamp.log
+      filePattern: ${ksql.log.dir}/ksql-cli/cli-%d{yyyy-MM-dd}-%i.log
+      PatternLayout:
+        pattern: "[%d] %p %m (%c:%L)%n"
+      ImmediateFlush: true
+  Loggers:
+    Root:
+      level: WARN
+      AppenderRef:
+        - ref: defaultFile

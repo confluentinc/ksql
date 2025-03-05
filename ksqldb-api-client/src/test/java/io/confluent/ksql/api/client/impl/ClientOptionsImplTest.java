@@ -19,6 +19,7 @@ import com.google.common.testing.EqualsTester;
 import io.confluent.ksql.api.client.ClientOptions;
 import java.util.Collections;
 
+import io.confluent.ksql.security.oauth.ClientSecretIdpConfig;
 import io.confluent.ksql.security.oauth.IdpConfig;
 import org.junit.Test;
 
@@ -64,7 +65,7 @@ public class ClientOptionsImplTest {
             ClientOptions.create().setBasicAuthCredentials("user", "pass")
         )
         .addEqualityGroup(
-            ClientOptions.create().setIdpConfig(new IdpConfig.Builder()
+            ClientOptions.create().setIdpConfig(new ClientSecretIdpConfig.Builder()
                 .withTokenEndpointUrl("http://localhost:8080")
                 .withClientId("user")
                 .withClientSecret("pass")

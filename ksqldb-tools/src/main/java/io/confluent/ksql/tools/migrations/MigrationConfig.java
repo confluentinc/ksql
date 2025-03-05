@@ -17,6 +17,8 @@ package io.confluent.ksql.tools.migrations;
 
 import io.confluent.ksql.api.client.Client;
 import io.confluent.ksql.properties.PropertiesUtil;
+import io.confluent.ksql.security.oauth.IdpConfig;
+import io.confluent.ksql.security.oauth.IdpConfigFactory;
 import io.confluent.ksql.tools.migrations.util.MigrationsUtil;
 import io.confluent.ksql.tools.migrations.util.ServerVersionUtil;
 import java.io.File;
@@ -83,7 +85,7 @@ public final class MigrationConfig extends AbstractConfig {
   }
 
   @SuppressWarnings(value = "MethodLength")
-  private MigrationConfig(final Map<String, String> configs, final String id) {
+  public MigrationConfig(final Map<String, String> configs, final String id) {
     super(new ConfigDef()
         .define(
             KSQL_SERVER_URL,
@@ -269,26 +271,21 @@ public final class MigrationConfig extends AbstractConfig {
       throw new MigrationException("Missing required property: " + MigrationConfig.KSQL_SERVER_URL);
     }
 
+    final IdpConfig idpConfig = IdpConfigFactory.getIdpConfig(configs);
     final Client ksqlClient = MigrationsUtil.getKsqlClient(
-        ksqlServerUrl,
-        configs.get(KSQL_BASIC_AUTH_USERNAME),
-        configs.get(KSQL_BASIC_AUTH_PASSWORD),
-        configs.get(BEARER_AUTH_ISSUER_ENDPOINT_URL),
-        configs.get(BEARER_AUTH_CLIENT_ID),
-        configs.get(BEARER_AUTH_CLIENT_SECRET),
-        configs.get(BEARER_AUTH_SCOPE),
-        getBearerAuthScopeClaimName(configs),
-        getBearerAuthSubClaimName(configs),
-        getBearerAuthCacheExpiryBufferSeconds(configs),
-        configs.get(SSL_TRUSTSTORE_LOCATION),
-        configs.get(SSL_TRUSTSTORE_PASSWORD),
-        configs.get(SSL_KEYSTORE_LOCATION),
-        configs.get(SSL_KEYSTORE_PASSWORD),
-        configs.get(SSL_KEY_PASSWORD),
-        configs.get(SSL_KEY_ALIAS),
-        configs.getOrDefault(SSL_ALPN, "false").equalsIgnoreCase("true"),
-        configs.getOrDefault(SSL_VERIFY_HOST, "true").equalsIgnoreCase("true"),
-        null
+            ksqlServerUrl,
+            configs.get(KSQL_BASIC_AUTH_USERNAME),
+            configs.get(KSQL_BASIC_AUTH_PASSWORD),
+            idpConfig,
+            configs.get(SSL_TRUSTSTORE_LOCATION),
+            configs.get(SSL_TRUSTSTORE_PASSWORD),
+            configs.get(SSL_KEYSTORE_LOCATION),
+            configs.get(SSL_KEYSTORE_PASSWORD),
+            configs.get(SSL_KEY_PASSWORD),
+            configs.get(SSL_KEY_ALIAS),
+            configs.getOrDefault(SSL_ALPN, "false").equalsIgnoreCase("true"),
+            configs.getOrDefault(SSL_VERIFY_HOST, "true").equalsIgnoreCase("true"),
+            null
     );
     final String serviceId;
     try {

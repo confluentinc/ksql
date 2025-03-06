@@ -21,8 +21,8 @@ import javax.security.auth.callback.NameCallback;
 import javax.security.auth.callback.PasswordCallback;
 import javax.security.auth.callback.TextOutputCallback;
 import javax.security.auth.callback.UnsupportedCallbackException;
-import org.eclipse.jetty.jaas.callback.DefaultCallbackHandler;
-import org.eclipse.jetty.jaas.callback.ObjectCallback;
+import org.eclipse.jetty.security.jaas.callback.DefaultCallbackHandler;
+import org.eclipse.jetty.security.jaas.callback.ObjectCallback;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

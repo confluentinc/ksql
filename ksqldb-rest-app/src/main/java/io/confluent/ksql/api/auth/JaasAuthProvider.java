@@ -32,8 +32,8 @@ import io.vertx.ext.auth.authorization.RoleBasedAuthorization;
 import io.vertx.ext.auth.authorization.impl.AuthorizationsImpl;
 import java.util.Objects;
 import java.util.Optional;
-import org.eclipse.jetty.jaas.JAASLoginService;
-import org.eclipse.jetty.server.UserIdentity;
+import org.eclipse.jetty.security.UserIdentity;
+import org.eclipse.jetty.security.jaas.JAASLoginService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -113,7 +113,7 @@ public class JaasAuthProvider implements AuthProvider {
       promisedUser.fail("Could not start login service.");
     }
 
-    final UserIdentity user = login.login(username, password, null);
+    final UserIdentity user = login.login(username, password, null, session -> null);
 
     if (user == null) {
       LOG.error("Failed to log in. ");

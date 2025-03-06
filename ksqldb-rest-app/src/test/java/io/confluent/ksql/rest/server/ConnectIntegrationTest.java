@@ -78,13 +78,13 @@ import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 @Category({IntegrationTest.class})
 public class ConnectIntegrationTest {
 
-  private static final Logger LOG = LoggerFactory.getLogger(ConnectIntegrationTest.class);
+  private static final Logger LOG = LogManager.getLogger(ConnectIntegrationTest.class);
   private static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.build();
   private  static final long TIMEOUT_NS = 120000000000L;
 

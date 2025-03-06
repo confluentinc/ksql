@@ -1,0 +1,4 @@
+Configuration:
+  Loggers:
+    Root:
+      level: OFF

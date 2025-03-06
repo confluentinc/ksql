@@ -39,11 +39,11 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class PullQueryStreamWriter implements StreamingOutput {
-  private static final Logger LOG = LoggerFactory.getLogger(PullQueryStreamWriter.class);
+  private static final Logger LOG = LogManager.getLogger(PullQueryStreamWriter.class);
   private static final int WRITE_TIMEOUT_MS = 3000;
 
   private static final int FLUSH_SIZE_BYTES = 50 * 1024;

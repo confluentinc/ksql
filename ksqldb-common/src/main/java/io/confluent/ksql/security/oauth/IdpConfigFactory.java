@@ -19,9 +19,14 @@ import io.confluent.ksql.security.KsqlClientConfig;
 import java.util.Map;
 import java.util.ServiceLoader;
 import org.apache.kafka.common.config.ConfigException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @SuppressWarnings({"checkstyle:CyclomaticComplexity", "BooleanExpressionComplexity"})
 public final class IdpConfigFactory {
+
+  private static final Logger log = LoggerFactory
+          .getLogger(IdpConfigFactory.class);
 
   private IdpConfigFactory() {}
 
@@ -37,6 +42,7 @@ public final class IdpConfigFactory {
         clientSecretIdpConfig.configure(configs);
         return clientSecretIdpConfig;
       } catch (ConfigException e) {
+        log.info("Configuring client secret authentication method failed with {}", e.getMessage());
         return null;
       }
     }

@@ -155,6 +155,9 @@
         <kafka.version>${ce.kafka.version}</kafka.version>
         <!-- This needs to be removed once the version is populated in common -->
         <log4j2.version>2.17.1</log4j2.version>
+        <!-- jetty 9.4.57.v20241219 is the latest version, we are pinning it until Jetty 12 changes are done in rest-utils upstream -->
+        <!-- This is defined as jetty.version in common repo. Usages of this have been replaced with jetty.override.version for now -->
+        <jetty.override.version>9.4.57.v20241219</jetty.override.version>
     </properties>
 
     <dependencyManagement>

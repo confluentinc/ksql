@@ -153,7 +153,7 @@
         <dependency>
             <groupId>org.eclipse.jetty</groupId>
             <artifactId>jetty-jaas</artifactId>
-            <version>${jetty.version}</version>
+            <version>${jetty.override.version}</version>
         </dependency>
 
         <!-- Required for running tests -->

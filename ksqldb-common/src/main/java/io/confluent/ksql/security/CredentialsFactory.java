@@ -17,6 +17,7 @@ package io.confluent.ksql.security;
 
 import io.confluent.ksql.security.oauth.OAuthBearerCredentials;
 import org.apache.kafka.common.config.ConfigException;
+import io.confluent.ksql.security.oauth.StaticTokenCredentials;
 
 @SuppressWarnings("checkstyle:HideUtilityClassConstructor")
 public class CredentialsFactory {
@@ -29,6 +30,8 @@ public class CredentialsFactory {
         return new OAuthBearerCredentials();
       case CUSTOM:
         return getCustomCredentials(customTokenCredentialsClassName);
+      case STATIC_TOKEN:
+        return new StaticTokenCredentials();
       default:
         return null;
     }

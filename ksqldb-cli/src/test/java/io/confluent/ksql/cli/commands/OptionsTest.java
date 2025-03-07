@@ -147,6 +147,83 @@ public class OptionsTest {
   }
 
   @Test
+  public void shouldThrowExceptionWhenUsernamePasswordAndTokenAreProvided() {
+    // Given:
+    final Options options = parse("-u", "joe", "-p", "pp", "-t", "token");
+
+    // When:
+    final Exception e = assertThrows(
+        ConfigException.class,
+        options::validateCredentials
+    );
+
+    // Then:
+    assertThat(e.getMessage(),
+        containsString("Only one of username/password or token can be provided"));
+  }
+
+  @Test
+  public void shouldAcceptUsernamePasswordWhenNoTokenProvided() {
+    // Given:
+    final Options options = parse("-u", "joe", "-p", "pp");
+
+    // When:
+    options.validateCredentials();
+
+    // Then: No exception thrown
+    assertThat(options.getUserNameAndPassword().isPresent(), is(true));
+    assertThat(options.getUserName(), is("joe"));
+    assertThat(options.getPassword(), is("pp"));
+
+    assertThat(options.getToken(), is(""));
+  }
+
+  @Test
+  public void shouldAcceptTokenIfNoUsernamePasswordProvided() {
+    // Given:
+    final Options options = parse("-t", "abcdef");
+
+    // When:
+    options.validateCredentials();
+
+    // Then: No exception thrown
+    assertThat(options.getUserNameAndPassword().isPresent(), is(false));
+    assertThat(options.getUserName(), is(""));
+    assertThat(options.getPassword(), is(""));
+
+    assertThat(options.getToken(), is("abcdef"));
+  }
+
+  @Test
+  public void shouldThrowConfigExceptionIfEitherUsernameOrPasswordProvidedWithToken() {
+    // Given:
+    Options options = parse("-u","joe","-t", "abcdef");
+
+    // When:
+    Exception e = assertThrows(
+        ConfigException.class,
+        options::validateCredentials
+    );
+
+    // Then:
+    assertThat(e.getMessage(),
+        containsString("You must specify both a username and a password."));
+
+    // Given:
+    options = parse("-p","ee","-t", "abcdef");
+
+    // When:
+    e = assertThrows(
+        ConfigException.class,
+        options::validateCredentials
+    );
+
+    // Then:
+    assertThat(e.getMessage(),
+        containsString("You must specify both a username and a password."));
+  }
+
+  @Test
   public void shouldThrowConfigExceptionIfOnlyApiKeyIsProvided() {
     // Given:
     final Options options = parse("--confluent-api-key", "api_key");

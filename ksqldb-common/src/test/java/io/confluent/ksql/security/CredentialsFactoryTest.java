@@ -18,6 +18,7 @@ package io.confluent.ksql.security;
 
 import io.confluent.ksql.security.oauth.OAuthBearerCredentials;
 import org.apache.kafka.common.config.ConfigException;
+import io.confluent.ksql.security.oauth.StaticTokenCredentials;
 import org.junit.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -40,7 +41,14 @@ public class CredentialsFactoryTest {
   @Test
   public void testCreateCustomCredentialsThrowsException() {
     assertThrows(ConfigException.class, () -> CredentialsFactory.createCredentials(AuthType.CUSTOM, null),
-        "Should throw ConfigException when custom token credentials class name is not provided");
+            "Should throw ConfigException when custom token credentials class name is not provided");
+  }
+
+  @Test
+  public void testCreateStaticTokenCredentials() {
+    Credentials credentials = CredentialsFactory.createCredentials(AuthType.STATIC_TOKEN, null);
+    assertInstanceOf(StaticTokenCredentials.class, credentials,
+        "Should return an instance of StaticTokenCredentials");
   }
 
   @Test

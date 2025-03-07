@@ -19,5 +19,6 @@ public enum AuthType {
   BASIC,
   OAUTHBEARER,
   CUSTOM,
+  STATIC_TOKEN,
   NONE
 }

@@ -124,8 +124,10 @@
         {"topic": "S2", "key": 100,"value": {"SUM": "801.7"}}
       ],
       "expectedException": {
-        "type": "io.confluent.ksql.function.KsqlFunctionException",
-        "message": "Numeric field overflow"
+        "type": "org.apache.kafka.streams.errors.StreamsException",
+        "message": "Exception caught in process",
+        "cause": "io.confluent.ksql.function.KsqlFunctionException",
+        "causeMessage": "Numeric field overflow"
       }
     },
     {
@@ -167,8 +169,10 @@
         {"topic": "S2", "key": 100,"value": {"SUM": "50.9"}}
       ],
       "expectedException": {
-        "type": "io.confluent.ksql.function.KsqlFunctionException",
-        "message": "Numeric field overflow"
+        "type": "org.apache.kafka.streams.errors.StreamsException",
+        "message": "Exception caught in process",
+        "cause": "io.confluent.ksql.function.KsqlFunctionException",
+        "causeMessage": "Numeric field overflow"
       }
     },
     {

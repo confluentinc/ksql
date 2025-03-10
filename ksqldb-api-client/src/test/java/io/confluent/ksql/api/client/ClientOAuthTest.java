@@ -22,6 +22,7 @@ import io.confluent.ksql.api.server.KsqlApiException;
 import io.confluent.ksql.api.server.Server;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.security.KsqlDefaultSecurityExtension;
+import io.confluent.ksql.security.oauth.ClientSecretIdpConfig;
 import io.confluent.ksql.security.oauth.IdpConfig;
 import io.confluent.ksql.util.VertxCompletableFuture;
 import io.vertx.core.WorkerExecutor;
@@ -37,6 +38,7 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
 import static io.confluent.ksql.rest.Errors.ERROR_CODE_UNAUTHORIZED;
+import static org.apache.kafka.common.config.internals.BrokerSecurityConfigs.ALLOWED_SASL_OAUTHBEARER_URLS_CONFIG;
 
 public class ClientOAuthTest extends ClientTest {
   private static final String APP1_DEVELOPER = "app1-developer";
@@ -46,13 +48,14 @@ public class ClientOAuthTest extends ClientTest {
   @Override
   public void setUp() {
     idp.start();
+    System.setProperty(ALLOWED_SASL_OAUTHBEARER_URLS_CONFIG, "*");
     super.setUp();
   }
 
   @Override
   protected ClientOptions createJavaClientOptions() {
     return super.createJavaClientOptions()
-        .setIdpConfig(new IdpConfig.Builder()
+        .setIdpConfig(new ClientSecretIdpConfig.Builder()
             .withTokenEndpointUrl(idp.getTokenEndpoint())
             .withClientId(APP1_DEVELOPER)
             .withClientSecret(APP1_DEVELOPER)

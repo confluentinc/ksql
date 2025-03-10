@@ -61,20 +61,20 @@ public class OAuthBearerCredentials implements Credentials {
   public void validateConfigs(final Map<String, ?> configs) throws ConfigException {
 
     final String tokenEndpointUrl = (String) configs
-        .get(KsqlClientConfig.BEARER_AUTH_TOKEN_ENDPOINT_URL);
+            .get(KsqlClientConfig.BEARER_AUTH_TOKEN_ENDPOINT_URL);
     final String clientId = (String) configs.get(KsqlClientConfig.BEARER_AUTH_CLIENT_ID);
     final String clientSecret = (String) configs.get(KsqlClientConfig.BEARER_AUTH_CLIENT_SECRET);
     if ((tokenEndpointUrl == null || tokenEndpointUrl.isEmpty())) {
       throw new ConfigException("Cannot configure OAuthBearerCredentials without "
-          + "proper tokenEndpointUrl.");
+              + "proper tokenEndpointUrl.");
     }
     if ((clientId == null || clientId.isEmpty())) {
       throw new ConfigException("Cannot configure OAuthBearerCredentials without "
-          + "proper clientId.");
+              + "proper clientId.");
     }
     if ((clientSecret == null || clientSecret.isEmpty())) {
       throw new ConfigException("Cannot configure OAuthBearerCredentials without "
-          + "proper clientSecret.");
+              + "proper clientSecret.");
     }
   }
 

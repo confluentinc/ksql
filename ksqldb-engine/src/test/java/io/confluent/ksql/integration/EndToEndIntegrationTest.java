@@ -124,8 +124,10 @@ public class EndToEndIntegrationTest {
 
   public TestKsqlContext ksqlContext;
 
+  // Make sure Test Timeout is greater than shutdownTimeout
   @Rule
-  public final Timeout timeout = Timeout.seconds(120);
+  public final Timeout timeout = Timeout.seconds(
+      KsqlConfig.KSQL_SHUTDOWN_TIMEOUT_MS_DEFAULT + 1_000);
 
   private final List<QueryMetadata> toClose = new ArrayList<>();
 

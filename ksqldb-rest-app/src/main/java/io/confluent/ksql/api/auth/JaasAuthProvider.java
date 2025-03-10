@@ -34,8 +34,8 @@ import java.util.Objects;
 import java.util.Optional;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.eclipse.jetty.jaas.JAASLoginService;
-import org.eclipse.jetty.server.UserIdentity;
+import org.eclipse.jetty.security.UserIdentity;
+import org.eclipse.jetty.security.jaas.JAASLoginService;
 
 /**
  * Authentication provider that checks credentials specified in the JAAS config.
@@ -113,7 +113,7 @@ public class JaasAuthProvider implements AuthProvider {
       promisedUser.fail("Could not start login service.");
     }
 
-    final UserIdentity user = login.login(username, password, null);
+    final UserIdentity user = login.login(username, password, null, session -> null);
 
     if (user == null) {
       LOG.error("Failed to log in. ");

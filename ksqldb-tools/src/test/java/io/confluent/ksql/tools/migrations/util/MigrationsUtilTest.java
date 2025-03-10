@@ -23,9 +23,14 @@ import static org.junit.Assert.assertThrows;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.api.client.ClientOptions;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 
 import io.confluent.ksql.api.client.exception.KsqlClientException;
+import io.confluent.ksql.security.oauth.ClientSecretIdpConfig;
+import io.confluent.ksql.security.oauth.IdpConfig;
+import io.confluent.ksql.security.oauth.IdpConfigFactory;
+import io.confluent.ksql.tools.migrations.MigrationConfig;
 import org.junit.Test;
 
 public class MigrationsUtilTest {
@@ -36,9 +41,9 @@ public class MigrationsUtilTest {
   @Test
   public void shouldCreateNonTlsClientOptions() {
     // Given:
+    IdpConfig idpConfig = IdpConfigFactory.getIdpConfig(new HashMap<>());
     final ClientOptions clientOptions = createClientOptions(NON_TLS_URL, "user",
-        "pass", "", "", "",
-        "", "", "", null ,
+        "pass", idpConfig,
         null, "", null,
         null, "", "foo", false, true, null);
 
@@ -47,7 +52,7 @@ public class MigrationsUtilTest {
     assertThat(clientOptions.getBasicAuthUsername(), is("user"));
     assertThat(clientOptions.getBasicAuthPassword(), is("pass"));
     assertThrows(NullPointerException.class,
-        () -> clientOptions.getIdpConfig().getIdpTokenEndpointUrl());
+        () -> clientOptions.getIdpConfig().toIdpCredentialsConfig());
     assertThat(clientOptions.getTrustStore(), is(""));
     assertThat(clientOptions.getTrustStorePassword(), is(""));
     assertThat(clientOptions.getKeyStore(), is(""));
@@ -63,9 +68,9 @@ public class MigrationsUtilTest {
   public void shouldCreateTlsClientOptions() {
     // Given:
     final Map<String, String> requestHeaders = ImmutableMap.of("h1", "v1", "h2", "v2");
+    IdpConfig idpConfig = IdpConfigFactory.getIdpConfig(new HashMap<>());
     final ClientOptions clientOptions = createClientOptions(TLS_URL, "user",
-        "pass", "", "", "", "",
-        "", "", null,
+        "pass", idpConfig,
         "abc", null, null,
         null, null, null, true, true, requestHeaders);
 
@@ -74,7 +79,7 @@ public class MigrationsUtilTest {
     assertThat(clientOptions.getBasicAuthUsername(), is("user"));
     assertThat(clientOptions.getBasicAuthPassword(), is("pass"));
     assertThrows(NullPointerException.class,
-        () -> clientOptions.getIdpConfig().getIdpTokenEndpointUrl());
+        () -> clientOptions.getIdpConfig().toIdpCredentialsConfig());
     assertThat(clientOptions.getTrustStore(), is("abc"));
     assertThat(clientOptions.getTrustStorePassword(), is(""));
     assertThat(clientOptions.getKeyStore(), is(""));
@@ -89,23 +94,32 @@ public class MigrationsUtilTest {
   @Test
   public void shouldCreateClientOptionsWithOAuthAndTlsEnabled() {
     // Given:
+    Map<String, Object> configs = new HashMap<>();
+    configs.put(MigrationConfig.BEARER_AUTH_ISSUER_ENDPOINT_URL, "http://localhost:8080");
+    configs.put(MigrationConfig.BEARER_AUTH_CLIENT_ID, "user");
+    configs.put(MigrationConfig.BEARER_AUTH_CLIENT_SECRET, "pass");
+    configs.put(MigrationConfig.BEARER_AUTH_SCOPE, "all");
+    configs.put(MigrationConfig.BEARER_AUTH_SCOPE_CLAIM_NAME, "newScope");
+    configs.put(MigrationConfig.BEARER_AUTH_SUB_CLAIM_NAME, "newSub");
+    configs.put(MigrationConfig.BEARER_AUTH_CACHE_EXPIRY_BUFFER_SECONDS, (short) 600);
+    IdpConfig idpConfig = IdpConfigFactory.getIdpConfig(configs);
     final ClientOptions clientOptions = createClientOptions(TLS_URL, "",
-        "", "http://localhost:8080", "user", "pass", "all",
-        "newScope", "newSub", (short) 600,
+        "", idpConfig,
         "abc", null, null,
         null, null, null, true, true, null);
 
+    ClientSecretIdpConfig clientSecretIdpConfig = (ClientSecretIdpConfig) clientOptions.getIdpConfig();
     // Then:
     assertThat(clientOptions.isUseTls(), is(true));
     assertThat(clientOptions.getBasicAuthUsername(), is(""));
     assertThat(clientOptions.getBasicAuthPassword(), is(""));
-    assertThat(clientOptions.getIdpConfig().getIdpTokenEndpointUrl(), is("http://localhost:8080"));
-    assertThat(clientOptions.getIdpConfig().getIdpClientId(), is("user"));
-    assertThat(clientOptions.getIdpConfig().getIdpClientSecret(), is("pass"));
-    assertThat(clientOptions.getIdpConfig().getIdpScope(), is("all"));
-    assertThat(clientOptions.getIdpConfig().getIdpScopeClaimName(), is("newScope"));
-    assertThat(clientOptions.getIdpConfig().getIdpSubClaimName(), is("newSub"));
-    assertThat(clientOptions.getIdpConfig().getIdpCacheExpiryBufferSeconds(), is((short) 600));
+    assertThat(clientSecretIdpConfig.getIdpTokenEndpointUrl(), is("http://localhost:8080"));
+    assertThat(clientSecretIdpConfig.getIdpClientId(), is("user"));
+    assertThat(clientSecretIdpConfig.getIdpClientSecret(), is("pass"));
+    assertThat(clientSecretIdpConfig.getIdpScope(), is("all"));
+    assertThat(clientSecretIdpConfig.getIdpScopeClaimName(), is("newScope"));
+    assertThat(clientSecretIdpConfig.getIdpSubClaimName(), is("newSub"));
+    assertThat(clientSecretIdpConfig.getIdpCacheExpiryBufferSeconds(), is((short) 600));
     assertThat(clientOptions.getTrustStore(), is("abc"));
     assertThat(clientOptions.getTrustStorePassword(), is(""));
     assertThat(clientOptions.getKeyStore(), is(""));
@@ -119,10 +133,19 @@ public class MigrationsUtilTest {
 
   @Test
   public void testCannotConfigureBothBasicAndBearerAuth() {
+    Map<String, Object> configs = new HashMap<>();
+    configs.put(MigrationConfig.BEARER_AUTH_ISSUER_ENDPOINT_URL, "http://localhost:8080");
+    configs.put(MigrationConfig.BEARER_AUTH_CLIENT_ID, "user");
+    configs.put(MigrationConfig.BEARER_AUTH_CLIENT_SECRET, "pass");
+    configs.put(MigrationConfig.BEARER_AUTH_SCOPE, "all");
+    configs.put(MigrationConfig.BEARER_AUTH_SCOPE_CLAIM_NAME, "newScope");
+    configs.put(MigrationConfig.BEARER_AUTH_SUB_CLAIM_NAME, "newSub");
+    configs.put(MigrationConfig.BEARER_AUTH_CACHE_EXPIRY_BUFFER_SECONDS, (short) 600);
+    IdpConfig idpConfig = IdpConfigFactory.getIdpConfig(configs);
     assertThrows(KsqlClientException.class, () -> createClientOptions(TLS_URL, "user",
-        "pass", "http://localhost:8080", "user", "pass", "all",
-        "newScope", "newSub", (short) 600,
+        "pass", idpConfig,
         "abc", null, null,
         null, null, null, true, true, null));
   }
+
 }

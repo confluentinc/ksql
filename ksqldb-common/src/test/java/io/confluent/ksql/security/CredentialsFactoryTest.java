@@ -16,38 +16,44 @@
 
 package io.confluent.ksql.security;
 
-import static org.junit.jupiter.api.Assertions.assertInstanceOf;
-import static org.junit.jupiter.api.Assertions.assertNull;
-
 import io.confluent.ksql.security.oauth.OAuthBearerCredentials;
+import org.apache.kafka.common.config.ConfigException;
 import io.confluent.ksql.security.oauth.StaticTokenCredentials;
 import org.junit.Test;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 public class CredentialsFactoryTest {
   @Test
   public void testCreateBasicCredentials() {
-    Credentials credentials = CredentialsFactory.createCredentials(AuthType.BASIC);
+    Credentials credentials = CredentialsFactory.createCredentials(AuthType.BASIC, null);
     assertInstanceOf(BasicCredentials.class, credentials,
         "Should return an instance of BasicCredentials");
   }
 
   @Test
   public void testCreateOAuthBearerCredentials() {
-    Credentials credentials = CredentialsFactory.createCredentials(AuthType.OAUTHBEARER);
+    Credentials credentials = CredentialsFactory.createCredentials(AuthType.OAUTHBEARER, null);
     assertInstanceOf(OAuthBearerCredentials.class, credentials,
         "Should return an instance of OAuthBearerCredentials");
   }
 
   @Test
+  public void testCreateCustomCredentialsThrowsException() {
+    assertThrows(ConfigException.class, () -> CredentialsFactory.createCredentials(AuthType.CUSTOM, null),
+            "Should throw ConfigException when custom token credentials class name is not provided");
+  }
+
+  @Test
   public void testCreateStaticTokenCredentials() {
-    Credentials credentials = CredentialsFactory.createCredentials(AuthType.STATIC_TOKEN);
+    Credentials credentials = CredentialsFactory.createCredentials(AuthType.STATIC_TOKEN, null);
     assertInstanceOf(StaticTokenCredentials.class, credentials,
         "Should return an instance of StaticTokenCredentials");
   }
 
   @Test
   public void testCreateCredentialsWithUnsupportedAuthType() {
-    Credentials credentials = CredentialsFactory.createCredentials(AuthType.NONE);
+    Credentials credentials = CredentialsFactory.createCredentials(AuthType.NONE, null);
     assertNull(credentials, "Should return null for unsupported AuthType");
   }
 }

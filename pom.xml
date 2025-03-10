@@ -155,7 +155,6 @@
         <kafka.version>${ce.kafka.version}</kafka.version>
         <!-- This needs to be removed once the version is populated in common -->
         <log4j2.version>2.17.1</log4j2.version>
-        <jetty.version>9.4.57.v20241219</jetty.version>
     </properties>
 
     <dependencyManagement>

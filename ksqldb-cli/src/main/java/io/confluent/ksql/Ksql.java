@@ -174,7 +174,8 @@ public final class Ksql {
       configProps.put(KsqlClientConfig.BEARER_AUTH_TOKEN_CONFIG, token);
     }
 
-    return Optional.ofNullable(CredentialsFactory.createCredentials(authType))
+    return Optional.ofNullable(CredentialsFactory.createCredentials(authType,
+                    (String) configProps.get(KsqlClientConfig.CUSTOM_TOKEN_CREDENTIALS_CLASS)))
         .map(credentials -> {
           credentials.configure(configProps);
           return credentials;

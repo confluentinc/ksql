@@ -47,8 +47,8 @@ public class ClientOAuthTest extends ClientTest {
   @Override
   public void setUp() {
     idp.start();
-    super.setUp();
     System.setProperty(ALLOWED_SASL_OAUTHBEARER_URLS_CONFIG, "*");
+    super.setUp();
   }
 
   @Override

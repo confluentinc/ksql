@@ -1,15 +1,14 @@
 Configuration:
   Appenders:
     Console:
-      name: stdout
-      target: SYSTEM_OUT
-      PatternLayout:
-        pattern: "[%d] %p %m (%c:%L)%n"
-    Console2:
-      name: console
-      target: SYSTEM_ERR
-      PatternLayout:
-        pattern: "%d{yy/MM/dd HH:mm:ss} %p %c{1}: %m%n"
+      - name: stdout
+        target: SYSTEM_OUT
+        PatternLayout:
+          pattern: "[%d] %p %m (%c:%L)%n"
+      - name: console
+        target: SYSTEM_ERR
+        PatternLayout:
+          pattern: "%d{yy/MM/dd HH:mm:ss} %p %c{1}: %m%n"
   Loggers:
     Root:
       level: WARN

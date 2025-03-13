@@ -99,12 +99,15 @@ class KafkaEmbedded {
     // Listener configuration for KRaft mode with dynamic free ports:
     config.put("listeners", "CONTROLLER://127.0.0.1:" + controllerPort
         + ",EXTERNAL://127.0.0.1:" + externalPort);
-    config.put("listener.security.protocol.map", "CONTROLLER:PLAINTEXT,EXTERNAL:PLAINTEXT");
     config.put("inter.broker.listener.name", "EXTERNAL");
     config.put("controller.listener.names", "CONTROLLER");
     config.put("advertised.listeners", "EXTERNAL://127.0.0.1:" + externalPort);
 
-
+    config.remove("security.inter.broker.protocol");
+    if (!config.containsKey("listener.security.protocol.map")) {
+      // Default to PLAINTEXT if not set
+      config.put("listener.security.protocol.map", "CONTROLLER:PLAINTEXT,EXTERNAL:PLAINTEXT");
+    }
 
     final Map<Integer, Map<String,String>> brokerConfigs = new HashMap<>();
     brokerConfigs.put(0, config);

@@ -76,6 +76,17 @@
 
     <dependency>
       <groupId>org.apache.kafka</groupId>
+      <artifactId>kafka-test-common-internal-api</artifactId>
+      <scope>compile</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.kafka</groupId>
+      <artifactId>kafka-test-common-runtime</artifactId>
+      <scope>compile</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>org.apache.kafka</groupId>
       <artifactId>kafka-clients</artifactId>
       <classifier>test</classifier>
       <scope>compile</scope>

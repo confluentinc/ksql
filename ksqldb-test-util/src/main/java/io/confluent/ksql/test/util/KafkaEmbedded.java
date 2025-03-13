@@ -22,6 +22,8 @@ import static org.hamcrest.Matchers.is;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import java.io.IOException;
+import java.net.ServerSocket;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
@@ -30,6 +32,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Set;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.apache.kafka.clients.admin.Admin;
@@ -75,6 +78,34 @@ class KafkaEmbedded {
   KafkaEmbedded(final Map<String, String> config) {
     log.debug("Starting embedded Kafka broker");
 
+    // Basic broker settings
+    config.put("broker.id", "0");
+    config.put("num.partitions", "1");
+    config.put("auto.create.topics.enable", "true");
+    config.put("message.max.bytes", "1000000");
+    config.put("controlled.shutdown.enable", "true");
+
+    // License validator overrides for tests
+    config.put("confluent.license.validator.enabled", "false");
+    config.put("confluent.license.topic.auto.create", "false");
+    config.put("confluent.license", "test");
+    config.put("confluent.license.topic.replication.factor", "1");
+
+    // Listener configuration for KRaft mode with two endpoints:
+    //  - CONTROLLER: used for internal controller functions.
+    //  - EXTERNAL: used as the advertised broker endpoint.
+    final int controllerPort = getFreePort();
+    final int externalPort = getFreePort();
+    // Listener configuration for KRaft mode with dynamic free ports:
+    config.put("listeners", "CONTROLLER://127.0.0.1:" + controllerPort
+        + ",EXTERNAL://127.0.0.1:" + externalPort);
+    config.put("listener.security.protocol.map", "CONTROLLER:PLAINTEXT,EXTERNAL:PLAINTEXT");
+    config.put("inter.broker.listener.name", "EXTERNAL");
+    config.put("controller.listener.names", "CONTROLLER");
+    config.put("advertised.listeners", "EXTERNAL://127.0.0.1:" + externalPort);
+
+
+
     final Map<Integer, Map<String,String>> brokerConfigs = new HashMap<>();
     brokerConfigs.put(0, config);
 
@@ -98,6 +129,14 @@ class KafkaEmbedded {
       throw new KafkaException("Failed to create test Kafka cluster", e);
     }
     log.debug("Startup of embedded Kafka broker at {} completed  ...", brokerList());
+  }
+
+  private static int getFreePort() {
+    try (ServerSocket socket = new ServerSocket(0)) {
+      return socket.getLocalPort();
+    } catch (IOException e) {
+      throw new RuntimeException("Unable to get a free port", e);
+    }
   }
 
   /**
@@ -131,8 +170,11 @@ class KafkaEmbedded {
     log.debug("Shutting down embedded Kafka broker at {} ...", brokerList());
     try {
       cluster.close();
+    } catch (RejectedExecutionException ree) {
+      // The executor is already terminated; log a warning and continue
+      log.warn("Executor already terminated; ignoring shutdown exception", ree);
     } catch (Exception e) {
-      throw new RuntimeException(e);
+      throw new KafkaException("Failed to shutdown Kafka cluster", e);
     }
     log.debug("Shutdown of embedded Kafka broker at {} completed ...", brokerList());
   }

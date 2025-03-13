@@ -103,7 +103,6 @@ class KafkaEmbedded {
     config.put("controller.listener.names", "CONTROLLER");
     config.put("advertised.listeners", "EXTERNAL://127.0.0.1:" + externalPort);
 
-    config.remove("security.inter.broker.protocol");
     if (!config.containsKey("listener.security.protocol.map")) {
       // Default to PLAINTEXT if not set
       config.put("listener.security.protocol.map", "CONTROLLER:PLAINTEXT,EXTERNAL:PLAINTEXT");

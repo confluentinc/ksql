@@ -78,35 +78,8 @@ class KafkaEmbedded {
   KafkaEmbedded(final Map<String, String> config) {
     log.debug("Starting embedded Kafka broker");
 
-    // Basic broker settings
-    config.put("broker.id", "0");
-    config.put("num.partitions", "1");
-    config.put("auto.create.topics.enable", "true");
-    config.put("message.max.bytes", "1000000");
-    config.put("controlled.shutdown.enable", "true");
-
-    // License validator overrides for tests
-    config.put("confluent.license.validator.enabled", "false");
-    config.put("confluent.license.topic.auto.create", "false");
-    config.put("confluent.license", "test");
-    config.put("confluent.license.topic.replication.factor", "1");
-
-    // Listener configuration for KRaft mode with two endpoints:
-    //  - CONTROLLER: used for internal controller functions.
-    //  - EXTERNAL: used as the advertised broker endpoint.
-    final int controllerPort = getFreePort();
-    final int externalPort = getFreePort();
-    // Listener configuration for KRaft mode with dynamic free ports:
-    config.put("listeners", "CONTROLLER://127.0.0.1:" + controllerPort
-        + ",EXTERNAL://127.0.0.1:" + externalPort);
-    config.put("inter.broker.listener.name", "EXTERNAL");
-    config.put("controller.listener.names", "CONTROLLER");
-    config.put("advertised.listeners", "EXTERNAL://127.0.0.1:" + externalPort);
-
-    if (!config.containsKey("listener.security.protocol.map")) {
-      // Default to PLAINTEXT if not set
-      config.put("listener.security.protocol.map", "CONTROLLER:PLAINTEXT,EXTERNAL:PLAINTEXT");
-    }
+    applyDefaultConfig(config);
+    setupListenerConfiguration(config);
 
     final Map<Integer, Map<String,String>> brokerConfigs = new HashMap<>();
     brokerConfigs.put(0, config);
@@ -131,6 +104,47 @@ class KafkaEmbedded {
       throw new KafkaException("Failed to create test Kafka cluster", e);
     }
     log.debug("Startup of embedded Kafka broker at {} completed  ...", brokerList());
+  }
+
+  /**
+   * Apply basic broker configurations.
+   *
+   * @param config The broker configuration settings to be updated.
+   */
+  private void applyDefaultConfig(final Map<String, String> config) {
+    // Basic broker settings
+    config.put("broker.id", "0");
+    config.put("num.partitions", "1");
+    config.put("auto.create.topics.enable", "true");
+    config.put("message.max.bytes", "1000000");
+    config.put("controlled.shutdown.enable", "true");
+
+    // License validator overrides for tests
+    config.put("confluent.license.validator.enabled", "false");
+    config.put("confluent.license.topic.auto.create", "false");
+    config.put("confluent.license", "test");
+    config.put("confluent.license.topic.replication.factor", "1");
+  }
+
+  /**
+   * Setup listener configuration for KRaft mode with dynamic free ports.
+   *
+   * @param config The broker configuration settings to be updated.
+   */
+  private void setupListenerConfiguration(final Map<String, String> config) {
+    final int controllerPort = getFreePort();
+    final int externalPort = getFreePort();
+
+    config.put("listeners", "CONTROLLER://127.0.0.1:" + controllerPort
+        + ",EXTERNAL://127.0.0.1:" + externalPort);
+    config.put("inter.broker.listener.name", "EXTERNAL");
+    config.put("controller.listener.names", "CONTROLLER");
+    config.put("advertised.listeners", "EXTERNAL://127.0.0.1:" + externalPort);
+
+    if (!config.containsKey("listener.security.protocol.map")) {
+      // Default to PLAINTEXT if not set
+      config.put("listener.security.protocol.map", "CONTROLLER:PLAINTEXT,EXTERNAL:PLAINTEXT");
+    }
   }
 
   private static int getFreePort() {

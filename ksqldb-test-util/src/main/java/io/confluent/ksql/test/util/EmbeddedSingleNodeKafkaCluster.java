@@ -173,7 +173,6 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
 
     tmpFolder.create();
 
-    installJaasConfig();
     broker = new KafkaEmbedded(buildBrokerConfig(tmpFolder.newFolder().getAbsolutePath()));
 
     initialAcls.forEach((key, ops) ->
@@ -628,12 +627,6 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
     return ALL_VALID_USERS.stream()
         .map(creds -> "  user_" + creds.username + "=\"" + creds.password + "\"")
         .collect(Collectors.joining("\n", prefix, ";\n};\n"));
-  }
-
-  private void installJaasConfig() {
-    System.setProperty(JaasUtils.JAVA_LOGIN_CONFIG_PARAM, jassConfigFile);
-    System.setProperty(JaasUtils.ZK_SASL_CLIENT, "false");
-    Configuration.setConfiguration(null);
   }
 
   private void resetJaasConfig() {

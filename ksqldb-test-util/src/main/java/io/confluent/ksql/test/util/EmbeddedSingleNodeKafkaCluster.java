@@ -632,7 +632,6 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
 
   private void installJaasConfig() {
     System.setProperty(JaasUtils.JAVA_LOGIN_CONFIG_PARAM, jassConfigFile);
-    System.setProperty(JaasUtils.ZK_SASL_CLIENT, "false");
     Configuration.setConfiguration(null);
   }
 

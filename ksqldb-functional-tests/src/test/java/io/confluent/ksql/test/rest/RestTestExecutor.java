@@ -200,7 +200,12 @@ public class RestTestExecutor implements Closeable {
         IntegrationTestUtil.waitForPersistentQueriesToProcessInputs(kafkaCluster, engine);
       }
 
-      final List<RqttResponse> queryResults = sendQueryStatements(testCase, statements.queries,
+        try {
+          Thread.sleep(100);
+        } catch (InterruptedException e) {
+          throw new RuntimeException(e);
+        }
+        final List<RqttResponse> queryResults = sendQueryStatements(testCase, statements.queries,
           postInputConditionRunnable);
 
       if (!queryResults.isEmpty()) {

@@ -291,6 +291,16 @@
                 <version>${kafka.version}</version>
                 <scope>compile</scope>
             </dependency>
+            <dependency>
+                <groupId>org.apache.kafka</groupId>
+                <artifactId>kafka-test-common-internal-api</artifactId>
+                <version>${kafka.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.kafka</groupId>
+                <artifactId>kafka-test-common-runtime</artifactId>
+                <version>${kafka.version}</version>
+            </dependency>
 
             <dependency>
                 <groupId>io.confluent.ksql</groupId>

@@ -59,7 +59,6 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
-import kafka.zookeeper.ZooKeeperClientException;
 import org.apache.hc.core5.http.HttpStatus;
 import org.apache.kafka.connect.json.JsonConverter;
 import io.confluent.ksql.rest.entity.ConnectorType;
@@ -68,6 +67,7 @@ import org.apache.kafka.connect.tools.MockSinkConnector;
 import org.apache.kafka.connect.tools.MockSourceConnector;
 import org.apache.kafka.connect.tools.VerifiableSinkConnector;
 import org.apache.kafka.connect.tools.VerifiableSourceConnector;
+import org.apache.kafka.raft.errors.RaftException;
 import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -97,7 +97,7 @@ public class ConnectIntegrationTest {
 
   @ClassRule
   public static final RuleChain CHAIN = RuleChain
-      .outerRule(Retry.of(3, ZooKeeperClientException.class, 3, TimeUnit.SECONDS))
+      .outerRule(Retry.of(3, RaftException.class, 3, TimeUnit.SECONDS))
       .around(TEST_HARNESS)
       .around(REST_APP);
 

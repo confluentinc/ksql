@@ -46,7 +46,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
-import kafka.zookeeper.ZooKeeperClientException;
+import org.apache.kafka.raft.errors.RaftException;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.core.LoggerContext;
@@ -109,7 +109,7 @@ public class TransientQueryResourceCleanerIntTest {
 
     @ClassRule
     public static final RuleChain CHAIN = RuleChain
-            .outerRule(Retry.of(3, ZooKeeperClientException.class, 3, TimeUnit.SECONDS))
+            .outerRule(Retry.of(3, RaftException.class, 3, TimeUnit.SECONDS))
             .around(TEST_HARNESS)
             .around(REST_APP_0);
 

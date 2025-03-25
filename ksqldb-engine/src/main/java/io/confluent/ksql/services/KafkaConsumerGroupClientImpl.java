@@ -66,9 +66,7 @@ public class KafkaConsumerGroupClientImpl implements KafkaConsumerGroupClient {
                   .describeConsumerGroups(Collections.singleton(group))
                   .all()
                   .get(),
-              RetryBehaviour.ON_RETRYABLE,
-              retry -> Duration.ofSeconds(1),
-              10);
+              RetryBehaviour.ON_RETRYABLE);
 
       final Set<ConsumerSummary> results = groupDescriptions
           .values()

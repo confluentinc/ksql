@@ -196,12 +196,14 @@ public class Cli implements KsqlRequestExecutor, Closeable {
   }
 
   @Override
-  public void makeKsqlRequest(final String statements) {
+  public int makeKsqlRequest(final String statements) {
     if (statements.isEmpty()) {
-      return;
+      return -1;
     }
 
-    printKsqlResponse(makeKsqlRequest(statements, restClient::makeKsqlRequest));
+    RestResponse<KsqlEntityList> restResponse = makeKsqlRequest(statements, restClient::makeKsqlRequest);
+    printKsqlResponse(restResponse);
+    return (restResponse.getStatusCode()>= 200 && restResponse.getStatusCode() < 300)? 0 : -1;
   }
 
   private <R> RestResponse<R> makeKsqlRequest(
@@ -264,7 +266,7 @@ public class Cli implements KsqlRequestExecutor, Closeable {
       final String content = Files.readAllLines(Paths.get(scriptFile), StandardCharsets.UTF_8)
           .stream().collect(Collectors.joining(System.lineSeparator()));
 
-      handleLine(content);
+      errorCode = handleLine(content);
     } catch (final Exception exception) {
       errorCode = ERROR;
 
@@ -414,13 +416,13 @@ public class Cli implements KsqlRequestExecutor, Closeable {
     terminal.close();
   }
 
-  void handleLine(final String line) {
+  int handleLine(final String line) {
     final String trimmedLine = Optional.ofNullable(line).orElse("").trim();
     if (trimmedLine.isEmpty()) {
-      return;
+      return -1;
     }
 
-    handleStatements(trimmedLine);
+    return handleStatements(trimmedLine);
   }
 
   /**
@@ -478,7 +480,7 @@ public class Cli implements KsqlRequestExecutor, Closeable {
   }
 
   @SuppressWarnings("rawtypes")
-  private void handleStatements(final String line) {
+  private int handleStatements(final String line) {
     final List<ParsedStatement> statements = KSQL_PARSER.parse(line);
 
     // validate all before executing any
@@ -516,8 +518,9 @@ public class Cli implements KsqlRequestExecutor, Closeable {
     });
 
     if (consecutiveStatements.length() != 0) {
-      makeKsqlRequest(consecutiveStatements.toString());
+      return makeKsqlRequest(consecutiveStatements.toString());
     }
+    return 0;
   }
 
   private void printKsqlResponse(final RestResponse<KsqlEntityList> response) {

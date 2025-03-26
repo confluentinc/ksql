@@ -108,11 +108,11 @@ public class KafkaConsumerGroupClientTest {
   public void shouldDescribeConsumerGroup() {
     givenTopicExistsWithData();
     try (KafkaConsumer<String, byte[]> c1 = createConsumer(group0)) {
-        c1.poll(Duration.ofMillis(200));  // Force consumer to join group
+        c1.poll(Duration.ofMillis(10));  // Force consumer to join group
 
         verifyDescribeConsumerGroup(1, group0, ImmutableList.of(c1));
         try (KafkaConsumer<String, byte[]> c2 = createConsumer(group0)) {
-            c2.poll(Duration.ofMillis(200));  // Force consumer to join group
+            c2.poll(Duration.ofMillis(10));  // Force consumer to join group
 
             verifyDescribeConsumerGroup(2, group0, ImmutableList.of(c1, c2));
         }
@@ -131,21 +131,20 @@ public class KafkaConsumerGroupClientTest {
       final List<KafkaConsumer<?, ?>> consumers
   ) {
     final Supplier<ConsumerAndPartitionCount> pollAndGetCounts = () -> {
-        consumers.forEach(consumer -> consumer.poll(Duration.ofMillis(200)));
+      consumers.forEach(consumer -> consumer.poll(Duration.ofMillis(1)));
 
-        final Collection<ConsumerSummary> summaries = consumerGroupClient
-            .describeConsumerGroup(group).consumers();
+      final Collection<ConsumerSummary> summaries = consumerGroupClient
+          .describeConsumerGroup(group).consumers();
 
-        final long partitionCount = summaries.stream()
-            .mapToLong(summary -> summary.partitions().size())
-            .sum();
+      final long partitionCount = summaries.stream()
+          .mapToLong(summary -> summary.partitions().size())
+          .sum();
 
-        return new ConsumerAndPartitionCount(consumers.size(), (int) partitionCount);
+      return new ConsumerAndPartitionCount(consumers.size(), (int) partitionCount);
     };
 
     assertThatEventually(pollAndGetCounts,
-        is(new ConsumerAndPartitionCount(expectedNumConsumers, PARTITION_COUNT))
-    );
+        is(new ConsumerAndPartitionCount(expectedNumConsumers, PARTITION_COUNT)));
   }
 
   private void verifyListsGroups(final String newGroup, final List<String> consumerGroups) {

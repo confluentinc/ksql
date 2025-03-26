@@ -108,16 +108,46 @@ public class KafkaConsumerGroupClientTest {
   public void shouldDescribeConsumerGroup() {
     givenTopicExistsWithData();
     try (KafkaConsumer<String, byte[]> c1 = createConsumer(group0)) {
+        System.out.println("Before first poll - Consumer 1");
+        logConsumerGroupState(group0);
         c1.poll(Duration.ofMillis(10));  // Force consumer to join group
+        System.out.println("After first poll - Consumer 1");
+        logConsumerGroupState(group0);
 
         verifyDescribeConsumerGroup(1, group0, ImmutableList.of(c1));
+        System.out.println("After verify - Consumer 1");
+        logConsumerGroupState(group0);
         try (KafkaConsumer<String, byte[]> c2 = createConsumer(group0)) {
+            System.out.println("Before first poll - Consumer 2");
+            logConsumerGroupState(group0);
             c2.poll(Duration.ofMillis(10));  // Force consumer to join group
+            System.out.println("After first poll - Consumer 2");
+            logConsumerGroupState(group0);
 
             verifyDescribeConsumerGroup(2, group0, ImmutableList.of(c1, c2));
+            System.out.println("After verify - Consumer 2");
+            logConsumerGroupState(group0);
         }
     }
   }
+
+  private void logConsumerGroupState(String groupId) {
+    try {
+        Collection<ConsumerSummary> summaries = consumerGroupClient
+            .describeConsumerGroup(groupId).consumers();
+        if (summaries != null) {
+            System.out.println("Group " + groupId + " state:");
+            System.out.println("  Number of consumers: " + summaries.size());
+            summaries.forEach(summary -> {
+                System.out.println("    Assigned partitions: " + summary.partitions().size() + "  partitions");
+            });
+        } else {
+            System.out.println("Group " + groupId + " not found or empty");
+        }
+    } catch (Exception e) {
+        System.out.println("Error getting group state: " + e.getMessage());
+    }
+}
 
   @Test
   public void shouldListConsumerGroupOffsetsWhenTheyExist() {
@@ -131,20 +161,35 @@ public class KafkaConsumerGroupClientTest {
       final List<KafkaConsumer<?, ?>> consumers
   ) {
     final Supplier<ConsumerAndPartitionCount> pollAndGetCounts = () -> {
-      consumers.forEach(consumer -> consumer.poll(Duration.ofMillis(1)));
+        System.out.println("\n=== Before internal poll ===");
+        logConsumerGroupState(group);
+        
+        consumers.forEach(consumer -> consumer.poll(Duration.ofMillis(10)));
+        
+        System.out.println("\n=== After internal poll ===");
+        logConsumerGroupState(group);
 
-      final Collection<ConsumerSummary> summaries = consumerGroupClient
-          .describeConsumerGroup(group).consumers();
+        final Collection<ConsumerSummary> summaries = consumerGroupClient
+            .describeConsumerGroup(group).consumers();
+        
+        final long partitionCount = summaries.stream()
+            .mapToLong(summary -> summary.partitions().size())
+            .sum();
 
-      final long partitionCount = summaries.stream()
-          .mapToLong(summary -> summary.partitions().size())
-          .sum();
-
-      return new ConsumerAndPartitionCount(consumers.size(), (int) partitionCount);
+        ConsumerAndPartitionCount result = new ConsumerAndPartitionCount(
+            summaries.size(), 
+            (int) partitionCount
+        );
+        System.out.println("Current state: consumers=" + summaries.size() + 
+                         ", partitions=" + partitionCount);
+        return result;
     };
 
-    assertThatEventually(pollAndGetCounts,
-        is(new ConsumerAndPartitionCount(expectedNumConsumers, PARTITION_COUNT)));
+    assertThatEventually(
+        "Consumer group description should match expected state",
+        pollAndGetCounts,
+        is(new ConsumerAndPartitionCount(expectedNumConsumers, PARTITION_COUNT))
+    );
   }
 
   private void verifyListsGroups(final String newGroup, final List<String> consumerGroups) {

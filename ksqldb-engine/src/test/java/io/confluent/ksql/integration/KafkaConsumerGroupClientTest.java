@@ -104,16 +104,20 @@ public class KafkaConsumerGroupClientTest {
     verifyListsGroups(group1, ImmutableList.of(group0, group1));
   }
 
-//  @Test
-//  public void shouldDescribeConsumerGroup() {
-//    givenTopicExistsWithData();
-//    try (KafkaConsumer<String, byte[]> c1 = createConsumer(group0)) {
-//      verifyDescribeConsumerGroup(1, group0, ImmutableList.of(c1));
-//      try (KafkaConsumer<String, byte[]> c2 = createConsumer(group0)) {
-//        verifyDescribeConsumerGroup(2, group0, ImmutableList.of(c1, c2));
-//      }
-//    }
-//  }
+  @Test
+  public void shouldDescribeConsumerGroup() {
+    givenTopicExistsWithData();
+    try (KafkaConsumer<String, byte[]> c1 = createConsumer(group0)) {
+        c1.poll(Duration.ofMillis(10));  // Force consumer to join group
+
+        verifyDescribeConsumerGroup(1, group0, ImmutableList.of(c1));
+        try (KafkaConsumer<String, byte[]> c2 = createConsumer(group0)) {
+            c2.poll(Duration.ofMillis(10));  // Force consumer to join group
+
+            verifyDescribeConsumerGroup(2, group0, ImmutableList.of(c1, c2));
+        }
+    }
+  }
 
   @Test
   public void shouldListConsumerGroupOffsetsWhenTheyExist() {

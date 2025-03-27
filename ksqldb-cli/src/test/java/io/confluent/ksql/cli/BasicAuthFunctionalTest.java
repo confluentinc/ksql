@@ -50,7 +50,7 @@ import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import org.apache.kafka.raft.errors.RaftException;
 import org.apache.kafka.common.security.JaasUtils;
-import org.eclipse.jetty.jaas.spi.PropertyFileLoginModule;
+import org.eclipse.jetty.security.jaas.spi.PropertyFileLoginModule;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;

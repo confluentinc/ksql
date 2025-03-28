@@ -31,6 +31,7 @@ import io.confluent.ksql.test.util.TopicTestUtil;
 import io.confluent.ksql.services.KafkaConsumerGroupClient;
 import io.confluent.ksql.services.KafkaConsumerGroupClient.ConsumerSummary;
 import io.confluent.ksql.services.KafkaConsumerGroupClientImpl;
+import io.confluent.ksql.util.ExecutorUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.OrderDataProvider;
 import java.time.Duration;
@@ -41,6 +42,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
+
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
@@ -50,6 +52,8 @@ import org.apache.kafka.common.errors.GroupIdNotFoundException;
 import org.apache.kafka.common.serialization.ByteArrayDeserializer;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.raft.errors.RaftException;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
@@ -68,6 +72,7 @@ public class KafkaConsumerGroupClientTest {
   private static final int PARTITION_COUNT = 3;
 
   private static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.build();
+  private static final Logger log = LogManager.getLogger(ExecutorUtil.class);
 
   @ClassRule
   public static final RuleChain clusterWithRetry = RuleChain
@@ -140,8 +145,7 @@ public class KafkaConsumerGroupClientTest {
 
       return new ConsumerAndPartitionCount(consumers.size(), (int) partitionCount);
       }catch(GroupIdNotFoundException groupIdNotFoundException) {
-        // Log the exception to help with debugging
-        System.out.println("Error describing consumer group, will retry: " + groupIdNotFoundException.getMessage());
+        log.error("Error describing consumer group" + groupIdNotFoundException.getMessage());
         return new ConsumerAndPartitionCount(0, 0); // Return invalid state to force retry
       }
     };

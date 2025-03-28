@@ -22,7 +22,7 @@
     <parent>
         <groupId>io.confluent.ksql</groupId>
         <artifactId>ksqldb-parent</artifactId>
-        <version>8.0.0-0</version>
+        <version>8.0.0-194</version>
     </parent>
 
     <artifactId>ksqldb-udf</artifactId>
@@ -45,7 +45,7 @@
         <dependency>
             <groupId>com.google.errorprone</groupId>
             <artifactId>error_prone_annotations</artifactId>
-            <version>2.2.0</version>
+            <version>2.37.0</version>
             <scope>compile</scope>
         </dependency>
         <dependency>

@@ -31,7 +31,6 @@ import io.confluent.ksql.test.util.TopicTestUtil;
 import io.confluent.ksql.services.KafkaConsumerGroupClient;
 import io.confluent.ksql.services.KafkaConsumerGroupClient.ConsumerSummary;
 import io.confluent.ksql.services.KafkaConsumerGroupClientImpl;
-import io.confluent.ksql.util.ExecutorUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.OrderDataProvider;
 import java.time.Duration;
@@ -42,7 +41,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
-
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
@@ -72,7 +70,7 @@ public class KafkaConsumerGroupClientTest {
   private static final int PARTITION_COUNT = 3;
 
   private static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.build();
-  private static final Logger log = LogManager.getLogger(ExecutorUtil.class);
+  private static final Logger log = LogManager.getLogger(KafkaConsumerGroupClientTest.class);
 
   @ClassRule
   public static final RuleChain clusterWithRetry = RuleChain

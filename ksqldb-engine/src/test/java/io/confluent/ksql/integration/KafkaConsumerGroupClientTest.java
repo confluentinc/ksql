@@ -46,6 +46,7 @@ import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
+import org.apache.kafka.common.errors.GroupIdNotFoundException;
 import org.apache.kafka.common.serialization.ByteArrayDeserializer;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.raft.errors.RaftException;
@@ -108,14 +109,10 @@ public class KafkaConsumerGroupClientTest {
   public void shouldDescribeConsumerGroup() {
     givenTopicExistsWithData();
     try (KafkaConsumer<String, byte[]> c1 = createConsumer(group0)) {
-        c1.poll(Duration.ofMillis(5));  // Force consumer to join group
-
-        verifyDescribeConsumerGroup(1, group0, ImmutableList.of(c1));
-        try (KafkaConsumer<String, byte[]> c2 = createConsumer(group0)) {
-            c2.poll(Duration.ofMillis(5));  // Force consumer to join group
-
-            verifyDescribeConsumerGroup(2, group0, ImmutableList.of(c1, c2));
-        }
+      verifyDescribeConsumerGroup(1, group0, ImmutableList.of(c1));
+      try (KafkaConsumer<String, byte[]> c2 = createConsumer(group0)) {
+        verifyDescribeConsumerGroup(2, group0, ImmutableList.of(c1, c2));
+      }
     }
   }
 
@@ -131,7 +128,8 @@ public class KafkaConsumerGroupClientTest {
       final List<KafkaConsumer<?, ?>> consumers
   ) {
     final Supplier<ConsumerAndPartitionCount> pollAndGetCounts = () -> {
-      consumers.forEach(consumer -> consumer.poll(Duration.ofMillis(5)));
+      try{
+      consumers.forEach(consumer -> consumer.poll(Duration.ofMillis(1)));
 
       final Collection<ConsumerSummary> summaries = consumerGroupClient
           .describeConsumerGroup(group).consumers();
@@ -141,6 +139,11 @@ public class KafkaConsumerGroupClientTest {
           .sum();
 
       return new ConsumerAndPartitionCount(consumers.size(), (int) partitionCount);
+      }catch(GroupIdNotFoundException groupIdNotFoundException) {
+        // Log the exception to help with debugging
+        System.out.println("Error describing consumer group, will retry: " + groupIdNotFoundException.getMessage());
+        return new ConsumerAndPartitionCount(0, 0); // Return invalid state to force retry
+      }
     };
 
     assertThatEventually(pollAndGetCounts,

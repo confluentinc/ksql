@@ -108,10 +108,10 @@ public class KafkaConsumerGroupClientTest {
   public void shouldDescribeConsumerGroup() {
     givenTopicExistsWithData();
     try (KafkaConsumer<String, byte[]> c1 = createConsumer(group0)) {
-        verifyDescribeConsumerGroup(1, group0, ImmutableList.of(c1));
-        try (KafkaConsumer<String, byte[]> c2 = createConsumer(group0)) {
-            verifyDescribeConsumerGroup(2, group0, ImmutableList.of(c1, c2));
-        }
+      verifyDescribeConsumerGroup(1, group0, ImmutableList.of(c1));
+      try (KafkaConsumer<String, byte[]> c2 = createConsumer(group0)) {
+        verifyDescribeConsumerGroup(2, group0, ImmutableList.of(c1, c2));
+      }
     }
   }
 
@@ -127,24 +127,20 @@ public class KafkaConsumerGroupClientTest {
       final List<KafkaConsumer<?, ?>> consumers
   ) {
     final Supplier<ConsumerAndPartitionCount> pollAndGetCounts = () -> {
+      consumers.forEach(consumer -> consumer.poll(Duration.ofMillis(1)));
 
-        consumers.forEach(consumer -> consumer.poll(Duration.ofMillis(1)));
+      final Collection<ConsumerSummary> summaries = consumerGroupClient
+          .describeConsumerGroup(group).consumers();
 
-        final Collection<ConsumerSummary> summaries = consumerGroupClient
-                .describeConsumerGroup(group).consumers();
+      final long partitionCount = summaries.stream()
+          .mapToLong(summary -> summary.partitions().size())
+          .sum();
 
-        final long partitionCount = summaries.stream()
-                .mapToLong(summary -> summary.partitions().size())
-                .sum();
-
-        return new ConsumerAndPartitionCount(summaries.size(), (int) partitionCount);
+      return new ConsumerAndPartitionCount(consumers.size(), (int) partitionCount);
     };
 
-    assertThatEventually(
-        "Consumer group description should match expected state",
-        pollAndGetCounts,
-        is(new ConsumerAndPartitionCount(expectedNumConsumers, PARTITION_COUNT))
-    );
+    assertThatEventually(pollAndGetCounts,
+        is(new ConsumerAndPartitionCount(expectedNumConsumers, PARTITION_COUNT)));
   }
 
   private void verifyListsGroups(final String newGroup, final List<String> consumerGroups) {

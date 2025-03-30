@@ -18,9 +18,7 @@ package io.confluent.ksql.integration;
 import static io.confluent.ksql.serde.FormatFactory.JSON;
 import static io.confluent.ksql.serde.FormatFactory.KAFKA;
 import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
-import static org.hamcrest.Matchers.hasEntry;
-import static org.hamcrest.Matchers.hasItems;
-import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.*;
 
 import com.google.common.collect.ImmutableList;
 
@@ -46,9 +44,12 @@ import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
+import org.apache.kafka.common.errors.GroupIdNotFoundException;
 import org.apache.kafka.common.serialization.ByteArrayDeserializer;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.raft.errors.RaftException;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
@@ -67,6 +68,7 @@ public class KafkaConsumerGroupClientTest {
   private static final int PARTITION_COUNT = 3;
 
   private static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.build();
+  private static final Logger log = LogManager.getLogger(KafkaConsumerGroupClientTest.class);
 
   @ClassRule
   public static final RuleChain clusterWithRetry = RuleChain
@@ -104,16 +106,16 @@ public class KafkaConsumerGroupClientTest {
     verifyListsGroups(group1, ImmutableList.of(group0, group1));
   }
 
-//  @Test
-//  public void shouldDescribeConsumerGroup() {
-//    givenTopicExistsWithData();
-//    try (KafkaConsumer<String, byte[]> c1 = createConsumer(group0)) {
-//      verifyDescribeConsumerGroup(1, group0, ImmutableList.of(c1));
-//      try (KafkaConsumer<String, byte[]> c2 = createConsumer(group0)) {
-//        verifyDescribeConsumerGroup(2, group0, ImmutableList.of(c1, c2));
-//      }
-//    }
-//  }
+  @Test
+  public void shouldDescribeConsumerGroup() {
+    givenTopicExistsWithData();
+    try (KafkaConsumer<String, byte[]> c1 = createConsumer(group0)) {
+      verifyDescribeConsumerGroup(1, group0, ImmutableList.of(c1));
+      try (KafkaConsumer<String, byte[]> c2 = createConsumer(group0)) {
+        verifyDescribeConsumerGroup(2, group0, ImmutableList.of(c1, c2));
+      }
+    }
+  }
 
   @Test
   public void shouldListConsumerGroupOffsetsWhenTheyExist() {
@@ -127,6 +129,7 @@ public class KafkaConsumerGroupClientTest {
       final List<KafkaConsumer<?, ?>> consumers
   ) {
     final Supplier<ConsumerAndPartitionCount> pollAndGetCounts = () -> {
+      try{
       consumers.forEach(consumer -> consumer.poll(Duration.ofMillis(1)));
 
       final Collection<ConsumerSummary> summaries = consumerGroupClient
@@ -137,6 +140,10 @@ public class KafkaConsumerGroupClientTest {
           .sum();
 
       return new ConsumerAndPartitionCount(consumers.size(), (int) partitionCount);
+      }catch(Exception exception){
+          log.error("Error describing consumer group" + exception.getMessage());
+          return new ConsumerAndPartitionCount(0, 0); // Return invalid state to force retry
+      }
     };
 
     assertThatEventually(pollAndGetCounts,

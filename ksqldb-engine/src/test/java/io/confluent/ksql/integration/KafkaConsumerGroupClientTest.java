@@ -18,9 +18,7 @@ package io.confluent.ksql.integration;
 import static io.confluent.ksql.serde.FormatFactory.JSON;
 import static io.confluent.ksql.serde.FormatFactory.KAFKA;
 import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
-import static org.hamcrest.Matchers.hasEntry;
-import static org.hamcrest.Matchers.hasItems;
-import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.*;
 
 import com.google.common.collect.ImmutableList;
 
@@ -142,9 +140,9 @@ public class KafkaConsumerGroupClientTest {
           .sum();
 
       return new ConsumerAndPartitionCount(consumers.size(), (int) partitionCount);
-      }catch(GroupIdNotFoundException groupIdNotFoundException) {
-        log.error("Error describing consumer group" + groupIdNotFoundException.getMessage());
-        return new ConsumerAndPartitionCount(0, 0); // Return invalid state to force retry
+      }catch(Exception exception){
+          log.error("Error describing consumer group" + exception.getMessage());
+          return new ConsumerAndPartitionCount(0, 0); // Return invalid state to force retry
       }
     };
 

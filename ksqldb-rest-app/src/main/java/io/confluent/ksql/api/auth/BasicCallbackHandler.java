@@ -23,8 +23,8 @@ import javax.security.auth.callback.TextOutputCallback;
 import javax.security.auth.callback.UnsupportedCallbackException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.eclipse.jetty.jaas.callback.DefaultCallbackHandler;
-import org.eclipse.jetty.jaas.callback.ObjectCallback;
+import org.eclipse.jetty.security.jaas.callback.DefaultCallbackHandler;
+import org.eclipse.jetty.security.jaas.callback.ObjectCallback;
 
 public class BasicCallbackHandler extends DefaultCallbackHandler {
 

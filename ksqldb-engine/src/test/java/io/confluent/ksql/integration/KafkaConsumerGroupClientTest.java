@@ -140,9 +140,11 @@ public class KafkaConsumerGroupClientTest {
           .sum();
 
       return new ConsumerAndPartitionCount(consumers.size(), (int) partitionCount);
-      }catch(Exception exception){
-          log.error("Error describing consumer group" + exception.getMessage());
-          return new ConsumerAndPartitionCount(0, 0); // Return invalid state to force retry
+      }catch(final GroupIdNotFoundException exception){
+        // Treat this scenario as a group with zero consumers.
+        log.warn("Consumer group '{}' not found. Returning 0 consumers and 0 partitions. Reason: {}",
+                group, exception.getMessage());
+        return new ConsumerAndPartitionCount(0, 0);
       }
     };
 

@@ -16,6 +16,7 @@
 package io.confluent.ksql.rest.server.execution;
 
 import io.confluent.ksql.KsqlExecutionContext;
+import io.confluent.ksql.exception.KafkaResponseGetFailedException;
 import io.confluent.ksql.parser.tree.ListTopics;
 import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.rest.entity.KafkaTopicInfo;
@@ -28,10 +29,12 @@ import io.confluent.ksql.services.KafkaConsumerGroupClientImpl;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
+import io.confluent.ksql.util.ExecutorUtil;
 import io.confluent.ksql.util.ReservedInternalTopics;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -43,8 +46,13 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.common.TopicPartition;
+import org.apache.kafka.common.errors.GroupIdNotFoundException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class ListTopicsExecutor {
+
+  private static final Logger log = LoggerFactory.getLogger(ListTopicsExecutor.class);
 
   private ListTopicsExecutor() {
 
@@ -133,11 +141,20 @@ public final class ListTopicsExecutor {
     final Map<String, Set<String>> topicConsumerGroupCount = new HashMap<>();
 
     for (final String group : consumerGroups) {
-      final Collection<ConsumerSummary> consumerSummaryList =
-          consumerGroupClient.describeConsumerGroup(group).consumers();
+      Collection<ConsumerSummary> consumerSummaryList = Collections.emptyList();
+      try {
+        consumerSummaryList = ExecutorUtil.executeWithRetries(
+            () -> consumerGroupClient.describeConsumerGroup(group).consumers(),
+            e -> e instanceof GroupIdNotFoundException
+        );
+      } catch (GroupIdNotFoundException e) {
+        log.warn("Failed to describe consumer group {} after retries, treating as empty group", group);
+      }catch(Exception e){
+        throw new KafkaResponseGetFailedException(
+                "Failed to describe Kafka consumer groups: " + group, e);
+      }
 
       for (final KafkaConsumerGroupClientImpl.ConsumerSummary summary : consumerSummaryList) {
-
         for (final TopicPartition topicPartition : summary.partitions()) {
           topicConsumerCount
               .computeIfAbsent(topicPartition.topic(), k -> new AtomicInteger())

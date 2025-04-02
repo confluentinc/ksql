@@ -34,6 +34,7 @@ import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.acl.AclOperation;
 import org.apache.kafka.common.errors.GroupAuthorizationException;
+import org.apache.kafka.common.errors.GroupIdNotFoundException;
 import org.apache.kafka.common.errors.GroupNotEmptyException;
 import org.apache.kafka.common.errors.RetriableException;
 
@@ -83,6 +84,10 @@ public class KafkaConsumerGroupClientImpl implements KafkaConsumerGroupClient {
       return new ConsumerGroupSummary(results);
     } catch (final GroupAuthorizationException e) {
       throw new KsqlGroupAuthorizationException(AclOperation.DESCRIBE, group);
+    } catch (final GroupIdNotFoundException e) {
+      // KIP-1043: GroupIdNotFoundException signals group doesn't exist (a state, not a failure).
+      // Re-throw the exception, rather than generalizing it as a KafkaResponseGetFailedException.
+      throw e;
     } catch (final Exception e) {
       throw new KafkaResponseGetFailedException(
           "Failed to describe Kafka consumer groups: " + group, e);

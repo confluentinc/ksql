@@ -86,7 +86,7 @@ public class KafkaConsumerGroupClientImpl implements KafkaConsumerGroupClient {
       throw new KsqlGroupAuthorizationException(AclOperation.DESCRIBE, group);
     } catch (final GroupIdNotFoundException e) {
       // KIP-1043: GroupIdNotFoundException signals group doesn't exist (a state, not a failure).
-      // Re-throw the specific exception, rather than generalizing it as a KafkaResponseGetFailedException.
+      // Re-throw the exception, rather than generalizing it as a KafkaResponseGetFailedException.
       throw e;
     } catch (final Exception e) {
       throw new KafkaResponseGetFailedException(

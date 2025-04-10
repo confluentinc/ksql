@@ -53,6 +53,8 @@ import java.util.concurrent.Future;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+
+import io.confluent.ksql.util.KsqlServerException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -65,7 +67,6 @@ public final class HARouting implements AutoCloseable {
   private final ExecutorService routerExecutorService;
   private final RoutingFilterFactory routingFilterFactory;
   private final Optional<PullQueryExecutorMetrics> pullQueryMetrics;
-  private final KsqlConfig ksqlConfig;
   private final int coordinatorPoolSize;
   private final int routerPoolSize;
 
@@ -76,7 +77,6 @@ public final class HARouting implements AutoCloseable {
   ) {
     this.routingFilterFactory =
         Objects.requireNonNull(routingFilterFactory, "routingFilterFactory");
-    this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
     this.coordinatorPoolSize = ksqlConfig.getInt(
         KsqlConfig.KSQL_QUERY_PULL_THREAD_POOL_SIZE_CONFIG);
     this.routerPoolSize = ksqlConfig.getInt(
@@ -124,7 +124,7 @@ public final class HARouting implements AutoCloseable {
             loc -> loc.getNodes().stream().map(KsqlNode::getHost).collect(Collectors.toList())));
 
     if (!emptyPartitions.isEmpty()) {
-      final MaterializationException materializationException = new MaterializationException(
+      final KsqlServerException ksqlServerException = new KsqlServerException(
           "Unable to execute pull query. "
               + emptyPartitions.entrySet()
               .stream()
@@ -133,8 +133,8 @@ public final class HARouting implements AutoCloseable {
                   kv.getKey(), kv.getValue()))
               .collect(Collectors.joining(", ", "[", "]")));
 
-      LOG.debug(materializationException.getMessage());
-      throw materializationException;
+      LOG.debug(ksqlServerException.getMessage());
+      throw ksqlServerException;
     }
 
     // at this point we should filter out the hosts that we should not route to

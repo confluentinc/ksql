@@ -108,6 +108,7 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlConstants.RoutingNodeType;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.KsqlServerException;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.PlanSummary;
@@ -324,7 +325,9 @@ final class EngineExecutor {
           statement.getMaskedStatementText(),
           e
       );
-      if (e instanceof KsqlStatementException) {
+      if (e instanceof KsqlServerException) {
+        throw e;
+      } else if (e instanceof KsqlStatementException) {
         throw new KsqlStatementException(
             e.getMessage() == null ? "Server Error" : e.getMessage(),
             ((KsqlStatementException) e).getUnloggedMessage(),

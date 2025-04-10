@@ -103,19 +103,9 @@ import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
-import io.confluent.ksql.util.ConsistencyOffsetVector;
-import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlConstants;
+import io.confluent.ksql.util.*;
 import io.confluent.ksql.util.KsqlConstants.RoutingNodeType;
-import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.KsqlStatementException;
-import io.confluent.ksql.util.PersistentQueryMetadata;
-import io.confluent.ksql.util.PlanSummary;
-import io.confluent.ksql.util.PushOffsetRange;
-import io.confluent.ksql.util.PushQueryMetadata;
 import io.confluent.ksql.util.PushQueryMetadata.ResultType;
-import io.confluent.ksql.util.ScalablePushQueryMetadata;
-import io.confluent.ksql.util.TransientQueryMetadata;
 import io.vertx.core.Context;
 import java.util.Collection;
 import java.util.Collections;
@@ -324,7 +314,9 @@ final class EngineExecutor {
           statement.getMaskedStatementText(),
           e
       );
-      if (e instanceof KsqlStatementException) {
+      if (e instanceof KsqlServerException) {
+        throw e;
+      } else if (e instanceof KsqlStatementException) {
         throw new KsqlStatementException(
             e.getMessage() == null ? "Server Error" : e.getMessage(),
             ((KsqlStatementException) e).getUnloggedMessage(),

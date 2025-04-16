@@ -104,6 +104,7 @@
     </pluginRepositories>
 
     <properties>
+        <java.version>17</java.version>
         <apache.directory.server.version>2.0.0-M22</apache.directory.server.version>
         <apache.directory.api.version>1.0.0-M33</apache.directory.api.version>
         <apache.httpcomponents.version>5.4.2</apache.httpcomponents.version>

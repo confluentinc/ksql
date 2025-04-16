@@ -359,7 +359,7 @@ public class EndToEndIntegrationTest {
 
     final List<QueryMetadata> newQueries = queries.stream()
         .filter(q -> !(q instanceof PersistentQueryMetadata))
-        .toList();
+        .collect(Collectors.toList());
 
     newQueries.forEach(QueryMetadata::start);
 

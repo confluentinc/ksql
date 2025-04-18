@@ -287,6 +287,14 @@ final class SandboxedSchemaRegistryClient {
     }
 
     @Override
+    public RegisterSchemaResponse getIdWithResponse(
+        String subject, ParsedSchema schema, boolean normalize)
+        throws IOException, RestClientException {
+      int id = getId(subject, schema, normalize);
+      return new RegisterSchemaResponse(id);
+    }
+
+    @Override
     public void reset() {
       throw new UnsupportedOperationException();
     }

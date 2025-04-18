@@ -78,7 +78,7 @@ final class SandboxedSchemaRegistryClient {
         final String schemaType,
         final String schemaString,
         final List<SchemaReference> references) {
-      throw new UnsupportedOperationException();
+      return sandboxCacheClient.parseSchema(schemaType, schemaString, references);
     }
 
     @Override

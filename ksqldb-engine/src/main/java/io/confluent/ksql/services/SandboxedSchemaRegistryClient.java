@@ -288,7 +288,7 @@ final class SandboxedSchemaRegistryClient {
 
     @Override
     public RegisterSchemaResponse getIdWithResponse(
-        String subject, ParsedSchema schema, boolean normalize)
+        final String subject, final ParsedSchema schema, final boolean normalize)
         throws IOException, RestClientException {
       try {
         return srClient.getIdWithResponse(subject, schema,  normalize);

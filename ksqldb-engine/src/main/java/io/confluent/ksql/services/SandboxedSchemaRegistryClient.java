@@ -290,8 +290,15 @@ final class SandboxedSchemaRegistryClient {
     public RegisterSchemaResponse getIdWithResponse(
         String subject, ParsedSchema schema, boolean normalize)
         throws IOException, RestClientException {
-      int id = getId(subject, schema, normalize);
-      return new RegisterSchemaResponse(id);
+      try {
+        return srClient.getIdWithResponse(subject, schema,  normalize);
+      } catch (final RestClientException e) {
+        // if we don't find the schema in SR, we try to get it from the sandbox cache
+        if (e.getStatus() == HttpStatus.SC_NOT_FOUND) {
+          return sandboxCacheClient.getIdWithResponse(subject, schema, normalize);
+        }
+        throw e;
+      }
     }
 
     @Override

@@ -78,7 +78,7 @@ final class SandboxedSchemaRegistryClient {
         final String schemaType,
         final String schemaString,
         final List<SchemaReference> references) {
-      throw new UnsupportedOperationException();
+      return sandboxCacheClient.parseSchema(schemaType, schemaString, references);
     }
 
     @Override
@@ -281,6 +281,21 @@ final class SandboxedSchemaRegistryClient {
         // if we don't find the schema in SR, we try to get it from the sandbox cache
         if (e.getStatus() == HttpStatus.SC_NOT_FOUND) {
           return sandboxCacheClient.getId(subject, parsedSchema);
+        }
+        throw e;
+      }
+    }
+
+    @Override
+    public RegisterSchemaResponse getIdWithResponse(
+        final String subject, final ParsedSchema schema, final boolean normalize)
+        throws IOException, RestClientException {
+      try {
+        return srClient.getIdWithResponse(subject, schema,  normalize);
+      } catch (final RestClientException e) {
+        // if we don't find the schema in SR, we try to get it from the sandbox cache
+        if (e.getStatus() == HttpStatus.SC_NOT_FOUND) {
+          return sandboxCacheClient.getIdWithResponse(subject, schema, normalize);
         }
         throw e;
       }

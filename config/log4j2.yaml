@@ -54,19 +54,7 @@ Configuration:
         AppenderRef:
           - ref: stdout
 
-      - name: org.apache.zookeeper
-        level: warn
-        additivity: false
-        AppenderRef:
-          - ref: stdout
-
       - name: org.apache.kafka
-        level: warn
-        additivity: false
-        AppenderRef:
-          - ref: stdout
-
-      - name: org.I0Itec.zkclient
         level: warn
         additivity: false
         AppenderRef:

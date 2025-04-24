@@ -94,17 +94,5 @@ Configuration:
         AppenderRef:
           - ref: kafka
 
-      - name: org.apache.zookeeper
-        level: warn
-        additivity: false
-        AppenderRef:
-          - ref: kafka
-
-      - name: org.I0Itec.zkclient
-        level: warn
-        additivity: false
-        AppenderRef:
-          - ref: kafka
-
       - name: io.confluent.rest-utils.requests
         level: warn

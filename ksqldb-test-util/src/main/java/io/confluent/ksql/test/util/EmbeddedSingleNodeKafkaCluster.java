@@ -86,7 +86,7 @@ import org.junit.rules.TemporaryFolder;
 
 
 /**
- * Runs an in-memory, "embedded" Kafka cluster with 1 ZooKeeper instance and 1 Kafka broker.
+ * Runs an in-memory, "embedded" Kafka cluster with 1 Kafka running in combined mode.
  */
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 @SuppressWarnings("UnstableApiUsage")

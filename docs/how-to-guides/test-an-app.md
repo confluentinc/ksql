@@ -114,6 +114,8 @@ The following are the supported KSQL statements in `run-ksql-test`:
 - `UNSET`
 - `INSERT INTO`
 - `INSERT VALUES`
+- `DEFINE`
+- `UNDEFINE`
 
 There are also four test only statements for verifying data.
 

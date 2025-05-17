@@ -150,7 +150,7 @@
              to find the correct `tcnative` version. -->
         <netty.version>4.1.115.Final</netty.version>
         <netty-codec-http2-version>4.1.115.Final</netty-codec-http2-version>
-        <jersey-common>2.34</jersey-common>
+        <jersey-common>3.1.10</jersey-common>
     </properties>
 
     <dependencyManagement>

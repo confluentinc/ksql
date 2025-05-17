@@ -126,7 +126,7 @@
         <really.executable.jar.version>1.5.0</really.executable.jar.version>
         <generext.version>1.0.2</generext.version>
         <avro.random.generator.version>0.2.2</avro.random.generator.version>
-        <apache.curator.version>2.9.0</apache.curator.version>
+        <apache.curator.version>5.8.0</apache.curator.version>
         <wiremock.version>2.24.0</wiremock.version>
         <clearspring-analytics.version>2.9.5</clearspring-analytics.version>
         <icu.version>67.1</icu.version>

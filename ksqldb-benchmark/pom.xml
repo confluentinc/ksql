@@ -47,7 +47,7 @@ questions.
   <parent>
     <groupId>io.confluent.ksql</groupId>
     <artifactId>ksqldb-parent</artifactId>
-    <version>7.1.17-0</version>
+    <version>7.3.0</version>
   </parent>
 
   <artifactId>ksqldb-benchmark</artifactId>
@@ -57,7 +57,7 @@ questions.
     <!-- note: when updating jhm version, look to remove `-processing` switch from javac lint below.
          ref: https://bugs.openjdk.java.net/browse/JDK-8216275
     -->
-    <jmh.version>1.21</jmh.version>
+    <jmh.version>1.37</jmh.version>
   </properties>
 
   <dependencies>
@@ -132,7 +132,7 @@ questions.
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-shade-plugin</artifactId>
-        <version>2.0</version>
+        <version>2.4.3</version>
         <executions>
           <execution>
             <phase>package</phase>

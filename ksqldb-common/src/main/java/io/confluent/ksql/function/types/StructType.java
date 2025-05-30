@@ -16,7 +16,6 @@
 package io.confluent.ksql.function.types;
 
 import com.google.common.collect.ImmutableMap;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -38,7 +37,6 @@ public final class StructType extends ObjectType {
     return new Builder();
   }
 
-  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "schema is ImmutableMap")
   public Map<String, ParamType> getSchema() {
     return schema;
   }

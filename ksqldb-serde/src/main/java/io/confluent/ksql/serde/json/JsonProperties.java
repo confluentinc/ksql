@@ -16,7 +16,6 @@
 package io.confluent.ksql.serde.json;
 
 import com.google.common.collect.ImmutableSet;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.serde.connect.ConnectProperties;
 import java.util.Map;
 
@@ -29,7 +28,6 @@ public class JsonProperties extends ConnectProperties {
   }
 
   @Override
-  @SuppressFBWarnings(value = "EI_EXPOSE_REP")
   public ImmutableSet<String> getSupportedProperties() {
     return SUPPORTED_PROPERTIES;
   }

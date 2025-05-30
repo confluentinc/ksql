@@ -56,20 +56,14 @@ public final class ConfigMetaData {
     return configDef;
   }
 
-  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "configNames is ImmutableSet")
   public Set<String> getConfigNames() {
     return configNames;
   }
 
-  @SuppressFBWarnings(
-      value = "EI_EXPOSE_REP",
-      justification = "orderedConfigNames is ImmutableList"
-  )
   public List<String> getOrderedConfigNames() {
     return orderedConfigNames;
   }
 
-  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "shortConfigs is ImmutableSet")
   public Set<String> getShortConfigs() {
     return shortConfigs;
   }

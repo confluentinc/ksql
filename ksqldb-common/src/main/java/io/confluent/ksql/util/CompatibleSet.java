@@ -18,7 +18,6 @@ package io.confluent.ksql.util;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import com.google.errorprone.annotations.Immutable;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -43,7 +42,6 @@ public class CompatibleSet<T extends CompatibleElement<T>> {
     return values.contains(value);
   }
 
-  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "values is ImmutableSet")
   public Set<T> all() {
     return values;
   }

@@ -16,7 +16,6 @@
 package io.confluent.ksql.serde.kafka;
 
 import com.google.common.collect.ImmutableSet;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
@@ -47,7 +46,6 @@ public class KafkaFormat implements Format {
   }
 
   @Override
-  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "SUPPORTED_FEATURES is ImmutableSet")
   public Set<SerdeFeature> supportedFeatures() {
     return SUPPORTED_FEATURES;
   }

@@ -34,7 +34,6 @@ public class JsonSchemaProperties extends ConnectProperties {
   }
 
   @Override
-  @SuppressFBWarnings(value = "EI_EXPOSE_REP")
   public ImmutableSet<String> getSupportedProperties() {
     return SUPPORTED_PROPERTIES;
   }

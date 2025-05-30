@@ -24,12 +24,12 @@ import java.util.Map;
 import javax.net.ssl.SSLSocketFactory;
 import org.apache.kafka.common.config.ConfigException;
 import org.apache.kafka.common.config.SaslConfigs;
-import org.apache.kafka.common.security.oauthbearer.internals.secured.AccessTokenRetriever;
-import org.apache.kafka.common.security.oauthbearer.internals.secured.AccessTokenValidator;
+import org.apache.kafka.common.security.oauthbearer.internals.secured.ClientJwtValidator;
 import org.apache.kafka.common.security.oauthbearer.internals.secured.ConfigurationUtils;
-import org.apache.kafka.common.security.oauthbearer.internals.secured.HttpAccessTokenRetriever;
+import org.apache.kafka.common.security.oauthbearer.internals.secured.HttpJwtRetriever;
 import org.apache.kafka.common.security.oauthbearer.internals.secured.JaasOptionsUtils;
-import org.apache.kafka.common.security.oauthbearer.internals.secured.LoginAccessTokenValidator;
+import org.apache.kafka.common.security.oauthbearer.internals.secured.JwtRetriever;
+import org.apache.kafka.common.security.oauthbearer.internals.secured.JwtValidator;
 
 public class OAuthBearerCredentials implements Credentials {
 
@@ -61,20 +61,20 @@ public class OAuthBearerCredentials implements Credentials {
   public void validateConfigs(final Map<String, ?> configs) throws ConfigException {
 
     final String tokenEndpointUrl = (String) configs
-            .get(KsqlClientConfig.BEARER_AUTH_TOKEN_ENDPOINT_URL);
+        .get(KsqlClientConfig.BEARER_AUTH_TOKEN_ENDPOINT_URL);
     final String clientId = (String) configs.get(KsqlClientConfig.BEARER_AUTH_CLIENT_ID);
     final String clientSecret = (String) configs.get(KsqlClientConfig.BEARER_AUTH_CLIENT_SECRET);
     if ((tokenEndpointUrl == null || tokenEndpointUrl.isEmpty())) {
       throw new ConfigException("Cannot configure OAuthBearerCredentials without "
-              + "proper tokenEndpointUrl.");
+          + "proper tokenEndpointUrl.");
     }
     if ((clientId == null || clientId.isEmpty())) {
       throw new ConfigException("Cannot configure OAuthBearerCredentials without "
-              + "proper clientId.");
+          + "proper clientId.");
     }
     if ((clientSecret == null || clientSecret.isEmpty())) {
       throw new ConfigException("Cannot configure OAuthBearerCredentials without "
-              + "proper clientSecret.");
+          + "proper clientSecret.");
     }
   }
 
@@ -82,14 +82,14 @@ public class OAuthBearerCredentials implements Credentials {
     return tokenRetriever.getToken();
   }
 
-  private AccessTokenRetriever getAccessTokenRetriever(final ConfigurationUtils configUtils,
-                                                       final Map<String, ?> configs) {
+  private JwtRetriever getAccessTokenRetriever(final ConfigurationUtils configUtils,
+                                               final Map<String, ?> configs) {
     final String clientId = configUtils.validateString(KsqlClientConfig.BEARER_AUTH_CLIENT_ID);
     final String clientSecret = configUtils.validateString(
         KsqlClientConfig.BEARER_AUTH_CLIENT_SECRET);
     final String scope = configUtils.validateString(KsqlClientConfig.BEARER_AUTH_SCOPE, false);
 
-    //Keeping following configs needed by HttpAccessTokenRetriever as constants and not exposed to
+    //Keeping following configs needed by HttpJwtRetriever as constants and not exposed to
     //users for modifications
     final long retryBackoffMs = SaslConfigs.DEFAULT_SASL_LOGIN_RETRY_BACKOFF_MS;
     final long retryBackoffMaxMs = SaslConfigs.DEFAULT_SASL_LOGIN_RETRY_BACKOFF_MAX_MS;
@@ -109,15 +109,15 @@ public class OAuthBearerCredentials implements Credentials {
               tokenEndpointUrl.getHost());
     }
 
-    return new HttpAccessTokenRetriever(clientId, clientSecret, scope, socketFactory,
+    return new HttpJwtRetriever(clientId, clientSecret, scope, socketFactory,
         tokenEndpointUrl.toString(), retryBackoffMs, retryBackoffMaxMs,
         loginConnectTimeoutMs, loginReadTimeoutMs, false);
   }
 
-  private AccessTokenValidator getAccessTokenValidator(final Map<String, ?> configs) {
+  private JwtValidator getAccessTokenValidator(final Map<String, ?> configs) {
     final String scopeClaimName = KsqlClientConfig.getBearerAuthScopeClaimName(configs);
     final String subClaimName = KsqlClientConfig.getBearerAuthSubClaimName(configs);
-    return new LoginAccessTokenValidator(scopeClaimName, subClaimName);
+    return new ClientJwtValidator(scopeClaimName, subClaimName);
   }
 
   private OAuthTokenCache getOAuthTokenCache(final Map<String, ?> configs) {

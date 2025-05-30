@@ -17,7 +17,6 @@ package io.confluent.ksql.serde.avro;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.errorprone.annotations.Immutable;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.serde.connect.ConnectProperties;
 import java.util.Map;
 
@@ -47,7 +46,6 @@ public class AvroProperties extends ConnectProperties {
   }
 
   @Override
-  @SuppressFBWarnings(value = "EI_EXPOSE_REP")
   public ImmutableSet<String> getSupportedProperties() {
     return SUPPORTED_PROPERTIES;
   }

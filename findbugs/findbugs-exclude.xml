@@ -73,7 +73,10 @@ For a detailed description of findbugs bug categories, see http://findbugs.sourc
         <Class name="~io\.confluent\..*"/>
         <Bug pattern="US_USELESS_SUPPRESSION_ON_METHOD"/>
     </Match>
-    <!--    TODO: Fix these spotbug errors for atomic operations - https://confluentinc.atlassian.net/browse/KSQL-13437-->
+    <Match>
+        <Class name="~io\.confluent\..*"/>
+        <Bug pattern="US_USELESS_SUPPRESSION_ON_CLASS"/>
+    </Match>
     <Match>
         <Class name="~io.confluent.ksql.reactive.BasePublisher"/>
         <Bug pattern="AT_NONATOMIC_64BIT_PRIMITIVE"/>

@@ -21,7 +21,6 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -39,7 +38,6 @@ public class PushOffsetVector implements OffsetVector {
 
   private final AtomicReference<List<Long>> offsets = new AtomicReference<>();
 
-  @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
   @JsonCreator
   public PushOffsetVector(final @JsonProperty(value = "o") List<Long> offsets) {
     this.offsets.set(ImmutableList.copyOf(offsets));
@@ -112,7 +110,6 @@ public class PushOffsetVector implements OffsetVector {
     return ImmutableMap.copyOf(offsets);
   }
 
-  @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
   @JsonProperty("o")
   public List<Long> getOffsets() {
     return offsets.get();

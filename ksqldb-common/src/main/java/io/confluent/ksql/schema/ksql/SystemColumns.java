@@ -20,7 +20,6 @@ import static java.util.Objects.requireNonNull;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.errorprone.annotations.Immutable;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.types.SqlArray;
 import io.confluent.ksql.schema.ksql.types.SqlStruct;
@@ -100,10 +99,6 @@ public final class SystemColumns {
     return windowBoundsColumnNames().contains(columnName);
   }
 
-  @SuppressFBWarnings(
-      value = "MS_EXPOSE_REP",
-      justification = "WINDOW_BOUNDS_COLUMN_NAMES is ImmutableSet"
-  )
   public static Set<ColumnName> windowBoundsColumnNames() {
     return WINDOW_BOUNDS_COLUMN_NAMES;
   }

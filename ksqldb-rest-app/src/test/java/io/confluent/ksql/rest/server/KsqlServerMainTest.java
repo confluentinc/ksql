@@ -183,7 +183,7 @@ public class KsqlServerMainTest {
         "The kafka streams state directory is not writable for KSQL server: /var/lib/kafka-streams\n"
             + " Make sure the directory exists and is writable for KSQL server \n"
             + " or change it to a writable directory by setting 'ksql.streams.state.dir' "
-            + "config in the properties fileee."));
+            + "config in the properties feeileee."));
   }
 
   @Test

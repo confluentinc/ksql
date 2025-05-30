@@ -19,18 +19,18 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.security.oauth.exceptions.KsqlOAuthTokenRetrieverException;
 import java.io.IOException;
 import org.apache.kafka.common.security.oauthbearer.OAuthBearerToken;
-import org.apache.kafka.common.security.oauthbearer.internals.secured.AccessTokenRetriever;
-import org.apache.kafka.common.security.oauthbearer.internals.secured.AccessTokenValidator;
+import org.apache.kafka.common.security.oauthbearer.internals.secured.JwtRetriever;
+import org.apache.kafka.common.security.oauthbearer.internals.secured.JwtValidator;
 import org.apache.kafka.common.security.oauthbearer.internals.secured.ValidateException;
 
 public class CachedOAuthTokenRetriever {
-  private final AccessTokenRetriever accessTokenRetriever;
-  private final AccessTokenValidator accessTokenValidator;
+  private final JwtRetriever accessTokenRetriever;
+  private final JwtValidator accessTokenValidator;
   private final OAuthTokenCache authTokenCache;
 
   @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
-  public CachedOAuthTokenRetriever(final AccessTokenRetriever accessTokenRetriever,
-                                   final AccessTokenValidator accessTokenValidator,
+  public CachedOAuthTokenRetriever(final JwtRetriever accessTokenRetriever,
+                                   final JwtValidator accessTokenValidator,
                                    final OAuthTokenCache authTokenCache) {
     this.accessTokenRetriever = accessTokenRetriever;
     this.accessTokenValidator = accessTokenValidator;

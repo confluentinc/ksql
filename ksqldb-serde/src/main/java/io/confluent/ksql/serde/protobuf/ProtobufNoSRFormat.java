@@ -16,7 +16,6 @@
 package io.confluent.ksql.serde.protobuf;
 
 import com.google.common.collect.ImmutableSet;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.serde.SerdeFeature;
 import io.confluent.ksql.serde.connect.ConnectSchemaTranslator;
@@ -41,7 +40,6 @@ public class ProtobufNoSRFormat extends AbstractProtobufFormat {
   }
 
   @Override
-  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "SUPPORTED_FEATURES is ImmutableSet")
   public Set<SerdeFeature> supportedFeatures() {
     return SUPPORTED_FEATURES;
   }

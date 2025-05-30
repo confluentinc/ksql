@@ -16,7 +16,6 @@
 package io.confluent.ksql.serde;
 
 import com.google.common.collect.ImmutableSet;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.util.CompatibleElement;
 import java.util.Arrays;
 import java.util.Set;
@@ -48,7 +47,6 @@ public enum SchemaTranslationPolicy implements
     this.unvalidated = ImmutableSet.copyOf(incompatibleWith);
   }
 
-  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "incompatibleWith is ImmutableSet")
   @Override
   public Set<SchemaTranslationPolicy> getIncompatibleWith() {
     return incompatibleWith;

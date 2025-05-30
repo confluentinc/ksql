@@ -44,10 +44,6 @@ import org.apache.kafka.common.metrics.MetricsReporter;
  * Topic based collectors for producer/consumer related statistics that can be mapped on to
  * streams/tables/queries for ksql entities (Stream, Table, Query)
  */
-@SuppressFBWarnings(
-    value = "EI_EXPOSE_REP2",
-    justification = "should be mutable"
-)
 @SuppressWarnings("ClassDataAbstractionCoupling")
 public final class MetricCollectors {
 
@@ -229,7 +225,7 @@ public final class MetricCollectors {
   }
 
   @SuppressFBWarnings(
-      value = {"MS_EXPOSE_REP", "EI_EXPOSE_REP"},
+      value = {"EI_EXPOSE_REP"},
       justification = "should be mutable"
   )
   public Metrics getMetrics() {

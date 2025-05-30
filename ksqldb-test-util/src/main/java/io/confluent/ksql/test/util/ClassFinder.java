@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.test.util;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.File;
 import java.net.URL;
 import java.nio.file.FileSystems;
@@ -77,7 +76,6 @@ public final class ClassFinder {
     }
   }
 
-  @SuppressFBWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
   private static Class<?> parseClass(final String packageName, final Path path) {
     try {
       final String separator =  File.separatorChar == '\\' ? "\\\\" : File.separator;

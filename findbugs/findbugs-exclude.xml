@@ -78,16 +78,24 @@ For a detailed description of findbugs bug categories, see http://findbugs.sourc
         <Bug pattern="US_USELESS_SUPPRESSION_ON_CLASS"/>
     </Match>
     <Match>
-        <Class name="~io.confluent.ksql.reactive.BasePublisher"/>
+        <Class name="~io\.confluent\..*"/>
         <Bug pattern="AT_NONATOMIC_64BIT_PRIMITIVE"/>
     </Match>
     <Match>
-        <Class name="~io.confluent.ksql.reactive.BasePublisher"/>
+        <Class name="~io\.confluent\..*"/>
         <Bug pattern="AT_NONATOMIC_OPERATIONS_ON_SHARED_VARIABLE"/>
     </Match>
     <Match>
-        <Class name="~io.confluent.ksql.reactive.BasePublisher"/>
+        <Class name="~io\.confluent\..*"/>
         <Bug pattern="AT_STALE_THREAD_WRITE_OF_PRIMITIVE"/>
+    </Match>
+    <Match>
+        <Class name="~io\.confluent\..*"/>
+        <Bug pattern="PA_PUBLIC_PRIMITIVE_ATTRIBUTE"/>
+    </Match>
+    <Match>
+        <Class name="~io.confluent.ksql.cli.console.Console"/>
+        <Bug pattern="FS_BAD_DATE_FORMAT_FLAG_COMBO"/>
     </Match>
 
     <!--

@@ -54,7 +54,6 @@ public final class SerdeFeatures extends CompatibleSet<SerdeFeature> {
   }
 
   @JsonValue
-  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "incompatibleWith is ImmutableSet")
   @Override
   public Set<SerdeFeature> all() {
     return values;

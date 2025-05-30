@@ -17,7 +17,6 @@ package io.confluent.ksql.function;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -101,7 +100,6 @@ public class AggregateFunctionInitArguments {
     return Collections.unmodifiableList(initArgs);
   }
 
-  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "config is ImmutableMap")
   public Map<String, ?> config() {
     return config;
   }

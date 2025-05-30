@@ -37,8 +37,14 @@ public abstract class BasePublisher<T> implements Publisher<T> {
 
   protected final Context ctx;
   private volatile Subscriber<? super T> subscriber;
+  @SuppressFBWarnings(value = {"AT_NONATOMIC_64BIT_PRIMITIVE",
+    "AT_NONATOMIC_OPERATIONS_ON_SHARED_VARIABLE"}, justification = "To be reviewed")
   private long demand;
+  @SuppressFBWarnings(value = "AT_STALE_THREAD_WRITE_OF_PRIMITIVE",
+          justification = "To be reviewed")
   private boolean cancelled;
+  @SuppressFBWarnings(value = "AT_STALE_THREAD_WRITE_OF_PRIMITIVE",
+          justification = "To be reviewed")
   private boolean sentComplete;
   private volatile Throwable failure;
 

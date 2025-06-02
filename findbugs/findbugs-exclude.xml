@@ -98,10 +98,8 @@ For a detailed description of findbugs bug categories, see http://findbugs.sourc
         <Bug pattern="FS_BAD_DATE_FORMAT_FLAG_COMBO"/>
     </Match>
     <Match>
-        <Class name="~io.confluent.ksql.test.*"/>
-        <Bug pattern="SS_SHOULD_BE_STATIC"/>
+        <Class name="~.*Test" />
     </Match>
-
     <!--
       DO NOT USE THIS EXCLUSION FILE FOR NON-GENERATED CODE
 

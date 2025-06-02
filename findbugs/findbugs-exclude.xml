@@ -101,7 +101,6 @@ For a detailed description of findbugs bug categories, see http://findbugs.sourc
         <Class name="~io.confluent.ksql.test.*"/>
         <Bug pattern="SS_SHOULD_BE_STATIC"/>
     </Match>
-    SS_SHOULD_BE_STATIC02
 
     <!--
       DO NOT USE THIS EXCLUSION FILE FOR NON-GENERATED CODE

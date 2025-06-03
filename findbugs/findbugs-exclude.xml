@@ -97,7 +97,9 @@ For a detailed description of findbugs bug categories, see http://findbugs.sourc
         <Class name="~io.confluent.ksql.cli.console.Console"/>
         <Bug pattern="FS_BAD_DATE_FORMAT_FLAG_COMBO"/>
     </Match>
-
+    <Match>
+        <Class name="~.*Test" />
+    </Match>
     <!--
       DO NOT USE THIS EXCLUSION FILE FOR NON-GENERATED CODE
 

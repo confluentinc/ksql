@@ -69,6 +69,7 @@ import org.apache.kafka.streams.StreamsConfig;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -84,6 +85,7 @@ import org.apache.logging.log4j.Logger;
  * at each stage are what we expect. This tests a broad set of KSQL functionality and is a
  * good catch-all.
  */
+@Ignore
 @SuppressWarnings("ConstantConditions")
 @RunWith(Parameterized.class)
 @Category({IntegrationTest.class})

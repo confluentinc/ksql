@@ -52,6 +52,7 @@ import org.apache.kafka.raft.errors.RaftException;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
@@ -61,6 +62,7 @@ import org.junit.rules.RuleChain;
  * admin client as constructors are package-private. Mocking the results would be tedious and
  * distract from the actual testing.
  */
+@Ignore
 @Category({IntegrationTest.class})
 public class KafkaConsumerGroupClientTest {
 

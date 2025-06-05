@@ -124,6 +124,7 @@ class KafkaEmbedded {
     config.put("confluent.license.topic.auto.create", "false");
     config.put("confluent.license", "test");
     config.put("confluent.license.topic.replication.factor", "1");
+    config.put("confluent.license.validator.class", "io.confluent.license.validator.DummyLicenseValidator");
   }
 
   /**

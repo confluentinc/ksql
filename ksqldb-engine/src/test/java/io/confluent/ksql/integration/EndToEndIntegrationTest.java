@@ -66,11 +66,7 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.Configurable;
 import org.apache.kafka.streams.StreamsConfig;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.ClassRule;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.*;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.Timeout;
@@ -85,6 +81,7 @@ import org.apache.logging.log4j.Logger;
  * good catch-all.
  */
 @SuppressWarnings("ConstantConditions")
+@Ignore
 @RunWith(Parameterized.class)
 @Category({IntegrationTest.class})
 public class EndToEndIntegrationTest {

@@ -45,12 +45,13 @@ import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.kafka.raft.errors.RaftException;
-import org.junit.*;
+import org.junit.Before;
+import org.junit.ClassRule;
+import org.junit.Rule;
+import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 
-//TODO remove this before raising final pr
-@Ignore
 @Category({IntegrationTest.class})
 public class ClusterTerminationTest {
 

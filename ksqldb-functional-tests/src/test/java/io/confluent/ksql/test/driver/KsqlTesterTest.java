@@ -22,13 +22,14 @@ import io.confluent.ksql.test.util.KsqlTestFolder;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-
-import org.junit.*;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
-@Ignore
 @RunWith(Parameterized.class)
 public class KsqlTesterTest {
   private static final String TEST_DIR = "/sql-tests";

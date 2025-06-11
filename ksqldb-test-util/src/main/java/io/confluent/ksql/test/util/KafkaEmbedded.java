@@ -100,8 +100,6 @@ class KafkaEmbedded {
       cluster.format();
       cluster.startup();
       cluster.waitForReadyBrokers();
-
-
     } catch (final Exception e) {
       throw new KafkaException("Failed to create test Kafka cluster", e);
     }
@@ -397,7 +395,7 @@ class KafkaEmbedded {
   private AdminClient adminClient() {
     final ImmutableMap<String, Object> props = ImmutableMap.of(
         AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, brokerList(),
-        AdminClientConfig.REQUEST_TIMEOUT_MS_CONFIG, 300_000);
+        AdminClientConfig.REQUEST_TIMEOUT_MS_CONFIG, 60_000);
 
     return AdminClient.create(props);
   }

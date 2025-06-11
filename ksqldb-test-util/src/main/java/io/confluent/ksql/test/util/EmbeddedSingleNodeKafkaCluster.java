@@ -700,7 +700,7 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
       brokerConfig.put(SASL_MECHANISM_INTER_BROKER_PROTOCOL_CONFIG, "PLAIN");
       brokerConfig.putAll(SERVER_KEY_STORE.keyStoreProps());
       brokerConfig.put(SslConfigs.SSL_ENDPOINT_IDENTIFICATION_ALGORITHM_CONFIG, "");
-      brokerConfig.put("listener.security.protocol.map", "CONTROLLER:PLAINTEXT,PLAINTEXT:SASL_SSL");
+      brokerConfig.put("listener.security.protocol.map", "CONTROLLER:PLAINTEXT,EXTERNAL:SASL_SSL");
 
       clientConfig.putAll(SecureKafkaHelper.getSecureCredentialsConfig(VALID_USER1));
       clientConfig.putAll(ClientTrustStore.trustStoreProps());

@@ -679,7 +679,6 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
     private static final String ALLOW_EVERYONE_IF_NO_ACL_PROP  = "allow.everyone.if.no.acl.found";
 
     Builder() {
-      brokerConfig.put(LISTENERS_PROP, "PLAINTEXT://:0");
       brokerConfig.put(AUTO_CREATE_TOPICS_ENABLE_PROP, "true");
     }
 
@@ -701,7 +700,7 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
       brokerConfig.put(SASL_MECHANISM_INTER_BROKER_PROTOCOL_CONFIG, "PLAIN");
       brokerConfig.putAll(SERVER_KEY_STORE.keyStoreProps());
       brokerConfig.put(SslConfigs.SSL_ENDPOINT_IDENTIFICATION_ALGORITHM_CONFIG, "");
-      brokerConfig.put("listener.security.protocol.map", "CONTROLLER:PLAINTEXT,EXTERNAL:SASL_SSL");
+      brokerConfig.put("listener.security.protocol.map", "CONTROLLER:PLAINTEXT,PLAINTEXT:SASL_SSL");
 
       clientConfig.putAll(SecureKafkaHelper.getSecureCredentialsConfig(VALID_USER1));
       clientConfig.putAll(ClientTrustStore.trustStoreProps());

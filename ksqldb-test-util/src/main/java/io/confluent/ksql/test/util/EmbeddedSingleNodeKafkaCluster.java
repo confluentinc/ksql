@@ -679,7 +679,6 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
     private static final String ALLOW_EVERYONE_IF_NO_ACL_PROP  = "allow.everyone.if.no.acl.found";
 
     Builder() {
-      brokerConfig.put(LISTENERS_PROP, "PLAINTEXT://:0");
       brokerConfig.put(AUTO_CREATE_TOPICS_ENABLE_PROP, "true");
     }
 

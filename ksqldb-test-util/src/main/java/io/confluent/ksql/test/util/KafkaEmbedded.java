@@ -67,7 +67,6 @@ class KafkaEmbedded {
 
   private final Properties config = null;
   private final KafkaClusterTestKit cluster;
-  private final int externalPort;
 
   /**
    * Creates and starts an embedded Kafka broker.
@@ -80,7 +79,7 @@ class KafkaEmbedded {
     log.debug("Starting embedded Kafka broker");
 
     applyDefaultConfig(config);
-    setupListenerConfiguration(config);
+    //setupListenerConfiguration(config);
 
     final Map<Integer, Map<String,String>> brokerConfigs = new HashMap<>();
     brokerConfigs.put(0, config);
@@ -102,7 +101,6 @@ class KafkaEmbedded {
       cluster.startup();
       cluster.waitForReadyBrokers();
 
-      this.externalPort = Integer.parseInt(config.get("advertised.listeners").split(":")[2]);
 
     } catch (final Exception e) {
       throw new KafkaException("Failed to create test Kafka cluster", e);
@@ -140,14 +138,14 @@ class KafkaEmbedded {
     final int externalPort = getFreePort();
 
     config.put("listeners", "CONTROLLER://127.0.0.1:" + controllerPort
-        + ",PLAINTEXT://127.0.0.1:" + externalPort);
-    config.put("inter.broker.listener.name", "PLAINTEXT");
+            + ",EXTERNAL://127.0.0.1:" + externalPort);
+    config.put("inter.broker.listener.name", "EXTERNAL");
     config.put("controller.listener.names", "CONTROLLER");
-    config.put("advertised.listeners", "PLAINTEXT://127.0.0.1:" + externalPort);
+    config.put("advertised.listeners", "EXTERNAL://127.0.0.1:" + externalPort);
 
     if (!config.containsKey("listener.security.protocol.map")) {
       // Default to PLAINTEXT if not set
-      config.put("listener.security.protocol.map", "CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT");
+      config.put("listener.security.protocol.map", "CONTROLLER:PLAINTEXT,EXTERNAL:PLAINTEXT");
     }
   }
 
@@ -168,7 +166,7 @@ class KafkaEmbedded {
    * @return the broker list
    */
   String brokerList() {
-    return "127.0.0.1:" + externalPort;
+    return cluster.bootstrapServers();
   }
 
   /**
@@ -399,7 +397,7 @@ class KafkaEmbedded {
   private AdminClient adminClient() {
     final ImmutableMap<String, Object> props = ImmutableMap.of(
         AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, brokerList(),
-        AdminClientConfig.REQUEST_TIMEOUT_MS_CONFIG, 60_000);
+        AdminClientConfig.REQUEST_TIMEOUT_MS_CONFIG, 300_000);
 
     return AdminClient.create(props);
   }

@@ -7,7 +7,7 @@ Configuration:
         pattern: "[%d] %p %m (%c:%L)%n"
   Loggers:
     Root:
-      level: INFO
+      level: DEBUG
       AppenderRef:
         - ref: stdout
     Logger:

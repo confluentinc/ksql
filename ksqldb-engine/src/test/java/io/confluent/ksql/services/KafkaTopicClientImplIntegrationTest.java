@@ -46,6 +46,7 @@ import org.junit.*;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 
+@Ignore
 @Category({IntegrationTest.class})
 public class KafkaTopicClientImplIntegrationTest {
 

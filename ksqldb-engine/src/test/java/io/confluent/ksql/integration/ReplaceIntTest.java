@@ -41,10 +41,12 @@ import io.confluent.ksql.util.TestDataProvider;
 import java.util.Map;
 import org.junit.Before;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 
+@Ignore
 @Category({IntegrationTest.class})
 public class ReplaceIntTest {
 

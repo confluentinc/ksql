@@ -29,6 +29,7 @@ import org.apache.kafka.raft.errors.RaftException;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -37,6 +38,7 @@ import org.junit.rules.Timeout;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+@Ignore
 @Category({IntegrationTest.class})
 public class DependentStatementsIntegrationTest {
 

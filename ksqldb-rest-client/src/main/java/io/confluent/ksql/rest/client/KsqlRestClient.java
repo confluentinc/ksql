@@ -58,6 +58,8 @@ public final class KsqlRestClient implements Closeable {
   static final String CCLOUD_CONNECT_USERNAME_HEADER = "X-Confluent-API-Key";
   static final String CCLOUD_CONNECT_PASSWORD_HEADER = "X-Confluent-API-Secret";
 
+  static final int CHUNK_SIZE = 16 * 1024;
+
   private final KsqlClient client;
   private final LocalProperties localProperties;
   private final AtomicReference<String> serializedConsistencyVector;
@@ -115,8 +117,10 @@ public final class KsqlRestClient implements Closeable {
         creds,
         ccloudApiKey,
         (cprops, credz, lprops) -> new KsqlClient(cprops, credz, lprops,
-            new HttpClientOptions(),
-            Optional.of(new HttpClientOptions().setProtocolVersion(HttpVersion.HTTP_2)))
+            new HttpClientOptions().setMaxChunkSize(CHUNK_SIZE),
+            Optional.of(new HttpClientOptions()
+                .setProtocolVersion(HttpVersion.HTTP_2)
+                .setMaxChunkSize(CHUNK_SIZE)))
     );
   }
 

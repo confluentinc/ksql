@@ -157,23 +157,12 @@ public class ConsistencyOffsetVector {
       // Extract version
       final int version = rootNode.path("version").asInt();
 
-      // Deserialize the nested map structure
-      final Map<String, Map<Integer, Long>> offsetVector = OBJECT_MAPPER.convertValue(
-              rootNode.path("offsetVector"),
-              new TypeReference<Map<String, Map<Integer, Long>>>() {}
-      );
-
-      // Convert to the required concurrent map structure
+      // Directly deserialize the nested map structure into the required concurrent map
       final ConcurrentHashMap<String, ConcurrentHashMap<Integer, Long>> concurrentOffsetVector =
-              new ConcurrentHashMap<>();
-
-      // Copy each entry and inner map to concurrent versions
-      for (Map.Entry<String, Map<Integer, Long>> entry : offsetVector.entrySet()) {
-        concurrentOffsetVector.put(
-                entry.getKey(),
-                new ConcurrentHashMap<>(entry.getValue())
-        );
-      }
+              OBJECT_MAPPER.readValue(
+                      rootNode.path("offsetVector").toString(),
+                      new TypeReference<ConcurrentHashMap<String, ConcurrentHashMap<Integer, Long>>>() {}
+              );
 
       // Create instance with proper types
       return new ConsistencyOffsetVector(version, concurrentOffsetVector);

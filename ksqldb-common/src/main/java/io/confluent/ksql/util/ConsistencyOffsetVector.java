@@ -19,6 +19,8 @@ import com.fasterxml.jackson.annotation.JsonAnySetter;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.google.common.collect.ImmutableMap;
@@ -150,7 +152,31 @@ public class ConsistencyOffsetVector {
   public static ConsistencyOffsetVector deserialize(final String token) {
     try {
       final byte[] bytes = Base64.getDecoder().decode(token);
-      return OBJECT_MAPPER.readValue(bytes, ConsistencyOffsetVector.class);
+      final JsonNode rootNode = OBJECT_MAPPER.readTree(bytes);
+
+      // Extract version
+      final int version = rootNode.path("version").asInt();
+
+      // Deserialize the nested map structure
+      final Map<String, Map<Integer, Long>> offsetVector = OBJECT_MAPPER.convertValue(
+              rootNode.path("offsetVector"),
+              new TypeReference<Map<String, Map<Integer, Long>>>() {}
+      );
+
+      // Convert to the required concurrent map structure
+      final ConcurrentHashMap<String, ConcurrentHashMap<Integer, Long>> concurrentOffsetVector =
+              new ConcurrentHashMap<>();
+
+      // Copy each entry and inner map to concurrent versions
+      for (Map.Entry<String, Map<Integer, Long>> entry : offsetVector.entrySet()) {
+        concurrentOffsetVector.put(
+                entry.getKey(),
+                new ConcurrentHashMap<>(entry.getValue())
+        );
+      }
+
+      // Create instance with proper types
+      return new ConsistencyOffsetVector(version, concurrentOffsetVector);
     } catch (Exception e) {
       throw new KsqlException("Couldn't decode consistency token", e);
     }

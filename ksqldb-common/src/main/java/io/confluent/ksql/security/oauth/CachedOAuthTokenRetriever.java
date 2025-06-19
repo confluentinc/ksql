@@ -17,11 +17,11 @@ package io.confluent.ksql.security.oauth;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.security.oauth.exceptions.KsqlOAuthTokenRetrieverException;
-import java.io.IOException;
+import org.apache.kafka.common.security.oauthbearer.JwtRetriever;
+import org.apache.kafka.common.security.oauthbearer.JwtRetrieverException;
+import org.apache.kafka.common.security.oauthbearer.JwtValidator;
+import org.apache.kafka.common.security.oauthbearer.JwtValidatorException;
 import org.apache.kafka.common.security.oauthbearer.OAuthBearerToken;
-import org.apache.kafka.common.security.oauthbearer.internals.secured.JwtRetriever;
-import org.apache.kafka.common.security.oauthbearer.internals.secured.JwtValidator;
-import org.apache.kafka.common.security.oauthbearer.internals.secured.ValidateException;
 
 public class CachedOAuthTokenRetriever {
   private final JwtRetriever accessTokenRetriever;
@@ -42,7 +42,7 @@ public class CachedOAuthTokenRetriever {
       String token = null;
       try {
         token = accessTokenRetriever.retrieve();
-      } catch (IOException | RuntimeException e) {
+      } catch (JwtRetrieverException e) {
         throw new KsqlOAuthTokenRetrieverException(
             "Failed to Retrieve OAuth Token for KSQL", e);
       }
@@ -50,7 +50,7 @@ public class CachedOAuthTokenRetriever {
       final OAuthBearerToken oauthBearerToken;
       try {
         oauthBearerToken = accessTokenValidator.validate(token);
-      } catch (ValidateException e) {
+      } catch (JwtValidatorException e) {
         throw new KsqlOAuthTokenRetrieverException(
             "OAuth Token for KSQL is Invalid", e);
       }

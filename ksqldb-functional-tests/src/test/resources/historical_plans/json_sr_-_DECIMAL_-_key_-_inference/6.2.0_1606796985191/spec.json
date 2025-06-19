@@ -129,7 +129,7 @@
             "oneOf" : [ {
               "type" : "null"
             }, {
-              "type" : "number",
+              "type" : "string",
               "title" : "org.apache.kafka.connect.data.Decimal",
               "connect.version" : 1,
               "connect.type" : "bytes",

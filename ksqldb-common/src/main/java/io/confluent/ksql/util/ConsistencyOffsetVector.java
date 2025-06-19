@@ -161,7 +161,7 @@ public class ConsistencyOffsetVector {
       final ConcurrentHashMap<String, ConcurrentHashMap<Integer, Long>> concurrentOffsetVector =
               OBJECT_MAPPER.readValue(
                       rootNode.path("offsetVector").toString(),
-                      new TypeReference<ConcurrentHashMap<String, ConcurrentHashMap<Integer, Long>>>() {}
+                      new TypeReference<>() {}
               );
 
       // Create instance with proper types

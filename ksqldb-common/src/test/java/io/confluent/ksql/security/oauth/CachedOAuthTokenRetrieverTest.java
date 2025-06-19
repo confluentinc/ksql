@@ -26,6 +26,7 @@ import java.util.Collections;
 
 import io.confluent.ksql.security.oauth.exceptions.KsqlOAuthTokenRetrieverException;
 import org.apache.kafka.common.security.oauthbearer.JwtRetriever;
+import org.apache.kafka.common.security.oauthbearer.JwtRetrieverException;
 import org.apache.kafka.common.security.oauthbearer.JwtValidator;
 import org.apache.kafka.common.security.oauthbearer.JwtValidatorException;
 import org.apache.kafka.common.security.oauthbearer.OAuthBearerToken;
@@ -123,7 +124,7 @@ public class CachedOAuthTokenRetrieverTest {
     when(oauthTokenCache.isTokenExpired()).thenReturn(true);
     // Test whether IO exception is handled first when token retrieval,
     // then test whether Validation exception is handled when token validation
-    when(accessTokenRetriever.retrieve()).thenThrow(new IOException(ioError))
+    when(accessTokenRetriever.retrieve()).thenThrow(new JwtRetrieverException(ioError))
         .thenReturn(tokenString1);
 
     Assert.assertThrows(ioError, KsqlOAuthTokenRetrieverException.class, () -> {

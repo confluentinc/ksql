@@ -86,10 +86,8 @@ public final class ServiceContextFactory {
     } else {
       finalKafkaClientSupplier = kafkaClientSupplier;
 
-      final Map<String, Object> adminConfig =
-          new HashMap<>(ksqlConfig.getKsqlAdminClientConfigProps());
-      applyAdminProxyProtocolLocalConfigs(adminConfig);
-      adminClientSupplier = () -> kafkaClientSupplier.getAdmin(adminConfig);
+      adminClientSupplier = () -> kafkaClientSupplier
+          .getAdmin(ksqlConfig.getKsqlAdminClientConfigProps());
     }
 
     return new DefaultServiceContext(
@@ -100,15 +98,6 @@ public final class ServiceContextFactory {
         connectClientSupplier,
         ksqlClientSupplier
     );
-  }
-
-  private static void applyAdminProxyProtocolLocalConfigs(
-      final Map<String, Object> topicAdminConfig) {
-    // Set proxy protocol client mode to local for topicAdminClientSupplier
-    // if user principal doesn't exist
-    topicAdminConfig.put(AdminClientConfig.PROXY_PROTOCOL_CLIENT_MODE,
-        ProxyProtocolCommand.LOCAL.name());
-    topicAdminConfig.put(AdminClientConfig.PROXY_PROTOCOL_CLIENT_VERSION, ProxyProtocol.V2.name);
   }
 
   private static void applyAdminProxyProtocolConfigs(
@@ -129,7 +118,7 @@ public final class ServiceContextFactory {
     private final KsqlPrincipal userPrincipal;
     private final KafkaClientSupplier kafkaClientSupplier;
 
-    public KafkaClientSupplierWithProxyConfigs(final KsqlPrincipal userPrincipal,
+    KafkaClientSupplierWithProxyConfigs(final KsqlPrincipal userPrincipal,
         final KafkaClientSupplier kafkaClientSupplier) {
       this.userPrincipal = userPrincipal;
       this.kafkaClientSupplier = kafkaClientSupplier;

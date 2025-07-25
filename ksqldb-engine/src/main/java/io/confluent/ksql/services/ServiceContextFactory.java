@@ -102,7 +102,8 @@ public final class ServiceContextFactory {
     );
   }
 
-  private static void applyAdminProxyProtocolLocalConfigs(Map<String, Object> topicAdminConfig) {
+  private static void applyAdminProxyProtocolLocalConfigs(
+      final Map<String, Object> topicAdminConfig) {
     // Set proxy protocol client mode to local for topicAdminClientSupplier
     // if user principal doesn't exist
     topicAdminConfig.put(AdminClientConfig.PROXY_PROTOCOL_CLIENT_MODE,
@@ -128,38 +129,42 @@ public final class ServiceContextFactory {
     private final KsqlPrincipal userPrincipal;
     private final KafkaClientSupplier kafkaClientSupplier;
 
-    public KafkaClientSupplierWithProxyConfigs(KsqlPrincipal userPrincipal,
-        KafkaClientSupplier kafkaClientSupplier) {
+    public KafkaClientSupplierWithProxyConfigs(final KsqlPrincipal userPrincipal,
+        final KafkaClientSupplier kafkaClientSupplier) {
       this.userPrincipal = userPrincipal;
       this.kafkaClientSupplier = kafkaClientSupplier;
     }
 
     @Override
-    public Producer<byte[], byte[]> getProducer(Map<String, Object> config) {
-      final Map<String, Object> configsWithProxyProtocol = applyProducerProxyProtocolConfigs(config);
+    public Producer<byte[], byte[]> getProducer(final Map<String, Object> config) {
+      final Map<String, Object> configsWithProxyProtocol =
+          applyProducerProxyProtocolConfigs(config);
       return kafkaClientSupplier.getProducer(configsWithProxyProtocol);
     }
 
     @Override
-    public Consumer<byte[], byte[]> getConsumer(Map<String, Object> config) {
-      final Map<String, Object> configsWithProxyProtocol = applyConsumerProxyProtocolConfigs(config);
+    public Consumer<byte[], byte[]> getConsumer(final Map<String, Object> config) {
+      final Map<String, Object> configsWithProxyProtocol =
+          applyConsumerProxyProtocolConfigs(config);
       return kafkaClientSupplier.getConsumer(configsWithProxyProtocol);
     }
 
     @Override
-    public Consumer<byte[], byte[]> getRestoreConsumer(Map<String, Object> config) {
-      final Map<String, Object> configsWithProxyProtocol = applyConsumerProxyProtocolConfigs(config);
+    public Consumer<byte[], byte[]> getRestoreConsumer(final Map<String, Object> config) {
+      final Map<String, Object> configsWithProxyProtocol =
+          applyConsumerProxyProtocolConfigs(config);
       return kafkaClientSupplier.getRestoreConsumer(configsWithProxyProtocol);
     }
 
     @Override
-    public Consumer<byte[], byte[]> getGlobalConsumer(Map<String, Object> config) {
-      final Map<String, Object> configsWithProxyProtocol = applyConsumerProxyProtocolConfigs(config);
+    public Consumer<byte[], byte[]> getGlobalConsumer(final Map<String, Object> config) {
+      final Map<String, Object> configsWithProxyProtocol =
+          applyConsumerProxyProtocolConfigs(config);
       return kafkaClientSupplier.getGlobalConsumer(configsWithProxyProtocol);
     }
 
     private Map<String, Object> applyProducerProxyProtocolConfigs(
-        Map<String, Object> config) {
+        final Map<String, Object> config) {
       final Map<String, Object> configsWithProxyProtocol = new HashMap<>(config);
       configsWithProxyProtocol.put(ProducerConfig.PROXY_PROTOCOL_CLIENT_MODE,
           ProxyProtocolCommand.PROXY.name());
@@ -173,7 +178,7 @@ public final class ServiceContextFactory {
     }
 
     private Map<String, Object> applyConsumerProxyProtocolConfigs(
-        Map<String, Object> config) {
+        final Map<String, Object> config) {
       final Map<String, Object> configsWithProxyProtocol = new HashMap<>(config);
       configsWithProxyProtocol.put(ConsumerConfig.PROXY_PROTOCOL_CLIENT_MODE,
           ProxyProtocolCommand.PROXY.name());

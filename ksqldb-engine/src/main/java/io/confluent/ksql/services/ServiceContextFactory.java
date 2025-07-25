@@ -129,7 +129,7 @@ public final class ServiceContextFactory {
     private final KsqlPrincipal userPrincipal;
     private final KafkaClientSupplier kafkaClientSupplier;
 
-    public KafkaClientSupplierWithProxyConfigs(final KsqlPrincipal userPrincipal,
+    KafkaClientSupplierWithProxyConfigs(final KsqlPrincipal userPrincipal,
         final KafkaClientSupplier kafkaClientSupplier) {
       this.userPrincipal = userPrincipal;
       this.kafkaClientSupplier = kafkaClientSupplier;

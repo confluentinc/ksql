@@ -34,7 +34,6 @@ import org.apache.kafka.common.network.ProxyProtocol;
 import org.apache.kafka.common.network.ProxyProtocolCommand;
 import org.apache.kafka.streams.KafkaClientSupplier;
 import org.apache.kafka.streams.processor.internals.DefaultKafkaClientSupplier;
-import org.jetbrains.annotations.NotNull;
 
 public final class ServiceContextFactory {
 
@@ -159,7 +158,7 @@ public final class ServiceContextFactory {
       return kafkaClientSupplier.getGlobalConsumer(configsWithProxyProtocol);
     }
 
-    private @NotNull Map<String, Object> applyProducerProxyProtocolConfigs(
+    private Map<String, Object> applyProducerProxyProtocolConfigs(
         Map<String, Object> config) {
       final Map<String, Object> configsWithProxyProtocol = new HashMap<>(config);
       configsWithProxyProtocol.put(ProducerConfig.PROXY_PROTOCOL_CLIENT_MODE,
@@ -173,7 +172,7 @@ public final class ServiceContextFactory {
       return configsWithProxyProtocol;
     }
 
-    private @NotNull Map<String, Object> applyConsumerProxyProtocolConfigs(
+    private Map<String, Object> applyConsumerProxyProtocolConfigs(
         Map<String, Object> config) {
       final Map<String, Object> configsWithProxyProtocol = new HashMap<>(config);
       configsWithProxyProtocol.put(ConsumerConfig.PROXY_PROTOCOL_CLIENT_MODE,

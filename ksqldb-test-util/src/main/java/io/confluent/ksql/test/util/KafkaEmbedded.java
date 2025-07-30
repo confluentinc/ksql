@@ -118,12 +118,6 @@ class KafkaEmbedded {
     config.put("auto.create.topics.enable", "true");
     config.put("message.max.bytes", "1000000");
     config.put("controlled.shutdown.enable", "true");
-
-    // License validator overrides for tests
-    config.put("confluent.license.validator.enabled", "false");
-    config.put("confluent.license.topic.auto.create", "false");
-    config.put("confluent.license", "test");
-    config.put("confluent.license.topic.replication.factor", "1");
   }
 
   /**

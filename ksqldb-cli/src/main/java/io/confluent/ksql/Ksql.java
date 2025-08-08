@@ -39,7 +39,7 @@ import org.slf4j.LoggerFactory;
 public final class Ksql {
   private static final Logger LOGGER = LoggerFactory.getLogger(Ksql.class);
   private static final Predicate<String> NOT_CLIENT_SIDE_CONFIG = key -> !key.startsWith("ssl.")
-      && !key.equals("security.protocol") && !key.equals("sasl.mechanism") ;
+      && !key.equals("security.protocol") && !key.startsWith("sasl.") ;
 
   private final Options options;
   private final KsqlClientBuilder clientBuilder;

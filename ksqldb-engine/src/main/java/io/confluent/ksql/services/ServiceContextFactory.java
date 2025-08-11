@@ -125,6 +125,13 @@ public final class ServiceContextFactory {
     }
 
     @Override
+    public Admin getAdmin(Map<String, Object> config) {
+      final Map<String, Object> configsWithProxyProtocol =
+          applyAdminProxyProtocolConfigs(config);
+      return kafkaClientSupplier.getAdmin(configsWithProxyProtocol);
+    }
+
+    @Override
     public Producer<byte[], byte[]> getProducer(final Map<String, Object> config) {
       final Map<String, Object> configsWithProxyProtocol =
           applyProducerProxyProtocolConfigs(config);
@@ -176,6 +183,20 @@ public final class ServiceContextFactory {
       configsWithProxyProtocol.put(ConsumerConfig.PROXY_PROTOCOL_CLIENT_PORT,
           userPrincipal.getPort());
       configsWithProxyProtocol.put(ConsumerConfig.PROXY_PROTOCOL_CLIENT_VERSION,
+          ProxyProtocol.V2.name);
+      return configsWithProxyProtocol;
+    }
+
+    private Map<String, Object> applyAdminProxyProtocolConfigs(
+        final Map<String, Object> config) {
+      final Map<String, Object> configsWithProxyProtocol = new HashMap<>(config);
+      configsWithProxyProtocol.put(AdminClientConfig.PROXY_PROTOCOL_CLIENT_MODE,
+          ProxyProtocolCommand.PROXY.name());
+      configsWithProxyProtocol.put(AdminClientConfig.PROXY_PROTOCOL_CLIENT_ADDRESS,
+          userPrincipal.getIpAddress());
+      configsWithProxyProtocol.put(AdminClientConfig.PROXY_PROTOCOL_CLIENT_PORT,
+          userPrincipal.getPort());
+      configsWithProxyProtocol.put(AdminClientConfig.PROXY_PROTOCOL_CLIENT_VERSION,
           ProxyProtocol.V2.name);
       return configsWithProxyProtocol;
     }

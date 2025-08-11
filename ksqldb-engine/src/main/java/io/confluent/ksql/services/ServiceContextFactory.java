@@ -125,7 +125,7 @@ public final class ServiceContextFactory {
     }
 
     @Override
-    public Admin getAdmin(Map<String, Object> config) {
+    public Admin getAdmin(final Map<String, Object> config) {
       final Map<String, Object> configsWithProxyProtocol =
           applyAdminProxyProtocolConfigs(config);
       return kafkaClientSupplier.getAdmin(configsWithProxyProtocol);

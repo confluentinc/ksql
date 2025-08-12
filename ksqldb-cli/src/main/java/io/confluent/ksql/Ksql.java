@@ -43,7 +43,8 @@ import org.apache.logging.log4j.Logger;
 
 public final class Ksql {
   private static final Logger LOGGER = LogManager.getLogger(Ksql.class);
-  private static final Predicate<String> NOT_CLIENT_SIDE_CONFIG = key -> !key.startsWith("ssl.");
+  private static final Predicate<String> NOT_CLIENT_SIDE_CONFIG = key -> !key.startsWith("ssl.")
+      && !key.equals("security.protocol") && !key.startsWith("sasl.") ;
 
   private final Options options;
   private final KsqlClientBuilder clientBuilder;

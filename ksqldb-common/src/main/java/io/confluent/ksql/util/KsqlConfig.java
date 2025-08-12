@@ -259,6 +259,11 @@ public class KsqlConfig extends AbstractConfig {
   public static final String KSQL_SECURITY_EXTENSION_DOC = "A KSQL security extension class that "
       + "provides authorization to KSQL servers.";
 
+  public static final String KSQL_LICENSE_VALIDATOR_EXTENSION_CLASS = "ksql.license.class";
+  public static final String KSQL_LICENSE_VALIDATOR_EXTENSION_DEFAULT = null;
+  public static final String KSQL_LICENSE_VALIDATOR_EXTENSION_DOC = "A KSQL license validator extension class that "
+      + "provides license validation to KSQL servers.";
+
   public static final String KSQL_ENABLE_ACCESS_VALIDATOR = "ksql.access.validator.enable";
   public static final String KSQL_ACCESS_VALIDATOR_ON = "on";
   public static final String KSQL_ACCESS_VALIDATOR_OFF = "off";
@@ -1047,6 +1052,12 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_SECURITY_EXTENSION_DEFAULT,
             ConfigDef.Importance.LOW,
             KSQL_SECURITY_EXTENSION_DOC
+        ).define(
+            KSQL_LICENSE_VALIDATOR_EXTENSION_CLASS,
+            Type.CLASS,
+            KSQL_LICENSE_VALIDATOR_EXTENSION_DEFAULT,
+            ConfigDef.Importance.LOW,
+            KSQL_LICENSE_VALIDATOR_EXTENSION_DOC
         ).define(
             KSQL_DEFAULT_KEY_FORMAT_CONFIG,
             Type.STRING,

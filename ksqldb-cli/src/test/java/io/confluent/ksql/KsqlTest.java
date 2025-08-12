@@ -194,6 +194,22 @@ public class KsqlTest {
     verify(clientBuilder).build(any(), eq(ImmutableMap.of("some.other.setting", "value")), any(), any(), any());
   }
 
+  @Test
+  public void shouldStripSecurityConfigFromConfigFileWhenMakingLocalProperties() throws Exception {
+    // Given:
+    givenConfigFile(
+        "security.protocol=SASL_SSL" + System.lineSeparator()
+            + "sasl.mechanism=PLAIN" + System.lineSeparator()
+            + "some.other.setting=value"
+    );
+
+    // When:
+    ksql.run();
+
+    // Then:
+    verify(clientBuilder).build(any(), eq(ImmutableMap.of("some.other.setting", "value")), any(), any(), any());
+  }
+
   private void givenConfigFile(final String content) throws Exception {
     final File file = TMP.newFile();
     when(options.getConfigFile()).thenReturn(Optional.of(file.getAbsolutePath()));

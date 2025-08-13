@@ -151,7 +151,8 @@ public final class ServiceContextFactory {
     }
 
     private Map<String, Object> applyProducerProxyProtocolConfigs(
-        final Map<String, Object> config, ProxyProtocolCommand proxyProtocolCommand) {
+        final Map<String, Object> config,
+        final ProxyProtocolCommand proxyProtocolCommand) {
       final Map<String, Object> configsWithProxyProtocol = new HashMap<>(config);
 
       if (ProxyProtocolCommand.PROXY == proxyProtocolCommand) {
@@ -171,7 +172,8 @@ public final class ServiceContextFactory {
     }
 
     private Map<String, Object> applyConsumerProxyProtocolConfigs(
-        final Map<String, Object> config, ProxyProtocolCommand proxyProtocolCommand) {
+        final Map<String, Object> config,
+        final ProxyProtocolCommand proxyProtocolCommand) {
       final Map<String, Object> configsWithProxyProtocol = new HashMap<>(config);
 
       if (ProxyProtocolCommand.PROXY == proxyProtocolCommand) {
@@ -191,7 +193,8 @@ public final class ServiceContextFactory {
     }
 
     private Map<String, Object> applyAdminProxyProtocolConfigs(
-        final Map<String, Object> config, ProxyProtocolCommand proxyProtocolCommand) {
+        final Map<String, Object> config,
+        final ProxyProtocolCommand proxyProtocolCommand) {
       final Map<String, Object> configsWithProxyProtocol = new HashMap<>(config);
 
       if (ProxyProtocolCommand.PROXY == proxyProtocolCommand) {

@@ -624,4 +624,24 @@ public class KsqlConfigTest {
     assertThat(ksqlConfig1.getBoolean(KsqlConfig.KSQL_CLIENT_IP_PORT_CONFIGURATION_ENABLED), is(false));
     assertThat(ksqlConfig2.getBoolean(KsqlConfig.KSQL_CLIENT_IP_PORT_CONFIGURATION_ENABLED), is(false));
   }
+
+  @Test
+  public void shouldGetClientProxyProtocolLocalModeConfig() {
+    // Given:
+    final Map<String, Object> configs = new HashMap<>();
+    configs.put("ksql.proxy.protocol.local.mode.enabled", "true");
+    final Map<String, Object> configs1 = new HashMap<>();
+    configs1.put("ksql.proxy.protocol.local.mode.enabled", "false");
+    // Default to false
+    final Map<String, Object> configs2 = new HashMap<>();
+
+    final KsqlConfig ksqlConfig = new KsqlConfig(configs);
+    final KsqlConfig ksqlConfig1 = new KsqlConfig(configs1);
+    final KsqlConfig ksqlConfig2 = new KsqlConfig(configs2);
+
+    // When:
+    assertThat(ksqlConfig.getBoolean(KsqlConfig.KSQL_PROXY_PROTOCOL_LOCAL_MODE_ENABLED), is(true));
+    assertThat(ksqlConfig1.getBoolean(KsqlConfig.KSQL_PROXY_PROTOCOL_LOCAL_MODE_ENABLED), is(false));
+    assertThat(ksqlConfig2.getBoolean(KsqlConfig.KSQL_PROXY_PROTOCOL_LOCAL_MODE_ENABLED), is(false));
+  }
 }

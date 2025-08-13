@@ -656,7 +656,9 @@ final class QueryBuilder {
     final QueryErrorClassifier userErrorClassifiers = new MissingTopicClassifier(applicationId)
         .and(new AuthorizationClassifier(applicationId))
         .and(new KsqlFunctionClassifier(applicationId))
+        .and(new RecordTooLargeClassifier(applicationId))
         .and(new MissingSubjectClassifier(applicationId))
+        .and(new MissingSchemaClassifier(applicationId))
         .and(new SchemaAuthorizationClassifier(applicationId))
         .and(new KsqlSerializationClassifier(applicationId));
     return buildConfiguredClassifiers(ksqlConfig, applicationId)

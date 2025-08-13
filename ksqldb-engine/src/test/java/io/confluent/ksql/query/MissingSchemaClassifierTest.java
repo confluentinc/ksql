@@ -15,35 +15,24 @@
 
 package io.confluent.ksql.query;
 
-import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import org.junit.Test;
+
+import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
-public class MissingSubjectClassifierTest {
+public class MissingSchemaClassifierTest {
   @Test
-  public void shouldClassifyMissingSubjectAsUserError() {
+  public void shouldClassifyMissingSchemaAsUserError() {
     // Given:
-    final Exception e = new RestClientException("foo", 404, 40401);
+    final Exception e = new RestClientException("foo", 404, 40403);
 
     // When:
-    final QueryError.Type type = new MissingSubjectClassifier("").classify(e);
+    final QueryError.Type type = new MissingSchemaClassifier("").classify(e);
 
     // Then:
     assertThat(type, is(QueryError.Type.USER));
-  }
-
-  @Test
-  public void shouldClassifyNoMissingSubjectAsUnknownErrorCode() {
-    // Given:
-    final Exception e = new RestClientException("foo", 401, 40101);
-
-    // When:
-    final QueryError.Type type = new MissingSubjectClassifier("").classify(e);
-
-    // Then:
-    assertThat(type, is(QueryError.Type.UNKNOWN));
   }
 
   @Test
@@ -52,7 +41,7 @@ public class MissingSubjectClassifierTest {
     final Exception e = new Exception("foo");
 
     // When:
-    final QueryError.Type type = new MissingSubjectClassifier("").classify(e);
+    final QueryError.Type type = new MissingSchemaClassifier("").classify(e);
 
     // Then:
     assertThat(type, is(QueryError.Type.UNKNOWN));

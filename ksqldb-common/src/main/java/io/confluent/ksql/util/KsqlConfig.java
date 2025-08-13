@@ -572,15 +572,21 @@ public class KsqlConfig extends AbstractConfig {
   private static final Boolean KSQL_CLIENT_IP_PORT_CONFIGURATION_ENABLED_DEFAULT = false;
   private static final String KSQL_CLIENT_IP_PORT_CONFIGURATION_ENABLED_DOC =
       "Feature flag that enables configuration of client IP and PORT in internal ksql Kafka Client."
-      + " So that Kafka broker can get client IP and PORT for logging and other purposes";
+      + " So that Kafka broker can get client IP and PORT for logging and other purposes.";
+
+  public static final String KSQL_PROXY_PROTOCOL_LOCAL_MODE_ENABLED =
+      "ksql.proxy.protocol.local.mode.enabled";
+  private static final Boolean KSQL_PROXY_PROTOCOL_LOCAL_MODE_ENABLED_DEFAULT = false;
+  private static final String KSQL_PROXY_PROTOCOL_LOCAL_MODE_ENABLED_DOC =
+      "Feature flag that enables internal ksql Kafka Clients to use LOCAL mode for proxy protocol.";
 
   public static final String KSQL_JSON_SR_CONVERTER_DESERIALIZER_ENABLED
       = "ksql.json_sr.converter.deserializer.enabled";
 
   private static final Boolean KSQL_JSON_SR_CONVERTER_DESERIALIZER_ENABLED_DEFAULT = true;
 
-  private static final String KSQL_JSON_SR_CONVERTER_DESERIALIZER_ENABLED_DOC = ""
-      + "Feature flag that enables the use of the JsonSchemaConverter class for deserializing "
+  private static final String KSQL_JSON_SR_CONVERTER_DESERIALIZER_ENABLED_DOC =
+      "Feature flag that enables the use of the JsonSchemaConverter class for deserializing "
       + "JSON_SR records. JsonSchemaConverter is required to support `anyOf` JSON_SR types. "
       + "This flag should be used to disable this feature only when users experience "
       + "deserialization issues caused by the JsonSchemaConverter. Otherwise, this flag should "
@@ -1551,6 +1557,13 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_CLIENT_IP_PORT_CONFIGURATION_ENABLED_DEFAULT,
             Importance.LOW,
             KSQL_CLIENT_IP_PORT_CONFIGURATION_ENABLED_DOC
+        )
+        .define(
+            KSQL_PROXY_PROTOCOL_LOCAL_MODE_ENABLED,
+            Type.BOOLEAN,
+            KSQL_PROXY_PROTOCOL_LOCAL_MODE_ENABLED_DEFAULT,
+            Importance.LOW,
+            KSQL_PROXY_PROTOCOL_LOCAL_MODE_ENABLED_DOC
         )
         .define(
             KSQL_FETCH_REMOTE_HOSTS_TIMEOUT_SECONDS,

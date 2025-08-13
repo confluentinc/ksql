@@ -68,27 +68,25 @@ public final class ServiceContextFactory {
       final Supplier<SimpleKsqlClient> ksqlClientSupplier,
       final Optional<KsqlPrincipal> userPrincipal
   ) {
-    final Supplier<Admin> adminClientSupplier;
     final KafkaClientSupplier finalKafkaClientSupplier;
 
     if (ksqlConfig.getBoolean(KsqlConfig.KSQL_CLIENT_IP_PORT_CONFIGURATION_ENABLED)
         && userPrincipal.isPresent()) {
-      final KsqlPrincipal principal = userPrincipal.get();
-
-      // Create new map to make it modifiable
-      final Map<String, Object> adminConfig =
-          new HashMap<>(ksqlConfig.getKsqlAdminClientConfigProps());
-      applyAdminProxyProtocolConfigs(principal, adminConfig);
-      adminClientSupplier = () -> kafkaClientSupplier.getAdmin(adminConfig);
-
       finalKafkaClientSupplier =
-          new KafkaClientSupplierWithProxyConfigs(principal, kafkaClientSupplier);
+          new KafkaClientSupplierWithProxyConfigs(userPrincipal,
+              kafkaClientSupplier,
+              ProxyProtocolCommand.PROXY);
+    } else if (ksqlConfig.getBoolean(KsqlConfig.KSQL_PROXY_PROTOCOL_LOCAL_MODE_ENABLED)) {
+      finalKafkaClientSupplier =
+          new KafkaClientSupplierWithProxyConfigs(userPrincipal,
+              kafkaClientSupplier,
+              ProxyProtocolCommand.LOCAL);
     } else {
       finalKafkaClientSupplier = kafkaClientSupplier;
-
-      adminClientSupplier = () -> kafkaClientSupplier
-          .getAdmin(ksqlConfig.getKsqlAdminClientConfigProps());
     }
+
+    final Supplier<Admin> adminClientSupplier = () -> finalKafkaClientSupplier
+        .getAdmin(ksqlConfig.getKsqlAdminClientConfigProps());
 
     return new DefaultServiceContext(
         finalKafkaClientSupplier,
@@ -100,102 +98,116 @@ public final class ServiceContextFactory {
     );
   }
 
-  private static void applyAdminProxyProtocolConfigs(
-      final KsqlPrincipal userPrincipal,
-      final Map<String, Object> topicAdminConfig) {
-    // Set Client address config for topicAdminClientSupplier if user principal exists
-    topicAdminConfig.put(AdminClientConfig.PROXY_PROTOCOL_CLIENT_MODE,
-        ProxyProtocolCommand.PROXY.name());
-    topicAdminConfig.put(AdminClientConfig.PROXY_PROTOCOL_CLIENT_ADDRESS,
-        userPrincipal.getIpAddress());
-    topicAdminConfig.put(AdminClientConfig.PROXY_PROTOCOL_CLIENT_PORT,
-        userPrincipal.getPort());
-    topicAdminConfig.put(AdminClientConfig.PROXY_PROTOCOL_CLIENT_VERSION, ProxyProtocol.V2.name);
-  }
-
   private static class KafkaClientSupplierWithProxyConfigs implements KafkaClientSupplier {
 
     private final KsqlPrincipal userPrincipal;
     private final KafkaClientSupplier kafkaClientSupplier;
+    private final ProxyProtocolCommand proxyProtocolCommand;
 
-    KafkaClientSupplierWithProxyConfigs(final KsqlPrincipal userPrincipal,
-        final KafkaClientSupplier kafkaClientSupplier) {
-      this.userPrincipal = userPrincipal;
+    KafkaClientSupplierWithProxyConfigs(final Optional<KsqlPrincipal> userPrincipal,
+        final KafkaClientSupplier kafkaClientSupplier,
+        final ProxyProtocolCommand proxyProtocolCommand) {
       this.kafkaClientSupplier = kafkaClientSupplier;
+      this.proxyProtocolCommand = proxyProtocolCommand;
+      if (ProxyProtocolCommand.PROXY == proxyProtocolCommand && !userPrincipal.isPresent()) {
+        throw new IllegalArgumentException("User principal is mandatory for PROXY mode.");
+      }
+      this.userPrincipal = userPrincipal.orElse(null);
     }
 
     @Override
     public Admin getAdmin(final Map<String, Object> config) {
       final Map<String, Object> configsWithProxyProtocol =
-          applyAdminProxyProtocolConfigs(config);
+          applyAdminProxyProtocolConfigs(config, proxyProtocolCommand);
       return kafkaClientSupplier.getAdmin(configsWithProxyProtocol);
     }
 
     @Override
     public Producer<byte[], byte[]> getProducer(final Map<String, Object> config) {
       final Map<String, Object> configsWithProxyProtocol =
-          applyProducerProxyProtocolConfigs(config);
+          applyProducerProxyProtocolConfigs(config, proxyProtocolCommand);
       return kafkaClientSupplier.getProducer(configsWithProxyProtocol);
     }
 
     @Override
     public Consumer<byte[], byte[]> getConsumer(final Map<String, Object> config) {
       final Map<String, Object> configsWithProxyProtocol =
-          applyConsumerProxyProtocolConfigs(config);
+          applyConsumerProxyProtocolConfigs(config, proxyProtocolCommand);
       return kafkaClientSupplier.getConsumer(configsWithProxyProtocol);
     }
 
     @Override
     public Consumer<byte[], byte[]> getRestoreConsumer(final Map<String, Object> config) {
       final Map<String, Object> configsWithProxyProtocol =
-          applyConsumerProxyProtocolConfigs(config);
+          applyConsumerProxyProtocolConfigs(config, proxyProtocolCommand);
       return kafkaClientSupplier.getRestoreConsumer(configsWithProxyProtocol);
     }
 
     @Override
     public Consumer<byte[], byte[]> getGlobalConsumer(final Map<String, Object> config) {
       final Map<String, Object> configsWithProxyProtocol =
-          applyConsumerProxyProtocolConfigs(config);
+          applyConsumerProxyProtocolConfigs(config, proxyProtocolCommand);
       return kafkaClientSupplier.getGlobalConsumer(configsWithProxyProtocol);
     }
 
     private Map<String, Object> applyProducerProxyProtocolConfigs(
-        final Map<String, Object> config) {
+        final Map<String, Object> config,
+        final ProxyProtocolCommand proxyProtocolCommand) {
       final Map<String, Object> configsWithProxyProtocol = new HashMap<>(config);
-      configsWithProxyProtocol.put(ProducerConfig.PROXY_PROTOCOL_CLIENT_MODE,
-          ProxyProtocolCommand.PROXY.name());
-      configsWithProxyProtocol.put(ProducerConfig.PROXY_PROTOCOL_CLIENT_ADDRESS,
-          userPrincipal.getIpAddress());
-      configsWithProxyProtocol.put(ProducerConfig.PROXY_PROTOCOL_CLIENT_PORT,
-          userPrincipal.getPort());
+
+      if (ProxyProtocolCommand.PROXY == proxyProtocolCommand) {
+        configsWithProxyProtocol.put(ProducerConfig.PROXY_PROTOCOL_CLIENT_MODE,
+            ProxyProtocolCommand.PROXY.name());
+        configsWithProxyProtocol.put(ProducerConfig.PROXY_PROTOCOL_CLIENT_ADDRESS,
+            userPrincipal.getIpAddress());
+        configsWithProxyProtocol.put(ProducerConfig.PROXY_PROTOCOL_CLIENT_PORT,
+            userPrincipal.getPort());
+      } else {
+        configsWithProxyProtocol.put(ProducerConfig.PROXY_PROTOCOL_CLIENT_MODE,
+            ProxyProtocolCommand.LOCAL.name());
+      }
       configsWithProxyProtocol.put(ProducerConfig.PROXY_PROTOCOL_CLIENT_VERSION,
           ProxyProtocol.V2.name);
       return configsWithProxyProtocol;
     }
 
     private Map<String, Object> applyConsumerProxyProtocolConfigs(
-        final Map<String, Object> config) {
+        final Map<String, Object> config,
+        final ProxyProtocolCommand proxyProtocolCommand) {
       final Map<String, Object> configsWithProxyProtocol = new HashMap<>(config);
-      configsWithProxyProtocol.put(ConsumerConfig.PROXY_PROTOCOL_CLIENT_MODE,
-          ProxyProtocolCommand.PROXY.name());
-      configsWithProxyProtocol.put(ConsumerConfig.PROXY_PROTOCOL_CLIENT_ADDRESS,
-          userPrincipal.getIpAddress());
-      configsWithProxyProtocol.put(ConsumerConfig.PROXY_PROTOCOL_CLIENT_PORT,
-          userPrincipal.getPort());
+
+      if (ProxyProtocolCommand.PROXY == proxyProtocolCommand) {
+        configsWithProxyProtocol.put(ConsumerConfig.PROXY_PROTOCOL_CLIENT_MODE,
+            ProxyProtocolCommand.PROXY.name());
+        configsWithProxyProtocol.put(ConsumerConfig.PROXY_PROTOCOL_CLIENT_ADDRESS,
+            userPrincipal.getIpAddress());
+        configsWithProxyProtocol.put(ConsumerConfig.PROXY_PROTOCOL_CLIENT_PORT,
+            userPrincipal.getPort());
+      } else {
+        configsWithProxyProtocol.put(ConsumerConfig.PROXY_PROTOCOL_CLIENT_MODE,
+            ProxyProtocolCommand.LOCAL.name());
+      }
       configsWithProxyProtocol.put(ConsumerConfig.PROXY_PROTOCOL_CLIENT_VERSION,
           ProxyProtocol.V2.name);
       return configsWithProxyProtocol;
     }
 
     private Map<String, Object> applyAdminProxyProtocolConfigs(
-        final Map<String, Object> config) {
+        final Map<String, Object> config,
+        final ProxyProtocolCommand proxyProtocolCommand) {
       final Map<String, Object> configsWithProxyProtocol = new HashMap<>(config);
-      configsWithProxyProtocol.put(AdminClientConfig.PROXY_PROTOCOL_CLIENT_MODE,
-          ProxyProtocolCommand.PROXY.name());
-      configsWithProxyProtocol.put(AdminClientConfig.PROXY_PROTOCOL_CLIENT_ADDRESS,
-          userPrincipal.getIpAddress());
-      configsWithProxyProtocol.put(AdminClientConfig.PROXY_PROTOCOL_CLIENT_PORT,
-          userPrincipal.getPort());
+
+      if (ProxyProtocolCommand.PROXY == proxyProtocolCommand) {
+        configsWithProxyProtocol.put(AdminClientConfig.PROXY_PROTOCOL_CLIENT_MODE,
+            ProxyProtocolCommand.PROXY.name());
+        configsWithProxyProtocol.put(AdminClientConfig.PROXY_PROTOCOL_CLIENT_ADDRESS,
+            userPrincipal.getIpAddress());
+        configsWithProxyProtocol.put(AdminClientConfig.PROXY_PROTOCOL_CLIENT_PORT,
+            userPrincipal.getPort());
+      } else {
+        configsWithProxyProtocol.put(AdminClientConfig.PROXY_PROTOCOL_CLIENT_MODE,
+            ProxyProtocolCommand.LOCAL.name());
+      }
       configsWithProxyProtocol.put(AdminClientConfig.PROXY_PROTOCOL_CLIENT_VERSION,
           ProxyProtocol.V2.name);
       return configsWithProxyProtocol;

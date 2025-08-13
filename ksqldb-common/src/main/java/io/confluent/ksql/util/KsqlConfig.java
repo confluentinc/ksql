@@ -261,7 +261,8 @@ public class KsqlConfig extends AbstractConfig {
 
   public static final String KSQL_LICENSE_VALIDATOR_EXTENSION_CLASS = "ksql.license.class";
   public static final String KSQL_LICENSE_VALIDATOR_EXTENSION_DEFAULT = null;
-  public static final String KSQL_LICENSE_VALIDATOR_EXTENSION_DOC = "A KSQL license validator extension class that "
+  public static final String KSQL_LICENSE_VALIDATOR_EXTENSION_DOC =
+      "A KSQL license validator extension class that "
       + "provides license validation to KSQL servers.";
 
   public static final String KSQL_ENABLE_ACCESS_VALIDATOR = "ksql.access.validator.enable";

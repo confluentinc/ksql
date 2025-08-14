@@ -232,6 +232,15 @@ public class KsqlRestApplicationTest {
   }
 
   @Test
+  public void shouldCloseKsqlResourceExtensionOnClose() {
+    // When:
+    app.shutdown();
+
+    // Then:
+    verify(ksqlResourceExtension).clean();
+  }
+
+  @Test
   public void shouldAddConfigurableMetricsReportersIfPresentInKsqlConfig() {
     // When:
     final MetricsReporter mockReporter = mock(MetricsReporter.class);

@@ -92,7 +92,12 @@ import io.confluent.ksql.rest.util.PersistentQueryCleanupImpl;
 import io.confluent.ksql.rest.util.RateLimiter;
 import io.confluent.ksql.rest.util.RocksDBConfigSetterHandler;
 import io.confluent.ksql.schema.registry.KsqlSchemaRegistryClientFactory;
-import io.confluent.ksql.security.*;
+import io.confluent.ksql.security.KsqlAuthorizationValidator;
+import io.confluent.ksql.security.KsqlAuthorizationValidatorFactory;
+import io.confluent.ksql.security.KsqlDefaultSecurityExtension;
+import io.confluent.ksql.security.KsqlResourceExtension;
+import io.confluent.ksql.security.KsqlSecurityContext;
+import io.confluent.ksql.security.KsqlSecurityExtension;
 import io.confluent.ksql.services.ConnectClientFactory;
 import io.confluent.ksql.services.DefaultConnectClientFactory;
 import io.confluent.ksql.services.KafkaClusterUtil;
@@ -819,7 +824,8 @@ public final class KsqlRestApplication implements Executable {
             connectClientFactory,
             sharedClient);
 
-    final Optional<KsqlResourceExtension> ksqlResourceExtension = loadKsqlResourceExtension(ksqlConfig);
+    final Optional<KsqlResourceExtension> ksqlResourceExtension =
+        loadKsqlResourceExtension(ksqlConfig);
 
     final Optional<AuthenticationPlugin> securityHandlerPlugin = loadAuthenticationPlugin(
         restConfig);
@@ -1160,10 +1166,11 @@ public final class KsqlRestApplication implements Executable {
     return securityExtension;
   }
 
-  private static Optional<KsqlResourceExtension> loadKsqlResourceExtension(final KsqlConfig ksqlConfig) {
+  private static Optional<KsqlResourceExtension> loadKsqlResourceExtension(
+      final KsqlConfig ksqlConfig) {
     final Optional<KsqlResourceExtension> ksqlResourceExtension = Optional.ofNullable(
         ksqlConfig.getConfiguredInstance(
-            KsqlConfig.KSQL_LICENSE_VALIDATOR_EXTENSION_CLASS,
+            KsqlConfig.KSQL_RESOURCE_EXTENSION_CLASS,
             KsqlResourceExtension.class
         ));
 

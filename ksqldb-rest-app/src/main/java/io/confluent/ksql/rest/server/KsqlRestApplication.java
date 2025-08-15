@@ -1168,7 +1168,9 @@ public final class KsqlRestApplication implements Executable {
 
   private static Optional<KsqlResourceExtension> loadKsqlResourceExtension(
       final KsqlConfig ksqlConfig) {
-    final String extensionClassName = ksqlConfig.getString(KsqlConfig.KSQL_RESOURCE_EXTENSION_CLASS);
+
+    final String extensionClassName =
+        ksqlConfig.getString(KsqlConfig.KSQL_RESOURCE_EXTENSION_CLASS);
 
     if (extensionClassName == null || extensionClassName.trim().isEmpty()) {
       log.warn(KsqlConstants.KSQL_RESOURCE_EXTENSION_MISCONFIGURED_LOG_MESSAGE);

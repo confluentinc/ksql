@@ -56,7 +56,7 @@ public final class KsqlConstants {
 
   public static final String KSQL_RESOURCE_EXTENSION_MISCONFIGURED_LOG_MESSAGE =
       "No Enterprise license detected. Confluent does not offer Enterprise support any self-managed"
-    + "(Confluent Platform) components without a valid Enterprise license";
+      + "(Confluent Platform) components without a valid Enterprise license";
 
   public enum KsqlQueryType {
     PERSISTENT,

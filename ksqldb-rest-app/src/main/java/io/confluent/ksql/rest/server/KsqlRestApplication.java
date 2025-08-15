@@ -1168,17 +1168,34 @@ public final class KsqlRestApplication implements Executable {
 
   private static Optional<KsqlResourceExtension> loadKsqlResourceExtension(
       final KsqlConfig ksqlConfig) {
-    final Optional<KsqlResourceExtension> ksqlResourceExtension = Optional.ofNullable(
-        ksqlConfig.getConfiguredInstance(
-            KsqlConfig.KSQL_RESOURCE_EXTENSION_CLASS,
-            KsqlResourceExtension.class
-        ));
+    final String extensionClassName = ksqlConfig.getString(KsqlConfig.KSQL_RESOURCE_EXTENSION_CLASS);
 
-    ksqlResourceExtension.ifPresent(extension -> {
+    if (extensionClassName == null || extensionClassName.trim().isEmpty()) {
+      log.warn(KsqlConstants.KSQL_RESOURCE_EXTENSION_MISCONFIGURED_LOG_MESSAGE);
+      return Optional.empty();
+    }
+
+    try {
+      log.info("Loading KSQL resource extension: {}", extensionClassName);
+      
+      final KsqlResourceExtension extension = ksqlConfig.getConfiguredInstance(
+          KsqlConfig.KSQL_RESOURCE_EXTENSION_CLASS,
+          KsqlResourceExtension.class
+      );
+      
+      if (extension == null) {
+        throw new KsqlException(KsqlConstants.KSQL_RESOURCE_EXTENSION_MISCONFIGURED_LOG_MESSAGE);
+      }
+
       extension.register(ksqlConfig);
-    });
+      log.info("Successfully loaded and registered KSQL resource extension: {}",
+          extensionClassName);
+      return Optional.of(extension);
 
-    return ksqlResourceExtension;
+    } catch (final Exception e) {
+      log.warn(KsqlConstants.KSQL_RESOURCE_EXTENSION_MISCONFIGURED_LOG_MESSAGE);
+      return Optional.empty();
+    }
   }
 
   private static Optional<AuthenticationPlugin> loadAuthenticationPlugin(

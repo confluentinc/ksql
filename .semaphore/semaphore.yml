@@ -52,6 +52,7 @@ blocks:
             - artifact push workflow target/test-results
             - artifact push workflow target
 
+
   - name: Release
     dependencies: ["Test"]
     run:

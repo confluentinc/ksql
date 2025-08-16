@@ -22,7 +22,7 @@ queue:
 
 auto_cancel:
   queued:
-    when: "branch == 'master'"
+    when: "branch != 'master'"
 
 global_job_config:
   prologue:

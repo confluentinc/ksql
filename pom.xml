@@ -746,6 +746,15 @@
                 <version>${wiremock.version}</version>
                 <scope>test</scope>
             </dependency>
+            
+            <!-- Override vulnerable json-smart version to fix CVE-2024-57699.
+                 TODO: Remove this override when com.jayway.jsonpath:json-path 
+                 updates to use json-smart 2.5.2+ (currently 2.9.0 uses 2.5.0) -->
+            <dependency>
+                <groupId>net.minidev</groupId>
+                <artifactId>json-smart</artifactId>
+                <version>2.5.2</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 

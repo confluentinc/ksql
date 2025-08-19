@@ -746,6 +746,14 @@
                 <version>${wiremock.version}</version>
                 <scope>test</scope>
             </dependency>
+            
+            <!-- Override vulnerable json-smart 2.5.0/2.5.1 to fix CVE-2024-57699
+                 TODO: Remove when all transitive deps use json-smart 2.5.2+ -->
+            <dependency>
+                <groupId>net.minidev</groupId>
+                <artifactId>json-smart</artifactId>
+                <version>2.5.2</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 

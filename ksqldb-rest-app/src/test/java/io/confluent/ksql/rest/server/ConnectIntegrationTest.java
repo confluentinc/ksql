@@ -64,6 +64,7 @@ import org.apache.hc.core5.http.HttpStatus;
 import org.apache.kafka.connect.json.JsonConverter;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorType;
 import org.apache.kafka.connect.storage.StringConverter;
+import org.apache.kafka.connect.tools.MockSourceConnector;
 import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -150,12 +151,27 @@ public class ConnectIntegrationTest {
   public void shouldListConnectors() {
     // Given:
     create("mock-connector", ImmutableMap.of(
-        "connector.class", "org.apache.kafka.connect.tools.MockSourceConnector"
+        "connector.class", MockSourceConnector.class.getName()
     ));
 
     // When:
-    final RestResponse<KsqlEntityList> response = ksqlRestClient
-        .makeKsqlRequest("SHOW CONNECTORS;");
+    final AtomicReference<RestResponse<KsqlEntityList>> responseHolder = new AtomicReference<>();
+    assertThatEventually(
+        () -> {
+          try {
+            responseHolder
+                .set(ksqlRestClient.makeKsqlRequest("SHOW CONNECTORS;"));
+            return responseHolder.get().getResponse().get(0);
+          } catch (Exception e) {
+            // there is a race condition were create from line 150 may not have gone through.
+            // when this happens, getResponse() above throws an exception. instead, we catch
+            // the exception and return a dummy value to fail the instanceOf() check below.
+            return null;
+          }
+        },
+        instanceOf(ConnectorList.class)
+    );
+    final RestResponse<KsqlEntityList> response = responseHolder.get();
 
     // Then:
     assertThat("expected successful response", response.isSuccessful());

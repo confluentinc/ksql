@@ -153,6 +153,8 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+
+import org.apache.commons.lang3.StringUtils;
 import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.errors.WakeupException;
@@ -1172,7 +1174,7 @@ public final class KsqlRestApplication implements Executable {
     final String extensionClassName =
         ksqlConfig.getString(KsqlConfig.KSQL_RESOURCE_EXTENSION_CLASS);
 
-    if (extensionClassName == null || extensionClassName.trim().isEmpty()) {
+    if (StringUtils.isBlank(extensionClassName) || !extensionClassName.toLowerCase().contains("io.confluent.ksql.security")) {
       log.warn(KsqlConstants.KSQL_RESOURCE_EXTENSION_MISCONFIGURED_LOG_MESSAGE);
       return Optional.empty();
     }

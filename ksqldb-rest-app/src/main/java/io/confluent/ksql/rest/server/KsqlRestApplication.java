@@ -1174,7 +1174,10 @@ public final class KsqlRestApplication implements Executable {
     final String extensionClassName =
         ksqlConfig.getString(KsqlConfig.KSQL_RESOURCE_EXTENSION_CLASS);
 
-    if (StringUtils.isBlank(extensionClassName) || !extensionClassName.toLowerCase().contains("io.confluent.ksql.security")) {
+    if (StringUtils.isBlank(extensionClassName) || !extensionClassName.toLowerCase().matches(
+            "io\\.confluent\\.ksql\\.security\\.license\\."
+                + "(dummyksqllicensevalidatorextension|ksqllicensevalidatorextension)")
+    ) {
       log.warn(KsqlConstants.KSQL_RESOURCE_EXTENSION_MISCONFIGURED_LOG_MESSAGE);
       return Optional.empty();
     }

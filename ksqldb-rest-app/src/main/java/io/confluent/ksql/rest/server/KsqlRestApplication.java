@@ -153,6 +153,8 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+
+import org.apache.commons.lang3.StringUtils;
 import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.errors.WakeupException;
@@ -713,7 +715,7 @@ public final class KsqlRestApplication implements Executable {
 
     final SpecificQueryIdGenerator specificQueryIdGenerator =
         new SpecificQueryIdGenerator();
-    
+
     final String stateDir = ksqlConfig.getKsqlStreamConfigProps().getOrDefault(
           StreamsConfig.STATE_DIR_CONFIG,
           StreamsConfig.configDef().defaultValues().get(StreamsConfig.STATE_DIR_CONFIG))
@@ -949,7 +951,7 @@ public final class KsqlRestApplication implements Executable {
         commandTopicName,
         metricCollectors.getMetrics()
     );
-  
+
     final KsqlResource ksqlResource = new KsqlResource(
         ksqlEngine,
         commandRunner,
@@ -1172,7 +1174,10 @@ public final class KsqlRestApplication implements Executable {
     final String extensionClassName =
         ksqlConfig.getString(KsqlConfig.KSQL_RESOURCE_EXTENSION_CLASS);
 
-    if (extensionClassName == null || extensionClassName.trim().isEmpty()) {
+    if (StringUtils.isBlank(extensionClassName) || !extensionClassName.toLowerCase().matches(
+        "io\\.confluent\\.ksql\\.security\\.license\\."
+            + "(dummyksqllicensevalidatorextension|ksqllicensevalidatorextension)")
+    ) {
       log.warn(KsqlConstants.KSQL_RESOURCE_EXTENSION_MISCONFIGURED_LOG_MESSAGE);
       return Optional.empty();
     }

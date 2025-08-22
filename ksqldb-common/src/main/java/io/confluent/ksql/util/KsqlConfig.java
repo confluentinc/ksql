@@ -1061,7 +1061,7 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_SECURITY_EXTENSION_DOC
         ).define(
             KSQL_RESOURCE_EXTENSION_CLASS,
-            Type.CLASS,
+            Type.STRING,
             KSQL_RESOURCE_EXTENSION_DEFAULT,
             ConfigDef.Importance.LOW,
             KSQL_RESOURCE_EXTENSION_DOC

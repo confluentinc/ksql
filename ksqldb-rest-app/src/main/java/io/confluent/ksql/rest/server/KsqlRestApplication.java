@@ -1186,7 +1186,8 @@ public final class KsqlRestApplication implements Executable {
       
       final KsqlResourceExtension extension = ksqlConfig.getConfiguredInstance(
           KsqlConfig.KSQL_RESOURCE_EXTENSION_CLASS,
-          KsqlResourceExtension.class
+          KsqlResourceExtension.class,
+          ksqlConfig.originals()
       );
       
       if (extension == null) {

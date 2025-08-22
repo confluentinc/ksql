@@ -153,7 +153,6 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
-
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.common.TopicPartition;
@@ -1184,11 +1183,11 @@ public final class KsqlRestApplication implements Executable {
     try {
       log.info("Loading KSQL resource extension: {}", extensionClassName);
       
-      final KsqlResourceExtension extension = ksqlConfig.getConfiguredInstance(
-          KsqlConfig.KSQL_RESOURCE_EXTENSION_CLASS,
+      final KsqlResourceExtension extension = ksqlConfig.getConfiguredInstances(
+          Collections.singletonList(extensionClassName),
           KsqlResourceExtension.class,
           ksqlConfig.originals()
-      );
+      ).get(0);
       
       if (extension == null) {
         throw new KsqlException(KsqlConstants.KSQL_RESOURCE_EXTENSION_MISCONFIGURED_LOG_MESSAGE);

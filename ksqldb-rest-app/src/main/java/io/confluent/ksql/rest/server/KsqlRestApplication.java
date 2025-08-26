@@ -153,6 +153,7 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.errors.WakeupException;
@@ -713,7 +714,7 @@ public final class KsqlRestApplication implements Executable {
 
     final SpecificQueryIdGenerator specificQueryIdGenerator =
         new SpecificQueryIdGenerator();
-    
+
     final String stateDir = ksqlConfig.getKsqlStreamConfigProps().getOrDefault(
           StreamsConfig.STATE_DIR_CONFIG,
           StreamsConfig.configDef().defaultValues().get(StreamsConfig.STATE_DIR_CONFIG))
@@ -949,7 +950,7 @@ public final class KsqlRestApplication implements Executable {
         commandTopicName,
         metricCollectors.getMetrics()
     );
-  
+
     final KsqlResource ksqlResource = new KsqlResource(
         ksqlEngine,
         commandRunner,
@@ -1172,18 +1173,26 @@ public final class KsqlRestApplication implements Executable {
     final String extensionClassName =
         ksqlConfig.getString(KsqlConfig.KSQL_RESOURCE_EXTENSION_CLASS);
 
-    if (extensionClassName == null || extensionClassName.trim().isEmpty()) {
+    if (StringUtils.isBlank(extensionClassName) || !extensionClassName.toLowerCase().matches(
+        "io\\.confluent\\.ksql\\.security\\.license\\.ksqllicensevalidatorextension"
+    )) {
       log.warn(KsqlConstants.KSQL_RESOURCE_EXTENSION_MISCONFIGURED_LOG_MESSAGE);
       return Optional.empty();
     }
 
     try {
       log.info("Loading KSQL resource extension: {}", extensionClassName);
-      
-      final KsqlResourceExtension extension = ksqlConfig.getConfiguredInstance(
-          KsqlConfig.KSQL_RESOURCE_EXTENSION_CLASS,
-          KsqlResourceExtension.class
+      final List<KsqlResourceExtension> extensions = ksqlConfig.getConfiguredInstances(
+          Collections.singletonList(extensionClassName),
+          KsqlResourceExtension.class,
+          ksqlConfig.originals()
       );
+
+      if (extensions.isEmpty()) {
+        throw new KsqlException(KsqlConstants.KSQL_RESOURCE_EXTENSION_MISCONFIGURED_LOG_MESSAGE);
+      }
+
+      final KsqlResourceExtension extension = extensions.get(0);
       
       if (extension == null) {
         throw new KsqlException(KsqlConstants.KSQL_RESOURCE_EXTENSION_MISCONFIGURED_LOG_MESSAGE);

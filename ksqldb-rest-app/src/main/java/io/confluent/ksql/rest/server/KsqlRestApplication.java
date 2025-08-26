@@ -1182,12 +1182,17 @@ public final class KsqlRestApplication implements Executable {
 
     try {
       log.info("Loading KSQL resource extension: {}", extensionClassName);
-      
-      final KsqlResourceExtension extension = ksqlConfig.getConfiguredInstances(
+      final List<KsqlResourceExtension> extensions = ksqlConfig.getConfiguredInstances(
           Collections.singletonList(extensionClassName),
           KsqlResourceExtension.class,
           ksqlConfig.originals()
-      ).get(0);
+      );
+
+      if (extensions.isEmpty()) {
+        throw new KsqlException(KsqlConstants.KSQL_RESOURCE_EXTENSION_MISCONFIGURED_LOG_MESSAGE);
+      }
+
+      final KsqlResourceExtension extension = extensions.get(0);
       
       if (extension == null) {
         throw new KsqlException(KsqlConstants.KSQL_RESOURCE_EXTENSION_MISCONFIGURED_LOG_MESSAGE);

@@ -94,6 +94,12 @@ public final class StreamStreamJoinBuilder {
         leftPhysicalSchema,
         queryContext
     );
+    
+    // Due to a KS backward incompatibility, we need to burn an index number for the operation.
+    // The old `transform[Values]()` used one more index compared to the new `api.process[Values]()`
+    final KStream<K, GenericRow> leftStream = left.getStream().peek((k, v) -> { });
+    final KStream<K, GenericRow> rightStream = right.getStream().peek((k, v) -> { });
+    
     final StreamJoined<K, GenericRow, GenericRow> joined = streamJoinedFactory.create(
         keySerde,
         leftSerde,
@@ -123,20 +129,20 @@ public final class StreamStreamJoinBuilder {
     final KStream<K, GenericRow> result;
     switch (join.getJoinType()) {
       case LEFT:
-        result = left.getStream().leftJoin(
-            right.getStream(), joinParams.getJoiner(), joinWindows, joined);
+        result = leftStream.leftJoin(
+            rightStream, joinParams.getJoiner(), joinWindows, joined);
         break;
       case RIGHT:
-        result = right.getStream().leftJoin(
-            left.getStream(), joinParams.getJoiner(), joinWindows, joined);
+        result = rightStream.leftJoin(
+            leftStream, joinParams.getJoiner(), joinWindows, joined);
         break;
       case OUTER:
-        result = left.getStream().outerJoin(
-            right.getStream(), joinParams.getJoiner(), joinWindows, joined);
+        result = leftStream.outerJoin(
+            rightStream, joinParams.getJoiner(), joinWindows, joined);
         break;
       case INNER:
-        result = left.getStream().join(
-            right.getStream(), joinParams.getJoiner(), joinWindows, joined);
+        result = leftStream.join(
+            rightStream, joinParams.getJoiner(), joinWindows, joined);
         break;
       default:
         throw new IllegalStateException("invalid join type");

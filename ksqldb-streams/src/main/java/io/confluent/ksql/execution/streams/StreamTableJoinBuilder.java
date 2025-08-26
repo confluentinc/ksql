@@ -62,6 +62,11 @@ public final class StreamTableJoinBuilder {
         leftPhysicalSchema,
         queryContext
     );
+    
+    // Due to a KS backward incompatibility, we need to burn an index number for the operation.
+    // The old `transform[Values]()` used one more index compared to the new `api.process[Values]()`
+    final KStream<K, GenericRow> leftStream = left.getStream().peek((k, v) -> { });
+    
     final Joined<K, GenericRow, GenericRow> joined = joinedFactory.create(
         keySerde,
         leftSerde,
@@ -76,10 +81,10 @@ public final class StreamTableJoinBuilder {
     final KStream<K, GenericRow> result;
     switch (join.getJoinType()) {
       case LEFT:
-        result = left.getStream().leftJoin(right.getTable(), joinParams.getJoiner(), joined);
+        result = leftStream.leftJoin(right.getTable(), joinParams.getJoiner(), joined);
         break;
       case INNER:
-        result = left.getStream().join(right.getTable(), joinParams.getJoiner(), joined);
+        result = leftStream.join(right.getTable(), joinParams.getJoiner(), joined);
         break;
       default:
         throw new IllegalStateException("invalid join type");

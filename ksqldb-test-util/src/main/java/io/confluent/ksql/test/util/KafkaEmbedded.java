@@ -132,14 +132,10 @@ class KafkaEmbedded {
    * @param config The broker configuration settings to be updated.
    */
   private void setupListenerConfiguration(final Map<String, String> config) {
-    final int controllerPort = getFreePort();
-    final int externalPort = getFreePort();
-
-    config.put("listeners", "CONTROLLER://127.0.0.1:" + controllerPort
-        + ",EXTERNAL://127.0.0.1:" + externalPort);
+    config.put("listeners", "CONTROLLER://127.0.0.1:0,EXTERNAL://127.0.0.1:0");
     config.put("inter.broker.listener.name", "EXTERNAL");
     config.put("controller.listener.names", "CONTROLLER");
-    config.put("advertised.listeners", "EXTERNAL://127.0.0.1:" + externalPort);
+    config.put("advertised.listeners", "EXTERNAL://127.0.0.1:0");
 
     if (!config.containsKey("listener.security.protocol.map")) {
       // Default to PLAINTEXT if not set

@@ -144,7 +144,7 @@ public class UdfLoader {
     final FunctionInvoker invoker = FunctionLoaderUtils.createFunctionInvoker(method);
     final String functionName = udfDescriptionAnnotation.name();
 
-    LOGGER.debug("Adding function {} for method {}", functionName, method);
+    LOGGER.info("Adding function " + functionName + " for method " + method);
 
     final List<ParameterInfo> parameters = FunctionLoaderUtils
         .createParameters(method, functionName, typeParser);

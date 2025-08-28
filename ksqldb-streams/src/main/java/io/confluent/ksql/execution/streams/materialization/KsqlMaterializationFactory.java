@@ -108,7 +108,7 @@ public final class KsqlMaterializationFactory {
       final KsqlTransformer<Object, GenericRow> resultMapper = info
           .getMapper(this::getLogger);
 
-      return (k, v, ctx) -> Optional.of(resultMapper.transform(k, v));
+      return (k, v, ctx) -> Optional.of(resultMapper.transform(k, v, ctx));
     }
 
     @Override
@@ -118,7 +118,7 @@ public final class KsqlMaterializationFactory {
       final KsqlTransformer<Object, Optional<GenericRow>> predicate = info
           .getPredicate(this::getLogger);
 
-      return (readOnlyKey, value, ctx) -> predicate.transform(readOnlyKey, value);
+      return predicate::transform;
     }
 
     private ProcessingLogger getLogger(final QueryContext queryContext) {

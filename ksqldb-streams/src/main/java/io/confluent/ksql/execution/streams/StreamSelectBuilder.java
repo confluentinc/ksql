@@ -81,7 +81,7 @@ public final class StreamSelectBuilder {
       return stream.withStream(
           stream.getStream().transform(
             () -> new KsTransformer<>(
-                (readOnlyKey, value) -> {
+                (readOnlyKey, value, ctx) -> {
                   if (keyIndices.isEmpty()) {
                     return null;
                   }

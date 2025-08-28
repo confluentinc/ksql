@@ -91,7 +91,6 @@ import org.mockito.junit.MockitoJUnitRunner;
 import org.mockito.stubbing.Answer;
 
 @RunWith(MockitoJUnitRunner.class)
-
 public class KafkaTopicClientImplTest {
 
   private static final Node A_NODE = new Node(1, "host", 9092);
@@ -102,12 +101,11 @@ public class KafkaTopicClientImplTest {
   private final Map<String, List<TopicPartitionInfo>> topicPartitionInfo = new HashMap<>();
   private final Map<ConfigResource, Config> topicConfigs = new HashMap<>();
 
-  private final Map<String, ?> configs = ImmutableMap.of(
-      TopicConfig.RETENTION_MS_CONFIG, 8640000000L);
+  private final Map<String, ?> configs = ImmutableMap.of(TopicConfig.RETENTION_MS_CONFIG, 8640000000L);
 
   private KafkaTopicClient kafkaTopicClient;
 
-  @SuppressWarnings({"unchecked"})
+  @SuppressWarnings({"deprecation", "unchecked"})
   @Before
   public void setUp() {
     topicPartitionInfo.clear();
@@ -119,6 +117,7 @@ public class KafkaTopicClientImplTest {
     when(adminClient.deleteTopics(any(Collection.class))).thenAnswer(deleteTopicsResult());
     when(adminClient.describeConfigs(any())).thenAnswer(describeConfigsResult());
     when(adminClient.incrementalAlterConfigs(any())).thenAnswer(alterConfigsResult());
+    when(adminClient.alterConfigs(any())).thenAnswer(alterConfigsResult());
 
     kafkaTopicClient = new KafkaTopicClientImpl(() -> adminClient);
   }
@@ -137,7 +136,7 @@ public class KafkaTopicClientImplTest {
 
   @Test
   public void shouldCreateTopicWithEmptyConfigs() {
-    final Map<String, ?> configs = ImmutableMap.of();
+    Map<String, ?> configs = ImmutableMap.of();
     // When:
     kafkaTopicClient.createTopic("someTopic", 1, (short) 2);
 
@@ -210,7 +209,7 @@ public class KafkaTopicClientImplTest {
     );
 
     // When:
-    final Map<String, ?> newConfigs = ImmutableMap.of(TopicConfig.RETENTION_MS_CONFIG, 1000);
+    Map<String, ?> newConfigs = ImmutableMap.of(TopicConfig.RETENTION_MS_CONFIG, 1000);
     final Exception e = assertThrows(
         KafkaTopicExistsException.class,
         () -> kafkaTopicClient.createTopic("someTopic", 1, (short) 1, newConfigs)
@@ -249,8 +248,7 @@ public class KafkaTopicClientImplTest {
 
     when(adminClient.describeTopics(anyCollection(), any()))
         .thenAnswer(describeTopicsResult()) // checks that topic exists
-        .thenAnswer(describeTopicsResult(
-            new UnknownTopicOrPartitionException("meh"))) // fails during validateProperties
+        .thenAnswer(describeTopicsResult(new UnknownTopicOrPartitionException("meh"))) // fails during validateProperties
         .thenAnswer(describeTopicsResult()); // succeeds the third time
 
     // When:
@@ -358,8 +356,7 @@ public class KafkaTopicClientImplTest {
 
     when(adminClient.describeTopics(anyCollection(), any()))
         .thenAnswer(describeTopicsResult()) // checks that topic exists
-        .thenAnswer(describeTopicsResult(
-            new UnknownTopicOrPartitionException("meh"))) // fails during validateProperties
+        .thenAnswer(describeTopicsResult(new UnknownTopicOrPartitionException("meh"))) // fails during validateProperties
         .thenAnswer(describeTopicsResult()); // succeeds the third time
 
     // When:
@@ -727,8 +724,7 @@ public class KafkaTopicClientImplTest {
     // Given:
     final String topicName = "foobar";
     when(adminClient.describeConfigs(ImmutableList.of(topicResource(topicName))))
-        .thenAnswer(describeConfigsResult(
-            new TopicAuthorizationException(ImmutableSet.of(topicName))));
+        .thenAnswer(describeConfigsResult(new TopicAuthorizationException(ImmutableSet.of(topicName))));
 
     // When:
     final Exception e = assertThrows(
@@ -810,8 +806,9 @@ public class KafkaTopicClientImplTest {
     ));
   }
 
+  @SuppressWarnings("deprecation")
   @Test
-  public void shouldThrowErrorToAddTopicConfigForOlderBrokers() {
+  public void shouldFallBackToAddTopicConfigForOlderBrokers() {
     // Given:
     givenTopicConfigs(
         "peter",
@@ -826,11 +823,17 @@ public class KafkaTopicClientImplTest {
     when(adminClient.incrementalAlterConfigs(any()))
         .thenAnswer(alterConfigsResult(new UnsupportedVersionException("")));
 
-    // Should throw exception for older broker
-    assertThrows(
-        KafkaResponseGetFailedException.class,
-        () -> kafkaTopicClient.addTopicConfig("peter", overrides)
-    );
+    // When:
+    kafkaTopicClient.addTopicConfig("peter", overrides);
+
+    // Then:
+    verify(adminClient).alterConfigs(ImmutableMap.of(
+        topicResource("peter"),
+        new Config(ImmutableSet.of(
+            new ConfigEntry(CLEANUP_POLICY_CONFIG, CLEANUP_POLICY_COMPACT),
+            new ConfigEntry(TopicConfig.RETENTION_MS_CONFIG, "1234")
+        ))
+    ));
   }
 
   @Test
@@ -1003,16 +1006,7 @@ public class KafkaTopicClientImplTest {
     };
   }
 
-  private static Answer<ListTopicsResult> listTopicResult(final Exception e) {
-    return inv -> {
-      final ListTopicsResult listTopicsResult = mock(ListTopicsResult.class);
-      final KafkaFuture<Set<String>> f = failedFuture(e);
-      when(listTopicsResult.names()).thenReturn(f);
-      return listTopicsResult;
-    };
-  }
-
-  private static Answer<ListOffsetsResult> listTopicOffsets() {
+  private Answer<ListOffsetsResult> listTopicOffsets() {
     return inv -> {
       final ListOffsetsResult result = mock(ListOffsetsResult.class);
       when(result.all()).thenReturn(KafkaFuture.completedFuture(ImmutableMap.of(
@@ -1022,12 +1016,21 @@ public class KafkaTopicClientImplTest {
     };
   }
 
-  private static Answer<ListOffsetsResult> listTopicOffsets(final Exception e) {
+  private Answer<ListOffsetsResult> listTopicOffsets(final Exception e) {
     return inv -> {
       final ListOffsetsResult result = mock(ListOffsetsResult.class);
       final KafkaFuture<Map<TopicPartition, ListOffsetsResultInfo>> f = failedFuture(e);
       when(result.all()).thenReturn(f);
       return result;
+    };
+  }
+
+  private static Answer<ListTopicsResult> listTopicResult(final Exception e) {
+    return inv -> {
+      final ListTopicsResult listTopicsResult = mock(ListTopicsResult.class);
+      final KafkaFuture<Set<String>> f = failedFuture(e);
+      when(listTopicsResult.names()).thenReturn(f);
+      return listTopicsResult;
     };
   }
 
@@ -1044,15 +1047,15 @@ public class KafkaTopicClientImplTest {
           .map(name -> new TopicDescription(name, false, topicPartitionInfo.get(name)))
           .collect(Collectors.toMap(TopicDescription::name, Function.identity()));
 
-      final Map<String, KafkaFuture<TopicDescription>> describe = new HashMap<>();
-      for (final String name : topicNames) {
+      Map<String, KafkaFuture<TopicDescription>> describe = new HashMap<>();
+      for (String name : topicNames) {
         describe.put(name, result.containsKey(name)
             ? KafkaFuture.completedFuture(result.get(name))
             : failedFuture(new UnknownTopicOrPartitionException()));
       }
 
       final DescribeTopicsResult describeTopicsResult = mock(DescribeTopicsResult.class);
-      when(describeTopicsResult.topicNameValues()).thenReturn(describe);
+      when(describeTopicsResult.topicNameValues()).thenReturn(describe );
       when(describeTopicsResult.allTopicNames()).thenReturn(KafkaFuture.completedFuture(result));
       return describeTopicsResult;
     };
@@ -1063,8 +1066,8 @@ public class KafkaTopicClientImplTest {
       final Collection<String> topicNames = inv.getArgument(0);
       final DescribeTopicsResult describeTopicsResult = mock(DescribeTopicsResult.class);
 
-      final Map<String, KafkaFuture<TopicDescription>> map = new HashMap<>();
-      for (final String name : topicNames) {
+      Map<String, KafkaFuture<TopicDescription>> map = new HashMap<>();
+      for (String name : topicNames) {
         if (map.put(name, failedFuture(e)) != null) {
           throw new IllegalStateException("Duplicate key");
         }

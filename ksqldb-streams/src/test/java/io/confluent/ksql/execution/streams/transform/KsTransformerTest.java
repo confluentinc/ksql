@@ -13,25 +13,31 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.execution.streams.process;
+package io.confluent.ksql.execution.streams.transform;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.execution.transform.KsqlProcessingContext;
 import io.confluent.ksql.execution.transform.KsqlTransformer;
-import org.apache.kafka.streams.processor.api.ProcessorContext;
-import org.apache.kafka.streams.processor.api.Record;
+import org.apache.kafka.streams.KeyValue;
+import org.apache.kafka.streams.processor.ProcessorContext;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
-public class KsProcessorTest {
+public class KsTransformerTest {
+
   private static final long KEY = 10L;
   private static final GenericRow VALUE = GenericRow.genericRow(12);
   private static final String RESULT_KEY = "the result key";
@@ -43,24 +49,36 @@ public class KsProcessorTest {
   @Mock
   private KsqlTransformer<Long, GenericRow> ksqlValueTransformer;
   @Mock
-  private ProcessorContext<String, GenericRow> ctx;
+  private ProcessorContext ctx;
+  @Captor
+  private ArgumentCaptor<KsqlProcessingContext> ctxCaptor;
 
-  private KsProcessor<Long, String> ksProcessor;
+  private KsTransformer<Long, String> ksTransformer;
 
   @Before
   public void setUp() {
-    ksProcessor = new KsProcessor<>(ksqlKeyTransformer, ksqlValueTransformer);
-    ksProcessor.init(ctx);
+    ksTransformer = new KsTransformer<>(ksqlKeyTransformer, ksqlValueTransformer);
+    ksTransformer.init(ctx);
 
     when(ksqlKeyTransformer.transform(any(), any())).thenReturn(RESULT_KEY);
     when(ksqlValueTransformer.transform(any(), any())).thenReturn(RESULT_VALUE);
+
+    when(ctx.timestamp()).thenReturn(ROWTIME);
+  }
+
+  @Test(expected = IllegalStateException.class)
+  public void shouldThrowOnTransformIfNotInitialized() {
+    // Given:
+    ksTransformer = new KsTransformer<>(ksqlKeyTransformer, ksqlValueTransformer);
+
+    // When:
+    ksTransformer.transform(KEY, VALUE);
   }
 
   @Test
   public void shouldInvokeInnerTransformers() {
     // When:
-    final Record<Long, GenericRow> record = new Record<>(KEY, VALUE, ROWTIME);
-    ksProcessor.process(record);
+    ksTransformer.transform(KEY, VALUE);
 
     // Then:
     verify(ksqlKeyTransformer).transform(
@@ -76,11 +94,32 @@ public class KsProcessorTest {
   @Test
   public void shouldReturnValueFromInnerTransformer() {
     // When:
-    final Record<Long, GenericRow> record = new Record<>(KEY, VALUE, ROWTIME);
-    ksProcessor.process(record);
+    final KeyValue<String, GenericRow> result = ksTransformer.transform(KEY, VALUE);
 
     // Then:
-    final Record<String, GenericRow> result = new Record<>(RESULT_KEY, RESULT_VALUE, ROWTIME);
-    verify(ctx).forward(result);
+    assertThat(result, is(KeyValue.pair(RESULT_KEY, RESULT_VALUE)));
+  }
+
+  @Test
+  public void shouldExposeRowTime() {
+    // Given:
+    ksTransformer.transform(KEY, VALUE);
+
+    final KsqlProcessingContext ksqlCtx = getKsqlProcessingContext();
+
+    // When:
+    final long rowTime = ksqlCtx.getRowTime();
+
+    // Then:
+    assertThat(rowTime, is(ROWTIME));
+  }
+
+  private KsqlProcessingContext getKsqlProcessingContext() {
+    verify(ksqlKeyTransformer).transform(
+        any(),
+        any()
+    );
+
+    return ctxCaptor.getValue();
   }
 }

@@ -104,22 +104,15 @@ public class StreamQueryResponseHandler
           queryResult.drainHandler(this::publisherReceptive);
           paused = true;
         }
-      } else if (jsonObject.getMap() != null) {
-        if (jsonObject.getMap().containsKey("consistencyToken")) {
-          LOG.info("Response contains consistency vector " + jsonObject);
-          serializedConsistencyVector.set((String) jsonObject.getMap().get("consistencyToken"));
-        }
-        if (jsonObject.getMap().containsKey("continuationToken")) {
-          LOG.info("Response contains continuation token " + jsonObject);
-          continuationToken.set(
-                  (String) ((Map<?, ?>) jsonObject.getMap()
-                          .get("continuationToken"))
-                          .get("continuationToken"));
-        }
-        if (jsonObject.getMap().containsKey("errorMessage")) {
-          queryResult.handleError(new KsqlException(
-                  (String) ((Map<?, ?>) jsonObject.getMap().get("errorMessage")).get("message")));
-        }
+      } else if (jsonObject.containsKey("continuationToken")) {
+        LOG.info("Response contains continuation token " + jsonObject);
+        continuationToken.set(
+            (String) ((Map<?, ?>) jsonObject.getMap()
+                .get("continuationToken"))
+                .get("continuationToken"));
+      } else if (jsonObject.containsKey("errorMessage")) {
+        queryResult.handleError(new KsqlException(
+            (String) ((Map<?, ?>) jsonObject.getMap().get("errorMessage")).get("message")));
       } else {
         throw new RuntimeException("Could not decode JSON: " + jsonObject);
       }

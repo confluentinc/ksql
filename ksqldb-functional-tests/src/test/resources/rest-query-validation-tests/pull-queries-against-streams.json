@@ -37,7 +37,7 @@
       ],
       "expectedError": {
         "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
-        "message": "line 1:24: mismatched input 'BY' expecting {';', 'EMIT', 'WHERE', 'WINDOW', 'GROUP', 'HAVING', 'LIMIT', 'PARTITION'}\nStatement: SELECT * FROM S1 ORDER BY MYKEY DESC;\nCaused by: line 1:24: Syntax error at line 1:24",
+        "message": "line 1:24: Syntax Error\n\nStatement: SELECT * FROM S1 ORDER BY MYKEY DESC;",
         "status": 400
       }
     },

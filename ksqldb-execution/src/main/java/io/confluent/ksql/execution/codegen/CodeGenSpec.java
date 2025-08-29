@@ -56,14 +56,6 @@ public final class CodeGenSpec {
     this.structToCodeName = structToCodeName;
   }
 
-  public String[] argumentNames() {
-    return arguments.stream().map(ArgumentSpec::name).toArray(String[]::new);
-  }
-
-  public Class<?>[] argumentTypes() {
-    return arguments.stream().map(ArgumentSpec::type).toArray(Class[]::new);
-  }
-
   @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "arguments is ImmutableList")
   public List<ArgumentSpec> arguments() {
     return arguments;
@@ -81,10 +73,14 @@ public final class CodeGenSpec {
     return names.get(index);
   }
 
-  public void resolve(final GenericRow row, final Object[] parameters) {
+  public Map<String, Object> resolveArguments(final GenericRow row) {
+    final Map<String, Object> resolvedArguments = new HashMap<>(arguments.size());
     for (int paramIdx = 0; paramIdx < arguments.size(); paramIdx++) {
-      parameters[paramIdx] = arguments.get(paramIdx).resolve(row);
+      final String name = arguments.get(paramIdx).name();
+      final Object value = arguments.get(paramIdx).resolve(row);
+      resolvedArguments.put(name, value);
     }
+    return resolvedArguments;
   }
 
   public String getStructSchemaName(final CreateStructExpression createStructExpression) {

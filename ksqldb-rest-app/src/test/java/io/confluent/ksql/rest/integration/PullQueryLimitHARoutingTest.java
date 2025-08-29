@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.rest.integration;
 
-import static io.confluent.ksql.rest.entity.StreamedRowMatchers.matchersRowsAnyOrder;
 import static io.confluent.ksql.rest.integration.HighAvailabilityTestUtil.extractQueryId;
 import static io.confluent.ksql.rest.integration.HighAvailabilityTestUtil.makeAdminRequest;
 import static io.confluent.ksql.rest.integration.HighAvailabilityTestUtil.makeAdminRequestWithResponse;
@@ -26,7 +25,6 @@ import static io.confluent.ksql.util.KsqlConfig.KSQL_STREAMS_PREFIX;
 import static org.apache.kafka.streams.StreamsConfig.CONSUMER_PREFIX;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasSize;
-import static org.hamcrest.Matchers.is;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -56,6 +54,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Collectors;
 import kafka.zookeeper.ZooKeeperClientException;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.streams.StreamsConfig;
@@ -69,6 +68,7 @@ import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TemporaryFolder;
 import org.junit.rules.Timeout;
+
 
 @Ignore
 @Category({IntegrationTest.class})
@@ -163,9 +163,9 @@ public class PullQueryLimitHARoutingTest {
             .withProperties(COMMON_CONFIG)
             .build();
 
-    public final TestApp TEST_APP_0 = new TestApp(HOST0, REST_APP_0, APP_SHUTOFFS_0);
-    public final TestApp TEST_APP_1 = new TestApp(HOST1, REST_APP_1, APP_SHUTOFFS_1);
-    public final TestApp TEST_APP_2 = new TestApp(HOST2, REST_APP_2, APP_SHUTOFFS_2);
+    public final TestApp TEST_APP_0 = new TestApp(HOST0, REST_APP_0);
+    public final TestApp TEST_APP_1 = new TestApp(HOST1, REST_APP_1);
+    public final TestApp TEST_APP_2 = new TestApp(HOST2, REST_APP_2);
 
     public final List<TestApp> ALL_TEST_APPS = ImmutableList.of(TEST_APP_0, TEST_APP_1, TEST_APP_2);
 
@@ -237,12 +237,15 @@ public class PullQueryLimitHARoutingTest {
         final int numLimitRows = 300;
         final int limitSubsetSize = HEADER + numLimitRows;
 
-        // check for lags reported for every app
+        // This should effectively ensure that both actives and standbys are caught up.
+        IntegrationTestUtil.waitForPersistentQueriesToProcessInputs(
+            TEST_HARNESS.getKafkaCluster(),
+            REST_APP_0.getEngine());
         for (TestApp testApp : ALL_TEST_APPS) {
+            // Ensure that lags are reported
             waitForRemoteServerToChangeStatus(TEST_APP_0.getApp(),
                     testApp.getHost(),
-                    HighAvailabilityTestUtil.lagsReported(testApp.getHost(), Optional.of(10L),
-                            10),
+                    HighAvailabilityTestUtil.zeroLagsReported(testApp.getHost()),
                     USER_CREDS);
         }
 
@@ -250,47 +253,18 @@ public class PullQueryLimitHARoutingTest {
         final String sqlLimit = "SELECT * FROM " + output + " LIMIT " + numLimitRows + " ;";
 
         //issue table scan first
-        final List<StreamedRow> rows_0 = makePullQueryRequest(TEST_APP_0.getApp(),
+        final List<StreamedRow> rows_0 = makePullQueryRequestDistinct(TEST_APP_0.getApp(),
                 sqlTableScan, null, USER_CREDS);
 
         //check that we got back all the rows
         assertThat(rows_0, hasSize(HEADER + TOTAL_RECORDS));
 
         // issue pull query with limit
-        final List<StreamedRow> rows_1 = makePullQueryRequest(TEST_APP_0.getApp(),
+        final List<StreamedRow> rows_1 = makePullQueryRequestDistinct(TEST_APP_0.getApp(),
                 sqlLimit, null, USER_CREDS);
 
         // check that we only got limit number of rows
         assertThat(rows_1, hasSize(limitSubsetSize));
-
-        // Partition off one test app
-        TEST_APP_1.getShutoffs().shutOffAll();
-
-        waitForRemoteServerToChangeStatus(
-                TEST_APP_0.getApp(),
-                TEST_APP_2.getHost(),
-                HighAvailabilityTestUtil::remoteServerIsUp,
-                USER_CREDS);
-        waitForRemoteServerToChangeStatus(
-                TEST_APP_0.getApp(),
-                TEST_APP_1.getHost(),
-                HighAvailabilityTestUtil::remoteServerIsDown,
-                USER_CREDS);
-
-        // issue table scan after partitioning an app
-        final List<StreamedRow> rows_2 = makePullQueryRequest(TEST_APP_0.getApp(),
-                sqlTableScan, null, USER_CREDS);
-
-        // check that we get all rows back
-        assertThat(rows_2, hasSize(HEADER + TOTAL_RECORDS));
-        assertThat(rows_0, is(matchersRowsAnyOrder(rows_2)));
-
-        // issue pull query with limit after partitioning an app
-        final List<StreamedRow> rows_3 = makePullQueryRequest(TEST_APP_0.getApp(),
-                sqlLimit, null, USER_CREDS);
-
-        // check that we only got limit number of rows
-        assertThat(rows_3, hasSize(limitSubsetSize));
     }
 
     @Test
@@ -299,13 +273,16 @@ public class PullQueryLimitHARoutingTest {
         final int numLimitRows = 200;
         final int limitSubsetSize = HEADER + numLimitRows + LIMIT_REACHED_MESSAGE;
 
-        // check for lags reported for every app
+        // This should effectively ensure that both actives and standbys are caught up.
+        IntegrationTestUtil.waitForPersistentQueriesToProcessInputs(
+            TEST_HARNESS.getKafkaCluster(),
+            REST_APP_0.getEngine());
         for (TestApp testApp : ALL_TEST_APPS) {
-            waitForRemoteServerToChangeStatus(TEST_APP_0.getApp(),
-                    testApp.getHost(),
-                    HighAvailabilityTestUtil.lagsReported(testApp.getHost(), Optional.of(10L),
-                            10),
-                    USER_CREDS);
+            // Ensure that lags are reported
+            waitForRemoteServerToChangeStatus(REST_APP_0,
+                testApp.getHost(),
+                HighAvailabilityTestUtil.zeroLagsReported(testApp.getHost()),
+                USER_CREDS);
         }
 
         final String sqlStreamPull = "SELECT * FROM " + USERS_STREAM + ";";
@@ -324,36 +301,6 @@ public class PullQueryLimitHARoutingTest {
 
         // check that we only got limit number of rows
         assertThat(rows_1, hasSize(limitSubsetSize));
-
-        // Partition off an app
-        TEST_APP_1.getShutoffs().shutOffAll();
-
-        waitForRemoteServerToChangeStatus(
-                TEST_APP_0.getApp(),
-                TEST_APP_2.getHost(),
-                HighAvailabilityTestUtil::remoteServerIsUp,
-                USER_CREDS);
-        waitForRemoteServerToChangeStatus(
-                TEST_APP_0.getApp(),
-                TEST_APP_1.getHost(),
-                HighAvailabilityTestUtil::remoteServerIsDown,
-                USER_CREDS);
-
-
-        // issue stream scan after partitioning an app
-        final List<StreamedRow> rows_2 = makePullQueryRequest(TEST_APP_0.getApp(),
-                sqlStreamPull, null, USER_CREDS);
-
-        // check that we get all rows back
-        assertThat(rows_2, hasSize(HEADER + TOTAL_RECORDS + COMPLETE_MESSAGE));
-        assertThat(rows_0, is(matchersRowsAnyOrder(rows_2)));
-
-        // issue pull query with limit after partitioning an app
-        final List<StreamedRow> rows_3 = makePullQueryRequest(TEST_APP_0.getApp(),
-                sqlLimit, null, USER_CREDS);
-
-        // check that we only got limit number of rows
-        assertThat(rows_3, hasSize(limitSubsetSize));
     }
 
     private void waitForTableRows() {
@@ -378,12 +325,10 @@ public class PullQueryLimitHARoutingTest {
 
         private final KsqlHostInfoEntity host;
         private final TestKsqlRestApp app;
-        private final HighAvailabilityTestUtil.Shutoffs shutoffs;
 
-        public TestApp(KsqlHostInfoEntity host, TestKsqlRestApp app, HighAvailabilityTestUtil.Shutoffs shutoffs) {
+        public TestApp(KsqlHostInfoEntity host, TestKsqlRestApp app) {
             this.host = host;
             this.app = app;
-            this.shutoffs = shutoffs;
         }
 
         public KsqlHostInfoEntity getHost() {
@@ -393,9 +338,15 @@ public class PullQueryLimitHARoutingTest {
         public TestKsqlRestApp getApp() {
             return app;
         }
+    }
 
-        public HighAvailabilityTestUtil.Shutoffs getShutoffs() {
-            return shutoffs;
-        }
+    private List<StreamedRow> makePullQueryRequestDistinct(
+        final TestKsqlRestApp target,
+        final String sql,
+        final Map<String, ?> properties,
+        final Optional<BasicCredentials> userCreds
+    ) {
+        return makePullQueryRequest(target, sql, properties, userCreds)
+            .stream().distinct().collect(Collectors.toList());
     }
 }

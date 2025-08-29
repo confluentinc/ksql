@@ -22,6 +22,7 @@ import static org.mockito.Mockito.when;
 
 import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.ksql.test.tools.stubs.StubKafkaService;
+import io.confluent.ksql.tools.test.model.Topic;
 import java.util.Optional;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.junit.Before;
@@ -70,8 +71,12 @@ public class StubKafkaServiceTest {
         topic.getName(),
         topic.getNumPartitions() + 1,
         topic.getReplicas() + 1,
+        topic.getKeySchemaId(),
+        topic.getValueSchemaId(),
         topic.getKeySchema(),
         topic.getValueSchema(),
+        topic.getKeySchemaReferences(),
+        topic.getValueSchemaReferences(),
         topic.getKeyFeatures(),
         topic.getValueFeatures()
     );

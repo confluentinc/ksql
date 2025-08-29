@@ -60,6 +60,7 @@ import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.statement.InjectorChain;
 import io.confluent.ksql.statement.SourcePropertyInjector;
 import io.confluent.ksql.test.tools.stubs.StubKafkaService;
+import io.confluent.ksql.tools.test.model.Topic;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;

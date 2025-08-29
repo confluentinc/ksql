@@ -28,7 +28,6 @@ import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -38,6 +37,7 @@ import com.google.protobuf.Message;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.connect.protobuf.ProtobufData;
 import io.confluent.kafka.schemaregistry.avro.AvroSchema;
+import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.json.JsonSchema;
 import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchema;
@@ -1227,8 +1227,7 @@ public class RecordFormatterTest {
       final Map<String, String> props = new HashMap<>();
       props.put("schema.registry.url", "localhost:9092");
 
-      final SchemaRegistryClient schemaRegistryClient = mock(SchemaRegistryClient.class);
-      return new KafkaAvroSerializer(schemaRegistryClient, props);
+      return new KafkaAvroSerializer(new MockSchemaRegistryClient(), props);
     }
 
     private static Message protobufRecord() {
@@ -1248,16 +1247,14 @@ public class RecordFormatterTest {
       final Map<String, String> props = new HashMap<>();
       props.put("schema.registry.url", "localhost:9092");
 
-      final SchemaRegistryClient schemaRegistryClient = mock(SchemaRegistryClient.class);
-      return new KafkaProtobufSerializer<>(schemaRegistryClient, props);
+      return new KafkaProtobufSerializer<>(new MockSchemaRegistryClient(), props);
     }
 
     private static Serializer<Object> jsonSrSerializer() {
       final Map<String, String> props = new HashMap<>();
       props.put("schema.registry.url", "localhost:9092");
 
-      final SchemaRegistryClient schemaRegistryClient = mock(SchemaRegistryClient.class);
-      return new KafkaJsonSchemaSerializer<>(schemaRegistryClient, props);
+      return new KafkaJsonSchemaSerializer<>(new MockSchemaRegistryClient(), props);
     }
   }
 

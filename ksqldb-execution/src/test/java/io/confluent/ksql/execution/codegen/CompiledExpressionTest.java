@@ -15,13 +15,14 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.function.udf.Kudf;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
-import io.confluent.ksql.logging.processing.ProcessingLogger.ErrorMessage;
 import io.confluent.ksql.logging.processing.RecordProcessingError;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.lang.reflect.InvocationTargetException;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
@@ -90,7 +91,12 @@ public class CompiledExpressionTest {
 
     // Then:
     assertThat(result, equalTo(RETURN_VALUE));
-    verify(expressionEvaluator).evaluate(new Object[]{123, 456, DEFAULT_VAL, processingLogger, genericRow(123, 456)});
+
+    final Map<String, Object> arguments = new HashMap<>();
+    arguments.put("var0", 123);
+    arguments.put("var1", 456);
+
+    verify(expressionEvaluator).evaluate(new Object[]{arguments, DEFAULT_VAL, processingLogger, genericRow(123, 456)});
   }
 
   @Test
@@ -119,7 +125,12 @@ public class CompiledExpressionTest {
 
     // Then:
     assertThat(result, equalTo(RETURN_VALUE));
-    verify(expressionEvaluator).evaluate(new Object[]{udf, 123, DEFAULT_VAL, processingLogger, genericRow(123)});
+
+    final Map<String, Object> arguments = new HashMap<>();
+    arguments.put("var1", 123);
+    arguments.put("foo_0", udf);
+
+    verify(expressionEvaluator).evaluate(new Object[]{arguments, DEFAULT_VAL, processingLogger, genericRow(123)});
   }
 
   @Test
@@ -139,7 +150,17 @@ public class CompiledExpressionTest {
     final CountDownLatch threadLatch = new CountDownLatch(1);
     final CountDownLatch mainLatch = new CountDownLatch(1);
 
-    when(expressionEvaluator.evaluate(new Object[]{123, 456, DEFAULT_VAL, processingLogger, genericRow(123, 456)}))
+    final Map<String, Object> arguments1 = new HashMap<String, Object>() {{
+      put("var0", 123);
+      put("var1", 456);
+    }};
+
+    final Map<String, Object> arguments2 = new HashMap<String, Object>() {{
+      put("var0", 100);
+      put("var1", 200);
+    }};
+
+    when(expressionEvaluator.evaluate(new Object[]{arguments1, DEFAULT_VAL, processingLogger, genericRow(123, 456)}))
         .thenAnswer(
             invocation -> {
               threadLatch.countDown();
@@ -173,9 +194,9 @@ public class CompiledExpressionTest {
     // Then:
     thread.join();
     verify(expressionEvaluator, times(1))
-        .evaluate(new Object[]{123, 456, DEFAULT_VAL, processingLogger, genericRow(123, 456)});
+        .evaluate(new Object[]{arguments1, DEFAULT_VAL, processingLogger, genericRow(123, 456)});
     verify(expressionEvaluator, times(1))
-        .evaluate(new Object[]{100, 200, DEFAULT_VAL, processingLogger, genericRow(100, 200)});
+        .evaluate(new Object[]{arguments2, DEFAULT_VAL, processingLogger, genericRow(100, 200)});
   }
 
   @Test

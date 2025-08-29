@@ -1070,17 +1070,61 @@ public class CliTest {
     final String expectedSummary =
             "Name        : TOPK\n"
             + "Author      : Confluent\n"
-            + "Overview    : Computes the top k values for a column, per key.\n"
+            + "Overview    : Returns the top k values for a column and other values in those records.\n"
             + "Type        : AGGREGATE\n"
             + "Jar         : internal\n"
             + "Variations  : \n";
 
     final String expectedVariant =
-        "\tVariation   : TOPK(val1 INT, k INT)\n"
-        + "\tReturns     : ARRAY<INT>\n"
-        + "\tDescription : Calculates the top k values for an integer column, per key.";
+        "\tVariation   : TOPK(val1 INT, val2 ANY[], k INT)\n"
+        + "\tReturns     : ARRAY<S>\n"
+        + "\tDescription : Returns the top k values for an integer column and other values in those records.";
 
     localCli.handleLine("describe function topk;");
+
+    final String output = terminal.getOutputString();
+    assertThat(output, containsString(expectedSummary));
+    assertThat(output, containsString(expectedVariant));
+  }
+
+  @Test
+  public void shouldDescribeVariadicAggregateFunction() {
+    final String expectedSummary =
+            "Name        : MID_VAR_ARG\n"
+                    + "Author      : Confluent\n"
+                    + "Overview    : Returns the sum of the provided longs, lengths of strings, and initial arguments.\n"
+                    + "Type        : AGGREGATE\n"
+                    + "Jar         : internal\n"
+                    + "Variations  : \n";
+
+    final String expectedVariant =
+            "\tVariation   : MID_VAR_ARG(val1 BIGINT, val2 VARCHAR[], first INT, second INT)\n"
+                    + "\tReturns     : BIGINT\n"
+                    + "\tDescription : Testing factory";
+
+    localCli.handleLine("describe function mid_var_arg;");
+
+    final String output = terminal.getOutputString();
+    assertThat(output, containsString(expectedSummary));
+    assertThat(output, containsString(expectedVariant));
+  }
+
+  @Test
+  public void shouldDescribeVariadicObjectAggregateFunction() {
+    final String expectedSummary =
+            "Name        : OBJ_COL_ARG\n"
+                    + "Author      : Confluent\n"
+                    + "Overview    : Returns an array of rows where all the given columns are non-null.\n"
+                    + "Type        : AGGREGATE\n"
+                    + "Jar         : internal\n"
+                    + "Variations  : \n";
+
+    final String expectedVariant =
+            "\tVariation   : OBJ_COL_ARG(val1 INT, val2 ANY[])\n"
+                    + "\tReturns     : ARRAY<INT>\n"
+                    + "\tDescription : Testing factory";
+
+    localCli.handleLine("describe function obj_col_arg;");
 
     final String output = terminal.getOutputString();
     assertThat(output, containsString(expectedSummary));
@@ -1234,8 +1278,8 @@ public class CliTest {
 
     // Then:
     final String out = terminal.getOutputString();
-    final String expected = "line 2:22: " +
-        "no viable alternative at input 'create stream if not exist'\n" +
+    final String expected = "line 2:22: Syntax Error\n" +
+        "Syntax error at or near 'exist' at line 2:22\n" +
         "Statement: create stream if not exist s1(id int) with " +
         "(kafka_topic='s1', value_format='json', partitions=1);\n" +
         "Caused by: line 2:22: Syntax error at line 2:22\n";

@@ -30,6 +30,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -62,6 +63,7 @@ final class SandboxedKafkaTopicClient {
             methodParams(String.class, int.class, short.class, Map.class), sandbox)
         .forward("isTopicExists", methodParams(String.class), sandbox)
         .forward("describeTopic", methodParams(String.class), sandbox)
+        .forward("getTopicConfig", methodParams(String.class), sandbox)
         .forward("describeTopic", methodParams(String.class, Boolean.class), sandbox)
         .forward("describeTopics", methodParams(Collection.class), sandbox)
         .forward("describeTopics", methodParams(Collection.class, Boolean.class), sandbox)
@@ -77,6 +79,7 @@ final class SandboxedKafkaTopicClient {
   private final Supplier<Admin> adminClient;
 
   private final Map<String, TopicDescription> createdTopics = new HashMap<>();
+  private final Map<String, Map<String, String>> createdTopicsConfig = new HashMap<>();
 
   private SandboxedKafkaTopicClient(final KafkaTopicClient delegate,
                                     final Supplier<Admin> sharedAdminClient) {
@@ -99,7 +102,8 @@ final class SandboxedKafkaTopicClient {
       final Map<String, Object> configs
   ) {
     if (isTopicExists(topic)) {
-      validateTopicProperties(topic, numPartitions, replicationFactor);
+      final Optional<Long> retentionMs = KafkaTopicClient.getRetentionMs(configs);
+      validateTopicProperties(topic, numPartitions, replicationFactor, retentionMs);
       return;
     }
 
@@ -128,6 +132,8 @@ final class SandboxedKafkaTopicClient {
         partitions,
         Sets.newHashSet(AclOperation.READ, AclOperation.WRITE)
     ));
+
+    createdTopicsConfig.put(topic, toStringConfigs(configs));
   }
 
   private short getDefaultClusterReplication() {
@@ -184,6 +190,13 @@ final class SandboxedKafkaTopicClient {
     return descriptions;
   }
 
+  public Map<String, String> getTopicConfig(final String topicName) {
+    if (createdTopicsConfig.containsKey(topicName)) {
+      return createdTopicsConfig.get(topicName);
+    }
+    return delegate.getTopicConfig(topicName);
+  }
+
   private void deleteTopics(final Collection<String> topicsToDelete) {
     topicsToDelete.forEach(createdTopics::remove);
   }
@@ -191,11 +204,18 @@ final class SandboxedKafkaTopicClient {
   private void validateTopicProperties(
       final String topic,
       final int requiredNumPartition,
-      final int requiredNumReplicas
+      final int requiredNumReplicas,
+      final Optional<Long> requiredRetentionMs
   ) {
     final TopicDescription existingTopic = describeTopic(topic);
+    final Map<String, String> existingConfig = getTopicConfig(topic);
     TopicValidationUtil
-        .validateTopicProperties(requiredNumPartition, requiredNumReplicas, existingTopic);
+        .validateTopicProperties(
+            requiredNumPartition,
+            requiredNumReplicas,
+            requiredRetentionMs,
+            existingTopic,
+            existingConfig);
   }
 
   private Map<TopicPartition, Long> listTopicsStartOffsets(final Collection<String> topics) {
@@ -204,5 +224,10 @@ final class SandboxedKafkaTopicClient {
 
   private Map<TopicPartition, Long> listTopicsEndOffsets(final Collection<String> topics) {
     return delegate.listTopicsEndOffsets(topics);
+  }
+
+  private static Map<String, String> toStringConfigs(final Map<String, ?> configs) {
+    return configs.entrySet().stream()
+        .collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().toString()));
   }
 }

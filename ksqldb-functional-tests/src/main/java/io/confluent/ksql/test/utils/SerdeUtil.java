@@ -40,6 +40,7 @@ import io.confluent.ksql.serde.kafka.KafkaFormat;
 import io.confluent.ksql.serde.none.NoneFormat;
 import io.confluent.ksql.serde.protobuf.ProtobufFormat;
 import io.confluent.ksql.serde.protobuf.ProtobufNoSRFormat;
+import io.confluent.ksql.serde.protobuf.ProtobufNoSRProperties;
 import io.confluent.ksql.serde.protobuf.ProtobufProperties;
 import io.confluent.ksql.test.serde.SerdeSupplier;
 import io.confluent.ksql.test.serde.avro.ValueSpecAvroSerdeSupplier;
@@ -51,8 +52,11 @@ import io.confluent.ksql.test.serde.protobuf.ValueSpecProtobufNoSRSerdeSupplier;
 import io.confluent.ksql.test.serde.protobuf.ValueSpecProtobufSerdeSupplier;
 import io.confluent.ksql.test.serde.string.StringSerdeSupplier;
 import io.confluent.ksql.test.tools.exceptions.InvalidFieldException;
+import io.confluent.ksql.tools.test.model.SchemaReference;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.streams.kstream.SessionWindowedDeserializer;
@@ -83,7 +87,8 @@ public final class SerdeUtil {
         return new ValueSpecProtobufSerdeSupplier(
             new ProtobufProperties(formatInfo.getProperties()));
       case ProtobufNoSRFormat.NAME:
-        return new ValueSpecProtobufNoSRSerdeSupplier(schema, formatInfo.getProperties());
+        return new ValueSpecProtobufNoSRSerdeSupplier(schema,
+            new ProtobufNoSRProperties(formatInfo.getProperties()));
       case JsonFormat.NAME:       return new ValueSpecJsonSerdeSupplier(properties);
       case JsonSchemaFormat.NAME: return new ValueSpecJsonSchemaSerdeSupplier();
       case DelimitedFormat.NAME:  return new StringSerdeSupplier();
@@ -94,33 +99,109 @@ public final class SerdeUtil {
     }
   }
 
-  public static Optional<ParsedSchema> buildSchema(final JsonNode schema, final String format) {
+  public static Optional<ParsedSchema> buildSchema(
+      final JsonNode schema,
+      final String format
+  ) {
     if (schema == null || schema instanceof NullNode) {
       return Optional.empty();
     }
 
-    try {
-      // format == null is the legacy case
-      if (format == null || format.equalsIgnoreCase(AvroFormat.NAME)) {
-        final String schemaString = OBJECT_MAPPER.writeValueAsString(schema);
-        final org.apache.avro.Schema avroSchema =
-            new org.apache.avro.Schema.Parser().parse(schemaString);
-        return Optional.of(new AvroSchema(avroSchema));
-      } else if (format.equalsIgnoreCase(JsonFormat.NAME)
-          || format.equalsIgnoreCase(JsonSchemaFormat.NAME)) {
-        final String schemaString = OBJECT_MAPPER.writeValueAsString(schema);
-        return Optional.of(new JsonSchema(schemaString));
-      } else if (format.equalsIgnoreCase(ProtobufFormat.NAME)) {
-        // since Protobuf schemas are not valid JSON, the schema JsonNode in
-        // this case is just a string.
-        final String schemaString = schema.textValue();
-        return Optional.of(new ProtobufSchema(schemaString));
-      }
-    } catch (final Exception e) {
-      throw new InvalidFieldException("schema", "failed to parse", e);
+    // format == null is the legacy case
+    final String useFormat = (format == null) ? AvroFormat.NAME : format.toUpperCase();
+    final String schemaString;
+
+    switch (useFormat) {
+      case ProtobufFormat.NAME:
+        // Protobuf schema is already a JSON string
+        schemaString = schema.textValue();
+        break;
+      case AvroFormat.NAME:
+      case JsonSchemaFormat.NAME:
+      case JsonFormat.NAME:
+        try {
+          schemaString = OBJECT_MAPPER.writeValueAsString(schema);
+        } catch (final Exception e) {
+          throw new InvalidFieldException("schema", "failed to parse", e);
+        }
+        break;
+      default:
+        throw new InvalidFieldException("schema", "not supported with format: " + format);
     }
 
-    throw new InvalidFieldException("schema", "not supported with format: " + format);
+    return Optional.of(buildSchema(schemaString, useFormat));
+  }
+
+  public static ParsedSchema buildSchema(
+      final String schemaString,
+      final String format
+  ) {
+    switch (format.toUpperCase()) {
+      case AvroFormat.NAME:
+        final org.apache.avro.Schema avroSchema =
+            new org.apache.avro.Schema.Parser().parse(schemaString);
+        return new AvroSchema(avroSchema);
+      case ProtobufFormat.NAME:
+        return new ProtobufSchema(schemaString);
+      case JsonSchemaFormat.NAME:
+      case JsonFormat.NAME:
+        return new JsonSchema(schemaString);
+      default:
+        throw new InvalidFieldException("schema", "not supported with format: " + format);
+    }
+  }
+
+  public static ParsedSchema withSchemaReferences(
+      final ParsedSchema schema,
+      final List<SchemaReference> references
+  ) {
+    if (references.isEmpty()) {
+      return schema;
+    }
+
+    /* QTT does not support subjects versions yet */
+    final int firstVersion = 1;
+
+    final Map<String, String> resolvedReferences = references.stream()
+        .collect(Collectors.toMap(
+            ref -> ref.getName(),
+            ref -> ref.getSchema().canonicalString()
+        ));
+
+    final List<io.confluent.kafka.schemaregistry.client.rest.entities.SchemaReference>
+        schemaReferences = references.stream()
+        .map(qttSchemaRef ->
+            new io.confluent.kafka.schemaregistry.client.rest.entities.SchemaReference(
+                qttSchemaRef.getName(),
+                qttSchemaRef.getName(),
+                firstVersion))
+        .collect(Collectors.toList());
+
+    switch (schema.schemaType()) {
+      case ProtobufFormat.NAME:
+        return new ProtobufSchema(
+            schema.canonicalString(),
+            schemaReferences,
+            resolvedReferences,
+            firstVersion,
+            schema.name());
+      case AvroFormat.NAME:
+        return new AvroSchema(
+            schema.canonicalString(),
+            schemaReferences,
+            resolvedReferences,
+            firstVersion
+        );
+      case JsonSchemaFormat.NAME:
+        return new JsonSchema(
+            schema.canonicalString(),
+            schemaReferences,
+            resolvedReferences,
+            firstVersion
+        );
+      default:
+        return schema;
+    }
   }
 
   @SuppressWarnings("unchecked")

@@ -19,6 +19,8 @@ import static java.util.Objects.requireNonNull;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.test.TestFrameworkException;
+import io.confluent.ksql.tools.test.model.LocationWithinFile;
+import io.confluent.ksql.tools.test.model.TestLocation;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;

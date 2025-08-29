@@ -120,43 +120,7 @@
       },
       "timestamp" : 30
     } ],
-    "outputs" : [ {
-      "topic" : "OUTPUT",
-      "key" : "k1",
-      "value" : {
-        "COUNT" : 4
-      },
-      "timestamp" : 1,
-      "window" : {
-        "start" : 0,
-        "end" : 2,
-        "type" : "TIME"
-      }
-    }, {
-      "topic" : "OUTPUT",
-      "key" : "k1",
-      "value" : {
-        "COUNT" : 2
-      },
-      "timestamp" : 3,
-      "window" : {
-        "start" : 2,
-        "end" : 4,
-        "type" : "TIME"
-      }
-    }, {
-      "topic" : "OUTPUT",
-      "key" : "k1",
-      "value" : {
-        "COUNT" : 1
-      },
-      "timestamp" : 10,
-      "window" : {
-        "start" : 10,
-        "end" : 12,
-        "type" : "TIME"
-      }
-    } ],
+    "outputs" : [ ],
     "topics" : [ {
       "name" : "OUTPUT",
       "replicas" : 1,

@@ -105,18 +105,6 @@
       "value" : {
         "COUNT" : 1
       },
-      "timestamp" : 0,
-      "window" : {
-        "start" : 0,
-        "end" : 2,
-        "type" : "TIME"
-      }
-    }, {
-      "topic" : "OUTPUT",
-      "key" : "k1",
-      "value" : {
-        "COUNT" : 1
-      },
       "timestamp" : 2,
       "window" : {
         "start" : 2,

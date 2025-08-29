@@ -92,6 +92,9 @@ public final class ErrorMessageUtil {
   }
 
   private static List<String> dedup(final List<String> messages) {
-    return new ArrayList<>(new LinkedHashSet<>(messages));
+    final List<String> dedupedMessages = new ArrayList<>(new LinkedHashSet<>(messages));
+    final String message = dedupedMessages.get(0);
+    dedupedMessages.subList(1, dedupedMessages.size()).removeIf(message::contains);
+    return dedupedMessages;
   }
 }

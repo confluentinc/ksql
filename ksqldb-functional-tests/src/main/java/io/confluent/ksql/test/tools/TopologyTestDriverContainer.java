@@ -17,6 +17,7 @@ package io.confluent.ksql.test.tools;
 
 import static java.util.Objects.requireNonNull;
 
+import io.confluent.ksql.tools.test.model.Topic;
 import io.confluent.ksql.util.Pair;
 import java.util.HashMap;
 import java.util.List;
@@ -104,5 +105,9 @@ public final class TopologyTestDriverContainer {
 
   public Set<String> getSourceTopicNames() {
     return sourceTopics.keySet();
+  }
+
+  public void close() {
+    topologyTestDriver.close();
   }
 }

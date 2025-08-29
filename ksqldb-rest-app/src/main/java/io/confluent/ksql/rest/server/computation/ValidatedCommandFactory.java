@@ -118,7 +118,7 @@ public final class ValidatedCommandFactory {
   ) {
     if (statement.getUnMaskedStatementText().equals(
         TerminateCluster.TERMINATE_CLUSTER_STATEMENT_TEXT)) {
-      return Command.of(statement);
+      return createForTerminateCluster(statement);
     }
 
     if (statement.getStatement() instanceof PauseQuery) {
@@ -275,6 +275,10 @@ public final class ValidatedCommandFactory {
     }
 
     queryMetadata.close();
+    return Command.of(statement);
+  }
+
+  public static Command createForTerminateCluster(final ConfiguredStatement statement) {
     return Command.of(statement);
   }
 

@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.serde.protobuf;
 
+import static io.confluent.connect.protobuf.ProtobufDataConfig.OPTIONAL_FOR_NULLABLES_CONFIG;
+import static io.confluent.connect.protobuf.ProtobufDataConfig.WRAPPER_FOR_NULLABLES_CONFIG;
 import static io.confluent.connect.protobuf.ProtobufDataConfig.WRAPPER_FOR_RAW_PRIMITIVES_CONFIG;
 
 import com.google.common.base.Strings;
@@ -47,6 +49,8 @@ public class ProtobufSchemaTranslator implements ConnectSchemaTranslator {
 
     this.baseConfigs = ImmutableMap.of(
         WRAPPER_FOR_RAW_PRIMITIVES_CONFIG, properties.getUnwrapPrimitives(),
+        OPTIONAL_FOR_NULLABLES_CONFIG, properties.isNullableAsOptional(),
+        WRAPPER_FOR_NULLABLES_CONFIG, properties.isNullableAsWrapper(),
 
         // This flag is needed so that the schema translation in toConnectRow() adds the
         // package name information to the row schema

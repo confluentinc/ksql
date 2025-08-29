@@ -18,6 +18,7 @@ package io.confluent.ksql.execution.codegen.helpers;
 import static io.confluent.ksql.schema.ksql.types.SqlBaseType.ARRAY;
 import static io.confluent.ksql.schema.ksql.types.SqlBaseType.BIGINT;
 import static io.confluent.ksql.schema.ksql.types.SqlBaseType.BOOLEAN;
+import static io.confluent.ksql.schema.ksql.types.SqlBaseType.BYTES;
 import static io.confluent.ksql.schema.ksql.types.SqlBaseType.DATE;
 import static io.confluent.ksql.schema.ksql.types.SqlBaseType.DECIMAL;
 import static io.confluent.ksql.schema.ksql.types.SqlBaseType.DOUBLE;
@@ -95,6 +96,8 @@ public final class CastEvaluator {
       .put(key(STRING, TIMESTAMP), nonNullSafeCode("SqlTimeTypes.parseTimestamp(%s.trim())"))
       .put(key(STRING, TIME), nonNullSafeCode("SqlTimeTypes.parseTime(%s.trim())"))
       .put(key(STRING, DATE), nonNullSafeCode("SqlTimeTypes.parseDate(%s.trim())"))
+      .put(key(STRING, BYTES) ,nonNullSafeCode(
+          "ByteBuffer.wrap(BytesUtils.decode(%s.trim(), BytesUtils.Encoding.BASE64))"))
       // ARRAY:
       .put(key(ARRAY, ARRAY), CastEvaluator::castArrayToArray)
       .put(key(ARRAY, STRING), CastEvaluator::castToString)

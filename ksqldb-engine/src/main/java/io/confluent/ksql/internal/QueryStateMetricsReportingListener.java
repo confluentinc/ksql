@@ -21,6 +21,7 @@ import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.query.QueryError;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.util.KsqlConstants.KsqlQueryStatus;
 import io.confluent.ksql.util.QueryMetadata;
 import java.util.HashMap;
 import java.util.Map;
@@ -118,6 +119,7 @@ public class QueryStateMetricsReportingListener implements QueryEventListener {
   }
 
   private static final String NO_ERROR = "NO_ERROR";
+  private static final int DEFAULT_VAL = -1;
 
   private static class PerQueryListener {
     private final Metrics metrics;
@@ -125,6 +127,9 @@ public class QueryStateMetricsReportingListener implements QueryEventListener {
     private final MetricName errorMetricName;
     private final MetricName queryRestartMetricName;
     private final MetricName ksqlQueryStatusMetricName;
+    private final MetricName stateNumMetricName;
+    private final MetricName errorNumMetricName;
+    private final MetricName ksqlQueryStatusNumMetricName;
     private final CumulativeSum queryRestartSum;
     private final Ticker ticker;
 
@@ -195,6 +200,32 @@ public class QueryStateMetricsReportingListener implements QueryEventListener {
       this.metrics.addMetric(queryRestartMetricName, queryRestartSum);
       this.metrics.addMetric(ksqlQueryStatusMetricName,
               (Gauge<String>) (config, now) -> ksqlQueryState);
+
+      stateNumMetricName = metrics.metricName(
+              "query-status-num",
+              groupPrefix + "ksql-queries",
+              "The current Kafka Streams status number of the given query.",
+              tagsForStateAndError
+      );
+      errorNumMetricName = metrics.metricName(
+              "error-status-num",
+              groupPrefix + "ksql-queries",
+              "The current error status number of the given query, if the state is in ERROR state",
+              tagsForStateAndError
+      );
+      ksqlQueryStatusNumMetricName = metrics.metricName(
+              "ksql-query-status-num",
+              groupPrefix + "ksql-queries",
+              "The current ksqlDB status number of the given query.",
+              tagsForStateAndError
+      );
+
+      this.metrics.addMetric(stateNumMetricName,
+              (Gauge<Integer>) (config, now) -> getValue(State.class, state));
+      this.metrics.addMetric(errorNumMetricName,
+              (Gauge<Integer>) (config, now) -> getValue(QueryError.Type.class, error));
+      this.metrics.addMetric(ksqlQueryStatusNumMetricName,
+              (Gauge<Integer>) (config, now) -> getValue(KsqlQueryStatus.class, ksqlQueryState));
     }
 
     public void onChange(final State newState, final State oldState) {
@@ -219,6 +250,18 @@ public class QueryStateMetricsReportingListener implements QueryEventListener {
       metrics.removeMetric(errorMetricName);
       metrics.removeMetric(queryRestartMetricName);
       metrics.removeMetric(ksqlQueryStatusMetricName);
+      metrics.removeMetric(stateNumMetricName);
+      metrics.removeMetric(errorNumMetricName);
+      metrics.removeMetric(ksqlQueryStatusNumMetricName);
+    }
+
+    private <T extends Enum<T>> int getValue(final Class<T> enumClass, final String str) {
+      for (T enumConstant : enumClass.getEnumConstants()) {
+        if (enumConstant.name().equals(str.toUpperCase())) {
+          return enumConstant.ordinal();
+        }
+      }
+      return DEFAULT_VAL;
     }
   }
 }

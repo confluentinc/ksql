@@ -38,8 +38,8 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.apache.commons.lang3.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * An index of all method signatures associated with a UDF. This index
@@ -104,7 +104,7 @@ public class UdfIndex<T extends FunctionSignature> {
   // Tree diagram: Docs: https://docs.google.com/document/d/14cfKl6A8HGM4zwnGvwuCMaJiGWKH4yUNdysEPX-Wy1Y/edit?usp=sharing
   //               Gist: https://gist.github.com/reneesoika/2ec934940c98dad6b0f68c89769fbe42
 
-  private static final Logger LOG = LoggerFactory.getLogger(UdfIndex.class);
+  private static final Logger LOG = LogManager.getLogger(UdfIndex.class);
   private static final ParamType OBJ_VAR_ARG = ArrayType.of(ParamTypes.ANY);
 
   private final String udfName;

@@ -16,6 +16,7 @@ semaphore:
   pr_ci_gating:
     enable: true
     project_name: ksqldb
+  status_level: block
 git:
   enable: true
 code_artifact:

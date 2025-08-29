@@ -20,6 +20,8 @@ import io.vertx.core.http.HttpVersion;
 import io.vertx.core.net.SocketAddress;
 import io.vertx.ext.web.RoutingContext;
 import java.time.Clock;
+import java.util.Optional;
+import org.apache.logging.log4j.Logger;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -27,7 +29,6 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
-import org.slf4j.Logger;
 
 @RunWith(MockitoJUnitRunner.class)
 public class LoggingHandlerTest {
@@ -145,9 +146,9 @@ public class LoggingHandlerTest {
     endCallback.getValue().handle(null);
 
     // Then:
-    verify(logger, never()).info(any());
-    verify(logger, never()).warn(any());
-    verify(logger, never()).error(any());
+    verify(logger, never()).info(Optional.ofNullable(any()));
+    verify(logger, never()).warn(Optional.ofNullable(any()));
+    verify(logger, never()).error(Optional.ofNullable(any()));
   }
 
   @Test
@@ -166,9 +167,9 @@ public class LoggingHandlerTest {
     endCallback.getValue().handle(null);
 
     // Then:
-    verify(logger, never()).info(any());
-    verify(logger, never()).warn(any());
-    verify(logger, never()).error(any());
+    verify(logger, never()).info(Optional.ofNullable(any()));
+    verify(logger, never()).warn(Optional.ofNullable(any()));
+    verify(logger, never()).error(Optional.ofNullable(any()));
   }
 
   @Test

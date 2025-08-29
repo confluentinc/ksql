@@ -17,19 +17,73 @@ package io.confluent.ksql.util;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
-import org.apache.log4j.FileAppender;
+import org.apache.logging.log4j.core.Filter;
+import org.apache.logging.log4j.core.Layout;
+import org.apache.logging.log4j.core.LogEvent;
+import org.apache.logging.log4j.core.appender.AbstractAppender;
+import org.apache.logging.log4j.core.appender.RollingFileAppender;
+import org.apache.logging.log4j.core.appender.rolling.NoOpTriggeringPolicy;
+import org.apache.logging.log4j.core.config.plugins.Plugin;
+import org.apache.logging.log4j.core.config.plugins.PluginAttribute;
+import org.apache.logging.log4j.core.config.plugins.PluginElement;
+import org.apache.logging.log4j.core.config.plugins.PluginFactory;
+import org.apache.logging.log4j.core.config.plugins.validation.constraints.Required;
 
-public class TimestampLogFileAppender extends FileAppender {
+@Plugin(name = "TimestampLogFileAppender",
+    category = "Core",
+    elementType = "appender",
+    printObject = true)
+public class TimestampLogFileAppender extends AbstractAppender {
 
-  @Override
-  public void setFile(final String fileName) {
-    if (fileName.contains("%timestamp")) {
-      final Date d = new Date();
-      final SimpleDateFormat format = new SimpleDateFormat("yyMMdd-HHmmss");
-      super.setFile(fileName.replaceAll("%timestamp", format.format(d)));
-    } else {
-      super.setFile(fileName);
-    }
+  private static RollingFileAppender rollingFileAppender;
+
+  protected TimestampLogFileAppender(final String name,
+                                     final Layout<?> layout,
+                                     final Filter filter,
+                                     final boolean ignoreExceptions,
+                                     final RollingFileAppender rollingFileAppender) {
+    super(name, filter, layout, ignoreExceptions);
   }
 
+  @PluginFactory
+  public static TimestampLogFileAppender createAppender(
+      @PluginAttribute("name") @Required final String name,
+      @PluginAttribute("fileName") final String fileName,
+      @PluginElement("Layout") final Layout<?> layout,
+      @PluginElement("Filter") final Filter filter,
+      @PluginAttribute("filePattern") final String filePattern,
+      @PluginAttribute("ImmediateFlush") final boolean immediateFlush,
+      @PluginAttribute("ignoreExceptions") final boolean ignoreExceptions) {
+
+    String updatedFileName = fileName;
+    if (updatedFileName.contains("%timestamp")) {
+      final Date d = new Date();
+      final SimpleDateFormat format = new SimpleDateFormat("yyMMdd-HHmmss");
+      updatedFileName = updatedFileName.replaceAll("%timestamp", format.format(d));
+    }
+
+    rollingFileAppender = RollingFileAppender.newBuilder()
+        .withFileName(updatedFileName)
+        .withName(name)
+        .withFilePattern(filePattern)
+        .withIgnoreExceptions(ignoreExceptions)
+        .withBufferedIo(true)
+        .withBufferSize(8192)
+        .withLayout(layout)
+        .withFilter(filter)
+        .withImmediateFlush(immediateFlush)
+        .withPolicy(new NoOpTriggeringPolicy())
+        .build();
+
+    return new TimestampLogFileAppender(name,
+                                        layout,
+                                        filter,
+                                        ignoreExceptions,
+                                        rollingFileAppender);
+  }
+
+  @Override
+  public void append(final LogEvent event) {
+    rollingFileAppender.append(event);
+  }
 }

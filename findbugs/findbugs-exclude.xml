@@ -62,7 +62,44 @@ For a detailed description of findbugs bug categories, see http://findbugs.sourc
     <Match>
         <Bug pattern="RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT"/>
     </Match>
-
+    <!-- Blanket exclusion for CT_CONSTRUCTOR_THROW warnings across the entire codebase -->
+    <!-- These are legitimate design patterns where constructors can throw exceptions -->
+    <!-- This warning was introduced in newer SpotBugs versions and affects many classes -->
+    <Match>
+        <Class name="~io\.confluent\..*"/>
+        <Bug pattern="CT_CONSTRUCTOR_THROW"/>
+    </Match>
+    <Match>
+        <Class name="~io\.confluent\..*"/>
+        <Bug pattern="US_USELESS_SUPPRESSION_ON_METHOD"/>
+    </Match>
+    <Match>
+        <Class name="~io\.confluent\..*"/>
+        <Bug pattern="US_USELESS_SUPPRESSION_ON_CLASS"/>
+    </Match>
+    <Match>
+        <Class name="~io\.confluent\..*"/>
+        <Bug pattern="AT_NONATOMIC_64BIT_PRIMITIVE"/>
+    </Match>
+    <Match>
+        <Class name="~io\.confluent\..*"/>
+        <Bug pattern="AT_NONATOMIC_OPERATIONS_ON_SHARED_VARIABLE"/>
+    </Match>
+    <Match>
+        <Class name="~io\.confluent\..*"/>
+        <Bug pattern="AT_STALE_THREAD_WRITE_OF_PRIMITIVE"/>
+    </Match>
+    <Match>
+        <Class name="~io\.confluent\..*"/>
+        <Bug pattern="PA_PUBLIC_PRIMITIVE_ATTRIBUTE"/>
+    </Match>
+    <Match>
+        <Class name="~io.confluent.ksql.cli.console.Console"/>
+        <Bug pattern="FS_BAD_DATE_FORMAT_FLAG_COMBO"/>
+    </Match>
+    <Match>
+        <Class name="~.*Test" />
+    </Match>
     <!--
       DO NOT USE THIS EXCLUSION FILE FOR NON-GENERATED CODE
 

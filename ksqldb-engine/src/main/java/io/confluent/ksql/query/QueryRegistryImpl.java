@@ -62,11 +62,11 @@ import java.util.stream.Collectors;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.streams.KafkaStreams.State;
 import org.apache.kafka.streams.StreamsBuilder;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class QueryRegistryImpl implements QueryRegistry {
-  private final Logger log = LoggerFactory.getLogger(QueryRegistryImpl.class);
+  private final Logger log = LogManager.getLogger(QueryRegistryImpl.class);
 
   private static final BiPredicate<SourceName, PersistentQueryMetadata> FILTER_QUERIES_WITH_SINK =
       (sourceName, query) -> query.getSinkName().equals(Optional.of(sourceName));

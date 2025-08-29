@@ -34,12 +34,12 @@ import java.util.regex.Pattern;
 import java.util.stream.Stream;
 import org.apache.hc.core5.http.HttpStatus;
 import org.apache.kafka.common.acl.AclOperation;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public final class SchemaRegistryUtil {
 
-  private static final Logger LOG = LoggerFactory.getLogger(SchemaRegistryUtil.class);
+  private static final Logger LOG = LogManager.getLogger(SchemaRegistryUtil.class);
 
   private static final Pattern DENIED_OPERATION_STRING_PATTERN =
       Pattern.compile("User is denied operation (.*) on .*");

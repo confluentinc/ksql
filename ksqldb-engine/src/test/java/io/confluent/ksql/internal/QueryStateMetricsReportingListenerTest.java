@@ -62,6 +62,12 @@ public class QueryStateMetricsReportingListenerTest {
       new MetricName("steven", "g1", "d1", ImmutableMap.of());
   private static final MetricName METRIC_NAME_4 =
           new MetricName("pete", "g1", "d1", ImmutableMap.of());
+  private static final MetricName NUM_METRIC_NAME_1 =
+          new MetricName("john", "g1", "d1", ImmutableMap.of());
+  private static final MetricName NUM_METRIC_NAME_2 =
+          new MetricName("eve", "g1", "d1", ImmutableMap.of());
+  private static final MetricName NUM_METRIC_NAME_3 =
+          new MetricName("krish", "g1", "d1", ImmutableMap.of());
   private static final QueryId QUERY_ID = new QueryId("foo");
   private static final String TAG = "_confluent-ksql-" + "some-prefix-" + "query_" + QUERY_ID.toString();
 
@@ -75,6 +81,8 @@ public class QueryStateMetricsReportingListenerTest {
   private MetaStore metaStore;
   @Captor
   private ArgumentCaptor<Gauge<String>> gaugeCaptor;
+  @Captor
+  private ArgumentCaptor<Gauge<Integer>> gaugeNumCaptor;
   private QueryStateMetricsReportingListener listener;
 
   private final Map<String, String> metricsTags = Collections.singletonMap("tag1", "value1");
@@ -85,7 +93,10 @@ public class QueryStateMetricsReportingListenerTest {
         .thenReturn(METRIC_NAME_1)
         .thenReturn(METRIC_NAME_2)
         .thenReturn(METRIC_NAME_3)
-        .thenReturn(METRIC_NAME_4);
+        .thenReturn(METRIC_NAME_4)
+        .thenReturn(NUM_METRIC_NAME_1)
+        .thenReturn(NUM_METRIC_NAME_2)
+        .thenReturn(NUM_METRIC_NAME_3);
     when(query.getQueryId()).thenReturn(QUERY_ID);
 
     listener = new QueryStateMetricsReportingListener(metrics, "some-prefix-", metricsTags);
@@ -113,6 +124,15 @@ public class QueryStateMetricsReportingListenerTest {
     verify(metrics).metricName("ksql-query-status", "some-prefix-ksql-queries",
             "The current ksqlDB status of the given query.",
             tags);
+    verify(metrics).metricName("query-status-num", "some-prefix-ksql-queries",
+            "The current Kafka Streams status number of the given query.",
+            tags);
+    verify(metrics).metricName("error-status-num", "some-prefix-ksql-queries",
+            "The current error status number of the given query, if the state is in ERROR state",
+            tags);
+    verify(metrics).metricName("ksql-query-status-num", "some-prefix-ksql-queries",
+            "The current ksqlDB status number of the given query.",
+            tags);
     tags.put("query-id", QUERY_ID.toString());
     verify(metrics).metricName(QueryStateMetricsReportingListener.QUERY_RESTART_METRIC_NAME, "some-prefix-ksql-queries",
         QueryStateMetricsReportingListener.QUERY_RESTART_METRIC_DESCRIPTION,
@@ -122,6 +142,9 @@ public class QueryStateMetricsReportingListenerTest {
     verify(metrics).addMetric(eq(METRIC_NAME_2), isA(Gauge.class));
     verify(metrics).addMetric(eq(METRIC_NAME_3), isA(CumulativeSum.class));
     verify(metrics).addMetric(eq(METRIC_NAME_4), isA(Gauge.class));
+    verify(metrics).addMetric(eq(NUM_METRIC_NAME_1), isA(Gauge.class));
+    verify(metrics).addMetric(eq(NUM_METRIC_NAME_2), isA(Gauge.class));
+    verify(metrics).addMetric(eq(NUM_METRIC_NAME_3), isA(Gauge.class));
   }
 
   @Test
@@ -181,6 +204,9 @@ public class QueryStateMetricsReportingListenerTest {
     // Then:
     assertThat(currentGaugeValue(METRIC_NAME_1), is("-"));
     assertThat(currentGaugeValue(METRIC_NAME_2), is("NO_ERROR"));
+    assertThat(currentGaugeNumValue(NUM_METRIC_NAME_1), is(-1));
+    assertThat(currentGaugeNumValue(NUM_METRIC_NAME_2), is(-1));
+    assertThat(currentGaugeNumValue(NUM_METRIC_NAME_3), is(-1));
   }
 
   @Test
@@ -192,6 +218,7 @@ public class QueryStateMetricsReportingListenerTest {
 
     // Then:
     assertThat(currentGaugeValue(METRIC_NAME_1), is("REBALANCING"));
+    assertThat(currentGaugeNumValue(NUM_METRIC_NAME_1), is(State.REBALANCING.ordinal()));
   }
 
   @Test
@@ -203,6 +230,7 @@ public class QueryStateMetricsReportingListenerTest {
 
     // Then:
     assertThat(currentGaugeValue(METRIC_NAME_2), is("USER"));
+    assertThat(currentGaugeNumValue(NUM_METRIC_NAME_2), is(Type.USER.ordinal()));
   }
 
   @Test
@@ -219,12 +247,16 @@ public class QueryStateMetricsReportingListenerTest {
     // Then:
     listener.onKsqlStateChange(query);
     assertThat(currentGaugeValue(METRIC_NAME_4), is("RUNNING"));
+    assertThat(currentGaugeNumValue(NUM_METRIC_NAME_3), is(KsqlConstants.KsqlQueryStatus.RUNNING.ordinal()));
     listener.onKsqlStateChange(query);
     assertThat(currentGaugeValue(METRIC_NAME_4), is("PAUSED"));
+    assertThat(currentGaugeNumValue(NUM_METRIC_NAME_3), is(KsqlConstants.KsqlQueryStatus.PAUSED.ordinal()));
     listener.onKsqlStateChange(query);
     assertThat(currentGaugeValue(METRIC_NAME_4), is("UNRESPONSIVE"));
+    assertThat(currentGaugeNumValue(NUM_METRIC_NAME_3), is(KsqlConstants.KsqlQueryStatus.UNRESPONSIVE.ordinal()));
     listener.onKsqlStateChange(query);
     assertThat(currentGaugeValue(METRIC_NAME_4), is("ERROR"));
+    assertThat(currentGaugeNumValue(NUM_METRIC_NAME_3), is(KsqlConstants.KsqlQueryStatus.ERROR.ordinal()));
   }
 
   @Test
@@ -238,10 +270,18 @@ public class QueryStateMetricsReportingListenerTest {
     verify(metrics).removeMetric(METRIC_NAME_2);
     verify(metrics).removeMetric(METRIC_NAME_3);
     verify(metrics).removeMetric(METRIC_NAME_4);
+    verify(metrics).removeMetric(NUM_METRIC_NAME_1);
+    verify(metrics).removeMetric(NUM_METRIC_NAME_2);
+    verify(metrics).removeMetric(NUM_METRIC_NAME_3);
   }
 
   private String currentGaugeValue(final MetricName name) {
     verify(metrics).addMetric(eq(name), gaugeCaptor.capture());
     return gaugeCaptor.getValue().value(null, 0L);
+  }
+
+  private int currentGaugeNumValue(final MetricName name) {
+    verify(metrics).addMetric(eq(name), gaugeNumCaptor.capture());
+    return gaugeNumCaptor.getValue().value(null, 0L);
   }
 }

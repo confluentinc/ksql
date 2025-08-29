@@ -205,16 +205,16 @@ public class ConnectDataTranslator implements DataTranslator {
     final Object convertedValue = maybeConvertLogicalType(connectSchema, connectValue);
     switch (schema.type()) {
       case INT64:
-        if (schema.name() == Timestamp.LOGICAL_NAME) {
+        if (Timestamp.LOGICAL_NAME.equals(schema.name())) {
           return new java.sql.Timestamp(((Number) convertedValue).longValue());
         } else {
           return ((Number) convertedValue).longValue();
         }
       case INT32:
         final int intVal = ((Number) convertedValue).intValue();
-        if (schema.name() == Time.LOGICAL_NAME) {
+        if (Time.LOGICAL_NAME.equals(schema.name())) {
           return new java.sql.Time(intVal);
-        } else if (schema.name() == Date.LOGICAL_NAME) {
+        } else if (Date.LOGICAL_NAME.equals(schema.name())) {
           return SerdeUtils.getDateFromEpochDays(intVal);
         } else {
           return intVal;

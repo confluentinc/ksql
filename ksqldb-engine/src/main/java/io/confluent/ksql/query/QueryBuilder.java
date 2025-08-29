@@ -201,6 +201,9 @@ final class QueryBuilder {
         config.getConfig(true),
         processingLogContext
     );
+
+    streamsProperties.put(StreamsConfig.NUM_STANDBY_REPLICAS_CONFIG, 0);
+
     final Object buildResult = buildQueryImplementation(physicalPlan, runtimeBuildContext);
     final TransientQueryQueue queue =
         buildTransientQueryQueue(buildResult, limit, excludeTombstones, endOffsets);

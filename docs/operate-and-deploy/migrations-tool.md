@@ -602,6 +602,14 @@ INSERT INTO MIGRATION_EVENTS (
 Once you've updated the migrations metadata stream, the migrations metadata table
 will update automatically and metadata validation will be unblocked.
 
+### Authorization Failure
+
+The client may hang indefinitely if you run `ksql-migrations initalize-metadata`
+with invalid credentials.
+
+Ensure that you provide valid credentials in the `ksql-migrations.properties`
+file.
+
 Next Steps
 ----------
 

@@ -19,8 +19,8 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.isA;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -75,6 +75,7 @@ import io.confluent.ksql.services.TestServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.statement.Injector;
 import io.confluent.ksql.statement.InjectorChain;
+import io.confluent.ksql.topic.TopicCreateInjector;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlServerException;
@@ -110,6 +111,7 @@ public class DistributingExecutorTest {
       false,
       CreateSourceProperties.from(ImmutableMap.of(
           CommonCreateConfigs.KAFKA_TOPIC_NAME_PROPERTY, new StringLiteral("topic"),
+          CommonCreateConfigs.SOURCE_NUMBER_OF_PARTITIONS, new StringLiteral("1"),
           CommonCreateConfigs.VALUE_FORMAT_PROPERTY, new StringLiteral("json")
       )),
       false
@@ -226,6 +228,62 @@ public class DistributingExecutorTest {
 
     // Then:
     verify(schemaInjector, times(1)).inject(eq(CONFIGURED_STATEMENT));
+  }
+
+  @Test
+  public void shouldPreserveExistingTopicOnTimeout() {
+    doThrow(new TimeoutException()).when(transactionalProducer).initTransactions();
+    checkTopicCreationBehavior(true);
+  }
+
+  @Test
+  public void shouldPreserveExistingTopicWhenFenced() {
+    doThrow(new ProducerFencedException("test")).when(transactionalProducer).beginTransaction();
+    checkTopicCreationBehavior(true);
+  }
+
+  @Test
+  public void shouldDeleteCreatedTopicOnTimeout() {
+    doThrow(new TimeoutException()).when(transactionalProducer).initTransactions();
+    checkTopicCreationBehavior(false);
+  }
+
+  @Test
+  public void shouldDeleteCreatedTopicWhenFenced() {
+    doThrow(new ProducerFencedException("test")).when(transactionalProducer).beginTransaction();
+    checkTopicCreationBehavior(false);
+  }
+
+  private void checkTopicCreationBehavior(boolean preExistingTopic) {
+    String kafkaTopic = ((CreateStream) CONFIGURED_STATEMENT.getPreparedStatement().getStatement())
+            .getProperties().getKafkaTopic();
+    assertFalse(securityContext.getServiceContext().getTopicClient().isTopicExists(kafkaTopic));
+    if (preExistingTopic) {
+      securityContext.getServiceContext().getTopicClient().createTopic(kafkaTopic, 1, (short) 1);
+      assertTrue(securityContext.getServiceContext().getTopicClient().isTopicExists(kafkaTopic));
+    }
+    // add TopicCreateInjector to the distributor (adding it to the common one fails other tests)
+    distributor = new DistributingExecutor(
+            KSQL_CONFIG,
+            queue,
+            DURATION_10_MS,
+            (ec, sc) -> InjectorChain.of(
+                    schemaInjector,
+                    topicInjector,
+                    new TopicCreateInjector(ec, sc)),
+            Optional.of(authorizationValidator),
+            validatedCommandFactory,
+            errorHandler,
+            commandRunnerWarning
+    );
+    // When:
+    assertThrows(Exception.class, () -> distributor.execute(
+            DistributingExecutorTest.CONFIGURED_STATEMENT,
+            executionContext,
+            securityContext));
+    // Then:
+    assertEquals(preExistingTopic,
+            securityContext.getServiceContext().getTopicClient().isTopicExists(kafkaTopic));
   }
 
   @Test

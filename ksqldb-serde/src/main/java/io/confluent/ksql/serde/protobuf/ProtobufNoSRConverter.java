@@ -44,6 +44,22 @@ public class ProtobufNoSRConverter implements Converter {
 
   private ProtobufData protobufData;
 
+  /**
+   * This constructor is defined only to adhere to the Connect Converter plugin semantics of
+   * defining a no-arg constructor. The Connect framework scans for all the subtypes of the
+   * Converter (along with other plugin types) and uses the no-arg constructor to create an instance
+   * of each of these converter implementations.
+   * A no-arg constructor is added here only to ensure a successful start of the Connect Worker
+   * in case this module (the jar) is present in the configured connect plugin path.
+   * This class is not intended to be used via a Worker config or a Connector config definition
+   * and its methods to convert to/from Connect record will throw an
+   * UnsupportedOperationException in such a case.
+   * This class is internal to Ksqldb and is instantiated explicitly with Schema argument.
+   */
+  public ProtobufNoSRConverter() {
+    this(null);
+  }
+
   public ProtobufNoSRConverter(final Schema schema) {
     this.schema = schema;
   }
@@ -55,6 +71,11 @@ public class ProtobufNoSRConverter implements Converter {
 
   @Override
   public byte[] fromConnectData(final String topic, final Schema schema, final Object value) {
+    if (this.schema == null) {
+      throw new UnsupportedOperationException("ProtobufNoSRConverter is an internal "
+          + "converter to ksqldb. It should not be instantiated via reflection through a no-arg "
+          + "constructor.");
+    }
     try {
       final ProtobufSchemaAndValue schemaAndValue = protobufData.fromConnectData(schema, value);
       final Object v = schemaAndValue.getValue();
@@ -79,6 +100,11 @@ public class ProtobufNoSRConverter implements Converter {
 
   @Override
   public SchemaAndValue toConnectData(final String topic, final byte[] value) {
+    if (this.schema == null) {
+      throw new UnsupportedOperationException("ProtobufNoSRConverter is an internal "
+          + "converter to ksqldb. It should not be instantiated via reflection through a no-arg "
+          + "constructor.");
+    }
     try {
       final ProtobufSchema protobufSchema = protobufData.fromConnectSchema(schema);
       final Object deserialized = deserializer.deserialize(value, protobufSchema);
@@ -126,8 +152,6 @@ public class ProtobufNoSRConverter implements Converter {
     }
   }
 
-
-
   @VisibleForTesting
   public static class Deserializer {
     public Object deserialize(final byte[] payload, final ProtobufSchema schema) {
@@ -155,5 +179,4 @@ public class ProtobufNoSRConverter implements Converter {
       }
     }
   }
-
 }

@@ -318,6 +318,16 @@ The format is case-insensitive when matching a SQL field name with a
 JSON document's property name. The first case-insensitive match is
 used.
 
+#### Known Limitations
+
+The following keywords aren't supported in the VALUE_SCHEMA_ID field for INSERT
+INTO and CREATE TABLE AS SELECT statements, and if present in your JSON schema
+will cause serialization errors. They are supported in CREATE statements.
+
+- `additionalProperties: false`
+- `enum`
+- `required`
+
 ### Avro
 
 | Feature                      | Supported |

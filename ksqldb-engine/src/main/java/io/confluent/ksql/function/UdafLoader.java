@@ -73,7 +73,7 @@ public class UdafLoader {
 
       final UdafFactory annotation = method.getAnnotation(UdafFactory.class);
       try {
-        LOGGER.info(
+        LOGGER.debug(
             "Adding UDAF name={} from path={} class={}",
             udafAnnotation.name(),
             path,

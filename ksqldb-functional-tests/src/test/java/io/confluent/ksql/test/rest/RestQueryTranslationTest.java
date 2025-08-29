@@ -100,6 +100,7 @@ public class RestQueryTranslationTest {
         .withProperty(KsqlConfig.KSQL_QUERY_PUSH_V2_ENABLED, true)
         .withProperty(KsqlConfig.KSQL_QUERY_PUSH_V2_NEW_LATEST_DELAY_MS, 0L)
         .withProperty(KsqlConfig.KSQL_HEADERS_COLUMNS_ENABLED, true)
+        .withProperty(KsqlConfig.KSQL_UDF_SECURITY_MANAGER_ENABLED, false)
         .withStaticServiceContext(testHarness::getServiceContext)
         .build();
   }

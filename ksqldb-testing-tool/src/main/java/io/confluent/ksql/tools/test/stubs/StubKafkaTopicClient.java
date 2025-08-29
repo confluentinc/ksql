@@ -108,7 +108,7 @@ public class StubKafkaTopicClient implements KafkaTopicClient {
   private final Map<String, StubTopic> topicMap = new HashMap<>();
 
   @Override
-  public void createTopic(
+  public boolean createTopic(
       final String topic,
       final int numPartitions,
       final short replicationFactor,
@@ -122,11 +122,12 @@ public class StubKafkaTopicClient implements KafkaTopicClient {
     final StubTopic existing = topicMap.get(topic);
     if (existing != null) {
       validateTopicProperties(numPartitions, replicas, existing);
-      return;
+      return false;
     }
 
     final StubTopic info = createStubTopic(topic, numPartitions, replicas, configs);
     topicMap.put(topic, info);
+    return true;
   }
 
   @Override

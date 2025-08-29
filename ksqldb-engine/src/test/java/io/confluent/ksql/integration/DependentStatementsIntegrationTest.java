@@ -16,6 +16,7 @@ package io.confluent.ksql.integration;
 
 import static java.lang.String.format;
 
+import io.confluent.common.utils.IntegrationTest;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.PersistentQueryMetadata;
@@ -25,7 +26,6 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import kafka.zookeeper.ZooKeeperClientException;
-import org.apache.kafka.test.IntegrationTest;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;

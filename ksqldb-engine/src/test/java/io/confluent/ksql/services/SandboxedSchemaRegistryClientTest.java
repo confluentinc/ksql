@@ -37,6 +37,7 @@ import io.confluent.ksql.test.util.TestMethods;
 import io.confluent.ksql.test.util.TestMethods.TestCase;
 import java.util.Collection;
 import java.util.Objects;
+
 import org.apache.avro.Schema;
 import org.apache.hc.core5.http.HttpStatus;
 import org.junit.Before;
@@ -68,6 +69,7 @@ public final class SandboxedSchemaRegistryClientTest {
           .ignore("register", String.class, ParsedSchema.class, int.class, int.class)
           .ignore("getLatestSchemaMetadata", String.class)
           .ignore("registerWithResponse", String.class, ParsedSchema.class, boolean.class)
+          .ignore("registerWithResponse", String.class, ParsedSchema.class, boolean.class, boolean.class)
           .ignore("getSchemaBySubjectAndId", String.class, int.class)
           .ignore("testCompatibility", String.class, Schema.class)
           .ignore("testCompatibility", String.class, ParsedSchema.class)

@@ -18,6 +18,7 @@ package io.confluent.ksql.schema.ksql;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.ImmutableBiMap;
 import com.google.common.collect.ImmutableMap;
+import io.confluent.connect.json.JsonSchemaData;
 import io.confluent.ksql.function.types.ArrayType;
 import io.confluent.ksql.function.types.MapType;
 import io.confluent.ksql.function.types.ParamType;
@@ -40,6 +41,7 @@ import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.function.Function;
 import org.apache.kafka.connect.data.Date;
 import org.apache.kafka.connect.data.Schema;
@@ -221,7 +223,7 @@ public final class SchemaConverters {
         .<Schema.Type, Function<Schema, SqlType>>builder()
         .put(Schema.Type.INT32, ConnectToSqlConverter::toIntegerType)
         .put(Schema.Type.INT64, s ->
-            s.name() == Timestamp.LOGICAL_NAME ? SqlTypes.TIMESTAMP : SqlTypes.BIGINT)
+            Timestamp.LOGICAL_NAME.equals(s.name()) ? SqlTypes.TIMESTAMP : SqlTypes.BIGINT)
         .put(Schema.Type.FLOAT64, s -> SqlTypes.DOUBLE)
         .put(Schema.Type.BOOLEAN, s -> SqlTypes.BOOLEAN)
         .put(Schema.Type.STRING, s -> SqlTypes.STRING)
@@ -271,9 +273,9 @@ public final class SchemaConverters {
     }
 
     private static SqlPrimitiveType toIntegerType(final Schema schema) {
-      if (schema.name() == Time.LOGICAL_NAME) {
+      if (Time.LOGICAL_NAME.equals(schema.name())) {
         return SqlTypes.TIME;
-      } else if (schema.name() == Date.LOGICAL_NAME) {
+      } else if (Date.LOGICAL_NAME.equals(schema.name())) {
         return SqlTypes.DATE;
       } else {
         return SqlTypes.INTEGER;
@@ -344,8 +346,21 @@ public final class SchemaConverters {
       struct.fields()
           .forEach(field -> builder.field(field.name(), connectType(field.type()).build()));
 
-      return builder
-          .optional();
+      final Optional<SqlStruct.UnionType> unionType = struct.unionType();
+
+      if (unionType.isPresent()) {
+        switch (unionType.get()) {
+          case ONE_OF_TYPE:
+            builder.name(JsonSchemaData.JSON_TYPE_ONE_OF);
+            break;
+          case GENERALIZED_TYPE:
+            builder.parameter(JsonSchemaData.GENERALIZED_TYPE_UNION, "0");
+            break;
+          default:
+            throw new IllegalStateException("Unexpected value: " + struct.unionType());
+        }
+      }
+      return builder.optional();
     }
   }
 

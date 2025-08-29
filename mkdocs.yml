@@ -101,6 +101,9 @@ nav:
     - Statements:
       - SQL quick reference: developer-guide/ksqldb-reference/quick-reference.md
       - Statement Index: developer-guide/ksqldb-reference/index.md
+      - ALTER SYSTEM: developer-guide/ksqldb-reference/alter-system.md
+      - ASSERT SCHEMA: developer-guide/ksqldb-reference/assert-schema.md
+      - ASSERT TOPIC: developer-guide/ksqldb-reference/assert-topic.md
       - CREATE CONNECTOR: developer-guide/ksqldb-reference/create-connector.md
       - CREATE STREAM: developer-guide/ksqldb-reference/create-stream.md
       - CREATE TABLE: developer-guide/ksqldb-reference/create-table.md
@@ -118,7 +121,9 @@ nav:
       - EXPLAIN: developer-guide/ksqldb-reference/explain.md
       - INSERT INTO: developer-guide/ksqldb-reference/insert-into.md
       - INSERT VALUES: developer-guide/ksqldb-reference/insert-values.md
+      - PAUSE: developer-guide/ksqldb-reference/pause.md
       - PRINT: developer-guide/ksqldb-reference/print.md
+      - RESUME: developer-guide/ksqldb-reference/resume.md
       - RUN SCRIPT: developer-guide/ksqldb-reference/run-script.md
       - SELECT (Push Query): developer-guide/ksqldb-reference/select-push-query.md
       - SELECT (Pull Query): developer-guide/ksqldb-reference/select-pull-query.md
@@ -126,9 +131,9 @@ nav:
       - SHOW FUNCTIONS: developer-guide/ksqldb-reference/show-functions.md
       - SHOW PROPERTIES: developer-guide/ksqldb-reference/show-properties.md
       - SHOW QUERIES: developer-guide/ksqldb-reference/show-queries.md
-      - SHOW TOPICS: developer-guide/ksqldb-reference/show-topics.md
       - SHOW STREAMS: developer-guide/ksqldb-reference/show-streams.md
       - SHOW TABLES: developer-guide/ksqldb-reference/show-tables.md
+      - SHOW TOPICS: developer-guide/ksqldb-reference/show-topics.md
       - SHOW TYPES: developer-guide/ksqldb-reference/show-types.md
       - SHOW VARIABLES: developer-guide/ksqldb-reference/show-variables.md
       - SPOOL: developer-guide/ksqldb-reference/spool.md
@@ -259,10 +264,10 @@ extra:
         zk: ZooKeeper
 
         # Build-related string tokens
-        kafkaversion: 3.4
-        ksqldbversion: 0.29.0
-        cprelease: 7.4.0
-        releasepostbranch: 7.4.0-post
+        kafkaversion: 3.5
+        ksqldbversion: 0.30.0
+        cprelease: 7.5.0
+        releasepostbranch: 7.5.0-post
         scalaversion: 2.13
         voluble_version: 0.3.1
         jdbc_connector_version: 10.0.0

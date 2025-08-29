@@ -31,10 +31,12 @@ import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.model.SemanticVersion;
 import io.confluent.ksql.query.QueryError;
 import io.confluent.ksql.testing.EffectivelyImmutable;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -50,8 +52,10 @@ import org.apache.kafka.common.config.ConfigDef.Importance;
 import org.apache.kafka.common.config.ConfigDef.Type;
 import org.apache.kafka.common.config.ConfigDef.ValidString;
 import org.apache.kafka.common.config.ConfigDef.Validator;
+import org.apache.kafka.common.config.ConfigException;
 import org.apache.kafka.common.config.SslConfigs;
 import org.apache.kafka.common.config.TopicConfig;
+import org.apache.kafka.common.config.internals.ConfluentConfigs;
 import org.apache.kafka.common.utils.AppInfoParser;
 import org.apache.kafka.streams.StreamsConfig;
 import org.slf4j.Logger;
@@ -69,11 +73,26 @@ public class KsqlConfig extends AbstractConfig {
   static final String KSQ_FUNCTIONS_GLOBAL_PROPERTY_PREFIX =
       KSQL_FUNCTIONS_PROPERTY_PREFIX + "_global_.";
 
+  public static final String KSQL_DEPLOYMENT_TYPE_CONFIG =
+      KSQL_CONFIG_PROPERTY_PREFIX + "deployment.type";
+
+  public enum DeploymentType {
+    selfManaged,
+    confluent
+  }
+
+  public static final String KSQL_DEPLOYMENT_TYPE_DOC =
+      "The type of deployment for ksql. Value must be one of "
+              + Arrays.asList(DeploymentType.values());
+
   public static final String METRIC_REPORTER_CLASSES_CONFIG =
       CommonClientConfigs.METRIC_REPORTER_CLASSES_CONFIG;
 
   public static final String METRIC_REPORTER_CLASSES_DOC =
       CommonClientConfigs.METRIC_REPORTER_CLASSES_DOC;
+
+  private static final String TELEMETRY_REPORTER_CLASS =
+          "io.confluent.telemetry.reporter.TelemetryReporter";
 
   private static final String TELEMETRY_PREFIX = "confluent.telemetry";
   private static final Set<String> REPORTER_CONFIGS_PREFIXES =
@@ -855,10 +874,32 @@ public class KsqlConfig extends AbstractConfig {
     return generation == ConfigGeneration.CURRENT ? CURRENT_DEF : LEGACY_DEF;
   }
 
+  private static DeploymentType parseDeploymentType(final Object value) {
+    try {
+      return DeploymentType.valueOf(value.toString());
+    } catch (IllegalArgumentException e) {
+      throw new ConfigException(
+          "'" + KSQL_DEPLOYMENT_TYPE_CONFIG + "' must be one of: "
+          + Arrays.asList(DeploymentType.values())
+          + " however we found '" + value + "'"
+      );
+    }
+  }
+
   // CHECKSTYLE_RULES.OFF: MethodLength
   private static ConfigDef buildConfigDef(final ConfigGeneration generation) {
     final ConfigDef configDef = new ConfigDef()
         .define(
+            KSQL_DEPLOYMENT_TYPE_CONFIG,
+            ConfigDef.Type.STRING,
+            DeploymentType.selfManaged.name(),
+            ConfigDef.LambdaValidator.with(
+                (name, value) -> parseDeploymentType(value),
+                () -> Arrays.asList(DeploymentType.values()).toString()
+            ),
+            ConfigDef.Importance.LOW,
+            KSQL_DEPLOYMENT_TYPE_DOC
+        ).define(
             KSQL_SERVICE_ID_CONFIG,
             ConfigDef.Type.STRING,
             KSQL_SERVICE_ID_DEFAULT,
@@ -867,8 +908,7 @@ public class KsqlConfig extends AbstractConfig {
                 + "all implicitly named resources created by this instance in Kafka. "
                 + "By convention, the id should end in a seperator character of some form, e.g. "
                 + "a dash or underscore, as this makes identifiers easier to read."
-        )
-        .define(
+        ).define(
             KSQL_TRANSIENT_QUERY_NAME_PREFIX_CONFIG,
             ConfigDef.Type.STRING,
             KSQL_TRANSIENT_QUERY_NAME_PREFIX_DEFAULT,
@@ -1517,7 +1557,14 @@ public class KsqlConfig extends AbstractConfig {
             Importance.LOW,
             KSQL_FETCH_REMOTE_HOSTS_TIMEOUT_SECONDS_DOC
         )
-        .withClientSslSupport();
+        .withClientSslSupport()
+        .define(
+            ConfluentConfigs.ENABLE_FIPS_CONFIG,
+            Type.BOOLEAN,
+            ConfluentConfigs.ENABLE_FIPS_DEFAULT,
+            Importance.LOW,
+            ConfluentConfigs.ENABLE_FIPS_DOC
+        );
 
     for (final CompatibilityBreakingConfigDef compatibilityBreakingConfigDef
         : COMPATIBLY_BREAKING_CONFIG_DEFS) {
@@ -1623,6 +1670,7 @@ public class KsqlConfig extends AbstractConfig {
     super(configDef(generation), props);
 
     final Map<String, Object> streamsConfigDefaults = new HashMap<>();
+    streamsConfigDefaults.put(StreamsConfig.InternalConfig.STATE_UPDATER_ENABLED, false);
     streamsConfigDefaults.put(StreamsConfig.COMMIT_INTERVAL_MS_CONFIG, KsqlConstants
         .defaultCommitIntervalMsConfig);
     streamsConfigDefaults.put(
@@ -1684,6 +1732,17 @@ public class KsqlConfig extends AbstractConfig {
     this.ksqlStreamConfigProps = ksqlStreamConfigProps;
   }
 
+  private void possiblyConfigureConfluentTelemetry(final Map<String, Object> map) {
+    if (KsqlConfig.DeploymentType.confluent.toString()
+            .equals(getString(KSQL_DEPLOYMENT_TYPE_CONFIG))) {
+      final List<String> metricReporters = new ArrayList<>(getList(METRIC_REPORTER_CLASSES_CONFIG));
+      metricReporters.remove(TELEMETRY_REPORTER_CLASS);
+      map.put(METRIC_REPORTER_CLASSES_CONFIG, metricReporters);
+    } else {
+      map.putAll(addConfluentMetricsContextConfigsKafka(Collections.emptyMap()));
+    }
+  }
+
   public Map<String, Object> getKsqlStreamConfigProps(final String applicationId) {
     final Map<String, Object> map = new HashMap<>(getKsqlStreamConfigProps());
     map.put(
@@ -1691,7 +1750,9 @@ public class KsqlConfig extends AbstractConfig {
             + StreamsConfig.APPLICATION_ID_CONFIG,
         applicationId
     );
-    map.putAll(addConfluentMetricsContextConfigsKafka(Collections.emptyMap()));
+
+    // Streams client metrics aren't used in Confluent deployment
+    possiblyConfigureConfluentTelemetry(map);
     return Collections.unmodifiableMap(map);
   }
 
@@ -1710,21 +1771,24 @@ public class KsqlConfig extends AbstractConfig {
   public Map<String, Object> getKsqlAdminClientConfigProps() {
     final Map<String, Object> map = new HashMap<>();
     map.putAll(getConfigsFor(AdminClientConfig.configNames()));
-    map.putAll(addConfluentMetricsContextConfigsKafka(Collections.emptyMap()));
+    // admin client metrics aren't used in Confluent deployment
+    possiblyConfigureConfluentTelemetry(map);
     return Collections.unmodifiableMap(map);
   }
 
   public Map<String, Object> getProducerClientConfigProps() {
     final Map<String, Object> map = new HashMap<>();
     map.putAll(getConfigsFor(ProducerConfig.configNames()));
-    map.putAll(addConfluentMetricsContextConfigsKafka(Collections.emptyMap()));
+    // producer client metrics aren't used in Confluent deployment
+    possiblyConfigureConfluentTelemetry(map);
     return Collections.unmodifiableMap(map);
   }
 
   public Map<String, Object> getConsumerClientConfigProps() {
     final Map<String, Object> map = new HashMap<>();
     map.putAll(getConfigsFor(ConsumerConfig.configNames()));
-    map.putAll(addConfluentMetricsContextConfigsKafka(Collections.emptyMap()));
+    // consumer client metrics aren't used in Confluent deployment
+    possiblyConfigureConfluentTelemetry(map);
     return Collections.unmodifiableMap(map);
   }
 

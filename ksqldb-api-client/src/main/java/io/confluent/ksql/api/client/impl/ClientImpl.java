@@ -59,6 +59,7 @@ import io.vertx.core.http.RequestOptions;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.net.JksOptions;
+import io.vertx.core.net.KeyStoreOptions;
 import io.vertx.core.net.SocketAddress;
 import io.vertx.core.parsetools.RecordParser;
 import java.nio.charset.Charset;
@@ -86,6 +87,7 @@ public class ClientImpl implements Client {
   private static final String CLOSE_QUERY_ENDPOINT = "/close-query";
   private static final String KSQL_ENDPOINT = "/ksql";
   private static final String INFO_ENDPOINT = "/info";
+  private static final String SSL_STORE_TYPE_BCFKS = "BCFKS";
 
   private final ClientOptions clientOptions;
   private final Vertx vertx;
@@ -904,22 +906,49 @@ public class ClientImpl implements Client {
         .setDefaultPort(clientOptions.getPort())
         .setHttp2MultiplexingLimit(clientOptions.getHttp2MultiplexingLimit());
     if (clientOptions.isUseTls() && !clientOptions.getTrustStore().isEmpty()) {
-      final JksOptions jksOptions = VertxSslOptionsFactory.getJksTrustStoreOptions(
-          clientOptions.getTrustStore(),
-          clientOptions.getTrustStorePassword()
-      );
+      if (Objects.equals(clientOptions.getStoreType(), SSL_STORE_TYPE_BCFKS)) {
+        final Optional<KeyStoreOptions> bcfksOptions =
+            VertxSslOptionsFactory.getBcfksTrustStoreOptions(
+                clientOptions.getSecurityProviders(),
+                clientOptions.getTrustStore(),
+                clientOptions.getTrustStorePassword(),
+                clientOptions.getTrustManagerAlgorithm());
 
-      options = options.setTrustStoreOptions(jksOptions);
+        if (bcfksOptions.isPresent()) {
+          options = options.setTrustOptions(bcfksOptions.get());
+        }
+      } else {
+        final JksOptions jksOptions = VertxSslOptionsFactory.getJksTrustStoreOptions(
+            clientOptions.getTrustStore(),
+            clientOptions.getTrustStorePassword()
+        );
+
+        options = options.setTrustStoreOptions(jksOptions);
+      }
     }
     if (!clientOptions.getKeyStore().isEmpty()) {
-      final JksOptions jksOptions = VertxSslOptionsFactory.buildJksKeyStoreOptions(
-          clientOptions.getKeyStore(),
-          clientOptions.getKeyStorePassword(),
-          Optional.of(clientOptions.getKeyPassword()),
-          Optional.of(clientOptions.getKeyAlias())
-      );
+      if (Objects.equals(clientOptions.getStoreType(), SSL_STORE_TYPE_BCFKS)) {
+        final Optional<KeyStoreOptions> keyStoreOptions =
+            VertxSslOptionsFactory.getBcfksKeyStoreOptions(
+                clientOptions.getSecurityProviders(),
+                clientOptions.getKeyStore(),
+                clientOptions.getKeyStorePassword(),
+                clientOptions.getKeyPassword(),
+                clientOptions.getKeyManagerAlgorithm());
 
-      options = options.setKeyStoreOptions(jksOptions);
+        if (keyStoreOptions.isPresent()) {
+          options = options.setKeyCertOptions(keyStoreOptions.get());
+        }
+      } else {
+        final JksOptions jksOptions = VertxSslOptionsFactory.buildJksKeyStoreOptions(
+            clientOptions.getKeyStore(),
+            clientOptions.getKeyStorePassword(),
+            Optional.of(clientOptions.getKeyPassword()),
+            Optional.of(clientOptions.getKeyAlias())
+        );
+
+        options = options.setKeyStoreOptions(jksOptions);
+      }
     }
     return vertx.createHttpClient(options);
   }

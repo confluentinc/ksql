@@ -130,6 +130,7 @@
         <avro.random.generator.version>0.2.2</avro.random.generator.version>
         <apache.curator.version>5.2.0</apache.curator.version>
         <wiremock.version>2.24.0</wiremock.version>
+        <clearspring-analytics.version>2.9.5</clearspring-analytics.version>
         <icu.version>67.1</icu.version>
         <vertx.version>4.4.8</vertx.version>
         <reactive-streams.version>1.0.3</reactive-streams.version>
@@ -149,7 +150,7 @@
              for the netty version we bump to (ie, corresponding git tag),
              to find the correct `tcnative` version. -->
         <netty.version>4.1.118.Final</netty.version>
-        <netty-codec-http2-version>4.1.118.Final</netty-codec-http2-version>
+        <netty-codec-http2-version>4.1.124.Final</netty-codec-http2-version>
         <jersey-common>2.39.1</jersey-common>
         <multi-threaded-testing.forkCount>3</multi-threaded-testing.forkCount>
         <kafka.version>${ce.kafka.version}</kafka.version>

@@ -192,7 +192,7 @@
             <dependency>
                 <groupId>org.apache.kafka</groupId>
                 <artifactId>kafka-streams</artifactId>
-                <version>${kafka-stream}</version>
+                <version>${kafka-streams.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.kafka</groupId>
@@ -223,7 +223,7 @@
             <dependency>
                 <groupId>org.apache.kafka</groupId>
                 <artifactId>connect-file</artifactId>
-                <version>${kafka-streams.version}</version>
+                <version>${kafka.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.kafka</groupId>

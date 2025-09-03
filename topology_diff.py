@@ -204,17 +204,21 @@ def compare_topologies(test_case_dir: str) -> Dict[str, Any]:
     return result
 
 def main():
+    # Get test case from command line argument
+    if len(sys.argv) != 2:
+        print("Usage: python3 topology_diff.py <test_case_name>")
+        sys.exit(1)
+        
+    test_case = sys.argv[1]
     # Create output directory if it doesn't exist
     output_dir = "/Users/pragatigupta/Desktop/Projects/ksql/topology_analysis"
     os.makedirs(output_dir, exist_ok=True)
     
-    # Analyzing complex multi-join test case
-    test_case = "multi-joins_-_stream-table-table_-_inner-inner_-_rekey_and_flip_join_expression"
     base_dir = "/Users/pragatigupta/Desktop/Projects/ksql/ksqldb-functional-tests/src/test/resources/historical_plans"
     test_case_dir = os.path.join(base_dir, test_case)
     
     if not os.path.exists(test_case_dir):
-        print(f"Test case directory not found: {test_case_dir}")
+        print(f"Test case directory not found: {test_case}")
         return
     
     # Compare topologies and get results

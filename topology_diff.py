@@ -6,25 +6,54 @@ import json
 from typing import Tuple, Optional, Dict, Any
 from datetime import datetime
 
-def find_version_dirs(test_case_dir: str) -> Tuple[Optional[str], Optional[str]]:
-    """Find the 7.1.0 and latest 8.x version directories."""
+def find_version_dirs(test_case_dir: str) -> Tuple[Optional[str], Optional[str], str]:
+    """Find version directories:
+    - Latest 7.x version for v7
+    - Try 8.0.1, fallback to 8.0.0 for v8
+    Returns: (v7_dir, v8_dir, version_combination)
+    """
     v7_dir = None
-    v8_dir = None
+    v801_dir = None
+    v800_dir = None
+    has_8x = False
     
     try:
         for dirname in os.listdir(test_case_dir):
             version = dirname.split('_')[0]  # e.g., "7.1.0" from "7.1.0_1633125989807"
-            if version == '7.1.0':
+            
+            # Latest 7.x version
+            if version.startswith('7.'):
                 if not v7_dir or dirname > v7_dir:
                     v7_dir = dirname
+            # Track 8.x versions
             elif version.startswith('8.'):
-                if not v8_dir or dirname > v8_dir:
-                    v8_dir = dirname
+                has_8x = True
+                # 8.0.1 version
+                if version.startswith('8.0.1'):
+                    if not v801_dir or dirname > v801_dir:
+                        v801_dir = dirname
+                # 8.0.0 version (fallback)
+                elif version == '8.0.0':
+                    if not v800_dir or dirname > v800_dir:
+                        v800_dir = dirname
+                    
     except Exception as e:
         print(f"Error reading directory {test_case_dir}: {e}")
-        return None, None
-        
-    return v7_dir, v8_dir
+        return None, None, ""
+    
+    # Skip if no 8.x version exists
+    if not has_8x:
+        print(f"\nSkipping test case - no 8.x version found in: {test_case_dir}")
+        return None, None, "skip"
+    
+    # Use 8.0.1 if available, otherwise fallback to 8.0.0
+    v8_dir = v801_dir if v801_dir else v800_dir
+    version_desc = "8.0.1" if v801_dir else "8.0.0"
+    
+    if v7_dir and v8_dir:
+        return v7_dir, v8_dir, f"Latest 7.x vs {version_desc}"
+    
+    return None, None, ""
 
 def read_topology_file(filepath: str) -> list:
     """Read and return the contents of a topology file as a list of lines."""
@@ -76,7 +105,7 @@ def parse_topology(lines: list, normalize: bool = False) -> dict:
     return subtops
 
 def compare_topologies(test_case_dir: str) -> Dict[str, Any]:
-    """Compare topology files between 7.1.0 and latest 8.x versions for a given test case."""
+    """Compare topology files between versions for a given test case."""
     test_case_name = os.path.basename(test_case_dir)
     print(f"\nAnalyzing test case: {test_case_name}")
     
@@ -91,19 +120,27 @@ def compare_topologies(test_case_dir: str) -> Dict[str, Any]:
     }
     
     # Find the version directories
-    v7_dir, v8_dir = find_version_dirs(test_case_dir)
+    v7_dir, v8_dir, version_combo = find_version_dirs(test_case_dir)
+    
+    # Skip if no 8.x version or error finding versions
+    if version_combo == "skip":
+        result["status"] = "skipped"
+        result["reason"] = "No 8.x version found"
+        return result
+    
     if not v7_dir or not v8_dir:
-        result["error"] = "Could not find both 7.1.0 and 8.x version directories"
+        result["error"] = "Could not find compatible version directories"
         return result
     
     result["versions"] = {
-        "7.1.0": v7_dir,
-        "8.x": v8_dir
+        "combination": version_combo,
+        "v7": v7_dir,
+        "v8": v8_dir
     }
     
-    print(f"\nComparing versions:")
-    print(f"7.1.0 version: {v7_dir}")
-    print(f"8.x version: {v8_dir}")
+    print(f"\nComparing versions ({version_combo}):")
+    print(f"v7: {v7_dir}")
+    print(f"v8: {v8_dir}")
     
     # Read topology files
     v7_topology = read_topology_file(os.path.join(test_case_dir, v7_dir, 'topology'))
@@ -119,8 +156,8 @@ def compare_topologies(test_case_dir: str) -> Dict[str, Any]:
     
     # Store sub-topology counts
     result["comparison"]["sub_topology_counts"] = {
-        "7.1.0": len(v7_subtops),
-        "8.x": len(v8_subtops)
+        "v7": len(v7_subtops),
+        "v8": len(v8_subtops)
     }
     
     # Compare each sub-topology
@@ -132,12 +169,12 @@ def compare_topologies(test_case_dir: str) -> Dict[str, Any]:
         
         # Check if sub-topology exists in both versions
         if subtop not in v7_subtops:
-            subtop_result["status"] = "only_in_8.x"
-            subtop_result["contents_8.x"] = v8_subtops[subtop]
+            subtop_result["status"] = "only_in_v8"
+            subtop_result["contents_v8"] = v8_subtops[subtop]
             has_changes = True
         elif subtop not in v8_subtops:
-            subtop_result["status"] = "only_in_7.1.0"
-            subtop_result["contents_7.1.0"] = v7_subtops[subtop]
+            subtop_result["status"] = "only_in_v7"
+            subtop_result["contents_v7"] = v7_subtops[subtop]
             has_changes = True
         else:
             # Compare processors and their connections
@@ -151,8 +188,8 @@ def compare_topologies(test_case_dir: str) -> Dict[str, Any]:
             if removed or added:
                 subtop_result["status"] = "changes_detected"
                 subtop_result["changes"] = {
-                    "removed_in_8.x": removed,
-                    "added_in_8.x": added
+                    "removed_in_v8": removed,
+                    "added_in_v8": added
                 }
                 has_changes = True
         
@@ -171,8 +208,8 @@ def main():
     output_dir = "/Users/pragatigupta/Desktop/Projects/ksql/topology_analysis"
     os.makedirs(output_dir, exist_ok=True)
     
-    # Analyzing array length test case
-    test_case = "array_-_array_length_-_primitives"
+    # Analyzing complex multi-join test case
+    test_case = "multi-joins_-_stream-table-table_-_inner-inner_-_rekey_and_flip_join_expression"
     base_dir = "/Users/pragatigupta/Desktop/Projects/ksql/ksqldb-functional-tests/src/test/resources/historical_plans"
     test_case_dir = os.path.join(base_dir, test_case)
     
@@ -182,6 +219,11 @@ def main():
     
     # Compare topologies and get results
     results = compare_topologies(test_case_dir)
+    
+    # Skip further processing if test was skipped
+    if results.get("status") == "skipped":
+        print(f"\nSkipped test case: {results['reason']}")
+        return
     
     # Save results to JSON file
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -195,9 +237,10 @@ def main():
     # Print a summary to console
     print("\nQuick Summary:")
     print(f"Test case: {results['test_case']}")
-    print(f"7.1.0 version: {results['versions']['7.1.0']}")
-    print(f"8.x version: {results['versions']['8.x']}")
-    print(f"Sub-topology counts: 7.1.0={results['comparison']['sub_topology_counts']['7.1.0']}, 8.x={results['comparison']['sub_topology_counts']['8.x']}")
+    print(f"Version combination: {results['versions']['combination']}")
+    print(f"v7: {results['versions']['v7']}")
+    print(f"v8: {results['versions']['v8']}")
+    print(f"Sub-topology counts: v7={results['comparison']['sub_topology_counts']['v7']}, v8={results['comparison']['sub_topology_counts']['v8']}")
     
     # Print major structural changes
     print("\nMajor Structural Changes:")
@@ -206,8 +249,8 @@ def main():
     else:
         for subtop, details in results['comparison']['sub_topologies'].items():
             if details.get('status') == 'changes_detected':
-                added = len(details['changes'].get('added_in_8.x', []))
-                removed = len(details['changes'].get('removed_in_8.x', []))
+                added = len(details['changes'].get('added_in_v8', []))
+                removed = len(details['changes'].get('removed_in_v8', []))
                 if added > 0 or removed > 0:
                     print(f"Sub-topology {subtop}: {removed} components removed, {added} components added")
 

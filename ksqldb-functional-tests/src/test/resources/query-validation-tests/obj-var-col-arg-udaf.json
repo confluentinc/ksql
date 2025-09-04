@@ -1,0 +1,210 @@
+{
+  "comments": [
+    "You can specify multiple statements per test case, i.e., to set up the various streams needed",
+    "for joins etc, but currently only the final topology will be verified. This should be enough",
+    "for most tests as we can simulate the outputs from previous stages into the final stage. If we",
+    "take a modular approach to testing we can still verify that it all works correctly, i.e, if we",
+    "verify the output of a select or aggregate is correct, we can use simulated output to feed into",
+    "a join or another aggregate."
+  ],
+  "tests": [
+    {
+      "name": "only primitives in var arg",
+      "statements": [
+        "CREATE STREAM INPUT (ID BIGINT KEY, FIRST integer, SECOND bigint, THIRD boolean, FOURTH double, FIFTH integer, SIXTH string) WITH (kafka_topic='input_topic', value_format='JSON');",
+        "CREATE TABLE OUTPUT as SELECT id, OBJ_COL_ARG(FIRST, SECOND, THIRD, FOURTH, FIFTH, SIXTH) as RESULT FROM INPUT group by id;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": 0, "value": {"FIRST": 6, "SECOND": 5, "THIRD": true, "FOURTH": 3.2, "FIFTH": 7, "SIXTH": "hello"}},
+        {"topic": "input_topic", "key": 100, "value": {"FIRST": 2, "SECOND": 1, "THIRD": false, "FOURTH": 1.44, "FIFTH": 8, "SIXTH": "world"}},
+        {"topic": "input_topic", "key": 0, "value": {"FIRST": null, "SECOND": 5, "THIRD": true, "FOURTH": 12.34, "FIFTH": 1, "SIXTH": "test"}},
+        {"topic": "input_topic", "key": 100, "value": {"FIRST": 5, "SECOND": 3, "THIRD": null, "FOURTH": 0.9, "FIFTH": 2, "SIXTH": "udaf"}},
+        {"topic": "input_topic", "key": 0, "value": {"FIRST": 5, "SECOND": null, "THIRD": true, "FOURTH": 1.2, "FIFTH": 6, "SIXTH": "aggregate"}},
+        {"topic": "input_topic", "key": 100, "value": {"FIRST": 3, "SECOND": 7, "THIRD": false, "FOURTH": null, "FIFTH": 8, "SIXTH": "function"}},
+        {"topic": "input_topic", "key": 100, "value": {"FIRST": 2, "SECOND": 2, "THIRD": true, "FOURTH": 9.8, "FIFTH": null, "SIXTH": "ksql"}},
+        {"topic": "input_topic", "key": 0, "value": {"FIRST": 21, "SECOND": 10, "THIRD": null, "FOURTH": 5.0, "FIFTH": 2, "SIXTH": "qtt"}},
+        {"topic": "input_topic", "key": 100, "value": {"FIRST": null, "SECOND": 20, "THIRD": true, "FOURTH": null, "FIFTH": 3, "SIXTH": "variadic"}},
+        {"topic": "input_topic", "key": 100, "value": {"FIRST": 3, "SECOND": 2, "THIRD": false, "FOURTH": 4.3, "FIFTH": 4, "SIXTH": "object"}},
+        {"topic": "input_topic", "key": 100, "value": {"FIRST": 6, "SECOND": 1, "THIRD": false, "FOURTH": 4.9, "FIFTH": 10, "SIXTH": null}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 0, "value": {"RESULT": [6]}},
+        {"topic": "OUTPUT", "key": 100, "value": {"RESULT": [2]}},
+        {"topic": "OUTPUT", "key": 0, "value": {"RESULT": [6]}},
+        {"topic": "OUTPUT", "key": 100, "value": {"RESULT": [2]}},
+        {"topic": "OUTPUT", "key": 0, "value": {"RESULT": [6]}},
+        {"topic": "OUTPUT", "key": 100, "value": {"RESULT": [2]}},
+        {"topic": "OUTPUT", "key": 100, "value": {"RESULT": [2]}},
+        {"topic": "OUTPUT", "key": 0, "value": {"RESULT": [6]}},
+        {"topic": "OUTPUT", "key": 100, "value": {"RESULT": [2]}},
+        {"topic": "OUTPUT", "key": 100, "value": {"RESULT": [2, 3]}},
+        {"topic": "OUTPUT", "key": 100, "value": {"RESULT": [2, 3]}}
+      ]
+    },
+    {
+      "name": "different decimals in var arg",
+      "statements": [
+        "CREATE STREAM INPUT (ID BIGINT KEY, FIRST integer, SECOND bigint, THIRD boolean, FOURTH decimal(5, 1), FIFTH integer, SIXTH decimal(4, 3)) WITH (kafka_topic='input_topic', value_format='JSON');",
+        "CREATE TABLE OUTPUT as SELECT id, OBJ_COL_ARG(FIRST, SECOND, THIRD, FOURTH, FIFTH, SIXTH) as RESULT FROM INPUT group by id;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": 0, "value": {"FIRST": 6, "SECOND": 5, "THIRD": true, "FOURTH": 3.2, "FIFTH": 7, "SIXTH": 1.23}},
+        {"topic": "input_topic", "key": 100, "value": {"FIRST": 2, "SECOND": 1, "THIRD": false, "FOURTH": 1.4, "FIFTH": 8, "SIXTH": 1.567}},
+        {"topic": "input_topic", "key": 0, "value": {"FIRST": null, "SECOND": 5, "THIRD": true, "FOURTH": 12.3, "FIFTH": 1, "SIXTH": 8.76}},
+        {"topic": "input_topic", "key": 100, "value": {"FIRST": 5, "SECOND": 3, "THIRD": null, "FOURTH": 0.9, "FIFTH": 2, "SIXTH": 5.34}},
+        {"topic": "input_topic", "key": 0, "value": {"FIRST": 5, "SECOND": null, "THIRD": true, "FOURTH": 1.2, "FIFTH": 6, "SIXTH": 0.912}},
+        {"topic": "input_topic", "key": 100, "value": {"FIRST": 3, "SECOND": 7, "THIRD": false, "FOURTH": null, "FIFTH": 8, "SIXTH": 5.823}},
+        {"topic": "input_topic", "key": 100, "value": {"FIRST": 2, "SECOND": 2, "THIRD": true, "FOURTH": 9.8, "FIFTH": null, "SIXTH": 3.42}},
+        {"topic": "input_topic", "key": 0, "value": {"FIRST": 21, "SECOND": 10, "THIRD": null, "FOURTH": 5.0, "FIFTH": 2, "SIXTH": 7.31}},
+        {"topic": "input_topic", "key": 100, "value": {"FIRST": null, "SECOND": 20, "THIRD": true, "FOURTH": null, "FIFTH": 3, "SIXTH": 0.418}},
+        {"topic": "input_topic", "key": 100, "value": {"FIRST": 3, "SECOND": 2, "THIRD": false, "FOURTH": 4.3, "FIFTH": 4, "SIXTH": 9.352}},
+        {"topic": "input_topic", "key": 100, "value": {"FIRST": 6, "SECOND": 1, "THIRD": false, "FOURTH": 4.9, "FIFTH": 10, "SIXTH": null}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 0, "value": {"RESULT": [6]}},
+        {"topic": "OUTPUT", "key": 100, "value": {"RESULT": [2]}},
+        {"topic": "OUTPUT", "key": 0, "value": {"RESULT": [6]}},
+        {"topic": "OUTPUT", "key": 100, "value": {"RESULT": [2]}},
+        {"topic": "OUTPUT", "key": 0, "value": {"RESULT": [6]}},
+        {"topic": "OUTPUT", "key": 100, "value": {"RESULT": [2]}},
+        {"topic": "OUTPUT", "key": 100, "value": {"RESULT": [2]}},
+        {"topic": "OUTPUT", "key": 0, "value": {"RESULT": [6]}},
+        {"topic": "OUTPUT", "key": 100, "value": {"RESULT": [2]}},
+        {"topic": "OUTPUT", "key": 100, "value": {"RESULT": [2, 3]}},
+        {"topic": "OUTPUT", "key": 100, "value": {"RESULT": [2, 3]}}
+      ]
+    },
+    {
+      "name": "struct in var arg",
+      "statements": [
+        "CREATE STREAM INPUT (ID BIGINT KEY, FIRST integer, SECOND bigint, THIRD boolean, FOURTH double, FIFTH integer, SIXTH struct<a int, b varchar>) WITH (kafka_topic='input_topic', value_format='JSON');",
+        "CREATE TABLE OUTPUT as SELECT id, OBJ_COL_ARG(FIRST, SECOND, THIRD, FOURTH, FIFTH, SIXTH) as RESULT FROM INPUT group by id;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": 0, "value": {"FIRST": 6, "SECOND": 5, "THIRD": true, "FOURTH": 3.2, "FIFTH": 7, "SIXTH": { "a": 3, "b": "hello" }}},
+        {"topic": "input_topic", "key": 100, "value": {"FIRST": 2, "SECOND": 1, "THIRD": false, "FOURTH": 1.44, "FIFTH": 8, "SIXTH": { "a": 8, "b": "world" }}},
+        {"topic": "input_topic", "key": 0, "value": {"FIRST": null, "SECOND": 5, "THIRD": true, "FOURTH": 12.34, "FIFTH": 1, "SIXTH": { "a": 7, "b": "test" }}},
+        {"topic": "input_topic", "key": 100, "value": {"FIRST": 5, "SECOND": 3, "THIRD": null, "FOURTH": 0.9, "FIFTH": 2, "SIXTH": { "a": 1, "b": null }}},
+        {"topic": "input_topic", "key": 0, "value": {"FIRST": 5, "SECOND": null, "THIRD": true, "FOURTH": 1.2, "FIFTH": 6, "SIXTH": { "a": 5, "b": "aggregate" }}},
+        {"topic": "input_topic", "key": 100, "value": {"FIRST": 3, "SECOND": 7, "THIRD": false, "FOURTH": null, "FIFTH": 8, "SIXTH": { "a": 10, "b": "function" }}},
+        {"topic": "input_topic", "key": 100, "value": {"FIRST": 2, "SECOND": 2, "THIRD": true, "FOURTH": 9.8, "FIFTH": null, "SIXTH": { "a": 8, "b": "ksql" }}},
+        {"topic": "input_topic", "key": 0, "value": {"FIRST": 21, "SECOND": 10, "THIRD": null, "FOURTH": 5.0, "FIFTH": 2, "SIXTH": { "a": null, "b": "qtt" }}},
+        {"topic": "input_topic", "key": 100, "value": {"FIRST": null, "SECOND": 20, "THIRD": true, "FOURTH": null, "FIFTH": 3, "SIXTH": { "a": 2, "b": "variadic" }}},
+        {"topic": "input_topic", "key": 100, "value": {"FIRST": 3, "SECOND": 2, "THIRD": false, "FOURTH": 4.3, "FIFTH": 4, "SIXTH": { "a": 0, "b": "object" }}},
+        {"topic": "input_topic", "key": 100, "value": {"FIRST": 6, "SECOND": 1, "THIRD": false, "FOURTH": 4.9, "FIFTH": 10, "SIXTH": null}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 0, "value": {"RESULT": [6]}},
+        {"topic": "OUTPUT", "key": 100, "value": {"RESULT": [2]}},
+        {"topic": "OUTPUT", "key": 0, "value": {"RESULT": [6]}},
+        {"topic": "OUTPUT", "key": 100, "value": {"RESULT": [2]}},
+        {"topic": "OUTPUT", "key": 0, "value": {"RESULT": [6]}},
+        {"topic": "OUTPUT", "key": 100, "value": {"RESULT": [2]}},
+        {"topic": "OUTPUT", "key": 100, "value": {"RESULT": [2]}},
+        {"topic": "OUTPUT", "key": 0, "value": {"RESULT": [6]}},
+        {"topic": "OUTPUT", "key": 100, "value": {"RESULT": [2]}},
+        {"topic": "OUTPUT", "key": 100, "value": {"RESULT": [2, 3]}},
+        {"topic": "OUTPUT", "key": 100, "value": {"RESULT": [2, 3]}}
+      ]
+    },
+    {
+      "name": "map in var arg",
+      "statements": [
+        "CREATE STREAM INPUT (ID BIGINT KEY, FIRST integer, SECOND bigint, THIRD boolean, FOURTH double, FIFTH integer, SIXTH map<varchar, int>) WITH (kafka_topic='input_topic', value_format='JSON');",
+        "CREATE TABLE OUTPUT as SELECT id, OBJ_COL_ARG(FIRST, SECOND, THIRD, FOURTH, FIFTH, SIXTH) as RESULT FROM INPUT group by id;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": 0, "value": {"FIRST": 6, "SECOND": 5, "THIRD": true, "FOURTH": 3.2, "FIFTH": 7, "SIXTH": { "hello": 3 }}},
+        {"topic": "input_topic", "key": 100, "value": {"FIRST": 2, "SECOND": 1, "THIRD": false, "FOURTH": 1.44, "FIFTH": 8, "SIXTH": { "world": 8 }}},
+        {"topic": "input_topic", "key": 0, "value": {"FIRST": null, "SECOND": 5, "THIRD": true, "FOURTH": 12.34, "FIFTH": 1, "SIXTH": { "test": 7 }}},
+        {"topic": "input_topic", "key": 100, "value": {"FIRST": 5, "SECOND": 3, "THIRD": null, "FOURTH": 0.9, "FIFTH": 2, "SIXTH": { "udaf": 1 }}},
+        {"topic": "input_topic", "key": 0, "value": {"FIRST": 5, "SECOND": null, "THIRD": true, "FOURTH": 1.2, "FIFTH": 6, "SIXTH": { "aggregate": 5 }}},
+        {"topic": "input_topic", "key": 100, "value": {"FIRST": 3, "SECOND": 7, "THIRD": false, "FOURTH": null, "FIFTH": 8, "SIXTH": { "function": 10 }}},
+        {"topic": "input_topic", "key": 100, "value": {"FIRST": 2, "SECOND": 2, "THIRD": true, "FOURTH": 9.8, "FIFTH": null, "SIXTH": { "ksql": 8 }}},
+        {"topic": "input_topic", "key": 0, "value": {"FIRST": 21, "SECOND": 10, "THIRD": null, "FOURTH": 5.0, "FIFTH": 2, "SIXTH": { "qtt": 11 }}},
+        {"topic": "input_topic", "key": 100, "value": {"FIRST": null, "SECOND": 20, "THIRD": true, "FOURTH": null, "FIFTH": 3, "SIXTH": { "variadic": 2 }}},
+        {"topic": "input_topic", "key": 100, "value": {"FIRST": 3, "SECOND": 2, "THIRD": false, "FOURTH": 4.3, "FIFTH": 4, "SIXTH": { "object": 0 }}},
+        {"topic": "input_topic", "key": 100, "value": {"FIRST": 6, "SECOND": 1, "THIRD": false, "FOURTH": 4.9, "FIFTH": 10, "SIXTH": null}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 0, "value": {"RESULT": [6]}},
+        {"topic": "OUTPUT", "key": 100, "value": {"RESULT": [2]}},
+        {"topic": "OUTPUT", "key": 0, "value": {"RESULT": [6]}},
+        {"topic": "OUTPUT", "key": 100, "value": {"RESULT": [2]}},
+        {"topic": "OUTPUT", "key": 0, "value": {"RESULT": [6]}},
+        {"topic": "OUTPUT", "key": 100, "value": {"RESULT": [2]}},
+        {"topic": "OUTPUT", "key": 100, "value": {"RESULT": [2]}},
+        {"topic": "OUTPUT", "key": 0, "value": {"RESULT": [6]}},
+        {"topic": "OUTPUT", "key": 100, "value": {"RESULT": [2]}},
+        {"topic": "OUTPUT", "key": 100, "value": {"RESULT": [2, 3]}},
+        {"topic": "OUTPUT", "key": 100, "value": {"RESULT": [2, 3]}}
+      ]
+    },
+    {
+      "name": "list in var arg",
+      "statements": [
+        "CREATE STREAM INPUT (ID BIGINT KEY, FIRST integer, SECOND bigint, THIRD boolean, FOURTH double, FIFTH integer, SIXTH array<int>) WITH (kafka_topic='input_topic', value_format='JSON');",
+        "CREATE TABLE OUTPUT as SELECT id, OBJ_COL_ARG(FIRST, SECOND, THIRD, FOURTH, FIFTH, SIXTH) as RESULT FROM INPUT group by id;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": 0, "value": {"FIRST": 6, "SECOND": 5, "THIRD": true, "FOURTH": 3.2, "FIFTH": 7, "SIXTH": [3, 5] }},
+        {"topic": "input_topic", "key": 100, "value": {"FIRST": 2, "SECOND": 1, "THIRD": false, "FOURTH": 1.44, "FIFTH": 8, "SIXTH": [8, 1] }},
+        {"topic": "input_topic", "key": 0, "value": {"FIRST": null, "SECOND": 5, "THIRD": true, "FOURTH": 12.34, "FIFTH": 1, "SIXTH": [7, 0, 2] }},
+        {"topic": "input_topic", "key": 100, "value": {"FIRST": 5, "SECOND": 3, "THIRD": null, "FOURTH": 0.9, "FIFTH": 2, "SIXTH": [1] }},
+        {"topic": "input_topic", "key": 0, "value": {"FIRST": 5, "SECOND": null, "THIRD": true, "FOURTH": 1.2, "FIFTH": 6, "SIXTH": [5, 13] }},
+        {"topic": "input_topic", "key": 100, "value": {"FIRST": 3, "SECOND": 7, "THIRD": false, "FOURTH": null, "FIFTH": 8, "SIXTH": [10, null] }},
+        {"topic": "input_topic", "key": 100, "value": {"FIRST": 2, "SECOND": 2, "THIRD": true, "FOURTH": 9.8, "FIFTH": null, "SIXTH": [8, 1, 19] }},
+        {"topic": "input_topic", "key": 0, "value": {"FIRST": 21, "SECOND": 10, "THIRD": null, "FOURTH": 5.0, "FIFTH": 2, "SIXTH": [11, 20] }},
+        {"topic": "input_topic", "key": 100, "value": {"FIRST": null, "SECOND": 20, "THIRD": true, "FOURTH": null, "FIFTH": 3, "SIXTH": [2] }},
+        {"topic": "input_topic", "key": 100, "value": {"FIRST": 3, "SECOND": 2, "THIRD": false, "FOURTH": 4.3, "FIFTH": 4, "SIXTH": [0, 0] }},
+        {"topic": "input_topic", "key": 100, "value": {"FIRST": 6, "SECOND": 1, "THIRD": false, "FOURTH": 4.9, "FIFTH": 10, "SIXTH": null}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 0, "value": {"RESULT": [6]}},
+        {"topic": "OUTPUT", "key": 100, "value": {"RESULT": [2]}},
+        {"topic": "OUTPUT", "key": 0, "value": {"RESULT": [6]}},
+        {"topic": "OUTPUT", "key": 100, "value": {"RESULT": [2]}},
+        {"topic": "OUTPUT", "key": 0, "value": {"RESULT": [6]}},
+        {"topic": "OUTPUT", "key": 100, "value": {"RESULT": [2]}},
+        {"topic": "OUTPUT", "key": 100, "value": {"RESULT": [2]}},
+        {"topic": "OUTPUT", "key": 0, "value": {"RESULT": [6]}},
+        {"topic": "OUTPUT", "key": 100, "value": {"RESULT": [2]}},
+        {"topic": "OUTPUT", "key": 100, "value": {"RESULT": [2, 3]}},
+        {"topic": "OUTPUT", "key": 100, "value": {"RESULT": [2, 3]}}
+      ]
+    },
+    {
+      "name": "no variadic args",
+      "statements": [
+        "CREATE STREAM INPUT (ID BIGINT KEY, FIRST integer, SECOND bigint, THIRD boolean, FOURTH double, FIFTH integer, SIXTH string) WITH (kafka_topic='input_topic', value_format='JSON');",
+        "CREATE TABLE OUTPUT as SELECT id, OBJ_COL_ARG(FIRST) as RESULT FROM INPUT group by id;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": 0, "value": {"FIRST": 6, "SECOND": 5, "THIRD": true, "FOURTH": 3.2, "FIFTH": 7, "SIXTH": "hello"}},
+        {"topic": "input_topic", "key": 100, "value": {"FIRST": 2, "SECOND": 1, "THIRD": false, "FOURTH": 1.44, "FIFTH": 8, "SIXTH": "world"}},
+        {"topic": "input_topic", "key": 0, "value": {"FIRST": null, "SECOND": 5, "THIRD": true, "FOURTH": 12.34, "FIFTH": 1, "SIXTH": "test"}},
+        {"topic": "input_topic", "key": 100, "value": {"FIRST": 5, "SECOND": 3, "THIRD": null, "FOURTH": 0.9, "FIFTH": 2, "SIXTH": "udaf"}},
+        {"topic": "input_topic", "key": 0, "value": {"FIRST": 5, "SECOND": null, "THIRD": true, "FOURTH": 1.2, "FIFTH": 6, "SIXTH": "aggregate"}},
+        {"topic": "input_topic", "key": 100, "value": {"FIRST": 3, "SECOND": 7, "THIRD": false, "FOURTH": null, "FIFTH": 8, "SIXTH": "function"}},
+        {"topic": "input_topic", "key": 100, "value": {"FIRST": 2, "SECOND": 2, "THIRD": true, "FOURTH": 9.8, "FIFTH": null, "SIXTH": "ksql"}},
+        {"topic": "input_topic", "key": 0, "value": {"FIRST": 21, "SECOND": 10, "THIRD": null, "FOURTH": 5.0, "FIFTH": 2, "SIXTH": "qtt"}},
+        {"topic": "input_topic", "key": 100, "value": {"FIRST": null, "SECOND": 20, "THIRD": true, "FOURTH": null, "FIFTH": 3, "SIXTH": "variadic"}},
+        {"topic": "input_topic", "key": 100, "value": {"FIRST": 3, "SECOND": 2, "THIRD": false, "FOURTH": 4.3, "FIFTH": 4, "SIXTH": "object"}},
+        {"topic": "input_topic", "key": 100, "value": {"FIRST": 6, "SECOND": 1, "THIRD": false, "FOURTH": 4.9, "FIFTH": 10, "SIXTH": null}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 0, "value": {"RESULT": [6]}},
+        {"topic": "OUTPUT", "key": 100, "value": {"RESULT": [2]}},
+        {"topic": "OUTPUT", "key": 0, "value": {"RESULT": [6]}},
+        {"topic": "OUTPUT", "key": 100, "value": {"RESULT": [2, 5]}},
+        {"topic": "OUTPUT", "key": 0, "value": {"RESULT": [6, 5]}},
+        {"topic": "OUTPUT", "key": 100, "value": {"RESULT": [2, 5, 3]}},
+        {"topic": "OUTPUT", "key": 100, "value": {"RESULT": [2, 5, 3, 2]}},
+        {"topic": "OUTPUT", "key": 0, "value": {"RESULT": [6, 5, 21]}},
+        {"topic": "OUTPUT", "key": 100, "value": {"RESULT": [2, 5, 3, 2]}},
+        {"topic": "OUTPUT", "key": 100, "value": {"RESULT": [2, 5, 3, 2, 3]}},
+        {"topic": "OUTPUT", "key": 100, "value": {"RESULT": [2, 5, 3, 2, 3, 6]}}
+      ]
+    }
+  ]
+}

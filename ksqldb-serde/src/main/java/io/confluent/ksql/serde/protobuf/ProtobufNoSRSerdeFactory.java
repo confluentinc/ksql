@@ -128,10 +128,11 @@ public final class ProtobufNoSRSerdeFactory implements SerdeFactory {
   ) {
     final Map<String, Object> protobufConfig = new HashMap<>();
 
-    protobufConfig.put(
-        ProtobufDataConfig.WRAPPER_FOR_RAW_PRIMITIVES_CONFIG,
-        properties.getUnwrapPrimitives()
-    );
+    protobufConfig.putAll(ImmutableMap.of(
+        ProtobufDataConfig.WRAPPER_FOR_RAW_PRIMITIVES_CONFIG, properties.getUnwrapPrimitives(),
+        ProtobufDataConfig.OPTIONAL_FOR_NULLABLES_CONFIG, properties.isNullableAsOptional(),
+        ProtobufDataConfig.WRAPPER_FOR_NULLABLES_CONFIG, properties.isNullableAsWrapper()
+    ));
 
     final ProtobufNoSRConverter converter = new ProtobufNoSRConverter(schema);
     converter.configure(protobufConfig, isKey);

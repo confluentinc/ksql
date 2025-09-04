@@ -86,7 +86,7 @@ public final class DescribeFunctionExecutor {
 
     aggregateFactory.eachFunction((func, description) -> listBuilder.add(
         getFunctionInfo(
-            func.parameterInfo(), func.declaredReturnType(), description, false)));
+            func.parameterInfo(), func.declaredReturnType(), description)));
 
     return createFunctionDescriptionList(
         statementText, aggregateFactory.getMetadata(), listBuilder.build(), FunctionType.AGGREGATE);
@@ -106,8 +106,7 @@ public final class DescribeFunctionExecutor {
         getFunctionInfo(
             func.parameterInfo(),
             func.declaredReturnType(),
-            func.getDescription(),
-            func.isVariadic()
+            func.getDescription()
         )));
 
     return createFunctionDescriptionList(
@@ -131,8 +130,7 @@ public final class DescribeFunctionExecutor {
         getFunctionInfo(
             func.parameterInfo(),
             func.declaredReturnType(),
-            func.getDescription(),
-            func.isVariadic()
+            func.getDescription()
         )));
 
     return createFunctionDescriptionList(
@@ -146,17 +144,14 @@ public final class DescribeFunctionExecutor {
   private static FunctionInfo getFunctionInfo(
       final List<ParameterInfo> argTypes,
       final ParamType returnTypeSchema,
-      final String description,
-      final boolean variadic
+      final String description
   ) {
     final List<ArgumentInfo> args = new ArrayList<>();
-    for (int i = 0; i < argTypes.size(); i++) {
-      final ParameterInfo param = argTypes.get(i);
-      final boolean isVariadic = variadic && i == (argTypes.size() - 1);
-      final String type = isVariadic
-          ? ((ArrayType) param.type()).element().toString()
-          : param.type().toString();
-      args.add(new ArgumentInfo(param.name(), type, param.description(), isVariadic));
+    for (final ParameterInfo param : argTypes) {
+      final String type = param.isVariadic()
+              ? ((ArrayType) param.type()).element().toString()
+              : param.type().toString();
+      args.add(new ArgumentInfo(param.name(), type, param.description(), param.isVariadic()));
     }
 
     return new FunctionInfo(args, returnTypeSchema.toString(), description);

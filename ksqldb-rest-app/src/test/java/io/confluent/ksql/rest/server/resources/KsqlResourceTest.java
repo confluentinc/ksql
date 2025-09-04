@@ -1077,17 +1077,64 @@ public class KsqlResourceTest {
   }
 
   @Test
-  public void shouldReturnForbiddenKafkaAccessIfKsqlTopicAuthorizationException() {
+  public void shouldReturnCustomErrorOnRawException() {
     // Given:
     final String errorMsg = "some error";
-    when(errorsHandler.generateResponse(any(), any())).thenReturn(EndpointResponse.create()
+    final Exception e = new KsqlTopicAuthorizationException(
+        AclOperation.DELETE,
+        Collections.singleton("topic"));
+    when(errorsHandler.generateResponse(eq(e), any())).thenReturn(EndpointResponse.create()
         .status(FORBIDDEN.code())
         .entity(new KsqlErrorMessage(ERROR_CODE_FORBIDDEN_KAFKA_ACCESS, errorMsg))
         .build());
-    doThrow(new KsqlTopicAuthorizationException(
+    doThrow(e).when(authorizationValidator).checkAuthorization(any(), any(), any());
+
+    // When:
+    final KsqlErrorMessage result = makeFailingRequest(
+        "DROP STREAM TEST_STREAM DELETE TOPIC;",
+        FORBIDDEN.code());
+
+    // Then:
+    assertThat(result, is(instanceOf(KsqlErrorMessage.class)));
+    assertThat(result.getErrorCode(), is(Errors.ERROR_CODE_FORBIDDEN_KAFKA_ACCESS));
+    assertThat(result.getMessage(), is(errorMsg));
+  }
+
+  @Test
+  public void shouldReturnCustomErrorOnKsqlException() {
+    // Given:
+    final String errorMsg = "some error";
+    final Exception e = new KsqlException(new KsqlTopicAuthorizationException(
         AclOperation.DELETE,
-        Collections.singleton("topic"))).when(authorizationValidator)
-        .checkAuthorization(any(), any(), any());
+        Collections.singleton("topic")));
+    when(errorsHandler.generateResponse(eq(e), any())).thenReturn(EndpointResponse.create()
+        .status(FORBIDDEN.code())
+        .entity(new KsqlErrorMessage(ERROR_CODE_FORBIDDEN_KAFKA_ACCESS, errorMsg))
+        .build());
+    doThrow(e).when(authorizationValidator).checkAuthorization(any(), any(), any());
+
+    // When:
+    final KsqlErrorMessage result = makeFailingRequest(
+        "DROP STREAM TEST_STREAM DELETE TOPIC;",
+        FORBIDDEN.code());
+
+    // Then:
+    assertThat(result, is(instanceOf(KsqlErrorMessage.class)));
+    assertThat(result.getErrorCode(), is(Errors.ERROR_CODE_FORBIDDEN_KAFKA_ACCESS));
+    assertThat(result.getMessage(), is(errorMsg));
+  }
+
+  @Test
+  public void shouldReturnCustomErrorOnKsqlStatementException() {
+    // Given:
+    final String errorMsg = "some error";
+    final Exception e = new KsqlStatementException("foo", "sql",
+        new KsqlTopicAuthorizationException(AclOperation.DELETE, Collections.singleton("topic")));
+    when(errorsHandler.generateResponse(eq(e), any())).thenReturn(EndpointResponse.create()
+        .status(FORBIDDEN.code())
+        .entity(new KsqlErrorMessage(ERROR_CODE_FORBIDDEN_KAFKA_ACCESS, errorMsg))
+        .build());
+    doThrow(e).when(authorizationValidator).checkAuthorization(any(), any(), any());
 
     // When:
     final KsqlErrorMessage result = makeFailingRequest(
@@ -1886,6 +1933,29 @@ public class KsqlResourceTest {
         containsString("would cause the number of active, persistent queries "
             + "to exceed the configured limit"));
 
+    verify(commandStore, never()).enqueueCommand(any(), any(), any());
+  }
+
+  @Test
+  public void shouldRejectQueryButAcceptNonQueryWhenKsqlRestartsWithLowerQueryLimit() {
+    // Given 6 queries already running:
+    givenPersistentQueryCount(6);
+
+    // When we restart ksql with a lower persistent query count
+    givenKsqlConfigWith(
+        ImmutableMap.of(KsqlConfig.KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_CONFIG, 3));
+    givenMockEngine();
+
+    // When/Then:
+    makeSingleRequest("SHOW STREAMS;", StreamsList.class);
+
+    // No further queries can be made
+    final KsqlErrorMessage result = makeFailingRequest(
+        "CREATE STREAM " + streamName + " AS SELECT * FROM test_stream;", BAD_REQUEST.code());
+    assertThat(result.getErrorCode(), is(Errors.ERROR_CODE_BAD_REQUEST));
+    assertThat(result.getMessage(),
+        containsString("would cause the number of active, persistent queries "
+            + "to exceed the configured limit"));
     verify(commandStore, never()).enqueueCommand(any(), any(), any());
   }
 

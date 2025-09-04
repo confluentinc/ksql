@@ -23,12 +23,19 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.NullNode;
 import com.fasterxml.jackson.databind.node.TextNode;
+import com.google.common.collect.ImmutableList;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.ksql.serde.SerdeFeatures;
+import io.confluent.ksql.serde.protobuf.ProtobufFormat;
 import io.confluent.ksql.test.tools.TestJsonMapper;
-import io.confluent.ksql.test.tools.Topic;
 import io.confluent.ksql.test.tools.exceptions.InvalidFieldException;
 import io.confluent.ksql.test.utils.SerdeUtil;
+import io.confluent.ksql.tools.test.model.SchemaReference;
+import io.confluent.ksql.tools.test.model.Topic;
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 @JsonInclude(Include.NON_EMPTY)
 public final class TopicNode {
@@ -37,8 +44,12 @@ public final class TopicNode {
   private static final ObjectMapper OBJECT_MAPPER = TestJsonMapper.INSTANCE.get();
 
   private final String name;
+  private final Optional<Integer> keySchemaId;
+  private final Optional<Integer> valueSchemaId;
   private final JsonNode keySchema;
   private final JsonNode valueSchema;
+  private final List<SchemaReferencesNode> keySchemaReferences;
+  private final List<SchemaReferencesNode> valueSchemaReferences;
   private final int numPartitions;
   private final int replicas;
   private final String keyFormat;
@@ -46,10 +57,16 @@ public final class TopicNode {
   private final SerdeFeatures keySerdeFeatures;
   private final SerdeFeatures valueSerdeFeatures;
 
+  // CHECKSTYLE_RULES.OFF: NPathComplexity
+  // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
   public TopicNode(
       @JsonProperty("name") final String name,
+      @JsonProperty("keySchemaId") final Optional<Integer> keySchemaId,
+      @JsonProperty("valueSchemaId") final Optional<Integer> valueSchemaId,
       @JsonProperty("keySchema") final JsonNode keySchema,
       @JsonProperty("valueSchema") final JsonNode valueSchema,
+      @JsonProperty("keySchemaReferences") final List<SchemaReferencesNode> keySchemaReferences,
+      @JsonProperty("valueSchemaReferences") final List<SchemaReferencesNode> valueSchemaReferences,
       @JsonProperty("keyFormat") final String keyFormat,
       @JsonProperty("valueFormat") final String valueFormat,
       @JsonProperty("partitions") final Integer numPartitions,
@@ -57,10 +74,20 @@ public final class TopicNode {
       @JsonProperty("keySerdeFeatures") final SerdeFeatures keySerdeFeatures,
       @JsonProperty("valueSerdeFeatures") final SerdeFeatures valueSerdeFeatures
   ) {
+    // CHECKSTYLE_RULES.ON: NPathComplexity
+    // CHECKSTYLE_RULES.ON: ParameterNumberCheck
 
     this.name = name == null ? "" : name;
+    this.keySchemaId = keySchemaId;
+    this.valueSchemaId = valueSchemaId;
     this.keySchema = keySchema;
     this.valueSchema = valueSchema;
+    this.keySchemaReferences = keySchemaReferences == null
+        ? ImmutableList.of()
+        : ImmutableList.copyOf(keySchemaReferences);
+    this.valueSchemaReferences = valueSchemaReferences == null
+        ? ImmutableList.of()
+        : ImmutableList.copyOf(valueSchemaReferences);
     this.keyFormat = keyFormat;
     this.valueFormat = valueFormat;
     this.numPartitions = numPartitions == null ? 1 : numPartitions;
@@ -79,6 +106,26 @@ public final class TopicNode {
 
   public String getName() {
     return name;
+  }
+
+  public Optional<Integer> getKeySchemaId() {
+    return keySchemaId;
+  }
+
+  public Optional<Integer> getValueSchemaId() {
+    return valueSchemaId;
+  }
+
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP",
+      justification = "keySchemaReferences is ImmutableList")
+  public List<SchemaReferencesNode> getKeySchemaReferences() {
+    return keySchemaReferences;
+  }
+
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP",
+      justification = "valueSchemaReferences is ImmutableList")
+  public List<SchemaReferencesNode> getValueSchemaReferences() {
+    return valueSchemaReferences;
   }
 
   @JsonInclude(Include.NON_NULL)
@@ -116,12 +163,26 @@ public final class TopicNode {
   }
 
   public Topic build() {
+    final List<SchemaReference> keyReferences = keySchemaReferences.stream()
+        .map(SchemaReferencesNode::build)
+        .collect(Collectors.toList());
+
+    final List<SchemaReference> valueReferences = valueSchemaReferences.stream()
+        .map(SchemaReferencesNode::build)
+        .collect(Collectors.toList());
+
     return new Topic(
         name,
         numPartitions,
         replicas,
-        SerdeUtil.buildSchema(keySchema, keyFormat),
-        SerdeUtil.buildSchema(valueSchema, valueFormat),
+        keySchemaId,
+        valueSchemaId,
+        SerdeUtil.buildSchema(keySchema, keyFormat)
+            .map(schema -> SerdeUtil.withSchemaReferences(schema, keyReferences)),
+        SerdeUtil.buildSchema(valueSchema, valueFormat)
+            .map(schema -> SerdeUtil.withSchemaReferences(schema, valueReferences)),
+        keyReferences,
+        valueReferences,
         keySerdeFeatures,
         valueSerdeFeatures
     );
@@ -137,12 +198,18 @@ public final class TopicNode {
 
     return new TopicNode(
         topic.getName(),
+        topic.getKeySchemaId(),
+        topic.getValueSchemaId(),
         topic.getKeySchema()
             .map(schema -> buildSchemaNode(schema, keyFormat))
             .orElseGet(NullNode::getInstance),
         topic.getValueSchema()
             .map(schema -> buildSchemaNode(schema, valueFormat))
             .orElseGet(NullNode::getInstance),
+        topic.getKeySchemaReferences().stream().map(SchemaReferencesNode::from)
+            .collect(Collectors.toList()),
+        topic.getValueSchemaReferences().stream().map(SchemaReferencesNode::from)
+            .collect(Collectors.toList()),
         keyFormat,
         valueFormat,
         topic.getNumPartitions(),
@@ -156,7 +223,7 @@ public final class TopicNode {
     final String canonical = schema.canonicalString();
 
     try {
-      if ("PROTOBUF".equals(format)) {
+      if (schema.schemaType().equals(ProtobufFormat.NAME)) {
         return new TextNode(canonical);
       }
 

@@ -15,10 +15,15 @@
 
 package io.confluent.ksql.test.serde.protobuf;
 
+import static io.confluent.connect.protobuf.ProtobufDataConfig.OPTIONAL_FOR_NULLABLES_CONFIG;
+import static io.confluent.connect.protobuf.ProtobufDataConfig.WRAPPER_FOR_NULLABLES_CONFIG;
+
+import com.google.common.collect.ImmutableMap;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.connect.ConnectSchemas;
 import io.confluent.ksql.serde.protobuf.ProtobufNoSRConverter;
+import io.confluent.ksql.serde.protobuf.ProtobufNoSRProperties;
 import io.confluent.ksql.test.serde.SerdeSupplier;
 import io.confluent.ksql.test.serde.SpecToConnectConverter;
 import java.util.Map;
@@ -35,14 +40,19 @@ public class ValueSpecProtobufNoSRSerdeSupplier implements SerdeSupplier<Object>
   private final ProtobufNoSRConverter valueConverter;
 
   public ValueSpecProtobufNoSRSerdeSupplier(final LogicalSchema schema,
-      final Map<String, String> properties) {
+      final ProtobufNoSRProperties properties) {
     this.keySchema = ConnectSchemas.columnsToConnectSchema(schema.key());
     this.valueSchema = ConnectSchemas.columnsToConnectSchema(schema.value());
     this.valueConverter = new ProtobufNoSRConverter(this.valueSchema);
     this.keyConverter = new ProtobufNoSRConverter(this.keySchema);
 
-    keyConverter.configure(properties, true);
-    valueConverter.configure(properties, false);
+    final ImmutableMap<String, Boolean> converterConfig = ImmutableMap.of(
+        OPTIONAL_FOR_NULLABLES_CONFIG, properties.isNullableAsOptional(),
+        WRAPPER_FOR_NULLABLES_CONFIG, properties.isNullableAsWrapper()
+    );
+
+    keyConverter.configure(converterConfig, true);
+    valueConverter.configure(converterConfig, false);
   }
 
   @Override

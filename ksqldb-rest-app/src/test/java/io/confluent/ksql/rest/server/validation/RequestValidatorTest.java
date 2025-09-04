@@ -47,6 +47,7 @@ import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.Explain;
+import io.confluent.ksql.parser.tree.ListStreams;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.rest.server.computation.ValidatedCommandFactory;
@@ -258,6 +259,21 @@ public class RequestValidatorTest {
   }
 
   @Test
+  public void shouldNotThrowIfNotQueryDespiteTooManyPersistentQueries() {
+    // Given:
+    givenPersistentQueryCount(2);
+    givenRequestValidator(ImmutableMap.of(ListStreams.class, StatementValidator.NO_VALIDATION));
+
+    final List<ParsedStatement> statements =
+        givenParsed(
+            "SHOW STREAMS;"
+        );
+
+    // When/Then:
+    validator.validate(serviceContext, statements, sessionProperties, "sql");
+  }
+
+  @Test
   public void shouldNotThrowIfManyNonPersistentQueries() {
     // Given:
     givenRequestValidator(
@@ -265,7 +281,6 @@ public class RequestValidatorTest {
             CreateStream.class, StatementValidator.NO_VALIDATION,
             Explain.class, StatementValidator.NO_VALIDATION)
     );
-    when(ksqlConfig.getInt(KsqlConfig.KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_CONFIG)).thenReturn(1);
 
     final List<ParsedStatement> statements =
         givenParsed(

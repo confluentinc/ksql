@@ -28,7 +28,6 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Supplier;
-import org.apache.commons.lang3.ArrayUtils;
 import org.codehaus.commons.compiler.IExpressionEvaluator;
 
 @Immutable
@@ -37,7 +36,6 @@ public class CompiledExpression implements ExpressionEvaluator {
   @EffectivelyImmutable
   private final IExpressionEvaluator expressionEvaluator;
   private final SqlType expressionType;
-  private final ThreadLocal<Object[]> threadLocalParameters;
   private final Expression expression;
   private final CodeGenSpec spec;
 
@@ -51,7 +49,6 @@ public class CompiledExpression implements ExpressionEvaluator {
     this.expressionType = Objects.requireNonNull(expressionType, "expressionType");
     this.expression = Objects.requireNonNull(expression, "expression");
     this.spec = Objects.requireNonNull(spec, "spec");
-    this.threadLocalParameters = ThreadLocal.withInitial(() -> new Object[spec.arguments().size()]);
   }
 
   public List<ArgumentSpec> arguments() {
@@ -85,8 +82,12 @@ public class CompiledExpression implements ExpressionEvaluator {
       final Supplier<String> errorMsg
   ) {
     try {
-      return expressionEvaluator.evaluate(
-          ArrayUtils.addAll(getParameters(row), defaultValue, logger, row));
+      return expressionEvaluator.evaluate(new Object[]{
+          spec.resolveArguments(row),
+          defaultValue,
+          logger,
+          row
+      });
     } catch (final Exception e) {
       final Throwable cause = e instanceof InvocationTargetException
           ? e.getCause()
@@ -95,11 +96,5 @@ public class CompiledExpression implements ExpressionEvaluator {
       logger.error(RecordProcessingError.recordProcessingError(errorMsg.get(), cause, row));
       return defaultValue;
     }
-  }
-
-  private Object[] getParameters(final GenericRow row) {
-    final Object[] parameters = threadLocalParameters.get();
-    spec.resolve(row, parameters);
-    return parameters;
   }
 }

@@ -18,6 +18,7 @@ package io.confluent.ksql.test.model;
 import static java.util.Objects.requireNonNull;
 
 import com.google.common.base.Preconditions;
+import io.confluent.ksql.tools.test.model.TestLocation;
 import java.nio.file.Path;
 
 /**

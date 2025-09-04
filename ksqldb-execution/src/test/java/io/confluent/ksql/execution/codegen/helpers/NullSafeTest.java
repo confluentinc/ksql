@@ -18,12 +18,12 @@ public class NullSafeTest {
 
     // When:
     final String javaCode = NullSafe
-        .generateApply("input", mapperCode, Long.class);
+        .generateApply("arguments.get(\"input\")", mapperCode, Long.class);
 
     // Then:
-    final Evaluator evaluator = CodeGenTestUtil.cookCode(javaCode, Long.class, "input", Long.class);
-    assertThat(evaluator.evaluate(10L), is(11L));
-    assertThat(evaluator.evaluate(null), is(nullValue()));
+    final Evaluator evaluator = CodeGenTestUtil.cookCode(javaCode, Long.class);
+    assertThat(evaluator.evaluate("input", 10L), is(11L));
+    assertThat(evaluator.evaluate("input", null), is(nullValue()));
   }
 
   @Test
@@ -34,11 +34,11 @@ public class NullSafeTest {
 
     // When:
     final String javaCode = NullSafe
-        .generateApplyOrDefault("input", mapperCode, "99L", Long.class);
+        .generateApplyOrDefault("arguments.get(\"input\")", mapperCode, "99L", Long.class);
 
     // Then:
-    final Evaluator evaluator = CodeGenTestUtil.cookCode(javaCode, Long.class, "input", Long.class);
-    assertThat(evaluator.evaluate(10L), is(11L));
-    assertThat(evaluator.evaluate(null), is(99L));
+    final Evaluator evaluator = CodeGenTestUtil.cookCode(javaCode, Long.class);
+    assertThat(evaluator.evaluate("input", 10L), is(11L));
+    assertThat(evaluator.evaluate("input", null), is(99L));
   }
 }

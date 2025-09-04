@@ -181,9 +181,9 @@ public class SharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRuntime {
   }
 
   @Override
-  public void stop(final QueryId queryId, final boolean isCreateOrReplace) {
-    log.info("Attempting to stop query: {} in runtime {} with isCreateOrReplace={}",
-             queryId, getApplicationId(), isCreateOrReplace);
+  public void stop(final QueryId queryId, final boolean resetOffsets) {
+    log.info("Attempting to stop query: {} in runtime {} with resetOffsets={}",
+             queryId, getApplicationId(), resetOffsets);
     if (kafkaStreams.getTopologyByName(queryId.toString()).isPresent()
         != collocatedQueries.containsKey(queryId)) {
       log.error("Non SandBoxed queries should not be registered and never started.");
@@ -195,10 +195,10 @@ public class SharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRuntime {
             toAdd.get();
           }
           topolgogiesToAdd.clear();
-          kafkaStreams.removeNamedTopology(queryId.toString(), !isCreateOrReplace)
+          kafkaStreams.removeNamedTopology(queryId.toString(), resetOffsets)
               .all()
               .get();
-          if (!isCreateOrReplace) {
+          if (resetOffsets) {
             kafkaStreams.cleanUpNamedTopology(queryId.toString());
           }
         } catch (ExecutionException | InterruptedException e) {
@@ -214,7 +214,7 @@ public class SharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRuntime {
             + kafkaStreams.state());
       }
     }
-    if (!isCreateOrReplace) {
+    if (resetOffsets) {
       // we don't want to lose it from this runtime
       collocatedQueries.remove(queryId);
     }
@@ -267,6 +267,9 @@ public class SharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRuntime {
       final BinPackedPersistentQueryMetadataImpl query = collocatedQueries
           .get(new QueryId(topology.name()));
       query.updateTopology(query.getTopologyCopy(this));
+      if (query.getQueryStatus() == KsqlConstants.KsqlQueryStatus.PAUSED) {
+        kafkaStreamsNamedTopologyWrapper.pauseNamedTopology(topology.name());
+      }
       kafkaStreamsNamedTopologyWrapper.addNamedTopology(query.getTopology());
     }
     setupAndStartKafkaStreams(kafkaStreamsNamedTopologyWrapper);

@@ -26,6 +26,7 @@ import org.apache.kafka.clients.admin.CreateTopicsOptions;
 import org.apache.kafka.clients.admin.OffsetSpec;
 import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.common.TopicPartition;
+import org.apache.kafka.common.config.TopicConfig;
 
 /**
  * Note: all methods are synchronous, i.e. they wait for responses from Kafka before returning.
@@ -239,4 +240,14 @@ public interface KafkaTopicClient {
   default Map<TopicPartition, Long> listTopicsEndOffsets(Collection<String> topicName) {
     return listTopicsOffsets(topicName, OffsetSpec.latest());
   }
+
+  static Optional<Long> getRetentionMs(Map<String, ?> config) {
+    if (config.containsKey(TopicConfig.RETENTION_MS_CONFIG)) {
+      return Optional.ofNullable(
+          Long.parseLong(String.valueOf(config.get(TopicConfig.RETENTION_MS_CONFIG))));
+    } else {
+      return Optional.empty();
+    }
+  }
+
 }

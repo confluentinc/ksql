@@ -67,6 +67,7 @@ package io.confluent.ksql.rest.integration;
   import io.confluent.ksql.rest.entity.KsqlEntity;
   import io.confluent.ksql.rest.entity.KsqlMediaType;
   import io.confluent.ksql.rest.entity.KsqlRequest;
+  import io.confluent.ksql.rest.entity.KsqlTestResult;
   import io.confluent.ksql.rest.entity.Queries;
   import io.confluent.ksql.rest.entity.QueryStreamArgs;
   import io.confluent.ksql.rest.entity.RunningQuery;
@@ -93,6 +94,7 @@ package io.confluent.ksql.rest.integration;
   import io.vertx.core.http.HttpMethod;
   import io.vertx.core.http.HttpVersion;
   import io.vertx.ext.web.client.HttpResponse;
+  import java.io.IOException;
   import java.time.Instant;
   import java.util.ArrayList;
   import java.util.Arrays;
@@ -1518,6 +1520,55 @@ public class RestApiTest {
         return t.getMessage();
       }
     }, containsString("Schema with subject name ABC-value id 1 exists"));
+  }
+
+  @Test
+  public void shouldRunTests() throws IOException {
+    final String test =
+        "----------------------------------------------------------------------------------------------------\n"
+        + "--@test: basic test\n"
+        + "----------------------------------------------------------------------------------------------------\n"
+        + "CREATE STREAM foo (id INT KEY, col1 INT) WITH (kafka_topic='foo', value_format='JSON');\n"
+        + "CREATE STREAM bar AS SELECT * FROM foo;\n"
+        + "\n"
+        + "ASSERT STREAM bar (id INT KEY, col1 INT) WITH (kafka_topic='BAR', value_format='JSON');\n"
+        + "\n"
+        + "INSERT INTO foo (rowtime, id, col1) VALUES (1, 1, 1);\n"
+        + "ASSERT VALUES bar (rowtime, id, col1) VALUES (1, 1, 1);\n"
+        + "----------------------------------------------------------------------------------------------------\n"
+        + "--@test: basic failing test\n"
+        + "----------------------------------------------------------------------------------------------------\n"
+        + "CREATE STREAM foo (id INT KEY, col1 INT) WITH (kafka_topic='foo', value_format='JSON');\n"
+        + "CREATE STREAM bar AS SELECT * FROM foo;\n"
+        + "ASSERT VALUES bar (rowtime, id, col1) VALUES (1, 1, 1);\n"
+        + "----------------------------------------------------------------------------------------------------\n"
+        + "--@test: basic test with tables\n"
+        + "----------------------------------------------------------------------------------------------------\n"
+        + "CREATE TABLE foo (id INT PRIMARY KEY, col1 INT) WITH (kafka_topic='foo', value_format='JSON');\n"
+        + "CREATE TABLE bar AS SELECT * FROM foo;\n"
+        + "\n"
+        + "ASSERT TABLE bar (id INT PRIMARY KEY, col1 INT) WITH (kafka_topic='BAR', value_format='JSON');\n"
+        + "\n"
+        + "INSERT INTO foo (rowtime, id, col1) VALUES (1, 1, 1);\n"
+        + "ASSERT VALUES bar (rowtime, id, col1) VALUES (1, 1, 1);";
+
+    final byte[] result = RestIntegrationTestUtil.rawRestRequest(REST_APP, HTTP_1_1, POST,
+        "/test", test, KsqlMediaType.KSQL_V1_JSON.mediaType(),
+        Optional.empty(), Optional.empty())
+        .body()
+        .getBytes();
+    final List<KsqlTestResult> results = ApiJsonMapper.INSTANCE.get().readValue(result, new TypeReference<List<KsqlTestResult>>(){});
+
+    assertThat(results.size(), is(3));
+    assertThat(results.get(0).getName(), is("basic test"));
+    assertThat(results.get(0).getResult(), is(true));
+    assertThat(results.get(0).getMessage(), is(""));
+    assertThat(results.get(1).getName(), is("basic failing test"));
+    assertThat(results.get(1).getResult(), is(false));
+    assertThat(results.get(1).getMessage(), containsString("Expected another record, but all records have already been read"));
+    assertThat(results.get(2).getName(), is("basic test with tables"));
+    assertThat(results.get(2).getResult(), is(true));
+    assertThat(results.get(2).getMessage(), is(""));
   }
 
   private boolean topicExists(final String topicName) {

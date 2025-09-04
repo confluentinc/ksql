@@ -78,8 +78,7 @@ public class SyntaxErrorValidatorTest {
     );
 
     // Then:
-    assertThat(e.getUnloggedDetails(),
-        containsString("mismatched input 'topic' expecting IDENTIFIER"));
+    assertThat(e.getUnloggedDetails(), containsString("Syntax Error\nExpecting IDENTIFIER"));
     assertThat(e.getMessage(), containsString("line 0:1: Syntax error at line 0:1"));
   }
 
@@ -98,7 +97,7 @@ public class SyntaxErrorValidatorTest {
 
     // Then:
     assertThat(e.getUnloggedDetails(),
-        containsString("mismatched input '1' expecting IDENTIFIER"));
+        containsString("line 0:1: Syntax Error\nExpecting IDENTIFIER"));
     assertThat(e.getMessage(), containsString("line 0:1: Syntax error at line 0:1"));
   }
 

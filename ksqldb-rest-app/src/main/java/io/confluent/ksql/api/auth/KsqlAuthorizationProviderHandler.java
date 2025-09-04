@@ -18,7 +18,6 @@ package io.confluent.ksql.api.auth;
 import static io.netty.handler.codec.http.HttpResponseStatus.FORBIDDEN;
 
 import io.confluent.ksql.api.server.Server;
-import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.security.KsqlAuthorizationProvider;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
@@ -26,7 +25,6 @@ import io.vertx.core.Promise;
 import io.vertx.core.WorkerExecutor;
 import io.vertx.ext.auth.User;
 import io.vertx.ext.web.RoutingContext;
-import java.util.regex.Pattern;
 
 /**
  * Handler that calls a KsqlAuthorizationProvider plugin that can be used for custom authorization
@@ -35,31 +33,15 @@ public class KsqlAuthorizationProviderHandler implements Handler<RoutingContext>
 
   private final WorkerExecutor workerExecutor;
   private final KsqlAuthorizationProvider ksqlAuthorizationProvider;
-  private final Pattern unauthenticatedpaths;
 
   public KsqlAuthorizationProviderHandler(final Server server,
       final KsqlAuthorizationProvider ksqlAuthorizationProvider) {
     this.workerExecutor = server.getWorkerExecutor();
     this.ksqlAuthorizationProvider = ksqlAuthorizationProvider;
-    this.unauthenticatedpaths = AuthenticationPluginHandler.getAuthorizationSkipPaths(
-        server.getConfig().getList(KsqlRestConfig.AUTHENTICATION_SKIP_PATHS_CONFIG));
   }
 
   @Override
   public void handle(final RoutingContext routingContext) {
-
-    final String path = routingContext.normalisedPath();
-
-    if (unauthenticatedpaths.matcher(path).matches()) {
-      routingContext.next();
-      return;
-    }
-
-    if (SystemAuthenticationHandler.isAuthenticatedAsSystemUser(routingContext)) {
-      routingContext.next();
-      return;
-    }
-
     workerExecutor.<Void>executeBlocking(
         promise -> authorize(promise, routingContext),
         false,

@@ -46,8 +46,16 @@ import io.confluent.ksql.util.SandboxedSharedKafkaStreamsRuntimeImpl;
 import io.confluent.ksql.util.SandboxedTransientQueryMetadata;
 import io.confluent.ksql.util.SharedKafkaStreamsRuntime;
 import io.confluent.ksql.util.TransientQueryMetadata;
-
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.OptionalInt;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiPredicate;
 import java.util.stream.Collectors;

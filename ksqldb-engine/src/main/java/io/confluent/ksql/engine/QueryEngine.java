@@ -29,6 +29,7 @@ import io.confluent.ksql.planner.LogicalPlanNode;
 import io.confluent.ksql.planner.LogicalPlanner;
 import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.query.StreamsBuilderFactory;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
@@ -36,7 +37,6 @@ import io.confluent.ksql.util.KsqlStatementException;
 import java.util.Objects;
 import java.util.Optional;
 import org.apache.kafka.streams.StreamsBuilder;
-import io.confluent.ksql.query.StreamsBuilderFactory;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 class QueryEngine {

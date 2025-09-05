@@ -47,6 +47,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.streams.StreamsBuilder;
+import io.confluent.ksql.query.StreamsBuilderFactory;
 import org.apache.kafka.streams.TopologyDescription;
 import org.junit.Before;
 import org.junit.Test;
@@ -84,7 +85,7 @@ public class KsqlBareOutputNodeTest {
 
   @Before
   public void before() {
-    builder = new StreamsBuilder();
+    builder = StreamsBuilderFactory.create();
 
     when(planBuildContext.getKsqlConfig()).thenReturn(new KsqlConfig(Collections.emptyMap()));
     when(planBuildContext.getFunctionRegistry()).thenReturn(functionRegistry);

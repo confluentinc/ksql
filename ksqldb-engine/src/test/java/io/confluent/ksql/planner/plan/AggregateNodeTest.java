@@ -70,6 +70,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.streams.StreamsBuilder;
+import io.confluent.ksql.query.StreamsBuilderFactory;
 import org.apache.kafka.streams.TopologyDescription;
 import org.apache.kafka.streams.kstream.Aggregator;
 import org.apache.kafka.streams.kstream.ForeachAction;
@@ -121,7 +122,7 @@ public class AggregateNodeTest {
   @Captor
   private ArgumentCaptor<QueryContext> queryContextCaptor;
 
-  private StreamsBuilder builder = new StreamsBuilder();
+  private StreamsBuilder builder = StreamsBuilderFactory.create();
   private final QueryId queryId = new QueryId("queryid");
 
   @BeforeClass

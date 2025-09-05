@@ -61,7 +61,6 @@ import java.util.function.BiPredicate;
 import java.util.stream.Collectors;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.streams.KafkaStreams.State;
-import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -179,7 +178,7 @@ public class QueryRegistryImpl implements QueryRegistry {
         windowInfo,
         excludeTombstones,
         new ListenerImpl(),
-        new StreamsBuilder(),
+        StreamsBuilderFactory.create(),
         Optional.empty(),
         metricCollectors
     );
@@ -225,7 +224,7 @@ public class QueryRegistryImpl implements QueryRegistry {
         windowInfo,
         excludeTombstones,
         new ListenerImpl(),
-        new StreamsBuilder(),
+        StreamsBuilderFactory.create(),
         Optional.of(endOffsets),
         metricCollectors
     );
@@ -315,7 +314,7 @@ public class QueryRegistryImpl implements QueryRegistry {
           planSummary,
           new ListenerImpl(),
           () -> ImmutableList.copyOf(getPersistentQueries().values()),
-          new StreamsBuilder(),
+          StreamsBuilderFactory.create(),
           metricCollectors
       );
     }

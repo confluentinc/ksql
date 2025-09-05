@@ -90,11 +90,8 @@ class QueryEngine {
       final Optional<PlanInfo> oldPlanInfo
   ) {
 
-    final StreamsBuilder builder = new StreamsBuilder();
-
     // Build a physical plan, in this case a Kafka Streams DSL
     final ExecutionPlanBuilder executionPlanBuilder = new ExecutionPlanBuilder(
-        builder,
         config.getConfig(true),
         serviceContext,
         processingLogContext,

@@ -64,6 +64,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
@@ -80,6 +81,7 @@ import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.StreamsConfig.InternalConfig;
 import org.apache.kafka.streams.Topology;
+import org.apache.kafka.streams.TopologyConfig;
 import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.processor.internals.namedtopology.AddNamedTopologyResult;
 import org.apache.kafka.streams.processor.internals.namedtopology.KafkaStreamsNamedTopologyWrapper;
@@ -161,6 +163,8 @@ public class QueryBuilderTest {
   @Mock
   private StreamsBuilder streamsBuilder;
   @Mock
+  private Function<TopologyConfig, StreamsBuilder> streamsBuilderSupplier;
+  @Mock
   private NamedTopologyBuilder namedTopologyBuilder;
   @Mock
   private FunctionRegistry functionRegistry;
@@ -232,6 +236,7 @@ public class QueryBuilderTest {
     when(ksqlConfig.getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)).thenReturn(false);
     when(physicalPlan.build(any())).thenReturn(tableHolder);
     when(streamsBuilder.build(any())).thenReturn(topology);
+    when(streamsBuilderSupplier.apply(any())).thenReturn(streamsBuilder);
     when(namedTopologyBuilder.build()).thenReturn(namedTopology);
     when(config.getConfig(true)).thenReturn(ksqlConfig);
     when(config.getOverrides()).thenReturn(OVERRIDES);
@@ -272,7 +277,7 @@ public class QueryBuilderTest {
         Optional.empty(),
         false,
         queryListener,
-        streamsBuilder,
+        streamsBuilderSupplier,
         Optional.empty(),
         new MetricCollectors()
     );
@@ -391,7 +396,7 @@ public class QueryBuilderTest {
         Optional.empty(),
         false,
         queryListener,
-        streamsBuilder,
+        streamsBuilderSupplier,
         Optional.empty(),
         new MetricCollectors()
     );
@@ -432,7 +437,7 @@ public class QueryBuilderTest {
         SUMMARY,
         queryListener,
         ArrayList::new,
-        streamsBuilder,
+        streamsBuilderSupplier,
         new MetricCollectors()
     );
     queryMetadata.initialize();
@@ -948,7 +953,7 @@ public class QueryBuilderTest {
           SUMMARY,
           queryListener,
           ArrayList::new,
-          streamsBuilder,
+          streamsBuilderSupplier,
           new MetricCollectors()
       );
     }

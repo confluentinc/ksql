@@ -23,10 +23,13 @@ import org.apache.kafka.streams.TopologyConfig;
 
 /**
  * Factory for creating configured instances of {@link StreamsBuilder}.
+ * This is a temporary fix. The permanent fix will be made in processValues
  */
 public final class StreamsBuilderFactory {
 
+  // config that will be passed to fix process values behaviour
   private static final boolean ENABLE_PROCESS_PROCESSVALUE_FIX = true;
+  // dummy configs to pass the init validations
   private static final String DUMMY_APPLICATION_ID = "dummy_id";
   private static final String DUMMY_BOOTSTRAP_SERVERS = "dummy_servers";
 

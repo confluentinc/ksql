@@ -28,7 +28,6 @@ import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Objects;
 import java.util.Optional;
-import org.apache.kafka.streams.StreamsBuilder;
 
 public class ExecutionPlanBuilder {
 

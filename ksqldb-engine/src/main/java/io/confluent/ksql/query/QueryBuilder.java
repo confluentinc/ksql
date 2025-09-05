@@ -581,8 +581,7 @@ final class QueryBuilder {
         StreamsConfig.METRIC_REPORTER_CLASSES_CONFIG,
         ThroughputMetricsReporter.class.getName()
     );
-    updateListProperty(
-        newStreamsProperties,
+    newStreamsProperties.put(
         TopologyConfig.InternalConfig.ENABLE_PROCESS_PROCESSVALUE_FIX,
         ENABLE_PROCESS_PROCESSVALUE_FIX
     );

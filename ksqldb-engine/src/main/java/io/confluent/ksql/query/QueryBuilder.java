@@ -93,6 +93,7 @@ import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.Topology;
+import org.apache.kafka.streams.TopologyConfig;
 import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.KTable;
 import org.apache.kafka.streams.processor.internals.namedtopology.NamedTopology;
@@ -106,6 +107,9 @@ final class QueryBuilder {
 
   private static final String KSQL_THREAD_EXCEPTION_UNCAUGHT_LOGGER
       = "ksql.logger.thread.exception.uncaught";
+
+  // Hardcoded config to enable the processValue fix
+  private static final boolean ENABLE_PROCESS_PROCESSVALUE_FIX = true;
 
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
   private final SessionConfig config;
@@ -576,6 +580,10 @@ final class QueryBuilder {
         newStreamsProperties,
         StreamsConfig.METRIC_REPORTER_CLASSES_CONFIG,
         ThroughputMetricsReporter.class.getName()
+    );
+    newStreamsProperties.put(
+        TopologyConfig.InternalConfig.ENABLE_PROCESS_PROCESSVALUE_FIX,
+        ENABLE_PROCESS_PROCESSVALUE_FIX
     );
 
     if (!queryId.isPresent()) {

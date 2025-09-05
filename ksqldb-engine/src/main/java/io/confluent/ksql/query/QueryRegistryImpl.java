@@ -46,22 +46,13 @@ import io.confluent.ksql.util.SandboxedSharedKafkaStreamsRuntimeImpl;
 import io.confluent.ksql.util.SandboxedTransientQueryMetadata;
 import io.confluent.ksql.util.SharedKafkaStreamsRuntime;
 import io.confluent.ksql.util.TransientQueryMetadata;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.OptionalInt;
-import java.util.Set;
+
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiPredicate;
 import java.util.stream.Collectors;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.streams.KafkaStreams.State;
-import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -179,7 +170,7 @@ public class QueryRegistryImpl implements QueryRegistry {
         windowInfo,
         excludeTombstones,
         new ListenerImpl(),
-        new StreamsBuilder(),
+        StreamsBuilderFactory.create(),
         Optional.empty(),
         metricCollectors
     );
@@ -225,7 +216,7 @@ public class QueryRegistryImpl implements QueryRegistry {
         windowInfo,
         excludeTombstones,
         new ListenerImpl(),
-        new StreamsBuilder(),
+        StreamsBuilderFactory.create(),
         Optional.of(endOffsets),
         metricCollectors
     );
@@ -315,7 +306,7 @@ public class QueryRegistryImpl implements QueryRegistry {
           planSummary,
           new ListenerImpl(),
           () -> ImmutableList.copyOf(getPersistentQueries().values()),
-          new StreamsBuilder(),
+          StreamsBuilderFactory.create(),
           metricCollectors
       );
     }

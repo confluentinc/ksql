@@ -73,6 +73,7 @@ import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.StreamsBuilder;
+import io.confluent.ksql.query.StreamsBuilderFactory;
 import org.apache.kafka.streams.TopologyDescription;
 import org.junit.Before;
 import org.junit.Test;
@@ -164,7 +165,7 @@ public class DataSourceNodeTest {
   @Before
   @SuppressWarnings("unchecked")
   public void before() {
-    realBuilder = new StreamsBuilder();
+    realBuilder = StreamsBuilderFactory.create();
 
     when(buildContext.getKsqlConfig()).thenReturn(realConfig);
     when(buildContext.getFunctionRegistry()).thenReturn(functionRegistry);

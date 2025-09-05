@@ -154,6 +154,7 @@
         <jersey-common>3.1.9</jersey-common>
         <multi-threaded-testing.forkCount>3</multi-threaded-testing.forkCount>
         <kafka.version>${ce.kafka.version}</kafka.version>
+        <kafka-streams.version>7.9.3-41-ce</kafka-streams.version>
         <!-- This needs to be removed once the version is populated in common -->
         <log4j2.version>2.17.1</log4j2.version>
     </properties>
@@ -195,7 +196,7 @@
             <dependency>
                 <groupId>org.apache.kafka</groupId>
                 <artifactId>kafka-streams</artifactId>
-                <version>${kafka.version}</version>
+                <version>${kafka-streams.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.kafka</groupId>
@@ -240,7 +241,7 @@
             <dependency>
                 <groupId>org.apache.kafka</groupId>
                 <artifactId>kafka-streams-test-utils</artifactId>
-                <version>${kafka.version}</version>
+                <version>${kafka-streams.version}</version>
             </dependency>
 
             <!-- Kafka's SSL utilities are used in tests. -->

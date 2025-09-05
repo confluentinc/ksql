@@ -70,10 +70,8 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serde;
-import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.StreamsBuilder;
-import io.confluent.ksql.query.StreamsBuilderFactory;
 import org.apache.kafka.streams.TopologyDescription;
 import org.junit.Before;
 import org.junit.Test;
@@ -165,7 +163,7 @@ public class DataSourceNodeTest {
   @Before
   @SuppressWarnings("unchecked")
   public void before() {
-    realBuilder = StreamsBuilderFactory.create();
+    realBuilder = new StreamsBuilder();
 
     when(buildContext.getKsqlConfig()).thenReturn(realConfig);
     when(buildContext.getFunctionRegistry()).thenReturn(functionRegistry);

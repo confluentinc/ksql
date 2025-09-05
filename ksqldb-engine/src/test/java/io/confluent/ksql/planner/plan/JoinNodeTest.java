@@ -81,7 +81,6 @@ import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.common.Node;
 import org.apache.kafka.common.TopicPartitionInfo;
 import org.apache.kafka.streams.StreamsBuilder;
-import io.confluent.ksql.query.StreamsBuilderFactory;
 import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.TopologyDescription;
 import org.junit.Before;
@@ -202,7 +201,7 @@ public class JoinNodeTest {
 
   @Before
   public void setUp() {
-    builder = StreamsBuilderFactory.create();
+    builder = new StreamsBuilder();
 
     final ServiceContext serviceContext = mock(ServiceContext.class);
     when(serviceContext.getTopicClient())

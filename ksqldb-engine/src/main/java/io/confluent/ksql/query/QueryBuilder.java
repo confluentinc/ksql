@@ -108,9 +108,6 @@ final class QueryBuilder {
   private static final String KSQL_THREAD_EXCEPTION_UNCAUGHT_LOGGER
       = "ksql.logger.thread.exception.uncaught";
 
-  // Hardcoded config to enable the processValue fix
-  private static final boolean ENABLE_PROCESS_PROCESSVALUE_FIX = true;
-
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
   private final SessionConfig config;
   private final ProcessingLogContext processingLogContext;
@@ -580,10 +577,6 @@ final class QueryBuilder {
         newStreamsProperties,
         StreamsConfig.METRIC_REPORTER_CLASSES_CONFIG,
         ThroughputMetricsReporter.class.getName()
-    );
-    newStreamsProperties.put(
-        TopologyConfig.InternalConfig.ENABLE_PROCESS_PROCESSVALUE_FIX,
-        ENABLE_PROCESS_PROCESSVALUE_FIX
     );
 
     if (!queryId.isPresent()) {

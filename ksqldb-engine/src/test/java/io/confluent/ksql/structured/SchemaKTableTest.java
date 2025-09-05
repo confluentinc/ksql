@@ -102,6 +102,7 @@ import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.StreamsBuilder;
+import io.confluent.ksql.query.StreamsBuilderFactory;
 import org.apache.kafka.streams.kstream.Consumed;
 import org.apache.kafka.streams.kstream.Grouped;
 import org.apache.kafka.streams.kstream.KGroupedTable;
@@ -178,7 +179,7 @@ public class SchemaKTableTest {
     ).load();
     schemaResolver = new StepSchemaResolver(ksqlConfig, functionRegistry);
     ksqlTable = (KsqlTable) metaStore.getSource(SourceName.of("TEST2"));
-    final StreamsBuilder builder = new StreamsBuilder();
+    final StreamsBuilder builder = StreamsBuilderFactory.create();
     kTable = builder.table(
         ksqlTable.getKsqlTopic().getKafkaTopicName(),
         Consumed.with(

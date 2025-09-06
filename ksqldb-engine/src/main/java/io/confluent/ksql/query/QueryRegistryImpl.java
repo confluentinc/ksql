@@ -179,7 +179,7 @@ public class QueryRegistryImpl implements QueryRegistry {
         windowInfo,
         excludeTombstones,
         new ListenerImpl(),
-        new StreamsBuilder(),
+        StreamsBuilder::new,
         Optional.empty(),
         metricCollectors
     );
@@ -225,7 +225,7 @@ public class QueryRegistryImpl implements QueryRegistry {
         windowInfo,
         excludeTombstones,
         new ListenerImpl(),
-        new StreamsBuilder(),
+        StreamsBuilder::new,
         Optional.of(endOffsets),
         metricCollectors
     );
@@ -315,7 +315,7 @@ public class QueryRegistryImpl implements QueryRegistry {
           planSummary,
           new ListenerImpl(),
           () -> ImmutableList.copyOf(getPersistentQueries().values()),
-          new StreamsBuilder(),
+          StreamsBuilder::new,
           metricCollectors
       );
     }

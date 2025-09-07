@@ -120,8 +120,8 @@ class KafkaEmbedded {
     config.put("controlled.shutdown.enable", "true");
 
     // License validator overrides for tests
-    config.put("confluent.license.validator.enabled", "false");
-    config.put("confluent.license.topic.auto.create", "false");
+    config.put("confluent.license.validator.enabled", "true");
+    config.put("confluent.license.topic.auto.create", "true");
     config.put("confluent.license", "test");
     config.put("confluent.license.topic.replication.factor", "1");
   }

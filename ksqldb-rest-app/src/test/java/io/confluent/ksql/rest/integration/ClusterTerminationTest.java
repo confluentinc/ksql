@@ -179,8 +179,8 @@ public class ClusterTerminationTest {
         is(true)
     );
 
-    // should be the pageview and _confluent-command topic left
-    assertThat(TEST_HARNESS.getKafkaCluster().getTopics().size(), is(2));
+    // should be the pageview
+    assertThat(TEST_HARNESS.getKafkaCluster().getTopics().size(), is(1));
 
     // Then:
     shouldReturn50303or50304WhenTerminating();

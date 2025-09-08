@@ -1203,7 +1203,7 @@ public final class KsqlRestApplication implements Executable {
           extensionClassName);
       return Optional.of(extension);
 
-    } catch (final Exception e) {
+    } catch (final Throwable t) {
       log.warn(KsqlConstants.KSQL_RESOURCE_EXTENSION_MISCONFIGURED_LOG_MESSAGE);
       return Optional.empty();
     }

@@ -16,6 +16,7 @@ public class StringToTimestampParserTest {
 
   private static final ZoneId ZID = ZoneId.systemDefault();
   private static final ZoneId GMT_3 = ZoneId.of("GMT+3");
+  private static final ZoneId ZID_NY = ZoneId.of("America/New_York");
   private static final ZoneId IGNORED = ZID;
 
   private static final ZonedDateTime EPOCH =
@@ -26,6 +27,12 @@ public class StringToTimestampParserTest {
 
   private static final ZonedDateTime NEW_YEARS_EVE_2012 =
       ZonedDateTime.of(2012, 12, 31, 23, 59, 58, 660000000, ZID);
+
+  private static final ZonedDateTime TWENTY_SIXTH_APRIL_2025 =
+      ZonedDateTime.of(2025, 4, 26, 2, 39, 50, 0, ZID_NY);
+
+  private static final ZonedDateTime TWENTY_FIFTH_APRIL_2025 =
+      ZonedDateTime.of(2025, 4, 25, 2, 39, 50, 0, ZID_NY);
 
   @Test
   public void shouldParseBasicLocalDate() {
@@ -59,6 +66,27 @@ public class StringToTimestampParserTest {
             .withZoneSameInstant(ZID)
             .toInstant()
             .toEpochMilli()));
+  }
+
+  @Test
+  public void shouldParseDatesWithCorrectDaylightSavings() {
+    // Given
+    final String format = "yyyy-MM-dd HH:mm:ss";
+    final String timestamp = "2025-04-26 02:39:50";
+
+    // When
+    final ZonedDateTime ts = new StringToTimestampParser(format).parseZoned(timestamp, ZID_NY);
+
+    // Then
+    assertThat(ts, sameInstant(TWENTY_SIXTH_APRIL_2025.withZoneSameInstant(ZID_NY)));
+
+    final String timestamp2 = "2025-04-25 02:39:50";
+
+    // When
+    final ZonedDateTime ts2 = new StringToTimestampParser(format).parseZoned(timestamp2, ZID_NY);
+
+    // Then
+    assertThat(ts2, sameInstant(TWENTY_FIFTH_APRIL_2025.withZoneSameInstant(ZID_NY)));
   }
 
   @Test

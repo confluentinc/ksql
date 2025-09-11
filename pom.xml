@@ -119,7 +119,7 @@
         <inject.version>1</inject.version>
         <janino.version>3.1.10</janino.version>
         <javax-validation.version>2.0.1.Final</javax-validation.version>
-        <jline.version>3.13.1</jline.version>
+        <jline.version>3.25.0</jline.version>
         <jna.version>4.4.0</jna.version>
         <jsr305.version>3.0.2</jsr305.version>
         <maven.plugins.version>3.0.0-M1</maven.plugins.version>
@@ -141,7 +141,7 @@
         <io.confluent.ksql.version>7.3.14-0</io.confluent.ksql.version>
         <io.confluent.schema-registry.version>${confluent.version.range}</io.confluent.schema-registry.version>
         <io.confluent.confluent-security-plugins.version>${confluent.version.range}</io.confluent.confluent-security-plugins.version>
-        <netty-tcnative-version>2.0.72.Final</netty-tcnative-version>
+        <netty-tcnative-version>2.0.73.Final</netty-tcnative-version>
         <!-- We normally get this from common, but Vertx is built against this -->
         <!-- Note: `netty` depends on `tcnative` and if we bump `netty`
              we might need to bump `tcnative`, too.

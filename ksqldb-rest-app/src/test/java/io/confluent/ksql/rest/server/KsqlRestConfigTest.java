@@ -193,7 +193,7 @@ public class KsqlRestConfigTest {
   @Test
   public void shouldUseExplicitInterNodeListenerSetToResolvableHost() {
     // Given:
-    final URL expected = url("https://example.com:12345");
+    final URL expected = url("https://confluent.io:12345");
 
     final KsqlRestConfig config = new KsqlRestConfig(ImmutableMap.<String, Object>builder()
         .putAll(MIN_VALID_CONFIGS)
@@ -276,8 +276,8 @@ public class KsqlRestConfigTest {
   @Test
   public void shouldSanitizeInterNodeListenerWithTrailingSlash() {
     // Given:
-    final URL expected = url("https://example.com:12345");
-    final URL configured = url("https://example.com:12345/");
+    final URL expected = url("https://confluent.io:12345");
+    final URL configured = url("https://confluent.io:12345/");
 
     final KsqlRestConfig config = new KsqlRestConfig(ImmutableMap.<String, Object>builder()
         .putAll(MIN_VALID_CONFIGS)
@@ -384,7 +384,7 @@ public class KsqlRestConfigTest {
   @Test
   public void shouldResolveInterNodeListenerToFirstListenerSetToResolvableHost() {
     // Given:
-    final URL expected = url("https://example.com:12345");
+    final URL expected = url("https://confluent.io:12345");
 
     final KsqlRestConfig config = new KsqlRestConfig(ImmutableMap.<String, Object>builder()
         .put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092")
@@ -467,7 +467,7 @@ public class KsqlRestConfigTest {
   @Test
   public void shouldResolveInterNodeListenerToFirstListenerWithAutoPortAssignment() {
     // Given:
-    final URL autoPort = url("https://example.com:0");
+    final URL autoPort = url("https://confluent.io:0");
 
     when(portResolver.apply(any())).thenReturn(2222);
 
@@ -481,7 +481,7 @@ public class KsqlRestConfigTest {
     final URL actual = config.getInterNodeListener(portResolver, logger);
 
     // Then:
-    final URL expected = url("https://example.com:2222");
+    final URL expected = url("https://confluent.io:2222");
 
     assertThat(actual, is(expected));
     verifyLogsInterNodeListener(expected, QUOTED_FIRST_LISTENER_CONFIG);
@@ -491,7 +491,7 @@ public class KsqlRestConfigTest {
   @Test
   public void shouldResolveInterNodeListenerToFirstListenerWithAutoPortAssignmentAndTrailingSlash() {
     // Given:
-    final URL autoPort = url("https://example.com:0/");
+    final URL autoPort = url("https://confluent.io:0/");
 
     when(portResolver.apply(any())).thenReturn(2222);
 
@@ -505,7 +505,7 @@ public class KsqlRestConfigTest {
     final URL actual = config.getInterNodeListener(portResolver, logger);
 
     // Then:
-    final URL expected = url("https://example.com:2222");
+    final URL expected = url("https://confluent.io:2222");
 
     assertThat(actual, is(expected));
     verifyLogsInterNodeListener(expected, QUOTED_FIRST_LISTENER_CONFIG);
@@ -586,7 +586,7 @@ public class KsqlRestConfigTest {
   @Test
   public void shouldResolveInterNodeListenerToInternalListenerSetToResolvableHost() {
     // Given:
-    final URL expected = url("https://example.com:12345");
+    final URL expected = url("https://confluent.io:12345");
 
     final KsqlRestConfig config = new KsqlRestConfig(ImmutableMap.<String, Object>builder()
         .put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092")
@@ -669,7 +669,7 @@ public class KsqlRestConfigTest {
   @Test
   public void shouldResolveInterNodeListenerToInternalListenerWithAutoPortAssignment() {
     // Given:
-    final URL autoPort = url("https://example.com:0");
+    final URL autoPort = url("https://confluent.io:0");
 
     when(portResolver.apply(any())).thenReturn(2222);
 
@@ -683,7 +683,7 @@ public class KsqlRestConfigTest {
     final URL actual = config.getInterNodeListener(portResolver, logger);
 
     // Then:
-    final URL expected = url("https://example.com:2222");
+    final URL expected = url("https://confluent.io:2222");
 
     assertThat(actual, is(expected));
     verifyLogsInterNodeListener(expected, QUOTED_INTERNAL_LISTENER_CONFIG);
@@ -693,7 +693,7 @@ public class KsqlRestConfigTest {
   @Test
   public void shouldResolveInterNodeListenerToInternalListenerWithAutoPortAssignmentAndTrailingSlash() {
     // Given:
-    final URL autoPort = url("https://example.com:0/");
+    final URL autoPort = url("https://confluent.io:0/");
 
     when(portResolver.apply(any())).thenReturn(2222);
 
@@ -707,7 +707,7 @@ public class KsqlRestConfigTest {
     final URL actual = config.getInterNodeListener(portResolver, logger);
 
     // Then:
-    final URL expected = url("https://example.com:2222");
+    final URL expected = url("https://confluent.io:2222");
 
     assertThat(actual, is(expected));
     verifyLogsInterNodeListener(expected, QUOTED_INTERNAL_LISTENER_CONFIG);

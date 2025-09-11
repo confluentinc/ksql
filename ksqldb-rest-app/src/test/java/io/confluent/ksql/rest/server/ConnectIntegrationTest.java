@@ -157,8 +157,23 @@ public class ConnectIntegrationTest {
     ));
 
     // When:
-    final RestResponse<KsqlEntityList> response = ksqlRestClient
-        .makeKsqlRequest("SHOW CONNECTORS;");
+    final AtomicReference<RestResponse<KsqlEntityList>> responseHolder = new AtomicReference<>();
+    assertThatEventually(
+        () -> {
+          try {
+            responseHolder
+                .set(ksqlRestClient.makeKsqlRequest("SHOW CONNECTORS;"));
+            return responseHolder.get().getResponse().get(0);
+          } catch (Exception e) {
+            // there is a race condition were create from line 150 may not have gone through.
+            // when this happens, getResponse() above throws an exception. instead, we catch
+            // the exception and return a dummy value to fail the instanceOf() check below.
+            return null;
+          }
+        },
+        instanceOf(ConnectorList.class)
+    );
+    final RestResponse<KsqlEntityList> response = responseHolder.get();
 
     // Then:
     assertThat("expected successful response", response.isSuccessful());

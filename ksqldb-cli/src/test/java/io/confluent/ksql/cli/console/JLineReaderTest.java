@@ -35,6 +35,7 @@ import java.util.List;
 import java.util.function.Predicate;
 import org.jline.reader.EndOfFileException;
 import org.jline.terminal.Terminal;
+import org.jline.terminal.TerminalBuilder;
 import org.jline.terminal.impl.DumbTerminal;
 import org.junit.Before;
 import org.junit.Rule;
@@ -279,7 +280,10 @@ public class JLineReaderTest {
     final InputStream inputStream =
         new ByteArrayInputStream(input.getBytes(StandardCharsets.UTF_8));
     final OutputStream outputStream = new ByteArrayOutputStream(512);
-    final Terminal terminal = new DumbTerminal(inputStream, outputStream);
+    final Terminal terminal = TerminalBuilder.builder()
+        .streams(new ByteArrayInputStream(input.getBytes()), new ByteArrayOutputStream())
+        .system(false)
+        .build();
     final File tempHistoryFile = tempFolder.newFile("ksql-history.txt");
     final Path historyFilePath = Paths.get(tempHistoryFile.getAbsolutePath());
     return new JLineReader(terminal, historyFilePath, cliLinePredicate);

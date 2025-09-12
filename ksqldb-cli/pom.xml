@@ -67,6 +67,7 @@
         <dependency>
             <groupId>org.jline</groupId>
             <artifactId>jline</artifactId>
+            <version>${jline.version}</version>
         </dependency>
 
         <!-- Required for running tests -->

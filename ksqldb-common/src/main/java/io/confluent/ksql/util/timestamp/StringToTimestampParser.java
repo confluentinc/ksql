@@ -26,6 +26,7 @@ import java.time.temporal.ChronoField;
 import java.time.temporal.TemporalAccessor;
 import java.time.temporal.TemporalField;
 import java.time.temporal.TemporalQueries;
+import java.util.Arrays;
 import java.util.Locale;
 import java.util.function.Function;
 import org.apache.commons.lang3.ObjectUtils;
@@ -35,7 +36,7 @@ public class StringToTimestampParser {
   private static final Function<ZoneId, ZonedDateTime> DEFAULT_ZONED_DATE_TIME =
       zid -> ZonedDateTime.of(1970, 1, 1, 0, 0, 0, 0, zid);
   private static final long LEAP_DAY_OF_THE_YEAR = 366;
-
+  private final ChronoField[] values = ChronoField.values();
   private final DateTimeFormatter formatter;
 
   public StringToTimestampParser(final String pattern) {
@@ -43,6 +44,9 @@ public class StringToTimestampParser {
         .parseCaseInsensitive()
         .appendPattern(pattern)
         .toFormatter(Locale.ROOT);
+
+    Arrays.sort(values,
+        (a, b) -> b.getBaseUnit().getDuration().compareTo(a.getBaseUnit().getDuration()));
   }
 
   /**
@@ -82,7 +86,7 @@ public class StringToTimestampParser {
     ZonedDateTime resolved = DEFAULT_ZONED_DATE_TIME.apply(
         ObjectUtils.defaultIfNull(parsedZone, zoneId));
 
-    for (final TemporalField override : ChronoField.values()) {
+    for (final TemporalField override : values) {
       if (parsed.isSupported(override)) {
         if (!resolved.isSupported(override)) {
           throw new KsqlException(

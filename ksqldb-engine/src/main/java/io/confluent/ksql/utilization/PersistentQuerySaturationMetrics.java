@@ -49,12 +49,14 @@ public class PersistentQuerySaturationMetrics implements Runnable {
 
   private static final String QUERY_SATURATION = "node-query-saturation";
   private static final String NODE_QUERY_SATURATION = "max-node-query-saturation";
+  private static final String PER_NODE_QUERY_SATURATION = "per-node-query-saturation";
   private static final String QUERY_THREAD_SATURATION = "query-thread-saturation";
   private static final String STREAMS_TOTAL_BLOCKED_TIME = "blocked-time-ns-total";
   private static final String STREAMS_THREAD_START_TIME = "thread-start-time";
   private static final String STREAMS_THREAD_METRICS_GROUP = "stream-thread-metrics";
   private static final String THREAD_ID = "thread-id";
   private static final String QUERY_ID = "query-id";
+  private static final String APPLICATION_ID = "application-id";
 
   private Map<String, String> customTags;
   private final Map<String, KafkaStreamsSaturation> perKafkaStreamsStats = new HashMap<>();
@@ -101,7 +103,11 @@ public class PersistentQuerySaturationMetrics implements Runnable {
           .collect(Collectors.groupingBy(PersistentQueryMetadata::getQueryApplicationId))
           .entrySet()
           .stream()
-          .map(e -> measure(now, e.getKey(), e.getValue()))
+          .map(e -> {
+            final Optional<Double> appSaturation = measure(now, e.getKey(), e.getValue());
+            appSaturation.ifPresent(s -> reportPerNodeSaturation(now, s, e.getKey()));
+            return appSaturation;
+          })
           .max(PersistentQuerySaturationMetrics::compareSaturation)
           .orElse(Optional.of(0.0));
       saturation.ifPresent(s -> report(now, s));
@@ -113,6 +119,8 @@ public class PersistentQuerySaturationMetrics implements Runnable {
           : Sets.difference(new HashSet<>(perKafkaStreamsStats.keySet()), appIds)) {
         perKafkaStreamsStats.get(appId).cleanup(reporter);
         perKafkaStreamsStats.remove(appId);
+        // Cleanup per-node metrics for removed applications
+        reporter.cleanup(PER_NODE_QUERY_SATURATION, ImmutableMap.of(APPLICATION_ID, appId));
       }
     } catch (final RuntimeException e) {
       LOGGER.error("Error collecting saturation", e);
@@ -163,6 +171,20 @@ public class PersistentQuerySaturationMetrics implements Runnable {
                 NODE_QUERY_SATURATION,
                 saturation,
                 customTags
+            )
+        )
+    );
+  }
+
+  private void reportPerNodeSaturation(final Instant now, final double saturation, final String appId) {
+    LOGGER.info("reporting per-node saturation {} for application {}", saturation, appId);
+    reporter.report(
+        ImmutableList.of(
+            new DataPoint(
+                now,
+                PER_NODE_QUERY_SATURATION,
+                saturation,
+                getTags(APPLICATION_ID, appId)
             )
         )
     );

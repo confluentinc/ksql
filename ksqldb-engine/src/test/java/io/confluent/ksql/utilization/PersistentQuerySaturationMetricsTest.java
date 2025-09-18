@@ -195,6 +195,44 @@ public class PersistentQuerySaturationMetricsTest {
   }
 
   @Test
+  public void shouldReportPerNodeSaturationMetrics() {
+    // Given:
+    final Instant start = Instant.now();
+    when(clock.get()).thenReturn(start);
+    givenMetrics(kafkaStreams1)
+        .withThreadStartTime("t1", start.minus(WINDOW.multipliedBy(2)))
+        .withBlockedTime("t1", Duration.ofMinutes(2));
+    givenMetrics(kafkaStreams2)
+        .withThreadStartTime("t1", start.minus(WINDOW.multipliedBy(2)))
+        .withBlockedTime("t1", Duration.ofMinutes(2));
+    collector.run();
+    when(clock.get()).thenReturn(start.plus(WINDOW));
+    givenMetrics(kafkaStreams1)
+        .withThreadStartTime("t1", start.minus(WINDOW.multipliedBy(2)))
+        .withBlockedTime("t1", Duration.ofMinutes(3));
+    givenMetrics(kafkaStreams2)
+        .withThreadStartTime("t1", start.minus(WINDOW.multipliedBy(2)))
+        .withBlockedTime("t1", Duration.ofMinutes(7));
+
+    // When:
+    collector.run();
+
+    // Then:
+    // Verify per-node saturation metrics are reported for each application
+    final DataPoint pingPoint = verifyAndGetLatestDataPoint(
+        "per-node-query-saturation",
+        ImmutableMap.of("application-id", APP_ID1)
+    );
+    assertThat((Double) pingPoint.getValue(), closeTo(.9, .01));
+    
+    final DataPoint pongPoint = verifyAndGetLatestDataPoint(
+        "per-node-query-saturation",
+        ImmutableMap.of("application-id", APP_ID2)
+    );
+    assertThat((Double) pongPoint.getValue(), closeTo(.5, .01));
+  }
+
+  @Test
   public void shouldIgnoreSamplesOutsideMargin() {
     // Given:
     final Instant start = Instant.now();
@@ -325,6 +363,32 @@ public class PersistentQuerySaturationMetricsTest {
     // Then:
     verify(reporter).cleanup("node-query-saturation", ImmutableMap.of("query-id", "boom"));
     verify(reporter, times(0)).cleanup("node-query-saturation", ImmutableMap.of("query-id", "hoo"));
+  }
+
+  @Test
+  public void shouldCleanupPerNodeMetricsWhenApplicationRemoved() {
+    // Given:
+    final Instant start = Instant.now();
+    when(clock.get()).thenReturn(start);
+    givenMetrics(kafkaStreams1)
+        .withThreadStartTime("t1", start.minus(WINDOW.multipliedBy(2)))
+        .withBlockedTime("t1", Duration.ofMinutes(2));
+    givenMetrics(kafkaStreams2)
+        .withThreadStartTime("t1", start.minus(WINDOW.multipliedBy(2)))
+        .withBlockedTime("t1", Duration.ofMinutes(2));
+    collector.run();
+    when(engine.getPersistentQueries()).thenReturn(ImmutableList.of(query1, query3)); // Remove query2 (APP_ID2)
+    when(clock.get()).thenReturn(start.plus(WINDOW));
+    givenMetrics(kafkaStreams1)
+        .withThreadStartTime("t1", start.minus(WINDOW.multipliedBy(2)))
+        .withBlockedTime("t1", Duration.ofMinutes(3));
+
+    // When:
+    collector.run();
+
+    // Then:
+    // Verify that per-node metrics for APP_ID2 are cleaned up
+    verify(reporter).cleanup("per-node-query-saturation", ImmutableMap.of("application-id", APP_ID2));
   }
 
   private List<DataPoint> verifyAndGetDataPoints(final String name, final Map<String, String> tag) {

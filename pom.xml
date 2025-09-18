@@ -116,7 +116,7 @@
         <commons-text.version>1.10.0</commons-text.version>
         <csv.version>1.4</csv.version>
         <commons.compress.version>1.26.0</commons.compress.version>
-        <lang3.version>3.5</lang3.version>
+        <lang3.version>3.18.0</lang3.version>
         <retrying.version>2.0.0</retrying.version>
         <inject.version>1</inject.version>
         <janino.version>3.1.10</janino.version>
@@ -141,15 +141,15 @@
         <apache.io.version>2.16.0</apache.io.version>
         <io.confluent.ksql.version>7.7.0</io.confluent.ksql.version>
         <io.confluent.schema-registry.version>${confluent.version.range}</io.confluent.schema-registry.version>
-        <netty-tcnative-version>2.0.70.Final</netty-tcnative-version>
+        <netty-tcnative-version>2.0.73.Final</netty-tcnative-version>
         <!-- We normally get this from common, but Vertx is built against this -->
         <!-- Note: `netty` depends on `tcnative` and if we bump `netty`
              we might need to bump `tcnative`, too.
              Please check top level `pom.xml` at https://github.com/netty/netty
              for the netty version we bump to (ie, corresponding git tag),
              to find the correct `tcnative` version. -->
-        <netty.version>4.1.118.Final</netty.version>
-        <netty-codec-http2-version>4.1.118.Final</netty-codec-http2-version>
+        <netty.version>4.1.125.Final</netty.version>
+        <netty-codec-http2-version>4.1.125.Final</netty-codec-http2-version>
         <jersey-common>2.39.1</jersey-common>
         <multi-threaded-testing.forkCount>3</multi-threaded-testing.forkCount>
         <kafka.version>${ce.kafka.version}</kafka.version>

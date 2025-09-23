@@ -168,6 +168,7 @@ public class ListPropertiesExecutorTest {
     // Given:
     givenConnectWorkerProperties(
         "group.id=list_properties_unit_test\n"
+                + "bootstrap.servers=localhost:9092\n"
             + "key.converter=io.confluent.connect.avro.AvroConverter\n"
             + "value.converter=io.confluent.connect.avro.AvroConverter\n"
             + "offset.storage.topic=topic1\n"

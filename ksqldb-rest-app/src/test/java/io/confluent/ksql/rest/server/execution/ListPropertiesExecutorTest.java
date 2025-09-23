@@ -177,7 +177,6 @@ public class ListPropertiesExecutorTest {
             + "other.config=<potentially sensitive data that should not be shown>\n"
             + "sasl.jaas.config=<potentially sensitive data that should not be shown even though it's a recognized config>\n"
     );
-
     // When:
     final PropertiesList properties = (PropertiesList) CustomExecutors.LIST_PROPERTIES.execute(
         engine.configure("LIST PROPERTIES;")

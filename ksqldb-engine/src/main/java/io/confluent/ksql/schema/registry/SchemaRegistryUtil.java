@@ -46,8 +46,10 @@ public final class SchemaRegistryUtil {
 
   @VisibleForTesting
   public static final int SUBJECT_NOT_FOUND_ERROR_CODE = 40401;
+  public static final int SCHEMA_NOT_FOUND_ERROR_CODE = 40403;
 
   private SchemaRegistryUtil() {
+    super();
   }
 
   public static void cleanupInternalTopicSchemas(
@@ -185,6 +187,11 @@ public final class SchemaRegistryUtil {
         && ((RestClientException) error).getErrorCode() == SUBJECT_NOT_FOUND_ERROR_CODE);
   }
 
+  public static boolean isSchemaNotFoundErrorCode(final Throwable error) {
+    return (error instanceof RestClientException
+        && ((RestClientException) error).getErrorCode() == SCHEMA_NOT_FOUND_ERROR_CODE);
+  }
+
   public static boolean isAuthErrorCode(final Throwable error) {
     return (error instanceof RestClientException
         && ((((RestClientException) error).getStatus() == HttpStatus.SC_UNAUTHORIZED)
@@ -192,7 +199,9 @@ public final class SchemaRegistryUtil {
   }
 
   private static boolean isRetriableError(final Throwable error) {
-    return !isSubjectNotFoundErrorCode(error) && !isAuthErrorCode(error);
+    return !isSubjectNotFoundErrorCode(error)
+        && !isSchemaNotFoundErrorCode(error)
+        && !isAuthErrorCode(error);
   }
 
   private static void hardDeleteSubjectWithRetries(
@@ -201,7 +210,7 @@ public final class SchemaRegistryUtil {
     try {
       ExecutorUtil.executeWithRetries(
           () -> schemaRegistryClient.deleteSubject(subject, true),
-          error -> isRetriableError(error)
+          SchemaRegistryUtil::isRetriableError
       );
     } catch (final RestClientException e) {
       if (isAuthErrorCode(e)) {

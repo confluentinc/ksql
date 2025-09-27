@@ -114,7 +114,8 @@ public final class TableSelectBuilder {
 
         final KTable<K, GenericRow> transFormedTable = table.getTable().transformValues(
             () -> new KsValueTransformer<>(selectMapper.getTransformer(logger)),
-            materialized);
+            materialized
+        );
 
         return KTableHolder.materialized(
             transFormedTable,

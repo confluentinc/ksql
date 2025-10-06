@@ -23,6 +23,8 @@ import com.google.protobuf.Message;
 import com.google.protobuf.Timestamp;
 import com.google.type.Date;
 import com.google.type.TimeOfDay;
+import io.confluent.kafka.schemaregistry.json.JsonSchemaProvider;
+import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchemaProvider;
 import io.confluent.ksql.serde.connect.ConnectProperties;
 import java.nio.ByteBuffer;
 import java.util.Optional;
@@ -154,7 +156,7 @@ public class KsqlProtobufSerializerTest {
 
   private static final String SOME_TOPIC = "bob";
 
-  private final SchemaRegistryClient schemaRegistryClient = new MockSchemaRegistryClient();
+  private final SchemaRegistryClient schemaRegistryClient = new MockSchemaRegistryClient(ImmutableList.of(new ProtobufSchemaProvider()));
 
   private final KsqlConfig ksqlConfig = new KsqlConfig(ImmutableMap.of());
 

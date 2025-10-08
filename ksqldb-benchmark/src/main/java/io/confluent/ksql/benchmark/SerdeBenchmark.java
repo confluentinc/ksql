@@ -15,11 +15,15 @@
 
 package io.confluent.ksql.benchmark;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.avro.random.generator.Generator;
+import io.confluent.kafka.schemaregistry.avro.AvroSchemaProvider;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.kafka.schemaregistry.json.JsonSchemaProvider;
+import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchemaProvider;
 import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.datagen.RowGenerator;
@@ -217,7 +221,10 @@ public class SerdeBenchmark {
     ) {
       final FormatInfo formatInfo = getFormatInfo(formatName);
 
-      final SchemaRegistryClient srClient = new MockSchemaRegistryClient();
+      final SchemaRegistryClient srClient = new MockSchemaRegistryClient(ImmutableList.of(
+          new AvroSchemaProvider(),
+          new ProtobufSchemaProvider(),
+          new JsonSchemaProvider()));
 
       final PersistenceSchema persistenceSchema = PersistenceSchema
           .from(schema.key(), SerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES));
@@ -239,7 +246,10 @@ public class SerdeBenchmark {
     ) {
       final FormatInfo format = getFormatInfo(formatName);
 
-      final SchemaRegistryClient srClient = new MockSchemaRegistryClient();
+      final SchemaRegistryClient srClient = new MockSchemaRegistryClient(ImmutableList.of(
+          new AvroSchemaProvider(),
+          new ProtobufSchemaProvider(),
+          new JsonSchemaProvider()));
 
       return GenericRowSerDe.from(
           format,

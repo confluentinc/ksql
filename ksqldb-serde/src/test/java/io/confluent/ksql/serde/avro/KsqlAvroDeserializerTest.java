@@ -31,6 +31,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.connect.avro.AvroConverter;
 import io.confluent.connect.avro.AvroDataConfig;
+import io.confluent.kafka.schemaregistry.avro.AvroSchemaProvider;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.serializers.AbstractKafkaSchemaSerDeConfig;
@@ -217,7 +218,8 @@ public class KsqlAvroDeserializerTest {
         AbstractKafkaSchemaSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG, ""
     );
 
-    schemaRegistryClient = new MockSchemaRegistryClient();
+    schemaRegistryClient = new MockSchemaRegistryClient(ImmutableList.of(
+        new AvroSchemaProvider()));
 
     converter = new AvroConverter(schemaRegistryClient);
     converter.configure(configs, false);

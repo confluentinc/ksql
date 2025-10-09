@@ -16,14 +16,18 @@
 package io.confluent.ksql.services;
 
 import com.google.common.base.Ticker;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.kafka.schemaregistry.ParsedSchema;
+import io.confluent.kafka.schemaregistry.avro.AvroSchemaProvider;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaMetadata;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.rest.entities.SchemaReference;
 import io.confluent.kafka.schemaregistry.client.rest.entities.requests.RegisterSchemaResponse;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
+import io.confluent.kafka.schemaregistry.json.JsonSchemaProvider;
+import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchemaProvider;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.HashSet;
@@ -55,7 +59,11 @@ final class SandboxedSchemaRegistryClient {
     // we use `MockSchemaRegistryClient` as a cache inside the sandbox to store
     // newly registered schemas (without polluting the actual SR)
     // this allows dependent statements to execute successfully inside the sandbox
-    private final MockSchemaRegistryClient sandboxCacheClient = new MockSchemaRegistryClient();
+    private final MockSchemaRegistryClient sandboxCacheClient = new MockSchemaRegistryClient(
+        ImmutableList.of(
+            new AvroSchemaProvider(),
+            new ProtobufSchemaProvider(),
+            new JsonSchemaProvider()));
     // client to talk to the actual SR
     private final SchemaRegistryClient srClient;
 

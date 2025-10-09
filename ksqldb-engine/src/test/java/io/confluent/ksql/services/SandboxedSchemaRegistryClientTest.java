@@ -90,6 +90,7 @@ public final class SandboxedSchemaRegistryClientTest {
           .ignore("parseSchema", io.confluent.kafka.schemaregistry.client.rest.entities.Schema.class)
           .ignore("parseSchema", String.class, String.class, List.class)
           .ignore("parseSchema", String.class, String.class, List.class, Metadata.class, RuleSet.class)
+          .ignore("parseSchemaOrElseThrow", io.confluent.kafka.schemaregistry.client.rest.entities.Schema.class)
           .build();
     }
 

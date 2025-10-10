@@ -82,6 +82,7 @@ import org.openjdk.jmh.runner.options.OptionsBuilder;
 @Measurement(iterations = 3, time = 10)
 @Threads(4)
 @Fork(3)
+@SuppressWarnings("checkstyle:ClassDataAbstractionCoupling")
 public class SerdeBenchmark {
 
   private static final Path SCHEMA_DIR = Paths.get("schemas");

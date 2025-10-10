@@ -18,10 +18,14 @@ package io.confluent.ksql.tools.test;
 import static io.confluent.ksql.util.KsqlConfig.CONNECT_REQUEST_TIMEOUT_DEFAULT;
 import static java.util.Objects.requireNonNull;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
+import io.confluent.kafka.schemaregistry.avro.AvroSchemaProvider;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.kafka.schemaregistry.json.JsonSchemaProvider;
+import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchemaProvider;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
 import io.confluent.ksql.ServiceInfo;
@@ -135,7 +139,10 @@ public class SqlTestExecutor implements Closeable {
   public static SqlTestExecutor create(final Path tmpFolder) {
     final KafkaTopicClient topicClient = new StubKafkaTopicClient();
     final KafkaClientSupplier kafkaClientSupplier = new StubKafkaClientSupplier();
-    final SchemaRegistryClient srClient = new MockSchemaRegistryClient();
+    final SchemaRegistryClient srClient = new MockSchemaRegistryClient(ImmutableList.of(
+        new AvroSchemaProvider(),
+        new ProtobufSchemaProvider(),
+        new JsonSchemaProvider()));
     final ServiceContext serviceContext = new DefaultServiceContext(
         kafkaClientSupplier,
         () -> kafkaClientSupplier.getAdmin(Collections.emptyMap()),

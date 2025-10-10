@@ -128,7 +128,8 @@ public final class ThreadTestUtil {
       this.excludeJunitThread()
           .excludeJmxServerThreads()
           .excludeJdkThreads()
-          .excludeSystem();
+          .excludeSystem()
+          .excludeBrokerTypeCheckThreads();
     }
 
     public ThreadFilterBuilder excludeSystem() {
@@ -176,6 +177,11 @@ public final class ThreadTestUtil {
             ImmutableSet.of("executor-Heartbeat", "executor-Rebalance");
         return !jdkThreads.contains(name);
       });
+      return this;
+    }
+
+    public ThreadFilterBuilder excludeBrokerTypeCheckThreads() {
+      nameMatches(name -> !name.contains("kafka.brokerTypeTopicClient"));
       return this;
     }
   }

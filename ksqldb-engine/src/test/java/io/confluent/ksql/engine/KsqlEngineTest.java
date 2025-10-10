@@ -46,12 +46,16 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import io.confluent.kafka.schemaregistry.avro.AvroSchema;
+import io.confluent.kafka.schemaregistry.avro.AvroSchemaProvider;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
+import io.confluent.kafka.schemaregistry.json.JsonSchemaProvider;
+import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchemaProvider;
 import io.confluent.ksql.KsqlConfigTestUtil;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
@@ -134,7 +138,11 @@ public class KsqlEngineTest {
   private final Map<String, Object> sharedRuntimeDisabled = new HashMap<>();
   private MutableMetaStore metaStore;
   @Spy
-  private final SchemaRegistryClient schemaRegistryClient = new MockSchemaRegistryClient();
+  private final SchemaRegistryClient schemaRegistryClient = new MockSchemaRegistryClient(
+      ImmutableList.of(
+          new AvroSchemaProvider(),
+          new ProtobufSchemaProvider(),
+          new JsonSchemaProvider()));
   private final Supplier<SchemaRegistryClient> schemaRegistryClientFactory =
       () -> schemaRegistryClient;
 

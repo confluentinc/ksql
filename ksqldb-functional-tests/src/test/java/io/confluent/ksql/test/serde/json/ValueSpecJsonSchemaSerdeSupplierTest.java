@@ -17,11 +17,15 @@ package io.confluent.ksql.test.serde.json;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import io.confluent.kafka.schemaregistry.avro.AvroSchemaProvider;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import io.confluent.kafka.schemaregistry.json.JsonSchema;
+import io.confluent.kafka.schemaregistry.json.JsonSchemaProvider;
+import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchemaProvider;
 import java.io.IOException;
 import java.math.BigDecimal;
 import org.apache.kafka.common.serialization.Deserializer;
@@ -35,7 +39,10 @@ public class ValueSpecJsonSchemaSerdeSupplierTest {
 
   @Before
   public void setUp() {
-    srClient = new MockSchemaRegistryClient();
+    srClient = new MockSchemaRegistryClient(ImmutableList.of(
+        new AvroSchemaProvider(),
+        new ProtobufSchemaProvider(),
+        new JsonSchemaProvider()));
   }
 
   @Test

@@ -22,8 +22,13 @@ import io.confluent.ksql.config.PropertyParser;
 import io.confluent.ksql.config.PropertyValidator;
 import io.confluent.ksql.util.KsqlConstants;
 import java.util.Objects;
+import org.apache.kafka.streams.StreamsConfig;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class LocalPropertyParser implements PropertyParser {
+
+  private static final Logger LOG = LogManager.getLogger(LocalPropertyParser.class);
 
   private final ConfigResolver resolver;
   private final PropertyValidator validator;
@@ -47,9 +52,34 @@ public class LocalPropertyParser implements PropertyParser {
     final ConfigItem configItem = resolver.resolve(property, true)
         .orElseThrow(() -> new PropertyNotFoundException(property));
 
-    final Object parsedValue = configItem.parseValue(value);
+    // Migrate legacy processing guarantee values before validation
+    final Object migratedValue = migrateProcessingGuaranteeIfNeeded(
+        configItem.getPropertyName(), value);
+
+    final Object parsedValue = configItem.parseValue(migratedValue);
 
     validator.validate(configItem.getPropertyName(), parsedValue);
     return parsedValue;
+  }
+
+  /**
+   * Migrates legacy processing guarantee values for backward compatibility.
+   *
+   * @param propertyName the property name
+   * @param value the property value
+   * @return the migrated value if applicable, otherwise the original value
+   */
+  private static Object migrateProcessingGuaranteeIfNeeded(
+      final String propertyName,
+      final Object value) {
+    if (propertyName.equals(StreamsConfig.PROCESSING_GUARANTEE_CONFIG) && value != null) {
+      final String guarantee = value.toString();
+      if (guarantee.equals("exactly_once")) {
+        LOG.info("Migrating processing.guarantee "
+            + "from deprecated 'exactly_once' to 'exactly_once_v2'");
+        return StreamsConfig.EXACTLY_ONCE_V2;
+      }
+    }
+    return value;
   }
 }

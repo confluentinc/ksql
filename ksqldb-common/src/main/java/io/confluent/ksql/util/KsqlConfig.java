@@ -83,7 +83,7 @@ public class KsqlConfig extends AbstractConfig {
 
   public static final String KSQL_DEPLOYMENT_TYPE_DOC =
       "The type of deployment for ksql. Value must be one of "
-              + Arrays.asList(DeploymentType.values());
+          + Arrays.asList(DeploymentType.values());
 
   public static final String METRIC_REPORTER_CLASSES_CONFIG =
       CommonClientConfigs.METRIC_REPORTER_CLASSES_CONFIG;
@@ -92,7 +92,7 @@ public class KsqlConfig extends AbstractConfig {
       CommonClientConfigs.METRIC_REPORTER_CLASSES_DOC;
 
   private static final String TELEMETRY_REPORTER_CLASS =
-          "io.confluent.telemetry.reporter.TelemetryReporter";
+      "io.confluent.telemetry.reporter.TelemetryReporter";
 
   private static final String TELEMETRY_PREFIX = "confluent.telemetry";
   private static final Set<String> REPORTER_CONFIGS_PREFIXES =
@@ -194,17 +194,17 @@ public class KsqlConfig extends AbstractConfig {
       KSQL_OUTPUT_TOPIC_NAME_PREFIX_CONFIG = "ksql.output.topic.name.prefix";
   private static final String KSQL_OUTPUT_TOPIC_NAME_PREFIX_DOCS =
       "A prefix to add to any output topic names, where the statement does not include an explicit "
-      + "topic name. E.g. given 'ksql.output.topic.name.prefix = \"thing-\"', then statement "
-      + "'CREATE STREAM S AS ...' will create a topic 'thing-S', where as the statement "
-      + "'CREATE STREAM S WITH(KAFKA_TOPIC = 'foo') AS ...' will create a topic 'foo'.";
+          + "topic name. E.g. given 'ksql.output.topic.name.prefix = \"thing-\"', then statement "
+          + "'CREATE STREAM S AS ...' will create a topic 'thing-S', where as the statement "
+          + "'CREATE STREAM S WITH(KAFKA_TOPIC = 'foo') AS ...' will create a topic 'foo'.";
 
   public static final String KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_CONFIG =
       "ksql.query.persistent.active.limit";
   private static final int KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_DEFAULT = Integer.MAX_VALUE;
   private static final String KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_DOC =
       "An upper limit on the number of active, persistent queries that may be running at a time, "
-      + "in interactive mode. Once this limit is reached, any further persistent queries will not "
-      + "be accepted.";
+          + "in interactive mode. Once this limit is reached, any further persistent queries "
+          + "will not be accepted.";
 
   public static final String KSQL_DEFAULT_KEY_FORMAT_CONFIG = "ksql.persistence.default.format.key";
   private static final String KSQL_DEFAULT_KEY_FORMAT_DEFAULT = "KAFKA";
@@ -225,7 +225,7 @@ public class KsqlConfig extends AbstractConfig {
       "ksql.queryanonymizer.logs_enabled";
   private static final String KSQL_QUERYANONYMIZER_ENABLED_DOC =
       "This defines whether we log anonymized queries out of query logger or if we log them"
-      + "in plain text. Defaults to true";
+          + "in plain text. Defaults to true";
   public static final String KSQL_QUERYANONYMIZER_CLUSTER_NAMESPACE =
       "ksql.queryanonymizer.cluster_namespace";
   private static final String KSQL_QUERYANONYMIZER_CLUSTER_NAMESPACE_DOC =
@@ -235,12 +235,12 @@ public class KsqlConfig extends AbstractConfig {
   public static final String KSQL_CUSTOM_METRICS_TAGS = "ksql.metrics.tags.custom";
   private static final String KSQL_CUSTOM_METRICS_TAGS_DOC =
       "A list of tags to be included with emitted JMX metrics, formatted as a string of key:value "
-      + "pairs separated by commas. For example, 'key1:value1,key2:value2'.";
+          + "pairs separated by commas. For example, 'key1:value1,key2:value2'.";
 
   public static final String KSQL_CUSTOM_METRICS_EXTENSION = "ksql.metrics.extension";
   private static final String KSQL_CUSTOM_METRICS_EXTENSION_DOC =
       "Extension for supplying custom metrics to be emitted along with "
-      + "the engine's default JMX metrics";
+          + "the engine's default JMX metrics";
 
   public static final String DEFAULT_SCHEMA_REGISTRY_URL = "http://localhost:8081";
   public static final String DEFAULT_CONNECT_URL = "http://localhost:8083";
@@ -263,7 +263,7 @@ public class KsqlConfig extends AbstractConfig {
   public static final String KSQL_RESOURCE_EXTENSION_DEFAULT = null;
   public static final String KSQL_RESOURCE_EXTENSION_DOC =
       "A KSQL resource extension class that "
-      + "provides additional functionality to KSQL servers.";
+          + "provides additional functionality to KSQL servers.";
 
   public static final String KSQL_ENABLE_ACCESS_VALIDATOR = "ksql.access.validator.enable";
   public static final String KSQL_ACCESS_VALIDATOR_ON = "on";
@@ -283,7 +283,7 @@ public class KsqlConfig extends AbstractConfig {
   public static final boolean KSQL_QUERY_PULL_ENABLE_DEFAULT = true;
 
   public static final String KSQL_QUERY_PULL_ENABLE_STANDBY_READS =
-        "ksql.query.pull.enable.standby.reads";
+      "ksql.query.pull.enable.standby.reads";
   private static final String KSQL_QUERY_PULL_ENABLE_STANDBY_READS_DOC =
       "Config to enable/disable forwarding pull queries to standby hosts when the active is dead. "
           + "This means that stale values may be returned for these queries since standby hosts"
@@ -321,7 +321,7 @@ public class KsqlConfig extends AbstractConfig {
   public static final Integer KSQL_QUERY_PULL_MAX_CONCURRENT_REQUESTS_DEFAULT = Integer.MAX_VALUE;
   public static final String KSQL_QUERY_PULL_MAX_CONCURRENT_REQUESTS_DOC =
       "The maximum number of concurrent requests allowed for pull "
-      + "queries on this host. Once the limit is hit, queries will fail immediately";
+          + "queries on this host. Once the limit is hit, queries will fail immediately";
 
   public static final String KSQL_QUERY_PULL_MAX_HOURLY_BANDWIDTH_MEGABYTES_CONFIG
       = "ksql.query.pull.max.hourly.bandwidth.megabytes";
@@ -380,9 +380,9 @@ public class KsqlConfig extends AbstractConfig {
   public static final boolean KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED_DEFAULT = false;
 
   public static final String KSQL_QUERY_PULL_LIMIT_CLAUSE_ENABLED
-          = "ksql.query.pull.limit.clause.enabled";
+      = "ksql.query.pull.limit.clause.enabled";
   public static final String KSQL_QUERY_PULL_LIMIT_CLAUSE_ENABLED_DOC
-          = "Enables the use of LIMIT clause in pull queries";
+      = "Enables the use of LIMIT clause in pull queries";
   public static final boolean KSQL_QUERY_PULL_LIMIT_CLAUSE_ENABLED_DEFAULT = true;
 
   public static final String KSQL_QUERY_PULL_FORWARDING_TIMEOUT_MS_CONFIG
@@ -578,7 +578,7 @@ public class KsqlConfig extends AbstractConfig {
   private static final Boolean KSQL_CLIENT_IP_PORT_CONFIGURATION_ENABLED_DEFAULT = false;
   private static final String KSQL_CLIENT_IP_PORT_CONFIGURATION_ENABLED_DOC =
       "Feature flag that enables configuration of client IP and PORT in internal ksql Kafka Client."
-      + " So that Kafka broker can get client IP and PORT for logging and other purposes.";
+          + " So that Kafka broker can get client IP and PORT for logging and other purposes.";
 
   public static final String KSQL_PROXY_PROTOCOL_LOCAL_MODE_ENABLED =
       "ksql.proxy.protocol.local.mode.enabled";
@@ -593,10 +593,10 @@ public class KsqlConfig extends AbstractConfig {
 
   private static final String KSQL_JSON_SR_CONVERTER_DESERIALIZER_ENABLED_DOC =
       "Feature flag that enables the use of the JsonSchemaConverter class for deserializing "
-      + "JSON_SR records. JsonSchemaConverter is required to support `anyOf` JSON_SR types. "
-      + "This flag should be used to disable this feature only when users experience "
-      + "deserialization issues caused by the JsonSchemaConverter. Otherwise, this flag should "
-      + "remain true to take advantage of the new `anyOf` types and other JSON_SR serde fixes.";
+          + "JSON_SR records. JsonSchemaConverter is required to support `anyOf` JSON_SR types. "
+          + "This flag should be used to disable this feature only when users experience "
+          + "deserialization issues caused by the JsonSchemaConverter. Otherwise, this flag should "
+          + "remain true to take advantage of the new `anyOf` types and other JSON_SR serde fixes.";
 
   public static final String KSQL_SOURCE_TABLE_MATERIALIZATION_ENABLED =
       "ksql.source.table.materialization.enabled";
@@ -632,8 +632,8 @@ public class KsqlConfig extends AbstractConfig {
   public static final Long KSQL_SUPPRESS_BUFFER_SIZE_BYTES_DEFAULT = -1L;
   public static final String KSQL_SUPPRESS_BUFFER_SIZE_BYTES_DOC =
       "Bound the number of bytes that the buffer can use for suppression. Negative size means the"
-      + " buffer will be unbounded. If the maximum capacity is exceeded, the query will be"
-      + " terminated";
+          + " buffer will be unbounded. If the maximum capacity is exceeded, the query will be"
+          + " terminated";
 
   public static final String KSQL_QUERY_RETRY_BACKOFF_INITIAL_MS
       = "ksql.query.retry.backoff.initial.ms";
@@ -845,11 +845,11 @@ public class KsqlConfig extends AbstractConfig {
 
   private static final Collection<CompatibilityBreakingStreamsConfig>
       COMPATIBILITY_BREAKING_STREAMS_CONFIGS = ImmutableList.of(
-          // Turn on optimizations by default, unless the user explicitly disables in config:
-          new CompatibilityBreakingStreamsConfig(
-              StreamsConfig.TOPOLOGY_OPTIMIZATION_CONFIG,
-              StreamsConfig.OPTIMIZE,
-              StreamsConfig.OPTIMIZE)
+      // Turn on optimizations by default, unless the user explicitly disables in config:
+      new CompatibilityBreakingStreamsConfig(
+          StreamsConfig.TOPOLOGY_OPTIMIZATION_CONFIG,
+          StreamsConfig.OPTIMIZE,
+          StreamsConfig.OPTIMIZE)
   );
 
   private static final class CompatibilityBreakingStreamsConfig {
@@ -858,7 +858,7 @@ public class KsqlConfig extends AbstractConfig {
     final Object defaultValueCurrent;
 
     CompatibilityBreakingStreamsConfig(final String name, final Object defaultValueLegacy,
-        final Object defaultValueCurrent) {
+                                       final Object defaultValueCurrent) {
       this.name = Objects.requireNonNull(name);
       if (!StreamsConfig.configDef().names().contains(name)) {
         throw new IllegalArgumentException(
@@ -892,8 +892,8 @@ public class KsqlConfig extends AbstractConfig {
     } catch (IllegalArgumentException e) {
       throw new ConfigException(
           "'" + KSQL_DEPLOYMENT_TYPE_CONFIG + "' must be one of: "
-          + Arrays.asList(DeploymentType.values())
-          + " however we found '" + value + "'"
+              + Arrays.asList(DeploymentType.values())
+              + " however we found '" + value + "'"
       );
     }
   }
@@ -926,10 +926,10 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_TRANSIENT_QUERY_NAME_PREFIX_DEFAULT,
             ConfigDef.Importance.MEDIUM,
             "Second part of the prefix for transient queries. For instance if "
-            + "the prefix is transient_ the query name would be "
-            + "ksql_transient_4120896722607083946_1509389010601 where 'ksql_' is the first prefix"
-            + " and '_transient' is the second part of the prefix for the query id the third and "
-            + "4th parts are a random long value and the current timestamp. "
+                + "the prefix is transient_ the query name would be "
+                + "ksql_transient_4120896722607083946_1509389010601 where 'ksql_' is the first "
+                + "prefix and '_transient' is the second part of the prefix for the query id the "
+                + "third and 4th parts are a random long value and the current timestamp. "
         ).define(
             KSQL_OUTPUT_TOPIC_NAME_PREFIX_CONFIG,
             ConfigDef.Type.STRING,
@@ -942,9 +942,9 @@ public class KsqlConfig extends AbstractConfig {
             KsqlConstants.defaultSinkWindowChangeLogAdditionalRetention,
             ConfigDef.Importance.MEDIUM,
             "The default window change log additional retention time. This "
-            + "is a streams config value which will be added to a windows maintainMs to ensure "
-            + "data is not deleted from the log prematurely. Allows for clock drift. "
-            + "Default is 1 day"
+                + "is a streams config value which will be added to a windows maintainMs to ensure "
+                + "data is not deleted from the log prematurely. Allows for clock drift. "
+                + "Default is 1 day"
         ).define(
             SCHEMA_REGISTRY_URL_PROPERTY,
             ConfigDef.Type.STRING,
@@ -1045,8 +1045,8 @@ public class KsqlConfig extends AbstractConfig {
             false,
             ConfigDef.Importance.LOW,
             "Enable the security manager to stop UDFs from calling System.exit "
-                    + "or executing processes. Default is false as it is deprecated in Java 21. "
-                    + "This can be enabled only for Java versions less than 21."
+                + "or executing processes. Default is false as it is deprecated in Java 21. "
+                + "This can be enabled only for Java versions less than 21."
         ).define(
             KSQL_INSERT_INTO_VALUES_ENABLED,
             Type.BOOLEAN,
@@ -1238,9 +1238,9 @@ public class KsqlConfig extends AbstractConfig {
         )
         .define(
             KSQL_QUERY_PUSH_V2_MAX_HOURLY_BANDWIDTH_MEGABYTES_CONFIG,
-        Type.INT,
+            Type.INT,
             KSQL_QUERY_PUSH_V2_MAX_HOURLY_BANDWIDTH_MEGABYTES_DEFAULT,
-        Importance.HIGH,
+            Importance.HIGH,
             KSQL_QUERY_PUSH_V2_MAX_HOURLY_BANDWIDTH_MEGABYTES_DOC
         )
         .define(
@@ -1721,13 +1721,18 @@ public class KsqlConfig extends AbstractConfig {
             config.name,
             generation == ConfigGeneration.CURRENT
                 ? config.defaultValueCurrent : config.defaultValueLegacy));
-    this.ksqlStreamConfigProps = buildStreamingConfig(streamsConfigDefaults,
-            originalsWithPrefixOverride(KSQL_STREAMS_PREFIX));
+
+    // Migrate legacy processing guarantee values BEFORE validation
+    final Map<String, Object> migratedOverrides =
+        new HashMap<>(originalsWithPrefixOverride(KSQL_STREAMS_PREFIX));
+    migrateProcessingGuaranteeInMap(migratedOverrides);
+
+    this.ksqlStreamConfigProps = buildStreamingConfig(streamsConfigDefaults, migratedOverrides);
   }
 
   private static Set<String> streamTopicConfigNames() {
-    final ImmutableSet.Builder<String> configs = ImmutableSet.builder();
 
+    final ImmutableSet.Builder<String> configs = ImmutableSet.builder();
     Arrays.stream(TopicConfig.class.getDeclaredFields())
         .filter(f -> f.getType() == String.class)
         .filter(f -> f.getName().endsWith("_CONFIG"))
@@ -1736,7 +1741,7 @@ public class KsqlConfig extends AbstractConfig {
             configs.add((String) f.get(null));
           } catch (final IllegalAccessException e) {
             LOG.warn("Could not get the '{}' config from TopicConfig.class. Setting and listing "
-                + "properties with 'ksql.streams.topics.*' from clients will be disabled.",
+                    + "properties with 'ksql.streams.topics.*' from clients will be disabled.",
                 f.getName());
           }
         });
@@ -1761,7 +1766,7 @@ public class KsqlConfig extends AbstractConfig {
 
   private void possiblyConfigureConfluentTelemetry(final Map<String, Object> map) {
     if (KsqlConfig.DeploymentType.confluent.toString()
-            .equals(getString(KSQL_DEPLOYMENT_TYPE_CONFIG))) {
+        .equals(getString(KSQL_DEPLOYMENT_TYPE_CONFIG))) {
       final List<String> metricReporters = new ArrayList<>(getList(METRIC_REPORTER_CLASSES_CONFIG));
       metricReporters.remove(TELEMETRY_REPORTER_CLASS);
       map.put(METRIC_REPORTER_CLASSES_CONFIG, metricReporters);
@@ -1778,6 +1783,9 @@ public class KsqlConfig extends AbstractConfig {
         applicationId
     );
 
+    // Migrate legacy processing guarantee values for backward compatibility
+    migrateProcessingGuaranteeInMap(map);
+
     // Streams client metrics aren't used in Confluent deployment
     possiblyConfigureConfluentTelemetry(map);
     return Collections.unmodifiableMap(map);
@@ -1788,6 +1796,10 @@ public class KsqlConfig extends AbstractConfig {
     for (final ConfigValue config : ksqlStreamConfigProps.values()) {
       map.put(config.key, config.value);
     }
+
+    // Migrate legacy processing guarantee values for backward compatibility
+    migrateProcessingGuaranteeInMap(map);
+
     return Collections.unmodifiableMap(map);
   }
 
@@ -1820,11 +1832,11 @@ public class KsqlConfig extends AbstractConfig {
   }
 
   public Map<String, Object> addConfluentMetricsContextConfigsKafka(
-      final Map<String,Object> props
+      final Map<String, Object> props
   ) {
     final Map<String, Object> updatedProps = new HashMap<>(props);
     final AppInfoParser.AppInfo appInfo = new AppInfoParser.AppInfo(System.currentTimeMillis(),
-            KsqlConstants.enableLoggingAppInfo);
+        KsqlConstants.enableLoggingAppInfo);
     updatedProps.putAll(getConfigsForPrefix(REPORTER_CONFIGS_PREFIXES));
     updatedProps.put(MetricCollectors.RESOURCE_LABEL_VERSION, appInfo.getVersion());
     updatedProps.put(MetricCollectors.RESOURCE_LABEL_COMMIT_ID, appInfo.getCommitId());
@@ -1985,5 +1997,23 @@ public class KsqlConfig extends AbstractConfig {
     final ConfigDef sslConfig = new ConfigDef();
     SslConfigs.addClientSslSupport(sslConfig);
     return sslConfig.names();
+  }
+
+  /**
+   * Migrates legacy processing guarantee values
+   *
+   * @param properties The configuration properties map to migrate
+   */
+  private static void migrateProcessingGuaranteeInMap(final Map<String, Object> properties) {
+    final Object processingGuarantee = properties.get(StreamsConfig.PROCESSING_GUARANTEE_CONFIG);
+    if (processingGuarantee != null) {
+      final String guarantee = processingGuarantee.toString();
+
+      if (guarantee.equals("exactly_once")) {
+        LOG.info("Migrating processing.guarantee "
+            + "from deprecated 'exactly_once' to 'exactly_once_v2'");
+        properties.put(StreamsConfig.PROCESSING_GUARANTEE_CONFIG, StreamsConfig.EXACTLY_ONCE_V2);
+      }
+    }
   }
 }

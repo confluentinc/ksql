@@ -33,6 +33,7 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import java.util.Optional;
 import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.streams.StreamsConfig;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -129,5 +130,57 @@ public class LocalPropertyParserTest {
 
     // When:
     parser.parse(ProducerConfig.LINGER_MS_CONFIG, "100");
+  }
+
+  @Test
+  public void shouldMigrateExactlyOnceToExactlyOnceV2() {
+    // Given:
+    when(configItem.getPropertyName())
+        .thenReturn(StreamsConfig.PROCESSING_GUARANTEE_CONFIG);
+
+    // When:
+    parser.parse(StreamsConfig.PROCESSING_GUARANTEE_CONFIG, "exactly_once");
+
+    // Then: Should call parseValue with migrated value
+    verify(configItem).parseValue(StreamsConfig.EXACTLY_ONCE_V2);
+  }
+
+  @Test
+  public void shouldNotMigrateExactlyOnceV2() {
+    // Given:
+    when(configItem.getPropertyName())
+        .thenReturn(StreamsConfig.PROCESSING_GUARANTEE_CONFIG);
+
+    // When:
+    parser.parse(StreamsConfig.PROCESSING_GUARANTEE_CONFIG, "exactly_once_v2");
+
+    // Then: Should call parseValue with original value
+    verify(configItem).parseValue("exactly_once_v2");
+  }
+
+  @Test
+  public void shouldNotMigrateAtLeastOnce() {
+    // Given:
+    when(configItem.getPropertyName())
+        .thenReturn(StreamsConfig.PROCESSING_GUARANTEE_CONFIG);
+
+    // When:
+    parser.parse(StreamsConfig.PROCESSING_GUARANTEE_CONFIG, "at_least_once");
+
+    // Then: Should call parseValue with original value
+    verify(configItem).parseValue("at_least_once");
+  }
+
+  @Test
+  public void shouldNotMigrateOtherProperties() {
+    // Given:
+    when(configItem.getPropertyName())
+        .thenReturn(ProducerConfig.LINGER_MS_CONFIG);
+
+    // When:
+    parser.parse(ProducerConfig.LINGER_MS_CONFIG, "100");
+
+    // Then: Should call parseValue with original value
+    verify(configItem).parseValue("100");
   }
 }

@@ -1721,8 +1721,12 @@ public class KsqlConfig extends AbstractConfig {
             config.name,
             generation == ConfigGeneration.CURRENT
                 ? config.defaultValueCurrent : config.defaultValueLegacy));
-    this.ksqlStreamConfigProps = buildStreamingConfig(streamsConfigDefaults,
-            originalsWithPrefixOverride(KSQL_STREAMS_PREFIX));
+    
+    // Migrate legacy processing guarantee values BEFORE validation
+    final Map<String, Object> migratedOverrides = new HashMap<>(originalsWithPrefixOverride(KSQL_STREAMS_PREFIX));
+    migrateProcessingGuaranteeInMap(migratedOverrides);
+    
+    this.ksqlStreamConfigProps = buildStreamingConfig(streamsConfigDefaults, migratedOverrides);
   }
 
   private static Set<String> streamTopicConfigNames() {
@@ -1778,6 +1782,9 @@ public class KsqlConfig extends AbstractConfig {
         applicationId
     );
 
+    // Migrate legacy processing guarantee values for backward compatibility
+    migrateProcessingGuaranteeIfNeeded(map);
+
     // Streams client metrics aren't used in Confluent deployment
     possiblyConfigureConfluentTelemetry(map);
     return Collections.unmodifiableMap(map);
@@ -1788,6 +1795,10 @@ public class KsqlConfig extends AbstractConfig {
     for (final ConfigValue config : ksqlStreamConfigProps.values()) {
       map.put(config.key, config.value);
     }
+    
+    // Migrate legacy processing guarantee values for backward compatibility
+    migrateProcessingGuaranteeIfNeeded(map);
+    
     return Collections.unmodifiableMap(map);
   }
 
@@ -1985,5 +1996,34 @@ public class KsqlConfig extends AbstractConfig {
     final ConfigDef sslConfig = new ConfigDef();
     SslConfigs.addClientSslSupport(sslConfig);
     return sslConfig.names();
+  }
+
+  /**
+   * Migrates legacy processing guarantee values to their modern equivalents for backward compatibility.
+   * This ensures that old configurations continue to work while providing the benefits of newer implementations.
+   * This method is called during configuration construction BEFORE validation occurs.
+   * 
+   * @param properties The configuration properties map to migrate
+   */
+  private static void migrateProcessingGuaranteeInMap(final Map<String, Object> properties) {
+    final Object processingGuarantee = properties.get(StreamsConfig.PROCESSING_GUARANTEE_CONFIG);
+    if (processingGuarantee != null) {
+      final String guarantee = processingGuarantee.toString();
+
+      if (guarantee.equals("exactly_once")) {
+        LOG.info("Migrating processing.guarantee from depricated 'exactly_once' to 'exactly_once_v2'");
+        properties.put(StreamsConfig.PROCESSING_GUARANTEE_CONFIG, StreamsConfig.EXACTLY_ONCE_V2);
+      }
+    }
+  }
+  
+  /**
+   * Migrates legacy processing guarantee values in a returned config map.
+   * This is a safety net for any code paths that don't go through the constructor.
+   * 
+   * @param properties The configuration properties map to migrate
+   */
+  private void migrateProcessingGuaranteeIfNeeded(final Map<String, Object> properties) {
+    migrateProcessingGuaranteeInMap(properties);
   }
 }

@@ -1591,6 +1591,13 @@ public class KsqlConfig extends AbstractConfig {
             ConfluentConfigs.ENABLE_FIPS_DEFAULT,
             Importance.LOW,
             ConfluentConfigs.ENABLE_FIPS_DOC
+        )
+        .define(
+            ConfluentConfigs.ENABLE_FIPS_MODE_CONFIG,
+            Type.STRING,
+            ConfluentConfigs.ENABLE_FIPS_MODE_CONFIG_DEFAULT,
+            Importance.LOW,
+            ConfluentConfigs.ENABLE_FIPS_MODE_CONFIG_DOC
         );
 
     for (final CompatibilityBreakingConfigDef compatibilityBreakingConfigDef

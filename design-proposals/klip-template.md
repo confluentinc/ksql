@@ -78,12 +78,15 @@ will be ready to go before any work even begins, so only the fun part is left._
 
 ## Compatibility Implications
 
+For any backward-incompatible changes introduced by this KLIP, it is required that the specific upgrade steps that users will need to perform are included in this section. For example, if there are any syntax changes, how specifically should users adapt their existing SQL statements to work with the new version? If the change is something other than a syntax change, what steps must users take to make their existing workloads run on the new version? This information will ultimately be used to inform users of upcoming backward-incompatible changes with as much advanced notice as possible.
+
+Please include a reasonable amount of commentary around the upgrade steps in order to help users understand their purpose and necessity.
+
 _Will the proposed changes break existing queries or work flows?_
 
 _Are we deprecating existing APIs with these changes? If so, when do we plan to remove the underlying code?_
 
 _If we are removing old functionality, what is the migration plan?_
-
 
 ## Security Implications
 

@@ -1731,8 +1731,8 @@ public class KsqlConfig extends AbstractConfig {
   }
 
   private static Set<String> streamTopicConfigNames() {
-    final ImmutableSet.Builder<String> configs = ImmutableSet.builder();
 
+    final ImmutableSet.Builder<String> configs = ImmutableSet.builder();
     Arrays.stream(TopicConfig.class.getDeclaredFields())
         .filter(f -> f.getType() == String.class)
         .filter(f -> f.getName().endsWith("_CONFIG"))

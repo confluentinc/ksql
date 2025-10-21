@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Confluent Inc.
+ * Copyright 2022 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"; you may not use
  * this file except in compliance with the License. You may obtain a copy of the
@@ -16,41 +16,34 @@
 package io.confluent.ksql.query;
 
 import io.confluent.ksql.query.QueryError.Type;
+import io.confluent.ksql.schema.registry.SchemaRegistryUtil;
 import java.util.Objects;
-import org.apache.commons.lang3.exception.ExceptionUtils;
-import org.apache.kafka.streams.errors.MissingSourceTopicException;
-import org.apache.kafka.streams.errors.StreamsException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * {@code MissingTopicClassifier} classifies missing source topic exceptions as user error
+ * {@code MissingSchemaClassifier} classifies missing SR schema exceptions as user error
  */
-public class MissingTopicClassifier implements QueryErrorClassifier {
-
-  private static final Logger LOG = LoggerFactory.getLogger(MissingTopicClassifier.class);
+public class MissingSchemaClassifier implements QueryErrorClassifier {
+  private static final Logger LOG = LoggerFactory.getLogger(MissingSchemaClassifier.class);
 
   private final String queryId;
 
-  public MissingTopicClassifier(final String queryId) {
+  public MissingSchemaClassifier(final String queryId) {
     this.queryId = Objects.requireNonNull(queryId, "queryId");
   }
 
   @Override
   public Type classify(final Throwable e) {
-    final Type type = e instanceof MissingSourceTopicException
-        || (e instanceof StreamsException
-        && (ExceptionUtils.indexOfThrowable(e, MissingSourceTopicException.class) != -1))
-        ? Type.USER : Type.UNKNOWN;
+    final Type type = SchemaRegistryUtil.isSchemaNotFoundErrorCode(e) ? Type.USER : Type.UNKNOWN;
 
     if (type == Type.USER) {
       LOG.info(
-          "Classified error as USER error based on missing topic. Query ID: {} Exception: {}",
+          "Classified error as USER error based on missing SR schema. Query ID: {} Exception: {}",
           queryId,
-          e);
+          e.getMessage());
     }
 
     return type;
   }
-
 }

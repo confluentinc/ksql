@@ -135,4 +135,88 @@ public class CommandTest {
         Matchers.equalTo((short) 3)
     );
   }
+
+  @Test
+  public void shouldMigrateLegacyExactlyOnceFromCommandTopic() {
+    // Given: Command from old command topic with legacy 'exactly_once' value
+    final Command command = new Command(
+        "CREATE STREAM test AS SELECT * FROM source;",
+        ImmutableMap.of(
+            "processing.guarantee", "exactly_once",
+            "num.stream.threads", 4
+        ),
+        Collections.emptyMap(),
+        Optional.empty()
+    );
+
+    // When: Getting overwrite properties (triggers migration)
+    final Map<String, Object> properties = command.getOverwriteProperties();
+
+    // Then: Should be migrated to exactly_once_v2
+    assertThat(properties.get("processing.guarantee"), equalTo("exactly_once_v2"));
+    // Other properties should remain unchanged
+    assertThat(properties.get("num.stream.threads"), equalTo(4));
+  }
+
+  @Test
+  public void shouldMigrateLegacyAtMostOnceFromCommandTopic() {
+    // Given: Command from old command topic with legacy 'at_most_once' value
+    final Command command = new Command(
+        "CREATE STREAM test AS SELECT * FROM source;",
+        ImmutableMap.of(
+            "processing.guarantee", "at_most_once"
+        ),
+        Collections.emptyMap(),
+        Optional.empty()
+    );
+
+    // When: Getting overwrite properties (triggers migration)
+    final Map<String, Object> properties = command.getOverwriteProperties();
+
+    // Then: Should be migrated to at_least_once
+    assertThat(properties.get("processing.guarantee"), equalTo("at_least_once"));
+  }
+
+  @Test
+  public void shouldNotMigrateModernProcessingGuaranteeValues() {
+    // Given: Command with modern processing guarantee values
+    final Command command1 = new Command(
+        "CREATE STREAM test AS SELECT * FROM source;",
+        ImmutableMap.of("processing.guarantee", "exactly_once_v2"),
+        Collections.emptyMap(),
+        Optional.empty()
+    );
+    final Command command2 = new Command(
+        "CREATE STREAM test AS SELECT * FROM source;",
+        ImmutableMap.of("processing.guarantee", "at_least_once"),
+        Collections.emptyMap(),
+        Optional.empty()
+    );
+
+    // When: Getting overwrite properties
+    final Map<String, Object> properties1 = command1.getOverwriteProperties();
+    final Map<String, Object> properties2 = command2.getOverwriteProperties();
+
+    // Then: Should remain unchanged
+    assertThat(properties1.get("processing.guarantee"), equalTo("exactly_once_v2"));
+    assertThat(properties2.get("processing.guarantee"), equalTo("at_least_once"));
+  }
+
+  @Test
+  public void shouldHandleCommandWithNoProcessingGuarantee() {
+    // Given: Command without processing.guarantee property
+    final Command command = new Command(
+        "CREATE STREAM test AS SELECT * FROM source;",
+        ImmutableMap.of("num.stream.threads", 4),
+        Collections.emptyMap(),
+        Optional.empty()
+    );
+
+    // When: Getting overwrite properties
+    final Map<String, Object> properties = command.getOverwriteProperties();
+
+    // Then: Should not add processing.guarantee
+    assertThat(properties.containsKey("processing.guarantee"), is(false));
+    assertThat(properties.get("num.stream.threads"), equalTo(4));
+  }
 }

@@ -39,6 +39,7 @@ import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.config.SslConfigs;
 import org.apache.kafka.common.config.TopicConfig;
 import org.apache.kafka.streams.StreamsConfig;
+import org.hamcrest.Matchers;
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -643,5 +644,148 @@ public class KsqlConfigTest {
     assertThat(ksqlConfig.getBoolean(KsqlConfig.KSQL_PROXY_PROTOCOL_LOCAL_MODE_ENABLED), is(true));
     assertThat(ksqlConfig1.getBoolean(KsqlConfig.KSQL_PROXY_PROTOCOL_LOCAL_MODE_ENABLED), is(false));
     assertThat(ksqlConfig2.getBoolean(KsqlConfig.KSQL_PROXY_PROTOCOL_LOCAL_MODE_ENABLED), is(false));
+  }
+
+  @Test
+  public void shouldMigrateExactlyOnceToExactlyOnceV2() {
+    // Given
+    final Map<String, Object> properties = new HashMap<>();
+    properties.put(StreamsConfig.PROCESSING_GUARANTEE_CONFIG, "exactly_once");
+
+    final KsqlConfig config = createKsqlConfigWithProperties(properties);
+
+    // When
+    final Map<String, Object> result = config.getKsqlStreamConfigProps();
+
+    // Then
+    assertThat(result.get(StreamsConfig.PROCESSING_GUARANTEE_CONFIG),
+        Matchers.is(StreamsConfig.EXACTLY_ONCE_V2));
+  }
+
+  @Test
+  public void shouldNotChangeAtLeastOnce() {
+    // Given
+    final Map<String, Object> properties = new HashMap<>();
+    properties.put(StreamsConfig.PROCESSING_GUARANTEE_CONFIG, StreamsConfig.AT_LEAST_ONCE);
+
+    final KsqlConfig config = createKsqlConfigWithProperties(properties);
+
+    // When
+    final Map<String, Object> result = config.getKsqlStreamConfigProps();
+
+    // Then
+    assertThat(result.get(StreamsConfig.PROCESSING_GUARANTEE_CONFIG),
+        Matchers.is(StreamsConfig.AT_LEAST_ONCE));
+  }
+
+  @Test
+  public void shouldNotChangeExactlyOnceV2() {
+    // Given
+    final Map<String, Object> properties = new HashMap<>();
+    properties.put(StreamsConfig.PROCESSING_GUARANTEE_CONFIG, StreamsConfig.EXACTLY_ONCE_V2);
+
+    final KsqlConfig config = createKsqlConfigWithProperties(properties);
+
+    // When
+    final Map<String, Object> result = config.getKsqlStreamConfigProps();
+
+    // Then
+    assertThat(result.get(StreamsConfig.PROCESSING_GUARANTEE_CONFIG),
+        Matchers.is(StreamsConfig.EXACTLY_ONCE_V2));
+  }
+
+  @Test
+  public void shouldHandleNullProcessingGuarantee() {
+    // Given
+    final Map<String, Object> properties = new HashMap<>();
+    // No processing guarantee set
+
+    final KsqlConfig config = createKsqlConfigWithProperties(properties);
+
+    // When
+    final Map<String, Object> result = config.getKsqlStreamConfigProps();
+
+    // Then
+    assertThat(result.get(StreamsConfig.PROCESSING_GUARANTEE_CONFIG), Matchers.is(Matchers.nullValue()));
+  }
+
+  @Test
+  public void shouldMigrateWithApplicationId() {
+    // Given
+    final Map<String, Object> properties = new HashMap<>();
+    properties.put(StreamsConfig.PROCESSING_GUARANTEE_CONFIG, "exactly_once");
+
+    final KsqlConfig config = createKsqlConfigWithProperties(properties);
+
+    // When
+    final Map<String, Object> result = config.getKsqlStreamConfigProps("test-app-id");
+
+    // Then - verify migration happened
+    assertThat(result.get(StreamsConfig.PROCESSING_GUARANTEE_CONFIG),
+        Matchers.is(StreamsConfig.EXACTLY_ONCE_V2));
+
+    // Verify the method signature works (applicationId parameter is used by the method)
+    // The actual key name depends on deployment configuration, so we just verify migration worked
+    assertThat(result.containsKey(StreamsConfig.PROCESSING_GUARANTEE_CONFIG), Matchers.is(true));
+  }
+
+  @Test
+  public void shouldPreserveAllOtherPropertiesWhenMigrating() {
+    // Given - config with multiple properties including the one to migrate
+    final Map<String, Object> configMap = new HashMap<>();
+    configMap.put("ksql.service.id", "test-service");
+    configMap.put("ksql.streams.bootstrap.servers", "localhost:9092");
+    configMap.put("ksql.streams." + StreamsConfig.PROCESSING_GUARANTEE_CONFIG, "exactly_once");
+    configMap.put("ksql.streams." + StreamsConfig.NUM_STREAM_THREADS_CONFIG, "8");
+
+    // When
+    final KsqlConfig config = new KsqlConfig(configMap);
+    final Map<String, Object> result = config.getKsqlStreamConfigProps();
+
+    // Then - verify migration happened
+    assertThat(result.get(StreamsConfig.PROCESSING_GUARANTEE_CONFIG),
+        Matchers.is(StreamsConfig.EXACTLY_ONCE_V2));
+
+    // And all other properties are preserved (bootstrap.servers is converted to List by Kafka)
+    assertThat(result.containsKey(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG), Matchers.is(true));
+    assertThat(result.get(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG).toString(),
+        org.hamcrest.Matchers.containsString("localhost:9092"));
+    assertThat(result.get(StreamsConfig.NUM_STREAM_THREADS_CONFIG), Matchers.is(8));
+  }
+
+  @Test
+  public void shouldPreserveAllPropertiesWhenNoMigrationNeeded() {
+    // Given - config with multiple properties, no migration needed
+    final Map<String, Object> configMap = new HashMap<>();
+    configMap.put("ksql.service.id", "test-service");
+    configMap.put("ksql.streams.bootstrap.servers", "localhost:9092");
+    configMap.put("ksql.streams." + StreamsConfig.PROCESSING_GUARANTEE_CONFIG, "exactly_once_v2");
+
+    // When
+    final KsqlConfig config = new KsqlConfig(configMap);
+    final Map<String, Object> result = config.getKsqlStreamConfigProps();
+
+    // Then - no migration, value stays the same
+    assertThat(result.get(StreamsConfig.PROCESSING_GUARANTEE_CONFIG),
+        Matchers.is(StreamsConfig.EXACTLY_ONCE_V2));
+
+    // And all other properties are preserved (bootstrap.servers is converted to List by Kafka)
+    assertThat(result.containsKey(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG), Matchers.is(true));
+    assertThat(result.get(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG).toString(),
+        org.hamcrest.Matchers.containsString("localhost:9092"));
+  }
+
+  private KsqlConfig createKsqlConfigWithProperties(final Map<String, Object> properties) {
+    final Map<String, Object> configMap = new HashMap<>();
+    configMap.put("ksql.service.id", "test-service");
+    configMap.put("ksql.streams.bootstrap.servers", "localhost:9092");
+
+    // Add the processing guarantee property with ksql.streams prefix
+    if (properties.containsKey(StreamsConfig.PROCESSING_GUARANTEE_CONFIG)) {
+      configMap.put("ksql.streams." + StreamsConfig.PROCESSING_GUARANTEE_CONFIG,
+          properties.get(StreamsConfig.PROCESSING_GUARANTEE_CONFIG));
+    }
+
+    return new KsqlConfig(configMap);
   }
 }

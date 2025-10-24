@@ -30,6 +30,7 @@ import io.confluent.ksql.properties.PropertiesUtil;
 import io.confluent.ksql.rest.server.resources.IncompatibleKsqlCommandVersionException;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -118,7 +119,24 @@ public class Command {
       justification = "overwriteProperties is unmodifiableMap()"
   )
   public Map<String, Object> getOverwriteProperties() {
-    return PropertiesUtil.coerceTypes(overwriteProperties, true);
+    // Create mutable copy and migrate BEFORE coerceTypes validation
+    final Map<String, Object> mutableProps = new HashMap<>(overwriteProperties);
+    migrateLegacyProcessingGuarantee(mutableProps);
+    // Now validate and coerce the migrated values
+    return PropertiesUtil.coerceTypes(mutableProps, true);
+  }
+
+  private static void migrateLegacyProcessingGuarantee(final Map<String, Object> properties) {
+    final Object guarantee = properties.get("processing.guarantee");
+    if (guarantee != null) {
+      final String guaranteeStr = guarantee.toString();
+      if ("exactly_once".equals(guaranteeStr)) {
+        properties.put("processing.guarantee", "exactly_once_v2");
+      } else if ("at_most_once".equals(guaranteeStr)) {
+        // at_most_once is also deprecated, migrate to at_least_once for safety
+        properties.put("processing.guarantee", "at_least_once");
+      }
+    }
   }
 
   @SuppressFBWarnings(

@@ -118,7 +118,28 @@ public class Command {
       justification = "overwriteProperties is unmodifiableMap()"
   )
   public Map<String, Object> getOverwriteProperties() {
-    return PropertiesUtil.coerceTypes(overwriteProperties, true);
+    final Map<String, Object> coerced = PropertiesUtil.coerceTypes(overwriteProperties, true);
+    // Migrate legacy processing guarantee values for backward compatibility with command topic
+    migrateLegacyProcessingGuarantee(coerced);
+    return coerced;
+  }
+
+  /**
+   * Migrates legacy processing.guarantee values from command topic for backward compatibility.
+   * When replaying old commands from the command topic that used deprecated values like
+   * 'exactly_once' (v1), we need to migrate them to 'exactly_once_v2' to work with newer
+   * Kafka Streams versions that no longer support the legacy values.
+   *
+   * @param properties the properties map to migrate (modified in place)
+   */
+  private static void migrateLegacyProcessingGuarantee(final Map<String, Object> properties) {
+    final Object guarantee = properties.get("processing.guarantee");
+    if (guarantee != null) {
+      final String guaranteeStr = guarantee.toString();
+      if ("exactly_once".equals(guaranteeStr)) {
+        properties.put("processing.guarantee", "exactly_once_v2");
+      }
+    }
   }
 
   @SuppressFBWarnings(

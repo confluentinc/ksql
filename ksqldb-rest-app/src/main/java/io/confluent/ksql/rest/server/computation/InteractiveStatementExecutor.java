@@ -232,7 +232,7 @@ public class InteractiveStatementExecutor {
     final KsqlConfig mergedConfig = buildMergedConfig(command);
     final ConfiguredKsqlPlan configured = ConfiguredKsqlPlan.of(
         plan,
-        SessionConfig.of(mergedConfig, command.getOverwriteProperties())
+        SessionConfig.of(mergedConfig, command.getOverwritePropertiesForExecution())
     );
     putStatus(
         commandId,
@@ -321,7 +321,7 @@ public class InteractiveStatementExecutor {
 
   private KsqlConfig buildMergedConfig(final Command command) {
     return ksqlEngine.getKsqlConfig()
-        .overrideBreakingConfigsWithOriginalValues(command.getOriginalProperties());
+        .overrideBreakingConfigsWithOriginalValues(command.getOverwritePropertiesForExecution());
   }
 
   private void pauseQuery(final PreparedStatement<PauseQuery> pauseQuery) {

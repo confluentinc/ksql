@@ -153,8 +153,8 @@ public class CommandTest {
     );
 
     // When: Getting overwrite properties
-    final Map<String, Object> properties1 = command1.getOverwriteProperties();
-    final Map<String, Object> properties2 = command2.getOverwriteProperties();
+    final Map<String, Object> properties1 = command1.getOverwritePropertiesForExecution();
+    final Map<String, Object> properties2 = command2.getOverwritePropertiesForExecution();
 
     // Then: Should remain unchanged
     assertThat(properties1.get("processing.guarantee"), equalTo("exactly_once_v2"));
@@ -172,7 +172,7 @@ public class CommandTest {
     );
 
     // When: Getting overwrite properties
-    final Map<String, Object> properties = command.getOverwriteProperties();
+    final Map<String, Object> properties = command.getOverwritePropertiesForExecution();
 
     // Then: Should not add processing.guarantee
     assertThat(properties.containsKey("processing.guarantee"), is(false));

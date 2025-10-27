@@ -30,6 +30,7 @@ import io.confluent.ksql.properties.PropertiesUtil;
 import io.confluent.ksql.rest.server.resources.IncompatibleKsqlCommandVersionException;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -112,6 +113,10 @@ public class Command {
     return statement;
   }
 
+  /**
+   * Returns the overwrite properties for JSON serialization to command topic.
+   * This preserves the original values as they were stored.
+   */
   @JsonProperty("streamsProperties")
   @SuppressFBWarnings(
       value = "EI_EXPOSE_REP",
@@ -119,6 +124,28 @@ public class Command {
   )
   public Map<String, Object> getOverwriteProperties() {
     return PropertiesUtil.coerceTypes(overwriteProperties, true);
+  }
+
+  /**
+   * Returns the overwrite properties for runtime use, with legacy values migrated.
+   * This is what should be used when executing queries.
+   */
+  public Map<String, Object> getOverwritePropertiesForExecution() {
+    // Create mutable copy and migrate BEFORE coerceTypes validation
+    final Map<String, Object> mutableProps = new HashMap<>(overwriteProperties);
+    migrateLegacyProcessingGuarantee(mutableProps);
+    // Now validate and coerce the migrated values
+    return PropertiesUtil.coerceTypes(mutableProps, true);
+  }
+
+  private static void migrateLegacyProcessingGuarantee(final Map<String, Object> properties) {
+    final Object guarantee = properties.get("processing.guarantee");
+    if (guarantee != null) {
+      final String guaranteeStr = guarantee.toString();
+      if ("exactly_once".equals(guaranteeStr)) {
+        properties.put("processing.guarantee", "exactly_once_v2");
+      }
+    }
   }
 
   @SuppressFBWarnings(

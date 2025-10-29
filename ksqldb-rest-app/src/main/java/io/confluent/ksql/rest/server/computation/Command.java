@@ -236,8 +236,6 @@ public class Command {
     return "Command{"
         + "statement='" + statement + '\''
         + ", overwriteProperties=" + overwriteProperties
-        + ", originalProperties=" + originalProperties
-        + ", hasPlan=" + plan.isPresent()
         + ", version=" + version
         + '}';
   }

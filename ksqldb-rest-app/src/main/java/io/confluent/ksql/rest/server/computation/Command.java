@@ -18,6 +18,7 @@ package io.confluent.ksql.rest.server.computation;
 import static java.util.Objects.requireNonNull;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.google.common.annotations.VisibleForTesting;
@@ -130,30 +131,58 @@ public class Command {
    * Returns the overwrite properties for runtime use, with legacy values migrated.
    * This is what should be used when executing queries.
    */
+  @JsonIgnore
   public Map<String, Object> getOverwritePropertiesForExecution() {
-    // Create mutable copy and migrate BEFORE coerceTypes validation
-    final Map<String, Object> mutableProps = new HashMap<>(overwriteProperties);
-    migrateLegacyProcessingGuarantee(mutableProps);
-    // Now validate and coerce the migrated values
-    return PropertiesUtil.coerceTypes(mutableProps, true);
+    final Map<String, Object> migrated = migrateProcessingGuaranteeIfNeeded(
+        overwriteProperties,
+        "processing.guarantee"
+    );
+    return PropertiesUtil.coerceTypes(migrated, true);
   }
 
-  private static void migrateLegacyProcessingGuarantee(final Map<String, Object> properties) {
-    final Object guarantee = properties.get("processing.guarantee");
-    if (guarantee != null) {
-      final String guaranteeStr = guarantee.toString();
-      if ("exactly_once".equals(guaranteeStr)) {
-        properties.put("processing.guarantee", "exactly_once_v2");
-      }
-    }
-  }
-
+  /**
+   * Returns the original properties for JSON serialization to command topic.
+   * This preserves the original values as they were stored.
+   */
+  @JsonProperty("originalProperties")
   @SuppressFBWarnings(
       value = "EI_EXPOSE_REP",
       justification = "originalProperties is unmodifiableMap()"
   )
   public Map<String, String> getOriginalProperties() {
     return originalProperties;
+  }
+
+  /**
+   * Returns the original properties for runtime use, with legacy values migrated.
+   * This is what should be used when executing queries or building configs.
+   */
+  @JsonIgnore
+  public Map<String, String> getOriginalPropertiesForExecution() {
+    return migrateProcessingGuaranteeIfNeeded(
+        originalProperties,
+        "ksql.streams.processing.guarantee"
+    );
+  }
+
+  /**
+   * Generic helper to migrate legacy 'exactly_once' to 'exactly_once_v2'.
+   *
+   * @return migrated map if needed, or original map if no migration required
+   */
+  private static <T> Map<String, T> migrateProcessingGuaranteeIfNeeded(
+      final Map<String, T> properties,
+      final String key
+  ) {
+    final T value = properties.get(key);
+    if (value != null && "exactly_once".equals(value.toString())) {
+      final Map<String, T> migrated = new HashMap<>(properties);
+      @SuppressWarnings("unchecked")
+      final T migratedValue = (T) "exactly_once_v2";
+      migrated.put(key, migratedValue);
+      return migrated;
+    }
+    return properties;
   }
 
   public Optional<KsqlPlan> getPlan() {
@@ -207,6 +236,8 @@ public class Command {
     return "Command{"
         + "statement='" + statement + '\''
         + ", overwriteProperties=" + overwriteProperties
+        + ", originalProperties=" + originalProperties
+        + ", hasPlan=" + plan.isPresent()
         + ", version=" + version
         + '}';
   }

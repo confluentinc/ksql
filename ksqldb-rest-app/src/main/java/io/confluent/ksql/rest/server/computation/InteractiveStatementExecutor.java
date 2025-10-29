@@ -321,7 +321,7 @@ public class InteractiveStatementExecutor {
 
   private KsqlConfig buildMergedConfig(final Command command) {
     return ksqlEngine.getKsqlConfig()
-        .overrideBreakingConfigsWithOriginalValues(command.getOverwritePropertiesForExecution());
+        .overrideBreakingConfigsWithOriginalValues(command.getOriginalPropertiesForExecution());
   }
 
   private void pauseQuery(final PreparedStatement<PauseQuery> pauseQuery) {

@@ -31,7 +31,6 @@ import io.confluent.ksql.properties.PropertiesUtil;
 import io.confluent.ksql.rest.server.resources.IncompatibleKsqlCommandVersionException;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -133,7 +132,7 @@ public class Command {
    */
   @JsonIgnore
   public Map<String, Object> getOverwritePropertiesForExecution() {
-    final Map<String, Object> migrated = migrateProcessingGuaranteeIfNeeded(
+    final Map<String, Object> migrated = ConfigMigrator.migrateProcessingGuarantee(
         overwriteProperties,
         "processing.guarantee"
     );
@@ -159,30 +158,10 @@ public class Command {
    */
   @JsonIgnore
   public Map<String, String> getOriginalPropertiesForExecution() {
-    return migrateProcessingGuaranteeIfNeeded(
+    return ConfigMigrator.migrateProcessingGuarantee(
         originalProperties,
         "ksql.streams.processing.guarantee"
     );
-  }
-
-  /**
-   * Generic helper to migrate legacy 'exactly_once' to 'exactly_once_v2'.
-   *
-   * @return migrated map if needed, or original map if no migration required
-   */
-  private static <T> Map<String, T> migrateProcessingGuaranteeIfNeeded(
-      final Map<String, T> properties,
-      final String key
-  ) {
-    final T value = properties.get(key);
-    if (value != null && "exactly_once".equals(value.toString())) {
-      final Map<String, T> migrated = new HashMap<>(properties);
-      @SuppressWarnings("unchecked")
-      final T migratedValue = (T) "exactly_once_v2";
-      migrated.put(key, migratedValue);
-      return migrated;
-    }
-    return properties;
   }
 
   public Optional<KsqlPlan> getPlan() {

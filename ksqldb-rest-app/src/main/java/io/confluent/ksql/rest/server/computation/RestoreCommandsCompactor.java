@@ -224,8 +224,8 @@ public final class RestoreCommandsCompactor {
 
     final Command newCommand = new Command(
         command.getStatement(),
-        Optional.of(command.getOverwriteProperties()),
-        Optional.of(command.getOriginalProperties()),
+        Optional.of(command.getOverwritePropertiesForExecution()),
+        Optional.of(command.getOriginalPropertiesForExecution()),
         command.getPlan().map(KsqlPlan::withoutQuery),
         command.getVersion()
     );

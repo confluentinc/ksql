@@ -31,17 +31,14 @@ import org.junit.Test;
 public class ConfigMigratorTest {
 
   @Test
-  public void shouldMigrateExactlyOnceToExactlyOnceV2() {
+  public void shouldMigrateExactlyOnceInOverwriteProperties() {
     // Given:
     final Map<String, Object> properties = new HashMap<>();
     properties.put(StreamsConfig.PROCESSING_GUARANTEE_CONFIG, LEGACY_EXACTLY_ONCE);
     properties.put(StreamsConfig.NUM_STREAM_THREADS_CONFIG, 4);
 
     // When:
-    final Map<String, Object> result = ConfigMigrator.migrateProcessingGuarantee(
-        properties,
-        StreamsConfig.PROCESSING_GUARANTEE_CONFIG
-    );
+    final Map<String, Object> result = ConfigMigrator.migrateOverwriteProperties(properties);
 
     // Then:
     assertThat(result, hasEntry(
@@ -52,7 +49,50 @@ public class ConfigMigratorTest {
   }
 
   @Test
-  public void shouldNotModifyExactlyOnceV2() {
+  public void shouldMigrateExactlyOnceInOriginalProperties() {
+    // Given:
+    final Map<String, String> properties = new HashMap<>();
+    properties.put(
+        KSQL_STREAMS_PREFIX + StreamsConfig.PROCESSING_GUARANTEE_CONFIG,
+        LEGACY_EXACTLY_ONCE
+    );
+    properties.put(KSQL_STREAMS_PREFIX + StreamsConfig.APPLICATION_ID_CONFIG, "my_app");
+
+    // When:
+    final Map<String, String> result = ConfigMigrator.migrateOriginalProperties(properties);
+
+    // Then:
+    assertThat(result, hasEntry(
+        KSQL_STREAMS_PREFIX + StreamsConfig.PROCESSING_GUARANTEE_CONFIG,
+        StreamsConfig.EXACTLY_ONCE_V2
+    ));
+    assertThat(result, hasEntry(
+        KSQL_STREAMS_PREFIX + StreamsConfig.APPLICATION_ID_CONFIG,
+        "my_app"
+    ));
+  }
+
+  @Test
+  public void shouldNotModifyExactlyOnceV2InOverwriteProperties() {
+    // Given:
+    final Map<String, Object> properties = ImmutableMap.of(
+        StreamsConfig.PROCESSING_GUARANTEE_CONFIG, StreamsConfig.EXACTLY_ONCE_V2,
+        StreamsConfig.NUM_STREAM_THREADS_CONFIG, 4
+    );
+
+    // When:
+    final Map<String, Object> result = ConfigMigrator.migrateOverwriteProperties(properties);
+
+    // Then:
+    assertThat(result, sameInstance(properties));
+    assertThat(
+        result.get(StreamsConfig.PROCESSING_GUARANTEE_CONFIG),
+        is(StreamsConfig.EXACTLY_ONCE_V2)
+    );
+  }
+
+  @Test
+  public void shouldNotModifyExactlyOnceV2InOriginalProperties() {
     // Given:
     final Map<String, String> properties = ImmutableMap.of(
         KSQL_STREAMS_PREFIX + StreamsConfig.PROCESSING_GUARANTEE_CONFIG,
@@ -61,10 +101,7 @@ public class ConfigMigratorTest {
     );
 
     // When:
-    final Map<String, String> result = ConfigMigrator.migrateProcessingGuarantee(
-        properties,
-        KSQL_STREAMS_PREFIX + StreamsConfig.PROCESSING_GUARANTEE_CONFIG
-    );
+    final Map<String, String> result = ConfigMigrator.migrateOriginalProperties(properties);
 
     // Then:
     assertThat(result, sameInstance(properties));
@@ -83,10 +120,7 @@ public class ConfigMigratorTest {
     );
 
     // When:
-    final Map<String, Object> result = ConfigMigrator.migrateProcessingGuarantee(
-        properties,
-        StreamsConfig.PROCESSING_GUARANTEE_CONFIG
-    );
+    final Map<String, Object> result = ConfigMigrator.migrateOverwriteProperties(properties);
 
     // Then:
     assertThat(result, sameInstance(properties));
@@ -104,10 +138,7 @@ public class ConfigMigratorTest {
     );
 
     // When:
-    final Map<String, Object> result = ConfigMigrator.migrateProcessingGuarantee(
-        properties,
-        StreamsConfig.PROCESSING_GUARANTEE_CONFIG
-    );
+    final Map<String, Object> result = ConfigMigrator.migrateOverwriteProperties(properties);
 
     // Then:
     assertThat(result, sameInstance(properties));
@@ -119,61 +150,10 @@ public class ConfigMigratorTest {
     final Map<String, Object> properties = ImmutableMap.of();
 
     // When:
-    final Map<String, Object> result = ConfigMigrator.migrateProcessingGuarantee(
-        properties,
-        StreamsConfig.PROCESSING_GUARANTEE_CONFIG
-    );
+    final Map<String, Object> result = ConfigMigrator.migrateOverwriteProperties(properties);
 
     // Then:
     assertThat(result, sameInstance(properties));
-  }
-
-  @Test
-  public void shouldWorkWithDifferentKeyForOriginalProperties() {
-    // Given:
-    final Map<String, String> properties = new HashMap<>();
-    properties.put(
-        KSQL_STREAMS_PREFIX + StreamsConfig.PROCESSING_GUARANTEE_CONFIG,
-        LEGACY_EXACTLY_ONCE
-    );
-    properties.put(KSQL_STREAMS_PREFIX + StreamsConfig.APPLICATION_ID_CONFIG, "my_app");
-
-    // When:
-    final Map<String, String> result = ConfigMigrator.migrateProcessingGuarantee(
-        properties,
-        KSQL_STREAMS_PREFIX + StreamsConfig.PROCESSING_GUARANTEE_CONFIG
-    );
-
-    // Then:
-    assertThat(result, hasEntry(
-        KSQL_STREAMS_PREFIX + StreamsConfig.PROCESSING_GUARANTEE_CONFIG,
-        StreamsConfig.EXACTLY_ONCE_V2
-    ));
-    assertThat(result, hasEntry(
-        KSQL_STREAMS_PREFIX + StreamsConfig.APPLICATION_ID_CONFIG,
-        "my_app"
-    ));
-  }
-
-  @Test
-  public void shouldWorkWithDifferentKeyForOverwriteProperties() {
-    // Given:
-    final Map<String, Object> properties = new HashMap<>();
-    properties.put(StreamsConfig.PROCESSING_GUARANTEE_CONFIG, LEGACY_EXACTLY_ONCE);
-    properties.put(StreamsConfig.APPLICATION_ID_CONFIG, "my_app");
-
-    // When:
-    final Map<String, Object> result = ConfigMigrator.migrateProcessingGuarantee(
-        properties,
-        StreamsConfig.PROCESSING_GUARANTEE_CONFIG
-    );
-
-    // Then:
-    assertThat(result, hasEntry(
-        StreamsConfig.PROCESSING_GUARANTEE_CONFIG,
-        StreamsConfig.EXACTLY_ONCE_V2
-    ));
-    assertThat(result, hasEntry(StreamsConfig.APPLICATION_ID_CONFIG, "my_app"));
   }
 
   @Test
@@ -185,10 +165,7 @@ public class ConfigMigratorTest {
     );
 
     // When:
-    final Map<String, Object> result = ConfigMigrator.migrateProcessingGuarantee(
-        properties,
-        StreamsConfig.PROCESSING_GUARANTEE_CONFIG
-    );
+    final Map<String, Object> result = ConfigMigrator.migrateOverwriteProperties(properties);
 
     // Then:
     assertThat("Should return same instance when no migration needed",
@@ -203,10 +180,7 @@ public class ConfigMigratorTest {
     );
 
     // When:
-    final Map<String, Object> result = ConfigMigrator.migrateProcessingGuarantee(
-        properties,
-        StreamsConfig.PROCESSING_GUARANTEE_CONFIG
-    );
+    final Map<String, Object> result = ConfigMigrator.migrateOverwriteProperties(properties);
 
     // Then:
     assertThat("Should create new map when migration needed",
@@ -217,3 +191,4 @@ public class ConfigMigratorTest {
     );
   }
 }
+

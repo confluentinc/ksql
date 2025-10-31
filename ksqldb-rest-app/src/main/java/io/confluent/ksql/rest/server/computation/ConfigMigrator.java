@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.rest.server.computation;
 
+import io.confluent.ksql.util.KsqlConfig;
 import java.util.HashMap;
 import java.util.Map;
 import org.apache.kafka.streams.StreamsConfig;
@@ -40,6 +41,30 @@ public final class ConfigMigrator {
   }
 
   /**
+   * Migrates overwrite properties (session-level overrides) for execution.
+   */
+  public static <T> Map<String, T> migrateOverwriteProperties(
+      final Map<String, T> overwriteProperties
+  ) {
+    return migrateProcessingGuarantee(
+        overwriteProperties,
+        StreamsConfig.PROCESSING_GUARANTEE_CONFIG
+    );
+  }
+
+  /**
+   * Migrates original properties (server config) for execution.
+   */
+  public static <T> Map<String, T> migrateOriginalProperties(
+      final Map<String, T> originalProperties
+  ) {
+    return migrateProcessingGuarantee(
+        originalProperties,
+        KsqlConfig.KSQL_STREAMS_PREFIX + StreamsConfig.PROCESSING_GUARANTEE_CONFIG
+    );
+  }
+
+  /**
    * Migrates the 'processing.guarantee' property from 'exactly_once' to 'exactly_once_v2'.
    * 
    * <p>This migration is necessary because Kafka Streams deprecated 'exactly_once' in favor
@@ -47,7 +72,7 @@ public final class ConfigMigrator {
    * the legacy value, and this method ensures they can be executed on newer Kafka Streams
    * versions without validation errors.
    */
-  public static <T> Map<String, T> migrateProcessingGuarantee(
+  private static <T> Map<String, T> migrateProcessingGuarantee(
       final Map<String, T> properties,
       final String key
   ) {

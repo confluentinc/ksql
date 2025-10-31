@@ -30,12 +30,10 @@ import io.confluent.ksql.planner.plan.ConfiguredKsqlPlan;
 import io.confluent.ksql.properties.PropertiesUtil;
 import io.confluent.ksql.rest.server.resources.IncompatibleKsqlCommandVersionException;
 import io.confluent.ksql.statement.ConfiguredStatement;
-import io.confluent.ksql.util.KsqlConfig;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import org.apache.kafka.streams.StreamsConfig;
 
 @JsonSubTypes({})
 public class Command {
@@ -134,9 +132,8 @@ public class Command {
    */
   @JsonIgnore
   public Map<String, Object> getOverwritePropertiesForExecution() {
-    final Map<String, Object> migrated = ConfigMigrator.migrateProcessingGuarantee(
-        overwriteProperties,
-        StreamsConfig.PROCESSING_GUARANTEE_CONFIG
+    final Map<String, Object> migrated = ConfigMigrator.migrateOverwriteProperties(
+        overwriteProperties
     );
     return PropertiesUtil.coerceTypes(migrated, true);
   }
@@ -160,10 +157,7 @@ public class Command {
    */
   @JsonIgnore
   public Map<String, String> getOriginalPropertiesForExecution() {
-    return ConfigMigrator.migrateProcessingGuarantee(
-        originalProperties,
-        KsqlConfig.KSQL_STREAMS_PREFIX + StreamsConfig.PROCESSING_GUARANTEE_CONFIG
-    );
+    return ConfigMigrator.migrateOriginalProperties(originalProperties);
   }
 
   public Optional<KsqlPlan> getPlan() {

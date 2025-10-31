@@ -392,7 +392,7 @@ public class CommandRunner implements Closeable {
     serverState.setTerminating();
     LOG.info("Terminating the KSQL server.");
     this.close();
-    final List<String> deleteTopicList = (List<String>) command.getOverwriteProperties()
+    final List<String> deleteTopicList = (List<String>) command.getOverwritePropertiesForExecution()
         .getOrDefault(ClusterTerminateRequest.DELETE_TOPIC_LIST_PROP, Collections.emptyList());
 
     clusterTerminator.terminateCluster(deleteTopicList);

@@ -366,7 +366,7 @@ public class InteractiveStatementExecutorTest {
 
     // Then:
     final KsqlConfig expectedConfig = ksqlConfig.overrideBreakingConfigsWithOriginalValues(
-        plannedCommand.getOriginalProperties());
+        plannedCommand.getOriginalPropertiesForExecution());
     verify(mockEngine).execute(
         serviceContext,
         ConfiguredKsqlPlan.of(plan, SessionConfig.of(expectedConfig, emptyMap())),

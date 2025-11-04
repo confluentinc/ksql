@@ -20,6 +20,8 @@ import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.api.server.Server;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.security.KsqlAuthorizationProvider;
+import io.vertx.core.Handler;
+import io.vertx.core.Promise;
 import io.vertx.core.WorkerExecutor;
 import io.vertx.ext.web.RoutingContext;
 import org.junit.Test;
@@ -79,7 +81,7 @@ public class KsqlAuthorizationProviderHandlerTest {
 
     // Then (make sure the authorization "work" is not skipped):
     Mockito.verify(routingContext, Mockito.never()).next();
-    Mockito.verify(workerExecutor).executeBlocking(Mockito.any(), Mockito.anyBoolean(), Mockito.any());
+    Mockito.verify(workerExecutor).executeBlocking((Handler<Promise<Object>>) Mockito.any(), Mockito.anyBoolean(), Mockito.any());
   }
 
 }

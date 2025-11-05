@@ -740,12 +740,14 @@ public class ClientImpl implements Client {
     httpClient.request(options, ar -> {
       if (ar.failed()) {
         cf.completeExceptionally(ar.cause());
+        return;
       }
 
       HttpClientRequest request = ar.result();
       request.response(response -> {
         if (response.failed()) {
           cf.completeExceptionally(response.cause());
+          return;
         }
 
         responseHandler.handle(response.result());

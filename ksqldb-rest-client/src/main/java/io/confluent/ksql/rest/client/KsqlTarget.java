@@ -490,7 +490,6 @@ public final class KsqlTarget {
       httpClientRequest.response(response -> {
         if (response.failed()) {
           vcf.completeExceptionally(response.cause());
-          return;
         }
 
         responseHandler.accept(response.result(), vcf);

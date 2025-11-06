@@ -259,6 +259,6 @@ public class JaasAuthProviderTest {
       promise.future().onComplete(resultHandler);
       blockingCodeHandler.handle(promise);
       return null;
-    }).when(worker).executeBlocking(any(), eq(false), any());
+    }).when(worker).executeBlocking(any(Handler.class), eq(false), any(Handler.class));
   }
 }

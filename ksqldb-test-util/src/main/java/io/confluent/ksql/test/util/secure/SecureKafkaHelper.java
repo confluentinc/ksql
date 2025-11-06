@@ -30,19 +30,19 @@ public final class SecureKafkaHelper {
   private SecureKafkaHelper() {
   }
 
-  public static Map<String, Object> getSecureCredentialsConfig(final Credentials credentials) {
-    final Map<String, Object> props = new HashMap<>();
+  public static Map<String, String> getSecureCredentialsConfig(final Credentials credentials) {
+    final Map<String, String> props = new HashMap<>();
     addSecureCredentialsToConfig(props, credentials);
     return props;
   }
 
-  public static void addSecureCredentialsToConfig(final Map<String, Object> props,
+  public static void addSecureCredentialsToConfig(final Map<String, String> props,
                                                   final Credentials credentials) {
     addSecureCredentialsToConfig(props);
     props.put(SaslConfigs.SASL_JAAS_CONFIG, buildJaasConfig(credentials));
   }
 
-  public static void addSecureCredentialsToConfig(final Map<String, Object> props) {
+  public static void addSecureCredentialsToConfig(final Map<String, String> props) {
     props.put(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, SecurityProtocol.SASL_SSL.name);
     props.put(SaslConfigs.SASL_MECHANISM, PLAIN_SASL_MECHANISM);
     props.put(SslConfigs.SSL_ENDPOINT_IDENTIFICATION_ALGORITHM_CONFIG, "");

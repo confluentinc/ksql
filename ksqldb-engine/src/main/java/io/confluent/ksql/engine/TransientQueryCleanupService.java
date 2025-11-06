@@ -39,11 +39,11 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import org.apache.kafka.streams.StreamsConfig;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class TransientQueryCleanupService extends AbstractScheduledService {
-  private static final Logger LOG = LoggerFactory.getLogger(TransientQueryCleanupService.class);
+  private static final Logger LOG = LogManager.getLogger(TransientQueryCleanupService.class);
   private final Pattern internalTopicPrefixPattern;
   private final Pattern transientAppIdPattern;
   private final Set<String> queriesGuaranteedToBeRunningAtSomePoint;

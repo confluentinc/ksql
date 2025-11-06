@@ -15,8 +15,8 @@
 
 package io.confluent.ksql.planner.plan;
 
+import static io.confluent.ksql.planner.plan.PlanTestUtil.PROCESS_NODE;
 import static io.confluent.ksql.planner.plan.PlanTestUtil.SOURCE_NODE;
-import static io.confluent.ksql.planner.plan.PlanTestUtil.TRANSFORM_NODE;
 import static io.confluent.ksql.planner.plan.PlanTestUtil.verifyProcessorNode;
 import static io.confluent.ksql.schema.ksql.ColumnMatchers.valueColumn;
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -27,8 +27,8 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.GenericKey;
-import io.confluent.ksql.execution.runtime.RuntimeBuildContext;
 import io.confluent.ksql.execution.context.QueryContext;
+import io.confluent.ksql.execution.runtime.RuntimeBuildContext;
 import io.confluent.ksql.execution.streams.KSPlanBuilder;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.InternalFunctionRegistry;
@@ -41,6 +41,7 @@ import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.testutils.AnalysisTestUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.MetaStoreFixture;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -59,7 +60,9 @@ public class KsqlBareOutputNodeTest {
 
   private static final String FILTER_NODE = "WhereFilter";
   private static final String FILTER_MAPVALUES_NODE = "Project";
-  private static final String SIMPLE_SELECT_WITH_FILTER = "SELECT col0, col2, col3 FROM test1 WHERE col0 > 100 EMIT CHANGES;";
+  private static final String PEEK_NODE = "KSTREAM-PEEK-0000000003";
+  private static final String SIMPLE_SELECT_WITH_FILTER
+      = "SELECT col0, col2, col3 FROM test1 WHERE col0 > 100 EMIT CHANGES;";
 
   private SchemaKStream stream;
   private StreamsBuilder builder;
@@ -104,22 +107,27 @@ public class KsqlBareOutputNodeTest {
   @Test
   public void shouldBuildSourceNode() {
     final TopologyDescription.Source node = (TopologyDescription.Source) getNodeByName(SOURCE_NODE);
-    final List<String> successors = node.successors().stream().map(TopologyDescription.Node::name).collect(Collectors.toList());
+    final List<String> successors = node.successors().stream().map(TopologyDescription.Node::name)
+        .collect(Collectors.toList());
     assertThat(node.predecessors(), equalTo(Collections.emptySet()));
-    assertThat(successors, equalTo(Collections.singletonList(TRANSFORM_NODE)));
+    assertThat(successors, equalTo(List.of(PROCESS_NODE)));
     assertThat(node.topicSet(), equalTo(ImmutableSet.of("test1")));
   }
 
   @Test
   public void shouldBuildTransformNode() {
-    final TopologyDescription.Processor node = (TopologyDescription.Processor) getNodeByName(TRANSFORM_NODE);
-    verifyProcessorNode(node, Collections.singletonList(SOURCE_NODE), Collections.singletonList(FILTER_NODE));
+    final TopologyDescription.Processor node
+        = (TopologyDescription.Processor) getNodeByName(PROCESS_NODE);
+    verifyProcessorNode(node, Collections.singletonList(SOURCE_NODE),
+        List.of(FILTER_NODE, "KSTREAM-PEEK-0000000002"));
   }
 
   @Test
   public void shouldBuildFilterNode() {
-    final TopologyDescription.Processor node = (TopologyDescription.Processor) getNodeByName(FILTER_NODE);
-    verifyProcessorNode(node, Collections.singletonList(TRANSFORM_NODE), Collections.singletonList(FILTER_MAPVALUES_NODE));
+    final TopologyDescription.Processor node
+        = (TopologyDescription.Processor) getNodeByName(FILTER_NODE);
+    verifyProcessorNode(node, Collections.singletonList(PROCESS_NODE),
+        Arrays.asList(PEEK_NODE, FILTER_MAPVALUES_NODE));
   }
 
   @Test

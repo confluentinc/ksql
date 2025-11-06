@@ -227,7 +227,7 @@ class HighAvailabilityTestUtil {
             return null;
           }).get();
     } catch (ExecutionException | InterruptedException e) {
-      LOG.error("Error waiting for heartbeat request", e);;
+      throw new AssertionError("Error waiting for heartbeat request", e);
     }
   }
 

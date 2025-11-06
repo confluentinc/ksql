@@ -225,7 +225,9 @@ class HighAvailabilityTestUtil {
           .exceptionally(t -> {
             LOG.error("Unexpected exception in async request", t);
             return null;
-          });
+          }).get();
+    } catch (ExecutionException | InterruptedException e) {
+      throw new AssertionError("Error waiting for heartbeat request", e);
     }
   }
 

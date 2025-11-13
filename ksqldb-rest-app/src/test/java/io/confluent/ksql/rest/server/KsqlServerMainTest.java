@@ -270,7 +270,8 @@ public class KsqlServerMainTest {
   public void shouldFailOnInvalidCipherSuitesList() {
     // Given:
     final KsqlConfig config = configWith(ImmutableMap.of(
-        ConfluentConfigs.ENABLE_FIPS_CONFIG, true
+        ConfluentConfigs.ENABLE_FIPS_CONFIG, true,
+        ConfluentConfigs.ENABLE_FIPS_MODE_CONFIG, "fips-140-3"
     ));
     final String wrongCipherSuite = "TLS_RSA_WITH_NULL_MD5";
     final KsqlRestConfig restConfig = new KsqlRestConfig(ImmutableMap.<String, Object>builder()
@@ -287,7 +288,7 @@ public class KsqlServerMainTest {
 
     // Then:
     assertThat(e.getMessage(), containsString(
-        "FIPS 140-2 Configuration Error, invalid cipher suites: "
+        "FIPS fips-140-3 Configuration Error, invalid cipher suites: "
             + wrongCipherSuite));
   }
 
@@ -295,7 +296,8 @@ public class KsqlServerMainTest {
   public void shouldFailOnInvalidEnabledProtocols() {
     // Given:
     final KsqlConfig config = configWith(ImmutableMap.of(
-        ConfluentConfigs.ENABLE_FIPS_CONFIG, true
+        ConfluentConfigs.ENABLE_FIPS_CONFIG, true,
+        ConfluentConfigs.ENABLE_FIPS_MODE_CONFIG, "fips-140-3"
     ));
     final String wrongEnabledProtocols = "TLSv1.0";
     final KsqlRestConfig restConfig = new KsqlRestConfig(ImmutableMap.<String, Object>builder()
@@ -314,7 +316,7 @@ public class KsqlServerMainTest {
 
     // Then:
     assertThat(e.getMessage(), containsString(
-        "FIPS 140-2 Configuration Error, invalid TLS versions: "
+        "FIPS fips-140-3 Configuration Error, invalid TLS versions: "
             + wrongEnabledProtocols));
   }
 
@@ -322,7 +324,8 @@ public class KsqlServerMainTest {
   public void shouldFailOnNullBrokerSecurityProtocol() {
     // Given:
     final KsqlConfig config = configWith(ImmutableMap.of(
-        ConfluentConfigs.ENABLE_FIPS_CONFIG, true
+        ConfluentConfigs.ENABLE_FIPS_CONFIG, true,
+        ConfluentConfigs.ENABLE_FIPS_MODE_CONFIG, "fips-140-3"
     ));
     final KsqlRestConfig restConfig = new KsqlRestConfig(ImmutableMap.<String, Object>builder()
         .put(KsqlRestConfig.SSL_CIPHER_SUITES_CONFIG,
@@ -348,6 +351,7 @@ public class KsqlServerMainTest {
     // Given:
     final KsqlConfig config = configWith(ImmutableMap.of(
         ConfluentConfigs.ENABLE_FIPS_CONFIG, true,
+        ConfluentConfigs.ENABLE_FIPS_MODE_CONFIG, "fips-140-3",
         CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, SecurityProtocol.SASL_PLAINTEXT.name
     ));
     final KsqlRestConfig restConfig = new KsqlRestConfig(ImmutableMap.<String, Object>builder()
@@ -364,7 +368,7 @@ public class KsqlServerMainTest {
 
     // Then:
     assertThat(e.getMessage(), containsString(
-        "FIPS 140-2 Configuration Error, invalid broker protocols: "
+        "FIPS fips-140-3 Configuration Error, invalid broker protocols: "
             + CommonClientConfigs.SECURITY_PROTOCOL_CONFIG
             + ":SASL_PLAINTEXT"));
   }
@@ -374,6 +378,7 @@ public class KsqlServerMainTest {
     // Given:
     final KsqlConfig config = configWith(ImmutableMap.of(
         ConfluentConfigs.ENABLE_FIPS_CONFIG, true,
+        ConfluentConfigs.ENABLE_FIPS_MODE_CONFIG, "fips-140-3",
         CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, SecurityProtocol.SASL_SSL.name
     ));
     final KsqlRestConfig restConfig = new KsqlRestConfig(ImmutableMap.<String, Object>builder()
@@ -400,6 +405,7 @@ public class KsqlServerMainTest {
     // Given:
     final KsqlConfig config = configWith(ImmutableMap.of(
         ConfluentConfigs.ENABLE_FIPS_CONFIG, true,
+        ConfluentConfigs.ENABLE_FIPS_MODE_CONFIG, "fips-140-3",
         CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, SecurityProtocol.SASL_SSL.name
     ));
     final KsqlRestConfig restConfig = new KsqlRestConfig(ImmutableMap.<String, Object>builder()
@@ -417,7 +423,7 @@ public class KsqlServerMainTest {
 
     // Then:
     assertThat(e.getMessage(), containsString(
-        "FIPS 140-2 Configuration Error, invalid rest protocol: http"
+        "FIPS fips-140-3 Configuration Error, invalid rest protocol: http (from input: http)"
         + "\nInvalid rest protocol for "
         + KsqlConfig.SSL_ENDPOINT_IDENTIFICATION_ALGORITHM_CONFIG));
   }
@@ -427,6 +433,7 @@ public class KsqlServerMainTest {
     // Given:
     final KsqlConfig config = configWith(ImmutableMap.of(
         ConfluentConfigs.ENABLE_FIPS_CONFIG, true,
+        ConfluentConfigs.ENABLE_FIPS_MODE_CONFIG, "fips-140-3",
         CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, SecurityProtocol.SASL_SSL.name
     ));
     final KsqlRestConfig restConfig = new KsqlRestConfig(ImmutableMap.<String, Object>builder()
@@ -446,7 +453,7 @@ public class KsqlServerMainTest {
 
     // Then:
     assertThat(e.getMessage(), containsString(
-        "FIPS 140-2 Configuration Error, invalid rest protocol: http"
+        "FIPS fips-140-3 Configuration Error, invalid rest protocol: http (from input: http)"
             + "\nInvalid rest protocol for "
             + KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY));
   }
@@ -456,6 +463,7 @@ public class KsqlServerMainTest {
     // Given:
     final KsqlConfig config = configWith(ImmutableMap.of(
         ConfluentConfigs.ENABLE_FIPS_CONFIG, true,
+        ConfluentConfigs.ENABLE_FIPS_MODE_CONFIG, "fips-140-3",
         CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, SecurityProtocol.SASL_SSL.name
     ));
     final KsqlRestConfig restConfig = new KsqlRestConfig(ImmutableMap.<String, Object>builder()
@@ -474,7 +482,7 @@ public class KsqlServerMainTest {
 
     // Then:
     assertThat(e.getMessage(), containsString(
-        "FIPS 140-2 Configuration Error, invalid rest protocol: http"
+        "FIPS fips-140-3 Configuration Error, invalid rest protocol: http (from input: http)"
             + "\nInvalid rest protocol for listeners."
             + "\nMake sure that all listeners, listeners.proxy.protocol, ksql.advertised.listener, and ksql.internal.listener follow FIPS 140-2."));
   }
@@ -484,6 +492,7 @@ public class KsqlServerMainTest {
     // Given:
     final KsqlConfig config = configWith(ImmutableMap.of(
         ConfluentConfigs.ENABLE_FIPS_CONFIG, true,
+        ConfluentConfigs.ENABLE_FIPS_MODE_CONFIG, "fips-140-3",
         CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, SecurityProtocol.SASL_SSL.name
     ));
     final KsqlRestConfig restConfig = new KsqlRestConfig(ImmutableMap.<String, Object>builder()
@@ -506,7 +515,7 @@ public class KsqlServerMainTest {
 
     // Then:
     assertThat(e.getMessage(), containsString(
-        "FIPS 140-2 Configuration Error, invalid rest protocol: http"
+        "FIPS fips-140-3 Configuration Error, invalid rest protocol: http (from input: http)"
             + "\nInvalid rest protocol for listeners."
             + "\nMake sure that all listeners, listeners.proxy.protocol, ksql.advertised.listener, and ksql.internal.listener follow FIPS 140-2."));
   }
@@ -516,6 +525,7 @@ public class KsqlServerMainTest {
     // Given:
     final KsqlConfig config = configWith(ImmutableMap.of(
         ConfluentConfigs.ENABLE_FIPS_CONFIG, true,
+        ConfluentConfigs.ENABLE_FIPS_MODE_CONFIG, "fips-140-3",
         CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, SecurityProtocol.SASL_SSL.name
     ));
     final KsqlRestConfig restConfig = new KsqlRestConfig(ImmutableMap.<String, Object>builder()
@@ -537,7 +547,7 @@ public class KsqlServerMainTest {
 
     // Then:
     assertThat(e.getMessage(), containsString(
-        "FIPS 140-2 Configuration Error, invalid rest protocol: http"
+        "FIPS fips-140-3 Configuration Error, invalid rest protocol: http (from input: http)"
             + "\nInvalid rest protocol for listeners."
             + "\nMake sure that all listeners, listeners.proxy.protocol, ksql.advertised.listener, and ksql.internal.listener follow FIPS 140-2."));
   }
@@ -547,6 +557,7 @@ public class KsqlServerMainTest {
     // Given:
     final KsqlConfig config = configWith(ImmutableMap.of(
         ConfluentConfigs.ENABLE_FIPS_CONFIG, true,
+        ConfluentConfigs.ENABLE_FIPS_MODE_CONFIG, "fips-140-3",
         CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, SecurityProtocol.SASL_SSL.name
     ));
     final KsqlRestConfig restConfig = new KsqlRestConfig(ImmutableMap.<String, Object>builder()
@@ -568,7 +579,7 @@ public class KsqlServerMainTest {
 
     // Then:
     assertThat(e.getMessage(), containsString(
-        "FIPS 140-2 Configuration Error, invalid rest protocol: http"
+        "FIPS fips-140-3 Configuration Error, invalid rest protocol: http (from input: http)"
             + "\nInvalid rest protocol for listeners."
             + "\nMake sure that all listeners, listeners.proxy.protocol, ksql.advertised.listener, and ksql.internal.listener follow FIPS 140-2."));
   }

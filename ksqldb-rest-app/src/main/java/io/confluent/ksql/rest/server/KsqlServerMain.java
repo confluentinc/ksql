@@ -44,6 +44,7 @@ import java.util.function.Supplier;
 import org.apache.kafka.clients.CommonClientConfigs;
 import org.apache.kafka.common.config.internals.ConfluentConfigs;
 import org.apache.kafka.common.security.auth.SecurityProtocol;
+import org.apache.kafka.common.security.fips.FipsSecurityConfig;
 import org.apache.kafka.common.security.fips.FipsValidator;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.logging.log4j.LogManager;
@@ -195,7 +196,9 @@ public class KsqlServerMain {
   @VisibleForTesting
   static void validateFips(final KsqlConfig config, final KsqlRestConfig restConfig) {
     if (config.getBoolean(ConfluentConfigs.ENABLE_FIPS_CONFIG)) {
-      final FipsValidator fipsValidator = ConfluentConfigs.buildFipsValidator();
+      final String fipsModeStr = config.getString(ConfluentConfigs.ENABLE_FIPS_MODE_CONFIG);
+      FipsSecurityConfig.FipsMode fipsMode = FipsSecurityConfig.FipsMode.fromString(fipsModeStr);
+      final FipsValidator fipsValidator = ConfluentConfigs.buildFipsValidator(fipsMode);
 
       // validate cipher suites and TLS version
       validateCipherSuites(fipsValidator, restConfig);

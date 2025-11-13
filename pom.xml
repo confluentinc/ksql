@@ -136,7 +136,7 @@
         <reactive-streams.version>1.0.3</reactive-streams.version>
         <skip.docker.build>true</skip.docker.build>
         <skip.docker.test>true</skip.docker.test>
-        <protobuf.version>4.31.1</protobuf.version>
+        <protobuf.version>4.32.1</protobuf.version>
         <!-- Temporarily disabling this because it is causing failures in packaging but not CI builds. -->
         <!-- <compile.warnings-flag>-Werror</compile.warnings-flag> -->
         <git-commit-id-plugin.version>4.9.10</git-commit-id-plugin.version>

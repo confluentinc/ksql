@@ -197,8 +197,8 @@ public class KsqlServerMain {
   static void validateFips(final KsqlConfig config, final KsqlRestConfig restConfig) {
     if (config.getBoolean(ConfluentConfigs.ENABLE_FIPS_CONFIG)) {
       final String fipsModeStr = config.getString(ConfluentConfigs.ENABLE_FIPS_MODE_CONFIG);
-      final FipsSecurityConfig.FipsMode fipsMode =
-          FipsSecurityConfig.FipsMode.fromString(fipsModeStr);
+      final FipsSecurityConfig.FipsMode fipsMode
+          = FipsSecurityConfig.FipsMode.fromString(fipsModeStr);
       final FipsValidator fipsValidator = ConfluentConfigs.buildFipsValidator(fipsMode);
 
       // validate cipher suites and TLS version

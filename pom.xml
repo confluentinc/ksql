@@ -154,7 +154,8 @@
         <netty-codec-http2-version>4.1.125.Final</netty-codec-http2-version>
         <jersey-common>3.1.9</jersey-common>
         <multi-threaded-testing.forkCount>3</multi-threaded-testing.forkCount>
-        <kafka.version>${ce.kafka.version}</kafka.version>
+        <!-- Pinned for FIPS 140-3 PoC -->
+        <kafka.version>8.2.0-0-ce</kafka.version>
         <!-- This needs to be removed once the version is populated in common -->
         <log4j2.version>2.17.1</log4j2.version>
     </properties>

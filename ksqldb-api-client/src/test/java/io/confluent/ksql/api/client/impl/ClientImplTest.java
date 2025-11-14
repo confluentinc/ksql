@@ -33,6 +33,7 @@ import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpClient;
+import io.vertx.core.http.HttpClientOptions;
 import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.http.RequestOptions;
 import java.util.HashMap;
@@ -79,7 +80,7 @@ public class ClientImplTest {
     HashMap<String, String> headers = new HashMap<>();
 
     // When
-    when(vertx.createHttpClient(any())).thenReturn(httpClient);
+    when(vertx.createHttpClient(any(HttpClientOptions.class))).thenReturn(httpClient);
     doAnswer(a -> {
       ((Handler<AsyncResult<HttpClientRequest>>) a.getArgument(1))
           .handle(Future.succeededFuture(clientRequest));

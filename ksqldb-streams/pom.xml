@@ -95,6 +95,8 @@
                         <arg>-Xlint:all,-serial,-rawtypes</arg>
                         <arg>${compile.warnings-flag}</arg>
                     </compilerArgs>
+                    <showWarnings>true</showWarnings>
+                    <showDeprecation>true</showDeprecation>
                 </configuration>
             </plugin>
         </plugins>

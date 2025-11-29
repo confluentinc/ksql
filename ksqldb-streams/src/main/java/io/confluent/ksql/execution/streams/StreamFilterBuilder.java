@@ -54,7 +54,7 @@ public final class StreamFilterBuilder {
         .getProcessingLogger(step.getProperties().getQueryContext());
     final KStream<K, GenericRow> stream = streamHolder.getStream();
     // Preserve processor naming sequence by adding a no-op peek operation.
-    stream.peek((k, v) -> { });
+//    stream.peek((k, v) -> { });
     final KStream<K, GenericRow> filtered = stream
         .processValues(
             () -> new KsFlatTransformedValueProcessor<>(

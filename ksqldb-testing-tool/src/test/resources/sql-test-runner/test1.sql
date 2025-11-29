@@ -86,6 +86,25 @@ INSERT INTO foo (rowtime, id, col1) VALUES (1, 1, 1);
 ASSERT VALUES bar (rowtime, id, col1) VALUES (1, 1, 2);
 
 ----------------------------------------------------------------------------------------------------
+--@test: basic test with `DEFINE` statement
+----------------------------------------------------------------------------------------------------
+DEFINE someVar='bar';
+CREATE STREAM foo (id INT KEY, col1 VARCHAR) WITH (kafka_topic='foo', value_format='JSON');
+
+INSERT INTO foo (rowtime, id, col1) VALUES (1, 1, 'val-${someVar}');
+ASSERT VALUES foo (rowtime, id, col1) VALUES (1, 1, 'val-bar');
+
+----------------------------------------------------------------------------------------------------
+--@test: basic test with `UNDEFINE` statement
+----------------------------------------------------------------------------------------------------
+DEFINE someVar='bar';
+UNDEFINE someVar;
+CREATE STREAM foo (id INT KEY, col1 VARCHAR) WITH (kafka_topic='foo', value_format='JSON');
+
+INSERT INTO foo (rowtime, id, col1) VALUES (1, 1, 'val-${someVar}');
+ASSERT VALUES foo (rowtime, id, col1) VALUES (1, 1, 'val-');
+
+----------------------------------------------------------------------------------------------------
 --@test: bad assert statement should fail
 
 --@expected.error: java.lang.AssertionError

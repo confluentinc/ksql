@@ -1251,9 +1251,8 @@
                  TLS will use BC-FIPS/BC-JSSE instead. -->
             <dependency>
                 <groupId>io.netty</groupId>
-                <artifactId>netty-tcnative-boringssl-static</artifactId>
+                <artifactId>netty-tcnative-fips-boringssl-static</artifactId>
                 <version>${netty-tcnative-version}</version>
-                <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>org.glassfish.jersey.core</groupId>

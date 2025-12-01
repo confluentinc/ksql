@@ -135,7 +135,8 @@
             <version>${vertx.version}</version>
         </dependency>
 
-        <!-- FIPS Compliance: Use FIPS-validated BoringCrypto instead of non-FIPS BoringSSL -->
+        <!-- FIPS Compliance: Keep as provided scope - at runtime, Netty will fall back to 
+             JDK SSL which can be configured with BC-FIPS providers for FIPS compliance -->
         <dependency>
             <groupId>io.netty</groupId>
             <artifactId>netty-tcnative-fips-boringssl-static</artifactId>

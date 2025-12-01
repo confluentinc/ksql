@@ -818,11 +818,10 @@
                 </exclusions>
             </dependency>
 
-            <!-- FIPS Compliance: Exclude Conscrypt from gRPC ALTS -->
+            <!-- FIPS Compliance: Exclude Conscrypt from gRPC ALTS (transitive dependency) -->
             <dependency>
                 <groupId>io.grpc</groupId>
                 <artifactId>grpc-alts</artifactId>
-                <version>1.75.0</version>
                 <exclusions>
                     <exclusion>
                         <groupId>org.conscrypt</groupId>
@@ -831,11 +830,10 @@
                 </exclusions>
             </dependency>
 
-            <!-- FIPS Compliance: Exclude non-FIPS libs from Google Cloud KMS -->
+            <!-- FIPS Compliance: Exclude non-FIPS libs from Google Cloud KMS (transitive dependency) -->
             <dependency>
                 <groupId>com.google.cloud</groupId>
                 <artifactId>google-cloud-kms</artifactId>
-                <version>2.66.0</version>
                 <exclusions>
                     <exclusion>
                         <groupId>org.conscrypt</groupId>
@@ -852,11 +850,10 @@
                 </exclusions>
             </dependency>
 
-            <!-- FIPS Compliance: Exclude non-FIPS libs from Google Cloud Storage -->
+            <!-- FIPS Compliance: Exclude non-FIPS libs from Google Cloud Storage (transitive dependency) -->
             <dependency>
                 <groupId>com.google.cloud</groupId>
                 <artifactId>google-cloud-storage</artifactId>
-                <version>2.52.3</version>
                 <exclusions>
                     <exclusion>
                         <groupId>org.conscrypt</groupId>
@@ -1400,17 +1397,19 @@
                                         <exclude>com.google.crypto.tink:tink-gcpkms</exclude>
                                         <!-- Conscrypt: Uses BoringSSL which is not FIPS validated -->
                                         <exclude>org.conscrypt:conscrypt-openjdk-uber</exclude>
-                                        <!-- Netty BoringSSL: Uses BoringSSL which is not FIPS validated -->
+                                        <!-- Netty BoringSSL (non-FIPS): Uses BoringSSL which is not FIPS validated -->
+                                        <!-- NOTE: netty-tcnative-fips-boringssl-static IS allowed (FIPS compliant) -->
                                         <exclude>io.netty:netty-tcnative-boringssl-static</exclude>
                                     </excludes>
                                     <includes>
-                                        <!-- Allow BoringSSL only as provided scope (won't be in runtime) -->
+                                        <!-- Allow non-FIPS BoringSSL only as provided scope (won't be in runtime) -->
                                         <include>io.netty:netty-tcnative-boringssl-static:*:*:provided</include>
                                     </includes>
                                     <message>
                                         FIPS-140-3 Compliance Error: Non-FIPS cryptographic libraries detected!
                                         These libraries must be excluded to ensure FIPS compliance.
-                                        Use Bouncy Castle FIPS (bc-fips, bctls-fips, bcpkix-fips) instead.
+                                        Use Bouncy Castle FIPS (bc-fips, bctls-fips, bcpkix-fips) or
+                                        netty-tcnative-fips-boringssl-static (FIPS-validated BoringCrypto) instead.
                                     </message>
                                 </bannedDependencies>
                             </rules>

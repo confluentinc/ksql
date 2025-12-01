@@ -135,9 +135,10 @@
             <version>${vertx.version}</version>
         </dependency>
 
+        <!-- FIPS Compliance: Use FIPS-validated BoringCrypto instead of non-FIPS BoringSSL -->
         <dependency>
             <groupId>io.netty</groupId>
-            <artifactId>netty-tcnative-boringssl-static</artifactId>
+            <artifactId>netty-tcnative-fips-boringssl-static</artifactId>
         </dependency>
 
         <dependency>

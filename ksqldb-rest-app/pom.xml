@@ -135,9 +135,11 @@
             <version>${vertx.version}</version>
         </dependency>
 
+        <!-- FIPS Compliance: Keep as provided scope - at runtime, Netty will fall back to 
+             JDK SSL which can be configured with BC-FIPS providers for FIPS compliance -->
         <dependency>
             <groupId>io.netty</groupId>
-            <artifactId>netty-tcnative-boringssl-static</artifactId>
+            <artifactId>netty-tcnative-fips-boringssl-static</artifactId>
         </dependency>
 
         <dependency>

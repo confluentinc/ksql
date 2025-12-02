@@ -143,7 +143,8 @@
         <apache.io.version>2.11.0</apache.io.version>
         <io.confluent.ksql.version>8.2.0-0</io.confluent.ksql.version>
         <io.confluent.schema-registry.version>${confluent.version.range}</io.confluent.schema-registry.version>
-        <netty-tcnative-version>0.123.0</netty-tcnative-version>
+        <netty-tcnative-fips-version>0.123.0</netty-tcnative-fips-version>
+        <netty-tcnative-version>2.0.73.Final</netty-tcnative-version>
         <!-- We normally get this from common, but Vertx is built against this -->
         <!-- Note: `netty` depends on `tcnative` and if we bump `netty`
              we might need to bump `tcnative`, too.
@@ -1249,7 +1250,13 @@
             <dependency>
                 <groupId>io.netty</groupId>
                 <artifactId>netty-tcnative-fips-boringssl-static</artifactId>
+                <version>${netty-tcnative-fips-version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.netty</groupId>
+                <artifactId>netty-tcnative-boringssl-static</artifactId>
                 <version>${netty-tcnative-version}</version>
+                <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>org.glassfish.jersey.core</groupId>
@@ -1397,19 +1404,18 @@
                                         <exclude>com.google.crypto.tink:tink-gcpkms</exclude>
                                         <!-- Conscrypt: Uses BoringSSL which is not FIPS validated -->
                                         <exclude>org.conscrypt:conscrypt-openjdk-uber</exclude>
-                                        <!-- Netty BoringSSL (non-FIPS): Uses BoringSSL which is not FIPS validated -->
-                                        <!-- NOTE: netty-tcnative-fips-boringssl-static IS allowed (FIPS compliant) -->
-                                        <exclude>io.netty:netty-tcnative-boringssl-static</exclude>
+                                        <!-- 
+                                            NOTE: Both netty-tcnative variants are allowed at build time:
+                                            - netty-tcnative-boringssl-static (non-FIPS, for standard mode)
+                                            - netty-tcnative-fips-boringssl-static (FIPS compliant)
+                                            Runtime selection is handled by ksql-run-class script based on FIPS_ENABLED env var
+                                        -->
                                     </excludes>
-                                    <includes>
-                                        <!-- Allow non-FIPS BoringSSL only as provided scope (won't be in runtime) -->
-                                        <include>io.netty:netty-tcnative-boringssl-static:*:*:provided</include>
-                                    </includes>
                                     <message>
                                         FIPS-140-3 Compliance Error: Non-FIPS cryptographic libraries detected!
                                         These libraries must be excluded to ensure FIPS compliance.
-                                        Use Bouncy Castle FIPS (bc-fips, bctls-fips, bcpkix-fips) or
-                                        netty-tcnative-fips-boringssl-static (FIPS-validated BoringCrypto) instead.
+                                        Use Bouncy Castle FIPS (bc-fips, bctls-fips, bcpkix-fips) instead.
+                                        Note: netty-tcnative variants are controlled at runtime via FIPS_ENABLED env var.
                                     </message>
                                 </bannedDependencies>
                             </rules>
@@ -1602,4 +1608,18 @@
 
         </plugins>
     </reporting>
+    <!-- ===========================================================================
+         FIPS Compliance Notes
+         ===========================================================================
+         By default, BOTH netty-tcnative variants are included in the build:
+         - netty-tcnative-boringssl-static (standard, CVE-free)
+         - netty-tcnative-fips-boringssl-static (FIPS 140-3 compliant)
+         
+         Runtime selection is controlled by FIPS_ENABLED environment variable
+         in the ksql-run-class startup script.
+         
+         Usage:
+           Standard mode: bin/ksql-server-start config/ksql-server.properties
+           FIPS mode:     FIPS_ENABLED=true bin/ksql-server-start config/ksql-server.properties
+         =========================================================================== -->
 </project>

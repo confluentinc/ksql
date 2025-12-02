@@ -135,8 +135,16 @@
             <version>${vertx.version}</version>
         </dependency>
 
-        <!-- FIPS Compliance: Keep as provided scope - at runtime, Netty will fall back to 
-             JDK SSL which can be configured with BC-FIPS providers for FIPS compliance -->
+        <!-- 
+            Netty TLS Native: Both variants are included at build time.
+            Runtime selection is handled by ksql-run-class script based on FIPS_ENABLED env var.
+            - Standard mode: netty-tcnative-boringssl-static (latest CVE-free)
+            - FIPS mode:     netty-tcnative-fips-boringssl-static (FIPS 140-3 compliant)
+        -->
+        <dependency>
+            <groupId>io.netty</groupId>
+            <artifactId>netty-tcnative-boringssl-static</artifactId>
+        </dependency>
         <dependency>
             <groupId>io.netty</groupId>
             <artifactId>netty-tcnative-fips-boringssl-static</artifactId>

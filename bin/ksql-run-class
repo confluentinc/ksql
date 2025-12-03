@@ -45,15 +45,43 @@ done
 # ==============================================================================
 # FIPS Mode Configuration
 # ==============================================================================
-# Both netty-tcnative variants are packaged at build time. At runtime, set
-# FIPS_ENABLED=true to use the FIPS-validated version.
+# FIPS mode is determined by checking for 'enable.fips=true' in the ksql
+# server properties file. Both netty-tcnative variants are packaged at build
+# time, and the appropriate one is selected at runtime.
 #
-# - FIPS_ENABLED=true:  Uses netty-tcnative-fips-boringssl-static (FIPS 140-3)
-# - FIPS_ENABLED=false: Uses netty-tcnative-boringssl-static (standard)
+# - enable.fips=true:  Uses netty-tcnative-fips-boringssl-static (FIPS 140-3)
+# - enable.fips=false: Uses netty-tcnative-boringssl-static (standard)
 #
 # The classpath is filtered to include only ONE variant to avoid conflicts.
 # ==============================================================================
-: "${FIPS_ENABLED:=false}"
+
+# Function to detect FIPS mode from properties file
+detect_fips_mode() {
+  local fips_enabled="false"
+  
+  # Search through arguments for a properties file
+  for arg in "$@"; do
+    if [ -f "$arg" ] && [[ "$arg" == *.properties ]]; then
+      # Check if enable.fips=true exists in the properties file
+      if grep -q "^[[:space:]]*enable\.fips[[:space:]]*=[[:space:]]*true" "$arg" 2>/dev/null; then
+        fips_enabled="true"
+        break
+      fi
+    fi
+  done
+  
+  echo "$fips_enabled"
+}
+
+# Detect FIPS mode from command line arguments (properties file)
+# Store original args for later use
+ORIGINAL_ARGS=("$@")
+FIPS_ENABLED=$(detect_fips_mode "$@")
+
+# Allow environment variable override (for testing/debugging)
+if [ -n "$KSQL_FIPS_OVERRIDE" ]; then
+  FIPS_ENABLED="$KSQL_FIPS_OVERRIDE"
+fi
 
 filter_netty_tcnative_classpath() {
   local input_classpath="$1"
@@ -97,11 +125,13 @@ filter_netty_tcnative_classpath() {
 KSQL_CLASSPATH=$(filter_netty_tcnative_classpath "$KSQL_CLASSPATH")
 
 if [ "$FIPS_ENABLED" = "true" ]; then
-  echo "FIPS Mode: ENABLED - Using netty-tcnative-fips-boringssl-static (FIPS 140-3 compliant)"
+  echo "FIPS Mode: ENABLED (enable.fips=true detected in properties file)"
+  echo "  -> Using netty-tcnative-fips-boringssl-static (FIPS 140-3 compliant)"
   # Add FIPS-specific JVM options for Bouncy Castle FIPS provider
   KSQL_OPTS="$KSQL_OPTS -Dorg.bouncycastle.fips.approved_only=true"
 else
-  echo "FIPS Mode: DISABLED - Using netty-tcnative-boringssl-static (standard)"
+  echo "FIPS Mode: DISABLED (enable.fips=true not found in properties file)"
+  echo "  -> Using netty-tcnative-boringssl-static (standard)"
 fi
 
 # logj4 settings

@@ -42,6 +42,68 @@ for library in "confluent-common" "confluent-telemetry" "ksqldb-examples" "rest-
   fi
 done
 
+# ==============================================================================
+# FIPS Mode Configuration
+# ==============================================================================
+# Both netty-tcnative variants are packaged at build time. At runtime, set
+# FIPS_ENABLED=true to use the FIPS-validated version.
+#
+# - FIPS_ENABLED=true:  Uses netty-tcnative-fips-boringssl-static (FIPS 140-3)
+# - FIPS_ENABLED=false: Uses netty-tcnative-boringssl-static (standard)
+#
+# The classpath is filtered to include only ONE variant to avoid conflicts.
+# ==============================================================================
+: "${FIPS_ENABLED:=false}"
+
+filter_netty_tcnative_classpath() {
+  local input_classpath="$1"
+  local filtered_classpath=""
+  
+  # Save and restore IFS
+  local OLD_IFS="$IFS"
+  IFS=':'
+  
+  for entry in $input_classpath; do
+    local should_include=true
+    
+    if [ "$FIPS_ENABLED" = "true" ]; then
+      # FIPS mode: exclude non-FIPS BoringSSL, keep FIPS version
+      # Match: netty-tcnative-boringssl-static but NOT netty-tcnative-fips-boringssl-static
+      if echo "$entry" | grep -q "netty-tcnative-boringssl-static" && \
+         ! echo "$entry" | grep -q "netty-tcnative-fips-boringssl-static"; then
+        should_include=false
+      fi
+    else
+      # Standard mode: exclude FIPS BoringSSL, keep standard version
+      if echo "$entry" | grep -q "netty-tcnative-fips-boringssl-static"; then
+        should_include=false
+      fi
+    fi
+    
+    if [ "$should_include" = "true" ]; then
+      if [ -z "$filtered_classpath" ]; then
+        filtered_classpath="$entry"
+      else
+        filtered_classpath="$filtered_classpath:$entry"
+      fi
+    fi
+  done
+  
+  IFS="$OLD_IFS"
+  echo "$filtered_classpath"
+}
+
+# Apply FIPS-aware classpath filtering
+KSQL_CLASSPATH=$(filter_netty_tcnative_classpath "$KSQL_CLASSPATH")
+
+if [ "$FIPS_ENABLED" = "true" ]; then
+  echo "FIPS Mode: ENABLED - Using netty-tcnative-fips-boringssl-static (FIPS 140-3 compliant)"
+  # Add FIPS-specific JVM options for Bouncy Castle FIPS provider
+  KSQL_OPTS="$KSQL_OPTS -Dorg.bouncycastle.fips.approved_only=true"
+else
+  echo "FIPS Mode: DISABLED - Using netty-tcnative-boringssl-static (standard)"
+fi
+
 # logj4 settings
 if [ -z "$KSQL_LOG4J_OPTS" ]; then
   # Test for files from dev -> packages so this will work as expected in dev if you have packages

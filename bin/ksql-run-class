@@ -63,7 +63,17 @@ detect_fips_mode() {
   for arg in "$@"; do
     if [ -f "$arg" ] && [[ "$arg" == *.properties ]]; then
       # Check if enable.fips=true exists in the properties file
-      if grep -q "^[[:space:]]*enable\.fips[[:space:]]*=[[:space:]]*true" "$arg" 2>/dev/null; then
+      # Handles various formats:
+      #   enable.fips=true
+      #   enable.fips = true
+      #   enable.fips="true"
+      #   enable.fips='true'
+      #   enable.fips = "true"
+      #   enable.fips = 'true'
+      #   ENABLE.FIPS=TRUE (case insensitive)
+      # Excludes commented lines (starting with #)
+      if grep -v "^[[:space:]]*#" "$arg" 2>/dev/null | \
+         grep -iq "^[[:space:]]*enable\.fips[[:space:]]*=[[:space:]]*[\"']*true[\"']*[[:space:]]*$"; then
         fips_enabled="true"
         break
       fi

@@ -150,7 +150,7 @@
              to find the correct `tcnative` version. -->
         <netty.version>4.1.125.Final</netty.version>
         <netty-codec-http2-version>4.1.125.Final</netty-codec-http2-version>
-        <jersey-common>2.39.1</jersey-common>
+        <jersey-common>2.46</jersey-common>
         <multi-threaded-testing.forkCount>3</multi-threaded-testing.forkCount>
         <kafka.version>${ce.kafka.version}</kafka.version>
     </properties>

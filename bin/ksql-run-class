@@ -45,53 +45,18 @@ done
 # ==============================================================================
 # FIPS Mode Configuration
 # ==============================================================================
-# FIPS mode is determined by checking for 'enable.fips=true' in the ksql
-# server properties file. Both netty-tcnative variants are packaged at build
-# time, and the appropriate one is selected at runtime.
+# FIPS mode is controlled by the KSQL_FIPS_ENABLED environment variable,
+# which is set by ksql-server-start based on 'enable.fips=true' in the
+# properties file.
 #
-# - enable.fips=true:  Uses netty-tcnative-fips-boringssl-static (FIPS 140-3)
-# - enable.fips=false: Uses netty-tcnative-boringssl-static (standard)
+# - KSQL_FIPS_ENABLED=true:  Uses netty-tcnative-fips-boringssl-static (FIPS 140-3)
+# - Otherwise:               Uses netty-tcnative-boringssl-static (standard)
 #
 # The classpath is filtered to include only ONE variant to avoid conflicts.
 # ==============================================================================
 
-# Function to detect FIPS mode from properties file
-detect_fips_mode() {
-  local fips_enabled="false"
-  
-  # Search through arguments for a properties file
-  for arg in "$@"; do
-    if [ -f "$arg" ] && [[ "$arg" == *.properties ]]; then
-      # Check if enable.fips=true exists in the properties file
-      # Handles various formats:
-      #   enable.fips=true
-      #   enable.fips = true
-      #   enable.fips="true"
-      #   enable.fips='true'
-      #   enable.fips = "true"
-      #   enable.fips = 'true'
-      #   ENABLE.FIPS=TRUE (case insensitive)
-      # Excludes commented lines (starting with #)
-      if grep -v "^[[:space:]]*#" "$arg" 2>/dev/null | \
-         grep -iq "^[[:space:]]*enable\.fips[[:space:]]*=[[:space:]]*[\"']*true[\"']*[[:space:]]*$"; then
-        fips_enabled="true"
-        break
-      fi
-    fi
-  done
-  
-  echo "$fips_enabled"
-}
-
-# Detect FIPS mode from command line arguments (properties file)
-# Store original args for later use
-ORIGINAL_ARGS=("$@")
-FIPS_ENABLED=$(detect_fips_mode "$@")
-
-# Allow environment variable override (for testing/debugging)
-if [ -n "$KSQL_FIPS_OVERRIDE" ]; then
-  FIPS_ENABLED="$KSQL_FIPS_OVERRIDE"
-fi
+# Use KSQL_FIPS_ENABLED from environment (set by ksql-server-start)
+FIPS_ENABLED="${KSQL_FIPS_ENABLED:-false}"
 
 filter_netty_tcnative_classpath() {
   local input_classpath="$1"
@@ -139,6 +104,25 @@ if [ "$FIPS_ENABLED" = "true" ]; then
   echo "  -> Using netty-tcnative-fips-boringssl-static (FIPS 140-3 compliant)"
   # Add FIPS-specific JVM options for Bouncy Castle FIPS provider
   KSQL_OPTS="$KSQL_OPTS -Dorg.bouncycastle.fips.approved_only=true"
+  
+  # Add JVM --add-opens flags required for Netty to work with BouncyCastle FIPS provider.
+  # When OpenSSL native library is not available (e.g., on ARM64 where FIPS BoringSSL
+  # may not have native binaries), Netty falls back to JDK SSL with BouncyCastle.
+  # Netty's BouncyCastleAlpnSslUtils uses reflection to access internal BouncyCastle
+  # classes for ALPN (HTTP/2) support. These --add-opens flags allow that reflection
+  # to work without causing IllegalAccessException errors.
+  FIPS_JVM_OPTS=""
+  FIPS_JVM_OPTS="$FIPS_JVM_OPTS --add-opens java.base/java.lang=ALL-UNNAMED"
+  FIPS_JVM_OPTS="$FIPS_JVM_OPTS --add-opens java.base/java.lang.reflect=ALL-UNNAMED"
+  FIPS_JVM_OPTS="$FIPS_JVM_OPTS --add-opens java.base/java.lang.invoke=ALL-UNNAMED"
+  FIPS_JVM_OPTS="$FIPS_JVM_OPTS --add-opens java.base/java.util=ALL-UNNAMED"
+  FIPS_JVM_OPTS="$FIPS_JVM_OPTS --add-opens java.base/java.io=ALL-UNNAMED"
+  FIPS_JVM_OPTS="$FIPS_JVM_OPTS --add-opens java.base/java.nio=ALL-UNNAMED"
+  FIPS_JVM_OPTS="$FIPS_JVM_OPTS --add-opens java.base/sun.nio.ch=ALL-UNNAMED"
+  FIPS_JVM_OPTS="$FIPS_JVM_OPTS --add-opens java.base/sun.security.ssl=ALL-UNNAMED"
+  FIPS_JVM_OPTS="$FIPS_JVM_OPTS --add-opens java.base/javax.net.ssl=ALL-UNNAMED"
+  KSQL_OPTS="$KSQL_OPTS $FIPS_JVM_OPTS"
+  echo "  -> Added JVM --add-opens flags for BouncyCastle/Netty compatibility"
 else
   echo "FIPS Mode: DISABLED (enable.fips=true not found in properties file)"
   echo "  -> Using netty-tcnative-boringssl-static (standard)"

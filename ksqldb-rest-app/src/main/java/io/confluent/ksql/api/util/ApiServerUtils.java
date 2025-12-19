@@ -23,12 +23,14 @@ import io.confluent.ksql.util.FileWatcher.Callback;
 import io.confluent.ksql.util.QueryMask;
 import io.confluent.ksql.util.VertxSslOptionsFactory;
 import io.netty.handler.codec.haproxy.HAProxyProtocolException;
+import io.netty.handler.ssl.OpenSsl;
 import io.vertx.core.http.ClientAuth;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpServerOptions;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.net.JksOptions;
 import io.vertx.core.net.KeyStoreOptions;
+import io.vertx.core.net.OpenSSLEngineOptions;
 import io.vertx.core.net.PfxOptions;
 import io.vertx.ext.web.RoutingContext;
 import java.net.URI;
@@ -159,7 +161,31 @@ public final class ApiServerUtils {
       final String keyStoreAlias,
       final ClientAuth clientAuth
   ) {
-    options.setUseAlpn(true).setSsl(true);
+    options.setSsl(true);
+
+    // Use OpenSSL (via netty-tcnative) when available. This is critical for FIPS mode
+    // because using JDK SSL with BouncyCastle FIPS provider causes reflection access errors
+    // in Netty's BouncyCastleAlpnSslUtils when setting up ALPN for HTTP/2.
+    // Using OpenSSL bypasses the JDK SSL path entirely and uses the native SSL implementation
+    // (either standard BoringSSL or FIPS-certified BoringSSL depending on which
+    // netty-tcnative variant is on the classpath).
+    if (OpenSsl.isAvailable()) {
+      LOG.info("OpenSSL is available, using native SSL implementation for TLS with ALPN (HTTP/2)");
+      options.setSslEngineOptions(new OpenSSLEngineOptions());
+      options.setUseAlpn(true);
+    } else {
+      // CRITICAL: When OpenSSL is not available (e.g., on ARM64 in FIPS mode where
+      // netty-tcnative-fips-boringssl-static doesn't have native libraries), we must
+      // DISABLE ALPN. Using ALPN with JDK SSL + BouncyCastle JSSE causes
+      // IllegalAccessException in Netty's BouncyCastleAlpnSslUtils due to Java 21's
+      // strong encapsulation preventing reflection access to BouncyCastle internals.
+      // Disabling ALPN means HTTP/2 won't work, but HTTP/1.1 will function correctly.
+      LOG.warn("OpenSSL is not available. Disabling ALPN (HTTP/2) to avoid "
+          + "Netty/BouncyCastle compatibility issues. HTTP/1.1 will be used instead. "
+          + "Reason: " + OpenSsl.unavailabilityCause());
+      options.setUseAlpn(false);
+    }
+
     if (ksqlRestConfig.getBoolean(KsqlRestConfig.KSQL_SERVER_SNI_CHECK_ENABLE)) {
       options.setSni(true);
     }

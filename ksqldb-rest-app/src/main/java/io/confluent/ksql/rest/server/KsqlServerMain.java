@@ -74,6 +74,16 @@ public class KsqlServerMain {
           );
       final Map<String, String> properties = propertiesLoader.get();
 
+      // CRITICAL: Configure Netty OpenSSL before any Netty classes are loaded.
+      // This must happen early, before the io.netty.handler.ssl.OpenSsl class is initialized.
+      // When FIPS mode is enabled, Confluent security providers may set
+      // -Dio.netty.handler.ssl.noOpenSsl=true to force JDK SSL. However, we use
+      // netty-tcnative-fips-boringssl-static which IS FIPS 140-3 compliant, so we
+      // should use OpenSSL. Failing to use OpenSSL causes Netty to fall back to
+      // JDK SSL with BouncyCastle, which triggers IllegalAccessException errors in
+      // Netty's BouncyCastleAlpnSslUtils due to Java module access restrictions.
+      configureNettyOpenSslForFips(properties);
+
       final String installDir = properties.getOrDefault("ksql.server.install.dir", "");
       final KsqlConfig ksqlConfig = new KsqlConfig(properties);
       final KsqlRestConfig restConfig = new KsqlRestConfig(properties);
@@ -191,6 +201,37 @@ public class KsqlServerMain {
   static void validateDefaultTopicFormats(final KsqlConfig config) {
     validateTopicFormat(config, KsqlConfig.KSQL_DEFAULT_KEY_FORMAT_CONFIG, "key");
     validateTopicFormat(config, KsqlConfig.KSQL_DEFAULT_VALUE_FORMAT_CONFIG, "value");
+  }
+
+  /**
+   * Configure Netty OpenSSL settings for FIPS mode.
+   * 
+   * <p>When FIPS mode is enabled, Confluent security providers may set
+   * {@code -Dio.netty.handler.ssl.noOpenSsl=true} to force using JDK SSL. However, ksqlDB
+   * uses {@code netty-tcnative-fips-boringssl-static} which is FIPS 140-3 compliant.
+   * Using OpenSSL is preferred because falling back to JDK SSL with BouncyCastle causes
+   * {@code IllegalAccessException} in Netty's {@code BouncyCastleAlpnSslUtils} due to
+   * Java module system restrictions on reflective access.
+   *
+   * <p>This method MUST be called BEFORE any Netty classes are loaded (specifically before
+   * {@code io.netty.handler.ssl.OpenSsl} is initialized) for the setting to take effect.
+   *
+   * @param properties the ksqlDB configuration properties
+   */
+  private static void configureNettyOpenSslForFips(final Map<String, String> properties) {
+    final String enableFips = properties.get(ConfluentConfigs.ENABLE_FIPS_CONFIG);
+    if ("true".equalsIgnoreCase(enableFips)) {
+      // Check if OpenSSL was disabled (possibly by Confluent FIPS providers)
+      final String currentSetting = System.getProperty("io.netty.handler.ssl.noOpenSsl");
+      if ("true".equalsIgnoreCase(currentSetting)) {
+        log.info("FIPS mode detected. Re-enabling Netty OpenSSL support. "
+            + "The netty-tcnative-fips-boringssl-static library is FIPS 140-3 compliant.");
+        System.setProperty("io.netty.handler.ssl.noOpenSsl", "false");
+      } else {
+        log.debug("FIPS mode detected. Netty OpenSSL is not disabled (current setting: {}).",
+            currentSetting);
+      }
+    }
   }
 
   @VisibleForTesting

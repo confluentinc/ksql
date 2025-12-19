@@ -23,12 +23,14 @@ import io.confluent.ksql.util.FileWatcher.Callback;
 import io.confluent.ksql.util.QueryMask;
 import io.confluent.ksql.util.VertxSslOptionsFactory;
 import io.netty.handler.codec.haproxy.HAProxyProtocolException;
+import io.netty.handler.ssl.OpenSsl;
 import io.vertx.core.http.ClientAuth;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpServerOptions;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.net.JksOptions;
 import io.vertx.core.net.KeyStoreOptions;
+import io.vertx.core.net.OpenSSLEngineOptions;
 import io.vertx.core.net.PfxOptions;
 import io.vertx.ext.web.RoutingContext;
 import java.net.URI;
@@ -160,6 +162,22 @@ public final class ApiServerUtils {
       final ClientAuth clientAuth
   ) {
     options.setUseAlpn(true).setSsl(true);
+
+    // Use OpenSSL (via netty-tcnative) when available. This is critical for FIPS mode
+    // because using JDK SSL with BouncyCastle FIPS provider causes reflection access errors
+    // in Netty's BouncyCastleAlpnSslUtils when setting up ALPN for HTTP/2.
+    // Using OpenSSL bypasses the JDK SSL path entirely and uses the native SSL implementation
+    // (either standard BoringSSL or FIPS-certified BoringSSL depending on which
+    // netty-tcnative variant is on the classpath).
+    if (OpenSsl.isAvailable()) {
+      LOG.info("OpenSSL is available, using native SSL implementation for TLS");
+      options.setSslEngineOptions(new OpenSSLEngineOptions());
+    } else {
+      LOG.warn("OpenSSL is not available, falling back to JDK SSL. "
+          + "This may cause issues in FIPS mode due to Netty/BouncyCastle compatibility. "
+          + "Reason: " + OpenSsl.unavailabilityCause());
+    }
+
     if (ksqlRestConfig.getBoolean(KsqlRestConfig.KSQL_SERVER_SNI_CHECK_ENABLE)) {
       options.setSni(true);
     }

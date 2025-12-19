@@ -103,7 +103,7 @@ if [ "$FIPS_ENABLED" = "true" ]; then
   echo "FIPS Mode: ENABLED (enable.fips=true detected in properties file)"
   echo "  -> Using netty-tcnative-fips-boringssl-static (FIPS 140-3 compliant)"
   # Add FIPS-specific JVM options for Bouncy Castle FIPS provider
-  KSQL_OPTS="$KSQL_OPTS -Dorg.bouncycastle.fips.approved_only=true"
+  # KSQL_OPTS="$KSQL_OPTS -Dorg.bouncycastle.fips.approved_only=true"
   
   # CRITICAL: Explicitly enable Netty OpenSSL support.
   # The Confluent FIPS security providers (BcFipsProviderCreator, BcFipsJsseProviderCreator)

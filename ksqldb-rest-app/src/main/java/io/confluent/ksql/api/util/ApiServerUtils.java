@@ -161,7 +161,7 @@ public final class ApiServerUtils {
       final String keyStoreAlias,
       final ClientAuth clientAuth
   ) {
-    options.setUseAlpn(true).setSsl(true);
+    options.setSsl(true);
 
     // Use OpenSSL (via netty-tcnative) when available. This is critical for FIPS mode
     // because using JDK SSL with BouncyCastle FIPS provider causes reflection access errors
@@ -170,12 +170,20 @@ public final class ApiServerUtils {
     // (either standard BoringSSL or FIPS-certified BoringSSL depending on which
     // netty-tcnative variant is on the classpath).
     if (OpenSsl.isAvailable()) {
-      LOG.info("OpenSSL is available, using native SSL implementation for TLS");
+      LOG.info("OpenSSL is available, using native SSL implementation for TLS with ALPN (HTTP/2)");
       options.setSslEngineOptions(new OpenSSLEngineOptions());
+      options.setUseAlpn(true);
     } else {
-      LOG.warn("OpenSSL is not available, falling back to JDK SSL. "
-          + "This may cause issues in FIPS mode due to Netty/BouncyCastle compatibility. "
+      // CRITICAL: When OpenSSL is not available (e.g., on ARM64 in FIPS mode where
+      // netty-tcnative-fips-boringssl-static doesn't have native libraries), we must
+      // DISABLE ALPN. Using ALPN with JDK SSL + BouncyCastle JSSE causes
+      // IllegalAccessException in Netty's BouncyCastleAlpnSslUtils due to Java 21's
+      // strong encapsulation preventing reflection access to BouncyCastle internals.
+      // Disabling ALPN means HTTP/2 won't work, but HTTP/1.1 will function correctly.
+      LOG.warn("OpenSSL is not available. Disabling ALPN (HTTP/2) to avoid "
+          + "Netty/BouncyCastle compatibility issues. HTTP/1.1 will be used instead. "
           + "Reason: " + OpenSsl.unavailabilityCause());
+      options.setUseAlpn(false);
     }
 
     if (ksqlRestConfig.getBoolean(KsqlRestConfig.KSQL_SERVER_SNI_CHECK_ENABLE)) {

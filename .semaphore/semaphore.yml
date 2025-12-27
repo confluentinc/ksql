@@ -38,11 +38,14 @@ blocks:
         - name: Test
           commands:
             - ci-tools ci-update-version
-            - mvn -Dmaven.gitcommitid.nativegit=true -U -Dmaven.wagon.http.retryHandler.count=10 --batch-mode --no-transfer-progress clean install 2>&1 | tee target/build.log
+            # Run maven and capture output to temp location (target doesn't exist during 'clean')
+            - set -o pipefail && mvn -Dmaven.gitcommitid.nativegit=true -U -Dmaven.wagon.http.retryHandler.count=10 --batch-mode --no-transfer-progress clean install 2>&1 | tee /tmp/build.log
             - . cache-maven store
       epilogue:
         always:
           commands:
+            # Copy build log to target for artifact upload
+            - cp /tmp/build.log target/build.log || true
             - . publish-test-results
             - artifact push workflow target/test-results
             - artifact push workflow target

@@ -75,18 +75,17 @@ Reports are generated in `target/deprecation-report/`:
 
 ## CI Integration
 
-The Semaphore CI pipeline includes a "Deprecation Analysis" block that:
+The Semaphore CI pipeline runs deprecation analysis as part of the Test job's epilogue:
 
-1. Runs after the Test block
-2. Analyzes the build log for deprecation warnings
-3. Displays unique deprecated APIs and configs in console output
-4. Uploads all reports as build artifacts
+1. After maven build completes, the deprecation tracker analyzes the build log
+2. Displays unique deprecated APIs and configs in the Test job console output
+3. Uploads reports as part of the `target` artifact
 
 ### Viewing Reports in CI
 
 After a CI build:
-1. Navigate to the "Deprecation Analysis" job
-2. View the console output for:
+1. Navigate to the "Test" job
+2. Scroll to the epilogue section to see:
    - Summary with counts
    - List of unique deprecated APIs from dependencies
    - List of unique deprecated configs

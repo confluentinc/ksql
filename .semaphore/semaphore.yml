@@ -44,25 +44,11 @@ blocks:
       epilogue:
         always:
           commands:
-            # Copy build log to target for artifact upload
+            # Copy build log to target for deprecation analysis
             - cp /tmp/build.log target/build.log || true
-            - . publish-test-results
-            - artifact push workflow target/test-results
-            - artifact push workflow target
-
-  - name: Deprecation Analysis
-    dependencies: ["Test"]
-    run:
-      when: "change_in('/', {exclude: ['/.deployed-versions/', '.github/']})"
-    task:
-      jobs:
-        - name: Analyze Deprecations
-          commands:
-            - ci-tools ci-update-version
-            - artifact pull workflow target
             # Run deprecation analysis on the build log
             - chmod +x scripts/deprecation-tracker/extract-deprecations.sh
-            - ./scripts/deprecation-tracker/extract-deprecations.sh target/build.log || true
+            - ./scripts/deprecation-tracker/extract-deprecations.sh /tmp/build.log || true
             # Display deprecation summary for external dependencies
             - echo ""
             - echo "================================================================================"
@@ -77,10 +63,9 @@ blocks:
             - echo ""
             - echo "=== UNIQUE DEPRECATED CONFIGS (from Kafka Streams, etc.) ==="
             - cat target/deprecation-report/unique-deprecated-configs-latest.txt || echo "No deprecated configs report available"
-      epilogue:
-        always:
-          commands:
-            - artifact push workflow target/deprecation-report
+            - . publish-test-results
+            - artifact push workflow target/test-results
+            - artifact push workflow target
 
   - name: Release
     dependencies: ["Test"]

@@ -51,19 +51,21 @@ print_header() {
 # Function to run Maven build and capture output
 run_maven_build() {
     local build_log="${OUTPUT_DIR}/maven-build-${TIMESTAMP}.log"
-    log_info "Running Maven build to capture deprecation warnings..."
+    log_info "Running Maven compile to capture deprecation warnings..."
     log_info "Build log: ${build_log}"
     
     cd "${PROJECT_ROOT}"
     
-    # Run Maven compile with detailed warnings
-    mvn clean compile \
+    # Run Maven compile only (no clean, no tests) - fast if already built
+    # Force recompile to show all deprecation warnings
+    mvn compile test-compile \
         -Dmaven.compiler.showDeprecation=true \
         -Dmaven.compiler.showWarnings=true \
+        -Dmaven.compiler.useIncrementalCompilation=false \
         -DskipTests \
         --batch-mode \
         --no-transfer-progress \
-        2>&1 | tee "${build_log}" || true
+        2>&1 > "${build_log}" || true
     
     echo "${build_log}"
 }

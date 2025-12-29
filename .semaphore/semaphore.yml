@@ -38,13 +38,21 @@ blocks:
         - name: Test
           commands:
             - ci-tools ci-update-version
-            - mvn -Dmaven.gitcommitid.nativegit=true -U -Dmaven.wagon.http.retryHandler.count=10 --batch-mode --no-transfer-progress clean install
+            # Run maven and capture output to temp location (target doesn't exist during 'clean')
+            - set -o pipefail && mvn -Dmaven.gitcommitid.nativegit=true -U -Dmaven.wagon.http.retryHandler.count=10 --batch-mode --no-transfer-progress clean install 2>&1 | tee /tmp/build.log
             - . cache-maven store
       epilogue:
         always:
           commands:
+            # Copy build log to target
+            - cp /tmp/build.log target/build.log || true
+            # Run deprecation analysis and generate reports
+            - chmod +x scripts/deprecation-tracker/extract-deprecations.sh
+            - ./scripts/deprecation-tracker/extract-deprecations.sh /tmp/build.log || true
             - . publish-test-results
             - artifact push workflow target/test-results
+            # Push deprecation reports as separate artifact
+            - artifact push workflow target/deprecation-report || true
             - artifact push workflow target
 
   - name: Release

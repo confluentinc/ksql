@@ -45,6 +45,12 @@ blocks:
           commands:
             - . publish-test-results
             - artifact push workflow target/test-results
+            # Run deprecation analysis (uses cached build, just recompiles to capture warnings)
+            - mkdir -p target/deprecation-report
+            - chmod +x scripts/deprecation-tracker/extract-deprecations.sh
+            - ./scripts/deprecation-tracker/extract-deprecations.sh
+            # Push deprecation reports as separate artifact
+            - artifact push workflow target/deprecation-report
             - artifact push workflow target
 
   - name: Release

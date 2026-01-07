@@ -7,7 +7,7 @@ version: v1.0
 name: build-test-release
 agent:
   machine:
-    type: s1-prod-ubuntu24-04-amd64-1
+    type: s1-prod-ubuntu24-04-arm64-2
 
 fail_fast:
   cancel:
@@ -38,13 +38,19 @@ blocks:
         - name: Test
           commands:
             - ci-tools ci-update-version
-            - mvn -Dmaven.gitcommitid.nativegit=true -U -Dmaven.wagon.http.retryHandler.count=10 --batch-mode --no-transfer-progress clean install
+            - ./mvnw -Dmaven.gitcommitid.nativegit=true -U -Dmaven.wagon.http.retryHandler.count=10 --batch-mode --no-transfer-progress clean install
             - . cache-maven store
       epilogue:
         always:
           commands:
             - . publish-test-results
             - artifact push workflow target/test-results
+            # Run deprecation analysis (uses cached build, just recompiles to capture warnings)
+            - mkdir -p target/deprecation-report
+            - chmod +x scripts/deprecation-tracker/extract-deprecations.sh
+            - ./scripts/deprecation-tracker/extract-deprecations.sh
+            # Push deprecation reports as separate artifact
+            - artifact push workflow target/deprecation-report
             - artifact push workflow target
 
   - name: Release
@@ -57,7 +63,7 @@ blocks:
           commands:
             - ci-tools ci-update-version
             - ci-tools ci-push-tag
-            - mvn -Ddocker.skip=true -U -Dmaven.wagon.http.retryHandler.count=10 --batch-mode -DaltDeploymentRepository=confluent-codeartifact-internal::default::https://confluent-519856050701.d.codeartifact.us-west-2.amazonaws.com/maven/maven-snapshots/
+            - ./mvnw -Ddocker.skip=true -U -Dmaven.wagon.http.retryHandler.count=10 --batch-mode -DaltDeploymentRepository=confluent-codeartifact-internal::default::https://confluent-519856050701.d.codeartifact.us-west-2.amazonaws.com/maven/maven-snapshots/
               -DrepositoryId=confluent-codeartifact-internal deploy -DskipTests
   - name: CP Jar Build CI Gating
     dependencies: []

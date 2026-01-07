@@ -160,6 +160,7 @@ public final class ApiServerUtils {
       final ClientAuth clientAuth
   ) {
     options.setUseAlpn(true).setSsl(true);
+
     if (ksqlRestConfig.getBoolean(KsqlRestConfig.KSQL_SERVER_SNI_CHECK_ENABLE)) {
       options.setSni(true);
     }

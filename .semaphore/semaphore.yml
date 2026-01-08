@@ -38,20 +38,21 @@ blocks:
         - name: Test
           commands:
             - ci-tools ci-update-version
-            - ./mvnw -Dmaven.gitcommitid.nativegit=true -U -Dmaven.wagon.http.retryHandler.count=10 --batch-mode --no-transfer-progress clean install
+            # Run maven with output captured using script command (avoids tee buffering issues)
+            - script -q -c "./mvnw -Dmaven.gitcommitid.nativegit=true -U -Dmaven.wagon.http.retryHandler.count=10 --batch-mode --no-transfer-progress clean install" /tmp/build.log
             - . cache-maven store
       epilogue:
         always:
           commands:
+            # Original workflow - must not be affected by deprecation analysis
             - . publish-test-results
             - artifact push workflow target/test-results
-            # Run deprecation analysis (uses cached build, just recompiles to capture warnings)
-            - mkdir -p target/deprecation-report
-            - chmod +x scripts/deprecation-tracker/extract-deprecations.sh
-            - ./scripts/deprecation-tracker/extract-deprecations.sh
-            # Push deprecation reports as separate artifact
-            - artifact push workflow target/deprecation-report
             - artifact push workflow target
+            # Deprecation analysis using captured build log (no recompilation needed)
+            - mkdir -p target/deprecation-report || true
+            - chmod +x scripts/deprecation-tracker/extract-deprecations.sh || true
+            - ./scripts/deprecation-tracker/extract-deprecations.sh /tmp/build.log || true
+            - artifact push workflow target/deprecation-report || true
 
   - name: Release
     dependencies: ["Test"]

@@ -48,7 +48,7 @@ print_header() {
     echo -e "${BOLD}${CYAN}$1${NC}" >&2
 }
 
-# Function to run Maven build and capture output
+# Function to run Maven build and capture output (only used if no build log provided)
 run_maven_build() {
     local build_log="${OUTPUT_DIR}/maven-build-${TIMESTAMP}.log"
     log_info "Running Maven compile to capture deprecation warnings..."
@@ -56,12 +56,11 @@ run_maven_build() {
     
     cd "${PROJECT_ROOT}"
     
-    # Run Maven compile only (no clean, no tests) - fast if already built
-    # Force recompile to show all deprecation warnings
+    # Run Maven compile with deprecation warnings
+    # Note: This is a fallback - in CI, the build log from the main build should be passed
     mvn compile test-compile \
         -Dmaven.compiler.showDeprecation=true \
         -Dmaven.compiler.showWarnings=true \
-        -Dmaven.compiler.useIncrementalCompilation=false \
         -DskipTests \
         --batch-mode \
         --no-transfer-progress \

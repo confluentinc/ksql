@@ -143,16 +143,16 @@
         <apache.io.version>2.11.0</apache.io.version>
         <io.confluent.ksql.version>8.1.2-0</io.confluent.ksql.version>
         <io.confluent.schema-registry.version>${confluent.version.range}</io.confluent.schema-registry.version>
-        <netty-tcnative-version>2.0.73.Final</netty-tcnative-version>
+        <netty-tcnative-version>2.0.74.Final</netty-tcnative-version>
         <!-- We normally get this from common, but Vertx is built against this -->
         <!-- Note: `netty` depends on `tcnative` and if we bump `netty`
              we might need to bump `tcnative`, too.
              Please check top level `pom.xml` at https://github.com/netty/netty
              for the netty version we bump to (ie, corresponding git tag),
              to find the correct `tcnative` version. -->
-        <netty.version>4.1.125.Final</netty.version>
-        <netty-codec-http2-version>4.1.125.Final</netty-codec-http2-version>
-        <jersey-common>3.1.9</jersey-common>
+        <netty.version>4.1.130.Final</netty.version>
+        <netty-codec-http2-version>4.1.130.Final</netty-codec-http2-version>
+        <jersey-common>2.46</jersey-common>
         <multi-threaded-testing.forkCount>3</multi-threaded-testing.forkCount>
         <kafka.version>${ce.kafka.version}</kafka.version>
         <!-- This needs to be removed once the version is populated in common -->
@@ -722,6 +722,11 @@
             <dependency>
                 <groupId>org.glassfish.jersey.core</groupId>
                 <artifactId>jersey-common</artifactId>
+                <version>${jersey-common}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.glassfish.jersey.core</groupId>
+                <artifactId>jersey-server</artifactId>
                 <version>${jersey-common}</version>
             </dependency>
 

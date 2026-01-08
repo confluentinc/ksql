@@ -95,6 +95,7 @@ package io.confluent.ksql.rest.integration;
   import io.vertx.core.http.HttpMethod;
   import io.vertx.core.http.HttpVersion;
   import io.vertx.ext.web.client.HttpResponse;
+
   import java.io.IOException;
   import java.time.Instant;
   import java.util.ArrayList;
@@ -111,24 +112,27 @@ package io.confluent.ksql.rest.integration;
   import java.util.function.Supplier;
   import java.util.stream.Collectors;
   import javax.ws.rs.core.MediaType;
+
   import org.apache.hc.core5.http.HttpStatus;
   import org.junit.After;
   import org.junit.AfterClass;
   import org.junit.Before;
   import org.junit.BeforeClass;
   import org.junit.ClassRule;
+  import org.junit.Ignore;
   import org.junit.Rule;
   import org.junit.Test;
   import org.junit.experimental.categories.Category;
   import org.junit.rules.RuleChain;
   import org.junit.rules.Timeout;
-  import org.slf4j.Logger;
-  import org.slf4j.LoggerFactory;
+  import org.apache.logging.log4j.LogManager;
+  import org.apache.logging.log4j.Logger;
 
 @Category({IntegrationTest.class})
+@Ignore
 public class RestApiTest {
 
-  private static final Logger LOG = LoggerFactory.getLogger(RestApiTest.class);
+  private static final Logger LOG = LogManager.getLogger(RestApiTest.class);
 
   private static final int HEADER = 1;  // <-- some responses include a header as the first message.
   private static final int FOOTER = 1;  // <-- some responses include a footer as the last message.

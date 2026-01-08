@@ -48,8 +48,8 @@ import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.streams.StreamsConfig;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * Handles the actual execution (or delegation to KSQL core) of all distributed statements, as well
@@ -57,7 +57,7 @@ import org.slf4j.LoggerFactory;
  */
 public class InteractiveStatementExecutor {
 
-  private static final Logger log = LoggerFactory.getLogger(InteractiveStatementExecutor.class);
+  private static final Logger log = LogManager.getLogger(InteractiveStatementExecutor.class);
 
   private final ServiceContext serviceContext;
   private final KsqlExecutionContext ksqlEngine;
@@ -232,7 +232,7 @@ public class InteractiveStatementExecutor {
     final KsqlConfig mergedConfig = buildMergedConfig(command);
     final ConfiguredKsqlPlan configured = ConfiguredKsqlPlan.of(
         plan,
-        SessionConfig.of(mergedConfig, command.getOverwriteProperties())
+        SessionConfig.of(mergedConfig, command.getOverwritePropertiesForExecution())
     );
     putStatus(
         commandId,
@@ -321,7 +321,7 @@ public class InteractiveStatementExecutor {
 
   private KsqlConfig buildMergedConfig(final Command command) {
     return ksqlEngine.getKsqlConfig()
-        .overrideBreakingConfigsWithOriginalValues(command.getOriginalProperties());
+        .overrideBreakingConfigsWithOriginalValues(command.getOriginalPropertiesForExecution());
   }
 
   private void pauseQuery(final PreparedStatement<PauseQuery> pauseQuery) {

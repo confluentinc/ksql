@@ -19,11 +19,11 @@ import com.google.common.annotations.VisibleForTesting;
 import java.time.Clock;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class CatchupCoordinatorImpl implements CatchupCoordinator {
-  private static final Logger LOG = LoggerFactory.getLogger(CatchupCoordinatorImpl.class);
+  private static final Logger LOG = LogManager.getLogger(CatchupCoordinatorImpl.class);
   // The maximum amount of time waited.  This ensures that we don't freeze the latest indefinitely
   // and the latest can still potentially be closed.
   private static final long WAIT_TIME_MS = 10000;

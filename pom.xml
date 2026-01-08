@@ -143,6 +143,7 @@
         <apache.io.version>2.11.0</apache.io.version>
         <io.confluent.ksql.version>8.2.0-0</io.confluent.ksql.version>
         <io.confluent.schema-registry.version>${confluent.version.range}</io.confluent.schema-registry.version>
+        <netty-tcnative-fips-version>0.123.0</netty-tcnative-fips-version>
         <netty-tcnative-version>2.0.74.Final</netty-tcnative-version>
         <!-- We normally get this from common, but Vertx is built against this -->
         <!-- Note: `netty` depends on `tcnative` and if we bump `netty`
@@ -152,7 +153,7 @@
              to find the correct `tcnative` version. -->
         <netty.version>4.1.130.Final</netty.version>
         <netty-codec-http2-version>4.1.130.Final</netty-codec-http2-version>
-        <jersey-common>2.46</jersey-common>
+        <jersey-common>3.1.9</jersey-common>
         <multi-threaded-testing.forkCount>3</multi-threaded-testing.forkCount>
         <kafka.version>${ce.kafka.version}</kafka.version>
         <!-- This needs to be removed once the version is populated in common -->

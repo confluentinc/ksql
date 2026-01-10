@@ -24,7 +24,6 @@ import io.confluent.ksql.util.QueryMask;
 import io.confluent.ksql.util.VertxSslOptionsFactory;
 import io.netty.handler.codec.haproxy.HAProxyProtocolException;
 import io.netty.handler.ssl.OpenSsl;
-import org.apache.kafka.common.config.internals.ConfluentConfigs;
 import io.vertx.core.http.ClientAuth;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpServerOptions;
@@ -33,7 +32,6 @@ import io.vertx.core.net.JksOptions;
 import io.vertx.core.net.KeyStoreOptions;
 import io.vertx.core.net.PfxOptions;
 import io.vertx.ext.web.RoutingContext;
-
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.channels.ClosedChannelException;
@@ -45,9 +43,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-
 import org.apache.kafka.common.config.ConfigException;
 import org.apache.kafka.common.config.SslConfigs;
+import org.apache.kafka.common.config.internals.ConfluentConfigs;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 

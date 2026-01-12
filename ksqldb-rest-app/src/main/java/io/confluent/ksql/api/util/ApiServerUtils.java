@@ -45,7 +45,6 @@ import java.util.Optional;
 import java.util.Set;
 import org.apache.kafka.common.config.ConfigException;
 import org.apache.kafka.common.config.SslConfigs;
-import org.apache.kafka.common.config.internals.ConfluentConfigs;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -53,27 +52,6 @@ public final class ApiServerUtils {
   private static final Logger LOG = LogManager.getLogger(ApiServerUtils.class);
 
   private ApiServerUtils() {
-  }
-
-  /**
-   * Check if FIPS mode is enabled in the configuration.
-   *
-   * @param ksqlRestConfig the ksqlDB REST configuration
-   * @return true if FIPS mode is enabled, false otherwise
-   */
-  private static boolean isFipsEnabled(final KsqlRestConfig ksqlRestConfig) {
-    try {
-      final Object fipsConfig = ksqlRestConfig.originals().get(ConfluentConfigs.ENABLE_FIPS_CONFIG);
-      if (fipsConfig instanceof Boolean) {
-        return (Boolean) fipsConfig;
-      } else if (fipsConfig instanceof String) {
-        return Boolean.parseBoolean((String) fipsConfig);
-      }
-      return false;
-    } catch (final Exception e) {
-      LOG.debug("Could not determine FIPS mode from config, assuming disabled", e);
-      return false;
-    }
   }
 
   public static void setMaskedSqlIfNeeded(final KsqlRequest request) {
@@ -191,7 +169,7 @@ public final class ApiServerUtils {
     // which fails in Java 21+ due to strong encapsulation (IllegalAccessException).
     // Solution: Disable ALPN only when FIPS mode is enabled AND OpenSSL is unavailable.
     // This means HTTP/2 won't work in this specific scenario, but HTTP/1.1 will function correctly.
-    final boolean fipsEnabled = isFipsEnabled(ksqlRestConfig);
+    final boolean fipsEnabled = ksqlRestConfig.isFipsEnabled();
     if (fipsEnabled && !OpenSsl.isAvailable()) {
       LOG.warn("FIPS mode is enabled but OpenSSL native libraries are not available. "
           + "Disabling ALPN (HTTP/2) to avoid Netty/BouncyCastle compatibility issues. "

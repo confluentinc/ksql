@@ -1016,4 +1016,54 @@
 
         </plugins>
     </reporting>
+
+    <profiles>
+        <!-- Profile for detailed deprecation analysis -->
+        <profile>
+            <id>deprecation-check</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-compiler-plugin</artifactId>
+                        <configuration>
+                            <showWarnings>true</showWarnings>
+                            <showDeprecation>true</showDeprecation>
+                            <compilerArgs>
+                                <arg>-Xlint:deprecation</arg>
+                                <arg>-Xlint:unchecked</arg>
+                                <arg>-parameters</arg>
+                            </compilerArgs>
+                            <!-- Force recompilation to show all warnings -->
+                            <useIncrementalCompilation>false</useIncrementalCompilation>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+
+        <!-- Profile for strict deprecation checking (fails build on deprecation) -->
+        <profile>
+            <id>deprecation-strict</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-compiler-plugin</artifactId>
+                        <configuration>
+                            <showWarnings>true</showWarnings>
+                            <showDeprecation>true</showDeprecation>
+                            <failOnWarning>true</failOnWarning>
+                            <compilerArgs>
+                                <arg>-Xlint:deprecation</arg>
+                                <arg>-Werror</arg>
+                                <arg>-parameters</arg>
+                            </compilerArgs>
+                            <useIncrementalCompilation>false</useIncrementalCompilation>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 </project>

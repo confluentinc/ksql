@@ -144,15 +144,15 @@
         <io.confluent.ksql.version>8.2.0-0</io.confluent.ksql.version>
         <io.confluent.schema-registry.version>${confluent.version.range}</io.confluent.schema-registry.version>
         <netty-tcnative-fips-version>0.123.0</netty-tcnative-fips-version>
-        <netty-tcnative-version>2.0.73.Final</netty-tcnative-version>
+        <netty-tcnative-version>2.0.74.Final</netty-tcnative-version>
         <!-- We normally get this from common, but Vertx is built against this -->
         <!-- Note: `netty` depends on `tcnative` and if we bump `netty`
              we might need to bump `tcnative`, too.
              Please check top level `pom.xml` at https://github.com/netty/netty
              for the netty version we bump to (ie, corresponding git tag),
              to find the correct `tcnative` version. -->
-        <netty.version>4.1.125.Final</netty.version>
-        <netty-codec-http2-version>4.1.125.Final</netty-codec-http2-version>
+        <netty.version>4.1.130.Final</netty.version>
+        <netty-codec-http2-version>4.1.130.Final</netty-codec-http2-version>
         <jersey-common>3.1.9</jersey-common>
         <multi-threaded-testing.forkCount>3</multi-threaded-testing.forkCount>
         <kafka.version>${ce.kafka.version}</kafka.version>
@@ -1263,6 +1263,11 @@
                 <artifactId>jersey-common</artifactId>
                 <version>${jersey-common}</version>
             </dependency>
+            <dependency>
+                <groupId>org.glassfish.jersey.core</groupId>
+                <artifactId>jersey-server</artifactId>
+                <version>${jersey-common}</version>
+            </dependency>
 
             <!-- Required for running tests -->
             <dependency>
@@ -1404,7 +1409,7 @@
                                         <exclude>com.google.crypto.tink:tink-gcpkms</exclude>
                                         <!-- Conscrypt: Uses BoringSSL which is not FIPS validated -->
                                         <exclude>org.conscrypt:conscrypt-openjdk-uber</exclude>
-                                        <!-- 
+                                        <!--
                                             NOTE: Both netty-tcnative variants are allowed at build time:
                                             - netty-tcnative-boringssl-static (non-FIPS, for standard mode)
                                             - netty-tcnative-fips-boringssl-static (FIPS compliant)
@@ -1614,10 +1619,10 @@
          By default, BOTH netty-tcnative variants are included in the build:
          - netty-tcnative-boringssl-static (standard, CVE-free)
          - netty-tcnative-fips-boringssl-static (FIPS 140-3 compliant)
-         
+
          Runtime selection is controlled by FIPS_ENABLED environment variable
          in the ksql-run-class startup script.
-         
+
          Usage:
            Standard mode: bin/ksql-server-start config/ksql-server.properties
            FIPS mode:     FIPS_ENABLED=true bin/ksql-server-start config/ksql-server.properties

@@ -153,7 +153,7 @@
              to find the correct `tcnative` version. -->
         <netty.version>4.1.130.Final</netty.version>
         <netty-codec-http2-version>4.1.130.Final</netty-codec-http2-version>
-        <jersey-common>3.1.9</jersey-common>
+        <jersey-common>2.46</jersey-common>
         <multi-threaded-testing.forkCount>3</multi-threaded-testing.forkCount>
         <kafka.version>${ce.kafka.version}</kafka.version>
         <!-- This needs to be removed once the version is populated in common -->
@@ -1613,6 +1613,56 @@
 
         </plugins>
     </reporting>
+
+    <profiles>
+        <!-- Profile for detailed deprecation analysis -->
+        <profile>
+            <id>deprecation-check</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-compiler-plugin</artifactId>
+                        <configuration>
+                            <showWarnings>true</showWarnings>
+                            <showDeprecation>true</showDeprecation>
+                            <compilerArgs>
+                                <arg>-Xlint:deprecation</arg>
+                                <arg>-Xlint:unchecked</arg>
+                                <arg>-parameters</arg>
+                            </compilerArgs>
+                            <!-- Force recompilation to show all warnings -->
+                            <useIncrementalCompilation>false</useIncrementalCompilation>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+
+        <!-- Profile for strict deprecation checking (fails build on deprecation) -->
+        <profile>
+            <id>deprecation-strict</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-compiler-plugin</artifactId>
+                        <configuration>
+                            <showWarnings>true</showWarnings>
+                            <showDeprecation>true</showDeprecation>
+                            <failOnWarning>true</failOnWarning>
+                            <compilerArgs>
+                                <arg>-Xlint:deprecation</arg>
+                                <arg>-Werror</arg>
+                                <arg>-parameters</arg>
+                            </compilerArgs>
+                            <useIncrementalCompilation>false</useIncrementalCompilation>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
     <!-- ===========================================================================
          FIPS Compliance Notes
          ===========================================================================

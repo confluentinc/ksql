@@ -152,11 +152,9 @@
              to find the correct `tcnative` version. -->
         <netty.version>4.1.130.Final</netty.version>
         <netty-codec-http2-version>4.1.130.Final</netty-codec-http2-version>
-        <jersey-common>2.46</jersey-common>
+        <jersey-common>3.1.10</jersey-common>
         <multi-threaded-testing.forkCount>3</multi-threaded-testing.forkCount>
         <kafka.version>${ce.kafka.version}</kafka.version>
-        <!-- This needs to be removed once the version is populated in common -->
-        <log4j2.version>2.17.1</log4j2.version>
     </properties>
 
     <dependencyManagement>
@@ -722,11 +720,6 @@
             <dependency>
                 <groupId>org.glassfish.jersey.core</groupId>
                 <artifactId>jersey-common</artifactId>
-                <version>${jersey-common}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.glassfish.jersey.core</groupId>
-                <artifactId>jersey-server</artifactId>
                 <version>${jersey-common}</version>
             </dependency>
 

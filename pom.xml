@@ -717,6 +717,11 @@
                 <artifactId>jersey-common</artifactId>
                 <version>${jersey-common}</version>
             </dependency>
+            <dependency>
+                <groupId>org.glassfish.jersey.core</groupId>
+                <artifactId>jersey-server</artifactId>
+                <version>${jersey-common}</version>
+            </dependency>
 
             <!-- Required for running tests -->
             <dependency>

@@ -24,11 +24,11 @@ import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.util.Objects;
 import java.util.function.Predicate;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public final class UdfClassLoader extends URLClassLoader {
-  private static final Logger logger = LoggerFactory.getLogger(URLClassLoader.class);
+  private static final Logger logger = LogManager.getLogger(URLClassLoader.class);
   private final Predicate<String> blacklist;
   private final Path path;
 

@@ -24,6 +24,8 @@ import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.clients.admin.ElectLeadersOptions;
+import org.apache.kafka.common.metrics.KafkaMetric;
+import org.apache.kafka.common.metrics.Measurable;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.runners.Enclosed;
@@ -45,8 +47,16 @@ public final class SandboxedAdminClientTest {
           .ignore("close")
           .ignore("close", Duration.class)
           .ignoreUnchecked("close", long.class, TimeUnit.class)
+          .ignore("registerMetricForSubscription", KafkaMetric.class)
+          .ignore("unregisterMetricFromSubscription", KafkaMetric.class)
           .setDefault(ElectLeadersOptions.class, new ElectLeadersOptions())
           .setDefault(Optional.class, Optional.empty())
+          .setDefault(KafkaMetric.class, new KafkaMetric(
+              null,
+              null,
+              (Measurable) (config, now) -> 0,
+              null,
+              null))
           .build();
     }
 

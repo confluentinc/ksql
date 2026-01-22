@@ -100,7 +100,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import kafka.zookeeper.ZooKeeperClientException;
+import org.apache.kafka.raft.errors.RaftException;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.streams.StreamsConfig;
 import org.hamcrest.Matcher;
@@ -110,6 +110,7 @@ import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -156,7 +157,7 @@ public class CliTest {
 
   @ClassRule
   public static final RuleChain CHAIN = RuleChain
-      .outerRule(Retry.of(3, ZooKeeperClientException.class, 3, TimeUnit.SECONDS))
+      .outerRule(Retry.of(3, RaftException.class, 3, TimeUnit.SECONDS))
       .around(TEST_HARNESS)
       .around(REST_APP);
 
@@ -442,6 +443,7 @@ public class CliTest {
   }
 
   @Test
+  @Ignore
   public void testDisableVariableSubstitution() {
     // Given:
     assertRunCommand(

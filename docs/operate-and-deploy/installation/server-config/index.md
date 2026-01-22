@@ -110,7 +110,7 @@ KSQL_LOG4J_OPTS
     default Log4j configuration.
 
     ```bash
-    export KSQL_LOG4J_OPTS="-Dlog4j.configuration=file:$KSQL_CONFIG_DIR/log4j-rolling.properties"
+    export KSQL_LOG4J_OPTS="-Dlog4j2.configurationFile=file:$KSQL_CONFIG_DIR/log4j-rolling.yaml"
     ```
 
     For more information, see

@@ -97,14 +97,14 @@ import org.apache.kafka.common.IsolationLevel;
 import org.apache.kafka.common.KafkaFuture;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.streams.StreamsConfig;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public class KsqlEngine implements KsqlExecutionContext, Closeable, KsqlConfigurable {
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
-  private static final Logger log = LoggerFactory.getLogger(KsqlEngine.class);
+  private static final Logger log = LogManager.getLogger(KsqlEngine.class);
 
   private final KsqlEngineMetrics engineMetrics;
   private final ScheduledExecutorService aggregateMetricsCollector;

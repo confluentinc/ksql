@@ -22,7 +22,7 @@
     <parent>
         <groupId>io.confluent.ksql</groupId>
         <artifactId>ksqldb-parent</artifactId>
-        <version>7.9.6-0</version>
+        <version>8.0.4-0</version>
     </parent>
 
     <artifactId>ksqldb-api-client</artifactId>
@@ -160,7 +160,7 @@
         <!-- Only required to provide LoginModule implementation in tests -->
         <dependency>
             <groupId>org.eclipse.jetty</groupId>
-            <artifactId>jetty-jaas</artifactId>
+            <artifactId>jetty-security</artifactId>
             <version>${jetty.version}</version>
             <scope>test</scope>
         </dependency>

@@ -22,7 +22,7 @@
     <parent>
         <groupId>io.confluent.ksql</groupId>
         <artifactId>ksqldb-parent</artifactId>
-        <version>7.9.6-0</version>
+        <version>8.0.4-0</version>
     </parent>
 
     <artifactId>ksqldb-version-metrics-client</artifactId>
@@ -56,15 +56,9 @@
         </dependency>
 
         <dependency>
-            <groupId>com.github.tomakehurst</groupId>
-            <artifactId>wiremock-jre8</artifactId>
+            <groupId>org.wiremock</groupId>
+            <artifactId>wiremock-jetty12</artifactId>
             <scope>test</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>org.apache.httpcomponents.client5</groupId>
-            <artifactId>httpclient5</artifactId>
-            <version>${apache.httpcomponents.version}</version>
         </dependency>
 
     </dependencies>

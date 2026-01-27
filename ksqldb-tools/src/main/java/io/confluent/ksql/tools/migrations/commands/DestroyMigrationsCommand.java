@@ -31,8 +31,8 @@ import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 @Command(
     name = "destroy-metadata",
@@ -42,7 +42,7 @@ import org.slf4j.LoggerFactory;
 )
 public class DestroyMigrationsCommand extends BaseCommand {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(DestroyMigrationsCommand.class);
+  private static final Logger LOGGER = LogManager.getLogger(DestroyMigrationsCommand.class);
 
   @Override
   protected int command() {

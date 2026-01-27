@@ -26,12 +26,12 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.apache.kafka.streams.StreamsConfig;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class OrphanedTransientQueryCleaner {
 
-  private static final Logger LOG = LoggerFactory.getLogger(OrphanedTransientQueryCleaner.class);
+  private static final Logger LOG = LogManager.getLogger(OrphanedTransientQueryCleaner.class);
 
   private final QueryCleanupService cleanupService;
   private final KsqlConfig ksqlConfig;

@@ -40,8 +40,6 @@ for ksqlDB components.
   ksqlDB Server image
 - **[ksqldb-cli](https://hub.docker.com/r/confluentinc/ksqldb-cli/):**
   ksqlDB command-line interface (CLI) image
-- **[cp-zookeeper](https://hub.docker.com/r/confluentinc/cp-zookeeper):**
-  {{ site.zk }} image (Community Version)
 - **[cp-schema-registry](https://hub.docker.com/r/confluentinc/cp-schema-registry):**
   {{ site.sr }} image (Community Version)
 - **[cp-kafka](https://hub.docker.com/r/confluentinc/cp-kafka):**
@@ -185,7 +183,6 @@ Your output should resemble:
 
 ```
 Creating network "ksql_default" with the default driver
-Creating ksql_zookeeper_1 ... done
 Creating ksql_kafka_1     ... done
 Creating ksql_schema-registry_1 ... done
 Creating primary-ksqldb-server  ... done
@@ -207,7 +204,6 @@ Your output should resemble:
 additional-ksqldb-server   /usr/bin/docker/run         Up      0.0.0.0:32768->8090/tcp
 ksql_kafka_1               /etc/confluent/docker/run   Up      0.0.0.0:29092->29092/tcp, 9092/tcp
 ksql_schema-registry_1     /etc/confluent/docker/run   Up      8081/tcp
-ksql_zookeeper_1           /etc/confluent/docker/run   Up      2181/tcp, 2888/tcp, 3888/tcp
 ksqldb-cli                 /bin/sh                     Up
 primary-ksqldb-server      /usr/bin/docker/run         Up      0.0.0.0:8088->8088/tcp
 ```
@@ -308,13 +304,11 @@ Stopping ksqldb-cli               ... done
 Stopping primary-ksqldb-server    ... done
 Stopping ksql_schema-registry_1   ... done
 Stopping ksql_kafka_1             ... done
-Stopping ksql_zookeeper_1         ... done
 Removing additional-ksqldb-server ... done
 Removing ksqldb-cli               ... done
 Removing primary-ksqldb-server    ... done
 Removing ksql_schema-registry_1   ... done
 Removing ksql_kafka_1             ... done
-Removing ksql_zookeeper_1         ... done
 Removing network ksql_default
 ```
 

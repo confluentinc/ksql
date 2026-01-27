@@ -46,12 +46,16 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import io.confluent.kafka.schemaregistry.avro.AvroSchema;
+import io.confluent.kafka.schemaregistry.avro.AvroSchemaProvider;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
+import io.confluent.kafka.schemaregistry.json.JsonSchemaProvider;
+import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchemaProvider;
 import io.confluent.ksql.KsqlConfigTestUtil;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
@@ -120,13 +124,13 @@ import org.junit.rules.Timeout;
 import org.junit.runner.RunWith;
 import org.mockito.Spy;
 import org.mockito.junit.MockitoJUnitRunner;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 @SuppressWarnings({"OptionalGetWithoutIsPresent", "SameParameterValue"})
 @RunWith(MockitoJUnitRunner.class)
 public class KsqlEngineTest {
-  private static final Logger log = LoggerFactory.getLogger(KsqlEngineTest.class);
+  private static final Logger log = LogManager.getLogger(KsqlEngineTest.class);
   private static final MutableFunctionRegistry functionRegistry = new InternalFunctionRegistry();
 
   private KsqlConfig ksqlConfig;
@@ -134,7 +138,11 @@ public class KsqlEngineTest {
   private final Map<String, Object> sharedRuntimeDisabled = new HashMap<>();
   private MutableMetaStore metaStore;
   @Spy
-  private final SchemaRegistryClient schemaRegistryClient = new MockSchemaRegistryClient();
+  private final SchemaRegistryClient schemaRegistryClient = new MockSchemaRegistryClient(
+      ImmutableList.of(
+          new AvroSchemaProvider(),
+          new ProtobufSchemaProvider(),
+          new JsonSchemaProvider()));
   private final Supplier<SchemaRegistryClient> schemaRegistryClientFactory =
       () -> schemaRegistryClient;
 

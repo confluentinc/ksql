@@ -19,10 +19,14 @@ import io.confluent.ksql.parser.SqlFormatter;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.QueryGuid;
-import org.apache.log4j.Appender;
-import org.apache.log4j.Level;
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.core.Appender;
+import org.apache.logging.log4j.core.LoggerContext;
+import org.apache.logging.log4j.core.config.Configuration;
+import org.apache.logging.log4j.core.config.LoggerConfig;
+
 
 public final class QueryLogger {
   private static final Logger logger = LogManager.getLogger(QueryLogger.class);
@@ -41,7 +45,13 @@ public final class QueryLogger {
   }
 
   public static void addAppender(final Appender appender) {
-    logger.addAppender(appender);
+    final LoggerContext context = (LoggerContext) LogManager.getContext(false);
+    final Configuration config = context.getConfiguration();
+    appender.start();
+    config.addAppender(appender);
+    final LoggerConfig loggerConfig = config.getLoggerConfig(logger.getName());
+    loggerConfig.addAppender(appender, null, null);
+    context.updateLoggers();
   }
 
   @SuppressFBWarnings(value = "MS_EXPOSE_REP")

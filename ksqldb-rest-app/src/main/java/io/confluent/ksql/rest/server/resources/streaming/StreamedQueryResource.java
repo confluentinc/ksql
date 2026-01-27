@@ -56,13 +56,13 @@ import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 import org.apache.kafka.common.errors.TopicAuthorizationException;
 import org.apache.kafka.streams.StreamsConfig;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 @SuppressWarnings({"ClassDataAbstractionCoupling"})
 public class StreamedQueryResource {
 
-  private static final Logger log = LoggerFactory.getLogger(StreamedQueryResource.class);
+  private static final Logger log = LogManager.getLogger(StreamedQueryResource.class);
 
   private static final ObjectMapper OBJECT_MAPPER = ApiJsonMapper.INSTANCE.get();
 

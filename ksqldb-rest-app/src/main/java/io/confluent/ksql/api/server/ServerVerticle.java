@@ -17,6 +17,7 @@ package io.confluent.ksql.api.server;
 
 import static io.confluent.ksql.api.server.InternalEndpointHandler.CONTEXT_DATA_IS_INTERNAL;
 import static io.confluent.ksql.api.server.OldApiUtils.handleOldApiRequest;
+import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
 import static io.netty.handler.codec.http.HttpResponseStatus.TEMPORARY_REDIRECT;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -238,6 +239,9 @@ public class ServerVerticle extends AbstractVerticle {
         .handler(BodyHandler.create(false))
         .produces(KsqlMediaType.KSQL_V1_JSON.mediaType())
         .handler(this::handleTest);
+    router.route()
+        .last()
+        .handler(ctx -> ctx.response().setStatusCode(NOT_FOUND.code()).end("Not Found"));
     return router;
   }
 

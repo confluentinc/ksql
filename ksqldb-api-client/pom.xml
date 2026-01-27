@@ -22,7 +22,7 @@
     <parent>
         <groupId>io.confluent.ksql</groupId>
         <artifactId>ksqldb-parent</artifactId>
-        <version>8.0.4-0</version>
+        <version>8.1.2-0</version>
     </parent>
 
     <artifactId>ksqldb-api-client</artifactId>
@@ -170,6 +170,12 @@
             <artifactId>testcontainers-keycloak</artifactId>
             <version>1.10.0</version>
             <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.kafka</groupId>
+            <artifactId>kafka-clients</artifactId>
+            <version>${kafka.version}</version>
         </dependency>
 
     </dependencies>

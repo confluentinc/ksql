@@ -175,6 +175,7 @@ public class RestQueryTranslationTest {
           // but they are capped to 100
           .nameMatches(name -> !name.startsWith("pull-query-coordinator"))
           .nameMatches(name -> !name.startsWith("pull-query-router"))
+          .nameMatches(name -> !name.startsWith("executor-share-coordinator"))
           .build()));
     } else {
       thread.assertSameThreads();

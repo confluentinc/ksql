@@ -20,6 +20,7 @@ import static java.util.Objects.requireNonNull;
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.execution.transform.KsqlProcessingContext;
 import io.confluent.ksql.execution.transform.KsqlTransformer;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.testing.EffectivelyImmutable;
@@ -54,7 +55,8 @@ public class KudtfFlatMapper<K> implements KsqlTransformer<K, Iterable<GenericRo
   @Override
   public Iterable<GenericRow> transform(
       final K readOnlyKey,
-      final GenericRow value
+      final GenericRow value,
+      final KsqlProcessingContext ctx
   ) {
     if (value == null) {
       return null;

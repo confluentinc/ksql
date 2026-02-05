@@ -315,6 +315,21 @@ public class ApiTest extends BaseApiTest {
   }
 
   @Test
+  public void shouldHandleUnknownRequest() throws Exception {
+
+    // Given
+    JsonObject requestBody = new JsonObject().put("foo", "bar");
+
+    // When
+    HttpResponse<Buffer> response = sendPostRequest("/unknown", requestBody.toBuffer());
+
+    // Then
+    assertThat(response.statusCode(), is(404));
+    assertThat(response.statusMessage(), is("Not Found"));
+    assertThat(response.bodyAsString(), is("Not Found"));
+  }
+
+  @Test
   public void shouldHandleErrorInProcessingQuery() throws Exception {
 
     // Given
@@ -654,7 +669,7 @@ public class ApiTest extends BaseApiTest {
   }
 
   @Test
-  public void shouldReturn406WithNoMatchingAcceptHeader() throws Exception {
+  public void shouldReturn404WithNoMatchingAcceptHeader() throws Exception {
 
     // When
     VertxCompletableFuture<HttpResponse<Buffer>> requestFuture = new VertxCompletableFuture<>();
@@ -665,7 +680,7 @@ public class ApiTest extends BaseApiTest {
     HttpResponse<Buffer> response = requestFuture.get();
 
     // Then
-    assertThat(response.statusCode(), is(406));
+    assertThat(response.statusCode(), is(404));
   }
 
   @Test

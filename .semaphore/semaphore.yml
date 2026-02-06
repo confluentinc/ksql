@@ -69,6 +69,8 @@ blocks:
       env_vars:
         - name: COMPONENT_NAME
           value: ksqldb
+        - name: DOCKER_DEV_BASE_IMAGE
+          value: 519856050701.dkr.ecr.us-west-2.amazonaws.com/docker/dev/confluentinc/cp-base-new:dev-7.9.x-cb2fe0b0-ubi8.amd64
       jobs:
         - name: Trigger and wait for CP Jar Build Task
           commands:
@@ -80,6 +82,7 @@ blocks:
                     -t cp-jar-build \
                     -b $SEMAPHORE_GIT_BRANCH \
                     -d "|" -i "CUSTOM_BRANCH_COMPONENTS|${COMPONENT_NAME}=${SEMAPHORE_GIT_WORKING_BRANCH}" \
+                    -i "DOCKER_DEV_BASE_IMAGE|${DOCKER_DEV_BASE_IMAGE}" \
                     -w; \
               else \
                   echo "PR is targeted to ${SEMAPHORE_GIT_BRANCH} branch which is not CP nightly branch. Skipping cp-jar-build task."; \

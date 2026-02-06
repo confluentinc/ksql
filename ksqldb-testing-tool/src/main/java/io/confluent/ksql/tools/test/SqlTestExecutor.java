@@ -50,9 +50,11 @@ import io.confluent.ksql.parser.tree.AssertTombstone;
 import io.confluent.ksql.parser.tree.AssertValues;
 import io.confluent.ksql.parser.tree.CreateAsSelect;
 import io.confluent.ksql.parser.tree.CreateSource;
+import io.confluent.ksql.parser.tree.DefineVariable;
 import io.confluent.ksql.parser.tree.DropStatement;
 import io.confluent.ksql.parser.tree.InsertValues;
 import io.confluent.ksql.parser.tree.SetProperty;
+import io.confluent.ksql.parser.tree.UndefineVariable;
 import io.confluent.ksql.parser.tree.UnsetProperty;
 import io.confluent.ksql.properties.PropertyOverrider;
 import io.confluent.ksql.query.QueryId;
@@ -128,6 +130,7 @@ public class SqlTestExecutor implements Closeable {
   private KafkaTopicClient topicClient;
   private Path tmpFolder;
   private final Map<String, Object> overrides;
+  private final Map<String, String> variables;
   private final Map<QueryId, DriverAndProperties> drivers;
 
   // populated during execution to handle the expected exception
@@ -211,6 +214,7 @@ public class SqlTestExecutor implements Closeable {
     this.formatInjector = new DefaultFormatInjector();
     this.topicClient = requireNonNull(topicClient, "topicClient");
     this.overrides = new HashMap<>();
+    this.variables = new HashMap<>();
     this.drivers = drivers;
     this.tmpFolder = requireNonNull(tmpFolder, "tmpFolder");
   }
@@ -249,7 +253,7 @@ public class SqlTestExecutor implements Closeable {
   }
 
   private void execute(final ParsedStatement parsedStatement) {
-    final PreparedStatement<?> engineStatement = engine.prepare(parsedStatement);
+    final PreparedStatement<?> engineStatement = engine.prepare(parsedStatement, variables);
     final ConfiguredStatement<?> configured = ConfiguredStatement
         .of(engineStatement, SessionConfig.of(config, overrides));
 
@@ -263,6 +267,12 @@ public class SqlTestExecutor implements Closeable {
       return;
     } else if (engineStatement.getStatement() instanceof UnsetProperty) {
       PropertyOverrider.unset((ConfiguredStatement<UnsetProperty>) configured, overrides);
+      return;
+    } else if (engineStatement.getStatement() instanceof DefineVariable variableStatement) {
+      variables.put(variableStatement.getVariableName(), variableStatement.getVariableValue());
+      return;
+    } else if (engineStatement.getStatement() instanceof UndefineVariable variableStatement) {
+      variables.remove(variableStatement.getVariableName());
       return;
     }
 

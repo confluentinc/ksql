@@ -23,6 +23,7 @@ queue:
 global_job_config:
   prologue:
     commands:
+      - cache clear
       - checkout
       - . set-cp-java-version
       - . cache-maven restore

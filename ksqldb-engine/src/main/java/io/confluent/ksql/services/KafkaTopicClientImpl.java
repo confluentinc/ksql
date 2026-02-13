@@ -439,6 +439,41 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
     }
   }
 
+  @SuppressWarnings({"deprecation", "RedundantSuppression"})
+  private boolean addTopicConfigLegacy(
+      final String topicName,
+      final Map<String, String> overrides
+  ) {
+    final ConfigResource resource = new ConfigResource(ConfigResource.Type.TOPIC, topicName);
+
+    try {
+      final Map<String, String> existingConfig = topicConfig(topicName, false);
+      existingConfig.putAll(overrides);
+
+      final Set<ConfigEntry> entries = existingConfig.entrySet().stream()
+          .map(e -> new ConfigEntry(e.getKey(), e.getValue()))
+          .collect(Collectors.toSet());
+
+      final Map<ConfigResource, Config> request =
+          Collections.singletonMap(resource, new Config(entries));
+      final Map<ConfigResource, Collection<AlterConfigOp>> alterOps = Collections.singletonMap(
+          resource,
+          entries.stream()
+              .map(entry -> new AlterConfigOp(entry, AlterConfigOp.OpType.SET))
+              .collect(Collectors.toList())
+      );
+
+      ExecutorUtil.executeWithRetries(
+          () -> adminClient.get().incrementalAlterConfigs(alterOps).all().get(),
+          ExecutorUtil.RetryBehaviour.ON_RETRYABLE);
+
+      return true;
+    } catch (final Exception e) {
+      throw new KafkaResponseGetFailedException(
+          "Failed to set config for Kafka Topic " + topicName, e);
+    }
+  }
+
   private static Map<String, String> toStringConfigs(final Map<String, ?> configs) {
     return configs.entrySet().stream()
         .collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().toString()));

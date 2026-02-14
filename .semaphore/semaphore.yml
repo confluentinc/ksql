@@ -17,8 +17,12 @@ execution_time_limit:
   hours: 6
 
 queue:
-  - when: "branch != 'master' and branch !~ '[0-9]+\\.[0-9]+\\.x'"
+  - when: "branch != 'master' and branch !~ '[0-9]+\\.[0-9]+\\.x' and branch = 'pipeline-opt'"
     processing: parallel
+
+auto_cancel:
+  queued:
+    when: "branch != 'master'"
 
 global_job_config:
   prologue:
@@ -26,6 +30,7 @@ global_job_config:
       - checkout
       - . set-cp-java-version
       - . cache-maven restore
+
 
 blocks:
   - name: Test
@@ -54,6 +59,9 @@ blocks:
             - chmod +x scripts/deprecation-tracker/extract-deprecations.sh || true
             - ./scripts/deprecation-tracker/extract-deprecations.sh /tmp/build.log || true
             - artifact push workflow target/deprecation-report || true
+
+
+
 
   - name: Release
     dependencies: ["Test"]

@@ -25,6 +25,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
@@ -53,6 +54,9 @@ public class Entries {
       Schema.OPTIONAL_BOOLEAN_SCHEMA);
   private static final Schema STRING_STRUCT_SCHEMA = buildStructSchema(
       Schema.OPTIONAL_STRING_SCHEMA);
+  private static final Schema STRUCT_STRUCT_SCHEMA = buildStructSchema(
+      new ConnectSchema(Schema.Type.STRUCT).schema());
+
   private static final String KEY_FIELD_NAME = "K";
   private static final String VALUE_FIELD_NAME = "V";
 
@@ -104,6 +108,15 @@ public class Entries {
       final boolean sorted
   ) {
     return entries(map, STRING_STRUCT_SCHEMA, sorted);
+  }
+
+  @Udf(schema = "ARRAY<STRUCT<K STRING, V STRUCT>>")
+  public List<Struct> entriesStruct(
+      @UdfParameter(description = "The map to create entries from") final Map<String, Struct> map,
+      @UdfParameter(description = "If true then the resulting entries are sorted by key")
+      final boolean sorted
+  ) {
+    return entries(map, STRUCT_STRUCT_SCHEMA, sorted);
   }
 
   private <T> List<Struct> entries(

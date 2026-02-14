@@ -2386,12 +2386,12 @@
     {
       "name": "self join",
       "statements": [
-        "CREATE STREAM INPUT (K STRING KEY, ID bigint) WITH (kafka_topic='left_topic', value_format='JSON');",
-        "CREATE STREAM OUTPUT as SELECT * FROM INPUT s1 JOIN INPUT s2 WITHIN 1 HOUR ON s1.id = s2.id;"
+        "CREATE TABLE L (ID INT PRIMARY KEY, V0 INT, V1 INT) WITH (kafka_topic='left_topic', value_format='JSON');",
+        "CREATE TABLE OUTPUT as SELECT * FROM L as t1 JOIN L as t2 ON t1.id = t2.id;"
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Can not join 'INPUT' to 'INPUT': self joins are not yet supported."
+        "message": "Can not join 'L' to 'L': table-table self joins are not yet supported."
       }
     },
     {

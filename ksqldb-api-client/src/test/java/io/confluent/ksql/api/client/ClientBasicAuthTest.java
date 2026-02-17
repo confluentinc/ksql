@@ -18,13 +18,13 @@ package io.confluent.ksql.api.client;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.test.util.TestBasicJaasConfig;
 import java.util.Map;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.junit.ClassRule;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class ClientBasicAuthTest extends ClientTest {
 
-  protected static final Logger log = LoggerFactory.getLogger(ClientBasicAuthTest.class);
+  protected static final Logger log = LogManager.getLogger(ClientBasicAuthTest.class);
 
   private static final String PROPS_JAAS_REALM = "KsqlServer-Props";
   private static final String KSQL_RESOURCE = "ksql-user";

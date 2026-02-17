@@ -21,7 +21,6 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.codegen.CodeGenRunner;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.transform.ExpressionEvaluator;
-import io.confluent.ksql.execution.transform.KsqlProcessingContext;
 import io.confluent.ksql.execution.transform.KsqlTransformer;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
@@ -85,8 +84,7 @@ public final class SqlPredicate {
     @Override
     public Optional<GenericRow> transform(
         final K readOnlyKey,
-        final GenericRow value,
-        final KsqlProcessingContext ctx
+        final GenericRow value
     ) {
       if (value == null) {
         return Optional.empty();

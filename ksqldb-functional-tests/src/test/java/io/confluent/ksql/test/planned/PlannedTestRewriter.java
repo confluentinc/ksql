@@ -18,8 +18,8 @@ package io.confluent.ksql.test.planned;
 import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Stream;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * Tool for rewriting planned test cases
@@ -29,7 +29,7 @@ import org.slf4j.LoggerFactory;
  */
 public class PlannedTestRewriter {
 
-  private static final Logger LOG = LoggerFactory.getLogger(PlannedTestRewriter.class);
+  private static final Logger LOG = LogManager.getLogger(PlannedTestRewriter.class);
 
   private final Function<TestCasePlan, TestCasePlan> rewriter;
 

@@ -11,7 +11,7 @@ The test cases are run by the `QueryTranslationTest` test class.
 
 Most of the test cases (except those that validate exceptions) work by generating a plan, building
 a streams topology from the plan, and then running the topology against the inputs. Over time, the
-plan for a given query may evolve. However KSQL still needs to be able to execute older plans
+plan for a given query may evolve. However, KSQL still needs to be able to execute older plans
 correctly. To test this, most Query Validation Tests work by loading and executing saved plans
 from the local tree.
 

@@ -20,11 +20,11 @@ import static io.netty.handler.codec.http.HttpResponseStatus.MISDIRECTED_REQUEST
 import io.confluent.ksql.rest.Errors;
 import io.vertx.core.Handler;
 import io.vertx.ext.web.RoutingContext;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class SniHandler implements Handler<RoutingContext> {
-  private static final Logger log = LoggerFactory.getLogger(SniHandler.class);
+  private static final Logger log = LogManager.getLogger(SniHandler.class);
 
   public SniHandler() {
   }

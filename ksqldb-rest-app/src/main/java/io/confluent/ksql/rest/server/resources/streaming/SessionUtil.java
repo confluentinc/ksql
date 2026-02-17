@@ -19,12 +19,12 @@ import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.rest.ApiJsonMapper;
 import io.vertx.core.http.ServerWebSocket;
 import java.nio.charset.StandardCharsets;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 final class SessionUtil {
 
-  private static final Logger LOG = LoggerFactory.getLogger(SessionUtil.class);
+  private static final Logger LOG = LogManager.getLogger(SessionUtil.class);
 
   // Close reason is limited to 123 bytes:
   private static final int MAX_REASON_LEN = 123;

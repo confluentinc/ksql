@@ -53,7 +53,7 @@ public class KudtfFlatMapperTest {
         new KudtfFlatMapper<>(ImmutableList.of(applier), processingLogger);
 
     // When:
-    final Iterable<GenericRow> iterable = flatMapper.transform(KEY, VALUE, ctx);
+    final Iterable<GenericRow> iterable = flatMapper.transform(KEY, VALUE);
 
     // Then:
     final Iterator<GenericRow> iter = iterable.iterator();
@@ -72,7 +72,7 @@ public class KudtfFlatMapperTest {
         new KudtfFlatMapper<>(ImmutableList.of(applier1, applier2), processingLogger);
 
     // When:
-    final Iterable<GenericRow> iterable = flatMapper.transform(KEY, VALUE, ctx);
+    final Iterable<GenericRow> iterable = flatMapper.transform(KEY, VALUE);
 
     // Then:
     final Iterator<GenericRow> iter = iterable.iterator();
@@ -90,7 +90,7 @@ public class KudtfFlatMapperTest {
         new KudtfFlatMapper<>(ImmutableList.of(applier), processingLogger);
 
     // When:
-    flatMapper.transform(KEY, VALUE, ctx);
+    flatMapper.transform(KEY, VALUE);
 
     // Then:
     verify(applier).apply(VALUE, processingLogger);

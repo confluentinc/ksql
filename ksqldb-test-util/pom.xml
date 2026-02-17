@@ -20,27 +20,13 @@
   <parent>
     <artifactId>ksqldb-parent</artifactId>
     <groupId>io.confluent.ksql</groupId>
-    <version>7.9.6-0</version>
+    <version>8.0.4-0</version>
   </parent>
   <modelVersion>4.0.0</modelVersion>
 
   <artifactId>ksqldb-test-util</artifactId>
 
   <dependencies>
-
-    <dependency>
-      <groupId>org.apache.curator</groupId>
-      <artifactId>curator-test</artifactId>
-      <version>${apache.curator.version}</version>
-      <scope>compile</scope>
-      <exclusions>
-        <!-- Use a repackaged version of log4j with security patches instead-->
-        <exclusion>
-            <groupId>log4j</groupId>
-            <artifactId>log4j</artifactId>
-        </exclusion>
-      </exclusions>
-    </dependency>
 
     <dependency>
       <groupId>org.apache.kafka</groupId>
@@ -72,6 +58,17 @@
     <dependency>
       <groupId>org.apache.kafka</groupId>
       <artifactId>kafka-clients</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>org.apache.kafka</groupId>
+      <artifactId>kafka-test-common-internal-api</artifactId>
+      <scope>compile</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.kafka</groupId>
+      <artifactId>kafka-test-common-runtime</artifactId>
+      <scope>compile</scope>
     </dependency>
 
     <dependency>

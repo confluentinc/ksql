@@ -35,8 +35,8 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Predicate;
 import org.apache.kafka.common.metrics.Metrics;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * Coordinates the loading of UDFs, UDAFs and UDTFs. The actual loading of the functions is done in
@@ -44,7 +44,7 @@ import org.slf4j.LoggerFactory;
  */
 public class UserFunctionLoader {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(UserFunctionLoader.class);
+  private static final Logger LOGGER = LogManager.getLogger(UserFunctionLoader.class);
 
   private final File pluginDir;
   private final ClassLoader parentClassLoader;

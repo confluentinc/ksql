@@ -31,14 +31,14 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * A file that is used by the backup service to replay command_topic commands.
  */
 public final class BackupReplayFile implements Closeable {
-  private static final Logger LOGGER = LoggerFactory.getLogger(BackupReplayFile.class);
+  private static final Logger LOGGER = LogManager.getLogger(BackupReplayFile.class);
 
   private static final String KEY_VALUE_SEPARATOR_STR = ":";
   private static final String NEW_LINE_SEPARATOR_STR = "\n";

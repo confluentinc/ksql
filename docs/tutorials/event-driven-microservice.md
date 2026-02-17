@@ -39,65 +39,57 @@ To get started, create the following `docker-compose.yml` file. This specifies a
 version: '2'
 
 services:
-  zookeeper:
-    image: confluentinc/cp-zookeeper:{{ site.cprelease }}
-    hostname: zookeeper
-    container_name: zookeeper
-    ports:
-      - "2181:2181"
-    environment:
-      ZOOKEEPER_CLIENT_PORT: 2181
-      ZOOKEEPER_TICK_TIME: 2000
-
-  broker:
-    image: confluentinc/cp-kafka:{{ site.cprelease }}
-    hostname: broker
-    container_name: broker
-    depends_on:
-      - zookeeper
+  kafka:
+    image: confluentinc/cp-server:{{ site.cprelease }}
+    hostname: kafka
+    container_name: kafka
     ports:
       - "29092:29092"
     environment:
-      KAFKA_BROKER_ID: 1
-      KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://broker:9092,PLAINTEXT_HOST://localhost:29092
+      KAFKA_NODE_ID: 1
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:39093
+      KAFKA_LISTENERS: PLAINTEXT://kafka:9092,CONTROLLER://kafka:39093,PLAINTEXT_HOST://0.0.0.0:29092
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LOG_DIRS: /tmp/kraft-combined-logs
+      CLUSTER_ID: 9-fLubcIRYqQaWkrwEThnQ
 
   schema-registry:
     image: confluentinc/cp-schema-registry:{{ site.cprelease }}
     hostname: schema-registry
     container_name: schema-registry
     depends_on:
-      - zookeeper
-      - broker
+      - kafka
     ports:
       - "8081:8081"
     environment:
       SCHEMA_REGISTRY_HOST_NAME: schema-registry
-      SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: "PLAINTEXT://broker:9092"
+      SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: "PLAINTEXT://kafka:9092"
 
   ksqldb-server:
     image: confluentinc/ksqldb-server:{{ site.ksqldbversion }}
     hostname: ksqldb-server
     container_name: ksqldb-server
     depends_on:
-      - broker
+      - kafka
       - schema-registry
     ports:
       - "8088:8088"
     environment:
       KSQL_LISTENERS: "http://0.0.0.0:8088"
-      KSQL_BOOTSTRAP_SERVERS: "broker:9092"
+      KSQL_BOOTSTRAP_SERVERS: "kafka:9092"
       KSQL_KSQL_SCHEMA_REGISTRY_URL: "http://schema-registry:8081"
       KSQL_KSQL_LOGGING_PROCESSING_STREAM_AUTO_CREATE: "true"
       KSQL_KSQL_LOGGING_PROCESSING_TOPIC_AUTO_CREATE: "true"
       # Configuration to embed Kafka Connect support.
       KSQL_CONNECT_GROUP_ID: "ksql-connect-cluster"
-      KSQL_CONNECT_BOOTSTRAP_SERVERS: "broker:9092"
+      KSQL_CONNECT_BOOTSTRAP_SERVERS: "kafka:9092"
       KSQL_CONNECT_KEY_CONVERTER: "org.apache.kafka.connect.storage.StringConverter"
       KSQL_CONNECT_VALUE_CONVERTER: "io.confluent.connect.avro.AvroConverter"
       KSQL_CONNECT_VALUE_CONVERTER_SCHEMA_REGISTRY_URL: "http://schema-registry:8081"
@@ -113,7 +105,7 @@ services:
     image: confluentinc/ksqldb-cli:{{ site.ksqldbversion }}
     container_name: ksqldb-cli
     depends_on:
-      - broker
+      - kafka
       - ksqldb-server
     entrypoint: /bin/sh
     tty: true
@@ -447,7 +439,7 @@ Create the directory structure for the rest of the project:
 mkdir -p src/main/java/io/ksqldb/tutorial src/main/resources src/main/avro
 ```
 
-To ensure that your microservice logs output to the console, create the following file at `src/main/resources/log4j.properties`:
+To ensure that your microservice logs output to the console, create the following file at `src/main/resources/log4j2.yaml`:
 
 ```
 # Root logger option

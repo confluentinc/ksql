@@ -21,8 +21,8 @@ import io.confluent.ksql.util.KsqlConfig;
 import java.util.Map;
 import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.common.config.TopicConfig;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * KsqlInternalTopicUtils provides some utility functions for working with internal topics.
@@ -33,7 +33,7 @@ import org.slf4j.LoggerFactory;
  */
 public final class KsqlInternalTopicUtils {
 
-  private static final Logger log = LoggerFactory.getLogger(KsqlInternalTopicUtils.class);
+  private static final Logger log = LogManager.getLogger(KsqlInternalTopicUtils.class);
 
   private static final int INTERNAL_TOPIC_PARTITION_COUNT = 1;
   private static final long INTERNAL_TOPIC_RETENTION_MS = -1;

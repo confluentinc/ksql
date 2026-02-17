@@ -44,11 +44,11 @@ import java.util.Optional;
 import java.util.Set;
 import org.apache.kafka.common.config.ConfigException;
 import org.apache.kafka.common.config.SslConfigs;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public final class ApiServerUtils {
-  private static final Logger LOG = LoggerFactory.getLogger(ApiServerUtils.class);
+  private static final Logger LOG = LogManager.getLogger(ApiServerUtils.class);
 
   private ApiServerUtils() {
   }

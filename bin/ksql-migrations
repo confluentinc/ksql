@@ -7,14 +7,14 @@ base_dir=$( cd -P "$( dirname "${BASH_SOURCE[0]}" )/.." && pwd )
 : "${KSQL_CONFIG_DIR:="$base_dir/config"}"
 
 if [ -z "$KSQL_LOG4J_OPTS" ]; then
-  if [ -e "$base_dir/config/ksql-migrations-log4j.properties" ]; then # Dev environment
+  if [ -e "$base_dir/config/ksql-migrations-log4j2.yaml" ]; then # Dev environment
     KSQL_CONFIG_DIR="$base_dir/config"
-  elif [ -e "$base_dir/etc/ksqldb/ksql-migrations-log4j.properties" ]; then # Simple zip file layout
+  elif [ -e "$base_dir/etc/ksqldb/ksql-migrations-log4j2.yaml" ]; then # Simple zip file layout
     KSQL_CONFIG_DIR="$base_dir/etc/ksqldb"
-  elif [ -e "/etc/ksqldb/ksql-migrations-log4j.properties" ]; then # Normal install layout
+  elif [ -e "/etc/ksqldb/ksql-migrations-log4j2.yaml" ]; then # Normal install layout
     KSQL_CONFIG_DIR="/etc/ksqldb"
   fi
-  export KSQL_LOG4J_OPTS="-Dlog4j.configuration=file:$KSQL_CONFIG_DIR/ksql-migrations-log4j.properties"
+  export KSQL_LOG4J_OPTS="-Dlog4j2.configurationFile=file:$KSQL_CONFIG_DIR/ksql-migrations-log4j2.yaml"
 fi
 
 exec "$base_dir"/bin/ksql-run-class io.confluent.ksql.tools.migrations.Migrations "$@"

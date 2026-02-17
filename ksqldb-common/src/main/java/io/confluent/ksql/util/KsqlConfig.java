@@ -58,12 +58,12 @@ import org.apache.kafka.common.config.TopicConfig;
 import org.apache.kafka.common.config.internals.ConfluentConfigs;
 import org.apache.kafka.common.utils.AppInfoParser;
 import org.apache.kafka.streams.StreamsConfig;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 @EffectivelyImmutable
 public class KsqlConfig extends AbstractConfig {
-  private static final Logger LOG = LoggerFactory.getLogger(KsqlConfig.class);
+  private static final Logger LOG = LogManager.getLogger(KsqlConfig.class);
 
   public static final String KSQL_CONFIG_PROPERTY_PREFIX = "ksql.";
 
@@ -258,6 +258,12 @@ public class KsqlConfig extends AbstractConfig {
   public static final String KSQL_SECURITY_EXTENSION_DEFAULT = null;
   public static final String KSQL_SECURITY_EXTENSION_DOC = "A KSQL security extension class that "
       + "provides authorization to KSQL servers.";
+
+  public static final String KSQL_RESOURCE_EXTENSION_CLASS = "ksql.resource.extension.class";
+  public static final String KSQL_RESOURCE_EXTENSION_DEFAULT = null;
+  public static final String KSQL_RESOURCE_EXTENSION_DOC =
+      "A KSQL resource extension class that "
+      + "provides additional functionality to KSQL servers.";
 
   public static final String KSQL_ENABLE_ACCESS_VALIDATOR = "ksql.access.validator.enable";
   public static final String KSQL_ACCESS_VALIDATOR_ON = "on";
@@ -1035,10 +1041,12 @@ public class KsqlConfig extends AbstractConfig {
         ).define(
             KSQL_UDF_SECURITY_MANAGER_ENABLED,
             ConfigDef.Type.BOOLEAN,
-            true,
+            // SecurityManager is deprecated from java 21 onwards.
+            false,
             ConfigDef.Importance.LOW,
-            "Enable the security manager for UDFs. Default is true and will stop UDFs from"
-               + " calling System.exit or executing processes"
+            "Enable the security manager to stop UDFs from calling System.exit "
+                    + "or executing processes. Default is false as it is deprecated in Java 21. "
+                    + "This can be enabled only for Java versions less than 21."
         ).define(
             KSQL_INSERT_INTO_VALUES_ENABLED,
             Type.BOOLEAN,
@@ -1051,6 +1059,12 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_SECURITY_EXTENSION_DEFAULT,
             ConfigDef.Importance.LOW,
             KSQL_SECURITY_EXTENSION_DOC
+        ).define(
+            KSQL_RESOURCE_EXTENSION_CLASS,
+            Type.STRING,
+            KSQL_RESOURCE_EXTENSION_DEFAULT,
+            ConfigDef.Importance.LOW,
+            KSQL_RESOURCE_EXTENSION_DOC
         ).define(
             KSQL_DEFAULT_KEY_FORMAT_CONFIG,
             Type.STRING,
@@ -1683,7 +1697,7 @@ public class KsqlConfig extends AbstractConfig {
     super(configDef(generation), props);
 
     final Map<String, Object> streamsConfigDefaults = new HashMap<>();
-    streamsConfigDefaults.put(StreamsConfig.InternalConfig.STATE_UPDATER_ENABLED, false);
+    streamsConfigDefaults.put(StreamsConfig.InternalConfig.STATE_UPDATER_ENABLED, true);
     streamsConfigDefaults.put(StreamsConfig.COMMIT_INTERVAL_MS_CONFIG, KsqlConstants
         .defaultCommitIntervalMsConfig);
     streamsConfigDefaults.put(

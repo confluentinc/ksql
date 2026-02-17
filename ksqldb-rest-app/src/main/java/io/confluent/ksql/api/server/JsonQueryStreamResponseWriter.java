@@ -27,8 +27,8 @@ import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpServerResponse;
 import java.util.List;
 import java.util.Objects;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * Writes the query response stream in JSON format.
@@ -51,7 +51,7 @@ import org.slf4j.LoggerFactory;
 public class JsonQueryStreamResponseWriter implements QueryStreamResponseWriter {
 
   private static final Logger LOG
-      = LoggerFactory.getLogger(JsonQueryStreamResponseWriter.class);
+      = LogManager.getLogger(JsonQueryStreamResponseWriter.class);
 
   private final HttpServerResponse response;
 

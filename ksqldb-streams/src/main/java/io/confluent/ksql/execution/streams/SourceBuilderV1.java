@@ -40,6 +40,7 @@ import io.confluent.ksql.execution.plan.WindowedStreamSource;
 import io.confluent.ksql.execution.plan.WindowedTableSource;
 import io.confluent.ksql.execution.runtime.MaterializedFactory;
 import io.confluent.ksql.execution.runtime.RuntimeBuildContext;
+import io.confluent.ksql.execution.streams.SourceBuilderUtils.AddKeyAndPseudoColumnsProcessor;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.serde.StaticTopicSerde;
@@ -300,8 +301,8 @@ final class SourceBuilderV1 extends SourceBuilderBase {
         .stream(streamSource.getTopicName(), consumed);
 
     final int pseudoColumnVersion = streamSource.getPseudoColumnVersion();
-    return stream
-        .transformValues(new AddKeyAndPseudoColumns<>(
+    // stream.peek((k, v) -> { });
+    return stream.processValues(() -> new AddKeyAndPseudoColumnsProcessor<>(
             keyGenerator, pseudoColumnVersion, streamSource.getSourceSchema().headers()));
   }
 

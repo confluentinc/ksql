@@ -42,12 +42,12 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.annotation.concurrent.ThreadSafe;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 @ThreadSafe
 public final class MetaStoreImpl implements MutableMetaStore {
-  private static final Logger LOG = LoggerFactory.getLogger(MetaStoreImpl.class);
+  private static final Logger LOG = LogManager.getLogger(MetaStoreImpl.class);
 
   // these sources have a constraint that cannot be deleted until the references are dropped first
   private final Map<SourceName, Set<SourceName>> dropConstraints = new ConcurrentHashMap<>();

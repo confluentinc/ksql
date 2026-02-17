@@ -81,14 +81,14 @@ import org.apache.kafka.common.acl.AclOperation;
 import org.apache.kafka.common.errors.ClusterAuthorizationException;
 import org.apache.kafka.common.errors.TopicAuthorizationException;
 import org.apache.kafka.common.serialization.Serde;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public class InsertValuesExecutor {
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
-  private static final Logger LOG = LoggerFactory.getLogger(InsertValuesExecutor.class);
+  private static final Logger LOG = LogManager.getLogger(InsertValuesExecutor.class);
   private static final Duration MAX_SEND_TIMEOUT = Duration.ofSeconds(5);
 
   private final LongSupplier clock;

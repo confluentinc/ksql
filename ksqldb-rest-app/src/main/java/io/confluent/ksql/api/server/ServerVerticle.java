@@ -17,6 +17,7 @@ package io.confluent.ksql.api.server;
 
 import static io.confluent.ksql.api.server.InternalEndpointHandler.CONTEXT_DATA_IS_INTERNAL;
 import static io.confluent.ksql.api.server.OldApiUtils.handleOldApiRequest;
+import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
 import static io.netty.handler.codec.http.HttpResponseStatus.TEMPORARY_REDIRECT;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -46,8 +47,8 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import javax.ws.rs.core.MediaType;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * The server deploys multiple server verticles. This is where the HTTP2 requests are handled. The
@@ -57,7 +58,7 @@ import org.slf4j.LoggerFactory;
 public class ServerVerticle extends AbstractVerticle {
 
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
-  private static final Logger log = LoggerFactory.getLogger(ServerVerticle.class);
+  private static final Logger log = LogManager.getLogger(ServerVerticle.class);
 
   private static final String JSON_CONTENT_TYPE = "application/json";
   private static final String DELIMITED_CONTENT_TYPE = "application/vnd.ksqlapi.delimited.v1";
@@ -238,6 +239,9 @@ public class ServerVerticle extends AbstractVerticle {
         .handler(BodyHandler.create(false))
         .produces(KsqlMediaType.KSQL_V1_JSON.mediaType())
         .handler(this::handleTest);
+    router.route()
+        .last()
+        .handler(ctx -> ctx.response().setStatusCode(NOT_FOUND.code()).end("Not Found"));
     return router;
   }
 

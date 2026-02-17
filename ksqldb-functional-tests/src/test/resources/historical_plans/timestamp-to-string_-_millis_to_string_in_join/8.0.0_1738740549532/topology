@@ -1,0 +1,78 @@
+Topologies:
+   Sub-topology: 0
+    Source: Join-repartition-source (topics: [Join-repartition])
+      --> PrependAliasLeft
+    Processor: PrependAliasLeft (stores: [])
+      --> Join
+      <-- Join-repartition-source
+    Processor: Join (stores: [KafkaTopic_Right-Reduce])
+      --> Aggregate-Prepare, KSTREAM-PEEK-0000000014
+      <-- PrependAliasLeft
+    Processor: Aggregate-Prepare (stores: [])
+      --> KSTREAM-FILTER-0000000015
+      <-- Join
+    Source: KSTREAM-SOURCE-0000000001 (topics: [devices])
+      --> KTABLE-SOURCE-0000000002
+    Processor: KSTREAM-FILTER-0000000015 (stores: [])
+      --> Aggregate-GroupBy
+      <-- Aggregate-Prepare
+    Processor: KTABLE-SOURCE-0000000002 (stores: [])
+      --> KTABLE-TRANSFORMVALUES-0000000003
+      <-- KSTREAM-SOURCE-0000000001
+    Processor: Aggregate-GroupBy (stores: [])
+      --> Aggregate-GroupBy-repartition-filter
+      <-- KSTREAM-FILTER-0000000015
+    Processor: KTABLE-TRANSFORMVALUES-0000000003 (stores: [KafkaTopic_Right-Reduce])
+      --> KTABLE-TRANSFORMVALUES-0000000004
+      <-- KTABLE-SOURCE-0000000002
+    Processor: Aggregate-GroupBy-repartition-filter (stores: [])
+      --> Aggregate-GroupBy-repartition-sink
+      <-- Aggregate-GroupBy
+    Processor: KTABLE-TRANSFORMVALUES-0000000004 (stores: [])
+      --> PrependAliasRight
+      <-- KTABLE-TRANSFORMVALUES-0000000003
+    Sink: Aggregate-GroupBy-repartition-sink (topic: Aggregate-GroupBy-repartition)
+      <-- Aggregate-GroupBy-repartition-filter
+    Processor: KSTREAM-PEEK-0000000014 (stores: [])
+      --> none
+      <-- Join
+    Processor: PrependAliasRight (stores: [])
+      --> none
+      <-- KTABLE-TRANSFORMVALUES-0000000004
+
+  Sub-topology: 1
+    Source: KSTREAM-SOURCE-0000000006 (topics: [input])
+      --> KSTREAM-PROCESSVALUES-0000000007
+    Processor: KSTREAM-PROCESSVALUES-0000000007 (stores: [])
+      --> LeftSourceKeyed-SelectKey
+      <-- KSTREAM-SOURCE-0000000006
+    Processor: LeftSourceKeyed-SelectKey (stores: [])
+      --> Join-repartition-filter, KSTREAM-PEEK-0000000009
+      <-- KSTREAM-PROCESSVALUES-0000000007
+    Processor: Join-repartition-filter (stores: [])
+      --> Join-repartition-sink
+      <-- LeftSourceKeyed-SelectKey
+    Sink: Join-repartition-sink (topic: Join-repartition)
+      <-- Join-repartition-filter
+    Processor: KSTREAM-PEEK-0000000009 (stores: [])
+      --> none
+      <-- LeftSourceKeyed-SelectKey
+
+  Sub-topology: 2
+    Source: Aggregate-GroupBy-repartition-source (topics: [Aggregate-GroupBy-repartition])
+      --> KSTREAM-AGGREGATE-0000000017
+    Processor: KSTREAM-AGGREGATE-0000000017 (stores: [Aggregate-Aggregate-Materialize])
+      --> Aggregate-Aggregate-ToOutputSchema
+      <-- Aggregate-GroupBy-repartition-source
+    Processor: Aggregate-Aggregate-ToOutputSchema (stores: [])
+      --> Aggregate-Project
+      <-- KSTREAM-AGGREGATE-0000000017
+    Processor: Aggregate-Project (stores: [])
+      --> KTABLE-TOSTREAM-0000000023
+      <-- Aggregate-Aggregate-ToOutputSchema
+    Processor: KTABLE-TOSTREAM-0000000023 (stores: [])
+      --> KSTREAM-SINK-0000000024
+      <-- Aggregate-Project
+    Sink: KSTREAM-SINK-0000000024 (topic: OUTPUT)
+      <-- KTABLE-TOSTREAM-0000000023
+

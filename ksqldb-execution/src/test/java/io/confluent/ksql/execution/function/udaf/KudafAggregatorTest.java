@@ -102,7 +102,7 @@ public class KudafAggregatorTest {
     final GenericRow agg = GenericRow.genericRow(1, 2L, 4);
 
     // When:
-    final GenericRow result = aggregator.getResultMapper().transform("k", agg, ctx);
+    final GenericRow result = aggregator.getResultMapper().transform("k", agg);
 
     // Then:
     assertThat(agg, is(GenericRow.genericRow(1, 2L, 4)));

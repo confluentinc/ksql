@@ -34,12 +34,12 @@ import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.StreamsMetadata;
 import org.apache.kafka.streams.errors.StreamsException;
 import org.apache.kafka.streams.processor.internals.namedtopology.KafkaStreamsNamedTopologyWrapper;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public abstract class SharedKafkaStreamsRuntime {
 
-  private final Logger log = LoggerFactory.getLogger(SharedKafkaStreamsRuntime.class);
+  private final Logger log = LogManager.getLogger(SharedKafkaStreamsRuntime.class);
 
   protected final KafkaStreamsBuilder kafkaStreamsBuilder;
   protected KafkaStreamsNamedTopologyWrapper kafkaStreams;

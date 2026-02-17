@@ -15,10 +15,12 @@
 
 package io.confluent.ksql.serde.protobuf;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.connect.protobuf.ProtobufConverter;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchemaProvider;
 import io.confluent.kafka.serializers.AbstractKafkaSchemaSerDeConfig;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Collections;
@@ -49,7 +51,8 @@ public class KsqlProtobufDeserializerTest extends AbstractKsqlProtobufDeserializ
         AbstractKafkaSchemaSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG, ""
     );
 
-    schemaRegistryClient = new MockSchemaRegistryClient();
+    schemaRegistryClient = new MockSchemaRegistryClient(ImmutableList.of(
+        new ProtobufSchemaProvider()));
 
     converter = new ProtobufConverter(schemaRegistryClient);
     converter.configure(configs, false);

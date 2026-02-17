@@ -1,0 +1,85 @@
+#
+# Copyright 2025 Confluent Inc.
+#
+# Licensed under the Confluent Community License (the "License"); you may not use
+# this file except in compliance with the License.  You may obtain a copy of the
+# License at
+#
+# http://www.confluent.io/confluent-community-license
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations under the License.
+#
+
+Configuration:
+  Appenders:
+    Console:
+      - name: stdout
+        PatternLayout:
+          pattern: "[%d] %p %m (%c:%L)%n"
+
+      - name: streams
+        PatternLayout:
+          pattern: "[%d] %p %m (%c:%L)%n"
+
+      - name: clients
+        PatternLayout:
+          pattern: "[%d] %p %m (%c:%L)%n"
+
+      - name: connect
+        PatternLayout:
+          pattern: "[%d] %p %m (%c:%L)%n"
+
+  Loggers:
+    Root:
+      level: info
+      AppenderRef:
+        - ref: stdout
+
+    Logger:
+      - name: org.reflections
+        level: error
+        additivity: false
+        AppenderRef:
+          - ref: stdout
+
+      - name: org.apache.kafka.streams
+        level: info
+        additivity: false
+        AppenderRef:
+          - ref: streams
+
+      - name: org.apache.kafka.clients
+        level: info
+        additivity: false
+        AppenderRef:
+          - ref: clients
+
+      - name: org.apache.kafka.connect
+        level: info
+        additivity: false
+        AppenderRef:
+          - ref: connect
+
+      - name: kafka
+        level: warn
+        additivity: false
+        AppenderRef:
+          - ref: stdout
+
+      - name: org.apache.kafka
+        level: warn
+        additivity: false
+        AppenderRef:
+          - ref: stdout
+
+      # Uncomment the following to stop KSQL from logging out each request it receives:
+      #- name: io.confluent.ksql.rest.server.resources.KsqlResource
+      #  level: warn
+
+      # And this one to avoid the logs being spammed with KsqlConfig values.
+      # Though these can be useful for debugging / investigations.
+      #- name: io.confluent.ksql.util.KsqlConfig
+      #  level: warn

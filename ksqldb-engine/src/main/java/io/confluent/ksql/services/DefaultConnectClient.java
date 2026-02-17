@@ -60,8 +60,8 @@ import org.apache.hc.core5.http.io.entity.EntityUtils;
 import org.apache.hc.core5.http.message.BasicHeader;
 import org.apache.hc.core5.util.TimeValue;
 import org.apache.hc.core5.util.Timeout;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * The default implementation of {@code ConnectClient}. This implementation is
@@ -71,7 +71,7 @@ import org.slf4j.LoggerFactory;
  */
 public class DefaultConnectClient implements ConnectClient {
 
-  private static final Logger LOG = LoggerFactory.getLogger(DefaultConnectClient.class);
+  private static final Logger LOG = LogManager.getLogger(DefaultConnectClient.class);
 
   private static final ObjectMapper MAPPER = ConnectJsonMapper.INSTANCE.get();
 

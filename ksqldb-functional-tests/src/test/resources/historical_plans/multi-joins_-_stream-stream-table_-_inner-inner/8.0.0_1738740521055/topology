@@ -1,0 +1,65 @@
+Topologies:
+   Sub-topology: 0
+    Source: KSTREAM-SOURCE-0000000006 (topics: [left])
+      --> KSTREAM-PROCESSVALUES-0000000007
+    Source: KSTREAM-SOURCE-0000000009 (topics: [right])
+      --> KSTREAM-PROCESSVALUES-0000000010
+    Processor: KSTREAM-PROCESSVALUES-0000000007 (stores: [])
+      --> PrependAliasL_Left, KSTREAM-PEEK-0000000008
+      <-- KSTREAM-SOURCE-0000000006
+    Processor: KSTREAM-PROCESSVALUES-0000000010 (stores: [])
+      --> PrependAliasL_Right, KSTREAM-PEEK-0000000011
+      <-- KSTREAM-SOURCE-0000000009
+    Processor: PrependAliasL_Left (stores: [])
+      --> L_Join-this-windowed
+      <-- KSTREAM-PROCESSVALUES-0000000007
+    Processor: PrependAliasL_Right (stores: [])
+      --> L_Join-other-windowed
+      <-- KSTREAM-PROCESSVALUES-0000000010
+    Processor: L_Join-other-windowed (stores: [KSTREAM-JOINOTHER-0000000015-store])
+      --> L_Join-other-join
+      <-- PrependAliasL_Right
+    Processor: L_Join-this-windowed (stores: [KSTREAM-JOINTHIS-0000000014-store])
+      --> L_Join-this-join
+      <-- PrependAliasL_Left
+    Processor: L_Join-other-join (stores: [KSTREAM-JOINTHIS-0000000014-store])
+      --> L_Join-merge
+      <-- L_Join-other-windowed
+    Processor: L_Join-this-join (stores: [KSTREAM-JOINOTHER-0000000015-store])
+      --> L_Join-merge
+      <-- L_Join-this-windowed
+    Source: KSTREAM-SOURCE-0000000001 (topics: [right2])
+      --> KTABLE-SOURCE-0000000002
+    Processor: L_Join-merge (stores: [])
+      --> Join
+      <-- L_Join-this-join, L_Join-other-join
+    Processor: Join (stores: [KafkaTopic_Right-Reduce])
+      --> Project, KSTREAM-PEEK-0000000018
+      <-- L_Join-merge
+    Processor: KTABLE-SOURCE-0000000002 (stores: [])
+      --> KTABLE-TRANSFORMVALUES-0000000003
+      <-- KSTREAM-SOURCE-0000000001
+    Processor: KTABLE-TRANSFORMVALUES-0000000003 (stores: [KafkaTopic_Right-Reduce])
+      --> KTABLE-TRANSFORMVALUES-0000000004
+      <-- KTABLE-SOURCE-0000000002
+    Processor: KTABLE-TRANSFORMVALUES-0000000004 (stores: [])
+      --> PrependAliasRight
+      <-- KTABLE-TRANSFORMVALUES-0000000003
+    Processor: Project (stores: [])
+      --> KSTREAM-SINK-0000000019
+      <-- Join
+    Processor: KSTREAM-PEEK-0000000008 (stores: [])
+      --> none
+      <-- KSTREAM-PROCESSVALUES-0000000007
+    Processor: KSTREAM-PEEK-0000000011 (stores: [])
+      --> none
+      <-- KSTREAM-PROCESSVALUES-0000000010
+    Processor: KSTREAM-PEEK-0000000018 (stores: [])
+      --> none
+      <-- Join
+    Sink: KSTREAM-SINK-0000000019 (topic: OUTPUT)
+      <-- Project
+    Processor: PrependAliasRight (stores: [])
+      --> none
+      <-- KTABLE-TRANSFORMVALUES-0000000004
+

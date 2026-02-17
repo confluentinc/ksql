@@ -30,15 +30,15 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 import java.util.function.Supplier;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * Ksql client that has the ability to start failing outgoing requests dynamically.  This is useful
  * in simulating network partitions.
  */
 public class FaultyKsqlClient implements SimpleKsqlClient {
-  private static final Logger LOG = LoggerFactory.getLogger(FaultyKsqlClient.class);
+  private static final Logger LOG = LogManager.getLogger(FaultyKsqlClient.class);
 
   private final SimpleKsqlClient workingClient;
   private final Supplier<Boolean> isFaulty;

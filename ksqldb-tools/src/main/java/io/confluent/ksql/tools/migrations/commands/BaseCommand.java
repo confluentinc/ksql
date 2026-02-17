@@ -27,7 +27,7 @@ import io.confluent.ksql.tools.migrations.MigrationConfig;
 import io.confluent.ksql.tools.migrations.util.MigrationsUtil;
 import java.util.concurrent.ExecutionException;
 import javax.inject.Inject;
-import org.slf4j.Logger;
+import org.apache.logging.log4j.Logger;
 
 /**
  * Defines common options across all of the migration

@@ -1697,7 +1697,7 @@ public class KsqlConfig extends AbstractConfig {
     super(configDef(generation), props);
 
     final Map<String, Object> streamsConfigDefaults = new HashMap<>();
-    streamsConfigDefaults.put(StreamsConfig.InternalConfig.STATE_UPDATER_ENABLED, true);
+    streamsConfigDefaults.put(StreamsConfig.InternalConfig.STATE_UPDATER_ENABLED, false);
     streamsConfigDefaults.put(StreamsConfig.COMMIT_INTERVAL_MS_CONFIG, KsqlConstants
         .defaultCommitIntervalMsConfig);
     streamsConfigDefaults.put(

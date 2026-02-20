@@ -187,9 +187,12 @@ public final class SandboxedSchemaRegistryClientTest {
 
     @Test
     public void shouldSwallowRegister() throws Exception {
+      // Given:
+      final AvroSchema realSchema = new AvroSchema("{\"type\": \"string\"}");
+
       // When:
-      sandboxedClient.register("some subject", schema);
-      sandboxedClient.register("some subject", schema, 1, 1);
+      sandboxedClient.register("some subject", realSchema);
+      sandboxedClient.register("some subject", realSchema, 1, 1);
 
       // Then:
       verifyNoMoreInteractions(delegate);
@@ -209,9 +212,12 @@ public final class SandboxedSchemaRegistryClientTest {
 
     @Test
     public void shouldRegisterWithResponse() throws Exception {
+      // Given:
+      final AvroSchema realSchema = new AvroSchema("{\"type\": \"string\"}");
+
       // When:
       final RegisterSchemaResponse response = sandboxedClient
-          .registerWithResponse("some subject", schema, false);
+          .registerWithResponse("some subject", realSchema, false);
 
       // Then:
       assertThat(response, is(notNullValue()));
@@ -256,10 +262,11 @@ public final class SandboxedSchemaRegistryClientTest {
       when(exception.getStatus()).thenReturn(HttpStatus.SC_NOT_FOUND);
       when(delegate.getId(anyString(), any(ParsedSchema.class))).thenThrow(exception);
 
-      final int newId = sandboxedClient.register("newSubject", parsedSchema);
+      final AvroSchema realSchema = new AvroSchema("{\"type\": \"string\"}");
+      final int newId = sandboxedClient.register("newSubject", realSchema);
 
       // When:
-      final int id = sandboxedClient.getId("newSubject", parsedSchema);
+      final int id = sandboxedClient.getId("newSubject", realSchema);
 
       // Then:
       assertThat(id, is(newId));
@@ -292,10 +299,11 @@ public final class SandboxedSchemaRegistryClientTest {
       when(delegate.getIdWithResponse(anyString(), any(ParsedSchema.class), anyBoolean()))
           .thenThrow(exception);
 
-      final int newId = sandboxedClient.register("newSubject", parsedSchema);
+      final AvroSchema realSchema = new AvroSchema("{\"type\": \"string\"}");
+      final int newId = sandboxedClient.register("newSubject", realSchema);
 
       // When:
-      final int id = sandboxedClient.getIdWithResponse("newSubject", parsedSchema, false).getId();
+      final int id = sandboxedClient.getIdWithResponse("newSubject", realSchema, false).getId();
 
       // Then:
       assertThat(id, is(newId));

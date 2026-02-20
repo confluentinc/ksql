@@ -63,43 +63,53 @@ public final class ConfigMigrator {
    * Migrations for overwrite properties (session-level overrides).
    * Keys are unprefixed.
    */
-  private static final Map<String, Map<String, String>> OVERWRITE_MIGRATIONS = ImmutableMap.of(
-      StreamsConfig.PROCESSING_GUARANTEE_CONFIG,
-      ImmutableMap.of(LEGACY_EXACTLY_ONCE, StreamsConfig.EXACTLY_ONCE_V2),
-
-      SaslConfigs.SASL_LOGIN_CALLBACK_HANDLER_CLASS,
-      ImmutableMap.of(
-          LEGACY_OAUTH_LOGIN_CALLBACK_HANDLER,
-          OAuthBearerLoginCallbackHandler.class.getName()
-      ),
-
-      SaslConfigs.SASL_CLIENT_CALLBACK_HANDLER_CLASS,
-      ImmutableMap.of(
-          LEGACY_OAUTH_VALIDATOR_CALLBACK_HANDLER,
-          OAuthBearerValidatorCallbackHandler.class.getName()
-      )
-  );
+  private static final Map<String, Map<String, String>> OVERWRITE_MIGRATIONS =
+      ImmutableMap.<String, Map<String, String>>builder()
+          .put(
+              StreamsConfig.PROCESSING_GUARANTEE_CONFIG,
+              ImmutableMap.of(LEGACY_EXACTLY_ONCE, StreamsConfig.EXACTLY_ONCE_V2)
+          )
+          .put(
+              SaslConfigs.SASL_LOGIN_CALLBACK_HANDLER_CLASS,
+              ImmutableMap.of(
+                  LEGACY_OAUTH_LOGIN_CALLBACK_HANDLER,
+                  OAuthBearerLoginCallbackHandler.class.getName()
+              )
+          )
+          .put(
+              SaslConfigs.SASL_CLIENT_CALLBACK_HANDLER_CLASS,
+              ImmutableMap.of(
+                  LEGACY_OAUTH_VALIDATOR_CALLBACK_HANDLER,
+                  OAuthBearerValidatorCallbackHandler.class.getName()
+              )
+          )
+          .build();
 
   /**
    * Migrations for original properties (server configuration).
    * Keys are prefixed with ksql.streams.
    */
-  private static final Map<String, Map<String, String>> ORIGINAL_MIGRATIONS = ImmutableMap.of(
-      KsqlConfig.KSQL_STREAMS_PREFIX + StreamsConfig.PROCESSING_GUARANTEE_CONFIG,
-      ImmutableMap.of(LEGACY_EXACTLY_ONCE, StreamsConfig.EXACTLY_ONCE_V2),
-
-      KsqlConfig.KSQL_STREAMS_PREFIX + SaslConfigs.SASL_LOGIN_CALLBACK_HANDLER_CLASS,
-      ImmutableMap.of(
-          LEGACY_OAUTH_LOGIN_CALLBACK_HANDLER,
-          OAuthBearerLoginCallbackHandler.class.getName()
-      ),
-
-      KsqlConfig.KSQL_STREAMS_PREFIX + SaslConfigs.SASL_CLIENT_CALLBACK_HANDLER_CLASS,
-      ImmutableMap.of(
-          LEGACY_OAUTH_VALIDATOR_CALLBACK_HANDLER,
-          OAuthBearerValidatorCallbackHandler.class.getName()
-      )
-  );
+  private static final Map<String, Map<String, String>> ORIGINAL_MIGRATIONS =
+      ImmutableMap.<String, Map<String, String>>builder()
+          .put(
+              KsqlConfig.KSQL_STREAMS_PREFIX + StreamsConfig.PROCESSING_GUARANTEE_CONFIG,
+              ImmutableMap.of(LEGACY_EXACTLY_ONCE, StreamsConfig.EXACTLY_ONCE_V2)
+          )
+          .put(
+              KsqlConfig.KSQL_STREAMS_PREFIX + SaslConfigs.SASL_LOGIN_CALLBACK_HANDLER_CLASS,
+              ImmutableMap.of(
+                  LEGACY_OAUTH_LOGIN_CALLBACK_HANDLER,
+                  OAuthBearerLoginCallbackHandler.class.getName()
+              )
+          )
+          .put(
+              KsqlConfig.KSQL_STREAMS_PREFIX + SaslConfigs.SASL_CLIENT_CALLBACK_HANDLER_CLASS,
+              ImmutableMap.of(
+                  LEGACY_OAUTH_VALIDATOR_CALLBACK_HANDLER,
+                  OAuthBearerValidatorCallbackHandler.class.getName()
+              )
+          )
+          .build();
 
   private ConfigMigrator() {
     // Utility class

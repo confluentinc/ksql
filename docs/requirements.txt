@@ -9,6 +9,6 @@ mkdocs-material==8.1.7
 mkdocs-material-extensions==1.0.3
 mkdocs-redirects==1.0.3
 Pygments==2.15.1
-pymdown-extensions==10.0
+pymdown-extensions==10.16.1
 python-dateutil==2.8.2
 testresources==2.0.1

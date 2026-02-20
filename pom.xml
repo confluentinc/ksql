@@ -131,7 +131,7 @@
         <avro.random.generator.version>0.2.2</avro.random.generator.version>
         <apache.curator.version>5.2.0</apache.curator.version>
         <wiremock.version>3.12.0</wiremock.version>
-        <icu.version>67.1</icu.version>
+        <icu.version>78.2</icu.version>
         <vertx.version>4.5.24</vertx.version>
         <reactive-streams.version>1.0.3</reactive-streams.version>
         <skip.docker.build>true</skip.docker.build>

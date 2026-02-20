@@ -15,26 +15,86 @@
 
 package io.confluent.ksql.rest.server.computation;
 
+import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.HashMap;
 import java.util.Map;
+import org.apache.kafka.common.config.SaslConfigs;
+import org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginCallbackHandler;
+import org.apache.kafka.common.security.oauthbearer.OAuthBearerValidatorCallbackHandler;
 import org.apache.kafka.streams.StreamsConfig;
 
 /**
  * Handles configuration property migrations for backward compatibility.
- * 
- * <p>This class is responsible for transforming deprecated or legacy configuration
- * values into their modern equivalents when commands are executed. Migrations are
- * applied at runtime (during command execution) but not during serialization, ensuring
- * that original values are preserved in the command topic for backup and restore scenarios.
+ *
+ * <p>This class transforms deprecated configuration values into their modern equivalents
+ * when commands are executed. Migrations are applied at runtime (during command execution)
+ * but not during serialization, preserving original values in the command topic.
+ *
+ * <p>To add a new migration, add an entry to {@link #OVERWRITE_MIGRATIONS} and
+ * {@link #ORIGINAL_MIGRATIONS}.
  */
 public final class ConfigMigrator {
-
   /**
-   * The deprecated legacy value for exactly-once processing guarantee.
-   * This value is no longer supported in newer Kafka Streams versions.
+   * Legacy exactly-once value, deprecated in Kafka Streams 3.0+.
    */
   public static final String LEGACY_EXACTLY_ONCE = "exactly_once";
+
+  /**
+   * Legacy OAuth login callback handler from the "secured" package.
+   * Removed in Kafka 4.0/CP 8.x (deprecated since Kafka 3.4.0).
+   */
+  public static final String LEGACY_OAUTH_LOGIN_CALLBACK_HANDLER =
+      "org.apache.kafka.common.security.oauthbearer.secured.OAuthBearerLoginCallbackHandler";
+
+  /**
+   * Legacy OAuth validator callback handler from the "secured" package.
+   * Removed in Kafka 4.0/CP 8.x (deprecated since Kafka 3.4.0).
+   */
+  public static final String LEGACY_OAUTH_VALIDATOR_CALLBACK_HANDLER =
+      "org.apache.kafka.common.security.oauthbearer.secured.OAuthBearerValidatorCallbackHandler";
+
+  /**
+   * Migrations for overwrite properties (session-level overrides).
+   * Keys are unprefixed.
+   */
+  private static final Map<String, Map<String, String>> OVERWRITE_MIGRATIONS = ImmutableMap.of(
+      StreamsConfig.PROCESSING_GUARANTEE_CONFIG,
+      ImmutableMap.of(LEGACY_EXACTLY_ONCE, StreamsConfig.EXACTLY_ONCE_V2),
+
+      SaslConfigs.SASL_LOGIN_CALLBACK_HANDLER_CLASS,
+      ImmutableMap.of(
+          LEGACY_OAUTH_LOGIN_CALLBACK_HANDLER,
+          OAuthBearerLoginCallbackHandler.class.getName()
+      ),
+
+      SaslConfigs.SASL_CLIENT_CALLBACK_HANDLER_CLASS,
+      ImmutableMap.of(
+          LEGACY_OAUTH_VALIDATOR_CALLBACK_HANDLER,
+          OAuthBearerValidatorCallbackHandler.class.getName()
+      )
+  );
+
+  /**
+   * Migrations for original properties (server configuration).
+   * Keys are prefixed with ksql.streams.
+   */
+  private static final Map<String, Map<String, String>> ORIGINAL_MIGRATIONS = ImmutableMap.of(
+      KsqlConfig.KSQL_STREAMS_PREFIX + StreamsConfig.PROCESSING_GUARANTEE_CONFIG,
+      ImmutableMap.of(LEGACY_EXACTLY_ONCE, StreamsConfig.EXACTLY_ONCE_V2),
+
+      KsqlConfig.KSQL_STREAMS_PREFIX + SaslConfigs.SASL_LOGIN_CALLBACK_HANDLER_CLASS,
+      ImmutableMap.of(
+          LEGACY_OAUTH_LOGIN_CALLBACK_HANDLER,
+          OAuthBearerLoginCallbackHandler.class.getName()
+      ),
+
+      KsqlConfig.KSQL_STREAMS_PREFIX + SaslConfigs.SASL_CLIENT_CALLBACK_HANDLER_CLASS,
+      ImmutableMap.of(
+          LEGACY_OAUTH_VALIDATOR_CALLBACK_HANDLER,
+          OAuthBearerValidatorCallbackHandler.class.getName()
+      )
+  );
 
   private ConfigMigrator() {
     // Utility class
@@ -46,10 +106,7 @@ public final class ConfigMigrator {
   public static <T> Map<String, T> migrateOverwriteProperties(
       final Map<String, T> overwriteProperties
   ) {
-    return migrateProcessingGuarantee(
-        overwriteProperties,
-        StreamsConfig.PROCESSING_GUARANTEE_CONFIG
-    );
+    return applyMigrations(overwriteProperties, OVERWRITE_MIGRATIONS);
   }
 
   /**
@@ -58,34 +115,46 @@ public final class ConfigMigrator {
   public static <T> Map<String, T> migrateOriginalProperties(
       final Map<String, T> originalProperties
   ) {
-    return migrateProcessingGuarantee(
-        originalProperties,
-        KsqlConfig.KSQL_STREAMS_PREFIX + StreamsConfig.PROCESSING_GUARANTEE_CONFIG
-    );
+    return applyMigrations(originalProperties, ORIGINAL_MIGRATIONS);
   }
 
   /**
-   * Migrates the 'processing.guarantee' property from 'exactly_once' to 'exactly_once_v2'.
-   * 
-   * <p>This migration is necessary because Kafka Streams deprecated 'exactly_once' in favor
-   * of 'exactly_once_v2' in newer versions. Commands stored in the command topic may contain
-   * the legacy value, and this method ensures they can be executed on newer Kafka Streams
-   * versions without validation errors.
+   * Applies migrations using O(1) HashMap lookups.
+   *
+   * <p>For each migration, we do a direct lookup in the properties map (O(1)),
+   * then check if the value needs replacement (O(1)). Total: O(M) where M is
+   * the number of migrations (constant).
+   *
+   * @param properties the properties map to migrate
+   * @param migrations the migration definitions
+   * @return the original map if no changes, or a new map with migrations applied
    */
-  private static <T> Map<String, T> migrateProcessingGuarantee(
+  private static <T> Map<String, T> applyMigrations(
       final Map<String, T> properties,
-      final String key
+      final Map<String, Map<String, String>> migrations
   ) {
-    final T value = properties.get(key);
-    if (value != null && LEGACY_EXACTLY_ONCE.equals(value.toString())) {
-      final Map<String, T> migrated = new HashMap<>(properties);
-      @SuppressWarnings("unchecked")
-      final T migratedValue = (T) StreamsConfig.EXACTLY_ONCE_V2;
-      migrated.put(key, migratedValue);
-      return migrated;
+    Map<String, T> result = null;
+
+    for (final Map.Entry<String, Map<String, String>> migration : migrations.entrySet()) {
+      final String key = migration.getKey();
+      final T currentValue = properties.get(key);
+
+      if (currentValue != null) {
+        final String replacement = migration.getValue().get(currentValue.toString());
+
+        if (replacement != null) {
+          // Lazy initialization - only create new map when we have a change
+          if (result == null) {
+            result = new HashMap<>(properties);
+          }
+
+          @SuppressWarnings("unchecked")
+          final T typedReplacement = (T) replacement;
+          result.put(key, typedReplacement);
+        }
+      }
     }
-    return properties;
+
+    return result != null ? result : properties;
   }
 }
-
-

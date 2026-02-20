@@ -157,7 +157,7 @@ public final class ConfigMigrator {
       if (currentValue != null) {
         final String replacement = migration.getValue().get(currentValue.toString());
 
-        if (replacement != null) {
+        if (replacement != null && !replacement.equals(currentValue.toString())) {
           LOG.info("Migrating deprecated config value for '{}': '{}' -> '{}'",
               key, currentValue, replacement);
 

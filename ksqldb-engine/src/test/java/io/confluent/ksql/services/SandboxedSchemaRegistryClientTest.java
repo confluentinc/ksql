@@ -132,6 +132,14 @@ public final class SandboxedSchemaRegistryClientTest {
 
     @Before
     public void setUp() {
+      when(schema.schemaType()).thenReturn("AVRO");
+      when(schema.canonicalString()).thenReturn("\"string\"");
+      when(schema.references()).thenReturn(Collections.emptyList());
+
+      when(parsedSchema.schemaType()).thenReturn("AVRO");
+      when(parsedSchema.canonicalString()).thenReturn("\"int\"");
+      when(parsedSchema.references()).thenReturn(Collections.emptyList());
+
       sandboxedClient = SandboxedSchemaRegistryClient.createProxy(delegate);
     }
 

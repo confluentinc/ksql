@@ -107,36 +107,36 @@
         <java.version>17</java.version>
         <apache.directory.server.version>2.0.0-M22</apache.directory.server.version>
         <apache.directory.api.version>1.0.0-M33</apache.directory.api.version>
-        <apache.httpcomponents.version>5.4.3</apache.httpcomponents.version>
+        <apache.httpcomponents.version>5.6</apache.httpcomponents.version>
         <confluent.maven.repo>https://packages.confluent.io/maven/</confluent.maven.repo>
-        <exec-maven-plugin.version>1.2.1</exec-maven-plugin.version>
+        <exec-maven-plugin.version>1.6.0</exec-maven-plugin.version>
         <podam.version>6.0.2.RELEASE</podam.version>
-        <airlift.version>0.29</airlift.version>
-        <airline.version>2.6.0</airline.version>
-        <antlr.version>4.10.1</antlr.version>
-        <commons-text.version>1.10.0</commons-text.version>
-        <csv.version>1.4</csv.version>
-        <commons.compress.version>1.26.0</commons.compress.version>
-        <lang3.version>3.18.0</lang3.version>
+        <airlift.version>0.47</airlift.version>
+        <airline.version>2.9.0</airline.version>
+        <antlr.version>4.13.2</antlr.version>
+        <commons-text.version>1.15.0</commons-text.version>
+        <csv.version>1.14.1</csv.version>
+        <commons.compress.version>1.28.0</commons.compress.version>
+        <lang3.version>3.20.0</lang3.version>
         <retrying.version>2.0.0</retrying.version>
-        <inject.version>1</inject.version>
-        <janino.version>3.1.10</janino.version>
+        <inject.version>1.0.0.redhat-00008</inject.version>
+        <janino.version>3.1.12</janino.version>
         <javax-validation.version>2.0.1.Final</javax-validation.version>
-        <jline.version>3.25.0</jline.version>
-        <jna.version>4.4.0</jna.version>
-        <jsr305.version>3.0.2</jsr305.version>
-        <maven.plugins.version>3.0.0-M1</maven.plugins.version>
+        <jline.version>3.30.6</jline.version>
+        <jna.version>4.5.2</jna.version>
+        <jsr305.version>3.0.2.redhat-00008</jsr305.version>
+        <maven.plugins.version>3.1.4</maven.plugins.version>
         <really.executable.jar.version>1.5.0</really.executable.jar.version>
         <generext.version>1.0.2</generext.version>
-        <avro.random.generator.version>0.2.2</avro.random.generator.version>
+        <avro.random.generator.version>0.4.1</avro.random.generator.version>
         <apache.curator.version>5.2.0</apache.curator.version>
-        <wiremock.version>3.12.0</wiremock.version>
+        <wiremock.version>3.13.2</wiremock.version>
         <icu.version>67.1</icu.version>
-        <vertx.version>4.5.24</vertx.version>
-        <reactive-streams.version>1.0.3</reactive-streams.version>
+        <vertx.version>4.5.25</vertx.version>
+        <reactive-streams.version>1.0.4</reactive-streams.version>
         <skip.docker.build>true</skip.docker.build>
         <skip.docker.test>true</skip.docker.test>
-        <protobuf.version>4.32.1</protobuf.version>
+        <protobuf.version>4.33.5</protobuf.version>
         <!-- Temporarily disabling this because it is causing failures in packaging but not CI builds. -->
         <!-- <compile.warnings-flag>-Werror</compile.warnings-flag> -->
         <git-commit-id-plugin.version>4.9.10</git-commit-id-plugin.version>
@@ -144,16 +144,16 @@
         <io.confluent.ksql.version>8.3.0-0</io.confluent.ksql.version>
         <io.confluent.schema-registry.version>${confluent.version.range}</io.confluent.schema-registry.version>
         <netty-tcnative-fips-version>0.123.0</netty-tcnative-fips-version>
-        <netty-tcnative-version>2.0.74.Final</netty-tcnative-version>
+        <netty-tcnative-version>2.0.75.Final</netty-tcnative-version>
         <!-- We normally get this from common, but Vertx is built against this -->
         <!-- Note: `netty` depends on `tcnative` and if we bump `netty`
              we might need to bump `tcnative`, too.
              Please check top level `pom.xml` at https://github.com/netty/netty
              for the netty version we bump to (ie, corresponding git tag),
              to find the correct `tcnative` version. -->
-        <netty.version>4.1.130.Final</netty.version>
-        <netty-codec-http2-version>4.1.130.Final</netty-codec-http2-version>
-        <jersey-common>3.1.10</jersey-common>
+        <netty.version>4.2.10.Final</netty.version>
+        <netty-codec-http2-version>4.2.10.Final</netty-codec-http2-version>
+        <jersey-common>3.1.11</jersey-common>
         <multi-threaded-testing.forkCount>3</multi-threaded-testing.forkCount>
         <kafka.version>${ce.kafka.version}</kafka.version>
     </properties>
@@ -1300,7 +1300,7 @@
             <dependency>
                 <groupId>net.minidev</groupId>
                 <artifactId>json-smart</artifactId>
-                <version>2.5.2</version>
+                <version>2.6.0</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
@@ -1391,7 +1391,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-enforcer-plugin</artifactId>
-                <version>3.4.1</version>
+                <version>3.6.2</version>
                 <executions>
                     <execution>
                         <id>ban-non-fips-crypto-libs</id>
@@ -1467,7 +1467,7 @@
                     <argLine>-Duser.timezone=UTC -Xmx1g -Xms1g</argLine>
                     <excludedGroups>io.confluent.common.utils.IntegrationTest, IntegrationTest</excludedGroups>
                 </configuration>
-                <version>3.2.5</version>
+                <version>3.5.4</version>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -1578,7 +1578,7 @@
             <plugin>
                 <groupId>org.pitest</groupId>
                 <artifactId>pitest-maven</artifactId>
-                <version>1.6.4</version>
+                <version>1.22.1</version>
                 <configuration>
                     <threads>8</threads>
                     <targetClasses>

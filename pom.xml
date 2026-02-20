@@ -128,7 +128,7 @@
         <generext.version>1.0.2</generext.version>
         <avro.random.generator.version>0.2.2</avro.random.generator.version>
         <apache.curator.version>5.2.0</apache.curator.version>
-        <wiremock.version>2.24.0</wiremock.version>
+        <wiremock.version>2.35.1</wiremock.version>
         <clearspring-analytics.version>2.9.5</clearspring-analytics.version>
         <icu.version>67.1</icu.version>
         <vertx.version>4.5.24</vertx.version>

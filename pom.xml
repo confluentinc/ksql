@@ -132,7 +132,7 @@
         <apache.curator.version>5.2.0</apache.curator.version>
         <wiremock.version>3.12.0</wiremock.version>
         <icu.version>67.1</icu.version>
-        <vertx.version>4.5.24</vertx.version>
+        <vertx.version>5.0.8</vertx.version>
         <reactive-streams.version>1.0.3</reactive-streams.version>
         <skip.docker.build>true</skip.docker.build>
         <skip.docker.test>true</skip.docker.test>

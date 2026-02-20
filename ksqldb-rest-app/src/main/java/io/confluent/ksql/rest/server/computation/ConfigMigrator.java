@@ -23,6 +23,8 @@ import org.apache.kafka.common.config.SaslConfigs;
 import org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginCallbackHandler;
 import org.apache.kafka.common.security.oauthbearer.OAuthBearerValidatorCallbackHandler;
 import org.apache.kafka.streams.StreamsConfig;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * Handles configuration property migrations for backward compatibility.
@@ -35,6 +37,9 @@ import org.apache.kafka.streams.StreamsConfig;
  * {@link #ORIGINAL_MIGRATIONS}.
  */
 public final class ConfigMigrator {
+
+  private static final Logger LOG = LogManager.getLogger(ConfigMigrator.class);
+
   /**
    * Legacy exactly-once value, deprecated in Kafka Streams 3.0+.
    */
@@ -143,6 +148,9 @@ public final class ConfigMigrator {
         final String replacement = migration.getValue().get(currentValue.toString());
 
         if (replacement != null) {
+          LOG.info("Migrating deprecated config value for '{}': '{}' -> '{}'",
+              key, currentValue, replacement);
+
           // Lazy initialization - only create new map when we have a change
           if (result == null) {
             result = new HashMap<>(properties);

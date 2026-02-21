@@ -25,6 +25,7 @@ import static org.mockito.Mockito.when;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.transform.KsqlProcessingContext;
 import io.confluent.ksql.execution.transform.KsqlTransformer;
+import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.processor.ProcessorContext;
 import org.junit.Before;
 import org.junit.Test;
@@ -35,28 +36,32 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
-public class KsValueTransformerTest {
+public class KsTransformerTest {
 
   private static final long KEY = 10L;
   private static final GenericRow VALUE = GenericRow.genericRow(12);
-  private static final String RESULT = "the result";
+  private static final String RESULT_KEY = "the result key";
+  private static final GenericRow RESULT_VALUE = GenericRow.genericRow("the result value");
   private static final long ROWTIME = 123456L;
 
   @Mock
-  private KsqlTransformer<Long, String> ksqlTransformer;
+  private KsqlTransformer<Long, String> ksqlKeyTransformer;
+  @Mock
+  private KsqlTransformer<Long, GenericRow> ksqlValueTransformer;
   @Mock
   private ProcessorContext ctx;
   @Captor
   private ArgumentCaptor<KsqlProcessingContext> ctxCaptor;
 
-  private KsValueTransformer<Long, String> ksTransformer;
+  private KsTransformer<Long, String> ksTransformer;
 
   @Before
   public void setUp() {
-    ksTransformer = new KsValueTransformer<>(ksqlTransformer);
+    ksTransformer = new KsTransformer<>(ksqlKeyTransformer, ksqlValueTransformer);
     ksTransformer.init(ctx);
 
-    when(ksqlTransformer.transform(any(), any(), any())).thenReturn(RESULT);
+    when(ksqlKeyTransformer.transform(any(), any(), any())).thenReturn(RESULT_KEY);
+    when(ksqlValueTransformer.transform(any(), any(), any())).thenReturn(RESULT_VALUE);
 
     when(ctx.timestamp()).thenReturn(ROWTIME);
   }
@@ -64,19 +69,24 @@ public class KsValueTransformerTest {
   @Test(expected = IllegalStateException.class)
   public void shouldThrowOnTransformIfNotInitialized() {
     // Given:
-    ksTransformer = new KsValueTransformer<>(ksqlTransformer);
+    ksTransformer = new KsTransformer<>(ksqlKeyTransformer, ksqlValueTransformer);
 
     // When:
     ksTransformer.transform(KEY, VALUE);
   }
 
   @Test
-  public void shouldInvokeInnerTransformer() {
+  public void shouldInvokeInnerTransformers() {
     // When:
     ksTransformer.transform(KEY, VALUE);
 
     // Then:
-    verify(ksqlTransformer).transform(
+    verify(ksqlKeyTransformer).transform(
+        eq(KEY),
+        eq(VALUE),
+        any()
+    );
+    verify(ksqlValueTransformer).transform(
         eq(KEY),
         eq(VALUE),
         any()
@@ -86,10 +96,10 @@ public class KsValueTransformerTest {
   @Test
   public void shouldReturnValueFromInnerTransformer() {
     // When:
-    final String result = ksTransformer.transform(KEY, VALUE);
+    final KeyValue<String, GenericRow> result = ksTransformer.transform(KEY, VALUE);
 
     // Then:
-    assertThat(result, is(RESULT));
+    assertThat(result, is(KeyValue.pair(RESULT_KEY, RESULT_VALUE)));
   }
 
   @Test
@@ -107,7 +117,7 @@ public class KsValueTransformerTest {
   }
 
   private KsqlProcessingContext getKsqlProcessingContext() {
-    verify(ksqlTransformer).transform(
+    verify(ksqlKeyTransformer).transform(
         any(),
         any(),
         ctxCaptor.capture()

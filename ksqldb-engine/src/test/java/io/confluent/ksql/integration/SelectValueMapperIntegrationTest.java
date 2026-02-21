@@ -71,7 +71,8 @@ public class SelectValueMapperIntegrationTest {
     // When:
     final GenericRow transformed = selectTransformer.transform(
         NON_WINDOWED_KEY,
-        genericRow("hi", "bye", 2.0D, "blah", "dar", ImmutableList.of(), 1521834663L, 0, 0L, 1L)
+        genericRow("hi", "bye", 2.0D, "blah", "dar", ImmutableList.of(), 1521834663L, 0, 0L, 1L),
+        ctx
     );
 
     // Then:
@@ -89,7 +90,8 @@ public class SelectValueMapperIntegrationTest {
     // When:
     final GenericRow row = selectTransformer.transform(
         NON_WINDOWED_KEY,
-        genericRow("foo", "whatever", 6.9D, "boo", "hoo", 0, 0L, ImmutableList.of(), 1521834663L, 2L)
+        genericRow("foo", "whatever", 6.9D, "boo", "hoo", 0, 0L, ImmutableList.of(), 1521834663L, 2L),
+        ctx
     );
 
     // Then:

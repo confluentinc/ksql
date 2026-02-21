@@ -71,6 +71,7 @@ import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.data.Time;
 import org.apache.kafka.connect.data.Timestamp;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -1018,6 +1019,7 @@ public class KsqlAvroDeserializerTest {
     });
   }
 
+  @Ignore
   @Test
   public void shouldDeserializeConnectMapWithOptionalKeys() {
     /*

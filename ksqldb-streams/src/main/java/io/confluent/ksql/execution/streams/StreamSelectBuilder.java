@@ -80,7 +80,7 @@ public final class StreamSelectBuilder {
     // Due to a KS backward incompatibility, we need to burn an index number for the operation.
     // The old `transform[Values]()` used one more index compared to the new `api.process[Values]()`
     final KStream<K, GenericRow> stream = streamHolder.getStream();
-    stream.peek((k, v) -> { });
+//    stream.peek((k, v) -> { });
     if (selectedKeys.isPresent() && !selectedKeys.get().containsAll(
         sourceSchema.key().stream().map(Column::name).collect(ImmutableList.toImmutableList())
     )) {

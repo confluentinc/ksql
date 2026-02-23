@@ -7,7 +7,7 @@ version: v1.0
 name: build-test-release
 agent:
   machine:
-    type: s1-prod-ubuntu24-04-amd64-3
+    type: s1-prod-ubuntu24-04-amd64-1
 
 fail_fast:
   cancel:
@@ -32,28 +32,20 @@ blocks:
     dependencies: []
     run:
       # don't run the tests on non-functional changes...
-      when: "change_in('/', {exclude: ['/.deployed-versions/', '.github/'], default_branch: 'master'})"
+      when: "change_in('/', {exclude: ['/.deployed-versions/', '.github/', 'service.yml', 'README.md'], default_branch: 'master'})"
     task:
       jobs:
         - name: Test
           commands:
-            - ci-tools ci-update-version
-            # Run maven with output captured using script command (avoids tee buffering issues)
-            # -e flag ensures script returns the exit code of the child process
-            - script -e -q -c "./mvnw -Dmaven.gitcommitid.nativegit=true -U -Dmaven.wagon.http.retryHandler.count=10 --batch-mode --no-transfer-progress clean install" /tmp/build.log
+            - ci-tools ci-update-version --direct-pom-edit
+            - mvn -Dmaven.gitcommitid.nativegit=true -U -Dmaven.wagon.http.retryHandler.count=10 --batch-mode --no-transfer-progress clean install
             - . cache-maven store
       epilogue:
         always:
           commands:
-            # Original workflow - must not be affected by deprecation analysis
             - . publish-test-results
             - artifact push workflow target/test-results
             - artifact push workflow target
-            # Deprecation analysis using captured build log (no recompilation needed)
-            - mkdir -p target/deprecation-report || true
-            - chmod +x scripts/deprecation-tracker/extract-deprecations.sh || true
-            - ./scripts/deprecation-tracker/extract-deprecations.sh /tmp/build.log || true
-            - artifact push workflow target/deprecation-report || true
 
   - name: Release
     dependencies: ["Test"]
@@ -63,9 +55,9 @@ blocks:
       jobs:
         - name: Release
           commands:
-            - ci-tools ci-update-version
+            - ci-tools ci-update-version --direct-pom-edit
             - ci-tools ci-push-tag
-            - ./mvnw -Ddocker.skip=true -U -Dmaven.wagon.http.retryHandler.count=10 --batch-mode 
+            - mvn -Ddocker.skip=true -U -Dmaven.wagon.http.retryHandler.count=10 --batch-mode 
               -DaltDeploymentRepository=confluent-codeartifact-internal::default::https://confluent-519856050701.d.codeartifact.us-west-2.amazonaws.com/maven/maven-snapshots/ 
               -DrepositoryId=confluent-codeartifact-internal deploy -DskipTests
   - name: CP Jar Build CI Gating
@@ -76,7 +68,7 @@ blocks:
     task:
       agent:
         machine:
-          type: s1-prod-ubuntu24-04-arm64-2
+          type: s1-prod-ubuntu24-04-arm64-00
       env_vars:
         - name: COMPONENT_NAME
           value: ksqldb

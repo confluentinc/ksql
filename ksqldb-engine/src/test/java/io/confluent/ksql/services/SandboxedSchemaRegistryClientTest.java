@@ -120,6 +120,8 @@ public final class SandboxedSchemaRegistryClientTest {
   @RunWith(MockitoJUnitRunner.class)
   public static class SupportedMethods {
 
+    private static final AvroSchema REAL_SCHEMA = new AvroSchema("\"string\"");
+
     @Mock
     private SchemaRegistryClient delegate;
     @Mock
@@ -188,8 +190,8 @@ public final class SandboxedSchemaRegistryClientTest {
     @Test
     public void shouldSwallowRegister() throws Exception {
       // When:
-      sandboxedClient.register("some subject", schema);
-      sandboxedClient.register("some subject", schema, 1, 1);
+      sandboxedClient.register("some subject", REAL_SCHEMA);
+      sandboxedClient.register("some subject", REAL_SCHEMA, 1, 1);
 
       // Then:
       verifyNoMoreInteractions(delegate);
@@ -211,7 +213,7 @@ public final class SandboxedSchemaRegistryClientTest {
     public void shouldRegisterWithResponse() throws Exception {
       // When:
       final RegisterSchemaResponse response = sandboxedClient
-          .registerWithResponse("some subject", schema, false);
+          .registerWithResponse("some subject", REAL_SCHEMA, false);
 
       // Then:
       assertThat(response, is(notNullValue()));
@@ -256,10 +258,10 @@ public final class SandboxedSchemaRegistryClientTest {
       when(exception.getStatus()).thenReturn(HttpStatus.SC_NOT_FOUND);
       when(delegate.getId(anyString(), any(ParsedSchema.class))).thenThrow(exception);
 
-      final int newId = sandboxedClient.register("newSubject", parsedSchema);
+      final int newId = sandboxedClient.register("newSubject", REAL_SCHEMA);
 
       // When:
-      final int id = sandboxedClient.getId("newSubject", parsedSchema);
+      final int id = sandboxedClient.getId("newSubject", REAL_SCHEMA);
 
       // Then:
       assertThat(id, is(newId));
@@ -292,10 +294,10 @@ public final class SandboxedSchemaRegistryClientTest {
       when(delegate.getIdWithResponse(anyString(), any(ParsedSchema.class), anyBoolean()))
           .thenThrow(exception);
 
-      final int newId = sandboxedClient.register("newSubject", parsedSchema);
+      final int newId = sandboxedClient.register("newSubject", REAL_SCHEMA);
 
       // When:
-      final int id = sandboxedClient.getIdWithResponse("newSubject", parsedSchema, false).getId();
+      final int id = sandboxedClient.getIdWithResponse("newSubject", REAL_SCHEMA, false).getId();
 
       // Then:
       assertThat(id, is(newId));

@@ -1,3 +1,5 @@
+# $schema: https://raw.githubusercontent.com/semaphoreio/semaphore/98bb4752c79049d36324e8c76451cd704c7924f3/plumber/spec/priv/v1.0.yml
+# yaml-language-server: $schema=https://raw.githubusercontent.com/semaphoreio/semaphore/98bb4752c79049d36324e8c76451cd704c7924f3/plumber/spec/priv/v1.0.yml
 # This file is managed by ServiceBot plugin - Semaphore. The content in this file is created using a common
 # template and configurations in service.yml.
 # Any modifications made to ths file will be overwritten by the generated content in nightly runs.
@@ -32,12 +34,12 @@ blocks:
     dependencies: []
     run:
       # don't run the tests on non-functional changes...
-      when: "change_in('/', {exclude: ['/.deployed-versions/', '.github/'], default_branch: 'master'})"
+      when: "change_in('/', {exclude: ['/.deployed-versions/', '.github/', 'service.yml', 'README.md'], default_branch: 'master'})"
     task:
       jobs:
         - name: Test
           commands:
-            - ci-tools ci-update-version
+            - ci-tools ci-update-version --direct-pom-edit
             # Run maven with output captured using script command (avoids tee buffering issues)
             # -e flag ensures script returns the exit code of the child process
             - script -e -q -c "./mvnw -Dmaven.gitcommitid.nativegit=true -U -Dmaven.wagon.http.retryHandler.count=10 --batch-mode --no-transfer-progress clean install" /tmp/build.log
@@ -63,7 +65,7 @@ blocks:
       jobs:
         - name: Release
           commands:
-            - ci-tools ci-update-version
+            - ci-tools ci-update-version --direct-pom-edit
             - ci-tools ci-push-tag
             - ./mvnw -Ddocker.skip=true -U -Dmaven.wagon.http.retryHandler.count=10 --batch-mode 
               -DaltDeploymentRepository=confluent-codeartifact-internal::default::https://confluent-519856050701.d.codeartifact.us-west-2.amazonaws.com/maven/maven-snapshots/ 

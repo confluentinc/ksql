@@ -23,6 +23,7 @@ import io.vertx.core.Future;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpClientResponse;
 import io.vertx.core.parsetools.RecordParser;
+import io.vertx.core.streams.ReadStream;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 
@@ -37,7 +38,9 @@ public class StreamPublisher<T> extends BufferedPublisher<T> {
       final boolean stripArray) {
     super(context);
     this.response = response;
-    final RecordParser recordParser = RecordParser.newDelimited("\n", response);
+    final ReadStream<Buffer> readStream = response.request().connection().isSsl()
+        ? new BufferCopyStream(response) : response;
+    final RecordParser recordParser = RecordParser.newDelimited("\n", readStream);
     recordParser.exceptionHandler(bodyFuture::completeExceptionally)
         .handler(buff -> {
           if (buff.length() == 0) {

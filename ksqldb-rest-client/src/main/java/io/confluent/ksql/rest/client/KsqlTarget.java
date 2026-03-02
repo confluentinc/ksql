@@ -50,6 +50,7 @@ import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.RequestOptions;
 import io.vertx.core.net.SocketAddress;
 import io.vertx.core.parsetools.RecordParser;
+import io.vertx.core.streams.ReadStream;
 import io.vertx.core.streams.WriteStream;
 import java.util.Collections;
 import java.util.List;
@@ -346,7 +347,13 @@ public final class KsqlTarget {
     return executeSync(httpMethod, path, Optional.empty(), requestBody,
         resp -> responseSupplier.get(),
         (resp, vcf) -> {
-        final RecordParser recordParser = RecordParser.newDelimited(delimiter, resp);
+        final ReadStream<Buffer> readStream;
+        if (resp.request().connection().isSsl()) {
+          readStream = new BufferCopyStream(resp);
+        } else {
+          readStream = resp;
+        }
+        final RecordParser recordParser = RecordParser.newDelimited(delimiter, readStream);
         final AtomicBoolean end = new AtomicBoolean(false);
 
         final WriteStream<Buffer> ws = new BufferMapWriteStream<>(chunkMapper, chunkHandler);

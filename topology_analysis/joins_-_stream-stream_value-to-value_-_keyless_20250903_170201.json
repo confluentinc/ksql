@@ -1,0 +1,16 @@
+{
+  "test_case": "joins_-_stream-stream_value-to-value_-_keyless",
+  "analysis_timestamp": "2025-09-03T17:02:01.940217",
+  "versions": {
+    "7.1.0": "7.1.0_1633125989807",
+    "8.x": "8.0.1_1756887669992"
+  },
+  "comparison": {
+    "sub_topology_counts": {
+      "7.1.0": 3,
+      "8.x": 3
+    },
+    "sub_topologies": {},
+    "status": "no_significant_changes"
+  }
+}

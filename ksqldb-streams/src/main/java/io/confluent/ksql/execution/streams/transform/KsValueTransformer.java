@@ -18,7 +18,9 @@ package io.confluent.ksql.execution.streams.transform;
 import static java.util.Objects.requireNonNull;
 
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.execution.transform.KsqlProcessingContext;
 import io.confluent.ksql.execution.transform.KsqlTransformer;
+import java.util.Optional;
 import org.apache.kafka.streams.kstream.ValueTransformerWithKey;
 import org.apache.kafka.streams.processor.ProcessorContext;
 
@@ -34,22 +36,42 @@ import org.apache.kafka.streams.processor.ProcessorContext;
 public class KsValueTransformer<K, R> implements ValueTransformerWithKey<K, GenericRow, R> {
 
   private final KsqlTransformer<K, R> delegate;
+  private Optional<KsProcessingContext> context;
 
   public KsValueTransformer(final KsqlTransformer<K, R> delegate) {
     this.delegate = requireNonNull(delegate, "delegate");
+    this.context = Optional.empty();
   }
 
   @Override
-  public void init(final ProcessorContext processorContext) {}
+  public void init(final ProcessorContext processorContext) {
+    this.context = Optional.of(new KsProcessingContext(processorContext));
+  }
 
   @Override
   public R transform(final K readOnlyKey, final GenericRow value) {
     return delegate.transform(
         readOnlyKey,
-        value
+        value,
+        context.orElseThrow(() -> new IllegalStateException("Not initialized"))
     );
   }
 
   @Override
-  public void close() {}
+  public void close() {
+  }
+
+  public static final class KsProcessingContext implements KsqlProcessingContext {
+
+    private final ProcessorContext processingContext;
+
+    public KsProcessingContext(final ProcessorContext processorContext) {
+      this.processingContext = requireNonNull(processorContext, "processorContext");
+    }
+
+    @Override
+    public long getRowTime() {
+      return processingContext.timestamp();
+    }
+  }
 }

@@ -101,7 +101,7 @@ final class SandboxedSchemaRegistryClient {
             final String subject,
             final ParsedSchema schema,
             final boolean normalize,
-            final boolean propagateSchemaTags) throws RestClientException {
+            final boolean propagateSchemaTags) throws RestClientException, IOException {
       return sandboxCacheClient.registerWithResponse(
               subject, schema, normalize, propagateSchemaTags);
     }

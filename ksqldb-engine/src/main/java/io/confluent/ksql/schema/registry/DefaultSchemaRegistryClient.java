@@ -19,6 +19,7 @@ import com.google.common.collect.ImmutableList;
 import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.kafka.schemaregistry.client.SchemaMetadata;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.kafka.schemaregistry.client.rest.entities.Schema;
 import io.confluent.kafka.schemaregistry.client.rest.entities.SchemaReference;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlSchemaRegistryNotConfiguredException;
@@ -75,6 +76,11 @@ public class DefaultSchemaRegistryClient implements SchemaRegistryClient {
 
   @Override
   public ParsedSchema getSchemaBySubjectAndId(final String s, final int i) {
+    throw configException;
+  }
+
+  @Override
+  public Schema getSchemaEntityBySubjectAndId(final String s, final int i) {
     throw configException;
   }
 

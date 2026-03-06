@@ -30,16 +30,22 @@ import io.confluent.ksql.rest.server.TestKsqlRestApp;
 import io.confluent.ksql.test.loader.JsonTestLoader;
 import io.confluent.ksql.test.loader.TestFile;
 import io.confluent.ksql.test.model.TestFileContext;
+import io.confluent.ksql.test.rest.model.Response;
+import io.confluent.ksql.test.tools.Record;
 import io.confluent.ksql.test.util.ThreadTestUtil;
 import io.confluent.ksql.test.util.ThreadTestUtil.ThreadSnapshot;
 import io.confluent.ksql.test.utils.TestUtils;
+import io.confluent.ksql.tools.test.model.Topic;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.RetryUtil;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
@@ -73,6 +79,7 @@ import org.junit.rules.Timeout;
 public class RestQueryTranslationTest {
 
   private static final Path TEST_DIR = Paths.get("rest-query-validation-tests");
+  private static final String STATIC_TOPIC = "test_topic";
 
   protected static final TestKsqlRestApp createTestApp(final IntegrationTestHarness testHarness) {
     return TestKsqlRestApp
@@ -182,17 +189,105 @@ public class RestQueryTranslationTest {
   }
 
   protected void shouldBuildAndExecuteQueries() {
+    final RestTestCase uniqueTestCase = withUniqueTopicNames(testCase);
     try (RestTestExecutor testExecutor = testExecutor()) {
-      testExecutor.buildAndExecuteQuery(testCase);
+      testExecutor.buildAndExecuteQuery(uniqueTestCase);
     } catch (final AssertionError | Exception e) {
       throw new AssertionError(e.getMessage()
           + System.lineSeparator()
-          + "failed test: " + testCase.getName()
+          + "failed test: " + uniqueTestCase.getName()
           + System.lineSeparator()
-          + "in file: " + testCase.getTestLocation(),
+          + "in file: " + uniqueTestCase.getTestLocation(),
           e
       );
     }
+  }
+
+  private static RestTestCase withUniqueTopicNames(final RestTestCase testCase) {
+    final String uniqueSuffix = UUID.randomUUID().toString().substring(0, 8);
+    final String uniqueTopic = STATIC_TOPIC + "_" + uniqueSuffix;
+
+    final List<String> statements = testCase.getStatements().stream()
+        .map(s -> s.replace(STATIC_TOPIC, uniqueTopic))
+        .collect(Collectors.toList());
+
+    final List<Topic> topics = testCase.getTopics().stream()
+        .map(t -> new Topic(
+            t.getName().replace(STATIC_TOPIC, uniqueTopic),
+            t.getNumPartitions(), t.getReplicas(),
+            t.getKeySchemaId(), t.getValueSchemaId(),
+            t.getKeySchema(), t.getValueSchema(),
+            t.getKeySchemaReferences(), t.getValueSchemaReferences(),
+            t.getKeyFeatures(), t.getValueFeatures()))
+        .collect(Collectors.toList());
+
+    final List<Record> inputRecords = testCase.getInputRecords().stream()
+        .map(r -> new Record(
+            r.getTopicName().replace(STATIC_TOPIC, uniqueTopic),
+            r.rawKey(), r.getJsonKey().orElse(null),
+            r.value(), r.getJsonValue().orElse(null),
+            r.timestamp(), r.getWindow(), r.headers()))
+        .collect(Collectors.toList());
+
+    final List<Record> outputRecords = testCase.getOutputRecords().stream()
+        .map(r -> new Record(
+            r.getTopicName().replace(STATIC_TOPIC, uniqueTopic),
+            r.rawKey(), r.getJsonKey().orElse(null),
+            r.value(), r.getJsonValue().orElse(null),
+            r.timestamp(), r.getWindow(), r.headers()))
+        .collect(Collectors.toList());
+
+    final List<Response> responses = testCase.getExpectedResponses().stream()
+        .map(r -> new Response(replaceInMap(r.getContent(), STATIC_TOPIC, uniqueTopic)))
+        .collect(Collectors.toList());
+
+    return new RestTestCase(
+        testCase.getTestLocation(),
+        testCase.getName(),
+        testCase.getProperties(),
+        topics,
+        inputRecords,
+        outputRecords,
+        statements,
+        responses,
+        testCase.expectedError(),
+        testCase.getInputConditions(),
+        testCase.getOutputConditions(),
+        testCase.isTestPullWithProtoFormat()
+    );
+  }
+
+  @SuppressWarnings("unchecked")
+  private static Map<String, Object> replaceInMap(
+      final Map<String, Object> map,
+      final String oldStr,
+      final String newStr
+  ) {
+    final Map<String, Object> result = new LinkedHashMap<>();
+    for (final Map.Entry<String, Object> entry : map.entrySet()) {
+      final String key = entry.getKey();
+      final Object value = replaceInObject(entry.getValue(), oldStr, newStr);
+      result.put(key, value);
+    }
+    return result;
+  }
+
+  @SuppressWarnings("unchecked")
+  private static Object replaceInObject(
+      final Object obj,
+      final String oldStr,
+      final String newStr
+  ) {
+    if (obj instanceof String) {
+      return ((String) obj).replace(oldStr, newStr);
+    } else if (obj instanceof Map) {
+      return replaceInMap((Map<String, Object>) obj, oldStr, newStr);
+    } else if (obj instanceof List) {
+      return ((List<Object>) obj).stream()
+          .map(item -> replaceInObject(item, oldStr, newStr))
+          .collect(Collectors.toList());
+    }
+    return obj;
   }
 
   private RestTestExecutor testExecutor() {

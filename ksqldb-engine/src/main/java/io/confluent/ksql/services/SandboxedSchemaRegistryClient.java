@@ -101,7 +101,7 @@ final class SandboxedSchemaRegistryClient {
             final String subject,
             final ParsedSchema schema,
             final boolean normalize,
-            final boolean propagateSchemaTags) throws RestClientException {
+            final boolean propagateSchemaTags) throws RestClientException, IOException {
       return sandboxCacheClient.registerWithResponse(
               subject, schema, normalize, propagateSchemaTags);
     }
@@ -163,6 +163,21 @@ final class SandboxedSchemaRegistryClient {
         // if we don't find the schema in SR, we try to get it from the sandbox cache
         if (e.getStatus() == HttpStatus.SC_NOT_FOUND) {
           return sandboxCacheClient.getSchemaBySubjectAndId(subject, id);
+        }
+        throw e;
+      }
+    }
+
+    @Override
+    public Schema getSchemaEntityBySubjectAndId(final String subject, final int id)
+        throws RestClientException, IOException {
+
+      try {
+        return srClient.getSchemaEntityBySubjectAndId(subject, id);
+      } catch (final RestClientException e) {
+        // if we don't find the schema in SR, we try to get it from the sandbox cache
+        if (e.getStatus() == HttpStatus.SC_NOT_FOUND) {
+          return sandboxCacheClient.getSchemaEntityBySubjectAndId(subject, id);
         }
         throw e;
       }

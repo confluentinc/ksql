@@ -169,6 +169,21 @@ final class SandboxedSchemaRegistryClient {
     }
 
     @Override
+    public Schema getSchemaEntityBySubjectAndId(final String subject, final int id)
+        throws RestClientException, IOException {
+
+      try {
+        return srClient.getSchemaEntityBySubjectAndId(subject, id);
+      } catch (final RestClientException e) {
+        // if we don't find the schema in SR, we try to get it from the sandbox cache
+        if (e.getStatus() == HttpStatus.SC_NOT_FOUND) {
+          return sandboxCacheClient.getSchemaEntityBySubjectAndId(subject, id);
+        }
+        throw e;
+      }
+    }
+
+    @Override
     public Collection<String> getAllSubjectsById(final int id) {
       throw new UnsupportedOperationException();
     }

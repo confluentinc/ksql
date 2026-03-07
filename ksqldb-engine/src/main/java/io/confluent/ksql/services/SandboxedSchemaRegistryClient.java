@@ -86,7 +86,7 @@ final class SandboxedSchemaRegistryClient {
         final String schemaType,
         final String schemaString,
         final List<SchemaReference> references) {
-      return sandboxCacheClient.parseSchema(schemaType, schemaString, references);
+      return srClient.parseSchema(schemaType, schemaString, references);
     }
 
     @Override

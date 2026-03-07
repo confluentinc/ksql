@@ -79,6 +79,11 @@ public class DefaultSchemaRegistryClient implements SchemaRegistryClient {
   }
 
   @Override
+  public Schema getSchemaEntityBySubjectAndId(final String s, final int i) {
+    throw configException;
+  }
+
+  @Override
   public Collection<String> getAllSubjectsById(final int i) {
     throw configException;
   }

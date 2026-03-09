@@ -54,6 +54,7 @@ import io.confluent.ksql.test.tools.TestJsonMapper;
 import io.confluent.ksql.test.tools.TopicInfoCache;
 import io.confluent.ksql.test.tools.TopicInfoCache.TopicInfo;
 import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
+import io.confluent.ksql.tools.test.model.SchemaReference;
 import io.confluent.ksql.tools.test.model.Topic;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
@@ -138,6 +139,10 @@ public class RestTestExecutor implements Closeable {
     for (final Topic topic : topics) {
       try {
         if (topic.getKeySchemaId().isPresent() && topic.getKeySchema().isPresent()) {
+          for (final SchemaReference ref : topic.getKeySchemaReferences()) {
+            schemaRegistryClient.register(ref.getName(), ref.getSchema());
+          }
+
           schemaRegistryClient.register(
               KsqlConstants.getSRSubject(topic.getName(), true),
               topic.getKeySchema().get(),
@@ -146,6 +151,10 @@ public class RestTestExecutor implements Closeable {
         }
 
         if (topic.getValueSchemaId().isPresent() && topic.getValueSchema().isPresent()) {
+          for (final SchemaReference ref : topic.getValueSchemaReferences()) {
+            schemaRegistryClient.register(ref.getName(), ref.getSchema());
+          }
+
           schemaRegistryClient.register(
               KsqlConstants.getSRSubject(topic.getName(), false),
               topic.getValueSchema().get(),

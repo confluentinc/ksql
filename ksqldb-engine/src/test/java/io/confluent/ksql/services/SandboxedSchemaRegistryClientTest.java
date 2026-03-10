@@ -77,6 +77,7 @@ public final class SandboxedSchemaRegistryClientTest {
           .ignore("registerWithResponse", String.class, ParsedSchema.class, boolean.class)
           .ignore("registerWithResponse", String.class, ParsedSchema.class, boolean.class, boolean.class)
           .ignore("getSchemaBySubjectAndId", String.class, int.class)
+          .ignore("getSchemaEntityBySubjectAndId", String.class, int.class)
           .ignore("testCompatibility", String.class, Schema.class)
           .ignore("testCompatibility", String.class, ParsedSchema.class)
           .ignore("deleteSubject", String.class)

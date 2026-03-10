@@ -89,7 +89,7 @@ final class SandboxedSchemaRegistryClient {
       final Optional<ParsedSchema> schema = 
           srClient.parseSchema(schemaType, schemaString, references);
       if (schema.isEmpty()) {
-        // if we can't parse the schema with SR, we try to parse it with the sandbox cache
+        // If we can't parse the schema with SR, we try to parse it with the sandbox cache
         return sandboxCacheClient.parseSchema(schemaType, schemaString, references);
       }
       return schema;

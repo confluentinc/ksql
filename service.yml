@@ -7,6 +7,10 @@ semaphore:
   enable: true
   pipeline_type: cp
   nano_version: true
+  pr_ci_gating:
+    enable: true
+    project_name: ksqldb
+  status_level: block
   execution_time_limit: {"hours": 6}
   downstream_projects: ["confluent-security-plugins", "confluent-cloud-plugins", "cc-docker-ksql"]
   extra_deploy_args: '-Ddocker.skip=true'

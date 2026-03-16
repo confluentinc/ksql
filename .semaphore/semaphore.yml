@@ -114,5 +114,4 @@ after_pipeline:
             if [[ -z "$SEMAPHORE_GIT_PR_BRANCH" ]] && [[ "$SEMAPHORE_PIPELINE_RESULT" == "passed" ]]; then
               sem-trigger -p confluent-security-plugins -b $SEMAPHORE_GIT_BRANCH -f .semaphore/semaphore.yml
               sem-trigger -p confluent-cloud-plugins -b $SEMAPHORE_GIT_BRANCH -f .semaphore/semaphore.yml
-              sem-trigger -p cc-docker-ksql -b $SEMAPHORE_GIT_BRANCH -f .semaphore/semaphore.yml
             fi

@@ -48,7 +48,6 @@ import io.confluent.kafka.serializers.KafkaAvroSerializer;
 import io.confluent.kafka.serializers.json.KafkaJsonSchemaSerializer;
 import io.confluent.kafka.serializers.protobuf.KafkaProtobufSerializer;
 import io.confluent.ksql.rest.server.resources.streaming.RecordFormatter.Deserializers;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -195,7 +194,7 @@ public class RecordFormatterTest {
     @Test
     public void shouldFormatNullsBytes() {
       // Given:
-      final Bytes nullBytes = new Bytes(null);
+      final Bytes nullBytes = null;
 
       // When:
       formatSingle(consumerRecord(nullBytes, nullBytes));
@@ -317,14 +316,7 @@ public class RecordFormatterTest {
         JSON_NULL
     );
 
-    private static final List<Bytes> NULL_VARIANTS;
-
-    static {
-      final List<Bytes> nullVariants = new ArrayList<>();
-      nullVariants.add(new Bytes(null));
-      nullVariants.add(null);
-      NULL_VARIANTS = Collections.unmodifiableList(nullVariants);
-    }
+    private static final List<Bytes> NULL_VARIANTS = Collections.singletonList(null);
 
     private static final int SERIALIZED_INT_SIZE = 4;
     private static final int SERIALIZED_BIGINT_SIZE = 8;

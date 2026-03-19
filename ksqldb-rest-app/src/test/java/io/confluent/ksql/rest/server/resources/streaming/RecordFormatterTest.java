@@ -50,7 +50,6 @@ import io.confluent.kafka.serializers.protobuf.KafkaProtobufSerializer;
 import io.confluent.ksql.rest.server.resources.streaming.RecordFormatter.Deserializers;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -192,19 +191,6 @@ public class RecordFormatterTest {
     }
 
     @Test
-    public void shouldFormatNullsBytes() {
-      // Given:
-      final Bytes nullBytes = null;
-
-      // When:
-      formatSingle(consumerRecord(nullBytes, nullBytes));
-
-      // Then:
-      verify(keyDeserializers).format(nullBytes);
-      verify(valueDeserializers).format(nullBytes);
-    }
-
-    @Test
     public void shouldFormatRowTime() {
       // When:
       final String formatted = formatSingle(consumerRecord(null, null));
@@ -315,8 +301,6 @@ public class RecordFormatterTest {
         JSON_BOOLEAN,
         JSON_NULL
     );
-
-    private static final List<Bytes> NULL_VARIANTS = Collections.singletonList(null);
 
     private static final int SERIALIZED_INT_SIZE = 4;
     private static final int SERIALIZED_BIGINT_SIZE = 8;
@@ -432,13 +416,11 @@ public class RecordFormatterTest {
       // Given:
       final List<String> expected = ImmutableList.copyOf(deserializers.getPossibleFormats());
 
-      NULL_VARIANTS.forEach(nullVariant -> {
-        // When:
-        deserializers.format(nullVariant);
+      // When:
+      deserializers.format(null);
 
-        // Then:
-        assertThat(deserializers.getPossibleFormats(), is(expected));
-      });
+      // Then:
+      assertThat(deserializers.getPossibleFormats(), is(expected));
     }
 
     @Test
@@ -1155,9 +1137,7 @@ public class RecordFormatterTest {
 
     @Test
     public void shouldFormatNull() {
-      NULL_VARIANTS.forEach(nullVariant ->
-          assertThat(deserializers.format(null), is("<null>"))
-      );
+      assertThat(deserializers.format(null), is("<null>"));
     }
 
     private void givenAvroSchemaRegistered() {

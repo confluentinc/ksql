@@ -18,6 +18,7 @@ package io.confluent.ksql.execution.streams.materialization.ks;
 import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Objects;
@@ -45,7 +46,8 @@ public final class SessionStoreCacheBypass {
   static final Field SERDES_FIELD;
   // Nullable: only present in Kafka versions that introduced ReadOnlySessionStoreFacade
   private static final Field SESSION_FACADE_INNER_FIELD;
-  private static final Field SESSION_FACADE_VALUE_CONVERTER_FIELD;
+  // Nullable: AggregationWithHeaders.getAggregationOrNull — used when session facade is present
+  private static final Method AGGREGATION_GET_AGGREGATION_METHOD;
   private static final String STORE_UNAVAILABLE_MESSAGE = "State store is not available anymore "
           + "and may have been migrated to another instance; "
           + "please re-discover its location from the state metadata.";
@@ -66,19 +68,21 @@ public final class SessionStoreCacheBypass {
     }
 
     Field sessionFacadeInnerField = null;
-    Field sessionFacadeValueConverterField = null;
+    Method aggregationGetAggregationMethod = null;
     try {
       final Class<?> facadeClass = Class.forName(
           "org.apache.kafka.streams.state.internals.ReadOnlySessionStoreFacade");
       sessionFacadeInnerField = facadeClass.getDeclaredField("inner");
       sessionFacadeInnerField.setAccessible(true);
-      sessionFacadeValueConverterField = facadeClass.getDeclaredField("valueConverter");
-      sessionFacadeValueConverterField.setAccessible(true);
-    } catch (final ClassNotFoundException | NoSuchFieldException e) {
+      final Class<?> aggregationClass = Class.forName(
+          "org.apache.kafka.streams.state.AggregationWithHeaders");
+      aggregationGetAggregationMethod = aggregationClass.getMethod(
+          "getAggregationOrNull", aggregationClass);
+    } catch (final ClassNotFoundException | NoSuchFieldException | NoSuchMethodException e) {
       // Facade class not present in this Kafka version — no unwrapping needed
     }
     SESSION_FACADE_INNER_FIELD = sessionFacadeInnerField;
-    SESSION_FACADE_VALUE_CONVERTER_FIELD = sessionFacadeValueConverterField;
+    AGGREGATION_GET_AGGREGATION_METHOD = aggregationGetAggregationMethod;
   }
 
   private SessionStoreCacheBypass() {
@@ -221,14 +225,16 @@ public final class SessionStoreCacheBypass {
   private static Function<Object, GenericRow> getSessionValueConverter(
       final ReadOnlySessionStore<GenericKey, GenericRow> sessionStore
   ) {
-    if (SESSION_FACADE_VALUE_CONVERTER_FIELD != null
-        && SESSION_FACADE_VALUE_CONVERTER_FIELD.getDeclaringClass().isInstance(sessionStore)) {
-      try {
-        return (Function<Object, GenericRow>)
-            SESSION_FACADE_VALUE_CONVERTER_FIELD.get(sessionStore);
-      } catch (final IllegalAccessException e) {
-        throw new RuntimeException("Stream internals changed unexpectedly!", e);
-      }
+    if (AGGREGATION_GET_AGGREGATION_METHOD != null
+        && SESSION_FACADE_INNER_FIELD != null
+        && SESSION_FACADE_INNER_FIELD.getDeclaringClass().isInstance(sessionStore)) {
+      return x -> {
+        try {
+          return (GenericRow) AGGREGATION_GET_AGGREGATION_METHOD.invoke(null, x);
+        } catch (final Exception e) {
+          throw new RuntimeException("Stream internals changed unexpectedly!", e);
+        }
+      };
     }
     return x -> (GenericRow) x;
   }

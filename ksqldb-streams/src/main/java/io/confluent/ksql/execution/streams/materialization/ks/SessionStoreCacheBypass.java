@@ -45,6 +45,7 @@ public final class SessionStoreCacheBypass {
   static final Field SERDES_FIELD;
   // Nullable: only present in Kafka versions that introduced ReadOnlySessionStoreFacade
   private static final Field SESSION_FACADE_INNER_FIELD;
+  private static final Field SESSION_FACADE_VALUE_CONVERTER_FIELD;
   private static final String STORE_UNAVAILABLE_MESSAGE = "State store is not available anymore "
           + "and may have been migrated to another instance; "
           + "please re-discover its location from the state metadata.";
@@ -65,15 +66,19 @@ public final class SessionStoreCacheBypass {
     }
 
     Field sessionFacadeInnerField = null;
+    Field sessionFacadeValueConverterField = null;
     try {
       final Class<?> facadeClass = Class.forName(
           "org.apache.kafka.streams.state.internals.ReadOnlySessionStoreFacade");
       sessionFacadeInnerField = facadeClass.getDeclaredField("inner");
       sessionFacadeInnerField.setAccessible(true);
+      sessionFacadeValueConverterField = facadeClass.getDeclaredField("valueConverter");
+      sessionFacadeValueConverterField.setAccessible(true);
     } catch (final ClassNotFoundException | NoSuchFieldException e) {
       // Facade class not present in this Kafka version — no unwrapping needed
     }
     SESSION_FACADE_INNER_FIELD = sessionFacadeInnerField;
+    SESSION_FACADE_VALUE_CONVERTER_FIELD = sessionFacadeValueConverterField;
   }
 
   private SessionStoreCacheBypass() {
@@ -119,6 +124,7 @@ public final class SessionStoreCacheBypass {
       final ReadOnlySessionStore<GenericKey, GenericRow> sessionStore,
       final GenericKey key
   ) {
+    final Function<Object, GenericRow> valueConverter = getSessionValueConverter(sessionStore);
     final ReadOnlySessionStore<GenericKey, GenericRow> unwrapped
         = unwrapSessionFacade(sessionStore);
     if (!(unwrapped instanceof MeteredSessionStore)) {
@@ -128,7 +134,7 @@ public final class SessionStoreCacheBypass {
       final Bytes rawKey = Bytes.wrap(serdes.rawKey(key));
       final SessionStore<Bytes, byte[]> wrapped = getInnermostStore(unwrapped);
       final KeyValueIterator<Windowed<Bytes>, byte[]> fetch = wrapped.fetch(rawKey);
-      return new DeserializingIterator(fetch, serdes);
+      return new DeserializingIterator(fetch, serdes, valueConverter);
     }
   }
 
@@ -158,6 +164,7 @@ public final class SessionStoreCacheBypass {
           final GenericKey keyFrom,
           final GenericKey keyTo
   ) {
+    final Function<Object, GenericRow> valueConverter = getSessionValueConverter(sessionStore);
     final ReadOnlySessionStore<GenericKey, GenericRow> unwrapped
         = unwrapSessionFacade(sessionStore);
     if (!(unwrapped instanceof MeteredSessionStore)) {
@@ -168,7 +175,7 @@ public final class SessionStoreCacheBypass {
       final Bytes rawKeyTo = Bytes.wrap(serdes.rawKey(keyTo));
       final SessionStore<Bytes, byte[]> wrapped = getInnermostStore(unwrapped);
       final KeyValueIterator<Windowed<Bytes>, byte[]> fetch = wrapped.fetch(rawKeyFrom, rawKeyTo);
-      return new DeserializingIterator(fetch, serdes);
+      return new DeserializingIterator(fetch, serdes, valueConverter);
     }
   }
 
@@ -208,6 +215,22 @@ public final class SessionStoreCacheBypass {
       }
     }
     return sessionStore;
+  }
+
+  @SuppressWarnings("unchecked")
+  private static Function<Object, GenericRow> getSessionValueConverter(
+      final ReadOnlySessionStore<GenericKey, GenericRow> sessionStore
+  ) {
+    if (SESSION_FACADE_VALUE_CONVERTER_FIELD != null
+        && SESSION_FACADE_VALUE_CONVERTER_FIELD.getDeclaringClass().isInstance(sessionStore)) {
+      try {
+        return (Function<Object, GenericRow>)
+            SESSION_FACADE_VALUE_CONVERTER_FIELD.get(sessionStore);
+      } catch (final IllegalAccessException e) {
+        throw new RuntimeException("Stream internals changed unexpectedly!", e);
+      }
+    }
+    return x -> (GenericRow) x;
   }
 
   @SuppressWarnings("unchecked")
@@ -262,11 +285,14 @@ public final class SessionStoreCacheBypass {
       implements KeyValueIterator<Windowed<GenericKey>, GenericRow> {
     private final KeyValueIterator<Windowed<Bytes>, byte[]> fetch;
     private final StateSerdes<GenericKey, GenericRow> serdes;
+    private final Function<Object, GenericRow> valueConverter;
 
     private DeserializingIterator(final KeyValueIterator<Windowed<Bytes>, byte[]> fetch,
-        final StateSerdes<GenericKey, GenericRow> serdes) {
+        final StateSerdes<GenericKey, GenericRow> serdes,
+        final Function<Object, GenericRow> valueConverter) {
       this.fetch = fetch;
       this.serdes = serdes;
+      this.valueConverter = valueConverter;
     }
 
     @Override
@@ -289,7 +315,7 @@ public final class SessionStoreCacheBypass {
     public KeyValue<Windowed<GenericKey>, GenericRow> next() {
       final Windowed<GenericKey> key = peekNextKey();
       final KeyValue<Windowed<Bytes>, byte[]> next = fetch.next();
-      return KeyValue.pair(key, serdes.valueFrom(next.value));
+      return KeyValue.pair(key, valueConverter.apply(serdes.valueFrom(next.value)));
     }
   }
 

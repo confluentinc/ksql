@@ -46,6 +46,8 @@ public final class WindowStoreCacheBypass {
   private static final Field STORE_NAME_FIELD;
   private static final Field WINDOW_STORE_TYPE_FIELD;
   static final Field SERDES_FIELD;
+  // Nullable: only present in Kafka versions that introduced GenericReadOnlyWindowStoreFacade
+  private static final Field GENERIC_WINDOW_FACADE_INNER_FIELD;
   private static final String STORE_UNAVAILABLE_MESSAGE = "State store is not available anymore "
           + "and may have been migrated to another instance; "
           + "please re-discover its location from the state metadata.";
@@ -64,6 +66,17 @@ public final class WindowStoreCacheBypass {
     } catch (final NoSuchFieldException e) {
       throw new RuntimeException("Stream internals changed unexpectedly!", e);
     }
+
+    Field genericWindowFacadeInnerField = null;
+    try {
+      final Class<?> facadeClass = Class.forName(
+          "org.apache.kafka.streams.state.internals.GenericReadOnlyWindowStoreFacade");
+      genericWindowFacadeInnerField = facadeClass.getDeclaredField("inner");
+      genericWindowFacadeInnerField.setAccessible(true);
+    } catch (final ClassNotFoundException | NoSuchFieldException e) {
+      // Facade class not present in this Kafka version — no unwrapping needed
+    }
+    GENERIC_WINDOW_FACADE_INNER_FIELD = genericWindowFacadeInnerField;
   }
 
   private WindowStoreCacheBypass() {
@@ -130,11 +143,13 @@ public final class WindowStoreCacheBypass {
       final Instant lower,
       final Instant upper
   ) {
-    if (!(windowStore instanceof MeteredWindowStore)) {
+    final ReadOnlyWindowStore<GenericKey, ValueAndTimestamp<GenericRow>> unwrapped
+        = unwrapWindowFacade(windowStore);
+    if (!(unwrapped instanceof MeteredWindowStore)) {
       throw new IllegalStateException("Expecting a MeteredWindowStore");
     }
-    final StateSerdes<GenericKey, ValueAndTimestamp<GenericRow>> serdes = getSerdes(windowStore);
-    final WindowStore<Bytes, byte[]> wrapped = getInnermostStore(windowStore);
+    final StateSerdes<GenericKey, ValueAndTimestamp<GenericRow>> serdes = getSerdes(unwrapped);
+    final WindowStore<Bytes, byte[]> wrapped = getInnermostStore(unwrapped);
     final Bytes rawKey = Bytes.wrap(serdes.rawKey(key));
     final WindowStoreIterator<byte[]> fetch = wrapped.fetch(rawKey, lower, upper);
     return new DeserializingIterator(fetch, serdes);
@@ -171,11 +186,13 @@ public final class WindowStoreCacheBypass {
           final Instant lower,
           final Instant upper
   ) {
-    if (!(windowStore instanceof MeteredWindowStore)) {
+    final ReadOnlyWindowStore<GenericKey, ValueAndTimestamp<GenericRow>> unwrapped
+        = unwrapWindowFacade(windowStore);
+    if (!(unwrapped instanceof MeteredWindowStore)) {
       throw new IllegalStateException("Expecting a MeteredWindowStore");
     }
-    final StateSerdes<GenericKey, ValueAndTimestamp<GenericRow>> serdes = getSerdes(windowStore);
-    final WindowStore<Bytes, byte[]> wrapped = getInnermostStore(windowStore);
+    final StateSerdes<GenericKey, ValueAndTimestamp<GenericRow>> serdes = getSerdes(unwrapped);
+    final WindowStore<Bytes, byte[]> wrapped = getInnermostStore(unwrapped);
     final Bytes rawKeyFrom = Bytes.wrap(serdes.rawKey(keyFrom));
     final Bytes rawKeyTo = Bytes.wrap(serdes.rawKey(keyTo));
     final KeyValueIterator<Windowed<Bytes>, byte[]> fetch = wrapped
@@ -208,11 +225,13 @@ public final class WindowStoreCacheBypass {
           final Instant lower,
           final Instant upper
   ) {
-    if (!(windowStore instanceof MeteredWindowStore)) {
+    final ReadOnlyWindowStore<GenericKey, ValueAndTimestamp<GenericRow>> unwrapped
+        = unwrapWindowFacade(windowStore);
+    if (!(unwrapped instanceof MeteredWindowStore)) {
       throw new IllegalStateException("Expecting a MeteredWindowStore");
     }
-    final StateSerdes<GenericKey, ValueAndTimestamp<GenericRow>> serdes = getSerdes(windowStore);
-    final WindowStore<Bytes, byte[]> wrapped = getInnermostStore(windowStore);
+    final StateSerdes<GenericKey, ValueAndTimestamp<GenericRow>> serdes = getSerdes(unwrapped);
+    final WindowStore<Bytes, byte[]> wrapped = getInnermostStore(unwrapped);
     final KeyValueIterator<Windowed<Bytes>, byte[]> fetch = wrapped.fetchAll(lower, upper);
     return new DeserializingKeyValueIterator(fetch, serdes);
   }
@@ -238,6 +257,22 @@ public final class WindowStoreCacheBypass {
     }
     return (T) (result instanceof WindowStoreIterator
             ? new EmptyWindowStoreIterator() : new EmptyKeyValueIterator());
+  }
+
+  @SuppressWarnings("unchecked")
+  private static ReadOnlyWindowStore<GenericKey, ValueAndTimestamp<GenericRow>> unwrapWindowFacade(
+      final ReadOnlyWindowStore<GenericKey, ValueAndTimestamp<GenericRow>> windowStore
+  ) {
+    if (GENERIC_WINDOW_FACADE_INNER_FIELD != null
+        && GENERIC_WINDOW_FACADE_INNER_FIELD.getDeclaringClass().isInstance(windowStore)) {
+      try {
+        return (ReadOnlyWindowStore<GenericKey, ValueAndTimestamp<GenericRow>>)
+            GENERIC_WINDOW_FACADE_INNER_FIELD.get(windowStore);
+      } catch (final IllegalAccessException e) {
+        throw new RuntimeException("Stream internals changed unexpectedly!", e);
+      }
+    }
+    return windowStore;
   }
 
   @SuppressWarnings("unchecked")

@@ -43,6 +43,8 @@ public final class SessionStoreCacheBypass {
   private static final Field STORE_NAME_FIELD;
   private static final Field STORE_TYPE_FIELD;
   static final Field SERDES_FIELD;
+  // Nullable: only present in Kafka versions that introduced ReadOnlySessionStoreFacade
+  private static final Field SESSION_FACADE_INNER_FIELD;
   private static final String STORE_UNAVAILABLE_MESSAGE = "State store is not available anymore "
           + "and may have been migrated to another instance; "
           + "please re-discover its location from the state metadata.";
@@ -61,6 +63,17 @@ public final class SessionStoreCacheBypass {
     } catch (final NoSuchFieldException e) {
       throw new RuntimeException("Stream internals changed unexpectedly!", e);
     }
+
+    Field sessionFacadeInnerField = null;
+    try {
+      final Class<?> facadeClass = Class.forName(
+          "org.apache.kafka.streams.state.internals.ReadOnlySessionStoreFacade");
+      sessionFacadeInnerField = facadeClass.getDeclaredField("inner");
+      sessionFacadeInnerField.setAccessible(true);
+    } catch (final ClassNotFoundException | NoSuchFieldException e) {
+      // Facade class not present in this Kafka version — no unwrapping needed
+    }
+    SESSION_FACADE_INNER_FIELD = sessionFacadeInnerField;
   }
 
   private SessionStoreCacheBypass() {
@@ -106,12 +119,14 @@ public final class SessionStoreCacheBypass {
       final ReadOnlySessionStore<GenericKey, GenericRow> sessionStore,
       final GenericKey key
   ) {
-    if (!(sessionStore instanceof MeteredSessionStore)) {
+    final ReadOnlySessionStore<GenericKey, GenericRow> unwrapped
+        = unwrapSessionFacade(sessionStore);
+    if (!(unwrapped instanceof MeteredSessionStore)) {
       throw new IllegalStateException("Expecting a MeteredSessionStore");
     } else {
-      final StateSerdes<GenericKey, GenericRow> serdes = getSerdes(sessionStore);
+      final StateSerdes<GenericKey, GenericRow> serdes = getSerdes(unwrapped);
       final Bytes rawKey = Bytes.wrap(serdes.rawKey(key));
-      final SessionStore<Bytes, byte[]> wrapped = getInnermostStore(sessionStore);
+      final SessionStore<Bytes, byte[]> wrapped = getInnermostStore(unwrapped);
       final KeyValueIterator<Windowed<Bytes>, byte[]> fetch = wrapped.fetch(rawKey);
       return new DeserializingIterator(fetch, serdes);
     }
@@ -143,14 +158,15 @@ public final class SessionStoreCacheBypass {
           final GenericKey keyFrom,
           final GenericKey keyTo
   ) {
-    if (!(sessionStore instanceof MeteredSessionStore)) {
+    final ReadOnlySessionStore<GenericKey, GenericRow> unwrapped
+        = unwrapSessionFacade(sessionStore);
+    if (!(unwrapped instanceof MeteredSessionStore)) {
       throw new IllegalStateException("Expecting a MeteredSessionStore");
     } else {
-
-      final StateSerdes<GenericKey, GenericRow> serdes = getSerdes(sessionStore);
+      final StateSerdes<GenericKey, GenericRow> serdes = getSerdes(unwrapped);
       final Bytes rawKeyFrom = Bytes.wrap(serdes.rawKey(keyFrom));
       final Bytes rawKeyTo = Bytes.wrap(serdes.rawKey(keyTo));
-      final SessionStore<Bytes, byte[]> wrapped = getInnermostStore(sessionStore);
+      final SessionStore<Bytes, byte[]> wrapped = getInnermostStore(unwrapped);
       final KeyValueIterator<Windowed<Bytes>, byte[]> fetch = wrapped.fetch(rawKeyFrom, rawKeyTo);
       return new DeserializingIterator(fetch, serdes);
     }
@@ -176,6 +192,22 @@ public final class SessionStoreCacheBypass {
       }
     }
     return new EmptyKeyValueIterator();
+  }
+
+  @SuppressWarnings("unchecked")
+  private static ReadOnlySessionStore<GenericKey, GenericRow> unwrapSessionFacade(
+      final ReadOnlySessionStore<GenericKey, GenericRow> sessionStore
+  ) {
+    if (SESSION_FACADE_INNER_FIELD != null
+        && SESSION_FACADE_INNER_FIELD.getDeclaringClass().isInstance(sessionStore)) {
+      try {
+        return (ReadOnlySessionStore<GenericKey, GenericRow>)
+            SESSION_FACADE_INNER_FIELD.get(sessionStore);
+      } catch (final IllegalAccessException e) {
+        throw new RuntimeException("Stream internals changed unexpectedly!", e);
+      }
+    }
+    return sessionStore;
   }
 
   @SuppressWarnings("unchecked")

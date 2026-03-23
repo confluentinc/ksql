@@ -18,6 +18,7 @@ package io.confluent.ksql.execution.streams.materialization.ks;
 import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Objects;
@@ -43,6 +44,10 @@ public final class SessionStoreCacheBypass {
   private static final Field STORE_NAME_FIELD;
   private static final Field STORE_TYPE_FIELD;
   static final Field SERDES_FIELD;
+  // Nullable: only present in Kafka versions that introduced ReadOnlySessionStoreFacade
+  private static final Field SESSION_FACADE_INNER_FIELD;
+  // Nullable: AggregationWithHeaders.getAggregationOrNull — used when session facade is present
+  private static final Method AGGREGATION_GET_AGGREGATION_METHOD;
   private static final String STORE_UNAVAILABLE_MESSAGE = "State store is not available anymore "
           + "and may have been migrated to another instance; "
           + "please re-discover its location from the state metadata.";
@@ -61,6 +66,25 @@ public final class SessionStoreCacheBypass {
     } catch (final NoSuchFieldException e) {
       throw new RuntimeException("Stream internals changed unexpectedly!", e);
     }
+
+    Field sessionFacadeInnerField = null;
+    Method aggregationGetAggregationMethod = null;
+    try {
+      final Class<?> facadeClass = Class.forName(
+          "org.apache.kafka.streams.state.internals.ReadOnlySessionStoreFacade");
+      sessionFacadeInnerField = facadeClass.getDeclaredField("inner");
+      sessionFacadeInnerField.setAccessible(true);
+      final Class<?> aggregationClass = Class.forName(
+          "org.apache.kafka.streams.state.AggregationWithHeaders");
+      aggregationGetAggregationMethod = aggregationClass.getMethod(
+          "getAggregationOrNull", aggregationClass);
+    } catch (final ClassNotFoundException e) {
+      // Facade class not present in this Kafka version — no unwrapping needed
+    } catch (final NoSuchFieldException | NoSuchMethodException e) {
+      throw new RuntimeException("Stream internals changed unexpectedly!", e);
+    }
+    SESSION_FACADE_INNER_FIELD = sessionFacadeInnerField;
+    AGGREGATION_GET_AGGREGATION_METHOD = aggregationGetAggregationMethod;
   }
 
   private SessionStoreCacheBypass() {
@@ -106,14 +130,17 @@ public final class SessionStoreCacheBypass {
       final ReadOnlySessionStore<GenericKey, GenericRow> sessionStore,
       final GenericKey key
   ) {
-    if (!(sessionStore instanceof MeteredSessionStore)) {
+    final Function<Object, GenericRow> valueConverter = getSessionValueConverter(sessionStore);
+    final ReadOnlySessionStore<GenericKey, GenericRow> unwrapped
+        = unwrapSessionFacade(sessionStore);
+    if (!(unwrapped instanceof MeteredSessionStore)) {
       throw new IllegalStateException("Expecting a MeteredSessionStore");
     } else {
-      final StateSerdes<GenericKey, GenericRow> serdes = getSerdes(sessionStore);
+      final StateSerdes<GenericKey, ?> serdes = getSerdes(unwrapped);
       final Bytes rawKey = Bytes.wrap(serdes.rawKey(key));
-      final SessionStore<Bytes, byte[]> wrapped = getInnermostStore(sessionStore);
+      final SessionStore<Bytes, byte[]> wrapped = getInnermostStore(unwrapped);
       final KeyValueIterator<Windowed<Bytes>, byte[]> fetch = wrapped.fetch(rawKey);
-      return new DeserializingIterator(fetch, serdes);
+      return new DeserializingIterator(fetch, serdes, valueConverter);
     }
   }
 
@@ -143,16 +170,18 @@ public final class SessionStoreCacheBypass {
           final GenericKey keyFrom,
           final GenericKey keyTo
   ) {
-    if (!(sessionStore instanceof MeteredSessionStore)) {
+    final Function<Object, GenericRow> valueConverter = getSessionValueConverter(sessionStore);
+    final ReadOnlySessionStore<GenericKey, GenericRow> unwrapped
+        = unwrapSessionFacade(sessionStore);
+    if (!(unwrapped instanceof MeteredSessionStore)) {
       throw new IllegalStateException("Expecting a MeteredSessionStore");
     } else {
-
-      final StateSerdes<GenericKey, GenericRow> serdes = getSerdes(sessionStore);
+      final StateSerdes<GenericKey, ?> serdes = getSerdes(unwrapped);
       final Bytes rawKeyFrom = Bytes.wrap(serdes.rawKey(keyFrom));
       final Bytes rawKeyTo = Bytes.wrap(serdes.rawKey(keyTo));
-      final SessionStore<Bytes, byte[]> wrapped = getInnermostStore(sessionStore);
+      final SessionStore<Bytes, byte[]> wrapped = getInnermostStore(unwrapped);
       final KeyValueIterator<Windowed<Bytes>, byte[]> fetch = wrapped.fetch(rawKeyFrom, rawKeyTo);
-      return new DeserializingIterator(fetch, serdes);
+      return new DeserializingIterator(fetch, serdes, valueConverter);
     }
   }
 
@@ -179,11 +208,45 @@ public final class SessionStoreCacheBypass {
   }
 
   @SuppressWarnings("unchecked")
-  private static StateSerdes<GenericKey, GenericRow> getSerdes(
+  private static ReadOnlySessionStore<GenericKey, GenericRow> unwrapSessionFacade(
+      final ReadOnlySessionStore<GenericKey, GenericRow> sessionStore
+  ) {
+    if (SESSION_FACADE_INNER_FIELD != null
+        && SESSION_FACADE_INNER_FIELD.getDeclaringClass().isInstance(sessionStore)) {
+      try {
+        return (ReadOnlySessionStore<GenericKey, GenericRow>)
+            SESSION_FACADE_INNER_FIELD.get(sessionStore);
+      } catch (final IllegalAccessException e) {
+        throw new RuntimeException("Stream internals changed unexpectedly!", e);
+      }
+    }
+    return sessionStore;
+  }
+
+  @SuppressWarnings("unchecked")
+  private static Function<Object, GenericRow> getSessionValueConverter(
+      final ReadOnlySessionStore<GenericKey, GenericRow> sessionStore
+  ) {
+    if (AGGREGATION_GET_AGGREGATION_METHOD != null
+        && SESSION_FACADE_INNER_FIELD != null
+        && SESSION_FACADE_INNER_FIELD.getDeclaringClass().isInstance(sessionStore)) {
+      return x -> {
+        try {
+          return (GenericRow) AGGREGATION_GET_AGGREGATION_METHOD.invoke(null, x);
+        } catch (final Exception e) {
+          throw new RuntimeException("Stream internals changed unexpectedly!", e);
+        }
+      };
+    }
+    return x -> (GenericRow) x;
+  }
+
+  @SuppressWarnings("unchecked")
+  private static StateSerdes<GenericKey, ?> getSerdes(
           final ReadOnlySessionStore<GenericKey, GenericRow> sessionStore
   ) throws RuntimeException {
     try {
-      return (StateSerdes<GenericKey, GenericRow>) SERDES_FIELD.get(sessionStore);
+      return (StateSerdes<GenericKey, ?>) SERDES_FIELD.get(sessionStore);
     } catch (final IllegalAccessException e) {
       throw new RuntimeException("Stream internals changed unexpectedly!", e);
     }
@@ -229,12 +292,15 @@ public final class SessionStoreCacheBypass {
   private static final class DeserializingIterator
       implements KeyValueIterator<Windowed<GenericKey>, GenericRow> {
     private final KeyValueIterator<Windowed<Bytes>, byte[]> fetch;
-    private final StateSerdes<GenericKey, GenericRow> serdes;
+    private final StateSerdes<GenericKey, ?> serdes;
+    private final Function<Object, GenericRow> valueConverter;
 
     private DeserializingIterator(final KeyValueIterator<Windowed<Bytes>, byte[]> fetch,
-        final StateSerdes<GenericKey, GenericRow> serdes) {
+        final StateSerdes<GenericKey, ?> serdes,
+        final Function<Object, GenericRow> valueConverter) {
       this.fetch = fetch;
       this.serdes = serdes;
+      this.valueConverter = valueConverter;
     }
 
     @Override
@@ -257,7 +323,7 @@ public final class SessionStoreCacheBypass {
     public KeyValue<Windowed<GenericKey>, GenericRow> next() {
       final Windowed<GenericKey> key = peekNextKey();
       final KeyValue<Windowed<Bytes>, byte[]> next = fetch.next();
-      return KeyValue.pair(key, serdes.valueFrom(next.value));
+      return KeyValue.pair(key, valueConverter.apply(serdes.valueFrom(next.value)));
     }
   }
 

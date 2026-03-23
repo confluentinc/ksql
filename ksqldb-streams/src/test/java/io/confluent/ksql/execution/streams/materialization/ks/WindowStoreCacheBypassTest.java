@@ -18,6 +18,7 @@ package io.confluent.ksql.execution.streams.materialization.ks;
 import static io.confluent.ksql.execution.streams.materialization.ks.WindowStoreCacheBypass.SERDES_FIELD;
 import org.apache.kafka.streams.kstream.Windowed;
 import org.apache.kafka.streams.state.KeyValueIterator;
+import org.apache.kafka.streams.state.internals.GenericReadOnlyWindowStoreFacade;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertThrows;
@@ -157,6 +158,65 @@ public class WindowStoreCacheBypassTest {
 
     assertThat(e.getMessage(), containsString("State store is not "
         + "available anymore and may have been migrated to another instance"));
+  }
+
+  @Test
+  public void shouldUnwrapWindowFacadeAndCallUnderlyingStoreSingleKey()
+      throws IllegalAccessException {
+    final GenericReadOnlyWindowStoreFacade<GenericKey, ValueAndTimestamp<GenericRow>,
+        ValueAndTimestamp<GenericRow>> facade =
+        new GenericReadOnlyWindowStoreFacade<>(meteredWindowStore, x -> x);
+    when(provider.stores(any(), any())).thenReturn(ImmutableList.of(facade));
+    SERDES_FIELD.set(meteredWindowStore, serdes);
+    when(serdes.rawKey(any())).thenReturn(BYTES);
+    when(meteredWindowStore.wrapped()).thenReturn(wrappedWindowStore);
+    when(wrappedWindowStore.wrapped()).thenReturn(windowStore);
+    when(windowStore.fetch(any(), any(), any())).thenReturn(windowStoreIterator);
+    when(windowStoreIterator.hasNext()).thenReturn(false);
+
+    WindowStoreCacheBypass.fetch(
+        store, SOME_KEY, Instant.ofEpochMilli(100), Instant.ofEpochMilli(200));
+    verify(windowStore).fetch(
+        new Bytes(BYTES), Instant.ofEpochMilli(100L), Instant.ofEpochMilli(200L));
+  }
+
+  @Test
+  public void shouldUnwrapWindowFacadeAndCallUnderlyingStoreRangeQuery()
+      throws IllegalAccessException {
+    final GenericReadOnlyWindowStoreFacade<GenericKey, ValueAndTimestamp<GenericRow>,
+        ValueAndTimestamp<GenericRow>> facade =
+        new GenericReadOnlyWindowStoreFacade<>(meteredWindowStore, x -> x);
+    when(provider.stores(any(), any())).thenReturn(ImmutableList.of(facade));
+    SERDES_FIELD.set(meteredWindowStore, serdes);
+    when(serdes.rawKey(any())).thenReturn(BYTES, OTHER_BYTES);
+    when(meteredWindowStore.wrapped()).thenReturn(wrappedWindowStore);
+    when(wrappedWindowStore.wrapped()).thenReturn(windowStore);
+    when(windowStore.fetch(any(), any(), any(), any())).thenReturn(keyValueIterator);
+    when(keyValueIterator.hasNext()).thenReturn(false);
+
+    WindowStoreCacheBypass.fetchRange(
+        store, SOME_KEY, SOME_OTHER_KEY, Instant.ofEpochMilli(100), Instant.ofEpochMilli(200));
+    verify(windowStore).fetch(
+        new Bytes(BYTES), new Bytes(OTHER_BYTES),
+        Instant.ofEpochMilli(100L), Instant.ofEpochMilli(200L));
+  }
+
+  @Test
+  public void shouldUnwrapWindowFacadeAndCallUnderlyingStoreTableScan()
+      throws IllegalAccessException {
+    final GenericReadOnlyWindowStoreFacade<GenericKey, ValueAndTimestamp<GenericRow>,
+        ValueAndTimestamp<GenericRow>> facade =
+        new GenericReadOnlyWindowStoreFacade<>(meteredWindowStore, x -> x);
+    when(provider.stores(any(), any())).thenReturn(ImmutableList.of(facade));
+    SERDES_FIELD.set(meteredWindowStore, serdes);
+    when(meteredWindowStore.wrapped()).thenReturn(wrappedWindowStore);
+    when(wrappedWindowStore.wrapped()).thenReturn(windowStore);
+    when(windowStore.fetchAll(any(), any())).thenReturn(keyValueIterator);
+    when(keyValueIterator.hasNext()).thenReturn(false);
+
+    WindowStoreCacheBypass.fetchAll(
+        store, Instant.ofEpochMilli(100), Instant.ofEpochMilli(200));
+    verify(windowStore).fetchAll(Instant.ofEpochMilli(100L), Instant.ofEpochMilli(200L));
   }
 
   @Test

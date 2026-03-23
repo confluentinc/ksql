@@ -16,6 +16,9 @@
 package io.confluent.ksql.execution.streams.materialization.ks;
 
 import static io.confluent.ksql.execution.streams.materialization.ks.SessionStoreCacheBypass.SERDES_FIELD;
+import org.apache.kafka.streams.state.SessionStoreWithHeaders;
+import org.apache.kafka.streams.state.internals.MeteredSessionStoreWithHeaders;
+import org.apache.kafka.streams.state.internals.ReadOnlySessionStoreFacade;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertThrows;
@@ -72,6 +75,8 @@ public class SessionStoreCacheBypassTest {
   private KeyValueIterator<Windowed<Bytes>, byte[]> storeIterator;
   @Mock
   private StateSerdes<GenericKey, ValueAndTimestamp<GenericRow>> serdes;
+  @Mock
+  private MeteredSessionStoreWithHeaders<GenericKey, GenericRow> meteredSessionStoreWithHeaders;
 
   private CompositeReadOnlySessionStore<GenericKey, GenericRow> store;
 
@@ -141,6 +146,40 @@ public class SessionStoreCacheBypassTest {
   }
 
   @Test
+  public void shouldUnwrapSessionFacadeAndCallUnderlyingStoreSingleKey()
+      throws IllegalAccessException {
+    final TestSessionStoreFacade facade =
+        new TestSessionStoreFacade(meteredSessionStoreWithHeaders);
+    when(provider.stores(any(), any())).thenReturn(ImmutableList.of(facade));
+    SERDES_FIELD.set(meteredSessionStoreWithHeaders, serdes);
+    when(serdes.rawKey(any())).thenReturn(BYTES);
+    when(meteredSessionStoreWithHeaders.wrapped()).thenReturn(wrappedSessionStore);
+    when(wrappedSessionStore.wrapped()).thenReturn(sessionStore);
+    when(sessionStore.fetch(any())).thenReturn(storeIterator);
+    when(storeIterator.hasNext()).thenReturn(false);
+
+    SessionStoreCacheBypass.fetch(store, SOME_KEY);
+    verify(sessionStore).fetch(new Bytes(BYTES));
+  }
+
+  @Test
+  public void shouldUnwrapSessionFacadeAndCallUnderlyingStoreRangeQuery()
+      throws IllegalAccessException {
+    final TestSessionStoreFacade facade =
+        new TestSessionStoreFacade(meteredSessionStoreWithHeaders);
+    when(provider.stores(any(), any())).thenReturn(ImmutableList.of(facade));
+    SERDES_FIELD.set(meteredSessionStoreWithHeaders, serdes);
+    when(serdes.rawKey(any())).thenReturn(BYTES, OTHER_BYTES);
+    when(meteredSessionStoreWithHeaders.wrapped()).thenReturn(wrappedSessionStore);
+    when(wrappedSessionStore.wrapped()).thenReturn(sessionStore);
+    when(sessionStore.fetch(any(), any())).thenReturn(storeIterator);
+    when(storeIterator.hasNext()).thenReturn(false);
+
+    SessionStoreCacheBypass.fetchRange(store, SOME_KEY, SOME_OTHER_KEY);
+    verify(sessionStore).fetch(new Bytes(BYTES), new Bytes(OTHER_BYTES));
+  }
+
+  @Test
   public void shouldThrowException_wrongStateStore() {
     when(provider.stores(any(), any())).thenReturn(ImmutableList.of(sessionStore));
 
@@ -156,6 +195,13 @@ public class SessionStoreCacheBypassTest {
       extends WrappedStateStore<StateStore, K, V> implements SessionStore<K, V> {
     public WrappedSessionStore(StateStore wrapped) {
       super(wrapped);
+    }
+  }
+
+  private static class TestSessionStoreFacade
+      extends ReadOnlySessionStoreFacade<GenericKey, GenericRow> {
+    TestSessionStoreFacade(final SessionStoreWithHeaders<GenericKey, GenericRow> inner) {
+      super(inner);
     }
   }
 }

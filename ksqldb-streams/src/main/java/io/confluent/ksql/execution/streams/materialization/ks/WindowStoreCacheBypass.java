@@ -155,7 +155,7 @@ public final class WindowStoreCacheBypass {
     if (!(unwrapped instanceof MeteredWindowStore)) {
       throw new IllegalStateException("Expecting a MeteredWindowStore");
     }
-    final StateSerdes<GenericKey, ValueAndTimestamp<GenericRow>> serdes = getSerdes(unwrapped);
+    final StateSerdes<GenericKey, ?> serdes = getSerdes(unwrapped);
     final WindowStore<Bytes, byte[]> wrapped = getInnermostStore(unwrapped);
     final Bytes rawKey = Bytes.wrap(serdes.rawKey(key));
     final WindowStoreIterator<byte[]> fetch = wrapped.fetch(rawKey, lower, upper);
@@ -200,7 +200,7 @@ public final class WindowStoreCacheBypass {
     if (!(unwrapped instanceof MeteredWindowStore)) {
       throw new IllegalStateException("Expecting a MeteredWindowStore");
     }
-    final StateSerdes<GenericKey, ValueAndTimestamp<GenericRow>> serdes = getSerdes(unwrapped);
+    final StateSerdes<GenericKey, ?> serdes = getSerdes(unwrapped);
     final WindowStore<Bytes, byte[]> wrapped = getInnermostStore(unwrapped);
     final Bytes rawKeyFrom = Bytes.wrap(serdes.rawKey(keyFrom));
     final Bytes rawKeyTo = Bytes.wrap(serdes.rawKey(keyTo));
@@ -241,7 +241,7 @@ public final class WindowStoreCacheBypass {
     if (!(unwrapped instanceof MeteredWindowStore)) {
       throw new IllegalStateException("Expecting a MeteredWindowStore");
     }
-    final StateSerdes<GenericKey, ValueAndTimestamp<GenericRow>> serdes = getSerdes(unwrapped);
+    final StateSerdes<GenericKey, ?> serdes = getSerdes(unwrapped);
     final WindowStore<Bytes, byte[]> wrapped = getInnermostStore(unwrapped);
     final KeyValueIterator<Windowed<Bytes>, byte[]> fetch = wrapped.fetchAll(lower, upper);
     return new DeserializingKeyValueIterator(fetch, serdes, valueConverter);
@@ -304,11 +304,11 @@ public final class WindowStoreCacheBypass {
   }
 
   @SuppressWarnings("unchecked")
-  private static StateSerdes<GenericKey, ValueAndTimestamp<GenericRow>> getSerdes(
+  private static StateSerdes<GenericKey, ?> getSerdes(
           final ReadOnlyWindowStore<GenericKey, ValueAndTimestamp<GenericRow>> windowStore
   ) throws RuntimeException {
     try {
-      return (StateSerdes<GenericKey, ValueAndTimestamp<GenericRow>>) SERDES_FIELD.get(windowStore);
+      return (StateSerdes<GenericKey, ?>) SERDES_FIELD.get(windowStore);
     } catch (final IllegalAccessException e) {
       throw new RuntimeException("Stream internals changed unexpectedly!", e);
     }
@@ -359,12 +359,12 @@ public final class WindowStoreCacheBypass {
   private static final class DeserializingKeyValueIterator
           implements KeyValueIterator<Windowed<GenericKey>, ValueAndTimestamp<GenericRow>> {
     private final KeyValueIterator<Windowed<Bytes>, byte[]> fetch;
-    private final StateSerdes<GenericKey, ValueAndTimestamp<GenericRow>> serdes;
+    private final StateSerdes<GenericKey, ?> serdes;
     private final Function<Object, ValueAndTimestamp<GenericRow>> valueConverter;
 
     private DeserializingKeyValueIterator(
             final KeyValueIterator<Windowed<Bytes>, byte[]> fetch,
-            final StateSerdes<GenericKey, ValueAndTimestamp<GenericRow>> serdes,
+            final StateSerdes<GenericKey, ?> serdes,
             final Function<Object, ValueAndTimestamp<GenericRow>> valueConverter) {
       this.fetch = fetch;
       this.serdes = serdes;
@@ -402,12 +402,12 @@ public final class WindowStoreCacheBypass {
   private static final class DeserializingIterator
           implements WindowStoreIterator<ValueAndTimestamp<GenericRow>> {
     private final WindowStoreIterator<byte[]> fetch;
-    private final StateSerdes<GenericKey, ValueAndTimestamp<GenericRow>> serdes;
+    private final StateSerdes<GenericKey, ?> serdes;
     private final Function<Object, ValueAndTimestamp<GenericRow>> valueConverter;
 
     private DeserializingIterator(
             final WindowStoreIterator<byte[]> fetch,
-            final StateSerdes<GenericKey, ValueAndTimestamp<GenericRow>> serdes,
+            final StateSerdes<GenericKey, ?> serdes,
             final Function<Object, ValueAndTimestamp<GenericRow>> valueConverter) {
       this.fetch = fetch;
       this.serdes = serdes;

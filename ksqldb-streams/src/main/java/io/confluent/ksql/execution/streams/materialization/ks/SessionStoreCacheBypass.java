@@ -134,7 +134,7 @@ public final class SessionStoreCacheBypass {
     if (!(unwrapped instanceof MeteredSessionStore)) {
       throw new IllegalStateException("Expecting a MeteredSessionStore");
     } else {
-      final StateSerdes<GenericKey, GenericRow> serdes = getSerdes(unwrapped);
+      final StateSerdes<GenericKey, ?> serdes = getSerdes(unwrapped);
       final Bytes rawKey = Bytes.wrap(serdes.rawKey(key));
       final SessionStore<Bytes, byte[]> wrapped = getInnermostStore(unwrapped);
       final KeyValueIterator<Windowed<Bytes>, byte[]> fetch = wrapped.fetch(rawKey);
@@ -174,7 +174,7 @@ public final class SessionStoreCacheBypass {
     if (!(unwrapped instanceof MeteredSessionStore)) {
       throw new IllegalStateException("Expecting a MeteredSessionStore");
     } else {
-      final StateSerdes<GenericKey, GenericRow> serdes = getSerdes(unwrapped);
+      final StateSerdes<GenericKey, ?> serdes = getSerdes(unwrapped);
       final Bytes rawKeyFrom = Bytes.wrap(serdes.rawKey(keyFrom));
       final Bytes rawKeyTo = Bytes.wrap(serdes.rawKey(keyTo));
       final SessionStore<Bytes, byte[]> wrapped = getInnermostStore(unwrapped);
@@ -240,11 +240,11 @@ public final class SessionStoreCacheBypass {
   }
 
   @SuppressWarnings("unchecked")
-  private static StateSerdes<GenericKey, GenericRow> getSerdes(
+  private static StateSerdes<GenericKey, ?> getSerdes(
           final ReadOnlySessionStore<GenericKey, GenericRow> sessionStore
   ) throws RuntimeException {
     try {
-      return (StateSerdes<GenericKey, GenericRow>) SERDES_FIELD.get(sessionStore);
+      return (StateSerdes<GenericKey, ?>) SERDES_FIELD.get(sessionStore);
     } catch (final IllegalAccessException e) {
       throw new RuntimeException("Stream internals changed unexpectedly!", e);
     }
@@ -290,11 +290,11 @@ public final class SessionStoreCacheBypass {
   private static final class DeserializingIterator
       implements KeyValueIterator<Windowed<GenericKey>, GenericRow> {
     private final KeyValueIterator<Windowed<Bytes>, byte[]> fetch;
-    private final StateSerdes<GenericKey, GenericRow> serdes;
+    private final StateSerdes<GenericKey, ?> serdes;
     private final Function<Object, GenericRow> valueConverter;
 
     private DeserializingIterator(final KeyValueIterator<Windowed<Bytes>, byte[]> fetch,
-        final StateSerdes<GenericKey, GenericRow> serdes,
+        final StateSerdes<GenericKey, ?> serdes,
         final Function<Object, GenericRow> valueConverter) {
       this.fetch = fetch;
       this.serdes = serdes;

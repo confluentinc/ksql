@@ -237,7 +237,7 @@ public class WindowStoreCacheBypassTest {
     when(meteredWindowStore.wrapped()).thenReturn(wrappedWindowStore);
     when(wrappedWindowStore.wrapped()).thenReturn(windowStore);
     when(windowStore.fetch(any(), any(), any())).thenReturn(windowStoreIterator);
-    when(windowStoreIterator.hasNext()).thenReturn(true);
+    when(windowStoreIterator.hasNext()).thenReturn(true, false);
     when(windowStoreIterator.next()).thenReturn(KeyValue.pair(100L, VALUE_BYTES));
 
     final WindowStoreIterator<ValueAndTimestamp<GenericRow>> result =

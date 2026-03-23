@@ -204,7 +204,7 @@ public class SessionStoreCacheBypassTest {
     final Windowed<Bytes> windowedKey =
         new Windowed<>(new Bytes(BYTES), new SessionWindow(0, 100));
     when(sessionStore.fetch(any())).thenReturn(storeIterator);
-    when(storeIterator.hasNext()).thenReturn(true);
+    when(storeIterator.hasNext()).thenReturn(true, false);
     when(storeIterator.peekNextKey()).thenReturn(windowedKey);
     when(storeIterator.next()).thenReturn(KeyValue.pair(windowedKey, VALUE_BYTES));
 

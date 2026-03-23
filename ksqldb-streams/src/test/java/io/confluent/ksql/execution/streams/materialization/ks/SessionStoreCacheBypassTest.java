@@ -16,20 +16,29 @@
 package io.confluent.ksql.execution.streams.materialization.ks;
 
 import static io.confluent.ksql.execution.streams.materialization.ks.SessionStoreCacheBypass.SERDES_FIELD;
+import org.apache.kafka.streams.state.SessionStoreWithHeaders;
+import org.apache.kafka.streams.state.internals.MeteredSessionStoreWithHeaders;
+import org.apache.kafka.streams.state.internals.ReadOnlySessionStoreFacade;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
+import org.apache.kafka.common.header.internals.RecordHeaders;
 import org.apache.kafka.common.utils.Bytes;
+import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.errors.InvalidStateStoreException;
+import org.apache.kafka.streams.kstream.internals.SessionWindow;
 import org.apache.kafka.streams.kstream.Windowed;
 import org.apache.kafka.streams.processor.StateStore;
+import org.apache.kafka.streams.state.AggregationWithHeaders;
 import org.apache.kafka.streams.state.KeyValueIterator;
 import org.apache.kafka.streams.state.QueryableStoreType;
 import org.apache.kafka.streams.state.ReadOnlySessionStore;
@@ -54,6 +63,8 @@ public class SessionStoreCacheBypassTest {
 
   private static final byte[] BYTES = new byte[] {'a', 'b'};
   private static final byte[] OTHER_BYTES = new byte[] {'c', 'd'};
+  private static final byte[] VALUE_BYTES = new byte[] {'e', 'f'};
+  private static final GenericRow EXPECTED_ROW = GenericRow.genericRow("v1");
 
   @Mock
   private QueryableStoreType<ReadOnlySessionStore<GenericKey, GenericRow>>
@@ -72,6 +83,8 @@ public class SessionStoreCacheBypassTest {
   private KeyValueIterator<Windowed<Bytes>, byte[]> storeIterator;
   @Mock
   private StateSerdes<GenericKey, ValueAndTimestamp<GenericRow>> serdes;
+  @Mock
+  private MeteredSessionStoreWithHeaders<GenericKey, GenericRow> meteredSessionStoreWithHeaders;
 
   private CompositeReadOnlySessionStore<GenericKey, GenericRow> store;
 
@@ -141,6 +154,66 @@ public class SessionStoreCacheBypassTest {
   }
 
   @Test
+  public void shouldUnwrapSessionFacadeAndCallUnderlyingStoreSingleKey()
+      throws IllegalAccessException {
+    final TestSessionStoreFacade facade =
+        new TestSessionStoreFacade(meteredSessionStoreWithHeaders);
+    when(provider.stores(any(), any())).thenReturn(ImmutableList.of(facade));
+    SERDES_FIELD.set(meteredSessionStoreWithHeaders, serdes);
+    when(serdes.rawKey(any())).thenReturn(BYTES);
+    when(meteredSessionStoreWithHeaders.wrapped()).thenReturn(wrappedSessionStore);
+    when(wrappedSessionStore.wrapped()).thenReturn(sessionStore);
+    when(sessionStore.fetch(any())).thenReturn(storeIterator);
+    when(storeIterator.hasNext()).thenReturn(false);
+
+    SessionStoreCacheBypass.fetch(store, SOME_KEY);
+    verify(sessionStore).fetch(new Bytes(BYTES));
+  }
+
+  @Test
+  public void shouldUnwrapSessionFacadeAndCallUnderlyingStoreRangeQuery()
+      throws IllegalAccessException {
+    final TestSessionStoreFacade facade =
+        new TestSessionStoreFacade(meteredSessionStoreWithHeaders);
+    when(provider.stores(any(), any())).thenReturn(ImmutableList.of(facade));
+    SERDES_FIELD.set(meteredSessionStoreWithHeaders, serdes);
+    when(serdes.rawKey(any())).thenReturn(BYTES, OTHER_BYTES);
+    when(meteredSessionStoreWithHeaders.wrapped()).thenReturn(wrappedSessionStore);
+    when(wrappedSessionStore.wrapped()).thenReturn(sessionStore);
+    when(sessionStore.fetch(any(), any())).thenReturn(storeIterator);
+    when(storeIterator.hasNext()).thenReturn(false);
+
+    SessionStoreCacheBypass.fetchRange(store, SOME_KEY, SOME_OTHER_KEY);
+    verify(sessionStore).fetch(new Bytes(BYTES), new Bytes(OTHER_BYTES));
+  }
+
+  @Test
+  public void shouldUnwrapSessionFacadeAndConvertValueViaAggregationMethod()
+      throws IllegalAccessException {
+    final TestSessionStoreFacade facade =
+        new TestSessionStoreFacade(meteredSessionStoreWithHeaders);
+    when(provider.stores(any(), any())).thenReturn(ImmutableList.of(facade));
+    SERDES_FIELD.set(meteredSessionStoreWithHeaders, serdes);
+    when(serdes.rawKey(any())).thenReturn(BYTES);
+    when(serdes.keyFrom(any())).thenReturn(SOME_KEY);
+    final AggregationWithHeaders<GenericRow> aggregation =
+        AggregationWithHeaders.make(EXPECTED_ROW, new RecordHeaders());
+    doReturn(aggregation).when(serdes).valueFrom(any());
+    when(meteredSessionStoreWithHeaders.wrapped()).thenReturn(wrappedSessionStore);
+    when(wrappedSessionStore.wrapped()).thenReturn(sessionStore);
+    final Windowed<Bytes> windowedKey =
+        new Windowed<>(new Bytes(BYTES), new SessionWindow(0, 100));
+    when(sessionStore.fetch(any())).thenReturn(storeIterator);
+    when(storeIterator.hasNext()).thenReturn(true);
+    when(storeIterator.peekNextKey()).thenReturn(windowedKey);
+    when(storeIterator.next()).thenReturn(KeyValue.pair(windowedKey, VALUE_BYTES));
+
+    final KeyValueIterator<Windowed<GenericKey>, GenericRow> result =
+        SessionStoreCacheBypass.fetch(store, SOME_KEY);
+    assertThat(result.next().value, is(EXPECTED_ROW));
+  }
+
+  @Test
   public void shouldThrowException_wrongStateStore() {
     when(provider.stores(any(), any())).thenReturn(ImmutableList.of(sessionStore));
 
@@ -156,6 +229,13 @@ public class SessionStoreCacheBypassTest {
       extends WrappedStateStore<StateStore, K, V> implements SessionStore<K, V> {
     public WrappedSessionStore(StateStore wrapped) {
       super(wrapped);
+    }
+  }
+
+  private static class TestSessionStoreFacade
+      extends ReadOnlySessionStoreFacade<GenericKey, GenericRow> {
+    TestSessionStoreFacade(final SessionStoreWithHeaders<GenericKey, GenericRow> inner) {
+      super(inner);
     }
   }
 }

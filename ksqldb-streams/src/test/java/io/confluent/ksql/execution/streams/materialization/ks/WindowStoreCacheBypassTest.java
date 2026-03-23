@@ -18,8 +18,10 @@ package io.confluent.ksql.execution.streams.materialization.ks;
 import static io.confluent.ksql.execution.streams.materialization.ks.WindowStoreCacheBypass.SERDES_FIELD;
 import org.apache.kafka.streams.kstream.Windowed;
 import org.apache.kafka.streams.state.KeyValueIterator;
+import org.apache.kafka.streams.state.internals.GenericReadOnlyWindowStoreFacade;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
@@ -30,6 +32,7 @@ import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import java.time.Instant;
 import org.apache.kafka.common.utils.Bytes;
+import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.errors.InvalidStateStoreException;
 import org.apache.kafka.streams.processor.StateStore;
 import org.apache.kafka.streams.state.QueryableStoreType;
@@ -55,6 +58,9 @@ public class WindowStoreCacheBypassTest {
   private static final GenericKey SOME_OTHER_KEY = GenericKey.genericKey(2);
   private static final byte[] BYTES = new byte[] {'a', 'b'};
   private static final byte[] OTHER_BYTES = new byte[] {'c', 'd'};
+  private static final byte[] VALUE_BYTES = new byte[] {'e', 'f'};
+  private static final ValueAndTimestamp<GenericRow> VALUE_AND_TIMESTAMP =
+      ValueAndTimestamp.make(GenericRow.genericRow("v1"), 1000L);
 
   @Mock
   private QueryableStoreType<ReadOnlyWindowStore<GenericKey, ValueAndTimestamp<GenericRow>>>
@@ -157,6 +163,87 @@ public class WindowStoreCacheBypassTest {
 
     assertThat(e.getMessage(), containsString("State store is not "
         + "available anymore and may have been migrated to another instance"));
+  }
+
+  @Test
+  public void shouldUnwrapWindowFacadeAndCallUnderlyingStoreSingleKey()
+      throws IllegalAccessException {
+    final GenericReadOnlyWindowStoreFacade<GenericKey, ValueAndTimestamp<GenericRow>,
+        ValueAndTimestamp<GenericRow>> facade =
+        new GenericReadOnlyWindowStoreFacade<>(meteredWindowStore, x -> x);
+    when(provider.stores(any(), any())).thenReturn(ImmutableList.of(facade));
+    SERDES_FIELD.set(meteredWindowStore, serdes);
+    when(serdes.rawKey(any())).thenReturn(BYTES);
+    when(meteredWindowStore.wrapped()).thenReturn(wrappedWindowStore);
+    when(wrappedWindowStore.wrapped()).thenReturn(windowStore);
+    when(windowStore.fetch(any(), any(), any())).thenReturn(windowStoreIterator);
+    when(windowStoreIterator.hasNext()).thenReturn(false);
+
+    WindowStoreCacheBypass.fetch(
+        store, SOME_KEY, Instant.ofEpochMilli(100), Instant.ofEpochMilli(200));
+    verify(windowStore).fetch(
+        new Bytes(BYTES), Instant.ofEpochMilli(100L), Instant.ofEpochMilli(200L));
+  }
+
+  @Test
+  public void shouldUnwrapWindowFacadeAndCallUnderlyingStoreRangeQuery()
+      throws IllegalAccessException {
+    final GenericReadOnlyWindowStoreFacade<GenericKey, ValueAndTimestamp<GenericRow>,
+        ValueAndTimestamp<GenericRow>> facade =
+        new GenericReadOnlyWindowStoreFacade<>(meteredWindowStore, x -> x);
+    when(provider.stores(any(), any())).thenReturn(ImmutableList.of(facade));
+    SERDES_FIELD.set(meteredWindowStore, serdes);
+    when(serdes.rawKey(any())).thenReturn(BYTES, OTHER_BYTES);
+    when(meteredWindowStore.wrapped()).thenReturn(wrappedWindowStore);
+    when(wrappedWindowStore.wrapped()).thenReturn(windowStore);
+    when(windowStore.fetch(any(), any(), any(), any())).thenReturn(keyValueIterator);
+    when(keyValueIterator.hasNext()).thenReturn(false);
+
+    WindowStoreCacheBypass.fetchRange(
+        store, SOME_KEY, SOME_OTHER_KEY, Instant.ofEpochMilli(100), Instant.ofEpochMilli(200));
+    verify(windowStore).fetch(
+        new Bytes(BYTES), new Bytes(OTHER_BYTES),
+        Instant.ofEpochMilli(100L), Instant.ofEpochMilli(200L));
+  }
+
+  @Test
+  public void shouldUnwrapWindowFacadeAndCallUnderlyingStoreTableScan()
+      throws IllegalAccessException {
+    final GenericReadOnlyWindowStoreFacade<GenericKey, ValueAndTimestamp<GenericRow>,
+        ValueAndTimestamp<GenericRow>> facade =
+        new GenericReadOnlyWindowStoreFacade<>(meteredWindowStore, x -> x);
+    when(provider.stores(any(), any())).thenReturn(ImmutableList.of(facade));
+    SERDES_FIELD.set(meteredWindowStore, serdes);
+    when(meteredWindowStore.wrapped()).thenReturn(wrappedWindowStore);
+    when(wrappedWindowStore.wrapped()).thenReturn(windowStore);
+    when(windowStore.fetchAll(any(), any())).thenReturn(keyValueIterator);
+    when(keyValueIterator.hasNext()).thenReturn(false);
+
+    WindowStoreCacheBypass.fetchAll(
+        store, Instant.ofEpochMilli(100), Instant.ofEpochMilli(200));
+    verify(windowStore).fetchAll(Instant.ofEpochMilli(100L), Instant.ofEpochMilli(200L));
+  }
+
+  @Test
+  public void shouldUnwrapWindowFacadeAndApplyValueConverterForSingleKey()
+      throws IllegalAccessException {
+    final GenericReadOnlyWindowStoreFacade<GenericKey, ValueAndTimestamp<GenericRow>,
+        ValueAndTimestamp<GenericRow>> facade =
+        new GenericReadOnlyWindowStoreFacade<>(meteredWindowStore, x -> x);
+    when(provider.stores(any(), any())).thenReturn(ImmutableList.of(facade));
+    SERDES_FIELD.set(meteredWindowStore, serdes);
+    when(serdes.rawKey(any())).thenReturn(BYTES);
+    when(serdes.valueFrom(any())).thenReturn(VALUE_AND_TIMESTAMP);
+    when(meteredWindowStore.wrapped()).thenReturn(wrappedWindowStore);
+    when(wrappedWindowStore.wrapped()).thenReturn(windowStore);
+    when(windowStore.fetch(any(), any(), any())).thenReturn(windowStoreIterator);
+    when(windowStoreIterator.hasNext()).thenReturn(true);
+    when(windowStoreIterator.next()).thenReturn(KeyValue.pair(100L, VALUE_BYTES));
+
+    final WindowStoreIterator<ValueAndTimestamp<GenericRow>> result =
+        WindowStoreCacheBypass.fetch(
+            store, SOME_KEY, Instant.ofEpochMilli(100), Instant.ofEpochMilli(200));
+    assertThat(result.next().value, is(VALUE_AND_TIMESTAMP));
   }
 
   @Test

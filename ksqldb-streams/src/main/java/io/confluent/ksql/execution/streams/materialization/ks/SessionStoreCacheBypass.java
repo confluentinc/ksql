@@ -78,8 +78,10 @@ public final class SessionStoreCacheBypass {
           "org.apache.kafka.streams.state.AggregationWithHeaders");
       aggregationGetAggregationMethod = aggregationClass.getMethod(
           "getAggregationOrNull", aggregationClass);
-    } catch (final ClassNotFoundException | NoSuchFieldException | NoSuchMethodException e) {
+    } catch (final ClassNotFoundException e) {
       // Facade class not present in this Kafka version — no unwrapping needed
+    } catch (final NoSuchFieldException | NoSuchMethodException e) {
+      throw new RuntimeException("Stream internals changed unexpectedly!", e);
     }
     SESSION_FACADE_INNER_FIELD = sessionFacadeInnerField;
     AGGREGATION_GET_AGGREGATION_METHOD = aggregationGetAggregationMethod;

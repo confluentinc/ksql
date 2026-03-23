@@ -77,8 +77,10 @@ public final class WindowStoreCacheBypass {
       genericWindowFacadeInnerField.setAccessible(true);
       genericWindowFacadeValueConverterField = facadeClass.getDeclaredField("valueConverter");
       genericWindowFacadeValueConverterField.setAccessible(true);
-    } catch (final ClassNotFoundException | NoSuchFieldException e) {
+    } catch (final ClassNotFoundException e) {
       // Facade class not present in this Kafka version — no unwrapping needed
+    } catch (final NoSuchFieldException e) {
+      throw new RuntimeException("Stream internals changed unexpectedly!", e);
     }
     GENERIC_WINDOW_FACADE_INNER_FIELD = genericWindowFacadeInnerField;
     GENERIC_WINDOW_FACADE_VALUE_CONVERTER_FIELD = genericWindowFacadeValueConverterField;

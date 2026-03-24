@@ -9,7 +9,10 @@ URL: http://confluent.io
 BuildRoot: %{_tmppath}/%{name}-%{version}-root
 Vendor: Confluent, Inc.
 Packager: Confluent Packaging <packages@confluent.io>
-BuildArch: noarch
+# Multi-arch POC: Remove BuildArch: noarch to create architecture-specific RPMs
+# BuildArch: noarch
+Obsoletes: confluent-ksqldb < %{version}-%{release}
+Provides: confluent-ksqldb = %{version}-%{release}
 
 %description
 

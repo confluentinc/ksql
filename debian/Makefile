@@ -44,6 +44,12 @@ endif
 # Whether we should run tests during the build.
 SKIP_TESTS?=yes
 
+# Multi-arch POC: Add TARGET_ARCH support for building architecture-specific RPMs
+ifndef TARGET_ARCH
+TARGET_ARCH := x86_64
+endif
+export TARGET_ARCH
+
 all: install
 
 
@@ -60,9 +66,9 @@ endif
 
 build: apply-patches
 ifeq ($(SKIP_TESTS),yes)
-	mvn -B -DskipTests=true install
+	mvn -B -DskipTests=true -Dtarget.arch=$(TARGET_ARCH) install
 else
-	mvn -B install
+	mvn -B -Dtarget.arch=$(TARGET_ARCH) install
 endif
 	touch build
 
@@ -127,8 +133,8 @@ endif
 
 
 rpm: RPM_BUILDING/SOURCES/$(FULL_PACKAGE_TITLE)-$(RPM_VERSION).tar.gz
-	echo "Building the rpm"
-	rpmbuild --define="_topdir `pwd`/RPM_BUILDING" -tb $<
+	echo "Building the rpm for architecture: $(TARGET_ARCH)"
+	rpmbuild --target $(TARGET_ARCH) --define="_topdir `pwd`/RPM_BUILDING" -tb $<
 	find RPM_BUILDING/{,S}RPMS/ -type f | xargs -n1 -iXXX mv XXX .
 	echo
 	echo "================================================="

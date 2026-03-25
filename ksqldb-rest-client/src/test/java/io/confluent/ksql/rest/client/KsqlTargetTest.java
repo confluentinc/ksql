@@ -196,7 +196,7 @@ public class KsqlTargetTest {
     });
 
     ksqlTarget = new KsqlTarget(httpClient, socketAddress, localProperties, authHeader, HOST,
-        SUB_PATH, Collections.emptyMap());
+        SUB_PATH, Collections.emptyMap(), RequestOptions.DEFAULT_TIMEOUT);
     executor.submit(this::expectPostQueryRequestChunkHandler);
 
     assertThatEventually(error::get, notNullValue());

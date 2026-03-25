@@ -4,6 +4,7 @@ import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
 import static io.netty.handler.codec.http.HttpResponseStatus.OK;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.mockito.ArgumentMatchers.any;
@@ -15,6 +16,7 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.properties.LocalProperties;
+import io.confluent.ksql.rest.client.exception.KsqlRestClientException;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
@@ -175,6 +177,30 @@ public class KsqlTargetTest {
     exceptionCaptor.getValue().handle(new RuntimeException("Error!"));
 
     assertThatEventually(error::get, notNullValue());
+    assertThat(error.get().getMessage(),
+        containsString("Error issuing POST to KSQL server. path:/query"));
+  }
+
+  @Test
+  public void shouldPostQueryRequest_chunkHandler_failedResponse() {
+    // When the Vert.x async result for the response itself fails (e.g. connection reset before
+    // headers), response.result() is null. Before the fix this caused a NullPointerException;
+    // after the fix it should propagate a KsqlRestClientException.
+    when(httpClientRequest.response(any(Handler.class))).thenAnswer(a -> {
+      final Handler<AsyncResult<HttpClientResponse>> handler = a.getArgument(0);
+      vertx.runOnContext(v -> {
+        handler.handle(Future.failedFuture(new RuntimeException("connection reset")));
+        requestStarted.set(true);
+      });
+      return null;
+    });
+
+    ksqlTarget = new KsqlTarget(httpClient, socketAddress, localProperties, authHeader, HOST,
+        SUB_PATH, Collections.emptyMap());
+    executor.submit(this::expectPostQueryRequestChunkHandler);
+
+    assertThatEventually(error::get, notNullValue());
+    assertThat(error.get(), instanceOf(KsqlRestClientException.class));
     assertThat(error.get().getMessage(),
         containsString("Error issuing POST to KSQL server. path:/query"));
   }

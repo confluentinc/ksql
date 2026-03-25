@@ -18,6 +18,7 @@ Provides: confluent-ksqldb = %{version}-%{release}
 
 Streaming SQL engine for Apache Kafka.
 
+%define debug_package %{nil}
 %define __jar_repack %{nil}
 
 %pre

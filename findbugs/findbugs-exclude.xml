@@ -97,8 +97,49 @@ For a detailed description of findbugs bug categories, see http://findbugs.sourc
         <Class name="~io.confluent.ksql.cli.console.Console"/>
         <Bug pattern="FS_BAD_DATE_FORMAT_FLAG_COMBO"/>
     </Match>
+    <!-- Targeted test exclusions: suppress common false positives in test code -->
+    <!-- Tests routinely store mutable objects and expose internal state by design -->
     <Match>
-        <Class name="~.*Test" />
+        <Class name="~.*Test.*"/>
+        <Bug pattern="EI_EXPOSE_REP"/>
+    </Match>
+    <Match>
+        <Class name="~.*Test.*"/>
+        <Bug pattern="EI_EXPOSE_REP2"/>
+    </Match>
+    <Match>
+        <Class name="~.*Test.*"/>
+        <Bug pattern="MS_EXPOSE_REP"/>
+    </Match>
+    <!-- Tests often have inner classes that don't need to be static -->
+    <Match>
+        <Class name="~.*Test.*"/>
+        <Bug pattern="SIC_INNER_SHOULD_BE_STATIC"/>
+    </Match>
+    <!-- Tests may compare floats directly for exact expected values -->
+    <Match>
+        <Class name="~.*Test.*"/>
+        <Bug pattern="FE_FLOATING_POINT_EQUALITY"/>
+    </Match>
+    <!-- Tests may use static fields that should be static (test fixtures) -->
+    <Match>
+        <Class name="~.*Test.*"/>
+        <Bug pattern="SS_SHOULD_BE_STATIC"/>
+    </Match>
+    <!-- Tests may use date format patterns that SpotBugs considers suspicious -->
+    <Match>
+        <Class name="~.*Test.*"/>
+        <Bug pattern="FS_BAD_DATE_FORMAT_FLAG_COMBO"/>
+    </Match>
+    <!-- Tests may intentionally test security manager methods -->
+    <Match>
+        <Class name="~.*Test.*"/>
+        <Bug pattern="VSC_VULNERABLE_SECURITY_CHECK_METHODS"/>
+    </Match>
+    <!-- Tests may create objects used only for side effects or assertions -->
+    <Match>
+        <Class name="~.*Test.*"/>
+        <Bug pattern="UC_USELESS_OBJECT"/>
     </Match>
     <!--
       DO NOT USE THIS EXCLUSION FILE FOR NON-GENERATED CODE

@@ -94,7 +94,6 @@ public final class KsqlScalarFunction extends KsqlFunction {
     );
   }
 
-  @SuppressFBWarnings(value = "EI_EXPOSE_REP")
   public Class<? extends Kudf> getKudfClass() {
     return kudfClass;
   }

@@ -15,14 +15,12 @@
 
 package io.confluent.ksql.util;
 
-import com.fasterxml.jackson.annotation.JsonAnySetter;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.google.common.collect.ImmutableMap;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.Base64;
 import java.util.Collections;
 import java.util.Map;
@@ -50,19 +48,27 @@ public class ConsistencyOffsetVector {
   // Topic -> Partition -> Offset
   private final ConcurrentHashMap<String, ConcurrentHashMap<Integer, Long>> offsetVector;
 
-  @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
   @JsonCreator
   public ConsistencyOffsetVector(
       final @JsonProperty(value = "version", required = true) int version,
       final @JsonProperty(value = "offsetVector", required = true)
-          ConcurrentHashMap<String, ConcurrentHashMap<Integer, Long>> offsetVector
+          Map<String, Map<Integer, Long>> offsetVector
+  ) {
+    this.version = version;
+    this.offsetVector = deepCopy(offsetVector);
+  }
+
+  private ConsistencyOffsetVector(
+      final int version,
+      final ConcurrentHashMap<String, ConcurrentHashMap<Integer, Long>> offsetVector
   ) {
     this.version = version;
     this.offsetVector = offsetVector;
   }
 
   public static ConsistencyOffsetVector emptyVector() {
-    return new ConsistencyOffsetVector(0, new ConcurrentHashMap<>());
+    return new ConsistencyOffsetVector(0,
+        new ConcurrentHashMap<String, ConcurrentHashMap<Integer, Long>>());
   }
 
   public ConsistencyOffsetVector withComponent(
@@ -131,8 +137,6 @@ public class ConsistencyOffsetVector {
     return ImmutableMap.copyOf(offsetVector);
   }
 
-  @JsonAnySetter
-  // Required for serialize/deserialize
   public void setOffsetVector(
       final ConcurrentHashMap<String, ConcurrentHashMap<Integer, Long>> topicOffsets) {
     offsetVector.putAll(topicOffsets);

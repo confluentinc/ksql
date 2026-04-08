@@ -52,7 +52,7 @@ import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.TopicPartition;
-
+import org.apache.kafka.common.record.RecordBatch;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serializer;
 import org.jetbrains.annotations.NotNull;
@@ -101,7 +101,7 @@ public class CommandStoreTest {
       Optional.empty()
   );
   private final RecordMetadata recordMetadata = new RecordMetadata(
-      COMMAND_TOPIC_PARTITION, 0, 0, ConsumerRecord.NO_TIMESTAMP, 0, 0);
+      COMMAND_TOPIC_PARTITION, 0, 0, RecordBatch.NO_TIMESTAMP, 0, 0);
 
   private final Future<RecordMetadata> testFuture = new Future<RecordMetadata>() {
     @Override

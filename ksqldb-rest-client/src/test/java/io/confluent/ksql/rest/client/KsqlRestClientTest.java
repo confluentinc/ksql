@@ -33,6 +33,8 @@ import java.net.URI;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
+
+import io.confluent.ksql.security.BasicCredentials;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;

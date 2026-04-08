@@ -23,8 +23,8 @@ import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.Assert.assertThrows;
 
 import io.confluent.ksql.cli.Options;
-import io.confluent.ksql.rest.client.BasicCredentials;
-import java.util.Arrays;
+import io.confluent.ksql.security.BasicCredentials;
+
 import java.util.Optional;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kafka.common.config.ConfigException;
@@ -141,8 +141,86 @@ public class OptionsTest {
     final Options options = parse("-u", "joe", "-p", "  ");
 
     // Then:
-    assertThat(options.getUserNameAndPassword().map(BasicCredentials::password),
-        is(Optional.of("  ")));
+    assertThat(options.getUserNameAndPassword().isPresent(), is(true));
+    assertThat(((BasicCredentials) options.getUserNameAndPassword().get()).password(),
+        is("  "));
+  }
+
+  @Test
+  public void shouldThrowExceptionWhenUsernamePasswordAndTokenAreProvided() {
+    // Given:
+    final Options options = parse("-u", "joe", "-p", "pp", "-t", "token");
+
+    // When:
+    final Exception e = assertThrows(
+        ConfigException.class,
+        options::validateCredentials
+    );
+
+    // Then:
+    assertThat(e.getMessage(),
+        containsString("Only one of username/password or token can be provided"));
+  }
+
+  @Test
+  public void shouldAcceptUsernamePasswordWhenNoTokenProvided() {
+    // Given:
+    final Options options = parse("-u", "joe", "-p", "pp");
+
+    // When:
+    options.validateCredentials();
+
+    // Then: No exception thrown
+    assertThat(options.getUserNameAndPassword().isPresent(), is(true));
+    assertThat(options.getUserName(), is("joe"));
+    assertThat(options.getPassword(), is("pp"));
+
+    assertThat(options.getToken(), is(""));
+  }
+
+  @Test
+  public void shouldAcceptTokenIfNoUsernamePasswordProvided() {
+    // Given:
+    final Options options = parse("-t", "abcdef");
+
+    // When:
+    options.validateCredentials();
+
+    // Then: No exception thrown
+    assertThat(options.getUserNameAndPassword().isPresent(), is(false));
+    assertThat(options.getUserName(), is(""));
+    assertThat(options.getPassword(), is(""));
+
+    assertThat(options.getToken(), is("abcdef"));
+  }
+
+  @Test
+  public void shouldThrowConfigExceptionIfEitherUsernameOrPasswordProvidedWithToken() {
+    // Given:
+    Options options = parse("-u","joe","-t", "abcdef");
+
+    // When:
+    Exception e = assertThrows(
+        ConfigException.class,
+        options::validateCredentials
+    );
+
+    // Then:
+    assertThat(e.getMessage(),
+        containsString("You must specify both a username and a password."));
+
+    // Given:
+    options = parse("-p","ee","-t", "abcdef");
+
+    // When:
+    e = assertThrows(
+        ConfigException.class,
+        options::validateCredentials
+    );
+
+    // Then:
+    assertThat(e.getMessage(),
+        containsString("You must specify both a username and a password."));
   }
 
   @Test

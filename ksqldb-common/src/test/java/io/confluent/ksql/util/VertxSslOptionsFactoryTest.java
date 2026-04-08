@@ -19,7 +19,10 @@ import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.test.util.KsqlTestFolder;
 import io.confluent.ksql.test.util.secure.ServerKeyStore;
 import io.vertx.core.net.JksOptions;
+import io.vertx.core.net.KeyStoreOptions;
 import io.vertx.core.net.PfxOptions;
+import java.security.Security;
+import org.apache.kafka.common.config.SecurityConfig;
 import org.apache.kafka.common.config.SslConfigs;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -29,6 +32,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 import java.util.Optional;
 
+import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
@@ -126,6 +130,39 @@ public class VertxSslOptionsFactoryTest {
     assertThat(pfxOptions.get().getPath(), is("path"));
     assertThat(pfxOptions.get().getPassword(), is(""));
   }
+
+  @Test
+  public void shouldBuildTrustStoreBCFKSOptionsWithEssentialFields() {
+    // When
+    final Optional<KeyStoreOptions> trustStoreOptions = VertxSslOptionsFactory.getBcfksTrustStoreOptions(
+        ImmutableMap.of(
+            SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG, "location",
+            SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG, "password",
+            SslConfigs.SSL_TRUSTMANAGER_ALGORITHM_CONFIG, "algorithm",
+            SecurityConfig.SECURITY_PROVIDERS_CONFIG, "security-providers-list"
+        )
+    );
+
+    // Then
+    assertThat(trustStoreOptions.isPresent(), equalTo(true));
+    assertThat(trustStoreOptions.get().getPath(), is("location"));
+    assertThat(trustStoreOptions.get().getPassword(), is("password"));
+    assertThat(Security.getProperty("ssl.TrustManagerFactory.algorithm"), is("algorithm"));
+    assertThat(Security.getProperty("security.providers"), is("security-providers-list"));
+  }
+
+  @Test
+  public void shouldReturnEmptyTrustStoreBCFKSOptionsIfPasswordIsEmpty() {
+    // When
+    final Optional<KeyStoreOptions> keyStoreOptions = VertxSslOptionsFactory.getBcfksTrustStoreOptions(
+        ImmutableMap.of()
+    );
+
+    // Then
+    assertThat(keyStoreOptions, is(Optional.empty()));
+  }
+
+
 
   @Test
   public void shouldBuildKeyStoreJksOptionsWithPathAndPassword() {

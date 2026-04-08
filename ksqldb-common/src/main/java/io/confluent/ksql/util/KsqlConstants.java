@@ -37,6 +37,8 @@ public final class KsqlConstants {
 
   public static final long defaultSinkWindowChangeLogAdditionalRetention = 1000000;
 
+  public static final boolean enableLoggingAppInfo = true;
+
   public static final long defaultCommitIntervalMsConfig = 2000;
   public static final long defaultCacheMaxBytesBufferingConfig = 10000000;
   public static final int defaultNumberOfStreamsThreads = 4;
@@ -52,6 +54,10 @@ public final class KsqlConstants {
   public static final String KSQL_QUERY_PLAN_TYPE_TAG = "query_plan_type";
   public static final String KSQL_QUERY_ROUTING_TYPE_TAG = "query_routing_type";
 
+  public static final String KSQL_RESOURCE_EXTENSION_MISCONFIGURED_LOG_MESSAGE =
+      "No Enterprise license detected. Confluent does not offer Enterprise support any self-managed"
+      + "(Confluent Platform) components without a valid Enterprise license";
+
   public enum KsqlQueryType {
     PERSISTENT,
     PUSH,
@@ -64,6 +70,10 @@ public final class KsqlConstants {
     INSERT
   }
 
+  /**
+   * The ordinal values of the KsqlQueryStatus enum are used as the metrics values.
+   * Please ensure preservation of the current order.
+   */
   public enum KsqlQueryStatus {
     RUNNING,
     ERROR,

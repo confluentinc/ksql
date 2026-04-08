@@ -16,14 +16,18 @@
 package io.confluent.ksql.services;
 
 import com.google.common.base.Ticker;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.kafka.schemaregistry.ParsedSchema;
+import io.confluent.kafka.schemaregistry.avro.AvroSchemaProvider;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaMetadata;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.rest.entities.SchemaReference;
 import io.confluent.kafka.schemaregistry.client.rest.entities.requests.RegisterSchemaResponse;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
+import io.confluent.kafka.schemaregistry.json.JsonSchemaProvider;
+import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchemaProvider;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.HashSet;
@@ -55,7 +59,11 @@ final class SandboxedSchemaRegistryClient {
     // we use `MockSchemaRegistryClient` as a cache inside the sandbox to store
     // newly registered schemas (without polluting the actual SR)
     // this allows dependent statements to execute successfully inside the sandbox
-    private final MockSchemaRegistryClient sandboxCacheClient = new MockSchemaRegistryClient();
+    private final MockSchemaRegistryClient sandboxCacheClient = new MockSchemaRegistryClient(
+        ImmutableList.of(
+            new AvroSchemaProvider(),
+            new ProtobufSchemaProvider(),
+            new JsonSchemaProvider()));
     // client to talk to the actual SR
     private final SchemaRegistryClient srClient;
 
@@ -78,7 +86,30 @@ final class SandboxedSchemaRegistryClient {
         final String schemaType,
         final String schemaString,
         final List<SchemaReference> references) {
-      throw new UnsupportedOperationException();
+      final Optional<ParsedSchema> schema = 
+          srClient.parseSchema(schemaType, schemaString, references);
+      if (schema.isEmpty()) {
+        // If we can't parse the schema with SR, we try to parse it with the sandbox cache
+        return sandboxCacheClient.parseSchema(schemaType, schemaString, references);
+      }
+      return schema;
+    }
+
+    @Override
+    public RegisterSchemaResponse registerWithResponse(
+        final String subject, final ParsedSchema schema, final boolean normalize)
+        throws IOException, RestClientException {
+      return sandboxCacheClient.registerWithResponse(subject, schema, normalize);
+    }
+
+    @Override
+    public RegisterSchemaResponse registerWithResponse(
+            final String subject,
+            final ParsedSchema schema,
+            final boolean normalize,
+            final boolean propagateSchemaTags) throws RestClientException, IOException {
+      return sandboxCacheClient.registerWithResponse(
+              subject, schema, normalize, propagateSchemaTags);
     }
 
     @Override
@@ -100,13 +131,6 @@ final class SandboxedSchemaRegistryClient {
         final int version,
         final int id) {
       return -1; // swallow
-    }
-
-    @Override
-    public RegisterSchemaResponse registerWithResponse(
-        final String subject, final ParsedSchema schema, final boolean normalize)
-        throws IOException, RestClientException {
-      return sandboxCacheClient.registerWithResponse(subject, schema, normalize);
     }
 
     @Deprecated
@@ -145,6 +169,22 @@ final class SandboxedSchemaRegistryClient {
         // if we don't find the schema in SR, we try to get it from the sandbox cache
         if (e.getStatus() == HttpStatus.SC_NOT_FOUND) {
           return sandboxCacheClient.getSchemaBySubjectAndId(subject, id);
+        }
+        throw e;
+      }
+    }
+
+    @Override
+    public io.confluent.kafka.schemaregistry.client.rest.entities.Schema
+        getSchemaEntityBySubjectAndId(final String subject, final int id)
+        throws RestClientException, IOException {
+
+      try {
+        return srClient.getSchemaEntityBySubjectAndId(subject, id);
+      } catch (final RestClientException e) {
+        // if we don't find the schema in SR, we try to get it from the sandbox cache
+        if (e.getStatus() == HttpStatus.SC_NOT_FOUND) {
+          return sandboxCacheClient.getSchemaEntityBySubjectAndId(subject, id);
         }
         throw e;
       }
@@ -271,6 +311,21 @@ final class SandboxedSchemaRegistryClient {
         // if we don't find the schema in SR, we try to get it from the sandbox cache
         if (e.getStatus() == HttpStatus.SC_NOT_FOUND) {
           return sandboxCacheClient.getId(subject, parsedSchema);
+        }
+        throw e;
+      }
+    }
+
+    @Override
+    public RegisterSchemaResponse getIdWithResponse(
+        final String subject, final ParsedSchema schema, final boolean normalize)
+        throws IOException, RestClientException {
+      try {
+        return srClient.getIdWithResponse(subject, schema,  normalize);
+      } catch (final RestClientException e) {
+        // if we don't find the schema in SR, we try to get it from the sandbox cache
+        if (e.getStatus() == HttpStatus.SC_NOT_FOUND) {
+          return sandboxCacheClient.getIdWithResponse(subject, schema, normalize);
         }
         throw e;
       }

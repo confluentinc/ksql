@@ -110,7 +110,7 @@ public final class TableSuppressBuilder {
     with the correct key and val serdes is passed on when we call suppress
      */
     final KTable<K, GenericRow> suppressed = table.getTable().transformValues(
-        (() -> new KsValueTransformer<>((k, v, ctx) -> v)),
+        (() -> new KsValueTransformer<>((k, v) -> v)),
         materialized
     ).suppress(
         (Suppressed<? super K>) Suppressed

@@ -36,6 +36,8 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
+import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.KsqlConfigTestUtil;
 import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
 import io.confluent.ksql.config.SessionConfig;
@@ -79,8 +81,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
-import kafka.zookeeper.ZooKeeperClientException;
 import org.apache.kafka.common.serialization.Deserializer;
+import org.apache.kafka.raft.errors.RaftException;
 import org.apache.kafka.streams.StreamsConfig;
 import org.hamcrest.CoreMatchers;
 import org.junit.After;
@@ -88,6 +90,7 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
@@ -98,6 +101,7 @@ import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
+@Category({IntegrationTest.class})
 public class InteractiveStatementExecutorTest {
   private static final String CREATE_STREAM_FOO_STATEMENT = "CREATE STREAM foo ("
       + "biz bigint,"
@@ -138,7 +142,10 @@ public class InteractiveStatementExecutorTest {
   public void setUp() {
     ksqlConfig = KsqlConfigTestUtil.create(
         CLUSTER,
-        ImmutableMap.of(StreamsConfig.APPLICATION_SERVER_CONFIG, "http://host:1234")
+        ImmutableMap.of(
+                StreamsConfig.APPLICATION_SERVER_CONFIG, "http://host:1234",
+                KsqlConfig.KSQL_UDF_SECURITY_MANAGER_ENABLED, "false"
+        )
     );
 
     final FakeKafkaTopicClient fakeKafkaTopicClient = new FakeKafkaTopicClient();
@@ -198,7 +205,7 @@ public class InteractiveStatementExecutorTest {
 
   @ClassRule
   public static final RuleChain CLUSTER_WITH_RETRY = RuleChain
-      .outerRule(Retry.of(3, ZooKeeperClientException.class, 3, TimeUnit.SECONDS))
+      .outerRule(Retry.of(3, RaftException.class, 3, TimeUnit.SECONDS))
       .around(CLUSTER);
 
   @Test(expected = IllegalStateException.class)
@@ -359,7 +366,7 @@ public class InteractiveStatementExecutorTest {
 
     // Then:
     final KsqlConfig expectedConfig = ksqlConfig.overrideBreakingConfigsWithOriginalValues(
-        plannedCommand.getOriginalProperties());
+        plannedCommand.getOriginalPropertiesForExecution());
     verify(mockEngine).execute(
         serviceContext,
         ConfiguredKsqlPlan.of(plan, SessionConfig.of(expectedConfig, emptyMap())),

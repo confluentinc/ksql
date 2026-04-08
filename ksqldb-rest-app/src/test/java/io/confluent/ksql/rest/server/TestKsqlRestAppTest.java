@@ -15,10 +15,14 @@
 
 package io.confluent.ksql.rest.server;
 
+import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.integration.IntegrationTestHarness;
+import io.confluent.ksql.util.KsqlConfig;
 import org.junit.ClassRule;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 
+@Category({IntegrationTest.class})
 public final class TestKsqlRestAppTest {
 
   @ClassRule
@@ -29,10 +33,12 @@ public final class TestKsqlRestAppTest {
     // Given:
     final TestKsqlRestApp first = TestKsqlRestApp
         .builder(TEST_HARNESS::kafkaBootstrapServers)
+        .withProperty(KsqlConfig.KSQL_UDF_SECURITY_MANAGER_ENABLED, false)
         .build();
 
     final TestKsqlRestApp second = TestKsqlRestApp
         .builder(TEST_HARNESS::kafkaBootstrapServers)
+        .withProperty(KsqlConfig.KSQL_UDF_SECURITY_MANAGER_ENABLED, false)
         .build();
 
     first.start();

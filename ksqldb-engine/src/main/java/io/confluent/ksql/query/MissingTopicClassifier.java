@@ -17,16 +17,18 @@ package io.confluent.ksql.query;
 
 import io.confluent.ksql.query.QueryError.Type;
 import java.util.Objects;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.kafka.streams.errors.MissingSourceTopicException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.kafka.streams.errors.StreamsException;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * {@code MissingTopicClassifier} classifies missing source topic exceptions as user error
  */
 public class MissingTopicClassifier implements QueryErrorClassifier {
 
-  private static final Logger LOG = LoggerFactory.getLogger(MissingTopicClassifier.class);
+  private static final Logger LOG = LogManager.getLogger(MissingTopicClassifier.class);
 
   private final String queryId;
 
@@ -36,7 +38,10 @@ public class MissingTopicClassifier implements QueryErrorClassifier {
 
   @Override
   public Type classify(final Throwable e) {
-    final Type type = e instanceof MissingSourceTopicException ? Type.USER : Type.UNKNOWN;
+    final Type type = e instanceof MissingSourceTopicException
+        || (e instanceof StreamsException
+        && (ExceptionUtils.indexOfThrowable(e, MissingSourceTopicException.class) != -1))
+        ? Type.USER : Type.UNKNOWN;
 
     if (type == Type.USER) {
       LOG.info(

@@ -20,7 +20,7 @@ import static org.mockito.Mockito.verify;
 import javax.security.auth.callback.Callback;
 import javax.security.auth.callback.NameCallback;
 import javax.security.auth.callback.PasswordCallback;
-import org.eclipse.jetty.jaas.callback.ObjectCallback;
+import org.eclipse.jetty.security.jaas.callback.ObjectCallback;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;

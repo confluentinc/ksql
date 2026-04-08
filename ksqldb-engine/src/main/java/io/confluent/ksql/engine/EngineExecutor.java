@@ -108,6 +108,7 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlConstants.RoutingNodeType;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.KsqlServerException;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.PlanSummary;
@@ -126,8 +127,8 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 import org.apache.kafka.common.TopicPartition;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * Executor of {@code PreparedStatement} within a specific {@code EngineContext} and using a
@@ -143,7 +144,7 @@ import org.slf4j.LoggerFactory;
 final class EngineExecutor {
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
-  private static final Logger LOG = LoggerFactory.getLogger(EngineExecutor.class);
+  private static final Logger LOG = LogManager.getLogger(EngineExecutor.class);
   private static final String NO_OUTPUT_TOPIC_PREFIX = "";
 
   private final EngineContext engineContext;
@@ -324,7 +325,9 @@ final class EngineExecutor {
           statement.getMaskedStatementText(),
           e
       );
-      if (e instanceof KsqlStatementException) {
+      if (e instanceof KsqlServerException) {
+        throw e;
+      } else if (e instanceof KsqlStatementException) {
         throw new KsqlStatementException(
             e.getMessage() == null ? "Server Error" : e.getMessage(),
             ((KsqlStatementException) e).getUnloggedMessage(),

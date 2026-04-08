@@ -61,8 +61,8 @@ import org.apache.kafka.streams.TopologyDescription.Source;
 import org.apache.kafka.streams.TopologyDescription.Subtopology;
 import org.apache.kafka.streams.processor.internals.namedtopology.KafkaStreamsNamedTopologyWrapper;
 import org.apache.kafka.streams.state.HostInfo;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * Kafka Streams implementation of {@link Locator}.
@@ -71,7 +71,7 @@ import org.slf4j.LoggerFactory;
 @SuppressWarnings("checkstyle:ClassDataAbstractionCoupling")
 public final class KsLocator implements Locator {
 
-  private static final Logger LOG = LoggerFactory.getLogger(KsLocator.class);
+  private static final Logger LOG = LogManager.getLogger(KsLocator.class);
   private final String storeName;
   private final KafkaStreams kafkaStreams;
   private final Topology topology;
@@ -281,7 +281,13 @@ public final class KsLocator implements Locator {
       return ((KafkaStreamsNamedTopologyWrapper) kafkaStreams)
           .queryMetadataForKey(storeName, key.getKey(), keySerializer, queryId);
     }
-    return kafkaStreams.queryMetadataForKey(storeName, key.getKey(), keySerializer);
+    try {
+      return kafkaStreams.queryMetadataForKey(storeName, key.getKey(), keySerializer);
+    } catch (IllegalStateException e) {
+      // We may be in `PENDING_SHUTDOWN` here, which means that we should let the client retry,
+      // as this will be happening during a roll.
+      return KeyQueryMetadata.NOT_AVAILABLE;
+    }
   }
 
   /**

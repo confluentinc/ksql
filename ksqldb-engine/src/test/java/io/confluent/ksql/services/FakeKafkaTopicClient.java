@@ -128,7 +128,7 @@ public class FakeKafkaTopicClient implements KafkaTopicClient {
   }
 
   @Override
-  public void createTopic(
+  public boolean createTopic(
       final String topic,
       final int numPartitions,
       final short replicationFactor,
@@ -142,13 +142,14 @@ public class FakeKafkaTopicClient implements KafkaTopicClient {
     final FakeTopic existing = topicMap.get(topic);
     if (existing != null) {
       validateTopicProperties(numPartitions, replicas, existing, configs, getTopicConfig(topic));
-      return;
+      return false;
     }
 
     final FakeTopic info = createFakeTopic(topic, numPartitions, replicas, configs);
     topicMap.put(topic, info);
     createdTopics.put(topic, info);
     createdTopicsConfig.put(topic, configs);
+    return true;
   }
 
   public Map<String, FakeTopic> createdTopics() {

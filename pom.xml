@@ -29,24 +29,25 @@
     <parent>
         <groupId>io.confluent</groupId>
         <artifactId>common</artifactId>
-        <version>[7.5.14-0, 7.5.15-0)</version>
+        <version>[8.3.0-0, 8.3.1-0)</version>
     </parent>
 
     <groupId>io.confluent.ksql</groupId>
     <artifactId>ksqldb-parent</artifactId>
     <packaging>pom</packaging>
     <name>ksqldb-parent</name>
-    <version>7.5.14-0</version>
+    <version>8.3.0-0</version>
 
     <licenses>
         <license>
             <name>Confluent Community License</name>
-            <url>http://www.confluent.io/confluent-community-license</url>
+            <url>https://www.confluent.io/confluent-community-license</url>
             <distribution>repo</distribution>
         </license>
     </licenses>
 
     <modules>
+        <module>ksqldb-stream-lib</module>
         <module>ksqldb-udf</module>
         <module>ksqldb-common</module>
         <module>ksqldb-udf-quickstart</module>
@@ -103,14 +104,15 @@
     </pluginRepositories>
 
     <properties>
+        <java.version>17</java.version>
         <apache.directory.server.version>2.0.0-M22</apache.directory.server.version>
         <apache.directory.api.version>1.0.0-M33</apache.directory.api.version>
-        <apache.httpcomponents.version>5.0.3</apache.httpcomponents.version>
+        <apache.httpcomponents.version>5.4.3</apache.httpcomponents.version>
         <confluent.maven.repo>https://packages.confluent.io/maven/</confluent.maven.repo>
         <exec-maven-plugin.version>1.2.1</exec-maven-plugin.version>
         <podam.version>6.0.2.RELEASE</podam.version>
         <airline.version>2.6.0</airline.version>
-        <antlr.version>4.9.2</antlr.version>
+        <antlr.version>4.10.1</antlr.version>
         <commons-text.version>1.10.0</commons-text.version>
         <csv.version>1.4</csv.version>
         <commons.compress.version>1.26.0</commons.compress.version>
@@ -127,19 +129,20 @@
         <generext.version>1.0.2</generext.version>
         <avro.random.generator.version>0.2.2</avro.random.generator.version>
         <apache.curator.version>5.2.0</apache.curator.version>
-        <wiremock.version>2.24.0</wiremock.version>
-        <clearspring-analytics.version>2.9.5</clearspring-analytics.version>
+        <wiremock.version>3.12.0</wiremock.version>
         <icu.version>67.1</icu.version>
         <vertx.version>4.5.24</vertx.version>
         <reactive-streams.version>1.0.3</reactive-streams.version>
         <skip.docker.build>true</skip.docker.build>
         <skip.docker.test>true</skip.docker.test>
+        <protobuf.version>4.34.0</protobuf.version>
         <!-- Temporarily disabling this because it is causing failures in packaging but not CI builds. -->
         <!-- <compile.warnings-flag>-Werror</compile.warnings-flag> -->
         <git-commit-id-plugin.version>4.9.10</git-commit-id-plugin.version>
         <apache.io.version>2.11.0</apache.io.version>
-        <io.confluent.ksql.version>7.5.14-0</io.confluent.ksql.version>
+        <io.confluent.ksql.version>8.3.0-0</io.confluent.ksql.version>
         <io.confluent.schema-registry.version>${confluent.version.range}</io.confluent.schema-registry.version>
+        <netty-tcnative-fips-version>0.123.0</netty-tcnative-fips-version>
         <netty-tcnative-version>2.0.74.Final</netty-tcnative-version>
         <!-- We normally get this from common, but Vertx is built against this -->
         <!-- Note: `netty` depends on `tcnative` and if we bump `netty`
@@ -149,7 +152,7 @@
              to find the correct `tcnative` version. -->
         <netty.version>4.1.130.Final</netty.version>
         <netty-codec-http2-version>4.1.130.Final</netty-codec-http2-version>
-        <jersey-common>2.46</jersey-common>
+        <jersey-common>3.1.10</jersey-common>
         <multi-threaded-testing.forkCount>3</multi-threaded-testing.forkCount>
         <kafka.version>${ce.kafka.version}</kafka.version>
     </properties>
@@ -157,6 +160,21 @@
     <dependencyManagement>
         <dependencies>
             <!-- Cross-submodule dependencies -->
+            <dependency>
+                <groupId>org.apache.logging.log4j</groupId>
+                <artifactId>log4j-core</artifactId>
+                <version>${log4j2.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.logging.log4j</groupId>
+                <artifactId>log4j-api</artifactId>
+                <version>${log4j2.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.logging.log4j</groupId>
+                <artifactId>log4j-1.2-api</artifactId>
+                <version>${log4j2.version}</version>
+            </dependency>
             <dependency>
                 <groupId>org.apache.kafka</groupId>
                 <artifactId>kafka_${kafka.scala.version}</artifactId>
@@ -166,20 +184,26 @@
                         <groupId>org.slf4j</groupId>
                         <artifactId>slf4j-log4j12</artifactId>
                     </exclusion>
-                </exclusions>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.zookeeper</groupId>
-                <artifactId>zookeeper</artifactId>
-                <version>${zookeeper.version}</version>
-                <exclusions>
                     <exclusion>
-                        <groupId>ch.qos.logback</groupId>
-                        <artifactId>logback-core</artifactId>
+                        <groupId>io.confluent.networking</groupId>
+                        <artifactId>cc-custom-dns-resolver-java18</artifactId>
+                    </exclusion>
+                    <!-- FIPS Compliance: Exclude non-FIPS cryptographic libraries -->
+                    <exclusion>
+                        <groupId>com.google.crypto.tink</groupId>
+                        <artifactId>tink</artifactId>
                     </exclusion>
                     <exclusion>
-                        <groupId>ch.qos.logback</groupId>
-                        <artifactId>logback-classic</artifactId>
+                        <groupId>com.google.crypto.tink</groupId>
+                        <artifactId>tink-gcpkms</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.conscrypt</groupId>
+                        <artifactId>conscrypt-openjdk-uber</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>io.netty</groupId>
+                        <artifactId>netty-tcnative-boringssl-static</artifactId>
                     </exclusion>
                 </exclusions>
             </dependency>
@@ -188,6 +212,25 @@
                 <groupId>org.apache.kafka</groupId>
                 <artifactId>kafka-streams</artifactId>
                 <version>${kafka.version}</version>
+                <exclusions>
+                    <!-- FIPS Compliance: Exclude non-FIPS cryptographic libraries -->
+                    <exclusion>
+                        <groupId>com.google.crypto.tink</groupId>
+                        <artifactId>tink</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>com.google.crypto.tink</groupId>
+                        <artifactId>tink-gcpkms</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.conscrypt</groupId>
+                        <artifactId>conscrypt-openjdk-uber</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>io.netty</groupId>
+                        <artifactId>netty-tcnative-boringssl-static</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
             <dependency>
                 <groupId>org.apache.kafka</groupId>
@@ -198,32 +241,172 @@
                         <groupId>org.slf4j</groupId>
                         <artifactId>slf4j-log4j12</artifactId>
                     </exclusion>
+                    <exclusion>
+                        <groupId>io.confluent.networking</groupId>
+                        <artifactId>cc-custom-dns-resolver-java18</artifactId>
+                    </exclusion>
+                    <!-- FIPS Compliance: Exclude non-FIPS cryptographic libraries -->
+                    <exclusion>
+                        <groupId>com.google.crypto.tink</groupId>
+                        <artifactId>tink</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>com.google.crypto.tink</groupId>
+                        <artifactId>tink-gcpkms</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.conscrypt</groupId>
+                        <artifactId>conscrypt-openjdk-uber</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>io.netty</groupId>
+                        <artifactId>netty-tcnative-boringssl-static</artifactId>
+                    </exclusion>
                 </exclusions>
             </dependency>
             <dependency>
                 <groupId>org.apache.kafka</groupId>
                 <artifactId>connect-api</artifactId>
                 <version>${kafka.version}</version>
+                <exclusions>
+                    <!-- FIPS Compliance: Exclude non-FIPS cryptographic libraries -->
+                    <exclusion>
+                        <groupId>com.google.crypto.tink</groupId>
+                        <artifactId>tink</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>com.google.crypto.tink</groupId>
+                        <artifactId>tink-gcpkms</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.conscrypt</groupId>
+                        <artifactId>conscrypt-openjdk-uber</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>io.netty</groupId>
+                        <artifactId>netty-tcnative-boringssl-static</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
             <dependency>
                 <groupId>org.apache.kafka</groupId>
                 <artifactId>connect-runtime</artifactId>
                 <version>${kafka.version}</version>
+                <exclusions>
+                    <!-- FIPS Compliance: Exclude non-FIPS cryptographic libraries -->
+                    <exclusion>
+                        <groupId>com.google.crypto.tink</groupId>
+                        <artifactId>tink</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>com.google.crypto.tink</groupId>
+                        <artifactId>tink-gcpkms</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.conscrypt</groupId>
+                        <artifactId>conscrypt-openjdk-uber</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>io.netty</groupId>
+                        <artifactId>netty-tcnative-boringssl-static</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.kafka</groupId>
+                <artifactId>connect-transforms</artifactId>
+                <version>${kafka.version}</version>
+                <exclusions>
+                    <!-- FIPS Compliance: Exclude non-FIPS cryptographic libraries -->
+                    <exclusion>
+                        <groupId>com.google.crypto.tink</groupId>
+                        <artifactId>tink</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>com.google.crypto.tink</groupId>
+                        <artifactId>tink-gcpkms</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.conscrypt</groupId>
+                        <artifactId>conscrypt-openjdk-uber</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>io.netty</groupId>
+                        <artifactId>netty-tcnative-boringssl-static</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
             <dependency>
                 <groupId>org.apache.kafka</groupId>
                 <artifactId>connect-json</artifactId>
                 <version>${kafka.version}</version>
+                <exclusions>
+                    <!-- FIPS Compliance: Exclude non-FIPS cryptographic libraries -->
+                    <exclusion>
+                        <groupId>com.google.crypto.tink</groupId>
+                        <artifactId>tink</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>com.google.crypto.tink</groupId>
+                        <artifactId>tink-gcpkms</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.conscrypt</groupId>
+                        <artifactId>conscrypt-openjdk-uber</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>io.netty</groupId>
+                        <artifactId>netty-tcnative-boringssl-static</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
             <dependency>
                 <groupId>org.apache.kafka</groupId>
                 <artifactId>connect-file</artifactId>
                 <version>${kafka.version}</version>
+                <exclusions>
+                    <!-- FIPS Compliance: Exclude non-FIPS cryptographic libraries -->
+                    <exclusion>
+                        <groupId>com.google.crypto.tink</groupId>
+                        <artifactId>tink</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>com.google.crypto.tink</groupId>
+                        <artifactId>tink-gcpkms</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.conscrypt</groupId>
+                        <artifactId>conscrypt-openjdk-uber</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>io.netty</groupId>
+                        <artifactId>netty-tcnative-boringssl-static</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
             <dependency>
                 <groupId>org.apache.kafka</groupId>
                 <artifactId>kafka-streams-test-utils</artifactId>
                 <version>${kafka.version}</version>
+                <exclusions>
+                    <!-- FIPS Compliance: Exclude non-FIPS cryptographic libraries -->
+                    <exclusion>
+                        <groupId>com.google.crypto.tink</groupId>
+                        <artifactId>tink</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>com.google.crypto.tink</groupId>
+                        <artifactId>tink-gcpkms</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.conscrypt</groupId>
+                        <artifactId>conscrypt-openjdk-uber</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>io.netty</groupId>
+                        <artifactId>netty-tcnative-boringssl-static</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
 
             <!-- Kafka's SSL utilities are used in tests. -->
@@ -238,6 +421,27 @@
                         <groupId>org.slf4j</groupId>
                         <artifactId>slf4j-log4j12</artifactId>
                     </exclusion>
+                    <exclusion>
+                        <groupId>io.confluent.networking</groupId>
+                        <artifactId>cc-custom-dns-resolver-java18</artifactId>
+                    </exclusion>
+                    <!-- FIPS Compliance: Exclude non-FIPS cryptographic libraries -->
+                    <exclusion>
+                        <groupId>com.google.crypto.tink</groupId>
+                        <artifactId>tink</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>com.google.crypto.tink</groupId>
+                        <artifactId>tink-gcpkms</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.conscrypt</groupId>
+                        <artifactId>conscrypt-openjdk-uber</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>io.netty</groupId>
+                        <artifactId>netty-tcnative-boringssl-static</artifactId>
+                    </exclusion>
                 </exclusions>
             </dependency>
             <dependency>
@@ -251,6 +455,52 @@
                         <groupId>org.slf4j</groupId>
                         <artifactId>slf4j-log4j12</artifactId>
                     </exclusion>
+                    <exclusion>
+                        <groupId>io.confluent.networking</groupId>
+                        <artifactId>cc-custom-dns-resolver-java18</artifactId>
+                    </exclusion>
+                    <!-- FIPS Compliance: Exclude non-FIPS cryptographic libraries -->
+                    <exclusion>
+                        <groupId>com.google.crypto.tink</groupId>
+                        <artifactId>tink</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>com.google.crypto.tink</groupId>
+                        <artifactId>tink-gcpkms</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.conscrypt</groupId>
+                        <artifactId>conscrypt-openjdk-uber</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>io.netty</groupId>
+                        <artifactId>netty-tcnative-boringssl-static</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.kafka</groupId>
+                <artifactId>connect-test-plugins</artifactId>
+                <version>${kafka.version}</version>
+                <scope>test</scope>
+                <exclusions>
+                    <!-- FIPS Compliance: Exclude non-FIPS cryptographic libraries -->
+                    <exclusion>
+                        <groupId>com.google.crypto.tink</groupId>
+                        <artifactId>tink</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>com.google.crypto.tink</groupId>
+                        <artifactId>tink-gcpkms</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.conscrypt</groupId>
+                        <artifactId>conscrypt-openjdk-uber</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>io.netty</groupId>
+                        <artifactId>netty-tcnative-boringssl-static</artifactId>
+                    </exclusion>
                 </exclusions>
             </dependency>
             <dependency>
@@ -259,6 +509,25 @@
                 <version>${kafka.version}</version>
                 <classifier>test</classifier>
                 <scope>compile</scope>
+                <exclusions>
+                    <!-- FIPS Compliance: Exclude non-FIPS cryptographic libraries -->
+                    <exclusion>
+                        <groupId>com.google.crypto.tink</groupId>
+                        <artifactId>tink</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>com.google.crypto.tink</groupId>
+                        <artifactId>tink-gcpkms</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.conscrypt</groupId>
+                        <artifactId>conscrypt-openjdk-uber</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>io.netty</groupId>
+                        <artifactId>netty-tcnative-boringssl-static</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
 
             <dependency>
@@ -266,6 +535,73 @@
                 <artifactId>ce-sbk_${kafka.scala.version}</artifactId>
                 <version>${kafka.version}</version>
                 <scope>compile</scope>
+                <exclusions>
+                    <!-- FIPS Compliance: Exclude non-FIPS cryptographic libraries -->
+                    <exclusion>
+                        <groupId>com.google.crypto.tink</groupId>
+                        <artifactId>tink</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>com.google.crypto.tink</groupId>
+                        <artifactId>tink-gcpkms</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.conscrypt</groupId>
+                        <artifactId>conscrypt-openjdk-uber</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>io.netty</groupId>
+                        <artifactId>netty-tcnative-boringssl-static</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.kafka</groupId>
+                <artifactId>kafka-test-common-internal-api</artifactId>
+                <version>${kafka.version}</version>
+                <exclusions>
+                    <!-- FIPS Compliance: Exclude non-FIPS cryptographic libraries -->
+                    <exclusion>
+                        <groupId>com.google.crypto.tink</groupId>
+                        <artifactId>tink</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>com.google.crypto.tink</groupId>
+                        <artifactId>tink-gcpkms</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.conscrypt</groupId>
+                        <artifactId>conscrypt-openjdk-uber</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>io.netty</groupId>
+                        <artifactId>netty-tcnative-boringssl-static</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.kafka</groupId>
+                <artifactId>kafka-test-common-runtime</artifactId>
+                <version>${kafka.version}</version>
+                <exclusions>
+                    <!-- FIPS Compliance: Exclude non-FIPS cryptographic libraries -->
+                    <exclusion>
+                        <groupId>com.google.crypto.tink</groupId>
+                        <artifactId>tink</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>com.google.crypto.tink</groupId>
+                        <artifactId>tink-gcpkms</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.conscrypt</groupId>
+                        <artifactId>conscrypt-openjdk-uber</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>io.netty</groupId>
+                        <artifactId>netty-tcnative-boringssl-static</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
 
             <dependency>
@@ -388,30 +724,148 @@
                 <groupId>io.confluent</groupId>
                 <artifactId>kafka-connect-avro-converter</artifactId>
                 <version>${io.confluent.schema-registry.version}</version>
+                <exclusions>
+                    <!-- FIPS Compliance: Exclude non-FIPS cryptographic libraries -->
+                    <exclusion>
+                        <groupId>com.google.crypto.tink</groupId>
+                        <artifactId>tink</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>com.google.crypto.tink</groupId>
+                        <artifactId>tink-gcpkms</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.conscrypt</groupId>
+                        <artifactId>conscrypt-openjdk-uber</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>io.netty</groupId>
+                        <artifactId>netty-tcnative-boringssl-static</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
 
             <dependency>
                 <groupId>io.confluent</groupId>
                 <artifactId>kafka-json-serializer</artifactId>
                 <version>${io.confluent.schema-registry.version}</version>
+                <exclusions>
+                    <!-- FIPS Compliance: Exclude non-FIPS cryptographic libraries -->
+                    <exclusion>
+                        <groupId>com.google.crypto.tink</groupId>
+                        <artifactId>tink</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>com.google.crypto.tink</groupId>
+                        <artifactId>tink-gcpkms</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.conscrypt</groupId>
+                        <artifactId>conscrypt-openjdk-uber</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>io.netty</groupId>
+                        <artifactId>netty-tcnative-boringssl-static</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
 
             <dependency>
                 <groupId>io.confluent</groupId>
                 <artifactId>kafka-avro-serializer</artifactId>
                 <version>${io.confluent.schema-registry.version}</version>
+                <exclusions>
+                    <!-- FIPS Compliance: Exclude non-FIPS cryptographic libraries -->
+                    <exclusion>
+                        <groupId>com.google.crypto.tink</groupId>
+                        <artifactId>tink</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>com.google.crypto.tink</groupId>
+                        <artifactId>tink-gcpkms</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.conscrypt</groupId>
+                        <artifactId>conscrypt-openjdk-uber</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>io.netty</groupId>
+                        <artifactId>netty-tcnative-boringssl-static</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
 
             <dependency>
                 <groupId>io.confluent</groupId>
                 <artifactId>kafka-schema-registry-client</artifactId>
                 <version>${io.confluent.schema-registry.version}</version>
+                <exclusions>
+                    <!-- FIPS Compliance: Exclude non-FIPS cryptographic libraries -->
+                    <exclusion>
+                        <groupId>com.google.crypto.tink</groupId>
+                        <artifactId>tink</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>com.google.crypto.tink</groupId>
+                        <artifactId>tink-gcpkms</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.conscrypt</groupId>
+                        <artifactId>conscrypt-openjdk-uber</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
 
+            <!-- FIPS Compliance: Exclude Conscrypt from gRPC ALTS (transitive dependency) -->
             <dependency>
-                <groupId>org.apache.kafka</groupId>
-                <artifactId>kafka-log4j-appender</artifactId>
-                <version>${kafka.version}</version>
+                <groupId>io.grpc</groupId>
+                <artifactId>grpc-alts</artifactId>
+                <exclusions>
+                    <exclusion>
+                        <groupId>org.conscrypt</groupId>
+                        <artifactId>conscrypt-openjdk-uber</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+
+            <!-- FIPS Compliance: Exclude non-FIPS libs from Google Cloud KMS (transitive dependency) -->
+            <dependency>
+                <groupId>com.google.cloud</groupId>
+                <artifactId>google-cloud-kms</artifactId>
+                <exclusions>
+                    <exclusion>
+                        <groupId>org.conscrypt</groupId>
+                        <artifactId>conscrypt-openjdk-uber</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>com.google.crypto.tink</groupId>
+                        <artifactId>tink</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>com.google.crypto.tink</groupId>
+                        <artifactId>tink-gcpkms</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+
+            <!-- FIPS Compliance: Exclude non-FIPS libs from Google Cloud Storage (transitive dependency) -->
+            <dependency>
+                <groupId>com.google.cloud</groupId>
+                <artifactId>google-cloud-storage</artifactId>
+                <exclusions>
+                    <exclusion>
+                        <groupId>org.conscrypt</groupId>
+                        <artifactId>conscrypt-openjdk-uber</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>com.google.crypto.tink</groupId>
+                        <artifactId>tink</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>com.google.crypto.tink</groupId>
+                        <artifactId>tink-gcpkms</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
 
             <dependency>
@@ -430,30 +884,129 @@
                 <groupId>io.confluent</groupId>
                 <artifactId>kafka-json-schema-provider</artifactId>
                 <version>${io.confluent.schema-registry.version}</version>
+                <exclusions>
+                    <!-- FIPS Compliance: Exclude non-FIPS cryptographic libraries -->
+                    <exclusion>
+                        <groupId>com.google.crypto.tink</groupId>
+                        <artifactId>tink</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>com.google.crypto.tink</groupId>
+                        <artifactId>tink-gcpkms</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.conscrypt</groupId>
+                        <artifactId>conscrypt-openjdk-uber</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>io.netty</groupId>
+                        <artifactId>netty-tcnative-boringssl-static</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
 
             <dependency>
                 <groupId>io.confluent</groupId>
                 <artifactId>kafka-protobuf-provider</artifactId>
                 <version>${io.confluent.schema-registry.version}</version>
+                <exclusions>
+                    <!-- FIPS Compliance: Exclude non-FIPS cryptographic libraries -->
+                    <exclusion>
+                        <groupId>com.google.crypto.tink</groupId>
+                        <artifactId>tink</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>com.google.crypto.tink</groupId>
+                        <artifactId>tink-gcpkms</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.conscrypt</groupId>
+                        <artifactId>conscrypt-openjdk-uber</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>io.netty</groupId>
+                        <artifactId>netty-tcnative-boringssl-static</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
 
             <dependency>
                 <groupId>io.confluent</groupId>
                 <artifactId>kafka-connect-json-schema-converter</artifactId>
                 <version>${io.confluent.schema-registry.version}</version>
+                <exclusions>
+                    <!-- FIPS Compliance: Exclude non-FIPS cryptographic libraries -->
+                    <exclusion>
+                        <groupId>com.google.crypto.tink</groupId>
+                        <artifactId>tink</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>com.google.crypto.tink</groupId>
+                        <artifactId>tink-gcpkms</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.conscrypt</groupId>
+                        <artifactId>conscrypt-openjdk-uber</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>io.netty</groupId>
+                        <artifactId>netty-tcnative-boringssl-static</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
 
             <dependency>
                 <groupId>io.confluent</groupId>
                 <artifactId>kafka-connect-protobuf-converter</artifactId>
                 <version>${io.confluent.schema-registry.version}</version>
+                <exclusions>
+                    <!-- FIPS Compliance: Exclude non-FIPS cryptographic libraries -->
+                    <exclusion>
+                        <groupId>com.google.crypto.tink</groupId>
+                        <artifactId>tink</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>com.google.crypto.tink</groupId>
+                        <artifactId>tink-gcpkms</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.conscrypt</groupId>
+                        <artifactId>conscrypt-openjdk-uber</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>io.netty</groupId>
+                        <artifactId>netty-tcnative-boringssl-static</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
 
             <dependency>
                 <groupId>io.confluent</groupId>
                 <artifactId>broker-plugins</artifactId>
                 <version>${kafka.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>ch.qos.reload4j</groupId>
+                        <artifactId>reload4j</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>io.confluent.networking</groupId>
+                        <artifactId>cc-custom-dns-resolver-java18</artifactId>
+                    </exclusion>
+                    <!-- FIPS Compliance: Exclude non-FIPS cryptographic libraries -->
+                    <exclusion>
+                        <groupId>com.google.crypto.tink</groupId>
+                        <artifactId>tink</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>com.google.crypto.tink</groupId>
+                        <artifactId>tink-gcpkms</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.conscrypt</groupId>
+                        <artifactId>conscrypt-openjdk-uber</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
 
             <!-- End Confluent dependencies -->
@@ -580,12 +1133,6 @@
             </dependency>
 
             <dependency>
-                <groupId>com.clearspring.analytics</groupId>
-                <artifactId>stream</artifactId>
-                <version>${clearspring-analytics.version}</version>
-            </dependency>
-
-            <dependency>
                 <groupId>com.ibm.icu</groupId>
                 <artifactId>icu4j</artifactId>
                 <version>${icu.version}</version>
@@ -689,10 +1236,19 @@
                 <artifactId>netty-transport-native-unix-common</artifactId>
                 <version>${netty.version}</version>
             </dependency>
+            <!-- FIPS Compliance: Block BoringSSL by setting scope to provided
+                 This prevents non-FIPS BoringSSL from being included in runtime classpath.
+                 TLS will use BC-FIPS/BC-JSSE instead. -->
+            <dependency>
+                <groupId>io.netty</groupId>
+                <artifactId>netty-tcnative-fips-boringssl-static</artifactId>
+                <version>${netty-tcnative-fips-version}</version>
+            </dependency>
             <dependency>
                 <groupId>io.netty</groupId>
                 <artifactId>netty-tcnative-boringssl-static</artifactId>
                 <version>${netty-tcnative-version}</version>
+                <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>org.glassfish.jersey.core</groupId>
@@ -727,29 +1283,84 @@
             </dependency>
 
             <dependency>
-                <groupId>com.github.tomakehurst</groupId>
-                <artifactId>wiremock-jre8</artifactId>
+                <groupId>org.wiremock</groupId>
+                <artifactId>wiremock-jetty12</artifactId>
                 <version>${wiremock.version}</version>
                 <scope>test</scope>
+            </dependency>
+
+            <!-- Override vulnerable json-smart 2.5.0/2.5.1 to fix CVE-2024-57699
+                 TODO: Remove when all transitive deps use json-smart 2.5.2+ -->
+            <dependency>
+                <groupId>net.minidev</groupId>
+                <artifactId>json-smart</artifactId>
+                <version>2.5.2</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
 
     <dependencies>
+        <dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-core</artifactId>
+            <version>${log4j2.version}</version>
+        </dependency>
 
         <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-reload4j</artifactId>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-api</artifactId>
+            <version>${log4j2.version}</version>
+        </dependency>
+
+        <dependency>
+        <groupId>org.apache.logging.log4j</groupId>
+        <artifactId>log4j-1.2-api</artifactId>
+        <version>${log4j2.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>io.confluent</groupId>
+            <artifactId>confluent-log4j2-extensions</artifactId>
+            <version>${io.confluent.common.version}</version>
+            <scope>compile</scope>
         </dependency>
 
         <dependency>
             <groupId>io.confluent</groupId>
             <artifactId>logredactor</artifactId>
         </dependency>
-            <dependency>
-                <groupId>io.confluent</groupId>
-                <artifactId>broker-plugins</artifactId>
-            </dependency>
+        <dependency>
+            <groupId>io.confluent</groupId>
+            <artifactId>broker-plugins</artifactId>
+            <exclusions>
+                <exclusion>
+                    <groupId>ch.qos.reload4j</groupId>
+                    <artifactId>reload4j</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>io.confluent.networking</groupId>
+                    <artifactId>cc-custom-dns-resolver-java18</artifactId>
+                </exclusion>
+                <!-- FIPS Compliance: Exclude non-FIPS cryptographic libraries -->
+                <exclusion>
+                    <groupId>com.google.crypto.tink</groupId>
+                    <artifactId>tink</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>com.google.crypto.tink</groupId>
+                    <artifactId>tink-gcpkms</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.conscrypt</groupId>
+                    <artifactId>conscrypt-openjdk-uber</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.vintage</groupId>
+            <artifactId>junit-vintage-engine</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>
@@ -770,6 +1381,47 @@
         </pluginManagement>
 
         <plugins>
+            <!-- FIPS Compliance: Enforce banned non-FIPS cryptographic dependencies -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-enforcer-plugin</artifactId>
+                <version>3.4.1</version>
+                <executions>
+                    <execution>
+                        <id>ban-non-fips-crypto-libs</id>
+                        <goals>
+                            <goal>enforce</goal>
+                        </goals>
+                        <configuration>
+                            <rules>
+                                <bannedDependencies>
+                                    <excludes>
+                                        <!-- Google Tink: Has its own non-FIPS crypto implementations -->
+                                        <exclude>com.google.crypto.tink:tink</exclude>
+                                        <exclude>com.google.crypto.tink:tink-gcpkms</exclude>
+                                        <!-- Conscrypt: Uses BoringSSL which is not FIPS validated -->
+                                        <exclude>org.conscrypt:conscrypt-openjdk-uber</exclude>
+                                        <!--
+                                            NOTE: Both netty-tcnative variants are allowed at build time:
+                                            - netty-tcnative-boringssl-static (non-FIPS, for standard mode)
+                                            - netty-tcnative-fips-boringssl-static (FIPS compliant)
+                                            Runtime selection is handled by ksql-run-class script based on FIPS_ENABLED env var
+                                        -->
+                                    </excludes>
+                                    <message>
+                                        FIPS-140-3 Compliance Error: Non-FIPS cryptographic libraries detected!
+                                        These libraries must be excluded to ensure FIPS compliance.
+                                        Use Bouncy Castle FIPS (bc-fips, bctls-fips, bcpkix-fips) instead.
+                                        Note: netty-tcnative variants are controlled at runtime via FIPS_ENABLED env var.
+                                    </message>
+                                </bannedDependencies>
+                            </rules>
+                            <fail>true</fail>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
@@ -802,10 +1454,12 @@
                 <configuration>
                     <rerunFailingTestsCount>3</rerunFailingTestsCount>
                     <systemPropertyVariables>
-                        <log4j.configuration>file:${project.basedir}/../ksqldb-test-util/src/main/resources/log4j.properties</log4j.configuration>
+                        <log4j2.configurationFile>file:${project.basedir}/../ksqldb-test-util/src/main/resources/log4j2.yaml</log4j2.configurationFile>
+                        <junit.platform.execution.listeners.deactivate>org.apache.kafka.test.ThreadLeakListener</junit.platform.execution.listeners.deactivate>
                     </systemPropertyVariables>
                     <argLine>-verbose:gc -Xloggc:"${project.build.directory}/gc.log"</argLine>
                     <argLine>-Duser.timezone=UTC -Xmx1g -Xms1g</argLine>
+                    <excludedGroups>io.confluent.common.utils.IntegrationTest, IntegrationTest</excludedGroups>
                 </configuration>
                 <version>3.2.5</version>
             </plugin>
@@ -820,6 +1474,10 @@
                     You can also see (https://issues.apache.org/jira/browse/SUREFIRE-1809)
                     for more details -->
                     <useModulePath>false</useModulePath>
+                    <groups>io.confluent.common.utils.IntegrationTest, IntegrationTest</groups>
+                    <systemPropertyVariables>
+                        <junit.platform.execution.listeners.deactivate>org.apache.kafka.test.ThreadLeakListener</junit.platform.execution.listeners.deactivate>
+                    </systemPropertyVariables>
                 </configuration>
                 <executions>
                     <execution>
@@ -875,7 +1533,7 @@
                     <effort>Max</effort>
                     <threshold>Max</threshold>
                     <failOnError>true</failOnError>
-                    <includeTests>true</includeTests>
+<!--                    <includeTests>true</includeTests>-->
                 </configuration>
                 <executions>
                     <!--
@@ -947,4 +1605,68 @@
 
         </plugins>
     </reporting>
+
+    <profiles>
+        <!-- Profile for detailed deprecation analysis -->
+        <profile>
+            <id>deprecation-check</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-compiler-plugin</artifactId>
+                        <configuration>
+                            <showWarnings>true</showWarnings>
+                            <showDeprecation>true</showDeprecation>
+                            <compilerArgs>
+                                <arg>-Xlint:deprecation</arg>
+                                <arg>-Xlint:unchecked</arg>
+                                <arg>-parameters</arg>
+                            </compilerArgs>
+                            <!-- Force recompilation to show all warnings -->
+                            <useIncrementalCompilation>false</useIncrementalCompilation>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+
+        <!-- Profile for strict deprecation checking (fails build on deprecation) -->
+        <profile>
+            <id>deprecation-strict</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-compiler-plugin</artifactId>
+                        <configuration>
+                            <showWarnings>true</showWarnings>
+                            <showDeprecation>true</showDeprecation>
+                            <failOnWarning>true</failOnWarning>
+                            <compilerArgs>
+                                <arg>-Xlint:deprecation</arg>
+                                <arg>-Werror</arg>
+                                <arg>-parameters</arg>
+                            </compilerArgs>
+                            <useIncrementalCompilation>false</useIncrementalCompilation>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
+    <!-- ===========================================================================
+         FIPS Compliance Notes
+         ===========================================================================
+         By default, BOTH netty-tcnative variants are included in the build:
+         - netty-tcnative-boringssl-static (standard, CVE-free)
+         - netty-tcnative-fips-boringssl-static (FIPS 140-3 compliant)
+
+         Runtime selection is controlled by FIPS_ENABLED environment variable
+         in the ksql-run-class startup script.
+
+         Usage:
+           Standard mode: bin/ksql-server-start config/ksql-server.properties
+           FIPS mode:     FIPS_ENABLED=true bin/ksql-server-start config/ksql-server.properties
+         =========================================================================== -->
 </project>

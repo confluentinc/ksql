@@ -28,9 +28,14 @@ import org.hamcrest.Factory;
 import org.hamcrest.Matcher;
 import org.hamcrest.TypeSafeMatcher;
 
+/**
+ * Helper class for testing exceptions.
+ */
 @SuppressFBWarnings("NM_CLASS_NOT_EXCEPTION")
 public class KsqlExpectedException {
   public final List<Matcher<?>> matchers = new ArrayList<>();
+  private Matcher<Throwable> expectedCause;
+  private Matcher<String> expectedCauseMessage;
 
   public static KsqlExpectedException none() {
     return new KsqlExpectedException();
@@ -52,6 +57,22 @@ public class KsqlExpectedException {
     matchers.add(UnloggedMessageMatcher.hasMessage(matcher));
   }
 
+  public void expectCause(final Matcher<Throwable> causeMatcher) {
+    this.expectedCause = causeMatcher;
+  }
+
+  public void expectCauseMessage(final String substring) {
+    expectCauseMessage(containsString(substring));
+  }
+
+  public void expectCauseMessage(final Matcher<String> matcher) {
+    this.expectedCauseMessage = matcher;
+  }
+
+  /**
+   * Matcher that matches the message of a {@link KsqlStatementException} or its unlogged message.
+   * @param <T> the type of the exception
+   */
   public static class UnloggedMessageMatcher<T extends Throwable> extends TypeSafeMatcher<T> {
     private final Matcher<String> matcher;
 
@@ -92,6 +113,36 @@ public class KsqlExpectedException {
 
   @SuppressWarnings("unchecked")
   public Matcher<Throwable> build() {
-    return allOf((List)new ArrayList<>(matchers));
+    final List<Matcher<?>> allMatchers = new ArrayList<>(matchers);
+    if (expectedCause != null) {
+      allMatchers.add(new TypeSafeMatcher<Throwable>() {
+        @Override
+        protected boolean matchesSafely(final Throwable item) {
+          return expectedCause.matches(item.getCause());
+        }
+
+        @Override
+        public void describeTo(final Description description) {
+          description.appendText("exception with cause ");
+          expectedCause.describeTo(description);
+        }
+      });
+    }
+    if (expectedCauseMessage != null) {
+      allMatchers.add(new TypeSafeMatcher<Throwable>() {
+        @Override
+        protected boolean matchesSafely(final Throwable item) {
+          return item.getCause() != null
+              && expectedCauseMessage.matches(item.getCause().getMessage());
+        }
+
+        @Override
+        public void describeTo(final Description description) {
+          description.appendText("exception with cause message ");
+          expectedCauseMessage.describeTo(description);
+        }
+      });
+    }
+    return allOf((List) allMatchers);
   }
 }

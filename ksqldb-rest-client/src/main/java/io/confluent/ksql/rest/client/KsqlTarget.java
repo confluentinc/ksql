@@ -64,13 +64,13 @@ import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 @SuppressWarnings({"WeakerAccess", "checkstyle:ClassDataAbstractionCoupling"}) // Public API
 public final class KsqlTarget {
 
-  private static final Logger log = LoggerFactory.getLogger(KsqlTarget.class);
+  private static final Logger log = LogManager.getLogger(KsqlTarget.class);
 
   private static final String STATUS_PATH = "/status";
   private static final String KSQL_PATH = "/ksql";
@@ -353,11 +353,24 @@ public final class KsqlTarget {
       final WriteStream<T> chunkHandler,
       final CompletableFuture<Void> shouldCloseConnection
   ) {
+
     return executeSync(httpMethod, path, Optional.empty(), requestBody,
         resp -> responseSupplier.get(),
         (resp, vcf) -> {
+        if (resp.statusCode() != 200) {
+          try {
+            final String msg = "Closing connection since status code is " + resp.statusCode()
+                + ", body is " + resp.body();
+            resp.request().connection().close();
+            vcf.completeExceptionally(new KsqlRestClientException(msg));
+          } catch (Throwable closing) {
+            log.error("Error while handling close", closing);
+            vcf.completeExceptionally(closing);
+          }
+          return;
+        }
         final ReadStream<Buffer> readStream;
-        if (resp.request().connection().isSsl()) {
+        if (resp != null && resp.request().connection().isSsl()) {
           readStream = new BufferCopyStream(resp);
         } else {
           readStream = resp;

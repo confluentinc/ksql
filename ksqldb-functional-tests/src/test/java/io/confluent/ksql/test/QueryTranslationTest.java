@@ -49,7 +49,7 @@ import org.junit.runners.Parameterized;
 public class QueryTranslationTest {
 
   // Define this in the JVM to only test against the latest version, i.e. no historical plans
-  // private static final String LATEST_ONLY_SWITCH = "topology.versions.latest-only";
+  //private static final String LATEST_ONLY_SWITCH = "topology.versions.latest-only";
 
   private static final Path QUERY_VALIDATION_TEST_DIR = Paths.get("query-validation-tests");
 

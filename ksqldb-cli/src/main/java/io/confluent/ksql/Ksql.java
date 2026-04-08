@@ -20,24 +20,29 @@ import io.confluent.ksql.cli.Cli;
 import io.confluent.ksql.cli.Options;
 import io.confluent.ksql.cli.console.OutputFormat;
 import io.confluent.ksql.properties.PropertiesUtil;
-import io.confluent.ksql.rest.client.BasicCredentials;
 import io.confluent.ksql.rest.client.KsqlRestClient;
+import io.confluent.ksql.security.AuthType;
+import io.confluent.ksql.security.BasicCredentials;
+import io.confluent.ksql.security.Credentials;
+import io.confluent.ksql.security.CredentialsFactory;
+import io.confluent.ksql.security.KsqlClientConfig;
 import io.confluent.ksql.util.ErrorMessageUtil;
 import io.confluent.ksql.util.KsqlException;
 import java.io.Console;
 import java.io.File;
 import java.io.IOException;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.function.Predicate;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public final class Ksql {
-  private static final Logger LOGGER = LoggerFactory.getLogger(Ksql.class);
+  private static final Logger LOGGER = LogManager.getLogger(Ksql.class);
   private static final Predicate<String> NOT_CLIENT_SIDE_CONFIG = key -> !key.startsWith("ssl.")
       && !key.equals("security.protocol") && !key.startsWith("sasl.") ;
 
@@ -144,11 +149,38 @@ public final class Ksql {
     final Map<String, String> localProps = stripClientSideProperties(configProps);
     final Map<String, String> clientProps = PropertiesUtil.applyOverrides(configProps, systemProps);
     final String server = options.getServer();
-    final Optional<BasicCredentials> creds = options.getUserNameAndPassword();
+    final Optional<Credentials> creds = getCredentials();
     final Optional<BasicCredentials> ccloudApiKey = options.getCCloudApiKey();
 
     return clientBuilder.build(
         server, localProps, clientProps, creds, ccloudApiKey);
+  }
+
+  private Optional<Credentials> getCredentials() {
+    options.validateCredentials();
+
+    AuthType authType = AuthType.NONE;
+    final String userName = options.getUserName();
+    final String password = options.getPassword();
+    final String token = options.getToken();
+
+    final Map<String, Object> configProps = new HashMap<>();
+    if ((userName != null && !userName.isEmpty())
+        && (password != null && !password.isEmpty())) {
+      authType = AuthType.BASIC;
+      configProps.put(KsqlClientConfig.KSQL_BASIC_AUTH_USERNAME, userName);
+      configProps.put(KsqlClientConfig.KSQL_BASIC_AUTH_PASSWORD, password);
+    } else if (token != null && !token.isEmpty()) {
+      authType = AuthType.STATIC_TOKEN;
+      configProps.put(KsqlClientConfig.BEARER_AUTH_TOKEN_CONFIG, token);
+    }
+
+    return Optional.ofNullable(CredentialsFactory.createCredentials(authType,
+                    (String) configProps.get(KsqlClientConfig.CUSTOM_TOKEN_CREDENTIALS_CLASS)))
+        .map(credentials -> {
+          credentials.configure(configProps);
+          return credentials;
+        });
   }
 
   private static Map<String, String> stripClientSideProperties(final Map<String, String> props) {
@@ -164,7 +196,7 @@ public final class Ksql {
         String serverAddress,
         Map<String, ?> localProperties,
         Map<String, String> clientProps,
-        Optional<BasicCredentials> creds,
+        Optional<Credentials> creds,
         Optional<BasicCredentials> ccloudApiKey
     );
   }

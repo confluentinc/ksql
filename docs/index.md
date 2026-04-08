@@ -11,6 +11,16 @@ for stream processing applications on top of {{ site.aktm }}.
 
 [Get Started](https://ksqldb.io/quickstart.html){ .md-button .md-button--top-level }
 
+!!! tip
+
+    The documentation on this site applies to ksqlDB Standalone,
+    {{ site.ccloud }} ksqlDB, and {{ site.cp }} ksqlDB. For more
+    information about differences in ksqlDB on {{ site.ccloud }} and
+    {{ site.cp }} see:
+
+    - [Confluent Cloud ksqlDB](https://docs.confluent.io/cloud/current/ksqldb/overview.html)
+    - [Confluent Platform ksqlDB](https://docs.confluent.io/platform/current/ksqldb/index.html)  
+
 ## Try it
 
 <div class="cards">

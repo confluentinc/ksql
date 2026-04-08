@@ -54,11 +54,11 @@ import org.apache.kafka.streams.StreamsMetadata;
 import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.errors.StreamsException;
 import org.apache.kafka.streams.errors.StreamsUncaughtExceptionHandler;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class QueryMetadataImpl implements QueryMetadata {
-  private static final Logger LOG = LoggerFactory.getLogger(QueryMetadataImpl.class);
+  private static final Logger LOG = LogManager.getLogger(QueryMetadataImpl.class);
   private final AtomicBoolean isPaused = new AtomicBoolean(false);
   private final String statementString;
   private final String executionPlan;
@@ -189,7 +189,7 @@ public class QueryMetadataImpl implements QueryMetadata {
     try {
       QueryLogger.error(String.format("Uncaught exception in query %s", e),
           this.statementString);
-      errorType = errorClassifier.classify(e);
+      errorType = causalChainClassification(e);
     } catch (final Exception classificationException) {
       LOG.error("Error classifying unhandled exception", classificationException);
     } finally {
@@ -445,6 +445,17 @@ public class QueryMetadataImpl implements QueryMetadata {
     kafkaStreams.resume();
     isPaused.set(false);
     listener.onResume(this);
+  }
+
+  private QueryError.Type causalChainClassification(final Throwable throwable) {
+    for (Throwable t : Throwables.getCausalChain(throwable)) {
+      final QueryError.Type errorType = errorClassifier.classify(t);
+      if (errorType != QueryError.Type.UNKNOWN) {
+        return errorType;
+      }
+    }
+
+    return QueryError.Type.UNKNOWN;
   }
 
   public static class RetryEvent implements QueryMetadata.RetryEvent {

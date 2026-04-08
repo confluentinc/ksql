@@ -38,14 +38,14 @@ import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import org.apache.kafka.streams.errors.StreamsUncaughtExceptionHandler;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 class QueryStreamWriter implements StreamingOutput {
 
   private static final int WRITE_TIMEOUT_MS = 10 * 60000;
 
-  private static final Logger log = LoggerFactory.getLogger(QueryStreamWriter.class);
+  private static final Logger log = LogManager.getLogger(QueryStreamWriter.class);
 
   private final PushQueryMetadata queryMetadata;
   private final long disconnectCheckInterval;

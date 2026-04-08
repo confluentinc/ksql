@@ -40,6 +40,7 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.ConsistencyOffsetVector;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlServerException;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PushQueryMetadata;
 import io.confluent.ksql.util.PushQueryMetadata.ResultType;
@@ -289,10 +290,14 @@ public class QueryEndpoint {
       } catch (Exception e) {
         pullQueryMetrics.ifPresent(metrics -> metrics.recordErrorRate(1, result.getSourceType(),
             result.getPlanType(), result.getRoutingNodeType()));
-        // Let this error bubble up since start is called from the worker thread and will fail the
-        // query.
-        throw new KsqlStatementException("Error starting pull query: " + e.getMessage(),
-            maskedStatementText, e);
+        if (e instanceof KsqlServerException) {
+          throw e;
+        } else {
+          // Let this error bubble up since start is called from the worker thread and will fail the
+          // query.
+          throw new KsqlStatementException("Error starting pull query: " + e.getMessage(),
+              maskedStatementText, e);
+        }
       }
     }
 

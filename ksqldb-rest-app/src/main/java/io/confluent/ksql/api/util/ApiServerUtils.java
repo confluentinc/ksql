@@ -23,11 +23,13 @@ import io.confluent.ksql.util.FileWatcher.Callback;
 import io.confluent.ksql.util.QueryMask;
 import io.confluent.ksql.util.VertxSslOptionsFactory;
 import io.netty.handler.codec.haproxy.HAProxyProtocolException;
+import io.netty.handler.ssl.OpenSsl;
 import io.vertx.core.http.ClientAuth;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpServerOptions;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.net.JksOptions;
+import io.vertx.core.net.KeyStoreOptions;
 import io.vertx.core.net.PfxOptions;
 import io.vertx.ext.web.RoutingContext;
 import java.net.URI;
@@ -43,11 +45,11 @@ import java.util.Optional;
 import java.util.Set;
 import org.apache.kafka.common.config.ConfigException;
 import org.apache.kafka.common.config.SslConfigs;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public final class ApiServerUtils {
-  private static final Logger LOG = LoggerFactory.getLogger(ApiServerUtils.class);
+  private static final Logger LOG = LogManager.getLogger(ApiServerUtils.class);
 
   private ApiServerUtils() {
   }
@@ -141,7 +143,7 @@ public final class ApiServerUtils {
     final Set<URI> listenUriSet = new HashSet<>(parseListeners(config));
     final List<URI> proxyProtocolListenUris = parseListenerStrings(config, sListeners);
 
-    for (URI u: proxyProtocolListenUris) {
+    for (URI u : proxyProtocolListenUris) {
       if (!listenUriSet.contains(u)) {
         throw new ConfigException(String.format("Listener %s is listed in %s but not in %s.", u,
             KsqlRestConfig.PROXY_PROTOCOL_LISTENERS_CONFIG,
@@ -158,7 +160,28 @@ public final class ApiServerUtils {
       final String keyStoreAlias,
       final ClientAuth clientAuth
   ) {
-    options.setUseAlpn(true).setSsl(true);
+    options.setSsl(true);
+
+    // Configure ALPN (Application-Layer Protocol Negotiation) for HTTP/2 support.
+    // In FIPS mode on platforms where OpenSSL native libraries are unavailable (e.g., ARM64),
+    // Netty falls back to JDK SSL with BouncyCastle JSSE. When ALPN is enabled in this scenario,
+    // Netty's BouncyCastleAlpnSslUtils tries to use reflection to access BouncyCastle internals,
+    // which fails in Java 21+ due to strong encapsulation (IllegalAccessException).
+    // Solution: Disable ALPN only when FIPS mode is enabled AND OpenSSL is unavailable.
+    // This means HTTP/2 won't work in this specific scenario, but HTTP/1.1 will function correctly.
+    final boolean fipsEnabled = ksqlRestConfig.isFipsEnabled();
+    if (fipsEnabled && !OpenSsl.isAvailable()) {
+      LOG.warn("FIPS mode is enabled but OpenSSL native libraries are not available. "
+          + "Disabling ALPN (HTTP/2) to avoid Netty/BouncyCastle compatibility issues. "
+          + "HTTP/1.1 will be used instead. Reason: " + OpenSsl.unavailabilityCause());
+      options.setUseAlpn(false);
+    } else {
+      options.setUseAlpn(true);
+      if (fipsEnabled) {
+        LOG.info("FIPS mode enabled with OpenSSL available. Using ALPN (HTTP/2).");
+      }
+    }
+
     if (ksqlRestConfig.getBoolean(KsqlRestConfig.KSQL_SERVER_SNI_CHECK_ENABLE)) {
       options.setSni(true);
     }
@@ -203,6 +226,10 @@ public final class ApiServerUtils {
           VertxSslOptionsFactory.getPfxKeyStoreOptions(props);
 
       keyStoreOptions.ifPresent(options -> httpServerOptions.setPfxKeyCertOptions(options));
+    } else if (keyStoreType.equals(KsqlRestConfig.SSL_STORE_TYPE_BCFKS)) {
+      final Optional<KeyStoreOptions> keyStoreOptions =
+          VertxSslOptionsFactory.getBcfksKeyStoreOptions(props);
+      keyStoreOptions.ifPresent(options -> httpServerOptions.setKeyCertOptions(options));
     }
   }
 
@@ -223,6 +250,10 @@ public final class ApiServerUtils {
       final Optional<PfxOptions> trustStoreOptions =
           VertxSslOptionsFactory.getPfxTrustStoreOptions(props);
 
+      trustStoreOptions.ifPresent(options -> httpServerOptions.setTrustOptions(options));
+    } else if (trustStoreType.equals(KsqlRestConfig.SSL_STORE_TYPE_BCFKS)) {
+      final Optional<KeyStoreOptions> trustStoreOptions =
+          VertxSslOptionsFactory.getBcfksTrustStoreOptions(props);
       trustStoreOptions.ifPresent(options -> httpServerOptions.setTrustOptions(options));
     }
   }

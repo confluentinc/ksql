@@ -34,20 +34,22 @@ import java.util.regex.Pattern;
 import java.util.stream.Stream;
 import org.apache.hc.core5.http.HttpStatus;
 import org.apache.kafka.common.acl.AclOperation;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public final class SchemaRegistryUtil {
 
-  private static final Logger LOG = LoggerFactory.getLogger(SchemaRegistryUtil.class);
+  private static final Logger LOG = LogManager.getLogger(SchemaRegistryUtil.class);
 
   private static final Pattern DENIED_OPERATION_STRING_PATTERN =
       Pattern.compile("User is denied operation (.*) on .*");
 
   @VisibleForTesting
   public static final int SUBJECT_NOT_FOUND_ERROR_CODE = 40401;
+  public static final int SCHEMA_NOT_FOUND_ERROR_CODE = 40403;
 
   private SchemaRegistryUtil() {
+    super();
   }
 
   public static void cleanupInternalTopicSchemas(
@@ -185,6 +187,11 @@ public final class SchemaRegistryUtil {
         && ((RestClientException) error).getErrorCode() == SUBJECT_NOT_FOUND_ERROR_CODE);
   }
 
+  public static boolean isSchemaNotFoundErrorCode(final Throwable error) {
+    return (error instanceof RestClientException
+        && ((RestClientException) error).getErrorCode() == SCHEMA_NOT_FOUND_ERROR_CODE);
+  }
+
   public static boolean isAuthErrorCode(final Throwable error) {
     return (error instanceof RestClientException
         && ((((RestClientException) error).getStatus() == HttpStatus.SC_UNAUTHORIZED)
@@ -192,7 +199,9 @@ public final class SchemaRegistryUtil {
   }
 
   private static boolean isRetriableError(final Throwable error) {
-    return !isSubjectNotFoundErrorCode(error) && !isAuthErrorCode(error);
+    return !isSubjectNotFoundErrorCode(error)
+        && !isSchemaNotFoundErrorCode(error)
+        && !isAuthErrorCode(error);
   }
 
   private static void hardDeleteSubjectWithRetries(
@@ -201,7 +210,7 @@ public final class SchemaRegistryUtil {
     try {
       ExecutorUtil.executeWithRetries(
           () -> schemaRegistryClient.deleteSubject(subject, true),
-          error -> isRetriableError(error)
+          SchemaRegistryUtil::isRetriableError
       );
     } catch (final RestClientException e) {
       if (isAuthErrorCode(e)) {

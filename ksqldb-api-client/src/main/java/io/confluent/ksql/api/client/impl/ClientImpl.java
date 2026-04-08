@@ -40,6 +40,12 @@ import io.confluent.ksql.api.client.TableInfo;
 import io.confluent.ksql.api.client.TopicInfo;
 import io.confluent.ksql.api.client.exception.KsqlClientException;
 import io.confluent.ksql.rest.entity.KsqlMediaType;
+import io.confluent.ksql.security.AuthType;
+import io.confluent.ksql.security.Credentials;
+import io.confluent.ksql.security.CredentialsFactory;
+import io.confluent.ksql.security.KsqlClientConfig;
+import io.confluent.ksql.security.oauth.ClientSecretIdpConfig;
+import io.confluent.ksql.security.oauth.IdpConfig;
 import io.confluent.ksql.util.AppInfo;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlRequestConfig;
@@ -59,11 +65,10 @@ import io.vertx.core.http.RequestOptions;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.net.JksOptions;
+import io.vertx.core.net.KeyStoreOptions;
 import io.vertx.core.net.SocketAddress;
 import io.vertx.core.parsetools.RecordParser;
-import java.nio.charset.Charset;
 import java.time.Duration;
-import java.util.Base64;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -75,23 +80,27 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.reactivestreams.Publisher;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public class ClientImpl implements Client {
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
+  protected static final Logger log = LogManager.getLogger(ClientImpl.class);
 
   private static final String QUERY_STREAM_ENDPOINT = "/query-stream";
   private static final String INSERTS_ENDPOINT = "/inserts-stream";
   private static final String CLOSE_QUERY_ENDPOINT = "/close-query";
   private static final String KSQL_ENDPOINT = "/ksql";
   private static final String INFO_ENDPOINT = "/info";
+  private static final String SSL_STORE_TYPE_BCFKS = "BCFKS";
 
   private final ClientOptions clientOptions;
   private final Vertx vertx;
   private final HttpClient httpClient;
   private final SocketAddress serverSocketAddress;
-  private final String basicAuthHeader;
+  private final String authHeader;
   private final boolean ownedVertx;
   private final Map<String, Object> sessionVariables;
   private final Map<String, Object> requestProperties;
@@ -121,7 +130,7 @@ public class ClientImpl implements Client {
     this.vertx = vertx;
     this.ownedVertx = ownedVertx;
     this.httpClient = createHttpClient(vertx, clientOptions);
-    this.basicAuthHeader = createBasicAuthHeader(clientOptions);
+    this.authHeader = createAuthHeader(clientOptions);
     this.serverSocketAddress =
         SocketAddress.inetSocketAddress(clientOptions.getPort(), clientOptions.getHost());
     this.sessionVariables = new HashMap<>();
@@ -753,8 +762,8 @@ public class ClientImpl implements Client {
       request.exceptionHandler(cf::completeExceptionally);
 
       request = configureUserAgent(request);
-      if (clientOptions.isUseBasicAuth()) {
-        request = configureBasicAuth(request);
+      if (clientOptions.getAuthType() != AuthType.NONE) {
+        request = configureAuth(request);
       }
       if (path.equals(QUERY_STREAM_ENDPOINT)) {
         request = configureAcceptTypeToLatestMediaType(request);
@@ -773,8 +782,8 @@ public class ClientImpl implements Client {
     });
   }
 
-  private HttpClientRequest configureBasicAuth(final HttpClientRequest request) {
-    return request.putHeader(AUTHORIZATION.toString(), basicAuthHeader);
+  private HttpClientRequest configureAuth(final HttpClientRequest request) {
+    return request.putHeader(AUTHORIZATION.toString(), authHeader);
   }
 
   private HttpClientRequest configureAcceptTypeToLatestMediaType(final HttpClientRequest request) {
@@ -904,37 +913,121 @@ public class ClientImpl implements Client {
         .setDefaultPort(clientOptions.getPort())
         .setHttp2MultiplexingLimit(clientOptions.getHttp2MultiplexingLimit());
     if (clientOptions.isUseTls() && !clientOptions.getTrustStore().isEmpty()) {
-      final JksOptions jksOptions = VertxSslOptionsFactory.getJksTrustStoreOptions(
-          clientOptions.getTrustStore(),
-          clientOptions.getTrustStorePassword()
-      );
+      if (Objects.equals(clientOptions.getStoreType(), SSL_STORE_TYPE_BCFKS)) {
+        final Optional<KeyStoreOptions> bcfksOptions =
+            VertxSslOptionsFactory.getBcfksTrustStoreOptions(
+                clientOptions.getSecurityProviders(),
+                clientOptions.getTrustStore(),
+                clientOptions.getTrustStorePassword(),
+                clientOptions.getTrustManagerAlgorithm());
 
-      options = options.setTrustStoreOptions(jksOptions);
+        if (bcfksOptions.isPresent()) {
+          options = options.setTrustOptions(bcfksOptions.get());
+        }
+      } else {
+        final JksOptions jksOptions = VertxSslOptionsFactory.getJksTrustStoreOptions(
+            clientOptions.getTrustStore(),
+            clientOptions.getTrustStorePassword()
+        );
+
+        options = options.setTrustStoreOptions(jksOptions);
+      }
     }
     if (!clientOptions.getKeyStore().isEmpty()) {
-      final JksOptions jksOptions = VertxSslOptionsFactory.buildJksKeyStoreOptions(
-          clientOptions.getKeyStore(),
-          clientOptions.getKeyStorePassword(),
-          Optional.of(clientOptions.getKeyPassword()),
-          Optional.of(clientOptions.getKeyAlias())
-      );
+      if (Objects.equals(clientOptions.getStoreType(), SSL_STORE_TYPE_BCFKS)) {
+        final Optional<KeyStoreOptions> keyStoreOptions =
+            VertxSslOptionsFactory.getBcfksKeyStoreOptions(
+                clientOptions.getSecurityProviders(),
+                clientOptions.getKeyStore(),
+                clientOptions.getKeyStorePassword(),
+                clientOptions.getKeyPassword(),
+                clientOptions.getKeyManagerAlgorithm());
 
-      options = options.setKeyStoreOptions(jksOptions);
+        if (keyStoreOptions.isPresent()) {
+          options = options.setKeyCertOptions(keyStoreOptions.get());
+        }
+      } else {
+        final JksOptions jksOptions = VertxSslOptionsFactory.buildJksKeyStoreOptions(
+            clientOptions.getKeyStore(),
+            clientOptions.getKeyStorePassword(),
+            Optional.of(clientOptions.getKeyPassword()),
+            Optional.of(clientOptions.getKeyAlias())
+        );
+
+        options = options.setKeyStoreOptions(jksOptions);
+      }
     }
     return vertx.createHttpClient(options);
   }
 
-  private static String createBasicAuthHeader(final ClientOptions clientOptions) {
-    if (!clientOptions.isUseBasicAuth()) {
-      return "";
+  private static boolean isNullOrEmpty(final String candidate) {
+    return candidate == null || candidate.trim().isEmpty();
+  }
+
+  private static void putIfNotEmpty(final Map<String, Object> map,
+                                                   final String key,
+                                                   final String value) {
+    if (!isNullOrEmpty(value)) {
+      map.put(key, value);
+    }
+  }
+
+  static Map<String, Object> getSslConfigs(final ClientOptions clientOptions) {
+    final Map<String, Object> props = new HashMap<>();
+    putIfNotEmpty(props, KsqlClientConfig.SSL_TRUSTSTORE_LOCATION,
+        clientOptions.getTrustStore());
+    putIfNotEmpty(props, KsqlClientConfig.SSL_TRUSTSTORE_PASSWORD,
+        clientOptions.getTrustStorePassword());
+    putIfNotEmpty(props, KsqlClientConfig.SSL_KEYSTORE_LOCATION,
+        clientOptions.getKeyStore());
+    putIfNotEmpty(props, KsqlClientConfig.SSL_KEYSTORE_PASSWORD,
+        clientOptions.getKeyStorePassword());
+    putIfNotEmpty(props, KsqlClientConfig.SSL_KEY_PASSWORD,
+        clientOptions.getKeyPassword());
+    putIfNotEmpty(props, KsqlClientConfig.SSL_KEY_ALIAS,
+        clientOptions.getKeyAlias());
+    props.put(KsqlClientConfig.SSL_ALPN, clientOptions.isUseAlpn());
+    props.put(KsqlClientConfig.SSL_VERIFY_HOST, clientOptions.isVerifyHost());
+    return props;
+  }
+
+  public static String createAuthHeader(final ClientOptions clientOptions) {
+    final Map<String, Object> props = new HashMap<>();
+    AuthType authType = clientOptions.getAuthType();
+
+    if (clientOptions.getAuthType() == AuthType.BASIC) {
+      log.debug("Configuring basic auth for user = {}", clientOptions.getBasicAuthUsername());
+      props.put(KsqlClientConfig.KSQL_BASIC_AUTH_USERNAME, clientOptions.getBasicAuthUsername());
+      props.put(KsqlClientConfig.KSQL_BASIC_AUTH_PASSWORD, clientOptions.getBasicAuthPassword());
     }
 
-    final String creds = clientOptions.getBasicAuthUsername()
-        + ":"
-        + clientOptions.getBasicAuthPassword();
-    final String base64creds =
-        Base64.getEncoder().encodeToString(creds.getBytes(Charset.defaultCharset()));
-    return "Basic " + base64creds;
+    if (clientOptions.getAuthType() == AuthType.OAUTHBEARER) {
+      final IdpConfig idpConfig = clientOptions.getIdpConfig();
+      if (idpConfig instanceof ClientSecretIdpConfig) {
+        final ClientSecretIdpConfig clientSecretIdpConfig =
+                (ClientSecretIdpConfig) clientOptions.getIdpConfig();
+        log.debug("Configuring client secret bearer auth for clientId = {}",
+                clientSecretIdpConfig.getIdpClientId());
+      }
+      authType = idpConfig.getAuthType();
+      props.putAll(idpConfig.toIdpCredentialsConfig());
+    }
+
+    if (clientOptions.isUseTls()) {
+      props.putAll(getSslConfigs(clientOptions));
+    }
+
+    final Credentials credentials = CredentialsFactory
+        .createCredentials(authType,
+                (String) props.get(KsqlClientConfig.CUSTOM_TOKEN_CREDENTIALS_CLASS));
+
+    if (credentials != null) {
+      credentials.configure(props);
+      return credentials.getAuthHeader();
+    }
+
+    log.debug("No authentication method provided for Ksql Client");
+    return "";
   }
 
   @Override

@@ -21,8 +21,12 @@ import java.time.Duration;
 import java.util.Collection;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
+
+import org.apache.kafka.clients.consumer.CloseOptions;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.common.TopicPartition;
+import org.apache.kafka.common.metrics.KafkaMetric;
+import org.apache.kafka.common.metrics.Measurable;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.runners.Enclosed;
@@ -45,9 +49,18 @@ public final class SandboxedConsumerTest {
           .ignore("close")
           .ignore("close", Duration.class)
           .ignoreUnchecked("close", long.class, TimeUnit.class)
+          .ignore("close", CloseOptions.class)
           .ignore("wakeup")
           .ignore("groupMetadata")
+          .ignore("registerMetricForSubscription", KafkaMetric.class)
+          .ignore("unregisterMetricFromSubscription", KafkaMetric.class)
           .setDefault(TopicPartition.class, new TopicPartition("t", 1))
+          .setDefault(KafkaMetric.class, new KafkaMetric(
+              null,
+              null,
+              (Measurable) (config, now) -> 0,
+              null,
+              null))
           .build();
     }
 

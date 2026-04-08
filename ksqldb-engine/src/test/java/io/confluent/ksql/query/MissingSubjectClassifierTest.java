@@ -16,7 +16,6 @@
 package io.confluent.ksql.query;
 
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
-import org.apache.kafka.streams.errors.MissingSourceTopicException;
 import org.junit.Test;
 
 import static org.hamcrest.MatcherAssert.assertThat;

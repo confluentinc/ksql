@@ -45,7 +45,8 @@ import io.confluent.ksql.api.server.KsqlApiException;
 import io.confluent.ksql.integration.IntegrationTestHarness;
 import io.confluent.ksql.integration.Retry;
 import io.confluent.ksql.name.ColumnName;
-import io.confluent.ksql.rest.client.BasicCredentials;
+import io.confluent.ksql.security.BasicCredentials;
+import io.confluent.ksql.security.Credentials;
 import io.confluent.ksql.rest.entity.ActiveStandbyEntity;
 import io.confluent.ksql.rest.entity.ClusterStatusResponse;
 import io.confluent.ksql.rest.entity.KsqlEntity;
@@ -67,7 +68,6 @@ import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.test.util.KsqlIdentifierTestUtil;
 import io.confluent.ksql.test.util.KsqlTestFolder;
 import io.confluent.ksql.test.util.TestBasicJaasConfig;
-import io.confluent.ksql.test.util.secure.Credentials;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.UserDataProvider;
 import io.netty.handler.codec.http.HttpResponseStatus;
@@ -81,19 +81,20 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
-import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
-import kafka.zookeeper.ZooKeeperClientException;
+import org.apache.kafka.raft.errors.RaftException;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.processor.TaskId;
-import org.apache.kafka.streams.processor.internals.assignment.AssignorConfiguration.AssignmentConfigs;
+import org.apache.kafka.streams.processor.assignment.AssignmentConfigs;
+import org.apache.kafka.streams.processor.assignment.ProcessId;
 import org.apache.kafka.streams.processor.internals.assignment.ClientState;
-import org.apache.kafka.streams.processor.internals.assignment.TaskAssignor;
+import org.apache.kafka.streams.processor.internals.assignment.RackAwareTaskAssignor;
+import org.apache.kafka.streams.processor.internals.assignment.LegacyTaskAssignor;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -106,8 +107,8 @@ import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TemporaryFolder;
 import org.junit.rules.Timeout;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * Test to ensure pull queries route across multiple KSQL nodes correctly.
@@ -119,7 +120,7 @@ import org.slf4j.LoggerFactory;
 @Category({IntegrationTest.class})
 @Ignore
 public class PullQueryRoutingFunctionalTest {
-  private static final Logger LOG = LoggerFactory.getLogger(PullQueryRoutingFunctionalTest.class);
+  private static final Logger LOG = LogManager.getLogger(PullQueryRoutingFunctionalTest.class);
 
   private static final String USER_TOPIC = "user_topic_";
   private static final String USERS_STREAM = "users";
@@ -155,8 +156,8 @@ public class PullQueryRoutingFunctionalTest {
   private static final String KSQL_RESOURCE = "ksql-user";
   private static final String USER_WITH_ACCESS = "harry";
   private static final String USER_WITH_ACCESS_PWD = "changeme";
-  private static final Optional<BasicCredentials> USER_CREDS
-      = Optional.of(BasicCredentials.of(USER_WITH_ACCESS, USER_WITH_ACCESS_PWD));
+  private static final Optional<Credentials> USER_CREDS =
+      Optional.of(BasicCredentials.of(USER_WITH_ACCESS, USER_WITH_ACCESS_PWD));
 
   @ClassRule
   public static final TestBasicJaasConfig JAAS_CONFIG = TestBasicJaasConfig
@@ -243,7 +244,7 @@ public class PullQueryRoutingFunctionalTest {
 
   @ClassRule
   public static final RuleChain CHAIN = RuleChain
-      .outerRule(Retry.of(3, ZooKeeperClientException.class, 3, TimeUnit.SECONDS))
+      .outerRule(Retry.of(3, RaftException.class, 3, TimeUnit.SECONDS))
       .around(TEST_HARNESS)
       .around(JAAS_CONFIG)
       .around(TMP);
@@ -364,7 +365,7 @@ public class PullQueryRoutingFunctionalTest {
         USER_CREDS);
 
 
-    final Credentials credentials =  new Credentials(USER_WITH_ACCESS, USER_WITH_ACCESS_PWD);
+    final Credentials credentials =  BasicCredentials.of(USER_WITH_ACCESS, USER_WITH_ACCESS_PWD);
     // When:
     List<String> rows_0 =
         makePullQueryWsRequest(clusterFormation.router.getApp().getWsListener(), sql, "", "", credentials, Optional.empty(), Optional.empty());
@@ -734,17 +735,18 @@ public class PullQueryRoutingFunctionalTest {
     }
   }
   
-  public static class StaticStreamsTaskAssignor implements TaskAssignor {
+  public static class StaticStreamsTaskAssignor implements LegacyTaskAssignor {
     public StaticStreamsTaskAssignor() { }
 
     @Override
     public boolean assign(
-        final Map<UUID, ClientState> clients,
+        final Map<ProcessId, ClientState> clients,
         final Set<TaskId> allTaskIds,
         final Set<TaskId> statefulTaskIds,
+        final RackAwareTaskAssignor rackAwareTaskAssignor,
         final AssignmentConfigs configs
     ) {
-      Preconditions.checkState(configs.numStandbyReplicas == 1);
+      Preconditions.checkState(configs.numStandbyReplicas() == 1);
       Preconditions.checkState(clients.size() == 3);
       final List<ClientState> clientStates = clients.entrySet().stream()
           .sorted(Comparator.comparing(Entry::getKey))

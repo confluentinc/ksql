@@ -167,7 +167,8 @@ public class ListPropertiesExecutorTest {
   public void shouldNotListUnrecognizedConnectProps() throws Exception {
     // Given:
     givenConnectWorkerProperties(
-        "group.id=list_properties_unit_test\n"
+        "bootstrap.servers=localhost:9092\n"
+            + "group.id=list_properties_unit_test\n"
             + "key.converter=io.confluent.connect.avro.AvroConverter\n"
             + "value.converter=io.confluent.connect.avro.AvroConverter\n"
             + "offset.storage.topic=topic1\n"

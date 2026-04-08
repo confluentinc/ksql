@@ -29,12 +29,12 @@ import io.vertx.ext.web.impl.Utils;
 import java.time.Clock;
 import java.util.Optional;
 import java.util.regex.Pattern;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class LoggingHandler implements Handler<RoutingContext> {
 
-  private static final Logger LOG = LoggerFactory.getLogger(LoggingHandler.class);
+  private static final Logger LOG = LogManager.getLogger(LoggingHandler.class);
   static final String HTTP_HEADER_USER_AGENT = "User-Agent";
 
   private final Logger logger;

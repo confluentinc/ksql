@@ -51,8 +51,8 @@ import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.errors.WakeupException;
 import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.common.serialization.Deserializer;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * Handles the logic of reading distributed commands, including pre-existing commands that were
@@ -62,12 +62,13 @@ import org.slf4j.LoggerFactory;
  */
 public class CommandRunner implements Closeable {
 
-  private static final Logger LOG = LoggerFactory.getLogger(CommandRunner.class);
+  private static final Logger LOG = LogManager.getLogger(CommandRunner.class);
 
   private static final int STATEMENT_RETRY_MS = 100;
   private static final int MAX_STATEMENT_RETRY_MS = 5 * 1000;
   private static final Duration NEW_CMDS_TIMEOUT = Duration.ofMillis(MAX_STATEMENT_RETRY_MS);
   private static final int SHUTDOWN_TIMEOUT_MS = 3 * MAX_STATEMENT_RETRY_MS;
+  private static final int COMMAND_TOPIC_THRESHOLD_LIMIT = 10000;
 
   private final InteractiveStatementExecutor statementExecutor;
   private final CommandQueue commandStore;
@@ -92,12 +93,20 @@ public class CommandRunner implements Closeable {
   private boolean commandTopicDeleted;
   private Status state = new Status(CommandRunnerStatus.RUNNING, CommandRunnerDegradedReason.NONE);
 
+  /**
+   * The ordinal values of the CommandRunnerStatus enum are used as the metrics values.
+   * Please ensure preservation of the current order.
+   */
   public enum CommandRunnerStatus {
     RUNNING,
     ERROR,
     DEGRADED
   }
 
+  /**
+   * The ordinal values of the CommandRunnerDegradedReason enum are used as the metrics values.
+   * Please ensure preservation of the current order.
+   */
   public enum CommandRunnerDegradedReason {
     NONE(errors -> ""),
     CORRUPTED(Errors::commandRunnerDegradedCorruptedErrorMessage),
@@ -263,6 +272,10 @@ public class CommandRunner implements Closeable {
       final List<QueuedCommand> compatibleCommands = checkForIncompatibleCommands(restoreCommands);
 
       LOG.info("Restoring previous state from {} commands.", compatibleCommands.size());
+      if (compatibleCommands.size() > COMMAND_TOPIC_THRESHOLD_LIMIT) {
+        LOG.warn("Command topic size exceeded. [commands={}, threshold={}]",
+                compatibleCommands.size(), COMMAND_TOPIC_THRESHOLD_LIMIT);
+      }
 
       final Optional<QueuedCommand> terminateCmd =
           findTerminateCommand(compatibleCommands, commandDeserializer);
@@ -379,7 +392,7 @@ public class CommandRunner implements Closeable {
     serverState.setTerminating();
     LOG.info("Terminating the KSQL server.");
     this.close();
-    final List<String> deleteTopicList = (List<String>) command.getOverwriteProperties()
+    final List<String> deleteTopicList = (List<String>) command.getOverwritePropertiesForExecution()
         .getOrDefault(ClusterTerminateRequest.DELETE_TOPIC_LIST_PROP, Collections.emptyList());
 
     clusterTerminator.terminateCluster(deleteTopicList);

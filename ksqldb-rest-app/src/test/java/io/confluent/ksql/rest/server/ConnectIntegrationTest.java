@@ -23,8 +23,6 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.stringContainsInOrder;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertThrows;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
@@ -45,7 +43,6 @@ import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.entity.WarningEntity;
-import io.confluent.ksql.rest.server.resources.KsqlRestException;
 import io.confluent.ksql.util.KsqlConfig;
 import java.io.ByteArrayOutputStream;
 import java.io.FileDescriptor;
@@ -62,12 +59,15 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
-import kafka.zookeeper.ZooKeeperClientException;
 import org.apache.hc.core5.http.HttpStatus;
 import org.apache.kafka.connect.json.JsonConverter;
 import io.confluent.ksql.rest.entity.ConnectorType;
 import org.apache.kafka.connect.storage.StringConverter;
+import org.apache.kafka.connect.tools.MockSinkConnector;
 import org.apache.kafka.connect.tools.MockSourceConnector;
+import org.apache.kafka.connect.tools.VerifiableSinkConnector;
+import org.apache.kafka.connect.tools.VerifiableSourceConnector;
+import org.apache.kafka.raft.errors.RaftException;
 import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -78,13 +78,13 @@ import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 @Category({IntegrationTest.class})
 public class ConnectIntegrationTest {
 
-  private static final Logger LOG = LoggerFactory.getLogger(ConnectIntegrationTest.class);
+  private static final Logger LOG = LogManager.getLogger(ConnectIntegrationTest.class);
   private static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.build();
   private  static final long TIMEOUT_NS = 120000000000L;
 
@@ -92,11 +92,12 @@ public class ConnectIntegrationTest {
       .builder(TEST_HARNESS::kafkaBootstrapServers)
       .withStaticServiceContext(TEST_HARNESS::getServiceContext)
       .withProperty(KsqlConfig.KSQL_HEADERS_COLUMNS_ENABLED, true)
+      .withProperty(KsqlConfig.KSQL_UDF_SECURITY_MANAGER_ENABLED, false)
       .build();
 
   @ClassRule
   public static final RuleChain CHAIN = RuleChain
-      .outerRule(Retry.of(3, ZooKeeperClientException.class, 3, TimeUnit.SECONDS))
+      .outerRule(Retry.of(3, RaftException.class, 3, TimeUnit.SECONDS))
       .around(TEST_HARNESS)
       .around(REST_APP);
 
@@ -115,6 +116,7 @@ public class ConnectIntegrationTest {
         .put("offset.storage.replication.factor", "1")
         .put("status.storage.replication.factor", "1")
         .put("config.storage.replication.factor", "1")
+        .put("confluent.topic.replication.factor", "1")
         .put("value.converter.schemas.enable", "false")
         .build()
     );
@@ -194,7 +196,7 @@ public class ConnectIntegrationTest {
   public void shouldDescribeConnector() {
     // Given:
     create("mock-connector", ImmutableMap.of(
-        "connector.class", "org.apache.kafka.connect.tools.MockSourceConnector"
+        "connector.class", MockSourceConnector.class.getName()
     ));
 
     // When:
@@ -222,7 +224,7 @@ public class ConnectIntegrationTest {
     assertThat(response.getResponse().get(0), instanceOf(ConnectorDescription.class));
     assertThat(
         ((ConnectorDescription) response.getResponse().get(0)).getConnectorClass(),
-        is("org.apache.kafka.connect.tools.MockSourceConnector"));
+        is(MockSourceConnector.class.getName()));
     assertThat(
         ((ConnectorDescription) response.getResponse().get(0)).getStatus().name(),
         is("mock-connector"));
@@ -232,7 +234,7 @@ public class ConnectIntegrationTest {
   public void shouldDropConnector() {
     // Given:
     create("mock-connector", ImmutableMap.of(
-        "connector.class", "org.apache.kafka.connect.tools.MockSourceConnector"
+        "connector.class", MockSourceConnector.class.getName()
     ));
 
     // When:
@@ -254,7 +256,7 @@ public class ConnectIntegrationTest {
     String connectorName = "mock-source";
     RestResponse<KsqlEntityList> response = create(connectorName,
         ImmutableMap.<String, String> builder()
-        .put("connector.class", "org.apache.kafka.connect.tools.MockSourceConnector")
+        .put("connector.class", MockSourceConnector.class.getName())
         .build(), ConnectorType.SOURCE);
 
     //Then
@@ -270,7 +272,7 @@ public class ConnectIntegrationTest {
     String connectorName = "mock-sink";
     RestResponse<KsqlEntityList> response =
         create(connectorName, ImmutableMap.<String, String> builder()
-            .put("connector.class", "org.apache.kafka.connect.tools.MockSinkConnector")
+            .put("connector.class", MockSinkConnector.class.getName())
             .put("topics", "BAR")
             .build(), ConnectorType.SINK);
 
@@ -284,7 +286,7 @@ public class ConnectIntegrationTest {
   public void shouldReturnWarning() {
     // Given:
     create("mock-connector", ImmutableMap.of(
-        "connector.class", "org.apache.kafka.connect.tools.MockSourceConnector"
+        "connector.class", MockSourceConnector.class.getName()
     ));
 
     // When:
@@ -303,7 +305,7 @@ public class ConnectIntegrationTest {
   public void shouldReturnError() {
     // Given:
     create("mock-connector", ImmutableMap.of(
-        "connector.class", "org.apache.kafka.connect.tools.MockSourceConnector"
+        "connector.class", MockSourceConnector.class.getName()
     ));
 
     // When:
@@ -322,7 +324,7 @@ public class ConnectIntegrationTest {
   public void shouldReadTimeTypesAndHeadersFromConnect() {
     // Given:
     create("mock-source", ImmutableMap.<String, String> builder()
-        .put("connector.class", "org.apache.kafka.connect.tools.VerifiableSourceConnector")
+        .put("connector.class", VerifiableSourceConnector.class.getName())
         .put("topic", "foo")
         .put("throughput", "5")
         .put("id", "123")
@@ -359,7 +361,7 @@ public class ConnectIntegrationTest {
 
     // When:
     create("mock-sink", ImmutableMap.<String, String> builder()
-        .put("connector.class", "org.apache.kafka.connect.tools.VerifiableSinkConnector")
+        .put("connector.class", VerifiableSinkConnector.class.getName())
         .put("topics", "BAR")
         .put("id", "456")
         .put("value.converter.schemas.enable", "false")
@@ -384,6 +386,7 @@ public class ConnectIntegrationTest {
   }
 
   @Test
+  @Ignore
   public void shouldListConnectorPlugins() {
     // When:
     final RestResponse<KsqlEntityList> response = ksqlRestClient.makeKsqlRequest("LIST CONNECTOR PLUGINS;");

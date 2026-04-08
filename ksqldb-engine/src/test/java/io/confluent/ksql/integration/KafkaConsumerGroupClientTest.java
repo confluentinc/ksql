@@ -23,6 +23,8 @@ import static org.hamcrest.Matchers.hasItems;
 import static org.hamcrest.Matchers.is;
 
 import com.google.common.collect.ImmutableList;
+
+import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.KsqlConfigTestUtil;
 import io.confluent.ksql.test.util.ConsumerGroupTestUtil;
 import io.confluent.ksql.test.util.TopicTestUtil;
@@ -39,7 +41,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
-import kafka.zookeeper.ZooKeeperClientException;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
@@ -47,7 +48,7 @@ import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.serialization.ByteArrayDeserializer;
 import org.apache.kafka.common.serialization.StringDeserializer;
-import org.apache.kafka.test.IntegrationTest;
+import org.apache.kafka.raft.errors.RaftException;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
@@ -69,7 +70,7 @@ public class KafkaConsumerGroupClientTest {
 
   @ClassRule
   public static final RuleChain clusterWithRetry = RuleChain
-      .outerRule(Retry.of(3, ZooKeeperClientException.class, 3, TimeUnit.SECONDS))
+      .outerRule(Retry.of(3, RaftException.class, 3, TimeUnit.SECONDS))
       .around(TEST_HARNESS);
 
   private AdminClient adminClient;

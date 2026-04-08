@@ -584,7 +584,7 @@ public class SourceBuilderTest {
     when(consumed.withValueSerde(any())).thenReturn(consumed);
     when(consumedFactory.create(keySerde, valueSerde)).thenReturn(consumed);
     when(consumed.withTimestampExtractor(any())).thenReturn(consumed);
-    when(consumed.withOffsetResetPolicy(any())).thenReturn(consumed);
+    when(consumed.withOffsetResetPolicy(any(AutoOffsetReset.class))).thenReturn(consumed);
   }
 
   private static PlanInfo givenDownstreamRepartition(final ExecutionStep<?> sourceStep) {

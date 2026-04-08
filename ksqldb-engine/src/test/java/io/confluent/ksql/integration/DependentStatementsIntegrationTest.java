@@ -16,6 +16,7 @@ package io.confluent.ksql.integration;
 
 import static java.lang.String.format;
 
+import io.confluent.common.utils.IntegrationTest;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.PersistentQueryMetadata;
@@ -24,8 +25,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
-import kafka.zookeeper.ZooKeeperClientException;
-import org.apache.kafka.test.IntegrationTest;
+import org.apache.kafka.raft.errors.RaftException;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
@@ -34,19 +34,19 @@ import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.Timeout;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 @Category({IntegrationTest.class})
 public class DependentStatementsIntegrationTest {
 
-  private static final Logger log = LoggerFactory.getLogger(DependentStatementsIntegrationTest.class);
+  private static final Logger log = LogManager.getLogger(DependentStatementsIntegrationTest.class);
 
   private static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.build();
 
   @ClassRule
   public static final RuleChain CLUSTER_WITH_RETRY = RuleChain
-      .outerRule(Retry.of(3, ZooKeeperClientException.class, 3, TimeUnit.SECONDS))
+      .outerRule(Retry.of(3, RaftException.class, 3, TimeUnit.SECONDS))
       .around(TEST_HARNESS);
 
   public TestKsqlContext ksqlContext;

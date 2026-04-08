@@ -39,7 +39,6 @@ import org.apache.kafka.common.metrics.MetricConfig;
 import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.common.metrics.MetricsContext;
 import org.apache.kafka.common.metrics.MetricsReporter;
-import org.apache.kafka.common.utils.SystemTime;
 
 /**
  * Topic based collectors for producer/consumer related statistics that can be mapped on to
@@ -81,7 +80,7 @@ public final class MetricCollectors {
                 ),
             // must be a mutable list to add configured reporters later
             new LinkedList<>(singletonList(new JmxReporter())),
-            new SystemTime(),
+            org.apache.kafka.common.utils.Time.SYSTEM,
             new KafkaMetricsContext(KSQL_JMX_PREFIX)
         )
     );

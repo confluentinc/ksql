@@ -85,6 +85,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
@@ -93,6 +94,7 @@ import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.Topology;
+import org.apache.kafka.streams.TopologyConfig;
 import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.KTable;
 import org.apache.kafka.streams.processor.internals.namedtopology.NamedTopology;
@@ -106,6 +108,8 @@ final class QueryBuilder {
 
   private static final String KSQL_THREAD_EXCEPTION_UNCAUGHT_LOGGER
       = "ksql.logger.thread.exception.uncaught";
+  // config that will be passed to fix process values behaviour
+  private static final boolean ENABLE_PROCESS_PROCESSVALUE_FIX = true;
 
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
   private final SessionConfig config;
@@ -182,17 +186,12 @@ final class QueryBuilder {
       final Optional<WindowInfo> windowInfo,
       final boolean excludeTombstones,
       final QueryMetadata.Listener listener,
-      final StreamsBuilder streamsBuilder,
+      final Function<TopologyConfig, StreamsBuilder> streamsBuilderSupplier,
       final Optional<ImmutableMap<TopicPartition, Long>> endOffsets,
       final MetricCollectors metricCollectors
   ) {
     final KsqlConfig ksqlConfig = config.getConfig(true);
     final String applicationId = QueryApplicationId.build(ksqlConfig, false, queryId);
-    final RuntimeBuildContext runtimeBuildContext = buildContext(
-        applicationId,
-        queryId,
-        streamsBuilder
-    );
 
     final Map<String, Object> streamsProperties = buildStreamsProperties(
         applicationId,
@@ -201,6 +200,18 @@ final class QueryBuilder {
         config.getConfig(true),
         processingLogContext
     );
+
+    streamsProperties.put(StreamsConfig.NUM_STANDBY_REPLICAS_CONFIG, 0);
+
+    final StreamsBuilder streamsBuilder = streamsBuilderSupplier
+        .apply(new TopologyConfig(new StreamsConfig(streamsProperties)));
+
+    final RuntimeBuildContext runtimeBuildContext = buildContext(
+        applicationId,
+        queryId,
+        streamsBuilder
+    );
+
     final Object buildResult = buildQueryImplementation(physicalPlan, runtimeBuildContext);
     final TransientQueryQueue queue =
         buildTransientQueryQueue(buildResult, limit, excludeTombstones, endOffsets);
@@ -278,7 +289,7 @@ final class QueryBuilder {
       final String planSummary,
       final QueryMetadata.Listener listener,
       final Supplier<List<PersistentQueryMetadata>> allPersistentQueries,
-      final StreamsBuilder streamsBuilder,
+      final Function<TopologyConfig, StreamsBuilder> streamsBuilderSupplier,
       final MetricCollectors metricCollectors) {
 
     final String applicationId = QueryApplicationId.build(ksqlConfig, true, queryId);
@@ -320,6 +331,8 @@ final class QueryBuilder {
         keyFormat.getFeatures(),
         valueFormat.getFeatures()
     );
+    final StreamsBuilder streamsBuilder = streamsBuilderSupplier
+        .apply(new TopologyConfig(new StreamsConfig(streamsProperties)));
 
     final RuntimeBuildContext runtimeBuildContext = buildContext(
         applicationId,
@@ -549,6 +562,11 @@ final class QueryBuilder {
         ProductionExceptionHandlerUtil.KSQL_PRODUCTION_ERROR_LOGGER,
         logger);
 
+    newStreamsProperties.put(
+        TopologyConfig.InternalConfig.ENABLE_PROCESS_PROCESSVALUE_FIX,
+        ENABLE_PROCESS_PROCESSVALUE_FIX
+    );
+
     updateListProperty(
         newStreamsProperties,
         StreamsConfig.consumerPrefix(ConsumerConfig.INTERCEPTOR_CLASSES_CONFIG),
@@ -653,7 +671,9 @@ final class QueryBuilder {
     final QueryErrorClassifier userErrorClassifiers = new MissingTopicClassifier(applicationId)
         .and(new AuthorizationClassifier(applicationId))
         .and(new KsqlFunctionClassifier(applicationId))
+        .and(new RecordTooLargeClassifier(applicationId))
         .and(new MissingSubjectClassifier(applicationId))
+        .and(new MissingSchemaClassifier(applicationId))
         .and(new SchemaAuthorizationClassifier(applicationId))
         .and(new KsqlSerializationClassifier(applicationId));
     return buildConfiguredClassifiers(ksqlConfig, applicationId)

@@ -35,7 +35,6 @@ import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlStatementException;
 import java.util.Objects;
 import java.util.Optional;
-import org.apache.kafka.streams.StreamsBuilder;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 class QueryEngine {
@@ -90,11 +89,8 @@ class QueryEngine {
       final Optional<PlanInfo> oldPlanInfo
   ) {
 
-    final StreamsBuilder builder = new StreamsBuilder();
-
     // Build a physical plan, in this case a Kafka Streams DSL
     final ExecutionPlanBuilder executionPlanBuilder = new ExecutionPlanBuilder(
-        builder,
         config.getConfig(true),
         serviceContext,
         processingLogContext,

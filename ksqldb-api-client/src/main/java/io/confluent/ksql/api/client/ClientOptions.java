@@ -16,6 +16,8 @@
 package io.confluent.ksql.api.client;
 
 import io.confluent.ksql.api.client.impl.ClientOptionsImpl;
+import io.confluent.ksql.security.AuthType;
+import io.confluent.ksql.security.oauth.IdpConfig;
 import java.util.Map;
 
 /**
@@ -117,6 +119,39 @@ public interface ClientOptions {
   ClientOptions setKeyAlias(String keyAlias);
 
   /**
+   * Sets key/trust store type.
+   *
+   * @param storeType store type
+   * @return a reference to this
+   */
+  ClientOptions setStoreType(String storeType);
+
+  /**
+   * Sets security providers.
+   *
+   * @param securityProviders security providers
+   * @return a reference to this
+   */
+  ClientOptions setSecurityProviders(String securityProviders);
+
+  /**
+   * Sets key manager algorithm.
+   *
+   * @param keyManagerAlgorithm key manager algorithm
+   * @return a reference to this
+   */
+  ClientOptions setKeyManagerAlgorithm(String keyManagerAlgorithm);
+
+  /**
+   * Sets trust manager algorithm.
+   *
+   * @param trustManagerAlgorithm trust manager algorithm
+   * @return a reference to this
+   */
+  ClientOptions setTrustManagerAlgorithm(String trustManagerAlgorithm);
+
+
+  /**
    * Sets the username and password to be used for HTTP basic authentication when connecting to the
    * ksqlDB server. Basic authentication will be used unless both username and password are null
    * (the default).
@@ -162,6 +197,13 @@ public interface ClientOptions {
   ClientOptions setRequestHeaders(Map<String, String> requestHeaders);
 
   /**
+   * Sets the IDP config required for this client to secure an OAuthBearerToken.
+   *
+   * @return a reference to this
+   */
+  ClientOptions setIdpConfig(IdpConfig idpConfig);
+
+  /**
    * Returns the host name of the ksqlDB server to connect to.
    *
    * @return host name
@@ -197,11 +239,11 @@ public interface ClientOptions {
   boolean isUseAlpn();
 
   /**
-   * Returns whether HTTP basic authentication will be used when connecting to the ksqlDB server.
+   * Returns the authentication mechanism that will be used when connecting to the ksqlDB server.
    *
-   * @return whether basic authentication will be used
+   * @return authentication mechanism
    */
-  boolean isUseBasicAuth();
+  AuthType getAuthType();
 
   /**
    * Returns the trust store path.
@@ -246,6 +288,34 @@ public interface ClientOptions {
   String getKeyAlias();
 
   /**
+   * Returns the store type.
+   *
+   * @return key/trust store type
+   */
+  String getStoreType();
+
+  /**
+   * Returns the security providers.
+   *
+   * @return security providers
+   */
+  String getSecurityProviders();
+
+  /**
+   * Returns the key manager algorithm
+   *
+   * @return key manager algorithm
+   */
+  String getKeyManagerAlgorithm();
+
+  /**
+   * Returns the trust manager algorithm
+   *
+   * @return trust manager algorithm
+   */
+  String getTrustManagerAlgorithm();
+
+  /**
    * Returns the username to be used for HTTP basic authentication, if applicable.
    *
    * @return username
@@ -258,6 +328,13 @@ public interface ClientOptions {
    * @return password
    */
   String getBasicAuthPassword();
+
+  /**
+   * Returns the IDP configuration used in the client, if applicable.
+   *
+   * @return idpConfig
+   */
+  IdpConfig getIdpConfig();
 
   /**
    * Returns the maximum number of rows that may be returned in a {@link BatchedQueryResult}.

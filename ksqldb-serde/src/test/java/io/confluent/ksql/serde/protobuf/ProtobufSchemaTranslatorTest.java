@@ -159,9 +159,9 @@ public class ProtobufSchemaTranslatorTest {
     assertThat(schema.canonicalString(), is("syntax = \"proto3\";\n"
         + "\n"
         + "message ConnectDefault1 {\n"
-        + "  optional int32 optional_int32 = 1 [deprecated = false];\n"
-        + "  optional bool optional_boolean = 2 [deprecated = false];\n"
-        + "  optional string optional_string = 3 [deprecated = false];\n"
+        + "  optional int32 optional_int32 = 1;\n"
+        + "  optional bool optional_boolean = 2;\n"
+        + "  optional string optional_string = 3;\n"
         + "}\n"));
   }
 

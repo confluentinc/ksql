@@ -185,6 +185,9 @@ You can also span a comment over multiple lines by using C-style syntax:
  */
 ```
 
+!!! note
+    Block comments using C-style syntax aren't supported in {{ site.ccloud }}.
+
 ## Lexical precedence
 
 Operators are evaluated using the following order of precedence:

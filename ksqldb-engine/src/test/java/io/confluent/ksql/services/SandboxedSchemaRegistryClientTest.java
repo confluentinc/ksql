@@ -20,6 +20,7 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
@@ -31,12 +32,18 @@ import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.kafka.schemaregistry.avro.AvroSchema;
 import io.confluent.kafka.schemaregistry.client.SchemaMetadata;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.kafka.schemaregistry.client.rest.entities.Metadata;
+import io.confluent.kafka.schemaregistry.client.rest.entities.RuleSet;
 import io.confluent.kafka.schemaregistry.client.rest.entities.requests.RegisterSchemaResponse;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import io.confluent.ksql.test.util.TestMethods;
 import io.confluent.ksql.test.util.TestMethods.TestCase;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
 import java.util.Objects;
+
+import java.util.Optional;
 import org.apache.avro.Schema;
 import org.apache.hc.core5.http.HttpStatus;
 import org.junit.Before;
@@ -68,7 +75,9 @@ public final class SandboxedSchemaRegistryClientTest {
           .ignore("register", String.class, ParsedSchema.class, int.class, int.class)
           .ignore("getLatestSchemaMetadata", String.class)
           .ignore("registerWithResponse", String.class, ParsedSchema.class, boolean.class)
+          .ignore("registerWithResponse", String.class, ParsedSchema.class, boolean.class, boolean.class)
           .ignore("getSchemaBySubjectAndId", String.class, int.class)
+          .ignore("getSchemaEntityBySubjectAndId", String.class, int.class)
           .ignore("testCompatibility", String.class, Schema.class)
           .ignore("testCompatibility", String.class, ParsedSchema.class)
           .ignore("deleteSubject", String.class)
@@ -76,8 +85,14 @@ public final class SandboxedSchemaRegistryClientTest {
           .ignore("getId", String.class, ParsedSchema.class)
           .ignore("getId", String.class, ParsedSchema.class, boolean.class)
           .ignore("getId", String.class, Schema.class)
+          .ignore("getIdWithResponse", String.class, ParsedSchema.class, boolean.class)
           .ignore("getVersion", String.class, ParsedSchema.class)
           .ignore("getSchemaById", int.class)
+          .ignore("parseSchema", io.confluent.kafka.schemaregistry.client.rest.entities.Schema.class)
+          .ignore("parseSchema", String.class, String.class, List.class)
+          .ignore("parseSchema", String.class, String.class, List.class, Metadata.class, RuleSet.class)
+          .ignore("parseSchemaOrElseThrow", io.confluent.kafka.schemaregistry.client.rest.entities.Schema.class)
+          .setDefault(Boolean.class, false)
           .build();
     }
 
@@ -105,6 +120,8 @@ public final class SandboxedSchemaRegistryClientTest {
 
   @RunWith(MockitoJUnitRunner.class)
   public static class SupportedMethods {
+
+    private static final AvroSchema REAL_SCHEMA = new AvroSchema("\"string\"");
 
     @Mock
     private SchemaRegistryClient delegate;
@@ -174,8 +191,8 @@ public final class SandboxedSchemaRegistryClientTest {
     @Test
     public void shouldSwallowRegister() throws Exception {
       // When:
-      sandboxedClient.register("some subject", schema);
-      sandboxedClient.register("some subject", schema, 1, 1);
+      sandboxedClient.register("some subject", REAL_SCHEMA);
+      sandboxedClient.register("some subject", REAL_SCHEMA, 1, 1);
 
       // Then:
       verifyNoMoreInteractions(delegate);
@@ -197,7 +214,7 @@ public final class SandboxedSchemaRegistryClientTest {
     public void shouldRegisterWithResponse() throws Exception {
       // When:
       final RegisterSchemaResponse response = sandboxedClient
-          .registerWithResponse("some subject", schema, false);
+          .registerWithResponse("some subject", REAL_SCHEMA, false);
 
       // Then:
       assertThat(response, is(notNullValue()));
@@ -242,14 +259,59 @@ public final class SandboxedSchemaRegistryClientTest {
       when(exception.getStatus()).thenReturn(HttpStatus.SC_NOT_FOUND);
       when(delegate.getId(anyString(), any(ParsedSchema.class))).thenThrow(exception);
 
-      final int newId = sandboxedClient.register("newSubject", parsedSchema);
+      final int newId = sandboxedClient.register("newSubject", REAL_SCHEMA);
 
       // When:
-      final int id = sandboxedClient.getId("newSubject", parsedSchema);
+      final int id = sandboxedClient.getId("newSubject", REAL_SCHEMA);
 
       // Then:
       assertThat(id, is(newId));
+    }
 
+    @Test
+    public void shouldGetIdWithResponse() throws Exception {
+      // Given:
+      when(delegate.getIdWithResponse(anyString(), any(ParsedSchema.class), anyBoolean()))
+          .thenReturn(new RegisterSchemaResponse(123))
+          .thenReturn(new RegisterSchemaResponse(124))
+          .thenReturn(new RegisterSchemaResponse(125));
+
+      // When:
+      final int id = sandboxedClient.getIdWithResponse("some subject", schema, false).getId();
+      final int id1 = sandboxedClient.getIdWithResponse("some subject", parsedSchema, false).getId();
+      final int id2 = sandboxedClient.getIdWithResponse("some subject", parsedSchema, true).getId();
+
+      // Then:
+      assertThat(id, is(123));
+      assertThat(id1, is(124));
+      assertThat(id2, is(125));
+    }
+
+    @Test
+    public void shouldGetIdWithResponseFromCache() throws Exception {
+      // Given:
+      final RestClientException exception = mock(RestClientException.class);
+      when(exception.getStatus()).thenReturn(HttpStatus.SC_NOT_FOUND);
+      when(delegate.getIdWithResponse(anyString(), any(ParsedSchema.class), anyBoolean()))
+          .thenThrow(exception);
+
+      final int newId = sandboxedClient.register("newSubject", REAL_SCHEMA);
+
+      // When:
+      final int id = sandboxedClient.getIdWithResponse("newSubject", REAL_SCHEMA, false).getId();
+
+      // Then:
+      assertThat(id, is(newId));
+    }
+
+    @Test
+    public void shouldParseSchema() throws Exception {
+      // Given:
+      final Optional<ParsedSchema> schema =
+          sandboxedClient.parseSchema("AVRO", "\"string\"", Collections.emptyList());
+
+      // Then:
+      assertThat(schema.get(), is(new AvroSchema("\"string\"")));
     }
   }
 }

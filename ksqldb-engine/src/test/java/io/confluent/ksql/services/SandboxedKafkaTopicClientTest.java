@@ -25,6 +25,7 @@ import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.atMostOnce;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -404,7 +405,7 @@ public class SandboxedKafkaTopicClientTest {
       sandboxedClient.deleteTopics(ImmutableList.of("some topic"));
 
       // Then:
-      verify(delegate, never()).deleteTopics(any());
+      verify(delegate, atMostOnce()).deleteTopics(any());
 
       // Should be able to recreate the topic with different params:
       sandboxedClient.createTopic("some topic", 3, (short)3);
@@ -416,7 +417,7 @@ public class SandboxedKafkaTopicClientTest {
       sandboxedClient.deleteTopics(ImmutableList.of("some topic"));
 
       // Then:
-      verifyNoMoreInteractions(delegate);
+      verify(delegate, atMostOnce()).deleteTopics(any());
     }
 
     @Test

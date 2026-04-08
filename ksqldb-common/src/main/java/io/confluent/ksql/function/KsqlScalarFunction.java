@@ -16,7 +16,6 @@
 package io.confluent.ksql.function;
 
 import com.google.errorprone.annotations.Immutable;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.function.types.ParamType;
 import io.confluent.ksql.function.udf.Kudf;
 import io.confluent.ksql.name.FunctionName;

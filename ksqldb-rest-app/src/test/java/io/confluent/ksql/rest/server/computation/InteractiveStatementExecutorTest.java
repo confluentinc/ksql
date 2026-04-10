@@ -143,8 +143,7 @@ public class InteractiveStatementExecutorTest {
     ksqlConfig = KsqlConfigTestUtil.create(
         CLUSTER,
         ImmutableMap.of(
-                StreamsConfig.APPLICATION_SERVER_CONFIG, "http://host:1234",
-                KsqlConfig.KSQL_UDF_SECURITY_MANAGER_ENABLED, "false"
+                StreamsConfig.APPLICATION_SERVER_CONFIG, "http://host:1234"
         )
     );
 

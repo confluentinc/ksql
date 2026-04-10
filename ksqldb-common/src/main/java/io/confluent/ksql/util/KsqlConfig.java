@@ -1693,6 +1693,8 @@ public class KsqlConfig extends AbstractConfig {
   private KsqlConfig(final ConfigGeneration generation, final Map<?, ?> props) {
     super(configDef(generation), props);
 
+    warnOnRemovedConfigs();
+
     final Map<String, Object> streamsConfigDefaults = new HashMap<>();
     streamsConfigDefaults.put(StreamsConfig.COMMIT_INTERVAL_MS_CONFIG, KsqlConstants
         .defaultCommitIntervalMsConfig);
@@ -1738,6 +1740,23 @@ public class KsqlConfig extends AbstractConfig {
         });
 
     return configs.build();
+  }
+
+  private void warnOnRemovedConfigs() {
+    final Object smEnabled = originals().get("ksql.udf.enable.security.manager");
+    if (smEnabled != null) {
+      if (Boolean.parseBoolean(smEnabled.toString())) {
+        throw new KsqlException(
+            "'ksql.udf.enable.security.manager' is no longer supported: "
+                + "the Java SecurityManager was removed in Java 17+. "
+                + "Remove this setting from your configuration.");
+      } else {
+        LOG.warn(
+            "'ksql.udf.enable.security.manager' is set but has been removed. "
+                + "The Java SecurityManager is no longer available. "
+                + "Please remove this setting from your configuration.");
+      }
+    }
   }
 
   private boolean getBooleanConfig(final String config, final boolean defaultValue) {

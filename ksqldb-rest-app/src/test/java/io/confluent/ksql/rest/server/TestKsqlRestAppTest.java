@@ -33,12 +33,12 @@ public final class TestKsqlRestAppTest {
     // Given:
     final TestKsqlRestApp first = TestKsqlRestApp
         .builder(TEST_HARNESS::kafkaBootstrapServers)
-        .withProperty(KsqlConfig.KSQL_UDF_SECURITY_MANAGER_ENABLED, false)
+
         .build();
 
     final TestKsqlRestApp second = TestKsqlRestApp
         .builder(TEST_HARNESS::kafkaBootstrapServers)
-        .withProperty(KsqlConfig.KSQL_UDF_SECURITY_MANAGER_ENABLED, false)
+
         .build();
 
     first.start();

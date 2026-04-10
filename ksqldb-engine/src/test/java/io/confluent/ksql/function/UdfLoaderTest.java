@@ -61,7 +61,7 @@ import io.confluent.ksql.schema.ksql.types.SqlMap;
 import io.confluent.ksql.schema.ksql.types.SqlStruct;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import io.confluent.ksql.security.ExtensionSecurityManager;
+
 import io.confluent.ksql.test.util.KsqlTestFolder;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
@@ -136,62 +136,6 @@ public class UdfLoaderTest {
     assertThat(substring2.evaluate("foo", 2, 1), equalTo("o"));
   }
 
-  @Test
-  public void shouldLoadBadFunctionButNotLetItExit() {
-    // Given:
-    final List<SqlArgument> argList = singletonList(SqlArgument.of(SqlTypes.STRING));
-    // We do need to set up the ExtensionSecurityManager for our test.
-    // This is controlled by a feature flag and in this test, we just directly enable it.
-    SecurityManager manager = System.getSecurityManager();
-    System.setSecurityManager(ExtensionSecurityManager.INSTANCE);
-
-    final UdfFactory function = FUNC_REG.getUdfFactory(FunctionName.of("bad_test_udf"));
-    assertThat(function, not(nullValue()));
-
-    KsqlScalarFunction ksqlScalarFunction = function.getFunction(argList);
-
-    // When:
-    final Exception e1 = assertThrows(
-        KsqlException.class,
-        () -> ksqlScalarFunction.getReturnType(argList)
-    );
-
-    // Then:
-    assertThat(e1.getMessage(), containsString(
-        "Cannot invoke the schema provider method exit for UDF bad_test_udf."));
-    System.setSecurityManager(manager);
-    assertEquals(System.getSecurityManager(), manager);
-  }
-
-  @Test
-  public void shouldLoadBadFunctionButNotLetItExit2() {
-    // Given:
-    final List<SqlArgument> argList = singletonList(SqlArgument.of(SqlTypes.STRING));
-    // We do need to set up the ExtensionSecurityManager for our test.
-    // This is controlled by a feature flag and in this test, we just directly enable it.
-    SecurityManager manager = System.getSecurityManager();
-    System.setSecurityManager(ExtensionSecurityManager.INSTANCE);
-
-    final UdfFactory function = FUNC_REG.getUdfFactory(FunctionName.of("bad_test_udf"));
-    assertThat(function, not(nullValue()));
-
-    KsqlScalarFunction ksqlScalarFunction = function.getFunction(argList);
-    final Kudf badFunction = ksqlScalarFunction.newInstance(ksqlConfig);
-
-    // Given:
-    final Exception e2 = assertThrows(
-        KsqlFunctionException.class,
-        () -> badFunction.evaluate("foo")
-    );
-
-    // Then:
-    assertThat(e2.getMessage(), containsString(
-        "Failed to invoke function public org.apache.kafka.connect.data.Struct "
-            + "io.confluent.ksql.function.udf.BadTestUdf.returnList(java.lang.String)"));
-    System.setSecurityManager(manager);
-    assertEquals(System.getSecurityManager(), manager);
-  }
-
   @SuppressWarnings({"rawtypes", "unchecked"})
   @Test
   public void shouldLoadUdafs() {
@@ -234,260 +178,6 @@ public class UdfLoaderTest {
         new Struct(schema).put("A", 1).put("B", 2)
         ),
         equalTo(new Struct(schema).put("A", 1).put("B", 2)));
-  }
-
-  @Test
-  @SuppressWarnings({"rawtypes", "unchecked"})
-  public void shouldNotLetBadUdafsExitWithBadCreate() {
-    // Given:
-    // We do need to set up the ExtensionSecurityManager for our test.
-    // This is controlled by a feature flag and in this test, we just directly enable it.
-    SecurityManager manager = System.getSecurityManager();
-    System.setSecurityManager(ExtensionSecurityManager.INSTANCE);
-
-    // When:
-    // This will exit via create
-    final Exception e1 = assertThrows(
-        KsqlException.class,
-        () -> {
-          KsqlAggregateFunction function = FUNC_REG
-                  .getAggregateFactory(of("bad_test_udaf"))
-                  .getFunction(singletonList(SqlTypes.array(SqlTypes.INTEGER)))
-                  .source
-                  .apply(AggregateFunctionInitArguments.EMPTY_ARGS);
-          function.aggregate("foo", 2L);
-        }
-    );
-
-    // Then:
-    assertThat(e1.getMessage(), containsString("Failed to invoke UDAF factory method"));
-    System.setSecurityManager(manager);
-    assertEquals(System.getSecurityManager(), manager);
-  }
-
-  @Test
-  public void shouldNotLetBadUdafsExitWithBadConfigure() {
-    // Given:
-    // We do need to set up the ExtensionSecurityManager for our test.
-    // This is controlled by a feature flag and in this test, we just directly enable it.
-    SecurityManager manager = System.getSecurityManager();
-    System.setSecurityManager(ExtensionSecurityManager.INSTANCE);
-
-    // When:
-    // This will exit via configure
-    final Exception e2 = assertThrows(
-        KsqlException.class,
-        () ->
-            ((Configurable)FUNC_REG
-                    .getAggregateFactory(of("bad_test_udaf"))
-                    .getFunction(singletonList(SqlTypes.INTEGER))
-                    .source
-                    .apply(AggregateFunctionInitArguments.EMPTY_ARGS)
-            ).configure(Collections.emptyMap())
-    );
-
-    // Then:
-    assertThat(e2.getMessage(), containsString("Failed to invoke UDAF factory method"));
-    System.setSecurityManager(manager);
-    assertEquals(System.getSecurityManager(), manager);
-  }
-
-  @Test
-  public void shouldNotLetBadUdafsExitWithBadInitialize() {
-    // Given:
-    // We do need to set up the ExtensionSecurityManager for our test.
-    // This is controlled by a feature flag and in this test, we just directly enable it.
-    SecurityManager manager = System.getSecurityManager();
-    System.setSecurityManager(ExtensionSecurityManager.INSTANCE);
-
-    // When:
-    // This will exit via initialize
-    final Exception e3 = assertThrows(
-        SecurityException.class,
-        () -> FUNC_REG
-                .getAggregateFactory(of("bad_test_udaf"))
-                .getFunction(singletonList(SqlTypes.DOUBLE))
-                .source
-                .apply(AggregateFunctionInitArguments.EMPTY_ARGS)
-                .getInitialValueSupplier().get()
-    );
-
-    // Then:
-    assertThat(e3.getMessage(), containsString("A UDF attempted to call System.exit"));
-    System.setSecurityManager(manager);
-    assertEquals(System.getSecurityManager(), manager);
-  }
-
-  @Test
-  @SuppressWarnings({"rawtypes", "unchecked"})
-  public void shouldNotLetBadUdafsExitWithBadMap() {
-    // Given:
-    // We do need to set up the ExtensionSecurityManager for our test.
-    // This is controlled by a feature flag and in this test, we just directly enable it.
-    SecurityManager manager = System.getSecurityManager();
-    System.setSecurityManager(ExtensionSecurityManager.INSTANCE);
-
-    // When:
-    // This will exit via map
-    final Exception e4 = assertThrows(
-        SecurityException.class,
-        () ->
-            ((KsqlAggregateFunction) FUNC_REG
-                    .getAggregateFactory(of("bad_test_udaf"))
-                    .getFunction(singletonList(SqlTypes.BOOLEAN))
-                    .source
-                    .apply(AggregateFunctionInitArguments.EMPTY_ARGS)
-            ).getResultMapper().apply(true)
-    );
-
-    // Then:
-    assertThat(e4.getMessage(), containsString("A UDF attempted to call System.exit"));
-    System.setSecurityManager(manager);
-    assertEquals(System.getSecurityManager(), manager);
-  }
-
-  @Test
-  @SuppressWarnings({"rawtypes", "unchecked"})
-  public void shouldNotLetBadUdafsExitWithBadMerge() {
-    // Given:
-    // We do need to set up the ExtensionSecurityManager for our test.
-    // This is controlled by a feature flag and in this test, we just directly enable it.
-    SecurityManager manager = System.getSecurityManager();
-    System.setSecurityManager(ExtensionSecurityManager.INSTANCE);
-
-    // When:
-    // This will exit via merge
-    final Schema schema = SchemaBuilder.struct()
-        .field("A", Schema.OPTIONAL_INT32_SCHEMA)
-        .field("B", Schema.OPTIONAL_INT32_SCHEMA)
-        .optional()
-        .build();
-    final SqlStruct sqlSchema = SqlTypes.struct()
-        .field("A", SqlTypes.INTEGER)
-        .field("B", SqlTypes.INTEGER)
-        .build();
-    final Struct input = new Struct(schema).put("A", 0).put("B", 0);
-    final Exception e5 = assertThrows(
-        SecurityException.class,
-        () ->
-            ((KsqlAggregateFunction) FUNC_REG
-                    .getAggregateFactory(of("bad_test_udaf"))
-                    .getFunction(singletonList(sqlSchema))
-                    .source
-                    .apply(AggregateFunctionInitArguments.EMPTY_ARGS)
-            ).getMerger().apply(null, input, input)
-    );
-
-    // Then:
-    assertThat(e5.getMessage(), containsString("A UDF attempted to call System.exit"));
-    System.setSecurityManager(manager);
-    assertEquals(System.getSecurityManager(), manager);
-  }
-
-  @Test
-  @SuppressWarnings({"rawtypes", "unchecked"})
-  public void shouldNotLetBadUdafsExitWithBadAggregate() {
-    // Given:
-    // We do need to set up the ExtensionSecurityManager for our test.
-    // This is controlled by a feature flag and in this test, we just directly enable it.
-    SecurityManager manager = System.getSecurityManager();
-    System.setSecurityManager(ExtensionSecurityManager.INSTANCE);
-
-    // When:
-    // This will exit via aggregate
-    final Exception e6 = assertThrows(
-        SecurityException.class,
-        () ->
-            ((KsqlAggregateFunction) FUNC_REG
-                    .getAggregateFactory(of("bad_test_udaf"))
-                    .getFunction(singletonList(SqlTypes.STRING))
-                    .source
-                    .apply(AggregateFunctionInitArguments.EMPTY_ARGS)
-            ).aggregate("foo", 2L)
-    );
-
-    // Then:
-    assertThat(e6.getMessage(), containsString("A UDF attempted to call System.exit"));
-    System.setSecurityManager(manager);
-    assertEquals(System.getSecurityManager(), manager);
-  }
-
-  @Test
-  @SuppressWarnings({"rawtypes", "unchecked"})
-  public void shouldNotLetBadUdatsExitWithBadUnfo() {
-    // Given:
-    // We do need to set up the ExtensionSecurityManager for our test.
-    // This is controlled by a feature flag and in this test, we just directly enable it.
-    SecurityManager manager = System.getSecurityManager();
-    System.setSecurityManager(ExtensionSecurityManager.INSTANCE);
-
-    // When:
-    // This will exit via undo.
-    final Exception error = assertThrows(
-        SecurityException.class,
-        () ->
-            ((TableAggregationFunction) FUNC_REG
-                    .getAggregateFactory(of("bad_test_udaf"))
-                    .getFunction(singletonList(SqlTypes.BIGINT))
-                    .source
-                    .apply(AggregateFunctionInitArguments.EMPTY_ARGS)
-            ).undo(1L, 1L)
-    );
-
-    // Then:
-    assertThat(error.getMessage(), containsString("A UDF attempted to call System.exit"));
-    System.setSecurityManager(manager);
-    assertEquals(System.getSecurityManager(), manager);
-  }
-
-  @Test
-  public void shouldNotLetBadUdafsExitWithBadGetAggregateSqlType() {
-    // Given:
-    // We do need to set up the ExtensionSecurityManager for our test.
-    // This is controlled by a feature flag and in this test, we just directly enable it.
-    SecurityManager manager = System.getSecurityManager();
-    System.setSecurityManager(ExtensionSecurityManager.INSTANCE);
-
-    // When:
-    // This will exit due to a bad getAggregateSqlType.
-    final Exception error = assertThrows(
-        KsqlException.class,
-        () -> FUNC_REG
-                .getAggregateFactory(of("bad_test_udaf"))
-                .getFunction(singletonList(SqlTypes.array(SqlTypes.BIGINT)))
-                .source
-                .apply(AggregateFunctionInitArguments.EMPTY_ARGS)
-    );
-
-    // Then:
-    assertThat(error.getCause().getMessage(), containsString("A UDF attempted to call System.exit"));
-    System.setSecurityManager(manager);
-    assertEquals(System.getSecurityManager(), manager);
-  }
-
-  @Test
-  public void shouldNotLetBadUdafsExitWithBadGetReturnSqlType() {
-    // Given:
-    // We do need to set up the ExtensionSecurityManager for our test.
-    // This is controlled by a feature flag and in this test, we just directly enable it.
-    SecurityManager manager = System.getSecurityManager();
-    System.setSecurityManager(ExtensionSecurityManager.INSTANCE);
-
-    // When:
-    // This will exit due to a bad getReturnSqlType.
-    final Exception error = assertThrows(
-        KsqlException.class,
-        () -> FUNC_REG
-                .getAggregateFactory(of("bad_test_udaf"))
-                .getFunction(singletonList(SqlTypes.array(SqlTypes.BOOLEAN)))
-                .source
-                .apply(AggregateFunctionInitArguments.EMPTY_ARGS)
-    );
-
-    // Then:
-    assertThat(error.getCause().getMessage(), containsString("A UDF attempted to call System.exit"));
-    System.setSecurityManager(manager);
-    assertEquals(System.getSecurityManager(), manager);
   }
 
   @Test
@@ -937,7 +627,7 @@ public class UdfLoaderTest {
     // The tostring function is in the udf-example.jar that is found in src/test/resources
     final ImmutableMap<Object, Object> configMap
         = ImmutableMap.builder().put(KsqlConfig.KSQL_EXT_DIR, "src/test/resources")
-        .put(KsqlConfig.KSQL_UDF_SECURITY_MANAGER_ENABLED, false)
+
         .build();
     final KsqlConfig config
         = new KsqlConfig(configMap);
@@ -955,7 +645,7 @@ public class UdfLoaderTest {
   public void shouldNotThrowWhenExtDirDoesntExist() {
     final ImmutableMap<Object, Object> configMap
         = ImmutableMap.builder().put(KsqlConfig.KSQL_EXT_DIR, "foo/bar")
-        .put(KsqlConfig.KSQL_UDF_SECURITY_MANAGER_ENABLED, false)
+
         .build();
     final KsqlConfig config
         = new KsqlConfig(configMap);

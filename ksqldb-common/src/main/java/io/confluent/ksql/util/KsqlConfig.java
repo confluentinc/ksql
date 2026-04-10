@@ -248,7 +248,6 @@ public class KsqlConfig extends AbstractConfig {
   public static final String KSQL_STREAMS_PREFIX = "ksql.streams.";
 
   public static final String KSQL_COLLECT_UDF_METRICS = "ksql.udf.collect.metrics";
-  public static final String KSQL_UDF_SECURITY_MANAGER_ENABLED = "ksql.udf.enable.security.manager";
 
   public static final String KSQL_INSERT_INTO_VALUES_ENABLED = "ksql.insert.into.values.enabled";
 
@@ -1039,15 +1038,6 @@ public class KsqlConfig extends AbstractConfig {
             ConfigDef.Importance.MEDIUM,
             "The minimum number of insync replicas for the internal topics of KSQL server."
         ).define(
-            KSQL_UDF_SECURITY_MANAGER_ENABLED,
-            ConfigDef.Type.BOOLEAN,
-            // SecurityManager is deprecated from java 21 onwards.
-            false,
-            ConfigDef.Importance.LOW,
-            "Enable the security manager to stop UDFs from calling System.exit "
-                    + "or executing processes. Default is false as it is deprecated in Java 21. "
-                    + "This can be enabled only for Java versions less than 21."
-        ).define(
             KSQL_INSERT_INTO_VALUES_ENABLED,
             Type.BOOLEAN,
             true,
@@ -1703,6 +1693,8 @@ public class KsqlConfig extends AbstractConfig {
   private KsqlConfig(final ConfigGeneration generation, final Map<?, ?> props) {
     super(configDef(generation), props);
 
+    warnOnRemovedConfigs();
+
     final Map<String, Object> streamsConfigDefaults = new HashMap<>();
     streamsConfigDefaults.put(StreamsConfig.COMMIT_INTERVAL_MS_CONFIG, KsqlConstants
         .defaultCommitIntervalMsConfig);
@@ -1748,6 +1740,23 @@ public class KsqlConfig extends AbstractConfig {
         });
 
     return configs.build();
+  }
+
+  private void warnOnRemovedConfigs() {
+    final Object smEnabled = originals().get("ksql.udf.enable.security.manager");
+    if (smEnabled != null) {
+      if (Boolean.parseBoolean(smEnabled.toString())) {
+        throw new KsqlException(
+            "'ksql.udf.enable.security.manager' is no longer supported: "
+                + "the Java SecurityManager was removed in Java 17+. "
+                + "Remove this setting from your configuration.");
+      } else {
+        LOG.warn(
+            "'ksql.udf.enable.security.manager' is set but has been removed. "
+                + "The Java SecurityManager is no longer available. "
+                + "Please remove this setting from your configuration.");
+      }
+    }
   }
 
   private boolean getBooleanConfig(final String config, final boolean defaultValue) {

@@ -80,6 +80,13 @@ public class UserFunctionLoader {
     // load functions packaged as part of ksql first
     loadFunctions(parentClassLoader, empty());
     if (loadCustomerUdfs) {
+      LOGGER.warn(
+          "Custom UDFs/UDAFs/UDTFs are enabled ({}=true). Extension code runs in-process with "
+              + "no sandbox: a malicious or buggy UDF can call System.exit(), execute arbitrary "
+              + "processes, or access any data visible to the ksqlDB JVM. "
+              + "Only load extension JARs from trusted sources.",
+          KsqlConfig.KSQL_ENABLE_UDFS
+      );
       try {
         if (!pluginDir.exists() && !pluginDir.isDirectory()) {
           LOGGER.info(

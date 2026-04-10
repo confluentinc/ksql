@@ -98,7 +98,7 @@ public final class TimestampExtractionPolicyFactory {
               FailOnInvalidTimestamp.class
           );
 
-      return (TimestampExtractor) timestampExtractorClass.newInstance();
+      return (TimestampExtractor) timestampExtractorClass.getDeclaredConstructor().newInstance();
     } catch (final Exception e) {
       throw new KsqlException("Cannot override default timestamp extractor: " + e.getMessage(), e);
     }

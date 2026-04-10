@@ -29,7 +29,7 @@ import io.confluent.ksql.schema.ksql.SqlArgument;
 import io.confluent.ksql.schema.ksql.SqlTypeParser;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import io.confluent.ksql.security.ExtensionSecurityManager;
+
 import io.confluent.ksql.util.KsqlException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -103,7 +103,7 @@ public final class FunctionLoaderUtils {
       final String functionName
   ) {
     try {
-      return functionClass.newInstance();
+      return functionClass.getDeclaredConstructor().newInstance();
     } catch (final Exception e) {
       throw new KsqlException(
           "Failed to create instance for UDF/UDTF="
@@ -263,7 +263,6 @@ public final class FunctionLoaderUtils {
       final String functionName
   ) {
     try {
-      ExtensionSecurityManager.INSTANCE.pushInUdf();
       return (SqlType) m.invoke(instance, args);
     } catch (IllegalAccessException
         | InvocationTargetException e) {
@@ -271,8 +270,6 @@ public final class FunctionLoaderUtils {
               + "method %s for UDF %s. ",
           m.getName(), functionName
       ), e);
-    } finally {
-      ExtensionSecurityManager.INSTANCE.popOutUdf();
     }
   }
 }

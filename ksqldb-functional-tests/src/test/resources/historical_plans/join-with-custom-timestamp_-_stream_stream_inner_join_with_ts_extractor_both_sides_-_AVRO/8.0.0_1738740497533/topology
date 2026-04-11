@@ -1,0 +1,51 @@
+Topologies:
+   Sub-topology: 0
+    Source: KSTREAM-SOURCE-0000000000 (topics: [s1])
+      --> KSTREAM-PROCESSVALUES-0000000001
+    Source: KSTREAM-SOURCE-0000000003 (topics: [s2])
+      --> KSTREAM-PROCESSVALUES-0000000004
+    Processor: KSTREAM-PROCESSVALUES-0000000001 (stores: [])
+      --> PrependAliasLeft, KSTREAM-PEEK-0000000002
+      <-- KSTREAM-SOURCE-0000000000
+    Processor: KSTREAM-PROCESSVALUES-0000000004 (stores: [])
+      --> PrependAliasRight, KSTREAM-PEEK-0000000005
+      <-- KSTREAM-SOURCE-0000000003
+    Processor: PrependAliasLeft (stores: [])
+      --> Join-this-windowed
+      <-- KSTREAM-PROCESSVALUES-0000000001
+    Processor: PrependAliasRight (stores: [])
+      --> Join-other-windowed
+      <-- KSTREAM-PROCESSVALUES-0000000004
+    Processor: Join-other-windowed (stores: [KSTREAM-JOINOTHER-0000000009-store])
+      --> Join-other-join
+      <-- PrependAliasRight
+    Processor: Join-this-windowed (stores: [KSTREAM-JOINTHIS-0000000008-store])
+      --> Join-this-join
+      <-- PrependAliasLeft
+    Processor: Join-other-join (stores: [KSTREAM-JOINTHIS-0000000008-store])
+      --> Join-merge
+      <-- Join-other-windowed
+    Processor: Join-this-join (stores: [KSTREAM-JOINOTHER-0000000009-store])
+      --> Join-merge
+      <-- Join-this-windowed
+    Processor: Join-merge (stores: [])
+      --> Project, KSTREAM-PEEK-0000000011
+      <-- Join-this-join, Join-other-join
+    Processor: Project (stores: [])
+      --> ApplyTimestampTransform-S1_JOIN_S2
+      <-- Join-merge
+    Processor: ApplyTimestampTransform-S1_JOIN_S2 (stores: [])
+      --> KSTREAM-SINK-0000000012
+      <-- Project
+    Processor: KSTREAM-PEEK-0000000002 (stores: [])
+      --> none
+      <-- KSTREAM-PROCESSVALUES-0000000001
+    Processor: KSTREAM-PEEK-0000000005 (stores: [])
+      --> none
+      <-- KSTREAM-PROCESSVALUES-0000000004
+    Processor: KSTREAM-PEEK-0000000011 (stores: [])
+      --> none
+      <-- Join-merge
+    Sink: KSTREAM-SINK-0000000012 (topic: S1_JOIN_S2)
+      <-- ApplyTimestampTransform-S1_JOIN_S2
+

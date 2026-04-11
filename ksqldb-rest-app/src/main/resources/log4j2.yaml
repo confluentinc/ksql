@@ -1,0 +1,25 @@
+Configuration:
+  Appenders:
+    Console:
+      - name: stdout
+        target: SYSTEM_OUT
+        PatternLayout:
+          pattern: "[%d] %p %m (%c:%L)%n"
+      - name: console
+        target: SYSTEM_ERR
+        PatternLayout:
+          pattern: "%d{yy/MM/dd HH:mm:ss} %p %c{1}: %m%n"
+  Loggers:
+    Root:
+      level: WARN
+      AppenderRef:
+        - ref: stdout
+    Logger:
+      - name: io.confluent.ksql
+        level: INFO
+      - name: org.apache.kafka.clients.NetworkClient
+        level: ERROR
+      - name: io.confluent.ksql.logging.query.QueryLogger
+        level: DEBUG
+        AppenderRef:
+          - ref: console

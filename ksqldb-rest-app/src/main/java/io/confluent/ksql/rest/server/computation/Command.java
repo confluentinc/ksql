@@ -18,6 +18,7 @@ package io.confluent.ksql.rest.server.computation;
 import static java.util.Objects.requireNonNull;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.google.common.annotations.VisibleForTesting;
@@ -112,6 +113,10 @@ public class Command {
     return statement;
   }
 
+  /**
+   * Returns the overwrite properties for JSON serialization to command topic.
+   * This preserves the original values as they were stored.
+   */
   @JsonProperty("streamsProperties")
   @SuppressFBWarnings(
       value = "EI_EXPOSE_REP",
@@ -121,12 +126,38 @@ public class Command {
     return PropertiesUtil.coerceTypes(overwriteProperties, true);
   }
 
+  /**
+   * Returns the overwrite properties for runtime use, with legacy values migrated.
+   * This is what should be used when executing queries.
+   */
+  @JsonIgnore
+  public Map<String, Object> getOverwritePropertiesForExecution() {
+    final Map<String, Object> migrated = ConfigMigrator.migrateOverwriteProperties(
+        overwriteProperties
+    );
+    return PropertiesUtil.coerceTypes(migrated, true);
+  }
+
+  /**
+   * Returns the original properties for JSON serialization to command topic.
+   * This preserves the original values as they were stored.
+   */
+  @JsonProperty("originalProperties")
   @SuppressFBWarnings(
       value = "EI_EXPOSE_REP",
       justification = "originalProperties is unmodifiableMap()"
   )
   public Map<String, String> getOriginalProperties() {
     return originalProperties;
+  }
+
+  /**
+   * Returns the original properties for runtime use, with legacy values migrated.
+   * This is what should be used when executing queries or building configs.
+   */
+  @JsonIgnore
+  public Map<String, String> getOriginalPropertiesForExecution() {
+    return ConfigMigrator.migrateOriginalProperties(originalProperties);
   }
 
   public Optional<KsqlPlan> getPlan() {

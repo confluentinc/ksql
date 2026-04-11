@@ -54,13 +54,13 @@ import java.util.concurrent.Future;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 @SuppressWarnings({"checkstyle:ClassDataAbstractionCoupling", "checkstyle:CyclomaticComplexity"})
 public final class HARouting implements AutoCloseable {
 
-  private static final Logger LOG = LoggerFactory.getLogger(HARouting.class);
+  private static final Logger LOG = LogManager.getLogger(HARouting.class);
 
   private final ExecutorService coordinatorExecutorService;
   private final ExecutorService routerExecutorService;

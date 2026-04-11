@@ -85,7 +85,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
-import kafka.zookeeper.ZooKeeperClientException;
+import org.apache.kafka.raft.errors.RaftException;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.streams.StreamsConfig;
@@ -107,8 +107,8 @@ import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TemporaryFolder;
 import org.junit.rules.Timeout;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * Test to ensure pull queries route across multiple KSQL nodes correctly.
@@ -120,7 +120,7 @@ import org.slf4j.LoggerFactory;
 @Category({IntegrationTest.class})
 @Ignore
 public class PullQueryRoutingFunctionalTest {
-  private static final Logger LOG = LoggerFactory.getLogger(PullQueryRoutingFunctionalTest.class);
+  private static final Logger LOG = LogManager.getLogger(PullQueryRoutingFunctionalTest.class);
 
   private static final String USER_TOPIC = "user_topic_";
   private static final String USERS_STREAM = "users";
@@ -244,7 +244,7 @@ public class PullQueryRoutingFunctionalTest {
 
   @ClassRule
   public static final RuleChain CHAIN = RuleChain
-      .outerRule(Retry.of(3, ZooKeeperClientException.class, 3, TimeUnit.SECONDS))
+      .outerRule(Retry.of(3, RaftException.class, 3, TimeUnit.SECONDS))
       .around(TEST_HARNESS)
       .around(JAAS_CONFIG)
       .around(TMP);

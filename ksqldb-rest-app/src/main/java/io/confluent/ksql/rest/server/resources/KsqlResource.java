@@ -90,14 +90,14 @@ import java.util.regex.PatternSyntaxException;
 import org.apache.commons.io.FileUtils;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.state.HostInfo;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public class KsqlResource implements KsqlConfigurable {
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
-  private static final Logger LOG = LoggerFactory.getLogger(KsqlResource.class);
+  private static final Logger LOG = LogManager.getLogger(KsqlResource.class);
 
   private static final List<ParsedStatement> TERMINATE_CLUSTER =
       new DefaultKsqlParser().parse(TerminateCluster.TERMINATE_CLUSTER_STATEMENT_TEXT);

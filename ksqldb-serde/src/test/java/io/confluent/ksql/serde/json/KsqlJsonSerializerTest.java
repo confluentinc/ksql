@@ -35,6 +35,7 @@ import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import io.confluent.kafka.schemaregistry.json.JsonSchema;
+import io.confluent.kafka.schemaregistry.json.JsonSchemaProvider;
 import io.confluent.ksql.serde.connect.ConnectProperties;
 import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlConfig;
@@ -229,7 +230,8 @@ public class KsqlJsonSerializerTest {
   @Before
   public void before() {
     config = new KsqlConfig(ImmutableMap.of());
-    srClient = new MockSchemaRegistryClient();
+    srClient = new MockSchemaRegistryClient(ImmutableList.of(
+        new JsonSchemaProvider()));
   }
 
   @SuppressWarnings("unchecked")

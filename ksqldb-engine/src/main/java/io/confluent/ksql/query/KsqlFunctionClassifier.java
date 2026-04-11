@@ -20,15 +20,15 @@ import io.confluent.ksql.query.QueryError.Type;
 import java.util.Objects;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.kafka.streams.errors.StreamsException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * {@code KsqlFunctionClassifier} classifies ksql function exceptions as user error
  */
 public class KsqlFunctionClassifier implements QueryErrorClassifier {
 
-  private static final Logger LOG = LoggerFactory.getLogger(KsqlFunctionClassifier.class);
+  private static final Logger LOG = LogManager.getLogger(KsqlFunctionClassifier.class);
 
   private final String queryId;
 

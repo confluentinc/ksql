@@ -28,24 +28,20 @@ import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Objects;
 import java.util.Optional;
-import org.apache.kafka.streams.StreamsBuilder;
 
 public class ExecutionPlanBuilder {
 
-  private final StreamsBuilder builder;
   private final KsqlConfig ksqlConfig;
   private final ServiceContext serviceContext;
   private final ProcessingLogContext processingLogContext;
   private final FunctionRegistry functionRegistry;
 
   public ExecutionPlanBuilder(
-      final StreamsBuilder builder,
       final KsqlConfig ksqlConfig,
       final ServiceContext serviceContext,
       final ProcessingLogContext processingLogContext,
       final FunctionRegistry functionRegistry
   ) {
-    this.builder = Objects.requireNonNull(builder, "builder");
     this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
     this.serviceContext = Objects.requireNonNull(serviceContext, "serviceContext");
     this.processingLogContext = Objects.requireNonNull(

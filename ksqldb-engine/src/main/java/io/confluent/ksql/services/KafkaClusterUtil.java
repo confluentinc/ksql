@@ -33,11 +33,11 @@ import org.apache.kafka.common.acl.AclOperation;
 import org.apache.kafka.common.config.ConfigResource;
 import org.apache.kafka.common.errors.ClusterAuthorizationException;
 import org.apache.kafka.common.errors.UnsupportedVersionException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public final class KafkaClusterUtil {
-  private static final Logger LOG = LoggerFactory.getLogger(KafkaClusterUtil.class);
+  private static final Logger LOG = LogManager.getLogger(KafkaClusterUtil.class);
 
   private static final long DESCRIBE_CLUSTER_TIMEOUT_SECONDS = 30;
 

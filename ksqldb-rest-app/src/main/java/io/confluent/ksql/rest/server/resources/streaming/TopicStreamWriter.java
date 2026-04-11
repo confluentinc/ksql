@@ -35,12 +35,12 @@ import java.util.function.Predicate;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.utils.Bytes;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class TopicStreamWriter implements StreamingOutput {
 
-  private static final Logger log = LoggerFactory.getLogger(TopicStreamWriter.class);
+  private static final Logger log = LogManager.getLogger(TopicStreamWriter.class);
   private static final int WRITE_TIMEOUT_MS = 10 * 60000;
   private final long interval;
   private final Duration disconnectCheckInterval;

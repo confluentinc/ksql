@@ -21,8 +21,8 @@ writing the processing log to {{ site.ak }} and consuming it as ksqlDB stream.
 !!! important
 	The processing log is not for server logging, but rather for per-record
     logging on ksqlDB applications. If you want to configure an {{ site.ak }} appender
-    for the server logs, assign the `log4j.appender.kafka_appender.Topic`
-    and `log4j.logger.io.confluent.ksql` configuration settings in the ksqlDB
+    for the server logs, assign the `topic` attribute of `kafka_appender` under `Appenders`
+    and `io.confluent.ksql` under `Loggers` configuration settings in the ksqlDB
     Server config file. For more information, see
     [ksqlDB Server Log Settings](../../operate-and-deploy/installation/server-config/).
 
@@ -53,11 +53,11 @@ just like you configure the normal ksqlDB log.
 
 !!! important
     ksqlDB logs only error messages and doesn't use the log level from the
-    log4.properties file, which means that you can't change the log level of
+    log4j2.yaml file, which means that you can't change the log level of
     the processing log.
 
 - For local deployments, edit the
-[log4j.properties](https://github.com/confluentinc/ksql/blob/master/config/log4j.properties)
+[log4j2.yaml](https://github.com/confluentinc/ksql/blob/master/config/log4j2.yaml)
 config file to assign Log4J properties.
 - For Docker deployments, set the corresponding environment variables. For more
   information, see
@@ -71,12 +71,21 @@ Restart the ksqlDB Server for your configuration changes to take effect.
 The following example shows how to configure the processing log to emit all
 events at ERROR level or higher to an appender that writes to `stdout`:
 
-```properties
-log4j.appender.stdout=org.apache.log4j.ConsoleAppender
-log4j.appender.stdout.layout=org.apache.log4j.PatternLayout
-log4j.appender.stdout.layout.ConversionPattern=[%d] %p %m (%c:%L)%n
-log4j.logger.processing=ERROR, stdout
-log4j.additivity.processing=false
+```yaml
+Configuration:
+  Appenders:
+    Console:
+      name: stdout
+      target: SYSTEM_OUT
+      PatternLayout:
+        pattern: "[%d] %p %m (%c:%L)%n"
+  Loggers:
+    Logger:
+      - name: processing
+        level: error
+        additivity: false
+        AppenderRef:
+          - ref: stdout
 ```
 
 If you're using a Docker deployment, set the following environment variables
@@ -84,15 +93,15 @@ in your docker-compose.yml:
 
 ```properties
 environment:
-    # --- ksqlDB Server log config ---
-    KSQL_LOG4J_ROOT_LOGLEVEL: "ERROR"
-    KSQL_LOG4J_LOGGERS: "org.apache.kafka.connect.runtime.rest=WARN,org.reflections=ERROR"
-    # --- ksqlDB processing log config ---
-    KSQL_LOG4J_PROCESSING_LOG_BROKERLIST: kafka:29092
-    KSQL_LOG4J_PROCESSING_LOG_TOPIC: <ksql-processing-log-topic-name>
-    KSQL_KSQL_LOGGING_PROCESSING_TOPIC_NAME: <ksql-processing-log-topic-name>
-    KSQL_KSQL_LOGGING_PROCESSING_TOPIC_AUTO_CREATE: "true"
-    KSQL_KSQL_LOGGING_PROCESSING_STREAM_AUTO_CREATE: "true"
+# --- ksqlDB Server log config ---
+KSQL_LOG4J_ROOT_LOGLEVEL: "ERROR"
+KSQL_LOG4J_LOGGERS: "org.apache.kafka.connect.runtime.rest=WARN,org.reflections=ERROR"
+# --- ksqlDB processing log config ---
+KSQL_LOG4J_PROCESSING_LOG_BROKERLIST: kafka:29092
+KSQL_LOG4J_PROCESSING_LOG_TOPIC: <ksql-processing-log-topic-name>
+KSQL_KSQL_LOGGING_PROCESSING_TOPIC_NAME: <ksql-processing-log-topic-name>
+KSQL_KSQL_LOGGING_PROCESSING_TOPIC_AUTO_CREATE: "true"
+KSQL_KSQL_LOGGING_PROCESSING_STREAM_AUTO_CREATE: "true"
 ```
 
 If the cluster in the BROKERLIST is secured, additional Log4j configurations
@@ -100,20 +109,53 @@ are required. These don't have corresponding Docker variables, so a custom
 Log4j file is required.
 
 In addition to the standard configuration properties for topic name and broker
-list for the `KafkaLog4jAppender`, here's a list of additional settings that
+list for the `KafkaAppender`, here's a list of additional settings that
 you can provide optionally to authenticate with a secure {{ site.ak }} cluster.
 
-- `log4j.appender.kafka_appender.SecurityProtocol`
-- `log4j.appender.kafka_appender.SslTrustStoreLocation`
-- `log4j.appender.kafka_appender.SslTrustStorePassword`
-- `log4j.appender.kafka_appender.SslKeystoreType`
-- `log4j.appender.kafka_appender.SslKeystoreLocation`
-- `log4j.appender.kafka_appender.SslKeystorePassword`
-- `log4j.appender.kafka_appender.SaslKerberosServiceName`
-- `log4j.appender.kafka_appender.SaslMechanism`
-- `log4j.appender.kafka_appender.ClientJaasConfigPath`
-- `log4j.appender.kafka_appender.ClientJaasConf`
-- `log4j.appender.kafka_appender.Kerb5ConfPath`
+```yaml
+Configuration:
+  Appenders:
+    Kafka:
+      name: kafka_appender
+      topic: <kafka topic>
+      StructuredJsonLayout:
+        Property:
+          - name: schemas.enable
+            value: false
+      Property:
+        - name: bootstrap.servers
+          value: <list of kafka brokers>
+        - name: security.protocol
+          value: <security protocol>
+        - name: ssl.truststore.location
+          value: <trust store location>
+        - name: ssl.truststore.password
+          value: <trust store password>
+        - name: ssl.keystore.type
+          value: <keystore type>
+        - name: ssl.keystore.location
+          value: <keystore location>
+        - name: ssl.keystore.password
+          value: <keystore password>
+        - name: sasl.kerberos.service.name
+          value: <kerberos service name>
+        - name: sasl.mechanism
+          value: <sasl mechanism>
+        - name: sasl.jaas.config
+          value: <jaas config>
+        - name: java.security.krb5.conf
+          value: <kerberos config path>
+  Loggers:
+    Logger:
+      - name: processing
+        level: error
+        additivity: false
+        AppenderRef:
+          - ref: kafka_appender
+```
+
+In conclusion any kafka producer properties, except `value.serializer` and
+`key.serializer` can be provided to `KafkaAppender` properties.
 
 Only properties that are relevant to your {{ site.ak }} cluster's security
 configuration need to be specified. For an example of configuring the processing
@@ -122,9 +164,7 @@ log to produce to a {{ site.ak }} cluster secured with mTLS, see the example in
 
 !!! note
 
-    The `KafkaLog4jAppender` doesn't provide the option of specifying SASL
-    login callback handlers, so SASL/OAUTHBEARER authentication, whichtypically
-    requires a login callback handler, is not a valid option.
+    Do not set the value.serializer nor key.serializer properties.
 
 For more information, see
 [Create a log4J configuration](https://developer.confluent.io/tutorials/handling-deserialization-errors/ksql.html#create-a-log4j-configuration)
@@ -157,11 +197,13 @@ as shown in the previous example, to ensure that processing log events are not
 forwarded to appenders configured for the other ksqlDB loggers.
 
 You can disable the log completely by setting the level to `OFF` in the
-[log4j.properties](https://github.com/confluentinc/ksql/blob/master/config/log4j.properties)
+[log4j2.yaml](https://github.com/confluentinc/ksql/blob/master/config/log4j2.yaml)
 file:
 
-```properties
-log4j.logger.processing=OFF
+```yaml
+    Logger:
+      - name: processing
+        level: off
 ```
 
 !!! note
@@ -306,12 +348,26 @@ topic automatically.
 To log to Kafka, set up a Kafka appender and a special layout for
 formatting the log entries as JSON:
 
-```properties
-log4j.appender.kafka_appender=org.apache.kafka.log4jappender.KafkaLog4jAppender
-log4j.appender.kafka_appender.layout=io.confluent.common.logging.log4j.StructuredJsonLayout
-log4j.appender.kafka_appender.BrokerList=<list of kafka brokers>
-log4j.appender.kafka_appender.Topic=<kafka topic>
-log4j.logger.processing=ERROR, kafka_appender
+```yaml
+Configuration:
+  Appenders:
+    Kafka:
+      name: kafka_appender
+      topic: <kafka topic>
+      StructuredJsonLayout:
+        Property:
+          - name: schemas.enable
+            value: false
+      Property:
+        - name: bootstrap.servers
+          value: <list of kafka brokers>
+  Loggers:
+    Logger:
+      - name: processing
+        level: error
+        additivity: false
+        AppenderRef:
+          - ref: kafka_appender
 ```
 
 The `list of kafka brokers` setting is a comma-separated list of brokers

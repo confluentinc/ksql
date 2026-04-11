@@ -21,14 +21,14 @@ import java.util.concurrent.ExecutionException;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import org.apache.kafka.common.errors.RetriableException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public final class ExecutorUtil {
 
   private static final int NUM_RETRIES = 5;
   private static final Duration RETRY_BACKOFF_MS = Duration.ofMillis(500);
-  private static final Logger log = LoggerFactory.getLogger(ExecutorUtil.class);
+  private static final Logger log = LogManager.getLogger(ExecutorUtil.class);
 
   private ExecutorUtil() {
   }

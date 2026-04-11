@@ -48,7 +48,7 @@ public class PlannedTestsUpToDateTest {
   public static Collection<Object[]> data() {
     return QueryTranslationTest.findTestCases()
         .filter(PlannedTestUtils::isPlannedTestCase)
-        .filter(PlannedTestUtils::isNotExcluded)
+        .filter(PlannedTestUtils::isIncluded)
         .map(testCase -> new Object[]{testCase.getName(), testCase})
         .collect(Collectors.toList());
   }
@@ -85,7 +85,7 @@ public class PlannedTestsUpToDateTest {
   @Test
   public void shouldHaveLatestPlans() {
     final Optional<TestCasePlan> latest = TestCasePlanLoader.latestForTestCase(testCase);
-    final TestCasePlan current = TestCasePlanLoader.currentForTestCase(testCase);
+    final TestCasePlan current = TestCasePlanLoader.currentForTestCase(testCase, true);
     assertThat(
         "Current query plan differs from latest for: " + testCase.getName() + ". "
             + System.lineSeparator()

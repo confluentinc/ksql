@@ -1,4 +1,8 @@
-# ksqlDB Documentation
+# ksqlDB Documentation (deprecated)
+
+As of 29 October 2024, this documentation has been retired.
+
+Redirects have been implemented to the main Confluent documentation site at https://docs.confluent.io/platform/current/ksqldb. Going forward, all ksqlDB documentation updates will occur at this location.
 
 Source content for ksqlDB documentation
 =======================================

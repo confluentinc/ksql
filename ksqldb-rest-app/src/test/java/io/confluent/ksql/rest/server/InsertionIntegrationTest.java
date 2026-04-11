@@ -23,12 +23,12 @@ import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
-import kafka.zookeeper.ZooKeeperClientException;
+import org.apache.kafka.raft.errors.RaftException;
 import org.junit.*;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.util.*;
 import java.util.concurrent.TimeUnit;
@@ -39,7 +39,7 @@ import static org.hamcrest.Matchers.*;
 @Category({IntegrationTest.class})
 public class InsertionIntegrationTest {
 
-  private static final Logger LOG = LoggerFactory.getLogger(InsertionIntegrationTest.class);
+  private static final Logger LOG = LogManager.getLogger(InsertionIntegrationTest.class);
   private static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.build();
   private  static final String SIMPLE_TOPIC = "simple_topic";
   private  static final String EVOLVING_TOPIC = "evolving_topic";
@@ -66,7 +66,7 @@ public class InsertionIntegrationTest {
 
   @ClassRule
   public static final RuleChain CHAIN = RuleChain
-      .outerRule(Retry.of(3, ZooKeeperClientException.class, 3, TimeUnit.SECONDS))
+      .outerRule(Retry.of(3, RaftException.class, 3, TimeUnit.SECONDS))
       .around(TEST_HARNESS)
       .around(REST_APP);
 

@@ -189,6 +189,13 @@
           <parallel>classes</parallel>
           <useUnlimitedThreads>true</useUnlimitedThreads>
           <argLine>-Duser.timezone=UTC -Xmx1500m -Xms1500m</argLine>
+          <includes>
+            <include>**/Test*.java</include>
+            <include>**/*Test.java</include>
+            <include>**/*Tests.java</include>
+            <include>**/*TestCase.java</include>
+            <include>**/*Batch*.java</include>
+          </includes>
         </configuration>
       </plugin>
       <plugin>

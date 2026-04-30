@@ -25,11 +25,12 @@ import java.io.IOException;
 import java.util.Collections;
 
 import io.confluent.ksql.security.oauth.exceptions.KsqlOAuthTokenRetrieverException;
+import org.apache.kafka.common.security.oauthbearer.JwtRetriever;
+import org.apache.kafka.common.security.oauthbearer.JwtRetrieverException;
+import org.apache.kafka.common.security.oauthbearer.JwtValidator;
+import org.apache.kafka.common.security.oauthbearer.JwtValidatorException;
 import org.apache.kafka.common.security.oauthbearer.OAuthBearerToken;
-import org.apache.kafka.common.security.oauthbearer.internals.secured.AccessTokenRetriever;
-import org.apache.kafka.common.security.oauthbearer.internals.secured.AccessTokenValidator;
 import org.apache.kafka.common.security.oauthbearer.internals.secured.BasicOAuthBearerToken;
-import org.apache.kafka.common.security.oauthbearer.internals.secured.ValidateException;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -44,10 +45,10 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class CachedOAuthTokenRetrieverTest {
 
   @Mock
-  AccessTokenRetriever accessTokenRetriever;
+  JwtRetriever accessTokenRetriever;
 
   @Mock
-  AccessTokenValidator accessTokenValidator;
+  JwtValidator accessTokenValidator;
 
   @Mock(answer = Answers.RETURNS_DEEP_STUBS)
   OAuthTokenCache oauthTokenCache;
@@ -123,7 +124,7 @@ public class CachedOAuthTokenRetrieverTest {
     when(oauthTokenCache.isTokenExpired()).thenReturn(true);
     // Test whether IO exception is handled first when token retrieval,
     // then test whether Validation exception is handled when token validation
-    when(accessTokenRetriever.retrieve()).thenThrow(new IOException(ioError))
+    when(accessTokenRetriever.retrieve()).thenThrow(new JwtRetrieverException(ioError))
         .thenReturn(tokenString1);
 
     Assert.assertThrows(ioError, KsqlOAuthTokenRetrieverException.class, () -> {
@@ -132,7 +133,7 @@ public class CachedOAuthTokenRetrieverTest {
 
     String validationError = "Malformed JWT provided";
     when(accessTokenValidator.validate(tokenString1)).thenThrow(
-        new ValidateException(validationError));
+        new JwtValidatorException(validationError));
     Assert.assertThrows(validationError, KsqlOAuthTokenRetrieverException.class, () -> {
       cachedOAuthTokenRetriever.getToken();
     });

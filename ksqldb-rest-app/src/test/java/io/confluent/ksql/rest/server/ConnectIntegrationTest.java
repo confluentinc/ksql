@@ -116,6 +116,7 @@ public class ConnectIntegrationTest {
         .put("offset.storage.replication.factor", "1")
         .put("status.storage.replication.factor", "1")
         .put("config.storage.replication.factor", "1")
+        .put("confluent.topic.replication.factor", "1")
         .put("value.converter.schemas.enable", "false")
         .build()
     );

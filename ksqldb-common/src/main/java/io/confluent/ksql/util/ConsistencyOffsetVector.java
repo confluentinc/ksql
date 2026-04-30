@@ -18,6 +18,8 @@ package io.confluent.ksql.util;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.google.common.collect.ImmutableMap;
@@ -154,7 +156,20 @@ public class ConsistencyOffsetVector {
   public static ConsistencyOffsetVector deserialize(final String token) {
     try {
       final byte[] bytes = Base64.getDecoder().decode(token);
-      return OBJECT_MAPPER.readValue(bytes, ConsistencyOffsetVector.class);
+      final JsonNode rootNode = OBJECT_MAPPER.readTree(bytes);
+
+      // Extract version
+      final int version = rootNode.path("version").asInt();
+
+      // Directly deserialize the nested map structure into the required concurrent map
+      final ConcurrentHashMap<String, ConcurrentHashMap<Integer, Long>> concurrentOffsetVector =
+              OBJECT_MAPPER.readValue(
+                      rootNode.path("offsetVector").toString(),
+                      new TypeReference<>() {}
+              );
+
+      // Create instance with proper types
+      return new ConsistencyOffsetVector(version, concurrentOffsetVector);
     } catch (Exception e) {
       throw new KsqlException("Couldn't decode consistency token", e);
     }

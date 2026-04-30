@@ -51,6 +51,8 @@ public final class WindowStoreCacheBypass {
   private static final Field WINDOW_STORE_TYPE_FIELD;
   static final Field SERDES_FIELD;
   private static final Field GENERIC_WINDOW_FACADE_INNER_FIELD;
+  private static final Function<ValueTimestampHeaders<GenericRow>, ValueAndTimestamp<GenericRow>>
+      EXTRACT_VALUE_AND_TIMESTAMP = ValueConverters.extractValueAndTimestampFromHeaders();
   private static final String STORE_UNAVAILABLE_MESSAGE = "State store is not available anymore "
           + "and may have been migrated to another instance; "
           + "please re-discover its location from the state metadata.";
@@ -138,18 +140,12 @@ public final class WindowStoreCacheBypass {
       final Instant lower,
       final Instant upper
   ) {
-    final Function<Object, ValueAndTimestamp<GenericRow>> valueConverter
-        = getWindowValueConverter(windowStore);
-    final ReadOnlyWindowStore<GenericKey, ValueAndTimestamp<GenericRow>> unwrapped
-        = unwrapWindowFacade(windowStore);
-    if (!(unwrapped instanceof MeteredWindowStore)) {
-      throw new IllegalStateException("Expecting a MeteredWindowStore");
-    }
+    final MeteredWindowStore<GenericKey, ?> unwrapped = unwrapToMeteredWindowStore(windowStore);
     final StateSerdes<GenericKey, ?> serdes = getSerdes(unwrapped);
     final WindowStore<Bytes, byte[]> wrapped = getInnermostStore(unwrapped);
     final Bytes rawKey = Bytes.wrap(serdes.rawKey(key, new RecordHeaders()));
     final WindowStoreIterator<byte[]> fetch = wrapped.fetch(rawKey, lower, upper);
-    return new DeserializingIterator(fetch, serdes, valueConverter);
+    return new DeserializingIterator(fetch, serdes);
   }
 
   /*
@@ -183,20 +179,14 @@ public final class WindowStoreCacheBypass {
           final Instant lower,
           final Instant upper
   ) {
-    final Function<Object, ValueAndTimestamp<GenericRow>> valueConverter
-        = getWindowValueConverter(windowStore);
-    final ReadOnlyWindowStore<GenericKey, ValueAndTimestamp<GenericRow>> unwrapped
-        = unwrapWindowFacade(windowStore);
-    if (!(unwrapped instanceof MeteredWindowStore)) {
-      throw new IllegalStateException("Expecting a MeteredWindowStore");
-    }
+    final MeteredWindowStore<GenericKey, ?> unwrapped = unwrapToMeteredWindowStore(windowStore);
     final StateSerdes<GenericKey, ?> serdes = getSerdes(unwrapped);
     final WindowStore<Bytes, byte[]> wrapped = getInnermostStore(unwrapped);
     final Bytes rawKeyFrom = Bytes.wrap(serdes.rawKey(keyFrom, new RecordHeaders()));
     final Bytes rawKeyTo = Bytes.wrap(serdes.rawKey(keyTo, new RecordHeaders()));
     final KeyValueIterator<Windowed<Bytes>, byte[]> fetch = wrapped
             .fetch(rawKeyFrom, rawKeyTo, lower, upper);
-    return new DeserializingKeyValueIterator(fetch, serdes, valueConverter);
+    return new DeserializingKeyValueIterator(fetch, serdes);
   }
 
   /*
@@ -224,17 +214,11 @@ public final class WindowStoreCacheBypass {
           final Instant lower,
           final Instant upper
   ) {
-    final Function<Object, ValueAndTimestamp<GenericRow>> valueConverter
-        = getWindowValueConverter(windowStore);
-    final ReadOnlyWindowStore<GenericKey, ValueAndTimestamp<GenericRow>> unwrapped
-        = unwrapWindowFacade(windowStore);
-    if (!(unwrapped instanceof MeteredWindowStore)) {
-      throw new IllegalStateException("Expecting a MeteredWindowStore");
-    }
+    final MeteredWindowStore<GenericKey, ?> unwrapped = unwrapToMeteredWindowStore(windowStore);
     final StateSerdes<GenericKey, ?> serdes = getSerdes(unwrapped);
     final WindowStore<Bytes, byte[]> wrapped = getInnermostStore(unwrapped);
     final KeyValueIterator<Windowed<Bytes>, byte[]> fetch = wrapped.fetchAll(lower, upper);
-    return new DeserializingKeyValueIterator(fetch, serdes, valueConverter);
+    return new DeserializingKeyValueIterator(fetch, serdes);
   }
 
   @SuppressWarnings("unchecked")
@@ -261,35 +245,20 @@ public final class WindowStoreCacheBypass {
   }
 
   @SuppressWarnings("unchecked")
-  private static ReadOnlyWindowStore<GenericKey, ValueAndTimestamp<GenericRow>> unwrapWindowFacade(
+  private static MeteredWindowStore<GenericKey, ?> unwrapToMeteredWindowStore(
       final ReadOnlyWindowStore<GenericKey, ValueAndTimestamp<GenericRow>> windowStore
   ) {
-    if (windowStore instanceof GenericReadOnlyWindowStoreFacade) {
-      try {
-        return (ReadOnlyWindowStore<GenericKey, ValueAndTimestamp<GenericRow>>)
-            GENERIC_WINDOW_FACADE_INNER_FIELD.get(windowStore);
-      } catch (final IllegalAccessException e) {
-        throw new RuntimeException("Stream internals changed unexpectedly!", e);
-      }
+    try {
+      return (MeteredWindowStore<GenericKey, ?>)
+          GENERIC_WINDOW_FACADE_INNER_FIELD.get(windowStore);
+    } catch (final IllegalAccessException e) {
+      throw new RuntimeException("Stream internals changed unexpectedly!", e);
     }
-    return windowStore;
-  }
-
-  @SuppressWarnings("unchecked")
-  private static Function<Object, ValueAndTimestamp<GenericRow>> getWindowValueConverter(
-      final ReadOnlyWindowStore<GenericKey, ValueAndTimestamp<GenericRow>> windowStore
-  ) {
-    if (windowStore instanceof GenericReadOnlyWindowStoreFacade) {
-      final Function<ValueTimestampHeaders<GenericRow>, ValueAndTimestamp<GenericRow>> converter
-          = ValueConverters.extractValueAndTimestampFromHeaders();
-      return x -> converter.apply((ValueTimestampHeaders<GenericRow>) x);
-    }
-    return x -> (ValueAndTimestamp<GenericRow>) x;
   }
 
   @SuppressWarnings("unchecked")
   private static StateSerdes<GenericKey, ?> getSerdes(
-          final ReadOnlyWindowStore<GenericKey, ValueAndTimestamp<GenericRow>> windowStore
+          final MeteredWindowStore<GenericKey, ?> windowStore
   ) throws RuntimeException {
     try {
       return (StateSerdes<GenericKey, ?>) SERDES_FIELD.get(windowStore);
@@ -300,11 +269,9 @@ public final class WindowStoreCacheBypass {
 
   @SuppressWarnings("unchecked")
   private static WindowStore<Bytes, byte[]> getInnermostStore(
-          final ReadOnlyWindowStore<GenericKey, ValueAndTimestamp<GenericRow>> windowStore
+          final MeteredWindowStore<GenericKey, ?> windowStore
   ) {
-    WindowStore<Bytes, byte[]> wrapped
-            = ((MeteredWindowStore<GenericKey, ValueAndTimestamp<GenericRow>>) windowStore)
-            .wrapped();
+    WindowStore<Bytes, byte[]> wrapped = windowStore.wrapped();
     // Unwrap state stores until we get to the last WindowStore, which is past the caching
     // layer.
     while (wrapped instanceof WrappedStateStore) {
@@ -344,15 +311,12 @@ public final class WindowStoreCacheBypass {
           implements KeyValueIterator<Windowed<GenericKey>, ValueAndTimestamp<GenericRow>> {
     private final KeyValueIterator<Windowed<Bytes>, byte[]> fetch;
     private final StateSerdes<GenericKey, ?> serdes;
-    private final Function<Object, ValueAndTimestamp<GenericRow>> valueConverter;
 
     private DeserializingKeyValueIterator(
             final KeyValueIterator<Windowed<Bytes>, byte[]> fetch,
-            final StateSerdes<GenericKey, ?> serdes,
-            final Function<Object, ValueAndTimestamp<GenericRow>> valueConverter) {
+            final StateSerdes<GenericKey, ?> serdes) {
       this.fetch = fetch;
       this.serdes = serdes;
-      this.valueConverter = valueConverter;
     }
 
     @Override
@@ -371,12 +335,15 @@ public final class WindowStoreCacheBypass {
       return fetch.hasNext();
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     public KeyValue<Windowed<GenericKey>, ValueAndTimestamp<GenericRow>> next() {
       final KeyValue<Windowed<Bytes>, byte[]> next = fetch.next();
       final Windowed<GenericKey> windowedKey = new Windowed<>(
               serdes.keyFrom(next.key.key().get()), next.key.window());
-      return KeyValue.pair(windowedKey, valueConverter.apply(serdes.valueFrom(next.value)));
+      final ValueTimestampHeaders<GenericRow> vth =
+          (ValueTimestampHeaders<GenericRow>) serdes.valueFrom(next.value);
+      return KeyValue.pair(windowedKey, EXTRACT_VALUE_AND_TIMESTAMP.apply(vth));
     }
   }
 
@@ -387,15 +354,12 @@ public final class WindowStoreCacheBypass {
           implements WindowStoreIterator<ValueAndTimestamp<GenericRow>> {
     private final WindowStoreIterator<byte[]> fetch;
     private final StateSerdes<GenericKey, ?> serdes;
-    private final Function<Object, ValueAndTimestamp<GenericRow>> valueConverter;
 
     private DeserializingIterator(
             final WindowStoreIterator<byte[]> fetch,
-            final StateSerdes<GenericKey, ?> serdes,
-            final Function<Object, ValueAndTimestamp<GenericRow>> valueConverter) {
+            final StateSerdes<GenericKey, ?> serdes) {
       this.fetch = fetch;
       this.serdes = serdes;
-      this.valueConverter = valueConverter;
     }
 
     @Override
@@ -413,10 +377,13 @@ public final class WindowStoreCacheBypass {
       return fetch.hasNext();
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     public KeyValue<Long, ValueAndTimestamp<GenericRow>> next() {
       final KeyValue<Long, byte[]> next = fetch.next();
-      return KeyValue.pair(next.key, valueConverter.apply(serdes.valueFrom(next.value)));
+      final ValueTimestampHeaders<GenericRow> vth =
+          (ValueTimestampHeaders<GenericRow>) serdes.valueFrom(next.value);
+      return KeyValue.pair(next.key, EXTRACT_VALUE_AND_TIMESTAMP.apply(vth));
     }
   }
 

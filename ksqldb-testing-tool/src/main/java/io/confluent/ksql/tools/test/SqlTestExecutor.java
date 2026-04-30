@@ -84,8 +84,10 @@ import io.confluent.ksql.util.QueryMetadata;
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.Method;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -96,10 +98,15 @@ import java.util.stream.Collectors;
 import org.apache.commons.io.FileUtils;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.Serde;
+import org.apache.kafka.common.utils.Bytes;
 import org.apache.kafka.streams.KafkaClientSupplier;
+import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.TopologyTestDriver;
+import org.apache.kafka.streams.processor.StateStore;
+import org.apache.kafka.streams.state.KeyValueIterator;
+import org.apache.kafka.streams.state.KeyValueStore;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -129,6 +136,7 @@ public class SqlTestExecutor implements Closeable {
   private Path tmpFolder;
   private final Map<String, Object> overrides;
   private final Map<QueryId, DriverAndProperties> drivers;
+  private final Map<QueryId, Map<String, List<KeyValue<Bytes, byte[]>>>> savedStates;
 
   // populated during execution to handle the expected exception
   // scenario - don't use Matchers because they do not create very
@@ -160,6 +168,7 @@ public class SqlTestExecutor implements Closeable {
         new StubKafkaConsumerGroupClient()
     );
     final Map<QueryId, DriverAndProperties> drivers = new HashMap<>();
+    final Map<QueryId, Map<String, List<KeyValue<Bytes, byte[]>>>> savedStates = new HashMap<>();
     final KsqlConfig config = new KsqlConfig(BASE_CONFIG);
 
     return new SqlTestExecutor(
@@ -179,6 +188,14 @@ public class SqlTestExecutor implements Closeable {
                     final DriverAndProperties driverAndProperties = drivers.get(
                         query.getQueryId()
                     );
+                    // Capture state from the closing driver. In Kafka Streams 8.3+
+                    // RocksDBStore.flush() and StateStore.flush() are no-ops, and
+                    // memtable contents never reach disk for small datasets, so the
+                    // existing copy-state-dir hack below preserves no actual data.
+                    // We hand the data across to the next driver in-process instead.
+                    savedStates.put(
+                        query.getQueryId(),
+                        captureStoreContents(driverAndProperties.driver));
                     closeDriver(
                         driverAndProperties.driver,
                         driverAndProperties.properties,
@@ -192,6 +209,7 @@ public class SqlTestExecutor implements Closeable {
         ),
         config,
         drivers,
+        savedStates,
         tmpFolder
     );
   }
@@ -202,6 +220,7 @@ public class SqlTestExecutor implements Closeable {
       final KsqlEngine ksqlEngine,
       final KsqlConfig config,
       final Map<QueryId, DriverAndProperties> drivers,
+      final Map<QueryId, Map<String, List<KeyValue<Bytes, byte[]>>>> savedStates,
       final Path tmpFolder
   ) {
     this.serviceContext = requireNonNull(serviceContext, "serviceContext");
@@ -212,6 +231,7 @@ public class SqlTestExecutor implements Closeable {
     this.topicClient = requireNonNull(topicClient, "topicClient");
     this.overrides = new HashMap<>();
     this.drivers = drivers;
+    this.savedStates = savedStates;
     this.tmpFolder = requireNonNull(tmpFolder, "tmpFolder");
   }
 
@@ -315,6 +335,14 @@ public class SqlTestExecutor implements Closeable {
 
     driverPipeline.addDriver(driver, inputTopics, outputInfo);
     drivers.put(query.getQueryId(), new DriverAndProperties(driver, properties));
+
+    // CREATE OR REPLACE: re-inject the state captured from the previous incarnation
+    // of this query. See captureStoreContents for the rationale.
+    final Map<String, List<KeyValue<Bytes, byte[]>>> saved =
+        savedStates.remove(query.getQueryId());
+    if (saved != null) {
+      restoreStoreContents(driver, saved);
+    }
   }
 
   private void pipeInput(final ConfiguredStatement<InsertValues> statement) {
@@ -437,6 +465,95 @@ public class SqlTestExecutor implements Closeable {
       this.driver = driver;
       this.properties = properties;
     }
+  }
+
+  /**
+   * Capture the contents of every persistent KeyValue state store on the driver as raw
+   * (byte-key, byte-value) pairs.
+   *
+   * <p>In Kafka Streams 8.3+ {@code StateStore.flush()} became a default no-op (and
+   * {@code RocksDBStore} no longer overrides it), and RocksDB's WAL is disabled, so for
+   * small datasets the test driver's state lives entirely in the memtable and never
+   * reaches disk. The pre-existing copy-state-dir hack in {@link #closeDriver} below
+   * therefore preserves only RocksDB metadata (no SST files, no actual rows) — which is
+   * fine for releasing/rotating the state-directory file lock so the next driver can
+   * take it, but does not preserve aggregation state across {@code CREATE OR REPLACE}.
+   * We capture rows here and re-inject them into the new driver's stores in
+   * {@link #execute} via {@link #restoreStoreContents}.
+   */
+  private static Map<String, List<KeyValue<Bytes, byte[]>>> captureStoreContents(
+      final TopologyTestDriver driver
+  ) {
+    final Map<String, List<KeyValue<Bytes, byte[]>>> snapshot = new HashMap<>();
+    for (final Map.Entry<String, StateStore> e : driver.getAllStateStores().entrySet()) {
+      final List<KeyValue<Bytes, byte[]>> rows = captureRocksStore(e.getValue());
+      if (rows != null) {
+        snapshot.put(e.getKey(), rows);
+      }
+    }
+    return snapshot;
+  }
+
+  @SuppressWarnings("unchecked")
+  private static List<KeyValue<Bytes, byte[]>> captureRocksStore(final StateStore store) {
+    final Object inner = unwrapToBytesKv(store);
+    if (!(inner instanceof KeyValueStore)) {
+      return null;
+    }
+    final KeyValueStore<Bytes, byte[]> bytesStore = (KeyValueStore<Bytes, byte[]>) inner;
+    final List<KeyValue<Bytes, byte[]>> rows = new ArrayList<>();
+    try (KeyValueIterator<Bytes, byte[]> it = bytesStore.all()) {
+      while (it.hasNext()) {
+        final KeyValue<Bytes, byte[]> kv = it.next();
+        rows.add(KeyValue.pair(kv.key, kv.value));
+      }
+    }
+    return rows;
+  }
+
+  @SuppressWarnings("unchecked")
+  private static void restoreStoreContents(
+      final TopologyTestDriver driver,
+      final Map<String, List<KeyValue<Bytes, byte[]>>> snapshot
+  ) {
+    final Map<String, StateStore> stores = driver.getAllStateStores();
+    for (final Map.Entry<String, List<KeyValue<Bytes, byte[]>>> e : snapshot.entrySet()) {
+      final StateStore store = stores.get(e.getKey());
+      if (store == null) {
+        continue;
+      }
+      final Object inner = unwrapToBytesKv(store);
+      if (!(inner instanceof KeyValueStore)) {
+        continue;
+      }
+      final KeyValueStore<Bytes, byte[]> bytesStore = (KeyValueStore<Bytes, byte[]>) inner;
+      for (final KeyValue<Bytes, byte[]> kv : e.getValue()) {
+        bytesStore.put(kv.key, kv.value);
+      }
+    }
+  }
+
+  /**
+   * Walk the {@code WrappedStateStore.wrapped()} chain until we hit a store whose key
+   * type is {@code Bytes}, i.e. the lowest byte-level wrapper above (or equal to)
+   * {@code RocksDBStore}. Returns null if no such store is reachable.
+   */
+  private static Object unwrapToBytesKv(final StateStore store) {
+    Object current = store;
+    for (int depth = 0; current != null && depth < 20; depth++) {
+      final String cls = current.getClass().getName();
+      if (cls.equals("org.apache.kafka.streams.state.internals.RocksDBStore")
+          || cls.endsWith(".RocksDBTimestampedStore")) {
+        return current;
+      }
+      try {
+        final Method wrapped = current.getClass().getMethod("wrapped");
+        current = wrapped.invoke(current);
+      } catch (final ReflectiveOperationException ex) {
+        return null;
+      }
+    }
+    return null;
   }
 
   private static void closeDriver(

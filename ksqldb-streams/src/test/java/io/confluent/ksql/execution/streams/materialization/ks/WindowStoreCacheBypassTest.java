@@ -31,6 +31,7 @@ import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import java.time.Instant;
+import org.apache.kafka.common.header.internals.RecordHeaders;
 import org.apache.kafka.common.utils.Bytes;
 import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.errors.InvalidStateStoreException;
@@ -39,12 +40,14 @@ import org.apache.kafka.streams.state.QueryableStoreType;
 import org.apache.kafka.streams.state.ReadOnlyWindowStore;
 import org.apache.kafka.streams.state.StateSerdes;
 import org.apache.kafka.streams.state.ValueAndTimestamp;
+import org.apache.kafka.streams.state.ValueTimestampHeaders;
 import org.apache.kafka.streams.state.WindowStore;
 import org.apache.kafka.streams.state.WindowStoreIterator;
 import org.apache.kafka.streams.state.internals.CompositeReadOnlyWindowStore;
 import org.apache.kafka.streams.state.internals.MeteredWindowStore;
 import org.apache.kafka.streams.state.internals.StateStoreProvider;
 import org.apache.kafka.streams.state.internals.WrappedStateStore;
+import static org.mockito.Mockito.doReturn;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -93,7 +96,7 @@ public class WindowStoreCacheBypassTest {
   public void shouldCallUnderlyingStoreSingleKey() throws IllegalAccessException {
     when(provider.stores(any(), any())).thenReturn(ImmutableList.of(meteredWindowStore));
     SERDES_FIELD.set(meteredWindowStore, serdes);
-    when(serdes.rawKey(any())).thenReturn(BYTES);
+    when(serdes.rawKey(any(), any())).thenReturn(BYTES);
     when(meteredWindowStore.wrapped()).thenReturn(wrappedWindowStore);
     when(wrappedWindowStore.wrapped()).thenReturn(windowStore);
     when(windowStore.fetch(any(), any(), any())).thenReturn(windowStoreIterator);
@@ -107,7 +110,7 @@ public class WindowStoreCacheBypassTest {
   public void shouldCallUnderlyingStoreForRangeQuery() throws IllegalAccessException {
     when(provider.stores(any(), any())).thenReturn(ImmutableList.of(meteredWindowStore));
     SERDES_FIELD.set(meteredWindowStore, serdes);
-    when(serdes.rawKey(any())).thenReturn(BYTES, OTHER_BYTES);
+    when(serdes.rawKey(any(), any())).thenReturn(BYTES, OTHER_BYTES);
     when(meteredWindowStore.wrapped()).thenReturn(wrappedWindowStore);
     when(wrappedWindowStore.wrapped()).thenReturn(windowStore);
     when(windowStore.fetch(any(), any(), any(), any())).thenReturn(keyValueIterator);
@@ -134,7 +137,7 @@ public class WindowStoreCacheBypassTest {
   public void shouldAvoidNonWindowStore() throws IllegalAccessException {
     when(provider.stores(any(), any())).thenReturn(ImmutableList.of(meteredWindowStore));
     SERDES_FIELD.set(meteredWindowStore, serdes);
-    when(serdes.rawKey(any())).thenReturn(BYTES);
+    when(serdes.rawKey(any(), any())).thenReturn(BYTES);
     when(meteredWindowStore.wrapped()).thenReturn(wrappedWindowStore);
     when(wrappedWindowStore.wrapped()).thenReturn(stateStore);
     when(wrappedWindowStore.fetch(any(), any(), any())).thenReturn(windowStoreIterator);
@@ -150,7 +153,7 @@ public class WindowStoreCacheBypassTest {
   public void shouldThrowException_InvalidStateStoreException() throws IllegalAccessException {
     when(provider.stores(any(), any())).thenReturn(ImmutableList.of(meteredWindowStore));
     SERDES_FIELD.set(meteredWindowStore, serdes);
-    when(serdes.rawKey(any())).thenReturn(BYTES);
+    when(serdes.rawKey(any(), any())).thenReturn(BYTES);
     when(meteredWindowStore.wrapped()).thenReturn(windowStore);
     when(windowStore.fetch(any(), any(), any())).thenThrow(
         new InvalidStateStoreException("Invalid"));
@@ -173,7 +176,7 @@ public class WindowStoreCacheBypassTest {
         new GenericReadOnlyWindowStoreFacade<>(meteredWindowStore, x -> x);
     when(provider.stores(any(), any())).thenReturn(ImmutableList.of(facade));
     SERDES_FIELD.set(meteredWindowStore, serdes);
-    when(serdes.rawKey(any())).thenReturn(BYTES);
+    when(serdes.rawKey(any(), any())).thenReturn(BYTES);
     when(meteredWindowStore.wrapped()).thenReturn(wrappedWindowStore);
     when(wrappedWindowStore.wrapped()).thenReturn(windowStore);
     when(windowStore.fetch(any(), any(), any())).thenReturn(windowStoreIterator);
@@ -193,7 +196,7 @@ public class WindowStoreCacheBypassTest {
         new GenericReadOnlyWindowStoreFacade<>(meteredWindowStore, x -> x);
     when(provider.stores(any(), any())).thenReturn(ImmutableList.of(facade));
     SERDES_FIELD.set(meteredWindowStore, serdes);
-    when(serdes.rawKey(any())).thenReturn(BYTES, OTHER_BYTES);
+    when(serdes.rawKey(any(), any())).thenReturn(BYTES, OTHER_BYTES);
     when(meteredWindowStore.wrapped()).thenReturn(wrappedWindowStore);
     when(wrappedWindowStore.wrapped()).thenReturn(windowStore);
     when(windowStore.fetch(any(), any(), any(), any())).thenReturn(keyValueIterator);
@@ -225,15 +228,18 @@ public class WindowStoreCacheBypassTest {
   }
 
   @Test
-  public void shouldUnwrapWindowFacadeAndApplyValueConverterForSingleKey()
+  public void shouldUnwrapWindowFacadeAndExtractValueAndTimestampFromHeaders()
       throws IllegalAccessException {
     final GenericReadOnlyWindowStoreFacade<GenericKey, ValueAndTimestamp<GenericRow>,
         ValueAndTimestamp<GenericRow>> facade =
         new GenericReadOnlyWindowStoreFacade<>(meteredWindowStore, x -> x);
+    final GenericRow row = GenericRow.genericRow("v1");
+    final ValueTimestampHeaders<GenericRow> deserialized =
+        ValueTimestampHeaders.make(row, 1000L, new RecordHeaders());
     when(provider.stores(any(), any())).thenReturn(ImmutableList.of(facade));
     SERDES_FIELD.set(meteredWindowStore, serdes);
-    when(serdes.rawKey(any())).thenReturn(BYTES);
-    when(serdes.valueFrom(any())).thenReturn(VALUE_AND_TIMESTAMP);
+    when(serdes.rawKey(any(), any())).thenReturn(BYTES);
+    doReturn(deserialized).when(serdes).valueFrom(any());
     when(meteredWindowStore.wrapped()).thenReturn(wrappedWindowStore);
     when(wrappedWindowStore.wrapped()).thenReturn(windowStore);
     when(windowStore.fetch(any(), any(), any())).thenReturn(windowStoreIterator);
@@ -243,7 +249,7 @@ public class WindowStoreCacheBypassTest {
     final WindowStoreIterator<ValueAndTimestamp<GenericRow>> result =
         WindowStoreCacheBypass.fetch(
             store, SOME_KEY, Instant.ofEpochMilli(100), Instant.ofEpochMilli(200));
-    assertThat(result.next().value, is(VALUE_AND_TIMESTAMP));
+    assertThat(result.next().value, is(ValueAndTimestamp.make(row, 1000L)));
   }
 
   @Test

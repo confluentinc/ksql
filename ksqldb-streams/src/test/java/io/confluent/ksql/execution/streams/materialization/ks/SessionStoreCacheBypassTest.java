@@ -97,7 +97,7 @@ public class SessionStoreCacheBypassTest {
   public void shouldCallUnderlyingStoreSingleKey() throws IllegalAccessException {
     when(provider.stores(any(), any())).thenReturn(ImmutableList.of(meteredSessionStore));
     SERDES_FIELD.set(meteredSessionStore, serdes);
-    when(serdes.rawKey(any())).thenReturn(BYTES);
+    when(serdes.rawKey(any(), any())).thenReturn(BYTES);
     when(meteredSessionStore.wrapped()).thenReturn(wrappedSessionStore);
     when(wrappedSessionStore.wrapped()).thenReturn(sessionStore);
     when(sessionStore.fetch(any())).thenReturn(storeIterator);
@@ -111,7 +111,7 @@ public class SessionStoreCacheBypassTest {
   public void shouldCallUnderlyingStoreRangeQuery() throws IllegalAccessException {
     when(provider.stores(any(), any())).thenReturn(ImmutableList.of(meteredSessionStore));
     SERDES_FIELD.set(meteredSessionStore, serdes);
-    when(serdes.rawKey(any())).thenReturn(BYTES, OTHER_BYTES);
+    when(serdes.rawKey(any(), any())).thenReturn(BYTES, OTHER_BYTES);
     when(meteredSessionStore.wrapped()).thenReturn(wrappedSessionStore);
     when(wrappedSessionStore.wrapped()).thenReturn(sessionStore);
     when(sessionStore.fetch(any(), any())).thenReturn(storeIterator);
@@ -125,7 +125,7 @@ public class SessionStoreCacheBypassTest {
   public void shouldAvoidNonSessionStore() throws IllegalAccessException {
     when(provider.stores(any(), any())).thenReturn(ImmutableList.of(meteredSessionStore));
     SERDES_FIELD.set(meteredSessionStore, serdes);
-    when(serdes.rawKey(any())).thenReturn(BYTES);
+    when(serdes.rawKey(any(), any())).thenReturn(BYTES);
     when(meteredSessionStore.wrapped()).thenReturn(wrappedSessionStore);
     when(wrappedSessionStore.wrapped()).thenReturn(stateStore);
     when(wrappedSessionStore.fetch(any())).thenReturn(storeIterator);
@@ -139,7 +139,7 @@ public class SessionStoreCacheBypassTest {
   public void shouldThrowException_InvalidStateStoreException() throws IllegalAccessException {
     when(provider.stores(any(), any())).thenReturn(ImmutableList.of(meteredSessionStore));
     SERDES_FIELD.set(meteredSessionStore, serdes);
-    when(serdes.rawKey(any())).thenReturn(BYTES);
+    when(serdes.rawKey(any(), any())).thenReturn(BYTES);
     when(meteredSessionStore.wrapped()).thenReturn(sessionStore);
     when(sessionStore.fetch(any())).thenThrow(
         new InvalidStateStoreException("Invalid"));
@@ -160,7 +160,7 @@ public class SessionStoreCacheBypassTest {
         new TestSessionStoreFacade(meteredSessionStoreWithHeaders);
     when(provider.stores(any(), any())).thenReturn(ImmutableList.of(facade));
     SERDES_FIELD.set(meteredSessionStoreWithHeaders, serdes);
-    when(serdes.rawKey(any())).thenReturn(BYTES);
+    when(serdes.rawKey(any(), any())).thenReturn(BYTES);
     when(meteredSessionStoreWithHeaders.wrapped()).thenReturn(wrappedSessionStore);
     when(wrappedSessionStore.wrapped()).thenReturn(sessionStore);
     when(sessionStore.fetch(any())).thenReturn(storeIterator);
@@ -177,7 +177,7 @@ public class SessionStoreCacheBypassTest {
         new TestSessionStoreFacade(meteredSessionStoreWithHeaders);
     when(provider.stores(any(), any())).thenReturn(ImmutableList.of(facade));
     SERDES_FIELD.set(meteredSessionStoreWithHeaders, serdes);
-    when(serdes.rawKey(any())).thenReturn(BYTES, OTHER_BYTES);
+    when(serdes.rawKey(any(), any())).thenReturn(BYTES, OTHER_BYTES);
     when(meteredSessionStoreWithHeaders.wrapped()).thenReturn(wrappedSessionStore);
     when(wrappedSessionStore.wrapped()).thenReturn(sessionStore);
     when(sessionStore.fetch(any(), any())).thenReturn(storeIterator);
@@ -194,7 +194,7 @@ public class SessionStoreCacheBypassTest {
         new TestSessionStoreFacade(meteredSessionStoreWithHeaders);
     when(provider.stores(any(), any())).thenReturn(ImmutableList.of(facade));
     SERDES_FIELD.set(meteredSessionStoreWithHeaders, serdes);
-    when(serdes.rawKey(any())).thenReturn(BYTES);
+    when(serdes.rawKey(any(), any())).thenReturn(BYTES);
     when(serdes.keyFrom(any())).thenReturn(SOME_KEY);
     final AggregationWithHeaders<GenericRow> aggregation =
         AggregationWithHeaders.make(EXPECTED_ROW, new RecordHeaders());

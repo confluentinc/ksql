@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.function.Function;
+import org.apache.kafka.common.header.internals.RecordHeaders;
 import org.apache.kafka.common.utils.Bytes;
 import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.errors.InvalidStateStoreException;
@@ -34,11 +35,14 @@ import org.apache.kafka.streams.state.QueryableStoreType;
 import org.apache.kafka.streams.state.ReadOnlyWindowStore;
 import org.apache.kafka.streams.state.StateSerdes;
 import org.apache.kafka.streams.state.ValueAndTimestamp;
+import org.apache.kafka.streams.state.ValueTimestampHeaders;
 import org.apache.kafka.streams.state.WindowStore;
 import org.apache.kafka.streams.state.WindowStoreIterator;
 import org.apache.kafka.streams.state.internals.CompositeReadOnlyWindowStore;
+import org.apache.kafka.streams.state.internals.GenericReadOnlyWindowStoreFacade;
 import org.apache.kafka.streams.state.internals.MeteredWindowStore;
 import org.apache.kafka.streams.state.internals.StateStoreProvider;
+import org.apache.kafka.streams.state.internals.ValueConverters;
 import org.apache.kafka.streams.state.internals.WrappedStateStore;
 
 public final class WindowStoreCacheBypass {
@@ -46,9 +50,7 @@ public final class WindowStoreCacheBypass {
   private static final Field STORE_NAME_FIELD;
   private static final Field WINDOW_STORE_TYPE_FIELD;
   static final Field SERDES_FIELD;
-  // Nullable: only present in Kafka versions that introduced GenericReadOnlyWindowStoreFacade
   private static final Field GENERIC_WINDOW_FACADE_INNER_FIELD;
-  private static final Field GENERIC_WINDOW_FACADE_VALUE_CONVERTER_FIELD;
   private static final String STORE_UNAVAILABLE_MESSAGE = "State store is not available anymore "
           + "and may have been migrated to another instance; "
           + "please re-discover its location from the state metadata.";
@@ -64,26 +66,12 @@ public final class WindowStoreCacheBypass {
       WINDOW_STORE_TYPE_FIELD.setAccessible(true);
       SERDES_FIELD = MeteredWindowStore.class.getDeclaredField("serdes");
       SERDES_FIELD.setAccessible(true);
+      GENERIC_WINDOW_FACADE_INNER_FIELD
+          = GenericReadOnlyWindowStoreFacade.class.getDeclaredField("inner");
+      GENERIC_WINDOW_FACADE_INNER_FIELD.setAccessible(true);
     } catch (final NoSuchFieldException e) {
       throw new RuntimeException("Stream internals changed unexpectedly!", e);
     }
-
-    Field genericWindowFacadeInnerField = null;
-    Field genericWindowFacadeValueConverterField = null;
-    try {
-      final Class<?> facadeClass = Class.forName(
-          "org.apache.kafka.streams.state.internals.GenericReadOnlyWindowStoreFacade");
-      genericWindowFacadeInnerField = facadeClass.getDeclaredField("inner");
-      genericWindowFacadeInnerField.setAccessible(true);
-      genericWindowFacadeValueConverterField = facadeClass.getDeclaredField("valueConverter");
-      genericWindowFacadeValueConverterField.setAccessible(true);
-    } catch (final ClassNotFoundException e) {
-      // Facade class not present in this Kafka version — no unwrapping needed
-    } catch (final NoSuchFieldException e) {
-      throw new RuntimeException("Stream internals changed unexpectedly!", e);
-    }
-    GENERIC_WINDOW_FACADE_INNER_FIELD = genericWindowFacadeInnerField;
-    GENERIC_WINDOW_FACADE_VALUE_CONVERTER_FIELD = genericWindowFacadeValueConverterField;
   }
 
   private WindowStoreCacheBypass() {
@@ -159,7 +147,7 @@ public final class WindowStoreCacheBypass {
     }
     final StateSerdes<GenericKey, ?> serdes = getSerdes(unwrapped);
     final WindowStore<Bytes, byte[]> wrapped = getInnermostStore(unwrapped);
-    final Bytes rawKey = Bytes.wrap(serdes.rawKey(key));
+    final Bytes rawKey = Bytes.wrap(serdes.rawKey(key, new RecordHeaders()));
     final WindowStoreIterator<byte[]> fetch = wrapped.fetch(rawKey, lower, upper);
     return new DeserializingIterator(fetch, serdes, valueConverter);
   }
@@ -204,8 +192,8 @@ public final class WindowStoreCacheBypass {
     }
     final StateSerdes<GenericKey, ?> serdes = getSerdes(unwrapped);
     final WindowStore<Bytes, byte[]> wrapped = getInnermostStore(unwrapped);
-    final Bytes rawKeyFrom = Bytes.wrap(serdes.rawKey(keyFrom));
-    final Bytes rawKeyTo = Bytes.wrap(serdes.rawKey(keyTo));
+    final Bytes rawKeyFrom = Bytes.wrap(serdes.rawKey(keyFrom, new RecordHeaders()));
+    final Bytes rawKeyTo = Bytes.wrap(serdes.rawKey(keyTo, new RecordHeaders()));
     final KeyValueIterator<Windowed<Bytes>, byte[]> fetch = wrapped
             .fetch(rawKeyFrom, rawKeyTo, lower, upper);
     return new DeserializingKeyValueIterator(fetch, serdes, valueConverter);
@@ -276,8 +264,7 @@ public final class WindowStoreCacheBypass {
   private static ReadOnlyWindowStore<GenericKey, ValueAndTimestamp<GenericRow>> unwrapWindowFacade(
       final ReadOnlyWindowStore<GenericKey, ValueAndTimestamp<GenericRow>> windowStore
   ) {
-    if (GENERIC_WINDOW_FACADE_INNER_FIELD != null
-        && GENERIC_WINDOW_FACADE_INNER_FIELD.getDeclaringClass().isInstance(windowStore)) {
+    if (windowStore instanceof GenericReadOnlyWindowStoreFacade) {
       try {
         return (ReadOnlyWindowStore<GenericKey, ValueAndTimestamp<GenericRow>>)
             GENERIC_WINDOW_FACADE_INNER_FIELD.get(windowStore);
@@ -292,15 +279,10 @@ public final class WindowStoreCacheBypass {
   private static Function<Object, ValueAndTimestamp<GenericRow>> getWindowValueConverter(
       final ReadOnlyWindowStore<GenericKey, ValueAndTimestamp<GenericRow>> windowStore
   ) {
-    if (GENERIC_WINDOW_FACADE_VALUE_CONVERTER_FIELD != null
-        && GENERIC_WINDOW_FACADE_VALUE_CONVERTER_FIELD.getDeclaringClass()
-            .isInstance(windowStore)) {
-      try {
-        return (Function<Object, ValueAndTimestamp<GenericRow>>)
-            GENERIC_WINDOW_FACADE_VALUE_CONVERTER_FIELD.get(windowStore);
-      } catch (final IllegalAccessException e) {
-        throw new RuntimeException("Stream internals changed unexpectedly!", e);
-      }
+    if (windowStore instanceof GenericReadOnlyWindowStoreFacade) {
+      final Function<ValueTimestampHeaders<GenericRow>, ValueAndTimestamp<GenericRow>> converter
+          = ValueConverters.extractValueAndTimestampFromHeaders();
+      return x -> converter.apply((ValueTimestampHeaders<GenericRow>) x);
     }
     return x -> (ValueAndTimestamp<GenericRow>) x;
   }

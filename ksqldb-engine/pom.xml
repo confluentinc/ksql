@@ -227,6 +227,19 @@
                     <argLine>-Duser.timezone=UTC -Xmx1g -Xms1g</argLine>
                 </configuration>
             </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-failsafe-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>integration-test</id>
+                        <configuration>
+                            <forkCount>4</forkCount>
+                            <reuseForks>false</reuseForks>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
         </plugins>
     </build>
 </project>

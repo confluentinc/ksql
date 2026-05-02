@@ -226,8 +226,13 @@ public final class SchemaRegistryUtil {
     final Stream<String> allSubjectNames = getSubjectNames(
         schemaRegistryClient,
         "Could not clean up the schema registry for query: " + applicationId);
+    // Append a "-" delimiter so an applicationId ending in a numeric suffix
+    // (e.g. "..._CTAS_FOO_1") does not prefix-match subjects of larger-numbered
+    // queries (e.g. "..._CTAS_FOO_17-..."). Internal subjects are always of the
+    // form "<applicationId>-<topic-suffix>-(key|value)".
+    final String prefix = applicationId + "-";
     return allSubjectNames
-        .filter(subjectName -> subjectName.startsWith(applicationId))
+        .filter(subjectName -> subjectName.startsWith(prefix))
         .filter(SchemaRegistryUtil::isInternalSubject);
   }
 

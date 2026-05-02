@@ -228,8 +228,13 @@ public final class SchemaRegistryUtil {
         "Could not clean up the schema registry for query: " + applicationId);
     // Append a "-" delimiter so an applicationId ending in a numeric suffix
     // (e.g. "..._CTAS_FOO_1") does not prefix-match subjects of larger-numbered
-    // queries (e.g. "..._CTAS_FOO_17-..."). Internal subjects are always of the
-    // form "<applicationId>-<topic-suffix>-(key|value)".
+    // queries (e.g. "..._CTAS_FOO_17-..."). Kafka Streams' internal topic names
+    // are always built as "<applicationId>-<rawTopic>" (the "-" is hardcoded in
+    // `InternalTopologyBuilder#decorateTopic`), and SR subjects are derived as
+    // "<topicName>-(key|value)". So every internal subject for a given query
+    // begins with "<applicationId>-". The companion Kafka-topic cleanup path in
+    // `KafkaTopicClientImpl#isInternalTopic` already uses this same prefix
+    // shape; this filter just keeps the SR cleanup consistent with it.
     final String prefix = applicationId + "-";
     return allSubjectNames
         .filter(subjectName -> subjectName.startsWith(prefix))

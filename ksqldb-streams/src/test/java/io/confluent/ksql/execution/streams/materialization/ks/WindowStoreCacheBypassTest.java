@@ -197,6 +197,47 @@ public class WindowStoreCacheBypassTest {
     assertThat(result.next().value, is(ValueAndTimestamp.make(row, 1000L)));
   }
 
+  // When the underlying store is a plain TimestampedWindowStore (not WithHeaders), Kafka Streams'
+  // validateAndCastStores returns it directly without wrapping in GenericReadOnlyWindowStoreFacade.
+  // The bypass must handle that shape too, deserializing values as ValueAndTimestamp directly.
+  @Test
+  public void shouldCallUnderlyingStoreWhenProviderReturnsMeteredStoreDirectly()
+      throws IllegalAccessException {
+    when(provider.stores(any(), any())).thenReturn(ImmutableList.of(meteredWindowStore));
+    SERDES_FIELD.set(meteredWindowStore, serdes);
+    when(serdes.rawKey(any(), any())).thenReturn(BYTES);
+    when(meteredWindowStore.wrapped()).thenReturn(wrappedWindowStore);
+    when(wrappedWindowStore.wrapped()).thenReturn(windowStore);
+    when(windowStore.fetch(any(), any(), any())).thenReturn(windowStoreIterator);
+    when(windowStoreIterator.hasNext()).thenReturn(false);
+
+    WindowStoreCacheBypass.fetch(
+        store, SOME_KEY, Instant.ofEpochMilli(100), Instant.ofEpochMilli(200));
+    verify(windowStore).fetch(
+        new Bytes(BYTES), Instant.ofEpochMilli(100L), Instant.ofEpochMilli(200L));
+  }
+
+  @Test
+  public void shouldDeserializeValueAndTimestampDirectlyWhenProviderReturnsMeteredStoreDirectly()
+      throws IllegalAccessException {
+    final GenericRow row = GenericRow.genericRow("v1");
+    final ValueAndTimestamp<GenericRow> deserialized = ValueAndTimestamp.make(row, 1000L);
+    when(provider.stores(any(), any())).thenReturn(ImmutableList.of(meteredWindowStore));
+    SERDES_FIELD.set(meteredWindowStore, serdes);
+    when(serdes.rawKey(any(), any())).thenReturn(BYTES);
+    doReturn(deserialized).when(serdes).valueFrom(any());
+    when(meteredWindowStore.wrapped()).thenReturn(wrappedWindowStore);
+    when(wrappedWindowStore.wrapped()).thenReturn(windowStore);
+    when(windowStore.fetch(any(), any(), any())).thenReturn(windowStoreIterator);
+    when(windowStoreIterator.hasNext()).thenReturn(true, false);
+    when(windowStoreIterator.next()).thenReturn(KeyValue.pair(100L, VALUE_BYTES));
+
+    final WindowStoreIterator<ValueAndTimestamp<GenericRow>> result =
+        WindowStoreCacheBypass.fetch(
+            store, SOME_KEY, Instant.ofEpochMilli(100), Instant.ofEpochMilli(200));
+    assertThat(result.next().value, is(ValueAndTimestamp.make(row, 1000L)));
+  }
+
   private static abstract class WrappedWindowStore<K, V>
       extends WrappedStateStore<StateStore, K, V> implements WindowStore<K, V> {
     public WrappedWindowStore(StateStore wrapped) {

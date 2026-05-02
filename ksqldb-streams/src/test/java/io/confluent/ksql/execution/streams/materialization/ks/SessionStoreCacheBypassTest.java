@@ -45,6 +45,7 @@ import org.apache.kafka.streams.state.ReadOnlySessionStore;
 import org.apache.kafka.streams.state.SessionStore;
 import org.apache.kafka.streams.state.StateSerdes;
 import org.apache.kafka.streams.state.internals.CompositeReadOnlySessionStore;
+import org.apache.kafka.streams.state.internals.MeteredSessionStore;
 import org.apache.kafka.streams.state.internals.StateStoreProvider;
 import org.apache.kafka.streams.state.internals.WrappedStateStore;
 import org.junit.Before;
@@ -81,6 +82,10 @@ public class SessionStoreCacheBypassTest {
   private StateSerdes<GenericKey, AggregationWithHeaders<GenericRow>> serdes;
   @Mock
   private MeteredSessionStoreWithHeaders<GenericKey, GenericRow> meteredSessionStoreWithHeaders;
+  @Mock
+  private MeteredSessionStore<GenericKey, GenericRow> meteredSessionStore;
+  @Mock
+  private StateSerdes<GenericKey, GenericRow> plainSerdes;
 
   private CompositeReadOnlySessionStore<GenericKey, GenericRow> store;
 
@@ -169,6 +174,46 @@ public class SessionStoreCacheBypassTest {
         AggregationWithHeaders.make(EXPECTED_ROW, new RecordHeaders());
     doReturn(aggregation).when(serdes).valueFrom(any());
     when(meteredSessionStoreWithHeaders.wrapped()).thenReturn(wrappedSessionStore);
+    when(wrappedSessionStore.wrapped()).thenReturn(sessionStore);
+    final Windowed<Bytes> windowedKey =
+        new Windowed<>(new Bytes(BYTES), new SessionWindow(0, 100));
+    when(sessionStore.fetch(any())).thenReturn(storeIterator);
+    when(storeIterator.hasNext()).thenReturn(true, false);
+    when(storeIterator.peekNextKey()).thenReturn(windowedKey);
+    when(storeIterator.next()).thenReturn(KeyValue.pair(windowedKey, VALUE_BYTES));
+
+    final KeyValueIterator<Windowed<GenericKey>, GenericRow> result =
+        SessionStoreCacheBypass.fetch(store, SOME_KEY);
+    assertThat(result.next().value, is(EXPECTED_ROW));
+  }
+
+  // When the underlying store is a plain SessionStore (not WithHeaders), Kafka Streams'
+  // validateAndCastStores returns it directly without wrapping in ReadOnlySessionStoreFacade.
+  // The bypass must handle that shape too, deserializing values as GenericRow directly.
+  @Test
+  public void shouldCallUnderlyingStoreWhenProviderReturnsMeteredStoreDirectly()
+      throws IllegalAccessException {
+    when(provider.stores(any(), any())).thenReturn(ImmutableList.of(meteredSessionStore));
+    SERDES_FIELD.set(meteredSessionStore, plainSerdes);
+    when(plainSerdes.rawKey(any(), any())).thenReturn(BYTES);
+    when(meteredSessionStore.wrapped()).thenReturn(wrappedSessionStore);
+    when(wrappedSessionStore.wrapped()).thenReturn(sessionStore);
+    when(sessionStore.fetch(any())).thenReturn(storeIterator);
+    when(storeIterator.hasNext()).thenReturn(false);
+
+    SessionStoreCacheBypass.fetch(store, SOME_KEY);
+    verify(sessionStore).fetch(new Bytes(BYTES));
+  }
+
+  @Test
+  public void shouldDeserializeGenericRowDirectlyWhenProviderReturnsMeteredStoreDirectly()
+      throws IllegalAccessException {
+    when(provider.stores(any(), any())).thenReturn(ImmutableList.of(meteredSessionStore));
+    SERDES_FIELD.set(meteredSessionStore, plainSerdes);
+    when(plainSerdes.rawKey(any(), any())).thenReturn(BYTES);
+    when(plainSerdes.keyFrom(any())).thenReturn(SOME_KEY);
+    doReturn(EXPECTED_ROW).when(plainSerdes).valueFrom(any());
+    when(meteredSessionStore.wrapped()).thenReturn(wrappedSessionStore);
     when(wrappedSessionStore.wrapped()).thenReturn(sessionStore);
     final Windowed<Bytes> windowedKey =
         new Windowed<>(new Bytes(BYTES), new SessionWindow(0, 100));

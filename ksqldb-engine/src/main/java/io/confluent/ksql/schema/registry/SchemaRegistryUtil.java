@@ -28,9 +28,11 @@ import io.confluent.ksql.util.ExecutorUtil;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import java.io.IOException;
+import java.util.List;
 import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.hc.core5.http.HttpStatus;
 import org.apache.kafka.common.acl.AclOperation;
@@ -53,11 +55,31 @@ public final class SchemaRegistryUtil {
   public static void cleanupInternalTopicSchemas(
       final String applicationId,
       final SchemaRegistryClient schemaRegistryClient) {
-    getInternalSubjectNames(applicationId, schemaRegistryClient)
-        .forEach(subject -> tryDeleteInternalSubject(
-            applicationId,
-            schemaRegistryClient,
-            subject));
+    // Materialize once so we can log the matched set in a single line and then
+    // iterate it for deletion. The list is bounded by the topology size of one
+    // query (typically a handful of subjects: key/value of changelog/repartition
+    // per state store), so collecting in memory is fine.
+    final List<String> matchedSubjects =
+        getInternalSubjectNames(applicationId, schemaRegistryClient)
+            .collect(Collectors.toList());
+    if (matchedSubjects.isEmpty()) {
+      // Skip the empty case: this method is called once per query cleanup, and
+      // simple queries (e.g. plain CSAS without aggregation/repartition) have
+      // no internal subjects. Logging "matched 0 subjects" on every cleanup
+      // would spam the log without adding signal — the caller already logged
+      // "Deleting schemas for prefix <appId>" before invoking us.
+      return;
+    }
+    // One INFO line per cleanup invocation lists every subject that will be
+    // soft- and hard-deleted. After KSQL-14907 this is the trace operators
+    // need to verify the prefix filter behaved correctly (no subjects of
+    // larger-numbered queries collected here).
+    LOG.info("Matched {} internal schema subject(s) for cleanup of \"{}\": {}",
+        matchedSubjects.size(), applicationId, matchedSubjects);
+    matchedSubjects.forEach(subject -> tryDeleteInternalSubject(
+        applicationId,
+        schemaRegistryClient,
+        subject));
   }
 
   public static Stream<String> getSubjectNames(final SchemaRegistryClient schemaRegistryClient) {

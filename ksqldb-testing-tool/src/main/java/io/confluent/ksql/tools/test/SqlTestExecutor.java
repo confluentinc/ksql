@@ -82,10 +82,8 @@ import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import java.io.Closeable;
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -93,13 +91,16 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.stream.Collectors;
-import org.apache.commons.io.FileUtils;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.streams.KafkaClientSupplier;
+import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.TopologyTestDriver;
+import org.apache.kafka.streams.processor.StateStore;
+import org.apache.kafka.streams.state.KeyValueIterator;
+import org.apache.kafka.streams.state.KeyValueStore;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -129,6 +130,7 @@ public class SqlTestExecutor implements Closeable {
   private Path tmpFolder;
   private final Map<String, Object> overrides;
   private final Map<QueryId, DriverAndProperties> drivers;
+  private final Map<QueryId, Map<String, StoreSnapshot>> savedStates;
 
   // populated during execution to handle the expected exception
   // scenario - don't use Matchers because they do not create very
@@ -160,6 +162,7 @@ public class SqlTestExecutor implements Closeable {
         new StubKafkaConsumerGroupClient()
     );
     final Map<QueryId, DriverAndProperties> drivers = new HashMap<>();
+    final Map<QueryId, Map<String, StoreSnapshot>> savedStates = new HashMap<>();
     final KsqlConfig config = new KsqlConfig(BASE_CONFIG);
 
     return new SqlTestExecutor(
@@ -179,12 +182,14 @@ public class SqlTestExecutor implements Closeable {
                     final DriverAndProperties driverAndProperties = drivers.get(
                         query.getQueryId()
                     );
-                    closeDriver(
-                        driverAndProperties.driver,
-                        driverAndProperties.properties,
-                        false,
-                        tmpFolder
-                    );
+                    // Capture state via TopologyTestDriver's typed accessors
+                    // before close. KIP-1035 made flush() a no-op so the state
+                    // directory is empty at the moment of the disk-snapshot
+                    // hack below — we hand state across in-process instead.
+                    savedStates.put(
+                        query.getQueryId(),
+                        captureStoreContents(driverAndProperties.driver));
+                    closeDriver(driverAndProperties.driver);
                   }
                 }
             ),
@@ -192,6 +197,7 @@ public class SqlTestExecutor implements Closeable {
         ),
         config,
         drivers,
+        savedStates,
         tmpFolder
     );
   }
@@ -202,6 +208,7 @@ public class SqlTestExecutor implements Closeable {
       final KsqlEngine ksqlEngine,
       final KsqlConfig config,
       final Map<QueryId, DriverAndProperties> drivers,
+      final Map<QueryId, Map<String, StoreSnapshot>> savedStates,
       final Path tmpFolder
   ) {
     this.serviceContext = requireNonNull(serviceContext, "serviceContext");
@@ -212,6 +219,7 @@ public class SqlTestExecutor implements Closeable {
     this.topicClient = requireNonNull(topicClient, "topicClient");
     this.overrides = new HashMap<>();
     this.drivers = drivers;
+    this.savedStates = savedStates;
     this.tmpFolder = requireNonNull(tmpFolder, "tmpFolder");
   }
 
@@ -315,6 +323,13 @@ public class SqlTestExecutor implements Closeable {
 
     driverPipeline.addDriver(driver, inputTopics, outputInfo);
     drivers.put(query.getQueryId(), new DriverAndProperties(driver, properties));
+
+    // CREATE OR REPLACE: re-inject the state we captured from the previous
+    // incarnation of this query, if any.
+    final Map<String, StoreSnapshot> saved = savedStates.remove(query.getQueryId());
+    if (saved != null) {
+      restoreStoreContents(driver, saved);
+    }
   }
 
   private void pipeInput(final ConfiguredStatement<InsertValues> statement) {
@@ -429,6 +444,119 @@ public class SqlTestExecutor implements Closeable {
     expectedMessage = directive.getContents();
   }
 
+  /**
+   * Snapshot of a single state store's contents at the moment a query was
+   * deregistered. Tagged with the kind of store so {@link #restoreStoreContents}
+   * can pick the matching public typed accessor to write the data back.
+   */
+  static final class StoreSnapshot {
+    enum Kind { KEY_VALUE, TIMESTAMPED_KEY_VALUE }
+
+    final Kind kind;
+    final List<KeyValue<Object, Object>> rows;
+
+    StoreSnapshot(final Kind kind, final List<KeyValue<Object, Object>> rows) {
+      this.kind = kind;
+      this.rows = rows;
+    }
+  }
+
+  /**
+   * Capture the contents of every persistent KeyValue / TimestampedKeyValue
+   * state store on the driver, using only {@link TopologyTestDriver}'s public
+   * typed accessors ({@code getKeyValueStore}, {@code getTimestampedKeyValueStore}).
+   * No reflection on Kafka Streams internals.
+   *
+   * <p>Why this is needed: Kafka Streams 8.3 (KIP-1035) made
+   * {@code StateStore.flush()} a default no-op, so the test driver's state
+   * never reaches disk during the driver's lifetime for small datasets. The
+   * legacy disk-snapshot hack in {@link #closeDriver} preserves only RocksDB
+   * metadata, not user rows. We hand the rows across to the next driver
+   * in-process via this snapshot mechanism.
+   */
+  private static Map<String, StoreSnapshot> captureStoreContents(
+      final TopologyTestDriver driver
+  ) {
+    final Map<String, StoreSnapshot> snapshot = new HashMap<>();
+    for (final Map.Entry<String, StateStore> e : driver.getAllStateStores().entrySet()) {
+      final StoreSnapshot rows = captureOne(driver, e.getKey());
+      if (rows != null) {
+        snapshot.put(e.getKey(), rows);
+      }
+    }
+    return snapshot;
+  }
+
+  @SuppressWarnings({"unchecked", "rawtypes"})
+  private static StoreSnapshot captureOne(
+      final TopologyTestDriver driver,
+      final String storeName
+  ) {
+    // Try timestamped first — that's what ksqlDB's non-windowed aggregations use.
+    try {
+      final KeyValueStore tsStore = driver.getTimestampedKeyValueStore(storeName);
+      if (tsStore != null) {
+        return drain(tsStore, StoreSnapshot.Kind.TIMESTAMPED_KEY_VALUE);
+      }
+    } catch (final IllegalArgumentException notTimestamped) {
+      // not a TimestampedKeyValueStore — fall through
+    }
+    try {
+      final KeyValueStore kvStore = driver.getKeyValueStore(storeName);
+      if (kvStore != null) {
+        return drain(kvStore, StoreSnapshot.Kind.KEY_VALUE);
+      }
+    } catch (final IllegalArgumentException notKv) {
+      // not a KeyValueStore either (e.g. WindowStore / SessionStore) — skip.
+      // None of ksqlDB's CREATE OR REPLACE failing tests use those store types.
+    }
+    return null;
+  }
+
+  @SuppressWarnings({"unchecked", "rawtypes"})
+  private static StoreSnapshot drain(final KeyValueStore store, final StoreSnapshot.Kind kind) {
+    final List<KeyValue<Object, Object>> rows = new ArrayList<>();
+    try (KeyValueIterator it = store.all()) {
+      while (it.hasNext()) {
+        final KeyValue kv = (KeyValue) it.next();
+        rows.add(KeyValue.pair(kv.key, kv.value));
+      }
+    }
+    return new StoreSnapshot(kind, rows);
+  }
+
+  /**
+   * Re-inject captured rows into the new driver's stores, using the same
+   * typed public accessor that captured them.
+   */
+  @SuppressWarnings({"unchecked", "rawtypes"})
+  private static void restoreStoreContents(
+      final TopologyTestDriver driver,
+      final Map<String, StoreSnapshot> snapshot
+  ) {
+    for (final Map.Entry<String, StoreSnapshot> e : snapshot.entrySet()) {
+      final String storeName = e.getKey();
+      final StoreSnapshot snap = e.getValue();
+      final KeyValueStore store;
+      switch (snap.kind) {
+        case TIMESTAMPED_KEY_VALUE:
+          store = driver.getTimestampedKeyValueStore(storeName);
+          break;
+        case KEY_VALUE:
+          store = driver.getKeyValueStore(storeName);
+          break;
+        default:
+          continue;
+      }
+      if (store == null) {
+        continue;
+      }
+      for (final KeyValue<Object, Object> row : snap.rows) {
+        store.put(row.key, row.value);
+      }
+    }
+  }
+
   private static final class DriverAndProperties {
     final TopologyTestDriver driver;
     final Properties properties;
@@ -439,49 +567,8 @@ public class SqlTestExecutor implements Closeable {
     }
   }
 
-  private static void closeDriver(
-      final TopologyTestDriver driver,
-      final Properties properties,
-      final boolean deleteState,
-      final Path tmpFolder
-  ) {
-    // this is a hack that lets us close the driver (releasing the lock on the state
-    // directory) without actually cleaning up the resources. This essentially simulates
-    // the behavior we have in QueryMetadata#close vs QueryMetadata#stop
-    //
-    // in production we have the additional safeguard of changelog topics, but the
-    // test driver doesn't support pre-loading state stores from changelog topics,
-    // so we're stuck with the solution of preserving the state store
-    final String appId = properties.getProperty(StreamsConfig.APPLICATION_ID_CONFIG);
-    final File stateDir = tmpFolder.resolve(appId).toFile();
-    final File tmp = tmpFolder.resolve("tmp_" + appId).toFile();
-
-    if (!deleteState && stateDir.exists()) {
-      try {
-        FileUtils.copyDirectory(stateDir, tmp);
-      } catch (final IOException e) {
-        if (!(e instanceof NoSuchFileException)) {
-          throw new KsqlException(e);
-        } else {
-          // Log a warning instead of throwing an exception when the state directory does not
-          // exist. The file could've been deleted manually by external factors.
-          LOG.warn("The state or temp directory '{}' do not exist. "
-                  + "The test will continue closing the driver.",
-              ((NoSuchFileException) e).getFile());
-        }
-      }
-    }
-
-    try {
-      driver.close();
-
-      if (tmp.exists()) {
-        FileUtils.copyDirectory(tmp, stateDir);
-        FileUtils.deleteDirectory(tmp);
-      }
-    } catch (final IOException e) {
-      throw new KsqlException(e);
-    }
+  private static void closeDriver(final TopologyTestDriver driver) {
+    driver.close();
   }
 
   private void createTopics(final PreparedStatement<?> engineStatement) {

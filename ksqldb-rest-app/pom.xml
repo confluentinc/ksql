@@ -234,7 +234,7 @@
         <dependency>
             <groupId>org.jeasy</groupId>
             <artifactId>easy-random-core</artifactId>
-            <version>4.2.0</version>
+            <version>5.0.0</version>
             <scope>test</scope>
         </dependency>
 

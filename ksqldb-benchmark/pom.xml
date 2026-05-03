@@ -57,7 +57,7 @@ questions.
     <!-- note: when updating jhm version, look to remove `-processing` switch from javac lint below.
          ref: https://bugs.openjdk.java.net/browse/JDK-8216275
     -->
-    <jmh.version>1.21</jmh.version>
+    <jmh.version>1.37</jmh.version>
   </properties>
 
   <dependencies>

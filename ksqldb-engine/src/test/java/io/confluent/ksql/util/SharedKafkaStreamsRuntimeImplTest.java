@@ -28,6 +28,7 @@ import io.confluent.ksql.query.QueryErrorClassifier;
 import io.confluent.ksql.query.QueryId;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
+import java.util.List;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -259,6 +260,54 @@ public class SharedKafkaStreamsRuntimeImplTest {
         // getKafkaStreams() must return the new wrapper, not the original one
         assertThat(sharedKafkaStreamsRuntimeImpl.getKafkaStreams(),
             org.hamcrest.Matchers.sameInstance(kafkaStreamsNamedTopologyWrapper2));
+    }
+
+    @Test
+    public void topolgogiesToAddShouldBeSynchronized() throws Exception {
+        // start() adds futures to topolgogiesToAdd; stop() iterates and clears it.
+        // An unsynchronized ArrayList allows a ConcurrentModificationException when both
+        // operations happen on different threads, or stale futures to be awaited after restart.
+        final Field field = SharedKafkaStreamsRuntimeImpl.class.getDeclaredField("topolgogiesToAdd");
+        field.setAccessible(true);
+        final List<?> list = (List<?>) field.get(sharedKafkaStreamsRuntimeImpl);
+        // Collections.synchronizedList wraps in a private inner class; checking identity
+        // via the synchronized wrapper's class hierarchy is fragile; instead confirm that
+        // the list is not a plain ArrayList (which lacks internal synchronization).
+        assertThat(
+            "topolgogiesToAdd must not be a plain ArrayList",
+            list.getClass().getSimpleName().equals("ArrayList"),
+            is(false)
+        );
+    }
+
+    @Test
+    public void shouldClearPendingTopologyFuturesOnRestart() throws Exception {
+        // Regression test: futures in topolgogiesToAdd after start() are associated with the
+        // old KafkaStreams instance. restartStreamsRuntime() closes that instance, so those
+        // futures will never complete. Without clearing them, subsequent stop() calls would
+        // block on completed/failed futures from a different instance.
+        when(kafkaStreamsNamedTopologyWrapper.getTopologyByName(queryId.toString()))
+            .thenReturn(Optional.empty());
+        when(kafkaStreamsNamedTopologyWrapper.addNamedTopology(any()))
+            .thenReturn(addNamedTopologyResult);
+
+        sharedKafkaStreamsRuntimeImpl.start(queryId);
+
+        final Field field = SharedKafkaStreamsRuntimeImpl.class.getDeclaredField("topolgogiesToAdd");
+        field.setAccessible(true);
+        @SuppressWarnings("unchecked")
+        final List<org.apache.kafka.common.KafkaFuture<Void>> pending =
+            (List<org.apache.kafka.common.KafkaFuture<Void>>) field.get(sharedKafkaStreamsRuntimeImpl);
+
+        assertThat("pre-condition: future should have been added by start()",
+            pending.isEmpty(), is(false));
+
+        when(binPackedPersistentQueryMetadata.getQueryStatus())
+            .thenReturn(KsqlConstants.KsqlQueryStatus.RUNNING);
+        sharedKafkaStreamsRuntimeImpl.restartStreamsRuntime();
+
+        assertThat("topolgogiesToAdd must be cleared after restart so stale futures are not awaited",
+            pending.isEmpty(), is(true));
     }
 
     @Test

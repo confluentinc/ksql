@@ -25,6 +25,7 @@ import io.confluent.ksql.util.QueryMetadataImpl.TimeBoundedQueue;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
@@ -63,7 +64,7 @@ public class SharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRuntime {
     this.maxQueryErrorsQueueSize = maxQueryErrorsQueueSize;
     shutdownTimeout = shutdownTimeoutConfig;
     setupAndStartKafkaStreams(kafkaStreams);
-    topolgogiesToAdd = new ArrayList<>();
+    topolgogiesToAdd = Collections.synchronizedList(new ArrayList<>());
   }
 
   @Override
@@ -259,6 +260,12 @@ public class SharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRuntime {
     log.info("Restarting runtime {}", getApplicationId());
     final Collection<NamedTopology> liveTopologies = kafkaStreams.getAllTopologies();
     kafkaStreams.close();
+    // Futures in topolgogiesToAdd were obtained from the old KafkaStreams instance which has
+    // just been closed. Waiting on them after the restart would either block forever or fail.
+    // Clear the list so that subsequent stop() calls only wait on futures from the new instance.
+    synchronized (topolgogiesToAdd) {
+      topolgogiesToAdd.clear();
+    }
     final KafkaStreamsNamedTopologyWrapper kafkaStreamsNamedTopologyWrapper = kafkaStreamsBuilder
         .buildNamedTopologyWrapper(streamsProperties);
     kafkaStreams = kafkaStreamsNamedTopologyWrapper;

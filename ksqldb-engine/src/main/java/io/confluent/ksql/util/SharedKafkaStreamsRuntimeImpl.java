@@ -273,6 +273,11 @@ public class SharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRuntime {
     for (final NamedTopology topology : liveTopologies) {
       final BinPackedPersistentQueryMetadataImpl query = collocatedQueries
           .get(new QueryId(topology.name()));
+      if (query == null) {
+        log.warn("Skipping topology {} during restart: no matching query in collocatedQueries",
+            topology.name());
+        continue;
+      }
       query.updateTopology(query.getTopologyCopy(this));
       if (query.getQueryStatus() == KsqlConstants.KsqlQueryStatus.PAUSED) {
         kafkaStreamsNamedTopologyWrapper.pauseNamedTopology(topology.name());

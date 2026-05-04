@@ -321,6 +321,34 @@ public class SharedKafkaStreamsRuntimeImplTest {
     }
 
     @Test
+    public void restartShouldSkipTopologyWithNoMatchingQuery() {
+        // Regression: kafkaStreams.getAllTopologies() can return a topology whose name is not
+        // present in collocatedQueries if the two data structures fall out of sync. Before the
+        // fix, collocatedQueries.get(new QueryId(topology.name())) returned null and the
+        // subsequent query.updateTopology(...) NPE'd, crashing the CommandRunner thread
+        // permanently. The fix adds a null-guard that skips the orphaned topology with a warning.
+        when(kafkaStreamsNamedTopologyWrapper.getAllTopologies())
+            .thenReturn(java.util.Arrays.asList(namedTopology));
+
+        // namedTopology.name() returns queryId ("query-1"), but we register NO query —
+        // collocatedQueries is therefore empty for this topology name.
+        // We rely on the fact that setUp() registered binPackedPersistentQueryMetadata for
+        // queryId, so use a topology name that has NO corresponding entry instead.
+        final org.apache.kafka.streams.processor.internals.namedtopology.NamedTopology orphan =
+            org.mockito.Mockito.mock(
+                org.apache.kafka.streams.processor.internals.namedtopology.NamedTopology.class);
+        when(orphan.name()).thenReturn("orphaned-topology");
+        when(kafkaStreamsNamedTopologyWrapper.getAllTopologies())
+            .thenReturn(java.util.Collections.singletonList(orphan));
+
+        // When: should NOT throw NullPointerException
+        sharedKafkaStreamsRuntimeImpl.restartStreamsRuntime();
+
+        // Then: the new wrapper was still started; orphaned topology was skipped
+        verify(kafkaStreamsNamedTopologyWrapper2).start();
+    }
+
+    @Test
     public void shouldNotStartOrAddedToStreamsIfOnlyRegistered() {
         //Given:
         sharedKafkaStreamsRuntimeImpl.register(binPackedPersistentQueryMetadata2);

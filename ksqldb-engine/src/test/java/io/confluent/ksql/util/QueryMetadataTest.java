@@ -50,9 +50,12 @@ import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.common.metrics.Sensor;
@@ -372,6 +375,65 @@ public class QueryMetadataTest {
 
     //Then:
     assertThat(queue.toImmutableList().size(), is(0));
+  }
+
+  @Test
+  public void timeBoundedQueueShouldEnforceCapacity() {
+    // Regression: the old implementation used new ConcurrentLinkedQueue<>(EvictingQueue.create(cap))
+    // which copies only the *elements* of the EvictingQueue (none, since it's empty at construction)
+    // into an unbounded ConcurrentLinkedQueue. The capacity was silently ignored.
+    // The fixed implementation wraps the EvictingQueue itself so the oldest entry is dropped when
+    // the queue reaches capacity rather than growing without bound.
+    final int capacity = 3;
+    final QueryMetadataImpl.TimeBoundedQueue queue =
+        new QueryMetadataImpl.TimeBoundedQueue(Duration.ofHours(1), capacity);
+
+    for (int i = 0; i < capacity + 5; i++) {
+      queue.add(new QueryError(System.currentTimeMillis(), "error-" + i, Type.SYSTEM));
+    }
+
+    assertThat("queue must not exceed its capacity",
+        queue.toImmutableList().size(), is(capacity));
+  }
+
+  @Test
+  public void timeBoundedQueueEvictShouldNotNpeUnderConcurrency() throws Exception {
+    // Regression: evict() did isEmpty() check then peek().getTimestamp(). A concurrent poll()
+    // between those two calls could drain the queue, making peek() return null and causing NPE.
+    // The fix captures the peek result and checks for null atomically.
+    final QueryMetadataImpl.TimeBoundedQueue queue =
+        new QueryMetadataImpl.TimeBoundedQueue(Duration.ofHours(1), 100);
+
+    // Pre-populate so evict() does real work.
+    for (int i = 0; i < 10; i++) {
+      queue.add(new QueryError(1L /* epoch=1 → instantly evictable */, "e" + i, Type.SYSTEM));
+    }
+
+    final CountDownLatch start = new CountDownLatch(1);
+    final AtomicReference<Throwable> error = new AtomicReference<>();
+
+    // Two threads calling toImmutableList() concurrently exercise the peek+poll race in evict().
+    final Runnable r = () -> {
+      try {
+        start.await();
+        for (int i = 0; i < 200; i++) {
+          queue.toImmutableList();
+        }
+      } catch (final Throwable t) {
+        error.set(t);
+      }
+    };
+
+    final Thread t1 = new Thread(r);
+    final Thread t2 = new Thread(r);
+    t1.start();
+    t2.start();
+    start.countDown();
+    t1.join(5000);
+    t2.join(5000);
+
+    assertThat("evict() must not throw NullPointerException under concurrency",
+        error.get(), org.hamcrest.Matchers.nullValue());
   }
 
   @Test

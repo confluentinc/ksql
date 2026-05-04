@@ -20,6 +20,7 @@ import com.google.common.base.Throwables;
 import com.google.common.base.Ticker;
 import com.google.common.collect.EvictingQueue;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Queues;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -385,7 +386,15 @@ public class QueryMetadataImpl implements QueryMetadata {
     private final Queue<QueryError> queue;
 
     TimeBoundedQueue(final Duration duration, final int capacity) {
-      queue = new ConcurrentLinkedQueue<>(EvictingQueue.create(capacity));
+      // Use a synchronized EvictingQueue so that:
+      //   (1) capacity is actually enforced (oldest entry is dropped when the queue is full), and
+      //   (2) all queue operations are thread-safe under concurrent add/evict calls.
+      // The previous implementation wrapped EvictingQueue in a ConcurrentLinkedQueue, which
+      // discarded the capacity bound and created an unbounded queue that could cause OOM under
+      // sustained error conditions (errors accumulated for up to 1 hour before time eviction).
+      queue = capacity > 0
+          ? Queues.synchronizedQueue(EvictingQueue.create(capacity))
+          : new ConcurrentLinkedQueue<>();
       this.duration = duration;
     }
 
@@ -399,10 +408,14 @@ public class QueryMetadataImpl implements QueryMetadata {
       return ImmutableList.copyOf(queue);
     }
 
-    @SuppressFBWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
     private void evict() {
-      while (!queue.isEmpty()) {
-        if (queue.peek().getTimestamp() > System.currentTimeMillis() - duration.toMillis()) {
+      // Capture the head with peek(); if peek() returns null the queue is empty and we stop.
+      // This avoids the NPE that the previous code had: isEmpty() could return true but a
+      // concurrent poll() could drain the queue before peek() ran, causing peek() to return null
+      // and the subsequent .getTimestamp() to throw NullPointerException.
+      QueryError head;
+      while ((head = queue.peek()) != null) {
+        if (head.getTimestamp() > System.currentTimeMillis() - duration.toMillis()) {
           break;
         }
         queue.poll();

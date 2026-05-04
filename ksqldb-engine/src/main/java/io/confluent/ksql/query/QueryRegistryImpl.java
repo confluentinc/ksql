@@ -379,7 +379,10 @@ public class QueryRegistryImpl implements QueryRegistry {
   @Override
   public Optional<QueryMetadata> getCreateAsQuery(final SourceName sourceName) {
     if (createAsQueries.containsKey(sourceName)) {
-      return Optional.of(persistentQueries.get(createAsQueries.get(sourceName)));
+      // unregisterQuery() removes from persistentQueries before it removes from createAsQueries,
+      // so a concurrent call here can see a queryId still in createAsQueries but already removed
+      // from persistentQueries. Optional.ofNullable guards against that narrow race window.
+      return Optional.ofNullable(persistentQueries.get(createAsQueries.get(sourceName)));
     }
     return Optional.empty();
   }

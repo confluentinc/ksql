@@ -272,6 +272,28 @@ public class QueryRegistryImplTest {
   }
 
   @Test
+  public void shouldReturnEmptyFromGetCreateAsQueryWhenQueryRemovedFromPersistentQueriesFirst()
+      throws Exception {
+    // Regression test: unregisterQuery() removes the query from persistentQueries before it
+    // removes from createAsQueries. A concurrent getCreateAsQuery() call in that window would
+    // hit Optional.of(null) and throw NPE. Optional.ofNullable is the fix.
+    givenCreate(registry, "q1", "source", Optional.of("sink1"), CREATE_AS);
+
+    // Simulate the race: remove from persistentQueries but NOT yet from createAsQueries.
+    final Field persistentQueriesField =
+        QueryRegistryImpl.class.getDeclaredField("persistentQueries");
+    persistentQueriesField.setAccessible(true);
+    @SuppressWarnings("unchecked")
+    final Map<QueryId, PersistentQueryMetadata> persistentQueriesMap =
+        (Map<QueryId, PersistentQueryMetadata>) persistentQueriesField.get(registry);
+    persistentQueriesMap.remove(new QueryId("q1"));
+
+    // Must return empty instead of throwing NPE.
+    final Optional<QueryMetadata> result = registry.getCreateAsQuery(SourceName.of("sink1"));
+    assertThat(result.isPresent(), is(false));
+  }
+
+  @Test
   public void shouldOnlyAllowServerLevelConfigsForDedicatedRuntimesSandbox() {
     // Given:
     when(config.getOverrides()).thenReturn(ImmutableMap.of("commit.interval.ms", 9));

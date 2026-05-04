@@ -611,9 +611,10 @@ public class KsqlConfig extends AbstractConfig {
   public static final String KSQL_SHARED_RUNTIME_ENABLED = "ksql.runtime.feature.shared.enabled";
   public static final Boolean KSQL_SHARED_RUNTIME_ENABLED_DEFAULT = false;
   public static final String KSQL_SHARED_RUNTIME_ENABLED_DOC =
-      "Feature flag for sharing streams runtimes. "
+      "Deprecated. Feature flag for sharing streams runtimes. "
           + "Default is false. If false, persistent queries will use separate "
-          + " runtimes, if true, new queries may share streams instances.";
+          + " runtimes, if true, new queries may share streams instances. "
+          + "This configuration is deprecated and will be removed in a future release.";
 
   public static final String KSQL_NEW_QUERY_PLANNER_ENABLED =
       "ksql.new.query.planner.enabled";
@@ -1691,6 +1692,13 @@ public class KsqlConfig extends AbstractConfig {
 
   public KsqlConfig(final Map<?, ?> props) {
     this(ConfigGeneration.CURRENT, props);
+    if (props.containsKey(KSQL_SHARED_RUNTIME_ENABLED)) {
+      LOG.warn(
+          "'{}' is deprecated and will be removed in a future release. "
+              + "Please remove this configuration from your settings.",
+          KSQL_SHARED_RUNTIME_ENABLED
+      );
+    }
   }
 
   private KsqlConfig(final ConfigGeneration generation, final Map<?, ?> props) {

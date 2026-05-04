@@ -91,7 +91,7 @@ public class CommandRunner implements Closeable {
   private boolean incompatibleCommandDetected;
   private final Supplier<Boolean> commandTopicExists;
   private boolean commandTopicDeleted;
-  private Status state = new Status(CommandRunnerStatus.RUNNING, CommandRunnerDegradedReason.NONE);
+  private volatile Status state = new Status(CommandRunnerStatus.RUNNING, CommandRunnerDegradedReason.NONE);
 
   /**
    * The ordinal values of the CommandRunnerStatus enum are used as the metrics values.

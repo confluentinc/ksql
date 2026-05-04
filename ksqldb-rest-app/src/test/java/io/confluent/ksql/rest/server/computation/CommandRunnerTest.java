@@ -47,6 +47,8 @@ import io.confluent.ksql.rest.util.ClusterTerminator;
 import io.confluent.ksql.rest.util.PersistentQueryCleanupImpl;
 import io.confluent.ksql.rest.util.TerminateCluster;
 import io.confluent.ksql.util.PersistentQueryMetadata;
+import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -55,6 +57,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -693,6 +696,69 @@ public class CommandRunnerTest {
     threadTask.run();
 
     verify(commandStore).close();
+  }
+
+  @Test
+  public void stateFieldShouldBeVolatile() throws Exception {
+    // The state field is written by the Runner thread and read by HTTP handler threads
+    // via checkCommandRunnerStatus() / getCommandRunnerDegradedReason().
+    // Without volatile, HTTP threads may not observe the DEGRADED state transition,
+    // causing the health check to permanently report RUNNING on a broken node.
+    final Field field = CommandRunner.class.getDeclaredField("state");
+    assertThat(
+        "state field must be volatile to ensure cross-thread visibility of DEGRADED transitions",
+        (field.getModifiers() & Modifier.VOLATILE) != 0,
+        is(true)
+    );
+  }
+
+  @Test
+  public void shouldReportDegradedStatusFromReaderThreadAfterRunnerThreadSetsDegraded()
+      throws Exception {
+    // Regression test: simulate the Runner thread setting DEGRADED while a separate
+    // "HTTP handler" thread reads the status. The volatile guarantee must ensure the
+    // reader always sees the updated value.
+    when(commandStore.corruptionDetected()).thenReturn(true);
+
+    final CountDownLatch runnerStarted = new CountDownLatch(1);
+    final CountDownLatch runnerFinished = new CountDownLatch(1);
+    final AtomicReference<CommandRunner.CommandRunnerStatus> observedStatus =
+        new AtomicReference<>();
+
+    // Use a real executor so the Runner runs on a separate thread.
+    final CommandRunner realThreadRunner = new CommandRunner(
+        statementExecutor,
+        commandStore,
+        3,
+        clusterTerminator,
+        Executors.newSingleThreadExecutor(),
+        serverState,
+        "ksql-service-id",
+        Duration.ofMillis(COMMAND_RUNNER_HEALTH_TIMEOUT),
+        "",
+        clock,
+        compactor,
+        incompatibleCommandChecker,
+        commandDeserializer,
+        errorHandler,
+        commandTopicExists,
+        new org.apache.kafka.common.metrics.Metrics()
+    );
+
+    doAnswer(inv -> {
+      runnerStarted.countDown();
+      runnerFinished.await();
+      return null;
+    }).when(commandStore).wakeup();
+
+    realThreadRunner.start();
+    runnerStarted.await();
+    // The Runner has entered DEGRADED and is waiting; read status from this ("HTTP") thread.
+    observedStatus.set(realThreadRunner.checkCommandRunnerStatus());
+    runnerFinished.countDown();
+    realThreadRunner.close();
+
+    assertThat(observedStatus.get(), is(CommandRunner.CommandRunnerStatus.DEGRADED));
   }
 
   private Runnable getThreadTask() {

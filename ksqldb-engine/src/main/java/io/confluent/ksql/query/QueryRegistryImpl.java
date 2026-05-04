@@ -390,6 +390,10 @@ public class QueryRegistryImpl implements QueryRegistry {
       final BiPredicate<SourceName, PersistentQueryMetadata> filterQueries) {
     return insertQueries.getOrDefault(sourceName, Collections.emptySet()).stream()
         .map(persistentQueries::get)
+        // Guard against a narrow race: unregisterQuery() removes from persistentQueries before
+        // it removes from insertQueries, so a concurrent call here can observe a queryId that
+        // is still in insertQueries but no longer in persistentQueries (null lookup result).
+        .filter(Objects::nonNull)
         .filter(query -> filterQueries.test(sourceName, query))
         .map(QueryMetadata::getQueryId)
         .collect(Collectors.toSet());

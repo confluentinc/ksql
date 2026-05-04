@@ -45,6 +45,7 @@ import io.confluent.ksql.util.SharedKafkaStreamsRuntimeImpl;
 import io.confluent.ksql.util.TransientQueryMetadata;
 import java.lang.reflect.Field;
 import java.util.Arrays;
+import java.util.Map;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -654,6 +655,36 @@ public class QueryRegistryImplTest {
         false
     );
     return query;
+  }
+
+  @Test
+  public void shouldNotThrowNpeFromGetInsertQueriesWhenQueryRemovedFromPersistentQueriesFirst()
+      throws Exception {
+    // Regression test: unregisterQuery() removes from persistentQueries before it removes from
+    // insertQueries. If getInsertQueries() runs between those two removals it sees a queryId in
+    // insertQueries but gets null from persistentQueries.get(). Without the null guard the
+    // subsequent filterQueries.test(sourceName, null) NPEs.
+    if (!sharedRuntimes) {
+      // The race only applies in the shared-runtime path (INSERT queries use sinkAndSources).
+      // For dedicated runtimes the same map layout exists; exercise with INSERT type either way.
+    }
+    givenCreate(registry, "q1", "source", Optional.of("sink1"), INSERT);
+
+    // Simulate the race: manually remove q1 from persistentQueries but NOT from insertQueries.
+    final Field persistentQueriesField =
+        QueryRegistryImpl.class.getDeclaredField("persistentQueries");
+    persistentQueriesField.setAccessible(true);
+    @SuppressWarnings("unchecked")
+    final Map<QueryId, PersistentQueryMetadata> persistentQueriesMap =
+        (Map<QueryId, PersistentQueryMetadata>) persistentQueriesField.get(registry);
+    persistentQueriesMap.remove(new QueryId("q1"));  // first half of unregisterQuery
+
+    // getInsertQueries must not throw NPE even though insertQueries still contains q1.
+    final Set<QueryId> result =
+        registry.getInsertQueries(SourceName.of("sink1"), (n, q) -> true);
+
+    // The removed query should simply be absent from the result set.
+    assertThat(result.contains(new QueryId("q1")), is(false));
   }
 
   @Test

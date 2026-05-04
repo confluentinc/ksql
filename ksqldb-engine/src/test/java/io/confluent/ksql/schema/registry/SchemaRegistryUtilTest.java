@@ -131,44 +131,60 @@ public class SchemaRegistryUtilTest {
     assertThat(schemaAndId.get().getSchema(), equalTo(AVRO_SCHEMA));
   }
 
+  // The fixtures below all follow the canonical internal-subject shape
+  // "<applicationId>-<rawTopic>-(changelog|repartition)-(key|value)".
+  // Rationale (see also SchemaRegistryUtil#getInternalSubjectNames):
+  //  * Kafka Streams' `InternalTopologyBuilder#decorateTopic` unconditionally
+  //    builds internal topic names as "<applicationId>-<rawTopic>" — the "-"
+  //    is hardcoded, so every internal topic (and therefore every internal SR
+  //    subject) begins with "<applicationId>-".
+  //  * `KsqlConstants#getSRSubject` then appends "-key" or "-value", so a full
+  //    internal subject is "<applicationId>-<...>-(changelog|repartition)-(key|value)".
+  //  * The companion Kafka-topic cleanup at
+  //    `KafkaTopicClientImpl#isInternalTopic` already uses
+  //    `topicName.startsWith(applicationId + "-")` — these tests use the same
+  //    shape so the SR-side cleanup is exercised against realistic input.
+  // The pre-fix fixtures used "APP_ID + \"SOME-changelog-key\"" (no separator
+  // after the applicationId), which does not match anything Kafka Streams
+  // would actually emit and is what masked KSQL-14907.
   @Test
   public void shouldDeleteChangeLogTopicSchema() throws Exception {
     // Given:
     when(schemaRegistryClient.getAllSubjects()).thenReturn(ImmutableList.of(
-        APP_ID + "SOME-changelog-key",
-        APP_ID + "SOME-changelog-value"
+        APP_ID + "-SOME-changelog-key",
+        APP_ID + "-SOME-changelog-value"
     ));
 
     // When:
     SchemaRegistryUtil.cleanupInternalTopicSchemas(APP_ID, schemaRegistryClient);
 
     // Then not exception:
-    verify(schemaRegistryClient).deleteSubject(APP_ID + "SOME-changelog-key");
-    verify(schemaRegistryClient).deleteSubject(APP_ID + "SOME-changelog-value");
+    verify(schemaRegistryClient).deleteSubject(APP_ID + "-SOME-changelog-key");
+    verify(schemaRegistryClient).deleteSubject(APP_ID + "-SOME-changelog-value");
   }
 
   @Test
   public void shouldDeleteRepartitionTopicSchema() throws Exception {
     // Given:
     when(schemaRegistryClient.getAllSubjects()).thenReturn(ImmutableList.of(
-        APP_ID + "SOME-repartition-key",
-        APP_ID + "SOME-repartition-value"
+        APP_ID + "-SOME-repartition-key",
+        APP_ID + "-SOME-repartition-value"
     ));
 
     // When:
     SchemaRegistryUtil.cleanupInternalTopicSchemas(APP_ID, schemaRegistryClient);
 
     // Then not exception:
-    verify(schemaRegistryClient).deleteSubject(APP_ID + "SOME-repartition-key");
-    verify(schemaRegistryClient).deleteSubject(APP_ID + "SOME-repartition-value");
+    verify(schemaRegistryClient).deleteSubject(APP_ID + "-SOME-repartition-key");
+    verify(schemaRegistryClient).deleteSubject(APP_ID + "-SOME-repartition-value");
   }
 
   @Test
   public void shouldHardDeleteIfFlagSet() throws Exception {
     // Given:
     when(schemaRegistryClient.getAllSubjects()).thenReturn(ImmutableList.of(
-        APP_ID + "SOME-repartition-key",
-        APP_ID + "SOME-repartition-value"
+        APP_ID + "-SOME-repartition-key",
+        APP_ID + "-SOME-repartition-value"
     ));
 
     // When:
@@ -176,18 +192,18 @@ public class SchemaRegistryUtilTest {
 
     // Then not exception:
     final InOrder inOrder = inOrder(schemaRegistryClient);
-    inOrder.verify(schemaRegistryClient).deleteSubject(APP_ID + "SOME-repartition-key");
-    inOrder.verify(schemaRegistryClient).deleteSubject(APP_ID + "SOME-repartition-key", true);
-    inOrder.verify(schemaRegistryClient).deleteSubject(APP_ID + "SOME-repartition-value");
-    inOrder.verify(schemaRegistryClient).deleteSubject(APP_ID + "SOME-repartition-value", true);
+    inOrder.verify(schemaRegistryClient).deleteSubject(APP_ID + "-SOME-repartition-key");
+    inOrder.verify(schemaRegistryClient).deleteSubject(APP_ID + "-SOME-repartition-key", true);
+    inOrder.verify(schemaRegistryClient).deleteSubject(APP_ID + "-SOME-repartition-value");
+    inOrder.verify(schemaRegistryClient).deleteSubject(APP_ID + "-SOME-repartition-value", true);
   }
 
   @Test
   public void shouldNotDeleteOtherSchemasForThisApplicationId() throws Exception {
     // Given:
     when(schemaRegistryClient.getAllSubjects()).thenReturn(ImmutableList.of(
-        APP_ID + "SOME-other-key",
-        APP_ID + "SOME-other-value"
+        APP_ID + "-SOME-other-key",
+        APP_ID + "-SOME-other-value"
     ));
 
     // When:
@@ -195,6 +211,53 @@ public class SchemaRegistryUtilTest {
 
     // Then not exception:
     verify(schemaRegistryClient, never()).deleteSubject(any());
+  }
+
+  @Test
+  public void shouldNotDeleteSchemasOfLargerNumberedQueryWithSamePrefix() throws Exception {
+    // Regression for KSQL-14907.
+    //
+    // Production scenario this models:
+    //   * A user issued >=10 CREATE OR REPLACE TABLE FOO AS SELECT ..., so KSQL had
+    //     advanced its query name from CTAS_FOO_1 to CTAS_FOO_17.
+    //   * Stale local state from CTAS_FOO_1 lingered on a pod's PV (KSQL logs the
+    //     "race condition when the query was dropped before" WARN in this case).
+    //   * On a subsequent pod restart, QueryCleanupService scheduled cleanup for
+    //     the orphaned single-digit applicationId.
+    //
+    // Pre-fix bug: `getInternalSubjectNames` used `startsWith(applicationId)` with
+    // no terminator, so cleanup for "..._CTAS_FOO_1" matched the four active
+    // subjects of "..._CTAS_FOO_17-..." and proceeded to soft- then hard-delete
+    // them — wiping the running materialized table's schemas.
+    //
+    // Post-fix: `getInternalSubjectNames` uses `startsWith(applicationId + "-")`.
+    // Since "..._CTAS_FOO_17-..." does not start with "..._CTAS_FOO_1-" (the
+    // character after "_FOO_1" is "7", not "-"), nothing is matched and nothing
+    // is deleted. This is the only behavioural change vs. the old filter.
+    //
+    // Given:
+    final String singleDigitAppId = "_confluent-ksql-default_query_CTAS_FOO_1";
+    final String activeAppId = "_confluent-ksql-default_query_CTAS_FOO_17";
+    when(schemaRegistryClient.getAllSubjects()).thenReturn(ImmutableList.of(
+        // Active (running) query's internal subjects — must NOT be deleted.
+        // Shape "<activeAppId>-<storeName>-(changelog|repartition)-(key|value)"
+        // matches what Kafka Streams' `InternalTopologyBuilder#decorateTopic`
+        // actually emits (the "-" between applicationId and storeName is
+        // hardcoded there).
+        activeAppId + "-Aggregate-Aggregate-Materialize-changelog-key",
+        activeAppId + "-Aggregate-Aggregate-Materialize-changelog-value",
+        activeAppId + "-Join-repartition-key",
+        activeAppId + "-Join-repartition-value"
+    ));
+
+    // When: cleanup for the older single-digit query.
+    SchemaRegistryUtil.cleanupInternalTopicSchemas(singleDigitAppId, schemaRegistryClient);
+
+    // Then: nothing deleted — none of the active query's subjects share the
+    // "<singleDigitAppId>-" prefix (because "<singleDigitAppId>" is followed by
+    // "7", not "-", in the active query's subject names).
+    verify(schemaRegistryClient, never()).deleteSubject(any());
+    verify(schemaRegistryClient, never()).deleteSubject(any(), any(Boolean.class));
   }
 
   @Test
@@ -228,8 +291,8 @@ public class SchemaRegistryUtilTest {
   public void shouldNotThrowIfDeleteSubjectThrows() throws Exception {
     // Given:
     when(schemaRegistryClient.getAllSubjects()).thenReturn(ImmutableList.of(
-        APP_ID + "SOME-changelog-key",
-        APP_ID + "SOME-changelog-value"
+        APP_ID + "-SOME-changelog-key",
+        APP_ID + "-SOME-changelog-value"
     ));
 
     when(schemaRegistryClient.deleteSubject(any())).thenThrow(new RuntimeException("Boom!"));
@@ -238,16 +301,16 @@ public class SchemaRegistryUtilTest {
     SchemaRegistryUtil.cleanupInternalTopicSchemas(APP_ID, schemaRegistryClient);
 
     // Then not exception:
-    verify(schemaRegistryClient, times(5)).deleteSubject(APP_ID + "SOME-changelog-key");
-    verify(schemaRegistryClient, times(5)).deleteSubject(APP_ID + "SOME-changelog-value");
+    verify(schemaRegistryClient, times(5)).deleteSubject(APP_ID + "-SOME-changelog-key");
+    verify(schemaRegistryClient, times(5)).deleteSubject(APP_ID + "-SOME-changelog-value");
   }
 
   @Test
   public void shouldNotRetryIf40401() throws Exception {
     // Given:
     when(schemaRegistryClient.getAllSubjects()).thenReturn(ImmutableList.of(
-        APP_ID + "SOME-changelog-key",
-        APP_ID + "SOME-changelog-value"
+        APP_ID + "-SOME-changelog-key",
+        APP_ID + "-SOME-changelog-value"
     ));
 
     when(schemaRegistryClient.deleteSubject(any())).thenThrow(new RestClientException("foo", 404, 40401));
@@ -256,8 +319,8 @@ public class SchemaRegistryUtilTest {
     SchemaRegistryUtil.cleanupInternalTopicSchemas(APP_ID, schemaRegistryClient);
 
     // Then not exception (only tried once):
-    verify(schemaRegistryClient, times(1)).deleteSubject(APP_ID + "SOME-changelog-key");
-    verify(schemaRegistryClient, times(1)).deleteSubject(APP_ID + "SOME-changelog-value");
+    verify(schemaRegistryClient, times(1)).deleteSubject(APP_ID + "-SOME-changelog-key");
+    verify(schemaRegistryClient, times(1)).deleteSubject(APP_ID + "-SOME-changelog-value");
   }
 
   @Test

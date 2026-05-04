@@ -28,9 +28,11 @@ import io.confluent.ksql.util.ExecutorUtil;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import java.io.IOException;
+import java.util.List;
 import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.hc.core5.http.HttpStatus;
 import org.apache.kafka.common.acl.AclOperation;
@@ -55,11 +57,29 @@ public final class SchemaRegistryUtil {
   public static void cleanupInternalTopicSchemas(
       final String applicationId,
       final SchemaRegistryClient schemaRegistryClient) {
-    getInternalSubjectNames(applicationId, schemaRegistryClient)
-        .forEach(subject -> tryDeleteInternalSubject(
-            applicationId,
-            schemaRegistryClient,
-            subject));
+    // Materialize once so we can log the matched set in a single line and then
+    // iterate it for deletion. The list is bounded by the topology size of one
+    // query (typically a handful of subjects: key/value of changelog/repartition
+    // per state store), so collecting in memory is fine.
+    final List<String> matchedSubjects =
+        getInternalSubjectNames(applicationId, schemaRegistryClient)
+            .collect(Collectors.toList());
+    if (!matchedSubjects.isEmpty()) {
+      // One INFO line per cleanup invocation lists every subject that will be
+      // soft- and hard-deleted. After KSQL-14907 this is the trace operators
+      // need to verify the prefix filter behaved correctly (no subjects of
+      // larger-numbered queries collected here). Skip when nothing matched:
+      // simple queries (e.g. plain CSAS without aggregation/repartition) have
+      // no internal subjects, so logging "matched 0" on every cleanup would be
+      // pure noise — the caller already logged "Deleting schemas for prefix
+      // <appId>" before invoking us.
+      LOG.info("Matched {} internal schema subject(s) for cleanup of \"{}\": {}",
+          matchedSubjects.size(), applicationId, matchedSubjects);
+      matchedSubjects.forEach(subject -> tryDeleteInternalSubject(
+          applicationId,
+          schemaRegistryClient,
+          subject));
+    }
   }
 
   public static Stream<String> getSubjectNames(final SchemaRegistryClient schemaRegistryClient) {
@@ -235,8 +255,18 @@ public final class SchemaRegistryUtil {
     final Stream<String> allSubjectNames = getSubjectNames(
         schemaRegistryClient,
         "Could not clean up the schema registry for query: " + applicationId);
+    // Append a "-" delimiter so an applicationId ending in a numeric suffix
+    // (e.g. "..._CTAS_FOO_1") does not prefix-match subjects of larger-numbered
+    // queries (e.g. "..._CTAS_FOO_17-..."). Kafka Streams' internal topic names
+    // are always built as "<applicationId>-<rawTopic>" (the "-" is hardcoded in
+    // `InternalTopologyBuilder#decorateTopic`), and SR subjects are derived as
+    // "<topicName>-(key|value)". So every internal subject for a given query
+    // begins with "<applicationId>-". The companion Kafka-topic cleanup path in
+    // `KafkaTopicClientImpl#isInternalTopic` already uses this same prefix
+    // shape; this filter just keeps the SR cleanup consistent with it.
+    final String prefix = applicationId + "-";
     return allSubjectNames
-        .filter(subjectName -> subjectName.startsWith(applicationId))
+        .filter(subjectName -> subjectName.startsWith(prefix))
         .filter(SchemaRegistryUtil::isInternalSubject);
   }
 

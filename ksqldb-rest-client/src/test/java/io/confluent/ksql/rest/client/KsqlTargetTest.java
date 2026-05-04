@@ -18,6 +18,8 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.properties.LocalProperties;
 import io.confluent.ksql.rest.client.exception.KsqlRestClientException;
+import io.confluent.ksql.rest.entity.HeartbeatResponse;
+import io.confluent.ksql.rest.entity.KsqlHostInfoEntity;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
@@ -292,6 +294,41 @@ public class KsqlTargetTest {
     assertThatEventually(response::get, notNullValue());
     assertThat(response.get().getResponse(), is (2));
     assertThat(rows.size(), is (2));
+  }
+
+  @Test
+  public void shouldCompleteAsyncRequestExceptionallyWhenResponseIsNull() throws Exception {
+    // Regression for KSQL-14906: when the underlying HTTP connection is closed before any
+    // response is received, Vert.x can invoke the response handler with a null result. The
+    // async path must complete the future exceptionally with a KsqlRestClientException
+    // rather than letting an NPE escape onto the event loop and crash the JVM.
+    when(httpClientRequest.response(any(Handler.class))).thenAnswer(a -> {
+      final Handler<AsyncResult<HttpClientResponse>> handler = a.getArgument(0);
+      vertx.runOnContext(v -> {
+        handler.handle(Future.succeededFuture(null));
+        requestStarted.set(true);
+      });
+      return null;
+    });
+
+    ksqlTarget = new KsqlTarget(httpClient, socketAddress, localProperties, authHeader, HOST,
+        SUB_PATH, Collections.emptyMap(), RequestOptions.DEFAULT_TIMEOUT);
+
+    final CompletableFuture<RestResponse<HeartbeatResponse>> result =
+        ksqlTarget.postAsyncHeartbeatRequest(new KsqlHostInfoEntity("h", 1), 0L);
+
+    assertThatEventually(requestStarted::get, is(true));
+    assertThatEventually(result::isCompletedExceptionally, is(true));
+
+    Throwable cause = null;
+    try {
+      result.get();
+    } catch (final Exception e) {
+      cause = e.getCause();
+    }
+    assertThat(cause, instanceOf(KsqlRestClientException.class));
+    assertThat(cause.getMessage(), containsString("Inter-pod HTTP response was null"));
+    assertThat(cause.getMessage(), containsString("/heartbeat"));
   }
 
   @Test

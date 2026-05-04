@@ -62,24 +62,22 @@ public final class SchemaRegistryUtil {
     final List<String> matchedSubjects =
         getInternalSubjectNames(applicationId, schemaRegistryClient)
             .collect(Collectors.toList());
-    if (matchedSubjects.isEmpty()) {
-      // Skip the empty case: this method is called once per query cleanup, and
+    if (!matchedSubjects.isEmpty()) {
+      // One INFO line per cleanup invocation lists every subject that will be
+      // soft- and hard-deleted. After KSQL-14907 this is the trace operators
+      // need to verify the prefix filter behaved correctly (no subjects of
+      // larger-numbered queries collected here). Skip when nothing matched:
       // simple queries (e.g. plain CSAS without aggregation/repartition) have
-      // no internal subjects. Logging "matched 0 subjects" on every cleanup
-      // would spam the log without adding signal — the caller already logged
-      // "Deleting schemas for prefix <appId>" before invoking us.
-      return;
+      // no internal subjects, so logging "matched 0" on every cleanup would be
+      // pure noise — the caller already logged "Deleting schemas for prefix
+      // <appId>" before invoking us.
+      LOG.info("Matched {} internal schema subject(s) for cleanup of \"{}\": {}",
+          matchedSubjects.size(), applicationId, matchedSubjects);
+      matchedSubjects.forEach(subject -> tryDeleteInternalSubject(
+          applicationId,
+          schemaRegistryClient,
+          subject));
     }
-    // One INFO line per cleanup invocation lists every subject that will be
-    // soft- and hard-deleted. After KSQL-14907 this is the trace operators
-    // need to verify the prefix filter behaved correctly (no subjects of
-    // larger-numbered queries collected here).
-    LOG.info("Matched {} internal schema subject(s) for cleanup of \"{}\": {}",
-        matchedSubjects.size(), applicationId, matchedSubjects);
-    matchedSubjects.forEach(subject -> tryDeleteInternalSubject(
-        applicationId,
-        schemaRegistryClient,
-        subject));
   }
 
   public static Stream<String> getSubjectNames(final SchemaRegistryClient schemaRegistryClient) {

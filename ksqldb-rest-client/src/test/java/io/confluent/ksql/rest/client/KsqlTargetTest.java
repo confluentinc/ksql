@@ -312,7 +312,7 @@ public class KsqlTargetTest {
     });
 
     ksqlTarget = new KsqlTarget(httpClient, socketAddress, localProperties, authHeader, HOST,
-        SUB_PATH, Collections.emptyMap());
+        SUB_PATH, Collections.emptyMap(), RequestOptions.DEFAULT_TIMEOUT);
 
     final CompletableFuture<RestResponse<HeartbeatResponse>> result =
         ksqlTarget.postAsyncHeartbeatRequest(new KsqlHostInfoEntity("h", 1), 0L);

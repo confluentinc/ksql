@@ -47,10 +47,14 @@ import java.lang.reflect.Field;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Set;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.streams.KafkaStreams.State;
@@ -650,6 +654,68 @@ public class QueryRegistryImplTest {
         false
     );
     return query;
+  }
+
+  @Test
+  public void shouldUseThreadSafeListForSharedRuntimes() throws Exception {
+    // The streams list is written from the CommandRunner thread (createOrReplacePersistentQuery)
+    // and read/modified from the Kafka Streams state listener thread (unregisterQuery).
+    // It must be a CopyOnWriteArrayList to prevent ConcurrentModificationException.
+    final Field streamsField = QueryRegistryImpl.class.getDeclaredField("streams");
+    streamsField.setAccessible(true);
+    final List<?> streams = (List<?>) streamsField.get(registry);
+    assertThat(streams, org.hamcrest.Matchers.instanceOf(CopyOnWriteArrayList.class));
+  }
+
+  @Test
+  public void shouldNotThrowConcurrentModificationOnSimultaneousIterateAndRemove() throws Exception {
+    // Regression test: the Kafka Streams state listener thread can call unregisterQuery
+    // (which removes from streams) while the CommandRunner thread iterates streams.
+    // CopyOnWriteArrayList prevents ConcurrentModificationException in this scenario.
+    final Field streamsField = QueryRegistryImpl.class.getDeclaredField("streams");
+    streamsField.setAccessible(true);
+    @SuppressWarnings("unchecked")
+    final List<SharedKafkaStreamsRuntime> streams =
+        (List<SharedKafkaStreamsRuntime>) streamsField.get(registry);
+
+    final SharedKafkaStreamsRuntime r1 = mock(SharedKafkaStreamsRuntime.class);
+    final SharedKafkaStreamsRuntime r2 = mock(SharedKafkaStreamsRuntime.class);
+    streams.add(r1);
+    streams.add(r2);
+
+    final CountDownLatch iterating = new CountDownLatch(1);
+    final AtomicReference<Exception> iterationError = new AtomicReference<>();
+
+    // Thread 1: iterates over streams (simulates CommandRunner building a query)
+    final Thread iterator = new Thread(() -> {
+      try {
+        for (final SharedKafkaStreamsRuntime runtime : streams) {
+          iterating.countDown();
+          Thread.sleep(20); // hold iteration open while other thread modifies
+          runtime.getApplicationId(); // access element
+        }
+      } catch (final Exception e) {
+        iterationError.set(e);
+      }
+    });
+
+    // Thread 2: removes from streams (simulates Kafka Streams listener calling unregisterQuery)
+    final Thread remover = new Thread(() -> {
+      try {
+        iterating.await();
+        streams.remove(r1);
+      } catch (final InterruptedException e) {
+        Thread.currentThread().interrupt();
+      }
+    });
+
+    iterator.start();
+    remover.start();
+    iterator.join(2000);
+    remover.join(2000);
+
+    assertThat("ConcurrentModificationException should not occur with CopyOnWriteArrayList",
+        iterationError.get(), org.hamcrest.Matchers.nullValue());
   }
 
   private void givenStreamPull(

@@ -46,7 +46,6 @@ import io.confluent.ksql.util.SandboxedSharedKafkaStreamsRuntimeImpl;
 import io.confluent.ksql.util.SandboxedTransientQueryMetadata;
 import io.confluent.ksql.util.SharedKafkaStreamsRuntime;
 import io.confluent.ksql.util.TransientQueryMetadata;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -57,6 +56,7 @@ import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.BiPredicate;
 import java.util.stream.Collectors;
 import org.apache.kafka.common.TopicPartition;
@@ -78,8 +78,8 @@ public class QueryRegistryImpl implements QueryRegistry {
   private final Collection<QueryEventListener> eventListeners;
   private final QueryBuilderFactory queryBuilderFactory;
   private final MetricCollectors metricCollectors;
-  private final List<SharedKafkaStreamsRuntime> streams = new ArrayList<>();
-  private final List<SharedKafkaStreamsRuntime> sourceStreams = new ArrayList<>();
+  private final List<SharedKafkaStreamsRuntime> streams = new CopyOnWriteArrayList<>();
+  private final List<SharedKafkaStreamsRuntime> sourceStreams = new CopyOnWriteArrayList<>();
   private final boolean sandbox;
 
   public QueryRegistryImpl(

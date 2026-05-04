@@ -141,6 +141,30 @@ public class PersistentQueryCleanupImplTest {
     assertTrue(tempFile.exists());
   }
 
+  @Test
+  public void shouldNotDeleteNamedTopologyStateStoresBelongingToRunningBinPackedQuery() {
+    // Regression: the old regex "__*__" is invalid Java regex — in Java regex, `*` means
+    // "zero or more of the preceding character", so "__*__" matches only underscore-only strings
+    // like "____". It never matches a real named-topology directory like "__queryId__".
+    // As a result the whole top-level application directory was treated as the cleanup unit,
+    // which caused the running query's state store to be deleted even though it should be kept.
+    // The fix changes the regex to "__.*__" (dot-star) so it correctly matches "__queryId__".
+    when(binPackedPersistentQueryMetadata.getQueryApplicationId()).thenReturn("appId");
+
+    final File appDir = new File(tempFile.getAbsolutePath() + "/appId");
+    final File namedTopologyDir = new File(appDir, "__test__");
+    assertTrue(appDir.mkdirs() || appDir.exists());
+    assertTrue(namedTopologyDir.mkdirs() || namedTopologyDir.exists());
+
+    // When:
+    cleanup.cleanupLeakedQueries(ImmutableList.of(binPackedPersistentQueryMetadata));
+    awaitCleanupComplete();
+
+    // Then: the named-topology state store must NOT have been deleted
+    assertTrue("Named topology state store should not be deleted for a running query",
+        namedTopologyDir.exists());
+  }
+
   private void awaitCleanupComplete() {
     // add a task to the end of the queue to make sure that
     // we've finished processing everything up until this point

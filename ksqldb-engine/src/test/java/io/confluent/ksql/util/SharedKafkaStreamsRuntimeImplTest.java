@@ -241,6 +241,19 @@ public class SharedKafkaStreamsRuntimeImplTest {
     }
 
     @Test
+    public void streamsPropertiesFieldShouldBeVolatile() throws Exception {
+        // overrideStreamsProperties() is called from the CommandRunner thread while
+        // HTTP handler threads read it via getStreamProperties(). Without volatile,
+        // HTTP threads can serve stale configuration after ALTER SYSTEM.
+        final Field field = SharedKafkaStreamsRuntime.class.getDeclaredField("streamsProperties");
+        assertThat(
+            "streamsProperties must be volatile to ensure cross-thread visibility after ALTER SYSTEM",
+            (field.getModifiers() & Modifier.VOLATILE) != 0,
+            is(true)
+        );
+    }
+
+    @Test
     public void kafkaStreamsFieldShouldBeVolatile() throws Exception {
         // restartStreamsRuntime() reassigns kafkaStreams from the CommandRunner thread while
         // HTTP handler threads read it via state(), getKafkaStreams(), etc.

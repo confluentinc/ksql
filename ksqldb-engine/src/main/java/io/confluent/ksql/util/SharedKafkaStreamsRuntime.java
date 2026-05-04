@@ -43,7 +43,7 @@ public abstract class SharedKafkaStreamsRuntime {
 
   protected final KafkaStreamsBuilder kafkaStreamsBuilder;
   protected volatile KafkaStreamsNamedTopologyWrapper kafkaStreams;
-  protected ImmutableMap<String, Object> streamsProperties;
+  protected volatile ImmutableMap<String, Object> streamsProperties;
   protected final Map<QueryId, BinPackedPersistentQueryMetadataImpl> collocatedQueries;
 
   protected SharedKafkaStreamsRuntime(

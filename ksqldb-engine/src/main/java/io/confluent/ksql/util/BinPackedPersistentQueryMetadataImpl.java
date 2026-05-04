@@ -441,7 +441,7 @@ public class BinPackedPersistentQueryMetadataImpl implements PersistentQueryMeta
   public void resume() {
     sharedKafkaStreamsRuntime.getKafkaStreams().resumeNamedTopology(topology.name());
     isPaused = false;
-    listener.onPause(this);
+    listener.onResume(this);
   }
 
   @Override

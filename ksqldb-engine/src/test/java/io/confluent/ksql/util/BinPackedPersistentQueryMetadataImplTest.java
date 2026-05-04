@@ -19,6 +19,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -186,6 +187,23 @@ public class BinPackedPersistentQueryMetadataImplTest {
 
         // Then:
         verify(sharedKafkaStreamsRuntimeImpl).stop(QUERY_ID, true);
+    }
+
+    @Test
+    public void resumeShouldFireOnResumeNotOnPause() {
+        // resume() had a copy-paste bug: it called listener.onPause() instead of listener.onResume().
+        // Verify that the correct event is fired so external listeners tracking pause/resume state
+        // receive the right notification.
+        when(sharedKafkaStreamsRuntimeImpl.getKafkaStreams())
+            .thenReturn(kafkaStreamsNamedTopologyWrapper);
+        when(topology.name()).thenReturn("queryId");
+
+        // When:
+        query.resume();
+
+        // Then:
+        verify(listener).onResume(query);
+        verify(listener, never()).onPause(query);
     }
 
     @Test

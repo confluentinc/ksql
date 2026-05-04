@@ -26,6 +26,8 @@ import io.confluent.ksql.query.KafkaStreamsBuilder;
 import io.confluent.ksql.query.QueryError.Type;
 import io.confluent.ksql.query.QueryErrorClassifier;
 import io.confluent.ksql.query.QueryId;
+import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -233,6 +235,30 @@ public class SharedKafkaStreamsRuntimeImplTest {
         verify(kafkaStreamsNamedTopologyWrapper2).addNamedTopology(any());
         verify(kafkaStreamsNamedTopologyWrapper2).start();
         verify(kafkaStreamsNamedTopologyWrapper2).setUncaughtExceptionHandler((StreamsUncaughtExceptionHandler) any());
+    }
+
+    @Test
+    public void kafkaStreamsFieldShouldBeVolatile() throws Exception {
+        // restartStreamsRuntime() reassigns kafkaStreams from the CommandRunner thread while
+        // HTTP handler threads read it via state(), getKafkaStreams(), etc.
+        // Without volatile the HTTP thread can observe a stale reference after a restart.
+        final Field field = SharedKafkaStreamsRuntime.class.getDeclaredField("kafkaStreams");
+        assertThat(
+            "kafkaStreams must be volatile to ensure cross-thread visibility after restart",
+            (field.getModifiers() & Modifier.VOLATILE) != 0,
+            is(true)
+        );
+    }
+
+    @Test
+    public void shouldUseNewKafkaStreamsInstanceAfterRestart() {
+        // After restartStreamsRuntime() the runtime must use the new KafkaStreams instance.
+        // A non-volatile field could cause HTTP threads to continue seeing the old instance.
+        sharedKafkaStreamsRuntimeImpl.restartStreamsRuntime();
+
+        // getKafkaStreams() must return the new wrapper, not the original one
+        assertThat(sharedKafkaStreamsRuntimeImpl.getKafkaStreams(),
+            org.hamcrest.Matchers.sameInstance(kafkaStreamsNamedTopologyWrapper2));
     }
 
     @Test

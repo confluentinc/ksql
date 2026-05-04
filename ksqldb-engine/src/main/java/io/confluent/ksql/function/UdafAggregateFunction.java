@@ -18,7 +18,6 @@ package io.confluent.ksql.function;
 import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.function.udaf.Udaf;
 import io.confluent.ksql.schema.ksql.types.SqlType;
-
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;

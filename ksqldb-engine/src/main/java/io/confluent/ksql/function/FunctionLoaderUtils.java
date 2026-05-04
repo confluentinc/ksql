@@ -29,7 +29,6 @@ import io.confluent.ksql.schema.ksql.SqlArgument;
 import io.confluent.ksql.schema.ksql.SqlTypeParser;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-
 import io.confluent.ksql.util.KsqlException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;

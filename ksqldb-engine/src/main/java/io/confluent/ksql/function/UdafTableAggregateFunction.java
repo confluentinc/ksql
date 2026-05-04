@@ -19,7 +19,6 @@ import io.confluent.ksql.execution.function.TableAggregationFunction;
 import io.confluent.ksql.function.udaf.TableUdaf;
 import io.confluent.ksql.function.udaf.Udaf;
 import io.confluent.ksql.schema.ksql.types.SqlType;
-
 import java.util.List;
 import java.util.Optional;
 import org.apache.kafka.common.metrics.Metrics;

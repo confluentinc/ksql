@@ -640,8 +640,12 @@ public class CommandRunnerTest {
   }
   
   @Test
-  public void shouldCloseEarlyOnTerminate() throws InterruptedException {
-    // Given:
+  public void shouldStopCleanlyOnTerminateWithoutSelfDeadlock() throws InterruptedException {
+    // terminateCluster() is called from within the Runner thread. Previously it called
+    // closeEarly() -> executor.awaitTermination() which self-deadlocked (the thread waited
+    // for itself to finish) for the full SHUTDOWN_TIMEOUT_MS, twice. The fix signals stop
+    // by setting closed=true and calling commandStore.wakeup() only; the Runner loop exits
+    // naturally and commandStore.close() runs in its finally block.
     when(commandStore.getNewCommands(any())).thenReturn(Collections.singletonList(queuedCommand1));
     when(queuedCommand1.getAndDeserializeCommand(commandDeserializer)).thenReturn(clusterTerminate);
 
@@ -650,12 +654,15 @@ public class CommandRunnerTest {
     verify(commandStore, never()).close();
     final Runnable threadTask = getThreadTask();
     threadTask.run();
-    
-    // Then:
-    final InOrder inOrder = inOrder(executor, commandStore);
+
+    // Then: wakeup is called once (by terminateCluster), commandStore is closed by the
+    // Runner's finally block, and awaitTermination is NOT called from terminateCluster.
+    final InOrder inOrder = inOrder(commandStore);
     inOrder.verify(commandStore).wakeup();
-    inOrder.verify(executor).awaitTermination(anyLong(), any());
     inOrder.verify(commandStore).close();
+    // executor.awaitTermination must NOT be called from within the Runner thread to avoid
+    // the self-deadlock that previously caused ~30 s delay per TERMINATE CLUSTER command.
+    verify(executor, never()).awaitTermination(anyLong(), any());
   }
 
   @Test

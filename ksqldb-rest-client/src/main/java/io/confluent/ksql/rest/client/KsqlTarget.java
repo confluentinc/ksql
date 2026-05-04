@@ -327,6 +327,17 @@ public final class KsqlTarget {
       final Function<ResponseWithBody, T> mapper
   ) {
     return executeAsync(httpMethod, path, Optional.empty(), jsonEntity, mapper, (resp, vcf) -> {
+      // Vert.x can invoke this handler with a null response when the underlying
+      // HTTP connection is closed before any response is received (e.g. peer pod
+      // restart, TCP reset, idle keepalive timeout). Without this guard the NPE
+      // would propagate up the event loop as an unhandled exception and crash
+      // the JVM.
+      if (resp == null) {
+        vcf.completeExceptionally(new KsqlRestClientException(
+            "Inter-pod HTTP response was null (connection closed before response "
+                + "received) for " + httpMethod + " " + path));
+        return;
+      }
       resp.bodyHandler(buff -> vcf.complete(new ResponseWithBody(resp, buff)));
     });
   }

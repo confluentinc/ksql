@@ -16,7 +16,9 @@
 package io.confluent.ksql.util;
 
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.sameInstance;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -259,7 +261,7 @@ public class SharedKafkaStreamsRuntimeImplTest {
 
         // getKafkaStreams() must return the new wrapper, not the original one
         assertThat(sharedKafkaStreamsRuntimeImpl.getKafkaStreams(),
-            org.hamcrest.Matchers.sameInstance(kafkaStreamsNamedTopologyWrapper2));
+            sameInstance(kafkaStreamsNamedTopologyWrapper2));
     }
 
     @Test
@@ -286,11 +288,6 @@ public class SharedKafkaStreamsRuntimeImplTest {
         // old KafkaStreams instance. restartStreamsRuntime() closes that instance, so those
         // futures will never complete. Without clearing them, subsequent stop() calls would
         // block on completed/failed futures from a different instance.
-        when(kafkaStreamsNamedTopologyWrapper.getTopologyByName(queryId.toString()))
-            .thenReturn(Optional.empty());
-        when(kafkaStreamsNamedTopologyWrapper.addNamedTopology(any()))
-            .thenReturn(addNamedTopologyResult);
-
         sharedKafkaStreamsRuntimeImpl.start(queryId);
 
         final Field field = SharedKafkaStreamsRuntimeImpl.class.getDeclaredField("topolgogiesToAdd");

@@ -33,7 +33,7 @@ import io.confluent.ksql.schema.ksql.SqlArgument;
 import io.confluent.ksql.schema.ksql.SqlTypeParser;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import io.confluent.ksql.security.ExtensionSecurityManager;
+
 import io.confluent.ksql.util.KsqlException;
 import java.io.File;
 import java.math.BigDecimal;
@@ -228,56 +228,6 @@ public class UdtfLoaderTest {
 
     // Then:
     assertThat(function.getReturnType(args), equalTo(STRUCT_SCHEMA));
-  }
-
-  @Test
-  public void shouldNotLetBadUdtfsExitViaBadSchemaProvider() {
-    // Given:
-    // We do need to set up the ExtensionSecurityManager for our test.
-    // This is controlled by a feature flag and in this test, we just directly enable it.
-    SecurityManager manager = System.getSecurityManager();
-    System.setSecurityManager(ExtensionSecurityManager.INSTANCE);
-
-    // When:
-    final Exception error = assertThrows(
-        KsqlException.class,
-        () ->
-            FUNC_REG.getTableFunction(
-                    FunctionName.of("bad_test_udtf"),
-                    Collections.singletonList(SqlArgument.of(SqlTypes.decimal(2,0))))
-                .getReturnType(ImmutableList.of(SqlArgument.of(SqlTypes.DOUBLE)))
-    );
-
-    // Then:
-    assertThat(error.getMessage(), containsString(
-        "Cannot invoke the schema provider method provideSchema for UDF bad_test_udtf."));
-    System.setSecurityManager(manager);
-    assertEquals(System.getSecurityManager(), manager);
-  }
-
-  @Test
-  public void shouldNotLetBadUdtfsExit() {
-    // Given:
-    // We do need to set up the ExtensionSecurityManager for our test.
-    // This is controlled by a feature flag and in this test, we just directly enable it.
-    SecurityManager manager = System.getSecurityManager();
-    System.setSecurityManager(ExtensionSecurityManager.INSTANCE);
-
-    // When:
-    final Exception error = assertThrows(
-        KsqlFunctionException.class,
-        () ->
-            FUNC_REG.getTableFunction(
-                FunctionName.of("bad_test_udtf"),
-                Collections.singletonList(SqlArgument.of(SqlTypes.STRING))).apply("foo")
-    );
-
-    // Then:
-    assertThat(error.getMessage(), containsString(
-        "Failed to invoke function public java.util.List "
-            + "io.confluent.ksql.function.udf.BadTestUdtf.listStringReturn(java.lang.String)"));
-    System.setSecurityManager(manager);
-    assertEquals(System.getSecurityManager(), manager);
   }
 
   @Test

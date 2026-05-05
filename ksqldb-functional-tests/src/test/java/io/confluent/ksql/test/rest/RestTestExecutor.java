@@ -374,7 +374,6 @@ public class RestTestExecutor implements Closeable {
         () -> {
           final RestResponse<KsqlEntityList> resp = restClient.makeKsqlRequest(sql);
           if (resp.isErroneous()
-              && !testCase.expectedError().isPresent()
               && resp.getErrorMessage().getMessage().contains("does not exist")) {
             throw new RuntimeException(
                 "Topic metadata not yet propagated: " + resp.getErrorMessage().getMessage());

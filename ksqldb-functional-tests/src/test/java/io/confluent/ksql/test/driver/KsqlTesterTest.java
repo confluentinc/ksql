@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.test.driver;
 
-import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.tools.test.parser.SqlTestLoader;
 import io.confluent.ksql.tools.test.parser.SqlTestLoader.SqlTest;
 import io.confluent.ksql.tools.test.SqlTestExecutor;
@@ -23,9 +22,7 @@ import io.confluent.ksql.test.util.KsqlTestFolder;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Set;
 import org.junit.After;
-import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -37,31 +34,15 @@ import org.junit.runners.Parameterized;
 public class KsqlTesterTest {
   private static final String TEST_DIR = "/sql-tests";
 
-  /**
-   * Specific tests skipped pending fix for KIP-1035-affected state-preservation
-   * across CREATE OR REPLACE with Kafka Streams in Apache Kafka 8.3.
-   * Production ksqlDB is unaffected (durability flows via the real changelog
-   * topic). The rest of the suite runs normally.
-   */
-  private static final Set<String> SKIPPED_TESTS = ImmutableSet.of(
-      "(query-upgrades/filters.sql) change filter in StreamAggregate (StreamGroupByKey)",
-      "(query-upgrades/filters.sql) change filter in StreamAggregate (StreamGroupBy)",
-      "(query-upgrades/filters.sql) add filter in StreamAggregate where columns are already in input schema",
-      "(query-upgrades/filters.sql) remove filter in StreamAggregate where columns are already in input schema",
-      "(query-upgrades/filters.sql) change filter in StreamAggregate to another column that already exists in input",
-      "(query-upgrades/projections.sql) add aggregate columns to value"
-  );
-
   // parameterized
-  private final String testCase;
-  private final SqlTest test;
+  private SqlTest test;
 
   @Rule
   public final TemporaryFolder tmpFolder = KsqlTestFolder.temporaryFolder();
   private SqlTestExecutor executor;
 
+  @SuppressWarnings("unused")
   public KsqlTesterTest(final String testCase, final SqlTest test) {
-    this.testCase = testCase;
     this.test = test;
   }
 
@@ -79,18 +60,11 @@ public class KsqlTesterTest {
 
   @After
   public void close() {
-    if (executor != null) {
-      executor.close();
-    }
+    executor.close();
   }
 
   @Before
   public void setUp() {
-    // Skip-check before creating the executor so we don't pay setup cost
-    // for known-skipped cases.
-    Assume.assumeFalse(
-        "Skipping known KIP-1035-affected test pending state-preservation fix: " + testCase,
-        SKIPPED_TESTS.contains(testCase));
     this.executor = SqlTestExecutor.create(tmpFolder.getRoot().toPath());
   }
 

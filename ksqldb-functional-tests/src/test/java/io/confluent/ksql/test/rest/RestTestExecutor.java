@@ -80,6 +80,7 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import joptsimple.internal.Strings;
@@ -362,15 +363,33 @@ public class RestTestExecutor implements Closeable {
     final String sql = statements.stream()
         .collect(Collectors.joining(System.lineSeparator()));
 
-    final RestResponse<KsqlEntityList> resp = restClient.makeKsqlRequest(sql);
+    // Retry on transient "topic does not exist" errors caused by Kafka metadata propagation lag:
+    // topic creation succeeds from the test's perspective but ksqlDB's admin client may not see
+    // it yet when executing CREATE STREAM/TABLE without explicit PARTITIONS.
+    final AtomicReference<RestResponse<KsqlEntityList>> responseRef = new AtomicReference<>();
+    RetryUtil.retryWithBackoff(
+        10,
+        500,
+        (int) TimeUnit.SECONDS.toMillis(5),
+        () -> {
+          final RestResponse<KsqlEntityList> resp = restClient.makeKsqlRequest(sql);
+          if (resp.isErroneous()
+              && !testCase.expectedError().isPresent()
+              && resp.getErrorMessage().getMessage().contains("does not exist")) {
+            throw new RuntimeException(
+                "Topic metadata not yet propagated: " + resp.getErrorMessage().getMessage());
+          }
+          responseRef.set(resp);
+        }
+    );
 
+    final RestResponse<KsqlEntityList> resp = responseRef.get();
     if (resp.isErroneous()) {
       handleErrorResponse(testCase, resp);
       return Optional.empty();
     }
 
-    final KsqlEntityList entity = resp.getResponse();
-    return Optional.of(RqttResponse.admin(entity));
+    return Optional.of(RqttResponse.admin(resp.getResponse()));
   }
 
   private List<RqttResponse> sendQueryStatements(

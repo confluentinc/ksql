@@ -203,6 +203,7 @@ public class RestoreCommandTopicIntegrationTest {
 
     // Delete the command topic again and restore with skip flag
     TEST_HARNESS.deleteTopics(Collections.singletonList(commandTopic));
+    assertThatEventually("Degraded State", this::isDegradedState, is(true));
     REST_APP.stop();
     KsqlRestoreCommandTopic.mainInternal(
         new String[]{
@@ -269,6 +270,7 @@ public class RestoreCommandTopicIntegrationTest {
 
     // Delete the command topic again and restore with skip flag
     TEST_HARNESS.deleteTopics(Collections.singletonList(commandTopic));
+    assertThatEventually("Degraded State", this::isDegradedState, is(true));
     REST_APP.stop();
     KsqlRestoreCommandTopic.mainInternal(
         new String[]{
@@ -318,6 +320,7 @@ public class RestoreCommandTopicIntegrationTest {
 
     // Delete the command topic again and restore with skip flag
     TEST_HARNESS.deleteTopics(Collections.singletonList(commandTopic));
+    assertThatEventually("Degraded State", this::isDegradedState, is(true));
     REST_APP.stop();
     KsqlRestoreCommandTopic.mainInternal(
         new String[]{

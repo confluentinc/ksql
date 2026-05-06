@@ -1546,7 +1546,7 @@
                     <effort>Max</effort>
                     <threshold>Max</threshold>
                     <failOnError>true</failOnError>
-<!--                    <includeTests>true</includeTests>-->
+                    <includeTests>true</includeTests>
                 </configuration>
                 <executions>
                     <!--
@@ -1555,6 +1555,13 @@
                     <execution>
                         <id>analyze-compile</id>
                         <phase>compile</phase>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>analyze-test-compile</id>
+                        <phase>test-compile</phase>
                         <goals>
                             <goal>check</goal>
                         </goals>

@@ -18,16 +18,17 @@ package io.confluent.ksql.execution.streams.materialization.ks;
 import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import java.lang.reflect.Field;
-import java.lang.reflect.Method;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.function.Function;
+import org.apache.kafka.common.header.internals.RecordHeaders;
 import org.apache.kafka.common.utils.Bytes;
 import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.errors.InvalidStateStoreException;
 import org.apache.kafka.streams.kstream.Windowed;
 import org.apache.kafka.streams.processor.StateStore;
+import org.apache.kafka.streams.state.AggregationWithHeaders;
 import org.apache.kafka.streams.state.KeyValueIterator;
 import org.apache.kafka.streams.state.QueryableStoreType;
 import org.apache.kafka.streams.state.ReadOnlySessionStore;
@@ -35,6 +36,7 @@ import org.apache.kafka.streams.state.SessionStore;
 import org.apache.kafka.streams.state.StateSerdes;
 import org.apache.kafka.streams.state.internals.CompositeReadOnlySessionStore;
 import org.apache.kafka.streams.state.internals.MeteredSessionStore;
+import org.apache.kafka.streams.state.internals.ReadOnlySessionStoreFacade;
 import org.apache.kafka.streams.state.internals.StateStoreProvider;
 import org.apache.kafka.streams.state.internals.WrappedStateStore;
 
@@ -44,10 +46,7 @@ public final class SessionStoreCacheBypass {
   private static final Field STORE_NAME_FIELD;
   private static final Field STORE_TYPE_FIELD;
   static final Field SERDES_FIELD;
-  // Nullable: only present in Kafka versions that introduced ReadOnlySessionStoreFacade
   private static final Field SESSION_FACADE_INNER_FIELD;
-  // Nullable: AggregationWithHeaders.getAggregationOrNull — used when session facade is present
-  private static final Method AGGREGATION_GET_AGGREGATION_METHOD;
   private static final String STORE_UNAVAILABLE_MESSAGE = "State store is not available anymore "
           + "and may have been migrated to another instance; "
           + "please re-discover its location from the state metadata.";
@@ -63,28 +62,11 @@ public final class SessionStoreCacheBypass {
       STORE_TYPE_FIELD.setAccessible(true);
       SERDES_FIELD = MeteredSessionStore.class.getDeclaredField("serdes");
       SERDES_FIELD.setAccessible(true);
+      SESSION_FACADE_INNER_FIELD = ReadOnlySessionStoreFacade.class.getDeclaredField("inner");
+      SESSION_FACADE_INNER_FIELD.setAccessible(true);
     } catch (final NoSuchFieldException e) {
       throw new RuntimeException("Stream internals changed unexpectedly!", e);
     }
-
-    Field sessionFacadeInnerField = null;
-    Method aggregationGetAggregationMethod = null;
-    try {
-      final Class<?> facadeClass = Class.forName(
-          "org.apache.kafka.streams.state.internals.ReadOnlySessionStoreFacade");
-      sessionFacadeInnerField = facadeClass.getDeclaredField("inner");
-      sessionFacadeInnerField.setAccessible(true);
-      final Class<?> aggregationClass = Class.forName(
-          "org.apache.kafka.streams.state.AggregationWithHeaders");
-      aggregationGetAggregationMethod = aggregationClass.getMethod(
-          "getAggregationOrNull", aggregationClass);
-    } catch (final ClassNotFoundException e) {
-      // Facade class not present in this Kafka version — no unwrapping needed
-    } catch (final NoSuchFieldException | NoSuchMethodException e) {
-      throw new RuntimeException("Stream internals changed unexpectedly!", e);
-    }
-    SESSION_FACADE_INNER_FIELD = sessionFacadeInnerField;
-    AGGREGATION_GET_AGGREGATION_METHOD = aggregationGetAggregationMethod;
   }
 
   private SessionStoreCacheBypass() {
@@ -130,18 +112,13 @@ public final class SessionStoreCacheBypass {
       final ReadOnlySessionStore<GenericKey, GenericRow> sessionStore,
       final GenericKey key
   ) {
+    final MeteredSessionStore<GenericKey, ?> unwrapped = unwrapToMeteredSessionStore(sessionStore);
     final Function<Object, GenericRow> valueConverter = getSessionValueConverter(sessionStore);
-    final ReadOnlySessionStore<GenericKey, GenericRow> unwrapped
-        = unwrapSessionFacade(sessionStore);
-    if (!(unwrapped instanceof MeteredSessionStore)) {
-      throw new IllegalStateException("Expecting a MeteredSessionStore");
-    } else {
-      final StateSerdes<GenericKey, ?> serdes = getSerdes(unwrapped);
-      final Bytes rawKey = Bytes.wrap(serdes.rawKey(key));
-      final SessionStore<Bytes, byte[]> wrapped = getInnermostStore(unwrapped);
-      final KeyValueIterator<Windowed<Bytes>, byte[]> fetch = wrapped.fetch(rawKey);
-      return new DeserializingIterator(fetch, serdes, valueConverter);
-    }
+    final StateSerdes<GenericKey, ?> serdes = getSerdes(unwrapped);
+    final Bytes rawKey = Bytes.wrap(serdes.rawKey(key, new RecordHeaders()));
+    final SessionStore<Bytes, byte[]> wrapped = getInnermostStore(unwrapped);
+    final KeyValueIterator<Windowed<Bytes>, byte[]> fetch = wrapped.fetch(rawKey);
+    return new DeserializingIterator(fetch, serdes, valueConverter);
   }
 
   /*
@@ -170,19 +147,14 @@ public final class SessionStoreCacheBypass {
           final GenericKey keyFrom,
           final GenericKey keyTo
   ) {
+    final MeteredSessionStore<GenericKey, ?> unwrapped = unwrapToMeteredSessionStore(sessionStore);
     final Function<Object, GenericRow> valueConverter = getSessionValueConverter(sessionStore);
-    final ReadOnlySessionStore<GenericKey, GenericRow> unwrapped
-        = unwrapSessionFacade(sessionStore);
-    if (!(unwrapped instanceof MeteredSessionStore)) {
-      throw new IllegalStateException("Expecting a MeteredSessionStore");
-    } else {
-      final StateSerdes<GenericKey, ?> serdes = getSerdes(unwrapped);
-      final Bytes rawKeyFrom = Bytes.wrap(serdes.rawKey(keyFrom));
-      final Bytes rawKeyTo = Bytes.wrap(serdes.rawKey(keyTo));
-      final SessionStore<Bytes, byte[]> wrapped = getInnermostStore(unwrapped);
-      final KeyValueIterator<Windowed<Bytes>, byte[]> fetch = wrapped.fetch(rawKeyFrom, rawKeyTo);
-      return new DeserializingIterator(fetch, serdes, valueConverter);
-    }
+    final StateSerdes<GenericKey, ?> serdes = getSerdes(unwrapped);
+    final Bytes rawKeyFrom = Bytes.wrap(serdes.rawKey(keyFrom, new RecordHeaders()));
+    final Bytes rawKeyTo = Bytes.wrap(serdes.rawKey(keyTo, new RecordHeaders()));
+    final SessionStore<Bytes, byte[]> wrapped = getInnermostStore(unwrapped);
+    final KeyValueIterator<Windowed<Bytes>, byte[]> fetch = wrapped.fetch(rawKeyFrom, rawKeyTo);
+    return new DeserializingIterator(fetch, serdes, valueConverter);
   }
 
   private static KeyValueIterator<Windowed<GenericKey>, GenericRow> findFirstNonEmptyIterator(
@@ -207,43 +179,40 @@ public final class SessionStoreCacheBypass {
     return new EmptyKeyValueIterator();
   }
 
+  // Kafka Streams' validateAndCastStores wraps the store in a ReadOnlySessionStoreFacade only
+  // when the underlying store is a SessionStoreWithHeaders queried via SessionStoreType. For a
+  // plain SessionStore queried via the same type, the store is returned directly (a
+  // MeteredSessionStore). Handle both shapes.
   @SuppressWarnings("unchecked")
-  private static ReadOnlySessionStore<GenericKey, GenericRow> unwrapSessionFacade(
+  private static MeteredSessionStore<GenericKey, ?> unwrapToMeteredSessionStore(
       final ReadOnlySessionStore<GenericKey, GenericRow> sessionStore
   ) {
-    if (SESSION_FACADE_INNER_FIELD != null
-        && SESSION_FACADE_INNER_FIELD.getDeclaringClass().isInstance(sessionStore)) {
+    if (sessionStore instanceof ReadOnlySessionStoreFacade) {
       try {
-        return (ReadOnlySessionStore<GenericKey, GenericRow>)
-            SESSION_FACADE_INNER_FIELD.get(sessionStore);
+        return (MeteredSessionStore<GenericKey, ?>) SESSION_FACADE_INNER_FIELD.get(sessionStore);
       } catch (final IllegalAccessException e) {
         throw new RuntimeException("Stream internals changed unexpectedly!", e);
       }
     }
-    return sessionStore;
+    return (MeteredSessionStore<GenericKey, ?>) sessionStore;
   }
 
   @SuppressWarnings("unchecked")
   private static Function<Object, GenericRow> getSessionValueConverter(
       final ReadOnlySessionStore<GenericKey, GenericRow> sessionStore
   ) {
-    if (AGGREGATION_GET_AGGREGATION_METHOD != null
-        && SESSION_FACADE_INNER_FIELD != null
-        && SESSION_FACADE_INNER_FIELD.getDeclaringClass().isInstance(sessionStore)) {
-      return x -> {
-        try {
-          return (GenericRow) AGGREGATION_GET_AGGREGATION_METHOD.invoke(null, x);
-        } catch (final Exception e) {
-          throw new RuntimeException("Stream internals changed unexpectedly!", e);
-        }
-      };
+    if (sessionStore instanceof ReadOnlySessionStoreFacade) {
+      // Facade present → underlying serde yields AggregationWithHeaders<V>; extract aggregation.
+      return v -> AggregationWithHeaders.getAggregationOrNull(
+          (AggregationWithHeaders<GenericRow>) v);
     }
-    return x -> (GenericRow) x;
+    // No facade → underlying serde already yields GenericRow.
+    return v -> (GenericRow) v;
   }
 
   @SuppressWarnings("unchecked")
   private static StateSerdes<GenericKey, ?> getSerdes(
-          final ReadOnlySessionStore<GenericKey, GenericRow> sessionStore
+          final MeteredSessionStore<GenericKey, ?> sessionStore
   ) throws RuntimeException {
     try {
       return (StateSerdes<GenericKey, ?>) SERDES_FIELD.get(sessionStore);
@@ -254,10 +223,9 @@ public final class SessionStoreCacheBypass {
 
   @SuppressWarnings("unchecked")
   private static SessionStore<Bytes, byte[]> getInnermostStore(
-          final ReadOnlySessionStore<GenericKey, GenericRow> sessionStore
+          final MeteredSessionStore<GenericKey, ?> sessionStore
   ) {
-    SessionStore<Bytes, byte[]> wrapped
-            = ((MeteredSessionStore<GenericKey, GenericRow>) sessionStore).wrapped();
+    SessionStore<Bytes, byte[]> wrapped = sessionStore.wrapped();
     // Unwrap state stores until we get to the last SessionStore, which is past the caching
     // layer.
     while (wrapped instanceof WrappedStateStore) {

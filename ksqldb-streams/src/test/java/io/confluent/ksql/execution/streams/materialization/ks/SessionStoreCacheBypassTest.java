@@ -44,7 +44,6 @@ import org.apache.kafka.streams.state.QueryableStoreType;
 import org.apache.kafka.streams.state.ReadOnlySessionStore;
 import org.apache.kafka.streams.state.SessionStore;
 import org.apache.kafka.streams.state.StateSerdes;
-import org.apache.kafka.streams.state.ValueAndTimestamp;
 import org.apache.kafka.streams.state.internals.CompositeReadOnlySessionStore;
 import org.apache.kafka.streams.state.internals.MeteredSessionStore;
 import org.apache.kafka.streams.state.internals.StateStoreProvider;
@@ -72,8 +71,6 @@ public class SessionStoreCacheBypassTest {
   @Mock
   private StateStoreProvider provider;
   @Mock
-  private MeteredSessionStore<GenericKey, GenericRow> meteredSessionStore;
-  @Mock
   private SessionStore<Bytes, byte[]> sessionStore;
   @Mock
   private WrappedSessionStore<Bytes, byte[]> wrappedSessionStore;
@@ -82,9 +79,13 @@ public class SessionStoreCacheBypassTest {
   @Mock
   private KeyValueIterator<Windowed<Bytes>, byte[]> storeIterator;
   @Mock
-  private StateSerdes<GenericKey, ValueAndTimestamp<GenericRow>> serdes;
+  private StateSerdes<GenericKey, AggregationWithHeaders<GenericRow>> serdes;
   @Mock
   private MeteredSessionStoreWithHeaders<GenericKey, GenericRow> meteredSessionStoreWithHeaders;
+  @Mock
+  private MeteredSessionStore<GenericKey, GenericRow> meteredSessionStore;
+  @Mock
+  private StateSerdes<GenericKey, GenericRow> plainSerdes;
 
   private CompositeReadOnlySessionStore<GenericKey, GenericRow> store;
 
@@ -95,10 +96,12 @@ public class SessionStoreCacheBypassTest {
 
   @Test
   public void shouldCallUnderlyingStoreSingleKey() throws IllegalAccessException {
-    when(provider.stores(any(), any())).thenReturn(ImmutableList.of(meteredSessionStore));
-    SERDES_FIELD.set(meteredSessionStore, serdes);
-    when(serdes.rawKey(any())).thenReturn(BYTES);
-    when(meteredSessionStore.wrapped()).thenReturn(wrappedSessionStore);
+    final TestSessionStoreFacade facade =
+        new TestSessionStoreFacade(meteredSessionStoreWithHeaders);
+    when(provider.stores(any(), any())).thenReturn(ImmutableList.of(facade));
+    SERDES_FIELD.set(meteredSessionStoreWithHeaders, serdes);
+    when(serdes.rawKey(any(), any())).thenReturn(BYTES);
+    when(meteredSessionStoreWithHeaders.wrapped()).thenReturn(wrappedSessionStore);
     when(wrappedSessionStore.wrapped()).thenReturn(sessionStore);
     when(sessionStore.fetch(any())).thenReturn(storeIterator);
     when(storeIterator.hasNext()).thenReturn(false);
@@ -109,10 +112,12 @@ public class SessionStoreCacheBypassTest {
 
   @Test
   public void shouldCallUnderlyingStoreRangeQuery() throws IllegalAccessException {
-    when(provider.stores(any(), any())).thenReturn(ImmutableList.of(meteredSessionStore));
-    SERDES_FIELD.set(meteredSessionStore, serdes);
-    when(serdes.rawKey(any())).thenReturn(BYTES, OTHER_BYTES);
-    when(meteredSessionStore.wrapped()).thenReturn(wrappedSessionStore);
+    final TestSessionStoreFacade facade =
+        new TestSessionStoreFacade(meteredSessionStoreWithHeaders);
+    when(provider.stores(any(), any())).thenReturn(ImmutableList.of(facade));
+    SERDES_FIELD.set(meteredSessionStoreWithHeaders, serdes);
+    when(serdes.rawKey(any(), any())).thenReturn(BYTES, OTHER_BYTES);
+    when(meteredSessionStoreWithHeaders.wrapped()).thenReturn(wrappedSessionStore);
     when(wrappedSessionStore.wrapped()).thenReturn(sessionStore);
     when(sessionStore.fetch(any(), any())).thenReturn(storeIterator);
     when(storeIterator.hasNext()).thenReturn(false);
@@ -123,10 +128,12 @@ public class SessionStoreCacheBypassTest {
 
   @Test
   public void shouldAvoidNonSessionStore() throws IllegalAccessException {
-    when(provider.stores(any(), any())).thenReturn(ImmutableList.of(meteredSessionStore));
-    SERDES_FIELD.set(meteredSessionStore, serdes);
-    when(serdes.rawKey(any())).thenReturn(BYTES);
-    when(meteredSessionStore.wrapped()).thenReturn(wrappedSessionStore);
+    final TestSessionStoreFacade facade =
+        new TestSessionStoreFacade(meteredSessionStoreWithHeaders);
+    when(provider.stores(any(), any())).thenReturn(ImmutableList.of(facade));
+    SERDES_FIELD.set(meteredSessionStoreWithHeaders, serdes);
+    when(serdes.rawKey(any(), any())).thenReturn(BYTES);
+    when(meteredSessionStoreWithHeaders.wrapped()).thenReturn(wrappedSessionStore);
     when(wrappedSessionStore.wrapped()).thenReturn(stateStore);
     when(wrappedSessionStore.fetch(any())).thenReturn(storeIterator);
     when(storeIterator.hasNext()).thenReturn(false);
@@ -137,10 +144,12 @@ public class SessionStoreCacheBypassTest {
 
   @Test
   public void shouldThrowException_InvalidStateStoreException() throws IllegalAccessException {
-    when(provider.stores(any(), any())).thenReturn(ImmutableList.of(meteredSessionStore));
-    SERDES_FIELD.set(meteredSessionStore, serdes);
-    when(serdes.rawKey(any())).thenReturn(BYTES);
-    when(meteredSessionStore.wrapped()).thenReturn(sessionStore);
+    final TestSessionStoreFacade facade =
+        new TestSessionStoreFacade(meteredSessionStoreWithHeaders);
+    when(provider.stores(any(), any())).thenReturn(ImmutableList.of(facade));
+    SERDES_FIELD.set(meteredSessionStoreWithHeaders, serdes);
+    when(serdes.rawKey(any(), any())).thenReturn(BYTES);
+    when(meteredSessionStoreWithHeaders.wrapped()).thenReturn(sessionStore);
     when(sessionStore.fetch(any())).thenThrow(
         new InvalidStateStoreException("Invalid"));
 
@@ -154,47 +163,12 @@ public class SessionStoreCacheBypassTest {
   }
 
   @Test
-  public void shouldUnwrapSessionFacadeAndCallUnderlyingStoreSingleKey()
-      throws IllegalAccessException {
+  public void shouldConvertValueViaAggregationMethod() throws IllegalAccessException {
     final TestSessionStoreFacade facade =
         new TestSessionStoreFacade(meteredSessionStoreWithHeaders);
     when(provider.stores(any(), any())).thenReturn(ImmutableList.of(facade));
     SERDES_FIELD.set(meteredSessionStoreWithHeaders, serdes);
-    when(serdes.rawKey(any())).thenReturn(BYTES);
-    when(meteredSessionStoreWithHeaders.wrapped()).thenReturn(wrappedSessionStore);
-    when(wrappedSessionStore.wrapped()).thenReturn(sessionStore);
-    when(sessionStore.fetch(any())).thenReturn(storeIterator);
-    when(storeIterator.hasNext()).thenReturn(false);
-
-    SessionStoreCacheBypass.fetch(store, SOME_KEY);
-    verify(sessionStore).fetch(new Bytes(BYTES));
-  }
-
-  @Test
-  public void shouldUnwrapSessionFacadeAndCallUnderlyingStoreRangeQuery()
-      throws IllegalAccessException {
-    final TestSessionStoreFacade facade =
-        new TestSessionStoreFacade(meteredSessionStoreWithHeaders);
-    when(provider.stores(any(), any())).thenReturn(ImmutableList.of(facade));
-    SERDES_FIELD.set(meteredSessionStoreWithHeaders, serdes);
-    when(serdes.rawKey(any())).thenReturn(BYTES, OTHER_BYTES);
-    when(meteredSessionStoreWithHeaders.wrapped()).thenReturn(wrappedSessionStore);
-    when(wrappedSessionStore.wrapped()).thenReturn(sessionStore);
-    when(sessionStore.fetch(any(), any())).thenReturn(storeIterator);
-    when(storeIterator.hasNext()).thenReturn(false);
-
-    SessionStoreCacheBypass.fetchRange(store, SOME_KEY, SOME_OTHER_KEY);
-    verify(sessionStore).fetch(new Bytes(BYTES), new Bytes(OTHER_BYTES));
-  }
-
-  @Test
-  public void shouldUnwrapSessionFacadeAndConvertValueViaAggregationMethod()
-      throws IllegalAccessException {
-    final TestSessionStoreFacade facade =
-        new TestSessionStoreFacade(meteredSessionStoreWithHeaders);
-    when(provider.stores(any(), any())).thenReturn(ImmutableList.of(facade));
-    SERDES_FIELD.set(meteredSessionStoreWithHeaders, serdes);
-    when(serdes.rawKey(any())).thenReturn(BYTES);
+    when(serdes.rawKey(any(), any())).thenReturn(BYTES);
     when(serdes.keyFrom(any())).thenReturn(SOME_KEY);
     final AggregationWithHeaders<GenericRow> aggregation =
         AggregationWithHeaders.make(EXPECTED_ROW, new RecordHeaders());
@@ -213,16 +187,44 @@ public class SessionStoreCacheBypassTest {
     assertThat(result.next().value, is(EXPECTED_ROW));
   }
 
+  // When the underlying store is a plain SessionStore (not WithHeaders), Kafka Streams'
+  // validateAndCastStores returns it directly without wrapping in ReadOnlySessionStoreFacade.
+  // The bypass must handle that shape too, deserializing values as GenericRow directly.
   @Test
-  public void shouldThrowException_wrongStateStore() {
-    when(provider.stores(any(), any())).thenReturn(ImmutableList.of(sessionStore));
+  public void shouldCallUnderlyingStoreWhenProviderReturnsMeteredStoreDirectly()
+      throws IllegalAccessException {
+    when(provider.stores(any(), any())).thenReturn(ImmutableList.of(meteredSessionStore));
+    SERDES_FIELD.set(meteredSessionStore, plainSerdes);
+    when(plainSerdes.rawKey(any(), any())).thenReturn(BYTES);
+    when(meteredSessionStore.wrapped()).thenReturn(wrappedSessionStore);
+    when(wrappedSessionStore.wrapped()).thenReturn(sessionStore);
+    when(sessionStore.fetch(any())).thenReturn(storeIterator);
+    when(storeIterator.hasNext()).thenReturn(false);
 
-    final Exception e = assertThrows(
-        IllegalStateException.class,
-        () -> SessionStoreCacheBypass.fetch(store, SOME_KEY)
-    );
+    SessionStoreCacheBypass.fetch(store, SOME_KEY);
+    verify(sessionStore).fetch(new Bytes(BYTES));
+  }
 
-    assertThat(e.getMessage(), containsString("Expecting a MeteredSessionStore"));
+  @Test
+  public void shouldDeserializeGenericRowDirectlyWhenProviderReturnsMeteredStoreDirectly()
+      throws IllegalAccessException {
+    when(provider.stores(any(), any())).thenReturn(ImmutableList.of(meteredSessionStore));
+    SERDES_FIELD.set(meteredSessionStore, plainSerdes);
+    when(plainSerdes.rawKey(any(), any())).thenReturn(BYTES);
+    when(plainSerdes.keyFrom(any())).thenReturn(SOME_KEY);
+    doReturn(EXPECTED_ROW).when(plainSerdes).valueFrom(any());
+    when(meteredSessionStore.wrapped()).thenReturn(wrappedSessionStore);
+    when(wrappedSessionStore.wrapped()).thenReturn(sessionStore);
+    final Windowed<Bytes> windowedKey =
+        new Windowed<>(new Bytes(BYTES), new SessionWindow(0, 100));
+    when(sessionStore.fetch(any())).thenReturn(storeIterator);
+    when(storeIterator.hasNext()).thenReturn(true, false);
+    when(storeIterator.peekNextKey()).thenReturn(windowedKey);
+    when(storeIterator.next()).thenReturn(KeyValue.pair(windowedKey, VALUE_BYTES));
+
+    final KeyValueIterator<Windowed<GenericKey>, GenericRow> result =
+        SessionStoreCacheBypass.fetch(store, SOME_KEY);
+    assertThat(result.next().value, is(EXPECTED_ROW));
   }
 
   private static abstract class WrappedSessionStore<K, V>

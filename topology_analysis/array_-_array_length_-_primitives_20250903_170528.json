@@ -1,0 +1,16 @@
+{
+  "test_case": "array_-_array_length_-_primitives",
+  "analysis_timestamp": "2025-09-03T17:05:28.564229",
+  "versions": {
+    "7.1.0": "7.1.0_1633125901079",
+    "8.x": "8.0.0_1738740364213"
+  },
+  "comparison": {
+    "sub_topology_counts": {
+      "7.1.0": 1,
+      "8.x": 1
+    },
+    "sub_topologies": {},
+    "status": "no_significant_changes"
+  }
+}

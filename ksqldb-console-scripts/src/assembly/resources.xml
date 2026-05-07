@@ -25,6 +25,7 @@
       <outputDirectory></outputDirectory>
       <includes>
         <include>ksql*</include>
+        <include>run-ksql-test</include>
       </includes>
     </fileSet>
   </fileSets>

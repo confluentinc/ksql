@@ -194,7 +194,12 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
    * is ready, so callers of {@link #start()} can safely create topics on return.
    */
   private void waitForBrokerToBeUnfenced() {
-    try (AdminClient admin = adminClient()) {
+    // Build an admin client that respects the broker's actual security protocol.
+    // adminClient() unconditionally overlays SASL_SSL credentials (via SecureKafkaHelper)
+    // so it would never connect to a PLAINTEXT broker (e.g. KafkaTopicClientImplIntegrationTest).
+    final Map<String, Object> props = new HashMap<>(getClientProperties());
+    props.put(AdminClientConfig.REQUEST_TIMEOUT_MS_CONFIG, 30_000);
+    try (AdminClient admin = AdminClient.create(props)) {
       final NewTopic warmup = new NewTopic("__ksql_test_warmup__", 1, (short) 1);
       final CreateTopicsOptions opts = new CreateTopicsOptions()
           .validateOnly(true)

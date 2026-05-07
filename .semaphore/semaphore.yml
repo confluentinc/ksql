@@ -42,7 +42,7 @@ blocks:
             - ci-tools ci-update-version --direct-pom-edit
             # Run maven with output captured using script command (avoids tee buffering issues)
             # -e flag ensures script returns the exit code of the child process
-            - script -e -q -c "./mvnw -Dmaven.gitcommitid.nativegit=true -U -Dmaven.wagon.http.retryHandler.count=10 --batch-mode --no-transfer-progress clean install" /tmp/build.log
+            - script -e -q -c "./mvnw -T 1C -Dmaven.gitcommitid.nativegit=true -U -Dmaven.wagon.http.retryHandler.count=10 --batch-mode --no-transfer-progress -Dspotbugs.skip=true clean install" /tmp/build.log
             - . cache-maven store
       epilogue:
         always:

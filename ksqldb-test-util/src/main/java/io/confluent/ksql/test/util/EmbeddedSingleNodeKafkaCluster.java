@@ -15,8 +15,10 @@
 
 package io.confluent.ksql.test.util;
 
+import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
 import static java.util.Objects.requireNonNull;
 import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.is;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -55,6 +57,8 @@ import kafka.security.authorizer.AclAuthorizer;
 import kafka.server.KafkaConfig;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.AdminClientConfig;
+import org.apache.kafka.clients.admin.CreateTopicsOptions;
+import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
@@ -70,6 +74,7 @@ import org.apache.kafka.common.acl.AclBindingFilter;
 import org.apache.kafka.common.acl.AclOperation;
 import org.apache.kafka.common.acl.AclPermissionType;
 import org.apache.kafka.common.config.SslConfigs;
+import org.apache.kafka.common.errors.InvalidReplicationFactorException;
 import org.apache.kafka.common.header.Header;
 import org.apache.kafka.common.resource.PatternType;
 import org.apache.kafka.common.resource.ResourcePattern;
@@ -163,6 +168,44 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
 
     initialAcls.forEach((key, ops) ->
         addUserAcl(key.userName, AclPermissionType.ALLOW, key.resourcePattern, ops));
+
+    waitForBrokerToBeUnfenced();
+  }
+
+  /**
+   * Wait until the broker has registered with the controller and is no longer fenced.
+   *
+   * <p>Immediately after broker startup, the controller may still report all brokers as
+   * fenced until the first heartbeat completes. Topic-creation requests issued during
+   * that window fail with {@link InvalidReplicationFactorException} ("All brokers are
+   * currently fenced."), which is not a {@link org.apache.kafka.common.errors.RetriableException}
+   * and therefore is not retried by {@code KafkaTopicClientImpl}. Probe with a
+   * validate-only {@code createTopics} until the request succeeds, so callers of
+   * {@link #start()} can safely create topics on return.
+   */
+  private void waitForBrokerToBeUnfenced() {
+    try (AdminClient admin = adminClient()) {
+      final NewTopic warmup = new NewTopic("__ksql_test_warmup__", 1, (short) 1);
+      final CreateTopicsOptions opts = new CreateTopicsOptions().validateOnly(true);
+      assertThatEventually(
+          "Kafka broker did not unfence before timeout",
+          () -> {
+            try {
+              admin.createTopics(Collections.singletonList(warmup), opts).all().get();
+              return true;
+            } catch (final ExecutionException e) {
+              if (e.getCause() instanceof InvalidReplicationFactorException) {
+                return false;
+              }
+              throw new RuntimeException(e);
+            } catch (final InterruptedException e) {
+              Thread.currentThread().interrupt();
+              throw new RuntimeException(e);
+            }
+          },
+          is(true)
+      );
+    }
   }
 
   @Override

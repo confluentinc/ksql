@@ -173,37 +173,49 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
   }
 
   /**
-   * Wait until the broker has registered with the controller and is no longer fenced.
+   * Wait until the broker has registered with the controller and is ready to serve
+   * topic-creation requests.
    *
-   * <p>Immediately after broker startup, the controller may still report all brokers as
-   * fenced until the first heartbeat completes. Topic-creation requests issued during
-   * that window fail with {@link InvalidReplicationFactorException} ("All brokers are
-   * currently fenced."), which is not a {@link org.apache.kafka.common.errors.RetriableException}
-   * and therefore is not retried by {@code KafkaTopicClientImpl}. Probe with a
-   * validate-only {@code createTopics} until the request succeeds, so callers of
-   * {@link #start()} can safely create topics on return.
+   * <p>Two distinct broker-startup races are covered:
+   * <ul>
+   *   <li>{@link InvalidReplicationFactorException} ("All brokers are currently fenced.") —
+   *       broker has registered but the controller has not yet received its first heartbeat.</li>
+   *   <li>{@link org.apache.kafka.common.errors.TimeoutException}
+   *       ("Timed out waiting for a node assignment.") — admin-client metadata fetch has not
+   *       yet seen the broker, so no node is available to send the request to.</li>
+   * </ul>
+   *
+   * <p>Neither is retried by {@code KafkaTopicClientImpl}'s
+   * {@link org.apache.kafka.common.errors.RetriableException}-only retry policy
+   * (the first is a non-retriable {@code ApiException}; the second IS retriable but the
+   * admin-client request has already exhausted its own timeout by the time it surfaces).
+   * Probe with a validate-only {@code createTopics} on a short per-call timeout and let
+   * {@link AssertEventually#assertThatEventually} retry on any exception until the broker
+   * is ready, so callers of {@link #start()} can safely create topics on return.
    */
   private void waitForBrokerToBeUnfenced() {
     try (AdminClient admin = adminClient()) {
       final NewTopic warmup = new NewTopic("__ksql_test_warmup__", 1, (short) 1);
-      final CreateTopicsOptions opts = new CreateTopicsOptions().validateOnly(true);
+      final CreateTopicsOptions opts = new CreateTopicsOptions()
+          .validateOnly(true)
+          .timeoutMs(5_000);
       assertThatEventually(
-          "Kafka broker did not unfence before timeout",
+          "Kafka broker did not become ready before timeout",
           () -> {
             try {
               admin.createTopics(Collections.singletonList(warmup), opts).all().get();
               return true;
-            } catch (final ExecutionException e) {
-              if (e.getCause() instanceof InvalidReplicationFactorException) {
-                return false;
-              }
-              throw new RuntimeException(e);
             } catch (final InterruptedException e) {
               Thread.currentThread().interrupt();
               throw new RuntimeException(e);
+            } catch (final ExecutionException e) {
+              throw new RuntimeException(e);
             }
           },
-          is(true)
+          is(true),
+          60_000L,
+          TimeUnit.MILLISECONDS,
+          AssertEventually.RetryOnException
       );
     }
   }

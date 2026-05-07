@@ -696,9 +696,9 @@ public class StreamAggregateBuilderTest {
     final GenericRow value = mock(GenericRow.class);
 
     // When:
-    mapper.transform(key, value);
+    mapper.transform(key, value, ctx);
 
     // Then:
-    verify(resultMapper).transform(key, value);
+    verify(resultMapper).transform(key, value, ctx);
   }
 }

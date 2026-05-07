@@ -14,10 +14,11 @@
 
 package io.confluent.ksql.execution.streams;
 
+import static org.junit.Assert.assertNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -27,11 +28,10 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.execution.context.QueryContext;
-import io.confluent.ksql.execution.plan.ExecutionKeyFactory;
-import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.runtime.RuntimeBuildContext;
-import io.confluent.ksql.execution.streams.SinkBuilder.TimestampProcessorSupplier;
+import io.confluent.ksql.execution.context.QueryContext;
+import io.confluent.ksql.execution.plan.Formats;
+import io.confluent.ksql.execution.plan.ExecutionKeyFactory;
 import io.confluent.ksql.execution.streams.timestamp.KsqlTimestampExtractor;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
@@ -46,14 +46,13 @@ import io.confluent.ksql.util.KsqlException;
 import java.util.Optional;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.connect.data.Struct;
+import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.Named;
 import org.apache.kafka.streams.kstream.Produced;
+import org.apache.kafka.streams.kstream.Transformer;
+import org.apache.kafka.streams.processor.ProcessorContext;
 import org.apache.kafka.streams.processor.To;
-import org.apache.kafka.streams.processor.api.Processor;
-import org.apache.kafka.streams.processor.api.ProcessorContext;
-import org.apache.kafka.streams.processor.api.ProcessorSupplier;
-import org.apache.kafka.streams.processor.api.Record;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -68,7 +67,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class SinkBuilderTest {
 
   private static final String TOPIC = "TOPIC";
-  private static final String QUERY_CONTEXT_NAME = "PROCESS-TIMESTAMP";
+  private static final String QUERY_CONTEXT_NAME = "TIMESTAMP-TRANSFORM";
 
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
       .valueColumn(ColumnName.of("BLUE"), SqlTypes.BIGINT)
@@ -85,7 +84,7 @@ public class SinkBuilderTest {
   @Mock
   private ExecutionKeyFactory<Struct> executionKeyFactory;
   @Mock
-  private KStream<Struct, GenericRow> kstream;
+  private KStream<Struct, GenericRow> kStream;
   @Mock
   private Serde<Struct> keySerde;
   @Mock
@@ -97,7 +96,7 @@ public class SinkBuilderTest {
   @Mock
   private GenericRow row;
   @Mock
-  private ProcessorContext<Struct, GenericRow> processorContext;
+  private ProcessorContext processorContext;
   @Mock
   private ProcessingLogger processingLogger;
   @Captor
@@ -140,7 +139,7 @@ public class SinkBuilderTest {
     buildDefaultSinkBuilder();
 
     // Then
-    verify(kstream).to(anyString(), eq(Produced.with(keySerde, valSerde)));
+    verify(kStream).to(anyString(), eq(Produced.with(keySerde, valSerde)));
   }
 
   @Test
@@ -149,84 +148,79 @@ public class SinkBuilderTest {
     buildDefaultSinkBuilder();
 
     // Then
-    verify(kstream).to(eq(TOPIC), any());
+    verify(kStream).to(eq(TOPIC), any());
   }
 
   @Test
-  public void shouldBuildStreamUsingProcessTimestampWhenTimestampIsSpecified() {
+  public void shouldBuildStreamUsingTransformTimestampWhenTimestampIsSpecified() {
     // When
     SinkBuilder.build(
         SCHEMA,
         Formats.of(KEY_FORMAT, VALUE_FORMAT, SerdeFeatures.of(), SerdeFeatures.of()),
         Optional.of(new TimestampColumn(ColumnName.of("BLUE"), Optional.empty())),
         TOPIC,
-        kstream,
+        kStream,
         executionKeyFactory,
         queryContext,
         buildContext
     );
 
     // Then
-    final InOrder inOrder = Mockito.inOrder(kstream);
-    inOrder.verify(kstream).process(
-        Mockito.<ProcessorSupplier<Struct, GenericRow, Object, Object>>any(), any(Named.class));
-    inOrder.verify(kstream).to(eq(TOPIC), any());
+    final InOrder inOrder = Mockito.inOrder(kStream);
+    inOrder.verify(kStream).transform(any(), any(Named.class));
+    inOrder.verify(kStream).to(eq(TOPIC), any());
     inOrder.verifyNoMoreInteractions();
   }
 
   @Test
-  public void shouldBuildStreamWithoutProcessTimestampWhenNoTimestampIsSpecified() {
+  public void shouldBuildStreamWithoutTransformTimestampWhenNoTimestampIsSpecified() {
     // When
     buildDefaultSinkBuilder();
 
     // Then
-    final InOrder inOrder = Mockito.inOrder(kstream);
-    inOrder.verify(kstream).to(anyString(), any());
+    final InOrder inOrder = Mockito.inOrder(kStream);
+    inOrder.verify(kStream).to(anyString(), any());
     inOrder.verifyNoMoreInteractions();
   }
 
   @Test
-  public void shouldProcessTimestampRow() {
+  public void shouldTransformTimestampRow() {
     // Given
     final long timestampColumnValue = 10001;
     final KsqlTimestampExtractor timestampExtractor = mock(KsqlTimestampExtractor.class);
     when(timestampExtractor.extract(any(), any())).thenReturn(timestampColumnValue);
 
     // When
-    final Processor<Struct, GenericRow, Struct, GenericRow> processor =
-        getProcessor(timestampExtractor, processingLogger);
-    processor.init(processorContext);
-    final Record<Struct, GenericRow> inputRecord
-        = new Record<>(key, row, 0);
-    processor.process(inputRecord);
+    final Transformer<Struct, GenericRow, KeyValue<Struct, GenericRow>> transformer =
+        getTransformer(timestampExtractor, processingLogger);
+    transformer.init(processorContext);
+    final KeyValue<Struct, GenericRow> kv = transformer.transform(key, row);
 
     // Then
-    final Record<Struct, GenericRow> outputRecord = new Record<>(key, row, timestampColumnValue);
+    assertNull(kv);
     verify(timestampExtractor).extract(key, row);
     verify(processorContext, Mockito.times(1))
-        .forward(eq(outputRecord));
+        .forward(eq(key), eq(row), eq(To.all().withTimestamp(timestampColumnValue)));
     verifyNoMoreInteractions(processingLogger);
   }
 
   @Test
-  public void shouldProcessTombstone() {
+  public void shouldTransformTombstone() {
     // Given
     final long streamTime = 111111;
     final KsqlTimestampExtractor timestampExtractor = mock(KsqlTimestampExtractor.class);
     when(processorContext.currentStreamTimeMs()).thenReturn(streamTime);
 
     // When
-    final Processor<Struct, GenericRow, Struct, GenericRow> processor =
-        getProcessor(timestampExtractor, processingLogger);
-    processor.init(processorContext);
-    final Record<Struct, GenericRow> record = new Record<>(
-        key, null, 0);
-    processor.process(record);
+    final Transformer<Struct, GenericRow, KeyValue<Struct, GenericRow>> transformer =
+        getTransformer(timestampExtractor, processingLogger);
+    transformer.init(processorContext);
+    final KeyValue<Struct, GenericRow> kv = transformer.transform(key, null);
 
     // Then
-    final Record<Struct, GenericRow> outputRecord = new Record<>(key, null, streamTime);
+    assertNull(kv);
     verify(timestampExtractor, never()).extract(key, null);
-    verify(processorContext).forward(eq(outputRecord));
+    verify(processorContext).forward(eq(key), isNull(), eq(To.all().withTimestamp(streamTime)));
     verifyNoMoreInteractions(processingLogger);
   }
 
@@ -239,20 +233,19 @@ public class SinkBuilderTest {
     when(timestampExtractor.extract(any(), any())).thenReturn(timestampColumnValue);
     doThrow(KsqlException.class)
         .when(processorContext)
-        .forward(argThat(record -> record instanceof Record));
+        .forward(any(), any(), any(To.class));
 
     // When
-    final Processor<Struct, GenericRow, Struct, GenericRow> processor =
-        getProcessor(timestampExtractor, processingLogger);
-    processor.init(processorContext);
-    final Record<Struct, GenericRow> inputRecord = new Record<>(key, row, 0);
-    processor.process(inputRecord);
+    final Transformer<Struct, GenericRow, KeyValue<Struct, GenericRow>> transformer =
+        getTransformer(timestampExtractor, processingLogger);
+    transformer.init(processorContext);
+    final KeyValue<Struct, GenericRow> kv = transformer.transform(key, row);
 
     // Then
-    final Record<Struct, GenericRow> outputRecord = new Record<>(key, row, timestampColumnValue);
+    assertNull(kv);
     verify(timestampExtractor).extract(key, row);
     verify(processorContext, Mockito.times(1))
-        .forward(eq(outputRecord));
+        .forward(eq(key), eq(row), toCaptor.capture());
     verify(processingLogger, Mockito.times(1)).error(any());
   }
 
@@ -264,12 +257,13 @@ public class SinkBuilderTest {
     doThrow(KsqlException.class).when(timestampExtractor).extract(key, row);
 
     // When
-    final Processor<Struct, GenericRow, Struct, GenericRow> processor =
-        getProcessor(timestampExtractor, processingLogger);
-    processor.init(processorContext);
-    processor.process(new Record<>(key, row, 0));
+    final Transformer<Struct, GenericRow, KeyValue<Struct, GenericRow>> transformer =
+        getTransformer(timestampExtractor, processingLogger);
+    transformer.init(processorContext);
+    final KeyValue<Struct, GenericRow> kv = transformer.transform(key, row);
 
     // Then
+    assertNull(kv);
     verify(timestampExtractor).extract(key, row);
     verify(processingLogger, Mockito.times(1)).error(any());
     verifyNoMoreInteractions(processorContext);
@@ -282,13 +276,13 @@ public class SinkBuilderTest {
         = mock(KsqlTimestampExtractor.class);
 
     // When/Then
-    getProcessor(timestampExtractor, processingLogger).init(null);
+    getTransformer(timestampExtractor, processingLogger).init(null);
   }
 
   @Test(expected = NullPointerException.class)
   public void shouldThrowOnNullTimestampExtractor() {
     // When/Then
-    getProcessor(null, null);
+    getTransformer(null, null);
   }
 
   @Test(expected = NullPointerException.class)
@@ -298,7 +292,7 @@ public class SinkBuilderTest {
         = mock(KsqlTimestampExtractor.class);
 
     // When/Then
-    getProcessor(timestampExtractor, null);
+    getTransformer(timestampExtractor, null);
   }
 
   private void buildDefaultSinkBuilder() {
@@ -307,17 +301,17 @@ public class SinkBuilderTest {
         Formats.of(KEY_FORMAT, VALUE_FORMAT, SerdeFeatures.of(), SerdeFeatures.of()),
         Optional.empty(),
         TOPIC,
-        kstream,
+        kStream,
         executionKeyFactory,
         queryContext,
         buildContext
     );
   }
 
-  private static Processor<Struct, GenericRow, Struct, GenericRow> getProcessor(
+  private static Transformer<Struct, GenericRow, KeyValue<Struct, GenericRow>> getTransformer(
       final KsqlTimestampExtractor timestampExtractor,
       final ProcessingLogger processingLogger
   ) {
-    return new TimestampProcessorSupplier<Struct>(timestampExtractor, processingLogger).get();
+    return new SinkBuilder.TransformTimestamp<Struct>(timestampExtractor, processingLogger).get();
   }
 }

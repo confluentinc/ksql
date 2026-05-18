@@ -42,8 +42,8 @@ public abstract class SharedKafkaStreamsRuntime {
   private final Logger log = LogManager.getLogger(SharedKafkaStreamsRuntime.class);
 
   protected final KafkaStreamsBuilder kafkaStreamsBuilder;
-  protected KafkaStreamsNamedTopologyWrapper kafkaStreams;
-  protected ImmutableMap<String, Object> streamsProperties;
+  protected volatile KafkaStreamsNamedTopologyWrapper kafkaStreams;
+  protected volatile ImmutableMap<String, Object> streamsProperties;
   protected final Map<QueryId, BinPackedPersistentQueryMetadataImpl> collocatedQueries;
 
   protected SharedKafkaStreamsRuntime(

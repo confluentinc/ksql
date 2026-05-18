@@ -46,7 +46,6 @@ import io.confluent.ksql.util.SandboxedSharedKafkaStreamsRuntimeImpl;
 import io.confluent.ksql.util.SandboxedTransientQueryMetadata;
 import io.confluent.ksql.util.SharedKafkaStreamsRuntime;
 import io.confluent.ksql.util.TransientQueryMetadata;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -57,6 +56,7 @@ import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.BiPredicate;
 import java.util.stream.Collectors;
 import org.apache.kafka.common.TopicPartition;
@@ -78,8 +78,8 @@ public class QueryRegistryImpl implements QueryRegistry {
   private final Collection<QueryEventListener> eventListeners;
   private final QueryBuilderFactory queryBuilderFactory;
   private final MetricCollectors metricCollectors;
-  private final List<SharedKafkaStreamsRuntime> streams = new ArrayList<>();
-  private final List<SharedKafkaStreamsRuntime> sourceStreams = new ArrayList<>();
+  private final List<SharedKafkaStreamsRuntime> streams = new CopyOnWriteArrayList<>();
+  private final List<SharedKafkaStreamsRuntime> sourceStreams = new CopyOnWriteArrayList<>();
   private final boolean sandbox;
 
   public QueryRegistryImpl(
@@ -379,7 +379,10 @@ public class QueryRegistryImpl implements QueryRegistry {
   @Override
   public Optional<QueryMetadata> getCreateAsQuery(final SourceName sourceName) {
     if (createAsQueries.containsKey(sourceName)) {
-      return Optional.of(persistentQueries.get(createAsQueries.get(sourceName)));
+      // unregisterQuery() removes from persistentQueries before it removes from createAsQueries,
+      // so a concurrent call here can see a queryId still in createAsQueries but already removed
+      // from persistentQueries. Optional.ofNullable guards against that narrow race window.
+      return Optional.ofNullable(persistentQueries.get(createAsQueries.get(sourceName)));
     }
     return Optional.empty();
   }
@@ -390,6 +393,10 @@ public class QueryRegistryImpl implements QueryRegistry {
       final BiPredicate<SourceName, PersistentQueryMetadata> filterQueries) {
     return insertQueries.getOrDefault(sourceName, Collections.emptySet()).stream()
         .map(persistentQueries::get)
+        // Guard against a narrow race: unregisterQuery() removes from persistentQueries before
+        // it removes from insertQueries, so a concurrent call here can observe a queryId that
+        // is still in insertQueries but no longer in persistentQueries (null lookup result).
+        .filter(Objects::nonNull)
         .filter(query -> filterQueries.test(sourceName, query))
         .map(QueryMetadata::getQueryId)
         .collect(Collectors.toSet());

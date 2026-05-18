@@ -226,6 +226,23 @@ public class BinPackedPersistentQueryMetadataImplTest {
     }
 
     @Test
+    public void topologyFieldShouldBeVolatile() throws Exception {
+        // Regression: topology is reassigned by updateTopology(), which is invoked from
+        // SharedKafkaStreamsRuntimeImpl.restartStreamsRuntime() running on the CommandRunner
+        // thread. HTTP handler threads read the same field via getTopology() and
+        // getTopologyDescription() (which calls topology.describe()). Without volatile, an
+        // HTTP thread can observe the old reference or a partially-published replacement
+        // after a runtime restart.
+        final Field field =
+            BinPackedPersistentQueryMetadataImpl.class.getDeclaredField("topology");
+        assertThat(
+            "topology must be volatile for cross-thread visibility after restartStreamsRuntime",
+            (field.getModifiers() & Modifier.VOLATILE) != 0,
+            is(true)
+        );
+    }
+
+    @Test
     public void mutableStatusFieldsShouldBeVolatile() throws Exception {
         // Regression: BinPackedPersistentQueryMetadataImpl declares its own everStarted /
         // isPaused / corruptionCommandTopic fields that shadow the parent class's volatile

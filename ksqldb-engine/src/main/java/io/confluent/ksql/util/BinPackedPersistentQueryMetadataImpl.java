@@ -70,7 +70,7 @@ public class BinPackedPersistentQueryMetadataImpl implements PersistentQueryMeta
   private final String applicationId;
   private final Optional<MaterializationInfo> materializationInfo;
   private final KeyFormat keyFormat;
-  private NamedTopology topology;
+  private volatile NamedTopology topology;
   private final SharedKafkaStreamsRuntime sharedKafkaStreamsRuntime;
   private final QuerySchemas schemas;
   private final ImmutableMap<String, Object> overriddenProperties;

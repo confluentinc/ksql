@@ -32,7 +32,7 @@ import javax.net.ssl.SSLContext;
 import org.apache.kafka.common.config.internals.ConfluentConfigs;
 import org.apache.kafka.common.security.auth.SslEngineFactory;
 import org.apache.kafka.common.security.ssl.DefaultSslEngineFactory;
-import org.apache.kafka.common.utils.SecurityUtils;
+import org.apache.kafka.common.utils.internals.SecurityUtils;
 
 /**
  * Configurable Schema Registry client factory, enabling SSL.

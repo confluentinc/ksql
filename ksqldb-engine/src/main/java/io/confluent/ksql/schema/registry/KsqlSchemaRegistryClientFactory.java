@@ -85,7 +85,7 @@ public class KsqlSchemaRegistryClientFactory {
     this.serviceSupplier = serviceSupplier;
     this.schemaRegistryClientConfigs = config.originalsWithPrefix(
         KsqlConfig.KSQL_SCHEMA_REGISTRY_PREFIX);
-
+    this.schemaRegistryClientConfigs.put("json.type.allowed.packages", "");
     this.schemaRegistryClientFactory = schemaRegistryClientFactory;
     this.httpHeaders = httpHeaders;
     this.schemaRegistryUrl = config.getString(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY).trim();

@@ -444,6 +444,7 @@ public class SqlToJavaVisitor {
     public Pair<String, SqlType> visitLambdaVariable(
         final LambdaVariable lambdaVariable, final Context context
     ) {
+      LambdaUtil.validateArgName(lambdaVariable.getLambdaCharacter());
       return new Pair<>(
           lambdaVariable.getLambdaCharacter(),
           context.getLambdaSqlTypeMapping().get(lambdaVariable.getLambdaCharacter())
@@ -1177,7 +1178,7 @@ public class SqlToJavaVisitor {
       for (final Field field : node.getFields()) {
         struct.append(".put(")
             .append('"')
-            .append(field.getName())
+            .append(StringEscapeUtils.escapeJava(field.getName()))
             .append('"')
             .append(",")
             .append(evaluateOrReturnNull(
@@ -1198,7 +1199,7 @@ public class SqlToJavaVisitor {
             + "  return " + s + ";"
             + " } catch (Exception e) {"
             + "  logger.error(RecordProcessingError.recordProcessingError("
-            + "    \"Error processing " + type + "\","
+            + "    \"Error processing " + StringEscapeUtils.escapeJava(type) + "\","
             + "    e instanceof InvocationTargetException? e.getCause() : e,"
             + "    row));"
             + "  return defaultValue;"
@@ -1217,7 +1218,7 @@ public class SqlToJavaVisitor {
                 + "  return " + s + ";"
                 + " } catch (Exception e) {"
                 + "  logger.error(RecordProcessingError.recordProcessingError("
-                + "    \"Error processing " + type + "\","
+                + "    \"Error processing " + StringEscapeUtils.escapeJava(type) + "\","
                 + "    e instanceof InvocationTargetException? e.getCause() : e,"
                 + "    row));"
                 + "  return (" + javaType + ") defaultValue;"

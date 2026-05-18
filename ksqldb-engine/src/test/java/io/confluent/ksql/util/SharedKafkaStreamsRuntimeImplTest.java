@@ -361,4 +361,35 @@ public class SharedKafkaStreamsRuntimeImplTest {
         verify(kafkaStreamsNamedTopologyWrapper, never())
             .addNamedTopology(binPackedPersistentQueryMetadata2.getTopologyCopy(sharedKafkaStreamsRuntimeImpl));
     }
+
+    @Test
+    public void startShouldRejectMissingQueryWithoutNpe() {
+        // Pre-fix code did
+        //   if (collocatedQueries.containsKey(queryId)
+        //       && !collocatedQueries.get(queryId).everStarted) { ... }
+        // A concurrent stop() running on another thread can remove the entry between
+        // containsKey() and get(), making get() return null and the subsequent
+        // ".everStarted" dereference NPE on the CommandRunner thread.
+        //
+        // The fix replaces the double lookup with a single get() + null-check, so the
+        // worst-case race degrades into a deterministic IllegalArgumentException.
+        //
+        // Note: a true TOCTOU regression test would need to inject a Map that returns
+        // true for containsKey but null for get; the parent's collocatedQueries field is
+        // protected final, and Java 17+ reflection forbids resetting a final instance
+        // field, so we exercise the contract by registering then removing the query so
+        // get() returns null. The structural fix (one lookup vs two) is itself the
+        // primary defense.
+        sharedKafkaStreamsRuntimeImpl.register(binPackedPersistentQueryMetadata2);
+        sharedKafkaStreamsRuntimeImpl.collocatedQueries.remove(queryId2);
+
+        try {
+            sharedKafkaStreamsRuntimeImpl.start(queryId2);
+            org.junit.Assert.fail("Expected IllegalArgumentException, got nothing");
+        } catch (NullPointerException npe) {
+            org.junit.Assert.fail("start() must not NPE when query is missing; got: " + npe);
+        } catch (IllegalArgumentException expected) {
+            // Pass: missing query produces a deterministic IAE.
+        }
+    }
 }

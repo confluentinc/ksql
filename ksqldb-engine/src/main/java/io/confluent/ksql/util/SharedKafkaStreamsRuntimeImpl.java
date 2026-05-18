@@ -231,10 +231,11 @@ public class SharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRuntime {
   @Override
   public void start(final QueryId queryId) {
     log.info("Attempting to start query {} in runtime {}", queryId, getApplicationId());
-    if (collocatedQueries.containsKey(queryId) && !collocatedQueries.get(queryId).everStarted) {
+    final BinPackedPersistentQueryMetadataImpl query = collocatedQueries.get(queryId);
+    if (query != null && !query.everStarted) {
       if (!kafkaStreams.getTopologyByName(queryId.toString()).isPresent()) {
         final KafkaFuture<Void> toAdd = kafkaStreams
-            .addNamedTopology(collocatedQueries.get(queryId).getTopology()).all();
+            .addNamedTopology(query.getTopology()).all();
         topolgogiesToAdd.add(toAdd);
       } else {
         throw new IllegalArgumentException("Cannot start because Streams is not done terminating"

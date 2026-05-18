@@ -768,6 +768,36 @@ public class CommandRunnerTest {
     assertThat(observedStatus.get(), is(CommandRunner.CommandRunnerStatus.DEGRADED));
   }
 
+  @Test
+  public void closeEarlyShouldForceShutdownNowIfAwaitTerminationTimesOut() throws Exception {
+    // Regression: closeEarly() ignored awaitTermination's return value. If the Runner
+    // thread didn't finish within SHUTDOWN_TIMEOUT_MS, we silently continued and the
+    // executor was left in an undefined state (still running, no further notice). The
+    // fix captures the boolean and calls executor.shutdownNow() on false so the worker
+    // is interrupted and the runtime really stops.
+    when(executor.awaitTermination(anyLong(), any())).thenReturn(false);
+
+    commandRunner.start();
+    commandRunner.close();
+
+    final InOrder inOrder = inOrder(executor);
+    inOrder.verify(executor).awaitTermination(anyLong(), any());
+    inOrder.verify(executor).shutdownNow();
+  }
+
+  @Test
+  public void closeEarlyShouldNotCallShutdownNowIfAwaitTerminationSucceeds() throws Exception {
+    // Companion to the regression above: when the executor terminates cleanly we must
+    // NOT call shutdownNow() — it's unnecessary work and would also clobber the
+    // already-orderly exit.
+    when(executor.awaitTermination(anyLong(), any())).thenReturn(true);
+
+    commandRunner.start();
+    commandRunner.close();
+
+    verify(executor, never()).shutdownNow();
+  }
+
   private Runnable getThreadTask() {
     verify(executor).execute(threadTaskCaptor.capture());
     return threadTaskCaptor.getValue();

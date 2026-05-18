@@ -91,7 +91,8 @@ public class CommandRunner implements Closeable {
   private boolean incompatibleCommandDetected;
   private final Supplier<Boolean> commandTopicExists;
   private boolean commandTopicDeleted;
-  private volatile Status state = new Status(CommandRunnerStatus.RUNNING, CommandRunnerDegradedReason.NONE);
+  private volatile Status state =
+      new Status(CommandRunnerStatus.RUNNING, CommandRunnerDegradedReason.NONE);
 
   /**
    * The ordinal values of the CommandRunnerStatus enum are used as the metrics values.
@@ -257,7 +258,18 @@ public class CommandRunner implements Closeable {
     try {
       closed = true;
       commandStore.wakeup();
-      executor.awaitTermination(SHUTDOWN_TIMEOUT_MS, TimeUnit.MILLISECONDS);
+      final boolean terminated = executor
+          .awaitTermination(SHUTDOWN_TIMEOUT_MS, TimeUnit.MILLISECONDS);
+      if (!terminated) {
+        // The Runner thread didn't finish within the budget. Interrupt it so the
+        // executor cleans up and we don't leave the runtime in an undefined state
+        // where someone may believe the command processor has stopped but it has
+        // not. The Runner uses interrupt-aware blocking calls (poll, sleep), so
+        // shutdownNow() unblocks them.
+        LOG.warn("CommandRunner did not terminate within {} ms; forcing shutdownNow()",
+            SHUTDOWN_TIMEOUT_MS);
+        executor.shutdownNow();
+      }
     } catch (final InterruptedException e) {
       Thread.currentThread().interrupt();
     }

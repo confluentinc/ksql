@@ -87,9 +87,9 @@ public class BinPackedPersistentQueryMetadataImpl implements PersistentQueryMeta
       materializationProviderBuilderFactory;
   private final Optional<ScalablePushRegistry> scalablePushRegistry;
   private final ProcessingLoggerFactory loggerFactory;
-  public boolean everStarted = false;
-  private boolean isPaused = false;
-  private boolean corruptionCommandTopic = false;
+  public volatile boolean everStarted = false;
+  private volatile boolean isPaused = false;
+  private volatile boolean corruptionCommandTopic = false;
 
 
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck

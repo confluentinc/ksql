@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.util;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.inOrder;
@@ -40,6 +42,8 @@ import io.confluent.ksql.schema.query.QuerySchemas;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.util.QueryMetadata.Listener;
 
+import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.Optional;
@@ -219,5 +223,27 @@ public class BinPackedPersistentQueryMetadataImplTest {
         // Then:
         verify(processingLogger1).close();
         verify(processingLogger2).close();
+    }
+
+    @Test
+    public void mutableStatusFieldsShouldBeVolatile() throws Exception {
+        // Regression: BinPackedPersistentQueryMetadataImpl declares its own everStarted /
+        // isPaused / corruptionCommandTopic fields that shadow the parent class's volatile
+        // (or AtomicBoolean) versions. start(), pause(), resume(), setCorruptionQueryError()
+        // run on the CommandRunner thread while getQueryStatus(), getState(),
+        // hasEverBeenStarted() are called from HTTP handler threads. Without volatile, HTTP
+        // threads can observe a stale value for these fields after a state transition.
+        // Also: SharedKafkaStreamsRuntimeImpl.start() reads everStarted directly via
+        // collocatedQueries.get(queryId).everStarted, so the public field must be volatile too.
+        for (final String fieldName :
+            new String[] {"everStarted", "isPaused", "corruptionCommandTopic"}) {
+            final Field field =
+                BinPackedPersistentQueryMetadataImpl.class.getDeclaredField(fieldName);
+            assertThat(
+                fieldName + " must be volatile for cross-thread visibility",
+                (field.getModifiers() & Modifier.VOLATILE) != 0,
+                is(true)
+            );
+        }
     }
 }

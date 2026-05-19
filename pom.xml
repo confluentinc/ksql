@@ -25,7 +25,6 @@
         <url>https://github.com/confluentinc/ksql</url>
         <tag>HEAD</tag>
     </scm>
-
     <parent>
         <groupId>io.confluent</groupId>
         <artifactId>common</artifactId>

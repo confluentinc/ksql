@@ -43,12 +43,12 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.BiFunction;
 import java.util.function.Function;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 final class DefaultKsqlClient implements SimpleKsqlClient {
 
-  private static final Logger LOG = LoggerFactory.getLogger(DefaultKsqlClient.class);
+  private static final Logger LOG = LogManager.getLogger(DefaultKsqlClient.class);
 
   private final Optional<String> authHeader;
   private final KsqlClient sharedClient;

@@ -119,7 +119,7 @@ public final class TestBasicJaasConfig extends ExternalResource {
 
     private String createJaasFileContent(final Path passwordFile) {
       return realm + " {\n  "
-          + "org.eclipse.jetty.jaas.spi.PropertyFileLoginModule required\n"
+          + "org.eclipse.jetty.security.jaas.spi.PropertyFileLoginModule required\n"
           + "  file=\"" + passwordFile + "\"\n"
           + "  debug=\"true\";\n"
           + "};\n";

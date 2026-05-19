@@ -30,12 +30,12 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicReference;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class StreamQueryResponseHandler
     extends QueryResponseHandler<CompletableFuture<StreamedQueryResult>> {
-  private static final Logger LOG = LoggerFactory.getLogger(StreamQueryResponseHandler.class);
+  private static final Logger LOG = LogManager.getLogger(StreamQueryResponseHandler.class);
 
   private StreamedQueryResultImpl queryResult;
   private Map<String, Integer> columnNameToIndex;

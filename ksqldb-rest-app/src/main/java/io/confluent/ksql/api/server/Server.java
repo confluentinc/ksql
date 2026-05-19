@@ -52,8 +52,8 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import org.apache.kafka.common.config.SslConfigs;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * This class represents the API server. On start-up it deploys multiple server verticles to spread
@@ -63,7 +63,7 @@ import org.slf4j.LoggerFactory;
 public class Server {
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
-  private static final Logger log = LoggerFactory.getLogger(Server.class);
+  private static final Logger log = LogManager.getLogger(Server.class);
 
   private final Vertx vertx;
   private final KsqlRestConfig config;

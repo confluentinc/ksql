@@ -25,7 +25,6 @@ import io.confluent.ksql.schema.ksql.types.SqlStruct.Field;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import java.util.List;
 import java.util.stream.Collectors;
-import org.apache.commons.lang3.StringEscapeUtils;
 
 /**
  * Generates Java code to build an {@code SqlType}.
@@ -113,7 +112,7 @@ public final class SqlTypeCodeGen {
 
     @Override
     public String visitField(final Field field, final String type) {
-      return "\"" + StringEscapeUtils.escapeJava(field.name()) + "\"," + type;
+      return "\"" + field.name() + "\"," + type;
     }
   }
 }

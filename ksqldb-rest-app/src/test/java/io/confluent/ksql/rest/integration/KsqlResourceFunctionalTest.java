@@ -53,7 +53,7 @@ import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.PageViewDataProvider;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
-import kafka.zookeeper.ZooKeeperClientException;
+import org.apache.kafka.raft.errors.RaftException;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
@@ -87,7 +87,7 @@ public class KsqlResourceFunctionalTest {
 
   @ClassRule
   public static final RuleChain CHAIN = RuleChain
-      .outerRule(Retry.of(3, ZooKeeperClientException.class, 3, TimeUnit.SECONDS))
+      .outerRule(Retry.of(3, RaftException.class, 3, TimeUnit.SECONDS))
       .around(TEST_HARNESS)
       .around(REST_APP);
 

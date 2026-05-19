@@ -49,7 +49,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import org.apache.commons.lang3.StringEscapeUtils;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Struct;
 
@@ -315,7 +314,7 @@ public final class CastEvaluator {
       final KsqlConfig config
   ) {
     final String mapper = mapperFunction(fromField.type(), toField.type(), config);
-    return ".put(\"" + StringEscapeUtils.escapeJava(fromField.name()) + "\"," + mapper + ")";
+    return ".put(\"" + fromField.name() + "\"," + mapper + ")";
   }
 
   private static String mapperFunction(

@@ -21,7 +21,6 @@ import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.function.UdafAggregator;
-import io.confluent.ksql.execution.transform.KsqlProcessingContext;
 import io.confluent.ksql.execution.transform.KsqlTransformer;
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import java.util.List;
@@ -131,8 +130,7 @@ public class KudafAggregator<K> implements UdafAggregator<K> {
     @Override
     public GenericRow transform(
         final K readOnlyKey,
-        final GenericRow value,
-        final KsqlProcessingContext ctx
+        final GenericRow value
     ) {
       if (value == null) {
         return null;

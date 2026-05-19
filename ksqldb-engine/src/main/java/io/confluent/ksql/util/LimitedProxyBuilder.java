@@ -277,7 +277,7 @@ public final class LimitedProxyBuilder<T> {
       return declaredMethod;
     } catch (final NoSuchMethodException e) {
       throw new IllegalArgumentException("Delegate does not have method: "
-          + "" + formatMethod(proxyMethod), e);
+          + formatMethod(proxyMethod), e);
     }
   }
 

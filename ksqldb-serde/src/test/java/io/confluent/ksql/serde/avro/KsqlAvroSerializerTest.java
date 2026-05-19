@@ -41,6 +41,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.connect.avro.AvroData;
 import io.confluent.kafka.schemaregistry.avro.AvroSchema;
+import io.confluent.kafka.schemaregistry.avro.AvroSchemaProvider;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaMetadata;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
@@ -305,7 +306,9 @@ public class KsqlAvroSerializerTest {
           .map(STRING_SCHEMA, OPTIONAL_FLOAT64_SCHEMA).build())
       .build();
 
-  private final SchemaRegistryClient schemaRegistryClient = new MockSchemaRegistryClient();
+  private final SchemaRegistryClient schemaRegistryClient = new MockSchemaRegistryClient(
+      ImmutableList.of(
+          new AvroSchemaProvider()));
 
   private final KsqlConfig ksqlConfig = new KsqlConfig(ImmutableMap.of());
 

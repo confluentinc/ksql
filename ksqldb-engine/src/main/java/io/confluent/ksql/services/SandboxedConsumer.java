@@ -38,6 +38,8 @@ final class SandboxedConsumer {
         .swallow("wakeup", noParams())
         .swallow("unsubscribe", noParams())
         .swallow("groupMetadata", noParams(), new ConsumerGroupMetadata("group"))
+        .swallow("registerMetricForSubscription", anyParams())
+        .swallow("unregisterMetricFromSubscription", anyParams())
         .build();
   }
 

@@ -56,12 +56,12 @@ import org.apache.kafka.streams.LagInfo;
 import org.apache.kafka.streams.StreamsMetadata;
 import org.apache.kafka.streams.errors.StreamsUncaughtExceptionHandler;
 import org.apache.kafka.streams.processor.internals.namedtopology.NamedTopology;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class BinPackedPersistentQueryMetadataImpl implements PersistentQueryMetadata {
 
-  private static final Logger LOG = LoggerFactory
+  private static final Logger LOG = LogManager
       .getLogger(BinPackedPersistentQueryMetadataImpl.class);
 
   private final KsqlConstants.PersistentQueryType persistentQueryType;

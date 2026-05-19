@@ -20,11 +20,11 @@ import io.confluent.ksql.util.VertxUtils;
 import io.vertx.core.Context;
 import io.vertx.core.Future;
 import java.util.Objects;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Base class for our reactive streams publishers
@@ -33,7 +33,7 @@ import org.slf4j.LoggerFactory;
  */
 public abstract class BasePublisher<T> implements Publisher<T> {
 
-  private static final Logger log = LoggerFactory.getLogger(BasePublisher.class);
+  private static final Logger log = LogManager.getLogger(BasePublisher.class);
 
   protected final Context ctx;
   private volatile Subscriber<? super T> subscriber;

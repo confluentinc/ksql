@@ -55,6 +55,7 @@ import io.confluent.ksql.rest.server.resources.StatusResource;
 import io.confluent.ksql.rest.server.resources.streaming.StreamedQueryResource;
 import io.confluent.ksql.rest.server.state.ServerState;
 import io.confluent.ksql.rest.util.PersistentQueryCleanupImpl;
+import io.confluent.ksql.security.KsqlResourceExtension;
 import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.security.KsqlSecurityExtension;
 import io.confluent.ksql.services.KafkaTopicClient;
@@ -113,6 +114,8 @@ public class KsqlRestApplicationTest {
   private CommandStore commandQueue;
   @Mock
   private KsqlSecurityExtension securityExtension;
+  @Mock
+  private KsqlResourceExtension ksqlResourceExtension;
   @Mock
   private ProcessingLogContext processingLogContext;
   @Mock
@@ -226,6 +229,15 @@ public class KsqlRestApplicationTest {
 
     // Then:
     verify(securityExtension).close();
+  }
+
+  @Test
+  public void shouldCloseKsqlResourceExtensionOnClose() {
+    // When:
+    app.shutdown();
+
+    // Then:
+    verify(ksqlResourceExtension).close();
   }
 
   @Test
@@ -439,6 +451,7 @@ public class KsqlRestApplicationTest {
         versionCheckerAgent,
         apiSecurityContext -> new KsqlSecurityContext(Optional.empty(), serviceContext),
         securityExtension,
+        Optional.of(ksqlResourceExtension),
         Optional.empty(),
         serverState,
         processingLogContext,

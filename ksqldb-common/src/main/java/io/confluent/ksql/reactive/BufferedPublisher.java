@@ -20,8 +20,8 @@ import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.Objects;
 import java.util.Queue;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * A reactive streams publisher which can buffer received elements before sending them to it's
@@ -32,7 +32,7 @@ import org.slf4j.LoggerFactory;
  */
 public class BufferedPublisher<T> extends BasePublisher<T> {
 
-  private static final Logger log = LoggerFactory.getLogger(BufferedPublisher.class);
+  private static final Logger log = LogManager.getLogger(BufferedPublisher.class);
   public static final int SEND_MAX_BATCH_SIZE = 200;
   public static final int DEFAULT_BUFFER_MAX_SIZE = 200;
 

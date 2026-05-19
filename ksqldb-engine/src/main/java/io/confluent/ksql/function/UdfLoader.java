@@ -35,15 +35,15 @@ import java.util.function.Function;
 import org.apache.kafka.common.Configurable;
 import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.common.utils.Time;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * Loads user defined functions (UDFs)
  */
 public class UdfLoader {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(UdfLoader.class);
+  private static final Logger LOGGER = LogManager.getLogger(UdfLoader.class);
 
   private final MutableFunctionRegistry functionRegistry;
   private final Optional<Metrics> metrics;
@@ -144,7 +144,7 @@ public class UdfLoader {
     final FunctionInvoker invoker = FunctionLoaderUtils.createFunctionInvoker(method);
     final String functionName = udfDescriptionAnnotation.name();
 
-    LOGGER.info("Adding function " + functionName + " for method " + method);
+    LOGGER.debug("Adding function {} for method {}", functionName, method);
 
     final List<ParameterInfo> parameters = FunctionLoaderUtils
         .createParameters(method, functionName, typeParser);

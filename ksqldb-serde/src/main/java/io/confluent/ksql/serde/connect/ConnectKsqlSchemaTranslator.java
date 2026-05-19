@@ -32,12 +32,12 @@ import org.apache.kafka.connect.data.Schema.Type;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Time;
 import org.apache.kafka.connect.data.Timestamp;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public final class ConnectKsqlSchemaTranslator {
 
-  private static final Logger log = LoggerFactory.getLogger(ConnectSchemaTranslator.class);
+  private static final Logger log = LogManager.getLogger(ConnectSchemaTranslator.class);
 
   private static final SchemaTranslationPolicies DEFAULT_POLICY =
       SchemaTranslationPolicies.of();

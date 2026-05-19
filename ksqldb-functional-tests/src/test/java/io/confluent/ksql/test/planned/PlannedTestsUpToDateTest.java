@@ -24,33 +24,37 @@ import io.confluent.ksql.test.QueryTranslationTest;
 import io.confluent.ksql.test.tools.TestCase;
 import java.io.IOException;
 import java.util.Collection;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import org.hamcrest.Description;
 import org.hamcrest.TypeSafeMatcher;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
 
 /**
  * Test that ensures that each QTT test case that should be tested from a physical
  * plan has the latest physical plan written to the local filesystem.
+ *
+ * <p>Not directly executable - run via the batch subclasses in the {@code batches} package.
  */
-@RunWith(Parameterized.class)
 public class PlannedTestsUpToDateTest {
 
   private static final ObjectMapper MAPPER = PlanJsonMapper.INSTANCE.get();
 
   private final TestCase testCase;
 
-  @Parameterized.Parameters(name = "{0}")
-  public static Collection<Object[]> data() {
-    return QueryTranslationTest.findTestCases()
+  protected static Collection<Object[]> data(final int totalBatches, final int batch) {
+    final List<Object[]> all = QueryTranslationTest.findTestCases()
         .filter(PlannedTestUtils::isPlannedTestCase)
         .filter(PlannedTestUtils::isIncluded)
         .map(testCase -> new Object[]{testCase.getName(), testCase})
         .collect(Collectors.toList());
+
+    final int testsPerBatch = all.size() / totalBatches;
+    return all.subList(
+        testsPerBatch * batch,
+        batch < totalBatches - 1 ? testsPerBatch * (batch + 1) : all.size()
+    );
   }
 
   /**
@@ -82,8 +86,7 @@ public class PlannedTestsUpToDateTest {
     this.testCase = Objects.requireNonNull(testCase);
   }
 
-  @Test
-  public void shouldHaveLatestPlans() {
+  protected void shouldHaveLatestPlans() {
     final Optional<TestCasePlan> latest = TestCasePlanLoader.latestForTestCase(testCase);
     final TestCasePlan current = TestCasePlanLoader.currentForTestCase(testCase, true);
     assertThat(

@@ -24,8 +24,6 @@ import io.confluent.ksql.util.QueryMask;
 import io.confluent.ksql.util.VertxSslOptionsFactory;
 import io.netty.handler.codec.haproxy.HAProxyProtocolException;
 import io.netty.handler.codec.http.InvalidLineSeparatorException;
-import io.netty.handler.ssl.NotSslRecordException;
-import io.netty.handler.ssl.SslHandshakeTimeoutException;
 import io.vertx.core.http.ClientAuth;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpServerOptions;
@@ -86,9 +84,9 @@ public final class ApiServerUtils {
   }
 
   private static boolean isClientSideConnectionFailure(final Throwable t) {
+    // SSLException covers handshake/protocol failures and netty subclasses
+    // (NotSslRecordException, SslHandshakeTimeoutException, SSLHandshakeException, ...).
     return t instanceof SSLException
-        || t instanceof NotSslRecordException
-        || t instanceof SslHandshakeTimeoutException
         || t instanceof SocketException
         || t instanceof InvalidLineSeparatorException;
   }

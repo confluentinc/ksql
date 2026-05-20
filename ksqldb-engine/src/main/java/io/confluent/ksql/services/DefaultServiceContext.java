@@ -188,6 +188,13 @@ public class DefaultServiceContext implements ServiceContext {
         LOG.warn("Error closing ksqlClient; continuing with remaining shutdown", t);
       }
     }
+    if (connectClientSupplier.isInitialized()) {
+      try {
+        connectClientSupplier.get().close();
+      } catch (final Throwable t) {
+        LOG.warn("Error closing connectClient; continuing with remaining shutdown", t);
+      }
+    }
   }
 
   static final class MemoizedSupplier<T> implements Supplier<T> {

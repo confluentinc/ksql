@@ -96,6 +96,20 @@ public class DefaultServiceContextTest {
   }
 
   @Test
+  public void shouldCloseConnectClientToReleaseHttpClientResources() {
+    // Given: the connect client has been requested (initializing its underlying
+    // pooled HTTP client + evictor thread + SSL context).
+    serviceContext.getConnectClient();
+
+    // When:
+    serviceContext.close();
+
+    // Then: the connect client's close() runs — otherwise the HTTP connection
+    // pool, evictor thread, and SSL context leak per ServiceContext.
+    verify(connectClient).close();
+  }
+
+  @Test
   public void shouldNotCloseUninitializedClients() {
     // Given: no client has been requested.
 

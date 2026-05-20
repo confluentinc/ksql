@@ -66,6 +66,12 @@ public final class RetryUtil {
           try {
             Thread.sleep(duration);
           } catch (final InterruptedException e) {
+            // Restore the interrupt status — Thread.sleep clears it on throw.
+            // Without restoring, callers that check Thread.interrupted() during
+            // shutdown (CommandRunner, executor shutdown signals, etc.) will
+            // miss the cancellation and keep retrying until maxRetries is
+            // exhausted, prolonging shutdown.
+            Thread.currentThread().interrupt();
             log.debug("retryWithBackoff interrupted while sleeping");
           }
         },

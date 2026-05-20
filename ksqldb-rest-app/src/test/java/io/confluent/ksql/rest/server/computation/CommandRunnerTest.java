@@ -47,6 +47,8 @@ import io.confluent.ksql.rest.util.ClusterTerminator;
 import io.confluent.ksql.rest.util.PersistentQueryCleanupImpl;
 import io.confluent.ksql.rest.util.TerminateCluster;
 import io.confluent.ksql.util.PersistentQueryMetadata;
+import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -55,6 +57,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -637,8 +640,12 @@ public class CommandRunnerTest {
   }
   
   @Test
-  public void shouldCloseEarlyOnTerminate() throws InterruptedException {
-    // Given:
+  public void shouldStopCleanlyOnTerminateWithoutSelfDeadlock() throws InterruptedException {
+    // terminateCluster() is called from within the Runner thread. Previously it called
+    // closeEarly() -> executor.awaitTermination() which self-deadlocked (the thread waited
+    // for itself to finish) for the full SHUTDOWN_TIMEOUT_MS, twice. The fix signals stop
+    // by setting closed=true and calling commandStore.wakeup() only; the Runner loop exits
+    // naturally and commandStore.close() runs in its finally block.
     when(commandStore.getNewCommands(any())).thenReturn(Collections.singletonList(queuedCommand1));
     when(queuedCommand1.getAndDeserializeCommand(commandDeserializer)).thenReturn(clusterTerminate);
 
@@ -647,12 +654,15 @@ public class CommandRunnerTest {
     verify(commandStore, never()).close();
     final Runnable threadTask = getThreadTask();
     threadTask.run();
-    
-    // Then:
-    final InOrder inOrder = inOrder(executor, commandStore);
+
+    // Then: wakeup is called once (by terminateCluster), commandStore is closed by the
+    // Runner's finally block, and awaitTermination is NOT called from terminateCluster.
+    final InOrder inOrder = inOrder(commandStore);
     inOrder.verify(commandStore).wakeup();
-    inOrder.verify(executor).awaitTermination(anyLong(), any());
     inOrder.verify(commandStore).close();
+    // executor.awaitTermination must NOT be called from within the Runner thread to avoid
+    // the self-deadlock that previously caused ~30 s delay per TERMINATE CLUSTER command.
+    verify(executor, never()).awaitTermination(anyLong(), any());
   }
 
   @Test
@@ -693,6 +703,99 @@ public class CommandRunnerTest {
     threadTask.run();
 
     verify(commandStore).close();
+  }
+
+  @Test
+  public void stateFieldShouldBeVolatile() throws Exception {
+    // The state field is written by the Runner thread and read by HTTP handler threads
+    // via checkCommandRunnerStatus() / getCommandRunnerDegradedReason().
+    // Without volatile, HTTP threads may not observe the DEGRADED state transition,
+    // causing the health check to permanently report RUNNING on a broken node.
+    final Field field = CommandRunner.class.getDeclaredField("state");
+    assertThat(
+        "state field must be volatile to ensure cross-thread visibility of DEGRADED transitions",
+        (field.getModifiers() & Modifier.VOLATILE) != 0,
+        is(true)
+    );
+  }
+
+  @Test
+  public void shouldReportDegradedStatusFromReaderThreadAfterRunnerThreadSetsDegraded()
+      throws Exception {
+    // Regression test: simulate the Runner thread setting DEGRADED while a separate
+    // "HTTP handler" thread reads the status. The volatile guarantee must ensure the
+    // reader always sees the updated value.
+    when(commandStore.corruptionDetected()).thenReturn(true);
+
+    final CountDownLatch runnerStarted = new CountDownLatch(1);
+    final CountDownLatch runnerFinished = new CountDownLatch(1);
+    final AtomicReference<CommandRunner.CommandRunnerStatus> observedStatus =
+        new AtomicReference<>();
+
+    // Use a real executor so the Runner runs on a separate thread.
+    final CommandRunner realThreadRunner = new CommandRunner(
+        statementExecutor,
+        commandStore,
+        3,
+        clusterTerminator,
+        Executors.newSingleThreadExecutor(),
+        serverState,
+        "ksql-service-id",
+        Duration.ofMillis(COMMAND_RUNNER_HEALTH_TIMEOUT),
+        "",
+        clock,
+        compactor,
+        incompatibleCommandChecker,
+        commandDeserializer,
+        errorHandler,
+        commandTopicExists,
+        new org.apache.kafka.common.metrics.Metrics()
+    );
+
+    doAnswer(inv -> {
+      runnerStarted.countDown();
+      runnerFinished.await();
+      return null;
+    }).when(commandStore).wakeup();
+
+    realThreadRunner.start();
+    runnerStarted.await();
+    // The Runner has entered DEGRADED and is waiting; read status from this ("HTTP") thread.
+    observedStatus.set(realThreadRunner.checkCommandRunnerStatus());
+    runnerFinished.countDown();
+    realThreadRunner.close();
+
+    assertThat(observedStatus.get(), is(CommandRunner.CommandRunnerStatus.DEGRADED));
+  }
+
+  @Test
+  public void closeEarlyShouldForceShutdownNowIfAwaitTerminationTimesOut() throws Exception {
+    // Regression: closeEarly() ignored awaitTermination's return value. If the Runner
+    // thread didn't finish within SHUTDOWN_TIMEOUT_MS, we silently continued and the
+    // executor was left in an undefined state (still running, no further notice). The
+    // fix captures the boolean and calls executor.shutdownNow() on false so the worker
+    // is interrupted and the runtime really stops.
+    when(executor.awaitTermination(anyLong(), any())).thenReturn(false);
+
+    commandRunner.start();
+    commandRunner.close();
+
+    final InOrder inOrder = inOrder(executor);
+    inOrder.verify(executor).awaitTermination(anyLong(), any());
+    inOrder.verify(executor).shutdownNow();
+  }
+
+  @Test
+  public void closeEarlyShouldNotCallShutdownNowIfAwaitTerminationSucceeds() throws Exception {
+    // Companion to the regression above: when the executor terminates cleanly we must
+    // NOT call shutdownNow() — it's unnecessary work and would also clobber the
+    // already-orderly exit.
+    when(executor.awaitTermination(anyLong(), any())).thenReturn(true);
+
+    commandRunner.start();
+    commandRunner.close();
+
+    verify(executor, never()).shutdownNow();
   }
 
   private Runnable getThreadTask() {

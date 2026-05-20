@@ -41,10 +41,12 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.query.QuerySchemas;
 import io.confluent.ksql.util.QueryMetadata.Listener;
+import java.lang.reflect.Field;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ScheduledExecutorService;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KafkaStreams.State;
 import org.apache.kafka.streams.Topology;
@@ -264,5 +266,26 @@ public class PersistentQueryMetadataTest {
         KafkaStreamsThreadError.of(
             "Unhandled exception caught in streams thread", thread, error),
         is(errorMessageCaptor.getValue()));
+  }
+
+  @Test
+  public void shouldShutDownExecutorServiceOnClose() throws Exception {
+    // PersistentQueryMetadataImpl creates a ScheduledExecutorService in its constructor but never
+    // submits any tasks. Without an explicit shutdown() in close(), the idle thread leaks and
+    // accumulates across CREATE/DROP query cycles until the JVM exhausts its thread limit.
+    final Field field = PersistentQueryMetadataImpl.class.getDeclaredField("executorService");
+    field.setAccessible(true);
+    final ScheduledExecutorService executorService =
+        (ScheduledExecutorService) field.get(query);
+
+    assertThat("pre-condition: executor should be alive before close",
+        executorService.isShutdown(), is(false));
+
+    // When:
+    query.close();
+
+    // Then:
+    assertThat("executorService must be shut down after close() to prevent thread leak",
+        executorService.isShutdown(), is(true));
   }
 }

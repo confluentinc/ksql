@@ -157,6 +157,38 @@ public class QueryStreamHandlerTest {
   }
 
   @Test
+  public void shouldNotSubscribePrintPublisherAfterSending406ForUnsupportedContentType() {
+    // Given: a print-topic request whose Accept header is not the delimited
+    // content type. handlePrintPublisher previously sent 406 but FELL THROUGH
+    // to subscribe the PrintSubscriber to the publisher — starting a Kafka
+    // poll loop that writes into an already-ended response.
+    final io.confluent.ksql.api.impl.BlockingPrintPublisher printPublisher =
+        org.mockito.Mockito.mock(io.confluent.ksql.api.impl.BlockingPrintPublisher.class);
+    final CompletableFuture<Publisher<?>> printFuture = new CompletableFuture<>();
+    printFuture.complete(printPublisher);
+    when(endpoints.createQueryPublisher(any(), any(), any(), any(), any(), any(), any(), any(),
+        any())).thenReturn(printFuture);
+    when(routingContext.getAcceptableContentType()).thenReturn("application/json");
+    final HttpServerResponse response406 = org.mockito.Mockito.mock(HttpServerResponse.class);
+    when(response406.setStatusCode(406)).thenReturn(response406);
+    when(routingContext.response()).thenReturn(response406);
+
+    final QueryStreamArgs req = new QueryStreamArgs("print mytopic;",
+        Collections.emptyMap(), Collections.emptyMap(), Collections.emptyMap());
+    givenRequest(req);
+
+    // When:
+    handler.handle(routingContext);
+
+    // Then: the 406 is sent and the publisher is NOT subscribed — no Kafka
+    // poll loop is started for a request that already received its terminal
+    // response.
+    verify(response406).setStatusCode(406);
+    verify(response406).end();
+    verify(printPublisher, org.mockito.Mockito.never()).subscribe(any());
+  }
+
+  @Test
   public void shouldSucceed_pushQuery() {
     // Given:
     when(publisher.isPullQuery()).thenReturn(false);

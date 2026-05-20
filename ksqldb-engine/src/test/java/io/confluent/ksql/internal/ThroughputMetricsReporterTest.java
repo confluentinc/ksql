@@ -456,9 +456,63 @@ public class ThroughputMetricsReporterTest {
     );
   }
 
+  @Test
+  public void measureShouldNotThrowConcurrentModificationExceptionUnderLoad()
+      throws InterruptedException {
+    // Given: a registered throughput total metric. measure() is invoked by the
+    // Kafka Metrics polling thread without holding the reporter's intrinsic
+    // lock, while metricChange/metricRemoval run on the Streams thread under
+    // that lock. A plain HashMap behind ThroughputTotalMetric would CME on
+    // iteration in measure() concurrently with put/remove from the reporter.
+    listener.metricChange(mockMetric(BYTES_CONSUMED_TOTAL, 1D, STREAMS_TAGS_TASK_1));
+    final Measurable bytesConsumed = verifyAndGetMetric(BYTES_CONSUMED_TOTAL, QUERY_ONE_TAGS);
+
+    final int iterations = 5_000;
+    final java.util.concurrent.atomic.AtomicReference<Throwable> failure =
+        new java.util.concurrent.atomic.AtomicReference<>();
+    final java.util.concurrent.CountDownLatch start =
+        new java.util.concurrent.CountDownLatch(1);
+
+    final Thread mutator = new Thread(() -> {
+      try {
+        start.await();
+        for (int i = 0; i < iterations; i++) {
+          final KafkaMetric m = mockMetric(BYTES_CONSUMED_TOTAL, 2D, STREAMS_TAGS_TASK_2);
+          listener.metricChange(m);
+          listener.metricRemoval(m);
+        }
+      } catch (final Throwable t) {
+        failure.compareAndSet(null, t);
+      }
+    }, "throughput-mutator");
+
+    final Thread reader = new Thread(() -> {
+      try {
+        start.await();
+        final MetricConfig cfg = new MetricConfig().tags(QUERY_ONE_TAGS);
+        for (int i = 0; i < iterations; i++) {
+          bytesConsumed.measure(cfg, 0L);
+        }
+      } catch (final Throwable t) {
+        failure.compareAndSet(null, t);
+      }
+    }, "throughput-reader");
+
+    mutator.start();
+    reader.start();
+    start.countDown();
+    mutator.join();
+    reader.join();
+
+    if (failure.get() != null) {
+      throw new AssertionError(
+          "concurrent metricChange/metricRemoval vs measure() threw", failure.get());
+    }
+  }
+
   private KafkaMetric mockMetric(
-    final String name, 
-    Object value, 
+    final String name,
+    Object value,
     final Map<String, String> tags
   ) {
     final KafkaMetric metric = mock(KafkaMetric.class);

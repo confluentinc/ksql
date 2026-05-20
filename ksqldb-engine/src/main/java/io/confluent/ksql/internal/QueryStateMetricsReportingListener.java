@@ -68,15 +68,16 @@ public class QueryStateMetricsReportingListener implements QueryEventListener {
       final ServiceContext serviceContext,
       final MetaStore metaStore,
       final QueryMetadata queryMetadata) {
-    if (perQuery.containsKey(queryMetadata.getQueryId())) {
-      return;
-    }
-    perQuery.put(
+    // Use computeIfAbsent so concurrent onCreate calls for the same queryId
+    // (e.g., sandbox commit racing with the REST listener) do not both pass a
+    // contains-check and both register gauges — the loser would either throw on
+    // duplicate MetricName or leak its listener when overwritten in the map.
+    perQuery.computeIfAbsent(
         queryMetadata.getQueryId(),
-        new PerQueryListener(
+        id -> new PerQueryListener(
             metrics,
             metricsPrefix,
-            queryMetadata.getQueryId().toString(),
+            id.toString(),
             metricsTags
         )
     );
@@ -114,8 +115,14 @@ public class QueryStateMetricsReportingListener implements QueryEventListener {
 
   @Override
   public void onDeregister(final QueryMetadata query) {
-    perQuery.get(query.getQueryId()).onDeregister();
-    perQuery.remove(query.getQueryId());
+    // Use atomic remove so a duplicate onDeregister (e.g., shutdown-on-error path
+    // followed by normal close), or a deregister without a preceding onCreate,
+    // is a no-op rather than an NPE that leaks the metric or masks the original
+    // shutdown cause.
+    final PerQueryListener listener = perQuery.remove(query.getQueryId());
+    if (listener != null) {
+      listener.onDeregister();
+    }
   }
 
   private static final String NO_ERROR = "NO_ERROR";

@@ -25,11 +25,15 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.streams.KafkaClientSupplier;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A real service context, initialized from a {@link KsqlConfig} instance.
  */
 public class DefaultServiceContext implements ServiceContext {
+
+  private static final Logger LOG = LoggerFactory.getLogger(DefaultServiceContext.class);
 
   private final KafkaClientSupplier kafkaClientSupplier;
   private final MemoizedSupplier<Admin> adminClientSupplier;
@@ -160,14 +164,29 @@ public class DefaultServiceContext implements ServiceContext {
 
   @Override
   public void close() {
+    // Run each close independently — if one throws, the rest must still run
+    // (otherwise a transient Admin.close() failure during shutdown leaves the
+    // topic admin and ksql client connections / threads stranded).
     if (adminClientSupplier.isInitialized()) {
-      adminClientSupplier.get().close();
+      try {
+        adminClientSupplier.get().close();
+      } catch (final Throwable t) {
+        LOG.warn("Error closing adminClient; continuing with remaining shutdown", t);
+      }
     }
     if (topicAdminClientSupplier.isInitialized()) {
-      topicAdminClientSupplier.get().close();
+      try {
+        topicAdminClientSupplier.get().close();
+      } catch (final Throwable t) {
+        LOG.warn("Error closing topicAdminClient; continuing with remaining shutdown", t);
+      }
     }
     if (ksqlClientSupplier.isInitialized()) {
-      ksqlClientSupplier.get().close();
+      try {
+        ksqlClientSupplier.get().close();
+      } catch (final Throwable t) {
+        LOG.warn("Error closing ksqlClient; continuing with remaining shutdown", t);
+      }
     }
   }
 
@@ -182,8 +201,14 @@ public class DefaultServiceContext implements ServiceContext {
 
     @Override
     public T get() {
+      // Flip 'initialized' only after a successful call so that a supplier
+      // that throws on first invocation does not cause close() to mistakenly
+      // call get() again (re-invoking the supplier and either creating a
+      // brand-new resource just to close it, or re-throwing the same error
+      // and masking the original failure).
+      final T value = supplier.get();
       initialized = true;
-      return supplier.get();
+      return value;
     }
 
     boolean isInitialized() {

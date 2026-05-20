@@ -95,14 +95,25 @@ public class RuntimeAssignor {
         log.warn("Dropping an unassigned query {}, this should"
             + " only possible with Gen 1 queries", queryMetadata);
       }
-      runtimesToSourceTopics.get(queryMetadata.getQueryApplicationId())
-          .removeAll(queryMetadata.getSourceTopicNames());
+      // The runtime may already be absent: dropQuery can be invoked for a
+      // query that was never registered with this assignor (e.g., a sandbox
+      // copy that never committed, or a replayed drop). Without this guard,
+      // .removeAll on null NPEs and crashes the CommandRunner thread for the
+      // rest of the process lifetime.
+      final String appId = queryMetadata.getQueryApplicationId();
+      final Collection<String> sources = runtimesToSourceTopics.get(appId);
+      if (sources == null) {
+        log.warn("Drop for query {} references unknown runtime {}; skipping assignor cleanup",
+            queryMetadata.getQueryId(), appId);
+        idToRuntime.remove(queryMetadata.getQueryId());
+        return;
+      }
+      sources.removeAll(queryMetadata.getSourceTopicNames());
       idToRuntime.remove(queryMetadata.getQueryId());
-      if (runtimesToSourceTopics.get(queryMetadata.getQueryApplicationId()).isEmpty()
+      if (sources.isEmpty()
           && runtimesToSourceTopics.size() > numDefaultRuntimes) {
-        runtimesToSourceTopics.remove(queryMetadata.getQueryApplicationId());
-        log.info("Removing runtime {} form selection of possible runtimes",
-            queryMetadata.getQueryApplicationId());
+        runtimesToSourceTopics.remove(appId);
+        log.info("Removing runtime {} form selection of possible runtimes", appId);
       }
     }
   }

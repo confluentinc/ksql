@@ -114,8 +114,14 @@ public class QueryStateMetricsReportingListener implements QueryEventListener {
 
   @Override
   public void onDeregister(final QueryMetadata query) {
-    perQuery.get(query.getQueryId()).onDeregister();
-    perQuery.remove(query.getQueryId());
+    // Use atomic remove so a duplicate onDeregister (e.g., shutdown-on-error path
+    // followed by normal close), or a deregister without a preceding onCreate,
+    // is a no-op rather than an NPE that leaks the metric or masks the original
+    // shutdown cause.
+    final PerQueryListener listener = perQuery.remove(query.getQueryId());
+    if (listener != null) {
+      listener.onDeregister();
+    }
   }
 
   private static final String NO_ERROR = "NO_ERROR";

@@ -275,6 +275,28 @@ public class QueryStateMetricsReportingListenerTest {
     verify(metrics).removeMetric(NUM_METRIC_NAME_3);
   }
 
+  @Test
+  public void shouldGracefullyHandleDuplicateOnDeregister() {
+    // Given:
+    listener.onCreate(serviceContext, metaStore, query);
+    listener.onDeregister(query);
+    clearInvocations(metrics);
+
+    // When/Then(don't throw): a second onDeregister (e.g., from a shutdown-on-error
+    // callback after the normal close path already ran) must be a no-op.
+    listener.onDeregister(query);
+
+    // And: no metrics are re-removed on the second call.
+    verify(metrics, org.mockito.Mockito.never()).removeMetric(any(MetricName.class));
+  }
+
+  @Test
+  public void shouldGracefullyHandleDeregisterWithoutOnCreate() {
+    // When/Then(don't throw): onDeregister for an id that was never registered
+    // (e.g., sandbox cleanup) must not NPE.
+    listener.onDeregister(query);
+  }
+
   private String currentGaugeValue(final MetricName name) {
     verify(metrics).addMetric(eq(name), gaugeCaptor.capture());
     return gaugeCaptor.getValue().value(null, 0L);

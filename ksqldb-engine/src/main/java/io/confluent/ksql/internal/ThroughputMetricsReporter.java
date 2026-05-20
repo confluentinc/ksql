@@ -30,6 +30,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import org.apache.kafka.common.MetricName;
 import org.apache.kafka.common.config.ConfigException;
@@ -261,7 +262,12 @@ public class ThroughputMetricsReporter implements MetricsReporter {
   // This is a hack to get the ce-metrics to correctly identify these metrics as a cumulative sum
   // and take the diff to compute the delta so that it can be accumulated downstream.
   private static class ThroughputTotalMetric extends CumulativeSum {
-    final Map<MetricName, KafkaMetric> throughputTotalMetrics = new HashMap<>();
+    // ConcurrentHashMap: measure() is invoked by the Kafka Metrics polling
+    // thread without holding the reporter's intrinsic lock, while add()/remove()
+    // are called from the Streams thread under that lock. A plain HashMap
+    // iterated by measure() concurrently with a put/remove would throw CME or
+    // return a corrupt sum.
+    final Map<MetricName, KafkaMetric> throughputTotalMetrics = new ConcurrentHashMap<>();
 
     ThroughputTotalMetric(final KafkaMetric metric) {
       add(metric);

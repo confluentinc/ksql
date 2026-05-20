@@ -23,6 +23,7 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.BinPackedPersistentQueryMetadataImpl;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.PersistentQueryMetadata;
+import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.core.LogEvent;
@@ -35,6 +36,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -59,16 +61,28 @@ public class PersistentQueryCleanupImplTest {
   @Mock
   BinPackedPersistentQueryMetadataImpl binPackedPersistentQueryMetadata;
   @Before
-  public void setUp() {
+  public void setUp() throws IOException {
     tempFile = new File("/tmp/cat/");
-    if (!tempFile.exists()){
-      if (!tempFile.mkdirs()) {
-        throw new IllegalStateException(String.format(
-            "Could not create temp directory: %s",
-            tempFile.getAbsolutePath()
-        ));
-      }
+    // Recreate /tmp/cat fresh each test — without this, named-topology
+    // subdirectories created by earlier tests (e.g., appId/__test__) persist
+    // and the regex-corrected cleanup path picks them up, exercising code that
+    // dereferences mocked config values that have not been stubbed.
+    if (tempFile.exists()) {
+      FileUtils.deleteDirectory(tempFile);
     }
+    if (!tempFile.mkdirs()) {
+      throw new IllegalStateException(String.format(
+          "Could not create temp directory: %s",
+          tempFile.getAbsolutePath()
+      ));
+    }
+
+    // QueryCleanupTask requires non-null serviceId and persistentQueryPrefix
+    // whenever the cleanup path discovers a named-topology subdirectory.
+    when(ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG))
+        .thenReturn(KsqlConfig.KSQL_SERVICE_ID_DEFAULT);
+    when(ksqlConfig.getString(KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG))
+        .thenReturn(KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_DEFAULT);
 
     cleanup = new PersistentQueryCleanupImpl("/tmp/cat/", context, ksqlConfig);
     when(binPackedPersistentQueryMetadata.getQueryId()).thenReturn(new QueryId("test"));

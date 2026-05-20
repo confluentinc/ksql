@@ -51,11 +51,23 @@ public class JmxDataPointsReporter implements MetricsReporter {
   private void report(final DataPoint dataPoint) {
     final MetricName metricName
         = metrics.metricName(dataPoint.getName(), group, dataPoint.getTags());
-    if (gauges.containsKey(metricName)) {
-      gauges.get(metricName).dataPointRef.set(dataPoint);
+    // Fast path: gauge already exists, just refresh the data point.
+    final DataPointBasedGauge existing = gauges.get(metricName);
+    if (existing != null) {
+      existing.dataPointRef.set(dataPoint);
+      return;
+    }
+    // Slow path: install a new gauge. Use putIfAbsent so concurrent reporters racing
+    // on the same metric name don't both call metrics.addMetric (which would throw
+    // "metric already exists") or both overwrite the gauge reference. Whichever
+    // thread wins putIfAbsent registers with the metrics registry exactly once; the
+    // losers update the winning gauge's data point.
+    final DataPointBasedGauge created = new DataPointBasedGauge(dataPoint, staleThreshold);
+    final DataPointBasedGauge winner = gauges.putIfAbsent(metricName, created);
+    if (winner == null) {
+      metrics.addMetric(metricName, created);
     } else {
-      gauges.put(metricName, new DataPointBasedGauge(dataPoint, staleThreshold));
-      metrics.addMetric(metricName, gauges.get(metricName));
+      winner.dataPointRef.set(dataPoint);
     }
   }
 

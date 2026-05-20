@@ -342,11 +342,12 @@ public class ClusterTerminatorTest {
     // Given:
     givenTopicsExistInKafka("K_Foo");
     givenSinkTopicsExistInMetastore(FormatFactory.DELIMITED, "K_Foo");
-    doThrow(KsqlException.class)
-        .doThrow(KsqlException.class)
-        .doThrow(KsqlException.class)
-        .doThrow(KsqlException.class)
-        .doThrow(KsqlException.class)
+    final RuntimeException underlying = new KsqlException("auth failure");
+    doThrow(underlying)
+        .doThrow(underlying)
+        .doThrow(underlying)
+        .doThrow(underlying)
+        .doThrow(underlying)
         .when(kafkaTopicClient).deleteTopics(Collections.singletonList("K_Foo"));
 
     // When:
@@ -357,6 +358,8 @@ public class ClusterTerminatorTest {
 
     // Then:
     assertThat(e.getMessage(), containsString("Exception while deleting topics: K_Foo"));
+    // And: the underlying cause is preserved for diagnostics.
+    assertThat(e.getCause(), org.hamcrest.Matchers.notNullValue());
   }
 
   @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT")

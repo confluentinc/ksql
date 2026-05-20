@@ -153,6 +153,25 @@ public class RuntimeAssignorTest {
   }
 
   @Test
+  public void dropQueryShouldNotNpeWhenRuntimeIsAlreadyAbsent() {
+    // Given: a query that was never registered with this assignor — e.g., the
+    // sandbox copy that never committed, or a replayed drop after the runtime
+    // was already removed. Its application id is not in runtimesToSourceTopics.
+    final BinPackedPersistentQueryMetadataImpl orphan =
+        mock(BinPackedPersistentQueryMetadataImpl.class);
+    when(orphan.getQueryApplicationId()).thenReturn("nonexistent-runtime");
+    when(orphan.getQueryId()).thenReturn(new QueryId("orphan"));
+
+    // When/Then(don't throw): previously NPE'd inside dropQuery on
+    // runtimesToSourceTopics.get(appId).removeAll(...) and crashed the
+    // CommandRunner thread permanently.
+    runtimeAssignor.dropQuery(orphan);
+
+    // Sanity: the legitimate registration is unaffected.
+    assertThat(runtimeAssignor.getIdToRuntime().containsKey(query1), equalTo(true));
+  }
+
+  @Test
   public void shouldRebuildAssignmentFromListOfQueries() {
     final RuntimeAssignor rebuilt = new RuntimeAssignor(KSQL_CONFIG);
     rebuilt.rebuildAssignment(Collections.singleton(queryMetadata));

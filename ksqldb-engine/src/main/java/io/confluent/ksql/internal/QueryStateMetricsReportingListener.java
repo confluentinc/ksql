@@ -68,15 +68,16 @@ public class QueryStateMetricsReportingListener implements QueryEventListener {
       final ServiceContext serviceContext,
       final MetaStore metaStore,
       final QueryMetadata queryMetadata) {
-    if (perQuery.containsKey(queryMetadata.getQueryId())) {
-      return;
-    }
-    perQuery.put(
+    // Use computeIfAbsent so concurrent onCreate calls for the same queryId
+    // (e.g., sandbox commit racing with the REST listener) do not both pass a
+    // contains-check and both register gauges — the loser would either throw on
+    // duplicate MetricName or leak its listener when overwritten in the map.
+    perQuery.computeIfAbsent(
         queryMetadata.getQueryId(),
-        new PerQueryListener(
+        id -> new PerQueryListener(
             metrics,
             metricsPrefix,
-            queryMetadata.getQueryId().toString(),
+            id.toString(),
             metricsTags
         )
     );

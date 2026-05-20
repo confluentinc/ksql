@@ -297,6 +297,21 @@ public class QueryStateMetricsReportingListenerTest {
     listener.onDeregister(query);
   }
 
+  @Test
+  public void shouldNotReRegisterMetricsOnDuplicateOnCreate() {
+    // Given:
+    listener.onCreate(serviceContext, metaStore, query);
+    clearInvocations(metrics);
+
+    // When: a second onCreate for the same queryId (e.g., sandbox commit racing
+    // with the REST listener registration path).
+    listener.onCreate(serviceContext, metaStore, query);
+
+    // Then: no metrics are re-added — registration must be atomic and idempotent.
+    verify(metrics, org.mockito.Mockito.never()).addMetric(any(MetricName.class), isA(Gauge.class));
+    verify(metrics, org.mockito.Mockito.never()).addMetric(any(MetricName.class), isA(CumulativeSum.class));
+  }
+
   private String currentGaugeValue(final MetricName name) {
     verify(metrics).addMetric(eq(name), gaugeCaptor.capture());
     return gaugeCaptor.getValue().value(null, 0L);

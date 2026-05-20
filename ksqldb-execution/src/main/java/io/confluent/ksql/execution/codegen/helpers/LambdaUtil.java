@@ -19,6 +19,7 @@ import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
 import java.util.List;
+import java.util.regex.Pattern;
 
 /**
  * Functions to help with generating code to work around the fact that the script engine doesn't
@@ -27,6 +28,19 @@ import java.util.List;
 public final class LambdaUtil {
 
   private LambdaUtil() {
+  }
+
+  private static final Pattern VALID_JAVA_IDENTIFIER =
+      Pattern.compile("^[A-Za-z_$][A-Za-z0-9_$]*$");
+
+  public static void validateArgName(final String argName) {
+    if (argName == null || argName.isEmpty()) {
+      throw new KsqlException("Lambda argument name cannot be null or empty");
+    }
+    if (!VALID_JAVA_IDENTIFIER.matcher(argName).matches()) {
+      throw new KsqlException(
+          "Invalid lambda argument name: " + argName);
+    }
   }
 
   /**
@@ -62,6 +76,7 @@ public final class LambdaUtil {
     int i = 0;
     for (final Pair<String, Class<?>> argPair : argList) {
       i++;
+      validateArgName(argPair.left);
       final String javaType = argPair.right.getSimpleName();
       arguments.append(
           "   " + "final" + " " + javaType + " " + argPair.left

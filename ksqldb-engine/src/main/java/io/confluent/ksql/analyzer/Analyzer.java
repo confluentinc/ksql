@@ -39,6 +39,7 @@ import io.confluent.ksql.execution.util.ColumnExtractor;
 import io.confluent.ksql.execution.windows.KsqlWindowExpression;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
+import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.FunctionName;
@@ -564,15 +565,18 @@ class Analyzer {
       }
 
       final Optional<AliasedDataSource> existing = analysis.getSourceByName(source.getName());
-      if (existing.isPresent()) {
+      if (existing.isPresent()
+          && source.getDataSourceType().equals(DataSourceType.KTABLE)
+          && existing.get().getDataSource().getDataSourceType().equals(DataSourceType.KTABLE)) {
+
         final String errorMsg = analysis.getAllDataSources().size() > 1
-            ? "N-way joins do not support multiple occurrences of the same source. "
+            ? "N-way table-table joins do not support multiple occurrences of the same source. "
                 + "Source: '" + sourceName.toString(FormatOptions.noEscape()) + "'."
             : "Can not join '"
                 + sourceName.toString(FormatOptions.noEscape())
                 + "' to '"
                 + existing.get().getDataSource().getName().toString(FormatOptions.noEscape())
-                + "': self joins are not yet supported.";
+                + "': table-table self joins are not yet supported.";
         throw new KsqlException(errorMsg);
       }
       analysis.addDataSource(node.getAlias(), source);

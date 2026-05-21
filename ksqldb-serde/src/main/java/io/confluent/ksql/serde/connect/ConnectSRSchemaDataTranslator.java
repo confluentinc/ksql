@@ -16,6 +16,7 @@
 package io.confluent.ksql.serde.connect;
 
 import io.confluent.ksql.util.KsqlException;
+import java.util.Optional;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Schema.Type;
@@ -52,26 +53,34 @@ public class ConnectSRSchemaDataTranslator extends ConnectDataTranslator {
 
   @Override
   public Object toConnectRow(final Object ksqlData) {
-    /*
-     * Reconstruct ksqlData struct with given schema and try to put original data in it.
-     * Schema may have more fields than ksqlData, don't put those field by default. If needed by
-     * some format like Avro, create new subclass to handle
-     */
-    if (ksqlData instanceof Struct) {
-      final Schema schema = getSchema();
-      validate(((Struct) ksqlData).schema(), schema);
-
-      final Struct struct = new Struct(schema);
-      final Struct source = (Struct) ksqlData;
-
-      for (final Field sourceField : source.schema().fields()) {
-        final Object value = source.get(sourceField);
-        struct.put(sourceField.name(), value);
-      }
-
-      return struct;
+    if (!(ksqlData instanceof Struct)) {
+      return ksqlData;
     }
 
-    return ksqlData;
+    final Schema schema = getSchema();
+    final Struct source = (Struct) ksqlData;
+    validate(source.schema(), schema);
+
+    final Struct struct = new Struct(schema);
+    final Schema originalSchema = source.schema();
+
+    for (final Field field : schema.fields()) {
+      final Optional<Field> originalField = originalSchema.fields().stream()
+          .filter(f -> field.name().equals(f.name())).findFirst();
+
+      if (originalField.isPresent()) {
+        final Object originalValue = source.get(originalField.get());
+        struct.put(field, ConnectSchemas.withCompatibleSchema(field.schema(), originalValue));
+      } else {
+        if (field.schema().defaultValue() != null || field.schema().isOptional()) {
+          struct.put(field, field.schema().defaultValue());
+        } else {
+          throw new KsqlException("Missing default value for required field: ["
+              + field.name() + "]. This field appears in JSON_SR schema in Schema Registry");
+        }
+      }
+    }
+
+    return struct;
   }
 }

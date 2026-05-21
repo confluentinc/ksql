@@ -230,7 +230,8 @@ public class SharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRuntime {
   @Override
   public void start(final QueryId queryId) {
     log.info("Attempting to start query {} in runtime {}", queryId, getApplicationId());
-    if (collocatedQueries.containsKey(queryId) && !collocatedQueries.get(queryId).everStarted) {
+    if (collocatedQueries.containsKey(queryId)
+            && !collocatedQueries.get(queryId).hasEverBeenStarted()) {
       if (!kafkaStreams.getTopologyByName(queryId.toString()).isPresent()) {
         final KafkaFuture<Void> toAdd = kafkaStreams
             .addNamedTopology(collocatedQueries.get(queryId).getTopology()).all();

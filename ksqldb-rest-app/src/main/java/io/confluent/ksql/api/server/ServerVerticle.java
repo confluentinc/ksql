@@ -30,7 +30,6 @@ import io.confluent.ksql.rest.entity.KsqlMediaType;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.LagReportingMessage;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
-import io.netty.handler.codec.haproxy.HAProxyProtocolException;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Promise;
 import io.vertx.core.http.HttpHeaders;
@@ -42,7 +41,6 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.BodyHandler;
-import java.nio.channels.ClosedChannelException;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -411,13 +409,9 @@ public class ServerVerticle extends AbstractVerticle {
   }
 
   private static void unhandledExceptionHandler(final Throwable t) {
-    if (t instanceof ClosedChannelException) {
-      log.debug("Unhandled ClosedChannelException (connection likely closed early)", t);
-    } else if (t instanceof HAProxyProtocolException) {
-      log.error("Failed to decode proxy protocol header", t);
-    } else {
-      log.error("Unhandled exception", t);
-    }
+    // Delegate to ApiServerUtils so the two Vert.x exception handlers stay in sync
+    // (notably for demoting client-side TLS / HTTP framing failures to DEBUG).
+    io.confluent.ksql.api.util.ApiServerUtils.unhandledExceptionHandler(t);
   }
 
   /**

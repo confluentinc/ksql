@@ -173,13 +173,20 @@ public class TransientQueryCleanupService extends AbstractScheduledService {
   }
 
   boolean isLeaked(final String resource) {
+    // Always rule out resources owned by a currently live query — even if the
+    // resource happens to appear in localCommandsQueryAppIds (e.g., a stale
+    // local-commands file referencing a query that has since been restarted).
+    // Without this guard, the local-commands branch returned true uncondition-
+    // ally and the running query's topics / state dirs would be deleted under
+    // it. This is also robust against the substring-based matching inside
+    // foundInLocalCommands.
+    if (!isCorrespondingQueryTerminated(resource)) {
+      return false;
+    }
     if (foundInLocalCommands(resource)) {
       return true;
     }
     if (!internalTopicPrefixPattern.matcher(resource).find()) {
-      return false;
-    }
-    if (!isCorrespondingQueryTerminated(resource)) {
       return false;
     }
     final Matcher appIdMatcher = transientAppIdPattern.matcher(resource);

@@ -235,10 +235,6 @@ public class ServerVerticle extends AbstractVerticle {
         .produces(KsqlMediaType.KSQL_V1_JSON.mediaType())
         .produces(JSON_CONTENT_TYPE)
         .handler(this::handleIsValidPropertyRequest);
-    router.route(HttpMethod.POST, "/test")
-        .handler(BodyHandler.create(false))
-        .produces(KsqlMediaType.KSQL_V1_JSON.mediaType())
-        .handler(this::handleTest);
     router.route()
         .last()
         .handler(ctx -> ctx.response().setStatusCode(NOT_FOUND.code()).end("Not Found"));

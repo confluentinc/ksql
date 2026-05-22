@@ -207,4 +207,24 @@ public class TransientQueryQueueTest {
     queue.acceptRow(KEY_TWO, VAL_TWO);
     assertThat(queue.getTotalRowsQueued(), is(2L));
   }
+
+  @Test
+  public void shouldNotNpeWhenLimitReachedBeforeLimitHandlerSet() {
+    // Given: a queue with a small limit and NO limit handler installed yet.
+    // For small LIMITs the Streams thread can produce rows before the REST
+    // resource calls setLimitHandler — onQueued previously NPE'd on
+    // limitHandler.limitReached() and terminated the query.
+    final TransientQueryQueue raw = new TransientQueryQueue(OptionalInt.of(1), MAX_LIMIT, 1);
+
+    // When: enough rows to cross the limit are accepted before setLimitHandler.
+    raw.acceptRow(KEY_ONE, VAL_ONE);
+
+    // Then(don't NPE): the row is queued and the limit is recorded.
+    assertThat(raw.size(), is(1));
+
+    // And: when setLimitHandler is finally called, it observes the already-reached
+    // limit and fires limitReached — the signal is not lost.
+    raw.setLimitHandler(limitHandler);
+    verify(limitHandler).limitReached();
+  }
 }

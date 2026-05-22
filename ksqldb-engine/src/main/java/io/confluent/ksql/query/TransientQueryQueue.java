@@ -181,7 +181,15 @@ public class TransientQueryQueue implements BlockingRowQueue {
   private void onQueued() {
     if (remaining != null && remaining.decrementAndGet() <= 0) {
       invokedHandler.set(true);
-      limitHandler.limitReached();
+      // limitHandler is set by the REST resource AFTER the query starts
+      // producing rows, so for small LIMITs the streams thread can hit the
+      // limit before setLimitHandler runs. Without this null-check, the
+      // streams thread NPE's and the query terminates. setLimitHandler's own
+      // passedLimit() block fires limitReached once the handler is finally
+      // installed, so dropping it here is safe.
+      if (limitHandler != null) {
+        limitHandler.limitReached();
+      }
     }
     if (queuedCallback != null) {
       queuedCallback.run();

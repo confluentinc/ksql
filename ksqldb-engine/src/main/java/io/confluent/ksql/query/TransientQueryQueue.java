@@ -42,7 +42,11 @@ public class TransientQueryQueue implements BlockingRowQueue {
   private final int offerTimeoutMs;
   private volatile boolean closed = false;
   private final AtomicInteger remaining;
-  private LimitHandler limitHandler;
+  // volatile so the Streams thread reading in onQueued() observes the
+  // assignment done by the REST thread in setLimitHandler(). Without this,
+  // a stale null read could silently skip limitReached() forever in the
+  // race where setLimitHandler ran before the limit was reached.
+  private volatile LimitHandler limitHandler;
   private CompletionHandler completionHandler;
   private Runnable queuedCallback;
   private AtomicLong totalRowsQueued = new AtomicLong(0);
@@ -181,7 +185,15 @@ public class TransientQueryQueue implements BlockingRowQueue {
   private void onQueued() {
     if (remaining != null && remaining.decrementAndGet() <= 0) {
       invokedHandler.set(true);
-      limitHandler.limitReached();
+      // limitHandler is set by the REST resource AFTER the query starts
+      // producing rows, so for small LIMITs the streams thread can hit the
+      // limit before setLimitHandler runs. Without this null-check, the
+      // streams thread NPE's and the query terminates. setLimitHandler's own
+      // passedLimit() block fires limitReached once the handler is finally
+      // installed, so dropping it here is safe.
+      if (limitHandler != null) {
+        limitHandler.limitReached();
+      }
     }
     if (queuedCallback != null) {
       queuedCallback.run();

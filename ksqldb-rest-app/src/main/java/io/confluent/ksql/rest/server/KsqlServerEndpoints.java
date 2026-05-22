@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.rest.server;
 
+import static io.confluent.ksql.rest.Errors.ERROR_CODE_BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -24,10 +25,12 @@ import io.confluent.ksql.api.impl.KsqlSecurityContextProvider;
 import io.confluent.ksql.api.impl.QueryEndpoint;
 import io.confluent.ksql.api.server.InsertResult;
 import io.confluent.ksql.api.server.InsertsStreamSubscriber;
+import io.confluent.ksql.api.server.KsqlApiException;
 import io.confluent.ksql.api.server.MetricsCallbackHolder;
 import io.confluent.ksql.api.spi.Endpoints;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.internal.PullQueryExecutorMetrics;
+import io.confluent.ksql.properties.DenyListPropertyValidator;
 import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.entity.ClusterTerminateRequest;
 import io.confluent.ksql.rest.entity.HeartbeatMessage;
@@ -49,6 +52,7 @@ import io.confluent.ksql.rest.util.AuthenticationUtil;
 import io.confluent.ksql.security.KsqlAuthTokenProvider;
 import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.ReservedInternalTopics;
 import io.confluent.ksql.util.VertxCompletableFuture;
 import io.vertx.core.Context;
@@ -87,6 +91,7 @@ public class KsqlServerEndpoints implements Endpoints {
   private final Optional<PullQueryExecutorMetrics> pullQueryMetrics;
   private final QueryExecutor queryExecutor;
   private final Optional<KsqlAuthTokenProvider> authTokenProvider;
+  private final DenyListPropertyValidator denyListPropertyValidator;
 
   // CHECKSTYLE_RULES.OFF: ParameterNumber
   @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
@@ -106,7 +111,8 @@ public class KsqlServerEndpoints implements Endpoints {
       final WSQueryEndpoint wsQueryEndpoint,
       final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
       final QueryExecutor queryExecutor,
-      final Optional<KsqlAuthTokenProvider> authTokenProvider
+      final Optional<KsqlAuthTokenProvider> authTokenProvider,
+      final DenyListPropertyValidator denyListPropertyValidator
   ) {
 
     // CHECKSTYLE_RULES.ON: ParameterNumber
@@ -127,6 +133,8 @@ public class KsqlServerEndpoints implements Endpoints {
     this.pullQueryMetrics = Objects.requireNonNull(pullQueryMetrics);
     this.queryExecutor = queryExecutor;
     this.authTokenProvider = authTokenProvider;
+    this.denyListPropertyValidator =
+        Objects.requireNonNull(denyListPropertyValidator, "denyListPropertyValidator");
   }
 
   @Override
@@ -143,6 +151,7 @@ public class KsqlServerEndpoints implements Endpoints {
         .provide(apiSecurityContext);
     return executeOnWorker(() -> {
       try {
+        validateProperties(properties);
         return new QueryEndpoint(ksqlEngine, ksqlConfig, pullQueryMetrics, queryExecutor)
             .createQueryPublisher(
                 sql,
@@ -167,11 +176,12 @@ public class KsqlServerEndpoints implements Endpoints {
       final Subscriber<InsertResult> acksSubscriber, final Context context,
       final WorkerExecutor workerExecutor,
       final ApiSecurityContext apiSecurityContext) {
-    return executeOnWorker(
-        () -> new InsertsStreamEndpoint(ksqlEngine, ksqlConfig, reservedInternalTopics)
-            .createInsertsSubscriber(target, properties, acksSubscriber, context, workerExecutor,
-                ksqlSecurityContextProvider.provide(apiSecurityContext).getServiceContext()),
-        workerExecutor);
+    return executeOnWorker(() -> {
+      validateProperties(properties.getMap());
+      return new InsertsStreamEndpoint(ksqlEngine, ksqlConfig, reservedInternalTopics)
+          .createInsertsSubscriber(target, properties, acksSubscriber, context, workerExecutor,
+              ksqlSecurityContextProvider.provide(apiSecurityContext).getServiceContext());
+    }, workerExecutor);
   }
 
   @Override
@@ -326,6 +336,14 @@ public class KsqlServerEndpoints implements Endpoints {
       final String test, final ApiSecurityContext apiSecurityContext) {
     return executeOldApiEndpoint(
         apiSecurityContext, ksqlSecurityContext -> ksqlResource.runTest(test));
+  }
+
+  private void validateProperties(final Map<String, Object> properties) {
+    try {
+      denyListPropertyValidator.validateAll(properties);
+    } catch (KsqlException e) {
+      throw new KsqlApiException(e.getMessage(), ERROR_CODE_BAD_REQUEST);
+    }
   }
 
   private <R> CompletableFuture<R> executeOnWorker(final Supplier<R> supplier,

@@ -170,6 +170,25 @@ public class TransientQueryCleanupServiceTest {
     }
 
     @Test
+    public void shouldNotConsiderLocalCommandLeakedIfQueryIsStillLive() {
+        // Given: a stale local-commands entry for a query that has since been
+        // restarted and is currently live. The unguarded local-commands branch
+        // previously returned true unconditionally — risking deletion of the
+        // running query's topics and state.
+        service.setLocalCommandsQueryAppIds(ImmutableSet.of(APP_ID_1));
+        when(registry.getAllLiveQueries()).thenReturn(ImmutableList.of(q1));
+
+        // When:
+        Set<String> results = new HashSet<>(service.findLeakedTopics());
+
+        // Then:
+        assertTrue(
+            "live query's topics must never be flagged as leaked, even if its "
+                + "appId is in localCommandsQueryAppIds; got: " + results,
+            results.isEmpty());
+    }
+
+    @Test
     public void shouldDetectTheCorrectLeakedTopics() {
         Set<String> results = new HashSet<>(service.findLeakedTopics());
         assertEquals(results.size(), 0);

@@ -95,7 +95,6 @@ package io.confluent.ksql.rest.integration;
   import io.vertx.core.http.HttpVersion;
   import io.vertx.ext.web.client.HttpResponse;
 
-  import java.io.IOException;
   import java.time.Instant;
   import java.util.ArrayList;
   import java.util.Arrays;

@@ -187,9 +187,8 @@ public class TransientQueryQueue implements BlockingRowQueue {
       // streams thread NPE's and the query terminates. setLimitHandler's own
       // passedLimit() block fires limitReached once the handler is finally
       // installed, so dropping it here is safe.
-      final LimitHandler handler = limitHandler;
-      if (handler != null) {
-        handler.limitReached();
+      if (limitHandler != null) {
+        limitHandler.limitReached();
       }
     }
     if (queuedCallback != null) {

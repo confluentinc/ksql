@@ -21,7 +21,9 @@ import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -197,6 +199,16 @@ public class JaasAuthProviderTest {
 
     // Then:
     verifyUnauthorizedSuccessfulLogin();
+  }
+
+  @Test
+  public void shouldNotAttemptLoginWhenLoginServiceStartThrows() throws Exception {
+    doThrow(new RuntimeException("could not start")).when(loginService).start();
+
+    authProvider.authenticate(authInfo, userHandler);
+
+    verifyLoginFailure("Could not start login service.");
+    verify(loginService, never()).login(any(), any(), any(), any());
   }
 
   private void givenAllowedRoles(final String... roles) {

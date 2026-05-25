@@ -33,6 +33,7 @@ import io.confluent.ksql.parser.tree.ListTopics;
 import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.UnsetProperty;
+import io.confluent.ksql.properties.ConfigOverrideLogger;
 import io.confluent.ksql.properties.DenyListPropertyValidator;
 import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.Errors;
@@ -119,6 +120,7 @@ public class KsqlResource implements KsqlConfigurable {
   private final BiFunction<KsqlExecutionContext, ServiceContext, Injector> injectorFactory;
   private final Optional<KsqlAuthorizationValidator> authorizationValidator;
   private final DenyListPropertyValidator denyListPropertyValidator;
+  private final ConfigOverrideLogger configOverrideLogger;
   private final Supplier<String> commandRunnerWarning;
   private RequestValidator validator;
   private RequestHandler handler;
@@ -133,7 +135,8 @@ public class KsqlResource implements KsqlConfigurable {
       final ActivenessRegistrar activenessRegistrar,
       final Optional<KsqlAuthorizationValidator> authorizationValidator,
       final Errors errorHandler,
-      final DenyListPropertyValidator denyListPropertyValidator
+      final DenyListPropertyValidator denyListPropertyValidator,
+      final ConfigOverrideLogger configOverrideLogger
   ) {
     this(
         ksqlEngine,
@@ -144,6 +147,7 @@ public class KsqlResource implements KsqlConfigurable {
         authorizationValidator,
         errorHandler,
         denyListPropertyValidator,
+        configOverrideLogger,
         commandRunner::getCommandRunnerDegradedWarning
     );
   }
@@ -157,6 +161,7 @@ public class KsqlResource implements KsqlConfigurable {
       final Optional<KsqlAuthorizationValidator> authorizationValidator,
       final Errors errorHandler,
       final DenyListPropertyValidator denyListPropertyValidator,
+      final ConfigOverrideLogger configOverrideLogger,
       final Supplier<String> commandRunnerWarning
   ) {
     this.ksqlEngine = Objects.requireNonNull(ksqlEngine, "ksqlEngine");
@@ -171,6 +176,8 @@ public class KsqlResource implements KsqlConfigurable {
     this.errorHandler = Objects.requireNonNull(errorHandler, "errorHandler");
     this.denyListPropertyValidator =
         Objects.requireNonNull(denyListPropertyValidator, "denyListPropertyValidator");
+    this.configOverrideLogger =
+        Objects.requireNonNull(configOverrideLogger, "configOverrideLogger");
     this.commandRunnerWarning =
         Objects.requireNonNull(commandRunnerWarning, "commandRunnerWarning");
   }
@@ -301,6 +308,7 @@ public class KsqlResource implements KsqlConfigurable {
           distributedCmdResponseTimeout);
 
       final Map<String, Object> configProperties = request.getConfigOverrides();
+      configOverrideLogger.logOverrides("/ksql", configProperties);
       denyListPropertyValidator.validateAll(configProperties);
 
       final KsqlRequestConfig requestConfig =

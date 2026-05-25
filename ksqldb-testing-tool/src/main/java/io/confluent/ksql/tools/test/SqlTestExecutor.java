@@ -50,6 +50,7 @@ import io.confluent.ksql.parser.tree.DropStatement;
 import io.confluent.ksql.parser.tree.InsertValues;
 import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.UnsetProperty;
+import io.confluent.ksql.properties.DenyListPropertyValidator;
 import io.confluent.ksql.properties.PropertyOverrider;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.query.id.SequentialQueryIdGenerator;
@@ -252,7 +253,11 @@ public class SqlTestExecutor implements Closeable {
       pipeInput((ConfiguredStatement<InsertValues>) configured);
       return;
     } else if (engineStatement.getStatement() instanceof SetProperty) {
-      PropertyOverrider.set((ConfiguredStatement<SetProperty>) configured, overrides);
+      PropertyOverrider.set(
+          (ConfiguredStatement<SetProperty>) configured,
+          new DenyListPropertyValidator(
+              config.getList(KsqlConfig.KSQL_PROPERTIES_OVERRIDES_DENYLIST)),
+          overrides);
       return;
     } else if (engineStatement.getStatement() instanceof UnsetProperty) {
       PropertyOverrider.unset((ConfiguredStatement<UnsetProperty>) configured, overrides);

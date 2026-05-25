@@ -395,6 +395,34 @@ public class KsMaterializedWindowTableIQv2Test {
     assertThat(rowIterator.hasNext(), is(false));
   }
 
+  @Test
+  @SuppressWarnings("unchecked")
+  public void shouldReturnEmptyOnNullQueryResult_fetchAll() {
+    // Given: Kafka Streams IQv2 documents a non-failure QueryResult whose
+    // getResult() returns null for partitions that hold no data within the
+    // requested bound. Before the fix, the range/scan variant of get(...)
+    // proceeded straight into Streams.stream(IteratorUtil.onComplete(null,
+    // null::close)) and tripped a NullPointerException on the method-handle
+    // creation - aborting the entire pull query instead of contributing an
+    // empty partition slice.
+    final StateQueryResult<KeyValueIterator<Windowed<GenericKey>, ValueAndTimestamp<GenericRow>>>
+        partitionResult = new StateQueryResult<>();
+    final QueryResult<KeyValueIterator<Windowed<GenericKey>, ValueAndTimestamp<GenericRow>>>
+        queryResult = QueryResult.forResult(null);
+    queryResult.setPosition(POSITION);
+    partitionResult.addResult(PARTITION, queryResult);
+    when(kafkaStreams.query(any(StateQueryRequest.class))).thenReturn(partitionResult);
+
+    // When:
+    final KsMaterializedQueryResult<WindowedRow> result =
+        table.get(PARTITION, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS);
+
+    // Then: no NPE, an empty iterator, and the queried position is preserved.
+    assertThat(result.getRowIterator().hasNext(), is(false));
+    assertThat(result.getPosition(), not(Optional.empty()));
+    assertThat(result.getPosition().get(), is(POSITION));
+  }
+
 
   @Test
   @SuppressWarnings("unchecked")

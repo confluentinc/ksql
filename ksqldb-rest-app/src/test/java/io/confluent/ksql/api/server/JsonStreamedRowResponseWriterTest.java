@@ -18,6 +18,8 @@ package io.confluent.ksql.api.server;
 import static io.confluent.ksql.api.server.JsonStreamedRowResponseWriter.MAX_FLUSH_MS;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.sameInstance;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -795,5 +797,52 @@ public class JsonStreamedRowResponseWriterTest {
 
     // Then:
     assertThat(actualMessage.contains(expectedMessage), is(true));
+  }
+
+  @Test
+  public void protobufFormatShouldReturnFreshStatefulFormatterPerCall() {
+    // Regression for the P0 fix: RowFormat.PROTOBUF used to be a JVM-singleton
+    // enum constant whose anonymous body cached `connectSchema` and `serializer`
+    // in instance fields. Two concurrent push queries on application/vnd.ksql.v1
+    // +protobuf raced on those fields - query B's metadataRow overwrote A's
+    // schema, then query A's later dataRow either threw or, worse, serialized
+    // A's rows under B's protobuf schema.
+    //
+    // The fix moves the state into a per-writer RowFormatter handed out by
+    // newFormatter(). This test enforces that contract: each call must return a
+    // distinct instance, and the per-instance state must not bleed across them.
+    final JsonStreamedRowResponseWriter.RowFormatter f1 =
+        JsonStreamedRowResponseWriter.RowFormat.PROTOBUF.newFormatter();
+    final JsonStreamedRowResponseWriter.RowFormatter f2 =
+        JsonStreamedRowResponseWriter.RowFormat.PROTOBUF.newFormatter();
+
+    assertThat("RowFormat.PROTOBUF.newFormatter() must produce a fresh formatter per call",
+        f1, not(sameInstance(f2)));
+
+    // Drive both with DIFFERENT schemas, then exercise dataRow on each. If
+    // state were still shared between the two formatters, the second metadataRow
+    // would clobber the first's connectSchema, and the next f1.dataRow() would
+    // either throw a column-count mismatch (1 row column vs 2 schema fields) or
+    // emit bytes serialized under the wrong schema.
+    final LogicalSchema schemaA = LogicalSchema.builder()
+        .valueColumn(ColumnName.of("a"), SqlTypes.STRING)
+        .build();
+    final LogicalSchema schemaB = LogicalSchema.builder()
+        .valueColumn(ColumnName.of("b1"), SqlTypes.STRING)
+        .valueColumn(ColumnName.of("b2"), SqlTypes.STRING)
+        .build();
+
+    f1.metadataRow(new QueryResponseMetadata(
+        QUERY_ID, ImmutableList.of("a"), ImmutableList.of("STRING"), schemaA));
+    f2.metadataRow(new QueryResponseMetadata(
+        QUERY_ID, ImmutableList.of("b1", "b2"),
+        ImmutableList.of("STRING", "STRING"), schemaB));
+
+    // Both calls succeed (no DataException / IllegalArgumentException) because
+    // each formatter retained its own connectSchema:
+    f1.dataRow(new KeyValueMetadata<>(
+        KeyValue.keyValue(null, GenericRow.genericRow("hello"))));
+    f2.dataRow(new KeyValueMetadata<>(
+        KeyValue.keyValue(null, GenericRow.genericRow("hello", "world"))));
   }
 }

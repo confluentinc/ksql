@@ -19,6 +19,7 @@ import static io.netty.handler.codec.http.HttpHeaderNames.ACCEPT;
 import static io.netty.handler.codec.http.HttpHeaderNames.USER_AGENT;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.when;
@@ -69,6 +70,37 @@ public class ClientImplTest {
             Client.create(OPTIONS_2, vertx)
         )
         .testEquals();
+  }
+
+  @Test
+  public void shouldCompleteExceptionallyWithoutNpeWhenTransportFails() {
+    // Regression for the missing-return fix in makeRequest: the
+    // httpClient.request callback used to call cf.completeExceptionally(ar.cause())
+    // when ar.failed() but then fall through to `ar.result()` (null) and
+    // dereference it, NPE-ing on the next line. The actual transport error was
+    // logged as an "unhandled exception" by Vert.x while the caller received the
+    // NPE, masking real network problems during debugging.
+    final Vertx vertx = Mockito.mock(Vertx.class);
+    final HttpClient httpClient = Mockito.mock(HttpClient.class);
+    final RuntimeException transportError = new RuntimeException("connect refused");
+
+    when(vertx.createHttpClient(any(HttpClientOptions.class))).thenReturn(httpClient);
+    doAnswer(a -> {
+      ((Handler<AsyncResult<HttpClientRequest>>) a.getArgument(1))
+          .handle(Future.failedFuture(transportError));
+      return null;
+    }).when(httpClient).request(any(RequestOptions.class), any(Handler.class));
+
+    final Client client = Client.create(OPTIONS_1, vertx);
+    final java.util.concurrent.CompletableFuture<?> future =
+        client.streamQuery("SELECT * from STREAM1 EMIT CHANGES;");
+
+    // The future is completed exceptionally with the original transport cause -
+    // not the NPE that the missing return previously produced.
+    assertThat(future.isCompletedExceptionally(), is(true));
+    final Throwable cause = assertThrows(
+        java.util.concurrent.ExecutionException.class, future::get).getCause();
+    assertThat(cause, is(transportError));
   }
 
   @Test

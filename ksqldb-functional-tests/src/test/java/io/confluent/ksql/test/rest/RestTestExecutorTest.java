@@ -26,6 +26,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.api.server.JsonStreamedRowResponseWriter.RowFormat;
+import io.confluent.ksql.api.server.JsonStreamedRowResponseWriter.RowFormatter;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.entity.QueryResponseMetadata;
@@ -411,15 +412,16 @@ public class RestTestExecutorTest {
   @Test
   public void shouldVerifyUnorderedProtoResponse() {
     // Given:
+    final RowFormatter protoFormatter = RowFormat.PROTOBUF.newFormatter();
     final RqttQueryProtoResponse response = new RqttQueryProtoResponse(ImmutableList.of(
-        RowFormat.PROTOBUF.metadataRow(new QueryResponseMetadata(
+        protoFormatter.metadataRow(new QueryResponseMetadata(
             "not checked",
             ImmutableList.of("col0"),
             ImmutableList.of("STRING"),
             SCHEMA)
         ),
-        RowFormat.PROTOBUF.dataRow(new KeyValueMetadata<>(KeyValue.keyValue(null, GenericRow.genericRow("hello")))),
-        RowFormat.PROTOBUF.dataRow(new KeyValueMetadata<>(KeyValue.keyValue(null, GenericRow.genericRow("goodbye")))),
+        protoFormatter.dataRow(new KeyValueMetadata<>(KeyValue.keyValue(null, GenericRow.genericRow("hello")))),
+        protoFormatter.dataRow(new KeyValueMetadata<>(KeyValue.keyValue(null, GenericRow.genericRow("goodbye")))),
         StreamedRow.finalMessage("end")
     ));
 
@@ -441,15 +443,16 @@ public class RestTestExecutorTest {
   @Test
   public void shouldThrowOnMisorderedProtoResponse() {
     // Given:
+    final RowFormatter protoFormatter = RowFormat.PROTOBUF.newFormatter();
     final RqttQueryProtoResponse response = new RqttQueryProtoResponse(ImmutableList.of(
-        RowFormat.PROTOBUF.metadataRow(new QueryResponseMetadata(
+        protoFormatter.metadataRow(new QueryResponseMetadata(
             "not checked",
             ImmutableList.of("col0"),
             ImmutableList.of("STRING"),
             SCHEMA)
         ),
-        RowFormat.PROTOBUF.dataRow(new KeyValueMetadata<>(KeyValue.keyValue(null, GenericRow.genericRow("hello")))),
-        RowFormat.PROTOBUF.dataRow(new KeyValueMetadata<>(KeyValue.keyValue(null, GenericRow.genericRow("goodbye")))),
+        protoFormatter.dataRow(new KeyValueMetadata<>(KeyValue.keyValue(null, GenericRow.genericRow("hello")))),
+        protoFormatter.dataRow(new KeyValueMetadata<>(KeyValue.keyValue(null, GenericRow.genericRow("goodbye")))),
         StreamedRow.finalMessage("end")
     ));
 

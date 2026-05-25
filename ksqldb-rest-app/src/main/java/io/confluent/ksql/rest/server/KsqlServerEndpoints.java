@@ -331,13 +331,6 @@ public class KsqlServerEndpoints implements Endpoints {
     }, workerExecutor);
   }
 
-  @Override
-  public CompletableFuture<EndpointResponse> executeTest(
-      final String test, final ApiSecurityContext apiSecurityContext) {
-    return executeOldApiEndpoint(
-        apiSecurityContext, ksqlSecurityContext -> ksqlResource.runTest(test));
-  }
-
   private void validateProperties(final Map<String, Object> properties) {
     try {
       denyListPropertyValidator.validateAll(properties);

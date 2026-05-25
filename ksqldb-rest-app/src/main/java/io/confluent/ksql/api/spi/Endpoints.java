@@ -124,7 +124,4 @@ public interface Endpoints {
       WorkerExecutor workerExecutor, ApiSecurityContext apiSecurityContext,
       Context context);
 
-  CompletableFuture<EndpointResponse> executeTest(
-      String test, ApiSecurityContext apiSecurityContext);
-
 }

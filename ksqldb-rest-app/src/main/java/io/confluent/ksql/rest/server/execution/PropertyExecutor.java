@@ -18,10 +18,12 @@ package io.confluent.ksql.rest.server.execution;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.UnsetProperty;
+import io.confluent.ksql.properties.DenyListPropertyValidator;
 import io.confluent.ksql.properties.PropertyOverrider;
 import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
+import io.confluent.ksql.util.KsqlConfig;
 import java.util.Optional;
 
 public final class PropertyExecutor {
@@ -36,8 +38,21 @@ public final class PropertyExecutor {
       final KsqlExecutionContext executionContext,
       final ServiceContext serviceContext
   ) {
-    PropertyOverrider.set(statement, sessionProperties.getMutableScopedProperties());
+    PropertyOverrider.set(
+        statement,
+        denyListValidatorFor(statement),
+        sessionProperties.getMutableScopedProperties()
+    );
     return StatementExecutorResponse.handled(Optional.empty());
+  }
+
+  private static DenyListPropertyValidator denyListValidatorFor(
+      final ConfiguredStatement<?> statement
+  ) {
+    return new DenyListPropertyValidator(
+        statement.getSessionConfig()
+            .getConfig(false)
+            .getList(KsqlConfig.KSQL_PROPERTIES_OVERRIDES_DENYLIST));
   }
 
   public static StatementExecutorResponse unset(

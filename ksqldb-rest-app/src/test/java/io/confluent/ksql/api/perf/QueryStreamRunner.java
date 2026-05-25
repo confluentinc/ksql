@@ -222,12 +222,6 @@ public class QueryStreamRunner extends BasePerfRunner {
 
     }
 
-    @Override
-    public CompletableFuture<EndpointResponse> executeTest(String test,
-        ApiSecurityContext apiSecurityContext) {
-      return null;
-    }
-
     synchronized void closePublishers() {
       for (QueryStreamPublisher publisher : publishers) {
         publisher.close();

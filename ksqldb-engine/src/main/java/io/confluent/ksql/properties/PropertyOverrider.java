@@ -21,6 +21,7 @@ import io.confluent.ksql.config.KsqlConfigResolver;
 import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.UnsetProperty;
 import io.confluent.ksql.statement.ConfiguredStatement;
+import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlStatementException;
 import java.util.Map;
 
@@ -31,10 +32,12 @@ public final class PropertyOverrider {
 
   public static void set(
       final ConfiguredStatement<SetProperty> statement,
+      final DenyListPropertyValidator denyListPropertyValidator,
       final Map<String, Object> mutableProperties
   ) {
     final SetProperty setProperty = statement.getStatement();
     throwIfInvalidProperty(setProperty.getPropertyName(), statement.getMaskedStatementText());
+    throwIfDeniedProperty(setProperty, denyListPropertyValidator, statement);
     throwIfInvalidPropertyValues(setProperty, statement);
     mutableProperties.put(setProperty.getPropertyName(), setProperty.getPropertyValue());
   }
@@ -70,6 +73,21 @@ public final class PropertyOverrider {
     new KsqlConfigResolver()
         .resolve(propertyName, true)
         .orElseThrow(() -> new KsqlStatementException("Unknown property: " + propertyName, text));
+  }
+
+  private static void throwIfDeniedProperty(
+      final SetProperty setProperty,
+      final DenyListPropertyValidator denyListPropertyValidator,
+      final ConfiguredStatement<SetProperty> statement
+  ) {
+    try {
+      denyListPropertyValidator.validateAll(ImmutableMap.of(
+          setProperty.getPropertyName(),
+          setProperty.getPropertyValue()
+      ));
+    } catch (final KsqlException e) {
+      throw new KsqlStatementException(e.getMessage(), statement.getMaskedStatementText(), e);
+    }
   }
 
 }

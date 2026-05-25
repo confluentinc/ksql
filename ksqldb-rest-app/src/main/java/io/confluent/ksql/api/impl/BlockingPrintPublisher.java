@@ -138,6 +138,11 @@ public class BlockingPrintPublisher extends BasePublisher<String> {
           doOnNext(message);
         }
         if (messagesWritten >= limit) {
+          // Mark the publisher closed before scheduling sendComplete so any subsequent
+          // doSend() invocation triggered by maybeSend() exits at the loop guard instead of
+          // polling the (about-to-be-closed) consumer. messagesWritten is a local variable
+          // reset on every doSend() call, so the loop guard alone cannot prevent re-entry.
+          closed = true;
           ctx.runOnContext(v -> sendComplete());
           break;
         } else if (messagesWritten >= SEND_MAX_BATCH_SIZE) {
@@ -147,12 +152,12 @@ public class BlockingPrintPublisher extends BasePublisher<String> {
       }
     }
 
-    // Close the consumer whenever the loop terminates because the print stream is done — either
-    // the publisher itself is closed, or LIMIT has been reached and we have already scheduled
-    // sendComplete(). Without the limit-reached check, every `PRINT 'topic' LIMIT N` leaks the
-    // KafkaConsumer (Selector thread + broker connections) until the connection's end handler
-    // eventually fires, which may not happen on an abrupt client disconnect.
-    if (isClosed() || messagesWritten >= limit) {
+    // Close the consumer once the loop exits because the print stream is terminal (either
+    // closed by the caller or because LIMIT was reached above and we set closed=true).
+    // Without closing here on LIMIT, every `PRINT 'topic' LIMIT N` leaked the KafkaConsumer
+    // (Selector thread + broker connections) until the connection's end handler fired,
+    // which on abrupt client disconnect may never happen.
+    if (isClosed()) {
       topicConsumer.close();
     }
   }

@@ -35,6 +35,14 @@ import java.util.List;
 )
 public class GenerateSeries {
 
+  /**
+   * Upper bound on the number of elements GENERATE_SERIES will produce. Without this cap, a
+   * caller can request a series whose size is computed via overflow-prone int arithmetic and
+   * the function either throws IllegalArgumentException on new ArrayList(neg) or attempts to
+   * allocate multiple GB of contiguous memory and OOMs the server.
+   */
+  static final int MAX_SERIES_SIZE = 1_000_000;
+
   @Udf
   public List<Integer> generateSeriesInt(
       @UdfParameter(description = "The beginning of the series") final int start,
@@ -50,15 +58,18 @@ public class GenerateSeries {
       @UdfParameter(description = "Difference between each value in the series") final int step
   ) {
     checkStep(step);
-    final int diff = end - start;
+    // Compute diff in long to defeat the int-overflow that previously made (end - start) wrap
+    // negative for extreme input pairs like (Integer.MIN_VALUE, Integer.MAX_VALUE).
+    final long diff = (long) end - (long) start;
     if (diff > 0 && step < 0 || diff < 0 && step > 0) {
       throw new KsqlFunctionException("GENERATE_SERIES step has wrong sign");
     }
-    final int size = 1 + diff / step;
-    final List<Integer> result = new ArrayList<>(size);
+    final long size = 1L + diff / step;
+    final int boundedSize = checkAndCastSize(size);
+    final List<Integer> result = new ArrayList<>(boundedSize);
     int pos = 0;
     int val = start;
-    while (pos++ < size) {
+    while (pos++ < boundedSize) {
       result.add(val);
       val += step;
     }
@@ -81,15 +92,24 @@ public class GenerateSeries {
       @UdfParameter(description = "Difference between each value in the series") final int step
   ) {
     checkStep(step);
-    final long diff = end - start;
+    // Detect long-arithmetic overflow on (end - start); the previous unchecked subtraction
+    // could wrap for inputs at opposite ends of the long range.
+    final long diff;
+    try {
+      diff = Math.subtractExact(end, start);
+    } catch (final ArithmeticException e) {
+      throw new KsqlFunctionException(
+          "GENERATE_SERIES range overflow: " + start + " to " + end);
+    }
     if (diff > 0 && step < 0 || diff < 0 && step > 0) {
       throw new KsqlFunctionException("GENERATE_SERIES step has wrong sign");
     }
-    final int size = 1 + (int) (diff / step);
-    final List<Long> result = new ArrayList<>(size);
+    final long size = 1L + diff / step;
+    final int boundedSize = checkAndCastSize(size);
+    final List<Long> result = new ArrayList<>(boundedSize);
     int pos = 0;
     long val = start;
-    while (pos++ < size) {
+    while (pos++ < boundedSize) {
       result.add(val);
       val += step;
     }
@@ -100,6 +120,15 @@ public class GenerateSeries {
     if (step == 0) {
       throw new KsqlFunctionException("GENERATE_SERIES step cannot be zero");
     }
+  }
+
+  private static int checkAndCastSize(final long size) {
+    if (size < 0 || size > MAX_SERIES_SIZE) {
+      throw new KsqlFunctionException(
+          "GENERATE_SERIES size (" + size + ") is negative or exceeds the maximum of "
+              + MAX_SERIES_SIZE + " elements.");
+    }
+    return (int) size;
   }
 
 }

@@ -235,4 +235,56 @@ public class GenerateSeriesTest {
         "GENERATE_SERIES step has wrong sign"));
   }
 
+  @Test
+  public void shouldThrowIfIntRangeExceedsMaxSize() {
+    // Given/When: a request whose computed size exceeds MAX_SERIES_SIZE. Before
+    // the fix, this preallocated an ArrayList that high (~ 8 GB for Integer)
+    // and OOMed the server.
+    final Exception e = assertThrows(
+        KsqlFunctionException.class,
+        () -> rangeUdf.generateSeriesInt(0, Integer.MAX_VALUE, 1)
+    );
+
+    // Then:
+    assertThat(e.getMessage(),
+        containsString("exceeds the maximum of " + GenerateSeries.MAX_SERIES_SIZE));
+  }
+
+  @Test
+  public void shouldThrowIfLongRangeExceedsMaxSize() {
+    // Given/When: same bound check on the long overload.
+    final Exception e = assertThrows(
+        KsqlFunctionException.class,
+        () -> rangeUdf.generateSeriesLong(0L, (long) Integer.MAX_VALUE, 1)
+    );
+
+    // Then:
+    assertThat(e.getMessage(),
+        containsString("exceeds the maximum of " + GenerateSeries.MAX_SERIES_SIZE));
+  }
+
+  @Test
+  public void shouldDetectLongRangeOverflow() {
+    // Given/When: end - start overflows Long. Before the fix, the unchecked
+    // subtraction wrapped silently into a small positive/negative number,
+    // producing a small or negative size that either truncated the series or
+    // tripped new ArrayList(neg). Math.subtractExact now catches it.
+    final Exception e = assertThrows(
+        KsqlFunctionException.class,
+        () -> rangeUdf.generateSeriesLong(Long.MIN_VALUE, Long.MAX_VALUE, 1)
+    );
+
+    // Then:
+    assertThat(e.getMessage(),
+        containsString("GENERATE_SERIES range overflow"));
+  }
+
+  @Test
+  public void shouldAcceptIntRangeAtMaxSize() {
+    // The cap is inclusive: MAX_SERIES_SIZE elements must still be accepted.
+    final List<Integer> range =
+        rangeUdf.generateSeriesInt(0, GenerateSeries.MAX_SERIES_SIZE - 1, 1);
+    assertThat(range, hasSize(GenerateSeries.MAX_SERIES_SIZE));
+  }
+
 }

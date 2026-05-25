@@ -16,9 +16,13 @@
 package io.confluent.ksql.function.udtf;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.Lists;
+import io.confluent.ksql.function.KsqlFunctionException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -96,6 +100,39 @@ public class CubeTest {
     // Then:
     assertThat(result.size(), is(1));
     assertThat(result.get(0), is(Arrays.asList(null, null)));
+  }
+
+  @Test
+  public void shouldRejectInputLargerThanMaxColumns() {
+    // Given: an input list with one more column than the safe cap. Without the
+    // bound, createAllCombinations would compute `1 << columns.size()` which
+    // overflows at size >= 31 (Integer.MIN_VALUE -> new ArrayList<>(neg) throws)
+    // or returns 1 at size == 32 (a silently wrong one-row cube). Even just
+    // below the overflow boundary (e.g. 30) the function would attempt to
+    // allocate ~1B ArrayList entries and OOM the server on a malformed query.
+    final List<Object> tooMany = new ArrayList<>();
+    for (int i = 0; i < Cube.MAX_COLUMNS + 1; i++) {
+      tooMany.add(i);
+    }
+
+    // When/Then:
+    final KsqlFunctionException e = assertThrows(
+        KsqlFunctionException.class,
+        () -> cubeUdtf.cube(tooMany));
+    assertThat(e.getMessage(), containsString("exceeds the maximum of"));
+  }
+
+  @Test
+  public void shouldAcceptInputAtTheMaxColumns() {
+    // The cap is inclusive; an input of exactly MAX_COLUMNS must still succeed.
+    final List<Object> atCap = new ArrayList<>();
+    for (int i = 0; i < Cube.MAX_COLUMNS; i++) {
+      atCap.add(i);
+    }
+
+    // Should not throw; 2^MAX_COLUMNS rows are produced.
+    final List<List<Object>> result = cubeUdtf.cube(atCap);
+    assertThat(result.size(), is(1 << Cube.MAX_COLUMNS));
   }
 
 }

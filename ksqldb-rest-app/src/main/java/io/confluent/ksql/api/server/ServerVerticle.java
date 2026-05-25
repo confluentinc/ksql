@@ -388,14 +388,6 @@ public class ServerVerticle extends AbstractVerticle {
     );
   }
 
-  private void handleTest(final RoutingContext routingContext) {
-    handleOldApiRequest(server, routingContext, String.class, Optional.empty(),
-        (test, apiSecurityContext) ->
-            endpoints
-                .executeTest(test, DefaultApiSecurityContext.create(routingContext, server))
-    );
-  }
-
   private static void chcHandler(final RoutingContext routingContext) {
     routingContext.response().putHeader(HttpHeaders.CONTENT_TYPE.toString(), "application/json")
         .end(new JsonObject().toBuffer());

@@ -20,8 +20,9 @@ import io.confluent.ksql.util.KsqlConfig;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * Emits an audit log line for each property override seen on a REST endpoint, tagging whether
@@ -29,21 +30,23 @@ import org.slf4j.LoggerFactory;
  *
  * <p>Gated on {@link KsqlConfig#KSQL_PROPERTIES_OVERRIDES_LOG}. Default disabled — flipping the
  * flag to true is the audit-mode rollout step before enforcement of allowlist of properties.
+ *
+ * <p>The log message carries only event-specific fields ({@code event}, {@code endpoint},
+ * {@code property}, {@code inAllowlist}). Cluster / org / pod identifiers are auto-stamped by
+ * the log shipper (fluentbit + k8s metadata) and surface as their own top-level OpenSearch
+ * fields, so we deliberately do not duplicate them inside the message.
  */
 public class ConfigOverrideLogger {
 
-  private static final Logger LOG = LoggerFactory.getLogger("io.confluent.ksql.audit.ConfigOverride");
-
+  private final Logger log = LogManager.getLogger(ConfigOverrideLogger.class);
   private final boolean enabled;
   private final Set<String> allowlist;
-  private final String clusterId;
 
   public ConfigOverrideLogger(final KsqlConfig config) {
     Objects.requireNonNull(config, "config");
     this.enabled = config.getBoolean(KsqlConfig.KSQL_PROPERTIES_OVERRIDES_LOG);
     this.allowlist = ImmutableSet.copyOf(
         config.getList(KsqlConfig.KSQL_PROPERTIES_OVERRIDES_ALLOWLIST));
-    this.clusterId = config.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG);
   }
 
   public void logOverrides(final String endpoint, final Map<String, Object> properties) {
@@ -52,17 +55,12 @@ public class ConfigOverrideLogger {
     }
     Objects.requireNonNull(endpoint, "endpoint");
     if (properties == null || properties.isEmpty()) {
-      LOG.info(
-          "event=no_property_overrides clusterId={} endpoint={}",
-          clusterId,
-          endpoint
-      );
+      log.info("event=no_property_overrides endpoint={}", endpoint);
       return;
     }
     for (final String key : properties.keySet()) {
-      LOG.info(
-          "event=property_override clusterId={} endpoint={} property={} inAllowlist={}",
-          clusterId,
+      log.info(
+          "event=property_override endpoint={} property={} inAllowlist={}",
           endpoint,
           key,
           allowlist.contains(key)

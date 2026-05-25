@@ -664,9 +664,14 @@ public class KsqlConfig extends AbstractConfig {
   private static final String KSQL_PROPERTIES_OVERRIDES_DENYLIST_DOC = "Comma-separated list of "
       + "properties that KSQL users cannot override.";
 
+  public static final String KSQL_PROPERTIES_OVERRIDES_ALLOWLIST =
+      "ksql.properties.overrides.allowlist";
+  private static final String KSQL_PROPERTIES_OVERRIDES_ALLOWLIST_DOC = "Comma-separated list of "
+      + "property names permitted as overrides when "
+      + "ksql.properties.overrides.validation.mode = allowlist.";
+
   public static final String KSQL_PROPERTIES_OVERRIDES_VALIDATION_MODE =
       "ksql.properties.overrides.validation.mode";
-
   public static final String KSQL_PROPERTIES_OVERRIDES_VALIDATION_MODE_DENYLIST = "denylist";
   public static final String KSQL_PROPERTIES_OVERRIDES_VALIDATION_MODE_ALLOWLIST = "allowlist";
   private static final String KSQL_PROPERTIES_OVERRIDES_VALIDATION_MODE_DEFAULT =
@@ -675,15 +680,7 @@ public class KsqlConfig extends AbstractConfig {
       "Validation mode for property overrides on REST endpoints. Allowed values: 'denylist' "
           + "(default, today's behavior - reject names listed in "
           + KSQL_PROPERTIES_OVERRIDES_DENYLIST + "), 'allowlist' (only permit names listed in "
-          +  KSQL_PROPERTIES_OVERRIDES_DENYLIST + " ).";
-
-  public static final String KSQL_PROPERTIES_OVERRIDES_ALLOWLIST =
-      "ksql.properties.overrides.allowlist";
-  private static final String KSQL_PROPERTIES_OVERRIDES_ALLOWLIST_DOC = "Comma-separated list of "
-      + "property names permitted as overrides when "
-      + KSQL_PROPERTIES_OVERRIDES_VALIDATION_MODE + "=allowlist. Also read by the audit logger "
-      + "to tag override log lines with inAllowlist=true|false regardless of the active "
-      + "validation mode.";
+          + KSQL_PROPERTIES_OVERRIDES_ALLOWLIST + ").";
 
   public static final String KSQL_PROPERTIES_OVERRIDES_LOG =
       "ksql.properties.overrides.log";

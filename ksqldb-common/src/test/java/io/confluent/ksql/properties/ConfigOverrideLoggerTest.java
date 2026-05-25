@@ -30,7 +30,6 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.core.Appender;
 import org.apache.logging.log4j.core.LogEvent;
 import org.apache.logging.log4j.core.LoggerContext;
 import org.apache.logging.log4j.core.appender.AbstractAppender;
@@ -42,7 +41,7 @@ import org.junit.Test;
 
 public class ConfigOverrideLoggerTest {
 
-  private static final String AUDIT_LOGGER_NAME = "io.confluent.ksql.audit.ConfigOverride";
+  private static final String AUDIT_LOGGER_NAME = ConfigOverrideLogger.class.getName();
   private static final String ENDPOINT = "/ksql";
 
   private CapturingAppender appender;
@@ -81,8 +80,6 @@ public class ConfigOverrideLoggerTest {
     appender.stop();
   }
 
-  private static final String CLUSTER_ID = "lksqlc-test";
-
   @Test
   public void shouldNotLogWhenDisabled() {
     final ConfigOverrideLogger logger = newLogger(false, "auto.offset.reset");
@@ -100,7 +97,7 @@ public class ConfigOverrideLoggerTest {
 
     assertThat(
         appender.messages(),
-        contains("event=no_property_overrides clusterId=lksqlc-test endpoint=/ksql")
+        contains("event=no_property_overrides endpoint=/ksql")
     );
   }
 
@@ -112,7 +109,7 @@ public class ConfigOverrideLoggerTest {
 
     assertThat(
         appender.messages(),
-        contains("event=no_property_overrides clusterId=lksqlc-test endpoint=/ksql")
+        contains("event=no_property_overrides endpoint=/ksql")
     );
   }
 
@@ -125,7 +122,7 @@ public class ConfigOverrideLoggerTest {
     assertThat(
         appender.messages(),
         contains(
-            "event=property_override clusterId=lksqlc-test endpoint=/ksql "
+            "event=property_override endpoint=/ksql "
                 + "property=auto.offset.reset inAllowlist=true"
         )
     );
@@ -140,7 +137,7 @@ public class ConfigOverrideLoggerTest {
     assertThat(
         appender.messages(),
         contains(
-            "event=property_override clusterId=lksqlc-test endpoint=/ksql "
+            "event=property_override endpoint=/ksql "
                 + "property=ksql.streams.num.stream.threads inAllowlist=false"
         )
     );
@@ -160,9 +157,9 @@ public class ConfigOverrideLoggerTest {
     assertThat(
         appender.messages(),
         containsInAnyOrder(
-            "event=property_override clusterId=lksqlc-test endpoint=/ksql "
+            "event=property_override endpoint=/ksql "
                 + "property=auto.offset.reset inAllowlist=true",
-            "event=property_override clusterId=lksqlc-test endpoint=/ksql "
+            "event=property_override endpoint=/ksql "
                 + "property=ksql.streams.num.stream.threads inAllowlist=false"
         )
     );
@@ -182,7 +179,7 @@ public class ConfigOverrideLoggerTest {
     assertThat(
         appender.messages(),
         contains(
-            "event=property_override clusterId=lksqlc-test endpoint=/ksql "
+            "event=property_override endpoint=/ksql "
                 + "property=ksql.streams.consumer.sasl.jaas.config inAllowlist=false"
         )
     );
@@ -191,8 +188,7 @@ public class ConfigOverrideLoggerTest {
   private static ConfigOverrideLogger newLogger(final boolean enabled, final String allowlist) {
     final Map<String, Object> overrides = ImmutableMap.of(
         KsqlConfig.KSQL_PROPERTIES_OVERRIDES_LOG, enabled,
-        KsqlConfig.KSQL_PROPERTIES_OVERRIDES_ALLOWLIST, allowlist,
-        KsqlConfig.KSQL_SERVICE_ID_CONFIG, CLUSTER_ID
+        KsqlConfig.KSQL_PROPERTIES_OVERRIDES_ALLOWLIST, allowlist
     );
     return new ConfigOverrideLogger(new KsqlConfig(overrides));
   }

@@ -20,23 +20,28 @@ import io.confluent.ksql.util.KsqlConfig;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-
+import org.apache.logging.log4j.CloseableThreadContext;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 /**
- * Emits an audit log line for each property override seen on a REST endpoint, tagging whether
- * the property name appears in {@link KsqlConfig#KSQL_PROPERTIES_OVERRIDES_ALLOWLIST}.
+ * Logs each property override at a REST endpoint. Gated on
+ * {@link KsqlConfig#KSQL_PROPERTIES_OVERRIDES_LOG} (default off).
  *
- * <p>Gated on {@link KsqlConfig#KSQL_PROPERTIES_OVERRIDES_LOG}. Default disabled — flipping the
- * flag to true is the audit-mode rollout step before enforcement of allowlist of properties.
+ * <p>The message ({@code "Config overrides found"} / {@code "No Config overrides"}) identifies
+ * the event; variable fields ({@code endpoint}, {@code property}, {@code inAllowlist}) attach
+ * via log4j2 ThreadContext, so JSON layouts surface them as discrete indexable fields.
+ * {@link CloseableThreadContext} clears the keys after each call so they don't leak across
+ * requests on shared worker threads.
  *
- * <p>The log message carries only event-specific fields ({@code event}, {@code endpoint},
- * {@code property}, {@code inAllowlist}). Cluster / org / pod identifiers are auto-stamped by
- * the log shipper (fluentbit + k8s metadata) and surface as their own top-level OpenSearch
- * fields, so we deliberately do not duplicate them inside the message.
+ * <p>Property values are never logged — some keys (e.g. {@code sasl.jaas.config}) carry
+ * credentials.
  */
 public class ConfigOverrideLogger {
+
+  private static final String ENDPOINT = "endpoint";
+  private static final String PROPERTY = "property";
+  private static final String MDC_IN_ALLOWLIST = "inAllowlist";
 
   private final Logger log = LogManager.getLogger(ConfigOverrideLogger.class);
   private final boolean enabled;
@@ -53,18 +58,21 @@ public class ConfigOverrideLogger {
     if (!enabled) {
       return;
     }
-    Objects.requireNonNull(endpoint, "endpoint");
+    Objects.requireNonNull(endpoint, ENDPOINT);
     if (properties == null || properties.isEmpty()) {
-      log.info("event=no_property_overrides endpoint={}", endpoint);
+      try (CloseableThreadContext.Instance ignored = CloseableThreadContext
+          .put(ENDPOINT, endpoint)) {
+        log.info("No Config overrides");
+      }
       return;
     }
     for (final String key : properties.keySet()) {
-      log.info(
-          "event=property_override endpoint={} property={} inAllowlist={}",
-          endpoint,
-          key,
-          allowlist.contains(key)
-      );
+      try (CloseableThreadContext.Instance ignored = CloseableThreadContext
+          .put(ENDPOINT, endpoint)
+          .put(PROPERTY, key)
+          .put(MDC_IN_ALLOWLIST, String.valueOf(allowlist.contains(key)))) {
+        log.info("Config overrides found");
+      }
     }
   }
 }

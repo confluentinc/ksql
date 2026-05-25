@@ -147,7 +147,12 @@ public class BlockingPrintPublisher extends BasePublisher<String> {
       }
     }
 
-    if (isClosed()) {
+    // Close the consumer whenever the loop terminates because the print stream is done — either
+    // the publisher itself is closed, or LIMIT has been reached and we have already scheduled
+    // sendComplete(). Without the limit-reached check, every `PRINT 'topic' LIMIT N` leaks the
+    // KafkaConsumer (Selector thread + broker connections) until the connection's end handler
+    // eventually fires, which may not happen on an abrupt client disconnect.
+    if (isClosed() || messagesWritten >= limit) {
       topicConsumer.close();
     }
   }

@@ -22,6 +22,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -93,8 +94,13 @@ public class JaasAuthProviderTest {
     when(authInfo.getString("username")).thenReturn(USERNAME);
     when(authInfo.getString("password")).thenReturn(PASSWORD);
     when(loginContextSupplier.get()).thenReturn(loginService);
-    when(loginService.login(eq(USERNAME), eq(PASSWORD), any(), any())).thenReturn(userIdentity);
-    when(userIdentity.getSubject()).thenReturn(subject);
+    // lenient(): the start-failure regression test below correctly returns before
+    // login.login(...) is reached, so under STRICT_STUBS those two stubs would be flagged
+    // as UnnecessaryStubbing for that one test even though every other test in the class
+    // exercises them.
+    lenient().when(loginService.login(eq(USERNAME), eq(PASSWORD), any(), any()))
+        .thenReturn(userIdentity);
+    lenient().when(userIdentity.getSubject()).thenReturn(subject);
 
     authProvider = new JaasAuthProvider(server, REALM, loginContextSupplier);
   }

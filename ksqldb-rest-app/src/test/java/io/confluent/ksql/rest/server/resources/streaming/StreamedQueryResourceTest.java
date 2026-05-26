@@ -38,6 +38,7 @@ import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -59,6 +60,7 @@ import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.PrintTopic;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Statement;
+import io.confluent.ksql.properties.ConfigOverrideLogger;
 import io.confluent.ksql.properties.DenyListPropertyValidator;
 import io.confluent.ksql.query.BlockingRowQueue;
 import io.confluent.ksql.query.CompletionHandler;
@@ -131,6 +133,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
+import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
@@ -182,6 +185,8 @@ public class StreamedQueryResourceTest {
   private Errors errorsHandler;
   @Mock
   private DenyListPropertyValidator denyListPropertyValidator;
+  @Mock
+  private ConfigOverrideLogger configOverrideLogger;
   @Mock
   private QueryId queryId;
   @Mock
@@ -240,6 +245,7 @@ public class StreamedQueryResourceTest {
         Optional.of(authorizationValidator),
         errorsHandler,
         denyListPropertyValidator,
+        configOverrideLogger,
         queryExecutor
     );
   }
@@ -285,6 +291,7 @@ public class StreamedQueryResourceTest {
         Optional.of(authorizationValidator),
         errorsHandler,
         denyListPropertyValidator,
+        configOverrideLogger,
         queryExecutor
     );
     when(mockKsqlEngine.getKsqlConfig()).thenReturn(KsqlConfig.empty());
@@ -455,6 +462,7 @@ public class StreamedQueryResourceTest {
         Optional.of(authorizationValidator),
         errorsHandler,
         denyListPropertyValidator,
+            configOverrideLogger,
         queryExecutor
       );
     final Map<String, Object> props = new HashMap<>(ImmutableMap.of(
@@ -486,8 +494,10 @@ public class StreamedQueryResourceTest {
         context
     );
 
-    // Then:
-    verify(denyListPropertyValidator).validateAll(overrides);
+    // Then: Config Override Logger fires first, before denylist rejects the request.
+    final InOrder ordered = inOrder(configOverrideLogger, denyListPropertyValidator);
+    ordered.verify(configOverrideLogger).logOverrides("/query", overrides);
+    ordered.verify(denyListPropertyValidator).validateAll(overrides);
     assertThat(response.getStatus(), CoreMatchers.is(BAD_REQUEST.code()));
     assertThat(((KsqlErrorMessage) response.getEntity()).getMessage(),
         is("A property override was set locally for a property that the server prohibits "

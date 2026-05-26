@@ -45,6 +45,7 @@ import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
+import io.confluent.ksql.properties.ConfigOverrideLogger;
 import io.confluent.ksql.properties.DenyListPropertyValidator;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.query.id.QueryIdGenerator;
@@ -111,6 +112,9 @@ public class RecoveryTest {
   @Mock
   private DenyListPropertyValidator denyListPropertyValidator =
       mock(DenyListPropertyValidator.class);
+  @Mock
+  private ConfigOverrideLogger configOverrideLogger =
+      mock(ConfigOverrideLogger.class);
 
   @Mock
   private Errors errorHandler = mock(Errors.class);
@@ -264,7 +268,8 @@ public class RecoveryTest {
           ()->{},
           Optional.of((sc, metastore, statement) -> { }),
           errorHandler,
-          denyListPropertyValidator
+          denyListPropertyValidator,
+          configOverrideLogger
       );
 
       this.ksqlResource.configure(ksqlConfig);

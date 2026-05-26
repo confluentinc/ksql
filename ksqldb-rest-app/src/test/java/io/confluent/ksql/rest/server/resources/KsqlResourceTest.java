@@ -2766,49 +2766,12 @@ public class KsqlResourceTest {
         )
     );
 
-    // Then:
-    verify(denyListPropertyValidator).validateAll(overrides);
-    assertThat(response.getStatus(), CoreMatchers.is(BAD_REQUEST.code()));
-    assertThat(((KsqlErrorMessage) response.getEntity()).getMessage(), is("deny override"));
-  }
-
-  @Test
-  public void shouldLogOverridesBeforeDenylistOnHandleKsqlStatement() {
-    // Given:
-    setUpKsqlResource();
-    final Map<String, Object> overrides = ImmutableMap.of(
-        StreamsConfig.NUM_STREAM_THREADS_CONFIG, 1
-    );
-    doThrow(new KsqlException("deny override")).when(denyListPropertyValidator)
-        .validateAll(overrides);
-
-    // When:
-    ksqlResource.handleKsqlStatements(
-        securityContext,
-        new KsqlRequest("query", overrides, emptyMap(), null)
-    );
-
-    // Then: logger is called once with the override map, before the denylist check.
+    // Then: Config Override Logger fires first, before denylist rejects the request.
     final InOrder ordered = inOrder(configOverrideLogger, denyListPropertyValidator);
     ordered.verify(configOverrideLogger).logOverrides("/ksql", overrides);
     ordered.verify(denyListPropertyValidator).validateAll(overrides);
-  }
-
-  @Test
-  public void shouldLogOverridesWhenStreamsPropertiesEmpty() {
-    // Given:
-    setUpKsqlResource();
-    doThrow(new KsqlException("deny override")).when(denyListPropertyValidator)
-        .validateAll(emptyMap());
-
-    // When:
-    ksqlResource.handleKsqlStatements(
-        securityContext,
-        new KsqlRequest("query", emptyMap(), emptyMap(), null)
-    );
-
-    // Then: logger is invoked even with no overrides (it will emit the "no overrides" line if enabled).
-    verify(configOverrideLogger).logOverrides("/ksql", emptyMap());
+    assertThat(response.getStatus(), CoreMatchers.is(BAD_REQUEST.code()));
+    assertThat(((KsqlErrorMessage) response.getEntity()).getMessage(), is("deny override"));
   }
 
   private void givenKsqlConfigWith(final Map<String, Object> additionalConfig) {

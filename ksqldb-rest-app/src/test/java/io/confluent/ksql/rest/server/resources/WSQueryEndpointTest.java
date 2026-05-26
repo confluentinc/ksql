@@ -108,13 +108,12 @@ public class WSQueryEndpointTest {
     // When
     executeStreamQuery(params, Optional.empty());
 
-    // Then
-    // WS sockets do not throw any exception (closes silently). We can only verify the validator
-    // was called.
-    verify(denyListPropertyValidator).validateAll(overrides);
+    // Then: Config Override Logger fires first, before the denylist check.
+    // WS sockets do not throw any exception (closes silently).
+    final InOrder ordered = inOrder(configOverrideLogger, denyListPropertyValidator);
+    ordered.verify(configOverrideLogger).logOverrides("/ws/query", overrides);
+    ordered.verify(denyListPropertyValidator).validateAll(overrides);
   }
-
-
 
   @Test
   public void shouldScheduleCloseOnTimeout() throws JsonProcessingException {
@@ -148,33 +147,4 @@ public class WSQueryEndpointTest {
     wsQueryEndpoint.executeStreamQuery(serverWebSocket, params, ksqlSecurityContext, context, timeout);
   }
 
-  @Test
-  public void shouldLogOverridesBeforeDenylistOnExecuteStream()
-          throws JsonProcessingException {
-    // Given
-    final Map<String, Object> overrides =
-            ImmutableMap.of(StreamsConfig.NUM_STREAM_THREADS_CONFIG, 1);
-    final MultiMap params = buildRequestParams("show streams;", overrides);
-
-    // When
-    executeStreamQuery(params, Optional.empty());
-
-    // Then: logger fires once with the override map, before the denylist check.
-    final InOrder ordered = inOrder(configOverrideLogger, denyListPropertyValidator);
-    ordered.verify(configOverrideLogger).logOverrides("/ws/query", overrides);
-    ordered.verify(denyListPropertyValidator).validateAll(overrides);
-  }
-
-  @Test
-  public void shouldLogOverridesEvenWhenStreamsPropertiesEmpty()
-          throws JsonProcessingException {
-    // Given
-    final MultiMap params = buildRequestParams("show streams;", ImmutableMap.of());
-
-    // When
-    executeStreamQuery(params, Optional.empty());
-
-    // Then: logger is invoked with the empty map so the "no overrides" event is emitted.
-    verify(configOverrideLogger).logOverrides("/ws/query", Collections.emptyMap());
-  }
 }

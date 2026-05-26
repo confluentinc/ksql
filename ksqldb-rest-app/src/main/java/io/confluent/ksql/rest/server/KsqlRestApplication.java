@@ -929,6 +929,7 @@ public final class KsqlRestApplication implements Executable {
         authorizationValidator,
         errorHandler,
         denyListPropertyValidator,
+        configOverrideLogger,
         queryExecutor
     );
 

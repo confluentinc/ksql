@@ -41,6 +41,7 @@ import io.confluent.ksql.logging.processing.ProcessingLogConfig;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.logging.processing.ProcessingLogServerUtils;
 import io.confluent.ksql.metrics.MetricCollectors;
+import io.confluent.ksql.properties.ConfigOverrideLogger;
 import io.confluent.ksql.properties.DenyListPropertyValidator;
 import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
@@ -132,6 +133,8 @@ public class KsqlRestApplicationTest {
   private EndpointResponse response;
   @Mock
   private DenyListPropertyValidator denyListPropertyValidator;
+  @Mock
+  private ConfigOverrideLogger configOverrideLogger;
   @Mock
   private QueryExecutor queryExecutor;
   @Mock
@@ -461,6 +464,7 @@ public class KsqlRestApplicationTest {
         Optional.of(lagReportingAgent),
         vertx,
         denyListPropertyValidator,
+        configOverrideLogger,
         Optional.empty(),
         Optional.empty(),
         Optional.empty(),

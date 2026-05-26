@@ -59,6 +59,7 @@ import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.PrintTopic;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Statement;
+import io.confluent.ksql.properties.ConfigOverrideLogger;
 import io.confluent.ksql.properties.DenyListPropertyValidator;
 import io.confluent.ksql.query.BlockingRowQueue;
 import io.confluent.ksql.query.CompletionHandler;
@@ -183,6 +184,8 @@ public class StreamedQueryResourceTest {
   @Mock
   private DenyListPropertyValidator denyListPropertyValidator;
   @Mock
+  private ConfigOverrideLogger configOverrideLogger;
+  @Mock
   private QueryId queryId;
   @Mock
   private KsqlConfig ksqlConfig;
@@ -240,6 +243,7 @@ public class StreamedQueryResourceTest {
         Optional.of(authorizationValidator),
         errorsHandler,
         denyListPropertyValidator,
+        configOverrideLogger,
         queryExecutor
     );
   }
@@ -285,6 +289,7 @@ public class StreamedQueryResourceTest {
         Optional.of(authorizationValidator),
         errorsHandler,
         denyListPropertyValidator,
+        configOverrideLogger,
         queryExecutor
     );
     when(mockKsqlEngine.getKsqlConfig()).thenReturn(KsqlConfig.empty());
@@ -455,6 +460,7 @@ public class StreamedQueryResourceTest {
         Optional.of(authorizationValidator),
         errorsHandler,
         denyListPropertyValidator,
+            configOverrideLogger,
         queryExecutor
       );
     final Map<String, Object> props = new HashMap<>(ImmutableMap.of(

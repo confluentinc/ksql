@@ -18,6 +18,7 @@ package io.confluent.ksql.rest.server.resources;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -27,6 +28,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.ListeningScheduledExecutorService;
 import io.confluent.ksql.engine.KsqlEngine;
+import io.confluent.ksql.properties.ConfigOverrideLogger;
 import io.confluent.ksql.properties.DenyListPropertyValidator;
 import io.confluent.ksql.rest.ApiJsonMapper;
 import io.confluent.ksql.rest.Errors;
@@ -50,6 +52,7 @@ import org.apache.kafka.streams.StreamsConfig;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
@@ -63,6 +66,8 @@ public class WSQueryEndpointTest {
   private KsqlSecurityContext ksqlSecurityContext;
   @Mock
   private DenyListPropertyValidator denyListPropertyValidator;
+  @Mock
+  private ConfigOverrideLogger configOverrideLogger;
   @Mock
   private KsqlConfig ksqlConfig;
   @Mock
@@ -87,6 +92,7 @@ public class WSQueryEndpointTest {
         Optional.empty(),
         mock(Errors.class),
         denyListPropertyValidator,
+        configOverrideLogger,
         queryExecutor
     );
   }
@@ -107,6 +113,8 @@ public class WSQueryEndpointTest {
     // was called.
     verify(denyListPropertyValidator).validateAll(overrides);
   }
+
+
 
   @Test
   public void shouldScheduleCloseOnTimeout() throws JsonProcessingException {
@@ -138,5 +146,35 @@ public class WSQueryEndpointTest {
 
   private void executeStreamQuery(final MultiMap params, final Optional<Long> timeout) {
     wsQueryEndpoint.executeStreamQuery(serverWebSocket, params, ksqlSecurityContext, context, timeout);
+  }
+
+  @Test
+  public void shouldLogOverridesBeforeDenylistOnExecuteStream()
+          throws JsonProcessingException {
+    // Given
+    final Map<String, Object> overrides =
+            ImmutableMap.of(StreamsConfig.NUM_STREAM_THREADS_CONFIG, 1);
+    final MultiMap params = buildRequestParams("show streams;", overrides);
+
+    // When
+    executeStreamQuery(params, Optional.empty());
+
+    // Then: logger fires once with the override map, before the denylist check.
+    final InOrder ordered = inOrder(configOverrideLogger, denyListPropertyValidator);
+    ordered.verify(configOverrideLogger).logOverrides("/ws/query", overrides);
+    ordered.verify(denyListPropertyValidator).validateAll(overrides);
+  }
+
+  @Test
+  public void shouldLogOverridesEvenWhenStreamsPropertiesEmpty()
+          throws JsonProcessingException {
+    // Given
+    final MultiMap params = buildRequestParams("show streams;", ImmutableMap.of());
+
+    // When
+    executeStreamQuery(params, Optional.empty());
+
+    // Then: logger is invoked with the empty map so the "no overrides" event is emitted.
+    verify(configOverrideLogger).logOverrides("/ws/query", Collections.emptyMap());
   }
 }

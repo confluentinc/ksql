@@ -57,6 +57,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.reset;
@@ -102,6 +103,7 @@ import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.parser.tree.TableElements;
 import io.confluent.ksql.planner.plan.ConfiguredKsqlPlan;
+import io.confluent.ksql.properties.ConfigOverrideLogger;
 import io.confluent.ksql.properties.DenyListPropertyValidator;
 import io.confluent.ksql.query.id.SequentialQueryIdGenerator;
 import io.confluent.ksql.rest.DefaultErrorMessages;
@@ -204,6 +206,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
@@ -319,6 +322,8 @@ public class KsqlResourceTest {
   private Errors errorsHandler;
   @Mock
   private DenyListPropertyValidator denyListPropertyValidator;
+  @Mock
+  private ConfigOverrideLogger configOverrideLogger;
   @Mock
   private Supplier<String> commandRunnerWarning;
   @Mock
@@ -455,6 +460,7 @@ public class KsqlResourceTest {
         Optional.of(authorizationValidator),
         errorsHandler,
         denyListPropertyValidator,
+        configOverrideLogger,
         commandRunnerWarning
     );
 
@@ -487,6 +493,7 @@ public class KsqlResourceTest {
         Optional.of(authorizationValidator),
         errorsHandler,
         denyListPropertyValidator,
+        configOverrideLogger,
         commandRunnerWarning
     );
 
@@ -2611,6 +2618,7 @@ public class KsqlResourceTest {
         Optional.of(authorizationValidator),
         errorsHandler,
         denyListPropertyValidator,
+        configOverrideLogger,
         commandRunnerWarning
     );
 
@@ -2735,6 +2743,7 @@ public class KsqlResourceTest {
         Optional.of(authorizationValidator),
         errorsHandler,
         denyListPropertyValidator,
+        configOverrideLogger,
         commandRunnerWarning
     );
     final Map<String, Object> props = new HashMap<>(ksqlRestConfig.getKsqlConfigProperties());
@@ -2761,6 +2770,45 @@ public class KsqlResourceTest {
     verify(denyListPropertyValidator).validateAll(overrides);
     assertThat(response.getStatus(), CoreMatchers.is(BAD_REQUEST.code()));
     assertThat(((KsqlErrorMessage) response.getEntity()).getMessage(), is("deny override"));
+  }
+
+  @Test
+  public void shouldLogOverridesBeforeDenylistOnHandleKsqlStatement() {
+    // Given:
+    setUpKsqlResource();
+    final Map<String, Object> overrides = ImmutableMap.of(
+        StreamsConfig.NUM_STREAM_THREADS_CONFIG, 1
+    );
+    doThrow(new KsqlException("deny override")).when(denyListPropertyValidator)
+        .validateAll(overrides);
+
+    // When:
+    ksqlResource.handleKsqlStatements(
+        securityContext,
+        new KsqlRequest("query", overrides, emptyMap(), null)
+    );
+
+    // Then: logger is called once with the override map, before the denylist check.
+    final InOrder ordered = inOrder(configOverrideLogger, denyListPropertyValidator);
+    ordered.verify(configOverrideLogger).logOverrides("/ksql", overrides);
+    ordered.verify(denyListPropertyValidator).validateAll(overrides);
+  }
+
+  @Test
+  public void shouldLogOverridesWhenStreamsPropertiesEmpty() {
+    // Given:
+    setUpKsqlResource();
+    doThrow(new KsqlException("deny override")).when(denyListPropertyValidator)
+        .validateAll(emptyMap());
+
+    // When:
+    ksqlResource.handleKsqlStatements(
+        securityContext,
+        new KsqlRequest("query", emptyMap(), emptyMap(), null)
+    );
+
+    // Then: logger is invoked even with no overrides (it will emit the "no overrides" line if enabled).
+    verify(configOverrideLogger).logOverrides("/ksql", emptyMap());
   }
 
   private void givenKsqlConfigWith(final Map<String, Object> additionalConfig) {

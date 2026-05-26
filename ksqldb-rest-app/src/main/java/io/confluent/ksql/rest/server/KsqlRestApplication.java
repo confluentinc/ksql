@@ -208,6 +208,7 @@ public final class KsqlRestApplication implements Executable {
   private Server apiServer = null;
   private final CompletableFuture<Void> terminatedFuture = new CompletableFuture<>();
   private final DenyListPropertyValidator denyListPropertyValidator;
+  private final ConfigOverrideLogger configOverrideLogger;
   private final Optional<PullQueryExecutorMetrics> pullQueryMetrics;
   private final Optional<ScalablePushQueryMetrics> scalablePushQueryMetrics;
   private final Optional<LocalCommands> localCommands;
@@ -249,6 +250,7 @@ public final class KsqlRestApplication implements Executable {
       final Optional<LagReportingAgent> lagReportingAgent,
       final Vertx vertx,
       final DenyListPropertyValidator denyListPropertyValidator,
+      final ConfigOverrideLogger configOverrideLogger,
       final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
       final Optional<ScalablePushQueryMetrics> scalablePushQueryMetrics,
       final Optional<LocalCommands> localCommands,
@@ -284,6 +286,8 @@ public final class KsqlRestApplication implements Executable {
     this.vertx = requireNonNull(vertx, "vertx");
     this.denyListPropertyValidator =
         requireNonNull(denyListPropertyValidator, "denyListPropertyValidator");
+    this.configOverrideLogger =
+        requireNonNull(configOverrideLogger, "configOverrideLogger");
 
     this.serverInfoResource =
         new ServerInfoResource(serviceContext, ksqlConfigNoPort, commandRunner);
@@ -352,6 +356,7 @@ public final class KsqlRestApplication implements Executable {
         authorizationValidator,
         errorHandler,
         denyListPropertyValidator,
+        configOverrideLogger,
         queryExecutor
     );
 
@@ -998,6 +1003,7 @@ public final class KsqlRestApplication implements Executable {
         lagReportingAgent,
         vertx,
         denyListPropertyValidator,
+        configOverrideLogger,
         pullQueryMetrics,
         scalablePushQueryMetrics,
         localCommands,

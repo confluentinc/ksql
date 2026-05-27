@@ -30,6 +30,7 @@ import io.confluent.ksql.api.server.MetricsCallbackHolder;
 import io.confluent.ksql.api.spi.Endpoints;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.internal.PullQueryExecutorMetrics;
+import io.confluent.ksql.properties.ConfigOverrideLogger;
 import io.confluent.ksql.properties.DenyListPropertyValidator;
 import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.entity.ClusterTerminateRequest;
@@ -151,7 +152,7 @@ public class KsqlServerEndpoints implements Endpoints {
         .provide(apiSecurityContext);
     return executeOnWorker(() -> {
       try {
-        validateProperties(properties);
+        validateProperties("/query", properties);
         return new QueryEndpoint(ksqlEngine, ksqlConfig, pullQueryMetrics, queryExecutor)
             .createQueryPublisher(
                 sql,
@@ -177,7 +178,7 @@ public class KsqlServerEndpoints implements Endpoints {
       final WorkerExecutor workerExecutor,
       final ApiSecurityContext apiSecurityContext) {
     return executeOnWorker(() -> {
-      validateProperties(properties.getMap());
+      validateProperties("/inserts-stream", properties.getMap());
       return new InsertsStreamEndpoint(ksqlEngine, ksqlConfig, reservedInternalTopics)
           .createInsertsSubscriber(target, properties, acksSubscriber, context, workerExecutor,
               ksqlSecurityContextProvider.provide(apiSecurityContext).getServiceContext());
@@ -338,7 +339,8 @@ public class KsqlServerEndpoints implements Endpoints {
         apiSecurityContext, ksqlSecurityContext -> ksqlResource.runTest(test));
   }
 
-  private void validateProperties(final Map<String, Object> properties) {
+  private void validateProperties(final String endpoint, final Map<String, Object> properties) {
+    ConfigOverrideLogger.logOverrides(endpoint, properties);
     try {
       denyListPropertyValidator.validateAll(properties);
     } catch (KsqlException e) {

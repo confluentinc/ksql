@@ -73,22 +73,23 @@ public class ConfigOverrideLoggerTest {
     appender.stop();
     ctx.updateLoggers();
     ThreadContext.clearAll();
+    ConfigOverrideLogger.reset();
   }
 
   @Test
   public void shouldNotLogWhenDisabled() {
-    final ConfigOverrideLogger logger = newLogger(false, "auto.offset.reset");
+    configure(false, "auto.offset.reset");
 
-    logger.logOverrides(ENDPOINT, ImmutableMap.of("auto.offset.reset", "earliest"));
+    ConfigOverrideLogger.logOverrides(ENDPOINT, ImmutableMap.of("auto.offset.reset", "earliest"));
 
     assertThat(appender.getLog(), empty());
   }
 
   @Test
   public void shouldEmitNoOverridesEventWhenPropertiesEmpty() {
-    final ConfigOverrideLogger logger = newLogger(true, "");
+    configure(true, "");
 
-    logger.logOverrides(ENDPOINT, Collections.emptyMap());
+    ConfigOverrideLogger.logOverrides(ENDPOINT, Collections.emptyMap());
 
     final List<LogEvent> events = appender.getLog();
     assertThat(events, hasSize(1));
@@ -99,9 +100,9 @@ public class ConfigOverrideLoggerTest {
 
   @Test
   public void shouldEmitNoOverridesEventWhenPropertiesNull() {
-    final ConfigOverrideLogger logger = newLogger(true, "");
+    configure(true, "");
 
-    logger.logOverrides(ENDPOINT, null);
+    ConfigOverrideLogger.logOverrides(ENDPOINT, null);
 
     final List<LogEvent> events = appender.getLog();
     assertThat(events, hasSize(1));
@@ -112,9 +113,9 @@ public class ConfigOverrideLoggerTest {
 
   @Test
   public void shouldTagInAllowlistTrueWhenPropertyOnAllowlist() {
-    final ConfigOverrideLogger logger = newLogger(true, "auto.offset.reset");
+    configure(true, "auto.offset.reset");
 
-    logger.logOverrides(ENDPOINT, ImmutableMap.of("auto.offset.reset", "earliest"));
+    ConfigOverrideLogger.logOverrides(ENDPOINT, ImmutableMap.of("auto.offset.reset", "earliest"));
 
     final List<LogEvent> events = appender.getLog();
     assertThat(events, hasSize(1));
@@ -128,9 +129,10 @@ public class ConfigOverrideLoggerTest {
 
   @Test
   public void shouldTagInAllowlistFalseWhenPropertyNotOnAllowlist() {
-    final ConfigOverrideLogger logger = newLogger(true, "auto.offset.reset");
+    configure(true, "auto.offset.reset");
 
-    logger.logOverrides(ENDPOINT, ImmutableMap.of("ksql.streams.num.stream.threads", "4"));
+    ConfigOverrideLogger.logOverrides(ENDPOINT,
+        ImmutableMap.of("ksql.streams.num.stream.threads", "4"));
 
     final List<LogEvent> events = appender.getLog();
     assertThat(events, hasSize(1));
@@ -144,9 +146,9 @@ public class ConfigOverrideLoggerTest {
 
   @Test
   public void shouldEmitOneEventPerPropertyForMultipleOverrides() {
-    final ConfigOverrideLogger logger = newLogger(true, "auto.offset.reset");
+    configure(true, "auto.offset.reset");
 
-    logger.logOverrides(ENDPOINT, ImmutableMap.of(
+    ConfigOverrideLogger.logOverrides(ENDPOINT, ImmutableMap.of(
         "auto.offset.reset", "earliest",
         "ksql.streams.num.stream.threads", "4"
     ));
@@ -167,20 +169,20 @@ public class ConfigOverrideLoggerTest {
 
   @Test
   public void shouldClearThreadContextAfterLogging() {
-    final ConfigOverrideLogger logger = newLogger(true, "auto.offset.reset");
+    configure(true, "auto.offset.reset");
 
-    logger.logOverrides(ENDPOINT, ImmutableMap.of("auto.offset.reset", "earliest"));
+    ConfigOverrideLogger.logOverrides(ENDPOINT, ImmutableMap.of("auto.offset.reset", "earliest"));
 
     // CloseableThreadContext must remove its keys when the try-with-resources block exits,
     // otherwise MDC values leak into subsequent log lines on the same thread.
     assertThat(ThreadContext.getContext().isEmpty(), is(true));
   }
 
-  private static ConfigOverrideLogger newLogger(final boolean enabled, final String allowlist) {
+  private static void configure(final boolean enabled, final String allowlist) {
     final Map<String, Object> overrides = ImmutableMap.of(
         KsqlConfig.KSQL_PROPERTIES_OVERRIDES_LOG, enabled,
         KsqlConfig.KSQL_PROPERTIES_OVERRIDES_ALLOWLIST, allowlist
     );
-    return new ConfigOverrideLogger(new KsqlConfig(overrides));
+    ConfigOverrideLogger.configure(new KsqlConfig(overrides));
   }
 }

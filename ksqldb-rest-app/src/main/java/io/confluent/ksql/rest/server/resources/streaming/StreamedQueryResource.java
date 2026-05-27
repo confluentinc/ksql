@@ -76,7 +76,6 @@ public class StreamedQueryResource {
   private final Optional<KsqlAuthorizationValidator> authorizationValidator;
   private final Errors errorHandler;
   private final DenyListPropertyValidator denyListPropertyValidator;
-  private final ConfigOverrideLogger configOverrideLogger;
   private final QueryExecutor queryExecutor;
 
   private KsqlRestConfig ksqlRestConfig;
@@ -92,7 +91,6 @@ public class StreamedQueryResource {
       final Optional<KsqlAuthorizationValidator> authorizationValidator,
       final Errors errorHandler,
       final DenyListPropertyValidator denyListPropertyValidator,
-      final ConfigOverrideLogger configOverrideLogger,
       final QueryExecutor queryExecutor
   ) {
     this(
@@ -106,7 +104,6 @@ public class StreamedQueryResource {
         authorizationValidator,
         errorHandler,
         denyListPropertyValidator,
-        configOverrideLogger,
         queryExecutor
     );
   }
@@ -125,7 +122,6 @@ public class StreamedQueryResource {
       final Optional<KsqlAuthorizationValidator> authorizationValidator,
       final Errors errorHandler,
       final DenyListPropertyValidator denyListPropertyValidator,
-      final ConfigOverrideLogger configOverrideLogger,
       final QueryExecutor queryExecutor
   ) {
     this.ksqlEngine = Objects.requireNonNull(ksqlEngine, "ksqlEngine");
@@ -142,8 +138,6 @@ public class StreamedQueryResource {
     this.errorHandler = Objects.requireNonNull(errorHandler, "errorHandler");
     this.denyListPropertyValidator =
         Objects.requireNonNull(denyListPropertyValidator, "denyListPropertyValidator");
-    this.configOverrideLogger =
-        Objects.requireNonNull(configOverrideLogger, "configOverrideLogger");
     this.queryExecutor = queryExecutor;
   }
 
@@ -206,7 +200,7 @@ public class StreamedQueryResource {
       );
 
       final Map<String, Object> configProperties = request.getConfigOverrides();
-      configOverrideLogger.logOverrides("/query", configProperties);
+      ConfigOverrideLogger.logOverrides("/query", configProperties);
       denyListPropertyValidator.validateAll(configProperties);
 
       if (statement.getStatement() instanceof Query) {

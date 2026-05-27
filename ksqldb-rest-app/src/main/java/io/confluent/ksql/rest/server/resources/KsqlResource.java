@@ -120,7 +120,6 @@ public class KsqlResource implements KsqlConfigurable {
   private final BiFunction<KsqlExecutionContext, ServiceContext, Injector> injectorFactory;
   private final Optional<KsqlAuthorizationValidator> authorizationValidator;
   private final DenyListPropertyValidator denyListPropertyValidator;
-  private final ConfigOverrideLogger configOverrideLogger;
   private final Supplier<String> commandRunnerWarning;
   private RequestValidator validator;
   private RequestHandler handler;
@@ -135,8 +134,7 @@ public class KsqlResource implements KsqlConfigurable {
       final ActivenessRegistrar activenessRegistrar,
       final Optional<KsqlAuthorizationValidator> authorizationValidator,
       final Errors errorHandler,
-      final DenyListPropertyValidator denyListPropertyValidator,
-      final ConfigOverrideLogger configOverrideLogger
+      final DenyListPropertyValidator denyListPropertyValidator
   ) {
     this(
         ksqlEngine,
@@ -147,8 +145,7 @@ public class KsqlResource implements KsqlConfigurable {
         authorizationValidator,
         errorHandler,
         denyListPropertyValidator,
-        configOverrideLogger,
-        commandRunner::getCommandRunnerDegradedWarning
+          commandRunner::getCommandRunnerDegradedWarning
     );
   }
 
@@ -161,7 +158,6 @@ public class KsqlResource implements KsqlConfigurable {
       final Optional<KsqlAuthorizationValidator> authorizationValidator,
       final Errors errorHandler,
       final DenyListPropertyValidator denyListPropertyValidator,
-      final ConfigOverrideLogger configOverrideLogger,
       final Supplier<String> commandRunnerWarning
   ) {
     this.ksqlEngine = Objects.requireNonNull(ksqlEngine, "ksqlEngine");
@@ -176,8 +172,6 @@ public class KsqlResource implements KsqlConfigurable {
     this.errorHandler = Objects.requireNonNull(errorHandler, "errorHandler");
     this.denyListPropertyValidator =
         Objects.requireNonNull(denyListPropertyValidator, "denyListPropertyValidator");
-    this.configOverrideLogger =
-        Objects.requireNonNull(configOverrideLogger, "configOverrideLogger");
     this.commandRunnerWarning =
         Objects.requireNonNull(commandRunnerWarning, "commandRunnerWarning");
   }
@@ -308,7 +302,7 @@ public class KsqlResource implements KsqlConfigurable {
           distributedCmdResponseTimeout);
 
       final Map<String, Object> configProperties = request.getConfigOverrides();
-      configOverrideLogger.logOverrides("/ksql", configProperties);
+      ConfigOverrideLogger.logOverrides("/ksql", configProperties);
       denyListPropertyValidator.validateAll(configProperties);
 
       final KsqlRequestConfig requestConfig =

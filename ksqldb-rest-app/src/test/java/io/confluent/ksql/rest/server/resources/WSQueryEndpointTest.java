@@ -18,8 +18,8 @@ package io.confluent.ksql.rest.server.resources;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
@@ -52,7 +52,7 @@ import org.apache.kafka.streams.StreamsConfig;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.InOrder;
+import org.mockito.MockedStatic;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
@@ -66,8 +66,6 @@ public class WSQueryEndpointTest {
   private KsqlSecurityContext ksqlSecurityContext;
   @Mock
   private DenyListPropertyValidator denyListPropertyValidator;
-  @Mock
-  private ConfigOverrideLogger configOverrideLogger;
   @Mock
   private KsqlConfig ksqlConfig;
   @Mock
@@ -92,7 +90,6 @@ public class WSQueryEndpointTest {
         Optional.empty(),
         mock(Errors.class),
         denyListPropertyValidator,
-        configOverrideLogger,
         queryExecutor
     );
   }
@@ -106,13 +103,14 @@ public class WSQueryEndpointTest {
     final MultiMap params = buildRequestParams("show streams;", overrides);
 
     // When
-    executeStreamQuery(params, Optional.empty());
+    try (MockedStatic<ConfigOverrideLogger> configOverrideLogger =
+        mockStatic(ConfigOverrideLogger.class)) {
+      executeStreamQuery(params, Optional.empty());
 
-    // Then: Config Override Logger fires first, before the denylist check.
-    // WS sockets do not throw any exception (closes silently).
-    final InOrder ordered = inOrder(configOverrideLogger, denyListPropertyValidator);
-    ordered.verify(configOverrideLogger).logOverrides("/ws/query", overrides);
-    ordered.verify(denyListPropertyValidator).validateAll(overrides);
+      // Then: Config Override Logger fires, and the denylist check fires.
+      configOverrideLogger.verify(() -> ConfigOverrideLogger.logOverrides("/ws/query", overrides));
+      verify(denyListPropertyValidator).validateAll(overrides);
+    }
   }
 
   @Test

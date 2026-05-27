@@ -15,10 +15,10 @@
 
 package io.confluent.ksql.properties;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import org.apache.logging.log4j.CloseableThreadContext;
 import org.apache.logging.log4j.LogManager;
@@ -37,32 +37,40 @@ import org.apache.logging.log4j.Logger;
  * <p>Property values are never logged — some keys (e.g. {@code sasl.jaas.config}) carry
  * credentials.
  */
-public class ConfigOverrideLogger {
+public final class ConfigOverrideLogger {
+
+  private static final Logger LOG = LogManager.getLogger(ConfigOverrideLogger.class);
 
   private static final String ENDPOINT = "endpoint";
   private static final String PROPERTY = "property";
   private static final String MDC_IN_ALLOWLIST = "inAllowlist";
 
-  private final Logger log = LogManager.getLogger(ConfigOverrideLogger.class);
-  private final boolean enabled;
-  private final Set<String> allowlist;
+  private static volatile boolean enabled = false;
+  private static volatile Set<String> allowlist = ImmutableSet.of();
 
-  public ConfigOverrideLogger(final KsqlConfig config) {
-    Objects.requireNonNull(config, "config");
-    this.enabled = config.getBoolean(KsqlConfig.KSQL_PROPERTIES_OVERRIDES_LOG);
-    this.allowlist = ImmutableSet.copyOf(
+  private ConfigOverrideLogger() {
+  }
+
+  public static void configure(final KsqlConfig config) {
+    enabled = config.getBoolean(KsqlConfig.KSQL_PROPERTIES_OVERRIDES_LOG);
+    allowlist = ImmutableSet.copyOf(
         config.getList(KsqlConfig.KSQL_PROPERTIES_OVERRIDES_ALLOWLIST));
   }
 
-  public void logOverrides(final String endpoint, final Map<String, Object> properties) {
+  @VisibleForTesting
+  public static void reset() {
+    enabled = false;
+    allowlist = ImmutableSet.of();
+  }
+
+  public static void logOverrides(final String endpoint, final Map<String, Object> properties) {
     if (!enabled) {
       return;
     }
-    Objects.requireNonNull(endpoint, ENDPOINT);
     if (properties == null || properties.isEmpty()) {
       try (CloseableThreadContext.Instance ignored = CloseableThreadContext
           .put(ENDPOINT, endpoint)) {
-        log.info("No Config overrides");
+        LOG.info("No Config overrides");
       }
       return;
     }
@@ -71,7 +79,7 @@ public class ConfigOverrideLogger {
           .put(ENDPOINT, endpoint)
           .put(PROPERTY, key)
           .put(MDC_IN_ALLOWLIST, String.valueOf(allowlist.contains(key)))) {
-        log.info("Config overrides found");
+        LOG.info("Config overrides found");
       }
     }
   }

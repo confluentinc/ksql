@@ -72,7 +72,6 @@ public class WSQueryEndpoint {
   private final Optional<KsqlAuthorizationValidator> authorizationValidator;
   private final Errors errorHandler;
   private final DenyListPropertyValidator denyListPropertyValidator;
-  private final ConfigOverrideLogger configOverrideLogger;
   private final QueryExecutor queryExecutor;
 
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
@@ -88,7 +87,6 @@ public class WSQueryEndpoint {
       final Optional<KsqlAuthorizationValidator> authorizationValidator,
       final Errors errorHandler,
       final DenyListPropertyValidator denyListPropertyValidator,
-      final ConfigOverrideLogger configOverrideLogger,
       final QueryExecutor queryExecutor
   ) {
     this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
@@ -106,8 +104,6 @@ public class WSQueryEndpoint {
     this.errorHandler = Objects.requireNonNull(errorHandler, "errorHandler");
     this.denyListPropertyValidator =
         Objects.requireNonNull(denyListPropertyValidator, "denyListPropertyValidator");
-    this.configOverrideLogger =
-        Objects.requireNonNull(configOverrideLogger, "configOverrideLogger");
     this.queryExecutor = queryExecutor;
   }
 
@@ -209,7 +205,7 @@ public class WSQueryEndpoint {
       }
       // To validate props:
       final Map<String, Object> configProperties = request.getConfigOverrides();
-      configOverrideLogger.logOverrides("/ws/query", configProperties);
+      ConfigOverrideLogger.logOverrides("/ws/query", configProperties);
       denyListPropertyValidator.validateAll(configProperties);
       return request;
     } catch (final Exception e) {

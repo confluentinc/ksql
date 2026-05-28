@@ -19,6 +19,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
@@ -27,6 +28,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.ListeningScheduledExecutorService;
 import io.confluent.ksql.engine.KsqlEngine;
+import io.confluent.ksql.properties.ConfigOverrideLogger;
 import io.confluent.ksql.properties.DenyListPropertyValidator;
 import io.confluent.ksql.rest.ApiJsonMapper;
 import io.confluent.ksql.rest.Errors;
@@ -50,6 +52,7 @@ import org.apache.kafka.streams.StreamsConfig;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.MockedStatic;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
@@ -100,12 +103,14 @@ public class WSQueryEndpointTest {
     final MultiMap params = buildRequestParams("show streams;", overrides);
 
     // When
-    executeStreamQuery(params, Optional.empty());
+    try (MockedStatic<ConfigOverrideLogger> configOverrideLogger =
+        mockStatic(ConfigOverrideLogger.class)) {
+      executeStreamQuery(params, Optional.empty());
 
-    // Then
-    // WS sockets do not throw any exception (closes silently). We can only verify the validator
-    // was called.
-    verify(denyListPropertyValidator).validateAll(overrides);
+      // Then: Config Override Logger fires, and the denylist check fires.
+      configOverrideLogger.verify(() -> ConfigOverrideLogger.logOverrides("/ws/query", overrides));
+      verify(denyListPropertyValidator).validateAll(overrides);
+    }
   }
 
   @Test
@@ -139,4 +144,5 @@ public class WSQueryEndpointTest {
   private void executeStreamQuery(final MultiMap params, final Optional<Long> timeout) {
     wsQueryEndpoint.executeStreamQuery(serverWebSocket, params, ksqlSecurityContext, context, timeout);
   }
+
 }

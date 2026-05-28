@@ -33,6 +33,7 @@ import io.confluent.ksql.parser.tree.ListTopics;
 import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.UnsetProperty;
+import io.confluent.ksql.properties.ConfigOverrideLogger;
 import io.confluent.ksql.properties.DenyListPropertyValidator;
 import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.Errors;
@@ -135,7 +136,7 @@ public class KsqlResource implements KsqlConfigurable {
         authorizationValidator,
         errorHandler,
         denyListPropertyValidator,
-        commandRunner::getCommandRunnerDegradedWarning
+          commandRunner::getCommandRunnerDegradedWarning
     );
   }
 
@@ -246,6 +247,7 @@ public class KsqlResource implements KsqlConfigurable {
     try {
       final Map<String, Object> properties = new HashMap<>();
       properties.put(property, "");
+      ConfigOverrideLogger.logOverrides("SET", properties);
       denyListPropertyValidator.validateAll(properties);
       final KsqlConfigResolver resolver = new KsqlConfigResolver();
       final Optional<ConfigItem> resolvedItem = resolver.resolve(property, false);
@@ -292,6 +294,7 @@ public class KsqlResource implements KsqlConfigurable {
           distributedCmdResponseTimeout);
 
       final Map<String, Object> configProperties = request.getConfigOverrides();
+      ConfigOverrideLogger.logOverrides("/ksql", configProperties);
       denyListPropertyValidator.validateAll(configProperties);
 
       final KsqlRequestConfig requestConfig =

@@ -159,6 +159,18 @@
 
     <dependencyManagement>
         <dependencies>
+            <!-- Pin Kotlin stdlib via BOM. Kafka's connect-runtime publishes a POM
+                 (via Gradle's maven-publish) that lists kotlin-stdlib:1.6.0 as a direct
+                 runtime dep, which wins Maven nearest-wins and lands kotlin-stdlib-1.6.0.jar
+                 in share/java/ksqldb. That breaks json-sKema (compiled against 1.9.10) with
+                 NoClassDefFoundError: kotlin/enums/EnumEntriesKt at runtime. -->
+            <dependency>
+                <groupId>org.jetbrains.kotlin</groupId>
+                <artifactId>kotlin-bom</artifactId>
+                <version>1.9.10</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
             <!-- Cross-submodule dependencies -->
             <dependency>
                 <groupId>org.apache.logging.log4j</groupId>

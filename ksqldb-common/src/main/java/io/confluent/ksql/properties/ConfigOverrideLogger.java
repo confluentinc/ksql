@@ -43,7 +43,7 @@ public final class ConfigOverrideLogger {
 
   private static final String ENDPOINT = "endpoint";
   private static final String PROPERTY = "property";
-  private static final String MDC_IN_ALLOWLIST = "inAllowlist";
+  private static final String IN_ALLOWLIST = "inAllowlist";
 
   private static volatile boolean enabled = false;
   private static volatile Set<String> allowlist = ImmutableSet.of();
@@ -78,7 +78,7 @@ public final class ConfigOverrideLogger {
       try (CloseableThreadContext.Instance ignored = CloseableThreadContext
           .put(ENDPOINT, endpoint)
           .put(PROPERTY, key)
-          .put(MDC_IN_ALLOWLIST, String.valueOf(allowlist.contains(key)))) {
+          .put(IN_ALLOWLIST, String.valueOf(allowlist.contains(key)))) {
         LOG.info("Config overrides found");
       }
     }

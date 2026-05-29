@@ -247,10 +247,10 @@ public class KsqlResource implements KsqlConfigurable {
     try {
       final Map<String, Object> properties = new HashMap<>();
       properties.put(property, "");
-      ConfigOverrideLogger.logOverrides("SET", properties);
-      denyListPropertyValidator.validateAll(properties);
       final KsqlConfigResolver resolver = new KsqlConfigResolver();
       final Optional<ConfigItem> resolvedItem = resolver.resolve(property, false);
+      ConfigOverrideLogger.logOverrides("SET", properties);
+      denyListPropertyValidator.validateAll(properties);
       if (ksqlEngine.getKsqlConfig().getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)
           && resolvedItem.isPresent()) {
         if (!PropertiesList.QueryLevelProperties.contains(resolvedItem.get().getPropertyName())) {

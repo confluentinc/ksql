@@ -136,10 +136,12 @@ public class PropertyOverriderTest {
           )
       );
 
-      // Then: value-check throws BEFORE the log fires - bad-value attempts are noise and not LOGGED
+      // Then: log fires for any property that passes resolver.
       assertThat(e.getMessage(), containsString(
           "Invalid value invalid"));
-      configOverrideLogger.verifyNoInteractions();
+      configOverrideLogger.verify(() -> ConfigOverrideLogger.logOverrides(
+          "SET",
+          ImmutableMap.of(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "")));
     }
   }
 
@@ -154,22 +156,27 @@ public class PropertyOverriderTest {
         new SessionProperties(new HashedMap<>(), mock(KsqlHostInfo.class), mock(URL.class), false);
 
     // When:
-    final Exception e = assertThrows(
-        KsqlStatementException.class,
-        () -> CustomValidators.SET_PROPERTY.validate(
-            ConfiguredStatement.of(PreparedStatement.of(
-                "SET '" + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG + "' = 'earliest';",
-                new SetProperty(Optional.empty(),
-                    ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")),
-                SessionConfig.of(configWithDenylist, ImmutableMap.of())),
-            sessionProperties,
-            engine.getEngine(),
-            engine.getServiceContext()
-        )
-    );
+    try (MockedStatic<ConfigOverrideLogger> configOverrideLogger =
+        mockStatic(ConfigOverrideLogger.class)) {
+      final Exception e = assertThrows(
+          KsqlStatementException.class,
+          () -> CustomValidators.SET_PROPERTY.validate(
+              ConfiguredStatement.of(PreparedStatement.of(
+                  "SET '" + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG + "' = 'earliest';",
+                  new SetProperty(Optional.empty(),
+                      ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")),
+                  SessionConfig.of(configWithDenylist, ImmutableMap.of())),
+              sessionProperties,
+              engine.getEngine(),
+              engine.getServiceContext()
+          )
+      );
 
-    // Then:
-    assertThat(e.getMessage(), containsString("prohibited by the KSQL server"));
+      // Then: log fires for the known property BEFORE denylist throws
+      assertThat(e.getMessage(), containsString("prohibited by the KSQL server"));
+      configOverrideLogger.verify(() -> ConfigOverrideLogger.logOverrides(
+          "SET", ImmutableMap.of(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "")));
+    }
     assertThat(sessionProperties.getMutableScopedProperties(),
         not(hasKey(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG)));
   }
@@ -332,16 +339,22 @@ public class PropertyOverriderTest {
             false);
     final Map<String, Object> properties = sessionProperties.getMutableScopedProperties();
 
-    CustomValidators.UNSET_PROPERTY.validate(
-        ConfiguredStatement.of(PreparedStatement.of(
-            "UNSET '" + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG + "';",
-            new UnsetProperty(Optional.empty(), ConsumerConfig.AUTO_OFFSET_RESET_CONFIG)),
-            SessionConfig.of(configWithDenylist, ImmutableMap.of())),
-        sessionProperties,
-        engine.getEngine(),
-        engine.getServiceContext()
-    );
+    try (MockedStatic<ConfigOverrideLogger> configOverrideLogger =
+        mockStatic(ConfigOverrideLogger.class)) {
+      CustomValidators.UNSET_PROPERTY.validate(
+          ConfiguredStatement.of(PreparedStatement.of(
+              "UNSET '" + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG + "';",
+              new UnsetProperty(Optional.empty(), ConsumerConfig.AUTO_OFFSET_RESET_CONFIG)),
+              SessionConfig.of(configWithDenylist, ImmutableMap.of())),
+          sessionProperties,
+          engine.getEngine(),
+          engine.getServiceContext()
+      );
 
+      // Then: log fires for the denied property
+      configOverrideLogger.verify(() -> ConfigOverrideLogger.logOverrides(
+          "UNSET", ImmutableMap.of(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "")));
+    }
     assertThat(properties, not(hasKey(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG)));
   }
 

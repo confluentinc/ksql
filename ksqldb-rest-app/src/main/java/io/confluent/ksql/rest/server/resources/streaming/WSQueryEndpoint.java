@@ -26,6 +26,7 @@ import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.PrintTopic;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Statement;
+import io.confluent.ksql.properties.ConfigOverrideLogger;
 import io.confluent.ksql.properties.DenyListPropertyValidator;
 import io.confluent.ksql.rest.ApiJsonMapper;
 import io.confluent.ksql.rest.Errors;
@@ -46,6 +47,7 @@ import io.vertx.core.Context;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.ServerWebSocket;
 import java.time.Duration;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
@@ -202,7 +204,9 @@ public class WSQueryEndpoint {
         throw new IllegalArgumentException("\"ksql\" field of \"request\" must be populated");
       }
       // To validate props:
-      denyListPropertyValidator.validateAll(request.getConfigOverrides());
+      final Map<String, Object> configProperties = request.getConfigOverrides();
+      ConfigOverrideLogger.logOverrides("/ws/query", configProperties);
+      denyListPropertyValidator.validateAll(configProperties);
       return request;
     } catch (final Exception e) {
       throw new IllegalArgumentException("Error parsing request: " + e.getMessage(), e);

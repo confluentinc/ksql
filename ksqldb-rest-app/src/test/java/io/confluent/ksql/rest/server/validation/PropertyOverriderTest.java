@@ -134,12 +134,10 @@ public class PropertyOverriderTest {
           )
       );
 
-      // Then: resolver passes so log fires for the known property, THEN value-check throws.
+      // Then: value-check throws BEFORE the log fires - bad-value attempts are noise and not LOGGED
       assertThat(e.getMessage(), containsString(
           "Invalid value invalid"));
-      configOverrideLogger.verify(() -> ConfigOverrideLogger.logOverrides(
-          "SET",
-          ImmutableMap.of(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "")));
+      configOverrideLogger.verifyNoInteractions();
     }
   }
 

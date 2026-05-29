@@ -35,9 +35,9 @@ public final class PropertyOverrider {
   ) {
     final SetProperty setProperty = statement.getStatement();
     throwIfInvalidProperty(setProperty.getPropertyName(), statement.getMaskedStatementText());
+    throwIfInvalidPropertyValues(setProperty, statement);
     ConfigOverrideLogger.logOverrides(
             "SET", ImmutableMap.of(setProperty.getPropertyName(), ""));
-    throwIfInvalidPropertyValues(setProperty, statement);
     mutableProperties.put(setProperty.getPropertyName(), setProperty.getPropertyValue());
   }
 

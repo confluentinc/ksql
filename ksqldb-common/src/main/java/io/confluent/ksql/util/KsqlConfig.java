@@ -668,7 +668,8 @@ public class KsqlConfig extends AbstractConfig {
       "ksql.properties.overrides.allowlist";
   private static final String KSQL_PROPERTIES_OVERRIDES_ALLOWLIST_DOC = "Comma-separated list of "
       + "property names permitted as overrides when "
-      + "ksql.properties.overrides.validation.mode = allowlist.";
+      + "ksql.properties.overrides.validation.mode = allowlist. "
+      + "Note: this list is not currently consulted; 'allowlist' mode is not enforced.";
 
   public static final String KSQL_PROPERTIES_OVERRIDES_VALIDATION_MODE =
       "ksql.properties.overrides.validation.mode";
@@ -678,16 +679,17 @@ public class KsqlConfig extends AbstractConfig {
       KSQL_PROPERTIES_OVERRIDES_VALIDATION_MODE_DENYLIST;
   private static final String KSQL_PROPERTIES_OVERRIDES_VALIDATION_MODE_DOC =
       "Validation mode for property overrides on REST endpoints. Allowed values: 'denylist' "
-          + "(default, today's behavior - reject names listed in "
+          + "(default behavior - reject names listed in "
           + KSQL_PROPERTIES_OVERRIDES_DENYLIST + "), 'allowlist' (only permit names listed in "
-          + KSQL_PROPERTIES_OVERRIDES_ALLOWLIST + ").";
+          + KSQL_PROPERTIES_OVERRIDES_ALLOWLIST + "). "
+          + "Note: only 'denylist' mode is currently enforced; setting this to 'allowlist' "
+          + "has no effect on validation.";
 
   public static final String KSQL_PROPERTIES_OVERRIDES_LOG =
       "ksql.properties.overrides.log";
   private static final boolean KSQL_PROPERTIES_OVERRIDES_LOG_DEFAULT = false;
   private static final String KSQL_PROPERTIES_OVERRIDES_LOG_DOC = "When true, emits a structured "
-      + "INFO log line for each property override seen on REST endpoints. Useful for auditing "
-      + "what overrides clients are sending before tightening validation.";
+      + "INFO log line for each user-supplied property override.";
 
   public static final String KSQL_TOTAL_CACHE_MAX_BYTES_BUFFERING =
       "ksql.query.persistent.max.bytes.buffering.total";

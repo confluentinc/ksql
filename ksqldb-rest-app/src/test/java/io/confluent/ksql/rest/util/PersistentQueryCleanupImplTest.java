@@ -17,7 +17,7 @@ package io.confluent.ksql.rest.util;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.engine.QueryCleanupService;
-import io.confluent.ksql.logging.query.TestAppender;
+import io.confluent.ksql.test.util.TestAppender;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.BinPackedPersistentQueryMetadataImpl;

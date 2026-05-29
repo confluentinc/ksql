@@ -39,6 +39,8 @@ public final class PropertyOverrider {
     throwIfInvalidProperty(setProperty.getPropertyName(), statement.getMaskedStatementText());
     throwIfDeniedProperty(setProperty, statement);
     throwIfInvalidPropertyValues(setProperty, statement);
+    ConfigOverrideLogger.logOverrides(
+            "SET", ImmutableMap.of(setProperty.getPropertyName(), ""));
     mutableProperties.put(setProperty.getPropertyName(), setProperty.getPropertyValue());
   }
 
@@ -48,6 +50,8 @@ public final class PropertyOverrider {
   ) {
     final UnsetProperty unsetProperty = statement.getStatement();
     throwIfInvalidProperty(unsetProperty.getPropertyName(), statement.getMaskedStatementText());
+    ConfigOverrideLogger.logOverrides(
+        "UNSET", ImmutableMap.of(unsetProperty.getPropertyName(), ""));
     mutableProperties.remove(unsetProperty.getPropertyName());
   }
 

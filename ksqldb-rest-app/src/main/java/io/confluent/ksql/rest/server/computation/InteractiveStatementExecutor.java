@@ -193,6 +193,7 @@ public class InteractiveStatementExecutor {
   ) {
     try {
       if (mode == Mode.RESTORE) {
+        // Log only overwriteProperties (user-supplied per-query overrides).
         ConfigOverrideLogger.logOverrides(
             "command_topic_restore", command.getOverwriteProperties());
       }

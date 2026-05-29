@@ -145,7 +145,7 @@ public class KsqlResource implements KsqlConfigurable {
         authorizationValidator,
         errorHandler,
         denyListPropertyValidator,
-          commandRunner::getCommandRunnerDegradedWarning
+        commandRunner::getCommandRunnerDegradedWarning
     );
   }
 

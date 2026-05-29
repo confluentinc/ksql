@@ -43,6 +43,7 @@ public class ConfigOverrideLoggerTest {
   private static final String ENDPOINT = "/ksql";
 
   private TestAppender appender;
+  private boolean addedLoggerConfig;
 
   @Before
   public void setUp() {
@@ -58,6 +59,7 @@ public class ConfigOverrideLoggerTest {
     if (!LOGGER_NAME.equals(loggerConfig.getName())) {
       loggerConfig = new LoggerConfig(LOGGER_NAME, Level.INFO, false);
       config.addLogger(LOGGER_NAME, loggerConfig);
+      addedLoggerConfig = true;
     }
     loggerConfig.setLevel(Level.INFO);
     loggerConfig.setAdditive(false);
@@ -70,6 +72,10 @@ public class ConfigOverrideLoggerTest {
     final LoggerContext ctx = (LoggerContext) LogManager.getContext(false);
     final Configuration config = ctx.getConfiguration();
     config.getLoggerConfig(LOGGER_NAME).removeAppender(appender.getName());
+    if (addedLoggerConfig) {
+      config.removeLogger(LOGGER_NAME);
+      addedLoggerConfig = false;
+    }
     appender.stop();
     ctx.updateLoggers();
     ThreadContext.clearAll();

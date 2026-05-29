@@ -107,7 +107,8 @@ public class WSQueryEndpointTest {
         mockStatic(ConfigOverrideLogger.class)) {
       executeStreamQuery(params, Optional.empty());
 
-      // Then: Config Override Logger fires, and the denylist check fires.
+      // Then: WS sockets do not throw any exception (closes silently). We can only verify that validator
+      // was called.Config Override Logger fires first, and then validator fires.
       configOverrideLogger.verify(() -> ConfigOverrideLogger.logOverrides("/ws/query", overrides));
       verify(denyListPropertyValidator).validateAll(overrides);
     }
@@ -144,5 +145,4 @@ public class WSQueryEndpointTest {
   private void executeStreamQuery(final MultiMap params, final Optional<Long> timeout) {
     wsQueryEndpoint.executeStreamQuery(serverWebSocket, params, ksqlSecurityContext, context, timeout);
   }
-
 }

@@ -59,22 +59,26 @@ public class PropertyOverriderTest {
   @Test
   public void shouldFailOnUnknownSetProperty() {
     // When:
-    final Exception e = assertThrows(
-        KsqlStatementException.class,
-        () -> CustomValidators.SET_PROPERTY.validate(
-        ConfiguredStatement.of(PreparedStatement.of(
-            "SET 'consumer.invalid'='value';",
-            new SetProperty(Optional.empty(), "consumer.invalid", "value")),
-            SessionConfig.of(engine.getKsqlConfig(), ImmutableMap.of())),
-            mock(SessionProperties.class),
-            engine.getEngine(),
-            engine.getServiceContext()
-        )
-    );
+    try (MockedStatic<ConfigOverrideLogger> configOverrideLogger =
+        mockStatic(ConfigOverrideLogger.class)) {
+      final Exception e = assertThrows(
+          KsqlStatementException.class,
+          () -> CustomValidators.SET_PROPERTY.validate(
+              ConfiguredStatement.of(PreparedStatement.of(
+                  "SET 'consumer.invalid'='value';",
+                  new SetProperty(Optional.empty(), "consumer.invalid", "value")),
+                  SessionConfig.of(engine.getKsqlConfig(), ImmutableMap.of())),
+              mock(SessionProperties.class),
+              engine.getEngine(),
+              engine.getServiceContext()
+          )
+      );
 
-    // Then:
-    assertThat(e.getMessage(), containsString(
-        "Unknown property: consumer.invalid"));
+      // Then: property validation throws BEFORE the log fires
+      assertThat(e.getMessage(), containsString(
+          "Unknown property: consumer.invalid"));
+      configOverrideLogger.verifyNoInteractions();
+    }
   }
 
   @Test
@@ -114,23 +118,29 @@ public class PropertyOverriderTest {
         new SessionProperties(new HashedMap<>(), mock(KsqlHostInfo.class), mock(URL.class), false);
 
     // When:
-    final Exception e = assertThrows(
-        KsqlStatementException.class,
-        () -> CustomValidators.SET_PROPERTY.validate(
-            ConfiguredStatement.of(PreparedStatement.of(
-                "SET '" + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG + "' = 'invalid';",
-                new SetProperty(Optional.empty(), ConsumerConfig.AUTO_OFFSET_RESET_CONFIG,
-                    "invalid")), SessionConfig.of(engine.getKsqlConfig(), ImmutableMap.of())
-            ),
-            sessionProperties,
-            engine.getEngine(),
-            engine.getServiceContext()
-        )
-    );
+    try (MockedStatic<ConfigOverrideLogger> configOverrideLogger =
+        mockStatic(ConfigOverrideLogger.class)) {
+      final Exception e = assertThrows(
+          KsqlStatementException.class,
+          () -> CustomValidators.SET_PROPERTY.validate(
+              ConfiguredStatement.of(PreparedStatement.of(
+                  "SET '" + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG + "' = 'invalid';",
+                  new SetProperty(Optional.empty(), ConsumerConfig.AUTO_OFFSET_RESET_CONFIG,
+                      "invalid")), SessionConfig.of(engine.getKsqlConfig(), ImmutableMap.of())
+              ),
+              sessionProperties,
+              engine.getEngine(),
+              engine.getServiceContext()
+          )
+      );
 
-    // Then:
-    assertThat(e.getMessage(), containsString(
-        "Invalid value invalid"));
+      // Then: resolver passes so log fires for the known property, THEN value-check throws.
+      assertThat(e.getMessage(), containsString(
+          "Invalid value invalid"));
+      configOverrideLogger.verify(() -> ConfigOverrideLogger.logOverrides(
+          "SET",
+          ImmutableMap.of(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "")));
+    }
   }
 
   @Test
@@ -141,22 +151,26 @@ public class PropertyOverriderTest {
         new SessionProperties(properties, mock(KsqlHostInfo.class), mock(URL.class), false);
 
     // When:
-    final Exception e = assertThrows(
-        KsqlStatementException.class,
-        () -> CustomValidators.UNSET_PROPERTY.validate(
-            ConfiguredStatement.of(PreparedStatement.of(
-                "UNSET 'consumer.invalid';",
-                new UnsetProperty(Optional.empty(), "consumer.invalid")),
-                SessionConfig.of(engine.getKsqlConfig(), new HashMap<>())),
-            sessionProperties,
-            engine.getEngine(),
-            engine.getServiceContext()
-        )
-    );
+    try (MockedStatic<ConfigOverrideLogger> configOverrideLogger =
+        mockStatic(ConfigOverrideLogger.class)) {
+      final Exception e = assertThrows(
+          KsqlStatementException.class,
+          () -> CustomValidators.UNSET_PROPERTY.validate(
+              ConfiguredStatement.of(PreparedStatement.of(
+                  "UNSET 'consumer.invalid';",
+                  new UnsetProperty(Optional.empty(), "consumer.invalid")),
+                  SessionConfig.of(engine.getKsqlConfig(), new HashMap<>())),
+              sessionProperties,
+              engine.getEngine(),
+              engine.getServiceContext()
+          )
+      );
 
-    // Then:
-    assertThat(e.getMessage(), containsString(
-        "Unknown property: consumer.invalid"));
+      // Then: resolver throws BEFORE the log fires
+      assertThat(e.getMessage(), containsString(
+          "Unknown property: consumer.invalid"));
+      configOverrideLogger.verifyNoInteractions();
+    }
   }
 
   @Test

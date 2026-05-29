@@ -2629,9 +2629,15 @@ public class KsqlResourceTest {
     );
 
     // When:
-    final EndpointResponse response = ksqlResource.isValidProperty("ksql.service.id");
+    final EndpointResponse response;
+    try (MockedStatic<ConfigOverrideLogger> configOverrideLogger =
+        Mockito.mockStatic(ConfigOverrideLogger.class)) {
+      response = ksqlResource.isValidProperty("ksql.service.id");
 
-    // Then:
+      // Then: log fires BEFORE denylist throws
+      configOverrideLogger.verify(() -> ConfigOverrideLogger.logOverrides(
+          "SET", ImmutableMap.of("ksql.service.id", "")));
+    }
     assertThat(response.getStatus(), equalTo(400));
   }
 
@@ -2659,15 +2665,9 @@ public class KsqlResourceTest {
     ));
 
     // When:
-    final EndpointResponse response;
-    try (MockedStatic<ConfigOverrideLogger> configOverrideLogger =
-        Mockito.mockStatic(ConfigOverrideLogger.class)) {
-      response = ksqlResource.isValidProperty("ksql.streams.auto.offset.reset");
+    final EndpointResponse response = ksqlResource.isValidProperty("ksql.streams.auto.offset.reset");
 
-      // Then: log fires with endpoint=SET and the property name being validated
-      configOverrideLogger.verify(() -> ConfigOverrideLogger.logOverrides(
-          "SET", ImmutableMap.of("ksql.streams.auto.offset.reset", "")));
-    }
+    // Then:
     assertThat(response.getStatus(), equalTo(200));
   }
 

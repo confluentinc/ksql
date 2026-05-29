@@ -689,7 +689,8 @@ public class KsqlConfig extends AbstractConfig {
       "ksql.properties.overrides.log";
   private static final boolean KSQL_PROPERTIES_OVERRIDES_LOG_DEFAULT = false;
   private static final String KSQL_PROPERTIES_OVERRIDES_LOG_DOC = "When true, emits a structured "
-      + "INFO log line for each user-supplied property override.";
+      + "INFO log line for each user-supplied property override. May be high-volume on hot "
+      + "endpoints (one log line per override per request).";
 
   public static final String KSQL_TOTAL_CACHE_MAX_BYTES_BUFFERING =
       "ksql.query.persistent.max.bytes.buffering.total";

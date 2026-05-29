@@ -35,7 +35,6 @@ import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.UnsetProperty;
-import io.confluent.ksql.properties.DenyListPropertyValidator;
 import io.confluent.ksql.properties.PropertyOverrider;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.query.id.SequentialQueryIdGenerator;
@@ -253,13 +252,7 @@ public class KsqlContext implements AutoCloseable {
   private enum CustomExecutors {
 
     SET_PROPERTY(SetProperty.class, (executionContext, stmt, props) -> {
-      final ConfiguredStatement<SetProperty> setStmt = (ConfiguredStatement<SetProperty>) stmt;
-      PropertyOverrider.set(
-          setStmt,
-          new DenyListPropertyValidator(setStmt.getSessionConfig()
-              .getConfig(false)
-              .getList(KsqlConfig.KSQL_PROPERTIES_OVERRIDES_DENYLIST)),
-          props);
+      PropertyOverrider.set((ConfiguredStatement<SetProperty>) stmt, props);
       return ExecuteResult.of("Successfully executed " + stmt.getStatement());
     }),
     UNSET_PROPERTY(UnsetProperty.class, (executionContext, stmt, props) -> {

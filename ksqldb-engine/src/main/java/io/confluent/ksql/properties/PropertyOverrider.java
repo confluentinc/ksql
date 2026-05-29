@@ -21,6 +21,7 @@ import io.confluent.ksql.config.KsqlConfigResolver;
 import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.UnsetProperty;
 import io.confluent.ksql.statement.ConfiguredStatement;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlStatementException;
 import java.util.Map;
@@ -32,12 +33,11 @@ public final class PropertyOverrider {
 
   public static void set(
       final ConfiguredStatement<SetProperty> statement,
-      final DenyListPropertyValidator denyListPropertyValidator,
       final Map<String, Object> mutableProperties
   ) {
     final SetProperty setProperty = statement.getStatement();
     throwIfInvalidProperty(setProperty.getPropertyName(), statement.getMaskedStatementText());
-    throwIfDeniedProperty(setProperty, denyListPropertyValidator, statement);
+    throwIfDeniedProperty(setProperty, statement);
     throwIfInvalidPropertyValues(setProperty, statement);
     mutableProperties.put(setProperty.getPropertyName(), setProperty.getPropertyValue());
   }
@@ -77,9 +77,18 @@ public final class PropertyOverrider {
 
   private static void throwIfDeniedProperty(
       final SetProperty setProperty,
-      final DenyListPropertyValidator denyListPropertyValidator,
       final ConfiguredStatement<SetProperty> statement
   ) {
+    // Build the validator from the system config (getConfig(false)), never the override-applied
+    // config, so that a user-supplied override of the denylist itself cannot unlock a denied
+    // property. The validator is stateless and cheap, so constructing it per SET (a rare,
+    // interactive control statement) keeps this security rule local to PropertyOverrider and
+    // lets every caller -- REST, embedded, standalone and the test tool -- share it without
+    // plumbing an instance through.
+    final DenyListPropertyValidator denyListPropertyValidator = new DenyListPropertyValidator(
+        statement.getSessionConfig()
+            .getConfig(false)
+            .getList(KsqlConfig.KSQL_PROPERTIES_OVERRIDES_DENYLIST));
     try {
       denyListPropertyValidator.validateAll(ImmutableMap.of(
           setProperty.getPropertyName(),

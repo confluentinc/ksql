@@ -40,7 +40,6 @@ import io.confluent.ksql.parser.tree.RegisterType;
 import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.UnsetProperty;
-import io.confluent.ksql.properties.DenyListPropertyValidator;
 import io.confluent.ksql.properties.PropertyOverrider;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
@@ -350,12 +349,7 @@ public class StandaloneExecutor implements Executable {
     }
 
     private void handleSetProperty(final ConfiguredStatement<SetProperty> statement) {
-      PropertyOverrider.set(
-          statement,
-          new DenyListPropertyValidator(statement.getSessionConfig()
-              .getConfig(false)
-              .getList(KsqlConfig.KSQL_PROPERTIES_OVERRIDES_DENYLIST)),
-          configOverrides);
+      PropertyOverrider.set(statement, configOverrides);
     }
 
     private void handleUnsetProperty(final ConfiguredStatement<UnsetProperty> statement) {

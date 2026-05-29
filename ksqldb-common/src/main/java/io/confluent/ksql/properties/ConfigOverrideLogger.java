@@ -70,7 +70,7 @@ public final class ConfigOverrideLogger {
     if (properties == null || properties.isEmpty()) {
       try (CloseableThreadContext.Instance ignored = CloseableThreadContext
           .put(ENDPOINT, endpoint)) {
-        LOG.info("No Config overrides");
+        LOG.debug("No Config overrides");
       }
       return;
     }

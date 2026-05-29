@@ -57,13 +57,13 @@ public class ConfigOverrideLoggerTest {
     final Configuration config = ctx.getConfiguration();
     LoggerConfig loggerConfig = config.getLoggerConfig(LOGGER_NAME);
     if (!LOGGER_NAME.equals(loggerConfig.getName())) {
-      loggerConfig = new LoggerConfig(LOGGER_NAME, Level.INFO, false);
+      loggerConfig = new LoggerConfig(LOGGER_NAME, Level.DEBUG, false);
       config.addLogger(LOGGER_NAME, loggerConfig);
       addedLoggerConfig = true;
     }
-    loggerConfig.setLevel(Level.INFO);
+    loggerConfig.setLevel(Level.DEBUG);
     loggerConfig.setAdditive(false);
-    loggerConfig.addAppender(appender, Level.INFO, null);
+    loggerConfig.addAppender(appender, Level.DEBUG, null);
     ctx.updateLoggers();
   }
 

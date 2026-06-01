@@ -29,6 +29,7 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -57,6 +58,7 @@ import io.confluent.ksql.parser.tree.DropStream;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.TerminateQuery;
 import io.confluent.ksql.planner.plan.ConfiguredKsqlPlan;
+import io.confluent.ksql.properties.ConfigOverrideLogger;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.query.id.SpecificQueryIdGenerator;
 import io.confluent.ksql.rest.entity.CommandId;
@@ -97,6 +99,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.ArgumentMatcher;
 import org.mockito.InOrder;
 import org.mockito.Mock;
+import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 
@@ -587,11 +590,19 @@ public class InteractiveStatementExecutorTest {
     setUp();
 
     // When:
-    for (int i = 0; i < priorCommands.size(); i++) {
-      final Pair<CommandId, Command> pair = priorCommands.get(i);
-      statementExecutor.handleRestore(
-          new QueuedCommand(pair.left, pair.right, Optional.empty(), (long) i)
-      );
+    try (MockedStatic<ConfigOverrideLogger> configOverrideLogger =
+        mockStatic(ConfigOverrideLogger.class)) {
+      for (int i = 0; i < priorCommands.size(); i++) {
+        final Pair<CommandId, Command> pair = priorCommands.get(i);
+        statementExecutor.handleRestore(
+            new QueuedCommand(pair.left, pair.right, Optional.empty(), (long) i)
+        );
+      }
+
+      // Then: override-log fires once per replayed command with endpoint=command_topic_restore
+      configOverrideLogger.verify(
+          () -> ConfigOverrideLogger.logOverrides(eq("command_topic_restore"), any()),
+          times(priorCommands.size()));
     }
 
     // Then:

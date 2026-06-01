@@ -24,6 +24,7 @@ import io.confluent.ksql.execution.pull.PullQueryResult;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.PrintTopic;
 import io.confluent.ksql.parser.tree.Query;
+import io.confluent.ksql.properties.ConfigOverrideLogger;
 import io.confluent.ksql.properties.DenyListPropertyValidator;
 import io.confluent.ksql.rest.ApiJsonMapper;
 import io.confluent.ksql.rest.EndpointResponse;
@@ -199,6 +200,7 @@ public class StreamedQueryResource {
       );
 
       final Map<String, Object> configProperties = request.getConfigOverrides();
+      ConfigOverrideLogger.logOverrides("/query", configProperties);
       denyListPropertyValidator.validateAll(configProperties);
 
       if (statement.getStatement() instanceof Query) {

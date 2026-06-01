@@ -664,6 +664,34 @@ public class KsqlConfig extends AbstractConfig {
   private static final String KSQL_PROPERTIES_OVERRIDES_DENYLIST_DOC = "Comma-separated list of "
       + "properties that KSQL users cannot override.";
 
+  public static final String KSQL_PROPERTIES_OVERRIDES_ALLOWLIST =
+      "ksql.properties.overrides.allowlist";
+  private static final String KSQL_PROPERTIES_OVERRIDES_ALLOWLIST_DOC = "Comma-separated list of "
+      + "property names permitted as overrides when "
+      + "ksql.properties.overrides.validation.mode = allowlist. "
+      + "Note: this list is not currently consulted; 'allowlist' mode is not enforced.";
+
+  public static final String KSQL_PROPERTIES_OVERRIDES_VALIDATION_MODE =
+      "ksql.properties.overrides.validation.mode";
+  public static final String KSQL_PROPERTIES_OVERRIDES_VALIDATION_MODE_DENYLIST = "denylist";
+  public static final String KSQL_PROPERTIES_OVERRIDES_VALIDATION_MODE_ALLOWLIST = "allowlist";
+  private static final String KSQL_PROPERTIES_OVERRIDES_VALIDATION_MODE_DEFAULT =
+      KSQL_PROPERTIES_OVERRIDES_VALIDATION_MODE_DENYLIST;
+  private static final String KSQL_PROPERTIES_OVERRIDES_VALIDATION_MODE_DOC =
+      "Validation mode for property overrides on REST endpoints. Allowed values: 'denylist' "
+          + "(default behavior - reject names listed in "
+          + KSQL_PROPERTIES_OVERRIDES_DENYLIST + "), 'allowlist' (only permit names listed in "
+          + KSQL_PROPERTIES_OVERRIDES_ALLOWLIST + "). "
+          + "Note: only 'denylist' mode is currently enforced; setting this to 'allowlist' "
+          + "has no effect on validation.";
+
+  public static final String KSQL_PROPERTIES_OVERRIDES_LOG =
+      "ksql.properties.overrides.log";
+  private static final boolean KSQL_PROPERTIES_OVERRIDES_LOG_DEFAULT = false;
+  private static final String KSQL_PROPERTIES_OVERRIDES_LOG_DOC = "When true, emits a structured "
+      + "INFO log line for each user-supplied property override. May be high-volume on hot "
+      + "endpoints (one log line per override per request).";
+
   public static final String KSQL_TOTAL_CACHE_MAX_BYTES_BUFFERING =
       "ksql.query.persistent.max.bytes.buffering.total";
   public static final long KSQL_TOTAL_CACHE_MAX_BYTES_BUFFERING_DEFAULT = -1;
@@ -1432,6 +1460,31 @@ public class KsqlConfig extends AbstractConfig {
             "",
             Importance.LOW,
             KSQL_PROPERTIES_OVERRIDES_DENYLIST_DOC
+        )
+        .define(
+            KSQL_PROPERTIES_OVERRIDES_VALIDATION_MODE,
+            Type.STRING,
+            KSQL_PROPERTIES_OVERRIDES_VALIDATION_MODE_DEFAULT,
+            ValidString.in(
+                KSQL_PROPERTIES_OVERRIDES_VALIDATION_MODE_DENYLIST,
+                KSQL_PROPERTIES_OVERRIDES_VALIDATION_MODE_ALLOWLIST
+            ),
+            Importance.LOW,
+            KSQL_PROPERTIES_OVERRIDES_VALIDATION_MODE_DOC
+        )
+        .define(
+            KSQL_PROPERTIES_OVERRIDES_ALLOWLIST,
+            Type.LIST,
+            "",
+            Importance.LOW,
+            KSQL_PROPERTIES_OVERRIDES_ALLOWLIST_DOC
+        )
+        .define(
+            KSQL_PROPERTIES_OVERRIDES_LOG,
+            Type.BOOLEAN,
+            KSQL_PROPERTIES_OVERRIDES_LOG_DEFAULT,
+            Importance.LOW,
+            KSQL_PROPERTIES_OVERRIDES_LOG_DOC
         )
         .define(
             KSQL_QUERY_STATUS_RUNNING_THRESHOLD_SECS,

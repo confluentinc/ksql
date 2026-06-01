@@ -27,6 +27,7 @@ import io.confluent.ksql.api.server.JsonStreamedRowResponseWriter.RowFormat;
 import io.confluent.ksql.api.spi.Endpoints;
 import io.confluent.ksql.api.spi.QueryPublisher;
 import io.confluent.ksql.api.util.ApiServerUtils;
+import io.confluent.ksql.properties.ConfigOverrideLogger;
 import io.confluent.ksql.rest.entity.KsqlMediaType;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.QueryResponseMetadata;
@@ -95,6 +96,8 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
     if (request == null) {
       return;
     }
+    ConfigOverrideLogger.logOverrides(
+        routingContext.request().path(), request.configOverrides);
 
     final Optional<Boolean> internalRequest = ServerVerticle.isInternalRequest(routingContext);
     final MetricsCallbackHolder metricsCallbackHolder = new MetricsCallbackHolder();

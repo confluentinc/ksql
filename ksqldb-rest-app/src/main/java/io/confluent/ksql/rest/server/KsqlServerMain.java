@@ -23,6 +23,7 @@ import io.confluent.ksql.function.MutableFunctionRegistry;
 import io.confluent.ksql.function.UserFunctionLoader;
 import io.confluent.ksql.logging.query.QueryLogger;
 import io.confluent.ksql.metrics.MetricCollectors;
+import io.confluent.ksql.properties.ConfigOverrideLogger;
 import io.confluent.ksql.properties.PropertiesUtil;
 import io.confluent.ksql.rest.server.state.ServerState;
 import io.confluent.ksql.serde.FormatFactory;
@@ -79,6 +80,7 @@ public class KsqlServerMain {
       final KsqlRestConfig restConfig = new KsqlRestConfig(properties);
       validateConfig(ksqlConfig, restConfig);
       QueryLogger.configure(ksqlConfig);
+      ConfigOverrideLogger.configure(ksqlConfig);
 
       final Optional<String> queriesFile = serverOptions.getQueriesFile(properties);
       final MetricCollectors metricCollectors = new MetricCollectors();

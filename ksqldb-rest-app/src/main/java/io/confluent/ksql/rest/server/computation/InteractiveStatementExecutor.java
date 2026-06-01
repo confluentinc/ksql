@@ -31,6 +31,7 @@ import io.confluent.ksql.parser.tree.PauseQuery;
 import io.confluent.ksql.parser.tree.ResumeQuery;
 import io.confluent.ksql.parser.tree.TerminateQuery;
 import io.confluent.ksql.planner.plan.ConfiguredKsqlPlan;
+import io.confluent.ksql.properties.ConfigOverrideLogger;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.query.id.SpecificQueryIdGenerator;
 import io.confluent.ksql.rest.entity.CommandId;
@@ -191,6 +192,11 @@ public class InteractiveStatementExecutor {
       final boolean restoreInProgress
   ) {
     try {
+      if (mode == Mode.RESTORE) {
+        // Log only overwriteProperties (user-supplied per-query overrides).
+        ConfigOverrideLogger.logOverrides(
+            "command_topic_restore", command.getOverwriteProperties());
+      }
       if (command.getPlan().isPresent()) {
         executePlan(command, commandId, commandStatusFuture, command.getPlan().get(), mode, offset,
             restoreInProgress);

@@ -211,8 +211,8 @@ public final class BytesUtils {
       return false;
     }
 
-    for (int i = aFromIndex, j = bFromIndex; i < length && j < b.length; i++, j++) {
-      if (a[i] != b[i]) {
+    for (int i = aFromIndex, j = bFromIndex; j < bFromIndex + length; i++, j++) {
+      if (a[i] != b[j]) {
         return false;
       }
     }

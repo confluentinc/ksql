@@ -44,11 +44,11 @@ import org.apache.kafka.common.metrics.KafkaMetric;
 import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.common.metrics.MetricsReporter;
 import org.apache.kafka.streams.processor.internals.metrics.StreamsMetricsImpl;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class RocksDBMetricsCollector implements MetricsReporter {
-  private static final Logger LOGGER = LoggerFactory.getLogger(RocksDBMetricsCollector.class);
+  private static final Logger LOGGER = LogManager.getLogger(RocksDBMetricsCollector.class);
 
   static final String KSQL_ROCKSDB_METRICS_GROUP = "ksql-rocksdb-aggregates";
   static final String NUMBER_OF_RUNNING_COMPACTIONS = "num-running-compactions";

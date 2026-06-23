@@ -80,14 +80,14 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.reactivestreams.Publisher;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public class ClientImpl implements Client {
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
-  protected static final Logger log = LoggerFactory.getLogger(ClientImpl.class);
+  protected static final Logger log = LogManager.getLogger(ClientImpl.class);
 
   private static final String QUERY_STREAM_ENDPOINT = "/query-stream";
   private static final String INSERTS_ENDPOINT = "/inserts-stream";

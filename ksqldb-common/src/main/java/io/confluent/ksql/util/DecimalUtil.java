@@ -271,7 +271,7 @@ public final class DecimalUtil {
   public static SqlType fromValue(final BigDecimal value) {
     // SqlDecimal does not support negative scale:
     final BigDecimal decimal = value.scale() < 0
-        ? value.setScale(0, BigDecimal.ROUND_UNNECESSARY)
+        ? value.setScale(0, RoundingMode.UNNECESSARY)
         : value;
 
     /* We can't use BigDecimal.precision() directly for all cases, since it defines

@@ -34,8 +34,8 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.TopicPartition;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * A consumer which runs alongside a {@link LatestConsumer}, keeping the same assignments that
@@ -43,7 +43,7 @@ import org.slf4j.LoggerFactory;
  * swap over so that the catchup can be closed.
  */
 public class CatchupConsumer extends ScalablePushConsumer {
-  private static final Logger LOG = LoggerFactory.getLogger(CatchupConsumer.class);
+  private static final Logger LOG = LogManager.getLogger(CatchupConsumer.class);
   @VisibleForTesting
   static final long WAIT_FOR_ASSIGNMENT_MS = 15000;
 

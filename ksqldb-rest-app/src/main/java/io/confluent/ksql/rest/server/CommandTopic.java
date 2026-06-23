@@ -31,12 +31,12 @@ import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.serialization.ByteArrayDeserializer;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class CommandTopic {
 
-  private static final Logger log = LoggerFactory.getLogger(CommandTopic.class);
+  private static final Logger log = LogManager.getLogger(CommandTopic.class);
   private final TopicPartition commandTopicPartition;
 
   private Consumer<byte[], byte[]> commandConsumer;

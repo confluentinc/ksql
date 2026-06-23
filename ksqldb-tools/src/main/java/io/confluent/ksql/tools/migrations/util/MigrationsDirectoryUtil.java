@@ -33,8 +33,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public final class MigrationsDirectoryUtil {
 
@@ -43,7 +43,7 @@ public final class MigrationsDirectoryUtil {
 
   private static final Pattern MIGRATION_FILE_MATCHER = Pattern.compile("V([0-9]{6})__(.+)\\.sql");
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(MigrationsDirectoryUtil.class);
+  private static final Logger LOGGER = LogManager.getLogger(MigrationsDirectoryUtil.class);
 
   private MigrationsDirectoryUtil() {
   }

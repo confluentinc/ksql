@@ -26,8 +26,8 @@ import java.nio.file.WatchKey;
 import java.nio.file.WatchService;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 // reference:
 // https://gist.github.com/danielflower/f54c2fe42d32356301c68860a4ab21ed
@@ -38,7 +38,7 @@ import org.slf4j.LoggerFactory;
  */
 public class FileWatcher extends Thread {
 
-  private static final Logger log = LoggerFactory.getLogger(FileWatcher.class);
+  private static final Logger log = LogManager.getLogger(FileWatcher.class);
 
   public interface Callback {
     void run() throws Exception;

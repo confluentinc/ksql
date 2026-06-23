@@ -41,11 +41,11 @@ import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serdes;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class KafkaConfigStore implements ConfigStore {
-  private static final Logger log = LoggerFactory.getLogger(KafkaConfigStore.class);
+  private static final Logger log = LogManager.getLogger(KafkaConfigStore.class);
 
   public static final String CONFIG_MSG_KEY = "ksql-standalone-configs";
 

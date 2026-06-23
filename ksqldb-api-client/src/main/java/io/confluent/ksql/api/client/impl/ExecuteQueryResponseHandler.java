@@ -31,12 +31,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicReference;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class ExecuteQueryResponseHandler extends QueryResponseHandler<BatchedQueryResult> {
 
-  private static final Logger log = LoggerFactory.getLogger(ExecuteQueryResponseHandler.class);
+  private static final Logger log = LogManager.getLogger(ExecuteQueryResponseHandler.class);
 
   private final List<Row> rows;
   private final int maxRows;

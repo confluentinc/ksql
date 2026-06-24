@@ -165,6 +165,15 @@ public final class HARouting implements AutoCloseable {
       final PullQueryWriteStream pullQueryQueue,
       final CompletableFuture<Void> shouldCancelRequests
   ) {
+    // If the client has already disconnected/cancelled by the time this queued request is
+    // picked up by the coordinator thread pool, skip processing it entirely rather than doing
+    // work whose results no one will read.
+    if (shouldCancelRequests.isDone()) {
+      LOG.debug("Pull query request was cancelled before execution; skipping.");
+      pullQueryQueue.close();
+      return;
+    }
+
     // The remaining partition locations to retrieve without error
     List<KsqlPartitionLocation> remainingLocations = ImmutableList.copyOf(locations);
     final Map<KsqlNode, List<Exception>> exceptionsPerNode = new HashMap<>();
@@ -280,6 +289,13 @@ public final class HARouting implements AutoCloseable {
   ) {
     final Function<StreamedRow, StreamedRow> addHostInfo
         = sr -> sr.withSourceHost(routingOptions.getIsDebugRequest() ? toKsqlHostInfo(node) : null);
+    // If the request was cancelled (e.g. the client disconnected) while this per-host request
+    // was queued in the router thread pool, skip executing it.
+    if (shouldCancelRequests.isDone()) {
+      LOG.debug("Pull query request to node {} was cancelled before execution; skipping.",
+          node.location());
+      return new NodeFetchResult(RoutingResult.SUCCESS, node, Optional.empty());
+    }
     if (node.isLocal()) {
       try {
         LOG.debug("Query {} partitions {} executed locally at host {} at timestamp {}.",

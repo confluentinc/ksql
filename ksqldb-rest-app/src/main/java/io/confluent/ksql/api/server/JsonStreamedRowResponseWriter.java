@@ -69,7 +69,10 @@ public class JsonStreamedRowResponseWriter implements QueryStreamResponseWriter 
   // output a final message.
   private final boolean bufferOutput;
   private final Context context;
-  private final RowFormat rowFormat;
+  // Per-writer formatter holding any per-query state (e.g. the protobuf schema and serializer).
+  // Obtained from the requested RowFormat at construction so each concurrent writer gets a
+  // fresh, isolated instance and cannot race against other concurrent queries.
+  private final RowFormatter rowFormatter;
   private final WriterState writerState;
   private StreamedRow lastRow;
   private long timerId = -1;
@@ -98,12 +101,12 @@ public class JsonStreamedRowResponseWriter implements QueryStreamResponseWriter 
     Preconditions.checkState(bufferOutput || limitMessage.isPresent()
             || completionMessage.isPresent(),
         "If buffering isn't used, a limit/completion message must be set");
-    this.rowFormat = rowFormat;
+    this.rowFormatter = rowFormat.newFormatter();
   }
 
   @Override
   public QueryStreamResponseWriter writeMetadata(final QueryResponseMetadata metaData) {
-    final StreamedRow streamedRow = rowFormat.metadataRow(metaData);
+    final StreamedRow streamedRow = rowFormatter.metadataRow(metaData);
     final Buffer buff = Buffer.buffer().appendByte((byte) '[');
     if (bufferOutput) {
       writeBuffer(buff, true);
@@ -128,7 +131,7 @@ public class JsonStreamedRowResponseWriter implements QueryStreamResponseWriter 
           "Should only have null values for query types that support them");
       streamedRow = StreamedRow.tombstone(tombstoneFactory.get().createRow(keyValue));
     } else {
-      streamedRow = rowFormat.dataRow(keyValueMetadata);
+      streamedRow = rowFormatter.dataRow(keyValueMetadata);
     }
     maybeCacheRowAndWriteLast(streamedRow);
     return this;
@@ -187,61 +190,94 @@ public class JsonStreamedRowResponseWriter implements QueryStreamResponseWriter 
     response.end();
   }
 
+  /**
+   * Selects the over-the-wire row format. The enum values were previously stateful (the
+   * PROTOBUF constant held the per-query Connect schema and serializer in instance fields),
+   * which is unsafe: an enum constant is a JVM-wide singleton, so two concurrent push
+   * queries on the same format would race on those fields and one query's rows could be
+   * serialized under the other query's schema. Each format now hands out a fresh stateful
+   * {@link RowFormatter} per writer via {@link #newFormatter()}.
+   */
   public enum RowFormat {
     PROTOBUF {
-      private transient ConnectSchema connectSchema;
-      private transient KsqlConnectSerializer<Struct> serializer;
       @Override
-      public StreamedRow metadataRow(final QueryResponseMetadata metaData) {
-        final LogicalSchema schema = metaData.schema;
-        final String queryId = metaData.queryId;
+      public RowFormatter newFormatter() {
+        return new RowFormatter() {
+          // Per-formatter state - no longer shared across queries.
+          private ConnectSchema connectSchema;
+          private KsqlConnectSerializer<Struct> serializer;
 
-        connectSchema = ConnectSchemas.columnsToConnectSchema(schema.columns());
-        serializer = new ProtobufNoSRSerdeFactory(ImmutableMap.of())
-                .createSerializer(connectSchema, Struct.class, false);
-        return StreamedRow.headerProtobuf(
-                new QueryId(queryId), schema, logicalToProtoSchema(schema));
-      }
+          @Override
+          public StreamedRow metadataRow(final QueryResponseMetadata metaData) {
+            final LogicalSchema schema = metaData.schema;
+            final String queryId = metaData.queryId;
 
-      @Override
-      public StreamedRow dataRow(final KeyValueMetadata<List<?>, GenericRow> keyValueMetadata) {
-        final KeyValue<List<?>, GenericRow> keyValue = keyValueMetadata.getKeyValue();
-        final Struct ksqlRecord = new Struct(connectSchema);
-        int i = 0;
-        for (Field field : connectSchema.fields()) {
-          ksqlRecord.put(
-                  field,
-                  keyValue.value().get(i));
-          i += 1;
-        }
-        final byte[] protoMessage = serializer.serialize("", ksqlRecord);
-        return StreamedRow.pullRowProtobuf(protoMessage);
+            connectSchema = ConnectSchemas.columnsToConnectSchema(schema.columns());
+            serializer = new ProtobufNoSRSerdeFactory(ImmutableMap.of())
+                    .createSerializer(connectSchema, Struct.class, false);
+            return StreamedRow.headerProtobuf(
+                    new QueryId(queryId), schema, logicalToProtoSchema(schema));
+          }
+
+          @Override
+          public StreamedRow dataRow(
+              final KeyValueMetadata<List<?>, GenericRow> keyValueMetadata) {
+            final KeyValue<List<?>, GenericRow> keyValue = keyValueMetadata.getKeyValue();
+            final Struct ksqlRecord = new Struct(connectSchema);
+            int i = 0;
+            for (Field field : connectSchema.fields()) {
+              ksqlRecord.put(
+                      field,
+                      keyValue.value().get(i));
+              i += 1;
+            }
+            final byte[] protoMessage = serializer.serialize("", ksqlRecord);
+            return StreamedRow.pullRowProtobuf(protoMessage);
+          }
+        };
       }
     },
     JSON {
       @Override
-      public StreamedRow metadataRow(final QueryResponseMetadata metaData) {
-        return StreamedRow.header(new QueryId(metaData.queryId), metaData.schema);
-      }
+      public RowFormatter newFormatter() {
+        return new RowFormatter() {
+          @Override
+          public StreamedRow metadataRow(final QueryResponseMetadata metaData) {
+            return StreamedRow.header(new QueryId(metaData.queryId), metaData.schema);
+          }
 
-      @Override
-      public StreamedRow dataRow(final KeyValueMetadata<List<?>, GenericRow> keyValueMetadata) {
-        final KeyValue<List<?>, GenericRow> keyValue = keyValueMetadata.getKeyValue();
-        if (keyValueMetadata.getRowMetadata().isPresent()
-                && keyValueMetadata.getRowMetadata().get().getSourceNode().isPresent()) {
-          return StreamedRow.pullRow(keyValue.value(),
-                  toKsqlHostInfoEntity(keyValueMetadata.getRowMetadata().get().getSourceNode()));
-        } else {
-          // Technically, this codepath is for both push and pull, but where there's no additional
-          // metadata, as there sometimes is with a pull query.
-          return StreamedRow.pushRow(keyValue.value());
-        }
+          @Override
+          public StreamedRow dataRow(
+              final KeyValueMetadata<List<?>, GenericRow> keyValueMetadata) {
+            final KeyValue<List<?>, GenericRow> keyValue = keyValueMetadata.getKeyValue();
+            if (keyValueMetadata.getRowMetadata().isPresent()
+                    && keyValueMetadata.getRowMetadata().get().getSourceNode().isPresent()) {
+              return StreamedRow.pullRow(keyValue.value(),
+                      toKsqlHostInfoEntity(
+                              keyValueMetadata.getRowMetadata().get().getSourceNode()));
+            } else {
+              // Technically, this codepath is for both push and pull, but where there's no
+              // additional metadata, as there sometimes is with a pull query.
+              return StreamedRow.pushRow(keyValue.value());
+            }
+          }
+        };
       }
     };
 
-    public abstract StreamedRow metadataRow(QueryResponseMetadata metaData);
+    public abstract RowFormatter newFormatter();
+  }
 
-    public abstract StreamedRow dataRow(KeyValueMetadata<List<?>, GenericRow> keyValueMetadata);
+  /**
+   * A per-writer row formatter. Instances may hold mutable state (e.g. the PROTOBUF
+   * implementation caches the Connect schema and serializer between metadataRow() and
+   * dataRow()); each {@link JsonStreamedRowResponseWriter} must obtain its own instance via
+   * {@link RowFormat#newFormatter()} so concurrent writers cannot race on that state.
+   */
+  public interface RowFormatter {
+    StreamedRow metadataRow(QueryResponseMetadata metaData);
+
+    StreamedRow dataRow(KeyValueMetadata<List<?>, GenericRow> keyValueMetadata);
   }
 
   @VisibleForTesting

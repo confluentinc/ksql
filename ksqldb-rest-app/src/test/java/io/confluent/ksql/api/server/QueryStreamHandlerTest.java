@@ -19,6 +19,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -209,5 +210,28 @@ public class QueryStreamHandlerTest {
     // Then:
     assertThat(subscriber.getValue(), notNullValue());
     verify(publisher, times(1)).close();
+  }
+
+  @Test
+  public void shouldNotCreatePublisherOnUnsupportedHttpVersion() {
+    // Regression for the missing-return fix in handle(): without it, a request
+    // on an HTTP version other than 1.1 or 2 was failed via routingContext.fail
+    // but execution fell through to getRequest(...) and
+    // endpoints.createQueryPublisher(...), starting a query asynchronously
+    // against an already-failed routing context. The eventual response then
+    // tripped "Response head already written" on the worker pool and the
+    // started query was orphaned (no subscriber).
+    when(request.version()).thenReturn(HttpVersion.HTTP_1_0);
+    final QueryStreamArgs req = new QueryStreamArgs("select * from foo;",
+        Collections.emptyMap(), Collections.emptyMap(), Collections.emptyMap());
+    givenRequest(req);
+
+    // When:
+    handler.handle(routingContext);
+
+    // Then: no query publisher is created, and no subscription is set up.
+    verify(endpoints, never()).createQueryPublisher(any(), any(), any(), any(), any(),
+        any(), any(), any(), any());
+    verify(publisher, never()).subscribe(any());
   }
 }

@@ -31,13 +31,14 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import java.util.Optional;
 import org.apache.kafka.common.serialization.Serde;
+import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.Named;
 import org.apache.kafka.streams.kstream.Produced;
-import org.apache.kafka.streams.processor.api.Processor;
-import org.apache.kafka.streams.processor.api.ProcessorContext;
-import org.apache.kafka.streams.processor.api.ProcessorSupplier;
-import org.apache.kafka.streams.processor.api.Record;
+import org.apache.kafka.streams.kstream.Transformer;
+import org.apache.kafka.streams.kstream.TransformerSupplier;
+import org.apache.kafka.streams.processor.ProcessorContext;
+import org.apache.kafka.streams.processor.To;
 
 public final class SinkBuilder {
   private static final String TIMESTAMP_TRANSFORM_NAME = "ApplyTimestampTransform-";
@@ -73,19 +74,22 @@ public final class SinkBuilder {
         queryContext
     );
 
-    final Optional<TimestampProcessorSupplier<K>> tsProcessorSupplier
-        = createTimeStampProcessorSupplier(
-            buildContext, queryContext, schema, timestampColumn);
+    final Optional<TransformTimestamp<K>> tsTransformer = timestampTransformer(
+        buildContext,
+        queryContext,
+        schema,
+        timestampColumn
+    );
 
-    final KStream<K, GenericRow> processedStream = tsProcessorSupplier
-        .map(t -> stream.process(t, Named.as(TIMESTAMP_TRANSFORM_NAME
+    final KStream<K, GenericRow> transformed = tsTransformer
+        .map(t -> stream.transform(t, Named.as(TIMESTAMP_TRANSFORM_NAME
             + StreamsUtil.buildOpName(queryContext))))
         .orElse(stream);
 
-    processedStream.to(topicName, Produced.with(keySerde, valueSerde));
+    transformed.to(topicName, Produced.with(keySerde, valueSerde));
   }
 
-  private static  <K> Optional<TimestampProcessorSupplier<K>> createTimeStampProcessorSupplier(
+  private static  <K> Optional<TransformTimestamp<K>> timestampTransformer(
       final RuntimeBuildContext buildContext,
       final QueryContext queryContext,
       final LogicalSchema sourceSchema,
@@ -105,16 +109,15 @@ public final class SinkBuilder {
         .map(TimestampColumn::getColumn)
         .map(c -> sourceSchema.findColumn(c).orElseThrow(IllegalStateException::new))
         .map(c -> timestampPolicy.create(Optional.of(c)))
-        .map(te ->
-            new TimestampProcessorSupplier<>(te, buildContext.getProcessingLogger(queryContext)));
+        .map(te -> new TransformTimestamp<>(te, buildContext.getProcessingLogger(queryContext)));
   }
 
-  static class TimestampProcessorSupplier<K>
-      implements ProcessorSupplier<K, GenericRow, K, GenericRow> {
+  static class TransformTimestamp<K>
+      implements TransformerSupplier<K, GenericRow, KeyValue<K, GenericRow>> {
     private final KsqlTimestampExtractor timestampExtractor;
     private final ProcessingLogger processingLogger;
 
-    TimestampProcessorSupplier(
+    TransformTimestamp(
         final KsqlTimestampExtractor timestampExtractor,
         final ProcessingLogger processingLogger
     ) {
@@ -123,31 +126,37 @@ public final class SinkBuilder {
     }
 
     @Override
-    public Processor<K, GenericRow, K, GenericRow> get() {
-      return new Processor<>() {
-        private ProcessorContext<K, GenericRow> processorContext;
+    public Transformer<K, GenericRow, KeyValue<K, GenericRow>> get() {
+      return new Transformer<K, GenericRow, KeyValue<K, GenericRow>>() {
+        private ProcessorContext processorContext;
 
         @Override
-        public void init(final ProcessorContext<K, GenericRow> processorContext) {
+        public void init(final ProcessorContext processorContext) {
           this.processorContext = requireNonNull(processorContext, "processorContext");
         }
 
         @Override
-        public void process(final Record<K, GenericRow> record) {
+        public KeyValue<K, GenericRow> transform(final K key, final GenericRow row) {
           try {
             final long timestamp;
-            if (record.value() == null) {
+            if (row == null) {
               timestamp = processorContext.currentStreamTimeMs();
             } else {
-              timestamp = timestampExtractor.extract(record.key(), record.value());
+              timestamp = timestampExtractor.extract(key, row);
             }
-            processorContext.forward(record.withTimestamp(timestamp));
+            processorContext.forward(
+                key,
+                row,
+                To.all().withTimestamp(timestamp)
+            );
           } catch (final Exception e) {
             processingLogger.error(RecordProcessingError
-                .recordProcessingError("Error writing row with extracted timestamp: "
-                    + e.getMessage(), e, record.value())
+                    .recordProcessingError("Error writing row with extracted timestamp: "
+                        + e.getMessage(), e, row)
             );
           }
+
+          return null;
         }
 
 

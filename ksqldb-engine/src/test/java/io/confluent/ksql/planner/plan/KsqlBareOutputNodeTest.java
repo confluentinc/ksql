@@ -119,7 +119,7 @@ public class KsqlBareOutputNodeTest {
     final TopologyDescription.Processor node
         = (TopologyDescription.Processor) getNodeByName(PROCESS_NODE);
     verifyProcessorNode(node, Collections.singletonList(SOURCE_NODE),
-        List.of(FILTER_NODE, "KSTREAM-PEEK-0000000002"));
+        Collections.singletonList(FILTER_NODE));
   }
 
   @Test

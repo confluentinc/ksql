@@ -22,6 +22,7 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.common.QueryRow;
 import io.confluent.ksql.execution.common.QueryRowImpl;
 import io.confluent.ksql.execution.plan.SelectExpression;
+import io.confluent.ksql.execution.streams.materialization.PullProcessingContext;
 import io.confluent.ksql.execution.transform.KsqlTransformer;
 import io.confluent.ksql.execution.transform.select.SelectValueMapper;
 import io.confluent.ksql.execution.transform.select.SelectValueMapperFactory;
@@ -106,7 +107,9 @@ public class ProjectOperator extends AbstractPhysicalOperator implements UnaryPh
 
     final GenericRow mapped = transformer.transform(
         row.key(),
-        intermediate);
+        intermediate,
+        new PullProcessingContext(row.rowTime())
+    );
     validateProjection(mapped, logicalNode.getSchema());
 
     return QueryRowImpl.of(logicalNode.getSchema(),

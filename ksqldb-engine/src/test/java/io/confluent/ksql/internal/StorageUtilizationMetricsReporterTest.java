@@ -361,10 +361,57 @@ public class StorageUtilizationMetricsReporterTest {
       BigInteger.valueOf(5),
       ImmutableMap.of("store-id", "s2", "task-id", "t1", "thread-id", TRANSIENT_THREAD_ID))
     );
-    
+
     // Then:
     final Object numStatefulTasksValue = numStatefulTasksGauge.value(null, 0);
     assertEquals((int) numStatefulTasksValue, 2);
+  }
+
+  @Test
+  public void shouldDecrementNumStatefulTasksOncePerTaskEvenWithMultipleStateStores() {
+    // Given: one task (multi_store_t) with two state stores (s1, s2). The
+    // metric reporter increments num_stateful_tasks once per task; it must
+    // decrement once per task as well — not once per store, or the static
+    // counter drifts negative for any task with multiple state stores.
+    // num_stateful_tasks is a static counter shared across tests, so assert
+    // on relative deltas, not absolute values.
+    final File f = new File("/tmp/storage-test/");
+    StorageUtilizationMetricsReporter.configureShared(f, metrics, BASE_TAGS);
+    final Gauge<?> numStatefulTasksGauge =
+        verifyAndGetRegisteredMetric("num_stateful_tasks", BASE_TAGS);
+    final int baseline = (int) numStatefulTasksGauge.value(null, 0);
+
+    final KafkaMetric s1 = mockMetric(
+        KAFKA_METRIC_GROUP,
+        KAFKA_METRIC_NAME,
+        BigInteger.valueOf(2),
+        ImmutableMap.of(
+            "store-id", "s1", "task-id", "multi_store_t", "thread-id", TRANSIENT_THREAD_ID));
+    final KafkaMetric s2 = mockMetric(
+        KAFKA_METRIC_GROUP,
+        KAFKA_METRIC_NAME,
+        BigInteger.valueOf(5),
+        ImmutableMap.of(
+            "store-id", "s2", "task-id", "multi_store_t", "thread-id", TRANSIENT_THREAD_ID));
+    listener.metricChange(s1);
+    listener.metricChange(s2);
+    assertEquals(
+        "adding two stores to one task increments counter once",
+        baseline + 1, (int) numStatefulTasksGauge.value(null, 0));
+
+    // When: the first state store metric departs (task still alive).
+    listener.metricRemoval(s1);
+
+    // Then: the task is still present — counter must NOT decrement yet.
+    assertEquals(
+        "num_stateful_tasks must not decrement until the task is fully gone",
+        baseline + 1, (int) numStatefulTasksGauge.value(null, 0));
+
+    // When: the second state store departs (task fully gone).
+    listener.metricRemoval(s2);
+
+    // Then: counter returns to baseline (one increment matched by one decrement).
+    assertEquals(baseline, (int) numStatefulTasksGauge.value(null, 0));
   }
 
   private KafkaMetric mockMetric(

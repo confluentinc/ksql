@@ -16,6 +16,7 @@
 package io.confluent.ksql.function.udtf;
 
 import io.confluent.ksql.function.FunctionCategory;
+import io.confluent.ksql.function.KsqlFunctionException;
 import io.confluent.ksql.util.KsqlConstants;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -32,10 +33,24 @@ import java.util.List;
 )
 public class Cube {
 
+  /**
+   * Maximum number of input columns. The output cardinality of the cube is 2^N, so 20 columns
+   * already produce ~1M output rows. The hard upper bound that avoids integer-shift overflow
+   * is 30 (1 << 31 yields Integer.MIN_VALUE which then trips new ArrayList(neg)); we cap well
+   * below that to keep the function from OOMing the server on a malformed query.
+   */
+  static final int MAX_COLUMNS = 20;
+
   @Udtf
   public <T> List<List<T>> cube(final List<T> columns) {
     if (columns == null) {
       return Collections.emptyList();
+    }
+    if (columns.size() > MAX_COLUMNS) {
+      throw new KsqlFunctionException(
+          "CUBE_EXPLODE input size (" + columns.size() + ") exceeds the maximum of "
+              + MAX_COLUMNS + " columns. The output cardinality is 2^N rows and would "
+              + "exhaust server memory.");
     }
     return createAllCombinations(columns);
   }

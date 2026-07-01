@@ -46,7 +46,7 @@ public class DenyListPropertyValidator implements ConfigOverrideValidator {
     final Set<String> propsDenied = Sets.intersection(immutableProps, properties.keySet());
     if (!propsDenied.isEmpty()) {
       throw new KsqlException(String.format("One or more properties overrides set locally are "
-          + "prohibited by the KSQL server (use UNSET to reset their default value): %s",
+          + "prohibited by the KSQL server denylist (use UNSET to reset their default value): %s",
           propsDenied));
     }
   }

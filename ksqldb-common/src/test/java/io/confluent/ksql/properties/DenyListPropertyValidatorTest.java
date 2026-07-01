@@ -50,7 +50,7 @@ public class DenyListPropertyValidatorTest {
 
     // Then:
     assertThat(e.getMessage(), containsString(
-        "One or more properties overrides set locally are prohibited by the KSQL server "
+        "One or more properties overrides set locally are prohibited by the KSQL server denylist "
             + "(use UNSET to reset their default value): "
             + "[immutable-property-1, immutable-property-2]"
     ));
@@ -77,7 +77,7 @@ public class DenyListPropertyValidatorTest {
 
     // Then:
     assertThat(e.getMessage(), containsString(
-        "One or more properties overrides set locally are prohibited by the KSQL server "
+        "One or more properties overrides set locally are prohibited by the KSQL server denylist "
             + "(use UNSET to reset their default value): [ksql.service.id]"
     ));
   }

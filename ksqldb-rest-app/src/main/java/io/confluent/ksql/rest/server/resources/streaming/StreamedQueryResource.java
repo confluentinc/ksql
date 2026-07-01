@@ -25,7 +25,7 @@ import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.PrintTopic;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.properties.ConfigOverrideLogger;
-import io.confluent.ksql.properties.DenyListPropertyValidator;
+import io.confluent.ksql.properties.ConfigOverrideValidator;
 import io.confluent.ksql.rest.ApiJsonMapper;
 import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.Errors;
@@ -75,7 +75,7 @@ public class StreamedQueryResource {
   private final ActivenessRegistrar activenessRegistrar;
   private final Optional<KsqlAuthorizationValidator> authorizationValidator;
   private final Errors errorHandler;
-  private final DenyListPropertyValidator denyListPropertyValidator;
+  private final ConfigOverrideValidator configOverrideValidator;
   private final QueryExecutor queryExecutor;
 
   private KsqlRestConfig ksqlRestConfig;
@@ -90,7 +90,7 @@ public class StreamedQueryResource {
       final ActivenessRegistrar activenessRegistrar,
       final Optional<KsqlAuthorizationValidator> authorizationValidator,
       final Errors errorHandler,
-      final DenyListPropertyValidator denyListPropertyValidator,
+      final ConfigOverrideValidator configOverrideValidator,
       final QueryExecutor queryExecutor
   ) {
     this(
@@ -103,7 +103,7 @@ public class StreamedQueryResource {
         activenessRegistrar,
         authorizationValidator,
         errorHandler,
-        denyListPropertyValidator,
+        configOverrideValidator,
         queryExecutor
     );
   }
@@ -121,7 +121,7 @@ public class StreamedQueryResource {
       final ActivenessRegistrar activenessRegistrar,
       final Optional<KsqlAuthorizationValidator> authorizationValidator,
       final Errors errorHandler,
-      final DenyListPropertyValidator denyListPropertyValidator,
+      final ConfigOverrideValidator configOverrideValidator,
       final QueryExecutor queryExecutor
   ) {
     this.ksqlEngine = Objects.requireNonNull(ksqlEngine, "ksqlEngine");
@@ -136,8 +136,8 @@ public class StreamedQueryResource {
         Objects.requireNonNull(activenessRegistrar, "activenessRegistrar");
     this.authorizationValidator = authorizationValidator;
     this.errorHandler = Objects.requireNonNull(errorHandler, "errorHandler");
-    this.denyListPropertyValidator =
-        Objects.requireNonNull(denyListPropertyValidator, "denyListPropertyValidator");
+    this.configOverrideValidator =
+        Objects.requireNonNull(configOverrideValidator, "configOverrideValidator");
     this.queryExecutor = queryExecutor;
   }
 
@@ -201,7 +201,7 @@ public class StreamedQueryResource {
 
       final Map<String, Object> configProperties = request.getConfigOverrides();
       ConfigOverrideLogger.logOverrides("/query", configProperties);
-      denyListPropertyValidator.validateAll(configProperties);
+      configOverrideValidator.validateAll(configProperties);
 
       if (statement.getStatement() instanceof Query) {
         if (shouldMigrateToQueryStream(request.getConfigOverrides())) {

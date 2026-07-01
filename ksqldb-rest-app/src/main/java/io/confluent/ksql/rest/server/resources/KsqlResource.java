@@ -34,7 +34,7 @@ import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.UnsetProperty;
 import io.confluent.ksql.properties.ConfigOverrideLogger;
-import io.confluent.ksql.properties.DenyListPropertyValidator;
+import io.confluent.ksql.properties.ConfigOverrideValidator;
 import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.SessionProperties;
@@ -110,7 +110,7 @@ public class KsqlResource implements KsqlConfigurable {
   private final ActivenessRegistrar activenessRegistrar;
   private final BiFunction<KsqlExecutionContext, ServiceContext, Injector> injectorFactory;
   private final Optional<KsqlAuthorizationValidator> authorizationValidator;
-  private final DenyListPropertyValidator denyListPropertyValidator;
+  private final ConfigOverrideValidator configOverrideValidator;
   private final Supplier<String> commandRunnerWarning;
   private RequestValidator validator;
   private RequestHandler handler;
@@ -125,7 +125,7 @@ public class KsqlResource implements KsqlConfigurable {
       final ActivenessRegistrar activenessRegistrar,
       final Optional<KsqlAuthorizationValidator> authorizationValidator,
       final Errors errorHandler,
-      final DenyListPropertyValidator denyListPropertyValidator
+      final ConfigOverrideValidator configOverrideValidator
   ) {
     this(
         ksqlEngine,
@@ -135,7 +135,7 @@ public class KsqlResource implements KsqlConfigurable {
         Injectors.DEFAULT,
         authorizationValidator,
         errorHandler,
-        denyListPropertyValidator,
+        configOverrideValidator,
         commandRunner::getCommandRunnerDegradedWarning
     );
   }
@@ -148,7 +148,7 @@ public class KsqlResource implements KsqlConfigurable {
       final BiFunction<KsqlExecutionContext, ServiceContext, Injector> injectorFactory,
       final Optional<KsqlAuthorizationValidator> authorizationValidator,
       final Errors errorHandler,
-      final DenyListPropertyValidator denyListPropertyValidator,
+      final ConfigOverrideValidator configOverrideValidator,
       final Supplier<String> commandRunnerWarning
   ) {
     this.ksqlEngine = Objects.requireNonNull(ksqlEngine, "ksqlEngine");
@@ -161,8 +161,8 @@ public class KsqlResource implements KsqlConfigurable {
     this.authorizationValidator = Objects
         .requireNonNull(authorizationValidator, "authorizationValidator");
     this.errorHandler = Objects.requireNonNull(errorHandler, "errorHandler");
-    this.denyListPropertyValidator =
-        Objects.requireNonNull(denyListPropertyValidator, "denyListPropertyValidator");
+    this.configOverrideValidator =
+        Objects.requireNonNull(configOverrideValidator, "configOverrideValidator");
     this.commandRunnerWarning =
         Objects.requireNonNull(commandRunnerWarning, "commandRunnerWarning");
   }
@@ -224,7 +224,7 @@ public class KsqlResource implements KsqlConfigurable {
     ensureValidPatterns(request.getDeleteTopicList());
     try {
       final Map<String, Object> streamsProperties = request.getStreamsProperties();
-      denyListPropertyValidator.validateAll(streamsProperties);
+      configOverrideValidator.validateAll(streamsProperties);
 
       final KsqlEntityList entities = handler.execute(
           securityContext,
@@ -250,7 +250,7 @@ public class KsqlResource implements KsqlConfigurable {
       final KsqlConfigResolver resolver = new KsqlConfigResolver();
       final Optional<ConfigItem> resolvedItem = resolver.resolve(property, false);
       ConfigOverrideLogger.logOverrides("SET", properties);
-      denyListPropertyValidator.validateAll(properties);
+      configOverrideValidator.validateAll(properties);
       if (ksqlEngine.getKsqlConfig().getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)
           && resolvedItem.isPresent()) {
         if (!PropertiesList.QueryLevelProperties.contains(resolvedItem.get().getPropertyName())) {
@@ -295,7 +295,7 @@ public class KsqlResource implements KsqlConfigurable {
 
       final Map<String, Object> configProperties = request.getConfigOverrides();
       ConfigOverrideLogger.logOverrides("/ksql", configProperties);
-      denyListPropertyValidator.validateAll(configProperties);
+      configOverrideValidator.validateAll(configProperties);
 
       final KsqlRequestConfig requestConfig =
           new KsqlRequestConfig(request.getRequestProperties());

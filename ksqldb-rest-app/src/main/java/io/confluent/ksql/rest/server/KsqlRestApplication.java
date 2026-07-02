@@ -52,7 +52,6 @@ import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.properties.ConfigOverrideValidator;
 import io.confluent.ksql.properties.ConfigOverrideValidatorFactory;
-import io.confluent.ksql.properties.DenyListPropertyValidator;
 import io.confluent.ksql.properties.PropertiesUtil;
 import io.confluent.ksql.query.id.SpecificQueryIdGenerator;
 import io.confluent.ksql.rest.ErrorMessages;
@@ -358,10 +357,6 @@ public final class KsqlRestApplication implements Executable {
 
     startAsyncThreadRef.set(Thread.currentThread());
     try {
-      // The Vert.x HTTP/2 endpoints (/query-stream, /inserts-stream) stay on the denylist for
-      // now; allowlist enforcement for those is handled in a separate change.
-      final DenyListPropertyValidator denyListPropertyValidator = new DenyListPropertyValidator(
-          ksqlConfigNoPort.getList(KsqlConfig.KSQL_PROPERTIES_OVERRIDES_DENYLIST));
       final Endpoints endpoints = new KsqlServerEndpoints(
           ksqlEngine,
           ksqlConfigNoPort,
@@ -379,7 +374,7 @@ public final class KsqlRestApplication implements Executable {
           pullQueryMetrics,
           queryExecutor,
           securityExtension.getAuthTokenProvider(),
-          denyListPropertyValidator
+          configOverrideValidator
       );
       apiServer = new Server(vertx, ksqlRestConfig, endpoints, securityExtension,
           authenticationPlugin, serverState, pullQueryMetrics);

@@ -30,7 +30,7 @@ import io.confluent.ksql.api.server.MetricsCallbackHolder;
 import io.confluent.ksql.api.spi.Endpoints;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.internal.PullQueryExecutorMetrics;
-import io.confluent.ksql.properties.DenyListPropertyValidator;
+import io.confluent.ksql.properties.ConfigOverrideValidator;
 import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.entity.ClusterTerminateRequest;
 import io.confluent.ksql.rest.entity.HeartbeatMessage;
@@ -91,7 +91,7 @@ public class KsqlServerEndpoints implements Endpoints {
   private final Optional<PullQueryExecutorMetrics> pullQueryMetrics;
   private final QueryExecutor queryExecutor;
   private final Optional<KsqlAuthTokenProvider> authTokenProvider;
-  private final DenyListPropertyValidator denyListPropertyValidator;
+  private final ConfigOverrideValidator configOverrideValidator;
 
   // CHECKSTYLE_RULES.OFF: ParameterNumber
   @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
@@ -112,7 +112,7 @@ public class KsqlServerEndpoints implements Endpoints {
       final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
       final QueryExecutor queryExecutor,
       final Optional<KsqlAuthTokenProvider> authTokenProvider,
-      final DenyListPropertyValidator denyListPropertyValidator
+      final ConfigOverrideValidator configOverrideValidator
   ) {
 
     // CHECKSTYLE_RULES.ON: ParameterNumber
@@ -133,8 +133,8 @@ public class KsqlServerEndpoints implements Endpoints {
     this.pullQueryMetrics = Objects.requireNonNull(pullQueryMetrics);
     this.queryExecutor = queryExecutor;
     this.authTokenProvider = authTokenProvider;
-    this.denyListPropertyValidator =
-        Objects.requireNonNull(denyListPropertyValidator, "denyListPropertyValidator");
+    this.configOverrideValidator =
+        Objects.requireNonNull(configOverrideValidator, "configOverrideValidator");
   }
 
   @Override
@@ -333,7 +333,7 @@ public class KsqlServerEndpoints implements Endpoints {
 
   private void validateProperties(final Map<String, Object> properties) {
     try {
-      denyListPropertyValidator.validateAll(properties);
+      configOverrideValidator.validateAll(properties);
     } catch (KsqlException e) {
       throw new KsqlApiException(e.getMessage(), ERROR_CODE_BAD_REQUEST);
     }

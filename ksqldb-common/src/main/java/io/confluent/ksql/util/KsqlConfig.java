@@ -662,14 +662,15 @@ public class KsqlConfig extends AbstractConfig {
   public static final String KSQL_PROPERTIES_OVERRIDES_DENYLIST =
       "ksql.properties.overrides.denylist";
   private static final String KSQL_PROPERTIES_OVERRIDES_DENYLIST_DOC = "Comma-separated list of "
-      + "properties that KSQL users cannot override.";
+      + "properties that KSQL users cannot override "
+      + "when ksql.properties.overrides.validation.mode = denylist";
 
   public static final String KSQL_PROPERTIES_OVERRIDES_ALLOWLIST =
       "ksql.properties.overrides.allowlist";
   private static final String KSQL_PROPERTIES_OVERRIDES_ALLOWLIST_DOC = "Comma-separated list of "
-      + "property names permitted as overrides when "
-      + "ksql.properties.overrides.validation.mode = allowlist. "
-      + "Note: this list is not currently consulted; 'allowlist' mode is not enforced.";
+      + "properties permitted as overrides "
+      + "when ksql.properties.overrides.validation.mode = allowlist. "
+      + "Entries must be exact names, wildcard/glob entries are rejected." ;
 
   public static final String KSQL_PROPERTIES_OVERRIDES_VALIDATION_MODE =
       "ksql.properties.overrides.validation.mode";
@@ -681,9 +682,7 @@ public class KsqlConfig extends AbstractConfig {
       "Validation mode for property overrides on REST endpoints. Allowed values: 'denylist' "
           + "(default behavior - reject names listed in "
           + KSQL_PROPERTIES_OVERRIDES_DENYLIST + "), 'allowlist' (only permit names listed in "
-          + KSQL_PROPERTIES_OVERRIDES_ALLOWLIST + "). "
-          + "Note: only 'denylist' mode is currently enforced; setting this to 'allowlist' "
-          + "has no effect on validation.";
+          + KSQL_PROPERTIES_OVERRIDES_ALLOWLIST + ").";
 
   public static final String KSQL_PROPERTIES_OVERRIDES_LOG =
       "ksql.properties.overrides.log";

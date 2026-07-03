@@ -27,7 +27,7 @@ import io.confluent.ksql.parser.tree.PrintTopic;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.properties.ConfigOverrideLogger;
-import io.confluent.ksql.properties.DenyListPropertyValidator;
+import io.confluent.ksql.properties.ConfigOverrideValidator;
 import io.confluent.ksql.rest.ApiJsonMapper;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.entity.KsqlMediaType;
@@ -71,7 +71,7 @@ public class WSQueryEndpoint {
   private final Duration commandQueueCatchupTimeout;
   private final Optional<KsqlAuthorizationValidator> authorizationValidator;
   private final Errors errorHandler;
-  private final DenyListPropertyValidator denyListPropertyValidator;
+  private final ConfigOverrideValidator configOverrideValidator;
   private final QueryExecutor queryExecutor;
 
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
@@ -86,7 +86,7 @@ public class WSQueryEndpoint {
       final Duration commandQueueCatchupTimeout,
       final Optional<KsqlAuthorizationValidator> authorizationValidator,
       final Errors errorHandler,
-      final DenyListPropertyValidator denyListPropertyValidator,
+      final ConfigOverrideValidator configOverrideValidator,
       final QueryExecutor queryExecutor
   ) {
     this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
@@ -102,8 +102,8 @@ public class WSQueryEndpoint {
     this.authorizationValidator =
         Objects.requireNonNull(authorizationValidator, "authorizationValidator");
     this.errorHandler = Objects.requireNonNull(errorHandler, "errorHandler");
-    this.denyListPropertyValidator =
-        Objects.requireNonNull(denyListPropertyValidator, "denyListPropertyValidator");
+    this.configOverrideValidator =
+        Objects.requireNonNull(configOverrideValidator, "configOverrideValidator");
     this.queryExecutor = queryExecutor;
   }
 
@@ -206,7 +206,7 @@ public class WSQueryEndpoint {
       // To validate props:
       final Map<String, Object> configProperties = request.getConfigOverrides();
       ConfigOverrideLogger.logOverrides("/ws/query", configProperties);
-      denyListPropertyValidator.validateAll(configProperties);
+      configOverrideValidator.validateAll(configProperties);
       return request;
     } catch (final Exception e) {
       throw new IllegalArgumentException("Error parsing request: " + e.getMessage(), e);

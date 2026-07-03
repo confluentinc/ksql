@@ -20,6 +20,6 @@ output should resemble:
 {
   "@type": "generic_error",
   "error_code": 40000,
-  "message": "One or more properties overrides set locally are prohibited by the KSQL server (use UNSET to reset their default value): [ksql.service.id]"
+  "message": "One or more properties overrides set locally are prohibited by the KSQL server denylist (use UNSET to reset their default value): [ksql.service.id]"
 }
 ```

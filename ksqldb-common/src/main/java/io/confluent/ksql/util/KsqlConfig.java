@@ -662,12 +662,14 @@ public class KsqlConfig extends AbstractConfig {
   public static final String KSQL_PROPERTIES_OVERRIDES_DENYLIST =
       "ksql.properties.overrides.denylist";
   private static final String KSQL_PROPERTIES_OVERRIDES_DENYLIST_DOC = "Comma-separated list of "
-      + "properties that KSQL users cannot override when ksql.properties.overrides.validation.mode = denylist";
+      + "properties that KSQL users cannot override "
+      + "when ksql.properties.overrides.validation.mode = denylist";
 
   public static final String KSQL_PROPERTIES_OVERRIDES_ALLOWLIST =
       "ksql.properties.overrides.allowlist";
   private static final String KSQL_PROPERTIES_OVERRIDES_ALLOWLIST_DOC = "Comma-separated list of "
-      + "properties permitted as overrides when ksql.properties.overrides.validation.mode = allowlist. "
+      + "properties permitted as overrides "
+      + "when ksql.properties.overrides.validation.mode = allowlist. "
       + "Entries must be exact names, wildcard/glob entries are rejected." ;
 
   public static final String KSQL_PROPERTIES_OVERRIDES_VALIDATION_MODE =

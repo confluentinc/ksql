@@ -35,6 +35,7 @@ import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.UnsetProperty;
 import io.confluent.ksql.properties.ConfigOverrideLogger;
 import io.confluent.ksql.properties.ConfigOverrideValidator;
+import io.confluent.ksql.properties.PropertyNotFoundException;
 import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.SessionProperties;
@@ -248,12 +249,15 @@ public class KsqlResource implements KsqlConfigurable {
       final Map<String, Object> properties = new HashMap<>();
       properties.put(property, "");
       final KsqlConfigResolver resolver = new KsqlConfigResolver();
-      final Optional<ConfigItem> resolvedItem = resolver.resolve(property, false);
+      // Reject unknown property names up front with the same PropertyNotFoundException that the
+      // /ksql, /query and /ws/query paths throw as an "unrecognized property" error
+      // rather than a misleading allow/deny-list rejection.
+      final ConfigItem resolvedItem = resolver.resolve(property, true)
+          .orElseThrow(() -> new PropertyNotFoundException(property));
       ConfigOverrideLogger.logOverrides("SET", properties);
       configOverrideValidator.validateAll(properties);
-      if (ksqlEngine.getKsqlConfig().getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)
-          && resolvedItem.isPresent()) {
-        if (!PropertiesList.QueryLevelProperties.contains(resolvedItem.get().getPropertyName())) {
+      if (ksqlEngine.getKsqlConfig().getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)) {
+        if (!PropertiesList.QueryLevelProperties.contains(resolvedItem.getPropertyName())) {
           throw new KsqlException(String.format("When shared runtimes are enabled, the"
               + " config %s can only be set for the entire cluster and all queries currently"
               + " running in it, and not configurable for individual queries."
@@ -262,7 +266,10 @@ public class KsqlResource implements KsqlConfigurable {
         }
       }
       return EndpointResponse.ok(true);
-    } catch (final KsqlException e) {
+    } catch (final PropertyNotFoundException | KsqlException e) {
+      // Unknown property name (PropertyNotFoundException) and denylist/allowlist rejections
+      // (KsqlException) both map to 400 per the documented /is_valid_property contract
+      // ({"@type":"generic_error","error_code":40000}).
       LOG.info("Processed unsuccessfully, reason: ", e);
       return errorHandler.generateResponse(e, Errors.badRequest(e));
     } catch (final Exception e) {
@@ -422,3 +429,4 @@ public class KsqlResource implements KsqlConfigurable {
     }
   }
 }
+

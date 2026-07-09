@@ -26,6 +26,7 @@ import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.hasKey;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.errors.LogMetricAndContinueExceptionHandler;
 import io.confluent.ksql.errors.ProductionExceptionHandlerUtil.LogAndContinueProductionExceptionHandler;
@@ -603,6 +604,33 @@ public class KsqlConfigTest {
     assertThat(ksqlConfig.getProducerClientConfigProps(), hasEntry(ProducerConfig.ACKS_CONFIG, "all"));
     assertThat(ksqlConfig.getProducerClientConfigProps(), hasEntry(ProducerConfig.CLIENT_ID_CONFIG, null));
     assertThat(ksqlConfig.getProducerClientConfigProps(), not(hasKey("not.a.config")));
+  }
+
+  @Test
+  public void shouldPassCustomSaslLoginCallbackConfigsToInternalClients() {
+    // Given: a Confluent Cloud OAUTHBEARER/LAT deployment supplies custom login-callback configs
+    // (token.platform.*, spire.*) that are not registered admin/producer/consumer config names.
+    final Map<String, Object> configs = new HashMap<>();
+    configs.put("token.platform.credentials.path", "/mnt/secrets/creds.properties");
+    configs.put("token.platform.logical.cluster.id", "lkc-123");
+    configs.put("spire.agent.url", "unix:///opt/spire/sockets/workload_api.sock");
+    configs.put("not.a.config", "123");
+
+    final KsqlConfig ksqlConfig = new KsqlConfig(configs);
+
+    // Then: they reach the admin/producer/consumer clients (so IssueLatCallback can configure),
+    // while unrelated custom configs stay filtered out.
+    for (final Map<String, Object> clientConfigs : ImmutableList.of(
+        ksqlConfig.getKsqlAdminClientConfigProps(),
+        ksqlConfig.getProducerClientConfigProps(),
+        ksqlConfig.getConsumerClientConfigProps())) {
+      assertThat(clientConfigs,
+          hasEntry("token.platform.credentials.path", "/mnt/secrets/creds.properties"));
+      assertThat(clientConfigs, hasEntry("token.platform.logical.cluster.id", "lkc-123"));
+      assertThat(clientConfigs,
+          hasEntry("spire.agent.url", "unix:///opt/spire/sockets/workload_api.sock"));
+      assertThat(clientConfigs, not(hasKey("not.a.config")));
+    }
   }
 
   @Test

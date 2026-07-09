@@ -101,6 +101,18 @@ public class KsqlConfig extends AbstractConfig {
           CommonClientConfigs.METRICS_CONTEXT_PREFIX
       );
 
+  // A custom sasl.login.callback.handler.class may require additional configs (here under the
+  // token.platform.* and spire.* prefixes) that are not registered
+  // AdminClient/Producer/Consumer config names. getConfigsFor(...configNames()) would strip them,
+  // so the login callback's configure() fails with "Missing required configuration ..." when an
+  // internal client is built (e.g. KafkaClusterUtil.getKafkaClusterId on startup). Pass these
+  // prefixes through so such clients can be configured. No-op when the keys are absent.
+  private static final Set<String> INTERNAL_CLIENT_CUSTOM_SASL_PREFIXES =
+      ImmutableSet.of(
+          "token.platform.",
+          "spire."
+      );
+
   public static final String KSQL_INTERNAL_TOPIC_REPLICAS_PROPERTY = "ksql.internal.topic.replicas";
 
   public static final String KSQL_INTERNAL_TOPIC_MIN_INSYNC_REPLICAS_PROPERTY =
@@ -1859,6 +1871,7 @@ public class KsqlConfig extends AbstractConfig {
   public Map<String, Object> getKsqlAdminClientConfigProps() {
     final Map<String, Object> map = new HashMap<>();
     map.putAll(getConfigsFor(AdminClientConfig.configNames()));
+    map.putAll(getConfigsForPrefix(INTERNAL_CLIENT_CUSTOM_SASL_PREFIXES));
     // admin client metrics aren't used in Confluent deployment
     possiblyConfigureConfluentTelemetry(map);
     return Collections.unmodifiableMap(map);
@@ -1867,6 +1880,7 @@ public class KsqlConfig extends AbstractConfig {
   public Map<String, Object> getProducerClientConfigProps() {
     final Map<String, Object> map = new HashMap<>();
     map.putAll(getConfigsFor(ProducerConfig.configNames()));
+    map.putAll(getConfigsForPrefix(INTERNAL_CLIENT_CUSTOM_SASL_PREFIXES));
     // producer client metrics aren't used in Confluent deployment
     possiblyConfigureConfluentTelemetry(map);
     return Collections.unmodifiableMap(map);
@@ -1875,6 +1889,7 @@ public class KsqlConfig extends AbstractConfig {
   public Map<String, Object> getConsumerClientConfigProps() {
     final Map<String, Object> map = new HashMap<>();
     map.putAll(getConfigsFor(ConsumerConfig.configNames()));
+    map.putAll(getConfigsForPrefix(INTERNAL_CLIENT_CUSTOM_SASL_PREFIXES));
     // consumer client metrics aren't used in Confluent deployment
     possiblyConfigureConfluentTelemetry(map);
     return Collections.unmodifiableMap(map);

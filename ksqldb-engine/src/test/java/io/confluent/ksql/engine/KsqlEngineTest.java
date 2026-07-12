@@ -2844,7 +2844,7 @@ public class KsqlEngineTest {
     // Given:
     setupKsqlEngineWithSharedRuntimeEnabled();
     final KsqlConfig config
-        = new KsqlConfig(ImmutableMap.of(StreamsConfig.APPLICATION_SERVER_CONFIG, "foo:bar//"));
+        = new KsqlConfig(ImmutableMap.of(StreamsConfig.APPLICATION_SERVER_CONFIG, "foo:1234"));
 
     // When:
     ksqlEngine.configure(config);

@@ -130,7 +130,6 @@ public final class TopicProperties {
       fromSource = Suppliers.memoize(() -> {
         final TopicDescription description = descriptionSupplier.get();
         final Integer partitions = description.partitions().size();
-        final Short replicas = (short) description.partitions().get(0).replicas().size();
 
         final Map<String, String> configs = configsSupplier.get();
         final Long retentionMs = Long.parseLong(
@@ -138,7 +137,13 @@ public final class TopicProperties {
                 TopicConfig.RETENTION_MS_CONFIG, String.valueOf(DEFAULT_RETENTION_IN_MS)))
         );
 
-        return new TopicProperties(null, partitions, replicas, retentionMs);
+        // Do not inherit the source topic's described replication factor for the created sink
+        // topic. Some Kafka clusters report a describe-time replication factor that differs from
+        // the cluster's actual default and reject a CreateTopics whose explicit replication factor
+        // does not match that default. Leaving replicas unset (null) lets it fall through to
+        // DEFAULT_REPLICAS (-1), which createTopic resolves to the cluster's default RF; partitions
+        // are still inherited from the source so the sink stays co-partitioned.
+        return new TopicProperties(null, partitions, null, retentionMs);
       });
       return this;
     }

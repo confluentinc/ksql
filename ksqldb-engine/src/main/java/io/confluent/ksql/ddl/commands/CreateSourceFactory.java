@@ -19,6 +19,7 @@ import static java.util.Objects.requireNonNull;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Iterables;
+import io.confluent.ksql.exception.KafkaResponseGetFailedException;
 import io.confluent.ksql.execution.ddl.commands.CreateStreamCommand;
 import io.confluent.ksql.execution.ddl.commands.CreateTableCommand;
 import io.confluent.ksql.execution.plan.Formats;
@@ -293,7 +294,14 @@ public final class CreateSourceFactory {
       final ServiceContext serviceContext
   ) {
     final String kafkaTopicName = properties.getKafkaTopic();
-    if (!serviceContext.getTopicClient().isTopicExists(kafkaTopicName)) {
+    // Wait for the topic's metadata to propagate rather than doing a single fast existence check.
+    // describeTopic retries UNKNOWN_TOPIC_OR_PARTITION within the configurable admin-request retry
+    // window (see KsqlConfig.KSQL_ADMIN_REQUEST_RETRY_TIMEOUT_MS_CONFIG), so a just-created topic
+    // on a backend with slower metadata propagation is waited for instead of failing immediately.
+    // isTopicExists deliberately does NOT retry UNKNOWN_TOPIC_OR_PARTITION, so it is not used here.
+    try {
+      serviceContext.getTopicClient().describeTopic(kafkaTopicName);
+    } catch (final KafkaResponseGetFailedException e) {
       throw new KsqlException("Kafka topic does not exist: " + kafkaTopicName);
     }
 

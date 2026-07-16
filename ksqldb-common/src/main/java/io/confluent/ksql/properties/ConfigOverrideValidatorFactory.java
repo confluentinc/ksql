@@ -24,10 +24,10 @@ import org.slf4j.LoggerFactory;
  * Selects the active {@link ConfigOverrideValidator} for a server from
  * {@code ksql.properties.overrides.validation.mode}.
  *
- * <p>Exactly one validator runs per server. When the mode is {@code allowlist} the denylist is not
- * consulted at all (allowlist wins); when it is {@code denylist} (the default) the allowlist is not
- * consulted. Selection is driven solely by the mode &mdash; a populated allowlist does not
- * implicitly activate allowlist enforcement.
+ * <p>Exactly one validator runs per server. Selection is driven solely by the mode.
+ * Default mode is {@link KsqlConfig#KSQL_PROPERTIES_OVERRIDES_VALIDATION_MODE_DENYLIST}, which
+ * uses {@link DenyListPropertyValidator}.
+ * </p>
  */
 public final class ConfigOverrideValidatorFactory {
 

@@ -91,26 +91,10 @@ public class AllowListPropertyValidatorTest {
   }
 
   @Test
-  public void shouldRejectServiceIdEvenWhenAllowlisted() {
-    // Given: an admin mistakenly allowlists the service id
+  public void shouldRejectAlwaysDeniedFloorKeysEvenWhenAllowlisted() {
+    // Given: an admin mistakenly allowlists the service id and the override policy knobs
     final AllowListPropertyValidator validator = new AllowListPropertyValidator(Arrays.asList(
-        KsqlConfig.KSQL_SERVICE_ID_CONFIG
-    ));
-
-    // When:
-    final KsqlException e = assertThrows(
-        KsqlException.class,
-        () -> validator.validateAll(ImmutableMap.of(KsqlConfig.KSQL_SERVICE_ID_CONFIG, "x"))
-    );
-
-    // Then:
-    assertThat(e.getMessage(), containsString(KsqlConfig.KSQL_SERVICE_ID_CONFIG));
-  }
-
-  @Test
-  public void shouldRejectOverridePolicyKnobsEvenWhenAllowlisted() {
-    // Given: an admin mistakenly allowlists the policy knobs
-    final AllowListPropertyValidator validator = new AllowListPropertyValidator(Arrays.asList(
+        KsqlConfig.KSQL_SERVICE_ID_CONFIG,
         KsqlConfig.KSQL_PROPERTIES_OVERRIDES_ALLOWLIST,
         KsqlConfig.KSQL_PROPERTIES_OVERRIDES_VALIDATION_MODE
     ));
@@ -119,36 +103,30 @@ public class AllowListPropertyValidatorTest {
     final KsqlException e = assertThrows(
         KsqlException.class,
         () -> validator.validateAll(ImmutableMap.of(
+            KsqlConfig.KSQL_SERVICE_ID_CONFIG, "x",
             KsqlConfig.KSQL_PROPERTIES_OVERRIDES_VALIDATION_MODE, "denylist"))
     );
 
     // Then:
+    assertThat(e.getMessage(), containsString(KsqlConfig.KSQL_SERVICE_ID_CONFIG));
     assertThat(e.getMessage(),
         containsString(KsqlConfig.KSQL_PROPERTIES_OVERRIDES_VALIDATION_MODE));
   }
 
   @Test
-  public void shouldRejectWildcardAllowlistEntryAtConstruction() {
+  public void shouldRejectWildcardOrGlobAllowlistEntriesAtConstruction() {
     // When:
     final KsqlException e = assertThrows(
         KsqlException.class,
-        () -> new AllowListPropertyValidator(Arrays.asList("ksql.functions.*"))
+        () -> new AllowListPropertyValidator(Arrays.asList(
+            "ksql.functions.*",
+            "auto.offset.rese?"
+        ))
     );
 
     // Then:
     assertThat(e.getMessage(), containsString("wildcard"));
     assertThat(e.getMessage(), containsString("ksql.functions.*"));
-  }
-
-  @Test
-  public void shouldRejectQuestionMarkAllowlistEntryAtConstruction() {
-    // When:
-    final KsqlException e = assertThrows(
-        KsqlException.class,
-        () -> new AllowListPropertyValidator(Arrays.asList("auto.offset.rese?"))
-    );
-
-    // Then:
-    assertThat(e.getMessage(), containsString("wildcard"));
+    assertThat(e.getMessage(), containsString("auto.offset.rese?"));
   }
 }

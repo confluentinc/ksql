@@ -27,24 +27,15 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
- * Validates property overrides against an allowlist: any property whose name is not in the
- * configured allowlist is rejected (deny-by-default). This is the inverse of
- * {@link DenyListPropertyValidator} and the stricter of the two policies.
+ * Class that validates if a property, or list of property overrides are part of allowed properties:
+ * any property whose name is not in the configured allowlist is rejected (deny-by-default).
+ * This is the inverse of {@link DenyListPropertyValidator} and the stricter of the two policies.
  *
  * <p>Notes on behavior:
  * <ul>
- *   <li><b>Exact-name matching only.</b> Membership is tested against the raw property name, the
- *       same way the denylist works today. Prefixed variants (e.g. {@code auto.offset.reset} vs.
- *       {@code ksql.streams.auto.offset.reset}) are distinct entries. Canonicalization is tracked
- *       separately and not done here.</li>
- *   <li><b>No wildcards.</b> Allowlist entries must be exact property names; entries containing
- *       glob/regex meta-characters ({@code *} or {@code ?}) are rejected at construction time so a
- *       broad pattern cannot silently re-open the "allow arbitrary prefix" hole.</li>
- *   <li><b>Always-denied floor.</b> A small set of server-owned keys (the service id and the
- *       {@code ksql.properties.overrides.*} policy knobs) is removed from the effective allowlist
- *       so they can never be permitted, even if listed by mistake. Mirrors how the denylist
- *       force-adds the service id.</li>
- *   <li><b>Empty allowlist is fail-closed.</b> An empty allowlist rejects every override.</li>
+ *   <li><b>Exact-name matching only.</li>
+ *   <li><b>No wildcards.</b> </li>
+ *   <li><b>Empty allowlist is fail-closed.</li>
  * </ul>
  */
 public class AllowListPropertyValidator implements ConfigOverrideValidator {
@@ -58,12 +49,12 @@ public class AllowListPropertyValidator implements ConfigOverrideValidator {
       KsqlConfig.KSQL_PROPERTIES_OVERRIDES_LOG
   );
 
-  private final Set<String> allowed;
+  private final Set<String> allowedProps;
 
   public AllowListPropertyValidator(final Collection<String> allowlist) {
     Objects.requireNonNull(allowlist, "allowlist");
     rejectWildcards(allowlist);
-    this.allowed = Sets.difference(ImmutableSet.copyOf(allowlist), ALWAYS_DENIED).immutableCopy();
+    this.allowedProps = Sets.difference(ImmutableSet.copyOf(allowlist), ALWAYS_DENIED).immutableCopy();
   }
 
   /**
@@ -72,11 +63,11 @@ public class AllowListPropertyValidator implements ConfigOverrideValidator {
    */
   @Override
   public void validateAll(final Map<String, Object> properties) {
-    final Set<String> notAllowed = Sets.difference(properties.keySet(), allowed);
-    if (!notAllowed.isEmpty()) {
+    final Set<String> notAllowedProps = Sets.difference(properties.keySet(), allowedProps);
+    if (!notAllowedProps.isEmpty()) {
       throw new KsqlException(String.format("One or more property overrides set locally are "
           + "not permitted by the KSQL server allowlist (use UNSET to reset their default "
-          + "value): %s", notAllowed));
+          + "value): %s", notAllowedProps));
     }
   }
 

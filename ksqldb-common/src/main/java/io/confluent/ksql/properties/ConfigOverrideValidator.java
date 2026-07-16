@@ -25,7 +25,7 @@ import java.util.Map;
  * {@code ksql.properties.overrides.validation.mode}:
  * <ul>
  *   <li>{@link DenyListPropertyValidator} &mdash; rejects a fixed set of prohibited names
- *       (default, today's behavior).</li>
+ *       (default).</li>
  *   <li>{@link AllowListPropertyValidator} &mdash; rejects anything not explicitly permitted
  *       (deny-by-default).</li>
  * </ul>

@@ -33,9 +33,9 @@ import java.util.stream.Collectors;
  *
  * <p>Notes on behavior:
  * <ul>
- *   <li><b>Exact-name matching only.</li>
+ *   <li><b>Exact-name matching only.</b></li>
  *   <li><b>No wildcards.</b> </li>
- *   <li><b>Empty allowlist is fail-closed.</li>
+ *   <li><b>Empty allowlist is fail-closed.</b> </li>
  * </ul>
  */
 public class AllowListPropertyValidator implements ConfigOverrideValidator {
@@ -54,7 +54,8 @@ public class AllowListPropertyValidator implements ConfigOverrideValidator {
   public AllowListPropertyValidator(final Collection<String> allowlist) {
     Objects.requireNonNull(allowlist, "allowlist");
     rejectWildcards(allowlist);
-    this.allowedProps = Sets.difference(ImmutableSet.copyOf(allowlist), ALWAYS_DENIED).immutableCopy();
+    this.allowedProps = Sets.difference(ImmutableSet.copyOf(allowlist), ALWAYS_DENIED)
+                        .immutableCopy();
   }
 
   /**

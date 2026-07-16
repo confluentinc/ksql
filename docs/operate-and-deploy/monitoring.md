@@ -22,7 +22,9 @@ it in a Docker-based deployment, export an environment variable named
 `KSQL_JMX_OPTS` with your JMX configuration and expose the port that
 JMX will communicate over.
 
-Remote JMX requires `KSQL_JMX_OPTS` to configure authentication and TLS.
+Remote JMX requires `KSQL_JMX_OPTS` to be set explicitly. Configure
+authentication and TLS in `KSQL_JMX_OPTS`; the server refuses to start
+if `JMX_PORT` is set without `KSQL_JMX_OPTS`.
 
 The following Docker Compose example shows how you can configure
 monitoring for ksqlDB server. The surrounding components, like the
@@ -63,11 +65,11 @@ With respect to monitoring, here it what this does:
 - The environment variable `KSQL_JMX_OPTS` is supplied to the server
   with various arguments. The `>` character lets you write a
   multi-line string in Yaml, which makes this long argument easier to
-  read. The example enables JMX authentication (via a password file),
-  a JMX access-control file, and SSL. JMX has a wide range of
-  [configuration
-  options](https://docs.oracle.com/javase/8/docs/technotes/guides/management/agent.html);
-  the flags shown are the minimum required for remote access.
+  read. The example is a secure baseline: JMX authentication (via a
+  password file), a JMX access-control file, and SSL. Adjust the
+  advertised hostname and ports for your environment. JMX has a wide
+  range of [configuration
+  options](https://docs.oracle.com/javase/8/docs/technotes/guides/management/agent.html).
 
 - `jmxremote.password.file` and `jmxremote.access.file` must be mounted
   into the container with `chmod 0600` (password file) and `chmod 0644`

@@ -119,9 +119,10 @@ KSQL_LOG4J_OPTS
 KSQL_JMX_OPTS
 
 :   Specifies ksqlDB metrics options by using Java Management Extensions
-    (JMX). Remote JMX requires `KSQL_JMX_OPTS` to configure authentication
-    and TLS. The following example command enables remote JMX with a
-    password file, an access-control file, and SSL.
+    (JMX). Remote JMX requires `KSQL_JMX_OPTS` to be set explicitly; the
+    server refuses to start if `JMX_PORT` is set without `KSQL_JMX_OPTS`.
+    The following example is a secure baseline that enables remote JMX
+    with a password file, an access-control file, and SSL.
 
     ```bash
     export KSQL_JMX_OPTS="-Dcom.sun.management.jmxremote \

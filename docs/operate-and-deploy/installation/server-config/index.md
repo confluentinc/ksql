@@ -119,14 +119,20 @@ KSQL_LOG4J_OPTS
 KSQL_JMX_OPTS
 
 :   Specifies ksqlDB metrics options by using Java Management Extensions
-    (JMX). The following example command sets the default JMX configuration.
+    (JMX). Remote JMX requires `KSQL_JMX_OPTS` to configure authentication
+    and TLS. The following example command enables remote JMX with a
+    password file, an access-control file, and SSL.
 
     ```bash
-    export KSQL_JMX_OPTS="-Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false "
+    export KSQL_JMX_OPTS="-Dcom.sun.management.jmxremote \
+      -Dcom.sun.management.jmxremote.authenticate=true \
+      -Dcom.sun.management.jmxremote.password.file=/etc/ksqldb/jmxremote.password \
+      -Dcom.sun.management.jmxremote.access.file=/etc/ksqldb/jmxremote.access \
+      -Dcom.sun.management.jmxremote.ssl=true"
     ```
 
     For more information, see
-    [Monitoring and Management Using JMX Technology](https://docs.oracle.com/en/java/javase/11/management/monitoring-and-management-using-jmx-technology.html).
+    [Monitoring and Management Using JMX Technology](https://docs.oracle.com/en/java/javase/17/management/monitoring-and-management-using-jmx-technology.html).
 
 KSQL_HEAP_OPTS
 
@@ -156,10 +162,12 @@ KSQL_JVM_PERFORMANCE_OPTS
 
 JMX_PORT
 
-:   Specifies the port that JMX uses to report metrics.
+:   Specifies the port that JMX uses to report metrics. `JMX_PORT` has
+    no effect unless `KSQL_JMX_OPTS` is also set. The server refuses to
+    start if `JMX_PORT` is set alone.
 
     ```bash
-    export JMX_PORT=1099 
+    export JMX_PORT=1099
     ```
 
 JAVA_HOME

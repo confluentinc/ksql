@@ -160,13 +160,31 @@ fi
 
  KSQL_LOG4J_OPTS="-Dksql.log.dir=$LOG_DIR ${KSQL_LOG4J_OPTS}"
 
-# JMX settings
-if [ -z "$KSQL_JMX_OPTS" ]; then
-  KSQL_JMX_OPTS="-Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false "
+# JMX settings.
+# ksqlDB does not enable remote JMX by default. Remote JMX without
+# authentication is a code-execution primitive for any peer on the network,
+# so KSQL_JMX_OPTS must be set explicitly with authentication and TLS.
+# JMX_PORT alone is refused at startup rather than silently opening an
+# unauthenticated listener.
+if [ -n "$JMX_PORT" ] && [ -z "$KSQL_JMX_OPTS" ]; then
+  echo "" >&2
+  echo "ERROR: JMX_PORT is set but KSQL_JMX_OPTS is empty." >&2
+  echo "Remote JMX must be configured explicitly with authentication." >&2
+  echo "Refusing to start with an unauthenticated JMX listener." >&2
+  echo "" >&2
+  echo "To enable remote JMX securely, set KSQL_JMX_OPTS with, for example:" >&2
+  echo "  -Dcom.sun.management.jmxremote" >&2
+  echo "  -Dcom.sun.management.jmxremote.authenticate=true" >&2
+  echo "  -Dcom.sun.management.jmxremote.password.file=<path>" >&2
+  echo "  -Dcom.sun.management.jmxremote.access.file=<path>" >&2
+  echo "  -Dcom.sun.management.jmxremote.ssl=true" >&2
+  echo "" >&2
+  echo "See https://docs.confluent.io/platform/current/ksqldb/operate-and-deploy/monitoring.html" >&2
+  exit 1
 fi
 
-# JMX port to use
-if [ ! -z "$JMX_PORT" ]; then
+# Append the JMX port to operator-supplied options if requested.
+if [ -n "$JMX_PORT" ]; then
   KSQL_JMX_OPTS="$KSQL_JMX_OPTS -Dcom.sun.management.jmxremote.port=$JMX_PORT "
 fi
 

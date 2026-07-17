@@ -102,6 +102,7 @@ import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.parser.tree.TableElements;
 import io.confluent.ksql.planner.plan.ConfiguredKsqlPlan;
+import io.confluent.ksql.properties.AllowListPropertyValidator;
 import io.confluent.ksql.properties.ConfigOverrideLogger;
 import io.confluent.ksql.properties.DenyListPropertyValidator;
 import io.confluent.ksql.query.id.SequentialQueryIdGenerator;
@@ -2620,13 +2621,22 @@ public class KsqlResourceTest {
 
   @Test
   public void shouldReturnBadRequestWhenIsValidatorIsCalledWithProhibitedProps() {
-    final Map<String, Object> properties = new HashMap<>();
-    properties.put("ksql.service.id", "");
-
-    // Given:
-    doThrow(new KsqlException("deny override")).when(denyListPropertyValidator).validateAll(
-        properties
+    // Given: a real DenyListPropertyValidator; ksql.service.id is always denied.
+    ksqlResource = new KsqlResource(
+        ksqlEngine,
+        commandRunner,
+        DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT,
+        activenessRegistrar,
+        (ec, sc) -> InjectorChain.of(
+            schemaInjectorFactory.apply(sc),
+            topicInjectorFactory.apply(ec),
+            new TopicDeleteInjector(ec, sc)),
+        Optional.of(authorizationValidator),
+        errorsHandler,
+        new DenyListPropertyValidator(ImmutableList.of()),
+        commandRunnerWarning
     );
+    ksqlResource.configure(ksqlConfig);
 
     // When:
     final EndpointResponse response;
@@ -2639,10 +2649,47 @@ public class KsqlResourceTest {
           "SET", ImmutableMap.of("ksql.service.id", "")));
     }
     assertThat(response.getStatus(), equalTo(400));
+    assertThat(((KsqlErrorMessage) response.getEntity()).getMessage(),
+        containsString("prohibited by the KSQL server denylist"));
   }
 
   @Test
-  public void shouldReturnBadRequestWhenIsValidatorIsCalledWithNonQueryLevelProps() {
+  public void shouldReturnBadRequestWhenIsValidatorIsCalledWithPropertyNotOnAllowlist() {
+    // Given: a real AllowListPropertyValidator; ksql.service.id is always denied via the
+    // ALWAYS_DENIED floor, even with an empty configured allowlist.
+    ksqlResource = new KsqlResource(
+        ksqlEngine,
+        commandRunner,
+        DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT,
+        activenessRegistrar,
+        (ec, sc) -> InjectorChain.of(
+            schemaInjectorFactory.apply(sc),
+            topicInjectorFactory.apply(ec),
+            new TopicDeleteInjector(ec, sc)),
+        Optional.of(authorizationValidator),
+        errorsHandler,
+        new AllowListPropertyValidator(ImmutableList.of()),
+        commandRunnerWarning
+    );
+    ksqlResource.configure(ksqlConfig);
+
+    // When:
+    final EndpointResponse response;
+    try (MockedStatic<ConfigOverrideLogger> configOverrideLogger =
+        Mockito.mockStatic(ConfigOverrideLogger.class)) {
+      response = ksqlResource.isValidProperty("ksql.service.id");
+
+      // Then: log fires BEFORE allowlist throws
+      configOverrideLogger.verify(() -> ConfigOverrideLogger.logOverrides(
+          "SET", ImmutableMap.of("ksql.service.id", "")));
+    }
+    assertThat(response.getStatus(), equalTo(400));
+    assertThat(((KsqlErrorMessage) response.getEntity()).getMessage(),
+        containsString("not permitted by the KSQL server allowlist"));
+  }
+
+  @Test
+  public void shouldRejectIsValidPropertyForNonQueryLevelPropertyWhenSharedRuntimeEnabled() {
     final Map<String, Object> properties = new HashMap<>();
     properties.put(StreamsConfig.COMMIT_INTERVAL_MS_CONFIG, "");
     givenKsqlConfigWith(ImmutableMap.of(
@@ -2657,7 +2704,7 @@ public class KsqlResourceTest {
   }
 
   @Test
-  public void shouldNotBadRequestWhenIsValidatorIsCalledWithNonQueryLevelProps() {
+  public void shouldAllowIsValidPropertyForQueryLevelPropertyWhenSharedRuntimeEnabled() {
     final Map<String, Object> properties = new HashMap<>();
     properties.put(StreamsConfig.COMMIT_INTERVAL_MS_CONFIG, "");
     givenKsqlConfigWith(ImmutableMap.of(
@@ -2672,14 +2719,51 @@ public class KsqlResourceTest {
   }
 
   @Test
-  public void shouldThrowOnDenyListValidatorWhenTerminateCluster() {
-    final Map<String, Object> terminateStreamProperties =
-        ImmutableMap.of(DELETE_TOPIC_LIST_PROP, Collections.singletonList("Foo"));
+  public void shouldAllowIsValidPropertyForKnownProperty() {
+    // Given: mocked denyListPropertyValidator never throws.
 
-    // Given:
-    doThrow(new KsqlException("deny override")).when(denyListPropertyValidator).validateAll(
-        terminateStreamProperties
+    // When:
+    final EndpointResponse response =
+        ksqlResource.isValidProperty(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG);
+
+    // Then:
+    assertThat(response.getStatus(), equalTo(200));
+  }
+
+  @Test
+  public void shouldReturnBadRequestWhenIsValidatorIsCalledWithUnknownProperty() {
+    // Given: default ksqlResource; "totally.unknown.property" resolves to no ksql/streams/
+    // consumer/producer config, so PropertyNotFoundException fires before the allow/deny
+    // validator.
+
+    // When:
+    final EndpointResponse response = ksqlResource.isValidProperty("totally.unknown.property");
+
+    // Then:
+    assertThat(response.getStatus(), equalTo(400));
+    assertThat(((KsqlErrorMessage) response.getEntity()).getMessage(),
+        containsString("Not recognizable as ksql, streams, consumer, or producer property"));
+  }
+
+  @Test
+  public void shouldThrowOnDenyListValidatorWhenTerminateCluster() {
+    // Given: a real DenyListPropertyValidator that denies the delete-topic-list
+    // property terminateCluster always sends.
+    ksqlResource = new KsqlResource(
+        ksqlEngine,
+        commandRunner,
+        DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT,
+        activenessRegistrar,
+        (ec, sc) -> InjectorChain.of(
+            schemaInjectorFactory.apply(sc),
+            topicInjectorFactory.apply(ec),
+            new TopicDeleteInjector(ec, sc)),
+        Optional.of(authorizationValidator),
+        errorsHandler,
+        new DenyListPropertyValidator(ImmutableList.of(DELETE_TOPIC_LIST_PROP)),
+        commandRunnerWarning
     );
+    ksqlResource.configure(ksqlConfig);
 
     // When:
     final EndpointResponse response = ksqlResource.terminateCluster(
@@ -2687,12 +2771,44 @@ public class KsqlResourceTest {
         VALID_TERMINATE_REQUEST
     );
 
-    // Then:
-    verify(denyListPropertyValidator).validateAll(terminateStreamProperties);
+    // Then: the denylist check rejects the request as server error (500), not a 400.
     assertThat(response.getStatus(), equalTo(INTERNAL_SERVER_ERROR.code()));
     assertThat(response.getEntity(), instanceOf(KsqlStatementErrorMessage.class));
     assertThat(((KsqlStatementErrorMessage) response.getEntity()).getMessage(),
-        containsString("deny override"));
+        containsString("prohibited by the KSQL server denylist"));
+  }
+
+  @Test
+  public void shouldThrowOnAllowListValidatorWhenTerminateCluster() {
+    // Given: a real AllowListPropertyValidator that does not permit the delete-topic-list
+    // property terminateCluster always sends.
+    ksqlResource = new KsqlResource(
+        ksqlEngine,
+        commandRunner,
+        DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT,
+        activenessRegistrar,
+        (ec, sc) -> InjectorChain.of(
+            schemaInjectorFactory.apply(sc),
+            topicInjectorFactory.apply(ec),
+            new TopicDeleteInjector(ec, sc)),
+        Optional.of(authorizationValidator),
+        errorsHandler,
+        new AllowListPropertyValidator(ImmutableList.of(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG)),
+        commandRunnerWarning
+    );
+    ksqlResource.configure(ksqlConfig);
+
+    // When:
+    final EndpointResponse response = ksqlResource.terminateCluster(
+        securityContext,
+        VALID_TERMINATE_REQUEST
+    );
+
+    // Then: the allowlist check rejects the request as server error (500), not a 400.
+    assertThat(response.getStatus(), equalTo(INTERNAL_SERVER_ERROR.code()));
+    assertThat(response.getEntity(), instanceOf(KsqlStatementErrorMessage.class));
+    assertThat(((KsqlStatementErrorMessage) response.getEntity()).getMessage(),
+        containsString("not permitted by the KSQL server allowlist"));
   }
 
   @Test
@@ -2729,7 +2845,7 @@ public class KsqlResourceTest {
 
   @Test
   public void shouldThrowOnDenyListValidatorWhenHandleKsqlStatement() {
-    // Given:
+    // Given: a real DenyListPropertyValidator that denies the override.
     ksqlResource = new KsqlResource(
         ksqlEngine,
         commandRunner,
@@ -2741,17 +2857,12 @@ public class KsqlResourceTest {
             new TopicDeleteInjector(ec, sc)),
         Optional.of(authorizationValidator),
         errorsHandler,
-        denyListPropertyValidator,
+        new DenyListPropertyValidator(ImmutableList.of(StreamsConfig.NUM_STREAM_THREADS_CONFIG)),
         commandRunnerWarning
     );
-    final Map<String, Object> props = new HashMap<>(ksqlRestConfig.getKsqlConfigProperties());
-    props.put(KsqlConfig.KSQL_PROPERTIES_OVERRIDES_DENYLIST,
-        StreamsConfig.NUM_STREAM_THREADS_CONFIG);
-    ksqlResource.configure(new KsqlConfig(props));
+    ksqlResource.configure(ksqlConfig);
     final Map<String, Object> overrides =
         ImmutableMap.of(StreamsConfig.NUM_STREAM_THREADS_CONFIG, 1);
-    doThrow(new KsqlException("deny override")).when(denyListPropertyValidator)
-        .validateAll(overrides);
 
     // When:
     final EndpointResponse response;
@@ -2769,10 +2880,53 @@ public class KsqlResourceTest {
 
       // Then: Config Override Logger fires, and the denylist check rejects the request.
       configOverrideLogger.verify(() -> ConfigOverrideLogger.logOverrides("/ksql", overrides));
-      verify(denyListPropertyValidator).validateAll(overrides);
     }
     assertThat(response.getStatus(), CoreMatchers.is(BAD_REQUEST.code()));
-    assertThat(((KsqlErrorMessage) response.getEntity()).getMessage(), is("deny override"));
+    assertThat(((KsqlErrorMessage) response.getEntity()).getMessage(),
+        containsString("prohibited by the KSQL server denylist"));
+  }
+
+  @Test
+  public void shouldThrowOnAllowListValidatorWhenHandleKsqlStatement() {
+    // Given: a real AllowListPropertyValidator that does not permit the override.
+    ksqlResource = new KsqlResource(
+        ksqlEngine,
+        commandRunner,
+        DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT,
+        activenessRegistrar,
+        (ec, sc) -> InjectorChain.of(
+            schemaInjectorFactory.apply(sc),
+            topicInjectorFactory.apply(ec),
+            new TopicDeleteInjector(ec, sc)),
+        Optional.of(authorizationValidator),
+        errorsHandler,
+        new AllowListPropertyValidator(ImmutableList.of(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG)),
+        commandRunnerWarning
+    );
+    ksqlResource.configure(ksqlConfig);
+    final Map<String, Object> overrides =
+        ImmutableMap.of(StreamsConfig.NUM_STREAM_THREADS_CONFIG, 1);
+
+    // When:
+    final EndpointResponse response;
+    try (MockedStatic<ConfigOverrideLogger> configOverrideLogger =
+        Mockito.mockStatic(ConfigOverrideLogger.class)) {
+      response = ksqlResource.handleKsqlStatements(
+          securityContext,
+          new KsqlRequest(
+              "query",
+              overrides,  // stream properties
+              emptyMap(),
+              null
+          )
+      );
+
+      // Then: Config Override Logger fires, and the allowlist check rejects the request.
+      configOverrideLogger.verify(() -> ConfigOverrideLogger.logOverrides("/ksql", overrides));
+    }
+    assertThat(response.getStatus(), CoreMatchers.is(BAD_REQUEST.code()));
+    assertThat(((KsqlErrorMessage) response.getEntity()).getMessage(),
+        containsString("not permitted by the KSQL server allowlist"));
   }
 
   private void givenKsqlConfigWith(final Map<String, Object> additionalConfig) {

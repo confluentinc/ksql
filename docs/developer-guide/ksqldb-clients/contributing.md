@@ -6,8 +6,7 @@ description: Contribute a new ksqlDB client for your favorite language.
 keywords: ksqlDB, client
 ---
 
-**We are no longer accepting client contributions from the community.** ksqlDB is maintained
-solely by Confluent, and is not accepting externally contributed clients at this time.
+**We are no longer accepting client contributions from the community.**
 The guide below, including the [section on contributing a client to the main ksqlDB
 repository](#contributing-your-client-to-the-main-ksqldb-repository), is retained for historical/internal reference only.
 

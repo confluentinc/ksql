@@ -1,7 +1,7 @@
 # Contributing
 
 **We are no longer accepting contributions from the community.** ksqlDB is maintained solely by
-Confluent, and we are not able to review or merge external pull requests at this time. The
+Confluent, and is not accepting externally contributed clients at this time. The
 guidelines below are retained for historical/internal reference only.
 
 If you have questions, please [create a GH issue](https://github.com/confluentinc/ksql/issues).

@@ -7,13 +7,9 @@ keywords: ksqlDB, client
 ---
 
 **We are no longer accepting client contributions from the community.** ksqlDB is maintained
-solely by Confluent, and we are not able to review or merge externally contributed clients at
-this time. The guide below, including the [section on contributing a client to the main ksqlDB
-repository](#contributing-your-client-to-the-main-ksqldb-repository), is retained for
-historical/internal reference only.
-
-If you're interested in using ksqlDB from a programming language we don't yet support, this guide
-describes what it takes to build your own [ksqlDB client](index.md).
+solely by Confluent, and is not accepting externally contributed clients at this time.
+The guide below, including the [section on contributing a client to the main ksqlDB
+repository](#contributing-your-client-to-the-main-ksqldb-repository), is retained for historical/internal reference only.
 
 Overview
 --------

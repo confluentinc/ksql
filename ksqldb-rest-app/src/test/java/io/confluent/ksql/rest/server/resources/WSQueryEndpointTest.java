@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.rest.server.resources;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
@@ -25,9 +27,11 @@ import static org.mockito.Mockito.verify;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.ListeningScheduledExecutorService;
 import io.confluent.ksql.engine.KsqlEngine;
+import io.confluent.ksql.properties.AllowListPropertyValidator;
 import io.confluent.ksql.properties.ConfigOverrideLogger;
 import io.confluent.ksql.properties.DenyListPropertyValidator;
 import io.confluent.ksql.rest.ApiJsonMapper;
@@ -48,10 +52,12 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
+import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.streams.StreamsConfig;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.MockedStatic;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -95,23 +101,69 @@ public class WSQueryEndpointTest {
   }
 
   @Test
-  public void shouldCallPropertyValidatorOnExecuteStream()
-      throws JsonProcessingException {
-    // Given
+  public void shouldCallPropertyValidatorOnExecuteStream() throws JsonProcessingException {
+    // Given: a real DenyListPropertyValidator that denies the override.
+    wsQueryEndpoint = new WSQueryEndpoint(
+        ksqlConfig,
+        mock(StatementParser.class),
+        mock(KsqlEngine.class),
+        mock(CommandQueue.class),
+        exec,
+        mock(ActivenessRegistrar.class),
+        mock(Duration.class),
+        Optional.empty(),
+        mock(Errors.class),
+        new DenyListPropertyValidator(ImmutableList.of(StreamsConfig.NUM_STREAM_THREADS_CONFIG)),
+        queryExecutor
+    );
     final Map<String, Object> overrides =
         ImmutableMap.of(StreamsConfig.NUM_STREAM_THREADS_CONFIG, 1);
     final MultiMap params = buildRequestParams("show streams;", overrides);
+    final ArgumentCaptor<String> jsonCaptor = ArgumentCaptor.forClass(String.class);
 
     // When
     try (MockedStatic<ConfigOverrideLogger> configOverrideLogger =
         mockStatic(ConfigOverrideLogger.class)) {
       executeStreamQuery(params, Optional.empty());
 
-      // Then: WS sockets do not throw any exception (closes silently). We can only verify that validator
-      // was called.Config Override Logger fires first, and then validator fires.
+      // Then: WS sockets do not throw any exception (closes silently). Config Override Logger
+      // fires first, and then the denylist check rejects the request.
       configOverrideLogger.verify(() -> ConfigOverrideLogger.logOverrides("/ws/query", overrides));
-      verify(denyListPropertyValidator).validateAll(overrides);
     }
+    verify(serverWebSocket).writeFinalTextFrame(jsonCaptor.capture(), any());
+    assertThat(jsonCaptor.getValue(), containsString("prohibited by the KSQL server denylist"));
+  }
+
+  @Test
+  public void shouldCloseSocketWhenPropertyNotOnAllowlist() throws JsonProcessingException {
+    // Given: a real AllowListPropertyValidator that does not permit the override.
+    wsQueryEndpoint = new WSQueryEndpoint(
+        ksqlConfig,
+        mock(StatementParser.class),
+        mock(KsqlEngine.class),
+        mock(CommandQueue.class),
+        exec,
+        mock(ActivenessRegistrar.class),
+        mock(Duration.class),
+        Optional.empty(),
+        mock(Errors.class),
+        new AllowListPropertyValidator(ImmutableList.of(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG)),
+        queryExecutor
+    );
+    final Map<String, Object> overrides =
+        ImmutableMap.of(StreamsConfig.NUM_STREAM_THREADS_CONFIG, 1);
+    final MultiMap params = buildRequestParams("show streams;", overrides);
+    final ArgumentCaptor<String> jsonCaptor = ArgumentCaptor.forClass(String.class);
+
+    // When
+    try (MockedStatic<ConfigOverrideLogger> configOverrideLogger =
+        mockStatic(ConfigOverrideLogger.class)) {
+      executeStreamQuery(params, Optional.empty());
+
+      configOverrideLogger.verify(() -> ConfigOverrideLogger.logOverrides("/ws/query", overrides));
+    }
+    verify(serverWebSocket).writeFinalTextFrame(jsonCaptor.capture(), any());
+    assertThat(jsonCaptor.getValue(), containsString("not permitted by the KSQL server allowlist"));
   }
 
   @Test

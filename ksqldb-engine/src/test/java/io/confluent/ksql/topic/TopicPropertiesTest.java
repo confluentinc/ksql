@@ -62,6 +62,30 @@ public class TopicPropertiesTest {
   }
 
   @Test
+  public void shouldNotInheritReplicasFromSource() {
+    // When:
+    final TopicProperties properties = new TopicProperties.Builder()
+        .withName("name")
+        .withSource(() -> new TopicDescription(
+            "",
+            false,
+            ImmutableList.of(
+                new TopicPartitionInfo(
+                    0,
+                    new Node(0, "", 0),
+                    ImmutableList.of(new Node(0, "", 0), new Node(1, "", 1), new Node(2, "", 2)),
+                    ImmutableList.of()))),
+            () -> Collections.emptyMap())
+        .build();
+
+    // Then: the source topic's replication factor is not inherited. The created topic defers to
+    // the cluster default (DEFAULT_REPLICAS), so it is not created with an explicit replication
+    // factor that could differ from the cluster's default. Partitions are still inherited.
+    assertThat(properties.getReplicas(), is(TopicProperties.DEFAULT_REPLICAS));
+    assertThat(properties.getPartitions(), is(1));
+  }
+
+  @Test
   public void shouldPreferWithClauseToSourcePartitions() {
     // When:
     final TopicProperties properties = new TopicProperties.Builder()
@@ -76,7 +100,7 @@ public class TopicPropertiesTest {
         .build();
 
     // Then:
-    assertThat(properties.getReplicas(), is((short) 1));
+    assertThat(properties.getReplicas(), is(TopicProperties.DEFAULT_REPLICAS));
     assertThat(properties.getPartitions(), is(3));
     assertThat(properties.getRetentionInMillis(), is((long) 100));
   }
@@ -100,7 +124,7 @@ public class TopicPropertiesTest {
         .build();
 
     // Then:
-    assertThat(properties.getReplicas(), is((short) 1));
+    assertThat(properties.getReplicas(), is(TopicProperties.DEFAULT_REPLICAS));
     assertThat(properties.getPartitions(), is(3));
     assertThat(properties.getRetentionInMillis(), is((long) 100));
   }
@@ -124,7 +148,7 @@ public class TopicPropertiesTest {
         .build();
 
     // Then:
-    assertThat(properties.getReplicas(), is((short) 1));
+    assertThat(properties.getReplicas(), is(TopicProperties.DEFAULT_REPLICAS));
     assertThat(properties.getPartitions(), is(3));
     assertThat(properties.getRetentionInMillis(), is((long) 5000));
   }
@@ -277,7 +301,7 @@ public class TopicPropertiesTest {
 
     // Then:
     assertThat(properties.getPartitions(), equalTo(1));
-    assertThat(properties.getReplicas(), equalTo((short) 1));
+    assertThat(properties.getReplicas(), equalTo(TopicProperties.DEFAULT_REPLICAS));
     assertThat(properties.getRetentionInMillis(), equalTo((long) 604800000));
   }
 }

@@ -55,8 +55,12 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Optional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class CreateSourceFactory {
+
+  private static final Logger LOG = LoggerFactory.getLogger(CreateSourceFactory.class);
 
   private final ServiceContext serviceContext;
   private final SerdeFeaturessSupplier keySerdeFeaturesSupplier;
@@ -302,6 +306,10 @@ public final class CreateSourceFactory {
     try {
       serviceContext.getTopicClient().describeTopic(kafkaTopicName);
     } catch (final KafkaResponseGetFailedException e) {
+      // describeTopic can fail for reasons other than the topic being absent (e.g. authorization
+      // or an invalid-topic error). Log the underlying cause so it is not masked by the generic
+      // user-facing message below.
+      LOG.warn("Failed to verify existence of Kafka topic '{}'", kafkaTopicName, e);
       throw new KsqlException("Kafka topic does not exist: " + kafkaTopicName);
     }
 

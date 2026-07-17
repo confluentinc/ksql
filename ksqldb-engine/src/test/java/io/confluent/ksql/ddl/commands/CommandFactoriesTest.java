@@ -21,6 +21,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -135,8 +136,7 @@ public class CommandFactoriesTest {
 
   @Before
   public void before() {
-    when(serviceContext.getTopicClient()).thenReturn(topicClient);
-    when(topicClient.isTopicExists(any())).thenReturn(true);
+    lenient().when(serviceContext.getTopicClient()).thenReturn(topicClient);
     when(createSourceFactory.createStreamCommand(any(), any()))
         .thenReturn(createStreamCommand);
     when(createSourceFactory.createTableCommand(any(CreateTable.class), any()))

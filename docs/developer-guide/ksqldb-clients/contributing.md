@@ -6,9 +6,14 @@ description: Contribute a new ksqlDB client for your favorite language.
 keywords: ksqlDB, client
 ---
 
-If you're interested in using ksqlDB from a programming language we don't yet support, we've created
-this guide to make it easy to add your own [ksqlDB client](index.md).
-If you'd like to contribute your client to the main ksqlDB project, see [below](#contributing-your-client-to-the-main-ksqldb-repository). 
+**We are no longer accepting client contributions from the community.** ksqlDB is maintained
+solely by Confluent, and we are not able to review or merge externally contributed clients at
+this time. The guide below, including the [section on contributing a client to the main ksqlDB
+repository](#contributing-your-client-to-the-main-ksqldb-repository), is retained for
+historical/internal reference only.
+
+If you're interested in using ksqlDB from a programming language we don't yet support, this guide
+describes what it takes to build your own [ksqlDB client](index.md).
 
 Overview
 --------
@@ -184,14 +189,11 @@ Additional configuration options that are nice to support include
 Contributing your client to the main ksqlDB repository
 ------------------------------------------------------
 
-Thanks for your interest in contributing a client!
+**We are no longer accepting community contributions of new clients to the main ksqlDB
+repository.** The steps below are retained for historical/internal reference only.
 
 To get started:
 - Open a [KLIP](https://github.com/confluentinc/ksql/blob/master/design-proposals/README.md) to propose the client you'd like to implement. The KLIP should include a high-level design and example interfaces.
 - Contribute code to [ksql repository](https://github.com/confluentinc/ksql)
 - Testing: Besides unit tests in the relevant language, there should also be integration tests to spin up a ksqlDB server and validate client behavior.
 - Add a new docs page for the client with example usage to the [ksqlDB clients page](index.md).
-
-Don't hesitate to reach out in the #ksqldb channel of our community Slack
-(found in the [Confluent Community Slack](https://launchpass.com/confluentcommunity))
-for guidance at any point in the process. Thanks for your contribution!

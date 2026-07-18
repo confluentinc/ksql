@@ -21,7 +21,6 @@ import io.confluent.ksql.config.KsqlConfigResolver;
 import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.UnsetProperty;
 import io.confluent.ksql.statement.ConfiguredStatement;
-import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlStatementException;
 import java.util.Map;
@@ -39,7 +38,7 @@ public final class PropertyOverrider {
     throwIfInvalidProperty(setProperty.getPropertyName(), statement.getMaskedStatementText());
     ConfigOverrideLogger.logOverrides(
             "SET", ImmutableMap.of(setProperty.getPropertyName(), ""));
-    throwIfDeniedProperty(setProperty, statement);
+    throwIfDisallowedProperty(setProperty, statement);
     throwIfInvalidPropertyValues(setProperty, statement);
     mutableProperties.put(setProperty.getPropertyName(), setProperty.getPropertyValue());
   }
@@ -79,22 +78,21 @@ public final class PropertyOverrider {
         .orElseThrow(() -> new KsqlStatementException("Unknown property: " + propertyName, text));
   }
 
-  private static void throwIfDeniedProperty(
+  private static void throwIfDisallowedProperty(
       final SetProperty setProperty,
       final ConfiguredStatement<SetProperty> statement
   ) {
-    // Build the validator from the system config (getConfig(false)), never the override-applied
-    // config, so that a user-supplied override of the denylist itself cannot unlock a denied
-    // property. The validator is stateless and cheap, so constructing it per SET (a rare,
-    // interactive control statement) keeps this security rule local to PropertyOverrider and
+    // Build the validator (denylist or allowlist, per ksql.properties.overrides.validation.mode)
+    // from the system config (getConfig(false)), never the override-applied config, so that a
+    // user-supplied override of the denylist/allowlist or the validation mode itself cannot unlock
+    // a disallowed property. The validator is stateless and cheap, so constructing it per SET (a
+    // rare, interactive control statement) keeps this security rule local to PropertyOverrider and
     // lets every caller -- REST, embedded, standalone and the test tool -- share it without
     // plumbing an instance through.
-    final DenyListPropertyValidator denyListPropertyValidator = new DenyListPropertyValidator(
-        statement.getSessionConfig()
-            .getConfig(false)
-            .getList(KsqlConfig.KSQL_PROPERTIES_OVERRIDES_DENYLIST));
+    final ConfigOverrideValidator configOverrideValidator = ConfigOverrideValidatorFactory
+        .forMode(statement.getSessionConfig().getConfig(false));
     try {
-      denyListPropertyValidator.validateAll(ImmutableMap.of(
+      configOverrideValidator.validateAll(ImmutableMap.of(
           setProperty.getPropertyName(),
           setProperty.getPropertyValue()
       ));

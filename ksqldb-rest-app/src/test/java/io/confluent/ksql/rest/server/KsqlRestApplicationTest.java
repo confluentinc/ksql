@@ -232,6 +232,18 @@ public class KsqlRestApplicationTest {
   }
 
   @Test
+  public void shouldStopHeartbeatAndLagReportingAgentsBeforeClosingVertx() {
+    // When:
+    app.shutdown();
+
+    // Then:
+    final InOrder inOrder = Mockito.inOrder(heartbeatAgent, lagReportingAgent, vertx);
+    inOrder.verify(heartbeatAgent).stopAgent();
+    inOrder.verify(lagReportingAgent).stopAgent();
+    inOrder.verify(vertx).close(any());
+  }
+
+  @Test
   public void shouldCloseKsqlResourceExtensionOnClose() {
     // When:
     app.shutdown();

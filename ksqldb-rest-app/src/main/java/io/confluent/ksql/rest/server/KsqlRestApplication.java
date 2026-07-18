@@ -171,6 +171,8 @@ public final class KsqlRestApplication implements Executable {
 
   private static final int NUM_MILLISECONDS_IN_HOUR = 3600 * 1000;
 
+  private static final long VERTX_CLOSE_TIMEOUT_SEC = 30;
+
   private static final SourceName COMMANDS_STREAM_NAME = SourceName.of("KSQL_COMMANDS");
 
   private final KsqlConfig ksqlConfigNoPort;
@@ -544,6 +546,10 @@ public final class KsqlRestApplication implements Executable {
       log.error("Exception while closing license validator extension", e);
     }
 
+    // Stop before vertx.close(): otherwise their scheduled sends race the close and can
+    // orphan Netty channel-close futures, hanging shutdown.
+    shutdownAdditionalAgents();
+
     if (apiServer != null) {
       apiServer.stop();
       apiServer = null;
@@ -553,7 +559,9 @@ public final class KsqlRestApplication implements Executable {
       try {
         final CountDownLatch latch = new CountDownLatch(1);
         vertx.close(ar -> latch.countDown());
-        latch.await();
+        if (!latch.await(VERTX_CLOSE_TIMEOUT_SEC, TimeUnit.SECONDS)) {
+          log.error("Timed out after {}s waiting for vertx to close", VERTX_CLOSE_TIMEOUT_SEC);
+        }
       } catch (InterruptedException e) {
         log.error("Exception while closing vertx", e);
       }
@@ -562,8 +570,6 @@ public final class KsqlRestApplication implements Executable {
     if (oldApiWebsocketExecutor != null) {
       oldApiWebsocketExecutor.shutdown();
     }
-
-    shutdownAdditionalAgents();
 
     log.info("ksqlDB shutdown complete");
   }

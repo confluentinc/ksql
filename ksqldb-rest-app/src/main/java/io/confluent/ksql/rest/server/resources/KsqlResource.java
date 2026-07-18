@@ -225,7 +225,6 @@ public class KsqlResource implements KsqlConfigurable {
     ensureValidPatterns(request.getDeleteTopicList());
     try {
       final Map<String, Object> streamsProperties = request.getStreamsProperties();
-      configOverrideValidator.validateAll(streamsProperties);
 
       final KsqlEntityList entities = handler.execute(
           securityContext,

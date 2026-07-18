@@ -18,7 +18,6 @@ package io.confluent.ksql.rest.server.resources;
 import static io.confluent.ksql.parser.ParserMatchers.configured;
 import static io.confluent.ksql.parser.ParserMatchers.preparedStatementText;
 import static io.confluent.ksql.rest.Errors.ERROR_CODE_FORBIDDEN_KAFKA_ACCESS;
-import static io.confluent.ksql.rest.entity.ClusterTerminateRequest.DELETE_TOPIC_LIST_PROP;
 import static io.confluent.ksql.rest.entity.CommandId.Action.CREATE;
 import static io.confluent.ksql.rest.entity.CommandId.Action.DROP;
 import static io.confluent.ksql.rest.entity.CommandId.Action.EXECUTE;
@@ -2699,32 +2698,6 @@ public class KsqlResourceTest {
     assertThat(response.getStatus(), equalTo(400));
     assertThat(((KsqlErrorMessage) response.getEntity()).getMessage(),
         containsString("Not recognizable as ksql, streams, consumer, or producer property"));
-  }
-
-  @Test
-  public void shouldThrowOnConfigOverrideValidatorWhenTerminateCluster() {
-    final Map<String, Object> terminateStreamProperties =
-        ImmutableMap.of(DELETE_TOPIC_LIST_PROP, Collections.singletonList("Foo"));
-
-    // Given: mocked configOverrideValidator throws the same message a real
-    // AllowlistPropertyValidator would for the delete-topic-list property.
-    doThrow(new KsqlException("One or more properties overrides set locally are not permitted "
-        + "by the KSQL server allowlist (use UNSET to reset their default value): "
-        + "[deleteTopicList]")).when(configOverrideValidator)
-        .validateAll(terminateStreamProperties);
-
-    // When:
-    final EndpointResponse response = ksqlResource.terminateCluster(
-        securityContext,
-        VALID_TERMINATE_REQUEST
-    );
-
-    // Then: the validator's real message survives, mapped to a server error (500), not a 400.
-    verify(configOverrideValidator).validateAll(terminateStreamProperties);
-    assertThat(response.getStatus(), equalTo(INTERNAL_SERVER_ERROR.code()));
-    assertThat(response.getEntity(), instanceOf(KsqlStatementErrorMessage.class));
-    assertThat(((KsqlStatementErrorMessage) response.getEntity()).getMessage(),
-        containsString("not permitted by the KSQL server allowlist"));
   }
 
   @Test

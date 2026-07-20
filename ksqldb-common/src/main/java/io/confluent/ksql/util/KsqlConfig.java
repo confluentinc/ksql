@@ -493,6 +493,17 @@ public class KsqlConfig extends AbstractConfig {
   public static final String KSQL_AUTH_CACHE_MAX_ENTRIES_DOC = "Controls the size of the cache "
       + "to a maximum number of KSQL authorization responses entries.";
 
+  public static final String KSQL_KAFKA_CLIENT_ADDITIONAL_CONFIG_PREFIXES_CONFIG =
+      "ksql.kafka.client.additional.config.prefixes";
+  public static final String KSQL_KAFKA_CLIENT_ADDITIONAL_CONFIG_PREFIXES_DEFAULT = "";
+  public static final String KSQL_KAFKA_CLIENT_ADDITIONAL_CONFIG_PREFIXES_DOC =
+      "Comma-separated list of configuration key prefixes that ksqlDB forwards to the "
+      + "internal Kafka clients (admin, producer and consumer) it builds. By default those "
+      + "clients receive only recognized Kafka client configurations; use this to also pass "
+      + "configurations required by custom client plugins whose keys are not registered Kafka "
+      + "client configs. Any configuration whose "
+      + "key starts with one of these prefixes is forwarded. Empty by default.";
+
   public static final String KSQL_HIDDEN_TOPICS_CONFIG = "ksql.hidden.topics";
   public static final String KSQL_HIDDEN_TOPICS_DEFAULT = "_confluent.*,__confluent.*"
       + ",_schemas,__consumer_offsets,__transaction_state,connect-configs,connect-offsets,"
@@ -1221,6 +1232,13 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_READONLY_TOPICS_DOC
         )
         .define(
+            KSQL_KAFKA_CLIENT_ADDITIONAL_CONFIG_PREFIXES_CONFIG,
+            Type.LIST,
+            KSQL_KAFKA_CLIENT_ADDITIONAL_CONFIG_PREFIXES_DEFAULT,
+            Importance.LOW,
+            KSQL_KAFKA_CLIENT_ADDITIONAL_CONFIG_PREFIXES_DOC
+        )
+        .define(
             KSQL_TIMESTAMP_THROW_ON_INVALID,
             Type.BOOLEAN,
             KSQL_TIMESTAMP_THROW_ON_INVALID_DEFAULT,
@@ -1866,6 +1884,7 @@ public class KsqlConfig extends AbstractConfig {
   public Map<String, Object> getKsqlAdminClientConfigProps() {
     final Map<String, Object> map = new HashMap<>();
     map.putAll(getConfigsFor(AdminClientConfig.configNames()));
+    map.putAll(getAdditionalKafkaClientConfigs());
     // admin client metrics aren't used in Confluent deployment
     possiblyConfigureConfluentTelemetry(map);
     return Collections.unmodifiableMap(map);
@@ -1874,6 +1893,7 @@ public class KsqlConfig extends AbstractConfig {
   public Map<String, Object> getProducerClientConfigProps() {
     final Map<String, Object> map = new HashMap<>();
     map.putAll(getConfigsFor(ProducerConfig.configNames()));
+    map.putAll(getAdditionalKafkaClientConfigs());
     // producer client metrics aren't used in Confluent deployment
     possiblyConfigureConfluentTelemetry(map);
     return Collections.unmodifiableMap(map);
@@ -1882,9 +1902,25 @@ public class KsqlConfig extends AbstractConfig {
   public Map<String, Object> getConsumerClientConfigProps() {
     final Map<String, Object> map = new HashMap<>();
     map.putAll(getConfigsFor(ConsumerConfig.configNames()));
+    map.putAll(getAdditionalKafkaClientConfigs());
     // consumer client metrics aren't used in Confluent deployment
     possiblyConfigureConfluentTelemetry(map);
     return Collections.unmodifiableMap(map);
+  }
+
+  // Forwards any config whose key starts with one of the operator-supplied prefixes
+  // (KSQL_KAFKA_CLIENT_ADDITIONAL_CONFIG_PREFIXES_CONFIG) to the internal Kafka clients.
+  // getConfigsFor(...configNames()) keeps only recognized client configs, which drops any
+  // extra configs a custom client plugin may require; this lets a deployment opt those in
+  // without ksqlDB needing to know their concrete keys. Blank prefixes
+  // are ignored so an empty/unset value forwards nothing (byte-identical to prior behavior).
+  private Map<String, Object> getAdditionalKafkaClientConfigs() {
+    final Set<String> prefixes =
+        getList(KSQL_KAFKA_CLIENT_ADDITIONAL_CONFIG_PREFIXES_CONFIG).stream()
+            .map(String::trim)
+            .filter(prefix -> !prefix.isEmpty())
+            .collect(Collectors.toSet());
+    return prefixes.isEmpty() ? Collections.emptyMap() : getConfigsForPrefix(prefixes);
   }
 
   public Map<String, Object> addConfluentMetricsContextConfigsKafka(

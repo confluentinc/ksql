@@ -22,9 +22,9 @@ it in a Docker-based deployment, export an environment variable named
 `KSQL_JMX_OPTS` with your JMX configuration and expose the port that
 JMX will communicate over.
 
-Remote JMX requires `KSQL_JMX_OPTS` to be set explicitly. Configure
-authentication and TLS in `KSQL_JMX_OPTS`; the server refuses to start
-if `JMX_PORT` is set without `KSQL_JMX_OPTS`.
+By default, ksqlDB starts with loopback-only JMX and no remote listener.
+To enable remote JMX, set `KSQL_JMX_OPTS` with authentication and TLS
+configured explicitly, as shown in the example below.
 
 The following Docker Compose example shows how you can configure
 monitoring for ksqlDB server. The surrounding components, like the

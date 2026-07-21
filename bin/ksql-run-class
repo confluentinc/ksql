@@ -58,31 +58,17 @@ fi
  KSQL_LOG4J_OPTS="-Dksql.log.dir=$LOG_DIR ${KSQL_LOG4J_OPTS}"
 
 # JMX settings.
-# ksqlDB does not enable remote JMX by default. Remote JMX without
-# authentication is a code-execution primitive for any peer on the network,
-# so KSQL_JMX_OPTS must be set explicitly with authentication and TLS.
-# JMX_PORT alone is refused at startup rather than silently opening an
-# unauthenticated listener.
-if [ -n "$JMX_PORT" ] && [ -z "$KSQL_JMX_OPTS" ]; then
-  echo "" >&2
-  echo "ERROR: JMX_PORT is set but KSQL_JMX_OPTS is empty." >&2
-  echo "Remote JMX must be configured explicitly with authentication." >&2
-  echo "Refusing to start with an unauthenticated JMX listener." >&2
-  echo "" >&2
-  echo "To enable remote JMX securely, set KSQL_JMX_OPTS with, for example:" >&2
-  echo "  -Dcom.sun.management.jmxremote" >&2
-  echo "  -Dcom.sun.management.jmxremote.authenticate=true" >&2
-  echo "  -Dcom.sun.management.jmxremote.password.file=<path>" >&2
-  echo "  -Dcom.sun.management.jmxremote.access.file=<path>" >&2
-  echo "  -Dcom.sun.management.jmxremote.ssl=true" >&2
-  echo "" >&2
-  echo "See https://docs.confluent.io/platform/current/ksqldb/operate-and-deploy/monitoring.html" >&2
-  exit 1
+# ksqlDB defaults to loopback-only JMX. Remote JMX without authentication is
+# a code-execution primitive for any peer on the network. Operators who need
+# remote JMX must set KSQL_JMX_OPTS with authentication and TLS explicitly.
+# See docs/operate-and-deploy/monitoring.md for a copy-paste example.
+if [ -z "$KSQL_JMX_OPTS" ]; then
+  KSQL_JMX_OPTS="-Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.local.only=true -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false"
 fi
 
 # Append the JMX port to operator-supplied options if requested.
 if [ -n "$JMX_PORT" ]; then
-  KSQL_JMX_OPTS="$KSQL_JMX_OPTS -Dcom.sun.management.jmxremote.port=$JMX_PORT "
+  KSQL_JMX_OPTS="$KSQL_JMX_OPTS -Dcom.sun.management.jmxremote.port=$JMX_PORT"
 fi
 
 # Generic jvm settings you want to add

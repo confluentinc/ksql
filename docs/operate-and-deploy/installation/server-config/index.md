@@ -119,8 +119,8 @@ KSQL_LOG4J_OPTS
 KSQL_JMX_OPTS
 
 :   Specifies ksqlDB metrics options by using Java Management Extensions
-    (JMX). Remote JMX requires `KSQL_JMX_OPTS` to be set explicitly; the
-    server refuses to start if `JMX_PORT` is set without `KSQL_JMX_OPTS`.
+    (JMX). By default, ksqlDB starts with loopback-only JMX and no remote
+    listener. To enable remote JMX, set `KSQL_JMX_OPTS` explicitly.
     The following example is a secure baseline that enables remote JMX
     with a password file, an access-control file, and SSL.
 
@@ -163,9 +163,10 @@ KSQL_JVM_PERFORMANCE_OPTS
 
 JMX_PORT
 
-:   Specifies the port that JMX uses to report metrics. `JMX_PORT` has
-    no effect unless `KSQL_JMX_OPTS` is also set. The server refuses to
-    start if `JMX_PORT` is set alone.
+:   Specifies the port that JMX uses to report metrics. If `JMX_PORT` is
+    set without `KSQL_JMX_OPTS`, ksqlDB binds the port with loopback-only
+    JMX defaults (no remote listener). To expose JMX remotely, set
+    `KSQL_JMX_OPTS` with authentication and TLS as shown above.
 
     ```bash
     export JMX_PORT=1099

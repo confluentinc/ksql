@@ -96,6 +96,12 @@ An exit code of 0 for an open port tells you that the container and ksqlDB JVM
 are running. This confirmation has a level of confidence that's similar to the
 REST health check.
 
+!!! note
+    This probe requires a remote JMX listener. It succeeds only if the operator
+    has set `KSQL_JMX_OPTS` with a remote-bound listener; the default loopback-only
+    JMX configuration rejects remote connections and this probe will fail from
+    another host.
+
 The general responsiveness on the port should be sufficient as a high-level
 health check. For a list of the available metrics you can collect, see
 [JMX Metrics](/reference/metrics/).

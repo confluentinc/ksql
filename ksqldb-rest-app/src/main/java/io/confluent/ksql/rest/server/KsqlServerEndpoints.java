@@ -339,7 +339,7 @@ public class KsqlServerEndpoints implements Endpoints {
       properties.keySet().forEach(key ->
           configResolver.resolve(key, true)
               .orElseThrow(() -> new PropertyNotFoundException(key)));
-        denyListPropertyValidator.validateAll(properties);
+      denyListPropertyValidator.validateAll(properties);
     } catch (PropertyNotFoundException | KsqlException e) {
       throw new KsqlApiException(e.getMessage(), ERROR_CODE_BAD_REQUEST);
     }

@@ -17,8 +17,10 @@ package io.confluent.ksql.function.udtf;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.Lists;
+import io.confluent.ksql.function.KsqlFunctionException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -96,6 +98,21 @@ public class CubeTest {
     // Then:
     assertThat(result.size(), is(1));
     assertThat(result.get(0), is(Arrays.asList(null, null)));
+  }
+
+  @Test
+  public void shouldThrowOnTooManyColumns() {
+    // Given: one more column than the function's cap, to prevent the 2^N combinations
+    // computed internally from exhausting the heap (see KSQL-15278)
+    final List<Object> tooManyColumns = Collections.nCopies(21, 1);
+
+    // When:
+    final KsqlFunctionException e = assertThrows(
+        KsqlFunctionException.class,
+        () -> cubeUdtf.cube(tooManyColumns));
+
+    // Then:
+    assertThat(e.getMessage(), is("cube_explode: too many columns (21); max is 20"));
   }
 
 }

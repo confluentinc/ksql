@@ -21,7 +21,6 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -29,6 +28,8 @@ import java.util.Map.Entry;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import org.apache.kafka.connect.data.ConnectSchema;
+import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Struct;
 import org.junit.Test;
 
@@ -69,6 +70,12 @@ public class EntriesTest {
   }
 
   @Test
+  public void shouldComputeStructEntries() {
+    final Map<String, Struct> map = createMapOfStructs();
+    shouldComputeEntries(map, () -> entriesUdf.entriesStruct(map, false));
+  }
+
+  @Test
   public void shouldComputeIntEntriesSorted() {
     final Map<String, Integer> map = createMap(i -> i);
     shouldComputeEntriesSorted(map, () -> entriesUdf.entriesInt(map, true));
@@ -99,6 +106,12 @@ public class EntriesTest {
   }
 
   @Test
+  public void shouldComputeStructEntriesSorted() {
+    final Map<String, Struct> map = createMapOfStructs();
+    shouldComputeEntriesSorted(map, () -> entriesUdf.entriesStruct(map, true));
+  }
+
+  @Test
   public void shouldReturnNullListForNullMapInt() {
     assertNull(entriesUdf.entriesInt(null, false));
   }
@@ -123,13 +136,15 @@ public class EntriesTest {
     assertNull(entriesUdf.entriesString(null, false));
   }
 
-  private <T> void shouldComputeEntries(
-      final Map<String, T> map, final Supplier<List<Struct>> supplier
-  ) {
+  @Test
+  public void shouldReturnNullListForNullMapStruct() {
+    assertNull(entriesUdf.entriesStruct(null, false));
+  }
+
+  private <T> void shouldComputeEntries(final Map<String, T> map, final Supplier<List<Struct>> supplier) {
     final List<Struct> out = supplier.get();
     assertThat(out, hasSize(map.size()));
-    for (int i = 0; i < out.size(); i++) {
-      final Struct struct = out.get(i);
+    for (final Struct struct : out) {
       final T val = map.get(struct.getString("K"));
       assertThat(val == null, is(false));
       assertThat(val, is(struct.get("V")));
@@ -139,7 +154,7 @@ public class EntriesTest {
   private <T> void shouldComputeEntriesSorted(final Map<String, T> map, final Supplier<List<Struct>> supplier) {
     final List<Struct> out = supplier.get();
     final List<Map.Entry<String, T>> entries = new ArrayList<>(map.entrySet());
-    entries.sort(Comparator.comparing(Entry::getKey));
+    entries.sort(Entry.comparingByKey());
     assertThat(out.size(), is(entries.size()));
     for (int i = 0; i < entries.size(); i++) {
       final Struct struct = out.get(i);
@@ -157,4 +172,13 @@ public class EntriesTest {
     return map;
   }
 
+  private Map<String, Struct> createMapOfStructs() {
+    final Map<String, Struct> map = new HashMap<>();
+    final ConnectSchema schema = new ConnectSchema(Schema.Type.STRUCT).schema();
+    for (int i = 0; i < ENTRIES; i++) {
+      final Struct struct = new Struct(schema);
+      map.put(UUID.randomUUID().toString(), struct);
+    }
+    return map;
+  }
 }

@@ -18,4 +18,4 @@ maintained by community members:
 - [Python client](https://github.com/bryanyang0528/ksql-python)
 
 We are no longer accepting community contributions of new clients. See the
-[client contribution guide](contributing.md) for historical/internal reference.
+[client contribution guide](contributing.md) for historical reference.

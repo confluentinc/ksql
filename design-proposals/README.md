@@ -1,7 +1,7 @@
 # KSQL Improvement Proposals
 
 **We are no longer accepting community-submitted KLIPs.**
-The process below is retained for historical/internal reference only.
+The process below is retained for historical reference only.
 
 This is a place to collect improvement proposals for KSQL. Please follow the
 [KLIP Template](klip-template.md) when creating a new KLIP.

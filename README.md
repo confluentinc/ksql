@@ -126,19 +126,18 @@ The following statement will create a Kafka Connect sink connector that continuo
 For user help, questions or queries about ksqlDB please use our [user Google Group](https://groups.google.com/forum/#!forum/ksql-users)
 or our public Slack channel #ksqldb in [Confluent Community Slack](https://slackpass.io/confluentcommunity). Everyone is welcome!
 
-You can get help, learn how to contribute to ksqlDB, and find the latest news by [connecting with the Confluent community](https://www.confluent.io/contact-us-thank-you/).
+You can get help and find the latest news by [connecting with the Confluent community](https://www.confluent.io/contact-us-thank-you/).
 
 For more general questions about the Confluent Platform please post in the [Confluent Google group](https://groups.google.com/forum/#!forum/confluent-platform).
 
 
 # Contributing and building from source
 
-Contributions to the code, examples, documentation, etc. are very much appreciated.
+**We are no longer accepting contributions from the community.**
 
 - Report issues and bugs directly in [this GitHub project](https://github.com/confluentinc/ksql/issues).
-- Learn how to work with the ksqlDB source code, including building and testing ksqlDB as well as contributing code changes
-  to ksqlDB by reading our [Development and Contribution guidelines](CONTRIBUTING.md).
-- One good way to get started is by tackling a [newbie issue](https://github.com/confluentinc/ksql/labels/good%20first%20issue).
+- Learn how to work with the ksqlDB source code, including building and testing ksqlDB, by reading our
+  [Development and Contribution guidelines](CONTRIBUTING.md).
 
 
 # License

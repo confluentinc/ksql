@@ -86,7 +86,11 @@ public class InternalFunctionRegistry implements MutableFunctionRegistry {
   }
 
   @Override
-  public boolean isPresent(final FunctionName functionName) {
+  public synchronized boolean isPresent(final FunctionName functionName) {
+    // Synchronized to match the locking discipline of every other accessor/mutator in this
+    // class (the type is annotated @ThreadSafe). Without it, concurrent addFunction /
+    // addAggregateFunctionFactory calls can race against this read while one of the three
+    // internal HashMaps is being resized, returning wrong booleans or worse.
     if (udfs.containsKey(functionName.text().toUpperCase())) {
       return true;
     }

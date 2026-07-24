@@ -10,14 +10,10 @@ contains the markdown files and other source content for the
 Contribute to ksqlDB docs
 =========================
 
-You can help to improve the ksqlDB documentation by contributing to this repo:
+**We are no longer accepting community contributions to the ksqlDB documentation.**
 
-- Open a [GitHub issue](https://github.com/confluentinc/ksql/issues) and give it
-  the `documentation` label.
-- Submit a [pull request](https://github.com/confluentinc/ksql/pulls) with your
-  proposed documentation changes.
-- Get started with
-  [writing and formatting on GitHub](https://help.github.com/en/github/writing-on-github/getting-started-with-writing-and-formatting-on-github).
+If you find an issue with the docs, please open a [GitHub issue](https://github.com/confluentinc/ksql/issues)
+and give it the `documentation` label.
 
 Build docs locally
 ==================

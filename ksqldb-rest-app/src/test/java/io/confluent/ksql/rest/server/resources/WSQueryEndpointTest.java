@@ -15,9 +15,12 @@
 
 package io.confluent.ksql.rest.server.resources;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
@@ -29,7 +32,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.ListeningScheduledExecutorService;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.properties.ConfigOverrideLogger;
-import io.confluent.ksql.properties.DenyListPropertyValidator;
+import io.confluent.ksql.properties.ConfigOverrideValidator;
 import io.confluent.ksql.rest.ApiJsonMapper;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.entity.KsqlRequest;
@@ -39,6 +42,7 @@ import io.confluent.ksql.rest.server.query.QueryExecutor;
 import io.confluent.ksql.rest.server.resources.streaming.WSQueryEndpoint;
 import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.version.metrics.ActivenessRegistrar;
 import io.vertx.core.Context;
 import io.vertx.core.MultiMap;
@@ -52,6 +56,7 @@ import org.apache.kafka.streams.StreamsConfig;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.MockedStatic;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -65,7 +70,7 @@ public class WSQueryEndpointTest {
   @Mock
   private KsqlSecurityContext ksqlSecurityContext;
   @Mock
-  private DenyListPropertyValidator denyListPropertyValidator;
+  private ConfigOverrideValidator configOverrideValidator;
   @Mock
   private KsqlConfig ksqlConfig;
   @Mock
@@ -89,29 +94,35 @@ public class WSQueryEndpointTest {
         mock(Duration.class),
         Optional.empty(),
         mock(Errors.class),
-        denyListPropertyValidator,
+        configOverrideValidator,
         queryExecutor
     );
   }
 
   @Test
-  public void shouldCallPropertyValidatorOnExecuteStream()
-      throws JsonProcessingException {
-    // Given
+  public void shouldCallPropertyValidatorOnExecuteStream() throws JsonProcessingException {
+    // Given: mocked configOverrideValidator throws the same message a real
+    // DenyListPropertyValidator would for num.stream.threads.
     final Map<String, Object> overrides =
         ImmutableMap.of(StreamsConfig.NUM_STREAM_THREADS_CONFIG, 1);
     final MultiMap params = buildRequestParams("show streams;", overrides);
+    final ArgumentCaptor<String> jsonCaptor = ArgumentCaptor.forClass(String.class);
+    doThrow(new KsqlException("One or more properties overrides set locally are prohibited "
+        + "by the KSQL server denylist (use UNSET to reset their default value): "
+        + "[num.stream.threads]")).when(configOverrideValidator).validateAll(overrides);
 
     // When
     try (MockedStatic<ConfigOverrideLogger> configOverrideLogger =
         mockStatic(ConfigOverrideLogger.class)) {
       executeStreamQuery(params, Optional.empty());
 
-      // Then: WS sockets do not throw any exception (closes silently). We can only verify that validator
-      // was called.Config Override Logger fires first, and then validator fires.
+      // Then: WS sockets do not throw any exception (closes silently). Config Override Logger
+      // fires first, and then the validator's real message survives to the socket's error frame.
       configOverrideLogger.verify(() -> ConfigOverrideLogger.logOverrides("/ws/query", overrides));
-      verify(denyListPropertyValidator).validateAll(overrides);
+      verify(configOverrideValidator).validateAll(overrides);
     }
+    verify(serverWebSocket).writeFinalTextFrame(jsonCaptor.capture(), any());
+    assertThat(jsonCaptor.getValue(), containsString("prohibited by the KSQL server denylist"));
   }
 
   @Test

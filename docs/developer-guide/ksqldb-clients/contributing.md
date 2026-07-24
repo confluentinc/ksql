@@ -8,7 +8,7 @@ keywords: ksqlDB, client
 
 **We are no longer accepting client contributions from the community.**
 The guide below, including the [section on contributing a client to the main ksqlDB
-repository](#contributing-your-client-to-the-main-ksqldb-repository), is retained for historical/internal reference only.
+repository](#contributing-your-client-to-the-main-ksqldb-repository), is retained for historical reference only.
 
 Overview
 --------
@@ -185,7 +185,7 @@ Contributing your client to the main ksqlDB repository
 ------------------------------------------------------
 
 **We are no longer accepting community contributions of new clients to the main ksqlDB
-repository.** The steps below are retained for historical/internal reference only.
+repository.** The steps below are retained for historical reference only.
 
 To get started:
 - Open a [KLIP](https://github.com/confluentinc/ksql/blob/master/design-proposals/README.md) to propose the client you'd like to implement. The KLIP should include a high-level design and example interfaces.

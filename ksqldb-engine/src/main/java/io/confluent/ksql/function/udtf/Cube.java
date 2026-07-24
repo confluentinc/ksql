@@ -16,6 +16,7 @@
 package io.confluent.ksql.function.udtf;
 
 import io.confluent.ksql.function.FunctionCategory;
+import io.confluent.ksql.function.KsqlFunctionException;
 import io.confluent.ksql.util.KsqlConstants;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -32,6 +33,11 @@ import java.util.List;
 )
 public class Cube {
 
+  // 2^20 (~1M) output rows already comfortably covers realistic use of this function while
+  // keeping the worst-case allocation below bounded regardless of heap size, well clear of the
+  // 31-column shift-overflow boundary.
+  private static final int MAX_COLUMNS = 20;
+
   @Udtf
   public <T> List<List<T>> cube(final List<T> columns) {
     if (columns == null) {
@@ -42,6 +48,11 @@ public class Cube {
 
 
   private <T> List<List<T>>  createAllCombinations(final List<T> columns) {
+
+    if (columns.size() > MAX_COLUMNS) {
+      throw new KsqlFunctionException(
+          "cube_explode: too many columns (" + columns.size() + "); max is " + MAX_COLUMNS);
+    }
 
     final int combinations = 1 << columns.size();
     // when a column value is null there is only a single possibility for the output

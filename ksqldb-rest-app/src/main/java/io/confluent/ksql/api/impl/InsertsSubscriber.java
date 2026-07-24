@@ -46,15 +46,15 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serializer;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public final class InsertsSubscriber extends BaseSubscriber<JsonObject> implements
     InsertsStreamSubscriber {
 
-  private static final Logger log = LoggerFactory.getLogger(InsertsSubscriber.class);
+  private static final Logger log = LogManager.getLogger(InsertsSubscriber.class);
   private static final int REQUEST_BATCH_SIZE = 200;
   private static final SqlValueCoercer SQL_VALUE_COERCER = ApiSqlValueCoercer.INSTANCE;
 

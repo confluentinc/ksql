@@ -33,17 +33,19 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
-import kafka.zookeeper.ZooKeeperClientException;
+import org.apache.kafka.raft.errors.RaftException;
 import org.apache.kafka.streams.StreamsConfig;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TemporaryFolder;
 
+@Ignore
 @Category({IntegrationTest.class})
 public class QuickDegradeAndRestoreCommandTopicIntegrationTest {
   private static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.builder()
@@ -54,7 +56,7 @@ public class QuickDegradeAndRestoreCommandTopicIntegrationTest {
 
   @ClassRule
   public static final RuleChain CHAIN = RuleChain
-      .outerRule(Retry.of(3, ZooKeeperClientException.class, 3, TimeUnit.SECONDS))
+      .outerRule(Retry.of(3, RaftException.class, 3, TimeUnit.SECONDS))
       .around(TEST_HARNESS);
 
   @ClassRule

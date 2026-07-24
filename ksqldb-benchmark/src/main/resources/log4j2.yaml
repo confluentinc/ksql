@@ -1,0 +1,73 @@
+Configuration:
+  Appenders:
+    Console:
+      name: stdout
+      target: SYSTEM_OUT
+      PatternLayout:
+        pattern: "[%d] %p %m (%c:%L)%n"
+  Loggers:
+    Root:
+      level: INFO
+      AppenderRef:
+        - ref: stdout
+    Logger:
+      - name: io.confluent.connect.avro.AvroConverterConfig
+        level: WARN
+      - name: io.confluent.connect.avro.AvroDataConfig
+        level: WARN
+      - name: io.confluent.kafka.serializers.KafkaAvroDeserializerConfig
+        level: WARN
+      - name: io.confluent.kafka.serializers.KafkaAvroSerializerConfig
+        level: WARN
+      - name: io.confluent.kafka.serializers.KafkaJsonDeserializerConfig
+        level: WARN
+      - name: io.confluent.kafka.serializers.KafkaJsonSerializerConfig
+        level: WARN
+      - name: io.confluent.kafka.serializers.json.KafkaJsonSchemaSerializerConfig
+        level: WARN
+      - name: io.confluent.kafka.serializers.json.KafkaJsonSchemaDeserializerConfig
+        level: WARN
+      - name: io.confluent.kafka.serializers.protobuf.KafkaProtobufSerializerConfig
+        level: WARN
+      - name: io.confluent.kafka.serializers.protobuf.KafkaProtobufDeserializerConfig
+        level: WARN
+      - name: io.confluent.ksql.logging.processing.ProcessingLogConfig
+        level: WARN
+      - name: io.confluent.ksql.rest.server.KsqlRestConfig
+        level: WARN
+      - name: io.confluent.ksql.util.KsqlConfig
+        level: WARN
+      - name: io.confluent.ksql.cli.console.CliConfig
+        level: WARN
+      - name: kafka.server.KafkaConfig
+        level: WARN
+      - name: org.apache.kafka.clients.admin.AdminClientConfig
+        level: WARN
+      - name: org.apache.kafka.clients.consumer.ConsumerConfig
+        level: WARN
+      - name: org.apache.kafka.clients.producer.ProducerConfig
+        level: WARN
+      - name: org.apache.kafka.connect.json.JsonConverterConfig
+        level: WARN
+      - name: io.confluent.connect.json.JsonSchemaConverterConfig
+        level: WARN
+      - name: io.confluent.connect.json.JsonSchemaDataConfig
+        level: WARN
+      - name: io.confluent.connect.protobuf.ProtobufDataConfig
+        level: WARN
+      - name: io.confluent.connect.protobuf.ProtobufConverterConfig
+        level: WARN
+      - name: org.apache.kafka.streams.StreamsConfig
+        level: WARN
+      - name: io.confluent.ksql.function.UdfLoader
+        level: WARN
+      - name: org.apache.kafka.streams.KafkaStreams
+        level: WARN
+      - name: org.apache.kafka.streams.processor.internals.StreamThread
+        level: WARN
+      - name: org.apache.kafka.streams.state.internals.RocksDBTimestampedStore
+        level: WARN
+      - name: org.apache.kafka.common.utils.AppInfoParser
+        level: WARN
+      - name: org.reflections
+        level: ERROR

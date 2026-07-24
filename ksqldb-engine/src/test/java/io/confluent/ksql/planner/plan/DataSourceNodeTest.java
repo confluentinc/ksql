@@ -62,6 +62,7 @@ import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.structured.SchemaKTable;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
+
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -69,7 +70,6 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serde;
-import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.TopologyDescription;
@@ -210,18 +210,18 @@ public class DataSourceNodeTest {
     final TopologyDescription.Source node = (TopologyDescription.Source) getNodeByName(realBuilder.build(), PlanTestUtil.SOURCE_NODE);
     final List<String> successors = node.successors().stream().map(TopologyDescription.Node::name).collect(Collectors.toList());
     assertThat(node.predecessors(), equalTo(Collections.emptySet()));
-    assertThat(successors, equalTo(Collections.singletonList(PlanTestUtil.TRANSFORM_NODE)));
+    assertThat(successors, equalTo(Collections.singletonList(PlanTestUtil.PROCESS_NODE)));
     assertThat(node.topicSet(), equalTo(ImmutableSet.of("topic")));
   }
 
   @Test
-  public void shouldBuildTransformNode() {
+  public void shouldBuildProcessNode() {
     // When:
     realStream = buildStream(node);
 
     // Then:
     final TopologyDescription.Processor node = (TopologyDescription.Processor) getNodeByName(
-        realBuilder.build(), PlanTestUtil.TRANSFORM_NODE);
+        realBuilder.build(), PlanTestUtil.PROCESS_NODE);
     verifyProcessorNode(node, Collections.singletonList(PlanTestUtil.SOURCE_NODE), Collections.emptyList());
   }
 

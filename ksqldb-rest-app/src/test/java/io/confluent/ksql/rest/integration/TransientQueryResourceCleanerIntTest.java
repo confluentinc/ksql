@@ -46,9 +46,11 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
-import kafka.zookeeper.ZooKeeperClientException;
+import org.apache.kafka.raft.errors.RaftException;
 import org.apache.kafka.streams.StreamsConfig;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.core.LoggerContext;
+import org.apache.logging.log4j.core.config.Configuration;
 import org.codehaus.plexus.util.FileUtils;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -75,11 +77,10 @@ public class TransientQueryResourceCleanerIntTest {
     private static final String USER_TABLE = USER_DATA_PROVIDER.sourceName();
 
     // Persistent Topics:
-    // _confluent-command, // This topic is created by ce-kafka for LicenseStore
     // _confluent-ksql-default__command_topic,
     // PAGEVIEW_TOPIC,
     // USER_TOPIC
-    private static final int numPersistentTopics = 4;
+    private static final int numPersistentTopics = 3;
 
     // Transient Topics:
     // _confluent-ksql-default_transient_transient_PV_[0-9]\d*_[0-9]\d*-KafkaTopic_Right-Reduce-changelog
@@ -107,7 +108,7 @@ public class TransientQueryResourceCleanerIntTest {
 
     @ClassRule
     public static final RuleChain CHAIN = RuleChain
-            .outerRule(Retry.of(3, ZooKeeperClientException.class, 3, TimeUnit.SECONDS))
+            .outerRule(Retry.of(3, RaftException.class, 3, TimeUnit.SECONDS))
             .around(TEST_HARNESS)
             .around(REST_APP_0);
 
@@ -118,15 +119,18 @@ public class TransientQueryResourceCleanerIntTest {
     private Runnable backgroundTask;
 
     private TestAppender appender;
-    private Logger logger;
 
     private AtomicBoolean requestCompleted = new AtomicBoolean(false);
 
     @Before
     public void setUp() throws IOException, InterruptedException {
-        appender = new TestAppender();
-        logger = Logger.getRootLogger();
-        logger.addAppender(appender);
+        appender = new TestAppender("TestAppender", null);
+        LoggerContext context = (LoggerContext) LogManager.getContext(false);
+        Configuration config = context.getConfiguration();
+        appender.start();
+        config.addAppender(appender);
+        config.getLoggerConfig(LogManager.ROOT_LOGGER_NAME).addAppender(appender, null, null);
+        context.updateLoggers();
         if (FileUtils.fileExists(stateDir)) {
             FileUtils.cleanDirectory(stateDir);
         }
@@ -147,7 +151,11 @@ public class TransientQueryResourceCleanerIntTest {
 
     @After
     public void tearDown() {
-
+        final LoggerContext context = (LoggerContext) LogManager.getContext(false);
+        final Configuration config = context.getConfiguration();
+        config.getLoggerConfig(LogManager.ROOT_LOGGER_NAME).removeAppender(appender.getName());
+        appender.stop();
+        context.updateLoggers();
         service.shutdownNow();
     }
 
@@ -229,7 +237,7 @@ public class TransientQueryResourceCleanerIntTest {
                 is(0L));
 
         final Set<String> logMessages = appender.getLog()
-                .stream().map(log -> log.getMessage().toString())
+                .stream().map(log -> log.getMessage().getFormattedMessage())
                 .collect(Collectors.toSet());
 
         assertTrue(
@@ -281,7 +289,7 @@ public class TransientQueryResourceCleanerIntTest {
                 is(0));
 
         final Set<String> logMessages = appender.getLog()
-                .stream().map(log -> log.getMessage().toString())
+                .stream().map(log -> log.getMessage().getFormattedMessage())
                 .collect(Collectors.toSet());
 
         assertTrue(
@@ -324,7 +332,7 @@ public class TransientQueryResourceCleanerIntTest {
         );
 
         final Set<String> logMessages = appender.getLog()
-                .stream().map(log -> log.getMessage().toString())
+                .stream().map(log -> log.getMessage().getFormattedMessage())
                 .collect(Collectors.toSet());
 
         assertFalse(
@@ -357,7 +365,7 @@ public class TransientQueryResourceCleanerIntTest {
         assertTrue(Objects.requireNonNull(stateFolder.list())[0].contains(transientQueryId));
 
         final Set<String> logMessages = appender.getLog()
-                .stream().map(log -> log.getMessage().toString())
+                .stream().map(log -> log.getMessage().getFormattedMessage())
                 .collect(Collectors.toSet());
 
         assertFalse(

@@ -30,9 +30,9 @@ import io.vertx.core.http.HttpServerResponse;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Supplier;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.reactivestreams.Subscription;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * This is a reactive streams subscriber which receives a stream of results from a publisher which
@@ -40,7 +40,7 @@ import org.slf4j.LoggerFactory;
  */
 public class QuerySubscriber extends BaseSubscriber<KeyValueMetadata<List<?>, GenericRow>> {
 
-  private static final Logger log = LoggerFactory.getLogger(QuerySubscriber.class);
+  private static final Logger log = LogManager.getLogger(QuerySubscriber.class);
   private static final int REQUEST_BATCH_SIZE = 200;
 
   private final HttpServerResponse response;

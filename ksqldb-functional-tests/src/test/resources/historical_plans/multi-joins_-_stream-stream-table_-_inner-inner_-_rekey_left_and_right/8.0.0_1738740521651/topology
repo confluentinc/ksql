@@ -1,0 +1,89 @@
+Topologies:
+   Sub-topology: 0
+    Source: L_Join-left-repartition-source (topics: [L_Join-left-repartition])
+      --> PrependAliasL_Left
+    Source: L_Join-right-repartition-source (topics: [L_Join-right-repartition])
+      --> PrependAliasL_Right
+    Processor: PrependAliasL_Left (stores: [])
+      --> L_Join-this-windowed
+      <-- L_Join-left-repartition-source
+    Processor: PrependAliasL_Right (stores: [])
+      --> L_Join-other-windowed
+      <-- L_Join-right-repartition-source
+    Processor: L_Join-other-windowed (stores: [KSTREAM-JOINOTHER-0000000023-store])
+      --> L_Join-other-join
+      <-- PrependAliasL_Right
+    Processor: L_Join-this-windowed (stores: [KSTREAM-JOINTHIS-0000000022-store])
+      --> L_Join-this-join
+      <-- PrependAliasL_Left
+    Processor: L_Join-other-join (stores: [KSTREAM-JOINTHIS-0000000022-store])
+      --> L_Join-merge
+      <-- L_Join-other-windowed
+    Processor: L_Join-this-join (stores: [KSTREAM-JOINOTHER-0000000023-store])
+      --> L_Join-merge
+      <-- L_Join-this-windowed
+    Source: KSTREAM-SOURCE-0000000001 (topics: [right2])
+      --> KTABLE-SOURCE-0000000002
+    Processor: L_Join-merge (stores: [])
+      --> Join
+      <-- L_Join-this-join, L_Join-other-join
+    Processor: Join (stores: [KafkaTopic_Right-Reduce])
+      --> KSTREAM-PEEK-0000000026, Project
+      <-- L_Join-merge
+    Processor: KTABLE-SOURCE-0000000002 (stores: [])
+      --> KTABLE-TRANSFORMVALUES-0000000003
+      <-- KSTREAM-SOURCE-0000000001
+    Processor: KTABLE-TRANSFORMVALUES-0000000003 (stores: [KafkaTopic_Right-Reduce])
+      --> KTABLE-TRANSFORMVALUES-0000000004
+      <-- KTABLE-SOURCE-0000000002
+    Processor: KTABLE-TRANSFORMVALUES-0000000004 (stores: [])
+      --> PrependAliasRight
+      <-- KTABLE-TRANSFORMVALUES-0000000003
+    Processor: Project (stores: [])
+      --> KSTREAM-SINK-0000000027
+      <-- Join
+    Processor: KSTREAM-PEEK-0000000026 (stores: [])
+      --> none
+      <-- Join
+    Sink: KSTREAM-SINK-0000000027 (topic: OUTPUT)
+      <-- Project
+    Processor: PrependAliasRight (stores: [])
+      --> none
+      <-- KTABLE-TRANSFORMVALUES-0000000004
+
+  Sub-topology: 1
+    Source: KSTREAM-SOURCE-0000000006 (topics: [left])
+      --> KSTREAM-PROCESSVALUES-0000000007
+    Processor: KSTREAM-PROCESSVALUES-0000000007 (stores: [])
+      --> L_LeftSourceKeyed-SelectKey
+      <-- KSTREAM-SOURCE-0000000006
+    Processor: L_LeftSourceKeyed-SelectKey (stores: [])
+      --> L_Join-left-repartition-filter, KSTREAM-PEEK-0000000009
+      <-- KSTREAM-PROCESSVALUES-0000000007
+    Processor: L_Join-left-repartition-filter (stores: [])
+      --> L_Join-left-repartition-sink
+      <-- L_LeftSourceKeyed-SelectKey
+    Processor: KSTREAM-PEEK-0000000009 (stores: [])
+      --> none
+      <-- L_LeftSourceKeyed-SelectKey
+    Sink: L_Join-left-repartition-sink (topic: L_Join-left-repartition)
+      <-- L_Join-left-repartition-filter
+
+  Sub-topology: 2
+    Source: KSTREAM-SOURCE-0000000010 (topics: [right])
+      --> KSTREAM-PROCESSVALUES-0000000011
+    Processor: KSTREAM-PROCESSVALUES-0000000011 (stores: [])
+      --> L_RightSourceKeyed-SelectKey
+      <-- KSTREAM-SOURCE-0000000010
+    Processor: L_RightSourceKeyed-SelectKey (stores: [])
+      --> KSTREAM-PEEK-0000000013, L_Join-right-repartition-filter
+      <-- KSTREAM-PROCESSVALUES-0000000011
+    Processor: L_Join-right-repartition-filter (stores: [])
+      --> L_Join-right-repartition-sink
+      <-- L_RightSourceKeyed-SelectKey
+    Processor: KSTREAM-PEEK-0000000013 (stores: [])
+      --> none
+      <-- L_RightSourceKeyed-SelectKey
+    Sink: L_Join-right-repartition-sink (topic: L_Join-right-repartition)
+      <-- L_Join-right-repartition-filter
+

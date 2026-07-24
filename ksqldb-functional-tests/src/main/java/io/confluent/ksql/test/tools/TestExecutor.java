@@ -32,9 +32,12 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Streams;
+import io.confluent.kafka.schemaregistry.avro.AvroSchemaProvider;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaMetadata;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.kafka.schemaregistry.json.JsonSchemaProvider;
+import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchemaProvider;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.execution.runtime.RuntimeBuildContext;
 import io.confluent.ksql.function.FunctionRegistry;
@@ -62,6 +65,7 @@ import io.confluent.ksql.test.tools.TopicInfoCache.TopicInfo;
 import io.confluent.ksql.test.tools.stubs.StubKafkaService;
 import io.confluent.ksql.test.utils.TestUtils;
 import io.confluent.ksql.tools.test.TestFunctionRegistry;
+import io.confluent.ksql.tools.test.model.SchemaReference;
 import io.confluent.ksql.tools.test.model.Topic;
 import io.confluent.ksql.tools.test.stubs.StubKafkaClientSupplier;
 import io.confluent.ksql.tools.test.stubs.StubKafkaConsumerGroupClient;
@@ -292,6 +296,10 @@ public class TestExecutor implements Closeable {
     for (final Topic topic : topics) {
       try {
         if (topic.getKeySchemaId().isPresent() && topic.getKeySchema().isPresent()) {
+          for (final SchemaReference ref : topic.getKeySchemaReferences()) {
+            schemaRegistryClient.register(ref.getName(), ref.getSchema());
+          }
+
           schemaRegistryClient.register(
               KsqlConstants.getSRSubject(topic.getName(), true),
               topic.getKeySchema().get(),
@@ -300,6 +308,10 @@ public class TestExecutor implements Closeable {
         }
 
         if (topic.getValueSchemaId().isPresent() && topic.getValueSchema().isPresent()) {
+          for (final SchemaReference ref : topic.getValueSchemaReferences()) {
+            schemaRegistryClient.register(ref.getName(), ref.getSchema());
+          }
+
           schemaRegistryClient.register(
               KsqlConstants.getSRSubject(topic.getName(), false),
               topic.getValueSchema().get(),
@@ -607,7 +619,11 @@ public class TestExecutor implements Closeable {
   private static ServiceContext getServiceContext(
       final StubKafkaClientSupplier kafkaClientSupplier
   ) {
-    final SchemaRegistryClient schemaRegistryClient = new MockSchemaRegistryClient();
+    final SchemaRegistryClient schemaRegistryClient = new MockSchemaRegistryClient(
+        ImmutableList.of(
+            new AvroSchemaProvider(),
+            new ProtobufSchemaProvider(),
+            new JsonSchemaProvider()));
 
     return new DefaultServiceContext(
         kafkaClientSupplier,

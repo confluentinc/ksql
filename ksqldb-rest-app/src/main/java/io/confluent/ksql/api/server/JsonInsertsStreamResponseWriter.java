@@ -22,8 +22,8 @@ import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpServerResponse;
 import java.util.Objects;
 import java.util.UUID;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * Writes the inserts response stream in JSON format.
@@ -39,7 +39,7 @@ import org.slf4j.LoggerFactory;
  */
 public class JsonInsertsStreamResponseWriter implements InsertsStreamResponseWriter {
 
-  private static final Logger LOG = LoggerFactory.getLogger(JsonInsertsStreamResponseWriter.class);
+  private static final Logger LOG = LogManager.getLogger(JsonInsertsStreamResponseWriter.class);
 
   protected final HttpServerResponse response;
   private final UUID uuid;

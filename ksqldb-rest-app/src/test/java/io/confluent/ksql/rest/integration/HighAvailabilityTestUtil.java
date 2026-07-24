@@ -42,12 +42,12 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 class HighAvailabilityTestUtil {
 
-  private static final Logger LOG = LoggerFactory.getLogger(HighAvailabilityTestUtil.class);
+  private static final Logger LOG = LogManager.getLogger(HighAvailabilityTestUtil.class);
   private static final Pattern QUERY_ID_PATTERN = Pattern.compile("query with ID (\\S+)");
 
   static ClusterStatusResponse sendClusterStatusRequest(

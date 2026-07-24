@@ -177,7 +177,7 @@ public class KsqlMaterializationFactoryTest {
   public void shouldBuildMaterializationWithMapTransform() {
     // Given:
     factory.create(materialization, info, queryId, contextStacker);
-    when(mapper.transform(any(), any(), any())).thenReturn(rowOut);
+    when(mapper.transform(any(), any())).thenReturn(rowOut);
 
     final Transform transform = getTransform(0);
 
@@ -192,7 +192,7 @@ public class KsqlMaterializationFactoryTest {
   public void shouldBuildMaterializationWithNegativePredicateTransform() {
     // Given:
     factory.create(materialization, info, queryId, contextStacker);
-    when(predicate.transform(any(), any(), any())).thenReturn(Optional.empty());
+    when(predicate.transform(any(), any())).thenReturn(Optional.empty());
 
     final Transform transform = getTransform(1);
 
@@ -207,7 +207,7 @@ public class KsqlMaterializationFactoryTest {
   public void shouldBuildMaterializationWithPositivePredicateTransform() {
     // Given:
     factory.create(materialization, info, queryId, contextStacker);
-    when(predicate.transform(any(), any(), any()))
+    when(predicate.transform(any(), any()))
         .thenAnswer(inv -> Optional.of(inv.getArgument(1)));
 
     final Transform transform = getTransform(1);

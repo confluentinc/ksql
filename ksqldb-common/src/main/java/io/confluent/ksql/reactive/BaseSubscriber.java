@@ -19,10 +19,10 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.util.VertxUtils;
 import io.vertx.core.Context;
 import java.util.Objects;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * A reactive streams subscriber which handles much of the plumbing for you and executes the onXXX
@@ -38,7 +38,7 @@ import org.slf4j.LoggerFactory;
  */
 public class BaseSubscriber<T> implements Subscriber<T> {
 
-  private static final Logger log = LoggerFactory.getLogger(BaseSubscriber.class);
+  private static final Logger log = LogManager.getLogger(BaseSubscriber.class);
 
   protected final Context context;
   private Subscription subscription;

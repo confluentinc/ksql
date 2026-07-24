@@ -22,12 +22,12 @@ import io.confluent.ksql.tools.migrations.MigrationException;
 import io.confluent.ksql.util.KsqlVersion;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public final class ServerVersionUtil {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(ServerVersionUtil.class);
+  private static final Logger LOGGER = LogManager.getLogger(ServerVersionUtil.class);
 
   private ServerVersionUtil() {
   }

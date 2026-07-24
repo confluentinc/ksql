@@ -51,8 +51,8 @@ import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.errors.WakeupException;
 import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.common.serialization.Deserializer;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * Handles the logic of reading distributed commands, including pre-existing commands that were
@@ -62,7 +62,7 @@ import org.slf4j.LoggerFactory;
  */
 public class CommandRunner implements Closeable {
 
-  private static final Logger LOG = LoggerFactory.getLogger(CommandRunner.class);
+  private static final Logger LOG = LogManager.getLogger(CommandRunner.class);
 
   private static final int STATEMENT_RETRY_MS = 100;
   private static final int MAX_STATEMENT_RETRY_MS = 5 * 1000;
@@ -392,7 +392,7 @@ public class CommandRunner implements Closeable {
     serverState.setTerminating();
     LOG.info("Terminating the KSQL server.");
     this.close();
-    final List<String> deleteTopicList = (List<String>) command.getOverwriteProperties()
+    final List<String> deleteTopicList = (List<String>) command.getOverwritePropertiesForExecution()
         .getOrDefault(ClusterTerminateRequest.DELETE_TOPIC_LIST_PROP, Collections.emptyList());
 
     clusterTerminator.terminateCluster(deleteTopicList);

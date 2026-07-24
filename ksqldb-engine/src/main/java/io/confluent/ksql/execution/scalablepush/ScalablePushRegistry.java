@@ -58,8 +58,8 @@ import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.streams.StreamsConfig;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * This registry is kept with every persistent query. The LatestConsumer started by this registry
@@ -68,7 +68,7 @@ import org.slf4j.LoggerFactory;
  */
 public class ScalablePushRegistry {
 
-  private static final Logger LOG = LoggerFactory.getLogger(ScalablePushRegistry.class);
+  private static final Logger LOG = LogManager.getLogger(ScalablePushRegistry.class);
   private static final String LATEST_CONSUMER_GROUP_SUFFIX = "_scalable_push_query_latest";
   private static final String CATCHUP_CONSUMER_GROUP_MIDDLE = "_scalable_push_query_catchup_";
 

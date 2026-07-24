@@ -55,8 +55,8 @@ import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
-import kafka.zookeeper.ZooKeeperClientException;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.raft.errors.RaftException;
 import org.apache.kafka.streams.StreamsConfig;
 import org.junit.After;
 import org.junit.Before;
@@ -171,7 +171,7 @@ public class PullQueryLimitHARoutingTest {
 
     @ClassRule
     public static final RuleChain CHAIN = RuleChain
-            .outerRule(Retry.of(3, ZooKeeperClientException.class, 3, TimeUnit.SECONDS))
+            .outerRule(Retry.of(3, RaftException.class, 3, TimeUnit.SECONDS))
             .around(TEST_HARNESS)
             .around(TMP);
 

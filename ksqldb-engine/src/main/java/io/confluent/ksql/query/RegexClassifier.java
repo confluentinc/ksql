@@ -18,8 +18,8 @@ package io.confluent.ksql.query;
 import io.confluent.ksql.query.QueryError.Type;
 import java.util.Objects;
 import java.util.regex.Pattern;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * The {@code RegexClassifier} classifies errors based on regex patterns of
@@ -28,7 +28,7 @@ import org.slf4j.LoggerFactory;
  */
 public final class RegexClassifier implements QueryErrorClassifier {
 
-  private static final Logger LOG = LoggerFactory.getLogger(RegexClassifier.class);
+  private static final Logger LOG = LogManager.getLogger(RegexClassifier.class);
 
   private final Pattern pattern;
   private final Type type;

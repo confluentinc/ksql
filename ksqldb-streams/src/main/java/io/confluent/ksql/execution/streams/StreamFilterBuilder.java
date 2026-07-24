@@ -19,16 +19,12 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.plan.KStreamHolder;
 import io.confluent.ksql.execution.plan.StreamFilter;
 import io.confluent.ksql.execution.runtime.RuntimeBuildContext;
-import io.confluent.ksql.execution.streams.transform.KsValueTransformer;
-import io.confluent.ksql.execution.transform.KsqlTransformer;
+import io.confluent.ksql.execution.streams.process.KsFlatTransformedValueProcessor;
+import io.confluent.ksql.execution.transform.KsqlFlatTransformer;
 import io.confluent.ksql.execution.transform.sqlpredicate.SqlPredicate;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
-import java.util.Collections;
-import java.util.Optional;
 import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.Named;
-import org.apache.kafka.streams.kstream.ValueTransformerWithKey;
-import org.apache.kafka.streams.processor.ProcessorContext;
 
 public final class StreamFilterBuilder {
   private StreamFilterBuilder() {
@@ -42,61 +38,33 @@ public final class StreamFilterBuilder {
   }
 
   static <K> KStreamHolder<K> build(
-      final KStreamHolder<K> stream,
+      final KStreamHolder<K> streamHolder,
       final StreamFilter<K> step,
       final RuntimeBuildContext buildContext,
       final SqlPredicateFactory predicateFactory
   ) {
     final SqlPredicate predicate = predicateFactory.create(
         step.getFilterExpression(),
-        stream.getSchema(),
+        streamHolder.getSchema(),
         buildContext.getKsqlConfig(),
         buildContext.getFunctionRegistry()
     );
 
     final ProcessingLogger processingLogger = buildContext
         .getProcessingLogger(step.getProperties().getQueryContext());
-
-    final KStream<K, GenericRow> filtered = stream.getStream()
-        .flatTransformValues(
-            () -> toFlatMapTransformer(predicate.getTransformer(processingLogger)),
+    final KStream<K, GenericRow> stream = streamHolder.getStream();
+    // Preserve processor naming sequence by adding a no-op peek operation.
+    stream.peek((k, v) -> { });
+    final KStream<K, GenericRow> filtered = stream
+        .processValues(
+            () -> new KsFlatTransformedValueProcessor<>(
+                new KsqlFlatTransformer<>(predicate.getTransformer(processingLogger))),
             Named.as(StreamsUtil.buildOpName(step.getProperties().getQueryContext()))
         );
 
-    return stream.withStream(
+    return streamHolder.withStream(
         filtered,
-        stream.getSchema()
+        streamHolder.getSchema()
     );
-  }
-
-  private static <K> ValueTransformerWithKey<
-      K,
-      GenericRow,
-      Iterable<GenericRow>
-      > toFlatMapTransformer(
-          final KsqlTransformer<K, Optional<GenericRow>> transformer
-  ) {
-    final ValueTransformerWithKey<K, GenericRow, Optional<GenericRow>> delegate =
-        new KsValueTransformer<>(transformer);
-
-    return new ValueTransformerWithKey<K, GenericRow, Iterable<GenericRow>>() {
-      @Override
-      public void init(final ProcessorContext context) {
-        delegate.init(context);
-      }
-
-      @Override
-      public Iterable<GenericRow> transform(final K readOnlyKey, final GenericRow value) {
-        final Optional<GenericRow> result = delegate.transform(readOnlyKey, value);
-        return result
-            .map(Collections::singletonList)
-            .orElse(Collections.emptyList());
-      }
-
-      @Override
-      public void close() {
-        delegate.close();
-      }
-    };
   }
 }

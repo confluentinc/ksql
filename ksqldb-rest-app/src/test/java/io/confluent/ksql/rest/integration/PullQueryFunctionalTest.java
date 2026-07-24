@@ -57,7 +57,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BiFunction;
 import java.util.stream.Collectors;
-import kafka.zookeeper.ZooKeeperClientException;
+import org.apache.kafka.raft.errors.RaftException;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.streams.StreamsConfig;
 import org.junit.After;
@@ -68,8 +68,8 @@ import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TemporaryFolder;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * Test to ensure pull queries route across multiple KSQL nodes correctly.
@@ -81,7 +81,7 @@ import org.slf4j.LoggerFactory;
 @Category({IntegrationTest.class})
 public class PullQueryFunctionalTest {
 
-  private static final Logger LOG = LoggerFactory.getLogger(PullQueryFunctionalTest.class);
+  private static final Logger LOG = LogManager.getLogger(PullQueryFunctionalTest.class);
   private static final TemporaryFolder TMP = KsqlTestFolder.temporaryFolder();
 
   static {
@@ -155,7 +155,7 @@ public class PullQueryFunctionalTest {
 
   @ClassRule
   public static final RuleChain CHAIN = RuleChain
-      .outerRule(Retry.of(3, ZooKeeperClientException.class, 3, TimeUnit.SECONDS))
+      .outerRule(Retry.of(3, RaftException.class, 3, TimeUnit.SECONDS))
       .around(TEST_HARNESS)
       .around(JAAS_CONFIG)
       .around(REST_APP_0)

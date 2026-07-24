@@ -33,6 +33,8 @@ final class SandboxedAdminClient {
   static Admin createProxy() {
     return LimitedProxyBuilder.forClass(Admin.class)
         .swallow("close", anyParams())
+        .swallow("registerMetricForSubscription", anyParams())
+        .swallow("unregisterMetricFromSubscription", anyParams())
         .build();
   }
 

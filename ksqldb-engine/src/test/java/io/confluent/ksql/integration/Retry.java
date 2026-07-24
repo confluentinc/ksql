@@ -21,8 +21,8 @@ import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 import org.junit.runners.model.Statement;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * The {@code Retry} rule allows you to retry a test that
@@ -78,7 +78,7 @@ import org.slf4j.LoggerFactory;
  */
 public class Retry implements TestRule {
 
-  private static final Logger LOG = LoggerFactory.getLogger(Retry.class);
+  private static final Logger LOG = LogManager.getLogger(Retry.class);
 
   public static Retry none() {
     return new Retry();

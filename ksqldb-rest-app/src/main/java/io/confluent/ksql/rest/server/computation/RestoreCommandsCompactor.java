@@ -32,14 +32,14 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import javax.annotation.Nullable;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * Util for compacting the restore commands
  */
 public final class RestoreCommandsCompactor {
-  private static final Logger LOG = LoggerFactory.getLogger(RestoreCommandsCompactor.class);
+  private static final Logger LOG = LogManager.getLogger(RestoreCommandsCompactor.class);
 
   private RestoreCommandsCompactor() {
   }
@@ -224,8 +224,8 @@ public final class RestoreCommandsCompactor {
 
     final Command newCommand = new Command(
         command.getStatement(),
-        Optional.of(command.getOverwriteProperties()),
-        Optional.of(command.getOriginalProperties()),
+        Optional.of(command.getOverwritePropertiesForExecution()),
+        Optional.of(command.getOriginalPropertiesForExecution()),
         command.getPlan().map(KsqlPlan::withoutQuery),
         command.getVersion()
     );

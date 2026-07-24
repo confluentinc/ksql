@@ -29,5 +29,5 @@ import io.confluent.ksql.GenericRow;
  */
 public interface KsqlTransformer<K, R> {
 
-  R transform(K readOnlyKey, GenericRow value, KsqlProcessingContext ctx);
+  R transform(K readOnlyKey, GenericRow value);
 }

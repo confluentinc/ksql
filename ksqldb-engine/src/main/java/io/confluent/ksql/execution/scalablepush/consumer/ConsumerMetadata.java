@@ -21,12 +21,12 @@ import java.util.List;
 import java.util.Map;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.PartitionInfo;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class ConsumerMetadata implements AutoCloseable {
 
-  private static final Logger LOG = LoggerFactory.getLogger(ConsumerMetadata.class);
+  private static final Logger LOG = LogManager.getLogger(ConsumerMetadata.class);
 
   private final int numPartitions;
 

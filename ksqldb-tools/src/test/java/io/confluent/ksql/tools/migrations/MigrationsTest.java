@@ -29,6 +29,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import com.github.rvesse.airline.Cli;
 import com.google.common.collect.ImmutableList;
@@ -72,16 +73,19 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import kafka.zookeeper.ZooKeeperClientException;
+import org.apache.kafka.raft.errors.RaftException;
 import org.apache.kafka.common.config.SslConfigs;
 import org.apache.kafka.connect.json.JsonConverter;
 import io.confluent.ksql.rest.entity.ConnectorType;
 import org.apache.kafka.connect.storage.StringConverter;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.test.TestUtils;
-import org.apache.log4j.AppenderSkeleton;
-import org.apache.log4j.Logger;
-import org.apache.log4j.spi.LoggingEvent;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.core.Appender;
+import org.apache.logging.log4j.core.LogEvent;
+import org.apache.logging.log4j.core.LoggerContext;
+import org.apache.logging.log4j.core.config.Configuration;
+import org.apache.logging.log4j.core.config.LoggerConfig;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
 import org.hamcrest.TypeSafeDiagnosingMatcher;
@@ -129,7 +133,7 @@ public class MigrationsTest {
 
   @ClassRule
   public static final RuleChain CHAIN = RuleChain
-      .outerRule(Retry.of(3, ZooKeeperClientException.class, 3, TimeUnit.SECONDS))
+      .outerRule(Retry.of(3, RaftException.class, 3, TimeUnit.SECONDS))
       .around(TEST_HARNESS)
       .around(REST_APP);
 
@@ -152,9 +156,9 @@ public class MigrationsTest {
   private static ConnectExecutable CONNECT;
 
   @Mock
-  private AppenderSkeleton logAppender;
+  private Appender logAppender;
   @Captor
-  private ArgumentCaptor<LoggingEvent> logCaptor;
+  private ArgumentCaptor<LogEvent> logCaptor;
 
   private final boolean withMigrationsDirOverride;
 
@@ -228,6 +232,8 @@ public class MigrationsTest {
 
   @Before
   public void setUp() throws Exception {
+    when(logAppender.getName()).thenReturn("logAppender");
+    when(logAppender.isStarted()).thenReturn(true);
     if (withMigrationsDirOverride) {
       migrationsDir = Paths.get(testDir, "my/custom/migrations_dir").toString();
       assertThat(new File(migrationsDir).mkdirs(), is(true));
@@ -325,7 +331,12 @@ public class MigrationsTest {
 
   private void shouldDisplayInfo() {
     // Given:
-    Logger.getRootLogger().addAppender(logAppender);
+    LoggerContext context = (LoggerContext) LogManager.getContext(false);
+    Configuration config = context.getConfiguration();
+    config.addAppender(logAppender);
+    final LoggerConfig rootLogger = config.getRootLogger();
+    rootLogger.addAppender(logAppender, null, null);
+    context.updateLoggers();
 
     try {
       // When:
@@ -334,9 +345,9 @@ public class MigrationsTest {
       // Then:
       assertThat(infoStatus, is(0));
 
-      verify(logAppender, atLeastOnce()).doAppend(logCaptor.capture());
+      verify(logAppender, atLeastOnce()).append(logCaptor.capture());
       final List<String> logMessages = logCaptor.getAllValues().stream()
-          .map(LoggingEvent::getRenderedMessage)
+          .map(event -> event.getMessage().getFormattedMessage())
           .collect(Collectors.toList());
       assertThat(logMessages, hasItem(containsString("Current migration version: 2")));
       assertThat(logMessages, hasItem(matchesRegex("-+\n" +
@@ -347,7 +358,8 @@ public class MigrationsTest {
           "-+\n"
       )));
     } finally {
-      Logger.getRootLogger().removeAppender(logAppender);
+      config.getRootLogger().removeAppender(logAppender.getName());
+      context.updateLoggers();
     }
   }
 

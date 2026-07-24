@@ -24,12 +24,13 @@ import java.util.Objects;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.streams.errors.DeserializationExceptionHandler;
 import org.apache.kafka.streams.processor.ProcessorContext;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class LogMetricAndContinueExceptionHandler implements DeserializationExceptionHandler {
 
   private static final Logger log
-      = Logger.getLogger(LogMetricAndContinueExceptionHandler.class);
+      = LogManager.getLogger(LogMetricAndContinueExceptionHandler.class);
   private StreamsErrorCollector streamsErrorCollector;
 
   @Override

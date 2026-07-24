@@ -1,0 +1,16 @@
+Topologies:
+   Sub-topology: 0
+    Source: KSTREAM-SOURCE-0000000000 (topics: [stream-source])
+      --> KSTREAM-PROCESSVALUES-0000000001
+    Processor: KSTREAM-PROCESSVALUES-0000000001 (stores: [])
+      --> Project, KSTREAM-PEEK-0000000002
+      <-- KSTREAM-SOURCE-0000000000
+    Processor: Project (stores: [])
+      --> KSTREAM-SINK-0000000003
+      <-- KSTREAM-PROCESSVALUES-0000000001
+    Processor: KSTREAM-PEEK-0000000002 (stores: [])
+      --> none
+      <-- KSTREAM-PROCESSVALUES-0000000001
+    Sink: KSTREAM-SINK-0000000003 (topic: OUTPUT)
+      <-- Project
+

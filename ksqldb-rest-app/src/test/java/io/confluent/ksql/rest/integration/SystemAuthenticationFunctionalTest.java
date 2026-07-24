@@ -55,7 +55,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
-import kafka.zookeeper.ZooKeeperClientException;
+import org.apache.kafka.raft.errors.RaftException;
 import org.apache.kafka.common.config.SslConfigs;
 import org.apache.kafka.streams.StreamsConfig;
 import org.junit.Before;
@@ -192,7 +192,7 @@ public class SystemAuthenticationFunctionalTest {
 
     @ClassRule
     public static final RuleChain CHAIN = RuleChain
-        .outerRule(Retry.of(3, ZooKeeperClientException.class, 3, TimeUnit.SECONDS))
+        .outerRule(Retry.of(3, RaftException.class, 3, TimeUnit.SECONDS))
         .around(TEST_HARNESS)
         .around(REST_APP_0)
         .around(REST_APP_1);
@@ -285,7 +285,7 @@ public class SystemAuthenticationFunctionalTest {
 
     @ClassRule
     public static final RuleChain CHAIN = RuleChain
-        .outerRule(Retry.of(3, ZooKeeperClientException.class, 3, TimeUnit.SECONDS))
+        .outerRule(Retry.of(3, RaftException.class, 3, TimeUnit.SECONDS))
         .around(TEST_HARNESS)
         .around(REST_APP_0)
         .around(REST_APP_1);

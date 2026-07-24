@@ -22,10 +22,7 @@ import static org.mockito.Mockito.when;
 
 import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.execution.common.operators.AbstractPhysicalOperator;
-import io.confluent.ksql.execution.common.operators.SelectOperator;
 import io.confluent.ksql.execution.streams.SqlPredicateFactory;
-import io.confluent.ksql.execution.streams.materialization.PullProcessingContext;
 import io.confluent.ksql.Window;
 import io.confluent.ksql.execution.transform.KsqlTransformer;
 import io.confluent.ksql.execution.transform.sqlpredicate.SqlPredicate;
@@ -120,7 +117,7 @@ public class SelectOperatorTest {
         GenericRow.genericRow("a", "b", A_ROWTIME, "k"),
         A_ROWTIME
     );
-    when(transformer.transform(A_KEY, intermediateRow.value(), new PullProcessingContext(12335L)))
+    when(transformer.transform(A_KEY, intermediateRow.value()))
         .thenReturn(Optional.of(GenericRow.genericRow("a", "b", A_ROWTIME, "k")));
     selectOperator.open();
 
@@ -158,7 +155,7 @@ public class SelectOperatorTest {
         GenericRow.genericRow("a", "b", A_ROWTIME, "k", A_WINDOW.start().toEpochMilli(), A_WINDOW.end().toEpochMilli()),
         A_ROWTIME
     );
-    when(transformer.transform(A_KEY, intermediateWindowedRow.value(), new PullProcessingContext(12335L)))
+    when(transformer.transform(A_KEY, intermediateWindowedRow.value()))
         .thenReturn(Optional.of(GenericRow.genericRow("a", "b", A_ROWTIME, "k", A_WINDOW.start().toEpochMilli(), A_WINDOW.end().toEpochMilli())));
     selectOperator.open();
 

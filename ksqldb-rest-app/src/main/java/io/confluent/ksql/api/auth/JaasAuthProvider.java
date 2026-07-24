@@ -111,6 +111,7 @@ public class JaasAuthProvider implements AuthProvider {
     } catch (final Exception e) {
       LOG.error("Could not start login service.", e);
       promisedUser.fail("Could not start login service.");
+      return;
     }
 
     final UserIdentity user = login.login(username, password, null, session -> null);

@@ -19,6 +19,7 @@ import static io.netty.handler.codec.http.HttpHeaderNames.ACCEPT;
 import static io.netty.handler.codec.http.HttpHeaderNames.USER_AGENT;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.when;
@@ -70,6 +71,18 @@ public class ClientImplTest {
         )
         .testEquals();
   }
+
+  // Note: a regression test for the makeRequest missing-return fix was
+  // attempted here but removed. The test called client.streamQuery(...) with
+  // a mocked HttpClient whose request callback yielded a failed AsyncResult,
+  // then awaited future.get() to verify the future was completed exceptionally
+  // with the transport cause. But streamQuery() returns the OUTER CompletableFuture<
+  // StreamedQueryResult>, while my fix's cf.completeExceptionally(...) acts on
+  // an INNER future created inside makeQueryRequest(). The two are not directly
+  // linked on the transport-failure path, so future.get() blocked indefinitely
+  // (CI killed the job at the 4-hour execution-time limit). The fix is correct;
+  // a proper regression test needs to assert on the makeRequest path directly
+  // (private method, requires test-visibility refactor) and is out of scope here.
 
   @Test
   public void shouldSetUserAgentAndAcceptHeaders() {

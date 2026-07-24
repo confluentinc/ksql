@@ -74,10 +74,4 @@ Follow compact lessons that help you work with common ksqlDB functionality.
     <p class="card-body"><small>Transform columns of structured data without user-defined functions.</small></p>
     <span><a href="/how-to-guides/use-lambda-functions">Learn →</a></span>
   </div>
-  
-  <div class="card how-to-guide contribute">
-    <a href="https://github.com/confluentinc/ksql"><strong>Help us write another?</strong></a>
-    <p class="card-body"><small>We're always looking for more guides. Just send a pull request!</small></p>
-    <span><a href="https://github.com/confluentinc/ksql">Contribute →</a></span>
-  </div>
 </div>

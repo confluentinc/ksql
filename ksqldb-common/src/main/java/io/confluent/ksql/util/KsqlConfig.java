@@ -481,6 +481,14 @@ public class KsqlConfig extends AbstractConfig {
   public static final String KSQL_SHUTDOWN_TIMEOUT_MS_DOC = "Timeout in "
       + "milliseconds to block waiting for the underlying streams instance to exit";
 
+  public static final String KSQL_ADMIN_REQUEST_RETRY_TIMEOUT_MS_CONFIG =
+      "ksql.admin.request.retry.timeout.ms";
+  public static final Long KSQL_ADMIN_REQUEST_RETRY_TIMEOUT_MS_DEFAULT = 2500L;
+  public static final String KSQL_ADMIN_REQUEST_RETRY_TIMEOUT_MS_DOC = "Total time in "
+      + "milliseconds to keep retrying a retryable Kafka admin request (for example, describing a "
+      + "topic that was created moments earlier but whose metadata has not yet propagated) before "
+      + "giving up. The number of attempts is derived from this timeout and a fixed retry backoff.";
+
   public static final String KSQL_AUTH_CACHE_EXPIRY_TIME_SECS =
       "ksql.authorization.cache.expiry.time.secs";
   public static final Long KSQL_AUTH_CACHE_EXPIRY_TIME_SECS_DEFAULT = 30L;
@@ -1213,6 +1221,12 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_SHUTDOWN_TIMEOUT_MS_DEFAULT,
             Importance.MEDIUM,
             KSQL_SHUTDOWN_TIMEOUT_MS_DOC
+        ).define(
+            KSQL_ADMIN_REQUEST_RETRY_TIMEOUT_MS_CONFIG,
+            Type.LONG,
+            KSQL_ADMIN_REQUEST_RETRY_TIMEOUT_MS_DEFAULT,
+            Importance.MEDIUM,
+            KSQL_ADMIN_REQUEST_RETRY_TIMEOUT_MS_DOC
         ).define(
             KSQL_AUTH_CACHE_EXPIRY_TIME_SECS,
             Type.LONG,

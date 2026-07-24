@@ -1,7 +1,7 @@
 # Contributing
 
 **We are no longer accepting contributions from the community.**
-The guidelines below are retained for historical/internal reference only.
+The guidelines below are retained for historical reference only.
 
 If you have questions, please [create a GH issue](https://github.com/confluentinc/ksql/issues).
 

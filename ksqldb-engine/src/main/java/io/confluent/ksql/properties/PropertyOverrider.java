@@ -21,6 +21,7 @@ import io.confluent.ksql.config.KsqlConfigResolver;
 import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.UnsetProperty;
 import io.confluent.ksql.statement.ConfiguredStatement;
+import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlStatementException;
 import java.util.Map;
 
@@ -35,6 +36,9 @@ public final class PropertyOverrider {
   ) {
     final SetProperty setProperty = statement.getStatement();
     throwIfInvalidProperty(setProperty.getPropertyName(), statement.getMaskedStatementText());
+    ConfigOverrideLogger.logOverrides(
+            "SET", ImmutableMap.of(setProperty.getPropertyName(), ""));
+    throwIfDisallowedProperty(setProperty, statement);
     throwIfInvalidPropertyValues(setProperty, statement);
     mutableProperties.put(setProperty.getPropertyName(), setProperty.getPropertyValue());
   }
@@ -45,6 +49,8 @@ public final class PropertyOverrider {
   ) {
     final UnsetProperty unsetProperty = statement.getStatement();
     throwIfInvalidProperty(unsetProperty.getPropertyName(), statement.getMaskedStatementText());
+    ConfigOverrideLogger.logOverrides(
+        "UNSET", ImmutableMap.of(unsetProperty.getPropertyName(), ""));
     mutableProperties.remove(unsetProperty.getPropertyName());
   }
 
@@ -70,6 +76,29 @@ public final class PropertyOverrider {
     new KsqlConfigResolver()
         .resolve(propertyName, true)
         .orElseThrow(() -> new KsqlStatementException("Unknown property: " + propertyName, text));
+  }
+
+  private static void throwIfDisallowedProperty(
+      final SetProperty setProperty,
+      final ConfiguredStatement<SetProperty> statement
+  ) {
+    // Build the validator (denylist or allowlist, per ksql.properties.overrides.validation.mode)
+    // from the system config (getConfig(false)), never the override-applied config, so that a
+    // user-supplied override of the denylist/allowlist or the validation mode itself cannot unlock
+    // a disallowed property. The validator is stateless and cheap, so constructing it per SET (a
+    // rare, interactive control statement) keeps this security rule local to PropertyOverrider and
+    // lets every caller -- REST, embedded, standalone and the test tool -- share it without
+    // plumbing an instance through.
+    final ConfigOverrideValidator configOverrideValidator = ConfigOverrideValidatorFactory
+        .forMode(statement.getSessionConfig().getConfig(false));
+    try {
+      configOverrideValidator.validateAll(ImmutableMap.of(
+          setProperty.getPropertyName(),
+          setProperty.getPropertyValue()
+      ));
+    } catch (final KsqlException e) {
+      throw new KsqlStatementException(e.getMessage(), statement.getMaskedStatementText(), e);
+    }
   }
 
 }

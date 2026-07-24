@@ -16,7 +16,6 @@
 package io.confluent.ksql.metrics;
 
 import com.google.common.base.MoreObjects;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.common.utils.Time;
 import java.time.Instant;
 import java.time.ZoneOffset;
@@ -83,9 +82,8 @@ public final class TopicSensors<R> {
       this.timestamp = timestamp;
     }
 
-    @SuppressFBWarnings("FE_FLOATING_POINT_EQUALITY")
     String formatted() {
-      if (value == Math.round(value)) {
+      if (Math.abs(value - Math.round(value)) < 1e-9) {
         return String.format("%16s:%10.0f", name, value);
       } else {
         return String.format("%16s:%10.2f", name, value);

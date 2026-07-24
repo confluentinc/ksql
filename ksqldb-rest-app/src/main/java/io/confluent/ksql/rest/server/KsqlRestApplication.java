@@ -50,7 +50,8 @@ import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.logging.processing.ProcessingLogServerUtils;
 import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.name.SourceName;
-import io.confluent.ksql.properties.DenyListPropertyValidator;
+import io.confluent.ksql.properties.ConfigOverrideValidator;
+import io.confluent.ksql.properties.ConfigOverrideValidatorFactory;
 import io.confluent.ksql.properties.PropertiesUtil;
 import io.confluent.ksql.query.id.SpecificQueryIdGenerator;
 import io.confluent.ksql.rest.ErrorMessages;
@@ -208,7 +209,7 @@ public final class KsqlRestApplication implements Executable {
   private final Vertx vertx;
   private Server apiServer = null;
   private final CompletableFuture<Void> terminatedFuture = new CompletableFuture<>();
-  private final DenyListPropertyValidator denyListPropertyValidator;
+  private final ConfigOverrideValidator configOverrideValidator;
   private final Optional<PullQueryExecutorMetrics> pullQueryMetrics;
   private final Optional<ScalablePushQueryMetrics> scalablePushQueryMetrics;
   private final Optional<LocalCommands> localCommands;
@@ -249,7 +250,7 @@ public final class KsqlRestApplication implements Executable {
       final Optional<HeartbeatAgent> heartbeatAgent,
       final Optional<LagReportingAgent> lagReportingAgent,
       final Vertx vertx,
-      final DenyListPropertyValidator denyListPropertyValidator,
+      final ConfigOverrideValidator configOverrideValidator,
       final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
       final Optional<ScalablePushQueryMetrics> scalablePushQueryMetrics,
       final Optional<LocalCommands> localCommands,
@@ -283,8 +284,8 @@ public final class KsqlRestApplication implements Executable {
     this.heartbeatAgent = requireNonNull(heartbeatAgent, "heartbeatAgent");
     this.lagReportingAgent = requireNonNull(lagReportingAgent, "lagReportingAgent");
     this.vertx = requireNonNull(vertx, "vertx");
-    this.denyListPropertyValidator =
-        requireNonNull(denyListPropertyValidator, "denyListPropertyValidator");
+    this.configOverrideValidator =
+        requireNonNull(configOverrideValidator, "configOverrideValidator");
 
     this.serverInfoResource =
         new ServerInfoResource(serviceContext, ksqlConfigNoPort, commandRunner);
@@ -352,7 +353,7 @@ public final class KsqlRestApplication implements Executable {
             KsqlRestConfig.DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_CONFIG)),
         authorizationValidator,
         errorHandler,
-        denyListPropertyValidator,
+        configOverrideValidator,
         queryExecutor
     );
 
@@ -375,7 +376,7 @@ public final class KsqlRestApplication implements Executable {
           pullQueryMetrics,
           queryExecutor,
           securityExtension.getAuthTokenProvider(),
-          denyListPropertyValidator
+          configOverrideValidator
       );
       apiServer = new Server(vertx, ksqlRestConfig, endpoints, securityExtension,
           authenticationPlugin, serverState, pullQueryMetrics);
@@ -881,8 +882,8 @@ public final class KsqlRestApplication implements Executable {
             metricCollectors.getMetrics(),
             metricsTags
         );
-    final DenyListPropertyValidator denyListPropertyValidator = new DenyListPropertyValidator(
-        ksqlConfig.getList(KsqlConfig.KSQL_PROPERTIES_OVERRIDES_DENYLIST));
+    final ConfigOverrideValidator configOverrideValidator =
+        ConfigOverrideValidatorFactory.forMode(ksqlConfig);
 
     final Optional<PullQueryExecutorMetrics> pullQueryMetrics = ksqlConfig.getBoolean(
         KsqlConfig.KSQL_QUERY_PULL_METRICS_ENABLED)
@@ -931,7 +932,7 @@ public final class KsqlRestApplication implements Executable {
         versionChecker::updateLastRequestTime,
         authorizationValidator,
         errorHandler,
-        denyListPropertyValidator,
+        configOverrideValidator,
         queryExecutor
     );
 
@@ -965,7 +966,7 @@ public final class KsqlRestApplication implements Executable {
         versionChecker::updateLastRequestTime,
         authorizationValidator,
         errorHandler,
-        denyListPropertyValidator
+        configOverrideValidator
     );
 
     final List<KsqlConfigurable> configurables = ImmutableList.of(
@@ -998,7 +999,7 @@ public final class KsqlRestApplication implements Executable {
         heartbeatAgent,
         lagReportingAgent,
         vertx,
-        denyListPropertyValidator,
+        configOverrideValidator,
         pullQueryMetrics,
         scalablePushQueryMetrics,
         localCommands,

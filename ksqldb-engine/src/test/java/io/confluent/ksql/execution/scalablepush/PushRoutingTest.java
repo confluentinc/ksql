@@ -405,6 +405,26 @@ public class PushRoutingTest {
   }
 
   @Test
+  public void shouldFail_duringPlanReset_withoutMaskingTheRealErrorViaNpe()
+      throws ExecutionException, InterruptedException {
+    // Given: pushPhysicalPlanManager.reset() throws before the closeable is
+    // captured. The exceptionally handler previously called closeable.get().run()
+    // unconditionally — closeable is null in this case → NPE → original error
+    // ("plan reset failed") is masked.
+    when(pushRoutingOptions.getHasBeenForwarded()).thenReturn(true);
+    when(pushPhysicalPlanManager.isClosed()).thenReturn(true);
+    org.mockito.Mockito.doThrow(new RuntimeException("plan reset failed"))
+        .when(pushPhysicalPlanManager).reset(any());
+    final PushRouting routing = new PushRouting();
+
+    // When:
+    final PushConnectionsHandle handle = handlePushRouting(routing);
+
+    // Then: the genuine reset failure must surface — not a NullPointerException.
+    assertThat(handle.getError().getMessage(), containsString("plan reset failed"));
+  }
+
+  @Test
   public void shouldFail_non200RemoteCall() throws ExecutionException, InterruptedException {
     // Given:
     when(locator.locate()).thenReturn(ImmutableList.of(ksqlNodeRemote));

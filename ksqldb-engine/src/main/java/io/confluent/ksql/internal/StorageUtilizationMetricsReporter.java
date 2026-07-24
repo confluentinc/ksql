@@ -223,8 +223,13 @@ public class StorageUtilizationMetricsReporter implements MetricsReporter {
   ) {
     // remove storage metric for this task
     taskMetric.remove(metric);
-    numberStatefulTasks.getAndDecrement();
     if (taskMetric.metrics.size() == 0) {
+      // The task has lost its last state-store metric — only now is it gone.
+      // handleNewSstFilesSizeMetric increments numberStatefulTasks once per
+      // new task (not per store), so decrement here once, not on every store
+      // removal. Otherwise a task with N stores decrements N times and the
+      // counter drifts negative.
+      numberStatefulTasks.getAndDecrement();
       // no more storage metrics for this task, can remove task gauge
       metricRegistry.removeMetric(taskMetric.metricName);
       metricsSeen.get(queryId).remove(taskId);

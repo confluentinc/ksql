@@ -16,7 +16,9 @@
 package io.confluent.ksql.util;
 
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.sameInstance;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -26,6 +28,9 @@ import io.confluent.ksql.query.KafkaStreamsBuilder;
 import io.confluent.ksql.query.QueryError.Type;
 import io.confluent.ksql.query.QueryErrorClassifier;
 import io.confluent.ksql.query.QueryId;
+import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
+import java.util.List;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -236,6 +241,114 @@ public class SharedKafkaStreamsRuntimeImplTest {
     }
 
     @Test
+    public void streamsPropertiesFieldShouldBeVolatile() throws Exception {
+        // overrideStreamsProperties() is called from the CommandRunner thread while
+        // HTTP handler threads read it via getStreamProperties(). Without volatile,
+        // HTTP threads can serve stale configuration after ALTER SYSTEM.
+        final Field field = SharedKafkaStreamsRuntime.class.getDeclaredField("streamsProperties");
+        assertThat(
+            "streamsProperties must be volatile to ensure cross-thread visibility after ALTER SYSTEM",
+            (field.getModifiers() & Modifier.VOLATILE) != 0,
+            is(true)
+        );
+    }
+
+    @Test
+    public void kafkaStreamsFieldShouldBeVolatile() throws Exception {
+        // restartStreamsRuntime() reassigns kafkaStreams from the CommandRunner thread while
+        // HTTP handler threads read it via state(), getKafkaStreams(), etc.
+        // Without volatile the HTTP thread can observe a stale reference after a restart.
+        final Field field = SharedKafkaStreamsRuntime.class.getDeclaredField("kafkaStreams");
+        assertThat(
+            "kafkaStreams must be volatile to ensure cross-thread visibility after restart",
+            (field.getModifiers() & Modifier.VOLATILE) != 0,
+            is(true)
+        );
+    }
+
+    @Test
+    public void shouldUseNewKafkaStreamsInstanceAfterRestart() {
+        // After restartStreamsRuntime() the runtime must use the new KafkaStreams instance.
+        // A non-volatile field could cause HTTP threads to continue seeing the old instance.
+        sharedKafkaStreamsRuntimeImpl.restartStreamsRuntime();
+
+        // getKafkaStreams() must return the new wrapper, not the original one
+        assertThat(sharedKafkaStreamsRuntimeImpl.getKafkaStreams(),
+            sameInstance(kafkaStreamsNamedTopologyWrapper2));
+    }
+
+    @Test
+    public void topolgogiesToAddShouldBeSynchronized() throws Exception {
+        // start() adds futures to topolgogiesToAdd; stop() iterates and clears it.
+        // An unsynchronized ArrayList allows a ConcurrentModificationException when both
+        // operations happen on different threads, or stale futures to be awaited after restart.
+        final Field field = SharedKafkaStreamsRuntimeImpl.class.getDeclaredField("topolgogiesToAdd");
+        field.setAccessible(true);
+        final List<?> list = (List<?>) field.get(sharedKafkaStreamsRuntimeImpl);
+        // Collections.synchronizedList wraps in a private inner class; checking identity
+        // via the synchronized wrapper's class hierarchy is fragile; instead confirm that
+        // the list is not a plain ArrayList (which lacks internal synchronization).
+        assertThat(
+            "topolgogiesToAdd must not be a plain ArrayList",
+            list.getClass().getSimpleName().equals("ArrayList"),
+            is(false)
+        );
+    }
+
+    @Test
+    public void shouldClearPendingTopologyFuturesOnRestart() throws Exception {
+        // Regression test: futures in topolgogiesToAdd after start() are associated with the
+        // old KafkaStreams instance. restartStreamsRuntime() closes that instance, so those
+        // futures will never complete. Without clearing them, subsequent stop() calls would
+        // block on completed/failed futures from a different instance.
+        sharedKafkaStreamsRuntimeImpl.start(queryId);
+
+        final Field field = SharedKafkaStreamsRuntimeImpl.class.getDeclaredField("topolgogiesToAdd");
+        field.setAccessible(true);
+        @SuppressWarnings("unchecked")
+        final List<org.apache.kafka.common.KafkaFuture<Void>> pending =
+            (List<org.apache.kafka.common.KafkaFuture<Void>>) field.get(sharedKafkaStreamsRuntimeImpl);
+
+        assertThat("pre-condition: future should have been added by start()",
+            pending.isEmpty(), is(false));
+
+        when(binPackedPersistentQueryMetadata.getQueryStatus())
+            .thenReturn(KsqlConstants.KsqlQueryStatus.RUNNING);
+        sharedKafkaStreamsRuntimeImpl.restartStreamsRuntime();
+
+        assertThat("topolgogiesToAdd must be cleared after restart so stale futures are not awaited",
+            pending.isEmpty(), is(true));
+    }
+
+    @Test
+    public void restartShouldSkipTopologyWithNoMatchingQuery() {
+        // Regression: kafkaStreams.getAllTopologies() can return a topology whose name is not
+        // present in collocatedQueries if the two data structures fall out of sync. Before the
+        // fix, collocatedQueries.get(new QueryId(topology.name())) returned null and the
+        // subsequent query.updateTopology(...) NPE'd, crashing the CommandRunner thread
+        // permanently. The fix adds a null-guard that skips the orphaned topology with a warning.
+        when(kafkaStreamsNamedTopologyWrapper.getAllTopologies())
+            .thenReturn(java.util.Arrays.asList(namedTopology));
+
+        // namedTopology.name() returns queryId ("query-1"), but we register NO query —
+        // collocatedQueries is therefore empty for this topology name.
+        // We rely on the fact that setUp() registered binPackedPersistentQueryMetadata for
+        // queryId, so use a topology name that has NO corresponding entry instead.
+        final org.apache.kafka.streams.processor.internals.namedtopology.NamedTopology orphan =
+            org.mockito.Mockito.mock(
+                org.apache.kafka.streams.processor.internals.namedtopology.NamedTopology.class);
+        when(orphan.name()).thenReturn("orphaned-topology");
+        when(kafkaStreamsNamedTopologyWrapper.getAllTopologies())
+            .thenReturn(java.util.Collections.singletonList(orphan));
+
+        // When: should NOT throw NullPointerException
+        sharedKafkaStreamsRuntimeImpl.restartStreamsRuntime();
+
+        // Then: the new wrapper was still started; orphaned topology was skipped
+        verify(kafkaStreamsNamedTopologyWrapper2).start();
+    }
+
+    @Test
     public void shouldNotStartOrAddedToStreamsIfOnlyRegistered() {
         //Given:
         sharedKafkaStreamsRuntimeImpl.register(binPackedPersistentQueryMetadata2);
@@ -247,5 +360,36 @@ public class SharedKafkaStreamsRuntimeImplTest {
         verify(binPackedPersistentQueryMetadata, never()).start();
         verify(kafkaStreamsNamedTopologyWrapper, never())
             .addNamedTopology(binPackedPersistentQueryMetadata2.getTopologyCopy(sharedKafkaStreamsRuntimeImpl));
+    }
+
+    @Test
+    public void startShouldRejectMissingQueryWithoutNpe() {
+        // Pre-fix code did
+        //   if (collocatedQueries.containsKey(queryId)
+        //       && !collocatedQueries.get(queryId).everStarted) { ... }
+        // A concurrent stop() running on another thread can remove the entry between
+        // containsKey() and get(), making get() return null and the subsequent
+        // ".everStarted" dereference NPE on the CommandRunner thread.
+        //
+        // The fix replaces the double lookup with a single get() + null-check, so the
+        // worst-case race degrades into a deterministic IllegalArgumentException.
+        //
+        // Note: a true TOCTOU regression test would need to inject a Map that returns
+        // true for containsKey but null for get; the parent's collocatedQueries field is
+        // protected final, and Java 17+ reflection forbids resetting a final instance
+        // field, so we exercise the contract by registering then removing the query so
+        // get() returns null. The structural fix (one lookup vs two) is itself the
+        // primary defense.
+        sharedKafkaStreamsRuntimeImpl.register(binPackedPersistentQueryMetadata2);
+        sharedKafkaStreamsRuntimeImpl.collocatedQueries.remove(queryId2);
+
+        try {
+            sharedKafkaStreamsRuntimeImpl.start(queryId2);
+            org.junit.Assert.fail("Expected IllegalArgumentException, got nothing");
+        } catch (NullPointerException npe) {
+            org.junit.Assert.fail("start() must not NPE when query is missing; got: " + npe);
+        } catch (IllegalArgumentException expected) {
+            // Pass: missing query produces a deterministic IAE.
+        }
     }
 }

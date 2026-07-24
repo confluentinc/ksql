@@ -21,6 +21,7 @@ import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.same;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -127,6 +128,43 @@ public class JmxDataPointsReporterTest {
 
     // Then:
     verify(metrics).removeMetric(metricName);
+  }
+
+  @Test
+  public void shouldOnlyAddMetricOnceUnderConcurrentReporters() throws Exception {
+    // Regression: the old report() did a check-then-act on the gauges map —
+    //   if (gauges.containsKey(n)) update; else { put; metrics.addMetric(...); }
+    // Two threads reporting the same metric simultaneously could both see the
+    // metric absent, both put their own gauge (last write wins, the other gauge
+    // is orphaned), and both call metrics.addMetric — which the Kafka metrics
+    // registry rejects as "metric already exists". The fix uses putIfAbsent and
+    // only calls addMetric on the thread that actually inserted the gauge.
+    final int threads = 32;
+    final java.util.concurrent.CountDownLatch start = new java.util.concurrent.CountDownLatch(1);
+    final java.util.concurrent.CountDownLatch done = new java.util.concurrent.CountDownLatch(threads);
+    final java.util.concurrent.ExecutorService pool =
+        java.util.concurrent.Executors.newFixedThreadPool(threads);
+    try {
+      for (int i = 0; i < threads; i++) {
+        pool.submit(() -> {
+          try {
+            start.await();
+            reporter.report(ImmutableList.of(
+                new DataPoint(A_TIME, "baz", 1, ImmutableMap.of("foo", "bar"))
+            ));
+          } catch (InterruptedException ignored) {
+            Thread.currentThread().interrupt();
+          } finally {
+            done.countDown();
+          }
+        });
+      }
+      start.countDown();
+      assertThat(done.await(10, java.util.concurrent.TimeUnit.SECONDS), is(true));
+    } finally {
+      pool.shutdownNow();
+    }
+    verify(metrics, times(1)).addMetric(same(metricName), any(Gauge.class));
   }
 
   @Test

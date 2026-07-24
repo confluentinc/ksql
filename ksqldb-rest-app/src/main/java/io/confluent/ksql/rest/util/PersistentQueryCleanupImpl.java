@@ -78,9 +78,9 @@ public class PersistentQueryCleanupImpl implements PersistentQueryCleanup {
             final String[] fileNames =  new File(stateDir + "/" + f).list();
             if (null == fileNames) {
               return Stream.of(f);
-            } else if (Arrays.stream(fileNames).anyMatch(t -> t.matches("__*__"))) {
+            } else if (Arrays.stream(fileNames).anyMatch(t -> t.matches("__.*__"))) {
               return Arrays.stream(fileNames)
-                  .filter(t -> t.matches("__*__"))
+                  .filter(t -> t.matches("__.*__"))
                   .map(s -> f + "/" + s);
             } else {
               return Stream.of(f);

@@ -214,14 +214,32 @@ public class DistributingExecutor {
 
     checkAuthorization(injected, securityContext, executionContext);
 
+    // Rate-limit BEFORE creating/initializing the transactional producer.
+    // initTransactions() registers a transactional.id with the broker and
+    // opens producer resources; if the limiter then rejected the request we
+    // never reached a finally that could close the producer, leaking the
+    // broker-side transactional registration and the local producer client
+    // for every throttled request.
+    if (!rateLimiter.tryAcquire(1, TimeUnit.SECONDS)) {
+      throw new KsqlRestException(
+        Errors.tooManyRequests(
+          "DDL/DML rate is crossing the configured rate limit of statements/second"
+        ));
+    }
+
     final Producer<CommandId, Command> transactionalProducer =
         commandQueue.createTransactionalProducer();
 
     try {
       transactionalProducer.initTransactions();
     } catch (final TimeoutException e) {
+      // Close the producer the caller will never see again — otherwise a
+      // broker-side timeout during init leaks the client and its transactional
+      // registration.
+      closeQuietly(transactionalProducer);
       throw new KsqlServerException(errorHandler.transactionInitTimeoutErrorMessage(e), e);
     } catch (final Exception e) {
+      closeQuietly(transactionalProducer);
       throw new KsqlStatementException(
           "Could not write the statement into the command topic: " + e.getMessage(),
           String.format(
@@ -231,13 +249,6 @@ public class DistributingExecutor {
           original.getMaskedStatementText(),
           KsqlStatementException.Problem.OTHER,
           e);
-    }
-
-    if (!rateLimiter.tryAcquire(1, TimeUnit.SECONDS)) {
-      throw new KsqlRestException(
-        Errors.tooManyRequests(
-          "DDL/DML rate is crossing the configured rate limit of statements/second"
-        ));
     }
 
     CommandId commandId = null;
@@ -363,6 +374,15 @@ public class DistributingExecutor {
     if (!dataSource.getSchema().headers().isEmpty()) {
       throw new KsqlException("Cannot insert into " + insertInto.getTarget().text()
           + " because it has header columns");
+    }
+  }
+
+  private static void closeQuietly(final Producer<?, ?> producer) {
+    try {
+      producer.close();
+    } catch (final Exception ignore) {
+      // Best-effort cleanup on an error path — the caller will throw the
+      // original cause.
     }
   }
 }

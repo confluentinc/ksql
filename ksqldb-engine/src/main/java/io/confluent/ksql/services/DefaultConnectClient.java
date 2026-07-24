@@ -32,6 +32,7 @@ import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlServerException;
 import io.confluent.ksql.util.QueryMask;
 import io.vertx.core.http.HttpHeaders;
+import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.file.Paths;
@@ -108,6 +109,18 @@ public class DefaultConnectClient implements ConnectClient {
     this.requestHeaders = buildHeaders(authHeader, additionalRequestHeaders);
     this.httpClient = buildHttpClient(sslContext, verifySslHostname);
     this.requestTimeoutMs = requestTimeoutMs;
+  }
+
+  @Override
+  public void close() {
+    // Release the pooled HTTP connection manager, its evictor thread, and the
+    // SSL context. Without this, every ServiceContext that initialized a
+    // connect client leaks these resources on shutdown.
+    try {
+      httpClient.close();
+    } catch (final IOException e) {
+      LOG.warn("Error closing connect client HTTP client", e);
+    }
   }
 
   @Override

@@ -31,6 +31,14 @@ import java.util.Optional;
 public interface ConnectClient {
 
   /**
+   * Release any underlying resources held by this client (HTTP connection
+   * pools, evictor threads, SSL contexts). Implementations that hold no
+   * external resources may keep the default no-op.
+   */
+  default void close() {
+  }
+
+  /**
    * List all of the connectors available in this connect cluster.
    *
    * @return a list of connector names

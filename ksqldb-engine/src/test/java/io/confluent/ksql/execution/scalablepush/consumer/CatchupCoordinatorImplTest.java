@@ -135,4 +135,48 @@ public class CatchupCoordinatorImplTest {
     } catch (InterruptedException e) {
     }
   }
+
+  @Test
+  public void shouldWakeWaitingLatestPromptlyWhenCatchupClosesWithoutJoining()
+      throws InterruptedException {
+    // Given: a latest thread parked in checkShouldWaitForCatchup after a
+    // catchup has signalledLatest but before it ever catches up. The catchup
+    // then closes abnormally without joining (catchupIsClosing path).
+    //
+    // Without the notifyAll() in catchupIsClosing the latest thread waits the
+    // full WAIT_TIME_MS (10s), stalling scalable-push delivery for every
+    // client whenever a catchup connection drops mid-flight.
+    final CatchupCoordinatorImpl coordinator = new CatchupCoordinatorImpl();
+    final AtomicBoolean signalledLatest = new AtomicBoolean();
+    final AtomicBoolean latestReturned = new AtomicBoolean();
+    final java.util.concurrent.CountDownLatch latestEntered =
+        new java.util.concurrent.CountDownLatch(1);
+
+    // Catchup signals latest via the soft-caught-up branch (catchupJoiners -> 1)
+    // but is NOT hard-caught-up, so it never takes the join-and-switch-over
+    // path and stays "signalled but not joined".
+    coordinator.checkShouldCatchUp(signalledLatest, soft -> soft, () -> { });
+    assertThat(signalledLatest.get(), is(true));
+
+    // Latest enters the wait loop in a background thread.
+    executorService.submit(() -> {
+      latestEntered.countDown();
+      coordinator.checkShouldWaitForCatchup();
+      latestReturned.set(true);
+    });
+    latestEntered.await();
+    // Give the latest thread a moment to actually enter wait().
+    Thread.sleep(200L);
+
+    // When: the catchup closes without ever joining.
+    final long beforeMs = System.currentTimeMillis();
+    coordinator.catchupIsClosing(signalledLatest);
+
+    // Then: latest wakes promptly, well under the 10s WAIT_TIME_MS.
+    assertThatEventually(latestReturned::get, is(true));
+    final long elapsedMs = System.currentTimeMillis() - beforeMs;
+    assertThat(
+        "latest must wake on catchupIsClosing, not on the 10s timeout; took " + elapsedMs + "ms",
+        elapsedMs < 5000, is(true));
+  }
 }

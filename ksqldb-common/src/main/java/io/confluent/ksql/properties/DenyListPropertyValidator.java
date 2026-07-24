@@ -28,7 +28,7 @@ import java.util.Set;
  * Class that validates if a property, or list of properties, is part of a list of denied
  * properties.
  */
-public class DenyListPropertyValidator {
+public class DenyListPropertyValidator implements ConfigOverrideValidator {
   private final Set<String> immutableProps;
 
   public DenyListPropertyValidator(final Collection<String> immutableProps) {
@@ -41,11 +41,12 @@ public class DenyListPropertyValidator {
    * Validates if a list of properties are part of the list of denied properties.
    * @throws if at least one property is part of the denied list.
    */
+  @Override
   public void validateAll(final Map<String, Object> properties) {
     final Set<String> propsDenied = Sets.intersection(immutableProps, properties.keySet());
     if (!propsDenied.isEmpty()) {
       throw new KsqlException(String.format("One or more properties overrides set locally are "
-          + "prohibited by the KSQL server (use UNSET to reset their default value): %s",
+          + "prohibited by the KSQL server denylist (use UNSET to reset their default value): %s",
           propsDenied));
     }
   }

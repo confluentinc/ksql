@@ -57,14 +57,18 @@ fi
 
  KSQL_LOG4J_OPTS="-Dksql.log.dir=$LOG_DIR ${KSQL_LOG4J_OPTS}"
 
-# JMX settings
+# JMX settings.
+# ksqlDB defaults to loopback-only JMX. Remote JMX without authentication is
+# a code-execution primitive for any peer on the network. Operators who need
+# remote JMX must set KSQL_JMX_OPTS with authentication and TLS explicitly.
+# See docs/operate-and-deploy/monitoring.md for a copy-paste example.
 if [ -z "$KSQL_JMX_OPTS" ]; then
-  KSQL_JMX_OPTS="-Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false "
+  KSQL_JMX_OPTS="-Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.local.only=true -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false"
 fi
 
-# JMX port to use
-if [ ! -z "$JMX_PORT" ]; then
-  KSQL_JMX_OPTS="$KSQL_JMX_OPTS -Dcom.sun.management.jmxremote.port=$JMX_PORT "
+# Append the JMX port to operator-supplied options if requested.
+if [ -n "$JMX_PORT" ]; then
+  KSQL_JMX_OPTS="$KSQL_JMX_OPTS -Dcom.sun.management.jmxremote.port=$JMX_PORT"
 fi
 
 # Generic jvm settings you want to add

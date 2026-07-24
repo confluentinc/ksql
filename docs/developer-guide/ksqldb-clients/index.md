@@ -17,4 +17,5 @@ maintained by community members:
 - [Go client](https://github.com/thmeitz/ksqldb-go)
 - [Python client](https://github.com/bryanyang0528/ksql-python)
 
-To contribute a new client for your favorite language, see our [recommendations](contributing.md).
+We are no longer accepting community contributions of new clients. See the
+[client contribution guide](contributing.md) for historical reference.

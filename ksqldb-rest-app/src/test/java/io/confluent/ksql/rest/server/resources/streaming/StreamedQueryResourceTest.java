@@ -39,6 +39,7 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -59,7 +60,8 @@ import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.PrintTopic;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Statement;
-import io.confluent.ksql.properties.DenyListPropertyValidator;
+import io.confluent.ksql.properties.ConfigOverrideLogger;
+import io.confluent.ksql.properties.ConfigOverrideValidator;
 import io.confluent.ksql.query.BlockingRowQueue;
 import io.confluent.ksql.query.CompletionHandler;
 import io.confluent.ksql.query.KafkaStreamsBuilder;
@@ -131,6 +133,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
+import org.mockito.MockedStatic;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
@@ -181,7 +184,7 @@ public class StreamedQueryResourceTest {
   @Mock
   private Errors errorsHandler;
   @Mock
-  private DenyListPropertyValidator denyListPropertyValidator;
+  private ConfigOverrideValidator configOverrideValidator;
   @Mock
   private QueryId queryId;
   @Mock
@@ -239,7 +242,7 @@ public class StreamedQueryResourceTest {
         activenessRegistrar,
         Optional.of(authorizationValidator),
         errorsHandler,
-        denyListPropertyValidator,
+        configOverrideValidator,
         queryExecutor
     );
   }
@@ -284,7 +287,7 @@ public class StreamedQueryResourceTest {
         activenessRegistrar,
         Optional.of(authorizationValidator),
         errorsHandler,
-        denyListPropertyValidator,
+        configOverrideValidator,
         queryExecutor
     );
     when(mockKsqlEngine.getKsqlConfig()).thenReturn(KsqlConfig.empty());
@@ -442,7 +445,8 @@ public class StreamedQueryResourceTest {
 
   @Test
   public void shouldThrowOnDenyListedStreamProperty() {
-    // Given:
+    // Given: mocked configOverrideValidator throws the same message a real
+    // DenyListPropertyValidator would for num.stream.threads.
     when(mockStatementParser.<Query>parseSingleStatement(PULL_QUERY_STRING)).thenReturn(query);
     testResource = new StreamedQueryResource(
         mockKsqlEngine,
@@ -454,7 +458,7 @@ public class StreamedQueryResourceTest {
         activenessRegistrar,
         Optional.of(authorizationValidator),
         errorsHandler,
-        denyListPropertyValidator,
+        configOverrideValidator,
         queryExecutor
       );
     final Map<String, Object> props = new HashMap<>(ImmutableMap.of(
@@ -465,33 +469,39 @@ public class StreamedQueryResourceTest {
     when(mockKsqlEngine.getKsqlConfig()).thenReturn(new KsqlConfig(props));
     final Map<String, Object> overrides =
         ImmutableMap.of(StreamsConfig.NUM_STREAM_THREADS_CONFIG, 1);
-    doThrow(new KsqlException("deny override")).when(denyListPropertyValidator)
-        .validateAll(overrides);
+    doThrow(new KsqlException("One or more properties overrides set locally are prohibited "
+        + "by the KSQL server denylist (use UNSET to reset their default value): "
+        + "[num.stream.threads]")).when(configOverrideValidator).validateAll(overrides);
     when(errorsHandler.generateResponse(any(), any()))
-        .thenReturn(badRequest("A property override was set locally for a property that the "
-            + "server prohibits overrides for: 'num.stream.threads'"));
+        .thenAnswer(inv -> inv.getArgument(1));
 
     // When:
-    final EndpointResponse response = testResource.streamQuery(
-        securityContext,
-        new KsqlRequest(
-            PULL_QUERY_STRING,
-            overrides, // stream properties
-            Collections.emptyMap(),
-            null
-        ),
-        new CompletableFuture<>(),
-        Optional.empty(),
-        new MetricsCallbackHolder(),
-        context
-    );
+    final EndpointResponse response;
+    try (MockedStatic<ConfigOverrideLogger> configOverrideLogger =
+        mockStatic(ConfigOverrideLogger.class)) {
+      response = testResource.streamQuery(
+          securityContext,
+          new KsqlRequest(
+              PULL_QUERY_STRING,
+              overrides, // stream properties
+              Collections.emptyMap(),
+              null
+          ),
+          new CompletableFuture<>(),
+          Optional.empty(),
+          new MetricsCallbackHolder(),
+          context
+      );
 
-    // Then:
-    verify(denyListPropertyValidator).validateAll(overrides);
+      // Then: Config Override Logger fires, and the denylist check rejects the request.
+      configOverrideLogger.verify(() -> ConfigOverrideLogger.logOverrides("/query", overrides));
+      verify(configOverrideValidator).validateAll(overrides);
+    }
     assertThat(response.getStatus(), CoreMatchers.is(BAD_REQUEST.code()));
     assertThat(((KsqlErrorMessage) response.getEntity()).getMessage(),
-        is("A property override was set locally for a property that the server prohibits "
-            + "overrides for: '" + StreamsConfig.NUM_STREAM_THREADS_CONFIG + "'"));
+        containsString("prohibited by the KSQL server denylist"));
+    assertThat(((KsqlErrorMessage) response.getEntity()).getMessage(),
+            containsString(StreamsConfig.NUM_STREAM_THREADS_CONFIG));
   }
 
   @Test

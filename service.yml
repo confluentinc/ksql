@@ -11,7 +11,7 @@ semaphore:
     enable: true
     project_name: ksqldb
   status_level: block
-  execution_time_limit: {"hours": 6}
+  execution_time_limit: {"hours": 7}
   downstream_projects: ["confluent-security-plugins", "confluent-cloud-plugins"]
   extra_deploy_args: '-Ddocker.skip=true'
   extra_build_args: "-Dmaven.gitcommitid.nativegit=true"

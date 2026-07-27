@@ -22,6 +22,10 @@ it in a Docker-based deployment, export an environment variable named
 `KSQL_JMX_OPTS` with your JMX configuration and expose the port that
 JMX will communicate over.
 
+By default, ksqlDB starts with loopback-only JMX and no remote listener.
+To enable remote JMX, set `KSQL_JMX_OPTS` with authentication and TLS
+configured explicitly, as shown in the example below.
+
 The following Docker Compose example shows how you can configure
 monitoring for ksqlDB server. The surrounding components, like the
 broker and CLI, are omitted for brevity. You can see an example of a
@@ -49,9 +53,11 @@ ksqldb-server:
       -Djava.rmi.server.hostname=localhost
       -Dcom.sun.management.jmxremote
       -Dcom.sun.management.jmxremote.port=1099
-      -Dcom.sun.management.jmxremote.authenticate=false
-      -Dcom.sun.management.jmxremote.ssl=false
       -Dcom.sun.management.jmxremote.rmi.port=1099
+      -Dcom.sun.management.jmxremote.authenticate=true
+      -Dcom.sun.management.jmxremote.password.file=/etc/ksqldb/jmxremote.password
+      -Dcom.sun.management.jmxremote.access.file=/etc/ksqldb/jmxremote.access
+      -Dcom.sun.management.jmxremote.ssl=true
 ```
 
 With respect to monitoring, here it what this does:
@@ -59,10 +65,17 @@ With respect to monitoring, here it what this does:
 - The environment variable `KSQL_JMX_OPTS` is supplied to the server
   with various arguments. The `>` character lets you write a
   multi-line string in Yaml, which makes this long argument easier to
-  read. The advertised hostname, port, and security settings are
-  configured. JMX has a wide range of [configuration
-  options](https://docs.oracle.com/javase/8/docs/technotes/guides/management/agent.html),
-  and you can set these however you like.
+  read. The example is a secure baseline: JMX authentication (via a
+  password file), a JMX access-control file, and SSL. Adjust the
+  advertised hostname and ports for your environment. JMX has a wide
+  range of [configuration
+  options](https://docs.oracle.com/javase/8/docs/technotes/guides/management/agent.html).
+
+- `jmxremote.password.file` and `jmxremote.access.file` must be mounted
+  into the container with `chmod 0600` (password file) and `chmod 0644`
+  (access file). See the
+  [JMX documentation](https://docs.oracle.com/en/java/javase/17/management/monitoring-and-management-using-jmx-technology.html)
+  for the file format.
 
 - Port `1099` is exposed, which corresponds to the JMX port set in the
   `KSQL_JMX_OPTS` configuration. This enables remote monitoring tools

@@ -23,6 +23,7 @@ import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -279,6 +280,31 @@ public class TopicCreateInjectorTest {
   }
 
   @Test
+  public void shouldPassConfiguredInheritSourceReplicasForCreateExistingTopic() {
+    // Given:
+    overrides.put(KsqlConfig.KSQL_CREATE_TOPIC_INHERIT_SOURCE_REPLICAS_CONFIG, false);
+    givenStatement("CREATE STREAM x (FOO VARCHAR) WITH(value_format='avro', kafka_topic='source', partitions=2);");
+
+    // When:
+    injector.inject(statement, builder);
+
+    // Then:
+    verify(builder).withSource(any(), any(), eq(false));
+  }
+
+  @Test
+  public void shouldDefaultToInheritingSourceReplicasForCreateExistingTopic() {
+    // Given: no override -- KSQL_CREATE_TOPIC_INHERIT_SOURCE_REPLICAS_CONFIG defaults to true.
+    givenStatement("CREATE STREAM x (FOO VARCHAR) WITH(value_format='avro', kafka_topic='source', partitions=2);");
+
+    // When:
+    injector.inject(statement, builder);
+
+    // Then:
+    verify(builder).withSource(any(), any(), eq(true));
+  }
+
+  @Test
   public void shouldIdentifyAndUseCorrectSource() {
     // Given:
     givenStatement("CREATE STREAM x WITH (kafka_topic='topic') AS SELECT * FROM SOURCE;");
@@ -289,6 +315,31 @@ public class TopicCreateInjectorTest {
     // Then:
     verify(builder).withSource(
         argThat(supplierThatGets(sourceDescription)), any(Supplier.class), anyBoolean());
+  }
+
+  @Test
+  public void shouldPassConfiguredInheritSourceReplicasForCreateAsSelect() {
+    // Given:
+    overrides.put(KsqlConfig.KSQL_CREATE_TOPIC_INHERIT_SOURCE_REPLICAS_CONFIG, false);
+    givenStatement("CREATE STREAM x WITH (kafka_topic='topic') AS SELECT * FROM SOURCE;");
+
+    // When:
+    injector.inject(statement, builder);
+
+    // Then:
+    verify(builder).withSource(any(), any(), eq(false));
+  }
+
+  @Test
+  public void shouldDefaultToInheritingSourceReplicasForCreateAsSelect() {
+    // Given: no override -- KSQL_CREATE_TOPIC_INHERIT_SOURCE_REPLICAS_CONFIG defaults to true.
+    givenStatement("CREATE STREAM x WITH (kafka_topic='topic') AS SELECT * FROM SOURCE;");
+
+    // When:
+    injector.inject(statement, builder);
+
+    // Then:
+    verify(builder).withSource(any(), any(), eq(true));
   }
 
   @Test

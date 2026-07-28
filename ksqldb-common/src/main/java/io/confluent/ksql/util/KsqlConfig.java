@@ -1401,6 +1401,31 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_PROPERTIES_OVERRIDES_DENYLIST_DOC
         )
         .define(
+            KSQL_PROPERTIES_OVERRIDES_VALIDATION_MODE,
+            Type.STRING,
+            KSQL_PROPERTIES_OVERRIDES_VALIDATION_MODE_DEFAULT,
+            ValidString.in(
+                KSQL_PROPERTIES_OVERRIDES_VALIDATION_MODE_DENYLIST,
+                KSQL_PROPERTIES_OVERRIDES_VALIDATION_MODE_ALLOWLIST
+            ),
+            Importance.LOW,
+            KSQL_PROPERTIES_OVERRIDES_VALIDATION_MODE_DOC
+        )
+        .define(
+            KSQL_PROPERTIES_OVERRIDES_ALLOWLIST,
+            Type.LIST,
+            "",
+            Importance.LOW,
+            KSQL_PROPERTIES_OVERRIDES_ALLOWLIST_DOC
+        )
+        .define(
+            KSQL_PROPERTIES_OVERRIDES_LOG,
+            Type.BOOLEAN,
+            KSQL_PROPERTIES_OVERRIDES_LOG_DEFAULT,
+            Importance.LOW,
+            KSQL_PROPERTIES_OVERRIDES_LOG_DOC
+        )
+        .define(
             KSQL_QUERY_STATUS_RUNNING_THRESHOLD_SECS,
             Type.INT,
             KSQL_QUERY_STATUS_RUNNING_THRESHOLD_SECS_DEFAULT,

@@ -176,6 +176,11 @@ public class KsqlRestApplicationTest {
 
     when(ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG)).thenReturn("ksql-id");
     when(ksqlConfig.getKsqlStreamConfigProps()).thenReturn(ImmutableMap.of("state.dir", "/tmp/cat"));
+    // startKsql() reads this to configure ExecutorUtil's (process-wide static) retry count --
+    // stub it to the real default so this mock doesn't leave that static state polluted with
+    // Mockito's default long (0, which computes to a single retry) for other tests in this JVM.
+    when(ksqlConfig.getLong(KsqlConfig.KSQL_ADMIN_REQUEST_RETRY_TIMEOUT_MS_CONFIG))
+        .thenReturn(KsqlConfig.KSQL_ADMIN_REQUEST_RETRY_TIMEOUT_MS_DEFAULT);
 
     when(response.getStatus()).thenReturn(200);
     when(response.getEntity()).thenReturn(new KsqlEntityList(

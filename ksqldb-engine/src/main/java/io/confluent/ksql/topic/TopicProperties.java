@@ -126,11 +126,6 @@ public final class TopicProperties {
     }
 
     Builder withSource(final Supplier<TopicDescription> descriptionSupplier,
-        final Supplier<Map<String, String>> configsSupplier) {
-      return withSource(descriptionSupplier, configsSupplier, false);
-    }
-
-    Builder withSource(final Supplier<TopicDescription> descriptionSupplier,
         final Supplier<Map<String, String>> configsSupplier,
         final boolean inheritSourceReplicas) {
       fromSource = Suppliers.memoize(() -> {
@@ -143,14 +138,14 @@ public final class TopicProperties {
                 TopicConfig.RETENTION_MS_CONFIG, String.valueOf(DEFAULT_RETENTION_IN_MS)))
         );
 
-        // By default, do not inherit the source topic's described replication factor for the
-        // created sink topic. Some Kafka clusters report a describe-time replication factor that
-        // differs from the cluster's actual default and reject a CreateTopics whose explicit
-        // replication factor does not match that default. Leaving replicas unset (null) lets it
-        // fall through to DEFAULT_REPLICAS (-1), which createTopic resolves to the cluster's
-        // default RF; partitions are still inherited from the source so the sink stays
-        // co-partitioned. inheritSourceReplicas (ksql.create.topic.inherit.source.replicas.enabled)
-        // restores the legacy inherit-from-source behavior for environments that need it.
+        // By default (inheritSourceReplicas=true, matching prior/K1 behavior), inherit the source
+        // topic's described replication factor for the created sink topic. Some Kafka clusters
+        // (K2) report a describe-time replication factor that differs from the cluster's actual
+        // default and reject a CreateTopics whose explicit replication factor does not match that
+        // default, so inheritSourceReplicas=false (ksql.create.topic.inherit.source.replicas.
+        // enabled) leaves replicas unset (null) instead, which falls through to DEFAULT_REPLICAS
+        // (-1) and lets createTopic resolve it to the cluster's default RF. Partitions are always
+        // inherited from the source regardless, so the sink stays co-partitioned.
         final Short replicas = inheritSourceReplicas
             ? (short) description.partitions().get(0).replicas().size()
             : null;

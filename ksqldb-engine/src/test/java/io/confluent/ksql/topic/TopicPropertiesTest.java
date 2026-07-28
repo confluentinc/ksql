@@ -52,7 +52,8 @@ public class TopicPropertiesTest {
             ImmutableList.of(
                 new TopicPartitionInfo(
                     0, new Node(0, "", 0), ImmutableList.of(new Node(0, "", 0)), ImmutableList.of()))),
-            () -> Collections.emptyMap())
+            () -> Collections.emptyMap(),
+            false)
         .build();
 
     // Then:
@@ -75,7 +76,8 @@ public class TopicPropertiesTest {
                     new Node(0, "", 0),
                     ImmutableList.of(new Node(0, "", 0), new Node(1, "", 1), new Node(2, "", 2)),
                     ImmutableList.of()))),
-            () -> Collections.emptyMap())
+            () -> Collections.emptyMap(),
+            false)
         .build();
 
     // Then: the source topic's replication factor is not inherited. The created topic defers to
@@ -121,7 +123,8 @@ public class TopicPropertiesTest {
             ImmutableList.of(
                 new TopicPartitionInfo(
                     0, new Node(0, "", 0), ImmutableList.of(new Node(0, "", 0)), ImmutableList.of()))),
-            () -> Collections.emptyMap())
+            () -> Collections.emptyMap(),
+            false)
         .build();
 
     // Then:
@@ -145,7 +148,8 @@ public class TopicPropertiesTest {
                 Map<String, String> configsMap = new HashMap<>();
                 configsMap.put(TopicConfig.RETENTION_MS_CONFIG, "5000");
                 return configsMap;
-            })
+            },
+            false)
         .build();
 
     // Then:
@@ -169,7 +173,8 @@ public class TopicPropertiesTest {
               Map<String, String> configsMap = new HashMap<>();
               configsMap.put(TopicConfig.RETENTION_MS_CONFIG, "5000");
               return configsMap;
-            })
+            },
+            false)
         .build();
 
     // Then:
@@ -291,7 +296,8 @@ public class TopicPropertiesTest {
         )
         .withSource(
             () -> {throw new RuntimeException();},
-            () -> Collections.emptyMap())
+            () -> Collections.emptyMap(),
+            false)
         .build();
 
     // Then:
@@ -321,7 +327,7 @@ public class TopicPropertiesTest {
     // When:
     final TopicProperties properties = new TopicProperties.Builder()
         .withName("name")
-        .withSource(source, () -> Collections.emptyMap())
+        .withSource(source, () -> Collections.emptyMap(), false)
         .build();
 
     // Then:

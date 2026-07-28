@@ -138,9 +138,9 @@ public final class TopicProperties {
                 TopicConfig.RETENTION_MS_CONFIG, String.valueOf(DEFAULT_RETENTION_IN_MS)))
         );
 
-        // By default (inheritSourceReplicas=true, matching prior/K1 behavior), inherit the source
+        // By default (inheritSourceReplicas=true, matching prior behavior), inherit the source
         // topic's described replication factor for the created sink topic. Some Kafka clusters
-        // (K2) report a describe-time replication factor that differs from the cluster's actual
+        // report a describe-time replication factor that differs from the cluster's actual
         // default and reject a CreateTopics whose explicit replication factor does not match that
         // default, so inheritSourceReplicas=false (ksql.create.topic.inherit.source.replicas.
         // enabled) leaves replicas unset (null) instead, which falls through to DEFAULT_REPLICAS

@@ -34,7 +34,6 @@
         <cli.main-class>${main-class}</cli.main-class>
         <docker.skip-build>true</docker.skip-build>
         <docker.skip-test>true</docker.skip-test>
-        <skipTests>true</skipTests>
     </properties>
 
     <dependencies>

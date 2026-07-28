@@ -283,6 +283,16 @@ public class JLineReaderTest {
     final Terminal terminal = TerminalBuilder.builder()
         .streams(inputStream, outputStream)
         .system(false)
+        // Force the exec provider. jline's org.jline:jline jar started bundling real native
+        // binaries (org/jline/nativ/Linux/x86_64/libjlinenative.so, etc.) as of 3.30.x -- they
+        // simply weren't present at all in 3.25.0. So on Linux, TerminalBuilder's provider
+        // auto-detection (tried in order: ffm, jni, exec, ...) now succeeds in loading the JNI
+        // provider's native lib, and JniTerminalProvider#newTerminal() always opens a real OS
+        // pty via that lib -- even when explicit streams() are supplied. That real pty hangs
+        // reading past the end of these finite, synthetic test streams. This is not a 3.x vs.
+        // 4.x behavior change; forcing exec here builds the plain non-pty ExternalTerminal we
+        // actually want, regardless of which jline version/platform is in play.
+        .provider(TerminalBuilder.PROP_PROVIDER_EXEC)
         .build();
     final File tempHistoryFile = tempFolder.newFile("ksql-history.txt");
     final Path historyFilePath = Paths.get(tempHistoryFile.getAbsolutePath());

@@ -38,7 +38,6 @@ import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
 import org.jline.terminal.impl.DumbTerminal;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -54,16 +53,6 @@ public class JLineReaderTest {
 
   @Mock
   private Predicate<String> cliLinePredicate;
-
-  @BeforeClass
-  public static void setUpClass() {
-    // The exec-provider ExternalTerminal's background pump thread flips its reader's "closed"
-    // flag as soon as it drains our finite ByteArrayInputStream to EOF, which can race ahead of
-    // LineReaderImpl consuming the last buffered characters. JLine 4.x's new "strict" default
-    // throws ClosedException the instant that flag is set, even with input still buffered;
-    // "warn" restores the tolerant JLine 3.x behavior of logging and continuing.
-    System.setProperty(TerminalBuilder.PROP_CLOSE_MODE, "warn");
-  }
 
   @Before
   public void setUp() {
@@ -294,10 +283,15 @@ public class JLineReaderTest {
     final Terminal terminal = TerminalBuilder.builder()
         .streams(inputStream, outputStream)
         .system(false)
-        // Force the exec provider: with streams() + system(false), JLine 4.x's provider
-        // auto-detection otherwise prefers the jni (or ffm) provider, which opens a real OS
-        // pty even for explicit streams and hangs reading past the end of these finite,
-        // synthetic test streams. The exec provider builds a plain non-pty ExternalTerminal.
+        // Force the exec provider. jline's org.jline:jline jar started bundling real native
+        // binaries (org/jline/nativ/Linux/x86_64/libjlinenative.so, etc.) as of 3.30.x -- they
+        // simply weren't present at all in 3.25.0. So on Linux, TerminalBuilder's provider
+        // auto-detection (tried in order: ffm, jni, exec, ...) now succeeds in loading the JNI
+        // provider's native lib, and JniTerminalProvider#newTerminal() always opens a real OS
+        // pty via that lib -- even when explicit streams() are supplied. That real pty hangs
+        // reading past the end of these finite, synthetic test streams. This is not a 3.x vs.
+        // 4.x behavior change; forcing exec here builds the plain non-pty ExternalTerminal we
+        // actually want, regardless of which jline version/platform is in play.
         .provider(TerminalBuilder.PROP_PROVIDER_EXEC)
         .build();
     final File tempHistoryFile = tempFolder.newFile("ksql-history.txt");

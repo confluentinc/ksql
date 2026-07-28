@@ -22,6 +22,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -139,7 +140,7 @@ public class TopicCreateInjectorTest {
     when(topicClient.isTopicExists("source")).thenReturn(true);
     when(builder.withName(any())).thenReturn(builder);
     when(builder.withWithClause(any(), any(), any(), any())).thenReturn(builder);
-    when(builder.withSource(any(), any())).thenReturn(builder);
+    when(builder.withSource(any(), any(), anyBoolean())).thenReturn(builder);
     when(builder.build()).thenReturn(new TopicProperties("name", 1, (short) 1, (long) 100));
   }
 
@@ -261,7 +262,7 @@ public class TopicCreateInjectorTest {
     injector.inject(statement, builder);
 
     // Then:
-    verify(builder, never()).withSource(any(), any());
+    verify(builder, never()).withSource(any(), any(), anyBoolean());
   }
 
   @Test
@@ -273,7 +274,8 @@ public class TopicCreateInjectorTest {
     injector.inject(statement, builder);
 
     // Then:
-    verify(builder).withSource(argThat(supplierThatGets(sourceDescription)), any(Supplier.class));
+    verify(builder).withSource(
+        argThat(supplierThatGets(sourceDescription)), any(Supplier.class), anyBoolean());
   }
 
   @Test
@@ -285,7 +287,8 @@ public class TopicCreateInjectorTest {
     injector.inject(statement, builder);
 
     // Then:
-    verify(builder).withSource(argThat(supplierThatGets(sourceDescription)), any(Supplier.class));
+    verify(builder).withSource(
+        argThat(supplierThatGets(sourceDescription)), any(Supplier.class), anyBoolean());
   }
 
   @Test
@@ -298,7 +301,8 @@ public class TopicCreateInjectorTest {
     injector.inject(statement, builder);
 
     // Then:
-    verify(builder).withSource(argThat(supplierThatGets(sourceDescription)), any(Supplier.class));
+    verify(builder).withSource(
+        argThat(supplierThatGets(sourceDescription)), any(Supplier.class), anyBoolean());
   }
 
   @SuppressWarnings("unchecked")

@@ -26,6 +26,9 @@ By default, ksqlDB starts with loopback-only JMX and no remote listener.
 To enable remote JMX, set `KSQL_JMX_OPTS` with authentication and TLS
 configured explicitly, as shown in the example below.
 
+In the Docker images, `KSQL_JMX_PORT` sets the JMX port but does not expose it
+remotely; the listener stays on loopback unless `KSQL_JMX_OPTS` is also set.
+
 The following Docker Compose example shows how you can configure
 monitoring for ksqlDB server. The surrounding components, like the
 broker and CLI, are omitted for brevity. You can see an example of a

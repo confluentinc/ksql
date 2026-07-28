@@ -510,7 +510,8 @@ public class ListSourceExecutorTest {
                 .map(
                     s -> equalTo(
                         new KsqlWarning(
-                            "Error from Kafka: unknown topic: " + s.getKafkaTopicName())))
+                            "Error from Kafka: Failed to Describe Kafka Topic(s): "
+                                + s.getKafkaTopicName())))
                 .collect(Collectors.toList())
         )
     );
@@ -591,6 +592,7 @@ public class ListSourceExecutorTest {
     );
     assertThat(
         description.getWarnings(),
-        contains(new KsqlWarning("Error from Kafka: unknown topic: STREAM1")));
+        contains(new KsqlWarning(
+            "Error from Kafka: Failed to Describe Kafka Topic(s): STREAM1")));
   }
 }

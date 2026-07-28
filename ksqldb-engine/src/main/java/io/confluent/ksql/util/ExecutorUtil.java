@@ -26,11 +26,35 @@ import org.apache.logging.log4j.Logger;
 
 public final class ExecutorUtil {
 
-  private static final int NUM_RETRIES = 5;
+  // Number of attempts for retryable Kafka admin requests (for example, waiting for a
+  // just-created topic's metadata to become visible, where describeTopics retries
+  // UNKNOWN_TOPIC_OR_PARTITION via RetryBehaviour.ON_RETRYABLE). This is derived from a
+  // configurable timeout (see setRetryTimeoutMs) and the fixed backoff below, and defaults to
+  // DEFAULT_NUM_RETRIES so behaviour is unchanged unless the timeout is configured.
+  static final int DEFAULT_NUM_RETRIES = 5;
   private static final Duration RETRY_BACKOFF_MS = Duration.ofMillis(500);
+  private static volatile int configuredNumRetries = DEFAULT_NUM_RETRIES;
   private static final Logger log = LogManager.getLogger(ExecutorUtil.class);
 
   private ExecutorUtil() {
+  }
+
+  /**
+   * Sets the number of attempts used by the default {@code executeWithRetries} overloads for
+   * retryable Kafka admin requests, derived from the given timeout and the fixed retry backoff.
+   * At least one attempt is always made. Intended to be called once during startup from
+   * configuration.
+   *
+   * @param retryTimeoutMs the total time to keep retrying a request for, in milliseconds
+   */
+  public static void setRetryTimeoutMs(final long retryTimeoutMs) {
+    configuredNumRetries =
+        Math.max(1, (int) Math.ceil((double) retryTimeoutMs / RETRY_BACKOFF_MS.toMillis()));
+  }
+
+  // Visible for testing: the number of attempts derived from the configured retry timeout.
+  static int getConfiguredNumRetries() {
+    return configuredNumRetries;
   }
 
   public enum RetryBehaviour implements Predicate<Throwable> {
@@ -82,7 +106,8 @@ public final class ExecutorUtil {
       final Predicate<Throwable> shouldRetry,
       final Supplier<Duration> retryBackOff
   ) throws Exception {
-    return executeWithRetries(executable, shouldRetry, (retry) -> retryBackOff.get(), NUM_RETRIES);
+    return executeWithRetries(
+        executable, shouldRetry, (retry) -> retryBackOff.get(), configuredNumRetries);
   }
 
   public static <T> T executeWithRetries(

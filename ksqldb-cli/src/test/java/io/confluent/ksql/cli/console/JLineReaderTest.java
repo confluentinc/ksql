@@ -283,6 +283,10 @@ public class JLineReaderTest {
     final Terminal terminal = TerminalBuilder.builder()
         .streams(inputStream, outputStream)
         .system(false)
+        // Force the exec provider: jline bundles native libs since 3.30.x (absent in 3.25.0),
+        // so the jni provider now succeeds and opens a real OS pty even for explicit streams(),
+        // which hangs reading past the end of these finite, synthetic test streams.
+        .provider(TerminalBuilder.PROP_PROVIDER_EXEC)
         .build();
     final File tempHistoryFile = tempFolder.newFile("ksql-history.txt");
     final Path historyFilePath = Paths.get(tempHistoryFile.getAbsolutePath());

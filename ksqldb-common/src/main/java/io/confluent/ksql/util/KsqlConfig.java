@@ -489,6 +489,17 @@ public class KsqlConfig extends AbstractConfig {
       + "topic that was created moments earlier but whose metadata has not yet propagated) before "
       + "giving up. The number of attempts is derived from this timeout and a fixed retry backoff.";
 
+  public static final String KSQL_CREATE_TOPIC_INHERIT_SOURCE_REPLICAS_CONFIG =
+      "ksql.create.topic.inherit.source.replicas.enabled";
+  public static final Boolean KSQL_CREATE_TOPIC_INHERIT_SOURCE_REPLICAS_DEFAULT = false;
+  public static final String KSQL_CREATE_TOPIC_INHERIT_SOURCE_REPLICAS_DOC = "If true, "
+      + "CREATE ... AS SELECT inherits its sink topic's replication factor from the source "
+      + "topic's described replication factor, matching pre-8.1 behavior. If false (the "
+      + "default), the sink topic's replication factor is left unset so it resolves to the "
+      + "cluster's default replication factor -- some Kafka clusters report a describe-time "
+      + "replication factor that differs from the cluster's actual default and reject a "
+      + "CreateTopics request whose explicit replication factor does not match that default.";
+
   public static final String KSQL_AUTH_CACHE_EXPIRY_TIME_SECS =
       "ksql.authorization.cache.expiry.time.secs";
   public static final Long KSQL_AUTH_CACHE_EXPIRY_TIME_SECS_DEFAULT = 30L;
@@ -1227,6 +1238,12 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_ADMIN_REQUEST_RETRY_TIMEOUT_MS_DEFAULT,
             Importance.MEDIUM,
             KSQL_ADMIN_REQUEST_RETRY_TIMEOUT_MS_DOC
+        ).define(
+            KSQL_CREATE_TOPIC_INHERIT_SOURCE_REPLICAS_CONFIG,
+            Type.BOOLEAN,
+            KSQL_CREATE_TOPIC_INHERIT_SOURCE_REPLICAS_DEFAULT,
+            Importance.LOW,
+            KSQL_CREATE_TOPIC_INHERIT_SOURCE_REPLICAS_DOC
         ).define(
             KSQL_AUTH_CACHE_EXPIRY_TIME_SECS,
             Type.LONG,

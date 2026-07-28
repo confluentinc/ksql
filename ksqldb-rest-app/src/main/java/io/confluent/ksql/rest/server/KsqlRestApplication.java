@@ -108,6 +108,7 @@ import io.confluent.ksql.services.LazyServiceContext;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.SimpleKsqlClient;
 import io.confluent.ksql.util.AppInfo;
+import io.confluent.ksql.util.ExecutorUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConfigurable;
 import io.confluent.ksql.util.KsqlConstants;
@@ -407,6 +408,8 @@ public final class KsqlRestApplication implements Executable {
 
   @VisibleForTesting
   void startKsql(final KsqlConfig ksqlConfigWithPort) {
+    ExecutorUtil.setRetryTimeoutMs(
+        ksqlConfigWithPort.getLong(KsqlConfig.KSQL_ADMIN_REQUEST_RETRY_TIMEOUT_MS_CONFIG));
     cleanupOldState();
     initialize(ksqlConfigWithPort);
   }

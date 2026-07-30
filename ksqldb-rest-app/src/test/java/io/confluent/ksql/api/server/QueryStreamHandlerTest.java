@@ -19,15 +19,18 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.api.spi.Endpoints;
 import io.confluent.ksql.api.spi.QueryPublisher;
 import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.properties.ConfigOverrideLogger;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.entity.QueryStreamArgs;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -43,6 +46,7 @@ import io.vertx.core.net.SocketAddress;
 import io.vertx.ext.web.RoutingContext;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import org.junit.Before;
 import org.junit.Test;
@@ -50,6 +54,7 @@ import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
+import org.mockito.MockedStatic;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscriber;
@@ -138,6 +143,29 @@ public class QueryStreamHandlerTest {
     // Then:
     assertThat(subscriber.getValue(), notNullValue());
     verify(publisher).close();
+  }
+
+  @Test
+  public void shouldLogConfigOverridesWithRequestPath() {
+    // Given:
+    final Map<String, Object> properties = ImmutableMap.of(
+        "auto.offset.reset", "earliest",
+        "ksql.streams.num.stream.threads", "4");
+    final QueryStreamArgs req = new QueryStreamArgs("select * from foo;",
+        properties, Collections.emptyMap(), Collections.emptyMap());
+    givenRequest(req);
+    when(request.path()).thenReturn("/query-stream");
+
+    // When:
+    try (MockedStatic<ConfigOverrideLogger> configOverrideLogger =
+        mockStatic(ConfigOverrideLogger.class)) {
+      handler.handle(routingContext);
+      endHandler.getValue().handle(null);
+
+      // Then:
+      configOverrideLogger.verify(() ->
+          ConfigOverrideLogger.logOverrides("/query-stream", properties));
+    }
   }
 
   @Test

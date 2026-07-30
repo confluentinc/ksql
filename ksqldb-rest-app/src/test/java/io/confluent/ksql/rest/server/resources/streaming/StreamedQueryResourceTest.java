@@ -39,6 +39,7 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -59,6 +60,7 @@ import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.PrintTopic;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Statement;
+import io.confluent.ksql.properties.ConfigOverrideLogger;
 import io.confluent.ksql.properties.DenyListPropertyValidator;
 import io.confluent.ksql.query.BlockingRowQueue;
 import io.confluent.ksql.query.CompletionHandler;
@@ -131,6 +133,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
+import org.mockito.MockedStatic;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
@@ -472,22 +475,27 @@ public class StreamedQueryResourceTest {
             + "server prohibits overrides for: 'num.stream.threads'"));
 
     // When:
-    final EndpointResponse response = testResource.streamQuery(
-        securityContext,
-        new KsqlRequest(
-            PULL_QUERY_STRING,
-            overrides, // stream properties
-            Collections.emptyMap(),
-            null
-        ),
-        new CompletableFuture<>(),
-        Optional.empty(),
-        new MetricsCallbackHolder(),
-        context
-    );
+    final EndpointResponse response;
+    try (MockedStatic<ConfigOverrideLogger> configOverrideLogger =
+        mockStatic(ConfigOverrideLogger.class)) {
+      response = testResource.streamQuery(
+          securityContext,
+          new KsqlRequest(
+              PULL_QUERY_STRING,
+              overrides, // stream properties
+              Collections.emptyMap(),
+              null
+          ),
+          new CompletableFuture<>(),
+          Optional.empty(),
+          new MetricsCallbackHolder(),
+          context
+      );
 
-    // Then:
-    verify(denyListPropertyValidator).validateAll(overrides);
+      // Then: Config Override Logger fires, and the denylist check rejects the request.
+      configOverrideLogger.verify(() -> ConfigOverrideLogger.logOverrides("/query", overrides));
+      verify(denyListPropertyValidator).validateAll(overrides);
+    }
     assertThat(response.getStatus(), CoreMatchers.is(BAD_REQUEST.code()));
     assertThat(((KsqlErrorMessage) response.getEntity()).getMessage(),
         is("A property override was set locally for a property that the server prohibits "

@@ -26,13 +26,10 @@ import io.confluent.ksql.util.KsqlConfig;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import org.apache.logging.log4j.Level;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.ThreadContext;
-import org.apache.logging.log4j.core.LogEvent;
-import org.apache.logging.log4j.core.LoggerContext;
-import org.apache.logging.log4j.core.config.Configuration;
-import org.apache.logging.log4j.core.config.LoggerConfig;
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
+import org.apache.log4j.MDC;
+import org.apache.log4j.spi.LoggingEvent;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -43,42 +40,23 @@ public class ConfigOverrideLoggerTest {
   private static final String ENDPOINT = "/ksql";
 
   private TestAppender appender;
-  private boolean addedLoggerConfig;
+  private Logger logger;
 
   @Before
   public void setUp() {
-    appender = TestAppender.newBuilder()
-        .setName("ConfigOverrideLoggerTest-Appender")
-        .setLayout(null)
-        .build();
-    appender.start();
+    appender = new TestAppender();
+    appender.setName("ConfigOverrideLoggerTest-Appender");
 
-    final LoggerContext ctx = (LoggerContext) LogManager.getContext(false);
-    final Configuration config = ctx.getConfiguration();
-    LoggerConfig loggerConfig = config.getLoggerConfig(LOGGER_NAME);
-    if (!LOGGER_NAME.equals(loggerConfig.getName())) {
-      loggerConfig = new LoggerConfig(LOGGER_NAME, Level.DEBUG, false);
-      config.addLogger(LOGGER_NAME, loggerConfig);
-      addedLoggerConfig = true;
-    }
-    loggerConfig.setLevel(Level.DEBUG);
-    loggerConfig.setAdditive(false);
-    loggerConfig.addAppender(appender, Level.DEBUG, null);
-    ctx.updateLoggers();
+    logger = Logger.getLogger(LOGGER_NAME);
+    logger.setLevel(Level.DEBUG);
+    logger.setAdditivity(false);
+    logger.addAppender(appender);
   }
 
   @After
   public void tearDown() {
-    final LoggerContext ctx = (LoggerContext) LogManager.getContext(false);
-    final Configuration config = ctx.getConfiguration();
-    config.getLoggerConfig(LOGGER_NAME).removeAppender(appender.getName());
-    if (addedLoggerConfig) {
-      config.removeLogger(LOGGER_NAME);
-      addedLoggerConfig = false;
-    }
-    appender.stop();
-    ctx.updateLoggers();
-    ThreadContext.clearAll();
+    logger.removeAppender(appender);
+    MDC.clear();
     ConfigOverrideLogger.reset();
   }
 
@@ -97,11 +75,10 @@ public class ConfigOverrideLoggerTest {
 
     ConfigOverrideLogger.logOverrides(ENDPOINT, Collections.emptyMap());
 
-    final List<LogEvent> events = appender.getLog();
+    final List<LoggingEvent> events = appender.getLog();
     assertThat(events, hasSize(1));
-    assertThat(events.get(0).getMessage().getFormattedMessage(), is("No Config overrides"));
-    assertThat(events.get(0).getContextData().toMap(),
-        is(ImmutableMap.of("endpoint", "/ksql")));
+    assertThat(events.get(0).getMessage(), is("No Config overrides"));
+    assertThat(properties(events.get(0)), is(ImmutableMap.of("endpoint", "/ksql")));
   }
 
   @Test
@@ -110,11 +87,10 @@ public class ConfigOverrideLoggerTest {
 
     ConfigOverrideLogger.logOverrides(ENDPOINT, null);
 
-    final List<LogEvent> events = appender.getLog();
+    final List<LoggingEvent> events = appender.getLog();
     assertThat(events, hasSize(1));
-    assertThat(events.get(0).getMessage().getFormattedMessage(), is("No Config overrides"));
-    assertThat(events.get(0).getContextData().toMap(),
-        is(ImmutableMap.of("endpoint", "/ksql")));
+    assertThat(events.get(0).getMessage(), is("No Config overrides"));
+    assertThat(properties(events.get(0)), is(ImmutableMap.of("endpoint", "/ksql")));
   }
 
   @Test
@@ -123,10 +99,10 @@ public class ConfigOverrideLoggerTest {
 
     ConfigOverrideLogger.logOverrides(ENDPOINT, ImmutableMap.of("auto.offset.reset", "earliest"));
 
-    final List<LogEvent> events = appender.getLog();
+    final List<LoggingEvent> events = appender.getLog();
     assertThat(events, hasSize(1));
-    assertThat(events.get(0).getMessage().getFormattedMessage(), is("Config overrides found"));
-    assertThat(events.get(0).getContextData().toMap(), is(ImmutableMap.of(
+    assertThat(events.get(0).getMessage(), is("Config overrides found"));
+    assertThat(properties(events.get(0)), is(ImmutableMap.of(
         "endpoint", "/ksql",
         "property", "auto.offset.reset",
         "inAllowlist", "true"
@@ -140,10 +116,10 @@ public class ConfigOverrideLoggerTest {
     ConfigOverrideLogger.logOverrides(ENDPOINT,
         ImmutableMap.of("ksql.streams.num.stream.threads", "4"));
 
-    final List<LogEvent> events = appender.getLog();
+    final List<LoggingEvent> events = appender.getLog();
     assertThat(events, hasSize(1));
-    assertThat(events.get(0).getMessage().getFormattedMessage(), is("Config overrides found"));
-    assertThat(events.get(0).getContextData().toMap(), is(ImmutableMap.of(
+    assertThat(events.get(0).getMessage(), is("Config overrides found"));
+    assertThat(properties(events.get(0)), is(ImmutableMap.of(
         "endpoint", "/ksql",
         "property", "ksql.streams.num.stream.threads",
         "inAllowlist", "false"
@@ -159,10 +135,10 @@ public class ConfigOverrideLoggerTest {
         "ksql.streams.num.stream.threads", "4"
     ));
 
-    final List<LogEvent> events = appender.getLog();
+    final List<LoggingEvent> events = appender.getLog();
     assertThat(events, hasSize(2));
     events.forEach(e -> {
-      final Map<String, String> ctx = e.getContextData().toMap();
+      final Map<String, String> ctx = properties(e);
       assertThat(ctx.get("endpoint"), is("/ksql"));
       if ("auto.offset.reset".equals(ctx.get("property"))) {
         assertThat(ctx.get("inAllowlist"), is("true"));
@@ -179,9 +155,9 @@ public class ConfigOverrideLoggerTest {
 
     ConfigOverrideLogger.logOverrides(ENDPOINT, ImmutableMap.of("auto.offset.reset", "earliest"));
 
-    // CloseableThreadContext must remove its keys when the try-with-resources block exits,
-    // otherwise MDC values leak into subsequent log lines on the same thread.
-    assertThat(ThreadContext.getContext().isEmpty(), is(true));
+    // ConfigOverrideLogger must remove its MDC keys once logging completes, otherwise
+    // values leak into subsequent log lines on the same (pooled) worker thread.
+    assertThat(MDC.getContext().isEmpty(), is(true));
   }
 
   private static void configure(final boolean enabled, final String allowlist) {
@@ -190,5 +166,10 @@ public class ConfigOverrideLoggerTest {
         KsqlConfig.KSQL_PROPERTIES_OVERRIDES_ALLOWLIST, allowlist
     );
     ConfigOverrideLogger.configure(new KsqlConfig(overrides));
+  }
+
+  @SuppressWarnings("unchecked")
+  private static Map<String, String> properties(final LoggingEvent event) {
+    return event.getProperties();
   }
 }

@@ -20,9 +20,9 @@ import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Map;
 import java.util.Set;
-import org.apache.logging.log4j.CloseableThreadContext;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
+import org.apache.log4j.MDC;
 
 /**
  * Logs each property override at a REST endpoint. Gated on
@@ -30,9 +30,8 @@ import org.apache.logging.log4j.Logger;
  *
  * <p>The message ({@code "Config overrides found"} / {@code "No Config overrides"}) identifies
  * the event; variable fields ({@code endpoint}, {@code property}, {@code inAllowlist}) attach
- * via log4j2 ThreadContext, so JSON layouts surface them as discrete indexable fields.
- * {@link CloseableThreadContext} clears the keys after each call so they don't leak across
- * requests on shared worker threads.
+ * via log4j {@link MDC}, so JSON layouts surface them as discrete indexable fields. The keys
+ * are removed after each call so they don't leak across requests on shared worker threads.
  *
  * <p>Property values are never logged — some keys (e.g. {@code sasl.jaas.config}) carry
  * credentials.
@@ -68,18 +67,24 @@ public final class ConfigOverrideLogger {
       return;
     }
     if (properties == null || properties.isEmpty()) {
-      try (CloseableThreadContext.Instance ignored = CloseableThreadContext
-          .put(ENDPOINT, endpoint)) {
+      MDC.put(ENDPOINT, endpoint);
+      try {
         LOG.debug("No Config overrides");
+      } finally {
+        MDC.remove(ENDPOINT);
       }
       return;
     }
     for (final String key : properties.keySet()) {
-      try (CloseableThreadContext.Instance ignored = CloseableThreadContext
-          .put(ENDPOINT, endpoint)
-          .put(PROPERTY, key)
-          .put(IN_ALLOWLIST, String.valueOf(allowlist.contains(key)))) {
+      MDC.put(ENDPOINT, endpoint);
+      MDC.put(PROPERTY, key);
+      MDC.put(IN_ALLOWLIST, String.valueOf(allowlist.contains(key)));
+      try {
         LOG.info("Config overrides found");
+      } finally {
+        MDC.remove(ENDPOINT);
+        MDC.remove(PROPERTY);
+        MDC.remove(IN_ALLOWLIST);
       }
     }
   }

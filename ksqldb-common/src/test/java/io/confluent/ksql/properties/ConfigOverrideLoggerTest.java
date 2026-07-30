@@ -24,6 +24,7 @@ import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.test.util.TestAppender;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Collections;
+import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 import org.apache.log4j.Level;
@@ -155,9 +156,10 @@ public class ConfigOverrideLoggerTest {
 
     ConfigOverrideLogger.logOverrides(ENDPOINT, ImmutableMap.of("auto.offset.reset", "earliest"));
 
-    // ConfigOverrideLogger must remove its MDC keys once logging completes, otherwise
-    // values leak into subsequent log lines on the same (pooled) worker thread.
-    assertThat(MDC.getContext().isEmpty(), is(true));
+
+    // MDC.getContext() returns null (not an empty map) when no keys are set.
+    final Hashtable<?, ?> context = MDC.getContext();
+    assertThat(context == null || context.isEmpty(), is(true));
   }
 
   private static void configure(final boolean enabled, final String allowlist) {

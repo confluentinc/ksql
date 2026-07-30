@@ -102,6 +102,7 @@ import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.parser.tree.TableElements;
 import io.confluent.ksql.planner.plan.ConfiguredKsqlPlan;
+import io.confluent.ksql.properties.ConfigOverrideLogger;
 import io.confluent.ksql.properties.DenyListPropertyValidator;
 import io.confluent.ksql.query.id.SequentialQueryIdGenerator;
 import io.confluent.ksql.rest.DefaultErrorMessages;
@@ -2628,9 +2629,15 @@ public class KsqlResourceTest {
     );
 
     // When:
-    final EndpointResponse response = ksqlResource.isValidProperty("ksql.service.id");
+    final EndpointResponse response;
+    try (MockedStatic<ConfigOverrideLogger> configOverrideLogger =
+        Mockito.mockStatic(ConfigOverrideLogger.class)) {
+      response = ksqlResource.isValidProperty("ksql.service.id");
 
-    // Then:
+      // Then: log fires BEFORE denylist throws
+      configOverrideLogger.verify(() -> ConfigOverrideLogger.logOverrides(
+          "SET", ImmutableMap.of("ksql.service.id", "")));
+    }
     assertThat(response.getStatus(), equalTo(400));
   }
 
@@ -2747,18 +2754,23 @@ public class KsqlResourceTest {
         .validateAll(overrides);
 
     // When:
-    final EndpointResponse response = ksqlResource.handleKsqlStatements(
-        securityContext,
-        new KsqlRequest(
-            "query",
-            overrides,  // stream properties
-            emptyMap(),
-            null
-        )
-    );
+    final EndpointResponse response;
+    try (MockedStatic<ConfigOverrideLogger> configOverrideLogger =
+        Mockito.mockStatic(ConfigOverrideLogger.class)) {
+      response = ksqlResource.handleKsqlStatements(
+          securityContext,
+          new KsqlRequest(
+              "query",
+              overrides,  // stream properties
+              emptyMap(),
+              null
+          )
+      );
 
-    // Then:
-    verify(denyListPropertyValidator).validateAll(overrides);
+      // Then: Config Override Logger fires, and the denylist check rejects the request.
+      configOverrideLogger.verify(() -> ConfigOverrideLogger.logOverrides("/ksql", overrides));
+      verify(denyListPropertyValidator).validateAll(overrides);
+    }
     assertThat(response.getStatus(), CoreMatchers.is(BAD_REQUEST.code()));
     assertThat(((KsqlErrorMessage) response.getEntity()).getMessage(), is("deny override"));
   }

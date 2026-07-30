@@ -22,6 +22,7 @@ import static io.confluent.ksql.rest.Errors.ERROR_CODE_BAD_REQUEST;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.api.auth.DefaultApiSecurityContext;
 import io.confluent.ksql.api.spi.Endpoints;
+import io.confluent.ksql.properties.ConfigOverrideLogger;
 import io.confluent.ksql.reactive.BufferedPublisher;
 import io.confluent.ksql.rest.entity.InsertError;
 import io.confluent.ksql.rest.entity.InsertsStreamArgs;
@@ -135,6 +136,9 @@ public class InsertsStreamHandler implements Handler<RoutingContext> {
       }
 
       LOG.debug("({}) Processed insert stream args: {}", uuid, insertsStreamArgs.get());
+      
+      ConfigOverrideLogger.logOverrides(
+              routingContext.request().path(), insertsStreamArgs.get().properties.getMap());
 
       routingContext.response().endHandler(v -> handleResponseEnd());
 

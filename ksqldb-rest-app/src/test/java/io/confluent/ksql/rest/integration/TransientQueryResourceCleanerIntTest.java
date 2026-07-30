@@ -26,7 +26,7 @@ import static org.junit.Assert.assertTrue;
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.integration.IntegrationTestHarness;
 import io.confluent.ksql.integration.Retry;
-import io.confluent.ksql.logging.query.TestAppender;
+import io.confluent.ksql.test.util.TestAppender;
 import io.confluent.ksql.rest.entity.Queries;
 import io.confluent.ksql.rest.entity.RunningQuery;
 import io.confluent.ksql.rest.server.KsqlRestConfig;

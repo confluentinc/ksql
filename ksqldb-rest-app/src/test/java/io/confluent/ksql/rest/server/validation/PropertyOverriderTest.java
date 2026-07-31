@@ -45,6 +45,7 @@ import java.util.Map;
 import java.util.Optional;
 import org.apache.commons.collections4.map.HashedMap;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.streams.StreamsConfig;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -173,12 +174,52 @@ public class PropertyOverriderTest {
       );
 
       // Then: log fires for the known property BEFORE denylist throws
-      assertThat(e.getMessage(), containsString("prohibited by the KSQL server"));
       configOverrideLogger.verify(() -> ConfigOverrideLogger.logOverrides(
-          "SET", ImmutableMap.of(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "")));
-    }
+              "SET", ImmutableMap.of(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "")));
+      assertThat(e.getMessage(), containsString("prohibited by the KSQL server"));
+       }
+
     assertThat(sessionProperties.getMutableScopedProperties(),
         not(hasKey(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG)));
+  }
+
+  @Test
+  public void shouldRejectSetOfPropertyNotOnAllowlist() {
+    // Given: allowlist contains AUTO_OFFSET_RESET_CONFIG, but not the property about to be SET.
+    final String propertyNotOnAllowlist =
+        KsqlConfig.KSQL_STREAMS_PREFIX + StreamsConfig.NUM_STREAM_THREADS_CONFIG;
+    final KsqlConfig configWithAllowlist = engine.getKsqlConfig().cloneWithPropertyOverwrite(
+        ImmutableMap.of(
+            KsqlConfig.KSQL_PROPERTIES_OVERRIDES_VALIDATION_MODE,
+            KsqlConfig.KSQL_PROPERTIES_OVERRIDES_VALIDATION_MODE_ALLOWLIST,
+            KsqlConfig.KSQL_PROPERTIES_OVERRIDES_ALLOWLIST,
+            ConsumerConfig.AUTO_OFFSET_RESET_CONFIG));
+    final SessionProperties sessionProperties =
+        new SessionProperties(new HashedMap<>(), mock(KsqlHostInfo.class), mock(URL.class), false);
+
+    // When:
+    try (MockedStatic<ConfigOverrideLogger> configOverrideLogger =
+        mockStatic(ConfigOverrideLogger.class)) {
+      final Exception e = assertThrows(
+          KsqlStatementException.class,
+          () -> CustomValidators.SET_PROPERTY.validate(
+              ConfiguredStatement.of(PreparedStatement.of(
+                  "SET '" + propertyNotOnAllowlist + "' = '4';",
+                  new SetProperty(Optional.empty(), propertyNotOnAllowlist, "4")),
+                  SessionConfig.of(configWithAllowlist, ImmutableMap.of())),
+              sessionProperties,
+              engine.getEngine(),
+              engine.getServiceContext()
+          )
+      );
+
+      // Then: log fires for the known property BEFORE allowlist throws
+      configOverrideLogger.verify(() -> ConfigOverrideLogger.logOverrides(
+          "SET", ImmutableMap.of(propertyNotOnAllowlist, "")));
+      assertThat(e.getMessage(), containsString("not permitted by the KSQL server allowlist"));
+    }
+    assertThat(sessionProperties.getMutableScopedProperties(),
+        not(hasKey(propertyNotOnAllowlist)));
   }
 
   @Test
@@ -203,6 +244,40 @@ public class PropertyOverriderTest {
     );
 
     assertThat(e.getMessage(), containsString("prohibited by the KSQL server"));
+    assertThat(e.getMessage(), containsString(KsqlConfig.KSQL_SERVICE_ID_CONFIG));
+    assertThat(sessionProperties.getMutableScopedProperties(),
+        not(hasKey(KsqlConfig.KSQL_SERVICE_ID_CONFIG)));
+  }
+
+  @Test
+  public void shouldRejectSetOfServiceIdEvenWhenAllowlisted() {
+    // ksql.service.id is always removed from the effective allowlist by
+    // AllowListPropertyValidator's ALWAYS_DENIED floor, even when an admin mistakenly
+    // allowlists it explicitly.
+    final KsqlConfig configWithAllowlist = engine.getKsqlConfig().cloneWithPropertyOverwrite(
+        ImmutableMap.of(
+            KsqlConfig.KSQL_PROPERTIES_OVERRIDES_VALIDATION_MODE,
+            KsqlConfig.KSQL_PROPERTIES_OVERRIDES_VALIDATION_MODE_ALLOWLIST,
+            KsqlConfig.KSQL_PROPERTIES_OVERRIDES_ALLOWLIST,
+            KsqlConfig.KSQL_SERVICE_ID_CONFIG));
+    final SessionProperties sessionProperties =
+        new SessionProperties(new HashedMap<>(), mock(KsqlHostInfo.class), mock(URL.class), false);
+
+    final Exception e = assertThrows(
+        KsqlStatementException.class,
+        () -> CustomValidators.SET_PROPERTY.validate(
+            ConfiguredStatement.of(PreparedStatement.of(
+                "SET '" + KsqlConfig.KSQL_SERVICE_ID_CONFIG + "' = 'hacked';",
+                new SetProperty(Optional.empty(),
+                    KsqlConfig.KSQL_SERVICE_ID_CONFIG, "hacked")),
+                SessionConfig.of(configWithAllowlist, ImmutableMap.of())),
+            sessionProperties,
+            engine.getEngine(),
+            engine.getServiceContext()
+        )
+    );
+
+    assertThat(e.getMessage(), containsString("not permitted by the KSQL server allowlist"));
     assertThat(e.getMessage(), containsString(KsqlConfig.KSQL_SERVICE_ID_CONFIG));
     assertThat(sessionProperties.getMutableScopedProperties(),
         not(hasKey(KsqlConfig.KSQL_SERVICE_ID_CONFIG)));
@@ -234,6 +309,33 @@ public class PropertyOverriderTest {
   }
 
   @Test
+  public void shouldAllowSetWhenPropertyIsOnAllowlist() {
+    // Allowlist mode is on and contains the property being SET.
+    final KsqlConfig configWithAllowlist =
+        engine.getKsqlConfig().cloneWithPropertyOverwrite(ImmutableMap.of(
+            KsqlConfig.KSQL_PROPERTIES_OVERRIDES_VALIDATION_MODE,
+            KsqlConfig.KSQL_PROPERTIES_OVERRIDES_VALIDATION_MODE_ALLOWLIST,
+            KsqlConfig.KSQL_PROPERTIES_OVERRIDES_ALLOWLIST,
+            ConsumerConfig.AUTO_OFFSET_RESET_CONFIG));
+    final SessionProperties sessionProperties =
+        new SessionProperties(new HashedMap<>(), mock(KsqlHostInfo.class), mock(URL.class), false);
+
+    CustomValidators.SET_PROPERTY.validate(
+        ConfiguredStatement.of(PreparedStatement.of(
+            "SET '" + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG + "' = 'earliest';",
+            new SetProperty(Optional.empty(),
+                ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")),
+            SessionConfig.of(configWithAllowlist, ImmutableMap.of())),
+        sessionProperties,
+        engine.getEngine(),
+        engine.getServiceContext()
+    );
+
+    assertThat(sessionProperties.getMutableScopedProperties(),
+        hasEntry(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest"));
+  }
+
+  @Test
   public void shouldRejectSetWhenPropertyIsOneOfMultipleInDenylist() {
     // Denylist contains several entries; the SET property matches one of them.
     final KsqlConfig configWithDenylist = engine.getKsqlConfig().cloneWithPropertyOverwrite(
@@ -252,6 +354,38 @@ public class PropertyOverriderTest {
                 new SetProperty(Optional.empty(),
                     ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")),
                 SessionConfig.of(configWithDenylist, ImmutableMap.of())),
+            sessionProperties,
+            engine.getEngine(),
+            engine.getServiceContext()
+        )
+    );
+
+    assertThat(e.getMessage(), containsString(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG));
+    assertThat(sessionProperties.getMutableScopedProperties(),
+        not(hasKey(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG)));
+  }
+
+  @Test
+  public void shouldRejectSetWhenPropertyIsNotOneOfMultipleOnAllowlist() {
+    // Allowlist contains several entries; none of them is the SET property.
+    final KsqlConfig configWithAllowlist = engine.getKsqlConfig().cloneWithPropertyOverwrite(
+        ImmutableMap.of(
+            KsqlConfig.KSQL_PROPERTIES_OVERRIDES_VALIDATION_MODE,
+            KsqlConfig.KSQL_PROPERTIES_OVERRIDES_VALIDATION_MODE_ALLOWLIST,
+            KsqlConfig.KSQL_PROPERTIES_OVERRIDES_ALLOWLIST,
+            KsqlConfig.KSQL_STREAMS_PREFIX + StreamsConfig.NUM_STREAM_THREADS_CONFIG + ","
+                + KsqlConfig.KSQL_STREAMS_PREFIX + ConsumerConfig.MAX_POLL_RECORDS_CONFIG));
+    final SessionProperties sessionProperties =
+        new SessionProperties(new HashedMap<>(), mock(KsqlHostInfo.class), mock(URL.class), false);
+
+    final Exception e = assertThrows(
+        KsqlStatementException.class,
+        () -> CustomValidators.SET_PROPERTY.validate(
+            ConfiguredStatement.of(PreparedStatement.of(
+                "SET '" + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG + "' = 'earliest';",
+                new SetProperty(Optional.empty(),
+                    ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")),
+                SessionConfig.of(configWithAllowlist, ImmutableMap.of())),
             sessionProperties,
             engine.getEngine(),
             engine.getServiceContext()
@@ -296,6 +430,40 @@ public class PropertyOverriderTest {
   }
 
   @Test
+  public void shouldNotBeBypassableViaSessionOverrideOfAllowlistConfig() {
+    // Verifies the security invariant: an attacker submitting a request whose `streamsProperties`
+    // tries to widen the allowlist cannot use that override to escape the in-SQL SET check.
+    // PropertyOverrider.set must read the allowlist from the system config (getConfig(false)),
+    // not the override-applied config.
+    final KsqlConfig systemConfigWithAllowlist =
+        engine.getKsqlConfig().cloneWithPropertyOverwrite(ImmutableMap.of(
+            KsqlConfig.KSQL_PROPERTIES_OVERRIDES_VALIDATION_MODE,
+            KsqlConfig.KSQL_PROPERTIES_OVERRIDES_VALIDATION_MODE_ALLOWLIST,
+            KsqlConfig.KSQL_PROPERTIES_OVERRIDES_ALLOWLIST,
+            KsqlConfig.KSQL_STREAMS_PREFIX + StreamsConfig.NUM_STREAM_THREADS_CONFIG));
+    final Map<String, Object> overridesTryingToWidenAllowlist = ImmutableMap.of(
+        KsqlConfig.KSQL_PROPERTIES_OVERRIDES_ALLOWLIST, ConsumerConfig.AUTO_OFFSET_RESET_CONFIG);
+    final SessionProperties sessionProperties =
+        new SessionProperties(new HashedMap<>(), mock(KsqlHostInfo.class), mock(URL.class), false);
+
+    final Exception e = assertThrows(
+        KsqlStatementException.class,
+        () -> CustomValidators.SET_PROPERTY.validate(
+            ConfiguredStatement.of(PreparedStatement.of(
+                "SET '" + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG + "' = 'earliest';",
+                new SetProperty(Optional.empty(),
+                    ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")),
+                SessionConfig.of(systemConfigWithAllowlist, overridesTryingToWidenAllowlist)),
+            sessionProperties,
+            engine.getEngine(),
+            engine.getServiceContext()
+        )
+    );
+
+    assertThat(e.getMessage(), containsString("not permitted by the KSQL server allowlist"));
+  }
+
+  @Test
   public void shouldIncludeStatementTextOnDeniedSet() {
     final String statementText = "SET '" + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG + "' = 'earliest';";
     final KsqlConfig configWithDenylist = engine.getKsqlConfig().cloneWithPropertyOverwrite(
@@ -313,6 +481,35 @@ public class PropertyOverriderTest {
                 new SetProperty(Optional.empty(),
                     ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")),
                 SessionConfig.of(configWithDenylist, ImmutableMap.of())),
+            sessionProperties,
+            engine.getEngine(),
+            engine.getServiceContext()
+        )
+    );
+
+    assertThat(e.getSqlStatement(), is(statementText));
+  }
+
+  @Test
+  public void shouldIncludeStatementTextOnDeniedSetInAllowlistMode() {
+    final String statementText = "SET '" + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG + "' = 'earliest';";
+    final KsqlConfig configWithAllowlist = engine.getKsqlConfig().cloneWithPropertyOverwrite(
+        ImmutableMap.of(
+            KsqlConfig.KSQL_PROPERTIES_OVERRIDES_VALIDATION_MODE,
+            KsqlConfig.KSQL_PROPERTIES_OVERRIDES_VALIDATION_MODE_ALLOWLIST,
+            KsqlConfig.KSQL_PROPERTIES_OVERRIDES_ALLOWLIST,
+            KsqlConfig.KSQL_STREAMS_PREFIX + StreamsConfig.NUM_STREAM_THREADS_CONFIG));
+    final SessionProperties sessionProperties =
+        new SessionProperties(new HashedMap<>(), mock(KsqlHostInfo.class), mock(URL.class), false);
+
+    final KsqlStatementException e = assertThrows(
+        KsqlStatementException.class,
+        () -> CustomValidators.SET_PROPERTY.validate(
+            ConfiguredStatement.of(PreparedStatement.of(
+                statementText,
+                new SetProperty(Optional.empty(),
+                    ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")),
+                SessionConfig.of(configWithAllowlist, ImmutableMap.of())),
             sessionProperties,
             engine.getEngine(),
             engine.getServiceContext()

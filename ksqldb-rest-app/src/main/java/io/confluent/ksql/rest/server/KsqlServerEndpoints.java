@@ -30,6 +30,7 @@ import io.confluent.ksql.api.server.MetricsCallbackHolder;
 import io.confluent.ksql.api.spi.Endpoints;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.internal.PullQueryExecutorMetrics;
+import io.confluent.ksql.properties.ConfigOverrideLogger;
 import io.confluent.ksql.properties.ConfigOverrideValidator;
 import io.confluent.ksql.properties.PropertiesUtil;
 import io.confluent.ksql.properties.PropertyNotFoundException;
@@ -153,7 +154,7 @@ public class KsqlServerEndpoints implements Endpoints {
         .provide(apiSecurityContext);
     return executeOnWorker(() -> {
       try {
-        resolveAndValidateProperties(properties);
+        resolveAndValidateProperties("/query-stream", properties);
         return new QueryEndpoint(ksqlEngine, ksqlConfig, pullQueryMetrics, queryExecutor)
             .createQueryPublisher(
                 sql,
@@ -179,7 +180,7 @@ public class KsqlServerEndpoints implements Endpoints {
       final WorkerExecutor workerExecutor,
       final ApiSecurityContext apiSecurityContext) {
     return executeOnWorker(() -> {
-      resolveAndValidateProperties(properties.getMap());
+      resolveAndValidateProperties("/inserts-stream", properties.getMap());
       return new InsertsStreamEndpoint(ksqlEngine, ksqlConfig, reservedInternalTopics)
           .createInsertsSubscriber(target, properties, acksSubscriber, context, workerExecutor,
               ksqlSecurityContextProvider.provide(apiSecurityContext).getServiceContext());
@@ -333,10 +334,13 @@ public class KsqlServerEndpoints implements Endpoints {
     }, workerExecutor);
   }
 
-  private void resolveAndValidateProperties(final Map<String, Object> properties) {
+  private void resolveAndValidateProperties(
+          final String endpoint,
+          final Map<String, Object> properties) {
     try {
       PropertiesUtil.coerceTypes(properties, false);
       configOverrideValidator.validateAll(properties);
+      ConfigOverrideLogger.logRangeViolations(endpoint, Optional.empty(), properties);
     } catch (PropertyNotFoundException | KsqlException e) {
       throw new KsqlApiException(e.getMessage(), ERROR_CODE_BAD_REQUEST);
     }

@@ -207,6 +207,7 @@ public class WSQueryEndpoint {
       final Map<String, Object> configProperties = request.getConfigOverrides();
       ConfigOverrideLogger.logOverrides("/ws/query", configProperties);
       configOverrideValidator.validateAll(configProperties);
+      ConfigOverrideLogger.logRangeViolations("/ws/query", Optional.empty(), configProperties);
       return request;
     } catch (final Exception e) {
       throw new IllegalArgumentException("Error parsing request: " + e.getMessage(), e);

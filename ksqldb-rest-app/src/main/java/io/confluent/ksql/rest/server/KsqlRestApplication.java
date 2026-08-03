@@ -864,7 +864,8 @@ public final class KsqlRestApplication implements Executable {
         ksqlConfig.getInt(KsqlConfig.KSQL_QUERY_PULL_MAX_CONCURRENT_REQUESTS_CONFIG),
         "pull",
         metricCollectors.getMetrics(),
-        metricsTags
+        metricsTags,
+        ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PULL_LIMIT_REJECTION_RETRIABLE_CONFIG)
     );
     final SlidingWindowRateLimiter pullBandRateLimiter =
         new SlidingWindowRateLimiter(

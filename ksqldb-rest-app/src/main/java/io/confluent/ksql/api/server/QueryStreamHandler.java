@@ -32,6 +32,7 @@ import io.confluent.ksql.rest.entity.KsqlMediaType;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.QueryResponseMetadata;
 import io.confluent.ksql.rest.entity.QueryStreamArgs;
+import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.LogicalSchema.Builder;
 import io.vertx.core.Context;
@@ -231,7 +232,7 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
       bufferOutput = true;
 
       // When response is complete, publisher should be closed
-      routingContext.response().endHandler(v -> {
+      final Handler<Void> pullQueryCleanup = v -> {
         if (endedResponse.getAndSet(true)) {
           log.warn("Connection already closed so just returning");
           return;
@@ -242,7 +243,23 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
             routingContext.request().bytesRead(),
             routingContext.response().bytesWritten(),
             startTimeNanos);
-      });
+      };
+      routingContext.response().endHandler(pullQueryCleanup);
+
+      // The end handler above only runs once the response has been ended by the server. If the
+      // client goes away mid-response it never fires, so the publisher is never closed and the
+      // query keeps executing with nothing waiting for its result. Closing the publisher
+      // completes the query's cancellation future, which the scan operators poll between rows,
+      // so an abandoned query stops promptly instead of running to completion.
+      //
+      // The /query endpoint has always done this (OldApiUtils installs a connection close
+      // handler) and scalable push queries are covered by ConnectionQueryManager; pull queries on
+      // this endpoint are the gap. Behind a flag because running to completion is the existing
+      // behaviour and we want to be able to measure both.
+      if (server.getConfig().getBoolean(
+          KsqlRestConfig.KSQL_QUERY_PULL_CANCEL_ON_DISCONNECT_ENABLED_CONFIG)) {
+        routingContext.request().connection().closeHandler(pullQueryCleanup);
+      }
     } else if (queryPublisher.isScalablePushQuery()) {
       metadata = new QueryResponseMetadata(
           queryPublisher.queryId().toString(),

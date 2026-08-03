@@ -62,6 +62,7 @@ public class PullQueryExecutorMetrics implements Closeable {
   private final Sensor latencySensor;
   private final Map<MetricsKey, Sensor> latencySensorMap;
   private final Sensor requestRateSensor;
+  private final Sensor requestsOfferedSensor;
   private final Sensor errorRateSensor;
   private final Map<MetricsKey, Sensor> errorRateSensorMap;
   private final Sensor requestSizeSensor;
@@ -82,6 +83,8 @@ public class PullQueryExecutorMetrics implements Closeable {
 
   private Supplier<Integer> coordinatorThreadPoolSupplier;
   private Supplier<Integer> routerThreadPoolSupplier;
+  private Supplier<Integer> coordinatorQueueSizeSupplier;
+  private Supplier<Integer> routerQueueSizeSupplier;
 
 
   @SuppressFBWarnings(value = "EI_EXPOSE_REP2", justification = "metrics")
@@ -107,6 +110,7 @@ public class PullQueryExecutorMetrics implements Closeable {
     this.latencySensor = configureLatencySensor();
     this.latencySensorMap = configureLatencySensorMap();
     this.requestRateSensor = configureRateSensor();
+    this.requestsOfferedSensor = configureRequestsOfferedSensor();
     this.errorRateSensor = configureErrorRateSensor();
     this.errorRateSensorMap = configureErrorSensorMap();
     this.requestSizeSensor = configureRequestSizeSensor();
@@ -132,6 +136,26 @@ public class PullQueryExecutorMetrics implements Closeable {
 
   public void registerRouterThreadPoolSupplier(final Supplier<Integer> supplier) {
     routerThreadPoolSupplier = supplier;
+  }
+
+  public void registerCoordinatorQueueSizeSupplier(final Supplier<Integer> supplier) {
+    coordinatorQueueSizeSupplier = supplier;
+  }
+
+  public void registerRouterQueueSizeSupplier(final Supplier<Integer> supplier) {
+    routerQueueSizeSupplier = supplier;
+  }
+
+  /**
+   * Records a pull query as it arrives, before any admission decision is made.
+   *
+   * <p>This is deliberately distinct from {@code pull-query-requests-rate}, which is recorded
+   * from {@code recordLatency} once a query has finished and therefore measures the rate of
+   * <em>completions</em>. Under saturation nothing completes, so that metric falls towards zero
+   * exactly when load is highest. This one measures offered load.
+   */
+  public void recordRequestOffered() {
+    this.requestsOfferedSensor.record(1);
   }
 
   public void recordLocalRequests(final double value) {
@@ -378,6 +402,34 @@ public class PullQueryExecutorMetrics implements Closeable {
     return sensor;
   }
 
+  private Sensor configureRequestsOfferedSensor() {
+    final Sensor sensor = metrics.sensor(
+        PULL_QUERY_METRIC_GROUP + "-" + PULL_REQUESTS + "-offered");
+
+    addSensor(
+        sensor,
+        PULL_REQUESTS + "-offered-rate",
+        ksqlServicePrefix + PULL_QUERY_METRIC_GROUP,
+        "Rate of pull query requests arriving, counted before any rate, concurrency or "
+            + "queue-capacity check. Unlike -rate this does not require the query to complete, "
+            + "so it still reports load when the cluster is saturated.",
+        customMetricsTags,
+        new Rate()
+    );
+
+    addSensor(
+        sensor,
+        PULL_REQUESTS + "-offered-total",
+        ksqlServicePrefix + PULL_QUERY_METRIC_GROUP,
+        "Total pull query requests arriving, counted before any admission check",
+        customMetricsTags,
+        new CumulativeCount()
+    );
+
+    sensors.add(sensor);
+    return sensor;
+  }
+
   private Sensor configureRateSensor() {
     final Sensor sensor = metrics.sensor(
         PULL_QUERY_METRIC_GROUP + "-" + PULL_REQUESTS + "-rate");
@@ -518,6 +570,27 @@ public class PullQueryExecutorMetrics implements Closeable {
     );
     metrics.addMetric(routerThreadsAvailable,
                       (Gauge<Integer>) (config, now) -> routerThreadPoolSupplier.get());
+
+    // The free-size gauges above saturate at zero: a pool with one queued request and a pool
+    // with tens of thousands both report zero available threads. Queue depth is what separates
+    // a momentary spike from a backlog that will take an hour to drain.
+    final MetricName coordinatorQueueSize = metrics.metricName(
+        PULL_REQUESTS + "-coordinator-queue-size",
+        ksqlServicePrefix + PULL_QUERY_METRIC_GROUP,
+        "Number of pull queries queued waiting for a coordinator thread",
+        customMetricsTags
+    );
+    metrics.addMetric(coordinatorQueueSize,
+                      (Gauge<Integer>) (config, now) -> coordinatorQueueSizeSupplier.get());
+
+    final MetricName routerQueueSize = metrics.metricName(
+        PULL_REQUESTS + "-router-queue-size",
+        ksqlServicePrefix + PULL_QUERY_METRIC_GROUP,
+        "Number of pull query host fetches queued waiting for a router thread",
+        customMetricsTags
+    );
+    metrics.addMetric(routerQueueSize,
+                      (Gauge<Integer>) (config, now) -> routerQueueSizeSupplier.get());
   }
 
   private void addRequestMetricsToSensor(

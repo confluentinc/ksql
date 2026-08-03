@@ -370,6 +370,17 @@ public class KsqlRestConfig extends AbstractConfig {
   private static final String KSQL_LOGGING_SERVER_RATE_LIMITED_REQUEST_PATHS_DOC =
       "A list of path:rate_limit pairs, to rate limit the server request logging";
 
+  public static final String KSQL_QUERY_PULL_CANCEL_ON_DISCONNECT_ENABLED_CONFIG
+      = "ksql.query.pull.cancel.on.disconnect.enabled";
+  private static final boolean KSQL_QUERY_PULL_CANCEL_ON_DISCONNECT_ENABLED_DEFAULT = false;
+  private static final String KSQL_QUERY_PULL_CANCEL_ON_DISCONNECT_ENABLED_DOC
+      = "Whether a pull query on the /query-stream endpoint is cancelled when the client closes "
+      + "the connection. Cleanup on that endpoint is currently driven by the response end "
+      + "handler, which does not run when the client disconnects mid-response, so the query runs "
+      + "to completion with nothing waiting for the result. The older /query endpoint has always "
+      + "cancelled on disconnect, and scalable push queries are covered by "
+      + "ConnectionQueryManager. Defaults to false to preserve existing behaviour.";
+
   public static final String KSQL_LOCAL_COMMANDS_LOCATION_CONFIG = "ksql.local.commands.location";
   public static final String KSQL_LOCAL_COMMANDS_LOCATION_DEFAULT = "";
   public static final String KSQL_LOCAL_COMMANDS_LOCATION_DOC = "Specify the directory where "
@@ -791,6 +802,12 @@ public class KsqlRestConfig extends AbstractConfig {
             KSQL_ENDPOINT_LOGGING_LOG_QUERIES_DEFAULT,
             Importance.LOW,
             KSQL_ENDPOINT_LOGGING_LOG_QUERIES_DOC
+        ).define(
+            KSQL_QUERY_PULL_CANCEL_ON_DISCONNECT_ENABLED_CONFIG,
+            Type.BOOLEAN,
+            KSQL_QUERY_PULL_CANCEL_ON_DISCONNECT_ENABLED_DEFAULT,
+            Importance.MEDIUM,
+            KSQL_QUERY_PULL_CANCEL_ON_DISCONNECT_ENABLED_DOC
         ).define(
             KSQL_INTERNAL_HTTP2_MAX_POOL_SIZE_CONFIG,
             Type.INT,

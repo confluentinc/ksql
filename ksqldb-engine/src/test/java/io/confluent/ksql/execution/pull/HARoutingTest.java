@@ -159,6 +159,10 @@ public class HARoutingTest {
         .thenReturn(1);
     when(ksqlConfig.getInt(KsqlConfig.KSQL_QUERY_PULL_ROUTER_THREAD_POOL_SIZE_CONFIG))
         .thenReturn(1);
+    when(ksqlConfig.getInt(KsqlConfig.KSQL_QUERY_PULL_COORDINATOR_QUEUE_CAPACITY_CONFIG))
+        .thenReturn(Integer.MAX_VALUE);
+    when(ksqlConfig.getInt(KsqlConfig.KSQL_QUERY_PULL_ROUTER_QUEUE_CAPACITY_CONFIG))
+        .thenReturn(Integer.MAX_VALUE);
 
     when(serviceContext.getKsqlClient()).thenReturn(ksqlClient);
 

@@ -49,9 +49,10 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.apache.logging.log4j.LogManager;
@@ -80,18 +81,35 @@ public final class HARouting implements AutoCloseable {
         KsqlConfig.KSQL_QUERY_PULL_THREAD_POOL_SIZE_CONFIG);
     this.routerPoolSize = ksqlConfig.getInt(
         KsqlConfig.KSQL_QUERY_PULL_ROUTER_THREAD_POOL_SIZE_CONFIG);
-    this.coordinatorExecutorService = Executors.newFixedThreadPool(
+    final ThreadPoolExecutor coordinatorPool = new ThreadPoolExecutor(
         coordinatorPoolSize,
+        coordinatorPoolSize,
+        0L,
+        TimeUnit.MILLISECONDS,
+        new LinkedBlockingQueue<>(ksqlConfig.getInt(
+            KsqlConfig.KSQL_QUERY_PULL_COORDINATOR_QUEUE_CAPACITY_CONFIG)),
         new ThreadFactoryBuilder().setNameFormat("pull-query-coordinator-%d").build());
-    this.routerExecutorService = Executors.newFixedThreadPool(
+    final ThreadPoolExecutor routerPool = new ThreadPoolExecutor(
         routerPoolSize,
+        routerPoolSize,
+        0L,
+        TimeUnit.MILLISECONDS,
+        new LinkedBlockingQueue<>(ksqlConfig.getInt(
+            KsqlConfig.KSQL_QUERY_PULL_ROUTER_QUEUE_CAPACITY_CONFIG)),
         new ThreadFactoryBuilder().setNameFormat("pull-query-router-%d").build());
+    this.coordinatorExecutorService = coordinatorPool;
+    this.routerExecutorService = routerPool;
     this.pullQueryMetrics = Objects.requireNonNull(pullQueryMetrics, "pullQueryMetrics");
-    this.pullQueryMetrics.ifPresent(pm -> pm.registerCoordinatorThreadPoolSupplier(
-        () -> coordinatorPoolSize
-            - ((ThreadPoolExecutor) coordinatorExecutorService).getActiveCount()));
-    this.pullQueryMetrics.ifPresent(pm -> pm.registerRouterThreadPoolSupplier(
-        () -> routerPoolSize - ((ThreadPoolExecutor) routerExecutorService).getActiveCount()));
+    this.pullQueryMetrics.ifPresent(pm -> {
+      pm.registerCoordinatorThreadPoolSupplier(
+          () -> coordinatorPoolSize - coordinatorPool.getActiveCount());
+      pm.registerRouterThreadPoolSupplier(
+          () -> routerPoolSize - routerPool.getActiveCount());
+      // Free-thread count alone cannot distinguish a momentary spike from a long backlog:
+      // both report zero. Queue depth is the missing signal.
+      pm.registerCoordinatorQueueSizeSupplier(() -> coordinatorPool.getQueue().size());
+      pm.registerRouterQueueSizeSupplier(() -> routerPool.getQueue().size());
+    });
   }
 
   @Override

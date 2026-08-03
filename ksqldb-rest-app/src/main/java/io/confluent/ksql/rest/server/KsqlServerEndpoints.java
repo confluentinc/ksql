@@ -31,6 +31,8 @@ import io.confluent.ksql.api.spi.Endpoints;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.internal.PullQueryExecutorMetrics;
 import io.confluent.ksql.properties.ConfigOverrideValidator;
+import io.confluent.ksql.properties.PropertiesUtil;
+import io.confluent.ksql.properties.PropertyNotFoundException;
 import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.entity.ClusterTerminateRequest;
 import io.confluent.ksql.rest.entity.HeartbeatMessage;
@@ -151,7 +153,7 @@ public class KsqlServerEndpoints implements Endpoints {
         .provide(apiSecurityContext);
     return executeOnWorker(() -> {
       try {
-        validateProperties(properties);
+        resolveAndValidateProperties(properties);
         return new QueryEndpoint(ksqlEngine, ksqlConfig, pullQueryMetrics, queryExecutor)
             .createQueryPublisher(
                 sql,
@@ -177,7 +179,7 @@ public class KsqlServerEndpoints implements Endpoints {
       final WorkerExecutor workerExecutor,
       final ApiSecurityContext apiSecurityContext) {
     return executeOnWorker(() -> {
-      validateProperties(properties.getMap());
+      resolveAndValidateProperties(properties.getMap());
       return new InsertsStreamEndpoint(ksqlEngine, ksqlConfig, reservedInternalTopics)
           .createInsertsSubscriber(target, properties, acksSubscriber, context, workerExecutor,
               ksqlSecurityContextProvider.provide(apiSecurityContext).getServiceContext());
@@ -331,10 +333,11 @@ public class KsqlServerEndpoints implements Endpoints {
     }, workerExecutor);
   }
 
-  private void validateProperties(final Map<String, Object> properties) {
+  private void resolveAndValidateProperties(final Map<String, Object> properties) {
     try {
+      PropertiesUtil.coerceTypes(properties, false);
       configOverrideValidator.validateAll(properties);
-    } catch (KsqlException e) {
+    } catch (PropertyNotFoundException | KsqlException e) {
       throw new KsqlApiException(e.getMessage(), ERROR_CODE_BAD_REQUEST);
     }
   }

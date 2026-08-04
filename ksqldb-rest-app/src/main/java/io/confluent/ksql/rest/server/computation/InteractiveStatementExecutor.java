@@ -197,18 +197,19 @@ public class InteractiveStatementExecutor {
       final Map<String, Object> overwriteProperties;
       if (mode == Mode.RESTORE) {
         final Map<String, Object> rawOverrides = command.getRawOverwritePropertiesForExecution();
-        ConfigOverrideLogger.logOverrides("command_topic_restore", rawOverrides);
+        final String queryId = command.getPlan()
+                .flatMap(KsqlPlan::getQueryPlan)
+                .map(queryPlan -> queryPlan.getQueryId().toString())
+                .orElseGet(commandId::toString);
+        ConfigOverrideLogger.logOverrides(
+                "command_topic_restore", Optional.of(queryId), rawOverrides);
 
         final KsqlConfig config = ksqlEngine.getKsqlConfig();
         if (config.getBoolean(KsqlConfig.KSQL_PROPERTIES_OVERRIDES_VALIDATION_RESTORE_ENABLED)) {
-          final String queryId = command.getPlan()
-              .flatMap(KsqlPlan::getQueryPlan)
-              .map(queryPlan -> queryPlan.getQueryId().toString())
-              .orElseGet(commandId::toString);
+
           final Map<String, Object> filteredRawOverrides =
               new RestorePropertyOverrideFilter(config)
               .filter("command_topic_restore", queryId, rawOverrides);
-
           overwriteProperties = PropertiesUtil.coerceTypes(filteredRawOverrides, true);
           ConfigOverrideLogger.logRangeViolations(
                   "command_topic_restore", Optional.of(queryId), overwriteProperties);

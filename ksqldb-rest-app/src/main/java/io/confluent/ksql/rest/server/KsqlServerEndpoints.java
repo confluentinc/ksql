@@ -339,8 +339,9 @@ public class KsqlServerEndpoints implements Endpoints {
           final Map<String, Object> properties) {
     try {
       PropertiesUtil.coerceTypes(properties, false);
+      ConfigOverrideLogger.logOverrides(endpoint, properties);
       configOverrideValidator.validateAll(properties);
-      ConfigOverrideLogger.logRangeViolations(endpoint, Optional.empty(), properties);
+      ConfigOverrideLogger.logRangeViolations(endpoint, properties);
     } catch (PropertyNotFoundException | KsqlException e) {
       throw new KsqlApiException(e.getMessage(), ERROR_CODE_BAD_REQUEST);
     }

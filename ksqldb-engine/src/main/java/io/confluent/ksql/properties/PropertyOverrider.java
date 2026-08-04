@@ -41,7 +41,7 @@ public final class PropertyOverrider {
             "SET", ImmutableMap.of(setProperty.getPropertyName(), ""));
     throwIfDisallowedProperty(setProperty, statement);
     throwIfInvalidPropertyValues(setProperty, statement);
-    ConfigOverrideLogger.logRangeViolations("SET", Optional.empty(),
+    ConfigOverrideLogger.logRangeViolations("SET",
             ImmutableMap.of(setProperty.getPropertyName(), setProperty.getPropertyValue()));
     mutableProperties.put(setProperty.getPropertyName(), setProperty.getPropertyValue());
   }

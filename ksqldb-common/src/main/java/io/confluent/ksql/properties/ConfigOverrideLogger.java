@@ -83,6 +83,13 @@ public final class ConfigOverrideLogger {
   }
 
   public static void logOverrides(final String endpoint, final Map<String, Object> properties) {
+    logOverrides(endpoint, Optional.empty(), properties);
+  }
+
+  public static void logOverrides(
+          final String endpoint,
+          final Optional<String> query,
+          final Map<String, Object> properties) {
     if (!overridesLogEnabled) {
       return;
     }
@@ -94,10 +101,13 @@ public final class ConfigOverrideLogger {
       return;
     }
     for (final String key : properties.keySet()) {
-      try (CloseableThreadContext.Instance ignored = CloseableThreadContext
+      final CloseableThreadContext.Instance context = CloseableThreadContext
           .put(ENDPOINT, endpoint)
           .put(PROPERTY, key)
-          .put(IN_ALLOWLIST, String.valueOf(allowlist.contains(key)))) {
+          .put(IN_ALLOWLIST, String.valueOf(allowlist.contains(key)));
+      query.ifPresent(id -> context.put(QUERY, id));
+
+      try (CloseableThreadContext.Instance ignored = context) {
         LOG.info("Config overrides found");
       }
     }
@@ -109,9 +119,19 @@ public final class ConfigOverrideLogger {
    * <p>Call this <i>after</i> the deny/allow list check, passing only the overrides that
    * survived it: a rejected property is never applied, so its value does not matter.
    *
-   * @param query the query the overrides belong to, empty on the REST endpoints - only the
-   *     restore path knows a query id, since elsewhere the statement is not yet planned.
    * @param properties overrides that passed the name check.
+   */
+  public static void logRangeViolations(
+      final String endpoint,
+      final Map<String, Object> properties
+  ) {
+    logRangeViolations(endpoint, Optional.empty(), properties);
+  }
+
+  /**
+   * As {@link #logRangeViolations(String, Map)}, additionally naming the query the overrides
+   * belong to. Only the command topic restore path knows a query id, since it is assigned when
+   * the command is first written.
    */
   public static void logRangeViolations(
       final String endpoint,
@@ -153,6 +173,10 @@ public final class ConfigOverrideLogger {
    * overrides where a numeric config may still hold its JSON string form.
    */
   private static Optional<String> checkRetryBackoffInitialMs(final Object value) {
+    if (value == null) {
+      return Optional.empty();
+    }
+
     final long backoffMs = Long.parseLong(String.valueOf(value).trim());
 
     if (backoffMs < 0) {

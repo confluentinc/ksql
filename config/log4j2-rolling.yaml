@@ -24,7 +24,7 @@ Configuration:
         fileName: ${ksql.log.dir}/ksql.log
         filePattern: ${ksql.log.dir}/ksql-%i.log
         PatternLayout:
-          pattern: "[%d] %p %m (%c:%L)%n"
+          pattern: "[%d] %p %m %X(%c:%L)%n"
         Policies:
           SizeBasedTriggeringPolicy:
             size: 10MB

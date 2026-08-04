@@ -136,9 +136,6 @@ public class InsertsStreamHandler implements Handler<RoutingContext> {
       }
 
       LOG.debug("({}) Processed insert stream args: {}", uuid, insertsStreamArgs.get());
-      
-      ConfigOverrideLogger.logOverrides(
-              routingContext.request().path(), insertsStreamArgs.get().properties.getMap());
 
       routingContext.response().endHandler(v -> handleResponseEnd());
 

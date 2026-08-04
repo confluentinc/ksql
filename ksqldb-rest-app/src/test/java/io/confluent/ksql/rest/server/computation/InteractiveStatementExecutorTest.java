@@ -601,7 +601,7 @@ public class InteractiveStatementExecutorTest {
 
       // Then: override-log fires once per replayed command with endpoint=command_topic_restore
       configOverrideLogger.verify(
-          () -> ConfigOverrideLogger.logOverrides(eq("command_topic_restore"), any()),
+          () -> ConfigOverrideLogger.logOverrides(eq("command_topic_restore"), any(), any()),
           times(priorCommands.size()));
     }
 

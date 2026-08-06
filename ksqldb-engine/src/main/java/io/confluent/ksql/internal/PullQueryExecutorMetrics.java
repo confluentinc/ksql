@@ -87,10 +87,13 @@ public class PullQueryExecutorMetrics implements Closeable {
   private final String ksqlServicePrefix;
   private final Time time;
 
-  private Supplier<Integer> coordinatorThreadPoolSupplier;
-  private Supplier<Integer> routerThreadPoolSupplier;
-  private Supplier<Integer> coordinatorQueueSizeSupplier;
-  private Supplier<Integer> routerQueueSizeSupplier;
+  // Defaulted rather than left null: the gauges are registered in the constructor but the
+  // suppliers are only wired when HARouting is built, so a metrics scrape in between would
+  // otherwise NPE.
+  private Supplier<Integer> coordinatorThreadPoolSupplier = () -> 0;
+  private Supplier<Integer> routerThreadPoolSupplier = () -> 0;
+  private Supplier<Integer> coordinatorQueueSizeSupplier = () -> 0;
+  private Supplier<Integer> routerQueueSizeSupplier = () -> 0;
 
 
   @SuppressFBWarnings(value = "EI_EXPOSE_REP2", justification = "metrics")

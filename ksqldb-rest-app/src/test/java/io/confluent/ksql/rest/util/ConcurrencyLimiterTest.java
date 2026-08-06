@@ -22,6 +22,7 @@ import static org.junit.Assert.assertThrows;
 
 import io.confluent.ksql.rest.util.ConcurrencyLimiter.Decrementer;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.KsqlRateLimitException;
 import java.util.Collections;
 import java.util.Map;
 import org.apache.kafka.common.MetricName;
@@ -120,4 +121,34 @@ public class ConcurrencyLimiterTest {
     final KafkaMetric remainingMetric = metrics.metrics().get(remainingMetricName);
     return (double) remainingMetric.metricValue();
   }
+
+  @Test
+  public void shouldRejectWithNonRetriableExceptionByDefault() {
+    final Metrics metrics = new Metrics();
+    final ConcurrencyLimiter limiter =
+        new ConcurrencyLimiter(1, "pull", metrics, Collections.emptyMap());
+    limiter.increment();
+
+    final KsqlException e = assertThrows(KsqlException.class, limiter::increment);
+    assertThat(e, is(org.hamcrest.Matchers.not(
+        org.hamcrest.Matchers.instanceOf(KsqlRateLimitException.class))));
+    assertThat(e.getMessage(), containsString("concurrency limit for pull queries"));
+  }
+
+  @Test
+  public void shouldRejectWithRetriableExceptionWhenConfigured() {
+    final Metrics metrics = new Metrics();
+    final Map<String, String> tags = Collections.emptyMap();
+    final ConcurrencyLimiter limiter =
+        new ConcurrencyLimiter(1, "pull", metrics, tags, true);
+    limiter.increment();
+
+    final KsqlRateLimitException e =
+        assertThrows(KsqlRateLimitException.class, limiter::increment);
+    assertThat(e.getMessage(), containsString("concurrency limit for pull queries"));
+    // Rejections are still counted the same way.
+    assertThat(getReject(metrics, tags), is(1.0));
+  }
+
+
 }

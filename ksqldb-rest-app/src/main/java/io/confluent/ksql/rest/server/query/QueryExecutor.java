@@ -82,6 +82,7 @@ public class QueryExecutor {
   private final HARouting routing;
   private final PushRouting pushRouting;
   private final Optional<LocalCommands> localCommands;
+  private final boolean limitForwardedRequests;
 
   @SuppressWarnings("ParameterNumber")
   @SuppressFBWarnings("EI_EXPOSE_REP2")
@@ -110,6 +111,8 @@ public class QueryExecutor {
     this.routing = routing;
     this.pushRouting = pushRouting;
     this.localCommands = localCommands;
+    this.limitForwardedRequests = ksqlConfig.getBoolean(
+        KsqlConfig.KSQL_QUERY_PULL_LIMIT_FORWARDED_REQUESTS_CONFIG);
   }
 
   @SuppressWarnings("unchecked")
@@ -281,16 +284,26 @@ public class QueryExecutor {
         configured.getSessionConfig().getOverrides()
     );
 
-    // A request is considered forwarded if the request has the forwarded flag or if the request
-    // is from an internal listener.
+    // Count the request before any admission decision, so that offered load stays observable
+    // even when nothing is being admitted or completed.
+    pullQueryMetrics.ifPresent(PullQueryExecutorMetrics::recordRequestOffered);
+
+    // A request counts as forwarded only if it carries the forwarded flag AND arrived on the
+    // internal listener, so a client cannot bypass the limits below by setting the flag itself.
     final boolean isAlreadyForwarded = routingOptions.getIsSkipForwardRequest()
         // Trust the forward request option if isInternalRequest isn't available.
         && isInternalRequest.orElse(true);
 
-    // Only check the rate limit at the forwarding host
+    // Historically the limits are applied only at the host the client connected to, so traffic
+    // forwarded from a peer is unlimited: a saturated peer can exhaust this node's thread pools
+    // however low the configured limits are. Setting
+    // ksql.query.pull.limit.forwarded.requests=true applies them to forwarded requests too, at
+    // the cost of counting a fanned-out query once per node it touches.
+    final boolean applyLimits = !isAlreadyForwarded || limitForwardedRequests;
+
     Decrementer decrementer = null;
     try {
-      if (!isAlreadyForwarded) {
+      if (applyLimits) {
         rateLimiter.checkLimit();
         decrementer = concurrencyLimiter.increment();
       }

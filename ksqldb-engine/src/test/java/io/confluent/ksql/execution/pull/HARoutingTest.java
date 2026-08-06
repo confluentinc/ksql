@@ -65,6 +65,7 @@ import java.util.OptionalInt;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.common.utils.Time;
 import org.junit.After;
@@ -493,8 +494,32 @@ public class HARoutingTest {
   }
 
   @Test
+  public void shouldSkipQueryAlreadyCancelledBeforeItRuns()
+      throws ExecutionException, InterruptedException {
+    // Given: the client went away while the query sat in the pool queue
+    locate(location1, location2, location3, location4);
+    when(disconnect.isDone()).thenReturn(true);
+
+    // When:
+    final CompletableFuture<Void> future = haRouting.handlePullQuery(
+        serviceContext, pullPhysicalPlan, statement, routingOptions,
+        pullQueryQueue, disconnect);
+    future.get();
+
+    // Then: no work is done for a query nobody is waiting for
+    verify(pullPhysicalPlan, never()).execute(any(), any(), any());
+    verify(ksqlClient, never())
+        .makeQueryRequest(any(), any(), any(), any(), any(), any(), any());
+    assertThat(pullQueryQueue.size(), is(0));
+    assertThat(pullQueryQueue.isDone(), is(true));
+  }
+
+  @Test
   public void forwardingError_cancelled() throws ExecutionException, InterruptedException {
-    // Given:
+    // Given: the client disconnects while the request is in flight, not before it starts -
+    // a request already known to be cancelled is now skipped on dequeue, so stubbing isDone()
+    // true up front would test that skip rather than the error suppression this covers.
+    final AtomicBoolean cancelled = new AtomicBoolean(false);
     locate(location5);
     when(ksqlClient.makeQueryRequest(eq(node2.location()), any(), any(), any(), any(), any(), any()))
         .thenAnswer(a -> {
@@ -504,9 +529,10 @@ public class HARoutingTest {
                   StreamedRow.header(queryId, logicalSchema),
                   StreamedRow.pullRow(GenericRow.fromList(ROW2), Optional.empty())));
 
+          cancelled.set(true);
           throw new RuntimeException("Cancelled");
         });
-    when(disconnect.isDone()).thenReturn(true);
+    when(disconnect.isDone()).thenAnswer(a -> cancelled.get());
 
     // When:
     CompletableFuture<Void> future = haRouting.handlePullQuery(

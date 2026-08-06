@@ -197,6 +197,16 @@ public final class HARouting implements AutoCloseable {
       final PullQueryWriteStream pullQueryQueue,
       final CompletableFuture<Void> shouldCancelRequests
   ) {
+    // Checked on dequeue, not just on submit: a query queued while the client was still
+    // connected can be picked up long after it left, and would otherwise run to completion for
+    // nobody. An in-flight scan already stops on its own, because PullPhysicalPlan polls
+    // pullQueryQueue.isDone() between rows; this covers the window before it starts.
+    if (shouldCancelRequests.isDone()) {
+      LOG.debug("Pull query was cancelled before a coordinator thread picked it up; skipping.");
+      pullQueryQueue.close();
+      return;
+    }
+
     // The remaining partition locations to retrieve without error
     List<KsqlPartitionLocation> remainingLocations = ImmutableList.copyOf(locations);
     final Map<KsqlNode, List<Exception>> exceptionsPerNode = new HashMap<>();
@@ -329,6 +339,14 @@ public final class HARouting implements AutoCloseable {
   ) {
     final Function<StreamedRow, StreamedRow> addHostInfo
         = sr -> sr.withSourceHost(routingOptions.getIsDebugRequest() ? toKsqlHostInfo(node) : null);
+    // Same check for the router pool. Reported as SUCCESS rather than an error so the round loop
+    // does not retry these partitions on a standby: the request is going nowhere either way, and
+    // retrying would spend more threads on it.
+    if (shouldCancelRequests.isDone()) {
+      LOG.debug("Pull query to node {} was cancelled before a router thread picked it up; "
+          + "skipping.", node.location());
+      return new NodeFetchResult(RoutingResult.SUCCESS, node, Optional.empty());
+    }
     if (node.isLocal()) {
       try {
         LOG.debug("Query {} partitions {} executed locally at host {} at timestamp {}.",

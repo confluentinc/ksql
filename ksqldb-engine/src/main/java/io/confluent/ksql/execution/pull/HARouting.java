@@ -37,6 +37,7 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.KsqlRateLimitException;
 import io.confluent.ksql.util.KsqlRequestConfig;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -48,9 +49,11 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
@@ -81,18 +84,35 @@ public final class HARouting implements AutoCloseable {
         KsqlConfig.KSQL_QUERY_PULL_THREAD_POOL_SIZE_CONFIG);
     this.routerPoolSize = ksqlConfig.getInt(
         KsqlConfig.KSQL_QUERY_PULL_ROUTER_THREAD_POOL_SIZE_CONFIG);
-    this.coordinatorExecutorService = Executors.newFixedThreadPool(
+    final ThreadPoolExecutor coordinatorPool = new ThreadPoolExecutor(
         coordinatorPoolSize,
+        coordinatorPoolSize,
+        0L,
+        TimeUnit.MILLISECONDS,
+        new LinkedBlockingQueue<>(ksqlConfig.getInt(
+            KsqlConfig.KSQL_QUERY_PULL_COORDINATOR_QUEUE_CAPACITY_CONFIG)),
         new ThreadFactoryBuilder().setNameFormat("pull-query-coordinator-%d").build());
-    this.routerExecutorService = Executors.newFixedThreadPool(
+    final ThreadPoolExecutor routerPool = new ThreadPoolExecutor(
         routerPoolSize,
+        routerPoolSize,
+        0L,
+        TimeUnit.MILLISECONDS,
+        new LinkedBlockingQueue<>(ksqlConfig.getInt(
+            KsqlConfig.KSQL_QUERY_PULL_ROUTER_QUEUE_CAPACITY_CONFIG)),
         new ThreadFactoryBuilder().setNameFormat("pull-query-router-%d").build());
+    this.coordinatorExecutorService = coordinatorPool;
+    this.routerExecutorService = routerPool;
     this.pullQueryMetrics = Objects.requireNonNull(pullQueryMetrics, "pullQueryMetrics");
-    this.pullQueryMetrics.ifPresent(pm -> pm.registerCoordinatorThreadPoolSupplier(
-        () -> coordinatorPoolSize
-            - ((ThreadPoolExecutor) coordinatorExecutorService).getActiveCount()));
-    this.pullQueryMetrics.ifPresent(pm -> pm.registerRouterThreadPoolSupplier(
-        () -> routerPoolSize - ((ThreadPoolExecutor) routerExecutorService).getActiveCount()));
+    this.pullQueryMetrics.ifPresent(pm -> {
+      pm.registerCoordinatorThreadPoolSupplier(
+          () -> coordinatorPoolSize - coordinatorPool.getActiveCount());
+      pm.registerRouterThreadPoolSupplier(
+          () -> routerPoolSize - routerPool.getActiveCount());
+      // Free-thread count alone cannot distinguish a momentary spike from a long backlog:
+      // both report zero. Queue depth is the missing signal.
+      pm.registerCoordinatorQueueSizeSupplier(() -> coordinatorPool.getQueue().size());
+      pm.registerRouterQueueSizeSupplier(() -> routerPool.getQueue().size());
+    });
   }
 
   @Override
@@ -144,15 +164,27 @@ public final class HARouting implements AutoCloseable {
         .collect(Collectors.toList());
 
     final CompletableFuture<Void> completableFuture = new CompletableFuture<>();
-    coordinatorExecutorService.submit(() -> {
-      try {
-        executeRounds(serviceContext, pullPhysicalPlan, statement, routingOptions,
-            locations, pullQueryQueue, shouldCancelRequests);
-        completableFuture.complete(null);
-      } catch (Throwable t) {
-        completableFuture.completeExceptionally(t);
-      }
-    });
+    // Timed around the submit: the existing latency metric sums queue wait and execution.
+    final long submittedNanos = System.nanoTime();
+    try {
+      coordinatorExecutorService.submit(() -> {
+        final long startedNanos = System.nanoTime();
+        pullQueryMetrics.ifPresent(
+            pm -> pm.recordCoordinatorQueueWait(startedNanos - submittedNanos));
+        try {
+          executeRounds(serviceContext, pullPhysicalPlan, statement, routingOptions,
+              locations, pullQueryQueue, shouldCancelRequests);
+          completableFuture.complete(null);
+        } catch (Throwable t) {
+          completableFuture.completeExceptionally(t);
+        } finally {
+          pullQueryMetrics.ifPresent(
+              pm -> pm.recordCoordinatorServiceTime(System.nanoTime() - startedNanos));
+        }
+      });
+    } catch (final RejectedExecutionException e) {
+      throw queueFull("coordinator");
+    }
     return completableFuture;
   }
 
@@ -191,12 +223,29 @@ public final class HARouting implements AutoCloseable {
         final Map<KsqlNode, Future<NodeFetchResult>> futures = new LinkedHashMap<>();
         for (Map.Entry<KsqlNode, List<KsqlPartitionLocation>> entry : groupedByHost.entrySet()) {
           final KsqlNode node = entry.getKey();
-          futures.put(node, routerExecutorService.submit(
-              () -> executeOrRouteQuery(
-                  node, entry.getValue(), statement, serviceContext, routingOptions,
-                  pullQueryMetrics, pullPhysicalPlan, pullQueryQueue,
-                  shouldCancelRequests)
-          ));
+          final long routerSubmittedNanos = System.nanoTime();
+          try {
+            futures.put(node, routerExecutorService.submit(
+                () -> {
+                  final long routerStartedNanos = System.nanoTime();
+                  pullQueryMetrics.ifPresent(
+                      pm -> pm.recordRouterQueueWait(routerStartedNanos - routerSubmittedNanos));
+                  try {
+                    return executeOrRouteQuery(
+                        node, entry.getValue(), statement, serviceContext, routingOptions,
+                        pullQueryMetrics, pullPhysicalPlan, pullQueryQueue,
+                        shouldCancelRequests);
+                  } finally {
+                    // A forward to a saturated peer holds this thread for the full forwarding
+                    // timeout, so router service time is where that cost is visible.
+                    pullQueryMetrics.ifPresent(
+                        pm -> pm.recordRouterServiceTime(System.nanoTime() - routerStartedNanos));
+                  }
+                }
+            ));
+          } catch (final RejectedExecutionException e) {
+            throw queueFull("router");
+          }
         }
 
         // Go through all of the results of the requests, either aggregating rows or adding
@@ -404,6 +453,34 @@ public final class HARouting implements AutoCloseable {
               + "empty response from forwarding call, expected a header row.",
           statement.getSessionConfig().getOverrides(), requestProperties));
     }
+  }
+
+  /**
+   * A full queue means the server is at capacity, not that the statement was bad. Left uncaught,
+   * RejectedExecutionException surfaces as HTTP 400 carrying the rejected task's toString, which
+   * tells the client its request was malformed and must not be retried. KsqlRateLimitException is
+   * already mapped to 429 by ServerUtils, so the client backs off and retries instead.
+   */
+  private KsqlException queueFull(final String pool) {
+    final String msg = "Pull query rejected: the " + pool
+        + " queue is full. The server is at capacity; retry after a backoff.";
+    return ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PULL_LIMIT_REJECTION_RETRIABLE_CONFIG)
+        ? new KsqlRateLimitException(msg)
+        : new KsqlException(msg);
+  }
+
+  /**
+   * A full queue means the server is at capacity, not that the statement was bad. Left uncaught,
+   * RejectedExecutionException surfaces as HTTP 400 carrying the rejected task's toString, which
+   * tells the client its request was malformed and must not be retried. KsqlRateLimitException is
+   * already mapped to 429 by ServerUtils, so the client backs off and retries instead.
+   */
+  private KsqlException queueFull(final String pool) {
+    final String msg = "Pull query rejected: the " + pool
+        + " queue is full. The server is at capacity; retry after a backoff.";
+    return ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PULL_LIMIT_REJECTION_RETRIABLE_CONFIG)
+        ? new KsqlRateLimitException(msg)
+        : new KsqlException(msg);
   }
 
   private static KsqlException causedByKsqlException(final Exception e) {

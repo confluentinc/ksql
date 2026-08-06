@@ -17,6 +17,7 @@ package io.confluent.ksql.rest.util;
 
 import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.KsqlRateLimitException;
 import io.confluent.ksql.util.ReservedInternalTopics;
 import java.util.Map;
 import java.util.concurrent.Semaphore;
@@ -39,16 +40,27 @@ public class ConcurrencyLimiter {
   private final int limit;
   private final String operationType;
   private final Sensor rejectSensor;
+  private final boolean retriableRejection;
 
   public ConcurrencyLimiter(
       final int limit,
       final String operationType,
       final Metrics metrics,
       final Map<String, String> metricsTags) {
+    this(limit, operationType, metrics, metricsTags, false);
+  }
+
+  public ConcurrencyLimiter(
+      final int limit,
+      final String operationType,
+      final Metrics metrics,
+      final Map<String, String> metricsTags,
+      final boolean retriableRejection) {
 
     this.semaphore = new Semaphore(limit);
     this.limit = limit;
     this.operationType = operationType;
+    this.retriableRejection = retriableRejection;
 
     metrics.addMetric(
         new MetricName(
@@ -75,9 +87,12 @@ public class ConcurrencyLimiter {
   public Decrementer increment() {
     if (!semaphore.tryAcquire()) {
       rejectSensor.record();
-      throw new KsqlException(
-          String.format("Host is at concurrency limit for %s queries. Currently set to %d maximum "
-              + "concurrent operations.", operationType, limit));
+      final String message = String.format(
+          "Host is at concurrency limit for %s queries. Currently set to %d maximum "
+              + "concurrent operations.", operationType, limit);
+      throw retriableRejection
+          ? new KsqlRateLimitException(message)
+          : new KsqlException(message);
     }
     return new Decrementer();
   }

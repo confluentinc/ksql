@@ -469,20 +469,6 @@ public final class HARouting implements AutoCloseable {
         : new KsqlException(msg);
   }
 
-  /**
-   * A full queue means the server is at capacity, not that the statement was bad. Left uncaught,
-   * RejectedExecutionException surfaces as HTTP 400 carrying the rejected task's toString, which
-   * tells the client its request was malformed and must not be retried. KsqlRateLimitException is
-   * already mapped to 429 by ServerUtils, so the client backs off and retries instead.
-   */
-  private KsqlException queueFull(final String pool) {
-    final String msg = "Pull query rejected: the " + pool
-        + " queue is full. The server is at capacity; retry after a backoff.";
-    return ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PULL_LIMIT_REJECTION_RETRIABLE_CONFIG)
-        ? new KsqlRateLimitException(msg)
-        : new KsqlException(msg);
-  }
-
   private static KsqlException causedByKsqlException(final Exception e) {
     Throwable throwable = e;
     while (throwable != null) {

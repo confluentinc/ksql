@@ -349,11 +349,6 @@ public class PullQueryMetricsTest {
     assertThat(getMetricValue("-coordinator-service-time-avg"), closeTo(1000.0, 0.1));
   }
 
-
-
-
-
-
   private double getMetricValue(final String metricName) {
     final Metrics metrics = pullMetrics.getMetrics();
     return Double.parseDouble(

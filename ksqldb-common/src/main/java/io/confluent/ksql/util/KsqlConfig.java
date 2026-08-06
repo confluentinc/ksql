@@ -342,10 +342,12 @@ public class KsqlConfig extends AbstractConfig {
       = "ksql.query.pull.limit.rejection.retriable";
   public static final boolean KSQL_QUERY_PULL_LIMIT_REJECTION_RETRIABLE_DEFAULT = false;
   public static final String KSQL_QUERY_PULL_LIMIT_REJECTION_RETRIABLE_DOC
-      = "Whether exceeding ksql.query.pull.max.concurrent.requests is reported as a retriable "
-      + "condition (HTTP 429) rather than an internal server error (HTTP 500). 500 is the "
-      + "historical behaviour and is the default, but it is indistinguishable from a server "
-      + "fault and is a status most clients retry immediately.";
+      = "Whether a rejected pull query is reported as a retriable condition (HTTP 429) rather "
+      + "than an internal server error (HTTP 500). Applies both to exceeding "
+      + "ksql.query.pull.max.concurrent.requests and to a full coordinator or router queue "
+      + "(see ksql.query.pull.coordinator.queue.capacity). 500 is the historical behaviour and "
+      + "is the default, but it is indistinguishable from a server fault and is a status most "
+      + "clients retry immediately.";
 
   public static final String KSQL_QUERY_PULL_LIMIT_FORWARDED_REQUESTS_CONFIG
       = "ksql.query.pull.limit.forwarded.requests";

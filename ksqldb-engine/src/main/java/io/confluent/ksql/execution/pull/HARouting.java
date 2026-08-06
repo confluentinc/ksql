@@ -284,6 +284,11 @@ public final class HARouting implements AutoCloseable {
           return;
         }
       }
+    } catch (final KsqlRateLimitException e) {
+      // Must escape unwrapped. The handler below turns everything into a MaterializationException,
+      // which the API layer reports as a 500 - losing the retriable 429 that a full router queue
+      // is supposed to produce.
+      throw e;
     } catch (final Exception e) {
       final MaterializationException exception =
           new MaterializationException(

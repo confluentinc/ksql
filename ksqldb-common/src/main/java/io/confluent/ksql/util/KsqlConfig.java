@@ -317,6 +317,45 @@ public class KsqlConfig extends AbstractConfig {
       "The maximum number of concurrent requests allowed for pull "
       + "queries on this host. Once the limit is hit, queries will fail immediately";
 
+  // --- KSQL-15212: pull-query queue bounding, cancellation and rejection semantics ---
+  // Every config below defaults to the pre-existing behaviour, so enabling any of them is an
+  // explicit opt-in and the same build can be A/B tested by configuration alone.
+
+  public static final String KSQL_QUERY_PULL_COORDINATOR_QUEUE_CAPACITY_CONFIG
+      = "ksql.query.pull.coordinator.queue.capacity";
+  public static final Integer KSQL_QUERY_PULL_COORDINATOR_QUEUE_CAPACITY_DEFAULT
+      = Integer.MAX_VALUE;
+  public static final String KSQL_QUERY_PULL_COORDINATOR_QUEUE_CAPACITY_DOC
+      = "Maximum number of pull queries that may queue waiting for a coordinator thread. "
+      + "Requests arriving when the queue is full are rejected immediately rather than "
+      + "queued. The default is effectively unbounded, which matches the previous behaviour "
+      + "of Executors.newFixedThreadPool.";
+
+  public static final String KSQL_QUERY_PULL_ROUTER_QUEUE_CAPACITY_CONFIG
+      = "ksql.query.pull.router.queue.capacity";
+  public static final Integer KSQL_QUERY_PULL_ROUTER_QUEUE_CAPACITY_DEFAULT = Integer.MAX_VALUE;
+  public static final String KSQL_QUERY_PULL_ROUTER_QUEUE_CAPACITY_DOC
+      = "Maximum number of per-host fetches that may queue waiting for a router thread. "
+      + "See ksql.query.pull.coordinator.queue.capacity.";
+
+  public static final String KSQL_QUERY_PULL_LIMIT_REJECTION_RETRIABLE_CONFIG
+      = "ksql.query.pull.limit.rejection.retriable";
+  public static final boolean KSQL_QUERY_PULL_LIMIT_REJECTION_RETRIABLE_DEFAULT = false;
+  public static final String KSQL_QUERY_PULL_LIMIT_REJECTION_RETRIABLE_DOC
+      = "Whether exceeding ksql.query.pull.max.concurrent.requests is reported as a retriable "
+      + "condition (HTTP 429) rather than an internal server error (HTTP 500). 500 is the "
+      + "historical behaviour and is the default, but it is indistinguishable from a server "
+      + "fault and is a status most clients retry immediately.";
+
+  public static final String KSQL_QUERY_PULL_LIMIT_FORWARDED_REQUESTS_CONFIG
+      = "ksql.query.pull.limit.forwarded.requests";
+  public static final boolean KSQL_QUERY_PULL_LIMIT_FORWARDED_REQUESTS_DEFAULT = false;
+  public static final String KSQL_QUERY_PULL_LIMIT_FORWARDED_REQUESTS_DOC
+      = "Whether the rate and concurrency limits also apply to pull query requests forwarded "
+      + "from a peer node. Historically only the request's entry host applies the limits, so "
+      + "forwarded traffic is unlimited and a saturated peer can drive this node's thread "
+      + "pools to exhaustion regardless of the configured limits.";
+
   public static final String KSQL_QUERY_PULL_MAX_HOURLY_BANDWIDTH_MEGABYTES_CONFIG
       = "ksql.query.pull.max.hourly.bandwidth.megabytes";
   public static final Integer KSQL_QUERY_PULL_MAX_HOURLY_BANDWIDTH_MEGABYTES_DEFAULT
@@ -1236,6 +1275,32 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_QUERY_PULL_MAX_CONCURRENT_REQUESTS_DEFAULT,
             Importance.LOW,
             KSQL_QUERY_PULL_MAX_CONCURRENT_REQUESTS_DOC
+        ).define(
+            KSQL_QUERY_PULL_COORDINATOR_QUEUE_CAPACITY_CONFIG,
+            Type.INT,
+            KSQL_QUERY_PULL_COORDINATOR_QUEUE_CAPACITY_DEFAULT,
+            ConfigDef.Range.atLeast(1),
+            Importance.MEDIUM,
+            KSQL_QUERY_PULL_COORDINATOR_QUEUE_CAPACITY_DOC
+        ).define(
+            KSQL_QUERY_PULL_ROUTER_QUEUE_CAPACITY_CONFIG,
+            Type.INT,
+            KSQL_QUERY_PULL_ROUTER_QUEUE_CAPACITY_DEFAULT,
+            ConfigDef.Range.atLeast(1),
+            Importance.MEDIUM,
+            KSQL_QUERY_PULL_ROUTER_QUEUE_CAPACITY_DOC
+        ).define(
+            KSQL_QUERY_PULL_LIMIT_REJECTION_RETRIABLE_CONFIG,
+            Type.BOOLEAN,
+            KSQL_QUERY_PULL_LIMIT_REJECTION_RETRIABLE_DEFAULT,
+            Importance.MEDIUM,
+            KSQL_QUERY_PULL_LIMIT_REJECTION_RETRIABLE_DOC
+        ).define(
+            KSQL_QUERY_PULL_LIMIT_FORWARDED_REQUESTS_CONFIG,
+            Type.BOOLEAN,
+            KSQL_QUERY_PULL_LIMIT_FORWARDED_REQUESTS_DEFAULT,
+            Importance.MEDIUM,
+            KSQL_QUERY_PULL_LIMIT_FORWARDED_REQUESTS_DOC
         )
         .define(
             KSQL_QUERY_PULL_MAX_HOURLY_BANDWIDTH_MEGABYTES_CONFIG,

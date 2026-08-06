@@ -317,6 +317,72 @@ public class PullQueryMetricsTest {
     assertThat(detailedValue, equalTo(5.0));
   }
 
+  @Test
+  public void shouldRecordCoordinatorQueueWait() {
+    // Given: 5 ms expressed in nanos, since the metric records microseconds
+    pullMetrics.recordCoordinatorQueueWait(5_000_000L);
+
+    // Then:
+    assertThat(getMetricValue("-coordinator-queue-wait-avg"), closeTo(5000.0, 0.1));
+    assertThat(getMetricValue("-coordinator-queue-wait-max"), closeTo(5000.0, 0.1));
+    assertThat(getMetricValue("-coordinator-queue-wait-p99"), greaterThan(0.0));
+  }
+
+  @Test
+  public void shouldRecordRouterQueueWait() {
+    // Given:
+    pullMetrics.recordRouterQueueWait(2_000_000L);
+
+    // Then:
+    assertThat(getMetricValue("-router-queue-wait-avg"), closeTo(2000.0, 0.1));
+    assertThat(getMetricValue("-router-queue-wait-max"), closeTo(2000.0, 0.1));
+  }
+
+  @Test
+  public void shouldRecordCoordinatorServiceTimeSeparatelyFromQueueWait() {
+    // Given: a query that queued for 5 ms then executed for 1 ms
+    pullMetrics.recordCoordinatorQueueWait(5_000_000L);
+    pullMetrics.recordCoordinatorServiceTime(1_000_000L);
+
+    // Then: the two are reported independently, which is the point of splitting them
+    assertThat(getMetricValue("-coordinator-queue-wait-avg"), closeTo(5000.0, 0.1));
+    assertThat(getMetricValue("-coordinator-service-time-avg"), closeTo(1000.0, 0.1));
+  }
+
+
+  @Test
+  public void shouldRecordCoordinatorQueueWait() {
+    // Given: 5 ms expressed in nanos, since the metric records microseconds
+    pullMetrics.recordCoordinatorQueueWait(5_000_000L);
+
+    // Then:
+    assertThat(getMetricValue("-coordinator-queue-wait-avg"), closeTo(5000.0, 0.1));
+    assertThat(getMetricValue("-coordinator-queue-wait-max"), closeTo(5000.0, 0.1));
+    assertThat(getMetricValue("-coordinator-queue-wait-p99"), greaterThan(0.0));
+  }
+
+  @Test
+  public void shouldRecordRouterQueueWait() {
+    // Given:
+    pullMetrics.recordRouterQueueWait(2_000_000L);
+
+    // Then:
+    assertThat(getMetricValue("-router-queue-wait-avg"), closeTo(2000.0, 0.1));
+    assertThat(getMetricValue("-router-queue-wait-max"), closeTo(2000.0, 0.1));
+  }
+
+  @Test
+  public void shouldRecordCoordinatorServiceTimeSeparatelyFromQueueWait() {
+    // Given: a query that queued for 5 ms then executed for 1 ms
+    pullMetrics.recordCoordinatorQueueWait(5_000_000L);
+    pullMetrics.recordCoordinatorServiceTime(1_000_000L);
+
+    // Then: the two are reported independently, which is the point of splitting them
+    assertThat(getMetricValue("-coordinator-queue-wait-avg"), closeTo(5000.0, 0.1));
+    assertThat(getMetricValue("-coordinator-service-time-avg"), closeTo(1000.0, 0.1));
+  }
+
+
   private double getMetricValue(final String metricName) {
     final Metrics metrics = pullMetrics.getMetrics();
     return Double.parseDouble(

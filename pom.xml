@@ -767,6 +767,12 @@
             <dependency>
                 <groupId>io.confluent</groupId>
                 <artifactId>broker-plugins</artifactId>
+                <exclusions>
+                    <exclusion>
+                        <groupId>org.bouncycastle</groupId>
+                        <artifactId>bcpkix-jdk18on</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
 
         <dependency>

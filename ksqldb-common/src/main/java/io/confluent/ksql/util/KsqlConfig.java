@@ -728,8 +728,7 @@ public class KsqlConfig extends AbstractConfig {
   private static final String KSQL_PROPERTIES_OVERRIDES_RANGE_VALIDATION_LOG_ENABLED_DOC =
       "When true, logs a WARN for each accepted property override whose value falls outside the "
       + "range KSQL intends to permit for that property. Checked only for properties that "
-      + "survived the name-based deny/allow list. Log-only - the value is left in place and the "
-      + "request is not rejected.";
+      + "survived the name-based deny/allow list.";
 
   public static final String KSQL_PROPERTIES_OVERRIDES_VALIDATION_RESTORE_ENABLED =
           "ksql.properties.overrides.validation.restore.enabled";

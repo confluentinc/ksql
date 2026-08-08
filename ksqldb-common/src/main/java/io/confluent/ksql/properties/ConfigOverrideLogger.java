@@ -115,11 +115,7 @@ public final class ConfigOverrideLogger {
 
   /**
    * Logs a WARN for each override whose value is out of range.
-   *
-   * <p>Call this <i>after</i> the deny/allow list check, passing only the overrides that
-   * survived it: a rejected property is never applied, so its value does not matter.
-   *
-   * @param properties overrides that passed the name check.
+   * @param properties Property overrides.
    */
   public static void logRangeViolations(
       final String endpoint,
@@ -168,9 +164,6 @@ public final class ConfigOverrideLogger {
   /**
    * {@code ConfigDef} sets no lower bound on this property, so a negative backoff - which makes
    * no operational sense - passes through untouched today.
-   *
-   * <p>Parsed from a string rather than cast, because the restore path checks raw, uncoerced
-   * overrides where a numeric config may still hold its JSON string form.
    */
   private static Optional<String> checkRetryBackoffInitialMs(final Object value) {
     if (value == null) {

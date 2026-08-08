@@ -47,9 +47,7 @@ public class RestorePropertyOverrideFilter {
   private static final String PROPERTY = "property";
   private static final String MODE = "mode";
 
-  /** The configured mode, as configured - logged verbatim so a typo is visible. */
   private final String mode;
-
   private final boolean allowlistMode;
   private final Set<String> activeList;
 

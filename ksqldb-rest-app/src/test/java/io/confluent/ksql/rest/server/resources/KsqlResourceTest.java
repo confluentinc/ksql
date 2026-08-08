@@ -2784,9 +2784,11 @@ public class KsqlResourceTest {
           new KsqlRequest("LIST STREAMS;", overrides, emptyMap(), null),
           StreamsList.class);
 
-      // Then: the overrides are logged, request is accepted, and the range check runs exactly once on its overrides.
+      // Then: the overrides are logged, the Config Override Validator runs and accepts them,
+      // and the range check then runs exactly once on them.
       configOverrideLogger.verify(
           () -> ConfigOverrideLogger.logOverrides(eq("/ksql"), any()), times(1));
+      verify(configOverrideValidator).validateAll(any());
       configOverrideLogger.verify(
           () -> ConfigOverrideLogger.logRangeViolations(eq("/ksql"), any()), times(1));
     }

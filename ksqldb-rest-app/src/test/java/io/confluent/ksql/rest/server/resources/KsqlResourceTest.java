@@ -2760,10 +2760,36 @@ public class KsqlResourceTest {
       // Then: Config Override Logger fires, and the denylist check rejects the request.
       configOverrideLogger.verify(() -> ConfigOverrideLogger.logOverrides("/ksql", overrides));
       verify(configOverrideValidator).validateAll(overrides);
+
+      // And: the range check runs only on overrides that survived the name check, so a
+      // rejected request never reaches it.
+      configOverrideLogger.verify(
+          () -> ConfigOverrideLogger.logRangeViolations(any(), any()), never());
     }
     assertThat(response.getStatus(), CoreMatchers.is(BAD_REQUEST.code()));
     assertThat(((KsqlErrorMessage) response.getEntity()).getMessage(),
         containsString("not permitted by the KSQL server denylist"));
+  }
+
+  @Test
+  public void shouldRangeCheckOverridesAcceptedByValidatorWhenHandleKsqlStatement() {
+    // Given: overrides the validator accepts - the mock only throws when told to.
+    final Map<String, Object> overrides =
+        ImmutableMap.of(KsqlConfig.KSQL_QUERY_RETRY_BACKOFF_INITIAL_MS, -5L);
+
+    // When:
+    try (MockedStatic<ConfigOverrideLogger> configOverrideLogger =
+        Mockito.mockStatic(ConfigOverrideLogger.class)) {
+      makeSingleRequest(
+          new KsqlRequest("LIST STREAMS;", overrides, emptyMap(), null),
+          StreamsList.class);
+
+      // Then: the overrides are logged, request is accepted, and the range check runs exactly once on its overrides.
+      configOverrideLogger.verify(
+          () -> ConfigOverrideLogger.logOverrides(eq("/ksql"), any()), times(1));
+      configOverrideLogger.verify(
+          () -> ConfigOverrideLogger.logRangeViolations(eq("/ksql"), any()), times(1));
+    }
   }
 
   private void givenKsqlConfigWith(final Map<String, Object> additionalConfig) {

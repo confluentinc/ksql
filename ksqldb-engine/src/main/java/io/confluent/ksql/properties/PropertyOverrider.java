@@ -24,7 +24,7 @@ import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlStatementException;
 import java.util.Map;
-import java.util.Optional;
+
 
 public final class PropertyOverrider {
 

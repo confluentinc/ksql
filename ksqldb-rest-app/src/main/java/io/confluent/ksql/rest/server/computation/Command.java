@@ -127,6 +127,16 @@ public class Command {
   }
 
   /**
+   * Returns the overwrite properties with legacy values migrated, but WITHOUT the
+   * {@code ConfigDef} type/enum validation that {@link #getOverwritePropertiesForExecution()}
+   * runs.
+   */
+  @JsonIgnore
+  public Map<String, Object> getRawOverwritePropertiesForExecution() {
+    return ConfigMigrator.migrateOverwriteProperties(overwriteProperties);
+  }
+
+  /**
    * Returns the overwrite properties for runtime use, with legacy values migrated.
    * This is what should be used when executing queries.
    */

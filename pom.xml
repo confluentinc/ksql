@@ -766,8 +766,13 @@
         </dependency>
             <dependency>
                 <groupId>io.confluent</groupId>
-                <artifactId>kafka-client-plugins</artifactId>
-                <version>${ce.kafka.version}</version>
+                <artifactId>broker-plugins</artifactId>
+                <exclusions>
+                    <exclusion>
+                        <groupId>org.bouncycastle</groupId>
+                        <artifactId>*</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
 
         <dependency>

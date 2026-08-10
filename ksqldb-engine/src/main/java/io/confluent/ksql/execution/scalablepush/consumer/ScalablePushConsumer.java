@@ -17,6 +17,7 @@ package io.confluent.ksql.execution.scalablepush.consumer;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.common.OffsetsRow;
 import io.confluent.ksql.execution.common.QueryRow;
@@ -69,6 +70,12 @@ public abstract class ScalablePushConsumer implements AutoCloseable {
 
   protected AtomicReference<Set<TopicPartition>> topicPartitions = new AtomicReference<>();
 
+  @SuppressFBWarnings(
+      value = "EI_EXPOSE_REP2",
+      justification = "The KafkaConsumer is a live client intentionally shared with this "
+          + "consumer, which owns its lifecycle (poll/commit/close); it is not defensively "
+          + "copyable."
+  )
   public ScalablePushConsumer(
       final String topicName,
       final boolean windowed,

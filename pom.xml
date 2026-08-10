@@ -766,7 +766,8 @@
         </dependency>
             <dependency>
                 <groupId>io.confluent</groupId>
-                <artifactId>broker-plugins</artifactId>
+                <artifactId>kafka-client-plugins</artifactId>
+                <version>${ce.kafka.version}</version>
             </dependency>
 
         <dependency>

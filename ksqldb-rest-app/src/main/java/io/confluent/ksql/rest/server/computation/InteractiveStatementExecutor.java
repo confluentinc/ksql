@@ -32,6 +32,8 @@ import io.confluent.ksql.parser.tree.ResumeQuery;
 import io.confluent.ksql.parser.tree.TerminateQuery;
 import io.confluent.ksql.planner.plan.ConfiguredKsqlPlan;
 import io.confluent.ksql.properties.ConfigOverrideLogger;
+import io.confluent.ksql.properties.PropertiesUtil;
+import io.confluent.ksql.properties.RestorePropertyOverrideFilter;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.query.id.SpecificQueryIdGenerator;
 import io.confluent.ksql.rest.entity.CommandId;
@@ -192,14 +194,35 @@ public class InteractiveStatementExecutor {
       final boolean restoreInProgress
   ) {
     try {
+      final Map<String, Object> overwriteProperties;
       if (mode == Mode.RESTORE) {
-        // Log only overwriteProperties (user-supplied per-query overrides).
+        final Map<String, Object> rawOverrides = command.getRawOverwritePropertiesForExecution();
+        final String queryId = command.getPlan()
+                .flatMap(KsqlPlan::getQueryPlan)
+                .map(queryPlan -> queryPlan.getQueryId().toString())
+                .orElseGet(commandId::toString);
         ConfigOverrideLogger.logOverrides(
-            "command_topic_restore", command.getOverwriteProperties());
+                "command_topic_restore", Optional.of(queryId), rawOverrides);
+
+        final KsqlConfig config = ksqlEngine.getKsqlConfig();
+        if (config.getBoolean(KsqlConfig.KSQL_PROPERTIES_OVERRIDES_VALIDATION_RESTORE_ENABLED)) {
+
+          final Map<String, Object> filteredRawOverrides =
+              new RestorePropertyOverrideFilter(config)
+              .filter("command_topic_restore", queryId, rawOverrides);
+          overwriteProperties = PropertiesUtil.coerceTypes(filteredRawOverrides, true);
+          ConfigOverrideLogger.logRangeViolations(
+                  "command_topic_restore", Optional.of(queryId), overwriteProperties);
+        } else {
+          overwriteProperties = command.getOverwritePropertiesForExecution();
+        }
+      } else {
+        overwriteProperties = command.getOverwritePropertiesForExecution();
       }
+
       if (command.getPlan().isPresent()) {
         executePlan(command, commandId, commandStatusFuture, command.getPlan().get(), mode, offset,
-            restoreInProgress);
+            restoreInProgress, overwriteProperties);
         return;
       }
       final String statementString = command.getStatement();
@@ -233,12 +256,13 @@ public class InteractiveStatementExecutor {
       final KsqlPlan plan,
       final Mode mode,
       final long offset,
-      final boolean restoreInProgress
+      final boolean restoreInProgress,
+      final Map<String, Object> overwriteProperties
   ) {
     final KsqlConfig mergedConfig = buildMergedConfig(command);
     final ConfiguredKsqlPlan configured = ConfiguredKsqlPlan.of(
         plan,
-        SessionConfig.of(mergedConfig, command.getOverwritePropertiesForExecution())
+        SessionConfig.of(mergedConfig, overwriteProperties)
     );
     putStatus(
         commandId,

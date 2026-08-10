@@ -302,6 +302,7 @@ public class KsqlResource implements KsqlConfigurable {
       final Map<String, Object> configProperties = request.getConfigOverrides();
       ConfigOverrideLogger.logOverrides("/ksql", configProperties);
       configOverrideValidator.validateAll(configProperties);
+      ConfigOverrideLogger.logRangeViolations("/ksql", configProperties);
 
       final KsqlRequestConfig requestConfig =
           new KsqlRequestConfig(request.getRequestProperties());

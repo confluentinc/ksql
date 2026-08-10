@@ -224,7 +224,7 @@ public class ConfigOverrideLoggerTest {
     assertThat(events, hasSize(1));
     assertThat(events.get(0).getLevel(), is(Level.WARN));
     assertThat(events.get(0).getMessage().getFormattedMessage(),
-        is("Config override outside intended range: must be >= 0"));
+        is("Config override outside intended range: must be between 100 and 60000"));
     assertThat(events.get(0).getContextData().toMap(), is(ImmutableMap.of(
         "endpoint", "/ksql",
         "property", RANGE_CHECKED_PROP,
@@ -242,11 +242,77 @@ public class ConfigOverrideLoggerTest {
   }
 
   @Test
+  public void shouldNotLogRangeViolationAtMaximum() {
+    configureRangeValidationLog(true);
+
+    ConfigOverrideLogger.logRangeViolations(ENDPOINT,
+        ImmutableMap.of(RANGE_CHECKED_PROP, 60_000L));
+
+    assertThat(appender.getLog(), empty());
+  }
+
+  @Test
+  public void shouldLogRangeViolationAboveMaximum() {
+    configureRangeValidationLog(true);
+
+    ConfigOverrideLogger.logRangeViolations(ENDPOINT,
+        ImmutableMap.of(RANGE_CHECKED_PROP, 60_001L));
+
+    assertThat(appender.getLog(), hasSize(1));
+  }
+
+  @Test
+  public void shouldNotLogRangeViolationWhenExactValueMatched() {
+    configureRangeValidationLog(true);
+
+    ConfigOverrideLogger.logRangeViolations(ENDPOINT,
+        ImmutableMap.of("num.stream.threads", 1));
+
+    assertThat(appender.getLog(), empty());
+  }
+
+  @Test
+  public void shouldLogRangeViolationWhenExactValueNotMatched() {
+    configureRangeValidationLog(true);
+
+    ConfigOverrideLogger.logRangeViolations(ENDPOINT,
+        ImmutableMap.of("num.stream.threads", 4));
+
+    final List<LogEvent> events = appender.getLog();
+    assertThat(events, hasSize(1));
+    assertThat(events.get(0).getMessage().getFormattedMessage(),
+        is("Config override outside intended range: must be 1"));
+  }
+
+  @Test
+  public void shouldLogOneEventPerViolatingProperty() {
+    configureRangeValidationLog(true);
+
+    ConfigOverrideLogger.logRangeViolations(ENDPOINT, ImmutableMap.of(
+        RANGE_CHECKED_PROP, -5L,
+        "max.poll.records", 20_000
+    ));
+
+    final List<LogEvent> events = appender.getLog();
+    assertThat(events, hasSize(2));
+    events.forEach(event -> {
+      final Map<String, String> ctx = event.getContextData().toMap();
+      assertThat(ctx.get("endpoint"), is("/ksql"));
+      if (RANGE_CHECKED_PROP.equals(ctx.get("property"))) {
+        assertThat(ctx.get("value"), is("-5"));
+      } else {
+        assertThat(ctx.get("property"), is("max.poll.records"));
+        assertThat(ctx.get("value"), is("20000"));
+      }
+    });
+  }
+
+  @Test
   public void shouldNotLogRangeViolationForPropertyWithoutACheck() {
     configureRangeValidationLog(true);
 
     ConfigOverrideLogger.logRangeViolations(ENDPOINT,
-        ImmutableMap.of("ksql.streams.num.stream.threads", -5L));
+        ImmutableMap.of("auto.offset.reset", "earliest"));
 
     assertThat(appender.getLog(), empty());
   }

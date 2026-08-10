@@ -770,7 +770,7 @@
                 <exclusions>
                     <exclusion>
                         <groupId>org.bouncycastle</groupId>
-                        <artifactId>*</artifactId>
+                        <artifactId>bcpkix-jdk18on</artifactId>
                     </exclusion>
                 </exclusions>
             </dependency>

@@ -117,14 +117,15 @@ public class QueryStreamHandlerTest {
     when(endpoints.createQueryPublisher(any(), any(), any(), any(), any(), any(), any(), any(),
         any())).thenReturn(future);
     when(response.endHandler(endHandler.capture())).thenReturn(response);
+    // The handler reads cancel-on-disconnect from config when constructed.
+    when(server.getConfig()).thenReturn(new KsqlRestConfig(
+        ImmutableMap.of(KsqlRestConfig.LISTENERS_CONFIG, "http://localhost:8088")));
     when(publisher.queryId()).thenReturn(new QueryId(QUERY_ID));
     when(publisher.getColumnNames()).thenReturn(COL_NAMES);
     when(publisher.getColumnTypes()).thenReturn(COL_TYPES);
     when(publisher.geLogicalSchema()).thenReturn(SCHEMA);
     when(publisher.isPullQuery()).thenReturn(true);
     doNothing().when(publisher).subscribe(subscriber.capture());
-    when(server.getConfig()).thenReturn(new KsqlRestConfig(
-        ImmutableMap.of(KsqlRestConfig.LISTENERS_CONFIG, "http://localhost:8088")));
     handler = new QueryStreamHandler(endpoints, connectionQueryManager, context, server, false);
   }
 

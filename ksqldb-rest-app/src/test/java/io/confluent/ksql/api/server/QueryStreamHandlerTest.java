@@ -33,6 +33,7 @@ import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.properties.ConfigOverrideLogger;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.entity.QueryStreamArgs;
+import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KeyValueMetadata;
@@ -122,6 +123,8 @@ public class QueryStreamHandlerTest {
     when(publisher.geLogicalSchema()).thenReturn(SCHEMA);
     when(publisher.isPullQuery()).thenReturn(true);
     doNothing().when(publisher).subscribe(subscriber.capture());
+    when(server.getConfig()).thenReturn(new KsqlRestConfig(
+        ImmutableMap.of(KsqlRestConfig.LISTENERS_CONFIG, "http://localhost:8088")));
     handler = new QueryStreamHandler(endpoints, connectionQueryManager, context, server, false);
   }
 

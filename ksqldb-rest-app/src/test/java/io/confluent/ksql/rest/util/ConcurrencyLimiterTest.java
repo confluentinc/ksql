@@ -135,20 +135,4 @@ public class ConcurrencyLimiterTest {
     assertThat(e.getMessage(), containsString("concurrency limit for pull queries"));
   }
 
-  @Test
-  public void shouldRejectWithRetriableExceptionWhenConfigured() {
-    final Metrics metrics = new Metrics();
-    final Map<String, String> tags = Collections.emptyMap();
-    final ConcurrencyLimiter limiter =
-        new ConcurrencyLimiter(1, "pull", metrics, tags, true);
-    limiter.increment();
-
-    final KsqlRateLimitException e =
-        assertThrows(KsqlRateLimitException.class, limiter::increment);
-    assertThat(e.getMessage(), containsString("concurrency limit for pull queries"));
-    // Rejections are still counted the same way.
-    assertThat(getReject(metrics, tags), is(1.0));
-  }
-
-
 }

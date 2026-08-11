@@ -349,6 +349,40 @@ public class PullQueryMetricsTest {
     assertThat(getMetricValue("-coordinator-service-time-avg"), closeTo(1000.0, 0.1));
   }
 
+  @Test
+  public void shouldRecordClientDisconnects() {
+    // Given:
+    pullMetrics.recordClientDisconnected();
+    pullMetrics.recordClientDisconnected();
+
+    // Then:
+    assertThat(getMetricValue("-client-disconnected-total"), equalTo(2.0));
+    assertThat(getMetricValue("-client-disconnected-rate"), greaterThan(0.0));
+  }
+
+  @Test
+  public void shouldRecordQueueRejections() {
+    // Given:
+    pullMetrics.recordQueueRejected();
+    pullMetrics.recordQueueRejected();
+
+    // Then:
+    assertThat(getMetricValue("-queue-rejected-total"), equalTo(2.0));
+    assertThat(getMetricValue("-queue-rejected-rate"), greaterThan(0.0));
+  }
+
+  @Test
+  public void shouldCountClientAndForwardedArrivalsSeparately() {
+    // Given:
+    pullMetrics.recordRequestOffered(false);
+    pullMetrics.recordRequestOffered(false);
+    pullMetrics.recordRequestOffered(true);
+
+    // Then: a fanned-out query must not inflate client demand.
+    assertThat(getMetricValue("-offered-total"), equalTo(2.0));
+    assertThat(getMetricValue("-forwarded-in-total"), equalTo(1.0));
+  }
+
   private double getMetricValue(final String metricName) {
     final Metrics metrics = pullMetrics.getMetrics();
     return Double.parseDouble(

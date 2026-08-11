@@ -484,12 +484,10 @@ public final class HARouting implements AutoCloseable {
    * tells the client its request was malformed and must not be retried. KsqlRateLimitException is
    * already mapped to 429 by ServerUtils, so the client backs off and retries instead.
    */
-  private KsqlException queueFull(final String pool) {
-    final String msg = "Pull query rejected: the " + pool
-        + " queue is full. The server is at capacity; retry after a backoff.";
-    return ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PULL_LIMIT_REJECTION_RETRIABLE_CONFIG)
-        ? new KsqlRateLimitException(msg)
-        : new KsqlException(msg);
+  private KsqlRateLimitException queueFull(final String pool) {
+    pullQueryMetrics.ifPresent(PullQueryExecutorMetrics::recordQueueRejected);
+    return new KsqlRateLimitException("Pull query rejected: the " + pool
+        + " queue is full. The server is at capacity; retry after a backoff.");
   }
 
   private static KsqlException causedByKsqlException(final Exception e) {

@@ -65,10 +65,13 @@ public class PullQueryExecutorMetrics implements Closeable {
   private final Map<MetricsKey, Sensor> latencySensorMap;
   private final Sensor requestRateSensor;
   private final Sensor requestsOfferedSensor;
+  private final Sensor requestsForwardedInSensor;
+  private final Sensor queueRejectedSensor;
   private final Sensor coordinatorQueueWaitSensor;
   private final Sensor routerQueueWaitSensor;
   private final Sensor coordinatorServiceTimeSensor;
   private final Sensor routerServiceTimeSensor;
+  private final Sensor clientDisconnectedSensor;
   private final Sensor errorRateSensor;
   private final Map<MetricsKey, Sensor> errorRateSensorMap;
   private final Sensor requestSizeSensor;
@@ -120,6 +123,8 @@ public class PullQueryExecutorMetrics implements Closeable {
     this.latencySensorMap = configureLatencySensorMap();
     this.requestRateSensor = configureRateSensor();
     this.requestsOfferedSensor = configureRequestsOfferedSensor();
+    this.requestsForwardedInSensor = configureRequestsForwardedInSensor();
+    this.queueRejectedSensor = configureQueueRejectedSensor();
     this.coordinatorQueueWaitSensor = configureDurationSensor(
         "coordinator-queue-wait",
         "queued waiting for a coordinator thread");
@@ -132,6 +137,7 @@ public class PullQueryExecutorMetrics implements Closeable {
     this.routerServiceTimeSensor = configureDurationSensor(
         "router-service-time",
         "executing on a router thread, excluding time queued");
+    this.clientDisconnectedSensor = configureClientDisconnectedSensor();
     this.errorRateSensor = configureErrorRateSensor();
     this.errorRateSensorMap = configureErrorSensorMap();
     this.requestSizeSensor = configureRequestSizeSensor();
@@ -170,13 +176,27 @@ public class PullQueryExecutorMetrics implements Closeable {
   /**
    * Records a pull query as it arrives, before any admission decision is made.
    *
-   * <p>This is deliberately distinct from {@code pull-query-requests-rate}, which is recorded
-   * from {@code recordLatency} once a query has finished and therefore measures the rate of
-   * <em>completions</em>. Under saturation nothing completes, so that metric falls towards zero
-   * exactly when load is highest. This one measures offered load.
+   * <p>Client requests and peer-forwarded fetches are counted separately: one client query fans
+   * out to every node holding a relevant partition, so counting them together overstates client
+   * demand by the fan-out factor.
+   *
+   * <p>Distinct from {@code pull-query-requests-rate}, which is recorded once a query finishes
+   * and so measures completions. Under saturation nothing completes.
    */
-  public void recordRequestOffered() {
-    this.requestsOfferedSensor.record(1);
+  public void recordRequestOffered(final boolean forwardedFromPeer) {
+    if (forwardedFromPeer) {
+      this.requestsForwardedInSensor.record(1);
+    } else {
+      this.requestsOfferedSensor.record(1);
+    }
+  }
+
+  /**
+   * A query turned away because a queue was full. The rate and concurrency limiters count their
+   * own rejections separately, so this is not a total of all rejections.
+   */
+  public void recordQueueRejected() {
+    this.queueRejectedSensor.record(1);
   }
 
   /** Time queued before a coordinator thread picked the query up. */
@@ -202,6 +222,10 @@ public class PullQueryExecutorMetrics implements Closeable {
     this.routerServiceTimeSensor.record(TimeUnit.NANOSECONDS.toMicros(serviceNanos));
   }
 
+  /** A client disconnected before its response completed; the query still runs to completion. */
+  public void recordClientDisconnected() {
+    this.clientDisconnectedSensor.record(1);
+  }
 
   public void recordLocalRequests(final double value) {
     this.localRequestsSensor.record(value);
@@ -466,7 +490,62 @@ public class PullQueryExecutorMetrics implements Closeable {
         sensor,
         PULL_REQUESTS + "-offered-total",
         ksqlServicePrefix + PULL_QUERY_METRIC_GROUP,
-        "Total pull query requests arriving, counted before any admission check",
+        "Total pull query requests arriving from clients, counted before any admission check",
+        customMetricsTags,
+        new CumulativeCount()
+    );
+
+    sensors.add(sensor);
+    return sensor;
+  }
+
+  private Sensor configureRequestsForwardedInSensor() {
+    final Sensor sensor = metrics.sensor(
+        PULL_QUERY_METRIC_GROUP + "-" + PULL_REQUESTS + "-forwarded-in");
+
+    addSensor(
+        sensor,
+        PULL_REQUESTS + "-forwarded-in-rate",
+        ksqlServicePrefix + PULL_QUERY_METRIC_GROUP,
+        "Rate of per-host fetches arriving from a peer node. These bypass admission limits "
+            + "unless ksql.query.pull.limit.forwarded.requests is set.",
+        customMetricsTags,
+        new Rate()
+    );
+
+    addSensor(
+        sensor,
+        PULL_REQUESTS + "-forwarded-in-total",
+        ksqlServicePrefix + PULL_QUERY_METRIC_GROUP,
+        "Total per-host fetches arriving from a peer node",
+        customMetricsTags,
+        new CumulativeCount()
+    );
+
+    sensors.add(sensor);
+    return sensor;
+  }
+
+  private Sensor configureQueueRejectedSensor() {
+    final Sensor sensor = metrics.sensor(
+        PULL_QUERY_METRIC_GROUP + "-" + PULL_REQUESTS + "-queue-rejected");
+
+    addSensor(
+        sensor,
+        PULL_REQUESTS + "-queue-rejected-rate",
+        ksqlServicePrefix + PULL_QUERY_METRIC_GROUP,
+        "Rate of pull queries turned away because a queue was full. Not counted by the "
+            + "latency, error or status-code metrics. The rate and concurrency limiters count "
+            + "their own rejections separately.",
+        customMetricsTags,
+        new Rate()
+    );
+
+    addSensor(
+        sensor,
+        PULL_REQUESTS + "-queue-rejected-total",
+        ksqlServicePrefix + PULL_QUERY_METRIC_GROUP,
+        "Total pull queries turned away because a queue was full",
         customMetricsTags,
         new CumulativeCount()
     );
@@ -527,6 +606,32 @@ public class PullQueryExecutorMetrics implements Closeable {
     return sensor;
   }
 
+  private Sensor configureClientDisconnectedSensor() {
+    final Sensor sensor = metrics.sensor(
+        PULL_QUERY_METRIC_GROUP + "-" + PULL_REQUESTS + "-client-disconnected");
+
+    addSensor(
+        sensor,
+        PULL_REQUESTS + "-client-disconnected-rate",
+        ksqlServicePrefix + PULL_QUERY_METRIC_GROUP,
+        "Rate of pull queries whose client disconnected before the response completed. "
+            + "Counts the disconnect regardless of whether the query is then cancelled.",
+        customMetricsTags,
+        new Rate()
+    );
+
+    addSensor(
+        sensor,
+        PULL_REQUESTS + "-client-disconnected-total",
+        ksqlServicePrefix + PULL_QUERY_METRIC_GROUP,
+        "Total pull queries whose client disconnected before the response completed",
+        customMetricsTags,
+        new CumulativeCount()
+    );
+
+    sensors.add(sensor);
+    return sensor;
+  }
 
   private Sensor configureRateSensor() {
     final Sensor sensor = metrics.sensor(

@@ -82,6 +82,7 @@ public class QueryExecutor {
   private final HARouting routing;
   private final PushRouting pushRouting;
   private final Optional<LocalCommands> localCommands;
+  private final boolean limitForwardedRequests;
 
   @SuppressWarnings("ParameterNumber")
   @SuppressFBWarnings("EI_EXPOSE_REP2")
@@ -110,6 +111,8 @@ public class QueryExecutor {
     this.routing = routing;
     this.pushRouting = pushRouting;
     this.localCommands = localCommands;
+    this.limitForwardedRequests = ksqlConfig.getBoolean(
+        KsqlConfig.KSQL_QUERY_PULL_LIMIT_FORWARDED_REQUESTS_CONFIG);
   }
 
   @SuppressWarnings("unchecked")
@@ -287,10 +290,20 @@ public class QueryExecutor {
         // Trust the forward request option if isInternalRequest isn't available.
         && isInternalRequest.orElse(true);
 
-    // Only check the rate limit at the forwarding host
+    // Counted before any admission decision, so offered load stays observable even when nothing
+    // is being admitted or completed. Client and forwarded arrivals are counted separately.
+    pullQueryMetrics.ifPresent(m -> m.recordRequestOffered(isAlreadyForwarded));
+
+    // Historically the limits are applied only at the host the client connected to, so traffic
+    // forwarded from a peer is unlimited: a saturated peer can exhaust this node's thread pools
+    // however low the configured limits are. Setting
+    // ksql.query.pull.limit.forwarded.requests=true applies them to forwarded requests too, at
+    // the cost of counting a fanned-out query once per node it touches.
+    final boolean applyLimits = !isAlreadyForwarded || limitForwardedRequests;
+
     Decrementer decrementer = null;
     try {
-      if (!isAlreadyForwarded) {
+      if (applyLimits) {
         rateLimiter.checkLimit();
         decrementer = concurrencyLimiter.increment();
       }

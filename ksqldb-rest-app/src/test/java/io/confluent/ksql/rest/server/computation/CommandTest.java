@@ -137,6 +137,47 @@ public class CommandTest {
   }
 
   @Test
+  public void shouldMigrateLegacyValuesInRawOverwriteProperties() {
+    // Given:
+    final Command command = new Command(
+        "CREATE STREAM test AS SELECT * FROM source;",
+        ImmutableMap.of("processing.guarantee", "exactly_once"),
+        Collections.emptyMap(),
+        Optional.empty()
+    );
+
+    // When:
+    final Map<String, Object> properties = command.getRawOverwritePropertiesForExecution();
+
+    // Then: the raw accessor skips ConfigDef validation, but still migrates legacy values.
+    assertThat(properties.get("processing.guarantee"), equalTo("exactly_once_v2"));
+  }
+
+  @Test
+  public void shouldNotValidateValuesInRawOverwriteProperties() {
+    // Given: a stored value that ConfigDef rejects for this property.
+    final Command command = new Command(
+        "test statement;",
+        ImmutableMap.of("ksql.internal.topic.replicas", "not-a-number"),
+        Collections.emptyMap(),
+        Optional.empty()
+    );
+
+    // When:
+    final Map<String, Object> raw = command.getRawOverwritePropertiesForExecution();
+
+    // Then: the raw accessor passes it through untouched. This is the whole reason it exists -
+    // the restore path logs and filters overrides before anything can reject them.
+    assertThat(raw.get("ksql.internal.topic.replicas"), equalTo("not-a-number"));
+
+    // And: the coercing accessor does reject it, which is the behaviour being avoided.
+    assertThrows(
+        RuntimeException.class,
+        command::getOverwritePropertiesForExecution
+    );
+  }
+
+  @Test
   public void shouldNotMigrateModernProcessingGuaranteeValues() {
     // Given: Command with modern processing guarantee values
     final Command command1 = new Command(

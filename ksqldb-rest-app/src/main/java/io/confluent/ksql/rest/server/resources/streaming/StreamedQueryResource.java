@@ -202,6 +202,7 @@ public class StreamedQueryResource {
       final Map<String, Object> configProperties = request.getConfigOverrides();
       ConfigOverrideLogger.logOverrides("/query", configProperties);
       configOverrideValidator.validateAll(configProperties);
+      ConfigOverrideLogger.logRangeViolations("/query", configProperties);
 
       if (statement.getStatement() instanceof Query) {
         if (shouldMigrateToQueryStream(request.getConfigOverrides())) {

@@ -27,11 +27,13 @@ import io.confluent.ksql.api.server.JsonStreamedRowResponseWriter.RowFormat;
 import io.confluent.ksql.api.spi.Endpoints;
 import io.confluent.ksql.api.spi.QueryPublisher;
 import io.confluent.ksql.api.util.ApiServerUtils;
+import io.confluent.ksql.internal.PullQueryExecutorMetrics;
 import io.confluent.ksql.properties.ConfigOverrideLogger;
 import io.confluent.ksql.rest.entity.KsqlMediaType;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.QueryResponseMetadata;
 import io.confluent.ksql.rest.entity.QueryStreamArgs;
+import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.LogicalSchema.Builder;
 import io.vertx.core.Context;
@@ -64,6 +66,7 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
   private final Context context;
   private final Server server;
   private final boolean queryCompatibilityMode;
+  private final boolean cancelOnDisconnect;
 
   @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
   public QueryStreamHandler(final Endpoints endpoints,
@@ -77,6 +80,9 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
     this.context = Objects.requireNonNull(context);
     this.server = Objects.requireNonNull(server);
     this.queryCompatibilityMode = queryCompatibilityMode;
+    // Read once: the value cannot change after startup, and this is on the per-query path.
+    this.cancelOnDisconnect = server.getConfig()
+        .getBoolean(KsqlRestConfig.KSQL_QUERY_PULL_CANCEL_ON_DISCONNECT_ENABLED_CONFIG);
   }
 
   @Override
@@ -220,6 +226,10 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
     // call to the end handler, which will mess up metrics, so we ensure that this called just
     // once by keeping track of the calls.
     final AtomicBoolean endedResponse = new AtomicBoolean(false);
+    // Set by QuerySubscriber once the query has produced its last row. Neither endedResponse nor
+    // response().ended() can stand in for this: both also become true when the client aborts, so
+    // they cannot say whether the server got to finish.
+    final AtomicBoolean serverCompleted = new AtomicBoolean(false);
 
     if (queryPublisher.isPullQuery()) {
       metadata = new QueryResponseMetadata(
@@ -231,7 +241,7 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
       bufferOutput = true;
 
       // When response is complete, publisher should be closed
-      routingContext.response().endHandler(v -> {
+      final Handler<Void> pullQueryCleanup = v -> {
         if (endedResponse.getAndSet(true)) {
           log.warn("Connection already closed so just returning");
           return;
@@ -242,6 +252,40 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
             routingContext.request().bytesRead(),
             routingContext.response().bytesWritten(),
             startTimeNanos);
+      };
+      routingContext.response().endHandler(pullQueryCleanup);
+
+      // The end handler above only runs once the response has been ended by the server. If the
+      // client goes away mid-response it never fires, so the publisher is never closed and the
+      // query keeps executing with nothing waiting for its result. Closing the publisher
+      // completes the query's cancellation future, which the scan operators poll between rows,
+      // so the query stops promptly instead of running to completion.
+      //
+      // The /query endpoint has always done this (OldApiUtils installs a connection close
+      // handler) and scalable push queries are covered by ConnectionQueryManager; pull queries on
+      // this endpoint are the gap. Behind a flag because running to completion is the existing
+      // behaviour and we want to be able to measure both.
+      // response(), not request().connection(): the handler must be per-response, not
+      // per-connection. HTTP/2 multiplexes many queries onto one connection, so abandoning a
+      // single query resets its stream and leaves the connection open - a connection-level
+      // handler would never fire. HttpConnection.closeHandler is also a setter, so one handler
+      // per connection: registering per request would have each query silently overwrite the
+      // previous one's. HttpServerResponse.closeHandler is documented as always called on
+      // HTTP/2 stream close, and on HTTP/1.x when the connection closes before end().
+      //
+      // Registered unconditionally so disconnects are counted even when cancellation is off.
+      routingContext.response().closeHandler(v -> {
+        // On HTTP/2 this fires for every stream close, including normal ones, so it has to be
+        // filtered. serverCompleted is the only signal that separates the two: the query
+        // produced its last row before the stream closed.
+        if (serverCompleted.get()) {
+          return;
+        }
+        server.getPullQueryMetrics()
+            .ifPresent(PullQueryExecutorMetrics::recordClientDisconnected);
+        if (cancelOnDisconnect) {
+          pullQueryCleanup.handle(null);
+        }
       });
     } else if (queryPublisher.isScalablePushQuery()) {
       metadata = new QueryResponseMetadata(
@@ -295,7 +339,7 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
 
     final QuerySubscriber querySubscriber = new QuerySubscriber(context,
         routingContext.response(), queryStreamResponseWriter,
-        queryPublisher::hitLimit);
+        queryPublisher::hitLimit, serverCompleted);
 
     queryPublisher.subscribe(querySubscriber);
   }

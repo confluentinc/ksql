@@ -53,8 +53,11 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.SimpleKsqlClient;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlConstants;
+import io.confluent.ksql.util.KsqlRateLimitException;
 import io.confluent.ksql.util.KsqlHostInfo;
 import io.confluent.ksql.util.KsqlRequestConfig;
+import io.confluent.ksql.util.ReservedInternalTopics;
 import io.vertx.core.streams.WriteStream;
 import java.net.URI;
 import java.util.Collections;
@@ -63,8 +66,10 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.common.utils.Time;
 import org.junit.After;
@@ -158,6 +163,10 @@ public class HARoutingTest {
         .thenReturn(1);
     when(ksqlConfig.getInt(KsqlConfig.KSQL_QUERY_PULL_ROUTER_THREAD_POOL_SIZE_CONFIG))
         .thenReturn(1);
+    when(ksqlConfig.getInt(KsqlConfig.KSQL_QUERY_PULL_COORDINATOR_QUEUE_CAPACITY_CONFIG))
+        .thenReturn(Integer.MAX_VALUE);
+    when(ksqlConfig.getInt(KsqlConfig.KSQL_QUERY_PULL_ROUTER_QUEUE_CAPACITY_CONFIG))
+        .thenReturn(Integer.MAX_VALUE);
 
     when(serviceContext.getKsqlClient()).thenReturn(ksqlClient);
 
@@ -489,8 +498,80 @@ public class HARoutingTest {
   }
 
   @Test
+  public void shouldReportAFullCoordinatorQueueAsRetriable() throws Exception {
+    // Given: one coordinator thread and room for one queued query. Without a retriable
+    // rejection the client is told its request was malformed rather than that the server
+    // is at capacity.
+    when(ksqlConfig.getInt(KsqlConfig.KSQL_QUERY_PULL_COORDINATOR_QUEUE_CAPACITY_CONFIG))
+        .thenReturn(1);
+    final CountDownLatch occupied = new CountDownLatch(1);
+    final CountDownLatch release = new CountDownLatch(1);
+    locate(location1, location2, location3, location4);
+    doAnswer(a -> {
+      occupied.countDown();
+      release.await(10, TimeUnit.SECONDS);
+      return null;
+    }).when(pullPhysicalPlan).execute(any(), any(), any());
+
+    try (HARouting routing = new HARouting(
+        routingFilterFactory, Optional.of(pullMetrics), ksqlConfig)) {
+      // occupy the only thread, then fill the only queue slot
+      routing.handlePullQuery(serviceContext, pullPhysicalPlan, statement, routingOptions,
+          pullQueryQueue, disconnect);
+      assertThat("first query should have started", occupied.await(10, TimeUnit.SECONDS), is(true));
+      routing.handlePullQuery(serviceContext, pullPhysicalPlan, statement, routingOptions,
+          pullQueryQueue, disconnect);
+
+      // When: one more arrives with nowhere to go
+      final Exception e = assertThrows(KsqlRateLimitException.class, () ->
+          routing.handlePullQuery(serviceContext, pullPhysicalPlan, statement, routingOptions,
+              pullQueryQueue, disconnect));
+
+      // Then: it says the server is at capacity, not that the statement was bad
+      assertThat(e.getMessage(), containsString("queue is full"));
+      // and the rejection is counted; no other metric counts it.
+      assertThat(queueRejectedTotal(), is(1.0));
+    } finally {
+      release.countDown();
+    }
+  }
+
+  private double queueRejectedTotal() {
+    final Metrics metrics = pullMetrics.getMetrics();
+    return (Double) metrics.metric(metrics.metricName(
+        "pull-query-requests-queue-rejected-total",
+        ReservedInternalTopics.KSQL_INTERNAL_TOPIC_PREFIX + "pull-query",
+        ImmutableMap.of(KsqlConstants.KSQL_SERVICE_ID_METRICS_TAG, KSQL_SERVICE_ID)))
+        .metricValue();
+  }
+
+  @Test
+  public void shouldSkipQueryAlreadyCancelledBeforeItRuns()
+      throws ExecutionException, InterruptedException {
+    // Given: the client went away while the query sat in the pool queue
+    locate(location1, location2, location3, location4);
+    when(disconnect.isDone()).thenReturn(true);
+
+    // When:
+    final CompletableFuture<Void> future = haRouting.handlePullQuery(
+        serviceContext, pullPhysicalPlan, statement, routingOptions,
+        pullQueryQueue, disconnect);
+    future.get();
+
+    // Then: no work is done for a query nobody is waiting for
+    verify(pullPhysicalPlan, never()).execute(any(), any(), any());
+    verify(ksqlClient, never())
+        .makeQueryRequest(any(), any(), any(), any(), any(), any(), any());
+    assertThat(pullQueryQueue.size(), is(0));
+    assertThat(pullQueryQueue.isDone(), is(true));
+  }
+
+  @Test
   public void forwardingError_cancelled() throws ExecutionException, InterruptedException {
-    // Given:
+    // Given: the client disconnects while the request is in flight, not before it starts -
+    // a request already known to be cancelled is now skipped on dequeue, so stubbing isDone()
+    // true up front would test that skip rather than the error suppression this covers.
+    final AtomicBoolean cancelled = new AtomicBoolean(false);
     locate(location5);
     when(ksqlClient.makeQueryRequest(eq(node2.location()), any(), any(), any(), any(), any(), any()))
         .thenAnswer(a -> {
@@ -500,9 +581,10 @@ public class HARoutingTest {
                   StreamedRow.header(queryId, logicalSchema),
                   StreamedRow.pullRow(GenericRow.fromList(ROW2), Optional.empty())));
 
+          cancelled.set(true);
           throw new RuntimeException("Cancelled");
         });
-    when(disconnect.isDone()).thenReturn(true);
+    when(disconnect.isDone()).thenAnswer(a -> cancelled.get());
 
     // When:
     CompletableFuture<Void> future = haRouting.handlePullQuery(

@@ -287,6 +287,10 @@ public class QueryExecutor {
         // Trust the forward request option if isInternalRequest isn't available.
         && isInternalRequest.orElse(true);
 
+    // Counted before any admission decision, so offered load stays observable even when nothing
+    // is being admitted or completed. Client and forwarded arrivals are counted separately.
+    pullQueryMetrics.ifPresent(m -> m.recordRequestOffered(isAlreadyForwarded));
+
     // Only check the rate limit at the forwarding host
     Decrementer decrementer = null;
     try {

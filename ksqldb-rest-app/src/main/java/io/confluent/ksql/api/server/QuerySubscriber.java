@@ -29,6 +29,7 @@ import io.vertx.core.Context;
 import io.vertx.core.http.HttpServerResponse;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
 import org.reactivestreams.Subscription;
 import org.slf4j.Logger;
@@ -46,16 +47,19 @@ public class QuerySubscriber extends BaseSubscriber<KeyValueMetadata<List<?>, Ge
   private final HttpServerResponse response;
   private final QueryStreamResponseWriter queryStreamResponseWriter;
   private final Supplier<Boolean> hitLimit;
+  private final AtomicBoolean serverCompleted;
   private int tokens;
 
   @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
   public QuerySubscriber(final Context context, final HttpServerResponse response,
       final QueryStreamResponseWriter queryStreamResponseWriter,
-      final Supplier<Boolean> hitLimit) {
+      final Supplier<Boolean> hitLimit,
+      final AtomicBoolean serverCompleted) {
     super(context);
     this.response = Objects.requireNonNull(response);
     this.queryStreamResponseWriter = Objects.requireNonNull(queryStreamResponseWriter);
     this.hitLimit = hitLimit;
+    this.serverCompleted = Objects.requireNonNull(serverCompleted, "serverCompleted");
   }
 
   @Override
@@ -94,6 +98,9 @@ public class QuerySubscriber extends BaseSubscriber<KeyValueMetadata<List<?>, Ge
 
   @Override
   public void handleError(final Throwable t) {
+    // The server produced this response, even though it is an error. Without this the close
+    // handler cannot tell it from a client that walked away.
+    serverCompleted.set(true);
     final StringBuilder stringBuilder = new StringBuilder();
     stringBuilder.append(t);
     for (Throwable s: t.getSuppressed()) {
@@ -112,6 +119,9 @@ public class QuerySubscriber extends BaseSubscriber<KeyValueMetadata<List<?>, Ge
 
   @Override
   public void handleComplete() {
+    // Set before end(): end() can synchronously close the stream, and the close handler reads
+    // this to tell a server-completed response from one the client walked away from.
+    serverCompleted.set(true);
     if (hitLimit.get()) {
       queryStreamResponseWriter.writeLimitMessage();
     } else {

@@ -33,6 +33,7 @@ import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.properties.ConfigOverrideLogger;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.entity.QueryStreamArgs;
+import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KeyValueMetadata;
@@ -116,6 +117,9 @@ public class QueryStreamHandlerTest {
     when(endpoints.createQueryPublisher(any(), any(), any(), any(), any(), any(), any(), any(),
         any())).thenReturn(future);
     when(response.endHandler(endHandler.capture())).thenReturn(response);
+    // The handler reads cancel-on-disconnect from config when constructed.
+    when(server.getConfig()).thenReturn(new KsqlRestConfig(
+        ImmutableMap.of(KsqlRestConfig.LISTENERS_CONFIG, "http://localhost:8088")));
     when(publisher.queryId()).thenReturn(new QueryId(QUERY_ID));
     when(publisher.getColumnNames()).thenReturn(COL_NAMES);
     when(publisher.getColumnTypes()).thenReturn(COL_TYPES);

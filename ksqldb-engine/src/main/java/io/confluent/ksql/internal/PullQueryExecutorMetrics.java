@@ -507,8 +507,8 @@ public class PullQueryExecutorMetrics implements Closeable {
         sensor,
         PULL_REQUESTS + "-forwarded-in-rate",
         ksqlServicePrefix + PULL_QUERY_METRIC_GROUP,
-        "Rate of per-host fetches arriving from a peer node. These bypass admission limits "
-            + "unless ksql.query.pull.limit.forwarded.requests is set.",
+        "Rate of per-host fetches arriving from a peer node. These bypass the rate and "
+            + "concurrency limits, which are applied only at the host the client connected to.",
         customMetricsTags,
         new Rate()
     );

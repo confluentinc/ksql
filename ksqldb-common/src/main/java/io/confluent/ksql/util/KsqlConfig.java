@@ -338,14 +338,6 @@ public class KsqlConfig extends AbstractConfig {
       = "Maximum number of per-host fetches that may queue waiting for a router thread. "
       + "See ksql.query.pull.coordinator.queue.capacity.";
 
-  public static final String KSQL_QUERY_PULL_LIMIT_FORWARDED_REQUESTS_CONFIG
-      = "ksql.query.pull.limit.forwarded.requests";
-  public static final boolean KSQL_QUERY_PULL_LIMIT_FORWARDED_REQUESTS_DEFAULT = false;
-  public static final String KSQL_QUERY_PULL_LIMIT_FORWARDED_REQUESTS_DOC
-      = "Whether the rate and concurrency limits also apply to pull query requests forwarded "
-      + "from a peer node. Historically only the request's entry host applies the limits, so "
-      + "forwarded traffic is unlimited and a saturated peer can drive this node's thread "
-      + "pools to exhaustion regardless of the configured limits.";
 
   public static final String KSQL_QUERY_PULL_MAX_HOURLY_BANDWIDTH_MEGABYTES_CONFIG
       = "ksql.query.pull.max.hourly.bandwidth.megabytes";
@@ -1280,12 +1272,6 @@ public class KsqlConfig extends AbstractConfig {
             ConfigDef.Range.atLeast(1),
             Importance.MEDIUM,
             KSQL_QUERY_PULL_ROUTER_QUEUE_CAPACITY_DOC
-        ).define(
-            KSQL_QUERY_PULL_LIMIT_FORWARDED_REQUESTS_CONFIG,
-            Type.BOOLEAN,
-            KSQL_QUERY_PULL_LIMIT_FORWARDED_REQUESTS_DEFAULT,
-            Importance.MEDIUM,
-            KSQL_QUERY_PULL_LIMIT_FORWARDED_REQUESTS_DOC
         )
         .define(
             KSQL_QUERY_PULL_MAX_HOURLY_BANDWIDTH_MEGABYTES_CONFIG,

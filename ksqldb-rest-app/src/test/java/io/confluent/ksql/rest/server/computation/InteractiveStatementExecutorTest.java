@@ -28,8 +28,10 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.eq;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -114,6 +116,7 @@ public class InteractiveStatementExecutorTest {
       + "value_format = 'json');";
   private static final CommandId COMMAND_ID = new CommandId(Type.STREAM, "foo", Action.CREATE);
   private static final QueryId QUERY_ID = new QueryId("qid");
+  private static final String AUTO_OFFSET_RESET = "auto.offset.reset";
 
   private KsqlEngine ksqlEngine;
   private StatementParser statementParser;
@@ -600,7 +603,7 @@ public class InteractiveStatementExecutorTest {
 
       // Then: override-log fires once per replayed command with endpoint=command_topic_restore
       configOverrideLogger.verify(
-          () -> ConfigOverrideLogger.logOverrides(eq("command_topic_restore"), any()),
+          () -> ConfigOverrideLogger.logOverrides(eq("command_topic_restore"), any(), any()),
           times(priorCommands.size()));
     }
 
@@ -1051,6 +1054,104 @@ public class InteractiveStatementExecutorTest {
         commandStatus,
         is(not(equalTo(Optional.empty()))));
     return commandStatus.get();
+  }
+
+  @Test
+  public void shouldFilterOverridesOnRestoreWhenRestoreValidationEnabled() {
+    // Given: restore validation on, allowlist mode, permitting only the retry backoff.
+    final KsqlConfig mergedConfig = givenRestoreValidation(
+        true, ImmutableList.of(KsqlConfig.KSQL_QUERY_RETRY_BACKOFF_INITIAL_MS));
+    givenMockPlannedQuery();
+    final Command command = new Command(
+        CREATE_STREAM_FOO_STATEMENT,
+        ImmutableMap.of(
+            AUTO_OFFSET_RESET, "earliest",
+            KsqlConfig.KSQL_QUERY_RETRY_BACKOFF_INITIAL_MS, -5L),
+        emptyMap(),
+        Optional.of(plan));
+    when(commandDeserializer.deserialize(any(), any())).thenReturn(command);
+
+    // When:
+    try (MockedStatic<ConfigOverrideLogger> configOverrideLogger =
+        mockStatic(ConfigOverrideLogger.class)) {
+      statementExecutorWithMocks.handleRestore(
+          new QueuedCommand(COMMAND_ID, command, Optional.empty(), 0L));
+
+      // Then: the surviving overrides are handed to the range check. Whether it logs anything
+      // is decided by the range validation flag, inside the logger.
+      configOverrideLogger.verify(() -> ConfigOverrideLogger.logRangeViolations(
+          eq("command_topic_restore"),
+          eq(Optional.of(COMMAND_ID.toString())),
+          any()), times(1));
+    }
+
+    // And: the override missing from the allowlist never reaches the query.
+    verify(mockEngine).execute(
+        any(),
+        eq(ConfiguredKsqlPlan.of(plan, SessionConfig.of(mergedConfig,
+            ImmutableMap.of(KsqlConfig.KSQL_QUERY_RETRY_BACKOFF_INITIAL_MS, -5L)))),
+        eq(true)
+    );
+  }
+
+  @Test
+  public void shouldNotFilterOverridesOnRestoreWhenRestoreValidationDisabled() {
+    // Given: restore validation off. The allowlist is irrelevant - it is never consulted.
+    final KsqlConfig mergedConfig = givenRestoreValidation(false, ImmutableList.of());
+    givenMockPlannedQuery();
+    final Command command = new Command(
+        CREATE_STREAM_FOO_STATEMENT,
+        ImmutableMap.of(
+            AUTO_OFFSET_RESET, "earliest",
+            KsqlConfig.KSQL_QUERY_RETRY_BACKOFF_INITIAL_MS, -5L),
+        emptyMap(),
+        Optional.of(plan));
+    when(commandDeserializer.deserialize(any(), any())).thenReturn(command);
+
+    // When:
+    try (MockedStatic<ConfigOverrideLogger> configOverrideLogger =
+        mockStatic(ConfigOverrideLogger.class)) {
+      statementExecutorWithMocks.handleRestore(
+          new QueuedCommand(COMMAND_ID, command, Optional.empty(), 0L));
+
+      // Then: The audit log still fires - it sits outside the gate.
+      configOverrideLogger.verify(() -> ConfigOverrideLogger.logOverrides(
+                eq("command_topic_restore"), any(), any()));
+      // But no filtering and no range check either.
+      configOverrideLogger.verify(
+          () -> ConfigOverrideLogger.logRangeViolations(any(), any(), any()), never());
+    }
+
+    // And: every stored override reaches the query untouched.
+    verify(mockEngine).execute(
+        any(),
+        eq(ConfiguredKsqlPlan.of(plan, SessionConfig.of(mergedConfig, ImmutableMap.of(
+            AUTO_OFFSET_RESET, "earliest",
+            KsqlConfig.KSQL_QUERY_RETRY_BACKOFF_INITIAL_MS, -5L)))),
+        eq(true)
+    );
+  }
+
+  /**
+   * @return the merged config the executor will build the session config from.
+   */
+  private KsqlConfig givenRestoreValidation(
+      final boolean restoreValidationEnabled,
+      final List<String> allowlist
+  ) {
+    final KsqlConfig mockConfig = mock(KsqlConfig.class);
+    final KsqlConfig mergedConfig = mock(KsqlConfig.class);
+    when(mockConfig.getKsqlStreamConfigProps()).thenReturn(
+        ImmutableMap.of(StreamsConfig.APPLICATION_SERVER_CONFIG, "appid"));
+    when(mockConfig.getBoolean(KsqlConfig.KSQL_PROPERTIES_OVERRIDES_VALIDATION_RESTORE_ENABLED))
+        .thenReturn(restoreValidationEnabled);
+    lenient().when(mockConfig.getString(KsqlConfig.KSQL_PROPERTIES_OVERRIDES_VALIDATION_MODE))
+        .thenReturn(KsqlConfig.KSQL_PROPERTIES_OVERRIDES_VALIDATION_MODE_ALLOWLIST);
+    lenient().when(mockConfig.getList(KsqlConfig.KSQL_PROPERTIES_OVERRIDES_ALLOWLIST))
+        .thenReturn(allowlist);
+    when(mockConfig.overrideBreakingConfigsWithOriginalValues(any())).thenReturn(mergedConfig);
+    when(mockEngine.getKsqlConfig()).thenReturn(mockConfig);
+    return mergedConfig;
   }
 
   private void givenMockPlannedQuery() {

@@ -720,6 +720,25 @@ public class KsqlConfig extends AbstractConfig {
       + "INFO log line for each user-supplied property override. May be high-volume on hot "
       + "endpoints (one log line per override per request).";
 
+  public static final String KSQL_PROPERTIES_OVERRIDES_RANGE_VALIDATION_LOG_ENABLED =
+      "ksql.properties.overrides.range.validation.log.enabled";
+  private static final boolean KSQL_PROPERTIES_OVERRIDES_RANGE_VALIDATION_LOG_ENABLED_DEFAULT =
+      false;
+  private static final String KSQL_PROPERTIES_OVERRIDES_RANGE_VALIDATION_LOG_ENABLED_DOC =
+      "When true, logs a WARN for each accepted property override whose value falls outside the "
+      + "range KSQL intends to permit for that property. Checked only for properties that "
+      + "survived the name-based deny/allow list.";
+
+  public static final String KSQL_PROPERTIES_OVERRIDES_VALIDATION_RESTORE_ENABLED =
+          "ksql.properties.overrides.validation.restore.enabled";
+  private static final boolean KSQL_PROPERTIES_OVERRIDES_VALIDATION_RESTORE_ENABLED_DEFAULT = false;
+  private static final String KSQL_PROPERTIES_OVERRIDES_VALIDATION_RESTORE_ENABLED_DOC =
+          "When true, applies the list selected by " + KSQL_PROPERTIES_OVERRIDES_VALIDATION_MODE
+                  + " (the denylist by default, or the allowlist when mode=allowlist) to "
+                  + "property overrides found while restoring the commands from the command "
+                  + "topic on restart. A property that fails the check is dropped from the "
+                  + "restored query and logged";
+
   public static final String KSQL_TOTAL_CACHE_MAX_BYTES_BUFFERING =
       "ksql.query.persistent.max.bytes.buffering.total";
   public static final long KSQL_TOTAL_CACHE_MAX_BYTES_BUFFERING_DEFAULT = -1;
@@ -1523,6 +1542,20 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_PROPERTIES_OVERRIDES_LOG_DEFAULT,
             Importance.LOW,
             KSQL_PROPERTIES_OVERRIDES_LOG_DOC
+        )
+         .define(
+            KSQL_PROPERTIES_OVERRIDES_RANGE_VALIDATION_LOG_ENABLED,
+            Type.BOOLEAN,
+            KSQL_PROPERTIES_OVERRIDES_RANGE_VALIDATION_LOG_ENABLED_DEFAULT,
+            Importance.LOW,
+            KSQL_PROPERTIES_OVERRIDES_RANGE_VALIDATION_LOG_ENABLED_DOC
+         )
+        .define(
+            KSQL_PROPERTIES_OVERRIDES_VALIDATION_RESTORE_ENABLED,
+            Type.BOOLEAN,
+            KSQL_PROPERTIES_OVERRIDES_VALIDATION_RESTORE_ENABLED_DEFAULT,
+            Importance.LOW,
+            KSQL_PROPERTIES_OVERRIDES_VALIDATION_RESTORE_ENABLED_DOC
         )
         .define(
             KSQL_QUERY_STATUS_RUNNING_THRESHOLD_SECS,

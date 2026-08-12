@@ -17,6 +17,7 @@ package io.confluent.ksql.execution.scalablepush.consumer;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.common.OffsetsRow;
 import io.confluent.ksql.execution.common.QueryRow;
@@ -69,6 +70,7 @@ public abstract class ScalablePushConsumer implements AutoCloseable {
 
   protected AtomicReference<Set<TopicPartition>> topicPartitions = new AtomicReference<>();
 
+  @SuppressFBWarnings("EI_EXPOSE_REP2")
   public ScalablePushConsumer(
       final String topicName,
       final boolean windowed,

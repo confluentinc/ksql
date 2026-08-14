@@ -281,8 +281,8 @@ public class QueryExecutor {
         configured.getSessionConfig().getOverrides()
     );
 
-    // A request is considered forwarded if the request has the forwarded flag or if the request
-    // is from an internal listener.
+    // A request counts as forwarded only if it carries the forwarded flag AND arrived on the
+    // internal listener, so a client cannot skip the limits below by setting the flag itself.
     final boolean isAlreadyForwarded = routingOptions.getIsSkipForwardRequest()
         // Trust the forward request option if isInternalRequest isn't available.
         && isInternalRequest.orElse(true);

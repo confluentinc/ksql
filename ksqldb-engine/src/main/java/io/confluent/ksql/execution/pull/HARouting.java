@@ -64,6 +64,8 @@ public final class HARouting implements AutoCloseable {
 
   private static final Logger LOG = LoggerFactory.getLogger(HARouting.class);
 
+  private static final int TOO_MANY_REQUESTS = 429;
+
   private final ExecutorService coordinatorExecutorService;
   private final ExecutorService routerExecutorService;
   private final RoutingFilterFactory routingFilterFactory;
@@ -254,6 +256,12 @@ public final class HARouting implements AutoCloseable {
                 }
             ));
           } catch (final RejectedExecutionException e) {
+            // This round is being given up on, so drop the hosts already submitted for it. One
+            // still queued never starts; one already running is interrupted out of its forward
+            // rather than holding a router thread until the forwarding timeout, writing into a
+            // stream the finally block below is about to close. Only reachable now that the
+            // queue is bounded - submit could not fail when the pool queue was unbounded.
+            futures.values().forEach(f -> f.cancel(true));
             throw queueFull("router");
           }
         }
@@ -284,12 +292,15 @@ public final class HARouting implements AutoCloseable {
           return;
         }
       }
-    } catch (final KsqlRateLimitException e) {
-      // Must escape unwrapped. The handler below turns everything into a MaterializationException,
-      // which the API layer reports as a 500 - losing the retriable 429 that a full router queue
-      // is supposed to produce.
-      throw e;
     } catch (final Exception e) {
+      // A rate limit escapes unwrapped, whether it was thrown here on a full router queue or
+      // carried back from a router task inside an ExecutionException. Everything else below
+      // becomes a MaterializationException, which reads as a server fault and hides the one
+      // thing the caller can act on: the server is at capacity, so retry after a backoff.
+      final KsqlRateLimitException rateLimit = causedByRateLimit(e);
+      if (rateLimit != null) {
+        throw rateLimit;
+      }
       final MaterializationException exception =
           new MaterializationException(
               "Unable to execute pull query: " + e.getMessage());
@@ -392,6 +403,9 @@ public final class HARouting implements AutoCloseable {
         LOG.warn("Error forwarding query to node {}. Falling back to standby state which may "
             + "return stale results", node.location(), e.getCause());
         return new NodeFetchResult(RoutingResult.STANDBY_FALLBACK, node, Optional.of(e));
+      } catch (KsqlRateLimitException e) {
+        // Escapes unwrapped so the peer's 429 keeps its identity on the way back to the caller.
+        throw e;
       } catch (Exception e) {
         throw new KsqlException(
           String.format("Error forwarding query to node %s: %s", node.location(), e.getMessage()),
@@ -463,10 +477,18 @@ public final class HARouting implements AutoCloseable {
     }
 
     if (response.isErroneous()) {
-      throw new KsqlException(String.format(
+      final String message = String.format(
           "Forwarding pull query request [%s, %s] failed with error %s ",
           statement.getSessionConfig().getOverrides(), requestProperties,
-          response.getErrorMessage()));
+          response.getErrorMessage());
+      // A saturated peer answers 429. Kept as a rate limit rather than a generic failure so the
+      // client is told to back off instead of being handed an opaque server error. Deliberately
+      // not a StandbyFallbackException: re-sending to another node while the cluster is already
+      // refusing work adds load to the thing that is short of capacity.
+      if (response.getStatusCode() == TOO_MANY_REQUESTS) {
+        throw new KsqlRateLimitException(message);
+      }
+      throw new KsqlException(message);
     }
 
     final int numRows = response.getResponse();
@@ -483,11 +505,30 @@ public final class HARouting implements AutoCloseable {
    * RejectedExecutionException surfaces as HTTP 400 carrying the rejected task's toString, which
    * tells the client its request was malformed and must not be retried. KsqlRateLimitException is
    * already mapped to 429 by ServerUtils, so the client backs off and retries instead.
+   *
+   * <p>Which of those two the client actually sees depends on the pool. A coordinator rejection
+   * happens on the worker thread inside {@code startFromWorkerThread()}, before any response
+   * metadata is written, so it becomes a real HTTP 429. A router rejection happens later, on a
+   * coordinator thread, by which point the 200 and the metadata row have already gone out; it
+   * reaches the client as an error row in the open stream instead. Both carry the same message
+   * and both increment the same rejection metric, so the two are told apart on the server by
+   * which pool's queue-depth gauge is at its bound, not by the status code.
    */
   private KsqlRateLimitException queueFull(final String pool) {
     pullQueryMetrics.ifPresent(PullQueryExecutorMetrics::recordQueueRejected);
     return new KsqlRateLimitException("Pull query rejected: the " + pool
         + " queue is full. The server is at capacity; retry after a backoff.");
+  }
+
+  private static KsqlRateLimitException causedByRateLimit(final Throwable e) {
+    Throwable throwable = e;
+    while (throwable != null) {
+      if (throwable instanceof KsqlRateLimitException) {
+        return (KsqlRateLimitException) throwable;
+      }
+      throwable = throwable.getCause();
+    }
+    return null;
   }
 
   private static KsqlException causedByKsqlException(final Exception e) {

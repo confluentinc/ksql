@@ -503,6 +503,43 @@ public class HARoutingTest {
   }
 
   @Test
+  public void shouldSizeTheQueueFromThePoolByDefault() throws Exception {
+    // Given: the shipped defaults, where neither capacity is set explicitly.
+    final KsqlConfig defaults = new KsqlConfig(ImmutableMap.of());
+    assertThat(defaults.getInt(KsqlConfig.KSQL_QUERY_PULL_COORDINATOR_QUEUE_CAPACITY_CONFIG),
+        is(KsqlConfig.KSQL_QUERY_PULL_QUEUE_CAPACITY_MATCH_POOL));
+
+    // When: two coordinator threads, so a bound that tracked the pool admits exactly two more
+    when(ksqlConfig.getInt(KsqlConfig.KSQL_QUERY_PULL_THREAD_POOL_SIZE_CONFIG)).thenReturn(2);
+    when(ksqlConfig.getInt(KsqlConfig.KSQL_QUERY_PULL_COORDINATOR_QUEUE_CAPACITY_CONFIG))
+        .thenReturn(KsqlConfig.KSQL_QUERY_PULL_QUEUE_CAPACITY_MATCH_POOL);
+    locate(location1, location2, location3, location4);
+    final CountDownLatch release = new CountDownLatch(1);
+    lenient().doAnswer(a -> {
+      release.await(10, TimeUnit.SECONDS);
+      return null;
+    }).when(pullPhysicalPlan).execute(any(), any(), any());
+
+    try (HARouting routing = new HARouting(
+        routingFilterFactory, Optional.of(pullMetrics), ksqlConfig)) {
+      // occupy both threads, then both queue slots
+      for (int i = 0; i < 4; i++) {
+        routing.handlePullQuery(serviceContext, pullPhysicalPlan, statement, routingOptions,
+            pullQueryQueue, disconnect);
+      }
+
+      // Then: the fifth is refused, so the bound resolved to the pool size rather than staying
+      // unbounded. A ratio other than 1 is what the queue-bound testing showed to be wrong.
+      final Exception e = assertThrows(KsqlRateLimitException.class, () ->
+          routing.handlePullQuery(serviceContext, pullPhysicalPlan, statement, routingOptions,
+              pullQueryQueue, disconnect));
+      assertThat(e.getMessage(), containsString("queue is full"));
+    } finally {
+      release.countDown();
+    }
+  }
+
+  @Test
   public void shouldDropHostsAlreadySubmittedWhenTheRouterQueueFillsMidRound() throws Exception {
     // Given: one router thread and room for one queued host, and a round that fans out to three.
     // The third submit is refused, which could not happen before the queue was bounded.

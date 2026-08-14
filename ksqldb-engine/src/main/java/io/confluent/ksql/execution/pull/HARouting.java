@@ -298,12 +298,11 @@ public final class HARouting implements AutoCloseable {
       // becomes a MaterializationException, which reads as a server fault and hides the one
       // thing the caller can act on: the server is at capacity, so retry after a backoff.
       final KsqlRateLimitException rateLimit = causedByRateLimit(e);
-      if (rateLimit != null) {
-        throw rateLimit;
-      }
-      final MaterializationException exception =
-          new MaterializationException(
-              "Unable to execute pull query: " + e.getMessage());
+      final RuntimeException exception = rateLimit != null
+          ? rateLimit
+          : new MaterializationException("Unable to execute pull query: " + e.getMessage());
+      // Earlier rounds may have failed for unrelated reasons before capacity ran out. Those are
+      // attached either way, so a rejection does not arrive with the history stripped off it.
       for (Entry<KsqlNode, List<Exception>> entry : exceptionsPerNode.entrySet()) {
         for (Exception excp : entry.getValue()) {
           exception.addSuppressed(excp);

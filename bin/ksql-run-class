@@ -64,9 +64,7 @@ should_include_netty_tcnative_jar() {
 
   if [ "$FIPS_ENABLED" = "true" ]; then
     # FIPS mode: exclude non-FIPS BoringSSL, keep FIPS version
-    # Match: netty-tcnative-boringssl-static but NOT netty-tcnative-fips-boringssl-static
-    if echo "$entry" | grep -q "netty-tcnative-boringssl-static" && \
-       ! echo "$entry" | grep -q "netty-tcnative-fips-boringssl-static"; then
+    if echo "$entry" | grep -q "netty-tcnative-boringssl-static"; then
       return 1
     fi
   else
@@ -117,9 +115,7 @@ KSQL_CLASSPATH=$(filter_netty_tcnative_classpath "$KSQL_CLASSPATH")
 if [ "$FIPS_ENABLED" = "true" ]; then
   echo "FIPS Mode: ENABLED (enable.fips=true detected in properties file)"
   echo "  -> Using netty-tcnative-fips-boringssl-static (FIPS 140-3 compliant)"
-  # Add FIPS-specific JVM options for Bouncy Castle FIPS provider
-  # KSQL_OPTS="$KSQL_OPTS -Dorg.bouncycastle.fips.approved_only=true"
-  
+
   # CRITICAL: Explicitly enable Netty OpenSSL support.
   # The Confluent FIPS security providers (BcFipsProviderCreator, BcFipsJsseProviderCreator)
   # set -Dio.netty.handler.ssl.noOpenSsl=true to force JDK SSL for FIPS compliance.
@@ -129,11 +125,11 @@ if [ "$FIPS_ENABLED" = "true" ]; then
   # Netty's BouncyCastleAlpnSslUtils due to reflection access restrictions.
   KSQL_OPTS="$KSQL_OPTS -Dio.netty.handler.ssl.noOpenSsl=false"
   echo "  -> Enabled Netty OpenSSL (FIPS BoringSSL is FIPS 140-3 compliant)"
-  
-  # Add JVM --add-opens flags as fallback for cases where OpenSSL native libraries
-  # are not available for the platform (e.g., ARM64). In these cases, Netty falls back
-  # to JDK SSL with BouncyCastle, and these flags allow the reflection access
-  # that Netty's BouncyCastleAlpnSslUtils needs for ALPN (HTTP/2) support.
+
+  # Add JVM --add-opens flags as fallback for platforms other than linux-x86_64, the
+  # only platform with a published native FIPS BoringSSL build. On those platforms
+  # Netty falls back to JDK SSL with BouncyCastle, and these flags allow the reflection
+  # access that Netty's BouncyCastleAlpnSslUtils needs for ALPN (HTTP/2) support.
   FIPS_JVM_OPTS=""
   FIPS_JVM_OPTS="$FIPS_JVM_OPTS --add-opens java.base/java.lang=ALL-UNNAMED"
   FIPS_JVM_OPTS="$FIPS_JVM_OPTS --add-opens java.base/java.lang.reflect=ALL-UNNAMED"

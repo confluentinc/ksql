@@ -1701,11 +1701,15 @@
          - netty-tcnative-boringssl-static (standard, CVE-free)
          - netty-tcnative-fips-boringssl-static (FIPS 140-3 compliant)
 
-         Runtime selection is controlled by FIPS_ENABLED environment variable
-         in the ksql-run-class startup script.
+         Runtime selection is controlled by the KSQL_FIPS_ENABLED environment
+         variable in the ksql-run-class startup script. ksql-server-start sets
+         this automatically by checking for 'enable.fips=true' in the server
+         properties file passed to it - it is not read directly from the shell
+         environment.
 
          Usage:
            Standard mode: bin/ksql-server-start config/ksql-server.properties
-           FIPS mode:     FIPS_ENABLED=true bin/ksql-server-start config/ksql-server.properties
+           FIPS mode:     add `enable.fips=true` to the properties file, then run
+                          bin/ksql-server-start config/ksql-server.properties
          =========================================================================== -->
 </project>

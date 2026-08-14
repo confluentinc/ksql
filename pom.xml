@@ -1248,9 +1248,18 @@
                 <artifactId>netty-transport-native-unix-common</artifactId>
                 <version>${netty.version}</version>
             </dependency>
-            <!-- FIPS Compliance: Block BoringSSL by setting scope to provided
-                 This prevents non-FIPS BoringSSL from being included in runtime classpath.
-                 TLS will use BC-FIPS/BC-JSSE instead. -->
+            <!-- FIPS Compliance: both variants are packaged onto the runtime classpath at
+                 compile scope; bin/ksql-run-class selects the correct one at launch time
+                 based on FIPS_ENABLED. See "FIPS Compliance Notes" at the end of this file.
+
+                 The classifier-less netty-tcnative-fips-boringssl-static artifact carries no
+                 native library and no transitive classifier dependencies of its own (unlike
+                 netty-tcnative-boringssl-static, which pulls in a classifier jar per OS/arch
+                 automatically). Confluent's internal repo currently only publishes a
+                 linux-x86_64 native build of this artifact, so that classifier is depended on
+                 explicitly below. On other platforms Netty finds no matching native library
+                 and falls back to JDK SSL, which ksql-run-class already handles via add-opens
+                 JVM flags for the FIPS_ENABLED case. -->
             <dependency>
                 <groupId>io.netty</groupId>
                 <artifactId>netty-tcnative-fips-boringssl-static</artifactId>
@@ -1258,9 +1267,14 @@
             </dependency>
             <dependency>
                 <groupId>io.netty</groupId>
+                <artifactId>netty-tcnative-fips-boringssl-static</artifactId>
+                <version>${netty-tcnative-fips-version}</version>
+                <classifier>linux-x86_64</classifier>
+            </dependency>
+            <dependency>
+                <groupId>io.netty</groupId>
                 <artifactId>netty-tcnative-boringssl-static</artifactId>
                 <version>${netty-tcnative-version}</version>
-                <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>org.glassfish.jersey.core</groupId>
@@ -1687,11 +1701,15 @@
          - netty-tcnative-boringssl-static (standard, CVE-free)
          - netty-tcnative-fips-boringssl-static (FIPS 140-3 compliant)
 
-         Runtime selection is controlled by FIPS_ENABLED environment variable
-         in the ksql-run-class startup script.
+         Runtime selection is controlled by the KSQL_FIPS_ENABLED environment
+         variable in the ksql-run-class startup script. ksql-server-start sets
+         this automatically by checking for 'enable.fips=true' in the server
+         properties file passed to it - it is not read directly from the shell
+         environment.
 
          Usage:
            Standard mode: bin/ksql-server-start config/ksql-server.properties
-           FIPS mode:     FIPS_ENABLED=true bin/ksql-server-start config/ksql-server.properties
+           FIPS mode:     add `enable.fips=true` to the properties file, then run
+                          bin/ksql-server-start config/ksql-server.properties
          =========================================================================== -->
 </project>

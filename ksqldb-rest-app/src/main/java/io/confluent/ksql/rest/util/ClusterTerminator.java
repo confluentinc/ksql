@@ -103,8 +103,10 @@ public class ClusterTerminator {
     } catch (final TopicDeletionDisabledException e) {
       LOGGER.info("Did not delete any topics: {}", e.getMessage());
     } catch (final Exception e) {
+      // Preserve the underlying cause (auth failure, broker down, etc.) so
+      // cluster-termination diagnostics don't lose the root error.
       throw new KsqlException(
-          "Exception while deleting topics: " + StringUtils.join(topicsToBeDeleted, ", "));
+          "Exception while deleting topics: " + StringUtils.join(topicsToBeDeleted, ", "), e);
     }
   }
 

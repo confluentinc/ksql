@@ -307,6 +307,12 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
       // We currently only support delimited format for print topic
       // So we send 406 not acceptable back
       routingContext.response().setStatusCode(406).end();
+      // Without this return, execution falls through to subscribe the
+      // PrintSubscriber to the publisher — starting a KafkaConsumer poll loop
+      // that writes into an already-ended response. Writes are silently
+      // dropped but the consumer wastes broker connections until the end
+      // handler chain eventually closes it.
+      return;
     }
 
     // The end handler can be called twice if the connection is closed by the client.  The

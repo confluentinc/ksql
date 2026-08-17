@@ -323,7 +323,14 @@ public class PushRouting implements AutoCloseable {
             LOG.error("Error executing query {} locally at node {}",
                 statement.getMaskedStatementText(), node.location(), t.getCause());
             final BufferedPublisher<QueryRow> publisher = publisherRef.get();
-            closeable.get().run();
+            // closeable may be null if pushPhysicalPlanManager.reset() or
+            // closeable() threw before line 309 ran. Calling .run() on null
+            // would NPE inside the exceptionally handler and mask the real
+            // error (t) that we are trying to surface.
+            final Runnable close = closeable.get();
+            if (close != null) {
+              close.run();
+            }
             if (publisher != null) {
               publisher.close();
             }

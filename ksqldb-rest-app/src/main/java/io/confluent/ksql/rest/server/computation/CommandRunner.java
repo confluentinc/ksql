@@ -91,7 +91,8 @@ public class CommandRunner implements Closeable {
   private boolean incompatibleCommandDetected;
   private final Supplier<Boolean> commandTopicExists;
   private boolean commandTopicDeleted;
-  private Status state = new Status(CommandRunnerStatus.RUNNING, CommandRunnerDegradedReason.NONE);
+  private volatile Status state =
+      new Status(CommandRunnerStatus.RUNNING, CommandRunnerDegradedReason.NONE);
 
   /**
    * The ordinal values of the CommandRunnerStatus enum are used as the metrics values.
@@ -257,7 +258,18 @@ public class CommandRunner implements Closeable {
     try {
       closed = true;
       commandStore.wakeup();
-      executor.awaitTermination(SHUTDOWN_TIMEOUT_MS, TimeUnit.MILLISECONDS);
+      final boolean terminated = executor
+          .awaitTermination(SHUTDOWN_TIMEOUT_MS, TimeUnit.MILLISECONDS);
+      if (!terminated) {
+        // The Runner thread didn't finish within the budget. Interrupt it so the
+        // executor cleans up and we don't leave the runtime in an undefined state
+        // where someone may believe the command processor has stopped but it has
+        // not. The Runner uses interrupt-aware blocking calls (poll, sleep), so
+        // shutdownNow() unblocks them.
+        LOG.warn("CommandRunner did not terminate within {} ms; forcing shutdownNow()",
+            SHUTDOWN_TIMEOUT_MS);
+        executor.shutdownNow();
+      }
     } catch (final InterruptedException e) {
       Thread.currentThread().interrupt();
     }
@@ -391,15 +403,20 @@ public class CommandRunner implements Closeable {
   private void terminateCluster(final Command command) {
     serverState.setTerminating();
     LOG.info("Terminating the KSQL server.");
-    this.close();
+    // Signal the Runner loop to stop without calling executor.awaitTermination().
+    // terminateCluster() is invoked from within the Runner thread itself, so calling
+    // closeEarly() (which calls executor.awaitTermination()) would self-deadlock: the thread
+    // would wait for itself to finish, blocking for the full SHUTDOWN_TIMEOUT_MS (~15 s) twice.
+    // Setting closed and waking up the command store is sufficient here; the Runner loop will
+    // exit naturally after this method returns, and commandStore.close() runs in the finally block.
+    closed = true;
+    commandStore.wakeup();
     final List<String> deleteTopicList = (List<String>) command.getOverwritePropertiesForExecution()
         .getOrDefault(ClusterTerminateRequest.DELETE_TOPIC_LIST_PROP, Collections.emptyList());
 
     clusterTerminator.terminateCluster(deleteTopicList);
     serverState.setTerminated();
     LOG.info("The KSQL server was terminated.");
-    closeEarly();
-    LOG.debug("The KSQL command runner was closed.");
   }
 
   private List<QueuedCommand> checkForIncompatibleCommands(final List<QueuedCommand> commands) {

@@ -240,6 +240,14 @@ public class PersistentQueryMetadataImpl
     return scalablePushRegistry;
   }
 
+  @Override
+  public void close() {
+    super.close();
+    // Shut down the thread pool so its thread does not outlive the query.
+    // The executor has no submitted tasks; shutdown() simply stops the idle thread.
+    executorService.shutdown();
+  }
+
   public Collection<String> getSourceTopicNames() {
     return Collections.emptySet();
   }

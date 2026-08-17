@@ -64,6 +64,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import org.apache.kafka.common.metrics.Metrics;
@@ -579,6 +580,52 @@ public class HARoutingTest {
     assertThat(pullQueryQueue.size(), is(0));
     assertThat(Throwables.getRootCause(e).getSuppressed()[0].getMessage(),
         containsString("Schemas logicalSchema2 from host node2 differs from schema logicalSchema"));
+  }
+
+  @Test
+  public void shouldTimeOutStalledPeerInsteadOfHangingForever() throws Exception {
+    // Regression: executeRounds previously called future.get() with no timeout. If a
+    // peer ksqldb node hung (GC, slow downstream, network partition), the router
+    // thread blocked indefinitely; every concurrent pull query targeting that peer
+    // piled up behind it. The fix bounds the wait with
+    // KSQL_QUERY_PULL_FORWARDING_TIMEOUT_MS_CONFIG and retries on the next host.
+    when(ksqlConfig.getLong(KsqlConfig.KSQL_QUERY_PULL_FORWARDING_TIMEOUT_MS_CONFIG))
+        .thenReturn(200L);
+    // Rebuild haRouting so it observes the new config.
+    haRouting.close();
+    haRouting = new HARouting(routingFilterFactory, Optional.of(pullMetrics), ksqlConfig);
+
+    locate(location1);  // location1 priorities: <node1 (local), node2 (remote)>
+
+    // Node1 (local) "hangs" — block on a latch that we never count down. Use an
+    // interruptible wait so future.cancel(true) can clean up the worker thread.
+    final CountDownLatch wedge = new CountDownLatch(1);
+    doAnswer(i -> {
+      wedge.await(60, TimeUnit.SECONDS);
+      return null;
+    }).when(pullPhysicalPlan).execute(any(), any(), any());
+
+    // Node2 (remote) responds normally on the retry round.
+    when(ksqlClient.makeQueryRequest(eq(node2.location()), any(), any(), any(), any(), any(), any()))
+        .thenAnswer(i -> {
+          final PullQueryWriteStream rowConsumer = i.getArgument(4);
+          rowConsumer.write(ImmutableList.of(
+              StreamedRow.header(queryId, logicalSchema),
+              StreamedRow.pullRow(GenericRow.fromList(ROW1), Optional.empty())));
+          return RestResponse.successful(200, 1);
+        });
+
+    // When: handlePullQuery completes without hanging despite node1 being wedged.
+    // The bounded future.get(10s) is the regression assertion: pre-fix this hangs forever.
+    final CompletableFuture<Void> future = haRouting.handlePullQuery(
+        serviceContext, pullPhysicalPlan, statement, routingOptions,
+        pullQueryQueue, disconnect);
+    future.get(10, TimeUnit.SECONDS);
+
+    // Then: the partition was retried on node2 and produced a row.
+    verify(ksqlClient).makeQueryRequest(
+        eq(node2.location()), any(), any(), any(), any(), any(), any());
+    assertThat(pullQueryQueue.size(), is(1));
   }
 
   private void locate(final KsqlPartitionLocation... locations) {

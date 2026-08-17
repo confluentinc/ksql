@@ -101,6 +101,13 @@ public class CatchupCoordinatorImpl implements CatchupCoordinator {
     if (signalledLatest.get()) {
       signalledLatest.set(false);
       catchupJoiners--;
+      // Wake the latest thread that may be parked in checkShouldWaitForCatchup
+      // — checkShouldCatchUp notifies when it decrements to 0 after a normal
+      // catch-up, but the close path was silent. Without this notify, the
+      // latest consumer waits the full 10s WAIT_TIME_MS, stalling scalable-
+      // push delivery for every client whenever a catchup connection drops
+      // abnormally before it joined.
+      this.notifyAll();
     }
   }
 

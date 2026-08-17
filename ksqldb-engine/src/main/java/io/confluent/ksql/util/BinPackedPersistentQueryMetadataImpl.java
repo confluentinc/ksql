@@ -70,7 +70,7 @@ public class BinPackedPersistentQueryMetadataImpl implements PersistentQueryMeta
   private final String applicationId;
   private final Optional<MaterializationInfo> materializationInfo;
   private final KeyFormat keyFormat;
-  private NamedTopology topology;
+  private volatile NamedTopology topology;
   private final SharedKafkaStreamsRuntime sharedKafkaStreamsRuntime;
   private final QuerySchemas schemas;
   private final ImmutableMap<String, Object> overriddenProperties;
@@ -87,9 +87,9 @@ public class BinPackedPersistentQueryMetadataImpl implements PersistentQueryMeta
       materializationProviderBuilderFactory;
   private final Optional<ScalablePushRegistry> scalablePushRegistry;
   private final ProcessingLoggerFactory loggerFactory;
-  public boolean everStarted = false;
-  private boolean isPaused = false;
-  private boolean corruptionCommandTopic = false;
+  public volatile boolean everStarted = false;
+  private volatile boolean isPaused = false;
+  private volatile boolean corruptionCommandTopic = false;
 
 
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
@@ -441,7 +441,7 @@ public class BinPackedPersistentQueryMetadataImpl implements PersistentQueryMeta
   public void resume() {
     sharedKafkaStreamsRuntime.getKafkaStreams().resumeNamedTopology(topology.name());
     isPaused = false;
-    listener.onPause(this);
+    listener.onResume(this);
   }
 
   @Override

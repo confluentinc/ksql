@@ -52,6 +52,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.apache.logging.log4j.LogManager;
@@ -68,6 +70,7 @@ public final class HARouting implements AutoCloseable {
   private final Optional<PullQueryExecutorMetrics> pullQueryMetrics;
   private final int coordinatorPoolSize;
   private final int routerPoolSize;
+  private final long routerResponseTimeoutMs;
 
   public HARouting(
       final RoutingFilterFactory routingFilterFactory,
@@ -80,6 +83,11 @@ public final class HARouting implements AutoCloseable {
         KsqlConfig.KSQL_QUERY_PULL_THREAD_POOL_SIZE_CONFIG);
     this.routerPoolSize = ksqlConfig.getInt(
         KsqlConfig.KSQL_QUERY_PULL_ROUTER_THREAD_POOL_SIZE_CONFIG);
+    // Bound the per-peer fetch so a single stuck node cannot pin a router thread forever.
+    // A non-positive value (typical in unit-test stubs that don't mock this config) is
+    // treated as "no timeout" so we degrade gracefully and never instantly time out.
+    this.routerResponseTimeoutMs = ksqlConfig.getLong(
+        KsqlConfig.KSQL_QUERY_PULL_FORWARDING_TIMEOUT_MS_CONFIG);
     this.coordinatorExecutorService = Executors.newFixedThreadPool(
         coordinatorPoolSize,
         new ThreadFactoryBuilder().setNameFormat("pull-query-coordinator-%d").build());
@@ -206,7 +214,23 @@ public final class HARouting implements AutoCloseable {
         for (Map.Entry<KsqlNode, Future<NodeFetchResult>> entry : futures.entrySet()) {
           final Future<NodeFetchResult> future = entry.getValue();
           final KsqlNode node = entry.getKey();
-          final NodeFetchResult routingResult  = future.get();
+          final NodeFetchResult routingResult;
+          try {
+            routingResult = routerResponseTimeoutMs > 0
+                ? future.get(routerResponseTimeoutMs, TimeUnit.MILLISECONDS)
+                : future.get();
+          } catch (final TimeoutException timeout) {
+            // The peer hasn't responded within the configured budget. Cancel the worker
+            // (interrupt the blocking call), record the timeout, and retry on the next
+            // host. Without this, a single stuck peer would pin one router thread per
+            // concurrent pull query indefinitely.
+            future.cancel(true);
+            LOG.warn("Pull-query fetch from {} timed out after {} ms; retrying on next host",
+                node, routerResponseTimeoutMs);
+            nextRoundRemaining.addAll(groupedByHost.get(node));
+            exceptionsPerNode.computeIfAbsent(node, v -> new ArrayList<>()).add(timeout);
+            continue;
+          }
           if (routingResult.isError()) {
             nextRoundRemaining.addAll(groupedByHost.get(node));
             exceptionsPerNode.computeIfAbsent(

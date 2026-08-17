@@ -85,6 +85,49 @@ public class RetryUtilTest {
   }
 
   @Test
+  public void shouldRestoreInterruptStatusWhenSleepIsInterrupted() throws Exception {
+    // Given: a runnable that always fails so retryWithBackoff enters the
+    // backoff sleep path (the real Thread.sleep, via the 4-arg overload that
+    // installs the default sleeper). A separate thread interrupts the caller
+    // mid-sleep — Thread.sleep clears the interrupt status when it throws
+    // InterruptedException, and previously RetryUtil swallowed that flag, so
+    // callers checking Thread.interrupted() during shutdown could not see the
+    // signal.
+    doThrow(new RuntimeException("error")).when(runnable).run();
+    final java.util.concurrent.atomic.AtomicBoolean interruptedAfter =
+        new java.util.concurrent.atomic.AtomicBoolean(false);
+    final java.util.concurrent.CountDownLatch retryStarted =
+        new java.util.concurrent.CountDownLatch(1);
+
+    final Runnable signallingRunnable = () -> {
+      retryStarted.countDown();
+      throw new RuntimeException("error");
+    };
+
+    final Thread caller = new Thread(() -> {
+      try {
+        RetryUtil.retryWithBackoff(3, 50, 100, signallingRunnable);
+      } catch (final RuntimeException expected) {
+        // Final retry exhaustion — the swallow-bug is observable on this thread.
+      } finally {
+        interruptedAfter.set(Thread.currentThread().isInterrupted());
+      }
+    }, "retry-util-interrupt-test");
+
+    caller.start();
+    retryStarted.await();
+    caller.interrupt();
+    caller.join(5_000);
+
+    if (caller.isAlive()) {
+      fail("retryWithBackoff did not return after interrupt — interrupt status was not propagated");
+    }
+    org.junit.Assert.assertTrue(
+        "interrupt status must be preserved across retryWithBackoff for shutdown signals",
+        interruptedAfter.get());
+  }
+
+  @Test
   public void shouldRespectStopRetrying() {
     doThrow(new RuntimeException("error")).when(runnable).run();
     int[] times = new int[1];

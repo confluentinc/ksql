@@ -219,6 +219,10 @@ public class DistributingExecutorTest {
         () -> distributor.execute(CONFIGURED_STATEMENT, executionContext, securityContext)
     );
     verify(transactionalProducer, times(0)).abortTransaction();
+    // And: the producer is closed even though initTransactions threw — otherwise
+    // its broker-side transactional registration and client resources leak on
+    // every init-time failure.
+    verify(transactionalProducer).close();
   }
 
   @Test

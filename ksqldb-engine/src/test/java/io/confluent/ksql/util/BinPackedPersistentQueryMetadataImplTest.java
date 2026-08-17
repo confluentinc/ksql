@@ -15,10 +15,13 @@
 
 package io.confluent.ksql.util;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -39,6 +42,8 @@ import io.confluent.ksql.schema.query.QuerySchemas;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.util.QueryMetadata.Listener;
 
+import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.Optional;
@@ -189,6 +194,23 @@ public class BinPackedPersistentQueryMetadataImplTest {
     }
 
     @Test
+    public void resumeShouldFireOnResumeNotOnPause() {
+        // resume() had a copy-paste bug: it called listener.onPause() instead of listener.onResume().
+        // Verify that the correct event is fired so external listeners tracking pause/resume state
+        // receive the right notification.
+        when(sharedKafkaStreamsRuntimeImpl.getKafkaStreams())
+            .thenReturn(kafkaStreamsNamedTopologyWrapper);
+        when(topology.name()).thenReturn("queryId");
+
+        // When:
+        query.resume();
+
+        // Then:
+        verify(listener).onResume(query);
+        verify(listener, never()).onPause(query);
+    }
+
+    @Test
     public void shouldCloseProcessingLoggers() {
         // Given:
         final ProcessingLogger processingLogger1 = mock(ProcessingLogger.class);
@@ -201,5 +223,44 @@ public class BinPackedPersistentQueryMetadataImplTest {
         // Then:
         verify(processingLogger1).close();
         verify(processingLogger2).close();
+    }
+
+    @Test
+    public void topologyFieldShouldBeVolatile() throws Exception {
+        // Regression: topology is reassigned by updateTopology(), which is invoked from
+        // SharedKafkaStreamsRuntimeImpl.restartStreamsRuntime() running on the CommandRunner
+        // thread. HTTP handler threads read the same field via getTopology() and
+        // getTopologyDescription() (which calls topology.describe()). Without volatile, an
+        // HTTP thread can observe the old reference or a partially-published replacement
+        // after a runtime restart.
+        final Field field =
+            BinPackedPersistentQueryMetadataImpl.class.getDeclaredField("topology");
+        assertThat(
+            "topology must be volatile for cross-thread visibility after restartStreamsRuntime",
+            (field.getModifiers() & Modifier.VOLATILE) != 0,
+            is(true)
+        );
+    }
+
+    @Test
+    public void mutableStatusFieldsShouldBeVolatile() throws Exception {
+        // Regression: BinPackedPersistentQueryMetadataImpl declares its own everStarted /
+        // isPaused / corruptionCommandTopic fields that shadow the parent class's volatile
+        // (or AtomicBoolean) versions. start(), pause(), resume(), setCorruptionQueryError()
+        // run on the CommandRunner thread while getQueryStatus(), getState(),
+        // hasEverBeenStarted() are called from HTTP handler threads. Without volatile, HTTP
+        // threads can observe a stale value for these fields after a state transition.
+        // Also: SharedKafkaStreamsRuntimeImpl.start() reads everStarted directly via
+        // collocatedQueries.get(queryId).everStarted, so the public field must be volatile too.
+        for (final String fieldName :
+            new String[] {"everStarted", "isPaused", "corruptionCommandTopic"}) {
+            final Field field =
+                BinPackedPersistentQueryMetadataImpl.class.getDeclaredField(fieldName);
+            assertThat(
+                fieldName + " must be volatile for cross-thread visibility",
+                (field.getModifiers() & Modifier.VOLATILE) != 0,
+                is(true)
+            );
+        }
     }
 }

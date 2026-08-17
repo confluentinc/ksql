@@ -25,7 +25,7 @@
         <url>https://github.com/confluentinc/ksql</url>
         <tag>HEAD</tag>
     </scm>
-  
+
     <parent>
         <groupId>io.confluent</groupId>
         <artifactId>common</artifactId>
@@ -1355,6 +1355,10 @@
                 <exclusion>
                     <groupId>ch.qos.reload4j</groupId>
                     <artifactId>reload4j</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.bouncycastle</groupId>
+                    <artifactId>bcpkix-jdk18on</artifactId>
                 </exclusion>
                 <exclusion>
                     <groupId>io.confluent.networking</groupId>

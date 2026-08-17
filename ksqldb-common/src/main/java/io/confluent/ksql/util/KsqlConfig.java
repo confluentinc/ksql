@@ -319,41 +319,25 @@ public class KsqlConfig extends AbstractConfig {
 
   // --- KSQL-15212: pull-query queue bounding, cancellation and rejection semantics ---
 
-  /**
-   * Queue capacity meaning "however many threads the pool has". Measured behaviour at 100
-   * threads: bound 50 returned 39,423 rows, bound 100 returned 51,231 with 91% of failures
-   * clean 429s, bound 200 returned 8,700 with only 6% clean. A queue longer than the pool
-   * admits work the pool cannot reach in time, so the ratio is what matters rather than the
-   * absolute number, and deriving it keeps the ratio at 1 when the pool size is changed.
-   */
-  public static final int KSQL_QUERY_PULL_QUEUE_CAPACITY_MATCH_POOL = -1;
-
-  /** Accepts the sentinel or a real capacity, but not 0, which would admit nothing. */
-  private static final ConfigDef.Validator QUEUE_CAPACITY_VALIDATOR = (name, value) -> {
-    final int capacity = value == null ? 0 : ((Number) value).intValue();
-    if (capacity != KSQL_QUERY_PULL_QUEUE_CAPACITY_MATCH_POOL && capacity < 1) {
-      throw new ConfigException(
-          name, value, "must be at least 1, or -1 to track the size of the pool it feeds");
-    }
-  };
-
   public static final String KSQL_QUERY_PULL_COORDINATOR_QUEUE_CAPACITY_CONFIG
       = "ksql.query.pull.coordinator.queue.capacity";
   public static final Integer KSQL_QUERY_PULL_COORDINATOR_QUEUE_CAPACITY_DEFAULT
-      = KSQL_QUERY_PULL_QUEUE_CAPACITY_MATCH_POOL;
+      = Integer.MAX_VALUE;
   public static final String KSQL_QUERY_PULL_COORDINATOR_QUEUE_CAPACITY_DOC
       = "Maximum number of pull queries that may queue waiting for a coordinator thread. "
-      + "Requests arriving when the queue is full are rejected with a retriable error rather "
-      + "than queued. -1, the default, tracks ksql.query.pull.thread.pool.size.";
+      + "The default, Integer.MAX_VALUE, is effectively unbounded and preserves the previous "
+      + "behaviour of Executors.newFixedThreadPool. Set a positive value to bound the queue; "
+      + "requests arriving when a bounded queue is full are then rejected with a retriable error "
+      + "rather than queued.";
 
   public static final String KSQL_QUERY_PULL_ROUTER_QUEUE_CAPACITY_CONFIG
       = "ksql.query.pull.router.queue.capacity";
   public static final Integer KSQL_QUERY_PULL_ROUTER_QUEUE_CAPACITY_DEFAULT
-      = KSQL_QUERY_PULL_QUEUE_CAPACITY_MATCH_POOL;
+      = Integer.MAX_VALUE;
   public static final String KSQL_QUERY_PULL_ROUTER_QUEUE_CAPACITY_DOC
       = "Maximum number of per-host fetches that may queue waiting for a router thread. "
-      + "-1, the default, tracks ksql.query.pull.router.thread.pool.size. "
-      + "See ksql.query.pull.coordinator.queue.capacity.";
+      + "The default, Integer.MAX_VALUE, is effectively unbounded. Set a positive value to bound "
+      + "the queue. See ksql.query.pull.coordinator.queue.capacity.";
 
 
   public static final String KSQL_QUERY_PULL_MAX_HOURLY_BANDWIDTH_MEGABYTES_CONFIG
@@ -374,7 +358,7 @@ public class KsqlConfig extends AbstractConfig {
 
   public static final String KSQL_QUERY_PULL_THREAD_POOL_SIZE_CONFIG
       = "ksql.query.pull.thread.pool.size";
-  public static final Integer KSQL_QUERY_PULL_THREAD_POOL_SIZE_DEFAULT = 100;
+  public static final Integer KSQL_QUERY_PULL_THREAD_POOL_SIZE_DEFAULT = 50;
   public static final String KSQL_QUERY_PULL_THREAD_POOL_SIZE_DOC =
       "Size of thread pool used for coordinating pull queries. A query that fetches from a "
       + "remote host occupies a coordinator thread for the whole fetch, so this bounds "
@@ -382,7 +366,7 @@ public class KsqlConfig extends AbstractConfig {
 
   public static final String KSQL_QUERY_PULL_ROUTER_THREAD_POOL_SIZE_CONFIG
       = "ksql.query.pull.router.thread.pool.size";
-  public static final Integer KSQL_QUERY_PULL_ROUTER_THREAD_POOL_SIZE_DEFAULT = 100;
+  public static final Integer KSQL_QUERY_PULL_ROUTER_THREAD_POOL_SIZE_DEFAULT = 50;
   public static final String KSQL_QUERY_PULL_ROUTER_THREAD_POOL_SIZE_DOC =
       "Size of thread pool used for routing pull queries. One thread is taken per host a "
       + "query fetches from, so a query that fans out needs more of these than of "
@@ -1283,14 +1267,14 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_QUERY_PULL_COORDINATOR_QUEUE_CAPACITY_CONFIG,
             Type.INT,
             KSQL_QUERY_PULL_COORDINATOR_QUEUE_CAPACITY_DEFAULT,
-            QUEUE_CAPACITY_VALIDATOR,
+            ConfigDef.Range.atLeast(1),
             Importance.MEDIUM,
             KSQL_QUERY_PULL_COORDINATOR_QUEUE_CAPACITY_DOC
         ).define(
             KSQL_QUERY_PULL_ROUTER_QUEUE_CAPACITY_CONFIG,
             Type.INT,
             KSQL_QUERY_PULL_ROUTER_QUEUE_CAPACITY_DEFAULT,
-            QUEUE_CAPACITY_VALIDATOR,
+            ConfigDef.Range.atLeast(1),
             Importance.MEDIUM,
             KSQL_QUERY_PULL_ROUTER_QUEUE_CAPACITY_DOC
         )

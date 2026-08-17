@@ -372,7 +372,7 @@ public class KsqlRestConfig extends AbstractConfig {
 
   public static final String KSQL_QUERY_PULL_CANCEL_ON_DISCONNECT_ENABLED_CONFIG
       = "ksql.query.pull.cancel.on.disconnect.enabled";
-  private static final boolean KSQL_QUERY_PULL_CANCEL_ON_DISCONNECT_ENABLED_DEFAULT = true;
+  private static final boolean KSQL_QUERY_PULL_CANCEL_ON_DISCONNECT_ENABLED_DEFAULT = false;
   private static final String KSQL_QUERY_PULL_CANCEL_ON_DISCONNECT_ENABLED_DOC
       = "Whether a pull query on the /query-stream endpoint is cancelled when the client closes "
       + "the connection. Cleanup on that endpoint is currently driven by the response end "

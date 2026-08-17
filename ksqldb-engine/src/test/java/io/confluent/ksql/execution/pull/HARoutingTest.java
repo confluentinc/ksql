@@ -503,16 +503,17 @@ public class HARoutingTest {
   }
 
   @Test
-  public void shouldSizeTheQueueFromThePoolByDefault() throws Exception {
-    // Given: the shipped defaults, where neither capacity is set explicitly.
+  public void shouldDefaultToUnboundedAndBoundOnlyWhenConfigured() throws Exception {
+    // Given: the default capacity is unbounded, preserving pre-existing behaviour — a binary
+    // upgrade must not start rejecting. Bounding is opt-in via an explicit positive value.
     final KsqlConfig defaults = new KsqlConfig(ImmutableMap.of());
     assertThat(defaults.getInt(KsqlConfig.KSQL_QUERY_PULL_COORDINATOR_QUEUE_CAPACITY_CONFIG),
-        is(KsqlConfig.KSQL_QUERY_PULL_QUEUE_CAPACITY_MATCH_POOL));
+        is(Integer.MAX_VALUE));
 
-    // When: two coordinator threads, so a bound that tracked the pool admits exactly two more
+    // When: two coordinator threads and an explicit bound of 2, so it admits exactly two more
     when(ksqlConfig.getInt(KsqlConfig.KSQL_QUERY_PULL_THREAD_POOL_SIZE_CONFIG)).thenReturn(2);
     when(ksqlConfig.getInt(KsqlConfig.KSQL_QUERY_PULL_COORDINATOR_QUEUE_CAPACITY_CONFIG))
-        .thenReturn(KsqlConfig.KSQL_QUERY_PULL_QUEUE_CAPACITY_MATCH_POOL);
+        .thenReturn(2);
     locate(location1, location2, location3, location4);
     final CountDownLatch release = new CountDownLatch(1);
     lenient().doAnswer(a -> {
@@ -528,8 +529,7 @@ public class HARoutingTest {
             pullQueryQueue, disconnect);
       }
 
-      // Then: the fifth is refused, so the bound resolved to the pool size rather than staying
-      // unbounded. A ratio other than 1 is what the queue-bound testing showed to be wrong.
+      // Then: the fifth is refused — the explicit bound engaged.
       final Exception e = assertThrows(KsqlRateLimitException.class, () ->
           routing.handlePullQuery(serviceContext, pullPhysicalPlan, statement, routingOptions,
               pullQueryQueue, disconnect));

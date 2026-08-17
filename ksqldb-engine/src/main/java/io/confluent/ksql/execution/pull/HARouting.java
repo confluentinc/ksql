@@ -66,15 +66,6 @@ public final class HARouting implements AutoCloseable {
 
   private static final int TOO_MANY_REQUESTS = 429;
 
-  /** Resolves the queue bound, which by default tracks the size of the pool it feeds. */
-  private static int queueCapacity(
-      final KsqlConfig ksqlConfig, final String config, final int poolSize) {
-    final int configured = ksqlConfig.getInt(config);
-    return configured == KsqlConfig.KSQL_QUERY_PULL_QUEUE_CAPACITY_MATCH_POOL
-        ? poolSize
-        : configured;
-  }
-
   private final ExecutorService coordinatorExecutorService;
   private final ExecutorService routerExecutorService;
   private final RoutingFilterFactory routingFilterFactory;
@@ -100,18 +91,16 @@ public final class HARouting implements AutoCloseable {
         coordinatorPoolSize,
         0L,
         TimeUnit.MILLISECONDS,
-        new LinkedBlockingQueue<>(queueCapacity(
-            ksqlConfig, KsqlConfig.KSQL_QUERY_PULL_COORDINATOR_QUEUE_CAPACITY_CONFIG,
-            coordinatorPoolSize)),
+        new LinkedBlockingQueue<>(ksqlConfig.getInt(
+            KsqlConfig.KSQL_QUERY_PULL_COORDINATOR_QUEUE_CAPACITY_CONFIG)),
         new ThreadFactoryBuilder().setNameFormat("pull-query-coordinator-%d").build());
     final ThreadPoolExecutor routerPool = new ThreadPoolExecutor(
         routerPoolSize,
         routerPoolSize,
         0L,
         TimeUnit.MILLISECONDS,
-        new LinkedBlockingQueue<>(queueCapacity(
-            ksqlConfig, KsqlConfig.KSQL_QUERY_PULL_ROUTER_QUEUE_CAPACITY_CONFIG,
-            routerPoolSize)),
+        new LinkedBlockingQueue<>(ksqlConfig.getInt(
+            KsqlConfig.KSQL_QUERY_PULL_ROUTER_QUEUE_CAPACITY_CONFIG)),
         new ThreadFactoryBuilder().setNameFormat("pull-query-router-%d").build());
     this.coordinatorExecutorService = coordinatorPool;
     this.routerExecutorService = routerPool;

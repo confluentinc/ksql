@@ -32,4 +32,22 @@ fi
 
 export KSQL_OPTS
 
+# Detect FIPS mode from properties file
+# Find the properties file from arguments (skip -daemon flag if present)
+PROPS_FILE=""
+for arg in "$@"; do
+  if [ "$arg" != "-daemon" ] && [ -f "$arg" ]; then
+    PROPS_FILE="$arg"
+    break
+  fi
+done
+
+# Check if enable.fips=true in the properties file
+if [ -n "$PROPS_FILE" ]; then
+  if tr -d '\r' < "$PROPS_FILE" 2>/dev/null | grep -v "^[[:space:]]*#" | \
+     grep -iq "^[[:space:]]*enable\.fips[[:space:]]*=[[:space:]]*[\"']*true"; then
+    export KSQL_FIPS_ENABLED="true"
+  fi
+fi
+
 exec "$base_dir"/bin/ksql-run-class io.confluent.ksql.rest.server.KsqlServerMain $EXTRA_ARGS "$@"

@@ -23,6 +23,7 @@ import io.confluent.ksql.util.FileWatcher.Callback;
 import io.confluent.ksql.util.QueryMask;
 import io.confluent.ksql.util.VertxSslOptionsFactory;
 import io.netty.handler.codec.haproxy.HAProxyProtocolException;
+import io.netty.handler.ssl.OpenSsl;
 import io.vertx.core.http.ClientAuth;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpServerOptions;
@@ -142,7 +143,7 @@ public final class ApiServerUtils {
     final Set<URI> listenUriSet = new HashSet<>(parseListeners(config));
     final List<URI> proxyProtocolListenUris = parseListenerStrings(config, sListeners);
 
-    for (URI u: proxyProtocolListenUris) {
+    for (URI u : proxyProtocolListenUris) {
       if (!listenUriSet.contains(u)) {
         throw new ConfigException(String.format("Listener %s is listed in %s but not in %s.", u,
             KsqlRestConfig.PROXY_PROTOCOL_LISTENERS_CONFIG,
@@ -159,7 +160,28 @@ public final class ApiServerUtils {
       final String keyStoreAlias,
       final ClientAuth clientAuth
   ) {
-    options.setUseAlpn(true).setSsl(true);
+    options.setSsl(true);
+
+    // Configure ALPN (Application-Layer Protocol Negotiation) for HTTP/2 support.
+    // In FIPS mode on platforms where OpenSSL native libraries are unavailable (e.g., ARM64),
+    // Netty falls back to JDK SSL with BouncyCastle JSSE. When ALPN is enabled in this scenario,
+    // Netty's BouncyCastleAlpnSslUtils tries to use reflection to access BouncyCastle internals,
+    // which fails in Java 21+ due to strong encapsulation (IllegalAccessException).
+    // Solution: Disable ALPN only when FIPS mode is enabled AND OpenSSL is unavailable.
+    // This means HTTP/2 won't work in this specific scenario, but HTTP/1.1 will function correctly.
+    final boolean fipsEnabled = ksqlRestConfig.isFipsEnabled();
+    if (fipsEnabled && !OpenSsl.isAvailable()) {
+      LOG.warn("FIPS mode is enabled but OpenSSL native libraries are not available. "
+          + "Disabling ALPN (HTTP/2) to avoid Netty/BouncyCastle compatibility issues. "
+          + "HTTP/1.1 will be used instead. Reason: " + OpenSsl.unavailabilityCause());
+      options.setUseAlpn(false);
+    } else {
+      options.setUseAlpn(true);
+      if (fipsEnabled) {
+        LOG.info("FIPS mode enabled with OpenSSL available. Using ALPN (HTTP/2).");
+      }
+    }
+
     if (ksqlRestConfig.getBoolean(KsqlRestConfig.KSQL_SERVER_SNI_CHECK_ENABLE)) {
       options.setSni(true);
     }

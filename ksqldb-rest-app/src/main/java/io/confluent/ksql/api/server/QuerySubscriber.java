@@ -16,6 +16,7 @@
 package io.confluent.ksql.api.server;
 
 import static io.confluent.ksql.rest.Errors.ERROR_CODE_SERVER_ERROR;
+import static io.confluent.ksql.rest.Errors.ERROR_CODE_TOO_MANY_REQUESTS;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.GenericRow;
@@ -25,6 +26,7 @@ import io.confluent.ksql.rest.entity.ConsistencyToken;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.PushContinuationToken;
 import io.confluent.ksql.util.KeyValueMetadata;
+import io.confluent.ksql.util.KsqlRateLimitException;
 import io.vertx.core.Context;
 import io.vertx.core.http.HttpServerResponse;
 import java.util.List;
@@ -111,10 +113,24 @@ public class QuerySubscriber extends BaseSubscriber<KeyValueMetadata<List<?>, Ge
         stringBuilder.append(s.getMessage());
       }
     }
+    // A rate-limit rejection reaches here in-stream (the response header is already committed,
+    // so it cannot be a 429 status). Code the frame retriable so a client can tell it apart
+    // from a genuine server fault and back off, rather than string-matching the message.
+    final int errorCode = causedByRateLimit(t) ? ERROR_CODE_TOO_MANY_REQUESTS
+        : ERROR_CODE_SERVER_ERROR;
     final KsqlErrorMessage errorResponse = new KsqlErrorMessage(
-        ERROR_CODE_SERVER_ERROR, stringBuilder.toString());
+        errorCode, stringBuilder.toString());
     log.error("Error in processing query {}", stringBuilder, t);
     queryStreamResponseWriter.writeError(errorResponse).end();
+  }
+
+  private static boolean causedByRateLimit(final Throwable t) {
+    for (Throwable c = t; c != null; c = c.getCause()) {
+      if (c instanceof KsqlRateLimitException) {
+        return true;
+      }
+    }
+    return false;
   }
 
   @Override

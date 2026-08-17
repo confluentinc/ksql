@@ -25,16 +25,16 @@ import static org.mockito.Mockito.when;
 
 import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.execution.runtime.RuntimeBuildContext;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.plan.ExecutionKeyFactory;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.ExecutionStepPropertiesV1;
-import io.confluent.ksql.execution.plan.PlanInfo;
 import io.confluent.ksql.execution.plan.KStreamHolder;
 import io.confluent.ksql.execution.plan.PlanBuilder;
+import io.confluent.ksql.execution.plan.PlanInfo;
 import io.confluent.ksql.execution.plan.StreamFilter;
+import io.confluent.ksql.execution.runtime.RuntimeBuildContext;
 import io.confluent.ksql.execution.transform.KsqlTransformer;
 import io.confluent.ksql.execution.transform.sqlpredicate.SqlPredicate;
 import io.confluent.ksql.function.FunctionRegistry;
@@ -44,7 +44,7 @@ import io.confluent.ksql.util.KsqlConfig;
 import java.util.Optional;
 import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.Named;
-import org.apache.kafka.streams.kstream.ValueTransformerWithKeySupplier;
+import org.apache.kafka.streams.processor.api.FixedKeyProcessorSupplier;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -102,7 +102,7 @@ public class StreamFilterBuilderTest {
     when(buildContext.getProcessingLogger(any())).thenReturn(processingLogger);
     when(sourceStep.getProperties()).thenReturn(sourceProperties);
     when(sourceKStream
-        .flatTransformValues(any(ValueTransformerWithKeySupplier.class), any(Named.class)))
+        .processValues(any(FixedKeyProcessorSupplier.class), any(Named.class)))
         .thenReturn(filteredKStream);
     when(predicateFactory.create(any(), any(), any(), any())).thenReturn(sqlPredicate);
     when(sqlPredicate.getTransformer(any())).thenReturn((KsqlTransformer) predicate);

@@ -70,13 +70,13 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.reactivestreams.Subscription;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class PushRouting implements AutoCloseable {
 
-  private static final Logger LOG = LoggerFactory.getLogger(PushRouting.class);
+  private static final Logger LOG = LogManager.getLogger(PushRouting.class);
 
   private static final long CLUSTER_CHECK_INTERVAL_MS = 1000;
   private static final long HOST_CACHE_EXPIRATION_MS = 1000;

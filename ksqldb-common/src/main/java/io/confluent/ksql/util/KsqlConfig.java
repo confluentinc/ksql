@@ -58,12 +58,12 @@ import org.apache.kafka.common.config.TopicConfig;
 import org.apache.kafka.common.config.internals.ConfluentConfigs;
 import org.apache.kafka.common.utils.AppInfoParser;
 import org.apache.kafka.streams.StreamsConfig;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 @EffectivelyImmutable
 public class KsqlConfig extends AbstractConfig {
-  private static final Logger LOG = LoggerFactory.getLogger(KsqlConfig.class);
+  private static final Logger LOG = LogManager.getLogger(KsqlConfig.class);
 
   public static final String KSQL_CONFIG_PROPERTY_PREFIX = "ksql.";
 
@@ -258,6 +258,12 @@ public class KsqlConfig extends AbstractConfig {
   public static final String KSQL_SECURITY_EXTENSION_DEFAULT = null;
   public static final String KSQL_SECURITY_EXTENSION_DOC = "A KSQL security extension class that "
       + "provides authorization to KSQL servers.";
+
+  public static final String KSQL_RESOURCE_EXTENSION_CLASS = "ksql.resource.extension.class";
+  public static final String KSQL_RESOURCE_EXTENSION_DEFAULT = null;
+  public static final String KSQL_RESOURCE_EXTENSION_DOC =
+      "A KSQL resource extension class that "
+      + "provides additional functionality to KSQL servers.";
 
   public static final String KSQL_ENABLE_ACCESS_VALIDATOR = "ksql.access.validator.enable";
   public static final String KSQL_ACCESS_VALIDATOR_ON = "on";
@@ -685,6 +691,25 @@ public class KsqlConfig extends AbstractConfig {
       + "INFO log line for each user-supplied property override. May be high-volume on hot "
       + "endpoints (one log line per override per request).";
 
+  public static final String KSQL_PROPERTIES_OVERRIDES_RANGE_VALIDATION_LOG_ENABLED =
+      "ksql.properties.overrides.range.validation.log.enabled";
+  private static final boolean KSQL_PROPERTIES_OVERRIDES_RANGE_VALIDATION_LOG_ENABLED_DEFAULT =
+      false;
+  private static final String KSQL_PROPERTIES_OVERRIDES_RANGE_VALIDATION_LOG_ENABLED_DOC =
+      "When true, logs a WARN for each accepted property override whose value falls outside the "
+      + "range KSQL intends to permit for that property. Checked only for properties that "
+      + "survived the name-based deny/allow list.";
+
+  public static final String KSQL_PROPERTIES_OVERRIDES_VALIDATION_RESTORE_ENABLED =
+          "ksql.properties.overrides.validation.restore.enabled";
+  private static final boolean KSQL_PROPERTIES_OVERRIDES_VALIDATION_RESTORE_ENABLED_DEFAULT = false;
+  private static final String KSQL_PROPERTIES_OVERRIDES_VALIDATION_RESTORE_ENABLED_DOC =
+          "When true, applies the list selected by " + KSQL_PROPERTIES_OVERRIDES_VALIDATION_MODE
+                  + " (the denylist by default, or the allowlist when mode=allowlist) to "
+                  + "property overrides found while restoring the commands from the command "
+                  + "topic on restart. A property that fails the check is dropped from the "
+                  + "restored query and logged";
+
   public static final String KSQL_TOTAL_CACHE_MAX_BYTES_BUFFERING =
       "ksql.query.persistent.max.bytes.buffering.total";
   public static final long KSQL_TOTAL_CACHE_MAX_BYTES_BUFFERING_DEFAULT = -1;
@@ -1063,10 +1088,12 @@ public class KsqlConfig extends AbstractConfig {
         ).define(
             KSQL_UDF_SECURITY_MANAGER_ENABLED,
             ConfigDef.Type.BOOLEAN,
-            true,
+            // SecurityManager is deprecated from java 21 onwards.
+            false,
             ConfigDef.Importance.LOW,
-            "Enable the security manager for UDFs. Default is true and will stop UDFs from"
-               + " calling System.exit or executing processes"
+            "Enable the security manager to stop UDFs from calling System.exit "
+                    + "or executing processes. Default is false as it is deprecated in Java 21. "
+                    + "This can be enabled only for Java versions less than 21."
         ).define(
             KSQL_INSERT_INTO_VALUES_ENABLED,
             Type.BOOLEAN,
@@ -1079,6 +1106,12 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_SECURITY_EXTENSION_DEFAULT,
             ConfigDef.Importance.LOW,
             KSQL_SECURITY_EXTENSION_DOC
+        ).define(
+            KSQL_RESOURCE_EXTENSION_CLASS,
+            Type.STRING,
+            KSQL_RESOURCE_EXTENSION_DEFAULT,
+            ConfigDef.Importance.LOW,
+            KSQL_RESOURCE_EXTENSION_DOC
         ).define(
             KSQL_DEFAULT_KEY_FORMAT_CONFIG,
             Type.STRING,
@@ -1470,6 +1503,20 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_PROPERTIES_OVERRIDES_LOG_DEFAULT,
             Importance.LOW,
             KSQL_PROPERTIES_OVERRIDES_LOG_DOC
+        )
+         .define(
+            KSQL_PROPERTIES_OVERRIDES_RANGE_VALIDATION_LOG_ENABLED,
+            Type.BOOLEAN,
+            KSQL_PROPERTIES_OVERRIDES_RANGE_VALIDATION_LOG_ENABLED_DEFAULT,
+            Importance.LOW,
+            KSQL_PROPERTIES_OVERRIDES_RANGE_VALIDATION_LOG_ENABLED_DOC
+         )
+        .define(
+            KSQL_PROPERTIES_OVERRIDES_VALIDATION_RESTORE_ENABLED,
+            Type.BOOLEAN,
+            KSQL_PROPERTIES_OVERRIDES_VALIDATION_RESTORE_ENABLED_DEFAULT,
+            Importance.LOW,
+            KSQL_PROPERTIES_OVERRIDES_VALIDATION_RESTORE_ENABLED_DOC
         )
         .define(
             KSQL_QUERY_STATUS_RUNNING_THRESHOLD_SECS,

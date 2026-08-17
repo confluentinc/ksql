@@ -24,9 +24,9 @@ import io.confluent.ksql.rest.entity.InsertError;
 import io.vertx.core.Context;
 import io.vertx.core.http.HttpServerResponse;
 import java.util.Objects;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.reactivestreams.Subscription;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * A reactive streams subscriber that subscribes to publishers of acks. As it receive acks it writes
@@ -34,7 +34,7 @@ import org.slf4j.LoggerFactory;
  */
 public class AcksSubscriber extends BaseSubscriber<InsertResult> {
 
-  private static final Logger log = LoggerFactory.getLogger(AcksSubscriber.class);
+  private static final Logger log = LogManager.getLogger(AcksSubscriber.class);
   private static final int REQUEST_BATCH_SIZE = 200;
 
   private final HttpServerResponse response;

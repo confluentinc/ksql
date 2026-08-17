@@ -41,8 +41,8 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Optional;
 import org.apache.commons.lang3.tuple.Pair;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * This class is the entrypoint to all migration-related tooling. This
@@ -69,7 +69,7 @@ import org.slf4j.LoggerFactory;
 )
 public final class Migrations {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(Migrations.class);
+  private static final Logger LOGGER = LogManager.getLogger(Migrations.class);
 
   private Migrations() {
 

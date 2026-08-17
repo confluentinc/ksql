@@ -20,8 +20,8 @@ import java.time.Instant;
 import java.util.Date;
 import java.util.concurrent.TimeUnit;
 import org.apache.kafka.common.security.oauthbearer.OAuthBearerToken;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * <p>
@@ -43,7 +43,7 @@ import org.slf4j.LoggerFactory;
 public class OAuthTokenCache {
 
   public static final float CACHE_EXPIRY_THRESHOLD = 0.8f;
-  private static final Logger log = LoggerFactory.getLogger(OAuthTokenCache.class);
+  private static final Logger log = LogManager.getLogger(OAuthTokenCache.class);
   private final short cacheExpiryBufferSeconds;
   private OAuthBearerToken currentToken;
 

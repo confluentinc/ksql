@@ -516,6 +516,28 @@ public class HARoutingTest {
   }
 
   @Test
+  public void shouldSkipQueuedRequestWhenAlreadyCancelled()
+      throws ExecutionException, InterruptedException {
+    // Given:
+    locate(location1, location2, location3, location4);
+    // The client has already disconnected/cancelled before the queued request is picked up.
+    when(disconnect.isDone()).thenReturn(true);
+
+    // When:
+    final CompletableFuture<Void> future = haRouting.handlePullQuery(
+        serviceContext, pullPhysicalPlan, statement, routingOptions,
+        pullQueryQueue, disconnect);
+    future.get();
+
+    // Then: no work is performed for the cancelled request and the queue is closed.
+    verify(pullPhysicalPlan, never()).execute(any(), any(), any());
+    verify(ksqlClient, never())
+        .makeQueryRequest(any(), any(), any(), any(), any(), any(), any());
+    assertThat(pullQueryQueue.size(), is(0));
+    assertThat(pullQueryQueue.isDone(), is(true));
+  }
+
+  @Test
   public void forwardingError_noRows() {
     // Given:
     locate(location4);

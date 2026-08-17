@@ -40,6 +40,7 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.ConsistencyOffsetVector;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlRateLimitException;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PushQueryMetadata;
 import io.confluent.ksql.util.PushQueryMetadata.ResultType;
@@ -286,6 +287,12 @@ public class QueryEndpoint {
         result.onException(future::completeExceptionally);
         result.onCompletion(future::complete);
         result.start();
+      } catch (KsqlRateLimitException e) {
+        // Rethrown unwrapped: wrapping it as a statement exception below would report a server
+        // at capacity as a malformed statement (HTTP 400), telling the client not to retry.
+        pullQueryMetrics.ifPresent(metrics -> metrics.recordErrorRate(1, result.getSourceType(),
+            result.getPlanType(), result.getRoutingNodeType()));
+        throw e;
       } catch (Exception e) {
         pullQueryMetrics.ifPresent(metrics -> metrics.recordErrorRate(1, result.getSourceType(),
             result.getPlanType(), result.getRoutingNodeType()));

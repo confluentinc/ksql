@@ -317,6 +317,29 @@ public class KsqlConfig extends AbstractConfig {
       "The maximum number of concurrent requests allowed for pull "
       + "queries on this host. Once the limit is hit, queries will fail immediately";
 
+  // --- KSQL-15212: pull-query queue bounding, cancellation and rejection semantics ---
+
+  public static final String KSQL_QUERY_PULL_COORDINATOR_QUEUE_CAPACITY_CONFIG
+      = "ksql.query.pull.coordinator.queue.capacity";
+  public static final Integer KSQL_QUERY_PULL_COORDINATOR_QUEUE_CAPACITY_DEFAULT
+      = Integer.MAX_VALUE;
+  public static final String KSQL_QUERY_PULL_COORDINATOR_QUEUE_CAPACITY_DOC
+      = "Maximum number of pull queries that may queue waiting for a coordinator thread. "
+      + "The default, Integer.MAX_VALUE, is effectively unbounded and preserves the previous "
+      + "behaviour of Executors.newFixedThreadPool. Set a positive value to bound the queue; "
+      + "requests arriving when a bounded queue is full are then rejected with a retriable error "
+      + "rather than queued.";
+
+  public static final String KSQL_QUERY_PULL_ROUTER_QUEUE_CAPACITY_CONFIG
+      = "ksql.query.pull.router.queue.capacity";
+  public static final Integer KSQL_QUERY_PULL_ROUTER_QUEUE_CAPACITY_DEFAULT
+      = Integer.MAX_VALUE;
+  public static final String KSQL_QUERY_PULL_ROUTER_QUEUE_CAPACITY_DOC
+      = "Maximum number of per-host fetches that may queue waiting for a router thread. "
+      + "The default, Integer.MAX_VALUE, is effectively unbounded. Set a positive value to bound "
+      + "the queue. See ksql.query.pull.coordinator.queue.capacity.";
+
+
   public static final String KSQL_QUERY_PULL_MAX_HOURLY_BANDWIDTH_MEGABYTES_CONFIG
       = "ksql.query.pull.max.hourly.bandwidth.megabytes";
   public static final Integer KSQL_QUERY_PULL_MAX_HOURLY_BANDWIDTH_MEGABYTES_DEFAULT
@@ -337,13 +360,17 @@ public class KsqlConfig extends AbstractConfig {
       = "ksql.query.pull.thread.pool.size";
   public static final Integer KSQL_QUERY_PULL_THREAD_POOL_SIZE_DEFAULT = 50;
   public static final String KSQL_QUERY_PULL_THREAD_POOL_SIZE_DOC =
-      "Size of thread pool used for coordinating pull queries";
+      "Size of thread pool used for coordinating pull queries. A query that fetches from a "
+      + "remote host occupies a coordinator thread for the whole fetch, so this bounds "
+      + "concurrent queries rather than concurrent work.";
 
   public static final String KSQL_QUERY_PULL_ROUTER_THREAD_POOL_SIZE_CONFIG
       = "ksql.query.pull.router.thread.pool.size";
   public static final Integer KSQL_QUERY_PULL_ROUTER_THREAD_POOL_SIZE_DEFAULT = 50;
   public static final String KSQL_QUERY_PULL_ROUTER_THREAD_POOL_SIZE_DOC =
-      "Size of thread pool used for routing pull queries";
+      "Size of thread pool used for routing pull queries. One thread is taken per host a "
+      + "query fetches from, so a query that fans out needs more of these than of "
+      + "ksql.query.pull.thread.pool.size.";
 
   public static final String KSQL_QUERY_PULL_TABLE_SCAN_ENABLED
       = "ksql.query.pull.table.scan.enabled";
@@ -1236,6 +1263,20 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_QUERY_PULL_MAX_CONCURRENT_REQUESTS_DEFAULT,
             Importance.LOW,
             KSQL_QUERY_PULL_MAX_CONCURRENT_REQUESTS_DOC
+        ).define(
+            KSQL_QUERY_PULL_COORDINATOR_QUEUE_CAPACITY_CONFIG,
+            Type.INT,
+            KSQL_QUERY_PULL_COORDINATOR_QUEUE_CAPACITY_DEFAULT,
+            ConfigDef.Range.atLeast(1),
+            Importance.MEDIUM,
+            KSQL_QUERY_PULL_COORDINATOR_QUEUE_CAPACITY_DOC
+        ).define(
+            KSQL_QUERY_PULL_ROUTER_QUEUE_CAPACITY_CONFIG,
+            Type.INT,
+            KSQL_QUERY_PULL_ROUTER_QUEUE_CAPACITY_DEFAULT,
+            ConfigDef.Range.atLeast(1),
+            Importance.MEDIUM,
+            KSQL_QUERY_PULL_ROUTER_QUEUE_CAPACITY_DOC
         )
         .define(
             KSQL_QUERY_PULL_MAX_HOURLY_BANDWIDTH_MEGABYTES_CONFIG,

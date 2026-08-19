@@ -222,7 +222,10 @@ public class PullQueryExecutorMetrics implements Closeable {
     this.routerServiceTimeSensor.record(TimeUnit.NANOSECONDS.toMicros(serviceNanos));
   }
 
-  /** A client disconnected before its response completed; the query still runs to completion. */
+  /**
+   * A client disconnected before its response completed. Whether the query is then cancelled or
+   * left to run to completion depends on ksql.query.pull.cancel.on.disconnect.enabled.
+   */
   public void recordClientDisconnected() {
     this.clientDisconnectedSensor.record(1);
   }

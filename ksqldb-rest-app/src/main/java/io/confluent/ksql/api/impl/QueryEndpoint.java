@@ -290,8 +290,8 @@ public class QueryEndpoint {
       } catch (KsqlRateLimitException e) {
         // Rethrown unwrapped: wrapping it as a statement exception below would report a server
         // at capacity as a malformed statement (HTTP 400), telling the client not to retry.
-        pullQueryMetrics.ifPresent(metrics -> metrics.recordErrorRate(1, result.getSourceType(),
-            result.getPlanType(), result.getRoutingNodeType()));
+        // Deliberately left out of the error metric: a retriable rejection is load shed, not a
+        // query failure, and a full queue is already counted by queue-rejected.
         throw e;
       } catch (Exception e) {
         pullQueryMetrics.ifPresent(metrics -> metrics.recordErrorRate(1, result.getSourceType(),

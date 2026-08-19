@@ -240,26 +240,18 @@ public class BufferedPublisherTest extends PublisherTestBase<String> {
   }
 
   @Test
-  public void shouldNotAllowSubscribeAfterError() throws Exception {
-    // Given
-    execOnContextAndWait(() -> getBufferedPublisher().sendError(new RuntimeException("boom")));
+  public void shouldDeliverErrorToSubscriberThatAttachesAfterError() throws Exception {
+    // Given: a failure arrives before any subscriber has attached
+    final RuntimeException boom = new RuntimeException("boom");
+    execOnContextAndWait(() -> getBufferedPublisher().sendError(boom));
 
-    AtomicBoolean failed = new AtomicBoolean();
-    execOnContextAndWait(() -> {
-      try {
-        TestSubscriber<String> subscriber = new TestSubscriber<>(context);
-        // When
-        getBufferedPublisher().subscribe(subscriber);
-        failed.set(true);
-      } catch (IllegalStateException e) {
-        // Then
-        if (!e.getMessage().contains("Cannot subscribe to failed publisher")
-            || !e.getMessage().contains("boom")) {
-          failed.set(true);
-        }
-      }
-    });
-    assertThat(failed.get(), equalTo(false));
+    // When: a subscriber subscribes afterwards
+    final TestSubscriber<String> subscriber = new TestSubscriber<>(context);
+    execOnContextAndWait(() -> getBufferedPublisher().subscribe(subscriber));
+
+    // Then: subscribe does not throw and the original failure is replayed via onError, so the
+    // subscriber can act on the real cause (rather than it being dropped in a pre-subscription race)
+    assertThat(subscriber.getError(), is(boom));
   }
 
   @Test

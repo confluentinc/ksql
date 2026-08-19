@@ -54,11 +54,10 @@ public abstract class BasePublisher<T> implements Publisher<T> {
    */
   @Override
   public void subscribe(final Subscriber<? super T> subscriber) {
-    if (isFailed()) {
-      throw new IllegalStateException(
-          "Cannot subscribe to failed publisher. Failure cause: " + failure);
-    }
     Objects.requireNonNull(subscriber);
+    // A failure may have arrived before this subscriber attached (e.g. a fast asynchronous
+    // rejection racing the subscription). Rather than throw here - which would drop that failure
+    // on the floor - proceed and let doSubscribe replay it to the subscriber via onError.
     if (VertxUtils.isEventLoopAndSameContext(ctx)) {
       doSubscribe(subscriber);
     } else {
@@ -171,8 +170,10 @@ public abstract class BasePublisher<T> implements Publisher<T> {
       sendError(new IllegalStateException("Exception encountered in onSubscribe", t));
     }
     if (isFailed()) {
-      sendError(new IllegalStateException(
-          "Cannot subscribe to failed publisher. Failure cause: " + failure));
+      // Replay the original failure to the subscriber so it can act on the real cause (e.g. map a
+      // rate-limit rejection to the right error code), instead of losing it to a pre-subscription
+      // race or masking it behind a generic IllegalStateException.
+      sendError(failure);
     } else if (hasSentComplete()) {
       sendComplete();
     }

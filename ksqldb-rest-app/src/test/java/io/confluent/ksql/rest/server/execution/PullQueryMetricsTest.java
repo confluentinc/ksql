@@ -317,6 +317,72 @@ public class PullQueryMetricsTest {
     assertThat(detailedValue, equalTo(5.0));
   }
 
+  @Test
+  public void shouldRecordCoordinatorQueueWait() {
+    // Given: 5 ms expressed in nanos, since the metric records microseconds
+    pullMetrics.recordCoordinatorQueueWait(5_000_000L);
+
+    // Then:
+    assertThat(getMetricValue("-coordinator-queue-wait-avg"), closeTo(5000.0, 0.1));
+    assertThat(getMetricValue("-coordinator-queue-wait-max"), closeTo(5000.0, 0.1));
+    assertThat(getMetricValue("-coordinator-queue-wait-p99"), greaterThan(0.0));
+  }
+
+  @Test
+  public void shouldRecordRouterQueueWait() {
+    // Given:
+    pullMetrics.recordRouterQueueWait(2_000_000L);
+
+    // Then:
+    assertThat(getMetricValue("-router-queue-wait-avg"), closeTo(2000.0, 0.1));
+    assertThat(getMetricValue("-router-queue-wait-max"), closeTo(2000.0, 0.1));
+  }
+
+  @Test
+  public void shouldRecordCoordinatorServiceTimeSeparatelyFromQueueWait() {
+    // Given: a query that queued for 5 ms then executed for 1 ms
+    pullMetrics.recordCoordinatorQueueWait(5_000_000L);
+    pullMetrics.recordCoordinatorServiceTime(1_000_000L);
+
+    // Then: the two are reported independently, which is the point of splitting them
+    assertThat(getMetricValue("-coordinator-queue-wait-avg"), closeTo(5000.0, 0.1));
+    assertThat(getMetricValue("-coordinator-service-time-avg"), closeTo(1000.0, 0.1));
+  }
+
+  @Test
+  public void shouldRecordClientDisconnects() {
+    // Given:
+    pullMetrics.recordClientDisconnected();
+    pullMetrics.recordClientDisconnected();
+
+    // Then:
+    assertThat(getMetricValue("-client-disconnected-total"), equalTo(2.0));
+    assertThat(getMetricValue("-client-disconnected-rate"), greaterThan(0.0));
+  }
+
+  @Test
+  public void shouldRecordQueueRejections() {
+    // Given:
+    pullMetrics.recordQueueRejected();
+    pullMetrics.recordQueueRejected();
+
+    // Then:
+    assertThat(getMetricValue("-queue-rejected-total"), equalTo(2.0));
+    assertThat(getMetricValue("-queue-rejected-rate"), greaterThan(0.0));
+  }
+
+  @Test
+  public void shouldCountClientAndForwardedArrivalsSeparately() {
+    // Given:
+    pullMetrics.recordRequestOffered(false);
+    pullMetrics.recordRequestOffered(false);
+    pullMetrics.recordRequestOffered(true);
+
+    // Then: a fanned-out query must not inflate client demand.
+    assertThat(getMetricValue("-offered-total"), equalTo(2.0));
+    assertThat(getMetricValue("-forwarded-in-total"), equalTo(1.0));
+  }
+
   private double getMetricValue(final String metricName) {
     final Metrics metrics = pullMetrics.getMetrics();
     return Double.parseDouble(

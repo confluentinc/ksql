@@ -28,6 +28,7 @@ import static io.confluent.ksql.rest.server.resources.KsqlRestExceptionMatchers.
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.FORBIDDEN;
 import static io.netty.handler.codec.http.HttpResponseStatus.SERVICE_UNAVAILABLE;
+import static io.netty.handler.codec.http.HttpResponseStatus.TOO_MANY_REQUESTS;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
@@ -93,6 +94,7 @@ import io.confluent.ksql.util.KeyValue;
 import io.confluent.ksql.util.KeyValueMetadata;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.KsqlRateLimitException;
 import io.confluent.ksql.util.PushQueryMetadata.ResultType;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.TransientQueryMetadata;
@@ -392,6 +394,29 @@ public class StreamedQueryResourceTest {
     assertThat(e, exceptionErrorMessage(errorMessage(
         containsString("Timed out while waiting for a previous command to execute"))));
     assertThat(e, exceptionErrorMessage(errorCode(is(Errors.ERROR_CODE_COMMAND_QUEUE_CATCHUP_TIMEOUT))));
+  }
+
+  @Test
+  public void shouldReturn429WhenPullQueryRateLimited() {
+    // Given: the pull-query path throws a rate limit (a full queue, or the qps/concurrency
+    // limiter, both of which raise KsqlRateLimitException from handleStatement).
+    when(queryExecutor.handleStatement(any(), any(), any(), any(), any(), any(), any(),
+        anyBoolean()))
+        .thenThrow(new KsqlRateLimitException(
+            "Pull query rejected: the coordinator queue is full."));
+
+    // When:
+    final EndpointResponse response = testResource.streamQuery(
+        securityContext,
+        new KsqlRequest(PULL_QUERY_STRING, Collections.emptyMap(), Collections.emptyMap(), null),
+        new CompletableFuture<>(),
+        Optional.empty(),
+        new MetricsCallbackHolder(),
+        context
+    );
+
+    // Then: 429, not a 400 "bad statement" — the client should back off and retry.
+    assertThat(response.getStatus(), CoreMatchers.is(TOO_MANY_REQUESTS.code()));
   }
 
   @Test

@@ -38,3 +38,8 @@ junit*/
 .tern-port
 ui/
 /ksqldb-functional-tests/src/test/resources/**/scratch.json
+
+# Local Development Files
+docker-compose.local.yml
+config/ksql-server.local.properties
+.env.local

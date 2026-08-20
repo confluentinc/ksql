@@ -12,6 +12,9 @@ then
 fi
 
 base_dir=$( cd "$( dirname "${BASH_SOURCE[0]}" )/.." && pwd )
+if [ "$base_dir" = "/" ]; then
+    base_dir=""
+fi
 : "${KSQL_CONFIG_DIR:="$base_dir/config"}"
 
 : "${KSQL_LOG4J_OPTS:=""}"

@@ -66,6 +66,9 @@ public class BlockingQueryPublisher extends BasePublisher<KeyValueMetadata<List<
   private boolean hitLimit;
   private volatile boolean closed;
   private volatile boolean started;
+  // Holds a pull-query failure that arrived before a subscriber attached, so it can be replayed
+  // on subscribe rather than lost to the subscribe race. Only touched on the Vert.x context.
+  private Throwable pendingError;
 
   public BlockingQueryPublisher(final Context ctx,
       final WorkerExecutor workerExecutor) {
@@ -114,7 +117,7 @@ public class BlockingQueryPublisher extends BasePublisher<KeyValueMetadata<List<
       }
     });
     this.queryHandle = queryHandle;
-    queryHandle.onException(t -> ctx.runOnContext(v -> sendError(t)));
+    queryHandle.onException(t -> ctx.runOnContext(v -> deliverError(t)));
   }
 
   @Override
@@ -180,6 +183,25 @@ public class BlockingQueryPublisher extends BasePublisher<KeyValueMetadata<List<
     if (!started) {
       started = true;
       executeOnWorker(queryHandle::start);
+    }
+    // A pull-query failure that raced ahead of this subscriber was held back (see deliverError);
+    // now that the subscriber is attached, deliver it so it reaches the subscriber's onError.
+    if (pendingError != null) {
+      final Throwable e = pendingError;
+      pendingError = null;
+      sendError(e);
+    }
+  }
+
+  // A pull query's result can fail asynchronously (e.g. a router-queue rejection) before the
+  // client's subscriber has attached. Calling sendError then would drop it (no subscriber) and
+  // mark the publisher failed, so the later subscribe would not deliver it. For pull queries we
+  // hold it until afterSubscribe; push queries keep the immediate behaviour.
+  private void deliverError(final Throwable t) {
+    if (isPullQuery && getSubscriber() == null) {
+      pendingError = t;
+    } else {
+      sendError(t);
     }
   }
 

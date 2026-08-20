@@ -260,6 +260,10 @@ public class Server {
     return config;
   }
 
+  public Optional<PullQueryExecutorMetrics> getPullQueryMetrics() {
+    return pullQueryMetrics;
+  }
+
   void registerQueryConnection(final HttpConnection connection) {
     this.connections.add(Objects.requireNonNull(connection));
   }

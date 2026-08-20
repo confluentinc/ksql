@@ -88,7 +88,7 @@ public class SelectValueMapperTest {
   @Test
   public void shouldInvokeEvaluatorsWithCorrectParams() {
     // When:
-    transformer.transform(KEY, VALUE, ctx);
+    transformer.transform(KEY, VALUE);
 
     // Then:
     final ArgumentCaptor<Supplier<String>> errorMsgCaptor = ArgumentCaptor.forClass(Supplier.class);
@@ -115,7 +115,7 @@ public class SelectValueMapperTest {
     when(col2.evaluate(any(), any(), any(), any())).thenReturn(300);
 
     // When:
-    final GenericRow result = transformer.transform(KEY, VALUE, ctx);
+    final GenericRow result = transformer.transform(KEY, VALUE);
 
     // Then:
     assertThat(result, equalTo(genericRow(100, 200, 300)));
@@ -124,7 +124,7 @@ public class SelectValueMapperTest {
   @Test
   public void shouldHandleNullRows() {
     // When:
-    final GenericRow result = transformer.transform(KEY, null, ctx);
+    final GenericRow result = transformer.transform(KEY, null);
 
     // Then:
     assertThat(result, is(nullValue()));

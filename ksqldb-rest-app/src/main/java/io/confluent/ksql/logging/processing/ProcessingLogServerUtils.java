@@ -26,12 +26,12 @@ import io.confluent.ksql.util.ReservedInternalTopics;
 import java.util.Optional;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaAndValue;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public final class ProcessingLogServerUtils {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(ProcessingLogServerUtils.class);
+  private static final Logger LOGGER = LogManager.getLogger(ProcessingLogServerUtils.class);
   private static final SqlSchemaFormatter FORMATTER =
       new SqlSchemaFormatter(w -> !IdentifierUtil.isValid(w), Option.AS_COLUMN_LIST);
 

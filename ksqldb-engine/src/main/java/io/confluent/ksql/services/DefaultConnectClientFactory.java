@@ -35,8 +35,8 @@ import java.util.Properties;
 import javax.net.ssl.SSLContext;
 import org.apache.kafka.common.config.ConfigException;
 import org.apache.kafka.common.security.ssl.DefaultSslEngineFactory;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * Factory for managing logic for creating Connect clients, including the auth header
@@ -57,7 +57,7 @@ import org.slf4j.LoggerFactory;
  */
 public class DefaultConnectClientFactory implements ConnectClientFactory {
 
-  private static final Logger log = LoggerFactory.getLogger(DefaultConnectClientFactory.class);
+  private static final Logger log = LogManager.getLogger(DefaultConnectClientFactory.class);
 
   private final KsqlConfig ksqlConfig;
   private final Optional<ConnectRequestHeadersExtension> requestHeadersExtension;

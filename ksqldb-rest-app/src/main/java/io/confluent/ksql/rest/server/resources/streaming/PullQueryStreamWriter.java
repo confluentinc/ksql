@@ -28,6 +28,7 @@ import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.entity.ConsistencyToken;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.KsqlRateLimitException;
 import io.confluent.ksql.util.KsqlStatementException;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -88,6 +89,11 @@ public class PullQueryStreamWriter implements StreamingOutput {
     });
     try {
       result.start();
+    } catch (KsqlRateLimitException e) {
+      // Escapes unwrapped so the resource can map it to 429. Wrapping it as a statement
+      // exception below would report a server at capacity as a malformed statement (400),
+      // telling the client not to retry.
+      throw e;
     } catch (Exception e) {
       throw new KsqlStatementException(
           e.getMessage() == null

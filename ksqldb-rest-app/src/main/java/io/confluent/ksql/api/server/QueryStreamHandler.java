@@ -102,6 +102,8 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
     if (request == null) {
       return;
     }
+    ConfigOverrideLogger.logOverrides(
+        routingContext.request().path(), request.configOverrides);
 
     final Optional<Boolean> internalRequest = ServerVerticle.isInternalRequest(routingContext);
     final MetricsCallbackHolder metricsCallbackHolder = new MetricsCallbackHolder();

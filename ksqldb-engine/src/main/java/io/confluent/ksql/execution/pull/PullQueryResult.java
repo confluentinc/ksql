@@ -25,6 +25,7 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.util.ConsistencyOffsetVector;
 import io.confluent.ksql.util.KsqlConstants.QuerySourceType;
 import io.confluent.ksql.util.KsqlConstants.RoutingNodeType;
+import io.confluent.ksql.util.KsqlRateLimitException;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -115,11 +116,25 @@ public class PullQueryResult {
       future.completeExceptionally(t);
       throw t;
     }
-    // Register the error metric
-    onException(t ->
-        pullQueryMetrics.ifPresent(metrics ->
-            metrics.recordErrorRate(1, sourceType, planType, routingNodeType))
-    );
+    // Register the error metric. A rate-limit rejection (a full router queue, which reaches here
+    // on this async path) is left out: it is load shed, not a query failure, and is already
+    // counted by queue-rejected.
+    onException(t -> {
+      if (causedByRateLimit(t)) {
+        return;
+      }
+      pullQueryMetrics.ifPresent(metrics ->
+          metrics.recordErrorRate(1, sourceType, planType, routingNodeType));
+    });
+  }
+
+  private static boolean causedByRateLimit(final Throwable t) {
+    for (Throwable c = t; c != null; c = c.getCause()) {
+      if (c instanceof KsqlRateLimitException) {
+        return true;
+      }
+    }
+    return false;
   }
 
   public void stop() {

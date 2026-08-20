@@ -42,6 +42,7 @@ import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.KsqlRateLimitException;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PushQueryMetadata;
 import io.confluent.ksql.version.metrics.ActivenessRegistrar;
@@ -234,6 +235,11 @@ public class StreamedQueryResource {
       }
     } catch (final TopicAuthorizationException e) {
       return errorHandler.accessDeniedFromKafkaResponse(e);
+    } catch (final KsqlRateLimitException e) {
+      // A full pull-query queue means the server is at capacity, not that the statement was
+      // bad. Map to 429 so the client backs off and retries rather than treating it as a
+      // malformed statement (400). Must precede the KsqlException catch below.
+      return Errors.tooManyRequests(e.getMessage());
     } catch (final KsqlStatementException e) {
       return Errors.badStatement(e.getRawMessage(), e.getSqlStatement());
     } catch (final KsqlException e) {

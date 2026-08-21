@@ -167,6 +167,14 @@ class KsMaterializedWindowTableIQv2 implements StreamsMaterializedWindowedTable 
       final KeyValueIterator<Windowed<GenericKey>, ValueAndTimestamp<GenericRow>> iterator =
           queryResult.getResult();
 
+      // Mirror the null-check from the key-based variant of this method. Kafka Streams IQv2
+      // documents a null result for partitions that hold no data within the requested bound;
+      // without this guard the subsequent iterator::close method-handle creation NPEs.
+      if (iterator == null) {
+        return KsMaterializedQueryResult.rowIteratorWithPosition(
+            Collections.emptyIterator(), queryResult.getPosition());
+      }
+
       return KsMaterializedQueryResult.rowIteratorWithPosition(
           Streams.stream(IteratorUtil.onComplete(iterator, iterator::close))
               .map(next -> {

@@ -149,6 +149,13 @@
             <groupId>io.netty</groupId>
             <artifactId>netty-tcnative-fips-boringssl-static</artifactId>
         </dependency>
+        <!-- Only a linux-x86_64 native build of the FIPS artifact is currently published
+             internally; see the FIPS Compliance comment in the root pom.xml. -->
+        <dependency>
+            <groupId>io.netty</groupId>
+            <artifactId>netty-tcnative-fips-boringssl-static</artifactId>
+            <classifier>linux-x86_64</classifier>
+        </dependency>
 
         <dependency>
             <groupId>io.netty</groupId>

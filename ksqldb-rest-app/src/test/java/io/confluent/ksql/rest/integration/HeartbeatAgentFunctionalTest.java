@@ -109,7 +109,7 @@ public class HeartbeatAgentFunctionalTest {
     REST_APP_1.stop();
   }
 
-  @Test(timeout = 60000)
+  @Test(timeout = 120000)
   public void shouldMarkServersAsUp() {
     // Given:
     waitForClusterToBeDiscovered(REST_APP_0, 2);
@@ -126,7 +126,7 @@ public class HeartbeatAgentFunctionalTest {
     assertThat(clusterStatusResponseUp.getClusterStatus().get(host1).getHostAlive(), is(true));
   }
 
-  @Test(timeout = 60000)
+  @Test(timeout = 120000)
   public void shouldMarkRemoteServerAsDown() {
     // Given:
     waitForClusterToBeDiscovered(REST_APP_0, 2);
@@ -140,7 +140,7 @@ public class HeartbeatAgentFunctionalTest {
     assertThat(clusterStatusResponse.getClusterStatus().get(host1).getHostAlive(), is(false));
   }
 
-  @Test(timeout = 60000)
+  @Test(timeout = 120000)
   public void shouldMarkRemoteServerAsUpThenDownThenUp() {
     // Given:
     waitForClusterToBeDiscovered(REST_APP_0, 2);

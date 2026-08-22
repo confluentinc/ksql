@@ -93,41 +93,49 @@ public final class MetaStoreImpl implements MutableMetaStore {
 
   @Override
   public void putSource(final DataSource dataSource, final boolean allowReplace) {
-    final SourceInfo existing = dataSources.get(dataSource.getName());
-    if (existing != null && !allowReplace) {
-      final SourceName name = dataSource.getName();
-      final String newType = dataSource.getDataSourceType().getKsqlType().toLowerCase();
-      final String existingType = existing.source.getDataSourceType().getKsqlType().toLowerCase();
+    // Hold metaStoreLock for the full check-then-act sequence to match the locking discipline
+    // of deleteSource() and addSourceReferences(). Without the lock, two concurrent
+    // putSource(sameName, allowReplace=false) calls can both observe existing == null and
+    // both put, silently overwriting without the expected "already exists" error; or a put
+    // can race with a delete and resurrect a source the operator believed gone.
+    synchronized (metaStoreLock) {
+      final SourceInfo existing = dataSources.get(dataSource.getName());
+      if (existing != null && !allowReplace) {
+        final SourceName name = dataSource.getName();
+        final String newType = dataSource.getDataSourceType().getKsqlType().toLowerCase();
+        final String existingType =
+            existing.source.getDataSourceType().getKsqlType().toLowerCase();
 
-      throw new KsqlException(String.format(
-          "Cannot add %s '%s': A %s with the same name already exists",
-          newType, name.text(), existingType));
-    } else if (existing != null) {
-      existing.source.canUpgradeTo(dataSource).ifPresent(msg -> {
-        throw new KsqlException("Cannot upgrade data source: " + msg);
+        throw new KsqlException(String.format(
+            "Cannot add %s '%s': A %s with the same name already exists",
+            newType, name.text(), existingType));
+      } else if (existing != null) {
+        existing.source.canUpgradeTo(dataSource).ifPresent(msg -> {
+          throw new KsqlException("Cannot upgrade data source: " + msg);
+        });
+      }
+
+      // Replace the dataSource if one exists, which may contain changes in the Schema, with
+      // a copy of the previous source info
+      dataSources.put(dataSource.getName(),
+          (existing != null) ? existing.copyWith(dataSource) : new SourceInfo(dataSource));
+
+      LOG.info("Source {} created on the metastore", dataSource.getName().text());
+
+      // Re-build the DROP constraints if existing sources have references to this new source.
+      // This logic makes sure that drop constraints are set back if sources were deleted
+      // during the metastore restoration (See deleteSource()).
+      dataSources.forEach((name, info) -> {
+        info.references.forEach(ref -> {
+          if (ref.equals(dataSource.getName())) {
+            LOG.debug("Add a drop constraint reference back to source '{}' from source '{}'",
+                dataSource.getName().text(), name.text());
+
+            addConstraint(dataSource.getName(), name);
+          }
+        });
       });
     }
-
-    // Replace the dataSource if one exists, which may contain changes in the Schema, with
-    // a copy of the previous source info
-    dataSources.put(dataSource.getName(),
-        (existing != null) ? existing.copyWith(dataSource) : new SourceInfo(dataSource));
-
-    LOG.info("Source {} created on the metastore", dataSource.getName().text());
-
-    // Re-build the DROP constraints if existing sources have references to this new source.
-    // This logic makes sure that drop constraints are set back if sources were deleted during
-    // the metastore restoration (See deleteSource()).
-    dataSources.forEach((name, info) -> {
-      info.references.forEach(ref -> {
-        if (ref.equals(dataSource.getName())) {
-          LOG.debug("Add a drop constraint reference back to source '{}' from source '{}'",
-              dataSource.getName().text(), name.text());
-
-          addConstraint(dataSource.getName(), name);
-        }
-      });
-    });
   }
 
   @Override

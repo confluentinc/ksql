@@ -35,17 +35,15 @@ import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
 
 /**
  * Runs the json functional tests defined under
  * `ksql-functional-tests/src/test/resources/query-validation-tests`.
  *
+ * <p>Not directly executable - run via the batch subclasses in the {@code batches} package.
+ *
  * See `ksql-functional-tests/README.md` for more info.
  */
-@RunWith(Parameterized.class)
 public class QueryTranslationTest {
 
   // Define this in the JVM to only test against the latest version, i.e. no historical plans
@@ -54,8 +52,7 @@ public class QueryTranslationTest {
   private static final Path QUERY_VALIDATION_TEST_DIR = Paths.get("query-validation-tests");
 
   @SuppressWarnings("UnstableApiUsage")
-  @Parameterized.Parameters(name = "{0}")
-  public static Collection<Object[]> data() {
+  protected static Collection<Object[]> data(final int totalBatches, final int batch) {
     final boolean latestOnly = true;  //System.getProperties().containsKey(LATEST_ONLY_SWITCH);
 
     final Stream<TestCase> testCases = latestOnly
@@ -65,10 +62,15 @@ public class QueryTranslationTest {
             PlannedTestLoader.load()
         );
 
-    return
-        testCases
-            .map(testCase -> new Object[]{testCase.getName(), testCase})
-            .collect(Collectors.toCollection(ArrayList::new));
+    final List<Object[]> all = testCases
+        .map(testCase -> new Object[]{testCase.getName(), testCase})
+        .collect(Collectors.toCollection(ArrayList::new));
+
+    final int testsPerBatch = all.size() / totalBatches;
+    return all.subList(
+        testsPerBatch * batch,
+        batch < totalBatches - 1 ? testsPerBatch * (batch + 1) : all.size()
+    );
   }
 
   public static Stream<TestCase> findTestCases() {
@@ -87,8 +89,7 @@ public class QueryTranslationTest {
     this.testCase = requireNonNull(testCase, "testCase");
   }
 
-  @Test
-  public void shouldBuildAndExecuteQueries() {
+  protected void shouldBuildAndExecuteQueries() {
     EndToEndEngineTestUtil.shouldBuildAndExecuteQuery(testCase);
   }
 

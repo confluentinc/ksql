@@ -206,16 +206,15 @@ public class InteractiveStatementExecutor {
 
         final KsqlConfig config = ksqlEngine.getKsqlConfig();
         if (config.getBoolean(KsqlConfig.KSQL_PROPERTIES_OVERRIDES_VALIDATION_RESTORE_ENABLED)) {
-
           final Map<String, Object> filteredRawOverrides =
               new RestorePropertyOverrideFilter(config)
               .filter("command_topic_restore", queryId, rawOverrides);
           overwriteProperties = PropertiesUtil.coerceTypes(filteredRawOverrides, true);
-          ConfigOverrideLogger.logRangeViolations(
-                  "command_topic_restore", Optional.of(queryId), overwriteProperties);
         } else {
           overwriteProperties = command.getOverwritePropertiesForExecution();
         }
+        ConfigOverrideLogger.logRangeViolations(
+                "command_topic_restore", Optional.of(queryId), overwriteProperties);
       } else {
         overwriteProperties = command.getOverwritePropertiesForExecution();
       }

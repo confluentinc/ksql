@@ -32,17 +32,20 @@ public class PullQueryConfigRoutingOptions implements RoutingOptions {
   private final KsqlConfig ksqlConfig;
   private final ImmutableMap<String, ?> configOverrides;
   private final ImmutableMap<String, ?> requestProperties;
+  private final boolean isInternalRequest;
 
   public PullQueryConfigRoutingOptions(
       final KsqlConfig ksqlConfig,
       final Map<String, ?> configOverrides,
-      final Map<String, ?> requestProperties
+      final Map<String, ?> requestProperties,
+      final boolean isInternalRequest
   ) {
     this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
     this.configOverrides = ImmutableMap.copyOf(configOverrides);
     this.requestProperties = ImmutableMap.copyOf(
         Objects.requireNonNull(requestProperties, "requestProperties")
     );
+    this.isInternalRequest = isInternalRequest;
   }
 
   private long getLong() {
@@ -58,6 +61,9 @@ public class PullQueryConfigRoutingOptions implements RoutingOptions {
   }
 
   public boolean getIsDebugRequest() {
+    if (!isInternalRequest) {
+      return false;
+    }
     return Optional.ofNullable(
         (Boolean) requestProperties.get(KsqlRequestConfig.KSQL_DEBUG_REQUEST)
     ).orElse(KsqlRequestConfig.KSQL_DEBUG_REQUEST_DEFAULT);

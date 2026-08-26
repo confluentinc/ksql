@@ -17,6 +17,7 @@ package io.confluent.ksql.execution.codegen.helpers;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.InListExpression;
 import io.confluent.ksql.execution.expression.tree.InPredicate;
@@ -25,7 +26,6 @@ import io.confluent.ksql.execution.util.CoercionUtil;
 import io.confluent.ksql.execution.util.ExpressionTypeManager;
 import io.confluent.ksql.schema.ksql.SqlBooleans;
 import io.confluent.ksql.schema.ksql.types.SqlType;
-import io.confluent.ksql.util.KsqlException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.Iterator;
@@ -226,22 +226,21 @@ public final class InListEvaluator {
     return requiredValue.equals(parsed);
   }
 
+  @SuppressFBWarnings(
+      value = "NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE",
+      justification = "requiredValue's runtime class is constrained by KSQL's schema to one of"
+          + " the four numeric SqlBaseTypes (INTEGER/BIGINT/DOUBLE/DECIMAL), each of which has a"
+          + " corresponding entry in WIDENERS, so the lookup cannot return null for a"
+          + " well-formed query."
+  )
   private static boolean numbersMatch(
       final Number requiredValue,
       final Number possibleMatch
   ) {
-    if (possibleMatch.getClass().equals(requiredValue.getClass())) {
-      return requiredValue.equals(possibleMatch);
-    }
+    final Number possible = possibleMatch.getClass().equals(requiredValue.getClass())
+        ? possibleMatch
+        : WIDENERS.get(requiredValue.getClass()).apply(possibleMatch, requiredValue);
 
-    final BiFunction<Number, Number, ? extends Number> widener =
-        WIDENERS.get(requiredValue.getClass());
-    if (widener == null) {
-      throw new KsqlException(
-          "Unsupported number type in IN list comparison: " + requiredValue.getClass());
-    }
-
-    final Number possible = widener.apply(possibleMatch, requiredValue);
     return requiredValue.equals(possible);
   }
 

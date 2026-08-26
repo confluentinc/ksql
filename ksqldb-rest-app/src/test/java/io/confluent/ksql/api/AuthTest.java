@@ -56,13 +56,13 @@ import org.apache.kafka.common.acl.AclOperation;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 @RunWith(CoreApiTestRunner.class)
 public class AuthTest extends ApiTest {
 
-  protected static final Logger log = LoggerFactory.getLogger(AuthTest.class);
+  protected static final Logger log = LogManager.getLogger(AuthTest.class);
 
   private static final String PROPS_JAAS_REALM = "KsqlServer-Props";
   private static final String KSQL_RESOURCE = "ksql-user";

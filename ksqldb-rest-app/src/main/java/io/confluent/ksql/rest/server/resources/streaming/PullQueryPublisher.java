@@ -30,11 +30,11 @@ import io.confluent.ksql.util.KeyValueMetadata;
 import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 class PullQueryPublisher implements Flow.Publisher<Collection<StreamedRow>> {
-  private static final Logger LOG = LoggerFactory.getLogger(PullQueryPublisher.class);
+  private static final Logger LOG = LogManager.getLogger(PullQueryPublisher.class);
 
   private final ListeningScheduledExecutorService exec;
   private final PullQueryResult result;

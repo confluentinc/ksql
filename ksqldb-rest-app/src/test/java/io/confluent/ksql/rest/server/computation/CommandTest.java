@@ -135,4 +135,88 @@ public class CommandTest {
         Matchers.equalTo((short) 3)
     );
   }
+
+  @Test
+  public void shouldMigrateLegacyValuesInRawOverwriteProperties() {
+    // Given:
+    final Command command = new Command(
+        "CREATE STREAM test AS SELECT * FROM source;",
+        ImmutableMap.of("processing.guarantee", "exactly_once"),
+        Collections.emptyMap(),
+        Optional.empty()
+    );
+
+    // When:
+    final Map<String, Object> properties = command.getRawOverwritePropertiesForExecution();
+
+    // Then: the raw accessor skips ConfigDef validation, but still migrates legacy values.
+    assertThat(properties.get("processing.guarantee"), equalTo("exactly_once_v2"));
+  }
+
+  @Test
+  public void shouldNotValidateValuesInRawOverwriteProperties() {
+    // Given: a stored value that ConfigDef rejects for this property.
+    final Command command = new Command(
+        "test statement;",
+        ImmutableMap.of("ksql.internal.topic.replicas", "not-a-number"),
+        Collections.emptyMap(),
+        Optional.empty()
+    );
+
+    // When:
+    final Map<String, Object> raw = command.getRawOverwritePropertiesForExecution();
+
+    // Then: the raw accessor passes it through untouched. This is the whole reason it exists -
+    // the restore path logs and filters overrides before anything can reject them.
+    assertThat(raw.get("ksql.internal.topic.replicas"), equalTo("not-a-number"));
+
+    // And: the coercing accessor does reject it, which is the behaviour being avoided.
+    assertThrows(
+        RuntimeException.class,
+        command::getOverwritePropertiesForExecution
+    );
+  }
+
+  @Test
+  public void shouldNotMigrateModernProcessingGuaranteeValues() {
+    // Given: Command with modern processing guarantee values
+    final Command command1 = new Command(
+        "CREATE STREAM test AS SELECT * FROM source;",
+        ImmutableMap.of("processing.guarantee", "exactly_once_v2"),
+        Collections.emptyMap(),
+        Optional.empty()
+    );
+    final Command command2 = new Command(
+        "CREATE STREAM test AS SELECT * FROM source;",
+        ImmutableMap.of("processing.guarantee", "at_least_once"),
+        Collections.emptyMap(),
+        Optional.empty()
+    );
+
+    // When: Getting overwrite properties
+    final Map<String, Object> properties1 = command1.getOverwritePropertiesForExecution();
+    final Map<String, Object> properties2 = command2.getOverwritePropertiesForExecution();
+
+    // Then: Should remain unchanged
+    assertThat(properties1.get("processing.guarantee"), equalTo("exactly_once_v2"));
+    assertThat(properties2.get("processing.guarantee"), equalTo("at_least_once"));
+  }
+
+  @Test
+  public void shouldHandleCommandWithNoProcessingGuarantee() {
+    // Given: Command without processing.guarantee property
+    final Command command = new Command(
+        "CREATE STREAM test AS SELECT * FROM source;",
+        ImmutableMap.of("num.stream.threads", 4),
+        Collections.emptyMap(),
+        Optional.empty()
+    );
+
+    // When: Getting overwrite properties
+    final Map<String, Object> properties = command.getOverwritePropertiesForExecution();
+
+    // Then: Should not add processing.guarantee
+    assertThat(properties.containsKey("processing.guarantee"), is(false));
+    assertThat(properties.get("num.stream.threads"), equalTo(4));
+  }
 }

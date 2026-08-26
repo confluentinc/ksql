@@ -13,11 +13,13 @@
 package io.confluent.ksql.logging.query;
 
 import io.confluent.ksql.util.QueryGuid;
+import org.apache.logging.log4j.message.Message;
 
-public final class QueryLoggerMessage {
+public final class QueryLoggerMessage implements Message {
   private Object message;
   private String query;
-  private QueryGuid queryGuid;
+  private transient QueryGuid queryGuid;
+  private static final long serialVersionUID = 1L;
 
   public QueryLoggerMessage(final Object message, final String query) {
     this.message = message;
@@ -28,6 +30,26 @@ public final class QueryLoggerMessage {
     this.message = message;
     this.query = query;
     this.queryGuid = guid;
+  }
+
+  @Override
+  public String getFormattedMessage() {
+    return toString();
+  }
+
+  @Override
+  public String getFormat() {
+    return toString();
+  }
+
+  @Override
+  public Object[] getParameters() {
+    return new Object[0];
+  }
+
+  @Override
+  public Throwable getThrowable() {
+    return null;
   }
 
   public Object getMessage() {

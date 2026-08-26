@@ -28,7 +28,7 @@ import org.apache.hc.core5.http.ClassicHttpResponse;
 import org.apache.hc.core5.http.HttpEntity;
 import org.apache.hc.core5.http.HttpStatus;
 import org.junit.Test;
-import org.slf4j.Logger;
+import org.apache.logging.log4j.Logger;
 
 public class KsqlVersionCheckerResponseHandlerTest {
 

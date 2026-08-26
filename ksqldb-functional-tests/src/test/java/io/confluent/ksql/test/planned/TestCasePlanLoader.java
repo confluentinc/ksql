@@ -107,7 +107,8 @@ public final class TestCasePlanLoader {
    * @param testCase the test case to build plans for
    * @return the built plan.
    */
-  public static TestCasePlan currentForTestCase(final TestCase testCase) {
+  public static TestCasePlan currentForTestCase(final TestCase testCase,
+      final boolean validateResults) {
     return buildStatementsInTestCase(
         testCase,
         CURRENT_VERSION,
@@ -117,7 +118,7 @@ public final class TestCasePlanLoader {
             testCase.getOriginalFileName().toString(),
             testCase.getName()
         ),
-        true
+        validateResults
     );
   }
 

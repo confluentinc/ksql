@@ -107,7 +107,11 @@
         <java.version>17</java.version>
         <apache.directory.server.version>2.0.0-M22</apache.directory.server.version>
         <apache.directory.api.version>1.0.0-M33</apache.directory.api.version>
-        <apache.httpcomponents.version>5.4.3</apache.httpcomponents.version>
+        <apache.httpcomponents.version>5.6.3</apache.httpcomponents.version>
+        <!-- httpclient5 5.4.3 pulled this in transitively; 5.6.3 no longer does,
+             and ksqldb-engine's Encode/MD5 UDFs use it directly, so it must be
+             declared explicitly now. -->
+        <commons-codec.version>1.22.1</commons-codec.version>
         <confluent.maven.repo>https://packages.confluent.io/maven/</confluent.maven.repo>
         <exec-maven-plugin.version>1.2.1</exec-maven-plugin.version>
         <podam.version>6.0.2.RELEASE</podam.version>
@@ -143,15 +147,15 @@
         <io.confluent.ksql.version>8.2.4-0</io.confluent.ksql.version>
         <io.confluent.schema-registry.version>${confluent.version.range}</io.confluent.schema-registry.version>
         <netty-tcnative-fips-version>0.123.0</netty-tcnative-fips-version>
-        <netty-tcnative-version>2.0.78.Final</netty-tcnative-version>
+        <netty-tcnative-version>2.0.81.Final</netty-tcnative-version>
         <!-- We normally get this from common, but Vertx is built against this -->
         <!-- Note: `netty` depends on `tcnative` and if we bump `netty`
              we might need to bump `tcnative`, too.
              Please check top level `pom.xml` at https://github.com/netty/netty
              for the netty version we bump to (ie, corresponding git tag),
              to find the correct `tcnative` version. -->
-        <netty.version>4.1.136.Final</netty.version>
-        <netty-codec-http2-version>4.1.136.Final</netty-codec-http2-version>
+        <netty.version>4.1.137.Final</netty.version>
+        <netty-codec-http2-version>4.1.137.Final</netty-codec-http2-version>
         <jersey-common>3.1.10</jersey-common>
         <multi-threaded-testing.forkCount>3</multi-threaded-testing.forkCount>
         <kafka.version>${ce.kafka.version}</kafka.version>
@@ -172,6 +176,11 @@
                 <scope>import</scope>
             </dependency>
             <!-- Cross-submodule dependencies -->
+            <dependency>
+                <groupId>commons-codec</groupId>
+                <artifactId>commons-codec</artifactId>
+                <version>${commons-codec.version}</version>
+            </dependency>
             <dependency>
                 <groupId>org.apache.logging.log4j</groupId>
                 <artifactId>log4j-core</artifactId>

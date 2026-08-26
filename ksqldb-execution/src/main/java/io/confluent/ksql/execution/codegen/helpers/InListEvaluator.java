@@ -25,6 +25,7 @@ import io.confluent.ksql.execution.util.CoercionUtil;
 import io.confluent.ksql.execution.util.ExpressionTypeManager;
 import io.confluent.ksql.schema.ksql.SqlBooleans;
 import io.confluent.ksql.schema.ksql.types.SqlType;
+import io.confluent.ksql.util.KsqlException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.Iterator;
@@ -229,10 +230,18 @@ public final class InListEvaluator {
       final Number requiredValue,
       final Number possibleMatch
   ) {
-    final Number possible = possibleMatch.getClass().equals(requiredValue.getClass())
-        ? possibleMatch
-        : WIDENERS.get(requiredValue.getClass()).apply(possibleMatch, requiredValue);
+    if (possibleMatch.getClass().equals(requiredValue.getClass())) {
+      return requiredValue.equals(possibleMatch);
+    }
 
+    final BiFunction<Number, Number, ? extends Number> widener =
+        WIDENERS.get(requiredValue.getClass());
+    if (widener == null) {
+      throw new KsqlException(
+          "Unsupported number type in IN list comparison: " + requiredValue.getClass());
+    }
+
+    final Number possible = widener.apply(possibleMatch, requiredValue);
     return requiredValue.equals(possible);
   }
 

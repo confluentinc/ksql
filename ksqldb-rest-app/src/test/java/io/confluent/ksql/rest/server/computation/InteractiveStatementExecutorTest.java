@@ -31,7 +31,6 @@ import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -1117,9 +1116,11 @@ public class InteractiveStatementExecutorTest {
       // Then: The audit log still fires - it sits outside the gate.
       configOverrideLogger.verify(() -> ConfigOverrideLogger.logOverrides(
                 eq("command_topic_restore"), any(), any()));
-      // But no filtering and no range check either.
-      configOverrideLogger.verify(
-          () -> ConfigOverrideLogger.logRangeViolations(any(), any(), any()), never());
+      // And: the range check also fires
+      configOverrideLogger.verify(() -> ConfigOverrideLogger.logRangeViolations(
+          eq("command_topic_restore"),
+          eq(Optional.of(COMMAND_ID.toString())),
+          any()), times(1));
     }
 
     // And: every stored override reaches the query untouched.

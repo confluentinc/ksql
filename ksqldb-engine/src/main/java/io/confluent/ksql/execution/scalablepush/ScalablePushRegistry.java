@@ -66,6 +66,12 @@ import org.apache.logging.log4j.Logger;
  * reads from the persistent query's output topic, reading rows. These rows are then fed to any
  * registered ProcessingQueues where they are eventually passed on to scalable push queries.
  */
+@SuppressFBWarnings(
+    value = "USO_UNSAFE_METHOD_SYNCHRONIZATION",
+    justification = "This registry is only ever constructed via the static create() factory and"
+        + " handed to internal engine code; it is never exposed to untrusted callers who could"
+        + " lock on its monitor, so synchronizing on 'this' across its instance methods is safe."
+)
 public class ScalablePushRegistry {
 
   private static final Logger LOG = LogManager.getLogger(ScalablePushRegistry.class);

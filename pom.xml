@@ -108,7 +108,7 @@
         <apache.directory.server.version>2.0.0-M22</apache.directory.server.version>
         <apache.directory.api.version>1.0.0-M33</apache.directory.api.version>
         <apache.httpcomponents.version>5.6.3</apache.httpcomponents.version>
-        <!-- httpclient5 5.4.3 pulled this in transitively; 5.6.3 no longer does,
+        <!-- httpclient5 5.4.3 pulled this in transitively, but 5.6.3 no longer does,
              and ksqldb-engine's Encode/MD5 UDFs use it directly, so it must be
              declared explicitly now. -->
         <commons-codec.version>1.22.1</commons-codec.version>
@@ -147,15 +147,15 @@
         <apache.io.version>2.11.0</apache.io.version>
         <io.confluent.ksql.version>8.0.2</io.confluent.ksql.version>
         <io.confluent.schema-registry.version>${confluent.version.range}</io.confluent.schema-registry.version>
-        <netty-tcnative-version>2.0.78.Final</netty-tcnative-version>
+        <netty-tcnative-version>2.0.81.Final</netty-tcnative-version>
         <!-- We normally get this from common, but Vertx is built against this -->
         <!-- Note: `netty` depends on `tcnative` and if we bump `netty`
              we might need to bump `tcnative`, too.
              Please check top level `pom.xml` at https://github.com/netty/netty
              for the netty version we bump to (ie, corresponding git tag),
              to find the correct `tcnative` version. -->
-        <netty.version>4.1.136.Final</netty.version>
-        <netty-codec-http2-version>4.1.136.Final</netty-codec-http2-version>
+        <netty.version>4.1.137.Final</netty.version>
+        <netty-codec-http2-version>4.1.137.Final</netty-codec-http2-version>
         <jersey-common>3.1.10</jersey-common>
         <multi-threaded-testing.forkCount>3</multi-threaded-testing.forkCount>
         <kafka.version>${ce.kafka.version}</kafka.version>

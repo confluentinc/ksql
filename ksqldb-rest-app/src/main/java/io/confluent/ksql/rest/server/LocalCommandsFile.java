@@ -16,6 +16,7 @@
 package io.confluent.ksql.rest.server;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.util.KsqlException;
 import java.io.Closeable;
 import java.io.File;
@@ -31,6 +32,13 @@ import java.util.Objects;
 /**
  * Represents a single file of commands issued to this node.
  */
+@SuppressFBWarnings(
+    value = "USO_UNSAFE_METHOD_SYNCHRONIZATION",
+    justification = "This file handle is only ever constructed via the static createReadonly()/"
+        + "createWriteable() factories and handed to internal server code; it is never exposed"
+        + " to untrusted callers who could lock on its monitor, so synchronizing on 'this' is"
+        + " safe."
+)
 public final class LocalCommandsFile  implements Closeable {
 
   private static final ObjectMapper MAPPER = new ObjectMapper();

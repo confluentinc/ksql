@@ -468,6 +468,12 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable, KsqlConfigur
     }
   }
 
+  @SuppressFBWarnings(
+      value = "NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE",
+      justification = "startOffsetsForStreamPullQuery is built from the same"
+          + " topicDescription.partitions() as partitionResultMap, so every key looked up here"
+          + " is guaranteed to be present and the map lookup cannot return null."
+  )
   private ImmutableMap<TopicPartition, Long> getEndOffsetsForStreamPullQuery(
       final Admin admin,
       final TopicDescription topicDescription) {

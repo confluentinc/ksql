@@ -150,11 +150,23 @@ class UdafFactoryInvoker implements FunctionSignature {
   }
 
   @Override
+  @SuppressFBWarnings(
+      value = "EI_EXPOSE_REP",
+      justification = "paramTypes is derived once from the UDAF factory method's signature at"
+          + " construction and is never mutated afterwards, so exposing the same immutable-in-"
+          + "practice list avoids needless defensive copies on every call."
+  )
   public List<ParamType> parameters() {
     return paramTypes;
   }
 
   @Override
+  @SuppressFBWarnings(
+      value = "EI_EXPOSE_REP",
+      justification = "params is derived once from the UDAF factory method's signature at"
+          + " construction and is never mutated afterwards, so exposing the same immutable-in-"
+          + "practice list avoids needless defensive copies on every call."
+  )
   public List<ParameterInfo> parameterInfo() {
     return params;
   }

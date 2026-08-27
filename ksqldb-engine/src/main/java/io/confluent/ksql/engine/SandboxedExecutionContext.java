@@ -17,6 +17,7 @@ package io.confluent.ksql.engine;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.analyzer.ImmutableAnalysis;
 import io.confluent.ksql.execution.pull.HARouting;
@@ -79,6 +80,13 @@ final class SandboxedExecutionContext implements KsqlExecutionContext {
   }
 
   @Override
+  @SuppressFBWarnings(
+      value = "EI_EXPOSE_REP",
+      justification = "MetricCollectors is a shared, intentionally mutable object used to"
+          + " aggregate metrics across the engine and its sandboxes; returning the same"
+          + " instance rather than a defensive copy is required for metrics to be recorded"
+          + " correctly."
+  )
   public MetricCollectors metricCollectors() {
     return metricCollectors;
   }

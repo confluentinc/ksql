@@ -468,12 +468,6 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable, KsqlConfigur
     }
   }
 
-  @SuppressFBWarnings(
-      value = "NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE",
-      justification = "startOffsetsForStreamPullQuery is built from the same"
-          + " topicDescription.partitions() as partitionResultMap, so every key looked up here"
-          + " is guaranteed to be present and the map lookup cannot return null."
-  )
   private ImmutableMap<TopicPartition, Long> getEndOffsetsForStreamPullQuery(
       final Admin admin,
       final TopicDescription topicDescription) {
@@ -507,8 +501,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable, KsqlConfigur
           // for a partition when the partition is empty, either because it has never had
           // a record (end offset of 0), or because the log cleaner deleted all the records
           // (start offsets == end offsets).
-          .filter(e -> e.getValue().offset() > 0L
-              && e.getValue().offset() > startOffsetsForStreamPullQuery.get(e.getKey()))
+          .filter(e -> isPastStartOffset(e, startOffsetsForStreamPullQuery))
           .collect(toMap(Entry::getKey, e -> e.getValue().offset()));
       return ImmutableMap.copyOf(result);
     } catch (final InterruptedException e) {
@@ -521,6 +514,20 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable, KsqlConfigur
       log.error("Admin#listOffsets(" + topicDescription.name() + ") timed out", e);
       throw new KsqlServerException("Backend timed out");
     }
+  }
+
+  @SuppressFBWarnings(
+      value = "NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE",
+      justification = "startOffsets is built from the same topicDescription.partitions() as the"
+          + " entry set being filtered here, so every key looked up is guaranteed to be present"
+          + " and the map lookup cannot return null."
+  )
+  private boolean isPastStartOffset(
+      final Entry<TopicPartition, ListOffsetsResult.ListOffsetsResultInfo> entry,
+      final Map<TopicPartition, Long> startOffsets
+  ) {
+    return entry.getValue().offset() > 0L
+        && entry.getValue().offset() > startOffsets.get(entry.getKey());
   }
 
   private ImmutableMap<TopicPartition, Long> getStartOffsetsForStreamPullQuery(

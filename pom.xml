@@ -773,12 +773,6 @@
                 <version>2.5.2</version>
             </dependency>
 
-            <dependency>
-                <groupId>com.github.spotbugs</groupId>
-                <artifactId>spotbugs-annotations</artifactId>
-                <version>${spotbugs.version}</version>
-                <scope>provided</scope>
-            </dependency>
         </dependencies>
     </dependencyManagement>
 

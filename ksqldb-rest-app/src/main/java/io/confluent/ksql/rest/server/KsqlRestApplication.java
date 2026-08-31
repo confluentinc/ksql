@@ -97,6 +97,7 @@ import io.confluent.ksql.security.KsqlAuthorizationValidator;
 import io.confluent.ksql.security.KsqlAuthorizationValidatorFactory;
 import io.confluent.ksql.security.KsqlDefaultSecurityExtension;
 import io.confluent.ksql.security.KsqlResourceExtension;
+import io.confluent.ksql.security.KsqlResourceExtensionContext;
 import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.security.KsqlSecurityExtension;
 import io.confluent.ksql.services.ConnectClientFactory;
@@ -837,7 +838,7 @@ public final class KsqlRestApplication implements Executable {
             sharedClient);
 
     final Optional<KsqlResourceExtension> ksqlResourceExtension =
-        loadKsqlResourceExtension(ksqlConfig);
+        loadKsqlResourceExtension(restConfig, ksqlConfig, metricCollectors);
 
     final Optional<AuthenticationPlugin> securityHandlerPlugin = loadAuthenticationPlugin(
         restConfig);
@@ -1179,7 +1180,9 @@ public final class KsqlRestApplication implements Executable {
   }
 
   private static Optional<KsqlResourceExtension> loadKsqlResourceExtension(
-      final KsqlConfig ksqlConfig) {
+      final KsqlRestConfig restConfig,
+      final KsqlConfig ksqlConfig,
+      final MetricCollectors metricCollectors) {
 
     final String extensionClassName =
         ksqlConfig.getString(KsqlConfig.KSQL_RESOURCE_EXTENSION_CLASS);
@@ -1209,7 +1212,11 @@ public final class KsqlRestApplication implements Executable {
         throw new KsqlException(KsqlConstants.KSQL_RESOURCE_EXTENSION_MISCONFIGURED_LOG_MESSAGE);
       }
 
-      extension.register(ksqlConfig);
+      extension.register(new KsqlResourceExtensionContext(
+          ksqlConfig,
+          metricCollectors,
+          resolveNodeId(restConfig),
+          ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG)));
       log.info("Successfully loaded and registered KSQL resource extension: {}",
           extensionClassName);
       return Optional.of(extension);
@@ -1218,6 +1225,21 @@ public final class KsqlRestApplication implements Executable {
       log.warn(KsqlConstants.KSQL_RESOURCE_EXTENSION_MISCONFIGURED_LOG_MESSAGE);
       return Optional.empty();
     }
+  }
+
+  /**
+   * Resolves a stable per-node identifier for license node attribution: a ksqlDB node is identified
+   * by its own address. Prefers the explicitly advertised inter-node listener; otherwise uses the
+   * first configured listener, which {@link KsqlRestConfig} validates to be present. The final
+   * node-id semantics are still being confirmed with the Licensing team (KSQL-15185).
+   */
+  private static String resolveNodeId(final KsqlRestConfig restConfig) {
+    final String advertisedListener =
+        restConfig.getString(KsqlRestConfig.ADVERTISED_LISTENER_CONFIG);
+    if (advertisedListener != null && !advertisedListener.trim().isEmpty()) {
+      return advertisedListener;
+    }
+    return restConfig.getList(KsqlRestConfig.LISTENERS_CONFIG).get(0);
   }
 
   private static Optional<AuthenticationPlugin> loadAuthenticationPlugin(

@@ -40,8 +40,8 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Stream;
 import javax.security.auth.Subject;
-import org.eclipse.jetty.jaas.JAASLoginService;
-import org.eclipse.jetty.server.UserIdentity;
+import org.eclipse.jetty.security.jaas.JAASLoginService;
+import org.eclipse.jetty.security.UserIdentity;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -91,7 +91,7 @@ public class JaasAuthProviderTest {
     when(authInfo.getString("username")).thenReturn(USERNAME);
     when(authInfo.getString("password")).thenReturn(PASSWORD);
     when(loginContextSupplier.get()).thenReturn(loginService);
-    when(loginService.login(eq(USERNAME), eq(PASSWORD), any())).thenReturn(userIdentity);
+    when(loginService.login(eq(USERNAME), eq(PASSWORD), any(), any())).thenReturn(userIdentity);
     when(userIdentity.getSubject()).thenReturn(subject);
 
     authProvider = new JaasAuthProvider(server, REALM, loginContextSupplier);

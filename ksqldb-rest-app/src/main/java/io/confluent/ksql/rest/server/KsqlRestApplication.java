@@ -96,6 +96,7 @@ import io.confluent.ksql.schema.registry.KsqlSchemaRegistryClientFactory;
 import io.confluent.ksql.security.KsqlAuthorizationValidator;
 import io.confluent.ksql.security.KsqlAuthorizationValidatorFactory;
 import io.confluent.ksql.security.KsqlDefaultSecurityExtension;
+import io.confluent.ksql.security.KsqlResourceExtension;
 import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.security.KsqlSecurityExtension;
 import io.confluent.ksql.services.ConnectClientFactory;
@@ -153,21 +154,21 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.errors.WakeupException;
 import org.apache.kafka.common.utils.Time;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.processor.internals.DefaultKafkaClientSupplier;
-import org.apache.log4j.LogManager;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public final class KsqlRestApplication implements Executable {
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
-  private static final Logger log = LoggerFactory.getLogger(KsqlRestApplication.class);
+  private static final Logger log = LogManager.getLogger(KsqlRestApplication.class);
 
   private static final int NUM_MILLISECONDS_IN_HOUR = 3600 * 1000;
 
@@ -187,6 +188,7 @@ public final class KsqlRestApplication implements Executable {
   private final ServiceContext serviceContext;
   private final KsqlSecurityContextProvider ksqlSecurityContextProvider;
   private final KsqlSecurityExtension securityExtension;
+  private final Optional<KsqlResourceExtension> ksqlResourceExtension;
   private final Optional<AuthenticationPlugin> authenticationPlugin;
   private final ServerState serverState;
   private final ProcessingLogContext processingLogContext;
@@ -239,6 +241,7 @@ public final class KsqlRestApplication implements Executable {
       final VersionCheckerAgent versionCheckerAgent,
       final KsqlSecurityContextProvider ksqlSecurityContextProvider,
       final KsqlSecurityExtension securityExtension,
+      final Optional<KsqlResourceExtension> ksqlResourceExtension,
       final Optional<AuthenticationPlugin> authenticationPlugin,
       final ServerState serverState,
       final ProcessingLogContext processingLogContext,
@@ -273,6 +276,7 @@ public final class KsqlRestApplication implements Executable {
     this.ksqlSecurityContextProvider = requireNonNull(ksqlSecurityContextProvider,
         "ksqlSecurityContextProvider");
     this.securityExtension = requireNonNull(securityExtension, "securityExtension");
+    this.ksqlResourceExtension = requireNonNull(ksqlResourceExtension);
     this.authenticationPlugin = requireNonNull(authenticationPlugin, "authenticationPlugin");
     this.configurables = requireNonNull(configurables, "configurables");
     this.rocksDBConfigSetterHandler =
@@ -541,6 +545,12 @@ public final class KsqlRestApplication implements Executable {
     // orphan Netty channel-close futures, hanging shutdown.
     shutdownAdditionalAgents();
 
+    try {
+      ksqlResourceExtension.ifPresent(KsqlResourceExtension::close);
+    } catch (final Exception e) {
+      log.error("Exception while closing license validator extension", e);
+    }
+
     if (apiServer != null) {
       apiServer.stop();
       apiServer = null;
@@ -712,7 +722,7 @@ public final class KsqlRestApplication implements Executable {
 
     final SpecificQueryIdGenerator specificQueryIdGenerator =
         new SpecificQueryIdGenerator();
-    
+
     final String stateDir = ksqlConfig.getKsqlStreamConfigProps().getOrDefault(
           StreamsConfig.STATE_DIR_CONFIG,
           StreamsConfig.configDef().defaultValues().get(StreamsConfig.STATE_DIR_CONFIG))
@@ -822,6 +832,9 @@ public final class KsqlRestApplication implements Executable {
             schemaRegistryClientFactory,
             connectClientFactory,
             sharedClient);
+
+    final Optional<KsqlResourceExtension> ksqlResourceExtension =
+        loadKsqlResourceExtension(ksqlConfig);
 
     final Optional<AuthenticationPlugin> securityHandlerPlugin = loadAuthenticationPlugin(
         restConfig);
@@ -945,7 +958,7 @@ public final class KsqlRestApplication implements Executable {
         commandTopicName,
         metricCollectors.getMetrics()
     );
-  
+
     final KsqlResource ksqlResource = new KsqlResource(
         ksqlEngine,
         commandRunner,
@@ -977,6 +990,7 @@ public final class KsqlRestApplication implements Executable {
         versionChecker,
         ksqlSecurityContextProvider,
         securityExtension,
+        ksqlResourceExtension,
         securityHandlerPlugin,
         serverState,
         processingLogContext,
@@ -1159,6 +1173,48 @@ public final class KsqlRestApplication implements Executable {
 
     securityExtension.initialize(ksqlConfig);
     return securityExtension;
+  }
+
+  private static Optional<KsqlResourceExtension> loadKsqlResourceExtension(
+      final KsqlConfig ksqlConfig) {
+
+    final String extensionClassName =
+        ksqlConfig.getString(KsqlConfig.KSQL_RESOURCE_EXTENSION_CLASS);
+
+    if (StringUtils.isBlank(extensionClassName) || !extensionClassName.toLowerCase().matches(
+        "io\\.confluent\\.ksql\\.security\\.license\\.ksqllicensevalidatorextension"
+    )) {
+      log.warn(KsqlConstants.KSQL_RESOURCE_EXTENSION_MISCONFIGURED_LOG_MESSAGE);
+      return Optional.empty();
+    }
+
+    try {
+      log.info("Loading KSQL resource extension: {}", extensionClassName);
+      final List<KsqlResourceExtension> extensions = ksqlConfig.getConfiguredInstances(
+          Collections.singletonList(extensionClassName),
+          KsqlResourceExtension.class,
+          ksqlConfig.originals()
+      );
+
+      if (extensions.isEmpty()) {
+        throw new KsqlException(KsqlConstants.KSQL_RESOURCE_EXTENSION_MISCONFIGURED_LOG_MESSAGE);
+      }
+
+      final KsqlResourceExtension extension = extensions.get(0);
+
+      if (extension == null) {
+        throw new KsqlException(KsqlConstants.KSQL_RESOURCE_EXTENSION_MISCONFIGURED_LOG_MESSAGE);
+      }
+
+      extension.register(ksqlConfig);
+      log.info("Successfully loaded and registered KSQL resource extension: {}",
+          extensionClassName);
+      return Optional.of(extension);
+
+    } catch (final Throwable t) {
+      log.warn(KsqlConstants.KSQL_RESOURCE_EXTENSION_MISCONFIGURED_LOG_MESSAGE);
+      return Optional.empty();
+    }
   }
 
   private static Optional<AuthenticationPlugin> loadAuthenticationPlugin(

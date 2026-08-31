@@ -1,0 +1,211 @@
+{
+  "plan" : [ {
+    "@type" : "ksqlPlanV1",
+    "statementText" : "CREATE STREAM TEST (K STRING KEY, URL STRING) WITH (KAFKA_TOPIC='test_topic', KEY_FORMAT='KAFKA', VALUE_FORMAT='JSON');",
+    "ddlCommand" : {
+      "@type" : "createStreamV1",
+      "sourceName" : "TEST",
+      "schema" : "`K` STRING KEY, `URL` STRING",
+      "timestampColumn" : null,
+      "topicName" : "test_topic",
+      "formats" : {
+        "keyFormat" : {
+          "format" : "KAFKA",
+          "properties" : { }
+        },
+        "valueFormat" : {
+          "format" : "JSON",
+          "properties" : { }
+        }
+      },
+      "windowInfo" : null,
+      "orReplace" : false,
+      "isSource" : false
+    },
+    "queryPlan" : null
+  }, {
+    "@type" : "ksqlPlanV1",
+    "statementText" : "CREATE STREAM OUTPUT AS SELECT\n  TEST.K K,\n  URL_EXTRACT_PARAMETER(TEST.URL, 'one') PARAM_A,\n  URL_EXTRACT_PARAMETER(TEST.URL, 'two') PARAM_B\nFROM TEST TEST\nEMIT CHANGES",
+    "ddlCommand" : {
+      "@type" : "createStreamV1",
+      "sourceName" : "OUTPUT",
+      "schema" : "`K` STRING KEY, `PARAM_A` STRING, `PARAM_B` STRING",
+      "timestampColumn" : null,
+      "topicName" : "OUTPUT",
+      "formats" : {
+        "keyFormat" : {
+          "format" : "KAFKA",
+          "properties" : { }
+        },
+        "valueFormat" : {
+          "format" : "JSON",
+          "properties" : { }
+        }
+      },
+      "windowInfo" : null,
+      "orReplace" : false,
+      "isSource" : false
+    },
+    "queryPlan" : {
+      "sources" : [ "TEST" ],
+      "sink" : "OUTPUT",
+      "physicalPlan" : {
+        "@type" : "streamSinkV1",
+        "properties" : {
+          "queryContext" : "OUTPUT"
+        },
+        "source" : {
+          "@type" : "streamSelectV1",
+          "properties" : {
+            "queryContext" : "Project"
+          },
+          "source" : {
+            "@type" : "streamSourceV1",
+            "properties" : {
+              "queryContext" : "KsqlTopic/Source"
+            },
+            "topicName" : "test_topic",
+            "formats" : {
+              "keyFormat" : {
+                "format" : "KAFKA",
+                "properties" : { }
+              },
+              "valueFormat" : {
+                "format" : "JSON",
+                "properties" : { }
+              }
+            },
+            "timestampColumn" : null,
+            "sourceSchema" : "`K` STRING KEY, `URL` STRING",
+            "pseudoColumnVersion" : 1
+          },
+          "keyColumnNames" : [ "K" ],
+          "selectedKeys" : null,
+          "selectExpressions" : [ "URL_EXTRACT_PARAMETER(URL, 'one') AS PARAM_A", "URL_EXTRACT_PARAMETER(URL, 'two') AS PARAM_B" ]
+        },
+        "formats" : {
+          "keyFormat" : {
+            "format" : "KAFKA",
+            "properties" : { }
+          },
+          "valueFormat" : {
+            "format" : "JSON",
+            "properties" : { }
+          }
+        },
+        "topicName" : "OUTPUT",
+        "timestampColumn" : null
+      },
+      "queryId" : "CSAS_OUTPUT_0",
+      "runtimeId" : null
+    }
+  } ],
+  "configs" : {
+    "ksql.extension.dir" : "ext",
+    "ksql.streams.cache.max.bytes.buffering" : "0",
+    "metric.reporters" : "",
+    "ksql.query.status.running.threshold.seconds" : "300",
+    "ksql.connect.basic.auth.credentials.reload" : "false",
+    "ksql.output.topic.name.prefix" : "",
+    "ksql.query.pull.stream.enabled" : "true",
+    "ksql.query.push.v2.interpreter.enabled" : "true",
+    "ksql.queryanonymizer.logs_enabled" : "true",
+    "ksql.variable.substitution.enable" : "true",
+    "ksql.streams.shutdown.timeout.ms" : "300000",
+    "ksql.query.pull.max.allowed.offset.lag" : "9223372036854775807",
+    "ksql.query.pull.max.qps" : "2147483647",
+    "ksql.access.validator.enable" : "auto",
+    "ksql.streams.bootstrap.servers" : "localhost:0",
+    "ksql.query.pull.metrics.enabled" : "true",
+    "ksql.metrics.extension" : null,
+    "ksql.query.push.v2.alos.enabled" : "true",
+    "ksql.query.push.v2.max.hourly.bandwidth.megabytes" : "2147483647",
+    "ksql.query.pull.range.scan.enabled" : "true",
+    "ksql.transient.query.cleanup.service.initial.delay.seconds" : "600",
+    "ksql.hidden.topics" : "_confluent.*,__confluent.*,_schemas,__consumer_offsets,__transaction_state,connect-configs,connect-offsets,connect-status,connect-statuses",
+    "ksql.lambdas.enabled" : "true",
+    "ksql.source.table.materialization.enabled" : "true",
+    "ksql.query.pull.max.hourly.bandwidth.megabytes" : "2147483647",
+    "ksql.client.ip_port.configuration.enabled" : "false",
+    "ksql.sink.window.change.log.additional.retention" : "1000000",
+    "ksql.deployment.type" : "selfManaged",
+    "ksql.query.persistent.active.limit" : "2147483647",
+    "ksql.websocket.connection.max.timeout.ms" : "3600000",
+    "ksql.persistence.wrap.single.values" : null,
+    "ksql.query.transient.max.bytes.buffering.total" : "-1",
+    "ksql.connect.basic.auth.credentials.source" : "NONE",
+    "ksql.schema.registry.url" : "schema_registry.url:0",
+    "ksql.properties.overrides.denylist" : "",
+    "ksql.service.id" : "some.ksql.service.id",
+    "ksql.query.push.v2.max.catchup.consumers" : "5",
+    "ksql.assert.topic.default.timeout.ms" : "1000",
+    "ksql.query.pull.forwarding.timeout.ms" : "20000",
+    "ksql.query.push.v2.enabled" : "false",
+    "ksql.transient.query.cleanup.service.enable" : "true",
+    "ksql.query.push.v2.metrics.enabled" : "true",
+    "ksql.streams.commit.interval.ms" : "2000",
+    "ksql.query.pull.table.scan.enabled" : "true",
+    "ksql.streams.auto.commit.interval.ms" : "0",
+    "ksql.streams.topology.optimization" : "all",
+    "ksql.endpoint.migrate.query" : "true",
+    "ksql.query.push.v2.registry.installed" : "false",
+    "ksql.streams.num.stream.threads" : "4",
+    "ksql.metrics.tags.custom" : "",
+    "ksql.query.push.v2.catchup.consumer.msg.window" : "50",
+    "ksql.runtime.feature.shared.enabled" : "false",
+    "ksql.udf.collect.metrics" : "false",
+    "ksql.new.query.planner.enabled" : "false",
+    "ksql.connect.request.headers.plugin" : null,
+    "ksql.security.extension.class" : null,
+    "ksql.transient.prefix" : "transient_",
+    "ksql.headers.columns.enabled" : "true",
+    "enable.fips" : "false",
+    "ksql.streams.default.deserialization.exception.handler" : "io.confluent.ksql.errors.LogMetricAndContinueExceptionHandler",
+    "ksql.connect.request.timeout.ms" : "5000",
+    "ksql.query.pull.enable.standby.reads" : "false",
+    "ksql.persistence.default.format.key" : "KAFKA",
+    "ksql.query.persistent.max.bytes.buffering.total" : "-1",
+    "ksql.query.error.max.queue.size" : "10",
+    "ksql.query.cleanup.shutdown.timeout.ms" : "30000",
+    "ksql.internal.topic.min.insync.replicas" : "1",
+    "ksql.internal.topic.replicas" : "1",
+    "ksql.insert.into.values.enabled" : "true",
+    "ksql.queryanonymizer.cluster_namespace" : null,
+    "ksql.create.or.replace.enabled" : "true",
+    "ksql.shared.runtimes.count" : "2",
+    "ksql.cast.strings.preserve.nulls" : "true",
+    "ksql.authorization.cache.max.entries" : "10000",
+    "ksql.pull.queries.enable" : "true",
+    "ksql.transient.query.cleanup.service.period.seconds" : "600",
+    "ksql.suppress.enabled" : "true",
+    "ksql.readonly.topics" : "_confluent.*,__confluent.*,_schemas,__consumer_offsets,__transaction_state,connect-configs,connect-offsets,connect-status,connect-statuses",
+    "ksql.connect.basic.auth.credentials.file" : "",
+    "ksql.authorization.cache.expiry.time.secs" : "30",
+    "ksql.query.retry.backoff.initial.ms" : "15000",
+    "ksql.fetch.remote.hosts.max.timeout.seconds" : "10",
+    "ksql.query.pull.max.concurrent.requests" : "2147483647",
+    "ksql.streams.auto.offset.reset" : "earliest",
+    "ksql.connect.url" : "http://localhost:8083",
+    "ksql.query.push.v2.new.latest.delay.ms" : "5000",
+    "ksql.query.push.v2.latest.reset.age.ms" : "30000",
+    "ksql.streams.default.production.exception.handler" : "io.confluent.ksql.errors.ProductionExceptionHandlerUtil$LogAndFailProductionExceptionHandler",
+    "ksql.query.pull.interpreter.enabled" : "true",
+    "ksql.json_sr.converter.deserializer.enabled" : "true",
+    "ksql.assert.schema.default.timeout.ms" : "1000",
+    "ksql.query.pull.limit.clause.enabled" : "true",
+    "ksql.query.pull.router.thread.pool.size" : "50",
+    "ksql.query.push.v2.continuation.tokens.enabled" : "false",
+    "ksql.query.retry.backoff.max.ms" : "900000",
+    "ksql.timestamp.throw.on.invalid" : "false",
+    "ksql.persistence.default.format.value" : null,
+    "ksql.udfs.enabled" : "true",
+    "ksql.udf.enable.security.manager" : "true",
+    "ksql.connect.worker.config" : "",
+    "ksql.nested.error.set.null" : "true",
+    "ksql.query.pull.thread.pool.size" : "50",
+    "ksql.persistent.prefix" : "query_",
+    "ksql.metastore.backup.location" : "",
+    "ksql.error.classifier.regex" : "",
+    "ksql.suppress.buffer.size.bytes" : "-1"
+  }
+}

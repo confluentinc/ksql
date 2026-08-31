@@ -26,8 +26,8 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.util.Objects;
 import org.apache.avro.generic.GenericContainer;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * Periodically reports metrics collected from a Kafka broker.
@@ -39,7 +39,7 @@ import org.slf4j.LoggerFactory;
  */
 public abstract class BaseMetricsReporter extends Thread implements Closeable {
 
-  private static final Logger log = LoggerFactory.getLogger(BaseMetricsReporter.class);
+  private static final Logger log = LogManager.getLogger(BaseMetricsReporter.class);
 
   /**
    * Default "retention.ms" setting (i.e. time-based retention) of the support metrics topic. Used

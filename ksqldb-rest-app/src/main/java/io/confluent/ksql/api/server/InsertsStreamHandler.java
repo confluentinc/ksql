@@ -22,7 +22,6 @@ import static io.confluent.ksql.rest.Errors.ERROR_CODE_BAD_REQUEST;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.api.auth.DefaultApiSecurityContext;
 import io.confluent.ksql.api.spi.Endpoints;
-import io.confluent.ksql.properties.ConfigOverrideLogger;
 import io.confluent.ksql.reactive.BufferedPublisher;
 import io.confluent.ksql.rest.entity.InsertError;
 import io.confluent.ksql.rest.entity.InsertsStreamArgs;
@@ -37,8 +36,8 @@ import io.vertx.ext.web.RoutingContext;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * This class handles the parsing of the request body for a stream of inserts. The user can send a
@@ -51,7 +50,7 @@ import org.slf4j.LoggerFactory;
  */
 public class InsertsStreamHandler implements Handler<RoutingContext> {
 
-  private static final Logger LOG = LoggerFactory.getLogger(InsertsStreamHandler.class);
+  private static final Logger LOG = LogManager.getLogger(InsertsStreamHandler.class);
 
   private final Context ctx;
   private final Endpoints endpoints;
@@ -136,9 +135,6 @@ public class InsertsStreamHandler implements Handler<RoutingContext> {
       }
 
       LOG.debug("({}) Processed insert stream args: {}", uuid, insertsStreamArgs.get());
-      
-      ConfigOverrideLogger.logOverrides(
-              routingContext.request().path(), insertsStreamArgs.get().properties.getMap());
 
       routingContext.response().endHandler(v -> handleResponseEnd());
 

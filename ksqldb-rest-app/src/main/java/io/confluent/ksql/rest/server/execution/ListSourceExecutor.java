@@ -76,13 +76,13 @@ import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.KafkaException;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.TopicPartitionInfo;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public final class ListSourceExecutor {
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
-  private static final Logger LOG = LoggerFactory.getLogger(ListSourceExecutor.class);
+  private static final Logger LOG = LogManager.getLogger(ListSourceExecutor.class);
 
   private ListSourceExecutor() {
   }

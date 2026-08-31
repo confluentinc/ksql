@@ -86,17 +86,17 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.jline.reader.EndOfFileException;
 import org.jline.reader.UserInterruptException;
 import org.jline.terminal.Terminal;
 import org.reactivestreams.Subscription;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 @SuppressWarnings("checkstyle:ClassDataAbstractionCoupling")
 public class Cli implements KsqlRequestExecutor, Closeable {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(Cli.class);
+  private static final Logger LOGGER = LogManager.getLogger(Cli.class);
 
   private static final int MAX_RETRIES = 10;
   private static final String UNKNOWN_VERSION = "<unknown>";

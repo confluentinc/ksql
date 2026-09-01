@@ -1222,24 +1222,56 @@ public final class KsqlRestApplication implements Executable {
       return Optional.of(extension);
 
     } catch (final Throwable t) {
-      log.warn(KsqlConstants.KSQL_RESOURCE_EXTENSION_MISCONFIGURED_LOG_MESSAGE);
+      log.warn(KsqlConstants.KSQL_RESOURCE_EXTENSION_MISCONFIGURED_LOG_MESSAGE, t);
       return Optional.empty();
     }
   }
 
   /**
-   * Resolves a stable per-node identifier for license node attribution: a ksqlDB node is identified
-   * by its own address. Prefers the explicitly advertised inter-node listener; otherwise uses the
-   * first configured listener, which {@link KsqlRestConfig} validates to be present. The final
-   * node-id semantics are still being confirmed with the Licensing team (KSQL-15185).
+   * Resolves a stable per-node identifier for license node attribution from this node's own
+   * inter-node address. Prefers the advertised inter-node listener, then the internal listener,
+   * then the first non-wildcard entry in {@code listeners}.
+   *
+   * <p>Wildcard bind addresses (0.0.0.0, [::]) are skipped: they are identical on every node and so
+   * are useless — and explicitly disallowed — as an identity. If no routable address is configured
+   * the id is absent, and callers must leave node attribution disabled rather than emit a colliding
+   * label. The final node-id semantics are still being confirmed with the Licensing team
+   * (KSQL-15185).
    */
-  private static String resolveNodeId(final KsqlRestConfig restConfig) {
-    final String advertisedListener =
-        restConfig.getString(KsqlRestConfig.ADVERTISED_LISTENER_CONFIG);
-    if (advertisedListener != null && !advertisedListener.trim().isEmpty()) {
-      return advertisedListener;
+  @VisibleForTesting
+  static Optional<String> resolveNodeId(final KsqlRestConfig restConfig) {
+    final String advertised = restConfig.getString(KsqlRestConfig.ADVERTISED_LISTENER_CONFIG);
+    if (isRoutableListener(advertised)) {
+      return Optional.of(advertised.trim());
     }
-    return restConfig.getList(KsqlRestConfig.LISTENERS_CONFIG).get(0);
+    final String internal = restConfig.getString(KsqlRestConfig.INTERNAL_LISTENER_CONFIG);
+    if (isRoutableListener(internal)) {
+      return Optional.of(internal.trim());
+    }
+    return restConfig.getList(KsqlRestConfig.LISTENERS_CONFIG).stream()
+        .filter(KsqlRestApplication::isRoutableListener)
+        .map(String::trim)
+        .findFirst();
+  }
+
+  /**
+   * @return true if {@code listener} is a non-blank URL whose host is a routable address, i.e. not
+   *     a wildcard bind address such as {@code 0.0.0.0} or {@code [::]}.
+   */
+  private static boolean isRoutableListener(final String listener) {
+    if (listener == null || listener.trim().isEmpty()) {
+      return false;
+    }
+    final String host;
+    try {
+      host = URI.create(listener.trim()).getHost();
+    } catch (final IllegalArgumentException e) {
+      return false;
+    }
+    if (host == null || host.isEmpty()) {
+      return false;
+    }
+    return !"0.0.0.0".equals(host) && !"::".equals(host) && !"[::]".equals(host);
   }
 
   private static Optional<AuthenticationPlugin> loadAuthenticationPlugin(

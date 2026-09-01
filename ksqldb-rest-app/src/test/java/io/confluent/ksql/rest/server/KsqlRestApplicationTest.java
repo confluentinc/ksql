@@ -489,4 +489,46 @@ public class KsqlRestApplicationTest {
     );
   }
 
+  @Test
+  public void shouldResolveNodeIdFromAdvertisedListener() {
+    final KsqlRestConfig config = mock(KsqlRestConfig.class);
+    when(config.getString(KsqlRestConfig.ADVERTISED_LISTENER_CONFIG))
+        .thenReturn("http://host-a:8088");
+
+    assertThat(KsqlRestApplication.resolveNodeId(config), is(Optional.of("http://host-a:8088")));
+  }
+
+  @Test
+  public void shouldFallBackToInternalListenerWhenAdvertisedIsWildcard() {
+    final KsqlRestConfig config = mock(KsqlRestConfig.class);
+    when(config.getString(KsqlRestConfig.ADVERTISED_LISTENER_CONFIG))
+        .thenReturn("http://0.0.0.0:8088");
+    when(config.getString(KsqlRestConfig.INTERNAL_LISTENER_CONFIG))
+        .thenReturn("http://host-b:8090");
+
+    assertThat(KsqlRestApplication.resolveNodeId(config), is(Optional.of("http://host-b:8090")));
+  }
+
+  @Test
+  public void shouldSkipWildcardListenersAndUseFirstRoutableOne() {
+    final KsqlRestConfig config = mock(KsqlRestConfig.class);
+    when(config.getString(KsqlRestConfig.ADVERTISED_LISTENER_CONFIG)).thenReturn(null);
+    when(config.getString(KsqlRestConfig.INTERNAL_LISTENER_CONFIG)).thenReturn(null);
+    when(config.getList(KsqlRestConfig.LISTENERS_CONFIG))
+        .thenReturn(ImmutableList.of("http://0.0.0.0:8088", "http://host-c:8088"));
+
+    assertThat(KsqlRestApplication.resolveNodeId(config), is(Optional.of("http://host-c:8088")));
+  }
+
+  @Test
+  public void shouldReturnEmptyNodeIdWhenOnlyWildcardAddressesAreConfigured() {
+    final KsqlRestConfig config = mock(KsqlRestConfig.class);
+    when(config.getString(KsqlRestConfig.ADVERTISED_LISTENER_CONFIG)).thenReturn(null);
+    when(config.getString(KsqlRestConfig.INTERNAL_LISTENER_CONFIG)).thenReturn(null);
+    when(config.getList(KsqlRestConfig.LISTENERS_CONFIG))
+        .thenReturn(ImmutableList.of("http://0.0.0.0:8088"));
+
+    assertThat(KsqlRestApplication.resolveNodeId(config), is(Optional.empty()));
+  }
+
 }

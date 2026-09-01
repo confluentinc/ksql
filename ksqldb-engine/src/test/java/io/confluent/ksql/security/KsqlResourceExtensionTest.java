@@ -10,6 +10,7 @@ import static org.hamcrest.Matchers.sameInstance;
 
 import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.util.KsqlConfig;
+import java.util.Optional;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
@@ -49,7 +50,8 @@ public class KsqlResourceExtensionTest {
   }
 
   private KsqlResourceExtensionContext context() {
-    return new KsqlResourceExtensionContext(ksqlConfig, metricCollectors, "node-1", "cluster-1");
+    return new KsqlResourceExtensionContext(
+        ksqlConfig, metricCollectors, Optional.of("node-1"), "cluster-1");
   }
 
   private static final class RecordingExtension implements KsqlResourceExtension {

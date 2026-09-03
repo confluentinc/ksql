@@ -489,4 +489,55 @@ public class KsqlRestApplicationTest {
     );
   }
 
+  @Test
+  public void shouldResolveStableHashedNodeIdFromAdvertisedInterNodeListener() {
+    final KsqlRestConfig config = new KsqlRestConfig(ImmutableMap.of(
+        KsqlRestConfig.ADVERTISED_LISTENER_CONFIG, "http://host-a:8088"));
+
+    final Optional<String> nodeId = KsqlRestApplication.resolveNodeId(config);
+
+    assertThat(nodeId.isPresent(), is(true));
+    // A short, opaque, lowercase-hex hash of host:port.
+    assertThat(nodeId.get().matches("[0-9a-f]{16}"), is(true));
+    // Deterministic: the same listener hashes to the same id across restarts.
+    assertThat(KsqlRestApplication.resolveNodeId(config), is(nodeId));
+  }
+
+  @Test
+  public void shouldResolveHashedNodeIdFromListenerWhenNoInterNodeListenerConfigured() {
+    final KsqlRestConfig config = new KsqlRestConfig(ImmutableMap.of(
+        KsqlRestConfig.LISTENERS_CONFIG, "http://localhost:8088"));
+
+    assertThat(KsqlRestApplication.resolveNodeId(config).get().matches("[0-9a-f]{16}"), is(true));
+  }
+
+  @Test
+  public void shouldResolveDistinctNodeIdsForDistinctListeners() {
+    final Optional<String> hostA = KsqlRestApplication.resolveNodeId(new KsqlRestConfig(
+        ImmutableMap.of(KsqlRestConfig.ADVERTISED_LISTENER_CONFIG, "http://host-a:8088")));
+    final Optional<String> hostB = KsqlRestApplication.resolveNodeId(new KsqlRestConfig(
+        ImmutableMap.of(KsqlRestConfig.ADVERTISED_LISTENER_CONFIG, "http://host-b:8088")));
+
+    assertThat(hostA, is(not(hostB)));
+  }
+
+  @Test
+  public void shouldResolveNodeIdForWildcardListenerSanitizedToLocalHost() {
+    final KsqlRestConfig config = new KsqlRestConfig(ImmutableMap.of(
+        KsqlRestConfig.LISTENERS_CONFIG, "http://0.0.0.0:8088"));
+
+    final Optional<String> nodeId = KsqlRestApplication.resolveNodeId(config);
+
+    assertThat(nodeId.isPresent(), is(true));
+    assertThat(nodeId.get().matches("[0-9a-f]{16}"), is(true));
+  }
+
+  @Test
+  public void shouldReturnEmptyNodeIdWhenAdvertisedListenerIsWildcard() {
+    final KsqlRestConfig config = new KsqlRestConfig(ImmutableMap.of(
+        KsqlRestConfig.ADVERTISED_LISTENER_CONFIG, "http://0.0.0.0:8088"));
+
+    assertThat(KsqlRestApplication.resolveNodeId(config), is(Optional.empty()));
+  }
+
 }

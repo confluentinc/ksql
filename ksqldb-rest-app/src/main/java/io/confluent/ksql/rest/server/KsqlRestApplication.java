@@ -21,6 +21,7 @@ import static java.util.Objects.requireNonNull;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.hash.Hashing;
 import com.google.common.util.concurrent.ListeningScheduledExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
@@ -1228,50 +1229,27 @@ public final class KsqlRestApplication implements Executable {
   }
 
   /**
-   * Resolves a stable per-node identifier for license node attribution from this node's own
-   * inter-node address. Prefers the advertised inter-node listener, then the internal listener,
-   * then the first non-wildcard entry in {@code listeners}.
-   *
-   * <p>Wildcard bind addresses (0.0.0.0, [::]) are skipped: they are identical on every node and so
-   * are useless — and explicitly disallowed — as an identity. If no routable address is configured
-   * the id is absent, and callers must leave node attribution disabled rather than emit a colliding
-   * label. The final node-id semantics are still being confirmed with the Licensing team
-   * (KSQL-15185).
+   * Resolves this node's identifier for license node attribution: a short, stable hash of the
+   * host and port of ksqlDB's inter-node listener ({@link KsqlRestConfig#getInterNodeListener}),
+   * the same endpoint ksqlDB advertises to peers as the Streams {@code application.server}. Order
+   * is advertised listener, then internal listener, then the first listener, with wildcard binds
+   * sanitized to the local host. Hashing host:port keeps the id short and display-friendly, while
+   * staying stable across restarts and unique per node (co-located nodes included). If nothing
+   * resolves, the id is absent and node attribution is left disabled.
    */
   @VisibleForTesting
   static Optional<String> resolveNodeId(final KsqlRestConfig restConfig) {
-    final String advertised = restConfig.getString(KsqlRestConfig.ADVERTISED_LISTENER_CONFIG);
-    if (isRoutableListener(advertised)) {
-      return Optional.of(advertised.trim());
-    }
-    final String internal = restConfig.getString(KsqlRestConfig.INTERNAL_LISTENER_CONFIG);
-    if (isRoutableListener(internal)) {
-      return Optional.of(internal.trim());
-    }
-    return restConfig.getList(KsqlRestConfig.LISTENERS_CONFIG).stream()
-        .filter(KsqlRestApplication::isRoutableListener)
-        .map(String::trim)
-        .findFirst();
-  }
-
-  /**
-   * @return true if {@code listener} is a non-blank URL whose host is a routable address, i.e. not
-   *     a wildcard bind address such as {@code 0.0.0.0} or {@code [::]}.
-   */
-  private static boolean isRoutableListener(final String listener) {
-    if (listener == null || listener.trim().isEmpty()) {
-      return false;
-    }
-    final String host;
     try {
-      host = URI.create(listener.trim()).getHost();
-    } catch (final IllegalArgumentException e) {
-      return false;
+      final URL listener = restConfig.getInterNodeListener(URL::getPort);
+      final String hostPort = listener.getHost() + ":" + listener.getPort();
+      // 16 hex chars (64 bits): short enough for a UI, collision-safe for realistic node counts.
+      return Optional.of(
+          Hashing.sha256().hashString(hostPort, StandardCharsets.UTF_8).toString().substring(0, 16));
+    } catch (final RuntimeException e) {
+      log.warn("Could not resolve this node's inter-node listener for license node attribution; "
+          + "node attribution will be disabled", e);
+      return Optional.empty();
     }
-    if (host == null || host.isEmpty()) {
-      return false;
-    }
-    return !"0.0.0.0".equals(host) && !"::".equals(host) && !"[::]".equals(host);
   }
 
   private static Optional<AuthenticationPlugin> loadAuthenticationPlugin(

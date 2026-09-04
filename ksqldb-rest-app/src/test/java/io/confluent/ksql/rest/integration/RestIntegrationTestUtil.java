@@ -207,7 +207,13 @@ public final class RestIntegrationTestUtil {
       final Map<String, ?> properties,
       final Map<String, Object> requestProperties
   ) {
-    try (final KsqlRestClient restClient = restApp.buildKsqlClient(userCreds)) {
+    // debug.request is now only honored on the internal listener (KSQL-15279), so tests
+    // that request debug info (e.g. to inspect sourceHost) must route through it too.
+    final boolean isDebugRequest = requestProperties != null
+        && Boolean.TRUE.equals(requestProperties.get(KsqlRequestConfig.KSQL_DEBUG_REQUEST));
+    try (final KsqlRestClient restClient = isDebugRequest
+        ? restApp.buildInternalKsqlClient(userCreds)
+        : restApp.buildKsqlClient(userCreds)) {
 
       final RestResponse<List<StreamedRow>> res =
           restClient.makeQueryRequest(sql, null, properties, requestProperties);

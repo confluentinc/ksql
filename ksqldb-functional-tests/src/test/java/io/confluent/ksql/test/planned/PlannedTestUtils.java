@@ -45,7 +45,7 @@ public final class PlannedTestUtils {
         && !testCase.getTestLocation().getTestPath().toString().endsWith("/scratch.json");
   }
 
-  public static boolean isNotExcluded(final TestCase testCase) {
+  public static boolean isIncluded(final TestCase testCase) {
     // Place temporary logic here to exclude test cases based on feature flags, etc.
     return true;
   }

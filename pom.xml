@@ -159,7 +159,7 @@
         <netty.version>4.1.137.Final</netty.version>
         <netty-codec-http2-version>4.1.137.Final</netty-codec-http2-version>
         <jersey-common>3.1.10</jersey-common>
-        <multi-threaded-testing.forkCount>3</multi-threaded-testing.forkCount>
+        <multi-threaded-testing.forkCount>8</multi-threaded-testing.forkCount>
         <kafka.version>${ce.kafka.version}</kafka.version>
     </properties>
 

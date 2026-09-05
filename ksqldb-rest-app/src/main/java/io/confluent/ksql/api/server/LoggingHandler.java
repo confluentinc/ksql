@@ -136,8 +136,12 @@ public class LoggingHandler implements Handler<RoutingContext> {
   }
 
   private void doLog(final int status, final String message) {
+    // This is the request access log, not the server error log. Even 5xx access-log lines
+    // are routinely emitted for scanner traffic (e.g. Qualys probes hitting unknown paths)
+    // and during boot-time 503s, which doesn't warrant an ERROR-level entry. Genuine server
+    // exceptions are logged separately by FailureHandler and the Vert.x exception handlers.
     if (status >= 500) {
-      logger.error(message);
+      logger.warn(message);
     } else if (status >= 400) {
       logger.warn(message);
     } else {

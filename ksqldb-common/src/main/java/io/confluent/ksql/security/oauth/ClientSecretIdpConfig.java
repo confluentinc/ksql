@@ -210,10 +210,14 @@ public final class ClientSecretIdpConfig implements IdpConfig {
 
   @Override
   public String toString() {
+    // Never include the raw client secret. The Kafka AbstractConfig PASSWORD type redacts on
+    // toString() but this POJO is created and logged outside of that machinery; any call site
+    // that does String.valueOf(config), uses it in an error message, or logs it via SLF4J's
+    // brace substitution would otherwise leak the OAuth client secret in plaintext.
     return "IdpConfig{"
         + "idpTokenEndpointUrl='" + idpTokenEndpointUrl + '\''
         + ", idpClientId='" + idpClientId + '\''
-        + ", idpClientSecret='" + idpClientSecret + '\''
+        + ", idpClientSecret='" + (idpClientSecret == null ? "null" : "[REDACTED]") + '\''
         + ", idpScope='" + idpScope + '\''
         + ", idpScopeClaimName='" + idpScopeClaimName + '\''
         + ", idpSubClaimName='" + idpSubClaimName + '\''

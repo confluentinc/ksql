@@ -1568,6 +1568,7 @@ public class ClientTest extends BaseApiTest {
     final io.confluent.ksql.api.client.ConnectorDescription connector = javaClient.describeConnector("name").get();
 
     // Then:
+    assertThat(testEndpoints.getLastSql(), is("describe connector \"name\";"));
     assertThat(connector.state(), is("state"));
     assertThat(connector.className(), is("connectorClass"));
     assertThat(connector.type(), is(new ConnectorTypeImpl("SOURCE")));
@@ -1587,7 +1588,7 @@ public class ClientTest extends BaseApiTest {
     javaClient.createConnector("name", true, Collections.emptyMap()).get();
 
     // Then:
-    assertThat(testEndpoints.getLastSql(), is("CREATE SOURCE CONNECTOR name WITH ();"));
+    assertThat(testEndpoints.getLastSql(), is("CREATE SOURCE CONNECTOR \"name\" WITH ();"));
   }
 
   @Test
@@ -1601,7 +1602,7 @@ public class ClientTest extends BaseApiTest {
     javaClient.createConnector("name", true, Collections.emptyMap(), true).get();
 
     // Then:
-    assertThat(testEndpoints.getLastSql(), is("CREATE SOURCE CONNECTOR IF NOT EXISTS name WITH ();"));
+    assertThat(testEndpoints.getLastSql(), is("CREATE SOURCE CONNECTOR IF NOT EXISTS \"name\" WITH ();"));
   }
 
   @Test
@@ -1614,7 +1615,7 @@ public class ClientTest extends BaseApiTest {
     javaClient.dropConnector("name").get();
 
     // Then:
-    assertThat(testEndpoints.getLastSql(), is("drop connector name;"));
+    assertThat(testEndpoints.getLastSql(), is("drop connector \"name\";"));
   }
 
   @Test
@@ -1627,7 +1628,7 @@ public class ClientTest extends BaseApiTest {
     javaClient.dropConnector("name", true).get();
 
     // Then:
-    assertThat(testEndpoints.getLastSql(), is("drop connector if exists name;"));
+    assertThat(testEndpoints.getLastSql(), is("drop connector if exists \"name\";"));
   }
 
   @Test

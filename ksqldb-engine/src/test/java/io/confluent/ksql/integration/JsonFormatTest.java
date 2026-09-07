@@ -98,9 +98,7 @@ public class JsonFormatTest {
   public void before() {
     streamName = "STREAM_" + COUNTER.getAndIncrement();
 
-    ksqlConfig = KsqlConfigTestUtil.create(
-        TEST_HARNESS.kafkaBootstrapServers(),
-        Collections.singletonMap(KsqlConfig.KSQL_UDF_SECURITY_MANAGER_ENABLED, false));
+    ksqlConfig = KsqlConfigTestUtil.create(TEST_HARNESS.kafkaBootstrapServers());
     serviceContext = ServiceContextFactory.create(ksqlConfig, DisabledKsqlClient::instance);
     functionRegistry = new InternalFunctionRegistry();
     UserFunctionLoader.newInstance(

@@ -158,6 +158,11 @@
         <netty-codec-http2-version>4.1.137.Final</netty-codec-http2-version>
         <jersey-common>2.46</jersey-common>
         <multi-threaded-testing.forkCount>3</multi-threaded-testing.forkCount>
+        <!-- QueryTranslationTest is split into 4 batches (see the `batches` package); using a
+        fork per batch (rather than reusing multi-threaded-testing.forkCount, which is tuned for
+        the RestQueryTranslationTest batches) lets all 4 run concurrently in one round instead of
+        one batch waiting for a fork to free up. -->
+        <query-translation-test.forkCount>4</query-translation-test.forkCount>
         <kafka.version>${ce.kafka.version}</kafka.version>
     </properties>
 
@@ -894,7 +899,7 @@
                             <includes>
                                 <include>**/QueryTranslationTestBatch*.java</include>
                             </includes>
-                            <forkCount>${multi-threaded-testing.forkCount}</forkCount>
+                            <forkCount>${query-translation-test.forkCount}</forkCount>
                             <reuseForks>false</reuseForks>
                             <parallel>classes</parallel>
                         </configuration>

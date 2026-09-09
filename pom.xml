@@ -868,6 +868,38 @@
                     <excludedGroups>io.confluent.common.utils.IntegrationTest, IntegrationTest</excludedGroups>
                 </configuration>
                 <version>3.2.5</version>
+                <executions>
+                    <execution>
+                        <!-- No explicit phase/goals here: this merges into whichever implicit
+                        default-test binding (if any) a module's packaging already provides,
+                        rather than forcing surefire:test to run in modules that otherwise never
+                        would (e.g. the pom-packaged parent). -->
+                        <id>default-test</id>
+                        <configuration>
+                            <excludes>
+                                <exclude>**/QueryTranslationTestBatch*.java</exclude>
+                            </excludes>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <!-- QueryTranslationTest is split into batches (see the `batches`
+                        package) so they can run as parallel Maven forks instead of one long,
+                        single-threaded run through thousands of parameterized test cases. -->
+                        <id>query-translation-test-batches</id>
+                        <phase>test</phase>
+                        <goals>
+                            <goal>test</goal>
+                        </goals>
+                        <configuration>
+                            <includes>
+                                <include>**/QueryTranslationTestBatch*.java</include>
+                            </includes>
+                            <forkCount>${multi-threaded-testing.forkCount}</forkCount>
+                            <reuseForks>false</reuseForks>
+                            <parallel>classes</parallel>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>

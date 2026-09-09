@@ -101,6 +101,10 @@ public class RestTestExecutor implements Closeable {
   private static final String STATEMENT_MACRO = "\\{STATEMENT}";
   private static final Duration MAX_QUERY_RUNNING_CHECK = Duration.ofSeconds(45);
   private static final Duration MAX_TRANSIENT_QUERY_COMPLETION_TIME = Duration.ofSeconds(10);
+  // Bounded well under the outer JUnit test timeout so a hung row publisher fails fast, with a
+  // clear TimeoutException, instead of relying solely on the outer timeout interrupting the test
+  // thread (which doesn't synchronously cancel the publisher's async work and can leak threads).
+  private static final Duration MAX_ROW_PUBLISHER_WAIT = Duration.ofSeconds(60);
   private static final String MATCH_OPERATOR_DELIMITER = "|";
   private static final String QUERY_KEY = "query";
   private static final String ROW_KEY = "row";
@@ -470,10 +474,10 @@ public class RestTestExecutor implements Closeable {
     publisher.subscribe(subscriber);
 
     try {
-      header.get();
+      header.get(MAX_ROW_PUBLISHER_WAIT.toMillis(), TimeUnit.MILLISECONDS);
       inputConditionsParameters.getWaitForInputConditionsToBeMet().run();
       inputConditionsParameters.getAfterInputConditions().run();
-      return Optional.of(future.get());
+      return Optional.of(future.get(MAX_ROW_PUBLISHER_WAIT.toMillis(), TimeUnit.MILLISECONDS));
     } catch (Exception e) {
       LOG.error("Error waiting on header, calling afterHeader, or waiting on rows", e);
       throw new AssertionError(e);

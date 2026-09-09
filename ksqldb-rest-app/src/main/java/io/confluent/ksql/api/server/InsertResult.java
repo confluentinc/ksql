@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.api.server;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 public interface InsertResult {
 
   long sequenceNumber();
@@ -55,6 +57,12 @@ public interface InsertResult {
       }
 
       @Override
+      @SuppressFBWarnings(
+          value = "EI_EXPOSE_REP",
+          justification = "This Exception is captured solely to be surfaced back to the caller"
+              + " of the insert; it is not otherwise held or mutated by ksqlDB, so returning the"
+              + " same instance rather than a defensive copy is intentional."
+      )
       public Exception exception() {
         return exception;
       }

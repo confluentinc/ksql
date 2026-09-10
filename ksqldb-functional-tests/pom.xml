@@ -30,6 +30,11 @@
   <properties>
     <air.main.basedir>${project.parent.basedir}</air.main.basedir>
     <main-class>io.confluent.ksql.test.tools.KsqlTestingTool</main-class>
+    <!-- QueryTranslationTest is split into 4 batches (see the `batches` package); using a
+    fork per batch (rather than reusing multi-threaded-testing.forkCount, which is tuned for
+    the RestQueryTranslationTest batches) lets all 4 run concurrently in one round instead of
+    one batch waiting for a fork to free up. -->
+    <query-translation-test.forkCount>4</query-translation-test.forkCount>
   </properties>
 
   <dependencies>
@@ -177,6 +182,45 @@
           <showWarnings>true</showWarnings>
           <showDeprecation>true</showDeprecation>
         </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <!-- Scoped to this module (rather than the root pom) because this is the only module
+        with QueryTranslationTestBatch* classes: giving default-test an <excludes> here, instead
+        of at the root, keeps every other module's default-test execution on Surefire's plain
+        (non-scanning) discovery path, so it doesn't risk double-discovering @Nested test classes
+        whose own name matches the default Test/Tests include globs (e.g. FooTest$BuilderTest). -->
+        <executions>
+          <execution>
+            <!-- No explicit phase/goals here: this merges into the implicit default-test
+            binding this module's jar packaging already provides. -->
+            <id>default-test</id>
+            <configuration>
+              <excludes>
+                <exclude>**/QueryTranslationTestBatch*.java</exclude>
+              </excludes>
+            </configuration>
+          </execution>
+          <execution>
+            <!-- QueryTranslationTest is split into batches (see the `batches` package) so
+            they can run as parallel Maven forks instead of one long, single-threaded run
+            through thousands of parameterized test cases. -->
+            <id>query-translation-test-batches</id>
+            <phase>test</phase>
+            <goals>
+              <goal>test</goal>
+            </goals>
+            <configuration>
+              <includes>
+                <include>**/QueryTranslationTestBatch*.java</include>
+              </includes>
+              <forkCount>${query-translation-test.forkCount}</forkCount>
+              <reuseForks>false</reuseForks>
+              <parallel>classes</parallel>
+            </configuration>
+          </execution>
+        </executions>
       </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>

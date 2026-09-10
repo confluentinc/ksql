@@ -35,45 +35,23 @@ import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
 
 /**
  * Runs the json functional tests defined under
  * `ksql-functional-tests/src/test/resources/query-validation-tests`.
  *
  * See `ksql-functional-tests/README.md` for more info.
+ *
+ * Note that this test is not directly executable anymore, but has been broken up into batches
+ * under the batches package, so they can run in parallel Maven forks instead of one long,
+ * single-threaded run.
  */
-@RunWith(Parameterized.class)
 public class QueryTranslationTest {
 
   // Define this in the JVM to only test against the latest version, i.e. no historical plans
   //private static final String LATEST_ONLY_SWITCH = "topology.versions.latest-only";
 
   private static final Path QUERY_VALIDATION_TEST_DIR = Paths.get("query-validation-tests");
-
-  @SuppressWarnings("UnstableApiUsage")
-  @Parameterized.Parameters(name = "{0}")
-  public static Collection<Object[]> data() {
-    final boolean latestOnly = true;  //System.getProperties().containsKey(LATEST_ONLY_SWITCH);
-
-    final Stream<TestCase> testCases = latestOnly
-        ? testFileLoader().load()
-        : Streams.concat(
-            testFileLoader().load(),
-            PlannedTestLoader.load()
-        );
-
-    return
-        testCases
-            .map(testCase -> new Object[]{testCase.getName(), testCase})
-            .collect(Collectors.toCollection(ArrayList::new));
-  }
-
-  public static Stream<TestCase> findTestCases() {
-    return testFileLoader().load();
-  }
 
   private final TestCase testCase;
 
@@ -87,8 +65,32 @@ public class QueryTranslationTest {
     this.testCase = requireNonNull(testCase, "testCase");
   }
 
-  @Test
-  public void shouldBuildAndExecuteQueries() {
+  @SuppressWarnings("UnstableApiUsage")
+  protected static Collection<Object[]> data(final int totalSegments, final int segment) {
+    final boolean latestOnly = true;  //System.getProperties().containsKey(LATEST_ONLY_SWITCH);
+
+    final Stream<TestCase> testCases = latestOnly
+        ? testFileLoader().load()
+        : Streams.concat(
+            testFileLoader().load(),
+            PlannedTestLoader.load()
+        );
+
+    final List<Object[]> collection = testCases
+        .map(testCase -> new Object[]{testCase.getName(), testCase})
+        .collect(Collectors.toCollection(ArrayList::new));
+
+    final int testsPerSegment = collection.size() / totalSegments;
+    return collection.subList(
+        testsPerSegment * segment,
+        segment < totalSegments - 1 ? testsPerSegment * (segment + 1) : collection.size());
+  }
+
+  public static Stream<TestCase> findTestCases() {
+    return testFileLoader().load();
+  }
+
+  protected void shouldBuildAndExecuteQueries() {
     EndToEndEngineTestUtil.shouldBuildAndExecuteQuery(testCase);
   }
 

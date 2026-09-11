@@ -26,6 +26,7 @@ import static org.mockito.Mockito.when;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.rest.server.BackupReplayFile.Filesystem;
 import io.confluent.ksql.test.util.KsqlTestFolder;
+import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -212,6 +213,45 @@ public class BackupReplayFileTest {
     assertThat(commands.get(0).right, is(record1.value()));
     assertThat(commands.get(1).left, is(record2.key()));
     assertThat(commands.get(1).right, is(record2.value()));
+  }
+
+  @Test
+  public void shouldSkipBlankLinesWhenReadingCommands() throws IOException {
+    // Given: two valid records with a stray blank line between them
+    final ConsumerRecord<byte[], byte[]> record1 = newStreamRecord("stream1");
+    final ConsumerRecord<byte[], byte[]> record2 = newStreamRecord("stream2");
+    Files.write(internalReplayFile.toPath(),
+        String.format("%s%s%s%n%n%s%s%s",
+            "\"stream/stream1/create\"",
+            KEY_VALUE_SEPARATOR,
+            "{\"statement\":\"CREATE STREAM stream1 (id INT) WITH (kafka_topic='stream1')\"}",
+            "\"stream/stream2/create\"",
+            KEY_VALUE_SEPARATOR,
+            "{\"statement\":\"CREATE STREAM stream2 (id INT) WITH (kafka_topic='stream2')\"}"
+        ).getBytes(StandardCharsets.UTF_8));
+
+    // When
+    final List<Pair<byte[], byte[]>> commands = replayFile.readRecords();
+
+    // Then: the blank line is skipped, both records are read
+    assertThat(commands.size(), is(2));
+    assertThat(commands.get(0).left, is(record1.key()));
+    assertThat(commands.get(1).left, is(record2.key()));
+  }
+
+  @Test
+  public void shouldThrowClearErrorWhenLineIsMissingSeparator() throws IOException {
+    // Given: a corrupted/truncated line with no key/value separator
+    Files.write(internalReplayFile.toPath(),
+        "this-line-has-no-key-value-separator".getBytes(StandardCharsets.UTF_8));
+
+    // When
+    final KsqlException e =
+        Assert.assertThrows(KsqlException.class, () -> replayFile.readRecords());
+
+    // Then: a clear, actionable error instead of an opaque StringIndexOutOfBoundsException
+    assertThat(e.getMessage(), org.hamcrest.Matchers.containsString("missing"));
+    assertThat(e.getMessage(), org.hamcrest.Matchers.containsString("line 1"));
   }
 
   private ConsumerRecord<byte[], byte[]> newStreamRecord(final String streamName) {

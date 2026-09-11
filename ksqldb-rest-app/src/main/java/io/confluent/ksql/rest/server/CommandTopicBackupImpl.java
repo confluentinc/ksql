@@ -20,6 +20,7 @@ import io.confluent.ksql.rest.server.computation.InternalTopicSerdes;
 import io.confluent.ksql.rest.server.resources.CommandTopicCorruptionException;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlServerException;
 import io.confluent.ksql.util.Pair;
 import java.io.File;
@@ -86,7 +87,9 @@ public class CommandTopicBackupImpl implements CommandTopicBackup {
 
     try {
       latestReplay = replayFile.readRecords();
-    } catch (final IOException e) {
+    } catch (final IOException | KsqlException e) {
+      // KsqlException covers a corrupted/truncated backup line (see BackupReplayFile.readRecords);
+      // like an IOException, fall back to a fresh replay file rather than aborting server startup.
       LOG.warn("Failed to read the latest backup from {}. Continue with a new file. Error = {}",
           replayFile.getPath(), e.getMessage());
 
@@ -146,6 +149,10 @@ public class CommandTopicBackupImpl implements CommandTopicBackup {
       LOG.warn(String.format("Can't backup a command topic record with a null key/value:"
               + " partition=%d, offset=%d",
           record.partition(), record.offset()));
+      // Do not attempt to write a null record: BackupReplayFile cannot frame it and would throw
+      // an NPE that is swallowed below, silently leaving the backup out of sync with the topic.
+      // That divergence later surfaces as a misleading CommandTopicCorruptionException.
+      return;
     }
 
     if (Arrays.equals(record.key(), InternalTopicSerdes.serializer().serialize(

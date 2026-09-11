@@ -27,15 +27,18 @@ public class PushQueryConfigRoutingOptions implements PushRoutingOptions {
   private final KsqlConfig ksqlConfig;
   private final Map<String, ?> configOverrides;
   private final Map<String, ?> requestProperties;
+  private final boolean isInternalRequest;
 
   public PushQueryConfigRoutingOptions(
       final KsqlConfig ksqlConfig,
       final Map<String, ?> configOverrides,
-      final Map<String, ?> requestProperties
+      final Map<String, ?> requestProperties,
+      final boolean isInternalRequest
   ) {
     this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
     this.configOverrides = Objects.requireNonNull(configOverrides, "configOverrides");
     this.requestProperties = Objects.requireNonNull(requestProperties, "requestProperties");
+    this.isInternalRequest = isInternalRequest;
   }
 
   @Override
@@ -49,6 +52,9 @@ public class PushQueryConfigRoutingOptions implements PushRoutingOptions {
 
   @Override
   public boolean getIsDebugRequest() {
+    if (!isInternalRequest) {
+      return false;
+    }
     if (requestProperties.containsKey(KsqlRequestConfig.KSQL_DEBUG_REQUEST)) {
       return (Boolean) requestProperties.get(KsqlRequestConfig.KSQL_DEBUG_REQUEST);
     }

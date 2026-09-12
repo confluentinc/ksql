@@ -865,6 +865,34 @@
         "type": "io.confluent.ksql.util.KsqlStatementException",
         "message": "JSON only supports MAP types with STRING keys"
       }
+    },
+    {
+      "name": "struct must be converted to String",
+      "statements": [
+        "create stream TEST (FOO struct<id int, val struct<f0 string, f1 Map<String, String>, f2 Array<String>>>) with (kafka_topic='test_topic', value_format='json_sr', partitions=1);",
+        "CREATE STREAM INPUT (FOO STRING) WITH (kafka_topic='test_topic', value_format='JSON_SR');",
+        "CREATE STREAM OUTPUT as select * from INPUT;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "value": {"FOO": {"id": 1, "val": {"f0": "k", "f1": {"a1":"1"}, "f2": ["x","y"]}}}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"FOO": {"ID":1, "VAL": {"F0":"k","F1": {"a1":"1"},"F2":["x", "y"]}}}}
+      ]
     }
+//    {
+//      "name": "struct must be converted to String",
+//      "statements": [
+//        "create stream TEST (FOO struct<id int, val struct<f0 string, f1 string, f2 string>>) with (kafka_topic='mixx', value_format='json_sr', partitions=1);",
+//        "CREATE STREAM INPUT (FOO STRING) WITH (kafka_topic='mixx', value_format='JSON_SR');",
+//        "CREATE STREAM OUTPUT as select * from INPUT;"
+//      ],
+//      "inputs": [
+//        {"topic": "mixx", "value": {"FOO": {"id": 1, "val": {"f0": "k", "f1": "kk", "f2": "jj"}}}}
+//      ],
+//      "outputs": [
+//        {"topic": "OUTPUT", "value": {"FOO": {"ID":1, "VAL": {"F0":"k","F1": "{a1=1}","F2":"[x, y]"}}}}
+//      ]
+//    }
   ]
 }

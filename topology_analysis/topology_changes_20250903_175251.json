@@ -1,0 +1,631 @@
+{
+  "timestamp": "2025-09-03T17:52:51.953307",
+  "total_changes_found": 25,
+  "changes": [
+    {
+      "test_case": "explode_-_explode_array_of_struct",
+      "test_number": 556,
+      "batch_number": 2,
+      "versions": {
+        "combination": "Latest 7.x vs 8.0.0",
+        "v7": "7.1.0_1633125926644",
+        "v8": "8.0.0_1738740403280"
+      },
+      "changes": {
+        "0": {
+          "status": "changes_detected",
+          "changes": {
+            "removed_in_v8": [
+              "KSTREAM-SINK-0000000004",
+              "Sink: KSTREAM-SINK-0000000004 (topic: OUTPUT)"
+            ],
+            "added_in_v8": [
+              "KSTREAM-SINK-0000000003",
+              "Sink: KSTREAM-SINK-0000000003 (topic: OUTPUT)"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "test_case": "explode_-_explode_array_of_struct_with_dereference",
+      "test_number": 557,
+      "batch_number": 2,
+      "versions": {
+        "combination": "Latest 7.x vs 8.0.0",
+        "v7": "7.1.0_1633125926657",
+        "v8": "8.0.0_1738740403291"
+      },
+      "changes": {
+        "0": {
+          "status": "changes_detected",
+          "changes": {
+            "removed_in_v8": [
+              "KSTREAM-SINK-0000000004",
+              "Sink: KSTREAM-SINK-0000000004 (topic: OUTPUT)"
+            ],
+            "added_in_v8": [
+              "KSTREAM-SINK-0000000003",
+              "Sink: KSTREAM-SINK-0000000003 (topic: OUTPUT)"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "test_case": "explode_-_explode_array_with_values",
+      "test_number": 558,
+      "batch_number": 2,
+      "versions": {
+        "combination": "Latest 7.x vs 8.0.0",
+        "v7": "7.1.0_1633125926580",
+        "v8": "8.0.0_1738740403234"
+      },
+      "changes": {
+        "0": {
+          "status": "changes_detected",
+          "changes": {
+            "removed_in_v8": [
+              "KSTREAM-SINK-0000000004",
+              "Sink: KSTREAM-SINK-0000000004 (topic: OUTPUT)"
+            ],
+            "added_in_v8": [
+              "KSTREAM-SINK-0000000003",
+              "Sink: KSTREAM-SINK-0000000003 (topic: OUTPUT)"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "test_case": "explode_-_explode_different_types",
+      "test_number": 559,
+      "batch_number": 2,
+      "versions": {
+        "combination": "Latest 7.x vs 8.0.0",
+        "v7": "7.1.0_1633125926615",
+        "v8": "8.0.0_1738740403259"
+      },
+      "changes": {
+        "0": {
+          "status": "changes_detected",
+          "changes": {
+            "removed_in_v8": [
+              "KSTREAM-SINK-0000000004",
+              "Sink: KSTREAM-SINK-0000000004 (topic: OUTPUT)"
+            ],
+            "added_in_v8": [
+              "KSTREAM-SINK-0000000003",
+              "Sink: KSTREAM-SINK-0000000003 (topic: OUTPUT)"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "test_case": "explode_-_udfs_with_table_functions_and_no_aliases,_verifies_intermediate_generated_column_names_don't_clash_with_aliases",
+      "test_number": 560,
+      "batch_number": 2,
+      "versions": {
+        "combination": "Latest 7.x vs 8.0.0",
+        "v7": "7.1.0_1633125926594",
+        "v8": "8.0.0_1738740403245"
+      },
+      "changes": {
+        "0": {
+          "status": "changes_detected",
+          "changes": {
+            "removed_in_v8": [
+              "KSTREAM-SINK-0000000004",
+              "Sink: KSTREAM-SINK-0000000004 (topic: OUTPUT)"
+            ],
+            "added_in_v8": [
+              "KSTREAM-SINK-0000000003",
+              "Sink: KSTREAM-SINK-0000000003 (topic: OUTPUT)"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "test_case": "select_-_key_missing_from_projection_--_new_planner",
+      "test_number": 1690,
+      "batch_number": 13,
+      "versions": {
+        "combination": "Latest 7.x vs 8.0.0",
+        "v7": "7.2.0_1649106488467",
+        "v8": "8.0.0_1738740536045"
+      },
+      "changes": {
+        "0": {
+          "status": "changes_detected",
+          "changes": {
+            "removed_in_v8": [
+              "KSTREAM-SINK-0000000002",
+              "Sink: KSTREAM-SINK-0000000002 (topic: OUTPUT)"
+            ],
+            "added_in_v8": [
+              "KSTREAM-SINK-0000000003",
+              "Sink: KSTREAM-SINK-0000000003 (topic: OUTPUT)"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "test_case": "table-functions_-_multiple_table_functions",
+      "test_number": 1852,
+      "batch_number": 15,
+      "versions": {
+        "combination": "Latest 7.x vs 8.0.0",
+        "v7": "7.1.0_1633126027865",
+        "v8": "8.0.0_1738740546654"
+      },
+      "changes": {
+        "0": {
+          "status": "changes_detected",
+          "changes": {
+            "removed_in_v8": [
+              "KSTREAM-SINK-0000000004",
+              "Sink: KSTREAM-SINK-0000000004 (topic: OUTPUT)"
+            ],
+            "added_in_v8": [
+              "KSTREAM-SINK-0000000003",
+              "Sink: KSTREAM-SINK-0000000003 (topic: OUTPUT)"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "test_case": "table-functions_-_should_handle_UDTF_parameter_evaluation_that_throws",
+      "test_number": 1853,
+      "batch_number": 15,
+      "versions": {
+        "combination": "Latest 7.x vs 8.0.0",
+        "v7": "7.1.0_1633126028111",
+        "v8": "8.0.0_1738740546817"
+      },
+      "changes": {
+        "0": {
+          "status": "changes_detected",
+          "changes": {
+            "removed_in_v8": [
+              "KSTREAM-SINK-0000000004",
+              "Sink: KSTREAM-SINK-0000000004 (topic: OUTPUT)"
+            ],
+            "added_in_v8": [
+              "KSTREAM-SINK-0000000003",
+              "Sink: KSTREAM-SINK-0000000003 (topic: OUTPUT)"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "test_case": "table-functions_-_should_handle_UDTFs_that_throw",
+      "test_number": 1854,
+      "batch_number": 15,
+      "versions": {
+        "combination": "Latest 7.x vs 8.0.0",
+        "v7": "7.1.0_1633126028093",
+        "v8": "8.0.0_1738740546805"
+      },
+      "changes": {
+        "0": {
+          "status": "changes_detected",
+          "changes": {
+            "removed_in_v8": [
+              "KSTREAM-SINK-0000000004",
+              "Sink: KSTREAM-SINK-0000000004 (topic: OUTPUT)"
+            ],
+            "added_in_v8": [
+              "KSTREAM-SINK-0000000003",
+              "Sink: KSTREAM-SINK-0000000003 (topic: OUTPUT)"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "test_case": "table-functions_-_stream_without_key",
+      "test_number": 1855,
+      "batch_number": 15,
+      "versions": {
+        "combination": "Latest 7.x vs 8.0.0",
+        "v7": "7.1.0_1633126028129",
+        "v8": "8.0.0_1738740546828"
+      },
+      "changes": {
+        "0": {
+          "status": "changes_detected",
+          "changes": {
+            "removed_in_v8": [
+              "KSTREAM-SINK-0000000004",
+              "Sink: KSTREAM-SINK-0000000004 (topic: OUTPUT)"
+            ],
+            "added_in_v8": [
+              "KSTREAM-SINK-0000000003",
+              "Sink: KSTREAM-SINK-0000000003 (topic: OUTPUT)"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "test_case": "table-functions_-_table_function_as_first_select",
+      "test_number": 1856,
+      "batch_number": 15,
+      "versions": {
+        "combination": "Latest 7.x vs 8.0.0",
+        "v7": "7.1.0_1633126027795",
+        "v8": "8.0.0_1738740546613"
+      },
+      "changes": {
+        "0": {
+          "status": "changes_detected",
+          "changes": {
+            "removed_in_v8": [
+              "KSTREAM-SINK-0000000004",
+              "Sink: KSTREAM-SINK-0000000004 (topic: OUTPUT)"
+            ],
+            "added_in_v8": [
+              "KSTREAM-SINK-0000000003",
+              "Sink: KSTREAM-SINK-0000000003 (topic: OUTPUT)"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "test_case": "table-functions_-_table_function_as_last_select",
+      "test_number": 1857,
+      "batch_number": 15,
+      "versions": {
+        "combination": "Latest 7.x vs 8.0.0",
+        "v7": "7.1.0_1633126027776",
+        "v8": "8.0.0_1738740546600"
+      },
+      "changes": {
+        "0": {
+          "status": "changes_detected",
+          "changes": {
+            "removed_in_v8": [
+              "KSTREAM-SINK-0000000004",
+              "Sink: KSTREAM-SINK-0000000004 (topic: OUTPUT)"
+            ],
+            "added_in_v8": [
+              "KSTREAM-SINK-0000000003",
+              "Sink: KSTREAM-SINK-0000000003 (topic: OUTPUT)"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "test_case": "table-functions_-_table_function_with_no_alias",
+      "test_number": 1858,
+      "batch_number": 15,
+      "versions": {
+        "combination": "Latest 7.x vs 8.0.0",
+        "v7": "7.1.0_1633126027850",
+        "v8": "8.0.0_1738740546645"
+      },
+      "changes": {
+        "0": {
+          "status": "changes_detected",
+          "changes": {
+            "removed_in_v8": [
+              "KSTREAM-SINK-0000000004",
+              "Sink: KSTREAM-SINK-0000000004 (topic: OUTPUT)"
+            ],
+            "added_in_v8": [
+              "KSTREAM-SINK-0000000003",
+              "Sink: KSTREAM-SINK-0000000003 (topic: OUTPUT)"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "test_case": "table-functions_-_table_function_with_no_other_selected_columns",
+      "test_number": 1859,
+      "batch_number": 15,
+      "versions": {
+        "combination": "Latest 7.x vs 8.0.0",
+        "v7": "7.1.0_1633126027834",
+        "v8": "8.0.0_1738740546636"
+      },
+      "changes": {
+        "0": {
+          "status": "changes_detected",
+          "changes": {
+            "removed_in_v8": [
+              "KSTREAM-SINK-0000000004",
+              "Sink: KSTREAM-SINK-0000000004 (topic: OUTPUT)"
+            ],
+            "added_in_v8": [
+              "KSTREAM-SINK-0000000003",
+              "Sink: KSTREAM-SINK-0000000003 (topic: OUTPUT)"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "test_case": "table-functions_-_table_function_with_non_selected_columns",
+      "test_number": 1860,
+      "batch_number": 15,
+      "versions": {
+        "combination": "Latest 7.x vs 8.0.0",
+        "v7": "7.1.0_1633126027814",
+        "v8": "8.0.0_1738740546625"
+      },
+      "changes": {
+        "0": {
+          "status": "changes_detected",
+          "changes": {
+            "removed_in_v8": [
+              "KSTREAM-SINK-0000000004",
+              "Sink: KSTREAM-SINK-0000000004 (topic: OUTPUT)"
+            ],
+            "added_in_v8": [
+              "KSTREAM-SINK-0000000003",
+              "Sink: KSTREAM-SINK-0000000003 (topic: OUTPUT)"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "test_case": "table-functions_-_table_function_with_where_clause",
+      "test_number": 1861,
+      "batch_number": 15,
+      "versions": {
+        "combination": "Latest 7.x vs 8.0.0",
+        "v7": "7.1.0_1633126028011",
+        "v8": "8.0.0_1738740546746"
+      },
+      "changes": {
+        "0": {
+          "status": "changes_detected",
+          "changes": {
+            "removed_in_v8": [
+              "KSTREAM-SINK-0000000005",
+              "Sink: KSTREAM-SINK-0000000005 (topic: OUTPUT)"
+            ],
+            "added_in_v8": [
+              "KSTREAM-SINK-0000000004",
+              "Sink: KSTREAM-SINK-0000000004 (topic: OUTPUT)"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "test_case": "table-functions_-_table_functions_with_complex_expressions",
+      "test_number": 1862,
+      "batch_number": 15,
+      "versions": {
+        "combination": "Latest 7.x vs 8.0.0",
+        "v7": "7.1.0_1633126027886",
+        "v8": "8.0.0_1738740546666"
+      },
+      "changes": {
+        "0": {
+          "status": "changes_detected",
+          "changes": {
+            "removed_in_v8": [
+              "KSTREAM-SINK-0000000004",
+              "Sink: KSTREAM-SINK-0000000004 (topic: OUTPUT)"
+            ],
+            "added_in_v8": [
+              "KSTREAM-SINK-0000000003",
+              "Sink: KSTREAM-SINK-0000000003 (topic: OUTPUT)"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "test_case": "table-functions_-_test_udtf_-_array_params",
+      "test_number": 1863,
+      "batch_number": 15,
+      "versions": {
+        "combination": "Latest 7.x vs 8.0.0",
+        "v7": "7.1.0_1633126027945",
+        "v8": "8.0.0_1738740546699"
+      },
+      "changes": {
+        "0": {
+          "status": "changes_detected",
+          "changes": {
+            "removed_in_v8": [
+              "KSTREAM-SINK-0000000004",
+              "Sink: KSTREAM-SINK-0000000004 (topic: OUTPUT)"
+            ],
+            "added_in_v8": [
+              "KSTREAM-SINK-0000000003",
+              "Sink: KSTREAM-SINK-0000000003 (topic: OUTPUT)"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "test_case": "table-functions_-_test_udtf_-_key_column",
+      "test_number": 1864,
+      "batch_number": 15,
+      "versions": {
+        "combination": "Latest 7.x vs 8.0.0",
+        "v7": "7.1.0_1633126027933",
+        "v8": "8.0.0_1738740546690"
+      },
+      "changes": {
+        "0": {
+          "status": "changes_detected",
+          "changes": {
+            "removed_in_v8": [
+              "KSTREAM-SINK-0000000004",
+              "Sink: KSTREAM-SINK-0000000004 (topic: OUTPUT)"
+            ],
+            "added_in_v8": [
+              "KSTREAM-SINK-0000000003",
+              "Sink: KSTREAM-SINK-0000000003 (topic: OUTPUT)"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "test_case": "table-functions_-_test_udtf_-_map_params",
+      "test_number": 1865,
+      "batch_number": 15,
+      "versions": {
+        "combination": "Latest 7.x vs 8.0.0",
+        "v7": "7.1.0_1633126027963",
+        "v8": "8.0.0_1738740546710"
+      },
+      "changes": {
+        "0": {
+          "status": "changes_detected",
+          "changes": {
+            "removed_in_v8": [
+              "KSTREAM-SINK-0000000004",
+              "Sink: KSTREAM-SINK-0000000004 (topic: OUTPUT)"
+            ],
+            "added_in_v8": [
+              "KSTREAM-SINK-0000000003",
+              "Sink: KSTREAM-SINK-0000000003 (topic: OUTPUT)"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "test_case": "table-functions_-_test_udtf_-_return_vals",
+      "test_number": 1866,
+      "batch_number": 15,
+      "versions": {
+        "combination": "Latest 7.x vs 8.0.0",
+        "v7": "7.1.0_1633126027981",
+        "v8": "8.0.0_1738740546724"
+      },
+      "changes": {
+        "0": {
+          "status": "changes_detected",
+          "changes": {
+            "removed_in_v8": [
+              "KSTREAM-SINK-0000000004",
+              "Sink: KSTREAM-SINK-0000000004 (topic: OUTPUT)"
+            ],
+            "added_in_v8": [
+              "KSTREAM-SINK-0000000003",
+              "Sink: KSTREAM-SINK-0000000003 (topic: OUTPUT)"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "test_case": "table-functions_-_test_udtf_-_simple_params",
+      "test_number": 1867,
+      "batch_number": 15,
+      "versions": {
+        "combination": "Latest 7.x vs 8.0.0",
+        "v7": "7.1.0_1633126027918",
+        "v8": "8.0.0_1738740546679"
+      },
+      "changes": {
+        "0": {
+          "status": "changes_detected",
+          "changes": {
+            "removed_in_v8": [
+              "KSTREAM-SINK-0000000004",
+              "Sink: KSTREAM-SINK-0000000004 (topic: OUTPUT)"
+            ],
+            "added_in_v8": [
+              "KSTREAM-SINK-0000000003",
+              "Sink: KSTREAM-SINK-0000000003 (topic: OUTPUT)"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "test_case": "table-functions_-_with_duplicate_columns",
+      "test_number": 1868,
+      "batch_number": 15,
+      "versions": {
+        "combination": "Latest 7.x vs 8.0.0",
+        "v7": "7.1.0_1633126028049",
+        "v8": "8.0.0_1738740546780"
+      },
+      "changes": {
+        "0": {
+          "status": "changes_detected",
+          "changes": {
+            "removed_in_v8": [
+              "KSTREAM-SINK-0000000004",
+              "Sink: KSTREAM-SINK-0000000004 (topic: OUTPUT)"
+            ],
+            "added_in_v8": [
+              "KSTREAM-SINK-0000000003",
+              "Sink: KSTREAM-SINK-0000000003 (topic: OUTPUT)"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "test_case": "table-functions_-_with_duplicate_udtfs",
+      "test_number": 1869,
+      "batch_number": 15,
+      "versions": {
+        "combination": "Latest 7.x vs 8.0.0",
+        "v7": "7.1.0_1633126028074",
+        "v8": "8.0.0_1738740546793"
+      },
+      "changes": {
+        "0": {
+          "status": "changes_detected",
+          "changes": {
+            "removed_in_v8": [
+              "KSTREAM-SINK-0000000004",
+              "Sink: KSTREAM-SINK-0000000004 (topic: OUTPUT)"
+            ],
+            "added_in_v8": [
+              "KSTREAM-SINK-0000000003",
+              "Sink: KSTREAM-SINK-0000000003 (topic: OUTPUT)"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "test_case": "table-functions_-_with_select__",
+      "test_number": 1870,
+      "batch_number": 15,
+      "versions": {
+        "combination": "Latest 7.x vs 8.0.0",
+        "v7": "7.1.0_1633126028030",
+        "v8": "8.0.0_1738740546760"
+      },
+      "changes": {
+        "0": {
+          "status": "changes_detected",
+          "changes": {
+            "removed_in_v8": [
+              "KSTREAM-SINK-0000000004",
+              "Sink: KSTREAM-SINK-0000000004 (topic: OUTPUT)"
+            ],
+            "added_in_v8": [
+              "KSTREAM-SINK-0000000003",
+              "Sink: KSTREAM-SINK-0000000003 (topic: OUTPUT)"
+            ]
+          }
+        }
+      }
+    }
+  ]
+}

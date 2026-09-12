@@ -19,6 +19,16 @@ public interface KsqlResourceExtension extends AutoCloseable {
   void register(KsqlConfig ksqlConfig);
 
   /**
+   * Registers and initializes the resource extension with additional server context (metrics and
+   * node/cluster identity). The default delegates to {@link #register(KsqlConfig)} so extensions
+   * that do not need the extra context keep working unchanged.
+   * @param context the registration context
+   */
+  default void register(final KsqlResourceExtensionContext context) {
+    register(context.ksqlConfig());
+  }
+
+  /**
    * Closes the resource extension and releases any held resources.
    */
   @Override

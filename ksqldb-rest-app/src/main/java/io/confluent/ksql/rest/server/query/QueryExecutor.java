@@ -244,6 +244,7 @@ public class QueryExecutor {
           statement,
           configOverrides,
           requestProperties,
+          isInternalRequest,
           context,
           scalablePushBandRateLimiter,
           resultForMetrics
@@ -273,7 +274,8 @@ public class QueryExecutor {
     final RoutingOptions routingOptions = new PullQueryConfigRoutingOptions(
         configured.getSessionConfig().getConfig(false),
         configured.getSessionConfig().getOverrides(),
-        requestProperties
+        requestProperties,
+        isInternalRequest.orElse(false)
     );
 
     final PullQueryConfigPlannerOptions plannerOptions = new PullQueryConfigPlannerOptions(
@@ -332,6 +334,7 @@ public class QueryExecutor {
       final PreparedStatement<Query> statement,
       final Map<String, Object> configOverrides,
       final Map<String, Object> requestProperties,
+      final Optional<Boolean> isInternalRequest,
       final Context context,
       final SlidingWindowRateLimiter scalablePushBandRateLimiter,
       final AtomicReference<ScalablePushQueryMetadata> resultForMetrics
@@ -342,7 +345,8 @@ public class QueryExecutor {
     final PushQueryConfigRoutingOptions routingOptions = new PushQueryConfigRoutingOptions(
         ksqlEngine.getKsqlConfig(),
         configOverrides,
-        requestProperties
+        requestProperties,
+        isInternalRequest.orElse(false)
     );
 
     final PushQueryConfigPlannerOptions plannerOptions =

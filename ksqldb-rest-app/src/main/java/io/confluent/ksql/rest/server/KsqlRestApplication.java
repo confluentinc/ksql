@@ -21,6 +21,7 @@ import static java.util.Objects.requireNonNull;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.hash.Hashing;
 import com.google.common.util.concurrent.ListeningScheduledExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
@@ -97,6 +98,7 @@ import io.confluent.ksql.security.KsqlAuthorizationValidator;
 import io.confluent.ksql.security.KsqlAuthorizationValidatorFactory;
 import io.confluent.ksql.security.KsqlDefaultSecurityExtension;
 import io.confluent.ksql.security.KsqlResourceExtension;
+import io.confluent.ksql.security.KsqlResourceExtensionContext;
 import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.security.KsqlSecurityExtension;
 import io.confluent.ksql.services.ConnectClientFactory;
@@ -837,7 +839,7 @@ public final class KsqlRestApplication implements Executable {
             sharedClient);
 
     final Optional<KsqlResourceExtension> ksqlResourceExtension =
-        loadKsqlResourceExtension(ksqlConfig);
+        loadKsqlResourceExtension(restConfig, ksqlConfig, metricCollectors);
 
     final Optional<AuthenticationPlugin> securityHandlerPlugin = loadAuthenticationPlugin(
         restConfig);
@@ -1179,7 +1181,9 @@ public final class KsqlRestApplication implements Executable {
   }
 
   private static Optional<KsqlResourceExtension> loadKsqlResourceExtension(
-      final KsqlConfig ksqlConfig) {
+      final KsqlRestConfig restConfig,
+      final KsqlConfig ksqlConfig,
+      final MetricCollectors metricCollectors) {
 
     final String extensionClassName =
         ksqlConfig.getString(KsqlConfig.KSQL_RESOURCE_EXTENSION_CLASS);
@@ -1209,13 +1213,41 @@ public final class KsqlRestApplication implements Executable {
         throw new KsqlException(KsqlConstants.KSQL_RESOURCE_EXTENSION_MISCONFIGURED_LOG_MESSAGE);
       }
 
-      extension.register(ksqlConfig);
+      extension.register(new KsqlResourceExtensionContext(
+          ksqlConfig,
+          metricCollectors,
+          resolveNodeId(restConfig),
+          ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG)));
       log.info("Successfully loaded and registered KSQL resource extension: {}",
           extensionClassName);
       return Optional.of(extension);
 
     } catch (final Throwable t) {
-      log.warn(KsqlConstants.KSQL_RESOURCE_EXTENSION_MISCONFIGURED_LOG_MESSAGE);
+      log.warn(KsqlConstants.KSQL_RESOURCE_EXTENSION_MISCONFIGURED_LOG_MESSAGE, t);
+      return Optional.empty();
+    }
+  }
+
+  /**
+   * Resolves this node's identifier for license node attribution: a short, stable hash of the
+   * host and port of ksqlDB's inter-node listener ({@link KsqlRestConfig#getInterNodeListener}),
+   * the same endpoint ksqlDB advertises to peers as the Streams {@code application.server}. Order
+   * is advertised listener, then internal listener, then the first listener, with wildcard binds
+   * sanitized to the local host. Hashing host:port keeps the id short and display-friendly, while
+   * staying stable across restarts and unique per node (co-located nodes included). If nothing
+   * resolves, the id is absent and node attribution is left disabled.
+   */
+  @VisibleForTesting
+  static Optional<String> resolveNodeId(final KsqlRestConfig restConfig) {
+    try {
+      final URL listener = restConfig.getInterNodeListener(URL::getPort);
+      final String hostPort = listener.getHost() + ":" + listener.getPort();
+      // 16 hex chars (64 bits): short enough for a UI, collision-safe for realistic node counts.
+      return Optional.of(
+          Hashing.sha256().hashString(hostPort, StandardCharsets.UTF_8).toString().substring(0, 16));
+    } catch (final RuntimeException e) {
+      log.warn("Could not resolve this node's inter-node listener for license node attribution; "
+          + "node attribution will be disabled", e);
       return Optional.empty();
     }
   }

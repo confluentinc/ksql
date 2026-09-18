@@ -1,0 +1,17 @@
+{
+  "test_case": "multi-joins_-_stream-table-table_-_inner-inner_-_rekey_and_flip_join_expression",
+  "analysis_timestamp": "2025-09-03T17:30:23.131859",
+  "versions": {
+    "combination": "Latest 7.x vs 8.0.1",
+    "v7": "7.1.0_1633126006703",
+    "v8": "8.0.1_1756887732963"
+  },
+  "comparison": {
+    "sub_topology_counts": {
+      "v7": 2,
+      "v8": 2
+    },
+    "sub_topologies": {},
+    "status": "no_significant_changes"
+  }
+}

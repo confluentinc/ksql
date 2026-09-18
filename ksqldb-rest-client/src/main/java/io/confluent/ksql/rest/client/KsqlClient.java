@@ -160,6 +160,22 @@ public final class KsqlClient implements AutoCloseable {
     } catch (Exception ignore) {
       // Ignore
     }
+    // Each HTTP/2 client owns its own Netty channel pool and event-loop resources; leaving them
+    // un-closed leaks one pool per construct/close cycle (hot reloads, tests, reconnect paths).
+    httpTlsClientHttp2.ifPresent(client -> {
+      try {
+        client.close();
+      } catch (Exception ignore) {
+        // Ignore
+      }
+    });
+    httpNonTlsClientHttp2.ifPresent(client -> {
+      try {
+        client.close();
+      } catch (Exception ignore) {
+        // Ignore
+      }
+    });
     if (vertx != null && ownedVertx) {
       vertx.close();
     }

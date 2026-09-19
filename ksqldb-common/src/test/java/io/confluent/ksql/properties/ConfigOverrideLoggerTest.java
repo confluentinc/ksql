@@ -24,22 +24,15 @@ import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.test.util.TestAppender;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Collections;
-import java.util.Hashtable;
 import java.util.HashMap;
+import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.apache.log4j.MDC;
 import org.apache.log4j.spi.LoggingEvent;
-import java.util.Optional;
-import org.apache.logging.log4j.Level;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.ThreadContext;
-import org.apache.logging.log4j.core.LogEvent;
-import org.apache.logging.log4j.core.LoggerContext;
-import org.apache.logging.log4j.core.config.Configuration;
-import org.apache.logging.log4j.core.config.LoggerConfig;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -179,10 +172,10 @@ public class ConfigOverrideLoggerTest {
     ConfigOverrideLogger.logOverrides("command_topic_restore", Optional.of("CSAS_FOO_0"),
         ImmutableMap.of("auto.offset.reset", "earliest"));
 
-    final List<LogEvent> events = appender.getLog();
+    final List<LoggingEvent> events = appender.getLog();
     assertThat(events, hasSize(1));
-    assertThat(events.get(0).getMessage().getFormattedMessage(), is("Config overrides found"));
-    assertThat(events.get(0).getContextData().toMap(), is(ImmutableMap.of(
+    assertThat(events.get(0).getMessage(), is("Config overrides found"));
+    assertThat(properties(events.get(0)), is(ImmutableMap.of(
         "endpoint", "command_topic_restore",
         "property", "auto.offset.reset",
         "inAllowlist", "true",
@@ -205,12 +198,12 @@ public class ConfigOverrideLoggerTest {
 
     ConfigOverrideLogger.logRangeViolations(ENDPOINT, ImmutableMap.of(RANGE_CHECKED_PROP, -5L));
 
-    final List<LogEvent> events = appender.getLog();
+    final List<LoggingEvent> events = appender.getLog();
     assertThat(events, hasSize(1));
     assertThat(events.get(0).getLevel(), is(Level.WARN));
-    assertThat(events.get(0).getMessage().getFormattedMessage(),
+    assertThat(events.get(0).getMessage(),
         is("Config override outside intended range: must be between 100 and 60000"));
-    assertThat(events.get(0).getContextData().toMap(), is(ImmutableMap.of(
+    assertThat(properties(events.get(0)), is(ImmutableMap.of(
         "endpoint", "/ksql",
         "property", RANGE_CHECKED_PROP,
         "value", "-5"
@@ -263,9 +256,9 @@ public class ConfigOverrideLoggerTest {
     ConfigOverrideLogger.logRangeViolations(ENDPOINT,
         ImmutableMap.of("num.stream.threads", 4));
 
-    final List<LogEvent> events = appender.getLog();
+    final List<LoggingEvent> events = appender.getLog();
     assertThat(events, hasSize(1));
-    assertThat(events.get(0).getMessage().getFormattedMessage(),
+    assertThat(events.get(0).getMessage(),
         is("Config override outside intended range: must be 1"));
   }
 
@@ -278,10 +271,10 @@ public class ConfigOverrideLoggerTest {
         "max.poll.records", 20_000
     ));
 
-    final List<LogEvent> events = appender.getLog();
+    final List<LoggingEvent> events = appender.getLog();
     assertThat(events, hasSize(2));
     events.forEach(event -> {
-      final Map<String, String> ctx = event.getContextData().toMap();
+      final Map<String, String> ctx = properties(event);
       assertThat(ctx.get("endpoint"), is("/ksql"));
       if (RANGE_CHECKED_PROP.equals(ctx.get("property"))) {
         assertThat(ctx.get("value"), is("-5"));
@@ -309,9 +302,9 @@ public class ConfigOverrideLoggerTest {
     ConfigOverrideLogger.logRangeViolations("command_topic_restore", Optional.of("CSAS_FOO_0"),
         ImmutableMap.of(RANGE_CHECKED_PROP, -5L));
 
-    final List<LogEvent> events = appender.getLog();
+    final List<LoggingEvent> events = appender.getLog();
     assertThat(events, hasSize(1));
-    assertThat(events.get(0).getContextData().toMap(), is(ImmutableMap.of(
+    assertThat(properties(events.get(0)), is(ImmutableMap.of(
         "endpoint", "command_topic_restore",
         "property", RANGE_CHECKED_PROP,
         "value", "-5",
@@ -325,9 +318,9 @@ public class ConfigOverrideLoggerTest {
 
     ConfigOverrideLogger.logRangeViolations(ENDPOINT, ImmutableMap.of(RANGE_CHECKED_PROP, -5L));
 
-    final List<LogEvent> events = appender.getLog();
+    final List<LoggingEvent> events = appender.getLog();
     assertThat(events, hasSize(1));
-    assertThat(events.get(0).getContextData().toMap().containsKey("query"), is(false));
+    assertThat(properties(events.get(0)).containsKey("query"), is(false));
   }
 
   @Test
@@ -361,7 +354,8 @@ public class ConfigOverrideLoggerTest {
     ConfigOverrideLogger.logRangeViolations("command_topic_restore", Optional.of("CSAS_FOO_0"),
         ImmutableMap.of(RANGE_CHECKED_PROP, -5L));
 
-    assertThat(ThreadContext.getContext().isEmpty(), is(true));
+    final Hashtable<?, ?> context = MDC.getContext();
+    assertThat(context == null || context.isEmpty(), is(true));
   }
 
   private static void configureOverridesLog(final boolean enabled, final String allowlist) {

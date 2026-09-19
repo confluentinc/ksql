@@ -1100,7 +1100,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlException",
-        "message": "N-way joins do not support multiple occurrences of the same source. Source: 'T2'"
+        "message": "N-way table-table joins do not support multiple occurrences of the same source. Source: 'T2'"
       }
     },
     {

@@ -25,6 +25,7 @@ import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlStatementException;
 import java.util.Map;
 
+
 public final class PropertyOverrider {
 
   private PropertyOverrider() {
@@ -40,6 +41,8 @@ public final class PropertyOverrider {
             "SET", ImmutableMap.of(setProperty.getPropertyName(), ""));
     throwIfDisallowedProperty(setProperty, statement);
     throwIfInvalidPropertyValues(setProperty, statement);
+    ConfigOverrideLogger.logRangeViolations("SET",
+            ImmutableMap.of(setProperty.getPropertyName(), setProperty.getPropertyValue()));
     mutableProperties.put(setProperty.getPropertyName(), setProperty.getPropertyValue());
   }
 

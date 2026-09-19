@@ -21,9 +21,9 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import org.apache.logging.log4j.CloseableThreadContext;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
+import org.apache.log4j.MDC;
 
 /**
  * Applies name-only filtering to property overrides found while restoring the command topic.
@@ -93,12 +93,17 @@ public class RestorePropertyOverrideFilter {
       final String key = entry.getKey();
 
       if (isExcluded(key)) {
-        try (CloseableThreadContext.Instance ignored = CloseableThreadContext
-            .put(ENDPOINT, endpoint)
-            .put(QUERY, query)
-            .put(PROPERTY, key)
-            .put(MODE, mode)) {
+        MDC.put(ENDPOINT, endpoint);
+        MDC.put(QUERY, query);
+        MDC.put(PROPERTY, key);
+        MDC.put(MODE, mode);
+        try {
           LOG.warn("Config override excluded from restore");
+        } finally {
+          MDC.remove(ENDPOINT);
+          MDC.remove(QUERY);
+          MDC.remove(PROPERTY);
+          MDC.remove(MODE);
         }
         continue;
       }

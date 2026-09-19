@@ -169,14 +169,22 @@ public final class ConfigOverrideLogger {
       return;
     }
     for (final String key : properties.keySet()) {
-      final CloseableThreadContext.Instance context = CloseableThreadContext
-          .put(ENDPOINT, endpoint)
-          .put(PROPERTY, key)
-          .put(IN_ALLOWLIST, String.valueOf(allowlist.contains(key)));
-      query.ifPresent(id -> context.put(QUERY, id));
+      MDC.put(ENDPOINT, endpoint);
+      MDC.put(PROPERTY, key);
+      MDC.put(IN_ALLOWLIST, String.valueOf(allowlist.contains(key)));
+      if (query.isPresent()) {
+        MDC.put(QUERY, query.get());
+      }
 
-      try (CloseableThreadContext.Instance ignored = context) {
+      try {
         LOG.info("Config overrides found");
+      } finally {
+        MDC.remove(ENDPOINT);
+        MDC.remove(PROPERTY);
+        MDC.remove(IN_ALLOWLIST);
+        if (query.isPresent()) {
+          MDC.remove(QUERY);
+        }
       }
     }
   }
@@ -217,14 +225,22 @@ public final class ConfigOverrideLogger {
         continue;
       }
 
-      final CloseableThreadContext.Instance context = CloseableThreadContext
-          .put(ENDPOINT, endpoint)
-          .put(PROPERTY, entry.getKey())
-          .put(VALUE, String.valueOf(entry.getValue()));
-      query.ifPresent(id -> context.put(QUERY, id));
+      MDC.put(ENDPOINT, endpoint);
+      MDC.put(PROPERTY, entry.getKey());
+      MDC.put(VALUE, String.valueOf(entry.getValue()));
+      if (query.isPresent()) {
+        MDC.put(QUERY, query.get());
+      }
 
-      try (CloseableThreadContext.Instance ignored = context) {
-        LOG.warn("Config override outside intended range: {}", violation.get());
+      try {
+        LOG.warn("Config override outside intended range: " + violation.get());
+      } finally {
+        MDC.remove(ENDPOINT);
+        MDC.remove(PROPERTY);
+        MDC.remove(VALUE);
+        if (query.isPresent()) {
+          MDC.remove(QUERY);
+        }
       }
     }
   }

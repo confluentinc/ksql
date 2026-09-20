@@ -127,6 +127,10 @@ public class Command {
    * validation that {@link #getOverwriteProperties()} runs.
    */
   @JsonIgnore
+  @SuppressFBWarnings(
+      value = "EI_EXPOSE_REP",
+      justification = "overwriteProperties is unmodifiableMap()"
+  )
   public Map<String, Object> getRawOverwriteProperties() {
     return overwriteProperties;
   }

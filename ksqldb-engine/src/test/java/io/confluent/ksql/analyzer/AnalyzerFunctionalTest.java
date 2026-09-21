@@ -36,6 +36,7 @@ import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
+import io.confluent.ksql.parser.tree.CreateTableAsSelect;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -234,24 +235,24 @@ public class AnalyzerFunctionalTest {
   @Test
   public void shouldThrowOnSelfJoin() {
     // Given:
-    final CreateStreamAsSelect createStreamAsSelect = parseSingle(
-        "CREATE STREAM FOO AS "
-            + "SELECT * FROM test1 t1 JOIN test1 t2 ON t1.col0 = t2.col0;"
+    final CreateTableAsSelect createTableAsSelect = parseSingle(
+        "CREATE TABLE FOO AS "
+            + "SELECT * FROM test2 t1 JOIN test2 t2 ON t1.col0 = t2.col0 GROUP BY t1.col0;"
     );
 
-    final Query query = createStreamAsSelect.getQuery();
+    final Query query = createTableAsSelect.getQuery();
 
     final Analyzer analyzer = new Analyzer(jsonMetaStore, "", PULL_LIMIT_CLAUSE_ENABLED);
 
     // When:
     final Exception e = assertThrows(
         KsqlException.class,
-        () -> analyzer.analyze(query, Optional.of(createStreamAsSelect.getSink()))
+        () -> analyzer.analyze(query, Optional.of(createTableAsSelect.getSink()))
     );
 
     // Then:
     assertThat(e.getMessage(), containsString(
-        "Can not join 'TEST1' to 'TEST1': self joins are not yet supported."));
+        "Can not join 'TEST2' to 'TEST2': table-table self joins are not yet supported."));
   }
 
   @Test
@@ -282,24 +283,24 @@ public class AnalyzerFunctionalTest {
   @Test
   public void shouldThrowOnNwayJoinWithDuplicateSource() {
     // Given:
-    final CreateStreamAsSelect createStreamAsSelect = parseSingle(
-        "CREATE STREAM FOO AS "
-            + "SELECT * FROM test1 t1 JOIN test2 t2 ON t1.col0 = t2.col0 JOIN test2 t3 ON t1.col0 = t3.col0;"
+    final CreateTableAsSelect createTableAsSelect = parseSingle(
+        "CREATE TABLE FOO AS "
+            + "SELECT * FROM test3 t1 JOIN test2 t2 ON t1.col0 = t2.col0 JOIN test2 t3 ON t1.col0 = t3.col0 GROUP BY t1.col0;"
     );
 
-    final Query query = createStreamAsSelect.getQuery();
+    final Query query = createTableAsSelect.getQuery();
 
     final Analyzer analyzer = new Analyzer(jsonMetaStore, "", PULL_LIMIT_CLAUSE_ENABLED);
 
     // When:
     final Exception e = assertThrows(
         KsqlException.class,
-        () -> analyzer.analyze(query, Optional.of(createStreamAsSelect.getSink()))
+        () -> analyzer.analyze(query, Optional.of(createTableAsSelect.getSink()))
     );
 
     // Then:
     assertThat(e.getMessage(), containsString(
-        "N-way joins do not support multiple occurrences of the same source. Source: 'TEST2'"));
+        "N-way table-table joins do not support multiple occurrences of the same source. Source: 'TEST2'"));
   }
 
   @Test

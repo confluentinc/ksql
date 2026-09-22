@@ -256,7 +256,7 @@ public class KsLocatorTest {
     assertThat(e.getMessage(), is(
         "Cannot determine which host contains the required partitions to serve the pull query. \n" +
             "The underlying persistent query may be restarting; " +
-            "view the status of your by issuing <DESCRIBE foo>."));
+            "view the status of your query by issuing <DESCRIBE foo>."));
   }
 
   @Test

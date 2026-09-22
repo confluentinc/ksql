@@ -1503,54 +1503,9 @@ public class KsqlEngineTest {
   }
 
   @Test
-  public void shouldCleanUpInternalTopicsOnCloseSharedRuntimes() {
-    // Given:
-    setupKsqlEngine();
-    final QueryMetadata query = KsqlEngineTestUtil.executeQuery(
-        serviceContext,
-        ksqlEngine,
-        "select * from test1 EMIT CHANGES;",
-        ksqlConfig,
-        Collections.emptyMap()
-    );
-
-    query.start();
-
-    // When:
-    query.close();
-
-    // Then:
-    awaitCleanupComplete();
-    verify(topicClient, times(2)).deleteInternalTopics(query.getQueryApplicationId());
-  }
-
-  @Test
   public void shouldCleanUpInternalTopicsOnEngineCloseForTransientQueries() {
     // Given:
     setupKsqlEngine();
-    final QueryMetadata query = KsqlEngineTestUtil.executeQuery(
-        serviceContext,
-        ksqlEngine,
-        "select * from test1 EMIT CHANGES;",
-        ksqlConfig,
-        Collections.emptyMap()
-    );
-
-    query.start();
-
-    // When:
-    ksqlEngine.close();
-    isKsqlEngineClosed = true;
-
-    // Then:
-    verify(topicClient, times(2)).deleteInternalTopics(query.getQueryApplicationId());
-  }
-
-  @Test
-  public void shouldCleanUpInternalTopicsOnEngineCloseForTransientQueriesSharedRuntimes() {
-    // Given:
-    setupKsqlEngine();
-
     final QueryMetadata query = KsqlEngineTestUtil.executeQuery(
         serviceContext,
         ksqlEngine,
@@ -1609,48 +1564,6 @@ public class KsqlEngineTest {
 
   @Test
   public void shouldHardDeleteSchemaOnEngineCloseForTransientQueries() throws IOException, RestClientException {
-    // Given:
-    setupKsqlEngine();
-    final QueryMetadata query = KsqlEngineTestUtil.executeQuery(
-        serviceContext,
-        ksqlEngine,
-        "select * from test1 EMIT CHANGES;",
-        ksqlConfig, Collections.emptyMap()
-    );
-    final String internalTopic1Val = KsqlConstants.getSRSubject(
-        query.getQueryApplicationId() + "-subject1" + KsqlConstants.STREAMS_CHANGELOG_TOPIC_SUFFIX, false);
-    final String internalTopic2Val = KsqlConstants.getSRSubject(
-        query.getQueryApplicationId() + "-subject3" + KsqlConstants.STREAMS_REPARTITION_TOPIC_SUFFIX, false);
-    final String internalTopic1Key = KsqlConstants.getSRSubject(
-        query.getQueryApplicationId() + "-subject1" + KsqlConstants.STREAMS_CHANGELOG_TOPIC_SUFFIX, true);
-    final String internalTopic2Key = KsqlConstants.getSRSubject(
-        query.getQueryApplicationId() + "-subject3" + KsqlConstants.STREAMS_REPARTITION_TOPIC_SUFFIX, true);
-
-    when(schemaRegistryClient.getAllSubjects()).thenReturn(
-        Arrays.asList(
-            internalTopic1Val,
-            internalTopic1Key,
-            "subject2",
-            internalTopic2Val,
-            internalTopic2Key));
-
-    query.start();
-
-    // When:
-    query.close();
-
-    // Then:
-    awaitCleanupComplete();
-    verify(schemaRegistryClient, times(4)).deleteSubject(any());
-    verify(schemaRegistryClient).deleteSubject(internalTopic1Val, true);
-    verify(schemaRegistryClient).deleteSubject(internalTopic2Val, true);
-    verify(schemaRegistryClient).deleteSubject(internalTopic1Key, true);
-    verify(schemaRegistryClient).deleteSubject(internalTopic2Key, true);
-    verify(schemaRegistryClient, never()).deleteSubject("subject2");
-  }
-
-  @Test
-  public void shouldHardDeleteSchemaOnEngineCloseForTransientQueriesSharedRuntimes() throws IOException, RestClientException {
     // Given:
     setupKsqlEngine();
     final QueryMetadata query = KsqlEngineTestUtil.executeQuery(
@@ -1773,61 +1686,6 @@ public class KsqlEngineTest {
   }
 
   @Test
-  public void shouldCleanUpTransientConsumerGroupsOnCloseSharedRuntimes() {
-    // Given:
-    setupKsqlEngine();
-    final QueryMetadata query = KsqlEngineTestUtil.executeQuery(
-        serviceContext,
-        ksqlEngine,
-        "select * from test1 EMIT CHANGES;",
-        ksqlConfig,
-        Collections.emptyMap()
-    );
-
-    query.start();
-
-    // When:
-    query.close();
-
-    // Then:
-    awaitCleanupComplete();
-    final Set<String> deletedConsumerGroups = (
-        (FakeKafkaConsumerGroupClient) serviceContext.getConsumerGroupClient()
-    ).getDeletedConsumerGroups();
-
-    assertThat(
-        Iterables.getOnlyElement(deletedConsumerGroups),
-        containsString("_confluent-ksql-default_transient_"));
-  }
-
-  @Test
-  public void shouldCleanUpPersistentConsumerGroupsOnCloseSharedRuntimes() {
-    // Given:
-    setupKsqlEngine();
-    final QueryMetadata query = KsqlEngineTestUtil.execute(
-        serviceContext,
-        ksqlEngine,
-        "create stream persistent as select * from test1 EMIT CHANGES;",
-        ksqlConfig, Collections.emptyMap()
-    ).get(0);
-
-    query.start();
-
-    // When:
-    query.close();
-
-    // Then:
-    awaitCleanupComplete();
-    final Set<String> deletedConsumerGroups = (
-        (FakeKafkaConsumerGroupClient) serviceContext.getConsumerGroupClient()
-    ).getDeletedConsumerGroups();
-
-    assertThat(
-        Iterables.getOnlyElement(deletedConsumerGroups),
-        containsString("_confluent-ksql-default_query_"));
-  }
-
-  @Test
   public void shouldNotCleanUpInternalTopicsOnEngineCloseForPersistentQueries() {
     // Given:
     setupKsqlEngine();
@@ -1871,28 +1729,6 @@ public class KsqlEngineTest {
   }
 
   @Test
-  public void shouldCleanUpInternalTopicsOnQueryCloseForPersistentQueriesSharedRuntimes() {
-    // Given:
-    setupKsqlEngine();
-    final List<QueryMetadata> query = KsqlEngineTestUtil.execute(
-        serviceContext,
-        ksqlEngine,
-        "create stream persistent as select * from test1 EMIT CHANGES;",
-        ksqlConfig, Collections.emptyMap()
-    );
-
-    query.get(0).start();
-
-    // When:
-    query.get(0).close();
-
-    // Then (there are no transient queries, so no internal topics should be deleted):
-    awaitCleanupComplete();
-    final String topicPrefix = query.get(0).getQueryApplicationId().split("query")[0] + "query_";
-    verify(topicClient).deleteInternalTopics( topicPrefix + query.get(0).getQueryId().toString());
-  }
-
-  @Test
   public void shouldHardDeleteSubjectForPersistentQuery() throws IOException, RestClientException {
     // Given:
     setupKsqlEngine();
@@ -1933,47 +1769,6 @@ public class KsqlEngineTest {
     verify(schemaRegistryClient, never()).deleteSubject("subject2");
   }
 
-  @Test
-  public void shouldHardDeleteSubjectForPersistentQuerySharedRuntimes() throws IOException, RestClientException {
-    // Given:
-    setupKsqlEngine();
-    final List<QueryMetadata> query = KsqlEngineTestUtil.execute(
-        serviceContext,
-        ksqlEngine,
-        "create stream persistent as select * from test1 EMIT CHANGES;",
-        ksqlConfig,
-        Collections.emptyMap()
-    );
-    final String topicPrefix = query.get(0).getQueryApplicationId().split("query")[0] + "query_";
-    final String internalTopic1Val = KsqlConstants.getSRSubject(
-        topicPrefix + query.get(0).getQueryId() + "-subject1" + KsqlConstants.STREAMS_CHANGELOG_TOPIC_SUFFIX, false);
-    final String internalTopic2Val = KsqlConstants.getSRSubject(
-        topicPrefix + query.get(0).getQueryId()  + "-subject3" + KsqlConstants.STREAMS_REPARTITION_TOPIC_SUFFIX, false);
-    final String internalTopic1Key = KsqlConstants.getSRSubject(
-        topicPrefix + query.get(0).getQueryId()  + "-subject1" + KsqlConstants.STREAMS_CHANGELOG_TOPIC_SUFFIX, true);
-    final String internalTopic2Key = KsqlConstants.getSRSubject(
-        topicPrefix + query.get(0).getQueryId() + "-subject3" + KsqlConstants.STREAMS_REPARTITION_TOPIC_SUFFIX, true);
-    when(schemaRegistryClient.getAllSubjects()).thenReturn(
-        Arrays.asList(
-            internalTopic1Val,
-            internalTopic1Key,
-            "subject2",
-            internalTopic2Val,
-            internalTopic2Key));
-    query.get(0).start();
-
-    // When:
-    query.get(0).close();
-
-    // Then:
-    awaitCleanupComplete();
-    verify(schemaRegistryClient, times(4)).deleteSubject(any());
-    verify(schemaRegistryClient).deleteSubject(internalTopic1Val, true);
-    verify(schemaRegistryClient).deleteSubject(internalTopic2Val, true);
-    verify(schemaRegistryClient).deleteSubject(internalTopic1Key, true);
-    verify(schemaRegistryClient).deleteSubject(internalTopic2Key, true);
-    verify(schemaRegistryClient, never()).deleteSubject("subject2");
-  }
 
   @Test
   public void shouldNotCleanUpInternalTopicsOnCloseIfQueryNeverStarted() {

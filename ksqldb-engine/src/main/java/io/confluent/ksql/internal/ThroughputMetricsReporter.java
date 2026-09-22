@@ -18,7 +18,6 @@ package io.confluent.ksql.internal;
 import static io.confluent.ksql.internal.MetricsTagUtils.KSQL_CONSUMER_GROUP_MEMBER_ID_TAG;
 import static io.confluent.ksql.internal.MetricsTagUtils.KSQL_QUERY_ID_TAG;
 import static io.confluent.ksql.internal.MetricsTagUtils.KSQL_TOPIC_TAG;
-import static io.confluent.ksql.internal.MetricsTagUtils.SHARED_RUNTIME_THREAD_PATTERN;
 import static io.confluent.ksql.internal.MetricsTagUtils.UNSHARED_RUNTIME_THREAD_PATTERN;
 import static java.util.Objects.requireNonNull;
 
@@ -203,13 +202,6 @@ public class ThroughputMetricsReporter implements MetricsReporter {
   private String getQueryId(final KafkaMetric metric) {
     if (metric.metricName().tags().containsKey(KSQL_QUERY_ID_TAG)) {
       return metric.metricName().tags().get(KSQL_QUERY_ID_TAG);
-    }
-
-    final String taskName =
-        metric.metricName().tags().getOrDefault(StreamsMetricsImpl.TASK_ID_TAG, "");
-    final Matcher namedTopologyMatcher = SHARED_RUNTIME_THREAD_PATTERN.matcher(taskName);
-    if (namedTopologyMatcher.find()) {
-      return namedTopologyMatcher.group(1);
     }
 
     final String queryIdTag =

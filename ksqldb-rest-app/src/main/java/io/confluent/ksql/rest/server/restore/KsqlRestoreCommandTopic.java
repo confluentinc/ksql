@@ -48,7 +48,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Supplier;
 import org.apache.kafka.clients.admin.Admin;
@@ -413,12 +412,15 @@ public class KsqlRestoreCommandTopic {
     }
   }
 
-  @SuppressWarnings({"unchecked", "checkstyle:CyclomaticComplexity"})
+  @SuppressWarnings("checkstyle:CyclomaticComplexity")
   private static void maybeCleanUpQuery(final byte[] command, final KsqlConfig ksqlConfig) {
     boolean queryIdFound = false;
     final Map<String, Object> streamsProperties =
         new HashMap<>(ksqlConfig.getKsqlStreamConfigProps());
-    boolean sharedRuntimeQuery = false;
+    // A non-null runtimeId means this plan predates the removal of the shared-runtime
+    // feature; use the runtime id it was actually running under so old state/topics for
+    // it can still be found and cleaned up.
+    boolean legacySharedRuntimeQuery = false;
     String queryId = "";
     final JSONObject jsonObject = new JSONObject(new String(command, StandardCharsets.UTF_8));
     if (hasKey(jsonObject, "plan") && !jsonObject.isNull("plan")) {
@@ -426,13 +428,11 @@ public class KsqlRestoreCommandTopic {
       if (hasKey(plan, "queryPlan") && !plan.isNull("queryPlan")) {
         final JSONObject queryPlan = plan.getJSONObject("queryPlan");
         queryId = queryPlan.getString("queryId");
-        if (hasKey(queryPlan, "runtimeId")
-            && !queryPlan.isNull("runtimeId")
-            && ((Optional<String>) queryPlan.get("runtimeId")).isPresent()) {
+        if (hasKey(queryPlan, "runtimeId") && !queryPlan.isNull("runtimeId")) {
           streamsProperties.put(
               StreamsConfig.APPLICATION_ID_CONFIG,
-              ((Optional<String>) queryPlan.get("runtimeId")).get());
-          sharedRuntimeQuery = true;
+              queryPlan.getString("runtimeId"));
+          legacySharedRuntimeQuery = true;
         } else {
           streamsProperties.put(
               StreamsConfig.APPLICATION_ID_CONFIG,
@@ -445,9 +445,9 @@ public class KsqlRestoreCommandTopic {
     // the command contains a query, clean up it's internal state store and also the internal topics
     if (queryIdFound) {
       final StreamsConfig streamsConfig = new StreamsConfig(streamsProperties);
-      final String topicPrefix = sharedRuntimeQuery
+      final String topicPrefix = legacySharedRuntimeQuery
           ? streamsConfig.getString(StreamsConfig.APPLICATION_ID_CONFIG)
-          : QueryApplicationId.buildInternalTopicPrefix(ksqlConfig, sharedRuntimeQuery) + queryId;
+          : QueryApplicationId.buildInternalTopicPrefix(ksqlConfig, false) + queryId;
 
       try {
         final Admin admin = new DefaultKafkaClientSupplier()
@@ -459,7 +459,7 @@ public class KsqlRestoreCommandTopic {
             streamsConfig,
             Time.SYSTEM,
             true,
-            ksqlConfig.getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)).clean();
+            legacySharedRuntimeQuery).clean();
         System.out.printf(
             "Cleaned up internal state store and internal topics for query %s%n",
             topicPrefix

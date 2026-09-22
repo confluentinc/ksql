@@ -96,7 +96,6 @@ public class ValidatedCommandFactoryTest {
     commandFactory = new ValidatedCommandFactory();
     when(executionContext.getKsqlConfig()).thenReturn(config);
     when(executionContext.execute(any(), any(ConfiguredKsqlPlan.class))).thenReturn(result);
-    when(result.getQuery()).thenReturn(Optional.empty());
   }
 
   @Test

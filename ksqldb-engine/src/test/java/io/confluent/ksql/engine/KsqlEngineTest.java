@@ -87,8 +87,6 @@ import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.MetaStoreFixture;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
-import io.confluent.ksql.util.ReservedInternalTopics;
-import io.confluent.ksql.util.SandboxedBinPackedPersistentQueryMetadataImpl;
 import io.confluent.ksql.util.SandboxedPersistentQueryMetadataImpl;
 import io.confluent.ksql.util.SandboxedTransientQueryMetadata;
 import io.confluent.ksql.util.TransientQueryMetadata;
@@ -112,7 +110,6 @@ import org.apache.avro.SchemaBuilder;
 import org.apache.kafka.common.config.TopicConfig;
 import org.apache.kafka.streams.KafkaStreams;
 
-import org.apache.kafka.common.config.ConfigException;
 import org.apache.kafka.streams.StreamsConfig;
 import org.junit.After;
 import org.junit.Assert;
@@ -134,8 +131,7 @@ public class KsqlEngineTest {
   private static final MutableFunctionRegistry functionRegistry = new InternalFunctionRegistry();
 
   private KsqlConfig ksqlConfig;
-  private final Map<String, Object> sharedRuntimeEnabled = new HashMap<>();
-  private final Map<String, Object> sharedRuntimeDisabled = new HashMap<>();
+  private final Map<String, Object> engineConfig = new HashMap<>();
   private MutableMetaStore metaStore;
   @Spy
   private final SchemaRegistryClient schemaRegistryClient = new MockSchemaRegistryClient(
@@ -179,24 +175,8 @@ public class KsqlEngineTest {
     );
   }
 
-  private void setupKsqlEngineWithSharedRuntimeEnabled() {
-    sharedRuntimeEnabled.put(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED, true);
-    sharedRuntimeEnabled.put(StreamsConfig.InternalConfig.TOPIC_PREFIX_ALTERNATIVE,
-        ReservedInternalTopics.KSQL_INTERNAL_TOPIC_PREFIX
-            + "default_"
-            + "query");
-    ksqlConfig = KsqlConfigTestUtil.create("what-eva", sharedRuntimeEnabled);
-    ksqlEngine = KsqlEngineTestUtil.createKsqlEngine(
-        serviceContext,
-        metaStore,
-        ksqlConfig
-    );
-    sandbox = ksqlEngine.createSandbox(serviceContext);
-  }
-
-  private void setupKsqlEngineWithSharedRuntimeDisabled() {
-    sharedRuntimeDisabled.put(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED, false);
-    ksqlConfig = KsqlConfigTestUtil.create("what-eva", sharedRuntimeDisabled);
+  private void setupKsqlEngine() {
+    ksqlConfig = KsqlConfigTestUtil.create("what-eva", engineConfig);
     ksqlEngine = KsqlEngineTestUtil.createKsqlEngine(
         serviceContext,
         metaStore,
@@ -224,7 +204,7 @@ public class KsqlEngineTest {
   @Test
   public void shouldCreatePersistentQueries() {
     // When:
-    setupKsqlEngineWithSharedRuntimeEnabled();
+    setupKsqlEngine();
     final List<QueryMetadata> queries
         = KsqlEngineTestUtil.execute(
         serviceContext,
@@ -248,7 +228,7 @@ public class KsqlEngineTest {
   @Test
   public void shouldCreateSourceTablesQueries() {
     // Given:
-    setupKsqlEngineWithSharedRuntimeEnabled();
+    setupKsqlEngine();
     givenTopicsExist("t1_topic");
 
     // When:
@@ -278,7 +258,7 @@ public class KsqlEngineTest {
   @Test
   public void shouldNotHaveRowTimeAndRowKeyColumnsInPersistentQueryValueSchema() {
     // Given:
-    setupKsqlEngineWithSharedRuntimeEnabled();
+    setupKsqlEngine();
 
     // When:
     final PersistentQueryMetadata query = (PersistentQueryMetadata) KsqlEngineTestUtil.execute(
@@ -300,7 +280,7 @@ public class KsqlEngineTest {
   @Test
   public void shouldThrowOnTerminateAsNotExecutable() {
     // Given:
-    setupKsqlEngineWithSharedRuntimeEnabled();
+    setupKsqlEngine();
 
     // When:
     final PersistentQueryMetadata query = (PersistentQueryMetadata) KsqlEngineTestUtil
@@ -334,7 +314,7 @@ public class KsqlEngineTest {
   @Test
   public void shouldExecuteInsertIntoStreamOnSandBox() {
     // Given:
-    setupKsqlEngineWithSharedRuntimeEnabled();
+    setupKsqlEngine();
     final List<ParsedStatement> statements = parse(
         "create stream bar as select * from orders;"
             + "insert into bar select * from orders;"
@@ -356,7 +336,7 @@ public class KsqlEngineTest {
   @Test
   public void shouldThrowWhenExecutingInsertIntoTable() {
     // Given:
-    setupKsqlEngineWithSharedRuntimeEnabled();
+    setupKsqlEngine();
 
     KsqlEngineTestUtil.execute(
         serviceContext, ksqlEngine, "create table bar as select * from test2;", ksqlConfig,
@@ -379,7 +359,7 @@ public class KsqlEngineTest {
   @Test
   public void shouldThrowForBadSumAggregate() {
     // Given:
-    setupKsqlEngineWithSharedRuntimeEnabled();
+    setupKsqlEngine();
 
     // When:
     final KsqlStatementException e = assertThrows(
@@ -401,7 +381,7 @@ public class KsqlEngineTest {
   @Test
   public void shouldThrowOnInsertIntoStreamWithTableResult() {
     // Given:
-    setupKsqlEngineWithSharedRuntimeEnabled();
+    setupKsqlEngine();
 
     KsqlEngineTestUtil.execute(
         serviceContext,
@@ -434,7 +414,7 @@ public class KsqlEngineTest {
   @Test
   public void shouldThrowOnInsertIntoWithKeyMismatch() {
     // Given:
-    setupKsqlEngineWithSharedRuntimeEnabled();
+    setupKsqlEngine();
 
     execute(
         serviceContext,
@@ -468,7 +448,7 @@ public class KsqlEngineTest {
   @Test
   public void shouldThrowWhenInsertIntoSchemaDoesNotMatch() {
     // Given:
-    setupKsqlEngineWithSharedRuntimeEnabled();
+    setupKsqlEngine();
 
     // Given:
     execute(
@@ -502,7 +482,7 @@ public class KsqlEngineTest {
   @Test
   public void shouldExecuteInsertIntoWithCustomQueryId() {
     // Given:
-    setupKsqlEngineWithSharedRuntimeEnabled();
+    setupKsqlEngine();
 
     // Given:
     KsqlEngineTestUtil.execute(
@@ -530,7 +510,7 @@ public class KsqlEngineTest {
   @Test
   public void shouldThrowInsertIntoIfCustomQueryIdAlreadyExists() {
     // Given:
-    setupKsqlEngineWithSharedRuntimeEnabled();
+    setupKsqlEngine();
     KsqlEngineTestUtil.execute(
         serviceContext,
         ksqlEngine,
@@ -557,7 +537,7 @@ public class KsqlEngineTest {
   @Test
   public void shouldExecuteInsertIntoStream() {
     // Given:
-    setupKsqlEngineWithSharedRuntimeEnabled();
+    setupKsqlEngine();
     KsqlEngineTestUtil.execute(
         serviceContext,
         ksqlEngine,
@@ -582,7 +562,7 @@ public class KsqlEngineTest {
   @Test
   public void shouldMaintainOrderOfReturnedQueries() {
     // Given:
-    setupKsqlEngineWithSharedRuntimeEnabled();
+    setupKsqlEngine();
 
     // When:
     final List<QueryMetadata> queries = KsqlEngineTestUtil.execute(
@@ -601,7 +581,7 @@ public class KsqlEngineTest {
   @Test(expected = KsqlStatementException.class)
   public void shouldFailToCreateQueryIfSelectingFromNonExistentEntity() {
     // Given:
-    setupKsqlEngineWithSharedRuntimeEnabled();
+    setupKsqlEngine();
 
     KsqlEngineTestUtil
         .execute(
@@ -616,7 +596,7 @@ public class KsqlEngineTest {
   @Test
   public void shouldShowHintWhenFailingToCreateQueryIfSelectingFromSourceNameWithoutQuotes() {
     // Given:
-    setupKsqlEngineWithSharedRuntimeEnabled();
+    setupKsqlEngine();
     KsqlEngineTestUtil.execute(
         serviceContext,
         ksqlEngine,
@@ -647,7 +627,7 @@ public class KsqlEngineTest {
   @Test
   public void shouldShowHintWhenFailingToCreateQueryIfSelectingFromSourceNameWithMisspelling() {
     // Given:
-    setupKsqlEngineWithSharedRuntimeEnabled();
+    setupKsqlEngine();
     KsqlEngineTestUtil.execute(
         serviceContext,
         ksqlEngine,
@@ -677,7 +657,7 @@ public class KsqlEngineTest {
   @Test
   public void shouldShowCorrectHintsWhenIncorrectSourceMatchesWithTwo() {
     // Given:
-    setupKsqlEngineWithSharedRuntimeEnabled();
+    setupKsqlEngine();
     KsqlEngineTestUtil.execute(
         serviceContext,
         ksqlEngine,
@@ -709,7 +689,7 @@ public class KsqlEngineTest {
   @Test
   public void shouldShowCorrectHintsWhenIncorrectSourceMatchesWithThree() {
     // Given:
-    setupKsqlEngineWithSharedRuntimeEnabled();
+    setupKsqlEngine();
     KsqlEngineTestUtil.execute(
         serviceContext,
         ksqlEngine,
@@ -742,7 +722,7 @@ public class KsqlEngineTest {
   @Test
   public void shouldShowHintWhenFailingToCreateQueryIfSelectingFromSourceNameWithQuotes() {
     // Given:
-    setupKsqlEngineWithSharedRuntimeEnabled();
+    setupKsqlEngine();
     KsqlEngineTestUtil.execute(
         serviceContext,
         ksqlEngine,
@@ -773,7 +753,7 @@ public class KsqlEngineTest {
   @Test
   public void shouldShowHintWhenFailingToDropStreamWithSourceNameWithQuotes() {
     // Given:
-    setupKsqlEngineWithSharedRuntimeEnabled();
+    setupKsqlEngine();
     KsqlEngineTestUtil.execute(
         serviceContext,
         ksqlEngine,
@@ -804,7 +784,7 @@ public class KsqlEngineTest {
   @Test
   public void shouldShowHintWhenFailingToDropTableWithSourceNameWithoutQuotes() {
     // Given:
-    setupKsqlEngineWithSharedRuntimeEnabled();
+    setupKsqlEngine();
     KsqlEngineTestUtil.execute(
         serviceContext,
         ksqlEngine,
@@ -835,7 +815,7 @@ public class KsqlEngineTest {
   @Test
   public void shouldNotShowHintWhenFailingToDropNonExistingTable() {
     // Given:
-    setupKsqlEngineWithSharedRuntimeEnabled();
+    setupKsqlEngine();
     KsqlEngineTestUtil.execute(
         serviceContext,
         ksqlEngine,
@@ -865,7 +845,7 @@ public class KsqlEngineTest {
   @Test
   public void shouldNotShowHintWhenFailingToDropNonExistingStream() {
     // Given:
-    setupKsqlEngineWithSharedRuntimeEnabled();
+    setupKsqlEngine();
     KsqlEngineTestUtil.execute(
         serviceContext,
         ksqlEngine,
@@ -895,7 +875,7 @@ public class KsqlEngineTest {
   @Test(expected = ParseFailedException.class)
   public void shouldFailWhenSyntaxIsInvalid() {
     // Given:
-    setupKsqlEngineWithSharedRuntimeEnabled();
+    setupKsqlEngine();
 
     KsqlEngineTestUtil.execute(
         serviceContext,
@@ -909,7 +889,7 @@ public class KsqlEngineTest {
   @Test
   public void shouldFailDropTableWhenAnotherTableIsReadingTheTable() {
     // Given:
-    setupKsqlEngineWithSharedRuntimeEnabled();
+    setupKsqlEngine();
     KsqlEngineTestUtil.execute(
         serviceContext,
         ksqlEngine,
@@ -942,7 +922,7 @@ public class KsqlEngineTest {
   @Test
   public void shouldFailDropStreamWhenAnotherStreamIsReadingTheTable() {
     // Given:
-    setupKsqlEngineWithSharedRuntimeEnabled();
+    setupKsqlEngine();
     KsqlEngineTestUtil.execute(
         serviceContext,
         ksqlEngine,
@@ -975,7 +955,7 @@ public class KsqlEngineTest {
   @Test
   public void shouldFailDropStreamWhenMultipleStreamsAreReadingTheTable() {
     // Given:
-    setupKsqlEngineWithSharedRuntimeEnabled();
+    setupKsqlEngine();
     KsqlEngineTestUtil.execute(
         serviceContext,
         ksqlEngine,
@@ -1009,7 +989,7 @@ public class KsqlEngineTest {
   @Test
   public void shouldFailDropStreamWhenAnInsertQueryIsWritingTheStream() {
     // Given:
-    setupKsqlEngineWithSharedRuntimeEnabled();
+    setupKsqlEngine();
     KsqlEngineTestUtil.execute(
         serviceContext,
         ksqlEngine,
@@ -1043,7 +1023,7 @@ public class KsqlEngineTest {
   @Test
   public void shouldFailDropStreamWhenAnInsertQueryIsReadingTheStream() {
     // Given:
-    setupKsqlEngineWithSharedRuntimeEnabled();
+    setupKsqlEngine();
     KsqlEngineTestUtil.execute(
         serviceContext,
         ksqlEngine,
@@ -1078,7 +1058,7 @@ public class KsqlEngineTest {
   @Test
   public void shouldFailDropStreamWhenMultipleInsertQueriesAreReadingAndWritingTheStream() {
     // Given:
-    setupKsqlEngineWithSharedRuntimeEnabled();
+    setupKsqlEngine();
     KsqlEngineTestUtil.execute(
         serviceContext,
         ksqlEngine,
@@ -1117,7 +1097,7 @@ public class KsqlEngineTest {
   @Test
   public void shouldDropTableAndTerminateQuery() {
     // Given:
-    setupKsqlEngineWithSharedRuntimeEnabled();
+    setupKsqlEngine();
     KsqlEngineTestUtil.execute(
         serviceContext,
         ksqlEngine,
@@ -1147,7 +1127,7 @@ public class KsqlEngineTest {
   @Test
   public void shouldDropStreamAndTerminateQuery() {
     // Given:
-    setupKsqlEngineWithSharedRuntimeEnabled();
+    setupKsqlEngine();
     KsqlEngineTestUtil.execute(
         serviceContext,
         ksqlEngine,
@@ -1177,7 +1157,7 @@ public class KsqlEngineTest {
   @Test
   public void shouldDropStreamIfQueryWasTerminatedManually() {
     // Given:
-    setupKsqlEngineWithSharedRuntimeEnabled();
+    setupKsqlEngine();
     KsqlEngineTestUtil.execute(
         serviceContext,
         ksqlEngine,
@@ -1206,7 +1186,7 @@ public class KsqlEngineTest {
   @Test
   public void shouldDropTableIfQueryWasTerminatedManually() {
     // Given:
-    setupKsqlEngineWithSharedRuntimeEnabled();
+    setupKsqlEngine();
     KsqlEngineTestUtil.execute(
         serviceContext,
         ksqlEngine,
@@ -1235,7 +1215,7 @@ public class KsqlEngineTest {
   @Test
   public void shouldFailDDLStatementIfTopicDoesNotExist() {
     // Given:
-    setupKsqlEngineWithSharedRuntimeEnabled();
+    setupKsqlEngine();
     final ParsedStatement stmt = parse(
         "CREATE STREAM S1_NOTEXIST (COL1 BIGINT, COL2 VARCHAR) "
             + "WITH  (KAFKA_TOPIC = 'S1_NOTEXIST', VALUE_FORMAT = 'JSON', KEY_FORMAT = 'KAFKA');").get(0);
@@ -1258,7 +1238,7 @@ public class KsqlEngineTest {
   @Test
   public void shouldDropTableIfAllReferencedQueriesTerminated() {
     // Given:
-    setupKsqlEngineWithSharedRuntimeEnabled();
+    setupKsqlEngine();
     final QueryMetadata secondQuery = KsqlEngineTestUtil.execute(
             serviceContext,
             ksqlEngine,
@@ -1285,7 +1265,7 @@ public class KsqlEngineTest {
 
   @Test
   public void shouldNotEnforceTopicExistenceWhileParsing() {
-    setupKsqlEngineWithSharedRuntimeEnabled();
+    setupKsqlEngine();
     final String runScriptContent = "CREATE STREAM S1 (COL1 BIGINT, COL2 VARCHAR) "
         + "WITH  (KAFKA_TOPIC = 's1_topic', VALUE_FORMAT = 'JSON', KEY_FORMAT = 'KAFKA');\n"
         + "CREATE TABLE T1 AS SELECT COL1, count(*) FROM "
@@ -1301,7 +1281,7 @@ public class KsqlEngineTest {
   @Test
   public void shouldThrowFromSandBoxOnPrepareIfSourceTopicDoesNotExist() {
     // Given:
-    setupKsqlEngineWithSharedRuntimeEnabled();
+    setupKsqlEngine();
     final PreparedStatement<?> statement = prepare(parse(
         "CREATE STREAM S1 (COL1 BIGINT) "
             + "WITH (KAFKA_TOPIC = 'i_do_not_exist', VALUE_FORMAT = 'JSON', KEY_FORMAT = 'KAFKA');").get(0));
@@ -1326,7 +1306,7 @@ public class KsqlEngineTest {
   @Test
   public void shouldThrowFromExecuteIfSourceTopicDoesNotExist() {
     // Given:
-    setupKsqlEngineWithSharedRuntimeEnabled();
+    setupKsqlEngine();
     final PreparedStatement<?> statement = prepare(parse(
         "CREATE STREAM S1 (COL1 BIGINT) "
             + "WITH (KAFKA_TOPIC = 'i_do_not_exist', VALUE_FORMAT = 'JSON', KEY_FORMAT = 'KAFKA');").get(0));
@@ -1346,7 +1326,7 @@ public class KsqlEngineTest {
 
   @Test
   public void shouldHandleCommandsSpreadOverMultipleLines() {
-    setupKsqlEngineWithSharedRuntimeEnabled();
+    setupKsqlEngine();
     final String runScriptContent = "CREATE STREAM S1 \n"
         + "(COL1 BIGINT, COL2 VARCHAR)\n"
         + " WITH \n"
@@ -1360,7 +1340,7 @@ public class KsqlEngineTest {
   @Test
   public void shouldThrowIfSchemaNotPresent() {
     // Given:
-    setupKsqlEngineWithSharedRuntimeEnabled();
+    setupKsqlEngine();
     givenTopicsExist("bar");
 
     // When:
@@ -1387,7 +1367,7 @@ public class KsqlEngineTest {
   @Test
   public void shouldNotFailIfAvroSchemaEvolvable() {
     // Given:
-    setupKsqlEngineWithSharedRuntimeEnabled();
+    setupKsqlEngine();
     final Schema evolvableSchema = SchemaBuilder
         .record("KsqlDataSourceSchema").fields()
         .nullableInt("f1", 1)
@@ -1411,7 +1391,7 @@ public class KsqlEngineTest {
   @Test
   public void shouldNotDeleteSchemaNorTopicForTable() throws Exception {
     // Given:
-    setupKsqlEngineWithSharedRuntimeEnabled();
+    setupKsqlEngine();
     givenTopicsExist("BAR");
     final QueryMetadata query = KsqlEngineTestUtil.execute(
         serviceContext,
@@ -1446,7 +1426,7 @@ public class KsqlEngineTest {
   @Test
   public void shouldNotDeleteSchemaNorTopicForStream() throws Exception {
     // Given:
-    setupKsqlEngineWithSharedRuntimeEnabled();
+    setupKsqlEngine();
     givenTopicsExist("BAR");
     final QueryMetadata query = KsqlEngineTestUtil.execute(
         serviceContext,
@@ -1482,7 +1462,7 @@ public class KsqlEngineTest {
   @Test
   public void shouldCleanUpInternalTopicsOnClose() {
     // Given:
-    setupKsqlEngineWithSharedRuntimeDisabled();
+    setupKsqlEngine();
     final QueryMetadata query = KsqlEngineTestUtil.executeQuery(
         serviceContext,
         ksqlEngine,
@@ -1503,7 +1483,7 @@ public class KsqlEngineTest {
   @Test
   public void shouldCleanUpInternalTopicsOnCloseForPersistentQueries() {
     // Given:
-    setupKsqlEngineWithSharedRuntimeDisabled();
+    setupKsqlEngine();
 
     final List<QueryMetadata> query = KsqlEngineTestUtil.execute(
         serviceContext,
@@ -1525,7 +1505,7 @@ public class KsqlEngineTest {
   @Test
   public void shouldCleanUpInternalTopicsOnCloseSharedRuntimes() {
     // Given:
-    setupKsqlEngineWithSharedRuntimeEnabled();
+    setupKsqlEngine();
     final QueryMetadata query = KsqlEngineTestUtil.executeQuery(
         serviceContext,
         ksqlEngine,
@@ -1547,7 +1527,7 @@ public class KsqlEngineTest {
   @Test
   public void shouldCleanUpInternalTopicsOnEngineCloseForTransientQueries() {
     // Given:
-    setupKsqlEngineWithSharedRuntimeDisabled();
+    setupKsqlEngine();
     final QueryMetadata query = KsqlEngineTestUtil.executeQuery(
         serviceContext,
         ksqlEngine,
@@ -1569,7 +1549,7 @@ public class KsqlEngineTest {
   @Test
   public void shouldCleanUpInternalTopicsOnEngineCloseForTransientQueriesSharedRuntimes() {
     // Given:
-    setupKsqlEngineWithSharedRuntimeEnabled();
+    setupKsqlEngine();
 
     final QueryMetadata query = KsqlEngineTestUtil.executeQuery(
         serviceContext,
@@ -1592,7 +1572,7 @@ public class KsqlEngineTest {
   @Test
   public void shouldCreateSandboxWithSandboxedQueryMetadata() {
     // Given:
-    setupKsqlEngineWithSharedRuntimeEnabled();
+    setupKsqlEngine();
     final QueryMetadata transientQ = KsqlEngineTestUtil.executeQuery(
         serviceContext,
         ksqlEngine,
@@ -1621,7 +1601,7 @@ public class KsqlEngineTest {
         if (q instanceof TransientQueryMetadata) {
           assertTrue(sq instanceof SandboxedTransientQueryMetadata);
         } else {
-          assertTrue(sq instanceof SandboxedPersistentQueryMetadataImpl || sq instanceof SandboxedBinPackedPersistentQueryMetadataImpl);
+          assertTrue(sq instanceof SandboxedPersistentQueryMetadataImpl);
         }
       }
     }
@@ -1630,7 +1610,7 @@ public class KsqlEngineTest {
   @Test
   public void shouldHardDeleteSchemaOnEngineCloseForTransientQueries() throws IOException, RestClientException {
     // Given:
-    setupKsqlEngineWithSharedRuntimeDisabled();
+    setupKsqlEngine();
     final QueryMetadata query = KsqlEngineTestUtil.executeQuery(
         serviceContext,
         ksqlEngine,
@@ -1672,7 +1652,7 @@ public class KsqlEngineTest {
   @Test
   public void shouldHardDeleteSchemaOnEngineCloseForTransientQueriesSharedRuntimes() throws IOException, RestClientException {
     // Given:
-    setupKsqlEngineWithSharedRuntimeEnabled();
+    setupKsqlEngine();
     final QueryMetadata query = KsqlEngineTestUtil.executeQuery(
         serviceContext,
         ksqlEngine,
@@ -1714,7 +1694,7 @@ public class KsqlEngineTest {
   @Test
   public void shouldCleanUpConsumerGroupsOnClose() {
     // Given:
-    setupKsqlEngineWithSharedRuntimeDisabled();
+    setupKsqlEngine();
     final QueryMetadata query = KsqlEngineTestUtil.execute(
         serviceContext,
         ksqlEngine,
@@ -1741,7 +1721,7 @@ public class KsqlEngineTest {
   @Test
   public void shouldCleanUpTransientConsumerGroupsOnClose() {
     // Given:
-    setupKsqlEngineWithSharedRuntimeDisabled();
+    setupKsqlEngine();
     final QueryMetadata query = KsqlEngineTestUtil.executeQuery(
         serviceContext,
         ksqlEngine,
@@ -1768,7 +1748,7 @@ public class KsqlEngineTest {
   @Test
   public void shouldCleanUpPersistentConsumerGroupsOnClose() {
     // Given:
-    setupKsqlEngineWithSharedRuntimeDisabled();
+    setupKsqlEngine();
     final QueryMetadata query = KsqlEngineTestUtil.execute(
         serviceContext,
         ksqlEngine,
@@ -1795,7 +1775,7 @@ public class KsqlEngineTest {
   @Test
   public void shouldCleanUpTransientConsumerGroupsOnCloseSharedRuntimes() {
     // Given:
-    setupKsqlEngineWithSharedRuntimeEnabled();
+    setupKsqlEngine();
     final QueryMetadata query = KsqlEngineTestUtil.executeQuery(
         serviceContext,
         ksqlEngine,
@@ -1823,7 +1803,7 @@ public class KsqlEngineTest {
   @Test
   public void shouldCleanUpPersistentConsumerGroupsOnCloseSharedRuntimes() {
     // Given:
-    setupKsqlEngineWithSharedRuntimeEnabled();
+    setupKsqlEngine();
     final QueryMetadata query = KsqlEngineTestUtil.execute(
         serviceContext,
         ksqlEngine,
@@ -1850,7 +1830,7 @@ public class KsqlEngineTest {
   @Test
   public void shouldNotCleanUpInternalTopicsOnEngineCloseForPersistentQueries() {
     // Given:
-    setupKsqlEngineWithSharedRuntimeEnabled();
+    setupKsqlEngine();
     final List<QueryMetadata> query = KsqlEngineTestUtil.execute(
         serviceContext,
         ksqlEngine,
@@ -1871,7 +1851,7 @@ public class KsqlEngineTest {
   @Test
   public void shouldCleanUpInternalTopicsOnQueryCloseForPersistentQueries() {
     // Given:
-    setupKsqlEngineWithSharedRuntimeDisabled();
+    setupKsqlEngine();
     final List<QueryMetadata> query = KsqlEngineTestUtil.execute(
         serviceContext,
         ksqlEngine,
@@ -1893,7 +1873,7 @@ public class KsqlEngineTest {
   @Test
   public void shouldCleanUpInternalTopicsOnQueryCloseForPersistentQueriesSharedRuntimes() {
     // Given:
-    setupKsqlEngineWithSharedRuntimeEnabled();
+    setupKsqlEngine();
     final List<QueryMetadata> query = KsqlEngineTestUtil.execute(
         serviceContext,
         ksqlEngine,
@@ -1915,7 +1895,7 @@ public class KsqlEngineTest {
   @Test
   public void shouldHardDeleteSubjectForPersistentQuery() throws IOException, RestClientException {
     // Given:
-    setupKsqlEngineWithSharedRuntimeDisabled();
+    setupKsqlEngine();
     final List<QueryMetadata> query = KsqlEngineTestUtil.execute(
         serviceContext,
         ksqlEngine,
@@ -1956,7 +1936,7 @@ public class KsqlEngineTest {
   @Test
   public void shouldHardDeleteSubjectForPersistentQuerySharedRuntimes() throws IOException, RestClientException {
     // Given:
-    setupKsqlEngineWithSharedRuntimeEnabled();
+    setupKsqlEngine();
     final List<QueryMetadata> query = KsqlEngineTestUtil.execute(
         serviceContext,
         ksqlEngine,
@@ -1998,7 +1978,7 @@ public class KsqlEngineTest {
   @Test
   public void shouldNotCleanUpInternalTopicsOnCloseIfQueryNeverStarted() {
     // Given:
-    setupKsqlEngineWithSharedRuntimeEnabled();
+    setupKsqlEngine();
     final QueryMetadata query = KsqlEngineTestUtil.execute(
         serviceContext,
         ksqlEngine,
@@ -2017,7 +1997,7 @@ public class KsqlEngineTest {
   @Test
   public void shouldNotCleanUpInternalTopicsOnReplace() {
     // Given:
-    setupKsqlEngineWithSharedRuntimeEnabled();
+    setupKsqlEngine();
     KsqlEngineTestUtil.execute(
         serviceContext,
         ksqlEngine,
@@ -2042,7 +2022,7 @@ public class KsqlEngineTest {
   @Test
   public void shouldNotCleanUpInternalTopicsOnSandboxQueryClose() {
     // Given:
-    setupKsqlEngineWithSharedRuntimeEnabled();
+    setupKsqlEngine();
     KsqlEngineTestUtil.execute(
         serviceContext,
         ksqlEngine,
@@ -2062,7 +2042,7 @@ public class KsqlEngineTest {
   @Test
   public void shouldRemovePersistentQueryFromEngineWhenClosed() {
     // Given:
-    setupKsqlEngineWithSharedRuntimeEnabled();
+    setupKsqlEngine();
     final int startingLiveQueries = ksqlEngine.numberOfLiveQueries();
     final int startingPersistentQueries = ksqlEngine.getPersistentQueries().size();
 
@@ -2086,7 +2066,7 @@ public class KsqlEngineTest {
   @Test
   public void shouldRemoveTransientQueryFromEngineWhenClosed() {
     // Given:
-    setupKsqlEngineWithSharedRuntimeEnabled();
+    setupKsqlEngine();
     final int startingLiveQueries = ksqlEngine.numberOfLiveQueries();
 
     final QueryMetadata query = KsqlEngineTestUtil.executeQuery(
@@ -2106,7 +2086,7 @@ public class KsqlEngineTest {
   @Test
   public void shouldSetKsqlSinkForSinks() {
     // When:
-    setupKsqlEngineWithSharedRuntimeEnabled();
+    setupKsqlEngine();
     KsqlEngineTestUtil.execute(
         serviceContext,
         ksqlEngine,
@@ -2124,7 +2104,7 @@ public class KsqlEngineTest {
   @Test
   public void shouldHandleMultipleStatements() {
     // Given:
-    setupKsqlEngineWithSharedRuntimeEnabled();
+    setupKsqlEngine();
     final String sql = "-- single line comment\n"
         + "/*\n"
         + "   Multi-line comment\n"
@@ -2178,7 +2158,7 @@ public class KsqlEngineTest {
   @Test
   public void shouldNotThrowWhenPreparingDuplicateTable() {
     // Given:
-    setupKsqlEngineWithSharedRuntimeEnabled();
+    setupKsqlEngine();
     final List<ParsedStatement> parsed = ksqlEngine.parse(
         "CREATE TABLE FOO AS SELECT * FROM TEST2; "
             + "CREATE TABLE FOO WITH (KAFKA_TOPIC='BAR') AS SELECT * FROM TEST2;");
@@ -2194,7 +2174,7 @@ public class KsqlEngineTest {
   @Test
   public void shouldNotThrowWhenExecutingDuplicateTableWithIfNotExists() {
     // Given:
-    setupKsqlEngineWithSharedRuntimeEnabled();
+    setupKsqlEngine();
     final List<ParsedStatement> parsed = ksqlEngine.parse(
         "CREATE TABLE FOO WITH (KAFKA_TOPIC='BAR') AS SELECT * FROM TEST2; "
             + "CREATE TABLE IF NOT EXISTS FOO WITH (KAFKA_TOPIC='BAR') AS SELECT * FROM TEST2;");
@@ -2218,7 +2198,7 @@ public class KsqlEngineTest {
   @Test
   public void shouldNotThrowWhenExecutingDuplicateTableWithCreateOrReplaceOnSandbox() {
     // Given:
-    setupKsqlEngineWithSharedRuntimeEnabled();
+    setupKsqlEngine();
     final ConfiguredStatement<?> oldQuery =
         configuredStatement("CREATE TABLE FOO AS SELECT * FROM TEST2;");
     final ConfiguredStatement<?> newQuery =
@@ -2239,7 +2219,7 @@ public class KsqlEngineTest {
   @Test
   public void shouldNotThrowWhenExecutingDuplicateTableWithCreateOrReplace() {
     // Given:
-    setupKsqlEngineWithSharedRuntimeEnabled();
+    setupKsqlEngine();
     final ConfiguredStatement<?> oldQuery =
         configuredStatement("CREATE TABLE FOO AS SELECT * FROM TEST2;");
     final ConfiguredStatement<?> newQuery =
@@ -2258,7 +2238,7 @@ public class KsqlEngineTest {
   @Test
   public void shouldThrowWhenExecutingDuplicateTable() {
     // Given:
-    setupKsqlEngineWithSharedRuntimeEnabled();
+    setupKsqlEngine();
     final List<ParsedStatement> parsed = ksqlEngine.parse(
         "CREATE TABLE FOO AS SELECT * FROM TEST2; "
             + "CREATE TABLE FOO WITH (KAFKA_TOPIC='BAR') AS SELECT * FROM TEST2;");
@@ -2287,7 +2267,7 @@ public class KsqlEngineTest {
   @Test
   public void shouldThrowWhenPreparingUnknownSource() {
     // Given:
-    setupKsqlEngineWithSharedRuntimeEnabled();
+    setupKsqlEngine();
     final ParsedStatement stmt = ksqlEngine.parse(
         "CREATE STREAM FOO AS SELECT * FROM UNKNOWN;").get(0);
 
@@ -2306,7 +2286,7 @@ public class KsqlEngineTest {
   @Test
   public void shouldNotThrowWhenPreparingDuplicateStream() {
     // Given:
-    setupKsqlEngineWithSharedRuntimeEnabled();
+    setupKsqlEngine();
     final ParsedStatement stmt = ksqlEngine.parse(
         "CREATE STREAM FOO AS SELECT * FROM ORDERS; "
             + "CREATE STREAM FOO WITH (KAFKA_TOPIC='BAR') AS SELECT * FROM ORDERS;").get(0);
@@ -2320,7 +2300,7 @@ public class KsqlEngineTest {
   @Test
   public void shouldNotThrowWhenExecutingDuplicateStreamWithIfNotExists() {
     // Given:
-    setupKsqlEngineWithSharedRuntimeEnabled();
+    setupKsqlEngine();
     final List<ParsedStatement> parsed = ksqlEngine.parse(
         "CREATE STREAM FOO WITH (KAFKA_TOPIC='BAR') AS SELECT * FROM ORDERS; "
             + "CREATE STREAM IF NOT EXISTS FOO WITH (KAFKA_TOPIC='BAR') AS SELECT * FROM ORDERS;");
@@ -2344,7 +2324,7 @@ public class KsqlEngineTest {
   @Test
   public void shouldThrowWhenExecutingDuplicateStream() {
     // Given:
-    setupKsqlEngineWithSharedRuntimeEnabled();
+    setupKsqlEngine();
     final List<ParsedStatement> parsed = ksqlEngine.parse(
         "CREATE STREAM FOO WITH (KAFKA_TOPIC='BAR') AS SELECT * FROM ORDERS; "
             + "CREATE STREAM FOO WITH (KAFKA_TOPIC='BAR') AS SELECT * FROM ORDERS;");
@@ -2373,7 +2353,7 @@ public class KsqlEngineTest {
   @Test
   public void shouldThrowWhenExecutingQueriesIfCsasCreatesTable() {
     // When:
-    setupKsqlEngineWithSharedRuntimeEnabled();
+    setupKsqlEngine();
     final KsqlStatementException e = assertThrows(
         KsqlStatementException.class,
         () -> KsqlEngineTestUtil.execute(
@@ -2395,7 +2375,7 @@ public class KsqlEngineTest {
   @Test
   public void shouldThrowWhenExecutingQueriesIfCtasCreatesStream() {
     // When:
-    setupKsqlEngineWithSharedRuntimeEnabled();
+    setupKsqlEngine();
     final KsqlStatementException e = assertThrows(
         KsqlStatementException.class,
         () -> KsqlEngineTestUtil.execute(
@@ -2417,7 +2397,7 @@ public class KsqlEngineTest {
   @Test
   public void shouldThrowWhenTryExecuteCsasThatCreatesTable() {
     // Given:
-    setupKsqlEngineWithSharedRuntimeEnabled();
+    setupKsqlEngine();
     final PreparedStatement<?> statement = prepare(parse(
         "CREATE STREAM FOO AS SELECT ORDERID, COUNT(ORDERID) FROM ORDERS GROUP BY ORDERID;").get(0));
 
@@ -2442,7 +2422,7 @@ public class KsqlEngineTest {
   @Test
   public void shouldThrowWhenTryExecuteCtasThatCreatesStream() {
     // Given:
-    setupKsqlEngineWithSharedRuntimeEnabled();
+    setupKsqlEngine();
     final PreparedStatement<?> statement = prepare(parse(
         "CREATE TABLE FOO AS SELECT * FROM ORDERS;").get(0));
 
@@ -2466,7 +2446,7 @@ public class KsqlEngineTest {
 
   @Test
   public void shouldThrowIfStatementMissingTopicConfig() {
-    setupKsqlEngineWithSharedRuntimeEnabled();
+    setupKsqlEngine();
     final List<ParsedStatement> parsed = parse(
         "CREATE TABLE FOO (viewtime BIGINT, pageid VARCHAR) WITH (VALUE_FORMAT='AVRO', KEY_FORMAT='KAFKA');"
             + "CREATE STREAM FOO (viewtime BIGINT, pageid VARCHAR) WITH (VALUE_FORMAT='AVRO', KEY_FORMAT='KAFKA');"
@@ -2488,7 +2468,7 @@ public class KsqlEngineTest {
   @Test
   public void shouldThrowOnNoneExecutableDdlStatement() {
     // When:
-    setupKsqlEngineWithSharedRuntimeEnabled();
+    setupKsqlEngine();
     final KsqlStatementException e = assertThrows(
         KsqlStatementException.class,
         () -> KsqlEngineTestUtil.execute(
@@ -2508,7 +2488,7 @@ public class KsqlEngineTest {
   @Test
   public void shouldNotUpdateMetaStoreDuringTryExecute() {
     // Given:
-    setupKsqlEngineWithSharedRuntimeEnabled();
+    setupKsqlEngine();
     final int numberOfLiveQueries = ksqlEngine.numberOfLiveQueries();
     final int numPersistentQueries = ksqlEngine.getPersistentQueries().size();
 
@@ -2539,7 +2519,7 @@ public class KsqlEngineTest {
   @Test
   public void shouldNotCreateAnyTopicsDuringTryExecute() {
     // Given:
-    setupKsqlEngineWithSharedRuntimeEnabled();
+    setupKsqlEngine();
     Map<String, ?> configs = ImmutableMap.of(TopicConfig.RETENTION_MS_CONFIG, 604800000L);
     topicClient.preconditionTopicExists("s1_topic", 1, (short) 1, configs);
 
@@ -2566,7 +2546,7 @@ public class KsqlEngineTest {
   @Test
   public void shouldNotIncrementQueryIdCounterDuringTryExecute() {
     // Given:
-    setupKsqlEngineWithSharedRuntimeEnabled();
+    setupKsqlEngine();
     final String sql = "create table foo as select * from test2;";
     final PreparedStatement<?> statement = prepare(parse(sql).get(0));
 
@@ -2587,7 +2567,7 @@ public class KsqlEngineTest {
   @Test
   public void shouldNotRegisterAnySchemasDuringSandboxExecute() throws Exception {
     // Given:
-    setupKsqlEngineWithSharedRuntimeEnabled();
+    setupKsqlEngine();
     final List<ParsedStatement> statements = parse(
         "create table foo WITH(VALUE_FORMAT='AVRO') as select * from test2;"
             + "create stream foo2 WITH(VALUE_FORMAT='AVRO') as select * from orders;");
@@ -2610,7 +2590,7 @@ public class KsqlEngineTest {
   @Test
   public void shouldOnlyUpdateSandboxOnQueryClose() {
     // Given:
-    setupKsqlEngineWithSharedRuntimeEnabled();
+    setupKsqlEngine();
     givenSqlAlreadyExecuted("create table bar as select * from test2;");
 
     final QueryId queryId = ksqlEngine.getPersistentQueries()
@@ -2633,7 +2613,7 @@ public class KsqlEngineTest {
   @Test
   public void shouldRegisterPersistentQueriesOnlyInSandbox() {
     // Given:
-    setupKsqlEngineWithSharedRuntimeEnabled();
+    setupKsqlEngine();
     final PreparedStatement<?> prepared = prepare(parse(
         "create table bar as select * from test2;").get(0));
 
@@ -2655,7 +2635,7 @@ public class KsqlEngineTest {
   @Test
   public void shouldNotStartKafkaStreamsInSandbox() {
     // Given:
-    setupKsqlEngineWithSharedRuntimeEnabled();
+    setupKsqlEngine();
     givenSqlAlreadyExecuted("create table bar as select * from test2;");
     final QueryMetadata query = ksqlEngine.getPersistentQueries().get(0);
     KafkaStreams.State state = ksqlEngine.getPersistentQuery(query.getQueryId()).get().getState();
@@ -2671,7 +2651,7 @@ public class KsqlEngineTest {
   @Test
   public void shouldNotStopKafkaStreamsInSandbox() {
     // Given:
-    setupKsqlEngineWithSharedRuntimeEnabled();
+    setupKsqlEngine();
     givenSqlAlreadyExecuted("create table bar as select * from test2;");
     final QueryMetadata query = ksqlEngine.getPersistentQueries().get(0);
     ksqlEngine.getPersistentQuery(query.getQueryId()).get().start();
@@ -2687,7 +2667,7 @@ public class KsqlEngineTest {
   @Test
   public void shouldNotCloseKafkaStreamsInSandbox() {
     // Given:
-    setupKsqlEngineWithSharedRuntimeEnabled();
+    setupKsqlEngine();
     givenSqlAlreadyExecuted("create table bar as select * from test2;");
     final QueryMetadata query = ksqlEngine.getPersistentQueries().get(0);
     ksqlEngine.getPersistentQuery(query.getQueryId()).get().start();
@@ -2704,7 +2684,7 @@ public class KsqlEngineTest {
   @Test
   public void shouldExecuteDdlStatement() {
     // Given:
-    setupKsqlEngineWithSharedRuntimeEnabled();
+    setupKsqlEngine();
     givenTopicsExist("foo");
     final PreparedStatement<?> statement =
         prepare(parse("CREATE STREAM FOO (a int) WITH (kafka_topic='foo', value_format='json', key_format='kafka');").get(0));
@@ -2723,7 +2703,7 @@ public class KsqlEngineTest {
   @Test
   public void shouldBeAbleToParseInvalidThings() {
     // Given:
-    setupKsqlEngineWithSharedRuntimeEnabled();
+    setupKsqlEngine();
     // No Stream called 'I_DO_NOT_EXIST' exists
 
     // When:
@@ -2737,7 +2717,7 @@ public class KsqlEngineTest {
   @Test
   public void shouldThrowOnPrepareIfSourcesDoNotExist() {
     // Given:
-    setupKsqlEngineWithSharedRuntimeEnabled();
+    setupKsqlEngine();
     final ParsedStatement parsed = ksqlEngine
         .parse("CREATE STREAM FOO AS SELECT * FROM I_DO_NOT_EXIST;")
         .get(0);
@@ -2755,7 +2735,7 @@ public class KsqlEngineTest {
   @Test
   public void shouldBeAbleToPrepareTerminateAndDrop() {
     // Given:
-    setupKsqlEngineWithSharedRuntimeEnabled();
+    setupKsqlEngine();
     givenSqlAlreadyExecuted("CREATE STREAM FOO AS SELECT * FROM TEST1;");
 
     final List<ParsedStatement> parsed = ksqlEngine.parse(
@@ -2771,7 +2751,7 @@ public class KsqlEngineTest {
   @Test
   public void shouldBeAbleToPreparePauseAndResume() {
     // Given:
-    setupKsqlEngineWithSharedRuntimeEnabled();
+    setupKsqlEngine();
     givenSqlAlreadyExecuted("CREATE STREAM FOO AS SELECT * FROM TEST1;");
 
     final List<ParsedStatement> parsed = ksqlEngine.parse(
@@ -2787,7 +2767,7 @@ public class KsqlEngineTest {
   @Test
   public void shouldIgnoreLegacyDeleteTopicPartOfDropCommand() {
     // Given:
-    setupKsqlEngineWithSharedRuntimeEnabled();
+    setupKsqlEngine();
     final QueryMetadata query = KsqlEngineTestUtil.execute(
         serviceContext,
         ksqlEngine,
@@ -2811,38 +2791,16 @@ public class KsqlEngineTest {
   }
 
   @Test
-  public void shouldRaiseExceptionIfValueIsErroneous() {
-    setupKsqlEngineWithSharedRuntimeEnabled();
-    assertThrows(ConfigException.class, () ->
-        ksqlEngine.alterSystemProperty(StreamsConfig.TOPOLOGY_OPTIMIZATION_CONFIG, "TEST"));
-  }
-
-  @Test
-  public void shouldOverrideKsqlConfigsWhenAlterSystemPropertyIsCalled() {
-    // Given:
-    setupKsqlEngineWithSharedRuntimeEnabled();
-    final Object valueBefore = ksqlEngine.getKsqlConfig().originals().get(KsqlConfig.KSQL_DEFAULT_VALUE_FORMAT_CONFIG);
-
-    // When:
-    ksqlEngine.alterSystemProperty(KsqlConfig.KSQL_DEFAULT_VALUE_FORMAT_CONFIG, "3000");
-
-    // Then:
-    final Object valueAfter = ksqlEngine.getKsqlConfig().originals().get(KsqlConfig.KSQL_DEFAULT_VALUE_FORMAT_CONFIG);
-    assertThat(valueAfter, not(equalTo(valueBefore)));
-    assertThat(valueAfter, equalTo("3000"));
-  }
-
-  @Test
   public void shouldThrowIfConfigureNotCalledWithAppServerConfig() {
     // When/Then:
-    setupKsqlEngineWithSharedRuntimeEnabled();
+    setupKsqlEngine();
     assertThrows(IllegalArgumentException.class, () -> ksqlEngine.configure(KsqlConfig.empty()));
   }
 
   @Test
   public void shouldConfigure() {
     // Given:
-    setupKsqlEngineWithSharedRuntimeEnabled();
+    setupKsqlEngine();
     final KsqlConfig config
         = new KsqlConfig(ImmutableMap.of(StreamsConfig.APPLICATION_SERVER_CONFIG, "foo:1234"));
 
@@ -2855,7 +2813,7 @@ public class KsqlEngineTest {
 
   @Test
   public void shouldCheckStreamPullQueryEnabledFlag() {
-    setupKsqlEngineWithSharedRuntimeEnabled();
+    setupKsqlEngine();
     @SuppressWarnings("unchecked") final ConfiguredStatement<Query> statementOrig =
         mock(ConfiguredStatement.class);
     when(statementOrig.getMaskedStatementText()).thenReturn("TEXT");
@@ -2911,13 +2869,7 @@ public class KsqlEngineTest {
   private void awaitCleanupComplete(final KsqlEngine ksqlEngine) {
     // add a task to the end of the queue to make sure that
     // we've finished processing everything up until this point
-    Optional<String> nameTopology;
-    if (ksqlEngine.getKsqlConfig().getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)) {
-      nameTopology = Optional.of("test");
-    } else {
-      nameTopology = Optional.empty();
-    }
-    ksqlEngine.getCleanupService().addCleanupTask(new QueryCleanupTask(serviceContext, "", nameTopology, false, "", KsqlConfig.KSQL_SERVICE_ID_DEFAULT, KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_DEFAULT) {
+    ksqlEngine.getCleanupService().addCleanupTask(new QueryCleanupTask(serviceContext, "", Optional.empty(), false, "", KsqlConfig.KSQL_SERVICE_ID_DEFAULT, KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_DEFAULT) {
       @Override
       public void run() {
         // do nothing

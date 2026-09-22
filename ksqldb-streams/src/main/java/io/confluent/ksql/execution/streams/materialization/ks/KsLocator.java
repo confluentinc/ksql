@@ -59,7 +59,6 @@ import org.apache.kafka.streams.TopologyDescription;
 import org.apache.kafka.streams.TopologyDescription.Processor;
 import org.apache.kafka.streams.TopologyDescription.Source;
 import org.apache.kafka.streams.TopologyDescription.Subtopology;
-import org.apache.kafka.streams.processor.internals.namedtopology.KafkaStreamsNamedTopologyWrapper;
 import org.apache.kafka.streams.state.HostInfo;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -77,7 +76,6 @@ public final class KsLocator implements Locator {
   private final Topology topology;
   private final Serializer<GenericKey> keySerializer;
   private final URL localHost;
-  private final boolean sharedRuntimesEnabled;
   private final String queryId;
 
   KsLocator(
@@ -86,7 +84,6 @@ public final class KsLocator implements Locator {
       final Topology topology,
       final Serializer<GenericKey> keySerializer,
       final URL localHost,
-      final boolean sharedRuntimesEnabled,
       final String queryId
   ) {
     this.kafkaStreams = requireNonNull(kafkaStreams, "kafkaStreams");
@@ -94,7 +91,6 @@ public final class KsLocator implements Locator {
     this.keySerializer = requireNonNull(keySerializer, "keySerializer");
     this.storeName = requireNonNull(stateStoreName, "stateStoreName");
     this.localHost = requireNonNull(localHost, "localHost");
-    this.sharedRuntimesEnabled = sharedRuntimesEnabled;
     this.queryId = requireNonNull(queryId, "queryId");
   }
 
@@ -128,8 +124,8 @@ public final class KsLocator implements Locator {
     if (metadata.isEmpty()) {
       final MaterializationException materializationException = new MaterializationException(
           "Cannot determine which host contains the required partitions to serve the pull query. \n"
-              + "The underlying persistent query may be restarting (e.g. as a result of "
-              + "ALTER SYSTEM) view the status of your by issuing <DESCRIBE foo>.");
+              + "The underlying persistent query may be restarting; "
+              + "view the status of your by issuing <DESCRIBE foo>.");
       LOG.debug(materializationException.getMessage());
       throw materializationException;
     }
@@ -270,17 +266,8 @@ public final class KsLocator implements Locator {
     return metadataList;
   }
 
-  /**
-   * Returns KeyQueryMetadata based on whether shared runtimes is enabled
-   * @param key KsqlKey
-   * @return KeyQueryMetadata
-   */
   @VisibleForTesting
   protected KeyQueryMetadata getKeyQueryMetadata(final KsqlKey key) {
-    if (sharedRuntimesEnabled && kafkaStreams instanceof KafkaStreamsNamedTopologyWrapper) {
-      return ((KafkaStreamsNamedTopologyWrapper) kafkaStreams)
-          .queryMetadataForKey(storeName, key.getKey(), keySerializer, queryId);
-    }
     try {
       return kafkaStreams.queryMetadataForKey(storeName, key.getKey(), keySerializer);
     } catch (IllegalStateException e) {
@@ -290,17 +277,8 @@ public final class KsLocator implements Locator {
     }
   }
 
-  /**
-   * Returns a collection of StreamsMetadata based on whether shared runtimes is enabled.
-   * @return Collection of StreamsMetadata
-   */
   @VisibleForTesting
   protected Collection<StreamsMetadata> getStreamsMetadata() {
-    if (sharedRuntimesEnabled && kafkaStreams instanceof KafkaStreamsNamedTopologyWrapper) {
-      return ((KafkaStreamsNamedTopologyWrapper) kafkaStreams)
-          .streamsMetadataForStore(storeName, queryId);
-    }
-
     return kafkaStreams.streamsMetadataForStore(storeName);
   }
 

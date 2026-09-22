@@ -59,7 +59,6 @@ import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.query.id.QueryIdGenerator;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
-import io.confluent.ksql.util.BinPackedPersistentQueryMetadataImpl;
 import io.confluent.ksql.util.ConsistencyOffsetVector;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConfigurable;
@@ -241,12 +240,6 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable, KsqlConfigur
     return !primaryContext.getQueryRegistry().getPersistentQueries().isEmpty();
   }
 
-  public void updateStreamsPropertiesAndRestartRuntime() {
-    final KsqlConfig config = primaryContext.getKsqlConfig();
-    final ProcessingLogContext logContext = primaryContext.getProcessingLogContext();
-    primaryContext.getQueryRegistry().updateStreamsPropertiesAndRestartRuntime(config, logContext);
-  }
-
   @Override
   public MetaStore getMetaStore() {
     return primaryContext.getMetaStore();
@@ -376,12 +369,6 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable, KsqlConfigur
       throw new IllegalArgumentException("Need KS application server set");
     }
     this.primaryContext.configure(config);
-  }
-
-  @Override
-  public void alterSystemProperty(final String propertyName, final String propertyValue) {
-    final Map<String, String> overrides = ImmutableMap.of(propertyName, propertyValue);
-    this.primaryContext.alterSystemProperty(overrides);
   }
 
   public StreamPullQueryMetadata createStreamPullQuery(
@@ -651,10 +638,6 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable, KsqlConfigur
     close(false);
   }
 
-  public void removeQueryFromAssignor(final PersistentQueryMetadata query) {
-    primaryContext.getRuntimeAssignor().dropQuery(query);
-  }
-
   public void cleanupOrphanedInternalTopics(
       final ServiceContext serviceContext,
       final Set<String> queryApplicationIds
@@ -743,17 +726,13 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable, KsqlConfigur
         final QueryMetadata query
     ) {
       final String applicationId = query.getQueryApplicationId();
-      Optional<String> topologyName = Optional.empty();
-      if (query instanceof BinPackedPersistentQueryMetadataImpl) {
-        topologyName = Optional.of(query.getQueryId().toString());
-      }
       if (query.hasEverBeenStarted()) {
         log.info("Cleaning up after query {}", applicationId);
         cleanupService.addCleanupTask(
             new QueryCleanupService.QueryCleanupTask(
                 serviceContext,
                 applicationId,
-                topologyName,
+                Optional.empty(),
                 query instanceof TransientQueryMetadata,
                 ksqlConfig.getKsqlStreamConfigProps()
                     .getOrDefault(

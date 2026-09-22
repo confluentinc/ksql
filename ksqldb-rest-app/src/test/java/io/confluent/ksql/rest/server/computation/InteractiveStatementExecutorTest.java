@@ -341,26 +341,6 @@ public class InteractiveStatementExecutorTest {
   }
 
   @Test
-  public void restartsRuntimeWhenAlterSystemIsSuccessful() {
-    // Given:
-    final String alterSystemQuery = "ALTER SYSTEM 'TEST'='TEST';";
-    when(mockParser.parseSingleStatement(alterSystemQuery))
-        .thenReturn(statementParser.parseSingleStatement(alterSystemQuery));
-    final Command alterSystemCommand = new Command(
-        "ALTER SYSTEM 'TEST'='TEST';",
-        emptyMap(),
-        ksqlConfig.getAllConfigPropsWithSecretsObfuscated(),
-        Optional.empty()
-    );
-
-    // When:
-    handleStatement(statementExecutorWithMocks, alterSystemCommand, COMMAND_ID, Optional.empty(), 0L);
-
-    // Then:
-    verify(mockEngine).updateStreamsPropertiesAndRestartRuntime();
-  }
-
-  @Test
   public void shouldExecutePlannedCommand() {
     // Given:
     givenMockPlannedQuery();

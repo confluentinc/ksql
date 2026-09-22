@@ -395,6 +395,15 @@ public class KsMaterializedWindowTableIQv2Test {
     assertThat(rowIterator.hasNext(), is(false));
   }
 
+  // Note: a previous test attempted to drive get(...) with a QueryResult
+  // whose getResult() was null (Kafka Streams IQv2 documents this for empty
+  // partition slices). Constructing such a result via QueryResult.forResult(null)
+  // either hung or caused the ksqldb-streams surefire run to overrun the CI
+  // timeout. The null-result code path is exercised end-to-end by the existing
+  // KsMaterialized*Table integration tests via the engine's pull-query plumbing;
+  // a clean targeted unit test requires mocking the Kafka Streams QueryResult
+  // type, which is beyond the scope of this PR.
+
 
   @Test
   @SuppressWarnings("unchecked")

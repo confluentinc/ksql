@@ -19,7 +19,6 @@ import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.parser.DropType;
 import io.confluent.ksql.parser.tree.AlterSource;
-import io.confluent.ksql.parser.tree.AlterSystemProperty;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.CreateTable;
@@ -38,7 +37,6 @@ import io.confluent.ksql.rest.entity.CommandId.Action;
 import io.confluent.ksql.rest.entity.CommandId.Type;
 import io.confluent.ksql.rest.util.TerminateCluster;
 import java.util.Map;
-import java.util.UUID;
 
 public class CommandIdAssigner {
 
@@ -75,8 +73,6 @@ public class CommandIdAssigner {
           .put(TerminateCluster.class,
               command -> getTerminateClusterCommandId())
           .put(AlterSource.class, command -> getAlterSourceCommandId((AlterSource) command))
-          .put(AlterSystemProperty.class, command
-              -> getAlterSystemCommandId((AlterSystemProperty) command))
           .build();
 
   public CommandId getCommandId(final Statement command) {
@@ -164,14 +160,6 @@ public class CommandIdAssigner {
     return new CommandId(
         alterSource.getDataSourceType() == DataSourceType.KSTREAM ? Type.STREAM : Type.TABLE,
         alterSource.getName().text(),
-        Action.ALTER
-    );
-  }
-
-  private static CommandId getAlterSystemCommandId(final AlterSystemProperty alterSystemProperty) {
-    return new CommandId(
-        Type.CLUSTER,
-        UUID.randomUUID().toString(),
         Action.ALTER
     );
   }

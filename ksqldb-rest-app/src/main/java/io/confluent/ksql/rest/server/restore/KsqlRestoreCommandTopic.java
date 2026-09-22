@@ -418,7 +418,10 @@ public class KsqlRestoreCommandTopic {
     boolean queryIdFound = false;
     final Map<String, Object> streamsProperties =
         new HashMap<>(ksqlConfig.getKsqlStreamConfigProps());
-    boolean sharedRuntimeQuery = false;
+    // A non-null runtimeId means this plan predates the removal of the shared-runtime
+    // feature; use the runtime id it was actually running under so old state/topics for
+    // it can still be found and cleaned up.
+    boolean legacySharedRuntimeQuery = false;
     String queryId = "";
     final JSONObject jsonObject = new JSONObject(new String(command, StandardCharsets.UTF_8));
     if (hasKey(jsonObject, "plan") && !jsonObject.isNull("plan")) {
@@ -432,7 +435,7 @@ public class KsqlRestoreCommandTopic {
           streamsProperties.put(
               StreamsConfig.APPLICATION_ID_CONFIG,
               ((Optional<String>) queryPlan.get("runtimeId")).get());
-          sharedRuntimeQuery = true;
+          legacySharedRuntimeQuery = true;
         } else {
           streamsProperties.put(
               StreamsConfig.APPLICATION_ID_CONFIG,
@@ -445,9 +448,9 @@ public class KsqlRestoreCommandTopic {
     // the command contains a query, clean up it's internal state store and also the internal topics
     if (queryIdFound) {
       final StreamsConfig streamsConfig = new StreamsConfig(streamsProperties);
-      final String topicPrefix = sharedRuntimeQuery
+      final String topicPrefix = legacySharedRuntimeQuery
           ? streamsConfig.getString(StreamsConfig.APPLICATION_ID_CONFIG)
-          : QueryApplicationId.buildInternalTopicPrefix(ksqlConfig, sharedRuntimeQuery) + queryId;
+          : QueryApplicationId.buildInternalTopicPrefix(ksqlConfig, false) + queryId;
 
       try {
         final Admin admin = new DefaultKafkaClientSupplier()
@@ -459,7 +462,7 @@ public class KsqlRestoreCommandTopic {
             streamsConfig,
             Time.SYSTEM,
             true,
-            ksqlConfig.getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)).clean();
+            legacySharedRuntimeQuery).clean();
         System.out.printf(
             "Cleaned up internal state store and internal topics for query %s%n",
             topicPrefix

@@ -16,7 +16,6 @@
 package io.confluent.ksql.engine;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.analyzer.ImmutableAnalysis;
@@ -89,12 +88,6 @@ final class SandboxedExecutionContext implements KsqlExecutionContext {
   )
   public MetricCollectors metricCollectors() {
     return metricCollectors;
-  }
-
-  @Override
-  public void alterSystemProperty(final String propertyName, final String propertyValue) {
-    final Map<String, String> overrides = ImmutableMap.of(propertyName, propertyValue);
-    this.engineContext.alterSystemProperty(overrides);
   }
 
   @Override
@@ -173,24 +166,18 @@ final class SandboxedExecutionContext implements KsqlExecutionContext {
       final ConfiguredKsqlPlan ksqlPlan,
       final boolean restoreInProgress
   ) {
-    try {
-      final ExecuteResult result = EngineExecutor.create(
-          engineContext,
-          serviceContext,
-          ksqlPlan.getConfig()
-      ).execute(ksqlPlan.getPlan(), restoreInProgress);
+    final ExecuteResult result = EngineExecutor.create(
+        engineContext,
+        serviceContext,
+        ksqlPlan.getConfig()
+    ).execute(ksqlPlan.getPlan(), restoreInProgress);
 
-      // Having a streams running in a sandboxed environment is not necessary
-      if (result.getQuery().isPresent()
-          && result.getQuery().get() instanceof PersistentQueryMetadataImpl) {
-        result.getQuery().map(QueryMetadata::getKafkaStreams).ifPresent(streams -> streams.close());
-      }
-      return result;
-    } finally {
-      if (getKsqlConfig().getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)) {
-        engineContext.getQueryRegistry().closeRuntimes();
-      }
+    // Having a streams running in a sandboxed environment is not necessary
+    if (result.getQuery().isPresent()
+        && result.getQuery().get() instanceof PersistentQueryMetadataImpl) {
+      result.getQuery().map(QueryMetadata::getKafkaStreams).ifPresent(streams -> streams.close());
     }
+    return result;
   }
 
   @Override
@@ -269,12 +256,6 @@ final class SandboxedExecutionContext implements KsqlExecutionContext {
         context,
         scalablePushQueryMetrics
     );
-  }
-
-  @Override
-  public void updateStreamsPropertiesAndRestartRuntime() {
-    throw new UnsupportedOperationException();
-
   }
 
   @Override

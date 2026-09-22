@@ -2644,36 +2644,6 @@ public class KsqlResourceTest {
   }
 
   @Test
-  public void shouldRejectIsValidPropertyForNonQueryLevelPropertyWhenSharedRuntimeEnabled() {
-    final Map<String, Object> properties = new HashMap<>();
-    properties.put(StreamsConfig.COMMIT_INTERVAL_MS_CONFIG, "");
-    givenKsqlConfigWith(ImmutableMap.of(
-        KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED, true
-    ));
-
-    // When:
-    final EndpointResponse response = ksqlResource.isValidProperty("ksql.service.id");
-
-    // Then:
-    assertThat(response.getStatus(), equalTo(400));
-  }
-
-  @Test
-  public void shouldAllowIsValidPropertyForQueryLevelPropertyWhenSharedRuntimeEnabled() {
-    final Map<String, Object> properties = new HashMap<>();
-    properties.put(StreamsConfig.COMMIT_INTERVAL_MS_CONFIG, "");
-    givenKsqlConfigWith(ImmutableMap.of(
-        KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED, true
-    ));
-
-    // When:
-    final EndpointResponse response = ksqlResource.isValidProperty("ksql.streams.auto.offset.reset");
-
-    // Then:
-    assertThat(response.getStatus(), equalTo(200));
-  }
-
-  @Test
   public void shouldAllowIsValidPropertyForKnownProperty() {
     // Given: mocked configOverrideValidator never throws.
 

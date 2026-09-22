@@ -25,8 +25,6 @@ import io.confluent.ksql.util.KsqlConfig;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KafkaStreams.State;
 import org.apache.kafka.streams.StoreQueryParameters;
-import org.apache.kafka.streams.processor.internals.namedtopology.KafkaStreamsNamedTopologyWrapper;
-import org.apache.kafka.streams.processor.internals.namedtopology.NamedTopologyStoreQueryParameters;
 import org.apache.kafka.streams.state.QueryableStoreType;
 
 /**
@@ -38,21 +36,18 @@ class KsStateStore {
   private final KafkaStreams kafkaStreams;
   private final LogicalSchema schema;
   private final KsqlConfig ksqlConfig;
-  private final String queryId;
 
   @VisibleForTesting
   KsStateStore(
       final String stateStoreName,
       final KafkaStreams kafkaStreams,
       final LogicalSchema schema,
-      final KsqlConfig ksqlConfig,
-      final String queryId
+      final KsqlConfig ksqlConfig
   ) {
     this.kafkaStreams = requireNonNull(kafkaStreams, "kafkaStreams");
     this.stateStoreName = requireNonNull(stateStoreName, "stateStoreName");
     this.schema = requireNonNull(schema, "schema");
     this.ksqlConfig = requireNonNull(ksqlConfig, "ksqlConfig");
-    this.queryId = requireNonNull(queryId, "queryId");
   }
 
   LogicalSchema schema() {
@@ -75,16 +70,10 @@ class KsStateStore {
     try {
       final boolean enableStaleStores =
           ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PULL_ENABLE_STANDBY_READS);
-      final boolean sharedRuntime = kafkaStreams instanceof KafkaStreamsNamedTopologyWrapper;
 
-      final StoreQueryParameters<T> parameters = sharedRuntime
-          ? NamedTopologyStoreQueryParameters.fromNamedTopologyAndStoreNameAndType(
-              queryId,
-              stateStoreName,
-              queryableStoreType).withPartition(partition)
-          : StoreQueryParameters.fromNameAndType(
-              stateStoreName,
-              queryableStoreType).withPartition(partition);
+      final StoreQueryParameters<T> parameters = StoreQueryParameters.fromNameAndType(
+          stateStoreName,
+          queryableStoreType).withPartition(partition);
 
       return enableStaleStores
           ? kafkaStreams.store(parameters.enableStaleStores())

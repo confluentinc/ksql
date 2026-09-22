@@ -48,7 +48,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Supplier;
 import org.apache.kafka.clients.admin.Admin;
@@ -413,7 +412,7 @@ public class KsqlRestoreCommandTopic {
     }
   }
 
-  @SuppressWarnings({"unchecked", "checkstyle:CyclomaticComplexity"})
+  @SuppressWarnings("checkstyle:CyclomaticComplexity")
   private static void maybeCleanUpQuery(final byte[] command, final KsqlConfig ksqlConfig) {
     boolean queryIdFound = false;
     final Map<String, Object> streamsProperties =
@@ -429,12 +428,10 @@ public class KsqlRestoreCommandTopic {
       if (hasKey(plan, "queryPlan") && !plan.isNull("queryPlan")) {
         final JSONObject queryPlan = plan.getJSONObject("queryPlan");
         queryId = queryPlan.getString("queryId");
-        if (hasKey(queryPlan, "runtimeId")
-            && !queryPlan.isNull("runtimeId")
-            && ((Optional<String>) queryPlan.get("runtimeId")).isPresent()) {
+        if (hasKey(queryPlan, "runtimeId") && !queryPlan.isNull("runtimeId")) {
           streamsProperties.put(
               StreamsConfig.APPLICATION_ID_CONFIG,
-              ((Optional<String>) queryPlan.get("runtimeId")).get());
+              queryPlan.getString("runtimeId"));
           legacySharedRuntimeQuery = true;
         } else {
           streamsProperties.put(

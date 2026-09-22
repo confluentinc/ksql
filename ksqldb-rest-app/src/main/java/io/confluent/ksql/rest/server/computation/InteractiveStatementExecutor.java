@@ -44,6 +44,7 @@ import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -228,7 +229,21 @@ public class InteractiveStatementExecutor {
           commandId,
           commandStatusFuture,
           new CommandStatus(CommandStatus.Status.PARSING, "Parsing statement"));
-      final PreparedStatement<?> statement = statementParser.parseSingleStatement(statementString);
+      final PreparedStatement<?> statement;
+      try {
+        statement = statementParser.parseSingleStatement(statementString);
+      } catch (final KsqlException parseException) {
+        if (mode == Mode.RESTORE && isLegacyAlterSystemStatement(statementString)) {
+          log.warn("Skipping legacy ALTER SYSTEM command found while restoring the command "
+              + "topic. ALTER SYSTEM is no longer supported: {}", statementString);
+          putFinalStatus(commandId, commandStatusFuture, new CommandStatus(
+              CommandStatus.Status.SUCCESS,
+              "Skipped: ALTER SYSTEM is no longer supported.",
+              Optional.empty()));
+          return;
+        }
+        throw parseException;
+      }
       putStatus(
           commandId,
           commandStatusFuture,
@@ -245,6 +260,11 @@ public class InteractiveStatementExecutor {
       putStatus(commandId, commandStatusFuture, errorStatus);
       throw exception;
     }
+  }
+
+  private static boolean isLegacyAlterSystemStatement(final String statementText) {
+    return statementText != null
+        && statementText.trim().toUpperCase(Locale.ROOT).startsWith("ALTER SYSTEM");
   }
 
   private void executePlan(

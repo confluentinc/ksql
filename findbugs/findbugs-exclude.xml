@@ -69,6 +69,9 @@ For a detailed description of findbugs bug categories, see http://findbugs.sourc
         <Class name="~io\.confluent\..*"/>
         <Bug pattern="CT_CONSTRUCTOR_THROW"/>
     </Match>
+    <!-- TODO: Remove these US_* exclusions once stale @SuppressFBWarnings annotations are
+         cleaned up. These fire when a suppression no longer matches any actual finding,
+         which can happen after fixing bugs or upgrading SpotBugs. Safe to ignore for now. -->
     <Match>
         <Class name="~io\.confluent\..*"/>
         <Bug pattern="US_USELESS_SUPPRESSION_ON_METHOD"/>
@@ -77,6 +80,10 @@ For a detailed description of findbugs bug categories, see http://findbugs.sourc
         <Class name="~io\.confluent\..*"/>
         <Bug pattern="US_USELESS_SUPPRESSION_ON_CLASS"/>
     </Match>
+    <!-- TODO: Remove these AT_* exclusions. These checks were introduced in SpotBugs 4.8+
+         (surfaced after upgrading the plugin from 4.7.1 to 4.9.3) and flag real concurrency
+         issues. Fixing them requires carefully reviewing each case for thread-safety
+         (e.g., adding volatile, AtomicLong, or synchronization). -->
     <Match>
         <Class name="~io\.confluent\..*"/>
         <Bug pattern="AT_NONATOMIC_64BIT_PRIMITIVE"/>
@@ -88,14 +95,6 @@ For a detailed description of findbugs bug categories, see http://findbugs.sourc
     <Match>
         <Class name="~io\.confluent\..*"/>
         <Bug pattern="AT_STALE_THREAD_WRITE_OF_PRIMITIVE"/>
-    </Match>
-    <Match>
-        <Class name="~io\.confluent\..*"/>
-        <Bug pattern="PA_PUBLIC_PRIMITIVE_ATTRIBUTE"/>
-    </Match>
-    <Match>
-        <Class name="~io.confluent.ksql.cli.console.Console"/>
-        <Bug pattern="FS_BAD_DATE_FORMAT_FLAG_COMBO"/>
     </Match>
     <Match>
         <Class name="~.*Test" />

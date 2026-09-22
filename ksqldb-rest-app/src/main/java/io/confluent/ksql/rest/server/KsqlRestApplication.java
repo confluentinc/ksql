@@ -1243,8 +1243,8 @@ public final class KsqlRestApplication implements Executable {
       final URL listener = restConfig.getInterNodeListener(URL::getPort);
       final String hostPort = listener.getHost() + ":" + listener.getPort();
       // 16 hex chars (64 bits): short enough for a UI, collision-safe for realistic node counts.
-      return Optional.of(
-          Hashing.sha256().hashString(hostPort, StandardCharsets.UTF_8).toString().substring(0, 16));
+      final String hash = Hashing.sha256().hashString(hostPort, StandardCharsets.UTF_8).toString();
+      return Optional.of(hash.substring(0, 16));
     } catch (final RuntimeException e) {
       log.warn("Could not resolve this node's inter-node listener for license node attribution; "
           + "node attribution will be disabled", e);

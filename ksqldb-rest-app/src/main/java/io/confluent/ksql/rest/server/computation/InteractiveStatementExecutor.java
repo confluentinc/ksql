@@ -23,7 +23,6 @@ import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.KsqlPlan;
 import io.confluent.ksql.exception.ExceptionUtil;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
-import io.confluent.ksql.parser.tree.AlterSystemProperty;
 import io.confluent.ksql.parser.tree.CreateAsSelect;
 import io.confluent.ksql.parser.tree.ExecutableDdlStatement;
 import io.confluent.ksql.parser.tree.InsertInto;
@@ -326,20 +325,6 @@ public class InteractiveStatementExecutor {
       throwUnsupportedStatementError();
     } else if (statement.getStatement() instanceof InsertInto) {
       throwUnsupportedStatementError();
-    } else if (statement.getStatement() instanceof AlterSystemProperty) {
-      final PreparedStatement<AlterSystemProperty> alterSystemQuery =
-          (PreparedStatement<AlterSystemProperty>) statement;
-      final String propertyName = alterSystemQuery.getStatement().getPropertyName();
-      final String propertyValue = alterSystemQuery.getStatement().getPropertyValue();
-      ksqlEngine.alterSystemProperty(propertyName, propertyValue);
-      ksqlEngine.updateStreamsPropertiesAndRestartRuntime();
-
-      final String successMessage = String.format("System property %s was set to %s.",
-          propertyName, propertyValue);
-      final CommandStatus successStatus = new CommandStatus(CommandStatus.Status.SUCCESS,
-          successMessage, Optional.empty());
-
-      putFinalStatus(commandId, commandStatusFuture, successStatus);
     } else {
       throw new KsqlException(String.format(
           "Unexpected statement type: %s",

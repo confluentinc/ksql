@@ -356,7 +356,6 @@ public class KsqlResourceTest {
     ksqlConfig = new KsqlConfig(ksqlRestConfig.getKsqlConfigProperties());
     final KsqlExecutionContext.ExecuteResult result = mock(KsqlExecutionContext.ExecuteResult.class);
     when(sandbox.execute(any(), any(ConfiguredKsqlPlan.class))).thenReturn(result);
-    when(result.getQuery()).thenReturn(Optional.empty());
 
     final MutableFunctionRegistry fnRegistry = new InternalFunctionRegistry();
     final Metrics metrics = new Metrics();

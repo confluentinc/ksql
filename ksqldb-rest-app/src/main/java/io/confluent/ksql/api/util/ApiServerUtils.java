@@ -23,6 +23,7 @@ import io.confluent.ksql.util.FileWatcher.Callback;
 import io.confluent.ksql.util.QueryMask;
 import io.confluent.ksql.util.VertxSslOptionsFactory;
 import io.netty.handler.codec.haproxy.HAProxyProtocolException;
+import io.netty.handler.codec.http.InvalidLineSeparatorException;
 import io.vertx.core.http.ClientAuth;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpServerOptions;
@@ -31,6 +32,7 @@ import io.vertx.core.net.JksOptions;
 import io.vertx.core.net.KeyStoreOptions;
 import io.vertx.core.net.PfxOptions;
 import io.vertx.ext.web.RoutingContext;
+import java.net.SocketException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.channels.ClosedChannelException;
@@ -42,6 +44,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import javax.net.ssl.SSLException;
 import org.apache.kafka.common.config.ConfigException;
 import org.apache.kafka.common.config.SslConfigs;
 import org.apache.logging.log4j.LogManager;
@@ -68,11 +71,24 @@ public final class ApiServerUtils {
   public static void unhandledExceptionHandler(final Throwable t) {
     if (t instanceof ClosedChannelException) {
       LOG.debug("Unhandled ClosedChannelException (connection likely closed early)", t);
+    } else if (isClientSideConnectionFailure(t)) {
+      // TLS/HTTP framing errors from misconfigured clients, port scanners, or Kafka-protocol
+      // traffic sent to the HTTPS endpoint. There is no server-side action available; logging
+      // these at ERROR floods the error log with internet noise.
+      LOG.debug("Unhandled exception (client-side connection failure)", t);
     } else if (t instanceof HAProxyProtocolException) {
       LOG.error("Failed to decode proxy protocol header", t);
     } else {
       LOG.error("Unhandled exception", t);
     }
+  }
+
+  private static boolean isClientSideConnectionFailure(final Throwable t) {
+    // SSLException covers handshake/protocol failures and netty subclasses
+    // (NotSslRecordException, SslHandshakeTimeoutException, SSLHandshakeException, ...).
+    return t instanceof SSLException
+        || t instanceof SocketException
+        || t instanceof InvalidLineSeparatorException;
   }
 
   public static void chcHandler(final RoutingContext routingContext) {

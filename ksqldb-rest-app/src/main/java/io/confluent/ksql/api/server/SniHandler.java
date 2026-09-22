@@ -39,7 +39,10 @@ public class SniHandler implements Handler<RoutingContext> {
         // sometimes the port is present in the host header, remove it
         final String requestHostNoPort = requestHost.replaceFirst(":\\d+", "");
         if (!requestHostNoPort.equals(indicatedServerName)) {
-          log.error(String.format(
+          // SNI mismatches are client-side misconfigurations (wrong host, IP-based access,
+          // cross-listener traffic). The request is rejected with MISDIRECTED_REQUEST, so
+          // there's nothing for the server operator to act on; log at DEBUG.
+          log.debug(String.format(
               "Sni check failed, host header: %s, sni value %s",
               requestHostNoPort,
               indicatedServerName)

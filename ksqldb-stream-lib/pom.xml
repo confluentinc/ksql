@@ -3,7 +3,7 @@
   <parent>
       <groupId>io.confluent.ksql</groupId>
       <artifactId>ksqldb-parent</artifactId>
-      <version>8.4.0-0</version>
+      <version>8.5.0-0</version>
   </parent>
 
   <artifactId>ksqldb-stream-lib</artifactId>
@@ -25,6 +25,12 @@
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
       <scope>test</scope>
+      <exclusions>
+        <exclusion>
+          <groupId>org.hamcrest</groupId>
+          <artifactId>hamcrest-core</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
 
     <dependency>

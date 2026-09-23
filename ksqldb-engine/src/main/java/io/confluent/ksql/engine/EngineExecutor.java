@@ -118,7 +118,6 @@ import io.confluent.ksql.util.PushQueryMetadata.ResultType;
 import io.confluent.ksql.util.ScalablePushQueryMetadata;
 import io.confluent.ksql.util.TransientQueryMetadata;
 import io.vertx.core.Context;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Objects;
 import java.util.Optional;
@@ -593,8 +592,7 @@ final class EngineExecutor {
         Optional.empty(),
         plans.executionPlan.getPhysicalPlan(),
         plans.executionPlan.getQueryId(),
-        getApplicationId(plans.executionPlan.getQueryId(),
-            getSourceTopicNames(outputNode))
+        Optional.empty()
     );
 
     engineContext.createQueryValidator().validateQuery(
@@ -670,8 +668,7 @@ final class EngineExecutor {
           outputNode.getSinkName(),
           plans.executionPlan.getPhysicalPlan(),
           plans.executionPlan.getQueryId(),
-          getApplicationId(plans.executionPlan.getQueryId(),
-              getSourceTopicNames(outputNode))
+          Optional.empty()
       );
 
       engineContext.createQueryValidator().validateQuery(
@@ -690,15 +687,6 @@ final class EngineExecutor {
     } catch (final Exception e) {
       throw new KsqlStatementException(e.getMessage(), statement.getMaskedStatementText(), e);
     }
-  }
-
-  private Optional<String> getApplicationId(final QueryId queryId,
-                                            final Collection<String> sources) {
-    return config.getConfig(true).getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)
-        ? Optional.of(
-        engineContext.getRuntimeAssignor()
-            .getRuntimeAndMaybeAddRuntime(queryId, sources, config.getConfig(true))) :
-        Optional.empty();
   }
 
   @SuppressWarnings({"NPathComplexity", "CyclomaticComplexity"})
@@ -1090,14 +1078,6 @@ final class EngineExecutor {
         .collect(Collectors.toSet());
   }
 
-  private static Set<String> getSourceTopicNames(final PlanNode outputNode) {
-    return outputNode.getSourceNodes()
-        .map(DataSourceNode::getDataSource)
-        .map(DataSource::getKsqlTopic)
-        .map(KsqlTopic::getKafkaTopicName)
-        .collect(Collectors.toSet());
-  }
-
   private String executeDdl(
       final DdlCommand ddlCommand,
       final String statementText,
@@ -1146,8 +1126,7 @@ final class EngineExecutor {
         getSources(queryPlan),
         queryPlan.getPhysicalPlan(),
         buildPlanSummary(queryPlan.getQueryId(), queryPlan.getPhysicalPlan()),
-        persistentQueryType,
-        queryPlan.getRuntimeId()
+        persistentQueryType
     );
   }
 

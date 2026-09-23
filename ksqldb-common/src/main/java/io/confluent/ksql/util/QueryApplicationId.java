@@ -27,19 +27,6 @@ public final class QueryApplicationId {
   private QueryApplicationId() {
   }
 
-  public static String buildSharedRuntimeId(
-      final KsqlConfig config,
-      final boolean persistent,
-      final int sharedRuntimeIndex
-  ) {
-    final String queryAppId = buildInternalTopicPrefix(config, persistent) + sharedRuntimeIndex;
-    if (persistent) {
-      return queryAppId;
-    } else {
-      return addTimeSuffix(queryAppId);
-    }
-  }
-
   public static String build(
       final KsqlConfig config,
       final boolean persistent,

@@ -29,14 +29,14 @@
     <parent>
         <groupId>io.confluent</groupId>
         <artifactId>common</artifactId>
-        <version>[8.4.0-0, 8.4.1-0)</version>
+        <version>[8.5.0-0, 8.5.1-0)</version>
     </parent>
 
     <groupId>io.confluent.ksql</groupId>
     <artifactId>ksqldb-parent</artifactId>
     <packaging>pom</packaging>
     <name>ksqldb-parent</name>
-    <version>8.4.0-0</version>
+    <version>8.5.0-0</version>
 
     <licenses>
         <license>
@@ -148,7 +148,7 @@
         <!-- <compile.warnings-flag>-Werror</compile.warnings-flag> -->
         <git-commit-id-plugin.version>4.9.10</git-commit-id-plugin.version>
         <apache.io.version>2.11.0</apache.io.version>
-        <io.confluent.ksql.version>8.4.0-0</io.confluent.ksql.version>
+        <io.confluent.ksql.version>8.5.0-0</io.confluent.ksql.version>
         <io.confluent.schema-registry.version>${confluent.version.range}</io.confluent.schema-registry.version>
         <netty-tcnative-fips-version>0.123.0</netty-tcnative-fips-version>
         <netty-tcnative-version>2.0.81.Final</netty-tcnative-version>
@@ -1138,12 +1138,6 @@
             </dependency>
 
             <dependency>
-                <groupId>commons-io</groupId>
-                <artifactId>commons-io</artifactId>
-                <version>${commons-io.version}</version>
-            </dependency>
-
-            <dependency>
                 <groupId>org.apache.commons</groupId>
                 <artifactId>commons-text</artifactId>
                 <version>${commons-text.version}</version>
@@ -1296,20 +1290,6 @@
                 <version>${jersey-common}</version>
             </dependency>
 
-            <!-- Required for running tests -->
-            <dependency>
-                <groupId>junit</groupId>
-                <artifactId>junit</artifactId>
-                <version>${junit.version}</version>
-                <scope>test</scope>
-                <exclusions>
-                    <exclusion>
-                        <groupId>org.hamcrest</groupId>
-                        <artifactId>hamcrest-core</artifactId>
-                    </exclusion>
-                </exclusions>
-            </dependency>
-
             <dependency>
                 <groupId>com.google.guava</groupId>
                 <artifactId>guava-testlib</artifactId>
@@ -1332,12 +1312,6 @@
                 <version>2.5.2</version>
             </dependency>
 
-            <dependency>
-                <groupId>com.github.spotbugs</groupId>
-                <artifactId>spotbugs-annotations</artifactId>
-                <version>${spotbugs.version}</version>
-                <scope>provided</scope>
-            </dependency>
         </dependencies>
     </dependencyManagement>
 
@@ -1411,6 +1385,7 @@
         <dependency>
             <groupId>com.github.spotbugs</groupId>
             <artifactId>spotbugs-annotations</artifactId>
+            <scope>provided</scope>
         </dependency>
 
     </dependencies>

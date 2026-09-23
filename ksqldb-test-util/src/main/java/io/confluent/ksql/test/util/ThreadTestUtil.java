@@ -129,7 +129,8 @@ public final class ThreadTestUtil {
           .excludeJmxServerThreads()
           .excludeJdkThreads()
           .excludeSystem()
-          .excludeBrokerTypeCheckThreads();
+          .excludeBrokerTypeCheckThreads()
+          .excludeCommonForkJoinPoolThreads();
     }
 
     public ThreadFilterBuilder excludeSystem() {
@@ -182,6 +183,19 @@ public final class ThreadTestUtil {
 
     public ThreadFilterBuilder excludeBrokerTypeCheckThreads() {
       nameMatches(name -> !name.contains("kafka.brokerTypeTopicClient"));
+      return this;
+    }
+
+    /**
+     * The common {@link java.util.concurrent.ForkJoinPool} is a JVM-wide, shared pool used as
+     * the default executor for parallel streams and unforked {@code CompletableFuture} stages.
+     * Its worker threads are lazily created the first time anything in the JVM uses it, and are
+     * not owned or leaked by any individual test, so they must be excluded from per-test thread
+     * leak detection to avoid false positives.
+     */
+    public ThreadFilterBuilder excludeCommonForkJoinPoolThreads() {
+      nameMatches(name -> !name.matches("ForkJoinPool\\.commonPool-worker-\\d+")
+          && !name.matches("ForkJoinPool-\\d+-worker-\\d+"));
       return this;
     }
   }

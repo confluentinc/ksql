@@ -305,7 +305,7 @@ public class PersistentQuerySaturationMetricsTest {
   }
 
   @Test
-  public void shouldCleanupPointsForQueriesFromSharedRuntimes() {
+  public void shouldCleanupPointsForRemovedQueries() {
     // Given:
     final Instant start = Instant.now();
     when(clock.get()).thenReturn(start);

@@ -320,7 +320,7 @@ public class ThroughputMetricsReporterTest {
         "_confluent-ksql-pksqlc-d1m0zquery_"                           // thread prefix
             + "CSAS_TEST_COPY-STREAM_1_23"                             // query id
             + "-3d62ddb9-d520-4cb3-9c23-968f8e61e201-StreamThread-1";  // thread    suffix
-    final Map<String, String> sharedRuntimeQueryTags = ImmutableMap.of(
+    final Map<String, String> unsharedRuntimeQueryTags = ImmutableMap.of(
         "logical_cluster_id", "lksqlc-12345",
         "query-id", "CSAS_TEST_COPY-STREAM_1_23",
         "member", threadId,
@@ -336,9 +336,9 @@ public class ThroughputMetricsReporterTest {
             "topic", TOPIC_NAME))
     );
 
-    Measurable bytesConsumed = verifyAndGetMetric(BYTES_CONSUMED_TOTAL, sharedRuntimeQueryTags);
+    Measurable bytesConsumed = verifyAndGetMetric(BYTES_CONSUMED_TOTAL, unsharedRuntimeQueryTags);
     Object bytesConsumedValue =
-        bytesConsumed.measure(new MetricConfig().tags(sharedRuntimeQueryTags), 0L);
+        bytesConsumed.measure(new MetricConfig().tags(unsharedRuntimeQueryTags), 0L);
     assertThat(bytesConsumedValue, equalTo(2D));
   }
 

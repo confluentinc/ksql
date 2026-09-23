@@ -28,7 +28,7 @@ public final class MetricsTagUtils {
   public static final String KSQL_QUERY_ID_TAG = "query-id";
 
   /*
-   For non-shared runtimes, the thread id will look something like this:
+   The thread id looks something like this:
 
    _confluent-ksql-pksqlc-d1m0zquery_ +                  // thread id prefix
    CSAS_TEST_COPY-STREAM_1_23 +                          // query id

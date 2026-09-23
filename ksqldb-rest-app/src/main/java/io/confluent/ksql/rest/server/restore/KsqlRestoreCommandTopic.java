@@ -417,9 +417,8 @@ public class KsqlRestoreCommandTopic {
     boolean queryIdFound = false;
     final Map<String, Object> streamsProperties =
         new HashMap<>(ksqlConfig.getKsqlStreamConfigProps());
-    // A non-null runtimeId means this plan predates the removal of the shared-runtime
-    // feature; use the runtime id it was actually running under so old state/topics for
-    // it can still be found and cleaned up.
+    // A non-null runtimeId means this plan predates shared-runtime removal; use it to
+    // locate the query's old state/topics.
     boolean legacySharedRuntimeQuery = false;
     String queryId = "";
     final JSONObject jsonObject = new JSONObject(new String(command, StandardCharsets.UTF_8));

@@ -54,7 +54,7 @@ public class QueryRestartMetricFunctionalTest {
 
   private static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.build();
 
-  private static final TestKsqlRestApp REST_APP_NO_SHARED_RUNTIME = TestKsqlRestApp
+  private static final TestKsqlRestApp REST_APP = TestKsqlRestApp
 	  .builder(TEST_HARNESS::kafkaBootstrapServers)
 	  .withProperty(KsqlConfig.KSQL_CUSTOM_METRICS_TAGS, METRICS_TAGS_STRING)
 	  .withProperty(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")
@@ -63,15 +63,15 @@ public class QueryRestartMetricFunctionalTest {
 	  .build();
 
   @ClassRule
-  public static final RuleChain CHAIN = RuleChain.outerRule(TEST_HARNESS).around(REST_APP_NO_SHARED_RUNTIME);
+  public static final RuleChain CHAIN = RuleChain.outerRule(TEST_HARNESS).around(REST_APP);
 
-  private Metrics metricsNoSharedRuntime;
+  private Metrics metrics;
 
   @BeforeClass
   public static void setUpClass() throws InterruptedException {
 	TEST_HARNESS.ensureTopics(TEST_TOPIC_NAME);
 
-	RestIntegrationTestUtil.makeKsqlRequest(REST_APP_NO_SHARED_RUNTIME,
+	RestIntegrationTestUtil.makeKsqlRequest(REST_APP,
 	"CREATE STREAM TEST (ID BIGINT, VALUE decimal(4,1)) WITH (kafka_topic=' " + TEST_TOPIC_NAME + "', value_format='DELIMITED');"
 		+ "CREATE TABLE S1 as SELECT ID, sum(value) AS SUM FROM test group by id;"
 	);
@@ -79,14 +79,14 @@ public class QueryRestartMetricFunctionalTest {
 
   @Before
   public void setUp() {
-	metricsNoSharedRuntime = ((KsqlEngine)REST_APP_NO_SHARED_RUNTIME.getEngine()).getEngineMetrics().getMetrics();
+	metrics = ((KsqlEngine)REST_APP.getEngine()).getEngineMetrics().getMetrics();
   }
 
   @Test
-  public void shouldVerifyMetricsOnNonSharedRuntimeServer() {
+  public void shouldVerifyQueryRestartMetric() {
 	// Given:
 	final Map<String, String> metricsTagsForQuery = new HashMap<>(METRICS_TAGS);
-	final List<String> listOfQueryId = RestIntegrationTestUtil.getQueryIds(REST_APP_NO_SHARED_RUNTIME);
+	final List<String> listOfQueryId = RestIntegrationTestUtil.getQueryIds(REST_APP);
 	assertThat(listOfQueryId.size(), equalTo(1));
 	metricsTagsForQuery.put("query-id", listOfQueryId.get(0));
 	metricsTagsForQuery.put("ksql_service_id", KsqlConfig.KSQL_SERVICE_ID_DEFAULT);
@@ -96,18 +96,18 @@ public class QueryRestartMetricFunctionalTest {
 	TEST_HARNESS.produceRecord(TEST_TOPIC_NAME, null, "5,900.1");
 	TEST_HARNESS.produceRecord(TEST_TOPIC_NAME, null, "5,900.1");
 
-	metricsNoSharedRuntime = ((KsqlEngine)REST_APP_NO_SHARED_RUNTIME.getEngine()).getEngineMetrics().getMetrics();
-	final KafkaMetric restartMetric = getKafkaMetric(metricsNoSharedRuntime, metricsTagsForQuery, "app-0-");
+	metrics = ((KsqlEngine)REST_APP.getEngine()).getEngineMetrics().getMetrics();
+	final KafkaMetric restartMetric = getKafkaMetric(metrics, metricsTagsForQuery, "app-0-");
 
 	// Then:
 	assertThatEventually(() -> (Double) restartMetric.metricValue(), greaterThan(8.0));
 
 	// should clean up metrics when queries are terminated
 	for (final String queryId:listOfQueryId) {
-	  RestIntegrationTestUtil.makeKsqlRequest(REST_APP_NO_SHARED_RUNTIME, "terminate " + queryId + ";");
+	  RestIntegrationTestUtil.makeKsqlRequest(REST_APP, "terminate " + queryId + ";");
 	}
 
-	final KafkaMetric restartMetricAfterTerminate = getKafkaMetric(metricsNoSharedRuntime, metricsTagsForQuery, "app-0-");
+	final KafkaMetric restartMetricAfterTerminate = getKafkaMetric(metrics, metricsTagsForQuery, "app-0-");
 	assertThat(restartMetricAfterTerminate, nullValue());
   }
 

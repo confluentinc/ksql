@@ -18,6 +18,7 @@ package io.confluent.ksql.rest.server.resources.streaming;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Objects.requireNonNull;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.api.server.StreamingOutput;
 import io.confluent.ksql.parser.tree.PrintTopic;
@@ -38,6 +39,12 @@ import org.apache.kafka.common.utils.Bytes;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+@SuppressFBWarnings(
+    value = "USO_UNSAFE_METHOD_SYNCHRONIZATION",
+    justification = "This writer is only ever constructed via the static create() factory and"
+        + " handed to internal server code; it is never exposed to untrusted callers who could"
+        + " lock on its monitor, so synchronizing on 'this' is safe."
+)
 public class TopicStreamWriter implements StreamingOutput {
 
   private static final Logger log = LogManager.getLogger(TopicStreamWriter.class);

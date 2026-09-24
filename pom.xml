@@ -115,7 +115,7 @@
         <!-- wire-schema-jvm is pulled in transitively (via the protobuf schema
              parsing path); wire-runtime-jvm rides along with it at the same
              version. Pinned here to pull in the CVE-2026-45799 fix. -->
-        <wire.version>6.3.0</wire.version>
+        <wire.version>7.0.3</wire.version>
         <confluent.maven.repo>https://packages.confluent.io/maven/</confluent.maven.repo>
         <exec-maven-plugin.version>1.2.1</exec-maven-plugin.version>
         <podam.version>6.0.2.RELEASE</podam.version>

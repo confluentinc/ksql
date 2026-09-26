@@ -75,7 +75,7 @@ public class ListPropertiesExecutorTest {
     ).getEntity().orElseThrow(IllegalStateException::new);
 
     // Then:
-    assertThat(toMap(properties).get("ksql.streams.commit.interval.ms").getEditable(), equalTo(true));
+    assertThat(toMap(properties).get("ksql.streams.auto.offset.reset").getEditable(), equalTo(true));
     assertThat(toMap(properties).get(KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG).getEditable(), equalTo(false));
   }
 

@@ -338,6 +338,7 @@ final class SourceBuilderUtils {
 
     private final Function<K, Collection<?>> keyGenerator;
     private final int pseudoColumnVersion;
+    private final int numPseudoColumns;
     private final List<Column> headerColumns;
 
     AddKeyAndPseudoColumns(
@@ -347,6 +348,7 @@ final class SourceBuilderUtils {
     ) {
       this.keyGenerator = requireNonNull(keyGenerator, "keyGenerator");
       this.pseudoColumnVersion = pseudoColumnVersion;
+      this.numPseudoColumns = SystemColumns.pseudoColumnNames(pseudoColumnVersion).size();
       this.headerColumns = headerColumns;
     }
 
@@ -367,9 +369,6 @@ final class SourceBuilderUtils {
           }
 
           final Collection<?> keyColumns = keyGenerator.apply(key);
-
-          final int numPseudoColumns = SystemColumns
-              .pseudoColumnNames(pseudoColumnVersion).size();
 
           row.ensureAdditionalCapacity(numPseudoColumns + keyColumns.size() + headerColumns.size());
 

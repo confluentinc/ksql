@@ -324,6 +324,21 @@ public class CommandTopicTest {
   }
 
   @Test
+  public void shouldCloseBackupEvenWhenConsumerCloseThrows() {
+    // Given: a transient Kafka error during shutdown causes commandConsumer.close()
+    // to throw. Without per-close try/catch, the backup close was skipped and
+    // its file handle / watcher resources leaked.
+    org.mockito.Mockito.doThrow(new RuntimeException("transient kafka shutdown error"))
+        .when(commandConsumer).close();
+
+    // When:
+    commandTopic.close();
+
+    // Then: backup close still runs.
+    verify(commandTopicBackup, times(1)).close();
+  }
+
+  @Test
   public void shouldBackupRestoreCommands() {
     // Given
     when(commandConsumer.poll(any(Duration.class)))

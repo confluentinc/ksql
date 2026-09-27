@@ -34,6 +34,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.nio.file.attribute.PosixFilePermissions;
 import java.util.List;
 import java.util.function.Supplier;
@@ -199,6 +200,51 @@ public class CommandTopicBackupImplTest {
     // Then
     final List<Pair<byte[], byte[]>> commands = commandTopicBackup.getReplayFile().readRecords();
     assertThat(commands.size(), is(0));
+  }
+
+  @SuppressWarnings("unchecked")
+  @Test
+  public void shouldNotCorruptBackupWhenRecordHasNullValue() throws IOException {
+    // Given
+    commandTopicBackup.initialize();
+    final ConsumerRecord<byte[], byte[]> nullValueRecord = mock(ConsumerRecord.class);
+    when(nullValueRecord.key()).thenReturn(new byte[]{});
+    when(nullValueRecord.value()).thenReturn(null);
+
+    // When: a null record is skipped, a subsequent valid record is still backed up
+    commandTopicBackup.writeRecord(nullValueRecord);
+    commandTopicBackup.writeRecord(command1);
+
+    // Then: the null record did not poison the backup or trip corruption detection
+    assertThat(commandTopicBackup.commandTopicCorruption(), is(false));
+    final List<Pair<byte[], byte[]>> commands = commandTopicBackup.getReplayFile().readRecords();
+    assertThat(commands.size(), is(1));
+    assertThat(commands.get(0).left, is(command1.key()));
+    assertThat(commands.get(0).right, is(command1.value()));
+  }
+
+  @Test
+  public void shouldFallBackToNewFileWhenBackupFileIsCorrupted() throws IOException {
+    // Given: a backup file with one valid record followed by a corrupted (separator-less) line.
+    // Distinct ticker values ensure the fall-back creates a genuinely new replay file.
+    when(ticker.get()).thenReturn(1L, 2L);
+    commandTopicBackup.initialize();
+    commandTopicBackup.writeRecord(command1);
+    final File corruptedFile = commandTopicBackup.getReplayFile().getFile();
+    Files.write(
+        corruptedFile.toPath(),
+        "corrupted-line-with-no-separator\n".getBytes(StandardCharsets.UTF_8),
+        StandardOpenOption.APPEND);
+
+    // When: re-initialising reads the corrupted backup
+    commandTopicBackup.initialize();
+
+    // Then: startup does not fail; it falls back to a fresh replay file and keeps working
+    assertThat(commandTopicBackup.commandTopicCorruption(), is(false));
+    commandTopicBackup.writeRecord(command2);
+    final List<Pair<byte[], byte[]>> commands = commandTopicBackup.getReplayFile().readRecords();
+    assertThat(commands.size(), is(1));
+    assertThat(commands.get(0).left, is(command2.key()));
   }
 
   @Test

@@ -22,12 +22,12 @@ import java.net.URI;
 import org.apache.hc.client5.http.classic.methods.HttpPost;
 import org.apache.hc.core5.http.HttpHost;
 import org.apache.hc.core5.http.HttpStatus;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class ConfluentSubmitter implements Submitter {
 
-  private static final Logger log = LoggerFactory
+  private static final Logger log = LogManager
       .getLogger(io.confluent.support.metrics.submitters.ConfluentSubmitter.class);
 
   private final String customerId;

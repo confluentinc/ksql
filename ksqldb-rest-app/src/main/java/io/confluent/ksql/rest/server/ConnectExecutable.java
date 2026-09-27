@@ -26,12 +26,12 @@ import org.apache.kafka.common.utils.Utils;
 import org.apache.kafka.connect.cli.ConnectDistributed;
 import org.apache.kafka.connect.errors.ConnectException;
 import org.apache.kafka.connect.runtime.Connect;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public final class ConnectExecutable implements Executable {
 
-  private static final Logger LOG = LoggerFactory.getLogger(ConnectExecutable.class);
+  private static final Logger LOG = LogManager.getLogger(ConnectExecutable.class);
 
   private final ConnectDistributed connectDistributed;
   private final Map<String, String> workerProps;

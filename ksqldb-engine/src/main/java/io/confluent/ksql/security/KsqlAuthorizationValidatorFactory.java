@@ -23,11 +23,11 @@ import java.util.Optional;
 import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.clients.admin.ConfigEntry;
 import org.apache.kafka.common.errors.ClusterAuthorizationException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public final class KsqlAuthorizationValidatorFactory {
-  private static final Logger LOG = LoggerFactory
+  private static final Logger LOG = LogManager
       .getLogger(KsqlAuthorizationValidatorFactory.class);
   private static final String KAFKA_AUTHORIZER_CLASS_NAME = "authorizer.class.name";
 

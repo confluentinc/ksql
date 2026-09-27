@@ -78,7 +78,11 @@ public class TestHeader implements Header {
     ) throws IOException {
       jsonGenerator.writeStartObject();
       jsonGenerator.writeObjectField("KEY", record.key);
-      jsonGenerator.writeBinaryField("VALUE", record.value);
+      if (record.value == null) {
+        jsonGenerator.writeNullField("VALUE");
+      } else {
+        jsonGenerator.writeBinaryField("VALUE", record.value);
+      }
       jsonGenerator.writeEndObject();
     }
   }

@@ -28,9 +28,9 @@ import io.confluent.ksql.util.VertxUtils;
 import io.vertx.core.Context;
 import java.util.Objects;
 import java.util.Optional;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.reactivestreams.Subscriber;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Represents a physical plan for a scalable push query. The execution of the plan is done async
@@ -43,7 +43,7 @@ public class PushPhysicalPlan {
   // practice.
   private static final int CAPACITY = Integer.MAX_VALUE;
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(PullPhysicalPlan.class);
+  private static final Logger LOGGER = LogManager.getLogger(PullPhysicalPlan.class);
 
   private final AbstractPhysicalOperator root;
 

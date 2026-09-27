@@ -24,6 +24,8 @@ import java.nio.file.Path;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Predicate;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.jline.reader.History;
 import org.jline.reader.LineReader;
 import org.jline.reader.LineReader.Option;
@@ -32,12 +34,10 @@ import org.jline.reader.impl.DefaultExpander;
 import org.jline.reader.impl.DefaultParser;
 import org.jline.reader.impl.history.DefaultHistory;
 import org.jline.terminal.Terminal;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class JLineReader implements io.confluent.ksql.cli.console.LineReader {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(JLineReader.class);
+  private static final Logger LOGGER = LogManager.getLogger(JLineReader.class);
 
   private static final String DEFAULT_PROMPT = "ksql> ";
 

@@ -43,7 +43,8 @@ import io.vertx.ext.web.client.HttpResponse;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
-import kafka.zookeeper.ZooKeeperClientException;
+
+import org.apache.kafka.raft.errors.RaftException;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Rule;
@@ -90,7 +91,7 @@ public class ClusterTerminationTest {
 
   @ClassRule
   public static final RuleChain CHAIN = RuleChain
-      .outerRule(Retry.of(3, ZooKeeperClientException.class, 3, TimeUnit.SECONDS));
+      .outerRule(Retry.of(3, RaftException.class, 3, TimeUnit.SECONDS));
 
   @Rule
   public final RuleChain CHAIN_TEST = RuleChain
@@ -178,8 +179,8 @@ public class ClusterTerminationTest {
         is(true)
     );
 
-    // should be the pageview and _confluent-command topic left
-    assertThat(TEST_HARNESS.getKafkaCluster().getTopics().size(), is(2));
+    // should be the pageview
+    assertThat(TEST_HARNESS.getKafkaCluster().getTopics().size(), is(1));
 
     // Then:
     shouldReturn50303or50304WhenTerminating();

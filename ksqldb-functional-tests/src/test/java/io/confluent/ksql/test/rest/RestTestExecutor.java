@@ -54,6 +54,7 @@ import io.confluent.ksql.test.tools.TestJsonMapper;
 import io.confluent.ksql.test.tools.TopicInfoCache;
 import io.confluent.ksql.test.tools.TopicInfoCache.TopicInfo;
 import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
+import io.confluent.ksql.tools.test.model.SchemaReference;
 import io.confluent.ksql.tools.test.model.Topic;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
@@ -91,12 +92,12 @@ import org.apache.kafka.clients.producer.RecordMetadata;
 import org.hamcrest.Matcher;
 import org.hamcrest.StringDescription;
 import org.json.JSONObject;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class RestTestExecutor implements Closeable {
 
-  private static final Logger LOG = LoggerFactory.getLogger(RestTestExecutor.class);
+  private static final Logger LOG = LogManager.getLogger(RestTestExecutor.class);
 
   private static final String STATEMENT_MACRO = "\\{STATEMENT}";
   private static final Duration MAX_QUERY_RUNNING_CHECK = Duration.ofSeconds(45);
@@ -105,6 +106,7 @@ public class RestTestExecutor implements Closeable {
   // clear TimeoutException, instead of relying solely on the outer timeout interrupting the test
   // thread (which doesn't synchronously cancel the publisher's async work and can leak threads).
   private static final Duration MAX_ROW_PUBLISHER_WAIT = Duration.ofSeconds(60);
+  private static final int QUERY_PROCESSING_DELAY_MS = 100;
   private static final String MATCH_OPERATOR_DELIMITER = "|";
   private static final String QUERY_KEY = "query";
   private static final String ROW_KEY = "row";
@@ -142,6 +144,10 @@ public class RestTestExecutor implements Closeable {
     for (final Topic topic : topics) {
       try {
         if (topic.getKeySchemaId().isPresent() && topic.getKeySchema().isPresent()) {
+          for (final SchemaReference ref : topic.getKeySchemaReferences()) {
+            schemaRegistryClient.register(ref.getName(), ref.getSchema());
+          }
+
           schemaRegistryClient.register(
               KsqlConstants.getSRSubject(topic.getName(), true),
               topic.getKeySchema().get(),
@@ -150,6 +156,10 @@ public class RestTestExecutor implements Closeable {
         }
 
         if (topic.getValueSchemaId().isPresent() && topic.getValueSchema().isPresent()) {
+          for (final SchemaReference ref : topic.getValueSchemaReferences()) {
+            schemaRegistryClient.register(ref.getName(), ref.getSchema());
+          }
+
           schemaRegistryClient.register(
               KsqlConstants.getSRSubject(topic.getName(), false),
               topic.getValueSchema().get(),
@@ -205,8 +215,13 @@ public class RestTestExecutor implements Closeable {
         IntegrationTestUtil.waitForPersistentQueriesToProcessInputs(kafkaCluster, engine);
       }
 
+      try {
+        Thread.sleep(QUERY_PROCESSING_DELAY_MS);
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+      }
       final List<RqttResponse> queryResults = sendQueryStatements(testCase, statements.queries,
-          postInputConditionRunnable);
+        postInputConditionRunnable);
 
       if (!queryResults.isEmpty()) {
         failIfExpectingError(testCase);

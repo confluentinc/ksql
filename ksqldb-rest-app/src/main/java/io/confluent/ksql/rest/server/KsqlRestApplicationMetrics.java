@@ -20,11 +20,11 @@ import java.time.Duration;
 import java.util.Objects;
 import org.apache.kafka.common.MetricName;
 import org.apache.kafka.common.metrics.Metrics;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class KsqlRestApplicationMetrics {
-  private static final Logger LOGGER = LoggerFactory.getLogger(KsqlRestApplicationMetrics.class);
+  private static final Logger LOGGER = LogManager.getLogger(KsqlRestApplicationMetrics.class);
 
   private static final String GROUP = "ksql-rest-application";
 

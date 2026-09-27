@@ -56,14 +56,14 @@ import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.data.Time;
 import org.apache.kafka.connect.data.Timestamp;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public class KsqlJsonDeserializer<T> implements Deserializer<T> {
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
-  private static final Logger LOG = LoggerFactory.getLogger(KsqlJsonDeserializer.class);
+  private static final Logger LOG = LogManager.getLogger(KsqlJsonDeserializer.class);
   private static final SqlSchemaFormatter FORMATTER = new SqlSchemaFormatter(word -> false);
   private static final ObjectMapper MAPPER = new ObjectMapper()
       .enable(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS)

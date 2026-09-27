@@ -44,12 +44,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class ApiTest extends BaseApiTest {
 
-  private static final Logger LOG = LoggerFactory.getLogger(ApiTest.class);
+  private static final Logger LOG = LogManager.getLogger(ApiTest.class);
   protected static final List<JsonObject> DEFAULT_INSERT_ROWS = generateInsertRows();
 
   @Test
@@ -312,6 +312,21 @@ public class ApiTest extends BaseApiTest {
     validateError(ERROR_CODE_BAD_REQUEST,
         "Invalid JSON in request: Missing required creator property 'sql'",
         queryResponse.responseObject);
+  }
+
+  @Test
+  public void shouldHandleUnknownRequest() throws Exception {
+
+    // Given
+    JsonObject requestBody = new JsonObject().put("foo", "bar");
+
+    // When
+    HttpResponse<Buffer> response = sendPostRequest("/unknown", requestBody.toBuffer());
+
+    // Then
+    assertThat(response.statusCode(), is(404));
+    assertThat(response.statusMessage(), is("Not Found"));
+    assertThat(response.bodyAsString(), is("Not Found"));
   }
 
   @Test
@@ -654,7 +669,7 @@ public class ApiTest extends BaseApiTest {
   }
 
   @Test
-  public void shouldReturn406WithNoMatchingAcceptHeader() throws Exception {
+  public void shouldReturn404WithNoMatchingAcceptHeader() throws Exception {
 
     // When
     VertxCompletableFuture<HttpResponse<Buffer>> requestFuture = new VertxCompletableFuture<>();
@@ -665,7 +680,7 @@ public class ApiTest extends BaseApiTest {
     HttpResponse<Buffer> response = requestFuture.get();
 
     // Then
-    assertThat(response.statusCode(), is(406));
+    assertThat(response.statusCode(), is(404));
   }
 
   @Test

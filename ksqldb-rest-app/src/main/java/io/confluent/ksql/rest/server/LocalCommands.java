@@ -31,8 +31,8 @@ import java.util.List;
 import java.util.Random;
 import java.util.Set;
 import java.util.stream.Collectors;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * Represents commands that are issued to this node only (therefore not written to the command
@@ -43,7 +43,7 @@ import org.slf4j.LoggerFactory;
  */
 public class LocalCommands implements Closeable {
 
-  private static final Logger LOG = LoggerFactory.getLogger(LocalCommands.class);
+  private static final Logger LOG = LogManager.getLogger(LocalCommands.class);
 
   static final String LOCAL_COMMANDS_FILE_SUFFIX = ".cmds";
   static final String LOCAL_COMMANDS_PROCESSED_SUFFIX = ".processed";

@@ -22,8 +22,8 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * Used to restrict the classes that can be loaded by user supplied UDFs.
@@ -43,7 +43,7 @@ import org.slf4j.LoggerFactory;
  * Blank lines and lines beginning with # are ignored.
  */
 public class Blacklist implements Predicate<String> {
-  private static final Logger logger = LoggerFactory.getLogger(Blacklist.class);
+  private static final Logger logger = LogManager.getLogger(Blacklist.class);
   private static final String BLACKLIST_NONE = "";
   private static final String BLACKLIST_PREFIX = "^(?:";
   private static final String BLACKLIST_SUFFIX = ")\\.?.*$";

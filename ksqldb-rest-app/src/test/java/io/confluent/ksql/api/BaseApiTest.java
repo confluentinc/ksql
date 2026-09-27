@@ -59,17 +59,17 @@ import java.util.stream.Collectors;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.rules.Timeout;
 import org.reactivestreams.Publisher;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class BaseApiTest {
 
-  protected static final Logger log = LoggerFactory.getLogger(BaseApiTest.class);
+  protected static final Logger log = LogManager.getLogger(BaseApiTest.class);
 
   protected static final JsonArray DEFAULT_COLUMN_NAMES = new JsonArray().add("f_str").add("f_int")
       .add("f_bool").add("f_long").add("f_double").add("f_decimal").add("f_bytes")

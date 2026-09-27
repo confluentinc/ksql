@@ -62,8 +62,8 @@ import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.function.BiFunction;
 import java.util.stream.Collectors;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 @Command(
         name = "apply",
@@ -71,7 +71,7 @@ import org.slf4j.LoggerFactory;
 )
 public class ApplyMigrationCommand extends BaseCommand {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(ApplyMigrationCommand.class);
+  private static final Logger LOGGER = LogManager.getLogger(ApplyMigrationCommand.class);
 
   private static final int MAX_RETRIES = 10;
 

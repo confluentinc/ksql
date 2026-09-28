@@ -275,6 +275,50 @@ public class InteractiveStatementExecutorTest {
   }
 
   @Test
+  public void shouldSkipLegacyAlterSystemCommandOnRestore() {
+    // Given:
+    final String statementText = "ALTER SYSTEM 'ksql.streams.num.stream.threads' = '4';";
+    when(mockParser.parseSingleStatement(statementText))
+        .thenThrow(new KsqlStatementException("mismatched input", statementText));
+    final Command command = new Command(statementText, emptyMap(), emptyMap(), Optional.empty());
+    final CommandId commandId = new CommandId(Type.CLUSTER, "SystemProperty", Action.ALTER);
+    when(commandDeserializer.deserialize(any(), any())).thenReturn(command);
+
+    // When:
+    statementExecutorWithMocks.handleRestore(
+        new QueuedCommand(commandId, command, Optional.empty(), 0L)
+    );
+
+    // Then:
+    final CommandStatus status = statementExecutorWithMocks.getStatus(commandId).get();
+    assertThat(status.getStatus(), is(CommandStatus.Status.SUCCESS));
+    assertThat(status.getMessage(), containsString("ALTER SYSTEM is no longer supported"));
+  }
+
+  @Test
+  public void shouldNotSkipUnrelatedParseFailureOnRestore() {
+    // Given:
+    final String statementText = "garbage that is not sql";
+    final KsqlStatementException exception =
+        new KsqlStatementException("mismatched input", statementText);
+    when(mockParser.parseSingleStatement(statementText)).thenThrow(exception);
+    final Command command = new Command(statementText, emptyMap(), emptyMap(), Optional.empty());
+    final CommandId commandId = new CommandId(Type.STREAM, "foo", Action.CREATE);
+    when(commandDeserializer.deserialize(any(), any())).thenReturn(command);
+
+    // When:
+    final Exception caught = assertThrows(
+        KsqlStatementException.class,
+        () -> statementExecutorWithMocks.handleRestore(
+            new QueuedCommand(commandId, command, Optional.empty(), 0L)
+        )
+    );
+
+    // Then:
+    assertThat(caught, is(exception));
+  }
+
+  @Test
   public void shouldBuildQueriesWithPersistedConfig() {
     // Given:
     final KsqlConfig originalConfig = new KsqlConfig(
@@ -338,26 +382,6 @@ public class InteractiveStatementExecutorTest {
     final List<CommandStatus> commandStatusList = argCommandStatus.getAllValues();
     assertEquals(CommandStatus.Status.EXECUTING, commandStatusList.get(0).getStatus());
     assertEquals(CommandStatus.Status.SUCCESS, argFinalCommandStatus.getValue().getStatus());
-  }
-
-  @Test
-  public void restartsRuntimeWhenAlterSystemIsSuccessful() {
-    // Given:
-    final String alterSystemQuery = "ALTER SYSTEM 'TEST'='TEST';";
-    when(mockParser.parseSingleStatement(alterSystemQuery))
-        .thenReturn(statementParser.parseSingleStatement(alterSystemQuery));
-    final Command alterSystemCommand = new Command(
-        "ALTER SYSTEM 'TEST'='TEST';",
-        emptyMap(),
-        ksqlConfig.getAllConfigPropsWithSecretsObfuscated(),
-        Optional.empty()
-    );
-
-    // When:
-    handleStatement(statementExecutorWithMocks, alterSystemCommand, COMMAND_ID, Optional.empty(), 0L);
-
-    // Then:
-    verify(mockEngine).updateStreamsPropertiesAndRestartRuntime();
   }
 
   @Test

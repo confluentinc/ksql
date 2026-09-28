@@ -21,14 +21,14 @@ import javax.security.auth.callback.NameCallback;
 import javax.security.auth.callback.PasswordCallback;
 import javax.security.auth.callback.TextOutputCallback;
 import javax.security.auth.callback.UnsupportedCallbackException;
-import org.eclipse.jetty.jaas.callback.DefaultCallbackHandler;
-import org.eclipse.jetty.jaas.callback.ObjectCallback;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.eclipse.jetty.security.jaas.callback.DefaultCallbackHandler;
+import org.eclipse.jetty.security.jaas.callback.ObjectCallback;
 
 public class BasicCallbackHandler extends DefaultCallbackHandler {
 
-  private static final Logger log = LoggerFactory.getLogger(BasicCallbackHandler.class);
+  private static final Logger log = LogManager.getLogger(BasicCallbackHandler.class);
 
   @Override
   public void handle(final Callback[] callbacks)

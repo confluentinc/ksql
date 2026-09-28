@@ -35,8 +35,8 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.List;
 import org.apache.kafka.common.config.types.Password;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 @Command(
     name = NewMigrationCommand.NEW_COMMAND_NAME,
@@ -46,7 +46,7 @@ public class NewMigrationCommand extends BaseCommand {
 
   static final String NEW_COMMAND_NAME = "new-project";
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(NewMigrationCommand.class);
+  private static final Logger LOGGER = LogManager.getLogger(NewMigrationCommand.class);
 
   @Required
   @Arguments(

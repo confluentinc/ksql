@@ -47,8 +47,8 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import org.apache.kafka.common.config.ConfigException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * Creates commands that have been validated to successfully execute against
@@ -57,7 +57,7 @@ import org.slf4j.LoggerFactory;
  */
 public final class ValidatedCommandFactory {
 
-  private static final Logger LOG = LoggerFactory.getLogger(ValidatedCommandFactory.class);
+  private static final Logger LOG = LogManager.getLogger(ValidatedCommandFactory.class);
 
   /**
    * Create a validated command.

@@ -18,14 +18,14 @@ package io.confluent.ksql.query;
 import io.confluent.ksql.query.QueryError.Type;
 import io.confluent.ksql.schema.registry.SchemaRegistryUtil;
 import java.util.Objects;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * {@code MissingSubjectClassifier} classifies missing SR subjects exceptions as user error
  */
 public class MissingSubjectClassifier implements QueryErrorClassifier {
-  private static final Logger LOG = LoggerFactory.getLogger(MissingSubjectClassifier.class);
+  private static final Logger LOG = LogManager.getLogger(MissingSubjectClassifier.class);
 
   private final String queryId;
 

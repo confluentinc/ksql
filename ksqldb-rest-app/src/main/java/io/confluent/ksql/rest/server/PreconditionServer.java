@@ -35,12 +35,12 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class PreconditionServer {
   private static final Logger log
-      = LoggerFactory.getLogger(io.confluent.ksql.api.server.Server.class);
+      = LogManager.getLogger(io.confluent.ksql.api.server.Server.class);
 
   private final Vertx vertx;
   private final KsqlRestConfig config;

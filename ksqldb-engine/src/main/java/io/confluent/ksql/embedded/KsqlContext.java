@@ -59,12 +59,12 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.stream.Collectors;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class KsqlContext implements AutoCloseable {
 
-  private static final Logger LOG = LoggerFactory.getLogger(KsqlContext.class);
+  private static final Logger LOG = LogManager.getLogger(KsqlContext.class);
 
   private final ServiceContext serviceContext;
   private final KsqlConfig ksqlConfig;

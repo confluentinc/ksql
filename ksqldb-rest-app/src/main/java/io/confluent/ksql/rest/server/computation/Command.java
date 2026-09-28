@@ -18,6 +18,7 @@ package io.confluent.ksql.rest.server.computation;
 import static java.util.Objects.requireNonNull;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.google.common.annotations.VisibleForTesting;
@@ -121,6 +122,24 @@ public class Command {
     return PropertiesUtil.coerceTypes(overwriteProperties, true);
   }
 
+  /**
+   * Returns the overwrite properties, but WITHOUT the {@code ConfigDef} type/enum
+   * validation that {@link #getOverwriteProperties()} runs.
+   */
+  @JsonIgnore
+  @SuppressFBWarnings(
+      value = "EI_EXPOSE_REP",
+      justification = "overwriteProperties is unmodifiableMap()"
+  )
+  public Map<String, Object> getRawOverwriteProperties() {
+    return overwriteProperties;
+  }
+
+  /**
+   * Returns the original properties for JSON serialization to command topic.
+   * This preserves the original values as they were stored.
+   */
+  @JsonProperty("originalProperties")
   @SuppressFBWarnings(
       value = "EI_EXPOSE_REP",
       justification = "originalProperties is unmodifiableMap()"

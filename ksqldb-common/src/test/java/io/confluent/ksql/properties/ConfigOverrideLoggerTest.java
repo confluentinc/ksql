@@ -24,9 +24,11 @@ import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.test.util.TestAppender;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.apache.log4j.MDC;
@@ -39,6 +41,7 @@ public class ConfigOverrideLoggerTest {
 
   private static final String LOGGER_NAME = ConfigOverrideLogger.class.getName();
   private static final String ENDPOINT = "/ksql";
+  private static final String RANGE_CHECKED_PROP = KsqlConfig.KSQL_QUERY_RETRY_BACKOFF_INITIAL_MS;
 
   private TestAppender appender;
   private Logger logger;
@@ -62,8 +65,8 @@ public class ConfigOverrideLoggerTest {
   }
 
   @Test
-  public void shouldNotLogWhenDisabled() {
-    configure(false, "auto.offset.reset");
+  public void shouldNotLogOverridesWhenOverridesLogDisabled() {
+    configureOverridesLog(false, "auto.offset.reset");
 
     ConfigOverrideLogger.logOverrides(ENDPOINT, ImmutableMap.of("auto.offset.reset", "earliest"));
 
@@ -72,7 +75,7 @@ public class ConfigOverrideLoggerTest {
 
   @Test
   public void shouldEmitNoOverridesEventWhenPropertiesEmpty() {
-    configure(true, "");
+    configureOverridesLog(true, "");
 
     ConfigOverrideLogger.logOverrides(ENDPOINT, Collections.emptyMap());
 
@@ -84,7 +87,7 @@ public class ConfigOverrideLoggerTest {
 
   @Test
   public void shouldEmitNoOverridesEventWhenPropertiesNull() {
-    configure(true, "");
+    configureOverridesLog(true, "");
 
     ConfigOverrideLogger.logOverrides(ENDPOINT, null);
 
@@ -95,8 +98,8 @@ public class ConfigOverrideLoggerTest {
   }
 
   @Test
-  public void shouldTagInAllowlistTrueWhenPropertyOnAllowlist() {
-    configure(true, "auto.offset.reset");
+  public void shouldLogOverrideWithInAllowlistTrueWhenOnAllowlist() {
+    configureOverridesLog(true, "auto.offset.reset");
 
     ConfigOverrideLogger.logOverrides(ENDPOINT, ImmutableMap.of("auto.offset.reset", "earliest"));
 
@@ -111,8 +114,8 @@ public class ConfigOverrideLoggerTest {
   }
 
   @Test
-  public void shouldTagInAllowlistFalseWhenPropertyNotOnAllowlist() {
-    configure(true, "auto.offset.reset");
+  public void shouldLogOverrideWithInAllowlistFalseWhenNotOnAllowlist() {
+    configureOverridesLog(true, "auto.offset.reset");
 
     ConfigOverrideLogger.logOverrides(ENDPOINT,
         ImmutableMap.of("ksql.streams.num.stream.threads", "4"));
@@ -129,7 +132,7 @@ public class ConfigOverrideLoggerTest {
 
   @Test
   public void shouldEmitOneEventPerPropertyForMultipleOverrides() {
-    configure(true, "auto.offset.reset");
+    configureOverridesLog(true, "auto.offset.reset");
 
     ConfigOverrideLogger.logOverrides(ENDPOINT, ImmutableMap.of(
         "auto.offset.reset", "earliest",
@@ -151,8 +154,8 @@ public class ConfigOverrideLoggerTest {
   }
 
   @Test
-  public void shouldClearThreadContextAfterLogging() {
-    configure(true, "auto.offset.reset");
+  public void shouldClearThreadContextAfterLoggingOverrides() {
+    configureOverridesLog(true, "auto.offset.reset");
 
     ConfigOverrideLogger.logOverrides(ENDPOINT, ImmutableMap.of("auto.offset.reset", "earliest"));
 
@@ -162,12 +165,211 @@ public class ConfigOverrideLoggerTest {
     assertThat(context == null || context.isEmpty(), is(true));
   }
 
-  private static void configure(final boolean enabled, final String allowlist) {
+  @Test
+  public void shouldLogOverrideWithQueryWhenSupplied() {
+    configureOverridesLog(true, "auto.offset.reset");
+
+    ConfigOverrideLogger.logOverrides("command_topic_restore", Optional.of("CSAS_FOO_0"),
+        ImmutableMap.of("auto.offset.reset", "earliest"));
+
+    final List<LoggingEvent> events = appender.getLog();
+    assertThat(events, hasSize(1));
+    assertThat(events.get(0).getMessage(), is("Config overrides found"));
+    assertThat(properties(events.get(0)), is(ImmutableMap.of(
+        "endpoint", "command_topic_restore",
+        "property", "auto.offset.reset",
+        "inAllowlist", "true",
+        "query", "CSAS_FOO_0"
+    )));
+  }
+
+  @Test
+  public void shouldNotLogRangeViolationWhenRangeValidationLogDisabled() {
+    configureRangeValidationLog(false);
+
+    ConfigOverrideLogger.logRangeViolations(ENDPOINT, ImmutableMap.of(RANGE_CHECKED_PROP, -5L));
+
+    assertThat(appender.getLog(), empty());
+  }
+
+  @Test
+  public void shouldLogRangeViolationWhenRangeValidationLogEnabled() {
+    configureRangeValidationLog(true);
+
+    ConfigOverrideLogger.logRangeViolations(ENDPOINT, ImmutableMap.of(RANGE_CHECKED_PROP, -5L));
+
+    final List<LoggingEvent> events = appender.getLog();
+    assertThat(events, hasSize(1));
+    assertThat(events.get(0).getLevel(), is(Level.WARN));
+    assertThat(events.get(0).getMessage(),
+        is("Config override outside intended range: must be between 100 and 60000"));
+    assertThat(properties(events.get(0)), is(ImmutableMap.of(
+        "endpoint", "/ksql",
+        "property", RANGE_CHECKED_PROP,
+        "value", "-5"
+    )));
+  }
+
+  @Test
+  public void shouldNotLogRangeViolationWhenValueInRange() {
+    configureRangeValidationLog(true);
+
+    ConfigOverrideLogger.logRangeViolations(ENDPOINT, ImmutableMap.of(RANGE_CHECKED_PROP, 100L));
+
+    assertThat(appender.getLog(), empty());
+  }
+
+  @Test
+  public void shouldNotLogRangeViolationAtMaximum() {
+    configureRangeValidationLog(true);
+
+    ConfigOverrideLogger.logRangeViolations(ENDPOINT,
+        ImmutableMap.of(RANGE_CHECKED_PROP, 60_000L));
+
+    assertThat(appender.getLog(), empty());
+  }
+
+  @Test
+  public void shouldLogRangeViolationAboveMaximum() {
+    configureRangeValidationLog(true);
+
+    ConfigOverrideLogger.logRangeViolations(ENDPOINT,
+        ImmutableMap.of(RANGE_CHECKED_PROP, 60_001L));
+
+    assertThat(appender.getLog(), hasSize(1));
+  }
+
+  @Test
+  public void shouldNotLogRangeViolationWhenExactValueMatched() {
+    configureRangeValidationLog(true);
+
+    ConfigOverrideLogger.logRangeViolations(ENDPOINT,
+        ImmutableMap.of("num.stream.threads", 1));
+
+    assertThat(appender.getLog(), empty());
+  }
+
+  @Test
+  public void shouldLogRangeViolationWhenExactValueNotMatched() {
+    configureRangeValidationLog(true);
+
+    ConfigOverrideLogger.logRangeViolations(ENDPOINT,
+        ImmutableMap.of("num.stream.threads", 4));
+
+    final List<LoggingEvent> events = appender.getLog();
+    assertThat(events, hasSize(1));
+    assertThat(events.get(0).getMessage(),
+        is("Config override outside intended range: must be 1"));
+  }
+
+  @Test
+  public void shouldLogOneEventPerViolatingProperty() {
+    configureRangeValidationLog(true);
+
+    ConfigOverrideLogger.logRangeViolations(ENDPOINT, ImmutableMap.of(
+        RANGE_CHECKED_PROP, -5L,
+        "max.poll.records", 20_000
+    ));
+
+    final List<LoggingEvent> events = appender.getLog();
+    assertThat(events, hasSize(2));
+    events.forEach(event -> {
+      final Map<String, String> ctx = properties(event);
+      assertThat(ctx.get("endpoint"), is("/ksql"));
+      if (RANGE_CHECKED_PROP.equals(ctx.get("property"))) {
+        assertThat(ctx.get("value"), is("-5"));
+      } else {
+        assertThat(ctx.get("property"), is("max.poll.records"));
+        assertThat(ctx.get("value"), is("20000"));
+      }
+    });
+  }
+
+  @Test
+  public void shouldNotLogRangeViolationForPropertyWithoutACheck() {
+    configureRangeValidationLog(true);
+
+    ConfigOverrideLogger.logRangeViolations(ENDPOINT,
+        ImmutableMap.of("auto.offset.reset", "earliest"));
+
+    assertThat(appender.getLog(), empty());
+  }
+
+  @Test
+  public void shouldLogRangeViolationWithQueryWhenSupplied() {
+    configureRangeValidationLog(true);
+
+    ConfigOverrideLogger.logRangeViolations("command_topic_restore", Optional.of("CSAS_FOO_0"),
+        ImmutableMap.of(RANGE_CHECKED_PROP, -5L));
+
+    final List<LoggingEvent> events = appender.getLog();
+    assertThat(events, hasSize(1));
+    assertThat(properties(events.get(0)), is(ImmutableMap.of(
+        "endpoint", "command_topic_restore",
+        "property", RANGE_CHECKED_PROP,
+        "value", "-5",
+        "query", "CSAS_FOO_0"
+    )));
+  }
+
+  @Test
+  public void shouldLogRangeViolationWithoutQueryWhenNotSupplied() {
+    configureRangeValidationLog(true);
+
+    ConfigOverrideLogger.logRangeViolations(ENDPOINT, ImmutableMap.of(RANGE_CHECKED_PROP, -5L));
+
+    final List<LoggingEvent> events = appender.getLog();
+    assertThat(events, hasSize(1));
+    assertThat(properties(events.get(0)).containsKey("query"), is(false));
+  }
+
+  @Test
+  public void shouldNotLogRangeViolationWhenPropertiesNull() {
+    configureRangeValidationLog(true);
+
+    ConfigOverrideLogger.logRangeViolations(ENDPOINT, null);
+
+    assertThat(appender.getLog(), empty());
+  }
+
+  @Test
+  public void shouldNotThrowWhenRangeCheckedValueIsNull() {
+    configureRangeValidationLog(true);
+
+    // A stored command can carry a null override value, and ConfigDef.parseType passes null
+    // through rather than rejecting it - so the check must not blow up on it. This is log-only
+    // code: throwing here would fail the request (or, on restore, server startup).
+    final Map<String, Object> withNullValue = new HashMap<>();
+    withNullValue.put(RANGE_CHECKED_PROP, null);
+
+    ConfigOverrideLogger.logRangeViolations(ENDPOINT, withNullValue);
+
+    assertThat(appender.getLog(), empty());
+  }
+
+  @Test
+  public void shouldClearThreadContextAfterRangeLogging() {
+    configureRangeValidationLog(true);
+
+    ConfigOverrideLogger.logRangeViolations("command_topic_restore", Optional.of("CSAS_FOO_0"),
+        ImmutableMap.of(RANGE_CHECKED_PROP, -5L));
+
+    final Hashtable<?, ?> context = MDC.getContext();
+    assertThat(context == null || context.isEmpty(), is(true));
+  }
+
+  private static void configureOverridesLog(final boolean enabled, final String allowlist) {
     final Map<String, Object> overrides = ImmutableMap.of(
         KsqlConfig.KSQL_PROPERTIES_OVERRIDES_LOG, enabled,
         KsqlConfig.KSQL_PROPERTIES_OVERRIDES_ALLOWLIST, allowlist
     );
     ConfigOverrideLogger.configure(new KsqlConfig(overrides));
+  }
+
+  private static void configureRangeValidationLog(final boolean enabled) {
+    ConfigOverrideLogger.configure(new KsqlConfig(ImmutableMap.of(
+        KsqlConfig.KSQL_PROPERTIES_OVERRIDES_RANGE_VALIDATION_LOG_ENABLED, enabled
+    )));
   }
 
   @SuppressWarnings("unchecked")

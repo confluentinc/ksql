@@ -45,13 +45,17 @@ public class OAuthTokenCache {
   public static final float CACHE_EXPIRY_THRESHOLD = 0.8f;
   private static final Logger log = LogManager.getLogger(OAuthTokenCache.class);
   private final short cacheExpiryBufferSeconds;
-  private OAuthBearerToken currentToken;
+  // volatile: read by getCurrentToken() / isTokenExpired() from any thread that calls into
+  // CachedOAuthTokenRetriever; written by setCurrentToken on the refresh path. Without volatile,
+  // a reader can observe an updated cacheExpiryMs but a stale or null currentToken, producing an
+  // NPE on getCurrentToken().value().
+  private volatile OAuthBearerToken currentToken;
 
   /**
    * Time at which we considered the cache expired. Note that we would want cache expiration to
    * happen before actual token expiration so that we have some buffer to get a new token.
    */
-  private long cacheExpiryMs;
+  private volatile long cacheExpiryMs;
 
 
   public OAuthTokenCache(final short cacheExpiryBufferSeconds) {
@@ -77,12 +81,18 @@ public class OAuthTokenCache {
   public void setCurrentToken(final OAuthBearerToken currentToken) {
     if (currentToken == null) {
       // if token null, set cacheExpiryMs to initial state.
-      cacheExpiryMs = 0L;
+      // Clear currentToken before flagging the cache as expired so readers cannot observe a stale
+      // (non-null) token alongside the expired flag.
+      this.currentToken = null;
+      this.cacheExpiryMs = 0L;
       return;
     }
 
-    this.cacheExpiryMs = calculateTokenExpiryTime(currentToken);
+    // Order matters: publish the token reference first, then the freshness flag. Readers consult
+    // isTokenExpired() first; if that returns false (i.e. cacheExpiryMs is in the future) the
+    // volatile happens-before edge guarantees the matching currentToken is already visible.
     this.currentToken = currentToken;
+    this.cacheExpiryMs = calculateTokenExpiryTime(currentToken);
   }
 
   //visible for testing

@@ -42,13 +42,19 @@ import org.rocksdb.Options;
  */
 public class KsqlBoundedMemoryRocksDBConfigSetter implements RocksDBConfigSetter, Configurable {
 
-  private static org.rocksdb.Cache cache;
-  private static org.rocksdb.WriteBufferManager writeBufferManager;
+  // volatile: every per-store setConfig() callback is invoked on a Kafka Streams thread that
+  // is distinct from the thread that ran configure(). Without volatile, those threads have no
+  // happens-before guarantee against the writes in configure() and can read null / default
+  // values for compactionStyle, compressionType, maxNumConcurrentJobs, allowTrivialMove,
+  // cache, and writeBufferManager - leading to NPE on options.setCompactionStyle(null) or to
+  // silently applying wrong RocksDB settings.
+  private static volatile org.rocksdb.Cache cache;
+  private static volatile org.rocksdb.WriteBufferManager writeBufferManager;
   private static final AtomicBoolean configured = new AtomicBoolean(false);
-  private static CompactionStyle compactionStyle;
-  private static CompressionType compressionType;
-  private static int maxNumConcurrentJobs;
-  private static boolean allowTrivialMove;
+  private static volatile CompactionStyle compactionStyle;
+  private static volatile CompressionType compressionType;
+  private static volatile int maxNumConcurrentJobs;
+  private static volatile boolean allowTrivialMove;
 
 
   @Override

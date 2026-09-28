@@ -646,7 +646,7 @@ public class Console implements Closeable {
     writer().println();
 
     final DateTimeFormatter dateFormatter =
-        DateTimeFormatter.ofPattern("yyyy-MM-dd hh:mm:ss,SSS (z)");
+        DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss,SSS (z)");
     for (final QueryError error : query.getQueryErrors()) {
       final Instant ts = Instant.ofEpochMilli(error.getTimestamp());
       final String errorDate = ts.atZone(ZoneId.systemDefault()).format(dateFormatter);

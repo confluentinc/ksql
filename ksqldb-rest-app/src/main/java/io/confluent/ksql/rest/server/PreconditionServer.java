@@ -49,6 +49,7 @@ public class PreconditionServer {
   private final List<URI> listeners;
   private final Set<URI> proxyProtocolListeners;
   private FileWatcher fileWatcher;
+  static final int CHUNK_SIZE = 16 * 1024;
 
   @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
   public PreconditionServer(
@@ -167,7 +168,8 @@ public class PreconditionServer {
         .setIdleTimeout(idleTimeoutSeconds).setIdleTimeoutUnit(TimeUnit.SECONDS)
         .setPerMessageWebSocketCompressionSupported(true)
         .setPerFrameWebSocketCompressionSupported(true)
-        .setUseProxyProtocol(useProxyProtocol);
+        .setUseProxyProtocol(useProxyProtocol)
+        .setMaxChunkSize(CHUNK_SIZE);
 
     if (tls) {
       final String ksConfigName = KsqlRestConfig.KSQL_SSL_KEYSTORE_ALIAS_EXTERNAL_CONFIG;

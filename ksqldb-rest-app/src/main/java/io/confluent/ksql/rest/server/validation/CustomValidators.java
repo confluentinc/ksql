@@ -17,7 +17,6 @@ package io.confluent.ksql.rest.server.validation;
 
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.KsqlExecutionContext;
-import io.confluent.ksql.parser.tree.AlterSystemProperty;
 import io.confluent.ksql.parser.tree.AssertSchema;
 import io.confluent.ksql.parser.tree.AssertTopic;
 import io.confluent.ksql.parser.tree.CreateConnector;
@@ -81,7 +80,6 @@ public enum CustomValidators {
         throw new KsqlRestException(Errors.queryEndpoint(statement.getMaskedStatementText()));
       }),
   PRINT_TOPIC(PrintTopic.class, PrintTopicValidator::validate),
-  ALTER_SYSTEM_PROPERTY(AlterSystemProperty.class, StatementValidator.NO_VALIDATION),
   LIST_TOPICS(ListTopics.class, StatementValidator.NO_VALIDATION),
   LIST_STREAMS(ListStreams.class, StatementValidator.NO_VALIDATION),
   LIST_TABLES(ListTables.class, StatementValidator.NO_VALIDATION),

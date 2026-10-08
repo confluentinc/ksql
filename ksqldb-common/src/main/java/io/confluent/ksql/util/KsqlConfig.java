@@ -664,26 +664,11 @@ public class KsqlConfig extends AbstractConfig {
           + "not be materialized and pull queries won't be allowed on them. However, current "
           + "CREATE SOURCE [TABLE|STREAM] statements will continue being read-only.";
 
-  public static final String KSQL_SHARED_RUNTIME_ENABLED = "ksql.runtime.feature.shared.enabled";
-  public static final Boolean KSQL_SHARED_RUNTIME_ENABLED_DEFAULT = false;
-  public static final String KSQL_SHARED_RUNTIME_ENABLED_DOC =
-      "Deprecated. Feature flag for sharing streams runtimes. "
-          + "Default is false. If false, persistent queries will use separate "
-          + " runtimes, if true, new queries may share streams instances. "
-          + "This configuration is deprecated and will be removed in a future release.";
-
   public static final String KSQL_NEW_QUERY_PLANNER_ENABLED =
       "ksql.new.query.planner.enabled";
   private static final Boolean KSQL_NEW_QUERY_PLANNER_ENABLED_DEFAULT = false;
   private static final String KSQL_NEW_QUERY_PLANNER_ENABLED_DOC =
       "Feature flag that enables the new planner for persistent queries. Default is false.";
-
-  public static final String KSQL_SHARED_RUNTIMES_COUNT = "ksql.shared.runtimes.count";
-  public static final Integer KSQL_SHARED_RUNTIMES_COUNT_DEFAULT = 2;
-  public static final String KSQL_SHARED_RUNTIMES_COUNT_DOC =
-      "Controls how many runtimes queries are allocated over initially."
-          + "this is only used when ksql.runtime.feature.shared.enabled is true.";
-
 
   public static final String KSQL_SUPPRESS_BUFFER_SIZE_BYTES = "ksql.suppress.buffer.size.bytes";
   public static final Long KSQL_SUPPRESS_BUFFER_SIZE_BYTES_DEFAULT = -1L;
@@ -1632,20 +1617,6 @@ public class KsqlConfig extends AbstractConfig {
             Importance.LOW,
             KSQL_LAMBDAS_ENABLED_DOC)
         .define(
-            KSQL_SHARED_RUNTIME_ENABLED,
-            Type.BOOLEAN,
-            KSQL_SHARED_RUNTIME_ENABLED_DEFAULT,
-            Importance.MEDIUM,
-            KSQL_SHARED_RUNTIME_ENABLED_DOC
-        )
-        .define(
-            KSQL_SHARED_RUNTIMES_COUNT,
-            Type.INT,
-            KSQL_SHARED_RUNTIMES_COUNT_DEFAULT,
-            Importance.MEDIUM,
-            KSQL_SHARED_RUNTIMES_COUNT_DOC
-        )
-        .define(
             KSQL_SOURCE_TABLE_MATERIALIZATION_ENABLED,
             Type.BOOLEAN,
             KSQL_SOURCE_TABLE_MATERIALIZATION_ENABLED_DEFAULT,
@@ -1864,13 +1835,6 @@ public class KsqlConfig extends AbstractConfig {
 
   public KsqlConfig(final Map<?, ?> props) {
     this(ConfigGeneration.CURRENT, props);
-    if (props.containsKey(KSQL_SHARED_RUNTIME_ENABLED)) {
-      LOG.warn(
-          "'{}' is deprecated and will be removed in a future release. "
-              + "Please remove this configuration from your settings.",
-          KSQL_SHARED_RUNTIME_ENABLED
-      );
-    }
   }
 
   private KsqlConfig(final ConfigGeneration generation, final Map<?, ?> props) {
@@ -1930,6 +1894,16 @@ public class KsqlConfig extends AbstractConfig {
       LOG.warn(
           "'ksql.udf.enable.security.manager' is set but has been removed. "
               + "The Java SecurityManager is no longer available. "
+              + "Please remove this setting from your configuration.");
+    }
+    if (originals().containsKey("ksql.runtime.feature.shared.enabled")) {
+      LOG.warn(
+          "'ksql.runtime.feature.shared.enabled' is set but has been removed. "
+              + "Please remove this setting from your configuration.");
+    }
+    if (originals().containsKey("ksql.shared.runtimes.count")) {
+      LOG.warn(
+          "'ksql.shared.runtimes.count' is set but has been removed. "
               + "Please remove this setting from your configuration.");
     }
   }

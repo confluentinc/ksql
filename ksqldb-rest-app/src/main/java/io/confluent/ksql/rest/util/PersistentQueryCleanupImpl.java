@@ -18,13 +18,10 @@ package io.confluent.ksql.rest.util;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.engine.QueryCleanupService;
 import io.confluent.ksql.services.ServiceContext;
-import io.confluent.ksql.util.BinPackedPersistentQueryMetadataImpl;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import java.io.File;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -56,17 +53,7 @@ public class PersistentQueryCleanupImpl implements PersistentQueryCleanup {
     final Set<String> stateStoreNames =
         persistentQueries
             .stream()
-            .flatMap(s -> {
-              final List<String> doNotDelete = new ArrayList<>(
-                  Collections.singletonList(s.getQueryApplicationId()));
-              if (s instanceof BinPackedPersistentQueryMetadataImpl) {
-                doNotDelete.add(s.getQueryApplicationId()
-                    + "/__"
-                    + s.getQueryId().toString()
-                    + "__");
-              }
-              return doNotDelete.stream();
-            })
+            .map(PersistentQueryMetadata::getQueryApplicationId)
             .collect(Collectors.toSet());
 
     final String[] stateDirFileNames = new File(stateDir).list();

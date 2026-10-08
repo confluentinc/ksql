@@ -41,13 +41,10 @@ public class FailureHandler implements Handler<RoutingContext> {
     final int statusCode = routingContext.statusCode();
     final Throwable failure = routingContext.failure();
     // Don't log the failure, since it may contain sensitive information meant for the user.
-    log.error(
-        String.format(
-            "Failed to handle request %d %s",
-            routingContext.statusCode(),
-            routingContext.request().path()
-        )
-    );
+    // 4xx responses are client errors (auth failures, malformed requests, scanner traffic);
+    // logging them as DEBUG avoids drowning real server errors. Genuine 5xx server errors
+    // remain at ERROR.
+    logRequestFailure(statusCode, routingContext.request().path());
 
 
     if (failure != null) {
@@ -79,6 +76,17 @@ public class FailureHandler implements Handler<RoutingContext> {
       }
     } else {
       routingContext.response().setStatusCode(statusCode).end();
+    }
+  }
+
+  private static void logRequestFailure(final int statusCode, final String path) {
+    final String message = String.format("Failed to handle request %d %s", statusCode, path);
+    if (statusCode >= 500) {
+      log.error(message);
+    } else if (statusCode >= 400) {
+      log.debug(message);
+    } else {
+      log.info(message);
     }
   }
 

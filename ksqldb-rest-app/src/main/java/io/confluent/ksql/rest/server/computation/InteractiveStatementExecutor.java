@@ -23,7 +23,6 @@ import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.KsqlPlan;
 import io.confluent.ksql.exception.ExceptionUtil;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
-import io.confluent.ksql.parser.tree.AlterSystemProperty;
 import io.confluent.ksql.parser.tree.CreateAsSelect;
 import io.confluent.ksql.parser.tree.ExecutableDdlStatement;
 import io.confluent.ksql.parser.tree.InsertInto;
@@ -49,6 +48,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.regex.Pattern;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.logging.log4j.LogManager;
@@ -61,6 +61,12 @@ import org.apache.logging.log4j.Logger;
 public class InteractiveStatementExecutor {
 
   private static final Logger log = LogManager.getLogger(InteractiveStatementExecutor.class);
+  // whitespace, "-- line" comments, or "/* block */" comments: all hidden-channel in the grammar
+  private static final String SQL_GAP =
+      "(?:\\s+|--[^\\r\\n]*(?:\\r?\\n|$)|/\\*.*?\\*/)";
+  private static final Pattern LEGACY_ALTER_SYSTEM_PATTERN = Pattern.compile(
+      "^" + SQL_GAP + "*ALTER" + SQL_GAP + "+SYSTEM\\b",
+      Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
 
   private final ServiceContext serviceContext;
   private final KsqlExecutionContext ksqlEngine;
@@ -229,7 +235,21 @@ public class InteractiveStatementExecutor {
           commandId,
           commandStatusFuture,
           new CommandStatus(CommandStatus.Status.PARSING, "Parsing statement"));
-      final PreparedStatement<?> statement = statementParser.parseSingleStatement(statementString);
+      final PreparedStatement<?> statement;
+      try {
+        statement = statementParser.parseSingleStatement(statementString);
+      } catch (final KsqlException parseException) {
+        if (mode == Mode.RESTORE && isLegacyAlterSystemStatement(statementString)) {
+          log.warn("Skipping legacy ALTER SYSTEM command found while restoring the command "
+              + "topic. ALTER SYSTEM is no longer supported: {}", statementString);
+          putFinalStatus(commandId, commandStatusFuture, new CommandStatus(
+              CommandStatus.Status.SUCCESS,
+              "Skipped: ALTER SYSTEM is no longer supported.",
+              Optional.empty()));
+          return;
+        }
+        throw parseException;
+      }
       putStatus(
           commandId,
           commandStatusFuture,
@@ -246,6 +266,11 @@ public class InteractiveStatementExecutor {
       putStatus(commandId, commandStatusFuture, errorStatus);
       throw exception;
     }
+  }
+
+  private static boolean isLegacyAlterSystemStatement(final String statementText) {
+    return statementText != null
+        && LEGACY_ALTER_SYSTEM_PATTERN.matcher(statementText).find();
   }
 
   private void executePlan(
@@ -326,20 +351,6 @@ public class InteractiveStatementExecutor {
       throwUnsupportedStatementError();
     } else if (statement.getStatement() instanceof InsertInto) {
       throwUnsupportedStatementError();
-    } else if (statement.getStatement() instanceof AlterSystemProperty) {
-      final PreparedStatement<AlterSystemProperty> alterSystemQuery =
-          (PreparedStatement<AlterSystemProperty>) statement;
-      final String propertyName = alterSystemQuery.getStatement().getPropertyName();
-      final String propertyValue = alterSystemQuery.getStatement().getPropertyValue();
-      ksqlEngine.alterSystemProperty(propertyName, propertyValue);
-      ksqlEngine.updateStreamsPropertiesAndRestartRuntime();
-
-      final String successMessage = String.format("System property %s was set to %s.",
-          propertyName, propertyValue);
-      final CommandStatus successStatus = new CommandStatus(CommandStatus.Status.SUCCESS,
-          successMessage, Optional.empty());
-
-      putFinalStatus(commandId, commandStatusFuture, successStatus);
     } else {
       throw new KsqlException(String.format(
           "Unexpected statement type: %s",

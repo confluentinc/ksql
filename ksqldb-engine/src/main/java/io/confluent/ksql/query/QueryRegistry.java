@@ -25,7 +25,6 @@ import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.services.ServiceContext;
-import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
@@ -121,8 +120,7 @@ public interface QueryRegistry {
       Set<DataSource> sources,
       ExecutionStep<?> physicalPlan,
       String planSummary,
-      KsqlConstants.PersistentQueryType persistentQueryType,
-      Optional<String> sharedRuntimeId
+      KsqlConstants.PersistentQueryType persistentQueryType
   );
   // CHECKSTYLE_RULES.ON: ParameterNumberCheck
 
@@ -167,11 +165,6 @@ public interface QueryRegistry {
   Optional<QueryMetadata> getCreateAsQuery(SourceName sourceName);
 
   /**
-   * Updates streams properties and restarts the streams runtimes
-   */
-  void updateStreamsPropertiesAndRestartRuntime(KsqlConfig config, ProcessingLogContext logContext);
-
-  /**
    * Get all insert queries that write into or read from a given source.
    * @param sourceName The source name to fetch queries for.
    * @param filterQueries A predicate to apply to filter the returned list of queries
@@ -196,9 +189,4 @@ public interface QueryRegistry {
    *                        will be stopped by calling stop(). Transient queries are always closed.
    */
   void close(boolean closePersistent);
-
-  /**
-   * Close all shared runtimes in this registry
-   */
-  void closeRuntimes();
 }

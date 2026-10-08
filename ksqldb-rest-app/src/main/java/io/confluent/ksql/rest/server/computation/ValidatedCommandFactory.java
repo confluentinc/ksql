@@ -15,23 +15,16 @@
 
 package io.confluent.ksql.rest.server.computation;
 
-import static org.apache.kafka.streams.StreamsConfig.PROCESSING_GUARANTEE_CONFIG;
-
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.KsqlExecutionContext;
-import io.confluent.ksql.config.ConfigItem;
-import io.confluent.ksql.config.KsqlConfigResolver;
 import io.confluent.ksql.engine.KsqlPlan;
 import io.confluent.ksql.execution.json.PlanJsonMapper;
-import io.confluent.ksql.parser.tree.AlterSystemProperty;
 import io.confluent.ksql.parser.tree.PauseQuery;
 import io.confluent.ksql.parser.tree.ResumeQuery;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.TerminateQuery;
 import io.confluent.ksql.planner.plan.ConfiguredKsqlPlan;
 import io.confluent.ksql.query.QueryId;
-import io.confluent.ksql.rest.entity.PropertiesList.Property;
 import io.confluent.ksql.rest.util.TerminateCluster;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
@@ -40,15 +33,7 @@ import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlServerException;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
-import io.confluent.ksql.util.PersistentQueryMetadataImpl;
-import io.confluent.ksql.util.QueryMetadata;
-import java.util.Collection;
-import java.util.Objects;
 import java.util.Optional;
-import java.util.stream.Collectors;
-import org.apache.kafka.common.config.ConfigException;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 /**
  * Creates commands that have been validated to successfully execute against
@@ -56,8 +41,6 @@ import org.apache.logging.log4j.Logger;
  * command queue.
  */
 public final class ValidatedCommandFactory {
-
-  private static final Logger LOG = LogManager.getLogger(ValidatedCommandFactory.class);
 
   /**
    * Create a validated command.
@@ -133,59 +116,8 @@ public final class ValidatedCommandFactory {
       return createForTerminateQuery(statement, context);
     }
 
-    if (statement.getStatement() instanceof AlterSystemProperty) {
-      return createForAlterSystemQuery(statement, context);
-    }
-
     return createForPlannedQuery(statement.withConfig(context.getKsqlConfig()),
         serviceContext, context);
-  }
-
-  private static Command createForAlterSystemQuery(
-      final ConfiguredStatement<? extends Statement> statement,
-      final KsqlExecutionContext context
-  ) {
-    final AlterSystemProperty alterSystemProperty = (AlterSystemProperty) statement.getStatement();
-    final String propertyName = alterSystemProperty.getPropertyName();
-    final String propertyValue = alterSystemProperty.getPropertyValue();
-
-    // raise exception if feature flag is set
-    if (!context.getKsqlConfig().getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)) {
-      throw new KsqlServerException("Cannot alter system configs "
-          + "when KSQL_SHARED_RUNTIME_ENABLED is turned off.");
-    }
-
-    // validate
-    context.alterSystemProperty(propertyName, propertyValue);
-    if (!Property.isEditable(propertyName)) {
-      throw new ConfigException(
-          String.format("Failed to set %s to %s. Caused by: "
-                  + "Not recognizable as ksql, streams, consumer, or producer property: %s %n",
-              propertyName, propertyValue, propertyName), null);
-    }
-
-    // verify that no persistent query is running when attempting to change 'processing.guarantee'
-    final KsqlConfigResolver resolver = new KsqlConfigResolver();
-    final Optional<ConfigItem> resolvedItem = resolver.resolve(propertyName, false);
-    if (resolvedItem.isPresent()
-        && Objects.equals(resolvedItem.get().getPropertyName(), PROCESSING_GUARANTEE_CONFIG)
-        && !context.getPersistentQueries().isEmpty()) {
-      final Collection<QueryId> runningQueries =
-          context.getPersistentQueries()
-              .stream()
-              .map(QueryMetadata::getQueryId)
-              .collect(Collectors.toList());
-      LOG.error("Failed to set {} to {} due to the {} persistent queries currently running: {}",
-                propertyName, propertyValue, runningQueries.size(), runningQueries);
-      throw new ConfigException(
-          String.format("Unable to set %s to %s, as the %s may not be changed for running"
-                            + " persistent queries which have already processed data under a"
-                            + " different %s. To modify %s you must first terminate all running"
-                            + " persistent queries.",
-                        propertyName, propertyValue, propertyName, propertyName, propertyName));
-    }
-
-    return Command.of(statement);
   }
 
   private static Command createForPauseQuery(
@@ -289,22 +221,10 @@ public final class ValidatedCommandFactory {
   ) {
     final KsqlPlan plan = context.plan(serviceContext, statement);
 
-    ConfiguredKsqlPlan configuredPlan = ConfiguredKsqlPlan
+    final ConfiguredKsqlPlan configuredPlan = ConfiguredKsqlPlan
         .of(plan, statement.getSessionConfig());
 
-    final KsqlExecutionContext.ExecuteResult result = context
-        .execute(serviceContext, configuredPlan);
-    if (result.getQuery().isPresent()
-        && result.getQuery().get() instanceof PersistentQueryMetadataImpl
-        && configuredPlan.getConfig()
-          .getConfig(false)
-          .getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)) {
-      configuredPlan = ConfiguredKsqlPlan.of(
-          plan,
-          statement.getSessionConfig()
-              .copyWith(ImmutableMap.of(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED, false))
-      );
-    }
+    context.execute(serviceContext, configuredPlan);
     return Command.of(configuredPlan);
   }
 }

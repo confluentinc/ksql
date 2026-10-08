@@ -48,7 +48,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.regex.Pattern;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.logging.log4j.LogManager;
@@ -61,14 +60,6 @@ import org.apache.logging.log4j.Logger;
 public class InteractiveStatementExecutor {
 
   private static final Logger log = LogManager.getLogger(InteractiveStatementExecutor.class);
-  // One whitespace char, "-- line" comment, or "/* block */" comment: all hidden-channel in the
-  // grammar. Matches a single char for the whitespace case (not \s+) so repeating this via the
-  // outer */+ below can't partition a whitespace run ambiguously and backtrack catastrophically.
-  private static final String SQL_GAP =
-      "(?:\\s|--[^\\r\\n]*(?:\\r?\\n|$)|/\\*.*?\\*/)";
-  private static final Pattern LEGACY_ALTER_SYSTEM_PATTERN = Pattern.compile(
-      "^" + SQL_GAP + "*ALTER" + SQL_GAP + "+SYSTEM\\b",
-      Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
 
   private final ServiceContext serviceContext;
   private final KsqlExecutionContext ksqlEngine;
@@ -270,9 +261,75 @@ public class InteractiveStatementExecutor {
     }
   }
 
+  // Hand-scanned rather than regex-matched: the grammar's comment/whitespace handling means any
+  // gap between ALTER and SYSTEM can repeat an unbounded number of times, which blows the regex
+  // engine's recursion limit (StackOverflowError) on a long malformed statement regardless of how
+  // the pattern is written. A plain linear scan has no such limit.
   private static boolean isLegacyAlterSystemStatement(final String statementText) {
-    return statementText != null
-        && LEGACY_ALTER_SYSTEM_PATTERN.matcher(statementText).find();
+    if (statementText == null) {
+      return false;
+    }
+    int pos = skipGapBeforeAlterSystem(statementText, 0);
+    pos = matchKeyword(statementText, pos, "ALTER");
+    if (pos < 0) {
+      return false;
+    }
+    final int gapStart = pos;
+    pos = skipGapBeforeAlterSystem(statementText, pos);
+    if (pos == gapStart) {
+      return false;
+    }
+    pos = matchKeyword(statementText, pos, "SYSTEM");
+    return pos >= 0
+        && (pos == statementText.length() || !Character.isLetterOrDigit(statementText.charAt(pos)));
+  }
+
+  // Skips whitespace, "-- line" comments, and "/* block */" comments: all hidden-channel in the
+  // grammar, so they're valid separators between ALTER and SYSTEM in a historical statement too.
+  private static int skipGapBeforeAlterSystem(final String text, final int start) {
+    int i = start;
+    while (i < text.length()) {
+      final int next = skipOneGapUnit(text, i);
+      if (next == i) {
+        break;
+      }
+      i = next;
+    }
+    return i;
+  }
+
+  private static int skipOneGapUnit(final String text, final int i) {
+    if (Character.isWhitespace(text.charAt(i))) {
+      return i + 1;
+    }
+    final int afterLineComment = skipLineComment(text, i);
+    return afterLineComment != i ? afterLineComment : skipBlockComment(text, i);
+  }
+
+  private static int skipLineComment(final String text, final int i) {
+    final int len = text.length();
+    if (i + 1 >= len || text.charAt(i) != '-' || text.charAt(i + 1) != '-') {
+      return i;
+    }
+    int j = i + 2;
+    while (j < len && text.charAt(j) != '\r' && text.charAt(j) != '\n') {
+      j++;
+    }
+    return j;
+  }
+
+  private static int skipBlockComment(final String text, final int i) {
+    final int len = text.length();
+    if (i + 1 >= len || text.charAt(i) != '/' || text.charAt(i + 1) != '*') {
+      return i;
+    }
+    final int end = text.indexOf("*/", i + 2);
+    return end < 0 ? len : end + 2;
+  }
+
+  private static int matchKeyword(final String text, final int start, final String keyword) {
+    return text.regionMatches(true, start, keyword, 0, keyword.length())
+        ? start + keyword.length() : -1;
   }
 
   private void executePlan(

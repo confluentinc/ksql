@@ -339,6 +339,52 @@ public class InteractiveStatementExecutorTest {
   }
 
   @Test
+  public void shouldSkipLegacyAlterSystemCommandWithCrOnlyLineCommentOnRestore() {
+    // Given:
+    final String statementText = "-- reason for the change\r"
+        + "ALTER SYSTEM 'ksql.streams.num.stream.threads' = '4';";
+    when(mockParser.parseSingleStatement(statementText))
+        .thenThrow(new KsqlStatementException("mismatched input", statementText));
+    final Command command = new Command(statementText, emptyMap(), emptyMap(), Optional.empty());
+    final CommandId commandId = new CommandId(Type.CLUSTER, "SystemProperty", Action.ALTER);
+    when(commandDeserializer.deserialize(any(), any())).thenReturn(command);
+
+    // When:
+    statementExecutorWithMocks.handleRestore(
+        new QueuedCommand(commandId, command, Optional.empty(), 0L)
+    );
+
+    // Then:
+    final CommandStatus status = statementExecutorWithMocks.getStatus(commandId).get();
+    assertThat(status.getStatus(), is(CommandStatus.Status.SUCCESS));
+    assertThat(status.getMessage(), containsString("ALTER SYSTEM is no longer supported"));
+  }
+
+  @Test
+  public void shouldNotStackOverflowOnVeryLongMalformedStatementOnRestore() {
+    // Given: a long run of whitespace ahead of garbage, big enough to blow a naive regex-based
+    // scan's recursion limit if this regressed back to one
+    final String statementText = String.join("", Collections.nCopies(500_000, " ")) + "garbage";
+    final KsqlStatementException exception =
+        new KsqlStatementException("mismatched input", statementText);
+    when(mockParser.parseSingleStatement(statementText)).thenThrow(exception);
+    final Command command = new Command(statementText, emptyMap(), emptyMap(), Optional.empty());
+    final CommandId commandId = new CommandId(Type.STREAM, "foo", Action.CREATE);
+    when(commandDeserializer.deserialize(any(), any())).thenReturn(command);
+
+    // When:
+    final Exception caught = assertThrows(
+        KsqlStatementException.class,
+        () -> statementExecutorWithMocks.handleRestore(
+            new QueuedCommand(commandId, command, Optional.empty(), 0L)
+        )
+    );
+
+    // Then: the original parse failure propagates, rather than a StackOverflowError
+    assertThat(caught, is(exception));
+  }
+
+  @Test
   public void shouldNotSkipUnrelatedParseFailureOnRestore() {
     // Given:
     final String statementText = "garbage that is not sql";

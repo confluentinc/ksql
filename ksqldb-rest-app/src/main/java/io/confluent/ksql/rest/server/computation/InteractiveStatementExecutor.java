@@ -61,9 +61,11 @@ import org.apache.logging.log4j.Logger;
 public class InteractiveStatementExecutor {
 
   private static final Logger log = LogManager.getLogger(InteractiveStatementExecutor.class);
-  // whitespace, "-- line" comments, or "/* block */" comments: all hidden-channel in the grammar
+  // One whitespace char, "-- line" comment, or "/* block */" comment: all hidden-channel in the
+  // grammar. Matches a single char for the whitespace case (not \s+) so repeating this via the
+  // outer */+ below can't partition a whitespace run ambiguously and backtrack catastrophically.
   private static final String SQL_GAP =
-      "(?:\\s+|--[^\\r\\n]*(?:\\r?\\n|$)|/\\*.*?\\*/)";
+      "(?:\\s|--[^\\r\\n]*(?:\\r?\\n|$)|/\\*.*?\\*/)";
   private static final Pattern LEGACY_ALTER_SYSTEM_PATTERN = Pattern.compile(
       "^" + SQL_GAP + "*ALTER" + SQL_GAP + "+SYSTEM\\b",
       Pattern.CASE_INSENSITIVE | Pattern.DOTALL);

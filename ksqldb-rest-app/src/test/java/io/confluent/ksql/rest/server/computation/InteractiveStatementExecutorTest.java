@@ -408,6 +408,29 @@ public class InteractiveStatementExecutorTest {
   }
 
   @Test
+  public void shouldNotSkipParseFailureForStatementStartingAlterSystemUnderscoreOnRestore() {
+    // Given: "SYSTEM_" is not a boundary - ALTER SYSTEM_PROPERTY is not legacy ALTER SYSTEM
+    final String statementText = "ALTER SYSTEM_PROPERTY not actually sql";
+    final KsqlStatementException exception =
+        new KsqlStatementException("mismatched input", statementText);
+    when(mockParser.parseSingleStatement(statementText)).thenThrow(exception);
+    final Command command = new Command(statementText, emptyMap(), emptyMap(), Optional.empty());
+    final CommandId commandId = new CommandId(Type.STREAM, "foo", Action.CREATE);
+    when(commandDeserializer.deserialize(any(), any())).thenReturn(command);
+
+    // When:
+    final Exception caught = assertThrows(
+        KsqlStatementException.class,
+        () -> statementExecutorWithMocks.handleRestore(
+            new QueuedCommand(commandId, command, Optional.empty(), 0L)
+        )
+    );
+
+    // Then:
+    assertThat(caught, is(exception));
+  }
+
+  @Test
   public void shouldBuildQueriesWithPersistedConfig() {
     // Given:
     final KsqlConfig originalConfig = new KsqlConfig(

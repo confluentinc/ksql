@@ -281,7 +281,13 @@ public class InteractiveStatementExecutor {
     }
     pos = matchKeyword(statementText, pos, "SYSTEM");
     return pos >= 0
-        && (pos == statementText.length() || !Character.isLetterOrDigit(statementText.charAt(pos)));
+        && (pos == statementText.length() || !isWordChar(statementText.charAt(pos)));
+  }
+
+  // Mirrors regex \w (letter, digit, or underscore), so e.g. "ALTER SYSTEM_PROPERTY..." is
+  // correctly rejected as not a boundary, same as \b would reject it.
+  private static boolean isWordChar(final char c) {
+    return Character.isLetterOrDigit(c) || c == '_';
   }
 
   // Skips whitespace, "-- line" comments, and "/* block */" comments: all hidden-channel in the

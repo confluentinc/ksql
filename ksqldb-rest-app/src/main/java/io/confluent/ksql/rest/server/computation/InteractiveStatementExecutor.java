@@ -44,11 +44,11 @@ import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import java.util.HashMap;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.regex.Pattern;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.logging.log4j.LogManager;
@@ -61,6 +61,8 @@ import org.apache.logging.log4j.Logger;
 public class InteractiveStatementExecutor {
 
   private static final Logger log = LogManager.getLogger(InteractiveStatementExecutor.class);
+  private static final Pattern LEGACY_ALTER_SYSTEM_PATTERN =
+      Pattern.compile("^ALTER\\s+SYSTEM\\b", Pattern.CASE_INSENSITIVE);
 
   private final ServiceContext serviceContext;
   private final KsqlExecutionContext ksqlEngine;
@@ -264,7 +266,7 @@ public class InteractiveStatementExecutor {
 
   private static boolean isLegacyAlterSystemStatement(final String statementText) {
     return statementText != null
-        && statementText.trim().toUpperCase(Locale.ROOT).startsWith("ALTER SYSTEM");
+        && LEGACY_ALTER_SYSTEM_PATTERN.matcher(statementText.trim()).find();
   }
 
   private void executePlan(

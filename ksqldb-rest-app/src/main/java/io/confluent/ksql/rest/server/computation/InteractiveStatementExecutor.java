@@ -61,8 +61,12 @@ import org.apache.logging.log4j.Logger;
 public class InteractiveStatementExecutor {
 
   private static final Logger log = LogManager.getLogger(InteractiveStatementExecutor.class);
-  private static final Pattern LEGACY_ALTER_SYSTEM_PATTERN =
-      Pattern.compile("^ALTER\\s+SYSTEM\\b", Pattern.CASE_INSENSITIVE);
+  // whitespace, "-- line" comments, or "/* block */" comments: all hidden-channel in the grammar
+  private static final String SQL_GAP =
+      "(?:\\s+|--[^\\r\\n]*(?:\\r?\\n|$)|/\\*.*?\\*/)";
+  private static final Pattern LEGACY_ALTER_SYSTEM_PATTERN = Pattern.compile(
+      "^" + SQL_GAP + "*ALTER" + SQL_GAP + "+SYSTEM\\b",
+      Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
 
   private final ServiceContext serviceContext;
   private final KsqlExecutionContext ksqlEngine;
@@ -266,7 +270,7 @@ public class InteractiveStatementExecutor {
 
   private static boolean isLegacyAlterSystemStatement(final String statementText) {
     return statementText != null
-        && LEGACY_ALTER_SYSTEM_PATTERN.matcher(statementText.trim()).find();
+        && LEGACY_ALTER_SYSTEM_PATTERN.matcher(statementText).find();
   }
 
   private void executePlan(

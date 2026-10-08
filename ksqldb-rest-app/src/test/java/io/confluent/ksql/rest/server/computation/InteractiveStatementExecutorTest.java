@@ -317,6 +317,28 @@ public class InteractiveStatementExecutorTest {
   }
 
   @Test
+  public void shouldSkipLegacyAlterSystemCommandWithSqlCommentsOnRestore() {
+    // Given:
+    final String statementText = "-- reason for the change\n"
+        + "ALTER /* block comment */ SYSTEM 'ksql.streams.num.stream.threads' = '4';";
+    when(mockParser.parseSingleStatement(statementText))
+        .thenThrow(new KsqlStatementException("mismatched input", statementText));
+    final Command command = new Command(statementText, emptyMap(), emptyMap(), Optional.empty());
+    final CommandId commandId = new CommandId(Type.CLUSTER, "SystemProperty", Action.ALTER);
+    when(commandDeserializer.deserialize(any(), any())).thenReturn(command);
+
+    // When:
+    statementExecutorWithMocks.handleRestore(
+        new QueuedCommand(commandId, command, Optional.empty(), 0L)
+    );
+
+    // Then:
+    final CommandStatus status = statementExecutorWithMocks.getStatus(commandId).get();
+    assertThat(status.getStatus(), is(CommandStatus.Status.SUCCESS));
+    assertThat(status.getMessage(), containsString("ALTER SYSTEM is no longer supported"));
+  }
+
+  @Test
   public void shouldNotSkipUnrelatedParseFailureOnRestore() {
     // Given:
     final String statementText = "garbage that is not sql";

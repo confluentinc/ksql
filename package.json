@@ -1,8 +1,8 @@
 {
   "devDependencies": {
-    "@commitlint/cli": "^8.1.0",
-    "@commitlint/config-conventional": "^8.0.0",
-    "husky": "^2.4.1"
+    "@commitlint/cli": "8.1.0",
+    "@commitlint/config-conventional": "8.0.0",
+    "husky": "2.5.0"
   },
   "husky": {
     "hooks": {

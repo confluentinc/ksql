@@ -23,7 +23,6 @@ import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.KsqlPlan;
 import io.confluent.ksql.exception.ExceptionUtil;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
-import io.confluent.ksql.parser.tree.AlterSystemProperty;
 import io.confluent.ksql.parser.tree.CreateAsSelect;
 import io.confluent.ksql.parser.tree.ExecutableDdlStatement;
 import io.confluent.ksql.parser.tree.InsertInto;
@@ -229,7 +228,21 @@ public class InteractiveStatementExecutor {
           commandId,
           commandStatusFuture,
           new CommandStatus(CommandStatus.Status.PARSING, "Parsing statement"));
-      final PreparedStatement<?> statement = statementParser.parseSingleStatement(statementString);
+      final PreparedStatement<?> statement;
+      try {
+        statement = statementParser.parseSingleStatement(statementString);
+      } catch (final KsqlException parseException) {
+        if (mode == Mode.RESTORE && isLegacyAlterSystemStatement(statementString)) {
+          log.warn("Skipping legacy ALTER SYSTEM command found while restoring the command "
+              + "topic. ALTER SYSTEM is no longer supported: {}", statementString);
+          putFinalStatus(commandId, commandStatusFuture, new CommandStatus(
+              CommandStatus.Status.SUCCESS,
+              "Skipped: ALTER SYSTEM is no longer supported.",
+              Optional.empty()));
+          return;
+        }
+        throw parseException;
+      }
       putStatus(
           commandId,
           commandStatusFuture,
@@ -246,6 +259,83 @@ public class InteractiveStatementExecutor {
       putStatus(commandId, commandStatusFuture, errorStatus);
       throw exception;
     }
+  }
+
+  // Hand-scanned rather than regex-matched: the grammar's comment/whitespace handling means any
+  // gap between ALTER and SYSTEM can repeat an unbounded number of times, which blows the regex
+  // engine's recursion limit (StackOverflowError) on a long malformed statement regardless of how
+  // the pattern is written. A plain linear scan has no such limit.
+  private static boolean isLegacyAlterSystemStatement(final String statementText) {
+    if (statementText == null) {
+      return false;
+    }
+    int pos = skipGapBeforeAlterSystem(statementText, 0);
+    pos = matchKeyword(statementText, pos, "ALTER");
+    if (pos < 0) {
+      return false;
+    }
+    final int gapStart = pos;
+    pos = skipGapBeforeAlterSystem(statementText, pos);
+    if (pos == gapStart) {
+      return false;
+    }
+    pos = matchKeyword(statementText, pos, "SYSTEM");
+    return pos >= 0
+        && (pos == statementText.length() || !isWordChar(statementText.charAt(pos)));
+  }
+
+  // Mirrors regex \w (letter, digit, or underscore), so e.g. "ALTER SYSTEM_PROPERTY..." is
+  // correctly rejected as not a boundary, same as \b would reject it.
+  private static boolean isWordChar(final char c) {
+    return Character.isLetterOrDigit(c) || c == '_';
+  }
+
+  // Skips whitespace, "-- line" comments, and "/* block */" comments: all hidden-channel in the
+  // grammar, so they're valid separators between ALTER and SYSTEM in a historical statement too.
+  private static int skipGapBeforeAlterSystem(final String text, final int start) {
+    int i = start;
+    while (i < text.length()) {
+      final int next = skipOneGapUnit(text, i);
+      if (next == i) {
+        break;
+      }
+      i = next;
+    }
+    return i;
+  }
+
+  private static int skipOneGapUnit(final String text, final int i) {
+    if (Character.isWhitespace(text.charAt(i))) {
+      return i + 1;
+    }
+    final int afterLineComment = skipLineComment(text, i);
+    return afterLineComment != i ? afterLineComment : skipBlockComment(text, i);
+  }
+
+  private static int skipLineComment(final String text, final int i) {
+    final int len = text.length();
+    if (i + 1 >= len || text.charAt(i) != '-' || text.charAt(i + 1) != '-') {
+      return i;
+    }
+    int j = i + 2;
+    while (j < len && text.charAt(j) != '\r' && text.charAt(j) != '\n') {
+      j++;
+    }
+    return j;
+  }
+
+  private static int skipBlockComment(final String text, final int i) {
+    final int len = text.length();
+    if (i + 1 >= len || text.charAt(i) != '/' || text.charAt(i + 1) != '*') {
+      return i;
+    }
+    final int end = text.indexOf("*/", i + 2);
+    return end < 0 ? len : end + 2;
+  }
+
+  private static int matchKeyword(final String text, final int start, final String keyword) {
+    return text.regionMatches(true, start, keyword, 0, keyword.length())
+        ? start + keyword.length() : -1;
   }
 
   private void executePlan(
@@ -326,20 +416,6 @@ public class InteractiveStatementExecutor {
       throwUnsupportedStatementError();
     } else if (statement.getStatement() instanceof InsertInto) {
       throwUnsupportedStatementError();
-    } else if (statement.getStatement() instanceof AlterSystemProperty) {
-      final PreparedStatement<AlterSystemProperty> alterSystemQuery =
-          (PreparedStatement<AlterSystemProperty>) statement;
-      final String propertyName = alterSystemQuery.getStatement().getPropertyName();
-      final String propertyValue = alterSystemQuery.getStatement().getPropertyValue();
-      ksqlEngine.alterSystemProperty(propertyName, propertyValue);
-      ksqlEngine.updateStreamsPropertiesAndRestartRuntime();
-
-      final String successMessage = String.format("System property %s was set to %s.",
-          propertyName, propertyValue);
-      final CommandStatus successStatus = new CommandStatus(CommandStatus.Status.SUCCESS,
-          successMessage, Optional.empty());
-
-      putFinalStatus(commandId, commandStatusFuture, successStatus);
     } else {
       throw new KsqlException(String.format(
           "Unexpected statement type: %s",

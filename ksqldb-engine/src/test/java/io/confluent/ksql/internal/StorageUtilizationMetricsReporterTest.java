@@ -273,37 +273,6 @@ public class StorageUtilizationMetricsReporterTest {
   }
 
   @Test
-  public void shouldCombineTaskMetricsToQueryMetricWithSharedRuntimeQueries() {
-    // When:
-    listener.metricChange(mockMetric(
-        KAFKA_METRIC_GROUP,
-        KAFKA_METRIC_NAME,
-        BigInteger.valueOf(2),
-        ImmutableMap.of("task-id", "CTAS_TEST_1__1_0", "thread-id", "THREAD_ID", "logical_cluster_id", "logical-id"))
-    );
-    listener.metricChange(mockMetric(
-        KAFKA_METRIC_GROUP,
-        KAFKA_METRIC_NAME,
-        BigInteger.valueOf(5),
-        ImmutableMap.of("task-id", "CTAS_TEST_1__1_1", "thread-id", "THREAD_ID", "logical_cluster_id", "logical-id"))
-    );
-
-    // Then:
-    final Gauge<?> queryGauge = verifyAndGetRegisteredMetric(QUERY_STORAGE_METRIC, QUERY_TAGS);
-    final Object queryValue = queryGauge.value(null, 0);
-    final Map<String, String> task1 = ImmutableMap.of("logical_cluster_id", "logical-id", "query-id", "CTAS_TEST_1", "task-id", "CTAS_TEST_1__1_0");
-    final Gauge<?> taskGaugeOne = verifyAndGetRegisteredMetric(TASK_STORAGE_METRIC, task1);
-    final Object taskValueOne = taskGaugeOne.value(null, 0);
-    final Map<String, String> task2 = ImmutableMap.of("logical_cluster_id", "logical-id", "query-id", "CTAS_TEST_1", "task-id", "CTAS_TEST_1__1_1");
-    final Gauge<?> taskGaugeTwo = verifyAndGetRegisteredMetric(TASK_STORAGE_METRIC, task2);
-    final Object taskValueTwo = taskGaugeTwo.value(null, 0);
-    
-    assertThat(taskValueOne, equalTo(BigInteger.valueOf(2)));
-    assertThat(taskValueTwo, equalTo(BigInteger.valueOf(5)));
-    assertThat(queryValue, equalTo(BigInteger.valueOf(7)));
-  }
-  
-  @Test
   public void shouldRecordMaxTaskUsage() {
     // Given:
     KafkaMetric m1 = mockMetric(

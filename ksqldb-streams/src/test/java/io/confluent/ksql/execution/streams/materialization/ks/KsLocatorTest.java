@@ -58,14 +58,12 @@ import org.apache.kafka.streams.StreamsMetadata;
 import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.TopologyDescription;
 import org.apache.kafka.streams.TopologyDescription.Subtopology;
-import org.apache.kafka.streams.processor.internals.namedtopology.KafkaStreamsNamedTopologyWrapper;
 import org.apache.kafka.streams.state.HostInfo;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -126,8 +124,6 @@ public class KsLocatorTest {
   }
 
   @Mock
-  private KafkaStreamsNamedTopologyWrapper kafkaStreamsNamedTopologyWrapper;
-  @Mock
   private KafkaStreams kafkaStreams;
   @Mock
   private Topology topology;
@@ -171,7 +167,6 @@ public class KsLocatorTest {
         topology,
         keySerializer,
         LOCAL_HOST_URL,
-        false,
         "queryId"
     );
 
@@ -260,8 +255,8 @@ public class KsLocatorTest {
     // Then:
     assertThat(e.getMessage(), is(
         "Cannot determine which host contains the required partitions to serve the pull query. \n" +
-            "The underlying persistent query may be restarting (e.g. as a result of" +
-            " ALTER SYSTEM) view the status of your by issuing <DESCRIBE foo>."));
+            "The underlying persistent query may be restarting; " +
+            "view the status of your query by issuing <DESCRIBE foo>."));
   }
 
   @Test
@@ -296,33 +291,6 @@ public class KsLocatorTest {
     assertThat(url.map(URI::getHost), is(Optional.of(ACTIVE_HOST.host())));
     assertThat(url.map(URI::getPort), is(Optional.of(ACTIVE_HOST.port())));
     assertThat(url.map(URI::getPath), is(Optional.of("/")));
-  }
-
-  @Test
-  public void shouldUseNamedTopologyWhenSharedRuntimeIsEnabledForStreamsMetadataForStore() {
-    // Given:
-    final KsLocator locator = new KsLocator(STORE_NAME, kafkaStreamsNamedTopologyWrapper, topology,
-        keySerializer, LOCAL_HOST_URL, true, "queryId");
-
-    // When:
-    locator.getStreamsMetadata();
-
-    // Then:
-    Mockito.verify(kafkaStreamsNamedTopologyWrapper).streamsMetadataForStore(STORE_NAME, "queryId");
-  }
-
-  @Test
-  public void shouldUseNamedTopologyWhenSharedRuntimeIsEnabledForQueryMetadataForKey() {
-    // Given:
-    final KsLocator locator = new KsLocator(STORE_NAME, kafkaStreamsNamedTopologyWrapper, topology,
-        keySerializer, LOCAL_HOST_URL, true, "queryId");
-
-    // When:
-    locator.getKeyQueryMetadata(KEY);
-
-    // Then:
-    Mockito.verify(kafkaStreamsNamedTopologyWrapper)
-        .queryMetadataForKey(STORE_NAME, KEY.getKey(), keySerializer, "queryId");
   }
 
   @Test

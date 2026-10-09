@@ -19,8 +19,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-import io.confluent.ksql.config.ConfigItem;
-import io.confluent.ksql.config.KsqlConfigResolver;
 import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.engine.QueryEventListener;
 import io.confluent.ksql.execution.plan.ExecutionStep;
@@ -30,23 +28,17 @@ import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.name.SourceName;
-import io.confluent.ksql.rest.entity.PropertiesList;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.services.ServiceContext;
-import io.confluent.ksql.util.BinPackedPersistentQueryMetadataImpl;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.PersistentQueryMetadataImpl;
 import io.confluent.ksql.util.QueryMetadata;
-import io.confluent.ksql.util.SandboxedBinPackedPersistentQueryMetadataImpl;
 import io.confluent.ksql.util.SandboxedPersistentQueryMetadataImpl;
-import io.confluent.ksql.util.SandboxedSharedKafkaStreamsRuntimeImpl;
 import io.confluent.ksql.util.SandboxedTransientQueryMetadata;
-import io.confluent.ksql.util.SharedKafkaStreamsRuntime;
 import io.confluent.ksql.util.TransientQueryMetadata;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -78,8 +70,6 @@ public class QueryRegistryImpl implements QueryRegistry {
   private final Collection<QueryEventListener> eventListeners;
   private final QueryBuilderFactory queryBuilderFactory;
   private final MetricCollectors metricCollectors;
-  private final List<SharedKafkaStreamsRuntime> streams = new ArrayList<>();
-  private final List<SharedKafkaStreamsRuntime> sourceStreams = new ArrayList<>();
   private final boolean sandbox;
 
   public QueryRegistryImpl(
@@ -110,13 +100,6 @@ public class QueryRegistryImpl implements QueryRegistry {
         );
         persistentQueries.put(sandboxed.getQueryId(), sandboxed);
         allLiveQueries.put(sandboxed.getQueryId(), sandboxed);
-      } else if (queryMetadata instanceof BinPackedPersistentQueryMetadataImpl) {
-        final PersistentQueryMetadata sandboxed = SandboxedBinPackedPersistentQueryMetadataImpl.of(
-                (BinPackedPersistentQueryMetadataImpl) queryMetadata,
-                new ListenerImpl()
-        );
-        persistentQueries.put(sandboxed.getQueryId(), sandboxed);
-        allLiveQueries.put(sandboxed.getQueryId(), sandboxed);
       } else {
         final TransientQueryMetadata sandboxed = SandboxedTransientQueryMetadata.of(
             (TransientQueryMetadata) queryMetadata,
@@ -137,7 +120,6 @@ public class QueryRegistryImpl implements QueryRegistry {
         .filter(Optional::isPresent)
         .map(Optional::get)
         .collect(Collectors.toList());
-    sourceStreams.addAll(original.streams);
     this.metricCollectors = original.metricCollectors;
 
     sandbox = true;
@@ -164,9 +146,7 @@ public class QueryRegistryImpl implements QueryRegistry {
           config,
           processingLogContext,
           serviceContext,
-          metaStore,
-          streams,
-          !sandbox);
+          metaStore);
 
     final TransientQueryMetadata query = queryBuilder.buildTransientQuery(
         statementText,
@@ -210,9 +190,7 @@ public class QueryRegistryImpl implements QueryRegistry {
           config,
           processingLogContext,
           serviceContext,
-          metaStore,
-          streams,
-          !sandbox);
+          metaStore);
 
     final TransientQueryMetadata query = queryBuilder.buildTransientQuery(
         statementText,
@@ -236,17 +214,6 @@ public class QueryRegistryImpl implements QueryRegistry {
     return query;
   }
 
-  @Override
-  public void updateStreamsPropertiesAndRestartRuntime(
-      final KsqlConfig config,
-      final ProcessingLogContext logContext
-  ) {
-    for (SharedKafkaStreamsRuntime stream : streams) {
-      updateStreamsProperties(stream, config, logContext);
-      stream.restartStreamsRuntime();
-    }
-  }
-
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
   @Override
   public PersistentQueryMetadata createOrReplacePersistentQuery(
@@ -260,88 +227,32 @@ public class QueryRegistryImpl implements QueryRegistry {
       final Set<DataSource> sources,
       final ExecutionStep<?> physicalPlan,
       final String planSummary,
-      final KsqlConstants.PersistentQueryType persistentQueryType,
-      final Optional<String> sharedRuntimeId) {
+      final KsqlConstants.PersistentQueryType persistentQueryType) {
     // CHECKSTYLE_RULES.ON: ParameterNumberCheck
     final QueryBuilder queryBuilder = queryBuilderFactory.create(
           config,
           processingLogContext,
           serviceContext,
-          metaStore,
-          streams,
-          !sandbox);
+          metaStore);
 
     final KsqlConfig ksqlConfig = config.getConfig(true);
 
-    final PersistentQueryMetadata query;
-
-    final PersistentQueryMetadata oldQuery = persistentQueries.get(queryId);
-
-    if (sharedRuntimeId.isPresent()
-        && ksqlConfig.getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)
-        && (oldQuery == null
-        || oldQuery instanceof BinPackedPersistentQueryMetadataImpl)) {
-      if (sandbox) {
-        throwOnNonQueryLevelConfigs(config.getOverrides());
-        streams.addAll(sourceStreams.stream()
-            .filter(t -> t.getApplicationId().equals(sharedRuntimeId.get()))
-            .map(SandboxedSharedKafkaStreamsRuntimeImpl::new)
-            .collect(Collectors.toList()));
-      }
-      query = queryBuilder.buildPersistentQueryInSharedRuntime(
-          ksqlConfig,
-          persistentQueryType,
-          statementText,
-          queryId,
-          sinkDataSource,
-          sources,
-          physicalPlan,
-          planSummary,
-          new ListenerImpl(),
-          () -> ImmutableList.copyOf(getPersistentQueries().values()),
-          sharedRuntimeId.get(),
-          metricCollectors
-      );
-      query.register();
-    } else {
-      query = queryBuilder.buildPersistentQueryInDedicatedRuntime(
-          ksqlConfig,
-          persistentQueryType,
-          statementText,
-          queryId,
-          sinkDataSource,
-          sources,
-          physicalPlan,
-          planSummary,
-          new ListenerImpl(),
-          () -> ImmutableList.copyOf(getPersistentQueries().values()),
-          StreamsBuilder::new,
-          metricCollectors
-      );
-    }
+    final PersistentQueryMetadata query = queryBuilder.buildPersistentQueryInDedicatedRuntime(
+        ksqlConfig,
+        persistentQueryType,
+        statementText,
+        queryId,
+        sinkDataSource,
+        sources,
+        physicalPlan,
+        planSummary,
+        new ListenerImpl(),
+        () -> ImmutableList.copyOf(getPersistentQueries().values()),
+        StreamsBuilder::new,
+        metricCollectors
+    );
     registerPersistentQuery(serviceContext, metaStore, query);
     return query;
-  }
-
-  private static void throwOnNonQueryLevelConfigs(final Map<String, Object> overriddenProperties) {
-    final String nonQueryLevelConfigs = overriddenProperties.keySet().stream()
-        .filter(s -> {
-          final KsqlConfigResolver resolver = new KsqlConfigResolver();
-          final Optional<ConfigItem> resolvedItem = resolver.resolve(s, false);
-          return resolvedItem.map(configItem ->
-              !PropertiesList.QueryLevelProperties
-                  .contains(configItem.getPropertyName())).orElse(true);
-        })
-        .distinct()
-        .collect(Collectors.joining(","));
-
-    if (!nonQueryLevelConfigs.isEmpty()) {
-      throw new IllegalArgumentException(String.format("When shared runtimes are enabled, the"
-              + " configs %s can only be set for the entire cluster and all queries currently"
-              + " running in it, and not configurable for individual queries."
-              + " Please use ALTER SYSTEM to change these config for all queries.",
-          nonQueryLevelConfigs));
-    }
   }
 
   @Override
@@ -414,30 +325,6 @@ public class QueryRegistryImpl implements QueryRegistry {
         unregisterQuery(queryMetadata);
       }
     }
-    closeRuntimes();
-  }
-
-  @Override
-  public void closeRuntimes() {
-    for (SharedKafkaStreamsRuntime sharedKafkaStreamsRuntime : streams) {
-      sharedKafkaStreamsRuntime.close();
-    }
-    streams.clear();
-  }
-
-  private void updateStreamsProperties(
-      final SharedKafkaStreamsRuntime stream,
-      final KsqlConfig config,
-      final ProcessingLogContext logContext
-  ) {
-    final Map<String, Object> newStreamsProperties = QueryBuilder.buildStreamsProperties(
-        stream.getApplicationId(),
-        Optional.empty(),
-        metricCollectors,
-        config,
-        logContext
-    );
-    stream.overrideStreamsProperties(newStreamsProperties);
   }
 
   private void registerPersistentQuery(
@@ -509,13 +396,6 @@ public class QueryRegistryImpl implements QueryRegistry {
       final QueryId queryId = persistentQuery.getQueryId();
       persistentQueries.remove(queryId);
 
-      final Set<SharedKafkaStreamsRuntime> toClose = streams
-          .stream()
-          .filter(s -> s.getCollocatedQueries().isEmpty())
-          .collect(Collectors.toSet());
-      streams.removeAll(toClose);
-      toClose.forEach(SharedKafkaStreamsRuntime::close);
-
       switch (persistentQuery.getPersistentQueryType()) {
         case CREATE_SOURCE:
           createAsQueries.remove(Iterables.getOnlyElement(persistentQuery.getSourceNames()));
@@ -566,9 +446,7 @@ public class QueryRegistryImpl implements QueryRegistry {
         SessionConfig config,
         ProcessingLogContext processingLogContext,
         ServiceContext serviceContext,
-        FunctionRegistry functionRegistry,
-        List<SharedKafkaStreamsRuntime> streams,
-        boolean real);
+        FunctionRegistry functionRegistry);
   }
 
   private class ListenerImpl implements QueryMetadata.Listener {

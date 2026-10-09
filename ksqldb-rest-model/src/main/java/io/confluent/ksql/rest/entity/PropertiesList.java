@@ -23,34 +23,10 @@ import static io.confluent.ksql.util.KsqlConfig.KSQL_QUERY_RETRY_BACKOFF_MAX_MS;
 import static io.confluent.ksql.util.KsqlConfig.KSQL_STRING_CASE_CONFIG_TOGGLE;
 import static io.confluent.ksql.util.KsqlConfig.KSQL_TIMESTAMP_THROW_ON_INVALID;
 import static org.apache.kafka.clients.consumer.ConsumerConfig.AUTO_OFFSET_RESET_CONFIG;
-import static org.apache.kafka.clients.consumer.ConsumerConfig.FETCH_MAX_BYTES_CONFIG;
-import static org.apache.kafka.clients.consumer.ConsumerConfig.FETCH_MAX_WAIT_MS_CONFIG;
-import static org.apache.kafka.clients.consumer.ConsumerConfig.FETCH_MIN_BYTES_CONFIG;
-import static org.apache.kafka.clients.consumer.ConsumerConfig.HEARTBEAT_INTERVAL_MS_CONFIG;
-import static org.apache.kafka.clients.consumer.ConsumerConfig.MAX_PARTITION_FETCH_BYTES_CONFIG;
-import static org.apache.kafka.clients.consumer.ConsumerConfig.MAX_POLL_INTERVAL_MS_CONFIG;
-import static org.apache.kafka.clients.consumer.ConsumerConfig.MAX_POLL_RECORDS_CONFIG;
-import static org.apache.kafka.clients.consumer.ConsumerConfig.METADATA_MAX_AGE_CONFIG;
-import static org.apache.kafka.clients.consumer.ConsumerConfig.SESSION_TIMEOUT_MS_CONFIG;
-import static org.apache.kafka.clients.producer.ProducerConfig.BATCH_SIZE_CONFIG;
-import static org.apache.kafka.clients.producer.ProducerConfig.BUFFER_MEMORY_CONFIG;
-import static org.apache.kafka.clients.producer.ProducerConfig.COMPRESSION_TYPE_CONFIG;
-import static org.apache.kafka.clients.producer.ProducerConfig.DELIVERY_TIMEOUT_MS_CONFIG;
-import static org.apache.kafka.clients.producer.ProducerConfig.LINGER_MS_CONFIG;
-import static org.apache.kafka.clients.producer.ProducerConfig.MAX_BLOCK_MS_CONFIG;
-import static org.apache.kafka.clients.producer.ProducerConfig.MAX_REQUEST_SIZE_CONFIG;
-import static org.apache.kafka.streams.StreamsConfig.ACCEPTABLE_RECOVERY_LAG_CONFIG;
 import static org.apache.kafka.streams.StreamsConfig.BUFFERED_RECORDS_PER_PARTITION_CONFIG;
 import static org.apache.kafka.streams.StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG;
-import static org.apache.kafka.streams.StreamsConfig.COMMIT_INTERVAL_MS_CONFIG;
 import static org.apache.kafka.streams.StreamsConfig.MAX_TASK_IDLE_MS_CONFIG;
-import static org.apache.kafka.streams.StreamsConfig.MAX_WARMUP_REPLICAS_CONFIG;
-import static org.apache.kafka.streams.StreamsConfig.NUM_STANDBY_REPLICAS_CONFIG;
-import static org.apache.kafka.streams.StreamsConfig.POLL_MS_CONFIG;
-import static org.apache.kafka.streams.StreamsConfig.PROBING_REBALANCE_INTERVAL_MS_CONFIG;
-import static org.apache.kafka.streams.StreamsConfig.PROCESSING_GUARANTEE_CONFIG;
 import static org.apache.kafka.streams.StreamsConfig.TASK_TIMEOUT_MS_CONFIG;
-import static org.apache.kafka.streams.StreamsConfig.WINDOW_SIZE_MS_CONFIG;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
@@ -69,8 +45,7 @@ import java.util.Set;
 public class PropertiesList extends KsqlEntity {
 
   /**
-   * The set of query-level properties that can be configured via the `SET` command. They can also
-   * use the `ALTER SYSTEM` command to set a default value for queries without an explicit override.
+   * The set of query-level properties that can be configured via the `SET` command.
    * NOTE: IF YOU ADD A NEW CONFIG AND WANT IT TO BE CONFIGURABLE PER-QUERY YOU MUST ADD IT HERE.
    */
   @SuppressWarnings("deprecation")
@@ -87,38 +62,6 @@ public class PropertiesList extends KsqlEntity {
       KSQL_TIMESTAMP_THROW_ON_INVALID,
       MAX_TASK_IDLE_MS_CONFIG,
       TASK_TIMEOUT_MS_CONFIG
-  );
-
-  /**
-   * The set of system properties that can be changed via the `ALTER SYSTEM` command.
-   * We use this "allow list" for security reasons.
-   * (Independent of LD.)
-   */
-  public static final Set<String> MutableSystemProperties = ImmutableSet.of(
-      MAX_POLL_RECORDS_CONFIG,
-      MAX_POLL_INTERVAL_MS_CONFIG,
-      SESSION_TIMEOUT_MS_CONFIG,
-      HEARTBEAT_INTERVAL_MS_CONFIG,
-      FETCH_MIN_BYTES_CONFIG,
-      FETCH_MAX_BYTES_CONFIG,
-      FETCH_MAX_WAIT_MS_CONFIG,
-      METADATA_MAX_AGE_CONFIG,
-      MAX_PARTITION_FETCH_BYTES_CONFIG,
-      BATCH_SIZE_CONFIG,
-      LINGER_MS_CONFIG,
-      DELIVERY_TIMEOUT_MS_CONFIG,
-      MAX_REQUEST_SIZE_CONFIG,
-      MAX_BLOCK_MS_CONFIG,
-      BUFFER_MEMORY_CONFIG,
-      COMPRESSION_TYPE_CONFIG,
-      ACCEPTABLE_RECOVERY_LAG_CONFIG,
-      COMMIT_INTERVAL_MS_CONFIG,
-      MAX_WARMUP_REPLICAS_CONFIG,
-      NUM_STANDBY_REPLICAS_CONFIG,
-      POLL_MS_CONFIG,
-      PROBING_REBALANCE_INTERVAL_MS_CONFIG,
-      PROCESSING_GUARANTEE_CONFIG,
-      WINDOW_SIZE_MS_CONFIG
   );
 
   @JsonIgnoreProperties(ignoreUnknown = true)
@@ -152,8 +95,7 @@ public class PropertiesList extends KsqlEntity {
       final Optional<ConfigItem> resolvedItem = resolver.resolve(propertyName, false);
 
       return resolvedItem.isPresent()
-          && (PropertiesList.MutableSystemProperties.contains(resolvedItem.get().getPropertyName())
-          || PropertiesList.QueryLevelProperties.contains(resolvedItem.get().getPropertyName()));
+          && PropertiesList.QueryLevelProperties.contains(resolvedItem.get().getPropertyName());
     }
 
     public String getLevel() {

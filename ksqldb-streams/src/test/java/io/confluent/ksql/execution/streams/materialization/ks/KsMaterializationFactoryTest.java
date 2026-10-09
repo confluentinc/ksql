@@ -18,7 +18,6 @@ package io.confluent.ksql.execution.streams.materialization.ks;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -95,8 +94,8 @@ public class KsMaterializationFactoryTest {
     );
 
     when(locatorFactory.create(any(), any(), any(), any(), any(),
-        anyBoolean(), anyString())).thenReturn(locator);
-    when(storeFactory.create(any(), any(), any(), any(), any())).thenReturn(stateStore);
+        anyString())).thenReturn(locator);
+    when(storeFactory.create(any(), any(), any(), any())).thenReturn(stateStore);
     when(materializationFactory.create(any(), any(), any())).thenReturn(materialization);
 
     streamsProperties.clear();
@@ -139,7 +138,6 @@ public class KsMaterializationFactoryTest {
         topology,
         keySerializer,
         DEFAULT_APP_SERVER,
-        false,
         "queryId"
     );
   }
@@ -155,8 +153,7 @@ public class KsMaterializationFactoryTest {
         STORE_NAME,
         kafkaStreams,
         SCHEMA,
-        ksqlConfig,
-        "queryId"
+        ksqlConfig
     );
   }
 
@@ -168,7 +165,7 @@ public class KsMaterializationFactoryTest {
 
     // When:
     factory.create(STORE_NAME, kafkaStreams, topology, SCHEMA, keySerializer, windowInfo,
-        streamsProperties, ksqlConfig, APPLICATION_ID, anyString());
+        streamsProperties, ksqlConfig, APPLICATION_ID, "queryId");
 
     // Then:
     verify(materializationFactory).create(
@@ -183,7 +180,7 @@ public class KsMaterializationFactoryTest {
     // When:
     final Optional<KsMaterialization> result = factory
         .create(STORE_NAME, kafkaStreams, topology, SCHEMA, keySerializer, Optional.empty(),
-            streamsProperties, ksqlConfig, APPLICATION_ID, any());
+            streamsProperties, ksqlConfig, APPLICATION_ID, "queryId");
 
     // Then:
     assertThat(result,  is(Optional.of(materialization)));

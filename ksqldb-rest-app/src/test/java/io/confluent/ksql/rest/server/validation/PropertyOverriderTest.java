@@ -22,8 +22,10 @@ import static org.hamcrest.Matchers.hasKey;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.never;
 
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.config.SessionConfig;
@@ -109,6 +111,10 @@ public class PropertyOverriderTest {
       configOverrideLogger.verify(() -> ConfigOverrideLogger.logOverrides(
           "SET",
           ImmutableMap.of(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "")));
+      // And: the range check runs once the property has been accepted
+      configOverrideLogger.verify(() -> ConfigOverrideLogger.logRangeViolations(
+          "SET",
+          ImmutableMap.of(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")));
     }
     assertThat(properties, hasEntry(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest"));
   }
@@ -138,11 +144,15 @@ public class PropertyOverriderTest {
       );
 
       // Then: log fires for any property that passes resolver.
-      assertThat(e.getMessage(), containsString(
-          "Invalid value invalid"));
       configOverrideLogger.verify(() -> ConfigOverrideLogger.logOverrides(
           "SET",
           ImmutableMap.of(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "")));
+      assertThat(e.getMessage(), containsString(
+              "Invalid value invalid"));
+
+      // And: value validation throws before the range check, so it never runs.
+      configOverrideLogger.verify(
+          () -> ConfigOverrideLogger.logRangeViolations(any(), any()), never());
     }
   }
 
@@ -176,6 +186,9 @@ public class PropertyOverriderTest {
       // Then: log fires for the known property BEFORE denylist throws
       configOverrideLogger.verify(() -> ConfigOverrideLogger.logOverrides(
               "SET", ImmutableMap.of(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "")));
+      // And: a denylisted property is never range-checked
+      configOverrideLogger.verify(
+              () -> ConfigOverrideLogger.logRangeViolations(any(), any()), never());
       assertThat(e.getMessage(), containsString("prohibited by the KSQL server"));
        }
 
@@ -216,6 +229,9 @@ public class PropertyOverriderTest {
       // Then: log fires for the known property BEFORE allowlist throws
       configOverrideLogger.verify(() -> ConfigOverrideLogger.logOverrides(
           "SET", ImmutableMap.of(propertyNotOnAllowlist, "")));
+      // And: a property missing from the allowlist is never range-checked.
+      configOverrideLogger.verify(
+              () -> ConfigOverrideLogger.logRangeViolations(any(), any()), never());
       assertThat(e.getMessage(), containsString("not permitted by the KSQL server allowlist"));
     }
     assertThat(sessionProperties.getMutableScopedProperties(),
@@ -551,6 +567,9 @@ public class PropertyOverriderTest {
       // Then: log fires for the denied property
       configOverrideLogger.verify(() -> ConfigOverrideLogger.logOverrides(
           "UNSET", ImmutableMap.of(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "")));
+      // And: No range check.
+      configOverrideLogger.verify(
+              () -> ConfigOverrideLogger.logRangeViolations(any(), any()), never());
     }
     assertThat(properties, not(hasKey(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG)));
   }
@@ -614,6 +633,10 @@ public class PropertyOverriderTest {
       configOverrideLogger.verify(() -> ConfigOverrideLogger.logOverrides(
           "UNSET",
           ImmutableMap.of(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "")));
+      // And: UNSET removes a property rather than supplying a value, so there is nothing to
+      // range check.
+      configOverrideLogger.verify(
+          () -> ConfigOverrideLogger.logRangeViolations(any(), any()), never());
     }
     assertThat(properties, not(hasKey(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG)));
   }

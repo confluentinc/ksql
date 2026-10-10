@@ -521,12 +521,45 @@ public class StreamedQueryResourceTest {
       // Then: Config Override Logger fires, and the denylist check rejects the request.
       configOverrideLogger.verify(() -> ConfigOverrideLogger.logOverrides("/query", overrides));
       verify(configOverrideValidator).validateAll(overrides);
+      // And: the range check runs only on overrides that survived the configOverrideValidator check,
+      // so a rejected request never reaches it.
+      configOverrideLogger.verify(
+          () -> ConfigOverrideLogger.logRangeViolations(any(), any()), never());
     }
     assertThat(response.getStatus(), CoreMatchers.is(BAD_REQUEST.code()));
     assertThat(((KsqlErrorMessage) response.getEntity()).getMessage(),
         containsString("prohibited by the KSQL server denylist"));
     assertThat(((KsqlErrorMessage) response.getEntity()).getMessage(),
             containsString(StreamsConfig.NUM_STREAM_THREADS_CONFIG));
+  }
+
+  @Test
+  public void shouldRangeCheckStreamPropertiesAcceptedByValidator() {
+    // Given: overrides the validator accepts - the mock only throws when told to.
+    final Map<String, Object> overrides =
+        ImmutableMap.of(KsqlConfig.KSQL_QUERY_RETRY_BACKOFF_INITIAL_MS, -5L);
+
+    // When: PUSH_QUERY_STRING parses to a statement type this resource does not handle, so the
+    // request runs past the override checks and returns without executing a query.
+    try (MockedStatic<ConfigOverrideLogger> configOverrideLogger =
+        mockStatic(ConfigOverrideLogger.class)) {
+      testResource.streamQuery(
+          securityContext,
+          new KsqlRequest(PUSH_QUERY_STRING, overrides, Collections.emptyMap(), null),
+          new CompletableFuture<>(),
+          Optional.empty(),
+          new MetricsCallbackHolder(),
+          context
+      );
+
+      // Then: the audit log fires, the name check runs and accepts the overrides, and the range
+      // check then runs exactly once on them.
+      configOverrideLogger.verify(
+          () -> ConfigOverrideLogger.logOverrides(eq("/query"), any()), times(1));
+      verify(configOverrideValidator).validateAll(any());
+      configOverrideLogger.verify(
+          () -> ConfigOverrideLogger.logRangeViolations(eq("/query"), any()), times(1));
+    }
   }
 
   @Test

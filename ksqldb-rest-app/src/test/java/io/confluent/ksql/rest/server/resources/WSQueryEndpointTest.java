@@ -24,6 +24,7 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -100,7 +101,7 @@ public class WSQueryEndpointTest {
   }
 
   @Test
-  public void shouldCallPropertyValidatorOnExecuteStream() throws JsonProcessingException {
+  public void shouldCallConfigOverrideValidatorOnExecuteStream() throws JsonProcessingException {
     // Given: mocked configOverrideValidator throws the same message a real
     // DenyListPropertyValidator would for num.stream.threads.
     final Map<String, Object> overrides =
@@ -120,9 +121,36 @@ public class WSQueryEndpointTest {
       // fires first, and then the validator's real message survives to the socket's error frame.
       configOverrideLogger.verify(() -> ConfigOverrideLogger.logOverrides("/ws/query", overrides));
       verify(configOverrideValidator).validateAll(overrides);
+
+      // And: the range check runs only on overrides that survived the Config Override Validator
+      // check, so a rejected request never reaches it.
+      configOverrideLogger.verify(
+          () -> ConfigOverrideLogger.logRangeViolations(any(), any()), never());
     }
     verify(serverWebSocket).writeFinalTextFrame(jsonCaptor.capture(), any());
     assertThat(jsonCaptor.getValue(), containsString("prohibited by the KSQL server denylist"));
+  }
+
+  @Test
+  public void shouldRangeCheckOverridesAcceptedByConfigOverrideValidator() throws JsonProcessingException {
+    // Given: overrides the validator accepts - the mock only throws when told to.
+    final Map<String, Object> overrides =
+        ImmutableMap.of(KsqlConfig.KSQL_QUERY_RETRY_BACKOFF_INITIAL_MS, -5L);
+    final MultiMap params = buildRequestParams("show streams;", overrides);
+
+    // When:
+    try (MockedStatic<ConfigOverrideLogger> configOverrideLogger =
+        mockStatic(ConfigOverrideLogger.class)) {
+      executeStreamQuery(params, Optional.empty());
+
+      // Then: the audit log fires, the Config Override validator runs and accepts the overrides, and the range
+      // check then runs exactly once on them.
+      configOverrideLogger.verify(
+          () -> ConfigOverrideLogger.logOverrides(eq("/ws/query"), any()), times(1));
+      verify(configOverrideValidator).validateAll(any());
+      configOverrideLogger.verify(
+          () -> ConfigOverrideLogger.logRangeViolations(eq("/ws/query"), any()), times(1));
+    }
   }
 
   @Test

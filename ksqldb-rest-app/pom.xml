@@ -117,7 +117,7 @@
 
         <dependency>
             <groupId>io.vertx</groupId>
-            <artifactId>vertx-codegen</artifactId>
+            <artifactId>vertx-codegen-api</artifactId>
             <version>${vertx.version}</version>
         </dependency>
 

@@ -19,6 +19,8 @@ import static io.netty.handler.codec.http.HttpResponseStatus.MISDIRECTED_REQUEST
 
 import io.confluent.ksql.rest.Errors;
 import io.vertx.core.Handler;
+import io.vertx.core.http.HttpHeaders;
+import io.vertx.core.net.HostAndPort;
 import io.vertx.ext.web.RoutingContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,7 +36,12 @@ public class SniHandler implements Handler<RoutingContext> {
     if (routingContext.request().isSSL()) {
       final String indicatedServerName = routingContext.request().connection()
           .indicatedServerName();
-      final String requestHost = routingContext.request().host();
+      // fall back to the raw header if the authority could not be parsed (e.g. an empty Host
+      // header), so the check still fails as it did with Vert.x 4's HttpServerRequest.host()
+      final HostAndPort authority = routingContext.request().authority();
+      final String requestHost = authority != null
+          ? authority.host()
+          : routingContext.request().getHeader(HttpHeaders.HOST.toString());
       if (indicatedServerName != null && requestHost != null) {
         // sometimes the port is present in the host header, remove it
         final String requestHostNoPort = requestHost.replaceFirst(":\\d+", "");

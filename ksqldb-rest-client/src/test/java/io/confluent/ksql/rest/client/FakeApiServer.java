@@ -58,7 +58,7 @@ public class FakeApiServer extends AbstractVerticle {
   public void start(final Promise<Void> startPromise) {
     httpServer = vertx.createHttpServer(httpServerOptions).requestHandler(setupRouter())
         .exceptionHandler(FakeApiServer::unhandledExceptionHandler);
-    httpServer.listen(ar -> {
+    httpServer.listen().onComplete(ar -> {
       if (ar.succeeded()) {
         port = ar.result().actualPort();
         startPromise.complete();
@@ -73,7 +73,7 @@ public class FakeApiServer extends AbstractVerticle {
     if (httpServer == null) {
       stopPromise.complete();
     } else {
-      httpServer.close(x -> stopPromise.complete());
+      httpServer.close().onComplete(x -> stopPromise.complete());
     }
   }
 
@@ -96,7 +96,7 @@ public class FakeApiServer extends AbstractVerticle {
     httpMethod = request.method();
     path = request.path();
     headers = request.headers();
-    body = routingContext.getBody();
+    body = routingContext.body().buffer();
     if (bodyFuture != null) {
       bodyFuture.complete(body);
     }

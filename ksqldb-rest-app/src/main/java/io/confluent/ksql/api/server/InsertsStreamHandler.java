@@ -140,7 +140,10 @@ public class InsertsStreamHandler implements Handler<RoutingContext> {
       ConfigOverrideLogger.logOverrides(
               routingContext.request().path(), insertsStreamArgs.get().properties.getMap());
 
+      // Vert.x 5 only calls the end handler when the server ends the response; if the client
+      // goes away first only the close handler fires, so register the cleanup on both.
       routingContext.response().endHandler(v -> handleResponseEnd());
+      routingContext.response().closeHandler(v -> handleResponseEnd());
 
       acksSubscriber = new AcksSubscriber(ctx, routingContext.response(),
           insertsStreamResponseWriter);
@@ -223,6 +226,9 @@ public class InsertsStreamHandler implements Handler<RoutingContext> {
     }
 
     private void handleResponseEnd() {
+      if (responseEnded) {
+        return;
+      }
       responseEnded = true;
       if (insertsSubscriber != null) {
         insertsSubscriber.close();

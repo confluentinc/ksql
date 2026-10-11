@@ -86,7 +86,7 @@ public class QueryStreamRunner extends BasePerfRunner {
 
     client.post(8089, "localhost", "/query-stream")
         .as(BodyCodec.pipe(new RunnerUtils.ReceiveStream(parser)))
-        .sendJsonObject(DEFAULT_PUSH_QUERY_REQUEST_BODY, ar -> {
+        .sendJsonObject(DEFAULT_PUSH_QUERY_REQUEST_BODY).onComplete(ar -> {
         });
 
     Thread.sleep(ms);

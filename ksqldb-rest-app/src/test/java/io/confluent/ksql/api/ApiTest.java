@@ -35,6 +35,9 @@ import io.confluent.ksql.rest.entity.PushQueryId;
 import io.confluent.ksql.util.AppInfo;
 import io.confluent.ksql.util.VertxCompletableFuture;
 import io.vertx.core.buffer.Buffer;
+import io.vertx.core.http.HttpClient;
+import io.vertx.core.http.HttpClientRequest;
+import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.client.HttpResponse;
@@ -234,6 +237,35 @@ public class ApiTest extends BaseApiTest {
   }
 
   @Test
+  public void shouldCloseQueryWhenItsStreamIsResetButConnectionStaysOpen() throws Exception {
+    // Given: two push queries multiplexed on a single HTTP/2 connection
+    final HttpClient httpClient = vertx.createHttpClient(createClientOptions());
+    try {
+      final HttpClientRequest toCancel = startPushQuery(httpClient);
+      startPushQuery(httpClient);
+      assertThatEventually(() -> server.getQueryIDs().size(), is(2));
+      assertThat(server.queryConnectionCount(), is(1));
+
+      // When: the client cancels one query by resetting its stream
+      toCancel.reset();
+
+      // Then: that query is closed, while the other keeps running on the open connection
+      assertThatEventually(() -> server.getQueryIDs().size(), is(1));
+      assertThat(server.queryConnectionCount(), is(1));
+    } finally {
+      httpClient.close();
+    }
+  }
+
+  private HttpClientRequest startPushQuery(final HttpClient httpClient) throws Exception {
+    final HttpClientRequest request = httpClient.request(HttpMethod.POST, "/query-stream")
+        .toCompletionStage().toCompletableFuture().get();
+    request.response().onSuccess(response -> response.handler(buff -> { }));
+    request.end(DEFAULT_PUSH_QUERY_REQUEST_BODY.toBuffer());
+    return request;
+  }
+
+  @Test
   public void shouldCloseQueriesOnSameConnectionsWhenConnectionsAreClosed() throws Exception {
 
     int numQueries = 10;
@@ -371,7 +403,7 @@ public class ApiTest extends BaseApiTest {
     sendPostRequest("/query-stream", (request) ->
         request
             .as(BodyCodec.pipe(writeStream))
-            .sendJsonObject(DEFAULT_PUSH_QUERY_REQUEST_BODY, responseFuture)
+            .sendJsonObject(DEFAULT_PUSH_QUERY_REQUEST_BODY).onComplete(responseFuture)
     );
 
     // Wait for all rows in the response to arrive
@@ -497,7 +529,7 @@ public class ApiTest extends BaseApiTest {
     sendPostRequest("/inserts-stream", (request) ->
         request
             .as(BodyCodec.pipe(writeStream))
-            .sendStream(readStream, fut)
+            .sendStream(readStream).onComplete(fut)
     );
 
     // Write the initial params Json object to the request body
@@ -646,7 +678,7 @@ public class ApiTest extends BaseApiTest {
     // When
     client
         .post("/no-such-endpoint")
-        .sendBuffer(Buffer.buffer(), requestFuture);
+        .sendBuffer(Buffer.buffer()).onComplete(requestFuture);
     HttpResponse<Buffer> response = requestFuture.get();
 
     // Then
@@ -661,7 +693,7 @@ public class ApiTest extends BaseApiTest {
     client
         .post("/query-stream")
         .putHeader("accept", "blahblah")
-        .sendBuffer(Buffer.buffer(), requestFuture);
+        .sendBuffer(Buffer.buffer()).onComplete(requestFuture);
     HttpResponse<Buffer> response = requestFuture.get();
 
     // Then
@@ -675,7 +707,7 @@ public class ApiTest extends BaseApiTest {
     VertxCompletableFuture<HttpResponse<Buffer>> requestFuture = new VertxCompletableFuture<>();
     client
         .post("/query-stream")
-        .sendBuffer(requestBody.toBuffer(), requestFuture);
+        .sendBuffer(requestBody.toBuffer()).onComplete(requestFuture);
 
     // Then
     HttpResponse<Buffer> response = requestFuture.get();
@@ -693,7 +725,7 @@ public class ApiTest extends BaseApiTest {
     client
         .post("/query-stream")
         .putHeader("accept", "application/vnd.ksqlapi.delimited.v1")
-        .sendBuffer(requestBody.toBuffer(), requestFuture);
+        .sendBuffer(requestBody.toBuffer()).onComplete(requestFuture);
 
     // Then
     HttpResponse<Buffer> response = requestFuture.get();
@@ -711,7 +743,7 @@ public class ApiTest extends BaseApiTest {
     client
         .post("/query-stream")
         .putHeader("accept", "application/json")
-        .sendBuffer(requestBody.toBuffer(), requestFuture);
+        .sendBuffer(requestBody.toBuffer()).onComplete(requestFuture);
 
     // Then
     HttpResponse<Buffer> response = requestFuture.get();
@@ -738,7 +770,7 @@ public class ApiTest extends BaseApiTest {
     VertxCompletableFuture<HttpResponse<Buffer>> requestFuture = new VertxCompletableFuture<>();
     client
         .post("/inserts-stream")
-        .sendBuffer(requestBody, requestFuture);
+        .sendBuffer(requestBody).onComplete(requestFuture);
 
     // Then
     HttpResponse<Buffer> response = requestFuture.get();
@@ -765,7 +797,7 @@ public class ApiTest extends BaseApiTest {
     client
         .post("/inserts-stream")
         .putHeader("accept", "application/vnd.ksqlapi.delimited.v1")
-        .sendBuffer(requestBody, requestFuture);
+        .sendBuffer(requestBody).onComplete(requestFuture);
 
     // Then
     HttpResponse<Buffer> response = requestFuture.get();
@@ -791,7 +823,7 @@ public class ApiTest extends BaseApiTest {
     client
         .post("/inserts-stream")
         .putHeader("accept", "application/json")
-        .sendBuffer(requestBody, requestFuture);
+        .sendBuffer(requestBody).onComplete(requestFuture);
 
     // Then
     HttpResponse<Buffer> response = requestFuture.get();
@@ -810,7 +842,7 @@ public class ApiTest extends BaseApiTest {
     VertxCompletableFuture<HttpResponse<Buffer>> requestFuture = new VertxCompletableFuture<>();
     client
         .post("/ksql")
-        .sendBuffer(requestBody.toBuffer(), requestFuture);
+        .sendBuffer(requestBody.toBuffer()).onComplete(requestFuture);
 
     // Then
     HttpResponse<Buffer> response = requestFuture.get();
@@ -826,7 +858,7 @@ public class ApiTest extends BaseApiTest {
     VertxCompletableFuture<HttpResponse<Buffer>> requestFuture = new VertxCompletableFuture<>();
     client
         .post(uri)
-        .sendBuffer(requestBody, requestFuture);
+        .sendBuffer(requestBody).onComplete(requestFuture);
     HttpResponse<Buffer> response = requestFuture.get();
 
     // Then

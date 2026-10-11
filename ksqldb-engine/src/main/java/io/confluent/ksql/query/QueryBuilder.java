@@ -74,7 +74,6 @@ import io.confluent.ksql.util.SandboxedSharedKafkaStreamsRuntimeImpl;
 import io.confluent.ksql.util.SharedKafkaStreamsRuntime;
 import io.confluent.ksql.util.SharedKafkaStreamsRuntimeImpl;
 import io.confluent.ksql.util.TransientQueryMetadata;
-import io.vertx.core.impl.ConcurrentHashSet;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -85,6 +84,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
@@ -688,7 +688,7 @@ final class QueryBuilder {
     if (buildResult instanceof KStreamHolder<?>) {
       final KStream<?, GenericRow> kstream = ((KStreamHolder<?>) buildResult).getStream();
       // The list of "done partitions" is shared among all the stream threads and tasks.
-      final ConcurrentHashSet<TopicPartition> donePartitions = new ConcurrentHashSet<>();
+      final Set<TopicPartition> donePartitions = ConcurrentHashMap.newKeySet();
       kstream.process(TransientQuerySinkProcessor.supplier(queue, endOffsets, donePartitions));
 
     } else if (buildResult instanceof KTableHolder<?>) {

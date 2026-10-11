@@ -22,22 +22,20 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import io.confluent.ksql.api.auth.JaasAuthProvider.LoginContextSupplier;
 import io.confluent.ksql.api.server.Server;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
-import io.vertx.core.AsyncResult;
-import io.vertx.core.Handler;
-import io.vertx.core.Promise;
+import io.vertx.core.Future;
 import io.vertx.core.WorkerExecutor;
-import io.vertx.core.json.JsonObject;
 import io.vertx.ext.auth.User;
+import io.vertx.ext.auth.authentication.UsernamePasswordCredentials;
 import java.security.Principal;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.Callable;
 import java.util.stream.Stream;
 import javax.security.auth.Subject;
 import org.eclipse.jetty.jaas.JAASLoginService;
@@ -45,8 +43,6 @@ import org.eclipse.jetty.server.UserIdentity;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.ArgumentCaptor;
-import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
@@ -64,12 +60,6 @@ public class JaasAuthProviderTest {
   @Mock
   private KsqlRestConfig config;
   @Mock
-  private JsonObject authInfo;
-  @Mock
-  private Handler<AsyncResult<User>> userHandler;
-  @Captor
-  private ArgumentCaptor<AsyncResult<User>> userCaptor;
-  @Mock
   private LoginContextSupplier loginContextSupplier;
   @Mock
   private JAASLoginService loginService;
@@ -80,6 +70,9 @@ public class JaasAuthProviderTest {
 
   private JaasAuthProvider authProvider;
   private RoleBasedAuthZHandler allowedRoles;
+  private String username = USERNAME;
+  private String password = PASSWORD;
+  private Future<User> result;
 
   @Before
   public void setUp() throws Exception {
@@ -88,8 +81,6 @@ public class JaasAuthProviderTest {
     callbackHandler.setCredential(PASSWORD);
 
     handleAsyncExecution();
-    when(authInfo.getString("username")).thenReturn(USERNAME);
-    when(authInfo.getString("password")).thenReturn(PASSWORD);
     when(loginContextSupplier.get()).thenReturn(loginService);
     when(loginService.login(eq(USERNAME), eq(PASSWORD), any())).thenReturn(userIdentity);
     when(userIdentity.getSubject()).thenReturn(subject);
@@ -104,7 +95,7 @@ public class JaasAuthProviderTest {
     givenUserRoles();
 
     // When:
-    authProvider.authenticate(authInfo, userHandler);
+    authenticate();
 
     // Then:
     verifyAuthorizedSuccessfulLogin();
@@ -117,7 +108,7 @@ public class JaasAuthProviderTest {
     givenUserRoles("user");
 
     // When:
-    authProvider.authenticate(authInfo, userHandler);
+    authenticate();
 
     // Then:
     verifyAuthorizedSuccessfulLogin();
@@ -130,7 +121,7 @@ public class JaasAuthProviderTest {
     givenUserRoles("user");
 
     // When:
-    authProvider.authenticate(authInfo, userHandler);
+    authenticate();
 
     // Then:
     verifyAuthorizedSuccessfulLogin();
@@ -143,7 +134,7 @@ public class JaasAuthProviderTest {
     givenUserRoles("user", "other");
 
     // When:
-    authProvider.authenticate(authInfo, userHandler);
+    authenticate();
 
     // Then:
     verifyAuthorizedSuccessfulLogin();
@@ -152,10 +143,10 @@ public class JaasAuthProviderTest {
   @Test
   public void shouldFailToAuthenticateOnMissingUsername() {
     // Given:
-    when(authInfo.getString("username")).thenReturn(null);
+    username = null;
 
     // When:
-    authProvider.authenticate(authInfo, userHandler);
+    authenticate();
 
     // Then:
     verifyLoginFailure("authInfo missing 'username' field");
@@ -164,10 +155,10 @@ public class JaasAuthProviderTest {
   @Test
   public void shouldFailToAuthenticateOnMissingPassword() {
     // Given:
-    when(authInfo.getString("password")).thenReturn(null);
+    password = null;
 
     // When:
-    authProvider.authenticate(authInfo, userHandler);
+    authenticate();
 
     // Then:
     verifyLoginFailure("authInfo missing 'password' field");
@@ -180,7 +171,7 @@ public class JaasAuthProviderTest {
     givenUserRoles();
 
     // When:
-    authProvider.authenticate(authInfo, userHandler);
+    authenticate();
 
     // Then:
     verifyUnauthorizedSuccessfulLogin();
@@ -193,10 +184,14 @@ public class JaasAuthProviderTest {
     givenUserRoles("other");
 
     // When:
-    authProvider.authenticate(authInfo, userHandler);
+    authenticate();
 
     // Then:
     verifyUnauthorizedSuccessfulLogin();
+  }
+
+  private void authenticate() {
+    result = authProvider.authenticate(new UsernamePasswordCredentials(username, password));
   }
 
   private void givenAllowedRoles(final String... roles) {
@@ -221,8 +216,7 @@ public class JaasAuthProviderTest {
   }
 
   private void verifyLoginSuccessWithAuthorization(final boolean isAuthorized) throws Exception {
-    verify(userHandler).handle(userCaptor.capture());
-    final AsyncResult<User> result = userCaptor.getValue();
+    assertThat(result.isComplete(), is(true));
     assertThat(result.succeeded(), is(true));
 
     assertThat(result.result(), instanceOf(ApiUser.class));
@@ -238,8 +232,7 @@ public class JaasAuthProviderTest {
   }
 
   private void verifyLoginFailure(final String expectedMsg) {
-    verify(userHandler).handle(userCaptor.capture());
-    final AsyncResult<User> result = userCaptor.getValue();
+    assertThat(result.isComplete(), is(true));
     assertThat(result.succeeded(), is(false));
     assertThat(result.cause().getMessage(), is(expectedMsg));
   }
@@ -253,12 +246,12 @@ public class JaasAuthProviderTest {
   private void handleAsyncExecution() {
     when(server.getWorkerExecutor()).thenReturn(worker);
     doAnswer(invocation -> {
-      final Handler<Promise<User>> blockingCodeHandler = invocation.getArgument(0);
-      final Handler<AsyncResult<User>> resultHandler = invocation.getArgument(2);
-      final Promise<User> promise = Promise.promise();
-      promise.future().onComplete(resultHandler);
-      blockingCodeHandler.handle(promise);
-      return null;
-    }).when(worker).executeBlocking(any(Handler.class), eq(false), any(Handler.class));
+      final Callable<?> blockingCode = invocation.getArgument(0);
+      try {
+        return Future.succeededFuture(blockingCode.call());
+      } catch (final Exception e) {
+        return Future.failedFuture(e);
+      }
+    }).when(worker).executeBlocking(any(Callable.class), eq(false));
   }
 }

@@ -89,7 +89,7 @@ public class ServerVerticle extends AbstractVerticle {
     this.connectionQueryManager = new ConnectionQueryManager(context, server);
     httpServer = vertx.createHttpServer(httpServerOptions).requestHandler(setupRouter())
         .exceptionHandler(ServerVerticle::unhandledExceptionHandler);
-    httpServer.listen(ar -> {
+    httpServer.listen().onComplete(ar -> {
       if (ar.succeeded()) {
         startPromise.complete();
       } else {
@@ -103,7 +103,7 @@ public class ServerVerticle extends AbstractVerticle {
     if (httpServer == null) {
       stopPromise.complete();
     } else {
-      httpServer.close(ar -> stopPromise.complete());
+      httpServer.close().onComplete(ar -> stopPromise.complete());
     }
   }
 
@@ -369,19 +369,18 @@ public class ServerVerticle extends AbstractVerticle {
   private void handleWebsocket(final RoutingContext routingContext) {
     final ApiSecurityContext apiSecurityContext =
         DefaultApiSecurityContext.create(routingContext, server);
-    routingContext.request().toWebSocket(serverWebSocket -> {
-          if (serverWebSocket.failed()) {
-            routingContext.fail(serverWebSocket.cause());
-          } else {
-            endpoints.executeWebsocketStream(
-                serverWebSocket.result(),
-                routingContext.request().params(),
-                server.getWorkerExecutor(),
-                apiSecurityContext,
-                context);
-          }
-        }
-    );
+    routingContext.request().toWebSocket().onComplete(serverWebSocket -> {
+      if (serverWebSocket.failed()) {
+        routingContext.fail(serverWebSocket.cause());
+      } else {
+        endpoints.executeWebsocketStream(
+            serverWebSocket.result(),
+            routingContext.request().params(),
+            server.getWorkerExecutor(),
+            apiSecurityContext,
+            context);
+      }
+    });
   }
 
   private static void chcHandler(final RoutingContext routingContext) {

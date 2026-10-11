@@ -345,7 +345,7 @@ public class KsqlServerEndpoints implements Endpoints {
   private <R> CompletableFuture<R> executeOnWorker(final Supplier<R> supplier,
       final WorkerExecutor workerExecutor) {
     final VertxCompletableFuture<R> vcf = new VertxCompletableFuture<>();
-    workerExecutor.executeBlocking(promise -> promise.complete(supplier.get()), false, vcf);
+    workerExecutor.executeBlocking(supplier::get, false).onComplete(vcf);
     return vcf;
   }
 

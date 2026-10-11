@@ -19,19 +19,22 @@ import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.api.server.Server;
 import io.confluent.ksql.security.DefaultKsqlPrincipal;
 import io.confluent.ksql.security.KsqlPrincipal;
-import io.vertx.core.AsyncResult;
+import io.confluent.ksql.util.VertxUtils;
 import io.vertx.core.Future;
-import io.vertx.core.Handler;
 import io.vertx.core.Promise;
 import io.vertx.core.json.JsonObject;
-import io.vertx.ext.auth.AuthProvider;
 import io.vertx.ext.auth.User;
+import io.vertx.ext.auth.authentication.AuthenticationProvider;
+import io.vertx.ext.auth.authentication.Credentials;
+import io.vertx.ext.auth.authentication.UsernamePasswordCredentials;
 import io.vertx.ext.auth.authorization.Authorization;
 import io.vertx.ext.auth.authorization.Authorizations;
 import io.vertx.ext.auth.authorization.RoleBasedAuthorization;
 import io.vertx.ext.auth.authorization.impl.AuthorizationsImpl;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 import org.eclipse.jetty.jaas.JAASLoginService;
 import org.eclipse.jetty.server.UserIdentity;
 import org.slf4j.Logger;
@@ -40,7 +43,7 @@ import org.slf4j.LoggerFactory;
 /**
  * Authentication provider that checks credentials specified in the JAAS config.
  */
-public class JaasAuthProvider implements AuthProvider {
+public class JaasAuthProvider implements AuthenticationProvider {
 
   private static final Logger LOG = LoggerFactory.getLogger(JaasAuthProvider.class);
 
@@ -73,26 +76,26 @@ public class JaasAuthProvider implements AuthProvider {
   }
 
   @Override
-  public void authenticate(
-      final JsonObject authInfo,
-      final Handler<AsyncResult<User>> resultHandler
-  ) {
-    final String username = authInfo.getString("username");
+  public Future<User> authenticate(final Credentials credentials) {
+    if (!(credentials instanceof UsernamePasswordCredentials)) {
+      return Future.failedFuture("Unsupported credentials type: "
+          + (credentials == null ? null : credentials.getClass().getName()));
+    }
+
+    final String username = ((UsernamePasswordCredentials) credentials).getUsername();
     if (username == null) {
-      resultHandler.handle(Future.failedFuture("authInfo missing 'username' field"));
-      return;
+      return Future.failedFuture("authInfo missing 'username' field");
     }
 
-    final String password = authInfo.getString("password");
+    final String password = ((UsernamePasswordCredentials) credentials).getPassword();
     if (password == null) {
-      resultHandler.handle(Future.failedFuture("authInfo missing 'password' field"));
-      return;
+      return Future.failedFuture("authInfo missing 'password' field");
     }
 
-    server.getWorkerExecutor().executeBlocking(
+    return VertxUtils.executeBlocking(
+        server.getWorkerExecutor(),
         promisedUser -> getUser(contextName, username, password, promisedUser),
-        false,
-        resultHandler
+        false
     );
   }
 
@@ -128,10 +131,12 @@ public class JaasAuthProvider implements AuthProvider {
         .map(KsqlPrincipal.class::cast)
         .findFirst();
 
-    final Authorizations authorizations = new AuthorizationsImpl();
-    user.getSubject()
+    final Set<Authorization> roles = user.getSubject()
         .getPrincipals()
-        .forEach(p -> authorizations.add("default", RoleBasedAuthorization.create(p.getName())));
+        .stream()
+        .map(p -> RoleBasedAuthorization.create(p.getName()))
+        .collect(Collectors.toSet());
+    final Authorizations authorizations = new AuthorizationsImpl().put("default", roles);
 
     promisedUser.complete(new ApiUser() {
 
@@ -153,20 +158,7 @@ public class JaasAuthProvider implements AuthProvider {
       }
 
       @Override
-      public User isAuthorized(
-          final Authorization authority,
-          final Handler<AsyncResult<Boolean>> resultHandler
-      ) {
-        throw new UnsupportedOperationException();
-      }
-
-      @Override
       public JsonObject principal() {
-        throw new UnsupportedOperationException();
-      }
-
-      @Override
-      public void setAuthProvider(final AuthProvider authProvider) {
         throw new UnsupportedOperationException();
       }
 

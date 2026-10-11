@@ -213,11 +213,10 @@ public class BlockingQueryPublisher extends BasePublisher<KeyValueMetadata<List<
   }
 
   private void executeOnWorker(final Runnable runnable) {
-    workerExecutor.executeBlocking(p -> runnable.run(), false, ar -> {
-      if (ar.failed()) {
-        log.error("Failed to close query", ar.cause());
-      }
-    });
+    workerExecutor.executeBlocking(() -> {
+      runnable.run();
+      return null;
+    }, false).onFailure(t -> log.error("Failed to close query", t));
   }
 
   @SuppressFBWarnings(

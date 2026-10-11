@@ -116,7 +116,7 @@ public final class CorsTest {
     // When
     VertxCompletableFuture<HttpResponse<Buffer>> requestFuture = new VertxCompletableFuture<>();
     client.request(HttpMethod.POST, URI)
-        .sendJsonObject(new JsonObject().put("sql", DEFAULT_PULL_QUERY), requestFuture);
+        .sendJsonObject(new JsonObject().put("sql", DEFAULT_PULL_QUERY)).onComplete(requestFuture);
     HttpResponse<Buffer> response = requestFuture.get();
 
     // Then:
@@ -299,7 +299,7 @@ public final class CorsTest {
     client
         .request(httpMethod, uri)
         .putHeaders(headers)
-       .sendJsonObject(new JsonObject().put("sql", DEFAULT_PULL_QUERY), requestFuture);
+       .sendJsonObject(new JsonObject().put("sql", DEFAULT_PULL_QUERY)).onComplete(requestFuture);
     return requestFuture.get();
   }
 

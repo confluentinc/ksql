@@ -28,6 +28,7 @@ import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.server.resources.KsqlRestException;
 import io.confluent.ksql.util.VertxCompletableFuture;
+import io.confluent.ksql.util.VertxUtils;
 import io.vertx.core.WorkerExecutor;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpHeaders;
@@ -62,7 +63,7 @@ public final class OldApiUtils {
     final T requestObject;
     if (requestClass != null) {
       final Optional<T> optRequestObject = ServerUtils
-          .deserialiseObject(routingContext.getBody(), routingContext, requestClass);
+          .deserialiseObject(routingContext.body().buffer(), routingContext, requestClass);
       if (!optRequestObject.isPresent()) {
         return;
       }
@@ -147,7 +148,8 @@ public final class OldApiUtils {
       final long startTimeNanos) {
     final WorkerExecutor workerExecutor = server.getWorkerExecutor();
     final VertxCompletableFuture<Void> vcf = new VertxCompletableFuture<>();
-    workerExecutor.executeBlocking(
+    VertxUtils.<Void>executeBlocking(
+        workerExecutor,
         promise -> {
           final OutputStream ros = new ResponseOutputStream(routingContext.response(),
                   streamingOutput.getWriteTimeoutMs());
@@ -177,9 +179,8 @@ public final class OldApiUtils {
             }
           }
         },
-        false /*if this is true, worker execution blocks the main event loop*/,
-        vcf
-    );
+        false /*if this is true, worker execution blocks the main event loop*/
+    ).onComplete(vcf);
     vcf.handle((v, throwable) -> {
       reportMetrics(routingContext, metricsCallbackHolder, startTimeNanos);
       return null;

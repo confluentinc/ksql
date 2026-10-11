@@ -212,7 +212,7 @@ public class BaseApiTest {
     sendPostRequest(client, "/query-stream",
         (request) -> request
             .as(BodyCodec.pipe(writeStream))
-            .sendJsonObject(requestBody, ar -> {
+            .sendJsonObject(requestBody).onComplete(ar -> {
     }));
 
     // Wait for all rows to arrive
@@ -239,7 +239,7 @@ public class BaseApiTest {
   protected HttpResponse<Buffer> sendGetRequest(final WebClient client, final String uri)
       throws Exception {
     VertxCompletableFuture<HttpResponse<Buffer>> requestFuture = new VertxCompletableFuture<>();
-    client.get(uri).send(requestFuture);
+    client.get(uri).send().onComplete(requestFuture);
     return requestFuture.get();
   }
 
@@ -254,7 +254,7 @@ public class BaseApiTest {
     VertxCompletableFuture<HttpResponse<Buffer>> requestFuture = new VertxCompletableFuture<>();
     client
         .post(uri)
-        .sendBuffer(requestBody, requestFuture);
+        .sendBuffer(requestBody).onComplete(requestFuture);
     return requestFuture.get(10_000L, TimeUnit.MILLISECONDS);
   }
 

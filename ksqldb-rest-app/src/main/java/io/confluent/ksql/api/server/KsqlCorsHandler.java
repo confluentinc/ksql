@@ -44,7 +44,7 @@ public class KsqlCorsHandler implements Handler<RoutingContext> {
       return;
     }
     final String convertedPattern = convertCommaSeparatedWilcardsToRegex(allowedOrigins);
-    final CorsHandler corsHandler = CorsHandler.create(convertedPattern);
+    final CorsHandler corsHandler = CorsHandler.create().addOriginWithRegex(convertedPattern);
     final Set<String> allowedMethodsSet = new HashSet<>(ksqlRestConfig
         .getList(KsqlRestConfig.ACCESS_CONTROL_ALLOW_METHODS));
     if (allowedMethodsSet.isEmpty()) {
@@ -74,7 +74,7 @@ public class KsqlCorsHandler implements Handler<RoutingContext> {
 
   @Override
   public void handle(final RoutingContext routingContext) {
-    final String path = routingContext.normalisedPath();
+    final String path = routingContext.normalizedPath();
     for (String excludedPrefix : EXCLUDED_PATH_PREFIXES) {
       if (path.startsWith(excludedPrefix)) {
         routingContext.next();

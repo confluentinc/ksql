@@ -186,7 +186,7 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
     final Map<String, Object> requestProperties;
     if (queryCompatibilityMode) {
       final Optional<KsqlRequest> ksqlRequest = ServerUtils
-          .deserialiseObject(routingContext.getBody(), routingContext, KsqlRequest.class);
+          .deserialiseObject(routingContext.body().buffer(), routingContext, KsqlRequest.class);
       if (!ksqlRequest.isPresent()) {
         return null;
       }
@@ -198,7 +198,7 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
       requestProperties = ksqlRequest.get().getRequestProperties();
     } else {
       final Optional<QueryStreamArgs> queryStreamArgs = ServerUtils
-          .deserialiseObject(routingContext.getBody(), routingContext, QueryStreamArgs.class);
+          .deserialiseObject(routingContext.body().buffer(), routingContext, QueryStreamArgs.class);
       if (!queryStreamArgs.isPresent()) {
         return null;
       }
@@ -294,7 +294,7 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
           queryPublisher.getColumnTypes(),
           preparePushProjectionSchema(queryPublisher.geLogicalSchema()));
 
-      routingContext.response().endHandler(v -> {
+      final Handler<Void> scalablePushQueryCleanup = v -> {
         if (endedResponse.getAndSet(true)) {
           log.warn("Connection already closed so just returning");
           return;
@@ -305,7 +305,11 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
             routingContext.request().bytesRead(),
             routingContext.response().bytesWritten(),
             startTimeNanos);
-      });
+      };
+      // Vert.x 5 only calls the end handler when the server ends the response; if the client
+      // goes away first only the close handler fires, so register the cleanup on both.
+      routingContext.response().endHandler(scalablePushQueryCleanup);
+      routingContext.response().closeHandler(scalablePushQueryCleanup);
     } else {
       final PushQueryHolder query = connectionQueryManager
           .createApiQuery(queryPublisher, routingContext.request());
@@ -318,7 +322,7 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
       completionMessage = Optional.of("Query Completed");
 
       // When response is complete, publisher should be closed and query unregistered
-      routingContext.response().endHandler(v -> {
+      final Handler<Void> pushQueryCleanup = v -> {
         if (endedResponse.getAndSet(true)) {
           log.warn("Connection already closed so just returning");
           return;
@@ -329,7 +333,11 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
             routingContext.request().bytesRead(),
             routingContext.response().bytesWritten(),
             startTimeNanos);
-      });
+      };
+      // Vert.x 5 only calls the end handler when the server ends the response; if the client
+      // goes away first only the close handler fires, so register the cleanup on both.
+      routingContext.response().endHandler(pushQueryCleanup);
+      routingContext.response().closeHandler(pushQueryCleanup);
     }
 
     final QueryStreamResponseWriter queryStreamResponseWriter
@@ -361,12 +369,11 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
     // call to the end handler, which will mess up metrics, so we ensure that this called just
     // once by keeping track of the calls.
     final AtomicBoolean endedResponse = new AtomicBoolean(false);
-    // When response is complete, publisher should be closed
-    routingContext.response().endHandler(v ->
-        endhandler(
-            printPublisher,
-            endedResponse
-        ));
+    // When response is complete, publisher should be closed. Vert.x 5 only calls the end handler
+    // when the server ends the response, so also close the publisher if the client goes away.
+    final Handler<Void> printCleanup = v -> endhandler(printPublisher, endedResponse);
+    routingContext.response().endHandler(printCleanup);
+    routingContext.response().closeHandler(printCleanup);
 
     final PrintSubscriber printSubscriber = new PrintSubscriber(
         context,

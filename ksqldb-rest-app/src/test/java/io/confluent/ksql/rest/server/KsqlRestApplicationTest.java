@@ -28,7 +28,6 @@ import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.anyShort;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -61,7 +60,7 @@ import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.version.metrics.VersionCheckerAgent;
-import io.vertx.core.Handler;
+import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import java.time.Duration;
 import java.time.Instant;
@@ -70,7 +69,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Consumer;
-
 import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.common.Metric;
 import org.apache.kafka.common.metrics.MetricsReporter;
@@ -154,10 +152,7 @@ public class KsqlRestApplicationTest {
   @SuppressWarnings({"unchecked", "rawtypes"})
   @Before
   public void setUp() {
-    doAnswer(a -> {
-      ((Handler<Void>) a.getArgument(0)).handle(null);
-      return null;
-    }).when(vertx).close(any());
+    when(vertx.close()).thenReturn(Future.succeededFuture());
     when(processingLogConfig.getBoolean(ProcessingLogConfig.STREAM_AUTO_CREATE))
         .thenReturn(true);
     when(processingLogConfig.getString(ProcessingLogConfig.STREAM_NAME))
@@ -228,7 +223,7 @@ public class KsqlRestApplicationTest {
     final InOrder inOrder = Mockito.inOrder(heartbeatAgent, lagReportingAgent, vertx);
     inOrder.verify(heartbeatAgent).stopAgent();
     inOrder.verify(lagReportingAgent).stopAgent();
-    inOrder.verify(vertx).close(any());
+    inOrder.verify(vertx).close();
   }
 
   @Test

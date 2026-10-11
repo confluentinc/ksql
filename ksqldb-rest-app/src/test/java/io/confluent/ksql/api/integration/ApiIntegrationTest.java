@@ -261,7 +261,7 @@ public class ApiIntegrationTest {
     VertxCompletableFuture<HttpResponse<Void>> responseFuture = new VertxCompletableFuture<>();
     client.post("/query-stream")
         .as(BodyCodec.pipe(writeStream))
-        .sendJsonObject(requestBody, responseFuture);
+        .sendJsonObject(requestBody).onComplete(responseFuture);
 
     assertThatEventually(engine::numberOfLiveQueries, is(2));
 
@@ -615,7 +615,7 @@ public class ApiIntegrationTest {
     VertxCompletableFuture<HttpResponse<Void>> responseFuture = new VertxCompletableFuture<>();
     client.post("/query-stream")
         .as(BodyCodec.pipe(writeStream))
-        .sendJsonObject(queryRequestBody, responseFuture);
+        .sendJsonObject(queryRequestBody).onComplete(responseFuture);
 
     assertThatEventually(engine::numberOfLiveQueries, is(2));
 
@@ -702,7 +702,7 @@ public class ApiIntegrationTest {
 
     // When:
     client.post("/query-stream").as(BodyCodec.pipe(writeStream))
-        .sendJsonObject(printRequestBody, responseFuture);
+        .sendJsonObject(printRequestBody).onComplete(responseFuture);
 
     // Then:
     AtomicReference<PrintResponse> atomicReference = new AtomicReference<>();
@@ -746,7 +746,7 @@ public class ApiIntegrationTest {
 
     // When:
     client.post("/query-stream").as(BodyCodec.pipe(writeStream))
-        .sendJsonObject(printRequestBody, responseFuture);
+        .sendJsonObject(printRequestBody).onComplete(responseFuture);
     vertx.setTimer(1000, timerId -> {
       // Only the persistent query for the agg table running in the background should be left
       assertThatEventually(engine::numberOfLiveQueries, is(1));
@@ -789,7 +789,7 @@ public class ApiIntegrationTest {
 
     // When:
     client.post("/query-stream").timeout(Long.MAX_VALUE).as(BodyCodec.pipe(writeStream))
-        .sendJsonObject(printRequestBody, responseFuture);
+        .sendJsonObject(printRequestBody).onComplete(responseFuture);
 
     // Then:
     AtomicReference<PrintResponse> atomicReference = new AtomicReference<>();
@@ -902,7 +902,7 @@ public class ApiIntegrationTest {
     // When:
     client.post("/query-stream").as(BodyCodec.pipe(writeStream))
         .putHeader("Accept", "application/json")
-        .sendJsonObject(printRequestBody, responseFuture);
+        .sendJsonObject(printRequestBody).onComplete(responseFuture);
 
     try {
       HttpResponse<Void> response = responseFuture.get();
@@ -1007,7 +1007,7 @@ public class ApiIntegrationTest {
     VertxCompletableFuture<HttpResponse<Buffer>> requestFuture = new VertxCompletableFuture<>();
     client
         .post(uri)
-        .sendBuffer(requestBody, requestFuture);
+        .sendBuffer(requestBody).onComplete(requestFuture);
     try {
       return requestFuture.get();
     } catch (Exception e) {

@@ -27,20 +27,19 @@ import io.confluent.ksql.util.KeyValue;
 import io.confluent.ksql.util.KeyValueMetadata;
 import io.confluent.ksql.util.KsqlHostInfo;
 import io.confluent.ksql.util.RowMetadata;
-import io.vertx.core.AsyncResult;
 import io.vertx.core.Context;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
-import io.vertx.core.impl.ConcurrentHashSet;
-import io.vertx.core.impl.future.SucceededFuture;
 import io.vertx.core.streams.WriteStream;
 import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.List;
 import java.util.OptionalInt;
 import java.util.Queue;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import javax.annotation.concurrent.GuardedBy;
 
@@ -87,10 +86,10 @@ public class PullQueryWriteStream implements WriteStream<List<StreamedRow>>, Blo
   // all of them but only one copy of them. perhaps a better solution
   // is to just write our own version of PipeImpl that works natively
   // with multiple ReadStreams
-  private final ConcurrentHashSet<Handler<Void>> drainHandler = new ConcurrentHashSet<>();
+  private final Set<Handler<Void>> drainHandler = ConcurrentHashMap.newKeySet();
 
   private CompletionHandler endHandler = () -> { };
-  private Handler<AsyncResult<Void>> limitHandler = ar -> { };
+  private Runnable limitHandler = () -> { };
   private Runnable queueCallback = () -> { };
 
   public PullQueryWriteStream(
@@ -103,14 +102,15 @@ public class PullQueryWriteStream implements WriteStream<List<StreamedRow>>, Blo
 
   private static final class HandledRow {
     private final PullQueryRow row;
-    private final Handler<AsyncResult<Void>> handler;
+    // shared by all rows of a single write() call; completed once the first of them is polled
+    private final Promise<Void> written;
 
     private HandledRow(
         final PullQueryRow row,
-        final Handler<AsyncResult<Void>> handler
+        final Promise<Void> written
     ) {
       this.row = row;
-      this.handler = handler;
+      this.written = written;
     }
   }
 
@@ -202,7 +202,7 @@ public class PullQueryWriteStream implements WriteStream<List<StreamedRow>>, Blo
       return null;
     }
 
-    polled.handler.handle(new SucceededFuture<>(null, null));
+    polled.written.tryComplete();
 
     if (monitor.enterIf(atHalfCapacity)) {
       try {
@@ -289,7 +289,7 @@ public class PullQueryWriteStream implements WriteStream<List<StreamedRow>>, Blo
 
   @Override
   public void setLimitHandler(final LimitHandler handler) {
-    this.limitHandler = ar -> handler.limitReached();
+    this.limitHandler = handler::limitReached;
   }
 
   @Override
@@ -314,28 +314,20 @@ public class PullQueryWriteStream implements WriteStream<List<StreamedRow>>, Blo
   @Override
   public Future<Void> write(final List<StreamedRow> data) {
     final Promise<Void> promise = Promise.promise();
-    write(data,promise);
-    return promise.future();
-  }
-
-  @Override
-  public void write(
-      final List<StreamedRow> data,
-      final Handler<AsyncResult<Void>> handler
-  ) {
     monitor.enter();
     try {
       if (isDone()) {
-        return;
+        return promise.future();
       }
       for (final PullQueryRow row: translator.apply(data)) {
-        if (queue.offer(new HandledRow(row, handler))) {
+        if (queue.offer(new HandledRow(row, promise))) {
           totalRowsQueued++;
           queueCallback.run();
           if (hardLimitHit()) {
             // check if the last row enqueued caused us to break the limit, in which case
             // we should signal the end of the WriteStream
-            end(limitHandler);
+            end();
+            limitHandler.run();
             break;
           }
         }
@@ -343,6 +335,7 @@ public class PullQueryWriteStream implements WriteStream<List<StreamedRow>>, Blo
     } finally {
       monitor.leave();
     }
+    return promise.future();
   }
 
   @Override
@@ -351,7 +344,7 @@ public class PullQueryWriteStream implements WriteStream<List<StreamedRow>>, Blo
   }
 
   @Override
-  public void end(final Handler<AsyncResult<Void>> handler) {
+  public Future<Void> end() {
     monitor.enter();
     try {
       closed = true;
@@ -360,7 +353,7 @@ public class PullQueryWriteStream implements WriteStream<List<StreamedRow>>, Blo
     }
 
     endHandler.complete();
-    handler.handle(new SucceededFuture<>(null, null));
+    return Future.succeededFuture();
   }
 
   @Override

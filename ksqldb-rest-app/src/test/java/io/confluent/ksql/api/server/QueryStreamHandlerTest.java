@@ -19,6 +19,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -46,6 +47,7 @@ import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.http.HttpVersion;
 import io.vertx.core.net.SocketAddress;
+import io.vertx.ext.web.RequestBody;
 import io.vertx.ext.web.RoutingContext;
 import java.util.Collections;
 import java.util.List;
@@ -137,7 +139,9 @@ public class QueryStreamHandlerTest {
   }
 
   private void givenRequest(final QueryStreamArgs req) {
-    when(routingContext.getBody()).thenReturn(ServerUtils.serializeObject(req));
+    final RequestBody requestBody = mock(RequestBody.class);
+    when(requestBody.buffer()).thenReturn(ServerUtils.serializeObject(req));
+    when(routingContext.body()).thenReturn(requestBody);
   }
 
   @Test

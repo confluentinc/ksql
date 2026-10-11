@@ -17,12 +17,12 @@ package io.confluent.ksql.rest.util;
 
 import io.confluent.ksql.security.KsqlAuthTokenProvider;
 import io.confluent.ksql.util.KsqlConfig;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import java.time.Clock;
 import java.util.Objects;
 import java.util.Optional;
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class AuthenticationUtil {
 

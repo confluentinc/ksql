@@ -137,7 +137,7 @@
         <apache.curator.version>5.2.0</apache.curator.version>
         <wiremock.version>2.24.0</wiremock.version>
         <icu.version>67.1</icu.version>
-        <vertx.version>4.5.27</vertx.version>
+        <vertx.version>5.2.1</vertx.version>
         <reactive-streams.version>1.0.3</reactive-streams.version>
         <skip.docker.build>true</skip.docker.build>
         <skip.docker.test>true</skip.docker.test>
@@ -154,8 +154,8 @@
              Please check top level `pom.xml` at https://github.com/netty/netty
              for the netty version we bump to (ie, corresponding git tag),
              to find the correct `tcnative` version. -->
-        <netty.version>4.1.138.Final</netty.version>
-        <netty-codec-http2-version>4.1.138.Final</netty-codec-http2-version>
+        <netty.version>4.2.19.Final</netty.version>
+        <netty-codec-http2-version>4.2.19.Final</netty-codec-http2-version>
         <jersey-common>2.46</jersey-common>
         <multi-threaded-testing.forkCount>3</multi-threaded-testing.forkCount>
         <kafka.version>${ce.kafka.version}</kafka.version>
@@ -628,6 +628,16 @@
                 <version>${scala.version}</version>
             </dependency>
 
+            <!-- Netty 4.2 (required by Vert.x 5) splits several artifacts (netty-codec-base,
+             netty-codec-compression, netty-codec-classes-quic, netty-codec-http3, ...), so import
+             the BOM to keep every netty jar on the same version. -->
+            <dependency>
+                <groupId>io.netty</groupId>
+                <artifactId>netty-bom</artifactId>
+                <version>${netty.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
             <!-- Explicitly override all netty artifacts to get the version we want. Doing netty-all
              doesn't seem to correctly override its individual dependencies, so all are enumerated
              here -->
@@ -822,9 +832,7 @@
                 <configuration>
                     <showWarnings>true</showWarnings>
                     <showDeprecation>true</showDeprecation>
-                    <compilerVersion>1.8</compilerVersion>
-                    <source>1.8</source>
-                    <target>1.8</target>
+                    <release>11</release>
                     <compilerArgs>
                         <arg>-Xlint:all,-serial,-options,-path</arg>
                         <arg>-parameters</arg>

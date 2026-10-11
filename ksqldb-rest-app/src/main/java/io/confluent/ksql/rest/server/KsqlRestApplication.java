@@ -549,7 +549,7 @@ public final class KsqlRestApplication implements Executable {
     if (vertx != null) {
       try {
         final CountDownLatch latch = new CountDownLatch(1);
-        vertx.close(ar -> latch.countDown());
+        vertx.close().onComplete(ar -> latch.countDown());
         if (!latch.await(VERTX_CLOSE_TIMEOUT_SEC, TimeUnit.SECONDS)) {
           log.error("Timed out after {}s waiting for vertx to close", VERTX_CLOSE_TIMEOUT_SEC);
         }

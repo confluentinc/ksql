@@ -46,6 +46,12 @@ public final class KStreamHolder<K> {
     return stream;
   }
 
+  /**
+   * Create a new {@code KStreamHolder} with the same {@code KStream} but a different schema.
+   * @param stream The stream to use
+   * @param schema The schema to use
+   * @return The new {@code KStreamHolder}
+   */
   public KStreamHolder<K> withStream(
       final KStream<K, GenericRow> stream,
       final LogicalSchema schema) {

@@ -61,9 +61,8 @@ import org.apache.kafka.common.errors.TopicAuthorizationException;
 import org.apache.kafka.common.errors.TopicDeletionDisabledException;
 import org.apache.kafka.common.errors.TopicExistsException;
 import org.apache.kafka.common.errors.UnknownTopicOrPartitionException;
-import org.apache.kafka.common.errors.UnsupportedVersionException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * Note: all calls make cross machine calls and are synchronous.
@@ -73,7 +72,7 @@ import org.slf4j.LoggerFactory;
 public class KafkaTopicClientImpl implements KafkaTopicClient {
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
-  private static final Logger LOG = LoggerFactory.getLogger(KafkaTopicClient.class);
+  private static final Logger LOG = LogManager.getLogger(KafkaTopicClient.class);
 
   private static final String DEFAULT_REPLICATION_PROP = "default.replication.factor";
   private static final String DELETE_TOPIC_ENABLE = "delete.topic.enable";
@@ -238,6 +237,8 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
     return topicConfig(topicName, true);
   }
 
+  // Kafka 2.3.0 and later supports incrementalAlterConfigs. Previous versions are no longer
+  // supported by KSQL.
   @Override
   public boolean addTopicConfig(final String topicName, final Map<String, ?> overrides) {
     final ConfigResource resource = new ConfigResource(ConfigResource.Type.TOPIC, topicName);
@@ -266,8 +267,6 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
           ExecutorUtil.RetryBehaviour.ON_RETRYABLE);
 
       return true;
-    } catch (final UnsupportedVersionException e) {
-      return addTopicConfigLegacy(topicName, stringConfigs);
     } catch (final Exception e) {
       throw new KafkaResponseGetFailedException(
           "Failed to set config for Kafka Topic " + topicName, e);
@@ -437,37 +436,6 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
     } catch (final Exception e) {
       throw new KafkaResponseGetFailedException(
           "Failed to get config for Kafka Topic " + topicName, e);
-    }
-  }
-
-  // 'alterConfigs' deprecated, but new `incrementalAlterConfigs` only available on Kafka v2.3+
-  // So we need to continue to support older brokers until our min requirements reaches v2.3
-  @SuppressWarnings({"deprecation", "RedundantSuppression"})
-  private boolean addTopicConfigLegacy(
-      final String topicName,
-      final Map<String, String> overrides
-  ) {
-    final ConfigResource resource = new ConfigResource(ConfigResource.Type.TOPIC, topicName);
-
-    try {
-      final Map<String, String> existingConfig = topicConfig(topicName, false);
-      existingConfig.putAll(overrides);
-
-      final Set<ConfigEntry> entries = existingConfig.entrySet().stream()
-          .map(e -> new ConfigEntry(e.getKey(), e.getValue()))
-          .collect(Collectors.toSet());
-
-      final Map<ConfigResource, Config> request =
-          Collections.singletonMap(resource, new Config(entries));
-
-      ExecutorUtil.executeWithRetries(
-          () -> adminClient.get().alterConfigs(request).all().get(),
-          ExecutorUtil.RetryBehaviour.ON_RETRYABLE);
-
-      return true;
-    } catch (final Exception e) {
-      throw new KafkaResponseGetFailedException(
-          "Failed to set config for Kafka Topic " + topicName, e);
     }
   }
 

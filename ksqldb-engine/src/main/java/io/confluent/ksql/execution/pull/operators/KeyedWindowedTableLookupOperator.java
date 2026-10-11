@@ -33,14 +33,14 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class KeyedWindowedTableLookupOperator
     extends AbstractPhysicalOperator
     implements UnaryPhysicalOperator, DataSourceOperator {
 
-  private static final Logger LOG = LoggerFactory.getLogger(
+  private static final Logger LOG = LogManager.getLogger(
       KeyedWindowedTableLookupOperator.class);
 
   private final Materialization mat;

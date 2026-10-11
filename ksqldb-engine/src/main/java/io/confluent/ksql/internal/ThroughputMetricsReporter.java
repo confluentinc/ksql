@@ -21,7 +21,6 @@ import static io.confluent.ksql.internal.MetricsTagUtils.KSQL_TOPIC_TAG;
 import static io.confluent.ksql.internal.MetricsTagUtils.SHARED_RUNTIME_THREAD_PATTERN;
 import static io.confluent.ksql.internal.MetricsTagUtils.UNSHARED_RUNTIME_THREAD_PATTERN;
 import static java.util.Objects.requireNonNull;
-import static org.apache.kafka.common.utils.Utils.mkSet;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
@@ -41,18 +40,18 @@ import org.apache.kafka.common.metrics.MetricsContext;
 import org.apache.kafka.common.metrics.MetricsReporter;
 import org.apache.kafka.common.metrics.stats.CumulativeSum;
 import org.apache.kafka.streams.processor.internals.metrics.StreamsMetricsImpl;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class ThroughputMetricsReporter implements MetricsReporter {
-  private static final Logger LOGGER = LoggerFactory.getLogger(ThroughputMetricsReporter.class);
+  private static final Logger LOGGER = LogManager.getLogger(ThroughputMetricsReporter.class);
   private static final String THROUGHPUT_METRICS_GROUP = "ksql-query-throughput-metrics";
   private static final String RECORDS_CONSUMED = "records-consumed-total";
   private static final String BYTES_CONSUMED = "bytes-consumed-total";
   private static final String RECORDS_PRODUCED = "records-produced-total";
   private static final String BYTES_PRODUCED = "bytes-produced-total";
   private static final Set<String> THROUGHPUT_METRIC_NAMES =
-      mkSet(RECORDS_CONSUMED, BYTES_CONSUMED, RECORDS_PRODUCED, BYTES_PRODUCED);
+      Set.of(RECORDS_CONSUMED, BYTES_CONSUMED, RECORDS_PRODUCED, BYTES_PRODUCED);
 
   private static final Map<String, Map<String, Map<MetricName, ThroughputTotalMetric>>> metrics =
       new HashMap<>();

@@ -260,8 +260,6 @@ extra:
         srlong: Confluent Schema Registry
         sr: Schema Registry
         streaming: Event Streaming Platform
-        zkfull: Apache ZooKeeper™
-        zk: ZooKeeper
 
         # Build-related string tokens
         kafkaversion: 3.5

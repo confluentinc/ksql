@@ -27,15 +27,15 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import org.apache.kafka.common.metrics.Metrics;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * Loads user defined aggregate functions (UDAFs)
  */
 public class UdafLoader {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(UdafLoader.class);
+  private static final Logger LOGGER = LogManager.getLogger(UdafLoader.class);
 
   private final MutableFunctionRegistry functionRegistry;
   private final Optional<Metrics> metrics;

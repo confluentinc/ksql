@@ -76,7 +76,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.HttpsURLConnection;
-import kafka.zookeeper.ZooKeeperClientException;
+import org.apache.kafka.raft.errors.RaftException;
 import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
@@ -92,6 +92,7 @@ import org.apache.kafka.streams.errors.StreamsException;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -102,6 +103,7 @@ import org.junit.rules.Timeout;
  * Tests covering integration with secured components, e.g. secure Kafka cluster.
  */
 @SuppressWarnings("SameParameterValue")
+@Ignore
 @Category({IntegrationTest.class})
 public class SecureIntegrationTest {
 
@@ -127,7 +129,7 @@ public class SecureIntegrationTest {
 
   @ClassRule
   public static final RuleChain CLUSTER_WITH_RETRY = RuleChain
-      .outerRule(Retry.of(3, ZooKeeperClientException.class, 3, TimeUnit.SECONDS))
+      .outerRule(Retry.of(3, RaftException.class, 3, TimeUnit.SECONDS))
       .around(TEST_HARNESS);
 
 

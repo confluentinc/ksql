@@ -34,12 +34,16 @@ import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.acl.AclOperation;
 import org.apache.kafka.common.errors.GroupAuthorizationException;
+import org.apache.kafka.common.errors.GroupIdNotFoundException;
 import org.apache.kafka.common.errors.GroupNotEmptyException;
 import org.apache.kafka.common.errors.RetriableException;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class KafkaConsumerGroupClientImpl implements KafkaConsumerGroupClient {
 
   private final Supplier<Admin> adminClient;
+  private static final Logger log = LogManager.getLogger(KafkaConsumerGroupClientImpl.class);
 
   public KafkaConsumerGroupClientImpl(final Supplier<Admin> adminClient) {
     this.adminClient = adminClient;
@@ -83,6 +87,11 @@ public class KafkaConsumerGroupClientImpl implements KafkaConsumerGroupClient {
       return new ConsumerGroupSummary(results);
     } catch (final GroupAuthorizationException e) {
       throw new KsqlGroupAuthorizationException(AclOperation.DESCRIBE, group);
+    } catch (final GroupIdNotFoundException e) {
+      // Per KIP-1043, Kafka now throws GroupIdNotFoundException if a group doesn't exist.
+      // Treat this expected scenario as a group with zero consumers by returning an empty summary.
+      log.debug("Consumer group '{}' not found, treating as empty. Reason: {}", group, e);
+      return new ConsumerGroupSummary(Collections.emptySet());
     } catch (final Exception e) {
       throw new KafkaResponseGetFailedException(
           "Failed to describe Kafka consumer groups: " + group, e);

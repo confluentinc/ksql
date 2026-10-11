@@ -31,6 +31,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.connect.avro.AvroConverter;
 import io.confluent.connect.avro.AvroDataConfig;
+import io.confluent.kafka.schemaregistry.avro.AvroSchemaProvider;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.serializers.AbstractKafkaSchemaSerDeConfig;
@@ -39,7 +40,6 @@ import io.confluent.ksql.serde.connect.ConnectProperties;
 import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.KsqlPreconditions;
 import java.math.BigDecimal;
 import java.nio.ByteBuffer;
 import java.time.LocalDate;
@@ -53,7 +53,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Optional;
 import java.util.stream.Collectors;
 import org.apache.avro.Conversions.DecimalConversion;
 import org.apache.avro.LogicalTypes;
@@ -219,7 +218,8 @@ public class KsqlAvroDeserializerTest {
         AbstractKafkaSchemaSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG, ""
     );
 
-    schemaRegistryClient = new MockSchemaRegistryClient();
+    schemaRegistryClient = new MockSchemaRegistryClient(ImmutableList.of(
+        new AvroSchemaProvider()));
 
     converter = new AvroConverter(schemaRegistryClient);
     converter.configure(configs, false);

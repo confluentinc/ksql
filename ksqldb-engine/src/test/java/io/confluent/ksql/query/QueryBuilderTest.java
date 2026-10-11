@@ -59,6 +59,8 @@ import io.confluent.ksql.util.TransientQueryMetadata;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.function.Function;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -75,11 +77,8 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.KafkaFuture;
 import org.apache.kafka.connect.data.Struct;
-import org.apache.kafka.streams.KafkaStreams;
-import org.apache.kafka.streams.StreamsBuilder;
-import org.apache.kafka.streams.StreamsConfig;
+import org.apache.kafka.streams.*;
 import org.apache.kafka.streams.StreamsConfig.InternalConfig;
-import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.processor.internals.namedtopology.AddNamedTopologyResult;
 import org.apache.kafka.streams.processor.internals.namedtopology.KafkaStreamsNamedTopologyWrapper;
@@ -107,6 +106,7 @@ public class QueryBuilderTest {
   private static final String STORE_NAME = "store";
   private static final String SUMMARY = "summary";
   private static final Map<String, Object> OVERRIDES = Collections.emptyMap();
+  private static final String DUMMY_BOOTSTRAP_SERVERS = "dummy_bootstrap_servers";
 
   private static final LogicalSchema SINK_SCHEMA = LogicalSchema.builder()
       .keyColumn(SystemColumns.ROWKEY_NAME, SqlTypes.STRING)
@@ -161,6 +161,8 @@ public class QueryBuilderTest {
   @Mock
   private StreamsBuilder streamsBuilder;
   @Mock
+  private Function<TopologyConfig, StreamsBuilder> streamsBuilderSupplier;
+  @Mock
   private NamedTopologyBuilder namedTopologyBuilder;
   @Mock
   private FunctionRegistry functionRegistry;
@@ -211,6 +213,7 @@ public class QueryBuilderTest {
     when(ksqlTopic.getKeyFormat()).thenReturn(KEY_FORMAT);
     when(ksqlTopic.getValueFormat()).thenReturn(VALUE_FORMAT);
     when(kafkaStreamsBuilder.build(any(), any())).thenReturn(kafkaStreams);
+    when(streamsBuilderSupplier.apply(any())).thenReturn(streamsBuilder);
     when(kafkaStreamsBuilder.buildNamedTopologyWrapper(any())).thenReturn(kafkaStreamsNamedTopologyWrapper);
     when(kafkaStreamsNamedTopologyWrapper.newNamedTopologyBuilder(any(), any())).thenReturn(namedTopologyBuilder);
     when(kafkaStreamsNamedTopologyWrapper.addNamedTopology(any())).thenReturn(addNamedTopologyResult);
@@ -224,7 +227,12 @@ public class QueryBuilderTest {
     when(ksqlMaterializationFactory.create(any(), any(), any(), any())).thenReturn(materialization);
     when(processingLogContext.getLoggerFactory()).thenReturn(processingLoggerFactory);
     when(processingLoggerFactory.getLogger(any(), anyMap())).thenReturn(processingLogger);
-    when(ksqlConfig.getKsqlStreamConfigProps(anyString())).thenReturn(Collections.emptyMap());
+    final Map<String, Object> streamProperties = new HashMap<>();
+    streamProperties.put(
+        StreamsConfig.BOOTSTRAP_SERVERS_CONFIG,
+        DUMMY_BOOTSTRAP_SERVERS
+        );
+    when(ksqlConfig.getKsqlStreamConfigProps(anyString())).thenReturn(streamProperties);
     when(ksqlConfig.getString(KsqlConfig.KSQL_CUSTOM_METRICS_TAGS)).thenReturn("");
     when(ksqlConfig.getString(KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG))
         .thenReturn(PERSISTENT_PREFIX);
@@ -272,7 +280,7 @@ public class QueryBuilderTest {
         Optional.empty(),
         false,
         queryListener,
-        streamsBuilder,
+        streamsBuilderSupplier,
         Optional.empty(),
         new MetricCollectors()
     );
@@ -391,7 +399,7 @@ public class QueryBuilderTest {
         Optional.empty(),
         false,
         queryListener,
-        streamsBuilder,
+        streamsBuilderSupplier,
         Optional.empty(),
         new MetricCollectors()
     );
@@ -432,7 +440,7 @@ public class QueryBuilderTest {
         SUMMARY,
         queryListener,
         ArrayList::new,
-        streamsBuilder,
+        streamsBuilderSupplier,
         new MetricCollectors()
     );
     queryMetadata.initialize();
@@ -664,7 +672,11 @@ public class QueryBuilderTest {
   private void shouldUseProvidedOptimizationConfig(final Object value) {
     // Given:
     final Map<String, Object> properties =
-        Collections.singletonMap(StreamsConfig.TOPOLOGY_OPTIMIZATION_CONFIG, value);
+        new HashMap<>(Collections.singletonMap(StreamsConfig.TOPOLOGY_OPTIMIZATION_CONFIG, value));
+    properties.put(
+        StreamsConfig.BOOTSTRAP_SERVERS_CONFIG,
+        DUMMY_BOOTSTRAP_SERVERS
+    );
     when(ksqlConfig.getKsqlStreamConfigProps(anyString())).thenReturn(properties);
 
     // When:
@@ -721,7 +733,9 @@ public class QueryBuilderTest {
         StreamsConfig.consumerPrefix(ConsumerConfig.INTERCEPTOR_CLASSES_CONFIG),
         ImmutableList.of(DummyConsumerInterceptor.class.getName()),
         StreamsConfig.producerPrefix(ConsumerConfig.INTERCEPTOR_CLASSES_CONFIG),
-        ImmutableList.of(DummyProducerInterceptor.class.getName())
+        ImmutableList.of(DummyProducerInterceptor.class.getName()),
+        StreamsConfig.BOOTSTRAP_SERVERS_CONFIG,
+        DUMMY_BOOTSTRAP_SERVERS
     ));
 
     // When:
@@ -742,7 +756,9 @@ public class QueryBuilderTest {
         StreamsConfig.consumerPrefix(ConsumerConfig.INTERCEPTOR_CLASSES_CONFIG),
         DummyConsumerInterceptor.class.getName(),
         StreamsConfig.producerPrefix(ConsumerConfig.INTERCEPTOR_CLASSES_CONFIG),
-        DummyProducerInterceptor.class.getName()
+        DummyProducerInterceptor.class.getName(),
+        StreamsConfig.BOOTSTRAP_SERVERS_CONFIG,
+        DUMMY_BOOTSTRAP_SERVERS
     ));
 
     // When:
@@ -764,7 +780,9 @@ public class QueryBuilderTest {
         StreamsConfig.consumerPrefix(ConsumerConfig.INTERCEPTOR_CLASSES_CONFIG),
         DummyConsumerInterceptor.class.getName()
             + ","
-            + DummyConsumerInterceptor2.class.getName()
+            + DummyConsumerInterceptor2.class.getName(),
+        StreamsConfig.BOOTSTRAP_SERVERS_CONFIG,
+        DUMMY_BOOTSTRAP_SERVERS
     ));
 
     // When:
@@ -948,7 +966,7 @@ public class QueryBuilderTest {
           SUMMARY,
           queryListener,
           ArrayList::new,
-          streamsBuilder,
+          streamsBuilderSupplier,
           new MetricCollectors()
       );
     }

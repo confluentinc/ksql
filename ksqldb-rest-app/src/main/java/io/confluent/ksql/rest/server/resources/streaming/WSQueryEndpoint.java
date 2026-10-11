@@ -54,13 +54,13 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import org.apache.kafka.common.errors.TopicAuthorizationException;
 import org.apache.kafka.common.utils.Time;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public class WSQueryEndpoint {
   // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
-  private static final Logger log = LoggerFactory.getLogger(WSQueryEndpoint.class);
+  private static final Logger log = LogManager.getLogger(WSQueryEndpoint.class);
 
   private final KsqlConfig ksqlConfig;
   private final StatementParser statementParser;
@@ -207,6 +207,7 @@ public class WSQueryEndpoint {
       final Map<String, Object> configProperties = request.getConfigOverrides();
       ConfigOverrideLogger.logOverrides("/ws/query", configProperties);
       configOverrideValidator.validateAll(configProperties);
+      ConfigOverrideLogger.logRangeViolations("/ws/query", configProperties);
       return request;
     } catch (final Exception e) {
       throw new IllegalArgumentException("Error parsing request: " + e.getMessage(), e);

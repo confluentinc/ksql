@@ -35,12 +35,12 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 import org.apache.kafka.common.Configurable;
 import org.apache.kafka.common.metrics.Metrics;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 class UdafFactoryInvoker implements FunctionSignature {
 
-  private static final Logger LOG = LoggerFactory.getLogger(UdafFactoryInvoker.class);
+  private static final Logger LOG = LogManager.getLogger(UdafFactoryInvoker.class);
 
   private final FunctionName functionName;
   private final Optional<Metrics> metrics;

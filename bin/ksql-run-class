@@ -46,12 +46,21 @@ done
 if [ -z "$KSQL_LOG4J_OPTS" ]; then
   # Test for files from dev -> packages so this will work as expected in dev if you have packages
   # installed
-  if [ -e "$base_dir/config/log4j.properties" ]; then # Dev environment
-    KSQL_LOG4J_OPTS="-Dlog4j.configuration=file:$base_dir/config/log4j.properties"
-  elif [ -e "$base_dir/etc/ksqldb/log4j.properties" ]; then # Simple zip file layout
-    KSQL_LOG4J_OPTS="-Dlog4j.configuration=file:$base_dir/etc/ksqldb/log4j.properties"
-  elif [ -e "/etc/ksqldb/log4j.properties" ]; then # Normal install layout
-    KSQL_LOG4J_OPTS="-Dlog4j.configuration=file:/etc/ksqldb/log4j.properties"
+  if [ -e "$base_dir/config/log4j2.yaml" ]; then # Dev environment
+    KSQL_LOG4J_OPTS="-Dlog4j2.configurationFile=file:$base_dir/config/log4j2.yaml"
+  elif [ -e "$base_dir/etc/ksqldb/log4j2.yaml" ]; then # Simple zip file layout
+    KSQL_LOG4J_OPTS="-Dlog4j2.configurationFile=file:$base_dir/etc/ksqldb/log4j2.yaml"
+  elif [ -e "/etc/ksqldb/log4j2.yaml" ]; then # Normal install layout
+    KSQL_LOG4J_OPTS="-Dlog4j2.configurationFile=file:/etc/ksqldb/log4j2.yaml"
+  fi
+else
+  if echo "$KSQL_LOG4J_OPTS" | grep -E "log4j\.[^[:space:]]+(\.properties|\.xml)$"; then
+      # Enable Log4j 1.x configuration compatibility mode for Log4j 2
+      export LOG4J_COMPATIBILITY=true
+      echo "DEPRECATED: A Log4j 1.x configuration file has been detected, which is no longer recommended." >&2
+      echo "To use a Log4j 2.x configuration, please see https://logging.apache.org/log4j/2.x/migrate-from-log4j1.html#Log4j2ConfigurationFormat for details about Log4j configuration file migration." >&2
+      echo "Since ksql processing log functionality uses kafka log4j appender, which was deprecated from 8.0.x, it will not be supported when using log4j1." >&2
+      echo "To continue using this functionality please switch to log4j2." >&2
   fi
 fi
 

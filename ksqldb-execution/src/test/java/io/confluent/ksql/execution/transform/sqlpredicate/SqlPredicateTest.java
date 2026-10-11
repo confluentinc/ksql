@@ -105,8 +105,8 @@ public class SqlPredicateTest {
     transformer = predicate.getTransformer(processingLogger);
 
     // When:
-    final Optional<GenericRow> result1 = transformer.transform("key", genericRow(99L), ctx);
-    final Optional<GenericRow> result2 = transformer.transform("key", genericRow(100L), ctx);
+    final Optional<GenericRow> result1 = transformer.transform("key", genericRow(99L));
+    final Optional<GenericRow> result2 = transformer.transform("key", genericRow(100L));
 
     // Then:
     assertThat(result1, is(not(Optional.empty())));
@@ -119,7 +119,7 @@ public class SqlPredicateTest {
     when(evaluator.evaluate(any(), any(), any(), any())).thenReturn(true);
 
     // When:
-    final Optional<GenericRow> result = transformer.transform("key", VALUE, ctx);
+    final Optional<GenericRow> result = transformer.transform("key", VALUE);
 
     // Then:
     assertThat(result, is(Optional.of(VALUE)));
@@ -131,7 +131,7 @@ public class SqlPredicateTest {
     when(evaluator.evaluate(any(), any(), any(), any())).thenReturn(false);
 
     // When:
-    final Optional<GenericRow> result = transformer.transform("key", VALUE, ctx);
+    final Optional<GenericRow> result = transformer.transform("key", VALUE);
 
     // Then:
     assertThat(result, is(Optional.empty()));
@@ -140,7 +140,7 @@ public class SqlPredicateTest {
   @Test
   public void shouldIgnoreNullRows() {
     // When:
-    final Optional<GenericRow> result = transformer.transform("key", null, ctx);
+    final Optional<GenericRow> result = transformer.transform("key", null);
 
     // Then:
     assertThat(result, is(Optional.empty()));
@@ -155,7 +155,7 @@ public class SqlPredicateTest {
     when(evaluator.evaluate(any(), any(), any(), any())).thenReturn(true);
 
     // When:
-    transformer.transform("key", VALUE, ctx);
+    transformer.transform("key", VALUE);
 
     // Then:
     final ArgumentCaptor<Supplier<String>> errorMsgCaptor = ArgumentCaptor.forClass(Supplier.class);

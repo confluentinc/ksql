@@ -39,8 +39,8 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * Represents the physical plan for pull queries. It is a tree of physical operators that gets
@@ -49,7 +49,7 @@ import org.slf4j.LoggerFactory;
  * the data stores.
  */
 public class PullPhysicalPlan {
-  private static final Logger LOGGER = LoggerFactory.getLogger(PullPhysicalPlan.class);
+  private static final Logger LOGGER = LogManager.getLogger(PullPhysicalPlan.class);
 
   private final AbstractPhysicalOperator root;
   private final LogicalSchema schema;

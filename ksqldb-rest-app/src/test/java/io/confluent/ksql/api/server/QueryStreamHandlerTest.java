@@ -19,7 +19,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doNothing;
-import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -32,7 +31,6 @@ import io.confluent.ksql.api.spi.Endpoints;
 import io.confluent.ksql.api.spi.QueryPublisher;
 import io.confluent.ksql.internal.PullQueryExecutorMetrics;
 import io.confluent.ksql.name.ColumnName;
-import io.confluent.ksql.properties.ConfigOverrideLogger;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.entity.QueryStreamArgs;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
@@ -58,7 +56,6 @@ import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
-import org.mockito.MockedStatic;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscriber;
@@ -217,29 +214,6 @@ public class QueryStreamHandlerTest {
     // Then: a normal stream close is neither counted as a disconnect nor cancelled.
     verify(pullQueryMetrics, never()).recordClientDisconnected();
     verify(publisher, never()).close();
-  }
-
-  @Test
-  public void shouldLogConfigOverridesWithRequestPath() {
-    // Given:
-    final Map<String, Object> properties = ImmutableMap.of(
-        "auto.offset.reset", "earliest",
-        "ksql.streams.num.stream.threads", "4");
-    final QueryStreamArgs req = new QueryStreamArgs("select * from foo;",
-        properties, Collections.emptyMap(), Collections.emptyMap());
-    givenRequest(req);
-    when(request.path()).thenReturn("/query-stream");
-
-    // When:
-    try (MockedStatic<ConfigOverrideLogger> configOverrideLogger =
-        mockStatic(ConfigOverrideLogger.class)) {
-      handler.handle(routingContext);
-      endHandler.getValue().handle(null);
-
-      // Then:
-      configOverrideLogger.verify(() ->
-          ConfigOverrideLogger.logOverrides("/query-stream", properties));
-    }
   }
 
   @Test

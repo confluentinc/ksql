@@ -34,8 +34,8 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Supplier;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * Backup service that replays the KSQL command_topic to a local file. A new backup file is
@@ -45,7 +45,7 @@ import org.slf4j.LoggerFactory;
  */
 public class CommandTopicBackupImpl implements CommandTopicBackup {
 
-  private static final Logger LOG = LoggerFactory.getLogger(CommandTopicBackupImpl.class);
+  private static final Logger LOG = LogManager.getLogger(CommandTopicBackupImpl.class);
   private static final String PREFIX = "backup_";
 
   private final File backupLocation;

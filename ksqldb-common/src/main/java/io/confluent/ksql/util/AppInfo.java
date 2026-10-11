@@ -17,12 +17,12 @@ package io.confluent.ksql.util;
 
 import java.io.InputStream;
 import java.util.Properties;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public final class AppInfo {
 
-  private static final Logger log = LoggerFactory.getLogger(AppInfo.class);
+  private static final Logger log = LogManager.getLogger(AppInfo.class);
   private static String version = "unknown";
   private static String commitId = "unknown";
 

@@ -37,6 +37,7 @@ import io.confluent.ksql.test.util.TestBasicJaasConfig;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.VertxCompletableFuture;
+import io.confluent.ksql.util.VertxUtils;
 import io.vertx.core.WorkerExecutor;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonObject;
@@ -455,7 +456,7 @@ public class AuthTest extends ApiTest {
     if (username != null || password != null) {
       request = request.basicAuthentication(username, password);
     }
-    request.send(requestFuture);
+    request.send().onComplete(requestFuture);
     return requestFuture.get();
   }
 
@@ -481,7 +482,7 @@ public class AuthTest extends ApiTest {
     if (username != null || password != null) {
       request = request.basicAuthentication(username, password);
     }
-    request.sendBuffer(requestBody, requestFuture);
+    request.sendBuffer(requestBody).onComplete(requestFuture);
     return requestFuture.get();
   }
 
@@ -493,7 +494,7 @@ public class AuthTest extends ApiTest {
   ) throws Exception {
     VertxCompletableFuture<HttpResponse<Buffer>> requestFuture = new VertxCompletableFuture<>();
     HttpRequest<Buffer> request = client.post(uri).putHeader("Authorization", authHeader);
-    request.sendBuffer(requestBody, requestFuture);
+    request.sendBuffer(requestBody).onComplete(requestFuture);
     return requestFuture.get();
   }
 
@@ -531,7 +532,7 @@ public class AuthTest extends ApiTest {
         // simulate a blocking execution, which plugins may do since they have access to
         // a worker executor
         final VertxCompletableFuture<Principal> vcf = new VertxCompletableFuture<>();
-        workerExecutor.executeBlocking(promise -> {
+        VertxUtils.<Principal>executeBlocking(workerExecutor, promise -> {
           try {
             Thread.sleep(1000);
           } catch (InterruptedException e) {
@@ -548,7 +549,7 @@ public class AuthTest extends ApiTest {
             routingContext.fail(401, e);
             promise.fail(e);
           }
-        }, vcf);
+        }, false).onComplete(vcf);
 
         return vcf;
       }

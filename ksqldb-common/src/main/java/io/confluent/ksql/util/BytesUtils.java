@@ -15,6 +15,7 @@
 package io.confluent.ksql.util;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.io.BaseEncoding;
 import io.vertx.core.buffer.Buffer;
 import jakarta.xml.bind.DatatypeConverter;
 import java.nio.ByteBuffer;
@@ -24,6 +25,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.function.Function;
 
@@ -221,11 +223,11 @@ public final class BytesUtils {
   }
 
   private static String hexEncoding(final byte[] value) {
-    return value == null ? null : DatatypeConverter.printHexBinary(value);
+    return value == null ? null : BaseEncoding.base16().encode(value);
   }
 
   private static byte[] hexDecoding(final String value) {
-    return value == null ? null : DatatypeConverter.parseHexBinary(value);
+    return value == null ? null : BaseEncoding.base16().decode(value.toUpperCase(Locale.ROOT));
   }
 
   private static String utf8Encoding(final byte[] value) {

@@ -29,6 +29,7 @@ import io.vertx.core.VertxException;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientOptions;
 import io.vertx.core.http.HttpVersion;
+import io.vertx.core.http.PoolOptions;
 import io.vertx.core.http.RequestOptions;
 import io.vertx.core.net.JksOptions;
 import io.vertx.core.net.SocketAddress;
@@ -98,7 +99,6 @@ public final class KsqlClient implements AutoCloseable {
    * @param socketAddressFactory A factoring for creating a SocketAddress, given the port and host
    *                             it's meant to represent
    */
-  @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
   public KsqlClient(
       final Optional<Credentials> credentials,
       final LocalProperties localProperties,
@@ -107,17 +107,45 @@ public final class KsqlClient implements AutoCloseable {
       final BiFunction<Integer, String, SocketAddress> socketAddressFactory,
       final Vertx vertx
   ) {
+    this(credentials, localProperties, httpClientOptionsFactory, new PoolOptions(),
+        httpClientOptionsFactory2, new PoolOptions(), socketAddressFactory, vertx);
+  }
+
+  /**
+   * Creates a new KsqlClient.
+   * @param credentials Optional credentials to pass along with requests if auth is enabled
+   * @param localProperties The set of local properties to pass along to /ksql requests
+   * @param httpClientOptionsFactory A factory for creating HttpClientOptions which take a parameter
+   *                                 isTls, indicating whether the factory should prepare the
+   *                                 options for a TLS connection
+   * @param poolOptions connection pool options used with {@code httpClientOptionsFactory}
+   * @param httpClientOptionsFactory2 same as above, but for HTTP/2 connections
+   * @param poolOptions2 connection pool options used with {@code httpClientOptionsFactory2}
+   * @param socketAddressFactory A factoring for creating a SocketAddress, given the port and host
+   *                             it's meant to represent
+   */
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
+  public KsqlClient(
+      final Optional<Credentials> credentials,
+      final LocalProperties localProperties,
+      final Function<Boolean, HttpClientOptions> httpClientOptionsFactory,
+      final PoolOptions poolOptions,
+      final Function<Boolean, HttpClientOptions> httpClientOptionsFactory2,
+      final PoolOptions poolOptions2,
+      final BiFunction<Integer, String, SocketAddress> socketAddressFactory,
+      final Vertx vertx
+  ) {
     this.vertx = vertx;
     this.authHeader = credentials.map(Credentials::getAuthHeader);
     this.localProperties = Objects.requireNonNull(localProperties, "localProperties");
     this.socketAddressFactory = Objects.requireNonNull(
         socketAddressFactory, "socketAddressFactory");
-    this.httpNonTlsClient = createHttpClient(vertx, httpClientOptionsFactory, false);
-    this.httpTlsClient = createHttpClient(vertx, httpClientOptionsFactory, true);
-    this.httpNonTlsClientHttp2 = Optional.of(
-        createHttpClient(vertx, validateHttp2(httpClientOptionsFactory2), false));
-    this.httpTlsClientHttp2 = Optional.of(
-        createHttpClient(vertx, validateHttp2(httpClientOptionsFactory2), true));
+    this.httpNonTlsClient = createHttpClient(vertx, httpClientOptionsFactory, poolOptions, false);
+    this.httpTlsClient = createHttpClient(vertx, httpClientOptionsFactory, poolOptions, true);
+    this.httpNonTlsClientHttp2 = Optional.of(createHttpClient(
+        vertx, validateHttp2(httpClientOptionsFactory2), poolOptions2, false));
+    this.httpTlsClientHttp2 = Optional.of(createHttpClient(
+        vertx, validateHttp2(httpClientOptionsFactory2), poolOptions2, true));
     this.ownedVertx = false;
   }
 
@@ -178,13 +206,13 @@ public final class KsqlClient implements AutoCloseable {
           VertxSslOptionsFactory.getJksTrustStoreOptions(clientProps);
 
       if (trustStoreOptions.isPresent()) {
-        httpClientOptions.setTrustStoreOptions(trustStoreOptions.get());
+        httpClientOptions.setTrustOptions(trustStoreOptions.get());
 
         final String alias = clientProps.get(SSL_KEYSTORE_ALIAS_CONFIG);
         final Optional<JksOptions> keyStoreOptions =
             VertxSslOptionsFactory.buildJksKeyStoreOptions(clientProps, Optional.ofNullable(alias));
 
-        keyStoreOptions.ifPresent(options -> httpClientOptions.setKeyStoreOptions(options));
+        keyStoreOptions.ifPresent(options -> httpClientOptions.setKeyCertOptions(options));
       }
     }
     try {
@@ -196,9 +224,10 @@ public final class KsqlClient implements AutoCloseable {
 
   private static HttpClient createHttpClient(final Vertx vertx,
       final Function<Boolean, HttpClientOptions> httpClientOptionsFactory,
+      final PoolOptions poolOptions,
       final boolean tls) {
     try {
-      return vertx.createHttpClient(httpClientOptionsFactory.apply(tls));
+      return vertx.createHttpClient(httpClientOptionsFactory.apply(tls), poolOptions);
     } catch (VertxException e) {
       throw new KsqlRestClientException(e.getMessage(), e);
     }

@@ -198,12 +198,12 @@ public final class ApiServerUtils {
       final Optional<JksOptions> keyStoreOptions =
           VertxSslOptionsFactory.buildJksKeyStoreOptions(props, Optional.ofNullable(keyStoreAlias));
 
-      keyStoreOptions.ifPresent(options -> httpServerOptions.setKeyStoreOptions(options));
+      keyStoreOptions.ifPresent(options -> httpServerOptions.setKeyCertOptions(options));
     } else if (keyStoreType.equals(KsqlRestConfig.SSL_STORE_TYPE_PKCS12)) {
       final Optional<PfxOptions> keyStoreOptions =
           VertxSslOptionsFactory.getPfxKeyStoreOptions(props);
 
-      keyStoreOptions.ifPresent(options -> httpServerOptions.setPfxKeyCertOptions(options));
+      keyStoreOptions.ifPresent(options -> httpServerOptions.setKeyCertOptions(options));
     } else if (keyStoreType.equals(KsqlRestConfig.SSL_STORE_TYPE_BCFKS)) {
       final Optional<KeyStoreOptions> keyStoreOptions =
           VertxSslOptionsFactory.getBcfksKeyStoreOptions(props);

@@ -18,7 +18,6 @@ package io.confluent.ksql.query;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.GenericRow;
-import io.vertx.core.impl.ConcurrentHashSet;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -26,6 +25,7 @@ import java.time.Duration;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
+import java.util.Set;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.streams.processor.PunctuationType;
@@ -40,20 +40,20 @@ final class TransientQuerySinkProcessor implements Processor<Object, GenericRow,
 
   private final TransientQueryQueue queue;
   private final Optional<ImmutableMap<TopicPartition, Long>> endOffsets;
-  private final ConcurrentHashSet<TopicPartition> donePartitions;
+  private final Set<TopicPartition> donePartitions;
   private ProcessorContext<Void, Void> context;
 
   public static ProcessorSupplier<Object, GenericRow, Void, Void> supplier(
       final TransientQueryQueue queue,
       final Optional<ImmutableMap<TopicPartition, Long>> endOffsets,
-      final ConcurrentHashSet<TopicPartition> donePartitions) {
+      final Set<TopicPartition> donePartitions) {
     return () -> new TransientQuerySinkProcessor(queue, endOffsets, donePartitions);
   }
 
   private TransientQuerySinkProcessor(
       final TransientQueryQueue queue,
       final Optional<ImmutableMap<TopicPartition, Long>> endOffsets,
-      final ConcurrentHashSet<TopicPartition> donePartitions) {
+      final Set<TopicPartition> donePartitions) {
 
     this.queue = queue;
     this.endOffsets = endOffsets;

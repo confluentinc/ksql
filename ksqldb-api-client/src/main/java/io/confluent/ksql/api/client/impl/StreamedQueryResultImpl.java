@@ -23,8 +23,6 @@ import io.confluent.ksql.api.client.StreamedQueryResult;
 import io.confluent.ksql.api.client.exception.KsqlClientException;
 import io.confluent.ksql.reactive.BufferedPublisher;
 import io.vertx.core.Context;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
@@ -32,6 +30,8 @@ import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicReference;
 import org.reactivestreams.Subscriber;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class StreamedQueryResultImpl extends BufferedPublisher<Row> implements StreamedQueryResult {
 

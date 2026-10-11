@@ -93,7 +93,7 @@ public class PullQueryRunner extends BasePerfRunner {
       VertxCompletableFuture<HttpResponse<Buffer>> vcf = new VertxCompletableFuture<>();
 
       client.post(8089, "localhost", "/query-stream")
-          .sendJsonObject(DEFAULT_PULL_QUERY_REQUEST_BODY, vcf);
+          .sendJsonObject(DEFAULT_PULL_QUERY_REQUEST_BODY).onComplete(vcf);
 
       vcf.thenAccept(resp -> {
         count();

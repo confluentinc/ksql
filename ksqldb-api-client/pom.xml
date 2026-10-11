@@ -79,7 +79,7 @@
 
         <dependency>
             <groupId>io.vertx</groupId>
-            <artifactId>vertx-codegen</artifactId>
+            <artifactId>vertx-codegen-api</artifactId>
             <version>${vertx.version}</version>
             <exclusions>
                 <exclusion>
@@ -248,7 +248,7 @@
                 <artifactId>maven-javadoc-plugin</artifactId>
                 <version>3.2.0</version>
                 <configuration>
-                    <source>8</source>
+                    <source>11</source>
                     <reportOutputDirectory>../docs/developer-guide/ksqldb-clients/java-client</reportOutputDirectory>
                     <stylesheetfile>javadoc.css</stylesheetfile>
                     <destDir>api</destDir>

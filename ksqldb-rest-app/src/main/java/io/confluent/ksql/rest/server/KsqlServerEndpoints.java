@@ -52,6 +52,7 @@ import io.confluent.ksql.rest.server.resources.streaming.StreamedQueryResource;
 import io.confluent.ksql.rest.server.resources.streaming.WSQueryEndpoint;
 import io.confluent.ksql.rest.util.AuthenticationUtil;
 import io.confluent.ksql.security.KsqlAuthTokenProvider;
+import io.confluent.ksql.security.KsqlAuthorizationValidator;
 import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
@@ -94,6 +95,7 @@ public class KsqlServerEndpoints implements Endpoints {
   private final QueryExecutor queryExecutor;
   private final Optional<KsqlAuthTokenProvider> authTokenProvider;
   private final ConfigOverrideValidator configOverrideValidator;
+  private final Optional<KsqlAuthorizationValidator> authorizationValidator;
 
   // CHECKSTYLE_RULES.OFF: ParameterNumber
   @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
@@ -114,7 +116,8 @@ public class KsqlServerEndpoints implements Endpoints {
       final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
       final QueryExecutor queryExecutor,
       final Optional<KsqlAuthTokenProvider> authTokenProvider,
-      final ConfigOverrideValidator configOverrideValidator
+      final ConfigOverrideValidator configOverrideValidator,
+      final Optional<KsqlAuthorizationValidator> authorizationValidator
   ) {
 
     // CHECKSTYLE_RULES.ON: ParameterNumber
@@ -137,6 +140,8 @@ public class KsqlServerEndpoints implements Endpoints {
     this.authTokenProvider = authTokenProvider;
     this.configOverrideValidator =
         Objects.requireNonNull(configOverrideValidator, "configOverrideValidator");
+    this.authorizationValidator =
+        Objects.requireNonNull(authorizationValidator, "authorizationValidator");
   }
 
   @Override
@@ -154,7 +159,8 @@ public class KsqlServerEndpoints implements Endpoints {
     return executeOnWorker(() -> {
       try {
         resolveAndValidateProperties(properties);
-        return new QueryEndpoint(ksqlEngine, ksqlConfig, pullQueryMetrics, queryExecutor)
+        return new QueryEndpoint(
+            ksqlEngine, ksqlConfig, pullQueryMetrics, queryExecutor, authorizationValidator)
             .createQueryPublisher(
                 sql,
                 properties,
@@ -162,7 +168,7 @@ public class KsqlServerEndpoints implements Endpoints {
                 requestProperties,
                 context,
                 workerExecutor,
-                ksqlSecurityContext.getServiceContext(),
+                ksqlSecurityContext,
                 metricsCallbackHolder,
                 isInternalRequest);
       } finally {

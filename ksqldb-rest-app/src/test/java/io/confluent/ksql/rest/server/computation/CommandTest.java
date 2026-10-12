@@ -135,4 +135,28 @@ public class CommandTest {
         Matchers.equalTo((short) 3)
     );
   }
+
+  @Test
+  public void shouldNotValidateValuesInRawOverwriteProperties() {
+    // Given: a stored value that ConfigDef rejects for this property.
+    final Command command = new Command(
+            "test statement;",
+            ImmutableMap.of("ksql.internal.topic.replicas", "not-a-number"),
+            Collections.emptyMap(),
+            Optional.empty()
+    );
+
+    // When:
+    final Map<String, Object> raw = command.getRawOverwriteProperties();
+
+    // Then: the raw accessor passes it through untouched. This is the whole reason it exists -
+    // the restore path logs and filters overrides before anything can reject them.
+    assertThat(raw.get("ksql.internal.topic.replicas"), equalTo("not-a-number"));
+
+    // And: the coercing accessor does reject it, which is the behaviour being avoided.
+    assertThrows(
+            RuntimeException.class,
+            command::getOverwriteProperties
+    );
+  }
 }

@@ -254,6 +254,7 @@ final class SourceBuilder extends SourceBuilderBase {
     private final Function<K, Collection<?>> keyGenerator;
     private final int pseudoColumnVersion;
     private final int pseudoColumnsToAdd;
+    private final int totalPseudoColumns;
     private final List<Column> headerColumns;
 
     AddRemainingPseudoAndKeyCols(
@@ -263,7 +264,9 @@ final class SourceBuilder extends SourceBuilderBase {
     ) {
       this.keyGenerator = requireNonNull(keyGenerator, "keyGenerator");
       this.pseudoColumnVersion = pseudoColumnVersion;
-      this.pseudoColumnsToAdd = (int) SystemColumns.pseudoColumnNames(pseudoColumnVersion)
+      final Set<ColumnName> columnNames = SystemColumns.pseudoColumnNames(pseudoColumnVersion);
+      this.totalPseudoColumns = columnNames.size();
+      this.pseudoColumnsToAdd = (int) columnNames
           .stream()
           .filter(col -> !SystemColumns.mustBeMaterializedForTableJoins(col))
           .count();
@@ -298,8 +301,6 @@ final class SourceBuilder extends SourceBuilderBase {
           }
 
           //calculate number of user columns, pseudo columns, and columns to shift for next steps
-          final Set<ColumnName> columnNames = SystemColumns.pseudoColumnNames(pseudoColumnVersion);
-          final int totalPseudoColumns = columnNames.size();
           final int pseudoColumnsToShift = totalPseudoColumns - pseudoColumnsToAdd;
           final int numUserColumns = row.size() - totalPseudoColumns;
 

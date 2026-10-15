@@ -104,17 +104,19 @@ public class QueryEndpoint {
         sql, properties, sessionVariables);
 
     if (statement.getStatement() instanceof PrintTopic) {
-      authorizationValidator.ifPresent(validator -> validator.checkAuthorization(
-          securityContext,
-          ksqlEngine.getMetaStore(),
-          statement.getStatement()));
-
-
+      // Constructed first (rather than after the authorization check below) since its
+      // constructor validates that the topic exists and throws a "bad statement" error
+      // otherwise; no data is read from the topic until startFromWorkerThread() is called.
       final BlockingPrintPublisher printPublisher = new BlockingPrintPublisher(context,
           workerExecutor,
           serviceContext,
           ksqlConfig,
           properties, (PrintTopic) statement.getStatement());
+
+      authorizationValidator.ifPresent(validator -> validator.checkAuthorization(
+          securityContext,
+          ksqlEngine.getMetaStore(),
+          statement.getStatement()));
 
       printPublisher.startFromWorkerThread();
       return printPublisher;

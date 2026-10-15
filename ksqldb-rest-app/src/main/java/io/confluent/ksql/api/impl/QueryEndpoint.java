@@ -36,6 +36,8 @@ import io.confluent.ksql.rest.server.query.QueryMetadataHolder;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.utils.FormatOptions;
+import io.confluent.ksql.security.KsqlAuthorizationValidator;
+import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.ConsistencyOffsetVector;
@@ -63,6 +65,7 @@ public class QueryEndpoint {
   private final KsqlConfig ksqlConfig;
   private final Optional<PullQueryExecutorMetrics> pullQueryMetrics;
   private final QueryExecutor queryExecutor;
+  private final Optional<KsqlAuthorizationValidator> authorizationValidator;
 
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
   @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
@@ -71,13 +74,15 @@ public class QueryEndpoint {
       final KsqlExecutionContext ksqlEngine,
       final KsqlConfig ksqlConfig,
       final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
-      final QueryExecutor queryExecutor
+      final QueryExecutor queryExecutor,
+      final Optional<KsqlAuthorizationValidator> authorizationValidator
 
   ) {
     this.ksqlEngine = ksqlEngine;
     this.ksqlConfig = ksqlConfig;
     this.pullQueryMetrics = pullQueryMetrics;
     this.queryExecutor = queryExecutor;
+    this.authorizationValidator = authorizationValidator;
   }
 
   public BasePublisher<?> createQueryPublisher(
@@ -87,24 +92,38 @@ public class QueryEndpoint {
       final Map<String, Object> requestProperties,
       final Context context,
       final WorkerExecutor workerExecutor,
-      final ServiceContext serviceContext,
+      final KsqlSecurityContext securityContext,
       final MetricsCallbackHolder metricsCallbackHolder,
       final Optional<Boolean> isInternalRequest) {
     // Must be run on worker as all this stuff is slow
     VertxUtils.checkIsWorker();
 
+    final ServiceContext serviceContext = securityContext.getServiceContext();
+
     final ConfiguredStatement<Statement> statement = createStatement(
         sql, properties, sessionVariables);
 
     if (statement.getStatement() instanceof PrintTopic) {
+      authorizationValidator.ifPresent(validator -> validator.checkAuthorization(
+          securityContext,
+          ksqlEngine.getMetaStore(),
+          statement.getStatement()));
+
+
       final BlockingPrintPublisher printPublisher = new BlockingPrintPublisher(context,
           workerExecutor,
           serviceContext,
           ksqlConfig,
           properties, (PrintTopic) statement.getStatement());
+
       printPublisher.startFromWorkerThread();
       return printPublisher;
     } else {
+      authorizationValidator.ifPresent(validator -> validator.checkAuthorization(
+          securityContext,
+          ksqlEngine.getMetaStore(),
+          statement.getStatement()));
+
       final QueryMetadataHolder queryMetadataHolder = queryExecutor.handleStatement(
           serviceContext,
           properties,

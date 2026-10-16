@@ -35,6 +35,8 @@ import com.google.common.collect.ImmutableMap;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.rocksdb.KsqlBoundedMemoryRocksDBConfigSetter.LruCacheFactory;
 import io.confluent.ksql.rocksdb.KsqlBoundedMemoryRocksDBConfigSetter.WriteBufferManagerFactory;
+import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -351,5 +353,25 @@ public class KsqlBoundedMemoryRocksDBConfigSetterTest {
 
     // Then:
     verify(bufferManagerFactory).create(eq(8 * 1024 * 1024 * 1024L), any());
+  }
+
+  @Test
+  public void sharedConfigFieldsShouldBeVolatile() throws Exception {
+    // Regression: Kafka Streams invokes configure() on the application-init thread and
+    // setConfig(storeName, options, configs) on each StreamThread when state stores are created.
+    // The static fields below are written by configure() and read by setConfig(); without
+    // volatile, the StreamThread reads have no happens-before relationship with the configure()
+    // writes and may observe null compactionStyle (-> NPE), null compressionType (-> NPE), or
+    // stale defaults for maxNumConcurrentJobs / allowTrivialMove / cache / writeBufferManager.
+    for (final String fieldName : new String[] {
+        "cache", "writeBufferManager",
+        "compactionStyle", "compressionType",
+        "maxNumConcurrentJobs", "allowTrivialMove"}) {
+      final Field field = KsqlBoundedMemoryRocksDBConfigSetter.class.getDeclaredField(fieldName);
+      assertThat(
+          fieldName + " must be volatile for cross-thread visibility from setConfig() callbacks",
+          (field.getModifiers() & Modifier.VOLATILE) != 0,
+          org.hamcrest.Matchers.is(true));
+    }
   }
 }

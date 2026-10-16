@@ -174,7 +174,11 @@ public class ConsistencyOffsetVector {
 
   @Override
   public int hashCode() {
-    throw new UnsupportedOperationException("Mutable object not suitable for hash key");
+    // Restore the equals/hashCode contract. The previous throw made the type unusable inside
+    // any HashMap/HashSet/Objects.hash chain - which the pull-query consistency-token plumbing
+    // relies on - and caused runtime crashes. Mutability is a separate concern; callers that
+    // need stable hashing should snapshot the vector themselves.
+    return Objects.hash(version, offsetVector);
   }
 
   @Override

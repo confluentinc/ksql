@@ -332,8 +332,8 @@ primaryExpression
     ;
 
 functionArgument
-    : expression
-    | windowUnit
+    : windowUnit
+    | expression
     ;
 
 timeZoneSpecifier

@@ -1,0 +1,33 @@
+load("@confluent_rules//bazelrc:bazel_helpers.bzl", "write_bazel_helpers")
+load("@confluent_rules//bazelrc:bazelrc_presets.bzl", "write_bazelrc_presets")
+
+alias(
+    name = "format",
+    actual = "//tools/format",
+)
+
+alias(
+    name = "format.check",
+    actual = "//tools/format:format.check",
+)
+
+write_bazelrc_presets(
+    name = "update_bazelrc",
+    presets = [
+        "common",
+        "java",
+    ],
+)
+
+# macOS: the generated diff_test's source file isn't staged into the sandbox.
+write_bazel_helpers(
+    name = "update_bazel_credential_helper",
+    tags = ["no-sandbox"],
+)
+
+# CI-only preset (RBE/cache/BES); CI runs `bazel run //:update_bazelrc_ci`.
+write_bazelrc_presets(
+    name = "update_bazelrc_ci",
+    presets = ["ci"],
+    tags = ["manual"],
+)

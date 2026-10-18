@@ -1,0 +1,53 @@
+load("//tools-bazel:ksql_defs.bzl", "KSQL_PARENT_DEPS", "KSQL_TEST_DATA", "KSQL_TEST_JVM_FLAGS", "KSQL_TEST_RUNTIME_DEPS")
+load("//tools-bazel:library_wrappers.bzl", "java_library", "jvm_junit_test_classes")
+
+java_library(
+    name = "ksqldb-benchmark",
+    srcs = glob(["src/main/java/**/*.java"]),
+    plugins = ["//third_party:jmh_processor"],
+    resource_strip_prefix = "ksqldb-benchmark/src/main/resources",
+    resources = glob(["src/main/resources/**"]),
+    visibility = ["//visibility:public"],
+    deps = KSQL_PARENT_DEPS + [
+        "//ksqldb-common:ksqldb-common-project",
+        "//ksqldb-engine:ksqldb-engine-project",
+        "//ksqldb-examples",
+        "//ksqldb-serde",
+        "@maven//:com_google_guava_guava",
+        "@maven//:io_confluent_avro_avro_random_generator",
+        "@maven//:io_confluent_kafka_json_schema_provider",
+        "@maven//:io_confluent_kafka_protobuf_provider",
+        "@maven//:io_confluent_kafka_schema_registry_client",
+        "@maven//:org_apache_kafka_kafka_clients",
+        "@maven//:org_openjdk_jmh_jmh_core",
+        "@maven//:org_openjdk_jmh_jmh_generator_annprocess",
+    ],
+)
+
+# Stand-in for the Maven `tests` test-jar: the whole src/test tree,
+# compiled once and shared by this module's tests and downstream modules.
+java_library(
+    name = "ksqldb-benchmark-tests",
+    testonly = True,
+    srcs = glob(["src/test/java/**/*.java"]),
+    visibility = ["//visibility:public"],
+    deps = KSQL_PARENT_DEPS + [
+        ":ksqldb-benchmark",
+        "//ksqldb-test-util",
+        "@maven//:com_google_guava_guava",
+        "@maven//:junit_junit",
+        "@maven//:org_hamcrest_hamcrest_all",
+        "@maven//:org_openjdk_jmh_jmh_core",
+    ],
+)
+
+jvm_junit_test_classes(
+    name = "ksqldb-benchmark-test-suite",
+    data = KSQL_TEST_DATA,
+    jvm_flags = KSQL_TEST_JVM_FLAGS,
+    test_lib = ":ksqldb-benchmark-tests",
+    test_srcs = [
+        "src/test/java/io/confluent/ksql/benchmark/SerdeBenchmarkTest.java",
+    ],
+    runtime_deps = KSQL_TEST_RUNTIME_DEPS,
+)

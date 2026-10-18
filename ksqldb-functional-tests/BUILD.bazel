@@ -1,0 +1,216 @@
+load("//tools-bazel:ksql_defs.bzl", "KSQL_PARENT_DEPS", "KSQL_TEST_DATA", "KSQL_TEST_JVM_FLAGS", "KSQL_TEST_RUNTIME_DEPS", "classes_dir", "classes_dir_test_args", "module_cwd_files")
+load("//tools-bazel:library_wrappers.bzl", "java_export", "java_library", "jvm_junit_test_classes")
+
+java_export(
+    name = "ksqldb-functional-tests",
+    srcs = glob(["src/main/java/**/*.java"]),
+    # Maven also publishes the test-jar (maven-jar-plugin test-jar goal).
+    classifier_artifacts = {"tests": ":ksqldb-functional-tests-tests"},
+    maven_coordinates = "io.confluent.ksql:ksqldb-functional-tests:$(maven_version)",
+    visibility = ["//visibility:public"],
+    deps = KSQL_PARENT_DEPS + [
+        "//ksqldb-common:ksqldb-common-project",
+        "//ksqldb-engine",
+        "//ksqldb-execution:ksqldb-execution-project",
+        "//ksqldb-metastore:ksqldb-metastore-project",
+        "//ksqldb-parser:ksqldb-parser-project",
+        "//ksqldb-rest-app",
+        "//ksqldb-rest-model:ksqldb-rest-model-project",
+        "//ksqldb-serde:ksqldb-serde-project",
+        "//ksqldb-testing-tool",
+        "//ksqldb-udf:ksqldb-udf-project",
+        "@maven//:com_fasterxml_jackson_core_jackson_annotations",
+        "@maven//:com_fasterxml_jackson_core_jackson_core",
+        "@maven//:com_fasterxml_jackson_core_jackson_databind",
+        "@maven//:com_fasterxml_jackson_datatype_jackson_datatype_jdk8",
+        "@maven//:com_fasterxml_jackson_datatype_jackson_datatype_jsr310",
+        "@maven//:com_github_rvesse_airline",
+        "@maven//:com_google_errorprone_error_prone_annotations",
+        "@maven//:com_google_guava_guava",
+        "@maven//:com_google_protobuf_protobuf_java",
+        "@maven//:com_google_protobuf_protobuf_java_util",
+        "@maven//:io_confluent_kafka_connect_avro_converter",
+        "@maven//:io_confluent_kafka_connect_avro_data",
+        "@maven//:io_confluent_kafka_connect_json_schema_converter",
+        "@maven//:io_confluent_kafka_connect_protobuf_converter",
+        "@maven//:io_confluent_kafka_json_schema_provider",
+        "@maven//:io_confluent_kafka_protobuf_provider",
+        "@maven//:io_confluent_kafka_schema_registry_client",
+        "@maven//:io_confluent_kafka_schema_serializer",
+        "@maven//:junit_junit",
+        "@maven//:org_apache_avro_avro",
+        "@maven//:org_apache_kafka_connect_api",
+        "@maven//:org_apache_kafka_kafka_clients",
+        "@maven//:org_apache_kafka_kafka_clients_test",
+        "@maven//:org_apache_kafka_kafka_streams",
+        "@maven//:org_apache_kafka_kafka_streams_test_utils",
+        "@maven//:org_hamcrest_hamcrest_all",
+    ],
+)
+
+# Stand-in for the Maven `tests` test-jar: the whole src/test tree,
+# compiled once and shared by this module's tests and downstream modules.
+java_library(
+    name = "ksqldb-functional-tests-tests",
+    srcs = glob(["src/test/java/**/*.java"]),
+    resource_strip_prefix = "ksqldb-functional-tests/src/test/resources",
+    resources = glob(["src/test/resources/**"]),
+    visibility = ["//visibility:public"],
+    deps = KSQL_PARENT_DEPS + [
+        ":ksqldb-functional-tests",
+        "//ksqldb-common:ksqldb-common-project",
+        "//ksqldb-common:ksqldb-common-tests",
+        "//ksqldb-engine:ksqldb-engine-project",
+        "//ksqldb-engine:ksqldb-engine-tests",
+        "//ksqldb-execution:ksqldb-execution-project",
+        "//ksqldb-metastore:ksqldb-metastore-project",
+        "//ksqldb-metastore:ksqldb-metastore-tests",
+        "//ksqldb-parser:ksqldb-parser-project",
+        "//ksqldb-rest-app:ksqldb-rest-app-project",
+        "//ksqldb-rest-app:ksqldb-rest-app-tests",
+        "//ksqldb-rest-client",
+        "//ksqldb-rest-client:ksqldb-rest-client-tests",
+        "//ksqldb-rest-model:ksqldb-rest-model-project",
+        "//ksqldb-rest-model:ksqldb-rest-model-tests",
+        "//ksqldb-serde:ksqldb-serde-project",
+        "//ksqldb-test-util",
+        "//ksqldb-testing-tool:ksqldb-testing-tool-project",
+        "//ksqldb-udf:ksqldb-udf-project",
+        "@maven//:com_approvaltests_approvaltests",
+        "@maven//:com_fasterxml_jackson_core_jackson_annotations",
+        "@maven//:com_fasterxml_jackson_core_jackson_core",
+        "@maven//:com_fasterxml_jackson_core_jackson_databind",
+        "@maven//:com_google_guava_guava",
+        "@maven//:io_confluent_avro_avro_random_generator",
+        "@maven//:io_confluent_kafka_connect_avro_data",
+        "@maven//:io_confluent_kafka_json_schema_provider",
+        "@maven//:io_confluent_kafka_protobuf_provider",
+        "@maven//:io_confluent_kafka_schema_registry_client",
+        "@maven//:junit_junit",
+        "@maven//:net_sf_jopt_simple_jopt_simple",
+        "@maven//:org_apache_avro_avro",
+        "@maven//:org_apache_kafka_connect_api",
+        "@maven//:org_apache_kafka_kafka_clients",
+        "@maven//:org_apache_kafka_kafka_raft",
+        "@maven//:org_apache_kafka_kafka_streams",
+        "@maven//:org_apache_kafka_kafka_streams_test_utils",
+        "@maven//:org_hamcrest_hamcrest",
+        "@maven//:org_json_json",
+        "@maven//:org_mockito_mockito_core",
+    ],
+)
+
+# Exploded main classes for ClassFinder-based tests (see ksql_defs.bzl).
+classes_dir(
+    name = "ksqldb-functional-tests-classes",
+    lib = ":ksqldb-functional-tests-lib",
+)
+
+# The QTT/RQTT loaders list test directories via ClassLoader.getResourceAsStream
+# ("query-validation-tests"), which only yields a listing for a directory
+# classpath entry (Maven's target/test-classes), not a jar. Prepend the test
+# lib exploded to a directory named like Maven's (ClassFinder skips
+# "/test-classes/" paths, exactly as under Maven).
+classes_dir(
+    name = "test-classes",
+    lib = ":ksqldb-functional-tests-tests",
+)
+
+# Module files at module-relative paths (surefire cwd = module dir): the
+# historical plans / test-runner trees, testing_tool_tests.json, the pom.xml
+# TestCasePlanLoader reads for the version, QueriesToAnonymizeTest.txt, and
+# KsqlTestingToolTest's "../ksqldb-engine/src/test/resources/udf-example-2.jar".
+module_cwd_files(
+    name = "ksqldb-functional-tests-cwd",
+    srcs = glob([
+        "src/test/resources/**",
+        "src/test/java/**/*.txt",
+        "src/test/java/**/QueryAnonymizerTest.java",  # ApprovalTests source lookup
+    ]) + ["pom.xml"],
+    root_symlinks = {
+        "//ksqldb-engine:src/test/resources/udf-example-2.jar": "ksqldb-engine/src/test/resources/udf-example-2.jar",
+    },
+)
+
+FUNCTIONAL_TEST_ARGS = ["--main_advice_classpath=ksqldb-functional-tests/test-classes"]
+
+FUNCTIONAL_TEST_DATA = [
+    ":test-classes",
+    ":ksqldb-functional-tests-cwd",
+] + glob(["src/test/resources/**"])  # PlannedTestPath: ./ksqldb-functional-tests/...
+
+jvm_junit_test_classes(
+    name = "ksqldb-functional-tests-test-suite",
+    args = FUNCTIONAL_TEST_ARGS,
+    data = KSQL_TEST_DATA + FUNCTIONAL_TEST_DATA,
+    # failsafe multi-threaded-testing execution: **/RestQueryTranslationTest*.java
+    integration_srcs = [
+        "src/test/java/io/confluent/ksql/test/rest/batches/RestQueryTranslationTestBatch0.java",
+        "src/test/java/io/confluent/ksql/test/rest/batches/RestQueryTranslationTestBatch1.java",
+        "src/test/java/io/confluent/ksql/test/rest/batches/RestQueryTranslationTestBatch2.java",
+        "src/test/java/io/confluent/ksql/test/rest/batches/RestQueryTranslationTestBatch3.java",
+    ],
+    jvm_flags = KSQL_TEST_JVM_FLAGS,
+    per_test_args = {
+        # QTT: thousands of parameterized cases; sharded (JUnit platform test
+        # sharding) and given the `enormous` timeout.
+        # fails-on-darwin-arm64: QTT/plan cases `math - exp` / `math - ln` hit
+        # the same last-ulp Math.exp/log difference as ksqldb-engine ExpTest
+        # (which fails under Maven on darwin-arm64 too); all other ~4,200
+        # cases pass locally. They still run on Linux.
+        "src/test/java/io/confluent/ksql/test/QueryTranslationTest.java": {
+            "shard_count": 8,
+            "size": "enormous",
+            "tags": ["fails-on-darwin-arm64"],
+        },
+        "src/test/java/io/confluent/ksql/test/planned/PlannedTestsUpToDateTest.java": {
+            "shard_count": 4,
+            "size": "enormous",
+            "tags": ["fails-on-darwin-arm64"],
+        },
+        # RQTT pull-query cases are timing-sensitive on this laptop: batch 0
+        # fails 4/103 under Maven failsafe locally as well (same cases).
+        "src/test/java/io/confluent/ksql/test/rest/batches/RestQueryTranslationTestBatch0.java": {"tags": ["fails-on-darwin-arm64"]},
+        "src/test/java/io/confluent/ksql/test/rest/batches/RestQueryTranslationTestBatch1.java": {"tags": ["fails-on-darwin-arm64"]},
+        "src/test/java/io/confluent/ksql/test/rest/batches/RestQueryTranslationTestBatch2.java": {"tags": ["fails-on-darwin-arm64"]},
+        "src/test/java/io/confluent/ksql/test/rest/batches/RestQueryTranslationTestBatch3.java": {"tags": ["fails-on-darwin-arm64"]},
+        "src/test/java/io/confluent/ksql/test/functional/ImmutabilityTest.java": classes_dir_test_args("ksqldb-functional-tests"),
+    },
+    test_lib = ":ksqldb-functional-tests-tests",
+    test_srcs = [
+        "src/test/java/io/confluent/ksql/test/QueryAnonymizerTest.java",
+        "src/test/java/io/confluent/ksql/test/QueryTranslationTest.java",
+        "src/test/java/io/confluent/ksql/test/SchemaTranslationTest.java",
+        "src/test/java/io/confluent/ksql/test/SchemaTranslationWithSchemaIdTest.java",
+        "src/test/java/io/confluent/ksql/test/driver/KsqlTesterTest.java",
+        "src/test/java/io/confluent/ksql/test/functional/ImmutabilityTest.java",
+        "src/test/java/io/confluent/ksql/test/model/KeyFormatNodeTest.java",
+        "src/test/java/io/confluent/ksql/test/model/KsqlVersionTest.java",
+        "src/test/java/io/confluent/ksql/test/model/PostConditionsNodeTest.java",
+        "src/test/java/io/confluent/ksql/test/model/RecordNodeTest.java",
+        "src/test/java/io/confluent/ksql/test/model/SchemaNodeTest.java",
+        "src/test/java/io/confluent/ksql/test/model/SourceNodeTest.java",
+        "src/test/java/io/confluent/ksql/test/planned/PlannedTestGeneratorTest.java",
+        "src/test/java/io/confluent/ksql/test/planned/PlannedTestRewriterTest.java",
+        "src/test/java/io/confluent/ksql/test/planned/PlannedTestsUpToDateTest.java",
+        "src/test/java/io/confluent/ksql/test/planned/TestCasePlanLoaderTest.java",
+        "src/test/java/io/confluent/ksql/test/rest/RestTestExecutorTest.java",
+        "src/test/java/io/confluent/ksql/test/rest/batches/RestQueryTranslationTestBatch0.java",
+        "src/test/java/io/confluent/ksql/test/rest/batches/RestQueryTranslationTestBatch1.java",
+        "src/test/java/io/confluent/ksql/test/rest/batches/RestQueryTranslationTestBatch2.java",
+        "src/test/java/io/confluent/ksql/test/rest/batches/RestQueryTranslationTestBatch3.java",
+        "src/test/java/io/confluent/ksql/test/serde/json/ValueSpecJsonSchemaSerdeSupplierTest.java",
+        "src/test/java/io/confluent/ksql/test/serde/json/ValueSpecJsonSerdeSupplierTest.java",
+        "src/test/java/io/confluent/ksql/test/serde/kafka/KafkaSerdeSupplierTest.java",
+        "src/test/java/io/confluent/ksql/test/tools/ExpectedRecordComparatorTest.java",
+        "src/test/java/io/confluent/ksql/test/tools/HistoricalTestingFunctionalTest.java",
+        "src/test/java/io/confluent/ksql/test/tools/KsqlTestingToolTest.java",
+        "src/test/java/io/confluent/ksql/test/tools/RecordTest.java",
+        "src/test/java/io/confluent/ksql/test/tools/StubKafkaServiceTest.java",
+        "src/test/java/io/confluent/ksql/test/tools/TestExecutorTest.java",
+        "src/test/java/io/confluent/ksql/test/tools/TestExecutorUtilTest.java",
+        "src/test/java/io/confluent/ksql/test/tools/TestJsonMapperTest.java",
+        "src/test/java/io/confluent/ksql/test/tools/command/TestOptionsParserTest.java",
+    ],
+    runtime_deps = KSQL_TEST_RUNTIME_DEPS,
+)

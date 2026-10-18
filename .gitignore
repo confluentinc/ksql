@@ -43,3 +43,10 @@ ui/
 docker-compose.local.yml
 config/ksql-server.local.properties
 .env.local
+
+# Bazel
+/bazel-*
+.bazel/bazelrc/ci.bazelrc
+bazel-credential-helper.py
+MODULE.bazel.lock
+user.bazelrc

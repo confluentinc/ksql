@@ -503,9 +503,12 @@ public class ApiTest extends BaseApiTest {
     // Write the initial params Json object to the request body
     readStream.acceptBuffer(params.toBuffer().appendString("\n"));
 
-    // Asynchronously on a timer write inserts to the request body
+    // Asynchronously on a timer write inserts to the request body, once the request is connected
     AtomicInteger rowIndex = new AtomicInteger();
     vertx.setPeriodic(100, tid -> {
+      if (!readStream.isAttached()) {
+        return;
+      }
       readStream.acceptBuffer(rows.get(rowIndex.getAndIncrement()).toBuffer().appendString("\n"));
       if (rowIndex.get() == rows.size()) {
         vertx.cancelTimer(tid);

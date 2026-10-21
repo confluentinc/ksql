@@ -61,6 +61,7 @@ public class PullQueryConfigRoutingOptions implements RoutingOptions {
   }
 
   public boolean getIsDebugRequest() {
+    // Debug output exposes internal host details, so only peers on the internal listener get it.
     if (!isInternalRequest) {
       return false;
     }

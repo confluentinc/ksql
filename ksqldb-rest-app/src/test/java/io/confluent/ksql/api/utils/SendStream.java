@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.api.utils;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.vertx.codegen.annotations.Nullable;
 import io.vertx.core.Context;
 import io.vertx.core.Handler;
@@ -32,6 +31,7 @@ public class SendStream implements ReadStream<Buffer> {
   private Handler<Buffer> handler;
   private Handler<Void> endHandler;
   private boolean ended;
+  private boolean endSent;
   private long lastSentTime;
 
   public SendStream(final Vertx vertx) {
@@ -39,11 +39,8 @@ public class SendStream implements ReadStream<Buffer> {
   }
 
   public synchronized void acceptBuffer(final Buffer buffer) {
-    if (handler == null) {
-      pending.add(buffer);
-    } else {
-      context.runOnContext(v -> sendBuffer(buffer));
-    }
+    pending.add(buffer);
+    scheduleDrain();
   }
 
   @Override
@@ -54,12 +51,12 @@ public class SendStream implements ReadStream<Buffer> {
   @Override
   public synchronized ReadStream<Buffer> handler(@Nullable final Handler<Buffer> handler) {
     this.handler = handler;
+    scheduleDrain();
     return this;
   }
 
-  private synchronized void sendBuffer(final Buffer buff) {
-    lastSentTime = System.currentTimeMillis();
-    handler.handle(buff);
+  public synchronized boolean isAttached() {
+    return handler != null;
   }
 
   @Override
@@ -67,18 +64,9 @@ public class SendStream implements ReadStream<Buffer> {
     return this;
   }
 
-  @SuppressFBWarnings("IS2_INCONSISTENT_SYNC")
   @Override
   public ReadStream<Buffer> resume() {
-    context.runOnContext(v -> {
-      if (handler != null) {
-        Buffer buff;
-        while ((buff = pending.poll()) != null) {
-          sendBuffer(buff);
-        }
-      }
-    });
-
+    scheduleDrain();
     return this;
   }
 
@@ -90,22 +78,36 @@ public class SendStream implements ReadStream<Buffer> {
   @Override
   public synchronized ReadStream<Buffer> endHandler(@Nullable final Handler<Void> endHandler) {
     this.endHandler = endHandler;
-    if (ended && endHandler != null) {
-      context.runOnContext(v -> endHandler.handle(null));
-    }
+    scheduleDrain();
     return this;
   }
 
   public synchronized void end() {
     this.ended = true;
-    if (endHandler != null) {
-      context.runOnContext(v -> endHandler.handle(null));
-    }
+    scheduleDrain();
   }
 
   public synchronized long getLastSentTime() {
     return lastSentTime;
   }
+
+  private void scheduleDrain() {
+    context.runOnContext(v -> drain());
+  }
+
+  // Only signal end after all pending buffers have been delivered to the handler.
+  private synchronized void drain() {
+    if (handler == null) {
+      return;
+    }
+    Buffer buff;
+    while ((buff = pending.poll()) != null) {
+      lastSentTime = System.currentTimeMillis();
+      handler.handle(buff);
+    }
+    if (ended && !endSent && endHandler != null) {
+      endSent = true;
+      endHandler.handle(null);
+    }
+  }
 }
-
-

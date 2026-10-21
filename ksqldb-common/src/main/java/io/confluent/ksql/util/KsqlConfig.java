@@ -947,6 +947,21 @@ public class KsqlConfig extends AbstractConfig {
     }
   }
 
+  /**
+   * Deprecated Kafka Streams configs mapped to their replacements. ksql sets its defaults on the
+   * replacement keys, which Kafka Streams prefers over the deprecated ones, so a deprecated key
+   * set by the user is carried over to its replacement to keep taking effect.
+   */
+  @SuppressWarnings("deprecation")
+  private static final Map<String, String> DEPRECATED_STREAMS_CONFIGS = ImmutableMap.of(
+      StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG,
+      StreamsConfig.STATESTORE_CACHE_MAX_BYTES_CONFIG,
+      StreamsConfig.DEFAULT_DESERIALIZATION_EXCEPTION_HANDLER_CLASS_CONFIG,
+      StreamsConfig.DESERIALIZATION_EXCEPTION_HANDLER_CLASS_CONFIG,
+      StreamsConfig.DEFAULT_PRODUCTION_EXCEPTION_HANDLER_CLASS_CONFIG,
+      StreamsConfig.PRODUCTION_EXCEPTION_HANDLER_CLASS_CONFIG
+  );
+
   private static final Collection<CompatibilityBreakingStreamsConfig>
       COMPATIBILITY_BREAKING_STREAMS_CONFIGS = ImmutableList.of(
           // Turn on optimizations by default, unless the user explicitly disables in config:
@@ -1866,8 +1881,23 @@ public class KsqlConfig extends AbstractConfig {
       final Map<String, ?> overrides) {
     final Map<String, ConfigValue> streamConfigProps = new HashMap<>();
     applyStreamsConfig(baseStreamConfig, streamConfigProps);
-    applyStreamsConfig(overrides, streamConfigProps);
+    final Map<String, ConfigValue> overrideProps = new HashMap<>();
+    applyStreamsConfig(overrides, overrideProps);
+    streamConfigProps.putAll(overrideProps);
+    applyDeprecatedStreamsConfigs(overrideProps, streamConfigProps);
     return ImmutableMap.copyOf(streamConfigProps);
+  }
+
+  private static void applyDeprecatedStreamsConfigs(
+      final Map<String, ConfigValue> overrideProps,
+      final Map<String, ConfigValue> streamsConfigProps) {
+    DEPRECATED_STREAMS_CONFIGS.forEach((deprecatedKey, replacementKey) -> {
+      final ConfigValue deprecated = overrideProps.get(deprecatedKey);
+      if (deprecated != null && !overrideProps.containsKey(replacementKey)) {
+        resolveStreamsConfig(replacementKey, deprecated.value)
+            .ifPresent(configValue -> streamsConfigProps.put(configValue.key, configValue));
+      }
+    });
   }
 
   private final Map<String, ConfigValue> ksqlStreamConfigProps;
@@ -1891,18 +1921,18 @@ public class KsqlConfig extends AbstractConfig {
     streamsConfigDefaults.put(StreamsConfig.COMMIT_INTERVAL_MS_CONFIG, KsqlConstants
         .defaultCommitIntervalMsConfig);
     streamsConfigDefaults.put(
-        StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG, KsqlConstants
+        StreamsConfig.STATESTORE_CACHE_MAX_BYTES_CONFIG, KsqlConstants
             .defaultCacheMaxBytesBufferingConfig);
     streamsConfigDefaults.put(StreamsConfig.NUM_STREAM_THREADS_CONFIG, KsqlConstants
         .defaultNumberOfStreamsThreads);
     if (!getBooleanConfig(FAIL_ON_DESERIALIZATION_ERROR_CONFIG, false)) {
       streamsConfigDefaults.put(
-          StreamsConfig.DEFAULT_DESERIALIZATION_EXCEPTION_HANDLER_CLASS_CONFIG,
+          StreamsConfig.DESERIALIZATION_EXCEPTION_HANDLER_CLASS_CONFIG,
           LogMetricAndContinueExceptionHandler.class
       );
     }
     streamsConfigDefaults.put(
-        StreamsConfig.DEFAULT_PRODUCTION_EXCEPTION_HANDLER_CLASS_CONFIG,
+        StreamsConfig.PRODUCTION_EXCEPTION_HANDLER_CLASS_CONFIG,
         ProductionExceptionHandlerUtil.getHandler(
             getBooleanConfig(FAIL_ON_PRODUCTION_ERROR_CONFIG, true))
     );

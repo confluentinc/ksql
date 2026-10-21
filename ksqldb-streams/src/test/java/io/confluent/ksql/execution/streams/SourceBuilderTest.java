@@ -17,8 +17,10 @@ package io.confluent.ksql.execution.streams;
 
 import static io.confluent.ksql.GenericRow.genericRow;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -67,6 +69,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.common.config.ConfigException;
 import org.apache.kafka.common.header.Headers;
 import org.apache.kafka.common.header.internals.RecordHeader;
 import org.apache.kafka.common.header.internals.RecordHeaders;
@@ -75,8 +78,8 @@ import org.apache.kafka.common.utils.Bytes;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
+import org.apache.kafka.streams.AutoOffsetReset;
 import org.apache.kafka.streams.StreamsBuilder;
-import org.apache.kafka.streams.Topology.AutoOffsetReset;
 import org.apache.kafka.streams.kstream.Consumed;
 import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.KTable;
@@ -299,7 +302,7 @@ public class SourceBuilderTest {
     validator.verify(kTable).transformValues(any(ValueTransformerWithKeySupplier.class));
     verify(consumedFactory).create(keySerde, valueSerde);
     verify(consumed).withTimestampExtractor(any());
-    verify(consumed).withOffsetResetPolicy(AutoOffsetReset.EARLIEST);
+    verify(consumed).withOffsetResetPolicy(AutoOffsetReset.earliest());
   }
 
   @Test
@@ -319,7 +322,7 @@ public class SourceBuilderTest {
     validator.verify(kTable, times(2)).transformValues(any(ValueTransformerWithKeySupplier.class));
     verify(consumedFactory).create(keySerde, valueSerde);
     verify(consumed).withTimestampExtractor(any());
-    verify(consumed).withOffsetResetPolicy(AutoOffsetReset.EARLIEST);
+    verify(consumed).withOffsetResetPolicy(AutoOffsetReset.earliest());
 
     verify(kTable, never()).mapValues(any(ValueMapper.class), any(Materialized.class));
   }
@@ -333,7 +336,7 @@ public class SourceBuilderTest {
     tableSource.build(planBuilder, planInfo);
 
     // Then:
-    verify(consumed).withOffsetResetPolicy(AutoOffsetReset.EARLIEST);
+    verify(consumed).withOffsetResetPolicy(AutoOffsetReset.earliest());
   }
 
   @Test
@@ -348,7 +351,26 @@ public class SourceBuilderTest {
     tableSource.build(planBuilder, planInfo);
 
     // Then:
-    verify(consumed).withOffsetResetPolicy(AutoOffsetReset.LATEST);
+    verify(consumed).withOffsetResetPolicy(AutoOffsetReset.latest());
+  }
+
+  @Test
+  public void shouldThrowOnUnsupportedResetPolicy() {
+    // Given:
+    when(buildContext.getKsqlConfig()).thenReturn(new KsqlConfig(
+        ImmutableMap.of(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "none")
+    ));
+    givenUnwindowedSourceTable();
+
+    // When:
+    final ConfigException e = assertThrows(
+        ConfigException.class,
+        () -> tableSource.build(planBuilder, planInfo)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Unknown value"));
+    assertThat(e.getMessage(), containsString(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG));
   }
   
 

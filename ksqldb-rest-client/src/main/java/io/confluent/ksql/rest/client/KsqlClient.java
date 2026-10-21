@@ -178,13 +178,13 @@ public final class KsqlClient implements AutoCloseable {
           VertxSslOptionsFactory.getJksTrustStoreOptions(clientProps);
 
       if (trustStoreOptions.isPresent()) {
-        httpClientOptions.setTrustStoreOptions(trustStoreOptions.get());
+        httpClientOptions.setTrustOptions(trustStoreOptions.get());
 
         final String alias = clientProps.get(SSL_KEYSTORE_ALIAS_CONFIG);
         final Optional<JksOptions> keyStoreOptions =
             VertxSslOptionsFactory.buildJksKeyStoreOptions(clientProps, Optional.ofNullable(alias));
 
-        keyStoreOptions.ifPresent(options -> httpClientOptions.setKeyStoreOptions(options));
+        keyStoreOptions.ifPresent(options -> httpClientOptions.setKeyCertOptions(options));
       }
     }
     try {

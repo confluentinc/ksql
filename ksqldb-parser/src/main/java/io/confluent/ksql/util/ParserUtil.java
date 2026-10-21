@@ -19,6 +19,7 @@ import static io.confluent.ksql.parser.SqlBaseParser.DecimalLiteralContext;
 import static java.util.Objects.requireNonNull;
 
 import com.google.common.base.Strings;
+import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.execution.expression.tree.DecimalLiteral;
 import io.confluent.ksql.execution.expression.tree.DoubleLiteral;
 import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
@@ -46,7 +47,7 @@ import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.TerminalNode;
-import org.apache.commons.lang3.text.translate.LookupTranslator;
+import org.apache.commons.text.translate.LookupTranslator;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public final class ParserUtil {
@@ -61,9 +62,7 @@ public final class ParserUtil {
   private static final Pattern VALID_SOURCE_NAMES = Pattern.compile("[a-zA-Z0-9_-]*");
 
   private static final LookupTranslator ESCAPE_SYMBOLS = new LookupTranslator(
-      new String[][]{
-          {"'", "''"}
-      }
+      ImmutableMap.of("'", "''")
   );
 
   private ParserUtil() {

@@ -163,12 +163,14 @@ public class CatchupConsumerTest {
         new ConsumerRecords<>(
             ImmutableMap.of(
                 TP0, ImmutableList.of(RECORD0_1),
-                TP1, ImmutableList.of(RECORD1_2))
+                TP1, ImmutableList.of(RECORD1_2)),
+            ImmutableMap.of()
         ),
         new ConsumerRecords<>(
             ImmutableMap.of(
                 TP0, ImmutableList.of(RECORD0_2),
-                TP1, ImmutableList.of(RECORD1_3))
+                TP1, ImmutableList.of(RECORD1_3)),
+            ImmutableMap.of()
         ), EMPTY_RECORDS);
     when(kafkaConsumer.position(TP0)).thenReturn(1L, 2L, 3L);
     when(kafkaConsumer.position(TP1)).thenReturn(2L, 3L, 4L);

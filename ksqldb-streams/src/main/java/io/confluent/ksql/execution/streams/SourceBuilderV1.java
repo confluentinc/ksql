@@ -51,7 +51,7 @@ import java.util.Collection;
 import java.util.function.Function;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.utils.Bytes;
-import org.apache.kafka.streams.Topology.AutoOffsetReset;
+import org.apache.kafka.streams.AutoOffsetReset;
 import org.apache.kafka.streams.kstream.Consumed;
 import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.KTable;
@@ -93,7 +93,7 @@ final class SourceBuilderV1 extends SourceBuilderBase {
         source,
         keySerde,
         valueSerde,
-        AutoOffsetReset.LATEST,
+        AutoOffsetReset.latest(),
         buildContext,
         consumedFactory
     );
@@ -133,7 +133,7 @@ final class SourceBuilderV1 extends SourceBuilderBase {
         source,
         keySerde,
         valueSerde,
-        AutoOffsetReset.LATEST,
+        AutoOffsetReset.latest(),
         buildContext,
         consumedFactory
     );
@@ -182,7 +182,7 @@ final class SourceBuilderV1 extends SourceBuilderBase {
         source,
         keySerde,
         valueSerde,
-        AutoOffsetReset.EARLIEST,
+        AutoOffsetReset.earliest(),
         buildContext,
         consumedFactory
     );

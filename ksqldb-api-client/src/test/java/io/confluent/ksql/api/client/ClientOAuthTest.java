@@ -97,17 +97,17 @@ public class ClientOAuthTest extends ClientTest {
       JSONObject jsonPayload = new JSONObject(payload);
       String sub = jsonPayload.getString("sub");
 
-      workerExecutor.executeBlocking(promise -> {
+      workerExecutor.<Principal>executeBlocking(() -> {
         if (Objects.equals(sub, APP1_DEVELOPER)) {
-          promise.complete(new AuthTest.StringPrincipal(APP1_DEVELOPER));
+          return new AuthTest.StringPrincipal(APP1_DEVELOPER);
         } else {
           final KsqlApiException e = new KsqlApiException(
               "Unauthorized", ERROR_CODE_UNAUTHORIZED);
 
           routingContext.fail(401, e);
-          promise.fail(e);
+          throw e;
         }
-      }, vcf);
+      }).onComplete(vcf);
 
       return vcf;
     }

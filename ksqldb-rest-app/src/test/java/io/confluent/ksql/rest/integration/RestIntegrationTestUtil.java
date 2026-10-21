@@ -57,6 +57,8 @@ import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.http.HttpClientResponse;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpVersion;
+import io.vertx.core.http.WebSocketClient;
+import io.vertx.core.http.WebSocketConnectOptions;
 import io.vertx.core.http.WebsocketVersion;
 import io.vertx.core.streams.WriteStream;
 import io.vertx.ext.web.client.HttpRequest;
@@ -563,9 +565,9 @@ public final class RestIntegrationTestUtil {
       final Optional<Map<String, Object>> requestProperties
   ) {
     Vertx vertx = Vertx.vertx();
-    HttpClient httpClient = null;
+    WebSocketClient webSocketClient = null;
     try {
-      httpClient = vertx.createHttpClient();
+      webSocketClient = vertx.createWebSocketClient();
 
       final String uri = baseUri.toString() + "/ws/query?request="
           + buildStreamingRequest(sql, overrides, requestProperties)
@@ -578,8 +580,11 @@ public final class RestIntegrationTestUtil {
 
       CompletableFuture<List<String>> completableFuture = new CompletableFuture<>();
 
-      httpClient.webSocketAbs(uri, headers, WebsocketVersion.V07,
-          Collections.emptyList(), ar -> {
+      webSocketClient.connect(new WebSocketConnectOptions()
+          .setAbsoluteURI(uri)
+          .setHeaders(headers)
+          .setVersion(WebsocketVersion.V07)
+          .setSubProtocols(Collections.emptyList()), ar -> {
             if (ar.succeeded()) {
               List<String> messages = new ArrayList<>();
               ar.result().frameHandler(frame -> {
@@ -599,8 +604,8 @@ public final class RestIntegrationTestUtil {
     } catch (Exception e) {
       throw new RuntimeException(e);
     } finally {
-      if (httpClient != null) {
-        httpClient.close();
+      if (webSocketClient != null) {
+        webSocketClient.close();
       }
       vertx.close();
     }
@@ -616,7 +621,7 @@ public final class RestIntegrationTestUtil {
       final Consumer<String> chunkConsumer
   ) {
     Vertx vertx = Vertx.vertx();
-    final HttpClient httpClient = vertx.createHttpClient();
+    final WebSocketClient webSocketClient = vertx.createWebSocketClient();
 
     final String uri = baseUri.toString() + "/ws/query?request="
         + buildStreamingRequest(sql, Optional.of(overrides), Optional.empty());
@@ -631,8 +636,11 @@ public final class RestIntegrationTestUtil {
 
     CompletableFuture<Void> completableFuture = new CompletableFuture<>();
 
-    httpClient.webSocketAbs(uri, headers, WebsocketVersion.V07,
-        Collections.emptyList(), ar -> {
+    webSocketClient.connect(new WebSocketConnectOptions()
+        .setAbsoluteURI(uri)
+        .setHeaders(headers)
+        .setVersion(WebsocketVersion.V07)
+        .setSubProtocols(Collections.emptyList()), ar -> {
           if (ar.succeeded()) {
             ar.result().frameHandler(frame -> {
               if (frame.isText()) {
@@ -649,7 +657,7 @@ public final class RestIntegrationTestUtil {
 
     // cleanup
     completableFuture.handle((v, throwable) -> {
-      httpClient.close();
+      webSocketClient.close();
       vertx.close();
       return null;
     });

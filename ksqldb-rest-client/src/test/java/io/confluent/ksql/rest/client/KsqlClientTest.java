@@ -800,7 +800,7 @@ public class KsqlClientTest {
     HttpServerOptions serverOptions = new HttpServerOptions().setPort(0)
         .setHost("localhost")
         .setSsl(true)
-        .setKeyStoreOptions(keyStoreOptions.get());
+        .setKeyCertOptions(keyStoreOptions.get());
 
     startServer(serverOptions);
     serverUri = URI.create("https://localhost:" + server.getPort());

@@ -596,7 +596,7 @@ public class InsertValuesExecutor {
       final Exception e
   ) {
     if (format.supportsFeature(SerdeFeature.SCHEMA_INFERENCE)) {
-      final Throwable rootCause = ObjectUtils.defaultIfNull(ExceptionUtils.getRootCause(e), e);
+      final Throwable rootCause = ObjectUtils.getIfNull(ExceptionUtils.getRootCause(e), e);
       if (rootCause instanceof RestClientException) {
         switch (((RestClientException) rootCause).getStatus()) {
           case HttpStatus.SC_UNAUTHORIZED:

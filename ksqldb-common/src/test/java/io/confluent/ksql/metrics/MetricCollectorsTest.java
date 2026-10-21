@@ -119,7 +119,8 @@ public class MetricCollectorsTest {
             )
         )
     );
-    final ConsumerRecords<Object, Object> consumerRecords = new ConsumerRecords<>(records);
+    final ConsumerRecords<Object, Object> consumerRecords =
+        new ConsumerRecords<>(records, ImmutableMap.of());
 
 
     collector1.onConsume(consumerRecords);
@@ -214,7 +215,8 @@ public class MetricCollectorsTest {
       );
     }
     records.put(new TopicPartition(TEST_TOPIC, 1), recordList);
-    final ConsumerRecords<Object, Object> consumerRecords = new ConsumerRecords<>(records);
+    final ConsumerRecords<Object, Object> consumerRecords =
+        new ConsumerRecords<>(records, ImmutableMap.of());
     collector1.onConsume(consumerRecords);
     collector2.onConsume(consumerRecords);
 
@@ -262,7 +264,8 @@ public class MetricCollectorsTest {
       );
     }
     records.put(new TopicPartition(TEST_TOPIC, 1), recordList);
-    final ConsumerRecords<Object, Object> consumerRecords = new ConsumerRecords<>(records);
+    final ConsumerRecords<Object, Object> consumerRecords =
+        new ConsumerRecords<>(records, ImmutableMap.of());
     collector1.onConsume(consumerRecords);
     collector2.onConsume(consumerRecords);
 
@@ -311,7 +314,8 @@ public class MetricCollectorsTest {
       totalSz += 15 + 2 * i;
     }
     records.put(new TopicPartition(TEST_TOPIC, 1), recordList);
-    final ConsumerRecords<Object, Object> consumerRecords = new ConsumerRecords<>(records);
+    final ConsumerRecords<Object, Object> consumerRecords =
+        new ConsumerRecords<>(records, ImmutableMap.of());
     collector1.onConsume(consumerRecords);
     collector2.onConsume(consumerRecords);
 
@@ -367,7 +371,8 @@ public class MetricCollectorsTest {
       );
     }
     records.put(new TopicPartition(TEST_TOPIC, 1), recordList);
-    final ConsumerRecords<Object, Object> consumerRecords = new ConsumerRecords<>(records);
+    final ConsumerRecords<Object, Object> consumerRecords =
+        new ConsumerRecords<>(records, ImmutableMap.of());
     collector1.onConsume(consumerRecords);
     collector2.onConsume(consumerRecords);
     collector3.onConsume(consumerRecords);
@@ -445,7 +450,8 @@ public class MetricCollectorsTest {
       );
     }
     records.put(new TopicPartition(TEST_TOPIC, 1), recordList);
-    final ConsumerRecords<Object, Object> consumerRecords = new ConsumerRecords<>(records);
+    final ConsumerRecords<Object, Object> consumerRecords =
+        new ConsumerRecords<>(records, ImmutableMap.of());
     collector1.onConsume(consumerRecords);
     collector2.onConsume(consumerRecords);
     collector3.onConsume(consumerRecords);

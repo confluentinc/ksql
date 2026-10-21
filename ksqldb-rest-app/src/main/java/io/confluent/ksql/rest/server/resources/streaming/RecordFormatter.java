@@ -172,7 +172,7 @@ public final class RecordFormatter {
   }
 
   private static Deserializer<?> newProtobufDeserializer(final SchemaRegistryClient srClient) {
-    final Printer printer = TextFormat.printer();
+    final Printer printer = TextFormat.printer().emittingSingleLine(true);
     final KafkaProtobufDeserializer<?> inner = new KafkaProtobufDeserializer<>(srClient);
 
     return (topic, data) -> {
@@ -181,7 +181,7 @@ public final class RecordFormatter {
         return null;
       }
 
-      return printer.shortDebugString(msg);
+      return printer.printToString(msg);
     };
   }
 

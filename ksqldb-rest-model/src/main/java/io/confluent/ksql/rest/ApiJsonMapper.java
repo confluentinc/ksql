@@ -21,8 +21,8 @@ import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.SerializerProvider;
+import com.fasterxml.jackson.databind.cfg.JsonNodeFeature;
 import com.fasterxml.jackson.databind.module.SimpleModule;
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.datatype.guava.GuavaModule;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -58,7 +58,7 @@ public enum ApiJsonMapper {
       .enable(JsonGenerator.Feature.WRITE_BIGDECIMAL_AS_PLAIN)
       .setDateFormat(new SimpleDateFormat(KsqlConstants.DATE_TIME_PATTERN))
       .setTimeZone(TimeZone.getTimeZone("Z"))
-      .setNodeFactory(JsonNodeFactory.withExactBigDecimals(true))
+      .configure(JsonNodeFeature.STRIP_TRAILING_BIGDECIMAL_ZEROES, false)
       .registerModule(new SimpleModule()
           .addSerializer(Time.class, new TimeSerializer())
           .addSerializer(Date.class, new DateSerializer())

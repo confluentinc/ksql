@@ -46,7 +46,7 @@ public enum PlanJsonMapper {
       .enable(DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES)
       .enable(DeserializationFeature.FAIL_ON_NULL_CREATOR_PROPERTIES)
       .enable(DeserializationFeature.FAIL_ON_INVALID_SUBTYPE)
-      .setSerializationInclusion(Include.NON_NULL);
+      .setDefaultPropertyInclusion(Include.NON_NULL);
 
   public ObjectMapper get() {
     return mapper.copy();

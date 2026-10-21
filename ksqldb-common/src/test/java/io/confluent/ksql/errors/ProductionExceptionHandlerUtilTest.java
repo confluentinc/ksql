@@ -17,6 +17,7 @@ package io.confluent.ksql.errors;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
+import static org.hamcrest.CoreMatchers.sameInstance;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.mockito.Mockito.verify;
@@ -35,7 +36,9 @@ import java.util.Map;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.connect.data.SchemaAndValue;
 import org.apache.kafka.connect.data.Struct;
-import org.apache.kafka.streams.errors.ProductionExceptionHandler.ProductionExceptionHandlerResponse;
+import org.apache.kafka.streams.errors.ErrorHandlerContext;
+import org.apache.kafka.streams.errors.ProductionExceptionHandler.Response;
+import org.apache.kafka.streams.errors.ProductionExceptionHandler.Result;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -50,7 +53,9 @@ public class ProductionExceptionHandlerUtilTest {
   @Mock
   private ProducerRecord<byte[], byte[]> record;
   @Mock
-  private ProductionExceptionHandlerResponse mockResponse;
+  private ErrorHandlerContext context;
+
+  private final Response response = Response.resume();
 
   private Map<String, ?> configs;
 
@@ -64,7 +69,7 @@ public class ProductionExceptionHandlerUtilTest {
     configs = ImmutableMap.of(
         ProductionExceptionHandlerUtil.KSQL_PRODUCTION_ERROR_LOGGER, logger);
 
-    exceptionHandler = new TestLogAndXProductionExceptionHandler(mockResponse);
+    exceptionHandler = new TestLogAndXProductionExceptionHandler(response);
     exceptionHandler.configure(configs);
   }
 
@@ -85,7 +90,7 @@ public class ProductionExceptionHandlerUtilTest {
   @Test
   public void shouldLogErrorCorrectly() {
     // When:
-    exceptionHandler.handle(record, new Exception("foo"));
+    exceptionHandler.handleError(context, record, new Exception("foo"));
 
     // Then:
     verify(logger).error(new ProductionError("foo"));
@@ -115,11 +120,10 @@ public class ProductionExceptionHandlerUtilTest {
   @Test
   public void shouldReturnCorrectResponse() {
     // When:
-    final ProductionExceptionHandlerResponse response =
-        exceptionHandler.handle(record, new Exception());
+    final Response result = exceptionHandler.handleError(context, record, new Exception());
 
     // Then:
-    assertThat(response, is((Object) mockResponse));
+    assertThat(result, is(sameInstance(response)));
   }
 
   @Test
@@ -129,11 +133,10 @@ public class ProductionExceptionHandlerUtilTest {
     exceptionHandler.configure(configs);
 
     // When:
-    final ProductionExceptionHandlerResponse response =
-        exceptionHandler.handle(record, new Exception());
+    final Response result = exceptionHandler.handleError(context, record, new Exception());
 
     // Then:
-    assertThat(response, is((Object) ProductionExceptionHandlerResponse.FAIL));
+    assertThat(result.result(), is(Result.FAIL));
   }
 
   @Test
@@ -143,23 +146,22 @@ public class ProductionExceptionHandlerUtilTest {
     exceptionHandler.configure(configs);
 
     // When:
-    final ProductionExceptionHandlerResponse response =
-        exceptionHandler.handle(record, new Exception());
+    final Response result = exceptionHandler.handleError(context, record, new Exception());
 
     // Then:
-    assertThat(response, is((Object) ProductionExceptionHandlerResponse.CONTINUE));
+    assertThat(result.result(), is(Result.RESUME));
   }
 
   private static class TestLogAndXProductionExceptionHandler extends LogAndXProductionExceptionHandler {
 
-    private final ProductionExceptionHandlerResponse response;
+    private final Response response;
 
-    private TestLogAndXProductionExceptionHandler(final ProductionExceptionHandlerResponse response) {
+    private TestLogAndXProductionExceptionHandler(final Response response) {
       this.response = response;
     }
 
     @Override
-    ProductionExceptionHandlerResponse getResponse() {
+    Response getResponse() {
       return response;
     }
   }

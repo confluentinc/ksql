@@ -20,7 +20,7 @@ import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonParser.Feature;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import com.fasterxml.jackson.databind.cfg.JsonNodeFeature;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.confluent.ksql.json.KsqlTypesSerializationModule;
@@ -45,8 +45,8 @@ public enum TestJsonMapper {
       .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
       .enable(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS)
       .enable(JsonGenerator.Feature.WRITE_BIGDECIMAL_AS_PLAIN)
-      .setNodeFactory(JsonNodeFactory.withExactBigDecimals(true))
-      .setSerializationInclusion(Include.NON_EMPTY);
+      .configure(JsonNodeFeature.STRIP_TRAILING_BIGDECIMAL_ZEROES, false)
+      .setDefaultPropertyInclusion(Include.NON_EMPTY);
 
   public ObjectMapper get() {
     return mapper.copy();

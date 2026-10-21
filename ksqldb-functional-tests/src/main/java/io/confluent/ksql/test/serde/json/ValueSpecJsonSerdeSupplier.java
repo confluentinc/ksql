@@ -18,6 +18,7 @@ package io.confluent.ksql.test.serde.json;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.cfg.JsonNodeFeature;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -39,7 +40,7 @@ public class ValueSpecJsonSerdeSupplier implements SerdeSupplier<Object> {
 
   private static final ObjectMapper MAPPER = new ObjectMapper()
       .enable(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS)
-      .setNodeFactory(JsonNodeFactory.withExactBigDecimals(true));
+      .configure(JsonNodeFeature.STRIP_TRAILING_BIGDECIMAL_ZEROES, false);
 
   private static final ObjectMapper FLOAT_MAPPER = new ObjectMapper();
 
@@ -116,8 +117,7 @@ public class ValueSpecJsonSerdeSupplier implements SerdeSupplier<Object> {
 
   private static final class Converter<T> {
 
-    private static final JsonNodeFactory JSON_NODE_FACTORY = JsonNodeFactory
-        .withExactBigDecimals(true);
+    private static final JsonNodeFactory JSON_NODE_FACTORY = new JsonNodeFactory(true);
 
     private static final List<Converter<?>> CONVERTORS = ImmutableList.of(
         Converter.converter(Boolean.class, JSON_NODE_FACTORY::booleanNode),

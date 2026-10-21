@@ -18,13 +18,15 @@ package io.confluent.support.metrics.utils;
 import io.confluent.support.metrics.submitters.ResponseHandler;
 import java.io.IOException;
 import org.apache.hc.client5.http.classic.methods.HttpPost;
+import org.apache.hc.client5.http.config.ConnectionConfig;
 import org.apache.hc.client5.http.config.RequestConfig;
 import org.apache.hc.client5.http.entity.mime.HttpMultipartMode;
 import org.apache.hc.client5.http.entity.mime.MultipartEntityBuilder;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
-import org.apache.hc.client5.http.impl.classic.CloseableHttpResponse;
 import org.apache.hc.client5.http.impl.classic.HttpClientBuilder;
+import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManagerBuilder;
 import org.apache.hc.client5.http.impl.routing.DefaultProxyRoutePlanner;
+import org.apache.hc.client5.http.io.HttpClientConnectionManager;
 import org.apache.hc.core5.http.ContentType;
 import org.apache.hc.core5.http.HttpHost;
 import org.apache.hc.core5.http.HttpStatus;
@@ -74,12 +76,9 @@ public final class WebClient {
 
       // set the HTTP config
       RequestConfig config = RequestConfig.custom()
-          .setConnectTimeout(Timeout.ofMilliseconds(REQUEST_TIMEOUT_MS))
           .setConnectionRequestTimeout(Timeout.ofMilliseconds(REQUEST_TIMEOUT_MS))
           .setResponseTimeout(Timeout.ofMilliseconds(REQUEST_TIMEOUT_MS))
           .build();
-
-      CloseableHttpResponse response = null;
 
       try {
         if (proxy != null) {
@@ -90,24 +89,30 @@ public final class WebClient {
           if (httpClient == null) {
             httpClient = HttpClientBuilder
                 .create()
+                .setConnectionManager(newConnectionManager())
                 .setRoutePlanner(routePlanner)
                 .setDefaultRequestConfig(config)
                 .build();
           }
         } else {
           if (httpClient == null) {
-            httpClient = HttpClientBuilder.create().setDefaultRequestConfig(config).build();
+            httpClient = HttpClientBuilder
+                .create()
+                .setConnectionManager(newConnectionManager())
+                .setDefaultRequestConfig(config)
+                .build();
           }
         }
 
-        response = httpClient.execute(httpPost);
-        if (responseHandler != null) {
-          responseHandler.handle(response);
-        }
+        statusCode = httpClient.execute(httpPost, response -> {
+          if (responseHandler != null) {
+            responseHandler.handle(response);
+          }
 
-        // send request
-        log.debug("POST request returned {}", new StatusLine(response).toString());
-        statusCode = response.getCode();
+          // send request
+          log.debug("POST request returned {}", new StatusLine(response).toString());
+          return response.getCode();
+        });
       } catch (IOException e) {
         log.error("Could not submit metrics to Confluent: {}", e.getMessage());
       } finally {
@@ -116,13 +121,6 @@ public final class WebClient {
             httpClient.close();
           } catch (IOException e) {
             log.warn("could not close http client", e);
-          }
-        }
-        if (response != null) {
-          try {
-            response.close();
-          } catch (IOException e) {
-            log.warn("could not close http response", e);
           }
         }
       }
@@ -168,4 +166,12 @@ public final class WebClient {
     return send(customerId, bytes, httpPost, null, responseHandler);
   }
 
+  private static HttpClientConnectionManager newConnectionManager() {
+    return PoolingHttpClientConnectionManagerBuilder
+        .create()
+        .setDefaultConnectionConfig(ConnectionConfig.custom()
+            .setConnectTimeout(Timeout.ofMilliseconds(REQUEST_TIMEOUT_MS))
+            .build())
+        .build();
+  }
 }

@@ -23,7 +23,7 @@ import java.util.Map;
 import java.util.Objects;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.streams.errors.DeserializationExceptionHandler;
-import org.apache.kafka.streams.processor.ProcessorContext;
+import org.apache.kafka.streams.errors.ErrorHandlerContext;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -34,8 +34,8 @@ public class LogMetricAndContinueExceptionHandler implements DeserializationExce
   private StreamsErrorCollector streamsErrorCollector;
 
   @Override
-  public DeserializationHandlerResponse handle(
-      final ProcessorContext context,
+  public Response handleError(
+      final ErrorHandlerContext context,
       final ConsumerRecord<byte[], byte[]> record,
       final Exception exception
   ) {
@@ -54,10 +54,10 @@ public class LogMetricAndContinueExceptionHandler implements DeserializationExce
               "Authorization error when attempting to access the schema during deserialization. "
               + "taskId: %s, topic: %s, partition: %d, offset: %d",
           context.taskId(), record.topic(), record.partition(), record.offset()));
-      return DeserializationHandlerResponse.FAIL;
+      return Response.fail();
     }
 
-    return DeserializationHandlerResponse.CONTINUE;
+    return Response.resume();
   }
 
   private boolean isCausedByAuthorizationError(final Throwable throwable) {

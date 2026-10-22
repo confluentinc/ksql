@@ -108,6 +108,7 @@
         <apache.directory.server.version>2.0.0-M22</apache.directory.server.version>
         <apache.directory.api.version>1.0.0-M33</apache.directory.api.version>
         <apache.httpcomponents.version>5.6.3</apache.httpcomponents.version>
+        <apache.httpcore5.version>5.4.3</apache.httpcore5.version>
         <!-- httpclient5 5.4.3 pulled this in transitively, but 5.6.3 no longer does,
              and ksqldb-engine's Encode/MD5 UDFs use it directly, so it must be
              declared explicitly now. -->
@@ -770,6 +771,31 @@
                 <groupId>net.minidev</groupId>
                 <artifactId>json-smart</artifactId>
                 <version>2.5.2</version>
+            </dependency>
+
+            <!-- Pin httpclient5/httpcore5 for the transitive copies pulled in via the
+                 schema-registry client and ce-kafka (5.5 / 5.4.2 / httpcore5 5.3.x).
+                 CVE-2026-64607 (httpclient5 < 5.6.3), CVE-2026-54399 and CVE-2026-54428
+                 (httpcore5 / httpcore5-h2 <= 5.4.2). -->
+            <dependency>
+                <groupId>org.apache.httpcomponents.client5</groupId>
+                <artifactId>httpclient5</artifactId>
+                <version>${apache.httpcomponents.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.httpcomponents.client5</groupId>
+                <artifactId>httpclient5-fluent</artifactId>
+                <version>${apache.httpcomponents.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.httpcomponents.core5</groupId>
+                <artifactId>httpcore5</artifactId>
+                <version>${apache.httpcore5.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.httpcomponents.core5</groupId>
+                <artifactId>httpcore5-h2</artifactId>
+                <version>${apache.httpcore5.version}</version>
             </dependency>
 
             <dependency>

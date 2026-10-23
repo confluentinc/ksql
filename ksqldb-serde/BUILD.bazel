@@ -1,4 +1,4 @@
-load("//tools-bazel:ksql_defs.bzl", "KSQL_PARENT_DEPS", "KSQL_TEST_DATA", "KSQL_TEST_JVM_FLAGS", "KSQL_TEST_RUNTIME_DEPS", "classes_dir", "classes_dir_test_args")
+load("//tools-bazel:ksql_defs.bzl", "KSQL_DUMMY_LICENSE_FIRST", "KSQL_PARENT_DEPS", "KSQL_TEST_DATA", "KSQL_TEST_JVM_FLAGS", "KSQL_TEST_RUNTIME_DEPS", "classes_dir", "classes_dir_test_args")
 load("//tools-bazel:library_wrappers.bzl", "java_export", "java_library", "jvm_junit_test_classes")
 
 java_export(
@@ -89,6 +89,7 @@ classes_dir(
 
 jvm_junit_test_classes(
     name = "ksqldb-serde-test-suite",
+    classpath_first = KSQL_DUMMY_LICENSE_FIRST,
     data = KSQL_TEST_DATA,
     jvm_flags = KSQL_TEST_JVM_FLAGS,
     per_test_args = {

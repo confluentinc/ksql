@@ -102,6 +102,7 @@ def jvm_junit_test_classes(
         test_lib,
         test_srcs,
         runtime_deps = [],
+        classpath_first = [],
         package_root = "src/test/java",
         integration_srcs = [],
         per_test_args = {},
@@ -124,6 +125,7 @@ def jvm_junit_test_classes(
     `integration_srcs` (JUnit4 @Category(IntegrationTest) classes — run by
     failsafe under Maven) are tagged `integration`. `per_test_args` is keyed
     by source path like the confluent_rules macro (tags/size/jvm_flags/...).
+    `classpath_first` jars go ahead of `test_lib` on the runtime classpath.
     """
     simple_counts = {}
     for src in test_srcs:
@@ -155,7 +157,7 @@ def jvm_junit_test_classes(
         java_junit5_test(
             name = tname,
             test_class = fqcn,
-            runtime_deps = [test_lib] + runtime_deps,
+            runtime_deps = classpath_first + [test_lib] + runtime_deps,
             jvm_flags = t_flags,
             data = t_data,
             size = t_size,

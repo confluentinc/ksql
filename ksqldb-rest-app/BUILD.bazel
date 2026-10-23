@@ -1,4 +1,4 @@
-load("//tools-bazel:ksql_defs.bzl", "KSQL_PARENT_DEPS", "KSQL_TEST_DATA", "KSQL_TEST_JVM_FLAGS", "KSQL_TEST_RUNTIME_DEPS", "classes_dir", "classes_dir_test_args", "module_cwd_files")
+load("//tools-bazel:ksql_defs.bzl", "KSQL_DUMMY_LICENSE_FIRST", "KSQL_PARENT_DEPS", "KSQL_TEST_DATA", "KSQL_TEST_JVM_FLAGS", "KSQL_TEST_RUNTIME_DEPS", "classes_dir", "classes_dir_test_args", "module_cwd_files")
 load("//tools-bazel:library_wrappers.bzl", "java_export", "java_library", "jvm_junit_test_classes")
 
 java_export(
@@ -163,6 +163,7 @@ module_cwd_files(
 
 jvm_junit_test_classes(
     name = "ksqldb-rest-app-test-suite",
+    classpath_first = KSQL_DUMMY_LICENSE_FIRST,
     data = KSQL_TEST_DATA + [":ksqldb-rest-app-cwd"],
     integration_srcs = [
         "src/test/java/io/confluent/ksql/api/integration/ApiIntegrationTest.java",
@@ -201,13 +202,6 @@ jvm_junit_test_classes(
     ],
     jvm_flags = KSQL_TEST_JVM_FLAGS,
     per_test_args = {
-        # Deterministic Bazel-only failures (pass under Maven): the embedded CE
-        # broker's license service creates `_confluent-command`, which these
-        # tests count as an unexpected topic. Same jars as Maven's classpath;
-        # suspected classpath-order/timing difference. Excluded by default
-        # (.bazelrc) pending investigation.
-        "src/test/java/io/confluent/ksql/rest/integration/ClusterTerminationTest.java": {"tags": ["bazel-known-failure"]},
-        "src/test/java/io/confluent/ksql/rest/integration/TransientQueryResourceCleanerIntTest.java": {"tags": ["bazel-known-failure"]},
         # ~200 cases, each starting a KsqlEngine: well past the 300s `medium` limit under load.
         # shouldReturnErrorMessageIfStackOverflowErrorWhenParsingStatement relies on
         # the parser overflowing the default stack; it does not on darwin-arm64

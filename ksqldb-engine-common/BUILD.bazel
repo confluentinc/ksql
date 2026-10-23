@@ -1,4 +1,4 @@
-load("//tools-bazel:ksql_defs.bzl", "KSQL_PARENT_DEPS", "KSQL_TEST_DATA", "KSQL_TEST_JVM_FLAGS", "KSQL_TEST_RUNTIME_DEPS")
+load("//tools-bazel:ksql_defs.bzl", "KSQL_DUMMY_LICENSE_FIRST", "KSQL_PARENT_DEPS", "KSQL_TEST_DATA", "KSQL_TEST_JVM_FLAGS", "KSQL_TEST_RUNTIME_DEPS")
 load("//tools-bazel:library_wrappers.bzl", "java_export", "java_library", "jvm_junit_test_classes")
 
 java_export(
@@ -38,6 +38,7 @@ java_library(
 
 jvm_junit_test_classes(
     name = "ksqldb-engine-common-test-suite",
+    classpath_first = KSQL_DUMMY_LICENSE_FIRST,
     data = KSQL_TEST_DATA,
     jvm_flags = KSQL_TEST_JVM_FLAGS,
     test_lib = ":ksqldb-engine-common-tests",

@@ -34,6 +34,12 @@ KSQL_TEST_RUNTIME_DEPS = [
     "@maven//:io_confluent_broker_plugins",
 ]
 
+# kafka-test-common-runtime (DummyLicenseManagerService) and confluent-licensing-new
+# (the real one, which creates `_confluent-command`) both register a ServiceLoader
+# LicenseManagerService; the first on the classpath wins. Maven's classpath puts
+# the dummy first in every module except engine, execution, rest-model and streams.
+KSQL_DUMMY_LICENSE_FIRST = ["@maven//:org_apache_kafka_kafka_test_common_runtime"]
+
 # Dependencies every module inherits from the root pom's <dependencies>
 # (compile scope; spotbugs-annotations is `provided`) and from its parent
 # io.confluent:common (common-utils). A Bazel-generated POM

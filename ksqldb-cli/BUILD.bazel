@@ -1,4 +1,4 @@
-load("//tools-bazel:ksql_defs.bzl", "KSQL_PARENT_DEPS", "KSQL_TEST_DATA", "KSQL_TEST_JVM_FLAGS", "KSQL_TEST_RUNTIME_DEPS", "classes_dir", "classes_dir_test_args", "module_cwd_files")
+load("//tools-bazel:ksql_defs.bzl", "KSQL_DUMMY_LICENSE_FIRST", "KSQL_PARENT_DEPS", "KSQL_TEST_DATA", "KSQL_TEST_JVM_FLAGS", "KSQL_TEST_RUNTIME_DEPS", "classes_dir", "classes_dir_test_args", "module_cwd_files")
 load("//tools-bazel:library_wrappers.bzl", "java_export", "java_library", "jvm_junit_test_classes")
 
 java_export(
@@ -95,6 +95,7 @@ module_cwd_files(
 
 jvm_junit_test_classes(
     name = "ksqldb-cli-test-suite",
+    classpath_first = KSQL_DUMMY_LICENSE_FIRST,
     data = KSQL_TEST_DATA + [":ksqldb-cli-cwd"],
     integration_srcs = [
         "src/test/java/io/confluent/ksql/cli/BasicAuthFunctionalTest.java",

@@ -148,6 +148,9 @@ def jvm_junit_test_classes(
         # Embedded-Kafka integration tests routinely exceed `medium` (300s)
         # when run in parallel; failsafe allows a 3600s fork timeout.
         t_size = args.pop("size", "large" if is_integration else size)
+        if is_integration:
+            # Root pom failsafe: forkedProcessTimeoutInSeconds=3600 (or none).
+            args.setdefault("timeout", "eternal")
         t_data = data + args.pop("data", [])
         fqcn = _fqcn(src, package_root)
         simple = src[src.rfind("/") + 1:-len(".java")]
